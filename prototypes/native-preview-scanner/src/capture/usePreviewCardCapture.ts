@@ -26,6 +26,7 @@ import {
   completeCapture,
   failCapture,
   initialCaptureMachineState,
+  manualResetCaptureMachine,
   type CapturePhase,
 } from "./stateMachine";
 
@@ -213,10 +214,11 @@ export function usePreviewCardCapture(
 
   const reportError = useCallback(
     (message: string) => {
+      setError(message);
+      if (machine.value.captureInFlight) return;
       machine.value = failCapture();
       workletCaptureGuard.value = true;
       jsCaptureGuard.current = true;
-      setError(message);
       setDiagnostics((current) => ({
         ...current,
         phase: "error",
@@ -227,7 +229,9 @@ export function usePreviewCardCapture(
   );
 
   const reset = useCallback(() => {
-    machine.value = initialCaptureMachineState();
+    const resetState = manualResetCaptureMachine(machine.value);
+    if (resetState === machine.value) return;
+    machine.value = resetState;
     previousSignature.value = null;
     workletCaptureGuard.value = false;
     jsCaptureGuard.current = false;

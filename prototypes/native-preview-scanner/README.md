@@ -8,7 +8,7 @@ It validates automatic capture only. It does not recognize a card, change a coll
 
 The app uses a centered guide at 72% of preview width and the Magic card ratio, 63:88. Its analysis crop includes an 8% outside margin. At 5 fps, the frame processor converts that crop from the camera's YUV stream to a 96-pixel-short-edge ARGB `Uint8Array`. It computes bounded scalar metrics for expected-border energy and continuity, centering, interior variance, sharpness, motion, and processing time.
 
-All gates must pass for 400 ms. A worklet shared value locks capture before `Worklets.createRunOnJS` asks JavaScript to call `takePhoto()`. A second JavaScript guard protects the camera call. Cooldown stays locked until a conservative departure gate sees both low border continuity and low crop variance for 400 ms, or the tester taps **Manual reset**. Moving the card off-center does not unlock capture by itself. No `Frame` leaves the frame processor.
+All gates must pass for 400 ms. A worklet shared value locks capture before `Worklets.createRunOnJS` asks JavaScript to call `takePhoto()`. A second JavaScript guard protects the camera call. **Manual reset** is ignored while that photo promise is pending, including before JavaScript begins the call. Cooldown stays locked until a conservative departure gate sees both low border continuity and low crop variance for 400 ms, or the tester taps **Manual reset**. Moving the card off-center does not unlock capture by itself. No `Frame` leaves the frame processor.
 
 The thresholds in `src/capture/config.ts` are guesses for the physical trial. Do not treat them as production settings.
 

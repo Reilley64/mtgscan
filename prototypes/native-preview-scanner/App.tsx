@@ -167,7 +167,14 @@ export default function App() {
               ? `${capture.lastPhoto.width}x${capture.lastPhoto.height} ${capture.lastPhoto.path}`
               : "none"}
           </Text>
-          <Pressable style={styles.button} onPress={capture.reset}>
+          <Pressable
+            disabled={diagnostics.phase === "capturing"}
+            style={[
+              styles.button,
+              diagnostics.phase === "capturing" && styles.buttonDisabled,
+            ]}
+            onPress={capture.reset}
+          >
             <Text style={styles.buttonText}>Manual reset</Text>
           </Pressable>
         </View>
@@ -253,6 +260,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#d8ff62",
   },
+  buttonDisabled: { opacity: 0.45 },
   buttonText: { color: "#101500", fontSize: 15, fontWeight: "900" },
   guideLayer: {
     ...StyleSheet.absoluteFillObject,

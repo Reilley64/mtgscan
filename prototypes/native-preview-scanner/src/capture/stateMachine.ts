@@ -9,6 +9,7 @@ export type CaptureMachineState = {
   holdStartedAt: number | null;
   departureStartedAt: number | null;
   captureLocked: boolean;
+  captureInFlight: boolean;
 };
 
 export type CaptureTransition = {
@@ -23,6 +24,7 @@ export const initialCaptureMachineState = (): CaptureMachineState => {
     holdStartedAt: null,
     departureStartedAt: null,
     captureLocked: false,
+    captureInFlight: false,
   };
 };
 
@@ -66,6 +68,7 @@ export function advanceCaptureMachine(
         holdStartedAt,
         departureStartedAt: null,
         captureLocked: false,
+        captureInFlight: false,
       },
       requestCapture: false,
     };
@@ -78,6 +81,7 @@ export function advanceCaptureMachine(
       holdStartedAt,
       departureStartedAt: null,
       captureLocked: true,
+      captureInFlight: true,
     },
     requestCapture: true,
   };
@@ -87,12 +91,13 @@ export function completeCapture(
   state: CaptureMachineState,
 ): CaptureMachineState {
   "worklet";
-  if (!state.captureLocked) return state;
+  if (!state.captureInFlight) return state;
   return {
     phase: "cooldown",
     holdStartedAt: state.holdStartedAt,
     departureStartedAt: null,
     captureLocked: true,
+    captureInFlight: false,
   };
 }
 
@@ -103,5 +108,13 @@ export function failCapture(): CaptureMachineState {
     holdStartedAt: null,
     departureStartedAt: null,
     captureLocked: true,
+    captureInFlight: false,
   };
+}
+
+export function manualResetCaptureMachine(
+  state: CaptureMachineState,
+): CaptureMachineState {
+  "worklet";
+  return state.captureInFlight ? state : initialCaptureMachineState();
 }

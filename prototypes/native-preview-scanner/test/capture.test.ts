@@ -9,6 +9,8 @@ import {
   advanceCaptureMachine,
   completeCapture,
   initialCaptureMachineState,
+  manualResetCaptureMachine,
+  failCapture,
 } from "../src/capture/stateMachine";
 
 const WIDTH = 96;
@@ -206,12 +208,43 @@ describe("capture gate state machine", () => {
     }
   });
 
+  it("ignores reset while a requested photo is in flight", () => {
+    const capture = advanceCaptureMachine(
+      {
+        phase: "holding",
+        holdStartedAt: 0,
+        departureStartedAt: null,
+        captureLocked: false,
+        captureInFlight: false,
+      },
+      allPassingGates,
+      400,
+      DEFAULT_CAPTURE_THRESHOLDS,
+    );
+
+    expect(capture.requestCapture).toBe(true);
+    expect(capture.state).toMatchObject({
+      phase: "capturing",
+      captureLocked: true,
+      captureInFlight: true,
+    });
+    expect(manualResetCaptureMachine(capture.state)).toBe(capture.state);
+
+    expect(manualResetCaptureMachine(completeCapture(capture.state))).toEqual(
+      initialCaptureMachineState(),
+    );
+    expect(manualResetCaptureMachine(failCapture())).toEqual(
+      initialCaptureMachineState(),
+    );
+  });
+
   it("resets only after card departure", () => {
     let state = completeCapture({
       phase: "capturing",
       holdStartedAt: 0,
       departureStartedAt: null,
       captureLocked: true,
+      captureInFlight: true,
     });
     const displacedButPresent = {
       ...absentGates,
