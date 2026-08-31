@@ -33,8 +33,7 @@ function evidence(input: StrategyInput, ranking: Strategy): Evidence[] {
     {
       strategy: "finish",
       status: "unavailable",
-      detail:
-        "Guided-tilt video is retained as evidence only; finish inference is not implemented.",
+      detail: "Finish prediction is unavailable in this still-only baseline.",
     },
   ];
 }

@@ -13,26 +13,14 @@ import {
 import { recognizeConstrainedText, tokenSimilarity } from "./ocr.js";
 import { decideAbstention, rankStrategy, type CorpusCard } from "./ranking.js";
 import { dataRoot } from "./config.js";
-const MAX_STILL_BYTES = 12_000_000,
-  MAX_VIDEO_BYTES = 8_000_000;
+const MAX_STILL_BYTES = 12_000_000;
 function decoded(capture: RecognitionRequest["captures"][number]) {
   const value = Buffer.from(capture.base64, "base64");
   if (!value.length) throw new Error("capture must contain valid base64");
-  const maximum = capture.kind === "still" ? MAX_STILL_BYTES : MAX_VIDEO_BYTES;
-  if (value.length > maximum)
-    throw new Error(`${capture.kind} exceeds ${maximum} decoded bytes`);
-  if (
-    capture.kind === "still" &&
-    !(value[0] === 0xff && value[1] === 0xd8 && value[2] === 0xff)
-  )
+  if (value.length > MAX_STILL_BYTES)
+    throw new Error(`still exceeds ${MAX_STILL_BYTES} decoded bytes`);
+  if (!(value[0] === 0xff && value[1] === 0xd8 && value[2] === 0xff))
     throw new Error("still capture content must be JPEG");
-  if (
-    capture.kind === "guided-tilt-video" &&
-    (value.length < 12 || value.toString("ascii", 4, 8) !== "ftyp")
-  )
-    throw new Error(
-      "guided-tilt content must be an MP4 or QuickTime container",
-    );
   return value;
 }
 export async function recognize(
@@ -41,16 +29,12 @@ export async function recognize(
 ): Promise<RecognitionResponse> {
   const started = performance.now();
   if (
-    request.captures.length < 3 ||
-    request.captures.length > 4 ||
-    request.captures.slice(0, 3).some((c) => c.kind !== "still") ||
-    request.captures.slice(3).some((c) => c.kind !== "guided-tilt-video")
+    request.captures.length !== 3 ||
+    request.captures.some((capture) => capture.kind !== "still")
   )
-    throw new Error(
-      "exactly three stills followed by at most one tilt video are required",
-    );
+    throw new Error("exactly three JPEG stills are required");
   const buffers = request.captures.map(decoded);
-  const stills = buffers.slice(0, 3);
+  const stills = buffers;
   const safeSession = request.sessionId.replace(/[^a-zA-Z0-9_-]/g, "_"),
     safeScan = request.scanId.replace(/[^a-zA-Z0-9_-]/g, "_");
   const captureDirectory = path.join(
@@ -61,17 +45,11 @@ export async function recognize(
   );
   await fs.mkdir(captureDirectory, { recursive: true });
   await Promise.all(
-    request.captures.map(async (capture, index) => {
-      const extension =
-        capture.kind === "still"
-          ? "jpg"
-          : capture.mimeType === "video/quicktime"
-            ? "mov"
-            : "mp4";
+    request.captures.map(async (_capture, index) => {
       await fs.writeFile(
         path.join(
           captureDirectory,
-          `${String(index + 1).padStart(2, "0")}-${capture.kind}.${extension}`,
+          `${String(index + 1).padStart(2, "0")}-still.jpg`,
         ),
         buffers[index]!,
       );

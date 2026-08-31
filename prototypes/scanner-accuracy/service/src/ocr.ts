@@ -1,4 +1,6 @@
+import path from "node:path";
 import sharp from "sharp";
+import { dataRoot } from "./config.js";
 
 function normalized(value: string): string[] {
   return value
@@ -39,7 +41,9 @@ export async function recognizeConstrainedText(
       .png()
       .toBuffer();
     const { createWorker } = await import("tesseract.js");
-    const worker = await createWorker("eng");
+    const worker = await createWorker("eng", undefined, {
+      cachePath: path.join(dataRoot, "tesseract"),
+    });
     try {
       const result = await worker.recognize(title);
       return { text: result.data.text.trim() };

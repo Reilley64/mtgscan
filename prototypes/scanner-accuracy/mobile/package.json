@@ -3,18 +3,17 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
-    "expo": "~57.0.18",
-    "expo-camera": "~57.0.4",
-    "expo-file-system": "~57.0.6",
-    "expo-status-bar": "~57.0.1",
-    "react": "19.2.3",
-    "react-native": "0.86.3",
-    "@scanner-accuracy/shared": "0.1.0"
+    "@scanner-accuracy/shared": "0.1.0",
+    "expo": "~54.0.0",
+    "expo-camera": "~17.0.10",
+    "expo-status-bar": "~3.0.9",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   },
   "devDependencies": {
-    "@types/react": "~19.2.2",
-    "eslint-config-expo": "~57.0.2",
-    "typescript": "~6.0.3"
+    "@types/react": "~19.1.10",
+    "eslint-config-expo": "~10.0.0",
+    "typescript": "~5.9.2"
   },
   "scripts": {
     "start": "expo start",
@@ -22,7 +21,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "verify:expo-go": "node scripts/verify-expo-go-compatibility.mjs"
   },
   "private": true
 }

@@ -39,24 +39,15 @@ export const StillCaptureSchema = z.object({
   base64: z.string().min(1),
   quality: z.number().min(0).max(1).optional(),
 });
-export const TiltCaptureSchema = z.object({
-  id: z.string().min(1),
-  kind: z.literal("guided-tilt-video"),
-  mimeType: z.enum(["video/mp4", "video/quicktime"]),
-  base64: z.string().min(1),
-});
-export const CaptureSchema = z.union([StillCaptureSchema, TiltCaptureSchema]);
 export const RecognitionRequestSchema = z.object({
   sessionId: PrototypeRunIdSchema,
   scanId: PrototypeRunIdSchema,
   capturedAt: z.string().datetime(),
-  captures: z
-    .tuple([StillCaptureSchema, StillCaptureSchema, StillCaptureSchema])
-    .rest(TiltCaptureSchema)
-    .refine(
-      (captures) => captures.length <= 4,
-      "exactly three stills followed by at most one tilt video are required",
-    ),
+  captures: z.tuple([
+    StillCaptureSchema,
+    StillCaptureSchema,
+    StillCaptureSchema,
+  ]),
 });
 export type RecognitionRequest = z.infer<typeof RecognitionRequestSchema>;
 

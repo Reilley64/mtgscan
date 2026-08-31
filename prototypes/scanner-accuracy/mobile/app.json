@@ -22,9 +22,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow the scanner prototype to photograph physical Magic cards.",
-          "microphonePermission": false,
-          "recordAudioAndroid": false
+          "cameraPermission": "Allow the scanner prototype to photograph physical Magic cards."
         }
       ]
     ]

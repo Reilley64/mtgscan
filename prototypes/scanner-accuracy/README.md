@@ -1,6 +1,6 @@
 # Scanner accuracy prototype
 
-**Throwaway Wayfinder prototype.** This workspace asks whether a pure-Expo, three-still burst can produce useful physical-card recognition evidence before mtgscan adds native preview-frame processing. It is not application architecture and does not touch the collection.
+**Rejected Wayfinder prototype.** This workspace tested whether a pure-Expo, three-still burst could produce useful physical-card recognition evidence before mtgscan adds native preview-frame processing. The iPhone 16e early kill rejected this dHash/OCR baseline. It is retained only as reproducible evidence, is not application architecture, and does not touch the collection.
 
 ## Current boundary
 
@@ -10,14 +10,24 @@
 - `sample/kill-test-manifest.json` has 5 synthetic sample printings. `sample/benchmark-manifest.json` has 30. Neither contains collection data. Replace a copy with exact physical printings available to the tester when needed.
 - `.prototype-data/` is ignored. It holds Scryfall metadata, full reference images, physical captures, derived hashes, outcomes, and reports.
 
-Expo Camera does not expose arbitrary live preview frames through its documented interface. This phase therefore uses three calls to `takePictureAsync()`, not tracking, live quality gates, or a frame processor. The optional guided-tilt clip is captured and transmitted as evidence, but **foil inference is not implemented or proven**. Embeddings, geometric reranking, duplicate suppression, missed-change detection, and collection integration are also not implemented. Android is untested.
+This baseline is strictly still-only: Expo Camera does not expose arbitrary live preview frames through its documented interface, so it uses three calls to `takePictureAsync()`. It does not implement tracking, live quality gates, automatic preview detection, or a frame processor. The eventual flow is place card → detect centered and stable → automatically capture a still → recognize → ask for confirmation only when needed. Native-frame processing is the follow-up that must provide the required preview frames; it is not implemented here. **Finish prediction is explicitly unavailable**, so testers confirm finish manually. Embeddings, geometric reranking, duplicate suppression, missed-change detection, and collection integration are also not implemented. Android is untested.
+
+## Physical result: baseline rejected
+
+On 2026-08-31, an iPhone 16e running App Store Expo Go recorded five formal presentations before the early-stop gate fired: one DSC Arcane Signet and four SLD Arcane Signet presentations. The exact SLD printing was outside every strategy's top 10 in three presentations and reached rank 2 once, behind the wrong Arcane Signet printing. All strategies abstained. The five-scan report recorded 40% hybrid identity top-3 recall, 0% Scryfall-printing top-1 accuracy under the abstention rule, 0% auto-accept coverage, 100% correction rate, 815 ms service p95, and 3,422 ms end-to-end proposal p95. The throughput value is invalid because human discussion introduced idle gaps inside the session and must not be used.
+
+This was an intentionally small kill test, not a representative accuracy study. It is sufficient to reject this candidate, not to validate another pipeline. **Do not proceed to the 30-card or 40-card full-corpus procedure with this baseline.** The next experiment must use preview-frame processing for centered/stable automatic capture and stronger visual matching. Guided tilt is not part of the desired user flow.
 
 ## Prerequisites
 
 - Node.js 22 or later and npm
 - An iPhone 16e on the same LAN as the computer
-- Current Expo Go, or an Apple Developer account and EAS CLI for a development build
+- Expo Go from the iPhone App Store, which currently targets Expo SDK 54, or an Apple Developer account and EAS CLI for a development build
 - Five or more physical cards whose exact printings are in the chosen manifest
+
+The mobile workspace intentionally pins Expo SDK 54 so that it runs in the App Store Expo Go client. Before any later Expo upgrade, verify which SDK the App Store client supports first; do not upgrade the project beyond that SDK. Run `npm run verify:expo-go -w mobile` after dependency changes. It prints the resolved public manifest SDK version as JSON and fails unless it is SDK 54.
+
+`npm audit` still reports advisories through SDK 54's Metro toolchain (`image-size` and `uuid`). The offered fix upgrades to Expo 57, which the App Store Expo Go client cannot run. This throwaway harness accepts that local development-tool exposure on trusted project assets; card captures are processed by service-side Sharp, not Metro. Reassess the advisories when Expo Go supports a patched SDK.
 
 Install once from this directory:
 
@@ -33,7 +43,7 @@ Set `PROTOTYPE_TOKEN` in `service/.env` and the same `EXPO_PUBLIC_PROTOTYPE_TOKE
 
 `HOST=127.0.0.1` is the safe default. For intentional LAN testing set `HOST=0.0.0.0` in `service/.env`, then edit `mobile/.env` to use the computer's LAN address. `localhost` points at the phone and will not work. Allow inbound TCP port 4317 in the computer firewall. HTTP is intentional on a trusted test LAN only. Every data or mutating endpoint requires `Authorization: Bearer <token>`; `/health` is the sole unauthenticated endpoint and reveals no paths or secrets. Native Expo does not require CORS. The service emits no wildcard CORS header; if `PROTOTYPE_BROWSER_ORIGIN` is configured, it allows only that exact origin.
 
-The recognition API accepts exactly three actual JPEG stills followed by at most one MP4/QuickTime guided-tilt clip. It checks decoded sizes and file signatures before writing evidence, bounds the full HTTP request, and permits one recognition at a time. Busy recognition requests receive `429`.
+The recognition API accepts exactly three actual JPEG stills and rejects a fourth capture. It checks decoded sizes and JPEG signatures before writing evidence, bounds the full HTTP request, and permits one recognition at a time. Busy recognition requests receive `429`.
 
 ## Prepare Scryfall references
 
@@ -102,15 +112,14 @@ Generated native/build directories are ignored. No Swift or Kotlin belongs in th
 3. Check the LAN service URL in the app.
 4. Put one exact manifest printing on a plain surface in ordinary indoor light. Keep the full card in the centered guide.
 5. Select JPEG quality. Start at `0.7`.
-6. Optionally record the four-second guided tilt. The service retains no special video-derived score and labels finish evidence unavailable.
-7. Tap **Capture 3 stills and recognize**. Review progress, abstention reasons, confidence, and the separate image-only, OCR-only, and hybrid evidence. Hybrid is the default correction proposal. OCR-only abstains rather than inventing evidence when OCR is unavailable.
-8. Select or type the correct Scryfall printing ID. Correct language and finish. The finish starts as `unknown` because it is not inferred.
-9. Record the outcome. The mobile scan batch remains in memory; the service appends the benchmark outcome under `.prototype-data/`.
-10. Swap cards deliberately and repeat. Record full sessions, including abstentions and failures. Do not keep only successful scans.
+6. Tap **Capture 3 stills and recognize**. Review progress, abstention reasons, confidence, and the separate image-only, OCR-only, and hybrid evidence. Hybrid is the default correction proposal. OCR-only abstains rather than inventing evidence when OCR is unavailable.
+7. Select a hybrid candidate or paste the correct Scryfall printing ID when it is absent. The displayed five candidates per strategy are not the full corpus. Correct language and finish. Finish starts as `unknown` because prediction is unavailable.
+8. Record the outcome before scanning another card. The app disables capture while an unconfirmed response is displayed so no physical evidence is lost. The mobile scan batch remains in memory; the service appends the benchmark outcome under `.prototype-data/`.
+9. Swap cards deliberately and repeat. Record full sessions, including abstentions and failures. Do not keep only successful scans.
 
-### Kill test before the full corpus
+### Historical kill-test protocol — do not continue this baseline
 
-Use the checked-in five-card manifest first, or the ignored owned-card manifest after selection. For the five-card preflight, capture each exact printing three times: diffuse light, normal warm indoor light, and one glare-prone angle. Do not proceed to the full sample if the harness crashes, any card never appears in the top three, or fewer than 12 of 15 presentations contain the correct identity in the top three. This small gate only kills a clearly weak still-burst baseline. It does not resolve the ticket or validate auto-accept.
+This protocol is retained for reproducibility, but the baseline has already failed it. Do not proceed to a full corpus with this implementation. The completed run used the ignored owned-card manifest. For a fresh reproduction only, use the checked-in five-card manifest first, or an ignored owned-card manifest after selection. For the five-card preflight, capture each exact printing three times: diffuse light, normal warm indoor light, and one glare-prone angle. Do not proceed to the full sample if the harness crashes, any card never appears in the top three, or fewer than 12 of 15 presentations contain the correct identity in the top three. This small gate only kills a clearly weak still-burst baseline. It does not resolve the ticket or validate auto-accept.
 
 To start the full sample with clean outcomes, archive or remove only `.prototype-data/outcomes.ndjson` and `.prototype-data/reports/`. Never use collection exports as a corpus file.
 

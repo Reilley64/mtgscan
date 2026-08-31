@@ -1,6 +1,5 @@
 import { StatusBar } from "expo-status-bar";
 import { CameraView, useCameraPermissions, type CameraType } from "expo-camera";
-import { File } from "expo-file-system";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -22,7 +21,6 @@ import {
   type OutcomeSubmission,
 } from "@scanner-accuracy/shared";
 
-type Capture = RecognitionRequest["captures"][number];
 type BatchEntry = {
   scanId: string;
   name: string;
@@ -42,10 +40,8 @@ export default function App() {
   const [permission, requestPermission] = useCameraPermissions();
   const [ready, setReady] = useState(false);
   const [facing] = useState<CameraType>("back");
-  const [cameraMode, setCameraMode] = useState<"picture" | "video">("picture");
   const [serviceUrl, setServiceUrl] = useState(serviceDefault);
   const [quality, setQuality] = useState(0.7);
-  const [tiltCapture, setTiltCapture] = useState<Capture | null>(null);
   const [progress, setProgress] = useState("Ready");
   const [error, setError] = useState<string | null>(null);
   const [recognition, setRecognition] = useState<RecognitionResponse | null>(
@@ -60,52 +56,20 @@ export default function App() {
     number | null
   >(null);
   const sessionId = useRef(makeId()).current;
-
-  async function captureTilt() {
-    if (!camera.current || !ready) return;
-    setError(null);
-    setProgress(
-      "Switching to video. Tilt the card slowly when recording starts.",
-    );
-    setCameraMode("video");
-    try {
-      await delay(700);
-      const result = await camera.current.recordAsync({
-        maxDuration: 4,
-        maxFileSize: 8_000_000,
-      });
-      if (!result?.uri) throw new Error("Camera returned no video.");
-      const base64 = await new File(result.uri).base64();
-      setTiltCapture({
-        id: makeId(),
-        kind: "guided-tilt-video",
-        mimeType: result.uri.toLowerCase().endsWith(".mov")
-          ? "video/quicktime"
-          : "video/mp4",
-        base64,
-      });
-      setProgress(
-        "Guided-tilt clip queued for the next scan. Finish inference remains unavailable.",
-      );
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
-      setProgress("Video capture failed.");
-    } finally {
-      setCameraMode("picture");
-    }
-  }
+  const recognitionLocked = useRef(false);
 
   async function captureAndRecognize() {
-    if (!camera.current || !ready || cameraMode !== "picture") return;
+    if (!camera.current || !ready || recognition || recognitionLocked.current)
+      return;
+    recognitionLocked.current = true;
     setError(null);
-    setRecognition(null);
     const proposalStartedAt = Date.now();
     const started = new Date(proposalStartedAt).toISOString();
     setScanStartedAt(started);
     try {
       if (!prototypeToken)
         throw new Error("EXPO_PUBLIC_PROTOTYPE_TOKEN is required.");
-      const captures: Capture[] = [];
+      const captures: RecognitionRequest["captures"][number][] = [];
       for (let index = 0; index < 3; index++) {
         setProgress(`Capturing still ${index + 1} of 3…`);
         const picture = await camera.current.takePictureAsync({
@@ -123,18 +87,12 @@ export default function App() {
         });
         await delay(250);
       }
-      if (tiltCapture) captures.push(tiltCapture);
       const scanId = makeId();
       const request: RecognitionRequest = {
         sessionId,
         scanId,
         capturedAt: started,
-        captures: [
-          captures[0]!,
-          captures[1]!,
-          captures[2]!,
-          ...(captures.slice(3) as Capture[]),
-        ] as RecognitionRequest["captures"],
+        captures: [captures[0]!, captures[1]!, captures[2]!],
       };
       setProgress("Uploading captures and ranking candidates…");
       const response = await fetch(
@@ -156,7 +114,6 @@ export default function App() {
       const parsed = RecognitionResponseSchema.parse(payload);
       setEndToEndProposalLatencyMs(Date.now() - proposalStartedAt);
       setRecognition(parsed);
-      setTiltCapture(null);
       const hybrid = parsed.results.find(
         (result) => result.strategy === "hybrid",
       );
@@ -172,6 +129,7 @@ export default function App() {
           : "Hybrid candidate auto-accepted by prototype thresholds. Confirm it below.",
       );
     } catch (caught) {
+      recognitionLocked.current = false;
       setError(caught instanceof Error ? caught.message : String(caught));
       setProgress("Recognition failed.");
     }
@@ -230,6 +188,7 @@ export default function App() {
         },
       ]);
       setRecognition(null);
+      recognitionLocked.current = false;
       setProgress("Outcome recorded. Ready for the next physical card.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
@@ -279,8 +238,6 @@ export default function App() {
             ref={camera}
             style={StyleSheet.absoluteFill}
             facing={facing}
-            mode={cameraMode}
-            mute
             onCameraReady={() => setReady(true)}
           />
           <View pointerEvents="none" style={styles.cardGuide}>
@@ -302,20 +259,13 @@ export default function App() {
             </Pressable>
           ))}
         </View>
-        <View style={styles.buttonGap}>
-          <Button
-            title={
-              tiltCapture
-                ? "Replace queued 4s tilt video"
-                : "Optional: capture 4s guided tilt video"
-            }
-            disabled={!ready}
-            onPress={captureTilt}
-          />
-        </View>
         <Button
-          title="Capture 3 stills and recognize"
-          disabled={!ready || cameraMode !== "picture"}
+          title={
+            recognition
+              ? "Record the displayed outcome before another scan"
+              : "Capture 3 stills and recognize"
+          }
+          disabled={!ready || recognition !== null || recognitionLocked.current}
           onPress={captureAndRecognize}
         />
         <Text style={styles.status}>{progress}</Text>
@@ -369,7 +319,11 @@ export default function App() {
                 ))}
               </View>
             ))}
-            <Text style={styles.label}>Correct Scryfall printing ID</Text>
+            <Text style={styles.label}>
+              Correct Scryfall printing ID — paste the correct ID if it is
+              absent from these displayed candidates. Each strategy shows only
+              its top five, not the full corpus.
+            </Text>
             <TextInput
               style={styles.input}
               autoCapitalize="none"
@@ -463,7 +417,6 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   selected: { backgroundColor: "#cfe5ff", borderColor: "#225ea8" },
-  buttonGap: { marginTop: 4 },
   status: { backgroundColor: "#e8e8e8", padding: 10 },
   error: { color: "#a40000" },
   results: { gap: 8 },

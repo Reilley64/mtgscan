@@ -32,4 +32,22 @@ describe("recognizer capture guard", () => {
     } as RecognitionRequest;
     await expect(recognize(request, [])).rejects.toThrow("must be JPEG");
   });
+
+  it("rejects a fourth still before writing evidence", async () => {
+    const capture = {
+      id: "still",
+      kind: "still" as const,
+      mimeType: "image/jpeg" as const,
+      base64: "/9j/",
+    };
+    const request = {
+      sessionId: "guard",
+      scanId: "fourth",
+      capturedAt: "2025-01-01T00:00:00.000Z",
+      captures: [capture, capture, capture, capture],
+    } as unknown as RecognitionRequest;
+    await expect(recognize(request, [])).rejects.toThrow(
+      "exactly three JPEG stills",
+    );
+  });
 });

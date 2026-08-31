@@ -10,7 +10,7 @@ const still = {
   base64: "YQ==",
 };
 describe("fixed capture boundary", () =>
-  it("requires exactly three JPEG stills followed by at most one tilt video", () => {
+  it("requires exactly three JPEG stills", () => {
     const base = {
       sessionId: "s",
       scanId: "x",
@@ -29,22 +29,6 @@ describe("fixed capture boundary", () =>
       RecognitionRequestSchema.parse({
         ...base,
         captures: [still, still, still],
-      }),
-    ).not.toThrow();
-    expect(() =>
-      RecognitionRequestSchema.parse({
-        ...base,
-        captures: [
-          still,
-          still,
-          still,
-          {
-            id: "v",
-            kind: "guided-tilt-video",
-            mimeType: "video/mp4",
-            base64: "YQ==",
-          },
-        ],
       }),
     ).not.toThrow();
   }));
