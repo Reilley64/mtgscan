@@ -22,6 +22,11 @@ import {
   type PreviewMetrics,
 } from "./metrics";
 import {
+  EMPTY_TIMING_TELEMETRY,
+  recordProcessingTime,
+  type TimingTelemetry,
+} from "./timingTelemetry";
+import {
   advanceCaptureMachine,
   completeCapture,
   failCapture,
@@ -36,8 +41,14 @@ export type PreviewCardCaptureDiagnostics = {
   phase: CapturePhase;
   metrics: PreviewMetrics;
   gates: PreviewGates;
+  timing: TimingTelemetry;
   captureLocked: boolean;
 };
+
+type PublishedPreviewCardCaptureDiagnostics = Omit<
+  PreviewCardCaptureDiagnostics,
+  "timing"
+>;
 
 export type PreviewCardCapture = {
   frameProcessor: ReturnType<typeof useFrameProcessor>;
@@ -77,6 +88,9 @@ export function usePreviewCardCapture(
   const previousSignature = useSharedValue<number[] | null>(null);
   const workletCaptureGuard = useSharedValue(false);
   const jsCaptureGuard = useRef(false);
+  const timingHistory = useRef<number[]>([]);
+  const runSamples = useRef(0);
+  const captureSequence = useRef(0);
   const [lastPhoto, setLastPhoto] = useState<CapturedPhoto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<PreviewCardCaptureDiagnostics>(
@@ -84,14 +98,33 @@ export function usePreviewCardCapture(
       phase: "seeking",
       metrics: EMPTY_METRICS,
       gates: EMPTY_GATES,
+      timing: EMPTY_TIMING_TELEMETRY,
       captureLocked: false,
     },
   );
 
   const receiveDiagnostics = useCallback(
-    (next: PreviewCardCaptureDiagnostics) => {
+    (next: PublishedPreviewCardCaptureDiagnostics) => {
       if (!next.captureLocked) jsCaptureGuard.current = false;
-      setDiagnostics(next);
+      const timing = recordProcessingTime(
+        timingHistory.current,
+        next.metrics.processingMs,
+      );
+      const sampleCount = ++runSamples.current;
+      setDiagnostics({ ...next, timing });
+      if (sampleCount % 25 === 0) {
+        console.log(
+          "NATIVE_PREVIEW_TELEMETRY " +
+            JSON.stringify({
+              runSamples: sampleCount,
+              processingMs: next.metrics.processingMs,
+              timing,
+              phase: next.phase,
+              gates: next.gates,
+              metrics: next.metrics,
+            }),
+        );
+      }
     },
     [],
   );
@@ -103,6 +136,11 @@ export function usePreviewCardCapture(
   const takeExactlyOnePhoto = useCallback(async () => {
     if (jsCaptureGuard.current) return;
     jsCaptureGuard.current = true;
+    const sequence = ++captureSequence.current;
+    console.log(
+      "NATIVE_PREVIEW_EVENT " +
+        JSON.stringify({ event: "capture-js-start", sequence }),
+    );
     setError(null);
     setDiagnostics((current) => ({ ...current, phase: "capturing" }));
     try {
@@ -113,6 +151,15 @@ export function usePreviewCardCapture(
         height: photo.height,
         path: photo.path,
       });
+      console.log(
+        "NATIVE_PREVIEW_EVENT " +
+          JSON.stringify({
+            event: "capture-success",
+            sequence,
+            width: photo.width,
+            height: photo.height,
+          }),
+      );
       machine.value = completeCapture(machine.value);
       setDiagnostics((current) => ({
         ...current,
@@ -121,6 +168,14 @@ export function usePreviewCardCapture(
       }));
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : String(caught);
+      console.log(
+        "NATIVE_PREVIEW_EVENT " +
+          JSON.stringify({
+            event: "capture-failure",
+            sequence,
+            error: "capture-failed",
+          }),
+      );
       machine.value = failCapture();
       setError(message);
       setDiagnostics((current) => ({
@@ -214,6 +269,13 @@ export function usePreviewCardCapture(
 
   const reportError = useCallback(
     (message: string) => {
+      console.log(
+        "NATIVE_PREVIEW_EVENT " +
+          JSON.stringify({
+            event: "camera-runtime-error",
+            error: "camera-runtime-error",
+          }),
+      );
       setError(message);
       if (machine.value.captureInFlight) return;
       machine.value = failCapture();
@@ -230,7 +292,17 @@ export function usePreviewCardCapture(
 
   const reset = useCallback(() => {
     const resetState = manualResetCaptureMachine(machine.value);
-    if (resetState === machine.value) return;
+    if (resetState === machine.value) {
+      console.log(
+        "NATIVE_PREVIEW_EVENT " +
+          JSON.stringify({ event: "manual-reset-ignored-capture-in-flight" }),
+      );
+      return;
+    }
+    console.log(
+      "NATIVE_PREVIEW_EVENT " +
+        JSON.stringify({ event: "manual-reset-accepted" }),
+    );
     machine.value = resetState;
     previousSignature.value = null;
     workletCaptureGuard.value = false;
@@ -241,8 +313,11 @@ export function usePreviewCardCapture(
       phase: "seeking",
       metrics: EMPTY_METRICS,
       gates: EMPTY_GATES,
+      timing: EMPTY_TIMING_TELEMETRY,
       captureLocked: false,
     });
+    timingHistory.current = [];
+    runSamples.current = 0;
   }, [machine, previousSignature, workletCaptureGuard]);
 
   return {

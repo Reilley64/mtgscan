@@ -152,8 +152,14 @@ export default function App() {
             value={`${formatNumber(diagnostics.metrics.motion)} <= ${thresholds.motionMax}`}
           />
           <Text style={styles.telemetry}>
-            Analysis {formatNumber(diagnostics.metrics.processingMs, 2)} ms at 5
-            fps. Dwell {thresholds.dwellMs} ms; departure reset{" "}
+            Analysis current {formatNumber(diagnostics.metrics.processingMs, 2)}
+            ms; rolling 60 s ({diagnostics.timing.sampleCount}/300 samples): p50{" "}
+            {formatNumber(diagnostics.timing.p50Ms, 2)} ms, p95{" "}
+            {formatNumber(diagnostics.timing.p95Ms, 2)} ms, max{" "}
+            {formatNumber(diagnostics.timing.maxMs, 2)} ms. At 5 fps.
+          </Text>
+          <Text style={styles.telemetry}>
+            Dwell {thresholds.dwellMs} ms; departure reset{" "}
             {thresholds.departureMs} ms.
           </Text>
           <Text style={styles.telemetry}>

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CAPTURE_THRESHOLDS } from "../src/capture/config";
 import {
+  recordProcessingTime,
+  TIMING_WINDOW_SAMPLES,
+} from "../src/capture/timingTelemetry";
+import {
   computePreviewMetrics,
   evaluatePreviewGates,
   type PreviewGates,
@@ -279,5 +283,38 @@ describe("capture gate state machine", () => {
       DEFAULT_CAPTURE_THRESHOLDS,
     ).state;
     expect(state).toEqual(initialCaptureMachineState());
+  });
+});
+
+describe("processing-time telemetry", () => {
+  it("keeps only the most recent 300 samples", () => {
+    const history: number[] = [];
+    let telemetry = recordProcessingTime(history, 1);
+    for (let value = 2; value <= TIMING_WINDOW_SAMPLES + 2; value++) {
+      telemetry = recordProcessingTime(history, value);
+    }
+
+    expect(history).toHaveLength(TIMING_WINDOW_SAMPLES);
+    expect(history[0]).toBe(3);
+    expect(telemetry).toMatchObject({
+      sampleCount: 300,
+      p50Ms: 152,
+      p95Ms: 287,
+      maxMs: 302,
+    });
+  });
+
+  it("uses nearest-rank percentiles", () => {
+    const history: number[] = [];
+    for (const value of [30, 10, 20, 40]) {
+      recordProcessingTime(history, value);
+    }
+
+    expect(recordProcessingTime(history, 50)).toEqual({
+      sampleCount: 5,
+      p50Ms: 30,
+      p95Ms: 50,
+      maxMs: 50,
+    });
   });
 });

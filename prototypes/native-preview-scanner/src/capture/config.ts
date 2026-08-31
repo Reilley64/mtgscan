@@ -1,7 +1,7 @@
 export const CARD_ASPECT_RATIO = 63 / 88;
 export const GUIDE_WIDTH_FRACTION = 0.72;
 export const ANALYSIS_MARGIN_FRACTION = 0.08;
-export const ANALYSIS_SHORT_EDGE = 96;
+export const ANALYSIS_SHORT_EDGE = 48;
 
 export type CaptureThresholds = {
   borderEnergyMin: number;

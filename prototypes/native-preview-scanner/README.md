@@ -6,7 +6,7 @@ It validates automatic capture only. It does not recognize a card, change a coll
 
 ## Trial boundary
 
-The app uses a centered guide at 72% of preview width and the Magic card ratio, 63:88. Its analysis crop includes an 8% outside margin. At 5 fps, the frame processor converts that crop from the camera's YUV stream to a 96-pixel-short-edge ARGB `Uint8Array`. It computes bounded scalar metrics for expected-border energy and continuity, centering, interior variance, sharpness, motion, and processing time.
+The app uses a centered guide at 72% of preview width and the Magic card ratio, 63:88. Its analysis crop includes an 8% outside margin. At 5 fps, the frame processor converts that crop from the camera's YUV stream to a 48-pixel-short-edge ARGB `Uint8Array`. It computes bounded scalar metrics for expected-border energy and continuity, centering, interior variance, sharpness, motion, and processing time. The overlay keeps the actual published processing times in a rolling 60-second, 300-sample window and shows current, sample count, p50, p95, and max. Percentiles use the deterministic nearest-rank rule: after sorting _n_ values, percentile _p_ is value `ceil(p × n)`.
 
 All gates must pass for 400 ms. A worklet shared value locks capture before `Worklets.createRunOnJS` asks JavaScript to call `takePhoto()`. A second JavaScript guard protects the camera call. **Manual reset** is ignored while that photo promise is pending, including before JavaScript begins the call. Cooldown stays locked until a conservative departure gate sees both low border continuity and low crop variance for 400 ms, or the tester taps **Manual reset**. Moving the card off-center does not unlock capture by itself. No `Frame` leaves the frame processor.
 
@@ -101,12 +101,13 @@ For every presentation, record:
 - device and iOS version;
 - selected preview resolution, photo resolution, and camera fps;
 - lighting, card, sleeve, and foil state;
-- final values for border energy, border continuity, interior variance, center score, sharpness, motion, and processing time;
+- final values for border energy, border continuity, interior variance, center score, sharpness, and motion;
+- the overlay's current processing time and rolling 60-second fields: sample count, p50, p95, and max;
 - phase order and time from the first all-pass sample to capture;
 - number of stills, photo dimensions, and whether departure returned the app to seeking;
 - any dropped preview, frame-processor error, camera error, thermal warning, or UI stall.
 
-Use an external counter or Xcode log to confirm the still count. A displayed last path alone does not prove there was no second camera call.
+Metro structured lines are the external evidence source. Every five seconds, parse `NATIVE_PREVIEW_TELEMETRY ` followed by JSON for `runSamples`, current processing time, the rolling timing summary, phase, gates, and scalar metrics. Parse `NATIVE_PREVIEW_EVENT ` followed by JSON to count capture starts, successes, failures, reset outcomes, and camera runtime errors. The lines exclude image paths, card or corpus data, and secrets. Use the monotonically increasing capture sequence in these events to confirm the still count. A displayed last path alone does not prove there was no second camera call.
 
 ## Ten-presentation matrix
 
@@ -134,7 +135,7 @@ Run on the physical iPhone with the Xcode console visible:
 1. Present a valid card for 20 seconds, then remove it for 5 seconds.
 2. Repeat with at least three cards, one clear sleeve, and one foil until 15 minutes pass.
 3. Keep each card in place long enough to test cooldown. Confirm one still per presentation.
-4. Every minute, note processing-time p50 and worst observed value, preview responsiveness, thermal state or warning, error count, capture count, and reset count.
+4. Every minute, record the overlay's rolling sample count, p50, p95, and max processing times, plus current processing time, preview responsiveness, thermal state or warning, error count, capture count, and reset count. These displayed rolling fields are the timing evidence source.
 5. End with an empty guide. Confirm the app is seeking and still responds to **Manual reset**.
 
 ## Acceptance and kill gates
