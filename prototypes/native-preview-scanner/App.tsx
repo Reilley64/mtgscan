@@ -35,8 +35,8 @@ export default function App() {
     physicalDevices: ["wide-angle-camera"],
   });
   const format = useCameraFormat(device, [
-    { photoResolution: "max" },
     { videoResolution: { width: 1280, height: 720 } },
+    { photoResolution: "max" },
     { fps: 30 },
   ]);
   const { hasPermission, requestPermission } = useCameraPermission();
