@@ -148,7 +148,7 @@ Accept this capture technique for a later experiment only if all of these hold:
 - each positive row stays at one still while the card remains present;
 - departure restores seeking and allows exactly one still for the next card;
 - the selected photo output is the logged high or maximum resolution supported by the negotiated format;
-- preview analysis stays below 40 ms p95 at 5 fps, with no visible preview stall;
+- preview analysis stays below 20 ms p95 at 5 fps, with no visible preview stall;
 - the 15-minute soak has no crash, stuck state, duplicate still, or thermal warning.
 
 Kill this technique or stop the trial if the fixed V4 packages cannot compile together, the resize plugin cannot process the YUV crop, guide alignment is materially wrong, any negative row captures, any presentation produces a duplicate, processing exceeds 100 ms repeatedly, the app crashes, or the camera session enters a state that manual reset cannot recover. Report the exact V4 API, Pod, or Xcode blocker. Do not switch to VisionCamera V5 or another Expo SDK inside this trial.
