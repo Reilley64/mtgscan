@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "MTGScan Native Preview Spike",
+    "slug": "mtgscan-native-preview-scanner-spike",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.reilley.mtgscan.nativepreviewspike"
+    },
+    "android": {
+      "package": "com.reilley.mtgscan.nativepreviewspike"
+    },
+    "plugins": [
+      "expo-dev-client",
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "Allow this capture-only prototype to use the camera.",
+          "enableMicrophonePermission": false,
+          "enableFrameProcessors": true,
+          "enableLocation": false
+        }
+      ]
+    ]
+  }
+}
