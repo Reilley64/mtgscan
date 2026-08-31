@@ -19,6 +19,7 @@ import {
   type Finish,
   type RecognitionRequest,
   type RecognitionResponse,
+  type OutcomeSubmission,
 } from "@scanner-accuracy/shared";
 
 type Capture = RecognitionRequest["captures"][number];
@@ -31,7 +32,8 @@ type BatchEntry = {
 };
 const makeId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const serviceDefault =
-  process.env.EXPO_PUBLIC_RECOGNITION_URL ?? "http://192.168.1.2:4317";
+  process.env.EXPO_PUBLIC_RECOGNITION_URL ?? "http://127.0.0.1:4317";
+const prototypeToken = process.env.EXPO_PUBLIC_PROTOTYPE_TOKEN ?? "";
 const delay = (milliseconds: number) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -54,6 +56,9 @@ export default function App() {
   const [finish, setFinish] = useState<Finish>("unknown");
   const [batch, setBatch] = useState<BatchEntry[]>([]);
   const [scanStartedAt, setScanStartedAt] = useState<string | null>(null);
+  const [endToEndProposalLatencyMs, setEndToEndProposalLatencyMs] = useState<
+    number | null
+  >(null);
   const sessionId = useRef(makeId()).current;
 
   async function captureTilt() {
@@ -94,9 +99,12 @@ export default function App() {
     if (!camera.current || !ready || cameraMode !== "picture") return;
     setError(null);
     setRecognition(null);
-    const started = new Date().toISOString();
+    const proposalStartedAt = Date.now();
+    const started = new Date(proposalStartedAt).toISOString();
     setScanStartedAt(started);
     try {
+      if (!prototypeToken)
+        throw new Error("EXPO_PUBLIC_PROTOTYPE_TOKEN is required.");
       const captures: Capture[] = [];
       for (let index = 0; index < 3; index++) {
         setProgress(`Capturing still ${index + 1} of 3…`);
@@ -121,14 +129,22 @@ export default function App() {
         sessionId,
         scanId,
         capturedAt: started,
-        captures,
+        captures: [
+          captures[0]!,
+          captures[1]!,
+          captures[2]!,
+          ...(captures.slice(3) as Capture[]),
+        ] as RecognitionRequest["captures"],
       };
       setProgress("Uploading captures and ranking candidates…");
       const response = await fetch(
         `${serviceUrl.replace(/\/$/, "")}/recognitions`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${prototypeToken}`,
+          },
           body: JSON.stringify(request),
         },
       );
@@ -138,18 +154,22 @@ export default function App() {
           `Service ${response.status}: ${JSON.stringify(payload)}`,
         );
       const parsed = RecognitionResponseSchema.parse(payload);
+      setEndToEndProposalLatencyMs(Date.now() - proposalStartedAt);
       setRecognition(parsed);
       setTiltCapture(null);
-      const first = parsed.candidates[0];
+      const hybrid = parsed.results.find(
+        (result) => result.strategy === "hybrid",
+      );
+      const first = hybrid?.candidates[0];
       if (first) {
         setSelectedId(first.scryfallId);
         setLanguage(first.language);
         setFinish("unknown");
       }
       setProgress(
-        parsed.abstention.abstained
-          ? `Abstained: ${parsed.abstention.reasons.join("; ")}`
-          : "Candidate auto-accepted by prototype thresholds. Confirm it below.",
+        hybrid?.abstention.abstained
+          ? `Hybrid abstained: ${hybrid.abstention.reasons.join("; ")}`
+          : "Hybrid candidate auto-accepted by prototype thresholds. Confirm it below.",
       );
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
@@ -158,40 +178,34 @@ export default function App() {
   }
 
   async function submitOutcome() {
-    if (!recognition || !scanStartedAt) return;
+    if (!recognition || !scanStartedAt || endToEndProposalLatencyMs === null)
+      return;
     try {
-      const selectedFinish = FinishSchema.parse(finish);
-      const first = recognition.candidates[0];
-      const changedFromProposal =
-        selectedId.trim() !== first?.scryfallId ||
-        language.trim() !== first?.language ||
-        selectedFinish !== "unknown";
-      const correction = {
+      if (!prototypeToken)
+        throw new Error("EXPO_PUBLIC_PROTOTYPE_TOKEN is required.");
+      const selected = {
         selectedScryfallId: selectedId.trim(),
         language: language.trim(),
-        finish: selectedFinish,
-        changedFromProposal,
+        finish: FinishSchema.parse(finish),
       };
-      const groundTruth = {
-        selectedScryfallId: correction.selectedScryfallId,
-        language: correction.language,
-        finish: correction.finish,
-      };
-      const outcome = {
+      const outcome: OutcomeSubmission = {
         sessionId,
         scanId: recognition.scanId,
-        recognition,
-        correction,
-        groundTruth,
+        selected,
+        groundTruth: selected,
         scanStartedAt,
         scanCompletedAt: new Date().toISOString(),
+        endToEndProposalLatencyMs,
       };
       setProgress("Recording benchmark outcome…");
       const response = await fetch(
         `${serviceUrl.replace(/\/$/, "")}/outcomes`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${prototypeToken}`,
+          },
           body: JSON.stringify(outcome),
         },
       );
@@ -199,17 +213,20 @@ export default function App() {
         throw new Error(
           `Outcome service returned ${response.status}: ${await response.text()}`,
         );
-      const selected = recognition.candidates.find(
-        (candidate) => candidate.scryfallId === correction.selectedScryfallId,
+      const hybrid = recognition.results.find(
+        (result) => result.strategy === "hybrid",
+      );
+      const candidate = hybrid?.candidates.find(
+        (item) => item.scryfallId === selected.selectedScryfallId,
       );
       setBatch((entries) => [
         ...entries,
         {
           scanId: recognition.scanId,
-          name: selected?.name ?? "Manual Scryfall printing",
-          scryfallId: correction.selectedScryfallId,
-          language: correction.language,
-          finish: correction.finish,
+          name: candidate?.name ?? "Manual Scryfall printing",
+          scryfallId: selected.selectedScryfallId,
+          language: selected.language,
+          finish: selected.finish,
         },
       ]);
       setRecognition(null);
@@ -306,36 +323,51 @@ export default function App() {
         {recognition && (
           <View style={styles.results}>
             <Text style={styles.subtitle}>
-              Ranked candidates ({recognition.latencyMs} ms)
+              Proposal timing: {endToEndProposalLatencyMs} ms end-to-end;{" "}
+              {recognition.serviceLatencyMs} ms service
             </Text>
-            {recognition.candidates.slice(0, 5).map((candidate, index) => (
-              <Pressable
-                key={candidate.scryfallId}
-                style={[
-                  styles.candidate,
-                  selectedId === candidate.scryfallId && styles.selected,
-                ]}
-                onPress={() => {
-                  setSelectedId(candidate.scryfallId);
-                  setLanguage(candidate.language);
-                  setFinish("unknown");
-                }}
-              >
-                <Text>
-                  {index + 1}. {candidate.name} — {candidate.set.toUpperCase()}{" "}
-                  {candidate.collectorNumber} (
-                  {Math.round(candidate.confidence * 100)}%)
+            {recognition.results.map((result) => (
+              <View key={result.strategy}>
+                <Text style={styles.label}>
+                  {result.strategy}{" "}
+                  {result.abstention.abstained
+                    ? `— abstained: ${result.abstention.reasons.join("; ")}`
+                    : ""}
                 </Text>
-                {candidate.evidence.map((item) => (
-                  <Text key={item.strategy} style={styles.evidence}>
-                    {item.strategy}: {item.status}
-                    {item.score === undefined
-                      ? ""
-                      : ` ${Math.round(item.score * 100)}%`}{" "}
-                    — {item.detail}
-                  </Text>
+                {result.candidates.slice(0, 5).map((candidate, index) => (
+                  <Pressable
+                    key={candidate.scryfallId}
+                    style={[
+                      styles.candidate,
+                      result.strategy === "hybrid" &&
+                        selectedId === candidate.scryfallId &&
+                        styles.selected,
+                    ]}
+                    onPress={() => {
+                      if (result.strategy === "hybrid") {
+                        setSelectedId(candidate.scryfallId);
+                        setLanguage(candidate.language);
+                        setFinish("unknown");
+                      }
+                    }}
+                  >
+                    <Text>
+                      {index + 1}. {candidate.name} —{" "}
+                      {candidate.set.toUpperCase()} {candidate.collectorNumber}{" "}
+                      ({Math.round(candidate.confidence * 100)}%)
+                    </Text>
+                    {candidate.evidence.map((item) => (
+                      <Text key={item.strategy} style={styles.evidence}>
+                        {item.strategy}: {item.status}
+                        {item.score === undefined
+                          ? ""
+                          : ` ${Math.round(item.score * 100)}%`}{" "}
+                        — {item.detail}
+                      </Text>
+                    ))}
+                  </Pressable>
                 ))}
-              </Pressable>
+              </View>
             ))}
             <Text style={styles.label}>Correct Scryfall printing ID</Text>
             <TextInput

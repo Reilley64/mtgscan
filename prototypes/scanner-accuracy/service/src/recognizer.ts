@@ -3,6 +3,7 @@ import path from "node:path";
 import type {
   RecognitionRequest,
   RecognitionResponse,
+  Strategy,
 } from "@scanner-accuracy/shared";
 import {
   differenceHash,
@@ -10,23 +11,48 @@ import {
   normalizedCard,
 } from "./image-distance.js";
 import { recognizeConstrainedText, tokenSimilarity } from "./ocr.js";
-import { decideAbstention, fuseAndRank, type CorpusCard } from "./ranking.js";
+import { decideAbstention, rankStrategy, type CorpusCard } from "./ranking.js";
 import { dataRoot } from "./config.js";
-
+const MAX_STILL_BYTES = 12_000_000,
+  MAX_VIDEO_BYTES = 8_000_000;
+function decoded(capture: RecognitionRequest["captures"][number]) {
+  const value = Buffer.from(capture.base64, "base64");
+  if (!value.length) throw new Error("capture must contain valid base64");
+  const maximum = capture.kind === "still" ? MAX_STILL_BYTES : MAX_VIDEO_BYTES;
+  if (value.length > maximum)
+    throw new Error(`${capture.kind} exceeds ${maximum} decoded bytes`);
+  if (
+    capture.kind === "still" &&
+    !(value[0] === 0xff && value[1] === 0xd8 && value[2] === 0xff)
+  )
+    throw new Error("still capture content must be JPEG");
+  if (
+    capture.kind === "guided-tilt-video" &&
+    (value.length < 12 || value.toString("ascii", 4, 8) !== "ftyp")
+  )
+    throw new Error(
+      "guided-tilt content must be an MP4 or QuickTime container",
+    );
+  return value;
+}
 export async function recognize(
   request: RecognitionRequest,
   corpus: CorpusCard[],
 ): Promise<RecognitionResponse> {
   const started = performance.now();
-  const stills = request.captures
-    .filter((capture) => capture.kind === "still")
-    .map((capture) => Buffer.from(capture.base64, "base64"));
-  if (stills.length === 0)
-    throw new Error("at least one still capture is required");
-  if (stills.some((still) => still.length > 12_000_000))
-    throw new Error("each still must be at most 12 MB decoded");
-  const safeSession = request.sessionId.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const safeScan = request.scanId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  if (
+    request.captures.length < 3 ||
+    request.captures.length > 4 ||
+    request.captures.slice(0, 3).some((c) => c.kind !== "still") ||
+    request.captures.slice(3).some((c) => c.kind !== "guided-tilt-video")
+  )
+    throw new Error(
+      "exactly three stills followed by at most one tilt video are required",
+    );
+  const buffers = request.captures.map(decoded);
+  const stills = buffers.slice(0, 3);
+  const safeSession = request.sessionId.replace(/[^a-zA-Z0-9_-]/g, "_"),
+    safeScan = request.scanId.replace(/[^a-zA-Z0-9_-]/g, "_");
   const captureDirectory = path.join(
     dataRoot,
     "captures",
@@ -47,7 +73,7 @@ export async function recognize(
           captureDirectory,
           `${String(index + 1).padStart(2, "0")}-${capture.kind}.${extension}`,
         ),
-        Buffer.from(capture.base64, "base64"),
+        buffers[index]!,
       );
     }),
   );
@@ -58,15 +84,16 @@ export async function recognize(
         sessionId: request.sessionId,
         scanId: request.scanId,
         capturedAt: request.capturedAt,
-        captures: request.captures.map(
-          ({ id, kind, mimeType, quality, base64 }) => ({
-            id,
-            kind,
-            mimeType,
-            quality,
-            bytes: Buffer.byteLength(base64, "base64"),
-          }),
-        ),
+        captures: request.captures.map(({ id, kind, mimeType }, index) => ({
+          id,
+          kind,
+          mimeType,
+          quality:
+            request.captures[index]?.kind === "still"
+              ? request.captures[index].quality
+              : undefined,
+          bytes: buffers[index]!.length,
+        })),
       },
       null,
       2,
@@ -75,28 +102,46 @@ export async function recognize(
   const hashes = await Promise.all(
     stills.map((still) => differenceHash(still, 0.72)),
   );
-  const ocr = await recognizeConstrainedText(
-    await normalizedCard(stills[0]!, 0.72),
+  const ocrReads = await Promise.all(
+    stills.map(async (still) =>
+      recognizeConstrainedText(await normalizedCard(still, 0.72)),
+    ),
   );
-  const candidates = fuseAndRank(
-    corpus.map((card) => ({
-      card,
-      imageScore: Math.max(
-        ...hashes.map((hash) => hashSimilarity(hash, card.imageHash)),
-      ),
-      ocrScore: ocr.text ? tokenSimilarity(ocr.text, card.name) : undefined,
-      ocrDetail: ocr.text
-        ? `Constrained title OCR read: ${JSON.stringify(ocr.text)}`
-        : (ocr.unavailable ?? "OCR unavailable."),
-    })),
-  ).slice(0, 10);
-  const decision = decideAbstention(candidates);
+  const ocrText = ocrReads
+    .flatMap((read) => (read.text ? [read.text] : []))
+    .join(" ")
+    .trim();
+  const ocrUnavailable =
+    ocrReads.map((read) => read.unavailable).find(Boolean) ??
+    "OCR unavailable for all three stills.";
+  const inputs = corpus.map((card) => ({
+    card,
+    imageScore: Math.max(
+      ...hashes.map((hash) => hashSimilarity(hash, card.imageHash)),
+    ),
+    ocrScore: ocrText ? tokenSimilarity(ocrText, card.name) : undefined,
+    ocrDetail: ocrText
+      ? `Constrained title OCR across three stills read: ${JSON.stringify(ocrText)}`
+      : ocrUnavailable,
+  }));
+  const strategies: Strategy[] = ["image-only", "ocr-only", "hybrid"];
+  const results = strategies.map((strategy) => {
+    const candidates = rankStrategy(strategy, inputs).slice(0, 10);
+    const decision = decideAbstention(
+      candidates,
+      strategy === "ocr-only" && !ocrText ? ocrUnavailable : undefined,
+    );
+    return {
+      strategy,
+      candidates,
+      abstention: { abstained: decision.abstained, reasons: decision.reasons },
+      autoAcceptedScryfallId: decision.autoAcceptedScryfallId,
+    };
+  });
   return {
     sessionId: request.sessionId,
     scanId: request.scanId,
-    latencyMs: Math.round(performance.now() - started),
-    candidates,
-    abstention: { abstained: decision.abstained, reasons: decision.reasons },
-    autoAcceptedScryfallId: decision.autoAcceptedScryfallId,
+    serviceLatencyMs: Math.round(performance.now() - started),
+    results,
   };
 }

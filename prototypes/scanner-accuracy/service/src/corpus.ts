@@ -12,11 +12,17 @@ import type { CorpusCard } from "./ranking.js";
 
 const headers = {
   "User-Agent":
-    "mtgscan-scanner-prototype/0.1 (local research harness; contact: repository owner)",
+    "mtgscan-scanner-prototype/0.1 (+https://github.com/Reilley64/mtgscan)",
   Accept: "application/json",
 };
 const wait = (milliseconds: number) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
+let lastScryfallRequestAt = 0;
+async function paceScryfall() {
+  const delay = Math.max(0, 500 - (Date.now() - lastScryfallRequestAt));
+  if (delay) await wait(delay);
+  lastScryfallRequestAt = Date.now();
+}
 async function fetchBounded(
   url: string,
   options: RequestInit = {},
@@ -25,6 +31,7 @@ async function fetchBounded(
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
+      await paceScryfall();
       const response = await fetch(url, {
         ...options,
         headers: { ...headers, ...options.headers },
@@ -185,6 +192,7 @@ export async function cacheDefaultCardsBulkMetadata(): Promise<string> {
     /* cache miss */
   }
   await fs.mkdir(path.dirname(target), { recursive: true });
+  await paceScryfall();
   const response = await fetch(source.download_uri, {
     headers,
     signal: AbortSignal.timeout(10 * 60_000),

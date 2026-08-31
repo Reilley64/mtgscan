@@ -4,7 +4,8 @@ export async function normalizedCard(
   buffer: Buffer,
   guideCoverage = 1,
 ): Promise<Buffer> {
-  const metadata = await sharp(buffer).metadata();
+  const oriented = await sharp(buffer).rotate().toBuffer();
+  const metadata = await sharp(oriented).metadata();
   if (!metadata.width || !metadata.height)
     throw new Error("capture has no image dimensions");
   const aspect = 63 / 88;
@@ -18,7 +19,7 @@ export async function normalizedCard(
   height = Math.max(1, Math.floor(height * guideCoverage));
   const left = Math.max(0, Math.floor((metadata.width - width) / 2));
   const top = Math.max(0, Math.floor((metadata.height - height) / 2));
-  return sharp(buffer)
+  return sharp(oriented)
     .extract({ left, top, width, height })
     .rotate()
     .jpeg({ quality: 90 })

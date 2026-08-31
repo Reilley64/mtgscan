@@ -5,7 +5,7 @@
 ## Current boundary
 
 - `mobile/` is an Expo/React Native TypeScript harness. It uses only `expo-camera` for camera access. It keeps the scan batch in memory.
-- `service/` is a local Node.js TypeScript HTTP service. It center-crops the card-shaped region aligned with the 72% mobile guide, computes a deterministic 64-bit difference hash, optionally reads the title strip with Tesseract, fuses the evidence, and returns ranked Scryfall printings or an abstention.
+- `service/` is a local Node.js TypeScript HTTP service. It center-crops the card-shaped region aligned with the 72% mobile guide, computes a deterministic 64-bit difference hash, optionally reads the title strip with Tesseract, runs image-only, OCR-only, and hybrid rankings over the same three stills, and returns ranked Scryfall printings or abstentions for each strategy.
 - `shared/` contains client-neutral Zod schemas and TypeScript contracts.
 - `sample/kill-test-manifest.json` has 5 synthetic sample printings. `sample/benchmark-manifest.json` has 30. Neither contains collection data. Replace a copy with exact physical printings available to the tester when needed.
 - `.prototype-data/` is ignored. It holds Scryfall metadata, full reference images, physical captures, derived hashes, outcomes, and reports.
@@ -25,9 +25,15 @@ Install once from this directory:
 npm install
 cp service/.env.example service/.env
 cp mobile/.env.example mobile/.env
+openssl rand -hex 32
+# copy that new value into both files; create a new value for every service run
 ```
 
-Edit `mobile/.env` to use the computer's LAN address. `localhost` points at the phone and will not work. Allow inbound TCP port 4317 in the computer firewall. HTTP is intentional on a trusted test LAN only.
+Set `PROTOTYPE_TOKEN` in `service/.env` and the same `EXPO_PUBLIC_PROTOTYPE_TOKEN` in `mobile/.env`. The service loads `service/.env` for normal start, dev, report, preparation, and selector commands. It refuses to start without the token; non-server CLI commands do not need it.
+
+`HOST=127.0.0.1` is the safe default. For intentional LAN testing set `HOST=0.0.0.0` in `service/.env`, then edit `mobile/.env` to use the computer's LAN address. `localhost` points at the phone and will not work. Allow inbound TCP port 4317 in the computer firewall. HTTP is intentional on a trusted test LAN only. Every data or mutating endpoint requires `Authorization: Bearer <token>`; `/health` is the sole unauthenticated endpoint and reveals no paths or secrets. Native Expo does not require CORS. The service emits no wildcard CORS header; if `PROTOTYPE_BROWSER_ORIGIN` is configured, it allows only that exact origin.
+
+The recognition API accepts exactly three actual JPEG stills followed by at most one MP4/QuickTime guided-tilt clip. It checks decoded sizes and file signatures before writing evidence, bounds the full HTTP request, and permits one recognition at a time. Busy recognition requests receive `429`.
 
 ## Prepare Scryfall references
 
@@ -52,7 +58,7 @@ For the checked-in synthetic 30-card sample instead:
 npm run corpus:prepare -w @scanner-accuracy/service -- --benchmark
 ```
 
-The optional daily `default_cards` bulk metadata cache is large. It is not needed for the selected-corpus baseline:
+The optional daily `default_cards` bulk metadata cache is large (up to 2 GB). It is CLI-only and cannot be triggered by an HTTP endpoint. It is not needed for the selected-corpus baseline:
 
 ```bash
 PREPARE_BULK=1 npm run corpus:prepare -w @scanner-accuracy/service -- --benchmark
@@ -91,13 +97,13 @@ Generated native/build directories are ignored. No Swift or Kotlin belongs in th
 
 ## iPhone 16e physical test
 
-1. Confirm `/health` shows the expected corpus count.
-2. Open the app and grant camera permission.
+1. Confirm `/health` responds. It deliberately does not reveal corpus details.
+2. Open the app and grant camera permission. iOS also asks for Local Network access so the app can reach the intentionally configured trusted-LAN service; accept it only for that run.
 3. Check the LAN service URL in the app.
 4. Put one exact manifest printing on a plain surface in ordinary indoor light. Keep the full card in the centered guide.
 5. Select JPEG quality. Start at `0.7`.
 6. Optionally record the four-second guided tilt. The service retains no special video-derived score and labels finish evidence unavailable.
-7. Tap **Capture 3 stills and recognize**. Review progress, abstention reasons, confidence, and per-strategy evidence.
+7. Tap **Capture 3 stills and recognize**. Review progress, abstention reasons, confidence, and the separate image-only, OCR-only, and hybrid evidence. Hybrid is the default correction proposal. OCR-only abstains rather than inventing evidence when OCR is unavailable.
 8. Select or type the correct Scryfall printing ID. Correct language and finish. The finish starts as `unknown` because it is not inferred.
 9. Record the outcome. The mobile scan batch remains in memory; the service appends the benchmark outcome under `.prototype-data/`.
 10. Swap cards deliberately and repeat. Record full sessions, including abstentions and failures. Do not keep only successful scans.
@@ -114,23 +120,26 @@ Generate a JSON report after outcomes exist:
 
 ```bash
 npm run report -w @scanner-accuracy/service
-# or
-curl -X POST http://localhost:4317/reports/generate
+# or, replace the sample value with the token from service/.env
+curl -H 'Authorization: Bearer your-per-run-token' \
+  -X POST http://localhost:4317/reports/generate
 ```
 
-Reports are written to `.prototype-data/reports/`. They calculate identity top-1/top-3, exact-printing accuracy, false-auto-accept rate, auto-accept coverage, correction rate, latency p50/p95, and cards/minute when session timing exists. When finish ground truth exists, finish coverage reports `0` while accuracy and the confusion matrix remain unavailable because this baseline makes no finish prediction. Duplicate and missed-change measures are explicitly `unavailable`.
+Reports are written to `.prototype-data/reports/`. They calculate each strategy separately: identity top-1/top-3, `scryfallPrintingAccuracy`, language accuracy, false-auto-accept rate, false auto-accepts per 1,000 presentations, auto-accept coverage, and correction rate for any required identity, printing, language, or finish edit. An abstention is a top-1 failure, but top-3 candidate recall may still count a candidate behind an abstention. Identity uses oracle ID only when both cards provide one; otherwise it uses Scryfall printing ID. False auto-accept includes wrong language. `serviceLatencyMs` is server computation; end-to-end proposal latency starts before the first still and ends after the parsed mobile response. The report gives separate p50/p95 values. Cards/minute sums each session span and excludes gaps between sessions. Finish and physical-variant accuracy are `unavailable`, not zero: the baseline has no finish prediction, and ground truth is never treated as one. Duplicate and missed-change measures are also `unavailable`.
 
 ## Decision criteria
 
 The research gate is exact:
 
 - identity top-1 at least 99%;
-- exact Scryfall Card ID at least 97%;
+- Scryfall printing accuracy at least 97%;
 - correction rate at most 5%;
-- proposal latency p95 below 1.5 seconds;
+- end-to-end proposal latency p95 below 1.5 seconds;
 - at least 30 correct cards per minute; and
 - an auto-accept threshold whose false-auto-accept upper 95% confidence bound is below 0.5%, reported with its coverage.
 
 Finish may remain behind confirmation if it misses the safety bar. The final study must publish an accuracy/coverage curve, not one threshold.
+
+The currently selected personal corpus has no non-English cards. Language accuracy is therefore an unexercised coverage gap; corpus cards use Scryfall metadata language and deduplicate by Scryfall ID, so this prototype must not claim multilingual support is benchmarked.
 
 This 5/30-card harness does not compute confidence intervals and is not the required representative study. Ticket resolution still requires the research plan's 240 owned physical cards, about 2,880 positive presentations, negative/change events, hard-negative families, sleeves, lighting, languages, finish strata, multiple operators, two iPhones, and two Android phones. Pure-Expo repeated stills also cannot measure live tracking, stable-card latency, duplicate suppression, missed changes, or thermal behavior. **The prototype cannot resolve the ticket until physical evidence is collected.**

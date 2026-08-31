@@ -1,78 +1,67 @@
 import http from "node:http";
 import { ZodError } from "zod";
 import { RecognitionRequestSchema } from "@scanner-accuracy/shared";
+import { loadCorpus } from "./corpus.js";
+import { prototypeToken } from "./config.js";
 import {
-  cacheDefaultCardsBulkMetadata,
-  loadCorpus,
-  prepareCorpus,
-} from "./corpus.js";
-import { defaultManifestPath, fullManifestPath } from "./config.js";
-import { generateReport, recordOutcome } from "./outcomes.js";
-import { personalManifestPath } from "./personal-manifest.js";
+  generateReport,
+  persistRecognition,
+  recordOutcome,
+} from "./outcomes.js";
 import { recognize } from "./recognizer.js";
 const port = Number(process.env.PORT ?? 4317);
-const host = process.env.HOST ?? "0.0.0.0";
+const host = process.env.HOST ?? "127.0.0.1";
+const browserOrigin = process.env.PROTOTYPE_BROWSER_ORIGIN;
+prototypeToken();
+let recognitionInFlight = false;
 function reply(response: http.ServerResponse, status: number, body: unknown) {
-  response.writeHead(status, {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  });
+  };
+  if (browserOrigin) {
+    headers["Access-Control-Allow-Origin"] = browserOrigin;
+    headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
+    headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS";
+  }
+  response.writeHead(status, headers);
   response.end(JSON.stringify(body));
+}
+function authorized(request: http.IncomingMessage) {
+  return request.headers.authorization === `Bearer ${prototypeToken()}`;
 }
 async function body(request: http.IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
   let bytes = 0;
   for await (const chunk of request) {
     bytes += chunk.length;
-    if (bytes > 50_000_000) throw new Error("request exceeds 50 MB");
+    if (bytes > 64_000_000) throw new Error("request exceeds 64 MB");
     chunks.push(chunk);
   }
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
 }
 const server = http.createServer(async (request, response) => {
-  if (request.method === "OPTIONS") return reply(response, 204, {});
+  if (request.method === "OPTIONS") {
+    if (!browserOrigin || request.headers.origin !== browserOrigin)
+      return reply(response, 403, { error: "origin denied" });
+    return reply(response, 204, {});
+  }
   try {
-    if (request.method === "GET" && request.url === "/health") {
-      let corpusCards = 0;
-      try {
-        corpusCards = (await loadCorpus()).length;
-      } catch {
-        /* not prepared */
-      }
-      return reply(response, 200, {
-        status: "ok",
-        prototype: true,
-        corpusCards,
-        ocr: process.env.OCR_ENABLED === "1" ? "enabled" : "disabled",
-        finishInference: "unavailable",
-      });
-    }
-    if (request.method === "POST" && request.url === "/corpus/prepare") {
-      const input = (await body(request)) as {
-        corpus?: "kill" | "benchmark" | "personal";
-        cacheBulkMetadata?: boolean;
-      };
-      const manifestPath =
-        input.corpus === "personal"
-          ? personalManifestPath
-          : input.corpus === "benchmark"
-            ? fullManifestPath
-            : defaultManifestPath;
-      const prepared = await prepareCorpus(manifestPath);
-      const bulkMetadataFile = input.cacheBulkMetadata
-        ? await cacheDefaultCardsBulkMetadata()
-        : null;
-      return reply(response, 200, {
-        manifest: prepared.manifest,
-        cards: prepared.cards.length,
-        bulkMetadataFile,
-      });
-    }
+    if (request.method === "GET" && request.url === "/health")
+      return reply(response, 200, { status: "ok", prototype: true });
+    if (!authorized(request))
+      return reply(response, 401, { error: "unauthorized" });
     if (request.method === "POST" && request.url === "/recognitions") {
-      const input = RecognitionRequestSchema.parse(await body(request));
-      return reply(response, 200, await recognize(input, await loadCorpus()));
+      if (recognitionInFlight)
+        return reply(response, 429, { error: "recognition busy; retry later" });
+      recognitionInFlight = true;
+      try {
+        const input = RecognitionRequestSchema.parse(await body(request));
+        const result = await recognize(input, await loadCorpus());
+        await persistRecognition(result);
+        return reply(response, 200, result);
+      } finally {
+        recognitionInFlight = false;
+      }
     }
     if (request.method === "POST" && request.url === "/outcomes") {
       const recorded = await recordOutcome(await body(request));

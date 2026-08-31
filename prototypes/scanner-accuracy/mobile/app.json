@@ -7,7 +7,13 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.reilley64.mtgscan.scannerprototype"
+      "bundleIdentifier": "com.reilley64.mtgscan.scannerprototype",
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Allow the scanner prototype to send captured card evidence to the intentionally configured local benchmark service.",
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
+      }
     },
     "android": {
       "package": "com.reilley64.mtgscan.scannerprototype"

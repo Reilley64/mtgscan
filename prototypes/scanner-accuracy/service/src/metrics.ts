@@ -1,99 +1,160 @@
-import type { Outcome, Report } from "@scanner-accuracy/shared";
+import type { Outcome, Report, Strategy } from "@scanner-accuracy/shared";
 import type { CorpusCard } from "./ranking.js";
-
-function percentile(values: number[], fraction: number): number | null {
-  if (values.length === 0) return null;
+function percentile(values: number[], fraction: number) {
+  if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
   return sorted[Math.ceil(fraction * sorted.length) - 1] ?? null;
 }
-
+const sameIdentity = (
+  left: { scryfallId: string; oracleId?: string },
+  right: { scryfallId: string; oracleId?: string },
+) =>
+  left.oracleId && right.oracleId
+    ? left.oracleId === right.oracleId
+    : left.scryfallId === right.scryfallId;
 export function aggregateReport(
   outcomes: Outcome[],
   corpus: CorpusCard[],
 ): Report {
   const byId = new Map(corpus.map((card) => [card.scryfallId, card]));
-  const scored = outcomes.filter((outcome) => outcome.groundTruth);
-  let top1 = 0,
-    top3 = 0,
-    exact = 0,
-    falseAccepts = 0,
-    autoAccepts = 0,
-    corrections = 0;
-  for (const outcome of scored) {
-    const truth = outcome.groundTruth!;
-    const truthCard = byId.get(truth.selectedScryfallId);
-    const first = outcome.recognition.candidates[0];
-    if (
-      !outcome.recognition.abstention.abstained &&
-      first?.scryfallId === truth.selectedScryfallId
-    )
-      exact++;
-    if (
-      !outcome.recognition.abstention.abstained &&
-      truthCard &&
-      first?.oracleId === truthCard.oracleId
-    )
-      top1++;
-    if (
-      truthCard &&
-      outcome.recognition.candidates
-        .slice(0, 3)
-        .some((candidate) => candidate.oracleId === truthCard.oracleId)
-    )
-      top3++;
-    if (outcome.recognition.autoAcceptedScryfallId) {
-      autoAccepts++;
-      if (
-        outcome.recognition.autoAcceptedScryfallId !== truth.selectedScryfallId
-      )
-        falseAccepts++;
-    }
-    if (outcome.correction.changedFromProposal) corrections++;
-  }
-  const finishScored = scored.filter(
-    (outcome) => outcome.groundTruth?.finish !== "unknown",
-  );
+  const scored = outcomes.filter((o) => o.groundTruth);
+  const strategies = ["image-only", "ocr-only", "hybrid"] as Strategy[];
+  const strategyMetrics = Object.fromEntries(
+    strategies.map((strategy) => {
+      let top1 = 0,
+        top3 = 0,
+        printing = 0,
+        language = 0,
+        auto = 0,
+        falseAuto = 0,
+        corrections = 0;
+      for (const outcome of scored) {
+        const truth = outcome.groundTruth!,
+          truthCard = byId.get(truth.selectedScryfallId),
+          result = outcome.recognition.results.find(
+            (item) => item.strategy === strategy,
+          ),
+          first = result?.candidates[0];
+        if (
+          !result?.abstention.abstained &&
+          first &&
+          truthCard &&
+          sameIdentity(first, truthCard)
+        )
+          top1++;
+        if (
+          truthCard &&
+          result?.candidates
+            .slice(0, 3)
+            .some((candidate) => sameIdentity(candidate, truthCard))
+        )
+          top3++;
+        if (
+          !result?.abstention.abstained &&
+          first?.scryfallId === truth.selectedScryfallId
+        )
+          printing++;
+        if (!result?.abstention.abstained && first?.language === truth.language)
+          language++;
+        if (result?.autoAcceptedScryfallId) {
+          auto++;
+          if (
+            result.autoAcceptedScryfallId !== truth.selectedScryfallId ||
+            first?.language !== truth.language
+          )
+            falseAuto++;
+        }
+        if (
+          first &&
+          (outcome.correction.selectedScryfallId !== first.scryfallId ||
+            outcome.correction.language !== first.language ||
+            outcome.correction.finish !== "unknown")
+        )
+          corrections++;
+      }
+      return [
+        strategy,
+        {
+          identityTop1: scored.length ? top1 / scored.length : null,
+          identityTop3: scored.length ? top3 / scored.length : null,
+          scryfallPrintingAccuracy: scored.length
+            ? printing / scored.length
+            : null,
+          languageAccuracy: scored.length ? language / scored.length : null,
+          falseAutoAcceptRate: auto ? falseAuto / auto : null,
+          falseAutoAcceptsPerThousandPresentations: scored.length
+            ? (falseAuto * 1000) / scored.length
+            : null,
+          autoAcceptCoverage: scored.length ? auto / scored.length : null,
+          correctionRate: scored.length ? corrections / scored.length : null,
+        },
+      ];
+    }),
+  ) as Report["strategies"];
   const timed = outcomes
-    .map((outcome) => ({
-      start: Date.parse(outcome.scanStartedAt),
-      end: Date.parse(outcome.scanCompletedAt),
+    .map((o) => ({
+      start: Date.parse(o.scanStartedAt),
+      end: Date.parse(o.scanCompletedAt),
+      session: o.sessionId,
     }))
     .filter(
-      ({ start, end }) =>
-        Number.isFinite(start) && Number.isFinite(end) && end >= start,
+      (x) =>
+        Number.isFinite(x.start) && Number.isFinite(x.end) && x.end >= x.start,
     );
-  const elapsed = timed.length
-    ? Math.max(...timed.map((item) => item.end)) -
-      Math.min(...timed.map((item) => item.start))
-    : 0;
+  const spans = new Map<
+    string,
+    { start: number; end: number; count: number }
+  >();
+  for (const item of timed) {
+    const span = spans.get(item.session) ?? {
+      start: item.start,
+      end: item.end,
+      count: 0,
+    };
+    span.start = Math.min(span.start, item.start);
+    span.end = Math.max(span.end, item.end);
+    span.count++;
+    spans.set(item.session, span);
+  }
+  const elapsed = [...spans.values()].reduce(
+    (sum, s) => sum + s.end - s.start,
+    0,
+  );
   return {
     scans: outcomes.length,
-    identityTop1: scored.length ? top1 / scored.length : null,
-    identityTop3: scored.length ? top3 / scored.length : null,
-    exactPrintingAccuracy: scored.length ? exact / scored.length : null,
-    falseAutoAcceptRate: autoAccepts ? falseAccepts / autoAccepts : null,
-    autoAcceptCoverage: scored.length ? autoAccepts / scored.length : null,
-    correctionRate: scored.length ? corrections / scored.length : null,
+    strategies: strategyMetrics,
     latencyMs: {
-      p50: percentile(
-        outcomes.map((item) => item.recognition.latencyMs),
-        0.5,
-      ),
-      p95: percentile(
-        outcomes.map((item) => item.recognition.latencyMs),
-        0.95,
-      ),
+      service: {
+        p50: percentile(
+          outcomes.map((o) => o.recognition.serviceLatencyMs),
+          0.5,
+        ),
+        p95: percentile(
+          outcomes.map((o) => o.recognition.serviceLatencyMs),
+          0.95,
+        ),
+      },
+      endToEndProposal: {
+        p50: percentile(
+          outcomes.map((o) => o.endToEndProposalLatencyMs),
+          0.5,
+        ),
+        p95: percentile(
+          outcomes.map((o) => o.endToEndProposalLatencyMs),
+          0.95,
+        ),
+      },
     },
-    cardsPerMinute: elapsed > 0 ? (timed.length * 60_000) / elapsed : null,
+    cardsPerMinute: elapsed > 0 ? (timed.length * 60000) / elapsed : null,
     duplicateDetection: "unavailable",
     missedChangeDetection: "unavailable",
-    finishAccuracy: null,
-    finishCoverage: finishScored.length ? 0 : null,
-    finishConfusion: null,
+    finishAccuracy: "unavailable",
+    physicalVariantAccuracy: "unavailable",
     notes: [
-      "Identity uses shared oracleId; exact printing uses Scryfall printing ID.",
-      "Duplicate and missed-change detection are not implemented in this phase.",
-      "Finish classification is not implemented. With finish ground truth, coverage is 0 and accuracy/confusion remain unavailable.",
+      "Identity compares oracle IDs only when both candidates provide one; otherwise it compares Scryfall printing IDs.",
+      "Each strategy ranks the same three stills. OCR-only abstains when OCR is unavailable; abstentions fail top-1 metrics but not top-3 recall.",
+      "Finish and physical-variant accuracy are unavailable because this prototype does not predict finish. Correction rate includes any required printing, language, or finish edit.",
+      "Cards/minute sums each session span, so gaps between sessions are excluded.",
     ],
   };
 }
