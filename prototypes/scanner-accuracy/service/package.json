@@ -11,10 +11,12 @@
     "lint": "eslint src test",
     "typecheck": "tsc --noEmit",
     "corpus:prepare": "tsx src/cli.ts prepare",
-    "select:manifest": "tsx src/cli.ts select-manifest"
+    "select:manifest": "tsx src/cli.ts select-manifest",
+    "geometric:evaluate": "tsx src/cli.ts geometric-evaluate"
   },
   "dependencies": {
     "@scanner-accuracy/shared": "0.1.0",
+    "@techstark/opencv-js": "^5.0.0-release.1",
     "csv-parse": "^6.1.0",
     "dotenv": "^16.6.1",
     "sharp": "^0.35.4",
