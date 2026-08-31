@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Scanner Accuracy Prototype",
+    "slug": "scanner-accuracy-prototype",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.reilley64.mtgscan.scannerprototype"
+    },
+    "android": {
+      "package": "com.reilley64.mtgscan.scannerprototype"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow the scanner prototype to photograph physical Magic cards.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
+    ]
+  }
+}

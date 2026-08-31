@@ -1,0 +1,246 @@
+{
+  "name": "sample-30-card-benchmark",
+  "description": "Synthetic Commander-staple corpus for harness setup. It contains no user collection data. Physical testing requires these exact Scryfall printings or an edited local copy.",
+  "entries": [
+    {
+      "id": "sample-01",
+      "name": "Sol Ring",
+      "scryfallId": "91fdb56b-54d5-4272-8319-505ff987fe9b",
+      "set": "msc",
+      "collectorNumber": "211",
+      "language": "en"
+    },
+    {
+      "id": "sample-02",
+      "name": "Arcane Signet",
+      "scryfallId": "1cad1bd2-7c56-4ce0-99a6-b2a49c1288dd",
+      "set": "msc",
+      "collectorNumber": "191",
+      "language": "en"
+    },
+    {
+      "id": "sample-03",
+      "name": "Command Tower",
+      "scryfallId": "0548fb60-c843-4f8f-a029-6f10efc63a41",
+      "set": "msc",
+      "collectorNumber": "233",
+      "language": "en"
+    },
+    {
+      "id": "sample-04",
+      "name": "Swords to Plowshares",
+      "scryfallId": "b4e9c870-23c0-413a-ae39-265f09da16d1",
+      "set": "msc",
+      "collectorNumber": "143",
+      "language": "en"
+    },
+    {
+      "id": "sample-05",
+      "name": "Counterspell",
+      "scryfallId": "4f616706-ec97-4923-bb1e-11a69fbaa1f8",
+      "set": "dsc",
+      "collectorNumber": "114",
+      "language": "en"
+    },
+    {
+      "id": "sample-06",
+      "name": "Cultivate",
+      "scryfallId": "e60deb92-f7dd-4f4e-9036-e47dd586f985",
+      "set": "msc",
+      "collectorNumber": "172",
+      "language": "en"
+    },
+    {
+      "id": "sample-07",
+      "name": "Kodama's Reach",
+      "scryfallId": "90c423cc-1264-4067-9c50-e7c88c68ef2d",
+      "set": "ecc",
+      "collectorNumber": "113",
+      "language": "en"
+    },
+    {
+      "id": "sample-08",
+      "name": "Lightning Greaves",
+      "scryfallId": "b61634ae-05be-4b56-8ebb-9d4ade902e42",
+      "set": "msc",
+      "collectorNumber": "202",
+      "language": "en"
+    },
+    {
+      "id": "sample-09",
+      "name": "Swiftfoot Boots",
+      "scryfallId": "03f7e9fc-8e59-45c1-90fc-1d04d929b292",
+      "set": "mbc",
+      "collectorNumber": "77",
+      "language": "en"
+    },
+    {
+      "id": "sample-10",
+      "name": "Rhystic Study",
+      "scryfallId": "9f37c5b6-a59c-45cd-9a99-e9357fe9ea1b",
+      "set": "j22",
+      "collectorNumber": "114",
+      "language": "en"
+    },
+    {
+      "id": "sample-11",
+      "name": "Cyclonic Rift",
+      "scryfallId": "dfb7c4b9-f2f4-4d4e-baf2-86551c8150fe",
+      "set": "rvr",
+      "collectorNumber": "40",
+      "language": "en"
+    },
+    {
+      "id": "sample-12",
+      "name": "Path to Exile",
+      "scryfallId": "95ca89ea-1200-4bb4-ae4b-af35d3ccd35b",
+      "set": "msc",
+      "collectorNumber": "141",
+      "language": "en"
+    },
+    {
+      "id": "sample-13",
+      "name": "Beast Within",
+      "scryfallId": "400b43aa-c1d2-4435-b863-061f43889422",
+      "set": "msc",
+      "collectorNumber": "169",
+      "language": "en"
+    },
+    {
+      "id": "sample-14",
+      "name": "Chaos Warp",
+      "scryfallId": "fb8d8106-b9bd-405c-886e-72fc301c65e1",
+      "set": "mbc",
+      "collectorNumber": "72",
+      "language": "en"
+    },
+    {
+      "id": "sample-15",
+      "name": "Generous Gift",
+      "scryfallId": "c3f9b454-97e9-4c77-b37a-e974221ae385",
+      "set": "msc",
+      "collectorNumber": "133",
+      "language": "en"
+    },
+    {
+      "id": "sample-16",
+      "name": "Farseek",
+      "scryfallId": "c1aac0f5-1d01-4673-b8d3-878d9a1d423c",
+      "set": "msc",
+      "collectorNumber": "173",
+      "language": "en"
+    },
+    {
+      "id": "sample-17",
+      "name": "Nature's Lore",
+      "scryfallId": "7afc4a15-5ff8-457a-aa62-803b2d78d912",
+      "set": "msc",
+      "collectorNumber": "177",
+      "language": "en"
+    },
+    {
+      "id": "sample-18",
+      "name": "Three Visits",
+      "scryfallId": "99bf792f-963e-4509-8d3c-7db129c6a77f",
+      "set": "msc",
+      "collectorNumber": "181",
+      "language": "en"
+    },
+    {
+      "id": "sample-19",
+      "name": "Llanowar Elves",
+      "scryfallId": "6a0b230b-d391-4998-a3f7-7b158a0ec2cd",
+      "set": "fdn",
+      "collectorNumber": "227",
+      "language": "en"
+    },
+    {
+      "id": "sample-20",
+      "name": "Birds of Paradise",
+      "scryfallId": "492c2f9a-51e7-4e0f-9899-23bf43ea988b",
+      "set": "msc",
+      "collectorNumber": "170",
+      "language": "en"
+    },
+    {
+      "id": "sample-21",
+      "name": "Reliquary Tower",
+      "scryfallId": "e2a27742-08c1-4153-af7f-25a7a98f585e",
+      "set": "soc",
+      "collectorNumber": "398",
+      "language": "en"
+    },
+    {
+      "id": "sample-22",
+      "name": "Temple of the False God",
+      "scryfallId": "1024f555-e0d7-48ac-b86e-c87290eac832",
+      "set": "soc",
+      "collectorNumber": "416",
+      "language": "en"
+    },
+    {
+      "id": "sample-23",
+      "name": "Evolving Wilds",
+      "scryfallId": "c0318a48-30e4-4ef7-be3d-5e561c5ce428",
+      "set": "msc",
+      "collectorNumber": "240",
+      "language": "en"
+    },
+    {
+      "id": "sample-24",
+      "name": "Terramorphic Expanse",
+      "scryfallId": "a81f924b-0527-4311-8120-9bfff71524f6",
+      "set": "msc",
+      "collectorNumber": "273",
+      "language": "en"
+    },
+    {
+      "id": "sample-25",
+      "name": "Bojuka Bog",
+      "scryfallId": "55b5b094-9d2d-4d96-b90c-78fecdae725a",
+      "set": "soc",
+      "collectorNumber": "363",
+      "language": "en"
+    },
+    {
+      "id": "sample-26",
+      "name": "Commander's Sphere",
+      "scryfallId": "a0d50603-e31f-4cd7-b4b6-49847d99eb2e",
+      "set": "ecc",
+      "collectorNumber": "139",
+      "language": "en"
+    },
+    {
+      "id": "sample-27",
+      "name": "Mind Stone",
+      "scryfallId": "b30a8f92-ce42-4b27-a893-bcf97fde228d",
+      "set": "mbc",
+      "collectorNumber": "76",
+      "language": "en"
+    },
+    {
+      "id": "sample-28",
+      "name": "Fellwar Stone",
+      "scryfallId": "3ef87948-0ad9-4757-a692-2262c8e24367",
+      "set": "mbc",
+      "collectorNumber": "74",
+      "language": "en"
+    },
+    {
+      "id": "sample-29",
+      "name": "Austere Command",
+      "scryfallId": "a8bc7912-e201-468a-b251-140205cb741c",
+      "set": "msc",
+      "collectorNumber": "121",
+      "language": "en"
+    },
+    {
+      "id": "sample-30",
+      "name": "Blasphemous Act",
+      "scryfallId": "7d4b1d44-126e-4987-9a9f-f0f9627a09cb",
+      "set": "msc",
+      "collectorNumber": "163",
+      "language": "en"
+    }
+  ]
+}

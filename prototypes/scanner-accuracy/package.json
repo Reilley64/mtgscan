@@ -1,0 +1,21 @@
+{
+  "name": "mtgscan-scanner-accuracy-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "mobile",
+    "service",
+    "shared"
+  ],
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "check": "npm run format:check && npm run lint && npm test && npm run typecheck"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1"
+  }
+}

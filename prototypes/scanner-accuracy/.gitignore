@@ -1,0 +1,11 @@
+node_modules/
+.prototype-data/
+.env
+.env.*
+!.env.example
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/android/
+mobile/ios/
+*.log

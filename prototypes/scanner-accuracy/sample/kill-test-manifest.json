@@ -1,0 +1,46 @@
+{
+  "name": "sample-5-card-kill-test",
+  "description": "Five-card preflight. Stop before the full benchmark if the still-burst boundary cannot separate these exact printings under ordinary lighting. Contains no user collection data.",
+  "entries": [
+    {
+      "id": "sample-01",
+      "name": "Sol Ring",
+      "scryfallId": "91fdb56b-54d5-4272-8319-505ff987fe9b",
+      "set": "msc",
+      "collectorNumber": "211",
+      "language": "en"
+    },
+    {
+      "id": "sample-02",
+      "name": "Arcane Signet",
+      "scryfallId": "1cad1bd2-7c56-4ce0-99a6-b2a49c1288dd",
+      "set": "msc",
+      "collectorNumber": "191",
+      "language": "en"
+    },
+    {
+      "id": "sample-03",
+      "name": "Command Tower",
+      "scryfallId": "0548fb60-c843-4f8f-a029-6f10efc63a41",
+      "set": "msc",
+      "collectorNumber": "233",
+      "language": "en"
+    },
+    {
+      "id": "sample-04",
+      "name": "Swords to Plowshares",
+      "scryfallId": "b4e9c870-23c0-413a-ae39-265f09da16d1",
+      "set": "msc",
+      "collectorNumber": "143",
+      "language": "en"
+    },
+    {
+      "id": "sample-05",
+      "name": "Counterspell",
+      "scryfallId": "4f616706-ec97-4923-bb1e-11a69fbaa1f8",
+      "set": "dsc",
+      "collectorNumber": "114",
+      "language": "en"
+    }
+  ]
+}
