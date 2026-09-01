@@ -153,8 +153,8 @@ export default function App() {
           />
           <Text style={styles.telemetry}>
             Analysis current {formatNumber(diagnostics.metrics.processingMs, 2)}
-            ms; rolling 60 s ({diagnostics.timing.sampleCount}/300 samples): p50{" "}
-            {formatNumber(diagnostics.timing.p50Ms, 2)} ms, p95{" "}
+            ms; rolling {diagnostics.timing.sampleCount}/300 processed samples:
+            p50 {formatNumber(diagnostics.timing.p50Ms, 2)} ms, p95{" "}
             {formatNumber(diagnostics.timing.p95Ms, 2)} ms, max{" "}
             {formatNumber(diagnostics.timing.maxMs, 2)} ms. At 5 fps.
           </Text>
