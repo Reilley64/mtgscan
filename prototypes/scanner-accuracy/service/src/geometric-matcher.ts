@@ -37,6 +37,9 @@ async function cv(): Promise<Cv> {
   })();
   return cvPromise;
 }
+export async function initializeGeometricMatcher(): Promise<void> {
+  await cv();
+}
 function dispose(...values: any[]) {
   for (const value of values.flat()) {
     try {

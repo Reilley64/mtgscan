@@ -14,9 +14,40 @@ This baseline is strictly still-only: Expo Camera does not expose arbitrary live
 
 ## Isolated ORB/RANSAC reranker experiment
 
-`service/src/geometric-matcher.ts` is a service-only, offline experiment. It uses Sharp-oriented 72% center crops and OpenCV ORB/BF-Hamming/RANSAC homography to rerank a **pre-gated same-name** set of printings. It is not wired into the HTTP endpoint or baseline strategies, does not revive the rejected dHash/OCR baseline, and does not establish general exact-print accuracy. It only accepts a candidate after two plausible homographies, per-frame inlier gates, and a support margin. Run controlled evidence evaluation with `npm run geometric:evaluate -w @scanner-accuracy/service`; its configurable inputs default to ignored outcomes/captures and it writes a redacted report under `.prototype-data/geometric/`. Its report distinguishes top-1, auto-accept count, correct auto-accept count, false accepts, and auto-accept coverage so abstentions cannot look like safe accepts. Android is untested.
+`service/src/geometric-matcher.ts` remains a service-only, offline experiment. It uses Sharp-oriented 72% center crops and OpenCV ORB/BF-Hamming/RANSAC homography to rerank a pre-gated same-name set of printings. It is not wired into the HTTP endpoint or baseline strategies. It does not revive the rejected dHash/OCR baseline or establish general exact-print accuracy.
 
-The five recorded physical presentations produced 5/5 exact-printing top-1 results and 5/5 correct auto-accepts with zero false accepts. Warm p95 rerank latency was 331 ms. The OpenCV package's npm tarball is 4,031,133 bytes and its unpacked size is 14,731,296 bytes, below the 20 MB package gate. This is promising narrow-corpus evidence only. A 50-rerank soak then grew RSS without a plateau, from 320 MiB to 451 MiB, with a 451 MiB peak and final RSS. That fails the memory gate. Keep this matcher disconnected from the HTTP service unless process isolation and recycling, or another runtime, passes a longer representative soak.
+`service/src/isolated-geometric-runner.ts` adds a recyclable worker-process boundary for offline use:
+
+```ts
+const runner = createIsolatedGeometricRunner({
+  maxReranksPerWorker: 5,
+  timeoutMs: 10_000,
+});
+const result = await runner.rerank({
+  stillPaths: [path1, path2, path3],
+  candidates,
+  referenceRoot,
+});
+await runner.close();
+```
+
+The parent sends exactly three file paths and candidate metadata over IPC. It never sends JPEG buffers. The child owns OpenCV and the reference cache. A worker clears that cache and exits after its configured rerank count. Timeouts and unexpected exits terminate the current worker and reject only the in-flight job; the next call starts another generation. `close()` is idempotent. Calls after close fail. The runner rejects concurrent reranks with `GEOMETRIC_RUNNER_BUSY` instead of queueing them. Results may include the worker PID, generation, completed and recycle counts, and RSS. They do not include capture data or paths.
+
+Run the original direct evaluation or the isolated soak from this workspace:
+
+```bash
+npm run geometric:evaluate -w @scanner-accuracy/service
+npm run geometric:soak -w @scanner-accuracy/service
+# Optional controls
+npm run geometric:soak -w @scanner-accuracy/service -- \
+  --repetitions 20 --max-reranks-per-worker 5 --timeout-ms 10000
+```
+
+The soak defaults to 20 replays of the ignored five-scan physical evidence, for 100 reranks. It writes `isolated-soak-latest.json` under the ignored `.prototype-data/geometric/` directory. Its report contains no capture bytes or paths. The agreed gates are exact top-1 on every completed attempt with zero false accepts, end-to-end and matcher-warm p95 each at most 1,000 ms, and parent and worker RSS each below 450 MiB. The growth gates use a 16 MiB allowance. Every parent RSS sample must stay within that allowance above the first-window median. Every worker generation peak must stay within it above the median peak of the first five generations. The default run also requires all 80 expected warm samples.
+
+The 100-rerank isolated run completed all attempts with 100/100 exact top-1, 100 correct accepts, and zero false accepts. End-to-end latency was 408 ms p50, 845 ms p95, and 1,201 ms max. Matcher warm latency, excluding each generation's first call, was 398 ms p50, 493 ms p95, and 586 ms max across 80 calls. The run used 20 generations and 20 clean recycles with zero timeouts, unexpected exits, or other job failures.
+
+Parent RSS peaked at 112,640,000 bytes, about 107.4 MiB. Worker RSS peaked at 396,754,944 bytes, about 378.4 MiB. Both pass the separate-process 450 MiB gate. Combined peak RSS was 509,362,176 bytes, about 485.8 MiB. Combined RSS is a diagnostic, not an agreed acceptance gate; this run would fail a hypothetical combined 450 MiB cap. Across 101 parent samples, the first-window median was 112,525,312 bytes and the observed maximum was 112,640,000 bytes. The 114,688-byte maximum delta passes the 16 MiB allowance. Across 20 worker generations, the median of the first five generation peaks was 380,059,648 bytes and the maximum generation peak was 396,754,944 bytes. The 16,695,296-byte maximum delta narrowly passes the 16,777,216-byte allowance. As a trend diagnostic, the final five-generation median was 385,941,504 bytes, 5,881,856 bytes above the baseline. All agreed gates passed. This is still narrow repeated evidence over five recorded scans, not a representative accuracy or platform study. The earlier in-process 50-rerank run remains useful failure evidence: its RSS grew from 320 MiB to 451 MiB without a plateau.
 
 ## Physical result: baseline rejected
 

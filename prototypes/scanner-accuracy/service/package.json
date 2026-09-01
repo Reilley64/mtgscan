@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "corpus:prepare": "tsx src/cli.ts prepare",
     "select:manifest": "tsx src/cli.ts select-manifest",
-    "geometric:evaluate": "tsx src/cli.ts geometric-evaluate"
+    "geometric:evaluate": "tsx src/cli.ts geometric-evaluate",
+    "geometric:soak": "tsx src/geometric-soak-cli.ts"
   },
   "dependencies": {
     "@scanner-accuracy/shared": "0.1.0",
