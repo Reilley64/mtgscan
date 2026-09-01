@@ -91,6 +91,7 @@ export function usePreviewCardCapture(
   const timingHistory = useRef<number[]>([]);
   const runSamples = useRef(0);
   const captureSequence = useRef(0);
+  const lastObservedPhase = useRef<string | undefined>("seeking");
   const [lastPhoto, setLastPhoto] = useState<CapturedPhoto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<PreviewCardCaptureDiagnostics>(
@@ -111,6 +112,22 @@ export function usePreviewCardCapture(
         next.metrics.processingMs,
       );
       const sampleCount = ++runSamples.current;
+      const observedPhase = next.phase ?? "missing";
+      if (lastObservedPhase.current !== observedPhase) {
+        console.log(
+          "NATIVE_PREVIEW_EVENT " +
+            JSON.stringify({
+              event: "phase-transition",
+              atMs: Date.now(),
+              from: lastObservedPhase.current ?? "missing",
+              to: observedPhase,
+              captureLocked: next.captureLocked,
+              gates: next.gates,
+              metrics: next.metrics,
+            }),
+        );
+        lastObservedPhase.current = observedPhase;
+      }
       setDiagnostics({ ...next, timing });
       if (sampleCount % 25 === 0) {
         console.log(
@@ -118,6 +135,7 @@ export function usePreviewCardCapture(
             JSON.stringify({
               runSamples: sampleCount,
               processingMs: next.metrics.processingMs,
+              captureLocked: next.captureLocked,
               timing,
               phase: next.phase,
               gates: next.gates,
@@ -139,7 +157,11 @@ export function usePreviewCardCapture(
     const sequence = ++captureSequence.current;
     console.log(
       "NATIVE_PREVIEW_EVENT " +
-        JSON.stringify({ event: "capture-js-start", sequence }),
+        JSON.stringify({
+          event: "capture-js-start",
+          atMs: Date.now(),
+          sequence,
+        }),
     );
     setError(null);
     setDiagnostics((current) => ({ ...current, phase: "capturing" }));
@@ -151,16 +173,29 @@ export function usePreviewCardCapture(
         height: photo.height,
         path: photo.path,
       });
+      const machineBeforeComplete = machine.value;
+      const machineAfterComplete = completeCapture(machineBeforeComplete);
+      machine.value = machineAfterComplete;
       console.log(
         "NATIVE_PREVIEW_EVENT " +
           JSON.stringify({
             event: "capture-success",
+            atMs: Date.now(),
             sequence,
             width: photo.width,
             height: photo.height,
+            machineBefore: {
+              phase: machineBeforeComplete.phase,
+              captureLocked: machineBeforeComplete.captureLocked,
+              captureInFlight: machineBeforeComplete.captureInFlight,
+            },
+            machineAfter: {
+              phase: machineAfterComplete.phase,
+              captureLocked: machineAfterComplete.captureLocked,
+              captureInFlight: machineAfterComplete.captureInFlight,
+            },
           }),
       );
-      machine.value = completeCapture(machine.value);
       setDiagnostics((current) => ({
         ...current,
         phase: "cooldown",
@@ -172,6 +207,7 @@ export function usePreviewCardCapture(
         "NATIVE_PREVIEW_EVENT " +
           JSON.stringify({
             event: "capture-failure",
+            atMs: Date.now(),
             sequence,
             error: "capture-failed",
           }),
@@ -273,6 +309,7 @@ export function usePreviewCardCapture(
         "NATIVE_PREVIEW_EVENT " +
           JSON.stringify({
             event: "camera-runtime-error",
+            atMs: Date.now(),
             error: "camera-runtime-error",
           }),
       );
@@ -295,13 +332,16 @@ export function usePreviewCardCapture(
     if (resetState === machine.value) {
       console.log(
         "NATIVE_PREVIEW_EVENT " +
-          JSON.stringify({ event: "manual-reset-ignored-capture-in-flight" }),
+          JSON.stringify({
+            event: "manual-reset-ignored-capture-in-flight",
+            atMs: Date.now(),
+          }),
       );
       return;
     }
     console.log(
       "NATIVE_PREVIEW_EVENT " +
-        JSON.stringify({ event: "manual-reset-accepted" }),
+        JSON.stringify({ event: "manual-reset-accepted", atMs: Date.now() }),
     );
     machine.value = resetState;
     previousSignature.value = null;

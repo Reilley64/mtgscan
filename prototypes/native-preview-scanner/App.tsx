@@ -103,7 +103,7 @@ export default function App() {
         audio={false}
         pixelFormat="yuv"
         frameProcessor={capture.frameProcessor}
-        resizeMode="cover"
+        resizeMode="contain"
         onError={onCameraError}
       />
 

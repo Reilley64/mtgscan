@@ -6,11 +6,24 @@ It validates automatic capture only. It does not recognize a card, change a coll
 
 ## Trial boundary
 
-The app uses a centered guide at 72% of preview width and the Magic card ratio, 63:88. Its analysis crop includes an 8% outside margin. At 5 fps, the frame processor converts that crop from the camera's YUV stream to a 48-pixel-short-edge ARGB `Uint8Array`. It computes bounded scalar metrics for expected-border energy and continuity, centering, interior variance, sharpness, motion, and processing time. The overlay keeps the actual published processing times in a rolling 60-second, 300-sample window and shows current, sample count, p50, p95, and max. Percentiles use the deterministic nearest-rank rule: after sorting _n_ values, percentile _p_ is value `ceil(p × n)`.
+The app uses a contained preview and a centered guide at 72% of preview width with the Magic card ratio, 63:88. Containment can letterbox the preview, but it keeps screen-width guide coordinates aligned with raw frame-processor coordinates instead of applying an unmodeled center crop. Its analysis crop includes an 8% outside margin. At 5 fps, the frame processor converts that crop from the camera's YUV stream to a 48-pixel-short-edge ARGB `Uint8Array`. It computes bounded scalar metrics for expected-border energy and continuity, centering, interior variance, sharpness, motion, and processing time. The overlay keeps the actual published processing times in a rolling 60-second, 300-sample window and shows current, sample count, p50, p95, and max. Percentiles use the deterministic nearest-rank rule: after sorting _n_ values, percentile _p_ is value `ceil(p × n)`.
 
 All gates must pass for 400 ms. A worklet shared value locks capture before `Worklets.createRunOnJS` asks JavaScript to call `takePhoto()`. A second JavaScript guard protects the camera call. **Manual reset** is ignored while that photo promise is pending, including before JavaScript begins the call. Cooldown stays locked until a conservative departure gate sees both low border continuity and low crop variance for 400 ms, or the tester taps **Manual reset**. Moving the card off-center does not unlock capture by itself. No `Frame` leaves the frame processor.
 
 The thresholds in `src/capture/config.ts` are guesses for the physical trial. Do not treat them as production settings.
+
+## Physical result: no accepted capture candidate
+
+The iPhone 16e trial proved that the pinned native packages can deliver YUV frames and high-resolution photos, but neither detector variation passed the complete capture gate.
+
+- Prioritizing photo resolution selected a `4032×3024` preview and took about 50 ms per analysis. Prioritizing video resolution selected a `1280×720` preview with `4224×2376` photos.
+- A 48-pixel analysis crop recorded 575 empty-guide samples with p50 15.05 ms, p95 18.89 ms, and max 20.07 ms. The empty-guide, off-center, and moving-card rows produced no capture. The close-focus row was inconclusive because autofocus recovered.
+- `resizeMode="cover"` made the visible guide and raw analysis crop use different coordinate scales. `contain` restored the intended width mapping and is retained in this evidence code.
+- The fixed-edge detector only recognized presence when the physical border nearly touched the guide. A supported, centered, sharp, stable card whose border sat inside the guide remained below the fixed continuity threshold. This camera-height sensitivity is not acceptable scanner UX.
+- One handheld aligned presentation produced eight capture starts and eight successful `4224×2376` JPEGs while the tester tried to keep the card present. Hand shake could have satisfied the 400 ms departure rule, and the available logs did not identify the transition cause, so this run is inconclusive about camera-interruption versus departure behavior. It still exposes a duplicate risk under realistic hand movement.
+- A throwaway scale-tolerant exhaustive rectangle search was then tried and removed. On an empty guide it recorded p50 about 268 ms, p95 about 288 ms, and max about 298 ms. That exceeded the repeated-100 ms kill gate, so the app was stopped without continuing the matrix.
+
+The retained implementation is the faster fixed-edge evidence baseline with structured timing and phase telemetry. It is not accepted for product integration. The remaining negative rows, controlled duplicate diagnosis, positive matrix, and 15-minute soak were not completed. A later candidate needs a much cheaper scale-tolerant detector or compiled image processing before another physical run.
 
 ## Exact dependency trial
 
@@ -107,7 +120,7 @@ For every presentation, record:
 - number of stills, photo dimensions, and whether departure returned the app to seeking;
 - any dropped preview, frame-processor error, camera error, thermal warning, or UI stall.
 
-Metro structured lines are the external evidence source. Every five seconds, parse `NATIVE_PREVIEW_TELEMETRY ` followed by JSON for `runSamples`, current processing time, the rolling timing summary, phase, gates, and scalar metrics. Parse `NATIVE_PREVIEW_EVENT ` followed by JSON to count capture starts, successes, failures, reset outcomes, and camera runtime errors. The lines exclude image paths, card or corpus data, and secrets. Use the monotonically increasing capture sequence in these events to confirm the still count. A displayed last path alone does not prove there was no second camera call.
+Metro structured lines are the external evidence source. Every five seconds, parse `NATIVE_PREVIEW_TELEMETRY ` followed by JSON for `runSamples`, current processing time, capture lock, the rolling timing summary, phase, gates, and scalar metrics. Parse `NATIVE_PREVIEW_EVENT ` followed by JSON to count capture starts, successes, failures, reset outcomes, camera runtime errors, and observed phase transitions. Events include a wall-clock `atMs`; success events also include safe before/after capture-machine state for cross-runtime settlement diagnosis. The lines exclude image paths, card or corpus data, and secrets. Use the monotonically increasing capture sequence in these events to confirm the still count. A displayed last path alone does not prove there was no second camera call.
 
 ## Ten-presentation matrix
 
