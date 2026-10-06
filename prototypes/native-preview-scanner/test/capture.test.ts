@@ -11,7 +11,12 @@ import {
   signatureCorrelation,
   signatureTexture,
 } from "../src/capture/quadCaptureGates";
-import { stepQuadCapture } from "../src/capture/quadCaptureStep";
+import {
+  applyCaptureCommands,
+  NO_APPLIED_CAPTURE_COMMANDS,
+  NO_CAPTURE_COMMANDS,
+  stepQuadCapture,
+} from "../src/capture/quadCaptureStep";
 import {
   recordAnalysisSample,
   recordProcessingTime,
@@ -1095,5 +1100,127 @@ describe("learned background", () => {
       }
     });
     expect(photos).toBe(1);
+  });
+});
+
+describe("capture commands from the JavaScript thread", () => {
+  const capturing = {
+    phase: "capturing" as const,
+    holdStartedAt: 0,
+    departureStartedAt: null,
+    captureLocked: true,
+    captureInFlight: true,
+  };
+  const base = {
+    machine: capturing,
+    guard: true,
+    previousCorners: null,
+    capturedSignature: cardSignature(1),
+  };
+
+  it("completes a photo once and ignores the same command again", () => {
+    const first = applyCaptureCommands(
+      base,
+      { ...NO_CAPTURE_COMMANDS, photosDone: 1 },
+      NO_APPLIED_CAPTURE_COMMANDS,
+    );
+    expect(first.state.machine.phase).toBe("cooldown");
+    expect(first.state.capturedSignature).toEqual(cardSignature(1));
+    const again = applyCaptureCommands(
+      first.state,
+      { ...NO_CAPTURE_COMMANDS, photosDone: 1 },
+      first.applied,
+    );
+    expect(again.state.machine).toEqual(first.state.machine);
+  });
+
+  it("re-arms after a background photo only from cooldown", () => {
+    const cooldown = { ...base, machine: completeCapture(capturing) };
+    expect(
+      applyCaptureCommands(
+        cooldown,
+        { ...NO_CAPTURE_COMMANDS, rearms: 1 },
+        NO_APPLIED_CAPTURE_COMMANDS,
+      ).state.machine,
+    ).toEqual(initialCaptureMachineState());
+    expect(
+      applyCaptureCommands(
+        base,
+        { ...NO_CAPTURE_COMMANDS, rearms: 1 },
+        NO_APPLIED_CAPTURE_COMMANDS,
+      ).state.machine.phase,
+    ).toBe("capturing");
+  });
+
+  it("resets the round and retries or stops after failures", () => {
+    const reset = applyCaptureCommands(
+      base,
+      { ...NO_CAPTURE_COMMANDS, resets: 1 },
+      NO_APPLIED_CAPTURE_COMMANDS,
+    );
+    expect(reset.state).toMatchObject({
+      machine: initialCaptureMachineState(),
+      guard: false,
+      capturedSignature: null,
+    });
+    expect(
+      applyCaptureCommands(
+        base,
+        { ...NO_CAPTURE_COMMANDS, photosFailed: 1, failureStreak: 1 },
+        NO_APPLIED_CAPTURE_COMMANDS,
+      ).state.machine,
+    ).toEqual(initialCaptureMachineState());
+    expect(
+      applyCaptureCommands(
+        base,
+        { ...NO_CAPTURE_COMMANDS, photosFailed: 3, failureStreak: 3 },
+        NO_APPLIED_CAPTURE_COMMANDS,
+      ).state.machine,
+    ).toEqual(failCapture());
+  });
+
+  it("keeps photographing stacked cards when photos finish between samples", () => {
+    const cardWith = (seed: number) => ({
+      ...cardRecord(),
+      signature: cardSignature(seed),
+    });
+    const records = [
+      ...Array.from({ length: 8 }, () => cardWith(1)),
+      ...Array.from({ length: 2 }, () => flickerRecord()),
+      ...Array.from({ length: 12 }, () => cardWith(2)),
+      ...Array.from({ length: 2 }, () => flickerRecord()),
+      ...Array.from({ length: 12 }, () => cardWith(3)),
+    ];
+    let state: Parameters<typeof stepQuadCapture>[0] =
+      initialQuadCaptureState();
+    let commands = NO_CAPTURE_COMMANDS;
+    let applied = NO_APPLIED_CAPTURE_COMMANDS;
+    const pending: number[] = [];
+    let photos = 0;
+    records.forEach((raw, index) => {
+      while (pending.length > 0 && pending[0]! <= index) {
+        pending.shift();
+        commands = { ...commands, photosDone: commands.photosDone + 1 };
+      }
+      const commanded = applyCaptureCommands(state, commands, applied);
+      applied = commanded.applied;
+      const observation = validateNativeRectangleRecord(raw)!;
+      const step = stepQuadCapture(
+        commanded.state,
+        observation,
+        observation.detected,
+        720,
+        1280,
+        index * 200,
+        QUAD_CAPTURE_TIMING,
+      );
+      state = step.state;
+      if (step.requestPhoto) {
+        photos += 1;
+        pending.push(index + 2);
+      }
+    });
+    expect(photos).toBe(3);
+    expect(state.machine.phase).toBe("cooldown");
   });
 });

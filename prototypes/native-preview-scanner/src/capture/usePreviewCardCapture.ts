@@ -19,10 +19,8 @@ import {
   type AnalysisTelemetry,
 } from "./timingTelemetry";
 import {
-  completeCapture,
   failCapture,
   initialCaptureMachineState,
-  manualResetCaptureMachine,
   recoverFromCaptureFailure,
   resumeCaptureMachine,
   RESUME_GAP_MS,
@@ -33,7 +31,14 @@ import {
   signatureTexture,
   type QuadCorners,
 } from "./quadCaptureGates";
-import { stepQuadCapture } from "./quadCaptureStep";
+import {
+  applyCaptureCommands,
+  NO_APPLIED_CAPTURE_COMMANDS,
+  NO_CAPTURE_COMMANDS,
+  stepQuadCapture,
+  type AppliedCaptureCommands,
+  type CaptureCommands,
+} from "./quadCaptureStep";
 import { callNativeRectangleDetector } from "../detector/nativeRectangleDetector";
 import {
   recognitionConfig,
@@ -236,6 +241,10 @@ export function usePreviewCardCapture(
   const previousCorners = useSharedValue<QuadCorners | null>(null);
   const capturedSignature = useSharedValue<number[] | null>(null);
   const backgroundSignatures = useSharedValue<number[][]>([]);
+  const captureCommands = useSharedValue<CaptureCommands>(NO_CAPTURE_COMMANDS);
+  const appliedCaptureCommands = useSharedValue<AppliedCaptureCommands>(
+    NO_APPLIED_CAPTURE_COMMANDS,
+  );
   const jsCaptureGuard = useRef(false);
   const fatalDetectorOnJS = useRef(false);
   const timingHistory = useRef<number[]>([]);
@@ -304,7 +313,6 @@ export function usePreviewCardCapture(
       );
     }
     lastPublished.current = next;
-    if (!next.captureLocked) jsCaptureGuard.current = false;
     setDiagnostics((current) => ({
       ...current,
       ...next,
@@ -492,12 +500,17 @@ export function usePreviewCardCapture(
             }
             kept.push(signature);
             backgroundSignatures.value = kept;
-            const rearm =
-              captureSequence.current === sequence &&
-              machine.value.phase === "cooldown";
+            const rearm = captureSequence.current === sequence;
             if (rearm) {
-              machine.value = initialCaptureMachineState();
-              capturedSignature.value = null;
+              const current = captureCommands.value;
+              captureCommands.value = {
+                resets: current.resets,
+                photosDone: current.photosDone,
+                photosFailed: current.photosFailed,
+                failureStreak: current.failureStreak,
+                rearms: current.rearms + 1,
+                resumes: current.resumes,
+              };
             }
             console.log(
               "NATIVE_PREVIEW_EVENT " +
@@ -527,7 +540,7 @@ export function usePreviewCardCapture(
         }
       });
     },
-    [recognition, backgroundSignatures, machine, capturedSignature],
+    [recognition, backgroundSignatures, captureCommands],
   );
 
   const takeExactlyOnePhoto = useCallback(
@@ -557,9 +570,15 @@ export function usePreviewCardCapture(
         setLastPhoto({ width: photo.width, height: photo.height });
         setPhotoCount((count) => count + 1);
         consecutiveCaptureFailures.current = 0;
-        const machineBeforeComplete = machine.value;
-        const machineAfterComplete = completeCapture(machineBeforeComplete);
-        machine.value = machineAfterComplete;
+        const current = captureCommands.value;
+        captureCommands.value = {
+          resets: current.resets,
+          photosDone: current.photosDone + 1,
+          photosFailed: current.photosFailed,
+          failureStreak: current.failureStreak,
+          rearms: current.rearms,
+          resumes: current.resumes,
+        };
         console.log(
           "NATIVE_PREVIEW_EVENT " +
             JSON.stringify({
@@ -570,12 +589,6 @@ export function usePreviewCardCapture(
               height: photo.height,
               orientation: photo.orientation,
               isMirrored: photo.isMirrored,
-              beforePhase: machineBeforeComplete.phase,
-              beforeLocked: machineBeforeComplete.captureLocked,
-              beforeInFlight: machineBeforeComplete.captureInFlight,
-              afterPhase: machineAfterComplete.phase,
-              afterLocked: machineAfterComplete.captureLocked,
-              afterInFlight: machineAfterComplete.captureInFlight,
             }),
         );
         setDiagnostics((current) => ({
@@ -599,8 +612,15 @@ export function usePreviewCardCapture(
               afterPhase: recovered.phase,
             }),
         );
-        machine.value = recovered;
-        previousCorners.value = null;
+        const current = captureCommands.value;
+        captureCommands.value = {
+          resets: current.resets,
+          photosDone: current.photosDone,
+          photosFailed: current.photosFailed + 1,
+          failureStreak: failures,
+          rearms: current.rearms,
+          resumes: current.resumes,
+        };
         setError(
           recovered.phase === "error"
             ? "Capture failed repeatedly. Reset the study to try again."
@@ -611,9 +631,11 @@ export function usePreviewCardCapture(
           phase: recovered.phase,
           captureLocked: recovered.captureLocked,
         }));
+      } finally {
+        jsCaptureGuard.current = false;
       }
     },
-    [camera, machine, previousCorners, queueRecognition],
+    [camera, captureCommands, queueRecognition],
   );
   const requestPhotoOnJS = useMemo(
     () => Worklets.createRunOnJS(takeExactlyOnePhoto),
@@ -642,6 +664,21 @@ export function usePreviewCardCapture(
           } catch {}
           return;
         }
+        const commanded = applyCaptureCommands(
+          {
+            machine: machine.value,
+            guard: workletCaptureGuard.value,
+            previousCorners: previousCorners.value,
+            capturedSignature: capturedSignature.value,
+          },
+          captureCommands.value,
+          appliedCaptureCommands.value,
+        );
+        machine.value = commanded.state.machine;
+        workletCaptureGuard.value = commanded.state.guard;
+        previousCorners.value = commanded.state.previousCorners;
+        capturedSignature.value = commanded.state.capturedSignature;
+        appliedCaptureCommands.value = commanded.applied;
         const gapMs =
           previousSampleWallAtMs.value > 0
             ? sampleWallAtMs - previousSampleWallAtMs.value
@@ -862,6 +899,8 @@ export function usePreviewCardCapture(
       previousCorners,
       capturedSignature,
       backgroundSignatures,
+      captureCommands,
+      appliedCaptureCommands,
       previousSampleWallAtMs,
       requestPhotoOnJS,
       sampleSequence,
@@ -893,10 +932,17 @@ export function usePreviewCardCapture(
         stopDetectorOnJS(40, atMs);
         return;
       }
-      machine.value = resumeCaptureMachine(machine.value);
-      previousCorners.value = null;
+      const current = captureCommands.value;
+      captureCommands.value = {
+        resets: current.resets,
+        photosDone: current.photosDone,
+        photosFailed: current.photosFailed,
+        failureStreak: current.failureStreak,
+        rearms: current.rearms,
+        resumes: current.resumes + 1,
+      };
     },
-    [machine, previousCorners, stopDetectorOnJS],
+    [captureCommands, stopDetectorOnJS],
   );
 
   const reset = useCallback(() => {
@@ -911,8 +957,7 @@ export function usePreviewCardCapture(
       );
       return;
     }
-    const resetState = manualResetCaptureMachine(machine.value);
-    if (resetState === machine.value) {
+    if (jsCaptureGuard.current) {
       console.log(
         "NATIVE_PREVIEW_EVENT " +
           JSON.stringify({
@@ -926,13 +971,18 @@ export function usePreviewCardCapture(
       "NATIVE_PREVIEW_EVENT " +
         JSON.stringify({ event: "manual-reset-accepted", atMs: Date.now() }),
     );
-    machine.value = resetState;
-    workletCaptureGuard.value = false;
-    jsCaptureGuard.current = false;
+    const current = captureCommands.value;
+    captureCommands.value = {
+      resets: current.resets + 1,
+      photosDone: current.photosDone,
+      photosFailed: current.photosFailed,
+      failureStreak: current.failureStreak,
+      rearms: current.rearms,
+      resumes: current.resumes,
+    };
     setLastPhoto(null);
     setPhotoCount(0);
     consecutiveCaptureFailures.current = 0;
-    previousCorners.value = null;
     setError(null);
     setDiagnostics(initialDiagnostics());
     timingHistory.current = [];
@@ -945,10 +995,8 @@ export function usePreviewCardCapture(
     consecutiveSlowSamples,
     diagnostics.fatalErrorCode,
     fatalDetector,
-    machine,
-    previousCorners,
+    captureCommands,
     previousSampleWallAtMs,
-    workletCaptureGuard,
   ]);
 
   return {
