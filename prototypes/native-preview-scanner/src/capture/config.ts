@@ -33,7 +33,7 @@ export const DEFAULT_CAPTURE_THRESHOLDS: CaptureThresholds = {
 export const QUAD_CAPTURE_TIMING: CaptureThresholds = {
   ...DEFAULT_CAPTURE_THRESHOLDS,
   dwellMs: 400,
-  departureMs: 600,
+  departureMs: 1000,
 };
 
 export const AUTOMATIC_CAPTURE_ENABLED = true;

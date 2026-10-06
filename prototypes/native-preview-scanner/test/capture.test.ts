@@ -694,9 +694,9 @@ describe("quad capture gates", () => {
   it("takes one photo per presentation after the card leaves", () => {
     const records = [
       ...Array.from({ length: 6 }, () => cardRecord()),
-      ...Array.from({ length: 4 }, () => emptySurfaceRecord()),
+      ...Array.from({ length: 6 }, () => emptySurfaceRecord()),
       ...Array.from({ length: 6 }, () => cardRecord(0.02)),
-      ...Array.from({ length: 4 }, () => emptySurfaceRecord()),
+      ...Array.from({ length: 6 }, () => emptySurfaceRecord()),
       ...Array.from({ length: 6 }, () => cardRecord()),
     ];
     expect(runPresentation(records).photos).toBe(3);
@@ -709,6 +709,38 @@ describe("quad capture gates", () => {
       ...Array.from({ length: 6 }, () => cardRecord()),
     ];
     expect(runPresentation(records).photos).toBe(1);
+  });
+
+  it("keeps a partly hidden card as card evidence during a handheld hold", () => {
+    const partlyHidden = () => ({
+      ...undetectedRecord(true),
+      confidence: 0.76,
+      proposalTopLeft: { x: 0.35, y: 0.4 },
+      proposalTopRight: { x: 0.65, y: 0.4 },
+      proposalBottomRight: { x: 0.65, y: 0.73 },
+      proposalBottomLeft: { x: 0.35, y: 0.73 },
+    });
+    const records = [
+      ...Array.from({ length: 6 }, () => cardRecord()),
+      ...Array.from({ length: 4 }, () => partlyHidden()),
+      ...Array.from({ length: 10 }, () => cardRecord()),
+    ];
+    expect(runPresentation(records).photos).toBe(1);
+  });
+
+  it("re-arms only after a full second without card evidence", () => {
+    const shortGap = [
+      ...Array.from({ length: 6 }, () => cardRecord()),
+      ...Array.from({ length: 4 }, () => emptySurfaceRecord()),
+      ...Array.from({ length: 6 }, () => cardRecord()),
+    ];
+    expect(runPresentation(shortGap).photos).toBe(1);
+    const fullGap = [
+      ...Array.from({ length: 6 }, () => cardRecord()),
+      ...Array.from({ length: 7 }, () => emptySurfaceRecord()),
+      ...Array.from({ length: 6 }, () => cardRecord()),
+    ];
+    expect(runPresentation(fullGap).photos).toBe(2);
   });
 
   it("never captures an empty surface", () => {

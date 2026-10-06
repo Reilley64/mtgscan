@@ -12,7 +12,7 @@ export type QuadCaptureThresholds = {
 
 export const QUAD_CAPTURE_THRESHOLDS: QuadCaptureThresholds = {
   stableMotionMax: 0.04,
-  cardEvidenceConfidenceMin: 0.8,
+  cardEvidenceConfidenceMin: 0.6,
   cardEvidenceAreaMax: 0.6,
 };
 
