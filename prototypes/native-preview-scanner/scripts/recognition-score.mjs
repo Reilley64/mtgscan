@@ -248,7 +248,14 @@ if (command === "cards") {
         result: null,
       };
     });
-  const found = events(logPath, afterLine);
+  const everything = events(logPath, afterLine);
+  const lastReset = everything.findLastIndex(
+    (entry) => entry.event === "manual-reset-accepted",
+  );
+  const restarts = everything.filter(
+    (entry) => entry.event === "manual-reset-accepted",
+  ).length;
+  const found = lastReset >= 0 ? everything.slice(lastReset + 1) : everything;
   const starts = found.filter((entry) => entry.event === "capture-js-start");
   const results = found.filter(
     (entry) =>
@@ -322,6 +329,7 @@ if (command === "cards") {
       results: results.length,
       unmatchedResults: unmatched.length,
       duplicatePhotos: duplicates.length,
+      restarts,
       notInBatchResults: outsiders.length,
       missedCards: judged.filter((result) => result.status === "no-result")
         .length,

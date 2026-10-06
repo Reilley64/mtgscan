@@ -686,6 +686,7 @@ if [[ "$MODE" == "bin" ]]; then
     printf '\n'
     step "Slide the ticked cards into the bin one at a time, each on top of the last. Any order is fine."
     step "Wait for the photo count to go up before sliding in the next card."
+    note "To start the round again, empty the bin and tap Reset study. Only photos after your last reset count."
     BATCH_START_LINE=$(log_lines)
     pause "Press Enter, then start sliding cards in."
     pause "Press Enter after the last card's result line shows."
@@ -695,7 +696,7 @@ if [[ "$MODE" == "bin" ]]; then
     write_env "BATCH_${batch}_SUMMARY" "$summary"
     say "Round $batch: $(node -e '
       const s = JSON.parse(process.argv[1]);
-      console.log(`${s.printingTop1}/${s.presented} exact printing, ${s.correctAccepts} accepted, ${s.falseAccepts} wrong accepts, ${s.missedCards} missed, ${s.duplicatePhotos} duplicate photos, ${s.notInBatchResults} results not in the batch, ${s.correctCardsPerMinute ?? "n/a"} correct cards per minute`);
+      console.log(`${s.printingTop1}/${s.presented} exact printing, ${s.correctAccepts} accepted, ${s.falseAccepts} wrong accepts, ${s.missedCards} missed, ${s.duplicatePhotos} duplicate photos, ${s.notInBatchResults} results not in the batch, ${s.restarts} restarts, ${s.correctCardsPerMinute ?? "n/a"} correct cards per minute`);
     ' "$summary")"
     cut -f1 "$BATCH_FILE" >> "$LEDGER"
     confirm "Start another round?" || break
