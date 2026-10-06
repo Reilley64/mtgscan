@@ -544,17 +544,17 @@ if [[ "$MODE" == "capture" ]]; then
   pause
 
   stage "Still card hold"
-  step "Lay one card flat and rest the phone steady above it."
-  step "Do not move anything until the count ends."
+  step "Before pressing Enter: keep every card out of view."
+  step "After pressing Enter: lay one card flat and rest the phone steady above it."
+  step "Do not move anything until the count ends. Expect exactly one photo."
   timed_hold STILL_HOLD 20 1
   pause
 
   stage "Handheld hold"
-  step "Before pressing Enter: move the card out of view for two seconds, then lay it back down."
-  step "Wait for its photo, then hold the phone in your hand above it, as you would when scanning."
-  step "Natural hand shake is fine. Do not touch the card during the count."
-  note "The count expects 0 photos, because the card's photo was taken before the count."
-  timed_hold HANDHELD_HOLD 20 0
+  step "Before pressing Enter: move the card out of view and keep it out."
+  step "After pressing Enter: lay the card down, then hold the phone in your hand above it, as you would when scanning."
+  step "Natural hand shake is fine. Do not touch the card during the count. Expect exactly one photo."
+  timed_hold HANDHELD_HOLD 20 1
   pause
 
   stage "Patterned surface"
@@ -563,7 +563,7 @@ if [[ "$MODE" == "capture" ]]; then
   timed_hold PATTERNED_HOLD 20 1
   record PATTERNED_NOTES "Anything odd (Enter to skip):"
   if [[ "$(_existing EMPTY_PHOTOS)" == "0" && "$PRESENTATIONS_DUPLICATE" == "0" \
-    && "$(_existing STILL_HOLD_PHOTOS)" == "1" && "$(_existing HANDHELD_HOLD_PHOTOS)" == "0" \
+    && "$(_existing STILL_HOLD_PHOTOS)" == "1" && "$(_existing HANDHELD_HOLD_PHOTOS)" == "1" \
     && "$(_existing PATTERNED_HOLD_PHOTOS)" -le 1 ]]; then
     write_env EXACTLY_ONE_GATE pass
   else
