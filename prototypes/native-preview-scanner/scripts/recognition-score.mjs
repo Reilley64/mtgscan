@@ -263,6 +263,12 @@ if (command === "cards") {
       entry.event === "recognition-failure",
   );
   const unmatched = [];
+  const deckIds = new Set(truths.map((truth) => truth.scryfallId));
+  const notACard = (result) =>
+    (result.reasons ?? []).some((reason) =>
+      reason.includes("no candidate has a plausible card homography"),
+    );
+  const leftover = [];
   for (const result of results) {
     const top = result.candidates?.[0];
     const exact =
@@ -270,17 +276,23 @@ if (command === "cards") {
       truths.find(
         (truth) => !truth.result && truth.scryfallId === top.scryfallId,
       );
+    if (exact) exact.result = result;
+    else leftover.push(result);
+  }
+  for (const result of leftover) {
+    const top = result.candidates?.[0];
     const named =
-      !exact &&
       top &&
+      !notACard(result) &&
+      !deckIds.has(top.scryfallId) &&
       truths.find(
         (truth) =>
           !truth.result && truth.name.toLowerCase() === top.name.toLowerCase(),
       );
-    const target = exact || named;
-    if (target) target.result = result;
+    if (named) named.result = result;
     else unmatched.push(result);
   }
+
   const judged = truths.map((truth) =>
     truth.result ? judge(truth, truth.result) : { status: "no-result" },
   );
@@ -297,8 +309,12 @@ if (command === "cards") {
       (batchIds.has(top.scryfallId) || batchNames.has(top.name.toLowerCase()))
     );
   };
-  const duplicates = unmatched.filter(isBatchCard);
-  const outsiders = unmatched.filter((result) => !isBatchCard(result));
+  const duplicates = unmatched.filter(
+    (result) => !notACard(result) && isBatchCard(result),
+  );
+  const outsiders = unmatched.filter(
+    (result) => !notACard(result) && !isBatchCard(result),
+  );
   const unmatchedAccepts = outsiders.filter((result) => result.accepted).length;
   fs.writeFileSync(
     detailPath,
@@ -308,12 +324,20 @@ if (command === "cards") {
       ),
       ...unmatched.map((result) =>
         JSON.stringify({
-          card: "unmatched",
-          status: result.accepted
-            ? "false-accept"
-            : result.event === "recognition-failure"
-              ? "failed"
-              : "abstained",
+          card: notACard(result)
+            ? "not a card"
+            : isBatchCard(result)
+              ? "duplicate photo"
+              : "not in batch",
+          status: notACard(result)
+            ? "not-a-card"
+            : isBatchCard(result)
+              ? "duplicate"
+              : result.accepted
+                ? "false-accept"
+                : result.event === "recognition-failure"
+                  ? "failed"
+                  : "abstained",
           top: result.candidates?.[0]
             ? `${result.candidates[0].name} ${result.candidates[0].set.toUpperCase()} #${result.candidates[0].collectorNumber}`
             : "none",
@@ -329,6 +353,7 @@ if (command === "cards") {
       results: results.length,
       unmatchedResults: unmatched.length,
       duplicatePhotos: duplicates.length,
+      notACardResults: unmatched.filter(notACard).length,
       restarts,
       photosWithLight: starts.filter((entry) => entry.torch === true).length,
       light: (() => {
