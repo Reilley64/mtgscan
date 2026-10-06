@@ -29,6 +29,8 @@ import {
   initialCaptureMachineState,
   manualResetCaptureMachine,
   failCapture,
+  nextCaptureGuard,
+  type CaptureMachineState,
 } from "../src/capture/stateMachine";
 
 const WIDTH = 96;
@@ -615,6 +617,7 @@ const runPresentation = (records: unknown[]) => {
   let state = initialCaptureMachineState();
   let previous: ReturnType<typeof refinedCorners> = null;
   let photos = 0;
+  let guard = false;
   records.forEach((raw, index) => {
     const observation = validateNativeRectangleRecord(raw)!;
     const corners = refinedCorners(observation, 720, 1280);
@@ -632,7 +635,9 @@ const runPresentation = (records: unknown[]) => {
       QUAD_CAPTURE_TIMING,
     );
     state = transition.state;
-    if (transition.requestCapture) {
+    const decision = nextCaptureGuard(guard, transition);
+    guard = decision.guard;
+    if (decision.requestPhoto) {
       photos += 1;
       state = completeCapture(state);
     }
@@ -709,5 +714,86 @@ describe("quad capture gates", () => {
   it("never captures an empty surface", () => {
     const records = Array.from({ length: 50 }, () => emptySurfaceRecord());
     expect(runPresentation(records).photos).toBe(0);
+  });
+});
+
+describe("worklet capture guard", () => {
+  const locked = {
+    phase: "capturing" as const,
+    holdStartedAt: 0,
+    departureStartedAt: null,
+    captureLocked: true,
+    captureInFlight: true,
+  };
+
+  it("requests one photo and blocks repeats while locked", () => {
+    const first = nextCaptureGuard(false, {
+      state: locked,
+      requestCapture: true,
+    });
+    expect(first).toEqual({ guard: true, requestPhoto: true });
+    expect(
+      nextCaptureGuard(first.guard, { state: locked, requestCapture: true }),
+    ).toEqual({ guard: true, requestPhoto: false });
+  });
+
+  it("releases the guard once the machine re-arms", () => {
+    expect(
+      nextCaptureGuard(true, {
+        state: initialCaptureMachineState(),
+        requestCapture: false,
+      }),
+    ).toEqual({ guard: false, requestPhoto: false });
+  });
+});
+
+describe("shared-value state objects", () => {
+  const hostObject = (state: CaptureMachineState): CaptureMachineState => {
+    const host = {} as CaptureMachineState;
+    for (const [key, value] of Object.entries(state)) {
+      Object.defineProperty(host, key, { value, enumerable: false });
+    }
+    return host;
+  };
+
+  it("keeps the cooldown lock when state fields are not enumerable", () => {
+    const cooldown = hostObject(
+      completeCapture({
+        phase: "capturing",
+        holdStartedAt: 0,
+        departureStartedAt: null,
+        captureLocked: true,
+        captureInFlight: true,
+      }),
+    );
+    const present = advanceCaptureMachine(
+      cooldown,
+      allPassingGates,
+      1000,
+      QUAD_CAPTURE_TIMING,
+    );
+    expect(present.state).toMatchObject({
+      phase: "cooldown",
+      captureLocked: true,
+    });
+    const departing = advanceCaptureMachine(
+      hostObject(present.state),
+      absentGates,
+      1200,
+      QUAD_CAPTURE_TIMING,
+    );
+    expect(departing.state).toMatchObject({
+      phase: "cooldown",
+      captureLocked: true,
+      departureStartedAt: 1200,
+    });
+    expect(
+      advanceCaptureMachine(
+        hostObject(departing.state),
+        allPassingGates,
+        1400,
+        QUAD_CAPTURE_TIMING,
+      ).requestCapture,
+    ).toBe(false);
   });
 });

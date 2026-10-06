@@ -28,6 +28,17 @@ export const initialCaptureMachineState = (): CaptureMachineState => {
   };
 };
 
+function copyCaptureState(state: CaptureMachineState): CaptureMachineState {
+  "worklet";
+  return {
+    phase: state.phase,
+    holdStartedAt: state.holdStartedAt,
+    departureStartedAt: state.departureStartedAt,
+    captureLocked: state.captureLocked,
+    captureInFlight: state.captureInFlight,
+  };
+}
+
 export function advanceCaptureMachine(
   state: CaptureMachineState,
   gates: PreviewGates,
@@ -36,13 +47,19 @@ export function advanceCaptureMachine(
 ): CaptureTransition {
   "worklet";
   if (state.phase === "error" || state.phase === "capturing") {
-    return { state, requestCapture: false };
+    return { state: copyCaptureState(state), requestCapture: false };
   }
 
   if (state.phase === "cooldown") {
     if (!gates.departed) {
       return {
-        state: { ...state, departureStartedAt: null },
+        state: {
+          phase: "cooldown",
+          holdStartedAt: state.holdStartedAt,
+          departureStartedAt: null,
+          captureLocked: true,
+          captureInFlight: false,
+        },
         requestCapture: false,
       };
     }
@@ -51,7 +68,13 @@ export function advanceCaptureMachine(
       return { state: initialCaptureMachineState(), requestCapture: false };
     }
     return {
-      state: { ...state, departureStartedAt },
+      state: {
+        phase: "cooldown",
+        holdStartedAt: state.holdStartedAt,
+        departureStartedAt,
+        captureLocked: true,
+        captureInFlight: false,
+      },
       requestCapture: false,
     };
   }
@@ -74,7 +97,8 @@ export function advanceCaptureMachine(
     };
   }
 
-  if (state.captureLocked) return { state, requestCapture: false };
+  if (state.captureLocked)
+    return { state: copyCaptureState(state), requestCapture: false };
   return {
     state: {
       phase: "capturing",
@@ -117,4 +141,16 @@ export function manualResetCaptureMachine(
 ): CaptureMachineState {
   "worklet";
   return state.captureInFlight ? state : initialCaptureMachineState();
+}
+
+export function nextCaptureGuard(
+  guard: boolean,
+  transition: CaptureTransition,
+): { guard: boolean; requestPhoto: boolean } {
+  "worklet";
+  if (!transition.state.captureLocked)
+    return { guard: false, requestPhoto: false };
+  if (transition.requestCapture && !guard)
+    return { guard: true, requestPhoto: true };
+  return { guard, requestPhoto: false };
 }

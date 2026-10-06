@@ -81,6 +81,8 @@ The state machine requests one photo after the card is present and stable for 40
 
 `npm run physical-run:capture` counts `capture-success` events from the app log for an empty surface, ten separate presentations, a 20-second still hold, a 20-second handheld hold, and a patterned surface. The exactly-one gate passes when the empty surface gives no photo, no presentation gives two or more photos, both holds give exactly one, and the patterned surface gives at most one. Missed presentations are reported separately. An interruption matrix, such as backgrounding the app during a capture, is not covered yet.
 
+The first capture run, with commit `428cfe7`, took one photo for the first card and none after it until the tester tapped Reset study. Two bugs caused this. The worklet capture guard was set on every photo request and cleared only by Reset study, so it dropped every later request. The state machine's cooldown step also spread the previous state with `{ ...state }`. The state lives in a worklets-core shared value, and the log showed the cooldown state losing its `phase` and `captureLocked` fields one sample after the photo, while the card was still in view. Without the stuck guard, that would have re-armed capture on the same card. The guard is now released whenever the machine is unlocked, through `nextCaptureGuard`, and the state machine builds every state field explicitly. The replay tests use the same guard function. A new test passes state objects whose fields are not enumerable, like a host object, and fails with the old spread.
+
 ## Offline evidence
 
 `npm run test:native-detector` compiles the three shared Swift files with a macOS fixture and runs it in `/tmp`. It writes no image. It checks:

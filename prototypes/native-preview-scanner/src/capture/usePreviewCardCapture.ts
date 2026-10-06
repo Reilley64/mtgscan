@@ -23,6 +23,7 @@ import {
   failCapture,
   initialCaptureMachineState,
   manualResetCaptureMachine,
+  nextCaptureGuard,
   type CapturePhase,
 } from "./stateMachine";
 import {
@@ -505,7 +506,12 @@ export function usePreviewCardCapture(
           machine.value = transition.state;
           phase = transition.state.phase;
           captureLocked = transition.state.captureLocked;
-          requestCapture = transition.requestCapture;
+          const decision = nextCaptureGuard(
+            workletCaptureGuard.value,
+            transition,
+          );
+          workletCaptureGuard.value = decision.guard;
+          requestCapture = decision.requestPhoto;
         }
 
         try {
@@ -571,8 +577,7 @@ export function usePreviewCardCapture(
           workletCaptureGuard.value = true;
           return;
         }
-        if (requestCapture && !workletCaptureGuard.value) {
-          workletCaptureGuard.value = true;
+        if (requestCapture) {
           requestPhotoOnJS();
         }
       });
