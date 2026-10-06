@@ -41,6 +41,7 @@ import {
 } from "./quadCaptureStep";
 import { callNativeRectangleDetector } from "../detector/nativeRectangleDetector";
 import {
+  isNotACard,
   recognitionConfig,
   recognizePhoto,
   type CardQuad,
@@ -517,9 +518,7 @@ export function usePreviewCardCapture(
               }),
           );
           setLastRecognition({ status: "done", sequence, endToEndMs, result });
-          const notACard = result.reasons.some((reason) =>
-            reason.includes("no candidate has a plausible card homography"),
-          );
+          const notACard = isNotACard(result.reasons);
           if (notACard && signature !== null) {
             const kept: number[][] = [];
             const existing = backgroundSignatures.value;

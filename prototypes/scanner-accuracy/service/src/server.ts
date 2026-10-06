@@ -15,7 +15,16 @@ import {
   type RectifiedCorpus,
 } from "./rectified-corpus.js";
 import { createRectifiedRerankRunner } from "./rectified-rerank-runner.js";
-import { createRectifiedRecognitionHandler } from "./rectified-endpoint.js";
+import {
+  createPhotoRecognitionHandler,
+  createRectifiedRecognitionHandler,
+} from "./rectified-endpoint.js";
+import {
+  catalogDirectory,
+  catalogRecognizerBinary,
+  catalogRoot,
+} from "./config.js";
+import { createCatalogRecognizer } from "./catalog-recognizer.js";
 const port = Number(process.env.PORT ?? 4317);
 const host = process.env.HOST ?? "127.0.0.1";
 const browserOrigin = process.env.PROTOTYPE_BROWSER_ORIGIN;
@@ -35,10 +44,27 @@ const loadRectified = () => {
   });
   return rectifiedCorpus;
 };
-const handleRectifiedRecognition = createRectifiedRecognitionHandler({
-  corpus: loadRectified,
-  runner: rectifiedRunner,
-  persistRoot: rectifiedRoot,
+const catalogRecognizer =
+  process.env.RECOGNIZER === "catalog"
+    ? createCatalogRecognizer({
+        binary: catalogRecognizerBinary,
+        catalogDirectory,
+        workDirectory: catalogRoot,
+        timeoutMs: 8_000,
+      })
+    : undefined;
+const handleRectifiedRecognition = catalogRecognizer
+  ? createPhotoRecognitionHandler({
+      recognize: catalogRecognizer.recognize,
+      persistRoot: catalogRoot,
+    })
+  : createRectifiedRecognitionHandler({
+      corpus: loadRectified,
+      runner: rectifiedRunner,
+      persistRoot: rectifiedRoot,
+    });
+void catalogRecognizer?.warm().catch((error: unknown) => {
+  console.error(error);
 });
 function reply(response: http.ServerResponse, status: number, body: unknown) {
   const headers: Record<string, string> = {

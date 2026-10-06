@@ -29,6 +29,14 @@ export type RecognitionConfig = Readonly<{ url: string; token: string }>;
 
 export const RECOGNITION_TIMEOUT_MS = 10_000;
 
+export function isNotACard(reasons: readonly string[]): boolean {
+  return reasons.some(
+    (reason) =>
+      reason.includes("no candidate has a plausible card homography") ||
+      reason.startsWith("not a card"),
+  );
+}
+
 export function recognitionConfig(): RecognitionConfig | null {
   const url = process.env.EXPO_PUBLIC_RECOGNITION_URL;
   const token = process.env.EXPO_PUBLIC_RECOGNITION_TOKEN;

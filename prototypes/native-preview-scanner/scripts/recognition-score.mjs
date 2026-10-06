@@ -265,8 +265,10 @@ if (command === "cards") {
   const unmatched = [];
   const deckIds = new Set(truths.map((truth) => truth.scryfallId));
   const notACard = (result) =>
-    (result.reasons ?? []).some((reason) =>
-      reason.includes("no candidate has a plausible card homography"),
+    (result.reasons ?? []).some(
+      (reason) =>
+        reason.includes("no candidate has a plausible card homography") ||
+        reason.startsWith("not a card"),
     );
   const leftover = [];
   for (const result of results) {

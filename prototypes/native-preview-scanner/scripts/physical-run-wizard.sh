@@ -475,7 +475,22 @@ pause
 
 if [[ "$MODE" == "recognition" || "$MODE" == "bin" ]]; then
   stage "Start the recognition service"
-  if [[ ! -s "$SERVICE_ROOT/.prototype-data/rectified/corpus.json" ]]; then
+  RECOGNIZER="${RECOGNIZER:-rectified}"
+  write_env RECOGNIZER "$RECOGNIZER"
+  if [[ "$RECOGNIZER" == "catalog" ]]; then
+    CATALOG_ROOT="$(cd "$PROJECT_ROOT/../catalog-recognizer" && pwd)"
+    say "Building the catalog recognizer helper."
+    (cd "$CATALOG_ROOT" && ./scripts/build.sh >/dev/null)
+    if [[ ! -s "$CATALOG_ROOT/.data/catalog/gallery.json" ]]; then
+      say "The full-catalog gallery is missing."
+      if confirm "Build it now? A cold run downloads about 100,000 Scryfall images (about 10 GB) and takes a few hours."; then
+        (cd "$CATALOG_ROOT" && node scripts/prepare-catalog.mjs)
+      else
+        warn "Catalog recognition needs the gallery."
+        exit 1
+      fi
+    fi
+  elif [[ ! -s "$SERVICE_ROOT/.prototype-data/rectified/corpus.json" ]]; then
     say "The rectified candidate set is missing."
     if confirm "Prepare it now? A cold run downloads about 1,300 reference images and takes about 15 minutes."; then
       (cd "$SERVICE_ROOT" && npm run rectified:prepare -w @scanner-accuracy/service)
@@ -492,7 +507,7 @@ if [[ "$MODE" == "recognition" || "$MODE" == "bin" ]]; then
   [[ -n "$MAC_IP" ]] || { warn "Could not find this Mac's Wi-Fi address."; exit 1; }
   RECOGNITION_TOKEN=$(openssl rand -hex 32)
   say "Starting the service with a new token for this run. Photos go only to this Mac."
-  (cd "$SERVICE_ROOT/service" && PROTOTYPE_TOKEN="$RECOGNITION_TOKEN" HOST=0.0.0.0 OCR_ENABLED=0 \
+  (cd "$SERVICE_ROOT/service" && PROTOTYPE_TOKEN="$RECOGNITION_TOKEN" HOST=0.0.0.0 OCR_ENABLED=0 RECOGNIZER="$RECOGNIZER" \
     exec ../node_modules/.bin/tsx src/server.ts) > "$RUN_DIR/service.log" 2>&1 &
   SERVICE_PID=$!
   SERVICE_READY=no

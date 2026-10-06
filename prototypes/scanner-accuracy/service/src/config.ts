@@ -6,6 +6,17 @@ export const prototypeRoot = path.resolve(serviceDirectory, "../..");
 export const dataRoot = process.env.PROTOTYPE_DATA_DIR
   ? path.resolve(process.env.PROTOTYPE_DATA_DIR)
   : path.join(prototypeRoot, ".prototype-data");
+export const catalogRoot = path.join(dataRoot, "catalog");
+export const catalogRecognizerRoot = path.resolve(
+  prototypeRoot,
+  "../catalog-recognizer",
+);
+export const catalogRecognizerBinary = process.env.CATALOG_RECOGNIZER_BIN
+  ? path.resolve(process.env.CATALOG_RECOGNIZER_BIN)
+  : path.join(catalogRecognizerRoot, ".build", "mtg-catalog-recognizer");
+export const catalogDirectory = process.env.CATALOG_DIR
+  ? path.resolve(process.env.CATALOG_DIR)
+  : path.join(catalogRecognizerRoot, ".data", "catalog");
 export const defaultManifestPath = path.join(
   prototypeRoot,
   "sample/kill-test-manifest.json",

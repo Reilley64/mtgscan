@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseRecognitionResponse } from "../src/recognition/recognitionClient";
+import {
+  isNotACard,
+  parseRecognitionResponse,
+} from "../src/recognition/recognitionClient";
 
 const candidate = {
   scryfallId: "211a1d86-7257-4621-ae05-c2b235c063f0",
@@ -72,5 +75,19 @@ describe("recognition response", () => {
     ).toBeNull();
     expect(parseRecognitionResponse({ ...response(null) })).toBeNull();
     expect(parseRecognitionResponse("ok")).toBeNull();
+  });
+});
+
+describe("not-a-card reasons", () => {
+  it("recognizes the geometric and the catalog recognizer reasons", () => {
+    expect(isNotACard(["no candidate has a plausible card homography"])).toBe(
+      true,
+    );
+    expect(
+      isNotACard(["not a card: best image similarity 0.410 is below 0.500"]),
+    ).toBe(true);
+    expect(
+      isNotACard(["2 printings share this art and no collector line was read"]),
+    ).toBe(false);
   });
 });
