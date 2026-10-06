@@ -596,46 +596,91 @@ if [[ "$MODE" == "bin" ]]; then
   touch "$LEDGER"
   BIN_CARDS="$RUN_DIR/bin-cards.tsv"
   BIN_TOTALS="$RUN_DIR/bin-batch-summaries.ndjson"
-  UNAVAILABLE="$RUN_DIR/unavailable-scryfall-ids.txt"
-  EXCLUDED="$RUN_DIR/excluded-scryfall-ids.txt"
+  DEFERRED="$RUN_DIR/deferred-cards.txt"
+  EXCLUDED="$RUN_DIR/excluded-cards.txt"
   : > "$BIN_TOTALS"
-  : > "$UNAVAILABLE"
+  : > "$DEFERRED"
 
-  stage "Bin batches"
-  say "Put the phone in the holder over the bin, camera down, so a whole card and some bin floor show in the preview."
-  say "Each batch lists cards from your collection that have not been scanned yet, grouped by the rightmost coloured symbol in the mana cost."
-  record BATCH_SIZE "Cards per batch (Enter for 15):"
-  BATCH_SIZE=$(_existing BATCH_SIZE)
-  [[ "$BATCH_SIZE" =~ ^[0-9]+$ && "$BATCH_SIZE" -gt 0 ]] || BATCH_SIZE=15
-  batch=0
-  while true; do
-    batch=$((batch + 1))
-    cat "$LEDGER" "$UNAVAILABLE" > "$EXCLUDED"
-    $SCORE bin-cards "$SERVICE_ROOT/../../current_collection.csv" "$SERVICE_ROOT/.prototype-data/scryfall" "$EXCLUDED" > "$BIN_CARDS"
-    BATCH_FILE="$RUN_DIR/batch-$batch.tsv"
-    head -n "$BATCH_SIZE" "$BIN_CARDS" > "$BATCH_FILE"
-    if [[ ! -s "$BATCH_FILE" ]]; then
-      say "Every card in the collection export has been scanned."
-      break
-    fi
-    printf '\n  %sBatch %s%s (%s cards left in total)\n' "$BOLD" "$batch" "$RESET" "$(wc -l < "$BIN_CARDS" | tr -d ' ')"
-    number=0
-    while IFS=$'\t' read -r _ name set_code collector finish group; do
+  render_checklist() {
+    local list="$1" number=0 mark colour
+    while IFS=$'\t' read -r scryfall_id name set_code collector finish group; do
       number=$((number + 1))
       case "$group" in
         W) colour=White ;; U) colour=Blue ;; B) colour=Black ;; R) colour=Red ;; G) colour=Green ;; *) colour=Colourless ;;
       esac
-      note "  $number. [$colour] $name, $set_code #$collector, $finish"
-    done < "$BATCH_FILE"
-    ask MISSING "Numbers of cards you cannot find, separated by spaces (Enter for none):"
-    if [[ -n "$MISSING" ]]; then
-      awk -v drop=" $MISSING " 'index(drop, " " NR " ") != 0' "$BATCH_FILE" | cut -f1 >> "$UNAVAILABLE"
-      awk -v drop=" $MISSING " 'index(drop, " " NR " ") == 0' "$BATCH_FILE" > "$BATCH_FILE.kept"
-      mv "$BATCH_FILE.kept" "$BATCH_FILE"
+      if [[ " $CHECKED " == *" $number "* ]]; then
+        mark="${GREEN}[x]${RESET}"
+      else
+        mark="[ ]"
+      fi
+      printf '  %s %2s. %s%-10s%s %s, %s #%s, %s\n' "$mark" "$number" "$DIM" "$colour" "$RESET" "$name" "$set_code" "$collector" "$finish"
+    done < "$list"
+  }
+
+  stage "Bin batches"
+  say "Put the phone in the holder over the bin, camera down, so a whole card and some bin floor show in the preview."
+  say "Each round lists cards from your collection that have not been scanned yet, grouped by the rightmost coloured symbol in the mana cost."
+  record BATCH_SIZE "Cards to show per round (Enter for 20):"
+  BATCH_SIZE=$(_existing BATCH_SIZE)
+  [[ "$BATCH_SIZE" =~ ^[0-9]+$ && "$BATCH_SIZE" -gt 0 ]] || BATCH_SIZE=20
+  batch=0
+  while true; do
+    cat "$LEDGER" "$DEFERRED" > "$EXCLUDED"
+    $SCORE bin-cards "$SERVICE_ROOT/../../current_collection.csv" "$SERVICE_ROOT/.prototype-data/scryfall" "$EXCLUDED" > "$BIN_CARDS"
+    if [[ ! -s "$BIN_CARDS" && -s "$DEFERRED" ]]; then
+      say "Only cards you did not find earlier are left. Showing them again."
+      : > "$DEFERRED"
+      continue
     fi
-    [[ -s "$BATCH_FILE" ]] || { warn "No cards left in this batch."; continue; }
-    step "Slide the cards into the bin one at a time, each on top of the last. Check the set code and number."
-    step "Wait for the photo count to go up before sliding in the next card. Any order is fine."
+    if [[ ! -s "$BIN_CARDS" ]]; then
+      say "Every card in the collection export has been scanned."
+      break
+    fi
+    batch=$((batch + 1))
+    SHOWN_FILE="$RUN_DIR/round-$batch-shown.tsv"
+    BATCH_FILE="$RUN_DIR/batch-$batch.tsv"
+    head -n "$BATCH_SIZE" "$BIN_CARDS" > "$SHOWN_FILE"
+    SHOWN_COUNT=$(wc -l < "$SHOWN_FILE" | tr -d ' ')
+    CHECKED=""
+    while true; do
+      _clear
+      printf '\n%s%s▸ Round %s%s  %s%s cards left to scan%s\n\n' "$BOLD" "$BLUE" "$batch" "$RESET" "$DIM" "$(wc -l < "$BIN_CARDS" | tr -d ' ')" "$RESET"
+      render_checklist "$SHOWN_FILE"
+      printf '\n'
+      note "Type the number of each card as you find it, for example: 3 7 12. Type it again to untick."
+      note "Type a to tick all, n to untick all. Press Enter on an empty line when you are done."
+      printf '  %s%s ticked.%s ' "$BOLD" "$(wc -w <<< "$CHECKED" | tr -d ' ')" "$RESET"
+      read -r reply || reply=""
+      [[ -z "$reply" ]] && break
+      for token in $reply; do
+        if [[ "$token" == "a" ]]; then
+          CHECKED=" $(seq -s ' ' 1 "$SHOWN_COUNT") "
+        elif [[ "$token" == "n" ]]; then
+          CHECKED=""
+        elif [[ "$token" =~ ^[0-9]+$ ]] && (( token >= 1 && token <= SHOWN_COUNT )); then
+          if [[ " $CHECKED " == *" $token "* ]]; then
+            CHECKED=" $(tr ' ' '\n' <<< "$CHECKED" | { grep -vx -e "$token" -e '' || true; } | tr '\n' ' ')"
+          else
+            CHECKED="$CHECKED $token "
+          fi
+        fi
+      done
+      CHECKED=" $(tr ' ' '\n' <<< "$CHECKED" | { grep -v '^$' || true; } | sort -n | uniq | tr '\n' ' ')"
+    done
+    awk -v keep="$CHECKED" 'index(keep, " " NR " ") != 0' "$SHOWN_FILE" > "$BATCH_FILE"
+    awk -v keep="$CHECKED" 'index(keep, " " NR " ") == 0 { print $1 ":" $5 }' FS='\t' "$SHOWN_FILE" >> "$DEFERRED"
+    if [[ ! -s "$BATCH_FILE" ]]; then
+      warn "No cards ticked. They move to the back of the list for this run."
+      confirm "Show the next cards?" && continue
+      break
+    fi
+    _clear
+    printf '\n%s%s▸ Round %s: slide in %s cards%s\n\n' "$BOLD" "$BLUE" "$batch" "$(wc -l < "$BATCH_FILE" | tr -d ' ')" "$RESET"
+    CHECKED=" $(seq -s ' ' 1 "$(wc -l < "$BATCH_FILE" | tr -d ' ')") "
+    render_checklist "$BATCH_FILE"
+    printf '\n'
+    step "Slide the ticked cards into the bin one at a time, each on top of the last. Any order is fine."
+    step "Wait for the photo count to go up before sliding in the next card."
     BATCH_START_LINE=$(log_lines)
     pause "Press Enter, then start sliding cards in."
     pause "Press Enter after the last card's result line shows."
@@ -643,9 +688,12 @@ if [[ "$MODE" == "bin" ]]; then
     summary=$($SCORE bin-score "$METRO_LOG" "$BATCH_START_LINE" "$BATCH_FILE" "$RUN_DIR/batch-$batch-detail.ndjson")
     printf '%s\n' "$summary" >> "$BIN_TOTALS"
     write_env "BATCH_${batch}_SUMMARY" "$summary"
-    say "Batch $batch: $summary"
+    say "Round $batch: $(node -e '
+      const s = JSON.parse(process.argv[1]);
+      console.log(`${s.printingTop1}/${s.presented} exact printing, ${s.correctAccepts} accepted, ${s.falseAccepts} wrong accepts, ${s.missedCards} missed, ${s.unmatchedResults} extra results, ${s.correctCardsPerMinute ?? "n/a"} correct cards per minute`);
+    ' "$summary")"
     cut -f1 "$BATCH_FILE" >> "$LEDGER"
-    confirm "Scan another batch?" || break
+    confirm "Start another round?" || break
   done
   BIN_TOTAL=$(node -e '
     const lines = require("fs").readFileSync(process.argv[1], "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line));

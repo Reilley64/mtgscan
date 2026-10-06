@@ -204,7 +204,8 @@ if (command === "cards") {
     const scryfallId = row["Scryfall ID"];
     const card = metadata.get(scryfallId);
     const key = `${scryfallId}:${row.Foil}`;
-    if (!card || scanned.has(scryfallId) || seen.has(key)) continue;
+    if (!card || scanned.has(scryfallId) || scanned.has(key) || seen.has(key))
+      continue;
     seen.add(key);
     cards.push({
       scryfallId,
