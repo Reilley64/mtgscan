@@ -24,6 +24,8 @@ enum MTGCardQuadDetector {
     var edgeSupportMin = 0.0
     var shifts = [0.0, 0.0, 0.0, 0.0]
     var signature: [Double] = []
+    var edgeSupports: [Double] = []
+    var fallbackEdges = 0
     var refinementStatus = RefinementStatus.noProposal
     var proposalDurationMs = 0.0
     var runtimeErrorCode = 0
@@ -121,7 +123,15 @@ enum MTGCardQuadDetector {
     )
 
     switch MTGCardEdgeRefiner.refine(proposal: proposal, plane: plane, transform: transform) {
-    case let .refined(corners, supportMin, shifts):
+    case let .refined(corners, supportMin, shifts, supports, fallbackEdges):
+      output.edgeSupports = supports
+      guard fallbackEdges == 0 || output.confidence >= minimumFallbackConfidence else {
+        output.edgeSupportMin = supportMin
+        output.fallbackEdges = fallbackEdges
+        output.refinementStatus = .weakEdge
+        break
+      }
+      output.fallbackEdges = fallbackEdges
       let metrics = MTGCardQuadGeometry.metrics(
         corners,
         width: transform.orientedWidth,
@@ -135,16 +145,19 @@ enum MTGCardQuadDetector {
       output.shifts = shifts
       output.signature = cardSignature(corners: corners, plane: plane, transform: transform)
       output.refinementStatus = .refined
-    case let .weakEdge(supportMin):
+    case let .weakEdge(supportMin, supports):
+      output.edgeSupports = supports
       output.edgeSupportMin = supportMin
       output.refinementStatus = .weakEdge
-    case let .invalidQuad(supportMin):
+    case let .invalidQuad(supportMin, supports):
+      output.edgeSupports = supports
       output.edgeSupportMin = supportMin
       output.refinementStatus = .invalidQuad
     }
     return output
   }
 
+  static let minimumFallbackConfidence = 0.9
   static let signatureColumns = 8
   static let signatureRows = 6
   static let signatureLeft = 0.1

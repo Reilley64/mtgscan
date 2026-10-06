@@ -180,6 +180,8 @@ What was tuned, and on which data:
 - An inlier-ratio threshold was tried to stop a Font of Fertility reprint (CMM) from being accepted when the JOU printing was held out. It also rejected many correct binder photos, so it was dropped. The illustration check rejects that case instead. It relies on the catalog listing every printing, even ones that have no reference features.
 - The old 0.05 color-only appearance check was dropped. Sleeve glare lowers the color score of the right printing, and that check caused most of the phone-crop abstentions.
 
+The corpus builder also reads an optional, ignored `.prototype-data/rectified/extra-names.txt` with one card name per line, and adds every English paper printing of those names. The native preview prototype fills it with the names in its fixed 30-card test deck, so each deck card competes with its same-name printings. With those 27 names the corpus has 1,381 printings.
+
 ## Physical result: baseline rejected
 
 On 2026-08-31, an iPhone 16e running App Store Expo Go recorded five formal presentations before the early-stop gate fired: one DSC Arcane Signet and four SLD Arcane Signet presentations. The exact SLD printing was outside every strategy's top 10 in three presentations and reached rank 2 once, behind the wrong Arcane Signet printing. All strategies abstained. The five-scan report recorded 40% hybrid identity top-3 recall, 0% Scryfall-printing top-1 accuracy under the abstention rule, 0% auto-accept coverage, 100% correction rate, 815 ms service p95, and 3,422 ms end-to-end proposal p95. The throughput value is invalid because human discussion introduced idle gaps inside the session and must not be used.

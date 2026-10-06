@@ -295,7 +295,7 @@ private func testRefinementRecoversOuterEdges() {
     let outcome = lumaPlane(buffer) {
       MTGCardEdgeRefiner.refine(proposal: lowered, plane: $0, transform: transform)
     }
-    guard case let .refined(corners, supportMin, shifts) = outcome else {
+    guard case let .refined(corners, supportMin, shifts, _, _) = outcome else {
       require(false, "refinement failed for orientation \(orientation.rawValue): \(outcome)")
       return
     }
@@ -407,11 +407,39 @@ private func testCardSignature() {
   print("signature correlation: same card \(same), different card \(different)")
 }
 
+private func testOneEdgeFallback() {
+  let card = SyntheticCard(center: SIMD2(360, 620), width: 400, angle: 0.0)
+  let truth = MTGCardQuadGeometry.orderedClockwise(card.corners)!
+  var oriented = renderCard(card, width: 720, height: 1280, background: 190)
+  let flatFrom = Int(truth.map(\.x).max()! - card.width * 0.2)
+  for y in 0 ..< 1280 {
+    for x in flatFrom ..< 720 {
+      oriented.pixels[y * 720 + x] = 28
+    }
+  }
+  let buffer = makeBuffer(oriented: oriented, orientation: .right)
+  let transform = MTGOrientationTransform(displayOrientation: .right, bufferWidth: 1280, bufferHeight: 720)!
+  let outcome = lumaPlane(buffer) {
+    MTGCardEdgeRefiner.refine(proposal: truth, plane: $0, transform: transform)
+  }
+  guard case let .refined(corners, supportMin, _, supports, fallbackEdges) = outcome else {
+    require(false, "one-edge fallback did not refine: \(outcome)")
+    return
+  }
+  require(fallbackEdges == 1, "expected one fallback edge, got \(fallbackEdges)")
+  require(supports[1] < 0.7, "right edge support \(supports[1]) should be weak")
+  require(supportMin >= 0.9, "measured edges support \(supportMin)")
+  let error = maximumCornerError(corners, truth)
+  require(error < 2.0, "fallback corner error \(error) px")
+  print("one-edge fallback: corner error \(error) px, supports \(supports.map { ($0 * 100).rounded() / 100 })")
+}
+
 testTransformMatchesCoreImage()
 testTransformMatchesVision()
 testRefinementRecoversOuterEdges()
 testRefinementRejectsBlankSurface()
 testDetectorEndToEnd()
 testCardSignature()
+testOneEdgeFallback()
 testRefinementTiming()
 print("native detector fixture passed")

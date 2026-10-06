@@ -22,6 +22,8 @@ export type NativeRectangleRecord = Readonly<{
   shiftLeft: number;
   refinementStatus: number;
   signature: readonly number[];
+  edgeSupports: readonly number[];
+  fallbackEdges: number;
   proposalDurationMs: number;
   nativeDurationMs: number;
   orientationCode: number;
@@ -60,6 +62,8 @@ const NATIVE_KEYS = [
   "shiftLeft",
   "refinementStatus",
   "signature",
+  "edgeSupports",
+  "fallbackEdges",
   "proposalDurationMs",
   "nativeDurationMs",
   "orientationCode",
@@ -201,6 +205,18 @@ export function validateNativeRectangleRecord(
     if (!isFiniteInRange(cell, 0, 255)) return null;
     signature.push(cell);
   }
+  if (!Array.isArray(value.edgeSupports)) return null;
+  const supportLength = value.edgeSupports.length;
+  if (supportLength !== 0 && supportLength !== 4) return null;
+  const edgeSupports: number[] = [];
+  for (let index = 0; index < supportLength; index += 1) {
+    const support: unknown = value.edgeSupports[index];
+    if (!isFiniteInRange(support, 0, 1)) return null;
+    edgeSupports.push(support);
+  }
+  if (!Number.isInteger(value.fallbackEdges)) return null;
+  if (!isFiniteInRange(value.fallbackEdges, 0, 1)) return null;
+  if (!value.detected && value.fallbackEdges !== 0) return null;
 
   return {
     detected: value.detected,
@@ -224,6 +240,8 @@ export function validateNativeRectangleRecord(
     shiftLeft: value.shiftLeft,
     refinementStatus: value.refinementStatus,
     signature,
+    edgeSupports,
+    fallbackEdges: value.fallbackEdges,
     proposalDurationMs: value.proposalDurationMs,
     nativeDurationMs: value.nativeDurationMs,
     orientationCode: value.orientationCode,

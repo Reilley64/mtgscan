@@ -47,9 +47,15 @@ enum MTGCardEdgeRefiner {
   static let linesPerEdge = 5
 
   enum Outcome {
-    case refined(corners: [SIMD2<Double>], supportMin: Double, shifts: [Double])
-    case weakEdge(supportMin: Double)
-    case invalidQuad(supportMin: Double)
+    case refined(
+      corners: [SIMD2<Double>],
+      supportMin: Double,
+      shifts: [Double],
+      supports: [Double],
+      fallbackEdges: Int
+    )
+    case weakEdge(supportMin: Double, supports: [Double])
+    case invalidQuad(supportMin: Double, supports: [Double])
   }
 
   private struct EdgeFit {
@@ -97,6 +103,8 @@ enum MTGCardEdgeRefiner {
     let centroid = proposal.reduce(SIMD2<Double>(0, 0), +) / 4.0
     var workspace = Workspace(searchRadius: searchRadius)
     var edges: [[EdgeFit]] = []
+    var supports: [Double] = []
+    var fallbackEdges = 0
 
     for index in 0 ..< 4 {
       let result = fitEdge(
@@ -107,20 +115,30 @@ enum MTGCardEdgeRefiner {
         transform: transform,
         workspace: &workspace
       )
-      guard !result.accepted.isEmpty else {
-        return .weakEdge(supportMin: Double(result.bestSupport) / Double(samplesPerEdge))
+      supports.append(Double(result.bestSupport) / Double(samplesPerEdge))
+      if result.accepted.isEmpty {
+        guard fallbackEdges == 0,
+              let line = MTGLine.through(proposal[index], proposal[(index + 1) % 4])
+        else {
+          return .weakEdge(supportMin: supports.min() ?? 0.0, supports: paddedSupports(supports))
+        }
+        fallbackEdges += 1
+        edges.append([EdgeFit(line: line, support: 0, shift: 0.0, sign: 0.0)])
+      } else {
+        edges.append(result.accepted)
       }
-      edges.append(result.accepted)
     }
 
     var selected: (corners: [SIMD2<Double>], fits: [EdgeFit], outwardness: Double)?
     for top in edges[0] {
       for right in edges[1] {
         for bottom in edges[2] {
-          for left in edges[3] where top.sign == right.sign
-            && top.sign == bottom.sign && top.sign == left.sign {
+          for left in edges[3] {
             let fits = [top, right, bottom, left]
-            guard let corners = quadrilateral(fits.map(\.line), transform: transform) else {
+            let signs = Set(fits.map(\.sign).filter { $0 != 0.0 })
+            guard signs.count <= 1,
+                  let corners = quadrilateral(fits.map(\.line), transform: transform)
+            else {
               continue
             }
             let outwardness = fits.reduce(0.0) { $0 + $1.shift }
@@ -132,15 +150,25 @@ enum MTGCardEdgeRefiner {
       }
     }
 
-    let firstSupport = edges.map { Double($0[0].support) / Double(samplesPerEdge) }.min() ?? 0.0
+    let measuredSupport = edges.compactMap { $0.first }
+      .filter { $0.sign != 0.0 }
+      .map { Double($0.support) / Double(samplesPerEdge) }
+      .min() ?? 0.0
     guard let selected else {
-      return .invalidQuad(supportMin: firstSupport)
+      return .invalidQuad(supportMin: measuredSupport, supports: supports)
     }
     return .refined(
       corners: selected.corners,
-      supportMin: selected.fits.map { Double($0.support) / Double(samplesPerEdge) }.min() ?? 0.0,
-      shifts: selected.fits.map { $0.shift / max(1.0, proposalMetrics.shortSide) }
+      supportMin: selected.fits.filter { $0.sign != 0.0 }
+        .map { Double($0.support) / Double(samplesPerEdge) }.min() ?? 0.0,
+      shifts: selected.fits.map { $0.shift / max(1.0, proposalMetrics.shortSide) },
+      supports: supports,
+      fallbackEdges: fallbackEdges
     )
+  }
+
+  private static func paddedSupports(_ supports: [Double]) -> [Double] {
+    supports + [Double](repeating: 0.0, count: max(0, 4 - supports.count))
   }
 
   private static func quadrilateral(

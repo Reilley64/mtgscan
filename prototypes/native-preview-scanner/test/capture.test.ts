@@ -452,6 +452,8 @@ const validNativeRecord = () => ({
   shiftLeft: -0.01,
   refinementStatus: 0,
   signature: cardSignature(1),
+  edgeSupports: [0.9, 0.8, 1, 0.85],
+  fallbackEdges: 0,
   proposalDurationMs: 3,
   nativeDurationMs: 5,
   orientationCode: 2,
@@ -480,6 +482,8 @@ const undetectedRecord = (proposal: boolean) => ({
   shiftLeft: 0,
   refinementStatus: proposal ? 3 : 1,
   signature: [],
+  edgeSupports: proposal ? [0.4, 0.9, 0.9, 0.9] : [],
+  fallbackEdges: 0,
 });
 
 describe("native rectangle validation", () => {
@@ -503,6 +507,33 @@ describe("native rectangle validation", () => {
       validateNativeRectangleRecord({
         ...validNativeRecord(),
         runtimeErrorCode: 6,
+      }),
+    ).toBeNull();
+  });
+
+  it("accepts one fallback edge only on a refined card", () => {
+    expect(
+      validateNativeRectangleRecord({
+        ...validNativeRecord(),
+        fallbackEdges: 1,
+      }),
+    ).toMatchObject({ fallbackEdges: 1 });
+    expect(
+      validateNativeRectangleRecord({
+        ...undetectedRecord(true),
+        fallbackEdges: 1,
+      }),
+    ).toBeNull();
+    expect(
+      validateNativeRectangleRecord({
+        ...validNativeRecord(),
+        fallbackEdges: 2,
+      }),
+    ).toBeNull();
+    expect(
+      validateNativeRectangleRecord({
+        ...validNativeRecord(),
+        edgeSupports: [1, 1],
       }),
     ).toBeNull();
   });

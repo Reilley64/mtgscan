@@ -83,8 +83,18 @@ export async function gatherRectifiedCards(options: {
       "utf8",
     ),
   ) as { entries: Array<{ name: string }> };
+  const extraNames = await fs
+    .readFile(path.join(dataRoot, "rectified", "extra-names.txt"), "utf8")
+    .then(
+      (text) =>
+        text
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean),
+      () => [],
+    );
   const names = [
-    ...new Set(manifest.entries.map((entry) => entry.name)),
+    ...new Set([...manifest.entries.map((entry) => entry.name), ...extraNames]),
   ].sort();
   const metadata = new Map<string, any>();
   for (const card of await fetchCardMetadata(
