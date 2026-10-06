@@ -30,6 +30,9 @@ import {
   manualResetCaptureMachine,
   failCapture,
   nextCaptureGuard,
+  recoverFromCaptureFailure,
+  resumeCaptureMachine,
+  RESUME_GAP_MS,
   type CaptureMachineState,
 } from "../src/capture/stateMachine";
 
@@ -827,5 +830,96 @@ describe("shared-value state objects", () => {
         QUAD_CAPTURE_TIMING,
       ).requestCapture,
     ).toBe(false);
+  });
+});
+
+describe("capture interruptions", () => {
+  const darkFrame = () => ({ ...undetectedRecord(false), confidence: 0 });
+
+  const runTimeline = (samples: { atMs: number; record: unknown }[]) => {
+    let state = initialCaptureMachineState();
+    let previous: ReturnType<typeof refinedCorners> = null;
+    let previousAt = 0;
+    let guard = false;
+    let photos = 0;
+    for (const sample of samples) {
+      if (previousAt > 0 && sample.atMs - previousAt > RESUME_GAP_MS) {
+        previous = null;
+        state = resumeCaptureMachine(state);
+      }
+      previousAt = sample.atMs;
+      const observation = validateNativeRectangleRecord(sample.record)!;
+      const corners = refinedCorners(observation, 720, 1280);
+      const motion = quadMotion(previous, corners);
+      previous = corners;
+      const transition = advanceCaptureMachine(
+        state,
+        evaluateQuadCaptureGates(observation, observation.detected, motion),
+        sample.atMs,
+        QUAD_CAPTURE_TIMING,
+      );
+      state = transition.state;
+      const decision = nextCaptureGuard(guard, transition);
+      guard = decision.guard;
+      if (decision.requestPhoto) {
+        photos += 1;
+        state = completeCapture(state);
+      }
+    }
+    return { photos, state };
+  };
+
+  const every200 = (startMs: number, count: number, record: () => unknown) =>
+    Array.from({ length: count }, (_, index) => ({
+      atMs: startMs + index * 200,
+      record: record(),
+    }));
+
+  it("does not retake a card after a pause that began during departure", () => {
+    const result = runTimeline([
+      ...every200(200, 6, () => cardRecord()),
+      ...every200(1400, 3, () => emptySurfaceRecord()),
+      ...every200(30_000, 3, () => darkFrame()),
+      ...every200(30_600, 10, () => cardRecord()),
+    ]);
+    expect(result.photos).toBe(1);
+  });
+
+  it("requires a fresh hold after a pause during a hold", () => {
+    const resumed = runTimeline([
+      ...every200(200, 2, () => cardRecord()),
+      { atMs: 10_000, record: cardRecord() },
+    ]);
+    expect(resumed.photos).toBe(0);
+    expect(resumed.state.phase).toBe("seeking");
+    const held = runTimeline([
+      ...every200(200, 2, () => cardRecord()),
+      ...every200(10_000, 4, () => cardRecord()),
+    ]);
+    expect(held.photos).toBe(1);
+  });
+
+  it("keeps the cooldown lock across a pause", () => {
+    expect(
+      resumeCaptureMachine({
+        phase: "cooldown",
+        holdStartedAt: 0,
+        departureStartedAt: 500,
+        captureLocked: true,
+        captureInFlight: false,
+      }),
+    ).toEqual({
+      phase: "cooldown",
+      holdStartedAt: 0,
+      departureStartedAt: null,
+      captureLocked: true,
+      captureInFlight: false,
+    });
+  });
+
+  it("retries after a failed photo and stops after repeated failures", () => {
+    expect(recoverFromCaptureFailure(1)).toEqual(initialCaptureMachineState());
+    expect(recoverFromCaptureFailure(2)).toEqual(initialCaptureMachineState());
+    expect(recoverFromCaptureFailure(3)).toEqual(failCapture());
   });
 });

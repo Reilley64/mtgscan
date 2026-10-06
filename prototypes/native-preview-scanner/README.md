@@ -87,6 +87,16 @@ The second capture run, with commit `e81df02`, gave no photo on the empty surfac
 
 The third capture run, with commit `80b2880`, took 13 photos for 13 card placements: ten presentations, the still hold, the handheld hold, and the patterned surface. There were no duplicates, no misses, no capture failures, and no photo on the empty surface. During the still hold the refined outline dropped out for two telemetry lines, but the proposal kept confidence 0.98 at card size, so capture did not re-arm. During about 30 seconds of handheld cooldown, corner motion reached 15% of the short side between samples without a second photo. The wizard flagged the handheld hold because the re-placed card's photo landed just after the count started. Both hold stages now start with the card out of view and expect exactly one photo. With capture on, the worst full-window p95 was 15.7 ms, the lowest cadence was 4.55 Hz, and there was no slow streak. The longest single sample was 856 ms, which did not start a slow streak. This is one phone, one tester, and one set of cards. Interruptions such as backgrounding the app during a photo are still untested.
 
+### Interruption recovery
+
+VisionCamera `4.7.3` does not report an error when iOS pauses the camera for backgrounding, a locked screen, or a call. Frames stop and later resume. For a real `AVCaptureSession` runtime error, it calls `onError` and restarts the session itself. The app now handles these cases:
+
+- A gap of more than 1 second between detector samples resets a hold, so the next photo needs a fresh 400 ms steady view. It keeps a cooldown locked and clears any departure that began before the gap, so dark frames while the camera restarts cannot complete an old departure. The app logs `capture-resumed-after-gap`.
+- A failed photo returns capture to seeking, so the same card can be captured after a fresh hold. Three failures in a row stop capture until Reset study.
+- A camera runtime error is logged as `camera-error` and handled like a gap. Three camera errors within 30 seconds stop the detector with code 40, as before.
+
+Replay tests cover a pause that starts during departure and resumes on dark frames, a pause during a hold, the cooldown lock across a pause, and repeated photo failures. Without the gap rule, the first test takes a duplicate photo. `npm run physical-run:interruptions` checks backgrounding, the lock screen, and Control Center during cooldown, a card swapped while the app is away, and capture after returning. It has not run yet.
+
 ## Offline evidence
 
 `npm run test:native-detector` compiles the three shared Swift files with a macOS fixture and runs it in `/tmp`. It writes no image. It checks:

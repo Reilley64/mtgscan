@@ -187,7 +187,7 @@ finish() {
 MODE="${1:-full}"
 if [[ "$MODE" == "quick" ]]; then
   TOTAL_STAGES=6
-elif [[ "$MODE" == "capture" ]]; then
+elif [[ "$MODE" == "capture" || "$MODE" == "interruptions" ]]; then
   TOTAL_STAGES=10
 else
   TOTAL_STAGES=17
@@ -295,6 +295,29 @@ timed_hold() {
   write_env "${key}_FAILURES" "$failures"
   write_env "${key}_EXPECTED" "$expected"
   say "Photos: $photos (expected $expected). Capture failures: $failures."
+}
+
+counted_steps() {
+  local key="$1" expected="$2" before photos failures resumes camera_errors
+  before=$(log_lines)
+  pause "Press Enter to start, then do the steps above."
+  pause "Press Enter when every step is done."
+  sleep 1
+  photos=$(count_events capture-success "$before")
+  failures=$(count_events capture-failure "$before")
+  resumes=$(count_events capture-resumed-after-gap "$before")
+  camera_errors=$(count_events camera-error "$before")
+  write_env "${key}_PHOTOS" "$photos"
+  write_env "${key}_EXPECTED" "$expected"
+  write_env "${key}_FAILURES" "$failures"
+  write_env "${key}_RESUMES" "$resumes"
+  write_env "${key}_CAMERA_ERRORS" "$camera_errors"
+  say "Photos: $photos (expected $expected). Failures: $failures. Resumes: $resumes. Camera errors: $camera_errors."
+  if [[ "$photos" == "$expected" ]]; then
+    write_env "${key}_RESULT" pass
+  else
+    write_env "${key}_RESULT" fail
+  fi
 }
 
 log_has() {
@@ -506,6 +529,64 @@ else
   stop_run "the panel did not show automatic capture as $EXPECTED_CAPTURE"
 fi
 pause
+
+if [[ "$MODE" == "interruptions" ]]; then
+  stage "Background during cooldown"
+  step "Before starting: keep every card out of view."
+  step "1. Lay one card flat and hold the phone above it until the photo count goes up."
+  step "2. Swipe up to go to the home screen. Wait 5 seconds."
+  step "3. Reopen the app with the card still in place. Keep it in view for 10 seconds."
+  note "Expect one photo: the card must not be photographed again after the app returns."
+  counted_steps BACKGROUND_COOLDOWN 1
+  pause
+
+  stage "Lock screen during cooldown"
+  step "Before starting: move the card out of view for two seconds."
+  step "1. Lay the card down and wait for its photo."
+  step "2. Press the side button to lock the phone. Wait 5 seconds."
+  step "3. Unlock, return to the app, and keep the card in view for 10 seconds."
+  note "Expect one photo."
+  counted_steps LOCK_COOLDOWN 1
+  pause
+
+  stage "Control Center during cooldown"
+  step "Before starting: move the card out of view for two seconds."
+  step "1. Lay the card down and wait for its photo."
+  step "2. Swipe down from the top-right corner to open Control Center. Wait 5 seconds."
+  step "3. Close Control Center and keep the card in view for 10 seconds."
+  note "Expect one photo."
+  counted_steps CONTROL_CENTER 1
+  pause
+
+  stage "Card swapped while away"
+  step "Before starting: move the card out of view for two seconds."
+  step "1. Lay card A down and wait for its photo."
+  step "2. Go to the home screen. While the app is away, remove card A."
+  step "3. Reopen the app, wait 2 seconds with no card in view, then lay card B down and wait for its photo."
+  note "Expect two photos: one for each card."
+  counted_steps SWAP_WHILE_AWAY 2
+  pause
+
+  stage "Capture after returning"
+  step "Before starting: keep every card out of view."
+  step "1. Go to the home screen for 5 seconds, then reopen the app."
+  step "2. Lay a card down and wait for its photo."
+  note "Expect one photo: capture must work normally after the app returns."
+  counted_steps AFTER_RETURN 1
+  if log_has "fatal-detector-stop"; then
+    write_env FATAL_SEEN yes
+  fi
+  INTERRUPTIONS_GATE=pass
+  for key in BACKGROUND_COOLDOWN LOCK_COOLDOWN CONTROL_CENTER SWAP_WHILE_AWAY AFTER_RETURN; do
+    [[ "$(_existing "${key}_RESULT")" == "pass" ]] || INTERRUPTIONS_GATE=fail
+  done
+  log_has "fatal-detector-stop" && INTERRUPTIONS_GATE=fail
+  write_env INTERRUPTIONS_GATE "$INTERRUPTIONS_GATE"
+  write_env RUN_OUTCOME "interruptions check completed"
+  pause
+  wrap_up
+  exit 0
+fi
 
 if [[ "$MODE" == "capture" ]]; then
   stage "Empty surface"

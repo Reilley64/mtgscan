@@ -154,3 +154,32 @@ export function nextCaptureGuard(
     return { guard: true, requestPhoto: true };
   return { guard, requestPhoto: false };
 }
+
+export const RESUME_GAP_MS = 1000;
+export const MAX_CONSECUTIVE_CAPTURE_FAILURES = 3;
+
+export function resumeCaptureMachine(
+  state: CaptureMachineState,
+): CaptureMachineState {
+  "worklet";
+  if (state.phase === "holding") return initialCaptureMachineState();
+  if (state.phase === "cooldown") {
+    return {
+      phase: "cooldown",
+      holdStartedAt: state.holdStartedAt,
+      departureStartedAt: null,
+      captureLocked: true,
+      captureInFlight: false,
+    };
+  }
+  return copyCaptureState(state);
+}
+
+export function recoverFromCaptureFailure(
+  consecutiveFailures: number,
+): CaptureMachineState {
+  "worklet";
+  return consecutiveFailures >= MAX_CONSECUTIVE_CAPTURE_FAILURES
+    ? failCapture()
+    : initialCaptureMachineState();
+}

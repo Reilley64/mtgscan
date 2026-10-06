@@ -16,7 +16,8 @@
     "evaluate:stills": "bash scripts/evaluate-stills.sh",
     "physical-run": "bash scripts/physical-run-wizard.sh",
     "physical-run:quick": "bash scripts/physical-run-wizard.sh quick",
-    "physical-run:capture": "bash scripts/physical-run-wizard.sh capture"
+    "physical-run:capture": "bash scripts/physical-run-wizard.sh capture",
+    "physical-run:interruptions": "bash scripts/physical-run-wizard.sh interruptions"
   },
   "dependencies": {
     "babel-preset-expo": "~54.0.10",

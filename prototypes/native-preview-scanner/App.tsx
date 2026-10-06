@@ -179,7 +179,7 @@ export default function App() {
         pixelFormat="yuv"
         frameProcessor={capture.frameProcessor}
         resizeMode="contain"
-        onError={capture.reportFatalCameraError}
+        onError={capture.reportCameraError}
       />
 
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>

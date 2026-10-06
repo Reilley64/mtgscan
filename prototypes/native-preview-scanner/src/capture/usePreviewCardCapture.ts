@@ -3,6 +3,7 @@ import {
   runAtTargetFps,
   useFrameProcessor,
   type Camera,
+  type CameraRuntimeError,
 } from "react-native-vision-camera";
 import { Worklets, useSharedValue } from "react-native-worklets-core";
 import {
@@ -24,6 +25,9 @@ import {
   initialCaptureMachineState,
   manualResetCaptureMachine,
   nextCaptureGuard,
+  recoverFromCaptureFailure,
+  resumeCaptureMachine,
+  RESUME_GAP_MS,
   type CapturePhase,
 } from "./stateMachine";
 import {
@@ -68,10 +72,13 @@ export type PreviewCardCaptureDiagnostics = {
   fatalErrorCode: number;
 };
 
+const CAMERA_ERROR_WINDOW_MS = 30_000;
+const CAMERA_ERROR_LIMIT = 3;
+
 type PublishedDiagnostics = Omit<
   PreviewCardCaptureDiagnostics,
   "timing" | "consecutiveSlowSamples" | "fatalErrorCode"
->;
+> & { resumedAfterGapMs: number };
 
 type PublishedTiming = {
   sampleId: number;
@@ -89,7 +96,7 @@ export type PreviewCardCapture = {
   error: string | null;
   thresholds: CaptureThresholds;
   reset: () => void;
-  reportFatalCameraError: () => void;
+  reportCameraError: (error: CameraRuntimeError) => void;
 };
 
 const EMPTY_OBSERVATION: NativeRectangleRecord = {
@@ -205,6 +212,8 @@ export function usePreviewCardCapture(
   const timestampHistory = useRef<number[]>([]);
   const runSamples = useRef(0);
   const captureSequence = useRef(0);
+  const consecutiveCaptureFailures = useRef(0);
+  const cameraErrorTimes = useRef<number[]>([]);
   const lastPublished = useRef<PublishedDiagnostics | null>(null);
   const [lastPhoto, setLastPhoto] = useState<CapturedPhoto | null>(null);
   const [photoCount, setPhotoCount] = useState(0);
@@ -213,6 +222,17 @@ export function usePreviewCardCapture(
 
   const receiveDiagnostics = useCallback((next: PublishedDiagnostics) => {
     if (fatalDetectorOnJS.current) return;
+    if (next.resumedAfterGapMs > 0) {
+      console.log(
+        "NATIVE_PREVIEW_EVENT " +
+          JSON.stringify({
+            event: "capture-resumed-after-gap",
+            atMs: Date.now(),
+            gapMs: Math.round(next.resumedAfterGapMs),
+            phase: next.phase,
+          }),
+      );
+    }
     lastPublished.current = next;
     if (!next.captureLocked) jsCaptureGuard.current = false;
     setDiagnostics((current) => ({
@@ -357,6 +377,7 @@ export function usePreviewCardCapture(
       const photo = await camera.current.takePhoto({ flash: "off" });
       setLastPhoto({ width: photo.width, height: photo.height });
       setPhotoCount((count) => count + 1);
+      consecutiveCaptureFailures.current = 0;
       const machineBeforeComplete = machine.value;
       const machineAfterComplete = completeCapture(machineBeforeComplete);
       machine.value = machineAfterComplete;
@@ -382,6 +403,8 @@ export function usePreviewCardCapture(
         captureLocked: true,
       }));
     } catch {
+      const failures = ++consecutiveCaptureFailures.current;
+      const recovered = recoverFromCaptureFailure(failures);
       console.log(
         "NATIVE_PREVIEW_EVENT " +
           JSON.stringify({
@@ -389,17 +412,24 @@ export function usePreviewCardCapture(
             atMs: Date.now(),
             sequence,
             code: 1,
+            consecutiveFailures: failures,
+            afterPhase: recovered.phase,
           }),
       );
-      machine.value = failCapture();
-      setError("Capture failed.");
+      machine.value = recovered;
+      previousCorners.value = null;
+      setError(
+        recovered.phase === "error"
+          ? "Capture failed repeatedly. Reset the study to try again."
+          : "Capture failed. It will retry when the card is steady.",
+      );
       setDiagnostics((current) => ({
         ...current,
-        phase: "error",
-        captureLocked: true,
+        phase: recovered.phase,
+        captureLocked: recovered.captureLocked,
       }));
     }
-  }, [camera, machine]);
+  }, [camera, machine, previousCorners]);
   const requestPhotoOnJS = useMemo(
     () => Worklets.createRunOnJS(takeExactlyOnePhoto),
     [takeExactlyOnePhoto],
@@ -426,6 +456,15 @@ export function usePreviewCardCapture(
             publishFatal(33, 0);
           } catch {}
           return;
+        }
+        const gapMs =
+          previousSampleWallAtMs.value > 0
+            ? sampleWallAtMs - previousSampleWallAtMs.value
+            : 0;
+        const resumedAfterGapMs = gapMs > RESUME_GAP_MS ? gapMs : 0;
+        if (resumedAfterGapMs > 0) {
+          previousCorners.value = null;
+          machine.value = resumeCaptureMachine(machine.value);
         }
         previousSampleWallAtMs.value = sampleWallAtMs;
         const sampleId = sampleSequence.value + 1;
@@ -522,6 +561,7 @@ export function usePreviewCardCapture(
             captureGates,
             motion,
             captureLocked,
+            resumedAfterGapMs,
             sampleId,
             sampleWallAtMs,
             frameWidth: frame.width,
@@ -598,9 +638,34 @@ export function usePreviewCardCapture(
     ],
   );
 
-  const reportFatalCameraError = useCallback(() => {
-    stopDetectorOnJS(40, Date.now());
-  }, [stopDetectorOnJS]);
+  const reportCameraError = useCallback(
+    (error: CameraRuntimeError) => {
+      const atMs = Date.now();
+      cameraErrorTimes.current = [
+        ...cameraErrorTimes.current.filter(
+          (time) => atMs - time < CAMERA_ERROR_WINDOW_MS,
+        ),
+        atMs,
+      ];
+      console.log(
+        "NATIVE_PREVIEW_EVENT " +
+          JSON.stringify({
+            event: "camera-error",
+            atMs,
+            code: error.code,
+            message: error.message,
+            recentErrors: cameraErrorTimes.current.length,
+          }),
+      );
+      if (cameraErrorTimes.current.length >= CAMERA_ERROR_LIMIT) {
+        stopDetectorOnJS(40, atMs);
+        return;
+      }
+      machine.value = resumeCaptureMachine(machine.value);
+      previousCorners.value = null;
+    },
+    [machine, previousCorners, stopDetectorOnJS],
+  );
 
   const reset = useCallback(() => {
     if (fatalDetectorOnJS.current || fatalDetector.value) {
@@ -634,6 +699,7 @@ export function usePreviewCardCapture(
     jsCaptureGuard.current = false;
     setLastPhoto(null);
     setPhotoCount(0);
+    consecutiveCaptureFailures.current = 0;
     previousCorners.value = null;
     setError(null);
     setDiagnostics(initialDiagnostics());
@@ -661,6 +727,6 @@ export function usePreviewCardCapture(
     error,
     thresholds,
     reset,
-    reportFatalCameraError,
+    reportCameraError,
   };
 }
