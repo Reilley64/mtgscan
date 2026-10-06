@@ -60,6 +60,8 @@ func strokeQuad(_ context: CGContext, _ points: [SIMD2<Double>], _ width: Int, _
   context.strokePath()
 }
 
+var quadRecords: [[String: Any]] = []
+
 for (index, path) in arguments.dropFirst(2).enumerated() {
   guard let image = loadImage(path) else {
     print("\(index)\tunreadable")
@@ -69,6 +71,12 @@ for (index, path) in arguments.dropFirst(2).enumerated() {
   let startedAt = ProcessInfo.processInfo.systemUptime
   let output = MTGCardQuadDetector.detect(pixelBuffer: buffer, displayOrientation: .up)
   let totalMs = MTGCardQuadDetector.elapsedMilliseconds(since: startedAt)
+  quadRecords.append([
+    "index": index,
+    "path": path,
+    "refinementStatus": output.refinementStatus.rawValue,
+    "corners": (output.refined ?? []).map { ["x": $0.x, "y": $0.y] },
+  ])
   let shifts = output.shifts.map { String(format: "%+.3f", $0) }.joined(separator: ",")
   print(String(
     format: "%d\tstatus %d\tconfidence %.2f\tsupport %.2f\tarea %.3f\taspect %.3f\tshifts %@\tproposal %.1f ms\ttotal %.1f ms",
@@ -104,3 +112,6 @@ for (index, path) in arguments.dropFirst(2).enumerated() {
   CGImageDestinationAddImage(destination, context.makeImage()!, nil)
   CGImageDestinationFinalize(destination)
 }
+
+let quadData = try JSONSerialization.data(withJSONObject: quadRecords, options: [.prettyPrinted, .sortedKeys])
+try quadData.write(to: outputDirectory.appendingPathComponent("quads.json"))

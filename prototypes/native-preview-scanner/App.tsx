@@ -21,7 +21,10 @@ import {
   AUTOMATIC_CAPTURE_ENABLED,
   DETECTOR_THRESHOLDS,
 } from "./src/capture/config";
-import { usePreviewCardCapture } from "./src/capture/usePreviewCardCapture";
+import {
+  usePreviewCardCapture,
+  type RecognitionView,
+} from "./src/capture/usePreviewCardCapture";
 import {
   REFINEMENT_STATUS_LABELS,
   type DetectorPoint,
@@ -213,6 +216,7 @@ export default function App() {
             Automatic capture: {AUTOMATIC_CAPTURE_ENABLED ? "ON" : "OFF"}.
             Photos: {capture.photoCount}
           </Text>
+          <Text style={styles.recognition}>{recognitionLabel(capture)}</Text>
           {capture.error ? (
             <Text style={styles.error}>{capture.error}</Text>
           ) : null}
@@ -305,6 +309,26 @@ export default function App() {
   );
 }
 
+function recognitionLabel(capture: {
+  recognitionEnabled: boolean;
+  lastRecognition: RecognitionView | null;
+}) {
+  if (!capture.recognitionEnabled)
+    return "Recognition: off (no service configured)";
+  const latest = capture.lastRecognition;
+  if (latest === null) return "Recognition: waiting for the first photo";
+  if (latest.status === "pending")
+    return `Photo ${latest.sequence}: recognizing...`;
+  if (latest.status === "failed")
+    return `Photo ${latest.sequence}: recognition failed (${latest.message})`;
+  const top = latest.result.candidates[0];
+  const name = top
+    ? `${top.name} (${top.set.toUpperCase()} #${top.collectorNumber})`
+    : "no candidate";
+  const verdict = latest.result.accepted ? "accepted" : "needs review";
+  return `Photo ${latest.sequence}: ${name}, ${verdict}. ${latest.endToEndMs} ms end to end, ${latest.result.serviceLatencyMs} ms service.`;
+}
+
 function QuadOverlay({
   points,
   edgeStyle,
@@ -383,6 +407,7 @@ const styles = StyleSheet.create({
   failText: { color: "#ff8e8e" },
   format: { color: "#b5c0c5", fontSize: 10 },
   disabledCapture: { color: "#74c7ff", fontSize: 12, fontWeight: "800" },
+  recognition: { color: "#d8ff62", fontSize: 12, fontWeight: "700" },
   error: { color: "#ff8e8e", fontSize: 11 },
   spacer: { flex: 1 },
   metricsPanel: {

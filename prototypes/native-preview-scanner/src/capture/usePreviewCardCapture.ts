@@ -38,12 +38,28 @@ import {
 } from "./quadCaptureGates";
 import { callNativeRectangleDetector } from "../detector/nativeRectangleDetector";
 import {
+  recognitionConfig,
+  recognizePhoto,
+  type CardQuad,
+  type RecognitionResult,
+} from "../recognition/recognitionClient";
+import {
   orientedFrameDimensions,
   validateNativeRectangleRecord,
   type NativeRectangleRecord,
 } from "../detector/validation";
 
 export type CapturedPhoto = { width: number; height: number };
+
+export type RecognitionView =
+  | { status: "pending"; sequence: number }
+  | {
+      status: "done";
+      sequence: number;
+      endToEndMs: number;
+      result: RecognitionResult;
+    }
+  | { status: "failed"; sequence: number; message: string };
 
 export type DetectorGates = {
   detected: boolean;
@@ -93,6 +109,8 @@ export type PreviewCardCapture = {
   diagnostics: PreviewCardCaptureDiagnostics;
   lastPhoto: CapturedPhoto | null;
   photoCount: number;
+  recognitionEnabled: boolean;
+  lastRecognition: RecognitionView | null;
   error: string | null;
   thresholds: CaptureThresholds;
   reset: () => void;
@@ -213,6 +231,11 @@ export function usePreviewCardCapture(
   const runSamples = useRef(0);
   const captureSequence = useRef(0);
   const consecutiveCaptureFailures = useRef(0);
+  const recognitionQueue = useRef<Promise<void>>(Promise.resolve());
+  const recognitionSessionId = useRef(Date.now().toString(36));
+  const recognition = useMemo(recognitionConfig, []);
+  const [lastRecognition, setLastRecognition] =
+    useState<RecognitionView | null>(null);
   const cameraErrorTimes = useRef<number[]>([]);
   const lastPublished = useRef<PublishedDiagnostics | null>(null);
   const [lastPhoto, setLastPhoto] = useState<CapturedPhoto | null>(null);
@@ -358,78 +381,141 @@ export function usePreviewCardCapture(
     [receiveTiming],
   );
 
-  const takeExactlyOnePhoto = useCallback(async () => {
-    if (jsCaptureGuard.current || fatalDetectorOnJS.current) return;
-    jsCaptureGuard.current = true;
-    const sequence = ++captureSequence.current;
-    console.log(
-      "NATIVE_PREVIEW_EVENT " +
-        JSON.stringify({
-          event: "capture-js-start",
-          atMs: Date.now(),
-          sequence,
-        }),
-    );
-    setError(null);
-    setDiagnostics((current) => ({ ...current, phase: "capturing" }));
-    try {
-      if (camera.current === null) throw new Error("camera-not-ready");
-      const photo = await camera.current.takePhoto({ flash: "off" });
-      setLastPhoto({ width: photo.width, height: photo.height });
-      setPhotoCount((count) => count + 1);
-      consecutiveCaptureFailures.current = 0;
-      const machineBeforeComplete = machine.value;
-      const machineAfterComplete = completeCapture(machineBeforeComplete);
-      machine.value = machineAfterComplete;
+  const queueRecognition = useCallback(
+    (
+      photoPath: string,
+      quad: CardQuad,
+      sequence: number,
+      startedAtMs: number,
+    ) => {
+      if (recognition === null) return;
+      const scanId = `${recognitionSessionId.current}-${sequence}`;
+      setLastRecognition({ status: "pending", sequence });
+      recognitionQueue.current = recognitionQueue.current.then(async () => {
+        try {
+          const result = await recognizePhoto(
+            recognition,
+            photoPath,
+            quad,
+            scanId,
+          );
+          const endToEndMs = Date.now() - startedAtMs;
+          console.log(
+            "NATIVE_PREVIEW_EVENT " +
+              JSON.stringify({
+                event: "recognition-result",
+                atMs: Date.now(),
+                sequence,
+                scanId,
+                endToEndMs,
+                serviceLatencyMs: result.serviceLatencyMs,
+                accepted: result.accepted,
+                acceptedScryfallId: result.acceptedScryfallId,
+                reasons: result.reasons,
+                candidates: result.candidates.slice(0, 3),
+              }),
+          );
+          setLastRecognition({ status: "done", sequence, endToEndMs, result });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          console.log(
+            "NATIVE_PREVIEW_EVENT " +
+              JSON.stringify({
+                event: "recognition-failure",
+                atMs: Date.now(),
+                sequence,
+                scanId,
+                message,
+              }),
+          );
+          setLastRecognition({ status: "failed", sequence, message });
+        }
+      });
+    },
+    [recognition],
+  );
+
+  const takeExactlyOnePhoto = useCallback(
+    async (quad: CardQuad | null) => {
+      if (jsCaptureGuard.current || fatalDetectorOnJS.current) return;
+      jsCaptureGuard.current = true;
+      const sequence = ++captureSequence.current;
+      const startedAtMs = Date.now();
       console.log(
         "NATIVE_PREVIEW_EVENT " +
           JSON.stringify({
-            event: "capture-success",
-            atMs: Date.now(),
+            event: "capture-js-start",
+            atMs: startedAtMs,
             sequence,
-            width: photo.width,
-            height: photo.height,
-            beforePhase: machineBeforeComplete.phase,
-            beforeLocked: machineBeforeComplete.captureLocked,
-            beforeInFlight: machineBeforeComplete.captureInFlight,
-            afterPhase: machineAfterComplete.phase,
-            afterLocked: machineAfterComplete.captureLocked,
-            afterInFlight: machineAfterComplete.captureInFlight,
           }),
       );
-      setDiagnostics((current) => ({
-        ...current,
-        phase: "cooldown",
-        captureLocked: true,
-      }));
-    } catch {
-      const failures = ++consecutiveCaptureFailures.current;
-      const recovered = recoverFromCaptureFailure(failures);
-      console.log(
-        "NATIVE_PREVIEW_EVENT " +
-          JSON.stringify({
-            event: "capture-failure",
-            atMs: Date.now(),
-            sequence,
-            code: 1,
-            consecutiveFailures: failures,
-            afterPhase: recovered.phase,
-          }),
-      );
-      machine.value = recovered;
-      previousCorners.value = null;
-      setError(
-        recovered.phase === "error"
-          ? "Capture failed repeatedly. Reset the study to try again."
-          : "Capture failed. It will retry when the card is steady.",
-      );
-      setDiagnostics((current) => ({
-        ...current,
-        phase: recovered.phase,
-        captureLocked: recovered.captureLocked,
-      }));
-    }
-  }, [camera, machine, previousCorners]);
+      setError(null);
+      setDiagnostics((current) => ({ ...current, phase: "capturing" }));
+      try {
+        if (camera.current === null) throw new Error("camera-not-ready");
+        const photo = await camera.current.takePhoto({ flash: "off" });
+        setLastPhoto({ width: photo.width, height: photo.height });
+        setPhotoCount((count) => count + 1);
+        consecutiveCaptureFailures.current = 0;
+        const machineBeforeComplete = machine.value;
+        const machineAfterComplete = completeCapture(machineBeforeComplete);
+        machine.value = machineAfterComplete;
+        console.log(
+          "NATIVE_PREVIEW_EVENT " +
+            JSON.stringify({
+              event: "capture-success",
+              atMs: Date.now(),
+              sequence,
+              width: photo.width,
+              height: photo.height,
+              orientation: photo.orientation,
+              isMirrored: photo.isMirrored,
+              beforePhase: machineBeforeComplete.phase,
+              beforeLocked: machineBeforeComplete.captureLocked,
+              beforeInFlight: machineBeforeComplete.captureInFlight,
+              afterPhase: machineAfterComplete.phase,
+              afterLocked: machineAfterComplete.captureLocked,
+              afterInFlight: machineAfterComplete.captureInFlight,
+            }),
+        );
+        setDiagnostics((current) => ({
+          ...current,
+          phase: "cooldown",
+          captureLocked: true,
+        }));
+        if (quad !== null)
+          queueRecognition(photo.path, quad, sequence, startedAtMs);
+      } catch {
+        const failures = ++consecutiveCaptureFailures.current;
+        const recovered = recoverFromCaptureFailure(failures);
+        console.log(
+          "NATIVE_PREVIEW_EVENT " +
+            JSON.stringify({
+              event: "capture-failure",
+              atMs: Date.now(),
+              sequence,
+              code: 1,
+              consecutiveFailures: failures,
+              afterPhase: recovered.phase,
+            }),
+        );
+        machine.value = recovered;
+        previousCorners.value = null;
+        setError(
+          recovered.phase === "error"
+            ? "Capture failed repeatedly. Reset the study to try again."
+            : "Capture failed. It will retry when the card is steady.",
+        );
+        setDiagnostics((current) => ({
+          ...current,
+          phase: recovered.phase,
+          captureLocked: recovered.captureLocked,
+        }));
+      }
+    },
+    [camera, machine, previousCorners, queueRecognition],
+  );
   const requestPhotoOnJS = useMemo(
     () => Worklets.createRunOnJS(takeExactlyOnePhoto),
     [takeExactlyOnePhoto],
@@ -618,7 +704,31 @@ export function usePreviewCardCapture(
           return;
         }
         if (requestCapture) {
-          requestPhotoOnJS();
+          const triggerQuad =
+            observation.topLeft !== null &&
+            observation.topRight !== null &&
+            observation.bottomRight !== null &&
+            observation.bottomLeft !== null
+              ? {
+                  topLeft: {
+                    x: observation.topLeft.x,
+                    y: observation.topLeft.y,
+                  },
+                  topRight: {
+                    x: observation.topRight.x,
+                    y: observation.topRight.y,
+                  },
+                  bottomRight: {
+                    x: observation.bottomRight.x,
+                    y: observation.bottomRight.y,
+                  },
+                  bottomLeft: {
+                    x: observation.bottomLeft.x,
+                    y: observation.bottomLeft.y,
+                  },
+                }
+              : null;
+          requestPhotoOnJS(triggerQuad);
         }
       });
     },
@@ -724,6 +834,8 @@ export function usePreviewCardCapture(
     diagnostics,
     lastPhoto,
     photoCount,
+    recognitionEnabled: recognition !== null,
+    lastRecognition,
     error,
     thresholds,
     reset,
