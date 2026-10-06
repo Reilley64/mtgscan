@@ -49,6 +49,91 @@ The 100-rerank isolated run completed all attempts with 100/100 exact top-1, 100
 
 Parent RSS peaked at 112,640,000 bytes, about 107.4 MiB. Worker RSS peaked at 396,754,944 bytes, about 378.4 MiB. Both pass the separate-process 450 MiB gate. Combined peak RSS was 509,362,176 bytes, about 485.8 MiB. Combined RSS is a diagnostic, not an agreed acceptance gate; this run would fail a hypothetical combined 450 MiB cap. Across 101 parent samples, the first-window median was 112,525,312 bytes and the observed maximum was 112,640,000 bytes. The 114,688-byte maximum delta passes the 16 MiB allowance. Across 20 worker generations, the median of the first five generation peaks was 380,059,648 bytes and the maximum generation peak was 396,754,944 bytes. The 16,695,296-byte maximum delta narrowly passes the 16,777,216-byte allowance. As a trend diagnostic, the final five-generation median was 385,941,504 bytes, 5,881,856 bytes above the baseline. All agreed gates passed. This is still narrow repeated evidence over five recorded scans, not a representative accuracy or platform study. The earlier in-process 50-rerank run remains useful failure evidence: its RSS grew from 320 MiB to 451 MiB without a plateau.
 
+## Rectified crop recognition experiment
+
+This is a throwaway service path for the physical recognition experiment in issue #10. The phone finds the four outer corners of the card and sends one photo per card. The service straightens the card and picks the exact Scryfall printing from a fixed candidate set. It is separate from the rejected three-still baseline above.
+
+### Request contract
+
+`POST /rectified-recognitions`
+
+- `Authorization: Bearer <PROTOTYPE_TOKEN>`
+- `Content-Type: image/jpeg`
+- `X-Scan-Id`: 1 to 80 characters from `[A-Za-z0-9_-]`
+- `X-Card-Quad`: JSON `{"topLeft":{"x":n,"y":n},"topRight":{...},"bottomRight":{...},"bottomLeft":{...}}`. Coordinates are normalized from 0 to 1 with an upper-left origin. They use the displayed photo orientation, after the JPEG EXIF orientation is applied. Corners go clockwise from the visual top-left corner of the card.
+- Body: the raw JPEG bytes.
+
+The service rejects a body over 12 MB (`413`), a content type other than `image/jpeg` (`415`), and a body without a JPEG signature, an invalid scan ID, or an invalid quad (`400`). A quad is invalid if a value is not finite, if a point is more than 0.001 outside the photo, if the corners are not convex and clockwise, or if it covers less than 1% of the photo. The service runs one rectified recognition at a time and returns `429` while one is in progress.
+
+A `200` response has this shape:
+
+```json
+{
+  "scanId": "string",
+  "serviceLatencyMs": 0,
+  "stageMs": { "decode": 0, "rectify": 0, "rank": 0, "rerank": 0 },
+  "candidates": [
+    {
+      "scryfallId": "",
+      "oracleId": "",
+      "name": "",
+      "set": "",
+      "collectorNumber": "",
+      "score": 0
+    }
+  ],
+  "decision": { "accepted": false, "scryfallId": null, "reasons": [] }
+}
+```
+
+`candidates` holds the top 5, best first. `score` is the number of RANSAC inliers for that printing. It is 0 when the homography is not plausible.
+
+The service keeps only the straightened card crop at `.prototype-data/rectified/crops/<scanId>.jpg` and one line per request in `.prototype-data/rectified/recognitions.ndjson`. The line holds the scan ID, timestamp, candidates, decision, and stage timings. The service does not store the source photo.
+
+### Pipeline
+
+1. Decode and rectify. Sharp applies the EXIF orientation and scales the photo so the card is about 850 pixels tall. A perspective warp maps the quad to a 488 x 680 raster, the size of a Scryfall `normal` image. The warp also keeps a 10% margin around the card for the later stages.
+2. Rank. Each card gets a 16 x 22 grid of mean lightness and two color-opponent channels. Each channel has its mean removed and is scaled to unit length, which reduces the effect of light level and contrast. The service compares the crop with all references, using windows of different scale and offset inside the margin. This handles a quad that follows the inner frame or a binder pocket instead of the card edge.
+3. Rerank. The top 8 printings by appearance go to the reranker, plus other printings of the top 3 identities, up to 24 in total. Two worker processes match ORB features of the full card against stored reference features. They use a ratio test and a RANSAC homography. A homography is plausible only if the projected reference is convex, near the crop, and has a sensible area. Each worker is replaced after 50 jobs. The replacement starts at once.
+4. Decide. The service accepts the top printing only if all of these are true:
+   - it has at least 25 inliers;
+   - at least 15 inlier grid cells support only that printing, and each rival has no more than half that number of cells that support only the rival;
+   - its appearance score is at least 0.05 higher than every other reranked printing.
+
+   If any check fails, the service abstains and lists the reasons. ORB inliers fall mostly on the frame and text, which many printings share. The appearance check covers the art.
+
+### Candidate corpus
+
+The corpus is the union of every Scryfall ID in `../../current_collection.csv` and every English paper printing of each card name in `.prototype-data/personal-kill-test-manifest.json`. The name list uses the Scryfall search `!"<name>" unique:prints lang:en game:paper`. The current corpus has 1,339 printings and 968 oracle identities: 986 printings from the collection and 353 more from the 31 name searches. Arcane Signet alone has 91 printings.
+
+Preparation uses only the `Scryfall ID` column of the CSV and the `name` field of the manifest. It copies no other collection fields. It caches metadata, search pages, and reference images under `.prototype-data/scryfall/`. It writes `corpus.json`, `appearance.bin`, `orb-points.bin`, and `orb-descriptors.bin` under `.prototype-data/rectified/`. Server startup loads these files and does not compute features.
+
+### Prepare, evaluate, and start
+
+```bash
+npm run rectified:prepare -w @scanner-accuracy/service
+npm run rectified:evaluate -w @scanner-accuracy/service
+npm run rectified:evaluate -w @scanner-accuracy/service -- --repeat 5
+npm run rectified:evaluate -w @scanner-accuracy/service -- --hold-out-expected
+npm run start -w @scanner-accuracy/service
+```
+
+A cold preparation took about 15 minutes, mostly for the paced image downloads. With a warm cache it takes about 50 seconds. The evaluation reads `/tmp/np/eval/quads.json` by default (`--quads` changes this). It sends each stored photo and its detected quad through the same code as the endpoint, writes the crops to `/tmp/np/rectified-eval/`, and writes a report to `.prototype-data/rectified/`. It does not write to the endpoint log. `--hold-out-expected` removes the true printing from the corpus, so every accept is a false accept.
+
+### Offline result
+
+The input is 22 stored iPhone photos (1450 x 1080) with corners from the native detector. On the wood table, the photos are of the DSC Arcane Signet. In the binder, they are of the Secret Lair foil Arcane Signet. Two more photos had no detection and were skipped. In most binder photos the quad follows the pocket, not the card.
+
+| Set                    | Photos | Identity top-1 | Exact printing top-1 | Correct accepts | False accepts | Abstentions |
+| ---------------------- | -----: | -------------: | -------------------: | --------------: | ------------: | ----------: |
+| Wood table (DSC)       |      6 |              6 |                    6 |               6 |             0 |           0 |
+| Binder (SLD)           |     16 |             16 |                   16 |              14 |             0 |           2 |
+| True printing held out |     22 |             18 |                    0 |               0 |             0 |          22 |
+
+The two binder abstentions are a crop with 16 inliers and a crop where SLD 1919 Arcane Signet is close on both checks. An earlier version without the appearance check accepted the wrong SLD printing in 10 of 16 held-out binder photos. The thresholds were set on these same 22 photos, and only two true printings were tested. These numbers do not establish a false-accept rate.
+
+Across 5 passes (110 recognitions, with worker restarts), service latency was 309 ms p50, 395 ms p95, and 721 ms maximum. The maximum is a request that waited for a new worker. A typical request spends about 23 ms decoding, 10 ms rectifying, 35 ms ranking, and 235 ms reranking. A smoke test through HTTP with photos upscaled to 4224 x 3144 took 313 to 363 ms, with 41 to 50 ms for decoding. Each worker used about 62 MB RSS.
+
 ## Physical result: baseline rejected
 
 On 2026-08-31, an iPhone 16e running App Store Expo Go recorded five formal presentations before the early-stop gate fired: one DSC Arcane Signet and four SLD Arcane Signet presentations. The exact SLD printing was outside every strategy's top 10 in three presentations and reached rank 2 once, behind the wrong Arcane Signet printing. All strategies abstained. The five-scan report recorded 40% hybrid identity top-3 recall, 0% Scryfall-printing top-1 accuracy under the abstention rule, 0% auto-accept coverage, 100% correction rate, 815 ms service p95, and 3,422 ms end-to-end proposal p95. The throughput value is invalid because human discussion introduced idle gaps inside the session and must not be used.

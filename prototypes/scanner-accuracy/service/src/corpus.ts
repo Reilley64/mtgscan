@@ -29,6 +29,7 @@ async function fetchBounded(
   maximumBytes = 20_000_000,
 ): Promise<Buffer> {
   let lastError: unknown;
+  let rateLimited = false;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       await paceScryfall();
@@ -37,6 +38,7 @@ async function fetchBounded(
         headers: { ...headers, ...options.headers },
         signal: AbortSignal.timeout(20_000),
       });
+      if (response.status === 429) rateLimited = true;
       if (!response.ok)
         throw new Error(`Scryfall ${response.status} for ${url}`);
       const declared = Number(response.headers.get("content-length") ?? "0");
@@ -48,12 +50,12 @@ async function fetchBounded(
       return buffer;
     } catch (error) {
       lastError = error;
-      if (attempt === 0) await wait(500);
+      if (attempt === 0) await wait(rateLimited ? 10_000 : 500);
     }
   }
   throw lastError;
 }
-async function cached(
+export async function cached(
   url: string,
   file: string,
   options?: RequestInit,

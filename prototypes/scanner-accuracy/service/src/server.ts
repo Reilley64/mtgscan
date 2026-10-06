@@ -9,11 +9,37 @@ import {
   recordOutcome,
 } from "./outcomes.js";
 import { recognize } from "./recognizer.js";
+import {
+  loadRectifiedCorpus,
+  rectifiedRoot,
+  type RectifiedCorpus,
+} from "./rectified-corpus.js";
+import { createRectifiedRerankRunner } from "./rectified-rerank-runner.js";
+import { createRectifiedRecognitionHandler } from "./rectified-endpoint.js";
 const port = Number(process.env.PORT ?? 4317);
 const host = process.env.HOST ?? "127.0.0.1";
 const browserOrigin = process.env.PROTOTYPE_BROWSER_ORIGIN;
 prototypeToken();
 let recognitionInFlight = false;
+const rectifiedRunner = createRectifiedRerankRunner({
+  featureRoot: rectifiedRoot,
+  maxReranksPerWorker: 50,
+  timeoutMs: 10_000,
+  workers: 2,
+});
+let rectifiedCorpus: Promise<RectifiedCorpus> | undefined;
+const loadRectified = () => {
+  rectifiedCorpus ??= loadRectifiedCorpus().catch((error) => {
+    rectifiedCorpus = undefined;
+    throw error;
+  });
+  return rectifiedCorpus;
+};
+const handleRectifiedRecognition = createRectifiedRecognitionHandler({
+  corpus: loadRectified,
+  runner: rectifiedRunner,
+  persistRoot: rectifiedRoot,
+});
 function reply(response: http.ServerResponse, status: number, body: unknown) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -63,6 +89,13 @@ const server = http.createServer(async (request, response) => {
         recognitionInFlight = false;
       }
     }
+    if (
+      request.method === "POST" &&
+      request.url === "/rectified-recognitions"
+    ) {
+      const result = await handleRectifiedRecognition(request);
+      return reply(response, result.status, result.body);
+    }
     if (request.method === "POST" && request.url === "/outcomes") {
       const recorded = await recordOutcome(await body(request));
       return reply(response, 201, { recorded: recorded.scanId });
@@ -83,8 +116,18 @@ const server = http.createServer(async (request, response) => {
     });
   }
 });
-server.listen(port, host, () =>
+server.listen(port, host, () => {
   console.log(
     `Scanner accuracy prototype service listening on http://${host}:${port}`,
-  ),
-);
+  );
+  loadRectified()
+    .then((corpus) => {
+      console.log(`Rectified corpus loaded: ${corpus.cards.length} printings`);
+      return rectifiedRunner.warm();
+    })
+    .catch((error) =>
+      console.warn(
+        `Rectified recognition unavailable until rectified:prepare runs: ${error instanceof Error ? error.message : String(error)}`,
+      ),
+    );
+});
