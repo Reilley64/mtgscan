@@ -18,7 +18,8 @@
     "physical-run:quick": "bash scripts/physical-run-wizard.sh quick",
     "physical-run:capture": "bash scripts/physical-run-wizard.sh capture",
     "physical-run:interruptions": "bash scripts/physical-run-wizard.sh interruptions",
-    "physical-run:recognition": "bash scripts/physical-run-wizard.sh recognition"
+    "physical-run:recognition": "bash scripts/physical-run-wizard.sh recognition",
+    "physical-run:bin": "bash scripts/physical-run-wizard.sh bin"
   },
   "dependencies": {
     "babel-preset-expo": "~54.0.10",

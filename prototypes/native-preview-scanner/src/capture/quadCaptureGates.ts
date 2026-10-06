@@ -6,12 +6,14 @@ import type {
 
 export type QuadCaptureThresholds = {
   stableMotionMax: number;
+  changeCorrelationMax: number;
   cardEvidenceConfidenceMin: number;
   cardEvidenceAreaMax: number;
 };
 
 export const QUAD_CAPTURE_THRESHOLDS: QuadCaptureThresholds = {
   stableMotionMax: 0.04,
+  changeCorrelationMax: 0.8,
   cardEvidenceConfidenceMin: 0.6,
   cardEvidenceAreaMax: 0.6,
 };
@@ -122,10 +124,40 @@ export function quadMotion(
   return largest / shortSide;
 }
 
+export function signatureCorrelation(
+  first: readonly number[] | null,
+  second: readonly number[] | null,
+): number | null {
+  "worklet";
+  if (first === null || second === null) return null;
+  if (first.length === 0 || first.length !== second.length) return null;
+  let firstMean = 0;
+  let secondMean = 0;
+  for (let index = 0; index < first.length; index += 1) {
+    firstMean += first[index]!;
+    secondMean += second[index]!;
+  }
+  firstMean /= first.length;
+  secondMean /= second.length;
+  let product = 0;
+  let firstSquares = 0;
+  let secondSquares = 0;
+  for (let index = 0; index < first.length; index += 1) {
+    const a = first[index]! - firstMean;
+    const b = second[index]! - secondMean;
+    product += a * b;
+    firstSquares += a * a;
+    secondSquares += b * b;
+  }
+  const scale = Math.sqrt(firstSquares * secondSquares);
+  return scale > 0 ? product / scale : null;
+}
+
 export function evaluateQuadCaptureGates(
   observation: NativeRectangleRecord,
   detectorGatesPass: boolean,
   motion: number | null,
+  changeCorrelation: number | null = null,
   thresholds: QuadCaptureThresholds = QUAD_CAPTURE_THRESHOLDS,
 ): PreviewGates {
   "worklet";
@@ -136,12 +168,16 @@ export function evaluateQuadCaptureGates(
     (observation.proposalDetected &&
       observation.confidence >= thresholds.cardEvidenceConfidenceMin &&
       proposalAreaRatio(observation) <= thresholds.cardEvidenceAreaMax);
+  const changed =
+    present &&
+    changeCorrelation !== null &&
+    changeCorrelation < thresholds.changeCorrelationMax;
   return {
     present,
     centered: present,
     sharp: present,
     stable,
-    departed: !cardEvidence,
+    departed: !cardEvidence || changed,
     all: present && stable,
   };
 }

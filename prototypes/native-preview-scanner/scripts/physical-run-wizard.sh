@@ -191,6 +191,8 @@ elif [[ "$MODE" == "capture" || "$MODE" == "interruptions" ]]; then
   TOTAL_STAGES=10
 elif [[ "$MODE" == "recognition" ]]; then
   TOTAL_STAGES=8
+elif [[ "$MODE" == "bin" ]]; then
+  TOTAL_STAGES=7
 else
   TOTAL_STAGES=17
 fi
@@ -219,11 +221,12 @@ stop_metro() {
   if [[ -n "$SERVICE_PID" ]] && kill -0 "$SERVICE_PID" 2>/dev/null; then
     kill "$SERVICE_PID" 2>/dev/null || true
   fi
-  if [[ "$MODE" == "recognition" ]]; then
+  if [[ "$MODE" == "recognition" || "$MODE" == "bin" ]]; then
     rm -f "$APP_ENV_FILE"
   fi
 }
 trap stop_metro EXIT
+trap 'exit 130' INT TERM HUP
 
 log_lines() {
   [[ -f "$METRO_LOG" ]] && wc -l < "$METRO_LOG" | tr -d ' ' || echo 0
@@ -470,7 +473,7 @@ write_env XCODE_VERSION "${XCODE_VERSION:-unknown}"
 write_env DETECTOR_COMMIT "$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 pause
 
-if [[ "$MODE" == "recognition" ]]; then
+if [[ "$MODE" == "recognition" || "$MODE" == "bin" ]]; then
   stage "Start the recognition service"
   if [[ ! -s "$SERVICE_ROOT/.prototype-data/rectified/corpus.json" ]]; then
     say "The rectified candidate set is missing."
@@ -581,12 +584,95 @@ else
   write_env SAFETY_GATE fail
   stop_run "the panel did not show automatic capture as $EXPECTED_CAPTURE"
 fi
-if [[ "$MODE" == "recognition" ]]; then
+if [[ "$MODE" == "recognition" || "$MODE" == "bin" ]]; then
   if ! confirm "Does the panel say 'Recognition: waiting for the first photo'? (Close and reopen the app if it says off.)"; then
     stop_run "the app did not load the recognition service settings"
   fi
 fi
 pause
+
+if [[ "$MODE" == "bin" ]]; then
+  LEDGER="$PROJECT_ROOT/.physical-runs/scanned-scryfall-ids.txt"
+  touch "$LEDGER"
+  BIN_CARDS="$RUN_DIR/bin-cards.tsv"
+  BIN_TOTALS="$RUN_DIR/bin-batch-summaries.ndjson"
+  UNAVAILABLE="$RUN_DIR/unavailable-scryfall-ids.txt"
+  EXCLUDED="$RUN_DIR/excluded-scryfall-ids.txt"
+  : > "$BIN_TOTALS"
+  : > "$UNAVAILABLE"
+
+  stage "Bin batches"
+  say "Put the phone in the holder over the bin, camera down, so a whole card and some bin floor show in the preview."
+  say "Each batch lists cards from your collection that have not been scanned yet, grouped by the rightmost coloured symbol in the mana cost."
+  record BATCH_SIZE "Cards per batch (Enter for 15):"
+  BATCH_SIZE=$(_existing BATCH_SIZE)
+  [[ "$BATCH_SIZE" =~ ^[0-9]+$ && "$BATCH_SIZE" -gt 0 ]] || BATCH_SIZE=15
+  batch=0
+  while true; do
+    batch=$((batch + 1))
+    cat "$LEDGER" "$UNAVAILABLE" > "$EXCLUDED"
+    $SCORE bin-cards "$SERVICE_ROOT/../../current_collection.csv" "$SERVICE_ROOT/.prototype-data/scryfall" "$EXCLUDED" > "$BIN_CARDS"
+    BATCH_FILE="$RUN_DIR/batch-$batch.tsv"
+    head -n "$BATCH_SIZE" "$BIN_CARDS" > "$BATCH_FILE"
+    if [[ ! -s "$BATCH_FILE" ]]; then
+      say "Every card in the collection export has been scanned."
+      break
+    fi
+    printf '\n  %sBatch %s%s (%s cards left in total)\n' "$BOLD" "$batch" "$RESET" "$(wc -l < "$BIN_CARDS" | tr -d ' ')"
+    number=0
+    while IFS=$'\t' read -r _ name set_code collector finish group; do
+      number=$((number + 1))
+      case "$group" in
+        W) colour=White ;; U) colour=Blue ;; B) colour=Black ;; R) colour=Red ;; G) colour=Green ;; *) colour=Colourless ;;
+      esac
+      note "  $number. [$colour] $name, $set_code #$collector, $finish"
+    done < "$BATCH_FILE"
+    ask MISSING "Numbers of cards you cannot find, separated by spaces (Enter for none):"
+    if [[ -n "$MISSING" ]]; then
+      awk -v drop=" $MISSING " 'index(drop, " " NR " ") != 0' "$BATCH_FILE" | cut -f1 >> "$UNAVAILABLE"
+      awk -v drop=" $MISSING " 'index(drop, " " NR " ") == 0' "$BATCH_FILE" > "$BATCH_FILE.kept"
+      mv "$BATCH_FILE.kept" "$BATCH_FILE"
+    fi
+    [[ -s "$BATCH_FILE" ]] || { warn "No cards left in this batch."; continue; }
+    step "Slide the cards into the bin one at a time, each on top of the last. Check the set code and number."
+    step "Wait for the photo count to go up before sliding in the next card. Any order is fine."
+    BATCH_START_LINE=$(log_lines)
+    pause "Press Enter, then start sliding cards in."
+    pause "Press Enter after the last card's result line shows."
+    sleep 2
+    summary=$($SCORE bin-score "$METRO_LOG" "$BATCH_START_LINE" "$BATCH_FILE" "$RUN_DIR/batch-$batch-detail.ndjson")
+    printf '%s\n' "$summary" >> "$BIN_TOTALS"
+    write_env "BATCH_${batch}_SUMMARY" "$summary"
+    say "Batch $batch: $summary"
+    cut -f1 "$BATCH_FILE" >> "$LEDGER"
+    confirm "Scan another batch?" || break
+  done
+  BIN_TOTAL=$(node -e '
+    const lines = require("fs").readFileSync(process.argv[1], "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line));
+    const sum = (key) => lines.reduce((total, line) => total + (line[key] ?? 0), 0);
+    const seconds = sum("elapsedSeconds");
+    console.log(JSON.stringify({
+      batches: lines.length,
+      presented: sum("presented"),
+      identityTop1: sum("identityTop1"),
+      printingTop1: sum("printingTop1"),
+      correctAccepts: sum("correctAccepts"),
+      falseAccepts: sum("falseAccepts"),
+      abstentions: sum("abstentions"),
+      missedCards: sum("missedCards"),
+      unmatchedResults: sum("unmatchedResults"),
+      photos: sum("photos"),
+      worstBatchP95Ms: Math.max(0, ...lines.map((line) => line.endToEndP95Ms ?? 0)),
+      correctCardsPerMinute: seconds > 0 ? Math.round((sum("printingTop1") / (seconds / 60)) * 10) / 10 : null,
+    }));
+  ' "$BIN_TOTALS")
+  write_env BIN_TOTAL "$BIN_TOTAL"
+  say "All batches: $BIN_TOTAL"
+  write_env RUN_OUTCOME "bin check completed"
+  pause
+  wrap_up
+  exit 0
+fi
 
 if [[ "$MODE" == "recognition" ]]; then
   CARDS_FILE="$RUN_DIR/cards.tsv"

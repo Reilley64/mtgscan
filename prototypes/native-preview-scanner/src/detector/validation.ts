@@ -21,11 +21,14 @@ export type NativeRectangleRecord = Readonly<{
   shiftBottom: number;
   shiftLeft: number;
   refinementStatus: number;
+  signature: readonly number[];
   proposalDurationMs: number;
   nativeDurationMs: number;
   orientationCode: number;
   runtimeErrorCode: number;
 }>;
+
+export const SIGNATURE_LENGTH = 48;
 
 export const REFINEMENT_STATUS_LABELS = [
   "refined",
@@ -56,6 +59,7 @@ const NATIVE_KEYS = [
   "shiftBottom",
   "shiftLeft",
   "refinementStatus",
+  "signature",
   "proposalDurationMs",
   "nativeDurationMs",
   "orientationCode",
@@ -188,6 +192,15 @@ export function validateNativeRectangleRecord(
     value.proposalBottomLeft,
   ]);
   if (refined === null || proposal === null) return null;
+  if (!Array.isArray(value.signature)) return null;
+  const signatureLength = value.signature.length;
+  if (signatureLength !== (value.detected ? SIGNATURE_LENGTH : 0)) return null;
+  const signature: number[] = [];
+  for (let index = 0; index < signatureLength; index += 1) {
+    const cell: unknown = value.signature[index];
+    if (!isFiniteInRange(cell, 0, 255)) return null;
+    signature.push(cell);
+  }
 
   return {
     detected: value.detected,
@@ -210,6 +223,7 @@ export function validateNativeRectangleRecord(
     shiftBottom: value.shiftBottom,
     shiftLeft: value.shiftLeft,
     refinementStatus: value.refinementStatus,
+    signature,
     proposalDurationMs: value.proposalDurationMs,
     nativeDurationMs: value.nativeDurationMs,
     orientationCode: value.orientationCode,

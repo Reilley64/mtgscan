@@ -8,7 +8,9 @@ import {
   proposalAreaRatio,
   quadMotion,
   refinedCorners,
+  signatureCorrelation,
 } from "../src/capture/quadCaptureGates";
+import { stepQuadCapture } from "../src/capture/quadCaptureStep";
 import {
   recordAnalysisSample,
   recordProcessingTime,
@@ -417,6 +419,11 @@ describe("analysis cadence telemetry", () => {
   });
 });
 
+const cardSignature = (seed: number) =>
+  Array.from({ length: 48 }, (_, index) =>
+    Math.round(128 + 100 * Math.sin(seed * 1.7 + index * (0.9 + seed * 0.13))),
+  );
+
 const validNativeRecord = () => ({
   detected: true,
   topLeft: { x: 0.2, y: 0.2 },
@@ -438,6 +445,7 @@ const validNativeRecord = () => ({
   shiftBottom: 0.08,
   shiftLeft: -0.01,
   refinementStatus: 0,
+  signature: cardSignature(1),
   proposalDurationMs: 3,
   nativeDurationMs: 5,
   orientationCode: 2,
@@ -465,6 +473,7 @@ const undetectedRecord = (proposal: boolean) => ({
   shiftBottom: 0,
   shiftLeft: 0,
   refinementStatus: proposal ? 3 : 1,
+  signature: [],
 });
 
 describe("native rectangle validation", () => {
@@ -488,6 +497,29 @@ describe("native rectangle validation", () => {
       validateNativeRectangleRecord({
         ...validNativeRecord(),
         runtimeErrorCode: 6,
+      }),
+    ).toBeNull();
+  });
+
+  it("requires a card signature only for a refined card", () => {
+    expect(
+      validateNativeRectangleRecord({
+        ...validNativeRecord(),
+        signature: [1, 2],
+      }),
+    ).toBeNull();
+    expect(
+      validateNativeRectangleRecord({
+        ...undetectedRecord(true),
+        signature: cardSignature(1),
+      }),
+    ).toBeNull();
+    expect(
+      validateNativeRectangleRecord({
+        ...validNativeRecord(),
+        signature: cardSignature(1).map((value, index) =>
+          index === 3 ? 300 : value,
+        ),
       }),
     ).toBeNull();
   });
@@ -616,36 +648,34 @@ const emptySurfaceRecord = () => ({
   proposalBottomLeft: { x: 0.01, y: 0.99 },
 });
 
+const initialQuadCaptureState = () => ({
+  machine: initialCaptureMachineState(),
+  guard: false,
+  previousCorners: null,
+  capturedSignature: null,
+});
+
 const runPresentation = (records: unknown[]) => {
-  let state = initialCaptureMachineState();
-  let previous: ReturnType<typeof refinedCorners> = null;
+  let state: Parameters<typeof stepQuadCapture>[0] = initialQuadCaptureState();
   let photos = 0;
-  let guard = false;
   records.forEach((raw, index) => {
     const observation = validateNativeRectangleRecord(raw)!;
-    const corners = refinedCorners(observation, 720, 1280);
-    const motion = quadMotion(previous, corners);
-    previous = corners;
-    const gates = evaluateQuadCaptureGates(
+    const step = stepQuadCapture(
+      state,
       observation,
       observation.detected,
-      motion,
-    );
-    const transition = advanceCaptureMachine(
-      state,
-      gates,
+      720,
+      1280,
       index * 200,
       QUAD_CAPTURE_TIMING,
     );
-    state = transition.state;
-    const decision = nextCaptureGuard(guard, transition);
-    guard = decision.guard;
-    if (decision.requestPhoto) {
+    state = step.state;
+    if (step.requestPhoto) {
       photos += 1;
-      state = completeCapture(state);
+      state = { ...state, machine: completeCapture(state.machine) };
     }
   });
-  return { photos, state };
+  return { photos, state: state.machine };
 };
 
 describe("quad capture gates", () => {
@@ -837,36 +867,36 @@ describe("capture interruptions", () => {
   const darkFrame = () => ({ ...undetectedRecord(false), confidence: 0 });
 
   const runTimeline = (samples: { atMs: number; record: unknown }[]) => {
-    let state = initialCaptureMachineState();
-    let previous: ReturnType<typeof refinedCorners> = null;
+    let state: Parameters<typeof stepQuadCapture>[0] =
+      initialQuadCaptureState();
     let previousAt = 0;
-    let guard = false;
     let photos = 0;
     for (const sample of samples) {
       if (previousAt > 0 && sample.atMs - previousAt > RESUME_GAP_MS) {
-        previous = null;
-        state = resumeCaptureMachine(state);
+        state = {
+          ...state,
+          previousCorners: null,
+          machine: resumeCaptureMachine(state.machine),
+        };
       }
       previousAt = sample.atMs;
       const observation = validateNativeRectangleRecord(sample.record)!;
-      const corners = refinedCorners(observation, 720, 1280);
-      const motion = quadMotion(previous, corners);
-      previous = corners;
-      const transition = advanceCaptureMachine(
+      const step = stepQuadCapture(
         state,
-        evaluateQuadCaptureGates(observation, observation.detected, motion),
+        observation,
+        observation.detected,
+        720,
+        1280,
         sample.atMs,
         QUAD_CAPTURE_TIMING,
       );
-      state = transition.state;
-      const decision = nextCaptureGuard(guard, transition);
-      guard = decision.guard;
-      if (decision.requestPhoto) {
+      state = step.state;
+      if (step.requestPhoto) {
         photos += 1;
-        state = completeCapture(state);
+        state = { ...state, machine: completeCapture(state.machine) };
       }
     }
-    return { photos, state };
+    return { photos, state: state.machine };
   };
 
   const every200 = (startMs: number, count: number, record: () => unknown) =>
@@ -921,5 +951,62 @@ describe("capture interruptions", () => {
     expect(recoverFromCaptureFailure(1)).toEqual(initialCaptureMachineState());
     expect(recoverFromCaptureFailure(2)).toEqual(initialCaptureMachineState());
     expect(recoverFromCaptureFailure(3)).toEqual(failCapture());
+  });
+});
+
+describe("stacked cards", () => {
+  const cardWith = (seed: number, noise = 0) => ({
+    ...cardRecord(),
+    signature: cardSignature(seed).map((value, index) =>
+      Math.max(0, Math.min(255, value + (noise ? ((index * 37) % 11) - 5 : 0))),
+    ),
+  });
+  const handCovering = () => flickerRecord();
+
+  it("photographs a new card that slides onto the last one", () => {
+    const records = [
+      ...Array.from({ length: 6 }, () => cardWith(1)),
+      ...Array.from({ length: 3 }, () => handCovering()),
+      ...Array.from({ length: 12 }, () => cardWith(2)),
+      ...Array.from({ length: 3 }, () => handCovering()),
+      ...Array.from({ length: 12 }, () => cardWith(3)),
+    ];
+    expect(runPresentation(records).photos).toBe(3);
+  });
+
+  it("does not retake the same card under brightness noise", () => {
+    const records = [
+      ...Array.from({ length: 6 }, () => cardWith(1)),
+      ...Array.from({ length: 30 }, (_, index) => cardWith(1, index % 2)),
+    ];
+    expect(runPresentation(records).photos).toBe(1);
+  });
+
+  it("does not re-arm while a hand covers the card", () => {
+    const records = [
+      ...Array.from({ length: 6 }, () => cardWith(1)),
+      ...Array.from({ length: 20 }, () => handCovering()),
+      ...Array.from({ length: 6 }, () => cardWith(1)),
+    ];
+    expect(runPresentation(records).photos).toBe(1);
+  });
+
+  it("misses a second copy of the same card, which needs a departure", () => {
+    const records = [
+      ...Array.from({ length: 6 }, () => cardWith(1)),
+      ...Array.from({ length: 3 }, () => handCovering()),
+      ...Array.from({ length: 12 }, () => cardWith(1)),
+    ];
+    expect(runPresentation(records).photos).toBe(1);
+  });
+
+  it("scores different test cards well below the change threshold", () => {
+    expect(
+      signatureCorrelation(cardSignature(1), cardSignature(1)),
+    ).toBeCloseTo(1, 5);
+    expect(
+      signatureCorrelation(cardSignature(1), cardSignature(2))!,
+    ).toBeLessThan(0.8);
+    expect(signatureCorrelation(cardSignature(1), [])).toBeNull();
   });
 });

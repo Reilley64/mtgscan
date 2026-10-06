@@ -19,23 +19,17 @@ import {
   type AnalysisTelemetry,
 } from "./timingTelemetry";
 import {
-  advanceCaptureMachine,
   completeCapture,
   failCapture,
   initialCaptureMachineState,
   manualResetCaptureMachine,
-  nextCaptureGuard,
   recoverFromCaptureFailure,
   resumeCaptureMachine,
   RESUME_GAP_MS,
   type CapturePhase,
 } from "./stateMachine";
-import {
-  evaluateQuadCaptureGates,
-  quadMotion,
-  refinedCorners,
-  type QuadCorners,
-} from "./quadCaptureGates";
+import type { QuadCorners } from "./quadCaptureGates";
+import { stepQuadCapture } from "./quadCaptureStep";
 import { callNativeRectangleDetector } from "../detector/nativeRectangleDetector";
 import {
   recognitionConfig,
@@ -76,6 +70,7 @@ export type PreviewCardCaptureDiagnostics = {
   gates: DetectorGates;
   captureGates: PreviewGates;
   motion: number | null;
+  changeCorrelation: number | null;
   timing: AnalysisTelemetry;
   captureLocked: boolean;
   sampleId: number;
@@ -138,6 +133,7 @@ const EMPTY_OBSERVATION: NativeRectangleRecord = {
   shiftBottom: 0,
   shiftLeft: 0,
   refinementStatus: 1,
+  signature: [],
   proposalDurationMs: 0,
   nativeDurationMs: 0,
   orientationCode: -1,
@@ -168,6 +164,7 @@ const initialDiagnostics = (): PreviewCardCaptureDiagnostics => ({
   gates: EMPTY_GATES,
   captureGates: EMPTY_CAPTURE_GATES,
   motion: null,
+  changeCorrelation: null,
   timing: EMPTY_TIMING_TELEMETRY,
   captureLocked: false,
   sampleId: 0,
@@ -224,6 +221,7 @@ export function usePreviewCardCapture(
   const previousSampleWallAtMs = useSharedValue(0);
   const sampleSequence = useSharedValue(0);
   const previousCorners = useSharedValue<QuadCorners | null>(null);
+  const capturedSignature = useSharedValue<number[] | null>(null);
   const jsCaptureGuard = useRef(false);
   const fatalDetectorOnJS = useRef(false);
   const timingHistory = useRef<number[]>([]);
@@ -366,6 +364,10 @@ export function usePreviewCardCapture(
                 published.motion === null
                   ? null
                   : roundScalar(published.motion),
+              changeCorrelation:
+                published.changeCorrelation === null
+                  ? null
+                  : roundScalar(published.changeCorrelation),
               automaticCaptureEnabled: AUTOMATIC_CAPTURE_ENABLED,
             }),
         );
@@ -606,37 +608,32 @@ export function usePreviewCardCapture(
         };
 
         const gates = evaluateDetectorGates(observation);
-        const corners = refinedCorners(
-          observation,
-          orientedDimensions.width,
-          orientedDimensions.height,
-        );
-        const motion = quadMotion(previousCorners.value, corners);
-        previousCorners.value = corners;
-        const captureGates = evaluateQuadCaptureGates(
+        const step = stepQuadCapture(
+          {
+            machine: machine.value,
+            guard: workletCaptureGuard.value,
+            previousCorners: previousCorners.value,
+            capturedSignature: capturedSignature.value,
+          },
           observation,
           gates.all,
-          motion,
+          orientedDimensions.width,
+          orientedDimensions.height,
+          performance.now(),
+          thresholds,
         );
+        const { captureGates, motion, changeCorrelation } = step;
+        previousCorners.value = step.state.previousCorners;
         let phase = machine.value.phase;
         let captureLocked = machine.value.captureLocked;
         let requestCapture = false;
         if (AUTOMATIC_CAPTURE_ENABLED) {
-          const transition = advanceCaptureMachine(
-            machine.value,
-            captureGates,
-            performance.now(),
-            thresholds,
-          );
-          machine.value = transition.state;
-          phase = transition.state.phase;
-          captureLocked = transition.state.captureLocked;
-          const decision = nextCaptureGuard(
-            workletCaptureGuard.value,
-            transition,
-          );
-          workletCaptureGuard.value = decision.guard;
-          requestCapture = decision.requestPhoto;
+          machine.value = step.state.machine;
+          workletCaptureGuard.value = step.state.guard;
+          capturedSignature.value = step.state.capturedSignature;
+          phase = step.state.machine.phase;
+          captureLocked = step.state.machine.captureLocked;
+          requestCapture = step.requestPhoto;
         }
 
         try {
@@ -646,6 +643,7 @@ export function usePreviewCardCapture(
             gates,
             captureGates,
             motion,
+            changeCorrelation,
             captureLocked,
             resumedAfterGapMs,
             sampleId,
@@ -740,6 +738,7 @@ export function usePreviewCardCapture(
       publishFatal,
       publishTiming,
       previousCorners,
+      capturedSignature,
       previousSampleWallAtMs,
       requestPhotoOnJS,
       sampleSequence,

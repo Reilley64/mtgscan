@@ -365,10 +365,53 @@ private func testRefinementTiming() {
   print("refinement on this Mac: p50 \(durations[100]) ms, p95 \(durations[189]) ms")
 }
 
+private func correlation(_ first: [Double], _ second: [Double]) -> Double {
+  let meanFirst = first.reduce(0, +) / Double(first.count)
+  let meanSecond = second.reduce(0, +) / Double(second.count)
+  var product = 0.0
+  var firstSquares = 0.0
+  var secondSquares = 0.0
+  for index in first.indices {
+    let a = first[index] - meanFirst
+    let b = second[index] - meanSecond
+    product += a * b
+    firstSquares += a * a
+    secondSquares += b * b
+  }
+  return product / max(0.000_001, (firstSquares * secondSquares).squareRoot())
+}
+
+private func testCardSignature() {
+  func signature(for card: SyntheticCard, textOffset: Double) -> [Double] {
+    var image = renderCard(card, width: 720, height: 1280, background: 185)
+    let box = card.corners
+    let left = Int(box.map(\.x).min()! + card.width * 0.15)
+    let top = Int(box.map(\.y).min()! + card.height * (0.2 + textOffset))
+    for y in top ..< top + Int(card.height * 0.12) {
+      for x in left ..< left + Int(card.width * 0.4) {
+        image.pixels[y * 720 + x] = 60
+      }
+    }
+    let buffer = makeBuffer(oriented: image, orientation: .right)
+    let output = MTGCardQuadDetector.detect(pixelBuffer: buffer, displayOrientation: .right)
+    require(output.refinementStatus == .refined, "signature card was not refined")
+    require(output.signature.count == 48, "signature has \(output.signature.count) cells")
+    return output.signature
+  }
+  let base = SyntheticCard(center: SIMD2(350, 600), width: 420, angle: 0.0)
+  let shifted = SyntheticCard(center: SIMD2(356, 606), width: 420, angle: 1.0 * Double.pi / 180.0)
+  let same = correlation(signature(for: base, textOffset: 0.0), signature(for: shifted, textOffset: 0.0))
+  let different = correlation(signature(for: base, textOffset: 0.0), signature(for: base, textOffset: 0.35))
+  require(same > 0.9, "same card signature correlation \(same)")
+  require(different < 0.6, "different card signature correlation \(different)")
+  print("signature correlation: same card \(same), different card \(different)")
+}
+
 testTransformMatchesCoreImage()
 testTransformMatchesVision()
 testRefinementRecoversOuterEdges()
 testRefinementRejectsBlankSurface()
 testDetectorEndToEnd()
+testCardSignature()
 testRefinementTiming()
 print("native detector fixture passed")

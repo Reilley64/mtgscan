@@ -91,6 +91,7 @@ public final class MTGCardRectangleFrameProcessorPlugin: FrameProcessorPlugin {
       "shiftBottom": detected ? output.shifts[2] : 0.0,
       "shiftLeft": detected ? output.shifts[3] : 0.0,
       "refinementStatus": output.refinementStatus.rawValue,
+      "signature": detected ? output.signature : [Double](),
       "proposalDurationMs": output.proposalDurationMs,
       "nativeDurationMs": MTGCardQuadDetector.elapsedMilliseconds(since: startedAt),
       "orientationCode": orientationCode,

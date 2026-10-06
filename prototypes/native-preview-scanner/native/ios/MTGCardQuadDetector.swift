@@ -23,6 +23,7 @@ enum MTGCardQuadDetector {
     var centerOffset = 1.0
     var edgeSupportMin = 0.0
     var shifts = [0.0, 0.0, 0.0, 0.0]
+    var signature: [Double] = []
     var refinementStatus = RefinementStatus.noProposal
     var proposalDurationMs = 0.0
     var runtimeErrorCode = 0
@@ -132,6 +133,7 @@ enum MTGCardQuadDetector {
       output.centerOffset = metrics.centerOffset
       output.edgeSupportMin = supportMin
       output.shifts = shifts
+      output.signature = cardSignature(corners: corners, plane: plane, transform: transform)
       output.refinementStatus = .refined
     case let .weakEdge(supportMin):
       output.edgeSupportMin = supportMin
@@ -141,6 +143,41 @@ enum MTGCardQuadDetector {
       output.refinementStatus = .invalidQuad
     }
     return output
+  }
+
+  static let signatureColumns = 6
+  static let signatureRows = 8
+  static let signatureInset = 0.12
+
+  static func cardSignature(
+    corners: [SIMD2<Double>],
+    plane: MTGLumaPlane,
+    transform: MTGOrientationTransform
+  ) -> [Double] {
+    var signature: [Double] = []
+    signature.reserveCapacity(signatureColumns * signatureRows)
+    let span = 1.0 - 2.0 * signatureInset
+    for row in 0 ..< signatureRows {
+      for column in 0 ..< signatureColumns {
+        let u = signatureInset + span * (Double(column) + 0.5) / Double(signatureColumns)
+        let v = signatureInset + span * (Double(row) + 0.5) / Double(signatureRows)
+        var sum = 0.0
+        var count = 0.0
+        for offset in [SIMD2(0.0, 0.0), SIMD2(-0.02, -0.02), SIMD2(0.02, -0.02), SIMD2(-0.02, 0.02), SIMD2(0.02, 0.02)] {
+          let su = u + offset.x
+          let sv = v + offset.y
+          let top = corners[0] * (1.0 - su) + corners[1] * su
+          let bottom = corners[3] * (1.0 - su) + corners[2] * su
+          let point = top * (1.0 - sv) + bottom * sv
+          if let value = plane.value(at: transform.bufferPoint(point)) {
+            sum += value
+            count += 1.0
+          }
+        }
+        signature.append(count > 0.0 ? sum / count : 0.0)
+      }
+    }
+    return signature
   }
 
   static func normalized(
