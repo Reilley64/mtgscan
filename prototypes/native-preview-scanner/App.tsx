@@ -192,10 +192,7 @@ export default function App() {
         {quad?.every((point) => point !== null) ? (
           <QuadOverlay
             points={quad as { x: number; y: number }[]}
-            edgeStyle={[
-              styles.quadEdge,
-              diagnostics.gates.all && styles.quadEdgeReady,
-            ]}
+            edgeStyle={styles.quadEdge}
           />
         ) : null}
       </View>
@@ -427,8 +424,5 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 2,
     backgroundColor: "#ff4fd8",
-  },
-  quadEdgeReady: {
-    backgroundColor: "#9be7c4",
   },
 });

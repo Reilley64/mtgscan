@@ -231,6 +231,30 @@ telemetry_json() {
   ' "$METRO_LOG" "$minimum_samples" "$after_line" || true
 }
 
+telemetry_window() {
+  local after_line="$1"
+  [[ -f "$METRO_LOG" ]] || return 0
+  node -e '
+    const [file, after] = process.argv.slice(1);
+    const marker = "NATIVE_PREVIEW_TELEMETRY ";
+    const lines = require("fs").readFileSync(file, "utf8").split("\n").slice(Number(after));
+    const samples = [];
+    for (const raw of lines) {
+      const line = raw.replace(/\u001b\[[0-9;]*m/g, "");
+      const index = line.indexOf(marker);
+      if (index < 0) continue;
+      try { samples.push(JSON.parse(line.slice(index + marker.length).trim())); } catch {}
+    }
+    if (samples.length === 0) process.exit(0);
+    const detected = samples.filter((sample) => sample.detected);
+    const aspects = detected.map((sample) => sample.aspectRatio.toFixed(3));
+    process.stdout.write(
+      `lines ${samples.length}, refined ${detected.length}, gates ${samples.filter((sample) => sample.gates.all).length}, ` +
+      `statuses ${samples.map((sample) => sample.refinementStatus).join("")}, aspects ${aspects.join("/") || "none"}`
+    );
+  ' "$METRO_LOG" "$after_line" || true
+}
+
 field() {
   node -e '
     const value = JSON.parse(process.argv[1])[process.argv[2]];
@@ -286,24 +310,23 @@ stop_run() {
 }
 
 presentation_row() {
-  local key="$1" title="$2" setup="$3" before after
+  local key="$1" title="$2" setup="$3" before window
   stage "Card row: $title"
   step "$setup"
   step "Hold the phone roughly above the card for about 10 seconds. Do not tap anything."
-  step "Compare the magenta outline with the physical outer card edge."
-  step "Compare the cyan outline (the rough proposal) with the same edge."
+  step "The magenta outline is the refined card edge. The thin cyan outline is the rough proposal."
+  step "Watch whether magenta sits on the physical outer card edge, and whether it jumps."
   note "No photo should be taken. If one is, stop with Ctrl-C and tell the agent."
   before=$(log_lines)
-  pause "Press Enter when you have looked for about 10 seconds."
-  record "${key}_FIT" "Does magenta sit on the outer card edge on all four sides? (yes/partial/no):"
-  record "${key}_STATUS" "Status line at the top (for example 'Card edges refined' or 'Seeking a card: weak edge'):"
-  record "${key}_SUPPORT" "Edges row support value:"
-  record "${key}_NOTES" "Lighting, surface, card, anything odd (Enter to skip):"
-  after=$(telemetry_json 0 "$before")
-  if [[ -n "$after" ]]; then
-    printf '%s %s\n' "$key" "$after" >> "$ROWS_LOG"
-    printf '  %s✓ saved%s latest telemetry for this row → rows.log\n' "$GREEN" "$RESET"
+  pause "Keep the phone on the card. Press Enter after about 10 seconds."
+  window=$(telemetry_window "$before")
+  if [[ -n "$window" ]]; then
+    printf '%s %s\n' "$key" "$window" >> "$ROWS_LOG"
+    write_env "${key}_TELEMETRY" "$window"
   fi
+  record "${key}_FIT" "Did magenta sit on the outer card edge on all four sides? (yes/partial/no/none shown):"
+  record "${key}_JUMPS" "Did magenta jump between positions while the card was still? (no/sometimes/often):"
+  record "${key}_NOTES" "Lighting, surface, card, anything odd (Enter to skip):"
   pause
 }
 
@@ -417,7 +440,7 @@ stage "Orientation check"
 say "This checks the orientation fix. It is a kill gate."
 step "Lay one card flat on a plain surface."
 step "Move the phone so the card sits near the TOP of the preview. Then near the BOTTOM. Then LEFT. Then RIGHT."
-step "Watch the cyan and magenta outlines each time."
+step "Watch the outlines each time. Magenta is the refined edge. Thin cyan is the rough proposal."
 note "Pass: both outlines stay on the card and move the same way it moves on screen."
 note "Fail: an outline sits on the opposite side, or moves the opposite way."
 pause "Press Enter when you have tried all four positions."

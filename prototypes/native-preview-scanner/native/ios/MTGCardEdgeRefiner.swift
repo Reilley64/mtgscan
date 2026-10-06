@@ -44,7 +44,7 @@ enum MTGCardEdgeRefiner {
   static let minimumConsistency = 0.7
   static let peakSearchPixels = 3
   static let inlierTolerance = 2.0
-  static let linesPerEdge = 3
+  static let linesPerEdge = 5
 
   enum Outcome {
     case refined(corners: [SIMD2<Double>], supportMin: Double, shifts: [Double])
@@ -56,6 +56,7 @@ enum MTGCardEdgeRefiner {
     let line: MTGLine
     let support: Int
     let shift: Double
+    let sign: Double
   }
 
   private struct Workspace {
@@ -116,7 +117,8 @@ enum MTGCardEdgeRefiner {
     for top in edges[0] {
       for right in edges[1] {
         for bottom in edges[2] {
-          for left in edges[3] {
+          for left in edges[3] where top.sign == right.sign
+            && top.sign == bottom.sign && top.sign == left.sign {
             let fits = [top, right, bottom, left]
             guard let corners = quadrilateral(fits.map(\.line), transform: transform) else {
               continue
@@ -223,7 +225,7 @@ enum MTGCardEdgeRefiner {
       }
       bestSupport = max(bestSupport, fit.support)
       if fit.support >= minimumSupport,
-         accepted.allSatisfy({ abs($0.shift - fit.shift) > inlierTolerance }) {
+         accepted.allSatisfy({ $0.sign != fit.sign || abs($0.shift - fit.shift) > inlierTolerance }) {
         accepted.append(fit)
       }
     }
@@ -276,7 +278,7 @@ enum MTGCardEdgeRefiner {
     guard shift.isFinite else {
       return nil
     }
-    return EdgeFit(line: line, support: support, shift: shift)
+    return EdgeFit(line: line, support: support, shift: shift, sign: hypothesis.sign)
   }
 
   private static func measureSteps(

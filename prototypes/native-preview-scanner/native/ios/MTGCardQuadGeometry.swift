@@ -122,7 +122,7 @@ struct MTGLine {
 
 enum MTGCardQuadGeometry {
   static let cardAspectRatio = 63.0 / 88.0
-  static let aspectRatioTolerance = 0.03
+  static let aspectRatioTolerance = 0.02
   static let minimumAreaRatio = 0.02
 
   struct Metrics {

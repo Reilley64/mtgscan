@@ -41,9 +41,9 @@ For each proposal edge:
 2. At each point, read a luminance profile along the outward normal, averaged across 5 px along the edge. The search reaches 15% of the proposal's short side in each direction, at least 6 px and at most 96 px.
 3. Convert each profile to a step response: the mean of the next 4 px minus the mean of the previous 4 px. A soft, blurred card edge gives a strong response. A thin printed line gives a weak one. Steps below 8 luma levels are ignored.
 4. Score every straight line within 8 degrees of the proposal edge, at 1 px offset and endpoint steps. A line counts a sample when that sample has a same-sign step on it. Lines with at least 70% of samples are kept, with the strongest slope for each offset.
-5. From the outermost line inward, refine each kept line. Find the sub-pixel step peak within 3 px of the line in each sample, fit total least squares to points within 2 px, then fit again. Keep up to three lines whose refit still has at least 70% of samples.
+5. From the outermost line inward, refine each kept line. Find the sub-pixel step peak within 3 px of the line in each sample, fit total least squares to points within 2 px, then fit again. Keep up to five lines whose refit still has at least 70% of samples.
 
-The detector then tries every combination of the kept lines (at most 81). It intersects adjacent lines and accepts a combination only if all four corners are inside the frame, the quad is convex, its area is at least 2% of the frame, and its mean side-length aspect ratio is within 0.03 of 63:88. From the accepted combinations it picks the one whose edges are furthest out. No fixed offset, clamp, or artificial expansion moves an edge. Each edge moves only to a line that the image supports.
+The detector then tries every combination of the kept lines (at most 625). It intersects adjacent lines and accepts a combination only if all four corners are inside the frame, the quad is convex, its area is at least 2% of the frame, and its mean side-length aspect ratio is within 0.02 of 63:88, and all four lines have the same step polarity. From the accepted combinations it picks the one whose edges are furthest out. No fixed offset, clamp, or artificial expansion moves an edge. Each edge moves only to a line that the image supports.
 
 Failure statuses are explicit. Status 1 means no proposal. Status 3 means at least one edge had no line with 70% support. Status 4 means no line combination made a card-shaped quad.
 
@@ -55,7 +55,7 @@ The worklet calls the plugin under `runAtTargetFps(5)`. A missing plugin, native
 
 ### Overlay and gates
 
-The overlay maps both quads into the contained preview rectangle. The proposal is a thin cyan outline. The refined quad is magenta, and it turns green when every observation gate passes. The gates are refined detection, proposal confidence at least 0.5, area 0.08 to 0.9, aspect 0.686 to 0.746, and minimum edge support at least 0.7. They are observation-only.
+The overlay maps both quads into the contained preview rectangle. The proposal is a thin cyan outline. The refined quad is always magenta. The status panel shows the gates. The gates are refined detection, proposal confidence at least 0.5, area 0.08 to 0.9, aspect 0.696 to 0.736, and minimum edge support at least 0.7. They are observation-only.
 
 ## Timing and cadence evidence semantics
 
@@ -94,7 +94,7 @@ The private corpus from the earlier still-capture baseline has 24 photos. Six sh
 | Wood table    |     6/6 |                               5/6 |        1/6 |
 | Binder pocket |   16/18 |                              2/18 |      14/18 |
 
-The wood-table miss has its bottom edge in a hard shadow, where the outer edge reached only 14 of 24 samples. The detector combined that inner bottom line with outer side lines and reported a 0.741 aspect quad. In most binder photos, the proposal already matched the borderless card, but the refiner moved at least one edge to a pocket or neighbor edge because it is straight, further out, and still card-shaped. Total Mac time per photo was about 4 ms to 5 ms, with about 2.5 ms in document segmentation. These photos come from one card and two scenes. They tuned the thresholds, so they are not accuracy evidence.
+The wood-table miss has its bottom edge in a hard shadow, where the outer edge reached only 14 of 24 samples. With the current polarity and aspect rules it falls back to the inner silver frame. The binder counts come from the earlier rules and were not reviewed again. In most binder photos, the proposal already matched the borderless card, but the refiner moved at least one edge to a pocket or neighbor edge because it is straight, further out, and still card-shaped. Total Mac time per photo was about 4 ms to 5 ms, with about 2.5 ms in document segmentation. These photos come from one card and two scenes. They tuned the thresholds, so they are not accuracy evidence.
 
 ## Rejected Fast OpenCV package admission
 
@@ -187,6 +187,17 @@ Photos of cards flat on real surfaces can also go through `npm run evaluate:stil
 ## Physical observations and current status
 
 The first proposal-plus-refinement run on an iPhone 16e with iOS 26.6.1, on 2026-10-06, stopped with fatal code 50 at the orientation stage. The detector was built with `-Onone`, so total native time was 57 ms to 94 ms against a Vision proposal of 4 ms to 10 ms. The 300-sample window measured p50 81.5 ms and p95 102 ms. This run is not timing evidence for the optimized detector. In the same run, an empty surface produced no refined outline, and the frame orientation code was 2. One card presentation refined with every gate passing: aspect 0.724, edge support 0.875, and all four edges moved outward from the proposal. The run did not reach the orientation check, so the orientation correction is still unconfirmed.
+
+The second run used the same phone with the Debug configuration built with `-O` (commit `0b81376`). It completed every stage.
+
+- Both outlines followed the card near the top, bottom, left, and right of the preview, which confirms the orientation correction on a device.
+- The empty surface produced no refined outline.
+- The 300-sample stationary window measured p50 13.29 ms, p95 14.13 ms, max 16.52 ms, native 10.98 ms, and proposal 7.30 ms, at 4.56 Hz with a 238 ms maximum gap and no slow streak. This passes the timing gate.
+- The 15-minute soak kept p95 between 13.9 ms and 14.1 ms and cadence between 4.53 Hz and 4.58 Hz each minute, with no fatal code, crash, stall, or temperature warning. Xcode memory went from 137.3 MB to 148.8 MB. Two readings cannot show whether memory was still growing.
+- In the app, the refined outline turned mint when every gate passed. The tester read that as light blue and answered "no magenta" for every row, so the per-row fit answers are not usable. The wizard also saved row telemetry after the answers, not during the observation.
+- During the stationary timing window and soak, the refined quad alternated between two results for the same card. In 54 of 185 telemetry lines it was the outer card edge, with aspect 0.715. In 131 lines the top and left edges sat on inner lines, while right and bottom stayed on the outer edge, with aspect 0.745. In those frames the proposal's top edge was 56 px inside the card, beyond the 15% search reach, and the mixed quad passed the ±0.03 aspect tolerance.
+
+After this run, the aspect tolerance became ±0.02, all four selected edges must share one step polarity, each edge keeps up to five lines, and the refined outline stays magenta. Offline, widening the search to 20% or 25% moved edges onto a neighboring card and onto wood grain, so the reach stays at 15%. With these rules, the shadowed wood-table photo now falls back to the inner frame instead of a mixed quad. That is still a wrong quad. The next physical run should show whether stationary frames now alternate between the outer edge and a visible failure instead of a wrong quad.
 
 On an empty surface, document segmentation often returned a quad covering almost the whole frame, with confidence between 0 and 0.57. Refinement then searched the largest window and returned a weak-edge status. The paragraphs below record the earlier trials. Each Apple Vision trial below passed `frame.orientation` to Vision uncorrected, so its alignment observations were made on a 180-degree-rotated analysis frame. Their timing results still stand. Their alignment conclusions need a retest after the orientation correction.
 

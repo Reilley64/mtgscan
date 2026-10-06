@@ -45,7 +45,7 @@ export const DETECTOR_THRESHOLDS: DetectorThresholds = {
   confidenceMin: 0.5,
   areaRatioMin: 0.08,
   areaRatioMax: 0.9,
-  aspectRatioMin: 0.686,
-  aspectRatioMax: 0.746,
+  aspectRatioMin: 0.696,
+  aspectRatioMax: 0.736,
   edgeSupportMin: 0.7,
 };
