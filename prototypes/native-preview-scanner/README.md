@@ -69,7 +69,7 @@ The integration target remains p95 below 20 ms across 300 post-publication sampl
 
 ## Capture safety
 
-The owner approved a capture-enabled experiment on 2026-10-06. `AUTOMATIC_CAPTURE_ENABLED` is now `true`, and the UI shows **Automatic capture: ON** with a photo count. Photos stay on the phone in VisionCamera's temporary files. Nothing is uploaded.
+The owner approved a capture-enabled experiment on 2026-10-06. `AUTOMATIC_CAPTURE_ENABLED` is now `true`, and the UI shows **Automatic capture: ON** with a photo count. Photos stay in VisionCamera's temporary files. They leave the phone only when the recognition settings below are present.
 
 `src/capture/quadCaptureGates.ts` turns each detector sample into capture gates for the existing state machine:
 
@@ -96,6 +96,14 @@ VisionCamera `4.7.3` does not report an error when iOS pauses the camera for bac
 - A camera runtime error is logged as `camera-error` and handled like a gap. Three camera errors within 30 seconds stop the detector with code 40, as before.
 
 Replay tests cover a pause that starts during departure and resumes on dark frames, a pause during a hold, the cooldown lock across a pause, and repeated photo failures. Without the gap rule, the first test takes a duplicate photo. `npm run physical-run:interruptions` checks backgrounding, the lock screen, and Control Center during cooldown, a card swapped while the app is away, and capture after returning. The first interruptions run, on the same phone with commit `ff1ca18`, passed every stage. Going to the home screen for 5.1 seconds and locking the screen for 6.4 seconds during cooldown each kept the single photo, with a logged resume in cooldown. Control Center did not pause the camera and kept the single photo. Removing card A while the app was away for 3.3 seconds and then laying card B down gave one photo for each card. After a 5.0-second absence with no card, capture worked normally. The run had six photos for six cards, no capture failures, no camera errors, and no fatal stop. Phone calls were not tested.
+
+## Recognition experiment
+
+When `EXPO_PUBLIC_RECOGNITION_URL` and `EXPO_PUBLIC_RECOGNITION_TOKEN` are set in the ignored `.env` file, each automatic photo is uploaded once to the rectified recognition service in `../scanner-accuracy`. The upload carries the refined outline that triggered the photo, in the photo's displayed orientation. Uploads run one at a time with a 10-second timeout. The service straightens the card, keeps only the straightened crop, and returns the top candidates and an accept or abstain decision. The app shows the result in the status panel and logs `recognition-result` or `recognition-failure` with the end-to-end time from the photo request to the parsed result. Without the settings, the app does not upload anything. The image egress policy for issue #10 allows one captured card image per scan. This experiment sends it to a service on the tester's own Mac over the local network, so it does not choose a production backend.
+
+`npm run physical-run:recognition` runs the experiment. It starts the service with a new token for the run, writes `.env` with this Mac's Wi-Fi address, starts Metro, and deletes `.env` when it finishes. It then names the cards from the 40-card owned test list one at a time, scores each result against the exact printing, and runs a timed 10-card speed pass. `scripts/recognition-score.mjs` does the scoring from the app log. The issue #10 gates are identity top-1 of at least 99%, exact printing of at least 97%, end-to-end p95 below 1.5 seconds, and at least 30 correct cards per minute. A 40-card run is far too small to estimate a false-accept rate.
+
+A shell check on this Mac sent a stored wood-table photo and its detector outline over the local network with the app's headers. The service accepted the correct DSC printing in 518 ms cold and 313 ms warm, and the app's response parser read the reply. No phone run has been made yet.
 
 ## Offline evidence
 

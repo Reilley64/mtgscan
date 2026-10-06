@@ -189,6 +189,8 @@ if [[ "$MODE" == "quick" ]]; then
   TOTAL_STAGES=6
 elif [[ "$MODE" == "capture" || "$MODE" == "interruptions" ]]; then
   TOTAL_STAGES=10
+elif [[ "$MODE" == "recognition" ]]; then
+  TOTAL_STAGES=8
 else
   TOTAL_STAGES=17
 fi
@@ -204,11 +206,21 @@ SOAK_LOG="$RUN_DIR/soak.log"
 SUMMARY="$RUN_DIR/summary.md"
 WORKSPACE="ios/MTGScanNativePreviewSpike.xcworkspace"
 METRO_PID=""
+SERVICE_PID=""
 LOGS_AVAILABLE="no"
+SERVICE_ROOT="$(cd "$PROJECT_ROOT/../scanner-accuracy" && pwd)"
+APP_ENV_FILE="$PROJECT_ROOT/.env"
+SCORE="node $PROJECT_ROOT/scripts/recognition-score.mjs"
 
 stop_metro() {
   if [[ -n "$METRO_PID" ]] && kill -0 "$METRO_PID" 2>/dev/null; then
     kill "$METRO_PID" 2>/dev/null || true
+  fi
+  if [[ -n "$SERVICE_PID" ]] && kill -0 "$SERVICE_PID" 2>/dev/null; then
+    kill "$SERVICE_PID" 2>/dev/null || true
+  fi
+  if [[ "$MODE" == "recognition" ]]; then
+    rm -f "$APP_ENV_FILE"
   fi
 }
 trap stop_metro EXIT
@@ -458,6 +470,47 @@ write_env XCODE_VERSION "${XCODE_VERSION:-unknown}"
 write_env DETECTOR_COMMIT "$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 pause
 
+if [[ "$MODE" == "recognition" ]]; then
+  stage "Start the recognition service"
+  if [[ ! -s "$SERVICE_ROOT/.prototype-data/rectified/corpus.json" ]]; then
+    say "The rectified candidate set is missing."
+    if confirm "Prepare it now? A cold run downloads about 1,300 reference images and takes about 15 minutes."; then
+      (cd "$SERVICE_ROOT" && npm run rectified:prepare -w @scanner-accuracy/service)
+    else
+      warn "Recognition needs the candidate set."
+      exit 1
+    fi
+  fi
+  if lsof -nP -iTCP:4317 -sTCP:LISTEN >/dev/null 2>&1; then
+    warn "Something is already listening on port 4317. Stop the other service first."
+    pause "Press Enter when port 4317 is free."
+  fi
+  MAC_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)
+  [[ -n "$MAC_IP" ]] || { warn "Could not find this Mac's Wi-Fi address."; exit 1; }
+  RECOGNITION_TOKEN=$(openssl rand -hex 32)
+  say "Starting the service with a new token for this run. Photos go only to this Mac."
+  (cd "$SERVICE_ROOT/service" && PROTOTYPE_TOKEN="$RECOGNITION_TOKEN" HOST=0.0.0.0 OCR_ENABLED=0 \
+    exec ../node_modules/.bin/tsx src/server.ts) > "$RUN_DIR/service.log" 2>&1 &
+  SERVICE_PID=$!
+  SERVICE_READY=no
+  for _ in $(seq 1 60); do
+    if curl -fs "http://127.0.0.1:4317/health" >/dev/null 2>&1; then
+      SERVICE_READY=yes
+      break
+    fi
+    sleep 1
+  done
+  if [[ "$SERVICE_READY" != "yes" ]]; then
+    warn "The service did not start. Read $RUN_DIR/service.log."
+    exit 1
+  fi
+  printf 'EXPO_PUBLIC_RECOGNITION_URL=http://%s:4317\nEXPO_PUBLIC_RECOGNITION_TOKEN=%s\n' "$MAC_IP" "$RECOGNITION_TOKEN" > "$APP_ENV_FILE"
+  write_env RECOGNITION_URL "http://$MAC_IP:4317"
+  printf '  %s✓ service ready%s at http://%s:4317 (log: %s)\n' "$GREEN" "$RESET" "$MAC_IP" "$RUN_DIR/service.log"
+  note "If macOS asks whether node may accept incoming connections, click Allow."
+  pause
+fi
+
 stage "Start Metro"
 if lsof -nP -iTCP:8081 -sTCP:LISTEN >/dev/null 2>&1; then
   warn "Something is already listening on port 8081. Stop the other Metro first, or app logs will not reach this run."
@@ -528,7 +581,75 @@ else
   write_env SAFETY_GATE fail
   stop_run "the panel did not show automatic capture as $EXPECTED_CAPTURE"
 fi
+if [[ "$MODE" == "recognition" ]]; then
+  if ! confirm "Does the panel say 'Recognition: waiting for the first photo'? (Close and reopen the app if it says off.)"; then
+    stop_run "the app did not load the recognition service settings"
+  fi
+fi
 pause
+
+if [[ "$MODE" == "recognition" ]]; then
+  CARDS_FILE="$RUN_DIR/cards.tsv"
+  RESULTS_FILE="$RUN_DIR/card-results.ndjson"
+  $SCORE cards "$SERVICE_ROOT/.prototype-data/personal-kill-test-manifest.json" > "$CARDS_FILE"
+  CARD_TOTAL=$(wc -l < "$CARDS_FILE" | tr -d ' ')
+
+  stage "Card by card"
+  say "The wizard names one card at a time from your $CARD_TOTAL-card test list."
+  step "Lay the named card flat, hold the phone above it, and wait for the result line at the top of the screen."
+  step "Then remove the card and press Enter. Type s and Enter to skip a card you do not have to hand."
+  record CARD_LIMIT "How many cards will you present? (Enter for all $CARD_TOTAL):"
+  CARD_LIMIT=$(_existing CARD_LIMIT)
+  [[ "$CARD_LIMIT" =~ ^[0-9]+$ ]] || CARD_LIMIT=$CARD_TOTAL
+  : > "$RESULTS_FILE"
+  index=0
+  while IFS=$'\t' read -r scryfall_id name set_code number finish <&3; do
+    index=$((index + 1))
+    (( index <= CARD_LIMIT )) || break
+    printf '\n  %sCard %s/%s:%s %s, %s #%s, %s\n' "$BOLD" "$index" "$CARD_LIMIT" "$RESET" "$name" "$set_code" "$number" "$finish"
+    before=$(log_lines)
+    ask CARD_ACTION "Press Enter after the result shows and the card is removed, or s to skip:"
+    if [[ "$CARD_ACTION" == "s" ]]; then
+      printf '{"scryfallId":"%s","status":"skipped"}\n' "$scryfall_id" >> "$RESULTS_FILE"
+      continue
+    fi
+    verdict=""
+    for _ in $(seq 1 10); do
+      verdict=$($SCORE judge-next "$METRO_LOG" "$before" "$scryfall_id" "$name")
+      [[ "$verdict" != *'"no-result"'* ]] && break
+      sleep 1
+    done
+    printf '%s\n' "$verdict" >> "$RESULTS_FILE"
+    say "$(node -e 'const v = JSON.parse(process.argv[1]); console.log(`${v.status}: top ${v.top ?? "none"}${v.endToEndMs ? `, ${v.endToEndMs} ms` : ""}`)' "$verdict")"
+  done 3< "$CARDS_FILE"
+  CARD_SUMMARY=$($SCORE summarize "$RESULTS_FILE")
+  write_env CARD_SUMMARY "$CARD_SUMMARY"
+  say "Summary: $CARD_SUMMARY"
+  pause
+
+  stage "Speed run"
+  SPEED_FILE="$RUN_DIR/speed-cards.tsv"
+  head -n "$(( CARD_LIMIT < 10 ? CARD_LIMIT : 10 ))" "$CARDS_FILE" > "$SPEED_FILE"
+  say "Present these cards in this order, as fast as is comfortable:"
+  speed_index=0
+  while IFS=$'\t' read -r _ name set_code number _; do
+    speed_index=$((speed_index + 1))
+    note "  $speed_index. $name, $set_code #$number"
+  done < "$SPEED_FILE"
+  step "For each card: lay it down, wait for the photo count to go up, then swap in the next card."
+  step "You do not need to wait for the result line. Do not skip cards."
+  SPEED_START_LINE=$(log_lines)
+  pause "Press Enter, then start with the first card."
+  pause "Press Enter after the last card's result line shows."
+  sleep 2
+  SPEED_SUMMARY=$($SCORE speed "$METRO_LOG" "$SPEED_START_LINE" "$SPEED_FILE")
+  write_env SPEED_SUMMARY "$SPEED_SUMMARY"
+  say "Speed run: $SPEED_SUMMARY"
+  write_env RUN_OUTCOME "recognition check completed"
+  pause
+  wrap_up
+  exit 0
+fi
 
 if [[ "$MODE" == "interruptions" ]]; then
   stage "Background during cooldown"
