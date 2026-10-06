@@ -145,9 +145,12 @@ enum MTGCardQuadDetector {
     return output
   }
 
-  static let signatureColumns = 6
-  static let signatureRows = 8
-  static let signatureInset = 0.12
+  static let signatureColumns = 8
+  static let signatureRows = 6
+  static let signatureLeft = 0.1
+  static let signatureRight = 0.9
+  static let signatureTop = 0.12
+  static let signatureBottom = 0.55
 
   static func cardSignature(
     corners: [SIMD2<Double>],
@@ -156,11 +159,12 @@ enum MTGCardQuadDetector {
   ) -> [Double] {
     var signature: [Double] = []
     signature.reserveCapacity(signatureColumns * signatureRows)
-    let span = 1.0 - 2.0 * signatureInset
     for row in 0 ..< signatureRows {
       for column in 0 ..< signatureColumns {
-        let u = signatureInset + span * (Double(column) + 0.5) / Double(signatureColumns)
-        let v = signatureInset + span * (Double(row) + 0.5) / Double(signatureRows)
+        let u = signatureLeft
+          + (signatureRight - signatureLeft) * (Double(column) + 0.5) / Double(signatureColumns)
+        let v = signatureTop
+          + (signatureBottom - signatureTop) * (Double(row) + 0.5) / Double(signatureRows)
         var sum = 0.0
         var count = 0.0
         for offset in [SIMD2(0.0, 0.0), SIMD2(-0.02, -0.02), SIMD2(0.02, -0.02), SIMD2(-0.02, 0.02), SIMD2(0.02, 0.02)] {

@@ -281,7 +281,18 @@ if (command === "cards") {
   const first = starts[0]?.atMs;
   const last = results[results.length - 1]?.atMs;
   const minutes = first && last && last > first ? (last - first) / 60000 : null;
-  const unmatchedAccepts = unmatched.filter((result) => result.accepted).length;
+  const batchIds = new Set(truths.map((truth) => truth.scryfallId));
+  const batchNames = new Set(truths.map((truth) => truth.name.toLowerCase()));
+  const isBatchCard = (result) => {
+    const top = result.candidates?.[0];
+    return (
+      top !== undefined &&
+      (batchIds.has(top.scryfallId) || batchNames.has(top.name.toLowerCase()))
+    );
+  };
+  const duplicates = unmatched.filter(isBatchCard);
+  const outsiders = unmatched.filter((result) => !isBatchCard(result));
+  const unmatchedAccepts = outsiders.filter((result) => result.accepted).length;
   fs.writeFileSync(
     detailPath,
     [
@@ -310,6 +321,8 @@ if (command === "cards") {
       photos: starts.length,
       results: results.length,
       unmatchedResults: unmatched.length,
+      duplicatePhotos: duplicates.length,
+      notInBatchResults: outsiders.length,
       missedCards: judged.filter((result) => result.status === "no-result")
         .length,
       elapsedSeconds: minutes === null ? null : Math.round(minutes * 600) / 10,

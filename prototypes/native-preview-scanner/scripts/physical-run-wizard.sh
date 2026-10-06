@@ -695,7 +695,7 @@ if [[ "$MODE" == "bin" ]]; then
     write_env "BATCH_${batch}_SUMMARY" "$summary"
     say "Round $batch: $(node -e '
       const s = JSON.parse(process.argv[1]);
-      console.log(`${s.printingTop1}/${s.presented} exact printing, ${s.correctAccepts} accepted, ${s.falseAccepts} wrong accepts, ${s.missedCards} missed, ${s.unmatchedResults} extra results, ${s.correctCardsPerMinute ?? "n/a"} correct cards per minute`);
+      console.log(`${s.printingTop1}/${s.presented} exact printing, ${s.correctAccepts} accepted, ${s.falseAccepts} wrong accepts, ${s.missedCards} missed, ${s.duplicatePhotos} duplicate photos, ${s.notInBatchResults} results not in the batch, ${s.correctCardsPerMinute ?? "n/a"} correct cards per minute`);
     ' "$summary")"
     cut -f1 "$BATCH_FILE" >> "$LEDGER"
     confirm "Start another round?" || break
@@ -712,6 +712,7 @@ if [[ "$MODE" == "bin" ]]; then
       correctAccepts: sum("correctAccepts"),
       falseAccepts: sum("falseAccepts"),
       abstentions: sum("abstentions"),
+      duplicatePhotos: sum("duplicatePhotos"),
       missedCards: sum("missedCards"),
       unmatchedResults: sum("unmatchedResults"),
       photos: sum("photos"),

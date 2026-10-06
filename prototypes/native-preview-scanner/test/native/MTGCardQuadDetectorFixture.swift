@@ -382,11 +382,11 @@ private func correlation(_ first: [Double], _ second: [Double]) -> Double {
 }
 
 private func testCardSignature() {
-  func signature(for card: SyntheticCard, textOffset: Double) -> [Double] {
+  func signature(for card: SyntheticCard, artOffset: Double) -> [Double] {
     var image = renderCard(card, width: 720, height: 1280, background: 185)
     let box = card.corners
-    let left = Int(box.map(\.x).min()! + card.width * 0.15)
-    let top = Int(box.map(\.y).min()! + card.height * (0.2 + textOffset))
+    let left = Int(box.map(\.x).min()! + card.width * (0.15 + artOffset))
+    let top = Int(box.map(\.y).min()! + card.height * 0.2)
     for y in top ..< top + Int(card.height * 0.12) {
       for x in left ..< left + Int(card.width * 0.4) {
         image.pixels[y * 720 + x] = 60
@@ -400,8 +400,8 @@ private func testCardSignature() {
   }
   let base = SyntheticCard(center: SIMD2(350, 600), width: 420, angle: 0.0)
   let shifted = SyntheticCard(center: SIMD2(356, 606), width: 420, angle: 1.0 * Double.pi / 180.0)
-  let same = correlation(signature(for: base, textOffset: 0.0), signature(for: shifted, textOffset: 0.0))
-  let different = correlation(signature(for: base, textOffset: 0.0), signature(for: base, textOffset: 0.35))
+  let same = correlation(signature(for: base, artOffset: 0.0), signature(for: shifted, artOffset: 0.0))
+  let different = correlation(signature(for: base, artOffset: 0.0), signature(for: base, artOffset: 0.4))
   require(same > 0.9, "same card signature correlation \(same)")
   require(different < 0.6, "different card signature correlation \(different)")
   print("signature correlation: same card \(same), different card \(different)")

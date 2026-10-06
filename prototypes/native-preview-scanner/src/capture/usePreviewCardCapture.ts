@@ -89,7 +89,7 @@ const CAMERA_ERROR_LIMIT = 3;
 type PublishedDiagnostics = Omit<
   PreviewCardCaptureDiagnostics,
   "timing" | "consecutiveSlowSamples" | "fatalErrorCode"
-> & { resumedAfterGapMs: number };
+> & { resumedAfterGapMs: number; rearmReason: string | null };
 
 type PublishedTiming = {
   sampleId: number;
@@ -243,6 +243,18 @@ export function usePreviewCardCapture(
 
   const receiveDiagnostics = useCallback((next: PublishedDiagnostics) => {
     if (fatalDetectorOnJS.current) return;
+    if (next.rearmReason !== null) {
+      console.log(
+        "NATIVE_PREVIEW_EVENT " +
+          JSON.stringify({
+            event: "capture-rearmed",
+            atMs: Date.now(),
+            reason: next.rearmReason,
+            sampleId: next.sampleId,
+            changeCorrelation: next.changeCorrelation,
+          }),
+      );
+    }
     if (next.resumedAfterGapMs > 0) {
       console.log(
         "NATIVE_PREVIEW_EVENT " +
@@ -624,10 +636,17 @@ export function usePreviewCardCapture(
         );
         const { captureGates, motion, changeCorrelation } = step;
         previousCorners.value = step.state.previousCorners;
+        const phaseBefore = machine.value.phase;
         let phase = machine.value.phase;
         let captureLocked = machine.value.captureLocked;
         let requestCapture = false;
+        let rearmReason: string | null = null;
         if (AUTOMATIC_CAPTURE_ENABLED) {
+          if (
+            phaseBefore === "cooldown" &&
+            step.state.machine.phase !== "cooldown"
+          )
+            rearmReason = captureGates.present ? "card-changed" : "card-absent";
           machine.value = step.state.machine;
           workletCaptureGuard.value = step.state.guard;
           capturedSignature.value = step.state.capturedSignature;
@@ -646,6 +665,7 @@ export function usePreviewCardCapture(
             changeCorrelation,
             captureLocked,
             resumedAfterGapMs,
+            rearmReason,
             sampleId,
             sampleWallAtMs,
             frameWidth: frame.width,
