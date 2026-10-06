@@ -592,14 +592,12 @@ fi
 pause
 
 if [[ "$MODE" == "bin" ]]; then
-  LEDGER="$PROJECT_ROOT/.physical-runs/scanned-scryfall-ids.txt"
-  touch "$LEDGER"
-  BIN_CARDS="$RUN_DIR/bin-cards.tsv"
+  TEST_DECK="$PROJECT_ROOT/.physical-runs/test-deck.tsv"
   BIN_TOTALS="$RUN_DIR/bin-batch-summaries.ndjson"
-  DEFERRED="$RUN_DIR/deferred-cards.txt"
-  EXCLUDED="$RUN_DIR/excluded-cards.txt"
   : > "$BIN_TOTALS"
-  : > "$DEFERRED"
+  [[ -s "$TEST_DECK" ]] || { warn "The test deck file $TEST_DECK is missing."; exit 1; }
+  cp "$TEST_DECK" "$RUN_DIR/test-deck.tsv"
+  DECK_COUNT=$(wc -l < "$TEST_DECK" | tr -d ' ')
 
   render_checklist() {
     local list="$1" number=0 mark colour
@@ -617,43 +615,23 @@ if [[ "$MODE" == "bin" ]]; then
     done < "$list"
   }
 
-  stage "Bin batches"
+  stage "Test deck rounds"
+  say "Every round uses the same $DECK_COUNT-card test deck, so results can be compared between versions."
   say "Put the phone in the holder over the bin, camera down, so a whole card and some bin floor show in the preview."
-  say "Each round picks a random colour group, using the rightmost coloured symbol in the mana cost, and lists cards from your collection that have not been scanned yet."
-  record BATCH_SIZE "Cards to show per round (Enter for 20):"
-  BATCH_SIZE=$(_existing BATCH_SIZE)
-  [[ "$BATCH_SIZE" =~ ^[0-9]+$ && "$BATCH_SIZE" -gt 0 ]] || BATCH_SIZE=20
   batch=0
   while true; do
-    cat "$LEDGER" "$DEFERRED" > "$EXCLUDED"
-    $SCORE bin-cards "$SERVICE_ROOT/../../current_collection.csv" "$SERVICE_ROOT/.prototype-data/scryfall" "$EXCLUDED" > "$BIN_CARDS"
-    if [[ ! -s "$BIN_CARDS" && -s "$DEFERRED" ]]; then
-      say "Only cards you did not find earlier are left. Showing them again."
-      : > "$DEFERRED"
-      continue
-    fi
-    if [[ ! -s "$BIN_CARDS" ]]; then
-      say "Every card in the collection export has been scanned."
-      break
-    fi
     batch=$((batch + 1))
-    SHOWN_FILE="$RUN_DIR/round-$batch-shown.tsv"
+    SHOWN_FILE="$TEST_DECK"
     BATCH_FILE="$RUN_DIR/batch-$batch.tsv"
-    ROUND_GROUP=$(cut -f6 "$BIN_CARDS" | sort -u | awk 'BEGIN { srand() } { groups[NR] = $0 } END { print groups[int(rand() * NR) + 1] }')
-    case "$ROUND_GROUP" in
-      W) ROUND_COLOUR=White ;; U) ROUND_COLOUR=Blue ;; B) ROUND_COLOUR=Black ;; R) ROUND_COLOUR=Red ;; G) ROUND_COLOUR=Green ;; *) ROUND_COLOUR=Colourless ;;
-    esac
-    awk -F'\t' -v group="$ROUND_GROUP" '$6 == group' "$BIN_CARDS" | head -n "$BATCH_SIZE" > "$SHOWN_FILE"
-    write_env "ROUND_${batch}_COLOUR" "$ROUND_COLOUR"
-    SHOWN_COUNT=$(wc -l < "$SHOWN_FILE" | tr -d ' ')
-    CHECKED=""
+    SHOWN_COUNT=$DECK_COUNT
+    CHECKED=" $(seq -s ' ' 1 "$SHOWN_COUNT") "
     while true; do
       _clear
-      printf '\n%s%s▸ Round %s: %s%s  %s%s %s cards left, %s in total%s\n\n' "$BOLD" "$BLUE" "$batch" "$ROUND_COLOUR" "$RESET" "$DIM" "$(cut -f6 "$BIN_CARDS" | grep -cx "$ROUND_GROUP" || true)" "$ROUND_COLOUR" "$(wc -l < "$BIN_CARDS" | tr -d ' ')" "$RESET"
+      printf '\n%s%s▸ Round %s: test deck%s\n\n' "$BOLD" "$BLUE" "$batch" "$RESET"
       render_checklist "$SHOWN_FILE"
       printf '\n'
-      note "Type the number of each card as you find it, for example: 3 7 12. Type it again to untick."
-      note "Type a to tick all, n to untick all. Press Enter on an empty line when you are done."
+      note "Every card starts ticked. Type the number of a card you do not have to hand to untick it, for example: 3 7."
+      note "Type a to tick all, n to untick all. Press Enter on an empty line when you are ready."
       printf '  %s%s ticked.%s ' "$BOLD" "$(wc -w <<< "$CHECKED" | tr -d ' ')" "$RESET"
       read -r reply || reply=""
       [[ -z "$reply" ]] && break
@@ -673,19 +651,16 @@ if [[ "$MODE" == "bin" ]]; then
       CHECKED=" $(tr ' ' '\n' <<< "$CHECKED" | { grep -v '^$' || true; } | sort -n | uniq | tr '\n' ' ')"
     done
     awk -v keep="$CHECKED" 'index(keep, " " NR " ") != 0' "$SHOWN_FILE" > "$BATCH_FILE"
-    awk -v keep="$CHECKED" 'index(keep, " " NR " ") == 0 { print $1 ":" $5 }' FS='\t' "$SHOWN_FILE" >> "$DEFERRED"
     if [[ ! -s "$BATCH_FILE" ]]; then
-      warn "No cards ticked. They move to the back of the list for this run."
-      confirm "Show the next cards?" && continue
+      warn "No cards ticked."
+      confirm "Try the round again?" && continue
       break
     fi
     _clear
     printf '\n%s%s▸ Round %s: slide in %s cards%s\n\n' "$BOLD" "$BLUE" "$batch" "$(wc -l < "$BATCH_FILE" | tr -d ' ')" "$RESET"
-    CHECKED=" $(seq -s ' ' 1 "$(wc -l < "$BATCH_FILE" | tr -d ' ')") "
-    render_checklist "$BATCH_FILE"
-    printf '\n'
     step "Slide the ticked cards into the bin one at a time, each on top of the last. Any order is fine."
     step "Wait for the photo count to go up before sliding in the next card."
+    step "If you have to nudge the bin or holder to get a photo, remember which card it was."
     note "To start the round again, empty the bin and tap Reset study. Only photos after your last reset count."
     BATCH_START_LINE=$(log_lines)
     pause "Press Enter, then start sliding cards in."
@@ -697,10 +672,10 @@ if [[ "$MODE" == "bin" ]]; then
     write_env "ROUND_${batch}_LIGHT" "$(node -e 'console.log(JSON.parse(process.argv[1]).light)' "$summary")"
     say "Round $batch: $(node -e '
       const s = JSON.parse(process.argv[1]);
-      console.log(`${s.printingTop1}/${s.presented} exact printing, ${s.correctAccepts} accepted, ${s.falseAccepts} wrong accepts, ${s.missedCards} missed, ${s.duplicatePhotos} duplicate photos, ${s.notInBatchResults} results not in the batch, ${s.restarts} restarts, light ${s.light} (${s.photosWithLight}/${s.photos} photos), ${s.correctCardsPerMinute ?? "n/a"} correct cards per minute`);
+      console.log(`${s.printingTop1}/${s.presented} exact printing, ${s.correctAccepts} accepted, ${s.falseAccepts} wrong accepts, ${s.missedCards} missed, ${s.duplicatePhotos} duplicate photos, ${s.notInBatchResults} results not in the deck, ${s.restarts} restarts, light ${s.light} (${s.photosWithLight}/${s.photos} photos), ${s.correctCardsPerMinute ?? "n/a"} correct cards per minute`);
     ' "$summary")"
-    cut -f1 "$BATCH_FILE" >> "$LEDGER"
-    confirm "Start another round?" || break
+    record "ROUND_${batch}_NUDGED" "Cards you had to nudge the bin for, if any (Enter for none):"
+    confirm "Start another round with the same deck?" || break
   done
   BIN_TOTAL=$(node -e '
     const lines = require("fs").readFileSync(process.argv[1], "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line));
