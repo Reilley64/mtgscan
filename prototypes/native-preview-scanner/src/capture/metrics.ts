@@ -59,7 +59,7 @@ export function computePreviewMetrics(
   previousSignature: number[] | null,
 ): MetricResult {
   "worklet";
-  const cardCoverage = 1 / (1 + ANALYSIS_MARGIN_FRACTION);
+  const cardCoverage = 1 / (1 + 2 * ANALYSIS_MARGIN_FRACTION);
   const insetX = Math.max(2, Math.round((width * (1 - cardCoverage)) / 2));
   const insetY = Math.max(2, Math.round((height * (1 - cardCoverage)) / 2));
   const sampleOffset = Math.max(1, Math.round(Math.min(width, height) * 0.018));

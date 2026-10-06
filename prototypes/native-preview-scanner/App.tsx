@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -7,30 +7,60 @@ import {
   StyleSheet,
   Text,
   View,
+  type LayoutRectangle,
 } from "react-native";
 import {
   Camera,
   useCameraDevice,
   useCameraFormat,
   useCameraPermission,
-  type CameraRuntimeError,
 } from "react-native-vision-camera";
-import { GUIDE_WIDTH_FRACTION } from "./src/capture/config";
+import {
+  AUTOMATIC_CAPTURE_ENABLED,
+  CARD_ASPECT_RATIO,
+  DETECTOR_THRESHOLDS,
+  GUIDE_WIDTH_FRACTION,
+} from "./src/capture/config";
 import { usePreviewCardCapture } from "./src/capture/usePreviewCardCapture";
-
-const phaseCopy = {
-  seeking: "Seeking a centered card",
-  holding: "Hold still",
-  capturing: "Capturing one high-resolution still",
-  cooldown: "Captured. Remove the card or reset.",
-  error: "Capture error",
-} as const;
+import type { DetectorPoint } from "./src/detector/validation";
 
 const formatNumber = (value: number, digits = 1) =>
   Number.isFinite(value) ? value.toFixed(digits) : "n/a";
 
+const containedPreview = (
+  container: LayoutRectangle,
+  imageWidth: number,
+  imageHeight: number,
+): LayoutRectangle | null => {
+  if (
+    container.width <= 0 ||
+    container.height <= 0 ||
+    imageWidth <= 0 ||
+    imageHeight <= 0
+  )
+    return null;
+  const scale = Math.min(
+    container.width / imageWidth,
+    container.height / imageHeight,
+  );
+  const width = imageWidth * scale;
+  const height = imageHeight * scale;
+  return {
+    x: (container.width - width) / 2,
+    y: (container.height - height) / 2,
+    width,
+    height,
+  };
+};
+
 export default function App() {
   const camera = useRef<Camera>(null);
+  const [container, setContainer] = useState<LayoutRectangle>({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  });
   const device = useCameraDevice("back", {
     physicalDevices: ["wide-angle-camera"],
   });
@@ -54,17 +84,28 @@ export default function App() {
 
   useEffect(() => {
     if (format)
-      console.log("Selected native preview format", formatLabel, format);
-  }, [format, formatLabel]);
+      console.log(
+        "NATIVE_PREVIEW_EVENT " +
+          JSON.stringify({
+            event: "camera-format-selected",
+            atMs: Date.now(),
+            videoWidth: format.videoWidth,
+            videoHeight: format.videoHeight,
+            photoWidth: format.photoWidth,
+            photoHeight: format.photoHeight,
+            fps: actualFps,
+          }),
+      );
+  }, [actualFps, format]);
 
   if (!hasPermission) {
     return (
       <SafeAreaView style={styles.permissionScreen}>
         <StatusBar style="light" />
-        <Text style={styles.title}>Native preview capture spike</Text>
+        <Text style={styles.title}>Apple Vision detector spike</Text>
         <Text style={styles.body}>
-          This development build needs camera access. It does not record audio
-          or video. Expo Go cannot run this native frame-processor prototype.
+          This development build needs camera access. Frames stay in the app
+          process. Expo Go cannot load the native detector.
         </Text>
         <Pressable style={styles.button} onPress={requestPermission}>
           <Text style={styles.buttonText}>Allow camera</Text>
@@ -82,14 +123,49 @@ export default function App() {
     );
   }
 
-  const { diagnostics, thresholds } = capture;
-  const onCameraError = (cameraError: CameraRuntimeError) => {
-    console.error("VisionCamera runtime error", cameraError);
-    capture.reportError(cameraError.message);
-  };
+  const { diagnostics } = capture;
+  const observation = diagnostics.observation;
+  const preview = containedPreview(
+    container,
+    diagnostics.orientedFrameWidth,
+    diagnostics.orientedFrameHeight,
+  );
+  const guide = preview
+    ? {
+        width: preview.width * GUIDE_WIDTH_FRACTION,
+        height: (preview.width * GUIDE_WIDTH_FRACTION) / CARD_ASPECT_RATIO,
+      }
+    : null;
+  const roi = preview
+    ? {
+        left: preview.x + observation.roiX * preview.width,
+        top: preview.y + observation.roiY * preview.height,
+        width: observation.roiWidth * preview.width,
+        height: observation.roiHeight * preview.height,
+      }
+    : null;
+  const mapPoint = (point: DetectorPoint | null) =>
+    point && preview
+      ? {
+          x: preview.x + point.x * preview.width,
+          y: preview.y + point.y * preview.height,
+        }
+      : null;
+  const quad = observation.detected
+    ? [
+        mapPoint(observation.topLeft),
+        mapPoint(observation.topRight),
+        mapPoint(observation.bottomRight),
+        mapPoint(observation.bottomLeft),
+      ]
+    : null;
+  const fatal = diagnostics.fatalErrorCode !== 0;
 
   return (
-    <View style={styles.root}>
+    <View
+      style={styles.root}
+      onLayout={({ nativeEvent }) => setContainer(nativeEvent.layout)}
+    >
       <StatusBar style="light" />
       <Camera
         ref={camera}
@@ -97,32 +173,54 @@ export default function App() {
         device={device}
         format={format}
         fps={actualFps}
-        isActive
+        isActive={!fatal}
         photo
         video={false}
         audio={false}
         pixelFormat="yuv"
         frameProcessor={capture.frameProcessor}
         resizeMode="contain"
-        onError={onCameraError}
+        onError={capture.reportFatalCameraError}
       />
 
-      <View pointerEvents="none" style={styles.guideLayer}>
-        <View
-          style={[
-            styles.guide,
-            { width: `${GUIDE_WIDTH_FRACTION * 100}%` },
-            diagnostics.gates.all && styles.guideReady,
-          ]}
-        />
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        {guide && preview ? (
+          <View
+            style={[
+              styles.guide,
+              diagnostics.gates.all && styles.guideReady,
+              {
+                left: preview.x + (preview.width - guide.width) / 2,
+                top: preview.y + (preview.height - guide.height) / 2,
+                width: guide.width,
+                height: guide.height,
+              },
+            ]}
+          />
+        ) : null}
+        {roi && roi.width > 0 && roi.height > 0 ? (
+          <View style={[styles.roi, roi]} />
+        ) : null}
+        {quad?.every((point) => point !== null) ? (
+          <QuadOverlay points={quad as { x: number; y: number }[]} />
+        ) : null}
       </View>
 
       <SafeAreaView style={styles.overlay} pointerEvents="box-none">
         <View style={styles.statusPanel}>
-          <Text style={[styles.phase, styles[`phase_${diagnostics.phase}`]]}>
-            {phaseCopy[diagnostics.phase]}
+          <Text
+            style={[styles.phase, fatal ? styles.failText : styles.waitText]}
+          >
+            {fatal
+              ? `Detector locked, code ${diagnostics.fatalErrorCode}`
+              : observation.detected
+                ? "Rectangle observed"
+                : "Seeking a rectangle"}
           </Text>
           <Text style={styles.format}>{formatLabel}</Text>
+          <Text style={styles.disabledCapture}>
+            Automatic capture: {AUTOMATIC_CAPTURE_ENABLED ? "ON" : "OFF"}
+          </Text>
           {capture.error ? (
             <Text style={styles.error}>{capture.error}</Text>
           ) : null}
@@ -132,60 +230,105 @@ export default function App() {
 
         <View style={styles.metricsPanel}>
           <Metric
-            label="Presence"
-            pass={diagnostics.gates.present}
-            value={`border ${formatNumber(diagnostics.metrics.borderEnergy)} / ${thresholds.borderEnergyMin}; continuity ${formatNumber(diagnostics.metrics.borderContinuity, 2)} / ${thresholds.borderContinuityMin}; variance ${formatNumber(diagnostics.metrics.interiorVariance, 0)} / ${thresholds.interiorVarianceMin}`}
+            label="Detected"
+            pass={diagnostics.gates.detected}
+            value={observation.detected ? "one observation" : "none"}
+          />
+          <Metric
+            label="Confidence"
+            pass={diagnostics.gates.confidence}
+            value={`${formatNumber(observation.confidence, 3)} / ${DETECTOR_THRESHOLDS.confidenceMin}`}
+          />
+          <Metric
+            label="Area"
+            pass={diagnostics.gates.area}
+            value={`${formatNumber(observation.areaRatio, 3)} in ${DETECTOR_THRESHOLDS.areaRatioMin}-${DETECTOR_THRESHOLDS.areaRatioMax}`}
+          />
+          <Metric
+            label="Aspect"
+            pass={diagnostics.gates.aspect}
+            value={`${formatNumber(observation.aspectRatio, 3)} in ${DETECTOR_THRESHOLDS.aspectRatioMin}-${DETECTOR_THRESHOLDS.aspectRatioMax}`}
           />
           <Metric
             label="Centered"
             pass={diagnostics.gates.centered}
-            value={`${formatNumber(diagnostics.metrics.centerScore, 2)} / ${thresholds.centerScoreMin}`}
-          />
-          <Metric
-            label="Sharp"
-            pass={diagnostics.gates.sharp}
-            value={`${formatNumber(diagnostics.metrics.sharpness)} / ${thresholds.sharpnessMin}`}
-          />
-          <Metric
-            label="Stable"
-            pass={diagnostics.gates.stable}
-            value={`${formatNumber(diagnostics.metrics.motion)} <= ${thresholds.motionMax}`}
+            value={`offset ${formatNumber(observation.centerOffset, 3)} <= ${DETECTOR_THRESHOLDS.centerOffsetMax}; score ${formatNumber(observation.centerScore, 3)}`}
           />
           <Text style={styles.telemetry}>
-            Analysis current {formatNumber(diagnostics.metrics.processingMs, 2)}
-            ms; rolling {diagnostics.timing.sampleCount}/300 processed samples:
-            p50 {formatNumber(diagnostics.timing.p50Ms, 2)} ms, p95{" "}
-            {formatNumber(diagnostics.timing.p95Ms, 2)} ms, max{" "}
-            {formatNumber(diagnostics.timing.maxMs, 2)} ms. At 5 fps.
+            Post-publish total {formatNumber(diagnostics.timing.p50Ms, 2)} ms
+            p50, {formatNumber(diagnostics.timing.p95Ms, 2)} ms p95,{" "}
+            {formatNumber(diagnostics.timing.maxMs, 2)} ms max over{" "}
+            {diagnostics.timing.sampleCount}/300 samples. Native{" "}
+            {formatNumber(observation.nativeDurationMs, 2)} ms.
           </Text>
           <Text style={styles.telemetry}>
-            Dwell {thresholds.dwellMs} ms; departure reset{" "}
-            {thresholds.departureMs} ms.
+            Cadence {formatNumber(diagnostics.timing.effectiveHz, 2)} Hz{" "}
+            {diagnostics.timing.cadencePass ? "PASS" : "WAIT"}; span{" "}
+            {formatNumber(diagnostics.timing.elapsedSpanMs / 1_000, 1)} s; max
+            gap {formatNumber(diagnostics.timing.maxGapMs, 0)} ms; slow streak{" "}
+            {diagnostics.consecutiveSlowSamples}/10.
           </Text>
           <Text style={styles.telemetry}>
-            Departure {diagnostics.gates.departed ? "YES" : "NO"}: continuity
-            &lt;= {thresholds.departureBorderContinuityMax}; variance &lt;={" "}
-            {thresholds.departureVarianceMax}.
+            ROI x/y/w/h {formatNumber(observation.roiX, 3)}/{" "}
+            {formatNumber(observation.roiY, 3)}/{" "}
+            {formatNumber(observation.roiWidth, 3)}/{" "}
+            {formatNumber(observation.roiHeight, 3)}; orientation{" "}
+            {observation.orientationCode}; frame {diagnostics.frameWidth}x
+            {diagnostics.frameHeight} to {diagnostics.orientedFrameWidth}x
+            {diagnostics.orientedFrameHeight}.
           </Text>
           <Text style={styles.telemetry}>
             Last photo:{" "}
             {capture.lastPhoto
-              ? `${capture.lastPhoto.width}x${capture.lastPhoto.height} ${capture.lastPhoto.path}`
+              ? `${capture.lastPhoto.width}x${capture.lastPhoto.height}`
               : "none"}
           </Text>
-          <Pressable
-            disabled={diagnostics.phase === "capturing"}
-            style={[
-              styles.button,
-              diagnostics.phase === "capturing" && styles.buttonDisabled,
-            ]}
-            onPress={capture.reset}
-          >
-            <Text style={styles.buttonText}>Manual reset</Text>
-          </Pressable>
+          <View style={styles.buttonRow}>
+            <Pressable disabled style={[styles.button, styles.buttonDisabled]}>
+              <Text style={styles.buttonText}>Capture disabled</Text>
+            </Pressable>
+            <Pressable
+              disabled={fatal || diagnostics.phase === "capturing"}
+              style={[
+                styles.button,
+                (fatal || diagnostics.phase === "capturing") &&
+                  styles.buttonDisabled,
+              ]}
+              onPress={capture.reset}
+            >
+              <Text style={styles.buttonText}>Reset study</Text>
+            </Pressable>
+          </View>
         </View>
       </SafeAreaView>
     </View>
+  );
+}
+
+function QuadOverlay({ points }: { points: { x: number; y: number }[] }) {
+  return (
+    <>
+      {[0, 1, 2, 3].map((index) => {
+        const start = points[index]!;
+        const end = points[(index + 1) % 4]!;
+        const length = Math.hypot(end.x - start.x, end.y - start.y);
+        const angle = Math.atan2(end.y - start.y, end.x - start.x);
+        return (
+          <View
+            key={index}
+            style={[
+              styles.quadEdge,
+              {
+                left: (start.x + end.x - length) / 2,
+                top: (start.y + end.y) / 2 - 1.5,
+                width: length,
+                transform: [{ rotate: `${angle}rad` }],
+              },
+            ]}
+          />
+        );
+      })}
+    </>
   );
 }
 
@@ -224,26 +367,24 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, paddingHorizontal: 14 },
   statusPanel: {
     marginTop: 8,
-    padding: 12,
-    gap: 6,
+    padding: 10,
+    gap: 4,
     borderRadius: 10,
     backgroundColor: "rgba(8, 11, 13, 0.86)",
   },
-  phase: { fontSize: 18, fontWeight: "800" },
-  phase_seeking: { color: "#f4d06f" },
-  phase_holding: { color: "#d8ff62" },
-  phase_capturing: { color: "#74c7ff" },
-  phase_cooldown: { color: "#9be7c4" },
-  phase_error: { color: "#ff8e8e" },
-  format: { color: "#b5c0c5", fontSize: 11 },
-  error: { color: "#ff8e8e", fontSize: 12 },
+  phase: { fontSize: 17, fontWeight: "800" },
+  waitText: { color: "#f4d06f" },
+  failText: { color: "#ff8e8e" },
+  format: { color: "#b5c0c5", fontSize: 10 },
+  disabledCapture: { color: "#74c7ff", fontSize: 12, fontWeight: "800" },
+  error: { color: "#ff8e8e", fontSize: 11 },
   spacer: { flex: 1 },
   metricsPanel: {
     marginBottom: 8,
-    padding: 12,
-    gap: 7,
+    padding: 10,
+    gap: 5,
     borderRadius: 10,
-    backgroundColor: "rgba(8, 11, 13, 0.9)",
+    backgroundColor: "rgba(8, 11, 13, 0.92)",
   },
   metricRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   gate: {
@@ -257,24 +398,21 @@ const styles = StyleSheet.create({
   },
   pass: { color: "#06120c", backgroundColor: "#9be7c4" },
   fail: { color: "#221900", backgroundColor: "#f4d06f" },
-  metricText: { flex: 1, color: "white", fontSize: 11, lineHeight: 15 },
-  telemetry: { color: "#b5c0c5", fontSize: 10, lineHeight: 14 },
+  metricText: { flex: 1, color: "white", fontSize: 10, lineHeight: 14 },
+  telemetry: { color: "#b5c0c5", fontSize: 9, lineHeight: 12 },
+  buttonRow: { flexDirection: "row", gap: 8 },
   button: {
+    flex: 1,
     alignItems: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     borderRadius: 8,
     backgroundColor: "#d8ff62",
   },
-  buttonDisabled: { opacity: 0.45 },
-  buttonText: { color: "#101500", fontSize: 15, fontWeight: "900" },
-  guideLayer: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  buttonDisabled: { opacity: 0.4 },
+  buttonText: { color: "#101500", fontSize: 12, fontWeight: "900" },
   guide: {
-    aspectRatio: 63 / 88,
+    position: "absolute",
     borderWidth: 3,
     borderRadius: 15,
     borderColor: "#f4d06f",
@@ -285,5 +423,17 @@ const styles = StyleSheet.create({
     shadowColor: "#9be7c4",
     shadowOpacity: 0.9,
     shadowRadius: 8,
+  },
+  roi: {
+    position: "absolute",
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#74c7ff",
+  },
+  quadEdge: {
+    position: "absolute",
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#ff4fd8",
   },
 });

@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CAPTURE_THRESHOLDS } from "../src/capture/config";
 import {
+  recordAnalysisSample,
   recordProcessingTime,
   TIMING_WINDOW_SAMPLES,
 } from "../src/capture/timingTelemetry";
+import {
+  orientedFrameDimensions,
+  validateNativeRectangleRecord,
+} from "../src/detector/validation";
 import {
   computePreviewMetrics,
   evaluatePreviewGates,
@@ -38,7 +43,7 @@ function syntheticCard({
 } = {}) {
   const pixels = new Uint8Array(WIDTH * HEIGHT * 3);
   pixels.fill(25);
-  const coverage = 1 / 1.08;
+  const coverage = 1 / 1.16;
   const left = Math.round((WIDTH * (1 - coverage)) / 2) + shiftX;
   const right = WIDTH - 1 - Math.round((WIDTH * (1 - coverage)) / 2) + shiftX;
   const top = Math.round((HEIGHT * (1 - coverage)) / 2);
@@ -316,5 +321,186 @@ describe("processing-time telemetry", () => {
       p95Ms: 50,
       maxMs: 50,
     });
+  });
+});
+
+describe("analysis cadence telemetry", () => {
+  it("waits for the full window even at sustained five-hertz cadence", () => {
+    const processingHistory: number[] = [];
+    const timestampHistory: number[] = [];
+    let telemetry = recordAnalysisSample(
+      processingHistory,
+      timestampHistory,
+      10,
+      1_000,
+    );
+    for (let index = 1; index < TIMING_WINDOW_SAMPLES - 1; index++) {
+      telemetry = recordAnalysisSample(
+        processingHistory,
+        timestampHistory,
+        10,
+        1_000 + index * 200,
+      );
+    }
+
+    expect(telemetry).toMatchObject({
+      sampleCount: 299,
+      effectiveHz: 5,
+      maxGapMs: 200,
+      cadencePass: false,
+    });
+  });
+
+  it("reports sustained five-hertz cadence over the full bounded window", () => {
+    const processingHistory: number[] = [];
+    const timestampHistory: number[] = [];
+    let telemetry = recordAnalysisSample(
+      processingHistory,
+      timestampHistory,
+      10,
+      1_000,
+    );
+    for (let index = 1; index < TIMING_WINDOW_SAMPLES; index++) {
+      telemetry = recordAnalysisSample(
+        processingHistory,
+        timestampHistory,
+        10,
+        1_000 + index * 200,
+      );
+    }
+
+    expect(telemetry).toMatchObject({
+      sampleCount: 300,
+      effectiveHz: 5,
+      maxGapMs: 200,
+      cadencePass: true,
+    });
+    expect(telemetry.elapsedSpanMs).toBe(59_800);
+  });
+
+  it("does not equate 300 delayed samples with sustained five hertz", () => {
+    const processingHistory: number[] = [];
+    const timestampHistory: number[] = [];
+    let telemetry = recordAnalysisSample(
+      processingHistory,
+      timestampHistory,
+      10,
+      0,
+    );
+    for (let index = 1; index < TIMING_WINDOW_SAMPLES; index++) {
+      telemetry = recordAnalysisSample(
+        processingHistory,
+        timestampHistory,
+        10,
+        index * 250,
+      );
+    }
+
+    expect(telemetry.sampleCount).toBe(300);
+    expect(telemetry.effectiveHz).toBe(4);
+    expect(telemetry.maxGapMs).toBe(250);
+    expect(telemetry.cadencePass).toBe(false);
+  });
+});
+
+const validNativeRecord = () => ({
+  detected: true,
+  topLeft: { x: 0.2, y: 0.2 },
+  topRight: { x: 0.8, y: 0.2 },
+  bottomRight: { x: 0.8, y: 0.8 },
+  bottomLeft: { x: 0.2, y: 0.8 },
+  confidence: 0.9,
+  areaRatio: 0.36,
+  aspectRatio: 63 / 88,
+  centerOffset: 0,
+  centerScore: 1,
+  nativeDurationMs: 4,
+  roiX: 0.1,
+  roiY: 0.1,
+  roiWidth: 0.8,
+  roiHeight: 0.8,
+  orientationCode: 3,
+  runtimeErrorCode: 0,
+});
+
+describe("native rectangle validation", () => {
+  it("accepts only the fixed bounded record", () => {
+    expect(validateNativeRectangleRecord(validNativeRecord())).toEqual(
+      validNativeRecord(),
+    );
+    expect(
+      validateNativeRectangleRecord({ ...validNativeRecord(), extra: 1 }),
+    ).toBeNull();
+    expect(
+      validateNativeRectangleRecord({
+        ...validNativeRecord(),
+        topLeft: { x: 0.2, y: 0.2, extra: 1 },
+      }),
+    ).toBeNull();
+  });
+
+  it("requires either all four corners or no corners", () => {
+    expect(
+      validateNativeRectangleRecord({
+        ...validNativeRecord(),
+        detected: false,
+        topLeft: null,
+        topRight: null,
+        bottomRight: null,
+        bottomLeft: null,
+        confidence: 0,
+        areaRatio: 0,
+        aspectRatio: 0,
+        centerOffset: 1,
+        centerScore: 0,
+      }),
+    ).not.toBeNull();
+    expect(
+      validateNativeRectangleRecord({
+        ...validNativeRecord(),
+        detected: false,
+        topLeft: null,
+      }),
+    ).toBeNull();
+  });
+
+  it("accepts VisionCamera's JSI representation of an undetected rectangle", () => {
+    expect(
+      validateNativeRectangleRecord({
+        ...validNativeRecord(),
+        detected: false,
+        topLeft: undefined,
+        topRight: undefined,
+        bottomRight: undefined,
+        bottomLeft: undefined,
+        confidence: 0,
+        areaRatio: 0,
+        aspectRatio: 0,
+        centerOffset: 1,
+        centerScore: 0,
+      }),
+    ).toMatchObject({
+      detected: false,
+      topLeft: null,
+      topRight: null,
+      bottomRight: null,
+      bottomLeft: null,
+    });
+  });
+
+  it("maps all current orientation codes to oriented pixel dimensions", () => {
+    for (const code of [0, 1, 4, 5]) {
+      expect(orientedFrameDimensions(1280, 720, code)).toEqual({
+        width: 1280,
+        height: 720,
+      });
+    }
+    for (const code of [2, 3, 6, 7]) {
+      expect(orientedFrameDimensions(1280, 720, code)).toEqual({
+        width: 720,
+        height: 1280,
+      });
+    }
+    expect(orientedFrameDimensions(1280, 720, -1)).toBeNull();
   });
 });

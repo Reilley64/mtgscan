@@ -11,7 +11,8 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "android": "expo run:android"
+    "android": "expo run:android",
+    "test:native-geometry": "bash scripts/test-native-geometry.sh"
   },
   "dependencies": {
     "babel-preset-expo": "~54.0.10",

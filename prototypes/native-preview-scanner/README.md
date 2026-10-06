@@ -1,51 +1,84 @@
 # Native preview scanner prototype
 
-**Throwaway Wayfinder prototype.** This isolated Expo development-build app asks one question: can a VisionCamera V4 frame processor detect a centered, sharp, stable card and take exactly one high-resolution still without duplicate captures?
+**Throwaway Wayfinder prototype.** This isolated Expo development-build app now preserves a rejected iOS trial of Apple's `VNDetectContoursRequest`. The trial tested whether an app-owned VisionCamera V4 frame processor could publish one bounded card quadrilateral for a later scanner experiment.
 
-It validates automatic capture only. It does not recognize a card, change a collection, choose production architecture, or test guided tilt. Delete or replace this prototype after the trial.
+Automatic capture is hard-disabled. The app observes detector gates only. It does not recognize cards, measure recognition or detector accuracy, solve duplicate capture, choose production architecture, or prove Android support. The earlier fixed-edge and rejected Fast OpenCV work remains evidence and decision history. See [native-detector-research.md](./native-detector-research.md).
 
-## Trial boundary
+## Current design and boundaries
 
-The app uses a contained preview and a centered guide at 72% of preview width with the Magic card ratio, 63:88. Containment can letterbox the preview, but it keeps screen-width guide coordinates aligned with raw frame-processor coordinates instead of applying an unmodeled center crop. Its analysis crop includes an 8% outside margin. At 5 fps, the frame processor converts that crop from the camera's YUV stream to a 48-pixel-short-edge ARGB `Uint8Array`. It computes bounded scalar metrics for expected-border energy and continuity, centering, interior variance, sharpness, motion, and processing time. The overlay keeps the last 300 published processing times and shows current, sample count, p50, p95, and max. The window is about 60 seconds only while processing sustains 5 Hz; dropped or delayed frames make it cover more time. Percentiles use the deterministic nearest-rank rule: after sorting _n_ values, percentile _p_ is value `ceil(p × n)`.
+The active detector uses only Apple system frameworks and the pinned free JavaScript dependencies. It has no commercial SDK, OpenCV, detector network client, license service, cloud call, or image egress. `vision-camera-resize-plugin` remains pinned as part of the fixed host, but the active detector does not call it or create a resized buffer.
 
-All gates must pass for 400 ms. A worklet shared value locks capture before `Worklets.createRunOnJS` asks JavaScript to call `takePhoto()`. A second JavaScript guard protects the camera call. **Manual reset** is ignored while that photo promise is pending, including before JavaScript begins the call. Cooldown stays locked until a conservative departure gate sees both low border continuity and low crop variance for 400 ms, or the tester taps **Manual reset**. Moving the card off-center does not unlock capture by itself. No `Frame` leaves the frame processor.
+`native/ios/MTGCardRectangleFrameProcessorPlugin.swift` is a VisionCamera `4.7.3` `FrameProcessorPlugin`. Its callback runs synchronously inside one `autoreleasepool`. It reads the `CVPixelBuffer` directly from `frame.buffer`, maps every current `frame.orientation` case to `CGImagePropertyOrientation`, and creates one `VNDetectContoursRequest` plus one `VNImageRequestHandler` per call. It does not create or retain `CIImage`, `CGImage`, `UIImage`, RGB arrays, frames, sample buffers, pixel buffers, handlers, requests, or observations. It does not create a JavaScript point array or export contour paths.
 
-The thresholds in `src/capture/config.ts` are guesses for the physical trial. Do not treat them as production settings.
+`native/ios/MTGCardRectangleGeometry.swift` contains the pure Foundation/CoreGraphics/simd geometry shared by the plugin and the macOS fixture: four-or-closing-five normalization, ROI-local lower-left to full-image upper-left conversion, corner ordering, convexity/degeneracy checks, and scalar filters. It has no VisionCamera dependency.
 
-## Physical result: no accepted capture candidate
+The request uses the central guide-plus-margin region of interest, based on a 72% guide width, an 8% margin on each edge, and the 63:88 card ratio. It sets `maximumImageDimension` to `256`, contrast adjustment to `2.0`, and dark-on-light detection to `true`. The callback reads only `request.results?.first`, then inspects at most the first 32 contours by index. It approximates each contour once with epsilon `0.02`; shared geometry accepts four points, or five only when the final point closes to the first within an explicit `0.01` local-coordinate tolerance. It rejects nonfinite, out-of-unit, non-quadrilateral, degenerate, non-convex, off-center, or wrong-aspect candidates. It chooses the largest valid area. It returns the existing empty scalar record with runtime error code `0` when no candidate survives. A request-handler failure remains runtime error code `4`.
 
-The iPhone 16e trial proved that the pinned native packages can deliver YUV frames and high-resolution photos, but neither detector variation passed the complete capture gate.
+`VNDetectContoursRequest` contour points are ROI-local and use a lower-left origin. Shared geometry converts every accepted point through the current ROI transform into full-image upper-left coordinates before ordering it as top-left, top-right, bottom-right, bottom-left. Aspect ratio uses oriented pixel dimensions when measuring quad edges, so unequal normalized axes do not distort it. The fixed native record has only `detected`, four nullable corner objects, `confidence`, `areaRatio`, pixel-correct `aspectRatio`, `centerOffset`, `centerScore`, `nativeDurationMs`, normalized ROI x/y/width/height, `orientationCode`, and numeric `runtimeErrorCode`.
 
-- Prioritizing photo resolution selected a `4032×3024` preview and took about 50 ms per analysis. Prioritizing video resolution selected a `1280×720` preview with `4224×2376` photos.
-- A 48-pixel analysis crop recorded 575 empty-guide samples with p50 15.05 ms, p95 18.89 ms, and max 20.07 ms. The empty-guide, off-center, and moving-card rows produced no capture. The close-focus row was inconclusive because autofocus recovered.
-- `resizeMode="cover"` made the visible guide and raw analysis crop use different coordinate scales. `contain` restored the intended width mapping and is retained in this evidence code.
-- The fixed-edge detector only recognized presence when the physical border nearly touched the guide. A supported, centered, sharp, stable card whose border sat inside the guide remained below the fixed continuity threshold. This camera-height sensitivity is not acceptable scanner UX.
-- One handheld aligned presentation produced eight capture starts and eight successful `4224×2376` JPEGs while the tester tried to keep the card present. Hand shake could have satisfied the 400 ms departure rule, and the available logs did not identify the transition cause, so this run is inconclusive about camera-interruption versus departure behavior. It still exposes a duplicate risk under realistic hand movement.
-- A throwaway scale-tolerant exhaustive rectangle search was then tried and removed. On an empty guide it recorded p50 about 268 ms, p95 about 288 ms, and max about 298 ms. That exceeded the repeated-100 ms kill gate, so the app was stopped without continuing the matrix.
+`native/ios/MTGCardRectangleFrameProcessorPlugin.m` imports the generated app header `MTGScanNativePreviewSpike-Swift.h` and registers `detectCardRectangle` with `VISION_EXPORT_SWIFT_FRAME_PROCESSOR`. `plugins/withAppleVisionRectangleDetector.js` uses Expo's `withBuildSourceFile` and Xcode mod APIs. It copies both project-owned files into the generated app directory, adds each to the app Sources phase, and links the system `Vision.framework`. `app.json` lists the local plugin. Clean prebuild needs no manual generated-iOS edit.
 
-The retained implementation is the faster fixed-edge evidence baseline with structured timing and phase telemetry. It is not accepted for product integration. The remaining negative rows, controlled duplicate diagnosis, positive matrix, and 15-minute soak were not completed. A later candidate needs a much cheaper scale-tolerant detector or compiled image processing before another physical run.
+The worklet calls a thin `VisionCameraProxy` adapter under `runAtTargetFps(5)`. It rejects missing, extra, nonfinite, out-of-range, or structurally inconsistent native fields. It never receives a resized buffer. A missing plugin, native runtime error, invalid native record, orientation failure, diagnostics serialization failure, timing failure, or camera runtime error locks detector admission until the app restarts. The first fatal code wins. Queued diagnostics and timing records are ignored after that latch, so they cannot unlock the detector or replace the code. Manual reset cannot clear a fatal detector lock.
 
-## Exact dependency trial
+The overlay calculates the actual contained-preview rectangle from the reported oriented frame dimensions. It draws the returned quad with four bounded `View` edges. The guide and the blue guide-plus-margin ROI use the same contained-preview coordinates. Displayed and structured telemetry includes rounded ROI x/y/width/height, raw and oriented frame dimensions, and the explicit orientation code. It contains no photo path or image data.
 
-| Package                       | Requested range or version | Installed resolution |
-| ----------------------------- | -------------------------: | -------------------: |
-| Expo SDK                      |                 `~54.0.37` |            `54.0.37` |
-| React Native                  |                   `0.81.5` |             `0.81.5` |
-| React                         |                   `19.1.0` |             `19.1.0` |
-| `react-native-vision-camera`  |                    `4.7.3` |              `4.7.3` |
-| `react-native-worklets-core`  |                    `1.6.3` |              `1.6.3` |
-| `vision-camera-resize-plugin` |                    `3.2.0` |              `3.2.0` |
-| `expo-dev-client`             |                  `~6.0.21` |             `6.0.21` |
+## Timing and cadence evidence semantics
 
-`package.json` and `package-lock.json` belong only to this directory. The iOS bundle ID is `com.reilley.mtgscan.nativepreviewspike`.
+Each sample starts before the native call. The worklet publishes the main diagnostics record to JavaScript, then reads total duration. This means the measured total includes native Vision, validation, gate work, and the main Worklets-to-JavaScript diagnostics enqueue and serialization. A second bounded callback reports that post-main-publication total. The timing-report callback cannot include its own enqueue or execution. The total also does not claim JavaScript callback execution or React render time.
 
-`app.json` uses the VisionCamera V4 config plugin with microphone and location disabled and frame processors enabled. VisionCamera V4.7.3 has no config-plugin option for video. The `<Camera>` disables both `video` and `audio` and enables `photo`. The app never asks for microphone permission.
+Only these post-main-publication totals feed the rolling nearest-rank p50, p95, and max. The window keeps the latest 300 samples. It also keeps sample wall timestamps and reports count, elapsed span, effective hertz, and maximum gap. The cadence field stays `WAIT` until the window contains all 300 samples, even when the partial-window rate is at least 4.5 Hz. Three hundred samples alone do not prove sustained 5 FPS. The bounded acceptance study requires at least `4.5` effective Hz.
 
-This app requires a native development build. It does not run in Expo Go because Expo Go does not contain these native packages.
+The integration target remains p95 below 20 ms across 300 post-publication samples at target 5 FPS. Ten consecutive totals above 100 ms stop the session immediately. The tenth sample and its stop code are enqueued before the worklet lock is set. This safety stop does not relax the 20 ms acceptance target. `nativeDurationMs` is diagnostic only.
 
-## Install and static checks
+## Capture safety
 
-Use Node.js 22 or later. From this directory:
+`AUTOMATIC_CAPTURE_ENABLED` is exactly `false`, and the UI shows **Automatic capture: OFF** plus a disabled capture button. Detector gates are observational. The existing capture state machine, worklet lock, JavaScript in-flight guard, and reset guard remain in source and retain their deterministic tests, but no detector result can request a photo in this spike. A physical detector study must not change that constant.
+
+This run makes no duplicate-capture claim. A later capture-enabled experiment still needs its own approval, departure tuning, interruption matrix, and physical exactly-one proof.
+
+## Rejected Fast OpenCV package admission
+
+The free package-first spike installed unchanged `react-native-fast-opencv@0.4.8` on the fixed Expo `54.0.37`, React Native `0.81.5`, React `19.1.0`, VisionCamera `4.7.3`, Worklets Core `1.6.3`, and resize-plugin `3.2.0` stack. Its MIT npm package resolved the permissively licensed `FastOpenCV-iOS 1.0.4` Pod. Two clean Expo iOS prebuilds, Pod installation, and unsigned Xcode 26.3 simulator and device builds passed without patches or host-pin changes.
+
+Code review rejected the candidate before device installation. Exact `0.4.8` cannot enforce the required contour bound through its public interface: `toJSValue(MatVector)` copies and creates JavaScript metadata for every contour before a 64-contour cap can apply, each polygon approximation materializes its point array, and `findContours` order makes taking the first 64 contours arbitrary. Keeping the code would either leave work unbounded or make the winning card contour unreliable. The dependency and detector code were removed.
+
+The transient Pods directory grew by 56,908 KiB. The existing signed Debug device app was 81,696 KiB by `du`; the unsigned Fast OpenCV comparison app was 88,852 KiB, an approximate increase of 7,156 KiB. Signing differences make that app delta indicative rather than archival evidence. No physical runtime, memory, timing, overlay, accuracy, or cleanup claim was made. The integration target remains total preview analysis p95 below 20 ms across 300 samples at 5 FPS; repeated samples above 100 ms remain a safety stop, not an acceptance target. This bounded-interface rejection activates the previously researched last-resort custom Apple Vision plugin.
+
+## Fixed dependency trial
+
+| Package                       | Installed resolution |
+| ----------------------------- | -------------------: |
+| Expo SDK                      |            `54.0.37` |
+| React Native                  |             `0.81.5` |
+| React                         |             `19.1.0` |
+| `react-native-vision-camera`  |              `4.7.3` |
+| `react-native-worklets-core`  |              `1.6.3` |
+| `vision-camera-resize-plugin` |              `3.2.0` |
+| `expo-dev-client`             |             `6.0.21` |
+
+The local plugin imports `expo/config-plugins`, the SDK 54 sub-export. No additional direct build dependency was needed. The package lock remains isolated to this prototype. VisionCamera frame processors are enabled. Microphone and location permissions are disabled. The camera uses YUV preview, enables still-photo capability for the preserved capture machine, and disables video and audio.
+
+This is an Expo development build. Expo Go cannot load the native plugin.
+
+## Automated build evidence
+
+The final automated run used Xcode 26.3, build `17C529`, through `/Applications/Xcode.app/Contents/Developer`.
+
+- `npm ci` installed 888 packages and reported 19 transitive audit findings, 10 moderate and 9 high. No forced audit update was applied.
+- Prettier, Expo ESLint, strict TypeScript, and Vitest passed. All 11 prior state-machine and timing tests remain. Seven pure validation and cadence tests were added, for 18 passing tests total. Native runtime was not mocked.
+- Expo Doctor passed 18 of 18 checks. Public config showed SDK `54.0.0`, the expected bundle ID, the VisionCamera plugin settings, and `./plugins/withAppleVisionRectangleDetector`.
+- The Hermes iOS export passed and produced a 1.85 MB bundle.
+- Two final clean iOS prebuilds completed in 23.01 and 21.61 seconds. After each run, each Swift/Objective-C build-file entry, file reference, Sources entry, Vision build-file entry, Vision file reference, and Frameworks entry appeared exactly once. Both copied sources were byte-identical to `native/ios/`.
+- Explicit `pod install` passed with 85 dependency declarations and 84 Pods. The system Vision link added no Pod. A same-commit baseline and this build both measured 447,044 apparent KiB for generated Pods with `du -skA`, a 0 KiB delta.
+- A clean unsigned generic iOS Simulator Debug build passed in 158.47 seconds. It compiled the exact V4 Swift initializer/callback and Objective-C registration without host changes.
+- An unsigned generic iOS Release archive passed in 107.20 seconds. The archive measured 47,610 apparent KiB. Its app measured 21,162 apparent KiB. A same-command archive from the retained pre-detector commit measured 46,503 KiB and 21,152 KiB, so the comparable deltas were +1,107 KiB for the archive and +10 KiB for the app. The archive delta includes generated debug-symbol and archive metadata, not an embedded Vision binary.
+- Project-owned native source is limited to the 7,507-byte frame-processor Swift file, 5,962-byte shared geometry Swift file, and 241-byte Objective-C registration file. Generated `ios/` remains ignored and untracked.
+
+The simulator build and unsigned archive are compile and size evidence only. They do not exercise the camera or Apple Vision runtime.
+
+## Reproduce checks and iOS compile
+
+From this directory:
 
 ```bash
 npm ci
@@ -53,34 +86,17 @@ npm run format
 npm run lint
 npm run typecheck
 npm test
+npm run test:native-geometry  # macOS-only; compiles and runs in /tmp
 npx expo-doctor
 npx expo config --type public
 npx expo export --platform ios --output-dir /tmp/native-preview-scanner-export
-```
 
-The install currently reports transitive npm audit findings in the Expo and React Native development dependency tree. Do not run `npm audit fix --force`; that would change the fixed trial.
-
-`react-native-worklets-core@1.6.3` calls three Babel 7 plugins from its own Babel plugin but does not declare them. The first bundle attempt failed on `@babel/plugin-proposal-optional-chaining`; checking all internal plugin names also found the nullish-coalescing and template-literal plugins missing. The exact Babel 7 compatibility packages are pinned in `devDependencies`. No camera package or Expo version changed.
-
-## Generate and compile iOS locally
-
-Keep an existing `DEVELOPER_DIR`. If it is unset, use the active Xcode path:
-
-```bash
-if [ -z "${DEVELOPER_DIR:-}" ]; then
-  if [ -d /Applications/Xcode.app/Contents/Developer ]; then
-    export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-  else
-    export DEVELOPER_DIR="$(xcode-select -p)"
-  fi
-fi
-
-npx expo prebuild --platform ios
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+npx expo prebuild --clean --platform ios
 (
   cd ios
   pod install
 )
-
 xcodebuild \
   -workspace ios/MTGScanNativePreviewSpike.xcworkspace \
   -scheme MTGScanNativePreviewSpike \
@@ -91,96 +107,50 @@ xcodebuild \
   build
 ```
 
-The simulator build is only a compile gate. A simulator cannot validate the camera, YUV frame delivery, crop alignment, automatic focus, still resolution, timing, or thermal behavior. Generated `ios/`, `android/`, `.expo/`, `build/`, and related output are ignored. This prototype has no hand-written Swift or Kotlin.
+Do not retain generated `ios/` edits. Re-run clean prebuild instead.
 
-## Physical iPhone procedure
+## Capture-disabled physical procedure
 
-Do not use credentials or install a device build as part of the automated checks. A human tester performs these steps:
+A human must do this on an iPhone. Automated checks must not use credentials or install a signed build.
 
-1. Connect an iPhone by cable. Trust the computer and enable Developer Mode if iOS requests it.
-2. Open `ios/MTGScanNativePreviewSpike.xcworkspace` in the Xcode selected by `DEVELOPER_DIR`.
-3. Select the app target. Choose the tester's development team and the connected iPhone. Let Xcode manage signing for the unique bundle ID.
-4. Build and run from Xcode. Start Metro in a separate shell with the same `DEVELOPER_DIR` and `npm start`.
-5. Grant camera permission. Confirm that the format line shows a YUV preview resolution and a high photo resolution. Compare it with the `Selected native preview format` console log.
-6. Keep the phone in portrait. Fill the guide with one card. Do not tilt the card as a guided action.
-7. After each capture, record the status, metrics, timing, photo dimensions, and path before removing the card.
+1. Connect the iPhone, trust the computer, and enable Developer Mode if requested.
+2. Open `ios/MTGScanNativePreviewSpike.xcworkspace` in Xcode 26.3. Select the app target, the tester's development team, and the connected phone. Let Xcode manage signing.
+3. Run `npm start` in another shell. Build and run from Xcode, then grant camera permission.
+4. Confirm the UI says **Automatic capture: OFF** and the capture button is disabled. Do not change `AUTOMATIC_CAPTURE_ENABLED`.
+5. Keep the phone in portrait. First leave the guide empty for 10 seconds. Then present centered, off-center, moving, partial, blurred, sleeved, foil, borderless, and low-contrast cards. This is observation only. No row should take a photo.
+6. For each presentation, compare the blue ROI with the visible guide-plus-margin area. Compare all four magenta quad edges with the physical outer card border. Record device, iOS, lighting, card/sleeve/foil state, orientation code, raw/oriented frame dimensions, ROI x/y/width/height, detector scalars, and gate states.
+7. Keep a stationary presentation until the rolling window reaches 300 samples. Record p50, p95, max, elapsed span, effective Hz, max gap, and slow streak. Acceptance needs p95 below 20 ms and effective cadence at least 4.5 Hz. A result from fewer samples or lower cadence is not accepted.
+8. Stop on any fatal code, materially wrong ROI/quad mapping, preview or UI stall, serious thermal state, crash, or ten-sample slow kill. Restart the app to retry after a fatal detector lock. Manual reset must remain unable to clear it.
+9. Finish with a 15-minute observation soak if the earlier gates hold. Record cadence, timing, memory trend, thermal state, and errors once per minute. Do not claim accuracy or capture behavior from the soak.
 
-The phone must prove the central crop matches the guide. A consistent offset or scale error kills this approach even if synthetic tests pass.
+## Physical observations and current status
 
-## Telemetry record
+The generic max-four `VNDetectRectanglesRequest` trial passed its narrow physical timing and cadence window with automatic capture off. Its 300 samples measured p50 `16.5442 ms`, p95 `17.5440 ms`, and max `19.9810 ms`, at `4.5602 Hz`, with a `235 ms` maximum gap, no slow streak, and no fatal code. This is timing evidence only.
 
-For every presentation, record:
+The max-four generic fit failed alignment robustness. The selected area was `0.3036` against a guide-aligned outer area of `0.4073`, and its center was low. With the card still inside the ROI, moving the phone made the magenta quad slide relative to the card. It remained displaced after the phone stopped for two seconds. Selecting up to four centered, card-shaped candidates reduced switching but did not improve the inset fit.
 
-- device and iOS version;
-- selected preview resolution, photo resolution, and camera fps;
-- lighting, card, sleeve, and foil state;
-- final values for border energy, border continuity, interior variance, center score, sharpness, and motion;
-- the overlay's current processing time and rolling 300-sample fields: sample count, p50, p95, and max;
-- phase order and time from the first all-pass sample to capture;
-- number of stills, photo dimensions, and whether departure returned the app to seeking;
-- any dropped preview, frame-processor error, camera error, thermal warning, or UI stall.
+The dotted blue ROI had an x/y-to-left/top UI bug. That fix is in place and a human physically confirmed the blue ROI is centered. The native 8%-per-edge margin remains active. Its reported ROI is x `0.0824`, y `0.1719`, width `0.8352`, and height `0.6562`, and static tests pass. A deterministic macOS Vision fixture with an off-center rectangle and ROI confirmed that `VNDetectRectanglesRequest` observations use full-image coordinates, not ROI-local coordinates. The failed generic fit is not a preview-transform or ROI-local-coordinate bug.
 
-Metro structured lines are the external evidence source. Every 25 processed samples, about five seconds only at sustained 5 Hz, parse `NATIVE_PREVIEW_TELEMETRY ` followed by JSON for `runSamples`, current processing time, capture lock, the rolling timing summary, phase, gates, and scalar metrics. Parse `NATIVE_PREVIEW_EVENT ` followed by JSON to count capture starts, successes, failures, reset outcomes, camera runtime errors, and observed phase transitions. Events include a wall-clock `atMs`; success events also include safe before/after capture-machine state for cross-runtime settlement diagnosis. The lines exclude image paths, card or corpus data, and secrets. Use the monotonically increasing capture sequence in these events to confirm the still count. A displayed last path alone does not prove there was no second camera call.
+Code-20 follow-up validation accepts VisionCamera's bridge conversion of native `NSNull` empty corners to JavaScript `undefined` and normalizes them to `null`. The native detector also discards Vision candidates with corners outside the `0...1` contract.
 
-## Ten-presentation matrix
+A transformed `VNDetectDocumentSegmentationRequest` physical run passed the long rolling timing window (p95 `10.02 ms`, `4.56 Hz`, and no fatal code), but the human still found its quad too low. The trial is rejected for alignment; no ROI offset is added. The ROI-local coordinate behavior was proved first with a deterministic macOS fixture and then by the physical build.
 
-Run each row once. Remove the card until the app returns to seeking before the next positive row.
+The bounded contour trial is rejected by its first physical iPhone run. At sample 300 it had no surviving detection and measured p50 `36.7163 ms`, p95 `40.7959 ms`, max `105.8025 ms`, and `4.5588 Hz`, with no fatal runtime code. A later magenta result was a tiny false contour with area ratio `0.0002`, not the card. The yellow placement guide remained visible. The blue dashed ROI border was not visible during this run even though telemetry continued to report the expected ROI x `0.0824`, y `0.1719`, width `0.8352`, and height `0.6562`; that missing diagnostic border is a separate UI-display issue and is not evidence that the native ROI disappeared. The trial fails both the sub-20-ms p95 gate and usable-card-detection gate. No negative-matrix or soak run is justified.
 
-|   # | Presentation                                                           | Expected result     |
-| --: | ---------------------------------------------------------------------- | ------------------- |
-|   1 | Empty guide for 10 seconds                                             | No capture          |
-|   2 | Card held at least 15% guide-width left of center for 10 seconds       | No capture          |
-|   3 | Centered card moving continuously for 10 seconds                       | No capture          |
-|   4 | Centered card held closer than the camera can focus for 10 seconds     | No capture          |
-|   5 | Centered card with more than one edge outside the guide for 10 seconds | No capture          |
-|   6 | Unsleeved nonfoil card, diffuse light, centered and still              | Exactly one capture |
-|   7 | A different unsleeved card after full departure reset                  | Exactly one capture |
-|   8 | Clear-sleeved card, diffuse light, centered and still                  | Exactly one capture |
-|   9 | Foil card, diffuse light, centered and still                           | Exactly one capture |
-|  10 | Nonfoil card, normal warm indoor light, centered and still             | Exactly one capture |
-
-For positive rows, leave the card in place for another 10 seconds after capture. The count must remain one. For negative rows, note which gate prevented capture.
-
-## Fifteen-minute soak
-
-Run on the physical iPhone with the Xcode console visible:
-
-1. Present a valid card for 20 seconds, then remove it for 5 seconds.
-2. Repeat with at least three cards, one clear sleeve, and one foil until 15 minutes pass.
-3. Keep each card in place long enough to test cooldown. Confirm one still per presentation.
-4. Every minute, record the overlay's rolling sample count, p50, p95, and max processing times, plus current processing time, preview responsiveness, thermal state or warning, error count, capture count, and reset count. These displayed rolling fields are the timing evidence source.
-5. End with an empty guide. Confirm the app is seeking and still responds to **Manual reset**.
+`npm run test:native-geometry` remains a checked-in macOS-only Swift fixture. It programmatically draws a 1000×1000 dark outlined rectangle from full-image x `.30...70` and upper-image y `.20...80`, runs the production contour request configuration with ROI x/y `.1/.1` and width/height `.8/.8`, and invokes the same shared geometry that production uses. The observation has two contours. Epsilon `.02` produces five points each, with the last a near-closing duplicate; the first contour's unique four points match expected ROI-local x `.25...75` and lower y `.125...875`, while the second is inset. The fixture asserts that the outer candidate has more area, that its transformed and ordered corners match the full-image rectangle, that asymmetric local points prove the lower-left-to-upper-left transform and ordering, and that a closing fifth point is accepted while a nonclosing fifth point is rejected. It writes no image. This proves the local-coordinate transform and bounded candidate rule only; the physical run shows that deterministic geometry correctness does not make the detector viable.
 
 ## Acceptance and kill gates
 
-Accept this capture technique for a later experiment only if all of these hold:
+Accept this detector only as a candidate for a later experiment if a physical iPhone run proves all of the following:
 
-- install, static checks, prebuild, Pods, and the unsigned simulator compile gate pass on the fixed versions;
-- the guide and analysis crop align on the physical phone;
-- all five negative rows produce zero stills;
-- every positive row produces exactly one still, at least 400 ms after all gates first pass;
-- each positive row stays at one still while the card remains present;
-- departure restores seeking and allows exactly one still for the next card;
-- the selected photo output is the logged high or maximum resolution supported by the negotiated format;
-- preview analysis stays below 20 ms p95 at 5 fps, with no visible preview stall;
-- the 15-minute soak has no crash, stuck state, duplicate still, or thermal warning.
+- the contained-preview guide, ROI, and returned quad map correctly in every observed orientation;
+- 300 post-main-publication samples sustain at least 4.5 effective Hz at target 5 FPS;
+- total post-publication analysis has nearest-rank p95 below 20 ms;
+- negative and difficult presentations have credible bounded behavior for a future tuned study;
+- the 15-minute observation soak has no crash, serious thermal state, stuck preview, fatal detector error, image egress, or sustained memory growth.
 
-Kill this technique or stop the trial if the fixed V4 packages cannot compile together, the resize plugin cannot process the YUV crop, guide alignment is materially wrong, any negative row captures, any presentation produces a duplicate, processing exceeds 100 ms repeatedly, the app crashes, or the camera session enters a state that manual reset cannot recover. Report the exact V4 API, Pod, or Xcode blocker. Do not switch to VisionCamera V5 or another Expo SDK inside this trial.
-
-## Local validation result
-
-The automated run on 2026-08-31 used Xcode 26.3 with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` because the shell did not already define `DEVELOPER_DIR`.
-
-- A clean `npm ci` added 888 packages and audited 889. It reported 19 transitive findings, 10 moderate and 9 high.
-- Prettier, Expo ESLint, strict TypeScript, and all 8 deterministic Vitest cases passed.
-- `expo-doctor` passed 18 of 18 checks.
-- Expo public config reported SDK `54.0.0`, only camera permission, frame processors enabled, and the expected unique bundle ID.
-- `expo prebuild --platform ios` passed. `pod install` installed 84 Pods from 85 dependency declarations and confirmed VisionCamera frame processors plus Worklets Core.
-- The iOS Expo export produced a 1.83 MB Hermes bundle after the Babel compatibility dependencies were added.
-- Unsigned `xcodebuild` for generic iOS Simulator completed with `** BUILD SUCCEEDED **`. Dependency headers emitted warnings, but no compile error occurred.
-
-No credentials, device installation, or physical camera run was attempted.
+Stop immediately on a missing native plugin, native runtime code, invalid record, serialization/timing error, camera runtime error, materially wrong mapping, crash, serious thermal state, visible stall, or ten consecutive totals above 100 ms. Do not rescue a failure with a host upgrade, generated native edit, OpenCV, commercial SDK, or cloud service.
 
 ## Platform claims
 
-Only an iPhone physical run can validate the experiment. The generated iOS simulator build is a compile check. Android is not built, run, or claimed. Recognition accuracy is not measured here.
+This implementation is iOS-first and uses Apple Vision. There is no Kotlin detector and no Android build or viability claim. The simulator and archive are compile evidence. The recorded physical runs are narrow timing and alignment evidence only; no detector or recognition accuracy claim is made.

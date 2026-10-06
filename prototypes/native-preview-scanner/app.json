@@ -23,7 +23,8 @@
           "enableFrameProcessors": true,
           "enableLocation": false
         }
-      ]
+      ],
+      "./plugins/withAppleVisionRectangleDetector"
     ]
   }
 }

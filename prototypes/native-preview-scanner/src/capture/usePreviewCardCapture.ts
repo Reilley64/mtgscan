@@ -3,28 +3,19 @@ import {
   runAtTargetFps,
   useFrameProcessor,
   type Camera,
-  type PhotoFile,
 } from "react-native-vision-camera";
 import { Worklets, useSharedValue } from "react-native-worklets-core";
-import { useResizePlugin } from "vision-camera-resize-plugin";
 import {
-  ANALYSIS_MARGIN_FRACTION,
-  ANALYSIS_SHORT_EDGE,
-  CARD_ASPECT_RATIO,
+  AUTOMATIC_CAPTURE_ENABLED,
   DEFAULT_CAPTURE_THRESHOLDS,
-  GUIDE_WIDTH_FRACTION,
+  DETECTOR_THRESHOLDS,
   type CaptureThresholds,
 } from "./config";
-import {
-  computePreviewMetrics,
-  evaluatePreviewGates,
-  type PreviewGates,
-  type PreviewMetrics,
-} from "./metrics";
+import type { PreviewGates } from "./metrics";
 import {
   EMPTY_TIMING_TELEMETRY,
-  recordProcessingTime,
-  type TimingTelemetry,
+  recordAnalysisSample,
+  type AnalysisTelemetry,
 } from "./timingTelemetry";
 import {
   advanceCaptureMachine,
@@ -34,21 +25,52 @@ import {
   manualResetCaptureMachine,
   type CapturePhase,
 } from "./stateMachine";
+import { callNativeRectangleDetector } from "../detector/nativeRectangleDetector";
+import {
+  orientedFrameDimensions,
+  validateNativeRectangleRecord,
+  type NativeRectangleRecord,
+} from "../detector/validation";
 
-export type CapturedPhoto = Pick<PhotoFile, "width" | "height" | "path">;
+export type CapturedPhoto = { width: number; height: number };
+
+export type DetectorGates = {
+  detected: boolean;
+  confidence: boolean;
+  area: boolean;
+  aspect: boolean;
+  centered: boolean;
+  all: boolean;
+};
 
 export type PreviewCardCaptureDiagnostics = {
   phase: CapturePhase;
-  metrics: PreviewMetrics;
-  gates: PreviewGates;
-  timing: TimingTelemetry;
+  observation: NativeRectangleRecord;
+  gates: DetectorGates;
+  timing: AnalysisTelemetry;
   captureLocked: boolean;
+  sampleId: number;
+  sampleWallAtMs: number;
+  frameWidth: number;
+  frameHeight: number;
+  orientedFrameWidth: number;
+  orientedFrameHeight: number;
+  consecutiveSlowSamples: number;
+  fatalErrorCode: number;
 };
 
-type PublishedPreviewCardCaptureDiagnostics = Omit<
+type PublishedDiagnostics = Omit<
   PreviewCardCaptureDiagnostics,
-  "timing"
+  "timing" | "consecutiveSlowSamples" | "fatalErrorCode"
 >;
+
+type PublishedTiming = {
+  sampleId: number;
+  sampleWallAtMs: number;
+  totalDurationMs: number;
+  consecutiveSlowSamples: number;
+  fatalErrorCode: number;
+};
 
 export type PreviewCardCapture = {
   frameProcessor: ReturnType<typeof useFrameProcessor>;
@@ -57,102 +79,223 @@ export type PreviewCardCapture = {
   error: string | null;
   thresholds: CaptureThresholds;
   reset: () => void;
-  reportError: (message: string) => void;
+  reportFatalCameraError: () => void;
 };
 
-const EMPTY_METRICS: PreviewMetrics = {
-  borderEnergy: 0,
-  borderContinuity: 0,
+const EMPTY_OBSERVATION: NativeRectangleRecord = {
+  detected: false,
+  topLeft: null,
+  topRight: null,
+  bottomRight: null,
+  bottomLeft: null,
+  confidence: 0,
+  areaRatio: 0,
+  aspectRatio: 0,
+  centerOffset: 1,
   centerScore: 0,
-  interiorVariance: 0,
-  sharpness: 0,
-  motion: 255,
-  processingMs: 0,
+  nativeDurationMs: 0,
+  roiX: 0,
+  roiY: 0,
+  roiWidth: 0,
+  roiHeight: 0,
+  orientationCode: -1,
+  runtimeErrorCode: 0,
 };
 
-const EMPTY_GATES: PreviewGates = {
-  present: false,
+const EMPTY_GATES: DetectorGates = {
+  detected: false,
+  confidence: false,
+  area: false,
+  aspect: false,
   centered: false,
-  sharp: false,
-  stable: false,
-  departed: true,
   all: false,
+};
+
+const initialDiagnostics = (): PreviewCardCaptureDiagnostics => ({
+  phase: "seeking",
+  observation: EMPTY_OBSERVATION,
+  gates: EMPTY_GATES,
+  timing: EMPTY_TIMING_TELEMETRY,
+  captureLocked: false,
+  sampleId: 0,
+  sampleWallAtMs: 0,
+  frameWidth: 0,
+  frameHeight: 0,
+  orientedFrameWidth: 0,
+  orientedFrameHeight: 0,
+  consecutiveSlowSamples: 0,
+  fatalErrorCode: 0,
+});
+
+const evaluateDetectorGates = (
+  observation: NativeRectangleRecord,
+): DetectorGates => {
+  "worklet";
+  const detected = observation.detected;
+  const confidence =
+    detected && observation.confidence >= DETECTOR_THRESHOLDS.confidenceMin;
+  const area =
+    detected &&
+    observation.areaRatio >= DETECTOR_THRESHOLDS.areaRatioMin &&
+    observation.areaRatio <= DETECTOR_THRESHOLDS.areaRatioMax;
+  const aspect =
+    detected &&
+    observation.aspectRatio >= DETECTOR_THRESHOLDS.aspectRatioMin &&
+    observation.aspectRatio <= DETECTOR_THRESHOLDS.aspectRatioMax;
+  const centered =
+    detected && observation.centerOffset <= DETECTOR_THRESHOLDS.centerOffsetMax;
+  return {
+    detected,
+    confidence,
+    area,
+    aspect,
+    centered,
+    all: detected && confidence && area && aspect && centered,
+  };
+};
+
+const roundScalar = (value: number, digits = 4) => {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
 };
 
 export function usePreviewCardCapture(
   camera: RefObject<Camera | null>,
   thresholds: CaptureThresholds = DEFAULT_CAPTURE_THRESHOLDS,
 ): PreviewCardCapture {
-  const { resize } = useResizePlugin();
   const machine = useSharedValue(initialCaptureMachineState());
-  const previousSignature = useSharedValue<number[] | null>(null);
   const workletCaptureGuard = useSharedValue(false);
+  const fatalDetector = useSharedValue(false);
+  const consecutiveSlowSamples = useSharedValue(0);
+  const previousSampleWallAtMs = useSharedValue(0);
+  const sampleSequence = useSharedValue(0);
   const jsCaptureGuard = useRef(false);
+  const fatalDetectorOnJS = useRef(false);
   const timingHistory = useRef<number[]>([]);
+  const timestampHistory = useRef<number[]>([]);
   const runSamples = useRef(0);
   const captureSequence = useRef(0);
-  const lastObservedPhase = useRef<string | undefined>("seeking");
+  const lastPublished = useRef<PublishedDiagnostics | null>(null);
   const [lastPhoto, setLastPhoto] = useState<CapturedPhoto | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [diagnostics, setDiagnostics] = useState<PreviewCardCaptureDiagnostics>(
-    {
-      phase: "seeking",
-      metrics: EMPTY_METRICS,
-      gates: EMPTY_GATES,
-      timing: EMPTY_TIMING_TELEMETRY,
-      captureLocked: false,
-    },
-  );
+  const [diagnostics, setDiagnostics] = useState(initialDiagnostics);
 
-  const receiveDiagnostics = useCallback(
-    (next: PublishedPreviewCardCaptureDiagnostics) => {
-      if (!next.captureLocked) jsCaptureGuard.current = false;
-      const timing = recordProcessingTime(
-        timingHistory.current,
-        next.metrics.processingMs,
-      );
-      const sampleCount = ++runSamples.current;
-      const observedPhase = next.phase ?? "missing";
-      if (lastObservedPhase.current !== observedPhase) {
-        console.log(
-          "NATIVE_PREVIEW_EVENT " +
-            JSON.stringify({
-              event: "phase-transition",
-              atMs: Date.now(),
-              from: lastObservedPhase.current ?? "missing",
-              to: observedPhase,
-              captureLocked: next.captureLocked,
-              gates: next.gates,
-              metrics: next.metrics,
-            }),
-        );
-        lastObservedPhase.current = observedPhase;
-      }
-      setDiagnostics({ ...next, timing });
-      if (sampleCount % 25 === 0) {
-        console.log(
-          "NATIVE_PREVIEW_TELEMETRY " +
-            JSON.stringify({
-              runSamples: sampleCount,
-              processingMs: next.metrics.processingMs,
-              captureLocked: next.captureLocked,
-              timing,
-              phase: next.phase,
-              gates: next.gates,
-              metrics: next.metrics,
-            }),
-        );
-      }
-    },
-    [],
-  );
+  const receiveDiagnostics = useCallback((next: PublishedDiagnostics) => {
+    if (fatalDetectorOnJS.current) return;
+    lastPublished.current = next;
+    if (!next.captureLocked) jsCaptureGuard.current = false;
+    setDiagnostics((current) => ({
+      ...current,
+      ...next,
+    }));
+  }, []);
   const publishDiagnostics = useMemo(
     () => Worklets.createRunOnJS(receiveDiagnostics),
     [receiveDiagnostics],
   );
 
+  const stopDetectorOnJS = useCallback(
+    (code: number, atMs: number) => {
+      if (code === 0 || fatalDetectorOnJS.current) return;
+      fatalDetectorOnJS.current = true;
+      fatalDetector.value = true;
+      machine.value = failCapture();
+      workletCaptureGuard.value = true;
+      jsCaptureGuard.current = true;
+      setError(`Detector stopped for this session (code ${code}).`);
+      setDiagnostics((current) => ({
+        ...current,
+        phase: "error",
+        captureLocked: true,
+        fatalErrorCode: code,
+      }));
+      console.log(
+        "NATIVE_PREVIEW_EVENT " +
+          JSON.stringify({ event: "fatal-detector-stop", atMs, code }),
+      );
+    },
+    [fatalDetector, machine, workletCaptureGuard],
+  );
+  const publishFatal = useMemo(
+    () => Worklets.createRunOnJS(stopDetectorOnJS),
+    [stopDetectorOnJS],
+  );
+
+  const receiveTiming = useCallback(
+    (next: PublishedTiming) => {
+      if (fatalDetectorOnJS.current) return;
+      const timing = recordAnalysisSample(
+        timingHistory.current,
+        timestampHistory.current,
+        next.totalDurationMs,
+        next.sampleWallAtMs,
+      );
+      const sampleCount = ++runSamples.current;
+      setDiagnostics((current) => ({
+        ...current,
+        timing,
+        consecutiveSlowSamples: next.consecutiveSlowSamples,
+        fatalErrorCode: next.fatalErrorCode,
+      }));
+
+      const published = lastPublished.current;
+      if (sampleCount % 25 === 0 && published?.sampleId === next.sampleId) {
+        const observation = published.observation;
+        console.log(
+          "NATIVE_PREVIEW_TELEMETRY " +
+            JSON.stringify({
+              runSamples: sampleCount,
+              sampleId: next.sampleId,
+              sampleWallAtMs: next.sampleWallAtMs,
+              totalDurationMs: roundScalar(next.totalDurationMs),
+              nativeDurationMs: roundScalar(observation.nativeDurationMs),
+              sampleCount: timing.sampleCount,
+              p50Ms: roundScalar(timing.p50Ms),
+              p95Ms: roundScalar(timing.p95Ms),
+              maxMs: roundScalar(timing.maxMs),
+              elapsedSpanMs: roundScalar(timing.elapsedSpanMs),
+              effectiveHz: roundScalar(timing.effectiveHz),
+              maxGapMs: roundScalar(timing.maxGapMs),
+              cadencePass: timing.cadencePass,
+              consecutiveSlowSamples: next.consecutiveSlowSamples,
+              detected: observation.detected,
+              topLeft: observation.topLeft,
+              topRight: observation.topRight,
+              bottomRight: observation.bottomRight,
+              bottomLeft: observation.bottomLeft,
+              confidence: roundScalar(observation.confidence),
+              areaRatio: roundScalar(observation.areaRatio),
+              aspectRatio: roundScalar(observation.aspectRatio),
+              centerOffset: roundScalar(observation.centerOffset),
+              centerScore: roundScalar(observation.centerScore),
+              roiX: roundScalar(observation.roiX),
+              roiY: roundScalar(observation.roiY),
+              roiWidth: roundScalar(observation.roiWidth),
+              roiHeight: roundScalar(observation.roiHeight),
+              orientationCode: observation.orientationCode,
+              runtimeErrorCode: observation.runtimeErrorCode,
+              frameWidth: published.frameWidth,
+              frameHeight: published.frameHeight,
+              orientedFrameWidth: published.orientedFrameWidth,
+              orientedFrameHeight: published.orientedFrameHeight,
+              gates: published.gates,
+              automaticCaptureEnabled: AUTOMATIC_CAPTURE_ENABLED,
+            }),
+        );
+      }
+      if (next.fatalErrorCode !== 0) {
+        stopDetectorOnJS(next.fatalErrorCode, Date.now());
+      }
+    },
+    [stopDetectorOnJS],
+  );
+  const publishTiming = useMemo(
+    () => Worklets.createRunOnJS(receiveTiming),
+    [receiveTiming],
+  );
+
   const takeExactlyOnePhoto = useCallback(async () => {
-    if (jsCaptureGuard.current) return;
+    if (jsCaptureGuard.current || fatalDetectorOnJS.current) return;
     jsCaptureGuard.current = true;
     const sequence = ++captureSequence.current;
     console.log(
@@ -166,13 +309,9 @@ export function usePreviewCardCapture(
     setError(null);
     setDiagnostics((current) => ({ ...current, phase: "capturing" }));
     try {
-      if (camera.current === null) throw new Error("Camera is not ready.");
+      if (camera.current === null) throw new Error("camera-not-ready");
       const photo = await camera.current.takePhoto({ flash: "off" });
-      setLastPhoto({
-        width: photo.width,
-        height: photo.height,
-        path: photo.path,
-      });
+      setLastPhoto({ width: photo.width, height: photo.height });
       const machineBeforeComplete = machine.value;
       const machineAfterComplete = completeCapture(machineBeforeComplete);
       machine.value = machineAfterComplete;
@@ -184,16 +323,12 @@ export function usePreviewCardCapture(
             sequence,
             width: photo.width,
             height: photo.height,
-            machineBefore: {
-              phase: machineBeforeComplete.phase,
-              captureLocked: machineBeforeComplete.captureLocked,
-              captureInFlight: machineBeforeComplete.captureInFlight,
-            },
-            machineAfter: {
-              phase: machineAfterComplete.phase,
-              captureLocked: machineAfterComplete.captureLocked,
-              captureInFlight: machineAfterComplete.captureInFlight,
-            },
+            beforePhase: machineBeforeComplete.phase,
+            beforeLocked: machineBeforeComplete.captureLocked,
+            beforeInFlight: machineBeforeComplete.captureInFlight,
+            afterPhase: machineAfterComplete.phase,
+            afterLocked: machineAfterComplete.captureLocked,
+            afterInFlight: machineAfterComplete.captureInFlight,
           }),
       );
       setDiagnostics((current) => ({
@@ -201,19 +336,18 @@ export function usePreviewCardCapture(
         phase: "cooldown",
         captureLocked: true,
       }));
-    } catch (caught) {
-      const message = caught instanceof Error ? caught.message : String(caught);
+    } catch {
       console.log(
         "NATIVE_PREVIEW_EVENT " +
           JSON.stringify({
             event: "capture-failure",
             atMs: Date.now(),
             sequence,
-            error: "capture-failed",
+            code: 1,
           }),
       );
       machine.value = failCapture();
-      setError(message);
+      setError("Capture failed.");
       setDiagnostics((current) => ({
         ...current,
         phase: "error",
@@ -229,105 +363,201 @@ export function usePreviewCardCapture(
   const frameProcessor = useFrameProcessor(
     (frame) => {
       "worklet";
+      if (fatalDetector.value) return;
       runAtTargetFps(5, () => {
         "worklet";
+        if (fatalDetector.value) return;
         const startedAt = performance.now();
-        const rawShortEdge = Math.min(frame.width, frame.height);
-        let cropShortEdge =
-          rawShortEdge * GUIDE_WIDTH_FRACTION * (1 + ANALYSIS_MARGIN_FRACTION);
-        let cropLongEdge = cropShortEdge / CARD_ASPECT_RATIO;
-        const availableLongEdge = Math.max(frame.width, frame.height);
-        if (cropLongEdge > availableLongEdge) {
-          const fit = availableLongEdge / cropLongEdge;
-          cropShortEdge *= fit;
-          cropLongEdge *= fit;
+        const sampleWallAtMs = Date.now();
+        if (
+          !Number.isFinite(sampleWallAtMs) ||
+          sampleWallAtMs < 0 ||
+          (previousSampleWallAtMs.value > 0 &&
+            sampleWallAtMs <= previousSampleWallAtMs.value)
+        ) {
+          fatalDetector.value = true;
+          workletCaptureGuard.value = true;
+          try {
+            publishFatal(33, 0);
+          } catch {}
+          return;
         }
-        const landscapeBuffer = frame.width > frame.height;
-        const cropWidth = landscapeBuffer ? cropLongEdge : cropShortEdge;
-        const cropHeight = landscapeBuffer ? cropShortEdge : cropLongEdge;
-        const outputWidth = landscapeBuffer
-          ? Math.round(ANALYSIS_SHORT_EDGE / CARD_ASPECT_RATIO)
-          : ANALYSIS_SHORT_EDGE;
-        const outputHeight = landscapeBuffer
-          ? ANALYSIS_SHORT_EDGE
-          : Math.round(ANALYSIS_SHORT_EDGE / CARD_ASPECT_RATIO);
-        const pixels = resize(frame, {
-          crop: {
-            x: Math.round((frame.width - cropWidth) / 2),
-            y: Math.round((frame.height - cropHeight) / 2),
-            width: Math.round(cropWidth),
-            height: Math.round(cropHeight),
-          },
-          scale: { width: outputWidth, height: outputHeight },
-          pixelFormat: "argb",
-          dataType: "uint8",
-        });
-        const result = computePreviewMetrics(
-          pixels,
-          outputWidth,
-          outputHeight,
-          4,
-          previousSignature.value,
+        previousSampleWallAtMs.value = sampleWallAtMs;
+        const sampleId = sampleSequence.value + 1;
+        sampleSequence.value = sampleId;
+
+        let raw: unknown | null;
+        try {
+          raw = callNativeRectangleDetector(frame);
+        } catch {
+          fatalDetector.value = true;
+          workletCaptureGuard.value = true;
+          try {
+            publishFatal(12, sampleWallAtMs);
+          } catch {}
+          return;
+        }
+        if (raw === null) {
+          fatalDetector.value = true;
+          workletCaptureGuard.value = true;
+          try {
+            publishFatal(10, sampleWallAtMs);
+          } catch {}
+          return;
+        }
+        const observation = validateNativeRectangleRecord(raw);
+        if (observation === null) {
+          fatalDetector.value = true;
+          workletCaptureGuard.value = true;
+          try {
+            publishFatal(20, sampleWallAtMs);
+          } catch {}
+          return;
+        }
+        const mappedOrientedDimensions = orientedFrameDimensions(
+          frame.width,
+          frame.height,
+          observation.orientationCode,
         );
-        previousSignature.value = result.signature;
-        result.metrics.processingMs = performance.now() - startedAt;
-        const gates = evaluatePreviewGates(result.metrics, thresholds);
-        const transition = advanceCaptureMachine(
-          machine.value,
-          gates,
-          performance.now(),
-          thresholds,
-        );
-        machine.value = transition.state;
-        if (!transition.state.captureLocked) workletCaptureGuard.value = false;
-        publishDiagnostics({
-          phase: transition.state.phase,
-          metrics: result.metrics,
-          gates,
-          captureLocked: transition.state.captureLocked,
-        });
-        if (transition.requestCapture && !workletCaptureGuard.value) {
+        if (
+          mappedOrientedDimensions === null &&
+          observation.runtimeErrorCode === 0
+        ) {
+          fatalDetector.value = true;
+          workletCaptureGuard.value = true;
+          try {
+            publishFatal(21, sampleWallAtMs);
+          } catch {}
+          return;
+        }
+        const orientedDimensions = mappedOrientedDimensions ?? {
+          width: 0,
+          height: 0,
+        };
+
+        const gates = evaluateDetectorGates(observation);
+        let phase = machine.value.phase;
+        let captureLocked = machine.value.captureLocked;
+        let requestCapture = false;
+        if (AUTOMATIC_CAPTURE_ENABLED) {
+          const observationOnlyGates: PreviewGates = {
+            present: gates.detected,
+            centered: gates.centered,
+            sharp: false,
+            stable: false,
+            departed: !gates.detected,
+            all: false,
+          };
+          const transition = advanceCaptureMachine(
+            machine.value,
+            observationOnlyGates,
+            performance.now(),
+            thresholds,
+          );
+          machine.value = transition.state;
+          phase = transition.state.phase;
+          captureLocked = transition.state.captureLocked;
+          requestCapture = transition.requestCapture;
+        }
+
+        try {
+          publishDiagnostics({
+            phase,
+            observation,
+            gates,
+            captureLocked,
+            sampleId,
+            sampleWallAtMs,
+            frameWidth: frame.width,
+            frameHeight: frame.height,
+            orientedFrameWidth: orientedDimensions.width,
+            orientedFrameHeight: orientedDimensions.height,
+          });
+        } catch {
+          fatalDetector.value = true;
+          workletCaptureGuard.value = true;
+          try {
+            publishFatal(30, sampleWallAtMs);
+          } catch {}
+          return;
+        }
+
+        const totalDurationMs = performance.now() - startedAt;
+        if (!Number.isFinite(totalDurationMs) || totalDurationMs < 0) {
+          fatalDetector.value = true;
+          workletCaptureGuard.value = true;
+          try {
+            publishFatal(31, sampleWallAtMs);
+          } catch {}
+          return;
+        }
+        const slowStreak =
+          totalDurationMs > 100 ? consecutiveSlowSamples.value + 1 : 0;
+        consecutiveSlowSamples.value = slowStreak;
+        const nativeFatalCode =
+          observation.runtimeErrorCode === 0
+            ? 0
+            : 100 + observation.runtimeErrorCode;
+        const fatalErrorCode = slowStreak >= 10 ? 50 : nativeFatalCode;
+        try {
+          publishTiming({
+            sampleId,
+            sampleWallAtMs,
+            totalDurationMs,
+            consecutiveSlowSamples: slowStreak,
+            fatalErrorCode,
+          });
+        } catch {
+          fatalDetector.value = true;
+          workletCaptureGuard.value = true;
+          try {
+            publishFatal(32, sampleWallAtMs);
+          } catch {}
+          return;
+        }
+
+        if (fatalErrorCode !== 0) {
+          fatalDetector.value = true;
+          workletCaptureGuard.value = true;
+          return;
+        }
+        if (requestCapture && !workletCaptureGuard.value) {
           workletCaptureGuard.value = true;
           requestPhotoOnJS();
         }
       });
     },
     [
+      consecutiveSlowSamples,
+      fatalDetector,
       machine,
-      previousSignature,
       publishDiagnostics,
+      publishFatal,
+      publishTiming,
+      previousSampleWallAtMs,
       requestPhotoOnJS,
-      resize,
+      sampleSequence,
       thresholds,
       workletCaptureGuard,
     ],
   );
 
-  const reportError = useCallback(
-    (message: string) => {
+  const reportFatalCameraError = useCallback(() => {
+    stopDetectorOnJS(40, Date.now());
+  }, [stopDetectorOnJS]);
+
+  const reset = useCallback(() => {
+    if (fatalDetectorOnJS.current || fatalDetector.value) {
       console.log(
         "NATIVE_PREVIEW_EVENT " +
           JSON.stringify({
-            event: "camera-runtime-error",
+            event: "manual-reset-ignored-fatal",
             atMs: Date.now(),
-            error: "camera-runtime-error",
+            code: diagnostics.fatalErrorCode,
           }),
       );
-      setError(message);
-      if (machine.value.captureInFlight) return;
-      machine.value = failCapture();
-      workletCaptureGuard.value = true;
-      jsCaptureGuard.current = true;
-      setDiagnostics((current) => ({
-        ...current,
-        phase: "error",
-        captureLocked: true,
-      }));
-    },
-    [machine, workletCaptureGuard],
-  );
-
-  const reset = useCallback(() => {
+      return;
+    }
     const resetState = manualResetCaptureMachine(machine.value);
     if (resetState === machine.value) {
       console.log(
@@ -344,21 +574,25 @@ export function usePreviewCardCapture(
         JSON.stringify({ event: "manual-reset-accepted", atMs: Date.now() }),
     );
     machine.value = resetState;
-    previousSignature.value = null;
     workletCaptureGuard.value = false;
     jsCaptureGuard.current = false;
     setLastPhoto(null);
     setError(null);
-    setDiagnostics({
-      phase: "seeking",
-      metrics: EMPTY_METRICS,
-      gates: EMPTY_GATES,
-      timing: EMPTY_TIMING_TELEMETRY,
-      captureLocked: false,
-    });
+    setDiagnostics(initialDiagnostics());
     timingHistory.current = [];
+    timestampHistory.current = [];
     runSamples.current = 0;
-  }, [machine, previousSignature, workletCaptureGuard]);
+    lastPublished.current = null;
+    consecutiveSlowSamples.value = 0;
+    previousSampleWallAtMs.value = 0;
+  }, [
+    consecutiveSlowSamples,
+    diagnostics.fatalErrorCode,
+    fatalDetector,
+    machine,
+    previousSampleWallAtMs,
+    workletCaptureGuard,
+  ]);
 
   return {
     frameProcessor,
@@ -367,6 +601,6 @@ export function usePreviewCardCapture(
     error,
     thresholds,
     reset,
-    reportError,
+    reportFatalCameraError,
   };
 }

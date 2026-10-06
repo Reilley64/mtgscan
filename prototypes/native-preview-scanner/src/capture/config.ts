@@ -29,3 +29,23 @@ export const DEFAULT_CAPTURE_THRESHOLDS: CaptureThresholds = {
   dwellMs: 400,
   departureMs: 400,
 };
+
+export const AUTOMATIC_CAPTURE_ENABLED = false;
+
+export type DetectorThresholds = {
+  confidenceMin: number;
+  areaRatioMin: number;
+  areaRatioMax: number;
+  aspectRatioMin: number;
+  aspectRatioMax: number;
+  centerOffsetMax: number;
+};
+
+export const DETECTOR_THRESHOLDS: DetectorThresholds = {
+  confidenceMin: 0.5,
+  areaRatioMin: 0.08,
+  areaRatioMax: 0.7,
+  aspectRatioMin: 0.55,
+  aspectRatioMax: 0.9,
+  centerOffsetMax: 0.35,
+};
