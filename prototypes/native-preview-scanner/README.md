@@ -166,6 +166,8 @@ Do not retain generated `ios/` edits. Re-run clean prebuild instead.
 
 A human must do this on an iPhone. Automated checks must not use credentials or install a signed build.
 
+Run `npm run physical-run` to be guided through these steps. The wizard starts Metro, opens Xcode, checks each gate, reads timing from the app log, and saves the results to an ignored `.physical-runs/<timestamp>/` folder with a `summary.md`. Set `PHYSICAL_RUN_DIR` to an earlier run folder to reuse its answers as defaults. The steps below are the same procedure in manual form.
+
 1. Connect the iPhone, trust the computer, and enable Developer Mode if requested.
 2. Open `ios/MTGScanNativePreviewSpike.xcworkspace` in Xcode 26.3. Select the app target, the tester's development team, and the connected phone. Let Xcode manage signing.
 3. Run `npm start` in another shell. Build and run from Xcode, then grant camera permission.
