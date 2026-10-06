@@ -15,7 +15,8 @@
     "geometric:evaluate": "tsx src/cli.ts geometric-evaluate",
     "geometric:soak": "tsx src/geometric-soak-cli.ts",
     "rectified:prepare": "tsx src/cli.ts rectified-prepare",
-    "rectified:evaluate": "tsx src/cli.ts rectified-evaluate"
+    "rectified:evaluate": "tsx src/cli.ts rectified-evaluate",
+    "rectified:printing-evaluate": "tsx src/cli.ts rectified-printing-evaluate"
   },
   "dependencies": {
     "@scanner-accuracy/shared": "0.1.0",

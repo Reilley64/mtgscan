@@ -214,6 +214,47 @@ describe("card rectification", () => {
       expectColor(upright[corner], color);
   });
 
+  it.each([
+    ["upright", quad, false],
+    ["sideways and turned", pointingRight, true],
+  ] as const)(
+    "maps the corners of a %s card back to the photo for the printing check",
+    async (_label, card, turn) => {
+      const rectified = await rectifyCard(
+        await photoWithCard(card),
+        asSent(card),
+      );
+      const image = turn ? rotateHalfTurn(rectified) : rectified;
+      const { left, top, width, height } = image.card;
+      const project = ([x, y]: [number, number]) => {
+        const h = image.toPhoto;
+        const w = h[6]! * x + h[7]! * y + h[8]!;
+        return {
+          x: (h[0]! * x + h[1]! * y + h[2]!) / w,
+          y: (h[3]! * x + h[4]! * y + h[5]!) / w,
+        };
+      };
+      const projected = (
+        [
+          [left, top],
+          [left + width, top],
+          [left + width, top + height],
+          [left, top + height],
+        ] as Array<[number, number]>
+      ).map(project);
+      const corners = [
+        card.topLeft,
+        card.topRight,
+        card.bottomRight,
+        card.bottomLeft,
+      ];
+      projected.forEach((point, index) => {
+        expect(point.x).toBeCloseTo(corners[index]!.x, 6);
+        expect(point.y).toBeCloseTo(corners[index]!.y, 6);
+      });
+    },
+  );
+
   it("rejects bytes that are not a decodable photo", async () => {
     await expect(
       rectifyCard(Buffer.from([0xff, 0xd8, 0xff, 0x00, 0x01]), quad),

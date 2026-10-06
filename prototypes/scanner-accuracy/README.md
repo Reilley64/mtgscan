@@ -83,13 +83,16 @@ A `200` response has this shape:
       "score": 0
     }
   ],
-  "decision": { "accepted": false, "scryfallId": null, "reasons": [] }
+  "decision": { "accepted": false, "scryfallId": null, "reasons": [] },
+  "printingCheck": null
 }
 ```
 
-`rotation` is 0, 90, 180, or 270. It is how many degrees clockwise the service turned the sent corner order to make the card upright. `candidates` holds the top 5, best first. `score` is the number of RANSAC inliers for that printing. It is 0 when the homography is not plausible.
+`rotation` is 0, 90, 180, or 270. It is how many degrees clockwise the service turned the sent corner order to make the card upright. `candidates` holds the top 5, best first. `score` is the number of RANSAC inliers for that printing. It is 0 when the homography is not plausible. When the printing check picks a printing, that printing is moved to the first place.
 
-The service keeps only the straightened, upright card crop at `.prototype-data/rectified/crops/<scanId>.jpg` and one line per request in `.prototype-data/rectified/recognitions.ndjson`. The line holds the scan ID, timestamp, candidates, decision, rotation, and stage timings. The service does not store the source photo.
+`printingCheck` is `null` unless the top printing shares its Scryfall illustration with other printings (see the printing check below). Otherwise it holds `illustrationId`, `chosen` (a Scryfall ID or `null`), `reason` (why it abstained, or `null`), `ms`, `alignment` (`controls`, `usable`, `noise`), and one entry per printing with that art: `scryfallId`, `set`, `collectorNumber`, `cluster`, `coarse`, `fine`, `markError`, and `unexplained`.
+
+The service keeps only the straightened, upright card crop at `.prototype-data/rectified/crops/<scanId>.jpg` and one line per request in `.prototype-data/rectified/recognitions.ndjson`. The line holds the scan ID, timestamp, candidates, decision, rotation, stage timings, and `printingCheck`. When the printing check runs, the service also keeps the high-resolution card it compared, 745 x 1040 pixels, at `.prototype-data/rectified/printing-crops/<scanId>/card.jpg`. The service does not store the source photo.
 
 ### Pipeline
 
@@ -106,9 +109,90 @@ The service keeps only the straightened, upright card crop at `.prototype-data/r
    - it has at least 25 inliers;
    - at least 15 inlier grid cells support only that printing, and each rival has no more than half that number of cells that support only the rival;
    - its fused appearance score is at least 1.0 higher than every other reranked printing;
-   - every other printing in the catalog with the same Scryfall illustration was reranked too.
+   - every other printing in the catalog with the same Scryfall illustration was reranked too, or the printing check below covers it.
 
    If any check fails, the service abstains and lists the reasons. ORB inliers fall mostly on the frame and text, which many printings share. The appearance check covers the art. The illustration check covers reprints that share the art and differ only in small frame details.
+
+6. Printing check. This step runs only when the top printing shares its Scryfall illustration with other printings in the corpus (a same-art group). The rival checks in step 5 then skip printings with the same art, and this step picks between them instead. See the next section.
+
+### High-resolution printing check
+
+Half of the 30-card test deck has reprints with the same art. At 488 x 680 the set symbol is about 12 pixels wide, so the crop cannot tell these printings apart. The List and promo printings also keep the original set symbol and differ only by a small stamp. The printing check compares the card at the resolution of the Scryfall `png` scans, 745 x 1040, and only where printings with the same art differ.
+
+Preparation (`rectified:prepare`) does this for each group of 2 or more printings that share an illustration:
+
+1. Download the Scryfall `png` image of each printing (745 x 1040, lossless; `large` is a 672 x 936 JPEG). The images are cached under `.prototype-data/scryfall/png/`.
+2. Split the group into layout clusters. Each printing is aligned to the first printing of a cluster: a whole-card shift at 1/8 scale, then an affine fit to tile shifts at half scale, then a smooth correction field (32-pixel grid) from tile shifts at full scale. A printing joins the cluster only if the fit is near identity and at most 12% of its 16 x 16 tiles still differ. Otherwise it starts or joins another cluster. Different frames end up in different clusters.
+3. Compare each aligned printing with the cluster anchor tile by tile, after local contrast normalization. Comparisons allow a 2-pixel shift, so small print registration offsets do not count. A tile is a mark tile if it differs by more than 0.08 and by more than 6 times the median tile difference of that printing. For each pair of printings, store which mark tiles separate them.
+4. Store the mark tiles of every printing (8-bit), 120 control tiles of the anchor (textured tiles that no printing changes, spread over 8 bands of the card), and a 1/8-scale copy of every printing for the frame comparison.
+
+The data goes to `.prototype-data/rectified/printing/`. The current corpus has 72 groups, 314 printings, and 138 clusters.
+
+At request time:
+
+1. After ranking, if a leading candidate is in a same-art group, the service starts to decode the full photo again, at about 1.3 times the reference height. This runs while the reranker works.
+2. The ORB homography of the top printing, the quad transform, and the cluster alignment map the cluster anchor to the photo. The service samples a 745 x 1040 card from the full photo.
+3. If the group has more than one cluster, it compares the card at 1/8 scale with every printing. The best printing must be ahead of every printing in another cluster by at least 0.03, or the service abstains. If the best cluster has only one printing, no mark tiles can confirm it. Then the error of the best printing in another cluster must also be at least 1.8 times its own error, and the printing must also be the ORB top printing.
+4. Each control tile searches a shift of up to 5 pixels. A perspective fit to the good control shifts, plus a local correction from the 4 nearest controls, predicts the shift of each mark tile. If fewer than 12 controls fit, the service abstains.
+5. Each printing in the cluster is scored on the mark tiles with a 1-pixel search. A first pass at the predicted shift drops printings that are clearly worse, so most requests score only a few printings with the search.
+6. The best printing is accepted only if, for every other printing, on the tiles that separate the two, its mean error is at least 0.03 lower and at most half the rival's error. Its mean error on those tiles must be at most 0.08, or 3 times the median control error if that is higher. At most 1 mark tile may exceed that limit. Otherwise the service abstains with a reason such as "same-art printings too close".
+
+The check never accepts on a tie. When it picks a printing, step 5 still applies to the other identities.
+
+### Printing check results
+
+These results are synthetic. The photos are rendered from Scryfall scans, so they are easier than real cards: the art, ink, and paper of the photo come from the same scan family as the reference. They show that the mechanics work. They do not replace a physical round.
+
+The evaluation covers the 14 same-art groups that hold a test-deck printing: 100 printings, 3 quads each. Seed 4 ran on the final code and was not used to tune anything:
+
+| Same-art group                       | Deck printing    | Printings | Runs | Correct | Abstained | Wrong | Correct without check |
+| ------------------------------------ | ---------------- | --------: | ---: | ------: | --------: | ----: | --------------------: |
+| Beanstalk Giant // Fertile Footsteps | ELD 295          |         2 |    6 |       6 |         0 |     0 |                     0 |
+| Gravedigger                          | TMP 137          |        21 |   63 |      59 |         4 |     0 |                     1 |
+| Command Tower                        | CMM 420          |        27 |   81 |      63 |        18 |     0 |                     0 |
+| Angelic Gift                         | AFC 64           |         7 |   21 |      21 |         0 |     0 |                     0 |
+| Admiral's Order                      | RIX 31           |         3 |    9 |       9 |         0 |     0 |                     0 |
+| Bake into a Pie                      | ELD 76           |         4 |   12 |      11 |         1 |     0 |                     0 |
+| Blood Artist                         | EMA 81           |         6 |   18 |      18 |         0 |     0 |                     0 |
+| Azor's Gateway // Sanctum of the Sun | RIX 176          |         3 |    9 |       9 |         0 |     0 |                     0 |
+| Black Cat                            | M15 86           |         5 |   15 |      15 |         0 |     0 |                     0 |
+| Ajani Steadfast                      | CMM 813          |         2 |    6 |       6 |         0 |     0 |                     0 |
+| Athreos, God of Passage              | JOU 146          |         2 |    6 |       6 |         0 |     0 |                     0 |
+| Charming Prince                      | FDN 568          |         6 |   18 |      18 |         0 |     0 |                     3 |
+| Colossal Dreadmaw                    | M21 176, RIX 125 |        10 |   30 |      27 |         3 |     0 |                     3 |
+| Font of Fertility                    | JOU 123          |         2 |    6 |       6 |         0 |     0 |                     6 |
+| All                                  |                  |       100 |  300 |     274 |        26 |     0 |                    13 |
+
+By quad, with the check: true quad 93 correct and 7 abstained, corners moved by up to 5 pixels 91 and 9, inner-frame quad 90 and 10. Every one of the 15 deck printings was correct with all 3 quads (45 of 45). Without the check, 3 of 45 were correct and the rest abstained. Earlier seeds on earlier code gave 290, 271, and 271 correct of 300, all with no wrong accepts.
+
+Of the 26 abstentions, 18 had more than 1 mark tile that did not match the best printing (16 of them in Command Tower, where glare or blur fell on the collector line or set symbol), 6 had two frame clusters too close at 1/8 scale (Colossal Dreadmaw J25 646, Gravedigger, Bake into a Pie FDN 169), and 2 had two Command Tower printings too close on their mark tiles.
+
+Held-out runs, check on:
+
+- True printing removed from the corpus and the printing data, but kept in the catalog (the same meaning as `rectified:evaluate --hold-out-expected`), seed 2: 300 of 300 abstained.
+- True printing also removed from the catalog (`--drop-from-catalog`), seed 4: 27 false accepts of 300 with the check and 18 without. 17 of the 27 come from groups that drop to one printing, so the check does not run and the result is the same as without it (The List and original pairs of Beanstalk Giant and Athreos, Ajani Steadfast, Font of Fertility). The check itself picked a wrong printing 10 times: 8ED 138 and 8ED 138★ for each other, Blood Artist JMP 206 and VOC 119 for each other, PLST CMR-350 as CMR 350, and Charming Prince FDN 568 as ELD 8. In those cases the missing printing differs only where the remaining printings agree, or in a frame that no remaining printing has. The masks were still built with the missing printing present. A printing that preparation never saw (for example a new set or a non-English card) has the same risk, and the catalog check cannot catch it.
+
+Latency, on this Mac, service time only:
+
+| Run                                    | p50 without check | p50 with check | p95 without check | p95 with check | Printing step p50 / p95 |
+| -------------------------------------- | ----------------: | -------------: | ----------------: | -------------: | ----------------------: |
+| Seed 1, quiet machine, earlier code    |               396 |            492 |               434 |            586 |                 - / 138 |
+| Seed 4, final code, other jobs running |               433 |            563 |               564 |            810 |               127 / 172 |
+
+The added time in seed 4 is 130 ms at p50 and 246 ms at p95. The printing step itself (load the group, wait for the second decode, sample, align, score) took at most 227 ms. It runs only when the top printing has same-art printings. The second decode overlaps the reranker.
+
+Low-resolution regression, final code: the phone-crop set gave 21 of 21 identities, 19 printings first, 13 correct accepts, 0 false accepts, and 8 abstentions, the same as before. The offline set gave 22 of 22 printings first, 18 correct accepts, 0 false accepts, and 4 abstentions, also the same. These crops are only 488 x 680, so the check often abstains on them ("regions ... do not match"), which is the safe outcome.
+
+What was tuned, and on which data:
+
+- The mark threshold (0.08 and 6 times the median), the pair rule (0.03 lower and at most half), the mark error limit (0.08 or 3 times the control error), and the 0.03 frame margin were set in a Python prototype on one synthetic render per printing, before these runs. They did not change after that.
+- The 12% cluster limit came from tile differences between the reference scans only.
+- The 2-pixel shift in preparation and the 5-pixel control search were changed after seed 1, where the Command Tower group had one false accept and many alignment failures.
+- The limit of 1 unexplained mark tile was set on seed 1 and its held-out run.
+- The 1.8 error ratio for single-printing clusters was set on seeds 1 to 3 and the seed 2 held-out run.
+- Seed 4 was run once on the final code.
+
+Each request with the check writes `printing-crops/<scanId>/card.jpg` and the per-printing scores, so the next physical round gives real data to check these numbers.
 
 ### Candidate corpus
 
@@ -125,15 +209,19 @@ npm run rectified:evaluate -w @scanner-accuracy/service -- --set phone
 npm run rectified:evaluate -w @scanner-accuracy/service -- --rotate 180
 npm run rectified:evaluate -w @scanner-accuracy/service -- --hold-out-expected
 npm run rectified:evaluate -w @scanner-accuracy/service -- --repeat 3
+npm run rectified:printing-evaluate -w @scanner-accuracy/service -- --deck <test-deck.tsv>
+npm run rectified:printing-evaluate -w @scanner-accuracy/service -- --deck <test-deck.tsv> --hold-out-expected --drop-from-catalog --check-only
 npm run start -w @scanner-accuracy/service
 ```
 
-A cold preparation took about 15 minutes, mostly for the paced image downloads. With a warm cache it takes about 50 seconds. The evaluation sends each photo and its quad through the same code as the endpoint. It writes the crops to `/tmp/np/rectified-eval*/` and a report to `.prototype-data/rectified/evaluation-<set>[-<rotation>][-held-out]-latest.json`. It does not write to the endpoint log.
+A cold preparation took about 15 minutes, mostly for the paced image downloads. The printing check adds 314 `png` downloads (399 MB, about 2.5 seconds each with the 500 ms pacing, so about 13 minutes cold) and about 3 minutes to build the groups. With a warm cache the whole preparation takes about 4 minutes. The printing data uses 127 MB. The evaluation sends each photo and its quad through the same code as the endpoint. It writes the crops to `/tmp/np/rectified-eval*/` and a report to `.prototype-data/rectified/evaluation-<set>[-<rotation>][-held-out]-latest.json`. It does not write to the endpoint log.
 
 - `--set offline` (the default) reads `/tmp/np/eval/quads.json` (`--quads` changes this): stored iPhone photos with corners from the native detector.
 - `--set phone` reads `/tmp/np/phone-crops/truth.json` (`--truth` changes this): straightened card crops from the physical phone run, each with its true printing. The quad is the crop edge.
 - `--rotate 90|180|270` turns each photo clockwise and moves the quad with it. The corners start from the one nearest the top-left of the turned photo, as the app sends them.
 - `--hold-out-expected` removes the true printing from the searchable corpus, so every accept is a false accept. The printing stays in the catalog, so the illustration check still knows it exists.
+
+`rectified:printing-evaluate` builds synthetic phone photos for the printing check. It takes every same-art group that holds a test-deck printing (`--deck` is a TSV with the Scryfall ID in the first column, such as `.physical-runs/test-deck.tsv` of the native preview prototype; without it, groups that hold a name from `extra-names.txt`). For each printing in those groups it renders one photo from the Scryfall `large` JPEG, a different file from the `png` reference: a 2376 x 4224 portrait frame stored as 4224 x 2376 with EXIF orientation 6, a card 1,500 to 2,300 pixels tall with rounded corners, up to 8 degrees of rotation and some perspective, a noisy background, blur, a lighting gradient, a color cast, a glare spot, sensor noise, and JPEG quality 80 to 92. Each photo goes through the full endpoint path three times: with the true quad, with each corner moved by up to 5 pixels, and with a quad on the inner frame. Each run is repeated without the printing check unless `--check-only` is set. `--seed` changes the photos. `--hold-out-expected` removes the true printing from the corpus and from the printing data, and `--drop-from-catalog` also removes it from the catalog. The report goes to `.prototype-data/rectified/printing-evaluation-seed<n>[-held-out][-from-catalog].json`.
 
 ### Offline and phone-crop results
 

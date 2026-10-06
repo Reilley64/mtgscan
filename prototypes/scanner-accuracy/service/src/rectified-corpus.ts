@@ -13,6 +13,13 @@ import {
   type AppearanceReferences,
 } from "./rectified-ranking.js";
 import {
+  buildPrintingGroup,
+  loadPrintingIndex,
+  writePrintingGroups,
+  type PrintingGroup,
+  type PrintingIndex,
+} from "./rectified-printing.js";
+import {
   grayscale,
   loadOpenCv,
   orbFeatures,
@@ -21,6 +28,8 @@ import {
 
 export const rectifiedRoot = path.join(dataRoot, "rectified");
 export const referenceImageRoot = path.join(dataRoot, "scryfall", "images");
+export const printingImageRoot = path.join(dataRoot, "scryfall", "png");
+export const printingRoot = path.join(rectifiedRoot, "printing");
 
 export type RectifiedCard = {
   scryfallId: string;
@@ -44,6 +53,7 @@ export type RectifiedCorpus = {
   cards: IndexedCard[];
   catalog: RectifiedCard[];
   appearance: AppearanceReferences;
+  printing?: PrintingIndex;
 };
 
 export async function gatherRectifiedCards(options: {
@@ -51,6 +61,7 @@ export async function gatherRectifiedCards(options: {
   manifestPath?: string;
 }): Promise<{
   cards: RectifiedCard[];
+  pngUrls: Map<string, string>;
   collectionIds: number;
   searchedNames: number;
 }> {
@@ -126,12 +137,15 @@ export async function gatherRectifiedCards(options: {
     }
   }
   const cards: RectifiedCard[] = [];
+  const pngUrls = new Map<string, string>();
   for (const card of [...metadata.values()].sort((a, b) =>
     a.id.localeCompare(b.id),
   )) {
     const face = card.card_faces?.[0];
     const imageUrl = card.image_uris?.normal ?? face?.image_uris?.normal;
     if (!imageUrl || card.digital) continue;
+    const pngUrl = card.image_uris?.png ?? face?.image_uris?.png;
+    if (pngUrl) pngUrls.set(card.id, pngUrl);
     await cached(
       imageUrl,
       path.join(referenceImageRoot, `${card.id}.jpg`),
@@ -149,6 +163,7 @@ export async function gatherRectifiedCards(options: {
   }
   return {
     cards,
+    pngUrls,
     collectionIds: collectionIds.length,
     searchedNames: names.length,
   };
@@ -226,8 +241,56 @@ export async function prepareRectifiedCorpus(
       cards,
     } satisfies RectifiedCorpusIndex),
   );
+  const printingStarted = performance.now();
+  const byIllustration = new Map<string, RectifiedCard[]>();
+  for (const card of gathered.cards)
+    if (card.illustrationId && gathered.pngUrls.has(card.scryfallId))
+      byIllustration.set(card.illustrationId, [
+        ...(byIllustration.get(card.illustrationId) ?? []),
+        card,
+      ]);
+  const groups: PrintingGroup[] = [];
+  let printingImages = 0,
+    downloaded = 0,
+    clusters = 0,
+    tiles = 0;
+  for (const [illustrationId, members] of byIllustration) {
+    if (members.length < 2) continue;
+    const images = [];
+    for (const member of members) {
+      const file = path.join(printingImageRoot, `${member.scryfallId}.png`);
+      const present = await fs.access(file).then(
+        () => true,
+        () => false,
+      );
+      images.push({
+        scryfallId: member.scryfallId,
+        image: await cached(
+          gathered.pngUrls.get(member.scryfallId)!,
+          file,
+          { headers: { Accept: "image/png,image/*" } },
+          20_000_000,
+        ),
+      });
+      printingImages += 1;
+      if (!present) downloaded += 1;
+    }
+    const built = await buildPrintingGroup(illustrationId, images);
+    groups.push(built.group);
+    clusters += built.clusters;
+    tiles += built.tiles;
+  }
+  await writePrintingGroups(printingRoot, groups);
   return {
     cards: cards.length,
+    printing: {
+      groups: groups.length,
+      images: printingImages,
+      downloaded,
+      clusters,
+      markTiles: tiles,
+      seconds: Math.round((performance.now() - printingStarted) / 1000),
+    },
     collectionIds: gathered.collectionIds,
     searchedNames: gathered.searchedNames,
     names: new Set(cards.map((card) => card.oracleId)).size,
@@ -261,5 +324,6 @@ export async function loadRectifiedCorpus(
       color: await floats("appearance.bin"),
       edge: await floats("edge.bin"),
     },
+    printing: await loadPrintingIndex(path.join(root, "printing")),
   };
 }

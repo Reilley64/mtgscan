@@ -18,6 +18,10 @@ export type RectifiedCardImage = {
   card: { left: number; top: number; width: number; height: number };
   rgb: Buffer;
   rotation: number;
+  toPhoto: number[];
+  photoWidth: number;
+  photoHeight: number;
+  cardHeightPixels: number;
   decodeMs: number;
   rectifyMs: number;
 };
@@ -100,7 +104,7 @@ export function parseCardQuad(header: string | undefined): CardQuad {
   return { topLeft, topRight, bottomRight, bottomLeft };
 }
 
-function solvePerspective(
+export function solvePerspective(
   from: Array<[number, number]>,
   to: Array<[number, number]>,
 ): number[] {
@@ -178,13 +182,14 @@ export async function rectifyCard(
   const marginY = Math.round(CARD_HEIGHT * RECTIFIED_MARGIN);
   const width = CARD_WIDTH + 2 * marginX;
   const height = CARD_HEIGHT + 2 * marginY;
+  const cardCorners: Array<[number, number]> = [
+    [marginX, marginY],
+    [marginX + CARD_WIDTH, marginY],
+    [marginX + CARD_WIDTH, marginY + CARD_HEIGHT],
+    [marginX, marginY + CARD_HEIGHT],
+  ];
   const h = solvePerspective(
-    [
-      [marginX, marginY],
-      [marginX + CARD_WIDTH, marginY],
-      [marginX + CARD_WIDTH, marginY + CARD_HEIGHT],
-      [marginX, marginY + CARD_HEIGHT],
-    ],
+    cardCorners,
     corners.map((corner) => [corner.x * info.width, corner.y * info.height]),
   );
   const channels = info.channels;
@@ -233,8 +238,40 @@ export async function rectifyCard(
     },
     rgb,
     rotation: sideways ? 90 : 0,
+    toPhoto: solvePerspective(
+      cardCorners,
+      corners.map((corner) => [corner.x, corner.y]),
+    ),
+    photoWidth: orientedWidth,
+    photoHeight: orientedHeight,
+    cardHeightPixels,
     decodeMs: decoded - started,
     rectifyMs: performance.now() - decoded,
+  };
+}
+
+export async function decodeForPrinting(
+  jpeg: Buffer,
+  image: RectifiedCardImage,
+  targetCardHeight: number,
+) {
+  const scale = Math.min(1, (targetCardHeight * 1.3) / image.cardHeightPixels);
+  const { data, info } = await sharp(jpeg)
+    .rotate()
+    .resize({
+      width: Math.max(1, Math.round(image.photoWidth * scale)),
+      height: Math.max(1, Math.round(image.photoHeight * scale)),
+      fit: "fill",
+    })
+    .removeAlpha()
+    .toColourspace("srgb")
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return {
+    data: new Uint8Array(data.buffer, data.byteOffset, data.length),
+    width: info.width,
+    height: info.height,
+    channels: info.channels,
   };
 }
 
@@ -257,6 +294,13 @@ export function rotateHalfTurn(image: RectifiedCardImage): RectifiedCardImage {
     },
     rgb,
     rotation: (image.rotation + 180) % 360,
+    toPhoto: [0, 1, 2].flatMap((row) => [
+      -image.toPhoto[row * 3]!,
+      -image.toPhoto[row * 3 + 1]!,
+      image.toPhoto[row * 3]! * image.width +
+        image.toPhoto[row * 3 + 1]! * image.height +
+        image.toPhoto[row * 3 + 2]!,
+    ]),
   };
 }
 

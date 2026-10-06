@@ -1,8 +1,23 @@
 import type { CardQuad } from "./rectify.js";
-import { rectifiedCropJpeg, rectifyCard, rotateHalfTurn } from "./rectify.js";
+import {
+  CARD_HEIGHT,
+  CARD_WIDTH,
+  decodeForPrinting,
+  rectifiedCropJpeg,
+  rectifyCard,
+  rotateHalfTurn,
+} from "./rectify.js";
+import {
+  checkPrinting,
+  multiply,
+  PRINTING_HEIGHT,
+  PRINTING_WIDTH,
+  translate,
+  type PrintingCheck,
+} from "./rectified-printing.js";
 import { rankByAppearance } from "./rectified-ranking.js";
 import { grayscale } from "./rectified-features.js";
-import type { RectifiedCorpus } from "./rectified-corpus.js";
+import type { RectifiedCard, RectifiedCorpus } from "./rectified-corpus.js";
 import type { RectifiedRerankRunner } from "./rectified-rerank-runner.js";
 import {
   decideRectifiedAcceptance,
@@ -29,6 +44,23 @@ export type RectifiedRecognition = {
     score: number;
   }>;
   decision: { accepted: boolean; scryfallId: string | null; reasons: string[] };
+  printingCheck: {
+    illustrationId: string;
+    chosen: string | null;
+    reason: string | null;
+    ms: number;
+    alignment: PrintingCheck["alignment"];
+    members: Array<{
+      scryfallId: string;
+      set: string;
+      collectorNumber: string;
+      cluster: number;
+      coarse: number;
+      fine: number | null;
+      markError: number | null;
+      unexplained: number | null;
+    }>;
+  } | null;
 };
 
 export async function recognizeRectified(
@@ -69,6 +101,13 @@ export async function recognizeRectified(
       ? views
       : views.slice(0, 1);
   const rerankStarted = performance.now();
+  const printing = corpus.printing;
+  let highResolution: ReturnType<typeof decodeForPrinting> | undefined;
+  const decodeHighResolution = () => {
+    highResolution ??= decodeForPrinting(input.photo, upright, PRINTING_HEIGHT);
+    highResolution.catch(() => undefined);
+    return highResolution;
+  };
   const outcomes = [];
   for (const view of considered) {
     const order = (values: Float32Array) =>
@@ -89,6 +128,15 @@ export async function recognizeRectified(
         leadingIdentities.has(corpus.cards[index]!.oracleId)
       )
         selected.add(index);
+    if (
+      printing &&
+      byFused
+        .slice(0, LEADING_IDENTITIES)
+        .some((index) =>
+          printing.groups.has(corpus.cards[index]!.illustrationId ?? ""),
+        )
+    )
+      decodeHighResolution();
     const shortlist = [...selected];
     const reranked = await runner.rerank({
       gray: grayscale(view.image.rgb),
@@ -126,16 +174,104 @@ export async function recognizeRectified(
   const compared = new Set(
     chosen.ranked.map((candidate) => candidate.scryfallId),
   );
-  const decision = decideRectifiedAcceptance(
-    chosen.ranked,
-    top.illustrationId
-      ? corpus.catalog.filter(
-          (card) =>
-            card.illustrationId === top.illustrationId &&
-            !compared.has(card.scryfallId),
-        ).length
-      : 0,
-  );
+  const printingStarted = performance.now();
+  const group =
+    printing && top.illustrationId && chosen.ranked[0]!.homography
+      ? await printing.load(top.illustrationId)
+      : null;
+  let check: PrintingCheck | null = null;
+  if (
+    group &&
+    group.clusters.some((cluster) => cluster.members.includes(top.scryfallId))
+  ) {
+    const photo = await decodeHighResolution();
+    const referenceScaleX = CARD_WIDTH / PRINTING_WIDTH,
+      referenceScaleY = CARD_HEIGHT / PRINTING_HEIGHT;
+    check = checkPrinting(
+      group,
+      top.scryfallId,
+      photo,
+      [
+        [photo.width, 0, -0.5, 0, photo.height, -0.5, 0, 0, 1],
+        chosen.view.image.toPhoto,
+        translate(0.5, 0.5),
+        chosen.ranked[0]!.homography!,
+        [
+          referenceScaleX,
+          0,
+          0.5 * referenceScaleX - 0.5,
+          0,
+          referenceScaleY,
+          0.5 * referenceScaleY - 0.5,
+          0,
+          0,
+          1,
+        ],
+      ].reduce(multiply),
+    );
+  }
+  const printingFinished = performance.now();
+  const covered = check
+    ? new Set(group!.clusters.flatMap((cluster) => cluster.members))
+    : compared;
+  const lookalikes = top.illustrationId
+    ? corpus.catalog.filter(
+        (card) =>
+          card.illustrationId === top.illustrationId &&
+          !covered.has(card.scryfallId),
+      ).length
+    : 0;
+  const settled = check
+    ? decideRectifiedAcceptance(
+        [
+          { ...chosen.ranked[0]!, scryfallId: check.chosen ?? top.scryfallId },
+          ...chosen.ranked.filter(
+            (candidate) =>
+              corpus.cards[candidate.index]!.illustrationId !==
+              top.illustrationId,
+          ),
+        ],
+        lookalikes,
+      )
+    : decideRectifiedAcceptance(chosen.ranked, lookalikes);
+  const decision =
+    check && !check.chosen
+      ? {
+          accepted: false,
+          scryfallId: null,
+          reasons: [...settled.reasons, check.reason!],
+        }
+      : settled;
+  const describe = (scryfallId: string) =>
+    corpus.catalog.find((card) => card.scryfallId === scryfallId)!;
+  const pick = (card: RectifiedCard) => ({
+    scryfallId: card.scryfallId,
+    oracleId: card.oracleId,
+    name: card.name,
+    set: card.set,
+    collectorNumber: card.collectorNumber,
+  });
+  const candidates = chosen.ranked.map((candidate) => ({
+    ...pick(corpus.cards[candidate.index]!),
+    score: verifiedScore(candidate),
+  }));
+  const promoted =
+    check?.chosen && check.chosen !== top.scryfallId
+      ? (candidates.find(
+          (candidate) => candidate.scryfallId === check.chosen,
+        ) ?? {
+          ...pick(describe(check.chosen)),
+          score: verifiedScore(chosen.ranked[0]!),
+        })
+      : null;
+  const ordered = promoted
+    ? [
+        promoted,
+        ...candidates.filter(
+          (candidate) => candidate.scryfallId !== promoted.scryfallId,
+        ),
+      ]
+    : candidates;
   const crop = await rectifiedCropJpeg(chosen.view.image);
   const recognition: RectifiedRecognition = {
     scanId: input.scanId,
@@ -147,21 +283,24 @@ export async function recognizeRectified(
       rerank: Math.round(rerankFinished - rerankStarted),
     },
     rotation: chosen.view.image.rotation,
-    candidates: chosen.ranked.slice(0, 5).map((candidate) => {
-      const card = corpus.cards[candidate.index]!;
-      return {
-        scryfallId: card.scryfallId,
-        oracleId: card.oracleId,
-        name: card.name,
-        set: card.set,
-        collectorNumber: card.collectorNumber,
-        score: verifiedScore(candidate),
-      };
-    }),
+    candidates: ordered.slice(0, 5),
     decision,
+    printingCheck: check && {
+      illustrationId: check.illustrationId,
+      chosen: check.chosen,
+      reason: check.reason,
+      ms: Math.round(printingFinished - printingStarted),
+      alignment: check.alignment,
+      members: check.members.map((member) => ({
+        ...member,
+        set: describe(member.scryfallId).set,
+        collectorNumber: describe(member.scryfallId).collectorNumber,
+      })),
+    },
   };
   return {
     crop,
+    printingCanvas: check?.canvas ?? null,
     recognition,
     trace: {
       strengths: views.map((view) => ({

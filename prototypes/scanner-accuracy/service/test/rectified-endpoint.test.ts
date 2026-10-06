@@ -212,9 +212,11 @@ describe("POST /rectified-recognitions", () => {
       .split("\n")
       .map((line) => JSON.parse(line));
     expect(lines).toHaveLength(1);
+    expect(lines[0].printingCheck).toBeNull();
     expect(Object.keys(lines[0]).sort()).toEqual([
       "candidates",
       "decision",
+      "printingCheck",
       "rotation",
       "scanId",
       "serviceLatencyMs",

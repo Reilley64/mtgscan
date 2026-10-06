@@ -20,6 +20,7 @@ export type GeometricEvidence = {
   inlierRatio: number;
   plausible: boolean;
   inlierCells: number[];
+  homography?: number[];
 };
 
 const require = createRequire(import.meta.url);
@@ -231,6 +232,7 @@ export function matchReference(
       plausible:
         convex && upright && inside && areaRatio > 0.45 && areaRatio < 1.7,
       inlierCells: [...cells],
+      homography: Array.from(homography.data64F as Float64Array),
     };
   } catch {
     return none;
