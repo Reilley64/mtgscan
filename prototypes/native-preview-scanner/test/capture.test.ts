@@ -1224,3 +1224,58 @@ describe("capture commands from the JavaScript thread", () => {
     expect(state.machine.phase).toBe("cooldown");
   });
 });
+
+describe("stuck capture watchdog", () => {
+  const capturing = {
+    phase: "capturing" as const,
+    holdStartedAt: 1000,
+    departureStartedAt: null,
+    captureLocked: true,
+    captureInFlight: true,
+  };
+  const base = {
+    machine: capturing,
+    guard: true,
+    previousCorners: null,
+    capturedSignature: cardSignature(1),
+  };
+
+  it("recovers a capture that has no photo in flight", () => {
+    const result = applyCaptureCommands(
+      base,
+      NO_CAPTURE_COMMANDS,
+      NO_APPLIED_CAPTURE_COMMANDS,
+      1000 + 400 + 3001,
+      false,
+      400,
+    );
+    expect(result.watchdogFired).toBe(true);
+    expect(result.state.machine).toEqual(initialCaptureMachineState());
+  });
+
+  it("leaves a slow photo that is still in flight alone", () => {
+    const result = applyCaptureCommands(
+      base,
+      NO_CAPTURE_COMMANDS,
+      NO_APPLIED_CAPTURE_COMMANDS,
+      1000 + 400 + 10000,
+      true,
+      400,
+    );
+    expect(result.watchdogFired).toBe(false);
+    expect(result.state.machine.phase).toBe("capturing");
+  });
+
+  it("waits for the stuck limit before recovering", () => {
+    expect(
+      applyCaptureCommands(
+        base,
+        NO_CAPTURE_COMMANDS,
+        NO_APPLIED_CAPTURE_COMMANDS,
+        1000 + 400 + 2000,
+        false,
+        400,
+      ).watchdogFired,
+    ).toBe(false);
+  });
+});

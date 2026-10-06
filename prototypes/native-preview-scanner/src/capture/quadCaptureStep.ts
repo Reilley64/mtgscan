@@ -115,6 +115,8 @@ export type AppliedCaptureCommands = Readonly<{
   resumes: number;
 }>;
 
+export const STUCK_CAPTURE_MS = 3000;
+
 export const NO_CAPTURE_COMMANDS: CaptureCommands = {
   resets: 0,
   photosDone: 0,
@@ -141,7 +143,14 @@ export function applyCaptureCommands(
   }>,
   commands: CaptureCommands,
   applied: AppliedCaptureCommands,
-): { state: QuadCaptureState; applied: AppliedCaptureCommands } {
+  nowMs = 0,
+  photoInFlight = true,
+  dwellMs = 0,
+): {
+  state: QuadCaptureState;
+  applied: AppliedCaptureCommands;
+  watchdogFired: boolean;
+} {
   "worklet";
   let machine: CaptureMachineState = {
     phase: state.machine.phase,
@@ -181,7 +190,17 @@ export function applyCaptureCommands(
     for (let index = 0; index < state.capturedSignature.length; index += 1)
       capturedSignature.push(state.capturedSignature[index]!);
   }
+  const stuck =
+    machine.phase === "capturing" &&
+    !photoInFlight &&
+    machine.holdStartedAt !== null &&
+    nowMs - machine.holdStartedAt > dwellMs + STUCK_CAPTURE_MS;
+  if (stuck) {
+    machine = initialCaptureMachineState();
+    capturedSignature = null;
+  }
   return {
+    watchdogFired: stuck,
     state: { machine, guard, previousCorners, capturedSignature },
     applied: {
       resets: commands.resets,

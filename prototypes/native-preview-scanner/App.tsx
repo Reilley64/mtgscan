@@ -316,11 +316,10 @@ export default function App() {
               </Pressable>
             ) : null}
             <Pressable
-              disabled={fatal || diagnostics.phase === "capturing"}
+              disabled={fatal || capture.photoInFlight}
               style={[
                 styles.button,
-                (fatal || diagnostics.phase === "capturing") &&
-                  styles.buttonDisabled,
+                (fatal || capture.photoInFlight) && styles.buttonDisabled,
               ]}
               onPress={capture.reset}
             >

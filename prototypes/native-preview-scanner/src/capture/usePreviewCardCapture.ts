@@ -101,7 +101,13 @@ const CAMERA_ERROR_LIMIT = 3;
 type PublishedDiagnostics = Omit<
   PreviewCardCaptureDiagnostics,
   "timing" | "consecutiveSlowSamples" | "fatalErrorCode"
-> & { resumedAfterGapMs: number; rearmReason: string | null };
+> & {
+  resumedAfterGapMs: number;
+  rearmReason: string | null;
+  photosDoneApplied: number;
+  watchdogFired: boolean;
+  photoRequested: boolean;
+};
 
 type PublishedTiming = {
   sampleId: number;
@@ -116,6 +122,7 @@ export type PreviewCardCapture = {
   diagnostics: PreviewCardCaptureDiagnostics;
   lastPhoto: CapturedPhoto | null;
   photoCount: number;
+  photoInFlight: boolean;
   recognitionEnabled: boolean;
   lastRecognition: RecognitionView | null;
   error: string | null;
@@ -245,6 +252,8 @@ export function usePreviewCardCapture(
   const appliedCaptureCommands = useSharedValue<AppliedCaptureCommands>(
     NO_APPLIED_CAPTURE_COMMANDS,
   );
+  const photoInFlight = useSharedValue(0);
+  const [photoInFlightOnJS, setPhotoInFlightOnJS] = useState(false);
   const jsCaptureGuard = useRef(false);
   const fatalDetectorOnJS = useRef(false);
   const timingHistory = useRef<number[]>([]);
@@ -266,6 +275,26 @@ export function usePreviewCardCapture(
 
   const receiveDiagnostics = useCallback((next: PublishedDiagnostics) => {
     if (fatalDetectorOnJS.current) return;
+    if (
+      next.photoRequested ||
+      next.photosDoneApplied > 0 ||
+      next.watchdogFired
+    ) {
+      console.log(
+        "NATIVE_PREVIEW_EVENT " +
+          JSON.stringify({
+            event: next.watchdogFired
+              ? "capture-watchdog"
+              : next.photoRequested
+                ? "capture-requested"
+                : "photo-done-applied",
+            atMs: Date.now(),
+            sampleId: next.sampleId,
+            photosDone: next.photosDoneApplied,
+            phase: next.phase,
+          }),
+      );
+    }
     if (next.rearmReason !== null) {
       console.log(
         "NATIVE_PREVIEW_EVENT " +
@@ -545,9 +574,21 @@ export function usePreviewCardCapture(
 
   const takeExactlyOnePhoto = useCallback(
     async (quad: CardQuad | null, signature: number[] | null) => {
-      if (jsCaptureGuard.current || fatalDetectorOnJS.current) return;
+      if (jsCaptureGuard.current || fatalDetectorOnJS.current) {
+        console.log(
+          "NATIVE_PREVIEW_EVENT " +
+            JSON.stringify({
+              event: "capture-request-dropped",
+              atMs: Date.now(),
+              reason: fatalDetectorOnJS.current ? "fatal" : "photo-in-flight",
+            }),
+        );
+        return;
+      }
       jsCaptureGuard.current = true;
       const sequence = ++captureSequence.current;
+      photoInFlight.value = sequence;
+      setPhotoInFlightOnJS(true);
       const startedAtMs = Date.now();
       console.log(
         "NATIVE_PREVIEW_EVENT " +
@@ -633,9 +674,11 @@ export function usePreviewCardCapture(
         }));
       } finally {
         jsCaptureGuard.current = false;
+        photoInFlight.value = 0;
+        setPhotoInFlightOnJS(false);
       }
     },
-    [camera, captureCommands, queueRecognition],
+    [camera, captureCommands, photoInFlight, queueRecognition],
   );
   const requestPhotoOnJS = useMemo(
     () => Worklets.createRunOnJS(takeExactlyOnePhoto),
@@ -673,7 +716,15 @@ export function usePreviewCardCapture(
           },
           captureCommands.value,
           appliedCaptureCommands.value,
+          performance.now(),
+          photoInFlight.value !== 0,
+          thresholds.dwellMs,
         );
+        const photosDoneApplied =
+          commanded.applied.photosDone > appliedCaptureCommands.value.photosDone
+            ? commanded.applied.photosDone
+            : 0;
+        const watchdogFired = commanded.watchdogFired;
         machine.value = commanded.state.machine;
         workletCaptureGuard.value = commanded.state.guard;
         previousCorners.value = commanded.state.previousCorners;
@@ -799,6 +850,9 @@ export function usePreviewCardCapture(
             captureLocked,
             resumedAfterGapMs,
             rearmReason,
+            photosDoneApplied,
+            watchdogFired,
+            photoRequested: requestCapture,
             sampleId,
             sampleWallAtMs,
             frameWidth: frame.width,
@@ -901,6 +955,7 @@ export function usePreviewCardCapture(
       backgroundSignatures,
       captureCommands,
       appliedCaptureCommands,
+      photoInFlight,
       previousSampleWallAtMs,
       requestPhotoOnJS,
       sampleSequence,
@@ -1004,6 +1059,7 @@ export function usePreviewCardCapture(
     diagnostics,
     lastPhoto,
     photoCount,
+    photoInFlight: photoInFlightOnJS,
     recognitionEnabled: recognition !== null,
     lastRecognition,
     error,
