@@ -28,7 +28,7 @@ import {
   RESUME_GAP_MS,
   type CapturePhase,
 } from "./stateMachine";
-import type { QuadCorners } from "./quadCaptureGates";
+import { signatureTexture, type QuadCorners } from "./quadCaptureGates";
 import { stepQuadCapture } from "./quadCaptureStep";
 import { callNativeRectangleDetector } from "../detector/nativeRectangleDetector";
 import {
@@ -71,6 +71,8 @@ export type PreviewCardCaptureDiagnostics = {
   captureGates: PreviewGates;
   motion: number | null;
   changeCorrelation: number | null;
+  background: boolean;
+  signatureTexture: number | null;
   timing: AnalysisTelemetry;
   captureLocked: boolean;
   sampleId: number;
@@ -165,6 +167,8 @@ const initialDiagnostics = (): PreviewCardCaptureDiagnostics => ({
   captureGates: EMPTY_CAPTURE_GATES,
   motion: null,
   changeCorrelation: null,
+  background: false,
+  signatureTexture: null,
   timing: EMPTY_TIMING_TELEMETRY,
   captureLocked: false,
   sampleId: 0,
@@ -222,6 +226,7 @@ export function usePreviewCardCapture(
   const sampleSequence = useSharedValue(0);
   const previousCorners = useSharedValue<QuadCorners | null>(null);
   const capturedSignature = useSharedValue<number[] | null>(null);
+  const backgroundSignatures = useSharedValue<number[][]>([]);
   const jsCaptureGuard = useRef(false);
   const fatalDetectorOnJS = useRef(false);
   const timingHistory = useRef<number[]>([]);
@@ -380,6 +385,11 @@ export function usePreviewCardCapture(
                 published.changeCorrelation === null
                   ? null
                   : roundScalar(published.changeCorrelation),
+              background: published.background,
+              signatureTexture:
+                published.signatureTexture === null
+                  ? null
+                  : roundScalar(published.signatureTexture),
               automaticCaptureEnabled: AUTOMATIC_CAPTURE_ENABLED,
             }),
         );
@@ -399,6 +409,7 @@ export function usePreviewCardCapture(
     (
       photoPath: string,
       quad: CardQuad,
+      signature: number[] | null,
       sequence: number,
       startedAtMs: number,
     ) => {
@@ -430,6 +441,42 @@ export function usePreviewCardCapture(
               }),
           );
           setLastRecognition({ status: "done", sequence, endToEndMs, result });
+          const notACard = result.reasons.some((reason) =>
+            reason.includes("no candidate has a plausible card homography"),
+          );
+          if (notACard && signature !== null) {
+            const kept: number[][] = [];
+            const existing = backgroundSignatures.value;
+            for (
+              let index = Math.max(0, existing.length - 3);
+              index < existing.length;
+              index += 1
+            ) {
+              const copy: number[] = [];
+              for (let cell = 0; cell < existing[index]!.length; cell += 1)
+                copy.push(existing[index]![cell]!);
+              kept.push(copy);
+            }
+            kept.push(signature);
+            backgroundSignatures.value = kept;
+            const rearm =
+              captureSequence.current === sequence &&
+              machine.value.phase === "cooldown";
+            if (rearm) {
+              machine.value = initialCaptureMachineState();
+              capturedSignature.value = null;
+            }
+            console.log(
+              "NATIVE_PREVIEW_EVENT " +
+                JSON.stringify({
+                  event: "background-learned",
+                  atMs: Date.now(),
+                  sequence,
+                  backgrounds: kept.length,
+                  rearmed: rearm,
+                }),
+            );
+          }
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
@@ -447,11 +494,11 @@ export function usePreviewCardCapture(
         }
       });
     },
-    [recognition],
+    [recognition, backgroundSignatures, machine, capturedSignature],
   );
 
   const takeExactlyOnePhoto = useCallback(
-    async (quad: CardQuad | null) => {
+    async (quad: CardQuad | null, signature: number[] | null) => {
       if (jsCaptureGuard.current || fatalDetectorOnJS.current) return;
       jsCaptureGuard.current = true;
       const sequence = ++captureSequence.current;
@@ -499,7 +546,7 @@ export function usePreviewCardCapture(
           captureLocked: true,
         }));
         if (quad !== null)
-          queueRecognition(photo.path, quad, sequence, startedAtMs);
+          queueRecognition(photo.path, quad, signature, sequence, startedAtMs);
       } catch {
         const failures = ++consecutiveCaptureFailures.current;
         const recovered = recoverFromCaptureFailure(failures);
@@ -626,6 +673,7 @@ export function usePreviewCardCapture(
             guard: workletCaptureGuard.value,
             previousCorners: previousCorners.value,
             capturedSignature: capturedSignature.value,
+            backgrounds: backgroundSignatures.value,
           },
           observation,
           gates.all,
@@ -634,7 +682,8 @@ export function usePreviewCardCapture(
           performance.now(),
           thresholds,
         );
-        const { captureGates, motion, changeCorrelation } = step;
+        const { captureGates, motion, changeCorrelation, background } = step;
+        const texture = signatureTexture(observation.signature);
         previousCorners.value = step.state.previousCorners;
         const phaseBefore = machine.value.phase;
         let phase = machine.value.phase;
@@ -663,6 +712,8 @@ export function usePreviewCardCapture(
             captureGates,
             motion,
             changeCorrelation,
+            background,
+            signatureTexture: texture,
             captureLocked,
             resumedAfterGapMs,
             rearmReason,
@@ -746,7 +797,13 @@ export function usePreviewCardCapture(
                   },
                 }
               : null;
-          requestPhotoOnJS(triggerQuad);
+          const triggerSignature: number[] = [];
+          for (let index = 0; index < observation.signature.length; index += 1)
+            triggerSignature.push(observation.signature[index]!);
+          requestPhotoOnJS(
+            triggerQuad,
+            triggerSignature.length > 0 ? triggerSignature : null,
+          );
         }
       });
     },
@@ -759,6 +816,7 @@ export function usePreviewCardCapture(
       publishTiming,
       previousCorners,
       capturedSignature,
+      backgroundSignatures,
       previousSampleWallAtMs,
       requestPhotoOnJS,
       sampleSequence,

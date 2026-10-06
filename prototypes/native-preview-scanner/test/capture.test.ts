@@ -9,6 +9,7 @@ import {
   quadMotion,
   refinedCorners,
   signatureCorrelation,
+  signatureTexture,
 } from "../src/capture/quadCaptureGates";
 import { stepQuadCapture } from "../src/capture/quadCaptureStep";
 import {
@@ -1008,5 +1009,91 @@ describe("stacked cards", () => {
       signatureCorrelation(cardSignature(1), cardSignature(2))!,
     ).toBeLessThan(0.8);
     expect(signatureCorrelation(cardSignature(1), [])).toBeNull();
+  });
+});
+
+describe("card change under shared lighting", () => {
+  const art = (seed: number) =>
+    Array.from({ length: 48 }, (_, index) => {
+      const value = Math.sin(seed * 12.9898 + index * 78.233) * 43758.5453;
+      return (value - Math.floor(value) - 0.5) * 50;
+    });
+  const lit = (pattern: number[]) =>
+    pattern.map((value, index) => {
+      const column = index % 8;
+      const row = Math.floor(index / 8);
+      const hotspot = 70 * Math.exp(-((column - 4) ** 2 + (row - 2) ** 2) / 6);
+      return Math.max(
+        0,
+        Math.min(255, 70 + 12 * column + 8 * row + hotspot + value),
+      );
+    });
+  const pearson = (first: number[], second: number[]) => {
+    const mean = (values: number[]) =>
+      values.reduce((total, value) => total + value, 0) / values.length;
+    const a = mean(first);
+    const b = mean(second);
+    let product = 0;
+    let firstSquares = 0;
+    let secondSquares = 0;
+    first.forEach((value, index) => {
+      product += (value - a) * (second[index]! - b);
+      firstSquares += (value - a) ** 2;
+      secondSquares += (second[index]! - b) ** 2;
+    });
+    return product / Math.sqrt(firstSquares * secondSquares);
+  };
+
+  it("tells different cards apart when the light pattern dominates brightness", () => {
+    const first = lit(art(1));
+    const second = lit(art(2));
+    expect(pearson(first, second)).toBeGreaterThan(0.6);
+    expect(signatureCorrelation(first, second)!).toBeLessThan(0.6);
+    expect(signatureCorrelation(first, first)!).toBeCloseTo(1, 5);
+  });
+
+  it("scores a blank area as low texture and a card as high texture", () => {
+    expect(signatureTexture(Array.from({ length: 48 }, () => 200))).toBe(0);
+    expect(signatureTexture(cardSignature(1))!).toBeGreaterThan(20);
+    expect(signatureTexture([1, 2, 3])).toBeNull();
+  });
+});
+
+describe("learned background", () => {
+  const withSignature = (signature: number[]) => ({
+    ...cardRecord(),
+    signature,
+  });
+
+  it("never photographs a learned background and still photographs a new card", () => {
+    const background = cardSignature(5);
+    let state: Parameters<typeof stepQuadCapture>[0] = {
+      ...initialQuadCaptureState(),
+      backgrounds: [background],
+    };
+    let photos = 0;
+    const records = [
+      ...Array.from({ length: 20 }, () => withSignature(background)),
+      ...Array.from({ length: 6 }, () => withSignature(cardSignature(1))),
+    ];
+    records.forEach((raw, index) => {
+      const observation = validateNativeRectangleRecord(raw)!;
+      const step = stepQuadCapture(
+        state,
+        observation,
+        observation.detected,
+        720,
+        1280,
+        index * 200,
+        QUAD_CAPTURE_TIMING,
+      );
+      state = { ...step.state, backgrounds: [background] };
+      if (step.requestPhoto) {
+        photos += 1;
+        expect(index).toBeGreaterThanOrEqual(20);
+        state = { ...state, machine: completeCapture(state.machine) };
+      }
+    });
+    expect(photos).toBe(1);
   });
 });

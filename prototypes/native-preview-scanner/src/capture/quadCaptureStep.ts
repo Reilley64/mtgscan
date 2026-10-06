@@ -7,6 +7,7 @@ import {
 } from "./stateMachine";
 import {
   evaluateQuadCaptureGates,
+  matchesBackground,
   quadMotion,
   refinedCorners,
   signatureCorrelation,
@@ -24,6 +25,7 @@ export type QuadCaptureState = Readonly<{
 export type QuadCaptureStep = Readonly<{
   state: QuadCaptureState;
   requestPhoto: boolean;
+  background: boolean;
   captureGates: PreviewGates;
   motion: number | null;
   changeCorrelation: number | null;
@@ -35,6 +37,7 @@ export function stepQuadCapture(
     guard: boolean;
     previousCorners: QuadCorners | null;
     capturedSignature: readonly number[] | null;
+    backgrounds?: readonly (readonly number[])[];
   }>,
   observation: NativeRectangleRecord,
   detectorGatesPass: boolean,
@@ -49,9 +52,12 @@ export function stepQuadCapture(
   const changeCorrelation = observation.detected
     ? signatureCorrelation(state.capturedSignature, observation.signature)
     : null;
+  const background =
+    observation.detected &&
+    matchesBackground(observation.signature, state.backgrounds ?? []);
   const captureGates = evaluateQuadCaptureGates(
     observation,
-    detectorGatesPass,
+    detectorGatesPass && !background,
     motion,
     changeCorrelation,
   );
@@ -81,6 +87,7 @@ export function stepQuadCapture(
       capturedSignature,
     },
     requestPhoto: decision.requestPhoto,
+    background,
     captureGates,
     motion,
     changeCorrelation,

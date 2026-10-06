@@ -7,6 +7,7 @@ import type {
 export type QuadCaptureThresholds = {
   stableMotionMax: number;
   changeCorrelationMax: number;
+  backgroundCorrelationMin: number;
   cardEvidenceConfidenceMin: number;
   cardEvidenceAreaMax: number;
 };
@@ -14,6 +15,7 @@ export type QuadCaptureThresholds = {
 export const QUAD_CAPTURE_THRESHOLDS: QuadCaptureThresholds = {
   stableMotionMax: 0.04,
   changeCorrelationMax: 0.6,
+  backgroundCorrelationMin: 0.85,
   cardEvidenceConfidenceMin: 0.6,
   cardEvidenceAreaMax: 0.6,
 };
@@ -124,33 +126,87 @@ export function quadMotion(
   return largest / shortSide;
 }
 
+export const SIGNATURE_COLUMNS = 8;
+export const SIGNATURE_ROWS = 6;
+
+const signatureGradient = (signature: readonly number[]): number[] => {
+  "worklet";
+  const gradient: number[] = [];
+  for (let row = 0; row < SIGNATURE_ROWS; row += 1)
+    for (let column = 0; column + 1 < SIGNATURE_COLUMNS; column += 1)
+      gradient.push(
+        signature[row * SIGNATURE_COLUMNS + column + 1]! -
+          signature[row * SIGNATURE_COLUMNS + column]!,
+      );
+  for (let row = 0; row + 1 < SIGNATURE_ROWS; row += 1)
+    for (let column = 0; column < SIGNATURE_COLUMNS; column += 1)
+      gradient.push(
+        signature[(row + 1) * SIGNATURE_COLUMNS + column]! -
+          signature[row * SIGNATURE_COLUMNS + column]!,
+      );
+  return gradient;
+};
+
+export function signatureTexture(signature: readonly number[]): number | null {
+  "worklet";
+  if (signature.length !== SIGNATURE_COLUMNS * SIGNATURE_ROWS) return null;
+  const gradient = signatureGradient(signature);
+  let total = 0;
+  for (let index = 0; index < gradient.length; index += 1)
+    total += Math.abs(gradient[index]!);
+  return total / gradient.length;
+}
+
 export function signatureCorrelation(
   first: readonly number[] | null,
   second: readonly number[] | null,
 ): number | null {
   "worklet";
   if (first === null || second === null) return null;
-  if (first.length === 0 || first.length !== second.length) return null;
+  if (
+    first.length !== SIGNATURE_COLUMNS * SIGNATURE_ROWS ||
+    second.length !== first.length
+  )
+    return null;
+  const a = signatureGradient(first);
+  const b = signatureGradient(second);
   let firstMean = 0;
   let secondMean = 0;
-  for (let index = 0; index < first.length; index += 1) {
-    firstMean += first[index]!;
-    secondMean += second[index]!;
+  for (let index = 0; index < a.length; index += 1) {
+    firstMean += a[index]!;
+    secondMean += b[index]!;
   }
-  firstMean /= first.length;
-  secondMean /= second.length;
+  firstMean /= a.length;
+  secondMean /= b.length;
   let product = 0;
   let firstSquares = 0;
   let secondSquares = 0;
-  for (let index = 0; index < first.length; index += 1) {
-    const a = first[index]! - firstMean;
-    const b = second[index]! - secondMean;
-    product += a * b;
-    firstSquares += a * a;
-    secondSquares += b * b;
+  for (let index = 0; index < a.length; index += 1) {
+    const x = a[index]! - firstMean;
+    const y = b[index]! - secondMean;
+    product += x * y;
+    firstSquares += x * x;
+    secondSquares += y * y;
   }
   const scale = Math.sqrt(firstSquares * secondSquares);
   return scale > 0 ? product / scale : null;
+}
+
+export function matchesBackground(
+  signature: readonly number[],
+  backgrounds: readonly (readonly number[])[],
+  thresholds: QuadCaptureThresholds = QUAD_CAPTURE_THRESHOLDS,
+): boolean {
+  "worklet";
+  for (let index = 0; index < backgrounds.length; index += 1) {
+    const similarity = signatureCorrelation(backgrounds[index]!, signature);
+    if (
+      similarity !== null &&
+      similarity >= thresholds.backgroundCorrelationMin
+    )
+      return true;
+  }
+  return false;
 }
 
 export function evaluateQuadCaptureGates(
