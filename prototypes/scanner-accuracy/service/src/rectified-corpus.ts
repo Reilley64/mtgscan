@@ -8,6 +8,9 @@ import { CARD_HEIGHT, CARD_WIDTH } from "./rectify.js";
 import {
   appearanceDescriptors,
   DESCRIPTOR_LENGTH,
+  EDGE_DESCRIPTOR_LENGTH,
+  edgeDescriptors,
+  type AppearanceReferences,
 } from "./rectified-ranking.js";
 import {
   grayscale,
@@ -34,11 +37,13 @@ export type IndexedCard = RectifiedCard & {
 export type RectifiedCorpusIndex = {
   createdAt: string;
   descriptorLength: number;
+  edgeDescriptorLength: number;
   cards: IndexedCard[];
 };
 export type RectifiedCorpus = {
   cards: IndexedCard[];
-  appearance: Float32Array;
+  catalog: RectifiedCard[];
+  appearance: AppearanceReferences;
 };
 
 export async function gatherRectifiedCards(options: {
@@ -147,6 +152,7 @@ export async function prepareRectifiedCorpus(
   const appearance = new Float32Array(
     gathered.cards.length * DESCRIPTOR_LENGTH,
   );
+  const edge = new Float32Array(gathered.cards.length * EDGE_DESCRIPTOR_LENGTH);
   const points: Float32Array[] = [];
   const descriptors: Uint8Array[] = [];
   const cards: IndexedCard[] = [];
@@ -162,11 +168,14 @@ export async function prepareRectifiedCorpus(
       .toColourspace("srgb")
       .raw()
       .toBuffer({ resolveWithObject: true });
+    const whole = { left: 0, top: 0, width: info.width, height: info.height };
     appearance.set(
-      appearanceDescriptors(data, info.width, info.height, [
-        { left: 0, top: 0, width: info.width, height: info.height },
-      ])[0]!,
+      appearanceDescriptors(data, info.width, info.height, [whole])[0]!,
       position * DESCRIPTOR_LENGTH,
+    );
+    edge.set(
+      edgeDescriptors(data, info.width, info.height, whole, [whole])[0]!,
+      position * EDGE_DESCRIPTOR_LENGTH,
     );
     const features = orbFeatures(
       cv,
@@ -187,6 +196,10 @@ export async function prepareRectifiedCorpus(
     new Uint8Array(appearance.buffer),
   );
   await fs.writeFile(
+    path.join(rectifiedRoot, "edge.bin"),
+    new Uint8Array(edge.buffer),
+  );
+  await fs.writeFile(
     path.join(rectifiedRoot, "orb-points.bin"),
     Buffer.concat(points.map((chunk) => new Uint8Array(chunk.buffer))),
   );
@@ -199,6 +212,7 @@ export async function prepareRectifiedCorpus(
     JSON.stringify({
       createdAt: new Date().toISOString(),
       descriptorLength: DESCRIPTOR_LENGTH,
+      edgeDescriptorLength: EDGE_DESCRIPTOR_LENGTH,
       cards,
     } satisfies RectifiedCorpusIndex),
   );
@@ -217,15 +231,25 @@ export async function loadRectifiedCorpus(
   const index = JSON.parse(
     await fs.readFile(path.join(root, "corpus.json"), "utf8"),
   ) as RectifiedCorpusIndex;
-  if (index.descriptorLength !== DESCRIPTOR_LENGTH)
+  if (
+    index.descriptorLength !== DESCRIPTOR_LENGTH ||
+    index.edgeDescriptorLength !== EDGE_DESCRIPTOR_LENGTH
+  )
     throw new Error(
       "rectified corpus descriptors are stale; run rectified:prepare",
     );
-  const bytes = await fs.readFile(path.join(root, "appearance.bin"));
+  const floats = async (name: string) => {
+    const bytes = await fs.readFile(path.join(root, name));
+    return new Float32Array(
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length),
+    );
+  };
   return {
     cards: index.cards,
-    appearance: new Float32Array(
-      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length),
-    ),
+    catalog: index.cards,
+    appearance: {
+      color: await floats("appearance.bin"),
+      edge: await floats("edge.bin"),
+    },
   };
 }

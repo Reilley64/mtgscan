@@ -17,6 +17,7 @@ export type RectifiedCardImage = {
   height: number;
   card: { left: number; top: number; width: number; height: number };
   rgb: Buffer;
+  rotation: number;
   decodeMs: number;
   rectifyMs: number;
 };
@@ -144,12 +145,18 @@ export async function rectifyCard(
   const swapped = (metadata.orientation ?? 1) >= 5;
   const orientedWidth = swapped ? metadata.height : metadata.width;
   const orientedHeight = swapped ? metadata.width : metadata.height;
-  const corners = cornerNames.map((name) => quad[name]);
   const edge = (a: QuadPoint, b: QuadPoint) =>
     Math.hypot((a.x - b.x) * orientedWidth, (a.y - b.y) * orientedHeight);
+  const sideways =
+    edge(quad.topLeft, quad.topRight) +
+      edge(quad.bottomLeft, quad.bottomRight) >
+    edge(quad.topLeft, quad.bottomLeft) + edge(quad.topRight, quad.bottomRight);
+  const corners = sideways
+    ? [quad.bottomLeft, quad.topLeft, quad.topRight, quad.bottomRight]
+    : cornerNames.map((name) => quad[name]);
   const cardHeightPixels = Math.max(
-    edge(quad.topLeft, quad.bottomLeft),
-    edge(quad.topRight, quad.bottomRight),
+    edge(corners[0]!, corners[3]!),
+    edge(corners[1]!, corners[2]!),
   );
   const scale = Math.min(1, (CARD_HEIGHT * 1.25) / cardHeightPixels);
   const { data: source, info } = await sharp(jpeg)
@@ -225,8 +232,31 @@ export async function rectifyCard(
       height: CARD_HEIGHT,
     },
     rgb,
+    rotation: sideways ? 90 : 0,
     decodeMs: decoded - started,
     rectifyMs: performance.now() - decoded,
+  };
+}
+
+export function rotateHalfTurn(image: RectifiedCardImage): RectifiedCardImage {
+  const pixels = image.width * image.height;
+  const rgb = Buffer.alloc(pixels * 3);
+  for (let index = 0; index < pixels; index++) {
+    const from = index * 3,
+      to = (pixels - 1 - index) * 3;
+    rgb[to] = image.rgb[from]!;
+    rgb[to + 1] = image.rgb[from + 1]!;
+    rgb[to + 2] = image.rgb[from + 2]!;
+  }
+  return {
+    ...image,
+    card: {
+      ...image.card,
+      left: image.width - image.card.left - image.card.width,
+      top: image.height - image.card.top - image.card.height,
+    },
+    rgb,
+    rotation: (image.rotation + 180) % 360,
   };
 }
 

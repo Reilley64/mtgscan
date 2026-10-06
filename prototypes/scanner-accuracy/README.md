@@ -60,7 +60,7 @@ This is a throwaway service path for the physical recognition experiment in issu
 - `Authorization: Bearer <PROTOTYPE_TOKEN>`
 - `Content-Type: image/jpeg`
 - `X-Scan-Id`: 1 to 80 characters from `[A-Za-z0-9_-]`
-- `X-Card-Quad`: JSON `{"topLeft":{"x":n,"y":n},"topRight":{...},"bottomRight":{...},"bottomLeft":{...}}`. Coordinates are normalized from 0 to 1 with an upper-left origin. They use the displayed photo orientation, after the JPEG EXIF orientation is applied. Corners go clockwise from the visual top-left corner of the card.
+- `X-Card-Quad`: JSON `{"topLeft":{"x":n,"y":n},"topRight":{...},"bottomRight":{...},"bottomLeft":{...}}`. Coordinates are normalized from 0 to 1 with an upper-left origin. They use the displayed photo orientation, after the JPEG EXIF orientation is applied. Corners go clockwise. The app starts from the corner nearest the top-left of the photo, so the card can be sideways or upside down. The service handles both cases (see the pipeline).
 - Body: the raw JPEG bytes.
 
 The service rejects a body over 12 MB (`413`), a content type other than `image/jpeg` (`415`), and a body without a JPEG signature, an invalid scan ID, or an invalid quad (`400`). A quad is invalid if a value is not finite, if a point is more than 0.001 outside the photo, if the corners are not convex and clockwise, or if it covers less than 1% of the photo. The service runs one rectified recognition at a time and returns `429` while one is in progress.
@@ -72,6 +72,7 @@ A `200` response has this shape:
   "scanId": "string",
   "serviceLatencyMs": 0,
   "stageMs": { "decode": 0, "rectify": 0, "rank": 0, "rerank": 0 },
+  "rotation": 0,
   "candidates": [
     {
       "scryfallId": "",
@@ -86,53 +87,98 @@ A `200` response has this shape:
 }
 ```
 
-`candidates` holds the top 5, best first. `score` is the number of RANSAC inliers for that printing. It is 0 when the homography is not plausible.
+`rotation` is 0, 90, 180, or 270. It is how many degrees clockwise the service turned the sent corner order to make the card upright. `candidates` holds the top 5, best first. `score` is the number of RANSAC inliers for that printing. It is 0 when the homography is not plausible.
 
-The service keeps only the straightened card crop at `.prototype-data/rectified/crops/<scanId>.jpg` and one line per request in `.prototype-data/rectified/recognitions.ndjson`. The line holds the scan ID, timestamp, candidates, decision, and stage timings. The service does not store the source photo.
+The service keeps only the straightened, upright card crop at `.prototype-data/rectified/crops/<scanId>.jpg` and one line per request in `.prototype-data/rectified/recognitions.ndjson`. The line holds the scan ID, timestamp, candidates, decision, rotation, and stage timings. The service does not store the source photo.
 
 ### Pipeline
 
-1. Decode and rectify. Sharp applies the EXIF orientation and scales the photo so the card is about 850 pixels tall. A perspective warp maps the quad to a 488 x 680 raster, the size of a Scryfall `normal` image. The warp also keeps a 10% margin around the card for the later stages.
-2. Rank. Each card gets a 16 x 22 grid of mean lightness and two color-opponent channels. Each channel has its mean removed and is scaled to unit length, which reduces the effect of light level and contrast. The service compares the crop with all references, using windows of different scale and offset inside the margin. This handles a quad that follows the inner frame or a binder pocket instead of the card edge.
-3. Rerank. The top 8 printings by appearance go to the reranker, plus other printings of the top 3 identities, up to 24 in total. Two worker processes match ORB features of the full card against stored reference features. They use a ratio test and a RANSAC homography. A homography is plausible only if the projected reference is convex, near the crop, and has a sensible area. Each worker is replaced after 50 jobs. The replacement starts at once.
-4. Decide. The service accepts the top printing only if all of these are true:
+1. Decode and rectify. Sharp applies the EXIF orientation and scales the photo so the card is about 850 pixels tall. If the top and bottom edges of the quad are longer than its sides, the card is sideways, so the service moves each corner one place along the clockwise order. A short edge is then on top. A perspective warp maps the quad to a 488 x 680 raster, the size of a Scryfall `normal` image. The warp also keeps a 10% margin around the card for the later stages.
+2. Rank. The service compares the crop with every reference using two descriptors:
+   - Color: a 16 x 22 grid of mean lightness and two color-opponent channels. Each channel has its mean removed and is scaled to unit length.
+   - Edge: the gradient strength of a 64 x 88 grayscale copy of the card, blurred and sampled on a 32 x 44 grid. The outer ring of cells is dropped, because the card outline in a photo has no match in a reference image. Values are log-scaled, centered, and scaled to unit length. Foil sheen and sleeve glare change tones a lot, but they keep most edges in place, so this descriptor still finds those cards.
+
+   Both descriptors search windows of different scale and offset inside the margin. This handles a quad that follows the inner frame or a binder pocket instead of the card edge.
+
+3. Orientation. The service ranks the crop and the crop turned 180 degrees. The strength of a view is its best color score plus its best edge score. The stronger view goes to the reranker. If the two strengths are less than 0.03 apart, both views go to the reranker, and the view whose top printing has more inliers wins.
+4. Rerank. The shortlist is the top 8 printings by color, the top 8 by edge, and other printings of the top 3 identities by fused score, up to 24 in total. The fused score is the sum of the two scores after each is standardized across the corpus. Three worker processes match ORB features of the full card against stored reference features. They use a ratio test and a RANSAC homography. A homography is plausible only if the projected reference is convex, upright, near the crop, and has a sensible area. Each worker is replaced after 50 jobs. The replacement starts at once.
+5. Decide. The service accepts the top printing only if all of these are true:
    - it has at least 25 inliers;
    - at least 15 inlier grid cells support only that printing, and each rival has no more than half that number of cells that support only the rival;
-   - its appearance score is at least 0.05 higher than every other reranked printing.
+   - its fused appearance score is at least 1.0 higher than every other reranked printing;
+   - every other printing in the catalog with the same Scryfall illustration was reranked too.
 
-   If any check fails, the service abstains and lists the reasons. ORB inliers fall mostly on the frame and text, which many printings share. The appearance check covers the art.
+   If any check fails, the service abstains and lists the reasons. ORB inliers fall mostly on the frame and text, which many printings share. The appearance check covers the art. The illustration check covers reprints that share the art and differ only in small frame details.
 
 ### Candidate corpus
 
-The corpus is the union of every Scryfall ID in `../../current_collection.csv` and every English paper printing of each card name in `.prototype-data/personal-kill-test-manifest.json`. The name list uses the Scryfall search `!"<name>" unique:prints lang:en game:paper`. The current corpus has 1,339 printings and 968 oracle identities: 986 printings from the collection and 353 more from the 31 name searches. Arcane Signet alone has 91 printings.
+The corpus is the union of every Scryfall ID in `../../current_collection.csv` and every English paper printing of each card name in `.prototype-data/personal-kill-test-manifest.json`. The name list uses the Scryfall search `!"<name>" unique:prints lang:en game:paper`. The current corpus has 1,339 printings and 968 oracle identities: 986 printings from the collection and 353 more from the 31 name searches. Arcane Signet alone has 91 printings, and Command Tower has 114.
 
-Preparation uses only the `Scryfall ID` column of the CSV and the `name` field of the manifest. It copies no other collection fields. It caches metadata, search pages, and reference images under `.prototype-data/scryfall/`. It writes `corpus.json`, `appearance.bin`, `orb-points.bin`, and `orb-descriptors.bin` under `.prototype-data/rectified/`. Server startup loads these files and does not compute features.
+Preparation uses only the `Scryfall ID` column of the CSV and the `name` field of the manifest. It copies no other collection fields. It caches metadata, search pages, and reference images under `.prototype-data/scryfall/`. It writes `corpus.json`, `appearance.bin`, `edge.bin`, `orb-points.bin`, and `orb-descriptors.bin` under `.prototype-data/rectified/`. Server startup loads these files and does not compute features. Run `rectified:prepare` again after this change, because older corpora have no `edge.bin`.
 
 ### Prepare, evaluate, and start
 
 ```bash
 npm run rectified:prepare -w @scanner-accuracy/service
 npm run rectified:evaluate -w @scanner-accuracy/service
-npm run rectified:evaluate -w @scanner-accuracy/service -- --repeat 5
+npm run rectified:evaluate -w @scanner-accuracy/service -- --set phone
+npm run rectified:evaluate -w @scanner-accuracy/service -- --rotate 180
 npm run rectified:evaluate -w @scanner-accuracy/service -- --hold-out-expected
+npm run rectified:evaluate -w @scanner-accuracy/service -- --repeat 3
 npm run start -w @scanner-accuracy/service
 ```
 
-A cold preparation took about 15 minutes, mostly for the paced image downloads. With a warm cache it takes about 50 seconds. The evaluation reads `/tmp/np/eval/quads.json` by default (`--quads` changes this). It sends each stored photo and its detected quad through the same code as the endpoint, writes the crops to `/tmp/np/rectified-eval/`, and writes a report to `.prototype-data/rectified/`. It does not write to the endpoint log. `--hold-out-expected` removes the true printing from the corpus, so every accept is a false accept.
+A cold preparation took about 15 minutes, mostly for the paced image downloads. With a warm cache it takes about 50 seconds. The evaluation sends each photo and its quad through the same code as the endpoint. It writes the crops to `/tmp/np/rectified-eval*/` and a report to `.prototype-data/rectified/evaluation-<set>[-<rotation>][-held-out]-latest.json`. It does not write to the endpoint log.
 
-### Offline result
+- `--set offline` (the default) reads `/tmp/np/eval/quads.json` (`--quads` changes this): stored iPhone photos with corners from the native detector.
+- `--set phone` reads `/tmp/np/phone-crops/truth.json` (`--truth` changes this): straightened card crops from the physical phone run, each with its true printing. The quad is the crop edge.
+- `--rotate 90|180|270` turns each photo clockwise and moves the quad with it. The corners start from the one nearest the top-left of the turned photo, as the app sends them.
+- `--hold-out-expected` removes the true printing from the searchable corpus, so every accept is a false accept. The printing stays in the catalog, so the illustration check still knows it exists.
 
-The input is 22 stored iPhone photos (1450 x 1080) with corners from the native detector. On the wood table, the photos are of the DSC Arcane Signet. In the binder, they are of the Secret Lair foil Arcane Signet. Two more photos had no detection and were skipped. In most binder photos the quad follows the pocket, not the card.
+### Offline and phone-crop results
 
-| Set                    | Photos | Identity top-1 | Exact printing top-1 | Correct accepts | False accepts | Abstentions |
-| ---------------------- | -----: | -------------: | -------------------: | --------------: | ------------: | ----------: |
-| Wood table (DSC)       |      6 |              6 |                    6 |               6 |             0 |           0 |
-| Binder (SLD)           |     16 |             16 |                   16 |              14 |             0 |           2 |
-| True printing held out |     22 |             18 |                    0 |               0 |             0 |          22 |
+Two sets were used. The offline set is 22 stored iPhone photos (1450 x 1080) with detected corners: 6 of the DSC Arcane Signet on a wood table, and 16 of the Secret Lair foil Arcane Signet in a binder, where most quads follow the pocket. The phone set is 21 card crops from the first physical phone run: 19 printings, including foil Secret Lair cards with heavy sheen, sleeve glare, and several printings that share a name and art (Colossal Dreadmaw, Command Tower, Arcane Signet).
 
-The two binder abstentions are a crop with 16 inliers and a crop where SLD 1919 Arcane Signet is close on both checks. An earlier version without the appearance check accepted the wrong SLD printing in 10 of 16 held-out binder photos. The thresholds were set on these same 22 photos, and only two true printings were tested. These numbers do not establish a false-accept rate.
+Each row is one pass. Three passes with three workers gave the same answers in every pass. Latency is the service time over the three passes, on an Apple silicon Mac.
 
-Across 5 passes (110 recognitions, with worker restarts), service latency was 309 ms p50, 395 ms p95, and 721 ms maximum. The maximum is a request that waited for a new worker. A typical request spends about 23 ms decoding, 10 ms rectifying, 35 ms ranking, and 235 ms reranking. A smoke test through HTTP with photos upscaled to 4224 x 3144 took 313 to 363 ms, with 41 to 50 ms for decoding. Each worker used about 62 MB RSS.
+| Set                   | Crops | True printing reranked | Identity top-1 | Printing top-1 | Correct accepts | False accepts | Abstentions | p50 ms | p95 ms |
+| --------------------- | ----: | ---------------------: | -------------: | -------------: | --------------: | ------------: | ----------: | -----: | -----: |
+| Offline, wood (DSC)   |     6 |                      6 |              6 |              6 |               6 |             0 |           0 |    333 |    405 |
+| Offline, binder (SLD) |    16 |                     16 |             16 |             16 |              12 |             0 |           4 |    346 |    363 |
+| Phone crops           |    21 |                     21 |             21 |             19 |              13 |             0 |           8 |    292 |    344 |
+| Offline, held out     |    22 |                      - |             18 |              0 |               0 |             0 |          22 |    350 |    554 |
+| Phone crops, held out |    21 |                      - |              7 |              0 |               0 |             0 |          21 |    306 |    468 |
+
+Turned inputs:
+
+| Set                              | Crops | Identity top-1 | Printing top-1 | Correct accepts | False accepts | p95 ms |
+| -------------------------------- | ----: | -------------: | -------------: | --------------: | ------------: | -----: |
+| Offline, turned 90               |    22 |             22 |             22 |              18 |             0 |    380 |
+| Offline, turned 180              |    22 |             22 |             22 |              19 |             0 |    367 |
+| Offline, turned 270              |    22 |             22 |             22 |              18 |             0 |    372 |
+| Phone crops, turned 90           |    21 |             20 |             17 |              13 |             0 |    338 |
+| Phone crops, turned 180          |    21 |             21 |             18 |              13 |             0 |    348 |
+| Phone crops, turned 270          |    21 |             21 |             18 |              13 |             0 |    357 |
+| Offline, turned 180, held out    |    22 |             21 |              0 |               0 |             0 |    603 |
+| Phone crops, turned 90, held out |    21 |              7 |              0 |               0 |             0 |    642 |
+
+Every turned input came back with the right rotation. With the true printing present, the right view was always stronger, by at least 0.05. With the true printing held out, some views were close, so both went to the reranker. That doubles the rerank time, so held-out runs have the slowest requests (maximum 865 ms).
+
+With the previous code (same corpus and crops), the phone set had 18 of 21 true printings reranked, 16 right printings first, 7 correct accepts, no false accepts, and a 163 ms p50. The color descriptor ranked the foil Secret Lair Arcane Signet and Command Tower about 1,230th of 1,339 printings and the foil Abrade 237th, so the reranker never saw them. With both descriptors, every true printing reached the reranker in both sets.
+
+A typical request spends 2 to 25 ms decoding, 10 ms rectifying, 140 ms ranking both views, and 180 to 240 ms reranking.
+
+Phone-crop abstentions:
+
+- Foil Secret Lair Arcane Signet and Command Tower: the right printing is first, with only 12 and 20 inliers.
+- DSC Arcane Signet, M21 Colossal Dreadmaw, CMM Command Tower, TMP Gravedigger, and RIX Admiral's Order: another printing of the same card is too close on inlier cells. M21 Colossal Dreadmaw and RIX Admiral's Order also rank second, behind a printing with the same art. For CMM Command Tower and TMP Gravedigger, 3 and 8 printings with the same art were also not reranked.
+- RIX Colossal Dreadmaw: the right printing is first with 139 inliers, but its appearance lead is only 0.40.
+
+What was tuned, and on which data:
+
+- The 0.03 orientation margin, the shortlist sizes, and the 1.0 fused appearance margin were all chosen on these two sets. In the held-out runs, the closest false candidate had a fused lead of 0.48, so 1.0 leaves some room. These numbers do not establish a false-accept rate.
+- An inlier-ratio threshold was tried to stop a Font of Fertility reprint (CMM) from being accepted when the JOU printing was held out. It also rejected many correct binder photos, so it was dropped. The illustration check rejects that case instead. It relies on the catalog listing every printing, even ones that have no reference features.
+- The old 0.05 color-only appearance check was dropped. Sleeve glare lowers the color score of the right printing, and that check caused most of the phone-crop abstentions.
 
 ## Physical result: baseline rejected
 

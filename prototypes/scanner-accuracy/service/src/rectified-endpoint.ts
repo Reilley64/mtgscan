@@ -82,6 +82,7 @@ export function createRectifiedRecognitionHandler(options: {
           candidates: recognition.candidates,
           decision: recognition.decision,
           stageMs: recognition.stageMs,
+          rotation: recognition.rotation,
           serviceLatencyMs: recognition.serviceLatencyMs,
         })}\n`,
       );

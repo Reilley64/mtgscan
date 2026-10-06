@@ -1,7 +1,7 @@
 export const MIN_INLIERS = 25;
 export const MIN_DISTINCT_CELLS = 15;
 export const MAX_RIVAL_DISTINCT_SHARE = 0.5;
-export const MIN_APPEARANCE_MARGIN = 0.05;
+export const MIN_APPEARANCE_MARGIN = 1;
 
 export type VerifiedCandidate = {
   scryfallId: string;
@@ -15,7 +15,10 @@ export function verifiedScore(candidate: VerifiedCandidate) {
   return candidate.plausible ? candidate.inliers : 0;
 }
 
-export function decideRectifiedAcceptance(ranked: VerifiedCandidate[]): {
+export function decideRectifiedAcceptance(
+  ranked: VerifiedCandidate[],
+  uncomparedLookalikes = 0,
+): {
   accepted: boolean;
   scryfallId: string | null;
   reasons: string[];
@@ -54,7 +57,11 @@ export function decideRectifiedAcceptance(ranked: VerifiedCandidate[]): {
     );
     if (first.appearance - appearanceRival < MIN_APPEARANCE_MARGIN)
       reasons.push(
-        `appearance does not single out the top candidate: ${first.appearance.toFixed(3)} against ${appearanceRival.toFixed(3)}`,
+        `appearance does not single out the top candidate: ${first.appearance.toFixed(2)} against ${appearanceRival.toFixed(2)}`,
+      );
+    if (uncomparedLookalikes > 0)
+      reasons.push(
+        `${uncomparedLookalikes} other printings with the same art were not compared`,
       );
   }
   return {

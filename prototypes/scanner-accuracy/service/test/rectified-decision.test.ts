@@ -11,7 +11,7 @@ const candidate = (
   inliers: number,
   inlierCells: number[],
   plausible = true,
-  appearance = scryfallId === "right" ? 0.8 : 0.6,
+  appearance = scryfallId === "right" ? 4 : 2,
 ) => ({ scryfallId, inliers, plausible, inlierCells, appearance });
 
 describe("rectified acceptance decision", () => {
@@ -45,12 +45,23 @@ describe("rectified acceptance decision", () => {
 
   it("abstains when the verified printing does not also lead on appearance", () => {
     const decision = decideRectifiedAcceptance([
-      candidate("right", 150, cells(0, 60), true, 0.6),
-      candidate("same-frame", 60, cells(0, 20), true, 0.63),
+      candidate("right", 150, cells(0, 60), true, 3.4),
+      candidate("same-frame", 60, cells(0, 20), true, 2.6),
     ]);
     expect(decision.accepted).toBe(false);
     expect(decision.reasons).toEqual([
-      "appearance does not single out the top candidate: 0.600 against 0.630",
+      "appearance does not single out the top candidate: 3.40 against 2.60",
+    ]);
+  });
+
+  it("abstains when a printing with the same art was not compared", () => {
+    const decision = decideRectifiedAcceptance(
+      [candidate("right", 150, cells(0, 60))],
+      1,
+    );
+    expect(decision.accepted).toBe(false);
+    expect(decision.reasons).toEqual([
+      "1 other printings with the same art were not compared",
     ]);
   });
 

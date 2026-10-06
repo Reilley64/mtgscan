@@ -25,7 +25,7 @@ const rectifiedRunner = createRectifiedRerankRunner({
   featureRoot: rectifiedRoot,
   maxReranksPerWorker: 50,
   timeoutMs: 10_000,
-  workers: 2,
+  workers: 3,
 });
 let rectifiedCorpus: Promise<RectifiedCorpus> | undefined;
 const loadRectified = () => {

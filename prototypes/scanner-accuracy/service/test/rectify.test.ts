@@ -7,14 +7,15 @@ import {
   rectifiedCropJpeg,
   rectifyCard,
   RectifiedInputError,
+  rotateHalfTurn,
   type CardQuad,
 } from "../src/rectify.js";
 
 const quad: CardQuad = {
-  topLeft: { x: 0.2, y: 0.15 },
-  topRight: { x: 0.75, y: 0.2 },
-  bottomRight: { x: 0.8, y: 0.85 },
-  bottomLeft: { x: 0.15, y: 0.8 },
+  topLeft: { x: 0.35, y: 0.1 },
+  topRight: { x: 0.65, y: 0.13 },
+  bottomRight: { x: 0.68, y: 0.88 },
+  bottomLeft: { x: 0.32, y: 0.85 },
 };
 const markers = [
   { corner: "topLeft", opposite: "bottomRight", color: [255, 0, 0] },
@@ -25,14 +26,14 @@ const markers = [
 const width = 1200,
   height = 900;
 
-async function photoWithCard() {
-  const points = Object.values(quad)
+async function photoWithCard(card: CardQuad = quad) {
+  const points = Object.values(card)
     .map((point) => `${point.x * width},${point.y * height}`)
     .join(" ");
   const circles = markers
     .map(({ corner, opposite, color }) => {
-      const x = quad[corner].x + (quad[opposite].x - quad[corner].x) * 0.12;
-      const y = quad[corner].y + (quad[opposite].y - quad[corner].y) * 0.12;
+      const x = card[corner].x + (card[opposite].x - card[corner].x) * 0.12;
+      const y = card[corner].y + (card[opposite].y - card[corner].y) * 0.12;
       return `<circle cx="${x * width}" cy="${y * height}" r="28" fill="rgb(${color.join(",")})"/>`;
     })
     .join("");
@@ -156,6 +157,61 @@ describe("card rectification", () => {
       await rectifiedCropJpeg(await rectifyCard(stored, quad)),
     );
     for (const { corner, color } of markers) expectColor(colors[corner], color);
+  });
+
+  const pointingLeft: CardQuad = {
+    topLeft: { x: 0.25, y: 0.75 },
+    topRight: { x: 0.25, y: 0.25 },
+    bottomRight: { x: 0.8, y: 0.25 },
+    bottomLeft: { x: 0.8, y: 0.75 },
+  };
+  const pointingRight: CardQuad = {
+    topLeft: { x: 0.8, y: 0.25 },
+    topRight: { x: 0.8, y: 0.75 },
+    bottomRight: { x: 0.25, y: 0.75 },
+    bottomLeft: { x: 0.25, y: 0.25 },
+  };
+  const asSent = (card: CardQuad): CardQuad => {
+    const corners = Object.values(card);
+    const first = corners.reduce(
+      (best, point, index) =>
+        Math.hypot(point.x, point.y) <
+        Math.hypot(corners[best]!.x, corners[best]!.y)
+          ? index
+          : best,
+      0,
+    );
+    const [topLeft, topRight, bottomRight, bottomLeft] = [0, 1, 2, 3].map(
+      (offset) => corners[(first + offset) % 4]!,
+    );
+    return { topLeft, topRight, bottomRight, bottomLeft } as CardQuad;
+  };
+
+  it("turns a sideways card so a short edge is on top", async () => {
+    const image = await rectifyCard(
+      await photoWithCard(pointingLeft),
+      asSent(pointingLeft),
+    );
+    expect(image.rotation).toBe(90);
+    const colors = await cornerColors(await rectifiedCropJpeg(image));
+    expect(colors.size).toEqual([CARD_WIDTH, CARD_HEIGHT]);
+    for (const { corner, color } of markers) expectColor(colors[corner], color);
+  });
+
+  it("leaves a sideways card upside down when its top points right, and a half turn makes it upright", async () => {
+    const image = await rectifyCard(
+      await photoWithCard(pointingRight),
+      asSent(pointingRight),
+    );
+    const upsideDown = await cornerColors(await rectifiedCropJpeg(image));
+    for (const { opposite, color } of markers)
+      expectColor(upsideDown[opposite], color);
+    const turned = rotateHalfTurn(image);
+    expect(turned.rotation).toBe(270);
+    expect(turned.card).toEqual(image.card);
+    const upright = await cornerColors(await rectifiedCropJpeg(turned));
+    for (const { corner, color } of markers)
+      expectColor(upright[corner], color);
   });
 
   it("rejects bytes that are not a decodable photo", async () => {

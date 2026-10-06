@@ -8,6 +8,8 @@ import { createRectifiedRecognitionHandler } from "../src/rectified-endpoint.js"
 import {
   appearanceDescriptors,
   DESCRIPTOR_LENGTH,
+  EDGE_DESCRIPTOR_LENGTH,
+  edgeDescriptors,
 } from "../src/rectified-ranking.js";
 import type { RectifiedCorpus } from "../src/rectified-corpus.js";
 import type { RectifiedRerankRunner } from "../src/rectified-rerank-runner.js";
@@ -49,29 +51,34 @@ async function fixture(rerank: RectifiedRerankRunner["rerank"]) {
     ["other", "#3030c0", "OTHER"],
     ["third", "#30c030", "THIRD"],
   ] as const;
-  const appearance = new Float32Array(cards.length * DESCRIPTOR_LENGTH);
-  for (const [index, [, fill, label]] of cards.entries())
-    appearance.set(
-      appearanceDescriptors(
-        await cardImage(fill, label),
-        CARD_WIDTH,
-        CARD_HEIGHT,
-        [{ left: 0, top: 0, width: CARD_WIDTH, height: CARD_HEIGHT }],
-      )[0]!,
+  const color = new Float32Array(cards.length * DESCRIPTOR_LENGTH);
+  const edge = new Float32Array(cards.length * EDGE_DESCRIPTOR_LENGTH);
+  const whole = { left: 0, top: 0, width: CARD_WIDTH, height: CARD_HEIGHT };
+  for (const [index, [, fill, label]] of cards.entries()) {
+    const rgb = await cardImage(fill, label);
+    color.set(
+      appearanceDescriptors(rgb, CARD_WIDTH, CARD_HEIGHT, [whole])[0]!,
       index * DESCRIPTOR_LENGTH,
     );
+    edge.set(
+      edgeDescriptors(rgb, CARD_WIDTH, CARD_HEIGHT, whole, [whole])[0]!,
+      index * EDGE_DESCRIPTOR_LENGTH,
+    );
+  }
+  const indexed = cards.map(([id]) => ({
+    scryfallId: id,
+    oracleId: `oracle-${id}`,
+    illustrationId: null,
+    name: id,
+    set: "tst",
+    collectorNumber: "1",
+    featureStart: 0,
+    featureCount: 0,
+  }));
   const corpus: RectifiedCorpus = {
-    cards: cards.map(([id]) => ({
-      scryfallId: id,
-      oracleId: `oracle-${id}`,
-      illustrationId: null,
-      name: id,
-      set: "tst",
-      collectorNumber: "1",
-      featureStart: 0,
-      featureCount: 0,
-    })),
-    appearance,
+    cards: indexed,
+    catalog: indexed,
+    appearance: { color, edge },
   };
   const handler = createRectifiedRecognitionHandler({
     corpus: async () => corpus,
@@ -208,6 +215,7 @@ describe("POST /rectified-recognitions", () => {
     expect(Object.keys(lines[0]).sort()).toEqual([
       "candidates",
       "decision",
+      "rotation",
       "scanId",
       "serviceLatencyMs",
       "stageMs",

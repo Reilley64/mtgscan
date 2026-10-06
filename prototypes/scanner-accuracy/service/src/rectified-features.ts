@@ -203,6 +203,18 @@ export function matchReference(
       if (!((bx - ax) * (cy - by) - (by - ay) * (cx - bx) > 0)) convex = false;
       doubledArea += ax * by - bx * ay;
     }
+    const centerX = queryWindow.left + queryWindow.width / 2,
+      centerY = queryWindow.top + queryWindow.height / 2;
+    const upright = [
+      [-1, -1],
+      [1, -1],
+      [1, 1],
+      [-1, 1],
+    ].every(
+      ([sideX, sideY], index) =>
+        (quad[index * 2]! - centerX) * sideX! > 0 &&
+        (quad[index * 2 + 1]! - centerY) * sideY! > 0,
+    );
     const areaRatio =
       doubledArea / 2 / (queryWindow.width * queryWindow.height);
     const slackX = queryBounds.width * 0.15,
@@ -216,7 +228,8 @@ export function matchReference(
       goodMatches,
       inliers,
       inlierRatio: inliers / goodMatches,
-      plausible: convex && inside && areaRatio > 0.45 && areaRatio < 1.7,
+      plausible:
+        convex && upright && inside && areaRatio > 0.45 && areaRatio < 1.7,
       inlierCells: [...cells],
     };
   } catch {

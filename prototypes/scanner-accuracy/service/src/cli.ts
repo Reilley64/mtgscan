@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 import { cacheDefaultCardsBulkMetadata, prepareCorpus } from "./corpus.js";
 import {
   defaultManifestPath,
@@ -21,6 +22,7 @@ import {
   loadRectifiedCorpus,
   prepareRectifiedCorpus,
   rectifiedRoot,
+  type RectifiedCorpus,
 } from "./rectified-corpus.js";
 import { createRectifiedRerankRunner } from "./rectified-rerank-runner.js";
 import {
@@ -28,7 +30,10 @@ import {
   type RectifiedRecognition,
 } from "./rectified-recognizer.js";
 import { parseCardQuad } from "./rectify.js";
-import { DESCRIPTOR_LENGTH } from "./rectified-ranking.js";
+import {
+  DESCRIPTOR_LENGTH,
+  EDGE_DESCRIPTOR_LENGTH,
+} from "./rectified-ranking.js";
 const [command, ...args] = process.argv.slice(2);
 const valueAfter = (flag: string) => {
   const index = args.indexOf(flag);
@@ -181,101 +186,221 @@ if (command === "prepare") {
     ),
   );
 } else if (command === "rectified-evaluate") {
-  const quadsPath = valueAfter("--quads") ?? "/tmp/np/eval/quads.json";
-  const cropRoot = valueAfter("--crops") ?? "/tmp/np/rectified-eval";
+  const set = valueAfter("--set") ?? "offline";
+  const rotation = Number(valueAfter("--rotate") ?? "0");
   const repeat = Number(valueAfter("--repeat") ?? "1");
+  const holdOutExpected = args.includes("--hold-out-expected");
+  if (
+    !["offline", "phone"].includes(set) ||
+    ![0, 90, 180, 270].includes(rotation)
+  )
+    throw new Error(
+      "--set must be offline or phone; --rotate must be 0, 90, 180, or 270",
+    );
+  const cropRoot =
+    valueAfter("--crops") ??
+    `/tmp/np/rectified-eval${set === "phone" ? "-phone" : ""}${rotation ? `-${rotation}` : ""}`;
+  const edgeQuad = [
+    { x: 0.0005, y: 0.0005 },
+    { x: 0.9995, y: 0.0005 },
+    { x: 0.9995, y: 0.9995 },
+    { x: 0.0005, y: 0.9995 },
+  ];
   const woodTableScans = new Set([
     "1788189613457-8b70285e7a48a",
     "1788190211524-46f80737c45e34",
   ]);
   const dscArcaneSignet = "211a1d86-7257-4621-ae05-c2b235c063f0";
   const sldArcaneSignet = "e12857ca-54af-453a-a2ad-b5622e7c9b0c";
-  const holdOutExpected = args.includes("--hold-out-expected");
+  const entries =
+    set === "phone"
+      ? (
+          JSON.parse(
+            await fs.readFile(
+              valueAfter("--truth") ?? "/tmp/np/phone-crops/truth.json",
+              "utf8",
+            ),
+          ) as Array<{ sequence: number; crop: string; scryfallId: string }>
+        ).map((entry) => ({
+          label: String(entry.sequence),
+          group: "phone",
+          path: entry.crop,
+          corners: edgeQuad,
+          expected: entry.scryfallId,
+        }))
+      : (
+          JSON.parse(
+            await fs.readFile(
+              valueAfter("--quads") ?? "/tmp/np/eval/quads.json",
+              "utf8",
+            ),
+          ) as Array<{
+            index: number;
+            path: string;
+            corners: Array<{ x: number; y: number }>;
+          }>
+        )
+          .filter((entry) => entry.corners.length === 4)
+          .map((entry) => {
+            const wood = woodTableScans.has(
+              path.basename(path.dirname(entry.path)),
+            );
+            return {
+              label: String(entry.index),
+              group: wood ? "wood" : "binder",
+              path: entry.path,
+              corners: entry.corners,
+              expected: wood ? dscArcaneSignet : sldArcaneSignet,
+            };
+          });
   const corpus = await loadRectifiedCorpus();
-  const withoutPrinting = (scryfallId: string) => {
+  const heldOut = new Map<string, RectifiedCorpus>();
+  const corpusFor = (scryfallId: string) => {
+    if (!holdOutExpected) return corpus;
     const kept = [...corpus.cards.keys()].filter(
       (index) => corpus.cards[index]!.scryfallId !== scryfallId,
     );
-    const appearance = new Float32Array(kept.length * DESCRIPTOR_LENGTH);
-    kept.forEach((index, position) =>
-      appearance.set(
-        corpus.appearance.subarray(
-          index * DESCRIPTOR_LENGTH,
-          (index + 1) * DESCRIPTOR_LENGTH,
+    const slice = (values: Float32Array, length: number) => {
+      const result = new Float32Array(kept.length * length);
+      kept.forEach((index, position) =>
+        result.set(
+          values.subarray(index * length, (index + 1) * length),
+          position * length,
         ),
-        position * DESCRIPTOR_LENGTH,
-      ),
-    );
-    return { cards: kept.map((index) => corpus.cards[index]!), appearance };
+      );
+      return result;
+    };
+    const result = heldOut.get(scryfallId) ?? {
+      cards: kept.map((index) => corpus.cards[index]!),
+      catalog: corpus.cards,
+      appearance: {
+        color: slice(corpus.appearance.color, DESCRIPTOR_LENGTH),
+        edge: slice(corpus.appearance.edge, EDGE_DESCRIPTOR_LENGTH),
+      },
+    };
+    heldOut.set(scryfallId, result);
+    return result;
   };
-  const corpusFor = new Map(
-    [dscArcaneSignet, sldArcaneSignet].map((scryfallId) => [
-      scryfallId,
-      holdOutExpected ? withoutPrinting(scryfallId) : corpus,
-    ]),
-  );
   const expectedOracle = new Map(
     corpus.cards.map((card) => [card.scryfallId, card.oracleId]),
   );
-  const entries = (
-    JSON.parse(await fs.readFile(quadsPath, "utf8")) as Array<{
-      index: number;
-      path: string;
-      corners: Array<{ x: number; y: number }>;
-    }>
-  ).filter((entry) => entry.corners.length === 4);
   const runner = createRectifiedRerankRunner({
     featureRoot: rectifiedRoot,
     maxReranksPerWorker: 50,
     timeoutMs: 10_000,
-    workers: Number(valueAfter("--workers") ?? "2"),
+    workers: Number(valueAfter("--workers") ?? "3"),
   });
   await runner.warm();
   await fs.mkdir(cropRoot, { recursive: true });
   const results: Array<{
-    index: number;
-    surface: "wood" | "binder";
+    label: string;
+    group: string;
     expected: string;
+    shortlisted: boolean;
+    stageOneRank: { color: number; edge: number; fused: number } | null;
     recognition: RectifiedRecognition;
+    trace?: unknown;
   }> = [];
   try {
     for (let pass = 0; pass < repeat; pass++)
       for (const entry of entries) {
-        const scan = path.basename(path.dirname(entry.path));
-        const surface = woodTableScans.has(scan) ? "wood" : "binder";
-        const expected = surface === "wood" ? dscArcaneSignet : sldArcaneSignet;
-        const [topLeft, topRight, bottomRight, bottomLeft] = entry.corners;
-        const { recognition, crop } = await recognizeRectified(
+        const original = await fs.readFile(entry.path);
+        const photo = rotation
+          ? await sharp(
+              await sharp(original).rotate().jpeg({ quality: 95 }).toBuffer(),
+            )
+              .rotate(rotation)
+              .jpeg({ quality: 95 })
+              .toBuffer()
+          : original;
+        const turned = entry.corners.map(({ x, y }) =>
+          rotation === 90
+            ? { x: 1 - y, y: x }
+            : rotation === 180
+              ? { x: 1 - x, y: 1 - y }
+              : rotation === 270
+                ? { x: y, y: 1 - x }
+                : { x, y },
+        );
+        const first = turned.reduce(
+          (best, point, index) =>
+            Math.hypot(point.x, point.y) <
+            Math.hypot(turned[best]!.x, turned[best]!.y)
+              ? index
+              : best,
+          0,
+        );
+        const [topLeft, topRight, bottomRight, bottomLeft] = [0, 1, 2, 3].map(
+          (offset) => turned[(first + offset) % 4]!,
+        );
+        const entryCorpus = corpusFor(entry.expected);
+        const { recognition, crop, trace } = await recognizeRectified(
           {
-            scanId: `eval-${entry.index}`,
-            photo: await fs.readFile(entry.path),
+            scanId: `eval-${entry.label}`,
+            photo,
             quad: parseCardQuad(
               JSON.stringify({ topLeft, topRight, bottomRight, bottomLeft }),
             ),
           },
-          corpusFor.get(expected)!,
+          entryCorpus,
           runner,
         );
         if (pass === 0 && !holdOutExpected)
           await fs.writeFile(
-            path.join(cropRoot, `${String(entry.index).padStart(3, "0")}.jpg`),
+            path.join(cropRoot, `${entry.label.padStart(3, "0")}.jpg`),
             crop,
           );
-        results.push({ index: entry.index, surface, expected, recognition });
+        const position = entryCorpus.cards.findIndex(
+          (card) => card.scryfallId === entry.expected,
+        );
+        const rankIn = (values: Float32Array) =>
+          values.filter((value) => value > values[position]!).length + 1;
+        results.push({
+          label: entry.label,
+          group: entry.group,
+          expected: entry.expected,
+          shortlisted: trace.shortlist.includes(entry.expected),
+          stageOneRank:
+            position >= 0
+              ? {
+                  color: rankIn(trace.scores.color),
+                  edge: rankIn(trace.scores.edge),
+                  fused: rankIn(trace.fused),
+                }
+              : null,
+          recognition,
+          ...(pass === 0
+            ? {
+                trace: {
+                  strengths: trace.strengths,
+                  reranked: trace.reranked,
+                  ranked: trace.ranked.map((candidate) => ({
+                    ...candidate,
+                    oracleId: entryCorpus.cards[candidate.index]!.oracleId,
+                    name: entryCorpus.cards[candidate.index]!.name,
+                  })),
+                },
+              }
+            : {}),
+        });
         if (pass === 0)
           console.log(
             [
-              String(entry.index).padStart(2),
-              surface.padEnd(6),
+              entry.label.padStart(3),
+              entry.group.padEnd(6),
+              `r${recognition.rotation}`,
+              results.at(-1)!.stageOneRank
+                ? `rank c${results.at(-1)!.stageOneRank!.color} e${results.at(-1)!.stageOneRank!.edge} f${results.at(-1)!.stageOneRank!.fused}${results.at(-1)!.shortlisted ? " in" : " OUT"}`
+                : "held out",
               recognition.candidates
                 .slice(0, 3)
                 .map(
                   (candidate) =>
-                    `${candidate.name} ${candidate.set}#${candidate.collectorNumber}${candidate.scryfallId === expected ? "*" : ""} (${candidate.score})`,
+                    `${candidate.name} ${candidate.set}#${candidate.collectorNumber}${candidate.scryfallId === entry.expected ? "*" : ""} (${candidate.score})`,
                 )
                 .join(" | "),
               recognition.decision.accepted
-                ? `ACCEPT ${recognition.decision.scryfallId === expected ? "correct" : "WRONG"}`
+                ? `ACCEPT ${recognition.decision.scryfallId === entry.expected ? "correct" : "WRONG"}`
                 : `abstain: ${recognition.decision.reasons.join("; ")}`,
               JSON.stringify(recognition.stageMs),
               `${recognition.serviceLatencyMs} ms`,
@@ -290,7 +415,10 @@ if (command === "prepare") {
     return sorted[Math.max(0, Math.ceil(sorted.length * fraction) - 1)] ?? null;
   };
   const summarize = (group: typeof results) => ({
-    photos: group.length,
+    recognitions: group.length,
+    shortlistRecall: holdOutExpected
+      ? null
+      : group.filter((result) => result.shortlisted).length,
     identityTop1: group.filter(
       (result) =>
         result.recognition.candidates[0]?.oracleId ===
@@ -324,20 +452,24 @@ if (command === "prepare") {
     ),
   });
   const summary = {
+    set,
+    rotation,
     corpusCards: corpus.cards.length,
     holdOutExpected,
     repeat,
-    wood: summarize(results.filter((result) => result.surface === "wood")),
-    binder: summarize(results.filter((result) => result.surface === "binder")),
+    ...Object.fromEntries(
+      [...new Set(results.map((result) => result.group))].map((group) => [
+        group,
+        summarize(results.filter((result) => result.group === group)),
+      ]),
+    ),
     all: summarize(results),
   };
   await fs.mkdir(rectifiedRoot, { recursive: true });
   await fs.writeFile(
     path.join(
       rectifiedRoot,
-      holdOutExpected
-        ? "evaluation-held-out-latest.json"
-        : "evaluation-latest.json",
+      `evaluation-${set}${rotation ? `-${rotation}` : ""}${holdOutExpected ? "-held-out" : ""}-latest.json`,
     ),
     JSON.stringify({ summary, results }, null, 2),
   );
@@ -346,7 +478,7 @@ if (command === "prepare") {
   console.log(JSON.stringify(await generateReport(), null, 2));
 else {
   console.error(
-    "Commands: corpus:prepare [--benchmark|--personal], select:manifest [--input path] [--size 30..50], report, geometric-evaluate [--outcomes path --captures path --corpus path --output path], rectified-prepare [--collection path --manifest path], rectified-evaluate [--quads path --crops directory --repeat n --workers n --hold-out-expected]",
+    "Commands: corpus:prepare [--benchmark|--personal], select:manifest [--input path] [--size 30..50], report, geometric-evaluate [--outcomes path --captures path --corpus path --output path], rectified-prepare [--collection path --manifest path], rectified-evaluate [--set offline|phone --quads path --truth path --rotate 0|90|180|270 --crops directory --repeat n --workers n --hold-out-expected]",
   );
   process.exitCode = 1;
 }
