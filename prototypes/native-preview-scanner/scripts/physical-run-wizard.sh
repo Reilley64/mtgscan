@@ -619,7 +619,7 @@ if [[ "$MODE" == "bin" ]]; then
 
   stage "Bin batches"
   say "Put the phone in the holder over the bin, camera down, so a whole card and some bin floor show in the preview."
-  say "Each round lists cards from your collection that have not been scanned yet, grouped by the rightmost coloured symbol in the mana cost."
+  say "Each round picks a random colour group, using the rightmost coloured symbol in the mana cost, and lists cards from your collection that have not been scanned yet."
   record BATCH_SIZE "Cards to show per round (Enter for 20):"
   BATCH_SIZE=$(_existing BATCH_SIZE)
   [[ "$BATCH_SIZE" =~ ^[0-9]+$ && "$BATCH_SIZE" -gt 0 ]] || BATCH_SIZE=20
@@ -639,12 +639,17 @@ if [[ "$MODE" == "bin" ]]; then
     batch=$((batch + 1))
     SHOWN_FILE="$RUN_DIR/round-$batch-shown.tsv"
     BATCH_FILE="$RUN_DIR/batch-$batch.tsv"
-    head -n "$BATCH_SIZE" "$BIN_CARDS" > "$SHOWN_FILE"
+    ROUND_GROUP=$(cut -f6 "$BIN_CARDS" | sort -u | awk 'BEGIN { srand() } { groups[NR] = $0 } END { print groups[int(rand() * NR) + 1] }')
+    case "$ROUND_GROUP" in
+      W) ROUND_COLOUR=White ;; U) ROUND_COLOUR=Blue ;; B) ROUND_COLOUR=Black ;; R) ROUND_COLOUR=Red ;; G) ROUND_COLOUR=Green ;; *) ROUND_COLOUR=Colourless ;;
+    esac
+    awk -F'\t' -v group="$ROUND_GROUP" '$6 == group' "$BIN_CARDS" | head -n "$BATCH_SIZE" > "$SHOWN_FILE"
+    write_env "ROUND_${batch}_COLOUR" "$ROUND_COLOUR"
     SHOWN_COUNT=$(wc -l < "$SHOWN_FILE" | tr -d ' ')
     CHECKED=""
     while true; do
       _clear
-      printf '\n%s%s▸ Round %s%s  %s%s cards left to scan%s\n\n' "$BOLD" "$BLUE" "$batch" "$RESET" "$DIM" "$(wc -l < "$BIN_CARDS" | tr -d ' ')" "$RESET"
+      printf '\n%s%s▸ Round %s: %s%s  %s%s %s cards left, %s in total%s\n\n' "$BOLD" "$BLUE" "$batch" "$ROUND_COLOUR" "$RESET" "$DIM" "$(cut -f6 "$BIN_CARDS" | grep -cx "$ROUND_GROUP" || true)" "$ROUND_COLOUR" "$(wc -l < "$BIN_CARDS" | tr -d ' ')" "$RESET"
       render_checklist "$SHOWN_FILE"
       printf '\n'
       note "Type the number of each card as you find it, for example: 3 7 12. Type it again to untick."
