@@ -39,7 +39,7 @@ export type DetectorGates = {
   confidence: boolean;
   area: boolean;
   aspect: boolean;
-  centered: boolean;
+  edges: boolean;
   all: boolean;
 };
 
@@ -88,16 +88,23 @@ const EMPTY_OBSERVATION: NativeRectangleRecord = {
   topRight: null,
   bottomRight: null,
   bottomLeft: null,
+  proposalDetected: false,
+  proposalTopLeft: null,
+  proposalTopRight: null,
+  proposalBottomRight: null,
+  proposalBottomLeft: null,
   confidence: 0,
   areaRatio: 0,
   aspectRatio: 0,
   centerOffset: 1,
-  centerScore: 0,
+  edgeSupportMin: 0,
+  shiftTop: 0,
+  shiftRight: 0,
+  shiftBottom: 0,
+  shiftLeft: 0,
+  refinementStatus: 1,
+  proposalDurationMs: 0,
   nativeDurationMs: 0,
-  roiX: 0,
-  roiY: 0,
-  roiWidth: 0,
-  roiHeight: 0,
   orientationCode: -1,
   runtimeErrorCode: 0,
 };
@@ -107,7 +114,7 @@ const EMPTY_GATES: DetectorGates = {
   confidence: false,
   area: false,
   aspect: false,
-  centered: false,
+  edges: false,
   all: false,
 };
 
@@ -142,15 +149,16 @@ const evaluateDetectorGates = (
     detected &&
     observation.aspectRatio >= DETECTOR_THRESHOLDS.aspectRatioMin &&
     observation.aspectRatio <= DETECTOR_THRESHOLDS.aspectRatioMax;
-  const centered =
-    detected && observation.centerOffset <= DETECTOR_THRESHOLDS.centerOffsetMax;
+  const edges =
+    detected &&
+    observation.edgeSupportMin >= DETECTOR_THRESHOLDS.edgeSupportMin;
   return {
     detected,
     confidence,
     area,
     aspect,
-    centered,
-    all: detected && confidence && area && aspect && centered,
+    edges,
+    all: detected && confidence && area && aspect && edges,
   };
 };
 
@@ -263,15 +271,22 @@ export function usePreviewCardCapture(
               topRight: observation.topRight,
               bottomRight: observation.bottomRight,
               bottomLeft: observation.bottomLeft,
+              proposalDetected: observation.proposalDetected,
+              proposalTopLeft: observation.proposalTopLeft,
+              proposalTopRight: observation.proposalTopRight,
+              proposalBottomRight: observation.proposalBottomRight,
+              proposalBottomLeft: observation.proposalBottomLeft,
               confidence: roundScalar(observation.confidence),
               areaRatio: roundScalar(observation.areaRatio),
               aspectRatio: roundScalar(observation.aspectRatio),
               centerOffset: roundScalar(observation.centerOffset),
-              centerScore: roundScalar(observation.centerScore),
-              roiX: roundScalar(observation.roiX),
-              roiY: roundScalar(observation.roiY),
-              roiWidth: roundScalar(observation.roiWidth),
-              roiHeight: roundScalar(observation.roiHeight),
+              edgeSupportMin: roundScalar(observation.edgeSupportMin),
+              shiftTop: roundScalar(observation.shiftTop),
+              shiftRight: roundScalar(observation.shiftRight),
+              shiftBottom: roundScalar(observation.shiftBottom),
+              shiftLeft: roundScalar(observation.shiftLeft),
+              refinementStatus: observation.refinementStatus,
+              proposalDurationMs: roundScalar(observation.proposalDurationMs),
               orientationCode: observation.orientationCode,
               runtimeErrorCode: observation.runtimeErrorCode,
               frameWidth: published.frameWidth,
@@ -442,7 +457,7 @@ export function usePreviewCardCapture(
         if (AUTOMATIC_CAPTURE_ENABLED) {
           const observationOnlyGates: PreviewGates = {
             present: gates.detected,
-            centered: gates.centered,
+            centered: gates.all,
             sharp: false,
             stable: false,
             departed: !gates.detected,

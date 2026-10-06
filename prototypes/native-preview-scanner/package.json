@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "android": "expo run:android",
-    "test:native-geometry": "bash scripts/test-native-geometry.sh"
+    "test:native-detector": "bash scripts/test-native-detector.sh",
+    "evaluate:stills": "bash scripts/evaluate-stills.sh"
   },
   "dependencies": {
     "babel-preset-expo": "~54.0.10",

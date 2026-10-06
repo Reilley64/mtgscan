@@ -409,18 +409,48 @@ const validNativeRecord = () => ({
   topRight: { x: 0.8, y: 0.2 },
   bottomRight: { x: 0.8, y: 0.8 },
   bottomLeft: { x: 0.2, y: 0.8 },
+  proposalDetected: true,
+  proposalTopLeft: { x: 0.25, y: 0.25 },
+  proposalTopRight: { x: 0.75, y: 0.25 },
+  proposalBottomRight: { x: 0.75, y: 0.75 },
+  proposalBottomLeft: { x: 0.25, y: 0.75 },
   confidence: 0.9,
   areaRatio: 0.36,
   aspectRatio: 63 / 88,
   centerOffset: 0,
-  centerScore: 1,
-  nativeDurationMs: 4,
-  roiX: 0.1,
-  roiY: 0.1,
-  roiWidth: 0.8,
-  roiHeight: 0.8,
-  orientationCode: 3,
+  edgeSupportMin: 0.8,
+  shiftTop: 0.08,
+  shiftRight: 0.08,
+  shiftBottom: 0.08,
+  shiftLeft: -0.01,
+  refinementStatus: 0,
+  proposalDurationMs: 3,
+  nativeDurationMs: 5,
+  orientationCode: 2,
   runtimeErrorCode: 0,
+});
+
+const undetectedRecord = (proposal: boolean) => ({
+  ...validNativeRecord(),
+  detected: false,
+  topLeft: null,
+  topRight: null,
+  bottomRight: null,
+  bottomLeft: null,
+  proposalDetected: proposal,
+  proposalTopLeft: proposal ? { x: 0.25, y: 0.25 } : null,
+  proposalTopRight: proposal ? { x: 0.75, y: 0.25 } : null,
+  proposalBottomRight: proposal ? { x: 0.75, y: 0.75 } : null,
+  proposalBottomLeft: proposal ? { x: 0.25, y: 0.75 } : null,
+  areaRatio: 0,
+  aspectRatio: 0,
+  centerOffset: 1,
+  edgeSupportMin: proposal ? 0.4 : 0,
+  shiftTop: 0,
+  shiftRight: 0,
+  shiftBottom: 0,
+  shiftLeft: 0,
+  refinementStatus: proposal ? 3 : 1,
 });
 
 describe("native rectangle validation", () => {
@@ -437,47 +467,90 @@ describe("native rectangle validation", () => {
         topLeft: { x: 0.2, y: 0.2, extra: 1 },
       }),
     ).toBeNull();
-  });
-
-  it("requires either all four corners or no corners", () => {
+    expect(
+      validateNativeRectangleRecord({ ...validNativeRecord(), shiftTop: 1.5 }),
+    ).toBeNull();
     expect(
       validateNativeRectangleRecord({
         ...validNativeRecord(),
-        detected: false,
-        topLeft: null,
-        topRight: null,
-        bottomRight: null,
-        bottomLeft: null,
-        confidence: 0,
-        areaRatio: 0,
-        aspectRatio: 0,
-        centerOffset: 1,
-        centerScore: 0,
-      }),
-    ).not.toBeNull();
-    expect(
-      validateNativeRectangleRecord({
-        ...validNativeRecord(),
-        detected: false,
-        topLeft: null,
+        runtimeErrorCode: 6,
       }),
     ).toBeNull();
   });
 
-  it("accepts VisionCamera's JSI representation of an undetected rectangle", () => {
+  it("requires a refined card to come from a proposal", () => {
     expect(
       validateNativeRectangleRecord({
         ...validNativeRecord(),
+        proposalDetected: false,
+        proposalTopLeft: null,
+        proposalTopRight: null,
+        proposalBottomRight: null,
+        proposalBottomLeft: null,
+      }),
+    ).toBeNull();
+    expect(
+      validateNativeRectangleRecord({
+        ...validNativeRecord(),
+        refinementStatus: 3,
+      }),
+    ).toBeNull();
+    expect(
+      validateNativeRectangleRecord({
+        ...undetectedRecord(true),
+        refinementStatus: 0,
+      }),
+    ).toBeNull();
+  });
+
+  it("keeps a weak-edge proposal visible without a refined quad", () => {
+    expect(validateNativeRectangleRecord(undetectedRecord(true))).toMatchObject(
+      {
         detected: false,
+        topLeft: null,
+        proposalDetected: true,
+        proposalTopLeft: { x: 0.25, y: 0.25 },
+        refinementStatus: 3,
+      },
+    );
+  });
+
+  it("requires either all four corners or no corners for each quad", () => {
+    expect(
+      validateNativeRectangleRecord(undetectedRecord(false)),
+    ).not.toBeNull();
+    expect(
+      validateNativeRectangleRecord({
+        ...undetectedRecord(false),
+        topLeft: { x: 0.2, y: 0.2 },
+      }),
+    ).toBeNull();
+    expect(
+      validateNativeRectangleRecord({
+        ...undetectedRecord(true),
+        proposalBottomLeft: null,
+      }),
+    ).toBeNull();
+    expect(
+      validateNativeRectangleRecord({
+        ...undetectedRecord(false),
+        proposalTopLeft: { x: 0.25, y: 0.25 },
+      }),
+    ).toBeNull();
+  });
+
+  it("accepts VisionCamera's JSI representation of absent corners", () => {
+    expect(
+      validateNativeRectangleRecord({
+        ...undetectedRecord(false),
         topLeft: undefined,
         topRight: undefined,
         bottomRight: undefined,
         bottomLeft: undefined,
-        confidence: 0,
-        areaRatio: 0,
-        aspectRatio: 0,
-        centerOffset: 1,
-        centerScore: 0,
+        proposalTopLeft: undefined,
+        proposalTopRight: undefined,
+        proposalBottomRight: undefined,
+        proposalBottomLeft: undefined,
       }),
     ).toMatchObject({
       detected: false,
@@ -485,6 +558,8 @@ describe("native rectangle validation", () => {
       topRight: null,
       bottomRight: null,
       bottomLeft: null,
+      proposalTopLeft: null,
+      proposalBottomLeft: null,
     });
   });
 

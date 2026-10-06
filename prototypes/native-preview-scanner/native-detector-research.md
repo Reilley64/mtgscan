@@ -2,6 +2,14 @@
 
 _Date checked: 2026-09-01. This is research for the throwaway native preview scanner. It is not an architecture decision._
 
+## Update: orientation correction and edge refinement
+
+_Date checked: 2026-10-06._
+
+VisionCamera `4.7.3` reports `frame.orientation` as the orientation of the buffer, not the rotation that displays it. In `CameraView.swift`, frames get `connection.orientation.imageOrientation`. The video data output connection stays at the sensor's `landscapeRight`, which maps to `.left`. VisionCamera's own snapshot path displays the same buffer with `Orientation.portrait.relativeTo(orientation: snapshot.orientation)`, which is `.right`. The two are inverses. Every earlier Apple Vision trial passed `.left` to Vision in portrait, so Vision analyzed a frame rotated by 180 degrees. That can explain the earlier quad that was "too low" and slid against camera movement. The rejected rectangle and document-segmentation alignment results need a retest with the corrected orientation. Their timing results still stand.
+
+The new prototype corrects the orientation, uses `VNDetectDocumentSegmentationRequest` as a coarse full-frame proposal, and refines each edge against straight luminance steps in the YUV luma plane. See [README.md](./README.md#edge-refinement). A macOS fixture checks the orientation mapping against Core Image and Vision for all eight orientations. Offline, on six private photos of a card on a wood table, the refined quad followed the outer card edge on all four sides in five photos. In binder pockets it often chose the pocket edge. No physical iPhone run has been made.
+
 ## Answer
 
 The free-package admission is complete and rejected. Unchanged [`react-native-fast-opencv@0.4.8`](https://github.com/lukaszkurantdev/react-native-fast-opencv/releases/tag/v0.4.8) installed and compiled on the fixed Expo `54.0.37`, React Native `0.81.5`, React `19.1.0`, VisionCamera `4.7.3`, Worklets Core `1.6.3`, and resize-plugin `3.2.0` stack. Its MIT npm package resolved the permissively licensed `FastOpenCV-iOS 1.0.4` Pod. Two clean prebuilds, Pod installation, and unsigned Xcode 26.3 simulator and device builds passed without patches or host changes. This is compile evidence only.

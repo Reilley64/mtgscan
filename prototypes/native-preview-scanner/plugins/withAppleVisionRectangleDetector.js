@@ -9,7 +9,9 @@ const {
 const pluginName = "mtgscan-apple-vision-rectangle-detector";
 const pluginVersion = "1.0.0";
 const sourceNames = [
-  "MTGCardRectangleGeometry.swift",
+  "MTGCardQuadGeometry.swift",
+  "MTGCardEdgeRefiner.swift",
+  "MTGCardQuadDetector.swift",
   "MTGCardRectangleFrameProcessorPlugin.swift",
   "MTGCardRectangleFrameProcessorPlugin.m",
 ];

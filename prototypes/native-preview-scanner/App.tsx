@@ -8,6 +8,8 @@ import {
   Text,
   View,
   type LayoutRectangle,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import {
   Camera,
@@ -17,12 +19,13 @@ import {
 } from "react-native-vision-camera";
 import {
   AUTOMATIC_CAPTURE_ENABLED,
-  CARD_ASPECT_RATIO,
   DETECTOR_THRESHOLDS,
-  GUIDE_WIDTH_FRACTION,
 } from "./src/capture/config";
 import { usePreviewCardCapture } from "./src/capture/usePreviewCardCapture";
-import type { DetectorPoint } from "./src/detector/validation";
+import {
+  REFINEMENT_STATUS_LABELS,
+  type DetectorPoint,
+} from "./src/detector/validation";
 
 const formatNumber = (value: number, digits = 1) =>
   Number.isFinite(value) ? value.toFixed(digits) : "n/a";
@@ -102,7 +105,7 @@ export default function App() {
     return (
       <SafeAreaView style={styles.permissionScreen}>
         <StatusBar style="light" />
-        <Text style={styles.title}>Apple Vision detector spike</Text>
+        <Text style={styles.title}>Card edge refinement spike</Text>
         <Text style={styles.body}>
           This development build needs camera access. Frames stay in the app
           process. Expo Go cannot load the native detector.
@@ -130,20 +133,6 @@ export default function App() {
     diagnostics.orientedFrameWidth,
     diagnostics.orientedFrameHeight,
   );
-  const guide = preview
-    ? {
-        width: preview.width * GUIDE_WIDTH_FRACTION,
-        height: (preview.width * GUIDE_WIDTH_FRACTION) / CARD_ASPECT_RATIO,
-      }
-    : null;
-  const roi = preview
-    ? {
-        left: preview.x + observation.roiX * preview.width,
-        top: preview.y + observation.roiY * preview.height,
-        width: observation.roiWidth * preview.width,
-        height: observation.roiHeight * preview.height,
-      }
-    : null;
   const mapPoint = (point: DetectorPoint | null) =>
     point && preview
       ? {
@@ -159,7 +148,17 @@ export default function App() {
         mapPoint(observation.bottomLeft),
       ]
     : null;
+  const proposalQuad = observation.proposalDetected
+    ? [
+        mapPoint(observation.proposalTopLeft),
+        mapPoint(observation.proposalTopRight),
+        mapPoint(observation.proposalBottomRight),
+        mapPoint(observation.proposalBottomLeft),
+      ]
+    : null;
   const fatal = diagnostics.fatalErrorCode !== 0;
+  const statusLabel =
+    REFINEMENT_STATUS_LABELS[observation.refinementStatus] ?? "unknown";
 
   return (
     <View
@@ -184,25 +183,20 @@ export default function App() {
       />
 
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {guide && preview ? (
-          <View
-            style={[
-              styles.guide,
-              diagnostics.gates.all && styles.guideReady,
-              {
-                left: preview.x + (preview.width - guide.width) / 2,
-                top: preview.y + (preview.height - guide.height) / 2,
-                width: guide.width,
-                height: guide.height,
-              },
-            ]}
+        {proposalQuad?.every((point) => point !== null) ? (
+          <QuadOverlay
+            points={proposalQuad as { x: number; y: number }[]}
+            edgeStyle={styles.proposalEdge}
           />
         ) : null}
-        {roi && roi.width > 0 && roi.height > 0 ? (
-          <View style={[styles.roi, roi]} />
-        ) : null}
         {quad?.every((point) => point !== null) ? (
-          <QuadOverlay points={quad as { x: number; y: number }[]} />
+          <QuadOverlay
+            points={quad as { x: number; y: number }[]}
+            edgeStyle={[
+              styles.quadEdge,
+              diagnostics.gates.all && styles.quadEdgeReady,
+            ]}
+          />
         ) : null}
       </View>
 
@@ -214,8 +208,8 @@ export default function App() {
             {fatal
               ? `Detector locked, code ${diagnostics.fatalErrorCode}`
               : observation.detected
-                ? "Rectangle observed"
-                : "Seeking a rectangle"}
+                ? "Card edges refined"
+                : `Seeking a card: ${statusLabel}`}
           </Text>
           <Text style={styles.format}>{formatLabel}</Text>
           <Text style={styles.disabledCapture}>
@@ -230,9 +224,9 @@ export default function App() {
 
         <View style={styles.metricsPanel}>
           <Metric
-            label="Detected"
+            label="Refined"
             pass={diagnostics.gates.detected}
-            value={observation.detected ? "one observation" : "none"}
+            value={`${statusLabel}; proposal ${observation.proposalDetected ? "yes" : "no"}`}
           />
           <Metric
             label="Confidence"
@@ -250,16 +244,25 @@ export default function App() {
             value={`${formatNumber(observation.aspectRatio, 3)} in ${DETECTOR_THRESHOLDS.aspectRatioMin}-${DETECTOR_THRESHOLDS.aspectRatioMax}`}
           />
           <Metric
-            label="Centered"
-            pass={diagnostics.gates.centered}
-            value={`offset ${formatNumber(observation.centerOffset, 3)} <= ${DETECTOR_THRESHOLDS.centerOffsetMax}; score ${formatNumber(observation.centerScore, 3)}`}
+            label="Edges"
+            pass={diagnostics.gates.edges}
+            value={`support ${formatNumber(observation.edgeSupportMin, 2)} >= ${DETECTOR_THRESHOLDS.edgeSupportMin}`}
           />
+          <Text style={styles.telemetry}>
+            Edge shift from proposal T/R/B/L{" "}
+            {formatNumber(observation.shiftTop, 3)}/
+            {formatNumber(observation.shiftRight, 3)}/
+            {formatNumber(observation.shiftBottom, 3)}/
+            {formatNumber(observation.shiftLeft, 3)} of short side; center
+            offset {formatNumber(observation.centerOffset, 3)}.
+          </Text>
           <Text style={styles.telemetry}>
             Post-publish total {formatNumber(diagnostics.timing.p50Ms, 2)} ms
             p50, {formatNumber(diagnostics.timing.p95Ms, 2)} ms p95,{" "}
             {formatNumber(diagnostics.timing.maxMs, 2)} ms max over{" "}
             {diagnostics.timing.sampleCount}/300 samples. Native{" "}
-            {formatNumber(observation.nativeDurationMs, 2)} ms.
+            {formatNumber(observation.nativeDurationMs, 2)} ms, proposal{" "}
+            {formatNumber(observation.proposalDurationMs, 2)} ms.
           </Text>
           <Text style={styles.telemetry}>
             Cadence {formatNumber(diagnostics.timing.effectiveHz, 2)} Hz{" "}
@@ -269,13 +272,9 @@ export default function App() {
             {diagnostics.consecutiveSlowSamples}/10.
           </Text>
           <Text style={styles.telemetry}>
-            ROI x/y/w/h {formatNumber(observation.roiX, 3)}/{" "}
-            {formatNumber(observation.roiY, 3)}/{" "}
-            {formatNumber(observation.roiWidth, 3)}/{" "}
-            {formatNumber(observation.roiHeight, 3)}; orientation{" "}
-            {observation.orientationCode}; frame {diagnostics.frameWidth}x
-            {diagnostics.frameHeight} to {diagnostics.orientedFrameWidth}x
-            {diagnostics.orientedFrameHeight}.
+            Orientation {observation.orientationCode}; frame{" "}
+            {diagnostics.frameWidth}x{diagnostics.frameHeight} to{" "}
+            {diagnostics.orientedFrameWidth}x{diagnostics.orientedFrameHeight}.
           </Text>
           <Text style={styles.telemetry}>
             Last photo:{" "}
@@ -305,7 +304,13 @@ export default function App() {
   );
 }
 
-function QuadOverlay({ points }: { points: { x: number; y: number }[] }) {
+function QuadOverlay({
+  points,
+  edgeStyle,
+}: {
+  points: { x: number; y: number }[];
+  edgeStyle: StyleProp<ViewStyle>;
+}) {
   return (
     <>
       {[0, 1, 2, 3].map((index) => {
@@ -317,7 +322,7 @@ function QuadOverlay({ points }: { points: { x: number; y: number }[] }) {
           <View
             key={index}
             style={[
-              styles.quadEdge,
+              edgeStyle,
               {
                 left: (start.x + end.x - length) / 2,
                 top: (start.y + end.y) / 2 - 1.5,
@@ -411,29 +416,19 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.4 },
   buttonText: { color: "#101500", fontSize: 12, fontWeight: "900" },
-  guide: {
+  proposalEdge: {
     position: "absolute",
-    borderWidth: 3,
-    borderRadius: 15,
-    borderColor: "#f4d06f",
-    backgroundColor: "transparent",
-  },
-  guideReady: {
-    borderColor: "#9be7c4",
-    shadowColor: "#9be7c4",
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-  },
-  roi: {
-    position: "absolute",
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: "#74c7ff",
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: "#00e5ff",
   },
   quadEdge: {
     position: "absolute",
     height: 3,
     borderRadius: 2,
     backgroundColor: "#ff4fd8",
+  },
+  quadEdgeReady: {
+    backgroundColor: "#9be7c4",
   },
 });

@@ -6,19 +6,34 @@ export type NativeRectangleRecord = Readonly<{
   topRight: DetectorPoint | null;
   bottomRight: DetectorPoint | null;
   bottomLeft: DetectorPoint | null;
+  proposalDetected: boolean;
+  proposalTopLeft: DetectorPoint | null;
+  proposalTopRight: DetectorPoint | null;
+  proposalBottomRight: DetectorPoint | null;
+  proposalBottomLeft: DetectorPoint | null;
   confidence: number;
   areaRatio: number;
   aspectRatio: number;
   centerOffset: number;
-  centerScore: number;
+  edgeSupportMin: number;
+  shiftTop: number;
+  shiftRight: number;
+  shiftBottom: number;
+  shiftLeft: number;
+  refinementStatus: number;
+  proposalDurationMs: number;
   nativeDurationMs: number;
-  roiX: number;
-  roiY: number;
-  roiWidth: number;
-  roiHeight: number;
   orientationCode: number;
   runtimeErrorCode: number;
 }>;
+
+export const REFINEMENT_STATUS_LABELS = [
+  "refined",
+  "no proposal",
+  "proposal outside frame",
+  "weak edge",
+  "invalid quad",
+] as const;
 
 const NATIVE_KEYS = [
   "detected",
@@ -26,16 +41,23 @@ const NATIVE_KEYS = [
   "topRight",
   "bottomRight",
   "bottomLeft",
+  "proposalDetected",
+  "proposalTopLeft",
+  "proposalTopRight",
+  "proposalBottomRight",
+  "proposalBottomLeft",
   "confidence",
   "areaRatio",
   "aspectRatio",
   "centerOffset",
-  "centerScore",
+  "edgeSupportMin",
+  "shiftTop",
+  "shiftRight",
+  "shiftBottom",
+  "shiftLeft",
+  "refinementStatus",
+  "proposalDurationMs",
   "nativeDurationMs",
-  "roiX",
-  "roiY",
-  "roiWidth",
-  "roiHeight",
   "orientationCode",
   "runtimeErrorCode",
 ] as const;
@@ -65,6 +87,11 @@ const normalizedUnit = (value: number) => {
   return Math.max(0, Math.min(1, value));
 };
 
+const isAbsent = (value: unknown) => {
+  "worklet";
+  return value === null || value === undefined;
+};
+
 const validatePoint = (value: unknown): DetectorPoint | null => {
   "worklet";
   if (!isRecord(value)) return null;
@@ -73,6 +100,44 @@ const validatePoint = (value: unknown): DetectorPoint | null => {
   if (!isFiniteInRange(value.x, -0.000_001, 1.000_001)) return null;
   if (!isFiniteInRange(value.y, -0.000_001, 1.000_001)) return null;
   return { x: normalizedUnit(value.x), y: normalizedUnit(value.y) };
+};
+
+type Quad = readonly [
+  DetectorPoint | null,
+  DetectorPoint | null,
+  DetectorPoint | null,
+  DetectorPoint | null,
+];
+
+const validateQuad = (
+  present: boolean,
+  values: readonly [unknown, unknown, unknown, unknown],
+): Quad | null => {
+  "worklet";
+  const points: Quad = [
+    validatePoint(values[0]),
+    validatePoint(values[1]),
+    validatePoint(values[2]),
+    validatePoint(values[3]),
+  ];
+  if (present) {
+    if (
+      points[0] === null ||
+      points[1] === null ||
+      points[2] === null ||
+      points[3] === null
+    )
+      return null;
+    return points;
+  }
+  if (
+    !isAbsent(values[0]) ||
+    !isAbsent(values[1]) ||
+    !isAbsent(values[2]) ||
+    !isAbsent(values[3])
+  )
+    return null;
+  return [null, null, null, null];
 };
 
 export function validateNativeRectangleRecord(
@@ -84,65 +149,69 @@ export function validateNativeRectangleRecord(
   if (keys.length !== NATIVE_KEYS.length) return null;
   for (const key of NATIVE_KEYS) if (!(key in value)) return null;
   if (typeof value.detected !== "boolean") return null;
+  if (typeof value.proposalDetected !== "boolean") return null;
   if (!Number.isInteger(value.orientationCode)) return null;
   if (!Number.isInteger(value.runtimeErrorCode)) return null;
+  if (!Number.isInteger(value.refinementStatus)) return null;
   if (!isFiniteInRange(value.orientationCode, -1, 7)) return null;
-  if (!isFiniteInRange(value.runtimeErrorCode, 0, 4)) return null;
+  if (!isFiniteInRange(value.runtimeErrorCode, 0, 5)) return null;
+  if (!isFiniteInRange(value.refinementStatus, 0, 4)) return null;
   if (!isFiniteInRange(value.confidence, 0, 1)) return null;
   if (!isFiniteInRange(value.areaRatio, 0, 1)) return null;
   if (!isFiniteInRange(value.aspectRatio, 0, 1)) return null;
   if (!isFiniteInRange(value.centerOffset, 0, 1)) return null;
-  if (!isFiniteInRange(value.centerScore, 0, 1)) return null;
+  if (!isFiniteInRange(value.edgeSupportMin, 0, 1)) return null;
+  if (!isFiniteInRange(value.shiftTop, -1, 1)) return null;
+  if (!isFiniteInRange(value.shiftRight, -1, 1)) return null;
+  if (!isFiniteInRange(value.shiftBottom, -1, 1)) return null;
+  if (!isFiniteInRange(value.shiftLeft, -1, 1)) return null;
+  if (!isFiniteInRange(value.proposalDurationMs, 0, 10_000)) return null;
   if (!isFiniteInRange(value.nativeDurationMs, 0, 10_000)) return null;
-  if (!isFiniteInRange(value.roiX, 0, 1)) return null;
-  if (!isFiniteInRange(value.roiY, 0, 1)) return null;
-  if (!isFiniteInRange(value.roiWidth, 0, 1)) return null;
-  if (!isFiniteInRange(value.roiHeight, 0, 1)) return null;
-  if (value.roiX + value.roiWidth > 1.000_001) return null;
-  if (value.roiY + value.roiHeight > 1.000_001) return null;
-
-  const topLeft = validatePoint(value.topLeft);
-  const topRight = validatePoint(value.topRight);
-  const bottomRight = validatePoint(value.bottomRight);
-  const bottomLeft = validatePoint(value.bottomLeft);
   if (value.detected) {
-    if (
-      value.runtimeErrorCode !== 0 ||
-      topLeft === null ||
-      topRight === null ||
-      bottomRight === null ||
-      bottomLeft === null
-    )
-      return null;
-  } else if (
-    (value.topLeft !== null && value.topLeft !== undefined) ||
-    (value.topRight !== null && value.topRight !== undefined) ||
-    (value.bottomRight !== null && value.bottomRight !== undefined) ||
-    (value.bottomLeft !== null && value.bottomLeft !== undefined) ||
-    topLeft !== null ||
-    topRight !== null ||
-    bottomRight !== null ||
-    bottomLeft !== null
-  ) {
+    if (value.runtimeErrorCode !== 0) return null;
+    if (value.refinementStatus !== 0) return null;
+    if (!value.proposalDetected) return null;
+  } else if (value.refinementStatus === 0) {
     return null;
   }
 
+  const refined = validateQuad(value.detected, [
+    value.topLeft,
+    value.topRight,
+    value.bottomRight,
+    value.bottomLeft,
+  ]);
+  const proposal = validateQuad(value.proposalDetected, [
+    value.proposalTopLeft,
+    value.proposalTopRight,
+    value.proposalBottomRight,
+    value.proposalBottomLeft,
+  ]);
+  if (refined === null || proposal === null) return null;
+
   return {
     detected: value.detected,
-    topLeft,
-    topRight,
-    bottomRight,
-    bottomLeft,
+    topLeft: refined[0],
+    topRight: refined[1],
+    bottomRight: refined[2],
+    bottomLeft: refined[3],
+    proposalDetected: value.proposalDetected,
+    proposalTopLeft: proposal[0],
+    proposalTopRight: proposal[1],
+    proposalBottomRight: proposal[2],
+    proposalBottomLeft: proposal[3],
     confidence: normalizedUnit(value.confidence),
     areaRatio: normalizedUnit(value.areaRatio),
     aspectRatio: normalizedUnit(value.aspectRatio),
     centerOffset: normalizedUnit(value.centerOffset),
-    centerScore: normalizedUnit(value.centerScore),
+    edgeSupportMin: normalizedUnit(value.edgeSupportMin),
+    shiftTop: value.shiftTop,
+    shiftRight: value.shiftRight,
+    shiftBottom: value.shiftBottom,
+    shiftLeft: value.shiftLeft,
+    refinementStatus: value.refinementStatus,
+    proposalDurationMs: value.proposalDurationMs,
     nativeDurationMs: value.nativeDurationMs,
-    roiX: normalizedUnit(value.roiX),
-    roiY: normalizedUnit(value.roiY),
-    roiWidth: normalizedUnit(value.roiWidth),
-    roiHeight: normalizedUnit(value.roiHeight),
     orientationCode: value.orientationCode,
     runtimeErrorCode: value.runtimeErrorCode,
   };

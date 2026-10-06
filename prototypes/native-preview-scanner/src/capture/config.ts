@@ -38,14 +38,14 @@ export type DetectorThresholds = {
   areaRatioMax: number;
   aspectRatioMin: number;
   aspectRatioMax: number;
-  centerOffsetMax: number;
+  edgeSupportMin: number;
 };
 
 export const DETECTOR_THRESHOLDS: DetectorThresholds = {
   confidenceMin: 0.5,
   areaRatioMin: 0.08,
-  areaRatioMax: 0.7,
-  aspectRatioMin: 0.55,
-  aspectRatioMax: 0.9,
-  centerOffsetMax: 0.35,
+  areaRatioMax: 0.9,
+  aspectRatioMin: 0.686,
+  aspectRatioMax: 0.746,
+  edgeSupportMin: 0.7,
 };
