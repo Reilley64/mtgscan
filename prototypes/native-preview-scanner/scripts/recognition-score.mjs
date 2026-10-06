@@ -330,6 +330,15 @@ if (command === "cards") {
       unmatchedResults: unmatched.length,
       duplicatePhotos: duplicates.length,
       restarts,
+      photosWithLight: starts.filter((entry) => entry.torch === true).length,
+      light: (() => {
+        const known = starts.filter(
+          (entry) => typeof entry.torch === "boolean",
+        );
+        if (known.length === 0) return "unknown";
+        const on = known.filter((entry) => entry.torch).length;
+        return on === 0 ? "off" : on === known.length ? "on" : "mixed";
+      })(),
       notInBatchResults: outsiders.length,
       missedCards: judged.filter((result) => result.status === "no-result")
         .length,

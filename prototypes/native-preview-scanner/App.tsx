@@ -20,6 +20,7 @@ import {
 import {
   AUTOMATIC_CAPTURE_ENABLED,
   DETECTOR_THRESHOLDS,
+  QUAD_CAPTURE_TIMING,
 } from "./src/capture/config";
 import {
   usePreviewCardCapture,
@@ -77,7 +78,7 @@ export default function App() {
     { fps: 30 },
   ]);
   const { hasPermission, requestPermission } = useCameraPermission();
-  const capture = usePreviewCardCapture(camera);
+  const capture = usePreviewCardCapture(camera, QUAD_CAPTURE_TIMING, torchOn);
   const actualFps = format
     ? Math.max(format.minFps, Math.min(30, format.maxFps))
     : 30;

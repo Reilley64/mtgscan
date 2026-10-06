@@ -28,7 +28,11 @@ import {
   RESUME_GAP_MS,
   type CapturePhase,
 } from "./stateMachine";
-import { signatureTexture, type QuadCorners } from "./quadCaptureGates";
+import {
+  rawSignatureCorrelation,
+  signatureTexture,
+  type QuadCorners,
+} from "./quadCaptureGates";
 import { stepQuadCapture } from "./quadCaptureStep";
 import { callNativeRectangleDetector } from "../detector/nativeRectangleDetector";
 import {
@@ -71,6 +75,7 @@ export type PreviewCardCaptureDiagnostics = {
   captureGates: PreviewGates;
   motion: number | null;
   changeCorrelation: number | null;
+  rawChangeCorrelation: number | null;
   background: boolean;
   signatureTexture: number | null;
   timing: AnalysisTelemetry;
@@ -167,6 +172,7 @@ const initialDiagnostics = (): PreviewCardCaptureDiagnostics => ({
   captureGates: EMPTY_CAPTURE_GATES,
   motion: null,
   changeCorrelation: null,
+  rawChangeCorrelation: null,
   background: false,
   signatureTexture: null,
   timing: EMPTY_TIMING_TELEMETRY,
@@ -217,7 +223,10 @@ const roundScalar = (value: number, digits = 4) => {
 export function usePreviewCardCapture(
   camera: RefObject<Camera | null>,
   thresholds: CaptureThresholds = QUAD_CAPTURE_TIMING,
+  torchOn = false,
 ): PreviewCardCapture {
+  const torchRef = useRef(torchOn);
+  torchRef.current = torchOn;
   const machine = useSharedValue(initialCaptureMachineState());
   const workletCaptureGuard = useSharedValue(false);
   const fatalDetector = useSharedValue(false);
@@ -257,6 +266,29 @@ export function usePreviewCardCapture(
             reason: next.rearmReason,
             sampleId: next.sampleId,
             changeCorrelation: next.changeCorrelation,
+          }),
+      );
+    }
+    if (
+      next.phase === "cooldown" &&
+      next.observation.detected &&
+      next.sampleId % 5 === 0
+    ) {
+      console.log(
+        "NATIVE_PREVIEW_EVENT " +
+          JSON.stringify({
+            event: "cooldown-sample",
+            atMs: Date.now(),
+            sampleId: next.sampleId,
+            torch: torchRef.current,
+            changeCorrelation: next.changeCorrelation,
+            rawChangeCorrelation: next.rawChangeCorrelation,
+            background: next.background,
+            signatureTexture: next.signatureTexture,
+            areaRatio: next.observation.areaRatio,
+            signature: next.observation.signature.map((value) =>
+              Math.round(value),
+            ),
           }),
       );
     }
@@ -386,6 +418,7 @@ export function usePreviewCardCapture(
                   ? null
                   : roundScalar(published.changeCorrelation),
               background: published.background,
+              torch: torchRef.current,
               signatureTexture:
                 published.signatureTexture === null
                   ? null
@@ -509,6 +542,11 @@ export function usePreviewCardCapture(
             event: "capture-js-start",
             atMs: startedAtMs,
             sequence,
+            torch: torchRef.current,
+            signature:
+              signature === null
+                ? null
+                : signature.map((value) => Math.round(value)),
           }),
       );
       setError(null);
@@ -684,6 +722,12 @@ export function usePreviewCardCapture(
         );
         const { captureGates, motion, changeCorrelation, background } = step;
         const texture = signatureTexture(observation.signature);
+        const rawChangeCorrelation = observation.detected
+          ? rawSignatureCorrelation(
+              capturedSignature.value,
+              observation.signature,
+            )
+          : null;
         previousCorners.value = step.state.previousCorners;
         const phaseBefore = machine.value.phase;
         let phase = machine.value.phase;
@@ -712,6 +756,7 @@ export function usePreviewCardCapture(
             captureGates,
             motion,
             changeCorrelation,
+            rawChangeCorrelation,
             background,
             signatureTexture: texture,
             captureLocked,

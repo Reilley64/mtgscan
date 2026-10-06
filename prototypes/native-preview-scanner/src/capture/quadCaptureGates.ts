@@ -192,6 +192,35 @@ export function signatureCorrelation(
   return scale > 0 ? product / scale : null;
 }
 
+export function rawSignatureCorrelation(
+  first: readonly number[] | null,
+  second: readonly number[] | null,
+): number | null {
+  "worklet";
+  if (first === null || second === null) return null;
+  if (first.length === 0 || first.length !== second.length) return null;
+  let firstMean = 0;
+  let secondMean = 0;
+  for (let index = 0; index < first.length; index += 1) {
+    firstMean += first[index]!;
+    secondMean += second[index]!;
+  }
+  firstMean /= first.length;
+  secondMean /= second.length;
+  let product = 0;
+  let firstSquares = 0;
+  let secondSquares = 0;
+  for (let index = 0; index < first.length; index += 1) {
+    const a = first[index]! - firstMean;
+    const b = second[index]! - secondMean;
+    product += a * b;
+    firstSquares += a * a;
+    secondSquares += b * b;
+  }
+  const scale = Math.sqrt(firstSquares * secondSquares);
+  return scale > 0 ? product / scale : null;
+}
+
 export function matchesBackground(
   signature: readonly number[],
   backgrounds: readonly (readonly number[])[],

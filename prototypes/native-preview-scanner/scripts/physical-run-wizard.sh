@@ -694,9 +694,10 @@ if [[ "$MODE" == "bin" ]]; then
     summary=$($SCORE bin-score "$METRO_LOG" "$BATCH_START_LINE" "$BATCH_FILE" "$RUN_DIR/batch-$batch-detail.ndjson")
     printf '%s\n' "$summary" >> "$BIN_TOTALS"
     write_env "BATCH_${batch}_SUMMARY" "$summary"
+    write_env "ROUND_${batch}_LIGHT" "$(node -e 'console.log(JSON.parse(process.argv[1]).light)' "$summary")"
     say "Round $batch: $(node -e '
       const s = JSON.parse(process.argv[1]);
-      console.log(`${s.printingTop1}/${s.presented} exact printing, ${s.correctAccepts} accepted, ${s.falseAccepts} wrong accepts, ${s.missedCards} missed, ${s.duplicatePhotos} duplicate photos, ${s.notInBatchResults} results not in the batch, ${s.restarts} restarts, ${s.correctCardsPerMinute ?? "n/a"} correct cards per minute`);
+      console.log(`${s.printingTop1}/${s.presented} exact printing, ${s.correctAccepts} accepted, ${s.falseAccepts} wrong accepts, ${s.missedCards} missed, ${s.duplicatePhotos} duplicate photos, ${s.notInBatchResults} results not in the batch, ${s.restarts} restarts, light ${s.light} (${s.photosWithLight}/${s.photos} photos), ${s.correctCardsPerMinute ?? "n/a"} correct cards per minute`);
     ' "$summary")"
     cut -f1 "$BATCH_FILE" >> "$LEDGER"
     confirm "Start another round?" || break
