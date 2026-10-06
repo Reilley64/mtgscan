@@ -63,9 +63,6 @@ const handleRectifiedRecognition = catalogRecognizer
       runner: rectifiedRunner,
       persistRoot: rectifiedRoot,
     });
-void catalogRecognizer?.warm().catch((error: unknown) => {
-  console.error(error);
-});
 function reply(response: http.ServerResponse, status: number, body: unknown) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -146,6 +143,17 @@ server.listen(port, host, () => {
   console.log(
     `Scanner accuracy prototype service listening on http://${host}:${port}`,
   );
+  if (catalogRecognizer) {
+    catalogRecognizer
+      .warm()
+      .then(() => console.log(`Catalog recognizer ready: ${catalogDirectory}`))
+      .catch((error: unknown) =>
+        console.warn(
+          `Catalog recognition unavailable: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+    return;
+  }
   loadRectified()
     .then((corpus) => {
       console.log(`Rectified corpus loaded: ${corpus.cards.length} printings`);
