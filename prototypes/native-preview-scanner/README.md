@@ -55,7 +55,7 @@ The worklet calls the plugin under `runAtTargetFps(5)`. A missing plugin, native
 
 ### Overlay and gates
 
-The overlay maps both quads into the contained preview rectangle. The proposal is a thin cyan outline. The refined quad is always magenta. The status panel shows the gates. The gates are refined detection, proposal confidence at least 0.5, area 0.08 to 0.9, aspect 0.696 to 0.736, and minimum edge support at least 0.7. Together they decide whether a card is present for the capture gates below.
+A **Light** button turns the phone's torch on or off when the camera has one. Each change is logged as `torch-changed`, so a run shows which samples and photos used the light. The torch can add glare on foil cards and sleeves. The overlay maps both quads into the contained preview rectangle. The proposal is a thin cyan outline. The refined quad is always magenta. The status panel shows the gates. The gates are refined detection, proposal confidence at least 0.5, area 0.08 to 0.9, aspect 0.696 to 0.736, and minimum edge support at least 0.7. Together they decide whether a card is present for the capture gates below.
 
 ## Timing and cadence evidence semantics
 

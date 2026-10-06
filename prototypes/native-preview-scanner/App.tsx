@@ -61,6 +61,7 @@ const containedPreview = (
 
 export default function App() {
   const camera = useRef<Camera>(null);
+  const [torchOn, setTorchOn] = useState(false);
   const [container, setContainer] = useState<LayoutRectangle>({
     x: 0,
     y: 0,
@@ -176,6 +177,7 @@ export default function App() {
         format={format}
         fps={actualFps}
         isActive={!fatal}
+        torch={torchOn ? "on" : "off"}
         photo
         video={false}
         audio={false}
@@ -291,6 +293,27 @@ export default function App() {
             . Photos stay on this phone.
           </Text>
           <View style={styles.buttonRow}>
+            {device.hasTorch ? (
+              <Pressable
+                style={[styles.button, torchOn && styles.buttonActive]}
+                onPress={() => {
+                  const next = !torchOn;
+                  setTorchOn(next);
+                  console.log(
+                    "NATIVE_PREVIEW_EVENT " +
+                      JSON.stringify({
+                        event: "torch-changed",
+                        atMs: Date.now(),
+                        on: next,
+                      }),
+                  );
+                }}
+              >
+                <Text style={styles.buttonText}>
+                  {torchOn ? "Light: on" : "Light: off"}
+                </Text>
+              </Pressable>
+            ) : null}
             <Pressable
               disabled={fatal || diagnostics.phase === "capturing"}
               style={[
@@ -441,6 +464,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#d8ff62",
   },
   buttonDisabled: { opacity: 0.4 },
+  buttonActive: { backgroundColor: "#fff2a8" },
   buttonText: { color: "#101500", fontSize: 12, fontWeight: "900" },
   proposalEdge: {
     position: "absolute",
