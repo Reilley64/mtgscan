@@ -187,6 +187,8 @@ finish() {
 MODE="${1:-full}"
 if [[ "$MODE" == "quick" ]]; then
   TOTAL_STAGES=6
+elif [[ "$MODE" == "capture" ]]; then
+  TOTAL_STAGES=10
 else
   TOTAL_STAGES=17
 fi
@@ -272,6 +274,29 @@ field() {
   ' "$1" "$2"
 }
 
+count_events() {
+  local event="$1" after_line="$2"
+  [[ -f "$METRO_LOG" ]] || { echo 0; return; }
+  tail -n +"$((after_line + 1))" "$METRO_LOG" | grep -ac "\"event\":\"$event\"" || true
+}
+
+timed_hold() {
+  local key="$1" seconds="$2" expected="$3" before photos failures
+  before=$(log_lines)
+  pause "Press Enter to start the $seconds-second count."
+  for ((remaining = seconds; remaining > 0; remaining -= 5)); do
+    say "$remaining seconds left."
+    sleep 5
+  done
+  sleep 1
+  photos=$(count_events capture-success "$before")
+  failures=$(count_events capture-failure "$before")
+  write_env "${key}_PHOTOS" "$photos"
+  write_env "${key}_FAILURES" "$failures"
+  write_env "${key}_EXPECTED" "$expected"
+  say "Photos: $photos (expected $expected). Capture failures: $failures."
+}
+
 log_has() {
   [[ -f "$METRO_LOG" ]] && grep -aq "$1" "$METRO_LOG"
 }
@@ -326,7 +351,7 @@ presentation_row() {
   step "Hold the phone roughly above the card for about 10 seconds. Do not tap anything."
   step "The magenta outline is the refined card edge. The thin cyan outline is the rough proposal."
   step "Watch whether magenta sits on the physical outer card edge, and whether it jumps."
-  note "No photo should be taken. If one is, stop with Ctrl-C and tell the agent."
+  note "If automatic capture is on, a photo here is expected and fine."
   before=$(log_lines)
   pause "Keep the phone on the card. Press Enter after about 10 seconds."
   window=$(telemetry_window "$before")
@@ -427,7 +452,7 @@ else
 fi
 pause
 
-if [[ "$MODE" != "quick" ]]; then
+if [[ "$MODE" == "full" ]]; then
   stage "Connect the iPhone"
   step "Connect the iPhone to this Mac with a cable and unlock it."
   step "If the phone asks 'Trust This Computer?', tap Trust and enter the passcode."
@@ -439,7 +464,7 @@ fi
 stage "Build and run from Xcode"
 open "$WORKSPACE"
 say "Xcode is opening $WORKSPACE."
-[[ "$MODE" == "quick" ]] && step "Connect and unlock the iPhone, on the same Wi-Fi as this Mac."
+[[ "$MODE" != "full" ]] && step "Connect and unlock the iPhone, on the same Wi-Fi as this Mac."
 if [[ -z "$TEAM_ID" ]]; then
   step "In the Project navigator, select MTGScanNativePreviewSpike, then the MTGScanNativePreviewSpike target."
   step "Open Signing & Capabilities. Turn on 'Automatically manage signing' and choose your Team."
@@ -466,14 +491,87 @@ write_env LOGS_AVAILABLE "$LOGS_AVAILABLE"
 pause
 
 stage "Safety gate"
-say "Automatic capture must stay off for this whole run."
-if confirm "Does the top panel say 'Automatic capture: OFF' and is the 'Capture disabled' button greyed out?"; then
+if grep -q "AUTOMATIC_CAPTURE_ENABLED = true" src/capture/config.ts; then
+  EXPECTED_CAPTURE="ON"
+  say "This build takes photos automatically. Photos stay on the phone. Nothing is uploaded."
+else
+  EXPECTED_CAPTURE="OFF"
+  say "Automatic capture must stay off for this whole run."
+fi
+write_env EXPECTED_CAPTURE "$EXPECTED_CAPTURE"
+if confirm "Does the top panel say 'Automatic capture: $EXPECTED_CAPTURE'?"; then
   write_env SAFETY_GATE pass
 else
   write_env SAFETY_GATE fail
-  stop_run "automatic capture was not shown as off"
+  stop_run "the panel did not show automatic capture as $EXPECTED_CAPTURE"
 fi
 pause
+
+if [[ "$MODE" == "capture" ]]; then
+  stage "Empty surface"
+  step "Point the phone at an empty table with no card in view. Keep it there."
+  timed_hold EMPTY 15 0
+  pause
+
+  stage "Ten card presentations"
+  say "Present ten different cards, one at a time, flat on a plain surface."
+  step "Lay the card down and hold the phone still above it until the photo count goes up."
+  step "Then move the card fully out of view, wait one second, and press Enter."
+  step "If no photo comes after about 5 seconds, remove the card anyway and press Enter."
+  PRESENTATIONS_EXACT=0
+  PRESENTATIONS_MISSED=0
+  PRESENTATIONS_DUPLICATE=0
+  for card in $(seq 1 10); do
+    before=$(log_lines)
+    pause "Card $card/10: photo, remove the card, then press Enter."
+    sleep 1
+    photos=$(count_events capture-success "$before")
+    write_env "PRESENTATION_${card}_PHOTOS" "$photos"
+    if [[ "$photos" == "1" ]]; then
+      PRESENTATIONS_EXACT=$((PRESENTATIONS_EXACT + 1))
+    elif [[ "$photos" == "0" ]]; then
+      PRESENTATIONS_MISSED=$((PRESENTATIONS_MISSED + 1))
+    else
+      PRESENTATIONS_DUPLICATE=$((PRESENTATIONS_DUPLICATE + 1))
+    fi
+    say "Card $card: $photos photo(s)."
+  done
+  write_env PRESENTATIONS_EXACT "$PRESENTATIONS_EXACT"
+  write_env PRESENTATIONS_MISSED "$PRESENTATIONS_MISSED"
+  write_env PRESENTATIONS_DUPLICATE "$PRESENTATIONS_DUPLICATE"
+  say "Exactly one: $PRESENTATIONS_EXACT. Missed: $PRESENTATIONS_MISSED. Duplicates: $PRESENTATIONS_DUPLICATE."
+  record PRESENTATIONS_NOTES "Anything odd, such as a photo of the wrong thing (Enter to skip):"
+  pause
+
+  stage "Still card hold"
+  step "Lay one card flat and rest the phone steady above it."
+  step "Do not move anything until the count ends."
+  timed_hold STILL_HOLD 20 1
+  pause
+
+  stage "Handheld hold"
+  step "Move the card out of view for two seconds, then lay it back down."
+  step "Hold the phone in your hand above the card, as you would when scanning. Natural hand shake is fine."
+  timed_hold HANDHELD_HOLD 20 1
+  pause
+
+  stage "Patterned surface"
+  step "Move the card out of view for two seconds."
+  step "Lay it on a patterned or wood-grain surface and hold the phone above it."
+  timed_hold PATTERNED_HOLD 20 1
+  record PATTERNED_NOTES "Anything odd (Enter to skip):"
+  if [[ "$(_existing EMPTY_PHOTOS)" == "0" && "$PRESENTATIONS_DUPLICATE" == "0" \
+    && "$(_existing STILL_HOLD_PHOTOS)" == "1" && "$(_existing HANDHELD_HOLD_PHOTOS)" == "1" \
+    && "$(_existing PATTERNED_HOLD_PHOTOS)" -le 1 ]]; then
+    write_env EXACTLY_ONE_GATE pass
+  else
+    write_env EXACTLY_ONE_GATE fail
+  fi
+  write_env RUN_OUTCOME "capture check completed"
+  pause
+  wrap_up
+  exit 0
+fi
 
 if [[ "$MODE" == "quick" ]]; then
   stage "Still card check"

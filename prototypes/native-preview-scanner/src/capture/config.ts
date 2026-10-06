@@ -30,7 +30,13 @@ export const DEFAULT_CAPTURE_THRESHOLDS: CaptureThresholds = {
   departureMs: 400,
 };
 
-export const AUTOMATIC_CAPTURE_ENABLED = false;
+export const QUAD_CAPTURE_TIMING: CaptureThresholds = {
+  ...DEFAULT_CAPTURE_THRESHOLDS,
+  dwellMs: 400,
+  departureMs: 600,
+};
+
+export const AUTOMATIC_CAPTURE_ENABLED = true;
 
 export type DetectorThresholds = {
   confidenceMin: number;

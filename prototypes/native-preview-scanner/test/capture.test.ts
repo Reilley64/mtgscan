@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_CAPTURE_THRESHOLDS } from "../src/capture/config";
+import {
+  DEFAULT_CAPTURE_THRESHOLDS,
+  QUAD_CAPTURE_TIMING,
+} from "../src/capture/config";
+import {
+  evaluateQuadCaptureGates,
+  proposalAreaRatio,
+  quadMotion,
+  refinedCorners,
+} from "../src/capture/quadCaptureGates";
 import {
   recordAnalysisSample,
   recordProcessingTime,
@@ -577,5 +586,128 @@ describe("native rectangle validation", () => {
       });
     }
     expect(orientedFrameDimensions(1280, 720, -1)).toBeNull();
+  });
+});
+
+const cardRecord = (offset = 0) => ({
+  ...validNativeRecord(),
+  topLeft: { x: 0.2 + offset, y: 0.2 },
+  topRight: { x: 0.8 + offset, y: 0.2 },
+  bottomRight: { x: 0.8 + offset, y: 0.8 },
+  bottomLeft: { x: 0.2 + offset, y: 0.8 },
+});
+
+const flickerRecord = () => ({
+  ...undetectedRecord(true),
+  confidence: 0.95,
+});
+
+const emptySurfaceRecord = () => ({
+  ...undetectedRecord(true),
+  confidence: 0.57,
+  proposalTopLeft: { x: 0.01, y: 0.01 },
+  proposalTopRight: { x: 0.99, y: 0.01 },
+  proposalBottomRight: { x: 0.99, y: 0.99 },
+  proposalBottomLeft: { x: 0.01, y: 0.99 },
+});
+
+const runPresentation = (records: unknown[]) => {
+  let state = initialCaptureMachineState();
+  let previous: ReturnType<typeof refinedCorners> = null;
+  let photos = 0;
+  records.forEach((raw, index) => {
+    const observation = validateNativeRectangleRecord(raw)!;
+    const corners = refinedCorners(observation, 720, 1280);
+    const motion = quadMotion(previous, corners);
+    previous = corners;
+    const gates = evaluateQuadCaptureGates(
+      observation,
+      observation.detected,
+      motion,
+    );
+    const transition = advanceCaptureMachine(
+      state,
+      gates,
+      index * 200,
+      QUAD_CAPTURE_TIMING,
+    );
+    state = transition.state;
+    if (transition.requestCapture) {
+      photos += 1;
+      state = completeCapture(state);
+    }
+  });
+  return { photos, state };
+};
+
+describe("quad capture gates", () => {
+  it("measures corner motion relative to the card short side", () => {
+    const first = refinedCorners(
+      validateNativeRectangleRecord(cardRecord())!,
+      720,
+      1280,
+    );
+    const moved = refinedCorners(
+      validateNativeRectangleRecord(cardRecord(0.01))!,
+      720,
+      1280,
+    );
+    expect(quadMotion(first, first)).toBe(0);
+    expect(quadMotion(first, moved)).toBeCloseTo(7.2 / 432, 5);
+    expect(quadMotion(null, first)).toBeNull();
+  });
+
+  it("treats a confident card-sized proposal as card evidence", () => {
+    const flicker = validateNativeRectangleRecord(flickerRecord())!;
+    expect(proposalAreaRatio(flicker)).toBeCloseTo(0.25, 5);
+    expect(evaluateQuadCaptureGates(flicker, false, null).departed).toBe(false);
+    const empty = validateNativeRectangleRecord(emptySurfaceRecord())!;
+    expect(evaluateQuadCaptureGates(empty, false, null).departed).toBe(true);
+  });
+
+  it("captures once after a steady hold and ignores refinement flicker", () => {
+    const records = [
+      ...Array.from({ length: 4 }, () => cardRecord()),
+      flickerRecord(),
+      flickerRecord(),
+      flickerRecord(),
+      flickerRecord(),
+      ...Array.from({ length: 20 }, () => cardRecord()),
+    ];
+    const result = runPresentation(records);
+    expect(result.photos).toBe(1);
+    expect(result.state.phase).toBe("cooldown");
+  });
+
+  it("does not capture a moving card", () => {
+    const records = Array.from({ length: 20 }, (_, index) =>
+      cardRecord((index % 2) * 0.05),
+    );
+    expect(runPresentation(records).photos).toBe(0);
+  });
+
+  it("takes one photo per presentation after the card leaves", () => {
+    const records = [
+      ...Array.from({ length: 6 }, () => cardRecord()),
+      ...Array.from({ length: 4 }, () => emptySurfaceRecord()),
+      ...Array.from({ length: 6 }, () => cardRecord(0.02)),
+      ...Array.from({ length: 4 }, () => emptySurfaceRecord()),
+      ...Array.from({ length: 6 }, () => cardRecord()),
+    ];
+    expect(runPresentation(records).photos).toBe(3);
+  });
+
+  it("does not re-arm on a departure shorter than the departure time", () => {
+    const records = [
+      ...Array.from({ length: 6 }, () => cardRecord()),
+      ...Array.from({ length: 2 }, () => emptySurfaceRecord()),
+      ...Array.from({ length: 6 }, () => cardRecord()),
+    ];
+    expect(runPresentation(records).photos).toBe(1);
+  });
+
+  it("never captures an empty surface", () => {
+    const records = Array.from({ length: 50 }, () => emptySurfaceRecord());
+    expect(runPresentation(records).photos).toBe(0);
   });
 });

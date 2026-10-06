@@ -105,10 +105,10 @@ export default function App() {
     return (
       <SafeAreaView style={styles.permissionScreen}>
         <StatusBar style="light" />
-        <Text style={styles.title}>Card edge refinement spike</Text>
+        <Text style={styles.title}>Card capture spike</Text>
         <Text style={styles.body}>
-          This development build needs camera access. Frames stay in the app
-          process. Expo Go cannot load the native detector.
+          This development build needs camera access. Frames and photos stay on
+          this phone. Expo Go cannot load the native detector.
         </Text>
         <Pressable style={styles.button} onPress={requestPermission}>
           <Text style={styles.buttonText}>Allow camera</Text>
@@ -210,7 +210,8 @@ export default function App() {
           </Text>
           <Text style={styles.format}>{formatLabel}</Text>
           <Text style={styles.disabledCapture}>
-            Automatic capture: {AUTOMATIC_CAPTURE_ENABLED ? "ON" : "OFF"}
+            Automatic capture: {AUTOMATIC_CAPTURE_ENABLED ? "ON" : "OFF"}.
+            Photos: {capture.photoCount}
           </Text>
           {capture.error ? (
             <Text style={styles.error}>{capture.error}</Text>
@@ -273,16 +274,19 @@ export default function App() {
             {diagnostics.frameWidth}x{diagnostics.frameHeight} to{" "}
             {diagnostics.orientedFrameWidth}x{diagnostics.orientedFrameHeight}.
           </Text>
+          <Metric
+            label="Capture"
+            pass={diagnostics.captureGates.all}
+            value={`${diagnostics.phase}; stable ${diagnostics.captureGates.stable ? "yes" : "no"} (motion ${diagnostics.motion === null ? "n/a" : formatNumber(diagnostics.motion, 3)}); card evidence ${diagnostics.captureGates.departed ? "no" : "yes"}`}
+          />
           <Text style={styles.telemetry}>
-            Last photo:{" "}
+            Photos this study: {capture.photoCount}. Last photo:{" "}
             {capture.lastPhoto
               ? `${capture.lastPhoto.width}x${capture.lastPhoto.height}`
               : "none"}
+            . Photos stay on this phone.
           </Text>
           <View style={styles.buttonRow}>
-            <Pressable disabled style={[styles.button, styles.buttonDisabled]}>
-              <Text style={styles.buttonText}>Capture disabled</Text>
-            </Pressable>
             <Pressable
               disabled={fatal || diagnostics.phase === "capturing"}
               style={[

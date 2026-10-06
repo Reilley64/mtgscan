@@ -2,7 +2,7 @@
 
 **Throwaway Wayfinder prototype.** This isolated Expo development-build app tests one detector design for the approved first-release scanning target. The target is one card lying flat on a surface, mostly visible, with moderate rotation and camera movement, and no precise alignment. The detector takes a coarse Apple Vision document proposal and moves each edge to straight luminance evidence in the camera frame.
 
-Automatic capture is hard-disabled. The app observes detector output only. It does not recognize cards, measure recognition accuracy, solve duplicate capture, choose production architecture, or prove Android support. Earlier fixed-edge, Fast OpenCV, rectangle, document-segmentation, and contour trials remain decision history below and in [native-detector-research.md](./native-detector-research.md).
+Automatic capture is enabled for the approved exactly-one capture experiment. Photos stay on the phone. The app does not recognize cards, measure recognition accuracy, solve duplicate capture, choose production architecture, or prove Android support. Earlier fixed-edge, Fast OpenCV, rectangle, document-segmentation, and contour trials remain decision history below and in [native-detector-research.md](./native-detector-research.md).
 
 ## Current design and boundaries
 
@@ -55,7 +55,7 @@ The worklet calls the plugin under `runAtTargetFps(5)`. A missing plugin, native
 
 ### Overlay and gates
 
-The overlay maps both quads into the contained preview rectangle. The proposal is a thin cyan outline. The refined quad is always magenta. The status panel shows the gates. The gates are refined detection, proposal confidence at least 0.5, area 0.08 to 0.9, aspect 0.696 to 0.736, and minimum edge support at least 0.7. They are observation-only.
+The overlay maps both quads into the contained preview rectangle. The proposal is a thin cyan outline. The refined quad is always magenta. The status panel shows the gates. The gates are refined detection, proposal confidence at least 0.5, area 0.08 to 0.9, aspect 0.696 to 0.736, and minimum edge support at least 0.7. Together they decide whether a card is present for the capture gates below.
 
 ## Timing and cadence evidence semantics
 
@@ -69,9 +69,17 @@ The integration target remains p95 below 20 ms across 300 post-publication sampl
 
 ## Capture safety
 
-`AUTOMATIC_CAPTURE_ENABLED` is exactly `false`, and the UI shows **Automatic capture: OFF** plus a disabled capture button. Detector gates are observational. The existing capture state machine, worklet lock, JavaScript in-flight guard, and reset guard remain in source and retain their deterministic tests, but no detector result can request a photo in this spike. A physical detector study must not change that constant.
+The owner approved a capture-enabled experiment on 2026-10-06. `AUTOMATIC_CAPTURE_ENABLED` is now `true`, and the UI shows **Automatic capture: ON** with a photo count. Photos stay on the phone in VisionCamera's temporary files. Nothing is uploaded.
 
-This run makes no duplicate-capture claim. A later capture-enabled experiment still needs its own approval, departure tuning, interruption matrix, and physical exactly-one proof.
+`src/capture/quadCaptureGates.ts` turns each detector sample into capture gates for the existing state machine:
+
+- A card is present when every detector gate passes.
+- The card is stable when no refined corner moved more than 4% of the card's short side since the previous sample, 200 ms earlier at 5 Hz.
+- There is card evidence while the card is present, or while the proposal has confidence of at least 0.8 and covers at most 60% of the frame. On the recorded device runs, refined frames had proposal confidence of at least 0.90 and area 0.12 to 0.29. Empty frames had confidence 0 or about 0.6 and usually covered most of the frame. Frames where a card was present but refinement failed kept confidence near 1.0 and a card-sized area. A refinement flicker therefore does not count as departure.
+
+The state machine requests one photo after the card is present and stable for 400 ms. It then stays in cooldown until card evidence is absent for 600 ms. The worklet lock, the JavaScript in-flight guard, and the reset guard still apply. Unit tests replay sample sequences through the real gates and state machine. They check one photo per presentation, no photo for a moving card or an empty surface, no re-arm from a refinement flicker, and no re-arm from a departure shorter than 600 ms.
+
+`npm run physical-run:capture` counts `capture-success` events from the app log for an empty surface, ten separate presentations, a 20-second still hold, a 20-second handheld hold, and a patterned surface. The exactly-one gate passes when the empty surface gives no photo, no presentation gives two or more photos, both holds give exactly one, and the patterned surface gives at most one. Missed presentations are reported separately. An interruption matrix, such as backgrounding the app during a capture, is not covered yet.
 
 ## Offline evidence
 
@@ -164,19 +172,19 @@ xcodebuild \
 
 Do not retain generated `ios/` edits. Re-run clean prebuild instead.
 
-## Capture-disabled physical procedure
+## Physical procedure
 
 A human must do this on an iPhone. Automated checks must not use credentials or install a signed build.
 
-Run `npm run physical-run` to be guided through these steps. The wizard starts Metro, opens Xcode, checks each gate, reads timing from the app log, and saves the results to an ignored `.physical-runs/<timestamp>/` folder with a `summary.md`. Set `PHYSICAL_RUN_DIR` to an earlier run folder to reuse its answers as defaults. Run `npm run physical-run:quick` after a detector change to rebuild and check one still card for 60 seconds in 6 stages instead of 17. The wizard finds the Apple team ID from the last device build, saves it under `.physical-runs/`, and passes it to prebuild as `MTGSCAN_APPLE_TEAM_ID`, so regenerated projects keep signing. The steps below are the same procedure in manual form.
+Run `npm run physical-run` to be guided through these steps. The wizard starts Metro, opens Xcode, checks each gate, reads timing from the app log, and saves the results to an ignored `.physical-runs/<timestamp>/` folder with a `summary.md`. Set `PHYSICAL_RUN_DIR` to an earlier run folder to reuse its answers as defaults. Run `npm run physical-run:capture` for the exactly-one capture check. Run `npm run physical-run:quick` after a detector change to rebuild and check one still card for 60 seconds in 6 stages instead of 17. The wizard finds the Apple team ID from the last device build, saves it under `.physical-runs/`, and passes it to prebuild as `MTGSCAN_APPLE_TEAM_ID`, so regenerated projects keep signing. The steps below are the same procedure in manual form.
 
 1. Connect the iPhone, trust the computer, and enable Developer Mode if requested.
 2. Open `ios/MTGScanNativePreviewSpike.xcworkspace` in Xcode 26.3. Select the app target, the tester's development team, and the connected phone. Let Xcode manage signing.
 3. Run `npm start` in another shell. Build and run from Xcode, then grant camera permission.
-4. Confirm the UI says **Automatic capture: OFF** and the capture button is disabled. Do not change `AUTOMATIC_CAPTURE_ENABLED`.
+4. Confirm the UI shows the expected automatic capture state. It is **ON** in the current build.
 5. Keep the phone in portrait. First point it at an empty surface for 10 seconds.
 6. Orientation check. Lay one card flat on a plain surface, then move the phone so the card sits near the top of the preview, then near the bottom, then left, then right. The cyan and magenta outlines must stay on the card and move with it. If either outline sits on the opposite side or moves against the card, stop. The orientation correction failed.
-7. Lay one card flat on a surface and hold the phone roughly above it. Present a black-bordered card, a white-bordered or borderless card, a sleeved card, a foil card, the card rotated about 20 degrees, the card partly off-frame, and the card on a patterned surface. No row should take a photo.
+7. Lay one card flat on a surface and hold the phone roughly above it. Present a black-bordered card, a white-bordered or borderless card, a sleeved card, a foil card, the card rotated about 20 degrees, the card partly off-frame, and the card on a patterned surface. Photos may be taken when automatic capture is on.
 8. For each row, compare the magenta edges with the physical outer card edge, and the cyan edges with the same edge. Record device, iOS, lighting, surface, card and sleeve state, refinement status, edge support, the four shifts, aspect, area, and gate states.
 9. Keep a stationary presentation until the rolling window reaches 300 samples. Record p50, p95, max, proposal and native time, elapsed span, effective Hz, max gap, and slow streak. Acceptance needs p95 below 20 ms and effective cadence at least 4.5 Hz.
 10. Stop on any fatal code, materially wrong mapping, preview or UI stall, serious thermal state, crash, or ten-sample slow kill. Restart the app to retry after a fatal detector lock.

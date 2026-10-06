@@ -7,8 +7,8 @@ import {
 import { Worklets, useSharedValue } from "react-native-worklets-core";
 import {
   AUTOMATIC_CAPTURE_ENABLED,
-  DEFAULT_CAPTURE_THRESHOLDS,
   DETECTOR_THRESHOLDS,
+  QUAD_CAPTURE_TIMING,
   type CaptureThresholds,
 } from "./config";
 import type { PreviewGates } from "./metrics";
@@ -25,6 +25,12 @@ import {
   manualResetCaptureMachine,
   type CapturePhase,
 } from "./stateMachine";
+import {
+  evaluateQuadCaptureGates,
+  quadMotion,
+  refinedCorners,
+  type QuadCorners,
+} from "./quadCaptureGates";
 import { callNativeRectangleDetector } from "../detector/nativeRectangleDetector";
 import {
   orientedFrameDimensions,
@@ -47,6 +53,8 @@ export type PreviewCardCaptureDiagnostics = {
   phase: CapturePhase;
   observation: NativeRectangleRecord;
   gates: DetectorGates;
+  captureGates: PreviewGates;
+  motion: number | null;
   timing: AnalysisTelemetry;
   captureLocked: boolean;
   sampleId: number;
@@ -76,6 +84,7 @@ export type PreviewCardCapture = {
   frameProcessor: ReturnType<typeof useFrameProcessor>;
   diagnostics: PreviewCardCaptureDiagnostics;
   lastPhoto: CapturedPhoto | null;
+  photoCount: number;
   error: string | null;
   thresholds: CaptureThresholds;
   reset: () => void;
@@ -118,10 +127,21 @@ const EMPTY_GATES: DetectorGates = {
   all: false,
 };
 
+const EMPTY_CAPTURE_GATES: PreviewGates = {
+  present: false,
+  centered: false,
+  sharp: false,
+  stable: false,
+  departed: true,
+  all: false,
+};
+
 const initialDiagnostics = (): PreviewCardCaptureDiagnostics => ({
   phase: "seeking",
   observation: EMPTY_OBSERVATION,
   gates: EMPTY_GATES,
+  captureGates: EMPTY_CAPTURE_GATES,
+  motion: null,
   timing: EMPTY_TIMING_TELEMETRY,
   captureLocked: false,
   sampleId: 0,
@@ -169,7 +189,7 @@ const roundScalar = (value: number, digits = 4) => {
 
 export function usePreviewCardCapture(
   camera: RefObject<Camera | null>,
-  thresholds: CaptureThresholds = DEFAULT_CAPTURE_THRESHOLDS,
+  thresholds: CaptureThresholds = QUAD_CAPTURE_TIMING,
 ): PreviewCardCapture {
   const machine = useSharedValue(initialCaptureMachineState());
   const workletCaptureGuard = useSharedValue(false);
@@ -177,6 +197,7 @@ export function usePreviewCardCapture(
   const consecutiveSlowSamples = useSharedValue(0);
   const previousSampleWallAtMs = useSharedValue(0);
   const sampleSequence = useSharedValue(0);
+  const previousCorners = useSharedValue<QuadCorners | null>(null);
   const jsCaptureGuard = useRef(false);
   const fatalDetectorOnJS = useRef(false);
   const timingHistory = useRef<number[]>([]);
@@ -185,6 +206,7 @@ export function usePreviewCardCapture(
   const captureSequence = useRef(0);
   const lastPublished = useRef<PublishedDiagnostics | null>(null);
   const [lastPhoto, setLastPhoto] = useState<CapturedPhoto | null>(null);
+  const [photoCount, setPhotoCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState(initialDiagnostics);
 
@@ -294,6 +316,12 @@ export function usePreviewCardCapture(
               orientedFrameWidth: published.orientedFrameWidth,
               orientedFrameHeight: published.orientedFrameHeight,
               gates: published.gates,
+              phase: published.phase,
+              captureGates: published.captureGates,
+              motion:
+                published.motion === null
+                  ? null
+                  : roundScalar(published.motion),
               automaticCaptureEnabled: AUTOMATIC_CAPTURE_ENABLED,
             }),
         );
@@ -327,6 +355,7 @@ export function usePreviewCardCapture(
       if (camera.current === null) throw new Error("camera-not-ready");
       const photo = await camera.current.takePhoto({ flash: "off" });
       setLastPhoto({ width: photo.width, height: photo.height });
+      setPhotoCount((count) => count + 1);
       const machineBeforeComplete = machine.value;
       const machineAfterComplete = completeCapture(machineBeforeComplete);
       machine.value = machineAfterComplete;
@@ -451,21 +480,25 @@ export function usePreviewCardCapture(
         };
 
         const gates = evaluateDetectorGates(observation);
+        const corners = refinedCorners(
+          observation,
+          orientedDimensions.width,
+          orientedDimensions.height,
+        );
+        const motion = quadMotion(previousCorners.value, corners);
+        previousCorners.value = corners;
+        const captureGates = evaluateQuadCaptureGates(
+          observation,
+          gates.all,
+          motion,
+        );
         let phase = machine.value.phase;
         let captureLocked = machine.value.captureLocked;
         let requestCapture = false;
         if (AUTOMATIC_CAPTURE_ENABLED) {
-          const observationOnlyGates: PreviewGates = {
-            present: gates.detected,
-            centered: gates.all,
-            sharp: false,
-            stable: false,
-            departed: !gates.detected,
-            all: false,
-          };
           const transition = advanceCaptureMachine(
             machine.value,
-            observationOnlyGates,
+            captureGates,
             performance.now(),
             thresholds,
           );
@@ -480,6 +513,8 @@ export function usePreviewCardCapture(
             phase,
             observation,
             gates,
+            captureGates,
+            motion,
             captureLocked,
             sampleId,
             sampleWallAtMs,
@@ -549,6 +584,7 @@ export function usePreviewCardCapture(
       publishDiagnostics,
       publishFatal,
       publishTiming,
+      previousCorners,
       previousSampleWallAtMs,
       requestPhotoOnJS,
       sampleSequence,
@@ -592,6 +628,8 @@ export function usePreviewCardCapture(
     workletCaptureGuard.value = false;
     jsCaptureGuard.current = false;
     setLastPhoto(null);
+    setPhotoCount(0);
+    previousCorners.value = null;
     setError(null);
     setDiagnostics(initialDiagnostics());
     timingHistory.current = [];
@@ -605,6 +643,7 @@ export function usePreviewCardCapture(
     diagnostics.fatalErrorCode,
     fatalDetector,
     machine,
+    previousCorners,
     previousSampleWallAtMs,
     workletCaptureGuard,
   ]);
@@ -613,6 +652,7 @@ export function usePreviewCardCapture(
     frameProcessor,
     diagnostics,
     lastPhoto,
+    photoCount,
     error,
     thresholds,
     reset,
