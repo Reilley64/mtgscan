@@ -353,7 +353,7 @@ if lsof -nP -iTCP:8081 -sTCP:LISTEN >/dev/null 2>&1; then
   pause "Press Enter when port 8081 is free."
 fi
 say "Starting Metro in the background. Its output goes to the run folder."
-CI=1 ./node_modules/.bin/expo start --dev-client > "$METRO_LOG" 2>&1 &
+CI=1 EXPO_NO_TYPESCRIPT_SETUP=1 ./node_modules/.bin/expo start --dev-client > "$METRO_LOG" 2>&1 &
 METRO_PID=$!
 sleep 5
 if kill -0 "$METRO_PID" 2>/dev/null; then
@@ -380,6 +380,8 @@ step "In the toolbar, choose your iPhone as the run destination."
 step "Press ⌘R (Product → Run) and wait for the app to open on the phone."
 step "If the phone says the developer is untrusted: Settings → General → VPN & Device Management → trust your developer profile, then run again."
 step "Allow camera access when the app asks."
+step "If the app shows 'No development servers found', tap to enter a URL manually and use http://$(ipconfig getifaddr en0 2>/dev/null || echo YOUR-MAC-IP):8081"
+step "If it still cannot connect, check the phone is on the same Wi-Fi, and turn the app on in Settings → Privacy & Security → Local Network."
 note "If Xcode reports a bundle identifier or signing error, stop and tell the agent. Do not edit files under ios/."
 pause "Press Enter when the camera preview is showing on the phone."
 record DEVICE_MODEL "iPhone model (for example iPhone 16e):"

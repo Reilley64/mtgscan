@@ -7,7 +7,7 @@ const {
 } = require("expo/config-plugins");
 
 const pluginName = "mtgscan-apple-vision-rectangle-detector";
-const pluginVersion = "1.0.0";
+const pluginVersion = "1.1.0";
 const sourceNames = [
   "MTGCardQuadGeometry.swift",
   "MTGCardEdgeRefiner.swift",
@@ -35,6 +35,12 @@ function withAppleVisionRectangleDetector(config) {
       projectName,
       framework: "Vision.framework",
     });
+    modConfig.modResults.updateBuildProperty(
+      "SWIFT_OPTIMIZATION_LEVEL",
+      '"-O"',
+      "Debug",
+      projectName,
+    );
     return modConfig;
   });
 }

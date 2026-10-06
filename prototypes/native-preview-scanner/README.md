@@ -59,6 +59,8 @@ The overlay maps both quads into the contained preview rectangle. The proposal i
 
 ## Timing and cadence evidence semantics
 
+The config plugin sets `SWIFT_OPTIMIZATION_LEVEL` to `-O` for the app target's Debug configuration. Physical runs use a Debug build so that logs reach Metro. Without this setting, Xcode compiles the detector with `-Onone`. On this Mac that made the same refinement take 72 ms instead of 0.8 ms. Pods keep their normal Debug settings.
+
 Each sample starts before the native call. The worklet publishes the main diagnostics record to JavaScript, then reads total duration. This means the measured total includes native Vision, validation, gate work, and the main Worklets-to-JavaScript diagnostics enqueue and serialization. A second bounded callback reports that post-main-publication total. The timing-report callback cannot include its own enqueue or execution. The total also does not claim JavaScript callback execution or React render time.
 
 Only these post-main-publication totals feed the rolling nearest-rank p50, p95, and max. The window keeps the latest 300 samples. It also keeps sample wall timestamps and reports count, elapsed span, effective hertz, and maximum gap. The cadence field stays `WAIT` until the window contains all 300 samples, even when the partial-window rate is at least 4.5 Hz. Three hundred samples alone do not prove sustained 5 FPS. The bounded acceptance study requires at least `4.5` effective Hz.
@@ -184,7 +186,9 @@ Photos of cards flat on real surfaces can also go through `npm run evaluate:stil
 
 ## Physical observations and current status
 
-The proposal-plus-refinement detector has not run on a phone yet. The paragraphs below record the earlier trials. Each Apple Vision trial below passed `frame.orientation` to Vision uncorrected, so its alignment observations were made on a 180-degree-rotated analysis frame. Their timing results still stand. Their alignment conclusions need a retest after the orientation correction.
+The first proposal-plus-refinement run on an iPhone 16e with iOS 26.6.1, on 2026-10-06, stopped with fatal code 50 at the orientation stage. The detector was built with `-Onone`, so total native time was 57 ms to 94 ms against a Vision proposal of 4 ms to 10 ms. The 300-sample window measured p50 81.5 ms and p95 102 ms. This run is not timing evidence for the optimized detector. In the same run, an empty surface produced no refined outline, and the frame orientation code was 2. One card presentation refined with every gate passing: aspect 0.724, edge support 0.875, and all four edges moved outward from the proposal. The run did not reach the orientation check, so the orientation correction is still unconfirmed.
+
+On an empty surface, document segmentation often returned a quad covering almost the whole frame, with confidence between 0 and 0.57. Refinement then searched the largest window and returned a weak-edge status. The paragraphs below record the earlier trials. Each Apple Vision trial below passed `frame.orientation` to Vision uncorrected, so its alignment observations were made on a 180-degree-rotated analysis frame. Their timing results still stand. Their alignment conclusions need a retest after the orientation correction.
 
 The generic max-four `VNDetectRectanglesRequest` trial passed its narrow physical timing and cadence window with automatic capture off. Its 300 samples measured p50 `16.5442 ms`, p95 `17.5440 ms`, and max `19.9810 ms`, at `4.5602 Hz`, with a `235 ms` maximum gap, no slow streak, and no fatal code. This is timing evidence only.
 
