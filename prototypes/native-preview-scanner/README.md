@@ -201,6 +201,20 @@ After this run, the aspect tolerance became ±0.02, all four selected edges must
 
 The third run was a quick still-card check on the same phone with commit `cd7aa8f`. A black-bordered card lay flat on a plain surface for 60 seconds with the phone resting still. All 10 telemetry lines in that window refined with every gate passing, and every line reported aspect 0.714, area about 0.187, and edge support 1.00. The tester saw magenta on the outer card edge on all four sides with no jumping. The full rolling window measured p95 14.2 ms at 4.55 Hz, with native time 7 ms to 13 ms and proposal time 5 ms to 8 ms. This is one card, one surface, and one lighting setup. It does not cover the other card rows, handheld movement, or a second device.
 
+The fourth run repeated the full procedure with commit `7d2c05b` and skipped the soak. Orientation, the empty surface, and the safety gate passed again. For each row the tester held the phone over the card for about 10 seconds. The telemetry window for each row also includes the setup time before the card was in view, so it starts with weak-edge lines.
+
+| Row                      | Tester saw magenta on the outer edge | Refined lines in the row window | Refined aspects |
+| ------------------------ | ------------------------------------ | ------------------------------: | --------------- |
+| Black-bordered           | yes, no jumping                      |                          2 of 6 | 0.719, 0.721    |
+| Borderless               | yes, no jumping                      |                          2 of 7 | 0.727, 0.727    |
+| Sleeved                  | yes, no jumping                      |                          2 of 6 | 0.723, 0.720    |
+| Foil                     | yes, no jumping                      |                          2 of 6 | 0.713, 0.714    |
+| Rotated about 20 degrees | yes, no jumping                      |                          2 of 7 | 0.723, 0.722    |
+| Partly off-frame         | none shown                           |                          0 of 7 | none            |
+| Patterned surface        | partial, no jumping                  |                          1 of 5 | 0.704           |
+
+Every refined line passed every gate. The partly off-frame card was refused rather than fitted. The patterned surface is the weakest row. The wizard saved the 300-sample window that ended just before the reset tap, so its timing, p95 14.51 ms and max 16.18 ms at 4.56 Hz with no slow streak, covers handheld row presentations rather than a still card. The wizard now waits for the reset and for 300 samples after it.
+
 On an empty surface, document segmentation often returned a quad covering almost the whole frame, with confidence between 0 and 0.57. Refinement then searched the largest window and returned a weak-edge status. The paragraphs below record the earlier trials. Each Apple Vision trial below passed `frame.orientation` to Vision uncorrected, so its alignment observations were made on a 180-degree-rotated analysis frame. Their timing results still stand. Their alignment conclusions need a retest after the orientation correction.
 
 The generic max-four `VNDetectRectanglesRequest` trial passed its narrow physical timing and cadence window with automatic capture off. Its 300 samples measured p50 `16.5442 ms`, p95 `17.5440 ms`, and max `19.9810 ms`, at `4.5602 Hz`, with a `235 ms` maximum gap, no slow streak, and no fatal code. This is timing evidence only.

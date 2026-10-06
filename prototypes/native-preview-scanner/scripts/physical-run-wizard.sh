@@ -216,12 +216,17 @@ log_lines() {
 }
 
 telemetry_json() {
-  local minimum_samples="$1" after_line="${2:-0}"
+  local minimum_samples="$1" after_line="${2:-0}" after_reset="${3:-no}"
   [[ -f "$METRO_LOG" ]] || return 0
   node -e '
-    const [file, minimum, after] = process.argv.slice(1);
+    const [file, minimum, after, afterReset] = process.argv.slice(1);
     const marker = "NATIVE_PREVIEW_TELEMETRY ";
-    const lines = require("fs").readFileSync(file, "utf8").split("\n").slice(Number(after));
+    let lines = require("fs").readFileSync(file, "utf8").split("\n").slice(Number(after));
+    if (afterReset === "yes") {
+      const reset = lines.findLastIndex((line) => line.includes("manual-reset-accepted"));
+      if (reset < 0) process.exit(0);
+      lines = lines.slice(reset + 1);
+    }
     let found = "";
     for (const raw of lines) {
       const line = raw.replace(/\u001b\[[0-9;]*m/g, "");
@@ -233,7 +238,7 @@ telemetry_json() {
       } catch {}
     }
     process.stdout.write(found);
-  ' "$METRO_LOG" "$minimum_samples" "$after_line" || true
+  ' "$METRO_LOG" "$minimum_samples" "$after_line" "$after_reset" || true
 }
 
 telemetry_window() {
@@ -544,9 +549,14 @@ TIMING_START_LINE=$(log_lines)
 pause "Press Enter when the panel shows 300/300 samples."
 TIMING_JSON=""
 if [[ "$LOGS_AVAILABLE" == "yes" ]]; then
-  for _ in 1 2 3 4 5 6; do
-    TIMING_JSON=$(telemetry_json 300 "$TIMING_START_LINE")
-    [[ -n "$TIMING_JSON" ]] && break
+  for _ in $(seq 1 24); do
+    if ! grep -aq "manual-reset-accepted" <(tail -n +"$((TIMING_START_LINE + 1))" "$METRO_LOG"); then
+      say "Waiting for the 'Reset study' tap. Tap it now if you have not."
+    else
+      TIMING_JSON=$(telemetry_json 300 "$TIMING_START_LINE" yes)
+      [[ -n "$TIMING_JSON" ]] && break
+      say "Waiting for 300 samples after the reset. Keep the phone still."
+    fi
     sleep 5
   done
 fi
