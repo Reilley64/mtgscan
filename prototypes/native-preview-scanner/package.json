@@ -14,7 +14,8 @@
     "android": "expo run:android",
     "test:native-detector": "bash scripts/test-native-detector.sh",
     "evaluate:stills": "bash scripts/evaluate-stills.sh",
-    "physical-run": "bash scripts/physical-run-wizard.sh"
+    "physical-run": "bash scripts/physical-run-wizard.sh",
+    "physical-run:quick": "bash scripts/physical-run-wizard.sh quick"
   },
   "dependencies": {
     "babel-preset-expo": "~54.0.10",

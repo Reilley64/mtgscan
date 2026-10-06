@@ -184,7 +184,12 @@ finish() {
 # Replace the example below. Set TOTAL_STAGES to match the stages you write.
 # ──────────────────────────────────────────────────────────────────────────
 
-TOTAL_STAGES=17
+MODE="${1:-full}"
+if [[ "$MODE" == "quick" ]]; then
+  TOTAL_STAGES=6
+else
+  TOTAL_STAGES=17
+fi
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_ROOT"
@@ -330,6 +335,28 @@ presentation_row() {
   pause
 }
 
+find_team_id() {
+  local saved="$PROJECT_ROOT/.physical-runs/apple-team-id" profile
+  if [[ -n "${MTGSCAN_APPLE_TEAM_ID:-}" ]]; then
+    printf '%s' "$MTGSCAN_APPLE_TEAM_ID"
+    return
+  fi
+  if [[ -s "$saved" ]]; then
+    cat "$saved"
+    return
+  fi
+  profile=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*MTGScanNativePreviewSpike*/Debug-iphoneos/*' \
+    -name embedded.mobileprovision 2>/dev/null | head -n1 || true)
+  if [[ -n "$profile" ]]; then
+    security cms -D -i "$profile" 2>/dev/null | plutil -extract TeamIdentifier.0 raw -o - - 2>/dev/null || true
+  fi
+}
+
+regenerate_ios() {
+  MTGSCAN_APPLE_TEAM_ID="$TEAM_ID" npx expo prebuild --clean --platform ios
+  (cd ios && pod install)
+}
+
 banner "mtgscan native preview scanner: physical iPhone run"
 
 stage "Preflight"
@@ -349,17 +376,25 @@ if [[ ! -d node_modules ]]; then
     exit 1
   fi
 fi
+TEAM_ID=$(find_team_id)
+if [[ -z "$TEAM_ID" ]]; then
+  say "Your Apple team ID is a 10-character code from developer.apple.com → Account → Membership details."
+  ask TEAM_ID "Apple team ID (Enter to skip and choose the team in Xcode instead):"
+fi
+if [[ -n "$TEAM_ID" ]]; then
+  mkdir -p "$PROJECT_ROOT/.physical-runs"
+  printf '%s' "$TEAM_ID" > "$PROJECT_ROOT/.physical-runs/apple-team-id"
+  say "Signing team: $TEAM_ID. Regenerated projects will keep it."
+fi
 if [[ -d "$WORKSPACE" ]]; then
   say "A generated iOS project already exists."
   if confirm "Regenerate ios/ with a clean prebuild and pod install? Recommended after any detector change."; then
-    npx expo prebuild --clean --platform ios
-    (cd ios && pod install)
+    regenerate_ios
   fi
 else
   say "There is no generated iOS project yet."
   if confirm "Run a clean prebuild and pod install now? This takes a few minutes."; then
-    npx expo prebuild --clean --platform ios
-    (cd ios && pod install)
+    regenerate_ios
   else
     warn "Xcode needs the generated project."
     exit 1
@@ -387,18 +422,23 @@ else
 fi
 pause
 
-stage "Connect the iPhone"
-step "Connect the iPhone to this Mac with a cable and unlock it."
-step "If the phone asks 'Trust This Computer?', tap Trust and enter the passcode."
-step "If Xcode later says Developer Mode is off: on the phone open Settings → Privacy & Security → Developer Mode, turn it on, and restart the phone."
-step "Keep the phone on the same Wi-Fi network as this Mac so the app can reach Metro."
-pause "Press Enter when the phone is connected and trusted."
+if [[ "$MODE" != "quick" ]]; then
+  stage "Connect the iPhone"
+  step "Connect the iPhone to this Mac with a cable and unlock it."
+  step "If the phone asks 'Trust This Computer?', tap Trust and enter the passcode."
+  step "If Xcode later says Developer Mode is off: on the phone open Settings → Privacy & Security → Developer Mode, turn it on, and restart the phone."
+  step "Keep the phone on the same Wi-Fi network as this Mac so the app can reach Metro."
+  pause "Press Enter when the phone is connected and trusted."
+fi
 
 stage "Build and run from Xcode"
 open "$WORKSPACE"
 say "Xcode is opening $WORKSPACE."
-step "In the Project navigator, select MTGScanNativePreviewSpike, then the MTGScanNativePreviewSpike target."
-step "Open Signing & Capabilities. Turn on 'Automatically manage signing' and choose your Team."
+[[ "$MODE" == "quick" ]] && step "Connect and unlock the iPhone, on the same Wi-Fi as this Mac."
+if [[ -z "$TEAM_ID" ]]; then
+  step "In the Project navigator, select MTGScanNativePreviewSpike, then the MTGScanNativePreviewSpike target."
+  step "Open Signing & Capabilities. Turn on 'Automatically manage signing' and choose your Team."
+fi
 step "In the toolbar, choose your iPhone as the run destination."
 step "Press ⌘R (Product → Run) and wait for the app to open on the phone."
 step "If the phone says the developer is untrusted: Settings → General → VPN & Device Management → trust your developer profile, then run again."
@@ -407,8 +447,10 @@ step "If the app shows 'No development servers found', tap to enter a URL manual
 step "If it still cannot connect, check the phone is on the same Wi-Fi, and turn the app on in Settings → Privacy & Security → Local Network."
 note "If Xcode reports a bundle identifier or signing error, stop and tell the agent. Do not edit files under ios/."
 pause "Press Enter when the camera preview is showing on the phone."
-record DEVICE_MODEL "iPhone model (for example iPhone 16e):"
-record IOS_VERSION "iOS version (Settings → General → About):"
+if [[ "$MODE" != "quick" ]]; then
+  record DEVICE_MODEL "iPhone model (for example iPhone 16e):"
+  record IOS_VERSION "iOS version (Settings → General → About):"
+fi
 if log_has "camera-format-selected"; then
   LOGS_AVAILABLE="yes"
   printf '  %s✓ app logs are reaching Metro%s, so timing values will be read automatically\n' "$GREEN" "$RESET"
@@ -427,6 +469,30 @@ else
   stop_run "automatic capture was not shown as off"
 fi
 pause
+
+if [[ "$MODE" == "quick" ]]; then
+  stage "Still card check"
+  say "This checks whether the outline stays on the outer card edge."
+  step "Lay a black-bordered card flat on a plain surface."
+  step "Rest the phone on something steady so the whole card is in view."
+  step "Tap 'Reset study' once."
+  pause "Press Enter when the phone is steady. The wizard then counts 60 seconds."
+  STILL_START_LINE=$(log_lines)
+  for remaining in 60 45 30 15; do
+    say "$remaining seconds left. Keep still and watch the magenta outline."
+    sleep 15
+  done
+  STILL_WINDOW=$(telemetry_window "$STILL_START_LINE")
+  write_env STILL_TELEMETRY "${STILL_WINDOW:-none}"
+  say "Detector: ${STILL_WINDOW:-no telemetry found}"
+  record STILL_FIT "Did magenta sit on the outer card edge on all four sides? (yes/partial/no/none shown):"
+  record STILL_JUMPS "Did magenta jump or disappear while the card was still? (no/sometimes/often):"
+  record STILL_NOTES "Card, surface, lighting, anything odd (Enter to skip):"
+  write_env RUN_OUTCOME "quick check completed"
+  pause
+  wrap_up
+  exit 0
+fi
 
 stage "Empty surface"
 step "Point the phone at an empty table or floor with no card in view."

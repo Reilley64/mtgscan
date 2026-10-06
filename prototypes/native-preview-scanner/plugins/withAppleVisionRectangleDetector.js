@@ -35,6 +35,21 @@ function withAppleVisionRectangleDetector(config) {
       projectName,
       framework: "Vision.framework",
     });
+    const developmentTeam = process.env.MTGSCAN_APPLE_TEAM_ID;
+    if (developmentTeam) {
+      modConfig.modResults.updateBuildProperty(
+        "DEVELOPMENT_TEAM",
+        developmentTeam,
+        null,
+        projectName,
+      );
+      modConfig.modResults.updateBuildProperty(
+        "CODE_SIGN_STYLE",
+        "Automatic",
+        null,
+        projectName,
+      );
+    }
     modConfig.modResults.updateBuildProperty(
       "SWIFT_OPTIMIZATION_LEVEL",
       '"-O"',
