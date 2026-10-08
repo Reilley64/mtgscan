@@ -21,7 +21,7 @@ struct MTGGalleryHeader: Codable {
 final class MTGCardCatalog {
   let printings: [MTGCatalogPrinting]
   let dimension: Int
-  private let vectors: [Float]
+  private let halves: Data
   private let indexBySetAndNumber: [String: Int]
   private let indexById: [String: Int]
   let printingsByIllustration: [String: [Int]]
@@ -49,9 +49,7 @@ final class MTGCardCatalog {
     guard raw.count == header.count * header.dimension * MemoryLayout<Float16>.size else {
       throw Failure.galleryMismatch("gallery.f16 has \(raw.count) bytes")
     }
-    vectors = raw.withUnsafeBytes { buffer in
-      buffer.bindMemory(to: Float16.self).map { Float($0) }
-    }
+    halves = raw
     var bySetAndNumber: [String: Int] = [:]
     var byIllustration: [String: [Int]] = [:]
     for (index, printing) in printings.enumerated() {
@@ -79,21 +77,48 @@ final class MTGCardCatalog {
     indexById[id]
   }
 
-  func vector(at index: Int) -> ArraySlice<Float> {
-    vectors[(index * dimension) ..< ((index + 1) * dimension)]
+  static let searchChunkRows = 4096
+
+  func vector(at index: Int) -> [Float] {
+    halves.withUnsafeBytes { buffer in
+      let values = buffer.bindMemory(to: Float16.self)
+      return (0 ..< dimension).map { Float(values[index * dimension + $0]) }
+    }
   }
 
-  func similarities(to query: [Float]) -> [Float] {
-    var scores = [Float](repeating: 0, count: printings.count)
-    vectors.withUnsafeBufferPointer { matrix in
-      query.withUnsafeBufferPointer { vector in
-        scores.withUnsafeMutableBufferPointer { output in
-          vDSP_mmul(
-            matrix.baseAddress!, 1,
-            vector.baseAddress!, 1,
-            output.baseAddress!, 1,
-            vDSP_Length(printings.count), 1, vDSP_Length(dimension)
+  func similarities(to queries: [[Float]]) -> [[Float]] {
+    let count = printings.count
+    let queryCount = queries.count
+    var queryMatrix = [Float](repeating: 0, count: dimension * queryCount)
+    for (column, query) in queries.enumerated() {
+      for row in 0 ..< dimension { queryMatrix[row * queryCount + column] = query[row] }
+    }
+    var scores = [[Float]](repeating: [Float](repeating: 0, count: count), count: queryCount)
+    var converted = [Float](repeating: 0, count: Self.searchChunkRows * dimension)
+    var products = [Float](repeating: 0, count: Self.searchChunkRows * queryCount)
+    halves.withUnsafeBytes { buffer in
+      guard let base = buffer.baseAddress else { return }
+      for start in stride(from: 0, to: count, by: Self.searchChunkRows) {
+        let rows = min(Self.searchChunkRows, count - start)
+        let values = rows * dimension
+        converted.withUnsafeMutableBytes { target in
+          var source = vImage_Buffer(
+            data: UnsafeMutableRawPointer(mutating: base + start * dimension * MemoryLayout<Float16>.size),
+            height: 1, width: vImagePixelCount(values), rowBytes: values * MemoryLayout<Float16>.size
           )
+          var destination = vImage_Buffer(
+            data: target.baseAddress, height: 1, width: vImagePixelCount(values), rowBytes: values * MemoryLayout<Float>.size
+          )
+          vImageConvert_Planar16FtoPlanarF(&source, &destination, vImage_Flags(kvImageNoFlags))
+        }
+        vDSP_mmul(
+          converted, 1, queryMatrix, 1, &products, 1,
+          vDSP_Length(rows), vDSP_Length(queryCount), vDSP_Length(dimension)
+        )
+        for row in 0 ..< rows {
+          for column in 0 ..< queryCount {
+            scores[column][start + row] = products[row * queryCount + column]
+          }
         }
       }
     }

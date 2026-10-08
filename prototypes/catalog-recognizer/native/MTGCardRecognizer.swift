@@ -89,8 +89,9 @@ enum MTGCardRecognizer {
     let uprightVector = try MTGCardEmbedder.featurePrint(of: uprightSmall)
     let turnedVector = try MTGCardEmbedder.featurePrint(of: turnedSmall)
     stageMs["embed"] = elapsed(since: &startedAt)
-    let uprightScores = catalog.similarities(to: uprightVector)
-    let turnedScores = catalog.similarities(to: turnedVector)
+    let bothScores = catalog.similarities(to: [uprightVector, turnedVector])
+    let uprightScores = bothScores[0]
+    let turnedScores = bothScores[1]
     let uprightBest = uprightScores.max() ?? 0
     let turnedBest = turnedScores.max() ?? 0
     stageMs["search"] = elapsed(since: &startedAt)
