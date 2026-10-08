@@ -35,8 +35,20 @@ A Commander deck made from exact owned copies in the collection. An owned copy c
 _Avoid_: Decklist
 
 **Deck validity**:
-The deck's current conformance to Commander rules. An invalid deck remains editable and lists the rules it violates.
+The deck's conformance to the current official Commander rules, judged on its commanders and main deck. It is valid, invalid, or cannot be determined. An invalid deck remains editable and lists its violations.
 _Avoid_: Legality status
+
+**Violation**:
+One Commander rule that a deck breaks, with the cards that break it.
+_Avoid_: Error, issue
+
+**Bracket signal**:
+A fact about a deck that Commander Brackets guidance mentions, such as its Game Changers or extra-turn cards.
+_Avoid_: Power level
+
+**Estimated bracket**:
+The Commander bracket that a deck's bracket signals suggest. It is an estimate for a pregame conversation, not a certified bracket.
+_Avoid_: Bracket, deck bracket, power level
 
 **Planned swap**:
 A card to acquire paired with the card it will replace in a deck. Choosing "swap in" selects the exact acquired collection entry to allocate.
