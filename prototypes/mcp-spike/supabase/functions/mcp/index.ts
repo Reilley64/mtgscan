@@ -34,12 +34,16 @@ function stringClaim(claims: Claims | null, name: string) {
   return typeof value === 'string' ? value : Array.isArray(value) ? value.join(' ') : null
 }
 
-async function describeRequest(req: Request) {
+type RequestInfo = ReturnType<typeof describeRequest>
+
+const requestInfo = new WeakMap<Request, RequestInfo>()
+
+function describeRequest(req: Request, bodyText: string | null) {
   let rpcMethod: string | null = null
   let tool: string | null = null
-  if (req.method === 'POST') {
+  if (bodyText) {
     try {
-      const body = await req.clone().json()
+      const body = JSON.parse(bodyText)
       const first = Array.isArray(body) ? body[0] : body
       rpcMethod = typeof first?.method === 'string' ? first.method : null
       tool = rpcMethod === 'tools/call' && typeof first?.params?.name === 'string' ? first.params.name : null
@@ -82,7 +86,7 @@ const app = pipeline(
   ],
   async (req, ctx) => {
     const claims = ctx.jwtClaims as Claims | null
-    const request = await describeRequest(req)
+    const request = requestInfo.get(req) ?? describeRequest(req, null)
     const identity = {
       client_id: stringClaim(claims, 'client_id'),
       aud: stringClaim(claims, 'aud'),
@@ -227,10 +231,13 @@ const app = pipeline(
   },
 )
 
-Deno.serve(async (req) => {
-  const request = await describeRequest(req)
+Deno.serve(async (incoming) => {
+  const bodyText = incoming.method === 'POST' ? await incoming.text() : null
+  const req = bodyText === null ? incoming : new Request(incoming.url, { method: incoming.method, headers: incoming.headers, body: bodyText })
+  const request = describeRequest(req, bodyText)
+  requestInfo.set(req, request)
   const started = Date.now()
   const response = await app(req)
-  log({ event: 'mcp_http', status: response.status, ms: Date.now() - started, ...request })
+  log({ ...request, event: 'mcp_http', status: response.status, ms: Date.now() - started })
   return response
 })

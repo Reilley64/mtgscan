@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>mtgscan spike consent</title>
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; max-width: 34rem; margin: 3rem auto; padding: 0 1rem; color: #1d1d1f; }
+      h1 { font-size: 1.4rem; }
+      section { border: 1px solid #d2d2d7; border-radius: 0.75rem; padding: 1rem 1.25rem; margin: 1rem 0; }
+      label { display: block; margin: 0.5rem 0; }
+      input { width: 100%; box-sizing: border-box; padding: 0.5rem; font: inherit; }
+      button { font: inherit; padding: 0.5rem 1rem; margin: 0.5rem 0.5rem 0 0; border-radius: 0.5rem; border: 1px solid #86868b; background: #fff; cursor: pointer; }
+      button.primary { background: #0071e3; border-color: #0071e3; color: #fff; }
+      .error { color: #b00020; white-space: pre-wrap; }
+      .muted { color: #6e6e73; font-size: 0.9rem; }
+      code { word-break: break-all; }
+      [hidden] { display: none; }
+    </style>
+  </head>
+  <body>
+    <h1>mtgscan spike consent</h1>
+    <p class="muted">Throwaway Wayfinder prototype for ticket 12. Supabase Auth sends you here to approve an MCP client.</p>
+
+    <section id="sign-in" hidden>
+      <h2>Sign in</h2>
+      <form id="sign-in-form">
+        <label>Email <input id="email" type="email" autocomplete="username" required /></label>
+        <label>Password <input id="password" type="password" autocomplete="current-password" required /></label>
+        <button class="primary" type="submit">Sign in</button>
+      </form>
+    </section>
+
+    <section id="details" hidden>
+      <h2>Authorize <span id="client-name"></span></h2>
+      <p>This client wants to use your mtgscan spike account.</p>
+      <p><strong>Signed in as:</strong> <span id="user-email"></span></p>
+      <p><strong>Redirect URI:</strong> <code id="redirect-uri"></code></p>
+      <p><strong>Requested scopes:</strong></p>
+      <ul id="scopes"></ul>
+      <button class="primary" id="approve" type="button">Approve</button>
+      <button id="deny" type="button">Deny</button>
+    </section>
+
+    <section id="status-box" hidden>
+      <p id="status"></p>
+      <pre id="raw" class="muted"></pre>
+    </section>
+
+    <p><button id="sign-out" type="button" hidden>Sign out</button></p>
+
+    <script src="/config.js"></script>
+    <script src="/vendor/supabase.js"></script>
+    <script>
+      const config = window.spikeConfig
+      const client = window.supabase.createClient(config.projectUrl, config.publishableKey)
+      const authorizationId = new URLSearchParams(location.search).get('authorization_id')
+      const byId = (id) => document.getElementById(id)
+
+      function showStatus(text, isError, raw) {
+        byId('status-box').hidden = false
+        byId('status').textContent = text
+        byId('status').className = isError ? 'error' : ''
+        byId('raw').textContent = raw ? JSON.stringify(raw, null, 2) : ''
+      }
+
+      function describeError(error) {
+        return { name: error?.name, status: error?.status, code: error?.code, message: error?.message }
+      }
+
+      async function load() {
+        const { data: { session } } = await client.auth.getSession()
+        byId('sign-out').hidden = !session
+        if (!session) {
+          byId('sign-in').hidden = false
+          byId('email').value = config.email || ''
+          return
+        }
+        byId('sign-in').hidden = true
+        if (!authorizationId) {
+          showStatus(`Signed in as ${session.user.email}. No authorization request is open. Start the connection from the MCP client.`)
+          return
+        }
+        const { data, error } = await client.auth.oauth.getAuthorizationDetails(authorizationId)
+        if (error) {
+          showStatus('Supabase returned an error for this authorization request.', true, describeError(error))
+          return
+        }
+        if (!data.authorization_id && data.redirect_url) {
+          showStatus('You approved this client before. Returning to the client.')
+          location.assign(data.redirect_url)
+          return
+        }
+        byId('details').hidden = false
+        byId('client-name').textContent = data.client?.name || data.client?.id || 'an unnamed client'
+        byId('user-email').textContent = data.user?.email || session.user.email
+        byId('redirect-uri').textContent = data.redirect_uri || ''
+        const scopes = byId('scopes')
+        scopes.replaceChildren()
+        for (const scope of (data.scope || '').split(' ').filter(Boolean)) {
+          const item = document.createElement('li')
+          item.textContent = scope
+          scopes.append(item)
+        }
+      }
+
+      async function decide(approve) {
+        byId('approve').disabled = true
+        byId('deny').disabled = true
+        const call = approve ? client.auth.oauth.approveAuthorization : client.auth.oauth.denyAuthorization
+        const { data, error } = await call.call(client.auth.oauth, authorizationId, { skipBrowserRedirect: true })
+        if (error) {
+          showStatus(`Supabase returned an error when you chose ${approve ? 'approve' : 'deny'}.`, true, describeError(error))
+          byId('approve').disabled = false
+          byId('deny').disabled = false
+          return
+        }
+        showStatus(approve ? 'Approved. Returning to the client.' : 'Denied. Returning to the client.')
+        location.assign(data.redirect_url)
+      }
+
+      byId('sign-in-form').addEventListener('submit', async (event) => {
+        event.preventDefault()
+        const { error } = await client.auth.signInWithPassword({ email: byId('email').value, password: byId('password').value })
+        if (error) {
+          showStatus('Sign-in failed.', true, describeError(error))
+          return
+        }
+        byId('status-box').hidden = true
+        await load()
+      })
+      byId('approve').addEventListener('click', () => decide(true))
+      byId('deny').addEventListener('click', () => decide(false))
+      byId('sign-out').addEventListener('click', async () => {
+        await client.auth.signOut()
+        location.reload()
+      })
+
+      load().catch((error) => showStatus('The consent page failed to load.', true, describeError(error)))
+    </script>
+  </body>
+</html>

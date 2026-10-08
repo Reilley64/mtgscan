@@ -98,6 +98,28 @@ as $$
   );
 $$;
 
+create or replace function public.bump_deck_revision()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if coalesce(current_setting('mtgscan.skip_revision_bump', true), '') = 'on' then
+    return null;
+  end if;
+  update public.decks
+  set revision = revision + 1, updated_at = now()
+  where id = coalesce(new.deck_id, old.deck_id);
+  return null;
+end;
+$$;
+
+drop trigger if exists deck_cards_bump_revision on public.deck_cards;
+create trigger deck_cards_bump_revision
+  after insert or update or delete on public.deck_cards
+  for each row execute function public.bump_deck_revision();
+
 create or replace function public.preview_deck_change(p_deck_id uuid, p_changes jsonb)
 returns jsonb
 language plpgsql
@@ -287,6 +309,8 @@ begin
     raise exception 'invalid_change' using detail = (v_plan -> 'errors')::text;
   end if;
 
+  perform set_config('mtgscan.skip_revision_bump', 'on', true);
+
   for v_line in select value from jsonb_array_elements(v_plan -> 'lines') loop
     v_before := v_before || jsonb_build_object(v_line ->> 'card_name', (v_line ->> 'before')::integer);
     v_after := v_after || jsonb_build_object(v_line ->> 'card_name', (v_line ->> 'after')::integer);
@@ -298,6 +322,8 @@ begin
       on conflict (deck_id, card_name) do update set qty = excluded.qty;
     end if;
   end loop;
+
+  perform set_config('mtgscan.skip_revision_bump', 'off', true);
 
   update public.decks set revision = revision + 1, updated_at = now()
   where id = p_deck_id
@@ -375,6 +401,8 @@ begin
   values (v_user, 'Kenrith spike deck', 'commander', 'Kenrith, the Returned King')
   returning id into v_deck;
 
+  perform set_config('mtgscan.skip_revision_bump', 'on', true);
+
   insert into public.deck_cards (deck_id, card_name, qty)
   select v_deck, t.card_name, t.qty
   from (values
@@ -395,11 +423,14 @@ begin
     ('Forest', 2)
   ) as t (card_name, qty);
 
+  perform set_config('mtgscan.skip_revision_bump', 'off', true);
+
   return jsonb_build_object('seeded', true, 'deck_id', v_deck);
 end;
 $$;
 
 revoke all on function public.is_basic_land(text) from public, anon;
+revoke all on function public.bump_deck_revision() from public, anon;
 revoke all on function public.preview_deck_change(uuid, jsonb) from public, anon;
 revoke all on function public.apply_deck_change(uuid, integer, jsonb, text, text) from public, anon;
 revoke all on function public.seed_spike_data() from public, anon;

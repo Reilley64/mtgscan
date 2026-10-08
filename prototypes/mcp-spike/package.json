@@ -5,7 +5,9 @@
   "scripts": {
     "setup": "node scripts/setup.mjs",
     "consent": "node consent/server.mjs",
-    "preflight": "node scripts/preflight.mjs"
+    "preflight": "node scripts/preflight.mjs",
+    "reset-data": "node scripts/reset-data.mjs",
+    "logs": "node scripts/logs.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3"
