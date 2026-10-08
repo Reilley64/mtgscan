@@ -1,0 +1,15 @@
+project_id = "mtgscan-mcp-spike"
+
+[auth]
+site_url = "http://localhost:3000"
+
+[auth.email]
+enable_signup = true
+
+[auth.oauth_server]
+enabled = true
+authorization_url_path = "/oauth/consent"
+allow_dynamic_registration = true
+
+[functions.mcp]
+verify_jwt = false

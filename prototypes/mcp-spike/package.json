@@ -1,0 +1,13 @@
+{
+  "name": "mtgscan-mcp-spike",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "consent": "node consent/server.mjs",
+    "preflight": "node scripts/preflight.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.3"
+  }
+}
