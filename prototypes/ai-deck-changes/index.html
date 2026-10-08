@@ -241,6 +241,91 @@ table.ov{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%
 .deckdetail{margin-top:8px}
 .deckdetail .flag{margin-top:0;font-size:11px;padding:6px 8px}
 .deckdetail .meta{font-size:11px;margin-top:4px}
+.scroll,.sheet .body{position:relative}
+.item.found{background:rgba(216,255,98,.1);box-shadow:inset 3px 0 0 var(--accent)}
+.card.found{outline:2px solid var(--accent);outline-offset:-2px}
+.tile.cur .timg{outline:2px solid var(--accent);outline-offset:1px}
+.cdimg{position:relative;aspect-ratio:488/680;border-radius:4.75%/3.4%;background:#2a3238 center/cover no-repeat;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.6);flex:none}
+.cdimg.noimg{display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;color:var(--muted);font-weight:800}
+.cdhero1{display:flex;justify-content:center;padding:4px 0 12px}
+.cdhero1 .cdimg{width:250px}
+.cdtitle{padding:0 16px 6px}
+.cdname{font-size:20px;font-weight:800;line-height:1.15}
+.cdname.big{font-size:24px}
+.cost{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#dfe6e9}
+.cdfacts{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.cdfacts span{background:var(--surface3);border-radius:6px;padding:2px 7px;font-size:11px;font-weight:800;color:#fff}
+.cdfacts span.pf{background:rgba(244,208,111,.16);color:var(--warn)}
+.cdsec{margin:6px 12px;padding:9px 10px;border-radius:12px;background:var(--surface)}
+.cdh{display:flex;justify-content:space-between;align-items:center;color:var(--accent);font-size:12px;font-weight:800;margin-bottom:6px}
+.cdh .count{color:var(--muted);font-weight:700}
+.cdcounts{display:flex;flex-direction:column;gap:7px}
+.cdcrow .lbl{display:block;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cdcrow .cells{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.cdc{display:flex;flex-direction:column;align-items:center;background:var(--surface2);border-radius:8px;padding:4px 2px;font-size:10px;font-weight:700;color:var(--muted)}
+.cdc b{font-size:16px;color:#fff;line-height:1.15}
+.cdc.free b,.cdc.held b{color:var(--accent)}
+.cdc.decks b{color:var(--info)}
+.cdc.protected b{color:var(--warn)}
+.cdc.zero b{color:var(--dim)}
+.cdtags{display:flex;flex-wrap:wrap;gap:6px}
+.cdtags .decktag{max-width:none;padding:3px 10px 3px 3px}
+.decktag.hold .av{color:var(--accent)}
+.cdsug,.cdcopy{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:6px 0}
+.cdsug+.cdsug,.cdcopy+.cdcopy{border-top:1px solid #0d1214}
+.cdsug .sgn{width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex:none}
+.cdsug .sgn.in{background:var(--incoming);color:var(--on-accent)}
+.cdsug .sgn.out{background:var(--outgoing);color:#2a0400}
+.cdcopy.cur .name{color:var(--accent)}
+.cdprice .kv,[data-cd=copy-prices] .kv{font-size:13px}
+.oracle{font-size:13px;color:#dfe6e9;margin-top:8px;line-height:1.4}
+.oracle .otitle{display:block;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.oracle.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.linkbtn.small{font-size:12px;margin-top:4px}
+.cdnote{padding:6px 2px 0}
+.cdask .btn{width:100%}
+.cdask .meta{margin-top:6px}
+.cdflash{animation:cdflash 1.4s ease-out}
+@keyframes cdflash{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 3px transparent}}
+.cdsheet{transition:transform .2s}
+.cdsheet .dragzone{cursor:grab;touch-action:none;user-select:none}
+.cdsheet .foot{gap:6px}
+.cdsheet .foot .cdnote{padding:0}
+.cdhero2{position:relative;height:330px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.cdhero2 .bg{position:absolute;inset:-24px;background:#1a2125 center/cover;filter:blur(18px) brightness(.45)}
+.cdhero2 .cdimg{position:relative;width:216px}
+.cdpage .cdtitle{padding-top:10px}
+.cdacts{padding:0 16px;margin-top:6px}
+.cdseg{position:sticky;top:0;z-index:3;margin:12px 16px 4px;box-shadow:0 0 0 6px var(--bg)}
+.sbadge{display:inline-block;min-width:15px;height:15px;border-radius:8px;background:var(--danger);color:#fff;font-size:9px;line-height:15px;text-align:center;padding:0 3px}
+.cdsec .option.cddeck{margin:4px 0;width:100%;background:var(--surface2);padding:8px 10px}
+.cddeck .cdav{width:44px;height:44px;border-radius:10px;overflow:hidden;flex:none;background:#2a3238}
+.cdtab .cdsec{background:var(--surface)}
+.flip{position:absolute;left:0;right:0;top:50px;bottom:0;z-index:22;background:#000;display:flex;flex-direction:column}
+.fliptop{flex:none;display:flex;align-items:center;justify-content:space-between;padding:2px 16px 6px;gap:8px}
+.fliptop .side{width:44px}
+.flippos{font-size:12px;font-weight:800}
+.flipstage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 8px;touch-action:none;cursor:grab;user-select:none}
+.flipcard{height:100%;max-width:100%;aspect-ratio:488/680;display:flex;align-items:center;transition:transform .2s}
+.flipcard .cdimg{width:100%}
+.fliparrow{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:56px;border-radius:10px;background:rgba(0,0,0,.6);font-size:30px;line-height:1;z-index:2;color:#fff}
+.fliparrow.l{left:4px}
+.fliparrow.r{right:4px}
+.fliparrow:disabled{opacity:.2}
+.flipchips{flex:none;display:flex;gap:6px;overflow-x:auto;padding:8px 12px;scrollbar-width:none}
+.flipchips::-webkit-scrollbar{display:none}
+.flipspace{flex:none;height:178px}
+.drawer{position:absolute;left:0;right:0;bottom:0;background:#161c1f;border-radius:16px 16px 0 0;display:flex;flex-direction:column;padding-bottom:24px;transition:transform .2s;box-shadow:0 -10px 30px rgba(0,0,0,.6);z-index:3}
+.drawer.open{top:170px}
+.drawer .handle{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;padding:6px 0 2px;touch-action:none;cursor:grab}
+.drawer .handle .grab{width:36px;height:5px;border-radius:3px;background:#4a555b}
+.drawer .handle .hl{font-size:10px;font-weight:800;color:var(--dim)}
+.dpeek{flex:none;padding:0 16px 4px}
+.dpeek .cdname{font-size:18px}
+.dprice{font-size:15px}
+.dpeek .actions{margin-top:8px}
+.drawer:not(.open) .dbody{display:none}
+.dbody{flex:1;min-height:0;overflow-y:auto;padding-bottom:16px;scrollbar-width:none}
 #phone.dragging{cursor:grabbing;user-select:none}
 .btn.simscan{flex:none;width:100%;background:rgba(0,0,0,.5);border:1px dashed #ffb300;color:#ffb300}
 #switcher{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:4px;background:#ffffff;color:#111;border-radius:999px;padding:5px;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.2);font-weight:800;font-size:13px}
@@ -790,11 +875,13 @@ const VARIANTS = [['A', 'Deck-first'], ['B', 'Review queue'], ['C', 'Timeline'],
 let state = D.seed();
 const params = new URLSearchParams(location.search);
 const startVariant = VARIANTS.some(v => v[0] === params.get('variant')) ? params.get('variant') : 'D';
-const freshUi = () => ({ deckId: 'atraxa', sheet: null, toast: null, A: { showClosed: false }, B: { tab: 'review', filter: 'all', skipped: [], current: null, deckId: 'atraxa' }, C: { filter: 'all', revertFrom: null, highlight: null, toBottom: true }, D: { tab: 'recent', filter: 'all', deckId: null, query: '', colFilter: 'all', scanning: false, scanFor: null, deckTab: 'cards', deckFrom: null, showClosed: false, cardSort: 'name', expanded: [], deckSort: { key: 'priority', dir: -1 } } });
+const freshUi = () => ({ deckId: 'atraxa', sheet: null, toast: null, A: { showClosed: false }, B: { tab: 'review', filter: 'all', skipped: [], current: null, deckId: 'atraxa' }, C: { filter: 'all', revertFrom: null, highlight: null, toBottom: true }, D: { tab: 'recent', filter: 'all', deckId: null, query: '', colFilter: 'all', scanning: false, scanFor: null, deckTab: 'cards', deckFrom: null, showClosed: false, cardSort: 'name', expanded: [], deckSort: { key: 'priority', dir: -1 }, card: null, focus: null } });
 const COL_LAYOUTS = ['List', 'Binder grid', 'By card'];
 const DECK_LAYOUTS = ['List', 'Commander gallery', 'Overview table'];
-const layoutParam = k => [1, 2, 3].includes(Number(params.get(k))) ? Number(params.get(k)) : 1;
-let ui = { variant: startVariant, showState: false, images: true, devOpen: true, devTarget: null, layout: { collection: layoutParam('collection'), decks: layoutParam('decks') }, ...freshUi() };
+const CARD_LAYOUTS = ['Sheet', 'Card page', 'Binder flip'];
+const LAYOUT_DEFAULTS = { collection: 2, decks: 2, card: 1 };
+const layoutParam = k => [1, 2, 3].includes(Number(params.get(k))) ? Number(params.get(k)) : LAYOUT_DEFAULTS[k];
+let ui = { variant: startVariant, showState: false, images: true, devOpen: true, devTarget: null, layout: { collection: layoutParam('collection'), decks: layoutParam('decks'), card: layoutParam('card') }, ...freshUi() };
 let toastTimer = null;
 let scanTimer = null;
 
@@ -924,7 +1011,7 @@ function deckOpenItems(d, P) {
   let h = `<div class="section"><span>Deck suggestions</span><span class="count">${P.open.length} open</span></div>`;
   if (!P.open.length) h += `<div class="note">No open deck suggestions. Ask ChatGPT for ideas through the MCP connection.</div>`;
   for (const s of P.open) {
-    h += `<div class="card" data-sug="${s.id}">${diffLines(s.in, s.out, copiesChip(s.in, d.id))}${reasonBlock(s.reason, sugWho(s), true)}${validityFlags(d.id, s.in, s.out)}${pairFlag(s)}${repeatFlag(s)}<div class="meta" style="margin-top:8px">${esc(outcomeText(s.id))} · ${priceText(s.in)}</div><div class="actions"><button class="btn" data-act="dismiss" data-id="${s.id}">Dismiss</button><button class="btn primary" data-act="openPromote" data-id="${s.id}">Promote</button></div></div>`;
+    h += `<div class="card ${ui.D.focus && ui.D.focus.sug === s.id ? 'found' : ''}" data-sug="${s.id}">${diffLines(s.in, s.out, copiesChip(s.in, d.id))}${reasonBlock(s.reason, sugWho(s), true)}${validityFlags(d.id, s.in, s.out)}${pairFlag(s)}${repeatFlag(s)}<div class="meta" style="margin-top:8px">${esc(outcomeText(s.id))} · ${priceText(s.in)}</div><div class="actions"><button class="btn" data-act="dismiss" data-id="${s.id}">Dismiss</button><button class="btn primary" data-act="openPromote" data-id="${s.id}">Promote</button></div></div>`;
   }
   h += `<div class="section"><span>Planned swaps</span><span class="count">${P.swaps.length}</span></div>`;
   if (!P.swaps.length) h += `<div class="note">No planned swaps.</div>`;
@@ -934,12 +1021,13 @@ function deckOpenItems(d, P) {
   for (const x of P.buys) h += `<div class="card">${diffLines(x.in, x.out, `<span class="chip warn">${priceText(x.in)}</span>`)}${reasonBlock(x.reason, 'Reason', true)}${validityFlags(x.deckId, x.in, x.out)}<div class="actions"><button class="btn primary" data-act="openBought" data-id="${x.id}">Bought</button></div></div>`;
   return h;
 }
-function deckListBlock(d, P) {
+function deckListBlock(d, P, plannedOnly = false) {
   let h = `<div class="section"><span>Deck list</span><span class="count">${P.v.size} cards · revision ${d.revision}</span></div><div class="list">`;
+  const found = ui.D.focus && ui.D.focus.card;
   for (const x of P.cards) {
-    const marks = P.outMarks[x.cardId] || [];
+    const marks = (P.outMarks[x.cardId] || []).filter(m => !plannedOnly || m === 'Planned out');
     const sub = x.commander ? 'Commander' : x.basic ? 'Basic land' : entryText(x.entryId);
-    h += `<div class="item">${thumb(x.cardId, 'sm')}<div class="grow"><div class="name">${esc(C(x.cardId).name)}</div><div class="meta">${esc(sub)}</div></div>${marks.map(m => `<span class="tag-out">− ${m}</span>`).join(' ')}<span class="qty">${x.qty}</span></div>`;
+    h += `<div class="item ${found === x.cardId ? 'found' : ''}" data-card="${x.cardId}">${thumb(x.cardId, 'sm')}<div class="grow"><div class="name">${esc(C(x.cardId).name)}</div><div class="meta">${esc(sub)}</div></div>${marks.map(m => `<span class="tag-out">− ${m}</span>`).join(' ')}<span class="qty">${x.qty}</span></div>`;
   }
   h += `<div class="item"><div class="thumb sm">+</div><div class="grow"><div class="name dim">Other cards</div><div class="meta">Pretend cards, not shown in the prototype</div></div><span class="qty">${d.otherCards}</span></div></div>`;
   return h;
@@ -1247,7 +1335,7 @@ function binderD(list) {
   for (const e of list) {
     const n = entryCounts(e);
     const badges = `<span class="cb qty" title="${e.qty} owned">×${e.qty}</span>${e.protected ? `<span class="cb prot" title="Protected copies">🔒</span>` : ''}${n.free ? `<span class="cb free ${e.protected ? 'pf' : ''}" title="${n.free} free">${n.free}</span>` : ''}<span class="cbr">${n.allocated ? `<span class="cb deck" title="${esc(n.alloc.map(a => `${a.qty} in ${deckOf(a.deckId).short}`).join(', '))}">❏${n.allocated}</span>` : ''}${n.held.length ? `<span class="cb held" title="Held by a planned swap">⇄${n.held.length}</span>` : ''}</span>`;
-    h += `<button class="tile entry" data-act="openEntryD" data-entry="${e.id}" title="${esc(C(e.cardId).name)} · ${esc(printingText(e))}"><span class="timg">${thumb(e.cardId, 'tile')}${e.finish === 'foil' ? '<span class="foilsheen"></span>' : ''}${badges}</span><span class="tcap">${esc(e.printing)}${e.finish === 'foil' ? ' · foil' : ''}${e.condition !== 'NM' ? ' · ' + esc(e.condition) : ''}</span></button>`;
+    h += `<button class="tile entry ${ui.D.card && ui.D.card.entryId === e.id ? 'cur' : ''}" data-act="openCardD" data-entry="${e.id}" title="${esc(C(e.cardId).name)} · ${esc(printingText(e))}"><span class="timg">${thumb(e.cardId, 'tile')}${e.finish === 'foil' ? '<span class="foilsheen"></span>' : ''}${badges}</span><span class="tcap">${esc(e.printing)}${e.finish === 'foil' ? ' · foil' : ''}${e.condition !== 'NM' ? ' · ' + esc(e.condition) : ''}</span></button>`;
   }
   return h + `</div>`;
 }
@@ -1294,10 +1382,11 @@ function byCardD(list) {
   }
   return h;
 }
+function collectionList() { return state.collection.slice().sort(byEntryName).filter(e => entryMatches(e, ui.D.query, ui.D.colFilter)); }
 function renderCollectionD() {
   const q = ui.D.query, f = ui.D.colFilter, layout = ui.layout.collection;
   const all = state.collection.slice().sort(byEntryName);
-  const list = all.filter(e => entryMatches(e, q, f));
+  const list = collectionList();
   const copies = state.collection.reduce((a, e) => a + e.qty, 0);
   const countOf = k => { const m = all.filter(e => entryMatches(e, '', k)); return layout === 3 ? cardGroups(m).length : m.length; };
   let h = `<div class="navtitle"><div><h1>Collection</h1><div class="sub">${plural(state.collection.length, 'collection entry').replace('entrys', 'entries')} · ${copies} copies</div></div></div>`;
@@ -1379,7 +1468,7 @@ function renderDeckD(d) {
   const P = deckParts(d), t = ui.D.deckTab;
   const head = `<div class="deckhead" data-deck-header="${d.id}"><div class="hdr-deck compact"><div class="art">${thumb(d.commanders[0], 'art')}</div><div class="grow"><h1>${esc(d.name)}</h1><div class="chips">${priorityChip(d.priority)}${validityChip(P.v)}${bracketChip(P.b)}</div></div></div>${deckDetailD(P)}</div>`;
   let body = '';
-  if (t === 'cards') body = deckListBlock(d, P);
+  if (t === 'cards') body = deckListBlock(d, P, true);
   else if (t === 'suggestions') body = deckOpenItems(d, P) + deckClosedBlock(d, ui.D.showClosed, 'toggleClosedD');
   else {
     const sh = ui.sheet;
@@ -1417,7 +1506,7 @@ function renderScanD() {
 function renderD() {
   const t = ui.D.tab;
   if (inDeckD()) { const d = deckOf(ui.D.deckId); return `${renderDeckD(d)}${deckTabBarD(d)}`; }
-  const view = t === 'recent' ? renderRecentD() : t === 'collection' ? renderCollectionD() : t === 'decks' ? renderDecksD() : renderScanD();
+  const view = t === 'recent' ? renderRecentD() : t === 'collection' ? (cardOpen() && ui.layout.card === 2 ? cardPageD(cardInfo(ui.D.card.entryId)) : renderCollectionD()) : t === 'decks' ? renderDecksD() : renderScanD();
   const badge = needsYouD().length;
   const tab = (k, ic, label, n) => `<button class="${t === k ? 'sel' : ''}" data-act="tabD" data-tab="${k}"><span class="ic">${ic}${n ? `<span class="tbadge" data-badge="${k}">${n}</span>` : ''}</span><span>${label}</span></button>`;
   return `${view}<div class="tabbar" data-bar="app">${tab('recent', '◷', 'Recent', badge)}${tab('collection', '▤', 'Collection', 0)}${tab('decks', '❏', 'Decks', 0)}${tab('scan', '⌖', 'Scan', 0)}</div>`;
@@ -1532,6 +1621,186 @@ function entrySheet(sh) {
   }
   return sheetFrame('Collection entry', body, foot);
 }
+const ORACLE = {"atraxa-praetors-voice":["{G}{W}{U}{B}","Flying, vigilance, deathtouch, lifelink\nAt the beginning of your end step, proliferate. (Choose any number of permanents and/or players, then give each another counter of each kind already there.)"],"meren-of-clan-nel-toth":["{2}{B}{G}","Whenever another creature you control dies, you get an experience counter.\nAt the beginning of your end step, choose target creature card in your graveyard. If that card's mana value is less than or equal to the number of experience counters you have, return it to the battlefield. Otherwise, put it into your hand."],"krenko-mob-boss":["{2}{R}{R}","{T}: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control."],"doubling-season":["{4}{G}","If an effect would create one or more tokens under your control, it creates twice that many of those tokens instead.\nIf an effect would put one or more counters on a permanent you control, it puts twice that many of those counters on that permanent instead."],"contagion-engine":["{6}","When this artifact enters, put a -1/-1 counter on each creature target player controls.\n{4}, {T}: Proliferate twice. (Choose any number of permanents and/or players, then give each another counter of each kind already there. Then do it again.)"],"smothering-tithe":["{3}{W}","Whenever an opponent draws a card, that player may pay {2}. If the player doesn't, you create a Treasure token. (It's an artifact with \"{T}, Sacrifice this token: Add one mana of any color.\")"],"evolution-sage":["{2}{G}","Landfall — Whenever a land you control enters, proliferate. (Choose any number of permanents and/or players, then give each another counter of each kind already there.)"],"grist-the-hunger-tide":["{1}{B}{G}","As long as Grist isn't on the battlefield, it's a 1/1 Insect creature in addition to its other types.\n+1: Create a 1/1 black and green Insect creature token, then mill a card. If an Insect card was milled this way, put a loyalty counter on Grist and repeat this process.\n−2: You may sacrifice a creature. When you do, destroy target creature or planeswalker.\n−5: Each opponent loses life equal to the number of creature cards in your graveyard."],"phyrexian-arena":["{1}{B}{B}","At the beginning of your upkeep, you draw a card and lose 1 life."],"swamp":["","({T}: Add {B}.)"],"mountain":["","({T}: Add {R}.)"],"forest":["","({T}: Add {G}.)"],"plains":["","({T}: Add {W}.)"],"island":["","({T}: Add {U}.)"],"goblin-instigator":["{1}{R}","When this creature enters, create a 1/1 red Goblin creature token."],"lightning-greaves":["{2}","Equipped creature has haste and shroud. (It can't be the target of spells or abilities.)\nEquip {0}"],"mind-stone":["{2}","{T}: Add {C}.\n{1}, {T}, Sacrifice this artifact: Draw a card."],"thornbite-staff":["{2}","Equipped creature has \"{2}, {T}: This creature deals 1 damage to any target\" and \"Whenever a creature dies, untap this creature.\"\nWhenever a Shaman creature enters, you may attach this Equipment to it.\nEquip {4}"],"goblin-matron":["{2}{R}","When this creature enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle."],"goblin-lackey":["{R}","Whenever this creature deals damage to a player, you may put a Goblin permanent card from your hand onto the battlefield."],"cyclonic-rift":["{1}{U}","Return target nonland permanent you don't control to its owner's hand.\nOverload {6}{U} (You may cast this spell for its overload cost. If you do, change \"target\" in its text to \"each.\")"],"dockside-extortionist":["{1}{R}","When this creature enters, create X Treasure tokens, where X is the number of artifacts and enchantments your opponents control. (Treasure tokens are artifacts with \"{T}, Sacrifice this token: Add one mana of any color.\")"],"rhystic-study":["{2}{U}","Whenever an opponent casts a spell, you may draw a card unless that player pays {1}."],"toxic-deluge":["{2}{B}","As an additional cost to cast this spell, pay X life.\nAll creatures get -X/-X until end of turn."],"damnation":["{2}{B}{B}","Destroy all creatures. They can't be regenerated."],"tezzeret-s-gambit":["{3}{U/P}","({U/P} can be paid with either {U} or 2 life.)\nDraw two cards, then proliferate. (Choose any number of permanents and/or players, then give each another counter of each kind already there.)"],"contagion-clasp":["{2}","When this artifact enters, put a -1/-1 counter on target creature.\n{4}, {T}: Proliferate. (Choose any number of permanents and/or players, then give each another counter of each kind already there.)"],"golgari-signet":["{2}","{1}, {T}: Add {B}{G}."],"arcane-signet":["{2}","{T}: Add one mana of any color in your commander's color identity."],"pernicious-deed":["{1}{B}{G}","{X}, Sacrifice this enchantment: Destroy each artifact, creature, and enchantment with mana value X or less."],"fire-diamond":["{2}","This artifact enters tapped.\n{T}: Add {R}."],"demonic-tutor":["{1}{B}","Search your library for a card, put that card into your hand, then shuffle."],"vampiric-tutor":["{B}","Search your library for a card, then shuffle and put that card on top. You lose 2 life."],"enlightened-tutor":["{W}","Search your library for an artifact or enchantment card, reveal it, then shuffle and put that card on top."],"sol-ring":["{1}","{T}: Add {C}{C}."],"command-tower":["","{T}: Add one mana of any color in your commander's color identity."],"eternal-witness":["{1}{G}{G}","When this creature enters, you may return target card from your graveyard to your hand."],"sakura-tribe-elder":["{1}{G}","Sacrifice this creature: Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle."],"viscera-seer":["{B}","Sacrifice a creature: Scry 1. (Look at the top card of your library. You may put that card on the bottom.)"],"spore-frog":["{G}","Sacrifice this creature: Prevent all combat damage that would be dealt this turn."],"goblin-chieftain":["{1}{R}{R}","Haste (This creature can attack and {T} as soon as it comes under your control.)\nOther Goblin creatures you control get +1/+1 and have haste."],"skirk-prospector":["{R}","Sacrifice a Goblin: Add {R}."],"purphoros-god-of-the-forge":["{3}{R}","Indestructible\nAs long as your devotion to red is less than five, Purphoros isn't a creature.\nWhenever another creature you control enters, Purphoros deals 2 damage to each opponent.\n{2}{R}: Creatures you control get +1/+0 until end of turn."],"hardened-scales":["{G}","If one or more +1/+1 counters would be put on a creature you control, that many plus one +1/+1 counters are put on it instead."],"myriad-landscape":["","This land enters tapped.\n{T}: Add {C}.\n{2}, {T}, Sacrifice this land: Search your library for up to two basic land cards that share a land type, put them onto the battlefield tapped, then shuffle."],"birds-of-paradise":["{G}","Flying\n{T}: Add one mana of any color."],"expressive-iteration":["{U}{R}","Look at the top three cards of your library. Put one of them into your hand, put one of them on the bottom of your library, and exile one of them. You may play the exiled card this turn."],"sylvan-library":["{1}{G}","At the beginning of your draw step, you may draw two additional cards. If you do, choose two cards in your hand drawn this turn. For each of those cards, pay 4 life or put the card on top of your library."],"ruthless-ripper":["{B}","Deathtouch\nMorph—Reveal a black card in your hand. (You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.)\nWhen this creature is turned face up, target player loses 2 life."],"craterhoof-behemoth":["{5}{G}{G}{G}","Haste\nWhen this creature enters, creatures you control gain trample and get +X/+X until end of turn, where X is the number of creatures you control."],"siege-gang-commander":["{3}{R}{R}","When this creature enters, create three 1/1 red Goblin creature tokens.\n{1}{R}, Sacrifice a Goblin: This creature deals 2 damage to any target."],"impact-tremors":["{1}{R}","Whenever a creature you control enters, this enchantment deals 1 damage to each opponent."],"reanimate":["{B}","Put target creature card from a graveyard onto the battlefield under your control. You lose life equal to that card's mana value."]};
+const PRINT_PRICES = { 'doubling-season|2XM 310|foil': 48.9, 'smothering-tithe|RNA 22|foil': 60.34, 'rhystic-study|PCY 45|nonfoil': 59.58, 'rhystic-study|JMP 168|nonfoil': 52.1, 'goblin-matron|ULG 80|nonfoil': 8.4, 'grist-the-hunger-tide|MH1 195|foil': 14.8, 'lightning-greaves|M19 235|foil': 9.25, 'cyclonic-rift|MM3 35|foil': 35.43 };
+const FOIL_FACTOR = 1.4;
+const COUNT_KEYS = [['owned', 'Owned'], ['free', 'Free'], ['decks', 'In decks'], ['held', 'Held'], ['protected', 'Protected']];
+const CARD_TABS = [['copies', 'Copies'], ['decks', 'Decks'], ['prices', 'Prices'], ['rules', 'Rules']];
+function entryPrice(e) {
+  const k = `${e.cardId}|${e.printing}|${e.finish}`;
+  if (k in PRINT_PRICES) return PRINT_PRICES[k];
+  const c = C(e.cardId);
+  return c.price ? Math.round(Number(c.price) * (e.finish === 'foil' ? FOIL_FACTOR : 1) * 100) / 100 : null;
+}
+function cardOpen() { return ui.variant === 'D' && ui.D.tab === 'collection' && !!ui.D.card && !!D.entryById(state, ui.D.card.entryId); }
+function cardInfo(entryId) {
+  const e = D.entryById(state, entryId);
+  const c = C(e.cardId), n = entryCounts(e);
+  const copies = state.collection.filter(x => x.cardId === e.cardId).sort(byEntryName);
+  const sum = D.copySummary(state, e.cardId);
+  const decks = state.decks.map(d => ({ d, rows: d.rows.map(r => ({ r, e: D.entryById(state, r.entryId) })).filter(x => x.e && x.e.cardId === e.cardId) }))
+    .filter(x => x.rows.length).map(x => ({ ...x, qty: x.rows.reduce((a, y) => a + y.r.qty, 0), here: x.rows.filter(y => y.e.id === e.id).reduce((a, y) => a + y.r.qty, 0) }));
+  const holds = copies.flatMap(x => D.heldSwaps(state, x.id).map(p => ({ p, e: x })));
+  const sugs = state.suggestions.filter(s => s.status === 'open' && (s.in === e.cardId || s.out === e.cardId));
+  const price = entryPrice(e);
+  const total = copies.reduce((a, x) => a + (entryPrice(x) || 0) * x.qty, 0);
+  const counts = {
+    entry: { owned: e.qty, free: n.free, decks: n.allocated, held: n.held.length, protected: e.protected ? e.qty : 0 },
+    card: { owned: sum.owned, free: sum.free + sum.protectedFree, decks: sum.inDecks, held: sum.held, protected: copies.filter(x => x.protected).reduce((a, x) => a + x.qty, 0) }
+  };
+  return { e, c, n, copies, sum, decks, holds, sugs, price, value: (price || 0) * e.qty, total, counts, oracle: ORACLE[e.cardId] || ['', ''], printings: new Set(copies.map(x => x.printing)).size };
+}
+const setOf = e => e.printing.split(' ')[0];
+const numberOf = e => e.printing.split(' ').slice(1).join(' ');
+function cdImg(e, cls = '') {
+  const c = C(e.cardId);
+  const foil = e.finish === 'foil' ? '<span class="foilsheen"></span>' : '';
+  return ui.images ? `<div class="cdimg ${cls}" data-cd="image" role="img" aria-label="${esc(c.name)}" style="background-image:url('${c.img.normal}')">${foil}</div>` : `<div class="cdimg noimg ${cls}" data-cd="image">${esc(c.name)}${foil}</div>`;
+}
+function cdFacts(i) {
+  const e = i.e;
+  return `<div class="cdfacts" data-cd="facts"><span data-f="printing">Set ${esc(setOf(e))} · #${esc(numberOf(e))}</span><span data-f="finish">${cap(e.finish)}</span><span data-f="condition">${esc(e.condition)}</span><span data-f="language">${esc(e.language)}</span>${e.protected ? `<span class="pf" data-f="protected">🔒 Protected copy</span>` : ''}</div>`;
+}
+function cdTypeLine(i) { return `<span data-cd="type">${esc(i.c.type)}</span>${i.oracle[0] ? ` · <span class="cost">${esc(i.oracle[0])}</span>` : ''}`; }
+function cdCountRow(i, scope, label) {
+  return `<div class="cdcrow" data-cd-scope="${scope}"><span class="lbl">${label}</span><span class="cells">${COUNT_KEYS.map(([k, l]) => `<span class="cdc ${k} ${i.counts[scope][k] ? '' : 'zero'}" data-count="${k}"><b>${i.counts[scope][k]}</b>${l}</span>`).join('')}</span></div>`;
+}
+function cdCounts(i) {
+  return `<div class="cdcounts" data-cd="counts">${cdCountRow(i, 'entry', 'This collection entry')}${cdCountRow(i, 'card', `All copies of ${esc(i.c.name)}`)}</div>`;
+}
+function cdDeckTags(i) {
+  let h = `<div class="cdtags" data-cd="decks">`;
+  for (const x of i.decks) h += `<button class="decktag" data-act="openDeckD" data-deck="${x.d.id}" data-find="${i.e.cardId}" data-cd-deck="${x.d.id}"><span class="av">${thumb(x.d.commanders[0], 'art')}</span>${esc(x.d.short)} ×${x.qty}${x.here ? '' : ` <span class="dim">other copy</span>`}<span class="dim">›</span></button>`;
+  for (const h2 of i.holds) h += `<button class="decktag hold" data-act="openDeckD" data-deck="${h2.p.deckId}" data-cd-hold="${h2.p.id}"><span class="av">⇄</span>Held for ${esc(deckOf(h2.p.deckId).short)}<span class="dim">›</span></button>`;
+  if (!i.decks.length && !i.holds.length) h += `<span class="meta">No deck uses a copy of ${esc(i.c.name)}.</span>`;
+  return h + `</div>`;
+}
+function cdDeckRows(i) {
+  let h = `<div data-cd="decks">`;
+  for (const x of i.decks) h += `<button class="option cddeck" data-act="openDeckD" data-deck="${x.d.id}" data-find="${i.e.cardId}" data-cd-deck="${x.d.id}"><span class="cdav">${thumb(x.d.commanders[0], 'art')}</span><span class="grow"><span class="name" style="display:block">${esc(x.d.name)}</span><span class="meta">${x.qty} allocated · ${esc([...new Set(x.rows.map(y => y.e.printing + ' ' + y.e.finish))].join(', '))}${x.here ? ' · from this collection entry' : ''}</span><span class="meta" style="display:block">${cap(x.d.priority)} priority</span></span><span class="dim">›</span></button>`;
+  for (const h2 of i.holds) h += `<button class="option cddeck" data-act="openDeckD" data-deck="${h2.p.deckId}" data-cd-hold="${h2.p.id}"><span class="cdav">${thumb(deckOf(h2.p.deckId).commanders[0], 'art')}</span><span class="grow"><span class="name" style="display:block">${esc(deckOf(h2.p.deckId).name)}</span><span class="meta">Held by the planned swap${h2.p.out ? ` for ${esc(C(h2.p.out).name)}` : ''} · ${esc(h2.e.printing)}</span></span><span class="dim">›</span></button>`;
+  if (!i.decks.length && !i.holds.length) h += `<div class="note">No deck uses a copy of ${esc(i.c.name)}.</div>`;
+  return h + `</div>`;
+}
+function cdSugs(i) {
+  if (!i.sugs.length) return `<div class="meta cdnone" data-cd="sugs">No open deck suggestions bring this card in or take it out.</div>`;
+  return `<div data-cd="sugs">${i.sugs.map(s => {
+    const isIn = s.in === i.e.cardId, d = deckOf(s.deckId);
+    const what = isIn ? (s.out ? `Replaces ${esc(C(s.out).name)}` : 'Adds the card') : `For ${esc(C(s.in).name)}`;
+    return `<button class="cdsug" data-act="openSugD" data-id="${s.id}" data-cd-sug="${s.id}"><span class="sgn ${isIn ? 'in' : 'out'}">${isIn ? '+' : '−'}</span><span class="grow"><span class="name" style="display:block">${isIn ? 'Into' : 'Out of'} ${esc(d.short)}</span><span class="meta">${what} · ${esc(s.client)}</span></span><span class="dim">Open ›</span></button>`;
+  }).join('')}</div>`;
+}
+function cdCopyRows(i) {
+  return `<div data-cd="copies">${i.copies.map(x => {
+    const p = entryPrice(x);
+    return `<button class="cdcopy ${x.id === i.e.id ? 'cur' : ''}" data-act="cardEntryD" data-entry="${x.id}" data-cd-copy="${x.id}"><span class="grow"><span class="name" style="display:block">${esc(x.printing)} · ${esc(x.finish)}${x.protected ? ' · 🔒' : ''}</span><span class="meta">${esc(x.condition)} · ${esc(x.language)} · ${x.qty} owned · ${D.freeQty(state, x.id)} free</span></span><span class="meta">${p ? money(p) : 'No price'}</span>${x.id === i.e.id ? '<span class="chip ok">Selected</span>' : '<span class="dim">›</span>'}</button>`;
+  }).join('')}</div>`;
+}
+function cdPrice(i) {
+  const e = i.e;
+  return `<div class="cdprice" data-cd="price"><div class="kv"><span>${esc(e.printing)} · ${esc(e.finish)}</span><b data-cd-price="${i.price ?? ''}">${i.price ? money(i.price) + ' each' : 'No price'}</b></div><div class="kv"><span>This collection entry · ${plural(e.qty, 'copy').replace('copys', 'copies')}</span><b data-cd-value="${i.value.toFixed(2)}">${money(i.value)}</b></div><div class="kv"><span>All ${plural(i.sum.owned, 'copy').replace('copys', 'copies')} of the card</span><b data-cd-total="${i.total.toFixed(2)}">${money(i.total)}</b></div></div>`;
+}
+function cdLegal(i) {
+  const c = i.c;
+  const legal = c.banned ? `<span class="chip bad" data-cd="legality">Banned in Commander</span>` : `<span class="chip ok" data-cd="legality">Legal in Commander</span>`;
+  return `<div class="chips">${legal}${c.gc ? `<span class="chip warn" data-cd="gc">Game Changer</span>` : ''}</div>`;
+}
+function cdOracle(i, collapsible) {
+  const open = !collapsible || ui.D.card.oracle;
+  const text = esc(i.oracle[1]).replace(/\n/g, '<br>');
+  return `<div class="oracle ${open ? '' : 'clamp'}" data-cd="oracle" data-open="${open}"><span class="otitle">Oracle text</span>${text}</div>${collapsible ? `<button class="linkbtn small" data-act="oracleD">${open ? 'Show less' : 'Show all Oracle text'}</button>` : ''}`;
+}
+function cdProtectBtn(i) {
+  const e = i.e;
+  return e.protected ? `<button class="btn" data-act="unprotectD" data-entry="${e.id}">Unprotect 1 copy</button>` : `<button class="btn" data-act="protectD" data-entry="${e.id}" ${i.n.free ? '' : 'disabled'}>Protect 1 free copy</button>`;
+}
+function cdFindBtn(i) { return `<button class="btn" data-act="findInDecksD" ${i.decks.length ? '' : 'disabled'}>${i.decks.length ? 'Find in decks' : 'Not in any deck'}</button>`; }
+function cdProtectNote(i) {
+  const e = i.e;
+  return `<div class="meta cdnote">${e.protected ? 'Deck suggestions never use protected copies.' : i.n.free ? 'Protect a free copy to keep it out of decks. Deck suggestions never use protected copies.' : 'Only a free copy can be protected. Free one with a deck change first.'}</div>`;
+}
+function cdAsk(i) {
+  return `<div class="cdask"><button class="btn" disabled data-cd="ask-ai">✦ Ask AI about this card</button><div class="meta">Not in the prototype. In the app, this starts a chat about ${esc(i.c.name)} in your AI client, such as ChatGPT. The chat reads your card data through the MCP connection.</div></div>`;
+}
+const cdSec = (key, title, body, extra = '') => `<div class="cdsec ${ui.D.card.flash === key ? 'cdflash' : ''}" data-sec="${key}">${title ? `<div class="cdh">${title}${extra}</div>` : ''}${body}</div>`;
+function cardSheetD(i) {
+  const e = i.e;
+  let body = `<div class="cdhero1">${cdImg(e)}</div>`;
+  body += `<div class="cdtitle"><div class="cdname" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div>${cdFacts(i)}</div>`;
+  body += cdSec('counts', '', cdCounts(i));
+  body += cdSec('decks', 'In decks', cdDeckTags(i));
+  body += cdSec('sugs', 'Open deck suggestions', cdSugs(i));
+  body += cdSec('copies', 'Your copies', cdCopyRows(i), `<span class="count">${plural(i.printings, 'printing')} · ${plural(i.copies.length, 'collection entry').replace('entrys', 'entries')}</span>`);
+  body += cdSec('price', 'Price', cdPrice(i));
+  body += cdSec('rules', 'Commander', cdLegal(i) + cdOracle(i, true));
+  body += cdSec('ai', '', cdAsk(i));
+  const foot = `<div class="actions" style="margin-top:0">${cdProtectBtn(i)}${cdFindBtn(i)}</div>${cdProtectNote(i)}`;
+  return `<div class="sheet-scrim" data-act="closeCardD"></div><div class="sheet cdsheet" role="dialog" aria-label="${esc(i.c.name)}" data-card-detail="1" data-entry="${e.id}"><div class="dragzone" data-drag="sheet"><div class="grab"></div><div class="head"><div class="side"></div><h2>${esc(i.c.name)}</h2><div class="side" style="text-align:right"><button class="linkbtn" data-act="closeCardD">Done</button></div></div></div><div class="body" data-scroll="card-sheet-${e.cardId}">${body}</div><div class="foot">${foot}</div></div>`;
+}
+function cardPageD(i) {
+  const e = i.e, t = ui.D.card.tab;
+  let h = `<div class="cdhero2"><div class="bg" style="${ui.images ? `background-image:url('${i.c.img.art}')` : ''}"></div>${cdImg(e)}</div>`;
+  h += `<div class="cdtitle"><div class="cdname big" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div>${cdFacts(i)}</div>`;
+  h += `<div class="actions cdacts">${cdProtectBtn(i)}${cdFindBtn(i)}</div>`;
+  h += `<div class="segment cdseg">${CARD_TABS.map(([k, l]) => `<button class="${t === k ? 'sel' : ''}" data-act="cardTabD" data-tab="${k}">${l}${k === 'decks' && i.sugs.length ? ` <span class="sbadge">${i.sugs.length}</span>` : ''}</button>`).join('')}</div>`;
+  let body = '';
+  if (t === 'copies') {
+    body += cdSec('counts', '', cdCounts(i));
+    body += cdSec('copies', 'Your copies', cdCopyRows(i), `<span class="count">${plural(i.printings, 'printing')} · ${plural(i.copies.length, 'collection entry').replace('entrys', 'entries')}</span>`);
+    body += cdProtectNote(i);
+  } else if (t === 'decks') {
+    body += cdSec('decks', 'Decks with this card', cdDeckRows(i));
+    body += cdSec('sugs', 'Open deck suggestions', cdSugs(i));
+  } else if (t === 'prices') {
+    body += cdSec('price', 'This printing and finish', cdPrice(i));
+    body += cdSec('copies', 'Each copy', `<div data-cd="copy-prices">${i.copies.map(x => `<div class="kv"><span>${esc(x.printing)} · ${esc(x.finish)} · ${esc(x.condition)} ×${x.qty}</span><b>${entryPrice(x) ? money(entryPrice(x) * x.qty) : 'No price'}</b></div>`).join('')}</div>`);
+    body += `<div class="note">Prototype prices from the 8 October 2026 snapshot. The card detail prices each printing and finish. The By card layout still uses one price per card.</div>`;
+  } else {
+    body += cdSec('rules', 'Commander', cdLegal(i) + cdOracle(i, false));
+    body += cdSec('ai', '', cdAsk(i));
+  }
+  return `<div class="scroll cdpage" data-scroll="card-page-${e.cardId}" data-card-detail="2" data-entry="${e.id}" data-card-tab="${t}">${h}<div class="cdtab" data-card-tab-body="${t}">${body}</div><div style="height:24px"></div></div>`;
+}
+function flipNeighbors(e) {
+  const list = collectionList();
+  const idx = list.findIndex(x => x.id === e.id);
+  if (idx >= 0) return { list, idx, prev: list[idx - 1] || null, next: list[idx + 1] || null };
+  const j = list.findIndex(x => byEntryName(x, e) > 0);
+  return { list, idx, prev: j < 0 ? list[list.length - 1] || null : list[j - 1] || null, next: j < 0 ? null : list[j] };
+}
+function flipStep(step) {
+  const nb = flipNeighbors(D.entryById(state, ui.D.card.entryId));
+  const to = step > 0 ? nb.next : nb.prev;
+  if (to) ui.D.card.entryId = to.id;
+}
+function cardFlipD(i) {
+  const e = i.e, nb = flipNeighbors(e), open = ui.D.card.drawer === 'open';
+  const scope = `${COL_FILTERS.find(f => f[0] === ui.D.colFilter)[1]}${ui.D.query ? ` · “${esc(ui.D.query)}”` : ''}`;
+  const pos = nb.idx >= 0 ? `${nb.idx + 1} of ${nb.list.length}` : 'Not in this filter';
+  let h = `<div class="fliptop"><button class="linkbtn" data-act="closeCardD">Close</button><span class="flippos" data-cd="position">${pos} <span class="dim">· ${scope}</span></span><span class="side"></span></div>`;
+  h += `<div class="flipstage" data-drag="flip"><button class="fliparrow l" data-act="flipD" data-step="-1" aria-label="Previous card" ${nb.prev ? '' : 'disabled'}>‹</button><div class="flipcard">${cdImg(e)}</div><button class="fliparrow r" data-act="flipD" data-step="1" aria-label="Next card" ${nb.next ? '' : 'disabled'}>›</button></div>`;
+  h += `<div class="flipchips" data-cd="copy-chips">${i.copies.map(x => `<button class="chip big ${x.id === e.id ? 'sel' : ''}" data-act="cardEntryD" data-entry="${x.id}" data-cd-copy="${x.id}">${esc(x.printing)}${x.finish === 'foil' ? ' · foil' : ''} · ${esc(x.condition)} ×${x.qty}${x.protected ? ' 🔒' : ''}</button>`).join('')}</div>`;
+  let full = cdSec('counts', '', cdCounts(i));
+  full += cdSec('decks', 'In decks', cdDeckTags(i));
+  full += cdSec('sugs', 'Open deck suggestions', cdSugs(i));
+  full += cdSec('copies', 'Your copies', cdCopyRows(i), `<span class="count">${plural(i.printings, 'printing')} · ${plural(i.copies.length, 'collection entry').replace('entrys', 'entries')}</span>`);
+  full += cdSec('price', 'Price', cdPrice(i));
+  full += cdSec('rules', 'Commander', cdLegal(i) + cdOracle(i, true));
+  full += cdSec('ai', '', cdAsk(i));
+  const peek = `<div class="dpeek"><div class="row"><div class="grow"><div class="cdname" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div></div><b class="dprice">${i.price ? money(i.price) : 'No price'}</b></div>${cdFacts(i)}<div class="actions">${cdProtectBtn(i)}${cdFindBtn(i)}</div></div>`;
+  h += `<div class="flipspace"></div><div class="drawer ${open ? 'open' : ''}" data-drawer="${open ? 'open' : 'peek'}"><button class="handle" data-act="drawerD" data-drag="drawer" aria-label="${open ? 'Hide details' : 'Show details'}"><span class="grab"></span><span class="hl">${open ? 'Hide details' : 'Pull up for details'}</span></button>${peek}<div class="dbody" data-scroll="flip-drawer-${e.cardId}">${open ? full + cdProtectNote(i) : ''}</div></div>`;
+  return `<div class="flip" data-card-detail="3" data-entry="${e.id}">${h}</div>`;
+}
+function renderCardOverlay() {
+  if (!cardOpen() || ui.layout.card === 2) return '';
+  const i = cardInfo(ui.D.card.entryId);
+  return ui.layout.card === 1 ? cardSheetD(i) : cardFlipD(i);
+}
+function scrollToIn(el, sc, pad = 12) {
+  let y = 0, n = el;
+  while (n && n !== sc) { y += n.offsetTop; n = n.offsetParent; }
+  if (n === sc) sc.scrollTop = Math.max(0, y - pad);
+}
 function batchSheet() {
   const batch = state.scanBatch;
   const count = batch.reduce((a, x) => a + x.qty, 0);
@@ -1556,7 +1825,7 @@ function renderDev() {
   <div class="grp"><div class="t">Simulate AI</div><select id="dev-target" aria-label="Open suggestion">${open.map(s => `<option value="${s.id}" ${s.id === ui.devTarget ? 'selected' : ''}>${esc(deckOf(s.deckId).short)}: +${esc(C(s.in).name)}</option>`).join('') || '<option>No open suggestions</option>'}</select>
   <div class="btns"><button data-act="aiWithdraw" ${open.length ? '' : 'disabled'}>Withdraw</button><button data-act="aiEditReason" ${open.length ? '' : 'disabled'}>Edit reason</button><button data-act="aiNew">New suggestion</button></div></div>
   <div class="grp"><div class="t">Data</div><button data-act="toggleGap">${state.catalogGap ? 'Restore catalog record (Krenko)' : 'Remove a catalog record (Krenko)'}</button></div>
-  <div class="grp"><div class="dim" style="color:#6b5a1d">Keys: ← and → switch variants. Esc closes a sheet. In a D deck, Esc, browser Back, or a swipe from the phone's left edge goes back. In D, the small pill switches the Collection or Decks layout.</div></div></div>`;
+  <div class="grp"><div class="dim" style="color:#6b5a1d">Keys: ← and → switch variants. Esc closes a sheet. In a D deck or on card detail 2, Esc, browser Back, or a swipe from the phone's left edge goes back. Esc also closes card details 1 and 3. In D, the small pill switches the Collection or Decks layout, or the card detail while one is open.</div></div></div>`;
 }
 function derived() {
   return Object.fromEntries(state.decks.map(d => {
@@ -1579,13 +1848,25 @@ function render() {
   const screen = document.getElementById('screen');
   const scrolls = {};
   screen.querySelectorAll('[data-scroll]').forEach(el => { scrolls[el.dataset.scroll] = el.scrollTop; });
+  if (ui.D.card && !D.entryById(state, ui.D.card.entryId)) ui.D.card = null;
   const view = ui.variant === 'A' ? renderA() : ui.variant === 'B' ? renderB() : ui.variant === 'C' ? renderC() : renderD();
   screen.classList.toggle('camera', ui.variant === 'D' && ui.D.tab === 'scan');
-  screen.innerHTML = `${statusBar()}<div class="app ${ui.sheet ? 'under-sheet' : ''}">${view}</div>${renderSheet()}${ui.toast ? `<div class="toast">${esc(ui.toast)}</div>` : ''}<div class="homebar"></div>`;
+  const underSheet = ui.sheet || (cardOpen() && ui.layout.card === 1);
+  screen.innerHTML = `${statusBar()}<div class="app ${underSheet ? 'under-sheet' : ''}">${view}</div>${renderCardOverlay()}${renderSheet()}${ui.toast ? `<div class="toast">${esc(ui.toast)}</div>` : ''}<div class="homebar"></div>`;
   screen.querySelectorAll('[data-scroll]').forEach(el => {
     if (el.dataset.bottom && ui.C.toBottom) { el.scrollTop = el.scrollHeight; return; }
     if (scrolls[el.dataset.scroll] != null) el.scrollTop = scrolls[el.dataset.scroll];
   });
+  if (ui.D.card && ui.D.card.flash) {
+    const fl = screen.querySelector('.cdflash'), sc = fl && fl.closest('[data-scroll]');
+    if (sc) scrollToIn(fl, sc);
+    ui.D.card.flash = null;
+  }
+  if (ui.D.focus && ui.D.focus.scroll && inDeckD()) {
+    const fl = screen.querySelector('[data-deck-tab] .found'), sc = fl && fl.closest('[data-scroll]');
+    if (sc) scrollToIn(fl, sc, 120);
+    ui.D.focus.scroll = false;
+  }
   ui.C.toBottom = false;
   if (ui.C.highlight && ui.variant === 'C') { const t = screen.querySelector(`.ev.hl`); if (t) t.scrollIntoView({ block: 'center' }); }
   document.getElementById('dev').innerHTML = renderDev();
@@ -1597,6 +1878,7 @@ function render() {
 
 function layoutKind() {
   if (ui.variant !== 'D') return null;
+  if (cardOpen()) return 'card';
   if (ui.D.tab === 'collection') return 'collection';
   if (ui.D.tab === 'decks' && !ui.D.deckId) return 'decks';
   return null;
@@ -1608,8 +1890,8 @@ function renderLayoutSwitcher() {
   if (!kind) return;
   el.dataset.kind = kind;
   const n = ui.layout[kind];
-  const names = kind === 'collection' ? COL_LAYOUTS : DECK_LAYOUTS;
-  document.getElementById('layout-label').textContent = `${kind === 'collection' ? 'Collection' : 'Decks'} layout ${n} of ${names.length} · ${names[n - 1]}`;
+  const names = kind === 'collection' ? COL_LAYOUTS : kind === 'decks' ? DECK_LAYOUTS : CARD_LAYOUTS;
+  document.getElementById('layout-label').textContent = kind === 'card' ? `Card detail ${n} of ${names.length} · ${names[n - 1]}` : `${kind === 'collection' ? 'Collection' : 'Decks'} layout ${n} of ${names.length} · ${names[n - 1]}`;
 }
 function toast(msg) {
   ui.toast = msg;
@@ -1690,10 +1972,26 @@ const handlers = {
     const n = newest(state.suggestions, prev, 'suggestions');
     if (n) { toast(`ChatGPT suggested ${C(n.in).name} for ${deckOf(n.deckId).short}.${n.status === 'stale' ? ' It is already stale.' : ''}`); if (ui.variant === 'C' && ui.deckId === n.deckId) ui.C.toBottom = true; }
   },
-  tabD: ds => { if (ds.tab === 'decks' && ui.D.tab === 'decks') ui.D.deckId = null; ui.D.tab = ds.tab; },
+  tabD: ds => { if (ds.tab === 'decks' && ui.D.tab === 'decks') ui.D.deckId = null; if (ui.D.card) dropCardD(); ui.D.tab = ds.tab; },
   filterD: ds => { ui.D.filter = ds.f; },
-  openDeckD: ds => { enterDeckD(ds.deck, !inDeckD() && ui.D.tab === 'recent' ? 'suggestions' : 'cards'); },
-  deckTabD: ds => { ui.D.deckTab = ds.tab; },
+  openDeckD: ds => { enterDeckD(ds.deck, !inDeckD() && ui.D.tab === 'recent' ? 'suggestions' : 'cards'); ui.D.focus = ds.find ? { card: ds.find, scroll: true } : null; },
+  deckTabD: ds => { ui.D.deckTab = ds.tab; ui.D.focus = null; },
+  openCardD: ds => { openCardD(ds.entry); },
+  closeCardD: () => { closeCardD(); },
+  cardEntryD: ds => { ui.D.card.entryId = ds.entry; },
+  cardTabD: ds => { ui.D.card.tab = ds.tab; },
+  drawerD: () => { ui.D.card.drawer = ui.D.card.drawer === 'open' ? 'peek' : 'open'; },
+  oracleD: () => { ui.D.card.oracle = !ui.D.card.oracle; },
+  flipD: ds => { flipStep(Number(ds.step)); },
+  findInDecksD: () => {
+    const i = cardInfo(ui.D.card.entryId);
+    if (!i.decks.length) return;
+    if (i.decks.length === 1) { enterDeckD(i.decks[0].d.id, 'cards'); ui.D.focus = { card: i.e.cardId, scroll: true }; return; }
+    if (ui.layout.card === 2) ui.D.card.tab = 'decks';
+    if (ui.layout.card === 3) ui.D.card.drawer = 'open';
+    ui.D.card.flash = 'decks';
+  },
+  openSugD: ds => { const s = sugOf(ds.id); enterDeckD(s.deckId, 'suggestions'); ui.D.focus = { sug: s.id, scroll: true }; },
   toggleClosedD: () => { ui.D.showClosed = !ui.D.showClosed; },
   colFilterD: ds => { ui.D.colFilter = ds.f; },
   openEntryD: ds => { ui.sheet = { type: 'entry', entryId: ds.entry }; },
@@ -1726,6 +2024,7 @@ const handlers = {
     if (!kind) return;
     ui.layout[kind] = (ui.layout[kind] - 1 + Number(ds.step) + 3) % 3 + 1;
     setParam(kind, ui.layout[kind]);
+    if (kind === 'card' && ui.layout.card === 2 && !ui.D.card.pushed) { history.pushState({ cardPage: true, entryId: ui.D.card.entryId }, '', location.href); ui.D.card.pushed = true; }
   },
   cardSortD: ds => { ui.D.cardSort = ds.sort; },
   toggleCardD: ds => { ui.D.expanded = ui.D.expanded.includes(ds.card) ? ui.D.expanded.filter(x => x !== ds.card) : [...ui.D.expanded, ds.card]; },
@@ -1743,7 +2042,8 @@ function protectToggle(entryId, type) {
   const props = { cardId: e.cardId, printing: e.printing, finish: e.finish, condition: e.condition, language: e.language, protected: !e.protected };
   if (!dispatch({ type, entryId }, type === 'protectCopy' ? `Protected 1 copy of ${C(e.cardId).name}.` : `Unprotected 1 copy of ${C(e.cardId).name}.`)) return;
   const twin = state.collection.find(x => Object.entries(props).every(([k, v]) => x[k] === v));
-  if (twin) ui.sheet = { type: 'entry', entryId: twin.id };
+  if (!twin) return;
+  if (ui.variant === 'D' && ui.D.tab === 'collection' && ui.D.card) ui.D.card.entryId = twin.id; else ui.sheet = { type: 'entry', entryId: twin.id };
 }
 function fit() { document.documentElement.style.setProperty('--fit', Math.min(1, (window.innerHeight - 150) / 870).toFixed(3)); }
 window.addEventListener('resize', fit);
@@ -1758,20 +2058,38 @@ function inDeckD() { return ui.D.tab === 'decks' && !!ui.D.deckId; }
 function enterDeckD(deckId, deckTab) {
   const already = inDeckD();
   if (!already) ui.D.deckFrom = ui.D.tab;
-  ui.sheet = null; ui.D.tab = 'decks'; ui.D.deckId = deckId; ui.deckId = deckId; ui.D.deckTab = deckTab;
+  ui.sheet = null; ui.D.tab = 'decks'; ui.D.deckId = deckId; ui.deckId = deckId; ui.D.deckTab = deckTab; ui.D.focus = null;
   const entry = { deck: deckId, from: ui.D.deckFrom, deckTab };
   if (already) history.replaceState(entry, '', location.href); else history.pushState(entry, '', location.href);
 }
-function exitDeckD() { ui.D.tab = ui.D.deckFrom || 'decks'; ui.D.deckId = null; ui.D.deckFrom = null; ui.sheet = null; }
+function exitDeckD() { ui.D.tab = ui.D.deckFrom || 'decks'; ui.D.deckId = null; ui.D.deckFrom = null; ui.D.focus = null; ui.sheet = null; }
 function goBackD() {
-  if (history.state && history.state.deck) { history.back(); return; }
-  exitDeckD(); lastUiEvent = 'back'; render();
+  if (history.state && (history.state.deck || history.state.cardPage)) { history.back(); return; }
+  if (inDeckD()) exitDeckD(); else ui.D.card = null;
+  lastUiEvent = 'back'; render();
+}
+function openCardD(entryId) {
+  ui.D.card = { entryId, tab: 'copies', drawer: 'peek', oracle: false, flash: null, pushed: false };
+  if (ui.layout.card === 2) { history.pushState({ cardPage: true, entryId }, '', location.href); ui.D.card.pushed = true; }
+}
+function closeCardD() {
+  if (ui.D.card && ui.D.card.pushed && history.state && history.state.cardPage) { history.back(); return; }
+  ui.D.card = null;
+}
+function dropCardD() {
+  if (ui.D.card.pushed && history.state && history.state.cardPage) history.replaceState(null, '', location.href);
+  ui.D.card = null;
 }
 window.addEventListener('popstate', () => {
   const entry = history.state;
   history.replaceState(entry, '', `${location.pathname}${currentSearch}${location.hash}`);
   if (entry && entry.deck && deckOf(entry.deck)) { ui.D.tab = 'decks'; ui.D.deckId = entry.deck; ui.D.deckFrom = entry.from; ui.D.deckTab = entry.deckTab || 'cards'; ui.sheet = null; }
   else if (ui.D.deckId) exitDeckD();
+  else if (!(entry && entry.cardPage) && ui.D.card && ui.D.card.pushed) ui.D.card = null;
+  if (entry && entry.cardPage && !ui.D.deckId) {
+    if (!ui.D.card && D.entryById(state, entry.entryId)) ui.D.card = { entryId: entry.entryId, tab: 'copies', drawer: 'peek', oracle: false, flash: null, pushed: true };
+    if (ui.D.card) { ui.D.tab = 'collection'; ui.sheet = null; }
+  }
   lastUiEvent = 'back';
   render();
 });
@@ -1788,7 +2106,7 @@ document.addEventListener('click', ev => {
   const fn = handlers[el.dataset.act];
   if (!fn) return;
   lastUiEvent = el.dataset.act;
-  if (el.dataset.act === 'closeSheet' && el.classList.contains('sheet-scrim') && ev.target !== el) return;
+  if (el.classList.contains('sheet-scrim') && ev.target !== el) return;
   fn(el.dataset);
   render();
 });
@@ -1808,6 +2126,7 @@ document.addEventListener('keydown', ev => {
   const typing = a && (a.matches('input, textarea, select, [contenteditable], [contenteditable="true"]'));
   if (ev.key === 'Escape' && ui.sheet) { ui.sheet = null; render(); return; }
   if (ev.key === 'Escape' && ui.variant === 'D' && inDeckD()) { ev.preventDefault(); goBackD(); return; }
+  if (ev.key === 'Escape' && cardOpen()) { ev.preventDefault(); lastUiEvent = 'escape'; closeCardD(); render(); return; }
   if (typing) return;
   if (ev.key === 'ArrowLeft') { ev.preventDefault(); cycle(-1); }
   if (ev.key === 'ArrowRight') { ev.preventDefault(); cycle(1); }
@@ -1820,7 +2139,7 @@ function resetEdge() {
   if (app) { app.style.transition = ''; app.style.transform = ''; app.style.boxShadow = ''; }
 }
 phoneEl.addEventListener('pointerdown', ev => {
-  if (ui.variant !== 'D' || !inDeckD() || ui.sheet) return;
+  if (ui.variant !== 'D' || !(inDeckD() || (cardOpen() && ui.layout.card === 2)) || ui.sheet) return;
   const r = phoneEl.getBoundingClientRect();
   const scale = r.width / 390;
   if (ev.clientX - r.left > 20 * scale) return;
@@ -1846,7 +2165,38 @@ window.addEventListener('pointerup', ev => {
     goBackD();
   }
 });
-window.addEventListener('pointercancel', () => { edge = null; resetEdge(); });
+window.addEventListener('pointercancel', () => { edge = null; resetEdge(); drag = null; });
+let drag = null;
+document.addEventListener('pointerdown', ev => {
+  const z = ev.target.closest('[data-drag]');
+  if (!z || !cardOpen() || edge) return;
+  drag = { kind: z.dataset.drag, x: ev.clientX, y: ev.clientY, scale: phoneEl.getBoundingClientRect().width / 390, moved: false };
+});
+window.addEventListener('pointermove', ev => {
+  if (!drag) return;
+  const dx = (ev.clientX - drag.x) / drag.scale, dy = (ev.clientY - drag.y) / drag.scale;
+  if (Math.abs(dx) > 6 || Math.abs(dy) > 6) drag.moved = true;
+  if (!drag.moved) return;
+  const el = document.querySelector(drag.kind === 'sheet' ? '.cdsheet' : drag.kind === 'flip' ? '.flipcard' : '.drawer');
+  if (!el) return;
+  el.style.transition = 'none';
+  if (drag.kind === 'sheet') el.style.transform = `translateY(${Math.max(0, dy)}px)`;
+  if (drag.kind === 'flip') el.style.transform = `translateX(${dx}px) rotate(${dx / 40}deg)`;
+  if (drag.kind === 'drawer') el.style.transform = `translateY(${ui.D.card.drawer === 'open' ? Math.max(0, dy) : Math.min(0, dy)}px)`;
+});
+window.addEventListener('pointerup', ev => {
+  if (!drag) return;
+  const g = drag;
+  drag = null;
+  const dx = (ev.clientX - g.x) / g.scale, dy = (ev.clientY - g.y) / g.scale;
+  if (!g.moved) return;
+  swallowClick = true;
+  setTimeout(() => { swallowClick = false; }, 0);
+  if (g.kind === 'sheet' && dy > 110) { lastUiEvent = 'swipeDown'; closeCardD(); }
+  if (g.kind === 'flip' && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) { lastUiEvent = 'flipSwipe'; flipStep(dx < 0 ? 1 : -1); }
+  if (g.kind === 'drawer' && Math.abs(dy) > 40) { lastUiEvent = 'drawerDrag'; ui.D.card.drawer = dy < 0 ? 'open' : 'peek'; }
+  render();
+});
 document.addEventListener('click', ev => { if (swallowClick) { ev.stopPropagation(); ev.preventDefault(); } }, true);
 document.getElementById('prev').addEventListener('click', () => cycle(-1));
 document.getElementById('next').addEventListener('click', () => cycle(1));
