@@ -86,13 +86,73 @@ func buildGallery(catalogDirectory: URL, imagesDirectory: URL) {
       count: printings.count,
       dimension: dimension,
       revision: 2,
-      createdAt: ISO8601DateFormatter().string(from: Date())
+      createdAt: ISO8601DateFormatter().string(from: Date()),
+      encoding: "float16"
     )
     try JSONEncoder().encode(header).write(to: catalogDirectory.appendingPathComponent("gallery.json"))
   } catch {
     fail("cannot write gallery: \(error)")
   }
   emit(["printings": printings.count, "seconds": Int(Date().timeIntervalSince(startedAt))])
+}
+
+struct EmbedLabels: Codable {
+  struct Card: Codable {
+    let photo: String?
+    let crop: String?
+    let quad: [[Double]]?
+  }
+
+  let cards: [Card]
+  let nonCards: [String]?
+}
+
+func embedLabels(labelsPath: URL, outputPath: URL) {
+  let labels: EmbedLabels
+  do {
+    labels = try JSONDecoder().decode(EmbedLabels.self, from: Data(contentsOf: labelsPath))
+  } catch {
+    fail("cannot read labels: \(error)")
+  }
+  let inputs = labels.cards + (labels.nonCards ?? []).map { EmbedLabels.Card(photo: nil, crop: $0, quad: nil) }
+  let dimension = MTGCardEmbedder.dimension
+  var vectors = [Float](repeating: .nan, count: inputs.count * 2 * dimension)
+  vectors.withUnsafeMutableBufferPointer { output in
+    let buffer = output
+    DispatchQueue.concurrentPerform(iterations: inputs.count) { index in
+      autoreleasepool {
+        let input = inputs[index]
+        var card: CGImage?
+        if let photo = input.photo, let corners = input.quad,
+           let image = MTGCardRectifier.loadOrientedImage(at: URL(fileURLWithPath: photo)) {
+          let quad = MTGCardQuad(corners: corners.map { CGPoint(x: $0[0], y: $0[1]) })
+          card = MTGCardRectifier.rectify(
+            image,
+            normalizedQuad: quad.portraitOrdered(imageWidth: image.extent.width, imageHeight: image.extent.height),
+            width: MTGCardRecognizer.readWidth,
+            height: MTGCardRecognizer.readHeight
+          )
+        } else if let crop = input.crop, let image = MTGCardRectifier.loadOrientedImage(at: URL(fileURLWithPath: crop)) {
+          card = MTGCardRectifier.context.createCGImage(image, from: image.extent)
+        }
+        guard let card, let turned = MTGCardRectifier.rotatedHalfTurn(card) else { return }
+        for (offset, image) in [card, turned].enumerated() {
+          guard let small = MTGCardRectifier.resized(
+            image, width: MTGCardRecognizer.embedWidth, height: MTGCardRecognizer.embedHeight
+          ), let vector = try? MTGCardEmbedder.featurePrint(of: small) else { continue }
+          for component in 0 ..< dimension {
+            buffer[(index * 2 + offset) * dimension + component] = vector[component]
+          }
+        }
+      }
+    }
+  }
+  do {
+    try vectors.withUnsafeBufferPointer { Data(buffer: $0) }.write(to: outputPath)
+  } catch {
+    fail("cannot write vectors: \(error)")
+  }
+  emit(["inputs": inputs.count])
 }
 
 func serve(catalogDirectory: URL) {
@@ -139,7 +199,7 @@ func serve(catalogDirectory: URL) {
 
 let arguments = CommandLine.arguments
 guard arguments.count >= 3 else {
-  fail("usage: mtg-catalog-recognizer index <catalog-dir> <images-dir> | serve <catalog-dir>")
+  fail("usage: mtg-catalog-recognizer index <catalog-dir> <images-dir> | serve <catalog-dir> | embed <labels.json> <vectors.f32>")
 }
 switch arguments[1] {
 case "index" where arguments.count == 4:
@@ -149,6 +209,8 @@ case "index" where arguments.count == 4:
   )
 case "serve":
   serve(catalogDirectory: URL(fileURLWithPath: arguments[2]))
+case "embed" where arguments.count == 4:
+  embedLabels(labelsPath: URL(fileURLWithPath: arguments[2]), outputPath: URL(fileURLWithPath: arguments[3]))
 default:
-  fail("usage: mtg-catalog-recognizer index <catalog-dir> <images-dir> | serve <catalog-dir>")
+  fail("usage: mtg-catalog-recognizer index <catalog-dir> <images-dir> | serve <catalog-dir> | embed <labels.json> <vectors.f32>")
 }

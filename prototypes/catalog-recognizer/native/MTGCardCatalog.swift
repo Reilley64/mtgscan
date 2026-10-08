@@ -16,6 +16,7 @@ struct MTGGalleryHeader: Codable {
   let dimension: Int
   let revision: Int
   let createdAt: String
+  let encoding: String?
 }
 
 final class MTGCardCatalog {
@@ -45,11 +46,22 @@ final class MTGCardCatalog {
       throw Failure.galleryMismatch("gallery has \(header.count)x\(header.dimension), catalog has \(printings.count)")
     }
     dimension = header.dimension
-    let raw = try Data(contentsOf: directory.appendingPathComponent("gallery.f16"), options: .alwaysMapped)
-    guard raw.count == header.count * header.dimension * MemoryLayout<Float16>.size else {
-      throw Failure.galleryMismatch("gallery.f16 has \(raw.count) bytes")
+    switch header.encoding ?? "float16" {
+    case "float16":
+      let raw = try Data(contentsOf: directory.appendingPathComponent("gallery.f16"), options: .alwaysMapped)
+      guard raw.count == header.count * header.dimension * MemoryLayout<Float16>.size else {
+        throw Failure.galleryMismatch("gallery.f16 has \(raw.count) bytes")
+      }
+      halves = raw
+    case "int8":
+      halves = try Self.unitHalves(
+        fromInt8: Data(contentsOf: directory.appendingPathComponent("gallery.i8"), options: .alwaysMapped),
+        count: header.count,
+        dimension: header.dimension
+      )
+    case let encoding:
+      throw Failure.galleryMismatch("unknown gallery encoding \(encoding)")
     }
-    halves = raw
     var bySetAndNumber: [String: Int] = [:]
     var byIllustration: [String: [Int]] = [:]
     for (index, printing) in printings.enumerated() {
@@ -62,6 +74,39 @@ final class MTGCardCatalog {
     indexById = Dictionary(uniqueKeysWithValues: printings.enumerated().map { ($1.id, $0) })
     printingsByIllustration = byIllustration
     setCodes = Set(printings.map { $0.set })
+  }
+
+  static func unitHalves(fromInt8 codes: Data, count: Int, dimension: Int) throws -> Data {
+    guard codes.count == count * dimension else {
+      throw Failure.galleryMismatch("gallery.i8 has \(codes.count) bytes")
+    }
+    var halves = Data(count: count * dimension * MemoryLayout<Float16>.size)
+    var row = [Float](repeating: 0, count: dimension)
+    codes.withUnsafeBytes { source in
+      halves.withUnsafeMutableBytes { target in
+        let values = source.bindMemory(to: Int8.self)
+        let output = target.bindMemory(to: Float16.self)
+        for index in 0 ..< count {
+          vDSP_vflt8(values.baseAddress! + index * dimension, 1, &row, 1, vDSP_Length(dimension))
+          var squares: Float = 0
+          vDSP_svesq(row, 1, &squares, vDSP_Length(dimension))
+          var scale = squares > 0 ? 1 / squares.squareRoot() : 0
+          vDSP_vsmul(row, 1, &scale, &row, 1, vDSP_Length(dimension))
+          row.withUnsafeMutableBytes { rowBytes in
+            var source = vImage_Buffer(
+              data: rowBytes.baseAddress, height: 1, width: vImagePixelCount(dimension),
+              rowBytes: dimension * MemoryLayout<Float>.size
+            )
+            var destination = vImage_Buffer(
+              data: output.baseAddress! + index * dimension, height: 1, width: vImagePixelCount(dimension),
+              rowBytes: dimension * MemoryLayout<Float16>.size
+            )
+            vImageConvert_PlanarFtoPlanar16F(&source, &destination, vImage_Flags(kvImageNoFlags))
+          }
+        }
+      }
+    }
+    return halves
   }
 
   static func key(set: String, collectorNumber: String) -> String {

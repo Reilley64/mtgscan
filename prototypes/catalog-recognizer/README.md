@@ -61,6 +61,14 @@ The thresholds (0.5 not-a-card, 0.03 orientation, 0.03 art margin) were chosen o
 
 `node scripts/evaluate-crops.mjs <labels.json> --held-out` removes each true printing from the catalog for its own request. Every accept is then a false accept. This is what a printing missing from the gallery would cause. `--details` lists every false accept and accepted row.
 
+## Smaller gallery
+
+`uv run scripts/quantize-gallery.py <catalog-dir> <output-dir>` writes `gallery.i8`, one signed byte per value, and sets `"encoding": "int8"` in `gallery.json`. Each vector is scaled so its largest value is 127. The helper restores unit length when it loads the file, so search and decisions run unchanged on the float16 copy in memory. The file is 79 MB instead of 158 MB, and 58 MB after zlib.
+
+`mtg-catalog-recognizer embed <labels.json> <vectors.f32>` writes both orientations' feature prints for every labelled input. `uv run eval/gallery-recall.py <labels.json> <vectors.f32> <catalog-dir>...` compares galleries by name and exact-printing recall at 1, 5, 20, and 50 from the image alone.
+
+On 8 October 2026 the int8 gallery gave the same results as float16 on the 250 real crops: 247 right names first, 234 right printings first, 214 correct accepts, and no false accepts. Simulated results are in issue #16.
+
 ## Limits
 
 - One tester, one phone, and one set of cards. The crops include repeats of the same 62 printings.
