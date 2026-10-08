@@ -21,10 +21,18 @@ import {
 } from "./rectified-endpoint.js";
 import {
   catalogDirectory,
+  catalogImagesDirectory,
   catalogRecognizerBinary,
   catalogRoot,
+  deviceCatalogRoot,
 } from "./config.js";
 import { createCatalogRecognizer } from "./catalog-recognizer.js";
+import {
+  catalogFilePath,
+  DeviceRecognitionError,
+  persistDeviceRecognition,
+  sendFile,
+} from "./catalog-files.js";
 const port = Number(process.env.PORT ?? 4317);
 const host = process.env.HOST ?? "127.0.0.1";
 const browserOrigin = process.env.PROTOTYPE_BROWSER_ORIGIN;
@@ -118,6 +126,27 @@ const server = http.createServer(async (request, response) => {
     ) {
       const result = await handleRectifiedRecognition(request);
       return reply(response, result.status, result.body);
+    }
+    if (request.method === "GET" && request.url?.startsWith("/catalog/")) {
+      const file = catalogFilePath(request.url, {
+        catalogDirectory,
+        imagesDirectory: catalogImagesDirectory,
+      });
+      if (file && (await sendFile(response, file))) return;
+      return reply(response, 404, { error: "not found" });
+    }
+    if (request.method === "POST" && request.url === "/device-recognitions") {
+      try {
+        const scanId = await persistDeviceRecognition(
+          await body(request),
+          deviceCatalogRoot,
+        );
+        return reply(response, 201, { recorded: scanId });
+      } catch (error) {
+        if (error instanceof DeviceRecognitionError)
+          return reply(response, 400, { error: error.message });
+        throw error;
+      }
     }
     if (request.method === "POST" && request.url === "/outcomes") {
       const recorded = await recordOutcome(await body(request));

@@ -23,6 +23,7 @@ final class MTGCardCatalog {
   let dimension: Int
   private let vectors: [Float]
   private let indexBySetAndNumber: [String: Int]
+  private let indexById: [String: Int]
   let printingsByIllustration: [String: [Int]]
   let setCodes: Set<String>
 
@@ -60,6 +61,7 @@ final class MTGCardCatalog {
       }
     }
     indexBySetAndNumber = bySetAndNumber
+    indexById = Dictionary(uniqueKeysWithValues: printings.enumerated().map { ($1.id, $0) })
     printingsByIllustration = byIllustration
     setCodes = Set(printings.map { $0.set })
   }
@@ -71,6 +73,14 @@ final class MTGCardCatalog {
 
   func index(set: String, collectorNumber: String) -> Int? {
     indexBySetAndNumber[Self.key(set: set, collectorNumber: collectorNumber)]
+  }
+
+  func index(id: String) -> Int? {
+    indexById[id]
+  }
+
+  func vector(at index: Int) -> ArraySlice<Float> {
+    vectors[(index * dimension) ..< ((index + 1) * dimension)]
   }
 
   func similarities(to query: [Float]) -> [Float] {

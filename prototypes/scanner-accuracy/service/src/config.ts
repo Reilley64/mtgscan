@@ -17,6 +17,10 @@ export const catalogRecognizerBinary = process.env.CATALOG_RECOGNIZER_BIN
 export const catalogDirectory = process.env.CATALOG_DIR
   ? path.resolve(process.env.CATALOG_DIR)
   : path.join(catalogRecognizerRoot, ".data", "catalog");
+export const catalogImagesDirectory = process.env.CATALOG_IMAGES_DIR
+  ? path.resolve(process.env.CATALOG_IMAGES_DIR)
+  : path.join(catalogRecognizerRoot, ".data", "images");
+export const deviceCatalogRoot = path.join(dataRoot, "catalog-device");
 export const defaultManifestPath = path.join(
   prototypeRoot,
   "sample/kill-test-manifest.json",

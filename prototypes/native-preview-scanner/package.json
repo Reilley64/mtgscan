@@ -20,7 +20,8 @@
     "physical-run:interruptions": "bash scripts/physical-run-wizard.sh interruptions",
     "physical-run:recognition": "bash scripts/physical-run-wizard.sh recognition",
     "physical-run:bin": "bash scripts/physical-run-wizard.sh bin",
-    "physical-run:catalog-bin": "RECOGNIZER=catalog bash scripts/physical-run-wizard.sh bin"
+    "physical-run:catalog-bin": "RECOGNIZER=catalog bash scripts/physical-run-wizard.sh bin",
+    "physical-run:device-bin": "RECOGNIZER=device bash scripts/physical-run-wizard.sh bin"
   },
   "dependencies": {
     "babel-preset-expo": "~54.0.10",

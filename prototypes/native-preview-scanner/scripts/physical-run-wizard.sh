@@ -477,7 +477,9 @@ if [[ "$MODE" == "recognition" || "$MODE" == "bin" ]]; then
   stage "Start the recognition service"
   RECOGNIZER="${RECOGNIZER:-rectified}"
   write_env RECOGNIZER "$RECOGNIZER"
-  if [[ "$RECOGNIZER" == "catalog" ]]; then
+  SERVICE_RECOGNIZER="$RECOGNIZER"
+  [[ "$RECOGNIZER" == "device" ]] && SERVICE_RECOGNIZER="catalog"
+  if [[ "$SERVICE_RECOGNIZER" == "catalog" ]]; then
     CATALOG_ROOT="$(cd "$PROJECT_ROOT/../catalog-recognizer" && pwd)"
     say "Building the catalog recognizer helper."
     (cd "$CATALOG_ROOT" && ./scripts/build.sh >/dev/null)
@@ -507,7 +509,7 @@ if [[ "$MODE" == "recognition" || "$MODE" == "bin" ]]; then
   [[ -n "$MAC_IP" ]] || { warn "Could not find this Mac's Wi-Fi address."; exit 1; }
   RECOGNITION_TOKEN=$(openssl rand -hex 32)
   say "Starting the service with a new token for this run. Photos go only to this Mac."
-  (cd "$SERVICE_ROOT/service" && PROTOTYPE_TOKEN="$RECOGNITION_TOKEN" HOST=0.0.0.0 OCR_ENABLED=0 RECOGNIZER="$RECOGNIZER" \
+  (cd "$SERVICE_ROOT/service" && PROTOTYPE_TOKEN="$RECOGNITION_TOKEN" HOST=0.0.0.0 OCR_ENABLED=0 RECOGNIZER="$SERVICE_RECOGNIZER" \
     exec ../node_modules/.bin/tsx src/server.ts) > "$RUN_DIR/service.log" 2>&1 &
   SERVICE_PID=$!
   SERVICE_READY=no
@@ -523,6 +525,10 @@ if [[ "$MODE" == "recognition" || "$MODE" == "bin" ]]; then
     exit 1
   fi
   printf 'EXPO_PUBLIC_RECOGNITION_URL=http://%s:4317\nEXPO_PUBLIC_RECOGNITION_TOKEN=%s\n' "$MAC_IP" "$RECOGNITION_TOKEN" > "$APP_ENV_FILE"
+  if [[ "$RECOGNIZER" == "device" ]]; then
+    printf 'EXPO_PUBLIC_RECOGNIZER=device\n' >> "$APP_ENV_FILE"
+    say "The phone downloads the gallery (about 180 MB) from this Mac once, then recognizes every photo on the phone."
+  fi
   write_env RECOGNITION_URL "http://$MAC_IP:4317"
   printf '  %s✓ service ready%s at http://%s:4317 (log: %s)\n' "$GREEN" "$RESET" "$MAC_IP" "$RUN_DIR/service.log"
   note "If macOS asks whether node may accept incoming connections, click Allow."
@@ -602,6 +608,41 @@ fi
 if [[ "$MODE" == "recognition" || "$MODE" == "bin" ]]; then
   if ! confirm "Does the panel say 'Recognition: waiting for the first photo'? (Close and reopen the app if it says off.)"; then
     stop_run "the app did not load the recognition service settings"
+  fi
+  if [[ "${RECOGNIZER:-rectified}" == "device" ]]; then
+    say "Waiting for the phone to load the gallery and check its feature prints against this Mac's."
+    DEVICE_EVENT=""
+    for _ in $(seq 1 300); do
+      DEVICE_EVENT=$(node -e '
+        const lines = require("fs").readFileSync(process.argv[1], "utf8").split("\n");
+        const marker = "NATIVE_PREVIEW_EVENT ";
+        for (const line of lines.reverse()) {
+          const at = line.indexOf(marker);
+          if (at < 0) continue;
+          let event;
+          try { event = JSON.parse(line.slice(at + marker.length)); } catch { continue; }
+          if (event.event === "device-feature-print-parity" || event.event === "device-recognizer-failure") {
+            console.log(JSON.stringify(event));
+            break;
+          }
+        }' "$METRO_LOG" 2>/dev/null || true)
+      [[ -n "$DEVICE_EVENT" ]] && break
+      sleep 1
+    done
+    [[ -n "$DEVICE_EVENT" ]] || stop_run "the phone did not finish loading the gallery within 5 minutes"
+    write_env DEVICE_PARITY "$DEVICE_EVENT"
+    if grep -q "device-recognizer-ready" "$METRO_LOG"; then
+      write_env DEVICE_READY "$(grep -a "device-recognizer-ready" "$METRO_LOG" | tail -1 | sed 's/.*NATIVE_PREVIEW_EVENT //')"
+    fi
+    if [[ "$DEVICE_EVENT" == *device-recognizer-failure* ]]; then
+      stop_run "the phone could not prepare the gallery: $DEVICE_EVENT"
+    fi
+    MIN_COSINE=$(node -e 'console.log(JSON.parse(process.argv[1]).minCosine)' "$DEVICE_EVENT")
+    say "Feature print check: $DEVICE_EVENT"
+    if ! node -e 'process.exit(Number(process.argv[1]) >= 0.98 ? 0 : 1)' "$MIN_COSINE"; then
+      warn "The phone's feature prints differ from this Mac's (lowest cosine $MIN_COSINE). Recognition on the phone will be unreliable."
+      confirm "Continue anyway to record what happens?" || stop_run "feature prints differ between the phone and this Mac"
+    fi
   fi
 fi
 pause

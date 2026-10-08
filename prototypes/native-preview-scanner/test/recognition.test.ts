@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   isNotACard,
   parseRecognitionResponse,
+  recognitionConfig,
 } from "../src/recognition/recognitionClient";
 
 const candidate = {
@@ -89,5 +90,25 @@ describe("not-a-card reasons", () => {
     expect(
       isNotACard(["2 printings share this art and no collector line was read"]),
     ).toBe(false);
+  });
+});
+
+describe("recognition settings", () => {
+  const saved = { ...process.env };
+  afterEach(() => {
+    process.env = { ...saved };
+  });
+
+  it("uses the service unless the device recognizer is selected", () => {
+    process.env.EXPO_PUBLIC_RECOGNITION_URL = "http://192.168.1.2:4317/";
+    process.env.EXPO_PUBLIC_RECOGNITION_TOKEN = "token";
+    delete process.env.EXPO_PUBLIC_RECOGNIZER;
+    expect(recognitionConfig()).toEqual({
+      url: "http://192.168.1.2:4317",
+      token: "token",
+      mode: "service",
+    });
+    process.env.EXPO_PUBLIC_RECOGNIZER = "device";
+    expect(recognitionConfig()?.mode).toBe("device");
   });
 });

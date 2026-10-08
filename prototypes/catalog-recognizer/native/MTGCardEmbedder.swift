@@ -8,10 +8,12 @@ enum MTGCardEmbedder {
   enum Failure: Error {
     case noObservation
     case unexpectedVector(Int)
+    case unsupportedRevision
   }
 
   static func featurePrint(of image: CGImage) throws -> [Float] {
     let request = VNGenerateImageFeaturePrintRequest()
+    guard #available(iOS 17.0, macOS 14.0, *) else { throw Failure.unsupportedRevision }
     request.revision = VNGenerateImageFeaturePrintRequestRevision2
     request.imageCropAndScaleOption = .scaleFill
     try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])

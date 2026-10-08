@@ -123,6 +123,16 @@ That round used the fixed test deck with the torch off. All 30 cards gave 29 ide
 
 `npm run physical-run:bin` runs rounds of a fixed 30-card test deck, stored in the ignored `.physical-runs/test-deck.tsv`, so results can be compared between versions. The deck uses cards from the tester's collection that earlier rounds already scanned. It covers same-name printing pairs (Arcane Signet DSC and SLD, Colossal Dreadmaw M21 and RIX, Command Tower CMM and SLD), four foil Secret Lair cards, an old-frame Tempest card, double-faced and adventure cards, a planeswalker, a gold legendary, showcase and special frames, cards that share art with a promo, a card that was misread twice, and ordinary cards from about ten sets. No printing appears twice, because two identical cards in a row cannot be told apart. Every round starts with all cards ticked, and the tester unticks any card that is not at hand. The tester slides cards into the bin in any order. `scripts/recognition-score.mjs bin-score` matches each result to the round by exact printing first and then by name. It reports identity and printing top-1, accepts, false accepts, missed cards, duplicates, restarts, the torch state, latency, and correct cards per minute. After each round the wizard asks which cards needed a nudge of the bin.
 
+### On-device recognition
+
+`npm run physical-run:device-bin` runs the bin rounds with recognition on the phone. The local Expo module in `modules/mtg-catalog-recognizer` compiles the catalog recognizer's Swift files from `../catalog-recognizer/native` (through the `ios/shared` symlink) into the app. It exposes three calls:
+
+- `prepare(baseUrl, token)` downloads `gallery.json`, `catalog.json`, and `gallery.f16` from the Mac service into Application Support when the gallery changed, excludes them from backup, and loads the catalog. It returns the download size and time, the load time, and the app's memory footprint.
+- `checkParity(baseUrl, token, count)` downloads `count` evenly spaced Scryfall reference images from the service, computes their feature prints on the phone, and compares each with the Mac-built gallery vector. A cosine near 1 means the phone and the Mac use the same feature print, so the Mac-built gallery is valid on the phone.
+- `recognize(photoPath, quad)` runs the whole recognizer on the captured photo and returns the same response as the service, plus `totalMs` and the 488 x 680 crop as base64.
+
+With `EXPO_PUBLIC_RECOGNIZER=device`, the app prepares the recognizer at start and logs `device-recognizer-ready` and `device-feature-print-parity`. Each photo is recognized on the phone. The app logs `device-recognition` with stage timings and the collector line reading. After the result, the app sends the crop and result to the service's `POST /device-recognitions` for audit only. The service stores them under `.prototype-data/catalog-device/`. That upload is outside the timed path. The wizard starts the service with the catalog recognizer so it can serve the gallery files, waits up to 5 minutes for the parity event, and asks before continuing if the lowest cosine is below 0.98.
+
 ## Offline evidence
 
 `npm run test:native-detector` compiles the three shared Swift files with a macOS fixture and runs it in `/tmp`. It writes no image. It checks:

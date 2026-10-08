@@ -24,7 +24,8 @@
           "enableLocation": false
         }
       ],
-      "./plugins/withAppleVisionRectangleDetector"
+      "./plugins/withAppleVisionRectangleDetector",
+      "./plugins/withCatalogRecognizerSources"
     ]
   }
 }

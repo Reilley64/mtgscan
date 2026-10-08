@@ -25,7 +25,11 @@ export type RecognitionResult = Readonly<{
   reasons: readonly string[];
 }>;
 
-export type RecognitionConfig = Readonly<{ url: string; token: string }>;
+export type RecognitionConfig = Readonly<{
+  url: string;
+  token: string;
+  mode: "service" | "device";
+}>;
 
 export const RECOGNITION_TIMEOUT_MS = 10_000;
 
@@ -41,7 +45,12 @@ export function recognitionConfig(): RecognitionConfig | null {
   const url = process.env.EXPO_PUBLIC_RECOGNITION_URL;
   const token = process.env.EXPO_PUBLIC_RECOGNITION_TOKEN;
   if (!url || !token) return null;
-  return { url: url.replace(/\/+$/, ""), token };
+  return {
+    url: url.replace(/\/+$/, ""),
+    token,
+    mode:
+      process.env.EXPO_PUBLIC_RECOGNIZER === "device" ? "device" : "service",
+  };
 }
 
 const isText = (value: unknown): value is string =>

@@ -1,4 +1,11 @@
-import { useCallback, useMemo, useRef, useState, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import {
   runAtTargetFps,
   useFrameProcessor,
@@ -47,6 +54,10 @@ import {
   type CardQuad,
   type RecognitionResult,
 } from "../recognition/recognitionClient";
+import {
+  prepareDeviceRecognizer,
+  recognizeOnDevice,
+} from "../recognition/deviceRecognizer";
 import {
   orientedFrameDimensions,
   validateNativeRectangleRecord,
@@ -267,6 +278,10 @@ export function usePreviewCardCapture(
   const recognitionQueue = useRef<Promise<void>>(Promise.resolve());
   const recognitionSessionId = useRef(Date.now().toString(36));
   const recognition = useMemo(recognitionConfig, []);
+  useEffect(() => {
+    if (recognition?.mode === "device")
+      prepareDeviceRecognizer(recognition).catch(() => undefined);
+  }, [recognition]);
   const [lastRecognition, setLastRecognition] =
     useState<RecognitionView | null>(null);
   const cameraErrorTimes = useRef<number[]>([]);
@@ -495,12 +510,10 @@ export function usePreviewCardCapture(
       setLastRecognition({ status: "pending", sequence });
       recognitionQueue.current = recognitionQueue.current.then(async () => {
         try {
-          const result = await recognizePhoto(
-            recognition,
-            photoPath,
-            quad,
-            scanId,
-          );
+          const result =
+            recognition.mode === "device"
+              ? await recognizeOnDevice(recognition, photoPath, quad, scanId)
+              : await recognizePhoto(recognition, photoPath, quad, scanId);
           const endToEndMs = Date.now() - startedAtMs;
           console.log(
             "NATIVE_PREVIEW_EVENT " +

@@ -9,3 +9,5 @@ coverage/
 .DS_Store
 .physical-runs/
 .env
+
+modules/mtg-catalog-recognizer/ios/shared/
