@@ -849,7 +849,7 @@ function renderEvent(e, revertSet) {
   if (e.kind === 'suggested') {
     const s = sugOf(e.suggestionId);
     if (ui.C.highlight === s.id) extraCls = 'hl';
-    inner = `<div class="what">ChatGPT suggested a deck change</div>${diffLines(s.in, s.out, copiesChip(s.in, s.deckId))}${reasonBlock(s.reason, sugWho(s), s.status !== 'open')}`;
+    inner = `<div class="what">ChatGPT suggested a deck change</div>${diffLines(s.in, s.out, copiesChip(s.in, s.deckId))}${reasonBlock(s.reason, `Reason${s.reasonEdited ? ', edited by ChatGPT' : ''}`, s.status !== 'open')}`;
     if (s.status === 'open') inner += `${validityFlags(s.deckId, s.in, s.out)}${pairFlag(s)}${repeatFlag(s)}<div class="meta" style="margin-top:6px">${esc(outcomeText(s.id))} · ${priceText(s.in)}</div><div class="actions"><button class="btn small" data-act="dismiss" data-id="${s.id}">Dismiss</button><button class="btn primary small" data-act="openPromote" data-id="${s.id}">Promote</button></div>`;
     else inner += `<div class="chips" style="margin-top:6px">${statusChip(s.status)}${s.result ? `<span class="chip ghost">→ ${s.result.kind}</span>` : ''}</div>`;
   } else if (e.kind === 'reason edited') { quiet = true; inner = `<div class="what">ChatGPT edited the reason for ${esc(C(sugOf(e.suggestionId).in).name)}</div><div class="meta">The new reason replaces the old one.</div>`; }
