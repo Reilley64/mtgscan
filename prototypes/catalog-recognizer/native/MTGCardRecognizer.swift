@@ -44,6 +44,7 @@ enum MTGCardRecognizer {
   static let unreadArtMargin: Float = 0.03
   static let orientationMargin: Float = 0.03
   static let fullReadingStrength = 3
+  static let titleCandidates = 10
   static let candidateCount = 5
 
   enum Failure: Error {
@@ -93,32 +94,35 @@ enum MTGCardRecognizer {
     let uprightBest = uprightScores.max() ?? 0
     let turnedBest = turnedScores.max() ?? 0
     stageMs["search"] = elapsed(since: &startedAt)
-    let isTurned: Bool
-    let reading: MTGCollectorLine
-    if abs(turnedBest - uprightBest) > orientationMargin {
-      let preferTurned = turnedBest > uprightBest
-      let preferred = MTGCollectorLineReader.read(card: preferTurned ? turned : uprightCandidate, setCodes: catalog.setCodes)
-      if preferred.strength == fullReadingStrength {
-        isTurned = preferTurned
-        reading = preferred
-        stageMs["read"] = preferred.durationMs
-      } else {
-        let other = MTGCollectorLineReader.read(card: preferTurned ? uprightCandidate : turned, setCodes: catalog.setCodes)
-        stageMs["read"] = preferred.durationMs + other.durationMs
-        isTurned = other.strength > preferred.strength ? !preferTurned : preferTurned
-        reading = other.strength > preferred.strength ? other : preferred
-      }
-    } else {
-      let uprightReading = MTGCollectorLineReader.read(card: uprightCandidate, setCodes: catalog.setCodes)
-      let turnedReading = MTGCollectorLineReader.read(card: turned, setCodes: catalog.setCodes)
-      stageMs["read"] = uprightReading.durationMs + turnedReading.durationMs
-      if uprightReading.strength != turnedReading.strength {
-        isTurned = turnedReading.strength > uprightReading.strength
-      } else {
-        isTurned = turnedBest > uprightBest
-      }
-      reading = isTurned ? turnedReading : uprightReading
+    let titles = Set(
+      (catalog.top(titleCandidates, of: uprightScores) + catalog.top(titleCandidates, of: turnedScores))
+        .map { titleKey(catalog.printings[$0].name) }
+        .filter { !$0.isEmpty }
+    )
+    func evidence(_ candidate: MTGCollectorLine) -> Int {
+      candidate.lines.contains { line in
+        let key = titleKey(line)
+        return !key.isEmpty && titles.contains(key)
+      } ? -1 : candidate.strength
     }
+    let preferTurned = turnedBest > uprightBest
+    let confident = abs(turnedBest - uprightBest) > orientationMargin
+    let preferred = MTGCollectorLineReader.read(card: preferTurned ? turned : uprightCandidate, setCodes: catalog.setCodes)
+    var isTurned = preferTurned
+    var reading = preferred
+    var readMs = preferred.durationMs
+    if !(confident && evidence(preferred) == fullReadingStrength) {
+      let other = MTGCollectorLineReader.read(card: preferTurned ? uprightCandidate : turned, setCodes: catalog.setCodes)
+      readMs += other.durationMs
+      if evidence(other) > evidence(preferred) {
+        isTurned = !preferTurned
+        reading = other
+      }
+    }
+    if evidence(reading) < 0 {
+      reading = MTGCollectorLine(lines: reading.lines, durationMs: reading.durationMs)
+    }
+    stageMs["read"] = readMs
     let scores = isTurned ? turnedScores : uprightScores
     let small = isTurned ? turnedSmall : uprightSmall
     let shortlist = catalog.top(shortlistSize, of: scores)
@@ -238,6 +242,12 @@ enum MTGCardRecognizer {
       return abstain("only printing of its art, but the next art is \(format(margin)) behind; at least \(format(unreadArtMargin)) is required")
     }
     return accept(top, "only printing of its art, next art \(format(margin)) behind")
+  }
+
+  static func titleKey(_ text: String) -> String {
+    let front = text.components(separatedBy: " // ").first ?? text
+    let letters = front.lowercased().filter { $0.isLetter }
+    return letters.count >= 4 ? letters : ""
   }
 
   private static func format(_ value: Float) -> String {

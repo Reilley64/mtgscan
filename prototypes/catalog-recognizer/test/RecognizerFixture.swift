@@ -61,6 +61,9 @@ let portraitInTallPhoto = MTGCardQuad(corners: [
 ]).portraitOrdered(imageWidth: 2376, imageHeight: 4224)
 check(portraitInTallPhoto.topLeft == CGPoint(x: 0.2, y: 0.25), "portrait card in a tall photo stays upright \(portraitInTallPhoto)")
 
+check(MTGCardRecognizer.titleKey("Beanstalk Giant // Fertile Footsteps") == "beanstalkgiant", "front face title key")
+check(MTGCardRecognizer.titleKey("3") == "", "short text has no title key")
+
 if failures > 0 {
   print("\(failures) checks failed")
   exit(1)
