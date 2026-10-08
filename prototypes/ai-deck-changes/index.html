@@ -1,0 +1,1174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE · AI deck changes (#18) · mtgscan</title>
+<style>
+:root{--bg:#080b0d;--surface:#11171a;--surface2:#1a2125;--surface3:#232c31;--line:#2a3238;--text:#fff;--muted:#b5c0c5;--dim:#7d8a90;--accent:#d8ff62;--on-accent:#101500;--warn:#f4d06f;--danger:#ff7a70;--incoming:#d8ff62;--outgoing:#ff8a7a;--info:#8fd3ff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#2b3034;color:var(--text);font:14px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+#page{min-height:100%;display:flex;align-items:flex-start;justify-content:center;gap:24px;padding:16px 24px 90px}
+#phone{zoom:var(--fit,1)}
+#phone{position:relative;width:390px;height:844px;border-radius:54px;background:var(--bg);box-shadow:0 0 0 10px #15181a,0 0 0 12px #3c4246,0 30px 80px rgba(0,0,0,.55);overflow:hidden;flex:none}
+#screen{position:absolute;inset:0;display:flex;flex-direction:column}
+.statusbar{height:50px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px 34px;font-weight:700;font-size:15px}
+.statusbar .island{position:absolute;left:50%;top:11px;width:122px;height:35px;border-radius:20px;background:#000;transform:translateX(-50%)}
+.statusbar .icons{display:flex;gap:5px;align-items:center;font-size:11px}
+.statusbar .batt{width:24px;height:12px;border:1.5px solid #fff;border-radius:4px;position:relative}
+.statusbar .batt:after{content:"";position:absolute;inset:1.5px;right:5px;background:#fff;border-radius:1.5px}
+.app{position:relative;flex:1;display:flex;flex-direction:column;min-height:0;transition:transform .25s,border-radius .25s;background:var(--bg);transform-origin:top center}
+.app.under-sheet{transform:scale(.93) translateY(6px);border-radius:12px;overflow:hidden;filter:brightness(.6)}
+.scroll{flex:1;overflow-y:auto;min-height:0;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+.homebar{position:absolute;bottom:8px;left:50%;width:134px;height:5px;border-radius:3px;background:#fff;transform:translateX(-50%);z-index:50;pointer-events:none}
+.navtitle{padding:4px 16px 8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.navtitle h1{font-size:28px;line-height:1.1;margin:0;font-weight:800}
+.navtitle .sub{color:var(--muted);font-size:12px}
+.linkbtn{color:var(--accent);font-weight:700;font-size:15px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chiprow{display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:none}
+.chiprow::-webkit-scrollbar{display:none}
+.chip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:3px 9px;border-radius:12px;background:var(--surface3);color:#fff;font-size:11px;font-weight:700;white-space:nowrap}
+.chip.sel{background:var(--accent);color:var(--on-accent)}
+.chip.ok{background:rgba(216,255,98,.14);color:var(--accent)}
+.chip.bad{background:rgba(255,122,112,.16);color:var(--danger)}
+.chip.warn{background:rgba(244,208,111,.16);color:var(--warn)}
+.chip.info{background:rgba(143,211,255,.14);color:var(--info)}
+.chip.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.chip.big{min-height:30px;padding:5px 12px;font-size:12px;border-radius:15px}
+.section{padding:14px 16px 4px;color:var(--accent);font-size:12px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+.section .count{color:var(--muted);font-weight:700}
+.card{margin:6px 12px;border-radius:12px;background:var(--surface);padding:10px}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.name{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta{color:var(--muted);font-size:12px}
+.dim{color:var(--dim)}
+.reason{color:#dfe6e9;font-size:13px;margin-top:6px}
+.reason.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.reason .who{color:var(--muted);font-size:11px;font-weight:700;display:block;margin-bottom:2px}
+.thumb{width:40px;height:56px;border-radius:4px;background:#2a3238 center/cover no-repeat;flex:none;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--dim);text-align:center;overflow:hidden}
+.thumb.sm{width:30px;height:42px;border-radius:3px}
+.thumb.lg{width:150px;height:209px;border-radius:8px}
+.thumb.art{width:100%;height:100%;border-radius:0}
+.diff{border-radius:8px;overflow:hidden;background:var(--surface2)}
+.diff .line{display:flex;align-items:center;gap:8px;padding:6px 8px}
+.diff .line+.line{border-top:1px solid #0d1214}
+.diff .sign{width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex:none}
+.diff .in .sign{background:var(--incoming);color:var(--on-accent)}
+.diff .out .sign{background:var(--outgoing);color:#2a0400}
+.diff .in{background:rgba(216,255,98,.06)}
+.diff .out{background:rgba(255,138,122,.06)}
+.diff .out .name{text-decoration:line-through;text-decoration-color:rgba(255,138,122,.6)}
+.actions{display:flex;gap:8px;margin-top:10px}
+.btn{flex:1;min-height:38px;border-radius:8px;background:var(--surface3);color:#fff;font-weight:700;font-size:14px;padding:8px 12px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.primary{background:var(--accent);color:var(--on-accent);font-weight:900}
+.btn.danger{background:rgba(255,122,112,.18);color:var(--danger)}
+.btn.small{flex:none;min-height:30px;padding:5px 10px;font-size:13px;border-radius:7px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.flag{margin-top:8px;padding:7px 9px;border-radius:8px;font-size:12px;display:flex;gap:7px;align-items:flex-start}
+.flag.warn{background:rgba(244,208,111,.12);color:var(--warn)}
+.flag.bad{background:rgba(255,122,112,.12);color:var(--danger)}
+.flag.ok{background:rgba(216,255,98,.1);color:var(--accent)}
+.flag.info{background:rgba(143,211,255,.1);color:var(--info)}
+.flag b{font-weight:800}
+.empty{padding:28px 24px;text-align:center;color:var(--muted)}
+.list .item{display:flex;align-items:center;gap:10px;padding:7px 16px}
+.list .item+.item{border-top:1px solid #12191c}
+.qty{color:var(--accent);font-weight:900;font-size:15px;min-width:22px;text-align:right}
+.tag-out{color:var(--outgoing);font-size:11px;font-weight:800}
+.tag-in{color:var(--incoming);font-size:11px;font-weight:800}
+.reverted{opacity:.5}
+.reverted .name{text-decoration:line-through}
+.tabbar{flex:none;display:flex;justify-content:space-around;padding:6px 8px 26px;border-top:1px solid #192024;background:rgba(10,14,16,.96)}
+.tabbar button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:700;color:var(--dim);min-width:70px}
+.tabbar button .ic{font-size:20px;line-height:22px}
+.tabbar button.sel{color:var(--accent)}
+.tabbar .badge{display:inline-block;min-width:16px;padding:0 4px;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:10px;margin-left:2px}
+.sheet-scrim{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:20}
+.sheet{position:absolute;left:0;right:0;bottom:0;top:58px;background:#161c1f;border-radius:12px 12px 0 0;z-index:21;display:flex;flex-direction:column;box-shadow:0 -10px 40px rgba(0,0,0,.5)}
+.sheet .grab{width:36px;height:5px;border-radius:3px;background:#4a555b;margin:6px auto 0}
+.sheet .head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 8px;gap:8px}
+.sheet .head h2{margin:0;font-size:17px;font-weight:800;text-align:center;flex:1}
+.sheet .head .side{min-width:56px}
+.sheet .body{flex:1;overflow-y:auto;padding:0 0 40px}
+.sheet .foot{padding:10px 16px 30px;border-top:1px solid #222a2e;display:flex;flex-direction:column;gap:8px}
+.option{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:6px 12px;border-radius:10px;background:var(--surface);border:1.5px solid transparent;width:calc(100% - 24px);text-align:left}
+.option.sel{border-color:var(--accent)}
+.option:disabled{opacity:.55;cursor:not-allowed}
+.radio{width:18px;height:18px;border-radius:9px;border:2px solid var(--dim);flex:none}
+.option.sel .radio{border-color:var(--accent);background:radial-gradient(var(--accent) 45%,transparent 50%)}
+.toast{position:absolute;left:16px;right:16px;top:54px;z-index:40;background:#e9f0f2;color:#0b0f11;border-radius:12px;padding:10px 14px;font-weight:700;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.hdr-deck{display:flex;gap:12px;align-items:center;padding:4px 16px 10px}
+.hdr-deck .art{width:64px;height:64px;border-radius:12px;overflow:hidden;flex:none;background:#2a3238}
+.hdr-deck h1{font-size:20px;margin:0 0 4px;line-height:1.15}
+.panel{margin:4px 12px 6px;border-radius:10px;background:var(--surface);padding:8px 10px;font-size:12px}
+.panel .ttl{font-weight:800;font-size:12px;margin-bottom:4px;display:flex;justify-content:space-between}
+.panel ul{margin:4px 0 0;padding-left:16px;color:var(--muted)}
+.qcard{margin:6px 14px;border-radius:18px;background:linear-gradient(180deg,#1a2226,#11171a);padding:14px;position:relative}
+.qcard .deckline{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.qcard .imgs{display:flex;justify-content:center;align-items:center;gap:10px;margin:2px 0 10px}
+.qcard .imgs .arrow{color:var(--muted);font-size:20px}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.fact{background:var(--surface2);border-radius:9px;padding:7px 9px}
+.fact .k{color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.fact .v{font-size:13px;font-weight:700;margin-top:2px}
+.qactions{display:flex;gap:8px;padding:8px 14px 10px}
+.progress{display:flex;gap:4px;padding:0 16px 8px}
+.progress span{flex:1;height:3px;border-radius:2px;background:#283035}
+.progress span.done{background:var(--accent)}
+.progress span.cur{background:#fff}
+.feed{position:relative;padding:4px 12px 24px 12px}
+.feed:before{content:"";position:absolute;left:27px;top:0;bottom:0;width:2px;background:#1d2529}
+.ev{position:relative;display:flex;gap:10px;padding:6px 0}
+.ev .dot{width:32px;height:32px;border-radius:16px;flex:none;display:flex;align-items:center;justify-content:center;font-size:14px;background:#1d2529;color:var(--muted);z-index:1;border:3px solid var(--bg)}
+.ev .dot.ai{background:#24303a;color:var(--info)}
+.ev .dot.change{background:var(--accent);color:var(--on-accent);font-weight:900}
+.ev .dot.swap{background:#2c3a12;color:var(--accent)}
+.ev .dot.buy{background:#3a3112;color:var(--warn)}
+.ev .dot.muted{background:#1d2529;color:var(--dim)}
+.ev .bubble{flex:1;min-width:0;background:var(--surface);border-radius:12px;padding:8px 10px}
+.ev .bubble.quiet{background:transparent;padding:6px 2px}
+.ev .when{color:var(--dim);font-size:11px;font-weight:700}
+.ev .what{font-weight:700;font-size:13px;margin:1px 0 4px}
+.ev.in-revert .bubble{outline:2px dashed var(--danger);outline-offset:-2px}
+.ev.hl .bubble{outline:2px solid var(--info);outline-offset:-2px}
+.daysep{position:relative;z-index:1;margin:10px 0 4px 44px;color:var(--muted);font-size:11px;font-weight:800}
+.revertbar{flex:none;max-height:340px;overflow-y:auto;background:#1a1012;border-top:1px solid #4a2522;padding:10px 14px 28px}
+.segment{display:flex;background:var(--surface3);border-radius:9px;padding:2px;margin:0 16px 10px}
+.segment button{flex:1;padding:6px 4px;border-radius:7px;font-size:12px;font-weight:700;color:var(--muted)}
+.segment button.sel{background:#3a454b;color:#fff}
+.kv{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
+.note{color:var(--muted);font-size:12px;padding:6px 16px}
+#switcher{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:4px;background:#ffffff;color:#111;border-radius:999px;padding:5px;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.2);font-weight:800;font-size:13px}
+#switcher button{width:34px;height:34px;border-radius:17px;background:#eee;color:#111;font-size:16px;font-weight:900}
+#switcher button:hover{background:#ddd}
+#switcher .label{padding:0 12px;min-width:220px;text-align:center}
+#dev{position:fixed;top:14px;left:14px;z-index:100;width:280px;background:#f4f1e8;color:#1a1a1a;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.4);font-size:12px;overflow:hidden}
+#dev .dh{background:#ffb300;color:#1a1200;padding:7px 10px;font-weight:900;display:flex;justify-content:space-between;align-items:center}
+#dev .db{padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+#dev .db.hidden{display:none}
+#dev button{background:#fff;border:1px solid #c9c2ad;border-radius:6px;padding:5px 8px;color:#1a1a1a;font-weight:700;text-align:left}
+#dev button:hover{background:#fffbe9}
+#dev select{width:100%;font:inherit;padding:4px;border-radius:6px;border:1px solid #c9c2ad;background:#fff;color:#1a1a1a}
+#dev .grp{border-top:1px solid #ddd5bd;padding-top:6px;display:flex;flex-direction:column;gap:5px}
+#dev .grp .t{font-weight:800;color:#6b5a1d;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+#dev .btns{display:flex;flex-wrap:wrap;gap:4px}
+#dev label{display:flex;gap:6px;align-items:center}
+#state-panel{position:fixed;top:14px;right:14px;width:min(460px,calc(50vw - 230px));height:calc(100vh - 100px);background:#0e1113;border-radius:14px;border:1px solid #3b4246;overflow:auto;font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:#cfe3ea}
+#state-panel[hidden]{display:none}
+#state-panel .sh{position:sticky;top:0;background:#0e1113;padding:8px 12px;border-bottom:1px solid #2a3135;color:#ffb300;font-weight:800;font-family:-apple-system,system-ui,sans-serif;font-size:12px;display:flex;justify-content:space-between}
+#state-panel pre{margin:0;padding:10px 12px;white-space:pre-wrap;word-break:break-word}
+</style>
+</head>
+<body>
+<div id="page">
+  <div id="phone"><div id="screen"></div></div>
+  <aside id="state-panel" hidden></aside>
+</div>
+<div id="dev"></div>
+<div id="switcher" role="toolbar" aria-label="Prototype variant switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span class="label" id="switcher-label">A</span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+<script>
+
+const Domain = (() => {
+  const RAW = [["Atraxa, Praetors' Voice", "BGUW", "Legendary Creature — Phyrexian Angel Horror", "28.10", false, "https://cards.scryfall.io/small/front/d/0/d0d33d52-3d28-4635-b985-51e126289259.jpg?1783930136", "https://cards.scryfall.io/normal/front/d/0/d0d33d52-3d28-4635-b985-51e126289259.jpg?1783930136", "https://cards.scryfall.io/art_crop/front/d/0/d0d33d52-3d28-4635-b985-51e126289259.jpg?1783930136", "2XM", "190"], ["Meren of Clan Nel Toth", "BG", "Legendary Creature — Human Shaman", "2.45", false, "https://cards.scryfall.io/small/front/5/0/508b1442-bf2c-4ad6-9bcf-bd894e081ab6.jpg?1783907026", "https://cards.scryfall.io/normal/front/5/0/508b1442-bf2c-4ad6-9bcf-bd894e081ab6.jpg?1783907026", "https://cards.scryfall.io/art_crop/front/5/0/508b1442-bf2c-4ad6-9bcf-bd894e081ab6.jpg?1783907026", "TDC", "297"], ["Krenko, Mob Boss", "R", "Legendary Creature — Goblin Warrior", "2.89", false, "https://cards.scryfall.io/small/front/8/2/824b2d73-2151-4e5e-9f05-8f63e2bdcaa9.jpg?1783909065", "https://cards.scryfall.io/normal/front/8/2/824b2d73-2151-4e5e-9f05-8f63e2bdcaa9.jpg?1783909065", "https://cards.scryfall.io/art_crop/front/8/2/824b2d73-2151-4e5e-9f05-8f63e2bdcaa9.jpg?1783909065", "FDN", "204"], ["Doubling Season", "G", "Enchantment", "35.33", false, "https://cards.scryfall.io/small/front/f/2/f2c4f80e-84a0-463b-82c3-5c6503809351.jpg?1783909062", "https://cards.scryfall.io/normal/front/f/2/f2c4f80e-84a0-463b-82c3-5c6503809351.jpg?1783909062", "https://cards.scryfall.io/art_crop/front/f/2/f2c4f80e-84a0-463b-82c3-5c6503809351.jpg?1783909062", "FDN", "216"], ["Contagion Engine", "", "Artifact", "14.32", false, "https://cards.scryfall.io/small/front/d/c/dce72636-08e4-484e-ad81-4d1597a31ffb.jpg?1783941712", "https://cards.scryfall.io/normal/front/d/c/dce72636-08e4-484e-ad81-4d1597a31ffb.jpg?1783941712", "https://cards.scryfall.io/art_crop/front/d/c/dce72636-08e4-484e-ad81-4d1597a31ffb.jpg?1783941712", "SOM", "145"], ["Smothering Tithe", "W", "Enchantment", "56.14", true, "https://cards.scryfall.io/small/front/8/6/861b5889-0183-4bee-afeb-a4b2aa700a8e.jpg?1783915712", "https://cards.scryfall.io/normal/front/8/6/861b5889-0183-4bee-afeb-a4b2aa700a8e.jpg?1783915712", "https://cards.scryfall.io/art_crop/front/8/6/861b5889-0183-4bee-afeb-a4b2aa700a8e.jpg?1783915712", "CMM", "57"], ["Evolution Sage", "G", "Creature — Elf Druid", "3.07", false, "https://cards.scryfall.io/small/front/1/d/1d58d08d-cd62-416d-8d8e-7d9c56d5c4da.jpg?1783904546", "https://cards.scryfall.io/normal/front/1/d/1d58d08d-cd62-416d-8d8e-7d9c56d5c4da.jpg?1783904546", "https://cards.scryfall.io/art_crop/front/1/d/1d58d08d-cd62-416d-8d8e-7d9c56d5c4da.jpg?1783904546", "ECC", "105"], ["Grist, the Hunger Tide", "BG", "Legendary Planeswalker — Grist", "0.52", false, "https://cards.scryfall.io/small/front/1/9/1925dc45-4dee-4772-aa16-3b4ca54be6c7.jpg?1783909593", "https://cards.scryfall.io/normal/front/1/9/1925dc45-4dee-4772-aa16-3b4ca54be6c7.jpg?1783909593", "https://cards.scryfall.io/art_crop/front/1/9/1925dc45-4dee-4772-aa16-3b4ca54be6c7.jpg?1783909593", "DSC", "220"], ["Phyrexian Arena", "B", "Enchantment", "4.26", false, "https://cards.scryfall.io/small/front/0/7/0784b6f0-9ebf-43d2-ba0f-a6bc93ba0c48.jpg?1783909072", "https://cards.scryfall.io/normal/front/0/7/0784b6f0-9ebf-43d2-ba0f-a6bc93ba0c48.jpg?1783909072", "https://cards.scryfall.io/art_crop/front/0/7/0784b6f0-9ebf-43d2-ba0f-a6bc93ba0c48.jpg?1783909072", "FDN", "180"], ["Swamp", "B", "Basic Land — Swamp", null, false, "https://cards.scryfall.io/small/front/b/7/b7387103-1df1-4fd0-9e91-1544509792c7.jpg?1785981659", "https://cards.scryfall.io/normal/front/b/7/b7387103-1df1-4fd0-9e91-1544509792c7.jpg?1785981659", "https://cards.scryfall.io/art_crop/front/b/7/b7387103-1df1-4fd0-9e91-1544509792c7.jpg?1785981659", "TRK", "321"], ["Mountain", "R", "Basic Land — Mountain", null, false, "https://cards.scryfall.io/small/front/2/a/2a844b96-6616-4c39-8f4f-5d14a3b2bd55.jpg?1785981666", "https://cards.scryfall.io/normal/front/2/a/2a844b96-6616-4c39-8f4f-5d14a3b2bd55.jpg?1785981666", "https://cards.scryfall.io/art_crop/front/2/a/2a844b96-6616-4c39-8f4f-5d14a3b2bd55.jpg?1785981666", "TRK", "323"], ["Forest", "G", "Basic Land — Forest", null, false, "https://cards.scryfall.io/small/front/d/c/dce15387-4114-4b3e-91aa-5b42b45c44ac.jpg?1785981675", "https://cards.scryfall.io/normal/front/d/c/dce15387-4114-4b3e-91aa-5b42b45c44ac.jpg?1785981675", "https://cards.scryfall.io/art_crop/front/d/c/dce15387-4114-4b3e-91aa-5b42b45c44ac.jpg?1785981675", "TRK", "325"], ["Plains", "W", "Basic Land — Plains", null, false, "https://cards.scryfall.io/small/front/8/a/8ab0f4c0-b331-4c57-b68f-2e24bb5ba06c.jpg?1785981632", "https://cards.scryfall.io/normal/front/8/a/8ab0f4c0-b331-4c57-b68f-2e24bb5ba06c.jpg?1785981632", "https://cards.scryfall.io/art_crop/front/8/a/8ab0f4c0-b331-4c57-b68f-2e24bb5ba06c.jpg?1785981632", "TRK", "317"], ["Island", "U", "Basic Land — Island", null, false, "https://cards.scryfall.io/small/front/f/3/f3cc07cd-cc79-4745-b0b7-eade60175cc3.jpg?1785981645", "https://cards.scryfall.io/normal/front/f/3/f3cc07cd-cc79-4745-b0b7-eade60175cc3.jpg?1785981645", "https://cards.scryfall.io/art_crop/front/f/3/f3cc07cd-cc79-4745-b0b7-eade60175cc3.jpg?1785981645", "TRK", "319"], ["Goblin Instigator", "R", "Creature — Goblin Rogue", "0.40", false, "https://cards.scryfall.io/small/front/b/3/b36a1bc7-a080-4fb6-b975-c59bb33a090a.jpg?1783917147", "https://cards.scryfall.io/normal/front/b/3/b36a1bc7-a080-4fb6-b975-c59bb33a090a.jpg?1783917147", "https://cards.scryfall.io/art_crop/front/b/3/b36a1bc7-a080-4fb6-b975-c59bb33a090a.jpg?1783917147", "MOC", "282"], ["Lightning Greaves", "", "Artifact — Equipment", "4.00", false, "https://cards.scryfall.io/small/front/b/6/b61634ae-05be-4b56-8ebb-9d4ade902e42.jpg?1783903217", "https://cards.scryfall.io/normal/front/b/6/b61634ae-05be-4b56-8ebb-9d4ade902e42.jpg?1783903217", "https://cards.scryfall.io/art_crop/front/b/6/b61634ae-05be-4b56-8ebb-9d4ade902e42.jpg?1783903217", "MSC", "202"], ["Mind Stone", "", "Artifact", "0.79", false, "https://cards.scryfall.io/small/front/b/3/b30a8f92-ce42-4b27-a893-bcf97fde228d.jpg?1785759375", "https://cards.scryfall.io/normal/front/b/3/b30a8f92-ce42-4b27-a893-bcf97fde228d.jpg?1785759375", "https://cards.scryfall.io/art_crop/front/b/3/b30a8f92-ce42-4b27-a893-bcf97fde228d.jpg?1785759375", "MBC", "76"], ["Thornbite Staff", "", "Kindred Artifact — Shaman Equipment", "21.63", false, "https://cards.scryfall.io/small/front/c/1/c1ab3225-64a9-411e-b22b-1869e958b8e5.jpg?1783942774", "https://cards.scryfall.io/normal/front/c/1/c1ab3225-64a9-411e-b22b-1869e958b8e5.jpg?1783942774", "https://cards.scryfall.io/art_crop/front/c/1/c1ab3225-64a9-411e-b22b-1869e958b8e5.jpg?1783942774", "MOR", "145"], ["Goblin Matron", "R", "Creature — Goblin", "0.25", false, "https://cards.scryfall.io/small/front/8/e/8ee0fdd4-1fb5-4160-b408-2c51ef4f85d0.jpg?1783903458", "https://cards.scryfall.io/normal/front/8/e/8ee0fdd4-1fb5-4160-b408-2c51ef4f85d0.jpg?1783903458", "https://cards.scryfall.io/art_crop/front/8/e/8ee0fdd4-1fb5-4160-b408-2c51ef4f85d0.jpg?1783903458", "PLST", "DMR-123"], ["Goblin Lackey", "R", "Creature — Goblin", "9.80", false, "https://cards.scryfall.io/small/front/3/0/30104836-1e9d-4533-98f8-d5c4e6484b52.jpg?1783939274", "https://cards.scryfall.io/normal/front/3/0/30104836-1e9d-4533-98f8-d5c4e6484b52.jpg?1783939274", "https://cards.scryfall.io/art_crop/front/3/0/30104836-1e9d-4533-98f8-d5c4e6484b52.jpg?1783939274", "VMA", "167"], ["Cyclonic Rift", "U", "Instant", "39.16", true, "https://cards.scryfall.io/small/front/d/f/dfb7c4b9-f2f4-4d4e-baf2-86551c8150fe.jpg?1783913339", "https://cards.scryfall.io/normal/front/d/f/dfb7c4b9-f2f4-4d4e-baf2-86551c8150fe.jpg?1783913339", "https://cards.scryfall.io/art_crop/front/d/f/dfb7c4b9-f2f4-4d4e-baf2-86551c8150fe.jpg?1783913339", "RVR", "40"], ["Dockside Extortionist", "R", "Creature — Goblin Pirate", "9.52", false, "https://cards.scryfall.io/small/front/9/e/9e2e3efb-75cb-430f-b9f4-cb58f3aeb91b.jpg?1783921889", "https://cards.scryfall.io/normal/front/9/e/9e2e3efb-75cb-430f-b9f4-cb58f3aeb91b.jpg?1783921889", "https://cards.scryfall.io/art_crop/front/9/e/9e2e3efb-75cb-430f-b9f4-cb58f3aeb91b.jpg?1783921889", "2X2", "107"], ["Rhystic Study", "U", "Enchantment", "69.59", true, "https://cards.scryfall.io/small/front/9/f/9f37c5b6-a59c-45cd-9a99-e9357fe9ea1b.jpg?1783919146", "https://cards.scryfall.io/normal/front/9/f/9f37c5b6-a59c-45cd-9a99-e9357fe9ea1b.jpg?1783919146", "https://cards.scryfall.io/art_crop/front/9/f/9f37c5b6-a59c-45cd-9a99-e9357fe9ea1b.jpg?1783919146", "J22", "114"], ["Toxic Deluge", "B", "Sorcery", "5.17", false, "https://cards.scryfall.io/small/front/d/e/de5afccc-8d42-4bd6-b068-b9ea2361655e.jpg?1783903236", "https://cards.scryfall.io/normal/front/d/e/de5afccc-8d42-4bd6-b068-b9ea2361655e.jpg?1783903236", "https://cards.scryfall.io/art_crop/front/d/e/de5afccc-8d42-4bd6-b068-b9ea2361655e.jpg?1783903236", "MSC", "161"], ["Damnation", "B", "Sorcery", "21.01", false, "https://cards.scryfall.io/small/front/d/3/d3c0aac5-b9f1-4446-bfea-3e1dd1cf1f2f.jpg?1783921909", "https://cards.scryfall.io/normal/front/d/3/d3c0aac5-b9f1-4446-bfea-3e1dd1cf1f2f.jpg?1783921909", "https://cards.scryfall.io/art_crop/front/d/3/d3c0aac5-b9f1-4446-bfea-3e1dd1cf1f2f.jpg?1783921909", "2X2", "73"], ["Tezzeret's Gambit", "U", "Sorcery", "0.19", false, "https://cards.scryfall.io/small/front/2/9/29ad5bb3-927d-41d0-a000-3826ea117e52.jpg?1783906052", "https://cards.scryfall.io/normal/front/2/9/29ad5bb3-927d-41d0-a000-3826ea117e52.jpg?1783906052", "https://cards.scryfall.io/art_crop/front/2/9/29ad5bb3-927d-41d0-a000-3826ea117e52.jpg?1783906052", "EOC", "47"], ["Contagion Clasp", "", "Artifact", "0.36", false, "https://cards.scryfall.io/small/front/e/d/edd7f08a-3baf-4fb0-921e-b0e7b4a1a545.jpg?1783904529", "https://cards.scryfall.io/normal/front/e/d/edd7f08a-3baf-4fb0-921e-b0e7b4a1a545.jpg?1783904529", "https://cards.scryfall.io/art_crop/front/e/d/edd7f08a-3baf-4fb0-921e-b0e7b4a1a545.jpg?1783904529", "ECC", "140"], ["Golgari Signet", "BG", "Artifact", "0.34", false, "https://cards.scryfall.io/small/front/9/5/95103b4c-d0c0-40fa-9ddd-c7416455ca0c.jpg?1783909585", "https://cards.scryfall.io/normal/front/9/5/95103b4c-d0c0-40fa-9ddd-c7416455ca0c.jpg?1783909585", "https://cards.scryfall.io/art_crop/front/9/5/95103b4c-d0c0-40fa-9ddd-c7416455ca0c.jpg?1783909585", "DSC", "246"], ["Arcane Signet", "", "Artifact", "0.49", false, "https://cards.scryfall.io/small/front/c/6/c6b6117c-faab-4bbb-b851-07bd8061ef03.jpg?1789644435", "https://cards.scryfall.io/normal/front/c/6/c6b6117c-faab-4bbb-b851-07bd8061ef03.jpg?1789644435", "https://cards.scryfall.io/art_crop/front/c/6/c6b6117c-faab-4bbb-b851-07bd8061ef03.jpg?1789644435", "FRC", "20"], ["Pernicious Deed", "BG", "Enchantment", "3.46", false, "https://cards.scryfall.io/small/front/8/6/8652e3a1-bcd4-4c0c-a085-34f19702df26.jpg?1783935114", "https://cards.scryfall.io/normal/front/8/6/8652e3a1-bcd4-4c0c-a085-34f19702df26.jpg?1783935114", "https://cards.scryfall.io/art_crop/front/8/6/8652e3a1-bcd4-4c0c-a085-34f19702df26.jpg?1783935114", "A25", "212"], ["Fire Diamond", "R", "Artifact", "0.39", false, "https://cards.scryfall.io/small/front/5/a/5a561484-438b-4ce9-911e-97078ac5b0fa.jpg?1783922676", "https://cards.scryfall.io/normal/front/5/a/5a561484-438b-4ce9-911e-97078ac5b0fa.jpg?1783922676", "https://cards.scryfall.io/art_crop/front/5/a/5a561484-438b-4ce9-911e-97078ac5b0fa.jpg?1783922676", "CLB", "313"], ["Demonic Tutor", "B", "Sorcery", "69.17", true, "https://cards.scryfall.io/small/front/a/2/a24b4cb6-cebb-428b-8654-74347a6a8d63.jpg?1783915679", "https://cards.scryfall.io/normal/front/a/2/a24b4cb6-cebb-428b-8654-74347a6a8d63.jpg?1783915679", "https://cards.scryfall.io/art_crop/front/a/2/a24b4cb6-cebb-428b-8654-74347a6a8d63.jpg?1783915679", "CMM", "150"], ["Vampiric Tutor", "B", "Instant", "54.45", true, "https://cards.scryfall.io/small/front/3/4/34a0203f-9cce-43a4-9cb7-8ce6647895cd.jpg?1783918468", "https://cards.scryfall.io/normal/front/3/4/34a0203f-9cce-43a4-9cb7-8ce6647895cd.jpg?1783918468", "https://cards.scryfall.io/art_crop/front/3/4/34a0203f-9cce-43a4-9cb7-8ce6647895cd.jpg?1783918468", "DMR", "108"], ["Enlightened Tutor", "W", "Instant", "38.32", true, "https://cards.scryfall.io/small/front/1/c/1c9675fb-1a89-420f-aea8-50e0642f549c.jpg?1783918516", "https://cards.scryfall.io/normal/front/1/c/1c9675fb-1a89-420f-aea8-50e0642f549c.jpg?1783918516", "https://cards.scryfall.io/art_crop/front/1/c/1c9675fb-1a89-420f-aea8-50e0642f549c.jpg?1783918516", "DMR", "6"], ["Sol Ring", "", "Artifact", "1.40", false, "https://cards.scryfall.io/small/front/8/e/8ee443cc-e17a-493b-9c93-1f9e141a30e4.jpg?1789644446", "https://cards.scryfall.io/normal/front/8/e/8ee443cc-e17a-493b-9c93-1f9e141a30e4.jpg?1789644446", "https://cards.scryfall.io/art_crop/front/8/e/8ee443cc-e17a-493b-9c93-1f9e141a30e4.jpg?1789644446", "FRC", "21"], ["Command Tower", "", "Land", "0.24", false, "https://cards.scryfall.io/small/front/1/a/1ac6cb62-45da-4e9a-84c6-09e6eacf0664.jpg?1789644465", "https://cards.scryfall.io/normal/front/1/a/1ac6cb62-45da-4e9a-84c6-09e6eacf0664.jpg?1789644465", "https://cards.scryfall.io/art_crop/front/1/a/1ac6cb62-45da-4e9a-84c6-09e6eacf0664.jpg?1789644465", "FRC", "22"], ["Eternal Witness", "G", "Creature — Human Shaman", "2.21", false, "https://cards.scryfall.io/small/front/3/9/39704000-65d3-4d39-849e-a3b617376bbc.jpg?1783915632", "https://cards.scryfall.io/normal/front/3/9/39704000-65d3-4d39-849e-a3b617376bbc.jpg?1783915632", "https://cards.scryfall.io/art_crop/front/3/9/39704000-65d3-4d39-849e-a3b617376bbc.jpg?1783915632", "CMM", "286"], ["Sakura-Tribe Elder", "G", "Creature — Snake Shaman", "0.42", false, "https://cards.scryfall.io/small/front/7/a/7a8b1c49-8594-426d-b585-41140235bb0e.jpg?1783903761", "https://cards.scryfall.io/normal/front/7/a/7a8b1c49-8594-426d-b585-41140235bb0e.jpg?1783903761", "https://cards.scryfall.io/art_crop/front/7/a/7a8b1c49-8594-426d-b585-41140235bb0e.jpg?1783903761", "SOC", "285"], ["Viscera Seer", "B", "Creature — Vampire Wizard", "0.49", false, "https://cards.scryfall.io/small/front/f/5/f511830b-1c1f-4d30-aa5d-4314726d142e.jpg?1783903780", "https://cards.scryfall.io/normal/front/f/5/f511830b-1c1f-4d30-aa5d-4314726d142e.jpg?1783903780", "https://cards.scryfall.io/art_crop/front/f/5/f511830b-1c1f-4d30-aa5d-4314726d142e.jpg?1783903780", "SOC", "229"], ["Spore Frog", "G", "Creature — Frog", "0.33", false, "https://cards.scryfall.io/small/front/6/d/6d42fd52-34ea-4d1b-80dc-58fb0593bb5b.jpg?1783933092", "https://cards.scryfall.io/normal/front/6/d/6d42fd52-34ea-4d1b-80dc-58fb0593bb5b.jpg?1783933092", "https://cards.scryfall.io/art_crop/front/6/d/6d42fd52-34ea-4d1b-80dc-58fb0593bb5b.jpg?1783933092", "MH1", "180"], ["Goblin Chieftain", "R", "Creature — Goblin", "6.98", false, "https://cards.scryfall.io/small/front/8/9/89fcc35b-76fa-4408-8620-a1e11b2caf1f.jpg?1783930390", "https://cards.scryfall.io/normal/front/8/9/89fcc35b-76fa-4408-8620-a1e11b2caf1f.jpg?1783930390", "https://cards.scryfall.io/art_crop/front/8/9/89fcc35b-76fa-4408-8620-a1e11b2caf1f.jpg?1783930390", "JMP", "324"], ["Skirk Prospector", "R", "Creature — Goblin", "0.34", false, "https://cards.scryfall.io/small/front/7/b/7bc508b3-8b38-4cf0-89a7-a2cb247ed083.jpg?1783918455", "https://cards.scryfall.io/normal/front/7/b/7bc508b3-8b38-4cf0-89a7-a2cb247ed083.jpg?1783918455", "https://cards.scryfall.io/art_crop/front/7/b/7bc508b3-8b38-4cf0-89a7-a2cb247ed083.jpg?1783918455", "DMR", "137"], ["Purphoros, God of the Forge", "R", "Legendary Enchantment Creature — God", "27.77", false, "https://cards.scryfall.io/small/front/4/7/4736a2c4-c89c-48db-a104-6303e7e2eee8.jpg?1783915646", "https://cards.scryfall.io/normal/front/4/7/4736a2c4-c89c-48db-a104-6303e7e2eee8.jpg?1783915646", "https://cards.scryfall.io/art_crop/front/4/7/4736a2c4-c89c-48db-a104-6303e7e2eee8.jpg?1783915646", "CMM", "246"], ["Hardened Scales", "G", "Enchantment", "3.19", false, "https://cards.scryfall.io/small/front/9/9/99cfd1a8-49fd-4cc0-96f2-f9f159ce5d55.jpg?1783903765", "https://cards.scryfall.io/normal/front/9/9/99cfd1a8-49fd-4cc0-96f2-f9f159ce5d55.jpg?1783903765", "https://cards.scryfall.io/art_crop/front/9/9/99cfd1a8-49fd-4cc0-96f2-f9f159ce5d55.jpg?1783903765", "SOC", "272"], ["Myriad Landscape", "", "Land", "0.31", false, "https://cards.scryfall.io/small/front/a/0/a0e2098f-1d94-491a-a7e9-a45a9f69e3a8.jpg?1783906009", "https://cards.scryfall.io/normal/front/a/0/a0e2098f-1d94-491a-a7e9-a45a9f69e3a8.jpg?1783906009", "https://cards.scryfall.io/art_crop/front/a/0/a0e2098f-1d94-491a-a7e9-a45a9f69e3a8.jpg?1783906009", "EOC", "169"], ["Birds of Paradise", "G", "Creature — Bird", "9.03", false, "https://cards.scryfall.io/small/front/4/9/492c2f9a-51e7-4e0f-9899-23bf43ea988b.jpg?1783903230", "https://cards.scryfall.io/normal/front/4/9/492c2f9a-51e7-4e0f-9899-23bf43ea988b.jpg?1783903230", "https://cards.scryfall.io/art_crop/front/4/9/492c2f9a-51e7-4e0f-9899-23bf43ea988b.jpg?1783903230", "MSC", "170"], ["Expressive Iteration", "RU", "Sorcery", "0.30", false, "https://cards.scryfall.io/small/front/9/6/96f866ec-a163-4095-b088-d93fa0b6f6f7.jpg?1783903226", "https://cards.scryfall.io/normal/front/9/6/96f866ec-a163-4095-b088-d93fa0b6f6f7.jpg?1783903226", "https://cards.scryfall.io/art_crop/front/9/6/96f866ec-a163-4095-b088-d93fa0b6f6f7.jpg?1783903226", "MSC", "183"], ["Sylvan Library", "G", "Enchantment", "28.62", false, "https://cards.scryfall.io/small/front/6/a/6ada256f-2e55-4c1f-b4d3-d7b10b498956.jpg?1783918436", "https://cards.scryfall.io/normal/front/6/a/6ada256f-2e55-4c1f-b4d3-d7b10b498956.jpg?1783918436", "https://cards.scryfall.io/art_crop/front/6/a/6ada256f-2e55-4c1f-b4d3-d7b10b498956.jpg?1783918436", "DMR", "179"], ["Ruthless Ripper", "B", "Creature — Human Assassin", "0.19", false, "https://cards.scryfall.io/small/front/b/c/bc78993c-ca67-43b3-a64d-ce0c3bc415bc.jpg?1783935157", "https://cards.scryfall.io/normal/front/b/c/bc78993c-ca67-43b3-a64d-ce0c3bc415bc.jpg?1783935157", "https://cards.scryfall.io/art_crop/front/b/c/bc78993c-ca67-43b3-a64d-ce0c3bc415bc.jpg?1783935157", "A25", "107"], ["Craterhoof Behemoth", "G", "Creature — Beast", "25.33", false, "https://cards.scryfall.io/small/front/2/7/276f5cee-a501-4658-bd4d-7a044bf1ccbc.jpg?1783907345", "https://cards.scryfall.io/normal/front/2/7/276f5cee-a501-4658-bd4d-7a044bf1ccbc.jpg?1783907345", "https://cards.scryfall.io/art_crop/front/2/7/276f5cee-a501-4658-bd4d-7a044bf1ccbc.jpg?1783907345", "TDM", "138"], ["Siege-Gang Commander", "R", "Creature — Goblin", "0.31", false, "https://cards.scryfall.io/small/front/7/d/7d67e614-03d2-4034-b82f-25962fc378d4.jpg?1783903455", "https://cards.scryfall.io/normal/front/7/d/7d67e614-03d2-4034-b82f-25962fc378d4.jpg?1783903455", "https://cards.scryfall.io/art_crop/front/7/d/7d67e614-03d2-4034-b82f-25962fc378d4.jpg?1783903455", "PLST", "DMR-136"], ["Impact Tremors", "R", "Enchantment", "2.55", false, "https://cards.scryfall.io/small/front/d/0/d0b7cecf-b51b-4d30-b7e9-cd7976271e07.jpg?1783908891", "https://cards.scryfall.io/normal/front/d/0/d0b7cecf-b51b-4d30-b7e9-cd7976271e07.jpg?1783908891", "https://cards.scryfall.io/art_crop/front/d/0/d0b7cecf-b51b-4d30-b7e9-cd7976271e07.jpg?1783908891", "FDN", "717"], ["Reanimate", "B", "Sorcery", "10.11", false, "https://cards.scryfall.io/small/front/3/6/368b6903-5fc4-43e7-bd44-46b8107c8bb4.jpg?1783909614", "https://cards.scryfall.io/normal/front/3/6/368b6903-5fc4-43e7-bd44-46b8107c8bb4.jpg?1783909614", "https://cards.scryfall.io/art_crop/front/3/6/368b6903-5fc4-43e7-bd44-46b8107c8bb4.jpg?1783909614", "DSC", "155"]];
+  const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const COLOR_NAMES = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' };
+  const BANNED = ['Dockside Extortionist'];
+  const CATALOG = Object.fromEntries(RAW.map(r => [slug(r[0]), {
+    id: slug(r[0]), name: r[0], ci: r[1], type: r[2], price: r[3], gc: r[4],
+    img: { small: r[5], normal: r[6], art: r[7] }, set: r[8], cn: r[9],
+    basic: r[2].startsWith('Basic Land'), banned: BANNED.includes(r[0]), tags: []
+  }]));
+  const COMBOS = [{ cards: ['krenko-mob-boss', 'thornbite-staff'], name: 'Krenko, Mob Boss + Thornbite Staff', result: 'Infinite Goblin tokens' }];
+  const GAP_CARD = 'siege-gang-commander';
+  const PRIORITY_RANK = { low: 0, medium: 1, high: 2 };
+  const SCAN_PRINTINGS = {
+    'rhystic-study': [['PCY 45', 'nonfoil', 'LP'], ['JMP 168', 'nonfoil', 'NM']],
+    'goblin-matron': [['DMR 123', 'nonfoil', 'NM'], ['ULG 80', 'nonfoil', 'MP']],
+    'grist-the-hunger-tide': [['MH1 195', 'foil', 'NM'], ['DSC 220', 'nonfoil', 'NM']],
+    'lightning-greaves': [['MSC 202', 'nonfoil', 'NM'], ['M19 235', 'foil', 'NM']],
+    'cyclonic-rift': [['RVR 40', 'nonfoil', 'NM'], ['MM3 35', 'foil', 'LP']]
+  };
+  const AI_POOL = [
+    { deckId: 'atraxa', in: 'hardened-scales', out: 'contagion-engine', reason: 'Hardened Scales adds a counter to every +1/+1 counter you place. Atraxa proliferates every turn, so it compounds quickly. It costs one mana, against six for Contagion Engine.' },
+    { deckId: 'atraxa', in: 'cyclonic-rift', out: 'tezzeret-s-gambit', reason: 'Cyclonic Rift is still the best reset in blue. You dismissed this before, but your table has more artifact decks now, and Tezzeret\'s Gambit only draws two.' },
+    { deckId: 'krenko', in: 'impact-tremors', out: 'goblin-lackey', reason: 'Impact Tremors turns each Krenko activation into direct damage. Goblin Lackey is weak after turn one.' }
+  ];
+  const EDITED_REASONS = {
+    s1: 'Doubling Season doubles both counters and tokens. With Atraxa proliferating, it doubles the value of every counter. Contagion Engine is the slowest card in the deck.',
+    s3: 'Smothering Tithe makes Treasure whenever an opponent draws. In this pod it will make three or more each turn cycle. Evolution Sage is the weakest proliferate card here.',
+    s5: 'Goblin Instigator makes two bodies for two mana. Cut Lightning Greaves here so that Meren of Clan Nel Toth can use it. See the paired suggestion for Meren.',
+    s7: 'Thornbite Staff with Krenko and a sacrifice outlet makes infinite Goblins. Adding it puts the deck at 101 cards, so cut a land too.',
+    s8: 'Goblin Matron finds Krenko or a combo piece. It is the best tutor for this deck at its price.'
+  };
+  const MINUTE = 60000;
+  const BASE = Date.UTC(2026, 9, 1, 0, 0);
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const pad = n => String(n).padStart(2, '0');
+  const fmtAt = at => { const d = new Date(BASE + at * MINUTE); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`; };
+  const fmtDay = at => { const d = new Date(BASE + at * MINUTE); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`; };
+  const at = (day, h, m) => (day - 1) * 1440 + h * 60 + m;
+
+  function seed() {
+    const s = { clock: at(8, 14, 0), seq: 0, catalogGap: false, aiPool: 0, decks: [], collection: [], suggestions: [], plannedSwaps: [], buylist: [], changes: [], events: [] };
+    const entry = (cardId, printing, finish = 'nonfoil', qty = 1, prot = false, condition = 'NM') => {
+      const id = 'e' + (++s.seq);
+      s.collection.push({ id, cardId, printing, finish, language: 'English', condition, qty, protected: prot });
+      return id;
+    };
+    const solRing = entry('sol-ring', 'FRC 21', 'nonfoil', 3);
+    const tower = entry('command-tower', 'FRC 22', 'nonfoil', 2);
+    const rowsOf = (list) => list.map(x => ({ id: 'r' + (++s.seq), entryId: typeof x === 'string' ? x : x.id, qty: 1 }));
+    const own = (cardId, finish, cond) => entry(cardId, `${CATALOG[cardId].set} ${CATALOG[cardId].cn}`, finish, 1, false, cond);
+    const E = {};
+    for (const c of ['demonic-tutor', 'vampiric-tutor', 'enlightened-tutor', 'contagion-engine', 'evolution-sage', 'phyrexian-arena', 'toxic-deluge', 'tezzeret-s-gambit', 'grist-the-hunger-tide', 'birds-of-paradise', 'sylvan-library', 'craterhoof-behemoth',
+      'golgari-signet', 'damnation', 'mind-stone', 'myriad-landscape', 'eternal-witness', 'sakura-tribe-elder', 'viscera-seer', 'spore-frog', 'ruthless-ripper', 'reanimate',
+      'lightning-greaves', 'goblin-chieftain', 'goblin-lackey', 'skirk-prospector', 'fire-diamond', 'siege-gang-commander']) E[c] = own(c);
+    E.ds1 = entry('doubling-season', 'FDN 216', 'nonfoil', 1, false, 'NM');
+    E.ds2 = entry('doubling-season', '2XM 310', 'foil', 1, false, 'LP');
+    E.tithe = entry('smothering-tithe', 'RNA 22', 'foil', 1, true, 'NM');
+    E.instigator = entry('goblin-instigator', 'MOC 282', 'nonfoil', 2);
+    E.staff = entry('thornbite-staff', 'MOR 145');
+    E.signet = entry('arcane-signet', 'FRC 20');
+    E.deed = entry('pernicious-deed', 'A25 212');
+    E.clasp = entry('contagion-clasp', 'ECC 140');
+    E.scales = entry('hardened-scales', 'SOC 272');
+    E.tremors = entry('impact-tremors', 'FDN 717');
+    s.decks.push({ id: 'atraxa', name: "Atraxa, Praetors' Voice", short: 'Atraxa', commanders: ['atraxa-praetors-voice'], priority: 'high', revision: 14,
+      rows: rowsOf([solRing, tower, ...['demonic-tutor', 'vampiric-tutor', 'enlightened-tutor', 'contagion-engine', 'evolution-sage', 'phyrexian-arena', 'toxic-deluge', 'tezzeret-s-gambit', 'grist-the-hunger-tide', 'birds-of-paradise', 'sylvan-library', 'craterhoof-behemoth'].map(c => E[c])]),
+      basics: { forest: 3, island: 3, plains: 3, swamp: 3 }, otherCards: 73 });
+    s.decks.push({ id: 'meren', name: 'Meren of Clan Nel Toth', short: 'Meren', commanders: ['meren-of-clan-nel-toth'], priority: 'medium', revision: 9,
+      rows: rowsOf([solRing, tower, ...['golgari-signet', 'damnation', 'mind-stone', 'myriad-landscape', 'eternal-witness', 'sakura-tribe-elder', 'viscera-seer', 'spore-frog', 'ruthless-ripper', 'reanimate'].map(c => E[c])]),
+      basics: { swamp: 8, forest: 8 }, otherCards: 70 });
+    s.decks.push({ id: 'krenko', name: 'Krenko, Mob Boss', short: 'Krenko', commanders: ['krenko-mob-boss'], priority: 'low', revision: 6,
+      rows: rowsOf([solRing, ...['lightning-greaves', 'goblin-chieftain', 'goblin-lackey', 'skirk-prospector', 'fire-diamond', 'siege-gang-commander'].map(c => E[c])]),
+      basics: { mountain: 30 }, otherCards: 62 });
+    const ev = (t, deckId, kind, extra = {}) => s.events.push({ id: 'v' + (++s.seq), at: t, deckId, kind, ...extra });
+    const ch = (id, deckId, t, ins, outs, reason, source) => {
+      s.changes.push({ id, deckId, at: t, in: ins, out: outs, reason, source, revertedBy: null, reverts: [] });
+      ev(t, deckId, 'deck change', { changeId: id });
+    };
+    ch('c1', 'atraxa', at(1, 10, 12), [{ cardId: 'toxic-deluge', entryId: E['toxic-deluge'], qty: 1 }], [{ cardId: 'damnation', entryId: E['damnation'], qty: 1 }], 'Toxic Deluge costs three and spares your indestructible threats. Damnation costs four.', { kind: 'planned swap', id: 'p0' });
+    ch('c2', 'meren', at(2, 19, 40), [{ cardId: 'golgari-signet', entryId: E['golgari-signet'], qty: 1 }], [{ cardId: 'arcane-signet', entryId: E.signet, qty: 1 }], 'Golgari Signet does the same job as Arcane Signet, and Arcane Signet is better in a five-color deck later.', { kind: 'planned swap', id: 'p00' });
+    ch('c3', 'atraxa', at(3, 21, 5), [{ cardId: 'tezzeret-s-gambit', entryId: E['tezzeret-s-gambit'], qty: 1 }], [{ cardId: 'contagion-clasp', entryId: E.clasp, qty: 1 }], null, { kind: 'user' });
+    ch('c4', 'meren', at(4, 18, 22), [{ cardId: 'damnation', entryId: E['damnation'], qty: 1 }], [{ cardId: 'pernicious-deed', entryId: E.deed, qty: 1 }], null, { kind: 'user' });
+    ch('c5', 'krenko', at(5, 12, 30), [{ cardId: 'goblin-chieftain', entryId: E['goblin-chieftain'], qty: 1 }], [{ cardId: 'mountain', qty: 1 }], 'Goblin Chieftain gives every token haste the turn Krenko makes it.', { kind: 'deck suggestion', id: 's00' });
+    const sug = (id, deckId, inC, outC, reason, t, extra = {}) => {
+      s.suggestions.push({ id, deckId, in: inC, out: outC, reason, status: 'open', client: 'ChatGPT', createdAt: t, pairId: null, reasonEdited: false, result: null, ...extra });
+      ev(t, deckId, 'suggested', { suggestionId: id });
+    };
+    sug('s0', 'atraxa', 'rhystic-study', 'phyrexian-arena', 'Rhystic Study draws more cards than Phyrexian Arena in a four-player pod, and it costs no life.', at(6, 9, 15));
+    s.suggestions[0].status = 'promoted';
+    s.buylist.push({ id: 'b1', deckId: 'atraxa', in: 'rhystic-study', out: 'phyrexian-arena', reason: s.suggestions[0].reason, suggestionId: 's0', status: 'open', note: null, createdAt: at(6, 9, 40), changeId: null });
+    s.suggestions[0].result = { kind: 'buylist card', id: 'b1' };
+    ev(at(6, 9, 40), 'atraxa', 'buylist card', { buylistId: 'b1', suggestionId: 's0' });
+    s.plannedSwaps.push({ id: 'p1', deckId: 'krenko', in: 'arcane-signet', heldEntryId: E.signet, out: 'fire-diamond', reason: null, suggestionId: null, status: 'open', note: null, createdAt: at(6, 20, 5), changeId: null });
+    ev(at(6, 20, 5), 'krenko', 'planned swap', { swapId: 'p1' });
+    sug('s9', 'atraxa', 'cyclonic-rift', 'tezzeret-s-gambit', 'Cyclonic Rift resets every opponent at instant speed when overloaded.', at(7, 11, 0));
+    sug('s10', 'krenko', 'dockside-extortionist', 'skirk-prospector', 'Dockside Extortionist makes a burst of Treasure in artifact-heavy pods.', at(7, 11, 1));
+    s.suggestions.find(x => x.id === 's9').status = 'dismissed';
+    ev(at(7, 12, 30), 'atraxa', 'dismissed', { suggestionId: 's9' });
+    s.suggestions.find(x => x.id === 's10').status = 'withdrawn';
+    ev(at(7, 11, 20), 'krenko', 'withdrawn', { suggestionId: 's10' });
+    const t = at(8, 13, 30);
+    sug('s1', 'atraxa', 'doubling-season', 'contagion-engine', 'Doubling Season doubles every counter Atraxa puts down. Contagion Engine costs six and does less.', t);
+    sug('s3', 'atraxa', 'smothering-tithe', 'evolution-sage', 'Smothering Tithe makes Treasure whenever an opponent draws. Evolution Sage is the weakest proliferate card here.', t + 1);
+    sug('s2', 'meren', 'grist-the-hunger-tide', 'ruthless-ripper', 'Grist fills the graveyard with Insects for Meren to sacrifice and return. Ruthless Ripper rarely trades well now.', t + 2);
+    sug('s4', 'meren', 'swamp', null, 'Meren is at 99 of 100 cards. Add a Swamp to make the deck 100 cards.', t + 3);
+    sug('s6', 'meren', 'lightning-greaves', 'mind-stone', 'Lightning Greaves protects Meren from removal on the turn she comes down. Mind Stone is the weakest rock here. The copy comes from Krenko, Mob Boss. See the paired suggestion for Krenko.', t + 4, { pairId: 's5' });
+    sug('s5', 'krenko', 'goblin-instigator', 'lightning-greaves', 'Goblin Instigator makes two Goblins for two mana. Cut Lightning Greaves so that Meren of Clan Nel Toth can use it. See the paired suggestion for Meren.', t + 4, { pairId: 's6' });
+    sug('s7', 'krenko', 'thornbite-staff', null, 'Thornbite Staff with Krenko and a sacrifice outlet makes infinite Goblins.', t + 5);
+    sug('s8', 'krenko', 'goblin-matron', 'goblin-lackey', 'Goblin Matron finds Krenko or a combo piece. Goblin Lackey is weak after turn one.', t + 6);
+    s.events.sort((a, b) => a.at - b.at);
+    return s;
+  }
+
+  const clone = s => JSON.parse(JSON.stringify(s));
+  const nextId = (s, p) => p + (++s.seq);
+  const tick = s => { s.clock += 7; return s.clock; };
+  const deckById = (s, id) => s.decks.find(d => d.id === id);
+  const entryById = (s, id) => s.collection.find(e => e.id === id);
+  const card = id => CATALOG[id];
+  const rank = p => PRIORITY_RANK[p];
+
+  function deckCards(s, d) {
+    const out = d.commanders.map(c => ({ cardId: c, qty: 1, commander: true }));
+    for (const r of d.rows) { const e = entryById(s, r.entryId); if (e) out.push({ cardId: e.cardId, qty: r.qty, entryId: r.entryId, rowId: r.id }); }
+    for (const [c, q] of Object.entries(d.basics)) if (q > 0) out.push({ cardId: c, qty: q, basic: true });
+    return out;
+  }
+  const deckHas = (s, d, cardId) => deckCards(s, d).some(x => x.cardId === cardId);
+  const allocatedIn = (s, entryId) => s.decks.flatMap(d => d.rows.filter(r => r.entryId === entryId).map(r => ({ deckId: d.id, qty: r.qty })));
+  const allocatedQty = (s, entryId) => allocatedIn(s, entryId).reduce((a, x) => a + x.qty, 0);
+  const heldSwaps = (s, entryId) => s.plannedSwaps.filter(p => p.status === 'open' && p.heldEntryId === entryId);
+  const freeQty = (s, entryId) => { const e = entryById(s, entryId); return e ? Math.max(0, e.qty - allocatedQty(s, entryId) - heldSwaps(s, entryId).length) : 0; };
+  const copiesOf = (s, cardId) => s.collection.filter(e => e.cardId === cardId).map(e => ({
+    entry: e, free: freeQty(s, e.id), decks: allocatedIn(s, e.id), held: heldSwaps(s, e.id)
+  }));
+
+  function copySummary(s, cardId) {
+    const copies = copiesOf(s, cardId);
+    const sum = f => copies.reduce((a, c) => a + f(c), 0);
+    return {
+      owned: sum(c => c.entry.qty),
+      free: sum(c => c.entry.protected ? 0 : c.free),
+      protectedFree: sum(c => c.entry.protected ? c.free : 0),
+      inDecks: sum(c => c.decks.reduce((a, x) => a + x.qty, 0)),
+      held: sum(c => c.held.length)
+    };
+  }
+
+  function promotionOutcome(s, sugId) {
+    const sug = s.suggestions.find(x => x.id === sugId);
+    const deck = deckById(s, sug.deckId);
+    if (card(sug.in).basic) return { kind: 'basic', sug, deck };
+    const copies = copiesOf(s, sug.in);
+    const free = copies.filter(c => c.free > 0);
+    const unprotected = free.filter(c => !c.entry.protected);
+    const elsewhere = copies.flatMap(c => c.decks.map(a => {
+      const d = deckById(s, a.deckId);
+      return { deck: d, qty: a.qty, entry: c.entry, sameOrHigher: rank(d.priority) >= rank(deck.priority), same: d.id === deck.id };
+    }));
+    const held = copies.flatMap(c => c.held.map(h => ({ swap: h, entry: c.entry, deck: deckById(s, h.deckId) })));
+    const pair = sug.pairId ? s.suggestions.find(x => x.id === sug.pairId) : null;
+    const base = { sug, deck, copies, elsewhere, held, pair };
+    if (free.length) return { ...base, kind: 'planned swap', free, unprotected, protectedOnly: unprotected.length === 0 };
+    return { ...base, kind: 'buylist card', owned: copies.reduce((a, c) => a + c.entry.qty, 0) };
+  }
+
+  function validityOfList(s, list) {
+    const commanders = list.filter(x => x.commander);
+    const size = list.reduce((a, x) => a + x.qty, 0);
+    const colors = new Set(commanders.flatMap(c => card(c.cardId).ci.split('')));
+    if (s.catalogGap && list.some(x => x.cardId === GAP_CARD)) {
+      return { state: 'cannot determine', size, violations: [], reasons: [`${card(GAP_CARD).name} has no catalog record.`] };
+    }
+    const violations = [];
+    if (size !== 100) violations.push({ code: 'deck-size', message: `Deck size: ${size} of 100 cards`, cards: [], hint: size > 100 ? `Remove ${size - 100} card${size - 100 > 1 ? 's' : ''}` : `Add ${100 - size} card${100 - size > 1 ? 's' : ''}`, cite: 'CR 903.5a' });
+    const off = list.filter(x => x.cardId && !x.commander && card(x.cardId).ci.split('').some(c => c && !colors.has(c)));
+    if (off.length) {
+      const extra = [...new Set(off.flatMap(x => card(x.cardId).ci.split('').filter(c => !colors.has(c))))].map(c => COLOR_NAMES[c]);
+      violations.push({ code: 'color-identity', message: `Color identity (${extra.join(', ')})`, cards: off.map(x => x.cardId), cite: 'CR 903.5c' });
+    }
+    const counts = {};
+    for (const x of list) if (x.cardId && !card(x.cardId).basic) counts[x.cardId] = (counts[x.cardId] || 0) + x.qty;
+    const dup = Object.keys(counts).filter(k => counts[k] > 1);
+    if (dup.length) violations.push({ code: 'singleton', message: 'Singleton', cards: dup, cite: 'CR 903.5b' });
+    const banned = list.filter(x => x.cardId && card(x.cardId).banned).map(x => x.cardId);
+    if (banned.length) violations.push({ code: 'banned', message: 'Banned in Commander', cards: banned, cite: 'Commander banned list' });
+    return { state: violations.length ? 'invalid' : 'valid', size, violations, reasons: [] };
+  }
+  const listOf = (s, d) => [...deckCards(s, d), { cardId: null, qty: d.otherCards, other: true }];
+  const validity = (s, deckId) => validityOfList(s, listOf(s, deckById(s, deckId)));
+
+  function hypothetical(s, deckId, addId, removeId) {
+    const list = listOf(s, deckById(s, deckId)).map(x => ({ ...x }));
+    if (removeId) { const r = list.find(x => x.cardId === removeId); if (r) r.qty -= 1; }
+    if (addId) list.push({ cardId: addId, qty: 1 });
+    return list.filter(x => x.qty > 0);
+  }
+  function validityDiff(s, deckId, addId, removeId) {
+    const before = validityOfList(s, listOf(s, deckById(s, deckId)));
+    const after = validityOfList(s, hypothetical(s, deckId, addId, removeId));
+    const codes = v => v.violations.map(x => x.code + ':' + x.message);
+    const b = codes(before), a = codes(after);
+    return { before, after, added: after.violations.filter(x => !b.includes(x.code + ':' + x.message)), resolved: before.violations.filter(x => !a.includes(x.code + ':' + x.message)) };
+  }
+
+  function bracketOfList(list) {
+    const ids = list.filter(x => x.cardId).map(x => x.cardId);
+    const signals = [];
+    const gcs = ids.filter(id => card(id).gc);
+    if (gcs.length === 0) signals.push({ label: '0 Game Changers', source: 'official', min: 2, cards: [] });
+    else if (gcs.length <= 3) signals.push({ label: `${gcs.length} Game Changer${gcs.length > 1 ? 's' : ''}`, source: 'official', min: 3, cards: gcs });
+    else signals.push({ label: `${gcs.length} Game Changers`, source: 'official', min: 4, cards: gcs });
+    for (const c of COMBOS) if (c.cards.every(id => ids.includes(id))) signals.push({ label: `Two-card combo: ${c.name}`, source: 'heuristic', min: 3, cards: c.cards, result: c.result });
+    const mld = ids.filter(id => card(id).tags.includes('mass-land-denial'));
+    if (mld.length) signals.push({ label: 'Mass land denial', source: 'heuristic', min: 4, cards: mld });
+    const et = ids.filter(id => card(id).tags.includes('extra-turn'));
+    if (et.length) signals.push({ label: `${et.length} extra-turn card${et.length > 1 ? 's' : ''}`, source: 'heuristic', min: et.length >= 4 ? 4 : 2, cards: et });
+    const estimate = Math.max(...signals.map(x => x.min));
+    const setting = signals.filter(x => x.min === estimate);
+    const intent = estimate === 2 ? 'Could be Bracket 1 if the deck puts its theme ahead of winning.' : estimate === 4 ? 'Could be Bracket 5 if built for the cEDH metagame.' : null;
+    return { estimate, signals, setting, intent };
+  }
+  const bracket = (s, deckId) => bracketOfList(listOf(s, deckById(s, deckId)));
+
+  function deckChangesOf(s, deckId) { return s.changes.filter(c => c.deckId === deckId); }
+
+  function revertPlan(s, changeId) {
+    const target = s.changes.find(c => c.id === changeId);
+    const deck = deckById(s, target.deckId);
+    const all = deckChangesOf(s, deck.id);
+    const suffix = all.slice(all.indexOf(target));
+    if (target.revertedBy) return { target, deck, suffix: [], undo: [], ok: false, already: true, blockers: [], held: [], ins: [], outs: [] };
+    const net = new Map();
+    const add = (x, n) => {
+      const key = x.entryId || x.cardId;
+      const cur = net.get(key) || { cardId: x.cardId, entryId: x.entryId || null, qty: 0 };
+      cur.qty += n; net.set(key, cur);
+    };
+    for (const c of suffix) { for (const x of c.out) add(x, x.qty); for (const x of c.in) add(x, -x.qty); }
+    const ins = [], outs = [], blockers = [], held = [];
+    for (const x of net.values()) {
+      if (x.qty < 0) outs.push({ ...x, qty: -x.qty });
+      if (x.qty <= 0) continue;
+      ins.push(x);
+      if (card(x.cardId).basic) continue;
+      const e = entryById(s, x.entryId);
+      if (!e) { blockers.push({ cardId: x.cardId, message: `${card(x.cardId).name} is no longer in your collection.` }); continue; }
+      const free = freeQty(s, e.id);
+      if (free >= x.qty) continue;
+      const holds = heldSwaps(s, e.id);
+      if (free + holds.length >= x.qty) { for (const h of holds.slice(0, x.qty - free)) held.push({ swap: h, cardId: x.cardId, deck: deckById(s, h.deckId) }); continue; }
+      const where = allocatedIn(s, e.id).filter(a => a.deckId !== deck.id).map(a => deckById(s, a.deckId));
+      blockers.push({ cardId: x.cardId, message: where.length ? `${card(x.cardId).name} is in ${where.map(d => d.name).join(', ')}. Free it there first.` : `${card(x.cardId).name} has no free copy.` });
+    }
+    const undo = suffix.filter(c => !c.revertedBy);
+    return { target, deck, suffix, undo, ins, outs, blockers, held, ok: blockers.length === 0 && (ins.length + outs.length) > 0, already: false, empty: ins.length + outs.length === 0 };
+  }
+
+  function event(s, deckId, kind, extra = {}) { s.events.push({ id: nextId(s, 'v'), at: s.clock, deckId, kind, ...extra }); }
+
+  function unprotectOne(s, e) {
+    let twin = s.collection.find(x => x.id !== e.id && x.cardId === e.cardId && x.printing === e.printing && x.finish === e.finish && x.language === e.language && x.condition === e.condition && !x.protected);
+    if (!twin) { twin = { ...e, id: nextId(s, 'e'), qty: 0, protected: false }; s.collection.push(twin); }
+    e.qty -= 1; twin.qty += 1;
+    if (e.qty <= 0) s.collection = s.collection.filter(x => x.id !== e.id);
+    return twin;
+  }
+
+  function settle(s, deckId) {
+    const d = deckById(s, deckId);
+    for (const x of s.suggestions) if (x.deckId === deckId && x.status === 'open' && x.out && !deckHas(s, d, x.out)) { x.status = 'stale'; event(s, deckId, 'stale', { suggestionId: x.id }); }
+    for (const p of s.plannedSwaps) if (p.deckId === deckId && p.status === 'open' && p.out && !deckHas(s, d, p.out)) { p.status = 'closed'; p.note = 'outgoing card left the deck'; event(s, deckId, 'closed', { swapId: p.id }); }
+    for (const b of s.buylist) if (b.deckId === deckId && b.status === 'open' && b.out && !deckHas(s, d, b.out)) { b.status = 'closed'; b.note = 'outgoing card left the deck'; event(s, deckId, 'closed', { buylistId: b.id }); }
+  }
+
+  function applyDeckChange(s, deckId, ins, outs, meta) {
+    const d = deckById(s, deckId);
+    const recIn = [], recOut = [];
+    for (const o of outs) {
+      if (card(o.cardId).basic) { d.basics[o.cardId] = Math.max(0, (d.basics[o.cardId] || 0) - o.qty); recOut.push({ cardId: o.cardId, qty: o.qty }); continue; }
+      let left = o.qty;
+      for (const r of d.rows) {
+        if (!left) break;
+        const e = entryById(s, r.entryId);
+        if (o.entryId ? r.entryId !== o.entryId : e.cardId !== o.cardId) continue;
+        const take = Math.min(left, r.qty); r.qty -= take; left -= take;
+        recOut.push({ cardId: o.cardId, entryId: r.entryId, qty: take });
+      }
+      d.rows = d.rows.filter(r => r.qty > 0);
+    }
+    for (const i of ins) {
+      if (card(i.cardId).basic) { d.basics[i.cardId] = (d.basics[i.cardId] || 0) + i.qty; recIn.push({ cardId: i.cardId, qty: i.qty }); continue; }
+      let e = entryById(s, i.entryId);
+      if (e.protected) { e = unprotectOne(s, e); event(s, deckId, 'unprotected', { cardId: i.cardId }); }
+      const row = d.rows.find(r => r.entryId === e.id);
+      if (row) row.qty += i.qty; else d.rows.push({ id: nextId(s, 'r'), entryId: e.id, qty: i.qty });
+      recIn.push({ cardId: i.cardId, entryId: e.id, qty: i.qty });
+    }
+    d.revision += 1;
+    const ch = { id: nextId(s, 'c'), deckId, at: s.clock, in: recIn, out: recOut, reason: meta.reason || null, source: meta.source, revertedBy: null, reverts: meta.reverts || [] };
+    s.changes.push(ch);
+    event(s, deckId, 'deck change', { changeId: ch.id });
+    return ch;
+  }
+
+  function reducer(state, action) {
+    if (action.type === 'reset') return seed();
+    const s = clone(state);
+    const sug = action.id ? s.suggestions.find(x => x.id === action.id) : null;
+    switch (action.type) {
+      case 'promote': {
+        if (!sug || sug.status !== 'open') return state;
+        const o = promotionOutcome(s, sug.id);
+        tick(s);
+        if (o.kind === 'basic') {
+          sug.status = 'promoted';
+          const ch = applyDeckChange(s, sug.deckId, [{ cardId: sug.in, qty: 1 }], sug.out ? [{ cardId: sug.out, qty: 1 }] : [], { reason: sug.reason, source: { kind: 'deck suggestion', id: sug.id } });
+          sug.result = { kind: 'deck change', id: ch.id };
+          settle(s, sug.deckId);
+          return s;
+        }
+        if (o.kind === 'planned swap' && !action.toBuylist) {
+          const e = entryById(s, action.entryId);
+          if (!e || e.cardId !== sug.in || freeQty(s, e.id) < 1) return state;
+          const p = { id: nextId(s, 'p'), deckId: sug.deckId, in: sug.in, heldEntryId: e.id, out: sug.out, reason: sug.reason, suggestionId: sug.id, status: 'open', note: null, createdAt: s.clock, changeId: null, holdsProtected: e.protected };
+          s.plannedSwaps.push(p);
+          sug.status = 'promoted'; sug.result = { kind: 'planned swap', id: p.id };
+          event(s, sug.deckId, 'planned swap', { swapId: p.id, suggestionId: sug.id });
+          return s;
+        }
+        const b = { id: nextId(s, 'b'), deckId: sug.deckId, in: sug.in, out: sug.out, reason: sug.reason, suggestionId: sug.id, status: 'open', note: null, createdAt: s.clock, changeId: null };
+        s.buylist.push(b);
+        sug.status = 'promoted'; sug.result = { kind: 'buylist card', id: b.id };
+        event(s, sug.deckId, 'buylist card', { buylistId: b.id, suggestionId: sug.id });
+        return s;
+      }
+      case 'dismiss': {
+        if (!sug || sug.status !== 'open') return state;
+        tick(s); sug.status = 'dismissed';
+        event(s, sug.deckId, 'dismissed', { suggestionId: sug.id });
+        return s;
+      }
+      case 'swapIn': {
+        const p = s.plannedSwaps.find(x => x.id === action.id);
+        if (!p || p.status !== 'open' || !entryById(s, p.heldEntryId)) return state;
+        tick(s);
+        p.status = 'swapped in';
+        const ch = applyDeckChange(s, p.deckId, [{ cardId: p.in, entryId: p.heldEntryId, qty: 1 }], p.out ? [{ cardId: p.out, qty: 1 }] : [], { reason: p.reason, source: { kind: 'planned swap', id: p.id } });
+        p.changeId = ch.id;
+        settle(s, p.deckId);
+        return s;
+      }
+      case 'bought': {
+        const b = s.buylist.find(x => x.id === action.id);
+        if (!b || b.status !== 'open') return state;
+        const e = entryById(s, action.entryId);
+        if (!e || e.cardId !== b.in || freeQty(s, e.id) < 1) return state;
+        tick(s);
+        b.status = 'bought';
+        const ch = applyDeckChange(s, b.deckId, [{ cardId: b.in, entryId: e.id, qty: 1 }], b.out ? [{ cardId: b.out, qty: 1 }] : [], { reason: b.reason, source: { kind: 'buylist card', id: b.id } });
+        b.changeId = ch.id;
+        settle(s, b.deckId);
+        return s;
+      }
+      case 'simulateScan': {
+        tick(s);
+        const c = card(action.cardId);
+        const printings = SCAN_PRINTINGS[action.cardId] || [[`${c.set} ${c.cn}`, 'nonfoil', 'NM']];
+        for (const [printing, finish, condition] of printings) {
+          const same = s.collection.find(e => e.cardId === action.cardId && e.printing === printing && e.finish === finish && e.condition === condition && !e.protected);
+          if (same) same.qty += 1; else s.collection.push({ id: nextId(s, 'e'), cardId: action.cardId, printing, finish, language: 'English', condition, qty: 1, protected: false });
+        }
+        event(s, action.deckId || null, 'scanned', { cardId: action.cardId, count: printings.length });
+        return s;
+      }
+      case 'revert': {
+        const plan = revertPlan(s, action.changeId);
+        if (!plan.ok) return state;
+        if (plan.held.length && !action.confirmHeld) return state;
+        tick(s);
+        for (const h of plan.held) {
+          const p = s.plannedSwaps.find(x => x.id === h.swap.id);
+          p.status = 'moved to buylist'; p.note = 'held copy used in a revert';
+          const b = { id: nextId(s, 'b'), deckId: p.deckId, in: p.in, out: p.out, reason: p.reason, suggestionId: p.suggestionId, status: 'open', note: null, createdAt: s.clock, changeId: null, fromSwap: p.id };
+          s.buylist.push(b);
+          event(s, p.deckId, 'moved to buylist', { swapId: p.id, buylistId: b.id });
+        }
+        const n = plan.undo.length;
+        const ch = applyDeckChange(s, plan.deck.id, plan.ins.map(x => ({ cardId: x.cardId, entryId: x.entryId, qty: x.qty })), plan.outs.map(x => ({ cardId: x.cardId, entryId: x.entryId, qty: x.qty })), {
+          reason: `Reverted ${n} change${n > 1 ? 's' : ''}, back to before ${fmtAt(plan.target.at)}.`, source: { kind: 'revert', id: plan.target.id }, reverts: plan.undo.map(c => c.id)
+        });
+        for (const u of plan.undo) s.changes.find(c => c.id === u.id).revertedBy = ch.id;
+        settle(s, plan.deck.id);
+        return s;
+      }
+      case 'aiWithdraw': {
+        if (!sug || sug.status !== 'open') return state;
+        tick(s); sug.status = 'withdrawn';
+        event(s, sug.deckId, 'withdrawn', { suggestionId: sug.id });
+        return s;
+      }
+      case 'aiEditReason': {
+        if (!sug || sug.status !== 'open') return state;
+        tick(s);
+        sug.reason = EDITED_REASONS[sug.id] || `${sug.reason.split('. ')[0]}. Updated after the deck's latest changes.`;
+        sug.reasonEdited = true;
+        event(s, sug.deckId, 'reason edited', { suggestionId: sug.id });
+        return s;
+      }
+      case 'aiNewSuggestion': {
+        tick(s);
+        const t = AI_POOL[s.aiPool % AI_POOL.length];
+        s.aiPool += 1;
+        const repeat = s.suggestions.find(x => x.status === 'dismissed' && x.deckId === t.deckId && x.in === t.in && x.out === t.out);
+        const id = nextId(s, 's');
+        s.suggestions.push({ id, deckId: t.deckId, in: t.in, out: t.out, reason: t.reason, status: 'open', client: 'ChatGPT', createdAt: s.clock, pairId: null, reasonEdited: false, result: null, repeatOf: repeat ? repeat.id : null });
+        event(s, t.deckId, 'suggested', { suggestionId: id });
+        const d = deckById(s, t.deckId);
+        if (t.out && !deckHas(s, d, t.out)) { s.suggestions.find(x => x.id === id).status = 'stale'; event(s, t.deckId, 'stale', { suggestionId: id }); }
+        return s;
+      }
+      case 'toggleCatalogGap': { s.catalogGap = !s.catalogGap; return s; }
+      default: return state;
+    }
+  }
+
+  return { CATALOG, PRIORITY_RANK, seed, reducer, fmtAt, fmtDay, card, deckById, entryById, deckCards, deckHas, freeQty, copiesOf, copySummary, allocatedIn, heldSwaps, promotionOutcome, validity, validityDiff, bracket, revertPlan, deckChangesOf, rank };
+})();
+
+
+const D = Domain;
+const VARIANTS = [['A', 'Deck-first'], ['B', 'Review queue'], ['C', 'Timeline']];
+let state = D.seed();
+const params = new URLSearchParams(location.search);
+const startVariant = VARIANTS.some(v => v[0] === params.get('variant')) ? params.get('variant') : 'A';
+const freshUi = () => ({ deckId: 'atraxa', sheet: null, toast: null, A: { showClosed: false }, B: { tab: 'review', filter: 'all', skipped: [], current: null, deckId: 'atraxa' }, C: { filter: 'all', revertFrom: null, highlight: null, toBottom: true } });
+let ui = { variant: startVariant, showState: false, images: true, devOpen: true, devTarget: null, ...freshUi() };
+let toastTimer = null;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const C = id => D.card(id);
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const deckOf = id => D.deckById(state, id);
+const sugOf = id => state.suggestions.find(x => x.id === id);
+const swapOf = id => state.plannedSwaps.find(x => x.id === id);
+const buyOf = id => state.buylist.find(x => x.id === id);
+const changeOf = id => state.changes.find(x => x.id === id);
+
+function thumb(id, cls = '') {
+  const c = C(id);
+  const src = cls.includes('lg') ? c.img.normal : cls.includes('art') ? c.img.art : c.img.small;
+  return ui.images ? `<div class="thumb ${cls}" style="background-image:url('${src}')" title="${esc(c.name)}"></div>` : `<div class="thumb ${cls}">${esc(c.name)}</div>`;
+}
+const priorityChip = p => `<span class="chip ghost">${cap(p)} priority</span>`;
+function validityChip(v) {
+  if (v.state === 'valid') return `<span class="chip ok">Valid</span>`;
+  if (v.state === 'invalid') return `<span class="chip bad">Invalid · ${plural(v.violations.length, 'violation')}</span>`;
+  return `<span class="chip warn">Cannot determine</span>`;
+}
+const bracketChip = b => `<span class="chip info">Estimated bracket ${b.estimate}</span>`;
+const priceText = id => C(id).basic ? 'Basic land' : C(id).price ? `$${C(id).price}` : 'No price';
+const printingText = e => `${e.printing} · ${e.finish} · ${e.condition} · ${e.language}`;
+
+function copiesChip(cardId, deckId) {
+  if (C(cardId).basic) return `<span class="chip ghost">Basic land, not tracked</span>`;
+  const s = D.copySummary(state, cardId);
+  if (s.free > 0) return `<span class="chip ok">${s.free} free</span>`;
+  if (s.protectedFree > 0) return `<span class="chip warn">Protected only</span>`;
+  if (s.owned > 0) return `<span class="chip bad">${s.owned} owned, none free</span>`;
+  return `<span class="chip bad">Not owned</span>`;
+}
+function outcomeText(sugId) {
+  const o = D.promotionOutcome(state, sugId);
+  if (o.kind === 'basic') return 'Promoting adds it to the deck now';
+  if (o.kind === 'planned swap') return o.protectedOnly ? 'Promoting creates a planned swap that holds a protected copy' : 'Promoting creates a planned swap';
+  return 'Promoting creates a buylist card';
+}
+function diffLines(inId, outId, extraIn = '') {
+  let h = `<div class="diff"><div class="line in"><span class="sign">+</span>${thumb(inId, 'sm')}<div class="grow"><div class="name">${esc(C(inId).name)}</div><div class="meta">${esc(C(inId).type)}</div></div>${extraIn}</div>`;
+  if (outId) h += `<div class="line out"><span class="sign">−</span>${thumb(outId, 'sm')}<div class="grow"><div class="name">${esc(C(outId).name)}</div><div class="meta">${esc(C(outId).type)}</div></div></div>`;
+  return h + `</div>`;
+}
+function changeLines(ch) {
+  const lines = [...ch.in.map(x => ['in', x]), ...ch.out.map(x => ['out', x])];
+  if (!lines.length) return `<div class="meta">No cards moved.</div>`;
+  return `<div class="diff">${lines.map(([k, x]) => `<div class="line ${k}"><span class="sign">${k === 'in' ? '+' : '−'}</span>${thumb(x.cardId, 'sm')}<div class="grow"><div class="name">${x.qty > 1 ? x.qty + ' × ' : ''}${esc(C(x.cardId).name)}</div><div class="meta">${C(x.cardId).basic ? 'Basic land' : esc(entryText(x.entryId))}</div></div></div>`).join('')}</div>`;
+}
+function entryText(entryId) { const e = D.entryById(state, entryId); return e ? printingText(e) : 'Copy no longer in collection'; }
+function reasonBlock(text, who, clamp = false) {
+  if (!text) return `<div class="reason dim">No reason. You made this change by hand.</div>`;
+  return `<div class="reason ${clamp ? 'clamp' : ''}"><span class="who">${esc(who)}</span>${esc(text)}</div>`;
+}
+function sugWho(s) { return `${s.client} · ${D.fmtAt(s.createdAt)}${s.reasonEdited ? ' · reason edited' : ''}`; }
+function validityFlags(deckId, inId, outId) {
+  const d = D.validityDiff(state, deckId, inId, outId);
+  let h = '';
+  if (d.after.state === 'cannot determine' || d.before.state === 'cannot determine') return `<div class="flag warn">Validity cannot be determined: ${esc((d.after.reasons || []).join(' '))}</div>`;
+  if (d.added.length) h += `<div class="flag warn"><span>⚑</span><span><b>Would make this deck invalid:</b> ${esc(d.added.map(v => v.message.toLowerCase()).join('; '))}. This does not block the change.</span></div>`;
+  if (d.resolved.length) h += `<div class="flag ok"><span>✓</span><span><b>Fixes:</b> ${esc(d.resolved.map(v => v.message.toLowerCase()).join('; '))}</span></div>`;
+  return h;
+}
+function validityEffectText(deckId, inId, outId) {
+  const d = D.validityDiff(state, deckId, inId, outId);
+  if (d.after.state === d.before.state && !d.added.length && !d.resolved.length) return `${cap(d.after.state)}, no change`;
+  return `${cap(d.before.state)} → ${d.after.state}`;
+}
+function pairFlag(s) {
+  if (!s.pairId) return '';
+  const p = sugOf(s.pairId);
+  return `<div class="flag info"><span>⛓</span><span><b>Paired suggestion</b> for ${esc(deckOf(p.deckId).name)}: ${p.out ? '−' + esc(C(p.out).name) + ', ' : ''}+${esc(C(p.in).name)}. ${p.status === 'open' ? 'Still open.' : cap(p.status) + '.'}</span></div>`;
+}
+function repeatFlag(s) { return s.repeatOf ? `<div class="flag info"><span>↺</span><span>Repeats a suggestion you dismissed. Repeats are allowed.</span></div>` : ''; }
+function swapFlags(p) {
+  let h = validityFlags(p.deckId, p.in, p.out);
+  const e = D.entryById(state, p.heldEntryId);
+  if (e && e.protected) h += `<div class="flag warn"><span>⚠</span><span>Holds a protected copy. Swapping it in unprotects it.</span></div>`;
+  return h;
+}
+function statusChip(st) {
+  const map = { open: 'ok', promoted: 'info', dismissed: 'ghost', withdrawn: 'ghost', stale: 'warn', 'swapped in': 'info', closed: 'ghost', 'moved to buylist': 'warn', bought: 'info' };
+  return `<span class="chip ${map[st] || 'ghost'}">${cap(st)}</span>`;
+}
+function sourceLabel(ch) {
+  const k = ch.source && ch.source.kind;
+  if (k === 'deck suggestion') return 'From a deck suggestion';
+  if (k === 'planned swap') return 'Swapped in from a planned swap';
+  if (k === 'buylist card') return 'Bought from the buylist';
+  if (k === 'revert') return 'Revert';
+  return 'Made by you';
+}
+function deckPanels(deckId, opts = {}) {
+  const v = D.validity(state, deckId), b = D.bracket(state, deckId);
+  let h = `<div class="panel"><div class="ttl"><span>Deck validity</span>${validityChip(v)}</div>`;
+  if (v.state === 'valid') h += `<div class="meta">Meets the current Commander rules.</div>`;
+  if (v.state === 'cannot determine') h += `<ul>${v.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>`;
+  if (v.violations.length) h += `<ul>${v.violations.map(x => `<li><b style="color:#fff">${esc(x.message)}</b>${x.cards.length ? ': ' + esc(x.cards.map(c => C(c).name).join(', ')) : ''}${x.hint ? ` · ${esc(x.hint)}` : ''} <span class="dim">${esc(x.cite)}</span></li>`).join('')}</ul>`;
+  h += `<div class="dim" style="margin-top:4px;font-size:10px">Rules data as of Oct 8, 2026</div></div>`;
+  h += `<div class="panel"><div class="ttl"><span>Estimated bracket</span>${bracketChip(b)}</div><ul>${b.setting.map(sg => `<li>${esc(sg.label)} <span class="dim">(${sg.source})</span>${sg.cards.length && sg.source === 'official' ? ': ' + esc(sg.cards.map(c => C(c).name).join(', ')) : ''}${sg.result ? ' · ' + esc(sg.result) : ''}</li>`).join('')}</ul>${b.intent ? `<div class="meta" style="margin-top:4px">${esc(b.intent)}</div>` : ''}${opts.long ? `<div class="dim" style="margin-top:4px;font-size:10px">Commander Brackets are optional pregame guidance. This is an estimate, not a certified bracket.</div>` : ''}</div>`;
+  return h;
+}
+function statusBar() { return `<div class="statusbar"><span>9:41</span><span class="island"></span><span class="icons">▂▄▆ <span>5G</span> <span class="batt"></span></span></div>`; }
+
+function suggestionsOf(deckId, status = 'open') { return state.suggestions.filter(s => (!deckId || s.deckId === deckId) && (status === 'any' || s.status === status)); }
+
+function renderA() {
+  const d = deckOf(ui.deckId);
+  const v = D.validity(state, d.id), b = D.bracket(state, d.id);
+  const open = suggestionsOf(d.id);
+  const swaps = state.plannedSwaps.filter(p => p.deckId === d.id && p.status === 'open');
+  const buys = state.buylist.filter(x => x.deckId === d.id && x.status === 'open');
+  const cards = D.deckCards(state, d);
+  const outMarks = {};
+  for (const s of open) if (s.out) (outMarks[s.out] ||= []).push('Suggested out');
+  for (const p of swaps) if (p.out) (outMarks[p.out] ||= []).push('Planned out');
+  for (const x of buys) if (x.out) (outMarks[x.out] ||= []).push('Buylist out');
+  let h = `<div class="navtitle"><span class="sub">Decks</span><button class="linkbtn" data-act="openHistory" data-deck="${d.id}">History</button></div>`;
+  h += `<div class="chiprow">${state.decks.map(x => `<button class="chip big ${x.id === d.id ? 'sel' : ''}" data-act="pickDeck" data-deck="${x.id}">${esc(x.short)} · ${cap(x.priority)}${suggestionsOf(x.id).length ? ` · ${suggestionsOf(x.id).length} new` : ''}</button>`).join('')}</div>`;
+  h += `<div class="hdr-deck"><div class="art">${thumb(d.commanders[0], 'art')}</div><div class="grow"><h1>${esc(d.name)}</h1><div class="chips">${priorityChip(d.priority)}${validityChip(v)}${bracketChip(b)}</div></div></div>`;
+  if (v.state !== 'valid') h += deckPanels(d.id);
+  h += `<div class="section"><span>Deck suggestions</span><span class="count">${open.length} open</span></div>`;
+  if (!open.length) h += `<div class="note">No open deck suggestions. Ask ChatGPT for ideas through the MCP connection.</div>`;
+  for (const s of open) {
+    h += `<div class="card" data-sug="${s.id}">${diffLines(s.in, s.out, copiesChip(s.in, d.id))}${reasonBlock(s.reason, sugWho(s), true)}${validityFlags(d.id, s.in, s.out)}${pairFlag(s)}${repeatFlag(s)}<div class="meta" style="margin-top:8px">${esc(outcomeText(s.id))} · ${priceText(s.in)}</div><div class="actions"><button class="btn" data-act="dismiss" data-id="${s.id}">Dismiss</button><button class="btn primary" data-act="openPromote" data-id="${s.id}">Promote</button></div></div>`;
+  }
+  h += `<div class="section"><span>Planned swaps</span><span class="count">${swaps.length}</span></div>`;
+  if (!swaps.length) h += `<div class="note">No planned swaps.</div>`;
+  for (const p of swaps) h += `<div class="card">${diffLines(p.in, p.out)}<div class="meta" style="margin-top:6px">Holds ${esc(entryText(p.heldEntryId))}</div>${reasonBlock(p.reason, 'Reason', true)}${swapFlags(p)}<div class="actions"><button class="btn primary" data-act="swapIn" data-id="${p.id}">Swap in</button></div></div>`;
+  h += `<div class="section"><span>Buylist</span><span class="count">${buys.length}</span></div>`;
+  if (!buys.length) h += `<div class="note">No buylist cards for this deck.</div>`;
+  for (const x of buys) h += `<div class="card">${diffLines(x.in, x.out, `<span class="chip warn">${priceText(x.in)}</span>`)}${reasonBlock(x.reason, 'Reason', true)}${validityFlags(x.deckId, x.in, x.out)}<div class="actions"><button class="btn primary" data-act="openBought" data-id="${x.id}">Bought</button></div></div>`;
+  const size = v.size;
+  h += `<div class="section"><span>Deck list</span><span class="count">${size} cards · revision ${d.revision}</span></div><div class="list">`;
+  for (const x of cards) {
+    const marks = outMarks[x.cardId] || [];
+    const sub = x.commander ? 'Commander' : x.basic ? 'Basic land' : entryText(x.entryId);
+    h += `<div class="item">${thumb(x.cardId, 'sm')}<div class="grow"><div class="name">${esc(C(x.cardId).name)}</div><div class="meta">${esc(sub)}</div></div>${marks.map(m => `<span class="tag-out">− ${m}</span>`).join(' ')}<span class="qty">${x.qty}</span></div>`;
+  }
+  h += `<div class="item"><div class="thumb sm">+</div><div class="grow"><div class="name dim">Other cards</div><div class="meta">Pretend cards, not shown in the prototype</div></div><span class="qty">${d.otherCards}</span></div></div>`;
+  const closedS = state.suggestions.filter(s => s.deckId === d.id && s.status !== 'open');
+  const closedP = state.plannedSwaps.filter(p => p.deckId === d.id && p.status !== 'open');
+  const closedB = state.buylist.filter(p => p.deckId === d.id && p.status !== 'open');
+  h += `<div class="section"><span>Closed and dismissed</span><button class="linkbtn" style="font-size:12px" data-act="toggleClosedA">${ui.A.showClosed ? 'Hide' : `Show ${closedS.length + closedP.length + closedB.length}`}</button></div>`;
+  if (ui.A.showClosed) {
+    for (const s of closedS) h += `<div class="card"><div class="row"><div class="grow"><div class="name">+${esc(C(s.in).name)}${s.out ? ` · −${esc(C(s.out).name)}` : ''}</div><div class="meta">Deck suggestion${s.result ? ' → ' + s.result.kind : ''}</div></div>${statusChip(s.status)}</div>${s.status === 'withdrawn' ? `<div class="meta" style="margin-top:4px">Withdrawn by ChatGPT. Withdrawn is final.</div>` : ''}</div>`;
+    for (const p of closedP) h += `<div class="card"><div class="row"><div class="grow"><div class="name">+${esc(C(p.in).name)}${p.out ? ` · −${esc(C(p.out).name)}` : ''}</div><div class="meta">Planned swap${p.note ? ' · ' + esc(p.note) : ''}</div></div>${statusChip(p.status)}</div></div>`;
+    for (const p of closedB) h += `<div class="card"><div class="row"><div class="grow"><div class="name">+${esc(C(p.in).name)}${p.out ? ` · −${esc(C(p.out).name)}` : ''}</div><div class="meta">Buylist card${p.note ? ' · ' + esc(p.note) : ''}</div></div>${statusChip(p.status)}</div></div>`;
+  }
+  h += `<div style="height:60px"></div>`;
+  return `<div class="scroll" data-scroll="A-${d.id}">${h}</div>`;
+}
+
+function queueB() {
+  const all = state.suggestions.filter(s => s.status === 'open' && (ui.B.filter === 'all' || s.deckId === ui.B.filter)).sort((a, b) => a.createdAt - b.createdAt);
+  const skipped = ui.B.skipped;
+  return [...all.filter(s => !skipped.includes(s.id)), ...skipped.map(id => all.find(s => s.id === id)).filter(Boolean)];
+}
+function renderB() {
+  let body = '', actionBar = '';
+  const t = ui.B.tab;
+  const openCount = state.suggestions.filter(s => s.status === 'open').length;
+  const planCount = state.plannedSwaps.filter(p => p.status === 'open').length + state.buylist.filter(p => p.status === 'open').length;
+  if (t === 'review') {
+    const q = queueB();
+    const cur = q.find(s => s.id === ui.B.current) || q[0];
+    body += `<div class="navtitle"><div><h1>Review</h1><div class="sub">Deck suggestions from ChatGPT, one at a time</div></div></div>`;
+    body += `<div class="chiprow"><button class="chip big ${ui.B.filter === 'all' ? 'sel' : ''}" data-act="filterB" data-deck="all">All decks</button>${state.decks.map(x => `<button class="chip big ${ui.B.filter === x.id ? 'sel' : ''}" data-act="filterB" data-deck="${x.id}">${esc(x.short)} · ${state.suggestions.filter(s => s.status === 'open' && s.deckId === x.id).length}</button>`).join('')}</div>`;
+    if (!cur) body += `<div class="empty">Nothing to review.<br><span class="dim">New deck suggestions appear here when ChatGPT makes them.</span></div>`;
+    else {
+      const idx = q.indexOf(cur);
+      body += `<div class="progress">${q.map((s, i) => `<span class="${i < idx ? 'done' : i === idx ? 'cur' : ''}"></span>`).join('')}</div>`;
+      const d = deckOf(cur.deckId), cs = D.copySummary(state, cur.in), b = D.bracket(state, d.id), o = D.promotionOutcome(state, cur.id);
+      const copiesV = C(cur.in).basic ? 'Basic land, not tracked' : cs.free ? `${cs.free} free${cs.protectedFree ? `, ${cs.protectedFree} protected` : ''}` : cs.protectedFree ? `${cs.protectedFree} protected, none free` : cs.owned ? `${cs.owned} owned, all in decks` : 'Not owned';
+      body += `<div class="qcard" data-sug="${cur.id}"><div class="deckline"><span class="name">${esc(d.name)}</span>${priorityChip(d.priority)}</div>`;
+      body += `<div class="imgs">${thumb(cur.in, 'lg')}${cur.out ? `<div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span class="arrow">replaces</span><div style="opacity:.7">${thumb(cur.out)}</div><span class="meta" style="max-width:70px;text-align:center">${esc(C(cur.out).name)}</span></div>` : ''}</div>`;
+      body += `<div style="font-size:18px;font-weight:800">Add ${esc(C(cur.in).name)}</div><div class="meta">${cur.out ? `Replaces ${esc(C(cur.out).name)}` : 'No outgoing card'}</div>`;
+      body += reasonBlock(cur.reason, sugWho(cur));
+      body += `<div class="facts"><div class="fact"><div class="k">Copies</div><div class="v">${esc(copiesV)}</div></div><div class="fact"><div class="k">Price</div><div class="v">${priceText(cur.in)}</div></div><div class="fact"><div class="k">Deck validity</div><div class="v">${esc(validityEffectText(d.id, cur.in, cur.out))}</div></div><div class="fact"><div class="k">Estimated bracket</div><div class="v">${b.estimate} now</div></div><div class="fact" style="grid-column:span 2"><div class="k">Promote</div><div class="v">${esc(outcomeText(cur.id))}</div></div></div>`;
+      if (o.kind === 'buylist card' && o.elsewhere.length) body += `<div class="flag info"><span>ⓘ</span><span>${o.elsewhere.map(x => `${x.qty} in ${esc(x.deck.name)} (${x.deck.priority} priority)`).join(', ')}.</span></div>`;
+      body += validityFlags(d.id, cur.in, cur.out) + pairFlag(cur) + repeatFlag(cur);
+      body += `</div>`;
+      actionBar = `<div class="qactions" style="flex:none;border-top:1px solid #192024"><button class="btn" data-act="dismiss" data-id="${cur.id}">Dismiss</button><button class="btn" data-act="skipB" data-id="${cur.id}">Skip</button><button class="btn primary" data-act="openPromote" data-id="${cur.id}">Promote</button></div>`;
+      body += `<div class="note" style="text-align:center">${idx + 1} of ${q.length}. Estimated bracket changes show after a deck change, not in previews.</div>`;
+    }
+    const decided = state.suggestions.filter(s => s.status !== 'open' && (ui.B.filter === 'all' || s.deckId === ui.B.filter)).slice(-6).reverse();
+    body += `<div class="section"><span>Recently decided</span></div><div class="list">${decided.map(s => `<div class="item">${thumb(s.in, 'sm')}<div class="grow"><div class="name">${esc(C(s.in).name)}</div><div class="meta">${esc(deckOf(s.deckId).short)}${s.result ? ' · ' + s.result.kind : ''}</div></div>${statusChip(s.status)}</div>`).join('')}</div><div style="height:20px"></div>`;
+  } else if (t === 'planned') {
+    body += `<div class="navtitle"><div><h1>Planned</h1><div class="sub">Planned swaps and the buylist, across decks</div></div></div>`;
+    const swaps = state.plannedSwaps.filter(p => p.status === 'open');
+    const buys = state.buylist.filter(p => p.status === 'open');
+    body += `<div class="section"><span>Ready to swap in</span><span class="count">${swaps.length}</span></div>`;
+    if (!swaps.length) body += `<div class="note">No planned swaps.</div>`;
+    body += `<div class="list">${swaps.map(p => `<div class="item" style="align-items:flex-start">${thumb(p.in)}<div class="grow"><div class="name">${esc(C(p.in).name)}</div><div class="meta">${esc(deckOf(p.deckId).short)}${p.out ? ` · replaces ${esc(C(p.out).name)}` : ''}</div><div class="meta dim">Holds ${esc(entryText(p.heldEntryId))}</div>${swapFlags(p)}</div><button class="btn primary small" data-act="swapIn" data-id="${p.id}">Swap in</button></div>`).join('')}</div>`;
+    body += `<div class="section"><span>Buylist</span><span class="count">${buys.length} · $${buys.reduce((a, x) => a + Number(C(x.in).price || 0), 0).toFixed(2)}</span></div>`;
+    if (!buys.length) body += `<div class="note">The buylist is empty.</div>`;
+    body += `<div class="list">${buys.map(x => `<div class="item" style="align-items:flex-start">${thumb(x.in)}<div class="grow"><div class="name">${esc(C(x.in).name)}</div><div class="meta">${esc(deckOf(x.deckId).short)}${x.out ? ` · replaces ${esc(C(x.out).name)}` : ''} · ${priceText(x.in)}</div>${validityFlags(x.deckId, x.in, x.out)}</div><button class="btn small" data-act="openBought" data-id="${x.id}">Bought</button></div>`).join('')}</div>`;
+    const closed = [...state.plannedSwaps.filter(p => p.status !== 'open').map(p => ['Planned swap', p]), ...state.buylist.filter(p => p.status !== 'open').map(p => ['Buylist card', p])];
+    body += `<div class="section"><span>Done and closed</span></div>${closed.length ? '' : '<div class="note">Nothing done or closed yet.</div>'}<div class="list">${closed.map(([k, p]) => `<div class="item">${thumb(p.in, 'sm')}<div class="grow"><div class="name">${esc(C(p.in).name)}</div><div class="meta">${k} · ${esc(deckOf(p.deckId).short)}${p.note ? ' · ' + esc(p.note) : ''}</div></div>${statusChip(p.status)}</div>`).join('')}</div><div style="height:20px"></div>`;
+  } else {
+    const d = deckOf(ui.B.deckId);
+    body += `<div class="navtitle"><div><h1>History</h1><div class="sub">Deck change history</div></div></div>`;
+    body += `<div class="segment">${state.decks.map(x => `<button class="${x.id === d.id ? 'sel' : ''}" data-act="historyDeckB" data-deck="${x.id}">${esc(x.short)}</button>`).join('')}</div>`;
+    body += deckPanels(d.id, { long: true });
+    body += `<div class="section"><span>Deck changes</span><span class="count">${D.deckChangesOf(state, d.id).length}</span></div>`;
+    body += historyList(d.id);
+  }
+  const tab = (k, ic, label, badge) => `<button class="${t === k ? 'sel' : ''}" data-act="tabB" data-tab="${k}"><span class="ic">${ic}</span><span>${label}${badge ? `<span class="badge">${badge}</span>` : ''}</span></button>`;
+  return `<div class="scroll" data-scroll="B-${t}">${body}</div>${actionBar}<div class="tabbar">${tab('review', '✦', 'Review', openCount)}${tab('planned', '⇄', 'Planned', planCount)}${tab('history', '◷', 'History', 0)}</div>`;
+}
+
+function historyList(deckId) {
+  const list = D.deckChangesOf(state, deckId).slice().reverse();
+  return list.map(ch => {
+    const rb = ch.revertedBy ? changeOf(ch.revertedBy) : null;
+    return `<div class="card ${rb ? 'reverted' : ''}"><div class="row"><div class="grow"><div class="name">${esc(sourceLabel(ch))}</div><div class="meta">${D.fmtAt(ch.at)}</div></div>${rb ? `<span class="chip ghost">Reverted</span>` : ''}</div><div style="margin-top:6px">${changeLines(ch)}</div>${reasonBlock(ch.reason, 'Reason', true)}${rb ? `<div class="meta" style="margin-top:6px">Reverted on ${D.fmtAt(rb.at)}</div>` : `<div class="actions"><button class="btn small" data-act="openRevert" data-change="${ch.id}">Revert from here</button></div>`}</div>`;
+  }).join('') || `<div class="note">No deck changes yet.</div>`;
+}
+
+const EV_ICON = { suggested: ['ai', '✦'], 'reason edited': ['ai', '✎'], withdrawn: ['ai', '⤺'], dismissed: ['muted', '×'], stale: ['muted', '◌'], 'planned swap': ['swap', '⇄'], 'buylist card': ['buy', '$'], 'deck change': ['change', 'Δ'], closed: ['muted', '–'], 'moved to buylist': ['buy', '$'], scanned: ['muted', '▣'], unprotected: ['muted', '🔓'] };
+function eventNeedsYou(e) {
+  if (e.kind === 'suggested') return sugOf(e.suggestionId).status === 'open';
+  if (e.kind === 'planned swap') return swapOf(e.swapId).status === 'open';
+  if (e.kind === 'buylist card') return buyOf(e.buylistId).status === 'open';
+  if (e.kind === 'moved to buylist') return buyOf(e.buylistId).status === 'open';
+  return false;
+}
+function renderEvent(e, revertSet) {
+  const [cls, ic] = EV_ICON[e.kind] || ['muted', '•'];
+  let inner = '', quiet = false, extraCls = '';
+  if (e.kind === 'suggested') {
+    const s = sugOf(e.suggestionId);
+    if (ui.C.highlight === s.id) extraCls = 'hl';
+    inner = `<div class="what">ChatGPT suggested a deck change</div>${diffLines(s.in, s.out, copiesChip(s.in, s.deckId))}${reasonBlock(s.reason, sugWho(s), s.status !== 'open')}`;
+    if (s.status === 'open') inner += `${validityFlags(s.deckId, s.in, s.out)}${pairFlag(s)}${repeatFlag(s)}<div class="meta" style="margin-top:6px">${esc(outcomeText(s.id))} · ${priceText(s.in)}</div><div class="actions"><button class="btn small" data-act="dismiss" data-id="${s.id}">Dismiss</button><button class="btn primary small" data-act="openPromote" data-id="${s.id}">Promote</button></div>`;
+    else inner += `<div class="chips" style="margin-top:6px">${statusChip(s.status)}${s.result ? `<span class="chip ghost">→ ${s.result.kind}</span>` : ''}</div>`;
+  } else if (e.kind === 'reason edited') { quiet = true; inner = `<div class="what">ChatGPT edited the reason for ${esc(C(sugOf(e.suggestionId).in).name)}</div><div class="meta">The new reason replaces the old one.</div>`; }
+  else if (e.kind === 'withdrawn') { quiet = true; inner = `<div class="what">ChatGPT withdrew the suggestion for ${esc(C(sugOf(e.suggestionId).in).name)}</div><div class="meta">Withdrawn is final.</div>`; }
+  else if (e.kind === 'dismissed') { quiet = true; inner = `<div class="what">You dismissed ${esc(C(sugOf(e.suggestionId).in).name)}</div>`; }
+  else if (e.kind === 'stale') { quiet = true; const s = sugOf(e.suggestionId); inner = `<div class="what">Suggestion for ${esc(C(s.in).name)} is stale</div><div class="meta">${s.out ? esc(C(s.out).name) + ' left the deck.' : ''}</div>`; }
+  else if (e.kind === 'planned swap') {
+    const p = swapOf(e.swapId);
+    inner = `<div class="what">You created a planned swap</div>${diffLines(p.in, p.out)}<div class="meta" style="margin-top:6px">Holds ${esc(entryText(p.heldEntryId))}</div>`;
+    inner += p.status === 'open' ? `${swapFlags(p)}<div class="actions"><button class="btn primary small" data-act="swapIn" data-id="${p.id}">Swap in</button></div>` : `<div class="chips" style="margin-top:6px">${statusChip(p.status)}${p.note ? `<span class="chip ghost">${esc(p.note)}</span>` : ''}</div>`;
+  } else if (e.kind === 'buylist card' || e.kind === 'moved to buylist') {
+    const x = buyOf(e.buylistId);
+    inner = `<div class="what">${e.kind === 'moved to buylist' ? 'A planned swap moved to the buylist' : 'You added a buylist card'}</div>${diffLines(x.in, x.out, `<span class="chip warn">${priceText(x.in)}</span>`)}`;
+    if (e.kind === 'moved to buylist') inner += `<div class="meta" style="margin-top:6px">Its held copy was used in a revert.</div>`;
+    inner += x.status === 'open' ? `${validityFlags(x.deckId, x.in, x.out)}<div class="actions"><button class="btn primary small" data-act="openBought" data-id="${x.id}">Bought</button></div>` : `<div class="chips" style="margin-top:6px">${statusChip(x.status)}${x.note ? `<span class="chip ghost">${esc(x.note)}</span>` : ''}</div>`;
+  } else if (e.kind === 'deck change') {
+    const ch = changeOf(e.changeId);
+    const rb = ch.revertedBy ? changeOf(ch.revertedBy) : null;
+    if (revertSet && revertSet.has(ch.id)) extraCls = 'in-revert';
+    if (rb) extraCls += ' reverted';
+    inner = `<div class="what">Deck change · ${esc(sourceLabel(ch))}</div>${changeLines(ch)}${reasonBlock(ch.reason, 'Reason', true)}`;
+    inner += rb ? `<div class="meta" style="margin-top:6px">Reverted on ${D.fmtAt(rb.at)}</div>` : ui.C.revertFrom ? '' : `<div class="actions"><button class="btn small danger" data-act="revertFromC" data-change="${ch.id}">Revert from here</button></div>`;
+  } else if (e.kind === 'closed') { quiet = true; const p = e.swapId ? swapOf(e.swapId) : buyOf(e.buylistId); inner = `<div class="what">${e.swapId ? 'Planned swap' : 'Buylist card'} for ${esc(C(p.in).name)} closed</div><div class="meta">Outgoing card left the deck.</div>`; }
+  else if (e.kind === 'scanned') { quiet = true; inner = `<div class="what">You scanned ${plural(e.count, 'copy').replace('copys', 'copies')} of ${esc(C(e.cardId).name)}</div><div class="meta">Added to your collection.</div>`; }
+  else if (e.kind === 'unprotected') { quiet = true; inner = `<div class="what">1 protected copy of ${esc(C(e.cardId).name)} was unprotected</div>`; }
+  return `<div class="ev ${extraCls}" data-ev="${e.id}"${e.suggestionId ? ` data-sug="${e.suggestionId}"` : ''}><div class="dot ${cls}">${ic}</div><div class="bubble ${quiet ? 'quiet' : ''}"><div class="when">${D.fmtAt(e.at)}</div>${inner}</div></div>`;
+}
+function renderC() {
+  const d = deckOf(ui.deckId);
+  const v = D.validity(state, d.id), b = D.bracket(state, d.id);
+  let events = state.events.filter(e => e.deckId === d.id);
+  if (ui.C.filter === 'open') events = events.filter(eventNeedsYou);
+  if (ui.C.filter === 'changes') events = events.filter(e => e.kind === 'deck change');
+  let revertSet = null, plan = null;
+  if (ui.C.revertFrom) { plan = D.revertPlan(state, ui.C.revertFrom); revertSet = new Set(plan.suffix.map(c => c.id)); }
+  let h = `<div style="display:flex;gap:8px;padding:4px 16px 8px;align-items:center">${state.decks.map(x => `<button data-act="pickDeckC" data-deck="${x.id}" style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;opacity:${x.id === d.id ? 1 : .55}"><div style="width:46px;height:46px;border-radius:23px;overflow:hidden;box-shadow:0 0 0 2px ${x.id === d.id ? 'var(--accent)' : 'transparent'}">${thumb(x.commanders[0], 'art')}</div><span style="font-size:11px;font-weight:700">${esc(x.short)}${suggestionsOf(x.id).length ? ` <span class="badge" style="background:var(--accent);color:var(--on-accent);border-radius:7px;padding:0 4px">${suggestionsOf(x.id).length}</span>` : ''}</span></button>`).join('')}</div>`;
+  h += `<div style="padding:0 16px 8px"><div style="font-size:20px;font-weight:800">${esc(d.name)}</div><div class="chips" style="margin-top:4px">${priorityChip(d.priority)}<button data-act="openDeckInfo" data-deck="${d.id}">${validityChip(v)}</button><button data-act="openDeckInfo" data-deck="${d.id}">${bracketChip(b)}</button></div></div>`;
+  h += `<div class="segment"><button class="${ui.C.filter === 'all' ? 'sel' : ''}" data-act="filterC" data-f="all">Everything</button><button class="${ui.C.filter === 'open' ? 'sel' : ''}" data-act="filterC" data-f="open">Needs you · ${state.events.filter(e => e.deckId === d.id).filter(eventNeedsYou).length}</button><button class="${ui.C.filter === 'changes' ? 'sel' : ''}" data-act="filterC" data-f="changes">Deck changes</button></div>`;
+  let feed = '', lastDay = '';
+  for (const e of events) {
+    const day = D.fmtDay(e.at);
+    if (day !== lastDay) { feed += `<div class="daysep">${day}</div>`; lastDay = day; }
+    feed += renderEvent(e, revertSet);
+  }
+  if (!events.length) feed = `<div class="empty">Nothing here.</div>`;
+  const header = `<div style="flex:none">${h}</div>`;
+  let bar = '';
+  if (plan) {
+    bar = `<div class="revertbar"><div class="row"><div class="grow"><div class="name">Revert ${plural(plan.undo.length, 'change')}</div><div class="meta">Undoes the dashed changes as one new deck change.</div></div></div>`;
+    if (plan.ins.length || plan.outs.length) bar += `<div class="chips" style="margin-top:6px">${plan.ins.map(x => `<span class="chip ok">+${x.qty > 1 ? x.qty + ' ' : ''}${esc(C(x.cardId).name)}</span>`).join('')}${plan.outs.map(x => `<span class="chip bad">−${x.qty > 1 ? x.qty + ' ' : ''}${esc(C(x.cardId).name)}</span>`).join('')}</div>`;
+    bar += revertFlags(plan);
+    bar += `<div class="actions"><button class="btn" data-act="cancelRevertC">Cancel</button><button class="btn ${plan.held.length ? 'danger' : 'primary'}" data-act="confirmRevert" data-change="${plan.target.id}" ${plan.ok ? '' : 'disabled'}>${plan.ok ? (plan.held.length ? 'Continue and revert' : 'Revert') : 'Revert unavailable'}</button></div></div>`;
+  }
+  return `${header}<div class="scroll" data-scroll="C-${d.id}-${ui.C.filter}" data-bottom="1"><div class="feed">${feed}</div><div style="height:30px"></div></div>${bar}`;
+}
+function revertFlags(plan) {
+  let h = '';
+  for (const b of plan.blockers) h += `<div class="flag bad"><span>⛔</span><span><b>Blocked:</b> ${esc(b.message)} A revert needs every copy to be owned and free.</span></div>`;
+  for (const x of plan.held) h += `<div class="flag warn"><span>⚠</span><span>This copy of ${esc(C(x.cardId).name)} is held by the planned swap for ${esc(x.deck.name)}. Continue and move that swap to the buylist?</span></div>`;
+  if (plan.ok) {
+    const next = D.reducer(state, { type: 'revert', changeId: plan.target.id, confirmHeld: true });
+    const before = D.validity(state, plan.deck.id), after = D.validity(next, plan.deck.id);
+    if (after.state !== before.state || after.violations.length !== before.violations.length) h += `<div class="flag ${after.state === 'valid' ? 'ok' : 'warn'}"><span>⚑</span><span>Deck validity after the revert: ${after.state}${after.violations.length ? ' (' + esc(after.violations.map(v => v.message.toLowerCase()).join('; ')) + ')' : ''}. This does not block the revert.</span></div>`;
+  }
+  return h;
+}
+
+function sheetFrame(title, body, foot, left = '') {
+  return `<div class="sheet-scrim" data-act="closeSheet"></div><div class="sheet" role="dialog" aria-label="${esc(title)}"><div class="grab"></div><div class="head"><div class="side">${left}</div><h2>${esc(title)}</h2><div class="side" style="text-align:right"><button class="linkbtn" data-act="closeSheet">Done</button></div></div><div class="body" data-scroll="sheet">${body}</div>${foot ? `<div class="foot">${foot}</div>` : ''}</div>`;
+}
+function promoteSheet(sh) {
+  const o = D.promotionOutcome(state, sh.id);
+  const s = o.sug, d = o.deck;
+  if (s.status !== 'open') return sheetFrame('Promote deck suggestion', `<div class="empty">This deck suggestion is ${s.status} now.</div>`, '');
+  let body = `<div class="card"><div class="meta" style="margin-bottom:6px">${esc(d.name)} · ${cap(d.priority)} priority</div>${diffLines(s.in, s.out)}${reasonBlock(s.reason, sugWho(s))}${validityFlags(d.id, s.in, s.out)}</div>`;
+  let foot = '';
+  if (o.kind === 'basic') {
+    body += `<div class="flag info" style="margin:8px 12px"><span>ⓘ</span><span>Basic lands are not tracked, so there is no copy to hold. Promoting adds 1 ${esc(C(s.in).name)} to ${esc(d.name)} now as a deck change. You can revert it from the deck change history.</span></div>`;
+    foot = `<button class="btn primary" data-act="promote" data-id="${s.id}">Add ${esc(C(s.in).name)} to deck</button>`;
+  } else if (o.kind === 'planned swap') {
+    const sel = sh.entryId || (o.unprotected[0] || o.free[0]).entry.id;
+    const selE = D.entryById(state, sel);
+    body += `<div class="section"><span>Choose the copy to hold</span></div>`;
+    for (const c of o.free) body += `<button class="option ${c.entry.id === sel ? 'sel' : ''}" data-act="pickEntry" data-entry="${c.entry.id}"><span class="radio"></span>${thumb(s.in, 'sm')}<span class="grow"><span class="name" style="display:block">${esc(c.entry.printing)} · ${esc(c.entry.finish)}</span><span class="meta">${esc(c.entry.condition)} · ${esc(c.entry.language)} · ${c.free} free of ${c.entry.qty}</span></span>${c.entry.protected ? `<span class="chip warn">Protected copy</span>` : ''}</button>`;
+    const notFree = o.copies.filter(c => c.free === 0);
+    if (notFree.length) {
+      body += `<div class="section"><span>Not free</span></div>`;
+      for (const c of notFree) body += `<button class="option" disabled><span class="radio"></span>${thumb(s.in, 'sm')}<span class="grow"><span class="name" style="display:block">${esc(c.entry.printing)} · ${esc(c.entry.finish)}</span><span class="meta">${[...c.decks.map(a => `In ${deckOf(a.deckId).name} (${deckOf(a.deckId).priority})`), ...c.held.map(p => `Held for ${deckOf(p.deckId).name}`)].map(esc).join(' · ')}</span></span></button>`;
+    }
+    if (o.protectedOnly) body += `<div class="flag warn" style="margin:8px 12px"><span>⚠</span><span><b>The only free copies are protected.</b> Deck suggestions never use protected copies, so the planned swap holds a protected copy at your request. Swapping it in unprotects it.</span></div>`;
+    else if (selE.protected) body += `<div class="flag warn" style="margin:8px 12px"><span>⚠</span><span>This is a protected copy. Swapping it in unprotects it.</span></div>`;
+    body += `<div class="note">A planned swap holds the chosen copy, so it stops being a free copy. Swap-in is then one tap.</div>`;
+    foot = `<button class="btn primary" data-act="promote" data-id="${s.id}" data-entry="${sel}">${selE.protected ? 'Create planned swap with protected copy' : 'Create planned swap'}</button>`;
+  } else {
+    if (!o.owned) body += `<div class="flag info" style="margin:8px 12px"><span>ⓘ</span><span>You do not own ${esc(C(s.in).name)}. Promoting creates a buylist card for ${esc(d.name)}. Price ${priceText(s.in)}, TCGplayer Market via Scryfall.</span></div>`;
+    else {
+      body += `<div class="section"><span>No free copy</span></div>`;
+      for (const x of o.elsewhere) body += `<div class="option" style="cursor:default">${thumb(s.in, 'sm')}<span class="grow"><span class="name" style="display:block">${esc(x.entry.printing)} · ${esc(x.entry.finish)}</span><span class="meta">In ${esc(x.deck.name)} · ${cap(x.deck.priority)} priority</span></span>${x.sameOrHigher ? `<span class="chip ghost">Stays put</span>` : `<span class="chip info">Can be freed</span>`}</div>`;
+      for (const x of o.held) body += `<div class="option" style="cursor:default">${thumb(s.in, 'sm')}<span class="grow"><span class="name" style="display:block">${esc(x.entry.printing)}</span><span class="meta">Held by the planned swap for ${esc(x.deck.name)}</span></span></div>`;
+      if (o.elsewhere.some(x => x.sameOrHigher)) body += `<div class="flag info" style="margin:8px 12px"><span>ⓘ</span><span>Deck priority: the AI never frees a card from a deck whose priority is equal to or higher than ${esc(d.name)} (${d.priority}). You can still free a copy yourself with a deck change in that deck.</span></div>`;
+      if (o.pair) {
+        const pp = o.pair;
+        const ps = pp.result && pp.result.kind === 'planned swap' ? swapOf(pp.result.id) : null;
+        const tip = pp.status === 'open' ? `Promote it and swap it in first. Then promote this suggestion to hold the freed copy.` : ps && ps.status === 'open' ? `Its planned swap is waiting. Swap it in first to free the copy.` : `The paired suggestion is ${pp.status}.`;
+        body += `<div class="flag info" style="margin:8px 12px"><span>⛓</span><span><b>Paired suggestion.</b> The suggestion for ${esc(deckOf(pp.deckId).name)} (${deckOf(pp.deckId).priority} priority) frees this copy. ${tip}</span></div>`;
+      }
+      body += `<div class="note">Without a free copy, promoting creates a buylist card. Copies never move directly between decks.</div>`;
+    }
+    foot = `${o.pair && o.pair.deckId ? `<button class="btn" data-act="openPair" data-id="${o.pair.id}">Open paired suggestion</button>` : ''}<button class="btn primary" data-act="promote" data-id="${s.id}" data-buylist="1">${o.owned ? 'Add to buylist anyway' : 'Add to buylist'}</button>`;
+  }
+  return sheetFrame('Promote deck suggestion', body, foot);
+}
+function boughtSheet(sh) {
+  const x = buyOf(sh.id), d = deckOf(x.deckId);
+  if (x.status !== 'open') return sheetFrame('Bought', `<div class="empty">This buylist card is ${x.status}.</div>`, '');
+  const free = D.copiesOf(state, x.in).filter(c => c.free > 0);
+  let body = `<div class="card"><div class="meta" style="margin-bottom:6px">${esc(d.name)}</div>${diffLines(x.in, x.out)}${reasonBlock(x.reason, 'Reason')}${validityFlags(d.id, x.in, x.out)}</div>`;
+  let foot = '';
+  if (!free.length) {
+    body += `<div class="empty">No copies found. Scan copies into your collection first.</div><div style="padding:0 16px"><button class="btn" style="width:100%;border:1px dashed #ffb300;color:#ffb300" data-act="simScan" data-card="${x.in}" data-deck="${x.deckId}">Prototype: simulate scanning copies</button></div>`;
+  } else {
+    const sel = sh.entryId || free[0].entry.id;
+    const selE = D.entryById(state, sel);
+    body += `<div class="section"><span>Choose the copy that goes into the deck</span></div>`;
+    for (const c of free) body += `<button class="option ${c.entry.id === sel ? 'sel' : ''}" data-act="pickEntry" data-entry="${c.entry.id}"><span class="radio"></span>${thumb(x.in, 'sm')}<span class="grow"><span class="name" style="display:block">${esc(c.entry.printing)} · ${esc(c.entry.finish)}</span><span class="meta">${esc(c.entry.condition)} · ${esc(c.entry.language)} · ${c.free} free</span></span>${c.entry.protected ? `<span class="chip warn">Protected copy</span>` : ''}</button>`;
+    if (selE.protected) body += `<div class="flag warn" style="margin:8px 12px"><span>⚠</span><span>This is a protected copy. Putting it into the deck unprotects it.</span></div>`;
+    body += `<div class="note">The chosen copy goes into ${esc(d.name)} in one deck change, and the buylist card closes.</div>`;
+    foot = `<button class="btn primary" data-act="bought" data-id="${x.id}" data-entry="${sel}">Put into deck</button>`;
+  }
+  return sheetFrame('Bought', body, foot);
+}
+function swapInSheet(sh) {
+  const p = swapOf(sh.id);
+  const body = `<div class="card">${diffLines(p.in, p.out)}<div class="meta" style="margin-top:6px">Holds ${esc(entryText(p.heldEntryId))}</div></div><div class="flag warn" style="margin:8px 12px"><span>⚠</span><span>This planned swap holds a protected copy. Swapping it in puts it into ${esc(deckOf(p.deckId).name)} and unprotects it.</span></div>`;
+  return sheetFrame('Swap in', body, `<button class="btn primary" data-act="swapInConfirm" data-id="${p.id}">Unprotect and swap in</button>`);
+}
+function historySheet(sh) {
+  const d = deckOf(sh.deckId);
+  return sheetFrame('Deck change history', `<div class="note">${esc(d.name)}. Reverting a change undoes it and every later change in this deck as one new change.</div>${historyList(d.id)}`, '');
+}
+function revertSheet(sh) {
+  const plan = D.revertPlan(state, sh.changeId);
+  const back = sh.back ? `<button class="linkbtn" data-act="backSheet">‹ Back</button>` : '';
+  if (plan.already) return sheetFrame('Revert from here', `<div class="empty">This change is already reverted.</div>`, '', back);
+  let body = `<div class="note">Undoes this change and ${plural(plan.undo.length - 1, 'later change')} in ${esc(plan.deck.name)} as one new deck change. Undone changes stay visible, marked as reverted.</div>`;
+  body += `<div class="section"><span>Changes to undo</span></div>`;
+  for (const c of plan.undo.slice().reverse()) body += `<div class="card"><div class="row"><div class="grow"><div class="name">${esc(sourceLabel(c))}</div><div class="meta">${D.fmtAt(c.at)}</div></div></div><div style="margin-top:6px">${changeLines(c)}</div></div>`;
+  body += `<div class="section"><span>Result</span></div><div class="card">${plan.ins.length || plan.outs.length ? `<div class="diff">${plan.ins.map(x => `<div class="line in"><span class="sign">+</span>${thumb(x.cardId, 'sm')}<div class="grow"><div class="name">${esc(C(x.cardId).name)}</div></div></div>`).join('')}${plan.outs.map(x => `<div class="line out"><span class="sign">−</span>${thumb(x.cardId, 'sm')}<div class="grow"><div class="name">${esc(C(x.cardId).name)}</div></div></div>`).join('')}</div>` : '<div class="meta">No net card movement.</div>'}${revertFlags(plan)}</div>`;
+  const foot = `<button class="btn ${plan.held.length ? 'danger' : 'primary'}" data-act="confirmRevert" data-change="${plan.target.id}" ${plan.ok ? '' : 'disabled'}>${plan.ok ? (plan.held.length ? 'Continue and revert' : `Revert ${plural(plan.undo.length, 'change')}`) : 'Revert unavailable'}</button>`;
+  return sheetFrame('Revert from here', body, foot, back);
+}
+function deckInfoSheet(sh) { return sheetFrame(deckOf(sh.deckId).short, deckPanels(sh.deckId, { long: true }), ''); }
+function renderSheet() {
+  const sh = ui.sheet;
+  if (!sh) return '';
+  return ({ promote: promoteSheet, bought: boughtSheet, swapIn: swapInSheet, history: historySheet, revert: revertSheet, deckInfo: deckInfoSheet })[sh.type](sh);
+}
+
+function renderDev() {
+  const open = state.suggestions.filter(s => s.status === 'open');
+  if (!open.some(s => s.id === ui.devTarget)) ui.devTarget = open[0] ? open[0].id : null;
+  return `<div class="dh"><span>PROTOTYPE · dev menu</span><button data-act="toggleDev" style="background:none;border:0;padding:0 4px;font-weight:900">${ui.devOpen ? '−' : '+'}</button></div><div class="db ${ui.devOpen ? '' : 'hidden'}">
+  <div>Throwaway Wayfinder prototype for #18. Fake data, no persistence.</div>
+  <div class="btns"><button data-act="reset">Reset data</button><button data-act="toggleState">${ui.showState ? 'Hide state' : 'State'}</button><button data-act="toggleImages">${ui.images ? 'Card images: on' : 'Card images: off'}</button></div>
+  <div class="grp"><div class="t">Simulate AI</div><select id="dev-target" aria-label="Open suggestion">${open.map(s => `<option value="${s.id}" ${s.id === ui.devTarget ? 'selected' : ''}>${esc(deckOf(s.deckId).short)}: +${esc(C(s.in).name)}</option>`).join('') || '<option>No open suggestions</option>'}</select>
+  <div class="btns"><button data-act="aiWithdraw" ${open.length ? '' : 'disabled'}>Withdraw</button><button data-act="aiEditReason" ${open.length ? '' : 'disabled'}>Edit reason</button><button data-act="aiNew">New suggestion</button></div></div>
+  <div class="grp"><div class="t">Data</div><button data-act="toggleGap">${state.catalogGap ? 'Restore catalog record (Krenko)' : 'Remove a catalog record (Krenko)'}</button></div>
+  <div class="grp"><div class="dim" style="color:#6b5a1d">Keys: ← and → switch variants. Esc closes a sheet.</div></div></div>`;
+}
+function derived() {
+  return Object.fromEntries(state.decks.map(d => {
+    const v = D.validity(state, d.id), b = D.bracket(state, d.id);
+    return [d.id, { validity: v.state, violations: v.violations.map(x => x.message), size: v.size, estimatedBracket: b.estimate, signals: b.signals.map(x => x.label) }];
+  }));
+}
+function renderStatePanel() {
+  const el = document.getElementById('state-panel');
+  el.hidden = !ui.showState;
+  if (!ui.showState) return;
+  const prev = el.scrollTop;
+  el.innerHTML = `<div class="sh"><span>State after every action (reducer output)</span><span>${esc(lastUiEvent)} → ${esc(lastAction)}</span></div><pre>${esc(JSON.stringify({ lastAction, lastUiEvent, derived: derived(), state, ui: { variant: ui.variant, deckId: ui.deckId, sheet: ui.sheet, A: ui.A, B: ui.B, C: ui.C } }, null, 2))}</pre>`;
+  el.scrollTop = prev;
+}
+let lastAction = 'seed';
+let lastUiEvent = 'load';
+
+function render() {
+  const screen = document.getElementById('screen');
+  const scrolls = {};
+  screen.querySelectorAll('[data-scroll]').forEach(el => { scrolls[el.dataset.scroll] = el.scrollTop; });
+  const view = ui.variant === 'A' ? renderA() : ui.variant === 'B' ? renderB() : renderC();
+  screen.innerHTML = `${statusBar()}<div class="app ${ui.sheet ? 'under-sheet' : ''}">${view}</div>${renderSheet()}${ui.toast ? `<div class="toast">${esc(ui.toast)}</div>` : ''}<div class="homebar"></div>`;
+  screen.querySelectorAll('[data-scroll]').forEach(el => {
+    if (el.dataset.bottom && ui.C.toBottom) { el.scrollTop = el.scrollHeight; return; }
+    if (scrolls[el.dataset.scroll] != null) el.scrollTop = scrolls[el.dataset.scroll];
+  });
+  ui.C.toBottom = false;
+  if (ui.C.highlight && ui.variant === 'C') { const t = screen.querySelector(`.ev.hl`); if (t) t.scrollIntoView({ block: 'center' }); }
+  document.getElementById('dev').innerHTML = renderDev();
+  document.getElementById('switcher-label').textContent = `${ui.variant} · ${VARIANTS.find(v => v[0] === ui.variant)[1]}`;
+  document.title = `PROTOTYPE · ${ui.variant} ${VARIANTS.find(v => v[0] === ui.variant)[1]} · AI deck changes (#18) · mtgscan`;
+  renderStatePanel();
+}
+
+function toast(msg) {
+  ui.toast = msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { ui.toast = null; render(); }, 2600);
+}
+function dispatch(action, okMsg) {
+  const prev = state;
+  state = D.reducer(state, action);
+  lastAction = action.type + (action.id ? ' ' + action.id : action.changeId ? ' ' + action.changeId : '');
+  if (state === prev) toast('Nothing changed.');
+  else if (okMsg) toast(typeof okMsg === 'function' ? okMsg(prev) : okMsg);
+  return state !== prev;
+}
+function newest(list, prev, key) { return list.find(x => !prev[key].some(y => y.id === x.id)); }
+
+const handlers = {
+  pickDeck: ds => { ui.deckId = ds.deck; },
+  pickDeckC: ds => { ui.deckId = ds.deck; ui.C.toBottom = true; ui.C.revertFrom = null; ui.C.highlight = null; },
+  openHistory: ds => { ui.sheet = { type: 'history', deckId: ds.deck }; },
+  toggleClosedA: () => { ui.A.showClosed = !ui.A.showClosed; },
+  dismiss: ds => { dispatch({ type: 'dismiss', id: ds.id }, 'Deck suggestion dismissed.'); },
+  openPromote: ds => { ui.sheet = { type: 'promote', id: ds.id, entryId: null }; },
+  pickEntry: ds => { ui.sheet = { ...ui.sheet, entryId: ds.entry }; },
+  promote: ds => {
+    const s = sugOf(ds.id);
+    dispatch({ type: 'promote', id: ds.id, entryId: ds.entry, toBuylist: !!ds.buylist }, () => {
+      const r = sugOf(ds.id).result;
+      return r ? (r.kind === 'deck change' ? `${C(s.in).name} added to ${deckOf(s.deckId).short} as a deck change.` : `${cap(r.kind)} created for ${deckOf(s.deckId).short}.`) : 'Promoted.';
+    });
+    ui.sheet = null;
+  },
+  openPair: ds => {
+    const p = sugOf(ds.id);
+    ui.sheet = null;
+    if (ui.variant === 'A') { ui.deckId = p.deckId; }
+    if (ui.variant === 'B') { ui.B.filter = 'all'; ui.B.current = p.id; ui.B.tab = 'review'; ui.B.skipped = ui.B.skipped.filter(x => x !== p.id); }
+    if (ui.variant === 'C') { ui.deckId = p.deckId; ui.C.filter = 'all'; ui.C.highlight = p.id; }
+    if (p.status !== 'open' && p.result && p.result.kind === 'planned swap') toast(`The paired suggestion is now a planned swap in ${deckOf(p.deckId).short}.`);
+  },
+  swapIn: ds => {
+    const p = swapOf(ds.id);
+    const e = D.entryById(state, p.heldEntryId);
+    if (e && e.protected) { ui.sheet = { type: 'swapIn', id: ds.id }; return; }
+    dispatch({ type: 'swapIn', id: ds.id }, `Swapped in ${C(p.in).name}. Deck change added to the history.`);
+  },
+  swapInConfirm: ds => { const p = swapOf(ds.id); dispatch({ type: 'swapIn', id: ds.id }, `Swapped in ${C(p.in).name} and unprotected the copy.`); ui.sheet = null; },
+  openBought: ds => { ui.sheet = { type: 'bought', id: ds.id, entryId: null }; },
+  simScan: ds => { dispatch({ type: 'simulateScan', cardId: ds.card, deckId: ds.deck }, `Scanned copies of ${C(ds.card).name} into the collection.`); ui.sheet = { ...ui.sheet, entryId: null }; },
+  bought: ds => { const x = buyOf(ds.id); dispatch({ type: 'bought', id: ds.id, entryId: ds.entry }, `${C(x.in).name} is in ${deckOf(x.deckId).short}. Buylist card closed.`); ui.sheet = null; },
+  openRevert: ds => { ui.sheet = { type: 'revert', changeId: ds.change, back: ui.sheet && ui.sheet.type === 'history' ? ui.sheet : null }; },
+  backSheet: () => { ui.sheet = ui.sheet.back; },
+  confirmRevert: ds => {
+    const plan = D.revertPlan(state, ds.change);
+    dispatch({ type: 'revert', changeId: ds.change, confirmHeld: true }, `Reverted ${plural(plan.undo.length, 'change')} in ${plan.deck.short}.${plan.held.length ? ' A planned swap moved to the buylist.' : ''}`);
+    if (ui.sheet && ui.sheet.back) ui.sheet = ui.sheet.back; else ui.sheet = null;
+    ui.C.revertFrom = null;
+  },
+  revertFromC: ds => { ui.C.revertFrom = ds.change; },
+  cancelRevertC: () => { ui.C.revertFrom = null; },
+  filterC: ds => { ui.C.filter = ds.f; ui.C.toBottom = true; },
+  openDeckInfo: ds => { ui.sheet = { type: 'deckInfo', deckId: ds.deck }; },
+  tabB: ds => { ui.B.tab = ds.tab; },
+  filterB: ds => { ui.B.filter = ds.deck; ui.B.current = null; },
+  skipB: ds => { ui.B.skipped = [...ui.B.skipped.filter(x => x !== ds.id), ds.id]; const q = queueB(); ui.B.current = q[0] ? q[0].id : null; },
+  historyDeckB: ds => { ui.B.deckId = ds.deck; },
+  closeSheet: () => { ui.sheet = null; },
+  reset: () => { state = D.seed(); lastAction = 'reset'; Object.assign(ui, freshUi()); toast('Data reset.'); },
+  toggleState: () => { ui.showState = !ui.showState; },
+  toggleImages: () => { ui.images = !ui.images; },
+  toggleDev: () => { ui.devOpen = !ui.devOpen; },
+  aiWithdraw: () => { const s = sugOf(ui.devTarget); if (s) dispatch({ type: 'aiWithdraw', id: s.id }, `ChatGPT withdrew the suggestion for ${C(s.in).name}.`); },
+  aiEditReason: () => { const s = sugOf(ui.devTarget); if (s) dispatch({ type: 'aiEditReason', id: s.id }, `ChatGPT edited the reason for ${C(s.in).name}.`); },
+  aiNew: () => {
+    const prev = state;
+    dispatch({ type: 'aiNewSuggestion' });
+    const n = newest(state.suggestions, prev, 'suggestions');
+    if (n) { toast(`ChatGPT suggested ${C(n.in).name} for ${deckOf(n.deckId).short}.${n.status === 'stale' ? ' It is already stale.' : ''}`); if (ui.variant === 'C' && ui.deckId === n.deckId) ui.C.toBottom = true; }
+  },
+  toggleGap: () => { dispatch({ type: 'toggleCatalogGap' }, state.catalogGap ? 'Catalog record restored.' : 'Siege-Gang Commander now has no catalog record.'); }
+};
+
+function fit() { document.documentElement.style.setProperty('--fit', Math.min(1, (window.innerHeight - 110) / 870).toFixed(3)); }
+window.addEventListener('resize', fit);
+fit();
+function setVariant(v) {
+  ui.variant = v; ui.sheet = null; ui.C.revertFrom = null; ui.C.toBottom = true;
+  const p = new URLSearchParams(location.search); p.set('variant', v);
+  history.replaceState(null, '', `${location.pathname}?${p.toString()}${location.hash}`);
+  render();
+}
+function cycle(step) { const i = VARIANTS.findIndex(v => v[0] === ui.variant); setVariant(VARIANTS[(i + step + VARIANTS.length) % VARIANTS.length][0]); }
+
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-act]');
+  if (!el || el.disabled) return;
+  const fn = handlers[el.dataset.act];
+  if (!fn) return;
+  lastUiEvent = el.dataset.act;
+  if (el.dataset.act === 'closeSheet' && el.classList.contains('sheet-scrim') && ev.target !== el) return;
+  fn(el.dataset);
+  render();
+});
+document.addEventListener('change', ev => { if (ev.target.id === 'dev-target') { ui.devTarget = ev.target.value; } });
+document.addEventListener('keydown', ev => {
+  const a = document.activeElement;
+  const typing = a && (a.matches('input, textarea, select, [contenteditable], [contenteditable="true"]'));
+  if (ev.key === 'Escape' && ui.sheet) { ui.sheet = null; render(); return; }
+  if (typing) return;
+  if (ev.key === 'ArrowLeft') { ev.preventDefault(); cycle(-1); }
+  if (ev.key === 'ArrowRight') { ev.preventDefault(); cycle(1); }
+});
+document.getElementById('prev').addEventListener('click', () => cycle(-1));
+document.getElementById('next').addEventListener('click', () => cycle(1));
+setVariant(ui.variant);
+
+</script>
+</body>
+</html>
