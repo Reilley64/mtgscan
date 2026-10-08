@@ -103,7 +103,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;paddin
 .option.sel .radio{border-color:var(--accent);background:radial-gradient(var(--accent) 45%,transparent 50%)}
 .toast{position:absolute;left:16px;right:16px;top:54px;z-index:40;background:#e9f0f2;color:#0b0f11;border-radius:12px;padding:10px 14px;font-weight:700;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 .hdr-deck{display:flex;gap:12px;align-items:center;padding:4px 16px 10px}
-.hdr-deck .art{width:64px;height:64px;border-radius:12px;overflow:hidden;flex:none;background:#2a3238}
+.hdr-deck .art:not(.thumb){width:64px;height:64px;border-radius:12px;overflow:hidden;flex:none;background:#2a3238}
 .hdr-deck h1{font-size:20px;margin:0 0 4px;line-height:1.15}
 .panel{margin:4px 12px 6px;border-radius:10px;background:var(--surface);padding:8px 10px;font-size:12px}
 .panel .ttl{font-weight:800;font-size:12px;margin-bottom:4px;display:flex;justify-content:space-between}
@@ -162,7 +162,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;paddin
 .search input{flex:1;min-width:0;background:none;border:0;outline:0;color:#fff;font:inherit;font-size:15px}
 .list .item.entry{width:100%;text-align:left;align-items:flex-start}
 .deckrow{display:block;width:calc(100% - 24px);text-align:left}
-.deckrow .art{width:56px;height:56px;border-radius:12px;overflow:hidden;flex:none;background:#2a3238}
+.deckrow .art:not(.thumb){width:56px;height:56px;border-radius:12px;overflow:hidden;flex:none;background:#2a3238}
 .cam{position:relative;flex:1;min-height:0;background:#000;overflow:hidden}
 .camtop{position:absolute;left:0;right:0;top:4px;display:flex;justify-content:space-between;align-items:center;padding:0 16px}
 .camtitle{font-size:22px;font-weight:800}
@@ -233,6 +233,15 @@ table.ov{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%
 .prio .arrows{display:flex;flex-direction:column;gap:2px}
 .pbtn{width:22px;height:15px;border-radius:4px;background:var(--surface3);font-size:8px;line-height:15px;color:#fff}
 .pbtn:disabled{opacity:.25;cursor:not-allowed}
+.card.in-revert{outline:2px dashed var(--danger);outline-offset:-2px}
+.deckhead{flex:none;padding:0 16px 8px;border-bottom:1px solid #192024}
+.hdr-deck.compact{padding:2px 0 0;gap:10px}
+.hdr-deck.compact .art:not(.thumb){width:46px;height:46px;border-radius:10px}
+.hdr-deck.compact h1{font-size:17px;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deckdetail{margin-top:8px}
+.deckdetail .flag{margin-top:0;font-size:11px;padding:6px 8px}
+.deckdetail .meta{font-size:11px;margin-top:4px}
+#phone.dragging{cursor:grabbing;user-select:none}
 .btn.simscan{flex:none;width:100%;background:rgba(0,0,0,.5);border:1px dashed #ffb300;color:#ffb300}
 #switcher{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:4px;background:#ffffff;color:#111;border-radius:999px;padding:5px;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.2);font-weight:800;font-size:13px}
 #switcher button{width:34px;height:34px;border-radius:17px;background:#eee;color:#111;font-size:16px;font-weight:900}
@@ -781,7 +790,7 @@ const VARIANTS = [['A', 'Deck-first'], ['B', 'Review queue'], ['C', 'Timeline'],
 let state = D.seed();
 const params = new URLSearchParams(location.search);
 const startVariant = VARIANTS.some(v => v[0] === params.get('variant')) ? params.get('variant') : 'D';
-const freshUi = () => ({ deckId: 'atraxa', sheet: null, toast: null, A: { showClosed: false }, B: { tab: 'review', filter: 'all', skipped: [], current: null, deckId: 'atraxa' }, C: { filter: 'all', revertFrom: null, highlight: null, toBottom: true }, D: { tab: 'recent', filter: 'all', deckId: null, query: '', colFilter: 'all', scanning: false, scanFor: null, cardSort: 'name', expanded: [], deckSort: { key: 'priority', dir: -1 } } });
+const freshUi = () => ({ deckId: 'atraxa', sheet: null, toast: null, A: { showClosed: false }, B: { tab: 'review', filter: 'all', skipped: [], current: null, deckId: 'atraxa' }, C: { filter: 'all', revertFrom: null, highlight: null, toBottom: true }, D: { tab: 'recent', filter: 'all', deckId: null, query: '', colFilter: 'all', scanning: false, scanFor: null, deckTab: 'cards', deckFrom: null, showClosed: false, cardSort: 'name', expanded: [], deckSort: { key: 'priority', dir: -1 } } });
 const COL_LAYOUTS = ['List', 'Binder grid', 'By card'];
 const DECK_LAYOUTS = ['List', 'Commander gallery', 'Overview table'];
 const layoutParam = k => [1, 2, 3].includes(Number(params.get(k))) ? Number(params.get(k)) : 1;
@@ -901,46 +910,59 @@ function renderA() {
   h += `<div class="chiprow">${state.decks.map(x => `<button class="chip big ${x.id === d.id ? 'sel' : ''}" data-act="pickDeck" data-deck="${x.id}">${esc(x.short)} · ${cap(x.priority)}${suggestionsOf(x.id).length ? ` · ${suggestionsOf(x.id).length} new` : ''}</button>`).join('')}</div>`;
   return `<div class="scroll" data-scroll="A-${d.id}">${h}${deckBody(d)}</div>`;
 }
-function deckBody(d) {
-  const v = D.validity(state, d.id), b = D.bracket(state, d.id);
+function deckParts(d) {
   const open = suggestionsOf(d.id);
   const swaps = state.plannedSwaps.filter(p => p.deckId === d.id && p.status === 'open');
   const buys = state.buylist.filter(x => x.deckId === d.id && x.status === 'open');
-  const cards = D.deckCards(state, d);
   const outMarks = {};
   for (const s of open) if (s.out) (outMarks[s.out] ||= []).push('Suggested out');
   for (const p of swaps) if (p.out) (outMarks[p.out] ||= []).push('Planned out');
   for (const x of buys) if (x.out) (outMarks[x.out] ||= []).push('Buylist out');
-  let h = `<div class="hdr-deck"><div class="art">${thumb(d.commanders[0], 'art')}</div><div class="grow"><h1>${esc(d.name)}</h1><div class="chips">${priorityChip(d.priority)}${validityChip(v)}${bracketChip(b)}</div></div></div>`;
-  if (v.state !== 'valid') h += deckPanels(d.id);
-  h += `<div class="section"><span>Deck suggestions</span><span class="count">${open.length} open</span></div>`;
-  if (!open.length) h += `<div class="note">No open deck suggestions. Ask ChatGPT for ideas through the MCP connection.</div>`;
-  for (const s of open) {
+  return { v: D.validity(state, d.id), b: D.bracket(state, d.id), open, swaps, buys, cards: D.deckCards(state, d), outMarks };
+}
+function deckOpenItems(d, P) {
+  let h = `<div class="section"><span>Deck suggestions</span><span class="count">${P.open.length} open</span></div>`;
+  if (!P.open.length) h += `<div class="note">No open deck suggestions. Ask ChatGPT for ideas through the MCP connection.</div>`;
+  for (const s of P.open) {
     h += `<div class="card" data-sug="${s.id}">${diffLines(s.in, s.out, copiesChip(s.in, d.id))}${reasonBlock(s.reason, sugWho(s), true)}${validityFlags(d.id, s.in, s.out)}${pairFlag(s)}${repeatFlag(s)}<div class="meta" style="margin-top:8px">${esc(outcomeText(s.id))} · ${priceText(s.in)}</div><div class="actions"><button class="btn" data-act="dismiss" data-id="${s.id}">Dismiss</button><button class="btn primary" data-act="openPromote" data-id="${s.id}">Promote</button></div></div>`;
   }
-  h += `<div class="section"><span>Planned swaps</span><span class="count">${swaps.length}</span></div>`;
-  if (!swaps.length) h += `<div class="note">No planned swaps.</div>`;
-  for (const p of swaps) h += `<div class="card">${diffLines(p.in, p.out)}<div class="meta" style="margin-top:6px">Holds ${esc(entryText(p.heldEntryId))}</div>${reasonBlock(p.reason, 'Reason', true)}${swapFlags(p)}<div class="actions"><button class="btn primary" data-act="swapIn" data-id="${p.id}">Swap in</button></div></div>`;
-  h += `<div class="section"><span>Buylist</span><span class="count">${buys.length}</span></div>`;
-  if (!buys.length) h += `<div class="note">No buylist cards for this deck.</div>`;
-  for (const x of buys) h += `<div class="card">${diffLines(x.in, x.out, `<span class="chip warn">${priceText(x.in)}</span>`)}${reasonBlock(x.reason, 'Reason', true)}${validityFlags(x.deckId, x.in, x.out)}<div class="actions"><button class="btn primary" data-act="openBought" data-id="${x.id}">Bought</button></div></div>`;
-  const size = v.size;
-  h += `<div class="section"><span>Deck list</span><span class="count">${size} cards · revision ${d.revision}</span></div><div class="list">`;
-  for (const x of cards) {
-    const marks = outMarks[x.cardId] || [];
+  h += `<div class="section"><span>Planned swaps</span><span class="count">${P.swaps.length}</span></div>`;
+  if (!P.swaps.length) h += `<div class="note">No planned swaps.</div>`;
+  for (const p of P.swaps) h += `<div class="card">${diffLines(p.in, p.out)}<div class="meta" style="margin-top:6px">Holds ${esc(entryText(p.heldEntryId))}</div>${reasonBlock(p.reason, 'Reason', true)}${swapFlags(p)}<div class="actions"><button class="btn primary" data-act="swapIn" data-id="${p.id}">Swap in</button></div></div>`;
+  h += `<div class="section"><span>Buylist</span><span class="count">${P.buys.length}</span></div>`;
+  if (!P.buys.length) h += `<div class="note">No buylist cards for this deck.</div>`;
+  for (const x of P.buys) h += `<div class="card">${diffLines(x.in, x.out, `<span class="chip warn">${priceText(x.in)}</span>`)}${reasonBlock(x.reason, 'Reason', true)}${validityFlags(x.deckId, x.in, x.out)}<div class="actions"><button class="btn primary" data-act="openBought" data-id="${x.id}">Bought</button></div></div>`;
+  return h;
+}
+function deckListBlock(d, P) {
+  let h = `<div class="section"><span>Deck list</span><span class="count">${P.v.size} cards · revision ${d.revision}</span></div><div class="list">`;
+  for (const x of P.cards) {
+    const marks = P.outMarks[x.cardId] || [];
     const sub = x.commander ? 'Commander' : x.basic ? 'Basic land' : entryText(x.entryId);
     h += `<div class="item">${thumb(x.cardId, 'sm')}<div class="grow"><div class="name">${esc(C(x.cardId).name)}</div><div class="meta">${esc(sub)}</div></div>${marks.map(m => `<span class="tag-out">− ${m}</span>`).join(' ')}<span class="qty">${x.qty}</span></div>`;
   }
   h += `<div class="item"><div class="thumb sm">+</div><div class="grow"><div class="name dim">Other cards</div><div class="meta">Pretend cards, not shown in the prototype</div></div><span class="qty">${d.otherCards}</span></div></div>`;
+  return h;
+}
+function deckClosedBlock(d, show, act) {
   const closedS = state.suggestions.filter(s => s.deckId === d.id && s.status !== 'open');
   const closedP = state.plannedSwaps.filter(p => p.deckId === d.id && p.status !== 'open');
   const closedB = state.buylist.filter(p => p.deckId === d.id && p.status !== 'open');
-  h += `<div class="section"><span>Closed and dismissed</span><button class="linkbtn" style="font-size:12px" data-act="toggleClosedA">${ui.A.showClosed ? 'Hide' : `Show ${closedS.length + closedP.length + closedB.length}`}</button></div>`;
-  if (ui.A.showClosed) {
+  let h = `<div class="section"><span>Closed and dismissed</span><button class="linkbtn" style="font-size:12px" data-act="${act}">${show ? 'Hide' : `Show ${closedS.length + closedP.length + closedB.length}`}</button></div>`;
+  if (show) {
     for (const s of closedS) h += `<div class="card"><div class="row"><div class="grow"><div class="name">+${esc(C(s.in).name)}${s.out ? ` · −${esc(C(s.out).name)}` : ''}</div><div class="meta">Deck suggestion${s.result ? ' → ' + s.result.kind : ''}</div></div>${statusChip(s.status)}</div>${s.status === 'withdrawn' ? `<div class="meta" style="margin-top:4px">Withdrawn by ChatGPT. Withdrawn is final.</div>` : ''}</div>`;
     for (const p of closedP) h += `<div class="card"><div class="row"><div class="grow"><div class="name">+${esc(C(p.in).name)}${p.out ? ` · −${esc(C(p.out).name)}` : ''}</div><div class="meta">Planned swap${p.note ? ' · ' + esc(p.note) : ''}</div></div>${statusChip(p.status)}</div></div>`;
     for (const p of closedB) h += `<div class="card"><div class="row"><div class="grow"><div class="name">+${esc(C(p.in).name)}${p.out ? ` · −${esc(C(p.out).name)}` : ''}</div><div class="meta">Buylist card${p.note ? ' · ' + esc(p.note) : ''}</div></div>${statusChip(p.status)}</div></div>`;
   }
+  return h;
+}
+function deckBody(d) {
+  const P = deckParts(d);
+  let h = `<div class="hdr-deck"><div class="art">${thumb(d.commanders[0], 'art')}</div><div class="grow"><h1>${esc(d.name)}</h1><div class="chips">${priorityChip(d.priority)}${validityChip(P.v)}${bracketChip(P.b)}</div></div></div>`;
+  if (P.v.state !== 'valid') h += deckPanels(d.id);
+  h += deckOpenItems(d, P);
+  h += deckListBlock(d, P);
+  h += deckClosedBlock(d, ui.A.showClosed, 'toggleClosedA');
   h += `<div style="height:60px"></div>`;
   return h;
 }
@@ -1003,11 +1025,11 @@ function renderB() {
   return `<div class="scroll" data-scroll="B-${t}">${body}</div>${actionBar}<div class="tabbar">${tab('review', '✦', 'Review', openCount)}${tab('planned', '⇄', 'Planned', planCount)}${tab('history', '◷', 'History', 0)}</div>`;
 }
 
-function historyList(deckId) {
+function historyList(deckId, revertSet) {
   const list = D.deckChangesOf(state, deckId).slice().reverse();
   return list.map(ch => {
     const rb = ch.revertedBy ? changeOf(ch.revertedBy) : null;
-    return `<div class="card ${rb ? 'reverted' : ''}"><div class="row"><div class="grow"><div class="name">${esc(sourceLabel(ch))}</div><div class="meta">${D.fmtAt(ch.at)}</div></div>${rb ? `<span class="chip ghost">Reverted</span>` : ''}</div><div style="margin-top:6px">${changeLines(ch)}</div>${reasonBlock(ch.reason, 'Reason', true)}${rb ? `<div class="meta" style="margin-top:6px">Reverted on ${D.fmtAt(rb.at)}</div>` : `<div class="actions"><button class="btn small" data-act="openRevert" data-change="${ch.id}">Revert from here</button></div>`}</div>`;
+    return `<div class="card ${rb ? 'reverted' : ''}${revertSet && revertSet.has(ch.id) ? ' in-revert' : ''}" data-change="${ch.id}"><div class="row"><div class="grow"><div class="name">${esc(sourceLabel(ch))}</div><div class="meta">${D.fmtAt(ch.at)}</div></div>${rb ? `<span class="chip ghost">Reverted</span>` : ''}</div><div style="margin-top:6px">${changeLines(ch)}</div>${reasonBlock(ch.reason, 'Reason', true)}${rb ? `<div class="meta" style="margin-top:6px">Reverted on ${D.fmtAt(rb.at)}</div>` : `<div class="actions"><button class="btn small" data-act="openRevert" data-change="${ch.id}">Revert from here</button></div>`}</div>`;
   }).join('') || `<div class="note">No deck changes yet.</div>`;
 }
 
@@ -1348,18 +1370,35 @@ function deckTableD() {
   h += `<div class="note">Value counts the commander and the named cards. The other cards in each prototype deck are only a count.</div>`;
   return h;
 }
-function renderDecksD() {
-  if (ui.D.deckId) {
-    const d = deckOf(ui.D.deckId);
-    const h = `<div class="navtitle"><button class="linkbtn" data-act="backDecksD">‹ Decks</button><button class="linkbtn" data-act="openHistory" data-deck="${d.id}">History</button></div>`;
-    return `<div class="scroll" data-scroll="D-deck-${d.id}">${h}${deckBody(d)}</div>`;
+function deckDetailD(P) {
+  if (P.v.state === 'valid') return '';
+  const items = P.v.state === 'cannot determine' ? P.v.reasons.map(esc) : P.v.violations.map(x => `<b>${esc(x.message)}</b>${x.cards.length ? ': ' + esc(x.cards.map(c => C(c).name).join(', ')) : ''}${x.hint ? ` · ${esc(x.hint)}` : ''} <span class="dim">${esc(x.cite)}</span>`);
+  return `<div class="deckdetail" data-detail="validity"><div class="flag ${P.v.state === 'invalid' ? 'bad' : 'warn'}"><span>⚑</span><span>${items.join('<br>')}</span></div><div class="meta">Estimated bracket ${P.b.estimate}: ${esc(P.b.setting.map(s => `${s.label} (${s.source})`).join(', '))}</div></div>`;
+}
+function renderDeckD(d) {
+  const P = deckParts(d), t = ui.D.deckTab;
+  const head = `<div class="deckhead" data-deck-header="${d.id}"><div class="hdr-deck compact"><div class="art">${thumb(d.commanders[0], 'art')}</div><div class="grow"><h1>${esc(d.name)}</h1><div class="chips">${priorityChip(d.priority)}${validityChip(P.v)}${bracketChip(P.b)}</div></div></div>${deckDetailD(P)}</div>`;
+  let body = '';
+  if (t === 'cards') body = deckListBlock(d, P);
+  else if (t === 'suggestions') body = deckOpenItems(d, P) + deckClosedBlock(d, ui.D.showClosed, 'toggleClosedD');
+  else {
+    const sh = ui.sheet;
+    const revertSet = sh && sh.type === 'revert' && changeOf(sh.changeId) && changeOf(sh.changeId).deckId === d.id ? new Set(D.revertPlan(state, sh.changeId).suffix.map(c => c.id)) : null;
+    body = `<div class="section"><span>Deck change history</span><span class="count">${D.deckChangesOf(state, d.id).length} · newest first</span></div><div class="note">Reverting a change undoes it and every later change in this deck as one new change.</div>${historyList(d.id, revertSet)}`;
   }
+  return `${head}<div class="scroll" data-scroll="D-deck-${d.id}-${t}" data-deck-tab="${t}">${body}<div style="height:24px"></div></div>`;
+}
+function deckTabBarD(d) {
+  const needs = needsYouD().filter(it => it.x.deckId === d.id).length;
+  const tab = (k, ic, label, n) => `<button class="${ui.D.deckTab === k ? 'sel' : ''}" data-act="deckTabD" data-tab="${k}"><span class="ic">${ic}${n ? `<span class="tbadge" data-badge="deck-${k}">${n}</span>` : ''}</span><span>${label}</span></button>`;
+  return `<div class="tabbar" data-bar="deck">${tab('cards', '▦', 'Cards', 0)}${tab('suggestions', '✦', 'Suggestions', needs)}${tab('history', '◷', 'History', 0)}</div>`;
+}
+function renderDecksD() {
   const layout = ui.layout.decks;
   let h = `<div class="navtitle"><div><h1>Decks</h1><div class="sub">${plural(state.decks.length, 'Commander deck')}</div></div></div>`;
   h += layout === 2 ? deckGalleryD() : layout === 3 ? deckTableD() : deckListD();
   return `<div class="scroll" data-scroll="D-decks-${layout}" data-layout="decks-${layout}">${h}<div style="height:24px"></div></div>`;
 }
-
 function renderScanD() {
   const batch = state.scanBatch;
   const count = batch.reduce((a, x) => a + x.qty, 0);
@@ -1377,10 +1416,11 @@ function renderScanD() {
 }
 function renderD() {
   const t = ui.D.tab;
+  if (inDeckD()) { const d = deckOf(ui.D.deckId); return `${renderDeckD(d)}${deckTabBarD(d)}`; }
   const view = t === 'recent' ? renderRecentD() : t === 'collection' ? renderCollectionD() : t === 'decks' ? renderDecksD() : renderScanD();
   const badge = needsYouD().length;
   const tab = (k, ic, label, n) => `<button class="${t === k ? 'sel' : ''}" data-act="tabD" data-tab="${k}"><span class="ic">${ic}${n ? `<span class="tbadge" data-badge="${k}">${n}</span>` : ''}</span><span>${label}</span></button>`;
-  return `${view}<div class="tabbar">${tab('recent', '◷', 'Recent', badge)}${tab('collection', '▤', 'Collection', 0)}${tab('decks', '❏', 'Decks', 0)}${tab('scan', '⌖', 'Scan', 0)}</div>`;
+  return `${view}<div class="tabbar" data-bar="app">${tab('recent', '◷', 'Recent', badge)}${tab('collection', '▤', 'Collection', 0)}${tab('decks', '❏', 'Decks', 0)}${tab('scan', '⌖', 'Scan', 0)}</div>`;
 }
 
 function sheetFrame(title, body, foot, left = '') {
@@ -1516,7 +1556,7 @@ function renderDev() {
   <div class="grp"><div class="t">Simulate AI</div><select id="dev-target" aria-label="Open suggestion">${open.map(s => `<option value="${s.id}" ${s.id === ui.devTarget ? 'selected' : ''}>${esc(deckOf(s.deckId).short)}: +${esc(C(s.in).name)}</option>`).join('') || '<option>No open suggestions</option>'}</select>
   <div class="btns"><button data-act="aiWithdraw" ${open.length ? '' : 'disabled'}>Withdraw</button><button data-act="aiEditReason" ${open.length ? '' : 'disabled'}>Edit reason</button><button data-act="aiNew">New suggestion</button></div></div>
   <div class="grp"><div class="t">Data</div><button data-act="toggleGap">${state.catalogGap ? 'Restore catalog record (Krenko)' : 'Remove a catalog record (Krenko)'}</button></div>
-  <div class="grp"><div class="dim" style="color:#6b5a1d">Keys: ← and → switch variants. Esc closes a sheet. In D, the small pill switches the Collection or Decks layout.</div></div></div>`;
+  <div class="grp"><div class="dim" style="color:#6b5a1d">Keys: ← and → switch variants. Esc closes a sheet. In a D deck, Esc, browser Back, or a swipe from the phone's left edge goes back. In D, the small pill switches the Collection or Decks layout.</div></div></div>`;
 }
 function derived() {
   return Object.fromEntries(state.decks.map(d => {
@@ -1608,7 +1648,7 @@ const handlers = {
     if (ui.variant === 'A') { ui.deckId = p.deckId; }
     if (ui.variant === 'B') { ui.B.filter = 'all'; ui.B.current = p.id; ui.B.tab = 'review'; ui.B.skipped = ui.B.skipped.filter(x => x !== p.id); }
     if (ui.variant === 'C') { ui.deckId = p.deckId; ui.C.filter = 'all'; ui.C.highlight = p.id; }
-    if (ui.variant === 'D') { ui.D.tab = 'decks'; ui.D.deckId = p.deckId; }
+    if (ui.variant === 'D') { enterDeckD(p.deckId, 'suggestions'); }
     if (p.status !== 'open' && p.result && p.result.kind === 'planned swap') toast(`The paired suggestion is now a planned swap in ${deckOf(p.deckId).short}.`);
   },
   swapIn: ds => {
@@ -1652,8 +1692,9 @@ const handlers = {
   },
   tabD: ds => { if (ds.tab === 'decks' && ui.D.tab === 'decks') ui.D.deckId = null; ui.D.tab = ds.tab; },
   filterD: ds => { ui.D.filter = ds.f; },
-  openDeckD: ds => { ui.sheet = null; ui.D.tab = 'decks'; ui.D.deckId = ds.deck; ui.deckId = ds.deck; },
-  backDecksD: () => { ui.D.deckId = null; },
+  openDeckD: ds => { enterDeckD(ds.deck, !inDeckD() && ui.D.tab === 'recent' ? 'suggestions' : 'cards'); },
+  deckTabD: ds => { ui.D.deckTab = ds.tab; },
+  toggleClosedD: () => { ui.D.showClosed = !ui.D.showClosed; },
   colFilterD: ds => { ui.D.colFilter = ds.f; },
   openEntryD: ds => { ui.sheet = { type: 'entry', entryId: ds.entry }; },
   protectD: ds => { protectToggle(ds.entry, 'protectCopy'); },
@@ -1707,10 +1748,33 @@ function protectToggle(entryId, type) {
 function fit() { document.documentElement.style.setProperty('--fit', Math.min(1, (window.innerHeight - 150) / 870).toFixed(3)); }
 window.addEventListener('resize', fit);
 fit();
+let currentSearch = location.search;
 function setParam(k, v) {
   const p = new URLSearchParams(location.search); p.set(k, v);
-  history.replaceState(null, '', `${location.pathname}?${p.toString()}${location.hash}`);
+  currentSearch = `?${p.toString()}`;
+  history.replaceState(history.state, '', `${location.pathname}${currentSearch}${location.hash}`);
 }
+function inDeckD() { return ui.D.tab === 'decks' && !!ui.D.deckId; }
+function enterDeckD(deckId, deckTab) {
+  const already = inDeckD();
+  if (!already) ui.D.deckFrom = ui.D.tab;
+  ui.sheet = null; ui.D.tab = 'decks'; ui.D.deckId = deckId; ui.deckId = deckId; ui.D.deckTab = deckTab;
+  const entry = { deck: deckId, from: ui.D.deckFrom, deckTab };
+  if (already) history.replaceState(entry, '', location.href); else history.pushState(entry, '', location.href);
+}
+function exitDeckD() { ui.D.tab = ui.D.deckFrom || 'decks'; ui.D.deckId = null; ui.D.deckFrom = null; ui.sheet = null; }
+function goBackD() {
+  if (history.state && history.state.deck) { history.back(); return; }
+  exitDeckD(); lastUiEvent = 'back'; render();
+}
+window.addEventListener('popstate', () => {
+  const entry = history.state;
+  history.replaceState(entry, '', `${location.pathname}${currentSearch}${location.hash}`);
+  if (entry && entry.deck && deckOf(entry.deck)) { ui.D.tab = 'decks'; ui.D.deckId = entry.deck; ui.D.deckFrom = entry.from; ui.D.deckTab = entry.deckTab || 'cards'; ui.sheet = null; }
+  else if (ui.D.deckId) exitDeckD();
+  lastUiEvent = 'back';
+  render();
+});
 function setVariant(v) {
   ui.variant = v; ui.sheet = null; ui.C.revertFrom = null; ui.C.toBottom = true;
   setParam('variant', v);
@@ -1743,10 +1807,47 @@ document.addEventListener('keydown', ev => {
   const a = document.activeElement;
   const typing = a && (a.matches('input, textarea, select, [contenteditable], [contenteditable="true"]'));
   if (ev.key === 'Escape' && ui.sheet) { ui.sheet = null; render(); return; }
+  if (ev.key === 'Escape' && ui.variant === 'D' && inDeckD()) { ev.preventDefault(); goBackD(); return; }
   if (typing) return;
   if (ev.key === 'ArrowLeft') { ev.preventDefault(); cycle(-1); }
   if (ev.key === 'ArrowRight') { ev.preventDefault(); cycle(1); }
 });
+let edge = null, swallowClick = false;
+const phoneEl = document.getElementById('phone');
+function resetEdge() {
+  phoneEl.classList.remove('dragging');
+  const app = document.querySelector('#screen .app');
+  if (app) { app.style.transition = ''; app.style.transform = ''; app.style.boxShadow = ''; }
+}
+phoneEl.addEventListener('pointerdown', ev => {
+  if (ui.variant !== 'D' || !inDeckD() || ui.sheet) return;
+  const r = phoneEl.getBoundingClientRect();
+  const scale = r.width / 390;
+  if (ev.clientX - r.left > 20 * scale) return;
+  edge = { x: ev.clientX, y: ev.clientY, scale };
+  phoneEl.classList.add('dragging');
+  ev.preventDefault();
+});
+window.addEventListener('pointermove', ev => {
+  if (!edge) return;
+  const dx = Math.max(0, (ev.clientX - edge.x) / edge.scale);
+  const app = document.querySelector('#screen .app');
+  if (app) { app.style.transition = 'none'; app.style.transform = `translateX(${Math.min(dx, 390)}px)`; app.style.boxShadow = '-14px 0 30px rgba(0,0,0,.7)'; }
+});
+window.addEventListener('pointerup', ev => {
+  if (!edge) return;
+  const dx = (ev.clientX - edge.x) / edge.scale, dy = Math.abs(ev.clientY - edge.y) / edge.scale;
+  edge = null;
+  resetEdge();
+  if (dx > 80 && dx > dy) {
+    swallowClick = true;
+    setTimeout(() => { swallowClick = false; }, 0);
+    lastUiEvent = 'edgeSwipe';
+    goBackD();
+  }
+});
+window.addEventListener('pointercancel', () => { edge = null; resetEdge(); });
+document.addEventListener('click', ev => { if (swallowClick) { ev.stopPropagation(); ev.preventDefault(); } }, true);
 document.getElementById('prev').addEventListener('click', () => cycle(-1));
 document.getElementById('next').addEventListener('click', () => cycle(1));
 setVariant(ui.variant);
