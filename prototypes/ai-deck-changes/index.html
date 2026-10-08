@@ -1506,7 +1506,8 @@ function renderScanD() {
 function renderD() {
   const t = ui.D.tab;
   if (inDeckD()) { const d = deckOf(ui.D.deckId); return `${renderDeckD(d)}${deckTabBarD(d)}`; }
-  const view = t === 'recent' ? renderRecentD() : t === 'collection' ? (cardOpen() && ui.layout.card === 2 ? cardPageD(cardInfo(ui.D.card.entryId)) : renderCollectionD()) : t === 'decks' ? renderDecksD() : renderScanD();
+  if (t === 'collection' && cardOpen() && ui.layout.card === 2) return cardPageD(cardInfo(ui.D.card.entryId));
+  const view = t === 'recent' ? renderRecentD() : t === 'collection' ? renderCollectionD() : t === 'decks' ? renderDecksD() : renderScanD();
   const badge = needsYouD().length;
   const tab = (k, ic, label, n) => `<button class="${t === k ? 'sel' : ''}" data-act="tabD" data-tab="${k}"><span class="ic">${ic}${n ? `<span class="tbadge" data-badge="${k}">${n}</span>` : ''}</span><span>${label}</span></button>`;
   return `${view}<div class="tabbar" data-bar="app">${tab('recent', '◷', 'Recent', badge)}${tab('collection', '▤', 'Collection', 0)}${tab('decks', '❏', 'Decks', 0)}${tab('scan', '⌖', 'Scan', 0)}</div>`;
@@ -1714,10 +1715,9 @@ function cdProtectBtn(i) {
   const e = i.e;
   return e.protected ? `<button class="btn" data-act="unprotectD" data-entry="${e.id}">Unprotect 1 copy</button>` : `<button class="btn" data-act="protectD" data-entry="${e.id}" ${i.n.free ? '' : 'disabled'}>Protect 1 free copy</button>`;
 }
-function cdFindBtn(i) { return `<button class="btn" data-act="findInDecksD" ${i.decks.length ? '' : 'disabled'}>${i.decks.length ? 'Find in decks' : 'Not in any deck'}</button>`; }
 function cdProtectNote(i) {
   const e = i.e;
-  return `<div class="meta cdnote">${e.protected ? 'Deck suggestions never use protected copies.' : i.n.free ? 'Protect a free copy to keep it out of decks. Deck suggestions never use protected copies.' : 'Only a free copy can be protected. Free one with a deck change first.'}</div>`;
+  return `<div class="meta cdnote">${e.protected ? 'Deck suggestions never use protected copies.' : i.n.free ? 'Protect a free copy to keep it out of decks. Deck suggestions never use protected copies.' : ''}</div>`;
 }
 function cdAsk(i) {
   return `<div class="cdask"><button class="btn" disabled data-cd="ask-ai">✦ Ask AI about this card</button><div class="meta">Not in the prototype. In the app, this starts a chat about ${esc(i.c.name)} in your AI client, such as ChatGPT. The chat reads your card data through the MCP connection.</div></div>`;
@@ -1734,14 +1734,14 @@ function cardSheetD(i) {
   body += cdSec('price', 'Price', cdPrice(i));
   body += cdSec('rules', 'Commander', cdLegal(i) + cdOracle(i, true));
   body += cdSec('ai', '', cdAsk(i));
-  const foot = `<div class="actions" style="margin-top:0">${cdProtectBtn(i)}${cdFindBtn(i)}</div>${cdProtectNote(i)}`;
+  const foot = `<div class="actions" style="margin-top:0">${cdProtectBtn(i)}</div>${cdProtectNote(i)}`;
   return `<div class="sheet-scrim" data-act="closeCardD"></div><div class="sheet cdsheet" role="dialog" aria-label="${esc(i.c.name)}" data-card-detail="1" data-entry="${e.id}"><div class="dragzone" data-drag="sheet"><div class="grab"></div><div class="head"><div class="side"></div><h2>${esc(i.c.name)}</h2><div class="side" style="text-align:right"><button class="linkbtn" data-act="closeCardD">Done</button></div></div></div><div class="body" data-scroll="card-sheet-${e.cardId}">${body}</div><div class="foot">${foot}</div></div>`;
 }
 function cardPageD(i) {
   const e = i.e, t = ui.D.card.tab;
   let h = `<div class="cdhero2"><div class="bg" style="${ui.images ? `background-image:url('${i.c.img.art}')` : ''}"></div>${cdImg(e)}</div>`;
   h += `<div class="cdtitle"><div class="cdname big" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div>${cdFacts(i)}</div>`;
-  h += `<div class="actions cdacts">${cdProtectBtn(i)}${cdFindBtn(i)}</div>`;
+  h += `<div class="actions cdacts">${cdProtectBtn(i)}</div>`;
   h += `<div class="segment cdseg">${CARD_TABS.map(([k, l]) => `<button class="${t === k ? 'sel' : ''}" data-act="cardTabD" data-tab="${k}">${l}${k === 'decks' && i.sugs.length ? ` <span class="sbadge">${i.sugs.length}</span>` : ''}</button>`).join('')}</div>`;
   let body = '';
   if (t === 'copies') {
@@ -1787,7 +1787,7 @@ function cardFlipD(i) {
   full += cdSec('price', 'Price', cdPrice(i));
   full += cdSec('rules', 'Commander', cdLegal(i) + cdOracle(i, true));
   full += cdSec('ai', '', cdAsk(i));
-  const peek = `<div class="dpeek"><div class="row"><div class="grow"><div class="cdname" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div></div><b class="dprice">${i.price ? money(i.price) : 'No price'}</b></div>${cdFacts(i)}<div class="actions">${cdProtectBtn(i)}${cdFindBtn(i)}</div></div>`;
+  const peek = `<div class="dpeek"><div class="row"><div class="grow"><div class="cdname" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div></div><b class="dprice">${i.price ? money(i.price) : 'No price'}</b></div>${cdFacts(i)}<div class="actions">${cdProtectBtn(i)}</div></div>`;
   h += `<div class="flipspace"></div><div class="drawer ${open ? 'open' : ''}" data-drawer="${open ? 'open' : 'peek'}"><button class="handle" data-act="drawerD" data-drag="drawer" aria-label="${open ? 'Hide details' : 'Show details'}"><span class="grab"></span><span class="hl">${open ? 'Hide details' : 'Pull up for details'}</span></button>${peek}<div class="dbody" data-scroll="flip-drawer-${e.cardId}">${open ? full + cdProtectNote(i) : ''}</div></div>`;
   return `<div class="flip" data-card-detail="3" data-entry="${e.id}">${h}</div>`;
 }
