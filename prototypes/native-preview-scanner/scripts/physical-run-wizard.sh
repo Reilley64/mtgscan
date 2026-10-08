@@ -634,6 +634,7 @@ else
   say "Automatic capture must stay off for this whole run."
 fi
 write_env EXPECTED_CAPTURE "$EXPECTED_CAPTURE"
+step "Long-press the batch button at the top right of the app to show the detector details. Long-press it again later to hide them."
 if confirm "Does the top panel say 'Automatic capture: $EXPECTED_CAPTURE'?"; then
   write_env SAFETY_GATE pass
 else

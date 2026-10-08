@@ -123,6 +123,16 @@ That round used the fixed test deck with the torch off. All 30 cards gave 29 ide
 
 `npm run physical-run:bin` runs rounds of a fixed 30-card test deck, stored in the ignored `.physical-runs/test-deck.tsv`, so results can be compared between versions. The deck uses cards from the tester's collection that earlier rounds already scanned. It covers same-name printing pairs (Arcane Signet DSC and SLD, Colossal Dreadmaw M21 and RIX, Command Tower CMM and SLD), four foil Secret Lair cards, an old-frame Tempest card, double-faced and adventure cards, a planeswalker, a gold legendary, showcase and special frames, cards that share art with a promo, a card that was misread twice, and ordinary cards from about ten sets. No printing appears twice, because two identical cards in a row cannot be told apart. Every round starts with all cards ticked, and the tester unticks any card that is not at hand. The tester slides cards into the bin in any order. `scripts/recognition-score.mjs bin-score` matches each result to the round by exact printing first and then by name. It reports identity and printing top-1, accepts, false accepts, missed cards, duplicates, restarts, the torch state, latency, and correct cards per minute. After each round the wizard asks which cards needed a nudge of the bin.
 
+### Scan batch prototype (#11)
+
+The camera screen shows only the camera, the magenta refined card outline, a batch button at the top right, and one chip at the bottom for the latest scan.
+
+- **Chip.** It shows the most likely printing for every scan, with no confidence label. A new scan replaces it. Non-card photos make no chip. A failed recognition shows a chip that opens straight into search.
+- **Details sheet.** Tapping the chip opens an iOS page sheet that closes when you swipe it down. The sheet has finish, condition, and language. Other options lists the rest of the recognizer's candidates, including every same-text twin. **None of these: search** uses Scryfall autocomplete and lists every paper printing of the chosen name. **Remove scan** drops the scan.
+- **Batch button.** It shows the number of scans in a badge and opens the batch review. Review merges identical copies into stacks. Tapping a stack opens the latest scan in it. Review also sets the condition and language defaults for new scans. **Add to collection** moves the stacks to an in-memory collection and logs `batch-committed`.
+- **Debug details.** A long press on the batch button shows or hides the detector status, the cyan proposal outline, the metrics, and Reset study. The wizard asks for this at the safety gate.
+- **Finish default.** Foil is the default when the collector line shows the premium star. Otherwise the default is nonfoil.
+
 ### On-device recognition
 
 `npm run physical-run:device-bin` runs the bin rounds with recognition on the phone. The local Expo module in `modules/mtg-catalog-recognizer` compiles the catalog recognizer's Swift files from `../catalog-recognizer/native` (through the `ios/shared` symlink) into the app. It exposes three calls:

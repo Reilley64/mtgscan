@@ -38,109 +38,113 @@ export function ScanSheet({
     setSearching(false);
   };
   return (
-    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={[styles.sheet, searching && styles.sheetSearching]}>
-          {searching ? (
-            <SearchPanel
-              onPick={(printing) => choose(printing, "search")}
-              onCancel={() =>
-                scan.printing === null ? onClose() : setSearching(false)
+    <Modal
+      visible
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <View style={styles.sheet}>
+        <View style={styles.handle} />
+        {searching ? (
+          <SearchPanel
+            onPick={(printing) => choose(printing, "search")}
+            onCancel={() =>
+              scan.printing === null ? onClose() : setSearching(false)
+            }
+          />
+        ) : (
+          <ScrollView contentContainerStyle={styles.content}>
+            {scan.printing ? (
+              <View style={styles.current}>
+                <Image
+                  source={{
+                    uri: cardImageUrl(scan.printing.scryfallId, "normal"),
+                  }}
+                  style={styles.large}
+                />
+                <View style={styles.currentText}>
+                  <Text style={styles.title}>{scan.printing.name}</Text>
+                  <Text style={styles.subtitle}>
+                    {scan.printing.set.toUpperCase()} #
+                    {scan.printing.collectorNumber}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
+            <Choice
+              label="Finish"
+              values={FINISHES}
+              value={scan.finish}
+              onChange={(finish) =>
+                dispatch({ type: "setFinish", scanId: scan.scanId, finish })
               }
             />
-          ) : (
-            <ScrollView contentContainerStyle={styles.content}>
-              {scan.printing ? (
-                <View style={styles.current}>
-                  <Image
-                    source={{
-                      uri: cardImageUrl(scan.printing.scryfallId, "normal"),
-                    }}
-                    style={styles.large}
-                  />
-                  <View style={styles.currentText}>
-                    <Text style={styles.title}>{scan.printing.name}</Text>
-                    <Text style={styles.subtitle}>
-                      {scan.printing.set.toUpperCase()} #
-                      {scan.printing.collectorNumber}
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
+            <Choice
+              label="Condition"
+              values={CONDITIONS}
+              value={scan.condition}
+              onChange={(condition) =>
+                dispatch({
+                  type: "setCondition",
+                  scanId: scan.scanId,
+                  condition,
+                })
+              }
+            />
+            <Choice
+              label="Language"
+              values={LANGUAGES}
+              value={scan.language}
+              onChange={(language) =>
+                dispatch({
+                  type: "setLanguage",
+                  scanId: scan.scanId,
+                  language,
+                })
+              }
+            />
 
-              <Choice
-                label="Finish"
-                values={FINISHES}
-                value={scan.finish}
-                onChange={(finish) =>
-                  dispatch({ type: "setFinish", scanId: scan.scanId, finish })
-                }
-              />
-              <Choice
-                label="Condition"
-                values={CONDITIONS}
-                value={scan.condition}
-                onChange={(condition) =>
-                  dispatch({
-                    type: "setCondition",
-                    scanId: scan.scanId,
-                    condition,
-                  })
-                }
-              />
-              <Choice
-                label="Language"
-                values={LANGUAGES}
-                value={scan.language}
-                onChange={(language) =>
-                  dispatch({
-                    type: "setLanguage",
-                    scanId: scan.scanId,
-                    language,
-                  })
-                }
-              />
-
-              {scan.options.filter(
+            {scan.options.filter(
+              (option) => option.scryfallId !== scan.printing?.scryfallId,
+            ).length > 0 ? (
+              <Text style={styles.section}>Other options</Text>
+            ) : null}
+            {scan.options
+              .filter(
                 (option) => option.scryfallId !== scan.printing?.scryfallId,
-              ).length > 0 ? (
-                <Text style={styles.section}>Other options</Text>
-              ) : null}
-              {scan.options
-                .filter(
-                  (option) => option.scryfallId !== scan.printing?.scryfallId,
-                )
-                .map((option) => (
-                  <PrintingRow
-                    key={option.scryfallId}
-                    printing={option}
-                    onPress={() => choose(option, "scan")}
-                  />
-                ))}
+              )
+              .map((option) => (
+                <PrintingRow
+                  key={option.scryfallId}
+                  printing={option}
+                  onPress={() => choose(option, "scan")}
+                />
+              ))}
 
+            <Pressable
+              style={styles.secondary}
+              onPress={() => setSearching(true)}
+            >
+              <Text style={styles.secondaryText}>None of these: search</Text>
+            </Pressable>
+            <View style={styles.row}>
               <Pressable
-                style={styles.secondary}
-                onPress={() => setSearching(true)}
+                style={[styles.secondary, styles.danger]}
+                onPress={() => {
+                  dispatch({ type: "remove", scanId: scan.scanId });
+                  onClose();
+                }}
               >
-                <Text style={styles.secondaryText}>None of these: search</Text>
+                <Text style={styles.dangerText}>Remove scan</Text>
               </Pressable>
-              <View style={styles.row}>
-                <Pressable
-                  style={[styles.secondary, styles.danger]}
-                  onPress={() => {
-                    dispatch({ type: "remove", scanId: scan.scanId });
-                    onClose();
-                  }}
-                >
-                  <Text style={styles.dangerText}>Remove scan</Text>
-                </Pressable>
-                <Pressable style={styles.primary} onPress={onClose}>
-                  <Text style={styles.primaryText}>Done</Text>
-                </Pressable>
-              </View>
-            </ScrollView>
-          )}
-        </View>
+              <Pressable style={styles.primary} onPress={onClose}>
+                <Text style={styles.primaryText}>Done</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+        )}
       </View>
     </Modal>
   );
@@ -294,19 +298,15 @@ function Choice<T extends string>({
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  sheet: { flex: 1, backgroundColor: "#11171a" },
+  handle: {
+    alignSelf: "center",
+    width: 40,
+    height: 5,
+    marginTop: 8,
+    borderRadius: 3,
+    backgroundColor: "#3a454b",
   },
-  sheet: {
-    maxHeight: "88%",
-    minHeight: "60%",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    backgroundColor: "#11171a",
-  },
-  sheetSearching: { height: "88%" },
   content: { padding: 16, gap: 12 },
   current: { flexDirection: "row", gap: 12 },
   large: { width: 140, height: 195, borderRadius: 7 },

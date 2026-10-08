@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   FlatList,
   Image,
@@ -14,6 +15,7 @@ import {
   type BatchAction,
   type BatchState,
 } from "./batch";
+import { ScanSheet } from "./ScanSheet";
 import { cardImageUrl } from "./scryfall";
 
 export function BatchReview({
@@ -25,7 +27,21 @@ export function BatchReview({
   dispatch: (action: BatchAction) => void;
   onClose: () => void;
 }) {
+  const [openScanId, setOpenScanId] = useState<string | null>(null);
+  const openScan =
+    state.scans.find((scan) => scan.scanId === openScanId) ?? null;
   const stacks = mergeStacks([], state.scans);
+  const latestScanId = (stack: (typeof stacks)[number]) =>
+    [...state.scans]
+      .reverse()
+      .find(
+        (scan) =>
+          scan.printing?.scryfallId === stack.printing.scryfallId &&
+          scan.finish === stack.finish &&
+          scan.condition === stack.condition &&
+          scan.language === stack.language,
+      )?.scanId ?? null;
+  const unrecognized = state.scans.filter((scan) => scan.printing === null);
   const unresolved = state.scans.filter(
     (scan) => scan.printing === null,
   ).length;
@@ -100,8 +116,31 @@ export function BatchReview({
             `${stack.printing.scryfallId}|${stack.finish}|${stack.condition}|${stack.language}`
           }
           contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            unrecognized.length > 0 ? (
+              <View style={styles.list}>
+                {unrecognized.map((scan) => (
+                  <Pressable
+                    key={scan.scanId}
+                    style={styles.stack}
+                    onPress={() => setOpenScanId(scan.scanId)}
+                  >
+                    <View style={[styles.thumb, styles.unknown]}>
+                      <Text style={styles.unknownText}>?</Text>
+                    </View>
+                    <Text style={styles.name}>
+                      Not recognized: tap to search
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => (
-            <View style={styles.stack}>
+            <Pressable
+              style={styles.stack}
+              onPress={() => setOpenScanId(latestScanId(item))}
+            >
               <Image
                 source={{ uri: cardImageUrl(item.printing.scryfallId) }}
                 style={styles.thumb}
@@ -117,7 +156,7 @@ export function BatchReview({
                 </Text>
               </View>
               <Text style={styles.quantity}>×{item.quantity}</Text>
-            </View>
+            </Pressable>
           )}
         />
         <View style={styles.row}>
@@ -151,6 +190,14 @@ export function BatchReview({
           </Pressable>
         </View>
       </View>
+      {openScan ? (
+        <ScanSheet
+          key={openScan.scanId}
+          scan={openScan}
+          dispatch={dispatch}
+          onClose={() => setOpenScanId(null)}
+        />
+      ) : null}
     </Modal>
   );
 }
@@ -188,6 +235,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#11171a",
   },
   thumb: { width: 46, height: 64, borderRadius: 4 },
+  unknown: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2a3238",
+  },
+  unknownText: { color: "#f4d06f", fontSize: 22, fontWeight: "900" },
   stackText: { flex: 1, gap: 2 },
   name: { color: "white", fontSize: 14, fontWeight: "700" },
   quantity: { color: "#d8ff62", fontSize: 18, fontWeight: "900" },

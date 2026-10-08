@@ -33,7 +33,8 @@ import {
 import { batchReducer, initialBatchState } from "./src/batch/batch";
 import { BatchReview } from "./src/batch/BatchReview";
 import { ScanSheet } from "./src/batch/ScanSheet";
-import { ScanStrip } from "./src/batch/ScanStrip";
+import { BatchButton } from "./src/batch/BatchButton";
+import { LatestScanChip } from "./src/batch/LatestScanChip";
 import { isNotACard } from "./src/recognition/recognitionClient";
 
 const formatNumber = (value: number, digits = 1) =>
@@ -231,7 +232,7 @@ export default function App() {
       />
 
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {proposalQuad?.every((point) => point !== null) ? (
+        {debugOpen && proposalQuad?.every((point) => point !== null) ? (
           <QuadOverlay
             points={proposalQuad as { x: number; y: number }[]}
             edgeStyle={styles.proposalEdge}
@@ -246,33 +247,41 @@ export default function App() {
       </View>
 
       <SafeAreaView style={styles.overlay} pointerEvents="box-none">
-        <View style={styles.statusPanel}>
-          <Text
-            style={[styles.phase, fatal ? styles.failText : styles.waitText]}
-          >
-            {fatal
-              ? `Detector locked, code ${diagnostics.fatalErrorCode}`
-              : observation.detected
-                ? "Card edges refined"
-                : `Seeking a card: ${statusLabel}`}
-          </Text>
-          <Text style={styles.format}>{formatLabel}</Text>
-          <Text style={styles.disabledCapture}>
-            Automatic capture: {AUTOMATIC_CAPTURE_ENABLED ? "ON" : "OFF"}.
-            Photos: {capture.photoCount}
-          </Text>
-          <Text style={styles.recognition}>{recognitionLabel(capture)}</Text>
-          {capture.error ? (
-            <Text style={styles.error}>{capture.error}</Text>
-          ) : null}
-          <Pressable
-            style={styles.debugToggle}
-            onPress={() => setDebugOpen((open) => !open)}
-          >
-            <Text style={styles.debugToggleText}>
-              {debugOpen ? "Hide detector details" : "Show detector details"}
-            </Text>
-          </Pressable>
+        <View style={styles.topRow} pointerEvents="box-none">
+          {debugOpen ? (
+            <View style={styles.statusPanel}>
+              <Text
+                style={[
+                  styles.phase,
+                  fatal ? styles.failText : styles.waitText,
+                ]}
+              >
+                {fatal
+                  ? `Detector locked, code ${diagnostics.fatalErrorCode}`
+                  : observation.detected
+                    ? "Card edges refined"
+                    : `Seeking a card: ${statusLabel}`}
+              </Text>
+              <Text style={styles.format}>{formatLabel}</Text>
+              <Text style={styles.disabledCapture}>
+                Automatic capture: {AUTOMATIC_CAPTURE_ENABLED ? "ON" : "OFF"}.
+                Photos: {capture.photoCount}
+              </Text>
+              <Text style={styles.recognition}>
+                {recognitionLabel(capture)}
+              </Text>
+              {capture.error ? (
+                <Text style={styles.error}>{capture.error}</Text>
+              ) : null}
+            </View>
+          ) : (
+            <View style={styles.spacer} />
+          )}
+          <BatchButton
+            count={batch.scans.length}
+            onPress={() => setReviewOpen(true)}
+            onLongPress={() => setDebugOpen((open) => !open)}
+          />
         </View>
 
         <View style={styles.spacer} />
@@ -360,24 +369,11 @@ export default function App() {
           </View>
         ) : null}
 
-        <ScanStrip
-          scans={batch.scans}
-          pendingCount={pendingCount}
+        <LatestScanChip
+          scan={batch.scans[batch.scans.length - 1] ?? null}
+          pending={pendingCount > 0}
           onOpen={setOpenScanId}
         />
-        <Pressable
-          disabled={batch.scans.length === 0}
-          style={[
-            styles.button,
-            styles.reviewButton,
-            batch.scans.length === 0 && styles.buttonDisabled,
-          ]}
-          onPress={() => setReviewOpen(true)}
-        >
-          <Text style={styles.buttonText}>
-            Review batch ({batch.scans.length})
-          </Text>
-        </Pressable>
       </SafeAreaView>
       {openScan ? (
         <ScanSheet
@@ -485,7 +481,7 @@ const styles = StyleSheet.create({
   body: { color: "#c7d0d4", fontSize: 16, lineHeight: 24 },
   overlay: { flex: 1, paddingHorizontal: 14 },
   statusPanel: {
-    marginTop: 8,
+    flex: 1,
     padding: 10,
     gap: 4,
     borderRadius: 10,
@@ -530,9 +526,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#d8ff62",
   },
   buttonDisabled: { opacity: 0.4 },
-  reviewButton: { flex: 0, marginBottom: 8 },
-  debugToggle: { alignSelf: "flex-start", paddingVertical: 4 },
-  debugToggleText: { color: "#74c7ff", fontSize: 11, fontWeight: "700" },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginTop: 8,
+  },
   buttonText: { color: "#101500", fontSize: 12, fontWeight: "900" },
   proposalEdge: {
     position: "absolute",
