@@ -2,7 +2,7 @@
 
 ## Product scope
 
-mtgscan is a cross-platform phone app for rapidly scanning Magic: The Gathering cards, keeping a collection, and building Commander decks. Its authenticated remote MCP service lets compatible AI chats search card and collection data, inspect decks, and request confirmed deck changes. Remaining product and architecture decisions belong in wayfinding. Do not introduce application code, a technology stack, or architecture decisions before they are settled.
+mtgscan is a cross-platform phone app for rapidly scanning Magic: The Gathering cards, keeping a collection, and building Commander decks. Its authenticated remote MCP service lets compatible AI chats search card and collection data, inspect decks, and make deck suggestions. Remaining product and architecture decisions belong in wayfinding. Do not introduce application code, a technology stack, or architecture decisions before they are settled.
 
 ## Context and workflow
 

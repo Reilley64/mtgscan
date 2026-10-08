@@ -13,8 +13,12 @@ A published version of a card identified by its set and collector number.
 _Avoid_: Version, edition
 
 **Collection entry**:
-A quantity of owned physical copies that share a card printing, finish, language, condition, purchase details, status flags, and storage group.
+A quantity of owned physical copies that share a card printing, finish, language, condition, and protected flag. Adding a copy with the same properties merges it into the entry. To correct a copy, the user deletes it and adds it again.
 _Avoid_: Card, item
+
+**Protected copy**:
+An owned copy that the user keeps out of decks. Deck suggestions never use protected copies. A user action that would put a protected copy into a deck warns the user and unprotects it on confirmation.
+_Avoid_: Don't touch, collection copy
 
 **Collection**:
 The user's collection entries.
@@ -31,8 +35,21 @@ _Avoid_: To-add list, import
 ## Decks and changes
 
 **Deck**:
-A Commander deck made from exact owned copies in the collection. An owned copy can be allocated to only one deck.
+A Commander deck made from exact owned copies in the collection. Each deck card points to a collection entry and a quantity. Basic lands are the exception.
 _Avoid_: Decklist
+
+**Allocation**:
+The owned copies of a collection entry that decks use. An owned copy is allocated to at most one deck.
+
+**Free copy**:
+An owned copy that is not allocated to a deck or held by a planned swap. An entry's free quantity is its quantity minus its allocated and held copies, and never falls below zero.
+_Avoid_: Spare, available copy
+
+**Basic land**:
+A card with the basic supertype, including Wastes and snow-covered basics. mtgscan does not track basic lands as owned. A deck can hold any number of them by type, and they never appear in the collection, allocation, or buylist.
+
+**Deck priority**:
+How strongly the user wants to keep a deck's cards: high, medium, or low. Priority guides deck suggestions and does not restrict the user.
 
 **Deck validity**:
 The deck's conformance to the current official Commander rules, judged on its commanders and main deck. It is valid, invalid, or cannot be determined. An invalid deck remains editable and lists its violations.
@@ -50,21 +67,25 @@ _Avoid_: Power level
 The Commander bracket that a deck's bracket signals suggest. It is an estimate for a pregame conversation, not a certified bracket.
 _Avoid_: Bracket, deck bracket, power level
 
+**Deck suggestion**:
+An AI proposal to add a card to a deck, optionally replacing a deck card, with the AI's reason. It always names an incoming card. It is open, promoted, dismissed, or stale. It becomes stale when its outgoing card leaves the deck. Promoting it creates a planned swap when a free copy exists, otherwise a buylist card, and both keep the reason.
+_Avoid_: AI change, recommendation
+
 **Planned swap**:
-A card to acquire paired with the card it will replace in a deck. Choosing "swap in" selects the exact acquired collection entry to allocate.
+The user's intent to put an owned copy into a deck, optionally replacing a deck card. It holds one free copy until the user swaps it in or the swap closes. Only the user creates planned swaps, directly or by promoting a deck suggestion. A planned swap can replace the commander. It closes when its outgoing card leaves the deck. If its held copy is deleted or used elsewhere after a warning, it becomes a buylist card.
 _Avoid_: Upgrade
 
 **Buylist**:
-The acquisition side of the user's planned swaps. A buylist card always belongs to a planned swap.
+The cards the user does not own yet and needs to buy. Each buylist card names a deck and may name a deck card it will replace. It closes when that outgoing card leaves the deck. The buylist is separate from planned swaps. Marking a buylist card bought lets the user choose a free copy and puts it into the deck in one deck change.
 _Avoid_: Wishlist
 
 **Deck change**:
-An atomic record of cards moved into or out of a deck. AI changes include a reason; user changes may omit one.
+An atomic record of cards moved into or out of one deck. The user makes every deck change. A change that comes from a deck suggestion keeps its reason. Copies never move directly between decks.
 _Avoid_: Changelist
 
 **Deck change history**:
-The ordered record of deck changes. A change can be reverted while its inverse still satisfies collection allocation rules.
-_Avoid_: Audit log
+The ordered record of a deck's changes. Reverting a change undoes it and every later change in that deck as one new change. A revert is available only while every copy it needs is still owned and free.
+_Avoid_: Audit log, checkpoint
 
 ## Search
 
@@ -79,5 +100,5 @@ _Avoid_: Inventory search
 ## AI access
 
 **MCP connection**:
-The authenticated remote connection through which ChatGPT can inspect the user's card data, search the collection and card catalog, and request confirmed deck changes.
+The authenticated remote connection through which ChatGPT can inspect the user's card data, search the collection and card catalog, and make deck suggestions.
 _Avoid_: MCP/AI connection
