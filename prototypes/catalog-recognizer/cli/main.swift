@@ -7,6 +7,7 @@ struct ServeRequest: Codable {
   let cropPath: String?
   let quad: [[Double]]?
   let cropOutputPath: String?
+  let excludeIds: [String]?
 }
 
 struct ServeResponse: Codable {
@@ -111,16 +112,18 @@ func serve(catalogDirectory: URL) {
     autoreleasepool {
       do {
         let output = request.cropOutputPath.map { URL(fileURLWithPath: $0) }
+        let excluded = Set((request.excludeIds ?? []).compactMap { catalog.index(id: $0) })
         let recognition: MTGRecognition
         if let photoPath = request.photoPath, let corners = request.quad, corners.count == 4,
            corners.allSatisfy({ $0.count == 2 }) {
           let quad = MTGCardQuad(corners: corners.map { CGPoint(x: $0[0], y: $0[1]) })
           recognition = try MTGCardRecognizer.recognize(
-            photo: URL(fileURLWithPath: photoPath), quad: quad, catalog: catalog, cropOutput: output
+            photo: URL(fileURLWithPath: photoPath), quad: quad, catalog: catalog, cropOutput: output,
+            excluded: excluded
           )
         } else if let cropPath = request.cropPath {
           recognition = try MTGCardRecognizer.recognize(
-            crop: URL(fileURLWithPath: cropPath), catalog: catalog, cropOutput: output
+            crop: URL(fileURLWithPath: cropPath), catalog: catalog, cropOutput: output, excluded: excluded
           )
         } else {
           emit(ServeResponse(requestId: request.requestId, recognition: nil, error: "photoPath with quad, or cropPath, is required"))

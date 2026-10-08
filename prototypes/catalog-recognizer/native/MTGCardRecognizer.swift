@@ -45,6 +45,7 @@ enum MTGCardRecognizer {
   static let orientationMargin: Float = 0.03
   static let fullReadingStrength = 3
   static let titleCandidates = 10
+  static let machineReadableFrame = "2015"
   static let candidateCount = 5
 
   enum Failure: Error {
@@ -52,7 +53,13 @@ enum MTGCardRecognizer {
     case rectificationFailed
   }
 
-  static func recognize(photo: URL, quad: MTGCardQuad, catalog: MTGCardCatalog, cropOutput: URL?) throws -> MTGRecognition {
+  static func recognize(
+    photo: URL,
+    quad: MTGCardQuad,
+    catalog: MTGCardCatalog,
+    cropOutput: URL?,
+    excluded: Set<Int> = []
+  ) throws -> MTGRecognition {
     var stageMs: [String: Double] = [:]
     var startedAt = ProcessInfo.processInfo.systemUptime
     guard let image = MTGCardRectifier.loadOrientedImage(at: photo) else { throw Failure.unreadableImage }
@@ -63,21 +70,27 @@ enum MTGCardRecognizer {
       height: readHeight
     ) else { throw Failure.rectificationFailed }
     stageMs["rectify"] = elapsed(since: &startedAt)
-    return try recognize(card: card, catalog: catalog, cropOutput: cropOutput, stageMs: stageMs)
+    return try recognize(card: card, catalog: catalog, cropOutput: cropOutput, stageMs: stageMs, excluded: excluded)
   }
 
-  static func recognize(crop: URL, catalog: MTGCardCatalog, cropOutput: URL?) throws -> MTGRecognition {
+  static func recognize(
+    crop: URL,
+    catalog: MTGCardCatalog,
+    cropOutput: URL?,
+    excluded: Set<Int> = []
+  ) throws -> MTGRecognition {
     guard let image = MTGCardRectifier.loadOrientedImage(at: crop),
           let card = MTGCardRectifier.context.createCGImage(image, from: image.extent)
     else { throw Failure.unreadableImage }
-    return try recognize(card: card, catalog: catalog, cropOutput: cropOutput, stageMs: [:])
+    return try recognize(card: card, catalog: catalog, cropOutput: cropOutput, stageMs: [:], excluded: excluded)
   }
 
   static func recognize(
     card uprightCandidate: CGImage,
     catalog: MTGCardCatalog,
     cropOutput: URL?,
-    stageMs initialStageMs: [String: Double]
+    stageMs initialStageMs: [String: Double],
+    excluded: Set<Int> = []
   ) throws -> MTGRecognition {
     var stageMs = initialStageMs
     var startedAt = ProcessInfo.processInfo.systemUptime
@@ -89,7 +102,11 @@ enum MTGCardRecognizer {
     let uprightVector = try MTGCardEmbedder.featurePrint(of: uprightSmall)
     let turnedVector = try MTGCardEmbedder.featurePrint(of: turnedSmall)
     stageMs["embed"] = elapsed(since: &startedAt)
-    let bothScores = catalog.similarities(to: [uprightVector, turnedVector])
+    var bothScores = catalog.similarities(to: [uprightVector, turnedVector])
+    for index in excluded {
+      bothScores[0][index] = -1
+      bothScores[1][index] = -1
+    }
     let uprightScores = bothScores[0]
     let turnedScores = bothScores[1]
     let uprightBest = uprightScores.max() ?? 0
@@ -132,7 +149,7 @@ enum MTGCardRecognizer {
     }
     let topSimilarity = scores[shortlist[0]]
     var expanded = shortlist
-    var included = Set(shortlist)
+    var included = Set(shortlist).union(excluded)
     for index in shortlist.prefix(illustrationExpansion) {
       guard let illustration = catalog.printings[index].illustrationId else { continue }
       for sibling in catalog.printingsByIllustration[illustration] ?? [] where !included.contains(sibling) {
@@ -142,7 +159,8 @@ enum MTGCardRecognizer {
     }
     expanded.sort { scores[$0] > scores[$1] }
     let (decision, first) = decide(
-      ranked: expanded, scores: scores, topSimilarity: topSimilarity, reading: reading, catalog: catalog
+      ranked: expanded, scores: scores, topSimilarity: topSimilarity, reading: reading, catalog: catalog,
+      excluded: excluded
     )
     var ordered = expanded
     if let first {
@@ -180,7 +198,8 @@ enum MTGCardRecognizer {
     scores: [Float],
     topSimilarity: Float,
     reading: MTGCollectorLine,
-    catalog: MTGCardCatalog
+    catalog: MTGCardCatalog,
+    excluded: Set<Int> = []
   ) -> (MTGRecognitionDecision, Int?) {
     func accept(_ index: Int, _ reason: String) -> (MTGRecognitionDecision, Int?) {
       (MTGRecognitionDecision(accepted: true, scryfallId: catalog.printings[index].id, reasons: [reason]), index)
@@ -207,12 +226,25 @@ enum MTGCardRecognizer {
     }
     let readLabel = [setCode?.uppercased(), reading.collectorNumber].compactMap { $0 }.joined(separator: " ")
 
-    if let setCode, let number = reading.collectorNumber,
-       let read = catalog.index(set: setCode, collectorNumber: number) {
+    if let setCode, let number = reading.collectorNumber {
+      guard let read = catalog.index(set: setCode, collectorNumber: number), !excluded.contains(read) else {
+        return abstain("collector line \(readLabel) names no printing in the catalog")
+      }
       if shortlistNames.contains(catalog.printings[read].oracleId) {
         return accept(read, "collector line \(readLabel) matches a card in the image shortlist")
       }
       return abstain("collector line \(readLabel) names a card the image does not support", first: read)
+    }
+
+    func contradicts(_ index: Int) -> Bool {
+      let printing = catalog.printings[index]
+      if let setCode, printing.set != setCode { return true }
+      if let number = reading.collectorNumber,
+         MTGCardCatalog.key(set: printing.set, collectorNumber: printing.collectorNumber)
+           != MTGCardCatalog.key(set: printing.set, collectorNumber: number) {
+        return true
+      }
+      return false
     }
 
     if let setCode {
@@ -227,7 +259,8 @@ enum MTGCardRecognizer {
       }
     }
 
-    let siblings = catalog.printings[top].illustrationId.flatMap { catalog.printingsByIllustration[$0] } ?? [top]
+    let siblings = (catalog.printings[top].illustrationId.flatMap { catalog.printingsByIllustration[$0] } ?? [top])
+      .filter { !excluded.contains($0) }
     if siblings.count > 1 {
       let note = readLabel.isEmpty ? "no collector line was read" : "collector line read only \(readLabel)"
       return abstain("\(siblings.count) printings share this art and \(note)")
@@ -237,6 +270,12 @@ enum MTGCardRecognizer {
       topIllustration == nil || catalog.printings[$0].illustrationId != topIllustration
     }) else {
       return abstain("only printing of its art, but no other art was compared")
+    }
+    if contradicts(top) {
+      return abstain("only printing of its art, but collector line \(readLabel) does not match it")
+    }
+    if catalog.printings[top].frame == machineReadableFrame && readLabel.isEmpty {
+      return abstain("only printing of its art, but its collector line was not read")
     }
     let margin = scores[top] - scores[rival]
     if margin < unreadArtMargin {
