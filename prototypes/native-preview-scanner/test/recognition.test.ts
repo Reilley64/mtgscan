@@ -39,6 +39,7 @@ describe("recognition response", () => {
       accepted: true,
       acceptedScryfallId: candidate.scryfallId,
       reasons: [],
+      premiumMark: false,
     });
   });
 

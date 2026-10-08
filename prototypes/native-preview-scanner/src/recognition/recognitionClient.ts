@@ -23,6 +23,7 @@ export type RecognitionResult = Readonly<{
   accepted: boolean;
   acceptedScryfallId: string | null;
   reasons: readonly string[];
+  premiumMark: boolean;
 }>;
 
 export type RecognitionConfig = Readonly<{
@@ -98,6 +99,7 @@ export function parseRecognitionResponse(
   const reasons = Array.isArray(decision.reasons)
     ? decision.reasons.filter(isText)
     : [];
+  const reading = record.reading as Record<string, unknown> | undefined;
   return {
     scanId: record.scanId,
     serviceLatencyMs: record.serviceLatencyMs,
@@ -105,6 +107,7 @@ export function parseRecognitionResponse(
     accepted: decision.accepted,
     acceptedScryfallId,
     reasons,
+    premiumMark: reading?.premiumMark === true,
   };
 }
 

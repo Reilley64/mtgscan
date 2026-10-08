@@ -137,6 +137,7 @@ export type PreviewCardCapture = {
   photoInFlight: boolean;
   recognitionEnabled: boolean;
   lastRecognition: RecognitionView | null;
+  recognitions: RecognitionView[];
   error: string | null;
   thresholds: CaptureThresholds;
   reset: () => void;
@@ -284,6 +285,14 @@ export function usePreviewCardCapture(
   }, [recognition]);
   const [lastRecognition, setLastRecognition] =
     useState<RecognitionView | null>(null);
+  const [recognitions, setRecognitions] = useState<RecognitionView[]>([]);
+  const publishRecognition = useCallback((view: RecognitionView) => {
+    setLastRecognition(view);
+    setRecognitions((previous) => [
+      ...previous.filter((entry) => entry.sequence !== view.sequence),
+      view,
+    ]);
+  }, []);
   const cameraErrorTimes = useRef<number[]>([]);
   const lastPublished = useRef<PublishedDiagnostics | null>(null);
   const [lastPhoto, setLastPhoto] = useState<CapturedPhoto | null>(null);
@@ -507,7 +516,7 @@ export function usePreviewCardCapture(
     ) => {
       if (recognition === null) return;
       const scanId = `${recognitionSessionId.current}-${sequence}`;
-      setLastRecognition({ status: "pending", sequence });
+      publishRecognition({ status: "pending", sequence });
       recognitionQueue.current = recognitionQueue.current.then(async () => {
         try {
           const result =
@@ -530,7 +539,7 @@ export function usePreviewCardCapture(
                 candidates: result.candidates.slice(0, 3),
               }),
           );
-          setLastRecognition({ status: "done", sequence, endToEndMs, result });
+          publishRecognition({ status: "done", sequence, endToEndMs, result });
           const notACard = isNotACard(result.reasons);
           if (notACard && signature !== null) {
             const kept: number[][] = [];
@@ -583,11 +592,11 @@ export function usePreviewCardCapture(
                 message,
               }),
           );
-          setLastRecognition({ status: "failed", sequence, message });
+          publishRecognition({ status: "failed", sequence, message });
         }
       });
     },
-    [recognition, backgroundSignatures, captureCommands],
+    [recognition, backgroundSignatures, captureCommands, publishRecognition],
   );
 
   const takeExactlyOnePhoto = useCallback(
@@ -1080,6 +1089,7 @@ export function usePreviewCardCapture(
     photoInFlight: photoInFlightOnJS,
     recognitionEnabled: recognition !== null,
     lastRecognition,
+    recognitions,
     error,
     thresholds,
     reset,

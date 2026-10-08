@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -30,6 +30,11 @@ import {
   REFINEMENT_STATUS_LABELS,
   type DetectorPoint,
 } from "./src/detector/validation";
+import { batchReducer, initialBatchState } from "./src/batch/batch";
+import { BatchReview } from "./src/batch/BatchReview";
+import { ScanSheet } from "./src/batch/ScanSheet";
+import { ScanStrip } from "./src/batch/ScanStrip";
+import { isNotACard } from "./src/recognition/recognitionClient";
 
 const formatNumber = (value: number, digits = 1) =>
   Number.isFinite(value) ? value.toFixed(digits) : "n/a";
@@ -78,6 +83,45 @@ export default function App() {
   ]);
   const { hasPermission, requestPermission } = useCameraPermission();
   const capture = usePreviewCardCapture(camera, QUAD_CAPTURE_TIMING);
+  const [batch, dispatch] = useReducer(batchReducer, initialBatchState);
+  const [openScanId, setOpenScanId] = useState<string | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
+  const handledRecognitions = useRef(new Set<number>());
+  useEffect(() => {
+    for (const view of capture.recognitions) {
+      if (
+        view.status === "pending" ||
+        handledRecognitions.current.has(view.sequence)
+      )
+        continue;
+      handledRecognitions.current.add(view.sequence);
+      const scanId = `scan-${view.sequence}`;
+      if (view.status === "failed") {
+        dispatch({ type: "failed", scanId, sequence: view.sequence });
+        continue;
+      }
+      dispatch({
+        type: "recognized",
+        scanId,
+        sequence: view.sequence,
+        candidates: view.result.candidates.map((candidate) => ({
+          scryfallId: candidate.scryfallId,
+          oracleId: candidate.oracleId,
+          name: candidate.name,
+          set: candidate.set,
+          collectorNumber: candidate.collectorNumber,
+        })),
+        premiumMark: view.result.premiumMark,
+        notACard: isNotACard(view.result.reasons),
+      });
+    }
+  }, [capture.recognitions]);
+  const pendingCount = capture.recognitions.filter(
+    (view) => view.status === "pending",
+  ).length;
+  const openScan =
+    batch.scans.find((scan) => scan.scanId === openScanId) ?? null;
   const actualFps = format
     ? Math.max(format.minFps, Math.min(30, format.maxFps))
     : 30;
@@ -221,90 +265,135 @@ export default function App() {
           {capture.error ? (
             <Text style={styles.error}>{capture.error}</Text>
           ) : null}
+          <Pressable
+            style={styles.debugToggle}
+            onPress={() => setDebugOpen((open) => !open)}
+          >
+            <Text style={styles.debugToggleText}>
+              {debugOpen ? "Hide detector details" : "Show detector details"}
+            </Text>
+          </Pressable>
         </View>
 
         <View style={styles.spacer} />
 
-        <View style={styles.metricsPanel}>
-          <Metric
-            label="Refined"
-            pass={diagnostics.gates.detected}
-            value={`${statusLabel}; proposal ${observation.proposalDetected ? "yes" : "no"}`}
-          />
-          <Metric
-            label="Confidence"
-            pass={diagnostics.gates.confidence}
-            value={`${formatNumber(observation.confidence, 3)} / ${DETECTOR_THRESHOLDS.confidenceMin}`}
-          />
-          <Metric
-            label="Area"
-            pass={diagnostics.gates.area}
-            value={`${formatNumber(observation.areaRatio, 3)} in ${DETECTOR_THRESHOLDS.areaRatioMin}-${DETECTOR_THRESHOLDS.areaRatioMax}`}
-          />
-          <Metric
-            label="Aspect"
-            pass={diagnostics.gates.aspect}
-            value={`${formatNumber(observation.aspectRatio, 3)} in ${DETECTOR_THRESHOLDS.aspectRatioMin}-${DETECTOR_THRESHOLDS.aspectRatioMax}`}
-          />
-          <Metric
-            label="Edges"
-            pass={diagnostics.gates.edges}
-            value={`support ${formatNumber(observation.edgeSupportMin, 2)} >= ${DETECTOR_THRESHOLDS.edgeSupportMin}`}
-          />
-          <Text style={styles.telemetry}>
-            Edge shift from proposal T/R/B/L{" "}
-            {formatNumber(observation.shiftTop, 3)}/
-            {formatNumber(observation.shiftRight, 3)}/
-            {formatNumber(observation.shiftBottom, 3)}/
-            {formatNumber(observation.shiftLeft, 3)} of short side; center
-            offset {formatNumber(observation.centerOffset, 3)}.
-          </Text>
-          <Text style={styles.telemetry}>
-            Post-publish total {formatNumber(diagnostics.timing.p50Ms, 2)} ms
-            p50, {formatNumber(diagnostics.timing.p95Ms, 2)} ms p95,{" "}
-            {formatNumber(diagnostics.timing.maxMs, 2)} ms max over{" "}
-            {diagnostics.timing.sampleCount}/300 samples. Native{" "}
-            {formatNumber(observation.nativeDurationMs, 2)} ms, proposal{" "}
-            {formatNumber(observation.proposalDurationMs, 2)} ms.
-          </Text>
-          <Text style={styles.telemetry}>
-            Cadence {formatNumber(diagnostics.timing.effectiveHz, 2)} Hz{" "}
-            {diagnostics.timing.cadencePass ? "PASS" : "WAIT"}; span{" "}
-            {formatNumber(diagnostics.timing.elapsedSpanMs / 1_000, 1)} s; max
-            gap {formatNumber(diagnostics.timing.maxGapMs, 0)} ms; slow streak{" "}
-            {diagnostics.consecutiveSlowSamples}/10.
-          </Text>
-          <Text style={styles.telemetry}>
-            Orientation {observation.orientationCode}; frame{" "}
-            {diagnostics.frameWidth}x{diagnostics.frameHeight} to{" "}
-            {diagnostics.orientedFrameWidth}x{diagnostics.orientedFrameHeight}.
-          </Text>
-          <Metric
-            label="Capture"
-            pass={diagnostics.captureGates.all}
-            value={`${diagnostics.phase}; stable ${diagnostics.captureGates.stable ? "yes" : "no"} (motion ${diagnostics.motion === null ? "n/a" : formatNumber(diagnostics.motion, 3)}); card evidence ${diagnostics.captureGates.departed ? "no" : "yes"}`}
-          />
-          <Text style={styles.telemetry}>
-            Photos this study: {capture.photoCount}. Last photo:{" "}
-            {capture.lastPhoto
-              ? `${capture.lastPhoto.width}x${capture.lastPhoto.height}`
-              : "none"}
-            . Photos stay on this phone.
-          </Text>
-          <View style={styles.buttonRow}>
-            <Pressable
-              disabled={fatal || capture.photoInFlight}
-              style={[
-                styles.button,
-                (fatal || capture.photoInFlight) && styles.buttonDisabled,
-              ]}
-              onPress={capture.reset}
-            >
-              <Text style={styles.buttonText}>Reset study</Text>
-            </Pressable>
+        {debugOpen ? (
+          <View style={styles.metricsPanel}>
+            <Metric
+              label="Refined"
+              pass={diagnostics.gates.detected}
+              value={`${statusLabel}; proposal ${observation.proposalDetected ? "yes" : "no"}`}
+            />
+            <Metric
+              label="Confidence"
+              pass={diagnostics.gates.confidence}
+              value={`${formatNumber(observation.confidence, 3)} / ${DETECTOR_THRESHOLDS.confidenceMin}`}
+            />
+            <Metric
+              label="Area"
+              pass={diagnostics.gates.area}
+              value={`${formatNumber(observation.areaRatio, 3)} in ${DETECTOR_THRESHOLDS.areaRatioMin}-${DETECTOR_THRESHOLDS.areaRatioMax}`}
+            />
+            <Metric
+              label="Aspect"
+              pass={diagnostics.gates.aspect}
+              value={`${formatNumber(observation.aspectRatio, 3)} in ${DETECTOR_THRESHOLDS.aspectRatioMin}-${DETECTOR_THRESHOLDS.aspectRatioMax}`}
+            />
+            <Metric
+              label="Edges"
+              pass={diagnostics.gates.edges}
+              value={`support ${formatNumber(observation.edgeSupportMin, 2)} >= ${DETECTOR_THRESHOLDS.edgeSupportMin}`}
+            />
+            <Text style={styles.telemetry}>
+              Edge shift from proposal T/R/B/L{" "}
+              {formatNumber(observation.shiftTop, 3)}/
+              {formatNumber(observation.shiftRight, 3)}/
+              {formatNumber(observation.shiftBottom, 3)}/
+              {formatNumber(observation.shiftLeft, 3)} of short side; center
+              offset {formatNumber(observation.centerOffset, 3)}.
+            </Text>
+            <Text style={styles.telemetry}>
+              Post-publish total {formatNumber(diagnostics.timing.p50Ms, 2)} ms
+              p50, {formatNumber(diagnostics.timing.p95Ms, 2)} ms p95,{" "}
+              {formatNumber(diagnostics.timing.maxMs, 2)} ms max over{" "}
+              {diagnostics.timing.sampleCount}/300 samples. Native{" "}
+              {formatNumber(observation.nativeDurationMs, 2)} ms, proposal{" "}
+              {formatNumber(observation.proposalDurationMs, 2)} ms.
+            </Text>
+            <Text style={styles.telemetry}>
+              Cadence {formatNumber(diagnostics.timing.effectiveHz, 2)} Hz{" "}
+              {diagnostics.timing.cadencePass ? "PASS" : "WAIT"}; span{" "}
+              {formatNumber(diagnostics.timing.elapsedSpanMs / 1_000, 1)} s; max
+              gap {formatNumber(diagnostics.timing.maxGapMs, 0)} ms; slow streak{" "}
+              {diagnostics.consecutiveSlowSamples}/10.
+            </Text>
+            <Text style={styles.telemetry}>
+              Orientation {observation.orientationCode}; frame{" "}
+              {diagnostics.frameWidth}x{diagnostics.frameHeight} to{" "}
+              {diagnostics.orientedFrameWidth}x{diagnostics.orientedFrameHeight}
+              .
+            </Text>
+            <Metric
+              label="Capture"
+              pass={diagnostics.captureGates.all}
+              value={`${diagnostics.phase}; stable ${diagnostics.captureGates.stable ? "yes" : "no"} (motion ${diagnostics.motion === null ? "n/a" : formatNumber(diagnostics.motion, 3)}); card evidence ${diagnostics.captureGates.departed ? "no" : "yes"}`}
+            />
+            <Text style={styles.telemetry}>
+              Photos this study: {capture.photoCount}. Last photo:{" "}
+              {capture.lastPhoto
+                ? `${capture.lastPhoto.width}x${capture.lastPhoto.height}`
+                : "none"}
+              . Photos stay on this phone.
+            </Text>
+            <View style={styles.buttonRow}>
+              <Pressable
+                disabled={fatal || capture.photoInFlight}
+                style={[
+                  styles.button,
+                  (fatal || capture.photoInFlight) && styles.buttonDisabled,
+                ]}
+                onPress={capture.reset}
+              >
+                <Text style={styles.buttonText}>Reset study</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        ) : null}
+
+        <ScanStrip
+          scans={batch.scans}
+          pendingCount={pendingCount}
+          onOpen={setOpenScanId}
+        />
+        <Pressable
+          disabled={batch.scans.length === 0}
+          style={[
+            styles.button,
+            styles.reviewButton,
+            batch.scans.length === 0 && styles.buttonDisabled,
+          ]}
+          onPress={() => setReviewOpen(true)}
+        >
+          <Text style={styles.buttonText}>
+            Review batch ({batch.scans.length})
+          </Text>
+        </Pressable>
       </SafeAreaView>
+      {openScan ? (
+        <ScanSheet
+          key={openScan.scanId}
+          scan={openScan}
+          dispatch={dispatch}
+          onClose={() => setOpenScanId(null)}
+        />
+      ) : null}
+      {reviewOpen ? (
+        <BatchReview
+          state={batch}
+          dispatch={dispatch}
+          onClose={() => setReviewOpen(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -441,6 +530,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#d8ff62",
   },
   buttonDisabled: { opacity: 0.4 },
+  reviewButton: { flex: 0, marginBottom: 8 },
+  debugToggle: { alignSelf: "flex-start", paddingVertical: 4 },
+  debugToggleText: { color: "#74c7ff", fontSize: 11, fontWeight: "700" },
   buttonText: { color: "#101500", fontSize: 12, fontWeight: "900" },
   proposalEdge: {
     position: "absolute",

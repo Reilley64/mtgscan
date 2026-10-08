@@ -165,12 +165,14 @@ enum MTGCardRecognizer {
       excluded: excluded
     )
     var ordered = expanded
+    var leadingCount = 0
     if let first {
       let leading = [first] + sameLineVariants(of: first, catalog: catalog).filter { !excluded.contains($0) }
       ordered.removeAll { leading.contains($0) }
       ordered.insert(contentsOf: leading, at: 0)
+      leadingCount = leading.count
     }
-    let candidates = ordered.prefix(candidateCount).map { index -> MTGRecognitionCandidate in
+    let candidates = ordered.prefix(max(candidateCount, leadingCount + 1)).map { index -> MTGRecognitionCandidate in
       let printing = catalog.printings[index]
       return MTGRecognitionCandidate(
         scryfallId: printing.id,
