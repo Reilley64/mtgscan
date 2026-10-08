@@ -43,6 +43,7 @@ enum MTGCardRecognizer {
   static let notACardSimilarity: Float = 0.5
   static let unreadArtMargin: Float = 0.03
   static let orientationMargin: Float = 0.03
+  static let fullReadingStrength = 3
   static let candidateCount = 5
 
   enum Failure: Error {
@@ -95,9 +96,18 @@ enum MTGCardRecognizer {
     let isTurned: Bool
     let reading: MTGCollectorLine
     if abs(turnedBest - uprightBest) > orientationMargin {
-      isTurned = turnedBest > uprightBest
-      reading = MTGCollectorLineReader.read(card: isTurned ? turned : uprightCandidate, setCodes: catalog.setCodes)
-      stageMs["read"] = reading.durationMs
+      let preferTurned = turnedBest > uprightBest
+      let preferred = MTGCollectorLineReader.read(card: preferTurned ? turned : uprightCandidate, setCodes: catalog.setCodes)
+      if preferred.strength == fullReadingStrength {
+        isTurned = preferTurned
+        reading = preferred
+        stageMs["read"] = preferred.durationMs
+      } else {
+        let other = MTGCollectorLineReader.read(card: preferTurned ? uprightCandidate : turned, setCodes: catalog.setCodes)
+        stageMs["read"] = preferred.durationMs + other.durationMs
+        isTurned = other.strength > preferred.strength ? !preferTurned : preferTurned
+        reading = other.strength > preferred.strength ? other : preferred
+      }
     } else {
       let uprightReading = MTGCollectorLineReader.read(card: uprightCandidate, setCodes: catalog.setCodes)
       let turnedReading = MTGCollectorLineReader.read(card: turned, setCodes: catalog.setCodes)
@@ -179,9 +189,20 @@ enum MTGCardRecognizer {
     let top = ranked[0]
     let topName = catalog.printings[top].oracleId
     let shortlistNames = Set(ranked.prefix(illustrationExpansion).map { catalog.printings[$0].oracleId })
-    let readLabel = [reading.setCode?.uppercased(), reading.collectorNumber].compactMap { $0 }.joined(separator: " ")
+    let setCode = reading.setCode ?? reading.setToken.flatMap { token in
+      let nearby = Set(ranked.compactMap { index -> String? in
+        let printing = catalog.printings[index]
+        guard shortlistNames.contains(printing.oracleId),
+              printing.set.count == token.count,
+              zip(printing.set, token).filter({ $0 != $1 }).count <= 1
+        else { return nil }
+        return printing.set
+      })
+      return nearby.count == 1 ? nearby.first : nil
+    }
+    let readLabel = [setCode?.uppercased(), reading.collectorNumber].compactMap { $0 }.joined(separator: " ")
 
-    if let setCode = reading.setCode, let number = reading.collectorNumber,
+    if let setCode, let number = reading.collectorNumber,
        let read = catalog.index(set: setCode, collectorNumber: number) {
       if shortlistNames.contains(catalog.printings[read].oracleId) {
         return accept(read, "collector line \(readLabel) matches a card in the image shortlist")
@@ -189,7 +210,7 @@ enum MTGCardRecognizer {
       return abstain("collector line \(readLabel) names a card the image does not support", first: read)
     }
 
-    if let setCode = reading.setCode {
+    if let setCode {
       let matches = ranked.filter {
         catalog.printings[$0].set == setCode && catalog.printings[$0].oracleId == topName
       }

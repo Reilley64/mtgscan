@@ -4,6 +4,7 @@ import Vision
 
 struct MTGCollectorLine {
   var setCode: String?
+  var setToken: String?
   var collectorNumber: String?
   var premiumMark = false
   var lines: [String] = []
@@ -41,8 +42,10 @@ enum MTGCollectorLineReader {
   static func parse(lines: [String], setCodes: Set<String>) -> MTGCollectorLine {
     var result = MTGCollectorLine(lines: lines)
     let setPattern = try! NSRegularExpression(pattern: #"([A-Z0-9]{3,5})\s*([•·.*★☆\-])\s*([A-Z]{2})\b"#)
-    let fractionPattern = try! NSRegularExpression(pattern: #"\b(\d{1,4})\s*/\s*\d{2,4}\b"#)
-    let rarityPattern = try! NSRegularExpression(pattern: #"(?:^|\s)[CURMSLTP]\s*(\d{3,5})\b"#)
+    let fractionPattern = try! NSRegularExpression(pattern: #"\b(\d{1,4})\s*/\s*\d{2,3}(?!\d)"#)
+    let rarityFirstPattern = try! NSRegularExpression(pattern: #"(?:^|\s)[CURMSLTP]\s*(\d{3,5})\b"#)
+    let numberFirstPattern = try! NSRegularExpression(pattern: #"^\s*(\d{1,4})\s+[CURMSLTP]\s*$"#)
+    let numberOnlyPattern = try! NSRegularExpression(pattern: #"^\s*(\d{1,4})\s*$"#)
     for line in lines {
       let upper = line.uppercased()
       let range = NSRange(upper.startIndex..., in: upper)
@@ -51,25 +54,33 @@ enum MTGCollectorLineReader {
               let markRange = Range(match.range(at: 2), in: upper)
         else { continue }
         let code = upper[codeRange].lowercased()
+        let premium = ["*", "★", "☆"].contains(String(upper[markRange]))
         if setCodes.contains(code) {
           result.setCode = code
-          result.premiumMark = ["*", "★", "☆"].contains(String(upper[markRange]))
+          result.setToken = code
+          result.premiumMark = premium
+        } else if result.setCode == nil {
+          result.setToken = code
+          result.premiumMark = premium
         }
       }
     }
-    for line in lines {
-      let range = NSRange(line.startIndex..., in: line)
-      let isCopyright = line.range(of: #"wiz|coast|™|©"#, options: [.regularExpression, .caseInsensitive]) != nil
-      if let match = fractionPattern.firstMatch(in: line, range: range),
-         let numberRange = Range(match.range(at: 1), in: line) {
+    let patterns: [(NSRegularExpression, Bool)] = [
+      (fractionPattern, true),
+      (rarityFirstPattern, false),
+      (numberFirstPattern, false),
+      (numberOnlyPattern, false),
+    ]
+    for (pattern, allowedOnCopyright) in patterns {
+      for line in lines {
+        let range = NSRange(line.startIndex..., in: line)
+        let isCopyright = line.range(of: #"wiz|coast|™|©"#, options: [.regularExpression, .caseInsensitive]) != nil
+        guard allowedOnCopyright || !isCopyright,
+              let match = pattern.firstMatch(in: line, range: range),
+              let numberRange = Range(match.range(at: 1), in: line)
+        else { continue }
         result.collectorNumber = normalizedNumber(String(line[numberRange]))
-        break
-      }
-      if !isCopyright,
-         let match = rarityPattern.firstMatch(in: line, range: range),
-         let numberRange = Range(match.range(at: 1), in: line) {
-        result.collectorNumber = normalizedNumber(String(line[numberRange]))
-        break
+        return result
       }
     }
     return result

@@ -37,6 +37,18 @@ check(copyrightYear.collectorNumber == nil, "copyright year is not a number \(co
 let unknownSet = MTGCollectorLineReader.parse(lines: ["005/269 C", "XYZ • EN Someone"], setCodes: setCodes)
 check(unknownSet.setCode == nil && unknownSet.collectorNumber == "5", "unknown set code \(unknownSet)")
 
+let numberAlone = MTGCollectorLineReader.parse(lines: ["*/*", "295", "U", "IN & O 2019 Wizards of the Coast", "ELD • EN NICK SOUTHAM"], setCodes: setCodes)
+check(numberAlone.setCode == "eld" && numberAlone.collectorNumber == "295", "number on its own line \(numberAlone)")
+
+let yearFraction = MTGCollectorLineReader.parse(lines: ["5/4", "1M& 0/2014 Wizards of the Coast 146/165"], setCodes: setCodes)
+check(yearFraction.collectorNumber == "146", "copyright year is not a fraction \(yearFraction)")
+
+let misreadSet = MTGCollectorLineReader.parse(lines: ["25/196 C", "ZIX. EN IESPER EISING"], setCodes: setCodes)
+check(misreadSet.setCode == nil && misreadSet.setToken == "zix" && misreadSet.collectorNumber == "25", "unknown set token kept \(misreadSet)")
+
+let secretLair = MTGCollectorLineReader.parse(lines: ["flowing.", "7096", "7M11", "x c 2026 Wwards nf the Couxt", "SLD * EN I IOANNIS FIORE"], setCodes: setCodes)
+check(secretLair.setCode == "sld" && secretLair.collectorNumber == "7096" && secretLair.premiumMark, "secret lair number \(secretLair)")
+
 check(MTGCardCatalog.key(set: "ELD", collectorNumber: "008") == MTGCardCatalog.key(set: "eld", collectorNumber: "8"), "catalog key")
 
 let sideways = MTGCardQuad(corners: [
