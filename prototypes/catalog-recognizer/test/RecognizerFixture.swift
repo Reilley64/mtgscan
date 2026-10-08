@@ -41,8 +41,13 @@ check(MTGCardCatalog.key(set: "ELD", collectorNumber: "008") == MTGCardCatalog.k
 
 let sideways = MTGCardQuad(corners: [
   CGPoint(x: 0.1, y: 0.3), CGPoint(x: 0.9, y: 0.3), CGPoint(x: 0.9, y: 0.7), CGPoint(x: 0.1, y: 0.7),
-]).portraitOrdered()
+]).portraitOrdered(imageWidth: 1000, imageHeight: 1000)
 check(sideways.topLeft == CGPoint(x: 0.1, y: 0.7) && sideways.topRight == CGPoint(x: 0.1, y: 0.3), "sideways quad \(sideways)")
+
+let portraitInTallPhoto = MTGCardQuad(corners: [
+  CGPoint(x: 0.2, y: 0.25), CGPoint(x: 0.8, y: 0.25), CGPoint(x: 0.8, y: 0.75), CGPoint(x: 0.2, y: 0.75),
+]).portraitOrdered(imageWidth: 2376, imageHeight: 4224)
+check(portraitInTallPhoto.topLeft == CGPoint(x: 0.2, y: 0.25), "portrait card in a tall photo stays upright \(portraitInTallPhoto)")
 
 if failures > 0 {
   print("\(failures) checks failed")

@@ -55,7 +55,10 @@ enum MTGCardRecognizer {
     var startedAt = ProcessInfo.processInfo.systemUptime
     guard let image = MTGCardRectifier.loadOrientedImage(at: photo) else { throw Failure.unreadableImage }
     guard let card = MTGCardRectifier.rectify(
-      image, normalizedQuad: quad.portraitOrdered(), width: readWidth, height: readHeight
+      image,
+      normalizedQuad: quad.portraitOrdered(imageWidth: image.extent.width, imageHeight: image.extent.height),
+      width: readWidth,
+      height: readHeight
     ) else { throw Failure.rectificationFailed }
     stageMs["rectify"] = elapsed(since: &startedAt)
     return try recognize(card: card, catalog: catalog, cropOutput: cropOutput, stageMs: stageMs)

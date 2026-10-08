@@ -22,19 +22,18 @@ struct MTGCardQuad {
     self.init(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
   }
 
-  func portraitOrdered() -> MTGCardQuad {
-    let top = distance(topLeft, topRight) + distance(bottomLeft, bottomRight)
-    let sides = distance(topLeft, bottomLeft) + distance(topRight, bottomRight)
+  func portraitOrdered(imageWidth: CGFloat, imageHeight: CGFloat) -> MTGCardQuad {
+    func length(_ a: CGPoint, _ b: CGPoint) -> CGFloat {
+      hypot((a.x - b.x) * imageWidth, (a.y - b.y) * imageHeight)
+    }
+    let top = length(topLeft, topRight) + length(bottomLeft, bottomRight)
+    let sides = length(topLeft, bottomLeft) + length(topRight, bottomRight)
     guard top > sides else { return self }
     return MTGCardQuad(corners: [bottomLeft, topLeft, topRight, bottomRight])
   }
 
   func rotatedHalfTurn() -> MTGCardQuad {
     MTGCardQuad(corners: [bottomRight, bottomLeft, topLeft, topRight])
-  }
-
-  private func distance(_ a: CGPoint, _ b: CGPoint) -> CGFloat {
-    hypot(a.x - b.x, a.y - b.y)
   }
 }
 
