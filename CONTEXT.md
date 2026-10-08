@@ -66,6 +66,16 @@ _Avoid_: Changelist
 The ordered record of deck changes. A change can be reverted while its inverse still satisfies collection allocation rules.
 _Avoid_: Audit log
 
+## Search
+
+**Catalog search**:
+A search of the card catalog that returns cards. It is separate from collection search.
+_Avoid_: Card lookup
+
+**Collection search**:
+A search of the user's collection entries. It is separate from catalog search.
+_Avoid_: Inventory search
+
 ## AI access
 
 **MCP connection**:
