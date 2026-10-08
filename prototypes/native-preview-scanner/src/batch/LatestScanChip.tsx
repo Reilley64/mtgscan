@@ -1,5 +1,6 @@
+import { useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
+  Animated,
   Image,
   Pressable,
   StyleSheet,
@@ -11,22 +12,14 @@ import { cardImageUrl } from "./scryfall";
 
 export function LatestScanChip({
   scan,
-  pending,
+  loading,
   onOpen,
 }: {
   scan: BatchScan | null;
-  pending: boolean;
+  loading: boolean;
   onOpen: (scanId: string) => void;
 }) {
-  if (pending)
-    return (
-      <View style={styles.chip}>
-        <View style={[styles.thumb, styles.placeholder]}>
-          <ActivityIndicator color="#d8ff62" />
-        </View>
-        <Text style={styles.name}>Recognizing...</Text>
-      </View>
-    );
+  if (loading) return <SkeletonChip />;
   if (scan === null) return null;
   return (
     <Pressable style={styles.chip} onPress={() => onOpen(scan.scanId)}>
@@ -55,7 +48,43 @@ export function LatestScanChip({
   );
 }
 
+const PULSE_MS = 650;
+
+function SkeletonChip() {
+  const opacity = useRef(new Animated.Value(0.45)).current;
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: PULSE_MS,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.45,
+          duration: PULSE_MS,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [opacity]);
+  return (
+    <View accessibilityLabel="Recognizing card" style={styles.chip}>
+      <Animated.View style={[styles.thumb, styles.bone, { opacity }]} />
+      <View style={styles.text}>
+        <Animated.View style={[styles.lineLong, styles.bone, { opacity }]} />
+        <Animated.View style={[styles.lineShort, styles.bone, { opacity }]} />
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  bone: { backgroundColor: "#2f393f" },
+  lineLong: { width: 140, height: 14, borderRadius: 4 },
+  lineShort: { width: 80, height: 10, marginTop: 6, borderRadius: 4 },
   chip: {
     flexDirection: "row",
     alignItems: "center",

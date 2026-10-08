@@ -371,7 +371,11 @@ export default function App() {
 
         <LatestScanChip
           scan={batch.scans[batch.scans.length - 1] ?? null}
-          pending={pendingCount > 0}
+          loading={
+            pendingCount > 0 ||
+            capture.photoInFlight ||
+            diagnostics.phase === "holding"
+          }
           onOpen={setOpenScanId}
         />
       </SafeAreaView>
