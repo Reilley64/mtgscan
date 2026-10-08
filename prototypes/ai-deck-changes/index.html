@@ -9,10 +9,11 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#2b3034;color:var(--text);font:14px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
-#page{min-height:100%;display:flex;align-items:flex-start;justify-content:center;gap:24px;padding:16px 24px 90px}
+#page{min-height:100%;display:flex;align-items:flex-start;justify-content:center;gap:24px;padding:16px 24px 130px}
 #phone{zoom:var(--fit,1)}
 #phone{position:relative;width:390px;height:844px;border-radius:54px;background:var(--bg);box-shadow:0 0 0 10px #15181a,0 0 0 12px #3c4246,0 30px 80px rgba(0,0,0,.55);overflow:hidden;flex:none}
 #screen{position:absolute;inset:0;display:flex;flex-direction:column}
+#screen.camera,#screen.camera .app{background:#000}
 .statusbar{height:50px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px 34px;font-weight:700;font-size:15px}
 .statusbar .island{position:absolute;left:50%;top:11px;width:122px;height:35px;border-radius:20px;background:#000;transform:translateX(-50%)}
 .statusbar .icons{display:flex;gap:5px;align-items:center;font-size:11px}
@@ -162,8 +163,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;paddin
 .list .item.entry{width:100%;text-align:left;align-items:flex-start}
 .deckrow{display:block;width:calc(100% - 24px);text-align:left}
 .deckrow .art{width:56px;height:56px;border-radius:12px;overflow:hidden;flex:none;background:#2a3238}
-.cam{position:relative;flex:1;min-height:0;background:radial-gradient(ellipse at 50% 40%,#2a2f33 0%,#121518 55%,#050607 100%);overflow:hidden}
-.camnoise{position:absolute;inset:0;background:repeating-linear-gradient(115deg,rgba(255,255,255,.025) 0 2px,transparent 2px 7px);pointer-events:none}
+.cam{position:relative;flex:1;min-height:0;background:#000;overflow:hidden}
 .camtop{position:absolute;left:0;right:0;top:4px;display:flex;justify-content:space-between;align-items:center;padding:0 16px}
 .camtitle{font-size:22px;font-weight:800}
 .batchbtn{position:relative;width:44px;height:44px;border-radius:22px;background:rgba(0,0,0,.55);font-size:20px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.18)}
@@ -177,11 +177,72 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;paddin
 .scanchip .bar{height:10px;border-radius:5px;background:#2f393e}
 .skel{animation:pulse .8s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;padding:0 16px 8px;color:var(--muted);font-size:11px;font-weight:700}
+.legend .cb{position:static;display:inline-block;margin-right:3px}
+.binder{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 8px;padding:0 12px}
+.tile{display:flex;flex-direction:column;gap:4px;text-align:left;min-width:0}
+.tile .timg{position:relative;display:block;aspect-ratio:488/680;border-radius:7px;overflow:hidden;background:#2a3238}
+.tile .thumb{width:100%;height:100%;border-radius:7px;font-size:11px;padding:6px}
+.tile .tcap{font-size:10px;font-weight:700;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb{position:absolute;height:19px;min-width:19px;padding:0 5px;border-radius:10px;font-size:10px;font-weight:900;line-height:19px;text-align:center;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.7)}
+.cb.qty{top:4px;left:4px;background:rgba(0,0,0,.82);color:#fff}
+.cb.prot{top:4px;right:4px;background:var(--warn);color:#1a1200}
+.cb.free{bottom:4px;left:4px;background:var(--accent);color:var(--on-accent)}
+.cb.free.pf{background:var(--warn);color:#1a1200}
+.cbr{position:absolute;bottom:4px;right:4px;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.cbr .cb{position:static}
+.cb.deck{background:var(--info);color:#04121c}
+.cb.held{background:#2c3a12;color:var(--accent)}
+.foilsheen{position:absolute;inset:0;background:linear-gradient(125deg,transparent 30%,rgba(255,255,255,.18) 45%,rgba(143,211,255,.14) 55%,transparent 70%);pointer-events:none}
+.sumline{display:flex;justify-content:space-between;align-items:baseline;padding:0 16px 8px;font-size:12px;color:var(--muted);font-weight:700}
+.sumline b{color:#fff;font-size:15px}
+.cardgrp{margin:6px 12px;border-radius:12px;background:var(--surface);overflow:hidden}
+.cardrow{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;text-align:left}
+.cardrow .val{text-align:right;flex:none}
+.cardrow .val b{display:block;font-size:14px}
+.cardrow .chev{color:var(--dim);width:14px;text-align:center;flex:none}
+.printing{padding:6px 12px 2px 12px;color:var(--accent);font-size:11px;font-weight:800;border-top:1px solid #0d1214}
+.subentry{display:flex;align-items:flex-start;gap:8px;width:100%;padding:6px 12px 8px 22px;text-align:left}
+.gal{position:relative;display:block;width:calc(100% - 24px);height:196px;margin:8px 12px 12px;border-radius:16px;overflow:hidden;text-align:left;background:#2a3238}
+.gal .thumb.art{position:absolute;inset:0;width:100%;height:100%}
+.gal .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,.25) 50%,rgba(0,0,0,.9) 100%)}
+.gal .gtop{position:absolute;left:10px;right:10px;top:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.gal .gtop .chip.ghost{background:rgba(0,0,0,.6);border-color:rgba(255,255,255,.25);color:#fff}
+.gal .needs{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px 0 4px;border-radius:12px;background:var(--danger);color:#fff;font-size:11px;font-weight:900;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.gal .needs .n{min-width:17px;height:17px;border-radius:9px;background:#fff;color:#b3261e;text-align:center;line-height:17px;font-size:10px}
+.gal .over{position:absolute;left:12px;right:12px;bottom:10px;display:flex;flex-direction:column;gap:5px}
+.gal .gname{font-size:21px;font-weight:800;line-height:1.1;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+.gal .over .meta{color:#dfe6e9}
+.tablewrap{overflow-x:auto;scrollbar-width:none;margin-bottom:6px}
+.tablewrap::-webkit-scrollbar{display:none}
+table.ov{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%}
+.ov th{background:var(--surface);color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:0;text-align:left;vertical-align:bottom;border-bottom:1px solid var(--line)}
+.ov th button{display:block;width:100%;padding:7px;text-align:left;line-height:1.2;max-width:84px}
+.ov th.sorted{color:var(--accent)}
+.ov td{padding:8px 7px;border-bottom:1px solid #1a2125;white-space:nowrap;vertical-align:middle}
+.ov td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.ov td.zero{color:var(--dim);font-weight:400}
+.ov .stick{position:sticky;left:0;z-index:1;background:var(--bg);box-shadow:1px 0 0 var(--line)}
+.ov th.stick{background:var(--surface);z-index:2}
+.ov tr.deckline{cursor:pointer}
+.ov tr.deckline:hover td{background:#0f1518}
+.ov tr.total td{color:var(--muted);font-weight:800;border-bottom:0}
+.ov .cmd{display:flex;align-items:center;gap:7px;font-weight:800}
+.ov .cmd .av{width:28px;height:28px;border-radius:14px;overflow:hidden;flex:none;background:#2a3238}
+.prio{display:inline-flex;align-items:center;gap:6px}
+.prio .arrows{display:flex;flex-direction:column;gap:2px}
+.pbtn{width:22px;height:15px;border-radius:4px;background:var(--surface3);font-size:8px;line-height:15px;color:#fff}
+.pbtn:disabled{opacity:.25;cursor:not-allowed}
 .btn.simscan{flex:none;width:100%;background:rgba(0,0,0,.5);border:1px dashed #ffb300;color:#ffb300}
 #switcher{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:4px;background:#ffffff;color:#111;border-radius:999px;padding:5px;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.2);font-weight:800;font-size:13px}
 #switcher button{width:34px;height:34px;border-radius:17px;background:#eee;color:#111;font-size:16px;font-weight:900}
 #switcher button:hover{background:#ddd}
 #switcher .label{padding:0 12px;min-width:220px;text-align:center}
+#layout-switcher{position:fixed;left:50%;bottom:72px;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:4px;background:#fff4d6;color:#1a1200;border-radius:999px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.4),0 0 0 1px rgba(0,0,0,.2);font-weight:800;font-size:12px}
+#layout-switcher[hidden]{display:none}
+#layout-switcher button{width:28px;height:28px;border-radius:14px;background:#f3e3b5;color:#1a1200;font-size:14px;font-weight:900}
+#layout-switcher button:hover{background:#ebd69a}
+#layout-switcher .label{padding:0 10px;min-width:220px;text-align:center}
 #dev{position:fixed;top:14px;left:14px;z-index:100;width:280px;background:#f4f1e8;color:#1a1a1a;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.4);font-size:12px;overflow:hidden}
 #dev .dh{background:#ffb300;color:#1a1200;padding:7px 10px;font-weight:900;display:flex;justify-content:space-between;align-items:center}
 #dev .db{padding:8px 10px;display:flex;flex-direction:column;gap:6px}
@@ -205,6 +266,11 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;paddin
   <aside id="state-panel" hidden></aside>
 </div>
 <div id="dev"></div>
+<div id="layout-switcher" role="toolbar" aria-label="Prototype layout switcher" hidden>
+  <button data-act="layoutD" data-step="-1" aria-label="Previous layout">←</button>
+  <span class="label" id="layout-label"></span>
+  <button data-act="layoutD" data-step="1" aria-label="Next layout">→</button>
+</div>
 <div id="switcher" role="toolbar" aria-label="Prototype variant switcher">
   <button id="prev" aria-label="Previous variant">←</button>
   <span class="label" id="switcher-label">A</span>
@@ -692,6 +758,15 @@ const Domain = (() => {
         event(s, null, 'unprotected', { cardId: e.cardId });
         return s;
       }
+      case 'setPriority': {
+        const d = deckById(s, action.deckId);
+        if (!d || !(action.priority in PRIORITY_RANK) || d.priority === action.priority) return state;
+        tick(s);
+        const from = d.priority;
+        d.priority = action.priority;
+        event(s, d.id, 'priority changed', { from, to: action.priority });
+        return s;
+      }
       case 'toggleCatalogGap': { s.catalogGap = !s.catalogGap; return s; }
       default: return state;
     }
@@ -706,8 +781,11 @@ const VARIANTS = [['A', 'Deck-first'], ['B', 'Review queue'], ['C', 'Timeline'],
 let state = D.seed();
 const params = new URLSearchParams(location.search);
 const startVariant = VARIANTS.some(v => v[0] === params.get('variant')) ? params.get('variant') : 'D';
-const freshUi = () => ({ deckId: 'atraxa', sheet: null, toast: null, A: { showClosed: false }, B: { tab: 'review', filter: 'all', skipped: [], current: null, deckId: 'atraxa' }, C: { filter: 'all', revertFrom: null, highlight: null, toBottom: true }, D: { tab: 'recent', filter: 'all', deckId: null, query: '', colFilter: 'all', scanning: false, scanFor: null } });
-let ui = { variant: startVariant, showState: false, images: true, devOpen: true, devTarget: null, ...freshUi() };
+const freshUi = () => ({ deckId: 'atraxa', sheet: null, toast: null, A: { showClosed: false }, B: { tab: 'review', filter: 'all', skipped: [], current: null, deckId: 'atraxa' }, C: { filter: 'all', revertFrom: null, highlight: null, toBottom: true }, D: { tab: 'recent', filter: 'all', deckId: null, query: '', colFilter: 'all', scanning: false, scanFor: null, cardSort: 'name', expanded: [], deckSort: { key: 'priority', dir: -1 } } });
+const COL_LAYOUTS = ['List', 'Binder grid', 'By card'];
+const DECK_LAYOUTS = ['List', 'Commander gallery', 'Overview table'];
+const layoutParam = k => [1, 2, 3].includes(Number(params.get(k))) ? Number(params.get(k)) : 1;
+let ui = { variant: startVariant, showState: false, images: true, devOpen: true, devTarget: null, layout: { collection: layoutParam('collection'), decks: layoutParam('decks') }, ...freshUi() };
 let toastTimer = null;
 let scanTimer = null;
 
@@ -723,7 +801,7 @@ const changeOf = id => state.changes.find(x => x.id === id);
 
 function thumb(id, cls = '') {
   const c = C(id);
-  const src = cls.includes('lg') ? c.img.normal : cls.includes('art') ? c.img.art : c.img.small;
+  const src = cls.includes('lg') || cls.includes('tile') ? c.img.normal : cls.includes('art') ? c.img.art : c.img.small;
   return ui.images ? `<div class="thumb ${cls}" style="background-image:url('${src}')" title="${esc(c.name)}"></div>` : `<div class="thumb ${cls}">${esc(c.name)}</div>`;
 }
 const priorityChip = p => `<span class="chip ghost">${cap(p)} priority</span>`;
@@ -933,7 +1011,7 @@ function historyList(deckId) {
   }).join('') || `<div class="note">No deck changes yet.</div>`;
 }
 
-const EV_ICON = { suggested: ['ai', '✦'], 'reason edited': ['ai', '✎'], withdrawn: ['ai', '⤺'], dismissed: ['muted', '×'], stale: ['muted', '◌'], 'planned swap': ['swap', '⇄'], 'buylist card': ['buy', '$'], 'deck change': ['change', 'Δ'], closed: ['muted', '–'], 'moved to buylist': ['buy', '$'], scanned: ['muted', '▣'], unprotected: ['muted', '🔓'] };
+const EV_ICON = { suggested: ['ai', '✦'], 'reason edited': ['ai', '✎'], withdrawn: ['ai', '⤺'], dismissed: ['muted', '×'], stale: ['muted', '◌'], 'planned swap': ['swap', '⇄'], 'buylist card': ['buy', '$'], 'deck change': ['change', 'Δ'], closed: ['muted', '–'], 'moved to buylist': ['buy', '$'], scanned: ['muted', '▣'], unprotected: ['muted', '🔓'], 'priority changed': ['muted', '↕'] };
 function eventNeedsYou(e) {
   if (e.kind === 'suggested') return sugOf(e.suggestionId).status === 'open';
   if (e.kind === 'planned swap') return swapOf(e.swapId).status === 'open';
@@ -973,6 +1051,7 @@ function renderEvent(e, revertSet) {
   } else if (e.kind === 'closed') { quiet = true; const p = e.swapId ? swapOf(e.swapId) : buyOf(e.buylistId); inner = `<div class="what">${e.swapId ? 'Planned swap' : 'Buylist card'} for ${esc(C(p.in).name)} closed</div><div class="meta">Outgoing card left the deck.</div>`; }
   else if (e.kind === 'scanned') { quiet = true; inner = `<div class="what">You scanned ${plural(e.count, 'copy').replace('copys', 'copies')} of ${esc(C(e.cardId).name)}</div><div class="meta">Added to your collection.</div>`; }
   else if (e.kind === 'unprotected') { quiet = true; inner = `<div class="what">1 protected copy of ${esc(C(e.cardId).name)} was unprotected</div>`; }
+  else if (e.kind === 'priority changed') { quiet = true; inner = `<div class="what">You changed the deck priority from ${e.from} to ${e.to}</div>`; }
   return `<div class="ev ${extraCls}" data-ev="${e.id}"${e.suggestionId ? ` data-sug="${e.suggestionId}"` : ''}><div class="dot ${cls}">${ic}</div><div class="bubble ${quiet ? 'quiet' : ''}"><div class="when">${D.fmtAt(e.at)}</div>${inner}</div></div>`;
 }
 function renderC() {
@@ -1017,7 +1096,7 @@ function revertFlags(plan) {
 
 
 const D_FILTERS = [['all', 'All'], ['suggestions', 'Suggestions'], ['planned', 'Planned swaps'], ['buylist', 'Buylist'], ['changes', 'Deck changes']];
-const FEED_KINDS = ['deck change', 'dismissed', 'withdrawn', 'reason edited', 'stale', 'planned swap', 'buylist card', 'moved to buylist', 'closed', 'unprotected', 'protected', 'scanned', 'batch added'];
+const FEED_KINDS = ['deck change', 'dismissed', 'withdrawn', 'reason edited', 'stale', 'planned swap', 'buylist card', 'moved to buylist', 'closed', 'unprotected', 'protected', 'scanned', 'batch added', 'priority changed'];
 function needsYouD() {
   const items = [
     ...state.suggestions.filter(x => x.status === 'open').map(x => ({ cat: 'suggestions', at: x.createdAt, key: 'sug-' + x.id, x })),
@@ -1074,6 +1153,7 @@ function feedItemD(e) {
   else if (e.kind === 'closed') { const x = e.swapId ? swapOf(e.swapId) : buyOf(e.buylistId); what = `${e.swapId ? 'Planned swap' : 'Buylist card'} for ${esc(C(x.in).name)} closed`; body = `<div class="meta">The outgoing card left the deck.</div>`; }
   else if (e.kind === 'unprotected') { what = `1 protected copy of ${esc(C(e.cardId).name)} was unprotected`; }
   else if (e.kind === 'protected') { what = `You protected 1 copy of ${esc(C(e.cardId).name)}`; }
+  else if (e.kind === 'priority changed') { what = `You changed the deck priority from ${e.from} to ${e.to}`; body = `<div class="meta">Deck suggestions never free a card from a deck with equal or higher priority.</div>`; }
   else if (e.kind === 'scanned') { what = `You scanned ${e.count === 1 ? '1 copy' : e.count + ' copies'} of ${esc(C(e.cardId).name)}`; body = `<div class="meta">Added to your collection.</div>`; }
   else if (e.kind === 'batch added') { what = `You added a scan batch to your collection`; body = `<div class="meta">${e.count === 1 ? '1 copy' : e.count + ' copies'}: ${esc(e.cardIds.map(c => C(c).name).join(', '))}</div>`; }
   return `<div class="card fitem ${extra}" data-ev="${e.id}" data-kind="${esc(e.kind)}"><div class="row">${deckTag(e.deckId)}<span class="grow"></span><span class="when">${D.fmtAt(e.at)}</span></div><div class="row" style="margin-top:6px;align-items:flex-start"><span class="fic ${cls}">${ic}</span><div class="grow"><div class="what">${what}</div>${body}</div></div></div>`;
@@ -1122,18 +1202,151 @@ function entryChips(e) {
   if (e.protected) h += `<span class="chip warn">${e.qty} protected</span>`;
   return h;
 }
+const COL_FILTERS = [['all', 'All'], ['free', 'Free'], ['allocated', 'Allocated'], ['protected', 'Protected']];
+const CARD_SORTS = [['name', 'Name'], ['value', 'Value'], ['recent', 'Recently added']];
+const byEntryName = (a, b) => C(a.cardId).name.localeCompare(C(b.cardId).name) || a.printing.localeCompare(b.printing);
+const money = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const cardValue = (cardId, qty) => C(cardId).price ? Number(C(cardId).price) * qty : 0;
+const entrySeq = e => Number(e.id.slice(1)) || 0;
+function cardGroups(list) {
+  const m = new Map();
+  for (const e of list) { if (!m.has(e.cardId)) m.set(e.cardId, []); m.get(e.cardId).push(e); }
+  return [...m.entries()].map(([cardId, entries]) => ({ cardId, entries }));
+}
+function lastAddedAt(cardId) {
+  const ats = state.events.filter(e => (e.kind === 'scanned' && e.cardId === cardId) || (e.kind === 'batch added' && e.cardIds.includes(cardId))).map(e => e.at);
+  return ats.length ? Math.max(...ats) : null;
+}
+function listD(list) {
+  return `<div class="list">${list.map(e => `<button class="item entry" data-act="openEntryD" data-entry="${e.id}">${thumb(e.cardId)}<span class="grow"><span class="name" style="display:block">${esc(C(e.cardId).name)}</span><span class="meta" style="display:block">${esc(printingText(e))}</span><span class="chips" style="margin-top:4px">${entryChips(e)}</span></span><span class="dim">›</span></button>`).join('')}</div>`;
+}
+function binderD(list) {
+  let h = `<div class="legend"><span><span class="cb qty">×2</span>owned</span><span><span class="cb free">1</span>free</span><span><span class="cb deck">❏1</span>in decks</span><span><span class="cb held">⇄1</span>held</span><span><span class="cb prot">🔒</span>protected</span></div><div class="binder">`;
+  for (const e of list) {
+    const n = entryCounts(e);
+    const badges = `<span class="cb qty" title="${e.qty} owned">×${e.qty}</span>${e.protected ? `<span class="cb prot" title="Protected copies">🔒</span>` : ''}${n.free ? `<span class="cb free ${e.protected ? 'pf' : ''}" title="${n.free} free">${n.free}</span>` : ''}<span class="cbr">${n.allocated ? `<span class="cb deck" title="${esc(n.alloc.map(a => `${a.qty} in ${deckOf(a.deckId).short}`).join(', '))}">❏${n.allocated}</span>` : ''}${n.held.length ? `<span class="cb held" title="Held by a planned swap">⇄${n.held.length}</span>` : ''}</span>`;
+    h += `<button class="tile entry" data-act="openEntryD" data-entry="${e.id}" title="${esc(C(e.cardId).name)} · ${esc(printingText(e))}"><span class="timg">${thumb(e.cardId, 'tile')}${e.finish === 'foil' ? '<span class="foilsheen"></span>' : ''}${badges}</span><span class="tcap">${esc(e.printing)}${e.finish === 'foil' ? ' · foil' : ''}${e.condition !== 'NM' ? ' · ' + esc(e.condition) : ''}</span></button>`;
+  }
+  return h + `</div>`;
+}
+function cardGroupStats(g) {
+  const all = state.collection.filter(e => e.cardId === g.cardId);
+  const s = D.copySummary(state, g.cardId);
+  return { ...g, all, s, prot: all.filter(e => e.protected).reduce((a, e) => a + e.qty, 0), value: cardValue(g.cardId, s.owned), added: lastAddedAt(g.cardId), seq: Math.max(...all.map(entrySeq)) };
+}
+function sortedCardGroups(list) {
+  const groups = cardGroups(list).map(cardGroupStats);
+  const byName = (a, b) => C(a.cardId).name.localeCompare(C(b.cardId).name);
+  const sort = ui.D.cardSort;
+  if (sort === 'value') return groups.sort((a, b) => b.value - a.value || byName(a, b));
+  if (sort === 'recent') return groups.sort((a, b) => (b.added ?? -1) - (a.added ?? -1) || b.seq - a.seq);
+  return groups.sort(byName);
+}
+function byCardD(list) {
+  const groups = sortedCardGroups(list);
+  const owned = groups.reduce((a, g) => a + g.s.owned, 0), value = groups.reduce((a, g) => a + g.value, 0);
+  let h = `<div class="segment">${CARD_SORTS.map(([k, l]) => `<button class="${ui.D.cardSort === k ? 'sel' : ''}" data-act="cardSortD" data-sort="${k}">${l}</button>`).join('')}</div>`;
+  h += `<div class="sumline" data-total="${value.toFixed(2)}"><span>${plural(groups.length, 'card')} · ${owned} copies</span><span>Value <b>${money(value)}</b></span></div>`;
+  for (const g of groups) {
+    const open = ui.D.expanded.includes(g.cardId);
+    const printings = [...new Set(g.all.map(e => e.printing))];
+    const c = C(g.cardId);
+    let chips = `<span class="chip ghost">${g.s.owned} owned</span>`;
+    if (g.s.free) chips += `<span class="chip ok">${g.s.free} free</span>`;
+    if (g.s.inDecks) chips += `<span class="chip info">${g.s.inDecks} in decks</span>`;
+    if (g.s.held) chips += `<span class="chip info">${g.s.held} held</span>`;
+    if (g.prot) chips += `<span class="chip warn">${g.prot} protected</span>`;
+    const meta = `${plural(printings.length, 'printing')} · ${plural(g.all.length, 'collection entry').replace('entrys', 'entries')}${g.added != null ? ` · last scanned ${D.fmtAt(g.added)}` : ''}`;
+    h += `<div class="cardgrp" data-card="${g.cardId}"><button class="cardrow" data-act="toggleCardD" data-card="${g.cardId}" aria-expanded="${open}">${thumb(g.cardId)}<span class="grow"><span class="name" style="display:block">${esc(c.name)}</span><span class="meta" style="display:block">${esc(meta)}</span><span class="chips" style="margin-top:4px">${chips}</span></span><span class="val meta"><b data-value="${g.value.toFixed(2)}">${money(g.value)}</b>${c.price ? `$${c.price} each` : 'No price'}</span><span class="chev">${open ? '▾' : '▸'}</span></button>`;
+    if (open) {
+      for (const p of printings) {
+        const shown = g.entries.filter(e => e.printing === p);
+        if (!shown.length) continue;
+        h += `<div class="printing">${esc(p)}</div>`;
+        for (const e of shown) h += `<button class="subentry" data-act="openEntryD" data-entry="${e.id}"><span class="grow"><span class="meta" style="display:block;color:#fff;font-weight:700">${esc(e.finish)} · ${esc(e.condition)} · ${esc(e.language)}</span><span class="chips" style="margin-top:4px">${entryChips(e)}</span></span><span class="dim">›</span></button>`;
+      }
+      const hidden = g.all.length - g.entries.length;
+      if (hidden) h += `<div class="note">${plural(hidden, 'other collection entry').replace('entrys', 'entries')} hidden by the filter.</div>`;
+    }
+    h += `</div>`;
+  }
+  return h;
+}
 function renderCollectionD() {
-  const q = ui.D.query, f = ui.D.colFilter;
-  const all = state.collection.slice().sort((a, b) => C(a.cardId).name.localeCompare(C(b.cardId).name) || a.printing.localeCompare(b.printing));
+  const q = ui.D.query, f = ui.D.colFilter, layout = ui.layout.collection;
+  const all = state.collection.slice().sort(byEntryName);
   const list = all.filter(e => entryMatches(e, q, f));
   const copies = state.collection.reduce((a, e) => a + e.qty, 0);
+  const countOf = k => { const m = all.filter(e => entryMatches(e, '', k)); return layout === 3 ? cardGroups(m).length : m.length; };
   let h = `<div class="navtitle"><div><h1>Collection</h1><div class="sub">${plural(state.collection.length, 'collection entry').replace('entrys', 'entries')} · ${copies} copies</div></div></div>`;
   h += `<div class="search"><span>⌕</span><input id="col-search" type="search" placeholder="Search your collection" autocomplete="off" value="${esc(q)}"></div>`;
-  h += `<div class="chiprow">${[['all', 'All'], ['free', 'Free'], ['allocated', 'Allocated'], ['protected', 'Protected']].map(([k, l]) => `<button class="chip big ${f === k ? 'sel' : ''}" data-act="colFilterD" data-f="${k}">${l} · ${all.filter(e => entryMatches(e, '', k)).length}</button>`).join('')}</div>`;
-  h += `<div class="list">${list.map(e => `<button class="item entry" data-act="openEntryD" data-entry="${e.id}">${thumb(e.cardId)}<span class="grow"><span class="name" style="display:block">${esc(C(e.cardId).name)}</span><span class="meta" style="display:block">${esc(printingText(e))}</span><span class="chips" style="margin-top:4px">${entryChips(e)}</span></span><span class="dim">›</span></button>`).join('')}</div>`;
+  h += `<div class="chiprow">${COL_FILTERS.map(([k, l]) => `<button class="chip big ${f === k ? 'sel' : ''}" data-act="colFilterD" data-f="${k}">${l} · ${countOf(k)}</button>`).join('')}</div>`;
+  h += layout === 2 ? binderD(list) : layout === 3 ? byCardD(list) : listD(list);
   if (!list.length) h += `<div class="empty">No collection entries match.${q ? `<br><span class="dim">Collection search only searches your collection, not the card catalog.</span>` : ''}</div>`;
-  h += `<div class="note">Basic lands are not tracked, so they never appear here.</div>`;
-  return `<div class="scroll" data-scroll="D-collection">${h}<div style="height:24px"></div></div>`;
+  h += `<div class="note">Basic lands are not tracked, so they never appear here.${layout === 3 ? ' Prices are per card in this prototype, not per printing or finish.' : ''}</div>`;
+  return `<div class="scroll" data-scroll="D-collection-${layout}" data-layout="collection-${layout}">${h}<div style="height:24px"></div></div>`;
+}
+function deckStats(d) {
+  const v = D.validity(state, d.id), b = D.bracket(state, d.id);
+  const sugs = suggestionsOf(d.id).length;
+  const swaps = state.plannedSwaps.filter(x => x.deckId === d.id && x.status === 'open').length;
+  const buys = state.buylist.filter(x => x.deckId === d.id && x.status === 'open').length;
+  const needs = needsYouD().filter(it => it.x.deckId === d.id).length;
+  const value = D.deckCards(state, d).filter(x => !x.basic).reduce((a, x) => a + cardValue(x.cardId, x.qty), 0);
+  return { d, v, b, sugs, swaps, buys, needs, value, size: v.size };
+}
+const byPriority = (a, b) => D.rank(b.d.priority) - D.rank(a.d.priority) || a.d.name.localeCompare(b.d.name);
+function deckListD() {
+  let h = '';
+  for (const d of state.decks) {
+    const v = D.validity(state, d.id), b = D.bracket(state, d.id);
+    const n = suggestionsOf(d.id).length, p = state.plannedSwaps.filter(x => x.deckId === d.id && x.status === 'open').length, by = state.buylist.filter(x => x.deckId === d.id && x.status === 'open').length;
+    const bits = [n && plural(n, 'deck suggestion'), p && plural(p, 'planned swap'), by && plural(by, 'buylist card')].filter(Boolean);
+    h += `<button class="card deckrow" data-act="openDeckD" data-deck="${d.id}"><div class="row"><div class="art">${thumb(d.commanders[0], 'art')}</div><div class="grow"><div class="name">${esc(d.name)}</div><div class="chips" style="margin-top:4px">${priorityChip(d.priority)}${validityChip(v)}${bracketChip(b)}</div><div class="meta" style="margin-top:4px">${v.size} cards${bits.length ? ' · ' + bits.join(' · ') : ''}</div></div><span class="dim">›</span></div></button>`;
+  }
+  return h;
+}
+function deckGalleryD() {
+  return state.decks.map(deckStats).sort(byPriority).map(x => {
+    const bits = [x.sugs && plural(x.sugs, 'deck suggestion'), x.swaps && plural(x.swaps, 'planned swap'), x.buys && plural(x.buys, 'buylist card')].filter(Boolean);
+    return `<button class="gal" data-act="openDeckD" data-deck="${x.d.id}">${thumb(x.d.commanders[0], 'art')}<span class="shade"></span><span class="gtop">${priorityChip(x.d.priority)}${x.needs ? `<span class="needs" data-needs="${x.d.id}"><span class="n">${x.needs}</span>Needs you</span>` : ''}</span><span class="over"><span class="gname">${esc(x.d.name)}</span><span class="chips">${validityChip(x.v)}${bracketChip(x.b)}</span><span class="meta">${x.size} cards${bits.length ? ' · ' + bits.join(' · ') : ''}</span></span></button>`;
+  }).join('');
+}
+const VALIDITY_ORDER = { valid: 0, invalid: 1, 'cannot determine': 2 };
+const DECK_COLS = [
+  ['name', 'Commander', (a, b) => a.d.name.localeCompare(b.d.name)],
+  ['priority', 'Deck priority', byPriority],
+  ['size', 'Cards', (a, b) => a.size - b.size],
+  ['validity', 'Deck validity', (a, b) => VALIDITY_ORDER[a.v.state] - VALIDITY_ORDER[b.v.state] || a.v.violations.length - b.v.violations.length],
+  ['bracket', 'Estimated bracket', (a, b) => a.b.estimate - b.b.estimate],
+  ['value', 'Value', (a, b) => a.value - b.value],
+  ['sugs', 'Open deck suggestions', (a, b) => a.sugs - b.sugs],
+  ['swaps', 'Planned swaps', (a, b) => a.swaps - b.swaps],
+  ['buys', 'Buylist cards', (a, b) => a.buys - b.buys]
+];
+function compactValidity(v) {
+  if (v.state === 'valid') return `<span class="chip ok">Valid</span>`;
+  if (v.state === 'invalid') return `<span class="chip bad">Invalid · ${v.violations.length}</span>`;
+  return `<span class="chip warn">Cannot determine</span>`;
+}
+const numCell = (n, text = n) => `<td class="num ${n ? '' : 'zero'}">${text}</td>`;
+function deckTableD() {
+  const { key, dir } = ui.D.deckSort;
+  const col = DECK_COLS.find(c => c[0] === key) || DECK_COLS[1];
+  const rows = state.decks.map(deckStats).sort((a, b) => (key === 'priority' ? -1 : 1) * dir * col[2](a, b) || a.d.name.localeCompare(b.d.name));
+  const order = ['low', 'medium', 'high'];
+  let h = `<div class="tablewrap"><table class="ov"><thead><tr>${DECK_COLS.map(([k, l], i) => `<th class="${i === 0 ? 'stick' : ''} ${k === key ? 'sorted' : ''}" aria-sort="${k === key ? (dir > 0 ? 'ascending' : 'descending') : 'none'}"><button data-act="deckSortD" data-key="${k}">${l}${k === key ? (dir > 0 ? ' ↑' : ' ↓') : ''}</button></th>`).join('')}</tr></thead><tbody>`;
+  for (const x of rows) {
+    const i = order.indexOf(x.d.priority);
+    h += `<tr class="deckline" data-act="openDeckD" data-deck="${x.d.id}"><td class="stick"><span class="cmd"><span class="av">${thumb(x.d.commanders[0], 'art')}</span>${esc(x.d.short)}</span></td>`;
+    h += `<td><span class="prio"><span class="arrows"><button class="pbtn" data-act="priorityD" data-deck="${x.d.id}" data-dir="1" aria-label="Raise deck priority of ${esc(x.d.short)}" ${i === 2 ? 'disabled' : ''}>▲</button><button class="pbtn" data-act="priorityD" data-deck="${x.d.id}" data-dir="-1" aria-label="Lower deck priority of ${esc(x.d.short)}" ${i === 0 ? 'disabled' : ''}>▼</button></span><span class="pl" data-priority="${x.d.priority}">${cap(x.d.priority)}</span></span></td>`;
+    h += `<td class="num ${x.size === 100 ? '' : 'bad'}" style="${x.size === 100 ? '' : 'color:var(--danger)'}">${x.size}</td><td>${compactValidity(x.v)}</td><td class="num">${x.b.estimate}</td>${numCell(x.value, money(x.value))}${numCell(x.sugs)}${numCell(x.swaps)}${numCell(x.buys)}</tr>`;
+  }
+  const sum = f => rows.reduce((a, x) => a + f(x), 0);
+  h += `<tr class="total"><td class="stick">All decks</td><td></td><td class="num">${sum(x => x.size)}</td><td></td><td></td><td class="num">${money(sum(x => x.value))}</td><td class="num">${sum(x => x.sugs)}</td><td class="num">${sum(x => x.swaps)}</td><td class="num">${sum(x => x.buys)}</td></tr></tbody></table></div>`;
+  h += `<div class="note">Scroll sideways for more columns. Tap a column to sort. Tap it again to reverse. ▲ and ▼ raise or lower the deck priority: high, medium, or low. Decks can share a priority, so it is a level, not a rank.</div>`;
+  h += `<div class="note">Value counts the commander and the named cards. The other cards in each prototype deck are only a count.</div>`;
+  return h;
 }
 function renderDecksD() {
   if (ui.D.deckId) {
@@ -1141,15 +1354,12 @@ function renderDecksD() {
     const h = `<div class="navtitle"><button class="linkbtn" data-act="backDecksD">‹ Decks</button><button class="linkbtn" data-act="openHistory" data-deck="${d.id}">History</button></div>`;
     return `<div class="scroll" data-scroll="D-deck-${d.id}">${h}${deckBody(d)}</div>`;
   }
+  const layout = ui.layout.decks;
   let h = `<div class="navtitle"><div><h1>Decks</h1><div class="sub">${plural(state.decks.length, 'Commander deck')}</div></div></div>`;
-  for (const d of state.decks) {
-    const v = D.validity(state, d.id), b = D.bracket(state, d.id);
-    const n = suggestionsOf(d.id).length, p = state.plannedSwaps.filter(x => x.deckId === d.id && x.status === 'open').length, by = state.buylist.filter(x => x.deckId === d.id && x.status === 'open').length;
-    const bits = [n && plural(n, 'deck suggestion'), p && plural(p, 'planned swap'), by && plural(by, 'buylist card')].filter(Boolean);
-    h += `<button class="card deckrow" data-act="openDeckD" data-deck="${d.id}"><div class="row"><div class="art">${thumb(d.commanders[0], 'art')}</div><div class="grow"><div class="name">${esc(d.name)}</div><div class="chips" style="margin-top:4px">${priorityChip(d.priority)}${validityChip(v)}${bracketChip(b)}</div><div class="meta" style="margin-top:4px">${v.size} cards${bits.length ? ' · ' + bits.join(' · ') : ''}</div></div><span class="dim">›</span></div></button>`;
-  }
-  return `<div class="scroll" data-scroll="D-decks">${h}<div style="height:24px"></div></div>`;
+  h += layout === 2 ? deckGalleryD() : layout === 3 ? deckTableD() : deckListD();
+  return `<div class="scroll" data-scroll="D-decks-${layout}" data-layout="decks-${layout}">${h}<div style="height:24px"></div></div>`;
 }
+
 function renderScanD() {
   const batch = state.scanBatch;
   const count = batch.reduce((a, x) => a + x.qty, 0);
@@ -1159,9 +1369,10 @@ function renderScanD() {
   if (ui.D.scanning) chip = `<div class="scanchip skel" data-scan="pending"><div class="thumb sm"></div><div class="grow"><div class="bar" style="width:70%"></div><div class="bar" style="width:45%;margin-top:6px"></div></div></div>`;
   else if (latest) chip = `<div class="scanchip" data-scan="latest">${thumb(latest.cardId, 'sm')}<div class="grow"><div class="name">${esc(C(latest.cardId).name)}</div><div class="meta">${esc(latest.printing)} · ${esc(latest.finish)} · ${esc(latest.condition)}</div></div><span class="chip ok">In batch</span></div>`;
   else chip = `<div class="scanchip hint">Point the camera at a card</div>`;
-  let h = `<div class="cam"><div class="camnoise"></div><div class="camtop"><span class="camtitle">Scan</span><button class="batchbtn" data-act="openBatchD" aria-label="Scan batch">▤${count ? `<span class="tbadge">${count}</span>` : ''}</button></div>`;
+  let h = `<div class="cam" data-camera="off"><div class="camtop"><span class="camtitle">Scan</span><button class="batchbtn" data-act="openBatchD" aria-label="Scan batch">▤${count ? `<span class="tbadge">${count}</span>` : ''}</button></div>`;
   if (sf) h += `<div class="scanfor">Scanning for the buylist: ${esc(C(sf.in).name)} for ${esc(deckOf(sf.deckId).short)}<button class="linkbtn" data-act="cancelScanForD">Cancel</button></div>`;
-  h += `<div class="outline ${ui.D.scanning ? 'busy' : ''}"></div><div class="cambottom">${chip}<button class="btn simscan" data-act="simScanD" ${ui.D.scanning ? 'disabled' : ''}>Prototype: simulate scan</button></div></div>`;
+  if (ui.D.scanning) h += `<div class="outline busy"></div>`;
+  h += `<div class="cambottom">${chip}<button class="btn simscan" data-act="simScanD" ${ui.D.scanning ? 'disabled' : ''}>Prototype: simulate scan</button></div></div>`;
   return h;
 }
 function renderD() {
@@ -1305,7 +1516,7 @@ function renderDev() {
   <div class="grp"><div class="t">Simulate AI</div><select id="dev-target" aria-label="Open suggestion">${open.map(s => `<option value="${s.id}" ${s.id === ui.devTarget ? 'selected' : ''}>${esc(deckOf(s.deckId).short)}: +${esc(C(s.in).name)}</option>`).join('') || '<option>No open suggestions</option>'}</select>
   <div class="btns"><button data-act="aiWithdraw" ${open.length ? '' : 'disabled'}>Withdraw</button><button data-act="aiEditReason" ${open.length ? '' : 'disabled'}>Edit reason</button><button data-act="aiNew">New suggestion</button></div></div>
   <div class="grp"><div class="t">Data</div><button data-act="toggleGap">${state.catalogGap ? 'Restore catalog record (Krenko)' : 'Remove a catalog record (Krenko)'}</button></div>
-  <div class="grp"><div class="dim" style="color:#6b5a1d">Keys: ← and → switch variants. Esc closes a sheet.</div></div></div>`;
+  <div class="grp"><div class="dim" style="color:#6b5a1d">Keys: ← and → switch variants. Esc closes a sheet. In D, the small pill switches the Collection or Decks layout.</div></div></div>`;
 }
 function derived() {
   return Object.fromEntries(state.decks.map(d => {
@@ -1318,7 +1529,7 @@ function renderStatePanel() {
   el.hidden = !ui.showState;
   if (!ui.showState) return;
   const prev = el.scrollTop;
-  el.innerHTML = `<div class="sh"><span>State after every action (reducer output)</span><span>${esc(lastUiEvent)} → ${esc(lastAction)}</span></div><pre>${esc(JSON.stringify({ lastAction, lastUiEvent, derived: derived(), state, ui: { variant: ui.variant, deckId: ui.deckId, sheet: ui.sheet, A: ui.A, B: ui.B, C: ui.C, D: ui.D } }, null, 2))}</pre>`;
+  el.innerHTML = `<div class="sh"><span>State after every action (reducer output)</span><span>${esc(lastUiEvent)} → ${esc(lastAction)}</span></div><pre>${esc(JSON.stringify({ lastAction, lastUiEvent, derived: derived(), state, ui: { variant: ui.variant, layout: ui.layout, deckId: ui.deckId, sheet: ui.sheet, A: ui.A, B: ui.B, C: ui.C, D: ui.D } }, null, 2))}</pre>`;
   el.scrollTop = prev;
 }
 let lastAction = 'seed';
@@ -1329,6 +1540,7 @@ function render() {
   const scrolls = {};
   screen.querySelectorAll('[data-scroll]').forEach(el => { scrolls[el.dataset.scroll] = el.scrollTop; });
   const view = ui.variant === 'A' ? renderA() : ui.variant === 'B' ? renderB() : ui.variant === 'C' ? renderC() : renderD();
+  screen.classList.toggle('camera', ui.variant === 'D' && ui.D.tab === 'scan');
   screen.innerHTML = `${statusBar()}<div class="app ${ui.sheet ? 'under-sheet' : ''}">${view}</div>${renderSheet()}${ui.toast ? `<div class="toast">${esc(ui.toast)}</div>` : ''}<div class="homebar"></div>`;
   screen.querySelectorAll('[data-scroll]').forEach(el => {
     if (el.dataset.bottom && ui.C.toBottom) { el.scrollTop = el.scrollHeight; return; }
@@ -1337,11 +1549,28 @@ function render() {
   ui.C.toBottom = false;
   if (ui.C.highlight && ui.variant === 'C') { const t = screen.querySelector(`.ev.hl`); if (t) t.scrollIntoView({ block: 'center' }); }
   document.getElementById('dev').innerHTML = renderDev();
+  renderLayoutSwitcher();
   document.getElementById('switcher-label').textContent = `${ui.variant} · ${VARIANTS.find(v => v[0] === ui.variant)[1]}`;
   document.title = `PROTOTYPE · ${ui.variant} ${VARIANTS.find(v => v[0] === ui.variant)[1]} · AI deck changes (#18) · mtgscan`;
   renderStatePanel();
 }
 
+function layoutKind() {
+  if (ui.variant !== 'D') return null;
+  if (ui.D.tab === 'collection') return 'collection';
+  if (ui.D.tab === 'decks' && !ui.D.deckId) return 'decks';
+  return null;
+}
+function renderLayoutSwitcher() {
+  const el = document.getElementById('layout-switcher');
+  const kind = layoutKind();
+  el.hidden = !kind;
+  if (!kind) return;
+  el.dataset.kind = kind;
+  const n = ui.layout[kind];
+  const names = kind === 'collection' ? COL_LAYOUTS : DECK_LAYOUTS;
+  document.getElementById('layout-label').textContent = `${kind === 'collection' ? 'Collection' : 'Decks'} layout ${n} of ${names.length} · ${names[n - 1]}`;
+}
 function toast(msg) {
   ui.toast = msg;
   clearTimeout(toastTimer);
@@ -1451,6 +1680,20 @@ const handlers = {
       ui.sheet = { type: 'bought', id: sf.buylistId, entryId: null };
     }
   },
+  layoutD: ds => {
+    const kind = layoutKind();
+    if (!kind) return;
+    ui.layout[kind] = (ui.layout[kind] - 1 + Number(ds.step) + 3) % 3 + 1;
+    setParam(kind, ui.layout[kind]);
+  },
+  cardSortD: ds => { ui.D.cardSort = ds.sort; },
+  toggleCardD: ds => { ui.D.expanded = ui.D.expanded.includes(ds.card) ? ui.D.expanded.filter(x => x !== ds.card) : [...ui.D.expanded, ds.card]; },
+  deckSortD: ds => { const s = ui.D.deckSort; ui.D.deckSort = s.key === ds.key ? { key: s.key, dir: -s.dir } : { key: ds.key, dir: ds.key === 'name' ? 1 : -1 }; },
+  priorityD: ds => {
+    const d = deckOf(ds.deck), order = ['low', 'medium', 'high'];
+    const to = order[order.indexOf(d.priority) + Number(ds.dir)];
+    if (to) dispatch({ type: 'setPriority', deckId: d.id, priority: to }, `${d.short} is now ${to} priority.`);
+  },
   toggleGap: () => { dispatch({ type: 'toggleCatalogGap' }, state.catalogGap ? 'Catalog record restored.' : 'Siege-Gang Commander now has no catalog record.'); }
 };
 
@@ -1461,13 +1704,16 @@ function protectToggle(entryId, type) {
   const twin = state.collection.find(x => Object.entries(props).every(([k, v]) => x[k] === v));
   if (twin) ui.sheet = { type: 'entry', entryId: twin.id };
 }
-function fit() { document.documentElement.style.setProperty('--fit', Math.min(1, (window.innerHeight - 110) / 870).toFixed(3)); }
+function fit() { document.documentElement.style.setProperty('--fit', Math.min(1, (window.innerHeight - 150) / 870).toFixed(3)); }
 window.addEventListener('resize', fit);
 fit();
+function setParam(k, v) {
+  const p = new URLSearchParams(location.search); p.set(k, v);
+  history.replaceState(null, '', `${location.pathname}?${p.toString()}${location.hash}`);
+}
 function setVariant(v) {
   ui.variant = v; ui.sheet = null; ui.C.revertFrom = null; ui.C.toBottom = true;
-  const p = new URLSearchParams(location.search); p.set('variant', v);
-  history.replaceState(null, '', `${location.pathname}?${p.toString()}${location.hash}`);
+  setParam('variant', v);
   render();
 }
 function cycle(step) { const i = VARIANTS.findIndex(v => v[0] === ui.variant); setVariant(VARIANTS[(i + step + VARIANTS.length) % VARIANTS.length][0]); }
