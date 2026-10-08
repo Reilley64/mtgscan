@@ -142,6 +142,42 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;paddin
 .segment button.sel{background:#3a454b;color:#fff}
 .kv{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
 .note{color:var(--muted);font-size:12px;padding:6px 16px}
+.decktag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:#fff;background:var(--surface2);border-radius:14px;padding:2px 9px 2px 2px;flex:none;max-width:60%}
+.decktag .av{width:22px;height:22px;border-radius:11px;overflow:hidden;flex:none;background:#2a3238;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}
+.kindlabel{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.when{color:var(--dim);font-size:11px;font-weight:700;white-space:nowrap}
+.fitem{padding:8px 10px}
+.fitem .what{font-weight:700;font-size:13px;margin:1px 0 3px}
+.fitem.reverted{opacity:.55}
+.fic{width:24px;height:24px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;background:#1d2529;color:var(--muted)}
+.fic.ai{background:#24303a;color:var(--info)}
+.fic.change{background:var(--accent);color:var(--on-accent);font-weight:900}
+.fic.swap{background:#2c3a12;color:var(--accent)}
+.fic.buy{background:#3a3112;color:var(--warn)}
+.daysep.d{margin:10px 16px 2px}
+.tabbar .ic{position:relative}
+.tbadge{position:absolute;top:-5px;left:13px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;font-weight:900;line-height:17px;text-align:center}
+.search{display:flex;align-items:center;gap:8px;margin:0 16px 10px;padding:0 10px;height:36px;border-radius:10px;background:var(--surface3);color:var(--muted)}
+.search input{flex:1;min-width:0;background:none;border:0;outline:0;color:#fff;font:inherit;font-size:15px}
+.list .item.entry{width:100%;text-align:left;align-items:flex-start}
+.deckrow{display:block;width:calc(100% - 24px);text-align:left}
+.deckrow .art{width:56px;height:56px;border-radius:12px;overflow:hidden;flex:none;background:#2a3238}
+.cam{position:relative;flex:1;min-height:0;background:radial-gradient(ellipse at 50% 40%,#2a2f33 0%,#121518 55%,#050607 100%);overflow:hidden}
+.camnoise{position:absolute;inset:0;background:repeating-linear-gradient(115deg,rgba(255,255,255,.025) 0 2px,transparent 2px 7px);pointer-events:none}
+.camtop{position:absolute;left:0;right:0;top:4px;display:flex;justify-content:space-between;align-items:center;padding:0 16px}
+.camtitle{font-size:22px;font-weight:800}
+.batchbtn{position:relative;width:44px;height:44px;border-radius:22px;background:rgba(0,0,0,.55);font-size:20px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.18)}
+.batchbtn .tbadge{top:-3px;left:auto;right:-3px;background:var(--accent);color:var(--on-accent)}
+.scanfor{position:absolute;left:16px;right:16px;top:58px;display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(0,0,0,.6);border-radius:10px;padding:7px 10px;font-size:12px;font-weight:700}
+.outline{position:absolute;left:50%;top:44%;width:220px;height:307px;transform:translate(-50%,-50%);border:3px solid #ff2bd6;border-radius:12px;box-shadow:0 0 18px rgba(255,43,214,.55),inset 0 0 18px rgba(255,43,214,.25)}
+.outline.busy{animation:pulse .8s ease-in-out infinite}
+.cambottom{position:absolute;left:12px;right:12px;bottom:10px;display:flex;flex-direction:column;gap:8px}
+.scanchip{display:flex;align-items:center;gap:10px;background:rgba(17,23,26,.92);border-radius:14px;padding:8px 10px;min-height:58px}
+.scanchip.hint{justify-content:center;color:var(--muted);font-weight:700}
+.scanchip .bar{height:10px;border-radius:5px;background:#2f393e}
+.skel{animation:pulse .8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+.btn.simscan{flex:none;width:100%;background:rgba(0,0,0,.5);border:1px dashed #ffb300;color:#ffb300}
 #switcher{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:4px;background:#ffffff;color:#111;border-radius:999px;padding:5px;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.2);font-weight:800;font-size:13px}
 #switcher button{width:34px;height:34px;border-radius:17px;background:#eee;color:#111;font-size:16px;font-weight:900}
 #switcher button:hover{background:#ddd}
@@ -196,6 +232,7 @@ const Domain = (() => {
     'lightning-greaves': [['MSC 202', 'nonfoil', 'NM'], ['M19 235', 'foil', 'NM']],
     'cyclonic-rift': [['RVR 40', 'nonfoil', 'NM'], ['MM3 35', 'foil', 'LP']]
   };
+  const SCAN_POOL = ['cyclonic-rift', 'eternal-witness', 'goblin-matron', 'sol-ring', 'birds-of-paradise', 'lightning-greaves'];
   const AI_POOL = [
     { deckId: 'atraxa', in: 'hardened-scales', out: 'contagion-engine', reason: 'Hardened Scales adds a counter to every +1/+1 counter you place. Atraxa proliferates every turn, so it compounds quickly. It costs one mana, against six for Contagion Engine.' },
     { deckId: 'atraxa', in: 'cyclonic-rift', out: 'tezzeret-s-gambit', reason: 'Cyclonic Rift is still the best reset in blue. You dismissed this before, but your table has more artifact decks now, and Tezzeret\'s Gambit only draws two.' },
@@ -217,7 +254,7 @@ const Domain = (() => {
   const at = (day, h, m) => (day - 1) * 1440 + h * 60 + m;
 
   function seed() {
-    const s = { clock: at(8, 14, 0), seq: 0, catalogGap: false, aiPool: 0, decks: [], collection: [], suggestions: [], plannedSwaps: [], buylist: [], changes: [], events: [] };
+    const s = { clock: at(8, 14, 0), seq: 0, catalogGap: false, aiPool: 0, scanCount: 0, decks: [], collection: [], suggestions: [], plannedSwaps: [], buylist: [], changes: [], events: [], scanBatch: [] };
     const entry = (cardId, printing, finish = 'nonfoil', qty = 1, prot = false, condition = 'NM') => {
       const id = 'e' + (++s.seq);
       s.collection.push({ id, cardId, printing, finish, language: 'English', condition, qty, protected: prot });
@@ -445,6 +482,16 @@ const Domain = (() => {
     return twin;
   }
 
+  function moveOneCopy(s, e, toProtected) {
+    let twin = s.collection.find(x => x.id !== e.id && x.cardId === e.cardId && x.printing === e.printing && x.finish === e.finish && x.language === e.language && x.condition === e.condition && x.protected === toProtected);
+    if (!twin) { twin = { ...e, id: nextId(s, 'e'), qty: 0, protected: toProtected }; s.collection.push(twin); }
+    e.qty -= 1; twin.qty += 1;
+    const holds = heldSwaps(s, e.id);
+    for (const h of holds.slice(Math.max(0, e.qty - allocatedQty(s, e.id)))) h.heldEntryId = twin.id;
+    if (e.qty <= 0) s.collection = s.collection.filter(x => x.id !== e.id);
+    return twin;
+  }
+
   function settle(s, deckId) {
     const d = deckById(s, deckId);
     for (const x of s.suggestions) if (x.deckId === deckId && x.status === 'open' && x.out && !deckHas(s, d, x.out)) { x.status = 'stale'; event(s, deckId, 'stale', { suggestionId: x.id }); }
@@ -598,23 +645,71 @@ const Domain = (() => {
         if (t.out && !deckHas(s, d, t.out)) { s.suggestions.find(x => x.id === id).status = 'stale'; event(s, t.deckId, 'stale', { suggestionId: id }); }
         return s;
       }
+      case 'scanCard': {
+        tick(s);
+        const cardId = action.cardId || SCAN_POOL[s.scanCount % SCAN_POOL.length];
+        s.scanCount += 1;
+        const c = card(cardId);
+        const [printing, finish, condition] = (SCAN_PRINTINGS[cardId] || [[`${c.set} ${c.cn}`, 'nonfoil', 'NM']])[0];
+        const same = s.scanBatch.find(x => x.cardId === cardId && x.printing === printing && x.finish === finish && x.condition === condition);
+        if (same) { same.qty += 1; same.at = s.clock; }
+        else s.scanBatch.push({ id: nextId(s, 'q'), cardId, printing, finish, language: 'English', condition, qty: 1, at: s.clock });
+        return s;
+      }
+      case 'removeBatchCopy': {
+        const item = s.scanBatch.find(x => x.id === action.itemId);
+        if (!item) return state;
+        item.qty -= 1;
+        s.scanBatch = s.scanBatch.filter(x => x.qty > 0);
+        return s;
+      }
+      case 'addBatch': {
+        if (!s.scanBatch.length) return state;
+        tick(s);
+        let count = 0;
+        for (const x of s.scanBatch) {
+          const same = s.collection.find(e => e.cardId === x.cardId && e.printing === x.printing && e.finish === x.finish && e.language === x.language && e.condition === x.condition && !e.protected);
+          if (same) same.qty += x.qty; else s.collection.push({ id: nextId(s, 'e'), cardId: x.cardId, printing: x.printing, finish: x.finish, language: x.language, condition: x.condition, qty: x.qty, protected: false });
+          count += x.qty;
+        }
+        event(s, null, 'batch added', { count, cardIds: [...new Set(s.scanBatch.map(x => x.cardId))] });
+        s.scanBatch = [];
+        return s;
+      }
+      case 'protectCopy': {
+        const e = entryById(s, action.entryId);
+        if (!e || e.protected || freeQty(s, e.id) < 1) return state;
+        tick(s);
+        moveOneCopy(s, e, true);
+        event(s, null, 'protected', { cardId: e.cardId });
+        return s;
+      }
+      case 'unprotectCopy': {
+        const e = entryById(s, action.entryId);
+        if (!e || !e.protected) return state;
+        tick(s);
+        moveOneCopy(s, e, false);
+        event(s, null, 'unprotected', { cardId: e.cardId });
+        return s;
+      }
       case 'toggleCatalogGap': { s.catalogGap = !s.catalogGap; return s; }
       default: return state;
     }
   }
 
-  return { CATALOG, PRIORITY_RANK, seed, reducer, fmtAt, fmtDay, card, deckById, entryById, deckCards, deckHas, freeQty, copiesOf, copySummary, allocatedIn, heldSwaps, promotionOutcome, validity, validityDiff, bracket, revertPlan, deckChangesOf, rank };
+  return { CATALOG, PRIORITY_RANK, seed, reducer, fmtAt, fmtDay, card, deckById, entryById, deckCards, deckHas, freeQty, copiesOf, copySummary, allocatedIn, allocatedQty, heldSwaps, promotionOutcome, validity, validityDiff, bracket, revertPlan, deckChangesOf, rank };
 })();
 
 
 const D = Domain;
-const VARIANTS = [['A', 'Deck-first'], ['B', 'Review queue'], ['C', 'Timeline']];
+const VARIANTS = [['A', 'Deck-first'], ['B', 'Review queue'], ['C', 'Timeline'], ['D', 'App shell']];
 let state = D.seed();
 const params = new URLSearchParams(location.search);
-const startVariant = VARIANTS.some(v => v[0] === params.get('variant')) ? params.get('variant') : 'A';
-const freshUi = () => ({ deckId: 'atraxa', sheet: null, toast: null, A: { showClosed: false }, B: { tab: 'review', filter: 'all', skipped: [], current: null, deckId: 'atraxa' }, C: { filter: 'all', revertFrom: null, highlight: null, toBottom: true } });
+const startVariant = VARIANTS.some(v => v[0] === params.get('variant')) ? params.get('variant') : 'D';
+const freshUi = () => ({ deckId: 'atraxa', sheet: null, toast: null, A: { showClosed: false }, B: { tab: 'review', filter: 'all', skipped: [], current: null, deckId: 'atraxa' }, C: { filter: 'all', revertFrom: null, highlight: null, toBottom: true }, D: { tab: 'recent', filter: 'all', deckId: null, query: '', colFilter: 'all', scanning: false, scanFor: null } });
 let ui = { variant: startVariant, showState: false, images: true, devOpen: true, devTarget: null, ...freshUi() };
 let toastTimer = null;
+let scanTimer = null;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const C = id => D.card(id);
@@ -724,6 +819,11 @@ function suggestionsOf(deckId, status = 'open') { return state.suggestions.filte
 
 function renderA() {
   const d = deckOf(ui.deckId);
+  let h = `<div class="navtitle"><span class="sub">Decks</span><button class="linkbtn" data-act="openHistory" data-deck="${d.id}">History</button></div>`;
+  h += `<div class="chiprow">${state.decks.map(x => `<button class="chip big ${x.id === d.id ? 'sel' : ''}" data-act="pickDeck" data-deck="${x.id}">${esc(x.short)} · ${cap(x.priority)}${suggestionsOf(x.id).length ? ` · ${suggestionsOf(x.id).length} new` : ''}</button>`).join('')}</div>`;
+  return `<div class="scroll" data-scroll="A-${d.id}">${h}${deckBody(d)}</div>`;
+}
+function deckBody(d) {
   const v = D.validity(state, d.id), b = D.bracket(state, d.id);
   const open = suggestionsOf(d.id);
   const swaps = state.plannedSwaps.filter(p => p.deckId === d.id && p.status === 'open');
@@ -733,9 +833,7 @@ function renderA() {
   for (const s of open) if (s.out) (outMarks[s.out] ||= []).push('Suggested out');
   for (const p of swaps) if (p.out) (outMarks[p.out] ||= []).push('Planned out');
   for (const x of buys) if (x.out) (outMarks[x.out] ||= []).push('Buylist out');
-  let h = `<div class="navtitle"><span class="sub">Decks</span><button class="linkbtn" data-act="openHistory" data-deck="${d.id}">History</button></div>`;
-  h += `<div class="chiprow">${state.decks.map(x => `<button class="chip big ${x.id === d.id ? 'sel' : ''}" data-act="pickDeck" data-deck="${x.id}">${esc(x.short)} · ${cap(x.priority)}${suggestionsOf(x.id).length ? ` · ${suggestionsOf(x.id).length} new` : ''}</button>`).join('')}</div>`;
-  h += `<div class="hdr-deck"><div class="art">${thumb(d.commanders[0], 'art')}</div><div class="grow"><h1>${esc(d.name)}</h1><div class="chips">${priorityChip(d.priority)}${validityChip(v)}${bracketChip(b)}</div></div></div>`;
+  let h = `<div class="hdr-deck"><div class="art">${thumb(d.commanders[0], 'art')}</div><div class="grow"><h1>${esc(d.name)}</h1><div class="chips">${priorityChip(d.priority)}${validityChip(v)}${bracketChip(b)}</div></div></div>`;
   if (v.state !== 'valid') h += deckPanels(d.id);
   h += `<div class="section"><span>Deck suggestions</span><span class="count">${open.length} open</span></div>`;
   if (!open.length) h += `<div class="note">No open deck suggestions. Ask ChatGPT for ideas through the MCP connection.</div>`;
@@ -766,7 +864,7 @@ function renderA() {
     for (const p of closedB) h += `<div class="card"><div class="row"><div class="grow"><div class="name">+${esc(C(p.in).name)}${p.out ? ` · −${esc(C(p.out).name)}` : ''}</div><div class="meta">Buylist card${p.note ? ' · ' + esc(p.note) : ''}</div></div>${statusChip(p.status)}</div></div>`;
   }
   h += `<div style="height:60px"></div>`;
-  return `<div class="scroll" data-scroll="A-${d.id}">${h}</div>`;
+  return h;
 }
 
 function queueB() {
@@ -917,6 +1015,163 @@ function revertFlags(plan) {
   return h;
 }
 
+
+const D_FILTERS = [['all', 'All'], ['suggestions', 'Suggestions'], ['planned', 'Planned swaps'], ['buylist', 'Buylist'], ['changes', 'Deck changes']];
+const FEED_KINDS = ['deck change', 'dismissed', 'withdrawn', 'reason edited', 'stale', 'planned swap', 'buylist card', 'moved to buylist', 'closed', 'unprotected', 'protected', 'scanned', 'batch added'];
+function needsYouD() {
+  const items = [
+    ...state.suggestions.filter(x => x.status === 'open').map(x => ({ cat: 'suggestions', at: x.createdAt, key: 'sug-' + x.id, x })),
+    ...state.plannedSwaps.filter(x => x.status === 'open' && D.entryById(state, x.heldEntryId)).map(x => ({ cat: 'planned', at: x.createdAt, key: 'swap-' + x.id, x })),
+    ...state.buylist.filter(x => x.status === 'open').map(x => ({ cat: 'buylist', at: x.createdAt, key: 'buy-' + x.id, x }))
+  ];
+  return items.sort((a, b) => a.at - b.at);
+}
+function eventCats(e) {
+  if (e.kind === 'deck change') {
+    const k = changeOf(e.changeId).source.kind;
+    return ['changes', ...(k === 'deck suggestion' ? ['suggestions'] : k === 'planned swap' ? ['planned'] : k === 'buylist card' ? ['buylist'] : [])];
+  }
+  if (['dismissed', 'withdrawn', 'reason edited', 'stale'].includes(e.kind)) return ['suggestions'];
+  if (e.kind === 'planned swap') return ['planned', ...(e.suggestionId ? ['suggestions'] : [])];
+  if (e.kind === 'buylist card') return ['buylist', ...(e.suggestionId ? ['suggestions'] : [])];
+  if (e.kind === 'moved to buylist') return ['planned', 'buylist'];
+  if (e.kind === 'closed') return [e.swapId ? 'planned' : 'buylist'];
+  return [];
+}
+function deckTag(deckId) {
+  if (!deckId) return `<span class="decktag"><span class="av">▤</span>Collection</span>`;
+  const d = deckOf(deckId);
+  return `<button class="decktag" data-act="openDeckD" data-deck="${d.id}"><span class="av">${thumb(d.commanders[0], 'art')}</span>${esc(d.short)}<span class="dim">›</span></button>`;
+}
+const sugLine = x => `+${esc(C(x.in).name)}${x.out ? ` · −${esc(C(x.out).name)}` : ''}`;
+function needItemD(it) {
+  const x = it.x;
+  if (it.cat === 'suggestions') {
+    return `<div class="card need" data-sug="${x.id}" data-need="${it.key}"><div class="row" style="margin-bottom:8px">${deckTag(x.deckId)}<span class="grow kindlabel">Deck suggestion</span><span class="when">${D.fmtAt(x.createdAt)}</span></div>${diffLines(x.in, x.out, copiesChip(x.in, x.deckId))}${reasonBlock(x.reason, sugWho(x), true)}${validityFlags(x.deckId, x.in, x.out)}${pairFlag(x)}${repeatFlag(x)}<div class="meta" style="margin-top:8px">${esc(outcomeText(x.id))} · ${priceText(x.in)}</div><div class="actions"><button class="btn" data-act="dismiss" data-id="${x.id}">Dismiss</button><button class="btn primary" data-act="openPromote" data-id="${x.id}">Promote</button></div></div>`;
+  }
+  if (it.cat === 'planned') {
+    return `<div class="card need" data-swap="${x.id}" data-need="${it.key}"><div class="row" style="margin-bottom:8px">${deckTag(x.deckId)}<span class="grow kindlabel">Planned swap</span><span class="when">${D.fmtAt(x.createdAt)}</span></div>${diffLines(x.in, x.out)}<div class="meta" style="margin-top:6px">Holds ${esc(entryText(x.heldEntryId))}</div>${reasonBlock(x.reason, 'Reason', true)}${swapFlags(x)}<div class="actions"><button class="btn primary" data-act="swapIn" data-id="${x.id}">Swap in</button></div></div>`;
+  }
+  return `<div class="card need" data-buy="${x.id}" data-need="${it.key}"><div class="row" style="margin-bottom:8px">${deckTag(x.deckId)}<span class="grow kindlabel">Buylist card</span><span class="when">${D.fmtAt(x.createdAt)}</span></div>${diffLines(x.in, x.out, `<span class="chip warn">${priceText(x.in)}</span>`)}${reasonBlock(x.reason, 'Reason', true)}${validityFlags(x.deckId, x.in, x.out)}<div class="actions"><button class="btn primary" data-act="openBought" data-id="${x.id}">Bought</button></div></div>`;
+}
+function feedItemD(e) {
+  const [cls, ic] = EV_ICON[e.kind] || ['muted', '•'];
+  let what = '', body = '', extra = '';
+  if (e.kind === 'deck change') {
+    const ch = changeOf(e.changeId);
+    const rb = ch.revertedBy ? changeOf(ch.revertedBy) : null;
+    if (rb) extra = 'reverted';
+    what = ch.source.kind === 'revert' ? `Revert · ${plural(ch.reverts.length, 'change')} undone` : `Deck change · ${sourceLabel(ch)}`;
+    body = `${changeLines(ch)}${reasonBlock(ch.reason, 'Reason', true)}`;
+    body += rb ? `<div class="meta" style="margin-top:6px">Reverted on ${D.fmtAt(rb.at)}</div>` : `<div class="actions"><button class="btn small danger" data-act="openRevert" data-change="${ch.id}">Revert from here</button></div>`;
+  } else if (e.kind === 'dismissed') { const x = sugOf(e.suggestionId); what = 'You dismissed a deck suggestion'; body = `<div class="meta">${sugLine(x)}</div>`; }
+  else if (e.kind === 'withdrawn') { const x = sugOf(e.suggestionId); what = 'ChatGPT withdrew a deck suggestion'; body = `<div class="meta">${sugLine(x)}. Withdrawn is final.</div>`; }
+  else if (e.kind === 'reason edited') { const x = sugOf(e.suggestionId); what = `ChatGPT edited the reason for ${esc(C(x.in).name)}`; body = `<div class="meta">The new reason replaces the old one.</div>`; }
+  else if (e.kind === 'stale') { const x = sugOf(e.suggestionId); what = `The deck suggestion for ${esc(C(x.in).name)} is stale`; body = `<div class="meta">${x.out ? esc(C(x.out).name) + ' left the deck.' : ''}</div>`; }
+  else if (e.kind === 'planned swap') { const x = swapOf(e.swapId); what = e.suggestionId ? 'You promoted a deck suggestion to a planned swap' : 'You created a planned swap'; body = `<div class="meta">${sugLine(x)}</div><div class="chips" style="margin-top:6px">${statusChip(x.status)}</div>`; }
+  else if (e.kind === 'buylist card') { const x = buyOf(e.buylistId); what = e.suggestionId ? 'You promoted a deck suggestion to a buylist card' : 'You added a buylist card'; body = `<div class="meta">${sugLine(x)} · ${priceText(x.in)}</div><div class="chips" style="margin-top:6px">${statusChip(x.status)}</div>`; }
+  else if (e.kind === 'moved to buylist') { const x = buyOf(e.buylistId); what = 'A planned swap moved to the buylist'; body = `<div class="meta">${sugLine(x)}. Its held copy was used in a revert.</div>`; }
+  else if (e.kind === 'closed') { const x = e.swapId ? swapOf(e.swapId) : buyOf(e.buylistId); what = `${e.swapId ? 'Planned swap' : 'Buylist card'} for ${esc(C(x.in).name)} closed`; body = `<div class="meta">The outgoing card left the deck.</div>`; }
+  else if (e.kind === 'unprotected') { what = `1 protected copy of ${esc(C(e.cardId).name)} was unprotected`; }
+  else if (e.kind === 'protected') { what = `You protected 1 copy of ${esc(C(e.cardId).name)}`; }
+  else if (e.kind === 'scanned') { what = `You scanned ${e.count === 1 ? '1 copy' : e.count + ' copies'} of ${esc(C(e.cardId).name)}`; body = `<div class="meta">Added to your collection.</div>`; }
+  else if (e.kind === 'batch added') { what = `You added a scan batch to your collection`; body = `<div class="meta">${e.count === 1 ? '1 copy' : e.count + ' copies'}: ${esc(e.cardIds.map(c => C(c).name).join(', '))}</div>`; }
+  return `<div class="card fitem ${extra}" data-ev="${e.id}" data-kind="${esc(e.kind)}"><div class="row">${deckTag(e.deckId)}<span class="grow"></span><span class="when">${D.fmtAt(e.at)}</span></div><div class="row" style="margin-top:6px;align-items:flex-start"><span class="fic ${cls}">${ic}</span><div class="grow"><div class="what">${what}</div>${body}</div></div></div>`;
+}
+function renderRecentD() {
+  const f = ui.D.filter;
+  const needs = needsYouD();
+  const shown = needs.filter(it => f === 'all' || it.cat === f);
+  const feed = state.events.filter(e => FEED_KINDS.includes(e.kind) && (f === 'all' || eventCats(e).includes(f))).slice().sort((a, b) => b.at - a.at || state.events.indexOf(b) - state.events.indexOf(a));
+  const countOf = k => k === 'all' ? needs.length : k === 'changes' ? 0 : needs.filter(it => it.cat === k).length;
+  let h = `<div class="navtitle"><div><h1>Recent</h1><div class="sub">Changes and what needs you, across all decks</div></div></div>`;
+  h += `<div class="chiprow">${D_FILTERS.map(([k, label]) => `<button class="chip big ${f === k ? 'sel' : ''}" data-act="filterD" data-f="${k}">${label}${countOf(k) ? ` · ${countOf(k)}` : ''}</button>`).join('')}</div>`;
+  if (f !== 'changes') {
+    h += `<div class="section" id="needs-you"><span>Needs you</span><span class="count">${shown.length} · oldest first</span></div>`;
+    h += shown.length ? shown.map(needItemD).join('') : `<div class="note">Nothing needs you here.</div>`;
+  }
+  h += `<div class="section" id="recent-changes"><span>Recent changes</span><span class="count">${feed.length} · newest first</span></div>`;
+  let lastDay = '';
+  for (const e of feed) {
+    const day = D.fmtDay(e.at);
+    if (day !== lastDay) { h += `<div class="daysep d">${day}</div>`; lastDay = day; }
+    h += feedItemD(e);
+  }
+  if (!feed.length) h += `<div class="note">No recent changes.</div>`;
+  return `<div class="scroll" data-scroll="D-recent-${f}">${h}<div style="height:24px"></div></div>`;
+}
+function entryCounts(e) {
+  const alloc = D.allocatedIn(state, e.id), held = D.heldSwaps(state, e.id), free = D.freeQty(state, e.id);
+  return { alloc, held, free, allocated: alloc.reduce((a, x) => a + x.qty, 0) };
+}
+function entryMatches(e, q, f) {
+  const c = C(e.cardId), n = entryCounts(e);
+  if (f === 'free' && (e.protected || n.free < 1)) return false;
+  if (f === 'allocated' && n.allocated < 1) return false;
+  if (f === 'protected' && !e.protected) return false;
+  if (!q) return true;
+  const hay = `${c.name} ${c.type} ${e.printing} ${e.finish}`.toLowerCase();
+  return q.toLowerCase().split(/\s+/).filter(Boolean).every(t => hay.includes(t));
+}
+function entryChips(e) {
+  const n = entryCounts(e);
+  let h = `<span class="chip ghost">${e.qty} owned</span>`;
+  if (n.free) h += `<span class="chip ${e.protected ? 'warn' : 'ok'}">${n.free} free</span>`;
+  for (const a of n.alloc) h += `<span class="chip info">${a.qty} in ${esc(deckOf(a.deckId).short)}</span>`;
+  for (const p of n.held) h += `<span class="chip info">Held for ${esc(deckOf(p.deckId).short)}</span>`;
+  if (e.protected) h += `<span class="chip warn">${e.qty} protected</span>`;
+  return h;
+}
+function renderCollectionD() {
+  const q = ui.D.query, f = ui.D.colFilter;
+  const all = state.collection.slice().sort((a, b) => C(a.cardId).name.localeCompare(C(b.cardId).name) || a.printing.localeCompare(b.printing));
+  const list = all.filter(e => entryMatches(e, q, f));
+  const copies = state.collection.reduce((a, e) => a + e.qty, 0);
+  let h = `<div class="navtitle"><div><h1>Collection</h1><div class="sub">${plural(state.collection.length, 'collection entry').replace('entrys', 'entries')} · ${copies} copies</div></div></div>`;
+  h += `<div class="search"><span>⌕</span><input id="col-search" type="search" placeholder="Search your collection" autocomplete="off" value="${esc(q)}"></div>`;
+  h += `<div class="chiprow">${[['all', 'All'], ['free', 'Free'], ['allocated', 'Allocated'], ['protected', 'Protected']].map(([k, l]) => `<button class="chip big ${f === k ? 'sel' : ''}" data-act="colFilterD" data-f="${k}">${l} · ${all.filter(e => entryMatches(e, '', k)).length}</button>`).join('')}</div>`;
+  h += `<div class="list">${list.map(e => `<button class="item entry" data-act="openEntryD" data-entry="${e.id}">${thumb(e.cardId)}<span class="grow"><span class="name" style="display:block">${esc(C(e.cardId).name)}</span><span class="meta" style="display:block">${esc(printingText(e))}</span><span class="chips" style="margin-top:4px">${entryChips(e)}</span></span><span class="dim">›</span></button>`).join('')}</div>`;
+  if (!list.length) h += `<div class="empty">No collection entries match.${q ? `<br><span class="dim">Collection search only searches your collection, not the card catalog.</span>` : ''}</div>`;
+  h += `<div class="note">Basic lands are not tracked, so they never appear here.</div>`;
+  return `<div class="scroll" data-scroll="D-collection">${h}<div style="height:24px"></div></div>`;
+}
+function renderDecksD() {
+  if (ui.D.deckId) {
+    const d = deckOf(ui.D.deckId);
+    const h = `<div class="navtitle"><button class="linkbtn" data-act="backDecksD">‹ Decks</button><button class="linkbtn" data-act="openHistory" data-deck="${d.id}">History</button></div>`;
+    return `<div class="scroll" data-scroll="D-deck-${d.id}">${h}${deckBody(d)}</div>`;
+  }
+  let h = `<div class="navtitle"><div><h1>Decks</h1><div class="sub">${plural(state.decks.length, 'Commander deck')}</div></div></div>`;
+  for (const d of state.decks) {
+    const v = D.validity(state, d.id), b = D.bracket(state, d.id);
+    const n = suggestionsOf(d.id).length, p = state.plannedSwaps.filter(x => x.deckId === d.id && x.status === 'open').length, by = state.buylist.filter(x => x.deckId === d.id && x.status === 'open').length;
+    const bits = [n && plural(n, 'deck suggestion'), p && plural(p, 'planned swap'), by && plural(by, 'buylist card')].filter(Boolean);
+    h += `<button class="card deckrow" data-act="openDeckD" data-deck="${d.id}"><div class="row"><div class="art">${thumb(d.commanders[0], 'art')}</div><div class="grow"><div class="name">${esc(d.name)}</div><div class="chips" style="margin-top:4px">${priorityChip(d.priority)}${validityChip(v)}${bracketChip(b)}</div><div class="meta" style="margin-top:4px">${v.size} cards${bits.length ? ' · ' + bits.join(' · ') : ''}</div></div><span class="dim">›</span></div></button>`;
+  }
+  return `<div class="scroll" data-scroll="D-decks">${h}<div style="height:24px"></div></div>`;
+}
+function renderScanD() {
+  const batch = state.scanBatch;
+  const count = batch.reduce((a, x) => a + x.qty, 0);
+  const latest = batch.slice().sort((a, b) => b.at - a.at)[0];
+  const sf = ui.D.scanFor ? buyOf(ui.D.scanFor.buylistId) : null;
+  let chip = '';
+  if (ui.D.scanning) chip = `<div class="scanchip skel" data-scan="pending"><div class="thumb sm"></div><div class="grow"><div class="bar" style="width:70%"></div><div class="bar" style="width:45%;margin-top:6px"></div></div></div>`;
+  else if (latest) chip = `<div class="scanchip" data-scan="latest">${thumb(latest.cardId, 'sm')}<div class="grow"><div class="name">${esc(C(latest.cardId).name)}</div><div class="meta">${esc(latest.printing)} · ${esc(latest.finish)} · ${esc(latest.condition)}</div></div><span class="chip ok">In batch</span></div>`;
+  else chip = `<div class="scanchip hint">Point the camera at a card</div>`;
+  let h = `<div class="cam"><div class="camnoise"></div><div class="camtop"><span class="camtitle">Scan</span><button class="batchbtn" data-act="openBatchD" aria-label="Scan batch">▤${count ? `<span class="tbadge">${count}</span>` : ''}</button></div>`;
+  if (sf) h += `<div class="scanfor">Scanning for the buylist: ${esc(C(sf.in).name)} for ${esc(deckOf(sf.deckId).short)}<button class="linkbtn" data-act="cancelScanForD">Cancel</button></div>`;
+  h += `<div class="outline ${ui.D.scanning ? 'busy' : ''}"></div><div class="cambottom">${chip}<button class="btn simscan" data-act="simScanD" ${ui.D.scanning ? 'disabled' : ''}>Prototype: simulate scan</button></div></div>`;
+  return h;
+}
+function renderD() {
+  const t = ui.D.tab;
+  const view = t === 'recent' ? renderRecentD() : t === 'collection' ? renderCollectionD() : t === 'decks' ? renderDecksD() : renderScanD();
+  const badge = needsYouD().length;
+  const tab = (k, ic, label, n) => `<button class="${t === k ? 'sel' : ''}" data-act="tabD" data-tab="${k}"><span class="ic">${ic}${n ? `<span class="tbadge" data-badge="${k}">${n}</span>` : ''}</span><span>${label}</span></button>`;
+  return `${view}<div class="tabbar">${tab('recent', '◷', 'Recent', badge)}${tab('collection', '▤', 'Collection', 0)}${tab('decks', '❏', 'Decks', 0)}${tab('scan', '⌖', 'Scan', 0)}</div>`;
+}
+
 function sheetFrame(title, body, foot, left = '') {
   return `<div class="sheet-scrim" data-act="closeSheet"></div><div class="sheet" role="dialog" aria-label="${esc(title)}"><div class="grab"></div><div class="head"><div class="side">${left}</div><h2>${esc(title)}</h2><div class="side" style="text-align:right"><button class="linkbtn" data-act="closeSheet">Done</button></div></div><div class="body" data-scroll="sheet">${body}</div>${foot ? `<div class="foot">${foot}</div>` : ''}</div>`;
 }
@@ -969,7 +1224,7 @@ function boughtSheet(sh) {
   let body = `<div class="card"><div class="meta" style="margin-bottom:6px">${esc(d.name)}</div>${diffLines(x.in, x.out)}${reasonBlock(x.reason, 'Reason')}${validityFlags(d.id, x.in, x.out)}</div>`;
   let foot = '';
   if (!free.length) {
-    body += `<div class="empty">No copies found. Scan copies into your collection first.</div><div style="padding:0 16px"><button class="btn" style="width:100%;border:1px dashed #ffb300;color:#ffb300" data-act="simScan" data-card="${x.in}" data-deck="${x.deckId}">Prototype: simulate scanning copies</button></div>`;
+    body += `<div class="empty">No copies found. Scan copies into your collection first.</div>${ui.variant === 'D' ? `<div style="padding:0 16px 8px"><button class="btn primary" style="width:100%" data-act="goScanD" data-id="${x.id}">⌖ Scan copies</button></div>` : ''}<div style="padding:0 16px"><button class="btn" style="width:100%;border:1px dashed #ffb300;color:#ffb300" data-act="simScan" data-card="${x.in}" data-deck="${x.deckId}">Prototype: simulate scanning copies</button></div>`;
   } else {
     const sel = sh.entryId || free[0].entry.id;
     const selE = D.entryById(state, sel);
@@ -1001,11 +1256,44 @@ function revertSheet(sh) {
   const foot = `<button class="btn ${plan.held.length ? 'danger' : 'primary'}" data-act="confirmRevert" data-change="${plan.target.id}" ${plan.ok ? '' : 'disabled'}>${plan.ok ? (plan.held.length ? 'Continue and revert' : `Revert ${plural(plan.undo.length, 'change')}`) : 'Revert unavailable'}</button>`;
   return sheetFrame('Revert from here', body, foot, back);
 }
+function entrySheet(sh) {
+  const e = D.entryById(state, sh.entryId);
+  if (!e) return sheetFrame('Collection entry', `<div class="empty">This collection entry is gone.</div>`, '');
+  const c = C(e.cardId), n = entryCounts(e);
+  let body = `<div style="display:flex;gap:12px;padding:4px 16px 10px">${thumb(e.cardId, 'lg')}<div class="grow"><div style="font-size:18px;font-weight:800">${esc(c.name)}</div><div class="meta">${esc(c.type)}</div><div class="meta" style="margin-top:6px">${esc(printingText(e))}</div><div class="meta">${priceText(e.cardId)}</div>${e.protected ? `<div class="chips" style="margin-top:6px"><span class="chip warn">Protected copy</span></div>` : ''}</div></div>`;
+  body += `<div class="facts" style="margin:0 12px"><div class="fact"><div class="k">Owned</div><div class="v">${e.qty}</div></div><div class="fact"><div class="k">Free</div><div class="v">${n.free}</div></div><div class="fact"><div class="k">Allocated</div><div class="v">${n.allocated}</div></div><div class="fact"><div class="k">Held by planned swaps</div><div class="v">${n.held.length}</div></div></div>`;
+  body += `<div class="section"><span>Decks</span></div>`;
+  if (!n.alloc.length && !n.held.length) body += `<div class="note">No deck uses these copies.</div>`;
+  for (const a of n.alloc) body += `<button class="option" data-act="openDeckD" data-deck="${a.deckId}">${thumb(deckOf(a.deckId).commanders[0], 'sm')}<span class="grow"><span class="name" style="display:block">${esc(deckOf(a.deckId).name)}</span><span class="meta">${a.qty} allocated · ${cap(deckOf(a.deckId).priority)} priority</span></span><span class="dim">›</span></button>`;
+  for (const p of n.held) body += `<button class="option" data-act="openDeckD" data-deck="${p.deckId}">${thumb(deckOf(p.deckId).commanders[0], 'sm')}<span class="grow"><span class="name" style="display:block">${esc(deckOf(p.deckId).name)}</span><span class="meta">Held by the planned swap${p.out ? ` for ${esc(C(p.out).name)}` : ''}</span></span><span class="dim">›</span></button>`;
+  const others = state.collection.filter(x => x.cardId === e.cardId && x.id !== e.id);
+  if (others.length) {
+    body += `<div class="section"><span>Other copies of ${esc(c.name)}</span></div>`;
+    for (const o of others) body += `<button class="option" data-act="openEntryD" data-entry="${o.id}">${thumb(o.cardId, 'sm')}<span class="grow"><span class="name" style="display:block">${esc(o.printing)} · ${esc(o.finish)}</span><span class="meta">${esc(o.condition)} · ${o.qty} owned · ${D.freeQty(state, o.id)} free${o.protected ? ' · protected' : ''}</span></span><span class="dim">›</span></button>`;
+  }
+  let foot = '';
+  if (e.protected) {
+    body += `<div class="note">Deck suggestions never use protected copies.</div>`;
+    foot = `<button class="btn" data-act="unprotectD" data-entry="${e.id}">Unprotect 1 copy</button>`;
+  } else {
+    body += `<div class="note">${n.free ? 'Protect a free copy to keep it out of decks. Deck suggestions never use protected copies.' : 'Only a free copy can be protected. Free one with a deck change first.'}</div>`;
+    foot = `<button class="btn" data-act="protectD" data-entry="${e.id}" ${n.free ? '' : 'disabled'}>Protect 1 free copy</button>`;
+  }
+  return sheetFrame('Collection entry', body, foot);
+}
+function batchSheet() {
+  const batch = state.scanBatch;
+  const count = batch.reduce((a, x) => a + x.qty, 0);
+  let body = `<div class="note">Recognized copies wait here until you add them to the collection together. A copy that matches a collection entry merges into it.</div>`;
+  if (!batch.length) body += `<div class="empty">The scan batch is empty.</div>`;
+  for (const x of batch) body += `<div class="option" style="cursor:default" data-item="${x.id}">${thumb(x.cardId, 'sm')}<span class="grow"><span class="name" style="display:block">${esc(C(x.cardId).name)}</span><span class="meta">${esc(x.printing)} · ${esc(x.finish)} · ${esc(x.condition)} · ${esc(x.language)}</span></span><span class="qty">${x.qty}</span><button class="btn small" data-act="removeBatchD" data-item="${x.id}">Remove 1</button></div>`;
+  return sheetFrame('Scan batch', body, `<button class="btn primary" data-act="addBatchD" ${count ? '' : 'disabled'}>${count ? `Add ${count === 1 ? '1 copy' : count + ' copies'} to collection` : 'Add to collection'}</button>`);
+}
 function deckInfoSheet(sh) { return sheetFrame(deckOf(sh.deckId).short, deckPanels(sh.deckId, { long: true }), ''); }
 function renderSheet() {
   const sh = ui.sheet;
   if (!sh) return '';
-  return ({ promote: promoteSheet, bought: boughtSheet, swapIn: swapInSheet, history: historySheet, revert: revertSheet, deckInfo: deckInfoSheet })[sh.type](sh);
+  return ({ promote: promoteSheet, bought: boughtSheet, swapIn: swapInSheet, history: historySheet, revert: revertSheet, deckInfo: deckInfoSheet, entry: entrySheet, batch: batchSheet })[sh.type](sh);
 }
 
 function renderDev() {
@@ -1030,7 +1318,7 @@ function renderStatePanel() {
   el.hidden = !ui.showState;
   if (!ui.showState) return;
   const prev = el.scrollTop;
-  el.innerHTML = `<div class="sh"><span>State after every action (reducer output)</span><span>${esc(lastUiEvent)} → ${esc(lastAction)}</span></div><pre>${esc(JSON.stringify({ lastAction, lastUiEvent, derived: derived(), state, ui: { variant: ui.variant, deckId: ui.deckId, sheet: ui.sheet, A: ui.A, B: ui.B, C: ui.C } }, null, 2))}</pre>`;
+  el.innerHTML = `<div class="sh"><span>State after every action (reducer output)</span><span>${esc(lastUiEvent)} → ${esc(lastAction)}</span></div><pre>${esc(JSON.stringify({ lastAction, lastUiEvent, derived: derived(), state, ui: { variant: ui.variant, deckId: ui.deckId, sheet: ui.sheet, A: ui.A, B: ui.B, C: ui.C, D: ui.D } }, null, 2))}</pre>`;
   el.scrollTop = prev;
 }
 let lastAction = 'seed';
@@ -1040,7 +1328,7 @@ function render() {
   const screen = document.getElementById('screen');
   const scrolls = {};
   screen.querySelectorAll('[data-scroll]').forEach(el => { scrolls[el.dataset.scroll] = el.scrollTop; });
-  const view = ui.variant === 'A' ? renderA() : ui.variant === 'B' ? renderB() : renderC();
+  const view = ui.variant === 'A' ? renderA() : ui.variant === 'B' ? renderB() : ui.variant === 'C' ? renderC() : renderD();
   screen.innerHTML = `${statusBar()}<div class="app ${ui.sheet ? 'under-sheet' : ''}">${view}</div>${renderSheet()}${ui.toast ? `<div class="toast">${esc(ui.toast)}</div>` : ''}<div class="homebar"></div>`;
   screen.querySelectorAll('[data-scroll]').forEach(el => {
     if (el.dataset.bottom && ui.C.toBottom) { el.scrollTop = el.scrollHeight; return; }
@@ -1091,6 +1379,7 @@ const handlers = {
     if (ui.variant === 'A') { ui.deckId = p.deckId; }
     if (ui.variant === 'B') { ui.B.filter = 'all'; ui.B.current = p.id; ui.B.tab = 'review'; ui.B.skipped = ui.B.skipped.filter(x => x !== p.id); }
     if (ui.variant === 'C') { ui.deckId = p.deckId; ui.C.filter = 'all'; ui.C.highlight = p.id; }
+    if (ui.variant === 'D') { ui.D.tab = 'decks'; ui.D.deckId = p.deckId; }
     if (p.status !== 'open' && p.result && p.result.kind === 'planned swap') toast(`The paired suggestion is now a planned swap in ${deckOf(p.deckId).short}.`);
   },
   swapIn: ds => {
@@ -1120,7 +1409,7 @@ const handlers = {
   skipB: ds => { ui.B.skipped = [...ui.B.skipped.filter(x => x !== ds.id), ds.id]; const q = queueB(); ui.B.current = q[0] ? q[0].id : null; },
   historyDeckB: ds => { ui.B.deckId = ds.deck; },
   closeSheet: () => { ui.sheet = null; },
-  reset: () => { state = D.seed(); lastAction = 'reset'; Object.assign(ui, freshUi()); toast('Data reset.'); },
+  reset: () => { clearTimeout(scanTimer); state = D.seed(); lastAction = 'reset'; Object.assign(ui, freshUi()); toast('Data reset.'); },
   toggleState: () => { ui.showState = !ui.showState; },
   toggleImages: () => { ui.images = !ui.images; },
   toggleDev: () => { ui.devOpen = !ui.devOpen; },
@@ -1132,9 +1421,46 @@ const handlers = {
     const n = newest(state.suggestions, prev, 'suggestions');
     if (n) { toast(`ChatGPT suggested ${C(n.in).name} for ${deckOf(n.deckId).short}.${n.status === 'stale' ? ' It is already stale.' : ''}`); if (ui.variant === 'C' && ui.deckId === n.deckId) ui.C.toBottom = true; }
   },
+  tabD: ds => { if (ds.tab === 'decks' && ui.D.tab === 'decks') ui.D.deckId = null; ui.D.tab = ds.tab; },
+  filterD: ds => { ui.D.filter = ds.f; },
+  openDeckD: ds => { ui.sheet = null; ui.D.tab = 'decks'; ui.D.deckId = ds.deck; ui.deckId = ds.deck; },
+  backDecksD: () => { ui.D.deckId = null; },
+  colFilterD: ds => { ui.D.colFilter = ds.f; },
+  openEntryD: ds => { ui.sheet = { type: 'entry', entryId: ds.entry }; },
+  protectD: ds => { protectToggle(ds.entry, 'protectCopy'); },
+  unprotectD: ds => { protectToggle(ds.entry, 'unprotectCopy'); },
+  goScanD: ds => { const x = buyOf(ds.id); ui.D.scanFor = { buylistId: x.id, cardId: x.in, returnTab: ui.D.tab }; ui.sheet = null; ui.D.tab = 'scan'; },
+  cancelScanForD: () => { ui.D.scanFor = null; },
+  simScanD: () => {
+    if (ui.D.scanning) return;
+    ui.D.scanning = true;
+    const sf = ui.D.scanFor;
+    const cardId = sf && !state.scanBatch.some(x => x.cardId === sf.cardId) ? sf.cardId : undefined;
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(() => { ui.D.scanning = false; lastUiEvent = 'scanRecognized'; dispatch({ type: 'scanCard', cardId }); render(); }, 800);
+  },
+  openBatchD: () => { ui.sheet = { type: 'batch' }; },
+  removeBatchD: ds => { dispatch({ type: 'removeBatchCopy', itemId: ds.item }); },
+  addBatchD: () => {
+    const n = state.scanBatch.reduce((a, x) => a + x.qty, 0);
+    if (!dispatch({ type: 'addBatch' }, `Added ${n === 1 ? '1 copy' : n + ' copies'} to your collection.`)) return;
+    ui.sheet = null;
+    const sf = ui.D.scanFor;
+    if (sf && buyOf(sf.buylistId).status === 'open' && D.copiesOf(state, sf.cardId).some(c => c.free > 0)) {
+      ui.D.scanFor = null; ui.D.tab = sf.returnTab || 'recent';
+      ui.sheet = { type: 'bought', id: sf.buylistId, entryId: null };
+    }
+  },
   toggleGap: () => { dispatch({ type: 'toggleCatalogGap' }, state.catalogGap ? 'Catalog record restored.' : 'Siege-Gang Commander now has no catalog record.'); }
 };
 
+function protectToggle(entryId, type) {
+  const e = D.entryById(state, entryId);
+  const props = { cardId: e.cardId, printing: e.printing, finish: e.finish, condition: e.condition, language: e.language, protected: !e.protected };
+  if (!dispatch({ type, entryId }, type === 'protectCopy' ? `Protected 1 copy of ${C(e.cardId).name}.` : `Unprotected 1 copy of ${C(e.cardId).name}.`)) return;
+  const twin = state.collection.find(x => Object.entries(props).every(([k, v]) => x[k] === v));
+  if (twin) ui.sheet = { type: 'entry', entryId: twin.id };
+}
 function fit() { document.documentElement.style.setProperty('--fit', Math.min(1, (window.innerHeight - 110) / 870).toFixed(3)); }
 window.addEventListener('resize', fit);
 fit();
@@ -1157,6 +1483,16 @@ document.addEventListener('click', ev => {
   render();
 });
 document.addEventListener('change', ev => { if (ev.target.id === 'dev-target') { ui.devTarget = ev.target.value; } });
+document.addEventListener('input', ev => {
+  if (ev.target.id !== 'col-search') return;
+  const pos = ev.target.selectionStart;
+  ui.D.query = ev.target.value;
+  lastUiEvent = 'collectionSearch';
+  render();
+  const el = document.getElementById('col-search');
+  el.focus();
+  el.setSelectionRange(pos, pos);
+});
 document.addEventListener('keydown', ev => {
   const a = document.activeElement;
   const typing = a && (a.matches('input, textarea, select, [contenteditable], [contenteditable="true"]'));
