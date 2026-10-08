@@ -6,7 +6,7 @@
   "include-component-in-tag": false,
   "packages": {
     ".": {
-      "release-type": "simple",
+      "release-type": "node",
       "package-name": "mtgscan",
       "changelog-path": "CHANGELOG.md"
     }

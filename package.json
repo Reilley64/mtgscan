@@ -1,0 +1,13 @@
+{
+  "name": "mtgscan",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "check:pr-title": "printf '%s\\n' \"$PR_TITLE\" | commitlint --verbose"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.3",
+    "@commitlint/config-conventional": "21.2.3"
+  },
+  "packageManager": "bun@1.4.2"
+}
