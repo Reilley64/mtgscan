@@ -55,6 +55,12 @@ The 22 older iPhone photos with detected corners went through the full photo pat
 
 The thresholds (0.5 not-a-card, 0.03 orientation, 0.03 art margin) were chosen on these same crops. They are not calibrated. Indexing the full catalog took 267 seconds on the Mac. The gallery is 158 MB at float16.
 
+## Simulated and missing-printing evaluation
+
+`uv run eval/simulate.py --bulk <default-cards.jsonl.gz> --images <cache> --output <dir>` renders Scryfall `large` images, a different file from the gallery's `normal` images, into synthetic phone photos. Each photo gets a random background and lighting, rotation and perspective, a 30% chance of being upside down, glare that is often over the collector line, sleeve haze, blur, motion blur, noise, JPEG compression, and a slightly wrong card outline. It writes `labels.json` with the photo, outline, true printing, and group. The default sample is 1,500 same-art reprints, 800 single-art printings, 400 Secret Lair and special frames, and 300 pre-2015 frames.
+
+`node scripts/evaluate-crops.mjs <labels.json> --held-out` removes each true printing from the catalog for its own request. Every accept is then a false accept. This is what a printing missing from the gallery would cause. `--details` lists every false accept and accepted row.
+
 ## Limits
 
 - One tester, one phone, and one set of cards. The crops include repeats of the same 62 printings.

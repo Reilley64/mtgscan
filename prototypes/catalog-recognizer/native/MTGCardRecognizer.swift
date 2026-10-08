@@ -46,6 +46,8 @@ enum MTGCardRecognizer {
   static let fullReadingStrength = 3
   static let titleCandidates = 10
   static let machineReadableFrame = "2015"
+  static let listSet = "plst"
+  static let artCheckDepth = 5
   static let candidateCount = 5
 
   enum Failure: Error {
@@ -164,8 +166,9 @@ enum MTGCardRecognizer {
     )
     var ordered = expanded
     if let first {
-      ordered.removeAll { $0 == first }
-      ordered.insert(first, at: 0)
+      let leading = [first] + sameLineVariants(of: first, catalog: catalog).filter { !excluded.contains($0) }
+      ordered.removeAll { leading.contains($0) }
+      ordered.insert(contentsOf: leading, at: 0)
     }
     let candidates = ordered.prefix(candidateCount).map { index -> MTGRecognitionCandidate in
       let printing = catalog.printings[index]
@@ -230,8 +233,26 @@ enum MTGCardRecognizer {
       guard let read = catalog.index(set: setCode, collectorNumber: number), !excluded.contains(read) else {
         return abstain("collector line \(readLabel) names no printing in the catalog")
       }
+      let imageArts = Set(ranked.prefix(artCheckDepth).compactMap { catalog.printings[$0].illustrationId })
+      if shortlistNames.contains(catalog.printings[read].oracleId),
+         let readArt = catalog.printings[read].illustrationId, !imageArts.contains(readArt) {
+        return abstain("collector line \(readLabel) names a printing whose art the image does not match", first: ranked[0])
+      }
       if shortlistNames.contains(catalog.printings[read].oracleId) {
-        return accept(read, "collector line \(readLabel) matches a card in the image shortlist")
+        let variants = sameLineVariants(of: read, catalog: catalog).filter { !excluded.contains($0) }
+        let reason = "collector line \(readLabel) matches a card in the image shortlist"
+        guard !variants.isEmpty else { return accept(read, reason) }
+        let names = variants.prefix(3).map {
+          "\(catalog.printings[$0].set.uppercased()) \(catalog.printings[$0].collectorNumber)"
+        }.joined(separator: ", ")
+        return (
+          MTGRecognitionDecision(
+            accepted: true,
+            scryfallId: catalog.printings[read].id,
+            reasons: [reason, "\(variants.count) promo or variant printings print the same collector line: \(names)"]
+          ),
+          read
+        )
       }
       return abstain("collector line \(readLabel) names a card the image does not support", first: read)
     }
@@ -282,6 +303,23 @@ enum MTGCardRecognizer {
       return abstain("only printing of its art, but the next art is \(format(margin)) behind; at least \(format(unreadArtMargin)) is required")
     }
     return accept(top, "only printing of its art, next art \(format(margin)) behind")
+  }
+
+  static func sameLineVariants(of index: Int, catalog: MTGCardCatalog) -> [Int] {
+    let printing = catalog.printings[index]
+    guard let illustration = printing.illustrationId else { return [] }
+    func digits(_ number: String) -> String {
+      String(number.prefix { $0.isNumber }.drop { $0 == "0" })
+    }
+    let number = digits(printing.collectorNumber)
+    let listNumber = "\(printing.set.uppercased())-\(number)"
+    return (catalog.printingsByIllustration[illustration] ?? []).filter { sibling in
+      let other = catalog.printings[sibling]
+      guard sibling != index else { return false }
+      if other.set == listSet { return other.collectorNumber.uppercased() == listNumber }
+      return digits(other.collectorNumber) == number
+        && (other.set == printing.set || other.set == "p" + printing.set || "p" + other.set == printing.set)
+    }
   }
 
   static func titleKey(_ text: String) -> String {

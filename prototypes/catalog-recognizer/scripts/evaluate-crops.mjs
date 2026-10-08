@@ -41,7 +41,7 @@ for (const { truth: _truth, group: _group, ...request } of requests) child.stdin
 await finished;
 child.stdin.end();
 
-const totals = { cards: 0, nameTop1: 0, printingTop1: 0, accepted: 0, correctAccepts: 0, falseAccepts: 0, nonCards: 0, nonCardsRejected: 0 };
+const totals = { truthInTop5: 0, cards: 0, nameTop1: 0, printingTop1: 0, accepted: 0, correctAccepts: 0, falseAccepts: 0, nonCards: 0, nonCardsRejected: 0 };
 const latencies = [];
 const falseAccepts = [];
 const acceptReasons = {};
@@ -60,6 +60,7 @@ for (const request of requests) {
   const group = (groups[request.group ?? "all"] ??= { cards: 0, accepted: 0, correct: 0, false: 0 });
   group.cards += 1;
   if (top === request.truth) totals.printingTop1 += 1;
+  if (recognition.candidates.some((candidate) => candidate.scryfallId === request.truth)) totals.truthInTop5 += 1;
   if (top && oracleById.get(top) === oracleById.get(request.truth)) totals.nameTop1 += 1;
   if (recognition.decision.accepted) {
     totals.accepted += 1;
@@ -79,6 +80,7 @@ for (const request of requests) {
         reason: recognition.decision.reasons[0],
         reading: recognition.reading,
         topSimilarity: recognition.topSimilarity,
+        truthInCandidates: recognition.candidates.some((candidate) => candidate.scryfallId === request.truth),
       });
     }
   }
