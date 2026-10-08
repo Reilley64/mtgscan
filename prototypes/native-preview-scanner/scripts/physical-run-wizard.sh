@@ -213,6 +213,41 @@ LOGS_AVAILABLE="no"
 SERVICE_ROOT="$(cd "$PROJECT_ROOT/../scanner-accuracy" && pwd)"
 APP_ENV_FILE="$PROJECT_ROOT/.env"
 SCORE="node $PROJECT_ROOT/scripts/recognition-score.mjs"
+LAST_DEVICE_FILE="$PROJECT_ROOT/.physical-runs/last-device.env"
+
+remembered_value() {
+  local key="$1" line file
+  if [[ -f "$LAST_DEVICE_FILE" ]]; then
+    line=$(grep -E "^${key}=" "$LAST_DEVICE_FILE" | tail -n1 || true)
+    [[ -n "$line" ]] && { printf '%s' "${line#*=}"; return; }
+  fi
+  for file in $(ls -1d "$PROJECT_ROOT"/.physical-runs/*/results.env 2>/dev/null | sort -r); do
+    [[ "$file" == "$ENV_FILE" ]] && continue
+    line=$(grep -E "^${key}=" "$file" | tail -n1 || true)
+    [[ -n "${line#*=}" ]] && { printf '%s' "${line#*=}"; return; }
+  done
+}
+
+record_remembered() {
+  local key="$1" prompt="$2" remembered input
+  if _existing "$key" >/dev/null; then
+    record "$key" "$prompt"
+  else
+    remembered=$(remembered_value "$key")
+    if [[ -n "$remembered" ]]; then
+      printf '  %s%s%s %s[Enter keeps %s]%s ' "$BOLD" "$prompt" "$RESET" "$DIM" "$remembered" "$RESET"
+    else
+      printf '  %s%s%s ' "$BOLD" "$prompt" "$RESET"
+    fi
+    read -r input || true
+    [[ -z "$input" ]] && input="$remembered"
+    printf -v "$key" '%s' "$input"
+    write_env "$key" "$input"
+  fi
+  local others
+  others=$(grep -vE "^${key}=" "$LAST_DEVICE_FILE" 2>/dev/null || true)
+  { [[ -n "$others" ]] && printf '%s\n' "$others"; printf '%s=%s\n' "$key" "${!key}"; } > "$LAST_DEVICE_FILE"
+}
 
 stop_metro() {
   if [[ -n "$METRO_PID" ]] && kill -0 "$METRO_PID" 2>/dev/null; then
@@ -578,8 +613,8 @@ step "If it still cannot connect, check the phone is on the same Wi-Fi, and turn
 note "If Xcode reports a bundle identifier or signing error, stop and tell the agent. Do not edit files under ios/."
 pause "Press Enter when the camera preview is showing on the phone."
 if [[ "$MODE" != "quick" ]]; then
-  record DEVICE_MODEL "iPhone model (for example iPhone 16e):"
-  record IOS_VERSION "iOS version (Settings → General → About):"
+  record_remembered DEVICE_MODEL "iPhone model (for example iPhone 16e):"
+  record_remembered IOS_VERSION "iOS version (Settings → General → About):"
 fi
 if log_has "camera-format-selected"; then
   LOGS_AVAILABLE="yes"
