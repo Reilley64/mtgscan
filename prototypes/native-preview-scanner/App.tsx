@@ -374,7 +374,9 @@ export default function App() {
           loading={
             pendingCount > 0 ||
             capture.photoInFlight ||
-            diagnostics.phase === "holding"
+            diagnostics.phase === "holding" ||
+            diagnostics.phase === "capturing" ||
+            (diagnostics.phase === "seeking" && observation.detected)
           }
           onOpen={setOpenScanId}
         />
