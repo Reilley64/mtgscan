@@ -4,11 +4,15 @@
   "version": "0.0.0",
   "packageManager": "bun@1.4.2",
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "supabase"
   ],
   "scripts": {
-    "typecheck": "bun run --filter './apps/*' typecheck",
+    "typecheck": "bun run --filter './apps/*' --filter ./supabase typecheck",
     "lint": "bun run --filter './apps/*' lint",
-    "test": "bun run --filter './apps/*' test"
+    "test": "bun run --filter './apps/*' test",
+    "test:database": "bun run --filter ./supabase test",
+    "types:database": "bun run --filter ./supabase types",
+    "types:database:check": "bun run --filter ./supabase types:check"
   }
 }
