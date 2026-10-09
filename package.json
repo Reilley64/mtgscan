@@ -10,8 +10,5 @@
     "typecheck": "bun run --filter './apps/*' typecheck",
     "lint": "bun run --filter './apps/*' lint",
     "test": "bun run --filter './apps/*' test"
-  },
-  "patchedDependencies": {
-    "expo-modules-jsi@57.1.1": "patches/expo-modules-jsi@57.1.1.patch"
   }
 }
