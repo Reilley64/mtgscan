@@ -36,7 +36,9 @@ The scanner-accuracy service uses the helper when it starts with `RECOGNIZER=cat
 
 ## Offline evidence
 
-`node scripts/evaluate-crops.mjs <labels.json> [catalog-dir]` runs the helper on straightened crops and prints the totals. The labels file lists `{crop, scryfallId}` card entries and optional non-card crops.
+`node scripts/evaluate-crops.mjs <labels.json> [catalog-dir]` runs the helper on straightened crops and prints the totals. The labels file lists `{crop, scryfallId}` card entries and optional non-card crops. Relative paths in the labels file are read from the labels file's folder. `--scans` adds one row for each scan.
+
+The committed evidence pack in `evidence/` holds the real crops, the simulation recipe, the bin-deck runs, and the expected results for each release gate. See `evidence/README.md`.
 
 The issue #20 evaluation used 157 phone crops from the bin rounds, with every label checked against the printed collector line, and 11 crops of an empty bin floor or a finger. The crops are 488 x 680, so the collector line is read from an enlarged strip rather than the full photo. Results on the full 102,726-printing catalog of 6 October 2026 (Mac, Apple M3):
 
@@ -57,7 +59,7 @@ The thresholds (0.5 not-a-card, 0.03 orientation, 0.03 art margin) were chosen o
 
 ## Simulated and missing-printing evaluation
 
-`uv run eval/simulate.py --bulk <default-cards.jsonl.gz> --images <cache> --output <dir>` renders Scryfall `large` images, a different file from the gallery's `normal` images, into synthetic phone photos. Each photo gets a random background and lighting, rotation and perspective, a 30% chance of being upside down, glare that is often over the collector line, sleeve haze, blur, motion blur, noise, JPEG compression, and a slightly wrong card outline. It writes `labels.json` with the photo, outline, true printing, and group. The default sample is 1,500 same-art reprints, 800 single-art printings, 400 Secret Lair and special frames, and 300 pre-2015 frames.
+`uv run eval/simulate.py --bulk <default-cards.jsonl.gz> --images <cache> --output <dir>` renders Scryfall `large` images, a different file from the gallery's `normal` images, into synthetic phone photos. Each photo gets a random background and lighting, rotation and perspective, a 30% chance of being upside down, glare that is often over the collector line, sleeve haze, blur, motion blur, noise, JPEG compression, and a slightly wrong card outline. It writes `labels.json` with the photo file name, outline, true printing, and group. `--save-cards <file>` writes the chosen printings, and `--cards <file>` renders a saved list instead of choosing from `--bulk`. The default sample is 1,500 same-art reprints, 800 single-art printings, 400 Secret Lair and special frames, and 300 pre-2015 frames.
 
 `node scripts/evaluate-crops.mjs <labels.json> --held-out` removes each true printing from the catalog for its own request. Every accept is then a false accept. This is what a printing missing from the gallery would cause. `--details` lists every false accept and accepted row.
 

@@ -182,7 +182,9 @@ def render(rng, source, card_height):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bulk", required=True)
+    parser.add_argument("--bulk")
+    parser.add_argument("--cards", help="card list written by --save-cards, used instead of choosing from --bulk")
+    parser.add_argument("--save-cards", help="write the chosen card list to this file")
     parser.add_argument("--images", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--seed", type=int, default=20261008)
@@ -192,7 +194,14 @@ def main():
     parser.add_argument("--old-frame", type=int, default=300)
     arguments = parser.parse_args()
     counts = {"same-art": arguments.same_art, "single-art": arguments.single_art, "special": arguments.special, "old-frame": arguments.old_frame}
-    entries = choose(arguments.bulk, counts, arguments.seed)
+    if arguments.cards:
+        entries = json.loads(Path(arguments.cards).read_text())["cards"]
+    elif arguments.bulk:
+        entries = choose(arguments.bulk, counts, arguments.seed)
+    else:
+        parser.error("--bulk or --cards is required")
+    if arguments.save_cards:
+        Path(arguments.save_cards).write_text(json.dumps({"seed": arguments.seed, "counts": counts, "cards": entries}, indent=1) + "\n")
     failures = asyncio.run(download(entries, Path(arguments.images)))
     output = Path(arguments.output)
     output.mkdir(parents=True, exist_ok=True)
@@ -204,7 +213,7 @@ def main():
         photo, quad, conditions = render(rng, Path(arguments.images) / f"{entry['id']}.jpg", rng.randint(1300, 1900))
         path = output / f"sim-{index:05d}.jpg"
         cv2.imwrite(str(path), photo, [cv2.IMWRITE_JPEG_QUALITY, rng.randint(70, 92)])
-        cards.append({"photo": str(path), "quad": quad, "scryfallId": entry["id"], "group": entry["group"], "conditions": conditions})
+        cards.append({"photo": path.name, "quad": quad, "scryfallId": entry["id"], "group": entry["group"], "conditions": conditions})
     (output / "labels.json").write_text(json.dumps({"cards": cards}))
     print(json.dumps({"rendered": len(cards), "downloadFailures": len(failures), "groups": {group: sum(1 for card in cards if card["group"] == group) for group in counts}}))
 

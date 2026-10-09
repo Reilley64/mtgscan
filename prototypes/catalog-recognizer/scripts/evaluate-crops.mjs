@@ -8,24 +8,27 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const flags = new Set(process.argv.slice(2).filter((argument) => argument.startsWith("--")));
 const [labelsPath, catalogArgument] = process.argv.slice(2).filter((argument) => !argument.startsWith("--"));
 if (!labelsPath) {
-  console.error("usage: node scripts/evaluate-crops.mjs <labels.json> [catalog-dir] [--held-out] [--details]");
+  console.error("usage: node scripts/evaluate-crops.mjs <labels.json> [catalog-dir] [--held-out] [--details] [--scans]");
   process.exit(1);
 }
 const heldOut = flags.has("--held-out");
 const catalogDirectory = path.resolve(catalogArgument ?? path.join(projectRoot, ".data", "catalog"));
 const helper = process.env.CATALOG_RECOGNIZER_BIN ?? path.join(projectRoot, ".build", "mtg-catalog-recognizer");
 const { cards, nonCards = [] } = JSON.parse(await fs.readFile(labelsPath, "utf8"));
+const labelsDirectory = path.dirname(path.resolve(labelsPath));
+const inputPath = (file) => path.resolve(labelsDirectory, file);
 const catalog = JSON.parse(await fs.readFile(path.join(catalogDirectory, "catalog.json"), "utf8"));
 const oracleById = new Map(catalog.map((printing) => [printing.id, printing.oracleId]));
 const requests = [
   ...cards.map((card, index) => ({
     requestId: `card-${index}`,
-    ...(card.photo ? { photoPath: card.photo, quad: card.quad } : { cropPath: card.crop }),
+    ...(card.photo ? { photoPath: inputPath(card.photo), quad: card.quad } : { cropPath: inputPath(card.crop) }),
     ...(heldOut ? { excludeIds: [card.scryfallId] } : {}),
+    input: card.photo ?? card.crop,
     truth: card.scryfallId,
     group: card.group ?? null,
   })),
-  ...nonCards.map((crop, index) => ({ requestId: `non-card-${index}`, cropPath: crop, truth: null, group: null })),
+  ...nonCards.map((crop, index) => ({ requestId: `non-card-${index}`, cropPath: inputPath(crop), input: crop, truth: null, group: null })),
 ];
 
 const child = spawn(helper, ["serve", catalogDirectory], { stdio: ["pipe", "pipe", "inherit"] });
@@ -37,7 +40,7 @@ const finished = new Promise((resolve) => {
     if (responses.size === requests.length) resolve();
   });
 });
-for (const { truth: _truth, group: _group, ...request } of requests) child.stdin.write(`${JSON.stringify(request)}\n`);
+for (const { input: _input, truth: _truth, group: _group, ...request } of requests) child.stdin.write(`${JSON.stringify(request)}\n`);
 await finished;
 child.stdin.end();
 
@@ -74,7 +77,7 @@ for (const request of requests) {
       totals.falseAccepts += 1;
       group.false += 1;
       falseAccepts.push({
-        input: request.cropPath ?? request.photoPath,
+        input: request.input,
         accepted: recognition.decision.scryfallId,
         truth: request.truth,
         reason: recognition.decision.reasons[0],
@@ -99,6 +102,17 @@ const acceptedRows = requests.flatMap((request) => {
     },
   ];
 });
+const scans = requests.map((request) => {
+  const recognition = responses.get(request.requestId)?.recognition;
+  return {
+    input: request.input,
+    truth: request.truth,
+    group: request.group,
+    top: recognition?.candidates[0]?.scryfallId ?? null,
+    accepted: recognition?.decision.accepted ? recognition.decision.scryfallId : null,
+    reason: recognition?.decision.reasons[0] ?? responses.get(request.requestId)?.error ?? null,
+  };
+});
 const errors = [...responses.values()].filter((response) => response.error).length;
 console.log(
   JSON.stringify(
@@ -113,6 +127,7 @@ console.log(
       groups,
       falseAcceptList: flags.has("--details") ? falseAccepts : falseAccepts.slice(0, 20),
       ...(flags.has("--details") ? { acceptedRows } : {}),
+      ...(flags.has("--scans") ? { scans } : {}),
     },
     null,
     2,
