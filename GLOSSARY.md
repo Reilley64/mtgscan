@@ -13,11 +13,15 @@ A published version of a card identified by its set and collector number.
 _Avoid_: Version, edition
 
 **Collection entry**:
-A quantity of owned physical copies that share a card printing, finish, language, condition, and protected flag. Adding a copy with the same properties merges it into the entry. To correct a copy, the user deletes it and adds it again.
+A quantity of owned physical copies that share a card printing, finish, language, condition, and protected flag. Adding a copy with the same properties merges it into the entry. Each addition keeps its own time and purchase-day price. To correct a copy, the user deletes it and adds it again.
 _Avoid_: Card, item
 
+**Purchase-day price**:
+The current price of a card printing and finish on the day copies were added to the collection. It is recorded on each addition, not on the collection entry.
+_Avoid_: Purchase price, cost
+
 **Protected copy**:
-An owned copy that the user keeps out of decks. Deck suggestions never use protected copies. A user action that would put a protected copy into a deck warns the user and unprotects it on confirmation.
+An owned copy that the user keeps out of decks. The AI never offers a protected copy as the reason a card is available. A user action that would put a protected copy into a deck warns the user and unprotects it on confirmation. When the only free copies are protected, promoting a deck suggestion holds a protected copy after a warning.
 _Avoid_: Don't touch, collection copy
 
 **Collection**:
@@ -68,15 +72,15 @@ The Commander bracket that a deck's bracket signals suggest. It is an estimate f
 _Avoid_: Bracket, deck bracket, power level
 
 **Deck suggestion**:
-An AI proposal to add a card to a deck, optionally replacing a deck card, with the AI's reason. It always names an incoming card. It is open, promoted, dismissed, or stale. It becomes stale when its outgoing card leaves the deck. Promoting it creates a planned swap when a free copy exists, otherwise a buylist card, and both keep the reason.
+An AI proposal to add a card to a deck, optionally replacing a deck card, with the AI's reason. It always names an incoming card. It is open, promoted, dismissed, withdrawn, or stale. An AI cannot suggest replacing a card that has already left the deck. An open suggestion becomes stale when its outgoing card leaves the deck later. Any connected AI client can withdraw an open suggestion or replace its reason, and a withdrawn suggestion stays withdrawn. Promoting it creates a planned swap when a free copy exists, otherwise a buylist card, and both keep the reason. Promoting a basic-land suggestion makes a deck change at once.
 _Avoid_: AI change, recommendation
 
 **Planned swap**:
-The user's intent to put an owned copy into a deck, optionally replacing a deck card. It holds one free copy until the user swaps it in or the swap closes. Only the user creates planned swaps, directly or by promoting a deck suggestion. A planned swap can replace the commander. It closes when its outgoing card leaves the deck. If its held copy is deleted or used elsewhere after a warning, it becomes a buylist card.
+The user's intent to put an owned copy into a deck, optionally replacing a deck card. It holds one free copy until the user swaps it in or the swap closes. Only the user creates planned swaps, directly or by promoting a deck suggestion. A planned swap can replace the commander. It closes when its outgoing card leaves the deck. If its held copy is deleted or used elsewhere after a warning, it becomes a buylist card. Swapping it in makes one deck change. A planned swap is open, swapped in, closed, or moved to the buylist.
 _Avoid_: Upgrade
 
 **Buylist**:
-The cards the user does not own yet and needs to buy. Each buylist card names a deck and may name a deck card it will replace. It closes when that outgoing card leaves the deck. The buylist is separate from planned swaps. Marking a buylist card bought lets the user choose a free copy and puts it into the deck in one deck change.
+The cards the user does not own yet and needs to buy. Each buylist card names a deck and may name a deck card it will replace. It shows the card's default Scryfall printing. It is open, bought, or closed. It closes when that outgoing card leaves the deck. The buylist is separate from planned swaps. Marking a buylist card bought lets the user choose a free copy and puts it into the deck in one deck change.
 _Avoid_: Wishlist
 
 **Deck change**:
@@ -100,5 +104,5 @@ _Avoid_: Inventory search
 ## AI access
 
 **MCP connection**:
-The authenticated remote connection through which ChatGPT can inspect the user's card data, search the collection and card catalog, and make deck suggestions.
+The authenticated remote connection through which a compatible AI chat client can inspect the user's card data, search the collection and card catalog, and make deck suggestions.
 _Avoid_: MCP/AI connection
