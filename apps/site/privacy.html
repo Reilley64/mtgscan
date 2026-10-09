@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#080b0d">
+<title>Privacy policy · mtgscan</title>
+<meta name="description" content="How mtgscan collects, uses, stores, and deletes your data.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="page">
+<header class="site-header">
+<a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>mtgscan</a>
+<nav class="site-nav" aria-label="Site">
+<a href="/privacy">Privacy</a>
+<a href="https://github.com/Reilley64/mtgscan">GitHub</a>
+</nav>
+</header>
+<main>
+<h1>Privacy policy</h1>
+<p class="meta">Effective date: {{EFFECTIVE_DATE}}</p>
+<p>This policy explains what data mtgscan collects, why it collects it, and what you can do about it.</p>
+<p>mtgscan is in development for iPhone and is not on the App Store yet. This policy describes how the app handles data as the developer builds it. The app does not have every feature described here yet.</p>
+<h2>Who runs mtgscan</h2>
+<p>One individual developer runs mtgscan. This policy calls that person "the mtgscan developer". No company runs mtgscan. You can reach the mtgscan developer at <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>.</p>
+<h2>Data mtgscan collects</h2>
+<h3>Your account</h3>
+<p>You sign in with Apple or Google. mtgscan gets two things from them:</p>
+<ul>
+<li>an account ID for your Apple or Google identity;</li>
+<li>your email address.</li>
+</ul>
+<p>If you choose Hide My Email with Sign in with Apple, mtgscan gets an Apple relay address, not your real email address. mtgscan never gets your Apple or Google password.</p>
+<p>Each Apple or Google identity is its own mtgscan account. mtgscan does not link accounts across providers.</p>
+<h3>Your collection and decks</h3>
+<p>mtgscan stores the data you create in the app:</p>
+<ul>
+<li>collection entries for the card printings you own, with finish, language, condition, quantity, and whether copies are protected;</li>
+<li>the time you added each copy and its purchase-day price;</li>
+<li>decks, with their commanders, cards, and deck priority;</li>
+<li>deck changes and deck change history;</li>
+<li>deck suggestions from connected AI clients, with their reasons and the name of the AI client;</li>
+<li>planned swaps and buylist cards;</li>
+<li>your settings, such as your currency and whether training crop uploads are on.</li>
+</ul>
+<h3>Searches</h3>
+<p>mtgscan logs each collection search and catalog search, from the app or from a connected AI client. A log records the query, the number of results, how long the search took, and the first 20 results. Searches in the app also record which result you opened and whether you searched again soon after. mtgscan keeps search logs for 180 days and uses them to improve search.</p>
+<h3>Connected AI clients</h3>
+<p>When you connect an AI client, mtgscan stores a record of that connection so the client can reach your data.</p>
+<h3>Training crops</h3>
+<p>If training crop uploads are on, mtgscan stores training crops of scanned cards with their evidence records. The next section explains them.</p>
+<h2>How scanning works</h2>
+<p>Card recognition runs on your phone. The camera images used to recognize cards stay on your phone, and mtgscan does not upload them.</p>
+<p>To recognize cards, the app downloads a card gallery and a card list to your phone. These files hold card data, not your data.</p>
+<p>Your scan batch is saved on your phone until you add it to your collection. When you add it, the app saves the cards to your mtgscan account.</p>
+<p>The only scan images that leave your phone are training crops.</p>
+<h2>Training crops</h2>
+<p>A training crop is an image of one card that you scanned. mtgscan uses training crops only to improve card recognition.</p>
+<ul>
+<li>Uploads are on by default.</li>
+<li>Before your first scan, the app shows a notice about training crops.</li>
+<li>You can turn uploads off in the settings at any time.</li>
+<li>You can remove every crop you uploaded with "delete all crops" in the settings.</li>
+</ul>
+<p>The app uploads a crop after you save the scan to your collection. mtgscan keeps a crop only when all of these are true:</p>
+<ul>
+<li>you saved the scan to your collection;</li>
+<li>the scanner recognized the card from its collector line or from its unique art;</li>
+<li>you did not change the printing.</li>
+</ul>
+<p>Some printings have a same-text twin that differs only by a stamp or a symbol. For these, mtgscan keeps a crop only after you confirm the printing.</p>
+<p>Each crop has an evidence record. It holds:</p>
+<ul>
+<li>the scanner's decision and its reason;</li>
+<li>the top similarity score and the art margin;</li>
+<li>what the scanner read from the collector line, and whether it named the chosen printing;</li>
+<li>the number of same-text twins;</li>
+<li>the recognizer version and the gallery date;</li>
+<li>the printing you saved, and whether you changed it;</li>
+<li>the version of the rules for keeping crops.</li>
+</ul>
+<p>Uploads stop for everyone when mtgscan's file storage is 90% full.</p>
+<h2>AI clients and the MCP connection</h2>
+<p>You can connect a compatible AI chat client, such as ChatGPT, to mtgscan through the MCP connection. A client can connect only after you sign in to mtgscan and give your consent.</p>
+<p>A connected AI client can read:</p>
+<ul>
+<li>the card catalog, with card prices and Oracle tags;</li>
+<li>your collection entries and your collection summary, including the value of your collection;</li>
+<li>your decks, with deck validity, violations, and the estimated bracket;</li>
+<li>your deck changes, planned swaps, and buylist;</li>
+<li>your deck suggestions, including dismissed and withdrawn ones.</li>
+</ul>
+<p>The only data a connected AI client can write is deck suggestions. It can create deck suggestions, withdraw open ones, and replace their reasons. It cannot change your collection or your decks. You make every deck change.</p>
+<p>The data an AI client reads goes to the company that runs that client, such as OpenAI for ChatGPT. That company's privacy policy covers what it does with the data.</p>
+<h2>Where your data is stored</h2>
+<p>mtgscan stores your account data, app data, and training crops with Supabase in the {{SUPABASE_REGION}} region.</p>
+<p>The app stores your scan batch, your sign-in session, and the card gallery on your phone.</p>
+<p>Your data is private to your account. Other users cannot read or change it. The mtgscan developer can access the stored data to run the service.</p>
+<p>mtgscan does not keep backups at the moment.</p>
+<h2>Service providers</h2>
+<p>mtgscan uses these providers to run the service:</p>
+<ul>
+<li>Supabase stores your data and runs sign-in, file storage, and the server functions.</li>
+<li>Apple provides Sign in with Apple. Apple also runs TestFlight, if you install a test build through it.</li>
+<li>Google provides Google sign-in.</li>
+<li>Expo builds the app and hosts the sign-in and consent page that AI clients use.</li>
+<li>Cloudflare hosts this website.</li>
+<li>GitHub hosts the source code and runs the jobs that import card data. These jobs do not handle personal data.</li>
+</ul>
+<p>Card data and prices come from Scryfall. Combo data comes from Commander Spellbook. mtgscan does not send your account, collection, or deck data to Scryfall or Commander Spellbook.</p>
+<p>These providers can keep technical logs, such as IP addresses and request times, to run and protect their services.</p>
+<h2>What mtgscan does not do</h2>
+<ul>
+<li>mtgscan does not sell your data.</li>
+<li>mtgscan does not show ads.</li>
+<li>mtgscan does not track you for advertising.</li>
+<li>mtgscan does not use third-party analytics in the app or on this website.</li>
+<li>This website does not set cookies.</li>
+</ul>
+<h2>Keeping and deleting your data</h2>
+<p>mtgscan keeps your data while your account exists. mtgscan deletes search logs after 180 days.</p>
+<p>In the app, you can delete copies from your collection, delete decks, and delete all your training crops. Deleting a deck is permanent.</p>
+<p>To delete your account and all its data, email <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>. Say whether you sign in with Apple or Google, and give the email address that mtgscan shows in the settings. Account deletion in the app will come before mtgscan is on the App Store.</p>
+<h2>Children</h2>
+<p>mtgscan is not directed at children under 13. If you think a child under 13 has an mtgscan account, email <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>.</p>
+<h2>Changes to this policy</h2>
+<p>When this policy changes, the effective date at the top changes too. The history of every change is public in the <a href="https://github.com/Reilley64/mtgscan">mtgscan repository on GitHub</a>.</p>
+<h2>Contact</h2>
+<p>For questions about this policy or your data, email <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>.</p>
+</main>
+<footer class="site-footer">
+<p>mtgscan is not affiliated with, approved by, or endorsed by Wizards of the Coast. Card data and prices come from <a href="https://scryfall.com">Scryfall</a>.</p>
+<p>mtgscan is unofficial Fan Content permitted under the <a href="https://company.wizards.com/en/legal/fancontentpolicy">Fan Content Policy</a>. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.</p>
+<p><a href="/privacy">Privacy policy</a> · <a href="https://github.com/Reilley64/mtgscan">Source on GitHub</a></p>
+</footer>
+</div>
+</body>
+</html>
