@@ -14,6 +14,7 @@ export const colors = {
   danger: '#ff7a70',
   dangerTint: 'rgba(255, 122, 112, 0.16)',
   grabber: '#4a555b',
+  quantityBadge: 'rgba(0, 0, 0, 0.82)',
   cameraOff: '#000000',
 } as const;
 

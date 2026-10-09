@@ -17,6 +17,7 @@ export default function SignInScreen() {
   const insets = useSafeAreaInsets();
   const [status, setStatus] = useState<SignInStatus>({ name: 'ready' });
   const signingIn = status.name === 'signing-in';
+  const signingInWithGoogle = signingIn && status.provider === 'google';
 
   async function continueWithGoogle() {
     setStatus({ name: 'signing-in', provider: 'google' });
@@ -62,7 +63,7 @@ export default function SignInScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={() => setStatus({ name: 'ready' })}
-              style={styles.tryAgain}>
+              style={[styles.signInButton, styles.tryAgain]}>
               <Text style={styles.tryAgainLabel}>Try again</Text>
             </Pressable>
           </View>
@@ -70,15 +71,15 @@ export default function SignInScreen() {
           <View style={styles.actions}>
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ busy: signingIn && status.provider === 'google' }}
+              accessibilityState={{ busy: signingInWithGoogle }}
               disabled={signingIn}
               onPress={() => void continueWithGoogle()}
               style={[
                 styles.signInButton,
                 styles.googleButton,
-                signingIn && status.provider !== 'google' && styles.waiting,
+                signingIn && !signingInWithGoogle && styles.dimmed,
               ]}>
-              {signingIn && status.provider === 'google' ? (
+              {signingInWithGoogle ? (
                 <ActivityIndicator color={googleButtonColors.text} style={styles.signInLogo} />
               ) : (
                 <Image source={require('../../assets/google-logo.png')} style={styles.signInLogo} />
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 5,
     marginBottom: spacing.md,
-    borderRadius: 3,
+    borderRadius: rounded.full,
     backgroundColor: colors.grabber,
   },
   title: {
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  waiting: {
+  dimmed: {
     opacity: 0.38,
   },
   signInLogo: {
@@ -213,15 +214,10 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   tryAgain: {
-    height: sizes.signInButton,
-    borderRadius: rounded.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: colors.primary,
   },
   tryAgainLabel: {
     ...typography.signInButton,
-    fontWeight: '800',
     color: colors.onPrimary,
   },
   privacy: {
