@@ -204,8 +204,8 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Filter chips: All, Suggestions, Planned swaps, Buylist, Deck changes.
   - Every item keeps its actions inline: Promote, Dismiss, Swap in, Bought, and revert from here.
 - **Collection** is a binder grid.
-  - Card images sit 3 per row. Each tile is one collection entry, so two printings of a card are two tiles.
-  - Corner badges show owned, free, in decks, held by a planned swap, and protected.
+  - Card images sit 3 per row, with **one tile per printing**.
+  - Corner badges total every copy of that printing, across finish, condition, language, and protected: owned, free, in decks, held by a planned swap, and protected.
   - Search matches name, type, and printing, in the collection only. Filters: All, Free, Allocated, Protected.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
@@ -214,11 +214,15 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
 
 Pushed screens cover the whole screen, including the app tab bar. There are **no on-screen back buttons**. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge.
 
-- **Card page**, from a collection tile:
-  - a hero image over the card's blurred art;
-  - name, type line, and chips for set and collector number, finish, condition, and language;
-  - Protect or Unprotect one free copy;
-  - a segmented control for **Copies** (counts for this entry and for all copies, plus other printings), **Decks** (deck tags and open deck suggestions with the card, with a badge for them), **Prices**, and **Rules** (Oracle text and Commander legality).
+- **Card page**, from a collection tile, opens that printing:
+  - a hero image of the printing over its blurred art;
+  - name, type line, and chips for the set code and collector number;
+  - Protect one free copy or Unprotect one copy of this printing;
+  - a segmented control:
+    - **Copies**: counts totalled over every copy of this printing, a one-line summary for the card across printings, this printing's copies listed by collection entry (finish, condition, language, quantity, decks, protected), and the user's other printings, each opening its own page;
+    - **Decks**: deck tags and open deck suggestions with the card, with a badge for them;
+    - **Prices**: per finish for this printing, and the value of its copies;
+    - **Rules**: Oracle text and Commander legality.
 - **Deck screen**, from the gallery or a deck tag:
   - The top bar is a compact header: the commander picture, the deck name, and chips for priority, validity, and estimated bracket. When the deck is not valid, its violations and the bracket signals show under the chips. Nothing else goes in the header.
   - A deck tab bar replaces the app tab bar: **Cards / Suggestions / History**.
@@ -263,7 +267,7 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and card page deck lists. It opens the deck.
 - **Latest-scan chip.** One horizontal chip at the bottom of Scan: a thumbnail, the card name, and the set and number, plus the finish when not nonfoil. A new scan replaces it. A pulsing skeleton chip, with a grey image block and two grey lines, shows from the moment a detected card is stable until the result arrives. Tapping the chip opens a page sheet with the details, other options, every same-text printing, and "None of these: search".
 - **Batch button.** A round card-stack icon at the top right of Scan with a count badge. It opens batch review, which merges identical copies into stacks before "Add to collection".
-- **Binder tile.** A card image with corner badges. Foil tiles carry a subtle sheen.
+- **Binder tile.** One printing's card image, with a set and collector number caption and corner badges totalled over its copies. Tiles of printings with a foil copy carry a subtle sheen.
 - **Commander gallery card.** Full-width commander art with a dark gradient, the deck name in card-title type, status chips, and a Needs you badge.
 
 ## Do's and Don'ts
