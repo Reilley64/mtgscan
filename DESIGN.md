@@ -161,7 +161,7 @@ Three ideas shape every screen:
 - **The user decides.** The AI only writes deck suggestions. Every deck change, planned swap, and buylist card is the user's action. Nothing changes a deck without a tap.
 - **No noise about confidence.** The scanner always shows its best guess, and the user switches it in one tap when needed. Confidence numbers are never shown.
 
-This file records the design settled in Wayfinder tickets #11 (scan batch flow) and #18 (AI deck changes, history, and planned swaps). Domain terms follow `CONTEXT.md`.
+This file records the design settled in Wayfinder tickets #11 (scan batch flow) and #18 (AI deck changes, history, and planned swaps). Domain terms follow `GLOSSARY.md`.
 
 ## Colors
 

@@ -4,12 +4,21 @@
 
 mtgscan is a cross-platform phone app for rapidly scanning Magic: The Gathering cards, keeping a collection, and building Commander decks. Its authenticated remote MCP service lets compatible AI chats search card and collection data, inspect decks, and make deck suggestions. Remaining product and architecture decisions belong in wayfinding. Do not introduce application code, a technology stack, or architecture decisions before they are settled.
 
-## Context and workflow
+## Workflow
 
-- Before creating, updating, or resolving an issue, read `docs/agents/issue-tracker.md`.
-- Before applying or changing triage labels, read `docs/agents/triage-labels.md`.
-- Before relying on feature behavior, requirement IDs, or verification evidence, read `docs/agents/feature-specs.md` and use its `spec-rag` retrieval workflow.
-- Before changing domain documentation, read `CONTEXT.md`.
-- For new or behavior-changing features, use the Matt Pocock plugin workflow: `grill-me -> to-tickets -> implement -> code-review`.
-- Use `feature-spec` during implementation when a ticket requires a living-spec update. See `docs/agents/feature-specs.md`.
-- For exploratory work, use `/wayfinder` and follow the map and child-ticket operations in `docs/agents/issue-tracker.md`.
+- For new or behavior-changing features, use the main flow: `grill-with-docs -> to-spec -> to-tickets -> implement -> code-review -> retro`. Use `implement-spec` instead of `implement` to build a whole spec in one run.
+- For exploratory work, use `/wayfinder`. When the map clears, continue the main flow at `/to-spec`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in GitHub Issues at `Reilley64/mtgscan`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default triage labels are used as-is. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
