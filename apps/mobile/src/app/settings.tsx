@@ -43,7 +43,6 @@ const styles = StyleSheet.create({
   },
   doneLabel: {
     ...typography.bodyStrong,
-    fontSize: typography.sheetTitle.fontSize,
     color: colors.primary,
   },
 });

@@ -30,3 +30,7 @@ export const spacing = {
 export const rounded = {
   full: 999,
 } as const;
+
+export const sizes = {
+  button: 38,
+} as const;

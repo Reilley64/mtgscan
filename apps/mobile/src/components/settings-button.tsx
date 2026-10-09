@@ -2,9 +2,7 @@ import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet } from 'react-native';
 
-import { colors, rounded } from '@/theme';
-
-const buttonSize = 36;
+import { colors, rounded, sizes } from '@/theme';
 
 export function SettingsButton() {
   return (
@@ -20,8 +18,8 @@ export function SettingsButton() {
 
 const styles = StyleSheet.create({
   button: {
-    width: buttonSize,
-    height: buttonSize,
+    width: sizes.button,
+    height: sizes.button,
     borderRadius: rounded.full,
     backgroundColor: colors.surfaceControl,
     alignItems: 'center',

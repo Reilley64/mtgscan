@@ -6,6 +6,7 @@ export default function TabsLayout() {
   return (
     <NativeTabs
       backgroundColor={colors.background}
+      shadowColor={colors.line}
       tintColor={colors.primary}
       iconColor={{ default: colors.textDim, selected: colors.primary }}
       labelStyle={{

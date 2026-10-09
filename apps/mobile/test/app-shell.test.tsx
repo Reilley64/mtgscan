@@ -1,15 +1,20 @@
 import { fireEvent, renderRouter, screen, within } from 'expo-router/testing-library';
 
-import { swipeDownPageSheet } from './page-sheet';
-import { pressTab, selectedTab, tabBarLabels } from './tab-bar';
+import { pressTab, selectedTab, swipeDownPageSheet, tabBarLabels } from './native-ui';
 
 const appDirectory = 'src/app';
+
+async function openSettings() {
+  await fireEvent.press(within(selectedTab()).getByRole('button', { name: 'Settings' }));
+  return screen.findByRole('header', { name: 'Settings' });
+}
 
 test('the app opens on Recent with its empty state', async () => {
   await renderRouter(appDirectory);
 
-  expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
-  expect(within(selectedTab()).getByText('Nothing needs you yet')).toBeOnTheScreen();
+  const recent = within(selectedTab());
+  expect(recent.getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
+  expect(recent.getByText('Nothing needs you yet')).toBeOnTheScreen();
 });
 
 test('the tab bar shows Recent, Collection, Decks, and Scan in that order', async () => {
@@ -56,26 +61,23 @@ test.each(['Recent', 'Collection', 'Decks'])(
     await renderRouter(appDirectory);
     await pressTab(tab);
 
-    await fireEvent.press(within(selectedTab()).getByRole('button', { name: 'Settings' }));
-
-    expect(await screen.findByRole('header', { name: 'Settings' })).toBeOnTheScreen();
+    expect(await openSettings()).toBeOnTheScreen();
   },
 );
 
 test('Done closes the settings sheet', async () => {
   await renderRouter(appDirectory);
-  await fireEvent.press(within(selectedTab()).getByRole('button', { name: 'Settings' }));
+  await openSettings();
 
-  await fireEvent.press(await screen.findByRole('button', { name: 'Done' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
 
   expect(screen.queryByRole('header', { name: 'Settings' })).not.toBeOnTheScreen();
   expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
 });
 
-test('a downward swipe closes the settings page sheet', async () => {
+test('a downward swipe closes the settings sheet', async () => {
   await renderRouter(appDirectory);
-  await fireEvent.press(within(selectedTab()).getByRole('button', { name: 'Settings' }));
-  expect(await screen.findByRole('header', { name: 'Settings' })).toBeOnTheScreen();
+  await openSettings();
 
   await swipeDownPageSheet();
 
