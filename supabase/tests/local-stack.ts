@@ -5,6 +5,15 @@ import type { Database } from '../database.types';
 const url = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321';
 const publishableKey =
   process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
+export const localStackUrl = url;
+
+export function localSecretKey(): string {
+  const secretKey = process.env.SUPABASE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error('Set SUPABASE_SECRET_KEY to the SECRET_KEY value from `supabase status -o env`.');
+  }
+  return secretKey;
+}
 
 export type AppClient = SupabaseClient<Database>;
 
@@ -15,6 +24,12 @@ export type TestUser = {
 
 export function anonymousClient(): AppClient {
   return createClient<Database>(url, publishableKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+export function secretKeyClient(): AppClient {
+  return createClient<Database>(url, localSecretKey(), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

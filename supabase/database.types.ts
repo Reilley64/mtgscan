@@ -23,7 +23,95 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "profiles": {
+            "card_faces": {
+                  Row: {
+                    "colors": (string)[],"face_index": number,"loyalty": string | null,"mana_cost": string,"name": string,"oracle_id": string,"oracle_text": string,"power": string | null,"toughness": string | null,"type_line": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "colors": (string)[],"face_index": number,"loyalty"?: string | null,"mana_cost": string,"name": string,"oracle_id": string,"oracle_text": string,"power"?: string | null,"toughness"?: string | null,"type_line": string
+                  }
+                  Update: {
+                    "colors"?: (string)[],"face_index"?: number,"loyalty"?: string | null,"mana_cost"?: string,"name"?: string,"oracle_id"?: string,"oracle_text"?: string,"power"?: string | null,"toughness"?: string | null,"type_line"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "card_faces_oracle_id_fkey"
+      columns: ["oracle_id"]
+isOneToOne: false
+      referencedRelation: "cards"
+      referencedColumns: ["oracle_id"]
+    }
+                  ]
+                },"card_printings": {
+                  Row: {
+                    "absent_since": string | null,"collector_number": string,"finishes": (Database["public"]['Enums']["card_finish"])[],"id": string,"illustration_id": string | null,"image_uris": (string)[],"lang": string,"oracle_id": string,"rarity": Database["public"]['Enums']["card_rarity"],"released_at": string,"set_code": string,"set_name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "absent_since"?: string | null,"collector_number": string,"finishes": (Database["public"]['Enums']["card_finish"])[],"id": string,"illustration_id"?: string | null,"image_uris": (string)[],"lang": string,"oracle_id": string,"rarity": Database["public"]['Enums']["card_rarity"],"released_at": string,"set_code": string,"set_name": string
+                  }
+                  Update: {
+                    "absent_since"?: string | null,"collector_number"?: string,"finishes"?: (Database["public"]['Enums']["card_finish"])[],"id"?: string,"illustration_id"?: string | null,"image_uris"?: (string)[],"lang"?: string,"oracle_id"?: string,"rarity"?: Database["public"]['Enums']["card_rarity"],"released_at"?: string,"set_code"?: string,"set_name"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "card_printings_oracle_id_fkey"
+      columns: ["oracle_id"]
+isOneToOne: false
+      referencedRelation: "cards"
+      referencedColumns: ["oracle_id"]
+    }
+                  ]
+                },"cards": {
+                  Row: {
+                    "absent_since": string | null,"can_be_commander": boolean,"color_identity": (string)[],"colors": (string)[],"commander_legality": Database["public"]['Enums']["commander_legality"],"edhrec_rank": number | null,"is_game_changer": boolean | null,"keywords": (string)[],"mana_cost": string,"mana_value": number,"name": string,"oracle_id": string,"oracle_text": string,"released_at": string,"type_line": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "absent_since"?: string | null,"can_be_commander": boolean,"color_identity": (string)[],"colors": (string)[],"commander_legality": Database["public"]['Enums']["commander_legality"],"edhrec_rank"?: number | null,"is_game_changer"?: boolean | null,"keywords": (string)[],"mana_cost": string,"mana_value": number,"name": string,"oracle_id": string,"oracle_text": string,"released_at": string,"type_line": string
+                  }
+                  Update: {
+                    "absent_since"?: string | null,"can_be_commander"?: boolean,"color_identity"?: (string)[],"colors"?: (string)[],"commander_legality"?: Database["public"]['Enums']["commander_legality"],"edhrec_rank"?: number | null,"is_game_changer"?: boolean | null,"keywords"?: (string)[],"mana_cost"?: string,"mana_value"?: number,"name"?: string,"oracle_id"?: string,"oracle_text"?: string,"released_at"?: string,"type_line"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"import_runs": {
+                  Row: {
+                    "accept_shrink": boolean,"counts": Json | null,"duration": string | null,"failure_reason": string | null,"finished_at": string | null,"id": string,"merge_duration": string | null,"source": Database["public"]['Enums']["import_source"],"source_updated_at": string,"started_at": string,"status": Database["public"]['Enums']["import_run_status"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "accept_shrink"?: boolean,"counts"?: Json | null,"duration"?: never,"failure_reason"?: string | null,"finished_at"?: string | null,"id"?: string,"merge_duration"?: string | null,"source": Database["public"]['Enums']["import_source"],"source_updated_at": string,"started_at"?: string,"status"?: Database["public"]['Enums']["import_run_status"]
+                  }
+                  Update: {
+                    "accept_shrink"?: boolean,"counts"?: Json | null,"duration"?: never,"failure_reason"?: string | null,"finished_at"?: string | null,"id"?: string,"merge_duration"?: string | null,"source"?: Database["public"]['Enums']["import_source"],"source_updated_at"?: string,"started_at"?: string,"status"?: Database["public"]['Enums']["import_run_status"]
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"import_snapshots": {
+                  Row: {
+                    "run_id": string,"snapshot_at": string,"source": Database["public"]['Enums']["import_source"],"succeeded_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "run_id": string,"snapshot_at": string,"source": Database["public"]['Enums']["import_source"],"succeeded_at": string
+                  }
+                  Update: {
+                    "run_id"?: string,"snapshot_at"?: string,"source"?: Database["public"]['Enums']["import_source"],"succeeded_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "import_snapshots_run_id_fkey"
+      columns: ["run_id"]
+isOneToOne: false
+      referencedRelation: "import_runs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"profiles": {
                   Row: {
                     "created_at": string,"user_id": string
                   }
@@ -43,10 +131,82 @@ export type Database = {
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "abort_import_run":
+{ Args: { "reason": string,"run_id": string }; Returns: {
+              "accept_shrink": boolean,
+"counts": Json | null,
+"duration": string | null,
+"failure_reason": string | null,
+"finished_at": string | null,
+"id": string,
+"merge_duration": string | null,
+"source": Database["public"]['Enums']["import_source"],
+"source_updated_at": string,
+"started_at": string,
+"status": Database["public"]['Enums']["import_run_status"]
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "import_runs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"begin_import_run":
+{ Args: { "accept_shrink"?: boolean,"source": Database["public"]['Enums']["import_source"],"source_updated_at": string }; Returns: {
+              "accept_shrink": boolean,
+"counts": Json | null,
+"duration": string | null,
+"failure_reason": string | null,
+"finished_at": string | null,
+"id": string,
+"merge_duration": string | null,
+"source": Database["public"]['Enums']["import_source"],
+"source_updated_at": string,
+"started_at": string,
+"status": Database["public"]['Enums']["import_run_status"]
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "import_runs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"catalog_freshness":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "is_stale": boolean,"last_attempt_at": string,"last_attempt_status": Database["public"]['Enums']["import_run_status"],"snapshot_at": string,"source": Database["public"]['Enums']["import_source"],"succeeded_at": string
+            }[]
+                           },
+"catalog_storage_sizes":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "relation": string,"total_bytes": number
+            }[]
+                           },
+"finish_import_run":
+{ Args: { "run_id": string,"staged_rows": Json }; Returns: {
+              "accept_shrink": boolean,
+"counts": Json | null,
+"duration": string | null,
+"failure_reason": string | null,
+"finished_at": string | null,
+"id": string,
+"merge_duration": string | null,
+"source": Database["public"]['Enums']["import_source"],
+"source_updated_at": string,
+"started_at": string,
+"status": Database["public"]['Enums']["import_run_status"]
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "import_runs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"stage_import_batch":
+{ Args: { "batch_number": number,"batch_rows": Json,"run_id": string,"target": string }; Returns: number
+                           }
           }
           Enums: {
-            [_ in never]: never
+            "card_finish": "nonfoil"|"foil"|"etched","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","commander_legality": "legal"|"banned"|"not_legal"|"unknown","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -166,7 +326,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            
+            "card_finish": ["nonfoil", "foil", "etched"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices"]
           }
         }
 } as const
