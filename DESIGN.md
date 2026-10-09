@@ -282,7 +282,7 @@ The app shows the sign-in screen whenever there is no session. It is the binder 
 - **Brand.** The brand mark and the mtgscan name sit at the top left.
 - **Sheet.** A bottom sheet with a grabber holds the copy and the actions: the title "Every card you own, in one binder.", the line "Scan your cards, see what each one is worth, and build Commander decks from them.", the sign-in buttons, "Your collection and decks stay private." with a **Privacy policy** link, and the credit "Card images from Scryfall". The link opens https://mtgscan.reilley.dev/privacy in the system browser.
 - **Sign-in buttons** stack in one column with 8 px gaps: **Sign in with Apple** first, then **Continue with Google**.
-- **Signing in.** The tapped button shows a spinner in place of its logo, and every sign-in button is disabled. Other sign-in buttons fade to 38% opacity. The system Apple button cannot show a spinner, so while Apple sign-in runs, a white button of the same size with a black spinner takes its place.
+- **Signing in.** The tapped button shows a spinner in place of its logo, and every sign-in button is disabled. Other sign-in buttons fade to 38% opacity. The system Apple button cannot show a spinner. While Apple sign-in runs, a white button of the same size with a black spinner takes its place.
 - **Cancel.** Cancelling the provider prompt returns to the buttons with no message.
 - **Failure.** A failure replaces the buttons with "Sign-in did not work." in a surface card with a danger mark, and a lime **Try again** button. Try again brings back the buttons.
 
@@ -316,7 +316,7 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 - revert;
 - the scan details sheet;
 - batch review;
-- settings, which shows the signed-in account (provider and email) in a card and **Sign out** below it.
+- settings, which shows the signed-in account in a card and **Sign out** below it. The card shows the provider of the current sign-in and the account email. Apple and Google sign-ins with the same verified email share one account, so the provider can change between sign-ins.
 
 ## Elevation & Depth
 

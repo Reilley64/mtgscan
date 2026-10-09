@@ -1,9 +1,9 @@
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { AuthRetryableFetchError } from '@supabase/supabase-js';
 import {
   AppleAuthenticationButtonStyle,
   AppleAuthenticationButtonType,
 } from 'expo-apple-authentication';
-import { AuthRetryableFetchError } from '@supabase/supabase-js';
 import { act, fireEvent, screen, within } from 'expo-router/testing-library';
 import { Linking } from 'react-native';
 
@@ -12,7 +12,7 @@ import {
   appleSignInIsCancelled,
   appleSignInSucceeds,
   appleSignInWaits,
-  requestAppleSignIn,
+  spyOnAppleRequest,
 } from './fake-apple';
 import { failNextSignIn, signInNextWithEmail, startSignedIn } from './fake-supabase';
 import {
@@ -30,6 +30,10 @@ function continueWithGoogle() {
   return fireEvent.press(screen.getByRole('button', { name: 'Continue with Google' }));
 }
 
+function failNetwork() {
+  failNextSignIn(new AuthRetryableFetchError('Network request failed', 0));
+}
+
 test('with no session, the sign-in screen offers Continue with Google', async () => {
   await renderApp();
 
@@ -37,7 +41,7 @@ test('with no session, the sign-in screen offers Continue with Google', async ()
   expect(screen.queryByRole('header', { name: 'Recent' })).not.toBeOnTheScreen();
 });
 
-test('Sign in with Apple shows in white above Continue with Google', async () => {
+test('Sign in with Apple shows in white, 50 px tall, above Continue with Google', async () => {
   await renderApp();
 
   const google = await screen.findByRole('button', { name: 'Continue with Google' });
@@ -46,6 +50,7 @@ test('Sign in with Apple shows in white above Continue with Google', async () =>
     buttonType: AppleAuthenticationButtonType.SIGN_IN,
     buttonStyle: AppleAuthenticationButtonStyle.WHITE,
   });
+  expect(apple).toHaveStyle({ height: 50 });
   expect(appearsBefore(apple, google)).toBe(true);
 });
 
@@ -90,7 +95,7 @@ test('while Google sign-in runs, its button shows a spinner and no sign-in butto
   expect(showsSpinner(button)).toBe(true);
   await fireEvent.press(button);
   expect(signIn).toHaveBeenCalledTimes(1);
-  const appleRequest = requestAppleSignIn();
+  const appleRequest = spyOnAppleRequest();
   await pressSignInWithApple();
   expect(appleRequest).not.toHaveBeenCalled();
 
@@ -168,10 +173,6 @@ test('cancelling the Google prompt stays on the sign-in screen with no error', a
   expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeOnTheScreen();
 });
 
-function failNetwork() {
-  failNextSignIn(new AuthRetryableFetchError('Network request failed', 0));
-}
-
 test.each([
   ['the network after Google', failNetwork, continueWithGoogle],
   [
@@ -223,6 +224,20 @@ test('the settings sheet shows the provider and email of the signed-in account',
   await openSettings();
 
   expect(screen.getByText('Signed in with Google')).toBeOnTheScreen();
+  expect(screen.getByText('player@example.com')).toBeOnTheScreen();
+});
+
+test('after Google and then Apple sign in with the same email, settings shows Apple', async () => {
+  await renderApp();
+  await continueWithGoogle();
+  await openSettings();
+  await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
+  appleSignInSucceeds();
+  await pressSignInWithApple();
+
+  await openSettings();
+
+  expect(screen.getByText('Signed in with Apple')).toBeOnTheScreen();
   expect(screen.getByText('player@example.com')).toBeOnTheScreen();
 });
 

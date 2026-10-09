@@ -34,27 +34,27 @@ type AppleAuthenticationModule = {
   ) => Promise<AppleAuthenticationCredential>;
 };
 
-export function requestAppleSignIn() {
+export function spyOnAppleRequest() {
   return jest.spyOn(appleAuthentication as AppleAuthenticationModule, 'requestAsync');
 }
 
 export function appleSignInSucceeds() {
-  return requestAppleSignIn().mockImplementationOnce(async (options) => credentialFor(options));
+  return spyOnAppleRequest().mockImplementationOnce(async (options) => credentialFor(options));
 }
 
 export function appleSignInIsCancelled() {
-  return requestAppleSignIn().mockRejectedValueOnce(cancellation());
+  return spyOnAppleRequest().mockRejectedValueOnce(cancellation());
 }
 
 export function appleSignInFails() {
-  return requestAppleSignIn().mockRejectedValueOnce(
+  return spyOnAppleRequest().mockRejectedValueOnce(
     new CodedError('ERR_REQUEST_FAILED', 'The authorization attempt failed.'),
   );
 }
 
 export function appleSignInWaits() {
   let cancel = () => {};
-  requestAppleSignIn().mockReturnValueOnce(
+  spyOnAppleRequest().mockReturnValueOnce(
     new Promise((_, reject) => {
       cancel = () => reject(cancellation());
     }),

@@ -5,7 +5,7 @@ import {
 } from 'expo-apple-authentication';
 import { CryptoDigestAlgorithm, digestStringAsync, randomUUID } from 'expo-crypto';
 
-import type { SignInOutcome } from '@/auth/providers';
+import type { SignInOutcome } from '@/auth/sign-in';
 import { supabase } from '@/lib/supabase';
 
 const appleCancelledCode = 'ERR_REQUEST_CANCELED';

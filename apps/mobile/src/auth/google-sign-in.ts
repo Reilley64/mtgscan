@@ -1,6 +1,6 @@
 import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
 
-import type { SignInOutcome } from '@/auth/providers';
+import type { SignInOutcome } from '@/auth/sign-in';
 import { supabase } from '@/lib/supabase';
 
 GoogleSignin.configure({

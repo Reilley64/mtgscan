@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { signInWithApple } from '@/auth/apple-sign-in';
 import { signInWithGoogle } from '@/auth/google-sign-in';
-import type { SignInOutcome, SignInProvider } from '@/auth/providers';
+import type { SignInOutcome, SignInProvider } from '@/auth/sign-in';
 import { BinderWall } from '@/components/binder-wall';
 import {
   appleButtonColors,
@@ -23,7 +23,7 @@ import {
 
 const privacyPolicyUrl = 'https://mtgscan.reilley.dev/privacy';
 
-const signInWithProvider: Record<SignInProvider, () => Promise<SignInOutcome>> = {
+const providerSignIn: Record<SignInProvider, () => Promise<SignInOutcome>> = {
   apple: signInWithApple,
   google: signInWithGoogle,
 };
@@ -41,7 +41,7 @@ export default function SignInScreen() {
   async function signIn(provider: SignInProvider) {
     setStatus({ name: 'signing-in', provider });
     try {
-      const outcome = await signInWithProvider[provider]();
+      const outcome = await providerSignIn[provider]();
       if (outcome === 'cancelled') {
         setStatus({ name: 'ready' });
       }
@@ -98,9 +98,7 @@ export default function SignInScreen() {
                 <ActivityIndicator color={appleButtonColors.text} />
               </View>
             ) : (
-              <View
-                pointerEvents={signingIn ? 'none' : 'auto'}
-                style={signingIn && styles.dimmed}>
+              <View style={signingIn && styles.dimmed}>
                 <AppleAuthenticationButton
                   buttonType={AppleAuthenticationButtonType.SIGN_IN}
                   buttonStyle={AppleAuthenticationButtonStyle.WHITE}

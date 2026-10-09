@@ -4,10 +4,11 @@ import {
   type AuthError,
   type Session,
   type User,
+  type UserIdentity,
 } from '@supabase/supabase-js';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 
-import type { SignInProvider } from '@/auth/providers';
+import type { SignInProvider } from '@/auth/sign-in';
 
 import { appleIdTokenNonce } from './fake-apple';
 
@@ -22,17 +23,49 @@ const defaultEmail = 'player@example.com';
 let session: Session | null = null;
 let nextSignInEmail = defaultEmail;
 let nextSignInError: AuthError | null = null;
+let signInCount = 0;
 const listeners = new Set<AuthListener>();
+const users = new Map<string, User>();
+
+function identityFor(user: User, provider: SignInProvider, signedInAt: string): UserIdentity {
+  return {
+    id: `${provider}-${user.email}`,
+    identity_id: `${provider}-identity-${user.email}`,
+    user_id: user.id,
+    provider,
+    identity_data: { email: user.email },
+    created_at: signedInAt,
+    last_sign_in_at: signedInAt,
+    updated_at: signedInAt,
+  };
+}
+
+function userSignedIn({ provider, email }: FakeAccount): User {
+  const signedInAt = new Date(++signInCount * 1000).toISOString();
+  const user = users.get(email) ?? {
+    id: `user-${email}`,
+    aud: 'authenticated',
+    email,
+    app_metadata: { provider, providers: [] },
+    user_metadata: {},
+    identities: [],
+    created_at: signedInAt,
+  };
+  const otherIdentities = (user.identities ?? []).filter(
+    (identity) => identity.provider !== provider,
+  );
+  const identities = [...otherIdentities, identityFor(user, provider, signedInAt)];
+  const signedInUser: User = {
+    ...user,
+    app_metadata: { ...user.app_metadata, providers: identities.map(({ provider }) => provider) },
+    identities,
+  };
+  users.set(email, signedInUser);
+  return signedInUser;
+}
 
 function sessionFor(account: FakeAccount): Session {
-  const user: User = {
-    id: `user-${account.email}`,
-    aud: 'authenticated',
-    email: account.email,
-    app_metadata: { provider: account.provider, providers: [account.provider] },
-    user_metadata: {},
-    created_at: new Date(0).toISOString(),
-  };
+  const user = userSignedIn(account);
   return {
     access_token: 'access-token',
     refresh_token: 'refresh-token',
@@ -111,5 +144,7 @@ export function resetFakeSupabase() {
   session = null;
   nextSignInEmail = defaultEmail;
   nextSignInError = null;
+  signInCount = 0;
   listeners.clear();
+  users.clear();
 }
