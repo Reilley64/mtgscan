@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "mtgscan",
+    "slug": "mtgscan",
+    "version": "0.0.0",
+    "scheme": "mtgscan",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#080b0d",
+    "ios": {
+      "supportsTablet": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar"
+    ]
+  }
+}
