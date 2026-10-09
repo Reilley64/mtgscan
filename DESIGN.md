@@ -206,6 +206,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
 - **Collection** is a binder grid.
   - Card images sit 3 per row, with **one tile per printing**.
   - Corner badges total every copy of that printing, across finish, condition, language, and protected: owned, free, in decks, held by a planned swap, and protected.
+  - Free follows the glossary's free copy, so it includes protected free copies. The protected badge shows beside it.
   - Search matches name, type, and printing, in the collection only. Filters: All, Free, Allocated, Protected.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
