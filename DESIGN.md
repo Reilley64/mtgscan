@@ -218,9 +218,8 @@ Pushed screens cover the whole screen, including the app tab bar. There are **no
 - **Card page**, from a collection tile, opens that printing:
   - a hero image of the printing over its blurred art;
   - name, type line, and chips for the set code and collector number;
-  - Protect one free copy or Unprotect one copy of this printing;
   - a segmented control:
-    - **Copies**: counts totalled over every copy of this printing, a one-line summary for the card across printings, this printing's copies listed by collection entry (finish, condition, language, quantity, decks, protected), and the user's other printings, each opening its own page;
+    - **Copies**: counts totalled over every copy of this printing, a one-line summary for the card across printings, this printing's copies listed by collection entry (finish, condition, language, quantity, decks, protected) with a Protect or Unprotect control on each row, and the user's other printings, each opening its own page;
     - **Decks**: deck tags and open deck suggestions with the card, with a badge for them;
     - **Prices**: per finish for this printing, and the value of its copies;
     - **Rules**: Oracle text and Commander legality.
