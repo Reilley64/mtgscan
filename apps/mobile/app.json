@@ -13,6 +13,13 @@
     "plugins": [
       "expo-router",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "612380d5-0ef3-44c7-a10e-229379f7a2fd"
+      }
+    },
+    "owner": "reilley"
   }
 }
