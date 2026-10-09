@@ -6,7 +6,7 @@ Product and architecture decisions are being resolved in the project Wayfinder m
 
 ## Development
 
-The repo is a Bun workspace. The Expo app lives in `apps/mobile`.
+The repo is a Bun workspace. The Expo app lives in `apps/mobile`. The public website, with the homepage and privacy policy, is static HTML in `apps/site`.
 
 1. Install dependencies with `bun install`.
 2. Build and open the development build in the iOS simulator with `bun run --filter @mtgscan/mobile ios`.
