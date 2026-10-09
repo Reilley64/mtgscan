@@ -1,13 +1,10 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { signInProviderName } from '@/auth/providers';
 import { signOut, useSession } from '@/auth/session';
 import { SecondaryButton } from '@/components/secondary-button';
 import { colors, rounded, sizes, spacing, typography } from '@/theme';
-
-const providerNames: Record<string, string> = {
-  google: 'Google',
-};
 
 export default function SettingsSheet() {
   const user = useSession()?.user;
@@ -30,7 +27,7 @@ export default function SettingsSheet() {
       <View style={styles.content}>
         <View style={styles.account}>
           <Text style={styles.accountProvider}>
-            Signed in with {providerNames[provider] ?? provider}
+            Signed in with {signInProviderName(provider)}
           </Text>
           {user?.email && <Text style={styles.accountEmail}>{user.email}</Text>}
         </View>

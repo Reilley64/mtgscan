@@ -19,12 +19,14 @@ Checks run on every pull request. Run them locally with `bun run typecheck`, `bu
 
 The Supabase project lives in `supabase`: configuration, SQL migrations, generated types, and database tests. The local stack needs Docker and the Supabase CLI 2.120.0.
 
-1. Copy `supabase/.env.example` to `supabase/.env` and fill in the Google client IDs, web ID first, then iOS ID, separated by a comma. Native Google sign-in does not use the secret.
+1. Copy `supabase/.env.example` to `supabase/.env` and fill in the Google client IDs, web ID first, then iOS ID, separated by a comma. Native Google sign-in does not use the secret. The Apple provider needs no setting: its client ID is the bundle ID, `dev.reilley.mtgscan`, and native Sign in with Apple does not use a secret.
 2. Start the stack from the repo root with `supabase start`.
 3. Run the database tests with `bun run test:database`.
 4. After you change a migration, run `supabase db reset` and then `bun run types:database`. CI fails when `supabase/database.types.ts` does not match the migrations.
 
 To run the app against the local stack, put the local API URL and publishable key from `supabase status` in `apps/mobile/.env.local`. It overrides `apps/mobile/.env`.
+
+To use Sign in with Apple in the iOS simulator, sign in with an Apple ID in the simulator's Settings app first. The build signs with the team in `ios.appleTeamId`, because the Sign in with Apple capability needs a signed app.
 
 ### Per-user data
 

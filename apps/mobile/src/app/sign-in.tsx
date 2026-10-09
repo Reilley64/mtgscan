@@ -1,14 +1,32 @@
+import {
+  AppleAuthenticationButton,
+  AppleAuthenticationButtonStyle,
+  AppleAuthenticationButtonType,
+} from 'expo-apple-authentication';
 import { useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { signInWithApple } from '@/auth/apple-sign-in';
 import { signInWithGoogle } from '@/auth/google-sign-in';
+import type { SignInOutcome, SignInProvider } from '@/auth/providers';
 import { BinderWall } from '@/components/binder-wall';
-import { colors, googleButtonColors, rounded, sizes, spacing, typography } from '@/theme';
+import {
+  appleButtonColors,
+  colors,
+  googleButtonColors,
+  rounded,
+  sizes,
+  spacing,
+  typography,
+} from '@/theme';
 
 const privacyPolicyUrl = 'https://mtgscan.reilley.dev/privacy';
 
-type SignInProvider = 'google';
+const signInWithProvider: Record<SignInProvider, () => Promise<SignInOutcome>> = {
+  apple: signInWithApple,
+  google: signInWithGoogle,
+};
 
 type SignInStatus =
   { name: 'ready' } | { name: 'signing-in'; provider: SignInProvider } | { name: 'failed' };
@@ -17,12 +35,13 @@ export default function SignInScreen() {
   const insets = useSafeAreaInsets();
   const [status, setStatus] = useState<SignInStatus>({ name: 'ready' });
   const signingIn = status.name === 'signing-in';
+  const signingInWithApple = signingIn && status.provider === 'apple';
   const signingInWithGoogle = signingIn && status.provider === 'google';
 
-  async function continueWithGoogle() {
-    setStatus({ name: 'signing-in', provider: 'google' });
+  async function signIn(provider: SignInProvider) {
+    setStatus({ name: 'signing-in', provider });
     try {
-      const outcome = await signInWithGoogle();
+      const outcome = await signInWithProvider[provider]();
       if (outcome === 'cancelled') {
         setStatus({ name: 'ready' });
       }
@@ -69,11 +88,37 @@ export default function SignInScreen() {
           </View>
         ) : (
           <View style={styles.actions}>
+            {signingInWithApple ? (
+              <View
+                accessible
+                accessibilityLabel="Sign in with Apple"
+                accessibilityRole="button"
+                accessibilityState={{ busy: true, disabled: true }}
+                style={[styles.signInButton, styles.appleButtonBusy]}>
+                <ActivityIndicator color={appleButtonColors.text} />
+              </View>
+            ) : (
+              <View
+                pointerEvents={signingIn ? 'none' : 'auto'}
+                style={signingIn && styles.dimmed}>
+                <AppleAuthenticationButton
+                  buttonType={AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthenticationButtonStyle.WHITE}
+                  cornerRadius={rounded.sm}
+                  onPress={() => {
+                    if (!signingIn) {
+                      void signIn('apple');
+                    }
+                  }}
+                  style={styles.appleButton}
+                />
+              </View>
+            )}
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ busy: signingInWithGoogle }}
               disabled={signingIn}
-              onPress={() => void continueWithGoogle()}
+              onPress={() => void signIn('google')}
               style={[
                 styles.signInButton,
                 styles.googleButton,
@@ -177,6 +222,12 @@ const styles = StyleSheet.create({
   signInLogo: {
     width: sizes.googleLogo,
     height: sizes.googleLogo,
+  },
+  appleButton: {
+    height: sizes.signInButton,
+  },
+  appleButtonBusy: {
+    backgroundColor: appleButtonColors.background,
   },
   googleButton: {
     borderWidth: 1,

@@ -9,11 +9,13 @@
     "backgroundColor": "#080b0d",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "dev.reilley.mtgscan"
+      "bundleIdentifier": "dev.reilley.mtgscan",
+      "appleTeamId": "YDZJL5K3RQ"
     },
     "plugins": [
       "expo-router",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-apple-authentication"
     ],
     "extra": {
       "router": {},

@@ -1,13 +1,12 @@
 import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
 
+import type { SignInOutcome } from '@/auth/providers';
 import { supabase } from '@/lib/supabase';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
   iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
 });
-
-export type SignInOutcome = 'signed-in' | 'cancelled';
 
 export async function signInWithGoogle(): Promise<SignInOutcome> {
   const response = await GoogleSignin.signIn();

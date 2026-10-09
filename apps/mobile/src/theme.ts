@@ -18,6 +18,11 @@ export const colors = {
   cameraOff: '#000000',
 } as const;
 
+export const appleButtonColors = {
+  background: '#ffffff',
+  text: '#000000',
+} as const;
+
 export const googleButtonColors = {
   background: '#131314',
   border: '#8e918f',
