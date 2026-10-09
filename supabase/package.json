@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
-    "./database.types": "./database.types.ts"
+    "./database.types": "./database.types.ts",
+    "./search": "./search.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
