@@ -283,6 +283,8 @@ table.ov{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%
 .cdgroup .gtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .cdgroup .gtop .name{font-size:13px;font-weight:800}
 .cdgroup .gqty{font-size:13px}
+.cdgroup .gright{display:flex;align-items:center;gap:8px;flex:none}
+.cdgroup .gprot{min-height:26px;padding:3px 9px;font-size:12px}
 .cdgroup .gbot{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-top:4px}
 .cdgroup .gprice{flex:none}
 .cdgroup .chips .chip{font-size:11px}
@@ -291,20 +293,16 @@ table.ov{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%
 .oracle .otitle{display:block;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
 .oracle.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .linkbtn.small{font-size:12px;margin-top:4px}
-.cdnote{padding:6px 2px 0}
 .cdask .btn{width:100%}
 .cdask .meta{margin-top:6px}
 .cdflash{animation:cdflash 1.4s ease-out}
 @keyframes cdflash{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 3px transparent}}
 .cdsheet{transition:transform .2s}
 .cdsheet .dragzone{cursor:grab;touch-action:none;user-select:none}
-.cdsheet .foot{gap:6px}
-.cdsheet .foot .cdnote{padding:0}
 .cdhero2{position:relative;height:330px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .cdhero2 .bg{position:absolute;inset:-24px;background:#1a2125 center/cover;filter:blur(18px) brightness(.45)}
 .cdhero2 .cdimg{position:relative;width:216px}
 .cdpage .cdtitle{padding-top:10px}
-.cdacts{padding:0 16px;margin-top:6px}
 .cdseg{position:sticky;top:0;z-index:3;margin:12px 16px 4px;box-shadow:0 0 0 6px var(--bg)}
 .sbadge{display:inline-block;min-width:15px;height:15px;border-radius:8px;background:var(--danger);color:#fff;font-size:9px;line-height:15px;text-align:center;padding:0 3px}
 .cdsec .option.cddeck{margin:4px 0;width:100%;background:var(--surface2);padding:8px 10px}
@@ -332,7 +330,6 @@ table.ov{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%
 .dpeek{flex:none;padding:0 16px 4px}
 .dpeek .cdname{font-size:18px}
 .dprice{font-size:15px}
-.dpeek .actions{margin-top:8px}
 .drawer:not(.open) .dbody{display:none}
 .dbody{flex:1;min-height:0;overflow-y:auto;padding-bottom:16px;scrollbar-width:none}
 #phone.dragging{cursor:grabbing;user-select:none}
@@ -1685,22 +1682,6 @@ function entryPrice(e) {
 }
 function cardOpen() { return ui.variant === 'D' && ui.D.tab === 'collection' && !!ui.D.card && printingEntries(ui.D.card.printing).length > 0; }
 const copiesText = n => plural(n, 'copy').replace('copys', 'copies');
-const groupKey = e => `${e.finish}|${e.condition}|${e.language}`;
-function commonGroup(entries) {
-  const m = new Map();
-  for (const e of entries.slice().sort((a, b) => entrySeq(a) - entrySeq(b))) m.set(groupKey(e), (m.get(groupKey(e)) || 0) + e.qty);
-  let best = null;
-  for (const [k, q] of m) if (!best || q > best[1]) best = [k, q];
-  return best && best[0];
-}
-function pickEntry(entries, ok) {
-  const common = commonGroup(entries);
-  const rank = e => [groupKey(e) === common ? 0 : 1, -D.freeQty(state, e.id), entrySeq(e)];
-  const cands = entries.filter(ok).sort((a, b) => { const x = rank(a), y = rank(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; });
-  return cands[0] || null;
-}
-const protectTarget = entries => pickEntry(entries, e => !e.protected && D.freeQty(state, e.id) > 0);
-const unprotectTarget = entries => pickEntry(entries, e => e.protected);
 function cardInfo(key) {
   const entries = printingEntries(key).sort((a, b) => (a.finish === 'foil') - (b.finish === 'foil') || a.finish.localeCompare(b.finish) || a.condition.localeCompare(b.condition) || a.language.localeCompare(b.language) || Number(a.protected) - Number(b.protected) || entrySeq(a) - entrySeq(b));
   const e = entries[0], cardId = e.cardId, c = C(cardId);
@@ -1717,7 +1698,7 @@ function cardInfo(key) {
   const total = copies.reduce((a, x) => a + (entryPrice(x) || 0) * x.qty, 0);
   const others = printingGroups(copies).filter(p => p.key !== key).map(p => ({ ...p, st: printingStats(p.entries) }));
   const counts = { printing: { owned: st.owned, free: st.free, decks: st.decks, held: st.held, protected: st.protected } };
-  return { key, e, cardId, printing: e.printing, entries, st, c, copies, sum, decks, holds, sugs, finishes, price: finishes.length === 1 ? finishes[0].price : null, value, total, counts, others, foil: st.foil, oracle: ORACLE[cardId] || ['', ''], printings: others.length + 1, protectTo: protectTarget(entries), unprotectTo: unprotectTarget(entries) };
+  return { key, e, cardId, printing: e.printing, entries, st, c, copies, sum, decks, holds, sugs, finishes, price: finishes.length === 1 ? finishes[0].price : null, value, total, counts, others, foil: st.foil, oracle: ORACLE[cardId] || ['', ''], printings: others.length + 1 };
 }
 const setOf = e => e.printing.split(' ')[0];
 const numberOf = e => e.printing.split(' ').slice(1).join(' ');
@@ -1768,8 +1749,13 @@ function cdGroups(i) {
     for (const a of x.alloc) chips += `<button class="chip info" data-act="openDeckD" data-deck="${a.deckId}" data-find="${i.cardId}" data-g-deck="${a.deckId}">${a.qty} in ${esc(deckOf(a.deckId).short)} ›</button>`;
     if (x.held.length) chips += `<span class="chip info" data-g="held">${x.held.length} held</span>`;
     if (x.e.protected) chips += `<span class="chip warn" data-g="protected">${x.e.qty} protected</span>`;
-    return `<div class="cdgroup" data-cd-group="${x.e.id}" data-qty="${x.e.qty}" data-free="${x.free}" data-decks="${x.allocated}" data-held="${x.held.length}" data-protected="${x.e.protected ? x.e.qty : 0}"><div class="gtop"><span class="name">${x.e.protected ? '🔒 ' : ''}${cap(x.e.finish)} · ${esc(x.e.condition)} · ${esc(x.e.language)}</span><b class="gqty">×${x.e.qty}</b></div><div class="gbot"><span class="chips">${chips}</span><span class="meta gprice" data-g-price="${p ?? ''}">${p ? money(p) + ' each' : 'No price'}</span></div></div>`;
+    return `<div class="cdgroup" data-cd-group="${x.e.id}" data-qty="${x.e.qty}" data-free="${x.free}" data-decks="${x.allocated}" data-held="${x.held.length}" data-protected="${x.e.protected ? x.e.qty : 0}"><div class="gtop"><span class="name">${x.e.protected ? '🔒 ' : ''}${cap(x.e.finish)} · ${esc(x.e.condition)} · ${esc(x.e.language)}</span><span class="gright"><b class="gqty">×${x.e.qty}</b>${cdRowProtect(x)}</span></div><div class="gbot"><span class="chips">${chips}</span><span class="meta gprice" data-g-price="${p ?? ''}">${p ? money(p) + ' each' : 'No price'}</span></div></div>`;
   }).join('')}</div>`;
+}
+function cdRowProtect(x) {
+  if (x.e.protected) return `<button class="btn small gprot" data-act="unprotectRowD" data-entry="${x.e.id}" data-g-act="unprotect">Unprotect</button>`;
+  if (x.free > 0) return `<button class="btn small gprot" data-act="protectRowD" data-entry="${x.e.id}" data-g-act="protect">🔒 Protect</button>`;
+  return '';
 }
 function cdOthers(i) {
   if (!i.others.length) return `<div class="meta cdnone" data-cd="others">No other printings of ${esc(i.c.name)} in your collection.</div>`;
@@ -1793,12 +1779,6 @@ function cdOracle(i, collapsible) {
   const text = esc(i.oracle[1]).replace(/\n/g, '<br>');
   return `<div class="oracle ${open ? '' : 'clamp'}" data-cd="oracle" data-open="${open}"><span class="otitle">Oracle text</span>${text}</div>${collapsible ? `<button class="linkbtn small" data-act="oracleD">${open ? 'Show less' : 'Show all Oracle text'}</button>` : ''}`;
 }
-function cdProtectBtn(i) {
-  return `<button class="btn" data-act="protectD" data-printing="${esc(i.key)}" ${i.protectTo ? '' : 'disabled'}>Protect 1 free copy</button><button class="btn" data-act="unprotectD" data-printing="${esc(i.key)}" ${i.unprotectTo ? '' : 'disabled'}>Unprotect 1 copy</button>`;
-}
-function cdProtectNote(i) {
-  return `<div class="meta cdnote">${i.st.protected ? 'Deck suggestions never use protected copies.' : i.protectTo ? 'Protect a free copy to keep it out of decks. Deck suggestions never use protected copies.' : ''}</div>`;
-}
 function cdAsk(i) {
   return `<div class="cdask"><button class="btn" disabled data-cd="ask-ai">✦ Ask AI about this card</button><div class="meta">Not in the prototype. In the app, this starts a chat about ${esc(i.c.name)} in your AI client, such as ChatGPT. The chat reads your card data through the MCP connection.</div></div>`;
 }
@@ -1814,14 +1794,12 @@ function cardSheetD(i) {
   body += cdSec('price', 'Price', cdPrice(i));
   body += cdSec('rules', 'Commander', cdLegal(i) + cdOracle(i, true));
   body += cdSec('ai', '', cdAsk(i));
-  const foot = `<div class="actions" style="margin-top:0">${cdProtectBtn(i)}</div>${cdProtectNote(i)}`;
-  return `<div class="sheet-scrim" data-act="closeCardD"></div><div class="sheet cdsheet" role="dialog" aria-label="${esc(i.c.name)}" data-card-detail="1" ${cdAttrs(i)}><div class="dragzone" data-drag="sheet"><div class="grab"></div><div class="head"><div class="side"></div><h2>${esc(i.c.name)}</h2><div class="side" style="text-align:right"><button class="linkbtn" data-act="closeCardD">Done</button></div></div></div><div class="body" data-scroll="card-sheet-${i.cardId}">${body}</div><div class="foot">${foot}</div></div>`;
+  return `<div class="sheet-scrim" data-act="closeCardD"></div><div class="sheet cdsheet" role="dialog" aria-label="${esc(i.c.name)}" data-card-detail="1" ${cdAttrs(i)}><div class="dragzone" data-drag="sheet"><div class="grab"></div><div class="head"><div class="side"></div><h2>${esc(i.c.name)}</h2><div class="side" style="text-align:right"><button class="linkbtn" data-act="closeCardD">Done</button></div></div></div><div class="body" data-scroll="card-sheet-${i.cardId}">${body}</div></div>`;
 }
 function cardPageD(i) {
   const t = ui.D.card.tab;
   let h = `<div class="cdhero2"><div class="bg" style="${ui.images ? `background-image:url('${i.c.img.art}')` : ''}"></div>${cdImg(i)}</div>`;
   h += `<div class="cdtitle"><div class="cdname big" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div>${cdFacts(i)}</div>`;
-  h += `<div class="actions cdacts">${cdProtectBtn(i)}</div>`;
   h += `<div class="segment cdseg">${CARD_TABS.map(([k, l]) => `<button class="${t === k ? 'sel' : ''}" data-act="cardTabD" data-tab="${k}">${l}${k === 'decks' && i.sugs.length ? ` <span class="sbadge">${i.sugs.length}</span>` : ''}</button>`).join('')}</div>`;
   let body = '';
   if (t === 'copies') {
@@ -1868,8 +1846,8 @@ function cardFlipD(i) {
   full += cdSec('price', 'Price', cdPrice(i));
   full += cdSec('rules', 'Commander', cdLegal(i) + cdOracle(i, true));
   full += cdSec('ai', '', cdAsk(i));
-  const peek = `<div class="dpeek"><div class="row"><div class="grow"><div class="cdname" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div></div><b class="dprice">${i.value ? money(i.value) : 'No price'}</b></div>${cdFacts(i)}<div class="actions">${cdProtectBtn(i)}</div></div>`;
-  h += `<div class="flipspace"></div><div class="drawer ${open ? 'open' : ''}" data-drawer="${open ? 'open' : 'peek'}"><button class="handle" data-act="drawerD" data-drag="drawer" aria-label="${open ? 'Hide details' : 'Show details'}"><span class="grab"></span><span class="hl">${open ? 'Hide details' : 'Pull up for details'}</span></button>${peek}<div class="dbody" data-scroll="flip-drawer-${i.cardId}">${open ? full + cdProtectNote(i) : ''}</div></div>`;
+  const peek = `<div class="dpeek"><div class="row"><div class="grow"><div class="cdname" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div></div><b class="dprice">${i.value ? money(i.value) : 'No price'}</b></div>${cdFacts(i)}</div>`;
+  h += `<div class="flipspace"></div><div class="drawer ${open ? 'open' : ''}" data-drawer="${open ? 'open' : 'peek'}"><button class="handle" data-act="drawerD" data-drag="drawer" aria-label="${open ? 'Hide details' : 'Show details'}"><span class="grab"></span><span class="hl">${open ? 'Hide details' : 'Pull up for details'}</span></button>${peek}<div class="dbody" data-scroll="flip-drawer-${i.cardId}">${open ? full : ''}</div></div>`;
   return `<div class="flip" data-card-detail="3" ${cdAttrs(i)}>${h}</div>`;
 }
 function renderCardOverlay() {
@@ -2076,8 +2054,10 @@ const handlers = {
   toggleClosedD: () => { ui.D.showClosed = !ui.D.showClosed; },
   colFilterD: ds => { ui.D.colFilter = ds.f; },
   openEntryD: ds => { ui.sheet = { type: 'entry', entryId: ds.entry }; },
-  protectD: ds => { if (ds.printing) protectPrinting(ds.printing, 'protectCopy'); else protectToggle(ds.entry, 'protectCopy'); },
-  unprotectD: ds => { if (ds.printing) protectPrinting(ds.printing, 'unprotectCopy'); else protectToggle(ds.entry, 'unprotectCopy'); },
+  protectD: ds => { protectToggle(ds.entry, 'protectCopy'); },
+  unprotectD: ds => { protectToggle(ds.entry, 'unprotectCopy'); },
+  protectRowD: ds => { protectRow(ds.entry, 'protectCopy'); },
+  unprotectRowD: ds => { protectRow(ds.entry, 'unprotectCopy'); },
   goScanD: ds => { const x = buyOf(ds.id); ui.D.scanFor = { buylistId: x.id, cardId: x.in, returnTab: ui.D.tab }; ui.sheet = null; ui.D.tab = 'scan'; },
   cancelScanForD: () => { ui.D.scanFor = null; },
   simScanD: () => {
@@ -2126,9 +2106,8 @@ function protectToggle(entryId, type) {
   if (!twin) return;
   ui.sheet = { type: 'entry', entryId: twin.id };
 }
-function protectPrinting(key, type) {
-  const entries = printingEntries(key);
-  const e = type === 'protectCopy' ? protectTarget(entries) : unprotectTarget(entries);
+function protectRow(entryId, type) {
+  const e = D.entryById(state, entryId);
   if (!e) return;
   dispatch({ type, entryId: e.id }, `${type === 'protectCopy' ? 'Protected' : 'Unprotected'} 1 copy of ${C(e.cardId).name} · ${e.printing} · ${e.finish} · ${e.condition}.`);
 }

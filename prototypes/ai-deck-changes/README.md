@@ -71,24 +71,25 @@ Tap a tile in the Collection Binder grid to open its card detail. The card detai
 - the Oracle text;
 - the open deck suggestions that bring the card in or take it out, with links that open them in their deck.
 
-Each option has **Protect 1 free copy** and **Unprotect 1 copy**. Both act on the printing:
+Owner decision: protect and unprotect are in the copies list. Each group row under "Copies of this printing" is one collection entry of identical copies, so the row is the exact choice of copy. The control sits at the right of the row:
 
-- **Protect 1 free copy** protects one unprotected free copy of this printing. It prefers a collection entry whose finish, condition, and language match the most common group of the printing. The most common group is the one with the most copies, protected or not.
-- **Unprotect 1 copy** unprotects one protected copy of this printing, with the same preference.
-- When several collection entries qualify, the one with the most free copies goes first, then the oldest entry.
-- Each button is disabled when nothing qualifies. There is no explanatory note.
+- **Protect** is on an unprotected group with at least one free copy. It protects one free copy from that group.
+- **Unprotect** is on a protected group. It unprotects one copy from that group.
+- An unprotected group with no free copy has no control and no note.
+
+A row action never picks a different group. After the action, the list shows the result. A group can split into a protected and an unprotected group, or two groups can merge back into one. The count row and the grid tile badges change to match. All three options use the same rows, and none has protect buttons outside the copies list.
 
 The deck tags open each deck at the card's row. Owner decision: there is no Find in decks button. **Ask AI about this card** is a disabled placeholder. In the app, it would start a chat about the card in your AI client.
 
-1. **Sheet.** The default. An iOS page sheet over the grid. The big image is at the top, and compact sections are stacked below it. The Oracle text is collapsed. Protect and Unprotect stay at the bottom. Close it with Done, a tap above the sheet, a downward swipe on the top of the sheet, or Escape.
-2. **Card page.** The chosen option. A full-screen page that also covers the app tab bar. A hero image is at the top, with Protect and Unprotect below it. The tabs hold the details:
-   - **Copies.** The count row for this printing, the summary of the card overall, the copies of this printing grouped by collection entry, and your other printings.
+1. **Sheet.** The default. An iOS page sheet over the grid. The big image is at the top, and compact sections are stacked below it. The Oracle text is collapsed. Close it with Done, a tap above the sheet, a downward swipe on the top of the sheet, or Escape.
+2. **Card page.** The chosen option. A full-screen page that also covers the app tab bar. A hero image is at the top. The tabs hold the details:
+   - **Copies.** The count row for this printing, the summary of the card overall, the copies of this printing grouped by collection entry, each with its Protect or Unprotect control, and your other printings.
    - **Decks.** The decks that use a copy of the card, with how many copies come from this printing, and the open deck suggestions.
    - **Prices.** The price for each finish of this printing, the value of all its copies, the value of all copies of the card, and the value of each collection entry of the printing.
    - **Rules.** Commander legality, the Game Changer flag, and the full Oracle text.
 
    It has no on-screen back button. Go back like the deck screen: browser Back, a swipe from the phone's left edge, or Escape. Switching to another printing does not add a history entry, so Back closes the card page.
-3. **Binder flip.** The card image fills the width. Swipe left or right, or use ‹ and ›, to go to the next or previous printing in the grid's current order, search, and filter. The top shows the position, for example "4 of 18 · Free". A chip row under the image lists every printing of the card that you own. Tap a chip to switch to that printing. A drawer at the bottom shows the name, the value of the printing's copies, and the actions. Pull it up, or tap its handle, for the rest of the details. Close it with Close or Escape.
+3. **Binder flip.** The card image fills the width. Swipe left or right, or use ‹ and ›, to go to the next or previous printing in the grid's current order, search, and filter. The top shows the position, for example "4 of 18 · Free". A chip row under the image lists every printing of the card that you own. Tap a chip to switch to that printing. A drawer at the bottom shows the name and the value of the printing's copies. Pull it up, or tap its handle, for the rest of the details. Close it with Close or Escape.
 
 Back from a deck that you opened from a card detail returns to the same card detail.
 
