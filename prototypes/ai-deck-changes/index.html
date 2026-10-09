@@ -277,6 +277,15 @@ table.ov{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%
 .cdsug .sgn.in{background:var(--incoming);color:var(--on-accent)}
 .cdsug .sgn.out{background:var(--outgoing);color:#2a0400}
 .cdcopy.cur .name{color:var(--accent)}
+.cdsum{margin-top:2px;font-size:12px}
+.cdgroup{padding:7px 0}
+.cdgroup+.cdgroup{border-top:1px solid #0d1214}
+.cdgroup .gtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cdgroup .gtop .name{font-size:13px;font-weight:800}
+.cdgroup .gqty{font-size:13px}
+.cdgroup .gbot{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-top:4px}
+.cdgroup .gprice{flex:none}
+.cdgroup .chips .chip{font-size:11px}
 .cdprice .kv,[data-cd=copy-prices] .kv{font-size:13px}
 .oracle{font-size:13px;color:#dfe6e9;margin-top:8px;line-height:1.4}
 .oracle .otitle{display:block;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
@@ -436,8 +445,11 @@ const Domain = (() => {
     E.signet = entry('arcane-signet', 'FRC 20');
     E.deed = entry('pernicious-deed', 'A25 212');
     E.clasp = entry('contagion-clasp', 'ECC 140');
-    E.scales = entry('hardened-scales', 'SOC 272');
+    E.scales = entry('hardened-scales', 'SOC 272', 'nonfoil', 2);
+    E.scalesFoil = entry('hardened-scales', 'SOC 272', 'foil');
+    E.scalesOld = entry('hardened-scales', 'KTK 140', 'nonfoil', 1, false, 'LP');
     E.tremors = entry('impact-tremors', 'FDN 717');
+    E.tremorsProtected = entry('impact-tremors', 'FDN 717', 'nonfoil', 1, true);
     s.decks.push({ id: 'atraxa', name: "Atraxa, Praetors' Voice", short: 'Atraxa', commanders: ['atraxa-praetors-voice'], priority: 'high', revision: 14,
       rows: rowsOf([solRing, tower, ...['demonic-tutor', 'vampiric-tutor', 'enlightened-tutor', 'contagion-engine', 'evolution-sage', 'phyrexian-arena', 'toxic-deluge', 'tezzeret-s-gambit', 'grist-the-hunger-tide', 'birds-of-paradise', 'sylvan-library', 'craterhoof-behemoth'].map(c => E[c])]),
       basics: { forest: 3, island: 3, plains: 3, swamp: 3 }, otherCards: 73 });
@@ -1330,12 +1342,49 @@ function lastAddedAt(cardId) {
 function listD(list) {
   return `<div class="list">${list.map(e => `<button class="item entry" data-act="openEntryD" data-entry="${e.id}">${thumb(e.cardId)}<span class="grow"><span class="name" style="display:block">${esc(C(e.cardId).name)}</span><span class="meta" style="display:block">${esc(printingText(e))}</span><span class="chips" style="margin-top:4px">${entryChips(e)}</span></span><span class="dim">›</span></button>`).join('')}</div>`;
 }
+const printingKey = e => `${e.cardId}|${e.printing}`;
+const printingEntries = key => state.collection.filter(e => printingKey(e) === key);
+function printingGroups(list) {
+  const m = new Map();
+  for (const e of list) { const k = printingKey(e); if (!m.has(k)) m.set(k, { key: k, cardId: e.cardId, printing: e.printing, entries: [] }); m.get(k).entries.push(e); }
+  return [...m.values()];
+}
+function printingStats(entries) {
+  const per = entries.map(e => ({ e, ...entryCounts(e) }));
+  const sum = f => per.reduce((a, x) => a + f(x), 0);
+  const decks = new Map();
+  for (const x of per) for (const a of x.alloc) decks.set(a.deckId, (decks.get(a.deckId) || 0) + a.qty);
+  return {
+    per,
+    owned: sum(x => x.e.qty),
+    free: sum(x => x.free),
+    freeOpen: sum(x => x.e.protected ? 0 : x.free),
+    decks: sum(x => x.allocated),
+    alloc: [...decks.entries()].map(([deckId, qty]) => ({ deckId, qty })),
+    held: sum(x => x.held.length),
+    holds: per.flatMap(x => x.held),
+    protected: sum(x => x.e.protected ? x.e.qty : 0),
+    foil: entries.some(e => e.finish === 'foil')
+  };
+}
+function printingMatches(p, q, f) {
+  const st = printingStats(p.entries);
+  if (f === 'free' && st.freeOpen < 1) return false;
+  if (f === 'allocated' && st.decks < 1) return false;
+  if (f === 'protected' && st.protected < 1) return false;
+  if (!q) return true;
+  const c = C(p.cardId);
+  const hay = `${c.name} ${c.type} ${p.printing} ${[...new Set(p.entries.map(e => e.finish))].join(' ')}`.toLowerCase();
+  return q.toLowerCase().split(/\s+/).filter(Boolean).every(t => hay.includes(t));
+}
+const byPrintingName = (a, b) => C(a.cardId).name.localeCompare(C(b.cardId).name) || a.printing.localeCompare(b.printing);
+function printingList() { return printingGroups(state.collection.slice().sort(byEntryName)).filter(p => printingMatches(p, ui.D.query, ui.D.colFilter)); }
 function binderD(list) {
-  let h = `<div class="legend"><span><span class="cb qty">×2</span>owned</span><span><span class="cb free">1</span>free</span><span><span class="cb deck">❏1</span>in decks</span><span><span class="cb held">⇄1</span>held</span><span><span class="cb prot">🔒</span>protected</span></div><div class="binder">`;
-  for (const e of list) {
-    const n = entryCounts(e);
-    const badges = `<span class="cb qty" title="${e.qty} owned">×${e.qty}</span>${e.protected ? `<span class="cb prot" title="Protected copies">🔒</span>` : ''}${n.free ? `<span class="cb free ${e.protected ? 'pf' : ''}" title="${n.free} free">${n.free}</span>` : ''}<span class="cbr">${n.allocated ? `<span class="cb deck" title="${esc(n.alloc.map(a => `${a.qty} in ${deckOf(a.deckId).short}`).join(', '))}">❏${n.allocated}</span>` : ''}${n.held.length ? `<span class="cb held" title="Held by a planned swap">⇄${n.held.length}</span>` : ''}</span>`;
-    h += `<button class="tile entry ${ui.D.card && ui.D.card.entryId === e.id ? 'cur' : ''}" data-act="openCardD" data-entry="${e.id}" title="${esc(C(e.cardId).name)} · ${esc(printingText(e))}"><span class="timg">${thumb(e.cardId, 'tile')}${e.finish === 'foil' ? '<span class="foilsheen"></span>' : ''}${badges}</span><span class="tcap">${esc(e.printing)}${e.finish === 'foil' ? ' · foil' : ''}${e.condition !== 'NM' ? ' · ' + esc(e.condition) : ''}</span></button>`;
+  let h = `<div class="legend"><span><span class="cb qty">×2</span>owned</span><span><span class="cb free">1</span>free</span><span><span class="cb deck">❏1</span>in decks</span><span><span class="cb held">⇄1</span>held</span><span><span class="cb prot">🔒1</span>protected</span></div><div class="binder">`;
+  for (const p of list) {
+    const n = printingStats(p.entries), c = C(p.cardId);
+    const badges = `<span class="cb qty" data-badge="owned" title="${n.owned} owned">×${n.owned}</span>${n.protected ? `<span class="cb prot" data-badge="protected" title="${n.protected} protected">🔒${n.protected}</span>` : ''}${n.free ? `<span class="cb free ${n.freeOpen ? '' : 'pf'}" data-badge="free" title="${n.free} free${n.freeOpen < n.free ? `, ${n.free - n.freeOpen} protected` : ''}">${n.free}</span>` : ''}<span class="cbr">${n.decks ? `<span class="cb deck" data-badge="decks" title="${esc(n.alloc.map(a => `${a.qty} in ${deckOf(a.deckId).short}`).join(', '))}">❏${n.decks}</span>` : ''}${n.held ? `<span class="cb held" data-badge="held" title="Held by a planned swap">⇄${n.held}</span>` : ''}</span>`;
+    h += `<button class="tile ptile ${ui.D.card && ui.D.card.printing === p.key ? 'cur' : ''}" data-act="openCardD" data-printing="${esc(p.key)}" data-entries="${p.entries.length}" title="${esc(c.name)} · ${esc(p.printing)} · ${plural(n.owned, 'copy').replace('copys', 'copies')}"><span class="timg">${thumb(p.cardId, 'tile')}${n.foil ? '<span class="foilsheen"></span>' : ''}${badges}</span><span class="tcap">${esc(p.printing)}</span></button>`;
   }
   return h + `</div>`;
 }
@@ -1386,15 +1435,16 @@ function collectionList() { return state.collection.slice().sort(byEntryName).fi
 function renderCollectionD() {
   const q = ui.D.query, f = ui.D.colFilter, layout = ui.layout.collection;
   const all = state.collection.slice().sort(byEntryName);
-  const list = collectionList();
+  const list = layout === 2 ? printingList() : collectionList();
   const copies = state.collection.reduce((a, e) => a + e.qty, 0);
-  const countOf = k => { const m = all.filter(e => entryMatches(e, '', k)); return layout === 3 ? cardGroups(m).length : m.length; };
-  let h = `<div class="navtitle"><div><h1>Collection</h1><div class="sub">${plural(state.collection.length, 'collection entry').replace('entrys', 'entries')} · ${copies} copies</div></div></div>`;
+  const countOf = k => layout === 2 ? printingGroups(all).filter(p => printingMatches(p, '', k)).length : (m => layout === 3 ? cardGroups(m).length : m.length)(all.filter(e => entryMatches(e, '', k)));
+  const unit = layout === 2 ? plural(printingGroups(all).length, 'printing') : plural(state.collection.length, 'collection entry').replace('entrys', 'entries');
+  let h = `<div class="navtitle"><div><h1>Collection</h1><div class="sub">${unit} · ${copies} copies</div></div></div>`;
   h += `<div class="search"><span>⌕</span><input id="col-search" type="search" placeholder="Search your collection" autocomplete="off" value="${esc(q)}"></div>`;
   h += `<div class="chiprow">${COL_FILTERS.map(([k, l]) => `<button class="chip big ${f === k ? 'sel' : ''}" data-act="colFilterD" data-f="${k}">${l} · ${countOf(k)}</button>`).join('')}</div>`;
   h += layout === 2 ? binderD(list) : layout === 3 ? byCardD(list) : listD(list);
-  if (!list.length) h += `<div class="empty">No collection entries match.${q ? `<br><span class="dim">Collection search only searches your collection, not the card catalog.</span>` : ''}</div>`;
-  h += `<div class="note">Basic lands are not tracked, so they never appear here.${layout === 3 ? ' Prices are per card in this prototype, not per printing or finish.' : ''}</div>`;
+  if (!list.length) h += `<div class="empty">${layout === 2 ? 'No card printings match.' : 'No collection entries match.'}${q ? `<br><span class="dim">Collection search only searches your collection, not the card catalog.</span>` : ''}</div>`;
+  h += `<div class="note">Basic lands are not tracked, so they never appear here.${layout === 2 ? ' One tile per card printing. Its badges count every copy of that printing.' : ''}${layout === 3 ? ' Prices are per card in this prototype, not per printing or finish.' : ''}</div>`;
   return `<div class="scroll" data-scroll="D-collection-${layout}" data-layout="collection-${layout}">${h}<div style="height:24px"></div></div>`;
 }
 function deckStats(d) {
@@ -1506,7 +1556,7 @@ function renderScanD() {
 function renderD() {
   const t = ui.D.tab;
   if (inDeckD()) { const d = deckOf(ui.D.deckId); return `${renderDeckD(d)}${deckTabBarD(d)}`; }
-  if (t === 'collection' && cardOpen() && ui.layout.card === 2) return cardPageD(cardInfo(ui.D.card.entryId));
+  if (t === 'collection' && cardOpen() && ui.layout.card === 2) return cardPageD(cardInfo(ui.D.card.printing));
   const view = t === 'recent' ? renderRecentD() : t === 'collection' ? renderCollectionD() : t === 'decks' ? renderDecksD() : renderScanD();
   const badge = needsYouD().length;
   const tab = (k, ic, label, n) => `<button class="${t === k ? 'sel' : ''}" data-act="tabD" data-tab="${k}"><span class="ic">${ic}${n ? `<span class="tbadge" data-badge="${k}">${n}</span>` : ''}</span><span>${label}</span></button>`;
@@ -1633,73 +1683,105 @@ function entryPrice(e) {
   const c = C(e.cardId);
   return c.price ? Math.round(Number(c.price) * (e.finish === 'foil' ? FOIL_FACTOR : 1) * 100) / 100 : null;
 }
-function cardOpen() { return ui.variant === 'D' && ui.D.tab === 'collection' && !!ui.D.card && !!D.entryById(state, ui.D.card.entryId); }
-function cardInfo(entryId) {
-  const e = D.entryById(state, entryId);
-  const c = C(e.cardId), n = entryCounts(e);
-  const copies = state.collection.filter(x => x.cardId === e.cardId).sort(byEntryName);
-  const sum = D.copySummary(state, e.cardId);
-  const decks = state.decks.map(d => ({ d, rows: d.rows.map(r => ({ r, e: D.entryById(state, r.entryId) })).filter(x => x.e && x.e.cardId === e.cardId) }))
-    .filter(x => x.rows.length).map(x => ({ ...x, qty: x.rows.reduce((a, y) => a + y.r.qty, 0), here: x.rows.filter(y => y.e.id === e.id).reduce((a, y) => a + y.r.qty, 0) }));
-  const holds = copies.flatMap(x => D.heldSwaps(state, x.id).map(p => ({ p, e: x })));
-  const sugs = state.suggestions.filter(s => s.status === 'open' && (s.in === e.cardId || s.out === e.cardId));
-  const price = entryPrice(e);
+function cardOpen() { return ui.variant === 'D' && ui.D.tab === 'collection' && !!ui.D.card && printingEntries(ui.D.card.printing).length > 0; }
+const copiesText = n => plural(n, 'copy').replace('copys', 'copies');
+const groupKey = e => `${e.finish}|${e.condition}|${e.language}`;
+function commonGroup(entries) {
+  const m = new Map();
+  for (const e of entries.slice().sort((a, b) => entrySeq(a) - entrySeq(b))) m.set(groupKey(e), (m.get(groupKey(e)) || 0) + e.qty);
+  let best = null;
+  for (const [k, q] of m) if (!best || q > best[1]) best = [k, q];
+  return best && best[0];
+}
+function pickEntry(entries, ok) {
+  const common = commonGroup(entries);
+  const rank = e => [groupKey(e) === common ? 0 : 1, -D.freeQty(state, e.id), entrySeq(e)];
+  const cands = entries.filter(ok).sort((a, b) => { const x = rank(a), y = rank(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; });
+  return cands[0] || null;
+}
+const protectTarget = entries => pickEntry(entries, e => !e.protected && D.freeQty(state, e.id) > 0);
+const unprotectTarget = entries => pickEntry(entries, e => e.protected);
+function cardInfo(key) {
+  const entries = printingEntries(key).sort((a, b) => (a.finish === 'foil') - (b.finish === 'foil') || a.finish.localeCompare(b.finish) || a.condition.localeCompare(b.condition) || a.language.localeCompare(b.language) || Number(a.protected) - Number(b.protected) || entrySeq(a) - entrySeq(b));
+  const e = entries[0], cardId = e.cardId, c = C(cardId);
+  const copies = state.collection.filter(x => x.cardId === cardId).sort(byEntryName);
+  const here = new Set(entries.map(x => x.id));
+  const sum = D.copySummary(state, cardId);
+  const st = printingStats(entries);
+  const decks = state.decks.map(d => ({ d, rows: d.rows.map(r => ({ r, e: D.entryById(state, r.entryId) })).filter(x => x.e && x.e.cardId === cardId) }))
+    .filter(x => x.rows.length).map(x => ({ ...x, qty: x.rows.reduce((a, y) => a + y.r.qty, 0), here: x.rows.filter(y => here.has(y.e.id)).reduce((a, y) => a + y.r.qty, 0) }));
+  const holds = copies.flatMap(x => D.heldSwaps(state, x.id).map(p => ({ p, e: x, here: here.has(x.id) })));
+  const sugs = state.suggestions.filter(s => s.status === 'open' && (s.in === cardId || s.out === cardId));
+  const finishes = [...new Set(entries.map(x => x.finish))].map(f => ({ finish: f, price: entryPrice(entries.find(x => x.finish === f)), qty: entries.filter(x => x.finish === f).reduce((a, x) => a + x.qty, 0) }));
+  const value = entries.reduce((a, x) => a + (entryPrice(x) || 0) * x.qty, 0);
   const total = copies.reduce((a, x) => a + (entryPrice(x) || 0) * x.qty, 0);
-  const counts = {
-    entry: { owned: e.qty, free: n.free, decks: n.allocated, held: n.held.length, protected: e.protected ? e.qty : 0 },
-    card: { owned: sum.owned, free: sum.free + sum.protectedFree, decks: sum.inDecks, held: sum.held, protected: copies.filter(x => x.protected).reduce((a, x) => a + x.qty, 0) }
-  };
-  return { e, c, n, copies, sum, decks, holds, sugs, price, value: (price || 0) * e.qty, total, counts, oracle: ORACLE[e.cardId] || ['', ''], printings: new Set(copies.map(x => x.printing)).size };
+  const others = printingGroups(copies).filter(p => p.key !== key).map(p => ({ ...p, st: printingStats(p.entries) }));
+  const counts = { printing: { owned: st.owned, free: st.free, decks: st.decks, held: st.held, protected: st.protected } };
+  return { key, e, cardId, printing: e.printing, entries, st, c, copies, sum, decks, holds, sugs, finishes, price: finishes.length === 1 ? finishes[0].price : null, value, total, counts, others, foil: st.foil, oracle: ORACLE[cardId] || ['', ''], printings: others.length + 1, protectTo: protectTarget(entries), unprotectTo: unprotectTarget(entries) };
 }
 const setOf = e => e.printing.split(' ')[0];
 const numberOf = e => e.printing.split(' ').slice(1).join(' ');
-function cdImg(e, cls = '') {
-  const c = C(e.cardId);
-  const foil = e.finish === 'foil' ? '<span class="foilsheen"></span>' : '';
+function cdImg(i, cls = '') {
+  const c = i.c;
+  const foil = i.foil ? '<span class="foilsheen"></span>' : '';
   return ui.images ? `<div class="cdimg ${cls}" data-cd="image" role="img" aria-label="${esc(c.name)}" style="background-image:url('${c.img.normal}')">${foil}</div>` : `<div class="cdimg noimg ${cls}" data-cd="image">${esc(c.name)}${foil}</div>`;
 }
 function cdFacts(i) {
-  const e = i.e;
-  return `<div class="cdfacts" data-cd="facts"><span data-f="printing">Set ${esc(setOf(e))} · #${esc(numberOf(e))}</span><span data-f="finish">${cap(e.finish)}</span><span data-f="condition">${esc(e.condition)}</span><span data-f="language">${esc(e.language)}</span>${e.protected ? `<span class="pf" data-f="protected">🔒 Protected copy</span>` : ''}</div>`;
+  return `<div class="cdfacts" data-cd="facts"><span data-f="printing">Set ${esc(setOf(i.e))} · #${esc(numberOf(i.e))}</span></div>`;
 }
 function cdTypeLine(i) { return `<span data-cd="type">${esc(i.c.type)}</span>${i.oracle[0] ? ` · <span class="cost">${esc(i.oracle[0])}</span>` : ''}`; }
 function cdCountRow(i, scope, label) {
   return `<div class="cdcrow" data-cd-scope="${scope}"><span class="lbl">${label}</span><span class="cells">${COUNT_KEYS.map(([k, l]) => `<span class="cdc ${k} ${i.counts[scope][k] ? '' : 'zero'}" data-count="${k}"><b>${i.counts[scope][k]}</b>${l}</span>`).join('')}</span></div>`;
 }
+function cdCardSummary(i) {
+  return `<div class="meta cdsum" data-cd="card-summary" data-copies="${i.sum.owned}" data-printings="${i.printings}">${esc(i.c.name)} overall: ${copiesText(i.sum.owned)} across ${plural(i.printings, 'printing')}</div>`;
+}
 function cdCounts(i) {
-  return `<div class="cdcounts" data-cd="counts">${cdCountRow(i, 'entry', 'This collection entry')}${cdCountRow(i, 'card', `All copies of ${esc(i.c.name)}`)}</div>`;
+  return `<div class="cdcounts" data-cd="counts">${cdCountRow(i, 'printing', `This printing · ${esc(i.printing)}`)}${cdCardSummary(i)}</div>`;
 }
 function cdDeckTags(i) {
   let h = `<div class="cdtags" data-cd="decks">`;
-  for (const x of i.decks) h += `<button class="decktag" data-act="openDeckD" data-deck="${x.d.id}" data-find="${i.e.cardId}" data-cd-deck="${x.d.id}"><span class="av">${thumb(x.d.commanders[0], 'art')}</span>${esc(x.d.short)} ×${x.qty}${x.here ? '' : ` <span class="dim">other copy</span>`}<span class="dim">›</span></button>`;
-  for (const h2 of i.holds) h += `<button class="decktag hold" data-act="openDeckD" data-deck="${h2.p.deckId}" data-cd-hold="${h2.p.id}"><span class="av">⇄</span>Held for ${esc(deckOf(h2.p.deckId).short)}<span class="dim">›</span></button>`;
+  for (const x of i.decks) h += `<button class="decktag" data-act="openDeckD" data-deck="${x.d.id}" data-find="${i.cardId}" data-cd-deck="${x.d.id}"><span class="av">${thumb(x.d.commanders[0], 'art')}</span>${esc(x.d.short)} ×${x.qty}${x.here ? '' : ` <span class="dim">other printing</span>`}<span class="dim">›</span></button>`;
+  for (const h2 of i.holds) h += `<button class="decktag hold" data-act="openDeckD" data-deck="${h2.p.deckId}" data-cd-hold="${h2.p.id}"><span class="av">⇄</span>Held for ${esc(deckOf(h2.p.deckId).short)}${h2.here ? '' : ` <span class="dim">other printing</span>`}<span class="dim">›</span></button>`;
   if (!i.decks.length && !i.holds.length) h += `<span class="meta">No deck uses a copy of ${esc(i.c.name)}.</span>`;
   return h + `</div>`;
 }
 function cdDeckRows(i) {
   let h = `<div data-cd="decks">`;
-  for (const x of i.decks) h += `<button class="option cddeck" data-act="openDeckD" data-deck="${x.d.id}" data-find="${i.e.cardId}" data-cd-deck="${x.d.id}"><span class="cdav">${thumb(x.d.commanders[0], 'art')}</span><span class="grow"><span class="name" style="display:block">${esc(x.d.name)}</span><span class="meta">${x.qty} allocated · ${esc([...new Set(x.rows.map(y => y.e.printing + ' ' + y.e.finish))].join(', '))}${x.here ? ' · from this collection entry' : ''}</span><span class="meta" style="display:block">${cap(x.d.priority)} priority</span></span><span class="dim">›</span></button>`;
-  for (const h2 of i.holds) h += `<button class="option cddeck" data-act="openDeckD" data-deck="${h2.p.deckId}" data-cd-hold="${h2.p.id}"><span class="cdav">${thumb(deckOf(h2.p.deckId).commanders[0], 'art')}</span><span class="grow"><span class="name" style="display:block">${esc(deckOf(h2.p.deckId).name)}</span><span class="meta">Held by the planned swap${h2.p.out ? ` for ${esc(C(h2.p.out).name)}` : ''} · ${esc(h2.e.printing)}</span></span><span class="dim">›</span></button>`;
+  for (const x of i.decks) h += `<button class="option cddeck" data-act="openDeckD" data-deck="${x.d.id}" data-find="${i.cardId}" data-cd-deck="${x.d.id}" data-here="${x.here}"><span class="cdav">${thumb(x.d.commanders[0], 'art')}</span><span class="grow"><span class="name" style="display:block">${esc(x.d.name)}</span><span class="meta">${x.qty} allocated · ${x.here ? `${x.here} from this printing` : 'from another printing'} · ${esc([...new Set(x.rows.map(y => y.e.printing + ' ' + y.e.finish))].join(', '))}</span><span class="meta" style="display:block">${cap(x.d.priority)} priority</span></span><span class="dim">›</span></button>`;
+  for (const h2 of i.holds) h += `<button class="option cddeck" data-act="openDeckD" data-deck="${h2.p.deckId}" data-cd-hold="${h2.p.id}"><span class="cdav">${thumb(deckOf(h2.p.deckId).commanders[0], 'art')}</span><span class="grow"><span class="name" style="display:block">${esc(deckOf(h2.p.deckId).name)}</span><span class="meta">Held by the planned swap${h2.p.out ? ` for ${esc(C(h2.p.out).name)}` : ''} · ${esc(h2.e.printing)}${h2.here ? ' · this printing' : ''}</span></span><span class="dim">›</span></button>`;
   if (!i.decks.length && !i.holds.length) h += `<div class="note">No deck uses a copy of ${esc(i.c.name)}.</div>`;
   return h + `</div>`;
 }
 function cdSugs(i) {
   if (!i.sugs.length) return `<div class="meta cdnone" data-cd="sugs">No open deck suggestions bring this card in or take it out.</div>`;
   return `<div data-cd="sugs">${i.sugs.map(s => {
-    const isIn = s.in === i.e.cardId, d = deckOf(s.deckId);
+    const isIn = s.in === i.cardId, d = deckOf(s.deckId);
     const what = isIn ? (s.out ? `Replaces ${esc(C(s.out).name)}` : 'Adds the card') : `For ${esc(C(s.in).name)}`;
     return `<button class="cdsug" data-act="openSugD" data-id="${s.id}" data-cd-sug="${s.id}"><span class="sgn ${isIn ? 'in' : 'out'}">${isIn ? '+' : '−'}</span><span class="grow"><span class="name" style="display:block">${isIn ? 'Into' : 'Out of'} ${esc(d.short)}</span><span class="meta">${what} · ${esc(s.client)}</span></span><span class="dim">Open ›</span></button>`;
   }).join('')}</div>`;
 }
-function cdCopyRows(i) {
-  return `<div data-cd="copies">${i.copies.map(x => {
-    const p = entryPrice(x);
-    return `<button class="cdcopy ${x.id === i.e.id ? 'cur' : ''}" data-act="cardEntryD" data-entry="${x.id}" data-cd-copy="${x.id}"><span class="grow"><span class="name" style="display:block">${esc(x.printing)} · ${esc(x.finish)}${x.protected ? ' · 🔒' : ''}</span><span class="meta">${esc(x.condition)} · ${esc(x.language)} · ${x.qty} owned · ${D.freeQty(state, x.id)} free</span></span><span class="meta">${p ? money(p) : 'No price'}</span>${x.id === i.e.id ? '<span class="chip ok">Selected</span>' : '<span class="dim">›</span>'}</button>`;
+function cdGroups(i) {
+  return `<div data-cd="copies">${i.st.per.map(x => {
+    const p = entryPrice(x.e);
+    let chips = `<span class="chip ${x.free ? (x.e.protected ? 'warn' : 'ok') : 'ghost'}" data-g="free">${x.free} free</span>`;
+    for (const a of x.alloc) chips += `<button class="chip info" data-act="openDeckD" data-deck="${a.deckId}" data-find="${i.cardId}" data-g-deck="${a.deckId}">${a.qty} in ${esc(deckOf(a.deckId).short)} ›</button>`;
+    if (x.held.length) chips += `<span class="chip info" data-g="held">${x.held.length} held</span>`;
+    if (x.e.protected) chips += `<span class="chip warn" data-g="protected">${x.e.qty} protected</span>`;
+    return `<div class="cdgroup" data-cd-group="${x.e.id}" data-qty="${x.e.qty}" data-free="${x.free}" data-decks="${x.allocated}" data-held="${x.held.length}" data-protected="${x.e.protected ? x.e.qty : 0}"><div class="gtop"><span class="name">${x.e.protected ? '🔒 ' : ''}${cap(x.e.finish)} · ${esc(x.e.condition)} · ${esc(x.e.language)}</span><b class="gqty">×${x.e.qty}</b></div><div class="gbot"><span class="chips">${chips}</span><span class="meta gprice" data-g-price="${p ?? ''}">${p ? money(p) + ' each' : 'No price'}</span></div></div>`;
   }).join('')}</div>`;
 }
+function cdOthers(i) {
+  if (!i.others.length) return `<div class="meta cdnone" data-cd="others">No other printings of ${esc(i.c.name)} in your collection.</div>`;
+  return `<div data-cd="others">${i.others.map(p => `<button class="cdcopy" data-act="cardPrintingD" data-printing="${esc(p.key)}" data-cd-other="${esc(p.key)}"><span class="grow"><span class="name" style="display:block">${esc(p.printing)}${p.st.foil ? ' · foil' : ''}${p.st.protected ? ' · 🔒' : ''}</span><span class="meta">${copiesText(p.st.owned)} · ${p.st.free} free${p.st.decks ? ` · ${p.st.decks} in decks` : ''} · ${plural(p.entries.length, 'collection entry').replace('entrys', 'entries')}</span></span><span class="dim">›</span></button>`).join('')}</div>`;
+}
+function cdCopySecs(i) {
+  return cdSec('copies', 'Copies of this printing', cdGroups(i), `<span class="count">${plural(i.entries.length, 'collection entry').replace('entrys', 'entries')}</span>`)
+    + cdSec('others', 'Your other printings', cdOthers(i), i.others.length ? `<span class="count">${plural(i.others.length, 'printing')}</span>` : '');
+}
 function cdPrice(i) {
-  const e = i.e;
-  return `<div class="cdprice" data-cd="price"><div class="kv"><span>${esc(e.printing)} · ${esc(e.finish)}</span><b data-cd-price="${i.price ?? ''}">${i.price ? money(i.price) + ' each' : 'No price'}</b></div><div class="kv"><span>This collection entry · ${plural(e.qty, 'copy').replace('copys', 'copies')}</span><b data-cd-value="${i.value.toFixed(2)}">${money(i.value)}</b></div><div class="kv"><span>All ${plural(i.sum.owned, 'copy').replace('copys', 'copies')} of the card</span><b data-cd-total="${i.total.toFixed(2)}">${money(i.total)}</b></div></div>`;
+  const rows = i.finishes.map(f => `<div class="kv" data-cd-finish="${f.finish}"><span>${esc(i.printing)} · ${cap(f.finish)}</span><b data-cd-price="${f.price ?? ''}">${f.price ? money(f.price) + ' each' : 'No price'}</b></div>`).join('');
+  return `<div class="cdprice" data-cd="price">${rows}<div class="kv"><span>This printing · ${copiesText(i.st.owned)}</span><b data-cd-value="${i.value.toFixed(2)}">${money(i.value)}</b></div><div class="kv"><span>All ${copiesText(i.sum.owned)} of the card</span><b data-cd-total="${i.total.toFixed(2)}">${money(i.total)}</b></div></div>`;
 }
 function cdLegal(i) {
   const c = i.c;
@@ -1712,88 +1794,87 @@ function cdOracle(i, collapsible) {
   return `<div class="oracle ${open ? '' : 'clamp'}" data-cd="oracle" data-open="${open}"><span class="otitle">Oracle text</span>${text}</div>${collapsible ? `<button class="linkbtn small" data-act="oracleD">${open ? 'Show less' : 'Show all Oracle text'}</button>` : ''}`;
 }
 function cdProtectBtn(i) {
-  const e = i.e;
-  return e.protected ? `<button class="btn" data-act="unprotectD" data-entry="${e.id}">Unprotect 1 copy</button>` : `<button class="btn" data-act="protectD" data-entry="${e.id}" ${i.n.free ? '' : 'disabled'}>Protect 1 free copy</button>`;
+  return `<button class="btn" data-act="protectD" data-printing="${esc(i.key)}" ${i.protectTo ? '' : 'disabled'}>Protect 1 free copy</button><button class="btn" data-act="unprotectD" data-printing="${esc(i.key)}" ${i.unprotectTo ? '' : 'disabled'}>Unprotect 1 copy</button>`;
 }
 function cdProtectNote(i) {
-  const e = i.e;
-  return `<div class="meta cdnote">${e.protected ? 'Deck suggestions never use protected copies.' : i.n.free ? 'Protect a free copy to keep it out of decks. Deck suggestions never use protected copies.' : ''}</div>`;
+  return `<div class="meta cdnote">${i.st.protected ? 'Deck suggestions never use protected copies.' : i.protectTo ? 'Protect a free copy to keep it out of decks. Deck suggestions never use protected copies.' : ''}</div>`;
 }
 function cdAsk(i) {
   return `<div class="cdask"><button class="btn" disabled data-cd="ask-ai">✦ Ask AI about this card</button><div class="meta">Not in the prototype. In the app, this starts a chat about ${esc(i.c.name)} in your AI client, such as ChatGPT. The chat reads your card data through the MCP connection.</div></div>`;
 }
 const cdSec = (key, title, body, extra = '') => `<div class="cdsec ${ui.D.card.flash === key ? 'cdflash' : ''}" data-sec="${key}">${title ? `<div class="cdh">${title}${extra}</div>` : ''}${body}</div>`;
+const cdAttrs = i => `data-printing="${esc(i.key)}" data-entries="${i.entries.length}"`;
 function cardSheetD(i) {
-  const e = i.e;
-  let body = `<div class="cdhero1">${cdImg(e)}</div>`;
+  let body = `<div class="cdhero1">${cdImg(i)}</div>`;
   body += `<div class="cdtitle"><div class="cdname" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div>${cdFacts(i)}</div>`;
   body += cdSec('counts', '', cdCounts(i));
   body += cdSec('decks', 'In decks', cdDeckTags(i));
   body += cdSec('sugs', 'Open deck suggestions', cdSugs(i));
-  body += cdSec('copies', 'Your copies', cdCopyRows(i), `<span class="count">${plural(i.printings, 'printing')} · ${plural(i.copies.length, 'collection entry').replace('entrys', 'entries')}</span>`);
+  body += cdCopySecs(i);
   body += cdSec('price', 'Price', cdPrice(i));
   body += cdSec('rules', 'Commander', cdLegal(i) + cdOracle(i, true));
   body += cdSec('ai', '', cdAsk(i));
   const foot = `<div class="actions" style="margin-top:0">${cdProtectBtn(i)}</div>${cdProtectNote(i)}`;
-  return `<div class="sheet-scrim" data-act="closeCardD"></div><div class="sheet cdsheet" role="dialog" aria-label="${esc(i.c.name)}" data-card-detail="1" data-entry="${e.id}"><div class="dragzone" data-drag="sheet"><div class="grab"></div><div class="head"><div class="side"></div><h2>${esc(i.c.name)}</h2><div class="side" style="text-align:right"><button class="linkbtn" data-act="closeCardD">Done</button></div></div></div><div class="body" data-scroll="card-sheet-${e.cardId}">${body}</div><div class="foot">${foot}</div></div>`;
+  return `<div class="sheet-scrim" data-act="closeCardD"></div><div class="sheet cdsheet" role="dialog" aria-label="${esc(i.c.name)}" data-card-detail="1" ${cdAttrs(i)}><div class="dragzone" data-drag="sheet"><div class="grab"></div><div class="head"><div class="side"></div><h2>${esc(i.c.name)}</h2><div class="side" style="text-align:right"><button class="linkbtn" data-act="closeCardD">Done</button></div></div></div><div class="body" data-scroll="card-sheet-${i.cardId}">${body}</div><div class="foot">${foot}</div></div>`;
 }
 function cardPageD(i) {
-  const e = i.e, t = ui.D.card.tab;
-  let h = `<div class="cdhero2"><div class="bg" style="${ui.images ? `background-image:url('${i.c.img.art}')` : ''}"></div>${cdImg(e)}</div>`;
+  const t = ui.D.card.tab;
+  let h = `<div class="cdhero2"><div class="bg" style="${ui.images ? `background-image:url('${i.c.img.art}')` : ''}"></div>${cdImg(i)}</div>`;
   h += `<div class="cdtitle"><div class="cdname big" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div>${cdFacts(i)}</div>`;
   h += `<div class="actions cdacts">${cdProtectBtn(i)}</div>`;
   h += `<div class="segment cdseg">${CARD_TABS.map(([k, l]) => `<button class="${t === k ? 'sel' : ''}" data-act="cardTabD" data-tab="${k}">${l}${k === 'decks' && i.sugs.length ? ` <span class="sbadge">${i.sugs.length}</span>` : ''}</button>`).join('')}</div>`;
   let body = '';
   if (t === 'copies') {
     body += cdSec('counts', '', cdCounts(i));
-    body += cdSec('copies', 'Your copies', cdCopyRows(i), `<span class="count">${plural(i.printings, 'printing')} · ${plural(i.copies.length, 'collection entry').replace('entrys', 'entries')}</span>`);
-    body += cdProtectNote(i);
+    body += cdCopySecs(i);
   } else if (t === 'decks') {
     body += cdSec('decks', 'Decks with this card', cdDeckRows(i));
     body += cdSec('sugs', 'Open deck suggestions', cdSugs(i));
   } else if (t === 'prices') {
-    body += cdSec('price', 'This printing and finish', cdPrice(i));
-    body += cdSec('copies', 'Each copy', `<div data-cd="copy-prices">${i.copies.map(x => `<div class="kv"><span>${esc(x.printing)} · ${esc(x.finish)} · ${esc(x.condition)} ×${x.qty}</span><b>${entryPrice(x) ? money(entryPrice(x) * x.qty) : 'No price'}</b></div>`).join('')}</div>`);
+    body += cdSec('price', 'This printing', cdPrice(i));
+    body += cdSec('copies', 'Each collection entry', `<div data-cd="copy-prices">${i.entries.map(x => `<div class="kv"><span>${cap(x.finish)} · ${esc(x.condition)} · ${esc(x.language)}${x.protected ? ' · 🔒' : ''} ×${x.qty}</span><b>${entryPrice(x) ? money(entryPrice(x) * x.qty) : 'No price'}</b></div>`).join('')}</div>`);
     body += `<div class="note">Prototype prices from the 8 October 2026 snapshot. The card detail prices each printing and finish. The By card layout still uses one price per card.</div>`;
   } else {
     body += cdSec('rules', 'Commander', cdLegal(i) + cdOracle(i, false));
     body += cdSec('ai', '', cdAsk(i));
   }
-  return `<div class="scroll cdpage" data-scroll="card-page-${e.cardId}" data-card-detail="2" data-entry="${e.id}" data-card-tab="${t}">${h}<div class="cdtab" data-card-tab-body="${t}">${body}</div><div style="height:24px"></div></div>`;
+  return `<div class="scroll cdpage" data-scroll="card-page-${i.cardId}" data-card-detail="2" ${cdAttrs(i)} data-card-tab="${t}">${h}<div class="cdtab" data-card-tab-body="${t}">${body}</div><div style="height:24px"></div></div>`;
 }
-function flipNeighbors(e) {
-  const list = collectionList();
-  const idx = list.findIndex(x => x.id === e.id);
+function flipNeighbors(key) {
+  const list = printingList();
+  const idx = list.findIndex(x => x.key === key);
   if (idx >= 0) return { list, idx, prev: list[idx - 1] || null, next: list[idx + 1] || null };
-  const j = list.findIndex(x => byEntryName(x, e) > 0);
+  const e = printingEntries(key)[0];
+  const j = list.findIndex(x => byPrintingName(x, e) > 0);
   return { list, idx, prev: j < 0 ? list[list.length - 1] || null : list[j - 1] || null, next: j < 0 ? null : list[j] };
 }
 function flipStep(step) {
-  const nb = flipNeighbors(D.entryById(state, ui.D.card.entryId));
+  const nb = flipNeighbors(ui.D.card.printing);
   const to = step > 0 ? nb.next : nb.prev;
-  if (to) ui.D.card.entryId = to.id;
+  if (to) ui.D.card.printing = to.key;
 }
 function cardFlipD(i) {
-  const e = i.e, nb = flipNeighbors(e), open = ui.D.card.drawer === 'open';
+  const nb = flipNeighbors(i.key), open = ui.D.card.drawer === 'open';
   const scope = `${COL_FILTERS.find(f => f[0] === ui.D.colFilter)[1]}${ui.D.query ? ` · “${esc(ui.D.query)}”` : ''}`;
   const pos = nb.idx >= 0 ? `${nb.idx + 1} of ${nb.list.length}` : 'Not in this filter';
   let h = `<div class="fliptop"><button class="linkbtn" data-act="closeCardD">Close</button><span class="flippos" data-cd="position">${pos} <span class="dim">· ${scope}</span></span><span class="side"></span></div>`;
-  h += `<div class="flipstage" data-drag="flip"><button class="fliparrow l" data-act="flipD" data-step="-1" aria-label="Previous card" ${nb.prev ? '' : 'disabled'}>‹</button><div class="flipcard">${cdImg(e)}</div><button class="fliparrow r" data-act="flipD" data-step="1" aria-label="Next card" ${nb.next ? '' : 'disabled'}>›</button></div>`;
-  h += `<div class="flipchips" data-cd="copy-chips">${i.copies.map(x => `<button class="chip big ${x.id === e.id ? 'sel' : ''}" data-act="cardEntryD" data-entry="${x.id}" data-cd-copy="${x.id}">${esc(x.printing)}${x.finish === 'foil' ? ' · foil' : ''} · ${esc(x.condition)} ×${x.qty}${x.protected ? ' 🔒' : ''}</button>`).join('')}</div>`;
+  h += `<div class="flipstage" data-drag="flip"><button class="fliparrow l" data-act="flipD" data-step="-1" aria-label="Previous printing" ${nb.prev ? '' : 'disabled'}>‹</button><div class="flipcard">${cdImg(i)}</div><button class="fliparrow r" data-act="flipD" data-step="1" aria-label="Next printing" ${nb.next ? '' : 'disabled'}>›</button></div>`;
+  const chips = printingGroups(i.copies).map(p => ({ ...p, st: printingStats(p.entries) }));
+  h += `<div class="flipchips" data-cd="printing-chips">${chips.map(p => `<button class="chip big ${p.key === i.key ? 'sel' : ''}" data-act="cardPrintingD" data-printing="${esc(p.key)}" data-cd-chip="${esc(p.key)}">${esc(p.printing)}${p.st.foil ? ' · foil' : ''} ×${p.st.owned}${p.st.protected ? ' 🔒' : ''}</button>`).join('')}</div>`;
   let full = cdSec('counts', '', cdCounts(i));
   full += cdSec('decks', 'In decks', cdDeckTags(i));
   full += cdSec('sugs', 'Open deck suggestions', cdSugs(i));
-  full += cdSec('copies', 'Your copies', cdCopyRows(i), `<span class="count">${plural(i.printings, 'printing')} · ${plural(i.copies.length, 'collection entry').replace('entrys', 'entries')}</span>`);
+  full += cdCopySecs(i);
   full += cdSec('price', 'Price', cdPrice(i));
   full += cdSec('rules', 'Commander', cdLegal(i) + cdOracle(i, true));
   full += cdSec('ai', '', cdAsk(i));
-  const peek = `<div class="dpeek"><div class="row"><div class="grow"><div class="cdname" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div></div><b class="dprice">${i.price ? money(i.price) : 'No price'}</b></div>${cdFacts(i)}<div class="actions">${cdProtectBtn(i)}</div></div>`;
-  h += `<div class="flipspace"></div><div class="drawer ${open ? 'open' : ''}" data-drawer="${open ? 'open' : 'peek'}"><button class="handle" data-act="drawerD" data-drag="drawer" aria-label="${open ? 'Hide details' : 'Show details'}"><span class="grab"></span><span class="hl">${open ? 'Hide details' : 'Pull up for details'}</span></button>${peek}<div class="dbody" data-scroll="flip-drawer-${e.cardId}">${open ? full + cdProtectNote(i) : ''}</div></div>`;
-  return `<div class="flip" data-card-detail="3" data-entry="${e.id}">${h}</div>`;
+  const peek = `<div class="dpeek"><div class="row"><div class="grow"><div class="cdname" data-cd="name">${esc(i.c.name)}</div><div class="meta">${cdTypeLine(i)}</div></div><b class="dprice">${i.value ? money(i.value) : 'No price'}</b></div>${cdFacts(i)}<div class="actions">${cdProtectBtn(i)}</div></div>`;
+  h += `<div class="flipspace"></div><div class="drawer ${open ? 'open' : ''}" data-drawer="${open ? 'open' : 'peek'}"><button class="handle" data-act="drawerD" data-drag="drawer" aria-label="${open ? 'Hide details' : 'Show details'}"><span class="grab"></span><span class="hl">${open ? 'Hide details' : 'Pull up for details'}</span></button>${peek}<div class="dbody" data-scroll="flip-drawer-${i.cardId}">${open ? full + cdProtectNote(i) : ''}</div></div>`;
+  return `<div class="flip" data-card-detail="3" ${cdAttrs(i)}>${h}</div>`;
 }
 function renderCardOverlay() {
   if (!cardOpen() || ui.layout.card === 2) return '';
-  const i = cardInfo(ui.D.card.entryId);
+  const i = cardInfo(ui.D.card.printing);
   return ui.layout.card === 1 ? cardSheetD(i) : cardFlipD(i);
 }
 function scrollToIn(el, sc, pad = 12) {
@@ -1848,7 +1929,7 @@ function render() {
   const screen = document.getElementById('screen');
   const scrolls = {};
   screen.querySelectorAll('[data-scroll]').forEach(el => { scrolls[el.dataset.scroll] = el.scrollTop; });
-  if (ui.D.card && !D.entryById(state, ui.D.card.entryId)) ui.D.card = null;
+  if (ui.D.card && !printingEntries(ui.D.card.printing).length) ui.D.card = null;
   const view = ui.variant === 'A' ? renderA() : ui.variant === 'B' ? renderB() : ui.variant === 'C' ? renderC() : renderD();
   screen.classList.toggle('camera', ui.variant === 'D' && ui.D.tab === 'scan');
   const underSheet = ui.sheet || (cardOpen() && ui.layout.card === 1);
@@ -1976,17 +2057,17 @@ const handlers = {
   filterD: ds => { ui.D.filter = ds.f; },
   openDeckD: ds => { enterDeckD(ds.deck, !inDeckD() && ui.D.tab === 'recent' ? 'suggestions' : 'cards'); ui.D.focus = ds.find ? { card: ds.find, scroll: true } : null; },
   deckTabD: ds => { ui.D.deckTab = ds.tab; ui.D.focus = null; },
-  openCardD: ds => { openCardD(ds.entry); },
+  openCardD: ds => { openCardD(ds.printing); },
   closeCardD: () => { closeCardD(); },
-  cardEntryD: ds => { ui.D.card.entryId = ds.entry; },
+  cardPrintingD: ds => { ui.D.card.printing = ds.printing; },
   cardTabD: ds => { ui.D.card.tab = ds.tab; },
   drawerD: () => { ui.D.card.drawer = ui.D.card.drawer === 'open' ? 'peek' : 'open'; },
   oracleD: () => { ui.D.card.oracle = !ui.D.card.oracle; },
   flipD: ds => { flipStep(Number(ds.step)); },
   findInDecksD: () => {
-    const i = cardInfo(ui.D.card.entryId);
+    const i = cardInfo(ui.D.card.printing);
     if (!i.decks.length) return;
-    if (i.decks.length === 1) { enterDeckD(i.decks[0].d.id, 'cards'); ui.D.focus = { card: i.e.cardId, scroll: true }; return; }
+    if (i.decks.length === 1) { enterDeckD(i.decks[0].d.id, 'cards'); ui.D.focus = { card: i.cardId, scroll: true }; return; }
     if (ui.layout.card === 2) ui.D.card.tab = 'decks';
     if (ui.layout.card === 3) ui.D.card.drawer = 'open';
     ui.D.card.flash = 'decks';
@@ -1995,8 +2076,8 @@ const handlers = {
   toggleClosedD: () => { ui.D.showClosed = !ui.D.showClosed; },
   colFilterD: ds => { ui.D.colFilter = ds.f; },
   openEntryD: ds => { ui.sheet = { type: 'entry', entryId: ds.entry }; },
-  protectD: ds => { protectToggle(ds.entry, 'protectCopy'); },
-  unprotectD: ds => { protectToggle(ds.entry, 'unprotectCopy'); },
+  protectD: ds => { if (ds.printing) protectPrinting(ds.printing, 'protectCopy'); else protectToggle(ds.entry, 'protectCopy'); },
+  unprotectD: ds => { if (ds.printing) protectPrinting(ds.printing, 'unprotectCopy'); else protectToggle(ds.entry, 'unprotectCopy'); },
   goScanD: ds => { const x = buyOf(ds.id); ui.D.scanFor = { buylistId: x.id, cardId: x.in, returnTab: ui.D.tab }; ui.sheet = null; ui.D.tab = 'scan'; },
   cancelScanForD: () => { ui.D.scanFor = null; },
   simScanD: () => {
@@ -2024,7 +2105,7 @@ const handlers = {
     if (!kind) return;
     ui.layout[kind] = (ui.layout[kind] - 1 + Number(ds.step) + 3) % 3 + 1;
     setParam(kind, ui.layout[kind]);
-    if (kind === 'card' && ui.layout.card === 2 && !ui.D.card.pushed) { history.pushState({ cardPage: true, entryId: ui.D.card.entryId }, '', location.href); ui.D.card.pushed = true; }
+    if (kind === 'card' && ui.layout.card === 2 && !ui.D.card.pushed) { history.pushState({ cardPage: true, printing: ui.D.card.printing }, '', location.href); ui.D.card.pushed = true; }
   },
   cardSortD: ds => { ui.D.cardSort = ds.sort; },
   toggleCardD: ds => { ui.D.expanded = ui.D.expanded.includes(ds.card) ? ui.D.expanded.filter(x => x !== ds.card) : [...ui.D.expanded, ds.card]; },
@@ -2043,7 +2124,13 @@ function protectToggle(entryId, type) {
   if (!dispatch({ type, entryId }, type === 'protectCopy' ? `Protected 1 copy of ${C(e.cardId).name}.` : `Unprotected 1 copy of ${C(e.cardId).name}.`)) return;
   const twin = state.collection.find(x => Object.entries(props).every(([k, v]) => x[k] === v));
   if (!twin) return;
-  if (ui.variant === 'D' && ui.D.tab === 'collection' && ui.D.card) ui.D.card.entryId = twin.id; else ui.sheet = { type: 'entry', entryId: twin.id };
+  ui.sheet = { type: 'entry', entryId: twin.id };
+}
+function protectPrinting(key, type) {
+  const entries = printingEntries(key);
+  const e = type === 'protectCopy' ? protectTarget(entries) : unprotectTarget(entries);
+  if (!e) return;
+  dispatch({ type, entryId: e.id }, `${type === 'protectCopy' ? 'Protected' : 'Unprotected'} 1 copy of ${C(e.cardId).name} · ${e.printing} · ${e.finish} · ${e.condition}.`);
 }
 function fit() { document.documentElement.style.setProperty('--fit', Math.min(1, (window.innerHeight - 150) / 870).toFixed(3)); }
 window.addEventListener('resize', fit);
@@ -2068,9 +2155,9 @@ function goBackD() {
   if (inDeckD()) exitDeckD(); else ui.D.card = null;
   lastUiEvent = 'back'; render();
 }
-function openCardD(entryId) {
-  ui.D.card = { entryId, tab: 'copies', drawer: 'peek', oracle: false, flash: null, pushed: false };
-  if (ui.layout.card === 2) { history.pushState({ cardPage: true, entryId }, '', location.href); ui.D.card.pushed = true; }
+function openCardD(printing) {
+  ui.D.card = { printing, tab: 'copies', drawer: 'peek', oracle: false, flash: null, pushed: false };
+  if (ui.layout.card === 2) { history.pushState({ cardPage: true, printing }, '', location.href); ui.D.card.pushed = true; }
 }
 function closeCardD() {
   if (ui.D.card && ui.D.card.pushed && history.state && history.state.cardPage) { history.back(); return; }
@@ -2087,7 +2174,7 @@ window.addEventListener('popstate', () => {
   else if (ui.D.deckId) exitDeckD();
   else if (!(entry && entry.cardPage) && ui.D.card && ui.D.card.pushed) ui.D.card = null;
   if (entry && entry.cardPage && !ui.D.deckId) {
-    if (!ui.D.card && D.entryById(state, entry.entryId)) ui.D.card = { entryId: entry.entryId, tab: 'copies', drawer: 'peek', oracle: false, flash: null, pushed: true };
+    if (!ui.D.card && entry.printing && printingEntries(entry.printing).length) ui.D.card = { printing: entry.printing, tab: 'copies', drawer: 'peek', oracle: false, flash: null, pushed: true };
     if (ui.D.card) { ui.D.tab = 'collection'; ui.sheet = null; }
   }
   lastUiEvent = 'back';

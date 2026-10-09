@@ -26,9 +26,15 @@ All four variants share one in-memory state, so you can do a step in one variant
 ### Variant D tabs
 
 - **Recent.** One home across all decks. "Needs you" comes first, oldest first. It lists open deck suggestions, planned swaps that are ready to swap in, and open buylist cards. "Recent changes" comes next, newest first. It lists deck changes, reverts, Bought, swap-ins, promotions, dismissals, AI withdrawals, reason edits, deck priority changes, and scan batches. Each item shows its deck's commander and name. Tap the deck name to open that deck. Filter chips: All, Suggestions, Planned swaps, Buylist, and Deck changes. Promote, Dismiss, Swap in, Bought, and Revert from here work in place and use the same sheets as the other variants.
-- **Collection.** Collection search over your collection entries, with All, Free, Allocated, and Protected filters. Search and the filters work in all three layouts. The Binder grid is the default. Tap a card in the grid to open its card detail. See [Card detail](#card-detail). In the List and By card layouts, a tap opens the older collection entry sheet. From that sheet you can protect one free copy or unprotect one copy. There are three layouts:
+- **Collection.** Collection search over your collection, with All, Free, Allocated, and Protected filters. Search and the filters work in all three layouts. The Binder grid is the default. Tap a tile in the grid to open the card detail for that card printing. See [Card detail](#card-detail). In the List and By card layouts, a tap opens the older collection entry sheet. From that sheet you can protect one free copy or unprotect one copy. There are three layouts:
   1. **List.** One row per collection entry, with its card image, its name and printing, and its owned, free, allocated (by deck), held, and protected counts.
-  2. **Binder grid.** The default. Card images, 3 per row, one per collection entry. Corner badges show the owned quantity, free copies, copies in decks, copies held by planned swaps, and protected copies. A legend sits above the grid. Foil entries have a sheen.
+  2. **Binder grid.** The default. Card images, 3 per row, with exactly one tile per card printing that you own. Owner decision: a tile tracks all copies of its printing, across finish, condition, language, and protected. The caption shows the set code and collector number. Corner badges add up all copies of the printing: owned, free, in decks, held by planned swaps, and protected. The free badge is amber when every free copy is protected. A legend sits above the grid. A tile has a foil sheen when any copy is foil. Search and the filters apply per printing:
+     - **Free** shows a printing when any of its copies is an unprotected free copy.
+     - **Allocated** shows a printing when any of its copies is in a deck.
+     - **Protected** shows a printing when any of its copies is protected.
+     - Search matches the card name, the type line, the set code and collector number, and the finishes of its copies.
+
+     The filter chips and the title count printings. The sort is unchanged: by card name, then by printing.
   3. **By card.** One row per card with its total owned, free, in decks, held, and protected copies, and its value. Tap a row to expand it into its card printings and their collection entries. Sort by Name, Value, or Recently added. A line above the rows shows the card count, the copy count, and the total value of what the search and filter show. Prices are per card in this prototype.
 - **Decks.** There are three layouts of the deck list. Tapping a deck opens the deck screen in every layout.
   1. **List.** Each deck shows its commander, deck priority, deck validity, and estimated bracket.
@@ -51,25 +57,42 @@ On the Collection tab and the Decks list, a second small pill appears above the 
 
 ## Card detail
 
-Tap a card in the Collection Binder grid to open its card detail. There are three options. All three show the same facts for the card and the selected collection entry:
+Tap a tile in the Collection Binder grid to open its card detail. The card detail opens the tapped card printing, not one collection entry. Owner decision: the printing is the subject, and the card detail tracks all copies of that printing. There are three options. All three show the same facts for the printing:
 
-- the card image, large;
-- the name, the set and collector number, the finish, the condition, and the language;
-- the owned, free, in decks, held, and protected counts, for this collection entry and for all copies of the card;
-- the decks that use a copy, as deck tags that open the deck at the card's row;
-- your other printings and copies of the card, which you can select;
-- the price of this printing and finish, the value of this collection entry, and the value of all copies;
+- the card image, large, with a foil sheen when any copy of the printing is foil;
+- the name and type line, and header chips with the set code and collector number. Finish, condition, and language are not in the header, because they can differ between copies;
+- one count row for this printing: owned, free, in decks, held, and protected, added up over all its copies;
+- a one-line summary of the card overall, for example "Doubling Season overall: 2 copies across 2 printings";
+- the copies of this printing, one group for each collection entry. A group shows the finish, condition, and language, the quantity, the free copies, the decks that use its copies as deck tags, the held copies, the protected copies, and the price for that finish;
+- your other printings of the card. Tap one to switch the card detail to that printing;
+- the decks that use a copy of the card, as deck tags that open the deck at the card's row. A tag for a deck that uses a copy of another printing says so;
+- the price for each finish of this printing, the value of all its copies, and the value of all copies of the card;
 - Commander legality and the Game Changer flag;
 - the Oracle text;
 - the open deck suggestions that bring the card in or take it out, with links that open them in their deck.
 
-Each option can protect one free copy or unprotect one copy, with the same rules as the entry sheet. The deck tags open each deck at the card's row. Owner decision: there is no Find in decks button. **Ask AI about this card** is a disabled placeholder. In the app, it would start a chat about the card in your AI client.
+Each option has **Protect 1 free copy** and **Unprotect 1 copy**. Both act on the printing:
 
-1. **Sheet.** The default. An iOS page sheet over the grid. The big image is at the top, and compact sections are stacked below it. The Oracle text is collapsed. Protect stays at the bottom. Close it with Done, a tap above the sheet, a downward swipe on the top of the sheet, or Escape.
-2. **Card page.** The chosen option. A full-screen page that also covers the app tab bar. A hero image is at the top, with Protect below it. The Copies, Decks, Prices, and Rules tabs hold the details, and the Oracle text is shown in full on Rules. It has no on-screen back button. Go back like the deck screen: browser Back, a swipe from the phone's left edge, or Escape.
-3. **Binder flip.** The card image fills the width. Swipe left or right, or use ‹ and ›, to go to the next or previous card in the grid's current order, search, and filter. The top shows the position, for example "4 of 18 · Free". A chip row under the image lists every collection entry of the card. Tap a chip to select that collection entry. A drawer at the bottom shows the name, the price, and the actions. Pull it up, or tap its handle, for the rest of the details. Close it with Close or Escape.
+- **Protect 1 free copy** protects one unprotected free copy of this printing. It prefers a collection entry whose finish, condition, and language match the most common group of the printing. The most common group is the one with the most copies, protected or not.
+- **Unprotect 1 copy** unprotects one protected copy of this printing, with the same preference.
+- When several collection entries qualify, the one with the most free copies goes first, then the oldest entry.
+- Each button is disabled when nothing qualifies. There is no explanatory note.
+
+The deck tags open each deck at the card's row. Owner decision: there is no Find in decks button. **Ask AI about this card** is a disabled placeholder. In the app, it would start a chat about the card in your AI client.
+
+1. **Sheet.** The default. An iOS page sheet over the grid. The big image is at the top, and compact sections are stacked below it. The Oracle text is collapsed. Protect and Unprotect stay at the bottom. Close it with Done, a tap above the sheet, a downward swipe on the top of the sheet, or Escape.
+2. **Card page.** The chosen option. A full-screen page that also covers the app tab bar. A hero image is at the top, with Protect and Unprotect below it. The tabs hold the details:
+   - **Copies.** The count row for this printing, the summary of the card overall, the copies of this printing grouped by collection entry, and your other printings.
+   - **Decks.** The decks that use a copy of the card, with how many copies come from this printing, and the open deck suggestions.
+   - **Prices.** The price for each finish of this printing, the value of all its copies, the value of all copies of the card, and the value of each collection entry of the printing.
+   - **Rules.** Commander legality, the Game Changer flag, and the full Oracle text.
+
+   It has no on-screen back button. Go back like the deck screen: browser Back, a swipe from the phone's left edge, or Escape. Switching to another printing does not add a history entry, so Back closes the card page.
+3. **Binder flip.** The card image fills the width. Swipe left or right, or use ‹ and ›, to go to the next or previous printing in the grid's current order, search, and filter. The top shows the position, for example "4 of 18 · Free". A chip row under the image lists every printing of the card that you own. Tap a chip to switch to that printing. A drawer at the bottom shows the name, the value of the printing's copies, and the actions. Pull it up, or tap its handle, for the rest of the details. Close it with Close or Escape.
 
 Back from a deck that you opened from a card detail returns to the same card detail.
+
+The prototype has one image per card, so every printing of a card shows the same image.
 
 ## Dev menu
 
@@ -86,6 +109,7 @@ The menu at the top left is part of the prototype, not the app.
 
 - Three Commander decks: Atraxa (high priority), Meren (medium, 99 of 100 cards), and Krenko (low).
 - Open deck suggestions cover an owned card with two copies, a card whose only free copy is protected, a card whose only copy is in a higher-priority deck, a card you do not own, a basic land, a pair that frees Lightning Greaves from Krenko for Meren, and a suggestion that would make Krenko 101 cards.
+- Two printings hold more than one collection entry. Hardened Scales SOC 272 has a nonfoil entry of 2 and a foil entry of 1. Hardened Scales also has a second printing, KTK 140. Impact Tremors FDN 717 has one unprotected and one protected nonfoil copy.
 - One dismissed and one withdrawn suggestion, one planned swap, one buylist card, and five deck changes. Reverting Atraxa's first change is blocked, and reverting Meren's first change needs a copy that a planned swap holds.
 
 Prices are a Scryfall snapshot from 8 October 2026. The By card layout uses one price per card. The card detail prices each printing and finish. Foil copies without a listed price cost 1.4 times the card price. Oracle text comes from Scryfall. Validity and the estimated bracket are deterministic fake checks over the named cards. The other cards in each deck are only a count.
