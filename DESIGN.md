@@ -111,6 +111,11 @@ components:
     typography: "{typography.sign-in-button}"
     rounded: "{rounded.sm}"
     height: 50px
+  button-apple:
+    backgroundColor: "#ffffff"
+    textColor: "#000000"
+    rounded: "{rounded.sm}"
+    height: 50px
   button-google:
     backgroundColor: "#131314"
     textColor: "#e3e3e3"
@@ -276,8 +281,8 @@ The app shows the sign-in screen whenever there is no session. It is the binder 
 - **Card images** are 18 fixed Commander staples and commanders from Scryfall's image CDN. They are cached on the device. Until an image loads, its tile is a dark line-colored card shape, so the screen works offline.
 - **Brand.** The brand mark and the mtgscan name sit at the top left.
 - **Sheet.** A bottom sheet with a grabber holds the copy and the actions: the title "Every card you own, in one binder.", the line "Scan your cards, see what each one is worth, and build Commander decks from them.", the sign-in buttons, "Your collection and decks stay private." with a **Privacy policy** link, and the credit "Card images from Scryfall". The link opens https://mtgscan.reilley.dev/privacy in the system browser.
-- **Sign-in buttons** stack in one column with 8 px gaps. Today there is only **Continue with Google**. Sign in with Apple goes above it.
-- **Signing in.** The tapped button shows a spinner in place of its logo, and every sign-in button is disabled. Other sign-in buttons fade to 38% opacity.
+- **Sign-in buttons** stack in one column with 8 px gaps: **Sign in with Apple** first, then **Continue with Google**.
+- **Signing in.** The tapped button shows a spinner in place of its logo, and every sign-in button is disabled. Other sign-in buttons fade to 38% opacity. The system Apple button cannot show a spinner. While Apple sign-in runs, a white button of the same size with a black spinner takes its place.
 - **Cancel.** Cancelling the provider prompt returns to the buttons with no message.
 - **Failure.** A failure replaces the buttons with "Sign-in did not work." in a surface card with a danger mark, and a lime **Try again** button. Try again brings back the buttons.
 
@@ -311,7 +316,7 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 - revert;
 - the scan details sheet;
 - batch review;
-- settings, which shows the signed-in account (provider and email) in a card and **Sign out** below it.
+- settings, which shows the signed-in account in a card and **Sign out** below it. The card shows the provider of the current sign-in and the account email. Apple and Google sign-ins with the same verified email share one account, so the provider can change between sign-ins.
 
 ## Elevation & Depth
 
@@ -333,7 +338,8 @@ The interface is flat. Depth comes from tone, not shadow.
 ## Components
 
 - **Buttons.** Primary buttons are lime with dark text: Promote, Swap in, Bought, Add to collection. Secondary buttons use the control surface: Dismiss, Skip, Cancel. Destructive actions use danger text on a dark red surface.
-- **Sign-in buttons.** Sign-in buttons and the sign-in Try again button are 50 px tall to match Apple's sign-in button sizing. This is the one exception to the 38 px button height. Their labels use sign-in button type (17 px, semibold); Continue with Google uses 16 px medium.
+- **Sign-in buttons.** Sign-in buttons and the sign-in Try again button are 50 px tall to match Apple's sign-in button sizing. This is the one exception to the 38 px button height. Try again uses sign-in button type (17 px, semibold). Continue with Google uses 16 px medium. The system Apple button sets its own type.
+- **Sign in with Apple.** The system Apple button in Apple's white style, with the "Sign in with Apple" title and 8 px corners. Apple's branding rules set its colors, logo, and type, so they sit outside the palette.
 - **Continue with Google.** Google's dark button style: a #131314 fill, a 1 px #8e918f border, #e3e3e3 text, and the four-color Google logo. Google's branding rules set these colors, so they sit outside the palette.
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
 - **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Filter chips switch to the primary lime when selected.

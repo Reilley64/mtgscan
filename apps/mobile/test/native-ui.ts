@@ -58,3 +58,28 @@ export async function openSettings() {
   await fireEvent.press(within(selectedTab()).getByRole('button', { name: 'Settings' }));
   return screen.findByRole('header', { name: 'Settings' });
 }
+
+export function queryAppleSignInButton() {
+  const [button] = hostViews('ViewManagerAdapter_ExpoAppleAuthentication');
+  return button ?? null;
+}
+
+export function appleSignInButton() {
+  const button = queryAppleSignInButton();
+  if (!button) {
+    throw new Error('No Sign in with Apple button is on the screen');
+  }
+  return button;
+}
+
+export async function pressSignInWithApple() {
+  await fireEvent(appleSignInButton(), 'buttonPress');
+}
+
+export function appearsBefore(
+  first: ReturnType<typeof screen.getByRole>,
+  second: ReturnType<typeof screen.getByRole>,
+) {
+  const hosts = screen.container.queryAll(() => true);
+  return hosts.indexOf(first) < hosts.indexOf(second);
+}
