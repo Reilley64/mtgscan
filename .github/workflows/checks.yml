@@ -44,5 +44,7 @@ jobs:
         run: supabase start --exclude realtime,storage-api,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor
       - name: Generated types match the migrations
         run: bun run types:database:check
+      - name: Read the local secret key
+        run: echo "SUPABASE_SECRET_KEY=$(supabase status -o json | jq -r .SECRET_KEY)" >> "$GITHUB_ENV"
       - name: Database tests
         run: bun run test:database
