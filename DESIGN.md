@@ -14,6 +14,7 @@ colors:
   text-dim: "#7d8a90"
   primary: "#d8ff62"
   on-primary: "#101500"
+  grabber: "#4a555b"
   warning: "#f4d06f"
   danger: "#ff7a70"
   incoming: "#d8ff62"
@@ -33,6 +34,15 @@ typography:
     fontSize: 20px
     fontWeight: 800
     lineHeight: 1.15
+  sign-in-title:
+    fontFamily: SF Pro Display
+    fontSize: 24px
+    fontWeight: 800
+    lineHeight: 1.15
+  brand:
+    fontFamily: SF Pro Display
+    fontSize: 22px
+    fontWeight: 800
   sheet-title:
     fontFamily: SF Pro Text
     fontSize: 17px
@@ -52,6 +62,10 @@ typography:
     fontFamily: SF Pro Text
     fontSize: 11px
     fontWeight: 700
+  credit:
+    fontFamily: SF Pro Text
+    fontSize: 10px
+    fontWeight: 600
   tab-label:
     fontFamily: SF Pro Text
     fontSize: 10px
@@ -81,13 +95,21 @@ components:
     rounded: "{rounded.sm}"
     padding: 10px 12px
     height: 38px
+  button-sign-in:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.on-primary}"
+    rounded: "{rounded.sm}"
+    height: 50px
   button-google:
     backgroundColor: "#131314"
     textColor: "#e3e3e3"
-    typography: "{typography.body-strong}"
     rounded: "{rounded.sm}"
-    padding: 10px 12px
-    height: 38px
+    height: 50px
+  brand-mark:
+    backgroundColor: "{colors.primary}"
+    rounded: "{rounded.xs}"
+    width: 18px
+    height: 25px
   chip:
     backgroundColor: "{colors.surface-control}"
     textColor: "{colors.text}"
@@ -105,6 +127,11 @@ components:
   sheet:
     backgroundColor: "{colors.sheet}"
     rounded: "{rounded.md}"
+  sheet-grabber:
+    backgroundColor: "{colors.grabber}"
+    rounded: "{rounded.full}"
+    width: 36px
+    height: 5px
   tab-bar:
     backgroundColor: "{colors.background}"
     textColor: "{colors.text-dim}"
@@ -176,7 +203,8 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 
 - **Background (#080b0d)** is the screen base. **Surface (#11171a)** holds cards and grouped content. **Surface raised (#1a2125)** and **surface control (#232c31)** separate inner rows, buttons, chips, and segmented controls. **Sheet (#161c1f)** is the iOS page sheet. **Line (#2a3238)** draws hairlines and empty image slots.
 - **Text (#ffffff)** is primary. **Text muted (#b5c0c5)** is for printing details and captions. **Text dim (#7d8a90)** is for unselected tab labels and quiet metadata.
-- **Primary (#d8ff62)**, the lime accent, is the single interaction color: the primary button, the selected chip, the selected tab, section headings, and in-app links. Text on it is **on-primary (#101500)**.
+- **Primary (#d8ff62)**, the lime accent, is the single interaction color: the primary button, the selected chip, the selected tab, section headings, and in-app links. Text on it is **on-primary (#101500)**. The brand mark is the one non-action use of lime.
+- **Grabber (#4a555b)** draws the short bar at the top of a sheet.
 - **Incoming (#d8ff62)** and **outgoing (#ff8a7a)** mark the plus and minus lines of a deck suggestion, planned swap, or deck change.
 - **Warning (#f4d06f)** marks protected copies and caution states. **Danger (#ff7a70)** marks invalid decks and destructive actions such as remove scan or revert. **Info (#8fd3ff)** marks the estimated bracket and in-deck counts.
 - **Badge (#e0244a)** is only for count badges on tabs and buttons, such as Needs you.
@@ -188,11 +216,12 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 The app uses the iOS system font, SF Pro, at a few weights.
 
 - **Large title** (28 px, heavy) names top-level tabs: Recent, Collection, Decks.
+- **Sign-in title** (24 px, heavy) is the one line on the sign-in sheet. **Brand** (22 px, heavy) sets the mtgscan name next to the brand mark.
 - **Card title** (20 px, heavy) names a card on the card page, and a deck in the deck header and the commander gallery.
 - **Sheet title** (17 px, heavy) titles page sheets.
 - **Body** (14 px) carries reasons, rules text, and list content. **Body strong** labels buttons and card names in rows.
 - **Meta** (12 px, muted) carries set and collector number, finish, condition, language, and timestamps.
-- **Chip** (11 px, bold) labels chips and status pills. **Tab label** (10 px, bold) sits under tab bar icons.
+- **Chip** (11 px, bold) labels chips and status pills. **Tab label** (10 px, bold) sits under tab bar icons. **Credit** (10 px, semibold, dim) credits image sources such as Scryfall.
 
 Copy is plain sentence case and uses glossary terms exactly: deck suggestion, planned swap, buylist card, free copy, protected copy, estimated bracket.
 
@@ -220,7 +249,16 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
 
 ### Sign-in screen
 
-The app shows the sign-in screen whenever there is no session. The app name and one line about the app sit at the top. **Continue with Google** sits at the bottom. Cancelling the Google prompt returns to the screen with no message. A failure replaces the button with "Sign-in did not work." and **Try again**.
+The app shows the sign-in screen whenever there is no session. It is the binder wall design (prototype `prototypes/sign-in/index.html?variant=D`, commit 4b31c79 on `prototype/first-release`).
+
+- **Binder wall.** Three columns of card images fill the screen behind everything else. The wall is tilted 6 degrees, dimmed to half opacity, and darkened at the top and bottom. Some tiles carry a quantity badge, as in the collection. Each column drifts slowly upward at its own speed, between 70 and 90 seconds per loop. With Reduce Motion on, the wall stands still.
+- **Card images** are 18 fixed Commander staples and commanders from Scryfall's image CDN. They are cached on the device. Until an image loads, its tile is a dark line-colored card shape, so the screen works offline.
+- **Brand.** The brand mark and the mtgscan name sit at the top left.
+- **Sheet.** A bottom sheet with a grabber holds the copy and the actions: the title "Every card you own, in one binder.", the line "Scan your cards, see what each one is worth, and build Commander decks from them.", the sign-in buttons, "Your collection and decks stay private." with a **Privacy policy** link, and the credit "Card images from Scryfall". The link opens https://mtgscan.reilley.dev/privacy in the system browser.
+- **Sign-in buttons** stack in one column with 8 px gaps. Today there is only **Continue with Google**. Sign in with Apple goes above it.
+- **Signing in.** The tapped button shows a spinner in place of its logo, and every sign-in button is disabled. Other sign-in buttons fade to 38% opacity.
+- **Cancel.** Cancelling the provider prompt returns to the buttons with no message.
+- **Failure.** A failure replaces the buttons with "Sign-in did not work." in a surface card with a danger mark, and a lime **Try again** button. Try again brings back the buttons.
 
 ### Pushed screens
 
@@ -273,7 +311,9 @@ The interface is flat. Depth comes from tone, not shadow.
 ## Components
 
 - **Buttons.** Primary buttons are lime with dark text: Promote, Swap in, Bought, Add to collection. Secondary buttons use the control surface: Dismiss, Skip, Cancel. Destructive actions use danger text on a dark red surface.
+- **Sign-in buttons.** Sign-in buttons and the sign-in Try again button are 50 px tall to match Apple's sign-in button sizing. This is the one exception to the 38 px button height.
 - **Continue with Google.** Google's dark button style: a #131314 fill, a 1 px #8e918f border, #e3e3e3 text, and the four-color Google logo. Google's branding rules set these colors, so they sit outside the palette.
+- **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
 - **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Filter chips switch to the primary lime when selected.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, the batch button, and the card page Decks tab.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
@@ -293,5 +333,5 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Don't** show recognizer confidence, similarity scores, or "unsure" states.
 - **Don't** add on-screen back buttons or "Find in decks" style shortcuts that duplicate visible deck tags.
 - **Don't** mark suggested-out or buylist-out cards on the deck's Cards tab. Only planned swaps are commitments.
-- **Don't** use the primary lime for decoration. It always means "you can act here" or "selected".
+- **Don't** use the primary lime for decoration. It always means "you can act here" or "selected". The brand mark is the one exception.
 - **Don't** draw anything over the camera except the card outline, the batch button, and the latest-scan chip.
