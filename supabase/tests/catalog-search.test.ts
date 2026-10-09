@@ -178,6 +178,8 @@ describe('after a catalog import', () => {
       ['name, ignoring accents', { names: ['nazgul'] }, ['Nazgûl Battle-Mace']],
       ['name, ignoring punctuation', { names: ['thassas oracle'] }, ["Thassa's Oracle"]],
       ['face name', { names: ['tok-tok'] }, ['Akki Lavarunner // Tok-Tok, Volcano Born']],
+      ['full name of a card with faces', { names: ['fire//ice'] }, ['Fire // Ice']],
+      ['name across a face boundary', { names: ['reic'] }, []],
       ['type', { types: ['wall'] }, ['Fog Bank', 'Wall of Forgotten Pharaohs']],
       [
         'repeated type',
@@ -185,6 +187,12 @@ describe('after a catalog import', () => {
         ['Chandra, the Firebrand', 'Grist, the Hunger Tide', 'Sarkhan Vol', 'Teferi, Temporal Archmage'],
       ],
       ['negated type', { types: ['wall'], types_exclude: ['artifact'] }, ['Fog Bank']],
+      [
+        'types on different faces',
+        { types: ['creature', 'sorcery'] },
+        ['Adventurous Eater // Have a Bite', 'Bloomvine Regent // Claim Territory'],
+      ],
+      ['one type value across a face boundary', { types: ['warlock sorcery'] }, []],
       [
         'repeated color',
         { colors: ['W', 'U'] },
@@ -272,6 +280,11 @@ describe('after a catalog import', () => {
         ['Fog Bank', 'Orcish Siegemaster', 'Spike Breeder', 'Wall of Forgotten Pharaohs'],
       ],
       [
+        'power between a negative and a fractional bound',
+        { power_min: -1, power_max: 0.5 },
+        ['Fog Bank', 'Orcish Siegemaster', 'Spike Breeder', 'Wall of Forgotten Pharaohs'],
+      ],
+      [
         'toughness at least',
         { toughness_min: 7 },
         [
@@ -313,6 +326,11 @@ describe('after a catalog import', () => {
           'Teferi, Temporal Archmage',
           'Witch-king, Sky Scourge',
         ],
+      ],
+      [
+        'is commander, including a legendary Vehicle and Spacecraft with power and toughness',
+        { is_commander: true, types: ['artifact'] },
+        ['Inspirit, Flagship Vessel', 'Shorikai, Genesis Engine'],
       ],
       [
         'is not commander',
@@ -467,6 +485,7 @@ describe('after a catalog import', () => {
       ['power of the wrong type', { power_min: '3' }, 'power_min'],
       ['power minimum above its maximum', { power_min: 4, power_max: 2 }, 'power_max'],
       ['toughness out of range', { toughness_min: 100 }, 'toughness_min'],
+      ['name value with no letter or digit', { names: ['//'] }, 'names[0]'],
       ['unknown keyword', { keywords: ['flying', 'teleport'] }, 'keywords[1]'],
       ['unknown set', { sets: ['lea', 'zzz'] }, 'sets[1]'],
       ['unknown rarity', { rarities: ['legendary'] }, 'rarities[0]'],
@@ -529,6 +548,16 @@ describe('after a catalog import', () => {
         result_ids: first.items.slice(0, 20).map((row) => row.oracle_id),
       });
       expect(rows.at(-1)!.latency_ms).toBeGreaterThan(0);
+    });
+
+    test('a first page smaller than 20 still records the first 20 IDs', async () => {
+      const small = await page({ types: ['creature'], limit: 5 });
+      const large = await page({ types: ['creature'] });
+
+      expect(small.items).toEqual(large.items.slice(0, 5));
+      expect((await telemetryRows()).find((row) => row.search_id === small.search_id)!.result_ids).toEqual(
+        large.items.map((row) => row.oracle_id),
+      );
     });
 
     test('later pages and refused input write no row', async () => {

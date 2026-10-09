@@ -9,23 +9,21 @@ parallel safe
 security definer
 set search_path = ''
 as $$
-  select regexp_replace(
-    lower(extensions.unaccent('extensions.unaccent'::regdictionary, value)),
-    '[^[:alnum:]]+',
-    '',
-    'g'
-  );
+  select string_agg(
+    regexp_replace(
+      lower(extensions.unaccent('extensions.unaccent'::regdictionary, face)),
+      '[^[:alnum:]]+',
+      '',
+      'g'
+    ),
+    '/'
+    order by face_index
+  )
+  from regexp_split_to_table(value, '\s*//\s*') with ordinality as faces(face, face_index);
 $$;
 
-create function private.face_name_keys(name text)
-returns text[]
-language sql
-immutable
-parallel safe
-set search_path = ''
-as $$
-  select array(select private.name_key(face) from unnest(string_to_array(name, ' // ')) as face);
-$$;
+revoke all on function private.name_key(text) from public;
+grant execute on function private.name_key(text) to catalog_importer;
 
 create function private.color_bits(colors text[])
 returns smallint
@@ -65,14 +63,32 @@ as $$
   select array_remove(regexp_split_to_array(lower(type_line), '[^[:alnum:]]+'), '');
 $$;
 
-create function private.stat_value(stat text)
-returns numeric
+create function private.some_face_has_type_words(type_line text, words text[])
+returns boolean
 language sql
 immutable
 parallel safe
 set search_path = ''
 as $$
-  select case when stat ~ '^-?[0-9]+(\.[0-9]+)?$' then stat::numeric end;
+  select exists (
+    select 1 from unnest(string_to_array(type_line, ' // ')) as face where private.type_words(face) @> words
+  );
+$$;
+
+create function private.type_line_condition(type_value text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select '('
+    || string_agg(format('c.type_line ~* %L', '\m' || word || '\M'), ' and ')
+    || case when count(*) > 1 then format(
+      ' and (c.type_line not like ''%% // %%'' or private.some_face_has_type_words(c.type_line, %L))',
+      private.type_words(type_value)
+    ) else '' end
+    || ')'
+  from unnest(private.type_words(type_value)) as word;
 $$;
 
 create function private.card_search_vector(name text, type_line text, oracle_text text, keywords text[])
@@ -139,7 +155,7 @@ begin
       'hint', null
     )::text,
     detail = jsonb_build_object(
-      'status', case error_code when 'data_unavailable' then 503 when 'not_found' then 404 else 400 end,
+      'status', case error_code when 'data_unavailable' then 503 else 400 end,
       'headers', '{}'::jsonb
     )::text;
 end;
@@ -185,6 +201,22 @@ begin
 end;
 $$;
 
+create function private.checked_number(field text, value jsonb, minimum integer, maximum integer)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if jsonb_typeof(value) is distinct from 'number' then
+    perform private.invalid_argument(field, format('%s must be a number.', field));
+  end if;
+  if value::numeric not between minimum and maximum then
+    perform private.invalid_argument(field, format('%s must be from %s to %s.', field, minimum, maximum));
+  end if;
+  return value;
+end;
+$$;
+
 create function private.checked_choice(field text, value jsonb, choices text[])
 returns jsonb
 language plpgsql
@@ -216,7 +248,7 @@ begin
       format('%s must be a string of 1 to %s characters.', field, max_length)
     );
   end if;
-  if private.name_key(value #>> '{}') = '' then
+  if (value #>> '{}') !~ '[[:alnum:]]' then
     perform private.invalid_argument(field, format('%s must contain a letter or a digit.', field));
   end if;
   return value;
@@ -289,7 +321,7 @@ begin
 end;
 $$;
 
-create function private.checked_catalog_values(field text, value jsonb, known_value text)
+create function private.checked_catalog_values(field text, value jsonb, value_kind text)
 returns jsonb
 language plpgsql
 stable
@@ -307,7 +339,7 @@ begin
   for item, item_index in
     select element, ordinality - 1 from jsonb_array_elements_text(lowered) with ordinality as e(element, ordinality)
   loop
-    case known_value
+    case value_kind
       when 'set' then
         known := exists (select 1 from public.card_printings p where p.set_code = item);
       when 'keyword' then
@@ -316,7 +348,7 @@ begin
     if not known then
       perform private.invalid_argument(
         format('%s[%s]', field, item_index),
-        format('%s[%s] is not a known %s in the card catalog.', field, item_index, known_value)
+        format('%s[%s] is not a known %s in the card catalog.', field, item_index, value_kind)
       );
     end if;
   end loop;
@@ -354,7 +386,7 @@ begin
       when field in ('mana_value_min', 'mana_value_max') then
         private.checked_integer(field, value, 0, 20)
       when field in ('power_min', 'power_max', 'toughness_min', 'toughness_max') then
-        private.checked_integer(field, value, 0, 99)
+        private.checked_number(field, value, -99, 99)
       when field in ('keywords', 'keywords_exclude') then
         private.checked_catalog_values(field, value, 'keyword')
       when field in ('sets', 'sets_exclude') then
@@ -389,7 +421,7 @@ begin
   end loop;
 
   foreach bound in array array['mana_value', 'power', 'toughness'] loop
-    if (checked ->> (bound || '_min'))::integer > (checked ->> (bound || '_max'))::integer then
+    if (checked ->> (bound || '_min'))::numeric > (checked ->> (bound || '_max'))::numeric then
       perform private.invalid_argument(
         bound || '_max',
         format('%s_max must not be less than %s_min.', bound, bound)
@@ -422,6 +454,8 @@ set search_path = ''
 as $$
 declare
   conditions text[] := array['c.commander_legality = ''legal''', 'c.absent_since is null'];
+  present_printing constant text :=
+    'exists (select 1 from public.card_printings p where p.oracle_id = c.oracle_id and p.absent_since is null and %s)';
   value text;
   mask smallint;
   stat text;
@@ -433,10 +467,10 @@ begin
     conditions := conditions || format('c.name_key not like %L', '%' || private.name_key(value) || '%');
   end loop;
   for value in select jsonb_array_elements_text(checked -> 'types') loop
-    conditions := conditions || format('private.type_words(c.type_line) @> %L', private.type_words(value));
+    conditions := conditions || private.type_line_condition(value);
   end loop;
   for value in select jsonb_array_elements_text(checked -> 'types_exclude') loop
-    conditions := conditions || format('not private.type_words(c.type_line) @> %L', private.type_words(value));
+    conditions := conditions || ('not ' || private.type_line_condition(value));
   end loop;
 
   if checked ? 'colors' then
@@ -471,7 +505,8 @@ begin
   foreach stat in array array['power', 'toughness'] loop
     if checked ? (stat || '_min') or checked ? (stat || '_max') then
       conditions := conditions || format(
-        'exists (select 1 from public.card_faces f where f.oracle_id = c.oracle_id and private.stat_value(f.%I) between %L and %L)',
+        'exists (select 1 from public.card_faces f where f.oracle_id = c.oracle_id '
+        'and case when f.%1$I ~ ''^-?[0-9]+(\.[0-9]+)?$'' then f.%1$I::numeric end between %2$L and %3$L)',
         stat,
         coalesce(checked ->> (stat || '_min'), '-Infinity'),
         coalesce(checked ->> (stat || '_max'), 'Infinity')
@@ -493,27 +528,24 @@ begin
   end if;
 
   for value in select jsonb_array_elements_text(checked -> 'sets') loop
-    conditions := conditions || format(
-      'exists (select 1 from public.card_printings p where p.oracle_id = c.oracle_id and p.absent_since is null and p.set_code = %L)',
-      value
-    );
+    conditions := conditions || format(present_printing, format('p.set_code = %L', value));
   end loop;
   if checked ? 'sets_exclude' then
     conditions := conditions || format(
-      'not exists (select 1 from public.card_printings p where p.oracle_id = c.oracle_id and p.absent_since is null and p.set_code = any (%L::text[]))',
-      array(select jsonb_array_elements_text(checked -> 'sets_exclude'))
+      'not ' || present_printing,
+      format('p.set_code = any (%L::text[])', array(select jsonb_array_elements_text(checked -> 'sets_exclude')))
     );
   end if;
   for value in select jsonb_array_elements_text(checked -> 'rarities') loop
-    conditions := conditions || format(
-      'exists (select 1 from public.card_printings p where p.oracle_id = c.oracle_id and p.absent_since is null and p.rarity = %L)',
-      value
-    );
+    conditions := conditions || format(present_printing, format('p.rarity = %L', value));
   end loop;
   if checked ? 'rarities_exclude' then
     conditions := conditions || format(
-      'not exists (select 1 from public.card_printings p where p.oracle_id = c.oracle_id and p.absent_since is null and p.rarity = any (%L::public.card_rarity[]))',
-      array(select jsonb_array_elements_text(checked -> 'rarities_exclude'))
+      'not ' || present_printing,
+      format(
+        'p.rarity = any (%L::public.card_rarity[])',
+        array(select jsonb_array_elements_text(checked -> 'rarities_exclude'))
+      )
     );
   end if;
 
@@ -634,6 +666,8 @@ as $$
   values (search_id, auth.uid(), api, 'app', query, result_count, latency_ms, result_ids);
 $$;
 
+revoke all on function private.record_search(uuid, public.search_api, jsonb, bigint, double precision, uuid[]) from public;
+
 create function public.search_catalog(query jsonb)
 returns jsonb
 language plpgsql
@@ -643,8 +677,9 @@ set search_path = ''
 as $$
 declare
   started_at timestamptz := clock_timestamp();
-  rules record;
-  prices record;
+  telemetry_ids constant integer := 20;
+  rules_freshness record;
+  prices_freshness record;
   checked jsonb;
   query_hash text;
   page_size integer;
@@ -655,19 +690,21 @@ declare
   conditions text[];
   text_key text;
   text_query text;
+  name_match text;
   tier text := '0';
   text_rank text := '0';
   sort_columns text;
   direction text;
   page_keys jsonb;
   total_count bigint;
+  result_ids uuid[];
   page_ids uuid[];
   items jsonb;
   next_cursor text;
 begin
-  select * into rules from public.catalog_freshness() f where f.source = 'catalog';
-  select * into prices from public.catalog_freshness() f where f.source = 'prices';
-  if rules.snapshot_at is null then
+  select * into rules_freshness from public.catalog_freshness() f where f.source = 'catalog';
+  select * into prices_freshness from public.catalog_freshness() f where f.source = 'prices';
+  if rules_freshness.snapshot_at is null then
     perform private.raise_search_error(
       'data_unavailable',
       'No card catalog import has succeeded yet. Try again later.'
@@ -699,6 +736,12 @@ begin
   if checked ? 'text' then
     text_key := private.name_key(checked ->> 'text');
     text_query := plainto_tsquery('english', checked ->> 'text')::text;
+    name_match := format(
+      'case when c.name_key = %1$L or %1$L = any (string_to_array(c.name_key, ''/'')) then 0 '
+      'when c.name_key like %2$L then 1 ',
+      text_key,
+      '%' || text_key || '%'
+    );
     if numnode(text_query::tsquery) > 0 then
       conditions := conditions || format(
         '(c.name_key like %L or c.search_vector @@ %L::tsquery)',
@@ -706,20 +749,14 @@ begin
         text_query
       );
       text_rank := format('-ts_rank(c.search_vector, %L::tsquery)::numeric', text_query);
-      tier := format(
-        'case when c.name_key = %1$L or (c.name like ''%% // %%'' and %1$L = any (private.face_name_keys(c.name))) then 0 '
-        'when c.name_key like %2$L or ts_filter(c.search_vector, ''{a}'') @@ %3$L::tsquery then 1 '
-        'when ts_filter(c.search_vector, ''{c}'') @@ %3$L::tsquery then 3 else 4 end',
-        text_key,
-        '%' || text_key || '%',
+      tier := name_match || format(
+        'when ts_filter(c.search_vector, ''{a}'') @@ %1$L::tsquery then 1 '
+        'when ts_filter(c.search_vector, ''{c}'') @@ %1$L::tsquery then 3 else 4 end',
         text_query
       );
     else
       conditions := conditions || format('c.name_key like %L', '%' || text_key || '%');
-      tier := format(
-        'case when c.name_key = %1$L or (c.name like ''%% // %%'' and %1$L = any (private.face_name_keys(c.name))) then 0 else 1 end',
-        text_key
-      );
+      tier := name_match || 'end';
     end if;
   end if;
 
@@ -753,13 +790,13 @@ begin
           or (m.sort_flag, m.sort_primary, m.sort_secondary, m.name_key, m.oracle_id) %3$s (
             ($1 ->> 0)::boolean, ($1 ->> 1)::numeric, ($1 ->> 2)::numeric, $1 ->> 3, ($1 ->> 4)::uuid
           )
-        order by m.sort_flag %4$s, m.sort_primary %4$s, m.sort_secondary %4$s, m.name_key %4$s, m.oracle_id %4$s
+        order by %4$s
         limit %5$s
       )
       select
         coalesce(jsonb_agg(
           jsonb_build_array(p.sort_flag, p.sort_primary, p.sort_secondary, p.name_key, p.oracle_id)
-          order by p.sort_flag %4$s, p.sort_primary %4$s, p.sort_secondary %4$s, p.name_key %4$s, p.oracle_id %4$s
+          order by %4$s
         ), '[]'::jsonb),
         coalesce(max(p.total_count), 0)
       from page p
@@ -767,18 +804,21 @@ begin
     sort_columns,
     array_to_string(conditions, ' and '),
     case direction when 'asc' then '>' else '<' end,
-    direction,
-    page_size + 1
+    format(
+      'sort_flag %1$s, sort_primary %1$s, sort_secondary %1$s, name_key %1$s, oracle_id %1$s',
+      direction
+    ),
+    case when after_key is null then greatest(page_size, telemetry_ids) else page_size end + 1
   )
   into page_keys, total_count
   using after_key;
 
-  page_ids := array(
+  result_ids := array(
     select (k.key ->> 4)::uuid
     from jsonb_array_elements(page_keys) with ordinality as k(key, ordinality)
     order by k.ordinality
-    limit page_size
   );
+  page_ids := result_ids[1:page_size];
   if jsonb_array_length(page_keys) > page_size then
     next_cursor := private.search_cursor(search_id, query_hash, page_keys -> (page_size - 1));
   end if;
@@ -813,7 +853,7 @@ begin
       checked - 'cursor',
       total_count,
       extract(epoch from clock_timestamp() - started_at) * 1000,
-      page_ids[1:20]
+      result_ids[1:telemetry_ids]
     );
   end if;
 
@@ -821,10 +861,10 @@ begin
     'items', items,
     'next_cursor', next_cursor,
     'search_id', search_id,
-    'rules_data_as_of', rules.snapshot_at,
-    'rules_stale', rules.is_stale,
-    'prices_observed_at', prices.snapshot_at,
-    'prices_stale', prices.is_stale
+    'rules_data_as_of', rules_freshness.snapshot_at,
+    'rules_stale', rules_freshness.is_stale,
+    'prices_observed_at', prices_freshness.snapshot_at,
+    'prices_stale', prices_freshness.is_stale
   );
 end;
 $$;

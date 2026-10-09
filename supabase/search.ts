@@ -1,6 +1,8 @@
+import type { Database } from './database.types';
+
 export type Color = 'W' | 'U' | 'B' | 'R' | 'G';
 
-export type Rarity = 'common' | 'uncommon' | 'rare' | 'mythic' | 'special' | 'bonus';
+export type Rarity = Database['public']['Enums']['card_rarity'];
 
 export type CatalogSort = 'relevance' | 'name' | 'mana_value' | 'edhrec_rank' | 'release_date';
 
