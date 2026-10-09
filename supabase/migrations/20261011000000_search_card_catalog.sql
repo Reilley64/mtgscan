@@ -707,7 +707,7 @@ begin
       );
       text_rank := format('-ts_rank(c.search_vector, %L::tsquery)::numeric', text_query);
       tier := format(
-        'case when c.name_key = %1$L or %1$L = any (private.face_name_keys(c.name)) then 0 '
+        'case when c.name_key = %1$L or (c.name like ''%% // %%'' and %1$L = any (private.face_name_keys(c.name))) then 0 '
         'when c.name_key like %2$L or ts_filter(c.search_vector, ''{a}'') @@ %3$L::tsquery then 1 '
         'when ts_filter(c.search_vector, ''{c}'') @@ %3$L::tsquery then 3 else 4 end',
         text_key,
@@ -717,7 +717,7 @@ begin
     else
       conditions := conditions || format('c.name_key like %L', '%' || text_key || '%');
       tier := format(
-        'case when c.name_key = %1$L or %1$L = any (private.face_name_keys(c.name)) then 0 else 1 end',
+        'case when c.name_key = %1$L or (c.name like ''%% // %%'' and %1$L = any (private.face_name_keys(c.name))) then 0 else 1 end',
         text_key
       );
     end if;
