@@ -153,7 +153,7 @@ components:
 
 ## Overview
 
-mtgscan is a personal iPhone app for one Commander player. It scans Magic cards one at a time, keeps the collection, and turns AI deck suggestions into deck changes that the user controls. The interface is dark and card-first. Real card images carry the color, and the chrome stays quiet around them.
+mtgscan is an iPhone app for Commander players. Anyone can sign up, and each user's data is private to that user. It scans Magic cards one at a time, keeps the collection, and turns AI deck suggestions into deck changes that the user controls. The interface is dark and card-first. Real card images carry the color, and the chrome stays quiet around them.
 
 Three ideas shape every screen:
 

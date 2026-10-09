@@ -1,3 +1,14 @@
 .DS_Store
 .idea/
 node_modules/
+*.tsbuildinfo
+
+.env
+.env.*
+!.env.example
+
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/expo-env.d.ts
