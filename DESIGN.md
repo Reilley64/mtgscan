@@ -15,6 +15,8 @@ colors:
   primary: "#d8ff62"
   on-primary: "#101500"
   grabber: "#4a555b"
+  danger-tint: "#ff7a7029"
+  quantity-badge: "#000000d1"
   warning: "#f4d06f"
   danger: "#ff7a70"
   incoming: "#d8ff62"
@@ -62,6 +64,14 @@ typography:
     fontFamily: SF Pro Text
     fontSize: 11px
     fontWeight: 700
+  sign-in-button:
+    fontFamily: SF Pro Text
+    fontSize: 17px
+    fontWeight: 600
+  google-button:
+    fontFamily: SF Pro Text
+    fontSize: 16px
+    fontWeight: 500
   credit:
     fontFamily: SF Pro Text
     fontSize: 10px
@@ -95,21 +105,31 @@ components:
     rounded: "{rounded.sm}"
     padding: 10px 12px
     height: 38px
-  button-sign-in:
+  button-try-again-sign-in:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.on-primary}"
+    typography: "{typography.sign-in-button}"
     rounded: "{rounded.sm}"
     height: 50px
   button-google:
     backgroundColor: "#131314"
     textColor: "#e3e3e3"
+    typography: "{typography.google-button}"
     rounded: "{rounded.sm}"
     height: 50px
-  brand-mark:
+  button-google-border:
+    backgroundColor: "#8e918f"
+    width: 1px
+  brand-mark-outline:
     backgroundColor: "{colors.primary}"
     rounded: "{rounded.xs}"
-    width: 18px
-    height: 25px
+    width: 2.5px
+  quantity-badge:
+    backgroundColor: "{colors.quantity-badge}"
+    textColor: "{colors.text}"
+    typography: "{typography.tab-label}"
+    rounded: "{rounded.full}"
+    height: 19px
   chip:
     backgroundColor: "{colors.surface-control}"
     textColor: "{colors.text}"
@@ -205,6 +225,7 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 - **Text (#ffffff)** is primary. **Text muted (#b5c0c5)** is for printing details and captions. **Text dim (#7d8a90)** is for unselected tab labels and quiet metadata.
 - **Primary (#d8ff62)**, the lime accent, is the single interaction color: the primary button, the selected chip, the selected tab, section headings, and in-app links. Text on it is **on-primary (#101500)**. The brand mark is the one non-action use of lime.
 - **Grabber (#4a555b)** draws the short bar at the top of a sheet.
+- **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall.
 - **Incoming (#d8ff62)** and **outgoing (#ff8a7a)** mark the plus and minus lines of a deck suggestion, planned swap, or deck change.
 - **Warning (#f4d06f)** marks protected copies and caution states. **Danger (#ff7a70)** marks invalid decks and destructive actions such as remove scan or revert. **Info (#8fd3ff)** marks the estimated bracket and in-deck counts.
 - **Badge (#e0244a)** is only for count badges on tabs and buttons, such as Needs you.
@@ -307,11 +328,12 @@ The interface is flat. Depth comes from tone, not shadow.
 - Buttons and segmented controls use 8 px corners.
 - Content cards and page sheets use 12 px corners. Sheets round only their top corners.
 - Card thumbnails use 4 px corners at a 63:88 card ratio. Full card images keep their own printed shape.
+- Binder wall tiles on the sign-in screen use 8 px corners.
 
 ## Components
 
 - **Buttons.** Primary buttons are lime with dark text: Promote, Swap in, Bought, Add to collection. Secondary buttons use the control surface: Dismiss, Skip, Cancel. Destructive actions use danger text on a dark red surface.
-- **Sign-in buttons.** Sign-in buttons and the sign-in Try again button are 50 px tall to match Apple's sign-in button sizing. This is the one exception to the 38 px button height.
+- **Sign-in buttons.** Sign-in buttons and the sign-in Try again button are 50 px tall to match Apple's sign-in button sizing. This is the one exception to the 38 px button height. Their labels use sign-in button type (17 px, semibold); Continue with Google uses 16 px medium.
 - **Continue with Google.** Google's dark button style: a #131314 fill, a 1 px #8e918f border, #e3e3e3 text, and the four-color Google logo. Google's branding rules set these colors, so they sit outside the palette.
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
 - **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Filter chips switch to the primary lime when selected.
