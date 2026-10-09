@@ -10,6 +10,10 @@ export const colors = {
   textMuted: '#b5c0c5',
   textDim: '#7d8a90',
   primary: '#d8ff62',
+  onPrimary: '#101500',
+  danger: '#ff7a70',
+  dangerTint: 'rgba(255, 122, 112, 0.16)',
+  grabber: '#4a555b',
   cameraOff: '#000000',
 } as const;
 
@@ -21,10 +25,15 @@ export const googleButtonColors = {
 
 export const typography = {
   largeTitle: { fontSize: 28, fontWeight: '800', lineHeight: 31 },
+  signInTitle: { fontSize: 24, fontWeight: '800', lineHeight: 28 },
+  brand: { fontSize: 22, fontWeight: '800' },
+  signInButton: { fontSize: 17, fontWeight: '600' },
+  googleButton: { fontSize: 16, fontWeight: '500' },
   sheetTitle: { fontSize: 17, fontWeight: '800' },
   body: { fontSize: 14, lineHeight: 19 },
   bodyStrong: { fontSize: 14, fontWeight: '700' },
   meta: { fontSize: 12 },
+  credit: { fontSize: 10, fontWeight: '600' },
   tabLabel: { fontSize: 10, fontWeight: '700' },
 } as const satisfies Record<string, TextStyle>;
 
@@ -36,6 +45,7 @@ export const spacing = {
 } as const;
 
 export const rounded = {
+  xs: 4,
   sm: 8,
   md: 12,
   full: 999,
@@ -43,6 +53,7 @@ export const rounded = {
 
 export const sizes = {
   button: 38,
+  signInButton: 50,
   cardPadding: 10,
-  googleLogo: 20,
+  googleLogo: 18,
 } as const;

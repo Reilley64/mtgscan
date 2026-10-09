@@ -50,6 +50,10 @@ export async function swipeDownPageSheet() {
   await fireEvent(sheet, 'dismissed', { nativeEvent: { dismissCount: 1 } });
 }
 
+export function showsSpinner(element: ReturnType<typeof screen.getByRole>) {
+  return element.queryAll((instance) => instance.type === 'ActivityIndicator').length > 0;
+}
+
 export async function openSettings() {
   await fireEvent.press(within(selectedTab()).getByRole('button', { name: 'Settings' }));
   return screen.findByRole('header', { name: 'Settings' });
