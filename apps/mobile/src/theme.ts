@@ -43,4 +43,6 @@ export const rounded = {
 
 export const sizes = {
   button: 38,
+  cardPadding: 10,
+  googleLogo: 20,
 } as const;

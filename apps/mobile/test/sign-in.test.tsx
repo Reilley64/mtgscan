@@ -3,16 +3,11 @@ import { AuthRetryableFetchError } from '@supabase/supabase-js';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { failNextSignIn, startSignedIn } from './fake-supabase';
-import { selectedTab } from './native-ui';
+import { openSettings, selectedTab } from './native-ui';
 import { renderApp } from './render-app';
 
 function continueWithGoogle() {
   return fireEvent.press(screen.getByRole('button', { name: 'Continue with Google' }));
-}
-
-async function openSettings() {
-  await fireEvent.press(within(selectedTab()).getByRole('button', { name: 'Settings' }));
-  return screen.findByRole('header', { name: 'Settings' });
 }
 
 test('with no session, the sign-in screen offers Continue with Google', async () => {
@@ -40,13 +35,16 @@ test('cancelling the Google prompt stays on the sign-in screen with no error', a
   expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeOnTheScreen();
 });
 
-test('a failed sign-in shows a short message, and Try again signs in', async () => {
-  failNextSignIn(new AuthRetryableFetchError('Network request failed', 0));
+test.each([
+  ['the network', () => failNextSignIn(new AuthRetryableFetchError('Network request failed', 0))],
+  ['Google', () => jest.spyOn(GoogleSignin, 'signIn').mockRejectedValueOnce(new Error('Google failed'))],
+])('a sign-in failure from %s shows a short message, and Try again signs in', async (_, fail) => {
+  fail();
   await renderApp();
 
   await continueWithGoogle();
 
-  expect(screen.getByText('Sign-in did not work. Check your connection.')).toBeOnTheScreen();
+  expect(screen.getByText('Sign-in did not work.')).toBeOnTheScreen();
 
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
 

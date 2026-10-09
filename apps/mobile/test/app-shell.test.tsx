@@ -2,16 +2,17 @@ import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { startSignedIn } from './fake-supabase';
 import { renderApp } from './render-app';
-import { pressTab, selectedTab, swipeDownPageSheet, tabBarLabels } from './native-ui';
+import {
+  openSettings,
+  pressTab,
+  selectedTab,
+  swipeDownPageSheet,
+  tabBarLabels,
+} from './native-ui';
 
 beforeEach(() => {
   startSignedIn();
 });
-
-async function openSettings() {
-  await fireEvent.press(within(selectedTab()).getByRole('button', { name: 'Settings' }));
-  return screen.findByRole('header', { name: 'Settings' });
-}
 
 test('the app opens on Recent with its empty state', async () => {
   await renderApp();

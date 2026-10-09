@@ -1,3 +1,4 @@
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import type { Session } from '@supabase/supabase-js';
 import { createContext, use, useEffect, useState, type ReactNode } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
@@ -39,4 +40,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
 export function useSession() {
   return use(SessionContext);
+}
+
+export async function signOut() {
+  await supabase.auth.signOut({ scope: 'local' });
+  await GoogleSignin.signOut();
 }

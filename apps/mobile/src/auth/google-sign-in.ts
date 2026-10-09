@@ -24,8 +24,3 @@ export async function signInWithGoogle(): Promise<SignInOutcome> {
   }
   return 'signed-in';
 }
-
-export async function signOut() {
-  await supabase.auth.signOut({ scope: 'local' });
-  await GoogleSignin.signOut();
-}

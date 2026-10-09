@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { signInWithGoogle } from '@/auth/google-sign-in';
+import { SecondaryButton } from '@/components/secondary-button';
 import { colors, googleButtonColors, rounded, sizes, spacing, typography } from '@/theme';
 
 type SignInStatus = 'ready' | 'signing-in' | 'failed';
@@ -32,28 +33,22 @@ export default function SignInScreen() {
           Scan your cards, keep your collection, and build Commander decks.
         </Text>
       </View>
-      <View style={styles.actions}>
-        {status === 'failed' && (
-          <View style={styles.failure}>
-            <Text style={styles.message}>Sign-in did not work. Check your connection.</Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={continueWithGoogle}
-              style={[styles.button, styles.secondaryButton]}>
-              <Text style={styles.secondaryButtonLabel}>Try again</Text>
-            </Pressable>
-          </View>
-        )}
+      {status === 'failed' ? (
+        <View style={styles.actions}>
+          <Text style={styles.message}>Sign-in did not work.</Text>
+          <SecondaryButton label="Try again" onPress={continueWithGoogle} />
+        </View>
+      ) : (
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ busy: status === 'signing-in' }}
           disabled={status === 'signing-in'}
           onPress={continueWithGoogle}
-          style={[styles.button, styles.googleButton]}>
+          style={styles.googleButton}>
           <Image source={require('../../assets/google-logo.png')} style={styles.googleLogo} />
           <Text style={styles.googleButtonLabel}>Continue with Google</Text>
         </Pressable>
-      </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -62,8 +57,7 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
+    padding: spacing.lg,
     backgroundColor: colors.background,
   },
   intro: {
@@ -79,34 +73,22 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   actions: {
-    gap: spacing.lg,
-  },
-  failure: {
     gap: spacing.sm,
   },
-  button: {
+  googleButton: {
     height: sizes.button,
     borderRadius: rounded.sm,
+    borderWidth: 1,
+    borderColor: googleButtonColors.border,
+    backgroundColor: googleButtonColors.background,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  secondaryButton: {
-    backgroundColor: colors.surfaceControl,
-  },
-  secondaryButtonLabel: {
-    ...typography.bodyStrong,
-    color: colors.text,
-  },
-  googleButton: {
-    backgroundColor: googleButtonColors.background,
-    borderColor: googleButtonColors.border,
-    borderWidth: 1,
-  },
   googleLogo: {
-    width: 20,
-    height: 20,
+    width: sizes.googleLogo,
+    height: sizes.googleLogo,
   },
   googleButtonLabel: {
     ...typography.bodyStrong,

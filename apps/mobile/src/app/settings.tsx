@@ -1,18 +1,17 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { signOut } from '@/auth/google-sign-in';
-import { useSession } from '@/auth/session';
+import { signOut, useSession } from '@/auth/session';
+import { SecondaryButton } from '@/components/secondary-button';
 import { colors, rounded, sizes, spacing, typography } from '@/theme';
 
 const providerNames: Record<string, string> = {
-  apple: 'Apple',
   google: 'Google',
 };
 
 export default function SettingsSheet() {
   const user = useSession()?.user;
-  const provider = user?.app_metadata.provider;
+  const provider = user?.app_metadata.provider ?? '';
 
   return (
     <View style={styles.sheet}>
@@ -31,13 +30,11 @@ export default function SettingsSheet() {
       <View style={styles.content}>
         <View style={styles.account}>
           <Text style={styles.accountProvider}>
-            Signed in with {provider ? (providerNames[provider] ?? provider) : 'an unknown provider'}
+            Signed in with {providerNames[provider] ?? provider}
           </Text>
           {user?.email && <Text style={styles.accountEmail}>{user.email}</Text>}
         </View>
-        <Pressable accessibilityRole="button" onPress={signOut} style={styles.signOut}>
-          <Text style={styles.signOutLabel}>Sign out</Text>
-        </Pressable>
+        <SecondaryButton label="Sign out" onPress={signOut} />
       </View>
     </View>
   );
@@ -72,7 +69,7 @@ const styles = StyleSheet.create({
   },
   account: {
     gap: spacing.xs,
-    padding: spacing.md,
+    padding: sizes.cardPadding,
     borderRadius: rounded.md,
     backgroundColor: colors.surface,
   },
@@ -83,16 +80,5 @@ const styles = StyleSheet.create({
   accountEmail: {
     ...typography.meta,
     color: colors.textMuted,
-  },
-  signOut: {
-    height: sizes.button,
-    borderRadius: rounded.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceControl,
-  },
-  signOutLabel: {
-    ...typography.bodyStrong,
-    color: colors.text,
   },
 });

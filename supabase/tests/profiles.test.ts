@@ -1,25 +1,25 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
 
-import { anonymousClient, signUpNewUser, type AppClient } from './local-stack';
+import { anonymousClient, signUpNewUser, type TestUser } from './local-stack';
 
 const permissionDenied = '42501';
 
-let alice: { client: AppClient; userId: string };
-let bob: { client: AppClient; userId: string };
+let alice: TestUser;
+let bob: TestUser;
 
 beforeAll(async () => {
   alice = await signUpNewUser();
   bob = await signUpNewUser();
 });
 
-test('signing up creates the user\'s profile', async () => {
+test("signing up creates the user's profile", async () => {
   const { data, error } = await alice.client.from('profiles').select('user_id');
 
   expect(error).toBeNull();
   expect(data).toEqual([{ user_id: alice.userId }]);
 });
 
-test('a user never reads another user\'s profile', async () => {
+test("a user never reads another user's profile", async () => {
   const { data, error } = await bob.client
     .from('profiles')
     .select('user_id')

@@ -1,4 +1,4 @@
-import { fireEvent, screen } from 'expo-router/testing-library';
+import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 function hostViews(type: string) {
   return screen.container.queryAll((instance) => instance.type === type);
@@ -48,4 +48,9 @@ export async function swipeDownPageSheet() {
     throw new Error('No page sheet is open');
   }
   await fireEvent(sheet, 'dismissed', { nativeEvent: { dismissCount: 1 } });
+}
+
+export async function openSettings() {
+  await fireEvent.press(within(selectedTab()).getByRole('button', { name: 'Settings' }));
+  return screen.findByRole('header', { name: 'Settings' });
 }

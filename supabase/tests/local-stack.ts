@@ -8,13 +8,18 @@ const publishableKey =
 
 export type AppClient = SupabaseClient<Database>;
 
+export type TestUser = {
+  client: AppClient;
+  userId: string;
+};
+
 export function anonymousClient(): AppClient {
   return createClient<Database>(url, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
 
-export async function signUpNewUser() {
+export async function signUpNewUser(): Promise<TestUser> {
   const client = anonymousClient();
   const { data, error } = await client.auth.signUp({
     email: `${crypto.randomUUID()}@example.test`,

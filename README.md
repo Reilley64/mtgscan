@@ -32,6 +32,6 @@ Every table that holds a user's data follows one pattern:
 
 - Row-level security is on, and the read policy returns only the signed-in user's rows.
 - Direct inserts, updates, and deletes are revoked for the `anon` and `authenticated` roles.
-- Changes go only through database functions, one transaction each, that check the caller's identity.
+- Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 
 Signing up creates the user's profile through a trigger on `auth.users`.
