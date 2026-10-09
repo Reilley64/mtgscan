@@ -25,3 +25,24 @@ jobs:
         run: bun run lint
       - name: Component tests
         run: bun run test
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ci-web-client-id,ci-ios-client-id
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ci-local-placeholder
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: 2.120.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Start local Supabase
+        run: supabase start --exclude realtime,storage-api,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor
+      - name: Generated types match the migrations
+        run: bun run types:database:check
+      - name: Database tests
+        run: bun run test:database

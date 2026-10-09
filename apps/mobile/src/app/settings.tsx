@@ -1,9 +1,18 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing, typography } from '@/theme';
+import { signOut, useSession } from '@/auth/session';
+import { SecondaryButton } from '@/components/secondary-button';
+import { colors, rounded, sizes, spacing, typography } from '@/theme';
+
+const providerNames: Record<string, string> = {
+  google: 'Google',
+};
 
 export default function SettingsSheet() {
+  const user = useSession()?.user;
+  const provider = user?.app_metadata.provider ?? '';
+
   return (
     <View style={styles.sheet}>
       <View style={styles.header}>
@@ -17,6 +26,15 @@ export default function SettingsSheet() {
           style={styles.done}>
           <Text style={styles.doneLabel}>Done</Text>
         </Pressable>
+      </View>
+      <View style={styles.content}>
+        <View style={styles.account}>
+          <Text style={styles.accountProvider}>
+            Signed in with {providerNames[provider] ?? provider}
+          </Text>
+          {user?.email && <Text style={styles.accountEmail}>{user.email}</Text>}
+        </View>
+        <SecondaryButton label="Sign out" onPress={signOut} />
       </View>
     </View>
   );
@@ -44,5 +62,23 @@ const styles = StyleSheet.create({
   doneLabel: {
     ...typography.bodyStrong,
     color: colors.primary,
+  },
+  content: {
+    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  account: {
+    gap: spacing.xs,
+    padding: sizes.cardPadding,
+    borderRadius: rounded.md,
+    backgroundColor: colors.surface,
+  },
+  accountProvider: {
+    ...typography.bodyStrong,
+    color: colors.text,
+  },
+  accountEmail: {
+    ...typography.meta,
+    color: colors.textMuted,
   },
 });

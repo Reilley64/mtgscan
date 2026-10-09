@@ -11,11 +11,16 @@
     "test": "jest"
   },
   "dependencies": {
+    "@mtgscan/supabase": "workspace:*",
+    "@react-native-google-signin/google-signin": "^16.1.5",
+    "@supabase/supabase-js": "^2.117.3",
     "expo": "~56.0.23",
     "expo-constants": "~56.0.27",
     "expo-dev-client": "~56.0.27",
+    "expo-image": "~56.0.13",
     "expo-linking": "~56.0.18",
     "expo-router": "~56.2.21",
+    "expo-secure-store": "~56.0.4",
     "expo-status-bar": "~56.0.4",
     "expo-symbols": "~56.0.7",
     "expo-system-ui": "~56.0.5",
@@ -38,6 +43,12 @@
     "typescript": "~6.0.3"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "setupFiles": [
+      "<rootDir>/../../node_modules/@react-native-google-signin/google-signin/jest/build/jest/setup.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.ts"
+    ]
   }
 }

@@ -1,16 +1,21 @@
-import { fireEvent, renderRouter, screen, within } from 'expo-router/testing-library';
+import { fireEvent, screen, within } from 'expo-router/testing-library';
 
-import { pressTab, selectedTab, swipeDownPageSheet, tabBarLabels } from './native-ui';
+import { startSignedIn } from './fake-supabase';
+import { renderApp } from './render-app';
+import {
+  openSettings,
+  pressTab,
+  selectedTab,
+  swipeDownPageSheet,
+  tabBarLabels,
+} from './native-ui';
 
-const appDirectory = 'src/app';
-
-async function openSettings() {
-  await fireEvent.press(within(selectedTab()).getByRole('button', { name: 'Settings' }));
-  return screen.findByRole('header', { name: 'Settings' });
-}
+beforeEach(() => {
+  startSignedIn();
+});
 
 test('the app opens on Recent with its empty state', async () => {
-  await renderRouter(appDirectory);
+  await renderApp();
 
   const recent = within(selectedTab());
   expect(recent.getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
@@ -18,13 +23,13 @@ test('the app opens on Recent with its empty state', async () => {
 });
 
 test('the tab bar shows Recent, Collection, Decks, and Scan in that order', async () => {
-  await renderRouter(appDirectory);
+  await renderApp();
 
   expect(tabBarLabels()).toEqual(['Recent', 'Collection', 'Decks', 'Scan']);
 });
 
 test('Collection says the collection is empty and that scanning adds cards', async () => {
-  await renderRouter(appDirectory);
+  await renderApp();
 
   await pressTab('Collection');
 
@@ -35,7 +40,7 @@ test('Collection says the collection is empty and that scanning adds cards', asy
 });
 
 test("Decks says there are no decks yet and that a deck starts from a commander's card page", async () => {
-  await renderRouter(appDirectory);
+  await renderApp();
 
   await pressTab('Decks');
 
@@ -46,7 +51,7 @@ test("Decks says there are no decks yet and that a deck starts from a commander'
 });
 
 test('Scan is a black screen with no settings button', async () => {
-  await renderRouter(appDirectory);
+  await renderApp();
 
   await pressTab('Scan');
 
@@ -58,7 +63,7 @@ test('Scan is a black screen with no settings button', async () => {
 test.each(['Recent', 'Collection', 'Decks'])(
   'the settings button on %s opens the settings sheet',
   async (tab) => {
-    await renderRouter(appDirectory);
+    await renderApp();
     await pressTab(tab);
 
     expect(await openSettings()).toBeOnTheScreen();
@@ -66,7 +71,7 @@ test.each(['Recent', 'Collection', 'Decks'])(
 );
 
 test('Done closes the settings sheet', async () => {
-  await renderRouter(appDirectory);
+  await renderApp();
   await openSettings();
 
   await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
@@ -76,7 +81,7 @@ test('Done closes the settings sheet', async () => {
 });
 
 test('a downward swipe closes the settings sheet', async () => {
-  await renderRouter(appDirectory);
+  await renderApp();
   await openSettings();
 
   await swipeDownPageSheet();
