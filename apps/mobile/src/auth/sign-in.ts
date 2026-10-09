@@ -13,16 +13,15 @@ function isSignInProvider(provider: string): provider is SignInProvider {
   return Object.hasOwn(signInProviderNames, provider);
 }
 
-function lastSignInTime(signedInAt: string | undefined) {
-  return signedInAt ? Date.parse(signedInAt) : 0;
-}
+const signInProvidersByIssuer = new Map<string, SignInProvider>([
+  ['https://appleid.apple.com', 'apple'],
+  ['https://accounts.google.com', 'google'],
+  ['accounts.google.com', 'google'],
+]);
 
-function currentSignInProvider(user: User) {
-  const [latest] = [...(user.identities ?? [])].sort(
-    (first, second) =>
-      lastSignInTime(second.last_sign_in_at) - lastSignInTime(first.last_sign_in_at),
-  );
-  return latest?.provider ?? user.app_metadata.provider ?? '';
+function currentSignInProvider(user: User): string {
+  const issuer = user.user_metadata.iss;
+  return signInProvidersByIssuer.get(issuer) ?? user.app_metadata.provider ?? '';
 }
 
 export function currentSignInProviderName(user: User) {

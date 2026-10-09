@@ -4,7 +4,6 @@ import {
   type AuthError,
   type Session,
   type User,
-  type UserIdentity,
 } from '@supabase/supabase-js';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 
@@ -23,42 +22,31 @@ const defaultEmail = 'player@example.com';
 let session: Session | null = null;
 let nextSignInEmail = defaultEmail;
 let nextSignInError: AuthError | null = null;
-let signInCount = 0;
 const listeners = new Set<AuthListener>();
 const users = new Map<string, User>();
 
-function identityFor(user: User, provider: SignInProvider, signedInAt: string): UserIdentity {
-  return {
-    id: `${provider}-${user.email}`,
-    identity_id: `${provider}-identity-${user.email}`,
-    user_id: user.id,
-    provider,
-    identity_data: { email: user.email },
-    created_at: signedInAt,
-    last_sign_in_at: signedInAt,
-    updated_at: signedInAt,
-  };
-}
+const issuers: Record<SignInProvider, string> = {
+  apple: 'https://appleid.apple.com',
+  google: 'https://accounts.google.com',
+};
 
 function userSignedIn({ provider, email }: FakeAccount): User {
-  const signedInAt = new Date(++signInCount * 1000).toISOString();
   const user = users.get(email) ?? {
     id: `user-${email}`,
     aud: 'authenticated',
     email,
     app_metadata: { provider, providers: [] },
     user_metadata: {},
-    identities: [],
-    created_at: signedInAt,
+    created_at: new Date(0).toISOString(),
   };
-  const otherIdentities = (user.identities ?? []).filter(
-    (identity) => identity.provider !== provider,
-  );
-  const identities = [...otherIdentities, identityFor(user, provider, signedInAt)];
+  const providers: string[] = user.app_metadata.providers ?? [];
   const signedInUser: User = {
     ...user,
-    app_metadata: { ...user.app_metadata, providers: identities.map(({ provider }) => provider) },
-    identities,
+    app_metadata: {
+      ...user.app_metadata,
+      providers: providers.includes(provider) ? providers : [...providers, provider],
+    },
+    user_metadata: { ...user.user_metadata, iss: issuers[provider], email },
   };
   users.set(email, signedInUser);
   return signedInUser;
@@ -144,7 +132,6 @@ export function resetFakeSupabase() {
   session = null;
   nextSignInEmail = defaultEmail;
   nextSignInError = null;
-  signInCount = 0;
   listeners.clear();
   users.clear();
 }
