@@ -81,6 +81,13 @@ components:
     rounded: "{rounded.sm}"
     padding: 10px 12px
     height: 38px
+  button-google:
+    backgroundColor: "#131314"
+    textColor: "#e3e3e3"
+    typography: "{typography.body-strong}"
+    rounded: "{rounded.sm}"
+    padding: 10px 12px
+    height: 38px
   chip:
     backgroundColor: "{colors.surface-control}"
     textColor: "{colors.text}"
@@ -211,6 +218,10 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
 
+### Sign-in screen
+
+The app shows the sign-in screen whenever there is no session. The app name and one line about the app sit at the top. **Continue with Google** sits at the bottom. Cancelling the Google prompt returns to the screen with no message. A failure replaces the button with "Sign-in did not work." and **Try again**.
+
 ### Pushed screens
 
 Pushed screens cover the whole screen, including the app tab bar. There are **no on-screen back buttons**. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge.
@@ -240,7 +251,8 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 - the swap-in confirmation for a protected copy;
 - revert;
 - the scan details sheet;
-- batch review.
+- batch review;
+- settings, which shows the signed-in account (provider and email) in a card and **Sign out** below it.
 
 ## Elevation & Depth
 
@@ -261,6 +273,7 @@ The interface is flat. Depth comes from tone, not shadow.
 ## Components
 
 - **Buttons.** Primary buttons are lime with dark text: Promote, Swap in, Bought, Add to collection. Secondary buttons use the control surface: Dismiss, Skip, Cancel. Destructive actions use danger text on a dark red surface.
+- **Continue with Google.** Google's dark button style: a #131314 fill, a 1 px #8e918f border, #e3e3e3 text, and the four-color Google logo. Google's branding rules set these colors, so they sit outside the palette.
 - **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Filter chips switch to the primary lime when selected.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, the batch button, and the card page Decks tab.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
