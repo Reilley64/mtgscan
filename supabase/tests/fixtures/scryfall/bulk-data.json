@@ -11,7 +11,7 @@
       "name": "Oracle Cards",
       "description": "A JSON file containing one Scryfall card object for each Oracle ID on Scryfall. The chosen sets for the cards are an attempt to return the most up-to-date recognizable version of the card.",
       "jsonl_download_uri": "oracle-cards.jsonl.gz",
-      "compressed_size": 112456
+      "compressed_size": 117195
     },
     {
       "object": "bulk_data",
@@ -22,7 +22,7 @@
       "name": "Default Cards",
       "description": "A JSON file containing every card object on Scryfall in English or the printed language if the card is only available in one language.",
       "jsonl_download_uri": "default-cards.jsonl.gz",
-      "compressed_size": 225398
+      "compressed_size": 230157
     },
     {
       "object": "bulk_data",
