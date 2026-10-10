@@ -4,11 +4,11 @@ import type { CatalogQuery } from '../search';
 
 export const searchClasses = [1, 2, 3, 4, 5] as const;
 
-type SearchClass = (typeof searchClasses)[number];
+export type SearchClass = (typeof searchClasses)[number];
 
 type Grade = 0 | 1 | 2;
 
-type CorpusSearch = {
+export type CorpusSearch = {
   id: string;
   class: SearchClass;
   intent: string;
