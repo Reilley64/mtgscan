@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
+import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { Json } from '../database.types';
 import {
@@ -13,11 +13,14 @@ import {
   catalogFixture,
   catalogFixtureManifest,
   catalogFixtureSnapshotAt,
+  oracleIdOf,
+  oracleTagOf,
   resetCardCatalog,
   runCatalogImport,
+  runOracleTagImport,
   runPriceImport,
 } from './catalog-import-command';
-import { anonymousClient, signUpNewUser, type TestUser } from './local-stack';
+import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
 
@@ -159,6 +162,7 @@ describe('after a catalog import', () => {
           printing_count: 3,
           price_from: null,
           owned: { quantity: 0, free_quantity: 0, protected_free_quantity: 0 },
+          tags: [],
         },
       ]);
       expect(not_found).toEqual([]);
@@ -483,6 +487,78 @@ describe('after a price import', () => {
     ]);
     expect(prices_observed_at).not.toBeNull();
     expect(prices_stale).toBe(false);
+  });
+});
+
+describe('after an Oracle tag import', () => {
+  const importKeyClient = secretKeyClient();
+  let strongholdRats: string;
+
+  beforeAll(async () => {
+    expect((await runOracleTagImport(catalogFixtureManifest)).exitCode).toBe(0);
+    strongholdRats = await oracleIdOf('Stronghold Rats');
+  });
+
+  afterEach(async () => {
+    const { error } = await importKeyClient.from('disabled_tags').delete().not('tag_id', 'is', null);
+    expect(error).toBeNull();
+  });
+
+  async function tagsOf(oracleId: string) {
+    const [card] = (await cards({ oracle_ids: [oracleId] })).items;
+    return card!.tags;
+  }
+
+  async function disable(slug: string) {
+    const { error } = await importKeyClient.rpc('disable_oracle_tag', { tag_id: (await oracleTagOf(slug)).id });
+    expect(error).toBeNull();
+  }
+
+  test('card details list the direct Oracle tags of a card with slug and label, sorted by label', async () => {
+    expect(await tagsOf(strongholdRats)).toEqual([
+      { slug: 'discard-with-set-s-mechanic', label: "discard with set's mechanic" },
+      { slug: 'discard-symmetrical', label: 'discard-symmetrical' },
+      { slug: 'evasion', label: 'evasion' },
+      { slug: 'restricted-blocker', label: 'restricted blocker' },
+      { slug: 'specter-ability', label: 'specter ability' },
+      { slug: 'triggered-ability', label: 'triggered ability' },
+    ]);
+  });
+
+  test('card details leave out the ancestor tags of a direct Oracle tag', async () => {
+    const slugs = (await tagsOf(await oracleIdOf('Lightning Bolt'))).map((tag) => tag.slug);
+
+    expect(slugs).toEqual(['burn-any', 'cycle-lea-boon', 'meme', 'single-target-instant-sorcery', 'spot-removal']);
+  });
+
+  test('card details leave out a disabled Oracle tag', async () => {
+    await disable('evasion');
+
+    expect((await tagsOf(strongholdRats)).map((tag) => tag.slug)).toEqual([
+      'discard-with-set-s-mechanic',
+      'discard-symmetrical',
+      'restricted-blocker',
+      'specter-ability',
+      'triggered-ability',
+    ]);
+  });
+
+  test('card details keep a direct Oracle tag whose parent tag is disabled', async () => {
+    await disable('hand-disruption');
+
+    expect((await tagsOf(strongholdRats)).map((tag) => tag.slug)).toContain('specter-ability');
+  });
+
+  test('a card with no Oracle tags has an empty tag list', async () => {
+    expect(await tagsOf(await oracleIdOf('Scoria Cat'))).toEqual([]);
+  });
+
+  test('card details read by printing ID carry the same Oracle tags', async () => {
+    const [byOracleId] = (await cards({ oracle_ids: [delverOfSecrets] })).items;
+    const [byPrintingId] = (await cards({ printing_ids: [delverInnistrad] })).items;
+
+    expect(byPrintingId!.tags).toEqual(byOracleId!.tags);
+    expect(byOracleId!.tags).toHaveLength(8);
   });
 });
 
