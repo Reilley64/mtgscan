@@ -63,9 +63,9 @@ describe('after one catalog import', () => {
   });
 
   test('every paper card, card face, and card printing is in the card catalog', async () => {
-    expect(await rowCount(alice.client, 'cards')).toBe(170);
-    expect(await rowCount(alice.client, 'card_faces')).toBe(177);
-    expect(await rowCount(alice.client, 'card_printings')).toBe(345);
+    expect(await rowCount(alice.client, 'cards')).toBe(176);
+    expect(await rowCount(alice.client, 'card_faces')).toBe(186);
+    expect(await rowCount(alice.client, 'card_printings')).toBe(351);
   });
 
   test('tokens, art series cards, and digital-only cards are left out', async () => {
@@ -239,8 +239,8 @@ describe('catalog import runs', () => {
     expect(run.status).toBe('failed');
     expect(run.failure_reason).toContain(reason);
     sameTime((await catalogFreshness()).snapshot_at, catalogFixtureSnapshotAt);
-    expect(await rowCount(alice.client, 'cards')).toBe(170);
-    expect(await rowCount(alice.client, 'card_printings')).toBe(345);
+    expect(await rowCount(alice.client, 'cards')).toBe(176);
+    expect(await rowCount(alice.client, 'card_printings')).toBe(351);
     expect((await card('Fog')).absent_since).toBeNull();
   });
 
@@ -269,7 +269,7 @@ describe('catalog import runs', () => {
 
     expect(result.output).toContain('Skipped');
     expect((await latestRun('catalog')).status).toBe('skipped');
-    expect(await rowCount(alice.client, 'cards')).toBe(170);
+    expect(await rowCount(alice.client, 'cards')).toBe(176);
     expect((await catalogFreshness()).succeeded_at).toBe(before.succeeded_at);
   });
 
@@ -306,7 +306,7 @@ describe('catalog import runs', () => {
 
     const { data } = await importKeyClient.from('import_runs').select('status').eq('id', staleRun!.id).single();
     expect(data!.status).toBe('expired');
-    expect(await rowCount(alice.client, 'cards')).toBe(170);
+    expect(await rowCount(alice.client, 'cards')).toBe(176);
   });
 
   test("an import run leaves the user's profile unchanged", async () => {

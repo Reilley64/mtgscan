@@ -93,9 +93,25 @@ describe('after a catalog import', () => {
       expect((await names({ text: 'fog' })).slice(0, 2)).toEqual(['Fog', 'Fog Bank']);
     });
 
-    test('an exact face name comes first', async () => {
+    test('an exact face name comes before partial names', async () => {
       expect((await names({ text: 'stomp' }))[0]).toBe('Bonecrusher Giant // Stomp');
       expect((await names({ text: 'Fire' }))[0]).toBe('Fire // Ice');
+      expect((await names({ text: 'warrant' })).slice(0, 2)).toEqual(['Warrant // Warden', 'Search Warrant']);
+    });
+
+    test('an exact full card name comes before another card with a face of that name', async () => {
+      expect((await names({ text: 'swords to plowshares' })).slice(0, 2)).toEqual([
+        'Swords to Plowshares',
+        'Emeritus of Truce // Swords to Plowshares',
+      ]);
+    });
+
+    test('a double-faced card comes first for its own face name', async () => {
+      expect((await names({ text: 'delver of secrets' }))[0]).toBe('Delver of Secrets // Insectile Aberration');
+      expect((await names({ text: 'the core' })).slice(0, 2)).toEqual([
+        'Matzalantli, the Great Door // The Core',
+        'Firdoch Core',
+      ]);
     });
 
     test('a partial name finds every card whose name contains it', async () => {
@@ -203,13 +219,22 @@ describe('after a catalog import', () => {
           'Ayesha Tanaka, Armorer',
           'Inspirit, Flagship Vessel',
           'Lavinia, Foil to Conspiracy',
+          'Search Warrant',
           'Shorikai, Genesis Engine',
+          'Warrant // Warden',
         ],
       ],
       [
         'negated color',
         { colors: ['W', 'U'], colors_exclude: ['B'] },
-        ['Ayesha Tanaka, Armorer', 'Inspirit, Flagship Vessel', 'Lavinia, Foil to Conspiracy', 'Shorikai, Genesis Engine'],
+        [
+          'Ayesha Tanaka, Armorer',
+          'Inspirit, Flagship Vessel',
+          'Lavinia, Foil to Conspiracy',
+          'Search Warrant',
+          'Shorikai, Genesis Engine',
+          'Warrant // Warden',
+        ],
       ],
       [
         'colorless',
@@ -248,6 +273,7 @@ describe('after a catalog import', () => {
           'Supplant Form',
           'Teferi, Temporal Archmage',
           'The Eternity Elevator',
+          'Warrant // Warden',
           'Waterspout Elemental',
         ],
       ],
@@ -343,6 +369,7 @@ describe('after a catalog import', () => {
           'Chandra, the Firebrand',
           'Dungeon Delver',
           'Grist, the Hunger Tide',
+          'Matzalantli, the Great Door // The Core',
           'Sarkhan Vol',
           "Serra's Sanctum",
           'The Eternity Elevator',
@@ -425,12 +452,12 @@ describe('after a catalog import', () => {
   });
 
   describe('paging', () => {
-    const creatures = ["Adventurous Eater // Have a Bite", "Akki Lavarunner // Tok-Tok, Volcano Born", "Angelic Curator", "Atraxa, Praetors' Voice", "Ayesha Tanaka, Armorer", "Azra Oddsmaker", "Bladegraft Aspirant", "Bloomvine Regent // Claim Territory", "Bonecrusher Giant // Stomp", "Boreal Elemental", "Brambleguard Captain", "Brisela, Voice of Nightmares", "Bruna, the Fading Light", "Caldera Kavu", "Caustic Caterpillar", "Chaos Harlequin", "Chronomaton", "Conduit of Ruin", "Copper Host Crusher", "Cruel Sadist", "Dakmor Lancer", "Dauthi Ghoul", "Deathcap Marionette", "Delver of Secrets // Insectile Aberration", "Dissatisfied Customer", "Drill-Skimmer", "Dryad Arbor", "Estwald Shieldbasher", "Favored of Iroas", "Field Marshal", "Fire Nation Salvagers", "Fog Bank", "Ghostflame Sliver", "Ghost Warden", "Gisela, the Broken Blade", "Glimmerbell", "Gloomwidow", "Goblin Instigator", "Hancock, Ghoulish Mayor", "Heirloom Auntie", "Hidetsugu and Kairi", "Hobblefiend", "Hollowhead Sliver", "Jinnie Fay, Jetmir's Second", "Kenrith, the Returned King", "Kiki-Jiki, Mirror Breaker", "Kjeldoran Home Guard", "Krenko, Mob Boss", "Lavinia, Foil to Conspiracy", "Leonin Lightscribe", "Lesser Werewolf", "Lifecreed Duo", "Llanowar Elves", "Lurking Chupacabra", "Matopi Golem", "Mesmeric Sliver", "Mischievous Mystic", "Mister Gutsy", "Nessian Boar", "Opal-Eye, Konda's Yojimbo", "Orcish Siegemaster", "Ormos, Archive Keeper", "Pale Wayfarer", "Peri Brown", "Phantasmal Mount", "Primaris Chaplain", "Rampant Elephant", "Ramses Overdark", "Ravenous Necrotitan", "Red Hulk", "Red Tiger Mechan", "Robobrain War Mind", "Roil Cartographer", "Sabertooth Nishoba", "Satoru, the Infiltrator", "Schema Thief", "Scoria Cat", "Scurrilous Sentry", "Searchlight Companion", "Selfless Police Captain", "Shackle Slinger", "Specter of Mortality", "Spike Breeder", "Spined Tyrranax", "Stormchaser Chimera", "Stronghold Rats", "Suspicious Shambler", "Tarmogoyf", "Thassa's Oracle", "Thundering Mightmare", "Thundering Wurm", "Urban Daggertooth", "Verdant Eidolon", "Vizier of Tumbling Sands", "Wall of Forgotten Pharaohs", "Waterspout Elemental", "Witch-king, Sky Scourge", "Zephyrim"];
+    const creatures = ["Adventurous Eater // Have a Bite", "Akki Lavarunner // Tok-Tok, Volcano Born", "Angelic Curator", "Atraxa, Praetors' Voice", "Ayesha Tanaka, Armorer", "Azra Oddsmaker", "Bladegraft Aspirant", "Bloomvine Regent // Claim Territory", "Bonecrusher Giant // Stomp", "Boreal Elemental", "Brambleguard Captain", "Brisela, Voice of Nightmares", "Bruna, the Fading Light", "Caldera Kavu", "Caustic Caterpillar", "Chaos Harlequin", "Chronomaton", "Conduit of Ruin", "Copper Host Crusher", "Cruel Sadist", "Dakmor Lancer", "Dauthi Ghoul", "Deathcap Marionette", "Delver of Secrets // Insectile Aberration", "Dissatisfied Customer", "Drill-Skimmer", "Dryad Arbor", "Emeritus of Truce // Swords to Plowshares", "Estwald Shieldbasher", "Favored of Iroas", "Field Marshal", "Fire Nation Salvagers", "Fog Bank", "Ghostflame Sliver", "Ghost Warden", "Gisela, the Broken Blade", "Glimmerbell", "Gloomwidow", "Goblin Instigator", "Hancock, Ghoulish Mayor", "Heirloom Auntie", "Hidetsugu and Kairi", "Hobblefiend", "Hollowhead Sliver", "Jinnie Fay, Jetmir's Second", "Kenrith, the Returned King", "Kiki-Jiki, Mirror Breaker", "Kjeldoran Home Guard", "Krenko, Mob Boss", "Lavinia, Foil to Conspiracy", "Leonin Lightscribe", "Lesser Werewolf", "Lifecreed Duo", "Llanowar Elves", "Lurking Chupacabra", "Matopi Golem", "Mesmeric Sliver", "Mischievous Mystic", "Mister Gutsy", "Nessian Boar", "Opal-Eye, Konda's Yojimbo", "Orcish Siegemaster", "Ormos, Archive Keeper", "Pale Wayfarer", "Peri Brown", "Phantasmal Mount", "Primaris Chaplain", "Rampant Elephant", "Ramses Overdark", "Ravenous Necrotitan", "Red Hulk", "Red Tiger Mechan", "Robobrain War Mind", "Roil Cartographer", "Sabertooth Nishoba", "Satoru, the Infiltrator", "Schema Thief", "Scoria Cat", "Scurrilous Sentry", "Searchlight Companion", "Selfless Police Captain", "Shackle Slinger", "Specter of Mortality", "Spike Breeder", "Spined Tyrranax", "Stormchaser Chimera", "Stronghold Rats", "Suspicious Shambler", "Tarmogoyf", "Thassa's Oracle", "Thundering Mightmare", "Thundering Wurm", "Urban Daggertooth", "Verdant Eidolon", "Vizier of Tumbling Sands", "Wall of Forgotten Pharaohs", "Waterspout Elemental", "Witch-king, Sky Scourge", "Zephyrim"];
 
     test.each([undefined, 50])('pages of %p cover every row once, in order', async (limit) => {
       const pages = await allPages({ types: ['creature'], limit });
 
-      expect(pages.map((next) => next.items.length)).toEqual(limit === 50 ? [50, 48] : [20, 20, 20, 20, 18]);
+      expect(pages.map((next) => next.items.length)).toEqual(limit === 50 ? [50, 49] : [20, 20, 20, 20, 19]);
       expect(pages.flatMap((next) => next.items.map((row) => row.name))).toEqual(creatures);
       expect(new Set(pages.map((next) => next.search_id)).size).toBe(1);
     });
@@ -551,7 +578,7 @@ describe('after a catalog import', () => {
         api: 'catalog',
         caller: 'app',
         query: { types: ['creature'], sort: 'name', sort_order: 'asc', limit: 30, price_currency: 'USD' },
-        result_count: 98,
+        result_count: 99,
         result_ids: first.items.slice(0, 20).map((row) => row.oracle_id),
       });
       expect(rows.at(-1)!.latency_ms).toBeGreaterThan(0);
