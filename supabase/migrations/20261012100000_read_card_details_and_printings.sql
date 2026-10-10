@@ -1,7 +1,6 @@
 create function private.checked_uuid(field text, value jsonb)
 returns jsonb
 language plpgsql
-immutable
 set search_path = ''
 as $$
 begin
@@ -16,7 +15,6 @@ $$;
 create function private.checked_uuid_list(field text, value jsonb, max_items integer)
 returns jsonb
 language plpgsql
-stable
 set search_path = ''
 as $$
 declare
@@ -58,7 +56,7 @@ begin
     perform private.invalid_argument('printing_ids', 'printing_ids cannot be used together with oracle_ids.');
   end if;
   if checked = '{}' then
-    perform private.invalid_argument(null, 'Give oracle_ids or printing_ids.');
+    perform private.invalid_argument('oracle_ids', 'Give oracle_ids or printing_ids.');
   end if;
   return checked;
 end;
@@ -178,7 +176,7 @@ begin
 end;
 $$;
 
-create function private.rules_data_as_of()
+create function private.rules_freshness()
 returns jsonb
 language plpgsql
 stable
@@ -211,8 +209,7 @@ as $$
     'collector_number', printing.collector_number,
     'rarity', printing.rarity,
     'released_at', printing.released_at,
-    'finishes', to_jsonb(printing.finishes),
-    'image_uris', to_jsonb(printing.image_uris)
+    'finishes', to_jsonb(printing.finishes)
   );
 $$;
 
@@ -278,20 +275,22 @@ declare
   data_as_of jsonb;
   checked jsonb;
   by_printing boolean;
+  id_field text;
   items jsonb;
   not_found jsonb;
 begin
-  data_as_of := private.rules_data_as_of();
+  data_as_of := private.rules_freshness();
   checked := private.check_card_details_query(query);
   by_printing := checked ? 'printing_ids';
+  id_field := case when by_printing then 'printing_ids' else 'oracle_ids' end;
 
   select
     coalesce(jsonb_agg(private.card_details_row(c, p) order by r.ordinality) filter (where c.oracle_id is not null), '[]'::jsonb),
-    coalesce(jsonb_agg(r.id order by r.ordinality) filter (where c.oracle_id is null), '[]'::jsonb)
+    coalesce(jsonb_agg(given.id order by r.ordinality) filter (where c.oracle_id is null), '[]'::jsonb)
   into items, not_found
-  from jsonb_array_elements_text(
-    checked -> case when by_printing then 'printing_ids' else 'oracle_ids' end
-  ) with ordinality as r(id, ordinality)
+  from jsonb_array_elements_text(checked -> id_field) with ordinality as r(id, ordinality)
+  join jsonb_array_elements_text(query -> id_field) with ordinality as given(id, ordinality)
+    on given.ordinality = r.ordinality
   left join public.card_printings p on by_printing and p.id = r.id::uuid
   left join public.cards c on c.oracle_id = case when by_printing then p.oracle_id else r.id::uuid end;
 
@@ -322,7 +321,7 @@ declare
   items jsonb;
   next_cursor text;
 begin
-  data_as_of := private.rules_data_as_of();
+  data_as_of := private.rules_freshness();
   checked := private.check_card_printings_query(query);
   card_oracle_id := (checked ->> 'oracle_id')::uuid;
   if not exists (select 1 from public.cards c where c.oracle_id = card_oracle_id) then
@@ -377,7 +376,8 @@ begin
   end if;
 
   select coalesce(jsonb_agg(
-    private.card_printing_fields(page_rows[i]) || jsonb_build_object('owned_quantity', 0)
+    private.card_printing_fields(page_rows[i])
+      || jsonb_build_object('image_uris', to_jsonb(page_rows[i].image_uris), 'owned_quantity', 0)
     order by i
   ), '[]'::jsonb)
   into items

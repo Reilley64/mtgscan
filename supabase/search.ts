@@ -60,6 +60,8 @@ export type PriceFrom = {
   basis: 'lowest current price over printings and finishes';
 };
 
+export type OwnedCopies = { quantity: number; free_quantity: number; protected_free_quantity: number };
+
 export type CatalogRow = {
   oracle_id: string;
   name: string;
@@ -72,12 +74,10 @@ export type CatalogRow = {
   edhrec_rank: number | null;
   oracle_text?: string;
   price_from: PriceFrom | null;
-  owned: { quantity: number; free_quantity: number; protected_free_quantity: number };
+  owned: OwnedCopies;
 };
 
 export type CommanderLegality = Database['public']['Enums']['commander_legality'];
-
-export type Finish = Database['public']['Enums']['card_finish'];
 
 export type DataAsOf = {
   rules_data_as_of: string;
@@ -105,7 +105,6 @@ export type CardDetailsPrinting = {
   rarity: Rarity;
   finishes: Finish[];
   released_at: string;
-  image_uris: string[];
 };
 
 export type CardDetailsRow = {
@@ -125,8 +124,8 @@ export type CardDetailsRow = {
   edhrec_rank: number | null;
   released_at: string;
   printing_count: number;
-  price_from: null;
-  owned: { quantity: number; free_quantity: number; protected_free_quantity: number };
+  price_from: PriceFrom | null;
+  owned: OwnedCopies;
   printing?: CardDetailsPrinting;
 };
 
@@ -142,14 +141,7 @@ export type CardPrintingsQuery = {
   cursor?: string | null;
 };
 
-export type CardPrintingRow = {
-  printing_id: string;
-  set: string;
-  set_name: string;
-  collector_number: string;
-  rarity: Rarity;
-  released_at: string;
-  finishes: Finish[];
+export type CardPrintingRow = CardDetailsPrinting & {
   image_uris: string[];
   owned_quantity: number;
 };

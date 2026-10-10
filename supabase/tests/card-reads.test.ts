@@ -203,7 +203,7 @@ describe('after a catalog import', () => {
       expect(not_found).toEqual(ids.slice(1));
     });
 
-    test('printing IDs return the card with that printing, faces and image URLs included', async () => {
+    test('printing IDs return the card with that printing and both faces', async () => {
       const { items, not_found } = await cards({ printing_ids: [delverSecretLair2023, unknownId, delverInnistrad] });
 
       expect(items.map((card) => [card.name, card.faces.length, card.printing])).toEqual([
@@ -218,10 +218,6 @@ describe('after a catalog import', () => {
             rarity: 'rare',
             finishes: ['foil'],
             released_at: '2023-05-08',
-            image_uris: [
-              'https://cards.scryfall.io/normal/front/8/8/888fbfaf-dbf9-4045-a79e-d436ef75b3cf.jpg?1783916540',
-              'https://cards.scryfall.io/normal/back/8/8/888fbfaf-dbf9-4045-a79e-d436ef75b3cf.jpg?1783916540',
-            ],
           },
         ],
         [
@@ -235,10 +231,6 @@ describe('after a catalog import', () => {
             rarity: 'common',
             finishes: ['nonfoil', 'foil'],
             released_at: '2011-09-30',
-            image_uris: [
-              'https://cards.scryfall.io/normal/front/1/1/11bf83bb-c95b-4b4f-9a56-ce7a1816307a.jpg?1783940984',
-              'https://cards.scryfall.io/normal/back/1/1/11bf83bb-c95b-4b4f-9a56-ce7a1816307a.jpg?1783940984',
-            ],
           },
         ],
       ]);
@@ -255,6 +247,13 @@ describe('after a catalog import', () => {
       const { items } = await cards({ oracle_ids: [delverOfSecrets.toUpperCase()] });
 
       expect(items.map((card) => card.oracle_id)).toEqual([delverOfSecrets]);
+    });
+
+    test('unknown IDs are reported as the caller gave them', async () => {
+      const unknownUppercase = 'ABCDEF00-0000-4000-8000-000000000000';
+      const { not_found } = await cards({ printing_ids: [unknownUppercase] });
+
+      expect(not_found).toEqual([unknownUppercase]);
     });
   });
 
@@ -397,7 +396,7 @@ describe('after a catalog import', () => {
 
   describe('input checks', () => {
     test.each<[string, Record<string, unknown>, string | null]>([
-      ['get cards with no IDs', {}, null],
+      ['get cards with no IDs', {}, 'oracle_ids'],
       ['get cards with both kinds of IDs', { oracle_ids: [delverOfSecrets], printing_ids: [delverInnistrad] }, 'printing_ids'],
       ['an unknown field', { oracle_ids: [delverOfSecrets], include_prices: true }, 'include_prices'],
       ['an empty ID list', { oracle_ids: [] }, 'oracle_ids'],
