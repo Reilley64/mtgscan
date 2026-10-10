@@ -569,7 +569,7 @@ describe('after an Oracle tag import', () => {
 
 describe('after a combo import', () => {
   const thassasOracleCombo = '742-1295';
-  const comboPartners: [string, string, string][] = [
+  const combosWithOtherCards: [string, string, string][] = [
     ['kiki-jiki-counterspell', 'Kiki-Jiki, Mirror Breaker', 'Counterspell'],
     ['rhystic-study-kiki-jiki', 'Rhystic Study', 'Kiki-Jiki, Mirror Breaker'],
     ['kiki-jiki-llanowar-elves', 'Kiki-Jiki, Mirror Breaker', 'Llanowar Elves'],
@@ -582,17 +582,14 @@ describe('after a combo import', () => {
     ['aqueous-form-scoria-cat', 'Aqueous Form', 'Scoria Cat'],
   ];
 
+  async function useOf(use: SpellbookVariant['uses'][number], name: string) {
+    return { ...use, card: { ...use.card, name, oracleId: await oracleIdOf(name) } };
+  }
+
   async function comboOf(id: string, first: string, second: string): Promise<SpellbookVariant> {
     const variant = await spellbookFixtureVariant(thassasOracleCombo);
     const [firstUse, secondUse] = variant.uses;
-    return {
-      ...variant,
-      id,
-      uses: [
-        { ...firstUse!, card: { ...firstUse!.card, name: first, oracleId: await oracleIdOf(first) } },
-        { ...secondUse!, card: { ...secondUse!.card, name: second, oracleId: await oracleIdOf(second) } },
-      ],
-    };
+    return { ...variant, id, uses: [await useOf(firstUse!, first), await useOf(secondUse!, second)] };
   }
 
   async function combosOf(name: string) {
@@ -600,12 +597,12 @@ describe('after a combo import', () => {
     return card!.combos;
   }
 
-  async function partnersOf(name: string) {
+  async function otherCardsOf(name: string) {
     return (await combosOf(name)).map((combo) => combo.other_card.name);
   }
 
   beforeAll(async () => {
-    const extraCombos = await Promise.all(comboPartners.map(([id, first, second]) => comboOf(id, first, second)));
+    const extraCombos = await Promise.all(combosWithOtherCards.map(([id, first, second]) => comboOf(id, first, second)));
     const variants = await spellbookFixture({ variants: (variants) => [...variants, ...extraCombos] });
     expect((await runComboImport(variants)).exitCode).toBe(0);
   });
@@ -631,7 +628,7 @@ describe('after a combo import', () => {
   });
 
   test("card details list at most 5 combos, by the other card's EDHREC rank", async () => {
-    expect(await partnersOf('Kiki-Jiki, Mirror Breaker')).toEqual([
+    expect(await otherCardsOf('Kiki-Jiki, Mirror Breaker')).toEqual([
       'Counterspell',
       'Rhystic Study',
       'Llanowar Elves',
@@ -641,7 +638,7 @@ describe('after a combo import', () => {
   });
 
   test('combos whose other card has no EDHREC rank come last, by name', async () => {
-    expect(await partnersOf('Scoria Cat')).toEqual(['Fog', 'Aqueous Form', 'Black Lotus', 'Brisela, Voice of Nightmares']);
+    expect(await otherCardsOf('Scoria Cat')).toEqual(['Fog', 'Aqueous Form', 'Black Lotus', 'Brisela, Voice of Nightmares']);
   });
 
   test('a card with no combos has an empty combo list', async () => {

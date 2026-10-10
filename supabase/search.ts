@@ -113,7 +113,7 @@ export type CardDetailsPrinting = {
 
 export type CardCombo = {
   spellbook_id: string;
-  other_card: { oracle_id: string; name: string };
+  other_card: Pick<CatalogRow, 'oracle_id' | 'name'>;
   produced_features: string[];
   bracket_tag: ComboBracketTag;
 };

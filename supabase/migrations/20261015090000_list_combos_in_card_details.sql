@@ -54,25 +54,25 @@ as $$
         and not exists (select 1 from public.disabled_tags d where d.tag_id = t.id)
     ),
     'combos', (
-      select coalesce(jsonb_agg(
-        jsonb_build_object(
-          'spellbook_id', combo.id,
-          'other_card', jsonb_build_object('oracle_id', combo.other_oracle_id, 'name', combo.other_name),
-          'produced_features', to_jsonb(combo.produced_features),
-          'bracket_tag', combo.bracket_tag
-        )
-        order by combo.other_edhrec_rank nulls last, combo.other_name collate "C", combo.id collate "C"
-      ), '[]'::jsonb)
+      select coalesce(jsonb_agg(combo.details order by combo.position), '[]'::jsonb)
       from (
-        select c.id, c.produced_features, c.bracket_tag,
-          other.oracle_id as other_oracle_id, other.name as other_name, other.edhrec_rank as other_edhrec_rank
+        select
+          jsonb_build_object(
+            'spellbook_id', c.id,
+            'other_card', jsonb_build_object('oracle_id', other.oracle_id, 'name', other.name),
+            'produced_features', to_jsonb(c.produced_features),
+            'bracket_tag', c.bracket_tag
+          ) as details,
+          row_number() over (
+            order by other.edhrec_rank nulls last, other.name collate "C", c.id collate "C"
+          ) as position
         from public.combos c
         join public.cards other on other.oracle_id = case
           when c.first_oracle_id = card.oracle_id then c.second_oracle_id
           else c.first_oracle_id
         end
         where card.oracle_id in (c.first_oracle_id, c.second_oracle_id)
-        order by other.edhrec_rank nulls last, other.name collate "C", c.id collate "C"
+        order by position
         limit 5
       ) combo
     )
