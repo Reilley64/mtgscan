@@ -10,7 +10,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "dev.reilley.mtgscan",
-      "appleTeamId": "YDZJL5K3RQ"
+      "appleTeamId": "YDZJL5K3RQ",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "plugins": [
       "expo-router",
