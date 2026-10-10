@@ -13,6 +13,12 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
+## Link a pull request to an issue
+
+- Write `Closes #N` in a PR only when every acceptance criterion of #N is done at merge.
+- Otherwise write `Part of #N`, and list the post-merge steps in the PR, such as a hosted import or an owner check. When they are done, close #N with a comment that gives the result.
+- The same closing keywords in a commit message also close the issue when the commit reaches `main`. Use `Refs #N` in commits.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
