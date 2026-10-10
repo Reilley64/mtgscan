@@ -17,8 +17,12 @@ import {
   oracleTagOf,
   resetCardCatalog,
   runCatalogImport,
+  runComboImport,
   runOracleTagImport,
   runPriceImport,
+  spellbookFixture,
+  spellbookFixtureVariant,
+  type SpellbookVariant,
 } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
@@ -163,6 +167,7 @@ describe('after a catalog import', () => {
           price_from: null,
           owned: { quantity: 0, free_quantity: 0, protected_free_quantity: 0 },
           tags: [],
+          combos: [],
         },
       ]);
       expect(not_found).toEqual([]);
@@ -559,6 +564,97 @@ describe('after an Oracle tag import', () => {
 
     expect(byPrintingId!.tags).toEqual(byOracleId!.tags);
     expect(byOracleId!.tags).toHaveLength(8);
+  });
+});
+
+describe('after a combo import', () => {
+  const thassasOracleCombo = '742-1295';
+  const comboPartners: [string, string, string][] = [
+    ['kiki-jiki-counterspell', 'Kiki-Jiki, Mirror Breaker', 'Counterspell'],
+    ['rhystic-study-kiki-jiki', 'Rhystic Study', 'Kiki-Jiki, Mirror Breaker'],
+    ['kiki-jiki-llanowar-elves', 'Kiki-Jiki, Mirror Breaker', 'Llanowar Elves'],
+    ['smothering-tithe-kiki-jiki', 'Smothering Tithe', 'Kiki-Jiki, Mirror Breaker'],
+    ['kiki-jiki-lightning-bolt', 'Kiki-Jiki, Mirror Breaker', 'Lightning Bolt'],
+    ['black-lotus-kiki-jiki', 'Black Lotus', 'Kiki-Jiki, Mirror Breaker'],
+    ['scoria-cat-brisela', 'Scoria Cat', 'Brisela, Voice of Nightmares'],
+    ['fog-scoria-cat', 'Fog', 'Scoria Cat'],
+    ['scoria-cat-black-lotus', 'Scoria Cat', 'Black Lotus'],
+    ['aqueous-form-scoria-cat', 'Aqueous Form', 'Scoria Cat'],
+  ];
+
+  async function comboOf(id: string, first: string, second: string): Promise<SpellbookVariant> {
+    const variant = await spellbookFixtureVariant(thassasOracleCombo);
+    const [firstUse, secondUse] = variant.uses;
+    return {
+      ...variant,
+      id,
+      uses: [
+        { ...firstUse!, card: { ...firstUse!.card, name: first, oracleId: await oracleIdOf(first) } },
+        { ...secondUse!, card: { ...secondUse!.card, name: second, oracleId: await oracleIdOf(second) } },
+      ],
+    };
+  }
+
+  async function combosOf(name: string) {
+    const [card] = (await cards({ oracle_ids: [await oracleIdOf(name)] })).items;
+    return card!.combos;
+  }
+
+  async function partnersOf(name: string) {
+    return (await combosOf(name)).map((combo) => combo.other_card.name);
+  }
+
+  beforeAll(async () => {
+    const extraCombos = await Promise.all(comboPartners.map(([id, first, second]) => comboOf(id, first, second)));
+    const variants = await spellbookFixture({ variants: (variants) => [...variants, ...extraCombos] });
+    expect((await runComboImport(variants)).exitCode).toBe(0);
+  });
+
+  test('card details list a combo with its Spellbook ID, the other card, the produced features, and the bracket tag', async () => {
+    expect(await combosOf("Thassa's Oracle")).toEqual([
+      {
+        spellbook_id: thassasOracleCombo,
+        other_card: { oracle_id: await oracleIdOf('Demonic Consultation'), name: 'Demonic Consultation' },
+        produced_features: ['Exile your library', 'Win the game'],
+        bracket_tag: 'ruthless',
+      },
+    ]);
+  });
+
+  test('each card of a combo names the other card', async () => {
+    const [combo] = await combosOf('Demonic Consultation');
+
+    expect([combo!.spellbook_id, combo!.other_card]).toEqual([
+      thassasOracleCombo,
+      { oracle_id: await oracleIdOf("Thassa's Oracle"), name: "Thassa's Oracle" },
+    ]);
+  });
+
+  test("card details list at most 5 combos, by the other card's EDHREC rank", async () => {
+    expect(await partnersOf('Kiki-Jiki, Mirror Breaker')).toEqual([
+      'Counterspell',
+      'Rhystic Study',
+      'Llanowar Elves',
+      'Smothering Tithe',
+      'Lightning Bolt',
+    ]);
+  });
+
+  test('combos whose other card has no EDHREC rank come last, by name', async () => {
+    expect(await partnersOf('Scoria Cat')).toEqual(['Fog', 'Aqueous Form', 'Black Lotus', 'Brisela, Voice of Nightmares']);
+  });
+
+  test('a card with no combos has an empty combo list', async () => {
+    expect(await combosOf('Dryad Arbor')).toEqual([]);
+  });
+
+  test('card details read by printing ID carry the same combos', async () => {
+    const [byOracleId] = (await cards({ oracle_ids: [await oracleIdOf('Kiki-Jiki, Mirror Breaker')] })).items;
+    const printingId = (await printings({ oracle_id: byOracleId!.oracle_id })).items[0]!.printing_id;
+    const [byPrintingId] = (await cards({ printing_ids: [printingId] })).items;
+
+    expect(byPrintingId!.combos).toEqual(byOracleId!.combos);
+    expect(byOracleId!.combos).toHaveLength(5);
   });
 });
 

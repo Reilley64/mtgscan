@@ -81,6 +81,8 @@ export type CatalogRow = {
 
 export type CommanderLegality = Database['public']['Enums']['commander_legality'];
 
+export type ComboBracketTag = Database['public']['Enums']['combo_bracket_tag'];
+
 export type DataAsOf = {
   rules_data_as_of: string;
   rules_stale: boolean;
@@ -109,6 +111,13 @@ export type CardDetailsPrinting = {
   released_at: string;
 };
 
+export type CardCombo = {
+  spellbook_id: string;
+  other_card: { oracle_id: string; name: string };
+  produced_features: string[];
+  bracket_tag: ComboBracketTag;
+};
+
 export type CardDetailsRow = {
   oracle_id: string;
   name: string;
@@ -129,6 +138,7 @@ export type CardDetailsRow = {
   price_from: PriceFrom | null;
   owned: OwnedCopies;
   tags: Pick<OracleTagRow, 'slug' | 'label'>[];
+  combos: CardCombo[];
   printing?: CardDetailsPrinting;
 };
 
