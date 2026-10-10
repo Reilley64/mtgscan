@@ -42,7 +42,7 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 - `catalog` imports cards and card printings. The Weekly import workflow runs it.
 - `prices` imports current prices from Scryfall Default Cards and recomputes each card's lowest current price.
 - `prune-telemetry` deletes search telemetry older than 180 days.
-- `retry-weekly` runs each weekly source whose latest run failed again.
+- `retry-weekly` runs again each weekly source whose latest run failed.
 
 The Daily import workflow runs `prices`, `prune-telemetry`, and `retry-weekly`. Each run records an import run, so the hosted project does not pause. The Import workflow runs one source by hand.
 

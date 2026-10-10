@@ -33,10 +33,6 @@ const adapters = {
   prices: () => scryfallPrices(values.manifest),
 } satisfies ImportAdapters;
 
-function isImportSource(name: string | undefined): name is keyof typeof adapters {
-  return name !== undefined && Object.hasOwn(adapters, name);
-}
-
 async function pruneSearchTelemetry(client: ImportClient): Promise<void> {
   const { data, error } = await client.rpc('prune_search_telemetry');
   if (error) {
@@ -45,8 +41,17 @@ async function pruneSearchTelemetry(client: ImportClient): Promise<void> {
   console.log(`Deleted ${data} search telemetry rows older than 180 days.`);
 }
 
-const knownCommand = isImportSource(command) || command === 'retry-weekly' || command === 'prune-telemetry';
-if (!knownCommand || !Number.isInteger(batchLimits.rows) || batchLimits.rows < 1) {
+const commands: Record<string, (client: ImportClient) => Promise<unknown>> = {
+  catalog: async (client) =>
+    runImport(client, await adapters.catalog(), { acceptShrink: values['accept-shrink'], batchLimits }),
+  prices: async (client) =>
+    runImport(client, await adapters.prices(), { acceptShrink: values['accept-shrink'], batchLimits }),
+  'retry-weekly': (client) => retryFailedWeeklySources(client, adapters, batchLimits),
+  'prune-telemetry': pruneSearchTelemetry,
+};
+const run = command === undefined ? undefined : commands[command];
+
+if (!run || !Number.isInteger(batchLimits.rows) || batchLimits.rows < 1) {
   console.error(usage);
   process.exit(2);
 }
@@ -60,13 +65,7 @@ const client = createClient<Database>(url, secretKey, {
 });
 
 try {
-  if (isImportSource(command)) {
-    await runImport(client, await adapters[command](), { acceptShrink: values['accept-shrink'], batchLimits });
-  } else if (command === 'retry-weekly') {
-    await retryFailedWeeklySources(client, adapters, batchLimits);
-  } else {
-    await pruneSearchTelemetry(client);
-  }
+  await run(client);
 } catch (error) {
   console.error(error instanceof ImportFailed ? error.message : error);
   process.exit(1);

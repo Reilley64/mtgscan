@@ -18,8 +18,6 @@ create table public.card_lowest_prices (
   primary key (oracle_id, currency)
 );
 
-create index card_lowest_prices_currency_amount on public.card_lowest_prices (currency, amount_cents);
-
 alter table public.card_prices enable row level security;
 alter table public.card_lowest_prices enable row level security;
 
@@ -428,6 +426,43 @@ as $$
   select 'database', pg_database_size(current_database());
 $$;
 
+create or replace function public.catalog_freshness()
+returns table (
+  source public.import_source,
+  snapshot_at timestamptz,
+  succeeded_at timestamptz,
+  last_attempt_at timestamptz,
+  last_attempt_status public.import_run_status,
+  is_stale boolean
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    s.source,
+    snapshot.snapshot_at,
+    snapshot.succeeded_at,
+    last_attempt.started_at,
+    last_attempt.status,
+    snapshot.succeeded_at is null
+      or case s.source
+        when 'prices' then snapshot.snapshot_at < now() - interval '24 hours'
+        else snapshot.succeeded_at < now() - interval '7 days'
+      end
+  from unnest(enum_range(null::public.import_source)) as s(source)
+  left join public.import_snapshots snapshot on snapshot.source = s.source
+  left join lateral (
+    select r.started_at, r.status
+    from public.import_runs r
+    where r.source = s.source
+    order by r.started_at desc
+    limit 1
+  ) last_attempt on true
+  order by s.source;
+$$;
+
 create function public.prune_search_telemetry()
 returns bigint
 language plpgsql
@@ -669,10 +704,10 @@ begin
   if checked ? 'price_min' or checked ? 'price_max' then
     conditions := conditions || format(
       'exists (select 1 from public.card_lowest_prices lp where lp.oracle_id = c.oracle_id '
-      'and lp.currency = %L and lp.amount_cents between %s and %s)',
+      'and lp.currency = %L and lp.amount_cents::numeric between %L and %L)',
       checked ->> 'price_currency',
       coalesce(round((checked ->> 'price_min')::numeric * 100), 0),
-      coalesce(round((checked ->> 'price_max')::numeric * 100), 99999999)
+      coalesce(round((checked ->> 'price_max')::numeric * 100), 'Infinity')
     );
   end if;
 

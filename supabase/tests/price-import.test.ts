@@ -87,8 +87,8 @@ function changePrinting(
     });
 }
 
-function withPrices(prices: Record<string, string | null>) {
-  return (record: ScryfallRecord) => ({ ...record, prices: { ...(record.prices as object), ...prices } });
+function pricedAt(changedPrices: Record<string, string | null>) {
+  return (record: ScryfallRecord) => ({ ...record, prices: { ...(record.prices as object), ...changedPrices } });
 }
 
 const noPrices = { usd: null, usd_foil: null, usd_etched: null, eur: null, eur_foil: null, tix: null };
@@ -174,9 +174,9 @@ describe('price import runs', () => {
           updatedAt: laterSnapshotAt,
           defaultCards: (records) =>
             [
-              changePrinting('rav', '101', withPrices({ usd: '0.20' })),
-              changePrinting('prna', '22p', withPrices({ usd: null })),
-              changePrinting('cmm', '473', withPrices(noPrices)),
+              changePrinting('rav', '101', pricedAt({ usd: '0.20' })),
+              changePrinting('prna', '22p', pricedAt({ usd: null })),
+              changePrinting('cmm', '473', pricedAt(noPrices)),
             ].reduce((changed, change) => change(changed), records),
         }),
       ),
@@ -199,7 +199,7 @@ describe('price import runs', () => {
       runPriceImport(
         await catalogFixture({
           updatedAt: laterSnapshotAt,
-          defaultCards: changePrinting('cmm', '543', withPrices({ usd_etched: '1.99' })),
+          defaultCards: changePrinting('cmm', '543', pricedAt({ usd_etched: '1.99' })),
         }),
       ),
     );
@@ -216,7 +216,7 @@ describe('price import runs', () => {
       runPriceImport(
         await catalogFixture({
           updatedAt: laterSnapshotAt,
-          defaultCards: changePrinting('cmm', '473', withPrices({ eur_etched: '0.01' })),
+          defaultCards: changePrinting('cmm', '473', pricedAt({ eur_etched: '0.01' })),
         }),
       ),
     );
@@ -267,7 +267,7 @@ describe('price import runs', () => {
     ],
     [
       'a price that is not a decimal amount',
-      { defaultCards: changePrinting('rav', '101', withPrices({ usd: 'free' })) },
+      { defaultCards: changePrinting('rav', '101', pricedAt({ usd: 'free' })) },
       [],
       'has a usd price that is not a decimal amount',
     ],
@@ -324,7 +324,7 @@ describe('price import runs', () => {
     const before = await priceFreshness();
 
     const output = await expectSuccess(
-      runPriceImport(await catalogFixture({ defaultCards: changePrinting('rav', '101', withPrices({ usd: '9.99' })) })),
+      runPriceImport(await catalogFixture({ defaultCards: changePrinting('rav', '101', pricedAt({ usd: '9.99' })) })),
     );
 
     expect(output).toContain('Skipped');
@@ -396,12 +396,12 @@ describe('price freshness', () => {
   async function agePriceSnapshot(hours: number) {
     const { error } = await importKeyClient
       .from('import_snapshots')
-      .update({ succeeded_at: new Date(Date.now() - hours * 60 * 60 * 1000).toISOString() })
+      .update({ snapshot_at: new Date(Date.now() - hours * 60 * 60 * 1000).toISOString() })
       .eq('source', 'prices');
     expect(error).toBeNull();
   }
 
-  test('prices turn stale 24 hours after their last successful import', async () => {
+  test('prices turn stale 24 hours after mtgscan received them', async () => {
     await agePriceSnapshot(23.9);
     expect((await priceFreshness()).is_stale).toBe(false);
     await agePriceSnapshot(24.1);
