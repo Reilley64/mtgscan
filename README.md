@@ -61,6 +61,8 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 - `get_cards` reads card details for up to 20 cards. Each card lists its direct Oracle tags that are not disabled, as `slug` and `label`, sorted by label.
 - Each first page writes one row to `search_telemetry`. It is the one table with user data that has no read policy: app users cannot read it, and only the secret key can.
 
+`supabase/release-check` holds the graded search corpus for the search release check. Its `README.md` has the grading rule.
+
 ### Card catalog imports
 
 `bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file.
