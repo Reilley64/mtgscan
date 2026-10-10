@@ -1,8 +1,6 @@
 # mtgscan
 
-A cross-platform phone app for rapidly scanning Magic: The Gathering cards, keeping a collection, and building Commander decks. An authenticated remote MCP service lets compatible AI chats search the card catalog and collection, inspect decks, and make deck suggestions.
-
-Product and architecture decisions are being resolved in the project Wayfinder map.
+An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and building Commander decks. The first release is iOS only. Android comes later. An authenticated remote MCP service lets compatible AI chats search the card catalog and collection, inspect decks, and make deck suggestions.
 
 ## Development
 
@@ -52,6 +50,8 @@ A preview or production build bundles its JavaScript with the values from its EA
 ### Versions
 
 The app version in `apps/mobile/app.json` follows the release version. Release-please updates it together with the root `package.json`. EAS keeps the iOS build number (`cli.appVersionSource` is `remote`) and increments it for each production build.
+
+The app stays on Expo SDK 56. SDK 57 does not build on Xcode 26.3, because `expo-modules-jsi` 57.0.5 and later fail to compile with Swift 6.2 ([expo/expo#50067](https://github.com/expo/expo/issues/50067)). Move to SDK 57 when Expo releases the fix for it.
 
 ### Catalog search
 
