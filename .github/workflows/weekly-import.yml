@@ -22,3 +22,11 @@ jobs:
     with:
       source: oracle_tags
     secrets: inherit
+
+  commander_spellbook:
+    needs: oracle_tags
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/import.yml
+    with:
+      source: commander_spellbook
+    secrets: inherit

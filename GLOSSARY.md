@@ -29,8 +29,11 @@ The user's collection entries.
 _Avoid_: Inventory
 
 **Card catalog**:
-The searchable Scryfall-derived card identities, printings, rules text, format data, and Oracle tags used to identify and evaluate cards.
+The searchable Scryfall-derived card identities, printings, rules text, format data, and Oracle tags used to identify and evaluate cards. It also holds combos from Commander Spellbook.
 _Avoid_: Card database
+
+**Combo**:
+Two cards that together produce a result, such as infinite mana or a win, as Commander Spellbook lists it. mtgscan keeps only Commander Spellbook variants with status OK, exactly two cards, and no template requirement. A combo can be a bracket signal.
 
 **Scan batch**:
 An editable group of recognized collection entries waiting to be added to the collection together.

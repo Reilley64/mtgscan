@@ -143,6 +143,32 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"combos": {
+                  Row: {
+                    "bracket_tag": Database["public"]['Enums']["combo_bracket_tag"],"color_identity": (string)[],"first_oracle_id": string,"id": string,"produced_features": (string)[],"second_oracle_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "bracket_tag": Database["public"]['Enums']["combo_bracket_tag"],"color_identity": (string)[],"first_oracle_id": string,"id": string,"produced_features": (string)[],"second_oracle_id": string
+                  }
+                  Update: {
+                    "bracket_tag"?: Database["public"]['Enums']["combo_bracket_tag"],"color_identity"?: (string)[],"first_oracle_id"?: string,"id"?: string,"produced_features"?: (string)[],"second_oracle_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "combos_first_oracle_id_fkey"
+      columns: ["first_oracle_id"]
+isOneToOne: false
+      referencedRelation: "cards"
+      referencedColumns: ["oracle_id"]
+    },{
+      foreignKeyName: "combos_second_oracle_id_fkey"
+      columns: ["second_oracle_id"]
+isOneToOne: false
+      referencedRelation: "cards"
+      referencedColumns: ["oracle_id"]
+    }
+                  ]
                 },"disabled_tags": {
                   Row: {
                     "disabled_at": string,"tag_id": string
@@ -365,7 +391,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "card_finish": "nonfoil"|"foil"|"etched","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","commander_legality": "legal"|"banned"|"not_legal"|"unknown","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices","price_currency": "USD"|"EUR","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
+            "card_finish": "nonfoil"|"foil"|"etched","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices","price_currency": "USD"|"EUR","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -485,7 +511,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "card_finish": ["nonfoil", "foil", "etched"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices"],"price_currency": ["USD", "EUR"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
+            "card_finish": ["nonfoil", "foil", "etched"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices"],"price_currency": ["USD", "EUR"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
           }
         }
 } as const

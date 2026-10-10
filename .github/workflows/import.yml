@@ -10,6 +10,7 @@ on:
           - catalog
           - prices
           - oracle_tags
+          - commander_spellbook
         default: catalog
       accept_shrink:
         description: Accept a shrink of more than 5%

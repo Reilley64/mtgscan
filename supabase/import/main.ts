@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 
+import { commanderSpellbook, commanderSpellbookVariantsUrl } from './commander-spellbook';
 import { importClientFromEnvironment } from './import-client';
 import { ImportFailed, provisionalBatchLimits, runImport, type ImportClient } from './import-run';
 import { scryfallManifestUrl } from './scryfall-bulk-data';
@@ -10,7 +11,8 @@ import { type ImportAdapters, retryFailedWeeklySources } from './weekly-retry';
 
 const usage = `Usage:
   bun import/main.ts catalog|oracle_tags|prices [--manifest <path or URL>] [--accept-shrink] [--batch-rows <n>]
-  bun import/main.ts retry-weekly [--manifest <path or URL>] [--batch-rows <n>]
+  bun import/main.ts commander_spellbook [--variants <path or URL>] [--accept-shrink] [--batch-rows <n>]
+  bun import/main.ts retry-weekly [--manifest <path or URL>] [--variants <path or URL>] [--batch-rows <n>]
   bun import/main.ts prune-telemetry`;
 
 const { positionals, values } = parseArgs({
@@ -18,6 +20,7 @@ const { positionals, values } = parseArgs({
   allowPositionals: true,
   options: {
     manifest: { type: 'string', default: scryfallManifestUrl },
+    variants: { type: 'string', default: commanderSpellbookVariantsUrl },
     'accept-shrink': { type: 'boolean', default: false },
     'batch-rows': { type: 'string', default: String(provisionalBatchLimits.rows) },
   },
@@ -29,6 +32,7 @@ const adapters = {
   catalog: () => scryfallCatalog(values.manifest),
   oracle_tags: () => scryfallOracleTags(values.manifest),
   prices: () => scryfallPrices(values.manifest),
+  commander_spellbook: () => commanderSpellbook(values.variants),
 } satisfies ImportAdapters;
 
 async function pruneSearchTelemetry(client: ImportClient): Promise<void> {
@@ -46,6 +50,8 @@ const commands: Record<string, (client: ImportClient) => Promise<unknown>> = {
     runImport(client, await adapters.oracle_tags(), { acceptShrink: values['accept-shrink'], batchLimits }),
   prices: async (client) =>
     runImport(client, await adapters.prices(), { acceptShrink: values['accept-shrink'], batchLimits }),
+  commander_spellbook: async (client) =>
+    runImport(client, await adapters.commander_spellbook(), { acceptShrink: values['accept-shrink'], batchLimits }),
   'retry-weekly': (client) => retryFailedWeeklySources(client, adapters, batchLimits),
   'prune-telemetry': pruneSearchTelemetry,
 };

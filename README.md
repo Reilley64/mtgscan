@@ -63,10 +63,11 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 
 ### Card catalog imports
 
-`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest.
+`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file.
 
 - `catalog` imports cards and card printings. The Weekly import workflow runs it.
 - `oracle_tags` imports Oracle tags, tag edges, and card taggings from Scryfall. The Weekly import workflow runs it after `catalog`, even when the catalog run fails.
+- `commander_spellbook` imports combos from the Commander Spellbook variants file. It keeps variants with status OK, exactly two cards, and no template requirement. It drops and counts each combo that names a card outside the card catalog. The Weekly import workflow runs it after `oracle_tags`, even when an earlier run fails.
 - `prices` imports current prices from Scryfall Default Cards and recomputes each card's lowest current price.
 - `prune-telemetry` deletes search telemetry older than 180 days.
 - `retry-weekly` runs again each weekly source whose latest run failed.
