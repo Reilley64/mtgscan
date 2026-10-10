@@ -13,7 +13,8 @@
     "types": "supabase gen types typescript --local > database.types.ts",
     "types:check": "supabase gen types typescript --local | diff database.types.ts -",
     "import": "bun import/main.ts",
-    "oracle-tag": "bun import/oracle-tag.ts"
+    "oracle-tag": "bun import/oracle-tag.ts",
+    "release-check": "bun release-check/main.ts"
   },
   "dependencies": {
     "@streamparser/json-whatwg": "^0.0.26",

@@ -104,6 +104,13 @@ _Avoid_: Card lookup
 A search of the user's collection entries. It is separate from catalog search.
 _Avoid_: Inventory search
 
+**Chip**:
+An exact filter in a catalog search or collection search, such as a color identity or a mana value bound. Every chip in a search must match, and a negated chip must not. A card in the results that fails a chip is a chip violation.
+_Avoid_: Facet
+
+**Search release check**:
+A manual run of the graded search corpus through catalog search on the hosted project. It decides whether search is ready to release and whether the vector search experiment is triggered.
+
 ## AI access
 
 **MCP connection**:

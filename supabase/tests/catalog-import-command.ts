@@ -192,6 +192,10 @@ export function runComboImport(variants: string, ...flags: string[]): Promise<Co
   return runImportCommand('commander_spellbook', '--variants', variants, ...flags);
 }
 
+export function runReleaseCheckCommand(...args: string[]): Promise<CommandResult> {
+  return runScript('release-check/main.ts', args);
+}
+
 export function runOracleTagCommand(action: 'disable' | 'enable', tagId: string): Promise<CommandResult> {
   return runScript('import/oracle-tag.ts', [action, tagId]);
 }

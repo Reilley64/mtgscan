@@ -5,6 +5,7 @@ The search release check (#53) runs these searches through catalog search. The c
 - `search-corpus.jsonl` holds one search per line.
 - `search-grades.jsonl` holds one grade per line.
 - `search-corpus.ts` reads both files and checks their shape.
+- `main.ts` runs the release check. `release-check.ts`, `chip-check.ts`, and `report.ts` hold its metrics, chip re-check, and report.
 
 ## Searches
 
@@ -64,3 +65,35 @@ Each line in `search-grades.jsonl` grades one card for one search:
 ```
 
 To regrade a card, change `grade` on its line. To grade a new pooled card, add a line. `card` is the card name, for review only.
+
+## Run the release check
+
+Run it from `supabase` with the secret key:
+
+```sh
+SUPABASE_URL=… SUPABASE_SECRET_KEY=… bun run release-check --report report.md
+```
+
+- `--corpus <directory>` reads another corpus. The default is this directory.
+- `--report <path>` also writes the report to a file. The report always goes to standard output.
+- `--ungraded <path>` sets the file for pooled cards with no grade. The default is `release-check/ungraded-cards.jsonl`, which Git ignores.
+
+To run it against the hosted project, start the Release check workflow by hand in GitHub Actions. It writes the report to the job summary. It uploads the report and the pooled cards with no grade as the `release-check` artifact.
+
+Each search runs as a first page of 20 results. The report has:
+
+- exact-name top-1 for class 1: the card graded 2 is the first result;
+- capped recall@20 for each class: the relevant cards in the top 20 divided by the smaller of 20 and the number of relevant cards. Relevant cards are graded 1 or 2. A class takes the mean over its searches;
+- uncapped recall@20 for each class, which divides by all relevant cards, as in #15;
+- chip violations: the script reads each returned card from the card catalog and checks it against every chip in the query;
+- the vector trigger: class 5 capped recall@20 below 0.5;
+- abandoned app searches from the last 30 days, after #72 records search follow-ups;
+- server p95 latency from the release check telemetry rows, and the database size;
+- the pooled cards with no grade.
+
+A search with no card graded 1 or 2 has no recall and is left out of its class. A gated class with no such searches fails.
+
+The check passes when every exact-name search ranks its card first, classes 2 to 4 each reach a capped recall@20 of 0.7 or more, and no chip is violated. Otherwise it exits with code 1. It exits with code 2 when it cannot run.
+
+To grade the pooled cards with no grade, set `grade` on each line of the ungraded file and add the lines to `search-grades.jsonl`.
+
