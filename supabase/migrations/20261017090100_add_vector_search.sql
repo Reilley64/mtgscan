@@ -75,6 +75,19 @@ as $$
   where c.oracle_id = card_embedding_text.oracle_id;
 $$;
 
+create function catalog_import.stale_card_embeddings()
+returns table (oracle_id uuid, embedding_text text, embedding_text_md5 text)
+language sql
+stable
+set search_path = ''
+as $$
+  select c.oracle_id, t.embedding_text, md5(t.embedding_text)
+  from public.cards c
+  cross join lateral (select catalog_import.card_embedding_text(c.oracle_id) as embedding_text) t
+  left join public.card_embeddings e on e.oracle_id = c.oracle_id
+  where e.embedding_text_md5 is distinct from md5(t.embedding_text);
+$$;
+
 create function public.list_card_embedding_texts(after_oracle_id uuid default null, row_limit integer default 1000)
 returns table (oracle_id uuid, embedding_text text, embedding_text_md5 text)
 language sql
@@ -82,13 +95,10 @@ stable
 security definer
 set search_path = ''
 as $$
-  select c.oracle_id, t.embedding_text, md5(t.embedding_text)
-  from public.cards c
-  cross join lateral (select catalog_import.card_embedding_text(c.oracle_id) as embedding_text) t
-  left join public.card_embeddings e on e.oracle_id = c.oracle_id
-  where (list_card_embedding_texts.after_oracle_id is null or c.oracle_id > list_card_embedding_texts.after_oracle_id)
-    and e.embedding_text_md5 is distinct from md5(t.embedding_text)
-  order by c.oracle_id
+  select s.oracle_id, s.embedding_text, s.embedding_text_md5
+  from catalog_import.stale_card_embeddings() s
+  where list_card_embedding_texts.after_oracle_id is null or s.oracle_id > list_card_embedding_texts.after_oracle_id
+  order by s.oracle_id
   limit list_card_embedding_texts.row_limit;
 $$;
 
@@ -118,7 +128,7 @@ begin
     where s.run_id = run.id
       and md5(catalog_import.card_embedding_text(s.oracle_id)) is distinct from s.embedding_text_md5;
   if changed_texts > 0 then
-    raise exception 'card_embeddings: the card text of % staged rows changed during the run', changed_texts;
+    raise exception 'card_embeddings: the embedding text of % staged rows changed during the run', changed_texts;
   end if;
 
   with merged as (
@@ -135,12 +145,9 @@ begin
     into embeddings_inserted, embeddings_updated
     from merged;
 
-  select count(*) into cards_without_embedding
-    from public.cards c
-    left join public.card_embeddings e on e.oracle_id = c.oracle_id
-    where e.embedding_text_md5 is distinct from md5(catalog_import.card_embedding_text(c.oracle_id));
+  select count(*) into cards_without_embedding from catalog_import.stale_card_embeddings();
   if cards_without_embedding > 0 then
-    raise exception 'card_embeddings: % cards have no embedding of their current card text', cards_without_embedding;
+    raise exception 'card_embeddings: % cards have no card embedding of their current embedding text', cards_without_embedding;
   end if;
 
   return jsonb_build_object(
@@ -305,6 +312,7 @@ declare
   items jsonb;
   next_cursor text;
   query_embedding extensions.halfvec(384);
+  filter_conditions text[];
   matches_query text;
 begin
   select * into rules_freshness from public.catalog_freshness() f where f.source = 'catalog';
@@ -349,7 +357,8 @@ begin
     search_id := gen_random_uuid();
   end if;
 
-  conditions := private.catalog_filter_conditions(checked);
+  filter_conditions := private.catalog_filter_conditions(checked);
+  conditions := filter_conditions;
   if checked ? 'text' then
     text_key := private.name_key(checked ->> 'text');
     text_query := plainto_tsquery('english', checked ->> 'text')::text;
@@ -451,7 +460,7 @@ begin
       tier,
       text_rank,
       array_to_string(conditions, ' and '),
-      array_to_string(private.catalog_filter_conditions(checked), ' and '),
+      array_to_string(filter_conditions, ' and '),
       nearest_cards,
       fusion_offset
     );
@@ -551,6 +560,7 @@ grant execute on function public.search_catalog(jsonb, jsonb) to authenticated, 
 grant create on schema public to catalog_importer;
 
 alter function catalog_import.card_embedding_text(uuid) owner to catalog_importer;
+alter function catalog_import.stale_card_embeddings() owner to catalog_importer;
 alter function catalog_import.merge_card_embeddings(public.import_runs, jsonb) owner to catalog_importer;
 alter function public.list_card_embedding_texts(uuid, integer) owner to catalog_importer;
 

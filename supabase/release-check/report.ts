@@ -143,7 +143,7 @@ export function renderReport(report: ReleaseCheckReport, ungradedPath: string): 
       ['Measure', ...names],
       [
         ['Server p95 latency', ...modes.map((mode) => milliseconds(mode.p95LatencyMs))],
-        ['Text embedding p95 latency', ...modes.map((mode) => milliseconds(mode.textEmbeddingP95Ms))],
+        ['Text embedding p95 latency', ...modes.map((mode) => milliseconds(mode.p95TextEmbeddingMs))],
       ],
     ),
     '',

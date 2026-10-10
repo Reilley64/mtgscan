@@ -78,10 +78,13 @@ describe('catalog search with a text embedding', () => {
   });
 
   test('keeps an exact card name first', async () => {
-    const found = await names({ text: 'fog' }, await embeddingOf('Llanowar Elves'));
+    const found = await names({ text: 'fog' }, await embeddingOf('Fog Bank'));
 
-    expect(found[0]).toBe('Fog');
-    expect(found.slice(0, 3)).toContain('Llanowar Elves');
+    expect(found.slice(0, 2)).toEqual(['Fog', 'Fog Bank']);
+  });
+
+  test('ranks a card nearest to the text embedding with the text matches', async () => {
+    expect((await names({ text: 'fog' }, await embeddingOf('Llanowar Elves'))).slice(0, 3)).toContain('Llanowar Elves');
   });
 
   test('moves a card that matches the text and is nearest to the text embedding up past other text matches', async () => {

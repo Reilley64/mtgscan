@@ -254,7 +254,7 @@ describe('vector mode', () => {
 
     expect(vector!.mode).toBe('vector');
     expect(classScore(vector!.classes, 5).cappedRecall).toBe(1);
-    expect(vector!.textEmbeddingP95Ms).toBeGreaterThanOrEqual(0);
+    expect(vector!.p95TextEmbeddingMs).toBeGreaterThanOrEqual(0);
   });
 
   test('the vector gate passes when class 5 rises by 0.15 or more and no other class drops by more than 0.02', async () => {

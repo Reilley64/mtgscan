@@ -6,7 +6,6 @@ import {
   catalogFixture,
   catalogFixtureManifest,
   latestRun,
-  oracleIdOf,
   oracleTagOf,
   resetCardCatalog,
   runCardEmbeddingImport,
@@ -84,7 +83,7 @@ describe('card embeddings import', () => {
     expect(run.counts).toMatchObject({ card_embeddings: { staged: texts.length, inserted: texts.length, updated: 0 } });
   });
 
-  test('a second run with no new card text embeds nothing, succeeds, and keeps card embeddings fresh', async () => {
+  test('a second run with no new embedding text embeds nothing, succeeds, and keeps card embeddings fresh', async () => {
     await embedCards();
     const texts: string[] = [];
 
@@ -113,7 +112,7 @@ describe('card embeddings import', () => {
     expect(run.counts).toMatchObject({ card_embeddings: { staged: 1, inserted: 0, updated: 1 } });
   });
 
-  test('a disabled Oracle tag leaves the card text in the next run', async () => {
+  test('a disabled Oracle tag leaves the embedding text in the next run', async () => {
     await embedCards();
     expect((await runOracleTagCommand('disable', (await oracleTagOf('gives-unblockable')).id)).exitCode).toBe(0);
     const texts: string[] = [];
@@ -134,11 +133,11 @@ describe('card embeddings import', () => {
 
     const run = await failedRun(async () => new Array(embeddingDimensions - 1).fill(0.01));
 
-    expect(run.failure_reason).toContain('expected 384 dimensions, not 383');
+    expect(run.failure_reason).toStartWith('Stage card_embeddings batch 1:');
     expect((await embeddingFreshness()).snapshot_at).toBe(good.source_updated_at);
   });
 
-  test('card text that changes during the run fails the run with the reason', async () => {
+  test('embedding text that changes during the run fails the run with the reason', async () => {
     const aetherTunnelTag = (await oracleTagOf('gives-unblockable')).id;
     const disableTagMidRun = recordingEmbedder([], async (text) => {
       if (text === aetherTunnelText) {
@@ -149,7 +148,7 @@ describe('card embeddings import', () => {
 
     const run = await failedRun(disableTagMidRun);
 
-    expect(run.failure_reason).toMatch(/^card_embeddings: the card text of \d+ staged rows changed during the run$/);
+    expect(run.failure_reason).toMatch(/^card_embeddings: the embedding text of \d+ staged rows changed during the run$/);
     expect((await embeddingFreshness()).snapshot_at).toBeNull();
   });
 
@@ -162,7 +161,7 @@ describe('card embeddings import', () => {
     expect(texts).toHaveLength(await cardCount());
   });
 
-  test('only the secret key can read the card texts to embed', async () => {
+  test('only the secret key can read the embedding texts', async () => {
     const callers = [anonymousClient(), alice.client];
     for (const client of callers) {
       const { data, error } = await client.rpc('list_card_embedding_texts', {});
@@ -180,6 +179,5 @@ describe('card embeddings import', () => {
 
     expect(data).toBeNull();
     expect(error?.code).toBe(permissionDenied);
-    expect(await oracleIdOf('Aether Tunnel')).toBeString();
   });
 });

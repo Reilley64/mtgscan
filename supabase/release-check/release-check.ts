@@ -1,4 +1,5 @@
 import type { Json } from '../database.types';
+import type { Embedder } from '../import/card-embeddings';
 import type { ImportClient } from '../import/import-run';
 import { readSearchError, type CatalogQuery, type CatalogRow, type SearchPage } from '../search';
 import { readCardFacts, readTagClosures, violatedChips, type ChipField } from './chip-check';
@@ -10,7 +11,6 @@ export type SearchMode = {
   textEmbeddingMs?: number[];
 };
 
-export type TextEmbedder = (text: string) => Promise<number[]>;
 
 type SearchScore = {
   search: string;
@@ -44,7 +44,7 @@ export type ModeReport = {
   chipViolations: ChipViolation[];
   vectorTrigger: boolean;
   p95LatencyMs: number;
-  textEmbeddingP95Ms: number | null;
+  p95TextEmbeddingMs: number | null;
   ungraded: UngradedCard[];
   passed: boolean;
 };
@@ -92,7 +92,7 @@ export function catalogSearch(client: ImportClient): SearchMode {
   return { name: 'baseline', search: (query) => searchCatalog(client, query) };
 }
 
-export function vectorSearch(client: ImportClient, embedText: TextEmbedder): SearchMode {
+export function vectorSearch(client: ImportClient, embedText: Embedder): SearchMode {
   const textEmbeddingMs: number[] = [];
   return {
     name: 'vector',
@@ -109,7 +109,7 @@ export function vectorSearch(client: ImportClient, embedText: TextEmbedder): Sea
   };
 }
 
-export function edgeFunctionTextEmbedder(client: ImportClient): TextEmbedder {
+export function edgeFunctionTextEmbedder(client: ImportClient): Embedder {
   return async (text) => {
     const { data, error } = await client.functions.invoke<{ embedding: number[] }>('embed-search-text', {
       body: { text },
@@ -257,7 +257,7 @@ async function checkMode(client: ImportClient, corpus: CorpusSearch[], mode: Sea
       chipViolations: violations,
       vectorTrigger: classFive !== null && classFive < vectorTriggerRecall,
       p95LatencyMs: percentile95(await serverLatencies(client, runs.map(({ page }) => page.search_id))),
-      textEmbeddingP95Ms: mode.textEmbeddingMs?.length ? percentile95(mode.textEmbeddingMs) : null,
+      p95TextEmbeddingMs: mode.textEmbeddingMs?.length ? percentile95(mode.textEmbeddingMs) : null,
       ungraded: ungradedCards(runs),
       passed,
     },

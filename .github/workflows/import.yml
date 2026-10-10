@@ -35,7 +35,7 @@ permissions:
 jobs:
   import:
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ inputs.source == 'card_embeddings' && 60 || 30 }}
+    timeout-minutes: ${{ inputs.source == 'card_embeddings' && 110 || 30 }}
     concurrency:
       group: import-${{ inputs.source }}
       cancel-in-progress: false

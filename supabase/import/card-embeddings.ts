@@ -2,7 +2,7 @@ import { type ImportAdapter, type ImportClient, ImportFailed, type StagedRow } f
 
 export type Embedder = (text: string) => Promise<number[]>;
 
-export const embeddingModel = { name: 'Supabase/gte-small', revision: '93b36ff09519291b77d6000d2e86bd8565378086' };
+const embeddingModel = { name: 'Supabase/gte-small', revision: '93b36ff09519291b77d6000d2e86bd8565378086' };
 
 const textPageRows = 1000;
 const progressEvery = 1000;
@@ -20,13 +20,14 @@ async function* cardEmbeddingRows(client: ImportClient, loadEmbedder: () => Prom
   let embedder: Embedder | undefined;
   let embedded = 0;
   const startedAt = performance.now();
+  const elapsedSeconds = () => Math.round((performance.now() - startedAt) / 1000);
   for (let afterOracleId: string | undefined; ; ) {
     const { data, error } = await client.rpc('list_card_embedding_texts', {
       after_oracle_id: afterOracleId,
       row_limit: textPageRows,
     });
     if (error) {
-      throw new ImportFailed(`Read card texts: ${error.message}`);
+      throw new ImportFailed(`Read embedding texts: ${error.message}`);
     }
     for (const card of data) {
       embedder ??= await loadEmbedder();
@@ -40,11 +41,11 @@ async function* cardEmbeddingRows(client: ImportClient, loadEmbedder: () => Prom
       };
       embedded += 1;
       if (embedded % progressEvery === 0) {
-        console.log(`Embedded ${embedded} cards in ${Math.round((performance.now() - startedAt) / 1000)} s.`);
+        console.log(`Embedded ${embedded} cards in ${elapsedSeconds()} s.`);
       }
     }
     if (data.length < textPageRows) {
-      console.log(`Embedded ${embedded} cards with new card text in ${Math.round((performance.now() - startedAt) / 1000)} s.`);
+      console.log(`Embedded ${embedded} cards with new embedding text in ${elapsedSeconds()} s.`);
       return;
     }
     afterOracleId = data.at(-1)!.oracle_id;
