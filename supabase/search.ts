@@ -128,6 +128,7 @@ export type CardDetailsRow = {
   printing_count: number;
   price_from: PriceFrom | null;
   owned: OwnedCopies;
+  tags: Pick<OracleTagRow, 'slug' | 'label'>[];
   printing?: CardDetailsPrinting;
 };
 
