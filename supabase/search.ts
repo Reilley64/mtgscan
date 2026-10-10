@@ -75,6 +75,90 @@ export type CatalogRow = {
   owned: { quantity: number; free_quantity: number; protected_free_quantity: number };
 };
 
+export type CommanderLegality = Database['public']['Enums']['commander_legality'];
+
+export type Finish = Database['public']['Enums']['card_finish'];
+
+export type DataAsOf = {
+  rules_data_as_of: string;
+  rules_stale: boolean;
+};
+
+export type CardDetailsQuery = { oracle_ids: string[]; printing_ids?: never } | { printing_ids: string[]; oracle_ids?: never };
+
+export type CardFace = {
+  name: string;
+  mana_cost: string;
+  type_line: string;
+  oracle_text: string;
+  colors: string[];
+  power?: string;
+  toughness?: string;
+  loyalty?: string;
+};
+
+export type CardDetailsPrinting = {
+  printing_id: string;
+  set: string;
+  set_name: string;
+  collector_number: string;
+  rarity: Rarity;
+  finishes: Finish[];
+  released_at: string;
+  image_uris: string[];
+};
+
+export type CardDetailsRow = {
+  oracle_id: string;
+  name: string;
+  mana_cost: string;
+  mana_value: number;
+  type_line: string;
+  oracle_text: string;
+  colors: string[];
+  color_identity: string[];
+  keywords: string[];
+  faces: CardFace[];
+  commander_legality: CommanderLegality;
+  can_be_commander: boolean;
+  is_game_changer: boolean | null;
+  edhrec_rank: number | null;
+  released_at: string;
+  printing_count: number;
+  price_from: null;
+  owned: { quantity: number; free_quantity: number; protected_free_quantity: number };
+  printing?: CardDetailsPrinting;
+};
+
+export type CardDetails = DataAsOf & {
+  items: CardDetailsRow[];
+  not_found: string[];
+};
+
+export type CardPrintingsQuery = {
+  oracle_id: string;
+  owned_only?: boolean;
+  limit?: number;
+  cursor?: string | null;
+};
+
+export type CardPrintingRow = {
+  printing_id: string;
+  set: string;
+  set_name: string;
+  collector_number: string;
+  rarity: Rarity;
+  released_at: string;
+  finishes: Finish[];
+  image_uris: string[];
+  owned_quantity: number;
+};
+
+export type CardPrintingsPage = DataAsOf & {
+  items: CardPrintingRow[];
+  next_cursor: string | null;
+};
+
 export type SearchErrorCode = 'invalid_argument' | 'invalid_cursor' | 'not_found' | 'data_unavailable';
 
 export type SearchError = {
