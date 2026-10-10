@@ -5,7 +5,7 @@ import {
   catalogFixture,
   catalogFixtureManifest,
   catalogFixtureSnapshotAt,
-  latestCatalogRun,
+  latestRun,
   oracleIdOf,
   resetCardCatalog,
   runCatalogImport,
@@ -182,7 +182,7 @@ describe('catalog import runs', () => {
       .eq('oracle_id', shock.oracle_id);
     expect(shockPrintings).toHaveLength(3);
     expect(shockPrintings!.every((printing) => printing.absent_since !== null)).toBe(true);
-    expect((await latestCatalogRun()).counts).toMatchObject({
+    expect((await latestRun('catalog')).counts).toMatchObject({
       cards: { inserted: 1, updated: 1, marked_absent: 1 },
       card_printings: { marked_absent: 3 },
     });
@@ -235,7 +235,7 @@ describe('catalog import runs', () => {
     );
 
     expect(result.exitCode).toBe(1);
-    const run = await latestCatalogRun();
+    const run = await latestRun('catalog');
     expect(run.status).toBe('failed');
     expect(run.failure_reason).toContain(reason);
     sameTime((await catalogFreshness()).snapshot_at, catalogFixtureSnapshotAt);
@@ -255,7 +255,7 @@ describe('catalog import runs', () => {
       '--accept-shrink',
     );
 
-    expect((await latestCatalogRun()).status).toBe('succeeded');
+    expect((await latestRun('catalog')).status).toBe('succeeded');
     sameTime((await catalogFreshness()).snapshot_at, laterSnapshotAt);
   });
 
@@ -268,7 +268,7 @@ describe('catalog import runs', () => {
     );
 
     expect(result.output).toContain('Skipped');
-    expect((await latestCatalogRun()).status).toBe('skipped');
+    expect((await latestRun('catalog')).status).toBe('skipped');
     expect(await rowCount(alice.client, 'cards')).toBe(170);
     expect((await catalogFreshness()).succeeded_at).toBe(before.succeeded_at);
   });
@@ -379,6 +379,7 @@ describe('import functions', () => {
     ['finish_import_run', { run_id: someRunId, staged_rows: {} }],
     ['abort_import_run', { run_id: someRunId, reason: 'test' }],
     ['catalog_storage_sizes', {}],
+    ['prune_search_telemetry', {}],
   ] as const;
 
   test.each(calls)('%s refuses a signed-in user', async (name, args) => {

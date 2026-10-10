@@ -4,9 +4,11 @@ import type { Json } from '../database.types';
 import { readSearchError, type CatalogQuery, type CatalogRow, type SearchPage } from '../search';
 import {
   catalogFixture,
+  catalogFixtureManifest,
   catalogFixtureSnapshotAt,
   resetCardCatalog,
   runCatalogImport,
+  runPriceImport,
 } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
@@ -493,15 +495,19 @@ describe('after a catalog import', () => {
       ['Oracle text flag of the wrong type', { text: 'fog', include_oracle_text: 1 }, 'include_oracle_text'],
       ['unknown sort', { names: ['fog'], sort: 'random' }, 'sort'],
       ['relevance without text', { names: ['fog'], sort: 'relevance' }, 'sort'],
-      ['price sort before prices exist', { names: ['fog'], sort: 'price' }, 'sort'],
       ['unknown sort order', { text: 'fog', sort_order: 'up' }, 'sort_order'],
       ['limit of 0', { text: 'fog', limit: 0 }, 'limit'],
       ['limit above 50', { text: 'fog', limit: 51 }, 'limit'],
       ['cursor of the wrong type', { text: 'fog', cursor: 5 }, 'cursor'],
       ['tag chip before tags exist', { text: 'fog', tags: ['ramp'] }, 'tags'],
       ['negated tag chip before tags exist', { text: 'fog', tags_exclude: ['ramp'] }, 'tags_exclude'],
-      ['price chip before prices exist', { text: 'fog', price_max: '5.00' }, 'price_max'],
-      ['price currency before prices exist', { text: 'fog', price_currency: 'USD' }, 'price_currency'],
+      ['price as a number', { text: 'fog', price_max: 5 }, 'price_max'],
+      ['price that is not a decimal amount', { text: 'fog', price_min: 'five' }, 'price_min'],
+      ['price with more than 2 decimals', { text: 'fog', price_min: '1.234' }, 'price_min'],
+      ['negative price', { text: 'fog', price_min: '-1' }, 'price_min'],
+      ['price above 999999.99', { text: 'fog', price_max: '1000000' }, 'price_max'],
+      ['price minimum above its maximum', { text: 'fog', price_min: '5', price_max: '4.99' }, 'price_max'],
+      ['unknown price currency', { text: 'fog', price_currency: 'GBP' }, 'price_currency'],
     ])('%s is refused with an error on its field', async (_, query, field) => {
       const { page, error } = await search(query);
 
@@ -513,6 +519,7 @@ describe('after a catalog import', () => {
     test.each<[string, Record<string, unknown> | unknown[]]>([
       ['an empty query', {}],
       ['a query with only paging and sort fields', { sort: 'name', limit: 5, include_oracle_text: true }],
+      ['a query with only a price currency', { price_currency: 'EUR' }],
       ['a query that is not an object', ['fog']],
     ])('%s is refused', async (_, query) => {
       const { page, error } = await search(query);
@@ -543,7 +550,7 @@ describe('after a catalog import', () => {
         user_id: alice.userId,
         api: 'catalog',
         caller: 'app',
-        query: { types: ['creature'], sort: 'name', sort_order: 'asc', limit: 30 },
+        query: { types: ['creature'], sort: 'name', sort_order: 'asc', limit: 30, price_currency: 'USD' },
         result_count: 98,
         result_ids: first.items.slice(0, 20).map((row) => row.oracle_id),
       });
@@ -583,6 +590,94 @@ describe('after a catalog import', () => {
       const { error } = await alice.client.from('search_telemetry').select('*');
 
       expect(error?.code).toBe(permissionDenied);
+    });
+  });
+
+  describe('after a price import', () => {
+    const basis = 'lowest current price over printings and finishes';
+    const angels: CatalogQuery = { types: ['angel'] };
+
+    beforeAll(async () => {
+      expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
+    });
+
+    test('a row shows the lowest current price, labelled with its finish and currency', async () => {
+      const [usd] = (await page({ names: ['hidetsugu'] })).items;
+      const [eur] = (await page({ names: ['hidetsugu'], price_currency: 'EUR' })).items;
+
+      expect(usd!.price_from).toEqual({ currency: 'USD', amount: '0.35', finish: 'foil', basis });
+      expect(eur!.price_from).toEqual({ currency: 'EUR', amount: '0.15', finish: 'nonfoil', basis });
+    });
+
+    test('a card with no current price has no price_from', async () => {
+      expect((await page({ names: ['brisela'] })).items[0]!.price_from).toBeNull();
+    });
+
+    test('a page carries the price observation time and is fresh', async () => {
+      const { prices_observed_at, prices_stale } = await page({ names: ['fog'] });
+
+      expect(prices_observed_at).not.toBeNull();
+      expect(prices_stale).toBe(false);
+    });
+
+    test.each<[string, CatalogQuery, string[]]>([
+      ['price at least', { price_min: '100' }, ["Serra's Sanctum"]],
+      ['price at most', { price_max: '0.05', types: ['creature'] }, ['Favored of Iroas', 'Ghost Warden']],
+      ['price between two bounds', { price_min: '10.00', price_max: '12.00' }, ['Shimmer']],
+      [
+        'price at least, with text',
+        { text: 'creature', price_min: '20' },
+        ["Atraxa, Praetors' Voice", 'Gisela, the Broken Blade', 'Ramses Overdark', "Thassa's Oracle"],
+      ],
+      [
+        'price in EUR',
+        { price_max: '0.05', price_currency: 'EUR', types: ['creature'] },
+        [
+          'Angelic Curator',
+          'Drill-Skimmer',
+          'Estwald Shieldbasher',
+          'Favored of Iroas',
+          'Ghost Warden',
+          'Glimmerbell',
+          'Gloomwidow',
+          'Lurking Chupacabra',
+          'Rampant Elephant',
+          'Red Tiger Mechan',
+          'Scurrilous Sentry',
+          'Selfless Police Captain',
+          'Stormchaser Chimera',
+        ],
+      ],
+      ['a card with no price never matches a price bound', { names: ['brisela'], price_max: '999999.99' }, []],
+    ])('%s', async (_, query, expected) => {
+      const results = await names({ ...query, limit: 50 });
+
+      expect(query.text ? results.toSorted() : results).toEqual(expected);
+    });
+
+    test.each<[CatalogQuery, string[]]>([
+      [
+        { sort: 'price' },
+        ['Angelic Curator', 'Bruna, the Fading Light', 'Gisela, the Broken Blade', "Atraxa, Praetors' Voice", 'Brisela, Voice of Nightmares'],
+      ],
+      [
+        { sort: 'price', sort_order: 'desc' },
+        ["Atraxa, Praetors' Voice", 'Gisela, the Broken Blade', 'Bruna, the Fading Light', 'Angelic Curator', 'Brisela, Voice of Nightmares'],
+      ],
+      [
+        { sort: 'price', price_currency: 'EUR' },
+        ['Angelic Curator', 'Bruna, the Fading Light', 'Gisela, the Broken Blade', "Atraxa, Praetors' Voice", 'Brisela, Voice of Nightmares'],
+      ],
+    ])('sort %o puts missing prices last', async (sort, expected) => {
+      expect(await names({ ...angels, ...sort })).toEqual(expected);
+    });
+
+    test('pages of a price sort cover every row once, in order', async () => {
+      const query: CatalogQuery = { types: ['creature'], sort: 'price', sort_order: 'desc' };
+      const onePage = await names({ ...query, limit: 50 });
+      const pages = await allPages({ ...query, limit: 7 });
+
+      expect(pages.flatMap((next) => next.items.map((row) => row.name)).slice(0, 50)).toEqual(onePage);
     });
   });
 });

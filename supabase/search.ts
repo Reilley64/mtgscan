@@ -4,7 +4,11 @@ export type Color = 'W' | 'U' | 'B' | 'R' | 'G';
 
 export type Rarity = Database['public']['Enums']['card_rarity'];
 
-export type CatalogSort = 'relevance' | 'name' | 'mana_value' | 'edhrec_rank' | 'release_date';
+export type CatalogSort = 'relevance' | 'name' | 'mana_value' | 'edhrec_rank' | 'price' | 'release_date';
+
+export type PriceCurrency = Database['public']['Enums']['price_currency'];
+
+export type Finish = Database['public']['Enums']['card_finish'];
 
 export type CatalogQuery = {
   text?: string;
@@ -21,6 +25,9 @@ export type CatalogQuery = {
   power_max?: number;
   toughness_min?: number;
   toughness_max?: number;
+  price_min?: string;
+  price_max?: string;
+  price_currency?: PriceCurrency;
   keywords?: string[];
   keywords_exclude?: string[];
   sets?: string[];
@@ -46,6 +53,13 @@ export type SearchPage<Row> = {
   prices_stale: boolean;
 };
 
+export type PriceFrom = {
+  currency: PriceCurrency;
+  amount: string;
+  finish: Finish;
+  basis: 'lowest current price over printings and finishes';
+};
+
 export type CatalogRow = {
   oracle_id: string;
   name: string;
@@ -57,7 +71,7 @@ export type CatalogRow = {
   can_be_commander: boolean;
   edhrec_rank: number | null;
   oracle_text?: string;
-  price_from: null;
+  price_from: PriceFrom | null;
   owned: { quantity: number; free_quantity: number; protected_free_quantity: number };
 };
 

@@ -35,6 +35,17 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 - A refused call returns an error with a `code` such as `invalid_argument` or `invalid_cursor`. The field at fault is in `details`. `readSearchError` reads it as a `SearchError`.
 - Each first page writes one row to `search_telemetry`. It is the one table with user data that has no read policy: app users cannot read it, and only the secret key can.
 
+### Card catalog imports
+
+`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest.
+
+- `catalog` imports cards and card printings. The Weekly import workflow runs it.
+- `prices` imports current prices from Scryfall Default Cards and recomputes each card's lowest current price.
+- `prune-telemetry` deletes search telemetry older than 180 days.
+- `retry-weekly` runs each weekly source whose latest run failed again.
+
+The Daily import workflow runs `prices`, `prune-telemetry`, and `retry-weekly`. Each run records an import run, so the hosted project does not pause. The Import workflow runs one source by hand.
+
 ### Per-user data
 
 Every table that holds a user's data follows one pattern:

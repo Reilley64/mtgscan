@@ -2,6 +2,7 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import type { Database } from '../database.types';
 import { readGzipJsonLines } from '../import/gzip-json-lines';
 import { localSecretKey, localStackUrl, secretKeyClient } from './local-stack';
 
@@ -81,8 +82,8 @@ export type CommandResult = {
   output: string;
 };
 
-export async function runCatalogImport(manifest: string, ...flags: string[]): Promise<CommandResult> {
-  const command = Bun.spawn(['bun', 'import/main.ts', 'catalog', '--manifest', manifest, ...flags], {
+export async function runImportCommand(...args: string[]): Promise<CommandResult> {
+  const command = Bun.spawn(['bun', 'import/main.ts', ...args], {
     cwd: supabaseDirectory,
     env: { ...process.env, SUPABASE_URL: localStackUrl, SUPABASE_SECRET_KEY: localSecretKey() },
     stdout: 'pipe',
@@ -96,11 +97,21 @@ export async function runCatalogImport(manifest: string, ...flags: string[]): Pr
   return { exitCode, output: stdout + stderr };
 }
 
+export function runCatalogImport(manifest: string, ...flags: string[]): Promise<CommandResult> {
+  return runImportCommand('catalog', '--manifest', manifest, ...flags);
+}
+
+export function runPriceImport(manifest: string, ...flags: string[]): Promise<CommandResult> {
+  return runImportCommand('prices', '--manifest', manifest, ...flags);
+}
+
 export async function resetCardCatalog(): Promise<void> {
   const client = secretKeyClient();
   for (const request of [
     () => client.from('import_snapshots').delete().not('run_id', 'is', null),
     () => client.from('import_runs').delete().not('id', 'is', null),
+    () => client.from('card_lowest_prices').delete().not('oracle_id', 'is', null),
+    () => client.from('card_prices').delete().not('printing_id', 'is', null),
     () => client.from('card_printings').delete().not('id', 'is', null),
     () => client.from('card_faces').delete().not('oracle_id', 'is', null),
     () => client.from('cards').delete().not('oracle_id', 'is', null),
@@ -112,11 +123,11 @@ export async function resetCardCatalog(): Promise<void> {
   }
 }
 
-export async function latestCatalogRun() {
+export async function latestRun(source: Database['public']['Enums']['import_source']) {
   const { data, error } = await secretKeyClient()
     .from('import_runs')
     .select('*')
-    .eq('source', 'catalog')
+    .eq('source', source)
     .order('started_at', { ascending: false })
     .limit(1)
     .single();

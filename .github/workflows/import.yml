@@ -8,6 +8,7 @@ on:
         type: choice
         options:
           - catalog
+          - prices
         default: catalog
       accept_shrink:
         description: Accept a shrink of more than 5%
