@@ -256,7 +256,7 @@ as $$
       from public.card_printings p
       where p.oracle_id = card.oracle_id and p.absent_since is null
     ),
-    'price_from', null,
+    'price_from', private.price_from(card.oracle_id, 'USD'),
     'owned', jsonb_build_object('quantity', 0, 'free_quantity', 0, 'protected_free_quantity', 0)
   ) || case
     when printing.id is null then '{}'::jsonb
@@ -273,6 +273,7 @@ set search_path = ''
 as $$
 declare
   data_as_of jsonb;
+  prices_as_of jsonb;
   checked jsonb;
   by_printing boolean;
   id_field text;
@@ -281,6 +282,10 @@ declare
 begin
   data_as_of := private.rules_freshness();
   checked := private.check_card_details_query(query);
+  select jsonb_build_object('prices_observed_at', f.snapshot_at, 'prices_stale', f.is_stale)
+    into prices_as_of
+    from public.catalog_freshness() f
+    where f.source = 'prices';
   by_printing := checked ? 'printing_ids';
   id_field := case when by_printing then 'printing_ids' else 'oracle_ids' end;
 
@@ -294,7 +299,7 @@ begin
   left join public.card_printings p on by_printing and p.id = r.id::uuid
   left join public.cards c on c.oracle_id = case when by_printing then p.oracle_id else r.id::uuid end;
 
-  return jsonb_build_object('items', items, 'not_found', not_found) || data_as_of;
+  return jsonb_build_object('items', items, 'not_found', not_found) || data_as_of || prices_as_of;
 end;
 $$;
 

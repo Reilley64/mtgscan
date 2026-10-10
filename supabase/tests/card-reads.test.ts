@@ -15,6 +15,7 @@ import {
   catalogFixtureSnapshotAt,
   resetCardCatalog,
   runCatalogImport,
+  runPriceImport,
 } from './catalog-import-command';
 import { anonymousClient, signUpNewUser, type TestUser } from './local-stack';
 
@@ -111,7 +112,9 @@ describe('after a catalog import', () => {
 
   describe('get cards', () => {
     test('a double-faced card returns full details with both faces', async () => {
-      const { items, not_found, rules_data_as_of, rules_stale } = await cards({ oracle_ids: [delverOfSecrets] });
+      const { items, not_found, rules_data_as_of, rules_stale, prices_observed_at, prices_stale } = await cards({
+        oracle_ids: [delverOfSecrets],
+      });
 
       expect(items).toEqual([
         {
@@ -161,6 +164,8 @@ describe('after a catalog import', () => {
       expect(not_found).toEqual([]);
       expect(new Date(rules_data_as_of).toISOString()).toBe(new Date(catalogFixtureSnapshotAt).toISOString());
       expect(rules_stale).toBe(false);
+      expect(prices_observed_at).toBeNull();
+      expect(prices_stale).toBe(true);
     });
 
     test('cards come back in the order of the IDs, and unknown IDs are reported', async () => {
@@ -455,6 +460,29 @@ describe('after a catalog import', () => {
       expect(data).toBeNull();
       expect(error?.code).toBe(permissionDenied);
     });
+  });
+});
+
+describe('after a price import', () => {
+  beforeAll(async () => {
+    expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
+  });
+
+  test('card details carry the lowest current price in USD over printings and finishes', async () => {
+    const { items, prices_observed_at, prices_stale } = await cards({ oracle_ids: [delverOfSecrets, valakutAwakening] });
+
+    expect(items.map((card) => [card.name, card.price_from])).toEqual([
+      [
+        'Delver of Secrets // Insectile Aberration',
+        { currency: 'USD', amount: '0.32', finish: 'nonfoil', basis: 'lowest current price over printings and finishes' },
+      ],
+      [
+        'Valakut Awakening // Valakut Stoneforge',
+        { currency: 'USD', amount: '16.47', finish: 'nonfoil', basis: 'lowest current price over printings and finishes' },
+      ],
+    ]);
+    expect(prices_observed_at).not.toBeNull();
+    expect(prices_stale).toBe(false);
   });
 });
 

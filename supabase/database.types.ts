@@ -255,6 +255,12 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"get_cards":
+{ Args: { "query": Json }; Returns: Json
+                           },
+"list_card_printings":
+{ Args: { "query": Json }; Returns: Json
+                           },
 "prune_search_telemetry":
 { Args: Record<PropertyKey, never>; Returns: number
                            },

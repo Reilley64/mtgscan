@@ -132,6 +132,8 @@ export type CardDetailsRow = {
 export type CardDetails = DataAsOf & {
   items: CardDetailsRow[];
   not_found: string[];
+  prices_observed_at: string | null;
+  prices_stale: boolean;
 };
 
 export type CardPrintingsQuery = {
