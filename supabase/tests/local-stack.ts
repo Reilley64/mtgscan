@@ -1,3 +1,5 @@
+import { SQL } from 'bun';
+
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 import type { Database } from '../database.types';
@@ -6,6 +8,15 @@ const url = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321';
 const publishableKey =
   process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
 export const localStackUrl = url;
+
+export async function asDatabaseOwner<T>(work: (database: SQL) => Promise<T>): Promise<T> {
+  const database = new SQL(process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres');
+  try {
+    return await work(database);
+  } finally {
+    await database.close();
+  }
+}
 
 export function localSecretKey(): string {
   const secretKey = process.env.SUPABASE_SECRET_KEY;

@@ -1,119 +1,20 @@
-import { dirname, resolve } from 'node:path';
-
 import type { Database } from '../database.types';
-import { readGzipJsonLines } from './gzip-json-lines';
 import type { ImportAdapter, StagedRow } from './import-run';
+import {
+  type BulkFile,
+  type ScryfallCard,
+  type ScryfallFace,
+  isCatalogLayout,
+  isPaperPrinting,
+  readBulkFiles,
+  readCards,
+} from './scryfall-bulk-data';
 
 type CommanderLegality = Database['public']['Enums']['commander_legality'];
 
-export const scryfallManifestUrl = 'https://api.scryfall.com/bulk-data';
-
-const scryfallHeaders = {
-  'User-Agent': 'mtgscan-catalog-import/0.0 (+https://github.com/Reilley64/mtgscan)',
-  Accept: 'application/json;q=0.9,*/*;q=0.8',
-};
-
-const layoutsOutsideTheCatalog = new Set([
-  'token',
-  'double_faced_token',
-  'art_series',
-  'emblem',
-  'planar',
-  'scheme',
-  'vanguard',
-]);
-
 const colorOrder = ['W', 'U', 'B', 'R', 'G'];
 
-type ScryfallFace = {
-  oracle_id?: string;
-  name?: string;
-  mana_cost?: string;
-  type_line?: string;
-  oracle_text?: string;
-  colors?: string[];
-  power?: string;
-  toughness?: string;
-  loyalty?: string;
-  illustration_id?: string;
-  image_uris?: { normal?: string };
-};
-
-type ScryfallCard = ScryfallFace & {
-  id?: string;
-  layout?: string;
-  cmc?: number;
-  color_identity?: string[];
-  keywords?: string[];
-  legalities?: { commander?: string };
-  game_changer?: boolean;
-  edhrec_rank?: number;
-  digital?: boolean;
-  games?: string[];
-  set?: string;
-  set_name?: string;
-  collector_number?: string;
-  lang?: string;
-  rarity?: string;
-  released_at?: string;
-  finishes?: string[];
-  card_faces?: ScryfallFace[];
-};
-
-type BulkFile = {
-  type: string;
-  updated_at: string;
-  jsonl_download_uri: string;
-};
-
-type BulkData = {
-  oracleCards: BulkFile;
-  defaultCards: BulkFile;
-};
-
-function isUrl(location: string): boolean {
-  return /^https?:\/\//.test(location);
-}
-
-function resolveLocation(base: string, location: string): string {
-  if (isUrl(location)) {
-    return location;
-  }
-  return isUrl(base) ? new URL(location, base).toString() : resolve(dirname(base), location);
-}
-
-async function openLocation(location: string): Promise<Response> {
-  const response = isUrl(location)
-    ? await fetch(location, { headers: scryfallHeaders })
-    : new Response(Bun.file(location));
-  if (!response.ok || !response.body) {
-    throw new Error(`Could not read ${location}: HTTP ${response.status}`);
-  }
-  return response;
-}
-
-async function readBulkData(manifestLocation: string): Promise<BulkData> {
-  const manifest = (await (await openLocation(manifestLocation)).json()) as { data?: BulkFile[] };
-  const find = (type: string): BulkFile => {
-    const file = manifest.data?.find((entry) => entry.type === type);
-    if (!file?.jsonl_download_uri || !file.updated_at) {
-      throw new Error(`The Scryfall bulk data manifest has no ${type} file`);
-    }
-    return { ...file, jsonl_download_uri: resolveLocation(manifestLocation, file.jsonl_download_uri) };
-  };
-  return { oracleCards: find('oracle_cards'), defaultCards: find('default_cards') };
-}
-
-async function* readCards(file: BulkFile): AsyncGenerator<ScryfallCard> {
-  const response = await openLocation(file.jsonl_download_uri);
-  try {
-    for await (const record of readGzipJsonLines(response.body!)) {
-      yield record as ScryfallCard;
-    }
-  } catch (error) {
-    throw new Error(`Could not read the Scryfall ${file.type} file: ${(error as Error).message}`);
-  }
-}
+type BulkData = Record<'oracle_cards' | 'default_cards', BulkFile>;
 
 function joinFaces(card: ScryfallCard, field: 'mana_cost' | 'oracle_text'): string | null {
   return card[field] ?? card.card_faces?.map((face) => face[field] ?? '').join(' // ') ?? null;
@@ -207,21 +108,13 @@ function printingRow(card: ScryfallCard): StagedRow {
   };
 }
 
-function isCatalogLayout(card: ScryfallCard): boolean {
-  return !layoutsOutsideTheCatalog.has(card.layout ?? '');
-}
-
-function isPaperPrinting(card: ScryfallCard): boolean {
-  return card.digital !== true && (card.games ?? []).includes('paper');
-}
-
 async function* catalogRows(bulkData: BulkData): AsyncGenerator<StagedRow> {
-  for await (const card of readCards(bulkData.oracleCards)) {
+  for await (const card of readCards(bulkData.oracle_cards)) {
     if (isCatalogLayout(card)) {
       yield* cardRows(card);
     }
   }
-  for await (const card of readCards(bulkData.defaultCards)) {
+  for await (const card of readCards(bulkData.default_cards)) {
     if (isCatalogLayout(card) && isPaperPrinting(card)) {
       yield printingRow(card);
     }
@@ -229,8 +122,8 @@ async function* catalogRows(bulkData: BulkData): AsyncGenerator<StagedRow> {
 }
 
 export async function scryfallCatalog(manifestLocation: string): Promise<ImportAdapter> {
-  const bulkData = await readBulkData(manifestLocation);
-  const fileTimes = [bulkData.oracleCards.updated_at, bulkData.defaultCards.updated_at].map(
+  const bulkData: BulkData = await readBulkFiles(manifestLocation, ['oracle_cards', 'default_cards']);
+  const fileTimes = [bulkData.oracle_cards.updated_at, bulkData.default_cards.updated_at].map(
     (time) => new Date(time),
   );
   return {
