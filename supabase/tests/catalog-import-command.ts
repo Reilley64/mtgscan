@@ -3,7 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { Database } from '../database.types';
+import { cardEmbeddings, type Embedder } from '../import/card-embeddings';
 import { readGzipJsonLines } from '../import/gzip-json-lines';
+import { provisionalBatchLimits, runImport } from '../import/import-run';
 import { localSecretKey, localStackUrl, secretKeyClient } from './local-stack';
 
 const supabaseDirectory = join(import.meta.dir, '..');
@@ -203,6 +205,7 @@ export function runOracleTagCommand(action: 'disable' | 'enable', tagId: string)
 export async function resetCardCatalog(): Promise<void> {
   const client = secretKeyClient();
   for (const request of [
+    () => client.from('card_embeddings').delete().not('oracle_id', 'is', null),
     () => client.from('combos').delete().not('id', 'is', null),
     () => client.from('disabled_tags').delete().not('tag_id', 'is', null),
     () => client.from('card_taggings').delete().not('tag_id', 'is', null),
@@ -235,4 +238,11 @@ export async function latestRun(source: Database['public']['Enums']['import_sour
     throw new Error(error.message);
   }
   return data;
+}
+
+export function runCardEmbeddingImport(embedder: Embedder) {
+  return runImport(secretKeyClient(), cardEmbeddings(secretKeyClient(), async () => embedder), {
+    acceptShrink: false,
+    batchLimits: provisionalBatchLimits,
+  });
 }

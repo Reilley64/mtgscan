@@ -76,9 +76,10 @@ SUPABASE_URL=… SUPABASE_SECRET_KEY=… bun run release-check --report report.m
 
 - `--corpus <directory>` reads another corpus. The default is this directory.
 - `--report <path>` also writes the report to a file. The report always goes to standard output.
+- `--mode baseline` and `--mode vector` choose the search modes. The default is `--mode baseline`. Give both to compare them. The vector mode gets each search text's embedding from the `embed-search-text` Edge Function and passes it to catalog search as `text_embedding`.
 - `--ungraded <path>` sets the file for pooled cards with no grade. The default is `release-check/ungraded-cards.jsonl`, which Git ignores.
 
-To run it against the hosted project, start the Release check workflow by hand in GitHub Actions. It writes the report to the job summary. It uploads the report and the pooled cards with no grade as the `release-check` artifact.
+To run it against the hosted project, start the Release check workflow by hand in GitHub Actions. Turn on its `vector` input to add the vector mode. It writes the report to the job summary. It uploads the report and the pooled cards with no grade as the `release-check` artifact.
 
 Each search runs as a first page of 20 results. The report has:
 
@@ -88,7 +89,8 @@ Each search runs as a first page of 20 results. The report has:
 - chip violations: the script reads each returned card from the card catalog and checks it against every chip in the query;
 - the vector trigger: class 5 capped recall@20 below 0.5;
 - abandoned app searches from the last 30 days, after #72 records search follow-ups;
-- server p95 latency from the release check telemetry rows, and the database size;
+- server p95 latency from the release check telemetry rows, the p95 time to get a text embedding from the Edge Function in the vector mode, and the database size;
+- the vector gate from #15, when both modes run: class 5 capped recall@20 rises by 0.15 or more, no other class drops by more than 0.02, the vector mode has no chip violations, its server p95 latency is 300 ms or less, and the database is under 400 MB. The owner checks that recurring cost stays $0;
 - the pooled cards with no grade.
 
 A search with no card graded 1 or 2 has no recall and is left out of its class. A gated class with no such searches fails.

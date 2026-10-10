@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 
+import { cardEmbeddings, gteSmallEmbedder } from './card-embeddings';
 import { commanderSpellbook, commanderSpellbookVariantsUrl } from './commander-spellbook';
 import { importClientFromEnvironment } from './import-client';
 import { ImportFailed, provisionalBatchLimits, runImport, type ImportClient } from './import-run';
@@ -12,6 +13,7 @@ import { type ImportAdapters, retryFailedWeeklySources } from './weekly-retry';
 const usage = `Usage:
   bun import/main.ts catalog|oracle_tags|prices [--manifest <path or URL>] [--accept-shrink] [--batch-rows <n>]
   bun import/main.ts commander_spellbook [--variants <path or URL>] [--accept-shrink] [--batch-rows <n>]
+  bun import/main.ts card_embeddings [--batch-rows <n>]
   bun import/main.ts retry-weekly [--manifest <path or URL>] [--variants <path or URL>] [--batch-rows <n>]
   bun import/main.ts prune-telemetry`;
 
@@ -33,6 +35,7 @@ const adapters = {
   oracle_tags: () => scryfallOracleTags(values.manifest),
   prices: () => scryfallPrices(values.manifest),
   commander_spellbook: () => commanderSpellbook(values.variants),
+  card_embeddings: async () => cardEmbeddings(client, gteSmallEmbedder),
 } satisfies ImportAdapters;
 
 async function pruneSearchTelemetry(client: ImportClient): Promise<void> {

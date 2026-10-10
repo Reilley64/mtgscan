@@ -2,6 +2,11 @@ name: Release check
 
 on:
   workflow_dispatch:
+    inputs:
+      vector:
+        description: Also run vector search and the vector gate
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -20,7 +25,12 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Run the search release check
         working-directory: supabase
-        run: bun run release-check --report "$RUNNER_TEMP/release-check/report.md" --ungraded "$RUNNER_TEMP/release-check/ungraded-cards.jsonl"
+        env:
+          VECTOR: ${{ inputs.vector }}
+        run: |
+          modes=(--mode baseline)
+          if [ "$VECTOR" = "true" ]; then modes+=(--mode vector); fi
+          bun run release-check --report "$RUNNER_TEMP/release-check/report.md" --ungraded "$RUNNER_TEMP/release-check/ungraded-cards.jsonl" "${modes[@]}"
       - name: Write the report to the job summary
         if: always()
         run: |

@@ -6,7 +6,7 @@ type ImportRunStatus = Database['public']['Enums']['import_run_status'];
 
 export type ImportAdapters = Partial<Record<ImportSource, () => Promise<ImportAdapter>>>;
 
-const weeklySources: ImportSource[] = ['catalog', 'oracle_tags', 'commander_spellbook'];
+const weeklySources: ImportSource[] = ['catalog', 'oracle_tags', 'commander_spellbook', 'card_embeddings'];
 const failedStatuses: ImportRunStatus[] = ['failed', 'expired'];
 
 export async function retryFailedWeeklySources(

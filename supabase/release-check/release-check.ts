@@ -7,7 +7,10 @@ import { searchClasses, type CorpusSearch, type SearchClass } from './search-cor
 export type SearchMode = {
   name: string;
   search: (query: CatalogQuery) => Promise<SearchPage<CatalogRow>>;
+  textEmbeddingMs?: number[];
 };
+
+export type TextEmbedder = (text: string) => Promise<number[]>;
 
 type SearchScore = {
   search: string;
@@ -41,7 +44,17 @@ export type ModeReport = {
   chipViolations: ChipViolation[];
   vectorTrigger: boolean;
   p95LatencyMs: number;
+  textEmbeddingP95Ms: number | null;
   ungraded: UngradedCard[];
+  passed: boolean;
+};
+
+export type VectorGate = {
+  classFiveRise: number;
+  largestDrop: { class: SearchClass; drop: number };
+  chipViolations: number;
+  p95LatencyMs: number;
+  databaseBytes: number;
   passed: boolean;
 };
 
@@ -49,6 +62,7 @@ export type ReleaseCheckReport = {
   modes: ModeReport[];
   rulesDataAsOf: string | null;
   databaseBytes: number;
+  vectorGate: VectorGate | null;
   ungraded: UngradedCard[];
   passed: boolean;
 };
@@ -57,20 +71,53 @@ const recallDepth = 20;
 export const recallGate = 0.7;
 export const vectorTriggerRecall = 0.5;
 export const gatedClasses: SearchClass[] = [2, 3, 4];
+export const vectorGateTargets = { classFiveRise: 0.15, largestDrop: 0.02, p95LatencyMs: 300, databaseBytes: 400 * 1024 * 1024 };
 
 type SearchRun = { search: CorpusSearch; page: SearchPage<CatalogRow> };
 
+async function searchCatalog(
+  client: ImportClient,
+  query: CatalogQuery,
+  textEmbedding?: number[],
+): Promise<SearchPage<CatalogRow>> {
+  const { data, error } = await client.rpc('search_catalog', { query: query as Json, text_embedding: textEmbedding });
+  if (error) {
+    const { code, message, field } = readSearchError(error);
+    throw new Error(`Catalog search refused ${JSON.stringify(query)}: ${code} ${message} ${field ?? ''}`.trim());
+  }
+  return data as unknown as SearchPage<CatalogRow>;
+}
+
 export function catalogSearch(client: ImportClient): SearchMode {
+  return { name: 'baseline', search: (query) => searchCatalog(client, query) };
+}
+
+export function vectorSearch(client: ImportClient, embedText: TextEmbedder): SearchMode {
+  const textEmbeddingMs: number[] = [];
   return {
-    name: 'baseline',
+    name: 'vector',
+    textEmbeddingMs,
     search: async (query) => {
-      const { data, error } = await client.rpc('search_catalog', { query: query as Json });
-      if (error) {
-        const { code, message, field } = readSearchError(error);
-        throw new Error(`Catalog search refused ${JSON.stringify(query)}: ${code} ${message} ${field ?? ''}`.trim());
+      if (query.text === undefined) {
+        return searchCatalog(client, query);
       }
-      return data as unknown as SearchPage<CatalogRow>;
+      const startedAt = performance.now();
+      const textEmbedding = await embedText(query.text);
+      textEmbeddingMs.push(performance.now() - startedAt);
+      return searchCatalog(client, query, textEmbedding);
     },
+  };
+}
+
+export function edgeFunctionTextEmbedder(client: ImportClient): TextEmbedder {
+  return async (text) => {
+    const { data, error } = await client.functions.invoke<{ embedding: number[] }>('embed-search-text', {
+      body: { text },
+    });
+    if (error || !data) {
+      throw new Error(`The embed-search-text Edge Function refused ${JSON.stringify(text)}: ${error?.message ?? 'no embedding'}`);
+    }
+    return data.embedding;
   };
 }
 
@@ -210,9 +257,37 @@ async function checkMode(client: ImportClient, corpus: CorpusSearch[], mode: Sea
       chipViolations: violations,
       vectorTrigger: classFive !== null && classFive < vectorTriggerRecall,
       p95LatencyMs: percentile95(await serverLatencies(client, runs.map(({ page }) => page.search_id))),
+      textEmbeddingP95Ms: mode.textEmbeddingMs?.length ? percentile95(mode.textEmbeddingMs) : null,
       ungraded: ungradedCards(runs),
       passed,
     },
+  };
+}
+
+function vectorGate(modes: ModeReport[], bytes: number): VectorGate | null {
+  const baseline = modes.find((mode) => mode.mode === 'baseline');
+  const vector = modes.find((mode) => mode.mode === 'vector');
+  if (!baseline || !vector) {
+    return null;
+  }
+  const recallOf = (mode: ModeReport, searchClass: SearchClass) => classScore(mode.classes, searchClass).cappedRecall ?? 0;
+  const classFiveRise = recallOf(vector, 5) - recallOf(baseline, 5);
+  const largestDrop = searchClasses
+    .filter((searchClass) => searchClass !== 5)
+    .map((searchClass) => ({ class: searchClass, drop: recallOf(baseline, searchClass) - recallOf(vector, searchClass) }))
+    .reduce((largest, next) => (next.drop > largest.drop ? next : largest));
+  return {
+    classFiveRise,
+    largestDrop,
+    chipViolations: vector.chipViolations.length,
+    p95LatencyMs: vector.p95LatencyMs,
+    databaseBytes: bytes,
+    passed:
+      classFiveRise >= vectorGateTargets.classFiveRise &&
+      largestDrop.drop <= vectorGateTargets.largestDrop &&
+      vector.chipViolations.length === 0 &&
+      vector.p95LatencyMs <= vectorGateTargets.p95LatencyMs &&
+      bytes < vectorGateTargets.databaseBytes,
   };
 }
 
@@ -228,10 +303,13 @@ export async function runReleaseCheck(
   const ungraded = new Map(
     modeChecks.flatMap(({ report }) => report.ungraded).map((card) => [`${card.search} ${card.oracle_id}`, card]),
   );
+  const modeReports = modeChecks.map(({ report }) => report);
+  const bytes = await databaseBytes(client);
   return {
-    modes: modeChecks.map(({ report }) => report),
+    modes: modeReports,
     rulesDataAsOf: modeChecks[0]?.rulesDataAsOf ?? null,
-    databaseBytes: await databaseBytes(client),
+    databaseBytes: bytes,
+    vectorGate: vectorGate(modeReports, bytes),
     ungraded: [...ungraded.values()],
     passed: modeChecks.every(({ report }) => report.passed),
   };

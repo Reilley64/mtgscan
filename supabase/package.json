@@ -17,6 +17,7 @@
     "release-check": "bun release-check/main.ts"
   },
   "dependencies": {
+    "@huggingface/transformers": "4.3.1",
     "@streamparser/json-whatwg": "^0.0.26",
     "@supabase/supabase-js": "^2.117.3"
   },

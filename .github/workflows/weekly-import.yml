@@ -30,3 +30,11 @@ jobs:
     with:
       source: commander_spellbook
     secrets: inherit
+
+  card_embeddings:
+    needs: oracle_tags
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/import.yml
+    with:
+      source: card_embeddings
+    secrets: inherit

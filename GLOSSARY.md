@@ -108,6 +108,12 @@ _Avoid_: Inventory search
 An exact filter in a catalog search or collection search, such as a color identity or a mana value bound. Every chip in a search must match, and a negated chip must not. A card in the results that fails a chip is a chip violation.
 _Avoid_: Facet
 
+**Card embedding**:
+A list of 384 numbers that the gte-small model computes from a card's name, type line, Oracle text, keywords, and Oracle tag labels. Cards with a similar meaning have card embeddings that are close together.
+
+**Vector search**:
+A catalog search that also uses the embedding of its search text. It adds the cards whose card embeddings are nearest to it and ranks them together with the text matches. Every chip still applies. Without the embedding, catalog search is the baseline.
+
 **Search release check**:
 A manual run of the graded search corpus through catalog search on the hosted project. It decides whether search is ready to release and whether the vector search experiment is triggered.
 

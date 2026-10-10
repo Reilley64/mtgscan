@@ -2,9 +2,11 @@ import {
   classScore,
   gatedClasses,
   recallGate,
+  vectorGateTargets,
   vectorTriggerRecall,
   type ModeReport,
   type ReleaseCheckReport,
+  type VectorGate,
 } from './release-check';
 
 const abandonedSearchesLine = 'Abandoned app searches: not recorded yet (#72).';
@@ -43,6 +45,40 @@ function gateRows(modes: ModeReport[]): (string | number)[][] {
     ]),
     ['Chip violations', '0', ...modes.map((mode) => mode.chipViolations.length)],
     ['Result', '', ...modes.map((mode) => verdict(mode.passed))],
+  ];
+}
+
+function milliseconds(value: number | null): string {
+  return value === null ? 'n/a' : `${Math.round(value)} ms`;
+}
+
+function vectorGateLines(gate: VectorGate | null): string[] {
+  if (!gate) {
+    return [];
+  }
+  const signed = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(3)}`;
+  return [
+    '## Vector gate',
+    '',
+    'The #15 gate to ship vectors compares vector with baseline.',
+    '',
+    ...table(
+      ['Check', 'Target', 'vector'],
+      [
+        ['Rise in class 5 capped recall@20', `${vectorGateTargets.classFiveRise} or more`, signed(gate.classFiveRise)],
+        [
+          'Largest drop in another class',
+          `${vectorGateTargets.largestDrop} or less`,
+          `${signed(gate.largestDrop.drop)}, class ${gate.largestDrop.class}`,
+        ],
+        ['Chip violations', '0', gate.chipViolations],
+        ['Server p95 latency', `${vectorGateTargets.p95LatencyMs} ms or less`, milliseconds(gate.p95LatencyMs)],
+        ['Database size', `under ${megabytes(vectorGateTargets.databaseBytes)}`, megabytes(gate.databaseBytes)],
+        ['Recurring cost', '$0', 'checked by the owner'],
+        ['Result', '', verdict(gate.passed)],
+      ],
+    ),
+    '',
   ];
 }
 
@@ -103,10 +139,17 @@ export function renderReport(report: ReleaseCheckReport, ungradedPath: string): 
     '',
     '## Latency and size',
     '',
-    ...table(['Measure', ...names], [['Server p95 latency', ...modes.map((mode) => `${Math.round(mode.p95LatencyMs)} ms`)]]),
+    ...table(
+      ['Measure', ...names],
+      [
+        ['Server p95 latency', ...modes.map((mode) => milliseconds(mode.p95LatencyMs))],
+        ['Text embedding p95 latency', ...modes.map((mode) => milliseconds(mode.textEmbeddingP95Ms))],
+      ],
+    ),
     '',
     `Database size: ${megabytes(report.databaseBytes)}.`,
     '',
+    ...vectorGateLines(report.vectorGate),
   ];
   for (const mode of modes) {
     if (mode.exactNames.misses.length > 0) {

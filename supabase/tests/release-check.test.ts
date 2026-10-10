@@ -5,18 +5,21 @@ import { join } from 'node:path';
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { Json } from '../database.types';
-import { catalogSearch, runReleaseCheck, type SearchMode } from '../release-check/release-check';
+import { catalogSearch, classScore, runReleaseCheck, vectorSearch, type SearchMode } from '../release-check/release-check';
+import { renderReport } from '../release-check/report';
 import { readSearchCorpus } from '../release-check/search-corpus';
 import { type CatalogQuery, type CatalogRow, type SearchPage } from '../search';
 import {
   catalogFixtureManifest,
   oracleIdOf,
   resetCardCatalog,
+  runCardEmbeddingImport,
   runCatalogImport,
   runOracleTagImport,
   runPriceImport,
   runReleaseCheckCommand,
 } from './catalog-import-command';
+import { wordCountEmbedding } from './fake-text-embedder';
 import { secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(120_000);
@@ -28,6 +31,7 @@ type TestSearch = { id: string; class: number; query: CatalogQuery; grades: Reco
 
 let alice: TestUser;
 let creaturesByName: CatalogRow[];
+let rhysticStudyEmbedding: number[];
 
 async function catalogPage(client: TestUser['client'], query: CatalogQuery) {
   const { data, error } = await client.rpc('search_catalog', { query: query as Json });
@@ -112,6 +116,11 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
   expect((await runOracleTagImport(catalogFixtureManifest)).exitCode).toBe(0);
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
+  const { data, error } = await releaseCheckClient.rpc('list_card_embedding_texts', {});
+  expect(error).toBeNull();
+  const rhysticStudy = await oracleIdOf('Rhystic Study');
+  rhysticStudyEmbedding = wordCountEmbedding(data!.find((card) => card.oracle_id === rhysticStudy)!.embedding_text);
+  await runCardEmbeddingImport(async (text) => wordCountEmbedding(text));
   creaturesByName = await allCreaturesByName();
 });
 
@@ -234,6 +243,61 @@ describe('release check metrics', () => {
     expect(report.modes.map((mode) => mode.classes.length)).toEqual([5, 5]);
     expect(report.modes.map((mode) => mode.passed)).toEqual([true, false]);
     expect(report.passed).toBe(false);
+  });
+});
+
+describe('vector mode', () => {
+  const towardRhysticStudy = () => vectorSearch(releaseCheckClient, async () => rhysticStudyEmbedding);
+
+  test('the vector mode sends the embedding of each search text with the search', async () => {
+    const [, vector] = (await checkCorpus(passingSearches(), [baseline, towardRhysticStudy()])).modes;
+
+    expect(vector!.mode).toBe('vector');
+    expect(classScore(vector!.classes, 5).cappedRecall).toBe(1);
+    expect(vector!.textEmbeddingP95Ms).toBeGreaterThanOrEqual(0);
+  });
+
+  test('the vector gate passes when class 5 rises by 0.15 or more and no other class drops by more than 0.02', async () => {
+    const report = await checkCorpus(passingSearches(), [baseline, towardRhysticStudy()]);
+
+    expect(report.vectorGate).toMatchObject({
+      classFiveRise: 1,
+      largestDrop: { drop: 0 },
+      chipViolations: 0,
+      databaseBytes: report.databaseBytes,
+      passed: true,
+    });
+    expect(renderReport(report, 'ungraded.jsonl')).toContain('## Vector gate');
+  });
+
+  test('the vector gate fails when another class drops by more than 0.02', async () => {
+    const vector = towardRhysticStudy();
+    const missesFilterSearches: SearchMode = {
+      name: 'vector',
+      search: (query) => (query.text ? vector.search(query) : baseline.search({ names: ['fog'] })),
+    };
+
+    const report = await checkCorpus(passingSearches(), [baseline, missesFilterSearches]);
+
+    expect(report.vectorGate!.classFiveRise).toBe(1);
+    expect(report.vectorGate!.largestDrop.drop).toBeGreaterThan(0.02);
+    expect(report.vectorGate!.passed).toBe(false);
+  });
+
+  test('the vector gate fails when class 5 does not rise by 0.15', async () => {
+    const awayFromRhysticStudy = vectorSearch(releaseCheckClient, async () => rhysticStudyEmbedding.map((value) => -value));
+
+    const report = await checkCorpus(passingSearches(), [baseline, awayFromRhysticStudy]);
+
+    expect(report.vectorGate!.classFiveRise).toBeLessThan(0.15);
+    expect(report.vectorGate!.passed).toBe(false);
+  });
+
+  test('a report with only the baseline has no vector gate', async () => {
+    const report = await checkCorpus(passingSearches());
+
+    expect(report.vectorGate).toBeNull();
+    expect(renderReport(report, 'ungraded.jsonl')).not.toContain('## Vector gate');
   });
 });
 

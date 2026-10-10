@@ -23,7 +23,27 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "card_faces": {
+            "card_embeddings": {
+                  Row: {
+                    "embedding": unknown,"embedding_text_md5": string,"oracle_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "embedding": unknown,"embedding_text_md5": string,"oracle_id": string
+                  }
+                  Update: {
+                    "embedding"?: unknown,"embedding_text_md5"?: string,"oracle_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "card_embeddings_oracle_id_fkey"
+      columns: ["oracle_id"]
+isOneToOne: true
+      referencedRelation: "cards"
+      referencedColumns: ["oracle_id"]
+    }
+                  ]
+                },"card_faces": {
                   Row: {
                     "colors": (string)[],"face_index": number,"loyalty": string | null,"mana_cost": string,"name": string,"oracle_id": string,"oracle_text": string,"power": string | null,"toughness": string | null,"type_line": string
                   }
@@ -374,6 +394,11 @@ isOneToOne: false
 "get_cards":
 { Args: { "query": Json }; Returns: Json
                            },
+"list_card_embedding_texts":
+{ Args: { "after_oracle_id"?: string,"row_limit"?: number }; Returns: {
+              "embedding_text": string,"embedding_text_md5": string,"oracle_id": string
+            }[]
+                           },
 "list_card_printings":
 { Args: { "query": Json }; Returns: Json
                            },
@@ -381,7 +406,7 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "search_catalog":
-{ Args: { "query": Json }; Returns: Json
+{ Args: { "query": Json,"text_embedding"?: Json }; Returns: Json
                            },
 "search_oracle_tags":
 { Args: { "query": Json }; Returns: Json
@@ -391,7 +416,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "card_finish": "nonfoil"|"foil"|"etched","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices","price_currency": "USD"|"EUR","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
+            "card_finish": "nonfoil"|"foil"|"etched","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices"|"card_embeddings","price_currency": "USD"|"EUR","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -511,7 +536,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "card_finish": ["nonfoil", "foil", "etched"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices"],"price_currency": ["USD", "EUR"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
+            "card_finish": ["nonfoil", "foil", "etched"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices", "card_embeddings"],"price_currency": ["USD", "EUR"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
           }
         }
 } as const
