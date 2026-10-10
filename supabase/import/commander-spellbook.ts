@@ -1,15 +1,13 @@
 import type { ParsedElementInfo } from '@streamparser/json-whatwg';
 import JSONParser from '@streamparser/json-whatwg/jsonparser.js';
 
+import type { Database } from '../database.types';
 import type { ImportAdapter, StagedRow } from './import-run';
+import { importUserAgent, openLocation } from './source-file';
 
 export const commanderSpellbookVariantsUrl = 'https://json.commanderspellbook.com/variants.json.gz';
 
-const spellbookHeaders = {
-  'User-Agent': 'mtgscan-combo-import/0.0 (+https://github.com/Reilley64/mtgscan)',
-};
-
-const bracketTags: Record<string, string> = {
+const bracketTags: Record<string, Database['public']['Enums']['combo_bracket_tag']> = {
   R: 'ruthless',
   S: 'spicy',
   P: 'powerful',
@@ -37,7 +35,7 @@ class SpellbookFileError extends Error {
   }
 }
 
-function isTwoCardCombo(variant: SpellbookVariant): boolean {
+function isCombo(variant: SpellbookVariant): boolean {
   return (
     variant.status === 'OK' &&
     variant.uses?.length === 2 &&
@@ -84,28 +82,18 @@ async function readValue(values: ParsedValues) {
 async function* comboRows(values: ParsedValues): AsyncGenerator<StagedRow> {
   for (let next = await readValue(values); !next.done; next = await readValue(values)) {
     const variant = next.value.value as SpellbookVariant;
-    if (isTwoCardCombo(variant)) {
+    if (isCombo(variant)) {
       yield comboRow(variant);
     }
   }
 }
 
-async function openVariantsFile(location: string): Promise<ReadableStream<Uint8Array>> {
-  const response = /^https?:\/\//.test(location)
-    ? await fetch(location, { headers: spellbookHeaders })
-    : new Response(Bun.file(location));
-  if (!response.ok || !response.body) {
-    throw new Error(`Could not read ${location}: HTTP ${response.status}`);
-  }
-  return response.body;
-}
-
 export async function commanderSpellbook(variantsLocation: string): Promise<ImportAdapter> {
-  const values = (await openVariantsFile(variantsLocation))
-    .pipeThrough(new JSONParser({ paths: ['$.timestamp', '$.variants.*'], keepStack: false }))
+  const values = (await openLocation(variantsLocation, { 'User-Agent': importUserAgent }))
+    .body!.pipeThrough(new JSONParser({ paths: ['$.timestamp', '$.variants.*'], keepStack: false }))
     .getReader();
-  const first = await readValue(values);
-  const timestamp = first.done || first.value.key !== 'timestamp' ? undefined : first.value.value;
+  const header = await readValue(values);
+  const timestamp = header.done || header.value.key !== 'timestamp' ? undefined : header.value.value;
   const sourceUpdatedAt = new Date(typeof timestamp === 'string' ? timestamp : Number.NaN);
   if (Number.isNaN(sourceUpdatedAt.getTime())) {
     throw new SpellbookFileError('it has no timestamp before its variants');

@@ -84,7 +84,7 @@ declare
   combos_deleted bigint;
 begin
   select count(*), count(*) filter (
-      where num_nulls(id, first_oracle_id, second_oracle_id, color_identity, produced_features, bracket_tag) > 0
+      where num_nulls(id, color_identity, produced_features, bracket_tag) > 0
     )
     into staged_combos, missing
     from catalog_import.combos s

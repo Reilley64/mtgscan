@@ -44,14 +44,13 @@ async function pruneSearchTelemetry(client: ImportClient): Promise<void> {
 }
 
 const commands: Record<string, (client: ImportClient) => Promise<unknown>> = {
-  catalog: async (client) =>
-    runImport(client, await adapters.catalog(), { acceptShrink: values['accept-shrink'], batchLimits }),
-  oracle_tags: async (client) =>
-    runImport(client, await adapters.oracle_tags(), { acceptShrink: values['accept-shrink'], batchLimits }),
-  prices: async (client) =>
-    runImport(client, await adapters.prices(), { acceptShrink: values['accept-shrink'], batchLimits }),
-  commander_spellbook: async (client) =>
-    runImport(client, await adapters.commander_spellbook(), { acceptShrink: values['accept-shrink'], batchLimits }),
+  ...Object.fromEntries(
+    Object.entries(adapters).map(([source, adapter]) => [
+      source,
+      async (client: ImportClient) =>
+        runImport(client, await adapter(), { acceptShrink: values['accept-shrink'], batchLimits }),
+    ]),
+  ),
   'retry-weekly': (client) => retryFailedWeeklySources(client, adapters, batchLimits),
   'prune-telemetry': pruneSearchTelemetry,
 };

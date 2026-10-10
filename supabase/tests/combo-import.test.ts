@@ -189,6 +189,20 @@ describe('only two-card combos with status OK and no template requirement are im
 });
 
 describe('combo import runs', () => {
+  test('a combo with a card that has no Oracle ID is dropped and counted', async () => {
+    await expectImported(
+      await spellbookFixture({
+        variants: editVariant(thassasOracleCombo, (variant) => ({
+          ...variant,
+          uses: [{ ...variant.uses[0]!, card: { ...variant.uses[0]!.card, oracleId: null } }, variant.uses[1]!],
+        })),
+      }),
+    );
+
+    expect(await comboIds()).toEqual([kikiJikiCombo]);
+    expect((await latestRun('commander_spellbook')).counts).toMatchObject({ combos: { staged: 4, dropped: 3 } });
+  });
+
   test('a later run adds new combos and updates changed ones', async () => {
     await expectImported(await spellbookFixture({ variants: editVariant(thassasOracleCombo, () => null) }));
 

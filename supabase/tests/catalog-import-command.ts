@@ -35,7 +35,7 @@ export type ScryfallOracleTag = {
 export type SpellbookVariant = {
   id: string;
   status: string;
-  uses: { card: { name: string; oracleId: string }; quantity: number; [field: string]: unknown }[];
+  uses: { card: { name: string; oracleId: string | null }; quantity: number; [field: string]: unknown }[];
   requires: unknown[];
   identity: string;
   bracketTag: string;
