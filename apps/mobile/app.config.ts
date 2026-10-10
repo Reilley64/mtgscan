@@ -1,4 +1,5 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import { type ConfigPlugin, IOSConfig, withInfoPlist } from 'expo/config-plugins';
 
 const googleClientIdSuffix = '.apps.googleusercontent.com';
 
@@ -11,15 +12,18 @@ function googleIosUrlScheme(iosClientId: string | undefined) {
   return `com.googleusercontent.apps.${iosClientId.slice(0, -googleClientIdSuffix.length)}`;
 }
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
-  ...config,
-  name: config.name ?? 'mtgscan',
-  slug: config.slug ?? 'mtgscan',
-  plugins: [
-    ...(config.plugins ?? []),
-    [
-      '@react-native-google-signin/google-signin',
-      { iosUrlScheme: googleIosUrlScheme(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) },
-    ],
-  ],
-});
+const withGoogleIosUrlScheme: ConfigPlugin = (config) =>
+  withInfoPlist(config, (infoPlistConfig) => {
+    const scheme = googleIosUrlScheme(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
+    if (!IOSConfig.Scheme.hasScheme(scheme, infoPlistConfig.modResults)) {
+      infoPlistConfig.modResults = IOSConfig.Scheme.appendScheme(scheme, infoPlistConfig.modResults);
+    }
+    return infoPlistConfig;
+  });
+
+export default ({ config }: ConfigContext): ExpoConfig =>
+  withGoogleIosUrlScheme({
+    ...config,
+    name: config.name ?? 'mtgscan',
+    slug: config.slug ?? 'mtgscan',
+  });
