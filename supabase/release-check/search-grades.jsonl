@@ -2219,3 +2219,1067 @@
 {"search": "cheat-big-creatures", "oracle_id": "b6f52260-9ad5-4024-acf9-d77f3c08c872", "card": "Ashiok, Nightmare Weaver", "grade": 1}
 {"search": "cheat-big-creatures", "oracle_id": "d6b56d6d-e2f6-47f5-a9d1-cd0e17f94a0d", "card": "Akul the Unrepentant", "grade": 2}
 {"search": "cheat-big-creatures", "oracle_id": "85fd2f65-957e-446b-990a-8711a1e1c4f6", "card": "The First Tyrannic War", "grade": 2}
+{"search": "sol-ring", "oracle_id": "9fcb920c-b8d7-4a79-a335-f63050182cca", "card": "Call of the Ring", "grade": 0}
+{"search": "sol-ring", "oracle_id": "616d6013-24f4-4999-9bf3-5b0764e52fa6", "card": "Crystal Vein", "grade": 0}
+{"search": "sol-ring", "oracle_id": "099ae8f2-5c84-43ab-aaa1-ea69f2bba784", "card": "Elrond, Lord of Rivendell", "grade": 0}
+{"search": "sol-ring", "oracle_id": "8d3c9646-2b6b-4315-939d-5a920efc0a60", "card": "Galadriel of Lothlórien", "grade": 0}
+{"search": "sol-ring", "oracle_id": "2f1ae834-f6b8-458c-ac0d-3510ddb85193", "card": "Inherited Envelope", "grade": 0}
+{"search": "sol-ring", "oracle_id": "b49642f6-20bd-468d-9dac-e578f9ac3091", "card": "Leyline Binding", "grade": 0}
+{"search": "sol-ring", "oracle_id": "ca4d3d27-ea3a-44ac-96e9-b52b563129f8", "card": "Lotus Ring", "grade": 0}
+{"search": "sol-ring", "oracle_id": "97c188c4-3f27-428e-a4f6-4213f44898fc", "card": "Mirrormere Guardian", "grade": 0}
+{"search": "sol-ring", "oracle_id": "bd9b9772-f5f9-4c6b-913e-7193bea5d0a7", "card": "Oblivion Ring", "grade": 0}
+{"search": "sol-ring", "oracle_id": "1ff00f5b-4bf9-4724-8bb5-6b9a9eb0ec7f", "card": "Replicating Ring", "grade": 0}
+{"search": "sol-ring", "oracle_id": "4548f379-2647-4446-9e56-e7ef0662793a", "card": "Ring of Evos Isle", "grade": 0}
+{"search": "sol-ring", "oracle_id": "45964368-ea9e-415f-9faf-870c7bf550d4", "card": "Ring of Renewal", "grade": 0}
+{"search": "sol-ring", "oracle_id": "d37e595f-afe7-4ad9-87db-b9ceb3f435e8", "card": "Ring of the Lucii", "grade": 0}
+{"search": "sol-ring", "oracle_id": "66e42be3-5125-41b4-9efe-8a6a66899bb6", "card": "Ringsight", "grade": 0}
+{"search": "sol-ring", "oracle_id": "2dc6637a-0b51-462b-9f18-571146bb4558", "card": "Shortcut to Mushrooms", "grade": 0}
+{"search": "sol-ring", "oracle_id": "8f5822ae-651f-410e-9316-5522eeb52d72", "card": "Sisay's Ring", "grade": 0}
+{"search": "sol-ring", "oracle_id": "0396ef40-3774-4684-9971-160aaccf6ac6", "card": "Sol Grail", "grade": 0}
+{"search": "sol-ring", "oracle_id": "c04b4323-db6a-4ab1-99b7-eef3acad3c4f", "card": "Soliton", "grade": 0}
+{"search": "sol-ring", "oracle_id": "3d36f0ab-d333-4a08-ad1b-5b7e1ddb647c", "card": "The Ring Goes South", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "98709d61-4da4-4d3a-a654-bb2a7a0edb6b", "card": "Amulet of Safekeeping", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "987b74f4-02cb-4d47-94e5-d58a3c8e92e4", "card": "Flay", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "22abc3e8-49bb-475a-8248-0ce85274913c", "card": "Glass Asp", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "74716642-fc8c-4f62-a556-154ed0b4af0e", "card": "Heroism", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "f3b4097f-b84f-4645-81f1-018366e40eeb", "card": "Hexbane Tortoise", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "9110480b-a5d6-4cf8-a72c-dc1a50f11fac", "card": "Practical Research", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "7613c50b-4568-4340-b64a-ab427aaffd51", "card": "Rhys the Exiled", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "f7252190-ad24-4ba3-a644-2790dd1d680d", "card": "Rhys the Redeemed", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "9f013b5d-fff0-4c50-8621-158b6dc34834", "card": "Rhys, the Evermore", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "bffb7d30-b9a4-4529-a3fc-c82d6cd4b599", "card": "Rhystic Circle", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "d59cfff9-2bce-439a-9456-ae68eabbf67d", "card": "Rhystic Deluge", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "f6d371e6-e25e-4820-8cf7-f692a4d9be11", "card": "Rhystic Lightning", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "7a07971a-bfc3-4d36-ad8a-b9d395cbd6e9", "card": "Rhystic Scrying", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "a905dafa-1818-471a-a485-d84be447263b", "card": "Rhystic Shield", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "b1eea34a-74ef-4d7c-bf70-c64b3487f296", "card": "Rhystic Syphon", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "1c6da9a9-6395-460b-8150-ea46d7299dc2", "card": "Rhystic Tutor", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "72c4c682-df97-4408-997b-e849f54aba39", "card": "Seal from Existence", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "6e0deb42-f876-4fb8-9536-6d9a42bd6e5e", "card": "Shrouded Serpent", "grade": 0}
+{"search": "rhystic-study", "oracle_id": "fac310c7-c1e5-42f9-8140-17472be21d0d", "card": "Soul Strings", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "15cc068c-f424-433e-b165-8457c62a4b35", "card": "Azure Drake", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "06a3fe24-7e1f-4f98-ba2f-dbb5d38f4b9d", "card": "Bloodrock Cyclops", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "f7467fce-61e4-401a-8a3d-b0a2bc347088", "card": "Cloudspire Skycycle", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "f0367926-4380-4d22-8cb8-46c2076f102a", "card": "Coastal Tower", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "4b746fe1-4c11-4dfd-bdc9-edd394478861", "card": "Pyxis of Pandemonium", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "cbb6139f-827f-490b-b9b7-e8c3ef714d44", "card": "Quakefoot Cyclops", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "cee8ad22-12a7-4da6-a7d9-e205ada16489", "card": "Rampaging Cyclops", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "15687ee3-3cdb-4a8f-a726-46b73bceb792", "card": "Shadowblood Ridge", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "00fc773a-72aa-4b58-a17c-8ac0f17c4c85", "card": "Shadowcloak Vampire", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "e5c48c6d-a7bf-45b3-b48c-dc884d49c5f7", "card": "Simic Sky Swallower", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "599402d9-2ea6-4709-b010-b35636be8c8c", "card": "Sky Cycle", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "2224b6e0-c5ff-45d0-84e3-83758c5fc99f", "card": "Sky Diamond", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "76f335d0-7f71-4b1a-b60d-73de954cbe2c", "card": "Skycloud Expanse", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "e286a191-39d4-4073-b844-11d2aba911b4", "card": "Strixhaven Skycoach", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "f1d826d1-d2da-46ce-b1db-81393c88d865", "card": "Susurian Dirgecraft", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "b94fcdd2-7e50-439c-b5eb-aaa9ec7dee08", "card": "Tectonic Rift", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "681ca1eb-2ef5-4d60-b834-58bd9b5a47b8", "card": "Tower Gargoyle", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "e86a0b64-fe4a-4ea8-99e8-35860dbac765", "card": "Turbulent Crater", "grade": 0}
+{"search": "cyclonic-rift", "oracle_id": "8f40d73b-9106-448e-8649-5d62939f0d38", "card": "Voyager Glidecar", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "c82665b7-d011-4bdc-b4a2-eca5861b16d2", "card": "Blood Tithe", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "c9634afc-4a5b-4cf6-b63d-0ff9909dd5a7", "card": "Desolation of Smaug", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "4bb75182-6dd4-42f7-9541-d484d0b57897", "card": "Excavation Explosion", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "bcd3e6a1-7b76-408d-9236-3791c3e1064a", "card": "Excavation Technique", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "f34eb8a9-63af-452b-8957-8587bf4fd956", "card": "Peak Eruption", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "c53b7602-5e36-4900-896c-844bf6eac22e", "card": "Smaug the Magnificent", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "fc75cfec-e1f6-4cb5-8a3c-2f7b2c39c03f", "card": "Smaug, the Great Calamity // Spew Flame", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "b5f4b732-099c-46e7-a03d-d8e4c78245b8", "card": "Smelt", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "494b642c-b2b5-40a0-b741-dca1aa9bdb59", "card": "Smelt-Ward Ignus", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "37994591-3494-4314-a7da-49c112b0866f", "card": "Smite the Deathless", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "649512ed-4908-450a-9652-b2c80df5e24d", "card": "Smite the Monstrous", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "0300d8a1-ff4e-4e05-a097-4822f80c47e1", "card": "Smolder Initiate", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "acdf9fb0-96eb-4520-bd4b-b6480c7c9b29", "card": "Smother", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "8f5c52d2-0583-4c94-a043-15b2118877fa", "card": "Syndic of Tithes", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "f3b071a1-7501-4424-979a-780fa90eecb8", "card": "Thermokarst", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "06b1fd96-a3ad-4ebd-9ea4-b3cfb4c9c43d", "card": "Tithe Drinker", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "c916b81f-700e-4a1a-8c8e-c4685ceaecd2", "card": "Tithe Taker", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "883a4180-9ede-4249-a4b8-3a29c998fb63", "card": "Tithing Blade // Consuming Sepulcher", "grade": 0}
+{"search": "smothering-tithe", "oracle_id": "5cf4d98e-f2f4-435b-a633-990b2e654f3a", "card": "Tivadar's Crusade", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "248dcf69-b99e-4a71-b9b3-7fd865f873ab", "card": "Angel of Retribution", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "b56cebe0-3752-4ce5-afbd-911543784015", "card": "Atla Palani, Nest Tender", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "abbcb153-0763-44c6-964f-b4ff0eb64257", "card": "Atraxa, Grand Unifier", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "d9f43942-4296-417d-a180-5b4f64e4b12d", "card": "Aven Reedstalker", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "0972d46e-423b-454e-87c7-a2d40fb6fb6d", "card": "Katara, the Fearless", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "7a5789b3-68a2-4079-8ec5-3b5e1d2c739b", "card": "Mangara of Corondor", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "6895d7a2-264b-4731-9294-c02e1e220384", "card": "Miara, Thorn of the Glade", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "fa10cacb-ab14-447a-b411-9d74bc3772fb", "card": "Onakke Ogre", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "b1631e9c-a993-4d44-b009-b2624d79560c", "card": "Voice of All", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "b5d5b9c9-accc-4dbe-aaf4-c806f3e1c61c", "card": "Voice of Duty", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "7338f964-b7d8-4491-b933-7d8b7d1b56ed", "card": "Voice of Grace", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "535007c5-03a8-495f-a132-37960f179f96", "card": "Voice of Law", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "372e2d6e-427c-4152-b936-27dcf536ca84", "card": "Voice of Reason", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "5cbbb3f3-63a4-4983-81ea-8c405b10e63f", "card": "Voice of Resurgence", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "33435856-ea24-4d10-84d5-6872b35b63a3", "card": "Voice of Truth", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "81b15ed1-7069-4f8b-96b9-f6d67298afef", "card": "Voice of the Provinces", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "12da8ba3-ca60-44c8-8627-1b4af2a2c4a3", "card": "Voice of the Woods", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "56cb7592-ad58-42dc-b568-4b7754bba53d", "card": "Voiceless Spirit", "grade": 0}
+{"search": "atraxa-praetors-voice", "oracle_id": "dbf0ad03-ab31-49d2-89b1-05b45948a61f", "card": "Vorinclex, Voice of Hunger", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "314f0a96-5e91-42a3-9d75-3f641f22a9ee", "card": "Blade Historian", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "fc401d42-80fa-4a17-937a-c230e9317543", "card": "Blood Feud", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "14104a52-c4e8-4755-8196-7fa5c5a35f36", "card": "Duneblast", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "7b2e2c4b-b8fd-440c-8a79-de6532022745", "card": "End Hostilities", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "c281f436-8c77-48f7-b31c-d40cd7f9ed6a", "card": "Flashfires", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "c4a99095-38cc-4fd3-b3da-c72a6ccceb25", "card": "Plover Knights", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "a5492d28-b1bf-408d-a048-8f200158d6b1", "card": "Plow Through", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "265236d1-d96c-4424-835e-a0fe91c41170", "card": "Ravages of War", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "864c81e4-d612-4939-b4df-4b125cb8cdf2", "card": "Riot Piker", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "4ade4e30-4008-4931-b88e-605776a96b58", "card": "Rivals' Duel", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "cc803d43-cbbe-4964-8077-ba405a741047", "card": "Spiraling Duelist", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "241d00bf-3301-4385-b559-d50565603dcc", "card": "Stonehoof Chieftain", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "18aa69d5-9611-49fe-8aa4-7b91d5980dbc", "card": "Swordsworn Cavalier", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "5c2e0762-4994-4c34-b33f-909c2b3f0f43", "card": "Swordwise Centaur", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "4b505a4c-ccc3-4461-bbc4-ad5d39f9b879", "card": "Thunder of Hooves", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "2676d0c3-0a24-4e93-ae80-8f3fe03da483", "card": "War Historian", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "5cf28c04-76af-4eb8-9969-366dc8e04690", "card": "Warrior's Charge", "grade": 0}
+{"search": "swords-to-plowshares", "oracle_id": "a6fd90dc-0ec3-4dce-a77a-4d04f5e254bf", "card": "Winds of Rath", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "a361fdd1-7f97-4aed-8e24-ab2a03387f73", "card": "Adult Gold Dragon", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "cb58055f-8190-4bc7-ad32-844ca66fd2b0", "card": "Arashin Sovereign", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "d0e529e3-0f77-4a55-ba35-46591f48d960", "card": "Belltoll Dragon", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "0bf1f2c1-2148-4302-a6e7-d509a005a85f", "card": "Chardalyn Dragon", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "a3270e64-38d2-49e5-8a1e-a5e81205776b", "card": "Dragon Turtle", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "2e6ed3e6-d2b8-4b75-b7e1-0773da4987a1", "card": "Huatli, Poet of Unity // Roar of the Fifth People", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "e40d47cf-6232-41ec-8865-d12a335dfcee", "card": "Loch Dragon", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "e4bd8910-770b-4220-8a26-2673491f4a3e", "card": "Priest of Urabrask", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "de9cee6e-d95b-4e8b-99e4-3b43a0a542aa", "card": "Pseudodragon Familiar", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "f9701c1f-66c7-4ac7-8106-074d6f557ad6", "card": "Quicksilver Dragon", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "d04d2434-121e-4420-abfc-fa21ad5577c3", "card": "Shard of the Void Dragon", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "5b2ffb53-86b7-4665-a5c7-b85b035b6c81", "card": "Urabrask the Hidden", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "57d93683-8739-49ef-856a-5a70f92d8763", "card": "Urborg Drake", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "99c2d3ef-e5b4-48cd-b3f5-de9b02c7c36a", "card": "Ureni of the Unwritten", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "1c995c80-3301-409b-822b-9297aa260823", "card": "Ureni, the Song Unending", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "05a6a571-643e-429e-8e5c-1c3f8b0dc746", "card": "Utvara Hellkite", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "994db177-03f5-43dd-bf7b-2994e8d430d3", "card": "Volcanic Dragon", "grade": 0}
+{"search": "the-ur-dragon", "oracle_id": "2f865ae9-9328-4f6f-924f-d5e0a65aaa96", "card": "Young Red Dragon // Bathe in Gold", "grade": 0}
+{"search": "kenrith", "oracle_id": "dd9a6f6b-f9b7-4292-bc80-b7da326de032", "card": "Aerith Gainsborough", "grade": 0}
+{"search": "kenrith", "oracle_id": "d6cba688-faff-4d9f-8148-37d389fa5fb3", "card": "Aerith, Last Ancient", "grade": 0}
+{"search": "kenrith", "oracle_id": "be97c400-c690-426d-a39e-4082080a3823", "card": "Aragorn, King of Gondor", "grade": 0}
+{"search": "kenrith", "oracle_id": "82959ca2-cd96-4cca-9ce0-afb8db209860", "card": "Bushi Tenderfoot // Kenzo the Hardhearted", "grade": 0}
+{"search": "kenrith", "oracle_id": "464a930a-79d5-4436-864d-3ce9f29475ae", "card": "Champions of Minas Tirith", "grade": 0}
+{"search": "kenrith", "oracle_id": "0e6fe04f-b20d-4df9-a7ac-edebc3bcc9be", "card": "Defiant Khenra", "grade": 0}
+{"search": "kenrith", "oracle_id": "3d038f7c-95fa-4b71-8f74-b9b4dd45cde0", "card": "Ertai Resurrected", "grade": 0}
+{"search": "kenrith", "oracle_id": "ee6a9bac-cf5b-4edd-8cb2-874d8dd0e62a", "card": "Haytham Kenway", "grade": 0}
+{"search": "kenrith", "oracle_id": "fd20576d-4abe-4af8-ac53-ab9356593fe7", "card": "Jerrard of the Closed Fist", "grade": 0}
+{"search": "kenrith", "oracle_id": "0972d46e-423b-454e-87c7-a2d40fb6fb6d", "card": "Katara, the Fearless", "grade": 0}
+{"search": "kenrith", "oracle_id": "521b1598-58c6-47a0-a7b3-021d70bf2b05", "card": "Keiga, the Tide Star", "grade": 0}
+{"search": "kenrith", "oracle_id": "35c416c6-f522-4b4c-93db-75c4e01843d1", "card": "King Narfi's Betrayal", "grade": 0}
+{"search": "kenrith", "oracle_id": "84d0c616-2fce-47f4-bfdd-783741a63fd2", "card": "Kiora Bests the Sea God", "grade": 0}
+{"search": "kenrith", "oracle_id": "efea2342-bb24-472a-acfb-1b9e012af91b", "card": "Konda, Lord of Eiganjo", "grade": 0}
+{"search": "kenrith", "oracle_id": "5a848c1f-d11a-42fb-b9ce-663901fc9555", "card": "Revival of the Ancestors", "grade": 0}
+{"search": "kenrith", "oracle_id": "44ed4c0c-a012-4895-a547-b04150553bba", "card": "The Eldest Reborn", "grade": 0}
+{"search": "kenrith", "oracle_id": "6ba8e099-5871-4ee3-8a65-06fd8ccec340", "card": "The Fall of Lord Konda // Fragment of Konda", "grade": 0}
+{"search": "kenrith", "oracle_id": "26b41c78-c5ee-4c50-93be-e3acc35ab355", "card": "The Flame of Keld", "grade": 0}
+{"search": "kenrith", "oracle_id": "32ad5b3e-92c0-45be-b2e4-6f1794552f36", "card": "The Mountain-king's Return", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "f460ff80-8175-43f7-9810-540cf3817085", "card": "Collector's Vault", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "d82c77a1-2b81-415d-9f18-47e059c15e01", "card": "Doors of Durin", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "01072a45-ab1c-4d19-b493-76cf4aae351e", "card": "Duplicity", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "622a53bd-d894-422c-a606-7126041afa02", "card": "Fomori Vault", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "32d9fd98-142b-41d2-b8f0-40ae1d4cb991", "card": "Jalum Tome", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "77d3cc31-837a-408a-b7f8-5aa9de78e1b7", "card": "Knowledge Vault", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "f8c7da00-69e1-459d-9b66-6de649c5c511", "card": "Kyren Archive", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "10dda10f-2549-47e5-9a8b-fb414cf38d3f", "card": "Memorial Vault", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "1e9c473e-bd65-4e1f-b2ab-cac58dc581c9", "card": "Open the Vaults", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "220e3298-1663-4731-b50f-247076e1328b", "card": "Oracle's Vault", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "7acd7ef5-0e26-436d-962a-1a391f81c2e8", "card": "Perilous Vault", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "b628150b-08a1-4ea3-978d-60255dfb0b7e", "card": "Phyrexian Vault", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "0004ebd0-dfd6-4276-b4a6-de0003e94237", "card": "Static Orb", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "03136fe1-17e2-4b1c-860a-dc6373c8fdb5", "card": "Storage Matrix", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "7a75d565-b0a7-46bf-94a0-c9255c8abd6d", "card": "The Key to the Vault", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "3c43efd6-b1a8-452c-ae20-9a936c3340ab", "card": "Treasure Vault", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "8d83d816-518c-4557-a3c4-0255f772c57a", "card": "Vault 21: House Gambit", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "68c90a32-d6ee-4595-8517-5f4cb0e4062d", "card": "Vault Robber", "grade": 0}
+{"search": "lim-duls-vault", "oracle_id": "09496421-74e4-466a-9546-56f2a0c8eef4", "card": "Vault of Whispers", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "40e5b83e-5f53-4b15-8bfd-c0c0b8355a6f", "card": "Become Immense", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "c2db2c28-3ddc-41ce-a0c2-ddc555dea133", "card": "Call to the Void", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "09f3d60c-34ee-41ec-a047-fe2140b11950", "card": "Dead Drop", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "f8b17b89-26ce-4208-874a-9e1d66514640", "card": "Dig Through Time", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "a5ce3fb6-9c70-4433-a079-467c911bfd4d", "card": "Drowner of Secrets", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "315772f2-abd2-4681-b8c8-1db4b0ccbbcd", "card": "Gurmag Angler", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "70e35385-6129-4bd1-861c-df04469566b7", "card": "Hooting Mandrills", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "8d7ce7b5-2e56-4060-9406-f700ce1fbb7d", "card": "Lair Delve", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "b2da7acb-d80c-414c-9f7d-753a5d6ccad9", "card": "Logic Knot", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "4f5096d4-bbb5-4a48-9dd0-9dabdd2ac125", "card": "Merfolk Secretkeeper // Venture Deeper", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "129cec2c-fc1b-4ce6-98f2-2123e4dbd1ae", "card": "Paranoid Delusions", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "9dbfa026-e364-4111-a03a-e9b1693bc7b7", "card": "Rite of Undoing", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "3e400e13-6cae-45e6-b5cc-5b5f9d74dec5", "card": "Salvager of Secrets", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "8f9535f2-f00c-40d3-9997-d1c0ece15f9f", "card": "Stealer of Secrets", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "a232daf3-db54-4711-88b0-e5072c05f58e", "card": "Tasigur's Cruelty", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "837e3fde-241f-4826-ad04-f146fdcf2278", "card": "Tasigur, the Golden Fang", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "c216b924-88ac-4853-9e95-0c345c09eeb6", "card": "Temporal Trespass", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "944735ad-3f17-421a-b8fa-40f3bb8456f2", "card": "Tombstalker", "grade": 0}
+{"search": "delver-of-secrets", "oracle_id": "5b6bdf5a-2742-4851-92cd-a857a3852836", "card": "Treasure Cruise", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "5c326102-005d-463c-b9f7-14b034b66baa", "card": "Awakening of Vitu-Ghazi", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "8652d88f-edca-4235-b942-6e7467608de8", "card": "Boon-Bringer Valkyrie", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "f7a8066e-f8a4-4202-8825-0327d11e58c3", "card": "Kumena's Awakening", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "950e345d-455e-4bd4-be8e-bc3381ac3050", "card": "Luminous Wake", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "01081f81-f588-43ab-8d47-13593aa19ce1", "card": "Ondu Rising", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "54dd35ee-6f89-460d-9370-72bc3fa6840a", "card": "Part the Waterveil", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "91108ed7-5b24-4b51-b01d-85005998c69d", "card": "Retreat to Valakut", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "83705258-1f42-41db-a32e-de99ffd759eb", "card": "Saheeli, Jewel of Avishkar", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "0a147009-a57c-4ac1-ab81-d8bd8b737631", "card": "Scourge of Valkas", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "a4ddd9e2-ea59-4bba-bb2f-a655cabbb65c", "card": "Tyrant of Valakut", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "d6861319-ae16-4e6c-af87-a264f667d694", "card": "Valakut Exploration", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "126bf98a-64d0-4de2-9bf4-f59d36ef6e25", "card": "Valakut Fireboar", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "17ed18cf-33e5-4861-8a36-8f7bb91971f9", "card": "Valakut Invoker", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "b86a5d90-0820-46cb-b43c-c03a423a3a9f", "card": "Valakut Predator", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "1bc44216-4e06-4f66-89b7-5c327004604e", "card": "Valakut, the Molten Pinnacle", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "102b0a65-f2e0-4ef3-a9dc-4a85557b852e", "card": "Valduk, Keeper of the Flame", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "ea0b0c71-4a1b-49aa-b4cd-db6c5d26b95e", "card": "Valkyrior Skyrider", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "694f7e51-7b8b-4f00-bd77-a52eded4aaa1", "card": "Vulshok Berserker", "grade": 0}
+{"search": "valakut-awakening", "oracle_id": "0d996788-7193-45cd-bc6d-0f470521d1ca", "card": "Vulshok Heartstoker", "grade": 0}
+{"search": "opt", "oracle_id": "51acd176-e84d-42c2-acb2-cceeb28a9fec", "card": "Blink of an Eye", "grade": 0}
+{"search": "opt", "oracle_id": "6ac8ac31-02ce-48e0-98b9-1c5858e1f593", "card": "Chameleon Blur", "grade": 0}
+{"search": "opt", "oracle_id": "924bf3bb-9f06-4a2c-a17f-3fe11551bcf2", "card": "Divine Light", "grade": 0}
+{"search": "opt", "oracle_id": "8b239262-c392-4ec6-9ae1-8b4a076e4bf0", "card": "Dream's Grip", "grade": 0}
+{"search": "opt", "oracle_id": "a1b5c83e-cf8b-4644-8315-35387a4f491f", "card": "Hope Charm", "grade": 0}
+{"search": "opt", "oracle_id": "8d286376-f386-43ab-a9bd-8478fb9e2497", "card": "Light Up the Stage", "grade": 0}
+{"search": "opt", "oracle_id": "5b6f655b-1518-4ab1-8765-3f549819ef3b", "card": "Light of Hope", "grade": 0}
+{"search": "opt", "oracle_id": "7e23a2e7-b8b3-424f-8922-a1adb1db3f4d", "card": "Luminescent Rain", "grade": 0}
+{"search": "opt", "oracle_id": "34a2fc4c-ab56-4ecd-95d9-04316046843c", "card": "Reality Spasm", "grade": 0}
+{"search": "opt", "oracle_id": "1a4e948a-5a5e-4811-a6af-7ea93a051746", "card": "Second Sight", "grade": 0}
+{"search": "demonic-tutor", "oracle_id": "ae18580a-1753-4dc8-b437-8a779b1a6e4d", "card": "Demonic Bargain", "grade": 0}
+{"search": "demonic-tutor", "oracle_id": "712e3479-722c-40a1-9b61-d5bdde93042b", "card": "Demonic Counsel", "grade": 0}
+{"search": "demonic-tutor", "oracle_id": "1caa7fa2-a881-4a65-a87e-12a974520c83", "card": "Grim Servant", "grade": 0}
+{"search": "demonic-tutor", "oracle_id": "e62f8d69-a559-4f13-a5c9-5fb750b4af2c", "card": "Grim Tutor", "grade": 0}
+{"search": "demonic-tutor", "oracle_id": "68a203a3-2283-4e29-b177-b3be43f76899", "card": "Infernal Tutor", "grade": 0}
+{"search": "demonic-tutor", "oracle_id": "136c9ecb-59b4-4ef6-bcb2-7b8d3df3ee75", "card": "Razaketh, the Foulblooded", "grade": 0}
+{"search": "demonic-tutor", "oracle_id": "14aefe99-fb60-4f1c-a71f-7ffbe94c8b13", "card": "Rune-Scarred Demon", "grade": 0}
+{"search": "demonic-tutor", "oracle_id": "ededbdae-d9dc-4206-9335-d7158f2d7700", "card": "Vampiric Tutor", "grade": 0}
+{"search": "demonic-tutor", "oracle_id": "556dd333-4066-41f7-98f6-41794754de71", "card": "Vile Entomber", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "87e9065d-814a-47fa-9e92-19fb6fd6d78c", "card": "Historian of Zhalfir", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "6c5c7b26-9cd6-4f29-bbb2-a0745153ee5d", "card": "Teferi's Care", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "8a3a8a02-b7da-4648-a772-c9efb7c332da", "card": "Teferi's Honor Guard", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "e4826967-b2f9-4f32-8411-d243edf41082", "card": "Teferi's Imp", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "dafd319e-1d4a-4e08-9167-a82ad8670f6f", "card": "Teferi's Moat", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "e84f1727-ce01-44be-aebf-8a0c4e032c9a", "card": "Teferi's Protege", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "f5479d4f-bc4b-4452-a944-41be623f8367", "card": "Teferi's Time Twist", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "c6b94e03-61c0-4077-b3da-a70795e97278", "card": "Teferi's Tutelage", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "c6db2ea4-954c-443b-9603-c41596555c31", "card": "Teferi's Veil", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "b3f6e68e-9490-4719-8d2e-d1ec22a96132", "card": "Teferi's Wavecaster", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "f2f165b6-ef0a-42ad-9352-ba68be8248b0", "card": "Teferi, Hero of Dominaria", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "2b6cbd55-5adc-4a34-ac45-8531705a7ee1", "card": "Teferi, Mage of Zhalfir", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "e802fb53-7cf5-46bc-8a0b-f99cf5c20f74", "card": "Teferi, Master of Time", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "07d0b06b-80cb-4518-92c9-84ea87a7e08a", "card": "Teferi, Temporal Archmage", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "5f0fa785-37ab-46a8-9ec0-6f8b29576d93", "card": "Teferi, Temporal Pilgrim", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "7240037f-ddea-425e-9824-866e2bb0dc84", "card": "Teferi, Timeless Voyager", "grade": 0}
+{"search": "teferis-protection", "oracle_id": "e444f072-ce24-4fd1-99eb-d20d12bc119a", "card": "Temur Devotee", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "5acc8b39-3c3e-4012-8cfd-ac3c2c4ca982", "card": "Arc Lightning", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "acd17fbf-645b-4c4d-b2c6-44127e3b743d", "card": "Feral Lightning", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "66107cfd-4bdb-4266-a650-940743555ea4", "card": "Forked Lightning", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "b5d5cfc0-17e0-42d1-b5bd-9f27b11191f9", "card": "Jagged Lightning", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "3f244320-3e74-4eff-ba4e-a345700c40c9", "card": "Javelin of Lightning", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "2be85439-4606-4e1e-8be7-56d9e31f77c4", "card": "Lightning Angel", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "1e474772-3fe4-46be-8c5f-6e477b9fd74e", "card": "Lightning Berserker", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "4457ed35-7c10-48c8-9776-456485fdf070", "card": "Lightning Bolt", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "1e4de77b-27cb-4afd-8d4b-1cc89f2a6986", "card": "Lightning Diadem", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "58aee5cb-7b88-446e-ab10-9f83c10d7227", "card": "Lightning Elemental", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "a6f6b062-cd7e-4631-9921-40e054ab835d", "card": "Lightning Javelin", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "2202faf1-5638-46bf-8bf4-91870b669717", "card": "Lightning Spear", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "4a2a7eca-3477-4858-9dab-ba80d4d704cd", "card": "Lightning Talons", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "585eb5bc-5a3d-44d8-b593-1ff0d67f96a7", "card": "Lightning, Army of One", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "cdaf3711-5bec-41bf-b333-c5f34ccb12ef", "card": "Lightning-Core Excavator", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "d99bcf62-db93-40db-8844-3d0af0756a0c", "card": "Moonsilver Spear", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "984f92dd-cb9b-4421-a8e6-75bfe566be10", "card": "Rite of the Raging Storm", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "bfed67f3-70d2-49c2-8f25-16e4d10fa5be", "card": "Vow of Lightning", "grade": 0}
+{"search": "lightning-greaves", "oracle_id": "28274c39-19e2-4b4c-bd53-d31d6063c2ba", "card": "Weaver of Lightning", "grade": 0}
+{"search": "command-tower", "oracle_id": "f0367926-4380-4d22-8cb8-46c2076f102a", "card": "Coastal Tower", "grade": 0}
+{"search": "command-tower", "oracle_id": "7e8c2a18-e404-40ff-a9e0-ec3eeb6d576e", "card": "Command Beacon", "grade": 0}
+{"search": "command-tower", "oracle_id": "f6c079cd-69c2-4da4-ba41-91844a4d2f06", "card": "Command Performance", "grade": 0}
+{"search": "command-tower", "oracle_id": "93695c16-c441-492d-af12-b57df9739846", "card": "Detection Tower", "grade": 0}
+{"search": "command-tower", "oracle_id": "54c4fd18-adf5-408b-a529-019ebc24ca8d", "card": "Drop Tower", "grade": 0}
+{"search": "command-tower", "oracle_id": "5554db95-9676-4c24-b82a-8173513d7927", "card": "Fisk Tower", "grade": 0}
+{"search": "command-tower", "oracle_id": "5f9dd005-1648-451e-b888-69ef81331c95", "card": "Leadership Vacuum", "grade": 0}
+{"search": "command-tower", "oracle_id": "3f27988b-0863-4cc1-8eb9-83bd0cd8561c", "card": "Mage Tower Referee", "grade": 0}
+{"search": "command-tower", "oracle_id": "6f5d31d1-3493-4d1b-bbf9-1726e47507db", "card": "Tower Above", "grade": 0}
+{"search": "command-tower", "oracle_id": "58853200-efbe-41cc-87f1-720841308f4d", "card": "Tower Defense", "grade": 0}
+{"search": "command-tower", "oracle_id": "10e19453-84fb-4845-8db0-c9da52847e09", "card": "Tower Geist", "grade": 0}
+{"search": "command-tower", "oracle_id": "2f995678-c315-4afe-845b-8c8ae863de6e", "card": "Tower Worker", "grade": 0}
+{"search": "command-tower", "oracle_id": "27618701-e8c9-4117-94f3-3836cf34990d", "card": "Tower of Calamities", "grade": 0}
+{"search": "command-tower", "oracle_id": "f7880784-e1dc-4250-812e-eda41fe91e36", "card": "Tower of Champions", "grade": 0}
+{"search": "command-tower", "oracle_id": "74a71bbd-c307-481c-b0cf-70e24b0c8ad4", "card": "Tower of Eons", "grade": 0}
+{"search": "command-tower", "oracle_id": "c383b28c-b319-49cd-acf1-4721a1301bbb", "card": "Tower of Murmurs", "grade": 0}
+{"search": "command-tower", "oracle_id": "ac08fae8-208c-4602-8d39-9bfd29b53a5e", "card": "Tower of the Magistrate", "grade": 0}
+{"search": "command-tower", "oracle_id": "32fbb638-ab14-4e8b-a07a-d4c44e3496f2", "card": "Urza's Tower", "grade": 0}
+{"search": "ramp", "oracle_id": "925a3ded-b7bc-4384-8684-79c20c59ab12", "card": "Caravan Vigil", "grade": 1}
+{"search": "ramp", "oracle_id": "30afacd9-4680-4aac-8c22-584f9418822d", "card": "Circuitous Route", "grade": 2}
+{"search": "ramp", "oracle_id": "5d9c7ca4-f735-4bee-b03f-4c0c76ee48ed", "card": "Coming Attraction", "grade": 2}
+{"search": "ramp", "oracle_id": "d599a38c-7719-443e-bb59-55bd43a8fee6", "card": "Confiscate", "grade": 0}
+{"search": "ramp", "oracle_id": "a0abd957-01a0-4aa9-8fc8-0e6840d21606", "card": "Explosive Vegetation", "grade": 2}
+{"search": "ramp", "oracle_id": "e536e0d2-7117-4ca8-bdb4-e7dd380113c6", "card": "Rampaging Geoderm", "grade": 0}
+{"search": "ramp", "oracle_id": "acd81d2c-e438-44db-86eb-32fc9cb3fd8f", "card": "Rampaging Growth", "grade": 2}
+{"search": "ramp", "oracle_id": "3984478b-debb-4a65-ab5b-4bc134e03d82", "card": "Rampaging Monument", "grade": 0}
+{"search": "ramp", "oracle_id": "b0edba6f-8f54-4dc4-b952-20b57a797d60", "card": "Rampart Architect", "grade": 1}
+{"search": "ramp", "oracle_id": "302c0400-043d-42fa-abbb-488e520116ba", "card": "Rampart Crawler", "grade": 0}
+{"search": "ramp", "oracle_id": "0867755a-9fb9-42ad-897e-6206fbfbc1f8", "card": "Rampart Hunter", "grade": 0}
+{"search": "ramp", "oracle_id": "5ece1778-fb19-40d5-8bcc-f23033e1d5c0", "card": "Rampart Smasher", "grade": 0}
+{"search": "board-wipe", "oracle_id": "82c8f5dd-563d-4fd0-bd43-7ee2001d3777", "card": "Apocalypse", "grade": 2}
+{"search": "board-wipe", "oracle_id": "46b83657-1699-4162-a4bb-b792da396fe6", "card": "Cleansing", "grade": 0}
+{"search": "board-wipe", "oracle_id": "aff34f28-f707-4458-8af3-1bd5b13a6b10", "card": "Cleansing Nova", "grade": 2}
+{"search": "board-wipe", "oracle_id": "12e0321b-1cd7-4519-8929-3261cf11a1a9", "card": "Cleanup Crew", "grade": 0}
+{"search": "board-wipe", "oracle_id": "33eefb22-51a6-4630-9bd2-0895997f6f33", "card": "Creeping Corrosion", "grade": 1}
+{"search": "board-wipe", "oracle_id": "01d0156f-c26a-4668-a3a4-15ee0790d1b6", "card": "Delete", "grade": 2}
+{"search": "board-wipe", "oracle_id": "3e229329-65e4-4240-959a-b97b26908c0e", "card": "From the Ashes", "grade": 0}
+{"search": "board-wipe", "oracle_id": "a98c2d81-4add-4292-bbdd-e1b69ff936d4", "card": "Planar Cleansing", "grade": 2}
+{"search": "board-wipe", "oracle_id": "e07700e7-218a-45a3-9ee4-de2cc25cdc02", "card": "Take Out the Trash", "grade": 0}
+{"search": "board-wipe", "oracle_id": "36c78a5f-0148-4596-a346-f8e35037b694", "card": "Time Wipe", "grade": 2}
+{"search": "board-wipe", "oracle_id": "54748cb1-d92a-4212-ad76-417ee79b5ef1", "card": "Wash Out", "grade": 1}
+{"search": "board-wipe", "oracle_id": "ad9b6737-22c4-45cc-976b-32743ed48462", "card": "Wipe Away", "grade": 0}
+{"search": "board-wipe", "oracle_id": "f5cbc4f3-4e73-405f-9daf-e5b7c73fa6ee", "card": "Wipe Clean", "grade": 0}
+{"search": "counterspell", "oracle_id": "2d4aedc5-31c5-4281-98e1-b0c2233c3c8a", "card": "Artifact Blast", "grade": 2}
+{"search": "counterspell", "oracle_id": "57b37690-0fb6-4e78-9210-4a529a6ade7c", "card": "Bring the Ending", "grade": 1}
+{"search": "counterspell", "oracle_id": "3a42558c-7432-4c05-9599-95343eb09be1", "card": "Censor", "grade": 1}
+{"search": "counterspell", "oracle_id": "56aec5bd-a8e8-403f-b339-0fc817426428", "card": "Clash of Wills", "grade": 1}
+{"search": "counterspell", "oracle_id": "a48f259a-99a0-49c7-a11b-6e796f8a12f4", "card": "Contradict", "grade": 2}
+{"search": "counterspell", "oracle_id": "1198ec53-9050-417d-812f-692e1378d346", "card": "Counterbore", "grade": 2}
+{"search": "counterspell", "oracle_id": "8c983da8-1436-4c06-af9c-91b72cab48c1", "card": "Counterflux", "grade": 2}
+{"search": "counterspell", "oracle_id": "43402a6c-9fba-4a80-90b3-14bac05c574b", "card": "Countermand", "grade": 2}
+{"search": "counterspell", "oracle_id": "6df620b8-1e54-4f63-8556-12c75e5679af", "card": "Countersquall", "grade": 2}
+{"search": "counterspell", "oracle_id": "3ece897d-5b52-4fca-9f97-d7e864134c0b", "card": "Crush Dissent", "grade": 1}
+{"search": "counterspell", "oracle_id": "a7dad8fe-b0b8-4c6d-ad11-76b402952799", "card": "Deny Entry", "grade": 2}
+{"search": "counterspell", "oracle_id": "6d7be242-a072-40ce-b540-95880506cccd", "card": "Dispel", "grade": 2}
+{"search": "counterspell", "oracle_id": "75b2dd64-a2f5-4032-a19f-5b485dc44b16", "card": "Flash Counter", "grade": 2}
+{"search": "counterspell", "oracle_id": "13ca3ede-a4c8-463d-b160-99b4071034b0", "card": "Frightful Delusion", "grade": 1}
+{"search": "counterspell", "oracle_id": "33d6a17a-0112-4d4f-a24a-0769360408a8", "card": "Last Word", "grade": 2}
+{"search": "counterspell", "oracle_id": "983a2a50-3634-4783-8576-30916c3d0818", "card": "Oppressive Will", "grade": 1}
+{"search": "counterspell", "oracle_id": "eb1dfa29-7371-4cb6-bfa2-16f7820b69be", "card": "Refute", "grade": 2}
+{"search": "counterspell", "oracle_id": "934c50aa-7d2e-4c9e-b91b-1e8c4055e1c6", "card": "Spell Rupture", "grade": 1}
+{"search": "tutor", "oracle_id": "8da9f975-519d-455a-80c1-2b468cad79a1", "card": "Assembly Hall", "grade": 1}
+{"search": "tutor", "oracle_id": "b337c241-f2c4-48e3-a303-371b172fcd18", "card": "Attune with Aether", "grade": 1}
+{"search": "tutor", "oracle_id": "b44816b4-44ef-446d-a254-b4b7bc015a42", "card": "Braidwood Sextant", "grade": 1}
+{"search": "card-draw", "oracle_id": "278e51fe-3cd9-4c82-bd81-2164771f8611", "card": "Alms Collector", "grade": 1}
+{"search": "card-draw", "oracle_id": "af66da4b-2f36-4dd2-a5c6-18e6023c5aba", "card": "Blood Scrivener", "grade": 1}
+{"search": "card-draw", "oracle_id": "575d067a-83a0-49e7-8a74-e3e46a946c8c", "card": "Case the Joint", "grade": 2}
+{"search": "card-draw", "oracle_id": "62ddc5ae-ced9-4319-854c-1a114c6afc3f", "card": "Counsel of the Soratami", "grade": 2}
+{"search": "card-draw", "oracle_id": "8b5cffd5-5db3-4151-9275-d91387554412", "card": "Cut a Deal", "grade": 2}
+{"search": "card-draw", "oracle_id": "60e358ec-eb11-4a16-a0ae-b7c064a8ea6c", "card": "Hieroglyphic Illumination", "grade": 2}
+{"search": "card-draw", "oracle_id": "847b5be5-cb0c-4857-bcd9-c5cfe55fdaeb", "card": "Keep Watch", "grade": 2}
+{"search": "card-draw", "oracle_id": "f8dab16e-1d50-443e-9431-8b6f1cf61c9c", "card": "Notion Thief", "grade": 1}
+{"search": "card-draw", "oracle_id": "dddda9a2-dc59-446d-bfc4-3240d12a3654", "card": "Primitive Etchings", "grade": 1}
+{"search": "card-draw", "oracle_id": "7bff8d4a-1c7d-48b8-b3e3-737dd6f01823", "card": "Quick Study", "grade": 2}
+{"search": "card-draw", "oracle_id": "c3416e6c-ec46-410c-ab80-6e8fdb89f42d", "card": "Skyscribing", "grade": 2}
+{"search": "card-draw", "oracle_id": "6365aba1-78d3-416c-89cd-9449578eedbf", "card": "Touch of Brilliance", "grade": 2}
+{"search": "card-draw", "oracle_id": "ff568a29-e31a-4bc3-b8a3-8fa56f91d52d", "card": "Weave Fate", "grade": 2}
+{"search": "card-draw", "oracle_id": "cff1b9bb-2a4c-4522-94a4-a674f942e376", "card": "Words of Wisdom", "grade": 2}
+{"search": "mana-rock", "oracle_id": "1ce6ae30-33c3-4f05-9286-69b0871b1c2d", "card": "Bloodstone Cameo", "grade": 2}
+{"search": "mana-rock", "oracle_id": "1386d111-a2a7-4df1-91d7-947664126989", "card": "Charcoal Diamond", "grade": 2}
+{"search": "mana-rock", "oracle_id": "21d700e8-0255-418e-96a0-6fe05b3f836d", "card": "Coldsteel Heart", "grade": 2}
+{"search": "mana-rock", "oracle_id": "931d3dcb-4bbb-4f1a-95e2-7e315faf4158", "card": "Conversion Apparatus", "grade": 2}
+{"search": "mana-rock", "oracle_id": "b1f8eb7b-7e01-4bf8-a557-64e16a6052af", "card": "Crystal Skull, Isu Spyglass", "grade": 2}
+{"search": "mana-rock", "oracle_id": "8fbdec25-4222-4b96-aeea-82a4b5b8b80e", "card": "Drake-Skull Cameo", "grade": 2}
+{"search": "mana-rock", "oracle_id": "d053ea00-e727-4030-8c64-0d32ae57f169", "card": "Foriysian Totem", "grade": 2}
+{"search": "mana-rock", "oracle_id": "f4669822-716b-45c7-a7f2-040062509fe9", "card": "Mana Prism", "grade": 2}
+{"search": "mana-rock", "oracle_id": "bd9e416a-89b3-4912-be9b-49fce6a93dc9", "card": "Manalith", "grade": 2}
+{"search": "mana-rock", "oracle_id": "ae3517db-bb96-4c29-91dc-5bd68683dced", "card": "Manascape Refractor", "grade": 1}
+{"search": "mana-rock", "oracle_id": "4fb00dbe-1f82-4ba6-b18c-97e816d10d3a", "card": "Patchwork Banner", "grade": 2}
+{"search": "mana-rock", "oracle_id": "be838f57-4e74-44ad-aee1-506e63b0ff37", "card": "Prismatic Geoscope", "grade": 2}
+{"search": "mana-rock", "oracle_id": "0396ef40-3774-4684-9971-160aaccf6ac6", "card": "Sol Grail", "grade": 2}
+{"search": "mana-dork", "oracle_id": "2fcc69ff-8ab5-4e14-afe3-db892049a872", "card": "Boreal Druid", "grade": 2}
+{"search": "mana-dork", "oracle_id": "0c7f9701-c39e-4f14-844a-15f2e3c41ca9", "card": "Deathbloom Gardener", "grade": 2}
+{"search": "mana-dork", "oracle_id": "b52148c3-fe97-4cc0-a814-a5a0f5d426f6", "card": "Deathbloom Ritualist", "grade": 1}
+{"search": "mana-dork", "oracle_id": "8d7933c4-4c74-492f-a9cd-50b339a4b29e", "card": "Druid of the Anima", "grade": 2}
+{"search": "mana-dork", "oracle_id": "b1793c3b-25d6-4fae-a99d-cfdd2210ca67", "card": "Druid of the Cowl", "grade": 2}
+{"search": "mana-dork", "oracle_id": "0b9a4e06-b21d-4cbe-906f-9dbd08dbe5d3", "card": "Hedron Crawler", "grade": 2}
+{"search": "mana-dork", "oracle_id": "ff3a69a7-a244-4958-9e8b-d153942c1ba6", "card": "Humble Naturalist", "grade": 1}
+{"search": "mana-dork", "oracle_id": "165c1b17-2bde-4c96-892d-4a8fdc7a57b7", "card": "Lifespring Druid", "grade": 2}
+{"search": "mana-dork", "oracle_id": "d2343af0-468b-42bc-8a0c-347c10f7e2f3", "card": "Manakin", "grade": 2}
+{"search": "mana-dork", "oracle_id": "de89ef8f-ef6a-4f95-9c38-5debc06e1d74", "card": "Oasis Ritualist", "grade": 2}
+{"search": "mana-dork", "oracle_id": "d1edb950-a118-4b4d-a0ef-9a6683d74c9f", "card": "Purple Dragon Punks", "grade": 1}
+{"search": "mana-dork", "oracle_id": "2742d506-897f-4d30-ba43-ce0374984849", "card": "Riven Turnbull", "grade": 1}
+{"search": "mana-dork", "oracle_id": "b1266feb-516e-4b44-b750-7988ca6e6e55", "card": "Supportive Parents", "grade": 1}
+{"search": "sac-outlet", "oracle_id": "6a125750-2b8c-4f9d-8173-ac8d14c91ddb", "card": "Altar's Reap", "grade": 1}
+{"search": "sac-outlet", "oracle_id": "33bea2f0-c5aa-44b5-8714-5f50f7f2bb05", "card": "Blood Bairn", "grade": 2}
+{"search": "sac-outlet", "oracle_id": "ddb2fb87-235a-4365-aa25-40c197425e43", "card": "Bloodflow Connoisseur", "grade": 2}
+{"search": "sac-outlet", "oracle_id": "885630a8-c43b-4804-acd6-14a7c7321d73", "card": "Dark Triumph", "grade": 1}
+{"search": "sac-outlet", "oracle_id": "1869a326-8b48-4331-b969-5ce83cf4ff8a", "card": "Fallen Angel", "grade": 2}
+{"search": "sac-outlet", "oracle_id": "6faa6b62-d516-415c-8029-223c3f18f8af", "card": "Mana Seism", "grade": 1}
+{"search": "sac-outlet", "oracle_id": "72f9a6f7-ea26-438d-aafa-758239fd3681", "card": "Renounce", "grade": 1}
+{"search": "sac-outlet", "oracle_id": "8776d14f-a5a2-4ef3-98d0-e1148e579e4d", "card": "Sacred Mesa", "grade": 0}
+{"search": "sac-outlet", "oracle_id": "d32a32d2-203d-4be1-8a33-e037747053c7", "card": "Sustenance", "grade": 1}
+{"search": "sac-outlet", "oracle_id": "5578cf33-62f5-456c-a58c-f744a25df79b", "card": "Svyelunite Temple", "grade": 0}
+{"search": "sac-outlet", "oracle_id": "3da5977a-36d4-4f32-ab9b-8b93809d818d", "card": "Time Sieve", "grade": 1}
+{"search": "reanimation", "oracle_id": "d1a6aa5f-2ad6-4bc7-82f0-4262f66af730", "card": "Apprentice Necromancer", "grade": 2}
+{"search": "reanimation", "oracle_id": "d887919a-68d5-455d-977c-4f1f0b4b3141", "card": "Argivian Restoration", "grade": 1}
+{"search": "reanimation", "oracle_id": "aaf46eaf-2e01-46ac-b79d-6b70739d11c2", "card": "Back on Track", "grade": 2}
+{"search": "reanimation", "oracle_id": "9584a8ae-2aba-42b8-8983-0467d6bd5698", "card": "Brilliant Restoration", "grade": 1}
+{"search": "reanimation", "oracle_id": "d34a3b58-a905-4e90-b35c-9f5c21149b04", "card": "Campus Renovation", "grade": 1}
+{"search": "reanimation", "oracle_id": "fbe61f74-1b3c-4e12-8758-7029872c9ff1", "card": "Exhume", "grade": 2}
+{"search": "reanimation", "oracle_id": "62e54c6d-d775-4597-bd4d-dc38460b33ec", "card": "Push the Limit", "grade": 1}
+{"search": "reanimation", "oracle_id": "e4e61fe3-27a4-4149-bdfb-67dcfc8eb32c", "card": "Refurbish", "grade": 1}
+{"search": "reanimation", "oracle_id": "dcc51bcb-a61e-471f-8a01-7fcbc069fcba", "card": "Relive the Past", "grade": 1}
+{"search": "reanimation", "oracle_id": "523ae937-5535-490d-96ea-07f331b5e5ad", "card": "Replenish", "grade": 1}
+{"search": "reanimation", "oracle_id": "837417d8-8260-486d-a3ed-3b5711eaf34a", "card": "Resurrection", "grade": 2}
+{"search": "reanimation", "oracle_id": "b693c24f-07d9-40fa-aa4a-8f7ba61f3452", "card": "Retether", "grade": 0}
+{"search": "reanimation", "oracle_id": "a4372c4c-3577-43ca-a801-1f2bd1488a2f", "card": "Roar of Reclamation", "grade": 1}
+{"search": "reanimation", "oracle_id": "aaa14260-2537-4668-8517-c825118777cc", "card": "Tune Up", "grade": 1}
+{"search": "extra-turn", "oracle_id": "85909caa-d2ad-4487-b9b7-6ac60a14b833", "card": "Beacon of Tomorrows", "grade": 2}
+{"search": "extra-turn", "oracle_id": "54dd35ee-6f89-460d-9370-72bc3fa6840a", "card": "Part the Waterveil", "grade": 2}
+{"search": "extra-turn", "oracle_id": "59b2a90e-542f-4fb0-b290-ac79dc2892a4", "card": "Stitch in Time", "grade": 1}
+{"search": "lifegain", "oracle_id": "2f47661e-a107-4d98-8773-0a068a63df49", "card": "Ajani's Mantra", "grade": 2}
+{"search": "lifegain", "oracle_id": "fc8ee6e1-a2e1-4033-a164-7968fc79dd27", "card": "Amateur Hero", "grade": 2}
+{"search": "lifegain", "oracle_id": "6b232bb7-d372-4174-a049-5f8d620810e6", "card": "Angel's Mercy", "grade": 2}
+{"search": "lifegain", "oracle_id": "70e0b676-61a2-4dcf-8f61-d9281467ed43", "card": "Blessed Reversal", "grade": 2}
+{"search": "lifegain", "oracle_id": "8079007c-a07a-4d71-bb08-e1dd215297de", "card": "Blessed Wine", "grade": 2}
+{"search": "lifegain", "oracle_id": "b86d3142-568a-4eea-b1ae-5fcfc1453533", "card": "Boon Reflection", "grade": 1}
+{"search": "lifegain", "oracle_id": "0d4bd5e0-8346-4025-8694-d2e1897ee0c2", "card": "Essence Pulse", "grade": 1}
+{"search": "lifegain", "oracle_id": "9d5e82d3-79ac-4dbe-80e8-1db6dd6c8767", "card": "Nourish", "grade": 2}
+{"search": "lifegain", "oracle_id": "129ec223-e76d-491d-b299-07ac91168d31", "card": "Resupply", "grade": 2}
+{"search": "lifegain", "oracle_id": "b1385b03-cb4b-4812-857f-7421f1df39af", "card": "Revitalize", "grade": 2}
+{"search": "lifegain", "oracle_id": "30870ee5-6ad7-48a9-983e-d3b018f2344f", "card": "Sacred Nectar", "grade": 2}
+{"search": "lifegain", "oracle_id": "9eb2912d-2130-49f2-9529-b58fa5a97a15", "card": "Stream of Life", "grade": 2}
+{"search": "lifegain", "oracle_id": "aaf176ff-646f-4182-a546-fe648498587d", "card": "Vitalizing Cascade", "grade": 2}
+{"search": "graveyard-hate", "oracle_id": "a6436330-f35a-4d31-9230-03e0c62f9e7e", "card": "Calamity's Wake", "grade": 2}
+{"search": "graveyard-hate", "oracle_id": "85e9a43e-5676-4d12-ac27-e8cf57307d5e", "card": "Cemetery Desecrator", "grade": 1}
+{"search": "graveyard-hate", "oracle_id": "fa450433-85b0-4f95-bd4e-f141ba036bee", "card": "Cemetery Gatekeeper", "grade": 1}
+{"search": "graveyard-hate", "oracle_id": "9db5aa54-3deb-45ee-82a2-e88a4367c6d9", "card": "Coffin Purge", "grade": 2}
+{"search": "graveyard-hate", "oracle_id": "bd3cdd9b-aa67-4bf5-80c8-53574d2c221e", "card": "Corpse Appraiser", "grade": 1}
+{"search": "graveyard-hate", "oracle_id": "c6a2e410-b182-48d1-aeb2-bc8de27e9cd2", "card": "Cremate", "grade": 2}
+{"search": "graveyard-hate", "oracle_id": "00b3971b-5bf7-4a3f-9607-6265f9af9098", "card": "Crypt Creeper", "grade": 2}
+{"search": "graveyard-hate", "oracle_id": "12c2b6bb-05f8-4291-b9a5-c4ddb7a69b9e", "card": "Decompose", "grade": 2}
+{"search": "graveyard-hate", "oracle_id": "3c414ace-fd04-4fac-9379-24f5910f20e4", "card": "Eater of the Dead", "grade": 2}
+{"search": "graveyard-hate", "oracle_id": "753cb2b2-24ce-484f-a2d0-be6fd2c67ebd", "card": "Grafdigger's Cage", "grade": 2}
+{"search": "graveyard-hate", "oracle_id": "435c8d98-9fa3-40d8-9b7c-32474099e08e", "card": "Grave Consequences", "grade": 1}
+{"search": "graveyard-hate", "oracle_id": "2677c0d9-1251-478e-b157-072859c593a9", "card": "Gravegouger", "grade": 1}
+{"search": "graveyard-hate", "oracle_id": "2590801e-0de0-4933-be2d-96a1d3cb4585", "card": "Graven Abomination", "grade": 2}
+{"search": "graveyard-hate", "oracle_id": "868b5315-da38-4918-b8e4-70762811605b", "card": "Graveyard Shovel", "grade": 2}
+{"search": "graveyard-hate", "oracle_id": "68f330ca-8279-46c5-900d-a9b443676104", "card": "Laquatus's Disdain", "grade": 1}
+{"search": "graveyard-hate", "oracle_id": "a8432372-672b-4bf7-9000-17e43356f149", "card": "Morningtide", "grade": 2}
+{"search": "graveyard-hate", "oracle_id": "ce5ca56a-fce8-4e19-807f-7b8638fe4bcf", "card": "Mudhole", "grade": 1}
+{"search": "graveyard-hate", "oracle_id": "994e27e1-0bff-47c9-a1e6-b9e3ae4ffb1e", "card": "Planar Void", "grade": 2}
+{"search": "removal", "oracle_id": "08c6d2fd-d9ae-4f95-bb9d-7e16b1039814", "card": "Demolish", "grade": 2}
+{"search": "removal", "oracle_id": "131d55d1-7429-4940-b7d2-d759aabff47b", "card": "Desecration Plague", "grade": 2}
+{"search": "removal", "oracle_id": "039e2e39-8f7f-43f2-8448-de35ef7b8dc1", "card": "Disappear", "grade": 1}
+{"search": "removal", "oracle_id": "c2ceb15c-5d02-4cf4-a7c9-c1a40b7ca667", "card": "Erase", "grade": 2}
+{"search": "removal", "oracle_id": "b9f63388-d1ac-4895-84c5-e5b1db187463", "card": "Essence Filter", "grade": 2}
+{"search": "removal", "oracle_id": "8c95d823-6bbd-4484-8f38-b1bb20403085", "card": "Filter Out", "grade": 1}
+{"search": "removal", "oracle_id": "96189b18-8cab-4709-b3b6-c4f2003829eb", "card": "Run Out of Town", "grade": 2}
+{"search": "removal", "oracle_id": "5a46ad2a-35b1-4dd5-b7c3-fec36b7c67ab", "card": "Sinkhole", "grade": 1}
+{"search": "removal", "oracle_id": "b446c3bd-3c7d-4d59-ba59-3dd80818465e", "card": "Undo", "grade": 1}
+{"search": "removal", "oracle_id": "c551ba63-2a74-439d-8996-d566e2efbd5f", "card": "Unmake", "grade": 2}
+{"search": "blink", "oracle_id": "eb887067-4466-45da-8387-4444fdc723f8", "card": "Breath of the Sleepless", "grade": 0}
+{"search": "blink", "oracle_id": "fe2601a4-cbd5-4866-92a2-5586f737c9af", "card": "Make a _____ Splash", "grade": 0}
+{"search": "blink", "oracle_id": "4b072fbb-5e61-4009-bcb1-d493eb4a1be4", "card": "Quantum Entanglement", "grade": 2}
+{"search": "blink", "oracle_id": "a77510ef-baf0-4cc5-b659-6aaaed0b02f4", "card": "Supernatural Rescue", "grade": 0}
+{"search": "blink", "oracle_id": "a50be01d-821f-4fdc-b12a-4a1a76432a21", "card": "Toils of Night and Day", "grade": 0}
+{"search": "blink", "oracle_id": "6441456a-cc20-48bb-95e9-c981fea8ea98", "card": "Triclopean Sight", "grade": 0}
+{"search": "blink", "oracle_id": "1a89c623-c9c3-443c-bbd3-834767b6bdb8", "card": "Weeping Angel", "grade": 0}
+{"search": "mana-doubler", "oracle_id": "295cd8e1-0830-46c1-9957-556afd4bcee6", "card": "Aetheric Amplifier", "grade": 0}
+{"search": "mana-doubler", "oracle_id": "97159138-c34b-416e-b079-5c952383a243", "card": "Mana Flare", "grade": 1}
+{"search": "mana-doubler", "oracle_id": "a8dba58b-2956-492e-ae30-49db2ae68e53", "card": "Mana Geyser", "grade": 0}
+{"search": "mana-doubler", "oracle_id": "bd9e416a-89b3-4912-be9b-49fce6a93dc9", "card": "Manalith", "grade": 0}
+{"search": "mana-doubler", "oracle_id": "89c83a6d-f6c8-4984-a888-0db62dfb93b1", "card": "Manamorphose", "grade": 0}
+{"search": "mana-doubler", "oracle_id": "1c264f6e-caa7-44cb-8719-86212292679c", "card": "Reckless Amplimancer", "grade": 0}
+{"search": "mana-doubler", "oracle_id": "238b270c-152a-48e5-a955-65f5cb80c174", "card": "Vernal Bloom", "grade": 1}
+{"search": "mana-doubler", "oracle_id": "6543b60c-12b0-4e69-9074-6a2b468c5234", "card": "Zhur-Taa Ancient", "grade": 1}
+{"search": "cost-reducer", "oracle_id": "bf7ec320-64bb-46ca-aac0-ca3d4224b69e", "card": "Ajani's Response", "grade": 0}
+{"search": "cost-reducer", "oracle_id": "9967b292-1239-4aed-b871-72e40d1f3e26", "card": "Arcane Melee", "grade": 2}
+{"search": "cost-reducer", "oracle_id": "a6d95d26-48d8-4a97-9a42-f492a61300c9", "card": "Assassin's Ink", "grade": 0}
+{"search": "cost-reducer", "oracle_id": "e3ee8b0e-9bdc-4b9a-b4f9-59189dd6a80d", "card": "Auriok Steelshaper", "grade": 0}
+{"search": "cost-reducer", "oracle_id": "c022b5df-1d85-44c0-94a1-d01b345b845b", "card": "Bureau Headmaster", "grade": 2}
+{"search": "cost-reducer", "oracle_id": "d32f7af3-b371-4883-b619-5a569767ff89", "card": "Catalyst Stone", "grade": 1}
+{"search": "cost-reducer", "oracle_id": "71a7f695-06b9-461d-9646-ffb975b375fc", "card": "Edgewalker", "grade": 2}
+{"search": "cost-reducer", "oracle_id": "5ed0c7cc-9969-4387-90f8-3084dd18026b", "card": "Fluctuator", "grade": 0}
+{"search": "cost-reducer", "oracle_id": "f2fcef65-4873-4b1f-a257-b8648097c990", "card": "Helm of Awakening", "grade": 2}
+{"search": "cost-reducer", "oracle_id": "256cea34-4691-4367-a789-17d15460f664", "card": "Mana Matrix", "grade": 2}
+{"search": "cost-reducer", "oracle_id": "f5fd3141-6fd9-4491-9f29-7fd81209bd57", "card": "Memory Crystal", "grade": 1}
+{"search": "cost-reducer", "oracle_id": "632f1034-d2ad-432a-a79a-4bd1307be24a", "card": "Planar Gate", "grade": 2}
+{"search": "cost-reducer", "oracle_id": "301a59c1-e372-4c31-a2a8-88c5ba7d822a", "card": "Stone Calendar", "grade": 2}
+{"search": "cost-reducer", "oracle_id": "65d9b8b6-5215-4037-8e50-e0ca80c5dc9e", "card": "Valiant Changeling", "grade": 0}
+{"search": "whenever-a-creature-dies", "oracle_id": "7e93ea61-bc16-4d22-a5e5-e6ba0f7ae14f", "card": "Cemetery Puca", "grade": 2}
+{"search": "whenever-a-creature-dies", "oracle_id": "0dd73855-6a7a-4eb4-80e0-1509f9397e5a", "card": "Death's-Head Buzzard", "grade": 0}
+{"search": "whenever-a-creature-dies", "oracle_id": "ccdd6376-9b74-4d13-9f80-87d0bd3d4a2a", "card": "Disease Carriers", "grade": 0}
+{"search": "whenever-a-creature-dies", "oracle_id": "a89994d0-2110-4ca0-abfc-5dd232981acf", "card": "Mortis Dogs", "grade": 0}
+{"search": "whenever-a-creature-dies", "oracle_id": "e5bf77c2-a9b2-4366-8412-e263160403c1", "card": "Proper Burial", "grade": 1}
+{"search": "whenever-a-creature-dies", "oracle_id": "51feda69-0ae8-4df3-bb50-a4bb9deb965d", "card": "Species Specialist", "grade": 1}
+{"search": "whenever-a-creature-dies", "oracle_id": "9ae376d5-c68f-4a4b-851c-ebfd385b86dd", "card": "Tenacious Dead", "grade": 0}
+{"search": "whenever-a-creature-dies", "oracle_id": "e2bfac84-0e2f-4f3e-8d87-a555c26093a6", "card": "Undead Executioner", "grade": 0}
+{"search": "whenever-a-creature-dies", "oracle_id": "5ae03181-a436-4bad-be3a-6c9f6c0ed4d6", "card": "Undying Beast", "grade": 0}
+{"search": "create-a-treasure-token", "oracle_id": "d1deba03-b26a-4a0d-b242-24bb3a3f9ea6", "card": "Bootleggers' Stash", "grade": 2}
+{"search": "create-a-treasure-token", "oracle_id": "d78518ee-df79-48d1-b9d5-4f968b441899", "card": "Coin of Mastery", "grade": 2}
+{"search": "create-a-treasure-token", "oracle_id": "5be7a4d5-33b7-464b-8851-d4ad35302e62", "card": "Dragon-Cursed Halls", "grade": 1}
+{"search": "create-a-treasure-token", "oracle_id": "e9f5f87d-a485-4e69-9beb-49a51230bd53", "card": "Elemental Masterpiece", "grade": 2}
+{"search": "create-a-treasure-token", "oracle_id": "d4a9d63a-5a8a-4f51-9e49-43d6dc3234b1", "card": "Greedy Freebooter", "grade": 2}
+{"search": "create-a-treasure-token", "oracle_id": "3d776a25-c341-4058-9b5f-84e70edb25a4", "card": "Luke Cage, Hero for Hire", "grade": 2}
+{"search": "create-a-treasure-token", "oracle_id": "ace8e88e-ca6a-4bdf-8c6d-1b914fc00259", "card": "Monologue Tax", "grade": 2}
+{"search": "create-a-treasure-token", "oracle_id": "3ab13412-1eaf-40c0-905d-8a3ca0c51be5", "card": "Plundering Pirate", "grade": 2}
+{"search": "create-a-treasure-token", "oracle_id": "681fc668-cb26-4ba4-a915-48ddfa2b9520", "card": "Prized Statue", "grade": 2}
+{"search": "create-a-treasure-token", "oracle_id": "a40de3b1-b24b-4da4-b550-9ac9838aecba", "card": "Prosperous Partnership", "grade": 2}
+{"search": "create-a-treasure-token", "oracle_id": "9dc6281b-08e0-4c66-9aef-abc7184ca36a", "card": "Prosperous Pirates", "grade": 2}
+{"search": "create-a-treasure-token", "oracle_id": "c96402dc-1509-4136-bbfd-c86a85e3ee6f", "card": "Swarming of Moria", "grade": 2}
+{"search": "create-a-treasure-token", "oracle_id": "9a691e96-fb47-4c23-a063-3b287c51147b", "card": "Treasure Dredger", "grade": 2}
+{"search": "create-a-treasure-token", "oracle_id": "0b55eac6-a745-4bf4-8926-5ce83bc38d7d", "card": "Treasure Map // Treasure Cove", "grade": 2}
+{"search": "cant-be-countered", "oracle_id": "8c983da8-1436-4c06-af9c-91b72cab48c1", "card": "Counterflux", "grade": 2}
+{"search": "cant-be-countered", "oracle_id": "11ed8209-2184-4416-a8f0-72de00599574", "card": "Glen Elendra's Answer", "grade": 2}
+{"search": "cant-be-countered", "oracle_id": "33d6a17a-0112-4d4f-a24a-0769360408a8", "card": "Last Word", "grade": 2}
+{"search": "cant-be-countered", "oracle_id": "9d63ba8a-a5cd-4fdb-bba3-95612be0077c", "card": "Long Goodbye", "grade": 2}
+{"search": "cant-be-countered", "oracle_id": "efe24eed-e1e2-4807-ae61-2e5be529ae3c", "card": "Raze to the Ground", "grade": 2}
+{"search": "cant-be-countered", "oracle_id": "30c09562-0bca-4382-ae84-aca00e0eb89b", "card": "Savage Summoning", "grade": 2}
+{"search": "cant-be-countered", "oracle_id": "f0b4331b-ddd3-4f11-ba16-67c651c8954c", "card": "Solemnity", "grade": 0}
+{"search": "cant-be-countered", "oracle_id": "437661f7-a32f-45c9-a006-05a1e38ee8d9", "card": "Suncleanser", "grade": 0}
+{"search": "cant-be-countered", "oracle_id": "a20a7cf8-2075-47ad-9229-36264b112e61", "card": "Vexing Shusher", "grade": 2}
+{"search": "each-opponent-loses-life", "oracle_id": "c82665b7-d011-4bdc-b4a2-eca5861b16d2", "card": "Blood Tithe", "grade": 2}
+{"search": "each-opponent-loses-life", "oracle_id": "0c766a86-9c70-465e-874b-9d9f3b4eb090", "card": "Brotherhood Patriarch", "grade": 2}
+{"search": "each-opponent-loses-life", "oracle_id": "77a1958e-ee24-4305-9dad-da8372803be8", "card": "Crushing Disappointment", "grade": 1}
+{"search": "each-opponent-loses-life", "oracle_id": "0d40bc98-28e7-4fa5-b848-1cbac5345c12", "card": "Deathcurse Ogre", "grade": 1}
+{"search": "each-opponent-loses-life", "oracle_id": "6130f22d-7901-4f9f-b777-27bb0dacc063", "card": "Debt to the Deathless", "grade": 2}
+{"search": "each-opponent-loses-life", "oracle_id": "bdb319a6-a1cd-44f5-999d-af1bb55b2fc4", "card": "Epicure of Blood", "grade": 2}
+{"search": "each-opponent-loses-life", "oracle_id": "fc4c969d-408c-46d1-8dba-fabecc2c30ce", "card": "False Cure", "grade": 0}
+{"search": "each-opponent-loses-life", "oracle_id": "74344ca9-b057-4864-a374-3b399389765f", "card": "Final Punishment", "grade": 0}
+{"search": "each-opponent-loses-life", "oracle_id": "a4dc1fea-427c-424c-99c8-af2e6d3ad2a9", "card": "Foul-Tongue Shriek", "grade": 1}
+{"search": "each-opponent-loses-life", "oracle_id": "cf874feb-00fe-4e48-b57a-cf8b9855c057", "card": "Gruesome Fate", "grade": 2}
+{"search": "each-opponent-loses-life", "oracle_id": "0772c5d2-9189-47e2-b0ee-13babd94ea93", "card": "Subversion", "grade": 2}
+{"search": "each-opponent-loses-life", "oracle_id": "51b114cd-c174-4d74-a854-07c68b41fc9d", "card": "Tainted Remedy", "grade": 1}
+{"search": "each-opponent-loses-life", "oracle_id": "d5b131c7-29d4-4745-95e3-70bdf9bf54b3", "card": "Triskaidekaphobia", "grade": 1}
+{"search": "return-creature-to-battlefield", "oracle_id": "670df8be-21cd-49d8-92e3-d7cc38b256d6", "card": "Back for More", "grade": 2}
+{"search": "return-creature-to-battlefield", "oracle_id": "62cca25f-3bf7-4b67-97d5-280bf2544722", "card": "Bond of Revival", "grade": 2}
+{"search": "return-creature-to-battlefield", "oracle_id": "175c76c8-f36c-4948-aaa8-0208eac5f0d3", "card": "Continue?", "grade": 1}
+{"search": "return-creature-to-battlefield", "oracle_id": "d620de15-8141-4877-9330-8328a3fa85e1", "card": "Defossilize", "grade": 2}
+{"search": "return-creature-to-battlefield", "oracle_id": "8b119579-38e1-4509-9dcb-019d5a160ac2", "card": "False Defeat", "grade": 2}
+{"search": "return-creature-to-battlefield", "oracle_id": "0eeab568-9186-4813-87e7-9c1e6a7c76e7", "card": "Fated Return", "grade": 2}
+{"search": "return-creature-to-battlefield", "oracle_id": "2677c0d9-1251-478e-b157-072859c593a9", "card": "Gravegouger", "grade": 0}
+{"search": "return-creature-to-battlefield", "oracle_id": "231ca538-b277-4c12-979f-57640a0e87f0", "card": "Grim Harvest", "grade": 0}
+{"search": "return-creature-to-battlefield", "oracle_id": "c1d54d0c-53fc-474c-ba89-2aa1be3bf27d", "card": "Grim Return", "grade": 1}
+{"search": "return-creature-to-battlefield", "oracle_id": "dc367b23-d1f4-4c5c-b300-a44a726e3f74", "card": "Live or Die", "grade": 2}
+{"search": "return-creature-to-battlefield", "oracle_id": "fff66029-24bb-4354-a650-99a205fd168f", "card": "Quarry Beetle", "grade": 0}
+{"search": "return-creature-to-battlefield", "oracle_id": "837417d8-8260-486d-a3ed-3b5711eaf34a", "card": "Resurrection", "grade": 2}
+{"search": "return-creature-to-battlefield", "oracle_id": "4600e968-fe3a-446a-a306-bd10e6763e0d", "card": "Rise Again", "grade": 2}
+{"search": "return-creature-to-battlefield", "oracle_id": "bc3d5911-3580-4132-9daf-2826495b5739", "card": "Stitch Together", "grade": 1}
+{"search": "play-an-additional-land", "oracle_id": "6c2c8bf3-9bf8-4a86-89d3-3bb36260dc51", "card": "Azusa, Lost but Seeking", "grade": 2}
+{"search": "play-an-additional-land", "oracle_id": "0c85b8f7-0bd0-4680-9ec5-d4b110460a54", "card": "Fabled Passage", "grade": 0}
+{"search": "play-an-additional-land", "oracle_id": "aa959340-c869-4caa-92c7-572bd8d23eef", "card": "Field of the Dead", "grade": 0}
+{"search": "play-an-additional-land", "oracle_id": "1c586d8a-9d1a-48a7-bb3e-9b2c0c329f8d", "card": "Journey of Discovery", "grade": 1}
+{"search": "play-an-additional-land", "oracle_id": "75b73eb2-dafd-43db-9e96-7e1995d9849f", "card": "Song of Creation", "grade": 2}
+{"search": "play-an-additional-land", "oracle_id": "e5df4597-1647-4ac2-bdb3-a517598d1431", "card": "Summer Bloom", "grade": 1}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "a0657586-0404-4bb0-a92d-25f040d560c1", "card": "Aberrant Manawurm", "grade": 2}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "1e36a42f-58e2-49bc-8c14-7f75e1d8ef98", "card": "Arcane Bombardment", "grade": 1}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "40ab2b22-9cf6-4a73-a05f-6ce496d10bf7", "card": "Bonus Round", "grade": 1}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "9adc3750-0ddb-4f2c-a0e7-131e59d4cba5", "card": "Cursed Recording", "grade": 2}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "6629a48b-be9a-4636-8add-69d096a1ca7e", "card": "Double Vision", "grade": 1}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "946675f5-8998-4f1b-934b-85ffe6e2f002", "card": "Doublecast", "grade": 1}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "350b3c1c-b37e-4279-9b49-0fb93c5e7e33", "card": "Eyes of the Watcher", "grade": 2}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "cca15007-2faf-4696-a4c5-2d7b6c1ec5b5", "card": "Gale, Waterdeep Prodigy", "grade": 1}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "cbad35cd-9026-43ea-8333-94f3b34459e3", "card": "Gandalf of the Secret Fire", "grade": 1}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "38eaf0ea-8cdd-45f4-bfb9-0f8d0fcf863a", "card": "Harness the Storm", "grade": 1}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "61be7df8-cc78-4822-9e70-f226a8a96c9d", "card": "Mathise, Surge Channeler", "grade": 1}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "7d5149c6-0e7e-438c-a554-5235c85e2426", "card": "Metallurgic Summonings", "grade": 2}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "f697c78d-7e4f-4320-bfc6-2a25e6d7dc94", "card": "Riku of Two Reflections", "grade": 2}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "d32345c1-ed20-4bfc-a5fa-6ac7b99542ec", "card": "Rod of Absorption", "grade": 1}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "3d92e5ce-9d30-4203-9f84-6c36117440cf", "card": "Spellweaver Volute", "grade": 1}
+{"search": "whenever-you-cast-instant-or-sorcery", "oracle_id": "21486218-70ec-4c60-9844-8f7c80912333", "card": "Splashy Spellcaster", "grade": 2}
+{"search": "search-for-a-basic-land", "oracle_id": "58257464-278e-45fa-8e0b-bcd9a7500bc1", "card": "Ash Barrens", "grade": 2}
+{"search": "search-for-a-basic-land", "oracle_id": "e6acafb7-856f-4125-a908-a620635b8ba3", "card": "Boundless Realms", "grade": 2}
+{"search": "search-for-a-basic-land", "oracle_id": "d2d9ecea-7925-420e-98b9-2f87f41f387c", "card": "Land Tax", "grade": 2}
+{"search": "search-for-a-basic-land", "oracle_id": "2549bc57-9ffb-4053-9f10-f2a5f792b845", "card": "Myriad Landscape", "grade": 2}
+{"search": "search-for-a-basic-land", "oracle_id": "861eb7d7-7616-4620-a4fd-4b8c3bf00dd1", "card": "Promising Vein", "grade": 2}
+{"search": "search-for-a-basic-land", "oracle_id": "929c231a-12d9-4f1a-9849-64a8b5a65f20", "card": "Scouting Trek", "grade": 2}
+{"search": "search-for-a-basic-land", "oracle_id": "7537b482-7626-4b65-8b67-53b99baf1872", "card": "Seek the Horizon", "grade": 2}
+{"search": "search-for-a-basic-land", "oracle_id": "619173f4-0403-49cd-9659-2fedd5028a90", "card": "Shire Terrace", "grade": 2}
+{"search": "search-for-a-basic-land", "oracle_id": "58eaaa8b-45c6-439b-bdd1-5f4e77a75a8c", "card": "Terminal Moraine", "grade": 2}
+{"search": "search-for-a-basic-land", "oracle_id": "c6792d9f-8b74-43c4-814f-ba4adab2fdea", "card": "Thawing Glaciers", "grade": 2}
+{"search": "search-for-a-basic-land", "oracle_id": "b184d12d-41d8-4a74-99b1-8c7fced212f8", "card": "Verdant Crescendo", "grade": 2}
+{"search": "search-for-a-basic-land", "oracle_id": "543e6bb3-a867-43bf-a737-2f5d6d8dc631", "card": "Warped Landscape", "grade": 2}
+{"search": "gain-control-of-target-creature", "oracle_id": "e6479195-cbdf-4d2b-9f45-5fd0a6ab4a77", "card": "Arm with Aether", "grade": 0}
+{"search": "gain-control-of-target-creature", "oracle_id": "3bd57758-00a6-4d49-b1fc-b14f8203da0b", "card": "Commando Raid", "grade": 0}
+{"search": "gain-control-of-target-creature", "oracle_id": "c10fd7a6-360f-43d6-a4ef-d990c97cb2f6", "card": "Crossbow Ambush", "grade": 0}
+{"search": "gain-control-of-target-creature", "oracle_id": "77db8db4-9fe4-478e-b919-5348b0b87b0d", "card": "Dominate", "grade": 2}
+{"search": "gain-control-of-target-creature", "oracle_id": "2c438ecb-b127-4450-9395-2d1eea294f30", "card": "Domineering Will", "grade": 1}
+{"search": "gain-control-of-target-creature", "oracle_id": "a32b8502-7427-48a5-a880-14516ff2fe77", "card": "Master Thief", "grade": 0}
+{"search": "gain-control-of-target-creature", "oracle_id": "ce936736-915f-44bb-a709-b3bdcf90a3be", "card": "Orcish Squatters", "grade": 0}
+{"search": "gain-control-of-target-creature", "oracle_id": "adf41d29-403d-4936-9689-3148d103e700", "card": "Ray of Command", "grade": 2}
+{"search": "gain-control-of-target-creature", "oracle_id": "17c0cf45-a031-40e8-a37f-eda98a8f785b", "card": "Stolen Uniform", "grade": 0}
+{"search": "gain-control-of-target-creature", "oracle_id": "59642d6f-8a25-4f79-9e81-643eac775658", "card": "Time to Feed", "grade": 0}
+{"search": "gain-control-of-target-creature", "oracle_id": "7c365041-806f-42d6-a2ff-40e20dd8e9f0", "card": "Willbreaker", "grade": 1}
+{"search": "gain-control-of-target-creature", "oracle_id": "d1cfbbcc-4aee-4400-b5a8-18713829ae72", "card": "Wrong Turn", "grade": 0}
+{"search": "gain-control-of-target-creature", "oracle_id": "49aa87c7-034b-409d-b37f-50db6a42e533", "card": "You See a Guard Approach", "grade": 0}
+{"search": "whenever-a-land-enters", "oracle_id": "e4cf6c2f-0f1e-4980-9ef9-e4eabcae42a9", "card": "Frontier Bivouac", "grade": 0}
+{"search": "whenever-a-land-enters", "oracle_id": "60b36821-0fad-423c-98c4-f64d991719f3", "card": "Graypelt Refuge", "grade": 0}
+{"search": "whenever-a-land-enters", "oracle_id": "01ee70d4-6527-45ae-9600-bd3d16b3037d", "card": "Illegitimate Business", "grade": 0}
+{"search": "whenever-a-land-enters", "oracle_id": "8b96f837-7c32-473a-b5ae-1d66527eaf7b", "card": "Jwar Isle Refuge", "grade": 0}
+{"search": "whenever-a-land-enters", "oracle_id": "03332772-18b0-446a-a7e2-a4bdf38c4f0c", "card": "Kazandu Refuge", "grade": 0}
+{"search": "whenever-a-land-enters", "oracle_id": "6e743fbf-b5b6-4176-a4f2-6933f521f2fe", "card": "New Benalia", "grade": 0}
+{"search": "whenever-a-land-enters", "oracle_id": "709d2f10-1585-48c3-9058-ddd5f62f0452", "card": "Overgrown Farmland", "grade": 0}
+{"search": "whenever-a-land-enters", "oracle_id": "6a40823f-130c-4416-a987-75e205d3e1dd", "card": "Salt Marsh", "grade": 0}
+{"search": "whenever-a-land-enters", "oracle_id": "a3292406-3f49-42d6-a547-e43dd5797f84", "card": "Savage Lands", "grade": 0}
+{"search": "whenever-a-land-enters", "oracle_id": "62934aab-b6fa-41b2-ac05-d3fa0e3c5a79", "card": "Turntimber Grove", "grade": 0}
+{"search": "double-that-damage", "oracle_id": "a1afb796-1b0b-4f41-9c8f-5320c9af5989", "card": "Absorbing Man and Titania", "grade": 2}
+{"search": "double-that-damage", "oracle_id": "9bf4ee0f-6e28-4793-b251-f81ee444a119", "card": "Assault Strobe", "grade": 0}
+{"search": "double-that-damage", "oracle_id": "e4add901-3f2b-4f92-bb26-7f599e288802", "card": "Bitter Feud", "grade": 2}
+{"search": "double-that-damage", "oracle_id": "d86f3d5e-838c-4787-9417-85a6997c3bde", "card": "Double Cleave", "grade": 0}
+{"search": "double-that-damage", "oracle_id": "69e0d9f1-f9dd-4614-ad9f-13e7153710ce", "card": "Dragonclaw Strike", "grade": 0}
+{"search": "double-that-damage", "oracle_id": "543599e2-8312-43a6-ab26-0be17e690d4f", "card": "Overblaze", "grade": 2}
+{"search": "double-that-damage", "oracle_id": "91b89c21-5f35-4aa5-925b-c756ec6969b4", "card": "Ticked Off", "grade": 0}
+{"search": "cant-gain-life", "oracle_id": "ca54e14c-67ee-4de2-bc0f-19a5f9461d37", "card": "Call In a Professional", "grade": 1}
+{"search": "cant-gain-life", "oracle_id": "28df85d6-e13a-4178-a361-7015afd316ca", "card": "Chalice of Life // Chalice of Death", "grade": 0}
+{"search": "cant-gain-life", "oracle_id": "6d2eb412-e09b-4ab3-8653-b458e9f38eff", "card": "Curse of Vitality", "grade": 0}
+{"search": "cant-gain-life", "oracle_id": "edbde032-4432-4610-83a2-a52f6ce199e1", "card": "Death Cultist", "grade": 0}
+{"search": "cant-gain-life", "oracle_id": "beab66e0-2b6c-478f-ba42-8c0c216a527e", "card": "Heroes' Reunion", "grade": 0}
+{"search": "cant-gain-life", "oracle_id": "8ca2f668-2a4d-4a1e-abcc-093ccbc29295", "card": "Mornsong Aria", "grade": 2}
+{"search": "cant-gain-life", "oracle_id": "9552fc97-9e6d-4307-bf58-30bf956356bf", "card": "Plague Drone", "grade": 1}
+{"search": "cant-gain-life", "oracle_id": "d12b4b66-9453-4494-9547-c737f48277ed", "card": "Rain of Gore", "grade": 1}
+{"search": "cant-gain-life", "oracle_id": "c7f08962-6c54-4fd5-a55e-7513e758af32", "card": "Rest for the Weary", "grade": 0}
+{"search": "cant-gain-life", "oracle_id": "b1eea34a-74ef-4d7c-bf70-c64b3487f296", "card": "Rhystic Syphon", "grade": 0}
+{"search": "cant-gain-life", "oracle_id": "8186fd80-015f-470c-9e1c-cbf45764a057", "card": "Soul Feast", "grade": 0}
+{"search": "cant-gain-life", "oracle_id": "51b114cd-c174-4d74-a854-07c68b41fc9d", "card": "Tainted Remedy", "grade": 1}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "33bea2f0-c5aa-44b5-8714-5f50f7f2bb05", "card": "Blood Bairn", "grade": 1}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "c0516c2c-d7c9-4763-9180-980f60205a28", "card": "Dauntless Escort", "grade": 0}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "edbde032-4432-4610-83a2-a52f6ce199e1", "card": "Death Cultist", "grade": 0}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "ff052137-2ffd-4399-8fdd-906f8e2041f8", "card": "Enslaved Dwarf", "grade": 0}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "f578a5e0-77e2-4c35-90b2-6628ed9b218e", "card": "Falkenrath Torturer", "grade": 2}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "34e56412-4649-481d-be51-357b331d0b75", "card": "Fanatical Devotion", "grade": 2}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "0f80f061-6304-4c7b-ab53-f406385e39df", "card": "Goremand", "grade": 0}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "240a349a-79f8-4e11-9a05-a78148e70a62", "card": "Hapless Researcher", "grade": 0}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "6791ec3c-c397-4087-8c8c-84d3797df415", "card": "Innocent Blood", "grade": 0}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "61e00946-7df7-4298-91b2-c656169e6601", "card": "Kjeldoran Dead", "grade": 0}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "c5081f2d-ebe2-4ff3-a8ef-fe50f8ecde60", "card": "Liberated Dwarf", "grade": 0}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "eef50ef8-958b-4f5c-b261-16926d9fe672", "card": "Plague Reaver", "grade": 0}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "068b3692-411b-44d4-a7e9-005262760cfc", "card": "Sacrifice", "grade": 0}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "98e7bfd4-fcb6-47b1-ad0b-c54b85dc2a79", "card": "Shield Mate", "grade": 0}
+{"search": "sacrifice-a-creature-cost", "oracle_id": "3c880ac2-0b22-4f7e-a55a-381de235e971", "card": "Spined Fluke", "grade": 0}
+{"search": "untap-all-lands", "oracle_id": "05c2dec2-d2f7-4036-b91f-4fccba10a8bb", "card": "Back to Basics", "grade": 0}
+{"search": "untap-all-lands", "oracle_id": "32001382-3079-4bbe-8d86-05da654c0d1a", "card": "Early Harvest", "grade": 1}
+{"search": "untap-all-lands", "oracle_id": "50aa7aff-1f01-4224-9a83-01f74d703ec2", "card": "Earthcraft", "grade": 0}
+{"search": "untap-all-lands", "oracle_id": "0e7b9caf-8285-4386-98bc-9a809827f447", "card": "Exhaustion", "grade": 0}
+{"search": "untap-all-lands", "oracle_id": "0c85b8f7-0bd0-4680-9ec5-d4b110460a54", "card": "Fabled Passage", "grade": 0}
+{"search": "untap-all-lands", "oracle_id": "cad05528-917b-4296-9d23-ba9433612709", "card": "Mana Leech", "grade": 0}
+{"search": "untap-all-lands", "oracle_id": "8e082c95-cdc4-4f29-9915-05f83298f14d", "card": "Mana Vapors", "grade": 0}
+{"search": "untap-all-lands", "oracle_id": "79301ae1-8c9c-4723-be21-dc27e1646f35", "card": "Skyline Cascade", "grade": 0}
+{"search": "untap-all-lands", "oracle_id": "62f6baba-da3b-45b8-a3c1-efb75763cca8", "card": "Tiller Engine", "grade": 0}
+{"search": "whenever-you-gain-life", "oracle_id": "30f3c3be-0fe9-463d-a245-e44701aec7f2", "card": "Blossoming Bogbeast", "grade": 0}
+{"search": "whenever-you-gain-life", "oracle_id": "b86d3142-568a-4eea-b1ae-5fcfc1453533", "card": "Boon Reflection", "grade": 0}
+{"search": "whenever-you-gain-life", "oracle_id": "5fd193c0-ed9f-4afb-b6cd-c1a20008fc0b", "card": "Comforting Counsel", "grade": 2}
+{"search": "whenever-you-gain-life", "oracle_id": "9ad86d0e-3363-4d98-b0bb-dc491be1ddd5", "card": "Convalescence", "grade": 0}
+{"search": "whenever-you-gain-life", "oracle_id": "162407d9-3e3c-440f-a7a9-22936d99fc8a", "card": "Convalescent Care", "grade": 0}
+{"search": "whenever-you-gain-life", "oracle_id": "8f933fae-6c0c-42d7-a817-14760d8285cd", "card": "Exquisite Blood", "grade": 0}
+{"search": "whenever-you-gain-life", "oracle_id": "15d2176b-ab3d-4738-bcbc-bcebf891d16e", "card": "Life Goes On", "grade": 0}
+{"search": "whenever-you-gain-life", "oracle_id": "2afb027f-3c02-46cf-97a1-af0e946ee477", "card": "Near-Death Experience", "grade": 0}
+{"search": "whenever-you-gain-life", "oracle_id": "ffdad8fb-69ee-40d3-b2eb-b0aee0a5becc", "card": "Test of Endurance", "grade": 0}
+{"search": "whenever-you-gain-life", "oracle_id": "df702285-3577-47cc-aa1e-868921cdf6f2", "card": "Whitesun's Passage", "grade": 0}
+{"search": "counter-on-each-creature", "oracle_id": "28fe909b-06e0-424c-9f75-c824a25f5865", "card": "Branching Evolution", "grade": 0}
+{"search": "counter-on-each-creature", "oracle_id": "a2fe5937-212c-4e71-8d6e-f408b38100aa", "card": "Conclave Mentor", "grade": 0}
+{"search": "counter-on-each-creature", "oracle_id": "be9bee08-ac04-42bc-93be-5a77482a7690", "card": "Contortionist Troupe", "grade": 0}
+{"search": "counter-on-each-creature", "oracle_id": "ca0cc02b-b106-4eca-9388-d4b48dd3be49", "card": "Corpsejack Menace", "grade": 0}
+{"search": "counter-on-each-creature", "oracle_id": "8d9bd4cc-564b-4fdf-9462-b4bb30583642", "card": "Fangs of Kalonia", "grade": 1}
+{"search": "counter-on-each-creature", "oracle_id": "9ee0d4a0-fd8d-43c4-a2aa-c4e6af5beecc", "card": "Generous Pup", "grade": 1}
+{"search": "counter-on-each-creature", "oracle_id": "24f1445c-16c9-45c0-be56-0266e6c78cdb", "card": "Guiding Hydra", "grade": 1}
+{"search": "counter-on-each-creature", "oracle_id": "a1f3da21-af6d-450e-bf0b-985d158418e6", "card": "Hardened Scales", "grade": 0}
+{"search": "counter-on-each-creature", "oracle_id": "d81fc181-ecb0-43a5-88e8-c61aca3428d8", "card": "High Score", "grade": 0}
+{"search": "counter-on-each-creature", "oracle_id": "96cf2810-35b8-437e-b609-f9765604b8cf", "card": "Inspiring Roar", "grade": 2}
+{"search": "counter-on-each-creature", "oracle_id": "ad501bcb-b838-4716-9759-98c484772285", "card": "Pledge of Unity", "grade": 2}
+{"search": "counter-on-each-creature", "oracle_id": "f9672b63-415a-448b-a3da-140df63a0f0c", "card": "Pridemalkin", "grade": 0}
+{"search": "counter-on-each-creature", "oracle_id": "d777e428-cc50-40b1-a241-41576d2575d1", "card": "Quirion Beastcaller", "grade": 0}
+{"search": "counter-on-each-creature", "oracle_id": "7d404420-e3de-47a8-a159-2f634a73f2c9", "card": "Servant of the Scale", "grade": 0}
+{"search": "counter-on-each-creature", "oracle_id": "f46c72b8-e2e8-42e6-a2e7-ffa5810a9bf3", "card": "Swarm Shambler", "grade": 0}
+{"search": "counter-on-each-creature", "oracle_id": "05d0b904-a680-4f2f-aaa1-e227a7fe7e79", "card": "Unruly Mob", "grade": 0}
+{"search": "azorius-board-wipe", "oracle_id": "25012c1f-c069-43d7-b930-a3a5a7eb1389", "card": "Dismantling Wave", "grade": 1}
+{"search": "azorius-board-wipe", "oracle_id": "43144f06-079b-4515-a03a-01ea3e90d586", "card": "Encroaching Wastes", "grade": 0}
+{"search": "azorius-board-wipe", "oracle_id": "a3d4ed7c-c586-4581-96dc-977636d27583", "card": "Engulf the Shore", "grade": 1}
+{"search": "azorius-board-wipe", "oracle_id": "f92c2d47-f2f7-43d9-acf3-0145bad1977d", "card": "Fade Away", "grade": 1}
+{"search": "azorius-board-wipe", "oracle_id": "8c95d823-6bbd-4484-8f38-b1bb20403085", "card": "Filter Out", "grade": 1}
+{"search": "azorius-board-wipe", "oracle_id": "496999a7-a82a-45ea-9c4e-1b6aabc781cd", "card": "Rebuild", "grade": 1}
+{"search": "azorius-board-wipe", "oracle_id": "37f5d022-2989-4b44-9bca-dc6b606afe10", "card": "Retaliate", "grade": 1}
+{"search": "azorius-board-wipe", "oracle_id": "54748cb1-d92a-4212-ad76-417ee79b5ef1", "card": "Wash Out", "grade": 1}
+{"search": "azorius-board-wipe", "oracle_id": "ad9b6737-22c4-45cc-976b-32743ed48462", "card": "Wipe Away", "grade": 0}
+{"search": "azorius-board-wipe", "oracle_id": "f5cbc4f3-4e73-405f-9daf-e5b7c73fa6ee", "card": "Wipe Clean", "grade": 0}
+{"search": "cheap-mono-blue-draw", "oracle_id": "9c3d2e1f-a5da-47f4-aea8-5861ef7e1b90", "card": "Betrayal", "grade": 1}
+{"search": "cheap-mono-blue-draw", "oracle_id": "9908e597-9470-4c13-8387-39431b380138", "card": "Braingeyser", "grade": 2}
+{"search": "cheap-mono-blue-draw", "oracle_id": "05878e49-93ad-4144-9c50-a0bb86126c2e", "card": "Chart a Course", "grade": 2}
+{"search": "cheap-mono-blue-draw", "oracle_id": "876c9620-216c-45dd-b8a6-b9e0cba63e3d", "card": "Contested Game Ball", "grade": 2}
+{"search": "cheap-mono-blue-draw", "oracle_id": "28f0765a-de09-4be3-b952-aee75b9ede03", "card": "Fascination", "grade": 1}
+{"search": "cheap-mono-blue-draw", "oracle_id": "2155f3d8-c876-42bc-b546-a476425a4133", "card": "Information Booth", "grade": 1}
+{"search": "cheap-mono-blue-draw", "oracle_id": "38cfe4a0-6ead-435b-9f86-928205c0a52c", "card": "Kami of the Crescent Moon", "grade": 1}
+{"search": "cheap-mono-blue-draw", "oracle_id": "53bfffae-b99e-44bd-8954-6cf236f93f26", "card": "Mnemonic Sphere", "grade": 2}
+{"search": "cheap-mono-blue-draw", "oracle_id": "873abbf4-c9b5-4b8f-8cd0-613cf3b9b1d5", "card": "Peek", "grade": 1}
+{"search": "cheap-mono-blue-draw", "oracle_id": "45473bdb-b96f-4213-a46d-b2dbdf6b5e56", "card": "Proft, Consulting Detective", "grade": 1}
+{"search": "cheap-mono-blue-draw", "oracle_id": "c586312d-d04a-4bfb-bbb2-b41186ca178e", "card": "Prosperity", "grade": 1}
+{"search": "cheap-mono-blue-draw", "oracle_id": "c3416e6c-ec46-410c-ab80-6e8fdb89f42d", "card": "Skyscribing", "grade": 1}
+{"search": "cheap-mono-blue-draw", "oracle_id": "c68964df-51ae-43b0-abea-74735016c13f", "card": "Visions of Beyond", "grade": 2}
+{"search": "cheap-mono-blue-draw", "oracle_id": "cff1b9bb-2a4c-4522-94a4-a674f942e376", "card": "Words of Wisdom", "grade": 2}
+{"search": "green-ramp-creatures", "oracle_id": "d18a0815-59d3-4667-b52b-9acda741215e", "card": "Arboreal Grazer", "grade": 2}
+{"search": "green-ramp-creatures", "oracle_id": "22c75ad5-237c-4dbd-bbc4-3058a3db408f", "card": "Beanstalk Giant // Fertile Footsteps", "grade": 2}
+{"search": "green-ramp-creatures", "oracle_id": "a2192c80-c48f-44e2-807c-2f9ee1aa1152", "card": "Beanstalk Wurm // Plant Beans", "grade": 2}
+{"search": "green-ramp-creatures", "oracle_id": "da1e019c-2ffb-412d-90d7-f2e5e5c44c4b", "card": "Bloomvine Regent // Claim Territory", "grade": 2}
+{"search": "green-ramp-creatures", "oracle_id": "5f4138e9-5471-467f-a15e-89e9e7929f0c", "card": "Elvish Pioneer", "grade": 2}
+{"search": "green-ramp-creatures", "oracle_id": "12d617b1-c95b-4b1c-a586-ccfdf5898b03", "card": "Hexhaven Invigorator", "grade": 1}
+{"search": "green-ramp-creatures", "oracle_id": "d69b1e68-8d8e-460b-9eb4-6a68be886197", "card": "Kodama of the West Tree", "grade": 1}
+{"search": "green-ramp-creatures", "oracle_id": "2a86b70b-34ca-45df-8aa1-c3fb2da72dc3", "card": "Ranging Raptors", "grade": 1}
+{"search": "dragon-commanders", "oracle_id": "73520b5a-3d55-40c9-af60-90fdd811934f", "card": "Dromoka, the Eternal", "grade": 2}
+{"search": "dragon-commanders", "oracle_id": "4aae7102-301a-429d-b169-4f462384d55d", "card": "Ishai, Ojutai Dragonspeaker", "grade": 0}
+{"search": "dragon-commanders", "oracle_id": "521b1598-58c6-47a0-a7b3-021d70bf2b05", "card": "Keiga, the Tide Star", "grade": 2}
+{"search": "dragon-commanders", "oracle_id": "2ceac1be-32ab-4a04-ade3-852926a5ca45", "card": "Korlessa, Scale Singer", "grade": 2}
+{"search": "dragon-commanders", "oracle_id": "27d7f737-59a4-4948-9b2e-599ae848e054", "card": "Ojutai, Soul of Winter", "grade": 2}
+{"search": "dragon-commanders", "oracle_id": "b26c91d9-87de-45f7-a24c-bbe0cef3a35c", "card": "Silumgar, the Drifting Death", "grade": 2}
+{"search": "budget-black-removal", "oracle_id": "1a1a16e5-ce4f-42b8-a1c6-05dd635d83cc", "card": "Aether Snap", "grade": 1}
+{"search": "budget-black-removal", "oracle_id": "945d5351-ce7d-488c-bc63-269ad82b74cb", "card": "Amulet of Unmaking", "grade": 2}
+{"search": "budget-black-removal", "oracle_id": "1c2ce0d0-8c3e-48e8-b1fd-54658bdb9af9", "card": "Asphyxiate", "grade": 2}
+{"search": "budget-black-removal", "oracle_id": "ce979f36-84f2-4419-b400-971263494cc6", "card": "Assassinate", "grade": 2}
+{"search": "budget-black-removal", "oracle_id": "c573c59a-5a79-4fe1-a6d8-5e0153b5c059", "card": "Befoul", "grade": 2}
+{"search": "budget-black-removal", "oracle_id": "8df1cbbc-87fc-4948-b224-9175b9f396d9", "card": "Caustic Rain", "grade": 1}
+{"search": "budget-black-removal", "oracle_id": "caf840e8-c1d3-4570-8542-432a765c09ff", "card": "Defenestrate", "grade": 2}
+{"search": "budget-black-removal", "oracle_id": "3c9242fd-915b-4f6d-b4ee-830c9d80c9e8", "card": "Desecrated Earth", "grade": 1}
+{"search": "budget-black-removal", "oracle_id": "c3a89c67-1931-4d42-98c8-94a40cfd046e", "card": "Eviscerate", "grade": 2}
+{"search": "budget-black-removal", "oracle_id": "f3f01fe8-0a2c-4afa-94d2-268d27c0d252", "card": "Extinction", "grade": 2}
+{"search": "budget-black-removal", "oracle_id": "8f968470-ce00-43a3-95f5-2e3fe987be19", "card": "Fell", "grade": 2}
+{"search": "budget-black-removal", "oracle_id": "e654242f-c7c5-4713-bbd0-26d41de8e2e7", "card": "Final Reward", "grade": 2}
+{"search": "budget-black-removal", "oracle_id": "dcdf40a9-5a7e-45b1-aee4-36dda598baaf", "card": "Impale", "grade": 2}
+{"search": "budget-black-removal", "oracle_id": "72cecab3-519e-4a23-9623-b423a5c5a251", "card": "Rain of Tears", "grade": 1}
+{"search": "budget-black-removal", "oracle_id": "241a50c5-f65f-4847-89c7-5c0ef6025dc1", "card": "Scour from Existence", "grade": 2}
+{"search": "budget-black-removal", "oracle_id": "b14d3226-adc2-4bdd-9e69-fefdc946ac04", "card": "Wander Off", "grade": 2}
+{"search": "tutors-not-game-changers", "oracle_id": "b2402ac0-8ab8-413c-bac4-9f4ba2163c58", "card": "Behold the Beyond", "grade": 2}
+{"search": "tutors-not-game-changers", "oracle_id": "cf94cafc-527e-4b27-8a28-7807435aaccf", "card": "Beseech the Queen", "grade": 2}
+{"search": "tutors-not-game-changers", "oracle_id": "b44816b4-44ef-446d-a254-b4b7bc015a42", "card": "Braidwood Sextant", "grade": 1}
+{"search": "tutors-not-game-changers", "oracle_id": "910ff092-7c9d-49d3-a6df-497683e45bbd", "card": "Cateran Summons", "grade": 1}
+{"search": "tutors-not-game-changers", "oracle_id": "6b8183bb-20c4-4d45-b944-508a6a874bb3", "card": "Citanul Flute", "grade": 1}
+{"search": "tutors-not-game-changers", "oracle_id": "299fc083-0834-4064-8344-f895aff68867", "card": "Entomb", "grade": 1}
+{"search": "tutors-not-game-changers", "oracle_id": "1caa7fa2-a881-4a65-a87e-12a974520c83", "card": "Grim Servant", "grade": 1}
+{"search": "white-flying-lifelink", "oracle_id": "a361fdd1-7f97-4aed-8e24-ab2a03387f73", "card": "Adult Gold Dragon", "grade": 2}
+{"search": "white-flying-lifelink", "oracle_id": "69b1b0ec-9db0-48d1-a7b5-71281aca16fe", "card": "Aerial Responder", "grade": 2}
+{"search": "white-flying-lifelink", "oracle_id": "990b5e12-6e04-4832-9d64-87278f12cbda", "card": "Betor, Ancestor's Voice", "grade": 2}
+{"search": "white-flying-lifelink", "oracle_id": "376cbc85-2941-4d97-b031-bffff86550e7", "card": "Congregation Gryff", "grade": 2}
+{"search": "white-flying-lifelink", "oracle_id": "0b3b2fb1-d5fe-4d14-985a-85f13cd60d9c", "card": "Healer's Flock", "grade": 2}
+{"search": "white-flying-lifelink", "oracle_id": "189131b7-ed59-4750-a4ed-453e4497a5c8", "card": "Indulging Patrician", "grade": 2}
+{"search": "white-flying-lifelink", "oracle_id": "02c741d0-99d3-48e5-9846-0fea5a0a29fe", "card": "Sage of the Inward Eye", "grade": 1}
+{"search": "white-flying-lifelink", "oracle_id": "38c588ae-7254-4fae-aa9a-03e2a5524492", "card": "Seraph of Dawn", "grade": 2}
+{"search": "white-flying-lifelink", "oracle_id": "dab16c93-9788-46e0-9345-838ebeda8d54", "card": "Tuinvale Guide", "grade": 1}
+{"search": "red-haste-enablers", "oracle_id": "bd56225e-8c80-4328-9ca0-0fff4969573d", "card": "Battlemage's Bracers", "grade": 1}
+{"search": "red-haste-enablers", "oracle_id": "789e034c-7f4a-4fd5-9dd8-48313742126e", "card": "Become Brutes", "grade": 1}
+{"search": "red-haste-enablers", "oracle_id": "fc80380c-7d75-4556-aaf2-bf7b2c757e75", "card": "Besmirch", "grade": 0}
+{"search": "red-haste-enablers", "oracle_id": "6f6601bc-cb12-4054-9027-e4a0ebdae1a3", "card": "Boots of Speed", "grade": 1}
+{"search": "red-haste-enablers", "oracle_id": "8c2d2888-38be-41f9-aaf2-8337e87d2aed", "card": "Crystal Slipper", "grade": 1}
+{"search": "red-haste-enablers", "oracle_id": "3501a839-eef5-44e4-8637-b5754780454e", "card": "Expedite", "grade": 1}
+{"search": "red-haste-enablers", "oracle_id": "4500131b-7417-4f30-a1b0-97d51b2e6458", "card": "Mass Hysteria", "grade": 2}
+{"search": "partner-commanders", "oracle_id": "6a0b78fb-3838-47d9-8d1a-b6b0c0e8927d", "card": "Haldan, Avid Arcanist", "grade": 1}
+{"search": "partner-commanders", "oracle_id": "5f694f2d-9349-4988-b2b4-788136d4293e", "card": "Kraum, Ludevic's Opus", "grade": 2}
+{"search": "partner-commanders", "oracle_id": "3b9d587c-39d2-44a2-9802-e4217ed389c0", "card": "Ludevic, Necro-Alchemist", "grade": 2}
+{"search": "partner-commanders", "oracle_id": "2a2376b8-6962-4f9e-ba36-fd7de87dc77d", "card": "Nikara, Lair Scavenger", "grade": 1}
+{"search": "partner-commanders", "oracle_id": "7683c2b2-a06f-4691-9cc5-1968dc032885", "card": "Pir, Imaginative Rascal", "grade": 1}
+{"search": "partner-commanders", "oracle_id": "ccad9b56-3c31-445f-8b78-b5bbdb3d077a", "card": "Rebbec, Architect of Ascension", "grade": 2}
+{"search": "partner-commanders", "oracle_id": "0e14f59f-021a-4ad3-a26b-8f79e680c426", "card": "Regna, the Redeemer", "grade": 1}
+{"search": "partner-commanders", "oracle_id": "22a93a6d-fe58-4135-8ac2-6b92e9bb75a3", "card": "Sylvia Brightspear", "grade": 1}
+{"search": "cheap-protection-equipment", "oracle_id": "8255a797-ddd3-4db0-a3f5-dd8f38c3b908", "card": "Captain America's Shield", "grade": 1}
+{"search": "cheap-protection-equipment", "oracle_id": "4f1b68d7-7d16-4bb1-af5f-f1708b23ca73", "card": "Celestial Armor", "grade": 1}
+{"search": "cheap-protection-equipment", "oracle_id": "3b7ea3ac-ac0a-40aa-b743-d153e1c47d8c", "card": "Darksteel Axe", "grade": 0}
+{"search": "cheap-protection-equipment", "oracle_id": "e809b847-b712-4558-95ea-9bb7356cde91", "card": "Dragonfire Blade", "grade": 1}
+{"search": "cheap-protection-equipment", "oracle_id": "1c4fdd52-dc99-4942-bdaa-93f74dd4ebdc", "card": "Iconic Shield", "grade": 0}
+{"search": "cheap-protection-equipment", "oracle_id": "fc24af7b-f3d0-41d0-aaac-d83424455717", "card": "Magebane Armor", "grade": 1}
+{"search": "cheap-protection-equipment", "oracle_id": "ab66f8a8-eb3d-4c2d-95e9-26a53c66b237", "card": "Mask of Avacyn", "grade": 2}
+{"search": "cheap-protection-equipment", "oracle_id": "57f2858e-5793-41fc-9bbb-1fdd3b99fe79", "card": "Mirror Shield", "grade": 2}
+{"search": "cheap-protection-equipment", "oracle_id": "a4433da6-78b7-4669-a0dd-e7ea9672b0bc", "card": "Shield of the Avatar", "grade": 1}
+{"search": "cheap-protection-equipment", "oracle_id": "d669ed30-efe9-4455-813a-c747b123333f", "card": "Shield of the Realm", "grade": 1}
+{"search": "counterspells-that-draw", "oracle_id": "2b9557df-7158-4ada-be77-5c346851a568", "card": "Bind", "grade": 1}
+{"search": "counterspells-that-draw", "oracle_id": "a48f259a-99a0-49c7-a11b-6e796f8a12f4", "card": "Contradict", "grade": 2}
+{"search": "counterspells-that-draw", "oracle_id": "a7dad8fe-b0b8-4c6d-ad11-76b402952799", "card": "Deny Entry", "grade": 1}
+{"search": "counterspells-that-draw", "oracle_id": "469bdca3-d373-4420-9266-921b6605f327", "card": "Force Void", "grade": 2}
+{"search": "counterspells-that-draw", "oracle_id": "a5fdf1b2-da22-4fa6-810a-85c3f7587535", "card": "Halt Order", "grade": 1}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "ddb2fb87-235a-4365-aa25-40c197425e43", "card": "Bloodflow Connoisseur", "grade": 2}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "dcebce37-02eb-4b5d-86be-42b4a0287624", "card": "Bloodmist Infiltrator", "grade": 1}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "aa76cc50-5be0-4844-b3a4-fb33fca3cdd3", "card": "Bloodthrone Vampire", "grade": 2}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "7d80f016-5a4a-4843-9aec-0fe64f7f7ae8", "card": "Cabal Archon", "grade": 1}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "9b7870df-6bca-499f-bc6e-e57f2ddfe640", "card": "Cabal Therapist", "grade": 1}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "a7dc2e62-1c50-4ed7-b71f-2d782a447a5e", "card": "Cauldron Familiar", "grade": 0}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "162e45f5-edb8-4a13-acdc-8980ce5ba8ac", "card": "Demonic Taskmaster", "grade": 1}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "6208534d-e7c7-43ef-b8b2-fea1d82459e8", "card": "Drinker of Sorrow", "grade": 0}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "77f257b9-2047-40a3-85c2-00ad17deeb08", "card": "Foratog", "grade": 0}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "d8177d08-a603-42e9-9350-890eac05e184", "card": "Foul Spirit", "grade": 0}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "118cdf8b-44fb-4c3e-86c4-e7f4b1267646", "card": "Glimmer Bairn", "grade": 1}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "eef50ef8-958b-4f5c-b261-16926d9fe672", "card": "Plague Reaver", "grade": 0}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "04936cc9-c915-4182-b84a-3491d26be548", "card": "Sepulcher Ghoul", "grade": 1}
+{"search": "golgari-creature-sac-outlets", "oracle_id": "c14739b0-5c19-4873-b027-314225a10f7b", "card": "Vampire Aristocrat", "grade": 2}
+{"search": "budget-green-trample-fatties", "oracle_id": "3f678f76-3863-4ab5-a4fd-9b76a282b1a8", "card": "Balamb T-Rexaur", "grade": 2}
+{"search": "budget-green-trample-fatties", "oracle_id": "7a6db509-7ef4-483c-b8a0-62a4f3e16ef9", "card": "Battle Mammoth", "grade": 2}
+{"search": "budget-green-trample-fatties", "oracle_id": "ce77fff1-32f8-4a55-9124-b1dafe95840d", "card": "Bookwurm", "grade": 2}
+{"search": "budget-green-trample-fatties", "oracle_id": "f5070528-cc4c-4910-8047-1ed17efd6496", "card": "Brambleweft Behemoth", "grade": 2}
+{"search": "budget-green-trample-fatties", "oracle_id": "076cf4f1-b3d4-4175-b976-938ad851cc0e", "card": "Coliseum Behemoth", "grade": 2}
+{"search": "budget-green-trample-fatties", "oracle_id": "26fbfab5-f479-49f2-b36b-a3ebf964741f", "card": "Force of Savagery", "grade": 1}
+{"search": "budget-green-trample-fatties", "oracle_id": "da344e46-6bdf-4032-8590-bac850d5713d", "card": "Groundchuck & Dirtbag", "grade": 2}
+{"search": "budget-green-trample-fatties", "oracle_id": "abccb19f-098b-4453-b7bc-838ad5914ebe", "card": "Penumbra Wurm", "grade": 2}
+{"search": "budget-green-trample-fatties", "oracle_id": "898c8415-8769-48c4-ad16-a4ba8c3d5d7d", "card": "Rhox Pummeler", "grade": 1}
+{"search": "colorless-two-mana-rocks", "oracle_id": "910488bf-66ab-415e-973b-1262b2ab7454", "card": "Marble Diamond", "grade": 2}
+{"search": "colorless-two-mana-rocks", "oracle_id": "02500f21-6e15-423e-93ff-891e09fe9904", "card": "Moss Diamond", "grade": 2}
+{"search": "colorless-two-mana-rocks", "oracle_id": "92a5e50d-8477-4654-9c1b-219e4fe3c5ab", "card": "Obsidian Obelisk", "grade": 2}
+{"search": "colorless-two-mana-rocks", "oracle_id": "9e62f30d-3130-416e-b459-48b5f71f8be9", "card": "Pillar of Origins", "grade": 1}
+{"search": "colorless-two-mana-rocks", "oracle_id": "e3056f28-868b-401a-a528-7528d639bdeb", "card": "Prismatic Lens", "grade": 2}
+{"search": "colorless-two-mana-rocks", "oracle_id": "b5e9599f-9561-4e3f-9904-9a4dab98cabb", "card": "Star Compass", "grade": 2}
+{"search": "dimir-zombie-lords", "oracle_id": "f5f2c98c-dd89-4b60-83e5-07f5fdc699ef", "card": "Cyclopean Mummy", "grade": 0}
+{"search": "dimir-zombie-lords", "oracle_id": "4235c99b-50de-4190-8938-3ce5ec5c5248", "card": "Gravespawn Sovereign", "grade": 0}
+{"search": "dimir-zombie-lords", "oracle_id": "8241277d-654f-4985-9d49-a22c1e59eec2", "card": "Zombie Apocalypse", "grade": 0}
+{"search": "dimir-zombie-lords", "oracle_id": "eadd88b6-e75a-4482-8382-561718121772", "card": "Zombie Goliath", "grade": 0}
+{"search": "dimir-zombie-lords", "oracle_id": "857524d5-9b5c-42ac-a6cf-2d9bfebd7015", "card": "Zombie Outlander", "grade": 0}
+{"search": "common-izzet-draw-instants", "oracle_id": "ed10bb4c-f7ef-4046-8dde-465041b55078", "card": "Artificer's Epiphany", "grade": 2}
+{"search": "common-izzet-draw-instants", "oracle_id": "6d9746bc-0b72-4ac4-b48a-742b63b1c41b", "card": "Backslide", "grade": 1}
+{"search": "common-izzet-draw-instants", "oracle_id": "575d067a-83a0-49e7-8a74-e3e46a946c8c", "card": "Case the Joint", "grade": 2}
+{"search": "common-izzet-draw-instants", "oracle_id": "965139fb-2e58-4ef2-b639-3ceaa2995c00", "card": "Catalog", "grade": 2}
+{"search": "common-izzet-draw-instants", "oracle_id": "8f32ceb2-92c2-4dde-bf73-40bb79c3fcef", "card": "Inspiration", "grade": 2}
+{"search": "common-izzet-draw-instants", "oracle_id": "847b5be5-cb0c-4857-bcd9-c5cfe55fdaeb", "card": "Keep Watch", "grade": 2}
+{"search": "cards-like-rhystic-study", "oracle_id": "d4e124af-d335-4c42-b60a-fe578f69f7ed", "card": "Culmination of Studies", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "77acdc13-e1b5-4a6c-9be1-b987e8256f10", "card": "Drawn from Dreams", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "987b74f4-02cb-4d47-94e5-d58a3c8e92e4", "card": "Flay", "grade": 1}
+{"search": "cards-like-rhystic-study", "oracle_id": "f4b30f6c-09ac-407e-9c72-da64d212ce93", "card": "Guided Passage", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "16cd0b90-f70c-4efa-b252-8de8784ef9a3", "card": "Imperial Seal", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "68a203a3-2283-4e29-b177-b3be43f76899", "card": "Infernal Tutor", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "66f28905-c7fc-4ada-8fa0-199626d9bedb", "card": "Lórien Revealed", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "d7c18aa7-4184-4658-9a5a-0b64992348ee", "card": "Mystic Meditation", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "3a05904d-5439-446d-a2a1-1475c9c7371d", "card": "Orcish Librarian", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "90f54959-2c9b-4b8a-84c9-d6893eb43553", "card": "Personal Tutor", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "9110480b-a5d6-4cf8-a72c-dc1a50f11fac", "card": "Practical Research", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "7bff8d4a-1c7d-48b8-b3e3-737dd6f01823", "card": "Quick Study", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "02f35851-c1be-4162-a6f8-7897325555a7", "card": "Research the Deep", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "7a07971a-bfc3-4d36-ad8a-b9d395cbd6e9", "card": "Rhystic Scrying", "grade": 1}
+{"search": "cards-like-rhystic-study", "oracle_id": "a905dafa-1818-471a-a485-d84be447263b", "card": "Rhystic Shield", "grade": 1}
+{"search": "cards-like-rhystic-study", "oracle_id": "1c6da9a9-6395-460b-8150-ea46d7299dc2", "card": "Rhystic Tutor", "grade": 1}
+{"search": "cards-like-rhystic-study", "oracle_id": "fac310c7-c1e5-42f9-8140-17472be21d0d", "card": "Soul Strings", "grade": 1}
+{"search": "cards-like-rhystic-study", "oracle_id": "935e0cac-51ee-4cb7-a209-f085e0f099ed", "card": "Sylvan Tutor", "grade": 0}
+{"search": "cards-like-rhystic-study", "oracle_id": "0be157fa-b2d3-415e-acb0-173fd1603fde", "card": "Vigean Intuition", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "a45d7135-c042-40d9-818c-74fa1c7af8ad", "card": "Axebane Stag", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "37688720-03de-4eca-a82d-a0afe8d58adc", "card": "Baleful Strix", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "6b2184ce-d6b1-411e-80ac-05a6e5993a39", "card": "Damping Field", "grade": 2}
+{"search": "stax-pieces", "oracle_id": "1201520a-d76a-4c8a-be5c-ff37ffd2c024", "card": "Imi Statue", "grade": 2}
+{"search": "stax-pieces", "oracle_id": "4a4a061d-bc4e-49da-8d20-90fcb571b025", "card": "Imperial Oath", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "975b4e0f-1133-4ffa-a6b1-d319d248dcde", "card": "Parasitic Strix", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "1c169307-71f5-4679-8b5a-d60c1109b9db", "card": "Runed Stalactite", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "99e96711-90ea-4f6b-a92d-d8ddd06e8750", "card": "Sky Theater Strix", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "8aa97d25-cd51-4ceb-b7eb-af64f0914a8c", "card": "Smoke", "grade": 2}
+{"search": "stax-pieces", "oracle_id": "064c3269-c012-4fc7-84c3-5f147a82a03c", "card": "Stalactite Dagger", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "a8cf1379-0195-4e11-b994-481ef1284245", "card": "Stasis", "grade": 2}
+{"search": "stax-pieces", "oracle_id": "ba11db54-149d-427e-b9ff-d1e29bbcbb11", "card": "Stasis Cocoon", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "83633ea1-a8d5-4351-9047-625d6905386d", "card": "Stasis Field", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "b50c865b-705f-489e-9ffc-ba8060ba262f", "card": "Stoic Angel", "grade": 2}
+{"search": "stax-pieces", "oracle_id": "6dd5782d-2d1a-4d6b-8381-e15d0d5be24f", "card": "Stoic Rebuttal", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "9d448c85-9c93-4e9e-8aa0-0035fc94112e", "card": "Stomper Cub", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "5a6d01c8-47b6-43e5-a6e9-c48088286007", "card": "Strix Lookout", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "7ca3aa03-e62d-464a-9111-e754abe17f76", "card": "Strix Serenade", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "19a39cc5-2134-4dee-932c-81389806c57b", "card": "Tidehollow Strix", "grade": 0}
+{"search": "stax-pieces", "oracle_id": "11ba27f4-decf-4447-9808-0d58844655cf", "card": "Viridian Claw", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "278e51fe-3cd9-4c82-bd81-2164771f8611", "card": "Alms Collector", "grade": 1}
+{"search": "punish-card-draw", "oracle_id": "129b41cf-8327-42f0-b186-1111b42c08ab", "card": "Artifist Acumen", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "47258c3e-b4a7-466d-9464-3924f75d9293", "card": "Bad Deal", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "876c9620-216c-45dd-b8a6-b9e0cba63e3d", "card": "Contested Game Ball", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "8b5cffd5-5db3-4151-9275-d91387554412", "card": "Cut a Deal", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "a7dad8fe-b0b8-4c6d-ad11-76b402952799", "card": "Deny Entry", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "4a83c2fa-f2d2-4b86-8407-4269f127936d", "card": "Depopulate", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "25f5cca6-a414-46d9-82e3-ce2fa21b14ca", "card": "Even the Score", "grade": 1}
+{"search": "punish-card-draw", "oracle_id": "448b27a5-7c0c-4ab6-bddf-bd62b920aacc", "card": "Forced Fruition", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "ef809e99-34a2-4471-8269-f56bf8037686", "card": "Geth's Grimoire", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "435c8d98-9fa3-40d8-9b7c-32474099e08e", "card": "Grave Consequences", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "8b202c63-c961-4590-958f-d17e76610ab5", "card": "Indulgent Tormentor", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "73ec7a0b-274a-4a10-a173-ff1625d62fce", "card": "Intellectual Offering", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "847b5be5-cb0c-4857-bcd9-c5cfe55fdaeb", "card": "Keep Watch", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "6be78177-aef0-408c-9769-a1be0775f06d", "card": "Painful Lesson", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "55082cd0-a33c-4f1d-9f46-9578f63e6bb6", "card": "Phyrexian Tyranny", "grade": 2}
+{"search": "punish-card-draw", "oracle_id": "09f73f77-a9bc-4718-be7d-ba6e08576e3a", "card": "Punish the Enemy", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "0d44d4f3-9713-4d18-a985-9e7ff0df85d3", "card": "Robber Fly", "grade": 0}
+{"search": "punish-card-draw", "oracle_id": "008011e2-7b82-4962-af6e-be627112f37f", "card": "Theft of Dreams", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "68d84ffa-5bd0-4ed9-a987-6cef13095438", "card": "Avatar of Might", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "45aeac84-4705-4179-be3f-b31bde844ea0", "card": "Azor's Elocutors", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "8e7bd5ae-005a-47d8-90bc-69f48cd8793d", "card": "Bond of Agony", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "56204530-7ab5-4610-9570-fba2673725ad", "card": "Coveted Prize", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "846c0867-6f0e-4e44-8f45-8f9720b62065", "card": "Cradle Guard", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "6130f22d-7901-4f9f-b777-27bb0dacc063", "card": "Debt to the Deathless", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "e049eb22-a01a-463e-8de9-705d6eaf84e2", "card": "Elegant Entourage", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "466af6da-52e8-4ac5-b659-7492e3594ff8", "card": "Faramir, Steward of Gondor", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "4a4418fa-7574-4027-aa09-4ca789be15ba", "card": "Gallowbraid", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "0b0fdb28-f7b1-4c30-9f2c-14a9074da22d", "card": "Grand Ball Guest", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "dea8c725-455e-4668-877a-df388fe22255", "card": "Illicit Auction", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "e64efd0d-3de3-42e2-949e-4a152d08def8", "card": "Matt Murdock, Justice Seeker", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "d69f3aaf-8462-432d-afaf-4176ac04962b", "card": "Morinfen", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "4608c663-e088-40ca-a915-b6e39253eb98", "card": "Pain's Reward", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "4b8736e2-fc41-4a25-bb6c-7351afc40981", "card": "Pensive Professor", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "24b8177f-5697-4465-9305-cb84307972ae", "card": "Repay in Kind", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "559463f8-396f-40e0-9515-a1be6397ca31", "card": "Serene Steward", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "31c978b4-06d7-4e9d-82da-bfa4ef16f470", "card": "Shah of Naar Isle", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "4554ce06-4992-4689-8a40-558a1545b968", "card": "Sheltering Ancient", "grade": 0}
+{"search": "aristocrats-payoffs", "oracle_id": "3f5bbfaa-cbd7-47af-9aa2-abb49d672734", "card": "Yavimaya Ants", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "bc822c9a-633f-4830-9cb3-9af6a80622e4", "card": "Consulate Dreadnought", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "90c5ea2b-d004-4219-b60c-d51bc1a5ee6b", "card": "Entropic Battlecruiser", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "dfe8f77a-cc26-438b-92ae-2ca7a91f813b", "card": "Galvanizing Sawship", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "cda39514-86c9-483e-8d95-fd08138ce33a", "card": "Infinite Guideline Station", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "554df866-3dbb-4811-8573-6033481591aa", "card": "Inspirit, Flagship Vessel", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "5f9dd005-1648-451e-b888-69ef81331c95", "card": "Leadership Vacuum", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "3aa0cda4-fb2d-4fd4-84f6-482089a85547", "card": "Lumen-Class Frigate", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "33e88072-3840-4090-8d0b-7fb38279e150", "card": "Megatron, Tyrant // Megatron, Destructive Force", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "112aaaf0-3301-4f79-9640-d36c75a0fb30", "card": "Rescue Skiff", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "96312b75-3110-4506-9f95-0c6c17d9da11", "card": "Securitron Squadron", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "a37314cf-bbbd-4003-b94d-0e6e60edfc15", "card": "Synthesizer Labship", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "a6bcec1f-f515-4e63-9e84-8eb04cc582ff", "card": "The Seriema", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "51c1f21d-1512-4885-bfdc-58790cf77d51", "card": "Ultron Drone", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "33f2c6cb-f864-4bee-b365-aedf33fbedf5", "card": "Ultron the Annihilator", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "19fd953c-b6d4-457f-b85f-b681c5b0e341", "card": "Ultron, Machine Overlord", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "e1c9783a-1d1b-40d7-872e-0ca11b229ce6", "card": "Uthros Research Craft", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "7b4c37dc-8cb0-4870-929e-11c2a45952a2", "card": "Uthros Scanship", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "c947171b-ed9e-4b83-af45-bd595a8d84ee", "card": "Warmaker Gunship", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "03259ab0-caa8-4620-b070-127e2c712252", "card": "Wedgelight Rammer", "grade": 0}
+{"search": "voltron-commanders", "oracle_id": "320ed2ec-ef06-41fb-ac8a-72579f11544c", "card": "Wurmwall Sweeper", "grade": 0}
+{"search": "free-interaction", "oracle_id": "16de96d0-a58e-42a7-9a13-45358542a246", "card": "Counterlash", "grade": 0}
+{"search": "free-interaction", "oracle_id": "9b06f2bf-146d-4b30-b467-e16f1a942253", "card": "Dracogenesis", "grade": 0}
+{"search": "free-interaction", "oracle_id": "f96f1b4c-f06a-4374-8d8f-aaa06c6108c3", "card": "Eagle Vision", "grade": 0}
+{"search": "free-interaction", "oracle_id": "bb0eb9c2-c26d-452d-9e02-fc0bec2655c4", "card": "Extract Brain", "grade": 0}
+{"search": "free-interaction", "oracle_id": "27e27681-9221-4e64-8c78-e153a86bc6e0", "card": "Fires of Invention", "grade": 0}
+{"search": "free-interaction", "oracle_id": "62f4a2db-6d7c-487b-be37-22f06c1e779e", "card": "Monastery Raid", "grade": 0}
+{"search": "free-interaction", "oracle_id": "8dad1fa8-3533-4e3c-b9b3-fcd57b20a33d", "card": "Omnipresence", "grade": 0}
+{"search": "free-interaction", "oracle_id": "730e39e6-c61d-48b5-8827-bfd952bf1be7", "card": "Omniscience", "grade": 0}
+{"search": "free-interaction", "oracle_id": "b575449b-591d-4357-92b7-55137fc7966a", "card": "Omnispell Adept", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "2baf2ee6-e290-4a2b-89a0-0e725edde06d", "card": "Allied Reinforcements", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "82959ca2-cd96-4cca-9ce0-afb8db209860", "card": "Bushi Tenderfoot // Kenzo the Hardhearted", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "4e694613-e2e1-4ae3-baa8-f372259e91cf", "card": "Courier's Capsule", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "9a02a9a7-39d9-4763-85d3-747a0540b60b", "card": "Gilded Lotus", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "c27e2d6f-498c-42d8-aa1a-ac6402bf3f9a", "card": "Gold-Forged Thopteryx", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "4a4a061d-bc4e-49da-8d20-90fcb571b025", "card": "Imperial Oath", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "ea5e8920-1343-4335-b516-6db43c3bfeb0", "card": "Inner-Chamber Guard", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "177248b7-f3fd-42f8-b325-2625a2bb28ff", "card": "Jade Avenger", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "56a80bd3-b81b-428d-96e1-f03ab6199cf3", "card": "Mantle of Tides", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "0b7e950a-89e1-4ec4-94af-5af2f1252b12", "card": "Patched Plaything", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "307be184-176a-40a8-944c-48aa00cfdd29", "card": "Radiant Lotus", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "9625773b-1976-49b3-88d2-93a4befb595c", "card": "Shore Keeper", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "45f2af87-0235-49f8-a63d-370faff3a097", "card": "Spined Thopter", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "f995e0cc-b2bd-41c3-8c08-c8873312cebe", "card": "Takeno, Samurai General", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "88bef744-550e-4f33-b1ff-a8ee990ec754", "card": "Thopter Foundry", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "7926b4c1-9a93-4193-ae6f-e75bbcd762ec", "card": "Thorin, Company's Leader", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "6aabead3-3c81-40b8-8a8d-8f817094d84d", "card": "Thorin, King of Durin's Folk", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "94917b80-ac32-45ab-b4ee-157ade024bcd", "card": "Thorin, Mountain-king", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "19a39cc5-2134-4dee-932c-81389806c57b", "card": "Tidehollow Strix", "grade": 0}
+{"search": "thassas-oracle-combo", "oracle_id": "f6894486-0bac-4b72-92b7-5ce99fa426e6", "card": "Vessel of Paramnesia", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "14693689-d087-43b6-9c3f-63ab0648fc20", "card": "All Is Dust", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "46b83657-1699-4162-a4bb-b792da396fe6", "card": "Cleansing", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "aff34f28-f707-4458-8af3-1bd5b13a6b10", "card": "Cleansing Nova", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "33eefb22-51a6-4630-9bd2-0895997f6f33", "card": "Creeping Corrosion", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "14104a52-c4e8-4755-8196-7fa5c5a35f36", "card": "Duneblast", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "3ce755f5-855f-4b88-aa10-22f4ee76b28a", "card": "Make Obsolete", "grade": 1}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "591edddc-3736-44cf-9719-117c24ff3980", "card": "Make an Example", "grade": 1}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "698e79ec-c2bc-4973-a095-f3c57b50e39c", "card": "Mutilate", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "2b8abae2-dd15-41ee-81ae-6a463723b43e", "card": "Nausea", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "a98c2d81-4add-4292-bbdd-e1b69ff936d4", "card": "Planar Cleansing", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "1219e330-01ac-405a-b75a-dd4298598167", "card": "Rain of Salt", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "37f5d022-2989-4b44-9bca-dc6b606afe10", "card": "Retaliate", "grade": 1}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "1be478ee-87f3-4265-94d7-08521703c888", "card": "Shrivel", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "5a46ad2a-35b1-4dd5-b7c3-fec36b7c67ab", "card": "Sinkhole", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "9b3b81cf-f020-4e1e-95c7-db44ca153dc1", "card": "Spring Cleaning", "grade": 1}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "36c78a5f-0148-4596-a346-f8e35037b694", "card": "Time Wipe", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "56828166-eaa3-4711-91b6-401a3e3b733f", "card": "Turn to Dust", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "54748cb1-d92a-4212-ad76-417ee79b5ef1", "card": "Wash Out", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "ad9b6737-22c4-45cc-976b-32743ed48462", "card": "Wipe Away", "grade": 0}
+{"search": "cards-like-cyclonic-rift", "oracle_id": "f5cbc4f3-4e73-405f-9daf-e5b7c73fa6ee", "card": "Wipe Clean", "grade": 0}
+{"search": "commander-staples", "oracle_id": "a89ebf63-63c9-42cd-98b4-ec852cd9b0a8", "card": "Grisly Salvage", "grade": 0}
+{"search": "commander-staples", "oracle_id": "9f9e4be0-814a-4cab-948b-114769035a4a", "card": "Mind into Matter", "grade": 0}
+{"search": "commander-staples", "oracle_id": "d39c378b-f0a2-400f-af40-a632e24b6d72", "card": "Relentless Pursuit", "grade": 0}
+{"search": "commander-staples", "oracle_id": "a7f682ce-3d1f-425c-b65a-11a15791aa9e", "card": "Rites of Spring", "grade": 0}
+{"search": "commander-staples", "oracle_id": "08781f2a-0d43-495c-aac8-7ff7a2e5752f", "card": "Scout the Borders", "grade": 0}
+{"search": "commander-staples", "oracle_id": "46cf0e3e-3c3e-4eb8-a71a-4b4b87744ced", "card": "Something Worth Saving", "grade": 0}
+{"search": "commander-staples", "oracle_id": "91363d71-eef0-48e8-9a68-8f363ff2790e", "card": "Tend the Sprigs", "grade": 0}
+{"search": "commander-staples", "oracle_id": "446a9d7e-9c1a-4e83-8342-2ed5acae2eed", "card": "Tome Scour", "grade": 0}
+{"search": "commander-staples", "oracle_id": "b184d12d-41d8-4a74-99b1-8c7fced212f8", "card": "Verdant Crescendo", "grade": 0}
+{"search": "commander-staples", "oracle_id": "0be157fa-b2d3-415e-acb0-173fd1603fde", "card": "Vigean Intuition", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "4940783f-2534-41c1-b614-5dabb0dff405", "card": "Animist's Might", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "a5cbd257-c836-493e-bb1a-76242619dea2", "card": "Big Score", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "8e7bd5ae-005a-47d8-90bc-69f48cd8793d", "card": "Bond of Agony", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "56204530-7ab5-4610-9570-fba2673725ad", "card": "Coveted Prize", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "8ce63f60-0211-46c7-8fb6-c5484ebfa029", "card": "Cut of the Profits", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "22ba474e-f6e6-450d-a4cf-0739f0b51079", "card": "Defense Grid", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "0a1dc797-7531-4494-afe6-add6ac3f74c0", "card": "Defiler of Vigor", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "43f2969e-46eb-4fd4-8b2d-ff81aafcc24a", "card": "Derelor", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "7f8f46c0-889a-4c9a-9bfa-2b43db608d55", "card": "Fix What's Broken", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "c37770aa-4770-4198-b6a6-f9ff86dbb06b", "card": "Flamekin Bladewhirl", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "a37387f0-9d57-49ff-aa38-2c6b359e8916", "card": "Grab the Prize", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "a84c9507-d054-4770-84f3-5a4b5a01d826", "card": "Ixidor's Will", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "c7b235e1-746e-4467-be54-4e11e2bf6362", "card": "Johann's Stopgap", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "2c18d692-612c-4d43-b5dd-bd2bff37bbcb", "card": "Lorehold Pledgemage", "grade": 2}
+{"search": "spellslinger-payoffs", "oracle_id": "313d7b2f-05fb-49f3-8d8a-361be4412d3c", "card": "Order of the Sacred Torch", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "f25b97f9-8ca2-40f7-9d55-47fa8bb2054e", "card": "Price of Loyalty", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "8a39809e-219e-4f59-a233-ea28d05c30ef", "card": "Quandrix Pledgemage", "grade": 2}
+{"search": "spellslinger-payoffs", "oracle_id": "afaef788-34d1-460b-b884-9d7ae6ddeb18", "card": "Toxic Deluge", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "5b6bdf5a-2742-4851-92cd-a857a3852836", "card": "Treasure Cruise", "grade": 0}
+{"search": "spellslinger-payoffs", "oracle_id": "90898c76-21f9-4597-88fe-dc9179911cde", "card": "Vicious Rivalry", "grade": 0}
+{"search": "punish-nonbasic-lands", "oracle_id": "4362efe4-339d-40e1-bd72-3cc9e41bf93f", "card": "Bend or Break", "grade": 0}
+{"search": "punish-nonbasic-lands", "oracle_id": "3bcb7436-f7d9-4bb0-81be-7a3db9d8329f", "card": "Choking Sands", "grade": 1}
+{"search": "punish-nonbasic-lands", "oracle_id": "46b83657-1699-4162-a4bb-b792da396fe6", "card": "Cleansing", "grade": 0}
+{"search": "punish-nonbasic-lands", "oracle_id": "ba5fa5ca-f72d-49dd-9f86-e6e1292f5bf0", "card": "Detritivore", "grade": 2}
+{"search": "punish-nonbasic-lands", "oracle_id": "d732d9b8-dea0-41c4-8cff-67b2b3d36ecb", "card": "Fortunate Few", "grade": 0}
+{"search": "punish-nonbasic-lands", "oracle_id": "3e229329-65e4-4240-959a-b97b26908c0e", "card": "From the Ashes", "grade": 2}
+{"search": "punish-nonbasic-lands", "oracle_id": "4a7b89b2-5fe9-4d39-9d42-3ca78bcf6d40", "card": "Global Ruin", "grade": 1}
+{"search": "punish-nonbasic-lands", "oracle_id": "8e7c5649-41c2-4a0c-b873-e6f6c5908567", "card": "Hidden Herd", "grade": 1}
+{"search": "punish-nonbasic-lands", "oracle_id": "3260bede-d78d-41a6-8fe1-95ce14a2ba8c", "card": "Lava Blister", "grade": 2}
+{"search": "punish-nonbasic-lands", "oracle_id": "59dbc873-72d9-4e7b-9442-2c7b8e8523e1", "card": "Ruination", "grade": 2}
+{"search": "punish-nonbasic-lands", "oracle_id": "a6f38908-aa4f-4f99-a28e-85d11dab52e4", "card": "Ruinous Ultimatum", "grade": 0}
+{"search": "punish-nonbasic-lands", "oracle_id": "883267f0-be7e-43c3-b7f8-82981f6d8c23", "card": "Suspend Aggression", "grade": 0}
+{"search": "punish-nonbasic-lands", "oracle_id": "4a3c6d0e-6d77-4434-95f4-737879de026f", "card": "Tectonic Break", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "92380c57-0a92-48eb-b562-2be149b5792a", "card": "Angel of Suffering", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "c4d49ecc-8650-4e91-9a39-a4a25213a5f7", "card": "Battle Strain", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "20eff2ce-f26d-48a2-8a1f-435a7e2968c8", "card": "Boros Fury-Shield", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "4b3d1cfb-9f1d-4e4e-a15a-2e248ff5bdfc", "card": "Channel Harm", "grade": 1}
+{"search": "protect-my-board", "oracle_id": "1dd64972-5713-4c25-b7a5-a35a56886ef4", "card": "Defend the Hearth", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "35ba0e70-da7c-4ed9-b8ec-7dd5c5ce110e", "card": "Eerie Interference", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "f4cd32f0-d6aa-4497-b8db-a0bf4c3c31de", "card": "Endure", "grade": 1}
+{"search": "protect-my-board", "oracle_id": "41699d92-c209-4fcb-bbd6-685b3437d0c2", "card": "Gorehorn Raider", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "ee8ab29b-0749-463a-abbd-eb0b9013aec8", "card": "Hell-Bent Raider", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "8d13fabc-1e0f-41f2-8873-9f44b68f7e43", "card": "Hindervines", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "98423a34-f044-4811-b288-56981d604b6e", "card": "Holy Day", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "174dfb7f-fe1e-4089-80c4-1788a9307263", "card": "Leery Fogbeast", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "531f78d5-5004-4b02-99c7-b390cb342fd9", "card": "Make a Stand", "grade": 2}
+{"search": "protect-my-board", "oracle_id": "71da5acb-78bc-453a-ae28-d22faa5a4e43", "card": "Pay No Heed", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "cbf743a5-123f-4747-826d-7f8bb929a52c", "card": "Root Snare", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "605dd1b5-8946-4bd0-b31b-e99bf63a1bc4", "card": "Rune of Protection: Lands", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "c3bd1d38-e73f-4e30-b22a-dca0a0e4d701", "card": "Rust Scarab", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "82076865-7917-4d3b-8fe8-c21bfcd64d29", "card": "Slaughterhouse Bouncer", "grade": 0}
+{"search": "protect-my-board", "oracle_id": "b9a62c6b-5848-44b1-932b-8d5de2560976", "card": "Surge of Salvation", "grade": 1}
+{"search": "protect-my-board", "oracle_id": "f3303d45-b3ee-4389-8172-d9ffa8bf251b", "card": "Vine Snare", "grade": 0}
+{"search": "token-doublers", "oracle_id": "2baf2ee6-e290-4a2b-89a0-0e725edde06d", "card": "Allied Reinforcements", "grade": 0}
+{"search": "token-doublers", "oracle_id": "60dd4233-ee50-42b8-88f5-ac5d105d83cd", "card": "Double Down", "grade": 0}
+{"search": "token-doublers", "oracle_id": "ece44a82-dcf0-4439-bdd9-a09c99a6f159", "card": "Double Major", "grade": 0}
+{"search": "token-doublers", "oracle_id": "aa16307a-9c1f-4538-872c-95206e2b7a6e", "card": "Join the Ranks", "grade": 0}
+{"search": "token-doublers", "oracle_id": "d6c9c1f0-050f-40e2-ab6c-6566d0af418c", "card": "Master's Call", "grade": 0}
+{"search": "token-doublers", "oracle_id": "61a6341e-0d36-44b6-8026-9c87c8ef61cb", "card": "Second Harvest", "grade": 1}
+{"search": "token-doublers", "oracle_id": "b2347910-d6c6-4681-8316-7ef27056485c", "card": "Secure the Wastes", "grade": 0}
+{"search": "token-doublers", "oracle_id": "144d0817-348c-4171-aa7e-3468b23cf97d", "card": "See Double", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "08e90e85-4103-4acb-a8a7-e1329b460aa7", "card": "Brightstone Ritual", "grade": 1}
+{"search": "cards-like-sol-ring", "oracle_id": "3c7f2b29-9f42-41ab-a2d4-7a450fb0242d", "card": "Bubbling Muck", "grade": 1}
+{"search": "cards-like-sol-ring", "oracle_id": "6b8183bb-20c4-4d45-b944-508a6a874bb3", "card": "Citanul Flute", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "616d6013-24f4-4999-9bf3-5b0764e52fa6", "card": "Crystal Vein", "grade": 1}
+{"search": "cards-like-sol-ring", "oracle_id": "01cb56d7-f859-46fd-b6c9-40d2c4965b69", "card": "Dictate of Karametra", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "b657b3df-9287-44cf-a1cd-a80ead71a553", "card": "Dire Mimic", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "dc671205-f2fa-454f-9957-921a6069ad53", "card": "High Tide", "grade": 1}
+{"search": "cards-like-sol-ring", "oracle_id": "47f20da0-cd31-4877-8eca-0c8389a66e89", "card": "Mana Cylix", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "74d3277a-38e5-4732-afed-084a56148f20", "card": "Mana Drain", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "c61fe162-2202-4e56-9ba0-393547f9875f", "card": "Mana Leak", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "f4669822-716b-45c7-a7f2-040062509fe9", "card": "Mana Prism", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "a3a8a044-283d-443e-bc40-c2f826d70c22", "card": "Mana Reflection", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "35e2f82e-7ca3-4a92-9134-b7999eef5337", "card": "Mana Sculpt", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "48207d1c-448a-4e1b-974a-642dfea75933", "card": "Mana Short", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "bd9e416a-89b3-4912-be9b-49fce6a93dc9", "card": "Manalith", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "e0935a0f-7087-40cd-a094-89f200da6ef0", "card": "Spinning Wheel", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "d608a3fa-faee-44a4-9ab6-be701d3b7a49", "card": "Starting Column", "grade": 0}
+{"search": "cards-like-sol-ring", "oracle_id": "57276db8-9d8d-4587-ae88-dfdc44343f17", "card": "The Fire Crystal", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "05828c1e-9185-4b70-94fe-753eacdf45a1", "card": "Ambush", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "fc401d42-80fa-4a17-937a-c230e9317543", "card": "Blood Feud", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "198c05ca-fb2d-4f15-a28f-1dad36466a4f", "card": "Clash of Titans", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "037eccdb-21c3-4048-af4f-b25dcbe99134", "card": "Combo Attack", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "ba14843d-6b7f-4e3d-b5ba-fc573fa8bf50", "card": "Coordinated Assault", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "9386f4d3-aa72-4849-8921-83740762dc0e", "card": "Defensive Formation", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "717266b6-2bbc-4a04-8f30-e3eaf0283acd", "card": "Dissension in the Ranks", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "7f885ffc-7245-4f00-a903-6e088007c635", "card": "Fight to the Death", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "e6850561-3c57-4354-8850-c467a6449563", "card": "Friendly Rivalry", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "3b78f940-f840-4d4d-a09b-147202963367", "card": "Grim Contest", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "9e5df175-5f91-47f7-957c-63bac31f0858", "card": "Hog-Monkey Rampage", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "2c1201b2-5036-4e68-b36d-cdaf54b4993d", "card": "Mercadia's Downfall", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "84b385cd-9dfd-4513-af3c-20fc1cc8fea0", "card": "Pack Attack", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "612c9079-adae-4fe5-9a72-8efc09ddfe5c", "card": "Practiced Tactics", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "b3c12848-528d-4005-878f-4f950a07240a", "card": "Prey Upon", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "db05b114-2eb5-46bc-81e7-7e036d8eaab3", "card": "Quarrel", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "4145c75d-d052-40d2-8ef4-0a08071582b8", "card": "Rally the Forces", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "4ade4e30-4008-4931-b88e-605776a96b58", "card": "Rivals' Duel", "grade": 0}
+{"search": "make-opponents-attack-each-other", "oracle_id": "417b9d9c-0a67-4554-a275-a6ae15a04bfb", "card": "Seifer, Balamb Rival", "grade": 2}
+{"search": "cheat-big-creatures", "oracle_id": "abe377f8-35f0-4dea-a681-91d31a36815c", "card": "Agitator Ant", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "43c449d1-51a9-45e0-8102-823a6811ff54", "card": "Benthic Giant", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "607425ac-9e90-4c9e-88bf-72f8a76cce97", "card": "Big Play", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "4e473298-0b67-42b8-90a8-3bcdd73da473", "card": "Bigfin Bouncer", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "3ebd9c8d-c840-4c2e-ace6-352a68d1c20f", "card": "Craven Giant", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "4f94ce97-5b2d-42fb-ac8e-c64075fe1af2", "card": "Cunning Giant", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "e0f18302-5ccf-47d2-a8a1-bb7aeaca9a53", "card": "Devouring Deep", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "88d7bd11-7b1d-426c-8552-01448531c6ad", "card": "Gigantic Big Bear", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "fa5e4aa5-e2cb-4c8c-91cb-554bec0f21d4", "card": "Gigantoad", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "a56b3434-7478-4704-b04b-92f32a1bc462", "card": "Hillcomber Giant", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "79c9a963-a428-45f1-a647-5a91ef64286e", "card": "Hired Giant", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "c616242a-95f0-4cd8-99a1-9237cfea0e57", "card": "Howling Giant", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "246f7446-036d-469c-9583-5699ebdcec6d", "card": "Marsh Boa", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "031cd561-d9b1-4a0e-bc38-bc09e80563c3", "card": "Mountain Goat", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "568c4d02-501e-44ce-871c-adf9e4b9d8d6", "card": "River Bear", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "d481630c-83c4-47d2-a770-db331154d2b9", "card": "Skyraker Giant", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "6d86dcaa-2295-4f4d-ada7-216f96138d81", "card": "Slinking Giant", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "e20e5ad9-36b5-4962-acc2-555d069c5daf", "card": "Wayfaring Giant", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "29ef65bf-1066-44a5-a2eb-e3670b076647", "card": "Wild Mammoth", "grade": 0}
+{"search": "cheat-big-creatures", "oracle_id": "a6aa245c-b620-486c-864b-0ea4e9bc4048", "card": "Wild Ox", "grade": 0}
