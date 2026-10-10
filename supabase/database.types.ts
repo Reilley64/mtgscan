@@ -103,6 +103,32 @@ isOneToOne: false
       referencedColumns: ["oracle_id"]
     }
                   ]
+                },"card_taggings": {
+                  Row: {
+                    "oracle_id": string,"tag_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "oracle_id": string,"tag_id": string
+                  }
+                  Update: {
+                    "oracle_id"?: string,"tag_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "card_taggings_oracle_id_fkey"
+      columns: ["oracle_id"]
+isOneToOne: false
+      referencedRelation: "cards"
+      referencedColumns: ["oracle_id"]
+    },{
+      foreignKeyName: "card_taggings_tag_id_fkey"
+      columns: ["tag_id"]
+isOneToOne: false
+      referencedRelation: "oracle_tags"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"cards": {
                   Row: {
                     "absent_since": string | null,"can_be_commander": boolean,"color_bits": number | null,"color_identity": (string)[],"colors": (string)[],"commander_legality": Database["public"]['Enums']["commander_legality"],"edhrec_rank": number | null,"identity_bits": number | null,"is_game_changer": boolean | null,"keywords": (string)[],"mana_cost": string,"mana_value": number,"name": string,"name_key": string | null,"oracle_id": string,"oracle_text": string,"released_at": string,"search_vector": unknown,"type_line": string
@@ -113,6 +139,20 @@ isOneToOne: false
                   }
                   Update: {
                     "absent_since"?: string | null,"can_be_commander"?: boolean,"color_bits"?: never,"color_identity"?: (string)[],"colors"?: (string)[],"commander_legality"?: Database["public"]['Enums']["commander_legality"],"edhrec_rank"?: number | null,"identity_bits"?: never,"is_game_changer"?: boolean | null,"keywords"?: (string)[],"mana_cost"?: string,"mana_value"?: number,"name"?: string,"name_key"?: never,"oracle_id"?: string,"oracle_text"?: string,"released_at"?: string,"search_vector"?: never,"type_line"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"disabled_tags": {
+                  Row: {
+                    "disabled_at": string,"tag_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "disabled_at"?: string,"tag_id": string
+                  }
+                  Update: {
+                    "disabled_at"?: string,"tag_id"?: string
                   }
                   Relationships: [
                     
@@ -151,6 +191,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"oracle_tags": {
+                  Row: {
+                    "alias_keys": (string)[] | null,"aliases": (string)[],"description": string | null,"id": string,"label": string,"label_keys": (string)[] | null,"search_vector": unknown,"slug": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alias_keys"?: never,"aliases": (string)[],"description"?: string | null,"id": string,"label": string,"label_keys"?: never,"search_vector"?: never,"slug": string
+                  }
+                  Update: {
+                    "alias_keys"?: never,"aliases"?: (string)[],"description"?: string | null,"id"?: string,"label"?: string,"label_keys"?: never,"search_vector"?: never,"slug"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"profiles": {
                   Row: {
                     "created_at": string,"user_id": string
@@ -178,6 +232,32 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"tag_edges": {
+                  Row: {
+                    "child_id": string,"parent_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"parent_id": string
+                  }
+                  Update: {
+                    "child_id"?: string,"parent_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tag_edges_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "oracle_tags"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tag_edges_parent_id_fkey"
+      columns: ["parent_id"]
+isOneToOne: false
+      referencedRelation: "oracle_tags"
+      referencedColumns: ["id"]
+    }
                   ]
                 }
           }
@@ -235,6 +315,16 @@ isOneToOne: false
               "relation": string,"total_bytes": number
             }[]
                            },
+"disable_oracle_tag":
+{ Args: { "tag_id": string }; Returns: {
+              "disabled": boolean,"id": string,"slug": string
+            }[]
+                           },
+"enable_oracle_tag":
+{ Args: { "tag_id": string }; Returns: {
+              "disabled": boolean,"id": string,"slug": string
+            }[]
+                           },
 "finish_import_run":
 { Args: { "run_id": string,"staged_rows": Json }; Returns: {
               "accept_shrink": boolean,
@@ -265,6 +355,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "search_catalog":
+{ Args: { "query": Json }; Returns: Json
+                           },
+"search_oracle_tags":
 { Args: { "query": Json }; Returns: Json
                            },
 "stage_import_batch":

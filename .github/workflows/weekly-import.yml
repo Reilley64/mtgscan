@@ -14,3 +14,11 @@ jobs:
     with:
       source: catalog
     secrets: inherit
+
+  oracle_tags:
+    needs: catalog
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/import.yml
+    with:
+      source: oracle_tags
+    secrets: inherit

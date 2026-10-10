@@ -23,6 +23,17 @@
       "description": "A JSON file containing every card object on Scryfall in English or the printed language if the card is only available in one language.",
       "jsonl_download_uri": "default-cards.jsonl.gz",
       "compressed_size": 225398
+    },
+    {
+      "object": "bulk_data",
+      "id": "bd8df61e-5d0a-47a2-9086-40137a645b98",
+      "type": "oracle_tags",
+      "updated_at": "2026-10-09T21:00:33.548+00:00",
+      "uri": "https://api.scryfall.com/bulk-data/bd8df61e-5d0a-47a2-9086-40137a645b98",
+      "name": "Oracle Tags",
+      "description": "A JSON file containing all Oracle tags sourced from Tagger, the Scryfall community tagging project.",
+      "jsonl_download_uri": "oracle-tags.jsonl.gz",
+      "compressed_size": 82675
     }
   ]
 }
