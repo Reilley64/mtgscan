@@ -1,11 +1,12 @@
 import { dirname, resolve } from 'node:path';
 
 import { readGzipJsonLines } from './gzip-json-lines';
+import { importUserAgent, isUrl, openLocation } from './source-file';
 
 export const scryfallManifestUrl = 'https://api.scryfall.com/bulk-data';
 
 const scryfallHeaders = {
-  'User-Agent': 'mtgscan-catalog-import/0.0 (+https://github.com/Reilley64/mtgscan)',
+  'User-Agent': importUserAgent,
   Accept: 'application/json;q=0.9,*/*;q=0.8',
 };
 
@@ -63,10 +64,6 @@ export type BulkFile = {
   jsonl_download_uri: string;
 };
 
-function isUrl(location: string): boolean {
-  return /^https?:\/\//.test(location);
-}
-
 function resolveLocation(base: string, location: string): string {
   if (isUrl(location)) {
     return location;
@@ -74,21 +71,11 @@ function resolveLocation(base: string, location: string): string {
   return isUrl(base) ? new URL(location, base).toString() : resolve(dirname(base), location);
 }
 
-async function openLocation(location: string): Promise<Response> {
-  const response = isUrl(location)
-    ? await fetch(location, { headers: scryfallHeaders })
-    : new Response(Bun.file(location));
-  if (!response.ok || !response.body) {
-    throw new Error(`Could not read ${location}: HTTP ${response.status}`);
-  }
-  return response;
-}
-
 export async function readBulkFiles<Type extends BulkFileType>(
   manifestLocation: string,
   types: Type[],
 ): Promise<Record<Type, BulkFile>> {
-  const manifest = (await (await openLocation(manifestLocation)).json()) as { data?: BulkFile[] };
+  const manifest = (await (await openLocation(manifestLocation, scryfallHeaders)).json()) as { data?: BulkFile[] };
   const files = {} as Record<Type, BulkFile>;
   for (const type of types) {
     const file = manifest.data?.find((entry) => entry.type === type);
@@ -101,7 +88,7 @@ export async function readBulkFiles<Type extends BulkFileType>(
 }
 
 export async function* readBulkRecords<Item>(file: BulkFile): AsyncGenerator<Item> {
-  const response = await openLocation(file.jsonl_download_uri);
+  const response = await openLocation(file.jsonl_download_uri, scryfallHeaders);
   try {
     for await (const record of readGzipJsonLines(response.body!)) {
       yield record as Item;

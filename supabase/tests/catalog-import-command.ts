@@ -12,6 +12,8 @@ const fixtureDirectory = join(import.meta.dir, 'fixtures', 'scryfall');
 export const catalogFixtureManifest = join(fixtureDirectory, 'bulk-data.json');
 export const catalogFixtureSnapshotAt = '2026-10-08T21:01:56.786+00:00';
 export const oracleTagFixtureSnapshotAt = '2026-10-09T21:00:33.548+00:00';
+export const spellbookFixtureVariants = join(import.meta.dir, 'fixtures', 'commander-spellbook', 'variants.json');
+export const spellbookFixtureSnapshotAt = '2026-10-10T09:35:39.161+00:00';
 
 export type ScryfallRecord = {
   name?: string;
@@ -28,6 +30,28 @@ export type ScryfallOracleTag = {
   child_ids: string[];
   taggings: { oracle_id: string; weight: string }[];
   [field: string]: unknown;
+};
+
+export type SpellbookVariant = {
+  id: string;
+  status: string;
+  uses: { card: { name: string; oracleId: string | null }; quantity: number; [field: string]: unknown }[];
+  requires: unknown[];
+  identity: string;
+  bracketTag: string;
+  [field: string]: unknown;
+};
+
+type SpellbookFile = {
+  timestamp: string;
+  variants: SpellbookVariant[];
+  [field: string]: unknown;
+};
+
+export type SpellbookFixtureChanges = {
+  timestamp?: string;
+  variants?: (variants: SpellbookVariant[]) => SpellbookVariant[];
+  file?: (text: string) => string;
 };
 
 export type FixtureChanges = {
@@ -105,6 +129,29 @@ export async function catalogFixture(changes: FixtureChanges): Promise<string> {
   return manifestPath;
 }
 
+export async function spellbookFixtureVariant(id: string): Promise<SpellbookVariant> {
+  const variant = ((await Bun.file(spellbookFixtureVariants).json()) as SpellbookFile).variants.find(
+    (record) => record.id === id,
+  );
+  if (!variant) {
+    throw new Error(`${id} is not in the Commander Spellbook fixture`);
+  }
+  return variant;
+}
+
+export async function spellbookFixture(changes: SpellbookFixtureChanges): Promise<string> {
+  const directory = await mkdtemp(join(tmpdir(), 'mtgscan-spellbook-fixture-'));
+  const file = (await Bun.file(spellbookFixtureVariants).json()) as SpellbookFile;
+  const text = JSON.stringify({
+    ...file,
+    timestamp: changes.timestamp ?? file.timestamp,
+    variants: (changes.variants ?? ((variants) => variants))(file.variants),
+  });
+  const variantsPath = join(directory, 'variants.json');
+  await Bun.write(variantsPath, changes.file ? changes.file(text) : text);
+  return variantsPath;
+}
+
 export type CommandResult = {
   exitCode: number;
   output: string;
@@ -141,6 +188,10 @@ export function runOracleTagImport(manifest: string, ...flags: string[]): Promis
   return runImportCommand('oracle_tags', '--manifest', manifest, ...flags);
 }
 
+export function runComboImport(variants: string, ...flags: string[]): Promise<CommandResult> {
+  return runImportCommand('commander_spellbook', '--variants', variants, ...flags);
+}
+
 export function runOracleTagCommand(action: 'disable' | 'enable', tagId: string): Promise<CommandResult> {
   return runScript('import/oracle-tag.ts', [action, tagId]);
 }
@@ -148,6 +199,7 @@ export function runOracleTagCommand(action: 'disable' | 'enable', tagId: string)
 export async function resetCardCatalog(): Promise<void> {
   const client = secretKeyClient();
   for (const request of [
+    () => client.from('combos').delete().not('id', 'is', null),
     () => client.from('disabled_tags').delete().not('tag_id', 'is', null),
     () => client.from('card_taggings').delete().not('tag_id', 'is', null),
     () => client.from('tag_edges').delete().not('child_id', 'is', null),

@@ -1,0 +1,959 @@
+{
+  "timestamp": "2026-10-10T09:35:39.161427+00:00",
+  "version": "7.1.9",
+  "variants": [
+    {
+      "id": "618-1719",
+      "status": "OK",
+      "uses": [
+        {
+          "card": {
+            "id": 618,
+            "name": "Kiki-Jiki, Mirror Breaker",
+            "oracleId": "a34b7416-cfe3-4a1e-a8c1-a3056b747519",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Legendary Creature — Goblin Shaman",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.png?1783935527",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 1719,
+            "name": "Vizier of Tumbling Sands",
+            "oracleId": "699fc7cf-1ad3-4c32-b3e4-49f9a2da4b26",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Creature — Human Cleric",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/a/9/a9aef509-50f0-4848-87d5-3c169453186f.png?1783915687",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/a/9/a9aef509-50f0-4848-87d5-3c169453186f.jpg?1783915687",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/a/9/a9aef509-50f0-4848-87d5-3c169453186f.jpg?1783915687",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/a/9/a9aef509-50f0-4848-87d5-3c169453186f.jpg?1783915687",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/a/9/a9aef509-50f0-4848-87d5-3c169453186f.jpg?1783915687",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        }
+      ],
+      "requires": [],
+      "produces": [
+        {
+          "feature": {
+            "id": 7,
+            "name": "Infinite death triggers",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 4,
+            "name": "Infinite creature ETB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 3,
+            "name": "Infinite creature LTB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 6,
+            "name": "Infinite creature sacrifice triggers",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 532,
+            "name": "Infinite tapped creature tokens with haste",
+            "uncountable": true,
+            "status": "S"
+          },
+          "quantity": 1
+        }
+      ],
+      "of": [
+        {
+          "id": 4297
+        }
+      ],
+      "includes": [
+        {
+          "id": 4297
+        }
+      ],
+      "identity": "UR",
+      "manaNeeded": "",
+      "manaValueNeeded": 0,
+      "easyPrerequisites": "",
+      "notablePrerequisites": "",
+      "description": "Tap Kiki-Jiki to make a token copy of Vizier of Tumbling Sands with haste.\nTap the Vizier of Tumbling Sands token to untap Kiki-Jiki.\nRepeat for infinite ETB and tapped creature tokens with haste.",
+      "notes": "",
+      "popularity": 525,
+      "salt": null,
+      "saltVoteCount": 0,
+      "spoiler": false,
+      "bracketTag": "R",
+      "legalities": {
+        "commander": true,
+        "pauperCommanderMain": false,
+        "pauperCommander": false,
+        "oathbreaker": true,
+        "predh": false,
+        "standardBrawl": false,
+        "brawl": false,
+        "competitiveBrawl": false,
+        "alchemy": false,
+        "vintage": true,
+        "legacy": true,
+        "premodern": false,
+        "modern": true,
+        "pioneer": false,
+        "standard": false,
+        "pauper": false
+      },
+      "prices": {
+        "tcgplayer": "13.15",
+        "cardkingdom": "15.34",
+        "cardmarket": "7.11"
+      },
+      "variantCount": 1
+    },
+    {
+      "id": "742-1295",
+      "status": "OK",
+      "uses": [
+        {
+          "card": {
+            "id": 742,
+            "name": "Demonic Consultation",
+            "oracleId": "9a1412db-45ad-46ea-8f12-a85d203113d8",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Instant",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/1/d/1d779f19-3068-4976-b96b-8f93d156900b.png?1783942624",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/1/d/1d779f19-3068-4976-b96b-8f93d156900b.jpg?1783942624",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/1/d/1d779f19-3068-4976-b96b-8f93d156900b.jpg?1783942624",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/1/d/1d779f19-3068-4976-b96b-8f93d156900b.jpg?1783942624",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/1/d/1d779f19-3068-4976-b96b-8f93d156900b.jpg?1783942624",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "H"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 1295,
+            "name": "Thassa's Oracle",
+            "oracleId": "1de1b591-a73f-4974-b507-8c63e07a0868",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Creature — Merfolk Wizard",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.png?1783931575",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.jpg?1783931575",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.jpg?1783931575",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.jpg?1783931575",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.jpg?1783931575",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "H"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        }
+      ],
+      "requires": [],
+      "produces": [
+        {
+          "feature": {
+            "id": 88,
+            "name": "Exile your library",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 2,
+            "name": "Win the game",
+            "uncountable": true,
+            "status": "S"
+          },
+          "quantity": 1
+        }
+      ],
+      "of": [
+        {
+          "id": 355
+        }
+      ],
+      "includes": [
+        {
+          "id": 355
+        }
+      ],
+      "identity": "UB",
+      "manaNeeded": "{U}{U}{B}",
+      "manaValueNeeded": 3,
+      "easyPrerequisites": "",
+      "notablePrerequisites": "",
+      "description": "Cast Demonic Consultation by paying {B}, naming Thassa's Oracle and thus exiling your library due to you not having a card named Thassa's Oracle in your library.\nCast Thassa's Oracle by paying {U}{U}.\nThassa's Oracle enters the battlefield, causing you to win the game.",
+      "notes": "",
+      "popularity": 148977,
+      "salt": 3.13,
+      "saltVoteCount": 16,
+      "spoiler": false,
+      "bracketTag": "R",
+      "legalities": {
+        "commander": true,
+        "pauperCommanderMain": false,
+        "pauperCommander": false,
+        "oathbreaker": true,
+        "predh": false,
+        "standardBrawl": false,
+        "brawl": false,
+        "competitiveBrawl": false,
+        "alchemy": false,
+        "vintage": true,
+        "legacy": false,
+        "premodern": false,
+        "modern": false,
+        "pioneer": false,
+        "standard": false,
+        "pauper": false
+      },
+      "prices": {
+        "tcgplayer": "27.69",
+        "cardkingdom": "33.98",
+        "cardmarket": "21.95"
+      },
+      "variantCount": 1
+    },
+    {
+      "id": "1295-5909",
+      "status": "OK",
+      "uses": [
+        {
+          "card": {
+            "id": 5909,
+            "name": "Doomsday Excruciator",
+            "oracleId": "ad0db433-a406-4ef0-8ffa-416af610c4e7",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Creature — Demon",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/5/4/542c89b6-48c6-4fcb-8a4c-b5ed2fa1d384.png?1783909483",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/5/4/542c89b6-48c6-4fcb-8a4c-b5ed2fa1d384.jpg?1783909483",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/5/4/542c89b6-48c6-4fcb-8a4c-b5ed2fa1d384.jpg?1783909483",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/5/4/542c89b6-48c6-4fcb-8a4c-b5ed2fa1d384.jpg?1783909483",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/5/4/542c89b6-48c6-4fcb-8a4c-b5ed2fa1d384.jpg?1783909483",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "H"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 1295,
+            "name": "Thassa's Oracle",
+            "oracleId": "1de1b591-a73f-4974-b507-8c63e07a0868",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Creature — Merfolk Wizard",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.png?1783931575",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.jpg?1783931575",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.jpg?1783931575",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.jpg?1783931575",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.jpg?1783931575",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "H"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        }
+      ],
+      "requires": [],
+      "produces": [
+        {
+          "feature": {
+            "id": 2,
+            "name": "Win the game",
+            "uncountable": true,
+            "status": "S"
+          },
+          "quantity": 1
+        }
+      ],
+      "of": [
+        {
+          "id": 27990
+        }
+      ],
+      "includes": [
+        {
+          "id": 27990
+        }
+      ],
+      "identity": "UB",
+      "manaNeeded": "{U}{U} and six {B}",
+      "manaValueNeeded": 2,
+      "easyPrerequisites": "",
+      "notablePrerequisites": "Your devotion to blue is at least 4.",
+      "description": "Cast Doomsday Excruciator by paying six {B}.\nWhen Doomsday Excruciator enters the battlefield, it triggers, causing each player to exile all but the bottom six cards of their library.\nCast Thassa's Oracle by paying {U}{U}.\nWhen Thassa's Oracle enters the battlefield, it triggers, causing you to win the game.",
+      "notes": "",
+      "popularity": 952,
+      "salt": null,
+      "saltVoteCount": 0,
+      "spoiler": false,
+      "bracketTag": "S",
+      "legalities": {
+        "commander": true,
+        "pauperCommanderMain": false,
+        "pauperCommander": false,
+        "oathbreaker": true,
+        "predh": false,
+        "standardBrawl": false,
+        "brawl": true,
+        "competitiveBrawl": true,
+        "alchemy": false,
+        "vintage": true,
+        "legacy": true,
+        "premodern": false,
+        "modern": true,
+        "pioneer": true,
+        "standard": false,
+        "pauper": false
+      },
+      "prices": {
+        "tcgplayer": "21.42",
+        "cardkingdom": "25.98",
+        "cardmarket": "14.05"
+      },
+      "variantCount": 1
+    },
+    {
+      "id": "618-7895",
+      "status": "OK",
+      "uses": [
+        {
+          "card": {
+            "id": 618,
+            "name": "Kiki-Jiki, Mirror Breaker",
+            "oracleId": "a34b7416-cfe3-4a1e-a8c1-a3056b747519",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Legendary Creature — Goblin Shaman",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.png?1783935527",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 7895,
+            "name": "Little Bear",
+            "oracleId": "53c6c6bf-0256-424d-b937-1cc7d9e2d574",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Creature — Bear",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/8/a/8a50858a-33b5-4c45-9c31-5956ae5a33a6.png?1785323276",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/8/a/8a50858a-33b5-4c45-9c31-5956ae5a33a6.jpg?1785323276",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/8/a/8a50858a-33b5-4c45-9c31-5956ae5a33a6.jpg?1785323276",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/8/a/8a50858a-33b5-4c45-9c31-5956ae5a33a6.jpg?1785323276",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/8/a/8a50858a-33b5-4c45-9c31-5956ae5a33a6.jpg?1785323276",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        }
+      ],
+      "requires": [],
+      "produces": [
+        {
+          "feature": {
+            "id": 4,
+            "name": "Infinite creature ETB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 3,
+            "name": "Infinite creature LTB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 39,
+            "name": "Infinite creature tokens with haste",
+            "uncountable": true,
+            "status": "S"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 7,
+            "name": "Infinite death triggers",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 6,
+            "name": "Infinite creature sacrifice triggers",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        }
+      ],
+      "of": [
+        {
+          "id": 914
+        }
+      ],
+      "includes": [
+        {
+          "id": 914
+        }
+      ],
+      "identity": "RG",
+      "manaNeeded": "",
+      "manaValueNeeded": 0,
+      "easyPrerequisites": "",
+      "notablePrerequisites": "",
+      "description": "Activate Kiki-Jiki by tapping it, creating a token copy of Little Bear with haste.\nWhen the Little Bear token enters, it triggers, untapping Kiki-Jiki\nRepeat.",
+      "notes": "",
+      "popularity": 126,
+      "salt": null,
+      "saltVoteCount": 0,
+      "spoiler": false,
+      "bracketTag": "R",
+      "legalities": {
+        "commander": true,
+        "pauperCommanderMain": false,
+        "pauperCommander": false,
+        "oathbreaker": true,
+        "predh": false,
+        "standardBrawl": false,
+        "brawl": false,
+        "competitiveBrawl": false,
+        "alchemy": false,
+        "vintage": true,
+        "legacy": true,
+        "premodern": false,
+        "modern": true,
+        "pioneer": false,
+        "standard": false,
+        "pauper": false
+      },
+      "prices": {
+        "tcgplayer": "13.18",
+        "cardkingdom": "15.34",
+        "cardmarket": "7.14"
+      },
+      "variantCount": 16
+    },
+    {
+      "id": "618-1430--112",
+      "status": "OK",
+      "uses": [
+        {
+          "card": {
+            "id": 618,
+            "name": "Kiki-Jiki, Mirror Breaker",
+            "oracleId": "a34b7416-cfe3-4a1e-a8c1-a3056b747519",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Legendary Creature — Goblin Shaman",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.png?1783935527",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 1430,
+            "name": "Mirror Image",
+            "oracleId": "7275fb8c-571a-4c4c-889a-829419332e51",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Creature — Shapeshifter",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/5/b/5b3ffc69-f21b-410e-8993-8c1b4669fc19.png?1783934585",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/5/b/5b3ffc69-f21b-410e-8993-8c1b4669fc19.jpg?1783934585",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/5/b/5b3ffc69-f21b-410e-8993-8c1b4669fc19.jpg?1783934585",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/5/b/5b3ffc69-f21b-410e-8993-8c1b4669fc19.jpg?1783934585",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/5/b/5b3ffc69-f21b-410e-8993-8c1b4669fc19.jpg?1783934585",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "not copying anything",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        }
+      ],
+      "requires": [
+        {
+          "template": {
+            "id": 112,
+            "name": "Effects that Alter a Creature's Power/Toughness (Anthem Effects)",
+            "scryfallQuery": null,
+            "scryfallApi": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1
+        }
+      ],
+      "produces": [
+        {
+          "feature": {
+            "id": 4,
+            "name": "Infinite creature ETB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 3,
+            "name": "Infinite creature LTB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 7,
+            "name": "Infinite death triggers",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        }
+      ],
+      "of": [
+        {
+          "id": 32135
+        }
+      ],
+      "includes": [
+        {
+          "id": 32135
+        }
+      ],
+      "identity": "UR",
+      "manaNeeded": "",
+      "manaValueNeeded": 0,
+      "easyPrerequisites": "",
+      "notablePrerequisites": "",
+      "description": "Activate Kiki-Jiki by tapping it, creating a token copy of Mirror Image that has haste. Choose to have Mirror Image enter as a copy of Kiki-Jiki.\nPut the oldest Kiki-Jiki into the graveyard due to the legend rule.\nRepeat step 1 using the Mirror Image token instead.",
+      "notes": "The chosen anthem effect must increase Mirror Image's toughness.",
+      "popularity": 281,
+      "salt": null,
+      "saltVoteCount": 0,
+      "spoiler": false,
+      "bracketTag": "E",
+      "legalities": {
+        "commander": true,
+        "pauperCommanderMain": false,
+        "pauperCommander": false,
+        "oathbreaker": true,
+        "predh": false,
+        "standardBrawl": false,
+        "brawl": false,
+        "competitiveBrawl": false,
+        "alchemy": false,
+        "vintage": true,
+        "legacy": true,
+        "premodern": false,
+        "modern": true,
+        "pioneer": false,
+        "standard": false,
+        "pauper": false
+      },
+      "prices": {
+        "tcgplayer": "13.25",
+        "cardkingdom": "15.68",
+        "cardmarket": "7.37"
+      },
+      "variantCount": 24
+    },
+    {
+      "id": "618-3742-3899",
+      "status": "OK",
+      "uses": [
+        {
+          "card": {
+            "id": 618,
+            "name": "Kiki-Jiki, Mirror Breaker",
+            "oracleId": "a34b7416-cfe3-4a1e-a8c1-a3056b747519",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Legendary Creature — Goblin Shaman",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.png?1783935527",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.jpg?1783935527",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 3899,
+            "name": "Spawning Pit",
+            "oracleId": "ea7b0704-7715-4f8a-b32f-d2d2f3b36054",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Artifact",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/e/9/e9a8ca49-fc8f-49c1-a7c6-c8326b2deb52.png?1783941267",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/e/9/e9a8ca49-fc8f-49c1-a7c6-c8326b2deb52.jpg?1783941267",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/e/9/e9a8ca49-fc8f-49c1-a7c6-c8326b2deb52.jpg?1783941267",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/e/9/e9a8ca49-fc8f-49c1-a7c6-c8326b2deb52.jpg?1783941267",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/e/9/e9a8ca49-fc8f-49c1-a7c6-c8326b2deb52.jpg?1783941267",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 3742,
+            "name": "Phantom Steed",
+            "oracleId": "22c643b1-62dd-477c-8944-97b3becdfdbe",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Creature — Horse Illusion",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/6/4/64513f0a-067d-4b70-bb23-9ebe606bda1a.png?1783926252",
+            "imageUriFrontLarge": "https://cards.scryfall.io/large/front/6/4/64513f0a-067d-4b70-bb23-9ebe606bda1a.jpg?1783926252",
+            "imageUriFrontNormal": "https://cards.scryfall.io/normal/front/6/4/64513f0a-067d-4b70-bb23-9ebe606bda1a.jpg?1783926252",
+            "imageUriFrontSmall": "https://cards.scryfall.io/small/front/6/4/64513f0a-067d-4b70-bb23-9ebe606bda1a.jpg?1783926252",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art_crop/front/6/4/64513f0a-067d-4b70-bb23-9ebe606bda1a.jpg?1783926252",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        }
+      ],
+      "requires": [],
+      "produces": [
+        {
+          "feature": {
+            "id": 208,
+            "name": "Infinite charge counters on a permanent",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 4,
+            "name": "Infinite creature ETB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 3,
+            "name": "Infinite creature LTB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 6,
+            "name": "Infinite creature sacrifice triggers",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 7,
+            "name": "Infinite death triggers",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        }
+      ],
+      "of": [
+        {
+          "id": 28328
+        }
+      ],
+      "includes": [
+        {
+          "id": 28328
+        },
+        {
+          "id": 33787
+        }
+      ],
+      "identity": "UR",
+      "manaNeeded": "{3}{U}",
+      "manaValueNeeded": 4,
+      "easyPrerequisites": "",
+      "notablePrerequisites": "",
+      "description": "Activate Kiki-Jiki by tapping it, creating a token copy of Phantom Steed.\nWhen the Phantom Steed token enters the battlefield, it triggers, exiling Kiki-Jiki until Phantom Steed leaves the battlefield.\nActivate Spawning Pit by sacrificing the Phantom Steed token.\nWhen the Phantom Steed token dies, Kiki-Jiki is returned from exile to the battlefield.\nResolve the Spawning Pit ability.\nRepeat.",
+      "notes": "",
+      "popularity": 1,
+      "salt": null,
+      "saltVoteCount": 0,
+      "spoiler": false,
+      "bracketTag": "E",
+      "legalities": {
+        "commander": true,
+        "pauperCommanderMain": false,
+        "pauperCommander": false,
+        "oathbreaker": true,
+        "predh": false,
+        "standardBrawl": false,
+        "brawl": false,
+        "competitiveBrawl": false,
+        "alchemy": false,
+        "vintage": true,
+        "legacy": true,
+        "premodern": false,
+        "modern": false,
+        "pioneer": false,
+        "standard": false,
+        "pauper": false
+      },
+      "prices": {
+        "tcgplayer": "15.05",
+        "cardkingdom": "18.97",
+        "cardmarket": "8.48"
+      },
+      "variantCount": 200
+    }
+  ],
+  "aliases": [
+    {
+      "id": "997-7435-7642",
+      "variant": null
+    },
+    {
+      "id": "997-7435-7643",
+      "variant": null
+    }
+  ]
+}

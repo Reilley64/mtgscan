@@ -47,6 +47,7 @@
       "name": "@mtgscan/supabase",
       "version": "0.0.0",
       "dependencies": {
+        "@streamparser/json-whatwg": "^0.0.26",
         "@supabase/supabase-js": "^2.117.3",
       },
       "devDependencies": {
@@ -479,6 +480,10 @@
     "@sinonjs/commons": ["@sinonjs/commons@3.0.1", "", { "dependencies": { "type-detect": "4.0.8" } }, "sha512-K3mCHKQ9sVh8o1C9cxkwxaOmXoAMlDxC1mYyHrjqOWEcBjYr76t96zL2zlj5dUGZ3HSw240X1qgH3Mjf1yJWpQ=="],
 
     "@sinonjs/fake-timers": ["@sinonjs/fake-timers@10.3.0", "", { "dependencies": { "@sinonjs/commons": "^3.0.0" } }, "sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA=="],
+
+    "@streamparser/json": ["@streamparser/json@0.0.26", "", {}, "sha512-46597LNFI+MFdUnzX2QJWwmdTRdq0XVD+vVNJTtGVzIrnCuhG9pFo1OAzbNBqci8UJgk/X5KJZ6LcV+y7PTuDQ=="],
+
+    "@streamparser/json-whatwg": ["@streamparser/json-whatwg@0.0.26", "", { "dependencies": { "@streamparser/json": "^0.0.26" } }, "sha512-8FkyKZOx50i6aG0O1P87fqQ/zpwPb1Eb3XqUzivWWP0Vdvupy0a0ih6zgkctoL3zkewQe2MkPlNdp+mIRx3Atw=="],
 
     "@supabase/auth-js": ["@supabase/auth-js@2.117.3", "", { "dependencies": { "tslib": "2.8.1" } }, "sha512-XOZV+jllcU2Hzij8SwgM78zl0lOEr6BTjzi2MYkBb39nOAQzb5AelGpMUvVj7lwGSB11JmpAs/FEQroAyFzWEA=="],
 
