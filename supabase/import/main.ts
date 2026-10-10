@@ -1,16 +1,15 @@
 import { parseArgs } from 'node:util';
 
-import { createClient } from '@supabase/supabase-js';
-
-import type { Database } from '../database.types';
+import { importClientFromEnvironment } from './import-client';
 import { ImportFailed, provisionalBatchLimits, runImport, type ImportClient } from './import-run';
 import { scryfallManifestUrl } from './scryfall-bulk-data';
 import { scryfallCatalog } from './scryfall-catalog';
+import { scryfallOracleTags } from './scryfall-oracle-tags';
 import { scryfallPrices } from './scryfall-prices';
 import { type ImportAdapters, retryFailedWeeklySources } from './weekly-retry';
 
 const usage = `Usage:
-  bun import/main.ts catalog|prices [--manifest <path or URL>] [--accept-shrink] [--batch-rows <n>]
+  bun import/main.ts catalog|oracle_tags|prices [--manifest <path or URL>] [--accept-shrink] [--batch-rows <n>]
   bun import/main.ts retry-weekly [--manifest <path or URL>] [--batch-rows <n>]
   bun import/main.ts prune-telemetry`;
 
@@ -25,11 +24,10 @@ const { positionals, values } = parseArgs({
 });
 
 const [command] = positionals;
-const url = process.env.SUPABASE_URL;
-const secretKey = process.env.SUPABASE_SECRET_KEY;
 const batchLimits = { ...provisionalBatchLimits, rows: Number(values['batch-rows']) };
 const adapters = {
   catalog: () => scryfallCatalog(values.manifest),
+  oracle_tags: () => scryfallOracleTags(values.manifest),
   prices: () => scryfallPrices(values.manifest),
 } satisfies ImportAdapters;
 
@@ -44,6 +42,8 @@ async function pruneSearchTelemetry(client: ImportClient): Promise<void> {
 const commands: Record<string, (client: ImportClient) => Promise<unknown>> = {
   catalog: async (client) =>
     runImport(client, await adapters.catalog(), { acceptShrink: values['accept-shrink'], batchLimits }),
+  oracle_tags: async (client) =>
+    runImport(client, await adapters.oracle_tags(), { acceptShrink: values['accept-shrink'], batchLimits }),
   prices: async (client) =>
     runImport(client, await adapters.prices(), { acceptShrink: values['accept-shrink'], batchLimits }),
   'retry-weekly': (client) => retryFailedWeeklySources(client, adapters, batchLimits),
@@ -55,14 +55,8 @@ if (!run || !Number.isInteger(batchLimits.rows) || batchLimits.rows < 1) {
   console.error(usage);
   process.exit(2);
 }
-if (!url || !secretKey) {
-  console.error('Set SUPABASE_URL and SUPABASE_SECRET_KEY.');
-  process.exit(2);
-}
 
-const client = createClient<Database>(url, secretKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const client = importClientFromEnvironment();
 
 try {
   await run(client);

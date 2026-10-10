@@ -34,6 +34,8 @@ export type CatalogQuery = {
   sets_exclude?: string[];
   rarities?: Rarity[];
   rarities_exclude?: Rarity[];
+  tags?: string[];
+  tags_exclude?: string[];
   is_commander?: boolean;
   is_game_changer?: boolean;
   include_oracle_text?: boolean;
@@ -151,6 +153,27 @@ export type CardPrintingRow = CardDetailsPrinting & {
 export type CardPrintingsPage = DataAsOf & {
   items: CardPrintingRow[];
   next_cursor: string | null;
+};
+
+export type TagLookupQuery = {
+  text: string;
+  limit?: number;
+};
+
+export type OracleTagRow = {
+  id: string;
+  slug: string;
+  label: string;
+  aliases: string[];
+  description: string | null;
+  parent_slugs: string[];
+  card_count: number;
+};
+
+export type TagLookupPage = {
+  items: OracleTagRow[];
+  rules_data_as_of: string;
+  rules_stale: boolean;
 };
 
 export type SearchErrorCode = 'invalid_argument' | 'invalid_cursor' | 'not_found' | 'data_unavailable';

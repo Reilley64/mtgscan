@@ -55,7 +55,7 @@ export type ScryfallCard = ScryfallFace & {
   prices?: Record<string, string | null | undefined>;
 };
 
-export type BulkFileType = 'oracle_cards' | 'default_cards';
+export type BulkFileType = 'oracle_cards' | 'default_cards' | 'oracle_tags';
 
 export type BulkFile = {
   type: BulkFileType;
@@ -100,15 +100,19 @@ export async function readBulkFiles<Type extends BulkFileType>(
   return files;
 }
 
-export async function* readCards(file: BulkFile): AsyncGenerator<ScryfallCard> {
+export async function* readBulkRecords<Item>(file: BulkFile): AsyncGenerator<Item> {
   const response = await openLocation(file.jsonl_download_uri);
   try {
     for await (const record of readGzipJsonLines(response.body!)) {
-      yield record as ScryfallCard;
+      yield record as Item;
     }
   } catch (error) {
     throw new Error(`Could not read the Scryfall ${file.type} file: ${(error as Error).message}`);
   }
+}
+
+export function readCards(file: BulkFile): AsyncGenerator<ScryfallCard> {
+  return readBulkRecords<ScryfallCard>(file);
 }
 
 export function isCatalogLayout(card: ScryfallCard): boolean {

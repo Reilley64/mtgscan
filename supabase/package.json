@@ -12,7 +12,8 @@
     "test": "bun test",
     "types": "supabase gen types typescript --local > database.types.ts",
     "types:check": "supabase gen types typescript --local | diff database.types.ts -",
-    "import": "bun import/main.ts"
+    "import": "bun import/main.ts",
+    "oracle-tag": "bun import/oracle-tag.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3"

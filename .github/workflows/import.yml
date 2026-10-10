@@ -9,6 +9,7 @@ on:
         options:
           - catalog
           - prices
+          - oracle_tags
         default: catalog
       accept_shrink:
         description: Accept a shrink of more than 5%

@@ -65,9 +65,12 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 `bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest.
 
 - `catalog` imports cards and card printings. The Weekly import workflow runs it.
+- `oracle_tags` imports Oracle tags, tag edges, and card taggings from Scryfall. The Weekly import workflow runs it after `catalog`, even when the catalog run fails.
 - `prices` imports current prices from Scryfall Default Cards and recomputes each card's lowest current price.
 - `prune-telemetry` deletes search telemetry older than 180 days.
 - `retry-weekly` runs again each weekly source whose latest run failed.
+
+`bun run oracle-tag disable <tag UUID>` stops a bad Oracle tag from matching any search. `bun run oracle-tag enable <tag UUID>` undoes it. The Oracle tag workflow runs the same command by hand. A disabled tag stays disabled after every later tag import.
 
 The Daily import workflow runs `prices`, `prune-telemetry`, and `retry-weekly`. Each run records an import run, so the hosted project does not pause. The Import workflow runs one source by hand.
 
