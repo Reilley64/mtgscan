@@ -12,8 +12,10 @@
       "bundleIdentifier": "dev.reilley.mtgscan",
       "appleTeamId": "YDZJL5K3RQ",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "mtgscan uses the camera to scan your cards. Photos stay on your iPhone."
+      },
+      "deploymentTarget": "17.0"
     },
     "plugins": [
       "expo-router",

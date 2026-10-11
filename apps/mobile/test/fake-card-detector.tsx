@@ -1,0 +1,121 @@
+import { forwardRef, useImperativeHandle, type ForwardedRef } from 'react';
+import { act } from 'expo-router/testing-library';
+import { View } from 'react-native';
+
+import type {
+  CameraPermission,
+  CapturedPhoto,
+  CardDetectorCamera,
+  CardDetectorViewProps,
+  DetectionSample,
+} from '../modules/card-detector';
+
+let cameraAvailable = true;
+let permission: CameraPermission = 'granted';
+let answerToPrompt: CameraPermission = 'granted';
+let prompts = 0;
+let failingPhotos = 0;
+let photos: CapturedPhoto[] = [];
+let deletedPhotos: string[] = [];
+let mountedView: CardDetectorViewProps | null = null;
+
+async function takePhoto(): Promise<CapturedPhoto> {
+  if (failingPhotos > 0) {
+    failingPhotos -= 1;
+    throw new Error('The photo failed');
+  }
+  const photo: CapturedPhoto = {
+    uri: `file:///tmp/scan-${photos.length + 1}.jpg`,
+    outline: [
+      { x: 0.2, y: 0.2 },
+      { x: 0.8, y: 0.2 },
+      { x: 0.8, y: 0.8 },
+      { x: 0.2, y: 0.8 },
+    ],
+  };
+  photos = [...photos, photo];
+  return photo;
+}
+
+function FakeCardDetectorView(
+  { onDetectionSample, active, ...viewProps }: Omit<CardDetectorViewProps, 'ref'>,
+  ref: ForwardedRef<CardDetectorCamera>,
+) {
+  mountedView = { onDetectionSample, active, ...viewProps };
+  useImperativeHandle(ref, () => ({ takePhoto }));
+  return <View {...viewProps} />;
+}
+
+export const fakeCardDetector = {
+  CardDetectorView: forwardRef(FakeCardDetectorView),
+  isCameraAvailable: () => cameraAvailable,
+  getCameraPermission: async () => permission,
+  requestCameraPermission: async () => {
+    prompts += 1;
+    permission = answerToPrompt;
+    return permission;
+  },
+  deletePhoto: async (uri: string) => {
+    deletedPhotos = [...deletedPhotos, uri];
+  },
+};
+
+function cameraView() {
+  if (!mountedView) {
+    throw new Error('The camera is not on the screen');
+  }
+  return mountedView;
+}
+
+export async function showSamples(samples: DetectionSample[]) {
+  for (const sample of samples) {
+    await act(async () => {
+      cameraView().onDetectionSample({ nativeEvent: sample } as Parameters<
+        CardDetectorViewProps['onDetectionSample']
+      >[0]);
+    });
+  }
+}
+
+export function cameraIsOn() {
+  return mountedView?.active === true;
+}
+
+export function photosTaken() {
+  return photos.length;
+}
+
+export function photosDeleted() {
+  return deletedPhotos;
+}
+
+export function failNextPhotos(count: number) {
+  failingPhotos = count;
+}
+
+export function cameraAccessIs(state: CameraPermission) {
+  permission = state;
+}
+
+export function userAnswersCameraPrompt(answer: CameraPermission) {
+  answerToPrompt = answer;
+}
+
+export function cameraPrompts() {
+  return prompts;
+}
+
+export function phoneHasNoCamera() {
+  cameraAvailable = false;
+}
+
+export function resetFakeCardDetector() {
+  cameraAvailable = true;
+  permission = 'granted';
+  answerToPrompt = 'granted';
+  prompts = 0;
+  failingPhotos = 0;
+  photos = [];
+  deletedPhotos = [];
+  mountedView = null;
+}

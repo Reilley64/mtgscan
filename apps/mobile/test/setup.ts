@@ -1,3 +1,4 @@
+import { resetFakeCardDetector } from './fake-card-detector';
 import { resetFakeSupabase } from './fake-supabase';
 
 jest.mock('expo-crypto', () => {
@@ -14,6 +15,10 @@ jest.mock('@/lib/supabase', () => ({
   supabase: jest.requireActual('./fake-supabase').fakeSupabase,
 }));
 
+jest.mock('../modules/card-detector', () => jest.requireActual('./fake-card-detector').fakeCardDetector);
+
 beforeEach(() => {
+  jest.spyOn(console, 'info').mockImplementation(() => {});
   resetFakeSupabase();
+  resetFakeCardDetector();
 });

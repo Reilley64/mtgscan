@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
   s.author         = 'mtgscan'
   s.homepage       = 'https://github.com/Reilley64/mtgscan'
   s.license        = 'UNLICENSED'
-  s.platforms      = { :ios => '16.4' }
+  s.platforms      = { :ios => '17.0' }
   s.swift_version  = '6.0'
   s.source         = { git: 'https://github.com/Reilley64/mtgscan.git' }
   s.static_framework = true
