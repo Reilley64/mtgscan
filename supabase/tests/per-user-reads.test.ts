@@ -1,7 +1,14 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
-import { anonymousClient, asAnonymousCaller, asSignedInUser, signUpNewUser, type TestUser } from './local-stack';
+import {
+  anonymousClient,
+  asAnonymousCaller,
+  asSignedInUser,
+  signUpNewUser,
+  type AppClient,
+  type TestUser,
+} from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
@@ -10,19 +17,23 @@ const permissionDenied = '42501';
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
 
-const perUserRelations = [
-  'public.profiles',
-  'public.collection_entries',
-  'public.collection_additions',
-  'public.collection_addition_lines',
-  'private.collection_availability',
-];
+type PerUserTable = 'profiles' | 'collection_entries' | 'collection_additions' | 'collection_addition_lines';
+
+const perUserTables: PerUserTable[] = ['profiles', 'collection_entries', 'collection_additions', 'collection_addition_lines'];
 
 let alice: TestUser;
 let bob: TestUser;
 
-async function userIdsWithNoUserFilter(user: TestUser, relation: string) {
-  const rows = await asSignedInUser(user, (database) => database.unsafe(`select distinct user_id from ${relation}`));
+async function userIdsInTable(user: TestUser, table: PerUserTable) {
+  const { data, error } = await user.client.from(table).select('user_id');
+  expect(error).toBeNull();
+  return [...new Set(data!.map((row) => row.user_id))];
+}
+
+async function userIdsInAvailabilityView(user: TestUser) {
+  const rows = await asSignedInUser(user, (database) =>
+    database`select distinct user_id from private.collection_availability`,
+  );
   return rows.map((row: { user_id: string }) => row.user_id);
 }
 
@@ -35,13 +46,24 @@ beforeAll(async () => {
 });
 
 describe('a read with no user filter', () => {
-  test.each(perUserRelations)("returns only the caller's rows from %s", async (relation) => {
-    expect(await userIdsWithNoUserFilter(alice, relation)).toEqual([alice.userId]);
-    expect(await userIdsWithNoUserFilter(bob, relation)).toEqual([bob.userId]);
+  test.each(perUserTables)("returns only the caller's rows from %s", async (table) => {
+    expect(await userIdsInTable(alice, table)).toEqual([alice.userId]);
+    expect(await userIdsInTable(bob, table)).toEqual([bob.userId]);
   });
 
-  test.each(perUserRelations)('is refused to an anonymous caller on %s', async (relation) => {
-    const read = asAnonymousCaller((database) => database.unsafe(`select user_id from ${relation}`));
+  test.each(perUserTables)('is refused to an anonymous caller on %s', async (table) => {
+    const { error } = await anonymousClient().from(table).select('user_id');
+
+    expect(error?.code).toBe(permissionDenied);
+  });
+
+  test("returns only the caller's rows from the collection availability view", async () => {
+    expect(await userIdsInAvailabilityView(alice)).toEqual([alice.userId]);
+    expect(await userIdsInAvailabilityView(bob)).toEqual([bob.userId]);
+  });
+
+  test('is refused to an anonymous caller on the collection availability view', async () => {
+    const read = asAnonymousCaller((database) => database`select user_id from private.collection_availability`);
 
     await expect(read).rejects.toMatchObject({ errno: permissionDenied });
   });
@@ -53,31 +75,21 @@ test('a signed-in user cannot run a private helper that no read calls', async ()
   await expect(run).rejects.toMatchObject({ errno: permissionDenied });
 });
 
-test('a signed-in user cannot write search telemetry', async () => {
-  const { error } = await alice.client.from('search_telemetry').insert({
-    search_id: crypto.randomUUID(),
-    user_id: alice.userId,
-    api: 'catalog',
-    caller: 'app',
-    query: {},
-    result_count: 0,
-    latency_ms: 0,
-    result_ids: [],
-  });
-
-  expect(error?.code).toBe(permissionDenied);
-});
-
-test('an anonymous caller cannot write search telemetry', async () => {
-  const { error } = await anonymousClient().from('search_telemetry').insert({
-    search_id: crypto.randomUUID(),
-    api: 'catalog',
-    caller: 'release_check',
-    query: {},
-    result_count: 0,
-    latency_ms: 0,
-    result_ids: [],
-  });
+test.each<[string, () => AppClient]>([
+  ['a signed-in user', () => alice.client],
+  ['an anonymous caller', anonymousClient],
+])('%s cannot write search telemetry', async (_caller, client) => {
+  const { error } = await client()
+    .from('search_telemetry')
+    .insert({
+      search_id: crypto.randomUUID(),
+      api: 'catalog',
+      caller: 'release_check',
+      query: {},
+      result_count: 0,
+      latency_ms: 0,
+      result_ids: [],
+    });
 
   expect(error?.code).toBe(permissionDenied);
 });

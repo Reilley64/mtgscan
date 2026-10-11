@@ -3,7 +3,7 @@ alter function public.search_collection(jsonb) security invoker;
 alter function public.get_cards(jsonb) security invoker;
 alter function public.list_card_printings(jsonb) security invoker;
 
-create function private.caller_is_release_check()
+create function private.caller_uses_secret_key()
 returns boolean
 language sql
 stable
@@ -32,7 +32,7 @@ as $$
     search_id,
     auth.uid(),
     api,
-    case when private.caller_is_release_check() then 'release_check' else 'app' end::public.search_caller,
+    case when private.caller_uses_secret_key() then 'release_check' else 'app' end::public.search_caller,
     query,
     result_count,
     latency_ms,
@@ -71,7 +71,7 @@ as $$
     'protected_free_quantity', coalesce(sum(a.free_quantity) filter (where a.is_protected), 0)
   )
   from private.collection_availability a
-  where a.oracle_id = owned_copies.oracle_id and not private.caller_is_release_check();
+  where a.oracle_id = owned_copies.oracle_id and not private.caller_uses_secret_key();
 $$;
 create or replace function public.list_collection_printings(query jsonb)
 returns jsonb
@@ -166,7 +166,7 @@ grant usage on schema private to authenticated, service_role;
 grant select on table private.collection_availability to authenticated, service_role;
 
 grant execute on function
-  private.caller_is_release_check(),
+  private.caller_uses_secret_key(),
   private.card_filter_conditions(jsonb),
   private.catalog_filter_conditions(jsonb),
   private.check_search_query(jsonb, public.search_api),
@@ -184,9 +184,7 @@ grant execute on function
   private.checked_text_list(text, jsonb),
   private.checked_uuid(text, jsonb),
   private.checked_uuid_list(text, jsonb, integer),
-  private.collection_filter_conditions(jsonb),
   private.color_bits(text[]),
-  private.finish_price_cents(public.card_prices, public.card_finish, public.price_currency),
   private.invalid_argument(text, text),
   private.keyword_keys(text[]),
   private.name_key(text),
@@ -214,6 +212,8 @@ grant execute on function
   private.check_card_details_query(jsonb),
   private.check_card_printings_query(jsonb),
   private.check_collection_printings_query(jsonb),
+  private.collection_filter_conditions(jsonb),
+  private.finish_price_cents(public.card_prices, public.card_finish, public.price_currency),
   private.owned_printing_quantity(uuid),
   private.page_cursor(text, jsonb),
   private.read_page_cursor(text, text, integer),
