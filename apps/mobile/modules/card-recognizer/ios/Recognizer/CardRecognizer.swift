@@ -122,8 +122,7 @@ public enum CardRecognizer {
         oracleId: printing.oracleId,
         name: printing.name,
         setCode: printing.set,
-        collectorNumber: printing.collectorNumber,
-        similarity: (Double(scores[index]) * 1000).rounded() / 1000
+        collectorNumber: printing.collectorNumber
       )
     }
     return .card(CardRecognition(
@@ -155,12 +154,12 @@ public enum CardRecognizer {
       (RecognitionDecision(accepted: false, reasons: [reason]), first)
     }
     let top = ranked[0]
-    let topName = gallery.printings[top].oracleId
-    let shortlistNames = Set(ranked.prefix(illustrationExpansion).map { gallery.printings[$0].oracleId })
+    let topOracleId = gallery.printings[top].oracleId
+    let shortlistOracleIds = Set(ranked.prefix(illustrationExpansion).map { gallery.printings[$0].oracleId })
     let setCode = reading.setCode ?? reading.setToken.flatMap { token in
       let nearby = Set(ranked.compactMap { index -> String? in
         let printing = gallery.printings[index]
-        guard shortlistNames.contains(printing.oracleId),
+        guard shortlistOracleIds.contains(printing.oracleId),
               printing.set.count == token.count,
               zip(printing.set, token).filter({ $0 != $1 }).count <= 1
         else { return nil }
@@ -175,11 +174,11 @@ public enum CardRecognizer {
         return abstain("collector line \(readLabel) names no printing in the gallery")
       }
       let imageArts = Set(ranked.prefix(artCheckDepth).compactMap { gallery.printings[$0].illustrationId })
-      if shortlistNames.contains(gallery.printings[read].oracleId),
+      if shortlistOracleIds.contains(gallery.printings[read].oracleId),
          let readArt = gallery.printings[read].illustrationId, !imageArts.contains(readArt) {
         return abstain("collector line \(readLabel) names a printing whose art the image does not match", first: ranked[0])
       }
-      if shortlistNames.contains(gallery.printings[read].oracleId) {
+      if shortlistOracleIds.contains(gallery.printings[read].oracleId) {
         let twins = sameTextTwins(of: read, gallery: gallery).filter { !excluded.contains($0) }
         let reason = "collector line \(readLabel) matches a card in the image shortlist"
         guard !twins.isEmpty else { return accept(read, reason) }
@@ -204,7 +203,7 @@ public enum CardRecognizer {
 
     if let setCode {
       let matches = ranked.filter {
-        gallery.printings[$0].set == setCode && gallery.printings[$0].oracleId == topName
+        gallery.printings[$0].set == setCode && gallery.printings[$0].oracleId == topOracleId
       }
       if matches.count == 1 {
         return accept(matches[0], "set \(setCode.uppercased()) leaves one printing of the top card")

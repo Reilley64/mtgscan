@@ -8,7 +8,6 @@ export type RecognitionCandidate = {
   name: string;
   setCode: string;
   collectorNumber: string;
-  similarity: number;
 };
 
 export type CollectorLineReading = {
@@ -37,5 +36,3 @@ export type NotACardRecognition = {
 };
 
 export type Recognition = CardRecognition | NotACardRecognition;
-
-export type RecognitionErrorCode = 'gallery_not_ready' | 'unreadable_photo' | 'rectification_failed';

@@ -89,10 +89,7 @@ func featurePrint(ofCardAt url: URL) -> [Float]? {
 func index(galleryDirectory: URL, imagesDirectory: URL) {
   let printings: [GalleryPrinting]
   do {
-    printings = try JSONDecoder().decode(
-      [GalleryPrinting].self,
-      from: Data(contentsOf: galleryDirectory.appendingPathComponent(GalleryFile.printingList))
-    )
+    printings = try Gallery.printingList(in: galleryDirectory)
   } catch {
     fail("cannot read the printing list: \(error)")
   }
@@ -132,7 +129,7 @@ func index(galleryDirectory: URL, imagesDirectory: URL) {
       dimension: dimension,
       revision: FeaturePrint.revision,
       createdAt: ISO8601DateFormatter().string(from: Date()),
-      encoding: "float16"
+      encoding: GalleryHeader.float16
     )
     try JSONEncoder().encode(header).write(to: galleryDirectory.appendingPathComponent(GalleryFile.header))
   } catch {

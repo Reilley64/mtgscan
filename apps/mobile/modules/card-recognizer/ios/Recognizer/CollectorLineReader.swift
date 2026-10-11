@@ -84,15 +84,10 @@ public enum CollectorLineReader {
               let match = pattern.firstMatch(in: line, range: range),
               let numberRange = Range(match.range(at: 1), in: line)
         else { continue }
-        result.collectorNumber = normalizedNumber(String(line[numberRange]))
+        result.collectorNumber = Gallery.withoutLeadingZeros(String(line[numberRange]))
         return result
       }
     }
     return result
-  }
-
-  private static func normalizedNumber(_ text: String) -> String {
-    let trimmed = text.drop { $0 == "0" }
-    return trimmed.isEmpty ? "0" : String(trimmed)
   }
 }

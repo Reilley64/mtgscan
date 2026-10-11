@@ -12,6 +12,8 @@ public struct GalleryPrinting: Codable, Sendable {
 }
 
 public struct GalleryHeader: Codable, Sendable {
+  public static let float16 = "float16"
+
   public let count: Int
   public let dimension: Int
   public let revision: Int
@@ -31,7 +33,6 @@ public enum GalleryFile {
   public static let printingList = "catalog.json"
   public static let header = "gallery.json"
   public static let float16Vectors = "gallery.f16"
-  public static let int8Vectors = "gallery.i8"
 }
 
 public final class Gallery: Sendable {
@@ -41,7 +42,7 @@ public final class Gallery: Sendable {
   public let dimension: Int
   public let printingsByIllustration: [String: [Int]]
   public let setCodes: Set<String>
-  private let halves: Data
+  private let vectors: Data
   private let indexBySetAndNumber: [String: Int]
   private let indexById: [String: Int]
 
@@ -49,13 +50,16 @@ public final class Gallery: Sendable {
     case mismatch(String)
   }
 
-  public init(directory: URL) throws {
-    let decoder = JSONDecoder()
-    printings = try decoder.decode(
+  public static func printingList(in directory: URL) throws -> [GalleryPrinting] {
+    try JSONDecoder().decode(
       [GalleryPrinting].self,
       from: Data(contentsOf: directory.appendingPathComponent(GalleryFile.printingList))
     )
-    let header = try decoder.decode(
+  }
+
+  public init(directory: URL) throws {
+    printings = try Self.printingList(in: directory)
+    let header = try JSONDecoder().decode(
       GalleryHeader.self,
       from: Data(contentsOf: directory.appendingPathComponent(GalleryFile.header))
     )
@@ -63,22 +67,14 @@ public final class Gallery: Sendable {
       throw Failure.mismatch("gallery has \(header.count)x\(header.dimension), printing list has \(printings.count)")
     }
     dimension = header.dimension
-    switch header.encoding ?? "float16" {
-    case "float16":
-      let raw = try Data(contentsOf: directory.appendingPathComponent(GalleryFile.float16Vectors), options: .alwaysMapped)
-      guard raw.count == header.count * header.dimension * MemoryLayout<Float16>.size else {
-        throw Failure.mismatch("\(GalleryFile.float16Vectors) has \(raw.count) bytes")
-      }
-      halves = raw
-    case "int8":
-      halves = try Self.unitHalves(
-        fromInt8: Data(contentsOf: directory.appendingPathComponent(GalleryFile.int8Vectors), options: .alwaysMapped),
-        count: header.count,
-        dimension: header.dimension
-      )
-    case let encoding:
-      throw Failure.mismatch("unknown gallery encoding \(encoding)")
+    guard (header.encoding ?? GalleryHeader.float16) == GalleryHeader.float16 else {
+      throw Failure.mismatch("unknown gallery encoding \(header.encoding ?? "")")
     }
+    let raw = try Data(contentsOf: directory.appendingPathComponent(GalleryFile.float16Vectors), options: .alwaysMapped)
+    guard raw.count == header.count * header.dimension * MemoryLayout<Float16>.size else {
+      throw Failure.mismatch("\(GalleryFile.float16Vectors) has \(raw.count) bytes")
+    }
+    vectors = raw
     var bySetAndNumber: [String: Int] = [:]
     var byIllustration: [String: [Int]] = [:]
     for (index, printing) in printings.enumerated() {
@@ -93,42 +89,13 @@ public final class Gallery: Sendable {
     setCodes = Set(printings.map { $0.set })
   }
 
-  static func unitHalves(fromInt8 codes: Data, count: Int, dimension: Int) throws -> Data {
-    guard codes.count == count * dimension else {
-      throw Failure.mismatch("\(GalleryFile.int8Vectors) has \(codes.count) bytes")
-    }
-    var halves = Data(count: count * dimension * MemoryLayout<Float16>.size)
-    var row = [Float](repeating: 0, count: dimension)
-    codes.withUnsafeBytes { source in
-      halves.withUnsafeMutableBytes { target in
-        let values = source.bindMemory(to: Int8.self)
-        let output = target.bindMemory(to: Float16.self)
-        for index in 0 ..< count {
-          vDSP_vflt8(values.baseAddress! + index * dimension, 1, &row, 1, vDSP_Length(dimension))
-          var squares: Float = 0
-          vDSP_svesq(row, 1, &squares, vDSP_Length(dimension))
-          var scale = squares > 0 ? 1 / squares.squareRoot() : 0
-          vDSP_vsmul(row, 1, &scale, &row, 1, vDSP_Length(dimension))
-          row.withUnsafeMutableBytes { rowBytes in
-            var source = vImage_Buffer(
-              data: rowBytes.baseAddress, height: 1, width: vImagePixelCount(dimension),
-              rowBytes: dimension * MemoryLayout<Float>.size
-            )
-            var destination = vImage_Buffer(
-              data: output.baseAddress! + index * dimension, height: 1, width: vImagePixelCount(dimension),
-              rowBytes: dimension * MemoryLayout<Float16>.size
-            )
-            vImageConvert_PlanarFtoPlanar16F(&source, &destination, vImage_Flags(kvImageNoFlags))
-          }
-        }
-      }
-    }
-    return halves
+  public static func key(set: String, collectorNumber: String) -> String {
+    "\(set.lowercased())|\(withoutLeadingZeros(collectorNumber).lowercased())"
   }
 
-  public static func key(set: String, collectorNumber: String) -> String {
+  static func withoutLeadingZeros(_ collectorNumber: String) -> String {
     let trimmed = collectorNumber.drop { $0 == "0" }
-    return "\(set.lowercased())|\(trimmed.isEmpty ? "0" : String(trimmed).lowercased())"
+    return trimmed.isEmpty ? "0" : String(trimmed)
   }
 
   public func index(set: String, collectorNumber: String) -> Int? {
@@ -137,13 +104,6 @@ public final class Gallery: Sendable {
 
   public func index(id: String) -> Int? {
     indexById[id]
-  }
-
-  public func vector(at index: Int) -> [Float] {
-    halves.withUnsafeBytes { buffer in
-      let values = buffer.bindMemory(to: Float16.self)
-      return (0 ..< dimension).map { Float(values[index * dimension + $0]) }
-    }
   }
 
   func similarities(to queries: [[Float]]) -> [[Float]] {
@@ -156,7 +116,7 @@ public final class Gallery: Sendable {
     var scores = [[Float]](repeating: [Float](repeating: 0, count: count), count: queryCount)
     var converted = [Float](repeating: 0, count: Self.searchChunkRows * dimension)
     var products = [Float](repeating: 0, count: Self.searchChunkRows * queryCount)
-    halves.withUnsafeBytes { buffer in
+    vectors.withUnsafeBytes { buffer in
       guard let base = buffer.baseAddress else { return }
       for start in stride(from: 0, to: count, by: Self.searchChunkRows) {
         let rows = min(Self.searchChunkRows, count - start)

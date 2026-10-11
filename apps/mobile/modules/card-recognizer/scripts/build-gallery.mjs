@@ -4,7 +4,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 import zlib from 'node:zlib';
 
-import { buildRecognizer, dataDirectory, galleryDirectory, run } from './recognizer-command.mjs';
+import { buildRecognizer, dataDirectory, galleryDirectory, printingListFile, run } from './recognizer-command.mjs';
 
 const imagesDirectory = path.join(dataDirectory, 'images');
 const userAgent = 'mtgscan/0.1 (gallery build)';
@@ -108,7 +108,7 @@ for await (const card of bulkCards(file)) {
   images.set(row.printing.id, row.image);
 }
 printings.sort((a, b) => a.id.localeCompare(b.id));
-await fs.writeFile(path.join(galleryDirectory, 'catalog.json'), JSON.stringify(printings));
+await fs.writeFile(path.join(galleryDirectory, printingListFile), JSON.stringify(printings));
 const existing = new Set(await fs.readdir(imagesDirectory));
 const jobs = printings
   .filter((printing) => !existing.has(`${printing.id}.jpg`))

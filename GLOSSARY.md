@@ -43,6 +43,12 @@ _Avoid_: Card database
 **Combo**:
 Two cards that together produce a result, such as infinite mana or a win, as Commander Spellbook lists it. mtgscan keeps only Commander Spellbook variants with status OK, exactly two cards with one copy each, and no template requirement. A template requirement asks for any card of a kind, not a named card. Each combo keeps its produced features and Commander Spellbook's bracket tag, such as ruthless or spicy. A bracket tag is Commander Spellbook's label, not an estimated bracket. A combo can be a bracket signal.
 
+**Gallery**:
+The feature prints and printing list that the phone recognizer searches, built by the owner and downloaded from Storage.
+
+**Same-text twin**:
+A card printing that prints the same collector line and art as another and differs only by a stamp or symbol.
+
 **Scan batch**:
 An editable group of recognized collection entries waiting to be added to the collection together.
 _Avoid_: To-add list, import

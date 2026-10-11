@@ -4,6 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
 
+import { printingListFile } from './recognizer-command.mjs';
+
 const usage =
   'usage: bun scripts/evaluate.mjs <labels.json> --gallery <dir> --recognizer <binary> [--held-out] [--details] [--scans] [--workers <n>]';
 
@@ -81,7 +83,7 @@ const galleryDirectory = path.resolve(options.gallery);
 const { cards, nonCards = [] } = JSON.parse(await fs.readFile(labelsPath, 'utf8'));
 const labelsDirectory = path.dirname(path.resolve(labelsPath));
 const inputPath = (file) => path.resolve(labelsDirectory, file);
-const printingList = JSON.parse(await fs.readFile(path.join(galleryDirectory, 'catalog.json'), 'utf8'));
+const printingList = JSON.parse(await fs.readFile(path.join(galleryDirectory, printingListFile), 'utf8'));
 const oracleById = new Map(printingList.map((printing) => [printing.id, printing.oracleId]));
 const requests = [
   ...cards.map((card, index) => ({
@@ -103,7 +105,6 @@ const requests = [
 const workerCount = Number(options.workers ?? Math.min(4, os.availableParallelism()));
 const responses = await recognizeAll(requests, options.recognizer, galleryDirectory, workerCount);
 
-const notACardReason = (recognition) => `not a card: best image similarity ${recognition.topSimilarity.toFixed(3)} is below 0.500`;
 const totals = {
   truthInTop5: 0,
   cards: 0,
@@ -128,7 +129,7 @@ for (const request of requests) {
   const top = candidates[0]?.printingId ?? null;
   const accepted = recognition?.kind === 'card' && recognition.decision.accepted ? top : null;
   const reason =
-    recognition?.kind === 'not_a_card' ? notACardReason(recognition) : (recognition?.decision.reasons[0] ?? response?.error ?? null);
+    recognition?.kind === 'not_a_card' ? 'not a card' : (recognition?.decision.reasons[0] ?? response?.error ?? null);
   scans.push({ input: request.input, truth: request.truth, group: request.group, top, accepted, reason });
   if (!recognition) continue;
   latencies.push(Object.values(recognition.stageMs).reduce((sum, value) => sum + value, 0));

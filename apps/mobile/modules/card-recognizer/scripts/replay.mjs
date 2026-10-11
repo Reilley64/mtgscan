@@ -3,11 +3,11 @@ import { createReadStream, existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { buildRecognizer, dataDirectory, galleryDirectory, moduleRoot, run } from './recognizer-command.mjs';
+import { buildRecognizer, dataDirectory, galleryDirectory, moduleRoot, printingListFile, run } from './recognizer-command.mjs';
 
 const evidence = path.resolve(moduleRoot, '..', '..', 'test', 'scanner-evidence');
 const largeImagesDirectory = path.resolve(process.env.RECOGNIZER_LARGE_IMAGES_DIR ?? path.join(dataDirectory, 'large'));
-const simulatedDirectory = path.join(dataDirectory, 'simulated');
+const simulatedDirectory = path.resolve(process.env.RECOGNIZER_SIMULATED_DIR ?? path.join(dataDirectory, 'simulated'));
 const reportsDirectory = path.join(dataDirectory, 'reports');
 let recognizer;
 const realOnly = process.argv.includes('--real-only');
@@ -31,7 +31,7 @@ function sha256(file) {
 async function galleryMatchesRecording() {
   const { recordedWith } = JSON.parse(await fs.readFile(path.join(evidence, 'real', 'expected-full.json'), 'utf8'));
   const [printingList, vectors] = await Promise.all([
-    sha256(path.join(galleryDirectory, 'catalog.json')),
+    sha256(path.join(galleryDirectory, printingListFile)),
     sha256(path.join(galleryDirectory, 'gallery.f16')).catch(() => null),
   ]);
   return printingList === recordedWith.gallery.catalogJsonSha256 && vectors === recordedWith.gallery.galleryF16Sha256;
@@ -133,13 +133,16 @@ async function runGate({ name, labels, expected, flags }) {
     [path.join(moduleRoot, 'scripts', 'evaluate.mjs'), labels, '--gallery', galleryDirectory, '--recognizer', recognizer, ...flags],
     { output: true },
   );
-  if (evaluation.code !== 0) return { name, exitCode: 1, report: null, error: 'the evaluation did not finish' };
+  if (evaluation.code !== 0) return { name, against: null, exitCode: 1, report: null, error: 'the evaluation did not finish' };
   const resultFile = path.join(reportsDirectory, `${name}.json`);
   await fs.writeFile(resultFile, evaluation.stdout);
-  const comparedWith = baselineDirectory ? path.join(baselineDirectory, `${name}.json`) : expected;
+  const baseline = baselineDirectory && path.join(baselineDirectory, `${name}.json`);
+  const comparedWith = baseline && existsSync(baseline) ? baseline : expected;
   const check = await run('bun', [path.join(evidence, 'check.mjs'), comparedWith, resultFile, galleryDirectory], { output: true });
   await fs.writeFile(path.join(reportsDirectory, `${name}-check.json`), check.stdout);
-  return { name, exitCode: check.code, report: JSON.parse(check.stdout) };
+  const against = comparedWith === expected ? 'expected file' : 'baseline';
+  if (!check.stdout.trim()) return { name, against, exitCode: 1, report: null, error: 'the check did not finish' };
+  return { name, against, exitCode: check.code, report: JSON.parse(check.stdout) };
 }
 
 if (recordFeaturePrints) {
@@ -148,7 +151,7 @@ if (recordFeaturePrints) {
   await recordReferenceFeaturePrints();
   process.exit(0);
 }
-if (!existsSync(path.join(galleryDirectory, 'catalog.json'))) {
+if (!existsSync(path.join(galleryDirectory, printingListFile))) {
   console.error(`No gallery in ${galleryDirectory}. Set RECOGNIZER_GALLERY_DIR. See test/scanner-evidence/README.md.`);
   process.exit(1);
 }
@@ -199,10 +202,10 @@ console.log(
     {
       featurePrintParity: parity,
       galleryMatchesRecording: sameGallery,
-      comparedWith: baselineDirectory ?? 'expected files',
       simulatedPhotos: simulation && { photos: simulation.photos, mismatched: simulation.mismatched.length },
-      gates: results.map(({ name, exitCode: code, report, error }) => ({
+      gates: results.map(({ name, against, exitCode: code, report, error }) => ({
         name,
+        comparedWith: against,
         exitCode: code,
         failedGates: report?.gates.filter((gate) => !gate.pass).map((gate) => gate.gate) ?? [error],
         changedMeasures: report?.totalChanges.length ?? null,

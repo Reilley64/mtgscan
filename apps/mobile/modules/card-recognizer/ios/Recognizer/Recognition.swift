@@ -20,7 +20,6 @@ public struct RecognitionCandidate: Codable, Sendable, Equatable {
   public let name: String
   public let setCode: String
   public let collectorNumber: String
-  public let similarity: Double
 }
 
 public struct RecognitionDecision: Codable, Sendable, Equatable {
@@ -42,10 +41,6 @@ public struct CardRecognition: Codable, Sendable, Equatable {
   public let topSimilarity: Double
   public let rotation: Int
   public let stageMs: [String: Double]
-
-  public var acceptedPrintingId: String? {
-    decision.accepted ? candidates.first?.printingId : nil
-  }
 }
 
 public struct NotACardRecognition: Codable, Sendable, Equatable {

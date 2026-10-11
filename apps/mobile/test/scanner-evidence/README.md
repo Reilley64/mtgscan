@@ -134,14 +134,15 @@ The first run had a bug that turned every card 90 degrees. The #21 resolution us
 
 ## GitHub Actions
 
-The Recognizer workflow runs on pull requests that change the recognizer module, this evidence pack, or the workflow. It also runs every Monday on `main` and by hand. It needs no secrets.
+The Recognizer workflow runs on pull requests that change the recognizer module, this evidence pack, or the workflow. It also runs every Monday on `main` and by hand. It needs no secrets: Scryfall data and images are public.
 
-- **Replay job.** On a `macos-15` runner with Xcode 26.3, it runs the Swift fixture tests and `recognizer:replay --real-only`. It uploads the reports as artifacts and writes the summary to the job summary.
-- **Gallery.** The runner cannot fetch the recorded gallery, so the job builds its own gallery from Scryfall and keeps it in the Actions cache. A build took GALLERY_BUILD_TIME on the runner. The Monday run on `main` keeps the cache warm for pull requests.
-- **Changes.** On a pull request, the job first replays the base branch on the same gallery and runner. It then compares the pull request with that baseline, so a changed result comes from the change, not from the gallery or the runner. A changed result fails the job until it is explained. Without a baseline, the job compares with the expected files and only warns about changes.
+- **Replay job.** On a `macos-15` runner with Xcode 26.3, it runs the Swift fixture tests and `recognizer:replay`. It uploads the reports as artifacts and writes the summary to the job summary.
+- **Gallery.** The runner cannot fetch the recorded gallery, so the job builds its own gallery from Scryfall with `recognizer:gallery` and keeps it in the Actions cache under `scanner-gallery-v1`. A build took GALLERY_BUILD_TIME on the runner. The Monday run on `main` keeps the cache warm for pull requests. Change the key to build a new gallery.
+- **Simulated scans.** The job keeps the 3,000 rendered photos in the Actions cache, keyed by the hash of `cards.json`, `photos.sha256`, and `simulate.py`. The replay still checks every photo against `photos.sha256`.
+- **Changes.** On a pull request, the job first replays the base branch on the same gallery and runner. It then compares the pull request with that baseline, so a changed result comes from the change, not from the gallery or the runner. A changed result fails the job until the pull request records the expected files again and explains each change. Without a baseline, as on `main`, the job compares with the expected files and only warns about changes.
 - **Module job.** It generates the iOS project and builds the app with the recognizer module for the iOS Simulator. This checks Swift 6 strict concurrency with Xcode 26.3 and Expo SDK 56.
 
-Run the simulated scans by hand on a Mac. The render and the two simulated runs take too long for every pull request.
+When #79 publishes the gallery version that the evidence pack names, the job can download it instead, as #75 plans. That needs the Supabase secret key.
 
 ### Feature prints on the runner
 

@@ -23,12 +23,14 @@ env:
 jobs:
   replay:
     runs-on: macos-15
-    timeout-minutes: 240
+    timeout-minutes: 340
     env:
       RECOGNIZER_GALLERY_DIR: ${{ runner.temp }}/scanner-gallery
+      RECOGNIZER_SIMULATED_DIR: ${{ runner.temp }}/scanner-simulated
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Swift fixture tests
@@ -50,23 +52,32 @@ jobs:
         with:
           path: ${{ runner.temp }}/scanner-gallery
           key: scanner-gallery-v1
+      - name: Restore the simulated scans
+        id: simulated
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/scanner-simulated
+          key: scanner-simulated-${{ hashFiles('apps/mobile/test/scanner-evidence/simulated/cards.json', 'apps/mobile/test/scanner-evidence/simulated/photos.sha256', 'apps/mobile/test/scanner-evidence/simulated/simulate.py') }}
       - name: Replay the base branch
         id: base
         if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          git fetch --depth 1 origin "${{ github.event.pull_request.base.sha }}"
-          git worktree add "$RUNNER_TEMP/base" "${{ github.event.pull_request.base.sha }}"
+          git fetch --depth 1 origin "$BASE_SHA"
+          git worktree add "$RUNNER_TEMP/base" "$BASE_SHA"
           if [ -f "$RUNNER_TEMP/base/apps/mobile/modules/card-recognizer/scripts/replay.mjs" ]; then
-            (cd "$RUNNER_TEMP/base/apps/mobile" && bun modules/card-recognizer/scripts/replay.mjs --real-only > /dev/null) || true
+            (cd "$RUNNER_TEMP/base/apps/mobile" && bun modules/card-recognizer/scripts/replay.mjs > /dev/null) || true
             echo "reports=$RUNNER_TEMP/base/apps/mobile/modules/card-recognizer/.data/reports" >> "$GITHUB_OUTPUT"
           fi
       - name: Replay the evidence pack
         working-directory: apps/mobile
         env:
           BASELINE: ${{ steps.base.outputs.reports }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set +e
-          bun modules/card-recognizer/scripts/replay.mjs --real-only ${BASELINE:+--baseline "$BASELINE"} > "$RUNNER_TEMP/replay.json"
+          bun modules/card-recognizer/scripts/replay.mjs ${BASELINE:+--baseline "$BASELINE"} > "$RUNNER_TEMP/replay.json"
           code=$?
           set -e
           {
@@ -76,11 +87,25 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           cat "$RUNNER_TEMP/replay.json"
-          if [ "$code" = 2 ] && [ -z "$BASELINE" ]; then
-            echo "::warning::Results changed against the expected files. This gallery is not the recorded gallery, so the changes are not compared."
+          if [ "$code" != 2 ]; then
+            exit "$code"
+          fi
+          if [ -z "$BASELINE" ]; then
+            echo "::warning::Results changed against the expected files. This runner and its gallery differ from the recording, so the changes are not compared."
             exit 0
           fi
-          exit "$code"
+          if git diff --quiet "$BASE_SHA" HEAD -- 'test/scanner-evidence/*/expected-*.json'; then
+            echo "::error::Results changed against the base branch. Record the expected files again and explain each change in the pull request."
+            exit 2
+          fi
+          echo "::notice::Results changed against the base branch, and this pull request records the expected files again."
+      - name: Save the simulated scans
+        if: always() && steps.simulated.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/scanner-simulated
+          key: scanner-simulated-${{ hashFiles('apps/mobile/test/scanner-evidence/simulated/cards.json', 'apps/mobile/test/scanner-evidence/simulated/photos.sha256', 'apps/mobile/test/scanner-evidence/simulated/simulate.py') }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
