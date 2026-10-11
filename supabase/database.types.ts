@@ -143,6 +143,72 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"collection_addition_lines": {
+                  Row: {
+                    "addition_id": string,"card_printing_id": string,"collection_entry_id": string | null,"condition": Database["public"]['Enums']["card_condition"],"entry_quantity": number,"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"price_snapshot_at": string | null,"purchase_day_eur_cents": number | null,"purchase_day_usd_cents": number | null,"quantity": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "addition_id": string,"card_printing_id": string,"collection_entry_id"?: string | null,"condition": Database["public"]['Enums']["card_condition"],"entry_quantity": number,"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"price_snapshot_at"?: string | null,"purchase_day_eur_cents"?: number | null,"purchase_day_usd_cents"?: number | null,"quantity": number,"user_id": string
+                  }
+                  Update: {
+                    "addition_id"?: string,"card_printing_id"?: string,"collection_entry_id"?: string | null,"condition"?: Database["public"]['Enums']["card_condition"],"entry_quantity"?: number,"finish"?: Database["public"]['Enums']["card_finish"],"language"?: Database["public"]['Enums']["card_language"],"price_snapshot_at"?: string | null,"purchase_day_eur_cents"?: number | null,"purchase_day_usd_cents"?: number | null,"quantity"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "collection_addition_lines_addition_id_fkey"
+      columns: ["addition_id"]
+isOneToOne: false
+      referencedRelation: "collection_additions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "collection_addition_lines_card_printing_id_fkey"
+      columns: ["card_printing_id"]
+isOneToOne: false
+      referencedRelation: "card_printings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "collection_addition_lines_collection_entry_id_fkey"
+      columns: ["collection_entry_id"]
+isOneToOne: false
+      referencedRelation: "collection_entries"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"collection_additions": {
+                  Row: {
+                    "added_at": string,"copy_count": number,"id": string,"idempotency_key": string,"source": Database["public"]['Enums']["collection_addition_source"],"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "added_at": string,"copy_count": number,"id"?: string,"idempotency_key": string,"source": Database["public"]['Enums']["collection_addition_source"],"user_id": string
+                  }
+                  Update: {
+                    "added_at"?: string,"copy_count"?: number,"id"?: string,"idempotency_key"?: string,"source"?: Database["public"]['Enums']["collection_addition_source"],"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"collection_entries": {
+                  Row: {
+                    "card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"created_at": string,"finish": Database["public"]['Enums']["card_finish"],"id": string,"is_protected": boolean,"language": Database["public"]['Enums']["card_language"],"latest_addition_at": string,"quantity": number,"user_id": string,"user_tag_ids": (string)[]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"created_at"?: string,"finish": Database["public"]['Enums']["card_finish"],"id"?: string,"is_protected"?: boolean,"language": Database["public"]['Enums']["card_language"],"latest_addition_at": string,"quantity": number,"user_id": string,"user_tag_ids"?: (string)[]
+                  }
+                  Update: {
+                    "card_printing_id"?: string,"condition"?: Database["public"]['Enums']["card_condition"],"created_at"?: string,"finish"?: Database["public"]['Enums']["card_finish"],"id"?: string,"is_protected"?: boolean,"language"?: Database["public"]['Enums']["card_language"],"latest_addition_at"?: string,"quantity"?: number,"user_id"?: string,"user_tag_ids"?: (string)[]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "collection_entries_card_printing_id_fkey"
+      columns: ["card_printing_id"]
+isOneToOne: false
+      referencedRelation: "card_printings"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"combos": {
                   Row: {
                     "bracket_tag": Database["public"]['Enums']["combo_bracket_tag"],"color_identity": (string)[],"first_oracle_id": string,"id": string,"produced_features": (string)[],"second_oracle_id": string
@@ -311,6 +377,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"add_scan_batch":
+{ Args: { "batch": Json }; Returns: Json
+                           },
 "begin_import_run":
 { Args: { "accept_shrink"?: boolean,"source": Database["public"]['Enums']["import_source"],"source_updated_at": string }; Returns: {
               "accept_shrink": boolean,
@@ -391,7 +460,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "card_finish": "nonfoil"|"foil"|"etched","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices","price_currency": "USD"|"EUR","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
+            "card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices","price_currency": "USD"|"EUR","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -511,7 +580,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "card_finish": ["nonfoil", "foil", "etched"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices"],"price_currency": ["USD", "EUR"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
+            "card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices"],"price_currency": ["USD", "EUR"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
           }
         }
 } as const

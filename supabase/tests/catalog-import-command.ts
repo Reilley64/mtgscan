@@ -203,6 +203,9 @@ export function runOracleTagCommand(action: 'disable' | 'enable', tagId: string)
 export async function resetCardCatalog(): Promise<void> {
   const client = secretKeyClient();
   for (const request of [
+    () => client.from('collection_addition_lines').delete().not('addition_id', 'is', null),
+    () => client.from('collection_additions').delete().not('id', 'is', null),
+    () => client.from('collection_entries').delete().not('id', 'is', null),
     () => client.from('combos').delete().not('id', 'is', null),
     () => client.from('disabled_tags').delete().not('tag_id', 'is', null),
     () => client.from('card_taggings').delete().not('tag_id', 'is', null),
