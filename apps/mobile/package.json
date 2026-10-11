@@ -8,7 +8,10 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "test": "jest"
+    "test": "jest",
+    "recognizer:test": "swift test --package-path modules/card-recognizer --scratch-path modules/card-recognizer/.data/build",
+    "recognizer:replay": "bun modules/card-recognizer/scripts/replay.mjs",
+    "recognizer:gallery": "bun modules/card-recognizer/scripts/build-gallery.mjs"
   },
   "dependencies": {
     "@mtgscan/supabase": "workspace:*",

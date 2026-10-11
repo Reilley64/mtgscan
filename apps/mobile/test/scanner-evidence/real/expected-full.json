@@ -1,0 +1,3430 @@
+{
+ "recordedWith": {
+  "recognizerCommit": "83988dd",
+  "recognizerLastChanged": "716a44f",
+  "featurePrint": "VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values",
+  "gallery": {
+   "directory": ".data/catalog",
+   "encoding": "float16",
+   "printings": 102726,
+   "createdAt": "2026-10-06T13:24:32Z",
+   "catalogJsonSha256": "0e5b603db0d0adafbeb0fa21fc2e5001ab5f51a716fb4565660d3bff0936fcaa",
+   "galleryF16Sha256": "22d56acc50b6b10eb0d74cbf3c9b8f7db4fb202d34474639258987feba5e705c",
+   "scryfallBulk": "default_cards downloaded 6 October 2026, default-cards.jsonl.gz sha256 2e4b9449d03162d910226026f278e07ca6f491497fce8f7f5ae56833300c1772"
+  },
+  "machine": "Apple M3, macOS 15.7.3",
+  "recordedOn": "2026-10-09",
+  "command": "node scripts/evaluate-crops.mjs evidence/real/labels.json --details --scans",
+  "note": "Matches the 8 October 2026 study run (214 correct accepts, 0 false accepts) cited in issue #10."
+ },
+ "result": {
+  "catalog": 102726,
+  "heldOut": false,
+  "truthInTop5": 247,
+  "cards": 250,
+  "nameTop1": 247,
+  "printingTop1": 234,
+  "accepted": 214,
+  "correctAccepts": 214,
+  "falseAccepts": 0,
+  "nonCards": 11,
+  "nonCardsRejected": 11,
+  "errors": 0,
+  "p50Ms": 84,
+  "p95Ms": 128,
+  "acceptReasons": {
+   "collector line X matches a card in the image shortlist": 195,
+   "only printing of its art, next art # behind": 14,
+   "set SOS leaves one printing of the top card": 1,
+   "set MSH leaves one printing of the top card": 1,
+   "set SPG leaves one printing of the top card": 1,
+   "set M# leaves one printing of the top card": 1,
+   "set SOA leaves one printing of the top card": 1
+  },
+  "groups": {
+   "all": {
+    "cards": 250,
+    "accepted": 214,
+    "correct": 214,
+    "false": 0
+   }
+  },
+  "falseAcceptList": [],
+  "acceptedRows": [
+   {
+    "correct": true,
+    "reason": "collector line SOS 171 matches a card in the image shortlist",
+    "topSimilarity": 0.8160932660102844,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 38 matches a card in the image shortlist",
+    "topSimilarity": 0.8245194554328918,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.055 behind",
+    "topSimilarity": 0.8499346971511841,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.059 behind",
+    "topSimilarity": 0.8440290689468384,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.076 behind",
+    "topSimilarity": 0.8562815189361572,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.101 behind",
+    "topSimilarity": 0.9033269286155701,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.117 behind",
+    "topSimilarity": 0.853527843952179,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.097 behind",
+    "topSimilarity": 0.9008952975273132,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 139 matches a card in the image shortlist",
+    "topSimilarity": 0.9017036557197571,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 31 matches a card in the image shortlist",
+    "topSimilarity": 0.8723452091217041,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 125 matches a card in the image shortlist",
+    "topSimilarity": 0.8666563630104065,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line CMM 420 matches a card in the image shortlist",
+    "topSimilarity": 0.8459761142730713,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7097 matches a card in the image shortlist",
+    "topSimilarity": 0.7069911360740662,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M15 1 matches a card in the image shortlist",
+    "topSimilarity": 0.8316482305526733,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 8 matches a card in the image shortlist",
+    "topSimilarity": 0.8708546757698059,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 8 matches a card in the image shortlist",
+    "topSimilarity": 0.7327957153320312,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 8 matches a card in the image shortlist",
+    "topSimilarity": 0.8963920474052429,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 3 matches a card in the image shortlist",
+    "topSimilarity": 0.8393690586090088,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 7 matches a card in the image shortlist",
+    "topSimilarity": 0.8411217927932739,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 215 matches a card in the image shortlist",
+    "topSimilarity": 0.732378363609314,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 174 matches a card in the image shortlist",
+    "topSimilarity": 0.769586443901062,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 4 matches a card in the image shortlist",
+    "topSimilarity": 0.7345165610313416,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "set SOS leaves one printing of the top card",
+    "topSimilarity": 0.8119706511497498,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 5 matches a card in the image shortlist",
+    "topSimilarity": 0.7526644468307495,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 7 matches a card in the image shortlist",
+    "topSimilarity": 0.9204428791999817,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 2 matches a card in the image shortlist",
+    "topSimilarity": 0.707644522190094,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 6 matches a card in the image shortlist",
+    "topSimilarity": 0.7144308686256409,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RNA 4 matches a card in the image shortlist",
+    "topSimilarity": 0.8564878702163696,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 11 matches a card in the image shortlist",
+    "topSimilarity": 0.89945387840271,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line KTK 3 matches a card in the image shortlist",
+    "topSimilarity": 0.8771284818649292,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 5 matches a card in the image shortlist",
+    "topSimilarity": 0.8473615646362305,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 7 matches a card in the image shortlist",
+    "topSimilarity": 0.8627577424049377,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 178 matches a card in the image shortlist",
+    "topSimilarity": 0.8886149525642395,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 173 matches a card in the image shortlist",
+    "topSimilarity": 0.8750357031822205,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 5 matches a card in the image shortlist",
+    "topSimilarity": 0.8382381796836853,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 3 matches a card in the image shortlist",
+    "topSimilarity": 0.9167545437812805,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 7 matches a card in the image shortlist",
+    "topSimilarity": 0.8966168761253357,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 3 matches a card in the image shortlist",
+    "topSimilarity": 0.8160273432731628,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 8 matches a card in the image shortlist",
+    "topSimilarity": 0.7682821750640869,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 8 matches a card in the image shortlist",
+    "topSimilarity": 0.9231777787208557,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M15 1 matches a card in the image shortlist",
+    "topSimilarity": 0.8524932861328125,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M15 1 matches a card in the image shortlist",
+    "topSimilarity": 0.8825337886810303,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 8 matches a card in the image shortlist",
+    "topSimilarity": 0.8893041610717773,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 8 matches a card in the image shortlist",
+    "topSimilarity": 0.7885647416114807,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 3 matches a card in the image shortlist",
+    "topSimilarity": 0.7087672352790833,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 8 matches a card in the image shortlist",
+    "topSimilarity": 0.9048613905906677,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 7 matches a card in the image shortlist",
+    "topSimilarity": 0.7734783291816711,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 5 matches a card in the image shortlist",
+    "topSimilarity": 0.844931423664093,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 173 matches a card in the image shortlist",
+    "topSimilarity": 0.8759644031524658,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 178 matches a card in the image shortlist",
+    "topSimilarity": 0.8889728784561157,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 7 matches a card in the image shortlist",
+    "topSimilarity": 0.7804616689682007,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.049 behind",
+    "topSimilarity": 0.837052583694458,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line KTK 3 matches a card in the image shortlist",
+    "topSimilarity": 0.8701894879341125,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 11 matches a card in the image shortlist",
+    "topSimilarity": 0.910239577293396,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RNA 4 matches a card in the image shortlist",
+    "topSimilarity": 0.8717036843299866,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 6 matches a card in the image shortlist",
+    "topSimilarity": 0.8669473528862,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 2 matches a card in the image shortlist",
+    "topSimilarity": 0.8990744948387146,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 5 matches a card in the image shortlist",
+    "topSimilarity": 0.8909416794776917,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 8 matches a card in the image shortlist",
+    "topSimilarity": 0.879325270652771,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 4 matches a card in the image shortlist",
+    "topSimilarity": 0.8845745921134949,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 174 matches a card in the image shortlist",
+    "topSimilarity": 0.9015715718269348,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 215 matches a card in the image shortlist",
+    "topSimilarity": 0.9056735634803772,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M15 1 matches a card in the image shortlist",
+    "topSimilarity": 0.8739553689956665,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 5 matches a card in the image shortlist",
+    "topSimilarity": 0.7494502663612366,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line KTK 3 matches a card in the image shortlist",
+    "topSimilarity": 0.7348308563232422,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 11 matches a card in the image shortlist",
+    "topSimilarity": 0.8321970701217651,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RNA 4 matches a card in the image shortlist",
+    "topSimilarity": 0.8662645220756531,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RNA 61 matches a card in the image shortlist",
+    "topSimilarity": 0.8412448167800903,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M15 86 matches a card in the image shortlist",
+    "topSimilarity": 0.7822656631469727,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 74 matches a card in the image shortlist",
+    "topSimilarity": 0.6470820903778076,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 87 matches a card in the image shortlist",
+    "topSimilarity": 0.8629380464553833,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.078 behind",
+    "topSimilarity": 0.8508439064025879,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.105 behind",
+    "topSimilarity": 0.709294855594635,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 88 matches a card in the image shortlist",
+    "topSimilarity": 0.8958156704902649,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 88 matches a card in the image shortlist",
+    "topSimilarity": 0.8681674599647522,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 90 matches a card in the image shortlist",
+    "topSimilarity": 0.8933600187301636,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 85 matches a card in the image shortlist",
+    "topSimilarity": 0.8854812979698181,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 26 matches a card in the image shortlist",
+    "topSimilarity": 0.8786129951477051,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line EMA 81 matches a card in the image shortlist",
+    "topSimilarity": 0.9131633639335632,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line MSH 85 matches a card in the image shortlist",
+    "topSimilarity": 0.8238811492919922,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line MSH 85 matches a card in the image shortlist",
+    "topSimilarity": 0.8221041560173035,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 76 matches a card in the image shortlist",
+    "topSimilarity": 0.7773851156234741,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 171 matches a card in the image shortlist",
+    "topSimilarity": 0.8950051069259644,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M15 86 matches a card in the image shortlist",
+    "topSimilarity": 0.8975539207458496,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 76 matches a card in the image shortlist",
+    "topSimilarity": 0.868845522403717,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "set MSH leaves one printing of the top card",
+    "topSimilarity": 0.8618313670158386,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 72 matches a card in the image shortlist",
+    "topSimilarity": 0.8658139705657959,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 38 matches a card in the image shortlist",
+    "topSimilarity": 0.8406412601470947,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SPG 156 matches a card in the image shortlist",
+    "topSimilarity": 0.8744548559188843,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 38 matches a card in the image shortlist",
+    "topSimilarity": 0.8638409376144409,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 37 matches a card in the image shortlist",
+    "topSimilarity": 0.8687787652015686,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 176 matches a card in the image shortlist",
+    "topSimilarity": 0.9048476219177246,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 31 matches a card in the image shortlist",
+    "topSimilarity": 0.9040742516517639,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 125 matches a card in the image shortlist",
+    "topSimilarity": 0.8878132700920105,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 2464 matches a card in the image shortlist",
+    "topSimilarity": 0.8105690479278564,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7094 matches a card in the image shortlist",
+    "topSimilarity": 0.7878273725509644,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7097 matches a card in the image shortlist",
+    "topSimilarity": 0.823424220085144,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7096 matches a card in the image shortlist",
+    "topSimilarity": 0.8567482829093933,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M15 1 matches a card in the image shortlist",
+    "topSimilarity": 0.8859976530075073,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line DSC 92 matches a card in the image shortlist",
+    "topSimilarity": 0.8936238884925842,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line CMM 420 matches a card in the image shortlist",
+    "topSimilarity": 0.8868748545646667,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line EMA 81 matches a card in the image shortlist",
+    "topSimilarity": 0.8972234725952148,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 26 matches a card in the image shortlist",
+    "topSimilarity": 0.8832616209983826,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 295 matches a card in the image shortlist",
+    "topSimilarity": 0.92554771900177,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 176 matches a card in the image shortlist",
+    "topSimilarity": 0.8982649445533752,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 2 matches a card in the image shortlist",
+    "topSimilarity": 0.8835042715072632,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 170 matches a card in the image shortlist",
+    "topSimilarity": 0.8446683287620544,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 8 matches a card in the image shortlist",
+    "topSimilarity": 0.9170668721199036,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 5 matches a card in the image shortlist",
+    "topSimilarity": 0.914912223815918,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.096 behind",
+    "topSimilarity": 0.9139789938926697,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 295 matches a card in the image shortlist",
+    "topSimilarity": 0.8948250412940979,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 125 matches a card in the image shortlist",
+    "topSimilarity": 0.9092726707458496,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 72 matches a card in the image shortlist",
+    "topSimilarity": 0.8541372418403625,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line MSH 85 matches a card in the image shortlist",
+    "topSimilarity": 0.8300737738609314,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 76 matches a card in the image shortlist",
+    "topSimilarity": 0.8826828598976135,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M15 86 matches a card in the image shortlist",
+    "topSimilarity": 0.7843244075775146,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 171 matches a card in the image shortlist",
+    "topSimilarity": 0.8828401565551758,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 31 matches a card in the image shortlist",
+    "topSimilarity": 0.8559794425964355,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SPG 156 matches a card in the image shortlist",
+    "topSimilarity": 0.8413074016571045,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 176 matches a card in the image shortlist",
+    "topSimilarity": 0.8730424046516418,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 37 matches a card in the image shortlist",
+    "topSimilarity": 0.8493168950080872,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 38 matches a card in the image shortlist",
+    "topSimilarity": 0.8661527633666992,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7096 matches a card in the image shortlist",
+    "topSimilarity": 0.8614618182182312,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7097 matches a card in the image shortlist",
+    "topSimilarity": 0.8153990507125854,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7097 matches a card in the image shortlist",
+    "topSimilarity": 0.7480154037475586,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7094 matches a card in the image shortlist",
+    "topSimilarity": 0.782217264175415,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 2464 matches a card in the image shortlist",
+    "topSimilarity": 0.8191630840301514,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 26 matches a card in the image shortlist",
+    "topSimilarity": 0.8710688948631287,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line EMA 81 matches a card in the image shortlist",
+    "topSimilarity": 0.8921836614608765,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.050 behind",
+    "topSimilarity": 0.8369469046592712,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line DSC 92 matches a card in the image shortlist",
+    "topSimilarity": 0.8582791090011597,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line CMM 420 matches a card in the image shortlist",
+    "topSimilarity": 0.9092881679534912,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 5 matches a card in the image shortlist",
+    "topSimilarity": 0.7722002863883972,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 8 matches a card in the image shortlist",
+    "topSimilarity": 0.8550344109535217,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 170 matches a card in the image shortlist",
+    "topSimilarity": 0.8828709125518799,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 2 matches a card in the image shortlist",
+    "topSimilarity": 0.8139800429344177,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 176 matches a card in the image shortlist",
+    "topSimilarity": 0.8993147015571594,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SPG 156 matches a card in the image shortlist",
+    "topSimilarity": 0.7403514981269836,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.075 behind",
+    "topSimilarity": 0.7542399764060974,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 5 matches a card in the image shortlist",
+    "topSimilarity": 0.713053286075592,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 8 matches a card in the image shortlist",
+    "topSimilarity": 0.9085485339164734,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 170 matches a card in the image shortlist",
+    "topSimilarity": 0.7703872323036194,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 2 matches a card in the image shortlist",
+    "topSimilarity": 0.7881022095680237,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 176 matches a card in the image shortlist",
+    "topSimilarity": 0.8610180020332336,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 295 matches a card in the image shortlist",
+    "topSimilarity": 0.8735131621360779,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 125 matches a card in the image shortlist",
+    "topSimilarity": 0.8726553916931152,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 72 matches a card in the image shortlist",
+    "topSimilarity": 0.7946359515190125,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line MSH 85 matches a card in the image shortlist",
+    "topSimilarity": 0.8703774213790894,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 76 matches a card in the image shortlist",
+    "topSimilarity": 0.8779556155204773,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 171 matches a card in the image shortlist",
+    "topSimilarity": 0.8717374801635742,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 31 matches a card in the image shortlist",
+    "topSimilarity": 0.8817667961120605,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 38 matches a card in the image shortlist",
+    "topSimilarity": 0.873969554901123,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 37 matches a card in the image shortlist",
+    "topSimilarity": 0.8729843497276306,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 176 matches a card in the image shortlist",
+    "topSimilarity": 0.8795487880706787,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7096 matches a card in the image shortlist",
+    "topSimilarity": 0.8499056696891785,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7097 matches a card in the image shortlist",
+    "topSimilarity": 0.8525673151016235,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 2464 matches a card in the image shortlist",
+    "topSimilarity": 0.8296879529953003,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 26 matches a card in the image shortlist",
+    "topSimilarity": 0.8729947805404663,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line EMA 81 matches a card in the image shortlist",
+    "topSimilarity": 0.8940203189849854,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M15 1 matches a card in the image shortlist",
+    "topSimilarity": 0.8874645233154297,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line DSC 92 matches a card in the image shortlist",
+    "topSimilarity": 0.8892768025398254,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line CMM 420 matches a card in the image shortlist",
+    "topSimilarity": 0.8732765316963196,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "set SPG leaves one printing of the top card",
+    "topSimilarity": 0.8701374530792236,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.078 behind",
+    "topSimilarity": 0.9389870166778564,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 5 matches a card in the image shortlist",
+    "topSimilarity": 0.9050052762031555,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 8 matches a card in the image shortlist",
+    "topSimilarity": 0.9223995208740234,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 170 matches a card in the image shortlist",
+    "topSimilarity": 0.8858822584152222,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 2 matches a card in the image shortlist",
+    "topSimilarity": 0.8820362091064453,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 176 matches a card in the image shortlist",
+    "topSimilarity": 0.937525749206543,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 295 matches a card in the image shortlist",
+    "topSimilarity": 0.9251782894134521,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 72 matches a card in the image shortlist",
+    "topSimilarity": 0.8875762820243835,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line MSH 85 matches a card in the image shortlist",
+    "topSimilarity": 0.8891485333442688,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 76 matches a card in the image shortlist",
+    "topSimilarity": 0.8951132893562317,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "set M15 leaves one printing of the top card",
+    "topSimilarity": 0.9182680249214172,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 171 matches a card in the image shortlist",
+    "topSimilarity": 0.8879965543746948,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 31 matches a card in the image shortlist",
+    "topSimilarity": 0.9022999405860901,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 38 matches a card in the image shortlist",
+    "topSimilarity": 0.8684789538383484,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 37 matches a card in the image shortlist",
+    "topSimilarity": 0.8667986989021301,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 176 matches a card in the image shortlist",
+    "topSimilarity": 0.9037410020828247,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7096 matches a card in the image shortlist",
+    "topSimilarity": 0.870175838470459,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7097 matches a card in the image shortlist",
+    "topSimilarity": 0.8545153141021729,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7094 matches a card in the image shortlist",
+    "topSimilarity": 0.8662831783294678,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 2464 matches a card in the image shortlist",
+    "topSimilarity": 0.8730310797691345,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "set SOA leaves one printing of the top card",
+    "topSimilarity": 0.8565061688423157,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line EMA 81 matches a card in the image shortlist",
+    "topSimilarity": 0.8918032050132751,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M15 1 matches a card in the image shortlist",
+    "topSimilarity": 0.8515306711196899,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line DSC 92 matches a card in the image shortlist",
+    "topSimilarity": 0.8269791603088379,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line CMM 420 matches a card in the image shortlist",
+    "topSimilarity": 0.8548481464385986,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 176 matches a card in the image shortlist",
+    "topSimilarity": 0.889290988445282,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 37 matches a card in the image shortlist",
+    "topSimilarity": 0.8101821541786194,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 38 matches a card in the image shortlist",
+    "topSimilarity": 0.8629584312438965,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 38 matches a card in the image shortlist",
+    "topSimilarity": 0.8625563979148865,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 171 matches a card in the image shortlist",
+    "topSimilarity": 0.8804562091827393,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M15 86 matches a card in the image shortlist",
+    "topSimilarity": 0.8584617972373962,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 76 matches a card in the image shortlist",
+    "topSimilarity": 0.8960517048835754,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line MSH 85 matches a card in the image shortlist",
+    "topSimilarity": 0.8791202902793884,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 72 matches a card in the image shortlist",
+    "topSimilarity": 0.8946658372879028,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 125 matches a card in the image shortlist",
+    "topSimilarity": 0.9138795733451843,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 295 matches a card in the image shortlist",
+    "topSimilarity": 0.9082295894622803,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M21 176 matches a card in the image shortlist",
+    "topSimilarity": 0.9307357668876648,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 2 matches a card in the image shortlist",
+    "topSimilarity": 0.8731710314750671,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOS 170 matches a card in the image shortlist",
+    "topSimilarity": 0.9140518307685852,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 8 matches a card in the image shortlist",
+    "topSimilarity": 0.9193713068962097,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M20 5 matches a card in the image shortlist",
+    "topSimilarity": 0.921644926071167,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "only printing of its art, next art 0.062 behind",
+    "topSimilarity": 0.9032305479049683,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SPG 156 matches a card in the image shortlist",
+    "topSimilarity": 0.9071934819221497,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7096 matches a card in the image shortlist",
+    "topSimilarity": 0.844940185546875,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7094 matches a card in the image shortlist",
+    "topSimilarity": 0.8610592484474182,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 2464 matches a card in the image shortlist",
+    "topSimilarity": 0.8696125745773315,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line CMM 420 matches a card in the image shortlist",
+    "topSimilarity": 0.9046722054481506,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line DSC 92 matches a card in the image shortlist",
+    "topSimilarity": 0.857862651348114,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line M15 1 matches a card in the image shortlist",
+    "topSimilarity": 0.9024960398674011,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line EMA 81 matches a card in the image shortlist",
+    "topSimilarity": 0.8812604546546936,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SOA 26 matches a card in the image shortlist",
+    "topSimilarity": 0.8722678422927856,
+    "group": null
+   }
+  ],
+  "scans": [
+   {
+    "input": "crops/rectified/muw8ssia-1.jpg",
+    "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "group": null,
+    "top": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "accepted": null,
+    "reason": "only printing of its art, but the next art is 0.027 behind; at least 0.030 is required"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-10.jpg",
+    "truth": "ea008094-d995-4740-9b39-c61049356c55",
+    "group": null,
+    "top": "ea008094-d995-4740-9b39-c61049356c55",
+    "accepted": "ea008094-d995-4740-9b39-c61049356c55",
+    "reason": "collector line SOS 171 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-11.jpg",
+    "truth": "ea008094-d995-4740-9b39-c61049356c55",
+    "group": null,
+    "top": "ea008094-d995-4740-9b39-c61049356c55",
+    "accepted": null,
+    "reason": "only printing of its art, but its collector line was not read"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-12.jpg",
+    "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "group": null,
+    "top": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "accepted": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "reason": "collector line SOS 38 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-13.jpg",
+    "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "group": null,
+    "top": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "accepted": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "reason": "only printing of its art, next art 0.055 behind"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-14.jpg",
+    "truth": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "group": null,
+    "top": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "accepted": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "reason": "only printing of its art, next art 0.059 behind"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-15.jpg",
+    "truth": "1e07a595-5579-4d5a-b07c-84239d690459",
+    "group": null,
+    "top": "1e07a595-5579-4d5a-b07c-84239d690459",
+    "accepted": "1e07a595-5579-4d5a-b07c-84239d690459",
+    "reason": "only printing of its art, next art 0.076 behind"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-16.jpg",
+    "truth": "e77e2fd5-5c46-4f6b-ac43-ec23fab57a1a",
+    "group": null,
+    "top": "e77e2fd5-5c46-4f6b-ac43-ec23fab57a1a",
+    "accepted": "e77e2fd5-5c46-4f6b-ac43-ec23fab57a1a",
+    "reason": "only printing of its art, next art 0.101 behind"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-17.jpg",
+    "truth": "7e21938b-46b1-4b2f-8269-0cd0e998cddc",
+    "group": null,
+    "top": "7e21938b-46b1-4b2f-8269-0cd0e998cddc",
+    "accepted": "7e21938b-46b1-4b2f-8269-0cd0e998cddc",
+    "reason": "only printing of its art, next art 0.117 behind"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-18.jpg",
+    "truth": "4203df15-dd44-496b-889a-d7a8fe320330",
+    "group": null,
+    "top": "4203df15-dd44-496b-889a-d7a8fe320330",
+    "accepted": "4203df15-dd44-496b-889a-d7a8fe320330",
+    "reason": "only printing of its art, next art 0.097 behind"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-2.jpg",
+    "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "group": null,
+    "top": "49f6e91b-5ea2-4e0e-8dcf-1f99ecaa7bc6",
+    "accepted": null,
+    "reason": "collector line SLD 2464 names a printing whose art the image does not match"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-3.jpg",
+    "truth": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "group": null,
+    "top": "80d4ce4f-8255-419b-9e7f-544d9798e5c8",
+    "accepted": null,
+    "reason": "10 printings share this art and collector line read only 176"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-37.jpg",
+    "truth": "b44ec684-d558-45eb-bcd6-8119428634c2",
+    "group": null,
+    "top": "b44ec684-d558-45eb-bcd6-8119428634c2",
+    "accepted": "b44ec684-d558-45eb-bcd6-8119428634c2",
+    "reason": "collector line SOS 139 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-38.jpg",
+    "truth": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "group": null,
+    "top": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "accepted": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "reason": "collector line RIX 31 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-39.jpg",
+    "truth": "d40cc7da-c731-418e-8547-7033d1939450",
+    "group": null,
+    "top": "d40cc7da-c731-418e-8547-7033d1939450",
+    "accepted": null,
+    "reason": "only printing of its art, but its collector line was not read"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-4.jpg",
+    "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "group": null,
+    "top": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "accepted": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "reason": "collector line RIX 125 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-5.jpg",
+    "truth": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "group": null,
+    "top": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "accepted": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "reason": "collector line CMM 420 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-6.jpg",
+    "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "group": null,
+    "top": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "accepted": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "reason": "collector line SLD 7097 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-7.jpg",
+    "truth": "ac8d1ecb-de7c-4641-81da-13117820195c",
+    "group": null,
+    "top": "ac8d1ecb-de7c-4641-81da-13117820195c",
+    "accepted": null,
+    "reason": "2 printings share this art and collector line read only 7763"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-8.jpg",
+    "truth": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
+    "group": null,
+    "top": "8413748e-33f4-4bba-8fb6-864bd048bcb2",
+    "accepted": null,
+    "reason": "25 printings share this art and no collector line was read"
+   },
+   {
+    "input": "crops/rectified/muw8ssia-9.jpg",
+    "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "group": null,
+    "top": "44d0277c-ca82-4334-a15a-cd67a9db0d02",
+    "accepted": null,
+    "reason": "collector line SOS 37 names a card the image does not support"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-1.jpg",
+    "truth": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "group": null,
+    "top": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "accepted": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "reason": "collector line M15 1 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-10.jpg",
+    "truth": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "group": null,
+    "top": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "accepted": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "reason": "collector line M20 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-11.jpg",
+    "truth": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "group": null,
+    "top": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "accepted": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "reason": "collector line M20 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-12.jpg",
+    "truth": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "group": null,
+    "top": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "accepted": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "reason": "collector line M20 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-13.jpg",
+    "truth": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
+    "group": null,
+    "top": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
+    "accepted": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
+    "reason": "collector line RIX 3 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-14.jpg",
+    "truth": "68ee92cd-51af-4de5-bcc8-34d0bb2fd398",
+    "group": null,
+    "top": "68ee92cd-51af-4de5-bcc8-34d0bb2fd398",
+    "accepted": "68ee92cd-51af-4de5-bcc8-34d0bb2fd398",
+    "reason": "collector line SOS 7 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-15.jpg",
+    "truth": "43224e74-2c51-40bd-bc34-f66e990a3e33",
+    "group": null,
+    "top": "43224e74-2c51-40bd-bc34-f66e990a3e33",
+    "accepted": "43224e74-2c51-40bd-bc34-f66e990a3e33",
+    "reason": "collector line M21 215 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-16.jpg",
+    "truth": "6261e89a-dbf1-481a-823e-6bb00be57195",
+    "group": null,
+    "top": "6261e89a-dbf1-481a-823e-6bb00be57195",
+    "accepted": "6261e89a-dbf1-481a-823e-6bb00be57195",
+    "reason": "collector line SOS 174 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-17.jpg",
+    "truth": "9c977c67-b0c0-40b0-b129-28de094aaf40",
+    "group": null,
+    "top": "9c977c67-b0c0-40b0-b129-28de094aaf40",
+    "accepted": "9c977c67-b0c0-40b0-b129-28de094aaf40",
+    "reason": "collector line M21 4 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-18.jpg",
+    "truth": "de3de40b-a7ac-455e-add2-4e451b602d17",
+    "group": null,
+    "top": "de3de40b-a7ac-455e-add2-4e451b602d17",
+    "accepted": "de3de40b-a7ac-455e-add2-4e451b602d17",
+    "reason": "set SOS leaves one printing of the top card"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-19.jpg",
+    "truth": "c5b57247-81cc-44ec-b5a9-0702111a98a8",
+    "group": null,
+    "top": "c5b57247-81cc-44ec-b5a9-0702111a98a8",
+    "accepted": "c5b57247-81cc-44ec-b5a9-0702111a98a8",
+    "reason": "collector line M21 5 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-2.jpg",
+    "truth": "1db6393a-88b0-4973-9832-1482f69917ff",
+    "group": null,
+    "top": "1db6393a-88b0-4973-9832-1482f69917ff",
+    "accepted": "1db6393a-88b0-4973-9832-1482f69917ff",
+    "reason": "collector line M20 7 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-20.jpg",
+    "truth": "c392a7e5-6ff5-4c2f-9590-f8811a724f44",
+    "group": null,
+    "top": "c392a7e5-6ff5-4c2f-9590-f8811a724f44",
+    "accepted": "c392a7e5-6ff5-4c2f-9590-f8811a724f44",
+    "reason": "collector line M21 2 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-21.jpg",
+    "truth": "9cd1417a-badc-4abd-a8ca-5b31f85c1072",
+    "group": null,
+    "top": "9cd1417a-badc-4abd-a8ca-5b31f85c1072",
+    "accepted": "9cd1417a-badc-4abd-a8ca-5b31f85c1072",
+    "reason": "collector line SOS 6 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-22.jpg",
+    "truth": "b075a6f2-5196-45e9-b062-f131f7b1a347",
+    "group": null,
+    "top": "b075a6f2-5196-45e9-b062-f131f7b1a347",
+    "accepted": "b075a6f2-5196-45e9-b062-f131f7b1a347",
+    "reason": "collector line RNA 4 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-23.jpg",
+    "truth": "46666fba-d4a7-4687-8747-a42e4c6d853e",
+    "group": null,
+    "top": "46666fba-d4a7-4687-8747-a42e4c6d853e",
+    "accepted": "46666fba-d4a7-4687-8747-a42e4c6d853e",
+    "reason": "collector line M21 11 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-24.jpg",
+    "truth": "22d2a844-17fc-4628-9591-684555e98f7b",
+    "group": null,
+    "top": "22d2a844-17fc-4628-9591-684555e98f7b",
+    "accepted": "22d2a844-17fc-4628-9591-684555e98f7b",
+    "reason": "collector line KTK 3 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-25.jpg",
+    "truth": "c7d5e394-8e41-442e-ae97-a478a61e1b9d",
+    "group": null,
+    "top": "c7d5e394-8e41-442e-ae97-a478a61e1b9d",
+    "accepted": "c7d5e394-8e41-442e-ae97-a478a61e1b9d",
+    "reason": "collector line ELD 5 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-26.jpg",
+    "truth": "68ee92cd-51af-4de5-bcc8-34d0bb2fd398",
+    "group": null,
+    "top": "68ee92cd-51af-4de5-bcc8-34d0bb2fd398",
+    "accepted": "68ee92cd-51af-4de5-bcc8-34d0bb2fd398",
+    "reason": "collector line SOS 7 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-27.jpg",
+    "truth": "a3226e14-554d-47c9-b8b6-dfeb53cc41ba",
+    "group": null,
+    "top": "a3226e14-554d-47c9-b8b6-dfeb53cc41ba",
+    "accepted": "a3226e14-554d-47c9-b8b6-dfeb53cc41ba",
+    "reason": "collector line SOS 178 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-28.jpg",
+    "truth": "79d01c19-162b-4a12-9e27-18366d95eaa0",
+    "group": null,
+    "top": "79d01c19-162b-4a12-9e27-18366d95eaa0",
+    "accepted": "79d01c19-162b-4a12-9e27-18366d95eaa0",
+    "reason": "collector line SOS 173 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-29.jpg",
+    "truth": "35100197-7914-450e-9205-57cb4fc345d6",
+    "group": null,
+    "top": "35100197-7914-450e-9205-57cb4fc345d6",
+    "accepted": "35100197-7914-450e-9205-57cb4fc345d6",
+    "reason": "collector line M20 5 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-3.jpg",
+    "truth": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
+    "group": null,
+    "top": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
+    "accepted": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
+    "reason": "collector line RIX 3 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-30.jpg",
+    "truth": "1db6393a-88b0-4973-9832-1482f69917ff",
+    "group": null,
+    "top": "1db6393a-88b0-4973-9832-1482f69917ff",
+    "accepted": "1db6393a-88b0-4973-9832-1482f69917ff",
+    "reason": "collector line M20 7 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-31.jpg",
+    "truth": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
+    "group": null,
+    "top": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
+    "accepted": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
+    "reason": "collector line RIX 3 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-32.jpg",
+    "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "group": null,
+    "top": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "accepted": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "reason": "collector line ELD 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-33.jpg",
+    "truth": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "group": null,
+    "top": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "accepted": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "reason": "collector line M20 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-34.jpg",
+    "truth": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "group": null,
+    "top": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "accepted": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "reason": "collector line M15 1 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-35.jpg",
+    "truth": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "group": null,
+    "top": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "accepted": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "reason": "collector line M15 1 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-36.jpg",
+    "truth": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "group": null,
+    "top": "e4a34101-1be3-44ae-b709-f0398998d4c4",
+    "accepted": null,
+    "reason": "5 printings share this art and collector line read only 3"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-37.jpg",
+    "truth": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "group": null,
+    "top": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "accepted": "ca42da05-330d-4050-a580-dc00f6faff24",
+    "reason": "collector line M20 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-38.jpg",
+    "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "group": null,
+    "top": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "accepted": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "reason": "collector line ELD 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-39.jpg",
+    "truth": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
+    "group": null,
+    "top": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
+    "accepted": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
+    "reason": "collector line RIX 3 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-4.jpg",
+    "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "group": null,
+    "top": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "accepted": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "reason": "collector line ELD 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-40.jpg",
+    "truth": "1db6393a-88b0-4973-9832-1482f69917ff",
+    "group": null,
+    "top": "1db6393a-88b0-4973-9832-1482f69917ff",
+    "accepted": "1db6393a-88b0-4973-9832-1482f69917ff",
+    "reason": "collector line M20 7 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-41.jpg",
+    "truth": "35100197-7914-450e-9205-57cb4fc345d6",
+    "group": null,
+    "top": "35100197-7914-450e-9205-57cb4fc345d6",
+    "accepted": "35100197-7914-450e-9205-57cb4fc345d6",
+    "reason": "collector line M20 5 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-42.jpg",
+    "truth": "79d01c19-162b-4a12-9e27-18366d95eaa0",
+    "group": null,
+    "top": "79d01c19-162b-4a12-9e27-18366d95eaa0",
+    "accepted": "79d01c19-162b-4a12-9e27-18366d95eaa0",
+    "reason": "collector line SOS 173 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-43.jpg",
+    "truth": "a3226e14-554d-47c9-b8b6-dfeb53cc41ba",
+    "group": null,
+    "top": "a3226e14-554d-47c9-b8b6-dfeb53cc41ba",
+    "accepted": "a3226e14-554d-47c9-b8b6-dfeb53cc41ba",
+    "reason": "collector line SOS 178 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-44.jpg",
+    "truth": "68ee92cd-51af-4de5-bcc8-34d0bb2fd398",
+    "group": null,
+    "top": "68ee92cd-51af-4de5-bcc8-34d0bb2fd398",
+    "accepted": "68ee92cd-51af-4de5-bcc8-34d0bb2fd398",
+    "reason": "collector line SOS 7 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-45.jpg",
+    "truth": "c7d5e394-8e41-442e-ae97-a478a61e1b9d",
+    "group": null,
+    "top": "c7d5e394-8e41-442e-ae97-a478a61e1b9d",
+    "accepted": "c7d5e394-8e41-442e-ae97-a478a61e1b9d",
+    "reason": "only printing of its art, next art 0.049 behind"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-46.jpg",
+    "truth": "22d2a844-17fc-4628-9591-684555e98f7b",
+    "group": null,
+    "top": "22d2a844-17fc-4628-9591-684555e98f7b",
+    "accepted": "22d2a844-17fc-4628-9591-684555e98f7b",
+    "reason": "collector line KTK 3 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-47.jpg",
+    "truth": "46666fba-d4a7-4687-8747-a42e4c6d853e",
+    "group": null,
+    "top": "46666fba-d4a7-4687-8747-a42e4c6d853e",
+    "accepted": "46666fba-d4a7-4687-8747-a42e4c6d853e",
+    "reason": "collector line M21 11 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-48.jpg",
+    "truth": "b075a6f2-5196-45e9-b062-f131f7b1a347",
+    "group": null,
+    "top": "b075a6f2-5196-45e9-b062-f131f7b1a347",
+    "accepted": "b075a6f2-5196-45e9-b062-f131f7b1a347",
+    "reason": "collector line RNA 4 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-49.jpg",
+    "truth": "9cd1417a-badc-4abd-a8ca-5b31f85c1072",
+    "group": null,
+    "top": "9cd1417a-badc-4abd-a8ca-5b31f85c1072",
+    "accepted": "9cd1417a-badc-4abd-a8ca-5b31f85c1072",
+    "reason": "collector line SOS 6 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-5.jpg",
+    "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "group": null,
+    "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
+    "accepted": null,
+    "reason": "6 printings share this art and collector line read only 8"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-50.jpg",
+    "truth": "c392a7e5-6ff5-4c2f-9590-f8811a724f44",
+    "group": null,
+    "top": "c392a7e5-6ff5-4c2f-9590-f8811a724f44",
+    "accepted": "c392a7e5-6ff5-4c2f-9590-f8811a724f44",
+    "reason": "collector line M21 2 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-51.jpg",
+    "truth": "c5b57247-81cc-44ec-b5a9-0702111a98a8",
+    "group": null,
+    "top": "c5b57247-81cc-44ec-b5a9-0702111a98a8",
+    "accepted": "c5b57247-81cc-44ec-b5a9-0702111a98a8",
+    "reason": "collector line M21 5 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-52.jpg",
+    "truth": "de3de40b-a7ac-455e-add2-4e451b602d17",
+    "group": null,
+    "top": "de3de40b-a7ac-455e-add2-4e451b602d17",
+    "accepted": "de3de40b-a7ac-455e-add2-4e451b602d17",
+    "reason": "collector line SOS 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-53.jpg",
+    "truth": "9c977c67-b0c0-40b0-b129-28de094aaf40",
+    "group": null,
+    "top": "9c977c67-b0c0-40b0-b129-28de094aaf40",
+    "accepted": "9c977c67-b0c0-40b0-b129-28de094aaf40",
+    "reason": "collector line M21 4 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-54.jpg",
+    "truth": "6261e89a-dbf1-481a-823e-6bb00be57195",
+    "group": null,
+    "top": "6261e89a-dbf1-481a-823e-6bb00be57195",
+    "accepted": "6261e89a-dbf1-481a-823e-6bb00be57195",
+    "reason": "collector line SOS 174 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-55.jpg",
+    "truth": "43224e74-2c51-40bd-bc34-f66e990a3e33",
+    "group": null,
+    "top": "43224e74-2c51-40bd-bc34-f66e990a3e33",
+    "accepted": "43224e74-2c51-40bd-bc34-f66e990a3e33",
+    "reason": "collector line M21 215 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-56.jpg",
+    "truth": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "group": null,
+    "top": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "accepted": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "reason": "collector line M15 1 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-6.jpg",
+    "truth": "c7d5e394-8e41-442e-ae97-a478a61e1b9d",
+    "group": null,
+    "top": "c7d5e394-8e41-442e-ae97-a478a61e1b9d",
+    "accepted": "c7d5e394-8e41-442e-ae97-a478a61e1b9d",
+    "reason": "collector line ELD 5 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-7.jpg",
+    "truth": "22d2a844-17fc-4628-9591-684555e98f7b",
+    "group": null,
+    "top": "22d2a844-17fc-4628-9591-684555e98f7b",
+    "accepted": "22d2a844-17fc-4628-9591-684555e98f7b",
+    "reason": "collector line KTK 3 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-8.jpg",
+    "truth": "46666fba-d4a7-4687-8747-a42e4c6d853e",
+    "group": null,
+    "top": "46666fba-d4a7-4687-8747-a42e4c6d853e",
+    "accepted": "46666fba-d4a7-4687-8747-a42e4c6d853e",
+    "reason": "collector line M21 11 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwdygj1-9.jpg",
+    "truth": "b075a6f2-5196-45e9-b062-f131f7b1a347",
+    "group": null,
+    "top": "b075a6f2-5196-45e9-b062-f131f7b1a347",
+    "accepted": "b075a6f2-5196-45e9-b062-f131f7b1a347",
+    "reason": "collector line RNA 4 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-10.jpg",
+    "truth": "ea166114-2f9b-4ca6-b573-1f49f7485580",
+    "group": null,
+    "top": "ea166114-2f9b-4ca6-b573-1f49f7485580",
+    "accepted": "ea166114-2f9b-4ca6-b573-1f49f7485580",
+    "reason": "collector line RNA 61 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-11.jpg",
+    "truth": "32efcfad-818c-4485-9022-cf94403f370b",
+    "group": null,
+    "top": "32efcfad-818c-4485-9022-cf94403f370b",
+    "accepted": "32efcfad-818c-4485-9022-cf94403f370b",
+    "reason": "collector line M15 86 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-12.jpg",
+    "truth": "6168b472-0930-4db5-9920-407340b99050",
+    "group": null,
+    "top": "6168b472-0930-4db5-9920-407340b99050",
+    "accepted": "6168b472-0930-4db5-9920-407340b99050",
+    "reason": "collector line SOS 74 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-13.jpg",
+    "truth": "6e4c9574-1ee3-461e-848f-8f02c6a8b7ee",
+    "group": null,
+    "top": "6e4c9574-1ee3-461e-848f-8f02c6a8b7ee",
+    "accepted": "6e4c9574-1ee3-461e-848f-8f02c6a8b7ee",
+    "reason": "collector line M21 87 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-14.jpg",
+    "truth": "be8956d0-5502-415d-bead-d8bbddf9871d",
+    "group": null,
+    "top": "be8956d0-5502-415d-bead-d8bbddf9871d",
+    "accepted": "be8956d0-5502-415d-bead-d8bbddf9871d",
+    "reason": "only printing of its art, next art 0.078 behind"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-15.jpg",
+    "truth": "45707c22-fce8-4dbd-9d19-73f08c68f449",
+    "group": null,
+    "top": "45707c22-fce8-4dbd-9d19-73f08c68f449",
+    "accepted": null,
+    "reason": "2 printings share this art and no collector line was read"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-16.jpg",
+    "truth": "f2a6556b-a4f1-4ff5-8e6e-a47618c8c66e",
+    "group": null,
+    "top": "f2a6556b-a4f1-4ff5-8e6e-a47618c8c66e",
+    "accepted": "f2a6556b-a4f1-4ff5-8e6e-a47618c8c66e",
+    "reason": "only printing of its art, next art 0.105 behind"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-17.jpg",
+    "truth": "01efd5af-ed6d-4132-8f33-37f6a9fa55d0",
+    "group": null,
+    "top": "01efd5af-ed6d-4132-8f33-37f6a9fa55d0",
+    "accepted": "01efd5af-ed6d-4132-8f33-37f6a9fa55d0",
+    "reason": "collector line M20 88 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-18.jpg",
+    "truth": "83437022-ba00-4370-83c2-ce1260336fcc",
+    "group": null,
+    "top": "83437022-ba00-4370-83c2-ce1260336fcc",
+    "accepted": "83437022-ba00-4370-83c2-ce1260336fcc",
+    "reason": "collector line M21 88 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-19.jpg",
+    "truth": "28ff52a2-4223-4551-b388-b4dd21cc1437",
+    "group": null,
+    "top": "28ff52a2-4223-4551-b388-b4dd21cc1437",
+    "accepted": "28ff52a2-4223-4551-b388-b4dd21cc1437",
+    "reason": "collector line M21 90 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-20.jpg",
+    "truth": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "group": null,
+    "top": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "accepted": null,
+    "reason": "2 printings share this art and collector line read only 146"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-21.jpg",
+    "truth": "b0130d04-05f2-44f5-bd6c-8b11f798b69e",
+    "group": null,
+    "top": "b0130d04-05f2-44f5-bd6c-8b11f798b69e",
+    "accepted": "b0130d04-05f2-44f5-bd6c-8b11f798b69e",
+    "reason": "collector line M20 85 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-22.jpg",
+    "truth": "db465858-0593-4850-8f1d-400fe230a18d",
+    "group": null,
+    "top": "db465858-0593-4850-8f1d-400fe230a18d",
+    "accepted": "db465858-0593-4850-8f1d-400fe230a18d",
+    "reason": "collector line SOA 26 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-23.jpg",
+    "truth": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "group": null,
+    "top": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "accepted": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "reason": "collector line EMA 81 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-6.jpg",
+    "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "group": null,
+    "top": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "accepted": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "reason": "collector line MSH 85 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-7.jpg",
+    "truth": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "group": null,
+    "top": "2c6e5b25-b721-45ee-894a-697de1310b8c",
+    "accepted": null,
+    "reason": "4 printings share this art and collector line read only 76"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-8.jpg",
+    "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "group": null,
+    "top": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "accepted": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "reason": "collector line MSH 85 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-9.jpg",
+    "truth": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "group": null,
+    "top": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "accepted": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "reason": "collector line ELD 76 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-10.jpg",
+    "truth": "ea008094-d995-4740-9b39-c61049356c55",
+    "group": null,
+    "top": "ea008094-d995-4740-9b39-c61049356c55",
+    "accepted": "ea008094-d995-4740-9b39-c61049356c55",
+    "reason": "collector line SOS 171 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-11.jpg",
+    "truth": "32efcfad-818c-4485-9022-cf94403f370b",
+    "group": null,
+    "top": "32efcfad-818c-4485-9022-cf94403f370b",
+    "accepted": "32efcfad-818c-4485-9022-cf94403f370b",
+    "reason": "collector line M15 86 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-12.jpg",
+    "truth": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "group": null,
+    "top": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "accepted": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "reason": "collector line ELD 76 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-13.jpg",
+    "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "group": null,
+    "top": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "accepted": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "reason": "set MSH leaves one printing of the top card"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-14.jpg",
+    "truth": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
+    "group": null,
+    "top": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
+    "accepted": null,
+    "reason": "25 printings share this art and no collector line was read"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-15.jpg",
+    "truth": "d40cc7da-c731-418e-8547-7033d1939450",
+    "group": null,
+    "top": "d40cc7da-c731-418e-8547-7033d1939450",
+    "accepted": "d40cc7da-c731-418e-8547-7033d1939450",
+    "reason": "collector line SOS 72 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-2.jpg",
+    "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "group": null,
+    "top": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "accepted": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "reason": "collector line SOS 38 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-5.jpg",
+    "truth": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "group": null,
+    "top": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "accepted": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "reason": "collector line SPG 156 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-6.jpg",
+    "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "group": null,
+    "top": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "accepted": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "reason": "collector line SOS 38 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-7.jpg",
+    "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "group": null,
+    "top": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "accepted": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "reason": "collector line SOA 37 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-8.jpg",
+    "truth": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "group": null,
+    "top": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "accepted": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "reason": "collector line RIX 176 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-9.jpg",
+    "truth": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "group": null,
+    "top": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "accepted": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "reason": "collector line RIX 31 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-1.jpg",
+    "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "group": null,
+    "top": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "accepted": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "reason": "collector line RIX 125 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-10.jpg",
+    "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "group": null,
+    "top": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "accepted": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "reason": "collector line SLD 2464 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-11.jpg",
+    "truth": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "group": null,
+    "top": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "accepted": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "reason": "collector line SLD 7094 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-12.jpg",
+    "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "group": null,
+    "top": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "accepted": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "reason": "collector line SLD 7097 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-13.jpg",
+    "truth": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "group": null,
+    "top": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "accepted": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "reason": "collector line SLD 7096 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-14.jpg",
+    "truth": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "group": null,
+    "top": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "accepted": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "reason": "collector line M15 1 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-15.jpg",
+    "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "group": null,
+    "top": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "accepted": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "reason": "collector line DSC 92 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-16.jpg",
+    "truth": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "group": null,
+    "top": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "accepted": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "reason": "collector line CMM 420 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-17.jpg",
+    "truth": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "group": null,
+    "top": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "accepted": null,
+    "reason": "2 printings share this art and collector line read only 146"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-18.jpg",
+    "truth": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "group": null,
+    "top": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "accepted": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "reason": "collector line EMA 81 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-19.jpg",
+    "truth": "db465858-0593-4850-8f1d-400fe230a18d",
+    "group": null,
+    "top": "db465858-0593-4850-8f1d-400fe230a18d",
+    "accepted": "db465858-0593-4850-8f1d-400fe230a18d",
+    "reason": "collector line SOA 26 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-2.jpg",
+    "truth": "ac8d1ecb-de7c-4641-81da-13117820195c",
+    "group": null,
+    "top": "a8e85cd4-c116-42e2-a94b-2c04b06c4e2b",
+    "accepted": null,
+    "reason": "2 printings share this art and no collector line was read"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-3.jpg",
+    "truth": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "group": null,
+    "top": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "accepted": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "reason": "collector line ELD 295 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-4.jpg",
+    "truth": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "group": null,
+    "top": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "accepted": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "reason": "collector line M21 176 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-5.jpg",
+    "truth": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "group": null,
+    "top": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "accepted": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "reason": "collector line SOA 2 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-6.jpg",
+    "truth": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "group": null,
+    "top": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "accepted": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "reason": "collector line SOS 170 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-7.jpg",
+    "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "group": null,
+    "top": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "accepted": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "reason": "collector line ELD 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-8.jpg",
+    "truth": "35100197-7914-450e-9205-57cb4fc345d6",
+    "group": null,
+    "top": "35100197-7914-450e-9205-57cb4fc345d6",
+    "accepted": "35100197-7914-450e-9205-57cb4fc345d6",
+    "reason": "collector line M20 5 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhfgdl-9.jpg",
+    "truth": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "group": null,
+    "top": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "accepted": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "reason": "only printing of its art, next art 0.096 behind"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-10.jpg",
+    "truth": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "group": null,
+    "top": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "accepted": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "reason": "collector line ELD 295 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-11.jpg",
+    "truth": "ac8d1ecb-de7c-4641-81da-13117820195c",
+    "group": null,
+    "top": "a8e85cd4-c116-42e2-a94b-2c04b06c4e2b",
+    "accepted": null,
+    "reason": "2 printings share this art and no collector line was read"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-12.jpg",
+    "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "group": null,
+    "top": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "accepted": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "reason": "collector line RIX 125 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-13.jpg",
+    "truth": "d40cc7da-c731-418e-8547-7033d1939450",
+    "group": null,
+    "top": "d40cc7da-c731-418e-8547-7033d1939450",
+    "accepted": "d40cc7da-c731-418e-8547-7033d1939450",
+    "reason": "collector line SOS 72 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-14.jpg",
+    "truth": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
+    "group": null,
+    "top": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
+    "accepted": null,
+    "reason": "25 printings share this art and no collector line was read"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-15.jpg",
+    "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "group": null,
+    "top": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "accepted": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "reason": "collector line MSH 85 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-16.jpg",
+    "truth": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "group": null,
+    "top": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "accepted": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "reason": "collector line ELD 76 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-17.jpg",
+    "truth": "32efcfad-818c-4485-9022-cf94403f370b",
+    "group": null,
+    "top": "32efcfad-818c-4485-9022-cf94403f370b",
+    "accepted": "32efcfad-818c-4485-9022-cf94403f370b",
+    "reason": "collector line M15 86 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-18.jpg",
+    "truth": "ea008094-d995-4740-9b39-c61049356c55",
+    "group": null,
+    "top": "ea008094-d995-4740-9b39-c61049356c55",
+    "accepted": "ea008094-d995-4740-9b39-c61049356c55",
+    "reason": "collector line SOS 171 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-19.jpg",
+    "truth": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "group": null,
+    "top": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "accepted": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "reason": "collector line RIX 31 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-2.jpg",
+    "truth": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "group": null,
+    "top": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "accepted": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "reason": "collector line SPG 156 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-20.jpg",
+    "truth": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "group": null,
+    "top": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "accepted": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "reason": "collector line RIX 176 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-21.jpg",
+    "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "group": null,
+    "top": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "accepted": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "reason": "collector line SOA 37 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-22.jpg",
+    "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "group": null,
+    "top": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "accepted": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "reason": "collector line SOS 38 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-23.jpg",
+    "truth": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "group": null,
+    "top": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "accepted": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "reason": "collector line SLD 7096 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-24.jpg",
+    "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "group": null,
+    "top": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "accepted": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "reason": "collector line SLD 7097 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-25.jpg",
+    "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "group": null,
+    "top": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "accepted": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "reason": "collector line SLD 7097 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-26.jpg",
+    "truth": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "group": null,
+    "top": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "accepted": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "reason": "collector line SLD 7094 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-27.jpg",
+    "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "group": null,
+    "top": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "accepted": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "reason": "collector line SLD 2464 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-28.jpg",
+    "truth": "db465858-0593-4850-8f1d-400fe230a18d",
+    "group": null,
+    "top": "db465858-0593-4850-8f1d-400fe230a18d",
+    "accepted": "db465858-0593-4850-8f1d-400fe230a18d",
+    "reason": "collector line SOA 26 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-29.jpg",
+    "truth": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "group": null,
+    "top": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "accepted": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "reason": "collector line EMA 81 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-3.jpg",
+    "truth": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "group": null,
+    "top": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "accepted": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "reason": "only printing of its art, next art 0.050 behind"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-30.jpg",
+    "truth": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "group": null,
+    "top": "51825d35-cdb2-40fa-ab89-1625161b04af",
+    "accepted": null,
+    "reason": "2 printings share this art and collector line read only 1"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-31.jpg",
+    "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "group": null,
+    "top": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "accepted": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "reason": "collector line DSC 92 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-32.jpg",
+    "truth": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "group": null,
+    "top": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "accepted": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "reason": "collector line CMM 420 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-33.jpg",
+    "truth": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "group": null,
+    "top": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "accepted": null,
+    "reason": "2 printings share this art and collector line read only 146"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-4.jpg",
+    "truth": "35100197-7914-450e-9205-57cb4fc345d6",
+    "group": null,
+    "top": "35100197-7914-450e-9205-57cb4fc345d6",
+    "accepted": "35100197-7914-450e-9205-57cb4fc345d6",
+    "reason": "collector line M20 5 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-5.jpg",
+    "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "group": null,
+    "top": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "accepted": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "reason": "collector line ELD 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-6.jpg",
+    "truth": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "group": null,
+    "top": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "accepted": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "reason": "collector line SOS 170 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-7.jpg",
+    "truth": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "group": null,
+    "top": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "accepted": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "reason": "collector line SOA 2 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-9.jpg",
+    "truth": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "group": null,
+    "top": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "accepted": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "reason": "collector line M21 176 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-1.jpg",
+    "truth": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "group": null,
+    "top": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "accepted": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "reason": "collector line SPG 156 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-2.jpg",
+    "truth": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "group": null,
+    "top": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "accepted": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "reason": "only printing of its art, next art 0.075 behind"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-3.jpg",
+    "truth": "35100197-7914-450e-9205-57cb4fc345d6",
+    "group": null,
+    "top": "35100197-7914-450e-9205-57cb4fc345d6",
+    "accepted": "35100197-7914-450e-9205-57cb4fc345d6",
+    "reason": "collector line M20 5 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-4.jpg",
+    "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "group": null,
+    "top": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "accepted": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "reason": "collector line ELD 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-5.jpg",
+    "truth": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "group": null,
+    "top": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "accepted": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "reason": "collector line SOS 170 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-6.jpg",
+    "truth": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "group": null,
+    "top": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "accepted": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "reason": "collector line SOA 2 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-7.jpg",
+    "truth": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "group": null,
+    "top": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "accepted": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "reason": "collector line M21 176 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-8.jpg",
+    "truth": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "group": null,
+    "top": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "accepted": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "reason": "collector line ELD 295 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-9.jpg",
+    "truth": "ac8d1ecb-de7c-4641-81da-13117820195c",
+    "group": null,
+    "top": "ac8d1ecb-de7c-4641-81da-13117820195c",
+    "accepted": null,
+    "reason": "2 printings share this art and no collector line was read"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-10.jpg",
+    "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "group": null,
+    "top": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "accepted": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "reason": "collector line RIX 125 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-11.jpg",
+    "truth": "d40cc7da-c731-418e-8547-7033d1939450",
+    "group": null,
+    "top": "d40cc7da-c731-418e-8547-7033d1939450",
+    "accepted": "d40cc7da-c731-418e-8547-7033d1939450",
+    "reason": "collector line SOS 72 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-12.jpg",
+    "truth": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
+    "group": null,
+    "top": "da57d35a-ca0b-4f93-867c-d0a9fb5108f1",
+    "accepted": null,
+    "reason": "25 printings share this art and collector line read only 1097"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-13.jpg",
+    "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "group": null,
+    "top": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "accepted": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "reason": "collector line MSH 85 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-14.jpg",
+    "truth": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "group": null,
+    "top": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "accepted": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "reason": "collector line ELD 76 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-15.jpg",
+    "truth": "32efcfad-818c-4485-9022-cf94403f370b",
+    "group": null,
+    "top": "84ede129-83fc-42b7-8941-fa649d3329e5",
+    "accepted": null,
+    "reason": "5 printings share this art and collector line read only 86"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-16.jpg",
+    "truth": "ea008094-d995-4740-9b39-c61049356c55",
+    "group": null,
+    "top": "ea008094-d995-4740-9b39-c61049356c55",
+    "accepted": "ea008094-d995-4740-9b39-c61049356c55",
+    "reason": "collector line SOS 171 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-17.jpg",
+    "truth": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "group": null,
+    "top": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "accepted": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "reason": "collector line RIX 31 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-18.jpg",
+    "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "group": null,
+    "top": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "accepted": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "reason": "collector line SOS 38 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-19.jpg",
+    "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "group": null,
+    "top": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "accepted": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "reason": "collector line SOA 37 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-20.jpg",
+    "truth": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "group": null,
+    "top": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "accepted": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "reason": "collector line RIX 176 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-21.jpg",
+    "truth": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "group": null,
+    "top": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "accepted": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "reason": "collector line SLD 7096 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-22.jpg",
+    "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "group": null,
+    "top": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "accepted": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "reason": "collector line SLD 7097 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-23.jpg",
+    "truth": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "group": null,
+    "top": "7f7c9b54-0b40-4007-8d24-bc3945be319f",
+    "accepted": null,
+    "reason": "collector line SLD 94 names a card the image does not support"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-24.jpg",
+    "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "group": null,
+    "top": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "accepted": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "reason": "collector line SLD 2464 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-25.jpg",
+    "truth": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "group": null,
+    "top": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "accepted": null,
+    "reason": "2 printings share this art and no collector line was read"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-26.jpg",
+    "truth": "db465858-0593-4850-8f1d-400fe230a18d",
+    "group": null,
+    "top": "db465858-0593-4850-8f1d-400fe230a18d",
+    "accepted": "db465858-0593-4850-8f1d-400fe230a18d",
+    "reason": "collector line SOA 26 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-27.jpg",
+    "truth": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "group": null,
+    "top": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "accepted": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "reason": "collector line EMA 81 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-28.jpg",
+    "truth": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "group": null,
+    "top": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "accepted": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "reason": "collector line M15 1 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-29.jpg",
+    "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "group": null,
+    "top": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "accepted": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "reason": "collector line DSC 92 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog/muyuq3pm-30.jpg",
+    "truth": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "group": null,
+    "top": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "accepted": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "reason": "collector line CMM 420 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-1.jpg",
+    "truth": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "group": null,
+    "top": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "accepted": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "reason": "set SPG leaves one printing of the top card"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-2.jpg",
+    "truth": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "group": null,
+    "top": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "accepted": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "reason": "only printing of its art, next art 0.078 behind"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-3.jpg",
+    "truth": "35100197-7914-450e-9205-57cb4fc345d6",
+    "group": null,
+    "top": "35100197-7914-450e-9205-57cb4fc345d6",
+    "accepted": "35100197-7914-450e-9205-57cb4fc345d6",
+    "reason": "collector line M20 5 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-4.jpg",
+    "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "group": null,
+    "top": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "accepted": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "reason": "collector line ELD 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-5.jpg",
+    "truth": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "group": null,
+    "top": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "accepted": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "reason": "collector line SOS 170 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-6.jpg",
+    "truth": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "group": null,
+    "top": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "accepted": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "reason": "collector line SOA 2 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-7.jpg",
+    "truth": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "group": null,
+    "top": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "accepted": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "reason": "collector line M21 176 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-8.jpg",
+    "truth": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "group": null,
+    "top": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "accepted": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "reason": "collector line ELD 295 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-9.jpg",
+    "truth": "ac8d1ecb-de7c-4641-81da-13117820195c",
+    "group": null,
+    "top": "ac8d1ecb-de7c-4641-81da-13117820195c",
+    "accepted": null,
+    "reason": "2 printings share this art and collector line read only 25"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-10.jpg",
+    "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "group": null,
+    "top": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "accepted": null,
+    "reason": "10 printings share this art and no collector line was read"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-11.jpg",
+    "truth": "d40cc7da-c731-418e-8547-7033d1939450",
+    "group": null,
+    "top": "d40cc7da-c731-418e-8547-7033d1939450",
+    "accepted": "d40cc7da-c731-418e-8547-7033d1939450",
+    "reason": "collector line SOS 72 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-12.jpg",
+    "truth": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
+    "group": null,
+    "top": "da57d35a-ca0b-4f93-867c-d0a9fb5108f1",
+    "accepted": null,
+    "reason": "25 printings share this art and no collector line was read"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-13.jpg",
+    "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "group": null,
+    "top": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "accepted": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "reason": "collector line MSH 85 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-14.jpg",
+    "truth": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "group": null,
+    "top": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "accepted": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "reason": "collector line ELD 76 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-15.jpg",
+    "truth": "32efcfad-818c-4485-9022-cf94403f370b",
+    "group": null,
+    "top": "32efcfad-818c-4485-9022-cf94403f370b",
+    "accepted": "32efcfad-818c-4485-9022-cf94403f370b",
+    "reason": "set M15 leaves one printing of the top card"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-16.jpg",
+    "truth": "ea008094-d995-4740-9b39-c61049356c55",
+    "group": null,
+    "top": "ea008094-d995-4740-9b39-c61049356c55",
+    "accepted": "ea008094-d995-4740-9b39-c61049356c55",
+    "reason": "collector line SOS 171 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-17.jpg",
+    "truth": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "group": null,
+    "top": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "accepted": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "reason": "collector line RIX 31 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-18.jpg",
+    "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "group": null,
+    "top": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "accepted": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "reason": "collector line SOS 38 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-19.jpg",
+    "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "group": null,
+    "top": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "accepted": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "reason": "collector line SOA 37 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-20.jpg",
+    "truth": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "group": null,
+    "top": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "accepted": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "reason": "collector line RIX 176 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-21.jpg",
+    "truth": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "group": null,
+    "top": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "accepted": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "reason": "collector line SLD 7096 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-22.jpg",
+    "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "group": null,
+    "top": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "accepted": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "reason": "collector line SLD 7097 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-23.jpg",
+    "truth": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "group": null,
+    "top": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "accepted": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "reason": "collector line SLD 7094 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-24.jpg",
+    "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "group": null,
+    "top": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "accepted": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "reason": "collector line SLD 2464 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-25.jpg",
+    "truth": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "group": null,
+    "top": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "accepted": null,
+    "reason": "2 printings share this art and collector line read only 46"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-26.jpg",
+    "truth": "db465858-0593-4850-8f1d-400fe230a18d",
+    "group": null,
+    "top": "db465858-0593-4850-8f1d-400fe230a18d",
+    "accepted": "db465858-0593-4850-8f1d-400fe230a18d",
+    "reason": "set SOA leaves one printing of the top card"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-27.jpg",
+    "truth": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "group": null,
+    "top": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "accepted": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "reason": "collector line EMA 81 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-28.jpg",
+    "truth": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "group": null,
+    "top": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "accepted": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "reason": "collector line M15 1 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-29.jpg",
+    "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "group": null,
+    "top": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "accepted": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "reason": "collector line DSC 92 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muywn390-30.jpg",
+    "truth": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "group": null,
+    "top": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "accepted": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "reason": "collector line CMM 420 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-1.jpg",
+    "truth": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "group": null,
+    "top": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "accepted": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "reason": "collector line RIX 176 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-2.jpg",
+    "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "group": null,
+    "top": "5dc1904b-b0e6-49e5-9ef3-7ea538db202b",
+    "accepted": null,
+    "reason": "collector line SOA 57 names a card the image does not support"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-3.jpg",
+    "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "group": null,
+    "top": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "accepted": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "reason": "collector line SOA 37 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-4.jpg",
+    "truth": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "group": null,
+    "top": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
+    "accepted": null,
+    "reason": "3 printings share this art and no collector line was read"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-5.jpg",
+    "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "group": null,
+    "top": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "accepted": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "reason": "collector line SOS 38 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-6.jpg",
+    "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "group": null,
+    "top": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "accepted": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
+    "reason": "collector line SOS 38 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-7.jpg",
+    "truth": "ea008094-d995-4740-9b39-c61049356c55",
+    "group": null,
+    "top": "ea008094-d995-4740-9b39-c61049356c55",
+    "accepted": "ea008094-d995-4740-9b39-c61049356c55",
+    "reason": "collector line SOS 171 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-8.jpg",
+    "truth": "32efcfad-818c-4485-9022-cf94403f370b",
+    "group": null,
+    "top": "32efcfad-818c-4485-9022-cf94403f370b",
+    "accepted": "32efcfad-818c-4485-9022-cf94403f370b",
+    "reason": "collector line M15 86 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-9.jpg",
+    "truth": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "group": null,
+    "top": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "accepted": "42a4d090-1bb7-4334-ab22-e2527391e79b",
+    "reason": "collector line ELD 76 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-10.jpg",
+    "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "group": null,
+    "top": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "accepted": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
+    "reason": "collector line MSH 85 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-11.jpg",
+    "truth": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
+    "group": null,
+    "top": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
+    "accepted": null,
+    "reason": "25 printings share this art and no collector line was read"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-12.jpg",
+    "truth": "d40cc7da-c731-418e-8547-7033d1939450",
+    "group": null,
+    "top": "d40cc7da-c731-418e-8547-7033d1939450",
+    "accepted": "d40cc7da-c731-418e-8547-7033d1939450",
+    "reason": "collector line SOS 72 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-13.jpg",
+    "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "group": null,
+    "top": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "accepted": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "reason": "collector line RIX 125 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-14.jpg",
+    "truth": "ac8d1ecb-de7c-4641-81da-13117820195c",
+    "group": null,
+    "top": "ac8d1ecb-de7c-4641-81da-13117820195c",
+    "accepted": null,
+    "reason": "2 printings share this art and collector line read only 123"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-15.jpg",
+    "truth": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "group": null,
+    "top": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "accepted": "49875f7a-31b9-4276-b971-8ead1e18fc81",
+    "reason": "collector line ELD 295 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-16.jpg",
+    "truth": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "group": null,
+    "top": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "accepted": "8059c52b-5d25-4052-b48a-e9e219a7a546",
+    "reason": "collector line M21 176 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-17.jpg",
+    "truth": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "group": null,
+    "top": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "accepted": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
+    "reason": "collector line SOA 2 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-18.jpg",
+    "truth": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "group": null,
+    "top": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "accepted": "77285d12-e658-4eb3-ba13-ff202afab9c8",
+    "reason": "collector line SOS 170 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-19.jpg",
+    "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "group": null,
+    "top": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "accepted": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "reason": "collector line ELD 8 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-20.jpg",
+    "truth": "35100197-7914-450e-9205-57cb4fc345d6",
+    "group": null,
+    "top": "35100197-7914-450e-9205-57cb4fc345d6",
+    "accepted": "35100197-7914-450e-9205-57cb4fc345d6",
+    "reason": "collector line M20 5 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-21.jpg",
+    "truth": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "group": null,
+    "top": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "accepted": "f2b2f381-86a2-42ac-b694-dcde437d574f",
+    "reason": "only printing of its art, next art 0.062 behind"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-22.jpg",
+    "truth": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "group": null,
+    "top": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "accepted": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
+    "reason": "collector line SPG 156 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-23.jpg",
+    "truth": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "group": null,
+    "top": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "accepted": "e2b14a8c-2264-4908-8151-da6c8856350e",
+    "reason": "collector line SLD 7096 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-24.jpg",
+    "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
+    "group": null,
+    "top": "667b6c3b-75cc-4adf-b205-80925ca76d2a",
+    "accepted": null,
+    "reason": "collector line SLD 7097 names a printing whose art the image does not match"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-25.jpg",
+    "truth": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "group": null,
+    "top": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "accepted": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "reason": "collector line SLD 7094 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-26.jpg",
+    "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "group": null,
+    "top": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "accepted": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
+    "reason": "collector line SLD 2464 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-27.jpg",
+    "truth": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "group": null,
+    "top": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "accepted": "14019383-0327-404b-ab4d-c65c3fa8c50d",
+    "reason": "collector line CMM 420 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-28.jpg",
+    "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "group": null,
+    "top": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "accepted": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "reason": "collector line DSC 92 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-29.jpg",
+    "truth": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "group": null,
+    "top": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "accepted": "f9302ba8-7ff2-4eaa-a32d-eedd94f0bb79",
+    "reason": "collector line M15 1 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-30.jpg",
+    "truth": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "group": null,
+    "top": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "accepted": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
+    "reason": "collector line EMA 81 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-31.jpg",
+    "truth": "db465858-0593-4850-8f1d-400fe230a18d",
+    "group": null,
+    "top": "db465858-0593-4850-8f1d-400fe230a18d",
+    "accepted": "db465858-0593-4850-8f1d-400fe230a18d",
+    "reason": "collector line SOA 26 matches a card in the image shortlist"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-32.jpg",
+    "truth": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "group": null,
+    "top": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "accepted": null,
+    "reason": "2 printings share this art and collector line read only 16"
+   },
+   {
+    "input": "crops/catalog-device/muyxcbms-33.jpg",
+    "truth": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "group": null,
+    "top": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
+    "accepted": null,
+    "reason": "2 printings share this art and collector line read only 46"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-1.jpg",
+    "truth": null,
+    "group": null,
+    "top": "308ac133-f368-4f6c-9e09-d9cfc136355a",
+    "accepted": null,
+    "reason": "not a card: best image similarity 0.476 is below 0.500"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-2.jpg",
+    "truth": null,
+    "group": null,
+    "top": "8d4a47d3-75f4-4770-8fbf-735b97811d82",
+    "accepted": null,
+    "reason": "not a card: best image similarity 0.454 is below 0.500"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-3.jpg",
+    "truth": null,
+    "group": null,
+    "top": "8d4a47d3-75f4-4770-8fbf-735b97811d82",
+    "accepted": null,
+    "reason": "not a card: best image similarity 0.466 is below 0.500"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-4.jpg",
+    "truth": null,
+    "group": null,
+    "top": "308ac133-f368-4f6c-9e09-d9cfc136355a",
+    "accepted": null,
+    "reason": "not a card: best image similarity 0.466 is below 0.500"
+   },
+   {
+    "input": "crops/rectified/muwewrqz-5.jpg",
+    "truth": null,
+    "group": null,
+    "top": "308ac133-f368-4f6c-9e09-d9cfc136355a",
+    "accepted": null,
+    "reason": "not a card: best image similarity 0.481 is below 0.500"
+   },
+   {
+    "input": "crops/rectified/muwh0fdo-1.jpg",
+    "truth": null,
+    "group": null,
+    "top": "eed1bd05-d085-4115-aa37-df4e7aef2e46",
+    "accepted": null,
+    "reason": "not a card: best image similarity 0.455 is below 0.500"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-1.jpg",
+    "truth": null,
+    "group": null,
+    "top": "308ac133-f368-4f6c-9e09-d9cfc136355a",
+    "accepted": null,
+    "reason": "not a card: best image similarity 0.484 is below 0.500"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-3.jpg",
+    "truth": null,
+    "group": null,
+    "top": "485cef94-d7aa-4bb3-b2e6-61d0ccf8007e",
+    "accepted": null,
+    "reason": "not a card: best image similarity 0.415 is below 0.500"
+   },
+   {
+    "input": "crops/rectified/muwh80d1-4.jpg",
+    "truth": null,
+    "group": null,
+    "top": "eed1bd05-d085-4115-aa37-df4e7aef2e46",
+    "accepted": null,
+    "reason": "not a card: best image similarity 0.460 is below 0.500"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-1.jpg",
+    "truth": null,
+    "group": null,
+    "top": "8d4a47d3-75f4-4770-8fbf-735b97811d82",
+    "accepted": null,
+    "reason": "not a card: best image similarity 0.453 is below 0.500"
+   },
+   {
+    "input": "crops/rectified/muwhquxp-8.jpg",
+    "truth": null,
+    "group": null,
+    "top": "0e2b161e-4a76-4945-97a4-d9140a2b928a",
+    "accepted": null,
+    "reason": "not a card: best image similarity 0.428 is below 0.500"
+   }
+  ]
+ }
+}

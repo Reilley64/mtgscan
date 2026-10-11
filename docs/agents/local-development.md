@@ -16,6 +16,13 @@
 - Verify each UI change on the Simulator with agent-device. Read the `agent-device` and `ios-simulator` skills first. Save the screenshots for the PR evidence.
 - When a check needs a signed-in account, ask the owner to sign in on the Simulator. Never type the owner's credentials.
 
+## Scanner evidence replay
+
+- Set `DEVELOPER_DIR` as for the Simulator before `bun run recognizer:test`. The Swift tests need Xcode.
+- The recorded gallery of the scanner evidence pack is on this Mac in the ignored data of another worktree: `/Users/reilley/.herdr/worktrees/mtgscan/worktree-brave-harbor-93a0/prototypes/catalog-recognizer/.data/catalog`. Read it only. Set `RECOGNIZER_GALLERY_DIR` to it.
+- The 3,000 Scryfall `large` images for the simulated scans are in `.data/large` next to it. Set `RECOGNIZER_LARGE_IMAGES_DIR` to that folder.
+- Copy both folders somewhere else before that worktree is removed. A gallery built again from a newer Scryfall file does not match the expected files.
+
 ## Expo SDK
 
 The app stays on Expo SDK 56. `README.md` (Versions) says why and when to upgrade. Keep `node_modules` unpatched.

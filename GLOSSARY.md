@@ -56,6 +56,16 @@ The feature prints and printing list that the phone recognizer searches. The own
 **Same-text twin**:
 A card printing that prints the same collector line and art as another and differs only by a stamp or symbol.
 
+**Collector line**:
+The small print at the bottom of a card printing with its set code and collector number. A star in place of the dot marks a foil copy.
+
+**Recognition**:
+The recognizer's answer for one photo of a card: candidate card printings in display order and a decision. The recognizer accepts the first candidate when its rules prove it, and abstains otherwise. The app shows the first candidate either way.
+_Avoid_: Match, confidence
+
+**Scanner evidence pack**:
+The committed real crops, simulated scans, expected results, and phone runs that the recognition release gates replay. Simulated scans are synthetic phone photos rendered from Scryfall images. A held-out run removes each true card printing from the gallery, to show that the recognizer abstains when the right printing is missing.
+
 ## Decks and changes
 
 **Deck**:
