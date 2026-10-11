@@ -1,0 +1,107 @@
+name: Recognizer
+
+on:
+  pull_request:
+    paths:
+      - apps/mobile/modules/card-recognizer/**
+      - apps/mobile/test/scanner-evidence/**
+      - .github/workflows/recognizer.yml
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recognizer-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+
+jobs:
+  replay:
+    runs-on: macos-15
+    timeout-minutes: 240
+    env:
+      RECOGNIZER_GALLERY_DIR: ${{ runner.temp }}/scanner-gallery
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Swift fixture tests
+        working-directory: apps/mobile
+        run: bun run recognizer:test
+      - name: Restore the gallery
+        id: gallery
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/scanner-gallery
+          key: scanner-gallery-v1
+      - name: Build the gallery from Scryfall
+        if: steps.gallery.outputs.cache-hit != 'true'
+        working-directory: apps/mobile
+        run: bun run recognizer:gallery
+      - name: Save the gallery
+        if: steps.gallery.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/scanner-gallery
+          key: scanner-gallery-v1
+      - name: Replay the base branch
+        id: base
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --depth 1 origin "${{ github.event.pull_request.base.sha }}"
+          git worktree add "$RUNNER_TEMP/base" "${{ github.event.pull_request.base.sha }}"
+          if [ -f "$RUNNER_TEMP/base/apps/mobile/modules/card-recognizer/scripts/replay.mjs" ]; then
+            (cd "$RUNNER_TEMP/base/apps/mobile" && bun modules/card-recognizer/scripts/replay.mjs --real-only > /dev/null) || true
+            echo "reports=$RUNNER_TEMP/base/apps/mobile/modules/card-recognizer/.data/reports" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Replay the evidence pack
+        working-directory: apps/mobile
+        env:
+          BASELINE: ${{ steps.base.outputs.reports }}
+        run: |
+          set +e
+          bun modules/card-recognizer/scripts/replay.mjs --real-only ${BASELINE:+--baseline "$BASELINE"} > "$RUNNER_TEMP/replay.json"
+          code=$?
+          set -e
+          {
+            echo '### Recognizer replay'
+            echo '```json'
+            cat "$RUNNER_TEMP/replay.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/replay.json"
+          if [ "$code" = 2 ] && [ -z "$BASELINE" ]; then
+            echo "::warning::Results changed against the expected files. This gallery is not the recorded gallery, so the changes are not compared."
+            exit 0
+          fi
+          exit "$code"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: recognizer-reports
+          path: apps/mobile/modules/card-recognizer/.data/reports
+
+  module:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ci.apps.googleusercontent.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Generate the iOS project
+        working-directory: apps/mobile
+        run: bunx expo prebuild --platform ios
+      - name: Build the app with the recognizer module
+        working-directory: apps/mobile/ios
+        run: >
+          xcodebuild -workspace mtgscan.xcworkspace -scheme mtgscan -configuration Debug
+          -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build -quiet

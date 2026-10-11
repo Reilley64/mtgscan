@@ -13,6 +13,17 @@ Public build-time settings go in `apps/mobile/.env`. `apps/mobile/.env.example` 
 
 Checks run on every pull request. Run them locally with `bun run typecheck`, `bun run lint`, and `bun run test`.
 
+### Card recognizer
+
+The card recognizer is a local Expo module in `apps/mobile/modules/card-recognizer`. `recognize(photoUri, outline)` returns a card result with its candidates and decision, or a not-a-card result, as #75 describes. It loads the gallery from `Application Support/gallery` on the phone and throws `gallery_not_ready` until one is there.
+
+The Swift sources in `ios/Recognizer` build into the app and into a macOS command through `Package.swift`. The macOS command computes gallery feature prints and runs the scanner evidence gates. Run the gates on a Mac from `apps/mobile`:
+
+1. `bun run recognizer:test` runs the Swift fixture tests.
+2. `bun run recognizer:replay` replays the scanner evidence pack. It needs the gallery.
+
+`apps/mobile/test/scanner-evidence/README.md` describes the gallery, the gates, and the Recognizer workflow.
+
 ### Local Supabase
 
 The Supabase project lives in `supabase`: configuration, SQL migrations, generated types, and database tests. The local stack needs Docker and the Supabase CLI 2.120.0.
