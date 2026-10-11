@@ -249,6 +249,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"gallery_versions": {
+                  Row: {
+                    "manifest": NonNullable<Json>,"parity_checked_at": string | null,"parity_lowest_cosine": number | null,"parity_mean_cosine": number | null,"parity_references": number | null,"published_at": string | null,"uploaded_at": string,"version": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "manifest": NonNullable<Json>,"parity_checked_at"?: string | null,"parity_lowest_cosine"?: number | null,"parity_mean_cosine"?: number | null,"parity_references"?: number | null,"published_at"?: string | null,"uploaded_at"?: string,"version": string
+                  }
+                  Update: {
+                    "manifest"?: NonNullable<Json>,"parity_checked_at"?: string | null,"parity_lowest_cosine"?: number | null,"parity_mean_cosine"?: number | null,"parity_references"?: number | null,"published_at"?: string | null,"uploaded_at"?: string,"version"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"import_runs": {
                   Row: {
                     "accept_shrink": boolean,"counts": Json | null,"duration": string | null,"failure_reason": string | null,"finished_at": string | null,"id": string,"merge_duration": string | null,"source": Database["public"]['Enums']["import_source"],"source_updated_at": string,"started_at": string,"status": Database["public"]['Enums']["import_run_status"]
@@ -410,6 +424,9 @@ isOneToOne: false
               "relation": string,"total_bytes": number
             }[]
                            },
+"delete_gallery_version":
+{ Args: { "version": string }; Returns: undefined
+                           },
 "disable_oracle_tag":
 { Args: { "tag_id": string }; Returns: {
               "disabled": boolean,"id": string,"slug": string
@@ -449,8 +466,22 @@ isOneToOne: false
 "list_collection_printings":
 { Args: { "query": Json }; Returns: Json
                            },
+"list_gallery_printings":
+{ Args: { "after_id"?: string }; Returns: {
+              "basic_land": boolean,"id": string
+            }[]
+                           },
 "prune_search_telemetry":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"publish_gallery_version":
+{ Args: { "version": string }; Returns: string
+                           },
+"record_gallery_parity":
+{ Args: { "lowest_cosine": number,"mean_cosine": number,"reference_count": number,"version": string }; Returns: undefined
+                           },
+"record_gallery_version":
+{ Args: { "manifest": Json,"version": string }; Returns: undefined
                            },
 "search_catalog":
 { Args: { "query": Json }; Returns: Json

@@ -24,6 +24,20 @@ The Swift sources in `ios/Recognizer` build into the app and into a macOS comman
 
 `apps/mobile/test/scanner-evidence/README.md` describes the gallery, the gates, and the local replay before merge.
 
+### Gallery build and publish
+
+The owner builds the gallery on the Mac at each set release with `bun run gallery <command>` in `supabase`. #75 describes the format. The commands read `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. `docs/agents/local-development.md` says how to enter the secret key for one run.
+
+1. `build` reads Scryfall Default Cards and keeps the paper card printings that are in the card catalog. It downloads the missing `normal` images into `~/Library/Caches/mtgscan/scryfall-images`, 8 at a time. The macOS recognizer command computes the int8 feature prints, and the build reuses the ones it already has. It then writes the gallery parts, the printing list parts, and the manifest with the SHA-256 of each part, and uploads them as a new gallery version that is not published. It prints the sizes against the Free plan budget.
+2. The owner runs the parity check on the iPhone (#84). `parity <version> --lowest-cosine <n> --mean-cosine <n> --references <n>` records the result.
+3. `publish <version>` refuses a gallery version without a passing parity check: a lowest cosine of at least 0.98 over 24 or more references. It then moves the pointer, `published.json`, to the version. It deletes every other gallery version except the previous one and the one that the scanner evidence pack names.
+
+`status` lists the recorded gallery versions with their sizes, parity checks, and Storage use. `install <version>` unpacks a gallery version on the Mac into the folder that the scanner evidence replay reads.
+
+A build is a new base when no gallery version is published, when the feature print revision, the encoding, or the macOS major version changed, when add-ons would pass 10% of the base rows, or with `--new-base`. Otherwise it is an add-on with the new card printings and the card printings whose image or printing list row changed. A phone then downloads only the add-on. A build with no change uploads nothing.
+
+The gallery lives in the private `gallery` bucket. Signed-in users can read `published.json` and the published gallery versions. Anonymous callers cannot read the bucket, and no app role can write it. `gallery_versions` records each gallery version with its manifest, parity check, and publish time. Only the secret key can read it, and it changes only through the gallery functions.
+
 ### Local Supabase
 
 The Supabase project lives in `supabase`: configuration, SQL migrations, generated types, and database tests. The local stack needs Docker and the Supabase CLI 2.120.0.

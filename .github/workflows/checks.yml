@@ -41,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Start local Supabase
-        run: supabase start --exclude realtime,storage-api,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor
+        run: supabase start --exclude realtime,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor
       - name: Generated types match the migrations
         run: bun run types:database:check
       - name: Read the local secret key

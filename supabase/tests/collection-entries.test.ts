@@ -4,11 +4,12 @@ import { type CardCondition, type CardLanguage } from '../collection';
 import type { Json } from '../database.types';
 import type { Finish } from '../search';
 import {
+  basicLands,
   catalogFixture,
   resetCardCatalog,
   runCatalogImport,
   runPriceImport,
-  type ScryfallRecord,
+  withBasicLands,
 } from './catalog-import-command';
 import { seedCollectionEntries } from './collection-entry-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
@@ -24,54 +25,7 @@ const ribbonsOfNight = '010eba83-30ec-4cca-b07e-f24d8d2f0787';
 const strongholdRatsWithoutPrice = '86cdaa71-b605-42f8-97e2-1a2569840f57';
 const unknownPrinting = '00000000-0000-4000-8000-000000000000';
 
-const basicLands = [
-  {
-    name: 'Forest',
-    type_line: 'Basic Land — Forest',
-    oracle_id: 'b34bb2dc-c1af-4d77-b0b3-a0fb342a5fc6',
-    id: 'c0f8b1a4-0d6e-4c1e-9f5e-2b7f3c1f2a01',
-    set: 'blb',
-    set_name: 'Bloomburrow',
-    collector_number: '278',
-  },
-  {
-    name: 'Wastes',
-    type_line: 'Basic Land',
-    oracle_id: '05d24b0c-904a-46b6-b42a-96a4d91a0dd4',
-    id: 'c0f8b1a4-0d6e-4c1e-9f5e-2b7f3c1f2a02',
-    set: 'ogw',
-    set_name: 'Oath of the Gatewatch',
-    collector_number: '183',
-  },
-  {
-    name: 'Snow-Covered Forest',
-    type_line: 'Basic Snow Land — Forest',
-    oracle_id: '5f0d3be8-e63e-4ade-ae58-6b0c14f2ce6d',
-    id: 'c0f8b1a4-0d6e-4c1e-9f5e-2b7f3c1f2a03',
-    set: 'khm',
-    set_name: 'Kaldheim',
-    collector_number: '285',
-  },
-];
-
 const [forest, wastes, snowCoveredForest] = basicLands.map((land) => land.id) as [string, string, string];
-
-function withBasicLands(records: ScryfallRecord[]): ScryfallRecord[] {
-  const template = records.find((record) => record.name === 'Rockface Village');
-  if (!template) {
-    throw new Error('Rockface Village is not in the catalog fixture');
-  }
-  return [
-    ...records,
-    ...basicLands.map((land) => ({
-      ...template,
-      ...land,
-      oracle_text: '',
-      color_identity: [],
-      edhrec_rank: undefined,
-    })),
-  ];
-}
 
 type EntryRow = {
   card_printing_id: string;

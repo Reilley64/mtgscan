@@ -52,6 +52,7 @@ export type ScryfallCard = ScryfallFace & {
   rarity?: string;
   released_at?: string;
   finishes?: string[];
+  frame?: string;
   card_faces?: ScryfallFace[];
   prices?: Record<string, string | null | undefined>;
 };

@@ -1,0 +1,135 @@
+@testable import CardRecognizer
+import Compression
+import CryptoKit
+import Foundation
+import Testing
+
+private func zlibCompressed(_ raw: Data) -> Data {
+  var deflated = Data(count: raw.count + 1024)
+  let written = deflated.withUnsafeMutableBytes { target in
+    raw.withUnsafeBytes { source in
+      compression_encode_buffer(
+        target.bindMemory(to: UInt8.self).baseAddress!, raw.count + 1024,
+        source.bindMemory(to: UInt8.self).baseAddress!, raw.count, nil, COMPRESSION_ZLIB
+      )
+    }
+  }
+  var a: UInt32 = 1
+  var b: UInt32 = 0
+  for byte in raw {
+    a = (a + UInt32(byte)) % 65521
+    b = (b + a) % 65521
+  }
+  let checksum = (b << 16) | a
+  return Data([0x78, 0x9C]) + deflated.prefix(written)
+    + Data([UInt8(checksum >> 24), UInt8((checksum >> 16) & 0xFF), UInt8((checksum >> 8) & 0xFF), UInt8(checksum & 0xFF)])
+}
+
+private struct PartFile {
+  let name: String
+  let kind: String
+  let layer: Int
+  let firstRow: Int
+  let rowCount: Int
+  let raw: Data
+}
+
+private func vector(seed: Int) -> [Float] {
+  (0 ..< FeaturePrint.dimension).map { Float(sin(Double($0 * (seed + 1)) * 0.37)) }
+}
+
+private func printingRow(_ id: String, name: String) -> [String: Any] {
+  [
+    "id": id, "oracleId": "oracle-\(id)", "illustrationId": NSNull(), "name": name, "faceNames": [String](),
+    "set": "tst", "collectorNumber": id, "frame": "2015", "finishes": ["nonfoil"], "basicLand": false,
+  ]
+}
+
+private func writeVersion(_ parts: [PartFile], rows: Int, corrupt: String? = nil) throws -> URL {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+  try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+  var manifestParts: [[String: Any]] = []
+  for part in parts {
+    var compressed = zlibCompressed(part.raw)
+    let sha256 = SHA256.hash(data: compressed).map { String(format: "%02x", $0) }.joined()
+    if part.name == corrupt { compressed[compressed.count / 2] ^= 0xFF }
+    try compressed.write(to: directory.appendingPathComponent(part.name))
+    manifestParts.append([
+      "name": part.name, "kind": part.kind, "layer": part.layer, "firstRow": part.firstRow, "rowCount": part.rowCount,
+      "compressedBytes": compressed.count, "rawBytes": part.raw.count, "sha256": sha256,
+    ])
+  }
+  let manifest: [String: Any] = [
+    "formatVersion": 1, "version": "20261021-a1b2c3", "builtAt": "2026-10-21T09:00:00Z", "rows": rows,
+    "parts": manifestParts,
+  ]
+  try JSONSerialization.data(withJSONObject: manifest).write(to: directory.appendingPathComponent("manifest.json"))
+  return directory
+}
+
+private func galleryPart(_ name: String, layer: Int, firstRow: Int, seeds: [Int]) -> PartFile {
+  let codes = seeds.flatMap { GalleryEncoding.int8Codes(of: vector(seed: $0)) }
+  return PartFile(
+    name: name, kind: "gallery", layer: layer, firstRow: firstRow, rowCount: seeds.count,
+    raw: codes.withUnsafeBufferPointer { Data(buffer: $0) }
+  )
+}
+
+private func printingListPart(_ name: String, layer: Int, firstRow: Int, rows: [[String: Any]]) throws -> PartFile {
+  PartFile(
+    name: name, kind: "printing_list", layer: layer, firstRow: firstRow, rowCount: rows.count,
+    raw: try JSONSerialization.data(withJSONObject: rows)
+  )
+}
+
+private func cosine(_ a: [Float], _ b: [Float]) -> Float {
+  zip(a, b).reduce(0) { $0 + $1.0 * $1.1 } / (sqrt(a.reduce(0) { $0 + $1 * $1 }) * sqrt(b.reduce(0) { $0 + $1 * $1 }))
+}
+
+@Test("an int8 feature print decodes to a unit vector in the same direction")
+func anInt8FeaturePrintDecodesToAUnitVectorInTheSameDirection() {
+  let original = vector(seed: 3)
+  let decoded = GalleryEncoding.int8Codes(of: original).withUnsafeBufferPointer {
+    GalleryEncoding.unitVector(of: $0).map { Float($0) }
+  }
+  #expect(abs(sqrt(decoded.reduce(0) { $0 + $1 * $1 }) - 1) < 0.001)
+  #expect(cosine(original, decoded) > 0.9999)
+}
+
+@Test("installing a base and an add-on lets a later row replace the earlier one")
+func installingABaseAndAnAddOnLetsALaterRowReplaceTheEarlierOne() throws {
+  let version = try writeVersion([
+    galleryPart("base-gallery-1.zlib", layer: 0, firstRow: 0, seeds: [0, 1]),
+    galleryPart("base-gallery-2.zlib", layer: 0, firstRow: 2, seeds: [2]),
+    try printingListPart("base-printing-list-1.zlib", layer: 0, firstRow: 0, rows: [
+      printingRow("a", name: "Alpha"), printingRow("b", name: "Beta"), printingRow("c", name: "Gamma"),
+    ]),
+    galleryPart("add-on-1-gallery-1.zlib", layer: 1, firstRow: 3, seeds: [7, 8]),
+    try printingListPart("add-on-1-printing-list-1.zlib", layer: 1, firstRow: 3, rows: [
+      printingRow("b", name: "Beta, new image"), printingRow("d", name: "Delta"),
+    ]),
+  ], rows: 4)
+  let destination = version.appendingPathComponent("installed", isDirectory: true)
+
+  try GalleryInstaller.install(from: version, into: destination)
+
+  let gallery = try Gallery(directory: destination)
+  #expect(gallery.printings.map(\.name) == ["Alpha", "Beta, new image", "Gamma", "Delta"])
+  let scores = gallery.similarities(to: [vector(seed: 7)])[0]
+  #expect(gallery.top(1, of: scores) == [1])
+  #expect(scores[1] > 0.999)
+}
+
+@Test("installing refuses a part whose SHA-256 does not match the manifest")
+func installingRefusesAPartWhoseSHA256DoesNotMatchTheManifest() throws {
+  let version = try writeVersion([
+    galleryPart("base-gallery-1.zlib", layer: 0, firstRow: 0, seeds: [0]),
+    try printingListPart("base-printing-list-1.zlib", layer: 0, firstRow: 0, rows: [printingRow("a", name: "Alpha")]),
+  ], rows: 1, corrupt: "base-gallery-1.zlib")
+  let destination = version.appendingPathComponent("installed", isDirectory: true)
+
+  #expect(throws: GalleryInstaller.Failure.partMismatch("base-gallery-1.zlib")) {
+    try GalleryInstaller.install(from: version, into: destination)
+  }
+  #expect(!FileManager.default.fileExists(atPath: destination.path))
+}

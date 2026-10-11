@@ -27,6 +27,29 @@
 
 CI does not replay the scanner evidence pack. Before merging a change to the recognizer, the evidence pack, or the gallery, run `bun run recognizer:replay` on the owner's Mac with the recorded gallery, on the branch and on `main`, and record the result in the PR. `apps/mobile/test/scanner-evidence/README.md` (Local replay before merge) has the steps.
 
+## Gallery build
+
+- The gallery build runs only on the owner's Mac, with the owner present. `README.md` (Gallery build and publish) describes the commands.
+- The Supabase secret key is a GitHub Actions secret. The owner copies it from the Supabase dashboard and enters it at a hidden prompt for one run. Never store it in a file, and never print it:
+
+  ```bash
+  cd supabase
+  export SUPABASE_URL="https://$(gh variable get SUPABASE_PROJECT_REF).supabase.co"
+  read -rs SUPABASE_SECRET_KEY; export SUPABASE_SECRET_KEY
+  bun run gallery build
+  unset SUPABASE_SECRET_KEY
+  ```
+
+- The image cache is `~/Library/Caches/mtgscan/scryfall-images`, outside every worktree. The work folder with the feature prints and the built gallery versions is `~/Library/Caches/mtgscan/gallery`.
+- The first build reuses the images of the prototype. Copy them once. `cp -c` clones the files on APFS, so the copy is fast and uses no more disk space:
+
+  ```bash
+  mkdir -p ~/Library/Caches/mtgscan/scryfall-images
+  cp -Rc /Users/reilley/.herdr/worktrees/mtgscan/worktree-brave-harbor-93a0/prototypes/catalog-recognizer/.data/images/. ~/Library/Caches/mtgscan/scryfall-images/
+  ```
+
+  On that first build, pass `--cached-images-bulk-file` with the Scryfall file the images came from, `prototypes/catalog-recognizer/.data/default-cards.jsonl.gz` in the same worktree. The build then downloads again every image that Scryfall changed since then. Leave the prototype data in place.
+
 ## Expo SDK
 
 The app stays on Expo SDK 56. `README.md` (Versions) says why and when to upgrade. Keep `node_modules` unpatched.
