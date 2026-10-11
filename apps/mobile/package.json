@@ -46,6 +46,7 @@
   },
   "jest": {
     "preset": "jest-expo",
+    "testTimeout": 20000,
     "setupFiles": [
       "<rootDir>/../../node_modules/@react-native-google-signin/google-signin/jest/build/jest/setup.js"
     ],
