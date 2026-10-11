@@ -61,7 +61,7 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 - A refused call returns an error with a `code` such as `invalid_argument` or `invalid_cursor`. The field at fault is in `details`. `readSearchError` reads it as a `SearchError`.
 - `get_cards` reads card details for up to 20 cards. Each card lists its direct Oracle tags that are not disabled, as `slug` and `label`, sorted by label. Each card also lists up to 5 combos as `combos`. Each combo has its `spellbook_id`, the `other_card` with its Oracle ID and name, its produced features, and its bracket tag. Combos sort by the other card's EDHREC rank, with missing ranks last, then by the other card's name, then by Spellbook ID. A card with no combos has an empty list.
 - Each first page writes one row to `search_telemetry`. It is the one table with user data that has no read policy: app users cannot read it, and only the secret key can.
-- Catalog search also accepts the secret key, for the search release check. Its telemetry row has the caller `release_check` and no user. No other search or catalog read accepts the secret key.
+- Catalog search also accepts the secret key, for the search release check. Its telemetry row has the caller `release_check` and no user. It counts no owned copies. No other search or catalog read accepts the secret key.
 
 ### Scan batch commit
 
@@ -81,7 +81,7 @@ Signed-in users read their collection as card printings with `supabase.rpc('list
 - The owned quantity sums every collection entry of the card printing, across finish, condition, language, protected flag, and user tags.
 - Rows sort by the latest addition time, newest first, then by name, then by card printing ID.
 - `next_cursor` reads the next page. A cursor works only for the user who got it, for 15 minutes. A refused call has the code `invalid_argument` or `invalid_cursor` and the field at fault in `details`, as in catalog search.
-- The function reads only the caller's collection entries. It runs as `security definer`, like the other app reads, because the `private` helpers it uses are closed to app roles. It filters the rows on the caller instead of relying on the read policy. An anonymous caller and the secret key are refused.
+- The function runs with the caller's rights, so the read policy on `collection_entries` returns only the caller's collection entries. An anonymous caller and the secret key are refused.
 
 ### Collection search
 
@@ -93,7 +93,7 @@ Signed-in users search their own collection entries with `supabase.rpc('search_c
 - `is_free` matches entries with at least one free copy. A protected copy can be free. `is_protected` matches the protected flag. The Collection tab's Free filter is `is_free: true` with `is_protected: false`.
 - `deck_ids` and `deck_ids_exclude` take deck IDs. Until decks exist, every deck ID is refused with `invalid_argument` on its field.
 - Each row has the collection entry's quantity, free quantity, allocated quantity, and held quantity, from the collection availability view. The view has one row for each collection entry of the caller. Allocated and held quantities are zero until decks and planned swaps exist.
-- Collection search runs as a database function with the owner's rights, like catalog search. So the read policy on `collection_entries` does not apply inside it. The view applies the same rule as the policy: it keeps only rows whose user is the caller.
+- Collection search runs with the caller's rights, like catalog search. The view sets `security_invoker`, so the read policy on `collection_entries` keeps only the caller's rows.
 - Catalog search, `get_cards`, and `list_card_printings` read owned quantities from the same view. A printing list keeps an absent card printing when the caller owns it.
 - Each first page writes one row to `search_telemetry` with the API `collection`. The secret key cannot call collection search.
 
@@ -123,7 +123,10 @@ Every table that holds a user's data follows one pattern:
 - Row-level security is on, and the read policy returns only the signed-in user's rows.
 - Direct inserts, updates, and deletes are revoked for the `anon` and `authenticated` roles.
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
+- Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `collection_entries`, `collection_additions`, and `collection_addition_lines`. `search_telemetry` departs from the pattern, as Catalog search says.
+The tables with a user's data are `profiles`, `collection_entries`, `collection_additions`, and `collection_addition_lines`. `search_telemetry` departs from the pattern, as Catalog search says. Searches write their telemetry row through `private.record_search`, which runs with the owner's rights, because app roles cannot write `search_telemetry`.
+
+The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can, but every `private` function is closed by default. A migration grants `execute` on a helper only to the roles whose reads call it.
 
 Signing up creates the user's profile through a trigger on `auth.users`.
