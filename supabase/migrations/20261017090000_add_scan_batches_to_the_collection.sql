@@ -65,7 +65,6 @@ create table public.collection_addition_lines (
 );
 
 create index collection_addition_lines_user_id on public.collection_addition_lines (user_id);
-create index collection_addition_lines_collection_entry_id on public.collection_addition_lines (collection_entry_id);
 
 alter table public.collection_entries enable row level security;
 alter table public.collection_additions enable row level security;
@@ -94,6 +93,14 @@ create policy "Users read their own addition lines"
   to authenticated
   using ((select auth.uid()) = user_id);
 
+create type private.scan_batch_stack as (
+  card_printing_id uuid,
+  finish public.card_finish,
+  condition public.card_condition,
+  language public.card_language,
+  quantity integer
+);
+
 create function private.caller_user_id()
 returns uuid
 language plpgsql
@@ -118,7 +125,6 @@ set search_path = ''
 as $$
 declare
   checked jsonb := '{}';
-  checked_value jsonb;
   key text;
   value jsonb;
   printing_id uuid;
@@ -129,30 +135,33 @@ begin
     perform private.invalid_argument(field, format('%s must be a JSON object.', field));
   end if;
 
-  for key, value in select entry.key, entry.value from jsonb_each(item) as entry order by entry.key loop
-    checked_value := case
-      when key = 'card_printing_id' then
-        private.checked_uuid(format('%s.%s', field, key), value)
-      when key = 'finish' then
-        private.checked_choice(format('%s.%s', field, key), value, enum_range(null::public.card_finish)::text[])
-      when key = 'condition' then
-        private.checked_choice(format('%s.%s', field, key), value, enum_range(null::public.card_condition)::text[])
-      when key = 'language' then
-        private.checked_choice(format('%s.%s', field, key), value, enum_range(null::public.card_language)::text[])
-      when key = 'quantity' then
-        private.checked_integer(format('%s.%s', field, key), value, 1, 999)
-    end;
-    if checked_value is null then
-      perform private.invalid_argument(format('%s.%s', field, key), format('%s.%s is not a known field.', field, key));
-    end if;
-    checked := checked || jsonb_build_object(key, checked_value);
-  end loop;
-
   foreach key in array array['card_printing_id', 'finish', 'condition', 'language', 'quantity'] loop
-    if not checked ? key then
+    value := item -> key;
+    if value is null then
       perform private.invalid_argument(format('%s.%s', field, key), format('%s.%s is required.', field, key));
     end if;
+    checked := checked || jsonb_build_object(key, case key
+      when 'card_printing_id' then
+        private.checked_uuid(format('%s.%s', field, key), value)
+      when 'finish' then
+        private.checked_choice(format('%s.%s', field, key), value, enum_range(null::public.card_finish)::text[])
+      when 'condition' then
+        private.checked_choice(format('%s.%s', field, key), value, enum_range(null::public.card_condition)::text[])
+      when 'language' then
+        private.checked_choice(format('%s.%s', field, key), value, enum_range(null::public.card_language)::text[])
+      when 'quantity' then
+        private.checked_integer(format('%s.%s', field, key), value, 1, 999)
+    end);
   end loop;
+
+  select entry.key into key
+    from jsonb_object_keys(item) as entry(key)
+    where not checked ? entry.key
+    order by entry.key
+    limit 1;
+  if found then
+    perform private.invalid_argument(format('%s.%s', field, key), format('%s.%s is not a known field.', field, key));
+  end if;
 
   printing_id := (checked ->> 'card_printing_id')::uuid;
   select p.finishes, c.type_line
@@ -236,13 +245,7 @@ begin
       select jsonb_agg(to_jsonb(stack) order by stack.card_printing_id, stack.finish, stack.condition, stack.language)
       from (
         select i.card_printing_id, i.finish, i.condition, i.language, sum(i.quantity)::integer as quantity
-        from jsonb_to_recordset(items) as i(
-          card_printing_id uuid,
-          finish public.card_finish,
-          condition public.card_condition,
-          language public.card_language,
-          quantity integer
-        )
+        from jsonb_populate_recordset(null::private.scan_batch_stack, items) as i
         group by i.card_printing_id, i.finish, i.condition, i.language
       ) stack
     )
@@ -338,14 +341,7 @@ begin
   end if;
 
   with stacks as (
-    select s.*
-    from jsonb_to_recordset(checked -> 'items') as s(
-      card_printing_id uuid,
-      finish public.card_finish,
-      condition public.card_condition,
-      language public.card_language,
-      quantity integer
-    )
+    select s.* from jsonb_populate_recordset(null::private.scan_batch_stack, checked -> 'items') as s
   ),
   merged as (
     insert into public.collection_entries as entry (

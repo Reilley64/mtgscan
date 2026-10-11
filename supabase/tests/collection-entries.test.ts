@@ -22,6 +22,7 @@ import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type T
 setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
+const checkViolation = '23514';
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
 const ribbonsOfNight = '010eba83-30ec-4cca-b07e-f24d8d2f0787';
@@ -286,6 +287,35 @@ describe('committing a scan batch', () => {
       [delverInnistrad, 1],
       [angelicCurator, 5],
     ]);
+  });
+});
+
+describe('the user tag set', () => {
+  const [firstTag, secondTag] = [crypto.randomUUID(), crypto.randomUUID()].sort() as [string, string];
+
+  test('a collection entry keeps a sorted set of distinct user tags', async () => {
+    const user = await signUpNewUser();
+
+    await seedEntry(user, entryRow(angelicCurator, 1, { user_tag_ids: [firstTag, secondTag] }));
+
+    expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 1, { user_tag_ids: [firstTag, secondTag] })]);
+  });
+
+  test.each([
+    ['unsorted', [secondTag, firstTag]],
+    ['repeated', [firstTag, firstTag]],
+  ])('a user tag set with %s user tags is refused', async (_, userTagIds) => {
+    const user = await signUpNewUser();
+
+    const { error } = await secretKeyClient()
+      .from('collection_entries')
+      .insert({
+        ...entryRow(angelicCurator, 1, { user_tag_ids: userTagIds }),
+        user_id: user.userId,
+        latest_addition_at: new Date().toISOString(),
+      });
+
+    expect(error?.code).toBe(checkViolation);
   });
 });
 
@@ -609,7 +639,7 @@ describe('access', () => {
     ['a signed-in user', () => alice.client],
     ['an anonymous caller', () => anonymousClient()],
   ])('direct writes by %s are refused', (_, client) => {
-    test('collection entries', async () => {
+    test('inserting, updating, and deleting collection entries is refused', async () => {
       const entries = () => client().from('collection_entries');
       const row = {
         ...entryRow(angelicCurator, 1),
@@ -622,7 +652,7 @@ describe('access', () => {
       expect((await entries().delete().eq('user_id', alice.userId)).error?.code).toBe(permissionDenied);
     });
 
-    test('additions', async () => {
+    test('inserting, updating, and deleting additions is refused', async () => {
       const additions = () => client().from('collection_additions');
       const row = {
         user_id: alice.userId,
@@ -639,7 +669,7 @@ describe('access', () => {
       expect((await additions().delete().eq('user_id', alice.userId)).error?.code).toBe(permissionDenied);
     });
 
-    test('addition lines', async () => {
+    test('inserting, updating, and deleting addition lines is refused', async () => {
       const lines = () => client().from('collection_addition_lines');
       const [addition] = await additionsOf(alice);
       const row = {

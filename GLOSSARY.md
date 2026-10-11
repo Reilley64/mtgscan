@@ -17,7 +17,7 @@ A quantity of owned physical copies that share a card printing, finish, language
 _Avoid_: Card, item
 
 **Addition**:
-One commit of copies to the collection, with its time and a purchase-day price per card printing and finish. A scan batch becomes one addition.
+One commit of copies to the collection, with its time and a purchase-day price per card printing and finish. A scan batch becomes one addition. Each stack in it is an addition line, which records its quantity, its purchase-day price, and the collection entry it merged into.
 _Avoid_: Import, purchase
 
 **Purchase-day price**:
@@ -46,6 +46,9 @@ Two cards that together produce a result, such as infinite mana or a win, as Com
 **Scan batch**:
 An editable group of recognized collection entries waiting to be added to the collection together.
 _Avoid_: To-add list, import
+
+**Stack**:
+The copies in a scan batch that share a card printing, finish, condition, and language. Batch review shows one row per stack, and committing the scan batch sends its stacks.
 
 **Gallery**:
 The feature prints and printing list that the phone recognizer searches. The owner builds it, and phones download it from Storage.
