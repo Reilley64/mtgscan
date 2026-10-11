@@ -11,7 +11,7 @@ public struct GalleryManifest: Codable, Sendable {
 
     public let name: String
     public let kind: String
-    public let layer: Int
+    public let addOn: Int
     public let firstRow: Int
     public let rowCount: Int
     public let compressedBytes: Int
@@ -57,7 +57,7 @@ public enum GalleryInstaller {
 
   public static func install(from directory: URL, into destination: URL) throws {
     let manifest = try manifest(in: directory)
-    let ordered = manifest.parts.sorted { ($0.layer, $0.firstRow) < ($1.layer, $1.firstRow) }
+    let ordered = manifest.parts.sorted { ($0.addOn, $0.firstRow) < ($1.addOn, $1.firstRow) }
     var rows: [[String: Any]] = []
     var slots: [Int] = []
     var slotById: [String: Int] = [:]

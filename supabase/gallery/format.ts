@@ -2,10 +2,10 @@ import { createHash } from 'node:crypto';
 import { deflateSync, inflateSync } from 'node:zlib';
 
 export const featurePrintDimension = 768;
-export const manifestFormatVersion = 1;
-export const maxRawPartBytes = 45_000_000;
+export const galleryFormatVersion = 1;
 export const maxPartBytes = 50_000_000;
 export const addOnLimit = 0.1;
+const maxRawPartBytes = 45_000_000;
 
 export type PartKind = 'gallery' | 'printing_list';
 
@@ -25,7 +25,7 @@ export type PrintingListRow = {
 export type ManifestPart = {
   name: string;
   kind: PartKind;
-  layer: number;
+  addOn: number;
   firstRow: number;
   rowCount: number;
   compressedBytes: number;
@@ -59,7 +59,7 @@ export type GalleryRow = {
 
 export type Part = ManifestPart & { bytes: Uint8Array };
 
-export function sha256(bytes: Uint8Array): string {
+function sha256(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
@@ -68,16 +68,16 @@ export function newVersionId(date: Date = new Date()): string {
   return `${day}-${crypto.randomUUID().replaceAll('-', '').slice(0, 6)}`;
 }
 
-export function layerName(layer: number): string {
-  return layer === 0 ? 'base' : `add-on-${layer}`;
+function partPrefix(addOn: number): string {
+  return addOn === 0 ? 'base' : `add-on-${addOn}`;
 }
 
-function encodedPart(name: string, kind: PartKind, layer: number, firstRow: number, rowCount: number, raw: Uint8Array): Part {
+function encodedPart(name: string, kind: PartKind, addOn: number, firstRow: number, rowCount: number, raw: Uint8Array): Part {
   const bytes = new Uint8Array(deflateSync(raw, { level: 9 }));
   if (bytes.length >= maxPartBytes) {
     throw new Error(`${name} is ${bytes.length} bytes, over the ${maxPartBytes} byte upload limit`);
   }
-  return { name, kind, layer, firstRow, rowCount, compressedBytes: bytes.length, rawBytes: raw.length, sha256: sha256(bytes), bytes };
+  return { name, kind, addOn, firstRow, rowCount, compressedBytes: bytes.length, rawBytes: raw.length, sha256: sha256(bytes), bytes };
 }
 
 function splitRows<Item>(items: Item[], rawBytes: number): Item[][] {
@@ -88,20 +88,20 @@ function splitRows<Item>(items: Item[], rawBytes: number): Item[][] {
   );
 }
 
-export function layerParts(layer: number, firstRow: number, rows: GalleryRow[]): Part[] {
+export function galleryParts(addOn: number, firstRow: number, rows: GalleryRow[]): Part[] {
   const parts: Part[] = [];
   let row = firstRow;
   splitRows(rows, rows.length * featurePrintDimension).forEach((chunk, index) => {
     const raw = new Uint8Array(chunk.length * featurePrintDimension);
     chunk.forEach((item, position) => raw.set(item.codes, position * featurePrintDimension));
-    parts.push(encodedPart(`${layerName(layer)}-gallery-${index + 1}.zlib`, 'gallery', layer, row, chunk.length, raw));
+    parts.push(encodedPart(`${partPrefix(addOn)}-gallery-${index + 1}.zlib`, 'gallery', addOn, row, chunk.length, raw));
     row += chunk.length;
   });
   const printingList = new TextEncoder().encode(JSON.stringify(rows.map((item) => item.printing)));
   row = firstRow;
   splitRows(rows, printingList.length).forEach((chunk, index) => {
     const raw = new TextEncoder().encode(JSON.stringify(chunk.map((item) => item.printing)));
-    parts.push(encodedPart(`${layerName(layer)}-printing-list-${index + 1}.zlib`, 'printing_list', layer, row, chunk.length, raw));
+    parts.push(encodedPart(`${partPrefix(addOn)}-printing-list-${index + 1}.zlib`, 'printing_list', addOn, row, chunk.length, raw));
     row += chunk.length;
   });
   return parts;
@@ -119,7 +119,7 @@ export function verifiedPartBytes(part: ManifestPart, bytes: Uint8Array): Uint8A
 }
 
 export function installedRows(manifest: Manifest, partBytes: (part: ManifestPart) => Uint8Array): Map<string, GalleryRow> {
-  const ordered = [...manifest.parts].sort((a, b) => a.layer - b.layer || a.firstRow - b.firstRow);
+  const ordered = [...manifest.parts].sort((a, b) => a.addOn - b.addOn || a.firstRow - b.firstRow);
   const printings = ordered
     .filter((part) => part.kind === 'printing_list')
     .flatMap((part) => JSON.parse(new TextDecoder().decode(verifiedPartBytes(part, partBytes(part)))) as PrintingListRow[]);
@@ -141,4 +141,8 @@ export function installedRows(manifest: Manifest, partBytes: (part: ManifestPart
 
 export function partBytes(parts: ManifestPart[], kind?: PartKind): number {
   return parts.filter((part) => !kind || part.kind === kind).reduce((sum, part) => sum + part.compressedBytes, 0);
+}
+
+export function updateBytes(manifest: Manifest, installed: Manifest): number {
+  return partBytes(manifest.parts.filter((part) => !installed.parts.some((earlier) => earlier.sha256 === part.sha256)));
 }

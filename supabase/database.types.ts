@@ -478,7 +478,7 @@ isOneToOne: false
 { Args: { "version": string }; Returns: string
                            },
 "record_gallery_parity":
-{ Args: { "lowest_cosine": number,"mean_cosine": number,"reference_count": number,"version": string }; Returns: undefined
+{ Args: { "lowest_cosine": number,"mean_cosine": number,"reference_count": number,"version": string }; Returns: boolean
                            },
 "record_gallery_version":
 { Args: { "manifest": Json,"version": string }; Returns: undefined

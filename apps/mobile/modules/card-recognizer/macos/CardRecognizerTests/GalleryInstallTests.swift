@@ -14,13 +14,13 @@ private func zlibCompressed(_ raw: Data) -> Data {
       )
     }
   }
-  var a: UInt32 = 1
-  var b: UInt32 = 0
+  var byteSum: UInt32 = 1
+  var runningSum: UInt32 = 0
   for byte in raw {
-    a = (a + UInt32(byte)) % 65521
-    b = (b + a) % 65521
+    byteSum = (byteSum + UInt32(byte)) % 65521
+    runningSum = (runningSum + byteSum) % 65521
   }
-  let checksum = (b << 16) | a
+  let checksum = (runningSum << 16) | byteSum
   return Data([0x78, 0x9C]) + deflated.prefix(written)
     + Data([UInt8(checksum >> 24), UInt8((checksum >> 16) & 0xFF), UInt8((checksum >> 8) & 0xFF), UInt8(checksum & 0xFF)])
 }
@@ -28,7 +28,7 @@ private func zlibCompressed(_ raw: Data) -> Data {
 private struct PartFile {
   let name: String
   let kind: String
-  let layer: Int
+  let addOn: Int
   let firstRow: Int
   let rowCount: Int
   let raw: Data
@@ -55,7 +55,7 @@ private func writeVersion(_ parts: [PartFile], rows: Int, corrupt: String? = nil
     if part.name == corrupt { compressed[compressed.count / 2] ^= 0xFF }
     try compressed.write(to: directory.appendingPathComponent(part.name))
     manifestParts.append([
-      "name": part.name, "kind": part.kind, "layer": part.layer, "firstRow": part.firstRow, "rowCount": part.rowCount,
+      "name": part.name, "kind": part.kind, "addOn": part.addOn, "firstRow": part.firstRow, "rowCount": part.rowCount,
       "compressedBytes": compressed.count, "rawBytes": part.raw.count, "sha256": sha256,
     ])
   }
@@ -67,17 +67,17 @@ private func writeVersion(_ parts: [PartFile], rows: Int, corrupt: String? = nil
   return directory
 }
 
-private func galleryPart(_ name: String, layer: Int, firstRow: Int, seeds: [Int]) -> PartFile {
+private func galleryPart(_ name: String, addOn: Int, firstRow: Int, seeds: [Int]) -> PartFile {
   let codes = seeds.flatMap { GalleryEncoding.int8Codes(of: vector(seed: $0)) }
   return PartFile(
-    name: name, kind: "gallery", layer: layer, firstRow: firstRow, rowCount: seeds.count,
+    name: name, kind: "gallery", addOn: addOn, firstRow: firstRow, rowCount: seeds.count,
     raw: codes.withUnsafeBufferPointer { Data(buffer: $0) }
   )
 }
 
-private func printingListPart(_ name: String, layer: Int, firstRow: Int, rows: [[String: Any]]) throws -> PartFile {
+private func printingListPart(_ name: String, addOn: Int, firstRow: Int, rows: [[String: Any]]) throws -> PartFile {
   PartFile(
-    name: name, kind: "printing_list", layer: layer, firstRow: firstRow, rowCount: rows.count,
+    name: name, kind: "printing_list", addOn: addOn, firstRow: firstRow, rowCount: rows.count,
     raw: try JSONSerialization.data(withJSONObject: rows)
   )
 }
@@ -99,13 +99,13 @@ func anInt8FeaturePrintDecodesToAUnitVectorInTheSameDirection() {
 @Test("installing a base and an add-on lets a later row replace the earlier one")
 func installingABaseAndAnAddOnLetsALaterRowReplaceTheEarlierOne() throws {
   let version = try writeVersion([
-    galleryPart("base-gallery-1.zlib", layer: 0, firstRow: 0, seeds: [0, 1]),
-    galleryPart("base-gallery-2.zlib", layer: 0, firstRow: 2, seeds: [2]),
-    try printingListPart("base-printing-list-1.zlib", layer: 0, firstRow: 0, rows: [
+    galleryPart("base-gallery-1.zlib", addOn: 0, firstRow: 0, seeds: [0, 1]),
+    galleryPart("base-gallery-2.zlib", addOn: 0, firstRow: 2, seeds: [2]),
+    try printingListPart("base-printing-list-1.zlib", addOn: 0, firstRow: 0, rows: [
       printingRow("a", name: "Alpha"), printingRow("b", name: "Beta"), printingRow("c", name: "Gamma"),
     ]),
-    galleryPart("add-on-1-gallery-1.zlib", layer: 1, firstRow: 3, seeds: [7, 8]),
-    try printingListPart("add-on-1-printing-list-1.zlib", layer: 1, firstRow: 3, rows: [
+    galleryPart("add-on-1-gallery-1.zlib", addOn: 1, firstRow: 3, seeds: [7, 8]),
+    try printingListPart("add-on-1-printing-list-1.zlib", addOn: 1, firstRow: 3, rows: [
       printingRow("b", name: "Beta, new image"), printingRow("d", name: "Delta"),
     ]),
   ], rows: 4)
@@ -123,8 +123,8 @@ func installingABaseAndAnAddOnLetsALaterRowReplaceTheEarlierOne() throws {
 @Test("installing refuses a part whose SHA-256 does not match the manifest")
 func installingRefusesAPartWhoseSHA256DoesNotMatchTheManifest() throws {
   let version = try writeVersion([
-    galleryPart("base-gallery-1.zlib", layer: 0, firstRow: 0, seeds: [0]),
-    try printingListPart("base-printing-list-1.zlib", layer: 0, firstRow: 0, rows: [printingRow("a", name: "Alpha")]),
+    galleryPart("base-gallery-1.zlib", addOn: 0, firstRow: 0, seeds: [0]),
+    try printingListPart("base-printing-list-1.zlib", addOn: 0, firstRow: 0, rows: [printingRow("a", name: "Alpha")]),
   ], rows: 1, corrupt: "base-gallery-1.zlib")
   let destination = version.appendingPathComponent("installed", isDirectory: true)
 

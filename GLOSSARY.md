@@ -54,7 +54,7 @@ The copies in a scan batch that share a card printing, finish, condition, and la
 The feature prints and printing list that the phone recognizer searches. The owner builds it, and phones download it from Storage.
 
 **Gallery version**:
-One build of the gallery: a base plus zero or more add-ons, described by a manifest. An add-on holds new card printings and card printings whose image changed. A gallery version reaches phones only after the owner publishes it, and publishing needs a passing parity check.
+One build of the gallery: a base plus zero or more add-ons. Each base and add-on is stored as compressed parts, and a manifest lists every part with its SHA-256. An add-on holds new card printings and card printings whose image or printing list row changed. A gallery version reaches phones only after the owner publishes it, and publishing needs a passing parity check. The pointer, `published.json`, names the published gallery version.
 
 **Parity check**:
 A check on the iPhone that the phone's feature prints match the gallery rows built on the Mac. It passes when the lowest cosine over 24 reference images is at least 0.98.

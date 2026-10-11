@@ -3,13 +3,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { ImportClient } from '../import/import-run';
-import { budgetReport, megabytes } from './budget';
-import { localPartBytes, versionDirectory } from './build';
-import { type Manifest, verifiedPartBytes, partBytes } from './format';
+import { budgetReport, freePlan, gigabytes, megabytes } from './budget';
+import { type Manifest, galleryFormatVersion, partBytes, updateBytes, verifiedPartBytes } from './format';
 import type { Recognizer } from './recognizer';
 import { evidenceVersion } from './repository';
+import { localPartBytes, versionDirectory } from './work-folder';
 import {
   GalleryRefused,
+  type ParityCheck,
   type Pointer,
   downloadObject,
   forgetVersion,
@@ -20,6 +21,7 @@ import {
   recordParity,
   recordedVersions,
   removeVersionFolder,
+  signedUrls,
   storedVersionFolders,
   uploadObject,
 } from './storage';
@@ -27,10 +29,9 @@ import {
 export async function recordParityCheck(
   client: ImportClient,
   version: string,
-  parity: { lowestCosine: number; meanCosine: number; references: number },
+  parity: ParityCheck,
 ) {
-  await recordParity(client, version, parity);
-  const passed = parity.lowestCosine >= 0.98 && parity.references >= 24;
+  const passed = await recordParity(client, version, parity);
   console.log(
     `Recorded the parity check of gallery version ${version}: lowest cosine ${parity.lowestCosine}, mean ${parity.meanCosine}, over ${parity.references} references. ${passed ? 'It passes.' : 'It does not pass, so the version cannot be published.'}`,
   );
@@ -39,7 +40,7 @@ export async function recordParityCheck(
 export async function publishGallery(client: ImportClient, version: string) {
   const publishedAt = await markPublished(client, version);
   const pointer: Pointer = {
-    formatVersion: 1,
+    formatVersion: galleryFormatVersion,
     version,
     manifest: `${version}/${manifestFile}`,
     publishedAt,
@@ -67,14 +68,30 @@ export async function publishGallery(client: ImportClient, version: string) {
   console.log(`Published gallery version ${version}.`);
   console.log(deleted.length > 0 ? `Deleted gallery versions ${deleted.join(', ')}.` : 'Deleted no gallery versions.');
   const kept = versions.filter((recorded) => keep.has(recorded.version)).map((recorded) => recorded.manifest);
-  const updateBytes = previous
-    ? current!.manifest.parts
-        .filter((part) => !previous.manifest.parts.some((earlier) => earlier.sha256 === part.sha256))
-        .reduce((sum, part) => sum + part.compressedBytes, 0)
-    : null;
-  for (const line of budgetReport(current!.manifest, kept, updateBytes)) {
+  for (const line of budgetReport(current!.manifest, kept, previous ? updateBytes(current!.manifest, previous.manifest) : null)) {
     console.log(line);
   }
+}
+
+export async function signVersion(client: ImportClient, version: string, hours: number) {
+  const recorded = (await recordedVersions(client)).find((candidate) => candidate.version === version);
+  if (!recorded) {
+    throw new GalleryRefused(`Gallery version ${version} is not recorded.`);
+  }
+  const paths = [`${version}/${manifestFile}`, ...recorded.manifest.parts.map((part) => `${version}/${part.name}`)];
+  const urls = await signedUrls(client, paths, hours * 3600);
+  console.log(
+    JSON.stringify(
+      {
+        version,
+        expiresAt: new Date(Date.now() + hours * 3_600_000).toISOString(),
+        manifest: urls.get(paths[0]!),
+        parts: Object.fromEntries(recorded.manifest.parts.map((part) => [part.name, urls.get(`${version}/${part.name}`)])),
+      },
+      null,
+      1,
+    ),
+  );
 }
 
 export async function galleryStatus(client: ImportClient) {
@@ -99,11 +116,11 @@ export async function galleryStatus(client: ImportClient) {
     );
   }
   const stored = versions.reduce((sum, recorded) => sum + partBytes(recorded.manifest.parts), 0);
-  console.log(`Storage for all recorded versions: ${megabytes(stored)} of 1 GB.`);
+  console.log(`Storage for all recorded versions: ${megabytes(stored)} of ${gigabytes(freePlan.storageBytes)}.`);
 }
 
 export async function installGallery(
-  client: ImportClient,
+  client: () => ImportClient,
   recognizer: Recognizer,
   workDirectory: string,
   version: string,
@@ -113,7 +130,7 @@ export async function installGallery(
   const manifestPath = join(directory, manifestFile);
   if (!existsSync(manifestPath)) {
     await mkdir(directory, { recursive: true });
-    await writeFile(manifestPath, await downloadObject(client, `${version}/${manifestFile}`));
+    await writeFile(manifestPath, await downloadObject(client(), `${version}/${manifestFile}`));
   }
   const manifest = (await Bun.file(manifestPath).json()) as Manifest;
   if (manifest.version !== version) {

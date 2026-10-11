@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { featurePrintDimension } from './format';
 import type { ImageCache } from './images';
 import type { GalleryPrinting } from './printings';
-import type { Recognizer } from './recognizer';
+import { type Recognizer, macOSMajor } from './recognizer';
 
 type CacheIndex = {
   macOSMajor: string;
@@ -19,10 +19,6 @@ export type FeaturePrints = {
   reused: number;
 };
 
-function macOSMajor(recognizer: Recognizer): string {
-  return recognizer.about.macOS.split('.')[0]!;
-}
-
 async function cachedCodes(directory: string, recognizer: Recognizer): Promise<Map<string, { image: string; codes: Uint8Array }>> {
   const indexPath = join(directory, 'feature-prints.json');
   const codesPath = join(directory, 'feature-prints.i8');
@@ -31,7 +27,7 @@ async function cachedCodes(directory: string, recognizer: Recognizer): Promise<M
     return cached;
   }
   const index = (await Bun.file(indexPath).json()) as CacheIndex;
-  if (index.macOSMajor !== macOSMajor(recognizer) || index.featurePrintRevision !== recognizer.about.featurePrintRevision) {
+  if (index.macOSMajor !== macOSMajor(recognizer.about.macOS) || index.featurePrintRevision !== recognizer.about.featurePrintRevision) {
     return cached;
   }
   const codes = new Uint8Array(await Bun.file(codesPath).arrayBuffer());
@@ -64,7 +60,7 @@ export async function featurePrints(
     }),
   );
   const index: CacheIndex = {
-    macOSMajor: macOSMajor(recognizer),
+    macOSMajor: macOSMajor(recognizer.about.macOS),
     featurePrintRevision: recognizer.about.featurePrintRevision,
     rows: printings.map((printing) => ({ id: printing.printing.id, image: printing.image })),
   };

@@ -49,9 +49,13 @@ async function cardCatalogSnapshot(client: ImportClient): Promise<string> {
   return data.snapshot_at;
 }
 
+export function normalImage(card: ScryfallCard): string | undefined {
+  return card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal;
+}
+
 function galleryPrinting(card: ScryfallCard, basicLand: boolean): GalleryPrinting | null {
   const faces = card.card_faces ?? [];
-  const image = card.image_uris?.normal ?? faces[0]?.image_uris?.normal;
+  const image = normalImage(card);
   const oracleId = card.oracle_id ?? faces[0]?.oracle_id;
   if (!image || !oracleId || !card.id || !card.name || !card.set || !card.collector_number || !card.released_at) {
     return null;

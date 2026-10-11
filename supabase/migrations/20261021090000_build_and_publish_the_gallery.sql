@@ -61,6 +61,15 @@ begin
 end;
 $$;
 
+create function private.gallery_parity_passed(recorded public.gallery_versions)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select coalesce(recorded.parity_lowest_cosine >= 0.98 and recorded.parity_references >= 24, false);
+$$;
+
 create function public.list_gallery_printings(after_id uuid default null)
 returns table (id uuid, basic_land boolean)
 language sql
@@ -83,16 +92,17 @@ security definer
 set search_path = ''
 as $$
 begin
-  if record_gallery_version.version !~ '^[0-9]{8}-[0-9a-f]{6}$' then
-    perform private.invalid_argument('version', 'version must be a build date and a 6-character ID, such as 20261021-a1b2c3.');
-  end if;
   if jsonb_typeof(record_gallery_version.manifest) is distinct from 'object'
     or record_gallery_version.manifest ->> 'version' is distinct from record_gallery_version.version then
     perform private.invalid_argument('manifest', 'manifest must be an object that names the same version.');
   end if;
-  insert into public.gallery_versions (version, manifest)
-    values (record_gallery_version.version, record_gallery_version.manifest)
-    on conflict do nothing;
+  begin
+    insert into public.gallery_versions (version, manifest)
+      values (record_gallery_version.version, record_gallery_version.manifest)
+      on conflict do nothing;
+  exception when check_violation then
+    perform private.invalid_argument('version', 'version must be a build date and a 6-character ID, such as 20261021-a1b2c3.');
+  end;
   if not found then
     perform private.invalid_argument('version', format('Gallery version %s is already recorded.', record_gallery_version.version));
   end if;
@@ -105,11 +115,13 @@ create function public.record_gallery_parity(
   mean_cosine double precision,
   reference_count integer
 )
-returns void
+returns boolean
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  recorded public.gallery_versions;
 begin
   perform private.gallery_version(record_gallery_parity.version);
   if record_gallery_parity.lowest_cosine is null or record_gallery_parity.lowest_cosine not between -1 and 1 then
@@ -127,7 +139,9 @@ begin
       parity_mean_cosine = record_gallery_parity.mean_cosine,
       parity_references = record_gallery_parity.reference_count,
       parity_checked_at = now()
-    where v.version = record_gallery_parity.version;
+    where v.version = record_gallery_parity.version
+    returning * into recorded;
+  return private.gallery_parity_passed(recorded);
 end;
 $$;
 
@@ -149,7 +163,7 @@ begin
       'version'
     );
   end if;
-  if recorded.parity_lowest_cosine < 0.98 or recorded.parity_references < 24 then
+  if not private.gallery_parity_passed(recorded) then
     perform private.raise_search_error(
       'parity_failed',
       format(
@@ -185,7 +199,11 @@ begin
 end;
 $$;
 
-revoke all on function private.is_published_gallery_object(text), private.gallery_version(text) from public;
+revoke all on function
+  private.is_published_gallery_object(text),
+  private.gallery_version(text),
+  private.gallery_parity_passed(public.gallery_versions)
+from public;
 
 grant execute on function private.is_published_gallery_object(text) to authenticated;
 

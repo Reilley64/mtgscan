@@ -124,6 +124,14 @@ describe('publishing a gallery version', () => {
     expect(error).toMatchObject({ code: 'parity_failed', details: 'version' });
   });
 
+  test('a gallery version ID that is not a build date and a 6-character ID is refused', async () => {
+    const version = '2026-10-21';
+
+    const { error } = await importKeyClient.rpc('record_gallery_version', { version, manifest: { version } });
+
+    expect(error).toMatchObject({ code: 'invalid_argument', details: 'version' });
+  });
+
   test('an unknown gallery version cannot be published', async () => {
     const { error } = await importKeyClient.rpc('publish_gallery_version', { version: '20261021-000000' });
 

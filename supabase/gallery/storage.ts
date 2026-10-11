@@ -1,7 +1,7 @@
 import type { ImportClient } from '../import/import-run';
 import type { Manifest } from './format';
 
-export const galleryBucket = 'gallery';
+const galleryBucket = 'gallery';
 export const pointerFile = 'published.json';
 export const manifestFile = 'manifest.json';
 const immutable = '31536000';
@@ -22,6 +22,12 @@ export type RecordedVersion = {
   parity_references: number | null;
   parity_checked_at: string | null;
   published_at: string | null;
+};
+
+export type ParityCheck = {
+  lowestCosine: number;
+  meanCosine: number;
+  references: number;
 };
 
 export class GalleryRefused extends Error {}
@@ -46,6 +52,14 @@ export async function copyObject(client: ImportClient, from: string, to: string)
   if (error) {
     throw new Error(`Could not copy ${from} to ${to}: ${error.message}`);
   }
+}
+
+export async function signedUrls(client: ImportClient, paths: string[], seconds: number): Promise<Map<string, string>> {
+  const { data, error } = await bucket(client).createSignedUrls(paths, seconds);
+  if (error || !data) {
+    throw new Error(`Could not sign the gallery objects: ${error?.message ?? 'no data'}`);
+  }
+  return new Map(data.flatMap((entry) => (entry.path && entry.signedUrl ? [[entry.path, entry.signedUrl] as const] : [])));
 }
 
 export async function downloadObject(client: ImportClient, path: string): Promise<Uint8Array> {
@@ -114,9 +128,9 @@ export async function recordVersion(client: ImportClient, manifest: Manifest) {
 export async function recordParity(
   client: ImportClient,
   version: string,
-  parity: { lowestCosine: number; meanCosine: number; references: number },
-) {
-  const { error } = await client.rpc('record_gallery_parity', {
+  parity: ParityCheck,
+): Promise<boolean> {
+  const { data, error } = await client.rpc('record_gallery_parity', {
     version,
     lowest_cosine: parity.lowestCosine,
     mean_cosine: parity.meanCosine,
@@ -125,6 +139,7 @@ export async function recordParity(
   if (error) {
     throw refusedOrFailed('Could not record the parity check', error);
   }
+  return data === true;
 }
 
 export async function markPublished(client: ImportClient, version: string): Promise<string> {

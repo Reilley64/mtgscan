@@ -40,7 +40,7 @@ CI does not replay the scanner evidence pack. Before merging a change to the rec
   unset SUPABASE_SECRET_KEY
   ```
 
-- The image cache is `~/Library/Caches/mtgscan/scryfall-images`, outside every worktree. The work folder with the feature prints and the built gallery versions is `~/Library/Caches/mtgscan/gallery`.
+- The image cache is `~/Library/Caches/mtgscan/scryfall-images`, outside every worktree. The work folder with the feature prints and the built gallery versions is `~/Library/Caches/mtgscan/gallery`. macOS can clear `~/Library/Caches` when the disk is full. The build then downloads the missing images and parts again and computes the feature prints again.
 - The first build reuses the images of the prototype. Copy them once. `cp -c` clones the files on APFS, so the copy is fast and uses no more disk space:
 
   ```bash

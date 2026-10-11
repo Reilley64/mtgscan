@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util';
 import { importClientFromEnvironment } from '../import/import-client';
 import { scryfallManifestUrl } from '../import/scryfall-bulk-data';
 import { buildGallery } from './build';
-import { galleryStatus, installGallery, publishGallery, recordParityCheck } from './publish';
+import { galleryStatus, installGallery, publishGallery, recordParityCheck, signVersion } from './publish';
 import { macRecognizer } from './recognizer';
 import { GalleryRefused } from './storage';
 
@@ -14,6 +14,7 @@ const cacheDirectory = join(homedir(), 'Library', 'Caches', 'mtgscan');
 const usage = `Usage:
   bun gallery/main.ts build [--manifest <path or URL>] [--images <dir>] [--work <dir>] [--new-base] [--cached-images-bulk-file <default-cards.jsonl.gz>]
   bun gallery/main.ts parity <version> --lowest-cosine <n> --mean-cosine <n> --references <n>
+  bun gallery/main.ts sign <version> [--hours <n>]
   bun gallery/main.ts publish <version>
   bun gallery/main.ts install <version> [--gallery <dir>] [--work <dir>]
   bun gallery/main.ts status`;
@@ -31,6 +32,7 @@ const { positionals, values } = parseArgs({
     'lowest-cosine': { type: 'string' },
     'mean-cosine': { type: 'string' },
     references: { type: 'string' },
+    hours: { type: 'string', default: '24' },
   },
 });
 
@@ -40,24 +42,30 @@ const parity = {
   meanCosine: Number(values['mean-cosine']),
   references: Number(values.references),
 };
-const versionCommands = new Set(['parity', 'publish', 'install']);
+const versionCommands = new Set(['parity', 'sign', 'publish', 'install']);
+const hours = Number(values.hours);
 const valid =
   (command === 'build' && positionals.length === 1) ||
   (command === 'status' && positionals.length === 1) ||
   (versionCommands.has(command ?? '') && positionals.length === 2);
-const parityValid = command !== 'parity' || Object.values(parity).every((value) => Number.isFinite(value));
+const optionsValid =
+  (command !== 'parity' || Object.values(parity).every((value) => Number.isFinite(value))) &&
+  Number.isFinite(hours) &&
+  hours > 0 &&
+  hours <= 168;
 
-if (!valid || !parityValid) {
+if (!valid || !optionsValid) {
   console.error(usage);
   process.exit(2);
 }
 
-const client = importClientFromEnvironment();
+let connected: ReturnType<typeof importClientFromEnvironment> | undefined;
+const client = () => (connected ??= importClientFromEnvironment());
 
 try {
   switch (command) {
     case 'build':
-      await buildGallery(client, await macRecognizer(), {
+      await buildGallery(client(), await macRecognizer(), {
         manifestLocation: values.manifest,
         imagesDirectory: values.images,
         workDirectory: values.work,
@@ -66,16 +74,19 @@ try {
       });
       break;
     case 'parity':
-      await recordParityCheck(client, version!, parity);
+      await recordParityCheck(client(), version!, parity);
+      break;
+    case 'sign':
+      await signVersion(client(), version!, hours);
       break;
     case 'publish':
-      await publishGallery(client, version!);
+      await publishGallery(client(), version!);
       break;
     case 'install':
       await installGallery(client, await macRecognizer(), values.work, version!, values.gallery ?? join(values.work, 'installed', version!));
       break;
     case 'status':
-      await galleryStatus(client);
+      await galleryStatus(client());
       break;
   }
 } catch (error) {

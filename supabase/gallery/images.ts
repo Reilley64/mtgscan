@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { readGzipJsonLines } from '../import/gzip-json-lines';
 import { importUserAgent } from '../import/source-file';
 import type { ScryfallCard } from '../import/scryfall-bulk-data';
-import type { GalleryPrinting } from './printings';
+import { type GalleryPrinting, normalImage } from './printings';
 
 const downloadConcurrency = 8;
 const attempts = 4;
@@ -27,7 +27,7 @@ async function imageUrlsFromBulkFile(file: string): Promise<Map<string, string>>
   const urls = new Map<string, string>();
   for await (const record of readGzipJsonLines(Bun.file(file).stream())) {
     const card = record as ScryfallCard;
-    const image = card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal;
+    const image = normalImage(card);
     if (card.id && image) {
       urls.set(card.id, image);
     }

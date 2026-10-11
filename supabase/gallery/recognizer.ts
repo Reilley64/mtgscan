@@ -12,6 +12,10 @@ export type RecognizerAbout = {
   dimension: number;
 };
 
+export function macOSMajor(macOS: string): string {
+  return macOS.split('.')[0]!;
+}
+
 export type Recognizer = {
   about: RecognizerAbout;
   encode: (images: string[]) => Promise<Uint8Array>;

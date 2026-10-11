@@ -23,7 +23,7 @@ setDefaultTimeout(120_000);
 type ManifestPart = {
   name: string;
   kind: 'gallery' | 'printing_list';
-  layer: number;
+  addOn: number;
   firstRow: number;
   rowCount: number;
   compressedBytes: number;
@@ -87,9 +87,9 @@ async function manifestOf(version: string): Promise<Manifest> {
   return JSON.parse(new TextDecoder().decode(await download(`${version}/manifest.json`)));
 }
 
-async function printingList(manifest: Manifest, layer: number): Promise<PrintingListRow[]> {
+async function printingList(manifest: Manifest, addOn: number): Promise<PrintingListRow[]> {
   const rows: PrintingListRow[] = [];
-  for (const part of manifest.parts.filter((part) => part.kind === 'printing_list' && part.layer === layer)) {
+  for (const part of manifest.parts.filter((part) => part.kind === 'printing_list' && part.addOn === addOn)) {
     rows.push(...JSON.parse(inflateSync(await download(`${manifest.version}/${part.name}`)).toString('utf8')));
   }
   return rows;
@@ -147,7 +147,7 @@ describe('the first gallery build', () => {
 
   test('uploads a base that is not published, with a SHA-256 for each part', async () => {
     expect(manifest.rows).toBe(firstBuildRows);
-    expect(manifest.parts.map((part) => [part.kind, part.layer])).toEqual([
+    expect(manifest.parts.map((part) => [part.kind, part.addOn])).toEqual([
       ['gallery', 0],
       ['printing_list', 0],
     ]);
@@ -166,6 +166,16 @@ describe('the first gallery build', () => {
     const { data } = await alice.client.storage.from('gallery').download(`${version}/manifest.json`);
 
     expect(data).toBeNull();
+  });
+
+  test('signed URLs let a development build download a version that is not published', async () => {
+    const signed = await runGalleryCommand('sign', version, '--hours', '1');
+    const links = JSON.parse(signed.output) as { manifest: string; parts: Record<string, string> };
+    const manifest = (await (await fetch(links.manifest)).json()) as Manifest;
+
+    expect(signed.exitCode).toBe(0);
+    expect(manifest.version).toBe(version);
+    expect(Object.keys(links.parts).sort()).toEqual(manifest.parts.map((part) => part.name).sort());
   });
 
   test('the printing list keeps only card printings in the card catalog, without front cards, in release order', async () => {
@@ -263,19 +273,19 @@ describe('the next gallery builds', () => {
   test('new card printings and a changed image go into an add-on, and the base parts stay the same', async () => {
     const addOnRows = await printingList(addOn, 1);
 
-    expect(addOn.parts.filter((part) => part.layer === 0)).toEqual(first.parts);
+    expect(addOn.parts.filter((part) => part.addOn === 0)).toEqual(first.parts);
     expect(addOnRows.map((row) => row.name).sort()).toEqual([blackLotus, lightningBolt, lightningBolt, lightningBolt]);
     expect(addOn.rows).toBe(firstBuildRows + 3);
   });
 
   test('a phone with the published version downloads only the add-on', () => {
-    const addOnBytes = addOn.parts.filter((part) => part.layer === 1).reduce((sum, part) => sum + part.compressedBytes, 0);
+    const addOnBytes = addOn.parts.filter((part) => part.addOn === 1).reduce((sum, part) => sum + part.compressedBytes, 0);
 
     expect(addOnOutput).toContain(`downloads ${(addOnBytes / 1_000_000).toFixed(1)} MB to update`);
   });
 
   test('when add-ons pass 10% of the base, the build cuts a new base', () => {
-    expect(newBase.parts.every((part) => part.layer === 0)).toBe(true);
+    expect(newBase.parts.every((part) => part.addOn === 0)).toBe(true);
     expect(newBase.rows).toBe(firstBuildRows + 3);
   });
 

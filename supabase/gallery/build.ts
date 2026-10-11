@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -8,22 +7,21 @@ import { featurePrints } from './feature-prints';
 import {
   type GalleryRow,
   type Manifest,
-  type ManifestPart,
   type Part,
   addOnLimit,
   featurePrintDimension,
+  galleryFormatVersion,
+  galleryParts,
   installedRows,
-  layerParts,
-  manifestFormatVersion,
   newVersionId,
+  updateBytes,
 } from './format';
 import { cachedImages } from './images';
 import { galleryPrintings } from './printings';
-import type { Recognizer } from './recognizer';
+import { type Recognizer, macOSMajor } from './recognizer';
 import {
   type RecordedVersion,
   copyObject,
-  downloadObject,
   manifestFile,
   publishedVersions,
   recordVersion,
@@ -32,6 +30,7 @@ import {
   uploadObject,
 } from './storage';
 import { evidenceVersion, recognizerCommit } from './repository';
+import { localPartBytes, versionDirectory } from './work-folder';
 
 export type BuildOptions = {
   manifestLocation: string;
@@ -43,37 +42,11 @@ export type BuildOptions = {
 
 type Plan =
   | { kind: 'base'; reason: string }
-  | { kind: 'add-on'; layer: number; firstRow: number; changed: GalleryRow[] }
+  | { kind: 'add-on'; addOn: number; firstRow: number; changed: GalleryRow[] }
   | { kind: 'unchanged' };
-
-export function versionDirectory(workDirectory: string, version: string): string {
-  return join(workDirectory, 'versions', version);
-}
-
-export async function localPartBytes(
-  client: ImportClient,
-  workDirectory: string,
-  version: string,
-  part: ManifestPart,
-): Promise<Uint8Array> {
-  const directory = versionDirectory(workDirectory, version);
-  const file = join(directory, part.name);
-  if (existsSync(file)) {
-    return new Uint8Array(await Bun.file(file).arrayBuffer());
-  }
-  console.error(`Downloading ${version}/${part.name} from Storage.`);
-  const bytes = await downloadObject(client, `${version}/${part.name}`);
-  await mkdir(directory, { recursive: true });
-  await writeFile(file, bytes);
-  return bytes;
-}
 
 function sameRow(a: GalleryRow, b: GalleryRow): boolean {
   return JSON.stringify(a.printing) === JSON.stringify(b.printing) && Buffer.from(a.codes).equals(Buffer.from(b.codes));
-}
-
-function majorVersion(macOS: string): string {
-  return macOS.split('.')[0]!;
 }
 
 function plan(rows: GalleryRow[], published: RecordedVersion | null, installed: Map<string, GalleryRow> | null, recognizer: Recognizer, newBase: boolean): Plan {
@@ -90,7 +63,7 @@ function plan(rows: GalleryRow[], published: RecordedVersion | null, installed: 
   if (manifest.encoding.type !== 'int8') {
     return { kind: 'base', reason: 'the encoding changed' };
   }
-  if (majorVersion(manifest.builtWith.macOS) !== majorVersion(recognizer.about.macOS)) {
+  if (macOSMajor(manifest.builtWith.macOS) !== macOSMajor(recognizer.about.macOS)) {
     return { kind: 'base', reason: 'the macOS major version changed' };
   }
   const changed = rows.filter((row) => {
@@ -100,16 +73,19 @@ function plan(rows: GalleryRow[], published: RecordedVersion | null, installed: 
   if (changed.length === 0) {
     return { kind: 'unchanged' };
   }
-  const galleryParts = manifest.parts.filter((part) => part.kind === 'gallery');
-  const baseRows = galleryParts.filter((part) => part.layer === 0).reduce((sum, part) => sum + part.rowCount, 0);
-  const addOnRows = galleryParts.filter((part) => part.layer > 0).reduce((sum, part) => sum + part.rowCount, 0);
+  const publishedGalleryParts = manifest.parts.filter((part) => part.kind === 'gallery');
+  const baseRows = publishedGalleryParts.filter((part) => part.addOn === 0).reduce((sum, part) => sum + part.rowCount, 0);
+  const addOnRows = publishedGalleryParts.filter((part) => part.addOn > 0).reduce((sum, part) => sum + part.rowCount, 0);
   if (addOnRows + changed.length > baseRows * addOnLimit) {
-    return { kind: 'base', reason: `add-ons would hold ${addOnRows + changed.length} rows, more than 10% of the ${baseRows} base rows` };
+    return {
+      kind: 'base',
+      reason: `add-ons would hold ${addOnRows + changed.length} rows, more than ${addOnLimit * 100}% of the ${baseRows} base rows`,
+    };
   }
   return {
     kind: 'add-on',
-    layer: Math.max(...galleryParts.map((part) => part.layer)) + 1,
-    firstRow: galleryParts.reduce((sum, part) => sum + part.rowCount, 0),
+    addOn: Math.max(...publishedGalleryParts.map((part) => part.addOn)) + 1,
+    firstRow: publishedGalleryParts.reduce((sum, part) => sum + part.rowCount, 0),
     changed,
   };
 }
@@ -172,10 +148,15 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
   const publishedParts = new Map<string, Uint8Array>();
   if (published) {
     for (const part of published.manifest.parts) {
-      publishedParts.set(part.name, await localPartBytes(client, options.workDirectory, published.version, part));
+      publishedParts.set(part.name, await localPartBytes(() => client, options.workDirectory, published.version, part));
     }
   }
   const installed = published ? installedRows(published.manifest, (part) => publishedParts.get(part.name)!) : null;
+  const current = new Set(rows.map((row) => row.printing.id));
+  const leftOver = installed ? [...installed.keys()].filter((id) => !current.has(id)).length : 0;
+  if (leftOver > 0) {
+    console.log(`${leftOver} rows of gallery version ${published!.version} are no longer in the card catalog. They stay until the next base.`);
+  }
   const decision = plan(rows, published, installed, recognizer, options.newBase);
   if (decision.kind === 'unchanged') {
     console.log(`Nothing changed since gallery version ${published!.version}. No new version was built.`);
@@ -185,17 +166,17 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
   let parts: Part[];
   if (decision.kind === 'base') {
     console.log(`Building a new base, because ${decision.reason}.`);
-    parts = layerParts(0, 0, rows);
+    parts = galleryParts(0, 0, rows);
   } else {
-    console.log(`Building add-on ${decision.layer} with ${decision.changed.length} new or changed rows.`);
+    console.log(`Building add-on ${decision.addOn} with ${decision.changed.length} new or changed rows.`);
     parts = [
       ...published!.manifest.parts.map((part) => ({ ...part, bytes: publishedParts.get(part.name)! })),
-      ...layerParts(decision.layer, decision.firstRow, decision.changed),
+      ...galleryParts(decision.addOn, decision.firstRow, decision.changed),
     ];
   }
   const distinctRows = decision.kind === 'base' ? rows.length : new Set([...installed!.keys(), ...decision.changed.map((row) => row.printing.id)]).size;
   const manifest: Manifest = {
-    formatVersion: manifestFormatVersion,
+    formatVersion: galleryFormatVersion,
     version,
     builtAt: new Date().toISOString(),
     featurePrint: {
@@ -222,18 +203,14 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
   await upload(client, manifest, parts, published);
   timings.push(`upload ${seconds(startedAt)}`);
 
-  const updateBytes = published
-    ? manifest.parts
-        .filter((part) => !published.manifest.parts.some((earlier) => earlier.sha256 === part.sha256))
-        .reduce((sum, part) => sum + part.compressedBytes, 0)
-    : null;
+
   const evidence = await evidenceVersion();
   const kept = [manifest, ...[published, versions.find((recorded) => recorded.version === evidence)]
     .filter((recorded): recorded is RecordedVersion => !!recorded)
     .filter((recorded, index, all) => all.findIndex((other) => other.version === recorded.version) === index)
     .map((recorded) => recorded.manifest)];
   console.log(`Uploaded gallery version ${version}. It is not published.`);
-  for (const line of budgetReport(manifest, kept, updateBytes)) {
+  for (const line of budgetReport(manifest, kept, published ? updateBytes(manifest, published.manifest) : null)) {
     console.log(line);
   }
   console.log(`Timings: ${timings.join(', ')}.`);
