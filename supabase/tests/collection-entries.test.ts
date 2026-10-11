@@ -1,13 +1,6 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import {
-  readScanBatchError,
-  type CardCondition,
-  type CardLanguage,
-  type ScanBatch,
-  type ScanBatchResult,
-  type ScanBatchStack,
-} from '../collection';
+import { type CardCondition, type CardLanguage } from '../collection';
 import type { Json } from '../database.types';
 import type { Finish } from '../search';
 import {
@@ -18,6 +11,7 @@ import {
   type ScryfallRecord,
 } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
+import { addScanBatch, committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
 
@@ -76,34 +70,6 @@ function withBasicLands(records: ScryfallRecord[]): ScryfallRecord[] {
       edhrec_rank: undefined,
     })),
   ];
-}
-
-type StackChanges = Partial<Omit<ScanBatchStack, 'card_printing_id'>>;
-
-function stack(cardPrintingId: string, changes: StackChanges = {}): ScanBatchStack {
-  return {
-    card_printing_id: cardPrintingId,
-    finish: 'nonfoil',
-    condition: 'near_mint',
-    language: 'en',
-    quantity: 1,
-    ...changes,
-  };
-}
-
-function scanBatch(items: unknown[]): ScanBatch {
-  return { idempotency_key: crypto.randomUUID(), items: items as ScanBatchStack[] };
-}
-
-async function addScanBatch(user: { client: AppClient }, batch: ScanBatch | Record<string, unknown> | unknown[]) {
-  const { data, error } = await user.client.rpc('add_scan_batch', { batch: batch as Json });
-  return { result: data as unknown as ScanBatchResult | null, error: error && readScanBatchError(error) };
-}
-
-async function committed(user: TestUser, batch: ScanBatch) {
-  const { result, error } = await addScanBatch(user, batch);
-  expect(error).toBeNull();
-  return result!;
 }
 
 type EntryRow = {

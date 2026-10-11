@@ -5,6 +5,7 @@ import {
   type Session,
   type User,
 } from '@supabase/supabase-js';
+import type { CollectionPrintingRow, CollectionPrintingsQuery } from '@mtgscan/supabase/collection';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 
 import type { SignInProvider } from '@/auth/sign-in';
@@ -24,6 +25,8 @@ let nextSignInEmail = defaultEmail;
 let nextSignInError: AuthError | null = null;
 const listeners = new Set<AuthListener>();
 const users = new Map<string, User>();
+let collectionPrintings: CollectionPrintingRow[] = [];
+let failingCollectionReads = 0;
 
 const issuers: Record<SignInProvider, string> = {
   apple: 'https://appleid.apple.com',
@@ -73,11 +76,33 @@ async function nonceMatches(provider: SignInProvider, token: string, nonce: stri
   );
 }
 
+function collectionPrintingsPage({ cursor, limit = 60 }: CollectionPrintingsQuery) {
+  if (failingCollectionReads > 0) {
+    failingCollectionReads -= 1;
+    return { data: null, error: { code: 'PGRST000', message: 'Network request failed', details: null } };
+  }
+  const start = cursor ? Number(cursor) : 0;
+  const end = start + limit;
+  return {
+    data: {
+      items: collectionPrintings.slice(start, end),
+      next_cursor: end < collectionPrintings.length ? String(end) : null,
+    },
+    error: null,
+  };
+}
+
 function notify(event: AuthChangeEvent) {
   listeners.forEach((listener) => listener(event, session));
 }
 
 export const fakeSupabase = {
+  async rpc(name: string, { query }: { query: CollectionPrintingsQuery }) {
+    if (name !== 'list_collection_printings') {
+      throw new Error(`The fake Supabase client has no ${name} function`);
+    }
+    return collectionPrintingsPage(query);
+  },
   auth: {
     onAuthStateChange(listener: AuthListener) {
       listeners.add(listener);
@@ -128,8 +153,18 @@ export function failNextSignIn(error: AuthError) {
   nextSignInError = error;
 }
 
+export function ownCollectionPrintings(printings: CollectionPrintingRow[]) {
+  collectionPrintings = printings;
+}
+
+export function failCollectionReads(count: number) {
+  failingCollectionReads = count;
+}
+
 export function resetFakeSupabase() {
   session = null;
+  collectionPrintings = [];
+  failingCollectionReads = 0;
   nextSignInEmail = defaultEmail;
   nextSignInError = null;
   listeners.clear();

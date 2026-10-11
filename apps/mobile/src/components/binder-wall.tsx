@@ -1,17 +1,16 @@
-import { Image } from 'expo-image';
 import { useEffect, useMemo, useState } from 'react';
 import {
   AccessibilityInfo,
   Animated,
   Easing,
   StyleSheet,
-  Text,
   useAnimatedValue,
   useWindowDimensions,
   View,
 } from 'react-native';
 
-import { colors, rounded, spacing, typography } from '@/theme';
+import { CardImage, cardHeightPerWidth } from '@/components/card-image';
+import { spacing } from '@/theme';
 
 type WallCard = {
   name: string;
@@ -126,7 +125,6 @@ const columns: WallColumn[] = [
   },
 ];
 
-const cardHeightPerWidth = 680 / 488;
 const wallOverhang = 10;
 const wallPadding = spacing.md;
 const columnGap = spacing.sm;
@@ -190,15 +188,7 @@ function DriftColumn({ cards, tileHeight, durationMs, startProgress, drifting }:
     <View style={styles.column}>
       <Animated.View style={[styles.columnTiles, { transform: [{ translateY }] }]}>
         {[...cards, ...cards].map((card, index) => (
-          <View key={`${card.name}-${index}`} style={[styles.tile, { height: tileHeight }]}>
-            <Image
-              source={card.image}
-              cachePolicy="disk"
-              transition={200}
-              style={StyleSheet.absoluteFill}
-            />
-            {card.quantity && <Text style={styles.quantity}>{card.quantity}</Text>}
-          </View>
+          <CardImage key={`${card.name}-${index}`} uri={card.image} quantity={card.quantity} />
         ))}
       </Animated.View>
     </View>
@@ -249,25 +239,5 @@ const styles = StyleSheet.create({
   },
   columnTiles: {
     gap: tileGap,
-  },
-  tile: {
-    borderRadius: rounded.sm,
-    overflow: 'hidden',
-    backgroundColor: colors.line,
-  },
-  quantity: {
-    position: 'absolute',
-    top: 5,
-    left: 5,
-    minWidth: 19,
-    height: 19,
-    paddingHorizontal: 5,
-    borderRadius: rounded.full,
-    overflow: 'hidden',
-    backgroundColor: colors.quantityBadge,
-    color: colors.text,
-    ...typography.tabLabel,
-    lineHeight: 19,
-    textAlign: 'center',
   },
 });

@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from 'expo-router/testing-library';
+import { act, fireEvent, screen, within } from 'expo-router/testing-library';
 
 function hostViews(type: string) {
   return screen.container.queryAll((instance) => instance.type === type);
@@ -82,4 +82,37 @@ export function appearsBefore(
 ) {
   const hosts = screen.container.queryAll(() => true);
   return hosts.indexOf(first) < hosts.indexOf(second);
+}
+
+type HostElement = ReturnType<typeof screen.getByRole>;
+
+export function cardImageUri(tile: HostElement) {
+  const [image] = tile.queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage');
+  if (!image) {
+    throw new Error('No card image is in this tile');
+  }
+  return image.props.source?.[0]?.uri;
+}
+
+export async function scrollToEnd(tab: HostElement) {
+  const [list] = tab.queryAll((instance) => instance.type === 'RCTScrollView');
+  if (!list) {
+    throw new Error('No scroll view is in this tab');
+  }
+  const viewport = { width: 400, height: 800 };
+  const content = { width: 400, height: 10_000 };
+  await fireEvent(list, 'layout', { nativeEvent: { layout: { x: 0, y: 0, ...viewport } } });
+  await fireEvent(list, 'contentSizeChange', content.width, content.height);
+  const scrolledToEnd = {
+    nativeEvent: {
+      contentOffset: { x: 0, y: content.height - viewport.height },
+      contentSize: content,
+      layoutMeasurement: viewport,
+    },
+  };
+  await fireEvent.scroll(list, scrolledToEnd);
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+  await fireEvent.scroll(list, scrolledToEnd);
 }

@@ -32,6 +32,26 @@ export type ScanBatchResult = {
   items: ScanBatchResultItem[];
 };
 
+export type CollectionPrintingsQuery = {
+  limit?: number;
+  cursor?: string | null;
+};
+
+export type CollectionPrintingRow = {
+  printing_id: string;
+  name: string;
+  set: string;
+  collector_number: string;
+  image_uris: string[];
+  owned_quantity: number;
+  latest_addition_at: string;
+};
+
+export type CollectionPrintingsPage = {
+  items: CollectionPrintingRow[];
+  next_cursor: string | null;
+};
+
 export type ScanBatchErrorCode = 'invalid_argument' | 'unknown_printing' | 'basic_land' | 'idempotency_conflict';
 
 export type ScanBatchError = Omit<SearchError, 'code'> & { code: ScanBatchErrorCode };

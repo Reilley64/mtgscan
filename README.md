@@ -73,6 +73,16 @@ Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_
 - A repeated idempotency key with the same stacks returns the first result with `replayed` true and changes nothing. With different stacks it fails with `idempotency_conflict`.
 - A refused call writes nothing. Its error has a `code` of `invalid_argument`, `unknown_printing`, `basic_land`, or `idempotency_conflict`, and the field at fault in `details`, such as `items[3].finish`. `readScanBatchError` reads it.
 
+### Binder grid read
+
+Signed-in users read their collection as card printings with `supabase.rpc('list_collection_printings', { query })`. The query has an optional `limit` from 1 to 120, which defaults to 60, and an optional `cursor`. `supabase/collection.ts` has the shared types for the query and the page.
+
+- Each row is one card printing that the user owns: `printing_id`, `name`, `set`, `collector_number`, `image_uris`, `owned_quantity`, and `latest_addition_at`.
+- The owned quantity sums every collection entry of the card printing, across finish, condition, language, protected flag, and user tags.
+- Rows sort by the latest addition time, newest first, then by name, then by card printing ID.
+- `next_cursor` reads the next page. A cursor works only for the user who got it, for 15 minutes. A refused call has the code `invalid_argument` or `invalid_cursor` and the field at fault in `details`, as in catalog search.
+- The function reads only the caller's collection entries. It runs as `security definer`, like the other app reads, because the `private` helpers it uses are closed to app roles. It filters the rows on the caller instead of relying on the read policy. An anonymous caller and the secret key are refused.
+
 ### Search release check
 
 `bun run release-check` in `supabase` runs every search in the graded search corpus through catalog search with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. It reports whether search is ready to release. It exits with a failure unless every exact-name search ranks its card first, classes 2 to 4 each reach a capped recall@20 of 0.7 or more, and no returned card fails a chip in its query. The Release check workflow runs it by hand against the hosted project. It never runs on pull requests or on a schedule. `supabase/release-check/README.md` describes the corpus, the grading rule, and the report.

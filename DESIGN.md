@@ -266,7 +266,9 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Filter chips: All, Suggestions, Planned swaps, Buylist, Deck changes.
   - Every item keeps its actions inline: Promote, Dismiss, Swap in, Bought, and revert from here.
 - **Collection** is a binder grid.
-  - Card images sit 3 per row, with **one tile per printing**.
+  - Card images sit 3 per row, with **one tile per printing**, newest addition first. More tiles load as the user scrolls. The tab reloads when it gains focus.
+  - With no collection entries, the tab shows "Your collection is empty" and "Scan cards to add them to your collection."
+  - When the read fails, the tab shows "Could not load your collection" and "Check your connection." with a **Try again** button.
   - Corner badges total every copy of that printing, across finish, condition, language, and protected: owned, free, in decks, held by a planned swap, and protected.
   - Free follows the glossary's free copy, so it includes protected free copies. The protected badge shows beside it.
   - Search matches name, type, and printing, in the collection only. Filters: All, Free, Allocated, Protected.
@@ -333,7 +335,7 @@ The interface is flat. Depth comes from tone, not shadow.
 - Buttons and segmented controls use 8 px corners.
 - Content cards and page sheets use 12 px corners. Sheets round only their top corners.
 - Card thumbnails use 4 px corners at a 63:88 card ratio. Full card images keep their own printed shape.
-- Binder wall tiles on the sign-in screen use 8 px corners.
+- Binder tiles and the binder wall tiles on the sign-in screen use 8 px corners.
 
 ## Components
 
@@ -349,6 +351,10 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Latest-scan chip.** One horizontal chip at the bottom of Scan: a thumbnail, the card name, and the set and number, plus the finish when not nonfoil. A new scan replaces it. A pulsing skeleton chip, with a grey image block and two grey lines, shows from the moment a detected card is stable until the result arrives. Tapping the chip opens a page sheet with the details, other options, every same-text printing, and "None of these: search".
 - **Batch button.** A round card-stack icon at the top right of Scan with a count badge. It opens batch review, which merges identical copies into stacks before "Add to collection".
 - **Binder tile.** One printing's card image, with a set and collector number caption and corner badges totalled over its copies. Tiles of printings with a foil copy carry a subtle sheen.
+  - Until the image loads, the tile is a line-colored card shape.
+  - The caption is meta text in text muted: the set code in capitals and the collector number, such as "ISD 51".
+  - The owned badge sits in the top left corner. It is a quantity badge with the number of owned copies.
+  - Tiles open nothing yet. The card page, the other badges, and the sheen come later.
 - **Commander gallery card.** Full-width commander art with a dark gradient, the deck name in card-title type, status chips, and a Needs you badge.
 
 ## Do's and Don'ts

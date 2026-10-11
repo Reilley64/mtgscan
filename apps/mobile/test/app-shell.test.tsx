@@ -28,17 +28,6 @@ test('the tab bar shows Recent, Collection, Decks, and Scan in that order', asyn
   expect(tabBarLabels()).toEqual(['Recent', 'Collection', 'Decks', 'Scan']);
 });
 
-test('Collection says the collection is empty and that scanning adds cards', async () => {
-  await renderApp();
-
-  await pressTab('Collection');
-
-  const collection = within(selectedTab());
-  expect(collection.getByRole('header', { name: 'Collection' })).toBeOnTheScreen();
-  expect(collection.getByText('Your collection is empty')).toBeOnTheScreen();
-  expect(collection.getByText('Scan cards to add them to your collection.')).toBeOnTheScreen();
-});
-
 test("Decks says there are no decks yet and that a deck starts from a commander's card page", async () => {
   await renderApp();
 
