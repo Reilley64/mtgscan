@@ -1,6 +1,6 @@
 {
  "recordedWith": {
-  "recognizerCommit": "4f08247",
+  "recognizerCommit": "bfeac77",
   "featurePrint": "VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values",
   "gallery": {
    "directory": ".data/catalog",
