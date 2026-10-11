@@ -36,12 +36,11 @@ select
   entry.quantity,
   deck_use.allocated_quantity,
   deck_use.held_quantity,
-  greatest(entry.quantity - deck_use.allocated_quantity - deck_use.held_quantity, 0) as free_quantity,
-  deck_use.deck_ids
+  greatest(entry.quantity - deck_use.allocated_quantity - deck_use.held_quantity, 0) as free_quantity
 from public.collection_entries entry
 join public.card_printings printing on printing.id = entry.card_printing_id
 cross join lateral (
-  select 0 as allocated_quantity, 0 as held_quantity, '{}'::uuid[] as deck_ids
+  select 0 as allocated_quantity, 0 as held_quantity
 ) deck_use
 where entry.user_id = auth.uid();
 
@@ -79,7 +78,6 @@ as $$
 begin
   perform private.checked_uuid_list(field, value, 10);
   perform private.invalid_argument(format('%s[0]', field), format('%s[0] is not one of your decks.', field));
-  return value;
 end;
 $$;
 
@@ -306,6 +304,41 @@ begin
 end;
 $$;
 
+create function private.printing_filter_conditions(checked jsonb, printing_condition text)
+returns text[]
+language plpgsql
+stable
+set search_path = ''
+as $$
+declare
+  conditions text[] := '{}';
+  value text;
+begin
+  for value in select jsonb_array_elements_text(checked -> 'sets') loop
+    conditions := conditions || format(printing_condition, format('p.set_code = %L', value));
+  end loop;
+  if checked ? 'sets_exclude' then
+    conditions := conditions || format(
+      'not ' || printing_condition,
+      format('p.set_code = any (%L::text[])', array(select jsonb_array_elements_text(checked -> 'sets_exclude')))
+    );
+  end if;
+  for value in select jsonb_array_elements_text(checked -> 'rarities') loop
+    conditions := conditions || format(printing_condition, format('p.rarity = %L', value));
+  end loop;
+  if checked ? 'rarities_exclude' then
+    conditions := conditions || format(
+      'not ' || printing_condition,
+      format(
+        'p.rarity = any (%L::public.card_rarity[])',
+        array(select jsonb_array_elements_text(checked -> 'rarities_exclude'))
+      )
+    );
+  end if;
+  return conditions;
+end;
+$$;
+
 create or replace function private.catalog_filter_conditions(checked jsonb)
 returns text[]
 language plpgsql
@@ -314,33 +347,12 @@ set search_path = ''
 as $$
 declare
   conditions text[] := array['c.commander_legality = ''legal''', 'c.absent_since is null']
-    || private.card_filter_conditions(checked);
-  present_printing constant text :=
-    'exists (select 1 from public.card_printings p where p.oracle_id = c.oracle_id and p.absent_since is null and %s)';
-  value text;
+    || private.card_filter_conditions(checked)
+    || private.printing_filter_conditions(
+      checked,
+      'exists (select 1 from public.card_printings p where p.oracle_id = c.oracle_id and p.absent_since is null and %s)'
+    );
 begin
-  for value in select jsonb_array_elements_text(checked -> 'sets') loop
-    conditions := conditions || format(present_printing, format('p.set_code = %L', value));
-  end loop;
-  if checked ? 'sets_exclude' then
-    conditions := conditions || format(
-      'not ' || present_printing,
-      format('p.set_code = any (%L::text[])', array(select jsonb_array_elements_text(checked -> 'sets_exclude')))
-    );
-  end if;
-  for value in select jsonb_array_elements_text(checked -> 'rarities') loop
-    conditions := conditions || format(present_printing, format('p.rarity = %L', value));
-  end loop;
-  if checked ? 'rarities_exclude' then
-    conditions := conditions || format(
-      'not ' || present_printing,
-      format(
-        'p.rarity = any (%L::public.card_rarity[])',
-        array(select jsonb_array_elements_text(checked -> 'rarities_exclude'))
-      )
-    );
-  end if;
-
   if checked ? 'price_min' or checked ? 'price_max' then
     conditions := conditions || format(
       'exists (select 1 from public.card_lowest_prices lp where lp.oracle_id = c.oracle_id and lp.currency = %L and %s)',
@@ -353,6 +365,7 @@ begin
 end;
 $$;
 
+
 create function private.collection_filter_conditions(checked jsonb)
 returns text[]
 language plpgsql
@@ -360,29 +373,11 @@ stable
 set search_path = ''
 as $$
 declare
-  conditions text[] := private.card_filter_conditions(checked);
+  conditions text[] := private.card_filter_conditions(checked)
+    || private.printing_filter_conditions(checked, '(%s)');
   entry_chip text[];
   value text;
 begin
-  for value in select jsonb_array_elements_text(checked -> 'sets') loop
-    conditions := conditions || format('p.set_code = %L', value);
-  end loop;
-  if checked ? 'sets_exclude' then
-    conditions := conditions || format(
-      'p.set_code <> all (%L::text[])',
-      array(select jsonb_array_elements_text(checked -> 'sets_exclude'))
-    );
-  end if;
-  for value in select jsonb_array_elements_text(checked -> 'rarities') loop
-    conditions := conditions || format('p.rarity = %L', value);
-  end loop;
-  if checked ? 'rarities_exclude' then
-    conditions := conditions || format(
-      'p.rarity <> all (%L::public.card_rarity[])',
-      array(select jsonb_array_elements_text(checked -> 'rarities_exclude'))
-    );
-  end if;
-
   foreach entry_chip slice 1 in array array[
     ['finishes', 'finish'],
     ['conditions', 'condition'],

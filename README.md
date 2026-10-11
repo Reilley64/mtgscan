@@ -93,6 +93,7 @@ Signed-in users search their own collection entries with `supabase.rpc('search_c
 - `is_free` matches entries with at least one free copy. A protected copy can be free. `is_protected` matches the protected flag. The Collection tab's Free filter is `is_free: true` with `is_protected: false`.
 - `deck_ids` and `deck_ids_exclude` take deck IDs. Until decks exist, every deck ID is refused with `invalid_argument` on its field.
 - Each row has the collection entry's quantity, free quantity, allocated quantity, and held quantity, from the collection availability view. The view has one row for each collection entry of the caller. Allocated and held quantities are zero until decks and planned swaps exist.
+- Collection search runs as a database function with the owner's rights, like catalog search. So the read policy on `collection_entries` does not apply inside it. The view applies the same rule as the policy: it keeps only rows whose user is the caller.
 - Catalog search, `get_cards`, and `list_card_printings` read owned quantities from the same view. A printing list keeps an absent card printing when the caller owns it.
 - Each first page writes one row to `search_telemetry` with the API `collection`. The secret key cannot call collection search.
 

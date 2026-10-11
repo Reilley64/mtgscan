@@ -113,6 +113,11 @@ function everyLabelExcept(...excluded: EntryLabel[]) {
   return everyLabel.filter((label) => !excluded.includes(label)).toSorted();
 }
 
+function withIssueTime(cursor: string, issuedAt: number) {
+  const payload = JSON.parse(Buffer.from(cursor, 'base64').toString('utf8'));
+  return Buffer.from(JSON.stringify({ ...payload, issued_at: issuedAt })).toString('base64');
+}
+
 async function allPages(query: CollectionQuery, user: TestUser) {
   const pages: SearchPage<CollectionRow>[] = [];
   let cursor: string | null = null;
@@ -247,46 +252,98 @@ describe('after a catalog import', () => {
 
   describe('chips', () => {
     test.each<[string, CollectionQuery, EntryLabel[]]>([
-      ['name', { names: ['curator'] }, ['curator', 'etchedCurator', 'japaneseCurator']],
-      ['type', { types: ['creature'], types_exclude: ['angel'] }, ['fogBank', 'frenchTitan', 'protectedDelver']],
+      ['a name chip matches the card name', { names: ['curator'] }, ['curator', 'etchedCurator', 'japaneseCurator']],
       [
-        'mana value',
+        'a type chip and a negated type chip match the type line',
+        { types: ['creature'], types_exclude: ['angel'] },
+        ['fogBank', 'frenchTitan', 'protectedDelver'],
+      ],
+      [
+        'mana value bounds match the card mana value',
         { mana_value_min: 2, mana_value_max: 2 },
         ['curator', 'etchedCurator', 'fogBank', 'japaneseCurator'],
       ],
-      ['color', { colors: ['G'] }, ['frenchTitan', 'germanFog']],
-      ["set of the entry's own card printing", { sets: ['mh2'] }, ['curator', 'etchedCurator']],
-      ['negated set', { names: ['curator'], sets_exclude: ['mh2'] }, ['japaneseCurator']],
+      ['a color chip matches the card colors', { colors: ['G'] }, ['frenchTitan', 'germanFog']],
       [
-        "rarity of the entry's own card printing",
+        'a negated color chip leaves out cards of that color',
+        { colors_exclude: ['G'] },
+        everyLabelExcept('frenchTitan', 'germanFog'),
+      ],
+      [
+        'a color identity chip matches cards that fit the deck',
+        { identity_subset_of: ['W'] },
+        ['blackLotus', 'curator', 'etchedCurator', 'japaneseCurator'],
+      ],
+      ["a set chip matches the entry's own card printing", { sets: ['mh2'] }, ['curator', 'etchedCurator']],
+      [
+        "a negated set chip leaves out the entry's own card printing",
+        { names: ['curator'], sets_exclude: ['mh2'] },
+        ['japaneseCurator'],
+      ],
+      [
+        "a rarity chip matches the entry's own card printing",
         { rarities: ['common'] },
         ['germanFog', 'japaneseCurator', 'protectedDelver', 'taggedBolt'],
       ],
-      ['negated rarity', { names: ['curator'], rarities_exclude: ['common'] }, ['curator', 'etchedCurator']],
-      ['finish', { finishes: ['foil'] }, ['frenchTitan', 'japaneseCurator']],
-      ['negated finish', { finishes_exclude: ['nonfoil'] }, ['etchedCurator', 'frenchTitan', 'japaneseCurator']],
-      ['repeated finish', { finishes: ['foil', 'etched'] }, []],
-      ['condition', { conditions: ['lightly_played'] }, ['etchedCurator']],
       [
-        'negated condition',
+        "a negated rarity chip leaves out the entry's own card printing",
+        { names: ['curator'], rarities_exclude: ['common'] },
+        ['curator', 'etchedCurator'],
+      ],
+      ['a finish chip matches the collection entry finish', { finishes: ['foil'] }, ['frenchTitan', 'japaneseCurator']],
+      [
+        'a negated finish chip leaves out that finish',
+        { finishes_exclude: ['nonfoil'] },
+        ['etchedCurator', 'frenchTitan', 'japaneseCurator'],
+      ],
+      ['two finish chips must both match, so no collection entry matches', { finishes: ['foil', 'etched'] }, []],
+      [
+        'a condition chip matches the collection entry condition',
+        { conditions: ['lightly_played'] },
+        ['etchedCurator'],
+      ],
+      [
+        'a negated condition chip leaves out that condition',
         { conditions_exclude: ['near_mint'] },
         ['blackLotus', 'etchedCurator', 'germanFog', 'taggedBolt'],
       ],
-      ['language', { languages: ['ja'] }, ['japaneseCurator']],
-      ['negated language', { languages_exclude: ['en', 'ja'] }, ['frenchTitan', 'germanFog']],
-      ['is protected', { is_protected: true }, ['protectedDelver']],
-      ['is not protected', { is_protected: false }, everyLabelExcept('protectedDelver')],
-      ['is free, counting a protected copy as free', { is_free: true }, everyLabel],
-      ['is not free', { is_free: false }, []],
-      ['is free and not protected', { is_free: true, is_protected: false }, everyLabelExcept('protectedDelver')],
+      [
+        'two condition chips must both match, so no collection entry matches',
+        { conditions: ['near_mint', 'damaged'] },
+        [],
+      ],
+      ['a language chip matches the collection entry language', { languages: ['ja'] }, ['japaneseCurator']],
+      [
+        'negated language chips leave out each language',
+        { languages_exclude: ['en', 'ja'] },
+        ['frenchTitan', 'germanFog'],
+      ],
+      ['two language chips must both match, so no collection entry matches', { languages: ['en', 'ja'] }, []],
+      ['the is protected chip matches protected collection entries', { is_protected: true }, ['protectedDelver']],
+      [
+        'the negated is protected chip leaves out protected collection entries',
+        { is_protected: false },
+        everyLabelExcept('protectedDelver'),
+      ],
+      ['the is free chip counts a protected copy as a free copy', { is_free: true }, everyLabel],
+      ['the negated is free chip matches no collection entry while every copy is free', { is_free: false }, []],
+      [
+        'the is free chip with the negated is protected chip leaves out protected collection entries',
+        { is_free: true, is_protected: false },
+        everyLabelExcept('protectedDelver'),
+      ],
     ])('%s', async (_, query, expected) => {
       expect(await labels(query)).toEqual(expected.toSorted());
     });
 
     test.each<[string, CollectionQuery, EntryLabel[]]>([
-      ['price at most, for the exact card printing and finish', { price_max: '0.25' }, ['curator']],
-      ['price between two bounds', { price_min: '1.00', price_max: '2.00' }, ['fogBank', 'japaneseCurator']],
-      ['price in EUR', { price_max: '0.10', price_currency: 'EUR' }, ['curator']],
+      ['a price bound uses the price of the exact card printing and finish', { price_max: '0.25' }, ['curator']],
+      [
+        'a price chip with two bounds keeps prices between them',
+        { price_min: '1.00', price_max: '2.00' },
+        ['fogBank', 'japaneseCurator'],
+      ],
+      ['a price bound in EUR uses the EUR price', { price_max: '0.10', price_currency: 'EUR' }, ['curator']],
       ['an entry with no USD price never matches a price bound', { price_min: '0' }, everyLabelExcept('blackLotus')],
       [
         'an etched entry has no EUR price and never matches a EUR price bound',
@@ -358,16 +415,19 @@ describe('after a catalog import', () => {
   });
 
   describe('order', () => {
-    test.each<[CollectionQuery, EntryLabel[]]>([
+    test.each<[string, CollectionQuery, EntryLabel[]]>([
       [
+        'sort by name in descending order lists cards from Z to A',
         { sort: 'name', sort_order: 'desc', names_exclude: ['curator'] },
         ['frenchTitan', 'taggedBolt', 'fogBank', 'germanFog', 'protectedDelver', 'blackLotus'],
       ],
       [
+        'sort by mana value lists the lowest mana value first',
         { sort: 'mana_value', names_exclude: ['curator'] },
         ['blackLotus', 'protectedDelver', 'germanFog', 'taggedBolt', 'fogBank', 'frenchTitan'],
       ],
       [
+        'sort by price lists the lowest price of the exact card printing and finish first, and missing prices last',
         { sort: 'price' },
         [
           'curator',
@@ -382,6 +442,7 @@ describe('after a catalog import', () => {
         ],
       ],
       [
+        'sort by price in descending order lists the highest price first, and missing prices last',
         { sort: 'price', sort_order: 'desc' },
         [
           'taggedBolt',
@@ -395,7 +456,12 @@ describe('after a catalog import', () => {
           'blackLotus',
         ],
       ],
-    ])('sort %o', async (query, expected) => {
+      [
+        'sort by EDHREC rank lists the best rank first, and missing ranks last',
+        { sort: 'edhrec_rank', names_exclude: ['curator'] },
+        ['taggedBolt', 'germanFog', 'fogBank', 'protectedDelver', 'blackLotus', 'frenchTitan'],
+      ],
+    ])('%s', async (_, query, expected) => {
       const { items } = await page(query);
 
       expect(items.map((row) => labelOf.get(row.collection_entry_id))).toEqual(expected);
@@ -457,6 +523,14 @@ describe('after a catalog import', () => {
       expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
     });
 
+    test('a cursor older than 15 minutes fails with invalid_cursor', async () => {
+      const { next_cursor } = await page({}, collector);
+      const sixteenMinutesAgo = Date.now() / 1000 - 16 * 60;
+      const { error } = await search({ cursor: withIssueTime(next_cursor!, sixteenMinutesAgo) }, collector);
+
+      expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+    });
+
     test('a cursor from another query fails with invalid_cursor', async () => {
       const { next_cursor } = await page({}, collector);
       const { error } = await search({ finishes: ['nonfoil'], cursor: next_cursor }, collector);
@@ -494,6 +568,23 @@ describe('after a catalog import', () => {
         result_count: 3,
         result_ids: first.items.map((row) => row.collection_entry_id),
       });
+    });
+
+    test('later pages and refused input write no row', async () => {
+      const telemetryCount = async () => {
+        const { count } = await secretKeyClient()
+          .from('search_telemetry')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', alice.userId);
+        return count;
+      };
+      const first = await page({ limit: 2 });
+      const before = await telemetryCount();
+
+      await page({ limit: 2, cursor: first.next_cursor });
+      await search({ conditions: ['mint'] });
+
+      expect(await telemetryCount()).toBe(before);
     });
   });
 
