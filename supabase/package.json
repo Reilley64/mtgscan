@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
+    "./collection": "./collection.ts",
     "./database.types": "./database.types.ts",
     "./search": "./search.ts"
   },

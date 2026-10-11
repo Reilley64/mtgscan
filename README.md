@@ -63,6 +63,16 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 - Each first page writes one row to `search_telemetry`. It is the one table with user data that has no read policy: app users cannot read it, and only the secret key can.
 - Catalog search also accepts the secret key, for the search release check. Its telemetry row has the caller `release_check` and no user. No other search or catalog read accepts the secret key.
 
+### Scan batch commit
+
+Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_batch', { batch })`. It runs in one transaction. `supabase/collection.ts` has the shared types for the batch, the result, and errors.
+
+- The batch has an `idempotency_key` UUID and 1 to 2,000 stacks. Each stack has `card_printing_id`, `finish`, `condition`, `language`, and `quantity` from 1 to 999.
+- Stacks with the same card printing, finish, condition, and language are summed. Each stack merges into the caller's collection entry with the same properties, no protected flag, and no user tags. If there is no such entry, the commit creates it.
+- Each commit writes one addition and one addition line per stack. The line records the purchase-day price in USD and EUR cents for the card printing and finish, with the price snapshot time. A missing price is null.
+- A repeated idempotency key with the same stacks returns the first result with `replayed` true and changes nothing. With different stacks it fails with `idempotency_conflict`.
+- A refused call writes nothing. Its error has a `code` of `invalid_argument`, `unknown_printing`, `basic_land`, or `idempotency_conflict`, and the field at fault in `details`, such as `items[3].finish`. `readScanBatchError` reads it.
+
 ### Search release check
 
 `bun run release-check` in `supabase` runs every search in the graded search corpus through catalog search with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. It reports whether search is ready to release. It exits with a failure unless every exact-name search ranks its card first, classes 2 to 4 each reach a capped recall@20 of 0.7 or more, and no returned card fails a chip in its query. The Release check workflow runs it by hand against the hosted project. It never runs on pull requests or on a schedule. `supabase/release-check/README.md` describes the corpus, the grading rule, and the report.
@@ -89,5 +99,7 @@ Every table that holds a user's data follows one pattern:
 - Row-level security is on, and the read policy returns only the signed-in user's rows.
 - Direct inserts, updates, and deletes are revoked for the `anon` and `authenticated` roles.
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
+
+The tables with a user's data are `profiles`, `collection_entries`, `collection_additions`, and `collection_addition_lines`. `search_telemetry` departs from the pattern, as Catalog search says.
 
 Signing up creates the user's profile through a trigger on `auth.users`.

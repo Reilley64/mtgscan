@@ -13,8 +13,12 @@ A published version of a card identified by its set and collector number.
 _Avoid_: Version, edition
 
 **Collection entry**:
-A quantity of owned physical copies that share a card printing, finish, language, condition, and protected flag. Adding a copy with the same properties merges it into the entry. Each addition keeps its own time and purchase-day price. To correct a copy, the user deletes it and adds it again.
+A quantity of owned physical copies that share a card printing, finish, language, condition, protected flag, and user tags. Adding a copy with the same properties merges it into the entry. Each addition keeps its own time and purchase-day price. To correct a copy, the user deletes it and adds it again.
 _Avoid_: Card, item
+
+**Addition**:
+One commit of copies to the collection, with its time and a purchase-day price per card printing and finish. A scan batch becomes one addition.
+_Avoid_: Import, purchase
 
 **Purchase-day price**:
 The current price of a card printing and finish on the day copies were added to the collection. It is recorded on each addition, not on the collection entry.
@@ -23,6 +27,10 @@ _Avoid_: Purchase price, cost
 **Protected copy**:
 An owned copy that the user keeps out of decks. The AI never offers a protected copy as the reason a card is available. A user action that would put a protected copy into a deck warns the user and unprotects it on confirmation. When the only free copies are protected, promoting a deck suggestion holds a protected copy after a warning.
 _Avoid_: Don't touch, collection copy
+
+**User tag**:
+A private label that a user creates and attaches to individual owned copies. Copies with different user tags belong to different collection entries. A user tag is not an Oracle tag.
+_Avoid_: Tag, label
 
 **Collection**:
 The user's collection entries.
@@ -38,6 +46,12 @@ Two cards that together produce a result, such as infinite mana or a win, as Com
 **Scan batch**:
 An editable group of recognized collection entries waiting to be added to the collection together.
 _Avoid_: To-add list, import
+
+**Gallery**:
+The feature prints and printing list that the phone recognizer searches. The owner builds it, and phones download it from Storage.
+
+**Same-text twin**:
+A card printing that prints the same collector line and art as another and differs only by a stamp or symbol.
 
 ## Decks and changes
 
