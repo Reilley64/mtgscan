@@ -55,10 +55,6 @@
     ],
     "setupFilesAfterEnv": [
       "<rootDir>/test/setup.ts"
-    ],
-    "modulePathIgnorePatterns": [
-      "<rootDir>/modules/card-recognizer/",
-      "<rootDir>/test/scanner-evidence/"
     ]
   }
 }
