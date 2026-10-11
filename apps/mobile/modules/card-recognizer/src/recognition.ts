@@ -1,6 +1,13 @@
-export type OutlinePoint = { x: number; y: number };
+export type NormalizedPhotoPoint = { x: number; y: number };
 
-export type CardOutline = [OutlinePoint, OutlinePoint, OutlinePoint, OutlinePoint];
+export type CardOutline = [
+  topLeft: NormalizedPhotoPoint,
+  topRight: NormalizedPhotoPoint,
+  bottomRight: NormalizedPhotoPoint,
+  bottomLeft: NormalizedPhotoPoint,
+];
+
+export type RecognitionErrorCode = 'gallery_not_ready' | 'unreadable_photo' | 'rectification_failed';
 
 export type RecognitionCandidate = {
   printingId: string;

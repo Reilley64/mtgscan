@@ -5,11 +5,17 @@ import Vision
 public enum FeaturePrint {
   public static let dimension = 768
   public static let revision = 2
+  static let inputWidth = 488
+  static let inputHeight = 680
 
   public enum Failure: Error {
     case noObservation
     case unexpectedVector(Int)
     case unsupportedRevision
+  }
+
+  public static func input(of card: CGImage) -> CGImage? {
+    CardRectifier.resized(card, width: inputWidth, height: inputHeight)
   }
 
   public static func vector(of image: CGImage) throws -> [Float] {

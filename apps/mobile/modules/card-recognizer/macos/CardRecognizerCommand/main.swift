@@ -40,11 +40,10 @@ func emit<T: Encodable>(_ value: T) {
 
 func recognize(_ request: ServeRequest, gallery: Gallery) throws(RecognitionFailure) -> Recognition {
   let excluded = Set((request.excludeIds ?? []).compactMap { gallery.index(id: $0) })
-  if let photoPath = request.photoPath, let corners = request.outline, corners.count == 4,
-     corners.allSatisfy({ $0.count == 2 }) {
+  if let photoPath = request.photoPath, let corners = request.outline {
     return try CardRecognizer.recognize(
       photo: URL(fileURLWithPath: photoPath),
-      outline: CardOutline(corners: corners.map { CGPoint(x: $0[0], y: $0[1]) }),
+      outline: try CardOutline(corners: corners.compactMap { $0.count == 2 ? CGPoint(x: $0[0], y: $0[1]) : nil }),
       gallery: gallery,
       excluded: excluded
     )
@@ -81,7 +80,7 @@ func serve(galleryDirectory: URL) {
 
 func featurePrint(ofCardAt url: URL) -> [Float]? {
   guard let card = CardRectifier.loadCard(at: url),
-        let small = CardRectifier.resized(card, width: CardRecognizer.embedWidth, height: CardRecognizer.embedHeight)
+        let small = FeaturePrint.input(of: card)
   else { return nil }
   return try? FeaturePrint.vector(of: small)
 }

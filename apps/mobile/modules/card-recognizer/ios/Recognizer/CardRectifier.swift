@@ -9,11 +9,16 @@ public struct CardOutline: Sendable, Equatable {
   public var bottomRight: CGPoint
   public var bottomLeft: CGPoint
 
-  public init(corners: [CGPoint]) {
-    topLeft = corners[0]
-    topRight = corners[1]
-    bottomRight = corners[2]
-    bottomLeft = corners[3]
+  public init(corners: [CGPoint]) throws(RecognitionFailure) {
+    guard corners.count == 4 else { throw .rectificationFailed }
+    self.init(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
+  }
+
+  init(topLeft: CGPoint, topRight: CGPoint, bottomRight: CGPoint, bottomLeft: CGPoint) {
+    self.topLeft = topLeft
+    self.topRight = topRight
+    self.bottomRight = bottomRight
+    self.bottomLeft = bottomLeft
   }
 
   public func portraitOrdered(imageWidth: CGFloat, imageHeight: CGFloat) -> CardOutline {
@@ -23,7 +28,7 @@ public struct CardOutline: Sendable, Equatable {
     let top = length(topLeft, topRight) + length(bottomLeft, bottomRight)
     let sides = length(topLeft, bottomLeft) + length(topRight, bottomRight)
     guard top > sides else { return self }
-    return CardOutline(corners: [bottomLeft, topLeft, topRight, bottomRight])
+    return CardOutline(topLeft: bottomLeft, topRight: topLeft, bottomRight: topRight, bottomLeft: bottomRight)
   }
 }
 

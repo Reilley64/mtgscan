@@ -3,8 +3,6 @@ import CoreImage
 import Foundation
 
 public enum CardRecognizer {
-  public static let embedWidth = 488
-  public static let embedHeight = 680
   public static let readWidth = 1191
   public static let readHeight = 1664
   static let shortlistSize = 50
@@ -40,8 +38,8 @@ public enum CardRecognizer {
     var stageMs = initialStageMs
     var startedAt = ProcessInfo.processInfo.systemUptime
     guard let turned = CardRectifier.rotatedHalfTurn(uprightCandidate),
-          let uprightSmall = CardRectifier.resized(uprightCandidate, width: embedWidth, height: embedHeight),
-          let turnedSmall = CardRectifier.resized(turned, width: embedWidth, height: embedHeight)
+          let uprightSmall = FeaturePrint.input(of: uprightCandidate),
+          let turnedSmall = FeaturePrint.input(of: turned)
     else { throw .rectificationFailed }
     stageMs["resize"] = elapsed(since: &startedAt)
     let uprightVector: [Float]
@@ -256,7 +254,7 @@ public enum CardRecognizer {
     }
   }
 
-  public static func titleKey(_ text: String) -> String {
+  static func titleKey(_ text: String) -> String {
     let front = text.components(separatedBy: " // ").first ?? text
     let letters = front.lowercased().filter { $0.isLetter }
     return letters.count >= 4 ? letters : ""

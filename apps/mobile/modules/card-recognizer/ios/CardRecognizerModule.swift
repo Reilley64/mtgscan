@@ -29,10 +29,9 @@ public final class CardRecognizerModule: Module {
     AsyncFunction("recognize") { (photo: URL, outline: [OutlinePoint]) async throws -> [String: Any] in
       let recognition: Recognition
       do throws(RecognitionFailure) {
-        guard outline.count == 4 else { throw .rectificationFailed }
         recognition = try CardRecognizer.recognize(
           photo: photo,
-          outline: CardOutline(corners: outline.map { CGPoint(x: $0.x, y: $0.y) }),
+          outline: try CardOutline(corners: outline.map { CGPoint(x: $0.x, y: $0.y) }),
           gallery: try await installedGallery.gallery()
         )
       } catch {
