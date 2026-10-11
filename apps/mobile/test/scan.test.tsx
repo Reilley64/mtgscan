@@ -351,3 +351,26 @@ test('the Scan tab says the camera is not available on a phone without a camera'
   expect(cameraPrompts()).toBe(0);
   expect(cameraIsOn()).toBe(false);
 });
+
+function litBySharedLight(seed: number) {
+  return Array.from({ length: 48 }, (_, index) => {
+    const noise = Math.sin(seed * 12.9898 + index * 78.233) * 43758.5453;
+    const art = (noise - Math.floor(noise) - 0.5) * 50;
+    const column = index % 8;
+    const row = Math.floor(index / 8);
+    const hotspot = 70 * Math.exp(-((column - 4) ** 2 + (row - 2) ** 2) / 6);
+    return Math.max(0, Math.min(255, 70 + 12 * column + 8 * row + hotspot + art));
+  });
+}
+
+test('a different card under the same light takes a new photo', async () => {
+  await openScan();
+
+  await scan([
+    ...repeat(6, () => ({ ...card(), signature: litBySharedLight(1) })),
+    ...repeat(3, refinementFlicker),
+    ...repeat(12, () => ({ ...card(), signature: litBySharedLight(2) })),
+  ]);
+
+  expect(photosTaken()).toBe(2);
+});

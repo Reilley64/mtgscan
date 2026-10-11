@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { getCameraPermission, isCameraAvailable, requestCameraPermission } from '../../modules/card-detector';
 
-export type CameraAccess = 'checking' | 'unavailable' | 'denied' | 'granted';
+type CameraAccess = 'checking' | 'unavailable' | 'denied' | 'granted';
 
 async function currentCameraAccess(): Promise<CameraAccess> {
   if (!isCameraAvailable()) {

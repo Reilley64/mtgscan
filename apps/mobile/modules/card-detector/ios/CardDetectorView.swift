@@ -3,9 +3,6 @@ import ExpoModulesCore
 import UIKit
 
 final class CardDetectorView: ExpoView {
-  static let outlineColor = UIColor(red: 1.0, green: 0x4F / 255.0, blue: 0xD8 / 255.0, alpha: 1.0)
-  static let outlineWidth = 3.0
-
   let onDetectionSample = EventDispatcher()
   private let previewLayer = AVCaptureVideoPreviewLayer()
   private let outlineLayer = CAShapeLayer()
@@ -15,9 +12,16 @@ final class CardDetectorView: ExpoView {
     didSet { updateRunning() }
   }
 
+  var outlineColor = UIColor.clear {
+    didSet { outlineLayer.strokeColor = outlineColor.cgColor }
+  }
+
+  var outlineWidth = 0.0 {
+    didSet { outlineLayer.lineWidth = outlineWidth }
+  }
+
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
-    backgroundColor = .black
     let camera = CameraSession { [weak self] sample in
       DispatchQueue.main.async {
         MainActor.assumeIsolated {
@@ -28,9 +32,7 @@ final class CardDetectorView: ExpoView {
     self.camera = camera
     previewLayer.session = camera.session
     previewLayer.videoGravity = .resizeAspectFill
-    outlineLayer.strokeColor = Self.outlineColor.cgColor
     outlineLayer.fillColor = nil
-    outlineLayer.lineWidth = Self.outlineWidth
     outlineLayer.lineJoin = .round
     layer.addSublayer(previewLayer)
     layer.addSublayer(outlineLayer)

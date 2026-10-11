@@ -38,10 +38,10 @@ async function takePhoto(): Promise<CapturedPhoto> {
 }
 
 function FakeCardDetectorView(
-  { onDetectionSample, active, ...viewProps }: Omit<CardDetectorViewProps, 'ref'>,
+  { onDetectionSample, active, outlineColor, outlineWidth, ...viewProps }: Omit<CardDetectorViewProps, 'ref'>,
   ref: ForwardedRef<CardDetectorCamera>,
 ) {
-  mountedView = { onDetectionSample, active, ...viewProps };
+  mountedView = { onDetectionSample, active, outlineColor, outlineWidth, ...viewProps };
   useImperativeHandle(ref, () => ({ takePhoto }));
   return <View {...viewProps} />;
 }

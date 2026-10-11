@@ -13,12 +13,12 @@ enum DetectorFailure: String, Sendable {
 }
 
 enum CardQuadDetector {
-  enum RefinementStatus: Int {
-    case refined = 0
-    case noProposal = 1
-    case proposalOutsideFrame = 2
-    case weakEdge = 3
-    case invalidQuad = 4
+  enum RefinementStatus {
+    case refined
+    case noProposal
+    case proposalOutsideFrame
+    case weakEdge
+    case invalidQuad
   }
 
   struct Output {
@@ -27,14 +27,9 @@ enum CardQuadDetector {
     var confidence = 0.0
     var areaRatio = 0.0
     var aspectRatio = 0.0
-    var centerOffset = 1.0
     var edgeSupportMin = 0.0
-    var shifts = [0.0, 0.0, 0.0, 0.0]
     var signature: [Double] = []
-    var edgeSupports: [Double] = []
-    var fallbackEdges = 0
     var refinementStatus = RefinementStatus.noProposal
-    var proposalDurationMs = 0.0
     var failure: DetectorFailure?
   }
 
@@ -63,7 +58,6 @@ enum CardQuadDetector {
       return output
     }
 
-    let proposalStartedAt = ProcessInfo.processInfo.systemUptime
     let request = VNDetectDocumentSegmentationRequest()
     let handler = VNImageRequestHandler(
       cvPixelBuffer: pixelBuffer,
@@ -73,11 +67,9 @@ enum CardQuadDetector {
     do {
       try handler.perform([request])
     } catch {
-      output.proposalDurationMs = elapsedMilliseconds(since: proposalStartedAt)
       output.failure = .visionFailed
       return output
     }
-    output.proposalDurationMs = elapsedMilliseconds(since: proposalStartedAt)
 
     guard let observation = request.results?.first,
           observation.confidence.isFinite,
@@ -130,15 +122,12 @@ enum CardQuadDetector {
     )
 
     switch CardEdgeRefiner.refine(proposal: proposal, plane: plane, transform: transform) {
-    case let .refined(corners, supportMin, shifts, supports, fallbackEdges):
-      output.edgeSupports = supports
+    case let .refined(corners, supportMin, _, _, fallbackEdges):
       guard fallbackEdges == 0 || output.confidence >= minimumFallbackConfidence else {
         output.edgeSupportMin = supportMin
-        output.fallbackEdges = fallbackEdges
         output.refinementStatus = .weakEdge
         break
       }
-      output.fallbackEdges = fallbackEdges
       let metrics = CardQuadGeometry.metrics(
         corners,
         width: transform.orientedWidth,
@@ -147,17 +136,13 @@ enum CardQuadDetector {
       output.refined = corners.map { normalized($0, transform) }
       output.areaRatio = metrics.areaRatio
       output.aspectRatio = metrics.aspectRatio
-      output.centerOffset = metrics.centerOffset
       output.edgeSupportMin = supportMin
-      output.shifts = shifts
       output.signature = cardSignature(corners: corners, plane: plane, transform: transform)
       output.refinementStatus = .refined
-    case let .weakEdge(supportMin, supports):
-      output.edgeSupports = supports
+    case let .weakEdge(supportMin, _):
       output.edgeSupportMin = supportMin
       output.refinementStatus = .weakEdge
-    case let .invalidQuad(supportMin, supports):
-      output.edgeSupports = supports
+    case let .invalidQuad(supportMin, _):
       output.edgeSupportMin = supportMin
       output.refinementStatus = .invalidQuad
     }

@@ -39,7 +39,6 @@ enum CardEdgeRefiner {
   static let tangentialOffsets: [Double] = [-2, -1, 0, 1, 2]
   static let stepHalfWidth = 4
   static let minimumStep = 8.0
-  static let relativeStep = 0.0
   static let maximumAngleTangent = tan(8.0 * Double.pi / 180.0)
   static let minimumConsistency = 0.7
   static let peakSearchPixels = 3
@@ -70,14 +69,12 @@ enum CardEdgeRefiner {
     let offsets: Int
     var profile: [Double]
     var steps: [Double]
-    var thresholds: [Double]
 
     init(searchRadius: Int) {
       self.searchRadius = searchRadius
       offsets = 2 * searchRadius + 1
       profile = [Double](repeating: .nan, count: offsets + 2 * CardEdgeRefiner.stepHalfWidth)
       steps = [Double](repeating: .nan, count: CardEdgeRefiner.samplesPerEdge * offsets)
-      thresholds = [Double](repeating: .infinity, count: CardEdgeRefiner.samplesPerEdge)
     }
 
     @inline(__always)
@@ -339,7 +336,6 @@ enum CardEdgeRefiner {
         workspace.profile[index] = valid ? sum / Double(tangentialOffsets.count) : .nan
       }
 
-      var strongest = 0.0
       for offset in -radius ... radius {
         let center = offset + radius + halfWidth
         var outer = 0.0
@@ -350,11 +346,7 @@ enum CardEdgeRefiner {
         }
         let step = (outer - inner) / Double(halfWidth)
         workspace.steps[sample * workspace.offsets + offset + radius] = step
-        if step.isFinite {
-          strongest = max(strongest, abs(step))
-        }
       }
-      workspace.thresholds[sample] = max(minimumStep, relativeStep * strongest)
     }
   }
 
@@ -369,10 +361,9 @@ enum CardEdgeRefiner {
     let minimumCount = Int((minimumConsistency * Double(samplesPerEdge)).rounded(.up))
     var accepted = [Double](repeating: 0.0, count: samplesPerEdge * offsets)
     for sample in 0 ..< samplesPerEdge {
-      let threshold = workspace.thresholds[sample]
       for column in 0 ..< offsets {
         let step = workspace.steps[sample * offsets + column]
-        accepted[sample * offsets + column] = step.isFinite && abs(step) >= threshold ? step : 0.0
+        accepted[sample * offsets + column] = step.isFinite && abs(step) >= minimumStep ? step : 0.0
       }
     }
 
@@ -448,7 +439,7 @@ enum CardEdgeRefiner {
     let radius = workspace.searchRadius
     let center = Int(predicted.rounded())
     var bestOffset: Int?
-    var bestValue = workspace.thresholds[sample]
+    var bestValue = minimumStep
     let lowest = max(-radius + 1, center - peakSearchPixels)
     let highest = min(radius - 1, center + peakSearchPixels)
     guard lowest <= highest else {

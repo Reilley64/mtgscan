@@ -69,6 +69,18 @@ The small print at the bottom of a card printing with its set code and collector
 The recognizer's answer for one photo of a card: candidate card printings in display order and a decision. The recognizer accepts the first candidate when its rules prove it, and abstains otherwise. The app shows the first candidate either way.
 _Avoid_: Match, confidence
 
+**Card detector**:
+The part of the scanner that finds one card in the camera preview about 5 times a second. Each analyzed frame becomes a detection sample with the card outline, if a card is detected.
+_Avoid_: Rectangle detector
+
+**Card outline**:
+The four corners of a detected card. The Scan tab draws it in magenta, and the recognizer straightens the photo along it.
+_Avoid_: Quad, guide
+
+**Automatic capture**:
+The scanner takes one photo when a detected card holds still for 400 ms. It re-arms when the card leaves for 1 second or a different card takes its place.
+_Avoid_: Auto-scan, shutter
+
 **Scanner evidence pack**:
 The committed real crops, simulated scans, expected results, and phone runs that the recognition release gates replay. Simulated scans are synthetic phone photos rendered from Scryfall images. A held-out run removes each true card printing from the gallery, to show that the recognizer abstains when the right printing is missing.
 

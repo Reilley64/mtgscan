@@ -1,6 +1,6 @@
 import { requireNativeModule, requireNativeView } from 'expo';
 import type { ComponentType, Ref } from 'react';
-import type { NativeSyntheticEvent, ViewProps } from 'react-native';
+import type { ColorValue, NativeSyntheticEvent, ViewProps } from 'react-native';
 
 import type { CameraPermission, CapturedPhoto, DetectionSample } from './src/detection';
 
@@ -20,6 +20,8 @@ export type CardDetectorCamera = {
 export type CardDetectorViewProps = ViewProps & {
   ref?: Ref<CardDetectorCamera>;
   active: boolean;
+  outlineColor: ColorValue;
+  outlineWidth: number;
   onDetectionSample: (event: NativeSyntheticEvent<DetectionSample>) => void;
 };
 

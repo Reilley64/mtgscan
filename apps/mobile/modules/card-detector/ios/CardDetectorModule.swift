@@ -6,7 +6,7 @@ public final class CardDetectorModule: Module {
     Name("CardDetector")
 
     Function("isCameraAvailable") { () -> Bool in
-      AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) != nil
+      CameraSession.backCamera() != nil
     }
 
     AsyncFunction("getCameraPermission") { () -> String in
@@ -31,6 +31,14 @@ public final class CardDetectorModule: Module {
 
       Prop("active") { (view: CardDetectorView, active: Bool) in
         view.active = active
+      }
+
+      Prop("outlineColor") { (view: CardDetectorView, color: UIColor) in
+        view.outlineColor = color
+      }
+
+      Prop("outlineWidth") { (view: CardDetectorView, width: Double) in
+        view.outlineWidth = width
       }
 
       AsyncFunction("takePhoto") { (view: CardDetectorView, promise: Promise) in

@@ -1,8 +1,8 @@
 import type { DetectionSample, FrameQuad } from '../../modules/card-detector';
 
-export type CapturePhase = 'seeking' | 'holding' | 'capturing' | 'cooldown' | 'error';
+type CapturePhase = 'seeking' | 'holding' | 'capturing' | 'cooldown' | 'error';
 
-export type CaptureMachineState = {
+type CaptureMachineState = {
   phase: CapturePhase;
   holdStartedAt: number | null;
   departureStartedAt: number | null;
@@ -10,7 +10,7 @@ export type CaptureMachineState = {
   captureInFlight: boolean;
 };
 
-export type CaptureGates = {
+type CaptureGates = {
   present: boolean;
   stable: boolean;
   departed: boolean;
@@ -28,6 +28,8 @@ export type CaptureState = {
 export type CaptureStep = {
   state: CaptureState;
   requestPhoto: boolean;
+  resumedAfterGap: boolean;
+  rearmed: boolean;
 };
 
 export const captureRule = {
@@ -84,7 +86,7 @@ function copyMachine(state: CaptureMachineState): CaptureMachineState {
   };
 }
 
-export function advanceCaptureMachine(
+function advanceCaptureMachine(
   state: CaptureMachineState,
   gates: CaptureGates,
   nowMs: number,
@@ -231,7 +233,12 @@ export function initialCapture(): CaptureState {
 
 export function observeSample(state: CaptureState, sample: DetectionSample): CaptureStep {
   if (sample.runtimeErrorCode !== null) {
-    return { state: { ...state, machine: stopped(), lastSampledAtMs: sample.sampledAtMs }, requestPhoto: false };
+    return {
+      state: { ...state, machine: stopped(), lastSampledAtMs: sample.sampledAtMs },
+      requestPhoto: false,
+      resumedAfterGap: false,
+      rearmed: false,
+    };
   }
   const resumed =
     state.lastSampledAtMs !== null && sample.sampledAtMs - state.lastSampledAtMs > captureRule.resumeGapMs;
@@ -254,6 +261,8 @@ export function observeSample(state: CaptureState, sample: DetectionSample): Cap
       failedPhotos: state.failedPhotos,
     },
     requestPhoto: transition.requestCapture,
+    resumedAfterGap: resumed,
+    rearmed: machine.phase === 'cooldown' && transition.state.phase === 'seeking',
   };
 }
 

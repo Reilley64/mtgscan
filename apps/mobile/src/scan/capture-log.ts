@@ -1,5 +1,5 @@
 import type { DetectionSample } from '../../modules/card-detector';
-import { captureRule, type CaptureState, type CaptureStep } from './capture';
+import type { CaptureState, CaptureStep } from './capture';
 
 const timingWindowSamples = 300;
 
@@ -38,10 +38,10 @@ export function createCaptureLog() {
     if (detection.runtimeErrorCode !== null) {
       logCaptureEvent('stopped', { at, reason: detection.runtimeErrorCode });
     }
-    if (before.lastSampledAtMs !== null && at - before.lastSampledAtMs > captureRule.resumeGapMs) {
-      logCaptureEvent('resumed-after-gap', { at, gapMs: at - before.lastSampledAtMs, phase: after.phase });
+    if (step.resumedAfterGap) {
+      logCaptureEvent('resumed-after-gap', { at, gapMs: at - (before.lastSampledAtMs ?? at), phase: after.phase });
     }
-    if (before.machine.phase === 'cooldown' && after.phase === 'seeking') {
+    if (step.rearmed) {
       logCaptureEvent('rearmed', { at, reason: detection.detected ? 'card-changed' : 'card-absent' });
     }
     if (step.requestPhoto) {

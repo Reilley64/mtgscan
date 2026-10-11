@@ -87,8 +87,12 @@ final class CameraSession: NSObject, @unchecked Sendable {
     }
   }
 
+  static func backCamera() -> AVCaptureDevice? {
+    AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+  }
+
   private func configure() -> Bool {
-    guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+    guard let device = Self.backCamera(),
           let format = Self.analysisFormat(of: device),
           let photoDimensions = Self.largestPhotoDimensions(of: format),
           let input = try? AVCaptureDeviceInput(device: device)
@@ -190,7 +194,9 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
       nativeDurationMs: CardQuadDetector.elapsedMilliseconds(since: startedAt),
       sampledAtMs: sampledAtMs
     )
-    latestOutline.withLock { $0 = sample.corners }
+    if let corners = sample.corners {
+      latestOutline.withLock { $0 = corners }
+    }
     onSample(sample)
   }
 }
