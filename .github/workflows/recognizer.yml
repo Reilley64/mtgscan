@@ -80,9 +80,9 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           cat "$RUNNER_TEMP/replay.json"
           if [ -z "$BASELINE" ] && [ "$code" != 0 ]; then
-            other=$(jq -r '[.gates[].failedGates[]] - ["no accepts with the true printing missing", "no wrong-printing accepts"] | length' "$RUNNER_TEMP/replay.json")
-            if [ "$other" = 0 ] && jq -e '.featurePrintParity.pass' "$RUNNER_TEMP/replay.json" > /dev/null; then
-              echo "::warning::Results differ from the expected files. This runner and its gallery differ from the recording, so only the wrong-card, non-card, error, and feature print gates apply."
+            safety=$(jq -r '[.gates[].failedSafetyGates[]] | length' "$RUNNER_TEMP/replay.json")
+            if [ "$safety" = 0 ] && jq -e '.featurePrintParity.pass' "$RUNNER_TEMP/replay.json" > /dev/null; then
+              echo "::warning::Results differ from the expected files. This runner and its gallery differ from the recording, so only the safety gates and the feature print gate apply."
               exit 0
             fi
             exit 1

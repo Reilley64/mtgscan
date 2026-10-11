@@ -7,6 +7,7 @@ export const dataDirectory = path.resolve(process.env.RECOGNIZER_DATA_DIR ?? pat
 export const galleryDirectory = path.resolve(process.env.RECOGNIZER_GALLERY_DIR ?? path.join(dataDirectory, 'gallery'));
 
 export const printingListFile = 'catalog.json';
+export const vectorsFile = 'gallery.f16';
 
 export function run(command, args, { output } = {}) {
   return new Promise((resolve, reject) => {

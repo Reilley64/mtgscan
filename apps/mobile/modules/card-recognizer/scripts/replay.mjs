@@ -3,7 +3,15 @@ import { createReadStream, existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { buildRecognizer, dataDirectory, galleryDirectory, moduleRoot, printingListFile, run } from './recognizer-command.mjs';
+import {
+  buildRecognizer,
+  dataDirectory,
+  galleryDirectory,
+  moduleRoot,
+  printingListFile,
+  run,
+  vectorsFile,
+} from './recognizer-command.mjs';
 
 const evidence = path.resolve(moduleRoot, '..', '..', 'test', 'scanner-evidence');
 const largeImagesDirectory = path.resolve(process.env.RECOGNIZER_LARGE_IMAGES_DIR ?? path.join(dataDirectory, 'large'));
@@ -32,7 +40,7 @@ async function galleryMatchesRecording() {
   const { recordedWith } = JSON.parse(await fs.readFile(path.join(evidence, 'real', 'expected-full.json'), 'utf8'));
   const [printingList, vectors] = await Promise.all([
     sha256(path.join(galleryDirectory, printingListFile)),
-    sha256(path.join(galleryDirectory, 'gallery.f16')).catch(() => null),
+    sha256(path.join(galleryDirectory, vectorsFile)).catch(() => null),
   ]);
   return printingList === recordedWith.gallery.catalogJsonSha256 && vectors === recordedWith.gallery.galleryF16Sha256;
 }
@@ -196,7 +204,8 @@ for (const gate of gates) {
   console.error(`Running ${gate.name}`);
   results.push(await runGate(gate));
 }
-const exitCode = !parity.pass || results.some((result) => result.exitCode === 1) ? 1 : results.some((result) => result.exitCode === 2) ? 2 : 0;
+const failed = !parity.pass || simulation?.mismatched.length > 0 || results.some((result) => result.exitCode === 1);
+const exitCode = failed ? 1 : results.some((result) => result.exitCode === 2) ? 2 : 0;
 console.log(
   JSON.stringify(
     {
@@ -208,6 +217,7 @@ console.log(
         comparedWith: against,
         exitCode: code,
         failedGates: report?.gates.filter((gate) => !gate.pass).map((gate) => gate.gate) ?? [error],
+        failedSafetyGates: report?.gates.filter((gate) => !gate.pass && gate.kind === 'safety').map((gate) => gate.gate) ?? [error],
         changedMeasures: report?.totalChanges.length ?? null,
         changedScans: Array.isArray(report?.scanChanges) ? report.scanChanges.length : null,
       })),

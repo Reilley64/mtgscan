@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { printingListFile } from '../../modules/card-recognizer/scripts/recognizer-command.mjs';
+
 const [expectedPath, actualPath, galleryArgument = process.env.RECOGNIZER_GALLERY_DIR] = process.argv.slice(2);
 if (!expectedPath || !actualPath || !galleryArgument) {
   console.error('usage: bun check.mjs <expected.json> <actual.json> <gallery-dir>');
@@ -13,7 +15,7 @@ const readResult = async (file) => {
 };
 const expected = await readResult(expectedPath);
 const actual = await readResult(actualPath);
-const printingList = JSON.parse(await fs.readFile(path.join(galleryDirectory, 'catalog.json'), 'utf8'));
+const printingList = JSON.parse(await fs.readFile(path.join(galleryDirectory, printingListFile), 'utf8'));
 const oracleById = new Map(printingList.map((printing) => [printing.id, printing.oracleId]));
 const timingKeys = new Set(['p50Ms', 'p95Ms']);
 const listKeys = new Set(['acceptReasons', 'groups', 'falseAcceptList', 'acceptedRows', 'scans']);
@@ -32,18 +34,23 @@ const measures = (result) => {
 const gates = [];
 const actualMeasures = measures(actual);
 const expectedMeasures = measures(expected);
-gates.push(['no wrong-card accepts', actualMeasures.wrongCard.length === 0, actualMeasures.wrongCard.length]);
-gates.push(['no recognizer errors', actual.errors === 0, actual.errors]);
-gates.push(['every non-card rejected', actual.nonCardsRejected === actual.nonCards, `${actual.nonCardsRejected} of ${actual.nonCards}`]);
+gates.push(['safety', 'no wrong-card accepts', actualMeasures.wrongCard.length === 0, actualMeasures.wrongCard.length]);
+gates.push(['safety', 'no recognizer errors', actual.errors === 0, actual.errors]);
+gates.push(['safety', 'every non-card rejected', actual.nonCardsRejected === actual.nonCards, `${actual.nonCardsRejected} of ${actual.nonCards}`]);
 if (!actual.heldOut) {
   gates.push([
+    'safety',
     'wrong printings outside the candidates no more than expected',
     actualMeasures.wrongPrintingOutsideCandidates.length <= expectedMeasures.wrongPrintingOutsideCandidates.length,
     `${actualMeasures.wrongPrintingOutsideCandidates.length}, expected ${expectedMeasures.wrongPrintingOutsideCandidates.length}`,
   ]);
 }
-if (expected.falseAccepts === 0 && !expected.heldOut) gates.push(['no wrong-printing accepts', actual.falseAccepts === 0, actual.falseAccepts]);
-if (expected.heldOut && expected.accepted === 0) gates.push(['no accepts with the true printing missing', actual.accepted === 0, actual.accepted]);
+if (expected.falseAccepts === 0 && !expected.heldOut) {
+  gates.push(['recording', 'no wrong-printing accepts', actual.falseAccepts === 0, actual.falseAccepts]);
+}
+if (expected.heldOut && expected.accepted === 0) {
+  gates.push(['recording', 'no accepts with the true printing missing', actual.accepted === 0, actual.accepted]);
+}
 
 const totalChanges = Object.keys({ ...expected, ...actual })
   .filter((key) => !timingKeys.has(key) && !listKeys.has(key))
@@ -65,11 +72,11 @@ const scanChanges = comparable
       .map((input) => ({ input, expected: expectedScans.get(input) ?? null, actual: actualScans.get(input) ?? null }))
   : null;
 
-const passed = gates.every(([, pass]) => pass);
+const passed = gates.every(([, , pass]) => pass);
 console.log(
   JSON.stringify(
     {
-      gates: gates.map(([gate, pass, value]) => ({ gate, pass, value })),
+      gates: gates.map(([kind, gate, pass, value]) => ({ gate, kind, pass, value })),
       wrongCardAccepts: actualMeasures.wrongCard,
       totalChanges,
       scanChanges: scanChanges ?? 'not compared: run with --scans to match the expected file',
