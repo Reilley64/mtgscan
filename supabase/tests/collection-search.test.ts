@@ -2,15 +2,9 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { CardCondition, CardLanguage, CollectionQuery, CollectionRow } from '../collection';
 import type { Json } from '../database.types';
-import {
-  readSearchError,
-  type CardDetails,
-  type CardPrintingsPage,
-  type CatalogRow,
-  type Finish,
-  type SearchPage,
-} from '../search';
+import { readSearchError, type CardDetails, type CardPrintingsPage, type CatalogRow, type SearchPage } from '../search';
 import { catalogFixture, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
+import { seedCollectionEntries, type SeededEntry } from './collection-entry-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -31,27 +25,8 @@ const printings = {
   counterspellAlpha: '0df55e3f-14de-46ef-b6b1-616618724d9e',
 };
 
-type SeededEntry = {
-  card_printing_id: string;
-  finish: Finish;
-  condition: CardCondition;
-  language: CardLanguage;
-  quantity: number;
-  is_protected: boolean;
-  user_tag_ids: string[];
-};
-
-function entry(cardPrintingId: string, changes: Partial<SeededEntry> = {}): SeededEntry {
-  return {
-    card_printing_id: cardPrintingId,
-    finish: 'nonfoil',
-    condition: 'near_mint',
-    language: 'en',
-    quantity: 1,
-    is_protected: false,
-    user_tag_ids: [],
-    ...changes,
-  };
+function entry(cardPrintingId: string, changes: Omit<SeededEntry, 'card_printing_id'> = {}): SeededEntry {
+  return { card_printing_id: cardPrintingId, ...changes };
 }
 
 const aliceEntries = {
@@ -78,17 +53,6 @@ let alice: TestUser;
 let bob: TestUser;
 let labelOf: Map<string, EntryLabel>;
 let bobEntryIds: string[];
-
-async function seedEntries(user: TestUser, entries: SeededEntry[]): Promise<string[]> {
-  const { data, error } = await secretKeyClient()
-    .from('collection_entries')
-    .insert(
-      entries.map((seeded) => ({ ...seeded, user_id: user.userId, latest_addition_at: new Date().toISOString() })),
-    )
-    .select('id');
-  expect(error).toBeNull();
-  return data!.map((row) => row.id);
-}
 
 async function search(query: CollectionQuery | Record<string, unknown> | unknown[], user: TestUser = alice) {
   const { data, error } = await user.client.rpc('search_collection', { query: query as Json });
@@ -149,9 +113,9 @@ describe('after a catalog import', () => {
     const manifest = await catalogFixture({});
     expect((await runCatalogImport(manifest)).exitCode).toBe(0);
     expect((await runPriceImport(manifest)).exitCode).toBe(0);
-    const ids = await seedEntries(alice, Object.values(aliceEntries));
+    const ids = await seedCollectionEntries(alice, Object.values(aliceEntries));
     labelOf = new Map(ids.map((id, index) => [id, everyLabel[index]!]));
-    bobEntryIds = await seedEntries(bob, [
+    bobEntryIds = await seedCollectionEntries(bob, [
       entry(printings.counterspellAlpha),
       entry(printings.angelicCuratorMh2, { quantity: 5 }),
     ]);
@@ -496,7 +460,7 @@ describe('after a catalog import', () => {
             languages.map((language) => entry(cardPrintingId, { condition, language })),
           ),
       );
-      const ids = await seedEntries(collector, seeded);
+      const ids = await seedCollectionEntries(collector, seeded);
       idsByName = new Map([
         ['Fog Bank', ids.slice(0, 20)],
         ['Angelic Curator', ids.slice(20, 40)],

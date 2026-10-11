@@ -5,6 +5,7 @@ import type { Json } from '../database.types';
 import { readSearchError } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
+import { seedCollectionEntries } from './collection-entry-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
@@ -44,32 +45,6 @@ function catalogPrinting(printingId: string): CatalogPrinting {
     throw new Error(`${printingId} is not in the catalog fixture`);
   }
   return printing;
-}
-
-type SeededEntry = {
-  card_printing_id: string;
-  latest_addition_at: string;
-  quantity?: number;
-  is_protected?: boolean;
-  user_tag_ids?: string[];
-};
-
-async function seedEntries(user: TestUser, entries: SeededEntry[]) {
-  const { error } = await secretKeyClient()
-    .from('collection_entries')
-    .insert(
-      entries.map((entry) => ({
-        user_id: user.userId,
-        finish: 'nonfoil' as const,
-        condition: 'near_mint' as const,
-        language: 'en' as const,
-        quantity: 1,
-        is_protected: false,
-        user_tag_ids: [],
-        ...entry,
-      })),
-    );
-  expect(error).toBeNull();
 }
 
 async function listCollectionPrintings(
@@ -145,7 +120,7 @@ describe('the binder grid read', () => {
     const user = await signUpNewUser();
     await committed(user, scanBatch([stack(angelicCurator)]));
     const longAgo = new Date(0).toISOString();
-    await seedEntries(user, [
+    await seedCollectionEntries(user, [
       { card_printing_id: angelicCurator, latest_addition_at: longAgo, quantity: 2, is_protected: true },
       { card_printing_id: angelicCurator, latest_addition_at: longAgo, quantity: 5, user_tag_ids: [crypto.randomUUID()] },
     ]);
@@ -173,7 +148,7 @@ describe('the binder grid read', () => {
     const sameName = catalog.filter((printing) => printing.name === catalogPrinting(delverInnistrad).name);
     expect(sameName.length).toBeGreaterThan(1);
     const byName = [catalogPrinting(angelicCurator), ...sameName, catalogPrinting(ribbonsOfNight)];
-    await seedEntries(
+    await seedCollectionEntries(
       user,
       [...byName].reverse().map((printing) => ({ card_printing_id: printing.printing_id, latest_addition_at: addedAt })),
     );
@@ -197,7 +172,7 @@ describe('binder grid pages', () => {
     user = await signUpNewUser();
     seeded = catalog.slice(0, seededCount).map((printing) => printing.printing_id);
     const start = Date.parse('2026-10-18T09:00:00.000Z');
-    await seedEntries(
+    await seedCollectionEntries(
       user,
       seeded.map((printingId, index) => ({
         card_printing_id: printingId,
