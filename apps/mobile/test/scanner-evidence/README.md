@@ -155,7 +155,7 @@ Measured on 11 October 2026 on a `macos-15` runner (Apple M1, virtual, 3 cores) 
 | Feature prints | 3 h 38 min | 267 s |
 | Real crops, full and held out, one worker | 645 s | about 30 s |
 
-A gallery build fits in one job, so it runs only on a cache miss. With the cached gallery, the replay job took about 15 minutes. On the runner, the 24 feature print references had a lowest cosine of 0.99974. The simulated scans would take several hours on the runner, so they stay a manual gate.
+A gallery build fits in one job, so it runs only on a cache miss. With the cached gallery, one real-crop replay took about 8 minutes. On the runner, the 24 feature print references had a lowest cosine of 0.99974. The simulated scans would take several hours on the runner, so they stay a manual gate.
 
 On that runner gallery, built from the Scryfall file of 11 October 2026, the real crops had 0 wrong-card accepts. With the true printing held out, one scan was accepted: Athreos, God of Passage JOU 146 (`crops/catalog-device/muyxcbms-33.jpg`) as its same-text twin `plst JOU-146`. The collector line `146/1.65` did not read, and the next art was 0.047 behind on that gallery. On the recorded gallery, the same scan abstains.
 
