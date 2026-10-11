@@ -34,7 +34,9 @@ public final class CardDetectorModule: Module {
       }
 
       AsyncFunction("takePhoto") { (view: CardDetectorView, promise: Promise) in
-        view.takePhoto(promise)
+        MainActor.assumeIsolated {
+          view.takePhoto(promise)
+        }
       }
     }
   }

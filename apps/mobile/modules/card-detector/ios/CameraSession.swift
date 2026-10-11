@@ -77,8 +77,8 @@ final class CameraSession: NSObject, @unchecked Sendable {
       settings.photoQualityPrioritization = .balanced
       let id = settings.uniqueID
       let capture = PhotoCapture { [weak self] result in
-        self?.sessionQueue.async {
-          self?.photoCaptures[id] = nil
+        if let self {
+          sessionQueue.async { self.photoCaptures[id] = nil }
         }
         completion(result.map { CapturedPhoto(url: $0, outline: outline) })
       }
