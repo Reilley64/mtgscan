@@ -18,6 +18,28 @@ export async function asDatabaseOwner<T>(work: (database: SQL) => Promise<T>): P
   }
 }
 
+async function asDatabaseRole<T>(
+  role: 'anon' | 'authenticated',
+  claims: Record<string, string>,
+  work: (database: SQL) => Promise<T>,
+): Promise<T> {
+  return asDatabaseOwner((database) =>
+    database.begin(async (transaction) => {
+      await transaction`select set_config('role', ${role}, true)`;
+      await transaction`select set_config('request.jwt.claims', ${JSON.stringify(claims)}, true)`;
+      return work(transaction);
+    }),
+  );
+}
+
+export function asSignedInUser<T>(user: { userId: string }, work: (database: SQL) => Promise<T>): Promise<T> {
+  return asDatabaseRole('authenticated', { sub: user.userId, role: 'authenticated' }, work);
+}
+
+export function asAnonymousCaller<T>(work: (database: SQL) => Promise<T>): Promise<T> {
+  return asDatabaseRole('anon', { role: 'anon' }, work);
+}
+
 export function localSecretKey(): string {
   const secretKey = process.env.SUPABASE_SECRET_KEY;
   if (!secretKey) {

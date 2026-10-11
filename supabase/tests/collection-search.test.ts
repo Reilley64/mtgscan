@@ -581,6 +581,17 @@ describe('after a catalog import', () => {
       });
     });
 
+    test('the search release check counts no owned copies while users own copies of the card', async () => {
+      const { data, error } = await secretKeyClient().rpc('search_catalog', { query: { names: ['angelic curator'] } });
+
+      expect(error).toBeNull();
+      expect((data as unknown as SearchPage<CatalogRow>).items[0]!.owned).toEqual({
+        quantity: 0,
+        free_quantity: 0,
+        protected_free_quantity: 0,
+      });
+    });
+
     test("card details count the caller's own copies of each card", async () => {
       const { data } = await alice.client.rpc('get_cards', {
         query: { oracle_ids: [angelicCuratorCard, delverOfSecretsCard] },
