@@ -10,6 +10,7 @@ import {
   runPriceImport,
   type ScryfallRecord,
 } from './catalog-import-command';
+import { seedCollectionEntries } from './collection-entry-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { addScanBatch, committed, scanBatch, stack } from './scan-batches';
 
@@ -129,13 +130,6 @@ async function collectionOf(user: { client: AppClient }) {
   return { entries: await entriesOf(user), additions: await additionsOf(user), lines: await linesOf(user) };
 }
 
-async function seedEntry(user: TestUser, row: EntryRow) {
-  const { error } = await secretKeyClient()
-    .from('collection_entries')
-    .insert({ ...row, user_id: user.userId, latest_addition_at: new Date(0).toISOString() });
-  expect(error).toBeNull();
-}
-
 async function pricesSnapshotAt() {
   const { data, error } = await secretKeyClient()
     .from('import_snapshots')
@@ -223,8 +217,10 @@ describe('committing a scan batch', () => {
   test('scanned copies never merge into a protected collection entry or one with user tags', async () => {
     const user = await signUpNewUser();
     const userTag = crypto.randomUUID();
-    await seedEntry(user, entryRow(angelicCurator, 4, { is_protected: true }));
-    await seedEntry(user, entryRow(angelicCurator, 6, { user_tag_ids: [userTag] }));
+    await seedCollectionEntries(user, [
+      entryRow(angelicCurator, 4, { is_protected: true }),
+      entryRow(angelicCurator, 6, { user_tag_ids: [userTag] }),
+    ]);
 
     await committed(user, scanBatch([stack(angelicCurator, { quantity: 2 })]));
 
@@ -262,7 +258,7 @@ describe('the user tag set', () => {
   test('a collection entry keeps a sorted set of distinct user tags', async () => {
     const user = await signUpNewUser();
 
-    await seedEntry(user, entryRow(angelicCurator, 1, { user_tag_ids: [firstTag, secondTag] }));
+    await seedCollectionEntries(user, [entryRow(angelicCurator, 1, { user_tag_ids: [firstTag, secondTag] })]);
 
     expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 1, { user_tag_ids: [firstTag, secondTag] })]);
   });

@@ -83,6 +83,20 @@ Signed-in users read their collection as card printings with `supabase.rpc('list
 - `next_cursor` reads the next page. A cursor works only for the user who got it, for 15 minutes. A refused call has the code `invalid_argument` or `invalid_cursor` and the field at fault in `details`, as in catalog search.
 - The function reads only the caller's collection entries. It runs as `security definer`, like the other app reads, because the `private` helpers it uses are closed to app roles. It filters the rows on the caller instead of relying on the read policy. An anonymous caller and the secret key are refused.
 
+### Collection search
+
+Signed-in users search their own collection entries with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips. `supabase/collection.ts` has the shared types for the query and the result rows.
+
+- An empty query returns every collection entry from A to Z. Collection search also returns cards that are not Commander-legal, and collection entries whose card printing is marked absent.
+- `finishes`, `conditions`, and `languages` match the collection entry. They take the finish, condition, and language values of collection entries.
+- `sets` and `rarities` match the entry's own card printing. `price_min`, `price_max`, and `sort: 'price'` use the current price of that card printing and finish. `sort: 'release_date'` uses the release date of that card printing.
+- `is_free` matches entries with at least one free copy. A protected copy can be free. `is_protected` matches the protected flag. The Collection tab's Free filter is `is_free: true` with `is_protected: false`.
+- `deck_ids` and `deck_ids_exclude` take deck IDs. Until decks exist, every deck ID is refused with `invalid_argument` on its field.
+- Each row has the collection entry's quantity, free quantity, allocated quantity, and held quantity, from the collection availability view. The view has one row for each collection entry of the caller. Allocated and held quantities are zero until decks and planned swaps exist.
+- Collection search runs as a database function with the owner's rights, like catalog search. So the read policy on `collection_entries` does not apply inside it. The view applies the same rule as the policy: it keeps only rows whose user is the caller.
+- Catalog search, `get_cards`, and `list_card_printings` read owned quantities from the same view. A printing list keeps an absent card printing when the caller owns it.
+- Each first page writes one row to `search_telemetry` with the API `collection`. The secret key cannot call collection search.
+
 ### Search release check
 
 `bun run release-check` in `supabase` runs every search in the graded search corpus through catalog search with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. It reports whether search is ready to release. It exits with a failure unless every exact-name search ranks its card first, classes 2 to 4 each reach a capped recall@20 of 0.7 or more, and no returned card fails a chip in its query. The Release check workflow runs it by hand against the hosted project. It never runs on pull requests or on a schedule. `supabase/release-check/README.md` describes the corpus, the grading rule, and the report.
