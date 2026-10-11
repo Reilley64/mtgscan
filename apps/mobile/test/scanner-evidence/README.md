@@ -136,13 +136,28 @@ The first run had a bug that turned every card 90 degrees. The #21 resolution us
 
 The Recognizer workflow runs on pull requests that change the recognizer module, this evidence pack, or the workflow. It also runs every Monday on `main` and by hand. It needs no secrets: Scryfall data and images are public.
 
-- **Replay job.** On a `macos-15` runner with Xcode 26.3, it runs the Swift fixture tests and `recognizer:replay`. It uploads the reports as artifacts and writes the summary to the job summary.
-- **Gallery.** The runner cannot fetch the recorded gallery, so the job builds its own gallery from Scryfall with `recognizer:gallery` and keeps it in the Actions cache under `scanner-gallery-v1`. A build took GALLERY_BUILD_TIME on the runner. The Monday run on `main` keeps the cache warm for pull requests. Change the key to build a new gallery.
-- **Simulated scans.** The job keeps the 3,000 rendered photos in the Actions cache, keyed by the hash of `cards.json`, `photos.sha256`, and `simulate.py`. The replay still checks every photo against `photos.sha256`.
-- **Changes.** On a pull request, the job first replays the base branch on the same gallery and runner. It then compares the pull request with that baseline, so a changed result comes from the change, not from the gallery or the runner. A changed result fails the job until the pull request records the expected files again and explains each change. Without a baseline, as on `main`, the job compares with the expected files and only warns about changes.
+- **Replay job.** On a `macos-15` runner with Xcode 26.3, it runs the Swift fixture tests and `recognizer:replay --real-only`: the feature print comparison and both real-crop gates. It uploads the reports as artifacts and writes the summary to the job summary.
+- **Gallery.** The runner cannot fetch the recorded gallery, so the job builds its own gallery from Scryfall with `recognizer:gallery` and keeps it in the Actions cache under `scanner-gallery-v1`. The Monday run on `main` keeps the cache warm for pull requests. Change the key to build a new gallery.
+- **Changes.** On a pull request, the job first replays the base branch on the same gallery and runner. It then compares the pull request with that baseline, so a changed result comes from the change, not from the gallery or the runner. A changed result fails the job until the pull request records the expected files again and explains each change.
+- **Without a baseline.** On `main`, or when the base branch has no replay, the job compares with the expected files. The runner's gallery differs from the recording, so it fails only on a wrong-card accept, a non-card accept, a recognizer error, or a feature print cosine below 0.98. Other changes are warnings.
 - **Module job.** It generates the iOS project and builds the app with the recognizer module for the iOS Simulator. This checks Swift 6 strict concurrency with Xcode 26.3 and Expo SDK 56.
 
-When #79 publishes the gallery version that the evidence pack names, the job can download it instead, as #75 plans. That needs the Supabase secret key.
+The simulated scans run by hand on a Mac with `bun run recognizer:replay`. Run them before you merge a change to the recognizer.
+
+### Runner measurements
+
+Measured on 11 October 2026 on a `macos-15` runner (Apple M1, virtual, 3 cores) with the prototype recognizer:
+
+| Step | Runner | Owner's Mac (Apple M3) |
+| --- | ---: | ---: |
+| Gallery build, 102,747 printings | 3 h 54 min | about 5 min, plus the image download |
+| Image download, about 10 GB | about 16 min | |
+| Feature prints | 3 h 38 min | 267 s |
+| Real crops, full and held out, one worker | 645 s | about 30 s |
+
+A gallery build fits in one job, but only on a cache miss. The simulated scans would take several hours on the runner, so they stay a manual gate.
+
+On that runner gallery, built from the Scryfall file of 11 October 2026, the real crops had 0 wrong-card accepts. With the true printing held out, one scan was accepted: Athreos, God of Passage JOU 146 (`crops/catalog-device/muyxcbms-33.jpg`) as its same-text twin `plst JOU-146`. The collector line `146/1.65` did not read, and the next art was 0.047 behind on that gallery. On the recorded gallery, the same scan abstains.
 
 ### Feature prints on the runner
 
