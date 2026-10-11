@@ -31,7 +31,7 @@ The gates need the gallery: the feature prints and the printing list of every pa
 The replay looks for the gallery in `modules/card-recognizer/.data/gallery`. Set `RECOGNIZER_GALLERY_DIR` to use another folder. The folder holds `catalog.json`, `gallery.json`, and `gallery.f16`.
 
 - **Reuse the recorded gallery.** The owner's Mac keeps it from the prototype. `docs/agents/local-development.md` says where. Only this gallery can show that a result is unchanged against the expected files.
-- **Build a gallery.** `bun run recognizer:gallery` downloads the current Scryfall `default_cards` file and about 10 GB of `normal` images into `modules/card-recognizer/.data`, then computes the feature prints. Set `SCRYFALL_BULK_FILE` to use a saved bulk file. A gallery from a newer bulk file has more printings, so a few results can change.
+- **Build a gallery.** `bun run recognizer:gallery` downloads the current Scryfall `default_cards` file and about 10 GB of `normal` images into `modules/card-recognizer/.data`, then computes the feature prints. Set `SCRYFALL_BULK_FILE` to use a saved bulk file. A gallery from a newer bulk file has more printings, so a few results can change. This gallery is only for the replay. It orders rows by printing ID and is not checked against the card catalog. #79 builds the gallery that phones download.
 
 The macOS recognizer command computes the feature prints. It compiles the same Swift files as the phone module. On the owner's Mac it gives the same bytes as the recorded gallery.
 
@@ -42,11 +42,13 @@ bun run recognizer:test
 bun run recognizer:replay
 ```
 
-`recognizer:test` runs the Swift fixture tests: the collector-line parser, the gallery key, and the outline order. `recognizer:replay` builds the macOS recognizer command and runs every gate:
+`recognizer:test` runs the Swift fixture tests: the collector-line parser, the gallery key, and the outline order. `recognizer:replay` builds the macOS recognizer command and runs the Mac gates. It first checks the feature prints:
 
-1. **Feature prints.** It compares the feature prints of the 24 references in `real/feature-prints.json` with the feature prints of this machine. It fails when the lowest cosine is below 0.98.
-2. **Real crops.** The 250 card crops and 11 non-card crops, on the full gallery and with each true printing held out.
-3. **Simulated scans.** It renders the 3,000 scans from the recipe into `modules/card-recognizer/.data/simulated` and checks every photo against `simulated/photos.sha256`. It skips the render when the photos are already there and match. It then runs the scans on the full gallery and held out.
+- **Feature prints.** It compares the feature prints of the 24 references in `real/feature-prints.json` with the feature prints of this machine. It fails when the lowest cosine is below 0.98.
+- **Gate 1: real crops.** The 250 card crops and 11 non-card crops, on the full gallery and with each true printing held out.
+- **Gate 2: simulated scans.** It renders the 3,000 scans from the recipe into `modules/card-recognizer/.data/simulated` and checks every photo against `simulated/photos.sha256`. A photo with another hash fails the replay. It skips the render when the photos are already there and match. It then runs the scans on the full gallery and held out.
+
+Gate 3 runs on the phone, not on the Mac.
 
 Options:
 
@@ -82,7 +84,7 @@ Pass criteria:
 - 11 of 11 non-card crops rejected.
 - 0 recognizer errors.
 
-Recorded result: 214 correct accepts of 250, 0 false accepts, 247 right names first, and 234 right printings first. With the true printing missing, 0 accepts.
+Recorded result: 214 correct accepts of 250, 0 false accepts, 247 right cards first, and 234 right printings first. With the true printing missing, 0 accepts.
 
 ## Gate 2: simulated scans
 
@@ -97,10 +99,10 @@ uv run test/scanner-evidence/simulated/simulate.py --bulk <default-cards.jsonl.g
 Pass criteria:
 
 - 0 wrong-card accepts on the full gallery and with the true printing missing.
-- No more accepted wrong printings outside the candidate list than recorded. The recorded count is 0. The #10 study had 1, Tamiyo's Journal `plst SOI-265` with 10 same-art twins. The candidate list now includes every same-text twin, so that card is inside it.
+- No more accepted wrong printings outside the candidate list than recorded. The recorded count is 0. The #10 study had 1, Tamiyo's Journal `plst SOI-265` with 10 printings that share its art. The candidate list now includes every same-text twin, so that card is inside it.
 - 0 recognizer errors.
 
-Recorded result on the full gallery: 2,493 accepts, 2,135 exactly right, 358 other printings of the right card, and 0 wrong cards. 2,962 of 3,000 had the right name first. With the true printing missing: 382 accepts, all a same-art or promo twin of the missing printing, and 0 wrong cards.
+Recorded result on the full gallery: 2,493 accepts, 2,135 exactly right, 358 other printings of the right card, and 0 wrong cards. 2,962 of 3,000 had the right card first. With the true printing missing: 382 accepts, all a printing that shares the art of the missing printing or its promo, and 0 wrong cards.
 
 In the results, `falseAccepts` counts every accept that is not the exact printing. Most are same-text twins, which are the product decision in #10. `check.mjs` reports wrong cards separately. `truthInTop5` counts the scans whose true printing is anywhere in the candidate list.
 
@@ -113,8 +115,8 @@ The cited runs used the native preview app on the `prototype/first-release` bran
 Pass criteria from #10 and #21:
 
 - 0 false accepts.
-- Identity top-1 of at least 29 of 30.
-- Exact printing top-1 of at least 27 of 30. The other cards abstain or show a switchable same-text twin.
+- The right card first for at least 29 of 30.
+- The exact card printing first for at least 27 of 30. The other cards abstain or show a switchable same-text twin.
 - End-to-end p95 below 1.5 s.
 - Gallery parity on the phone: the lowest cosine is at least 0.98 (`DEVICE_PARITY`).
 
@@ -122,7 +124,7 @@ Cards per minute is not a recognition gate. It moved to #11.
 
 Cited runs, all on an iPhone 16e with iOS 26.6.1 and the torch off:
 
-| Run | Commit | Recognizer | Identity | Printing | Correct accepts | False accepts | End-to-end p95 |
+| Run | Commit | Recognizer | Right card | Right printing | Correct accepts | False accepts | End-to-end p95 |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | `20261008-115755` | `713e858` | Mac | 3 | 3 | 0 | 0 | 1,359 ms |
 | `20261008-122110` | `d7e7606` | Mac | 29 | 28 | 21 | 0 | 1,724 ms |
@@ -138,8 +140,8 @@ The Recognizer workflow runs on pull requests that change the recognizer module,
 
 - **Replay job.** On a `macos-15` runner with Xcode 26.3, it runs the Swift fixture tests and `recognizer:replay --real-only`: the feature print comparison and both real-crop gates. It uploads the reports as artifacts and writes the summary to the job summary.
 - **Gallery.** The runner cannot fetch the recorded gallery, so the job builds its own gallery from Scryfall with `recognizer:gallery` and keeps it in the Actions cache under `scanner-gallery-v1`. The Monday run on `main` keeps the cache warm for pull requests. Change the key to build a new gallery.
-- **Changes.** On a pull request, the job first replays the base branch on the same gallery and runner. It then compares the pull request with that baseline, so a changed result comes from the change, not from the gallery or the runner. A changed result fails the job until the pull request records the expected files again and explains each change.
-- **Without a baseline.** On `main`, or when the base branch has no replay, the job compares with the expected files. The runner's gallery differs from the recording, so it fails only on a wrong-card accept, a non-card accept, a recognizer error, or a feature print cosine below 0.98. Other changes are warnings.
+- **Changes.** On a pull request, the job first replays the base branch on the same gallery and runner. It then compares the pull request with that baseline, so a changed result comes from the change, not from the gallery or the runner. A changed result fails the job until the pull request records the expected files again and explains each change. The two recording gates in `check.mjs` then follow the base branch: they apply only when the base branch passes them.
+- **Without a baseline.** On `main`, or when the base branch has no replay, the job compares with the expected files. The runner's gallery differs from the recording, so the job applies only the safety gates in `check.mjs` and the feature print gate. It fails on a wrong-card accept, a non-card accept, a recognizer error, more wrong printings outside the candidates than recorded, or a feature print cosine below 0.98. The recording gates, no wrong-printing accepts and no accepts with the true printing missing, apply only on the recorded gallery on the owner's Mac. Other changes are warnings.
 - **Module job.** It generates the iOS project and builds the app with the recognizer module for the iOS Simulator. This checks Swift 6 strict concurrency with Xcode 26.3 and Expo SDK 56.
 
 The simulated scans run by hand on a Mac with `bun run recognizer:replay`. Run them before you merge a change to the recognizer.
