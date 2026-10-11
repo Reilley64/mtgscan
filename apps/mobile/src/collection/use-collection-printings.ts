@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import { supabase } from '@/lib/supabase';
 
-export type Binder =
+export type BinderRead =
   | { status: 'loading' }
   | { status: 'failed' }
   | { status: 'loaded'; printings: CollectionPrintingRow[]; nextCursor: string | null };
@@ -18,7 +18,7 @@ async function readCollectionPrintings(cursor: string | null) {
 }
 
 export function useCollectionPrintings() {
-  const [binder, setBinder] = useState<Binder>({ status: 'loading' });
+  const [binder, setBinder] = useState<BinderRead>({ status: 'loading' });
   const latestRead = useRef(0);
   const readingMore = useRef(false);
 

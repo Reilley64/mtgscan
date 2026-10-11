@@ -4,12 +4,12 @@ import { BinderTile } from '@/components/binder-tile';
 import { EmptyState } from '@/components/empty-state';
 import { SecondaryButton } from '@/components/secondary-button';
 import { TabListScreen } from '@/components/tab-screen';
-import { useCollectionPrintings, type Binder } from '@/collection/use-collection-printings';
+import { useCollectionPrintings, type BinderRead } from '@/collection/use-collection-printings';
 import { spacing } from '@/theme';
 
 const tilesPerRow = 3;
 
-function BinderPlaceholder({ binder, onTryAgain }: { binder: Binder; onTryAgain: () => void }) {
+function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAgain: () => void }) {
   if (binder.status === 'failed') {
     return (
       <View style={styles.placeholder}>

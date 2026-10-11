@@ -1,16 +1,11 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import {
-  type CollectionPrintingRow,
-  type CollectionPrintingsPage,
-  type CollectionPrintingsQuery,
-  type ScanBatchResult,
-  type ScanBatchStack,
-} from '../collection';
+import { type CollectionPrintingRow, type CollectionPrintingsPage, type CollectionPrintingsQuery } from '../collection';
 import type { Json } from '../database.types';
 import { readSearchError } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
+import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
 
@@ -49,18 +44,6 @@ function catalogPrinting(printingId: string): CatalogPrinting {
     throw new Error(`${printingId} is not in the catalog fixture`);
   }
   return printing;
-}
-
-function stack(cardPrintingId: string, changes: Partial<Omit<ScanBatchStack, 'card_printing_id'>> = {}): ScanBatchStack {
-  return { card_printing_id: cardPrintingId, finish: 'nonfoil', condition: 'near_mint', language: 'en', quantity: 1, ...changes };
-}
-
-async function addScanBatch(user: TestUser, items: ScanBatchStack[]) {
-  const { data, error } = await user.client.rpc('add_scan_batch', {
-    batch: { idempotency_key: crypto.randomUUID(), items } as Json,
-  });
-  expect(error).toBeNull();
-  return data as unknown as ScanBatchResult;
 }
 
 type SeededEntry = {
@@ -129,13 +112,16 @@ describe('the binder grid read', () => {
 
   test('each card printing is one row with its owned quantity summed over all its collection entries', async () => {
     const user = await signUpNewUser();
-    await addScanBatch(user, [
-      stack(angelicCurator, { quantity: 2 }),
-      stack(angelicCurator, { finish: 'foil' }),
-      stack(angelicCurator, { condition: 'lightly_played', language: 'ja', quantity: 3 }),
-      stack(delverInnistrad),
-    ]);
-    const latest = await addScanBatch(user, [stack(angelicCurator, { quantity: 4 })]);
+    await committed(
+      user,
+      scanBatch([
+        stack(angelicCurator, { quantity: 2 }),
+        stack(angelicCurator, { finish: 'foil' }),
+        stack(angelicCurator, { condition: 'lightly_played', language: 'ja', quantity: 3 }),
+        stack(delverInnistrad),
+      ]),
+    );
+    const latest = await committed(user, scanBatch([stack(angelicCurator, { quantity: 4 })]));
 
     const { items, next_cursor } = await collectionPrintings(user);
 
@@ -157,7 +143,7 @@ describe('the binder grid read', () => {
 
   test('the owned quantity includes protected copies and copies with user tags', async () => {
     const user = await signUpNewUser();
-    await addScanBatch(user, [stack(angelicCurator)]);
+    await committed(user, scanBatch([stack(angelicCurator)]));
     const longAgo = new Date(0).toISOString();
     await seedEntries(user, [
       { card_printing_id: angelicCurator, latest_addition_at: longAgo, quantity: 2, is_protected: true },
@@ -171,10 +157,10 @@ describe('the binder grid read', () => {
 
   test('the newest addition comes first', async () => {
     const user = await signUpNewUser();
-    await addScanBatch(user, [stack(angelicCurator)]);
-    await addScanBatch(user, [stack(delverInnistrad)]);
-    await addScanBatch(user, [stack(ribbonsOfNight)]);
-    await addScanBatch(user, [stack(angelicCurator, { finish: 'foil' })]);
+    await committed(user, scanBatch([stack(angelicCurator)]));
+    await committed(user, scanBatch([stack(delverInnistrad)]));
+    await committed(user, scanBatch([stack(ribbonsOfNight)]));
+    await committed(user, scanBatch([stack(angelicCurator, { finish: 'foil' })]));
 
     const { items } = await collectionPrintings(user);
 
@@ -278,7 +264,7 @@ describe('binder grid pages', () => {
   });
 
   test("another user's cursor is refused with invalid_cursor", async () => {
-    await addScanBatch(bob, [stack(angelicCurator), stack(delverInnistrad)]);
+    await committed(bob, scanBatch([stack(angelicCurator), stack(delverInnistrad)]));
     const { next_cursor } = await collectionPrintings(bob, { limit: 1 });
 
     const { error } = await listCollectionPrintings(user.client, { limit: 1, cursor: next_cursor });
@@ -289,7 +275,7 @@ describe('binder grid pages', () => {
 
 describe('access', () => {
   beforeAll(async () => {
-    await addScanBatch(alice, [stack(ribbonsOfNight, { quantity: 2 })]);
+    await committed(alice, scanBatch([stack(ribbonsOfNight, { quantity: 2 })]));
   });
 
   test("a user never reads another user's card printings", async () => {

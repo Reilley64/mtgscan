@@ -34,6 +34,15 @@ beforeEach(() => {
   startSignedIn();
 });
 
+test('Collection keeps its empty state when the user has no collection entries', async () => {
+  const collection = await openCollection();
+
+  expect(collection.getByRole('header', { name: 'Collection' })).toBeOnTheScreen();
+  expect(collection.getByText('Your collection is empty')).toBeOnTheScreen();
+  expect(collection.getByText('Scan cards to add them to your collection.')).toBeOnTheScreen();
+  expect(collection.queryByRole('image')).not.toBeOnTheScreen();
+});
+
 test('the binder grid shows one tile per card printing with its image, set and collector number, and owned count', async () => {
   const curator = collectionPrinting('Angelic Curator', {
     set: 'exo',

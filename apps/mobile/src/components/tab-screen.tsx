@@ -24,7 +24,7 @@ export function TabScreen({ title, children }: TabScreenProps) {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={[styles.content, styles.stack]}
+      contentContainerStyle={[styles.content, styles.spaced]}
       contentInsetAdjustmentBehavior="automatic">
       <TabHeader title={title} />
       {children}
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
   },
-  stack: {
+  spaced: {
     gap: spacing.lg,
   },
   listHeader: {
