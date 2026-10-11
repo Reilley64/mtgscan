@@ -455,6 +455,9 @@ isOneToOne: false
 "search_catalog":
 { Args: { "query": Json }; Returns: Json
                            },
+"search_collection":
+{ Args: { "query": Json }; Returns: Json
+                           },
 "search_oracle_tags":
 { Args: { "query": Json }; Returns: Json
                            },

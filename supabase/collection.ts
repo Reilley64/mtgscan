@@ -1,9 +1,41 @@
 import type { Database } from './database.types';
-import { readSearchError, type Finish, type SearchError } from './search';
+import { readSearchError, type CatalogQuery, type Finish, type SearchError } from './search';
 
 export type CardCondition = Database['public']['Enums']['card_condition'];
 
 export type CardLanguage = Database['public']['Enums']['card_language'];
+
+export type CollectionQuery = CatalogQuery & {
+  finishes?: Finish[];
+  finishes_exclude?: Finish[];
+  conditions?: CardCondition[];
+  conditions_exclude?: CardCondition[];
+  languages?: CardLanguage[];
+  languages_exclude?: CardLanguage[];
+  deck_ids?: string[];
+  deck_ids_exclude?: string[];
+  is_free?: boolean;
+  is_protected?: boolean;
+};
+
+export type CollectionRow = {
+  collection_entry_id: string;
+  oracle_id: string;
+  printing_id: string;
+  name: string;
+  set: string;
+  collector_number: string;
+  finish: Finish;
+  language: CardLanguage;
+  condition: CardCondition;
+  protected: boolean;
+  quantity: number;
+  free_quantity: number;
+  allocated_quantity: number;
+  held_quantity: number;
+  commander_legal: boolean;
+  oracle_text?: string;
+};
 
 export type ScanBatchStack = {
   card_printing_id: string;
