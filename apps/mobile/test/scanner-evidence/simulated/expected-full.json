@@ -1,7 +1,6 @@
 {
  "recordedWith": {
-  "recognizerCommit": "83988dd",
-  "recognizerLastChanged": "716a44f",
+  "recognizerCommit": "4f08247",
   "featurePrint": "VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values",
   "gallery": {
    "directory": ".data/catalog",
@@ -13,14 +12,14 @@
    "scryfallBulk": "default_cards downloaded 6 October 2026, default-cards.jsonl.gz sha256 2e4b9449d03162d910226026f278e07ca6f491497fce8f7f5ae56833300c1772"
   },
   "machine": "Apple M3, macOS 15.7.3",
-  "recordedOn": "2026-10-09",
-  "command": "node scripts/evaluate-crops.mjs .data/simulated/labels.json --details --scans",
-  "note": "Recorded in six runs of 500 scans each and merged. p50Ms and p95Ms come from the single 8 October 2026 study run. Every accept matches that run, which is cited in issue #10. truthInTop5 is 2,969, not 2,968, because the candidate list now includes every same-text twin, so Tamiyo's Journal plst SOI-265 is no longer outside it."
+  "recordedOn": "2026-10-11",
+  "command": "bun run recognizer:replay (simulated-full)",
+  "note": "Recorded with the card recognizer module. Every first candidate and every accept matches the 8 October 2026 study run cited in issue #10 and the recording at 83988dd. truthInTop5 is 2,968, not 2,969: every same-text twin of the first candidate now follows it, also when the scan abstains. Path of Ancestry plst C17-56 (sim-01297) and Thundering Giant USG 221 (sim-02872) move out of the candidate list, and Angelic Destiny plst M12-3 (sim-02892) moves in. All three scans abstain."
  },
  "result": {
   "catalog": 102726,
   "heldOut": false,
-  "truthInTop5": 2969,
+  "truthInTop5": 2968,
   "cards": 3000,
   "nameTop1": 2962,
   "printingTop1": 2459,
@@ -30,8 +29,8 @@
   "nonCards": 0,
   "nonCardsRejected": 0,
   "errors": 0,
-  "p50Ms": 124,
-  "p95Ms": 177,
+  "p50Ms": 216,
+  "p95Ms": 367,
   "acceptReasons": {
    "collector line X matches a card in the image shortlist": 2360,
    "set J# leaves one printing of the top card": 4,
@@ -98,17 +97,6 @@
     "reason": "collector line MKM 152 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "152",
-     "lines": [
-      "w.2.200270707077",
-      "something off, some discordant note lurking deep",
-      "within the chorus.",
-      "R 0152",
-      "Story Spotlight",
-      "mtgstory.com",
-      "MKM\u2022 EN",
-      "BEN HILL",
-      "TM & O 2024 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "mkm"
     },
@@ -122,13 +110,6 @@
     "reason": "collector line FRF 68 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "68",
-     "lines": [
-      "AZwoou 0",
-      "notice the Sultai leader's cruel smile.",
-      "068/185 C",
-      "TM & \u00a9 2015 Wizards of the Coast",
-      "FRF \u2022 EN K RYAN YEE"
-     ],
      "premiumMark": false,
      "setCode": "frf"
     },
@@ -142,14 +123,6 @@
     "reason": "collector line ONE 128 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "128",
-     "lines": [
-      "nas nying and naste.",
-      "Equip 32\u20b4",
-      "128/271 R",
-      "TM &",
-      "O 2023 Wizards of the Coast",
-      "ONE \u2022 EN ANDREAS ZAFIRATOS"
-     ],
      "premiumMark": false,
      "setCode": "one"
     },
@@ -163,13 +136,6 @@
     "reason": "collector line XLN 165 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "165",
-     "lines": [
-      "mana cost. P'ut the rest on the bottom",
-      "of your library in a random order.",
-      "IM & C 2017 Wizards of the Coast",
-      "165/279 R",
-      "XLN \u2022 EN CHRISTINE CHOI"
-     ],
      "premiumMark": false,
      "setCode": "xln"
     },
@@ -183,16 +149,6 @@
     "reason": "collector line KTK 84 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "84",
-     "lines": [
-      "TEAETEOT\u041eI",
-      "morD0006 0010 000",
-      "madness.",
-      "084/269",
-      "2014",
-      "wards o",
-      "fthe Coast",
-      "KTK \u2022 EN MAGALI VILLENEUVE"
-     ],
      "premiumMark": false,
      "setCode": "ktk"
     },
@@ -206,13 +162,6 @@
     "reason": "collector line FRA 72 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "72",
-     "lines": [
-      "head. \"Your vengeance, or your friends.",
-      "What will it be?\"",
-      "R 0072",
-      "TM & O 2026 Wizards of the Coast",
-      "FRA \u2022 EN MATHIAS KOLLROS"
-     ],
      "premiumMark": false,
      "setCode": "fra"
     },
@@ -226,16 +175,6 @@
     "reason": "collector line KLD 163 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "163",
-     "lines": [
-      "7V0500",
-      "-6",
-      "enters the battlefield under your control, you",
-      "may draw a card.\"",
-      "5",
-      "163/264 M",
-      "\u0442\u2122 & O 2016 Wizards of the Coast",
-      "KLD * EN O CLINT CEARLEY"
-     ],
      "premiumMark": true,
      "setCode": "kld"
     },
@@ -249,14 +188,6 @@
     "reason": "collector line RIX 175 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "175",
-     "lines": [
-      "Ine joows naoe",
-      "\u2014Tishana",
-      "*/*",
-      "175/196 R",
-      "2018 Wizards of the Coast",
-      "RIX*EN ZACK STELLA"
-     ],
      "premiumMark": true,
      "setCode": "rix"
     },
@@ -270,12 +201,6 @@
     "reason": "collector line M15 140 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "140",
-     "lines": [
-      "1/1",
-      "140/269 C",
-      "M15 \u2022 EN AUSTIN HsU",
-      "IM & O 2014 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "m15"
     },
@@ -289,12 +214,6 @@
     "reason": "collector line A25 48 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "48",
-     "lines": [
-      "you may tap target creature.",
-      "048/249 C",
-      "IM & C 2018 Wizards of the Coast",
-      "A25 \u2022 EN CARL CRITCHLOW"
-     ],
      "premiumMark": false,
      "setCode": "a25"
     },
@@ -308,12 +227,6 @@
     "reason": "collector line DMU 87 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "87",
-     "lines": [
-      "Enchantment - Saga",
-      "087/281 R",
-      "\u2022 VOLKAN BAGA",
-      "DMU\u2022EN"
-     ],
      "premiumMark": false,
      "setCode": "dmu"
     },
@@ -327,13 +240,6 @@
     "reason": "collector line WAR 83 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "83",
-     "lines": [
-      "-1 (: Target player discards a card.",
-      "3",
-      "083/264 U",
-      "TM & \u00a9 2019 Wizards of the Coast",
-      "WAR*EN DAARKEN"
-     ],
      "premiumMark": true,
      "setCode": "war"
     },
@@ -347,14 +253,6 @@
     "reason": "collector line KHM 24 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "24",
-     "lines": [
-      "than your starting life total, creatures you",
-      "control get +2/+2.",
-      "2/4",
-      "024/285 R",
-      "IM & O 2021 Wizards of the Coast",
-      "KHM \u2022 EN CHRIS RAHN"
-     ],
      "premiumMark": false,
      "setCode": "khm"
     },
@@ -368,14 +266,6 @@
     "reason": "collector line ELD 203 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "203",
-     "lines": [
-      "power.\"",
-      "-Legend of the Gilded Knights",
-      "2/2",
-      "203/269 R",
-      "ELD *EN CHRIS RALLIS",
-      "IM & C 2019 Wizardh of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "eld"
     },
@@ -389,14 +279,6 @@
     "reason": "collector line MH1 162 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "162",
-     "lines": [
-      "Fail to respect the forest and you will",
-      "fertilize it.",
-      "TM & C 2019 Wizards of the Coast",
-      "162/254",
-      "\u2022 RANDY VARGAS",
-      "MH1\u2022 EN"
-     ],
      "premiumMark": false,
      "setCode": "mh1"
     },
@@ -410,14 +292,6 @@
     "reason": "collector line DOM 6 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "6",
-     "lines": [
-      "\u2014History of Benalia",
-      "3/3",
-      "006/269 R",
-      "TM",
-      "2018 Wizards of the Coast",
-      "DOM*EN MARK ZUG"
-     ],
      "premiumMark": true,
      "setCode": "dom"
     },
@@ -431,14 +305,6 @@
     "reason": "collector line DSK 63 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "63",
-     "lines": [
-      "AMN1SA0100",
-      "for creature spells you control and creature",
-      "cards you own that aren't on the battlefield.",
-      "TM & O 2024 Wizards of the Coast",
-      "R 0063",
-      "DSK * EN 1 SERGEY GLUSHAKOY"
-     ],
      "premiumMark": true,
      "setCode": "dsk"
     },
@@ -452,14 +318,6 @@
     "reason": "collector line TLA 39 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "39",
-     "lines": [
-      "be over!\"",
-      "\u2014Hakoda",
-      "\u00a92025 Viacom.",
-      "M 0039",
-      "TM & O 2025 Wizards of the Coast",
-      "TLA * EN MENGXUAN LI"
-     ],
      "premiumMark": true,
      "setCode": "tla"
     },
@@ -473,14 +331,6 @@
     "reason": "collector line SOI 234 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "234",
-     "lines": [
-      "or land card, reveal it, put it into your",
-      "hand, then shuffle your library.",
-      "\u0442\u043c",
-      "& C 2016 Wizards of the Coast",
-      "234/297 R",
-      "SOI* EN VINCENT PROCE"
-     ],
      "premiumMark": true,
      "setCode": "soi"
     },
@@ -494,12 +344,6 @@
     "reason": "collector line RIX 31 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "31",
-     "lines": [
-      "\"Damn the cannons, mates. Charge!\"",
-      "031/196 R",
-      "TM & 2018 Wizards of the Coast",
-      "RIX \u2022 EN SLAWOMIR MANIAK"
-     ],
      "premiumMark": false,
      "setCode": "rix"
     },
@@ -513,17 +357,6 @@
     "reason": "collector line AFR 121 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "121",
-     "lines": [
-      "Q1101",
-      "WE v0100",
-      "UAN FI",
-      "graveyards with mana value less than or equal",
-      "to the number of void counters on it.",
-      "121/281 R",
-      "TM",
-      "& C 2021 Wizards of the Coast",
-      "AFR \u2022 EN IASON FELIX"
-     ],
      "premiumMark": false,
      "setCode": "afr"
     },
@@ -537,14 +370,6 @@
     "reason": "collector line LCI 94 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "94",
-     "lines": [
-      "that weren't put there this way to the",
-      "battlefield.",
-      "6/6",
-      "R 0094",
-      "LCI * EN O WERO GALLO",
-      "TM & O 2023 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "lci"
     },
@@ -558,18 +383,6 @@
     "reason": "collector line IKO 162 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "162",
-     "lines": [
-      "12.0001",
-      "COn",
-      "ILO",
-      "\u0423",
-      "owner's hand. Kogla gains indestructible until",
-      "end of turn.",
-      "7/6",
-      "162/274 R",
-      "IKO * EN CHRIS RAHN",
-      "IM & \u00a9 2020 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "iko"
     },
@@ -583,13 +396,6 @@
     "reason": "collector line MID 196 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "196",
-     "lines": [
-      "fashback cost. Then exile it.)",
-      "196/277 U",
-      "IH &",
-      "2021 Wizards of the Coast",
-      "MID \u2022 EN NICHOLAS GREGORY"
-     ],
      "premiumMark": false,
      "setCode": "mid"
     },
@@ -603,14 +409,6 @@
     "reason": "collector line DOM 215 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "215",
-     "lines": [
-      "Jor them.",
-      "\u2014Karn",
-      "215/269 R",
-      "TM & C 2018 Wizards of the Coast",
-      "TM &",
-      "DOM*EN VOLKAN BAGA"
-     ],
      "premiumMark": true,
      "setCode": "dom"
     },
@@ -624,14 +422,6 @@
     "reason": "collector line NEO 25 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "25",
-     "lines": [
-      "the battlefield attached to Light-Paws,",
-      "Emperor's Voice, then shuffle.",
-      "2/2",
-      "025/302 R",
-      "NEO \u2022 EN RANDY VARGAS",
-      "T\u2122 & O 2022 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "neo"
     },
@@ -645,11 +435,6 @@
     "reason": "collector line DMU 189 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "189",
-     "lines": [
-      "Enchantment - Saga",
-      "189/ 281 M",
-      "DMU*EN ADAM PAQUETTE"
-     ],
      "premiumMark": true,
      "setCode": "dmu"
     },
@@ -663,17 +448,6 @@
     "reason": "collector line 40K 26 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "26",
-     "lines": [
-      "vaLvu",
-      "opens aeu",
-      "ability.",
-      "3/3",
-      "GW",
-      "026/168 R",
-      "2022 Wizards of the Coast",
-      "&",
-      "40K*EN \u00ba GAMES WORKSHOP"
-     ],
      "premiumMark": true,
      "setCode": "40k"
     },
@@ -687,15 +461,6 @@
     "reason": "collector line DDT 17 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "17",
-     "lines": [
-      "1701",
-      "Y0r J0T",
-      "arcane knowledge.",
-      "1/3",
-      "017/063 C",
-      "DDT \u2022 EN AALEX HORLEY-ORLANDELLI",
-      "IM & C 2017 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "ddt"
     },
@@ -709,14 +474,6 @@
     "reason": "collector line MID 200 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "200",
-     "lines": [
-      "from your graveyard for its flashback cost. Then",
-      "exile it.)",
-      "200/277 R Story Spotlight",
-      "mtgstory.com",
-      "MID \u2022 EN YIGIT KOROGLU",
-      "IM & C 2021 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "mid"
     },
@@ -730,14 +487,6 @@
     "reason": "collector line THB 235 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "235",
-     "lines": [
-      "thai color in tne ma",
-      "sts 0j permantens",
-      "you control.)",
-      "IM & \u00a9 2020 Wizards of the Coast",
-      "235/254 R",
-      "THB *EN IO RAOUE VITALE"
-     ],
      "premiumMark": true,
      "setCode": "thb"
     },
@@ -751,14 +500,6 @@
     "reason": "collector line EMN 197 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "197",
-     "lines": [
-      "known. Can such genius be taught?\"",
-      "-Stitcher Geralf",
-      "5/5",
-      "197/205 R",
-      "EMN* EN DERUCHENKO ALEXANDER",
-      "TM & \u00a9 2016 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "emn"
     },
@@ -772,13 +513,6 @@
     "reason": "collector line IMA 64 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "64",
-     "lines": [
-      "master of trickery and misdirection.",
-      "5/6",
-      "064/249 U",
-      "TM & O 2017 Wizards of the Coast",
-      "IMA\u2022 EN GREG STAPLES"
-     ],
      "premiumMark": false,
      "setCode": "ima"
     },
@@ -792,13 +526,6 @@
     "reason": "collector line SNC 172 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "172",
-     "lines": [
-      "\"Whatever you're looking for- food, family,",
-      "Halowe've got the best in town.\"",
-      "172/281 R",
-      "TM & C 2022 Wizards of the Coast",
-      "SNC *EN KARI CHRISTENSEN"
-     ],
      "premiumMark": true,
      "setCode": "snc"
     },
@@ -812,13 +539,6 @@
     "reason": "collector line DFT 100 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "100",
-     "lines": [
-      "opeeaorooa racers are gregarious wnue not",
-      "racing, but everyone must eat.",
-      "R 0100",
-      "TM & O 2025 Wizards of the Coast",
-      "DFT * EN \u00ba Lo\u00efc CANAVAGGIA"
-     ],
      "premiumMark": true,
      "setCode": "dft"
     },
@@ -832,16 +552,6 @@
     "reason": "collector line M15 209 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "209",
-     "lines": [
-      "DLLC",
-      "yvur",
-      "vacuenung tieh",
-      "Designed by Brian Fargo",
-      "2/3",
-      "209/269 R",
-      "M15 \u2022 EN CHASE STONE",
-      "IM & O 2014 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "m15"
     },
@@ -855,13 +565,6 @@
     "reason": "collector line ELD 128 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "128",
-     "lines": [
-      "were you, I'd be terrified.\"",
-      "0/4",
-      "128/269 R",
-      "ELD \u2022 EN lASON RAINVILLE",
-      "& \u00a9 2019 Wzards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "eld"
     },
@@ -875,13 +578,6 @@
     "reason": "collector line ONE 257 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "257",
-     "lines": [
-      "where evotuton meets austeruy, prumar",
-      "might bucks against the yoke of hierarchy.",
-      "TM & O 2023 Wizards of the Coast",
-      "257/271 R",
-      "ONE* EN RANDY GALLEGOS"
-     ],
      "premiumMark": true,
      "setCode": "one"
     },
@@ -895,13 +591,6 @@
     "reason": "collector line SOI 67 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "67",
-     "lines": [
-      "\"Sometimes it's best for the lost to stay lost.\"",
-      "-Herzag, mayor of Havengul",
-      "067/297 C",
-      "TM & \u00a9 2016 Wizards of the Coast",
-      "SOI \u2022 EN IAMES PAICK"
-     ],
      "premiumMark": false,
      "setCode": "soi"
     },
@@ -915,12 +604,6 @@
     "reason": "collector line C17 204 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "204",
-     "lines": [
-      "Equip 1",
-      "204/309 R",
-      "TN & C 2017 Wizards of the Coast",
-      "C17 \u2022 EN N JUNG PARK"
-     ],
      "premiumMark": false,
      "setCode": "c17"
     },
@@ -934,14 +617,6 @@
     "reason": "collector line TLA 79 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "79",
-     "lines": [
-      "o\u043bst, yow can tap your artijacts and croatures ao",
-      "halp. Each one pays for 1-)",
-      "COSS Vacum",
-      "0079",
-      "4 0 33S Wiana dhe Cme",
-      "TLA \u2022 EN O 1RS/TAKENOI M"
-     ],
      "premiumMark": false,
      "setCode": "tla"
     },
@@ -955,12 +630,6 @@
     "reason": "collector line MH2 279 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "279",
-     "lines": [
-      "a scourge inflicted.",
-      "279/303 R",
-      "TM & O 2021 Wizards of the Coast",
-      "MH2 \u2022 EN DAVE KENDALL"
-     ],
      "premiumMark": false,
      "setCode": "mh2"
     },
@@ -974,15 +643,6 @@
     "reason": "collector line MID 211 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "211",
-     "lines": [
-      "create two 4/2",
-      "- 5",
-      "green Wolf creature tokens.",
-      "4",
-      "211/277",
-      "MID \u2022 EN ANNA STEINBAUER",
-      "TM & \u00a9 2021 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "mid"
     },
@@ -996,12 +656,6 @@
     "reason": "collector line C16 52 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "52",
-     "lines": [
-      "-Flearan One-Eye, goblin engineer",
-      "TM & C 2016 Wizards of the Coast",
-      "052/351 R",
-      "C16 \u2022 EN O FILIP BURBURAN"
-     ],
      "premiumMark": false,
      "setCode": "c16"
     },
@@ -1015,14 +669,6 @@
     "reason": "collector line AER 160 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "160",
-     "lines": [
-      "celeoralea inveniors",
-      "\u0442\u0438\u0442\u0430p",
-      "have been immortalized in clockwork.",
-      "160/184 R",
-      "T\u2122 & O 2017 Wizards of the Coast",
-      "AER* EN KIRSTEN ZIRNGIBL"
-     ],
      "premiumMark": true,
      "setCode": "aer"
     },
@@ -1036,12 +682,6 @@
     "reason": "collector line MH2 260 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "260",
-     "lines": [
-      "260/303 R",
-      "TM & O 2021 Wizards of the Coast",
-      "TM &",
-      "MH2*EN VANCE KOVACS"
-     ],
      "premiumMark": true,
      "setCode": "mh2"
     },
@@ -1055,14 +695,6 @@
     "reason": "collector line MKM 278 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "278",
-     "lines": [
-      "0278",
-      "L",
-      "TM",
-      "2024 Wizards of the Coast",
-      "&",
-      "MKM \u2022 EN CARLOS PALMA CRUCHAGA"
-     ],
      "premiumMark": false,
      "setCode": "mkm"
     },
@@ -1076,13 +708,6 @@
     "reason": "collector line RIX 122 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "122",
-     "lines": [
-      "mstory are at risk. Do not speak to me",
-      "of peace.\"",
-      "122/196 C",
-      "IM & O 2018 Wizards of the Coast",
-      "RIX \u2022 EN IAKUB KASPER"
-     ],
      "premiumMark": false,
      "setCode": "rix"
     },
@@ -1096,15 +721,6 @@
     "reason": "collector line AFR 53 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "53",
-     "lines": [
-      "by exiling lour instant and/or sorcery caras.",
-      "from your graveyard in addition to paying its",
-      "other costs.",
-      "4/3",
-      "053/281 M",
-      "IM & C 2021 Wizards of the Coast",
-      "AFR *EN DANIEL ZROM"
-     ],
      "premiumMark": true,
      "setCode": "afr"
     },
@@ -1118,13 +734,6 @@
     "reason": "collector line DFT 169 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "169",
-     "lines": [
-      "\"The fauna here functions as a planar antibody.\"",
-      "-Rashmi, aether-seer",
-      "TM & O 2025 Wizards of the Coast",
-      "M 0169",
-      "DFT \u2022 EN HELGE C. BALZER"
-     ],
      "premiumMark": false,
      "setCode": "dft"
     },
@@ -1138,13 +747,6 @@
     "reason": "collector line SOI 65 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "65",
-     "lines": [
-      "graveyard to the battlefield tapped.",
-      "7/7",
-      "065/297 M",
-      "SOI*EN DAARKEN",
-      "TM & \u00a9 2016 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "soi"
     },
@@ -1158,15 +760,6 @@
     "reason": "collector line FRA 116 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "116",
-     "lines": [
-      "TowE wovU",
-      "\"wwiry wooscatoe coroc woes",
-      "feeds the tarmogoyf.",
-      "*/1+*",
-      "M 0116",
-      "FRA \u2022 EN LUCAS GRACIANO",
-      "TM & O 2026 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "fra"
     },
@@ -1180,15 +773,6 @@
     "reason": "collector line WOE 48 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "48",
-     "lines": [
-      "enlterea mrom extle or was cast mrom extle,",
-      "l exlle,",
-      "you draw a card. This ability triggers only",
-      "once each turn.",
-      "R 0048 Story Spotlight",
-      "TM & O 2023 Wizards of the Coast",
-      "WOE \u2022 EN VOLKAN BAGA"
-     ],
      "premiumMark": false,
      "setCode": "woe"
     },
@@ -1202,17 +786,6 @@
     "reason": "collector line DOM 162 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "162",
-     "lines": [
-      "\u0442\u043c\u043e\u0442\u043a\u0443\u0439\u043e \u043ewr",
-      "\u0442\u043c\u0443\u0438",
-      "vaottarto son \u0442ebara",
-      "them with unease.",
-      "4/2",
-      "162/269 C",
-      "-GRZECORZ RUTKOWSKI",
-      "1M C C 2018 Wizarde of the Coast",
-      "DOM\u2022EN"
-     ],
      "premiumMark": false,
      "setCode": "dom"
     },
@@ -1226,15 +799,6 @@
     "reason": "collector line AKH 240 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "240",
-     "lines": [
-      "But where is the source?\"",
-      "-Nissa Revane",
-      "240/269 R",
-      "TM & \u00a9 2017 Wizards of the Coast",
-      "TM &",
-      "\u2022 NOAH BRADLEY",
-      "AKH* EN"
-     ],
      "premiumMark": true,
      "setCode": "akh"
     },
@@ -1248,12 +812,6 @@
     "reason": "collector line KTK 180 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "180",
-     "lines": [
-      "a card.",
-      "TM S S 2014 W'izards of the Coast",
-      "180/269 R",
-      "KTK* EN DAN SCOTT"
-     ],
      "premiumMark": true,
      "setCode": "ktk"
     },
@@ -1267,14 +825,6 @@
     "reason": "collector line THB 118 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "118",
-     "lines": [
-      "Enchantment - Saga",
-      "IM",
-      "& 0 2020 Wizards of the Coast",
-      "118/254",
-      "R",
-      "THB \u2022 EN N VINCENT PROCE"
-     ],
      "premiumMark": false,
      "setCode": "thb"
     },
@@ -1288,13 +838,6 @@
     "reason": "collector line OGW 13 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "13",
-     "lines": [
-      "represents colorless mana.)",
-      "3/3",
-      "013/184 R",
-      "OGW \u2022 EN DAARKEN",
-      "TM & C 2016 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "ogw"
     },
@@ -1308,14 +851,6 @@
     "reason": "collector line EMN 106 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "106",
-     "lines": [
-      "wewwrta",
-      "\u2014Runo Stromkirk",
-      "2/2",
-      "106/205 R",
-      "EMN* EN I MAGALI VILLENEUVE",
-      "& C 2016 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "emn"
     },
@@ -1329,18 +864,6 @@
     "reason": "collector line A25 169 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "169",
-     "lines": [
-      "newo onte ui",
-      "epiae\u0442s ser a",
-      "away baen day, th",
-      "the sky.\"",
-      "-Sunseeder myth",
-      "2/3",
-      "169/249 C",
-      "TM",
-      "A25 \u2022 EN STEVE PRESCOTT",
-      "& C 2018 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "a25"
     },
@@ -1354,13 +877,6 @@
     "reason": "collector line BFZ 127 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "127",
-     "lines": [
-      "Terrible fury. Excellent aim.",
-      "5/3",
-      "127/274 R",
-      "BFZ * EN CHRIS RALLIS",
-      "TM & O 2015 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "bfz"
     },
@@ -1374,13 +890,6 @@
     "reason": "collector line DDU 16 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "16",
-     "lines": [
-      "2777",
-      "your library in any order.",
-      "IN & C 2018 Wizards of the Coast",
-      "016/076 \u0421",
-      "DDU \u2022 EN EFREM PALACIOS"
-     ],
      "premiumMark": false,
      "setCode": "ddu"
     },
@@ -1393,14 +902,6 @@
     "truth": "5282cbeb-2ed6-4dc6-a761-2e79892e3648",
     "reason": "set MOM leaves one printing of the top card",
     "reading": {
-     "lines": [
-      "Eesh evorh screamea as the ugni piercea",
-      "her. Her nightmare had become flesh.",
-      "Story Spotlight",
-      "mtgstory.com",
-      "MOM \u2022 EN O LIVIA PRIMA",
-      "& O 2023 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "mom"
     },
@@ -1414,13 +915,6 @@
     "reason": "collector line NEO 193 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "193",
-     "lines": [
-      "Towashi, the once-peaceful Jukai Forest",
-      "grew violently hostile to outsiders.",
-      "193/302 R",
-      "TM & O 2022 Wizards of the Coast",
-      "NEO* EN FILIP BURBURAN"
-     ],
      "premiumMark": true,
      "setCode": "neo"
     },
@@ -1434,14 +928,6 @@
     "reason": "collector line NCC 26 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "26",
-     "lines": [
-      "You may cast the copy without paying its",
-      "mana cost.",
-      "IM & C 2022 Wizards of the Coast",
-      "026/093 R",
-      "NCC \u2022 EN",
-      "DURION"
-     ],
      "premiumMark": false,
      "setCode": "ncc"
     },
@@ -1455,15 +941,6 @@
     "reason": "collector line TLA 102 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "102",
-     "lines": [
-      "uro ways create a toae tar acopy otutt",
-      "the beginning of your next end step, sacrifice",
-      "those tokens.",
-      "R 0102",
-      "\u00a92025 Viacom.",
-      "TM & \u00a9 2025 Wizards of the Coast",
-      "TLA * EN O ARBE!E/HORI AIRI"
-     ],
      "premiumMark": true,
      "setCode": "tla"
     },
@@ -1477,13 +954,6 @@
     "reason": "collector line DMU 107 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "107",
-     "lines": [
-      "\"Gix failed. I shall not.\"",
-      "4/5",
-      "107/281 M",
-      "DMU \u2022 EN CHRIS RAHN",
-      "TM & C 2022 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "dmu"
     },
@@ -1497,13 +967,6 @@
     "reason": "collector line XLN 156 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "156",
-     "lines": [
-      "attacked with a creature this turn.",
-      "156/279 R",
-      "TM &",
-      "2017 Wizards of the Coast",
-      "XLN * EN I DAN SCOTT"
-     ],
      "premiumMark": true,
      "setCode": "xln"
     },
@@ -1517,13 +980,6 @@
     "reason": "collector line LCI 282 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "282",
-     "lines": [
-      "Whenever Restless Reef attacks, target",
-      "player mills four cards.",
-      "R 0282",
-      "TM & O 2023 Wizards of the Coast",
-      "LCI \u2022 EN HRISTO D. CHUKOY"
-     ],
      "premiumMark": false,
      "setCode": "lci"
     },
@@ -1537,13 +993,6 @@
     "reason": "collector line BRO 154 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "154",
-     "lines": [
-      "In war, dragons don't see sides, just side dishes.",
-      "4/5",
-      "154/287 R",
-      "I & C 2022 Wizards of the Coast",
-      "BRO*EN A- KARL KOPINSKI"
-     ],
      "premiumMark": true,
      "setCode": "bro"
     },
@@ -1557,14 +1006,6 @@
     "reason": "collector line BFZ 216 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "216",
-     "lines": [
-      "his talents from allaying Zendikar's fury to the",
-      "considerably easier task of rousing it.",
-      "4/4",
-      "216/274 R",
-      "BFZ * EN KARL KOPINSKI",
-      "TM & \u00a9 2015 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "bfz"
     },
@@ -1578,17 +1019,6 @@
     "reason": "collector line SOS 175 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "175",
-     "lines": [
-      "U/U",
-      "green and Diue Fractar",
-      "\u2022, *\u2022 rcate",
-      "creature token and put X +1/+1 counters",
-      "on it.",
-      "1/4",
-      "R 0175",
-      "SOS \u2022 EN TUAN DUONG CHU",
-      "TM & O 2026 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "sos"
     },
@@ -1602,14 +1032,6 @@
     "reason": "collector line ZNR 16 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "16",
-     "lines": [
-      "you control. Those creatures gain",
-      "vigilance until end of turn.",
-      "016/280",
-      "nde of the Coast",
-      "RALPN HORSLEY",
-      "ZNR \u2022 EN"
-     ],
      "premiumMark": false,
      "setCode": "znr"
     },
@@ -1623,15 +1045,6 @@
     "reason": "collector line VOW 46 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "46",
-     "lines": [
-      "Ton te momentaney anrrocts",
-      "w\u0441\u0430\u0430\u0442\u044c 6\u0438\u043e\u044e",
-      "were met with a pageant of wealth and excess.",
-      "2/3",
-      "046/277 P Promo",
-      "VOW*EN LORENZO MASTROLANNI",
-      "TM & C 2023 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "vow"
     },
@@ -1645,14 +1058,6 @@
     "reason": "collector line THB 212 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "212",
-     "lines": [
-      "His imagination soars from the depths of the",
-      "sea to the heights of the heavens.",
-      "2/4",
-      "212/254 R",
-      "IN & \u20ac 2020 Wizards of the Coast",
-      "THB *EN RYAN PANCOAST"
-     ],
      "premiumMark": true,
      "setCode": "thb"
     },
@@ -1666,14 +1071,6 @@
     "reason": "collector line CLB 309 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "309",
-     "lines": [
-      "same room as\u2014oh, blast it!",
-      "-Bindlehaim, Upper City merchant",
-      "309/361 C",
-      "* 2022 Turands ef dhe Crave",
-      "CLB \u2022 EN",
-      "TITUS LENTER"
-     ],
      "premiumMark": false,
      "setCode": "clb"
     },
@@ -1687,12 +1084,6 @@
     "reason": "collector line MM2 238 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "238",
-     "lines": [
-      "neither assault nor age.",
-      "C 2015 Wizards of the Coast",
-      "238/249 C",
-      "MM2 \u2022 EN \u2022- IOHN AVON"
-     ],
      "premiumMark": false,
      "setCode": "mm2"
     },
@@ -1706,14 +1097,6 @@
     "reason": "collector line ELD 71 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "71",
-     "lines": [
-      "n: Each player puts the top card of their library",
-      "into their graveyard.",
-      "5/4",
-      "071/269 R",
-      "ELD \u2022 EN CRISTI BALANESCU",
-      "TM & C 2019 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "eld"
     },
@@ -1727,13 +1110,6 @@
     "reason": "collector line GRN 113 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "113",
-     "lines": [
-      "addition to paying us other costs. Then",
-      "exile this card.)",
-      "IM & C 2018 Wizards of the Coast",
-      "113/259 R",
-      "GRN \u2022 EN CHRIS SEAMAN"
-     ],
      "premiumMark": false,
      "setCode": "grn"
     },
@@ -1747,13 +1123,6 @@
     "reason": "collector line 2XM 32 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "32",
-     "lines": [
-      "\"No matter how strong, an unarmed fighter",
-      "is no more than a fool.\"",
-      "032/332 R",
-      "IN & C 2020 Wizards of the Coast",
-      "2XM \u2022 EN STEVE PRESCOTT"
-     ],
      "premiumMark": false,
      "setCode": "2xm"
     },
@@ -1767,14 +1136,6 @@
     "reason": "collector line STX 5 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "5",
-     "lines": [
-      "crowa.",
-      "Don tjast wun the game. Wu",
-      "\u2014Moriana, Mage Tower coach",
-      "005/275 \u041cM",
-      "TM & O 2021 Wizards of the Coast",
-      "STX *EN RANDY VARGAS"
-     ],
      "premiumMark": true,
      "setCode": "stx"
     },
@@ -1788,13 +1149,6 @@
     "reason": "collector line BFZ 142 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "142",
-     "lines": [
-      "becomes a 010 Elemental creature with",
-      "haste. It's still a land.)",
-      "T\u2122 & C 2015 Wizards of the Coast",
-      "142/274 C",
-      "BFZ \u2022 EN TITUS LUNTER"
-     ],
      "premiumMark": false,
      "setCode": "bfz"
     },
@@ -1808,14 +1162,6 @@
     "reason": "collector line AFR 8 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "8",
-     "lines": [
-      "IL.",
-      "an Equipme",
-      "Equip 1",
-      "TM & C 2021 Wizards of the Coast",
-      "008/281 R",
-      "AFR \u2022 EN WISNU TAN"
-     ],
      "premiumMark": false,
      "setCode": "afr"
     },
@@ -1829,15 +1175,6 @@
     "reason": "collector line BLB 90 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "90",
-     "lines": [
-      "card into your hand. You lose life equal to",
-      "its mana value.",
-      "2/3",
-      "R 0090",
-      "TM & O 2024 Wizards of the Coast",
-      "TM & O",
-      "BLB * EN AURORE FOLNY"
-     ],
      "premiumMark": true,
      "setCode": "blb"
     },
@@ -1851,13 +1188,6 @@
     "reason": "collector line KLD 12 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "12",
-     "lines": [
-      "creature gains flying until end of turn.",
-      "1/2",
-      "012/264 C",
-      "TM & O 2016 Wizards of the Coast",
-      "KLD \u2022 EN IAMES PAICK"
-     ],
      "premiumMark": false,
      "setCode": "kld"
     },
@@ -1871,15 +1201,6 @@
     "reason": "collector line MKM 318 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "318",
-     "lines": [
-      "creature card exiled with it unul end",
-      "of turn.",
-      "2/3",
-      "R 0318",
-      "IM",
-      "2024 Wizards of the Coast",
-      "MKM-EN TULIE DILLON"
-     ],
      "premiumMark": false,
      "setCode": "mkm"
     },
@@ -1893,13 +1214,6 @@
     "reason": "collector line STX 48 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "48",
-     "lines": [
-      "\u043cementar creatur\u0435 \u0441\u043e\u043a\u0435\u043f.",
-      "If X is 4 or more, do all of the above.",
-      "048/275 R",
-      "IM & \u00a9 2021 Wizards of the Coast",
-      "STX \u2022 EN CAMPBELL WHITE"
-     ],
      "premiumMark": false,
      "setCode": "stx"
     },
@@ -1913,11 +1227,6 @@
     "reason": "collector line AKH 256 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "256",
-     "lines": [
-      "IM & \u00a9 2017 Wizards of the Coast",
-      "256/269 L",
-      "AKH \u2022 EN A IONAS DE RO"
-     ],
      "premiumMark": false,
      "setCode": "akh"
     },
@@ -1931,13 +1240,6 @@
     "reason": "collector line SOI 58 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "58",
-     "lines": [
-      "\u2014Tamiyo's journal",
-      "& C 2016 Whnarcs of the Cuust",
-      "058/297 R",
-      "- OUFF OMILAS",
-      "SOI*EN"
-     ],
      "premiumMark": true,
      "setCode": "soi"
     },
@@ -1951,15 +1253,6 @@
     "reason": "collector line C15 237 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "237",
-     "lines": [
-      "Coins oj the Underworld are shaped from clay",
-      "funerary masks.",
-      "2/2",
-      "237/342 U",
-      "C15 \u2022 EN K",
-      "MARK WINTERS",
-      "IM & \u20ac 2015 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "c15"
     },
@@ -1973,13 +1266,6 @@
     "reason": "collector line MM3 5 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "5",
-     "lines": [
-      "our winged friends will attend to.",
-      "-Zunak, Selesnya strategist",
-      "005/249 C",
-      "TM & C 2017 Wizards of the Coast",
-      "MM3 \u2022 EN IAMES RYMAN"
-     ],
      "premiumMark": false,
      "setCode": "mm3"
     },
@@ -1993,12 +1279,6 @@
     "reason": "collector line M19 141 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "141",
-     "lines": [
-      "5/4",
-      "141/280 C",
-      "M19 \u2022 EN SLAWOMIR MANIAK",
-      "TN & C 2018 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "m19"
     },
@@ -2012,15 +1292,6 @@
     "reason": "collector line VOW 187 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "187",
-     "lines": [
-      "6/6",
-      "during their own turn, it becomes",
-      "night next turn.)",
-      "4/4",
-      "187/277 M",
-      "IM & \u20ac 2021 Wizards of the Coast",
-      "VOW*EN HEONHWA CHOE"
-     ],
      "premiumMark": true,
      "setCode": "vow"
     },
@@ -2034,14 +1305,6 @@
     "reason": "collector line DMU 213 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "213",
-     "lines": [
-      "it's a 2/2 black Zombie in addition to its",
-      "other colors and types.",
-      "3/3",
-      "213/281 R",
-      "I\u2122 & C 2022 Wizands of the Coast",
-      "DMU\u2022 EN ANNA PAYLEEVA"
-     ],
      "premiumMark": false,
      "setCode": "dmu"
     },
@@ -2055,14 +1318,6 @@
     "reason": "collector line KHM 260 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "260",
-     "lines": [
-      "\u2014Ekken, Omenseeker navigator",
-      "Land",
-      ": Add",
-      "260/285 R",
-      "I\u043c & C 2021 Wizards of the Coast",
-      "KHM*EN YEONG-HAO HAN"
-     ],
      "premiumMark": true,
      "setCode": "khm"
     },
@@ -2076,14 +1331,6 @@
     "reason": "collector line SOS 111 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "111",
-     "lines": [
-      "copy gains haste and \"At the beginning of",
-      "copy gains haste and \"At the beginnilg of",
-      "the next end step, sacrifice this token.",
-      "R 0111",
-      "TM & O 2026 Wizards of the Coast",
-      "SOS \u2022 EN PAOLO PARENTE"
-     ],
      "premiumMark": false,
      "setCode": "sos"
     },
@@ -2097,14 +1344,6 @@
     "reason": "collector line TDM 5 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "5",
-     "lines": [
-      "All challengers were summarily silenced.",
-      "3/3",
-      "R 0005",
-      "TM & \u00a9 2025 Wizards of the Coast",
-      "\u2022 NATHANIEL HIMAWAN",
-      "TDM \u2022 EN \u2022"
-     ],
      "premiumMark": false,
      "setCode": "tdm"
     },
@@ -2118,14 +1357,6 @@
     "reason": "collector line KHM 61 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "61",
-     "lines": [
-      "memories of a time when the old gods",
-      "ruled the realms.",
-      "\u00a9 2021 Wizards of the Coast",
-      "IM &",
-      "061/285 R",
-      "KHM \u2022 EN SVETLIN VELINOV"
-     ],
      "premiumMark": false,
      "setCode": "khm"
     },
@@ -2139,14 +1370,6 @@
     "reason": "collector line TSR 5 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "5",
-     "lines": [
-      "four cards of that library instead.",
-      "2/1",
-      "005/289 U",
-      "IN & C 2020 Wizands of the Coast",
-      "\u2022 REBECCA GUAY",
-      "TSR \u2022 EN"
-     ],
      "premiumMark": false,
      "setCode": "tsr"
     },
@@ -2160,15 +1383,6 @@
     "reason": "collector line FRA 277 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "277",
-     "lines": [
-      "ratns to peace are carvea in ftesh ana stone.",
-      "This is how we reform what has failed before.\"",
-      "3/3",
-      "R 0277",
-      "TM &",
-      "2026 Wizards of the Coast",
-      "FRA \u2022 EN KIERAN YANNER"
-     ],
      "premiumMark": false,
      "setCode": "fra"
     },
@@ -2182,15 +1396,6 @@
     "reason": "collector line SNC 231 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "231",
-     "lines": [
-      "to any target and you create three",
-      "Treasure tokens.",
-      "6/6",
-      "231/281 M",
-      "\u2022 CHRIS RAHN",
-      "TM & C 2022 Wizards of the Coast",
-      "SNC \u2022 EN"
-     ],
      "premiumMark": false,
      "setCode": "snc"
     },
@@ -2204,15 +1409,6 @@
     "reason": "collector line RNA 33 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "33",
-     "lines": [
-      "If you can see your breath, it's too late",
-      "to run.",
-      "3/3",
-      "033/259 C",
-      "TM & C 2019 Wizards of the Coast",
-      "\u2022 EYTAN ZANA",
-      "RNA\u2022 EN O"
-     ],
      "premiumMark": false,
      "setCode": "rna"
     },
@@ -2226,13 +1422,6 @@
     "reason": "collector line FRA 231 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "231",
-     "lines": [
-      "\"My mistakes are mine to fix.\"",
-      "2/2",
-      "R 0231",
-      "FRA \u2022 EN MARTA NAEL",
-      "TM & O 2026 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "fra"
     },
@@ -2246,14 +1435,6 @@
     "reason": "collector line KTK 108 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "108",
-     "lines": [
-      "WE WN DTONAEEJM",
-      "the two sides of a single blade.\"",
-      "3/3",
-      "108/269 R",
-      "TM & S 2014 Wizards of the Coast",
-      "KTK * EN WESLEY BURT"
-     ],
      "premiumMark": true,
      "setCode": "ktk"
     },
@@ -2267,14 +1448,6 @@
     "reason": "collector line DFT 219 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "219",
-     "lines": [
-      "permanent that player controls into its",
-      "owner's library third from the top.",
-      "2/5",
-      "M 0219",
-      "DFT \u2022 EN ARTUR NAKHODKIN",
-      "TM & O 2025 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "dft"
     },
@@ -2288,15 +1461,6 @@
     "reason": "collector line DSK 260 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "260",
-     "lines": [
-      "vvipoeg oue wowt",
-      "wwwr eronoay we",
-      "filthy hands of the bog.",
-      "R 0260",
-      "TM & O",
-      "2024 Wizards of the Coast",
-      "DSK * EN MARCO GORLEI"
-     ],
      "premiumMark": true,
      "setCode": "dsk"
     },
@@ -2310,14 +1474,6 @@
     "reason": "collector line DFT 15 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "15",
-     "lines": [
-      "Datuienera, then shume.",
-      "Saddle 4",
-      "5/5",
-      "R 0015",
-      "DFT \u2022 EN CHRISTINA KRAUS",
-      "M & \u00a9 2025 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "dft"
     },
@@ -2331,16 +1487,6 @@
     "reason": "collector line RIX 157 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "157",
-     "lines": [
-      "WNUIUTUOE",
-      "Buuao PoweL",
-      "Her centuries-long search is ended.",
-      "1/1",
-      "157/196 M",
-      "RIX*EN CHRIS RAHN",
-      "TM & C",
-      "T\u2122 & C 2018 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "rix"
     },
@@ -2354,14 +1500,6 @@
     "reason": "collector line CMR 122 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "122",
-     "lines": [
-      "them at the beginning of the next end step.",
-      "Activate only as a sorcery.)",
-      "4/2",
-      "122/361 C",
-      "CMR \u2022 EN LIE SETIAWAN",
-      "TM & O 2020 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "cmr"
     },
@@ -2375,12 +1513,6 @@
     "reason": "collector line DOM 214 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "214",
-     "lines": [
-      "Equip 3",
-      "214/269 R",
-      "TM & C 2018 Wizards of the Coast",
-      "DOM \u2022 EN SCOTT MURPHY"
-     ],
      "premiumMark": false,
      "setCode": "dom"
     },
@@ -2394,14 +1526,6 @@
     "reason": "collector line DSK 153 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "153",
-     "lines": [
-      "\"Sutch your eyes, stuch your skin, stich",
-      "your mouth into a grin.",
-      "2/2",
-      "R 0153",
-      "T\u2122 & O 2024 Wizards of the Coast",
-      "DSK * EN RICCARDO FEDERICI"
-     ],
      "premiumMark": true,
      "setCode": "dsk"
     },
@@ -2415,14 +1539,6 @@
     "reason": "collector line AFR 156 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "156",
-     "lines": [
-      "creature cara irom your hand onto the",
-      "battlefield tapped and attacking.",
-      "0/1",
-      "156/281 R",
-      "AFR *EN ORIANA MENENDEZ",
-      "TM & C 2021 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "afr"
     },
@@ -2436,13 +1552,6 @@
     "reason": "collector line DMU 80 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "80",
-     "lines": [
-      "side an unfair advantage?\"",
-      "-Braids",
-      "080/281 C",
-      "TM & C 2022 Wizards of the Coast",
-      "DMU \u2022 EN IAREL THREAT"
-     ],
      "premiumMark": false,
      "setCode": "dmu"
     },
@@ -2456,13 +1565,6 @@
     "reason": "collector line MH2 92 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "92",
-     "lines": [
-      "\"The dead know their place.\"",
-      "4/4",
-      "092/303 R",
-      "MH2*EN BRYAN SOLA",
-      "IM & \u00a9 2021 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "mh2"
     },
@@ -2476,15 +1578,6 @@
     "reason": "collector line SPM 106 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "106",
-     "lines": [
-      "Dr. Curt Connors used lizard DNA to regrow",
-      "his missing arm, but it didn't stop there.",
-      "5/5",
-      "R 0106",
-      "O MARVEL",
-      "SPM * EN STEVE PRESCOTT",
-      "\u0442\u043c & O 2025 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "spm"
     },
@@ -2498,18 +1591,6 @@
     "reason": "collector line NCC 20 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "20",
-     "lines": [
-      "tracl",
-      "\u041f\u0418T",
-      "y\u0441",
-      "nenls, 1",
-      "PP",
-      "creature gains flying until end of turn.",
-      "3/3",
-      "020/093 R",
-      "NCC \u2022 EN N RUDY SISWANTO",
-      "IM & C 2022 Wizarde of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "ncc"
     },
@@ -2523,13 +1604,6 @@
     "reason": "collector line RIX 185 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "185",
-     "lines": [
-      "ability only if you have the city's",
-      "blessing.",
-      "185/196 R",
-      "I\u2122 & \u00a9 2018 Wizards of the Coast",
-      "RIX \u2022 EN TITUS LUNTER"
-     ],
      "premiumMark": false,
      "setCode": "rix"
     },
@@ -2542,13 +1616,6 @@
     "truth": "32fb5109-432c-4dc9-88c5-95cdcb7fbf60",
     "reason": "set KTK leaves one printing of the top card",
     "reading": {
-     "lines": [
-      "hand and the rest on te bottom or",
-      "your library in any order.",
-      "TN & C 2014 Wizards of the Coast",
-      "036 269 R",
-      "KTK * EN RYAN YEE"
-     ],
      "premiumMark": true,
      "setCode": "ktk"
     },
@@ -2562,12 +1629,6 @@
     "reason": "collector line DDP 68 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "68",
-     "lines": [
-      "Each temple is a door to a horrible future.",
-      "068/080 U",
-      "T\u2122 & C 2015 Wizards of the Coast",
-      "DDP \u2022 EN IAMES PAICK"
-     ],
      "premiumMark": false,
      "setCode": "ddp"
     },
@@ -2581,13 +1642,6 @@
     "reason": "collector line BLB 95 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "95",
-     "lines": [
-      "nguage.",
-      "U 0095",
-      "TH &",
-      "2024 Wizards of the Coast",
-      "BLB \u2022 EN IO A. M. SARTOR"
-     ],
      "premiumMark": false,
      "setCode": "blb"
     },
@@ -2601,15 +1655,6 @@
     "reason": "collector line ZNR 95 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "95",
-     "lines": [
-      "vasteoper mur correrteu",
-      "Ter parbe yoe trray",
-      "mana cost 4 or less from your hand without",
-      "paying its mana cost.",
-      "095/280 R",
-      "IN & O 2020 Wizards of the Coast",
-      "ZNR*EN LIE SETIAWAN"
-     ],
      "premiumMark": true,
      "setCode": "znr"
     },
@@ -2623,14 +1668,6 @@
     "reason": "collector line MH2 151 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "151",
-     "lines": [
-      ", Sacrifice X Squirrels: Target creature",
-      "gets +X/-X until end of turn.",
-      "3/3",
-      "151/303 M",
-      "I\u2122 & C 2021 Wizards of the Coast",
-      "MH2* EN IO IASON A. ENGLE"
-     ],
      "premiumMark": true,
      "setCode": "mh2"
     },
@@ -2644,13 +1681,6 @@
     "reason": "collector line ORI 228 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "228",
-     "lines": [
-      "their story lost to the ages.",
-      "0/6",
-      "228/272 \u0421",
-      "ORI \u2022 EN \u00ba MAGALI VILLENEUVE",
-      "TM & O 2015 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "ori"
     },
@@ -2664,12 +1694,6 @@
     "reason": "collector line MKM 45 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "45",
-     "lines": [
-      "Enchantment - Case",
-      "\u0442\u2122 & O 2024 Wizards of the Coast",
-      "R 0045",
-      "MKM \u2022 EN BORIA PINDADO"
-     ],
      "premiumMark": false,
      "setCode": "mkm"
     },
@@ -2683,14 +1707,6 @@
     "reason": "collector line AFR 100 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "100",
-     "lines": [
-      "you braveyane n\u0430 eicatarc \u043fo\u0441 \u043fa\u0448c\u0430",
-      "Ebondeath, Dracolich died this turn.",
-      "5/2",
-      "100/281 \u041c",
-      "AFR \u2022 EN LARS GRANT-WEST",
-      "\u0442\u2122 A C 2021 Wizarde of the Coau"
-     ],
      "premiumMark": false,
      "setCode": "afr"
     },
@@ -2704,15 +1720,6 @@
     "reason": "collector line KTK 38 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "38",
-     "lines": [
-      "turned race up, look at target",
-      "opponent's hand.",
-      "0/6",
-      "038/269 U",
-      "KTK \u2022 EN TASON RAINVILLE",
-      "TM &",
-      "2014 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "ktk"
     },
@@ -2726,12 +1733,6 @@
     "reason": "collector line M20 253 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "253",
-     "lines": [
-      "sAdd \u2022 or \u2022",
-      "253/280 R",
-      "* 2019 Wizards of the Coast",
-      "M20 * EN O ADAM PAQUETTE"
-     ],
      "premiumMark": true,
      "setCode": "m20"
     },
@@ -2745,16 +1746,6 @@
     "reason": "collector line WOC 116 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "116",
-     "lines": [
-      "USC",
-      "pra y",
-      "a cara.",
-      "\u2022 Each player sacrifices a creature.",
-      "3/3",
-      "R 0116",
-      "WOC \u2022 EN DMITRY BURMAK",
-      "TM & O 2023 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "woc"
     },
@@ -2768,14 +1759,6 @@
     "reason": "collector line SNC 223 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "223",
-     "lines": [
-      "Light poured from every crack as the sleepers",
-      "awoke from their long stone slumber.",
-      "5/7",
-      "223/281 R",
-      "TM & Q 2022 Wizards of the Coast",
-      "SNC * EN ERIC DESCHAMPS"
-     ],
      "premiumMark": true,
      "setCode": "snc"
     },
@@ -2789,15 +1772,6 @@
     "reason": "collector line KTK 137 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "137",
-     "lines": [
-      "voweryore",
-      "zwerper e Doee con",
-      "up as crocodile chow or baboon bait.",
-      "4/4",
-      "137/269 C",
-      "KTK \u2022 EN MIKE BIEREK",
-      "TM & O 2014 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "ktk"
     },
@@ -2811,17 +1785,6 @@
     "reason": "collector line 40K 22 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "22",
-     "lines": [
-      "you create a tone thato a copy or mat",
-      "creature, except it's a Tyranid in addition",
-      "to its other types.",
-      "4/4",
-      "022/168 R",
-      "GW",
-      "TM",
-      "4OK*EN GAMES WORKSHOP",
-      "& 0 2022 Wizards of the Coast"
-     ],
      "premiumMark": true
     },
     "topSimilarity": 0.9496122598648071,
@@ -2834,15 +1797,6 @@
     "reason": "collector line ONE 153 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "153",
-     "lines": [
-      "Forge. Sacrince that token at the",
-      "beginning of the next end step.",
-      "153/271 R",
-      "Story Spotlight",
-      "mtgstory.com",
-      "ONE* EN O LIE SETIAWAN",
-      "TM & O 2023 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "one"
     },
@@ -2856,13 +1810,6 @@
     "reason": "collector line NCC 39 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "39",
-     "lines": [
-      "value. II they do, exile that card.",
-      "Otherwise, put it into your hand.",
-      "TM & C 2022 Wizards of the Coast",
-      "039/093 R",
-      "NCC \u2022 EN ERNANDA SOUZA"
-     ],
      "premiumMark": false,
      "setCode": "ncc"
     },
@@ -2876,16 +1823,6 @@
     "reason": "collector line AFR 27 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "27",
-     "lines": [
-      "as",
-      "BeLTI",
-      "Vuter creatures you conuror",
-      "long as you've completed a dungeon.",
-      "3/3",
-      "027/281 R",
-      "TM & \u00a9 2021 Wizards of the Coast",
-      "AFR *EN AARON MILLER"
-     ],
      "premiumMark": true,
      "setCode": "afr"
     },
@@ -2899,12 +1836,6 @@
     "reason": "collector line BFZ 252 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "252",
-     "lines": [
-      "2015 Wizards of the Coast",
-      "IM &",
-      "252/274 L",
-      "BFZ \u2022 EN ADAM PAOUETTE"
-     ],
      "premiumMark": false,
      "setCode": "bfz"
     },
@@ -2918,19 +1849,6 @@
     "reason": "collector line NCC 49 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "49",
-     "lines": [
-      "Le",
-      "w nen",
-      "u gains",
-      "creature ares,",
-      "draw a card.\" Sacrifice it at the beginning of the",
-      "next end step.)",
-      "3/3",
-      "049/093 R",
-      "NCC \u2022 EN \u042e",
-      "\u2022FILIPE PAGLIUSO",
-      "TM & C 2022 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "ncc"
     },
@@ -2944,11 +1862,6 @@
     "reason": "collector line WOE 273 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "273",
-     "lines": [
-      "TH & \u00a9 2023 Wizards of the Coast",
-      "L 0273",
-      "WOE \u2022 EN SARAH FINNIGAN"
-     ],
      "premiumMark": false,
      "setCode": "woe"
     },
@@ -2962,14 +1875,6 @@
     "reason": "collector line PCA 24 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "24",
-     "lines": [
-      "on the battlefield, except it's a Ninja in",
-      "addition to its other creature types.",
-      "0/0",
-      "024/156 R",
-      "IM & \u20ac 2016 Wizards of the Coast",
-      "PCA \u2022 EN BRIAN SNODDY"
-     ],
      "premiumMark": false,
      "setCode": "pca"
     },
@@ -2983,13 +1888,6 @@
     "reason": "collector line M21 38 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "38",
-     "lines": [
-      "\"All are welcome in the angels' light.\"",
-      "1/1",
-      "038/274 R",
-      "M21 \u2022 EN \u00b0 RANDY VARGAS",
-      "IM & O 2020 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "m21"
     },
@@ -3003,14 +1901,6 @@
     "reason": "collector line TDM 223 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "223",
-     "lines": [
-      "paymg ns mana cost. (A copy of a",
-      "permanent spell becomes a token.)",
-      "4/5",
-      "M 0223",
-      "TDM \u2022 EN A VICTOR ADAME MINGUEZ",
-      "\u0442\u0438 & \u00a9 2025 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "tdm"
     },
@@ -3024,14 +1914,6 @@
     "reason": "collector line AFR 216 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "216",
-     "lines": [
-      "communities from evils that might",
-      "threaten them.",
-      "4/3",
-      "216/281 R",
-      "AFR *EN CHRIS RAHN",
-      "TM & C 2021 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "afr"
     },
@@ -3045,19 +1927,6 @@
     "reason": "collector line SOS 145 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "145",
-     "lines": [
-      "VIC",
-      "S",
-      "LO",
-      "\u043f\u0430\u0448\u0430.",
-      "ais, u",
-      "creature becomes",
-      "prepared.",
-      "3/4",
-      "M 0145",
-      "SOS \u2022 EN IUSTYNA DURA",
-      "TM & O 2026 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "sos"
     },
@@ -3071,14 +1940,6 @@
     "reason": "collector line OGW 147 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "147",
-     "lines": [
-      "Whenever you cast a creature spen,",
-      "draw a card.",
-      "TM & C 2016 Wizards of the Coast",
-      "TM &",
-      "147/184 R",
-      "OGW \u2022 EN IC CHRIS RALLIS"
-     ],
      "premiumMark": false,
      "setCode": "ogw"
     },
@@ -3092,15 +1953,6 @@
     "reason": "collector line OGW 161 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "161",
-     "lines": [
-      "nas veen curnea wuo",
-      "else on senarkar",
-      "a weapon against the Eldrazi.",
-      "2016 Wizards of the Coast",
-      "TM &",
-      "161/184 C",
-      "OGW \u2022 EN KEY WALKER"
-     ],
      "premiumMark": false,
      "setCode": "ogw"
     },
@@ -3114,13 +1966,6 @@
     "reason": "collector line XLN 138 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "138",
-     "lines": [
-      "5/5",
-      "138/279",
-      "U",
-      "XLN \u2022 EN I ZACK STELLA",
-      "TM & C 2017 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "xln"
     },
@@ -3134,13 +1979,6 @@
     "reason": "collector line LCI 257 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "257",
-     "lines": [
-      "on The Millennium Calendar, sacrifice it and",
-      "each opponent loses 1,000 life.",
-      "M 0257",
-      "TM & O 2023 Wizards of the Coast",
-      "LCI \u2022 EN ZOLIAN BOROS"
-     ],
      "premiumMark": false,
      "setCode": "lci"
     },
@@ -3154,14 +1992,6 @@
     "reason": "collector line ELD 133 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "133",
-     "lines": [
-      "Feuroro",
-      "loses all abilities, and it can't attack or block.",
-      "4/3",
-      "133/269 R",
-      "IM & O 2019 Wizards of the Coast",
-      "ELD \u2022 EN CHRIS RAHN"
-     ],
      "premiumMark": false,
      "setCode": "eld"
     },
@@ -3175,13 +2005,6 @@
     "reason": "collector line XLN 167 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "167",
-     "lines": [
-      "Legion of Dusk, and they are eager for",
-      "vengeance.",
-      "IM & C 2017 Wizards of the Coast",
-      "167/279 C",
-      "XLN \u2022 EN AIOsu HERNAIZ"
-     ],
      "premiumMark": false,
      "setCode": "xln"
     },
@@ -3195,13 +2018,6 @@
     "reason": "collector line FDN 137 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "137",
-     "lines": [
-      "within the confines of the Consulate's",
-      "laws.",
-      "R 0137",
-      "TM & O 2024 Wizards of the Coast",
-      "FDN* EN LAKE HURWITZ"
-     ],
      "premiumMark": true,
      "setCode": "fdn"
     },
@@ -3215,13 +2031,6 @@
     "reason": "collector line C18 6 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "6",
-     "lines": [
-      "that type from among the exiled",
-      "cards without paying its mana cost.",
-      "006/307 R",
-      "IM & C 2018 Wizards of the Coast",
-      "C18 \u2022 EN SEB MCKINNON"
-     ],
      "premiumMark": false,
      "setCode": "c18"
     },
@@ -3235,12 +2044,6 @@
     "reason": "collector line DDO 24 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "24",
-     "lines": [
-      "-Elspeth",
-      "nh ef ihe \u20ac",
-      "024/067",
-      "DDO \u2022EN IeoR KIERYLUK"
-     ],
      "premiumMark": false,
      "setCode": "ddo"
     },
@@ -3254,14 +2057,6 @@
     "reason": "collector line VOW 68 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "68",
-     "lines": [
-      "cara from your graveyara transjormea",
-      "for its disturb cost.)",
-      "0/0",
-      "068/277 R",
-      "IM & C 2021 Wizards of the Coast",
-      "VOW* EN IUSTINE CRUZ"
-     ],
      "premiumMark": true,
      "setCode": "vow"
     },
@@ -3275,15 +2070,6 @@
     "reason": "collector line SOI 265 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "265",
-     "lines": [
-      "100",
-      "ONUAAS30",
-      "JVuT",
-      "Entry 434: There's more to Avacyn's madness ...",
-      "TM & O 2016 Wizards of the Coast",
-      "265/297 R",
-      "*SOI- EN CHASE STONE"
-     ],
      "premiumMark": false,
      "setCode": "soi"
     },
@@ -3297,14 +2083,6 @@
     "reason": "collector line KTK 235 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "235",
-     "lines": [
-      "P: Add &",
-      "or",
-      "\u2022 to your mana pool.",
-      "TN & O 2014 Wizards of the Coast",
-      "235/269 C",
-      "KTK \u2022 EN EYTAN ZANA"
-     ],
      "premiumMark": false,
      "setCode": "ktk"
     },
@@ -3318,13 +2096,6 @@
     "reason": "collector line SNC 179 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "179",
-     "lines": [
-      "\"Well, that's one way to scatter her ashes.\"",
-      "\u2014Calvey, funeral director",
-      "179/281 R",
-      "TM & O 2022 Wizards of the Coast",
-      "SNC * EN GREG STAPLES"
-     ],
      "premiumMark": true,
      "setCode": "snc"
     },
@@ -3338,15 +2109,6 @@
     "reason": "collector line ONE 201 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "201",
-     "lines": [
-      "last to stop chnging to the past ana join me",
-      "in the grand pursuit of perfection?\"*",
-      "3/3",
-      "201/271 R",
-      "TM & O 2023 Wizards of the Coast",
-      "FARIBA KHAMSEH",
-      "ONE* EN"
-     ],
      "premiumMark": true,
      "setCode": "one"
     },
@@ -3360,15 +2122,6 @@
     "reason": "collector line BLB 12 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "12",
-     "lines": [
-      "Maen boounee onannorer ties putto",
-      "counters on target creature you control.",
-      "2/1",
-      "R 0012",
-      "BLB * EN WYLIE BECKERT",
-      "TM &",
-      "2024 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "blb"
     },
@@ -3382,13 +2135,6 @@
     "reason": "collector line M21 149 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "149",
-     "lines": [
-      "screams of terror are one and the same.",
-      "5/5",
-      "149/274 U",
-      "IM & O 2020 Wizards of the Coast",
-      "M21 \u2022 EN IASON A. ENGLE"
-     ],
      "premiumMark": false,
      "setCode": "m21"
     },
@@ -3402,20 +2148,6 @@
     "reason": "collector line STX 20 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "20",
-     "lines": [
-      "7 NIS",
-      "nea\u0442",
-      "ul 20m",
-      "woras are",
-      "nspiring",
-      "filled with hope and pride.",
-      "2/2",
-      "020/275 R",
-      "I & + 2021 Wuarde",
-      "the Coast",
-      "EN BELLEDIN",
-      "STX * EN"
-     ],
      "premiumMark": true,
      "setCode": "stx"
     },
@@ -3429,17 +2161,6 @@
     "reason": "collector line VOC 128 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "128",
-     "lines": [
-      "TO?O",
-      "1 often",
-      "excilea they mus",
-      "feel to be chosen as my prey.\"",
-      "2/2",
-      "128",
-      "U",
-      "TM & \u00a9 2021 Wizards of the Coast",
-      "VOC \u2022 EN SLAWOMIR MANIAK"
-     ],
      "premiumMark": false,
      "setCode": "voc"
     },
@@ -3453,14 +2174,6 @@
     "reason": "collector line IMA 210 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "210",
-     "lines": [
-      "wurretrs",
-      "the coiction, even thougn u",
-      "was cloudy.",
-      "210/249 R",
-      "TM & O 2017 Wizards of the Coast",
-      "IMA \u2022 EN SAM BURLEY"
-     ],
      "premiumMark": false,
      "setCode": "ima"
     },
@@ -3474,14 +2187,6 @@
     "reason": "collector line IKO 203 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "203",
-     "lines": [
-      "\"Being all-knowing is a matter of remembering",
-      "which things it is crucial to forget.\"",
-      "0/3",
-      "203/274 \u041c",
-      "IKO \u2022 EN YONGIAE CHOI",
-      "IM & O 2020 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "iko"
     },
@@ -3495,14 +2200,6 @@
     "reason": "collector line M15 45 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "45",
-     "lines": [
-      "vunrtorow",
-      "-Gor Muldrak, Cryptohistories",
-      "3/2",
-      "045/269 \u0421",
-      "TM & C 2014 Wizards of the Coast",
-      "M15 \u2022 EN MARK WINTERS"
-     ],
      "premiumMark": false,
      "setCode": "m15"
     },
@@ -3516,14 +2213,6 @@
     "reason": "collector line BLB 204 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "204",
-     "lines": [
-      "\"Why would I chase the storm? Does a cloud chase",
-      "the rain? Does the sun chase the light?\"",
-      "3/5",
-      "R 0204",
-      "BLB \u2022 EN IOSHUA RAPHAEL",
-      "TM & O 2024 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "blb"
     },
@@ -3537,14 +2226,6 @@
     "reason": "collector line MID 162 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "162",
-     "lines": [
-      "do, return Sunstreak Phoenix from your",
-      "graveyard to the battlefield tapped.",
-      "4/2",
-      "162/277 M",
-      "MID*EN BRIAN VALEZA",
-      "IM & C 2021 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "mid"
     },
@@ -3558,14 +2239,6 @@
     "reason": "collector line SNC 206 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "206",
-     "lines": [
-      "-7",
-      ": Target player draws seven cards and loses 7 life.",
-      "3",
-      "206/281 M",
-      "SNC * EN YONGIAE CHOI",
-      "IM & 2022 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "snc"
     },
@@ -3579,15 +2252,6 @@
     "reason": "collector line 40K 164 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "164",
-     "lines": [
-      "it, it gets +X/+X until end of turn, where X",
-      "is the power of the exiled card.",
-      "4/4",
-      "164/168 R",
-      "GW",
-      "40K*EN \u042e PHILIP HELLIWELL",
-      "& O 2022 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "40k"
     },
@@ -3601,16 +2265,6 @@
     "reason": "collector line RIX 150 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "150",
-     "lines": [
-      "Lack",
-      "DIOCK",
-      "wayware",
-      "unless you have the city's blessing.",
-      "5/5",
-      "150/196 R",
-      "IM & C 2018 Wizards of the Coast",
-      "RIX*EN - CHRIS RAHN"
-     ],
      "premiumMark": true,
      "setCode": "rix"
     },
@@ -3624,13 +2278,6 @@
     "reason": "collector line BFZ 263 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "263",
-     "lines": [
-      "263/274",
-      "T\u2122 & C 2015 Wizards of the Coast",
-      "L",
-      "BFZ \u2022 EN",
-      "JUNG PARK"
-     ],
      "premiumMark": false,
      "setCode": "bfz"
     },
@@ -3644,13 +2291,6 @@
     "reason": "collector line DOM 143 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "143",
-     "lines": [
-      "\"Ready\u2026. uh \u2026 fire!\"",
-      "2/2",
-      "143/269 R",
-      "DOM*EN AARON MILLER",
-      "I\u2122 & C 2018 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "dom"
     },
@@ -3664,14 +2304,6 @@
     "reason": "collector line FRA 44 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "44",
-     "lines": [
-      ", Sacrifice this creature: The next spell you",
-      "cast this turn can't be countered.",
-      "0/3",
-      "R 0044",
-      "T\u043c & O 2026 Wizards of the Coast",
-      "FRA \u2022 EN MATT STEWART"
-     ],
      "premiumMark": false,
      "setCode": "fra"
     },
@@ -3685,14 +2317,6 @@
     "reason": "collector line LTR 2 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "2",
-     "lines": [
-      "head. Merry now had enough sturdy Hobbitry",
-      "to deal with the ruffians.",
-      "MEE",
-      "R 0002",
-      "TM & O 2023 Wizards of the Coast",
-      "LTR *EN TOMAS DUCHEK"
-     ],
      "premiumMark": true,
      "setCode": "ltr"
     },
@@ -3706,13 +2330,6 @@
     "reason": "collector line FDN 193 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "193",
-     "lines": [
-      "-Marsden, party leader, last words",
-      "7/7",
-      "R 0193",
-      "TM & \u00a9 2024 Wizards of the Coast",
-      "FDN* EN GRZEGORZ RUTKOWSKI"
-     ],
      "premiumMark": true,
      "setCode": "fdn"
     },
@@ -3726,13 +2343,6 @@
     "reason": "collector line AFR 39 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "39",
-     "lines": [
-      "\"Hold on to your lunch!\"",
-      "\u2014Bartleby, gnome wizard",
-      "039/281 R",
-      "TM & C 2021 Wizards of the Coast",
-      "AFR *EN CHRIS COLD"
-     ],
      "premiumMark": true,
      "setCode": "afr"
     },
@@ -3746,15 +2356,6 @@
     "reason": "collector line KTK 163 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "163",
-     "lines": [
-      "Rarely at rest on the Amber Throne, Anafenza",
-      "always leads the Abzan Houses to battle.",
-      "4/4",
-      "163/269 M",
-      "2014 Wizards of the Coas:",
-      "TM S",
-      "KTK* EN IAMES RYMAN"
-     ],
      "premiumMark": true,
      "setCode": "ktk"
     },
@@ -3768,17 +2369,6 @@
     "reason": "collector line FIN 125 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "125",
-     "lines": [
-      "3/2",
-      "you may transform it.",
-      "2/2",
-      "FFVIl",
-      "R 0125",
-      "FFO SQUARE ENIX",
-      "2025 Wizards of the Coast",
-      "TM &",
-      "FIN *EN 0 3HFASE/NORIKATSU MIYOSHI"
-     ],
      "premiumMark": true,
      "setCode": "fin"
     },
@@ -3792,13 +2382,6 @@
     "reason": "collector line ONE 232 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "232",
-     "lines": [
-      "threshold. We should be safe inside.\"",
-      "\u2014Koth",
-      "232/271 R",
-      "& 0 2023 Wizand of the Coast",
-      "ONE \u2022 EN PIOTR DURA"
-     ],
      "premiumMark": false,
      "setCode": "one"
     },
@@ -3812,13 +2395,6 @@
     "reason": "collector line SNC 38 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "38",
-     "lines": [
-      "Target player mills half their library,",
-      "rounded down.",
-      "038/281 R",
-      "TM & G 2022 Wizards of the Coast",
-      "SNC*EN DOMINIK MAYER"
-     ],
      "premiumMark": true,
      "setCode": "snc"
     },
@@ -3832,12 +2408,6 @@
     "reason": "collector line GRN 51 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "51",
-     "lines": [
-      "\"My greatest creation-me!\"",
-      "051/259 R",
-      "TN & C 2018 Wizards of the Coast",
-      "GRN - EN DMITRY BURMAK"
-     ],
      "premiumMark": false,
      "setCode": "grn"
     },
@@ -3851,14 +2421,6 @@
     "reason": "collector line M20 98 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "98",
-     "lines": [
-      "\"I feel your pain. It's exquisite.\"",
-      "0/0",
-      "098/280 R",
-      "TM & \u00a9 2019 Wizards of the Coast",
-      "TM &",
-      "M20 *EN IGOR KIERYLUK"
-     ],
      "premiumMark": true,
      "setCode": "m20"
     },
@@ -3872,14 +2434,6 @@
     "reason": "collector line DFT 113 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "113",
-     "lines": [
-      "exhaust ability only once.)",
-      "Crew 2",
-      "5/5",
-      "R 0113",
-      "DFT \u2022 EN ALEXANDR LESKINEN",
-      "TM & O 2025 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "dft"
     },
@@ -3893,13 +2447,6 @@
     "reason": "collector line KTK 154 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "154",
-     "lines": [
-      "turned face up, if it's a creature, it gets",
-      "+2/+2 until end of turn.",
-      "154/269 R",
-      "TN & C 2014 Wizards of the Coast",
-      "KTK* EN RAYMOND SWANLAND"
-     ],
      "premiumMark": true,
      "setCode": "ktk"
     },
@@ -3913,14 +2460,6 @@
     "reason": "collector line OTJ 211 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "211",
-     "lines": [
-      "me vatuenue wraet your contoy caet",
-      "opponent loses 1 life and you gain 1 life.",
-      "2/4",
-      "R 0211",
-      "TM & O 2024 Wizards of the Coast",
-      "OTJ \u2022 EN ANDREAS ZAFIRATOS"
-     ],
      "premiumMark": false,
      "setCode": "otj"
     },
@@ -3934,14 +2473,6 @@
     "reason": "collector line KHM 197 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "197",
-     "lines": [
-      "deals combat damage to a player,",
-      "draw a card.",
-      "1/1",
-      "197/285 R",
-      "T\u2122 & \u00a9 2021 Wizards of the Coast",
-      "KHM* EN lASON RAINVILLE"
-     ],
      "premiumMark": true,
      "setCode": "khm"
     },
@@ -3955,14 +2486,6 @@
     "reason": "collector line BFZ 50 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "50",
-     "lines": [
-      "leaves the battlefield. (That creature",
-      "returns under its owner's control.)",
-      "050/274 U",
-      "TM &",
-      "\u00a9 2015 Wizards of the Coast",
-      "BFZ \u2022 EN IASON FELIX"
-     ],
      "premiumMark": false,
      "setCode": "bfz"
     },
@@ -3976,13 +2499,6 @@
     "reason": "collector line IKO 67 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "67",
-     "lines": [
-      "When you cycle Shark Typhoon, create an",
-      "X/X blue Shark creature token with flying.",
-      "067/274 R",
-      "I\u043c & o 2020 Wuzards of the Coas",
-      "IKO \u2022 EN N CAIO MONTEIRO"
-     ],
      "premiumMark": false,
      "setCode": "iko"
     },
@@ -3996,13 +2512,6 @@
     "reason": "collector line DSK 155 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "155",
-     "lines": [
-      "deals X damage to each of up to X target",
-      "creatures.",
-      "M 0155",
-      "TM & \u00a9 2024 Wizards of the Coast",
-      "DSK \u2022 EN DERUCHENKO ALEXANDER"
-     ],
      "premiumMark": false,
      "setCode": "dsk"
     },
@@ -4016,15 +2525,6 @@
     "reason": "collector line WAR 56 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "56",
-     "lines": [
-      "\u2022 token. Draw a card, then discard",
-      "a card.",
-      "5",
-      "056/264 U",
-      "\u00a9 2019 Wizards of the Coast",
-      "TN &",
-      "WAR*EN MAGALI VILLENEUVE"
-     ],
      "premiumMark": true,
      "setCode": "war"
     },
@@ -4038,13 +2538,6 @@
     "reason": "collector line UMA 18 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "18",
-     "lines": [
-      "return the favor.",
-      "2018 Wizards of the Coast",
-      "TM &",
-      "018/254 C",
-      "UMA \u2022 EN MARK WINTERS"
-     ],
      "premiumMark": false,
      "setCode": "uma"
     },
@@ -4058,15 +2551,6 @@
     "reason": "collector line GRN 205 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "205",
-     "lines": [
-      "VA 17 7093017",
-      "spend mana as though it were mana of any",
-      "type to cast that spell.",
-      "2/2",
-      "205/259 R",
-      "GRN \u2022 EN IGOR KIERYLUK",
-      "TM & C 2018 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "grn"
     },
@@ -4080,12 +2564,6 @@
     "reason": "collector line EMN 178 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "178",
-     "lines": [
-      "Enchanted creature gets +2/+2.",
-      "TM & C 2016 Wizards of the Coast",
-      "178/205 C",
-      "EMN \u2022 EN LINDSEY LOOK"
-     ],
      "premiumMark": false,
      "setCode": "emn"
     },
@@ -4099,15 +2577,6 @@
     "reason": "collector line LTR 193 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "193",
-     "lines": [
-      "that creature and a +1/+1 counter and a",
-      "lifelink counter on Arwen.",
-      "2/2",
-      "M 0193",
-      "MEE",
-      "LTR * EN MIRANDA MEEKS",
-      "& O 2023 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "ltr"
     },
@@ -4121,16 +2590,6 @@
     "reason": "collector line 40K 89 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "89",
-     "lines": [
-      "mber or other",
-      "long any n",
-      "target creatures you control.",
-      "3/3",
-      "089/168 R",
-      "W",
-      "4OK*EN N MATHIAS KOLLROS",
-      "* C 2022 Wizards of the Coast"
-     ],
      "premiumMark": true
     },
     "topSimilarity": 0.7687808275222778,
@@ -4143,13 +2602,6 @@
     "reason": "collector line RNA 182 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "182",
-     "lines": [
-      "2",
-      "\u2022: Untap target creature.",
-      "TM & C 2019 Wizards of the Coast",
-      "182/259 U",
-      "RNA \u2022 EN DAARKEN"
-     ],
      "premiumMark": false,
      "setCode": "rna"
     },
@@ -4163,12 +2615,6 @@
     "reason": "collector line THB 231 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "231",
-     "lines": [
-      "enchantnent, you gain 1 hire.",
-      "231/254 C",
-      "IM & G 2020 Wizards of the Coast",
-      "THB \u2022 EN OIONAS DE RO"
-     ],
      "premiumMark": false,
      "setCode": "thb"
     },
@@ -4182,14 +2628,6 @@
     "reason": "collector line LCC 242 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "242",
-     "lines": [
-      "melodic message to all Oltec near and",
-      "far: you are home.",
-      "C 0242",
-      "TM &",
-      "O 2023 Wizards of the Coast",
-      "LCC \u2022 EN HRISTO D. CHUKOY"
-     ],
      "premiumMark": false,
      "setCode": "lcc"
     },
@@ -4203,15 +2641,6 @@
     "reason": "collector line BRO 185 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "185",
-     "lines": [
-      "wilr powe por sreater Puraa",
-      "counter on Gwenna, Eyes of Gaea",
-      "and untap it.",
-      "2/3",
-      "185/287 R",
-      "BRO \u2022 EN STEVE PRESCOTT",
-      "TM & C 2022 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "bro"
     },
@@ -4225,12 +2654,6 @@
     "reason": "collector line AFR 202 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "202",
-     "lines": [
-      "Enchantment - Class",
-      "202/281 R",
-      "& \u00a9 2021 Wizards of the Coast",
-      "AFR * EN IO SUZANNE HELMIGH"
-     ],
      "premiumMark": true,
      "setCode": "afr"
     },
@@ -4244,13 +2667,6 @@
     "reason": "collector line KLD 52 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "52",
-     "lines": [
-      "aiezr.",
-      "\u2014Baral, Chief of Compliance",
-      "052/264 R",
-      "TH & O 2016 Winards of the Coast",
-      "KLD* EN ANTHONY PALUMBO"
-     ],
      "premiumMark": true,
      "setCode": "kld"
     },
@@ -4264,15 +2680,6 @@
     "reason": "collector line NEO 245 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "245",
-     "lines": [
-      "7070025400",
-      "vigilance.",
-      "Equip 1",
-      "245/302 R",
-      "\u00a9 2022 Wizards of the Coast",
-      "TM &",
-      "NEO \u2022 EN TUAN DUONG CHU"
-     ],
      "premiumMark": false,
      "setCode": "neo"
     },
@@ -4286,14 +2693,6 @@
     "reason": "collector line WAR 196 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "196",
-     "lines": [
-      "If you don't control one, create a 010 black",
-      "Zombie Army creature token first.)",
-      "mtgstory.com",
-      "196/264 R Spotlight: Act II",
-      "TM & C 2019 Wizards of the Coast",
-      "WAR* EN DANIEL LIUNGGREN"
-     ],
      "premiumMark": true,
      "setCode": "war"
     },
@@ -4307,13 +2706,6 @@
     "reason": "collector line DFT 209 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "209",
-     "lines": [
-      "Let the past die so the future might live.",
-      "4/4",
-      "M 0209",
-      "TM & O 2025 Wizards of the Coast",
-      "DFT * EN MAAZ ALI KHAN"
-     ],
      "premiumMark": true,
      "setCode": "dft"
     },
@@ -4327,13 +2719,6 @@
     "reason": "collector line DSK 94 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "94",
-     "lines": [
-      "\"All stars grow dark. All worlds come to an end.\"",
-      "6/6",
-      "R 0094",
-      "T\u2122 & O 2024 Wizatds of the Coast",
-      "DSK * EN DENYS TSIPERKO"
-     ],
      "premiumMark": true,
      "setCode": "dsk"
     },
@@ -4347,14 +2732,6 @@
     "reason": "collector line RIX 99 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "99",
-     "lines": [
-      "cast that spell. If that card would be put into",
-      "a graveyard this turn, exile it instead.",
-      "2/1",
-      "099/196 R",
-      "RIX*EN ZOLTAN BOROS",
-      "TM & C 2018 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "rix"
     },
@@ -4368,13 +2745,6 @@
     "reason": "collector line TDM 103 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "103",
-     "lines": [
-      "of turn.)",
-      "Equip 1",
-      "TM & \u00a9 2025 Wizards of the Coast",
-      "R 0103",
-      "TDM \u2022 EN XABI GAZTELUA"
-     ],
      "premiumMark": false,
      "setCode": "tdm"
     },
@@ -4388,13 +2758,6 @@
     "reason": "collector line FRA 135 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "135",
-     "lines": [
-      "It's a contradiction in burns.",
-      "4/4",
-      "R 0135",
-      "FRA \u2022 EN WAYNE REYNOLDS",
-      "TM & O 2026 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "fra"
     },
@@ -4408,19 +2771,6 @@
     "reason": "collector line FIN 243 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "243",
-     "lines": [
-      "\u043f\u0448\u0445\u0445\u043e\u043a \u044200 7",
-      "71947770779170",
-      "or less from your graveyard to the",
-      "battlefield.",
-      "3/4",
-      "FFVIII",
-      "R 0243",
-      "FFO SQUARE ENIX",
-      "\u0442\u043c & \u00d4 2025 Wizards of the Coast",
-      "FIN*EN \u2022**#5/Yuu FunKI",
-      "TM &"
-     ],
      "premiumMark": true,
      "setCode": "fin"
     },
@@ -4434,17 +2784,6 @@
     "reason": "collector line MH2 208 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "208",
-     "lines": [
-      "wte tatte woto we",
-      "it would leave the battlefield. Unearth only as a",
-      "sorcery.)",
-      "2/2",
-      "208/303 R",
-      "2021 Wizards of the Coast",
-      "TM &",
-      "\u2022 PAULINE VOSS",
-      "MH2 *EN"
-     ],
      "premiumMark": true,
      "setCode": "mh2"
     },
@@ -4458,17 +2797,6 @@
     "reason": "collector line AKH 150 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "150",
-     "lines": [
-      "VINUEOTOU",
-      "VVUNO V VDOR TROC",
-      "MOUTI",
-      "footfalls of a much larger predator.",
-      "3/2",
-      "150/269 C",
-      "2017 Wizards of the Coast",
-      "TM & 0",
-      "AKH \u2022 EN CRAIG 1 SPEARING"
-     ],
      "premiumMark": false,
      "setCode": "akh"
     },
@@ -4482,14 +2810,6 @@
     "reason": "collector line LCI 143 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "143",
-     "lines": [
-      "of any color.\")",
-      "2",
-      "Equip",
-      "U 0143",
-      "TM & O 2023 Wizards of the Coast",
-      "LCI \u2022 EN NO DIBUIANTE NOCTURNO"
-     ],
      "premiumMark": false,
      "setCode": "lci"
     },
@@ -4503,14 +2823,6 @@
     "reason": "collector line BBD 7 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "7",
-     "lines": [
-      "damage to a player, that player loses half",
-      "their life, rounded up.",
-      "1/1",
-      "007/254 R",
-      "BBD \u2022 EN IOHANN BODIN",
-      "IM & \u00a9 2018 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "bbd"
     },
@@ -4524,14 +2836,6 @@
     "reason": "collector line THB 1 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "1",
-     "lines": [
-      "\"Dawn-kissed, he nourishes the golden grain.\"",
-      "\u2014Psemilla, Meletian poet",
-      "1/1",
-      "001/254 U",
-      "TM & \u00a9 2020 Wizards of the Coast",
-      "THB \u2022 EN MAGALI VILLENEUVE"
-     ],
      "premiumMark": false,
      "setCode": "thb"
     },
@@ -4545,12 +2849,6 @@
     "reason": "collector line STX 272 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "272",
-     "lines": [
-      "A flickering beacon of righteous corruption.",
-      "272/275 R",
-      "I & C 2021 Wizards of the Coast",
-      "STX *EN O SAM BURLEY"
-     ],
      "premiumMark": true,
      "setCode": "stx"
     },
@@ -4564,14 +2862,6 @@
     "reason": "collector line ONE 33 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "33",
-     "lines": [
-      "blocked by creatures of that color this turn.",
-      "(P can be paid with either * or 2 life.)",
-      "1/1",
-      "033/271 R",
-      "ONE \u2022 EN BRIAN VALEZA",
-      "TM & O 2023 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "one"
     },
@@ -4585,15 +2875,6 @@
     "reason": "collector line BRO 82 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "82",
-     "lines": [
-      "During your turn, you may play cards",
-      "exiled with The Temporal Anchor.",
-      "mtgstory.com",
-      "082/287 R Story Spotlight",
-      "T\u2122 &",
-      "C 2022 Wizards of the Coast",
-      "BRO*EN KEKAI KOTAKI"
-     ],
      "premiumMark": true,
      "setCode": "bro"
     },
@@ -4607,15 +2888,6 @@
     "reason": "collector line TLA 246 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "246",
-     "lines": [
-      "land. Put a +1/+1 counter on it. When it dies or is",
-      "exiled, return it to the battlefield tapped.)",
-      "3/4",
-      "02025 Viacom",
-      "R 0246",
-      "TM & O 2025 Wizards of the Coast",
-      "TLA * EN RUWEN LIU"
-     ],
      "premiumMark": true,
      "setCode": "tla"
     },
@@ -4629,15 +2901,6 @@
     "reason": "collector line IKO 250 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "250",
-     "lines": [
-      "to the landscape than Ketria, where the river",
-      "itself will stand up and roar.",
-      "TM",
-      "250/274 R",
-      "& \u00a9 2020 Wizards of the Coast",
-      "K SAM BURLEY",
-      "IKO *EN"
-     ],
      "premiumMark": true,
      "setCode": "iko"
     },
@@ -4651,13 +2914,6 @@
     "reason": "collector line ELD 240 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "240",
-     "lines": [
-      "Without Garenbrig's strength, the realm would",
-      "succumb to the wilds.",
-      "IM & C 2019 Wizards of the Coast",
-      "240/269 R",
-      "ELD *EN ADAM PAQUETTE"
-     ],
      "premiumMark": true,
      "setCode": "eld"
     },
@@ -4671,13 +2927,6 @@
     "reason": "collector line XLN 3 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "3",
-     "lines": [
-      "sacryice, no arink oj exquisute crimson",
-      "without a dying gasp.",
-      "003/279 M",
-      "T\u2122 & C 2017 Wizards of the Coast",
-      "XLN * EN BASTIEN L. DEHARME"
-     ],
      "premiumMark": true,
      "setCode": "xln"
     },
@@ -4691,14 +2940,6 @@
     "reason": "collector line KLD 188 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "188",
-     "lines": [
-      "Tessutoconpor",
-      "and he plans to win them all.",
-      "3/1",
-      "188/264 U",
-      "TM & O 2016 Wizards of the Coast",
-      "KLD \u2022 EN CHRISTOPHER MOELLER"
-     ],
      "premiumMark": false,
      "setCode": "kld"
     },
@@ -4712,14 +2953,6 @@
     "reason": "collector line RIX 174 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "174",
-     "lines": [
-      ": Destroy target artifact or enchantment.",
-      "2 *: You gain 3 life.",
-      "9/9",
-      "174/196 M",
-      "IM & C 2018 Wizards of the Coast",
-      "RIX \u2022 EN IAIME IONES"
-     ],
      "premiumMark": false,
      "setCode": "rix"
     },
@@ -4733,13 +2966,6 @@
     "reason": "collector line BFZ 20 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "20",
-     "lines": [
-      "from their duty.",
-      "1/1",
-      "020/274 C",
-      "BFZ \u2022 EN ERIC DESCHAMPS",
-      "TM & C 2015 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "bfz"
     },
@@ -4753,11 +2979,6 @@
     "reason": "collector line MOM 63 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "63",
-     "lines": [
-      "TM & 2023 Wizards of the Coast",
-      "R 0063",
-      "MOM \u2022 EN EDGAR S\u00c1NCHEZ HIDALGO"
-     ],
      "premiumMark": false,
      "setCode": "mom"
     },
@@ -4771,14 +2992,6 @@
     "reason": "collector line IMA 94 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "94",
-     "lines": [
-      "Ine promise of angush is payment",
-      "enough for services rendered.",
-      "5/3",
-      "094/249 U",
-      "IMA \u2022 EN WESLEY BURT",
-      "TM & C 2017 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "ima"
     },
@@ -4792,14 +3005,6 @@
     "reason": "collector line MOM 160 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "160",
-     "lines": [
-      "that player controls or battle that player",
-      "protects.",
-      "4/4",
-      "R 0160",
-      "MOM \u2022 EN DENYS TSIPERKO",
-      "IM & 0 2023 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "mom"
     },
@@ -4813,16 +3018,6 @@
     "reason": "collector line DFT 116 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "116",
-     "lines": [
-      "VAAVI",
-      "T CTCIOT",
-      "\u2022 you control enters, this emblem deals 3 damage",
-      "to any target.\"",
-      "4",
-      "M 0116",
-      "DFT \u2022 EN DEVIN ELLE KURTZ",
-      "TM & O 2025 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "dft"
     },
@@ -4836,14 +3031,6 @@
     "reason": "collector line KHM 115 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "115",
-     "lines": [
-      "\"I waded through a river of fire to bring death to",
-      "Bretagard.\"",
-      "2/3",
-      "115/285 R",
-      "IN & O 2021 Wizards of the Coast",
-      "KHM *EN TYLER lACOBSON"
-     ],
      "premiumMark": true,
      "setCode": "khm"
     },
@@ -4857,13 +3044,6 @@
     "reason": "collector line AFR 233 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "233",
-     "lines": [
-      "Enchantment - Class",
-      "233/281 R",
-      "I & C 2021 Wizards of the Coast",
-      "AFR \u2022 EN",
-      "ALEXANDER MOKHOY"
-     ],
      "premiumMark": false,
      "setCode": "afr"
     },
@@ -4877,16 +3057,6 @@
     "reason": "collector line SOS 67 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "67",
-     "lines": [
-      "tr vocaenen mnacl",
-      "Doing so unprepares",
-      "its owner's control.",
-      "it.)",
-      "2/3",
-      "R 0067",
-      "SOS \u2022 EN CHRISTINA KRAUS",
-      "TM & O 2026 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "sos"
     },
@@ -4900,13 +3070,6 @@
     "reason": "collector line GRN 71 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "71",
-     "lines": [
-      "\"Variety is also the spice of death.",
-      "Cevraya, Golgari shaman",
-      "TM & C 2018 Wizards of the Coast",
-      "071/259 R",
-      "GRN*EN YEONG-HAO HAN"
-     ],
      "premiumMark": true,
      "setCode": "grn"
     },
@@ -4920,15 +3083,6 @@
     "reason": "collector line SOI 235 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "235",
-     "lines": [
-      "put it onto the battlefield tapped, then shuffle",
-      "your library.",
-      "*/*",
-      "235/297 M",
-      "IN & \u00a9 2016 Wizards of the Coast",
-      "RAYMOND SWANLAND",
-      "SOI*EN A"
-     ],
      "premiumMark": true,
      "setCode": "soi"
     },
@@ -4942,13 +3096,6 @@
     "reason": "collector line LCI 282 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "282",
-     "lines": [
-      "Whenever Restless Reef attacks, target",
-      "player mills four cards.",
-      "TM & O 2023 Wizards of the Coast",
-      "R 0282",
-      "LCI * EN HRISTO D. CHUKOV"
-     ],
      "premiumMark": true,
      "setCode": "lci"
     },
@@ -4962,16 +3109,6 @@
     "reason": "collector line M20 115 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "115",
-     "lines": [
-      "rou may",
-      "pur a vampuc ereature card rom",
-      "ay P",
-      "-3",
-      "your hand onto the battlefield.",
-      "115/280 M",
-      "IM & C 2019 Wizards of the Coast",
-      "M20 \u2022 EN O CHASE STONE"
-     ],
      "premiumMark": false,
      "setCode": "m20"
     },
@@ -4985,12 +3122,6 @@
     "reason": "collector line M20 14 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "14",
-     "lines": [
-      "014/280 C",
-      "TM & C 2019 Wizards of the Coast",
-      "M20 \u2022 EN",
-      "\u2022 VICTOR ADAME MINGUEZ"
-     ],
      "premiumMark": false,
      "setCode": "m20"
     },
@@ -5004,14 +3135,6 @@
     "reason": "collector line SNC 188 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "188",
-     "lines": [
-      "many were",
-      "became a citywide obsession.",
-      "4/4",
-      "188/281 R",
-      "IM & O 2022 Wizards of the Coast",
-      "SNC \u2022 EN TOSHUA RAPHAEL"
-     ],
      "premiumMark": false,
      "setCode": "snc"
     },
@@ -5025,13 +3148,6 @@
     "reason": "collector line M21 232 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "232",
-     "lines": [
-      "counters on Mazemind Tome, exile it.",
-      "If you do, you gain 4 life.",
-      "232/274 R",
-      "IM & O 2020 Wizards of the Coast",
-      "M21 \u2022 EN RANDY GALLEGOS"
-     ],
      "premiumMark": false,
      "setCode": "m21"
     },
@@ -5045,13 +3161,6 @@
     "reason": "collector line ELD 2 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "2",
-     "lines": [
-      "to contentment, then to boredom, then to",
-      "an urge to steal more.",
-      "002/269 U",
-      "TM & O 2019 Wizards of the Coast",
-      "ELD \u2022 EN IAIN McCAIG"
-     ],
      "premiumMark": false,
      "setCode": "eld"
     },
@@ -5065,15 +3174,6 @@
     "reason": "collector line RNA 199 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "199",
-     "lines": [
-      "VITDOE",
-      "von co\u0448iro ap tano.",
-      "\"Entertain me.\"",
-      "6/6",
-      "199/259 M",
-      "RNA* EN VIKTOR TITOY",
-      "TM & C 2019 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "rna"
     },
@@ -5087,14 +3187,6 @@
     "reason": "collector line DMU 147 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "147",
-     "lines": [
-      "Temporal Firestorm deals 5 damage to each",
-      "creature and each planeswalker.",
-      "mtgstory.com",
-      "147/281 R Story Spotlight",
-      "IM & C 2022 Wizards of the Coast",
-      "DMU \u2022 EN NESTOR OSSANDON LEAL"
-     ],
      "premiumMark": false,
      "setCode": "dmu"
     },
@@ -5108,11 +3200,6 @@
     "reason": "collector line THB 24 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "24",
-     "lines": [
-      "024/254 R",
-      "& \u00a9 2020 Wizards of the Coast",
-      "THB \u2022 EN O IAIME IONES"
-     ],
      "premiumMark": false,
      "setCode": "thb"
     },
@@ -5126,15 +3213,6 @@
     "reason": "collector line KTK 236 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "236",
-     "lines": [
-      "\"and then find",
-      "he smiled,",
-      "sand. \"Count,'",
-      "more grains.\"",
-      "236/269 U",
-      "& C 2014 Wizards of the Coast",
-      "KTK \u2022 EN FLORIAN DE GESINCOURT"
-     ],
      "premiumMark": false,
      "setCode": "ktk"
     },
@@ -5148,14 +3226,6 @@
     "reason": "collector line M21 162 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "162",
-     "lines": [
-      "with power 2 or less deals combat",
-      "damage to a player, draw a card.",
-      "2/3",
-      "162/274 R",
-      "IM & 2020 Wizards of the Coast",
-      "M21 *EN LEESHA HANNIGAN"
-     ],
      "premiumMark": true,
      "setCode": "m21"
     },
@@ -5169,17 +3239,6 @@
     "reason": "collector line M21 190 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "190",
-     "lines": [
-      "USL",
-      "can",
-      "solvea",
-      "Prootem.",
-      "myaras, M",
-      "with the addition of a few extra heads.",
-      "190/274 U",
-      "TM & O 2020 Wizards of the Coast",
-      "M21 \u2022 EN RANDY VARGAS"
-     ],
      "premiumMark": false,
      "setCode": "m21"
     },
@@ -5193,14 +3252,6 @@
     "reason": "collector line STX 246 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "246",
-     "lines": [
-      "of damage Venerable Warsinger dealt to",
-      "that player.",
-      "3/3",
-      "246/275 R",
-      "STX \u2022 EN IOKUBAS UOGINTAS",
-      "IM & 0 2021 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "stx"
     },
@@ -5214,14 +3265,6 @@
     "reason": "collector line MM2 225 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "225",
-     "lines": [
-      "that spell could target. Each copy targets a",
-      "different one of those Golems.",
-      "3/3",
-      "225/249 R",
-      "MM2 \u2022 EN CHIPPY",
-      "TN & O 2015 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "mm2"
     },
@@ -5235,13 +3278,6 @@
     "reason": "collector line M21 254 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "254",
-     "lines": [
-      "r: Add",
-      "or",
-      "254/274 R",
-      "IM & O 2020 Wizards of the Coast",
-      "M21 \u2022 EN PIOTR DURA"
-     ],
      "premiumMark": false,
      "setCode": "m21"
     },
@@ -5255,14 +3291,6 @@
     "reason": "collector line ZNR 108 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "108",
-     "lines": [
-      "ue vatuctera.",
-      "\u2022 Destroy target creature with converted mana",
-      "cost 3 or less.",
-      "108/280 R",
-      "I & \u00a9 2020 Wizards of the Coast",
-      "ZNR *EN ZOLTAN BOROS"
-     ],
      "premiumMark": true,
      "setCode": "znr"
     },
@@ -5276,14 +3304,6 @@
     "reason": "collector line ONE 229 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "229",
-     "lines": [
-      "Juggernauts in addition to their other",
-      "creature types.",
-      "7/5",
-      "229/271 R",
-      "ONE* EN NESTOR OSSANDON LEAL",
-      "TM & C 2023 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "one"
     },
@@ -5297,14 +3317,6 @@
     "reason": "collector line MID 194 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "194",
-     "lines": [
-      "become 3/3 Wolf creatures with haste that are",
-      "still lands.",
-      "4/3",
-      "194/277 M",
-      "IM & \u00a9 2021 Wizards of the Coast",
-      "MID \u2022 EN ILSE GORT"
-     ],
      "premiumMark": false,
      "setCode": "mid"
     },
@@ -5318,17 +3330,6 @@
     "reason": "collector line STX 234 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "234",
-     "lines": [
-      "\"I am very much in the mood to start",
-      "handing out expulsions.\"",
-      "3/2",
-      "234/275",
-      "R",
-      "IM",
-      "2021 Wizards of the Coast",
-      "ZEZHOU CHEN",
-      "STX \u2022 EN"
-     ],
      "premiumMark": false,
      "setCode": "stx"
     },
@@ -5342,15 +3343,6 @@
     "reason": "collector line FRA 242 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "242",
-     "lines": [
-      "-3",
-      "Ajani deals 4 damage to each creature",
-      "except for tokens you control.",
-      "5",
-      "M 0242",
-      "FRA \u2022 EN TYLER lACORSON",
-      "TM & O 2026 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "fra"
     },
@@ -5364,14 +3356,6 @@
     "reason": "collector line FDN 58 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "58",
-     "lines": [
-      "wor cuerontaor",
-      "blood. I will take every drop for my own.\"",
-      "5/5",
-      "M 0058",
-      "TM & O 2024 Wizards of the Coast",
-      "FDN \u2022 EN DMITRY BURMAK"
-     ],
      "premiumMark": false,
      "setCode": "fdn"
     },
@@ -5385,14 +3369,6 @@
     "reason": "collector line EOE 19 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "19",
-     "lines": [
-      "beginning of the next end step, then you may",
-      "cast it from exile on a later turn.)",
-      "3/3",
-      "R 0019",
-      "EOE * EN KIERAN YANNER",
-      "TM & O 2025 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "eoe"
     },
@@ -5406,12 +3382,6 @@
     "reason": "collector line ELD 186 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "186",
-     "lines": [
-      "creatures in addition to their other types.",
-      "186/269 R",
-      "IM & \u00a9 2019 Wizards of the Coast",
-      "ELD *EN YEONG-HAO HAN"
-     ],
      "premiumMark": true,
      "setCode": "eld"
     },
@@ -5425,15 +3395,6 @@
     "reason": "collector line TDM 32 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "32",
-     "lines": [
-      "The Abzan forces rallied to the call, driving back",
-      "Sarkhan's feral dragon horde.",
-      "R 0032",
-      "Story Spotlight",
-      "mtgstory.com",
-      "TDM* EN DARREN TAN",
-      "TM & O 2025 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "tdm"
     },
@@ -5447,14 +3408,6 @@
     "reason": "collector line WAR 115 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "115",
-     "lines": [
-      "some things you don't.\"",
-      "\u2014Ral Zarek",
-      "IM & \u00a9 2019 Wizards of the Coast",
-      "115/264 U",
-      "TM &",
-      "WAR \u2022 EN SVETLIN VELINOV"
-     ],
      "premiumMark": false,
      "setCode": "war"
     },
@@ -5468,14 +3421,6 @@
     "reason": "collector line EOE 215 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "215",
-     "lines": [
-      "\u2014PSS Erix shipboard computer, final",
-      "transmission",
-      "*/1+*",
-      "R 0215",
-      "EOE \u2022 EN CHRIS RAHN",
-      "TM & O 2025 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "eoe"
     },
@@ -5489,14 +3434,6 @@
     "reason": "collector line BLB 207 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "207",
-     "lines": [
-      "three cards from your graveyard or sacrifice a",
-      "Food.)",
-      "3/3",
-      "R 0207",
-      "BLB * EN O STEVE PRESCOTT",
-      "TM & O 2024 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "blb"
     },
@@ -5510,14 +3447,6 @@
     "reason": "collector line BIG 17 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "17",
-     "lines": [
-      "You may put a permanent card from among",
-      "them into your hand.",
-      "5/5",
-      "M 0017",
-      "\u0442\u2122 & \u00a9 2024 Wizards of the Coast",
-      "BIG \u2022 EN ADRI\u00c1N RODR\u00cdGUEZ P\u00c9REZ"
-     ],
      "premiumMark": false,
      "setCode": "big"
     },
@@ -5531,13 +3460,6 @@
     "reason": "collector line AER 101 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "101",
-     "lines": [
-      "Gremlins are loyal to nothing but their",
-      "next meal.",
-      "TM & C 2017 Wizards of the Coast",
-      "101/184 C",
-      "AER \u2022 EN OIASON RAINVILLE"
-     ],
      "premiumMark": false,
      "setCode": "aer"
     },
@@ -5551,13 +3473,6 @@
     "reason": "collector line MH1 193 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "193",
-     "lines": [
-      "Every path leads to discovery.",
-      "IM",
-      "193/254 C",
-      "& C 2019 Wizards of the Coast",
-      "MH1\u2022EN N ADAM PAOUETTE"
-     ],
      "premiumMark": false,
      "setCode": "mh1"
     },
@@ -5571,14 +3486,6 @@
     "reason": "collector line WOE 38 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "38",
-     "lines": [
-      "those creatures.",
-      "cast the enchantment",
-      "later from exile.)",
-      "M 0038",
-      "*\u00ba & C 2123 Tizueds ef the Coan",
-      "WOE\u2022EN 0 ProTa DuR"
-     ],
      "premiumMark": false,
      "setCode": "woe"
     },
@@ -5591,16 +3498,6 @@
     "truth": "d0de50e7-5b3f-4576-9063-619da3b26da9",
     "reason": "set GRN leaves one printing of the top card",
     "reading": {
-     "lines": [
-      "nstanl",
-      "whenever a prayer cas",
-      "sorcery spell, you draw a card.",
-      "5/5",
-      "192 259 R",
-      "2018 Wizards of the Coast",
-      "GRN*EN SVETLIN VELINOY",
-      "IM &"
-     ],
      "premiumMark": true,
      "setCode": "grn"
     },
@@ -5614,13 +3511,6 @@
     "reason": "collector line EMN 24 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "24",
-     "lines": [
-      "mrichantca creature gels TalT..",
-      "024/205 U",
-      "TM &",
-      "\u00a9 2016 Wizards of the Coast",
-      "EMN \u2022 EN KEY WALKER"
-     ],
      "premiumMark": false,
      "setCode": "emn"
     },
@@ -5634,14 +3524,6 @@
     "reason": "collector line M20 212 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "212",
-     "lines": [
-      "\"The raging gale fans the flames of",
-      "righteous wrath.\"",
-      "3/3",
-      "212/ 280 M",
-      "TM & C 2019 Wizards of the Coast",
-      "M20 *EN \u00baG-HOST LEE"
-     ],
      "premiumMark": true,
      "setCode": "m20"
     },
@@ -5655,14 +3537,6 @@
     "reason": "collector line BFZ 22 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "22",
-     "lines": [
-      "that nonland permanent card to the",
-      "battlefield instead.",
-      "4/4",
-      "022/274 R",
-      "BFZ \u2022 EN CYNTHIA SHEPPARD",
-      "TM &c \u00a9 2015 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "bfz"
     },
@@ -5676,17 +3550,6 @@
     "reason": "collector line M21 103 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "103",
-     "lines": [
-      "WOTUS",
-      "inar searea",
-      "CA",
-      "no ine",
-      "wizard's mind.",
-      "103/274 M",
-      "IM & C 2020 Wizards of the Coast",
-      "M21 *EN",
-      "IGOR KIERYLUK"
-     ],
      "premiumMark": true,
      "setCode": "m21"
     },
@@ -5700,14 +3563,6 @@
     "reason": "collector line CLB 273 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "273",
-     "lines": [
-      "to activate it, copy that ability. You may",
-      "choose new targets for the copy.",
-      "4/4",
-      "273/361 R",
-      "TM & \u00a9 2022 Wizards of the Coast",
-      "CLB * EN CAROLINE GARIBA"
-     ],
      "premiumMark": true,
      "setCode": "clb"
     },
@@ -5721,12 +3576,6 @@
     "reason": "collector line ELD 85 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "85",
-     "lines": [
-      "expect a sword to be one of them.",
-      "085/269 U",
-      "& 0 2019 Wizards of the Coast",
-      "ELD \u2022 EN O ERIC DESCHAMPS"
-     ],
      "premiumMark": false,
      "setCode": "eld"
     },
@@ -5740,14 +3589,6 @@
     "reason": "collector line BLB 204 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "204",
-     "lines": [
-      "\"Why would I chase the storm? Does a cloud chase",
-      "the rain? Does the sun chase the light?\"",
-      "3/5",
-      "R 0204",
-      "TM & O 2024 Wizards of the Coast",
-      "BLB * EN OIOSHUA RAPHAEL"
-     ],
      "premiumMark": true,
      "setCode": "blb"
     },
@@ -5761,11 +3602,6 @@
     "reason": "collector line DOM 219 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "219",
-     "lines": [
-      "219/ 269 U",
-      "IM & C 2018 Wizards of the Coast",
-      "DOM \u2022 EN TITUS LUNTER"
-     ],
      "premiumMark": false,
      "setCode": "dom"
     },
@@ -5779,14 +3615,6 @@
     "reason": "collector line IKO 141 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "141",
-     "lines": [
-      "onto the battlefield from your graveyard instead.",
-      "(Do this before you draw.)",
-      "8/8",
-      "141/274 R",
-      "IKO *EN K lESPER EISING",
-      "IN & \u20ac 2020 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "iko"
     },
@@ -5800,13 +3628,6 @@
     "reason": "collector line MH2 261 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "261",
-     "lines": [
-      "together.\"",
-      "\u2014Karn",
-      "261/303 R",
-      "IM & C 2021 Wizards of the Coast",
-      "MH2*EN 1O SARAH FINNIGAN"
-     ],
      "premiumMark": true,
      "setCode": "mh2"
     },
@@ -5820,13 +3641,6 @@
     "reason": "collector line THB 43 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "43",
-     "lines": [
-      "When Ashiok's Erasure leaves the battlefield,",
-      "return the exiled card to its owner's hand.",
-      "043/254 R",
-      "TM & O 2020 Wizards of the Coast",
-      "THB \u2022 EN ZEZHOU CHEN"
-     ],
      "premiumMark": false,
      "setCode": "thb"
     },
@@ -5840,17 +3654,6 @@
     "reason": "collector line BLB 217 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "217",
-     "lines": [
-      "mene rf bcrordrerere eee mu rara",
-      "value 4 or greater or creature spells with x",
-      "in their mana costs.",
-      "1/3",
-      "M 0217",
-      "TM",
-      "&",
-      "\u00a9 2024 Wizards of the Coast",
-      "BLB * EN ANDREA PIPARO"
-     ],
      "premiumMark": true,
      "setCode": "blb"
     },
@@ -5864,14 +3667,6 @@
     "reason": "collector line M20 150 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "150",
-     "lines": [
-      "\"Stand still and try not to look like prey!\"",
-      "\u2014Skerk Hobnett, wilderness guide",
-      "2/3",
-      "150/280 R",
-      "M20 \u2022 EN BAYARD WU",
-      "TM & \u00a9 2019 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "m20"
     },
@@ -5885,13 +3680,6 @@
     "reason": "collector line AKH 99 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "99",
-     "lines": [
-      "Tne vune wanaert\u044c \u043aaoes ony \u0442arod.",
-      "2/3",
-      "099/269 U",
-      "TM & O 2017 Wizards of the Coast",
-      "AKH \u2022 EN GRZEGORZ RUTKOWSKI"
-     ],
      "premiumMark": false,
      "setCode": "akh"
     },
@@ -5905,13 +3693,6 @@
     "reason": "collector line KHM 116 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "116",
-     "lines": [
-      "\"Starnheim is closed to you, coward.\"",
-      "2/3",
-      "116/285 U",
-      "KHM \u2022 EN P BILLY CHRISTIAN",
-      "IN & C 2021 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "khm"
     },
@@ -5925,13 +3706,6 @@
     "reason": "collector line BLB 218 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "218",
-     "lines": [
-      "Most of his scars tell tales. A few tell jokes.",
-      "5/5",
-      "M 0218",
-      "BLB \u2022 EN O STEVE PRESCOTT",
-      "TM & O 2024 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "blb"
     },
@@ -5945,16 +3719,6 @@
     "reason": "collector line EMN 111 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "111",
-     "lines": [
-      "for its madness cost or put it into",
-      "6/5",
-      "your graveyard.)",
-      "3/3",
-      "111/205 R",
-      "2016 Wizards of the Coast",
-      "TM &",
-      "EMN*EN IAMES RYMAN"
-     ],
      "premiumMark": true,
      "setCode": "emn"
     },
@@ -5968,14 +3732,6 @@
     "reason": "collector line DOM 4 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "4",
-     "lines": [
-      "dynastic union that has guarded us against war",
-      "for fifteen centuries. The lesson is clear.\"",
-      "2/4",
-      "004/269 U",
-      "IM & C 2018 Wizards of the Coast",
-      "DOM\u2022 EN CHRISTINE CHOI"
-     ],
      "premiumMark": false,
      "setCode": "dom"
     },
@@ -5989,16 +3745,6 @@
     "reason": "collector line 40K 295 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "295",
-     "lines": [
-      "city have been secretly recolonized and dubbea",
-      "the \"Forbidden Cities.\"",
-      "O GW",
-      "R",
-      "295",
-      "TN & O 2022 Wizards of the Coast",
-      "> CALDER MOORE",
-      "40K*EN"
-     ],
      "premiumMark": true,
      "setCode": "40k"
     },
@@ -6012,14 +3758,6 @@
     "reason": "collector line OTJ 133 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "133",
-     "lines": [
-      "Scorpion Dragon creature token with flying",
-      "and haste. Activate only as a sorcery.",
-      "2/2",
-      "R 0133",
-      "\u0442w A \u00a9 2024 Wisarde ef the Coau",
-      "OTJ \u2022 EN DIECO GISBERT"
-     ],
      "premiumMark": false,
      "setCode": "otj"
     },
@@ -6033,14 +3771,6 @@
     "reason": "collector line THB 84 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "84",
-     "lines": [
-      "\"Sing, beauty. Sing for death, and for the dead.\"",
-      "\u2014Ashiok",
-      "2/1",
-      "084/254 R",
-      "THB * EN O LUCAS GRACIANO",
-      "IM & O 2020 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "thb"
     },
@@ -6054,15 +3784,6 @@
     "reason": "collector line KLD 204 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "204",
-     "lines": [
-      "planeswalker. Its activated abillues cant be",
-      "activated this turn.",
-      "204/264 R Story Spotlight 3/5",
-      "mtgstory.com",
-      "TM & O 2016 Wizards of the Coast",
-      "TM &",
-      "KLD * EN TASON RAINYILLE"
-     ],
      "premiumMark": true,
      "setCode": "kld"
     },
@@ -6076,14 +3797,6 @@
     "reason": "collector line BLB 90 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "90",
-     "lines": [
-      "card into your hand. You lose life equal to",
-      "its mana value.",
-      "2/3",
-      "R 0090",
-      "BLB \u2022 EN AURORE FOLNY",
-      "\u0442\u2122 & \u00a9 2024 Wizarde of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "blb"
     },
@@ -6097,16 +3810,6 @@
     "reason": "collector line TDM 172 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "172",
-     "lines": [
-      "TAEOO T",
-      "M\u1ec4N PMN TNNN DOLGT TONG",
-      "or greater, each opponent loses half their life,",
-      "rounded up.",
-      "5/7",
-      "M 0172",
-      "TDM \u2022 EN \u00ba ALEXANDER OSTROWSKI",
-      "TM & O 2025 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "tdm"
     },
@@ -6120,13 +3823,6 @@
     "reason": "collector line NEO 221 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "221",
-     "lines": [
-      "Enchantment - Saga",
-      "TM & O 2022 Wizards of the Coast",
-      "TM &",
-      "221/302 M CHRIS COLD",
-      "NEO* EN"
-     ],
      "premiumMark": true,
      "setCode": "neo"
     },
@@ -6140,14 +3836,6 @@
     "reason": "collector line ONE 205 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "205",
-     "lines": [
-      "it, except it's a 1/1 white Spirit creature with",
-      "flying in addition to its other types.",
-      "6",
-      "205/271 R",
-      "TM & C 2023 Wizards of the Coast",
-      "ONE* EN MARTA NAEL"
-     ],
      "premiumMark": true,
      "setCode": "one"
     },
@@ -6161,14 +3849,6 @@
     "reason": "collector line STX 37 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "37",
-     "lines": [
-      "wanaering\u203a perwoaicauy to share caues of",
-      "the mystical wonders of Arcavios.",
-      "2/2",
-      "037/275 R",
-      "IM & x 2021 Wizards of the Coast",
-      "STX *EN O CAIO MONTEIRO"
-     ],
      "premiumMark": true,
      "setCode": "stx"
     },
@@ -6182,14 +3862,6 @@
     "reason": "collector line DTK 220 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "220",
-     "lines": [
-      "suumgar never passes up an opportumty to",
-      "add to his opulence.",
-      "3/5",
-      "220/264 \u041c",
-      "DTK * EN IO STEVEN BELLEDIN",
-      "I\u043c & C 2015 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "dtk"
     },
@@ -6203,16 +3875,6 @@
     "reason": "collector line BLB 78 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "78",
-     "lines": [
-      "pur",
-      "ana. I",
-      "rest on the bottom of your library in a",
-      "random order.",
-      "1/2",
-      "R 0078",
-      "BLB * EN MATT STEWART",
-      "TM & O 2024 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "blb"
     },
@@ -6226,14 +3888,6 @@
     "reason": "collector line ZNR 176 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "176",
-     "lines": [
-      "beast in a direction and hanging on for as",
-      "long as possible.",
-      "2/2",
-      "176/280 R",
-      "IN & \u00a9 2020 Wizards of the Coast",
-      "ZNR *EN FILIP BURBURAN"
-     ],
      "premiumMark": true,
      "setCode": "znr"
     },
@@ -6246,13 +3900,6 @@
     "truth": "a5bbe76a-df80-47d7-bbc7-91f189175cc2",
     "reason": "set OGW leaves one printing of the top card",
     "reading": {
-     "lines": [
-      "Whenever you cast a creature spell,",
-      "draw a card.",
-      "147 184 R",
-      "TM & \u00a9 2016 Wizards of the Coast",
-      "OGW \u2022 EN CHRIS RALLIS"
-     ],
      "premiumMark": false,
      "setCode": "ogw"
     },
@@ -6266,14 +3913,6 @@
     "reason": "collector line ONE 28 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "28",
-     "lines": [
-      "Planeswalker strike team on arrival. Elesh",
-      "Norn knew they were coming.",
-      "028/271 C Story Spotlight",
-      "mtgstory.com",
-      "ONE \u2022 EN O CAMPBELL WHITE",
-      "IM & O 2023 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "one"
     },
@@ -6287,16 +3926,6 @@
     "reason": "collector line E01 10 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "10",
-     "lines": [
-      "alssulla piancowan",
-      ": Human solaier crea",
-      "0",
-      "Prevent all damage that would be dealt to him",
-      "this turn.",
-      "010/106 M",
-      "I & O 2017 Wizards of the Coast",
-      "E01\u2022 EN A CHRIS RAHN"
-     ],
      "premiumMark": false,
      "setCode": "e01"
     },
@@ -6310,14 +3939,6 @@
     "reason": "collector line FRF 90 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "90",
-     "lines": [
-      "wewabe drper ane ataentg",
-      "\"Greet death with sword in hand.\"",
-      "3/2",
-      "090/185 R",
-      "FRF * EN ANASTASIA OVCHINNIKOVA",
-      "TM & C 2015 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "frf"
     },
@@ -6331,14 +3952,6 @@
     "reason": "collector line C15 122 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "122",
-     "lines": [
-      "enceproy arijact creatures anaror",
-      "creatures that share a color with it.)",
-      "4/2",
-      "122/342 C",
-      "C15 \u2022 EN WILLIAN MURAI",
-      "TM & C 2015 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "c15"
     },
@@ -6352,14 +3965,6 @@
     "reason": "collector line DOM 196 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "196",
-     "lines": [
-      "the number of +1/+1 counters on 1t",
-      "to each opponent.",
-      "3/3",
-      "196/ 269 U",
-      "DOM*EN BRAM SELS",
-      "IN & C 2018 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "dom"
     },
@@ -6373,14 +3978,6 @@
     "reason": "collector line ORI 133 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "133",
-     "lines": [
-      "3/2",
-      "133/272",
-      "C",
-      "IGOR KIERYLUK",
-      "ORI\u2022EN",
-      "TN & C 2015 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "ori"
     },
@@ -6394,14 +3991,6 @@
     "reason": "collector line ZNR 108 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "108",
-     "lines": [
-      "Ce Da\u0441ueneIa.",
-      "\u2022 Destroy target creature with converted mana",
-      "cost 3 or less.",
-      "IM & O 2020 Wizards of the Coast",
-      "108/280 R",
-      "ZNR \u2022 EN ZOLTAN BOROS"
-     ],
      "premiumMark": false,
      "setCode": "znr"
     },
@@ -6415,13 +4004,6 @@
     "reason": "collector line RVR 176 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "176",
-     "lines": [
-      "remember their debtors by taste alone.",
-      "U 0176",
-      "TM &",
-      "2024 Wizards of the Coast",
-      "RVR \u2022 EN SEB McKINNON"
-     ],
      "premiumMark": false,
      "setCode": "rvr"
     },
@@ -6435,15 +4017,6 @@
     "reason": "collector line BRO 179 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "179",
-     "lines": [
-      "cat on both preactors ana proteciors,",
-      "for now is a season of war.\"",
-      "2/2",
-      "179/287 R",
-      "BRO*EN",
-      "NICHOLAS ELIAS",
-      "T\u2122 & C 2022 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "bro"
     },
@@ -6457,14 +4030,6 @@
     "reason": "collector line MH1 21 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "21",
-     "lines": [
-      "opponents can't cast noncreature spells",
-      "this turn.",
-      "3/3",
-      "021/254 M",
-      "MH1\u2022 EN RYAN PANCOAST",
-      "TM & C 2019 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "mh1"
     },
@@ -6478,16 +4043,6 @@
     "reason": "collector line JMP 154 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "154",
-     "lines": [
-      "Each spell is an intricate tapestry, and Kira",
-      "is the great unraveler.",
-      "2/2",
-      "154",
-      "R",
-      "KEy WAlKER",
-      "JMP \u2022 EN",
-      "TN & C 2020 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "jmp"
     },
@@ -6501,14 +4056,6 @@
     "reason": "collector line NEO 206 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "206",
-     "lines": [
-      "Return X target nonlegendary cards irom",
-      "your graveyard to your hand.",
-      "1/3",
-      "206/302 R",
-      "NEO \u2022 EN ANNA PODEDWORNA",
-      "TM & O 2022 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "neo"
     },
@@ -6522,15 +4069,6 @@
     "reason": "collector line BFZ 210 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "210",
-     "lines": [
-      "e Lusue",
-      "1 /L",
-      "blood.\"",
-      "2/2",
-      "210/274 U",
-      "TH & C 2015 Wizands of dae Coast",
-      "BFZ \u2022 EN IP KARL KOPINSKI"
-     ],
      "premiumMark": false,
      "setCode": "bfz"
     },
@@ -6544,16 +4082,6 @@
     "reason": "collector line SNC 211 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "211",
-     "lines": [
-      "The burglar turned, bowed, and dropped from",
-      "the ledge onto her waiting mount.",
-      "2/1",
-      "Promo",
-      "211/281 P",
-      "TM & C 2023 Wizards of the Coast",
-      "RANDY GALLEGOS",
-      "SNC*EN 0"
-     ],
      "premiumMark": true,
      "setCode": "snc"
     },
@@ -6567,19 +4095,6 @@
     "reason": "collector line DSK 44 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "44",
-     "lines": [
-      "cont",
-      "card",
-      "searc",
-      "Whe",
-      "your",
-      "same",
-      "Cen",
-      "Ench:",
-      "R 0044",
-      "TM & O 2024 Wizards of the Coast",
-      "DSK \u2022 EN CRISTI BALANESCU"
-     ],
      "premiumMark": false,
      "setCode": "dsk"
     },
@@ -6593,12 +4108,6 @@
     "reason": "collector line MKM 27 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "27",
-     "lines": [
-      "When cunning fails, there's always violence.",
-      "R 0027",
-      "TM & O 2024 Wizards of the Coast",
-      "MKM \u2022 EN \u00ba MICHELE GIORGI"
-     ],
      "premiumMark": false,
      "setCode": "mkm"
     },
@@ -6612,13 +4121,6 @@
     "reason": "collector line NEO 61 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "61",
-     "lines": [
-      "they don't exist. Each one phases in before its",
-      "controller untaps during their next untap step.)",
-      "061/302 R",
-      "IM & O 2022 Wizards of the Coast",
-      "NEO \u2022 EN IRIS COMPIET"
-     ],
      "premiumMark": false,
      "setCode": "neo"
     },
@@ -6632,14 +4134,6 @@
     "reason": "collector line OTJ 9 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "9",
-     "lines": [
-      "a later turn without paying its mana cost. Plot",
-      "only as a sorcery.)",
-      "2/3",
-      "R 0009",
-      "T\u2122 & O 2024 Wizards of the Coast",
-      "OTJ * EN URIAH YOTH"
-     ],
      "premiumMark": true,
      "setCode": "otj"
     },
@@ -6653,13 +4147,6 @@
     "reason": "collector line DFT 73 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "73",
-     "lines": [
-      "\"Racers! Start! Your! Engimiines!\"",
-      "0/4",
-      "R 0073",
-      "DFT * EN IzZY",
-      "TM & O 2025 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "dft"
     },
@@ -6673,17 +4160,6 @@
     "reason": "collector line ONE 222 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "222",
-     "lines": [
-      "than or equal to the mana value of the",
-      "discarded card.",
-      "5/5",
-      "222/271 R",
-      "ONE*EN",
-      "ZACK STEI",
-      "IM & O 2023 W",
-      "LLA",
-      "Naands of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "one"
     },
@@ -6697,13 +4173,6 @@
     "reason": "collector line M19 74 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "74",
-     "lines": [
-      "conscious.\"",
-      "-Garild, merfolk mage",
-      "TN & C 2018 Wizards of the Coast",
-      "074/280 U",
-      "M19 \u2022 EN CHRIS RAHN"
-     ],
      "premiumMark": false,
      "setCode": "m19"
     },
@@ -6717,13 +4186,6 @@
     "reason": "collector line VOW 261 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "261",
-     "lines": [
-      "waiting for an errant footstep to release its",
-      "noxzous spores.",
-      "IM & C 2021 Wizards of the Coast",
-      "261/277 R",
-      "VOW* EN SAM BURLEY"
-     ],
      "premiumMark": true,
      "setCode": "vow"
     },
@@ -6737,14 +4199,6 @@
     "reason": "collector line NCC 84 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "84",
-     "lines": [
-      "return Smuggler's Buggy to its owner's hand.",
-      "Crew 2",
-      "5/5",
-      "084/093 R",
-      "TM & C 2022 Wizards of the Coast",
-      "NCC \u2022 EN IAMES PAICK"
-     ],
      "premiumMark": false,
      "setCode": "ncc"
     },
@@ -6758,14 +4212,6 @@
     "reason": "collector line AFC 49 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "49",
-     "lines": [
-      "or your opponents, you and te attacking",
-      "player each draw a card and lose 1 life.",
-      "5/5",
-      "049/062 M",
-      "TM & O 2021 Wizards of the Coast",
-      "AFC*EN TASON A. ENGLE"
-     ],
      "premiumMark": true,
      "setCode": "afc"
     },
@@ -6779,15 +4225,6 @@
     "reason": "collector line MH3 164 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "164",
-     "lines": [
-      "nieiantea eeate\u0437ettitetoeae tlti",
-      "counter on Nyxborn Hydra and has reach and",
-      "trample.",
-      "0/1",
-      "C 0164",
-      "MH3 \u2022 EN VINCENT CHRISTIAENS",
-      "TM & O 2024 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "mh3"
     },
@@ -6801,14 +4238,6 @@
     "reason": "collector line WAR 14 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "14",
-     "lines": [
-      "Io Lilrana's surprise, the cost of betraying",
-      "Bolas did not fall on her.",
-      "I 014/264 C Spotlight: Act III",
-      "mtgstory.com",
-      "WAR \u2022 EN CHRIS RALLIS",
-      "TM & O 2019 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "war"
     },
@@ -6822,14 +4251,6 @@
     "reason": "collector line ELD 98 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "98",
-     "lines": [
-      "prevent that damage and remove a +1/+1",
-      "counter from it.",
-      "0/0",
-      "098/269 R",
-      "ELD * EN O SVETLIN VELINOY",
-      "TN & O 2019 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "eld"
     },
@@ -6843,18 +4264,6 @@
     "reason": "collector line AER 152 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "152",
-     "lines": [
-      "inal s",
-      "ustar",
-      "ne mazic",
-      "Jesplle",
-      "Je, tne",
-      "crime lord is often described as heartless.",
-      "\u0442\u2122 &",
-      "2017 Wizards of the Coast",
-      "152/184 M",
-      "AER* EN IO VINCENT PROCE"
-     ],
      "premiumMark": true,
      "setCode": "aer"
     },
@@ -6868,14 +4277,6 @@
     "reason": "collector line TLA 177 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "177",
-     "lines": [
-      "\"Together, we are unshakable.\"",
-      "0/2",
-      "R 0177",
-      "02025 Viacom.",
-      "TLA * EN BOELL OYINO",
-      "\u0442\u043c & O 2025 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "tla"
     },
@@ -6889,13 +4290,6 @@
     "reason": "collector line SOI 14 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "14",
-     "lines": [
-      "3/1",
-      "014/297 C",
-      "TM & O 2016 Wizards of the Coast",
-      "TM &",
-      "SOI\u2022 EN FILIP BURBURAN"
-     ],
      "premiumMark": false,
      "setCode": "soi"
     },
@@ -6909,14 +4303,6 @@
     "reason": "collector line C17 52 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "52",
-     "lines": [
-      "your library in a random order.",
-      "1",
-      "Equip",
-      "052/309 U",
-      "IM & \u20ac 2017 Wizards of the Coast",
-      "C17 \u2022 EN CARMEN SINEK"
-     ],
      "premiumMark": false,
      "setCode": "c17"
     },
@@ -6930,15 +4316,6 @@
     "reason": "collector line IKO 192 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "192",
-     "lines": [
-      "battlefield. Put the rest on the bottom of",
-      "your library in a random order.",
-      "2/2",
-      "192/274 M",
-      "TM & 0 2020 Wizards of the Coast",
-      "IASON RAINVILLE",
-      "IKO \u2022 EN"
-     ],
      "premiumMark": false,
      "setCode": "iko"
     },
@@ -6952,14 +4329,6 @@
     "reason": "collector line EOE 91 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "91",
-     "lines": [
-      "sacttlce uhs sura ainess a nomana permanent",
-      "left the battlefield this turn or a spell was",
-      "warped this turn.",
-      "R 0091",
-      "TM & \u00a9 2025 Wizards of the Coast",
-      "EOE * EN ALIX BRANWYN"
-     ],
      "premiumMark": true,
      "setCode": "eoe"
     },
@@ -6973,13 +4342,6 @@
     "reason": "collector line C18 280 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "280",
-     "lines": [
-      "e: Add *",
-      "or",
-      "280/307 U",
-      "IM & C 2018 Wizards of the Coast",
-      "C18 \u2022 EN RYAN PANCOAST"
-     ],
      "premiumMark": false,
      "setCode": "c18"
     },
@@ -6993,13 +4355,6 @@
     "reason": "collector line SNC 48 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "48",
-     "lines": [
-      "New capenna's statues nola vta",
-      "Capenna's secrets.",
-      "048/281 \u0421",
-      "TM & \u00a9 2022 Wizards of the Coast",
-      "SNC \u2022 EN BEN HILL"
-     ],
      "premiumMark": false,
      "setCode": "snc"
     },
@@ -7013,13 +4368,6 @@
     "reason": "collector line M21 179 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "179",
-     "lines": [
-      "\u2022 Draw a card.",
-      "6/6",
-      "179/274 M",
-      "IN & O 2020 Wizards of the Coast",
-      "M21 *EN NICHOLAS GREGORY"
-     ],
      "premiumMark": true,
      "setCode": "m21"
     },
@@ -7033,12 +4381,6 @@
     "reason": "collector line BRO 265 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "265",
-     "lines": [
-      "gets +2/+2 until end of turn.",
-      "Tu & C 2022 Wizards of the Coast",
-      "265/287 R",
-      "BRO*EN LEON TUKKER"
-     ],
      "premiumMark": true,
      "setCode": "bro"
     },
@@ -7052,14 +4394,6 @@
     "reason": "collector line C14 10 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "10",
-     "lines": [
-      "Nahiri, the Lithomancer can be your commander.",
-      "3",
-      "010/337 M",
-      "- ERIC DESCHAMPS",
-      "C14 \u2022 EN N",
-      "2014 Wwards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "c14"
     },
@@ -7073,14 +4407,6 @@
     "reason": "collector line DMU 40 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "40",
-     "lines": [
-      "of Tolaria's great library. Now, she writes",
-      "the books that line them.",
-      "2/3",
-      "040/281 R",
-      "DMU \u2022 EN MARCELA MEDEIROS",
-      "IM & C 2022 Wuzards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "dmu"
     },
@@ -7094,15 +4420,6 @@
     "reason": "collector line AFR 56 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "56",
-     "lines": [
-      "PRAIE20700",
-      "their controllers' next untap steps.",
-      "3/5",
-      "056/281 R",
-      "TN & O 2021 Wizards of the Coast",
-      "DAN SCOTT",
-      "AFR \u2022 EN"
-     ],
      "premiumMark": false,
      "setCode": "afr"
     },
@@ -7116,14 +4433,6 @@
     "reason": "collector line NEO 243 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "243",
-     "lines": [
-      "merge sites deemed too dangerous even for",
-      "trained intercessors.",
-      "2/1",
-      "243/302 U",
-      "NEO \u2022 EN JULIAN KOK IOON WEN",
-      "IM & O 2022 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "neo"
     },
@@ -7137,13 +4446,6 @@
     "reason": "collector line DSK 86 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "86",
-     "lines": [
-      "-Rip, spawn hunter",
-      "TM & O 2024 Wizards of the Coast",
-      "TM &",
-      "R 0086",
-      "DSK \u2022 EN DAVID AUDEN NASH"
-     ],
      "premiumMark": false,
      "setCode": "dsk"
     },
@@ -7157,15 +4459,6 @@
     "reason": "collector line MKM 7 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "7",
-     "lines": [
-      "You may spend mana as though it were mana",
-      "of any color to cast Case spells.",
-      "1/4",
-      "U 0007",
-      "T\u2122",
-      "MKM \u2022 EN RYAN VALLE",
-      "\u00a9 2024 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "mkm"
     },
@@ -7179,15 +4472,6 @@
     "reason": "collector line MKM 213 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "213",
-     "lines": [
-      "technically has hands.\"",
-      "\u2014Argyle, Agency junior detective",
-      "3/2",
-      "U 0213",
-      "TM & O 2024 Wizards of the Coast",
-      "TM &",
-      "MKM \u2022 EN FILIP BURBURAN"
-     ],
      "premiumMark": false,
      "setCode": "mkm"
     },
@@ -7201,13 +4485,6 @@
     "reason": "collector line KTK 219 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "219",
-     "lines": [
-      "What once soared high above Tarkir is now",
-      "reduced to a seat.",
-      "219/269 P Launch",
-      "TM & S 2014 Wizards of the Coast",
-      "KTK* EN DAARKEN"
-     ],
      "premiumMark": true,
      "setCode": "ktk"
     },
@@ -7221,13 +4498,6 @@
     "reason": "collector line AKH 234 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "234",
-     "lines": [
-      "ability only if there are three or more brick",
-      "counters on Oracle's Vault.",
-      "234/269 P Launch",
-      "TM & \u00a9 2017 Wizards of the Coast",
-      "AKH*EN CLIFF CHILDS"
-     ],
      "premiumMark": true,
      "setCode": "akh"
     },
@@ -7241,14 +4511,6 @@
     "reason": "collector line DTK 162 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "162",
-     "lines": [
-      "A NMMNAAT MU C",
-      "damage to that player.",
-      "4/4",
-      "162/264 P Game Day",
-      "DTK * EN IASON RAINVILLE",
-      "TM & \u00a9 2015 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "dtk"
     },
@@ -7262,12 +4524,6 @@
     "reason": "collector line MKM 72 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "72",
-     "lines": [
-      "I just wanna ask you a questio-",
-      "U 0072",
-      "T\u2122 & O 2024 Wizards of the Coast",
-      "MKM\u2022 EN O OLIVIER BERNARD"
-     ],
      "premiumMark": false,
      "setCode": "mkm"
     },
@@ -7281,14 +4537,6 @@
     "reason": "collector line EMN 64 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "64",
-     "lines": [
-      "0710",
-      "at the beginning of the next end step.",
-      "0/3",
-      "064/205 P Launch",
-      "T\u043c & O 2016 Wizards of the Coast",
-      "EMN*EN DAN SCOTT"
-     ],
      "premiumMark": true,
      "setCode": "emn"
     },
@@ -7302,14 +4550,6 @@
     "reason": "collector line KTK 193 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "193",
-     "lines": [
-      "advantageous to those who jorget who",
-      "they are dealing with.",
-      "4/4",
-      "193/269 R Intro Pack",
-      "IM & 2014 Wizards of the Coast",
-      "KTK * EN PETER MOHRBACHER"
-     ],
      "premiumMark": true,
      "setCode": "ktk"
     },
@@ -7323,14 +4563,6 @@
     "reason": "collector line EMN 46 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "46",
-     "lines": [
-      "Council. It must be earned\u2014at the eage oj a",
-      "sword, if necessary.\"",
-      "3/2",
-      "046/205 P Buy-a-Box",
-      "TM & C 2016 Wizards of the Coast",
-      "EMN*EN IOHANNES VOSS"
-     ],
      "premiumMark": true,
      "setCode": "emn"
     },
@@ -7344,14 +4576,6 @@
     "reason": "collector line M20 185 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "185",
-     "lines": [
-      "didn't cast a spell this turn, create a 2/2",
-      "green Wolf creature token.",
-      "4/4",
-      "185/280 P Convention",
-      "M20 * EN SAM ROWAN",
-      "TM & C 2019 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "m20"
     },
@@ -7365,13 +4589,6 @@
     "reason": "collector line KTK 97 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "97",
-     "lines": [
-      "203 00e",
-      "vre arebono purn",
-      "097/269 P Ugin's Fate",
-      "TH & C 2015 Wizards of the Coast",
-      "KTK \u2022 EN SEB MCKINNON"
-     ],
      "premiumMark": false,
      "setCode": "ktk"
     },
@@ -7385,16 +4602,6 @@
     "reason": "collector line MUL 141 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "141",
-     "lines": [
-      "A1l Kriowicage u te eriuurverse enaoiea ivew",
-      "Phyrexia to strike each plane with surgical",
-      "precision.",
-      "5/4",
-      "M 0141",
-      "MUL*EN KEKAI KOTAKI",
-      "1H &",
-      "9 2023 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "mul"
     },
@@ -7408,14 +4615,6 @@
     "reason": "collector line MUL 132 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "132",
-     "lines": [
-      "control enters the battleheld or dies,",
-      "you gain 1 life.",
-      "2/*",
-      "U 0132",
-      "IM & \u00a9 2023 Wizards of the Coast",
-      "MUL*EN O IASON A. ENGLE"
-     ],
      "premiumMark": true,
      "setCode": "mul"
     },
@@ -7428,12 +4627,6 @@
     "truth": "e37bd3ef-3252-4ec3-9fc9-e12634748977",
     "reason": "set UMA leaves one printing of the top card",
     "reading": {
-     "lines": [
-      "2/2",
-      "U26/040 S",
-      "2018 Wizards of the Coast",
-      "UMA*EN O LUCAS GRACIANO"
-     ],
      "premiumMark": true,
      "setCode": "uma"
     },
@@ -7447,15 +4640,6 @@
     "reason": "collector line IKO 285 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "285",
-     "lines": [
-      "may return target creature an opponent",
-      "controls to its owner's hand",
-      "4/3",
-      "285",
-      "U",
-      "IKO \u2022 EN DANIEL WARREN IOHNSON",
-      "TN & O 2020 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "iko"
     },
@@ -7469,14 +4653,6 @@
     "reason": "collector line MUL 183 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "183",
-     "lines": [
-      "your hand and the rest on the bottom of",
-      "your library in a random order.",
-      "6/6",
-      "M 0183",
-      "MUL*EN ILLUSTRANESIA",
-      "IN & O 2023 Wizards of the Coast"
-     ],
      "premiumMark": true,
      "setCode": "mul"
     },
@@ -7490,12 +4666,6 @@
     "reason": "collector line SLD 1434 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "1434",
-     "lines": [
-      "Each tendril was a living bassline.",
-      "TM & O 2023 Wizards of the Coast",
-      "M 1434",
-      "SLD \u2022 EN O SIGNALNOISE"
-     ],
      "premiumMark": false,
      "setCode": "sld"
     },
@@ -7509,12 +4679,6 @@
     "reason": "collector line SLD 1411 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "1411",
-     "lines": [
-      "\"Immortality is my greatest burden.\"",
-      "M 1411",
-      "SLD \u2022 EN RISHXXY",
-      "\u0442\u043c & \u00a9 2023 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "sld"
     },
@@ -7528,14 +4692,6 @@
     "reason": "collector line SLD 1419 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "1419",
-     "lines": [
-      "-L",
-      "artieat you conrcreature gets +l/+1 for each",
-      "5",
-      "M 1419",
-      "SLD \u2022 EN O RED9 / UTA NATSUME",
-      "T\u043c & O 2023 Wizards of the Coast"
-     ],
      "premiumMark": false,
      "setCode": "sld"
     },
@@ -7549,17 +4705,6 @@
     "reason": "collector line SLD 1489 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "1489",
-     "lines": [
-      "LI",
-      "IUTSLEIS LUIK UIL",
-      "rear not neigrs",
-      "the depths.",
-      "6/6",
-      "R 1489",
-      "TM & \u00a9 2024 Wizards of the Coast",
-      "TM & O",
-      "SLD \u2022 EN ROWYNN ELLIS"
-     ],
      "premiumMark": false,
      "setCode": "sld"
     },
@@ -7572,13 +4717,6 @@
     "truth": "bea9f6e9-69ae-4c49-9682-ad09e787c01e",
     "reason": "set UMA leaves one printing of the top card",
     "reading": {
-     "lines": [
-      "the chosen type, and that spell can't be",
-      "countered.",
-      "U32/040 S",
-      "Tizande ef the Ceas:",
-      "UMA*EN A RICHARD WRIGHT"
-     ],
      "premiumMark": true,
      "setCode": "uma"
     },
@@ -7592,13 +4730,6 @@
     "reason": "collector line SS3 7 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "7",
-     "lines": [
-      "Lu ve cuI",
-      "e uyerno.",
-      "007/008 R",
-      "TM & O 2020 Wizards of the Coast",
-      "SS3 \u2022 EN KIERAN YANNER"
-     ],
      "premiumMark": false,
      "setCode": "ss3"
     },
@@ -8829,7 +5960,7 @@
     "group": "same-art",
     "top": "6b20bcc6-69ed-432d-ab10-c7bceb7cdfb9",
     "accepted": null,
-    "reason": "collector line UNF 233 names no printing in the catalog"
+    "reason": "collector line UNF 233 names no printing in the gallery"
    },
    {
     "input": "sim-00153.jpg",
@@ -10453,7 +7584,7 @@
     "group": "same-art",
     "top": "94008ffb-f0fe-4e83-bf73-d8ade4104d86",
     "accepted": null,
-    "reason": "collector line UST 67 names no printing in the catalog"
+    "reason": "collector line UST 67 names no printing in the gallery"
    },
    {
     "input": "sim-00356.jpg",
@@ -11629,7 +8760,7 @@
     "group": "same-art",
     "top": "8a4da5c2-17e8-4fa1-a8b2-d8ec4ff585d8",
     "accepted": null,
-    "reason": "collector line UNF 232 names no printing in the catalog"
+    "reason": "collector line UNF 232 names no printing in the gallery"
    },
    {
     "input": "sim-00503.jpg",
@@ -12661,7 +9792,7 @@
     "group": "same-art",
     "top": "880a95a6-e0f1-4522-81c4-63b5a153fb23",
     "accepted": null,
-    "reason": "collector line 30A 3022 names no printing in the catalog"
+    "reason": "collector line 30A 3022 names no printing in the gallery"
    },
    {
     "input": "sim-00632.jpg",
@@ -12733,7 +9864,7 @@
     "group": "same-art",
     "top": "2bdefffa-14bb-4a2b-9e75-13e29eaa6677",
     "accepted": null,
-    "reason": "collector line UNF 202 names no printing in the catalog"
+    "reason": "collector line UNF 202 names no printing in the gallery"
    },
    {
     "input": "sim-00641.jpg",
@@ -12981,7 +10112,7 @@
     "group": "same-art",
     "top": "e7d0f29b-fcc4-4135-af36-6539912ab3bb",
     "accepted": null,
-    "reason": "collector line JMP 2020 names no printing in the catalog"
+    "reason": "collector line JMP 2020 names no printing in the gallery"
    },
    {
     "input": "sim-00672.jpg",
@@ -13077,7 +10208,7 @@
     "group": "same-art",
     "top": "15709316-7382-46b9-9b70-53a5147e7051",
     "accepted": null,
-    "reason": "collector line J22 2022 names no printing in the catalog"
+    "reason": "collector line J22 2022 names no printing in the gallery"
    },
    {
     "input": "sim-00684.jpg",
@@ -13349,7 +10480,7 @@
     "group": "same-art",
     "top": "5cda4469-581d-474a-a2c3-32a7acd8f3a8",
     "accepted": null,
-    "reason": "collector line 30A 2022 names no printing in the catalog"
+    "reason": "collector line 30A 2022 names no printing in the gallery"
    },
    {
     "input": "sim-00718.jpg",
@@ -13941,7 +11072,7 @@
     "group": "same-art",
     "top": "8a4da5c2-17e8-4fa1-a8b2-d8ec4ff585d8",
     "accepted": null,
-    "reason": "collector line UNF 232 names no printing in the catalog"
+    "reason": "collector line UNF 232 names no printing in the gallery"
    },
    {
     "input": "sim-00792.jpg",
@@ -14397,7 +11528,7 @@
     "group": "same-art",
     "top": "a743a3b6-3278-4644-a2d5-acf495c273ed",
     "accepted": null,
-    "reason": "collector line MID 76277 names no printing in the catalog"
+    "reason": "collector line MID 76277 names no printing in the gallery"
    },
    {
     "input": "sim-00849.jpg",
@@ -15357,7 +12488,7 @@
     "group": "same-art",
     "top": "4573d1a0-f4b0-43f2-a7fb-8af6b1c4ecde",
     "accepted": null,
-    "reason": "collector line UNF 209 names no printing in the catalog"
+    "reason": "collector line UNF 209 names no printing in the gallery"
    },
    {
     "input": "sim-00969.jpg",
@@ -15981,7 +13112,7 @@
     "group": "same-art",
     "top": "3b8e6878-06aa-4505-b3a5-172083b7d258",
     "accepted": null,
-    "reason": "collector line THB 4021 names no printing in the catalog"
+    "reason": "collector line THB 4021 names no printing in the gallery"
    },
    {
     "input": "sim-01047.jpg",
@@ -16413,7 +13544,7 @@
     "group": "same-art",
     "top": "17a278d0-f601-4d57-bc3d-2972f8602a69",
     "accepted": null,
-    "reason": "collector line POGW 86 names no printing in the catalog"
+    "reason": "collector line POGW 86 names no printing in the gallery"
    },
    {
     "input": "sim-01101.jpg",
@@ -19221,7 +16352,7 @@
     "group": "same-art",
     "top": "b8253166-0bf4-4d50-bea3-516a9f60b039",
     "accepted": null,
-    "reason": "collector line CLB 2022 names no printing in the catalog"
+    "reason": "collector line CLB 2022 names no printing in the gallery"
    },
    {
     "input": "sim-01452.jpg",
@@ -20853,7 +17984,7 @@
     "group": "single-art",
     "top": "9d836021-9289-4ab2-be85-6362670cb9de",
     "accepted": null,
-    "reason": "collector line UST 165 names no printing in the catalog"
+    "reason": "collector line UST 165 names no printing in the gallery"
    },
    {
     "input": "sim-01656.jpg",
@@ -21109,7 +18240,7 @@
     "group": "single-art",
     "top": "7eb819eb-ba5c-4449-87b5-3894380558bc",
     "accepted": null,
-    "reason": "collector line DFT 0 names no printing in the catalog"
+    "reason": "collector line DFT 0 names no printing in the gallery"
    },
    {
     "input": "sim-01688.jpg",
@@ -21709,7 +18840,7 @@
     "group": "single-art",
     "top": "2e4f2148-d398-4f3d-9c59-81c87b6a4588",
     "accepted": null,
-    "reason": "collector line TMT 2026 names no printing in the catalog"
+    "reason": "collector line TMT 2026 names no printing in the gallery"
    },
    {
     "input": "sim-01763.jpg",
@@ -23981,7 +21112,7 @@
     "group": "single-art",
     "top": "10d1d701-841c-4bf3-9122-b01842a22ac6",
     "accepted": null,
-    "reason": "collector line DMU 918 names no printing in the catalog"
+    "reason": "collector line DMU 918 names no printing in the gallery"
    },
    {
     "input": "sim-02047.jpg",
@@ -25053,7 +22184,7 @@
     "group": "single-art",
     "top": "9307ffe1-a24c-4a33-8948-a88cc1c7dc32",
     "accepted": null,
-    "reason": "collector line FNM 7 names no printing in the catalog"
+    "reason": "collector line FNM 7 names no printing in the gallery"
    },
    {
     "input": "sim-02181.jpg",
@@ -26421,7 +23552,7 @@
     "group": "special",
     "top": "071421ba-b54a-4510-9065-ace62368d3cb",
     "accepted": null,
-    "reason": "collector line MED 4 names no printing in the catalog"
+    "reason": "collector line MED 4 names no printing in the gallery"
    },
    {
     "input": "sim-02352.jpg",
@@ -26565,7 +23696,7 @@
     "group": "special",
     "top": "ae580392-9fd1-4f51-aa2b-8fdabb177132",
     "accepted": null,
-    "reason": "collector line DMC 0 names no printing in the catalog"
+    "reason": "collector line DMC 0 names no printing in the gallery"
    },
    {
     "input": "sim-02370.jpg",
