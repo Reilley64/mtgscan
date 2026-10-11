@@ -446,6 +446,9 @@ isOneToOne: false
 "list_card_printings":
 { Args: { "query": Json }; Returns: Json
                            },
+"list_collection_printings":
+{ Args: { "query": Json }; Returns: Json
+                           },
 "prune_search_telemetry":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
