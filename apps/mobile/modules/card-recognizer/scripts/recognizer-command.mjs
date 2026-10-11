@@ -10,7 +10,7 @@ export const printingListFile = 'catalog.json';
 
 export function run(command, args, { output } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: ['ignore', output ? 'pipe' : 'inherit', 'inherit'] });
+    const child = spawn(command, args, { stdio: ['ignore', output ? 'pipe' : process.stderr, 'inherit'] });
     const chunks = [];
     child.stdout?.on('data', (chunk) => chunks.push(chunk));
     child.on('error', reject);
