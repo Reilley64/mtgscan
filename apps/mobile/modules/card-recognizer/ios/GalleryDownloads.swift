@@ -61,7 +61,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
   }
 
   private let queue = DispatchQueue(label: "dev.reilley.mtgscan.gallery-downloads")
-  private let installQueue = DispatchQueue(label: "dev.reilley.mtgscan.gallery-install", qos: .utility)
+  private let installQueue = DispatchQueue(label: "dev.reilley.mtgscan.gallery-install", qos: .userInitiated)
   private let pathMonitor = NWPathMonitor()
   private var path: NWPath?
   private var job: Job?
