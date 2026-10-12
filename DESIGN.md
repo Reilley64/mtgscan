@@ -280,7 +280,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - The magenta card outline draws only around a detected card.
   - After three failed photos in a row or a camera error, the camera stops. The tab shows "Camera stopped." with a **Try again** button.
   - The camera stops when the user leaves Scan or the app.
-  - Taking a photo makes no shutter sound where iOS allows it, and no haptic. When the latest-scan chip shows a recognized card, the phone plays a heavy impact haptic. When recognition fails, it plays a warning haptic. A photo that is not a card plays none (#82).
+  - Taking a photo makes no shutter sound where iOS allows it, and no haptic. When the latest-scan chip shows a recognized card, the phone plays a heavy impact haptic and a soft two-note blip. When recognition fails, it plays a warning haptic and a lower tone. A photo that is not a card plays neither. The sounds follow the Ring/Silent switch, and a Scan sounds switch in settings turns them off (#82).
 
 ### Sign-in screen
 
