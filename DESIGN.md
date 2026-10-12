@@ -226,10 +226,10 @@ This file records the design settled in Wayfinder tickets #11 (scan batch flow) 
 
 The palette is near-black neutrals with one lime accent. Card art supplies every other color.
 
-- **Background (#080b0d)** is the screen base. **Surface (#11171a)** holds cards and grouped content. **Surface raised (#1a2125)** and **surface control (#232c31)** separate inner rows, buttons, chips, and segmented controls. **Sheet (#161c1f)** is the iOS page sheet. **Line (#2a3238)** draws hairlines and empty image slots.
+- **Background (#080b0d)** is the screen base. **Surface (#11171a)** holds cards and grouped content. **Surface raised (#1a2125)** and **surface control (#232c31)** separate inner rows, buttons, chips, and segmented controls. **Sheet (#161c1f)** is the iOS page sheet and the settings drawer. **Line (#2a3238)** draws hairlines and empty image slots.
 - **Text (#ffffff)** is primary. **Text muted (#b5c0c5)** is for printing details and captions. **Text dim (#7d8a90)** is for unselected tab labels and quiet metadata.
 - **Primary (#d8ff62)**, the lime accent, is the single interaction color: the primary button, the selected chip, the selected tab, section headings, and in-app links. Text on it is **on-primary (#101500)**. The brand mark is the one non-action use of lime.
-- **Grabber (#4a555b)** draws the short bar at the top of a sheet.
+- **Grabber (#4a555b)** draws the short bar at the top of the sign-in sheet. The settings drawer uses the iOS system grabber, which iOS draws in its own color.
 - **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall.
 - **Incoming (#d8ff62)** and **outgoing (#ff8a7a)** mark the plus and minus lines of a deck suggestion, planned swap, or deck change.
 - **Warning (#f4d06f)** marks protected copies and caution states. **Danger (#ff7a70)** marks invalid decks and destructive actions such as remove scan or revert. **Info (#8fd3ff)** marks the estimated bracket and in-deck counts.
@@ -324,15 +324,22 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 - the swap-in confirmation for a protected copy;
 - revert;
 - the scan details sheet;
-- batch review;
-- settings, which shows the signed-in account in a card and **Sign out** below it. The card shows the provider of the current sign-in and the account email. Apple and Google sign-ins with the same verified email share one account, so the provider can change between sign-ins.
+- batch review.
+
+Settings is a bottom drawer, not a page sheet. The settings button on Recent, Collection, and Decks opens it.
+
+- It slides up from the bottom with the iOS grabber and opens at half the screen height.
+- Dragging it up takes it to full height. Dragging it down takes it back to half height.
+- A downward swipe or a tap outside closes it. It has no Done button.
+- Its content scrolls at either height.
+- It shows the signed-in account in a card and **Sign out** below it. The card shows the provider of the current sign-in and the account email. Apple and Google sign-ins with the same verified email share one account, so the provider can change between sign-ins.
 
 ## Elevation & Depth
 
 The interface is flat. Depth comes from tone, not shadow.
 
 - Content sits on surface tones that step up from the background: surface, surface raised, surface control.
-- Page sheets slide over a dimmed, slightly scaled screen. A soft shadow above the sheet is the only strong shadow.
+- Page sheets slide over a dimmed, slightly scaled screen. The settings drawer slides over a dimmed screen that keeps its size. A soft shadow above the sheet is the only strong shadow.
 - The tab bar is a near-opaque bar with a hairline top border.
 - During a back swipe, the screen follows the finger with a shadow on its left edge.
 

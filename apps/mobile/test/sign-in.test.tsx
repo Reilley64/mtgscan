@@ -217,7 +217,7 @@ test('Try again brings back the sign-in buttons, and the next sign-in lands on R
   expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
 });
 
-test('the settings sheet shows the provider and email of the signed-in account', async () => {
+test('the settings drawer shows the provider and email of the signed-in account', async () => {
   startSignedIn({ provider: 'google', email: 'player@example.com' });
   await renderApp();
 

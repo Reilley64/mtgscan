@@ -40,14 +40,45 @@ export async function pressTab(label: string) {
   });
 }
 
-export async function swipeDownPageSheet() {
-  const [sheet] = hostViews('RNSModalScreen').filter(
-    (candidate) => candidate.props.stackPresentation === 'pageSheet',
+function presentedSheet() {
+  const [sheet] = hostViews('RNSModalScreen').filter((candidate) =>
+    ['formSheet', 'pageSheet'].includes(candidate.props.stackPresentation),
   );
   if (!sheet) {
-    throw new Error('No page sheet is open');
+    throw new Error('No sheet is open');
+  }
+  return sheet;
+}
+
+export function openSheet() {
+  const { stackPresentation, sheetGrabberVisible, sheetAllowedDetents, sheetInitialDetent } =
+    presentedSheet().props;
+  const heights: number[] = stackPresentation === 'formSheet' ? sheetAllowedDetents : [1];
+  return {
+    showsGrabber: sheetGrabberVisible === true,
+    heights,
+    openingHeight: heights[sheetInitialDetent ?? 0],
+  };
+}
+
+async function dismissSheet(sheet: ReturnType<typeof presentedSheet>) {
+  if (sheet.props.gestureEnabled === false) {
+    throw new Error('This sheet does not close by gesture');
   }
   await fireEvent(sheet, 'dismissed', { nativeEvent: { dismissCount: 1 } });
+}
+
+export async function swipeDownSheet() {
+  await dismissSheet(presentedSheet());
+}
+
+export async function tapOutsideSheet() {
+  const sheet = presentedSheet();
+  const { sheetLargestUndimmedDetent = -1, sheetInitialDetent = 0 } = sheet.props;
+  if (sheetLargestUndimmedDetent >= sheetInitialDetent) {
+    throw new Error('The screen behind this sheet is not dimmed, so a tap there does not close it');
+  }
+  await dismissSheet(sheet);
 }
 
 export function showsSpinner(element: ReturnType<typeof screen.getByRole>) {
