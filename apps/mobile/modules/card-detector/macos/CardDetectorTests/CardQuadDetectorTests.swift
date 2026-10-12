@@ -333,7 +333,7 @@ func detectorEndToEnd() {
   let output = CardQuadDetector.detect(pixelBuffer: buffer, displayOrientation: .right)
   #expect(output.failure == nil)
   #expect(output.proposal != nil, "document segmentation produced no proposal")
-  #expect(output.refinementStatus == .refined, "end-to-end status \(output.refinementStatus)")
+  #expect(output.refined != nil, "end-to-end card was not refined")
   let error = maximumCornerError(
     output.refined!.map { SIMD2($0.x * 720.0, $0.y * 1280.0) },
     truth.map { SIMD2($0.x * 720.0, $0.y * 1280.0) }
@@ -371,7 +371,7 @@ func cardSignature() {
     }
     let buffer = makeBuffer(oriented: image, orientation: .right)
     let output = CardQuadDetector.detect(pixelBuffer: buffer, displayOrientation: .right)
-    #expect(output.refinementStatus == .refined, "signature card was not refined")
+    #expect(output.refined != nil, "signature card was not refined")
     #expect(output.signature.count == 48, "signature has \(output.signature.count) cells")
     return output.signature
   }
@@ -413,16 +413,14 @@ func oneEdgeFallback() {
 private func refinedOutput(
   confidence: Double = 0.9,
   areaRatio: Double = 0.3,
-  aspectRatio: Double = 63.0 / 88.0,
   edgeSupportMin: Double = 0.8
 ) -> CardQuadDetector.Output {
   var output = CardQuadDetector.Output()
   output.proposal = [SIMD2(0.2, 0.2), SIMD2(0.8, 0.2), SIMD2(0.8, 0.8), SIMD2(0.2, 0.8)]
   output.refined = [SIMD2(0.25, 0.1), SIMD2(0.75, 0.1), SIMD2(0.75, 0.9), SIMD2(0.25, 0.9)]
-  output.refinementStatus = .refined
   output.confidence = confidence
   output.areaRatio = areaRatio
-  output.aspectRatio = aspectRatio
+  output.aspectRatio = 63.0 / 88.0
   output.edgeSupportMin = edgeSupportMin
   output.signature = [Double](repeating: 128, count: 48)
   return output
@@ -448,8 +446,6 @@ func detectsACardThatPassesEveryGate() {
     refinedOutput(confidence: 0.49),
     refinedOutput(areaRatio: 0.079),
     refinedOutput(areaRatio: 0.91),
-    refinedOutput(aspectRatio: 0.695),
-    refinedOutput(aspectRatio: 0.737),
     refinedOutput(edgeSupportMin: 0.69),
   ]
 )
@@ -464,8 +460,8 @@ func doesNotDetectACardThatFailsAGate(output: CardQuadDetector.Output) {
 
 @Test("detects a card at the edge of every detector gate")
 func detectsACardAtTheEdgeOfEveryGate() {
-  #expect(sample(refinedOutput(confidence: 0.5, areaRatio: 0.08, aspectRatio: 0.696, edgeSupportMin: 0.7)).detected)
-  #expect(sample(refinedOutput(areaRatio: 0.9, aspectRatio: 0.736)).detected)
+  #expect(sample(refinedOutput(confidence: 0.5, areaRatio: 0.08, edgeSupportMin: 0.7)).detected)
+  #expect(sample(refinedOutput(areaRatio: 0.9)).detected)
 }
 
 @Test("maps the outline in the upright frame to camera sensor points")
@@ -487,4 +483,24 @@ func sendsADetectionFailureAsARuntimeErrorCode() {
   let failure = DetectionSample(failure: .visionFailed, sampledAtMs: 1_000)
   #expect(!failure.detected)
   #expect(failure.record["runtimeErrorCode"] as? String == "vision_failed")
+}
+
+@Test("refuses an outline whose sides are not in the card aspect")
+func refusesAnOutlineThatIsNotCardShaped() {
+  var image = GrayImage(width: 720, height: 1280, fill: 190)
+  for y in 440 ..< 840 {
+    for x in 160 ..< 560 {
+      image.pixels[y * 720 + x] = 30
+    }
+  }
+  let buffer = makeBuffer(oriented: image, orientation: .right)
+  let transform = OrientationTransform(displayOrientation: .right, bufferWidth: 1280, bufferHeight: 720)!
+  let square = [SIMD2(170.0, 450.0), SIMD2(550.0, 450.0), SIMD2(550.0, 830.0), SIMD2(170.0, 830.0)]
+  let outcome = lumaPlane(buffer) {
+    CardEdgeRefiner.refine(proposal: square, plane: $0, transform: transform)
+  }
+  guard case .invalidQuad = outcome else {
+    Issue.record("a square should not refine into a card, got \(outcome)")
+    return
+  }
 }

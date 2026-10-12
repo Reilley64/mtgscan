@@ -1,5 +1,6 @@
 import { useIsFocused } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { getCameraPermission, isCameraAvailable, requestCameraPermission } from '../../modules/card-detector';
 
@@ -34,6 +35,18 @@ export function useCameraAccess() {
       current = false;
     };
   }, [access, focused]);
+
+  useEffect(() => {
+    if (access !== 'denied') {
+      return;
+    }
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        setAccess('checking');
+      }
+    });
+    return () => subscription.remove();
+  }, [access]);
 
   return access;
 }

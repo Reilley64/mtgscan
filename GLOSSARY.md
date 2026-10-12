@@ -75,7 +75,7 @@ _Avoid_: Rectangle detector
 
 **Card outline**:
 The four corners of a detected card. The Scan tab draws it in magenta, and the recognizer straightens the photo along it.
-_Avoid_: Quad, guide
+_Avoid_: Guide
 
 **Automatic capture**:
 The scanner takes one photo when a detected card holds still for 400 ms. It re-arms when the card leaves for 1 second or a different card takes its place.

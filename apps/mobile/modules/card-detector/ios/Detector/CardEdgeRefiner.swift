@@ -53,8 +53,8 @@ enum CardEdgeRefiner {
       supports: [Double],
       fallbackEdges: Int
     )
-    case weakEdge(supportMin: Double, supports: [Double])
-    case invalidQuad(supportMin: Double, supports: [Double])
+    case weakEdge(supportMin: Double)
+    case invalidQuad(supportMin: Double)
   }
 
   private struct EdgeFit {
@@ -117,7 +117,7 @@ enum CardEdgeRefiner {
         guard fallbackEdges == 0,
               let line = EdgeLine.through(proposal[index], proposal[(index + 1) % 4])
         else {
-          return .weakEdge(supportMin: supports.min() ?? 0.0, supports: paddedSupports(supports))
+          return .weakEdge(supportMin: supports.min() ?? 0.0)
         }
         fallbackEdges += 1
         edges.append([EdgeFit(line: line, support: 0, shift: 0.0, sign: 0.0)])
@@ -152,7 +152,7 @@ enum CardEdgeRefiner {
       .map { Double($0.support) / Double(samplesPerEdge) }
       .min() ?? 0.0
     guard let selected else {
-      return .invalidQuad(supportMin: measuredSupport, supports: supports)
+      return .invalidQuad(supportMin: measuredSupport)
     }
     return .refined(
       corners: selected.corners,
@@ -162,10 +162,6 @@ enum CardEdgeRefiner {
       supports: supports,
       fallbackEdges: fallbackEdges
     )
-  }
-
-  private static func paddedSupports(_ supports: [Double]) -> [Double] {
-    supports + [Double](repeating: 0.0, count: max(0, 4 - supports.count))
   }
 
   private static func quadrilateral(

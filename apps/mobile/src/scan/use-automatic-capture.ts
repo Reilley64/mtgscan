@@ -1,7 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
 
-import type { CapturedPhoto, CardDetectorCamera, CardDetectorViewProps } from '../../modules/card-detector';
-import { initialCapture, observeSample, photoFailed, photoTaken, type CaptureState } from './capture';
+import type {
+  CapturedPhoto,
+  CardDetectorCamera,
+  CardDetectorViewProps,
+  FrameQuad,
+} from '../../modules/card-detector';
+import { initialCapture, isStopped, observeSample, photoFailed, photoTaken, type CaptureState } from './capture';
 import { createCaptureLog } from './capture-log';
 
 export function useAutomaticCapture(onPhoto: (photo: CapturedPhoto) => void) {
@@ -12,16 +17,16 @@ export function useAutomaticCapture(onPhoto: (photo: CapturedPhoto) => void) {
 
   const update = useCallback((state: CaptureState) => {
     capture.current = state;
-    setStopped(state.machine.phase === 'error');
+    setStopped(isStopped(state));
   }, []);
 
-  const takePhoto = useCallback(async () => {
+  const takePhoto = useCallback(async (outline: FrameQuad) => {
     let photo: CapturedPhoto;
     try {
       if (!camera.current) {
         throw new Error('The camera is not ready');
       }
-      photo = await camera.current.takePhoto();
+      photo = await camera.current.takePhoto(outline);
     } catch {
       update(photoFailed(capture.current));
       log.photoFailed(capture.current);
@@ -37,8 +42,8 @@ export function useAutomaticCapture(onPhoto: (photo: CapturedPhoto) => void) {
       const step = observeSample(capture.current, nativeEvent);
       log.sample(capture.current, step, nativeEvent);
       update(step.state);
-      if (step.requestPhoto) {
-        void takePhoto();
+      if (step.requestPhoto && nativeEvent.corners) {
+        void takePhoto(nativeEvent.corners);
       }
     },
     [log, takePhoto, update],

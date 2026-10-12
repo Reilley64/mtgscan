@@ -13,14 +13,6 @@ enum DetectorFailure: String, Sendable {
 }
 
 enum CardQuadDetector {
-  enum RefinementStatus {
-    case refined
-    case noProposal
-    case proposalOutsideFrame
-    case weakEdge
-    case invalidQuad
-  }
-
   struct Output {
     var proposal: [SIMD2<Double>]?
     var refined: [SIMD2<Double>]?
@@ -29,7 +21,6 @@ enum CardQuadDetector {
     var aspectRatio = 0.0
     var edgeSupportMin = 0.0
     var signature: [Double] = []
-    var refinementStatus = RefinementStatus.noProposal
     var failure: DetectorFailure?
   }
 
@@ -89,7 +80,6 @@ enum CardQuadDetector {
       $0.x.isFinite && $0.y.isFinite
         && (0.0 ... 1.0).contains($0.x) && (0.0 ... 1.0).contains($0.y)
     }) else {
-      output.refinementStatus = .proposalOutsideFrame
       return output
     }
     let orientedPoints = visionPoints.map {
@@ -98,7 +88,6 @@ enum CardQuadDetector {
     guard let proposal = CardQuadGeometry.orderedClockwise(orientedPoints),
           CardQuadGeometry.isNondegenerateConvex(proposal, minimumEdge: 1.0)
     else {
-      output.refinementStatus = .invalidQuad
       return output
     }
     output.proposal = proposal.map { normalized($0, transform) }
@@ -125,7 +114,6 @@ enum CardQuadDetector {
     case let .refined(corners, supportMin, _, _, fallbackEdges):
       guard fallbackEdges == 0 || output.confidence >= minimumFallbackConfidence else {
         output.edgeSupportMin = supportMin
-        output.refinementStatus = .weakEdge
         break
       }
       let metrics = CardQuadGeometry.metrics(
@@ -138,13 +126,10 @@ enum CardQuadDetector {
       output.aspectRatio = metrics.aspectRatio
       output.edgeSupportMin = supportMin
       output.signature = cardSignature(corners: corners, plane: plane, transform: transform)
-      output.refinementStatus = .refined
-    case let .weakEdge(supportMin, _):
+    case let .weakEdge(supportMin):
       output.edgeSupportMin = supportMin
-      output.refinementStatus = .weakEdge
-    case let .invalidQuad(supportMin, _):
+    case let .invalidQuad(supportMin):
       output.edgeSupportMin = supportMin
-      output.refinementStatus = .invalidQuad
     }
     return output
   }

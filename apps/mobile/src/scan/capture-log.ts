@@ -1,5 +1,5 @@
 import type { DetectionSample } from '../../modules/card-detector';
-import type { CaptureState, CaptureStep } from './capture';
+import { isStopped, type CaptureState, type CaptureStep } from './capture';
 
 const timingWindowSamples = 300;
 
@@ -59,7 +59,7 @@ export function createCaptureLog() {
   }
 
   function photoFailed(state: CaptureState) {
-    logCaptureEvent('photo-failed', { failedPhotos: state.failedPhotos, stopped: state.machine.phase === 'error' });
+    logCaptureEvent('photo-failed', { failedPhotos: state.failedPhotos, stopped: isStopped(state) });
   }
 
   return { sample, photoTaken, photoFailed };

@@ -4,7 +4,6 @@ import simd
 struct DetectionSample: Sendable {
   static let confidenceMin = 0.5
   static let areaRatios = 0.08 ... 0.9
-  static let aspectRatios = 0.696 ... 0.736
   static let edgeSupportMin = 0.7
 
   let detected: Bool
@@ -61,11 +60,9 @@ struct DetectionSample: Sendable {
 
   static func cardIsPresent(_ output: CardQuadDetector.Output) -> Bool {
     output.failure == nil
-      && output.refinementStatus == .refined
       && output.refined != nil
       && output.confidence >= confidenceMin
       && areaRatios.contains(output.areaRatio)
-      && aspectRatios.contains(output.aspectRatio)
       && output.edgeSupportMin >= edgeSupportMin
   }
 

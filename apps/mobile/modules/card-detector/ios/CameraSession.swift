@@ -1,7 +1,6 @@
 import AVFoundation
 import CoreMedia
 import ImageIO
-import os
 import simd
 
 enum PhotoFailure: String, Error {
@@ -26,7 +25,6 @@ final class CameraSession: NSObject, @unchecked Sendable {
   private let analysisQueue = DispatchQueue(label: "dev.reilley.mtgscan.detector")
   private let videoOutput = AVCaptureVideoDataOutput()
   private let photoOutput = AVCapturePhotoOutput()
-  private let latestOutline = OSAllocatedUnfairLock<[SIMD2<Double>]?>(initialState: nil)
   private var configured = false
   private var lastAnalyzedAt = CMTime.invalid
   private var photoCaptures: [Int64: PhotoCapture] = [:]
@@ -53,7 +51,6 @@ final class CameraSession: NSObject, @unchecked Sendable {
           session.startRunning()
         }
       } else {
-        latestOutline.withLock { $0 = nil }
         if session.isRunning {
           session.stopRunning()
         }
@@ -61,8 +58,11 @@ final class CameraSession: NSObject, @unchecked Sendable {
     }
   }
 
-  func takePhoto(completion: @escaping @Sendable (Result<CapturedPhoto, PhotoFailure>) -> Void) {
-    guard let outline = latestOutline.withLock({ $0 }) else {
+  func takePhoto(
+    outline: [SIMD2<Double>],
+    completion: @escaping @Sendable (Result<CapturedPhoto, PhotoFailure>) -> Void
+  ) {
+    guard outline.count == 4 else {
       completion(.failure(.noCard))
       return
     }
@@ -118,6 +118,9 @@ final class CameraSession: NSObject, @unchecked Sendable {
       }
       device.unlockForConfiguration()
     } catch {
+      session.removeInput(input)
+      session.removeOutput(videoOutput)
+      session.removeOutput(photoOutput)
       return false
     }
     videoOutput.videoSettings = [
@@ -197,9 +200,6 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
       nativeDurationMs: CardQuadDetector.elapsedMilliseconds(since: startedAt),
       sampledAtMs: sampledAtMs
     )
-    if let corners = sample.corners {
-      latestOutline.withLock { $0 = corners }
-    }
     onSample(sample)
   }
 }

@@ -1,6 +1,11 @@
 import AVFoundation
 import ExpoModulesCore
 
+struct OutlinePoint: Record {
+  @Field var x: Double = 0
+  @Field var y: Double = 0
+}
+
 public final class CardDetectorModule: Module {
   public func definition() -> ModuleDefinition {
     Name("CardDetector")
@@ -41,9 +46,9 @@ public final class CardDetectorModule: Module {
         view.outlineWidth = width
       }
 
-      AsyncFunction("takePhoto") { (view: CardDetectorView, promise: Promise) in
+      AsyncFunction("takePhoto") { (view: CardDetectorView, outline: [OutlinePoint], promise: Promise) in
         MainActor.assumeIsolated {
-          view.takePhoto(promise)
+          view.takePhoto(outline: outline.map { SIMD2($0.x, $0.y) }, promise: promise)
         }
       }
     }

@@ -272,6 +272,7 @@ export function photoTaken(state: CaptureState): CaptureState {
 }
 
 export function photoFailed(state: CaptureState): CaptureState {
+  if (!state.machine.captureInFlight) return state;
   const failedPhotos = state.failedPhotos + 1;
   return {
     machine: failedPhotos >= captureRule.failedPhotosMax ? stopped() : seeking(),
@@ -280,4 +281,8 @@ export function photoFailed(state: CaptureState): CaptureState {
     lastSampledAtMs: state.lastSampledAtMs,
     failedPhotos,
   };
+}
+
+export function isStopped(state: CaptureState) {
+  return state.machine.phase === 'error';
 }

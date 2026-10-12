@@ -8,6 +8,7 @@ import type {
   CardDetectorCamera,
   CardDetectorViewProps,
   DetectionSample,
+  FrameQuad,
 } from '../modules/card-detector';
 
 let cameraAvailable = true;
@@ -15,24 +16,24 @@ let permission: CameraPermission = 'granted';
 let answerToPrompt: CameraPermission = 'granted';
 let prompts = 0;
 let failingPhotos = 0;
+let heldPhoto: { reject: () => void } | null = null;
+let holdingNextPhoto = false;
 let photos: CapturedPhoto[] = [];
 let deletedPhotos: string[] = [];
 let mountedView: CardDetectorViewProps | null = null;
 
-async function takePhoto(): Promise<CapturedPhoto> {
+async function takePhoto(outline: FrameQuad): Promise<CapturedPhoto> {
+  if (holdingNextPhoto) {
+    holdingNextPhoto = false;
+    return new Promise((_, reject) => {
+      heldPhoto = { reject: () => reject(new Error('The photo failed')) };
+    });
+  }
   if (failingPhotos > 0) {
     failingPhotos -= 1;
     throw new Error('The photo failed');
   }
-  const photo: CapturedPhoto = {
-    uri: `file:///tmp/scan-${photos.length + 1}.jpg`,
-    outline: [
-      { x: 0.2, y: 0.2 },
-      { x: 0.8, y: 0.2 },
-      { x: 0.8, y: 0.8 },
-      { x: 0.2, y: 0.8 },
-    ],
-  };
+  const photo: CapturedPhoto = { uri: `file:///tmp/scan-${photos.length + 1}.jpg`, outline };
   photos = [...photos, photo];
   return photo;
 }
@@ -85,6 +86,17 @@ export function photosTaken() {
   return photos.length;
 }
 
+export function photoOutlines() {
+  return photos.map((photo) => photo.outline);
+}
+
+export function holdNextPhoto() {
+  holdingNextPhoto = true;
+  return {
+    fail: () => heldPhoto?.reject(),
+  };
+}
+
 export function photosDeleted() {
   return deletedPhotos;
 }
@@ -116,6 +128,8 @@ export function resetFakeCardDetector() {
   prompts = 0;
   failingPhotos = 0;
   photos = [];
+  heldPhoto = null;
+  holdingNextPhoto = false;
   deletedPhotos = [];
   mountedView = null;
 }

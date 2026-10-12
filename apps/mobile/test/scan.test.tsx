@@ -1,5 +1,5 @@
-import { fireEvent, within } from 'expo-router/testing-library';
-import { Linking } from 'react-native';
+import { act, fireEvent, within } from 'expo-router/testing-library';
+import { AppState, Linking } from 'react-native';
 
 import type { DetectionSample, FrameQuad } from '../modules/card-detector';
 import {
@@ -7,7 +7,9 @@ import {
   cameraIsOn,
   cameraPrompts,
   failNextPhotos,
+  holdNextPhoto,
   phoneHasNoCamera,
+  photoOutlines,
   photosDeleted,
   photosTaken,
   showSamples,
@@ -373,4 +375,46 @@ test('a different card under the same light takes a new photo', async () => {
   ]);
 
   expect(photosTaken()).toBe(2);
+});
+
+async function returnToTheApp() {
+  const listeners = jest
+    .mocked(AppState.addEventListener)
+    .mock.calls.filter(([type]) => type === 'change')
+    .map(([, listener]) => listener);
+  await act(async () => {
+    listeners.forEach((listener) => listener('active'));
+  });
+}
+
+test('the camera shows when the user comes back after turning camera access on in Settings', async () => {
+  cameraAccessIs('denied');
+  await openScan();
+  expect(within(selectedTab()).getByText('Camera access is off.')).toBeOnTheScreen();
+
+  cameraAccessIs('granted');
+  await returnToTheApp();
+
+  expect(within(selectedTab()).queryByText('Camera access is off.')).not.toBeOnTheScreen();
+  expect(cameraIsOn()).toBe(true);
+});
+
+test('a photo that fails after a detector error keeps the camera stopped', async () => {
+  const photo = holdNextPhoto();
+  await openScan();
+  await scan(repeat(4, card));
+
+  await scan([{ ...card(), runtimeErrorCode: 'vision_failed' }]);
+  await act(async () => photo.fail());
+
+  expect(within(selectedTab()).getByText('Camera stopped.')).toBeOnTheScreen();
+  expect(cameraIsOn()).toBe(false);
+});
+
+test('the photo comes with the outline of the card that held still', async () => {
+  await openScan();
+
+  await scan([...repeat(3, card), card({ offset: 0.01 })]);
+
+  expect(photoOutlines()).toEqual([card({ offset: 0.01 }).corners]);
 });

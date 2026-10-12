@@ -1,5 +1,6 @@
 import AVFoundation
 import ExpoModulesCore
+import simd
 import UIKit
 
 final class CardDetectorView: ExpoView {
@@ -49,12 +50,12 @@ final class CardDetectorView: ExpoView {
     updateRunning()
   }
 
-  func takePhoto(_ promise: Promise) {
+  func takePhoto(outline: [SIMD2<Double>], promise: Promise) {
     guard let camera else {
       promise.reject(PhotoFailure.cameraNotRunning.rawValue, "The camera is not running")
       return
     }
-    camera.takePhoto { result in
+    camera.takePhoto(outline: outline) { result in
       switch result {
       case let .success(photo):
         promise.resolve([
