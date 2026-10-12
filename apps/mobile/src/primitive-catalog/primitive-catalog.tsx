@@ -205,11 +205,8 @@ function Switches() {
 
 export function PrimitiveCatalog() {
   return (
-    <View className="flex-1 bg-background">
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="gap-xl px-lg pb-xl pt-sm"
-        contentInsetAdjustmentBehavior="automatic">
+    <View className="flex-1 bg-background pt-safe">
+      <ScrollView className="flex-1" contentContainerClassName="gap-xl px-lg pb-safe-offset-xl pt-sm">
         <Text variant="large-title">Primitives</Text>
         <TextStyles />
         <Section title="Brand">
