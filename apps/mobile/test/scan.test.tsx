@@ -11,6 +11,7 @@ import {
   photosDeleted,
   photosTaken,
   showSamples,
+  shutterFeedbackPlayed,
   userAnswersCameraPrompt,
 } from './fake-card-detector';
 import { startSignedIn } from './fake-supabase';
@@ -373,4 +374,15 @@ test('a different card under the same light takes a new photo', async () => {
   ]);
 
   expect(photosTaken()).toBe(2);
+});
+
+test('each photo plays a medium haptic at full strength', async () => {
+  await openScan();
+
+  await scan([...repeat(6, card), ...repeat(6, emptySurface), ...repeat(6, card)]);
+
+  expect(shutterFeedbackPlayed()).toEqual([
+    { style: 'medium', intensity: 1 },
+    { style: 'medium', intensity: 1 },
+  ]);
 });

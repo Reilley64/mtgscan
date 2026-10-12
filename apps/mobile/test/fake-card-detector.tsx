@@ -8,6 +8,7 @@ import type {
   CardDetectorCamera,
   CardDetectorViewProps,
   DetectionSample,
+  ShutterFeedback,
 } from '../modules/card-detector';
 
 let cameraAvailable = true;
@@ -16,6 +17,7 @@ let answerToPrompt: CameraPermission = 'granted';
 let prompts = 0;
 let failingPhotos = 0;
 let photos: CapturedPhoto[] = [];
+let shutterFeedbacks: ShutterFeedback[] = [];
 let deletedPhotos: string[] = [];
 let mountedView: CardDetectorViewProps | null = null;
 
@@ -34,14 +36,15 @@ async function takePhoto(): Promise<CapturedPhoto> {
     ],
   };
   photos = [...photos, photo];
+  shutterFeedbacks = [...shutterFeedbacks, cameraView().shutterFeedback];
   return photo;
 }
 
 function FakeCardDetectorView(
-  { onDetectionSample, active, outlineColor, outlineWidth, ...viewProps }: Omit<CardDetectorViewProps, 'ref'>,
+  { onDetectionSample, active, outlineColor, outlineWidth, shutterFeedback, ...viewProps }: Omit<CardDetectorViewProps, 'ref'>,
   ref: ForwardedRef<CardDetectorCamera>,
 ) {
-  mountedView = { onDetectionSample, active, outlineColor, outlineWidth, ...viewProps };
+  mountedView = { onDetectionSample, active, outlineColor, outlineWidth, shutterFeedback, ...viewProps };
   useImperativeHandle(ref, () => ({ takePhoto }));
   return <View {...viewProps} />;
 }
@@ -85,6 +88,10 @@ export function photosTaken() {
   return photos.length;
 }
 
+export function shutterFeedbackPlayed() {
+  return shutterFeedbacks;
+}
+
 export function photosDeleted() {
   return deletedPhotos;
 }
@@ -116,6 +123,7 @@ export function resetFakeCardDetector() {
   prompts = 0;
   failingPhotos = 0;
   photos = [];
+  shutterFeedbacks = [];
   deletedPhotos = [];
   mountedView = null;
 }
