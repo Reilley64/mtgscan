@@ -82,7 +82,7 @@ The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes o
 
 ### Latest scan
 
-`apps/mobile/src/scan/use-scan-recognition.ts` sends each photo to `recognize`, deletes the photo when the recognizer answers, and reports the result to the scan batch in `src/scan/scan-batch-state.tsx`. `src/scan/scan-batch.ts` holds the scans with their copies, the default finish rule from #75, and the edits from the details sheet. The batch stays in memory until #83 adds persistence, review, and commit. Card images on the chip and in the details sheet come from `image_uris` in the card catalog's `card_printings` table, and `expo-image` keeps them in its disk cache.
+`apps/mobile/src/scan/use-scan-recognition.ts` sends each photo to `recognize`, deletes the photo when the recognizer answers, and reports the result to the scan batch in `src/scan/scan-batch-state.tsx`. `src/scan/scan-batch.ts` holds the scans with their copies, the default finish rule from #75, and the edits from the quick actions and the details sheet. The batch stays in memory until #83 adds persistence, review, and commit. Card images on the chip and in the details sheet come from `image_uris` in the card catalog's `card_printings` table, and `expo-image` keeps them in its disk cache.
 
 ### Local Supabase
 

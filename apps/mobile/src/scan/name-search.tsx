@@ -1,16 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { usePrintingImages } from '@/catalog/use-printing-images';
-import { CardImage } from '@/components/card-image';
 import { colors, rounded, sizes, spacing, typography } from '@/theme';
 
 import { cardPrintings, searchCardNames, type CardName } from '../../modules/card-recognizer';
-import { printingCaption } from './printing-caption';
+import { PrintingGrid } from './printing-grid';
 import type { Printing } from './scan-batch';
 import { SheetSection } from './sheet-section';
-
-const printingsPerRow = 3;
 
 type NameSearchProps = {
   onChoose: (printing: Printing) => void;
@@ -18,32 +14,8 @@ type NameSearchProps = {
 
 type ChosenCard = { card: CardName; printings: Printing[] | null };
 
-function PrintingTile({ printing, image, width, onPress }: {
-  printing: Printing;
-  image: string | undefined;
-  width: number;
-  onPress: () => void;
-}) {
-  const caption = printingCaption(printing);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${printing.name}, ${caption}`}
-      onPress={onPress}
-      style={[styles.tile, { width }]}>
-      <CardImage uri={image} />
-      <Text numberOfLines={1} style={styles.caption}>
-        {caption}
-      </Text>
-    </Pressable>
-  );
-}
-
 function CardPrintings({ chosen, onChoose }: { chosen: ChosenCard; onChoose: (printing: Printing) => void }) {
-  const { width } = useWindowDimensions();
   const printings = chosen.printings ?? [];
-  const imageOf = usePrintingImages(printings.map((printing) => printing.printingId));
-  const tileWidth = (width - spacing.lg * 2 - spacing.sm * (printingsPerRow - 1)) / printingsPerRow;
 
   if (chosen.printings === null) {
     return null;
@@ -53,17 +25,7 @@ function CardPrintings({ chosen, onChoose }: { chosen: ChosenCard; onChoose: (pr
   }
   return (
     <SheetSection title={chosen.card.name}>
-      <View style={styles.grid}>
-        {printings.map((printing) => (
-          <PrintingTile
-            key={printing.printingId}
-            printing={printing}
-            image={imageOf(printing.printingId)}
-            width={tileWidth}
-            onPress={() => onChoose(printing)}
-          />
-        ))}
-      </View>
+      <PrintingGrid printings={printings} onChoose={onChoose} />
     </SheetSection>
   );
 }
@@ -86,6 +48,7 @@ export function NameSearch({ onChoose }: NameSearchProps) {
   }, [text]);
 
   const chooseName = (card: CardName) => {
+    Keyboard.dismiss();
     setChosen({ card, printings: null });
     cardPrintings(card.oracleId).then(
       (printings) => setChosen((current) => (current?.card === card ? { card, printings } : current)),
@@ -149,18 +112,6 @@ const styles = StyleSheet.create({
   nameLabel: {
     ...typography.bodyStrong,
     color: colors.text,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  tile: {
-    gap: spacing.xs,
-  },
-  caption: {
-    ...typography.meta,
-    color: colors.textMuted,
   },
   message: {
     ...typography.body,

@@ -27,10 +27,12 @@ export default function SettingsDrawer() {
   const providerName = user ? currentSignInProviderName(user) : '';
 
   return (
-    <View style={styles.sheet}>
-      <Text accessibilityRole="header" style={styles.title}>
-        Settings
-      </Text>
+    <>
+      <View collapsable={false} style={styles.titleBar}>
+        <Text accessibilityRole="header" style={styles.title}>
+          Settings
+        </Text>
+      </View>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -43,24 +45,24 @@ export default function SettingsDrawer() {
         <ScanSoundsRow />
         <SecondaryButton label="Sign out" onPress={signOut} />
       </ScrollView>
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    flex: 1,
+  titleBar: {
+    paddingTop: spacing.lg * 2,
+    paddingBottom: spacing.lg,
     backgroundColor: colors.sheet,
   },
   title: {
     ...typography.sheetTitle,
     color: colors.text,
     textAlign: 'center',
-    paddingTop: spacing.lg * 2,
-    paddingBottom: spacing.lg,
   },
   scroll: {
     flex: 1,
+    backgroundColor: colors.sheet,
   },
   content: {
     gap: spacing.lg,

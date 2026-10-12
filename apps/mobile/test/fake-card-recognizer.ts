@@ -91,14 +91,18 @@ export async function galleryDownloadReports(
 
 export function cardRecognition(
   candidates: GalleryCardPrinting[],
-  { premiumMark = false, accepted = true }: { premiumMark?: boolean; accepted?: boolean } = {},
+  {
+    premiumMark = false,
+    accepted = true,
+    sameTextTwinCount = 0,
+  }: { premiumMark?: boolean; accepted?: boolean; sameTextTwinCount?: number } = {},
 ): Recognition {
   return {
     kind: 'card',
     candidates,
     decision: { accepted, reasons: [] },
     reading: { setCode: candidates[0]?.setCode, collectorNumber: candidates[0]?.collectorNumber, premiumMark },
-    sameTextTwinCount: 0,
+    sameTextTwinCount,
     topSimilarity: 0.9,
     rotation: 0,
     stageMs: {},

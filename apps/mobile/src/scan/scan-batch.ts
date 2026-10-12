@@ -9,6 +9,7 @@ export type BatchScan = Readonly<{
   scanId: string;
   sequence: number;
   options: readonly Printing[];
+  sameTextTwinCount: number;
   printing: Printing | null;
   finish: Finish;
   condition: CardCondition;
@@ -28,7 +29,14 @@ export type ScanBatch = Readonly<{
 }>;
 
 export type ScanBatchAction =
-  | { type: 'recognized'; scanId: string; sequence: number; candidates: readonly Printing[]; premiumMark: boolean }
+  | {
+      type: 'recognized';
+      scanId: string;
+      sequence: number;
+      candidates: readonly Printing[];
+      sameTextTwinCount: number;
+      premiumMark: boolean;
+    }
   | { type: 'failed'; scanId: string; sequence: number }
   | { type: 'choose'; scanId: string; printing: Printing; source: 'scan' | 'search' }
   | { type: 'setFinish'; scanId: string; finish: Finish }
@@ -83,6 +91,7 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
         scanId: action.scanId,
         sequence: action.sequence,
         options: action.candidates,
+        sameTextTwinCount: action.sameTextTwinCount,
         printing,
         finish: printing ? defaultFinish(printing, action.premiumMark) : 'nonfoil',
       });
@@ -92,6 +101,7 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
         scanId: action.scanId,
         sequence: action.sequence,
         options: [],
+        sameTextTwinCount: 0,
         printing: null,
         finish: 'nonfoil',
       });
@@ -121,4 +131,11 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
         }),
       };
   }
+}
+
+export function sameTextTwinsFirst(scan: BatchScan, printings: readonly Printing[]): Printing[] {
+  const oracleId = scan.printing?.oracleId;
+  const twins = scan.options.slice(0, scan.sameTextTwinCount + 1).filter((option) => option.oracleId === oracleId);
+  const twinIds = new Set(twins.map((twin) => twin.printingId));
+  return [...twins, ...printings.filter((printing) => !twinIds.has(printing.printingId))];
 }

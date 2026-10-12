@@ -12,7 +12,6 @@ import type { LatestScan } from './scan-batch-state';
 type LatestScanChipProps = {
   latest: LatestScan;
   onOpen: (scanId: string) => void;
-  onAddCopy: (scanId: string) => void;
 };
 
 const pulseMs = 650;
@@ -66,36 +65,27 @@ function ScanChip({
   scan,
   image,
   onOpen,
-  onAddCopy,
 }: {
   scan: BatchScan;
   image: string | undefined;
   onOpen: (scanId: string) => void;
-  onAddCopy: (scanId: string) => void;
 }) {
   const { printing } = scan;
   const name = printing ? printing.name : 'Not recognized';
   const details = printing ? scanDetails({ ...scan, printing }) : ['Tap to search'];
   return (
-    <View style={styles.chip}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={[name, ...details].join(', ')}
-        onPress={() => onOpen(scan.scanId)}
-        style={styles.open}>
-        <CardThumbnail uri={image} />
-        <ChipText name={name} details={details} />
-      </Pressable>
-      {printing ? (
-        <Pressable accessibilityRole="button" accessibilityLabel="+1" onPress={() => onAddCopy(scan.scanId)} style={styles.addCopy}>
-          <Text style={styles.addCopyLabel}>+1</Text>
-        </Pressable>
-      ) : null}
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={[name, ...details].join(', ')}
+      onPress={() => onOpen(scan.scanId)}
+      style={styles.chip}>
+      <CardThumbnail uri={image} />
+      <ChipText name={name} details={details} />
+    </Pressable>
   );
 }
 
-export function LatestScanChip({ latest, onOpen, onAddCopy }: LatestScanChipProps) {
+export function LatestScanChip({ latest, onOpen }: LatestScanChipProps) {
   const printing = latest.kind === 'scan' ? latest.scan.printing : latest.kind === 'basic_land' ? latest.printing : null;
   const imageOf = usePrintingImages(printing ? [printing.printingId] : []);
   const image = printing ? imageOf(printing.printingId) : undefined;
@@ -105,7 +95,7 @@ export function LatestScanChip({ latest, onOpen, onAddCopy }: LatestScanChipProp
     case 'basic_land':
       return <BasicLandChip printing={latest.printing} image={image} />;
     case 'scan':
-      return <ScanChip scan={latest.scan} image={image} onOpen={onOpen} onAddCopy={onAddCopy} />;
+      return <ScanChip scan={latest.scan} image={image} onOpen={onOpen} />;
   }
 }
 
@@ -120,12 +110,6 @@ const styles = StyleSheet.create({
     borderRadius: rounded.md,
     backgroundColor: colors.surface,
   },
-  open: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
   text: {
     flex: 1,
     gap: spacing.xs,
@@ -137,19 +121,6 @@ const styles = StyleSheet.create({
   details: {
     ...typography.meta,
     color: colors.textMuted,
-  },
-  addCopy: {
-    height: sizes.button,
-    minWidth: sizes.button,
-    paddingHorizontal: spacing.md,
-    borderRadius: rounded.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-  },
-  addCopyLabel: {
-    ...typography.bodyStrong,
-    color: colors.onPrimary,
   },
   skeletonImage: {
     width: sizes.cardThumbnailWidth,

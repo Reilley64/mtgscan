@@ -435,3 +435,95 @@ test('another account that signs in on the phone does not see the latest scan', 
 
   expect(scanTab().queryByText('Lightning Bolt')).not.toBeOnTheScreen();
 });
+
+test('the finish quick action switches the latest scan between the finishes of its printing', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: 'Nonfoil' }));
+  expect(latestScanChip('Lightning Bolt, M10 146, Foil')).toBeOnTheScreen();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: 'Foil' }));
+  expect(latestScanChip('Lightning Bolt, M10 146')).toBeOnTheScreen();
+  expect(scanTab().getByRole('button', { name: 'Nonfoil' })).toBeOnTheScreen();
+});
+
+test('the finish quick action cycles nonfoil, foil, and etched when the printing has all three', async () => {
+  const counterspell = { ...lightningBoltM10, finishes: ['nonfoil', 'foil', 'etched'] } as typeof lightningBoltM10;
+  nextPhotosAre(cardRecognition([counterspell]));
+  await openScan();
+  await scanACard();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: 'Nonfoil' }));
+  await fireEvent.press(scanTab().getByRole('button', { name: 'Foil' }));
+  expect(latestScanChip('Lightning Bolt, M10 146, Etched')).toBeOnTheScreen();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: 'Etched' }));
+  expect(latestScanChip('Lightning Bolt, M10 146')).toBeOnTheScreen();
+});
+
+test('the finish quick action does not show when the printing has one finish', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltList]));
+  await openScan();
+  await scanACard();
+
+  expect(scanTab().getByRole('button', { name: '+1' })).toBeOnTheScreen();
+  expect(scanTab().getByRole('button', { name: 'Change set' })).toBeOnTheScreen();
+  expect(scanTab().queryByRole('button', { name: 'Nonfoil' })).not.toBeOnTheScreen();
+});
+
+test('a scan that is not recognized and a basic land show no quick actions', async () => {
+  nextPhotosAre('unreadable_photo', cardRecognition([plains]));
+  await openScan();
+
+  await scanACard();
+  expect(scanTab().queryByRole('button', { name: 'Change set' })).not.toBeOnTheScreen();
+
+  await scanACard();
+  expect(scanTab().queryByRole('button', { name: 'Change set' })).not.toBeOnTheScreen();
+});
+
+test('Change set lists every printing of the card with images, same-text twins first, then newest first', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10, lightningBoltList, shock], { sameTextTwinCount: 1 }));
+  await openScan();
+  await scanACard();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: 'Change set' }));
+
+  const tiles = await screen.findAllByRole('button', { name: /^Lightning Bolt, / });
+  expect(tiles.map((tile) => tile.props.accessibilityLabel)).toEqual([
+    'Lightning Bolt, M10 146',
+    'Lightning Bolt, PLST M10-146',
+    'Lightning Bolt, SLD 1001',
+    'Lightning Bolt, 2XM 117',
+  ]);
+  expect(tiles.map(cardImageUri)).toEqual(
+    [lightningBoltM10, lightningBoltList, lightningBoltSld, lightningBolt2xm].map((printing) =>
+      catalogImageUri(printing.printingId),
+    ),
+  );
+  expect(screen.getByRole('button', { name: 'Lightning Bolt, M10 146', selected: true })).toBeOnTheScreen();
+});
+
+test('picking a printing in Change set switches the latest scan and keeps its finish when the printing has it', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10], { premiumMark: true }));
+  await openScan();
+  await scanACard();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: 'Change set' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Lightning Bolt, 2XM 117' }));
+
+  expect(latestScanChip('Lightning Bolt, 2XM 117, Foil')).toBeOnTheScreen();
+});
+
+test('picking a printing in Change set takes its default finish when the finish does not exist', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10], { premiumMark: true }));
+  await openScan();
+  await scanACard();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: 'Change set' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Lightning Bolt, PLST M10-146' }));
+
+  expect(latestScanChip('Lightning Bolt, PLST M10-146')).toBeOnTheScreen();
+});

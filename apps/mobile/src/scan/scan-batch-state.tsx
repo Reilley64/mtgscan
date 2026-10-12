@@ -46,6 +46,7 @@ function recognitionEnded(state: ScanTab, scanId: string, recognition: Recogniti
           scanId,
           sequence,
           candidates: recognition.candidates,
+          sameTextTwinCount: recognition.sameTextTwinCount,
           premiumMark: recognition.reading.premiumMark,
         };
   return { ...ended, sequence, latest: { kind: 'scan', scanId }, batch: scanBatchReducer(state.batch, action) };

@@ -1,27 +1,38 @@
 import { router, useIsFocused } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, sizes, spacing } from '@/theme';
 
 import { CardDetectorView } from '../../modules/card-detector';
 import { CameraMessage } from './camera-message';
 import { LatestScanChip } from './latest-scan-chip';
+import { QuickActions } from './quick-actions';
 import { useScanBatch } from './scan-batch-state';
 import { useAutomaticCapture } from './use-automatic-capture';
 import { useScanRecognition } from './use-scan-recognition';
 
 function LatestScan() {
   const { latest, dispatch } = useScanBatch();
+  const { bottom } = useSafeAreaInsets();
   if (!latest) {
     return null;
   }
+  const scan = latest.kind === 'scan' ? latest.scan : null;
   return (
-    <View style={styles.latestScan}>
+    <View style={[styles.latestScan, { bottom: bottom + spacing.lg }]}>
       <LatestScanChip
         latest={latest}
         onOpen={(scanId) => router.push({ pathname: '/scan-details', params: { scanId } })}
-        onAddCopy={(scanId) => dispatch({ type: 'addCopy', scanId })}
       />
+      {scan?.printing ? (
+        <QuickActions
+          scan={{ ...scan, printing: scan.printing }}
+          onAddCopy={() => dispatch({ type: 'addCopy', scanId: scan.scanId })}
+          onChangeFinish={(finish) => dispatch({ type: 'setFinish', scanId: scan.scanId, finish })}
+          onChangeSet={() => router.push({ pathname: '/scan-printings', params: { scanId: scan.scanId } })}
+        />
+      ) : null}
     </View>
   );
 }
@@ -55,6 +66,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.lg,
     right: spacing.lg,
-    bottom: spacing.lg,
+    gap: spacing.sm,
   },
 });

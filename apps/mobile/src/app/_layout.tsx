@@ -31,6 +31,10 @@ function RootStack() {
           options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.sheet } }}
         />
         <Stack.Screen
+          name="scan-printings"
+          options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.sheet } }}
+        />
+        <Stack.Screen
           name="settings"
           options={{
             presentation: 'formSheet',

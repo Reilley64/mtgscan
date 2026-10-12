@@ -211,6 +211,14 @@ components:
     textColor: "{colors.text}"
     rounded: "{rounded.md}"
     padding: 8px 16px 8px 8px
+  scan-quick-action:
+    backgroundColor: "{colors.surface-control}"
+    textColor: "{colors.text}"
+    typography: "{typography.chip}"
+    rounded: "{rounded.md}"
+    padding: 0 12px
+    height: 32px
+    width: 44px
 ---
 
 # mtgscan design
@@ -235,7 +243,7 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 - **Text (#ffffff)** is primary. **Text muted (#b5c0c5)** is for printing details and captions. **Text dim (#7d8a90)** is for unselected tab labels and quiet metadata.
 - **Primary (#d8ff62)**, the lime accent, is the single interaction color: the primary button, the selected chip, the selected tab, section headings, and in-app links. Text on it is **on-primary (#101500)**. The brand mark is the one non-action use of lime.
 - **Grabber (#4a555b)** draws the short bar at the top of the sign-in sheet. The settings drawer uses the iOS system grabber, which iOS draws in its own color.
-- **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall.
+- **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message and the destructive buttons. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall.
 - **Incoming (#d8ff62)** and **outgoing (#ff8a7a)** mark the plus and minus lines of a deck suggestion, planned swap, or deck change.
 - **Warning (#f4d06f)** marks protected copies and caution states. **Danger (#ff7a70)** marks invalid decks and destructive actions such as remove scan or revert. **Info (#8fd3ff)** marks the estimated bracket and in-deck counts.
 - **Badge (#e0244a)** is only for count badges on tabs and buttons, such as Needs you.
@@ -337,6 +345,7 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 - the swap-in confirmation for a protected copy;
 - revert;
 - the scan details sheet;
+- the printing picker for the latest scan;
 - batch review.
 
 Settings is a bottom drawer, not a page sheet. The settings button on Recent, Collection, and Decks opens it.
@@ -370,7 +379,7 @@ The interface is flat. Depth comes from tone, not shadow.
 
 ## Components
 
-- **Buttons.** Primary buttons are lime with dark text: Promote, Swap in, Bought, Add to collection. Secondary buttons use the control surface: Dismiss, Skip, Cancel. Destructive actions use danger text on a dark red surface.
+- **Buttons.** Primary buttons are lime with dark text: Promote, Swap in, Bought, Add to collection. Secondary buttons use the control surface: Dismiss, Skip, Cancel. Destructive actions, such as **Remove scan**, use danger text on the danger tint.
 - **Sign-in buttons.** Sign-in buttons and the sign-in Try again button are 50 px tall to match Apple's sign-in button sizing. This is the one exception to the 38 px button height. Try again uses sign-in button type (17 px, semibold). Continue with Google uses 16 px medium. The system Apple button sets its own type.
 - **Sign in with Apple.** The system Apple button in Apple's white style, with the "Sign in with Apple" title and 8 px corners. Apple's branding rules set its colors, logo, and type, so they sit outside the palette.
 - **Continue with Google.** Google's dark button style: a #131314 fill, a 1 px #8e918f border, #e3e3e3 text, and the four-color Google logo. Google's branding rules set these colors, so they sit outside the palette.
@@ -381,11 +390,15 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and card page deck lists. It opens the deck.
 - **Latest-scan chip.** One horizontal chip at the bottom of Scan, 16 px from the edges: a card thumbnail, the card name in body strong, and a meta line with the set code in capitals and the collector number, such as "M10 146". A new scan replaces it.
   - The meta line adds the finish when it is not nonfoil, and the copy count when the scan has more than one copy: "M10 146 · Foil · 2 copies".
-  - A lime **+1** button at the right adds one copy to the scan.
+  - A row of quick actions sits 8 px below the chip. They act on the latest scan, so the details sheet is needed only for the rest. Each is a control-surface pill in chip type, 32 px tall with a 44 pt touch target:
+    - **+1** adds one copy to the scan.
+    - The finish action shows the current finish, such as "Nonfoil" or "Foil". Tapping it switches to the next finish of the card printing in the order nonfoil, foil, etched. It shows only when the card printing has more than one finish. It changes every copy of the scan, as the details sheet does.
+    - **Change set** opens the printing picker.
+  - The printing picker is a page sheet with the card name and every card printing of that card in the gallery, as card images 3 per row with the set code and collector number. The scanned card printing and its same-text twins come first, then the rest newest first. The current card printing has a lime border and a lime caption. Tapping a card printing switches the scan to it and closes the sheet. The scan keeps its finish when the new card printing has it. Otherwise it takes the new card printing's default finish.
   - A pulsing skeleton chip, with a line-colored image block and two line-colored bars, shows from the moment the app takes the photo until the result arrives.
   - A photo that is not a card removes the skeleton chip and brings back the previous chip.
-  - A basic land shows its image, its name, and "Basic land, not tracked", with no **+1**. It does not enter the scan batch, and tapping it does nothing.
-  - A failed recognition shows an empty thumbnail, "Not recognized", and "Tap to search", with no **+1**.
+  - A basic land shows its image, its name, and "Basic land, not tracked", with no quick actions. It does not enter the scan batch, and tapping it does nothing.
+  - A failed recognition shows an empty thumbnail, "Not recognized", and "Tap to search", with no quick actions.
   - Tapping the chip opens the scan details sheet.
 - **Scan details sheet.** A page sheet on the sheet color that closes with a downward swipe. Its content scrolls.
   - At the top: the card image at 55% of the sheet width, the card name in card title type, and the set code and collector number, with the copy count when there is more than one copy.

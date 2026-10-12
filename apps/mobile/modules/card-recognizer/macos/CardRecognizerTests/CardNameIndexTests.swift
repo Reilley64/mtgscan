@@ -44,6 +44,17 @@ func matchesFaceNames() throws {
   #expect(names(index, "ice") == ["Fire // Ice"])
 }
 
+@Test("ranks a card name before a face name that matches the same way")
+func ranksCardNamesBeforeFaceNames() throws {
+  let index = CardNameIndex(printings: try printings([
+    ["name": "Emeritus of Conflict // Lightning Bolt", "faceNames": ["Emeritus of Conflict", "Lightning Bolt"]],
+    ["name": "Lightning Bolt"],
+    ["name": "Lightning Axe"],
+  ]))
+  #expect(names(index, "lightning bolt") == ["Lightning Bolt", "Emeritus of Conflict // Lightning Bolt"])
+  #expect(names(index, "light") == ["Lightning Axe", "Lightning Bolt", "Emeritus of Conflict // Lightning Bolt"])
+}
+
 @Test("lists each card once and returns at most 10 names")
 func listsEachCardOnceAndAtMostTen() throws {
   let rows = (0 ..< 12).map { ["name": "Goblin \($0 + 10)"] } + [["name": "Goblin 10", "oracleId": "Goblin 10"]]
