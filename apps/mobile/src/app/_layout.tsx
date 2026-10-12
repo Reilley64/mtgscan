@@ -1,3 +1,5 @@
+import '../global.css';
+
 import { DarkTheme, Stack, ThemeProvider, type NativeStackNavigationOptions } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 

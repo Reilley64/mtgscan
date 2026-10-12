@@ -236,6 +236,8 @@ Three ideas shape every screen:
 
 This file records the design settled in Wayfinder tickets #11 (scan batch flow) and #18 (AI deck changes, history, and planned swaps). Domain terms follow `GLOSSARY.md`.
 
+The tokens at the top of this file are the app theme. `apps/mobile/src/theme.ts` holds them, and the NativeWind theme is built from it. Each token is a class with the same name: `bg-surface-control` and `text-text-muted` for colors, `text-body-strong` for a type style, `rounded-sm` for a corner, and `gap-xs` or `py-lg` for spacing. New UI uses these classes, not inline style objects.
+
 ## Colors
 
 The palette is near-black neutrals with one lime accent. Card art supplies every other color.
@@ -425,6 +427,8 @@ The interface is flat. Depth comes from tone, not shadow.
 
 ## Do's and Don'ts
 
+- **Do** style new UI with NativeWind classes named after the tokens.
+- **Don't** add inline style objects to new UI, or a value outside the tokens without a reason in this file.
 - **Do** show the most likely printing after every scan, and keep the other options one tap away.
 - **Do** list "Needs you" items oldest first, so the longest wait is on top.
 - **Do** keep every deck change a user action, and show the AI's reason with every deck suggestion.
