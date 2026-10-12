@@ -55,7 +55,6 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     var resumed: Set<String> = []
     var bytesTotal: Int64
     var bytesVerified: Int64
-    var lastBytesAt: Date?
     var installing = false
 
     var bytesDone: Int64 { bytesVerified + written.values.reduce(0, +) }
@@ -307,7 +306,6 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
   }
 
   private func pendingState(of job: Job) -> GalleryDownloadStatus.State {
-    if let lastBytesAt = job.lastBytesAt, Date().timeIntervalSince(lastBytesAt) < 3 { return .downloading }
     guard let path else { return .downloading }
     if path.status != .satisfied { return .waitingForNetwork }
     if !job.allowsCellularAccess, !path.usesInterfaceType(.wifi), !path.usesInterfaceType(.wiredEthernet),
@@ -406,7 +404,6 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     guard let (version, part) = Self.taskPart(downloadTask), job?.version == version, job?.pending.contains(part) == true
     else { return }
     job?.written[part] = totalBytesWritten
-    job?.lastBytesAt = Date()
     sendPendingStatus(force: false)
   }
 
