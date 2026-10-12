@@ -36,10 +36,12 @@ export const typography = {
   brand: { fontSize: 22, fontWeight: '800' },
   signInButton: { fontSize: 17, fontWeight: '600' },
   googleButton: { fontSize: 16, fontWeight: '500' },
+  cardTitle: { fontSize: 20, fontWeight: '800', lineHeight: 23 },
   sheetTitle: { fontSize: 17, fontWeight: '800' },
   body: { fontSize: 14, lineHeight: 19 },
   bodyStrong: { fontSize: 14, fontWeight: '700' },
   meta: { fontSize: 12 },
+  chip: { fontSize: 11, fontWeight: '700' },
   credit: { fontSize: 10, fontWeight: '600' },
   tabLabel: { fontSize: 10, fontWeight: '700' },
 } as const satisfies Record<string, TextStyle>;
@@ -65,4 +67,8 @@ export const sizes = {
   googleLogo: 18,
   cardOutline: 3,
   progressBar: 4,
+  chip: 24,
+  chipPadding: 9,
+  cardThumbnailWidth: 40,
+  cardThumbnailHeight: 56,
 } as const;

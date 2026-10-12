@@ -9,7 +9,13 @@ import type {
 import { initialCapture, isStopped, observeSample, photoFailed, photoTaken, type CaptureState } from './capture';
 import { createCaptureLog } from './capture-log';
 
-export function useAutomaticCapture(onPhoto: (photo: CapturedPhoto) => void) {
+export type PhotoHandlers = {
+  onPhotoRequested: () => void;
+  onPhoto: (photo: CapturedPhoto) => void;
+  onPhotoFailed: () => void;
+};
+
+export function useAutomaticCapture({ onPhotoRequested, onPhoto, onPhotoFailed }: PhotoHandlers) {
   const camera = useRef<CardDetectorCamera>(null);
   const capture = useRef<CaptureState>(initialCapture());
   const [log] = useState(createCaptureLog);
@@ -21,6 +27,7 @@ export function useAutomaticCapture(onPhoto: (photo: CapturedPhoto) => void) {
   }, []);
 
   const takePhoto = useCallback(async (outline: FrameQuad) => {
+    onPhotoRequested();
     let photo: CapturedPhoto;
     try {
       if (!camera.current) {
@@ -30,12 +37,13 @@ export function useAutomaticCapture(onPhoto: (photo: CapturedPhoto) => void) {
     } catch {
       update(photoFailed(capture.current));
       log.photoFailed(capture.current);
+      onPhotoFailed();
       return;
     }
     update(photoTaken(capture.current));
     log.photoTaken();
     onPhoto(photo);
-  }, [log, onPhoto, update]);
+  }, [log, onPhoto, onPhotoFailed, onPhotoRequested, update]);
 
   const onDetectionSample = useCallback<CardDetectorViewProps['onDetectionSample']>(
     ({ nativeEvent }) => {

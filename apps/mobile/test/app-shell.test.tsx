@@ -3,6 +3,7 @@ import { fireEvent, screen, within } from 'expo-router/testing-library';
 import { startSignedIn } from './fake-supabase';
 import { renderApp } from './render-app';
 import {
+  isInScrollView,
   openSettings,
   presentedDrawer,
   pressTab,
@@ -83,6 +84,17 @@ test('the settings drawer has no Done button', async () => {
   await openSettings();
 
   expect(screen.queryByRole('button', { name: 'Done' })).not.toBeOnTheScreen();
+});
+
+test('the settings title stays at the top while the drawer content scrolls under it', async () => {
+  await renderApp();
+
+  const title = await openSettings();
+
+  expect(isInScrollView(title)).toBe(false);
+  expect(isInScrollView(screen.getByText('Gallery'))).toBe(true);
+  expect(isInScrollView(screen.getByRole('switch', { name: 'Scan sounds' }))).toBe(true);
+  expect(isInScrollView(screen.getByRole('button', { name: 'Sign out' }))).toBe(true);
 });
 
 test('a downward swipe closes the settings drawer', async () => {

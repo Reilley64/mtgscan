@@ -344,9 +344,12 @@ Settings is a bottom drawer, not a page sheet. The settings button on Recent, Co
 - It slides up from the bottom with the iOS grabber and opens at half the screen height.
 - Dragging it up takes it to full height. Dragging it down takes it back to half height.
 - A downward swipe or a tap outside closes it. It has no Done button.
-- Its content scrolls at either height. The title sits 32 px below the top edge, twice the page inset, so that it clears the grabber.
-- It shows the signed-in account in a card, a gallery card, and **Sign out** below them. The account card shows the provider of the current sign-in and the account email. Apple and Google sign-ins with the same verified email share one account, so the provider can change between sign-ins.
-- The gallery card shows "Gallery", the date of the installed gallery version, such as "12 October 2026", and "Up to date", "Downloading", or "Paused". "Paused" covers waiting for Wi-Fi, offline, a failed download, and too little space. All three cards fit at half height.
+- The title sits 32 px below the top edge, twice the page inset, so that it clears the grabber. It stays at the top at either height.
+- The content below the title scrolls at either height, and it scrolls under the title.
+- It shows the signed-in account in a card, a gallery card, a Scan sounds card, and **Sign out** below them. The account card shows the provider of the current sign-in and the account email. Apple and Google sign-ins with the same verified email share one account, so the provider can change between sign-ins.
+- The gallery card shows "Gallery", the date of the installed gallery version, such as "12 October 2026", and "Up to date", "Downloading", or "Paused". "Paused" covers waiting for Wi-Fi, offline, a failed download, and too little space.
+- The Scan sounds card has a "Scan sounds" switch with a lime track. It is on by default. Turning it off stops the scan sounds and keeps the scan haptics.
+- All three cards fit at half height.
 
 ## Elevation & Depth
 
@@ -376,7 +379,26 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, the batch button, and the card page Decks tab.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and card page deck lists. It opens the deck.
-- **Latest-scan chip.** One horizontal chip at the bottom of Scan: a thumbnail, the card name, and the set and number, plus the finish when not nonfoil. A new scan replaces it. A pulsing skeleton chip, with a grey image block and two grey lines, shows from the moment a detected card is stable until the result arrives. Tapping the chip opens a page sheet with the details, other options, every same-text printing, and "None of these: search".
+- **Latest-scan chip.** One horizontal chip at the bottom of Scan, 16 px from the edges: a card thumbnail, the card name in body strong, and a meta line with the set code in capitals and the collector number, such as "M10 146". A new scan replaces it.
+  - The meta line adds the finish when it is not nonfoil, and the copy count when the scan has more than one copy: "M10 146 · Foil · 2 copies".
+  - A lime **+1** button at the right adds one copy to the scan.
+  - A pulsing skeleton chip, with a line-colored image block and two line-colored bars, shows from the moment the app takes the photo until the result arrives.
+  - A photo that is not a card removes the skeleton chip and brings back the previous chip.
+  - A basic land shows its image, its name, and "Basic land, not tracked", with no **+1**. It does not enter the scan batch, and tapping it does nothing.
+  - A failed recognition shows an empty thumbnail, "Not recognized", and "Tap to search", with no **+1**.
+  - Tapping the chip opens the scan details sheet.
+- **Scan details sheet.** A page sheet on the sheet color that closes with a downward swipe. Its content scrolls.
+  - At the top: the card image at 55% of the sheet width, the card name in card title type, and the set code and collector number, with the copy count when there is more than one copy.
+  - **Finish**, **Condition**, and **Language** sections, each with a row of chips. The selected chip is lime. Finish offers only the finishes of the card printing. Condition offers NM, LP, MP, HP, and DMG, and starts at NM. Language offers English, Japanese, German, French, Italian, Spanish, Portuguese, Korean, Russian, Simplified Chinese, and Traditional Chinese, and starts at English.
+  - **Other options** lists the recognizer's other candidates as rows with a thumbnail, the name, and the set code and collector number. Every same-text twin comes first. Tapping a row switches the scan to that card printing. The scan keeps its condition and language, and its finish when the new card printing has it. Otherwise it takes the new card printing's default finish.
+  - **None of these: search** opens name search in the same sheet.
+  - **Remove scan**, a danger button, removes one copy. At the last copy it removes the scan and closes the sheet.
+  - Section headings are lime body strong text.
+- **Name search.** A "Card name" field at the top of the scan details sheet, with the keyboard up. A failed scan opens the sheet straight into name search.
+  - As the user types, up to 10 card names show as rows. The phone matches names and face names in the gallery, ignoring case, accents, and punctuation. Exact names come first, then names that start with the text, then names with a word that starts with it.
+  - Tapping a name lists every card printing of that card in the gallery, newest first, as card images 3 per row with the set code and collector number under each.
+  - Tapping a card printing switches the scan to it and returns to the details.
+  - Choosing a basic land shows "Basic lands are not tracked." and changes nothing.
 - **Batch button.** A round card-stack icon at the top right of Scan with a count badge. It opens batch review, which merges identical copies into stacks before "Add to collection".
 - **Binder tile.** One printing's card image, with a set and collector number caption and corner badges totalled over its copies. Tiles of printings with a foil copy carry a subtle sheen.
   - Until the image loads, the tile is a line-colored card shape.

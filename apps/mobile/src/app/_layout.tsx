@@ -3,6 +3,8 @@ import { StatusBar } from 'expo-status-bar';
 
 import { SessionProvider, useSession } from '@/auth/session';
 import { GalleryProvider } from '@/gallery/gallery-state';
+import { ScanBatchProvider } from '@/scan/scan-batch-state';
+import { ScanSoundsProvider } from '@/scan/scan-sounds-setting';
 import { colors } from '@/theme';
 
 const navigationTheme = {
@@ -24,6 +26,10 @@ function RootStack() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="scan-details"
+          options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.sheet } }}
+        />
         <Stack.Screen
           name="settings"
           options={{
@@ -48,7 +54,11 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <SessionProvider>
         <GalleryProvider>
-          <RootStack />
+          <ScanSoundsProvider>
+            <ScanBatchProvider>
+              <RootStack />
+            </ScanBatchProvider>
+          </ScanSoundsProvider>
         </GalleryProvider>
       </SessionProvider>
     </ThemeProvider>

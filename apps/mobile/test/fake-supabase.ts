@@ -11,6 +11,7 @@ import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 
 import type { SignInProvider } from '@/auth/sign-in';
 
+import { cardImageUri, galleryPrintings } from './card-printings';
 import { appleIdTokenNonce } from './fake-apple';
 
 type AuthListener = (event: AuthChangeEvent, session: Session | null) => void;
@@ -138,7 +139,24 @@ function notify(event: AuthChangeEvent) {
   listeners.forEach((listener) => listener(event, session));
 }
 
+function cardCatalogTable(table: string) {
+  if (table !== 'card_printings') {
+    throw new Error(`The fake Supabase client has no ${table} table`);
+  }
+  return {
+    select: () => ({
+      in: async (_column: 'id', ids: string[]) => ({
+        data: galleryPrintings
+          .filter((printing) => ids.includes(printing.printingId))
+          .map((printing) => ({ id: printing.printingId, image_uris: [cardImageUri(printing.printingId)] })),
+        error: null,
+      }),
+    }),
+  };
+}
+
 export const fakeSupabase = {
+  from: cardCatalogTable,
   async rpc(name: string, { query }: { query: CollectionPrintingsQuery }) {
     if (name !== 'list_collection_printings') {
       throw new Error(`The fake Supabase client has no ${name} function`);
