@@ -19,9 +19,8 @@
 ## Scanner evidence replay
 
 - Set `DEVELOPER_DIR` as for the Simulator before `bun run recognizer:test`. The Swift tests need Xcode.
-- The recorded gallery of the scanner evidence pack is on this Mac in the ignored data of another worktree: `/Users/reilley/.herdr/worktrees/mtgscan/worktree-brave-harbor-93a0/prototypes/catalog-recognizer/.data/catalog`. Read it only. Set `RECOGNIZER_GALLERY_DIR` to it.
-- The 3,000 Scryfall `large` images for the simulated scans are in `.data/large` next to it. Set `RECOGNIZER_LARGE_IMAGES_DIR` to that folder.
-- Copy both folders somewhere else before that worktree is removed. A gallery built again from a newer Scryfall file does not match the expected files.
+- The recorded gallery of the scanner evidence pack is gallery version `20261012-cf1753`. Install it once with `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753` in `supabase`. Set `RECOGNIZER_GALLERY_DIR` to `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`.
+- The 3,000 Scryfall `large` images for the simulated scans are in the ignored data of another worktree: `/Users/reilley/.herdr/worktrees/mtgscan/worktree-brave-harbor-93a0/prototypes/catalog-recognizer/.data/large`. Read them only. Set `RECOGNIZER_LARGE_IMAGES_DIR` to that folder. Copy it somewhere else before that worktree is removed.
 
 ## Recognizer replay
 
@@ -30,14 +29,11 @@ CI does not replay the scanner evidence pack. Before merging a change to the rec
 ## Gallery build
 
 - The gallery build runs only on the owner's Mac, with the owner present. `README.md` (Gallery build and publish) describes the commands.
-- The Supabase secret key is a GitHub Actions secret. The owner copies it from the Supabase dashboard and enters it at a hidden prompt for one run. Never store it in a file, and never print it:
+- The hosted credentials for owner commands live only in `supabase/.env.hosted`: `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Git ignores the file, and Bun does not load it by itself. Load it for one command with `bun --env-file=.env.hosted`. Never put the hosted credentials in an `.env` file that Bun loads by itself, such as `supabase/.env` or `.env.local`. Never read or print the file:
 
   ```bash
   cd supabase
-  export SUPABASE_URL="https://$(gh variable get SUPABASE_PROJECT_REF).supabase.co"
-  read -rs SUPABASE_SECRET_KEY; export SUPABASE_SECRET_KEY
-  bun run gallery build
-  unset SUPABASE_SECRET_KEY
+  bun --env-file=.env.hosted gallery/main.ts build
   ```
 
 - The image cache is `~/Library/Caches/mtgscan/scryfall-images`, outside every worktree. The work folder with the feature prints and the built gallery versions is `~/Library/Caches/mtgscan/gallery`. macOS can clear `~/Library/Caches` when the disk is full. The build then downloads the missing images and parts again and computes the feature prints again.

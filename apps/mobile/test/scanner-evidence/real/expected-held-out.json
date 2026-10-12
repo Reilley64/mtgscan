@@ -1,28 +1,29 @@
 {
  "recordedWith": {
-  "recognizerCommit": "83988dd",
-  "recognizerLastChanged": "716a44f",
+  "recognizerCommit": "7fb6205",
   "featurePrint": "VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values",
   "gallery": {
-   "directory": ".data/catalog",
-   "encoding": "float16",
-   "printings": 102726,
-   "createdAt": "2026-10-06T13:24:32Z",
-   "catalogJsonSha256": "0e5b603db0d0adafbeb0fa21fc2e5001ab5f51a716fb4565660d3bff0936fcaa",
-   "galleryF16Sha256": "22d56acc50b6b10eb0d74cbf3c9b8f7db4fb202d34474639258987feba5e705c",
-   "scryfallBulk": "default_cards downloaded 6 October 2026, default-cards.jsonl.gz sha256 2e4b9449d03162d910226026f278e07ca6f491497fce8f7f5ae56833300c1772"
+   "version": "20261012-cf1753",
+   "directory": "~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753",
+   "encoding": "int8 per vector, installed as unit-length float16",
+   "printings": 102730,
+   "createdAt": "2026-10-12T03:44:47.658Z",
+   "catalogJsonSha256": "e637953e0c721abaa04ba021a6ed2c085ddd61d9b001aaa1001959124b0958c5",
+   "galleryF16Sha256": "ac1325c5d41755292a26c80b72caa3799259cabf1113b033eb229af1ac03a53c",
+   "scryfallBulk": "default_cards updated 2026-10-11T21:05:54.791+00:00",
+   "cardCatalogSnapshot": "2026-10-09T09:01:54.966+00:00"
   },
   "machine": "Apple M3, macOS 15.7.3",
-  "recordedOn": "2026-10-09",
-  "command": "node scripts/evaluate-crops.mjs evidence/real/labels.json --held-out --details --scans",
-  "note": "Matches the 8 October 2026 study run (0 accepts with the true printing missing) cited in issue #10."
+  "recordedOn": "2026-10-12",
+  "command": "bun run recognizer:replay (real-held-out)",
+  "note": "Recorded with gallery version 20261012-cf1753, the first int8 gallery (#79). As before, no scan is accepted with the true printing missing. 11 scans that abstain show another first candidate. 4 move to another printing of the same card: Gravedigger, Colossal Dreadmaw, Admiral's Order, and Command Tower. 6 showed a different card before and still do. Big Score SLD 7096 (muyuq3pm-21) showed Big Score SLD 7190 and now shows Preordain OTC 107, so nameTop1 is 165, not 166."
  },
  "result": {
-  "catalog": 102726,
+  "catalog": 102730,
   "heldOut": true,
   "truthInTop5": 0,
   "cards": 250,
-  "nameTop1": 166,
+  "nameTop1": 165,
   "printingTop1": 0,
   "accepted": 0,
   "correctAccepts": 0,
@@ -30,8 +31,8 @@
   "nonCards": 11,
   "nonCardsRejected": 11,
   "errors": 0,
-  "p50Ms": 104,
-  "p95Ms": 135,
+  "p50Ms": 156,
+  "p95Ms": 215,
   "acceptReasons": {},
   "groups": {
    "all": {
@@ -58,7 +59,7 @@
     "group": null,
     "top": "e1d8efe5-3356-4dbe-a05f-c87c9b4264a8",
     "accepted": null,
-    "reason": "collector line SOS 171 names no printing in the catalog"
+    "reason": "collector line SOS 171 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muw8ssia-11.jpg",
@@ -74,7 +75,7 @@
     "group": null,
     "top": "a7ac3a39-b6a6-4647-bb6e-e82057704f8b",
     "accepted": null,
-    "reason": "collector line SOS 38 names no printing in the catalog"
+    "reason": "collector line SOS 38 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muw8ssia-13.jpg",
@@ -96,9 +97,9 @@
     "input": "crops/rectified/muw8ssia-15.jpg",
     "truth": "1e07a595-5579-4d5a-b07c-84239d690459",
     "group": null,
-    "top": "a51db556-b3e8-4628-9e39-6353023b0696",
+    "top": "9e5ec47c-47a2-4eda-b81a-4a07f04e5989",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 59 does not match it"
+    "reason": "2 printings share this art and collector line read only 59"
    },
    {
     "input": "crops/rectified/muw8ssia-16.jpg",
@@ -146,7 +147,7 @@
     "group": null,
     "top": "275dc24b-52bc-4b8d-a539-69bebbc58d6e",
     "accepted": null,
-    "reason": "collector line SOS 139 names no printing in the catalog"
+    "reason": "collector line SOS 139 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muw8ssia-38.jpg",
@@ -154,7 +155,7 @@
     "group": null,
     "top": "720406ef-4460-475f-bbc1-491c8c48794e",
     "accepted": null,
-    "reason": "collector line RIX 31 names no printing in the catalog"
+    "reason": "collector line RIX 31 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muw8ssia-39.jpg",
@@ -170,7 +171,7 @@
     "group": null,
     "top": "e8c2b329-4a5b-4435-9a58-f5e1262fd4c4",
     "accepted": null,
-    "reason": "collector line RIX 125 names no printing in the catalog"
+    "reason": "collector line RIX 125 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muw8ssia-5.jpg",
@@ -178,7 +179,7 @@
     "group": null,
     "top": "64e72ac3-2b4f-43d8-9708-afe1b67c5d00",
     "accepted": null,
-    "reason": "collector line CMM 420 names no printing in the catalog"
+    "reason": "collector line CMM 420 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muw8ssia-6.jpg",
@@ -186,7 +187,7 @@
     "group": null,
     "top": "4a2dfd72-a8f4-4e43-b5de-caf6a129a51a",
     "accepted": null,
-    "reason": "collector line SLD 7097 names no printing in the catalog"
+    "reason": "collector line SLD 7097 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muw8ssia-7.jpg",
@@ -218,7 +219,7 @@
     "group": null,
     "top": "41000308-144d-4d3b-afec-e3928d20edfc",
     "accepted": null,
-    "reason": "collector line M15 1 names no printing in the catalog"
+    "reason": "collector line M15 1 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-10.jpg",
@@ -226,7 +227,7 @@
     "group": null,
     "top": "e4a34101-1be3-44ae-b709-f0398998d4c4",
     "accepted": null,
-    "reason": "collector line M20 8 names no printing in the catalog"
+    "reason": "collector line M20 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-11.jpg",
@@ -234,7 +235,7 @@
     "group": null,
     "top": "7847ae5d-c1d5-4641-93e3-4de44d2cde21",
     "accepted": null,
-    "reason": "collector line M20 8 names no printing in the catalog"
+    "reason": "collector line M20 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-12.jpg",
@@ -250,7 +251,7 @@
     "group": null,
     "top": "cb987986-b53b-4441-a2c6-e70c23b2ed7f",
     "accepted": null,
-    "reason": "collector line RIX 3 names no printing in the catalog"
+    "reason": "collector line RIX 3 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-14.jpg",
@@ -258,7 +259,7 @@
     "group": null,
     "top": "785d75b7-2054-47d0-8135-96ba6b4e9b78",
     "accepted": null,
-    "reason": "collector line SOS 7 names no printing in the catalog"
+    "reason": "collector line SOS 7 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-15.jpg",
@@ -266,7 +267,7 @@
     "group": null,
     "top": "724d28a0-730c-489d-a729-55eb8149402d",
     "accepted": null,
-    "reason": "collector line M21 215 names no printing in the catalog"
+    "reason": "collector line M21 215 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-16.jpg",
@@ -274,15 +275,15 @@
     "group": null,
     "top": "b78578d3-0e15-4c34-8b03-07190c802ac2",
     "accepted": null,
-    "reason": "collector line SOS 174 names no printing in the catalog"
+    "reason": "collector line SOS 174 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-17.jpg",
     "truth": "9c977c67-b0c0-40b0-b129-28de094aaf40",
     "group": null,
-    "top": "5a8cd89e-d849-4107-a629-98eae4c91489",
+    "top": "f4becdbb-9089-4c54-a681-6510d90cc99e",
     "accepted": null,
-    "reason": "collector line M21 4 names no printing in the catalog"
+    "reason": "collector line M21 4 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-18.jpg",
@@ -298,7 +299,7 @@
     "group": null,
     "top": "a07568b2-5a1f-4aaf-bd71-57b41bae925d",
     "accepted": null,
-    "reason": "collector line M21 5 names no printing in the catalog"
+    "reason": "collector line M21 5 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-2.jpg",
@@ -314,7 +315,7 @@
     "group": null,
     "top": "ad8e5d66-9167-4cd7-a4eb-9ffe34d53f6d",
     "accepted": null,
-    "reason": "collector line M21 2 names no printing in the catalog"
+    "reason": "collector line M21 2 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-21.jpg",
@@ -322,7 +323,7 @@
     "group": null,
     "top": "0f62b22f-9c6f-4857-afb9-8ac5fe834d52",
     "accepted": null,
-    "reason": "collector line SOS 6 names no printing in the catalog"
+    "reason": "collector line SOS 6 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-22.jpg",
@@ -330,7 +331,7 @@
     "group": null,
     "top": "f501024b-79e8-48f8-8102-38d3e439dc64",
     "accepted": null,
-    "reason": "collector line RNA 4 names no printing in the catalog"
+    "reason": "collector line RNA 4 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-23.jpg",
@@ -338,7 +339,7 @@
     "group": null,
     "top": "eac37b33-4f0c-4c6b-bf90-b48bad77b0b7",
     "accepted": null,
-    "reason": "collector line M21 11 names no printing in the catalog"
+    "reason": "collector line M21 11 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-24.jpg",
@@ -346,7 +347,7 @@
     "group": null,
     "top": "0f32c514-36b9-4e1f-86e8-1d36e5282062",
     "accepted": null,
-    "reason": "collector line KTK 3 names no printing in the catalog"
+    "reason": "collector line KTK 3 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-25.jpg",
@@ -354,7 +355,7 @@
     "group": null,
     "top": "bd6ccd0b-5279-431f-b65a-7fdbdffd1a90",
     "accepted": null,
-    "reason": "collector line ELD 5 names no printing in the catalog"
+    "reason": "collector line ELD 5 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-26.jpg",
@@ -362,7 +363,7 @@
     "group": null,
     "top": "785d75b7-2054-47d0-8135-96ba6b4e9b78",
     "accepted": null,
-    "reason": "collector line SOS 7 names no printing in the catalog"
+    "reason": "collector line SOS 7 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-27.jpg",
@@ -370,7 +371,7 @@
     "group": null,
     "top": "13bf0a97-2dcf-4d18-bb3f-92d0406c7b4b",
     "accepted": null,
-    "reason": "collector line SOS 178 names no printing in the catalog"
+    "reason": "collector line SOS 178 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-28.jpg",
@@ -378,7 +379,7 @@
     "group": null,
     "top": "3ce8e39b-64e3-42df-bac2-231abbe6ad75",
     "accepted": null,
-    "reason": "collector line SOS 173 names no printing in the catalog"
+    "reason": "collector line SOS 173 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-29.jpg",
@@ -386,7 +387,7 @@
     "group": null,
     "top": "5a2122c0-5fb4-4767-b969-c61bd959d604",
     "accepted": null,
-    "reason": "collector line M20 5 names no printing in the catalog"
+    "reason": "collector line M20 5 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-3.jpg",
@@ -394,7 +395,7 @@
     "group": null,
     "top": "2aff9aa6-bc5e-476d-9dd1-1318ed521b6f",
     "accepted": null,
-    "reason": "collector line RIX 3 names no printing in the catalog"
+    "reason": "collector line RIX 3 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-30.jpg",
@@ -402,7 +403,7 @@
     "group": null,
     "top": "8e4ad023-6672-4f6f-838a-7f923ef44a80",
     "accepted": null,
-    "reason": "collector line M20 7 names no printing in the catalog"
+    "reason": "collector line M20 7 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-31.jpg",
@@ -410,7 +411,7 @@
     "group": null,
     "top": "a7c62113-48c1-47ae-8ede-c05c1c914c3b",
     "accepted": null,
-    "reason": "collector line RIX 3 names no printing in the catalog"
+    "reason": "collector line RIX 3 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-32.jpg",
@@ -418,7 +419,7 @@
     "group": null,
     "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
     "accepted": null,
-    "reason": "collector line ELD 8 names no printing in the catalog"
+    "reason": "collector line ELD 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-33.jpg",
@@ -426,7 +427,7 @@
     "group": null,
     "top": "c369d381-b48e-43cf-a032-8bcb120f443e",
     "accepted": null,
-    "reason": "collector line M20 8 names no printing in the catalog"
+    "reason": "collector line M20 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-34.jpg",
@@ -434,7 +435,7 @@
     "group": null,
     "top": "51825d35-cdb2-40fa-ab89-1625161b04af",
     "accepted": null,
-    "reason": "collector line M15 1 names no printing in the catalog"
+    "reason": "collector line M15 1 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-35.jpg",
@@ -442,7 +443,7 @@
     "group": null,
     "top": "51825d35-cdb2-40fa-ab89-1625161b04af",
     "accepted": null,
-    "reason": "collector line M15 1 names no printing in the catalog"
+    "reason": "collector line M15 1 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-36.jpg",
@@ -458,7 +459,7 @@
     "group": null,
     "top": "7847ae5d-c1d5-4641-93e3-4de44d2cde21",
     "accepted": null,
-    "reason": "collector line M20 8 names no printing in the catalog"
+    "reason": "collector line M20 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-38.jpg",
@@ -466,7 +467,7 @@
     "group": null,
     "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
     "accepted": null,
-    "reason": "collector line ELD 8 names no printing in the catalog"
+    "reason": "collector line ELD 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-39.jpg",
@@ -474,7 +475,7 @@
     "group": null,
     "top": "0f62b22f-9c6f-4857-afb9-8ac5fe834d52",
     "accepted": null,
-    "reason": "collector line RIX 3 names no printing in the catalog"
+    "reason": "collector line RIX 3 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-4.jpg",
@@ -482,7 +483,7 @@
     "group": null,
     "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
     "accepted": null,
-    "reason": "collector line ELD 8 names no printing in the catalog"
+    "reason": "collector line ELD 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-40.jpg",
@@ -490,7 +491,7 @@
     "group": null,
     "top": "4b22eafa-c414-4eed-8dc1-d26b987b341c",
     "accepted": null,
-    "reason": "collector line M20 7 names no printing in the catalog"
+    "reason": "collector line M20 7 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-41.jpg",
@@ -498,7 +499,7 @@
     "group": null,
     "top": "4941246b-7d6a-4b2d-8144-f36ac890a389",
     "accepted": null,
-    "reason": "collector line M20 5 names no printing in the catalog"
+    "reason": "collector line M20 5 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-42.jpg",
@@ -506,7 +507,7 @@
     "group": null,
     "top": "3ce8e39b-64e3-42df-bac2-231abbe6ad75",
     "accepted": null,
-    "reason": "collector line SOS 173 names no printing in the catalog"
+    "reason": "collector line SOS 173 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-43.jpg",
@@ -514,7 +515,7 @@
     "group": null,
     "top": "13bf0a97-2dcf-4d18-bb3f-92d0406c7b4b",
     "accepted": null,
-    "reason": "collector line SOS 178 names no printing in the catalog"
+    "reason": "collector line SOS 178 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-44.jpg",
@@ -522,7 +523,7 @@
     "group": null,
     "top": "785d75b7-2054-47d0-8135-96ba6b4e9b78",
     "accepted": null,
-    "reason": "collector line SOS 7 names no printing in the catalog"
+    "reason": "collector line SOS 7 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-45.jpg",
@@ -538,7 +539,7 @@
     "group": null,
     "top": "0f32c514-36b9-4e1f-86e8-1d36e5282062",
     "accepted": null,
-    "reason": "collector line KTK 3 names no printing in the catalog"
+    "reason": "collector line KTK 3 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-47.jpg",
@@ -546,7 +547,7 @@
     "group": null,
     "top": "eac37b33-4f0c-4c6b-bf90-b48bad77b0b7",
     "accepted": null,
-    "reason": "collector line M21 11 names no printing in the catalog"
+    "reason": "collector line M21 11 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-48.jpg",
@@ -554,7 +555,7 @@
     "group": null,
     "top": "f501024b-79e8-48f8-8102-38d3e439dc64",
     "accepted": null,
-    "reason": "collector line RNA 4 names no printing in the catalog"
+    "reason": "collector line RNA 4 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-49.jpg",
@@ -562,7 +563,7 @@
     "group": null,
     "top": "00108a1c-e620-4124-9b31-3bb3ff2a0407",
     "accepted": null,
-    "reason": "collector line SOS 6 names no printing in the catalog"
+    "reason": "collector line SOS 6 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-5.jpg",
@@ -578,7 +579,7 @@
     "group": null,
     "top": "ad8e5d66-9167-4cd7-a4eb-9ffe34d53f6d",
     "accepted": null,
-    "reason": "collector line M21 2 names no printing in the catalog"
+    "reason": "collector line M21 2 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-51.jpg",
@@ -586,7 +587,7 @@
     "group": null,
     "top": "a07568b2-5a1f-4aaf-bd71-57b41bae925d",
     "accepted": null,
-    "reason": "collector line M21 5 names no printing in the catalog"
+    "reason": "collector line M21 5 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-52.jpg",
@@ -594,7 +595,7 @@
     "group": null,
     "top": "2ed8c0ef-2b53-49b5-bc2f-428628cb3975",
     "accepted": null,
-    "reason": "collector line SOS 8 names no printing in the catalog"
+    "reason": "collector line SOS 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-53.jpg",
@@ -602,7 +603,7 @@
     "group": null,
     "top": "5a8cd89e-d849-4107-a629-98eae4c91489",
     "accepted": null,
-    "reason": "collector line M21 4 names no printing in the catalog"
+    "reason": "collector line M21 4 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-54.jpg",
@@ -610,15 +611,15 @@
     "group": null,
     "top": "b78578d3-0e15-4c34-8b03-07190c802ac2",
     "accepted": null,
-    "reason": "collector line SOS 174 names no printing in the catalog"
+    "reason": "collector line SOS 174 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-55.jpg",
     "truth": "43224e74-2c51-40bd-bc34-f66e990a3e33",
     "group": null,
-    "top": "724d28a0-730c-489d-a729-55eb8149402d",
+    "top": "bcaf4196-6bf3-47fa-b5c7-0e77f45cf820",
     "accepted": null,
-    "reason": "collector line M21 215 names no printing in the catalog"
+    "reason": "collector line M21 215 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-56.jpg",
@@ -626,7 +627,7 @@
     "group": null,
     "top": "51825d35-cdb2-40fa-ab89-1625161b04af",
     "accepted": null,
-    "reason": "collector line M15 1 names no printing in the catalog"
+    "reason": "collector line M15 1 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-6.jpg",
@@ -634,7 +635,7 @@
     "group": null,
     "top": "bd6ccd0b-5279-431f-b65a-7fdbdffd1a90",
     "accepted": null,
-    "reason": "collector line ELD 5 names no printing in the catalog"
+    "reason": "collector line ELD 5 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-7.jpg",
@@ -642,7 +643,7 @@
     "group": null,
     "top": "0f32c514-36b9-4e1f-86e8-1d36e5282062",
     "accepted": null,
-    "reason": "collector line KTK 3 names no printing in the catalog"
+    "reason": "collector line KTK 3 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-8.jpg",
@@ -650,7 +651,7 @@
     "group": null,
     "top": "eac37b33-4f0c-4c6b-bf90-b48bad77b0b7",
     "accepted": null,
-    "reason": "collector line M21 11 names no printing in the catalog"
+    "reason": "collector line M21 11 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-9.jpg",
@@ -658,7 +659,7 @@
     "group": null,
     "top": "f501024b-79e8-48f8-8102-38d3e439dc64",
     "accepted": null,
-    "reason": "collector line RNA 4 names no printing in the catalog"
+    "reason": "collector line RNA 4 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-10.jpg",
@@ -666,7 +667,7 @@
     "group": null,
     "top": "9782b0b8-07f1-45dd-b1a9-3edd37e0e3ab",
     "accepted": null,
-    "reason": "collector line RNA 61 names no printing in the catalog"
+    "reason": "collector line RNA 61 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-11.jpg",
@@ -674,7 +675,7 @@
     "group": null,
     "top": "84ede129-83fc-42b7-8941-fa649d3329e5",
     "accepted": null,
-    "reason": "collector line M15 86 names no printing in the catalog"
+    "reason": "collector line M15 86 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-12.jpg",
@@ -682,7 +683,7 @@
     "group": null,
     "top": "826622da-c7fa-438d-821c-3482ef6bcac5",
     "accepted": null,
-    "reason": "collector line SOS 74 names no printing in the catalog"
+    "reason": "collector line SOS 74 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-13.jpg",
@@ -690,7 +691,7 @@
     "group": null,
     "top": "f16c2679-b823-4ad3-abd2-ca380835cdaf",
     "accepted": null,
-    "reason": "collector line M21 87 names no printing in the catalog"
+    "reason": "collector line M21 87 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-14.jpg",
@@ -722,7 +723,7 @@
     "group": null,
     "top": "ff2198ca-0ffa-4e43-92a7-6f4f79ed8938",
     "accepted": null,
-    "reason": "collector line M20 88 names no printing in the catalog"
+    "reason": "collector line M20 88 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-18.jpg",
@@ -730,7 +731,7 @@
     "group": null,
     "top": "b20e33cb-202f-4973-8c83-c75faf908672",
     "accepted": null,
-    "reason": "collector line M21 88 names no printing in the catalog"
+    "reason": "collector line M21 88 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-19.jpg",
@@ -738,7 +739,7 @@
     "group": null,
     "top": "0f71ff90-13ff-4ac6-8bdd-2cf53cc24ec1",
     "accepted": null,
-    "reason": "collector line M21 90 names no printing in the catalog"
+    "reason": "collector line M21 90 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-20.jpg",
@@ -754,7 +755,7 @@
     "group": null,
     "top": "88583170-7b0e-4c02-b270-4859ba05d82b",
     "accepted": null,
-    "reason": "collector line M20 85 names no printing in the catalog"
+    "reason": "collector line M20 85 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-22.jpg",
@@ -762,7 +763,7 @@
     "group": null,
     "top": "c4a5770e-533d-479f-b469-1fbef08614c1",
     "accepted": null,
-    "reason": "collector line SOA 26 names no printing in the catalog"
+    "reason": "collector line SOA 26 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-23.jpg",
@@ -770,7 +771,7 @@
     "group": null,
     "top": "fe97a73f-33fd-4394-a393-ceb41a214820",
     "accepted": null,
-    "reason": "collector line EMA 81 names no printing in the catalog"
+    "reason": "collector line EMA 81 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-6.jpg",
@@ -778,7 +779,7 @@
     "group": null,
     "top": "451eb0dd-f3e8-4504-9de0-0bdf124e9ae2",
     "accepted": null,
-    "reason": "collector line MSH 85 names no printing in the catalog"
+    "reason": "collector line MSH 85 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-7.jpg",
@@ -794,7 +795,7 @@
     "group": null,
     "top": "4dedca48-b7a2-45b9-af1e-b3754879d1d6",
     "accepted": null,
-    "reason": "collector line MSH 85 names no printing in the catalog"
+    "reason": "collector line MSH 85 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-9.jpg",
@@ -802,7 +803,7 @@
     "group": null,
     "top": "2c6e5b25-b721-45ee-894a-697de1310b8c",
     "accepted": null,
-    "reason": "collector line ELD 76 names no printing in the catalog"
+    "reason": "collector line ELD 76 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwh80d1-10.jpg",
@@ -810,7 +811,7 @@
     "group": null,
     "top": "d6eee9e7-8767-4091-9e1c-9b0bd5c9e0d7",
     "accepted": null,
-    "reason": "collector line SOS 171 names no printing in the catalog"
+    "reason": "collector line SOS 171 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwh80d1-11.jpg",
@@ -818,7 +819,7 @@
     "group": null,
     "top": "84ede129-83fc-42b7-8941-fa649d3329e5",
     "accepted": null,
-    "reason": "collector line M15 86 names no printing in the catalog"
+    "reason": "collector line M15 86 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwh80d1-12.jpg",
@@ -826,7 +827,7 @@
     "group": null,
     "top": "2c6e5b25-b721-45ee-894a-697de1310b8c",
     "accepted": null,
-    "reason": "collector line ELD 76 names no printing in the catalog"
+    "reason": "collector line ELD 76 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwh80d1-13.jpg",
@@ -840,7 +841,7 @@
     "input": "crops/rectified/muwh80d1-14.jpg",
     "truth": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
     "group": null,
-    "top": "3c6d2a84-5e47-4f7a-83f7-ee4e670980c7",
+    "top": "04e5739e-caef-46f4-a083-25da30bf69f4",
     "accepted": null,
     "reason": "24 printings share this art and no collector line was read"
    },
@@ -850,7 +851,7 @@
     "group": null,
     "top": "87154116-e306-4e15-bd5a-dcdb5ddbcd36",
     "accepted": null,
-    "reason": "collector line SOS 72 names no printing in the catalog"
+    "reason": "collector line SOS 72 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwh80d1-2.jpg",
@@ -858,7 +859,7 @@
     "group": null,
     "top": "9035dda8-5ad3-4169-b281-83d6ca55b71e",
     "accepted": null,
-    "reason": "collector line SOS 38 names no printing in the catalog"
+    "reason": "collector line SOS 38 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwh80d1-5.jpg",
@@ -866,7 +867,7 @@
     "group": null,
     "top": "823ccb07-cf08-4ae3-9b9a-f16de8e6d745",
     "accepted": null,
-    "reason": "collector line SPG 156 names no printing in the catalog"
+    "reason": "collector line SPG 156 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwh80d1-6.jpg",
@@ -874,7 +875,7 @@
     "group": null,
     "top": "80bfcba4-316a-44e5-8ed0-2cf94cbbfe49",
     "accepted": null,
-    "reason": "collector line SOS 38 names no printing in the catalog"
+    "reason": "collector line SOS 38 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwh80d1-7.jpg",
@@ -882,7 +883,7 @@
     "group": null,
     "top": "25a6e1bb-c751-447c-be69-e03692568678",
     "accepted": null,
-    "reason": "collector line SOA 37 names no printing in the catalog"
+    "reason": "collector line SOA 37 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwh80d1-8.jpg",
@@ -890,7 +891,7 @@
     "group": null,
     "top": "de3daeef-e352-4cd9-8411-94ce25c57060",
     "accepted": null,
-    "reason": "collector line RIX 176 names no printing in the catalog"
+    "reason": "collector line RIX 176 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwh80d1-9.jpg",
@@ -906,7 +907,7 @@
     "group": null,
     "top": "fe0f3faf-c011-49b8-b604-d68a87615737",
     "accepted": null,
-    "reason": "collector line RIX 125 names no printing in the catalog"
+    "reason": "collector line RIX 125 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-10.jpg",
@@ -914,7 +915,7 @@
     "group": null,
     "top": "aed61bbb-83fd-452b-b940-c8eb1e1ebdac",
     "accepted": null,
-    "reason": "collector line SLD 2464 names no printing in the catalog"
+    "reason": "collector line SLD 2464 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-11.jpg",
@@ -922,7 +923,7 @@
     "group": null,
     "top": "b4d54442-caca-412d-a716-032eaa587944",
     "accepted": null,
-    "reason": "collector line SLD 7094 names no printing in the catalog"
+    "reason": "collector line SLD 7094 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-12.jpg",
@@ -930,7 +931,7 @@
     "group": null,
     "top": "667b6c3b-75cc-4adf-b205-80925ca76d2a",
     "accepted": null,
-    "reason": "collector line SLD 7097 names no printing in the catalog"
+    "reason": "collector line SLD 7097 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-13.jpg",
@@ -938,7 +939,7 @@
     "group": null,
     "top": "374e1c0d-1dcc-4214-828a-624ef1af826a",
     "accepted": null,
-    "reason": "collector line SLD 7096 names no printing in the catalog"
+    "reason": "collector line SLD 7096 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-14.jpg",
@@ -946,7 +947,7 @@
     "group": null,
     "top": "51825d35-cdb2-40fa-ab89-1625161b04af",
     "accepted": null,
-    "reason": "collector line M15 1 names no printing in the catalog"
+    "reason": "collector line M15 1 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-15.jpg",
@@ -954,7 +955,7 @@
     "group": null,
     "top": "44ff370e-b72d-4a6c-b6dd-8434820559cc",
     "accepted": null,
-    "reason": "collector line DSC 92 names no printing in the catalog"
+    "reason": "collector line DSC 92 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-16.jpg",
@@ -962,7 +963,7 @@
     "group": null,
     "top": "4a2d381e-4082-4e7d-a109-a7c700ceddfd",
     "accepted": null,
-    "reason": "collector line CMM 420 names no printing in the catalog"
+    "reason": "collector line CMM 420 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-17.jpg",
@@ -978,15 +979,15 @@
     "group": null,
     "top": "fe97a73f-33fd-4394-a393-ceb41a214820",
     "accepted": null,
-    "reason": "collector line EMA 81 names no printing in the catalog"
+    "reason": "collector line EMA 81 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-19.jpg",
     "truth": "db465858-0593-4850-8f1d-400fe230a18d",
     "group": null,
-    "top": "f0ba709f-e9eb-4cf0-ab68-d1aa88eeaf07",
+    "top": "c4a5770e-533d-479f-b469-1fbef08614c1",
     "accepted": null,
-    "reason": "collector line SOA 26 names no printing in the catalog"
+    "reason": "collector line SOA 26 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-2.jpg",
@@ -1002,7 +1003,7 @@
     "group": null,
     "top": "035975da-7a65-4cef-9bd3-d1e1f6102f38",
     "accepted": null,
-    "reason": "collector line ELD 295 names no printing in the catalog"
+    "reason": "collector line ELD 295 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-4.jpg",
@@ -1018,7 +1019,7 @@
     "group": null,
     "top": "40cdaff8-e2ce-499c-bcdc-aae8921356f8",
     "accepted": null,
-    "reason": "collector line SOA 2 names no printing in the catalog"
+    "reason": "collector line SOA 2 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-6.jpg",
@@ -1026,7 +1027,7 @@
     "group": null,
     "top": "6a562d19-fad6-4392-916b-0a77f2d846ec",
     "accepted": null,
-    "reason": "collector line SOS 170 names no printing in the catalog"
+    "reason": "collector line SOS 170 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-7.jpg",
@@ -1034,7 +1035,7 @@
     "group": null,
     "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
     "accepted": null,
-    "reason": "collector line ELD 8 names no printing in the catalog"
+    "reason": "collector line ELD 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-8.jpg",
@@ -1058,7 +1059,7 @@
     "group": null,
     "top": "035975da-7a65-4cef-9bd3-d1e1f6102f38",
     "accepted": null,
-    "reason": "collector line ELD 295 names no printing in the catalog"
+    "reason": "collector line ELD 295 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-11.jpg",
@@ -1074,7 +1075,7 @@
     "group": null,
     "top": "fe0f3faf-c011-49b8-b604-d68a87615737",
     "accepted": null,
-    "reason": "collector line RIX 125 names no printing in the catalog"
+    "reason": "collector line RIX 125 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-13.jpg",
@@ -1082,7 +1083,7 @@
     "group": null,
     "top": "e0fd24ce-6b37-4801-b10f-5e2dbada7a41",
     "accepted": null,
-    "reason": "collector line SOS 72 names no printing in the catalog"
+    "reason": "collector line SOS 72 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-14.jpg",
@@ -1098,7 +1099,7 @@
     "group": null,
     "top": "e94ccedb-1d27-4098-8823-d8d99b30387c",
     "accepted": null,
-    "reason": "collector line MSH 85 names no printing in the catalog"
+    "reason": "collector line MSH 85 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-16.jpg",
@@ -1106,7 +1107,7 @@
     "group": null,
     "top": "2ab0e660-86a3-4b92-82fa-77dcb5db947d",
     "accepted": null,
-    "reason": "collector line ELD 76 names no printing in the catalog"
+    "reason": "collector line ELD 76 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-17.jpg",
@@ -1114,7 +1115,7 @@
     "group": null,
     "top": "c90a12af-b453-4d83-9a14-5411b562d480",
     "accepted": null,
-    "reason": "collector line M15 86 names no printing in the catalog"
+    "reason": "collector line M15 86 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-18.jpg",
@@ -1122,7 +1123,7 @@
     "group": null,
     "top": "c27cf2a6-154e-4c5c-83c0-bc2bbf88165b",
     "accepted": null,
-    "reason": "collector line SOS 171 names no printing in the catalog"
+    "reason": "collector line SOS 171 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-19.jpg",
@@ -1130,7 +1131,7 @@
     "group": null,
     "top": "27e508f2-5f4e-4d8c-8e72-b896d5e204ad",
     "accepted": null,
-    "reason": "collector line RIX 31 names no printing in the catalog"
+    "reason": "collector line RIX 31 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-2.jpg",
@@ -1138,7 +1139,7 @@
     "group": null,
     "top": "823ccb07-cf08-4ae3-9b9a-f16de8e6d745",
     "accepted": null,
-    "reason": "collector line SPG 156 names no printing in the catalog"
+    "reason": "collector line SPG 156 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-20.jpg",
@@ -1146,7 +1147,7 @@
     "group": null,
     "top": "de3daeef-e352-4cd9-8411-94ce25c57060",
     "accepted": null,
-    "reason": "collector line RIX 176 names no printing in the catalog"
+    "reason": "collector line RIX 176 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-21.jpg",
@@ -1154,7 +1155,7 @@
     "group": null,
     "top": "25a6e1bb-c751-447c-be69-e03692568678",
     "accepted": null,
-    "reason": "collector line SOA 37 names no printing in the catalog"
+    "reason": "collector line SOA 37 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-22.jpg",
@@ -1162,7 +1163,7 @@
     "group": null,
     "top": "0072bbbf-a695-47dd-9615-db2659f357db",
     "accepted": null,
-    "reason": "collector line SOS 38 names no printing in the catalog"
+    "reason": "collector line SOS 38 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-23.jpg",
@@ -1170,7 +1171,7 @@
     "group": null,
     "top": "374e1c0d-1dcc-4214-828a-624ef1af826a",
     "accepted": null,
-    "reason": "collector line SLD 7096 names no printing in the catalog"
+    "reason": "collector line SLD 7096 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-24.jpg",
@@ -1178,7 +1179,7 @@
     "group": null,
     "top": "667b6c3b-75cc-4adf-b205-80925ca76d2a",
     "accepted": null,
-    "reason": "collector line SLD 7097 names no printing in the catalog"
+    "reason": "collector line SLD 7097 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-25.jpg",
@@ -1186,7 +1187,7 @@
     "group": null,
     "top": "667b6c3b-75cc-4adf-b205-80925ca76d2a",
     "accepted": null,
-    "reason": "collector line SLD 7097 names no printing in the catalog"
+    "reason": "collector line SLD 7097 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-26.jpg",
@@ -1194,15 +1195,15 @@
     "group": null,
     "top": "b4d54442-caca-412d-a716-032eaa587944",
     "accepted": null,
-    "reason": "collector line SLD 7094 names no printing in the catalog"
+    "reason": "collector line SLD 7094 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-27.jpg",
     "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
     "group": null,
-    "top": "038710ca-c756-4e66-a9de-278e676c9f5b",
+    "top": "0cab6984-8d22-4bed-a42e-0f4604798787",
     "accepted": null,
-    "reason": "collector line SLD 2464 names no printing in the catalog"
+    "reason": "collector line SLD 2464 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-28.jpg",
@@ -1210,7 +1211,7 @@
     "group": null,
     "top": "3a65dc65-5911-4502-916f-4008779d0b6e",
     "accepted": null,
-    "reason": "collector line SOA 26 names no printing in the catalog"
+    "reason": "collector line SOA 26 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-29.jpg",
@@ -1218,7 +1219,7 @@
     "group": null,
     "top": "2e1fb442-68ff-4249-8e44-87edf6fae211",
     "accepted": null,
-    "reason": "collector line EMA 81 names no printing in the catalog"
+    "reason": "collector line EMA 81 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-3.jpg",
@@ -1242,7 +1243,7 @@
     "group": null,
     "top": "44ff370e-b72d-4a6c-b6dd-8434820559cc",
     "accepted": null,
-    "reason": "collector line DSC 92 names no printing in the catalog"
+    "reason": "collector line DSC 92 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-32.jpg",
@@ -1250,7 +1251,7 @@
     "group": null,
     "top": "a5f0af51-a054-4e04-aa6e-3972bd336a40",
     "accepted": null,
-    "reason": "collector line CMM 420 names no printing in the catalog"
+    "reason": "collector line CMM 420 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-33.jpg",
@@ -1266,7 +1267,7 @@
     "group": null,
     "top": "5a2122c0-5fb4-4767-b969-c61bd959d604",
     "accepted": null,
-    "reason": "collector line M20 5 names no printing in the catalog"
+    "reason": "collector line M20 5 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-5.jpg",
@@ -1274,7 +1275,7 @@
     "group": null,
     "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
     "accepted": null,
-    "reason": "collector line ELD 8 names no printing in the catalog"
+    "reason": "collector line ELD 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-6.jpg",
@@ -1282,7 +1283,7 @@
     "group": null,
     "top": "84319dfb-eaf7-4b98-8c4f-30f5e779591b",
     "accepted": null,
-    "reason": "collector line SOS 170 names no printing in the catalog"
+    "reason": "collector line SOS 170 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-7.jpg",
@@ -1290,7 +1291,7 @@
     "group": null,
     "top": "310deafe-124b-4813-a383-bc9a9d028cfc",
     "accepted": null,
-    "reason": "collector line SOA 2 names no printing in the catalog"
+    "reason": "collector line SOA 2 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-9.jpg",
@@ -1298,7 +1299,7 @@
     "group": null,
     "top": "80d4ce4f-8255-419b-9e7f-544d9798e5c8",
     "accepted": null,
-    "reason": "collector line M21 176 names no printing in the catalog"
+    "reason": "collector line M21 176 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-1.jpg",
@@ -1306,7 +1307,7 @@
     "group": null,
     "top": "823ccb07-cf08-4ae3-9b9a-f16de8e6d745",
     "accepted": null,
-    "reason": "collector line SPG 156 names no printing in the catalog"
+    "reason": "collector line SPG 156 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-2.jpg",
@@ -1330,7 +1331,7 @@
     "group": null,
     "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
     "accepted": null,
-    "reason": "collector line ELD 8 names no printing in the catalog"
+    "reason": "collector line ELD 8 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-5.jpg",
@@ -1338,7 +1339,7 @@
     "group": null,
     "top": "b47e9cfa-5547-4ef3-9e36-8d0f36dfa59a",
     "accepted": null,
-    "reason": "collector line SOS 170 names no printing in the catalog"
+    "reason": "collector line SOS 170 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-6.jpg",
@@ -1346,7 +1347,7 @@
     "group": null,
     "top": "e78e39ea-20be-4196-992c-7ed2cb8150c1",
     "accepted": null,
-    "reason": "collector line SOA 2 names no printing in the catalog"
+    "reason": "collector line SOA 2 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-7.jpg",
@@ -1354,7 +1355,7 @@
     "group": null,
     "top": "80d4ce4f-8255-419b-9e7f-544d9798e5c8",
     "accepted": null,
-    "reason": "collector line M21 176 names no printing in the catalog"
+    "reason": "collector line M21 176 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-8.jpg",
@@ -1362,7 +1363,7 @@
     "group": null,
     "top": "035975da-7a65-4cef-9bd3-d1e1f6102f38",
     "accepted": null,
-    "reason": "collector line ELD 295 names no printing in the catalog"
+    "reason": "collector line ELD 295 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-9.jpg",
@@ -1376,9 +1377,9 @@
     "input": "crops/catalog/muyuq3pm-10.jpg",
     "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
     "group": null,
-    "top": "fe0f3faf-c011-49b8-b604-d68a87615737",
+    "top": "e49de6f8-f837-4cef-96ff-a48448b453a1",
     "accepted": null,
-    "reason": "collector line RIX 125 names no printing in the catalog"
+    "reason": "collector line RIX 125 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-11.jpg",
@@ -1386,7 +1387,7 @@
     "group": null,
     "top": "bc27b7a7-e9ad-4305-a6e1-863f028030eb",
     "accepted": null,
-    "reason": "collector line SOS 72 names no printing in the catalog"
+    "reason": "collector line SOS 72 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-12.jpg",
@@ -1402,7 +1403,7 @@
     "group": null,
     "top": "4dedca48-b7a2-45b9-af1e-b3754879d1d6",
     "accepted": null,
-    "reason": "collector line MSH 85 names no printing in the catalog"
+    "reason": "collector line MSH 85 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-14.jpg",
@@ -1410,7 +1411,7 @@
     "group": null,
     "top": "69a4ab1e-c0f8-4185-8cfc-d3ce7be19aac",
     "accepted": null,
-    "reason": "collector line ELD 76 names no printing in the catalog"
+    "reason": "collector line ELD 76 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-15.jpg",
@@ -1418,7 +1419,7 @@
     "group": null,
     "top": "84ede129-83fc-42b7-8941-fa649d3329e5",
     "accepted": null,
-    "reason": "collector line MPS 86 names no printing in the catalog"
+    "reason": "collector line MPS 86 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-16.jpg",
@@ -1426,7 +1427,7 @@
     "group": null,
     "top": "89c31d9d-fd77-4275-b89c-f9b64073c54b",
     "accepted": null,
-    "reason": "collector line SOS 171 names no printing in the catalog"
+    "reason": "collector line SOS 171 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-17.jpg",
@@ -1434,7 +1435,7 @@
     "group": null,
     "top": "27e508f2-5f4e-4d8c-8e72-b896d5e204ad",
     "accepted": null,
-    "reason": "collector line RIX 31 names no printing in the catalog"
+    "reason": "collector line RIX 31 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-18.jpg",
@@ -1442,7 +1443,7 @@
     "group": null,
     "top": "80bfcba4-316a-44e5-8ed0-2cf94cbbfe49",
     "accepted": null,
-    "reason": "collector line SOS 38 names no printing in the catalog"
+    "reason": "collector line SOS 38 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-19.jpg",
@@ -1450,7 +1451,7 @@
     "group": null,
     "top": "8ea4d40a-7657-4ff8-9fc2-915b99432275",
     "accepted": null,
-    "reason": "collector line SOA 37 names no printing in the catalog"
+    "reason": "collector line SOA 37 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-20.jpg",
@@ -1458,15 +1459,15 @@
     "group": null,
     "top": "de3daeef-e352-4cd9-8411-94ce25c57060",
     "accepted": null,
-    "reason": "collector line RIX 176 names no printing in the catalog"
+    "reason": "collector line RIX 176 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-21.jpg",
     "truth": "e2b14a8c-2264-4908-8151-da6c8856350e",
     "group": null,
-    "top": "f5db8199-22d8-4721-b62b-245ec5e2907a",
+    "top": "122f2cc2-5f4d-497c-96b5-ed5698f28b51",
     "accepted": null,
-    "reason": "collector line SLD 7096 names no printing in the catalog"
+    "reason": "collector line SLD 7096 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-22.jpg",
@@ -1474,7 +1475,7 @@
     "group": null,
     "top": "aed61bbb-83fd-452b-b940-c8eb1e1ebdac",
     "accepted": null,
-    "reason": "collector line SLD 7097 names no printing in the catalog"
+    "reason": "collector line SLD 7097 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-23.jpg",
@@ -1490,7 +1491,7 @@
     "group": null,
     "top": "9df4b5a2-95bf-4268-9d75-6065176651d1",
     "accepted": null,
-    "reason": "collector line SLD 2464 names no printing in the catalog"
+    "reason": "collector line SLD 2464 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-25.jpg",
@@ -1498,7 +1499,7 @@
     "group": null,
     "top": "a9c87b4d-6e19-4b28-9041-821289f9cd1a",
     "accepted": null,
-    "reason": "only printing of its art, but the next art is 0.023 behind; at least 0.030 is required"
+    "reason": "only printing of its art, but the next art is 0.022 behind; at least 0.030 is required"
    },
    {
     "input": "crops/catalog/muyuq3pm-26.jpg",
@@ -1506,7 +1507,7 @@
     "group": null,
     "top": "30bffe2e-588a-465e-ad31-d5715920f41d",
     "accepted": null,
-    "reason": "collector line SOA 26 names no printing in the catalog"
+    "reason": "collector line SOA 26 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-27.jpg",
@@ -1514,7 +1515,7 @@
     "group": null,
     "top": "2e1fb442-68ff-4249-8e44-87edf6fae211",
     "accepted": null,
-    "reason": "collector line EMA 81 names no printing in the catalog"
+    "reason": "collector line EMA 81 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-28.jpg",
@@ -1522,7 +1523,7 @@
     "group": null,
     "top": "51825d35-cdb2-40fa-ab89-1625161b04af",
     "accepted": null,
-    "reason": "collector line M15 1 names no printing in the catalog"
+    "reason": "collector line M15 1 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-29.jpg",
@@ -1530,7 +1531,7 @@
     "group": null,
     "top": "28180667-cc1e-4f64-9a69-00425ef85ba0",
     "accepted": null,
-    "reason": "collector line DSC 92 names no printing in the catalog"
+    "reason": "collector line DSC 92 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-30.jpg",
@@ -1538,7 +1539,7 @@
     "group": null,
     "top": "4a2d381e-4082-4e7d-a109-a7c700ceddfd",
     "accepted": null,
-    "reason": "collector line CMM 420 names no printing in the catalog"
+    "reason": "collector line CMM 420 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-1.jpg",
@@ -1562,7 +1563,7 @@
     "group": null,
     "top": "4941246b-7d6a-4b2d-8144-f36ac890a389",
     "accepted": null,
-    "reason": "collector line M20 5 names no printing in the catalog"
+    "reason": "collector line M20 5 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-4.jpg",
@@ -1570,7 +1571,7 @@
     "group": null,
     "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
     "accepted": null,
-    "reason": "collector line ELD 8 names no printing in the catalog"
+    "reason": "collector line ELD 8 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-5.jpg",
@@ -1578,7 +1579,7 @@
     "group": null,
     "top": "b47e9cfa-5547-4ef3-9e36-8d0f36dfa59a",
     "accepted": null,
-    "reason": "collector line SOS 170 names no printing in the catalog"
+    "reason": "collector line SOS 170 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-6.jpg",
@@ -1586,7 +1587,7 @@
     "group": null,
     "top": "310deafe-124b-4813-a383-bc9a9d028cfc",
     "accepted": null,
-    "reason": "collector line SOA 2 names no printing in the catalog"
+    "reason": "collector line SOA 2 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-7.jpg",
@@ -1594,7 +1595,7 @@
     "group": null,
     "top": "80d4ce4f-8255-419b-9e7f-544d9798e5c8",
     "accepted": null,
-    "reason": "collector line M21 176 names no printing in the catalog"
+    "reason": "collector line M21 176 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-8.jpg",
@@ -1602,7 +1603,7 @@
     "group": null,
     "top": "035975da-7a65-4cef-9bd3-d1e1f6102f38",
     "accepted": null,
-    "reason": "collector line ELD 295 names no printing in the catalog"
+    "reason": "collector line ELD 295 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-9.jpg",
@@ -1626,7 +1627,7 @@
     "group": null,
     "top": "6d238383-e67f-4a34-b431-f079e55b2708",
     "accepted": null,
-    "reason": "collector line SOS 72 names no printing in the catalog"
+    "reason": "collector line SOS 72 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-12.jpg",
@@ -1642,7 +1643,7 @@
     "group": null,
     "top": "d2039548-af2c-4a93-842c-4a1e28e20f1d",
     "accepted": null,
-    "reason": "collector line MSH 85 names no printing in the catalog"
+    "reason": "collector line MSH 85 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-14.jpg",
@@ -1650,7 +1651,7 @@
     "group": null,
     "top": "2c6e5b25-b721-45ee-894a-697de1310b8c",
     "accepted": null,
-    "reason": "collector line ELD 76 names no printing in the catalog"
+    "reason": "collector line ELD 76 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-15.jpg",
@@ -1666,7 +1667,7 @@
     "group": null,
     "top": "eafd2e27-01d0-4894-886e-2b8776904ab9",
     "accepted": null,
-    "reason": "collector line SOS 171 names no printing in the catalog"
+    "reason": "collector line SOS 171 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-17.jpg",
@@ -1674,7 +1675,7 @@
     "group": null,
     "top": "27e508f2-5f4e-4d8c-8e72-b896d5e204ad",
     "accepted": null,
-    "reason": "collector line RIX 31 names no printing in the catalog"
+    "reason": "collector line RIX 31 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-18.jpg",
@@ -1682,7 +1683,7 @@
     "group": null,
     "top": "371a769a-ddae-47f6-b2c2-957de5c18417",
     "accepted": null,
-    "reason": "collector line SOS 38 names no printing in the catalog"
+    "reason": "collector line SOS 38 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-19.jpg",
@@ -1690,7 +1691,7 @@
     "group": null,
     "top": "a0e47d11-cb21-402b-a39e-588a94cc57b4",
     "accepted": null,
-    "reason": "collector line SOA 37 names no printing in the catalog"
+    "reason": "collector line SOA 37 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-20.jpg",
@@ -1698,7 +1699,7 @@
     "group": null,
     "top": "de3daeef-e352-4cd9-8411-94ce25c57060",
     "accepted": null,
-    "reason": "collector line RIX 176 names no printing in the catalog"
+    "reason": "collector line RIX 176 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-21.jpg",
@@ -1706,7 +1707,7 @@
     "group": null,
     "top": "f5db8199-22d8-4721-b62b-245ec5e2907a",
     "accepted": null,
-    "reason": "collector line SLD 7096 names no printing in the catalog"
+    "reason": "collector line SLD 7096 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-22.jpg",
@@ -1714,7 +1715,7 @@
     "group": null,
     "top": "aed61bbb-83fd-452b-b940-c8eb1e1ebdac",
     "accepted": null,
-    "reason": "collector line SLD 7097 names no printing in the catalog"
+    "reason": "collector line SLD 7097 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-23.jpg",
@@ -1722,7 +1723,7 @@
     "group": null,
     "top": "60709d98-c98d-48c0-ac4a-4ff73e7a0c4b",
     "accepted": null,
-    "reason": "collector line SLD 7094 names no printing in the catalog"
+    "reason": "collector line SLD 7094 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-24.jpg",
@@ -1730,7 +1731,7 @@
     "group": null,
     "top": "9df4b5a2-95bf-4268-9d75-6065176651d1",
     "accepted": null,
-    "reason": "collector line SLD 2464 names no printing in the catalog"
+    "reason": "collector line SLD 2464 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-25.jpg",
@@ -1754,7 +1755,7 @@
     "group": null,
     "top": "2e1fb442-68ff-4249-8e44-87edf6fae211",
     "accepted": null,
-    "reason": "collector line EMA 81 names no printing in the catalog"
+    "reason": "collector line EMA 81 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-28.jpg",
@@ -1762,7 +1763,7 @@
     "group": null,
     "top": "51825d35-cdb2-40fa-ab89-1625161b04af",
     "accepted": null,
-    "reason": "collector line M15 1 names no printing in the catalog"
+    "reason": "collector line M15 1 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-29.jpg",
@@ -1770,7 +1771,7 @@
     "group": null,
     "top": "5b245a5b-5a99-4d22-99ef-3f5bf49c3262",
     "accepted": null,
-    "reason": "collector line DSC 92 names no printing in the catalog"
+    "reason": "collector line DSC 92 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-30.jpg",
@@ -1778,7 +1779,7 @@
     "group": null,
     "top": "4a2d381e-4082-4e7d-a109-a7c700ceddfd",
     "accepted": null,
-    "reason": "collector line CMM 420 names no printing in the catalog"
+    "reason": "collector line CMM 420 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-1.jpg",
@@ -1786,7 +1787,7 @@
     "group": null,
     "top": "de3daeef-e352-4cd9-8411-94ce25c57060",
     "accepted": null,
-    "reason": "collector line RIX 176 names no printing in the catalog"
+    "reason": "collector line RIX 176 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-2.jpg",
@@ -1802,13 +1803,13 @@
     "group": null,
     "top": "61ada5ce-3a58-4da9-aff2-93a61411dd64",
     "accepted": null,
-    "reason": "collector line SOA 37 names no printing in the catalog"
+    "reason": "collector line SOA 37 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-4.jpg",
     "truth": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
     "group": null,
-    "top": "27e508f2-5f4e-4d8c-8e72-b896d5e204ad",
+    "top": "720406ef-4460-475f-bbc1-491c8c48794e",
     "accepted": null,
     "reason": "2 printings share this art and no collector line was read"
    },
@@ -1818,7 +1819,7 @@
     "group": null,
     "top": "a98609dc-ea90-4c7e-a191-5e5d0ba16847",
     "accepted": null,
-    "reason": "collector line SOS 38 names no printing in the catalog"
+    "reason": "collector line SOS 38 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-6.jpg",
@@ -1826,7 +1827,7 @@
     "group": null,
     "top": "a98609dc-ea90-4c7e-a191-5e5d0ba16847",
     "accepted": null,
-    "reason": "collector line SOS 38 names no printing in the catalog"
+    "reason": "collector line SOS 38 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-7.jpg",
@@ -1834,7 +1835,7 @@
     "group": null,
     "top": "800cef89-e90c-4f84-a7a0-3cd203532169",
     "accepted": null,
-    "reason": "collector line SOS 171 names no printing in the catalog"
+    "reason": "collector line SOS 171 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-8.jpg",
@@ -1842,7 +1843,7 @@
     "group": null,
     "top": "84ede129-83fc-42b7-8941-fa649d3329e5",
     "accepted": null,
-    "reason": "collector line M15 86 names no printing in the catalog"
+    "reason": "collector line M15 86 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-9.jpg",
@@ -1850,7 +1851,7 @@
     "group": null,
     "top": "2c6e5b25-b721-45ee-894a-697de1310b8c",
     "accepted": null,
-    "reason": "collector line ELD 76 names no printing in the catalog"
+    "reason": "collector line ELD 76 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-10.jpg",
@@ -1858,7 +1859,7 @@
     "group": null,
     "top": "4dedca48-b7a2-45b9-af1e-b3754879d1d6",
     "accepted": null,
-    "reason": "collector line MSH 85 names no printing in the catalog"
+    "reason": "collector line MSH 85 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-11.jpg",
@@ -1874,7 +1875,7 @@
     "group": null,
     "top": "eb564473-7416-4cf7-971a-e6dc5eb10445",
     "accepted": null,
-    "reason": "collector line SOS 72 names no printing in the catalog"
+    "reason": "collector line SOS 72 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-13.jpg",
@@ -1882,7 +1883,7 @@
     "group": null,
     "top": "76ac5b70-47db-4cdb-91e7-e5c18c42e516",
     "accepted": null,
-    "reason": "collector line RIX 125 names no printing in the catalog"
+    "reason": "collector line RIX 125 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-14.jpg",
@@ -1898,7 +1899,7 @@
     "group": null,
     "top": "035975da-7a65-4cef-9bd3-d1e1f6102f38",
     "accepted": null,
-    "reason": "collector line ELD 295 names no printing in the catalog"
+    "reason": "collector line ELD 295 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-16.jpg",
@@ -1906,7 +1907,7 @@
     "group": null,
     "top": "80d4ce4f-8255-419b-9e7f-544d9798e5c8",
     "accepted": null,
-    "reason": "collector line M21 176 names no printing in the catalog"
+    "reason": "collector line M21 176 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-17.jpg",
@@ -1914,7 +1915,7 @@
     "group": null,
     "top": "310deafe-124b-4813-a383-bc9a9d028cfc",
     "accepted": null,
-    "reason": "collector line SOA 2 names no printing in the catalog"
+    "reason": "collector line SOA 2 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-18.jpg",
@@ -1922,7 +1923,7 @@
     "group": null,
     "top": "b47e9cfa-5547-4ef3-9e36-8d0f36dfa59a",
     "accepted": null,
-    "reason": "collector line SOS 170 names no printing in the catalog"
+    "reason": "collector line SOS 170 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-19.jpg",
@@ -1930,7 +1931,7 @@
     "group": null,
     "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
     "accepted": null,
-    "reason": "collector line ELD 8 names no printing in the catalog"
+    "reason": "collector line ELD 8 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-20.jpg",
@@ -1938,7 +1939,7 @@
     "group": null,
     "top": "4941246b-7d6a-4b2d-8144-f36ac890a389",
     "accepted": null,
-    "reason": "collector line M20 5 names no printing in the catalog"
+    "reason": "collector line M20 5 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-21.jpg",
@@ -1954,7 +1955,7 @@
     "group": null,
     "top": "823ccb07-cf08-4ae3-9b9a-f16de8e6d745",
     "accepted": null,
-    "reason": "collector line SPG 156 names no printing in the catalog"
+    "reason": "collector line SPG 156 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-23.jpg",
@@ -1962,15 +1963,15 @@
     "group": null,
     "top": "f5db8199-22d8-4721-b62b-245ec5e2907a",
     "accepted": null,
-    "reason": "collector line SLD 7096 names no printing in the catalog"
+    "reason": "collector line SLD 7096 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-24.jpg",
     "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
     "group": null,
-    "top": "667b6c3b-75cc-4adf-b205-80925ca76d2a",
+    "top": "aed61bbb-83fd-452b-b940-c8eb1e1ebdac",
     "accepted": null,
-    "reason": "collector line SLD 7097 names no printing in the catalog"
+    "reason": "collector line SLD 7097 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-25.jpg",
@@ -1978,7 +1979,7 @@
     "group": null,
     "top": "2f5b4544-70d9-45ee-84a3-fa6253a53a82",
     "accepted": null,
-    "reason": "collector line SLD 7094 names no printing in the catalog"
+    "reason": "collector line SLD 7094 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-26.jpg",
@@ -1986,7 +1987,7 @@
     "group": null,
     "top": "9df4b5a2-95bf-4268-9d75-6065176651d1",
     "accepted": null,
-    "reason": "collector line SLD 2464 names no printing in the catalog"
+    "reason": "collector line SLD 2464 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-27.jpg",
@@ -1994,7 +1995,7 @@
     "group": null,
     "top": "6d28946e-a478-4e0b-b39b-ec0236ddc9a5",
     "accepted": null,
-    "reason": "collector line CMM 420 names no printing in the catalog"
+    "reason": "collector line CMM 420 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-28.jpg",
@@ -2002,7 +2003,7 @@
     "group": null,
     "top": "bd4485e0-cf88-4aac-889a-e7d299c11e1c",
     "accepted": null,
-    "reason": "collector line DSC 92 names no printing in the catalog"
+    "reason": "collector line DSC 92 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-29.jpg",
@@ -2010,7 +2011,7 @@
     "group": null,
     "top": "51825d35-cdb2-40fa-ab89-1625161b04af",
     "accepted": null,
-    "reason": "collector line M15 1 names no printing in the catalog"
+    "reason": "collector line M15 1 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-30.jpg",
@@ -2018,15 +2019,15 @@
     "group": null,
     "top": "877558c4-f633-4510-97db-f1205a080ecb",
     "accepted": null,
-    "reason": "collector line EMA 81 names no printing in the catalog"
+    "reason": "collector line EMA 81 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-31.jpg",
     "truth": "db465858-0593-4850-8f1d-400fe230a18d",
     "group": null,
-    "top": "94dcbf68-faa7-4fa1-be17-2f71a0f9ad5e",
+    "top": "954b04e3-861a-45c9-8897-9cb4a99f04c3",
     "accepted": null,
-    "reason": "collector line SOA 26 names no printing in the catalog"
+    "reason": "collector line SOA 26 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-32.jpg",
@@ -2048,89 +2049,89 @@
     "input": "crops/rectified/muwewrqz-1.jpg",
     "truth": null,
     "group": null,
-    "top": "308ac133-f368-4f6c-9e09-d9cfc136355a",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.476 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwewrqz-2.jpg",
     "truth": null,
     "group": null,
-    "top": "8d4a47d3-75f4-4770-8fbf-735b97811d82",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.454 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwewrqz-3.jpg",
     "truth": null,
     "group": null,
-    "top": "8d4a47d3-75f4-4770-8fbf-735b97811d82",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.466 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwewrqz-4.jpg",
     "truth": null,
     "group": null,
-    "top": "308ac133-f368-4f6c-9e09-d9cfc136355a",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.466 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwewrqz-5.jpg",
     "truth": null,
     "group": null,
-    "top": "308ac133-f368-4f6c-9e09-d9cfc136355a",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.481 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwh0fdo-1.jpg",
     "truth": null,
     "group": null,
-    "top": "eed1bd05-d085-4115-aa37-df4e7aef2e46",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.455 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwh80d1-1.jpg",
     "truth": null,
     "group": null,
-    "top": "308ac133-f368-4f6c-9e09-d9cfc136355a",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.484 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwh80d1-3.jpg",
     "truth": null,
     "group": null,
-    "top": "485cef94-d7aa-4bb3-b2e6-61d0ccf8007e",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.415 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwh80d1-4.jpg",
     "truth": null,
     "group": null,
-    "top": "eed1bd05-d085-4115-aa37-df4e7aef2e46",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.460 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwhquxp-1.jpg",
     "truth": null,
     "group": null,
-    "top": "8d4a47d3-75f4-4770-8fbf-735b97811d82",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.453 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwhquxp-8.jpg",
     "truth": null,
     "group": null,
-    "top": "0e2b161e-4a76-4945-97a4-d9140a2b928a",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.428 is below 0.500"
+    "reason": "not a card"
    }
   ]
  }
