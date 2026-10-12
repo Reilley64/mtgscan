@@ -26,14 +26,14 @@ The crops show only cards, the card holder, and fingers. The 250 card crops cove
 
 ## Gallery
 
-The gates need the gallery: the feature prints and the printing list of every paper card printing. It is not in the repo, because it is built from Scryfall data. The expected files were recorded with a float16 gallery of 102,726 printings, built on 6 October 2026 from Scryfall `default_cards`. Its SHA-256 values are in `recordedWith`.
+The gates need the gallery: the feature prints and the printing list of every paper card printing. It is not in the repo, because it is built from Scryfall data. The expected files were recorded with gallery version `20261012-cf1753`, the first int8 gallery that #79 built for phones. It has 102,730 card printings from Scryfall `default_cards` of 11 October 2026. `recordedWith` names the version and the SHA-256 values of the installed `catalog.json` and `gallery.f16`. The scanner evidence pack keeps this version in Storage: `bun run gallery publish` never deletes it.
 
 The replay looks for the gallery in `modules/card-recognizer/.data/gallery`. Set `RECOGNIZER_GALLERY_DIR` to use another folder. The folder holds `catalog.json`, `gallery.json`, and `gallery.f16`.
 
-- **Reuse the recorded gallery.** The owner's Mac keeps it from the prototype. `docs/agents/local-development.md` says where. Only this gallery can show that a result is unchanged against the expected files.
+- **Install the recorded gallery.** `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753` in `supabase` unpacks it into `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`, with the same decoder as the phone. It downloads the parts with the hosted secret key only when they are not on the Mac. Only this gallery can show that a result is unchanged against the expected files.
 - **Build a gallery.** `bun run recognizer:gallery` downloads the current Scryfall `default_cards` file and about 10 GB of `normal` images into `modules/card-recognizer/.data`, then computes the feature prints. Set `SCRYFALL_BULK_FILE` to use a saved bulk file. A gallery from a newer bulk file has more printings, so a few results can change. This gallery is only for the replay. It orders rows by printing ID and is not checked against the card catalog. #79 builds the gallery that phones download.
 
-The macOS recognizer command computes the feature prints. It compiles the same Swift files as the phone module. On the owner's Mac it gives the same bytes as the recorded gallery.
+The macOS recognizer command computes the feature prints. It compiles the same Swift files as the phone module. On the owner's Mac it gives the same feature prints as the recorded gallery.
 
 ## Replay
 
@@ -102,7 +102,7 @@ Pass criteria:
 - No more accepted wrong printings outside the candidate list than recorded. The recorded count is 0. The #10 study had 1, Tamiyo's Journal `plst SOI-265` with 10 printings that share its art. The candidate list now includes every same-text twin, so that card is inside it.
 - 0 recognizer errors.
 
-Recorded result on the full gallery: 2,493 accepts, 2,135 exactly right, 358 other printings of the right card, and 0 wrong cards. 2,962 of 3,000 had the right card first. With the true printing missing: 382 accepts, all a printing that shares the art of the missing printing or its promo, and 0 wrong cards.
+Recorded result on the full gallery: 2,493 accepts, 2,135 exactly right, 358 other printings of the right card, and 0 wrong cards. 2,961 of 3,000 had the right card first. With the true printing missing: 382 accepts, all a printing that shares the art of the missing printing or its promo, and 0 wrong cards.
 
 In the results, `falseAccepts` counts every accept that is not the exact printing. Most are same-text twins, which are the product decision in #10. `check.mjs` reports wrong cards separately. `truthInTop5` counts the scans whose true printing is anywhere in the candidate list.
 

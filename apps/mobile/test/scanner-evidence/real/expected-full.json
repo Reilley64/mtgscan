@@ -1,24 +1,25 @@
 {
  "recordedWith": {
-  "recognizerCommit": "83988dd",
-  "recognizerLastChanged": "716a44f",
+  "recognizerCommit": "7fb6205",
   "featurePrint": "VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values",
   "gallery": {
-   "directory": ".data/catalog",
-   "encoding": "float16",
-   "printings": 102726,
-   "createdAt": "2026-10-06T13:24:32Z",
-   "catalogJsonSha256": "0e5b603db0d0adafbeb0fa21fc2e5001ab5f51a716fb4565660d3bff0936fcaa",
-   "galleryF16Sha256": "22d56acc50b6b10eb0d74cbf3c9b8f7db4fb202d34474639258987feba5e705c",
-   "scryfallBulk": "default_cards downloaded 6 October 2026, default-cards.jsonl.gz sha256 2e4b9449d03162d910226026f278e07ca6f491497fce8f7f5ae56833300c1772"
+   "version": "20261012-cf1753",
+   "directory": "~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753",
+   "encoding": "int8 per vector, installed as unit-length float16",
+   "printings": 102730,
+   "createdAt": "2026-10-12T03:44:47.658Z",
+   "catalogJsonSha256": "e637953e0c721abaa04ba021a6ed2c085ddd61d9b001aaa1001959124b0958c5",
+   "galleryF16Sha256": "ac1325c5d41755292a26c80b72caa3799259cabf1113b033eb229af1ac03a53c",
+   "scryfallBulk": "default_cards updated 2026-10-11T21:05:54.791+00:00",
+   "cardCatalogSnapshot": "2026-10-09T09:01:54.966+00:00"
   },
   "machine": "Apple M3, macOS 15.7.3",
-  "recordedOn": "2026-10-09",
-  "command": "node scripts/evaluate-crops.mjs evidence/real/labels.json --details --scans",
-  "note": "Matches the 8 October 2026 study run (214 correct accepts, 0 false accepts) cited in issue #10."
+  "recordedOn": "2026-10-12",
+  "command": "bun run recognizer:replay (real-full)",
+  "note": "Recorded with gallery version 20261012-cf1753, the first int8 gallery (#79). Every accept is the same as on the float16 gallery of 6 October 2026: 214 correct accepts and 0 false accepts. One scan that abstains shows another printing of the same card first: Command Tower SLD 7097 (muyxcbms-24) shows Command Tower WOC 156 instead of FDC 3."
  },
  "result": {
-  "catalog": 102726,
+  "catalog": 102730,
   "heldOut": false,
   "truthInTop5": 247,
   "cards": 250,
@@ -30,8 +31,8 @@
   "nonCards": 11,
   "nonCardsRejected": 11,
   "errors": 0,
-  "p50Ms": 84,
-  "p95Ms": 128,
+  "p50Ms": 129,
+  "p95Ms": 194,
   "acceptReasons": {
    "collector line X matches a card in the image shortlist": 195,
    "only printing of its art, next art # behind": 14,
@@ -54,1285 +55,1285 @@
    {
     "correct": true,
     "reason": "collector line SOS 171 matches a card in the image shortlist",
-    "topSimilarity": 0.8160932660102844,
+    "topSimilarity": 0.8162387013435364,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 38 matches a card in the image shortlist",
-    "topSimilarity": 0.8245194554328918,
+    "topSimilarity": 0.8243412971496582,
     "group": null
    },
    {
     "correct": true,
-    "reason": "only printing of its art, next art 0.055 behind",
-    "topSimilarity": 0.8499346971511841,
+    "reason": "only printing of its art, next art 0.056 behind",
+    "topSimilarity": 0.8502227663993835,
     "group": null
    },
    {
     "correct": true,
     "reason": "only printing of its art, next art 0.059 behind",
-    "topSimilarity": 0.8440290689468384,
+    "topSimilarity": 0.8437568545341492,
     "group": null
    },
    {
     "correct": true,
     "reason": "only printing of its art, next art 0.076 behind",
-    "topSimilarity": 0.8562815189361572,
+    "topSimilarity": 0.8562144637107849,
     "group": null
    },
    {
     "correct": true,
-    "reason": "only printing of its art, next art 0.101 behind",
-    "topSimilarity": 0.9033269286155701,
+    "reason": "only printing of its art, next art 0.100 behind",
+    "topSimilarity": 0.9030089378356934,
     "group": null
    },
    {
     "correct": true,
     "reason": "only printing of its art, next art 0.117 behind",
-    "topSimilarity": 0.853527843952179,
+    "topSimilarity": 0.8530071973800659,
     "group": null
    },
    {
     "correct": true,
     "reason": "only printing of its art, next art 0.097 behind",
-    "topSimilarity": 0.9008952975273132,
+    "topSimilarity": 0.9009457230567932,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 139 matches a card in the image shortlist",
-    "topSimilarity": 0.9017036557197571,
+    "topSimilarity": 0.9022770524024963,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 31 matches a card in the image shortlist",
-    "topSimilarity": 0.8723452091217041,
+    "topSimilarity": 0.8722265362739563,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 125 matches a card in the image shortlist",
-    "topSimilarity": 0.8666563630104065,
+    "topSimilarity": 0.8660770058631897,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line CMM 420 matches a card in the image shortlist",
-    "topSimilarity": 0.8459761142730713,
+    "topSimilarity": 0.8452462553977966,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7097 matches a card in the image shortlist",
-    "topSimilarity": 0.7069911360740662,
+    "topSimilarity": 0.7075788974761963,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M15 1 matches a card in the image shortlist",
-    "topSimilarity": 0.8316482305526733,
+    "topSimilarity": 0.8314130902290344,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 8 matches a card in the image shortlist",
-    "topSimilarity": 0.8708546757698059,
+    "topSimilarity": 0.8714608550071716,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 8 matches a card in the image shortlist",
-    "topSimilarity": 0.7327957153320312,
+    "topSimilarity": 0.7315208315849304,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 8 matches a card in the image shortlist",
-    "topSimilarity": 0.8963920474052429,
+    "topSimilarity": 0.8954812288284302,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 3 matches a card in the image shortlist",
-    "topSimilarity": 0.8393690586090088,
+    "topSimilarity": 0.8387912511825562,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 7 matches a card in the image shortlist",
-    "topSimilarity": 0.8411217927932739,
+    "topSimilarity": 0.8403571844100952,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 215 matches a card in the image shortlist",
-    "topSimilarity": 0.732378363609314,
+    "topSimilarity": 0.731313943862915,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 174 matches a card in the image shortlist",
-    "topSimilarity": 0.769586443901062,
+    "topSimilarity": 0.769356906414032,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 4 matches a card in the image shortlist",
-    "topSimilarity": 0.7345165610313416,
+    "topSimilarity": 0.7346215844154358,
     "group": null
    },
    {
     "correct": true,
     "reason": "set SOS leaves one printing of the top card",
-    "topSimilarity": 0.8119706511497498,
+    "topSimilarity": 0.8112126588821411,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 5 matches a card in the image shortlist",
-    "topSimilarity": 0.7526644468307495,
+    "topSimilarity": 0.7529768347740173,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 7 matches a card in the image shortlist",
-    "topSimilarity": 0.9204428791999817,
+    "topSimilarity": 0.9203045964241028,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 2 matches a card in the image shortlist",
-    "topSimilarity": 0.707644522190094,
+    "topSimilarity": 0.7076364159584045,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 6 matches a card in the image shortlist",
-    "topSimilarity": 0.7144308686256409,
+    "topSimilarity": 0.7130699753761292,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RNA 4 matches a card in the image shortlist",
-    "topSimilarity": 0.8564878702163696,
+    "topSimilarity": 0.8561985492706299,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 11 matches a card in the image shortlist",
-    "topSimilarity": 0.89945387840271,
+    "topSimilarity": 0.8996881246566772,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line KTK 3 matches a card in the image shortlist",
-    "topSimilarity": 0.8771284818649292,
+    "topSimilarity": 0.876630425453186,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 5 matches a card in the image shortlist",
-    "topSimilarity": 0.8473615646362305,
+    "topSimilarity": 0.8468916416168213,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 7 matches a card in the image shortlist",
-    "topSimilarity": 0.8627577424049377,
+    "topSimilarity": 0.8622215986251831,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 178 matches a card in the image shortlist",
-    "topSimilarity": 0.8886149525642395,
+    "topSimilarity": 0.8884099721908569,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 173 matches a card in the image shortlist",
-    "topSimilarity": 0.8750357031822205,
+    "topSimilarity": 0.8745500445365906,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 5 matches a card in the image shortlist",
-    "topSimilarity": 0.8382381796836853,
+    "topSimilarity": 0.8379212617874146,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 3 matches a card in the image shortlist",
-    "topSimilarity": 0.9167545437812805,
+    "topSimilarity": 0.916353166103363,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 7 matches a card in the image shortlist",
-    "topSimilarity": 0.8966168761253357,
+    "topSimilarity": 0.8966615796089172,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 3 matches a card in the image shortlist",
-    "topSimilarity": 0.8160273432731628,
+    "topSimilarity": 0.8160922527313232,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 8 matches a card in the image shortlist",
-    "topSimilarity": 0.7682821750640869,
+    "topSimilarity": 0.7681101560592651,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 8 matches a card in the image shortlist",
-    "topSimilarity": 0.9231777787208557,
+    "topSimilarity": 0.922848105430603,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M15 1 matches a card in the image shortlist",
-    "topSimilarity": 0.8524932861328125,
+    "topSimilarity": 0.8522918224334717,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M15 1 matches a card in the image shortlist",
-    "topSimilarity": 0.8825337886810303,
+    "topSimilarity": 0.8826518058776855,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 8 matches a card in the image shortlist",
-    "topSimilarity": 0.8893041610717773,
+    "topSimilarity": 0.8881362676620483,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 8 matches a card in the image shortlist",
-    "topSimilarity": 0.7885647416114807,
+    "topSimilarity": 0.7884865999221802,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 3 matches a card in the image shortlist",
-    "topSimilarity": 0.7087672352790833,
+    "topSimilarity": 0.708369255065918,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 8 matches a card in the image shortlist",
-    "topSimilarity": 0.9048613905906677,
+    "topSimilarity": 0.9046735763549805,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 7 matches a card in the image shortlist",
-    "topSimilarity": 0.7734783291816711,
+    "topSimilarity": 0.7734955549240112,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 5 matches a card in the image shortlist",
-    "topSimilarity": 0.844931423664093,
+    "topSimilarity": 0.8442750573158264,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 173 matches a card in the image shortlist",
-    "topSimilarity": 0.8759644031524658,
+    "topSimilarity": 0.8754475712776184,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 178 matches a card in the image shortlist",
-    "topSimilarity": 0.8889728784561157,
+    "topSimilarity": 0.8888843059539795,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 7 matches a card in the image shortlist",
-    "topSimilarity": 0.7804616689682007,
+    "topSimilarity": 0.7800477147102356,
     "group": null
    },
    {
     "correct": true,
-    "reason": "only printing of its art, next art 0.049 behind",
-    "topSimilarity": 0.837052583694458,
+    "reason": "only printing of its art, next art 0.048 behind",
+    "topSimilarity": 0.8365627527236938,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line KTK 3 matches a card in the image shortlist",
-    "topSimilarity": 0.8701894879341125,
+    "topSimilarity": 0.8698139190673828,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 11 matches a card in the image shortlist",
-    "topSimilarity": 0.910239577293396,
+    "topSimilarity": 0.9104721546173096,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RNA 4 matches a card in the image shortlist",
-    "topSimilarity": 0.8717036843299866,
+    "topSimilarity": 0.8716304302215576,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 6 matches a card in the image shortlist",
-    "topSimilarity": 0.8669473528862,
+    "topSimilarity": 0.8660926818847656,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 2 matches a card in the image shortlist",
-    "topSimilarity": 0.8990744948387146,
+    "topSimilarity": 0.8987658023834229,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 5 matches a card in the image shortlist",
-    "topSimilarity": 0.8909416794776917,
+    "topSimilarity": 0.8915829062461853,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 8 matches a card in the image shortlist",
-    "topSimilarity": 0.879325270652771,
+    "topSimilarity": 0.8789506554603577,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 4 matches a card in the image shortlist",
-    "topSimilarity": 0.8845745921134949,
+    "topSimilarity": 0.8841516375541687,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 174 matches a card in the image shortlist",
-    "topSimilarity": 0.9015715718269348,
+    "topSimilarity": 0.9011433124542236,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 215 matches a card in the image shortlist",
-    "topSimilarity": 0.9056735634803772,
+    "topSimilarity": 0.9052661657333374,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M15 1 matches a card in the image shortlist",
-    "topSimilarity": 0.8739553689956665,
+    "topSimilarity": 0.8735707402229309,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 5 matches a card in the image shortlist",
-    "topSimilarity": 0.7494502663612366,
+    "topSimilarity": 0.7499738931655884,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line KTK 3 matches a card in the image shortlist",
-    "topSimilarity": 0.7348308563232422,
+    "topSimilarity": 0.7339779734611511,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 11 matches a card in the image shortlist",
-    "topSimilarity": 0.8321970701217651,
+    "topSimilarity": 0.8323390483856201,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RNA 4 matches a card in the image shortlist",
-    "topSimilarity": 0.8662645220756531,
+    "topSimilarity": 0.8658335208892822,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RNA 61 matches a card in the image shortlist",
-    "topSimilarity": 0.8412448167800903,
+    "topSimilarity": 0.8411171436309814,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M15 86 matches a card in the image shortlist",
-    "topSimilarity": 0.7822656631469727,
+    "topSimilarity": 0.7818692326545715,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 74 matches a card in the image shortlist",
-    "topSimilarity": 0.6470820903778076,
+    "topSimilarity": 0.6466661691665649,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 87 matches a card in the image shortlist",
-    "topSimilarity": 0.8629380464553833,
+    "topSimilarity": 0.8622564077377319,
     "group": null
    },
    {
     "correct": true,
-    "reason": "only printing of its art, next art 0.078 behind",
-    "topSimilarity": 0.8508439064025879,
+    "reason": "only printing of its art, next art 0.077 behind",
+    "topSimilarity": 0.8504159450531006,
     "group": null
    },
    {
     "correct": true,
-    "reason": "only printing of its art, next art 0.105 behind",
-    "topSimilarity": 0.709294855594635,
+    "reason": "only printing of its art, next art 0.104 behind",
+    "topSimilarity": 0.7091860175132751,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 88 matches a card in the image shortlist",
-    "topSimilarity": 0.8958156704902649,
+    "topSimilarity": 0.8954609036445618,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 88 matches a card in the image shortlist",
-    "topSimilarity": 0.8681674599647522,
+    "topSimilarity": 0.8672500848770142,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 90 matches a card in the image shortlist",
-    "topSimilarity": 0.8933600187301636,
+    "topSimilarity": 0.8932432532310486,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 85 matches a card in the image shortlist",
-    "topSimilarity": 0.8854812979698181,
+    "topSimilarity": 0.8848691582679749,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 26 matches a card in the image shortlist",
-    "topSimilarity": 0.8786129951477051,
+    "topSimilarity": 0.8789409399032593,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line EMA 81 matches a card in the image shortlist",
-    "topSimilarity": 0.9131633639335632,
+    "topSimilarity": 0.9134575128555298,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line MSH 85 matches a card in the image shortlist",
-    "topSimilarity": 0.8238811492919922,
+    "topSimilarity": 0.8235589861869812,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line MSH 85 matches a card in the image shortlist",
-    "topSimilarity": 0.8221041560173035,
+    "topSimilarity": 0.8218609094619751,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 76 matches a card in the image shortlist",
-    "topSimilarity": 0.7773851156234741,
+    "topSimilarity": 0.7765989303588867,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 171 matches a card in the image shortlist",
-    "topSimilarity": 0.8950051069259644,
+    "topSimilarity": 0.8945167660713196,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M15 86 matches a card in the image shortlist",
-    "topSimilarity": 0.8975539207458496,
+    "topSimilarity": 0.89699786901474,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 76 matches a card in the image shortlist",
-    "topSimilarity": 0.868845522403717,
+    "topSimilarity": 0.8682499527931213,
     "group": null
    },
    {
     "correct": true,
     "reason": "set MSH leaves one printing of the top card",
-    "topSimilarity": 0.8618313670158386,
+    "topSimilarity": 0.8612097501754761,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 72 matches a card in the image shortlist",
-    "topSimilarity": 0.8658139705657959,
+    "topSimilarity": 0.8658971786499023,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 38 matches a card in the image shortlist",
-    "topSimilarity": 0.8406412601470947,
+    "topSimilarity": 0.8403135538101196,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SPG 156 matches a card in the image shortlist",
-    "topSimilarity": 0.8744548559188843,
+    "topSimilarity": 0.8743624091148376,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 38 matches a card in the image shortlist",
-    "topSimilarity": 0.8638409376144409,
+    "topSimilarity": 0.8639647960662842,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 37 matches a card in the image shortlist",
-    "topSimilarity": 0.8687787652015686,
+    "topSimilarity": 0.8687630295753479,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 176 matches a card in the image shortlist",
-    "topSimilarity": 0.9048476219177246,
+    "topSimilarity": 0.9047076106071472,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 31 matches a card in the image shortlist",
-    "topSimilarity": 0.9040742516517639,
+    "topSimilarity": 0.9036837816238403,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 125 matches a card in the image shortlist",
-    "topSimilarity": 0.8878132700920105,
+    "topSimilarity": 0.8875964283943176,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 2464 matches a card in the image shortlist",
-    "topSimilarity": 0.8105690479278564,
+    "topSimilarity": 0.8101899027824402,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7094 matches a card in the image shortlist",
-    "topSimilarity": 0.7878273725509644,
+    "topSimilarity": 0.7884836792945862,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7097 matches a card in the image shortlist",
-    "topSimilarity": 0.823424220085144,
+    "topSimilarity": 0.8231605291366577,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7096 matches a card in the image shortlist",
-    "topSimilarity": 0.8567482829093933,
+    "topSimilarity": 0.8571171760559082,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M15 1 matches a card in the image shortlist",
-    "topSimilarity": 0.8859976530075073,
+    "topSimilarity": 0.8857665061950684,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line DSC 92 matches a card in the image shortlist",
-    "topSimilarity": 0.8936238884925842,
+    "topSimilarity": 0.8940290212631226,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line CMM 420 matches a card in the image shortlist",
-    "topSimilarity": 0.8868748545646667,
+    "topSimilarity": 0.8870121240615845,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line EMA 81 matches a card in the image shortlist",
-    "topSimilarity": 0.8972234725952148,
+    "topSimilarity": 0.8971335291862488,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 26 matches a card in the image shortlist",
-    "topSimilarity": 0.8832616209983826,
+    "topSimilarity": 0.8834535479545593,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 295 matches a card in the image shortlist",
-    "topSimilarity": 0.92554771900177,
+    "topSimilarity": 0.9253996014595032,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 176 matches a card in the image shortlist",
-    "topSimilarity": 0.8982649445533752,
+    "topSimilarity": 0.8974159955978394,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 2 matches a card in the image shortlist",
-    "topSimilarity": 0.8835042715072632,
+    "topSimilarity": 0.8831691741943359,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 170 matches a card in the image shortlist",
-    "topSimilarity": 0.8446683287620544,
+    "topSimilarity": 0.8450563549995422,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 8 matches a card in the image shortlist",
-    "topSimilarity": 0.9170668721199036,
+    "topSimilarity": 0.9168873429298401,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 5 matches a card in the image shortlist",
-    "topSimilarity": 0.914912223815918,
+    "topSimilarity": 0.9141775965690613,
     "group": null
    },
    {
     "correct": true,
-    "reason": "only printing of its art, next art 0.096 behind",
-    "topSimilarity": 0.9139789938926697,
+    "reason": "only printing of its art, next art 0.097 behind",
+    "topSimilarity": 0.9139007925987244,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 295 matches a card in the image shortlist",
-    "topSimilarity": 0.8948250412940979,
+    "topSimilarity": 0.8947340846061707,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 125 matches a card in the image shortlist",
-    "topSimilarity": 0.9092726707458496,
+    "topSimilarity": 0.9090807437896729,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 72 matches a card in the image shortlist",
-    "topSimilarity": 0.8541372418403625,
+    "topSimilarity": 0.8539970517158508,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line MSH 85 matches a card in the image shortlist",
-    "topSimilarity": 0.8300737738609314,
+    "topSimilarity": 0.8296528458595276,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 76 matches a card in the image shortlist",
-    "topSimilarity": 0.8826828598976135,
+    "topSimilarity": 0.8830832839012146,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M15 86 matches a card in the image shortlist",
-    "topSimilarity": 0.7843244075775146,
+    "topSimilarity": 0.7845204472541809,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 171 matches a card in the image shortlist",
-    "topSimilarity": 0.8828401565551758,
+    "topSimilarity": 0.8820619583129883,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 31 matches a card in the image shortlist",
-    "topSimilarity": 0.8559794425964355,
+    "topSimilarity": 0.855602502822876,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SPG 156 matches a card in the image shortlist",
-    "topSimilarity": 0.8413074016571045,
+    "topSimilarity": 0.8409304618835449,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 176 matches a card in the image shortlist",
-    "topSimilarity": 0.8730424046516418,
+    "topSimilarity": 0.8729249238967896,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 37 matches a card in the image shortlist",
-    "topSimilarity": 0.8493168950080872,
+    "topSimilarity": 0.8496279120445251,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 38 matches a card in the image shortlist",
-    "topSimilarity": 0.8661527633666992,
+    "topSimilarity": 0.86575847864151,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7096 matches a card in the image shortlist",
-    "topSimilarity": 0.8614618182182312,
+    "topSimilarity": 0.8618606925010681,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7097 matches a card in the image shortlist",
-    "topSimilarity": 0.8153990507125854,
+    "topSimilarity": 0.8152137994766235,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7097 matches a card in the image shortlist",
-    "topSimilarity": 0.7480154037475586,
+    "topSimilarity": 0.7482320070266724,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7094 matches a card in the image shortlist",
-    "topSimilarity": 0.782217264175415,
+    "topSimilarity": 0.7827191948890686,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 2464 matches a card in the image shortlist",
-    "topSimilarity": 0.8191630840301514,
+    "topSimilarity": 0.8186377286911011,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 26 matches a card in the image shortlist",
-    "topSimilarity": 0.8710688948631287,
+    "topSimilarity": 0.8714162111282349,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line EMA 81 matches a card in the image shortlist",
-    "topSimilarity": 0.8921836614608765,
+    "topSimilarity": 0.8922720551490784,
     "group": null
    },
    {
     "correct": true,
-    "reason": "only printing of its art, next art 0.050 behind",
-    "topSimilarity": 0.8369469046592712,
+    "reason": "only printing of its art, next art 0.051 behind",
+    "topSimilarity": 0.8367026448249817,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line DSC 92 matches a card in the image shortlist",
-    "topSimilarity": 0.8582791090011597,
+    "topSimilarity": 0.8585118055343628,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line CMM 420 matches a card in the image shortlist",
-    "topSimilarity": 0.9092881679534912,
+    "topSimilarity": 0.9087058901786804,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 5 matches a card in the image shortlist",
-    "topSimilarity": 0.7722002863883972,
+    "topSimilarity": 0.7715355753898621,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 8 matches a card in the image shortlist",
-    "topSimilarity": 0.8550344109535217,
+    "topSimilarity": 0.8549187183380127,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 170 matches a card in the image shortlist",
-    "topSimilarity": 0.8828709125518799,
+    "topSimilarity": 0.8829531669616699,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 2 matches a card in the image shortlist",
-    "topSimilarity": 0.8139800429344177,
+    "topSimilarity": 0.8139920830726624,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 176 matches a card in the image shortlist",
-    "topSimilarity": 0.8993147015571594,
+    "topSimilarity": 0.8986386060714722,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SPG 156 matches a card in the image shortlist",
-    "topSimilarity": 0.7403514981269836,
+    "topSimilarity": 0.7405079007148743,
     "group": null
    },
    {
     "correct": true,
     "reason": "only printing of its art, next art 0.075 behind",
-    "topSimilarity": 0.7542399764060974,
+    "topSimilarity": 0.7539148330688477,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 5 matches a card in the image shortlist",
-    "topSimilarity": 0.713053286075592,
+    "topSimilarity": 0.7125032544136047,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 8 matches a card in the image shortlist",
-    "topSimilarity": 0.9085485339164734,
+    "topSimilarity": 0.9087562561035156,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 170 matches a card in the image shortlist",
-    "topSimilarity": 0.7703872323036194,
+    "topSimilarity": 0.7696773409843445,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 2 matches a card in the image shortlist",
-    "topSimilarity": 0.7881022095680237,
+    "topSimilarity": 0.7875941395759583,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 176 matches a card in the image shortlist",
-    "topSimilarity": 0.8610180020332336,
+    "topSimilarity": 0.8599787354469299,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 295 matches a card in the image shortlist",
-    "topSimilarity": 0.8735131621360779,
+    "topSimilarity": 0.8733301162719727,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 125 matches a card in the image shortlist",
-    "topSimilarity": 0.8726553916931152,
+    "topSimilarity": 0.8724252581596375,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 72 matches a card in the image shortlist",
-    "topSimilarity": 0.7946359515190125,
+    "topSimilarity": 0.7948163151741028,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line MSH 85 matches a card in the image shortlist",
-    "topSimilarity": 0.8703774213790894,
+    "topSimilarity": 0.8699901103973389,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 76 matches a card in the image shortlist",
-    "topSimilarity": 0.8779556155204773,
+    "topSimilarity": 0.8778590559959412,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 171 matches a card in the image shortlist",
-    "topSimilarity": 0.8717374801635742,
+    "topSimilarity": 0.8712487816810608,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 31 matches a card in the image shortlist",
-    "topSimilarity": 0.8817667961120605,
+    "topSimilarity": 0.8812597990036011,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 38 matches a card in the image shortlist",
-    "topSimilarity": 0.873969554901123,
+    "topSimilarity": 0.8738973736763,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 37 matches a card in the image shortlist",
-    "topSimilarity": 0.8729843497276306,
+    "topSimilarity": 0.8726038932800293,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 176 matches a card in the image shortlist",
-    "topSimilarity": 0.8795487880706787,
+    "topSimilarity": 0.88020259141922,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7096 matches a card in the image shortlist",
-    "topSimilarity": 0.8499056696891785,
+    "topSimilarity": 0.8502035737037659,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7097 matches a card in the image shortlist",
-    "topSimilarity": 0.8525673151016235,
+    "topSimilarity": 0.8529536724090576,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 2464 matches a card in the image shortlist",
-    "topSimilarity": 0.8296879529953003,
+    "topSimilarity": 0.8292128443717957,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 26 matches a card in the image shortlist",
-    "topSimilarity": 0.8729947805404663,
+    "topSimilarity": 0.8729531764984131,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line EMA 81 matches a card in the image shortlist",
-    "topSimilarity": 0.8940203189849854,
+    "topSimilarity": 0.8937044739723206,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M15 1 matches a card in the image shortlist",
-    "topSimilarity": 0.8874645233154297,
+    "topSimilarity": 0.8869332671165466,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line DSC 92 matches a card in the image shortlist",
-    "topSimilarity": 0.8892768025398254,
+    "topSimilarity": 0.8893682360649109,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line CMM 420 matches a card in the image shortlist",
-    "topSimilarity": 0.8732765316963196,
+    "topSimilarity": 0.872389554977417,
     "group": null
    },
    {
     "correct": true,
     "reason": "set SPG leaves one printing of the top card",
-    "topSimilarity": 0.8701374530792236,
+    "topSimilarity": 0.8696850538253784,
     "group": null
    },
    {
     "correct": true,
-    "reason": "only printing of its art, next art 0.078 behind",
-    "topSimilarity": 0.9389870166778564,
+    "reason": "only printing of its art, next art 0.079 behind",
+    "topSimilarity": 0.9387468099594116,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 5 matches a card in the image shortlist",
-    "topSimilarity": 0.9050052762031555,
+    "topSimilarity": 0.9047812223434448,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 8 matches a card in the image shortlist",
-    "topSimilarity": 0.9223995208740234,
+    "topSimilarity": 0.9224626421928406,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 170 matches a card in the image shortlist",
-    "topSimilarity": 0.8858822584152222,
+    "topSimilarity": 0.8860325217247009,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 2 matches a card in the image shortlist",
-    "topSimilarity": 0.8820362091064453,
+    "topSimilarity": 0.8813678026199341,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 176 matches a card in the image shortlist",
-    "topSimilarity": 0.937525749206543,
+    "topSimilarity": 0.9366592764854431,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 295 matches a card in the image shortlist",
-    "topSimilarity": 0.9251782894134521,
+    "topSimilarity": 0.9249876141548157,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 72 matches a card in the image shortlist",
-    "topSimilarity": 0.8875762820243835,
+    "topSimilarity": 0.8877758383750916,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line MSH 85 matches a card in the image shortlist",
-    "topSimilarity": 0.8891485333442688,
+    "topSimilarity": 0.8888416886329651,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 76 matches a card in the image shortlist",
-    "topSimilarity": 0.8951132893562317,
+    "topSimilarity": 0.894390344619751,
     "group": null
    },
    {
     "correct": true,
     "reason": "set M15 leaves one printing of the top card",
-    "topSimilarity": 0.9182680249214172,
+    "topSimilarity": 0.9177858233451843,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 171 matches a card in the image shortlist",
-    "topSimilarity": 0.8879965543746948,
+    "topSimilarity": 0.8872706294059753,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 31 matches a card in the image shortlist",
-    "topSimilarity": 0.9022999405860901,
+    "topSimilarity": 0.9018673896789551,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 38 matches a card in the image shortlist",
-    "topSimilarity": 0.8684789538383484,
+    "topSimilarity": 0.8684369921684265,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 37 matches a card in the image shortlist",
-    "topSimilarity": 0.8667986989021301,
+    "topSimilarity": 0.8668015003204346,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 176 matches a card in the image shortlist",
-    "topSimilarity": 0.9037410020828247,
+    "topSimilarity": 0.9043771028518677,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7096 matches a card in the image shortlist",
-    "topSimilarity": 0.870175838470459,
+    "topSimilarity": 0.8703659176826477,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7097 matches a card in the image shortlist",
-    "topSimilarity": 0.8545153141021729,
+    "topSimilarity": 0.8548538684844971,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7094 matches a card in the image shortlist",
-    "topSimilarity": 0.8662831783294678,
+    "topSimilarity": 0.8664549589157104,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 2464 matches a card in the image shortlist",
-    "topSimilarity": 0.8730310797691345,
+    "topSimilarity": 0.8723981976509094,
     "group": null
    },
    {
     "correct": true,
     "reason": "set SOA leaves one printing of the top card",
-    "topSimilarity": 0.8565061688423157,
+    "topSimilarity": 0.8571181893348694,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line EMA 81 matches a card in the image shortlist",
-    "topSimilarity": 0.8918032050132751,
+    "topSimilarity": 0.8918343186378479,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M15 1 matches a card in the image shortlist",
-    "topSimilarity": 0.8515306711196899,
+    "topSimilarity": 0.8514334559440613,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line DSC 92 matches a card in the image shortlist",
-    "topSimilarity": 0.8269791603088379,
+    "topSimilarity": 0.8264763355255127,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line CMM 420 matches a card in the image shortlist",
-    "topSimilarity": 0.8548481464385986,
+    "topSimilarity": 0.8546593189239502,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 176 matches a card in the image shortlist",
-    "topSimilarity": 0.889290988445282,
+    "topSimilarity": 0.8896029591560364,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 37 matches a card in the image shortlist",
-    "topSimilarity": 0.8101821541786194,
+    "topSimilarity": 0.8106606006622314,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 38 matches a card in the image shortlist",
-    "topSimilarity": 0.8629584312438965,
+    "topSimilarity": 0.8628484010696411,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 38 matches a card in the image shortlist",
-    "topSimilarity": 0.8625563979148865,
+    "topSimilarity": 0.8622589707374573,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 171 matches a card in the image shortlist",
-    "topSimilarity": 0.8804562091827393,
+    "topSimilarity": 0.8798444271087646,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M15 86 matches a card in the image shortlist",
-    "topSimilarity": 0.8584617972373962,
+    "topSimilarity": 0.8579142689704895,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 76 matches a card in the image shortlist",
-    "topSimilarity": 0.8960517048835754,
+    "topSimilarity": 0.8950523138046265,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line MSH 85 matches a card in the image shortlist",
-    "topSimilarity": 0.8791202902793884,
+    "topSimilarity": 0.8785114288330078,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 72 matches a card in the image shortlist",
-    "topSimilarity": 0.8946658372879028,
+    "topSimilarity": 0.8948344588279724,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line RIX 125 matches a card in the image shortlist",
-    "topSimilarity": 0.9138795733451843,
+    "topSimilarity": 0.9134534597396851,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 295 matches a card in the image shortlist",
-    "topSimilarity": 0.9082295894622803,
+    "topSimilarity": 0.9081788063049316,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M21 176 matches a card in the image shortlist",
-    "topSimilarity": 0.9307357668876648,
+    "topSimilarity": 0.9300623536109924,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 2 matches a card in the image shortlist",
-    "topSimilarity": 0.8731710314750671,
+    "topSimilarity": 0.8727053999900818,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOS 170 matches a card in the image shortlist",
-    "topSimilarity": 0.9140518307685852,
+    "topSimilarity": 0.913608968257904,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line ELD 8 matches a card in the image shortlist",
-    "topSimilarity": 0.9193713068962097,
+    "topSimilarity": 0.9197341203689575,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M20 5 matches a card in the image shortlist",
-    "topSimilarity": 0.921644926071167,
+    "topSimilarity": 0.9214583039283752,
     "group": null
    },
    {
     "correct": true,
     "reason": "only printing of its art, next art 0.062 behind",
-    "topSimilarity": 0.9032305479049683,
+    "topSimilarity": 0.902927041053772,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SPG 156 matches a card in the image shortlist",
-    "topSimilarity": 0.9071934819221497,
+    "topSimilarity": 0.9069087505340576,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7096 matches a card in the image shortlist",
-    "topSimilarity": 0.844940185546875,
+    "topSimilarity": 0.8451651930809021,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 7094 matches a card in the image shortlist",
-    "topSimilarity": 0.8610592484474182,
+    "topSimilarity": 0.8613251447677612,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SLD 2464 matches a card in the image shortlist",
-    "topSimilarity": 0.8696125745773315,
+    "topSimilarity": 0.8691944479942322,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line CMM 420 matches a card in the image shortlist",
-    "topSimilarity": 0.9046722054481506,
+    "topSimilarity": 0.9041499495506287,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line DSC 92 matches a card in the image shortlist",
-    "topSimilarity": 0.857862651348114,
+    "topSimilarity": 0.8581686019897461,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line M15 1 matches a card in the image shortlist",
-    "topSimilarity": 0.9024960398674011,
+    "topSimilarity": 0.9020774960517883,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line EMA 81 matches a card in the image shortlist",
-    "topSimilarity": 0.8812604546546936,
+    "topSimilarity": 0.8804855346679688,
     "group": null
    },
    {
     "correct": true,
     "reason": "collector line SOA 26 matches a card in the image shortlist",
-    "topSimilarity": 0.8722678422927856,
+    "topSimilarity": 0.8721081614494324,
     "group": null
    }
   ],
@@ -1343,7 +1344,7 @@
     "group": null,
     "top": "211a1d86-7257-4621-ae05-c2b235c063f0",
     "accepted": null,
-    "reason": "only printing of its art, but the next art is 0.027 behind; at least 0.030 is required"
+    "reason": "only printing of its art, but the next art is 0.028 behind; at least 0.030 is required"
    },
    {
     "input": "crops/rectified/muw8ssia-10.jpg",
@@ -1375,7 +1376,7 @@
     "group": null,
     "top": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
     "accepted": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
-    "reason": "only printing of its art, next art 0.055 behind"
+    "reason": "only printing of its art, next art 0.056 behind"
    },
    {
     "input": "crops/rectified/muw8ssia-14.jpg",
@@ -1399,7 +1400,7 @@
     "group": null,
     "top": "e77e2fd5-5c46-4f6b-ac43-ec23fab57a1a",
     "accepted": "e77e2fd5-5c46-4f6b-ac43-ec23fab57a1a",
-    "reason": "only printing of its art, next art 0.101 behind"
+    "reason": "only printing of its art, next art 0.100 behind"
    },
    {
     "input": "crops/rectified/muw8ssia-17.jpg",
@@ -1823,7 +1824,7 @@
     "group": null,
     "top": "c7d5e394-8e41-442e-ae97-a478a61e1b9d",
     "accepted": "c7d5e394-8e41-442e-ae97-a478a61e1b9d",
-    "reason": "only printing of its art, next art 0.049 behind"
+    "reason": "only printing of its art, next art 0.048 behind"
    },
    {
     "input": "crops/rectified/muwdygj1-46.jpg",
@@ -1991,7 +1992,7 @@
     "group": null,
     "top": "be8956d0-5502-415d-bead-d8bbddf9871d",
     "accepted": "be8956d0-5502-415d-bead-d8bbddf9871d",
-    "reason": "only printing of its art, next art 0.078 behind"
+    "reason": "only printing of its art, next art 0.077 behind"
    },
    {
     "input": "crops/rectified/muwewrqz-15.jpg",
@@ -2007,7 +2008,7 @@
     "group": null,
     "top": "f2a6556b-a4f1-4ff5-8e6e-a47618c8c66e",
     "accepted": "f2a6556b-a4f1-4ff5-8e6e-a47618c8c66e",
-    "reason": "only printing of its art, next art 0.105 behind"
+    "reason": "only printing of its art, next art 0.104 behind"
    },
    {
     "input": "crops/rectified/muwewrqz-17.jpg",
@@ -2343,7 +2344,7 @@
     "group": null,
     "top": "f2b2f381-86a2-42ac-b694-dcde437d574f",
     "accepted": "f2b2f381-86a2-42ac-b694-dcde437d574f",
-    "reason": "only printing of its art, next art 0.096 behind"
+    "reason": "only printing of its art, next art 0.097 behind"
    },
    {
     "input": "crops/rectified/muwhquxp-10.jpg",
@@ -2519,7 +2520,7 @@
     "group": null,
     "top": "f2b2f381-86a2-42ac-b694-dcde437d574f",
     "accepted": "f2b2f381-86a2-42ac-b694-dcde437d574f",
-    "reason": "only printing of its art, next art 0.050 behind"
+    "reason": "only printing of its art, next art 0.051 behind"
    },
    {
     "input": "crops/rectified/muwhquxp-30.jpg",
@@ -2847,7 +2848,7 @@
     "group": null,
     "top": "f2b2f381-86a2-42ac-b694-dcde437d574f",
     "accepted": "f2b2f381-86a2-42ac-b694-dcde437d574f",
-    "reason": "only printing of its art, next art 0.078 behind"
+    "reason": "only printing of its art, next art 0.079 behind"
    },
    {
     "input": "crops/catalog-device/muywn390-3.jpg",
@@ -3261,7 +3262,7 @@
     "input": "crops/catalog-device/muyxcbms-24.jpg",
     "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
     "group": null,
-    "top": "667b6c3b-75cc-4adf-b205-80925ca76d2a",
+    "top": "aed61bbb-83fd-452b-b940-c8eb1e1ebdac",
     "accepted": null,
     "reason": "collector line SLD 7097 names a printing whose art the image does not match"
    },
@@ -3341,89 +3342,89 @@
     "input": "crops/rectified/muwewrqz-1.jpg",
     "truth": null,
     "group": null,
-    "top": "308ac133-f368-4f6c-9e09-d9cfc136355a",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.476 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwewrqz-2.jpg",
     "truth": null,
     "group": null,
-    "top": "8d4a47d3-75f4-4770-8fbf-735b97811d82",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.454 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwewrqz-3.jpg",
     "truth": null,
     "group": null,
-    "top": "8d4a47d3-75f4-4770-8fbf-735b97811d82",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.466 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwewrqz-4.jpg",
     "truth": null,
     "group": null,
-    "top": "308ac133-f368-4f6c-9e09-d9cfc136355a",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.466 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwewrqz-5.jpg",
     "truth": null,
     "group": null,
-    "top": "308ac133-f368-4f6c-9e09-d9cfc136355a",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.481 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwh0fdo-1.jpg",
     "truth": null,
     "group": null,
-    "top": "eed1bd05-d085-4115-aa37-df4e7aef2e46",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.455 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwh80d1-1.jpg",
     "truth": null,
     "group": null,
-    "top": "308ac133-f368-4f6c-9e09-d9cfc136355a",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.484 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwh80d1-3.jpg",
     "truth": null,
     "group": null,
-    "top": "485cef94-d7aa-4bb3-b2e6-61d0ccf8007e",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.415 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwh80d1-4.jpg",
     "truth": null,
     "group": null,
-    "top": "eed1bd05-d085-4115-aa37-df4e7aef2e46",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.460 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwhquxp-1.jpg",
     "truth": null,
     "group": null,
-    "top": "8d4a47d3-75f4-4770-8fbf-735b97811d82",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.453 is below 0.500"
+    "reason": "not a card"
    },
    {
     "input": "crops/rectified/muwhquxp-8.jpg",
     "truth": null,
     "group": null,
-    "top": "0e2b161e-4a76-4945-97a4-d9140a2b928a",
+    "top": null,
     "accepted": null,
-    "reason": "not a card: best image similarity 0.428 is below 0.500"
+    "reason": "not a card"
    }
   ]
  }
