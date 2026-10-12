@@ -19,7 +19,7 @@ The review agent checks each diff against these rules. CI already runs the type 
 ## Code
 
 - Add no code comments. Names, types, and small functions carry the meaning.
-- Prefer small modules with one job. Put shared UI in `apps/mobile/src/components` and sign-in and session logic in `apps/mobile/src/auth`.
+- Prefer small modules with one job. Put shared UI in the Atomic Design levels in `apps/mobile/src/components` (see Atomic Design) and sign-in and session logic in `apps/mobile/src/auth`.
 - Keep one source of truth for each rule or list, such as one validator, one command map, or one staging table list. A second copy is a finding.
 - Remove what nothing uses: exports, helpers, indexes, and dependencies.
 
@@ -32,6 +32,26 @@ The review agent checks each diff against these rules. CI already runs the type 
 - A value outside the tokens needs a reason in `DESIGN.md`, like the Apple and Google button colors.
 - Follow the `DESIGN.md` Do's and Don'ts, such as native tabs, page sheets, and no on-screen back buttons.
 - Give every control an accessibility role and a label that matches its visible text.
+- Give every control a touch target of at least 44 by 44 pt. Use `hitSlop` when the control looks smaller, as `Button` and `Chip` do.
+
+## Atomic Design
+
+The app UI follows Brad Frost's Atomic Design (#101). Each level is a folder in `apps/mobile/src/components`:
+
+| Level | Holds | Examples |
+| --- | --- | --- |
+| Atoms (`atoms`) | The smallest pieces, mostly wrappers of `@rn-primitives` in the React Native Reusables pattern | `Text`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `CardImage` |
+| Molecules (`molecules`) | Small groups of atoms with one job | `ListRow`, `SwitchRow`, `ChipGroup`, `ToggleGroup`, `EmptyState` |
+| Organisms (`organisms`) | Larger sections | `BinderWall`, and later the latest-scan chip and the settings content |
+| Templates (`templates`) | Page layouts with no data | `TabScreen`, `DrawerSheet` |
+| Pages (`src/app`) | Expo Router routes. They load data and fill templates with organisms. | `settings.tsx`, `(tabs)/collection.tsx` |
+
+- Each level imports only from its own level and the levels below it. Pages import from any level. Organisms and features may use feature modules such as `src/scan`. Templates, molecules, and atoms may not. ESLint enforces the direction with `eslint-plugin-boundaries` in `apps/mobile/eslint.config.js`.
+- Only atoms use raw controls. ESLint refuses `Pressable`, `TouchableOpacity`, `TouchableHighlight`, `TouchableWithoutFeedback`, `Switch`, and `Button` from `react-native` everywhere else, and `@rn-primitives` outside `src/components`. It also refuses a `style` prop on an element with `onPress`, `onLongPress`, or `onValueChange` outside atoms, and a `className` on a `Text` or `View` with `onPress` or `onLongPress`. Screens compose the primitives and do not restyle raw `Pressable`, `Text`, or `View` for controls.
+- Escape hatch for native components: wrap the native control in an atom, which may import it and set its style props. `Switch` is the example: it wraps the iOS switch with the token colors. Use it through `SwitchRow`, which gives it a 44 pt touch target. Do not use an ESLint disable comment.
+- `screensNotOnPrimitives` in `apps/mobile/eslint.config.js` lists the files that still use raw controls. #105 and #106 move them to the primitives and empty the list. Never add a file to it.
+- Shared UI is reused, never copied. Block a new control or card-like layout that duplicates an existing primitive or component. When the same UI appears on two screens, extract it to the right level.
+- A development build has a primitive catalog at `mtgscan://primitives` that shows every primitive in each state. Add each new primitive and state to it in `src/primitive-catalog`.
 
 ## Data and Supabase
 
@@ -61,6 +81,7 @@ The review agent checks each diff against these rules. CI already runs the type 
   - Import tests run the import command with fixture files and never download.
   - App component tests in `apps/mobile/test` render the real Expo Router navigation with `renderApp`. They fake only the Supabase client, the native sign-in modules, the card detector module, the card recognizer module, `expo-haptics`, and the scan sounds in `src/scan/scan-sounds.ts`, in `test/fake-*.ts`. Only `test/native-ui.ts` reads native views. Jest compiles the NativeWind classes in `test/class-styles.ts`, maps CSS files to an empty module, and runs the Reanimated test setup, so class styles show in `toHaveStyle`.
   - Theme tests check the Tailwind theme against `DESIGN.md` and the class merges of `cn()`, with no rendering.
+  - Primitive tests in `apps/mobile/test/atoms.test.tsx`, `molecules.test.tsx`, and `drawer-sheet.test.tsx` render one atom, molecule, or template with `render` and check its roles, states, labels, touch target, and token styles.
   - The owner checks on the device what Jest cannot reach, such as real Apple and Google sign-in.
 - Test external behavior, such as screen text, roles, returned rows, error codes, and error fields. Leave out internal state, component structure, SQL text, and query plans.
 - Name each test as a sentence about the behavior, in glossary terms.

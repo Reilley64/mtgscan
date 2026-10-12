@@ -1,4 +1,5 @@
 import { act, fireEvent, screen, within } from 'expo-router/testing-library';
+import { StyleSheet } from 'react-native';
 
 function hostViews(type: string) {
   return screen.container.queryAll((instance) => instance.type === type);
@@ -165,4 +166,21 @@ export async function scrollToEnd(tab: HostElement) {
     jest.advanceTimersByTime(1000);
   });
   await fireEvent.scroll(list, scrolledToEnd);
+}
+
+type Insets = { top?: number; bottom?: number; left?: number; right?: number };
+
+export function touchTarget(element: HostElement) {
+  const { minWidth, width, minHeight, height } = StyleSheet.flatten(element.props.style) ?? {};
+  const slop: number | Insets = element.props.hitSlop ?? 0;
+  const { top = 0, bottom = 0, left = 0, right = 0 } =
+    typeof slop === 'number' ? { top: slop, bottom: slop, left: slop, right: slop } : slop;
+  return {
+    width: Number(width ?? minWidth ?? 0) + left + right,
+    height: Number(height ?? minHeight ?? 0) + top + bottom,
+  };
+}
+
+export function switchTrackColor(element: HostElement) {
+  return element.props.onTintColor;
 }

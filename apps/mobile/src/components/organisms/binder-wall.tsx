@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 
-import { CardImage, cardHeightPerWidth } from '@/components/card-image';
+import { CardImage, cardHeightPerWidth } from '@/components/atoms/card-image';
 import { spacing } from '@/theme';
 
 type WallCard = {

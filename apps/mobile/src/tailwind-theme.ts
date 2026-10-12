@@ -1,4 +1,4 @@
-import { colors, rounded, sizes, spacing, typography } from './theme';
+import { colors, opacity, rounded, sizes, spacing, typography } from './theme';
 
 type TextToken = { fontSize: number; lineHeight?: number; fontWeight?: string };
 
@@ -28,4 +28,5 @@ export const tailwindTheme = {
   spacing: keyedByClassName({ ...spacing, ...sizes }, px),
   borderRadius: keyedByClassName(rounded, px),
   fontSize: keyedByClassName(typography, textStyle),
+  opacity: keyedByClassName(opacity, String),
 };

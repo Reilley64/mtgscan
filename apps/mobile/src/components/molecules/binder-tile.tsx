@@ -1,7 +1,7 @@
 import type { CollectionPrintingRow } from '@mtgscan/supabase/collection';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { CardImage } from '@/components/card-image';
+import { CardImage } from '@/components/atoms/card-image';
 import { colors, spacing, typography } from '@/theme';
 
 type BinderTileProps = {

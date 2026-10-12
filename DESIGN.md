@@ -90,6 +90,7 @@ spacing:
   sm: 8px
   md: 12px
   lg: 16px
+  xl: 32px
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
@@ -354,7 +355,7 @@ Settings, the scan details sheet, and the printing picker are bottom drawers, no
 - It slides up from the bottom with the iOS grabber and opens at half the screen height.
 - Dragging it up takes it to full height. Dragging it down takes it back to half height.
 - A downward swipe or a tap outside closes it. It has no Done button.
-- Its content starts 32 px below the top edge, twice the page inset, so that it clears the grabber. The content scrolls at either height.
+- Its content starts 32 px (spacing xl) below the top edge, twice the page inset, so that it clears the grabber. The content scrolls at either height.
 
 The settings drawer:
 
@@ -384,11 +385,18 @@ The interface is flat. Depth comes from tone, not shadow.
 ## Components
 
 - **Buttons.** Primary buttons are lime with dark text: Promote, Swap in, Bought, Add to collection. Secondary buttons use the control surface: Dismiss, Skip, Cancel. Destructive actions, such as **Remove scan**, use danger text on the danger tint.
+  - A disabled button fades to 38% opacity, the same dimming as the other sign-in buttons while one signs in. `theme.ts` names it `opacity.dimmed`.
+  - A busy button shows a spinner before its label and takes no taps. It keeps its full color.
+  - A round icon button, such as the settings button, is 38 px across on the control surface.
+  - Every control has a touch target of at least 44 by 44 pt. A control that looks smaller, such as a 38 px button or a 24 px chip, gets the extra touch area above and below, and is at least 44 px wide.
+- **Toggles.** A toggle is a button that stays on or off, such as Protect. It uses the control surface when off and turns lime with dark text when on. A segmented control, such as Copies, Decks, Prices, and Rules on the card page, is a row of options on one control surface with 8 px corners. The chosen option is lime.
+- **Switch rows.** A switch row is a surface card with a label and an iOS switch with a lime track. A tap anywhere on the row turns the switch on or off.
+- **List rows.** A list row is a surface card with an optional thumbnail, a name in body strong, and an optional meta line, such as the set code and collector number.
 - **Sign-in buttons.** Sign-in buttons and the sign-in Try again button are 50 px tall to match Apple's sign-in button sizing. This is the one exception to the 38 px button height. Try again uses sign-in button type (17 px, semibold). Continue with Google uses 16 px medium. The system Apple button sets its own type.
 - **Sign in with Apple.** The system Apple button in Apple's white style, with the "Sign in with Apple" title and 8 px corners. Apple's branding rules set its colors, logo, and type, so they sit outside the palette.
 - **Continue with Google.** Google's dark button style: a #131314 fill, a 1 px #8e918f border, #e3e3e3 text, and the four-color Google logo. Google's branding rules set these colors, so they sit outside the palette.
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
-- **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Filter chips switch to the primary lime when selected.
+- **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Their text uses the text, warning, danger, or info color. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, the batch button, and the card page Decks tab.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and card page deck lists. It opens the deck.

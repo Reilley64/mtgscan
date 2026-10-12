@@ -11,7 +11,7 @@ import { signInWithApple } from '@/auth/apple-sign-in';
 import { signInWithGoogle } from '@/auth/google-sign-in';
 import type { SignInOutcome, SignInProvider } from '@/auth/sign-in';
 import { testSignInButton } from '@/auth/test-sign-in';
-import { BinderWall } from '@/components/binder-wall';
+import { BinderWall } from '@/components/organisms/binder-wall';
 import {
   appleButtonColors,
   colors,

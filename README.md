@@ -22,6 +22,19 @@ The app uses NativeWind 4 with Tailwind CSS 3. NativeWind 5 is a release candida
 - Jest compiles the classes in `test/class-styles.ts` before each test, so component tests can check class styles with `toHaveStyle`.
 - NativeWind needs `react-native-reanimated` and `react-native-worklets`. They are native modules, so a change to them needs a new native build. CocoaPods builds them from source, which adds time to each clean build.
 
+### Components
+
+Components follow Atomic Design in `src/components`. `CODING_STANDARDS.md` (Atomic Design) has the levels and the rules.
+
+- `atoms` holds the primitives: `Text`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `CardImage`, and `CardThumbnail`. `Toggle` wraps `@rn-primitives/toggle`. `Switch` wraps the iOS switch.
+- `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`), `ListRow`, `SwitchRow`, `EmptyState`, `BinderTile`, and `SettingsButton`.
+- `organisms` holds `BinderWall`. `templates` holds `TabScreen` and `DrawerSheet`, the content layout of the bottom drawers.
+- Expo Router routes in `src/app` are the pages.
+- ESLint checks the import direction between the levels with `eslint-plugin-boundaries`. It also keeps raw controls out of screens and features. See `apps/mobile/eslint.config.js`.
+- No primitive animates, so no test needs Reanimated animations.
+
+A development build has a primitive catalog that shows every primitive in each state. Open it on the Simulator with `xcrun simctl openurl booted mtgscan://primitives`. Production builds leave it out, and `bun run test:production-bundle` checks that.
+
 ### Card recognizer
 
 The card recognizer is a local Expo module in `apps/mobile/modules/card-recognizer`. `recognize(photoUri, outline)` returns a card result with its candidates and decision, or a not-a-card result, as #75 describes. The outline is the four card corners, top left first and clockwise, as fractions of the photo's width and height from its top-left corner. It loads the gallery from `Application Support/gallery` on the phone and throws `gallery_not_ready` until one is there.

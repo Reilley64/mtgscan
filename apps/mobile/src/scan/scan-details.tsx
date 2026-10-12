@@ -1,11 +1,11 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text as NativeText, View } from 'react-native';
 
 import { usePrintingImages } from '@/catalog/use-printing-images';
 import { conditionLabels, conditions, finishLabels, languageNames, languages } from '@/collection/copy-labels';
-import { CardImage } from '@/components/card-image';
-import { ChoiceChips } from '@/components/choice-chips';
-import { DangerButton } from '@/components/danger-button';
-import { SecondaryButton } from '@/components/secondary-button';
+import { CardImage } from '@/components/atoms/card-image';
+import { Button } from '@/components/atoms/button';
+import { Text } from '@/components/atoms/text';
+import { ChipGroup } from '@/components/molecules/chip-group';
 import { colors, spacing, typography } from '@/theme';
 
 import { copiesDetail, printingCaption } from './printing-caption';
@@ -32,13 +32,13 @@ export function ScanDetails({ scan, dispatch, onSearch, onRemove }: ScanDetailsP
         <View accessible accessibilityRole="image" accessibilityLabel={printing.name} style={styles.image}>
           <CardImage uri={imageOf(printing.printingId)} />
         </View>
-        <Text accessibilityRole="header" style={styles.name}>
+        <NativeText accessibilityRole="header" style={styles.name}>
           {printing.name}
-        </Text>
-        <Text style={styles.caption}>{caption}</Text>
+        </NativeText>
+        <NativeText style={styles.caption}>{caption}</NativeText>
       </View>
       <SheetSection title="Finish">
-        <ChoiceChips
+        <ChipGroup
           values={printing.finishes}
           selected={scan.finish}
           labelOf={(finish) => finishLabels[finish]}
@@ -46,7 +46,7 @@ export function ScanDetails({ scan, dispatch, onSearch, onRemove }: ScanDetailsP
         />
       </SheetSection>
       <SheetSection title="Condition">
-        <ChoiceChips
+        <ChipGroup
           values={conditions}
           selected={scan.condition}
           labelOf={(condition) => conditionLabels[condition]}
@@ -54,7 +54,7 @@ export function ScanDetails({ scan, dispatch, onSearch, onRemove }: ScanDetailsP
         />
       </SheetSection>
       <SheetSection title="Language">
-        <ChoiceChips
+        <ChipGroup
           values={languages}
           selected={scan.language}
           labelOf={(language) => languageNames[language]}
@@ -73,8 +73,12 @@ export function ScanDetails({ scan, dispatch, onSearch, onRemove }: ScanDetailsP
           ))}
         </SheetSection>
       ) : null}
-      <SecondaryButton label="None of these: search" onPress={onSearch} />
-      <DangerButton label="Remove scan" onPress={onRemove} />
+      <Button onPress={onSearch}>
+        <Text>None of these: search</Text>
+      </Button>
+      <Button variant="danger" onPress={onRemove}>
+        <Text>Remove scan</Text>
+      </Button>
     </View>
   );
 }

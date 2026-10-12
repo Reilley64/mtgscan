@@ -1,0 +1,168 @@
+import { router } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
+import { useState, type ReactNode } from 'react';
+import { ScrollView, View } from 'react-native';
+
+import { Button } from '@/components/atoms/button';
+import { CardThumbnail } from '@/components/atoms/card-thumbnail';
+import { Chip } from '@/components/atoms/chip';
+import { Surface } from '@/components/atoms/surface';
+import { Text } from '@/components/atoms/text';
+import { Toggle } from '@/components/atoms/toggle';
+import { ChipGroup } from '@/components/molecules/chip-group';
+import { ListRow } from '@/components/molecules/list-row';
+import { SwitchRow } from '@/components/molecules/switch-row';
+import { ToggleGroup } from '@/components/molecules/toggle-group';
+import { colors } from '@/theme';
+
+const solRing = 'https://cards.scryfall.io/normal/front/8/e/8ee443cc-e17a-493b-9c93-1f9e141a30e4.jpg?1789644446';
+
+const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
+
+const cardPageSections = ['Copies', 'Decks', 'Prices', 'Rules'] as const;
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <View className="gap-sm">
+      <Text variant="sheet-title">{title}</Text>
+      {children}
+    </View>
+  );
+}
+
+function TextStyles() {
+  return (
+    <Section title="Text styles">
+      <Text variant="large-title">Large title</Text>
+      <Text variant="card-title">Card title</Text>
+      <Text variant="sheet-title">Sheet title</Text>
+      <Text>Body</Text>
+      <Text variant="body-strong">Body strong</Text>
+      <Text variant="meta">Meta</Text>
+      <Text variant="chip">Chip</Text>
+      <Text variant="credit">Credit</Text>
+    </Section>
+  );
+}
+
+function Buttons() {
+  return (
+    <Section title="Buttons">
+      <Button variant="primary" onPress={() => {}}>
+        <Text>Add to collection</Text>
+      </Button>
+      <Button onPress={() => {}}>
+        <Text>Dismiss</Text>
+      </Button>
+      <Button variant="danger" onPress={() => {}}>
+        <Text>Remove scan</Text>
+      </Button>
+      <Button variant="primary" disabled onPress={() => {}}>
+        <Text>Disabled</Text>
+      </Button>
+      <Button variant="primary" busy onPress={() => {}}>
+        <Text>Busy</Text>
+      </Button>
+      <Button size="icon" accessibilityLabel="Settings" onPress={() => {}}>
+        <SymbolView name="gearshape.fill" size={18} tintColor={colors.text} />
+      </Button>
+    </Section>
+  );
+}
+
+function Chips() {
+  const [condition, setCondition] = useState<(typeof conditions)[number]>('NM');
+  return (
+    <Section title="Chips">
+      <View className="flex-row flex-wrap gap-sm">
+        <Chip label="Valid" />
+        <Chip tone="warning" label="Protected only" />
+        <Chip tone="danger" label="Not valid" />
+        <Chip tone="info" label="Bracket 3" />
+      </View>
+      <ChipGroup values={conditions} selected={condition} labelOf={(value) => value} onSelect={setCondition} />
+    </Section>
+  );
+}
+
+function Toggles() {
+  const [protect, setProtect] = useState(false);
+  const [section, setSection] = useState<(typeof cardPageSections)[number]>('Copies');
+  return (
+    <Section title="Toggles">
+      <View className="flex-row gap-sm">
+        <Toggle pressed={protect} onPressedChange={setProtect}>
+          <Text>Protect</Text>
+        </Toggle>
+        <Toggle pressed onPressedChange={() => {}}>
+          <Text>On</Text>
+        </Toggle>
+        <Toggle pressed={false} disabled onPressedChange={() => {}}>
+          <Text>Disabled</Text>
+        </Toggle>
+      </View>
+      <ToggleGroup
+        values={cardPageSections}
+        selected={section}
+        labelOf={(value) => value}
+        onSelect={setSection}
+      />
+    </Section>
+  );
+}
+
+function Surfaces() {
+  return (
+    <Section title="Surfaces">
+      <Surface className="gap-xs">
+        <Text variant="body-strong">Signed in with Apple</Text>
+        <Text variant="meta">you@example.com</Text>
+      </Surface>
+      <Surface onPress={() => {}}>
+        <Text variant="body-strong">Surface with an action</Text>
+      </Surface>
+    </Section>
+  );
+}
+
+function ListRows() {
+  return (
+    <Section title="List rows">
+      <ListRow title="Sol Ring" detail="CMM 464" leading={<CardThumbnail uri={solRing} />} onPress={() => {}} />
+      <ListRow title="Lightning Bolt" onPress={() => {}} />
+      <ListRow title="Gallery" detail="Up to date" />
+    </Section>
+  );
+}
+
+function Switches() {
+  const [scanSounds, setScanSounds] = useState(true);
+  return (
+    <Section title="Switches">
+      <SwitchRow title="Scan sounds" value={scanSounds} onValueChange={setScanSounds} />
+    </Section>
+  );
+}
+
+export function PrimitiveCatalog() {
+  return (
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerClassName="gap-xl px-lg pb-xl pt-sm"
+      contentInsetAdjustmentBehavior="automatic">
+      <Text variant="large-title">Primitives</Text>
+      <TextStyles />
+      <Buttons />
+      <Chips />
+      <Toggles />
+      <Surfaces />
+      <ListRows />
+      <Switches />
+      <Section title="Drawer sheet">
+        <Button onPress={() => router.push('/primitives-sheet')}>
+          <Text>Open the drawer sheet</Text>
+        </Button>
+      </Section>
+    </ScrollView>
+  );
+}

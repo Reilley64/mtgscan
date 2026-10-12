@@ -153,7 +153,7 @@ A search of the user's collection entries. It is separate from catalog search.
 _Avoid_: Inventory search
 
 **Chip**:
-An exact filter in a catalog search or collection search, such as a color identity or a mana value bound. Every chip in a search must match, and a negated chip must not. A card in the results that fails a chip is a chip violation.
+An exact filter in a catalog search or collection search, such as a color identity or a mana value bound. Every chip in a search must match, and a negated chip must not. A card in the results that fails a chip is a chip violation. In the app UI, "chip" also names a small pill, such as a status label or the scan chip; a search chip is the filter kind.
 _Avoid_: Facet
 
 **Search release check**:
