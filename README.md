@@ -22,7 +22,7 @@ The Swift sources in `ios/Recognizer` build into the app and into a macOS comman
 1. `bun run recognizer:test` runs the Swift fixture tests.
 2. `bun run recognizer:replay` replays the scanner evidence pack. It needs the gallery.
 
-`apps/mobile/test/scanner-evidence/README.md` describes the gallery, the gates, and the Recognizer workflow.
+`apps/mobile/test/scanner-evidence/README.md` describes the gallery, the gates, and the local replay before merge.
 
 ### Local Supabase
 

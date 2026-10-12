@@ -136,41 +136,15 @@ The first run had a bug that turned every card 90 degrees. The #21 resolution us
 
 ## GitHub Actions
 
-The Recognizer workflow runs on pull requests that change the recognizer module, this evidence pack, or the workflow. It also runs every Monday on `main` and by hand. It needs no secrets: Scryfall data and images are public.
+The Recognizer workflow runs on pull requests that change the recognizer module, this evidence pack, or the workflow, and by hand. It has one job.
 
-- **Replay job.** On a `macos-15` runner with Xcode 26.3, it runs the Swift fixture tests and `recognizer:replay --real-only`: the feature print comparison and both real-crop gates. It uploads the reports as artifacts and writes the summary to the job summary.
-- **Gallery.** The runner cannot fetch the recorded gallery, so the job builds its own gallery from Scryfall with `recognizer:gallery` and keeps it in the Actions cache under `scanner-gallery-v1`. The Monday run on `main` keeps the cache warm for pull requests. Change the key to build a new gallery.
-- **Changes.** On a pull request, the job first replays the base branch on the same gallery and runner. It then compares the pull request with that baseline, so a changed result comes from the change, not from the gallery or the runner. A changed result fails the job until the pull request records the expected files again and explains each change. The two recording gates in `check.mjs` then follow the base branch: they apply only when the base branch passes them.
-- **Without a baseline.** On `main`, or when the base branch has no replay, the job compares with the expected files. The runner's gallery differs from the recording, so the job applies only the safety gates in `check.mjs` and the feature print gate. It fails on a wrong-card accept, a non-card accept, a recognizer error, more wrong printings outside the candidates than recorded, or a feature print cosine below 0.98. The recording gates, no wrong-printing accepts and no accepts with the true printing missing, apply only on the recorded gallery on the owner's Mac. Other changes are warnings.
 - **Module job.** It generates the iOS project and builds the app with the recognizer module for the iOS Simulator. This checks Swift 6 strict concurrency with Xcode 26.3 and Expo SDK 56.
 
-The simulated scans run by hand on a Mac with `bun run recognizer:replay`. Run them before you merge a change to the recognizer.
+CI does not replay the evidence pack. A GitHub macOS runner needs about 4 hours to build a gallery, its feature prints differ slightly from the owner's Mac, and the phone uses the gallery built on the owner's Mac. So the replay is a local gate.
 
-### Runner measurements
+## Local replay before merge
 
-Measured on 11 October 2026 on a `macos-15` runner (Apple M1, virtual, 3 cores) with the prototype recognizer:
-
-| Step | Runner | Owner's Mac (Apple M3) |
-| --- | ---: | ---: |
-| Gallery build, 102,747 printings | 3 h 54 min and 4 h 7 min in two runs | about 5 min, plus the image download |
-| Image download, about 10 GB | about 16 min | |
-| Feature prints | 3 h 38 min | 267 s |
-| Real crops, full and held out, one worker | 645 s | about 30 s |
-
-A gallery build fits in one job, so it runs only on a cache miss. With the cached gallery, one real-crop replay took about 8 minutes. On the runner, the 24 feature print references had a lowest cosine of 0.99974. The simulated scans would take several hours on the runner, so they stay a manual gate.
-
-On that runner gallery, built from the Scryfall file of 11 October 2026, the real crops had 0 wrong-card accepts. With the true printing held out, one scan was accepted: Athreos, God of Passage JOU 146 (`crops/catalog-device/muyxcbms-33.jpg`) as its same-text twin `plst JOU-146`. The collector line `146/1.65` did not read, and the next art was 0.047 behind on that gallery. On the recorded gallery, the same scan abstains.
-
-### Feature prints on the runner
-
-Measured on 11 October 2026 with the 261 real crops in both orientations, 522 feature prints:
-
-| Machine | macOS | Lowest cosine to the owner's Mac | Mean |
-| --- | --- | ---: | ---: |
-| GitHub `macos-15`, Apple M1 (Virtual) | 15.7.9 | 0.99898 | 0.99986 |
-| GitHub `macos-26`, Apple M1 (Virtual) | 26.6.2 | 0.99898 | 0.99986 |
-
-The two runners match each other to a cosine of 0.9999999. Neither matches the owner's Mac (Apple M3, macOS 15.7.3) byte for byte. On the owner's Mac, Vision restricted to the CPU comes closer to the runners: a lowest cosine of 0.99988 over 40 crops, against 0.99968 with the default compute devices. So most of the difference comes from the compute device. Results from a runner can differ slightly from the expected files, even on the same gallery. This is why the job compares a pull request with its base on the same runner.
+Before you merge a change to the recognizer, this evidence pack, or the gallery, run `bun run recognizer:replay` on the owner's Mac with the recorded gallery, on the branch and on `main` as the baseline. Put the result in the pull request under a "Local recognizer replay" heading: the commands, the gallery, every gate, the wrong-card accepts (must be 0), and each changed result with its reason.
 
 ## When the model changes
 

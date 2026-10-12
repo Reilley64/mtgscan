@@ -6,8 +6,6 @@ on:
       - apps/mobile/modules/card-recognizer/**
       - apps/mobile/test/scanner-evidence/**
       - .github/workflows/recognizer.yml
-  schedule:
-    - cron: '17 4 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -21,86 +19,6 @@ env:
   DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
 
 jobs:
-  replay:
-    runs-on: macos-15
-    timeout-minutes: 330
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Choose the gallery folder
-        run: echo "RECOGNIZER_GALLERY_DIR=$RUNNER_TEMP/scanner-gallery" >> "$GITHUB_ENV"
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Swift fixture tests
-        working-directory: apps/mobile
-        run: bun run recognizer:test
-      - name: Restore the gallery
-        id: gallery
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/scanner-gallery
-          key: scanner-gallery-v1
-      - name: Build the gallery from Scryfall
-        if: steps.gallery.outputs.cache-hit != 'true'
-        working-directory: apps/mobile
-        run: bun run recognizer:gallery
-      - name: Save the gallery
-        if: steps.gallery.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/scanner-gallery
-          key: scanner-gallery-v1
-      - name: Replay the base branch
-        id: base
-        if: github.event_name == 'pull_request'
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          git fetch --depth 1 origin "$BASE_SHA"
-          git worktree add "$RUNNER_TEMP/base" "$BASE_SHA"
-          if [ -f "$RUNNER_TEMP/base/apps/mobile/modules/card-recognizer/scripts/replay.mjs" ]; then
-            (cd "$RUNNER_TEMP/base/apps/mobile" && bun modules/card-recognizer/scripts/replay.mjs --real-only > /dev/null) || true
-            echo "reports=$RUNNER_TEMP/base/apps/mobile/modules/card-recognizer/.data/reports" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Replay the evidence pack
-        working-directory: apps/mobile
-        env:
-          BASELINE: ${{ steps.base.outputs.reports }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set +e
-          bun modules/card-recognizer/scripts/replay.mjs --real-only ${BASELINE:+--baseline "$BASELINE"} > "$RUNNER_TEMP/replay.json"
-          code=$?
-          set -e
-          {
-            echo '### Recognizer replay'
-            echo '```json'
-            cat "$RUNNER_TEMP/replay.json"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          cat "$RUNNER_TEMP/replay.json"
-          if [ -z "$BASELINE" ] && [ "$code" != 0 ]; then
-            safety=$(jq -r '[.gates[].failedSafetyGates[]] | length' "$RUNNER_TEMP/replay.json")
-            if [ "$safety" = 0 ] && jq -e '.featurePrintParity.pass' "$RUNNER_TEMP/replay.json" > /dev/null; then
-              echo "::warning::Results differ from the expected files. This runner and its gallery differ from the recording, so only the safety gates and the feature print gate apply."
-              exit 0
-            fi
-            exit 1
-          fi
-          if [ "$code" != 2 ]; then
-            exit "$code"
-          fi
-          if git diff --quiet "$BASE_SHA" HEAD -- 'test/scanner-evidence/*/expected-*.json'; then
-            echo "::error::Results changed against the base branch. Record the expected files again and explain each change in the pull request."
-            exit 2
-          fi
-          echo "::notice::Results changed against the base branch, and this pull request records the expected files again."
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: recognizer-reports
-          path: apps/mobile/modules/card-recognizer/.data/reports
-
   module:
     runs-on: macos-15
     timeout-minutes: 60
