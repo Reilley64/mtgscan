@@ -87,4 +87,14 @@ export const sizes = {
   chipPadding: 9,
   cardThumbnailWidth: 40,
   cardThumbnailHeight: 56,
+  quantityBadge: 19,
+  quantityBadgeInset: 5,
+} as const;
+
+export const borderWidths = {
+  selectedOutline: sizes.selectedOutline,
+} as const;
+
+export const aspectRatios = {
+  cardImage: 488 / 680,
 } as const;

@@ -9,6 +9,8 @@ import { Chip } from '@/components/atoms/chip';
 import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
 import { Toggle } from '@/components/atoms/toggle';
+import { CardGrid } from '@/components/molecules/card-grid';
+import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { ListRow } from '@/components/molecules/list-row';
 import { SwitchRow } from '@/components/molecules/switch-row';
@@ -135,6 +137,27 @@ function ListRows() {
   );
 }
 
+function CardTiles() {
+  const [chosen, setChosen] = useState('CMM 464');
+  return (
+    <Section title="Card tiles">
+      <CardGrid>
+        <CardTile uri={solRing} caption="CMM 464" quantity={2} accessibilityLabel="Sol Ring, CMM 464, 2 owned" />
+        {['CMM 464', 'C21 263'].map((caption) => (
+          <CardTile
+            key={caption}
+            uri={solRing}
+            caption={caption}
+            accessibilityLabel={`Sol Ring, ${caption}`}
+            selected={chosen === caption}
+            onPress={() => setChosen(caption)}
+          />
+        ))}
+      </CardGrid>
+    </Section>
+  );
+}
+
 function Switches() {
   const [scanSounds, setScanSounds] = useState(true);
   return (
@@ -157,6 +180,7 @@ export function PrimitiveCatalog() {
       <Toggles />
       <Surfaces />
       <ListRows />
+      <CardTiles />
       <Switches />
       <Section title="Drawer sheet">
         <Button onPress={() => router.push('/primitives-sheet')}>

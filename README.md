@@ -26,8 +26,8 @@ The app uses NativeWind 4 with Tailwind CSS 3. NativeWind 5 is a release candida
 
 Components follow Atomic Design in `src/components`. `CODING_STANDARDS.md` (Atomic Design) has the levels and the rules.
 
-- `atoms` holds the primitives: `Text`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `CardImage`, and `CardThumbnail`. `Toggle` wraps `@rn-primitives/toggle`. `Switch` wraps the iOS switch.
-- `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`), `ListRow`, `SwitchRow`, `EmptyState`, `BinderTile`, and `SettingsButton`.
+- `atoms` holds the primitives: `Text`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `CardImage`, `CardThumbnail`, and `TileButton`. `Toggle` wraps `@rn-primitives/toggle`. `Switch` wraps the iOS switch.
+- `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`), `ListRow`, `SwitchRow`, `EmptyState`, `CardTile`, `CardGrid`, and `SettingsButton`. `CardTile` is a card image with its set and collector number, 3 to a row. The binder grid and the card printing grids use it.
 - `organisms` holds `BinderWall`. `templates` holds `TabScreen` and `DrawerSheet`, the content layout of the bottom drawers.
 - Expo Router routes in `src/app` are the pages.
 - ESLint checks the import direction between the levels with `eslint-plugin-boundaries`. It also keeps raw controls out of screens and features. See `apps/mobile/eslint.config.js`.

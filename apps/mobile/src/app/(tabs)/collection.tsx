@@ -1,19 +1,17 @@
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import type { CollectionPrintingRow } from '@mtgscan/supabase/collection';
+import { View } from 'react-native';
 
 import { Button } from '@/components/atoms/button';
 import { Text } from '@/components/atoms/text';
-import { BinderTile } from '@/components/molecules/binder-tile';
+import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { TabListScreen } from '@/components/templates/tab-screen';
 import { useCollectionPrintings, type BinderRead } from '@/collection/use-collection-printings';
-import { spacing } from '@/theme';
-
-const tilesPerRow = 3;
 
 function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAgain: () => void }) {
   if (binder.status === 'failed') {
     return (
-      <View style={styles.placeholder}>
+      <View className="gap-lg">
         <EmptyState title="Could not load your collection" message="Check your connection." />
         <Button onPress={onTryAgain}>
           <Text>Try again</Text>
@@ -29,20 +27,30 @@ function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAg
   return null;
 }
 
+function BinderTile({ printing }: { printing: CollectionPrintingRow }) {
+  const caption = `${printing.set.toUpperCase()} ${printing.collector_number}`;
+  return (
+    <CardTile
+      uri={printing.image_uris[0]}
+      caption={caption}
+      quantity={printing.owned_quantity}
+      accessibilityLabel={`${printing.name}, ${caption}, ${printing.owned_quantity} owned`}
+    />
+  );
+}
+
 export default function CollectionScreen() {
   const { binder, reload, loadMore } = useCollectionPrintings();
-  const { width } = useWindowDimensions();
-  const tileWidth = (width - 2 * spacing.lg - (tilesPerRow - 1) * spacing.sm) / tilesPerRow;
 
   return (
     <TabListScreen
       title="Collection"
       data={binder.status === 'loaded' ? binder.printings : []}
       keyExtractor={(printing) => printing.printing_id}
-      numColumns={tilesPerRow}
-      columnWrapperStyle={styles.row}
+      numColumns={cardsPerRow}
+      columnWrapperClassName={cardRowClass}
       ItemSeparatorComponent={RowGap}
-      renderItem={({ item }) => <BinderTile printing={item} width={tileWidth} />}
+      renderItem={({ item }) => <BinderTile printing={item} />}
       ListEmptyComponent={<BinderPlaceholder binder={binder} onTryAgain={reload} />}
       onEndReached={loadMore}
       onEndReachedThreshold={1}
@@ -51,17 +59,5 @@ export default function CollectionScreen() {
 }
 
 function RowGap() {
-  return <View style={styles.rowGap} />;
+  return <View className="h-sm" />;
 }
-
-const styles = StyleSheet.create({
-  row: {
-    gap: spacing.sm,
-  },
-  rowGap: {
-    height: spacing.sm,
-  },
-  placeholder: {
-    gap: spacing.lg,
-  },
-});

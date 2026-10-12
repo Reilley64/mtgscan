@@ -135,6 +135,7 @@ components:
     textColor: "{colors.text}"
     typography: "{typography.tab-label}"
     rounded: "{rounded.full}"
+    padding: 0 5px
     height: 19px
   chip:
     backgroundColor: "{colors.surface-control}"
@@ -429,7 +430,7 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Binder tile.** One printing's card image, with a set and collector number caption and corner badges totalled over its copies. Tiles of printings with a foil copy carry a subtle sheen.
   - Until the image loads, the tile is a line-colored card shape.
   - The caption is meta text in text muted: the set code in capitals and the collector number, such as "ISD 51".
-  - The owned badge sits in the top left corner. It is a quantity badge with the number of owned copies.
+  - The owned badge sits in the top left corner, 5 px from both edges. It is a quantity badge with the number of owned copies.
   - Tiles open nothing yet. The card page, the other badges, and the sheen come later.
 - **Commander gallery card.** Full-width commander art with a dark gradient, the deck name in card-title type, status chips, and a Needs you badge.
 

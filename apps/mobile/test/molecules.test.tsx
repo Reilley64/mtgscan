@@ -2,16 +2,18 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { useState } from 'react';
 
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
+import { CardGrid } from '@/components/molecules/card-grid';
+import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { ListRow } from '@/components/molecules/list-row';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 
-import { touchTarget } from './native-ui';
+import { cardImageOutline, cardImageUri, touchTarget } from './native-ui';
 import { tokenColors } from './token-colors';
 
-
 const { primary: lime, surface, surfaceControl, text: white, textMuted } = tokenColors;
+const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
 const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
 
 describe('ChipGroup', () => {
@@ -149,5 +151,56 @@ describe('SwitchRow', () => {
     const row = screen.getByRole('switch', { name: 'Scan sounds' });
     expect(row).toHaveStyle({ backgroundColor: surface, borderRadius: 12 });
     expect(touchTarget(row).height).toBeGreaterThanOrEqual(44);
+  });
+});
+
+describe('CardTile', () => {
+  test('a card tile shows the card image with a muted set and collector number caption', async () => {
+    await render(<CardTile uri={solRing} caption="CMM 464" accessibilityLabel="Sol Ring, CMM 464" />);
+
+    const tile = screen.getByRole('image', { name: 'Sol Ring, CMM 464' });
+    expect(cardImageUri(tile)).toBe(solRing);
+    expect(screen.getByText('CMM 464')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(screen.queryByRole('button')).not.toBeOnTheScreen();
+  });
+
+  test('a card tile with a quantity shows it in a round quantity badge', async () => {
+    await render(<CardTile uri={solRing} caption="CMM 464" accessibilityLabel="Sol Ring, CMM 464, 2 owned" quantity={2} />);
+
+    expect(screen.getByText('2')).toHaveStyle({ color: white, fontSize: 10, fontWeight: '700' });
+    expect(screen.getByText('2').parent).toHaveStyle({ height: 19, minWidth: 19, borderRadius: 999 });
+  });
+
+  test('a card tile with an action is a button with its selected state', async () => {
+    const onPress = jest.fn();
+    await render(
+      <CardTile uri={solRing} caption="CMM 464" accessibilityLabel="Sol Ring, CMM 464" selected={false} onPress={onPress} />,
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: false }));
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('CMM 464')).toHaveStyle({ color: textMuted });
+    expect(cardImageOutline(screen.getByRole('button'))).toMatchObject({ borderWidth: 2, borderColor: '#00000000' });
+  });
+
+  test('a selected card tile has a lime border around the image and a lime caption', async () => {
+    await render(
+      <CardTile uri={solRing} caption="CMM 464" accessibilityLabel="Sol Ring, CMM 464" selected onPress={() => {}} />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();
+    expect(screen.getByText('CMM 464')).toHaveStyle({ color: lime });
+    expect(cardImageOutline(screen.getByRole('button'))).toEqual({ borderColor: lime, borderWidth: 2, borderRadius: 8 });
+  });
+
+  test('card tiles sit three to a row', async () => {
+    await render(
+      <CardGrid>
+        <CardTile uri={solRing} caption="CMM 464" accessibilityLabel="Sol Ring, CMM 464" />
+      </CardGrid>,
+    );
+
+    expect(screen.getByRole('image', { name: 'Sol Ring, CMM 464' }).parent).toHaveStyle({ width: '33.33%' });
   });
 });

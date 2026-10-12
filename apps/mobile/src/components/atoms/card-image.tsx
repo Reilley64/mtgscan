@@ -1,9 +1,10 @@
 import { Image } from 'expo-image';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { colors, rounded, typography } from '@/theme';
+import { Text } from '@/components/atoms/text';
+import { aspectRatios } from '@/theme';
 
-export const cardHeightPerWidth = 680 / 488;
+export const cardHeightPerWidth = 1 / aspectRatios.cardImage;
 
 type CardImageProps = {
   uri: string | undefined;
@@ -12,33 +13,13 @@ type CardImageProps = {
 
 export function CardImage({ uri, quantity }: CardImageProps) {
   return (
-    <View style={styles.card}>
+    <View className="aspect-card-image overflow-hidden rounded-sm bg-line">
       <Image source={uri} cachePolicy="disk" transition={200} style={StyleSheet.absoluteFill} />
-      {quantity !== undefined && <Text style={styles.quantity}>{quantity}</Text>}
+      {quantity !== undefined && (
+        <View className="absolute left-quantity-badge-inset top-quantity-badge-inset h-quantity-badge min-w-quantity-badge items-center justify-center rounded-full bg-quantity-badge px-quantity-badge-inset">
+          <Text className="text-tab-label text-text">{quantity}</Text>
+        </View>
+      )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    aspectRatio: 1 / cardHeightPerWidth,
-    borderRadius: rounded.sm,
-    overflow: 'hidden',
-    backgroundColor: colors.line,
-  },
-  quantity: {
-    position: 'absolute',
-    top: 5,
-    left: 5,
-    minWidth: 19,
-    height: 19,
-    paddingHorizontal: 5,
-    borderRadius: rounded.full,
-    overflow: 'hidden',
-    backgroundColor: colors.quantityBadge,
-    color: colors.text,
-    ...typography.tabLabel,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
-});
