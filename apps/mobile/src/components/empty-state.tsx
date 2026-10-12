@@ -1,6 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
 
-import { colors, spacing, typography } from '@/theme';
+import { Text } from '@/components/ui/text';
 
 type EmptyStateProps = {
   title: string;
@@ -9,24 +9,9 @@ type EmptyStateProps = {
 
 export function EmptyState({ title, message }: EmptyStateProps) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.message}>{message}</Text>
+    <View className="gap-xs py-lg">
+      <Text className="text-body-strong">{title}</Text>
+      <Text className="text-text-muted">{message}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: spacing.xs,
-    paddingVertical: spacing.lg,
-  },
-  title: {
-    ...typography.bodyStrong,
-    color: colors.text,
-  },
-  message: {
-    ...typography.body,
-    color: colors.textMuted,
-  },
-});

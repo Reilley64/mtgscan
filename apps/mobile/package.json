@@ -19,7 +19,11 @@
   "dependencies": {
     "@mtgscan/supabase": "workspace:*",
     "@react-native-google-signin/google-signin": "^16.1.5",
+    "@rn-primitives/slot": "^1.5.2",
+    "@rn-primitives/toggle": "^1.5.2",
     "@supabase/supabase-js": "^2.117.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "expo": "~56.0.23",
     "expo-apple-authentication": "~56.0.4",
     "expo-audio": "~56.0.13",
@@ -34,11 +38,15 @@
     "expo-status-bar": "~56.0.4",
     "expo-symbols": "~56.0.7",
     "expo-system-ui": "~56.0.5",
+    "nativewind": "~4.2.7",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.85.3",
+    "react-native-reanimated": "~4.3.1",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0"
+    "react-native-screens": "~4.26.0",
+    "react-native-worklets": "0.8.3",
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
     "@react-native/jest-preset": "~0.85.3",
@@ -49,6 +57,7 @@
     "eslint-config-expo": "~56.0.4",
     "jest": "~29.7.0",
     "jest-expo": "~56.0.5",
+    "tailwindcss": "^3.4.19",
     "test-renderer": "~1.2.0",
     "typescript": "~6.0.3"
   },
@@ -60,6 +69,14 @@
     ],
     "setupFilesAfterEnv": [
       "<rootDir>/test/setup.ts"
-    ]
+    ],
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|nativewind|@rn-primitives))",
+      "/node_modules/react-native-reanimated/plugin/",
+      "/node_modules/@react-native/babel-preset/"
+    ],
+    "moduleNameMapper": {
+      "\\.css$": "<rootDir>/test/style-file.ts"
+    }
   }
 }

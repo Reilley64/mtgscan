@@ -1,6 +1,5 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
-
-import { colors, rounded, sizes, typography } from '@/theme';
+import { Button } from '@/components/ui/button';
+import { Text } from '@/components/ui/text';
 
 type SecondaryButtonProps = {
   label: string;
@@ -9,22 +8,8 @@ type SecondaryButtonProps = {
 
 export function SecondaryButton({ label, onPress }: SecondaryButtonProps) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.button}>
-      <Text style={styles.label}>{label}</Text>
-    </Pressable>
+    <Button variant="secondary" onPress={onPress}>
+      <Text>{label}</Text>
+    </Button>
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    height: sizes.button,
-    borderRadius: rounded.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceControl,
-  },
-  label: {
-    ...typography.bodyStrong,
-    color: colors.text,
-  },
-});
