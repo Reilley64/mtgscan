@@ -25,6 +25,10 @@ jobs:
         run: bun run lint
       - name: Component tests
         run: bun run test
+      - name: Production bundle has no test sign-in
+        env:
+          EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ci-ios-client-id.apps.googleusercontent.com
+        run: bun run --filter @mtgscan/mobile test:production-bundle
 
   database:
     runs-on: ubuntu-latest

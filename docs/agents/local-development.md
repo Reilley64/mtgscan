@@ -14,7 +14,39 @@
 - Use the iPhone 17 Pro Simulator.
 - `expo run:ios` and `expo start` keep Metro running and never exit. Start them in the background with output to a log file, poll the log, and stop Metro when you are done.
 - Verify each UI change on the Simulator with agent-device. Read the `agent-device` and `ios-simulator` skills first. Save the screenshots for the PR evidence.
-- When a check needs a signed-in account, ask the owner to sign in on the Simulator. Never type the owner's credentials.
+- When a check needs a signed-in account, use the test sign-in against local Supabase. See Test sign-in. Ask the owner to sign in only for a check against hosted Supabase or of Apple or Google sign-in itself. Never type the owner's credentials.
+
+## Test sign-in
+
+A development build against local Supabase can sign in a local test user with one tap, with no Apple or Google account. Use it for Simulator checks with agent-device. Do not add a temporary password sign-in.
+
+- The test user is `test-user@mtgscan.test`. Its password is a local default in `supabase/test-user/account.ts`.
+- The command and the app work only with the local stack at `http://127.0.0.1:54321` or `http://localhost:54321`. Both refuse every other Supabase URL, so the test user never exists on hosted Supabase.
+- Production builds leave the test sign-in out. `bun run test:production-bundle` in `apps/mobile` builds a production bundle with the test sign-in on and fails if the bundle holds the test sign-in. CI runs it.
+
+1. Start local Supabase as in Local Supabase.
+2. Seed or reset the test user from `supabase`. The command deletes the test user and its collection, and creates it again. `--sample-collection` also adds 30 sample collection entries through `add_scan_batch`. The sample needs the card catalog, so import the catalog fixture first:
+
+   ```bash
+   cd supabase
+   export SUPABASE_URL=http://127.0.0.1:54321
+   export SUPABASE_SECRET_KEY=$(bunx supabase@2.120.0 status -o json | jq -r .SECRET_KEY)
+   bun run import catalog --manifest tests/fixtures/scryfall/bulk-data.json
+   bun run test-user --sample-collection
+   ```
+
+3. Put the local stack and the test sign-in in `apps/mobile/.env.local`. Take the publishable key from `bunx supabase@2.120.0 status`:
+
+   ```bash
+   EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<PUBLISHABLE_KEY>
+   EXPO_PUBLIC_TEST_SIGN_IN=true
+   ```
+
+4. Start Metro with `bunx expo start --dev-client` in `apps/mobile`, in the background, as the Xcode and the Simulator section says. Restart Metro after each change to `.env.local`. Open the development build that is installed on the Simulator. The test sign-in needs no native build.
+5. Tap **Sign in as the test user** on the sign-in screen. The app opens on Recent.
+
+Delete `apps/mobile/.env.local` when you are done, so that the next Metro run uses hosted Supabase. Never set `EXPO_PUBLIC_TEST_SIGN_IN` for an EAS build.
 
 ## Scanner evidence replay
 

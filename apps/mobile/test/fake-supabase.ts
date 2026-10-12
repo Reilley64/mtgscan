@@ -6,6 +6,7 @@ import {
   type User,
 } from '@supabase/supabase-js';
 import type { CollectionPrintingRow, CollectionPrintingsQuery } from '@mtgscan/supabase/collection';
+import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 
 import type { SignInProvider } from '@/auth/sign-in';
@@ -15,7 +16,7 @@ import { appleIdTokenNonce } from './fake-apple';
 type AuthListener = (event: AuthChangeEvent, session: Session | null) => void;
 
 export type FakeAccount = {
-  provider: SignInProvider;
+  provider: SignInProvider | 'email';
   email: string;
 };
 
@@ -23,6 +24,7 @@ const defaultEmail = 'player@example.com';
 let session: Session | null = null;
 let nextSignInEmail = defaultEmail;
 let nextSignInError: AuthError | null = null;
+let testUserSeeded = true;
 const listeners = new Set<AuthListener>();
 const users = new Map<string, User>();
 let collectionPrintings: CollectionPrintingRow[] = [];
@@ -37,9 +39,10 @@ export const galleryPartNames = [
   'base-printing-list-1.zlib',
 ];
 
-const issuers: Record<SignInProvider, string> = {
+const issuers: Record<FakeAccount['provider'], string | undefined> = {
   apple: 'https://appleid.apple.com',
   google: 'https://accounts.google.com',
+  email: undefined,
 };
 
 function userSignedIn({ provider, email }: FakeAccount): User {
@@ -173,6 +176,15 @@ export const fakeSupabase = {
       notify('SIGNED_IN');
       return { data: { session, user: session.user }, error: null };
     },
+    async signInWithPassword({ email, password }: { email: string; password: string }) {
+      if (!testUserSeeded || email !== testUser.email || password !== testUser.password) {
+        const error = new AuthApiError('Invalid login credentials', 400, 'invalid_credentials');
+        return { data: { session: null, user: null }, error };
+      }
+      session = sessionFor({ provider: 'email', email });
+      notify('SIGNED_IN');
+      return { data: { session, user: session.user }, error: null };
+    },
     async signOut() {
       session = null;
       notify('SIGNED_OUT');
@@ -191,6 +203,10 @@ export function signInNextWithEmail(email: string) {
 
 export function failNextSignIn(error: AuthError) {
   nextSignInError = error;
+}
+
+export function testUserIsNotSeeded() {
+  testUserSeeded = false;
 }
 
 export function ownCollectionPrintings(printings: CollectionPrintingRow[]) {
@@ -227,6 +243,7 @@ export function resetFakeSupabase() {
   publishGallery(publishedGalleryVersion);
   nextSignInEmail = defaultEmail;
   nextSignInError = null;
+  testUserSeeded = true;
   listeners.clear();
   users.clear();
 }
