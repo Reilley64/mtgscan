@@ -274,6 +274,13 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Search matches name, type, and printing, in the collection only. Filters: All, Free, Allocated, Protected.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
+  - The first time the user opens Scan, iOS asks for camera access.
+  - When camera access is off, the tab shows "Camera access is off." with an **Open Settings** button.
+  - On a device without a camera, such as the Simulator, the tab shows "Camera not available".
+  - The magenta card outline draws only around a detected card.
+  - After three failed photos in a row or a camera error, the camera stops. The tab shows "Camera stopped." with a **Try again** button.
+  - The camera stops when the user leaves Scan or the app.
+  - Taking a photo makes no shutter sound where iOS allows it, and no haptic. When the latest-scan chip shows a recognized card, the phone plays a heavy impact haptic and a soft two-note blip. When recognition fails, it plays a warning haptic and a lower tone. A photo that is not a card plays neither. The sounds follow the Ring/Silent switch, and a Scan sounds switch in settings turns them off (#82).
 
 ### Sign-in screen
 

@@ -1,0 +1,49 @@
+name: Detector
+
+on:
+  pull_request:
+    paths:
+      - apps/mobile/modules/card-detector/**
+      - apps/mobile/app.json
+      - .github/workflows/detector.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: detector-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+
+jobs:
+  fixtures:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - name: Swift fixture tests
+        working-directory: apps/mobile
+        run: bun run detector:test
+
+  module:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ci.apps.googleusercontent.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Generate the iOS project
+        working-directory: apps/mobile
+        run: bunx expo prebuild --platform ios
+      - name: Build the app with the detector module
+        working-directory: apps/mobile/ios
+        run: >
+          xcodebuild -workspace mtgscan.xcworkspace -scheme mtgscan -configuration Debug
+          -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build -quiet
