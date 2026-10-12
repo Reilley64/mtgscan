@@ -18,6 +18,7 @@ export const lightningBoltSld = printing('bolt-sld', 'Lightning Bolt', 'sld', '1
 export const shock = printing('shock-m19', 'Shock', 'm19', '156', ['nonfoil', 'foil']);
 export const lightningAxe = printing('axe-tsp', 'Lightning Axe', 'tsp', '167', ['nonfoil', 'foil']);
 export const solRingEtched = printing('sol-ring-cmm', 'Sol Ring', 'cmm', '700', ['etched']);
+export const solRingCommander = printing('sol-ring-c21', 'Sol Ring', 'c21', '263', ['nonfoil', 'foil']);
 export const plains = printing('plains-m21', 'Plains', 'm21', '260', ['nonfoil', 'foil'], true);
 export const tamiyosJournal = printing('journal-soi', "Tamiyo's Journal", 'soi', '265', ['nonfoil', 'foil']);
 export const tamiyosJournalPrerelease = printing('journal-psoi', "Tamiyo's Journal", 'psoi', '265s', ['foil']);
@@ -35,6 +36,7 @@ export const galleryPrintings: GalleryCardPrinting[] = [
   lightningBoltSld,
   plains,
   solRingEtched,
+  solRingCommander,
 ];
 
 export function cardImageUri(printingId: string) {

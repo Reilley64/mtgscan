@@ -6,14 +6,14 @@ export function printingCaption(printing: Printing) {
   return `${printing.setCode.toUpperCase()} ${printing.collectorNumber}`;
 }
 
-export function copiesLabel(copies: number) {
-  return `${copies} copies`;
+export function copiesDetail(copies: number): string[] {
+  return copies > 1 ? [`${copies} copies`] : [];
 }
 
-export function scanDetails(scan: BatchScan & { printing: Printing }) {
+export function chipDetails(scan: BatchScan & { printing: Printing }) {
   return [
     printingCaption(scan.printing),
     ...(scan.finish === 'nonfoil' ? [] : [finishLabels[scan.finish]]),
-    ...(scan.copies > 1 ? [copiesLabel(scan.copies)] : []),
+    ...copiesDetail(scan.copies),
   ];
 }

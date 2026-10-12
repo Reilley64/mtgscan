@@ -44,8 +44,11 @@ _Avoid_: Card database
 Two cards that together produce a result, such as infinite mana or a win, as Commander Spellbook lists it. mtgscan keeps only Commander Spellbook variants with status OK, exactly two cards with one copy each, and no template requirement. A template requirement asks for any card of a kind, not a named card. Each combo keeps its produced features and Commander Spellbook's bracket tag, such as ruthless or spicy. A bracket tag is Commander Spellbook's label, not an estimated bracket. A combo can be a bracket signal.
 
 **Scan batch**:
-An editable group of recognized collection entries waiting to be added to the collection together.
+An editable group of scans waiting to be added to the collection together.
 _Avoid_: To-add list, import
+
+**Scan**:
+One card photo in the scan batch, with its card printing, finish, condition, language, and number of copies. **+1** adds a copy to a scan. A scan that was not recognized has no card printing until the user picks one in name search. A basic land and a photo that is not a card make no scan.
 
 **Stack**:
 The copies in a scan batch that share a card printing, finish, condition, and language. Batch review shows one row per stack, and committing the scan batch sends its stacks.

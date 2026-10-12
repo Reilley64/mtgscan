@@ -8,7 +8,7 @@ import { DangerButton } from '@/components/danger-button';
 import { SecondaryButton } from '@/components/secondary-button';
 import { colors, spacing, typography } from '@/theme';
 
-import { copiesLabel, printingCaption } from './printing-caption';
+import { copiesDetail, printingCaption } from './printing-caption';
 import { PrintingRow } from './printing-row';
 import type { BatchScan, Printing, ScanBatchAction } from './scan-batch';
 import { SheetSection } from './sheet-section';
@@ -24,7 +24,7 @@ export function ScanDetails({ scan, dispatch, onSearch, onRemove }: ScanDetailsP
   const { printing, scanId } = scan;
   const otherOptions = scan.options.filter((option) => option.printingId !== printing.printingId);
   const imageOf = usePrintingImages([printing, ...otherOptions].map((option) => option.printingId));
-  const caption = [printingCaption(printing), ...(scan.copies > 1 ? [copiesLabel(scan.copies)] : [])].join(' · ');
+  const caption = [printingCaption(printing), ...copiesDetail(scan.copies)].join(' · ');
 
   return (
     <View style={styles.details}>
@@ -68,7 +68,7 @@ export function ScanDetails({ scan, dispatch, onSearch, onRemove }: ScanDetailsP
               key={option.printingId}
               printing={option}
               image={imageOf(option.printingId)}
-              onPress={() => dispatch({ type: 'choose', scanId, printing: option, source: 'scan' })}
+              onPress={() => dispatch({ type: 'choose', scanId, printing: option })}
             />
           ))}
         </SheetSection>

@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-na
 
 import { usePrintingImages } from '@/catalog/use-printing-images';
 import { CardImage } from '@/components/card-image';
-import { colors, rounded, spacing, typography } from '@/theme';
+import { colors, rounded, sizes, spacing, typography } from '@/theme';
 
 import { printingCaption } from './printing-caption';
 import type { Printing } from './scan-batch';
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   },
   image: {
     borderRadius: rounded.sm,
-    borderWidth: 2,
+    borderWidth: sizes.selectedOutline,
     borderColor: 'transparent',
   },
   selectedImage: {

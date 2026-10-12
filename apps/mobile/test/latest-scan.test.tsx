@@ -8,6 +8,7 @@ import {
   lightningBoltSld,
   plains,
   shock,
+  solRingCommander,
   solRingEtched,
   tamiyosJournal,
   tamiyosJournalPrerelease,
@@ -450,8 +451,8 @@ test('the finish quick action switches the latest scan between the finishes of i
 });
 
 test('the finish quick action cycles nonfoil, foil, and etched when the printing has all three', async () => {
-  const counterspell = { ...lightningBoltM10, finishes: ['nonfoil', 'foil', 'etched'] } as typeof lightningBoltM10;
-  nextPhotosAre(cardRecognition([counterspell]));
+  const boltWithEtched = { ...lightningBoltM10, finishes: ['nonfoil', 'foil', 'etched'] } as typeof lightningBoltM10;
+  nextPhotosAre(cardRecognition([boltWithEtched]));
   await openScan();
   await scanACard();
 
@@ -526,4 +527,28 @@ test('picking a printing in Change set takes its default finish when the finish 
   await fireEvent.press(await screen.findByRole('button', { name: 'Lightning Bolt, PLST M10-146' }));
 
   expect(latestScanChip('Lightning Bolt, PLST M10-146')).toBeOnTheScreen();
+});
+
+test('a switch to a printing without the finish takes its default finish from the star on the collector line', async () => {
+  nextPhotosAre(cardRecognition([solRingEtched, solRingCommander], { premiumMark: true }));
+  await openScan();
+  await scanACard();
+  expect(latestScanChip('Sol Ring, CMM 700, Etched')).toBeOnTheScreen();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: 'Change set' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Sol Ring, C21 263' }));
+
+  expect(latestScanChip('Sol Ring, C21 263, Foil')).toBeOnTheScreen();
+});
+
+test('a scan that is not recognized can be removed from name search', async () => {
+  nextPhotosAre('unreadable_photo');
+  await openScan();
+  await scanACard();
+  await openLatestScan('Not recognized, Tap to search');
+
+  await fireEvent.press(await screen.findByRole('button', { name: 'Remove scan' }));
+
+  expect(screen.queryByLabelText('Card name')).not.toBeOnTheScreen();
+  expect(scanTab().queryByText('Not recognized')).not.toBeOnTheScreen();
 });

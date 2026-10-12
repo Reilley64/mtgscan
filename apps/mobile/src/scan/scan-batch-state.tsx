@@ -6,6 +6,8 @@ import { useSession } from '@/auth/session';
 import type { Recognition } from '../../modules/card-recognizer';
 import { emptyScanBatch, scanBatchReducer, type BatchScan, type Printing, type ScanBatch, type ScanBatchAction } from './scan-batch';
 
+export type RecognitionResult = Recognition | 'failed' | 'no_photo';
+
 export type ScanOutcome = 'recognized' | 'failed' | 'not_a_card' | 'no_photo';
 
 export type LatestScan =
@@ -13,22 +15,21 @@ export type LatestScan =
   | { kind: 'scan'; scan: BatchScan }
   | { kind: 'basic_land'; printing: Printing };
 
-type ScanTab = Readonly<{
+type Scanning = Readonly<{
   batch: ScanBatch;
   latest: { kind: 'scan'; scanId: string } | { kind: 'basic_land'; printing: Printing } | null;
   recognizing: number;
-  sequence: number;
 }>;
 
-type ScanTabAction =
+type ScanningAction =
   | ScanBatchAction
-  | { type: 'signedIn' }
+  | { type: 'accountChanged' }
   | { type: 'recognitionStarted' }
-  | { type: 'recognitionEnded'; scanId: string; recognition: Recognition | 'failed' | 'no_photo' };
+  | { type: 'recognitionEnded'; scanId: string; recognition: RecognitionResult };
 
-const initialScanTab: ScanTab = { batch: emptyScanBatch, latest: null, recognizing: 0, sequence: 0 };
+const initialScanning: Scanning = { batch: emptyScanBatch, latest: null, recognizing: 0 };
 
-function recognitionEnded(state: ScanTab, scanId: string, recognition: Recognition | 'failed' | 'no_photo'): ScanTab {
+function recognitionEnded(state: Scanning, scanId: string, recognition: RecognitionResult): Scanning {
   const ended = { ...state, recognizing: Math.max(0, state.recognizing - 1) };
   if (recognition === 'no_photo' || (recognition !== 'failed' && recognition.kind === 'not_a_card')) {
     return ended;
@@ -37,25 +38,23 @@ function recognitionEnded(state: ScanTab, scanId: string, recognition: Recogniti
   if (first?.basicLand) {
     return { ...ended, latest: { kind: 'basic_land', printing: first } };
   }
-  const sequence = state.sequence + 1;
   const action: ScanBatchAction =
     recognition === 'failed' || !first
-      ? { type: 'failed', scanId, sequence }
+      ? { type: 'failed', scanId }
       : {
           type: 'recognized',
           scanId,
-          sequence,
           candidates: recognition.candidates,
           sameTextTwinCount: recognition.sameTextTwinCount,
           premiumMark: recognition.reading.premiumMark,
         };
-  return { ...ended, sequence, latest: { kind: 'scan', scanId }, batch: scanBatchReducer(state.batch, action) };
+  return { ...ended, latest: { kind: 'scan', scanId }, batch: scanBatchReducer(state.batch, action) };
 }
 
-function scanTabReducer(state: ScanTab, action: ScanTabAction): ScanTab {
+function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
   switch (action.type) {
-    case 'signedIn':
-      return initialScanTab;
+    case 'accountChanged':
+      return initialScanning;
     case 'recognitionStarted':
       return { ...state, recognizing: state.recognizing + 1 };
     case 'recognitionEnded':
@@ -65,7 +64,7 @@ function scanTabReducer(state: ScanTab, action: ScanTabAction): ScanTab {
   }
 }
 
-export function outcomeOf(recognition: Recognition | 'failed' | 'no_photo'): ScanOutcome {
+export function outcomeOf(recognition: RecognitionResult): ScanOutcome {
   if (recognition === 'failed' || recognition === 'no_photo') {
     return recognition;
   }
@@ -80,12 +79,12 @@ type ScanBatchState = {
   latest: LatestScan | null;
   dispatch: Dispatch<ScanBatchAction>;
   recognitionStarted: () => void;
-  recognitionEnded: (recognition: Recognition | 'failed' | 'no_photo') => void;
+  recognitionEnded: (recognition: RecognitionResult) => void;
 };
 
 const ScanBatchContext = createContext<ScanBatchState | null>(null);
 
-function latestScan({ batch, latest, recognizing }: ScanTab): LatestScan | null {
+function latestScan({ batch, latest, recognizing }: Scanning): LatestScan | null {
   if (recognizing > 0) {
     return { kind: 'recognizing' };
   }
@@ -99,15 +98,15 @@ function latestScan({ batch, latest, recognizing }: ScanTab): LatestScan | null 
 export function ScanBatchProvider({ children }: { children: ReactNode }) {
   const userId = useSession()?.user.id;
   const [batchUserId, setBatchUserId] = useState(userId);
-  const [state, dispatchTab] = useReducer(scanTabReducer, initialScanTab);
+  const [state, dispatchScanning] = useReducer(scanningReducer, initialScanning);
   if (batchUserId !== userId) {
     setBatchUserId(userId);
-    dispatchTab({ type: 'signedIn' });
+    dispatchScanning({ type: 'accountChanged' });
   }
-  const recognitionStarted = useCallback(() => dispatchTab({ type: 'recognitionStarted' }), []);
+  const recognitionStarted = useCallback(() => dispatchScanning({ type: 'recognitionStarted' }), []);
   const recognitionEnded = useCallback(
-    (recognition: Recognition | 'failed' | 'no_photo') =>
-      dispatchTab({ type: 'recognitionEnded', scanId: randomUUID(), recognition }),
+    (recognition: RecognitionResult) =>
+      dispatchScanning({ type: 'recognitionEnded', scanId: randomUUID(), recognition }),
     [],
   );
 
@@ -115,7 +114,7 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
     () => ({
       batch: state.batch,
       latest: latestScan(state),
-      dispatch: dispatchTab,
+      dispatch: dispatchScanning,
       recognitionStarted,
       recognitionEnded,
     }),

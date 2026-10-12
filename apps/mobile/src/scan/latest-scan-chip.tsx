@@ -5,7 +5,7 @@ import { usePrintingImages } from '@/catalog/use-printing-images';
 import { CardThumbnail } from '@/components/card-thumbnail';
 import { colors, rounded, sizes, spacing, typography } from '@/theme';
 
-import { scanDetails } from './printing-caption';
+import { chipDetails } from './printing-caption';
 import type { BatchScan, Printing } from './scan-batch';
 import type { LatestScan } from './scan-batch-state';
 
@@ -72,7 +72,7 @@ function ScanChip({
 }) {
   const { printing } = scan;
   const name = printing ? printing.name : 'Not recognized';
-  const details = printing ? scanDetails({ ...scan, printing }) : ['Tap to search'];
+  const details = printing ? chipDetails({ ...scan, printing }) : ['Tap to search'];
   return (
     <Pressable
       accessibilityRole="button"

@@ -41,7 +41,7 @@ export default function ScanPrintingsSheet() {
             printings={sameTextTwinsFirst(scan, cardPrintingsOfScan)}
             selectedId={scan.printing.printingId}
             onChoose={(printing) => {
-              dispatch({ type: 'choose', scanId, printing, source: 'scan' });
+              dispatch({ type: 'choose', scanId, printing });
               router.back();
             }}
           />

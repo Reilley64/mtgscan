@@ -7,18 +7,17 @@ export type Printing = GalleryCardPrinting;
 
 export type BatchScan = Readonly<{
   scanId: string;
-  sequence: number;
   options: readonly Printing[];
   sameTextTwinCount: number;
+  premiumMark: boolean;
   printing: Printing | null;
   finish: Finish;
   condition: CardCondition;
   language: CardLanguage;
-  source: 'scan' | 'search';
   copies: number;
 }>;
 
-export type BatchDefaults = Readonly<{
+type BatchDefaults = Readonly<{
   condition: CardCondition;
   language: CardLanguage;
 }>;
@@ -32,13 +31,12 @@ export type ScanBatchAction =
   | {
       type: 'recognized';
       scanId: string;
-      sequence: number;
       candidates: readonly Printing[];
       sameTextTwinCount: number;
       premiumMark: boolean;
     }
-  | { type: 'failed'; scanId: string; sequence: number }
-  | { type: 'choose'; scanId: string; printing: Printing; source: 'scan' | 'search' }
+  | { type: 'failed'; scanId: string }
+  | { type: 'choose'; scanId: string; printing: Printing }
   | { type: 'setFinish'; scanId: string; finish: Finish }
   | { type: 'setCondition'; scanId: string; condition: CardCondition }
   | { type: 'setLanguage'; scanId: string; language: CardLanguage }
@@ -52,7 +50,7 @@ export const emptyScanBatch: ScanBatch = {
 
 const premiumFinishes: readonly Finish[] = ['foil', 'etched'];
 
-export function defaultFinish(printing: Printing, premiumMark: boolean): Finish {
+function defaultFinish(printing: Printing, premiumMark: boolean): Finish {
   if (premiumMark && printing.finishes.includes('foil')) {
     return 'foil';
   }
@@ -62,15 +60,15 @@ export function defaultFinish(printing: Printing, premiumMark: boolean): Finish 
   return premiumFinishes.find((finish) => printing.finishes.includes(finish)) ?? 'nonfoil';
 }
 
-function finishAfterSwitch(printing: Printing, finish: Finish): Finish {
-  return printing.finishes.includes(finish) ? finish : defaultFinish(printing, false);
+function finishAfterSwitch(scan: BatchScan, printing: Printing): Finish {
+  return printing.finishes.includes(scan.finish) ? scan.finish : defaultFinish(printing, scan.premiumMark);
 }
 
 function updateScan(batch: ScanBatch, scanId: string, change: (scan: BatchScan) => BatchScan): ScanBatch {
   return { ...batch, scans: batch.scans.map((scan) => (scan.scanId === scanId ? change(scan) : scan)) };
 }
 
-function addScan(batch: ScanBatch, scan: Omit<BatchScan, 'condition' | 'language' | 'source' | 'copies'>): ScanBatch {
+function addScan(batch: ScanBatch, scan: Omit<BatchScan, 'condition' | 'language' | 'copies'>): ScanBatch {
   if (batch.scans.some((existing) => existing.scanId === scan.scanId)) {
     return batch;
   }
@@ -78,7 +76,7 @@ function addScan(batch: ScanBatch, scan: Omit<BatchScan, 'condition' | 'language
     ...batch,
     scans: [
       ...batch.scans,
-      { ...scan, condition: batch.defaults.condition, language: batch.defaults.language, source: 'scan', copies: 1 },
+      { ...scan, condition: batch.defaults.condition, language: batch.defaults.language, copies: 1 },
     ],
   };
 }
@@ -89,9 +87,9 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
       const printing = action.candidates[0] ?? null;
       return addScan(batch, {
         scanId: action.scanId,
-        sequence: action.sequence,
         options: action.candidates,
         sameTextTwinCount: action.sameTextTwinCount,
+        premiumMark: action.premiumMark,
         printing,
         finish: printing ? defaultFinish(printing, action.premiumMark) : 'nonfoil',
       });
@@ -99,9 +97,9 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
     case 'failed':
       return addScan(batch, {
         scanId: action.scanId,
-        sequence: action.sequence,
         options: [],
         sameTextTwinCount: 0,
+        premiumMark: false,
         printing: null,
         finish: 'nonfoil',
       });
@@ -109,8 +107,7 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
       return updateScan(batch, action.scanId, (scan) => ({
         ...scan,
         printing: action.printing,
-        finish: finishAfterSwitch(action.printing, scan.finish),
-        source: action.source,
+        finish: finishAfterSwitch(scan, action.printing),
       }));
     case 'setFinish':
       return updateScan(batch, action.scanId, (scan) => ({ ...scan, finish: action.finish }));

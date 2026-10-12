@@ -1,6 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+
+import { DangerButton } from '@/components/danger-button';
 
 import { NameSearch } from '@/scan/name-search';
 import { ScanDetails } from '@/scan/scan-details';
@@ -27,12 +29,15 @@ export default function ScanDetailsSheet() {
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets>
       {scan && (searching || !scan.printing) ? (
-        <NameSearch
-          onChoose={(printing) => {
-            dispatch({ type: 'choose', scanId, printing, source: 'search' });
-            setSearching(false);
-          }}
-        />
+        <View style={styles.search}>
+          <NameSearch
+            onChoose={(printing) => {
+              dispatch({ type: 'choose', scanId, printing });
+              setSearching(false);
+            }}
+          />
+          {scan.printing ? null : <DangerButton label="Remove scan" onPress={removeCopy} />}
+        </View>
       ) : null}
       {scan?.printing && !searching ? (
         <ScanDetails
@@ -54,5 +59,8 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.lg,
     paddingBottom: spacing.lg * 2,
+  },
+  search: {
+    gap: spacing.lg,
   },
 });
