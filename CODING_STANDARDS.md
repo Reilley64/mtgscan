@@ -25,7 +25,10 @@ The review agent checks each diff against these rules. CI already runs the type 
 
 ## App UI
 
-- Take colors, type, spacing, corners, and sizes from `apps/mobile/src/theme.ts`, which mirrors the `DESIGN.md` tokens. A new token goes into both files in the same PR.
+- Style new UI with NativeWind classes named after the `DESIGN.md` tokens, such as `bg-surface-control`, `text-text-muted`, `text-body-strong`, `rounded-sm`, and `gap-xs`. A new inline style object or `StyleSheet` entry is a finding, unless a native component takes only a style prop. Older screens move to classes in #105 and #106.
+- Take colors, type, spacing, corners, and sizes from `apps/mobile/src/theme.ts`, which mirrors the `DESIGN.md` tokens. The Tailwind theme comes from it through `src/tailwind-theme.ts`, and `test/design-tokens.test.ts` checks both against `DESIGN.md`. A new token goes into `theme.ts` and `DESIGN.md` in the same PR.
+- Merge class names with `cn()` from `src/lib/class-names.ts`. It knows the token names. Plain `twMerge` drops a token class, such as `text-text` beside `text-body-strong`.
+- Leave out transition and animation classes until they work in Jest. See #102.
 - A value outside the tokens needs a reason in `DESIGN.md`, like the Apple and Google button colors.
 - Follow the `DESIGN.md` Do's and Don'ts, such as native tabs, page sheets, and no on-screen back buttons.
 - Give every control an accessibility role and a label that matches its visible text.

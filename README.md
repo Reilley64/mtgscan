@@ -13,6 +13,15 @@ Public build-time settings go in `apps/mobile/.env`. `apps/mobile/.env.example` 
 
 Checks run on every pull request. Run them locally with `bun run typecheck`, `bun run lint`, and `bun run test`.
 
+### Styling
+
+The app uses NativeWind 4 with Tailwind CSS 3. NativeWind 5 is a release candidate. See #102.
+
+- `src/theme.ts` holds the `DESIGN.md` tokens. `src/tailwind-theme.ts` builds the Tailwind theme from it, and `tailwind.config.js` uses that theme. Restart Metro after a change to either file.
+- `cn()` in `src/lib/class-names.ts` merges class names and knows the token names.
+- Jest compiles the classes in `test/class-styles.ts` before each test, so component tests can check class styles with `toHaveStyle`.
+- NativeWind needs `react-native-reanimated` and `react-native-worklets`. They are native modules, so a change to them needs a new native build. CocoaPods builds them from source, which adds time to each clean build.
+
 ### Card recognizer
 
 The card recognizer is a local Expo module in `apps/mobile/modules/card-recognizer`. `recognize(photoUri, outline)` returns a card result with its candidates and decision, or a not-a-card result, as #75 describes. The outline is the four card corners, top left first and clockwise, as fractions of the photo's width and height from its top-left corner. It loads the gallery from `Application Support/gallery` on the phone and throws `gallery_not_ready` until one is there.
