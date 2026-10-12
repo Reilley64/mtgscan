@@ -1,41 +1,40 @@
-import { StyleSheet, Text as NativeText, View } from 'react-native';
+import { View } from 'react-native';
 
 import { usePrintingImages } from '@/catalog/use-printing-images';
 import { conditionLabels, conditions, finishLabels, languageNames, languages } from '@/collection/copy-labels';
-import { CardImage } from '@/components/atoms/card-image';
 import { Button } from '@/components/atoms/button';
+import { CardImage } from '@/components/atoms/card-image';
+import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { Text } from '@/components/atoms/text';
 import { ChipGroup } from '@/components/molecules/chip-group';
-import { colors, spacing, typography } from '@/theme';
+import { ListRow } from '@/components/molecules/list-row';
+import { SheetSection } from '@/components/molecules/sheet-section';
+import { copiesDetail, printingCaption } from '@/scan/printing-caption';
+import type { RecognizedScan, ScanBatchAction } from '@/scan/scan-batch';
 
-import { copiesDetail, printingCaption } from './printing-caption';
-import { PrintingRow } from './printing-row';
-import type { BatchScan, Printing, ScanBatchAction } from './scan-batch';
-import { SheetSection } from './sheet-section';
-
-type ScanDetailsProps = {
-  scan: BatchScan & { printing: Printing };
+type ScanDetailsContentProps = {
+  scan: RecognizedScan;
   dispatch: (action: ScanBatchAction) => void;
   onSearch: () => void;
   onRemove: () => void;
 };
 
-export function ScanDetails({ scan, dispatch, onSearch, onRemove }: ScanDetailsProps) {
+export function ScanDetailsContent({ scan, dispatch, onSearch, onRemove }: ScanDetailsContentProps) {
   const { printing, scanId } = scan;
   const otherOptions = scan.options.filter((option) => option.printingId !== printing.printingId);
   const imageOf = usePrintingImages([printing, ...otherOptions].map((option) => option.printingId));
   const caption = [printingCaption(printing), ...copiesDetail(scan.copies)].join(' · ');
 
   return (
-    <View style={styles.details}>
-      <View style={styles.card}>
-        <View accessible accessibilityRole="image" accessibilityLabel={printing.name} style={styles.image}>
+    <View className="gap-lg">
+      <View className="items-center gap-xs">
+        <View accessible accessibilityRole="image" accessibilityLabel={printing.name} className="mb-sm w-[55%]">
           <CardImage uri={imageOf(printing.printingId)} />
         </View>
-        <NativeText accessibilityRole="header" style={styles.name}>
+        <Text variant="card-title" className="text-center">
           {printing.name}
-        </NativeText>
-        <NativeText style={styles.caption}>{caption}</NativeText>
+        </Text>
+        <Text variant="meta">{caption}</Text>
       </View>
       <SheetSection title="Finish">
         <ChipGroup
@@ -64,10 +63,11 @@ export function ScanDetails({ scan, dispatch, onSearch, onRemove }: ScanDetailsP
       {otherOptions.length > 0 ? (
         <SheetSection title="Other options">
           {otherOptions.map((option) => (
-            <PrintingRow
+            <ListRow
               key={option.printingId}
-              printing={option}
-              image={imageOf(option.printingId)}
+              title={option.name}
+              detail={printingCaption(option)}
+              leading={<CardThumbnail uri={imageOf(option.printingId)} />}
               onPress={() => dispatch({ type: 'choose', scanId, printing: option })}
             />
           ))}
@@ -82,26 +82,3 @@ export function ScanDetails({ scan, dispatch, onSearch, onRemove }: ScanDetailsP
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  details: {
-    gap: spacing.lg,
-  },
-  card: {
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  image: {
-    width: '55%',
-    marginBottom: spacing.sm,
-  },
-  name: {
-    ...typography.cardTitle,
-    color: colors.text,
-    textAlign: 'center',
-  },
-  caption: {
-    ...typography.meta,
-    color: colors.textMuted,
-  },
-});

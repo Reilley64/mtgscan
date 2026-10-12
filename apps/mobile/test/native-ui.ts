@@ -1,6 +1,8 @@
 import { act, fireEvent, screen, within } from 'expo-router/testing-library';
 import { StyleSheet } from 'react-native';
 
+import { tokenColors } from './token-colors';
+
 function hostViews(type: string) {
   return screen.container.queryAll((instance) => instance.type === type);
 }
@@ -143,6 +145,23 @@ export function cardImageUri(tile: HostElement) {
     throw new Error('No card image is in this tile');
   }
   return image.props.source?.[0]?.uri;
+}
+
+export function imageTintColor(element: HostElement) {
+  const [image] = element.queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage');
+  if (!image) {
+    throw new Error('No image is in this element');
+  }
+  return image.props.tintColor;
+}
+
+export function lineColoredBlocks(element: HostElement) {
+  return element.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.backgroundColor === tokenColors.line)
+    .length;
+}
+
+export function placeholderColor(element: HostElement) {
+  return element.props.placeholderTextColor;
 }
 
 export function cardImageOutline(tile: HostElement) {

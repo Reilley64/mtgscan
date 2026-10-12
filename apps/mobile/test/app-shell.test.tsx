@@ -64,7 +64,7 @@ test('Scan is a black screen with no settings button', async () => {
   await pressTab('Scan');
 
   const scan = within(selectedTab());
-  expect(scan.getByLabelText('Camera')).toHaveStyle({ backgroundColor: '#000000' });
+  expect(scan.getByLabelText('Camera')).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 1)' });
   expect(scan.queryByRole('button', { name: 'Settings' })).not.toBeOnTheScreen();
 });
 

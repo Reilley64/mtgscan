@@ -17,14 +17,6 @@ const importsBelow = {
 
 const rawControls = ['Pressable', 'TouchableOpacity', 'TouchableHighlight', 'TouchableWithoutFeedback', 'Switch', 'Button'];
 
-const screensNotOnPrimitives = [
-  'src/scan/latest-scan-chip.tsx',
-  'src/scan/name-search.tsx',
-  'src/scan/printing-grid.tsx',
-  'src/scan/printing-row.tsx',
-  'src/scan/quick-actions.tsx',
-];
-
 const rawControlImports = {
   name: 'react-native',
   importNames: rawControls,
@@ -64,7 +56,7 @@ module.exports = defineConfig([
   },
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/components/**', ...screensNotOnPrimitives],
+    ignores: ['src/components/**'],
     rules: {
       'no-restricted-imports': [
         'error',

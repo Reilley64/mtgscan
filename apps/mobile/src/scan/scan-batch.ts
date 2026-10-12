@@ -22,6 +22,12 @@ type BatchDefaults = Readonly<{
   language: CardLanguage;
 }>;
 
+export type RecognizedScan = BatchScan & { printing: Printing };
+
+export function recognizedScan(scan: BatchScan | null | undefined): RecognizedScan | null {
+  return scan?.printing ? { ...scan, printing: scan.printing } : null;
+}
+
 export type ScanBatch = Readonly<{
   scans: readonly BatchScan[];
   defaults: BatchDefaults;

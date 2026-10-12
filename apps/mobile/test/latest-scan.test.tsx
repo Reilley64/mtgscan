@@ -23,6 +23,7 @@ import { signInNextWithEmail, startSignedIn } from './fake-supabase';
 import {
   appearsBefore,
   cardImageUri,
+  lineColoredBlocks,
   openSettings,
   presentedDrawer,
   pressTab,
@@ -30,6 +31,9 @@ import {
   swipeDownDrawer,
 } from './native-ui';
 import { renderApp } from './render-app';
+import { tokenColors } from './token-colors';
+
+const { surface, text: white, textMuted } = tokenColors;
 
 async function openScan() {
   await renderApp();
@@ -85,6 +89,30 @@ test('the latest-scan chip shows the card image, name, set and collector number'
   expect(within(chip).getByText('M10 146')).toBeOnTheScreen();
   expect(cardImageUri(chip)).toBe(catalogImageUri(lightningBoltM10.printingId));
   expect(within(chip).queryByText(/Nonfoil/)).not.toBeOnTheScreen();
+});
+
+test('the latest-scan chip is a surface card with the name centered over the meta line', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+
+  await scanACard();
+
+  const chip = latestScanChip('Lightning Bolt, M10 146');
+  expect(chip).toHaveStyle({ backgroundColor: surface, borderRadius: 12, paddingLeft: 8, paddingRight: 16 });
+  expect(within(chip).getByText('Lightning Bolt')).toHaveStyle({ color: white, fontWeight: '700', textAlign: 'center' });
+  expect(within(chip).getByText('M10 146')).toHaveStyle({ color: textMuted, fontSize: 12, textAlign: 'center' });
+});
+
+test('the skeleton chip shows line-colored blocks while the recognizer works', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  holdNextRecognition();
+  await openScan();
+
+  await scanACard();
+
+  const skeleton = scanTab().getByRole('progressbar', { name: 'Recognizing card' });
+  expect(skeleton).toHaveStyle({ backgroundColor: surface, borderRadius: 12 });
+  expect(lineColoredBlocks(skeleton)).toBe(3);
 });
 
 test('the chip shows the finish when it is not nonfoil', async () => {

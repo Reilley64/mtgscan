@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text as NativeText, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Button } from '@/components/atoms/button';
 import { Text } from '@/components/atoms/text';
-import { colors, spacing, typography } from '@/theme';
 
 type CameraMessageProps = {
   message: string;
@@ -13,8 +12,10 @@ type CameraMessageProps = {
 
 export function CameraMessage({ message, action, children }: CameraMessageProps) {
   return (
-    <View style={styles.container}>
-      <NativeText style={styles.message}>{message}</NativeText>
+    <View className="flex-1 justify-center gap-lg px-lg">
+      <Text variant="body-strong" className="text-center">
+        {message}
+      </Text>
       {children}
       {action ? (
         <Button onPress={action.onPress}>
@@ -24,17 +25,3 @@ export function CameraMessage({ message, action, children }: CameraMessageProps)
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  message: {
-    ...typography.bodyStrong,
-    color: colors.text,
-    textAlign: 'center',
-  },
-});

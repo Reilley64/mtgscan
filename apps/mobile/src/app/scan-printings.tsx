@@ -1,12 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
 
-import { PrintingGrid } from '@/scan/printing-grid';
+import { SheetSection } from '@/components/molecules/sheet-section';
+import { PrintingPicker } from '@/components/organisms/printing-picker';
+import { DrawerSheet } from '@/components/templates/drawer-sheet';
 import { sameTextTwinsFirst, type Printing } from '@/scan/scan-batch';
 import { useBatchScan, useScanBatch } from '@/scan/scan-batch-state';
-import { SheetSection } from '@/scan/sheet-section';
-import { colors, spacing } from '@/theme';
 
 import { cardPrintings } from '../../modules/card-recognizer';
 
@@ -34,10 +33,10 @@ export default function ScanPrintingsSheet() {
   const cardPrintingsOfScan = printings?.oracleId === oracleId ? printings?.printings : undefined;
 
   return (
-    <ScrollView style={styles.sheet} contentContainerStyle={styles.content}>
+    <DrawerSheet>
       {scan?.printing && cardPrintingsOfScan ? (
         <SheetSection title={scan.printing.name}>
-          <PrintingGrid
+          <PrintingPicker
             printings={sameTextTwinsFirst(scan, cardPrintingsOfScan)}
             selectedId={scan.printing.printingId}
             onChoose={(printing) => {
@@ -47,18 +46,6 @@ export default function ScanPrintingsSheet() {
           />
         </SheetSection>
       ) : null}
-    </ScrollView>
+    </DrawerSheet>
   );
 }
-
-const styles = StyleSheet.create({
-  sheet: {
-    flex: 1,
-    backgroundColor: colors.sheet,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingTop: spacing.lg * 2,
-    paddingBottom: spacing.lg * 2,
-  },
-});

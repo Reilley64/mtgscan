@@ -1,11 +1,10 @@
-import { Linking, StyleSheet, View } from 'react-native';
+import { Linking, View } from 'react-native';
 
 import { useGallery } from '@/gallery/gallery-state';
 import { CameraMessage } from '@/scan/camera-message';
 import { GalleryDownload } from '@/scan/gallery-download';
 import { ScanCamera } from '@/scan/scan-camera';
 import { useCameraAccess } from '@/scan/use-camera-access';
-import { colors } from '@/theme';
 
 function CameraContent() {
   const access = useCameraAccess();
@@ -39,15 +38,8 @@ function ScanContent() {
 
 export default function ScanScreen() {
   return (
-    <View accessibilityLabel="Camera" style={styles.screen}>
+    <View accessibilityLabel="Camera" className="flex-1 bg-camera-off">
       <ScanContent />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.cameraOff,
-  },
-});
