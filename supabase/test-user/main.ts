@@ -8,6 +8,7 @@ import { isLocalStack, localSupabaseUrl, testUser } from './account';
 
 const usage = 'Usage: bun test-user/main.ts [--sample-collection]';
 const sampleCollectionEntries = 30;
+const usersPerPage = 1000;
 
 const { values } = parseArgs({
   args: Bun.argv.slice(2),
@@ -38,10 +39,23 @@ function fail(action: string, message: string): never {
   process.exit(1);
 }
 
+async function existingTestUser(admin: LocalClient) {
+  for (let page = 1; ; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: usersPerPage });
+    if (error) {
+      fail('Could not list the users', error.message);
+    }
+    const user = data.users.find((candidate) => candidate.email === testUser.email);
+    if (user || data.users.length < usersPerPage) {
+      return user;
+    }
+  }
+}
+
 async function removeTestUser(admin: LocalClient) {
-  const { data } = await localClient().auth.signInWithPassword(testUser);
-  if (data.user) {
-    const { error } = await admin.auth.admin.deleteUser(data.user.id);
+  const user = await existingTestUser(admin);
+  if (user) {
+    const { error } = await admin.auth.admin.deleteUser(user.id);
     if (error) {
       fail('Could not remove the test user', error.message);
     }

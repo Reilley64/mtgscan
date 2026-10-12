@@ -1,9 +1,9 @@
 import { testUser } from '@mtgscan/supabase/test-user';
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 
 import type { SignInOutcome } from '@/auth/sign-in';
 import { supabase } from '@/lib/supabase';
-import { colors, rounded, sizes, spacing, typography } from '@/theme';
+import { colors, typography } from '@/theme';
 
 async function signInAsTestUser(): Promise<SignInOutcome> {
   const { error } = await supabase.auth.signInWithPassword(testUser);
@@ -14,19 +14,20 @@ async function signInAsTestUser(): Promise<SignInOutcome> {
 }
 
 type TestSignInButtonProps = {
-  signingIn: boolean;
   busy: boolean;
+  disabled: boolean;
+  style: StyleProp<ViewStyle>;
   onSignIn: (signIn: () => Promise<SignInOutcome>) => void;
 };
 
-export function TestSignInButton({ signingIn, busy, onSignIn }: TestSignInButtonProps) {
+export function TestSignInButton({ busy, disabled, style, onSignIn }: TestSignInButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ busy }}
-      disabled={signingIn}
+      disabled={disabled}
       onPress={() => onSignIn(signInAsTestUser)}
-      style={[styles.button, signingIn && !busy && styles.dimmed]}>
+      style={[style, styles.button]}>
       {busy && <ActivityIndicator color={colors.text} />}
       <Text style={styles.label}>Sign in as the test user</Text>
     </Pressable>
@@ -35,19 +36,10 @@ export function TestSignInButton({ signingIn, busy, onSignIn }: TestSignInButton
 
 const styles = StyleSheet.create({
   button: {
-    height: sizes.signInButton,
-    borderRadius: rounded.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
     backgroundColor: colors.surfaceControl,
   },
-  dimmed: {
-    opacity: 0.38,
-  },
   label: {
-    ...typography.bodyStrong,
+    ...typography.signInButton,
     color: colors.text,
   },
 });

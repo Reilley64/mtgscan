@@ -21,7 +21,7 @@
 A development build against local Supabase can sign in a local test user with one tap, with no Apple or Google account. Use it for Simulator checks with agent-device. Do not add a temporary password sign-in.
 
 - The test user is `test-user@mtgscan.test`. Its password is a local default in `supabase/test-user/account.ts`.
-- The command and the app both refuse a Supabase URL that is not the local stack, such as `http://127.0.0.1:54321`. The test user never exists on hosted Supabase.
+- The command and the app work only with the local stack at `http://127.0.0.1:54321` or `http://localhost:54321`. Both refuse every other Supabase URL, so the test user never exists on hosted Supabase.
 - Production builds leave the test sign-in out. `bun run test:production-bundle` in `apps/mobile` builds a production bundle with the test sign-in on and fails if the bundle holds the test sign-in. CI runs it.
 
 1. Start local Supabase as in Local Supabase.
@@ -43,7 +43,7 @@ A development build against local Supabase can sign in a local test user with on
    EXPO_PUBLIC_TEST_SIGN_IN=true
    ```
 
-4. Start Metro with `bunx expo start --dev-client` in `apps/mobile`, in the background as Xcode and the Simulator says. Restart Metro after each change to `.env.local`. Open the development build that is installed on the Simulator. The test sign-in needs no native build.
+4. Start Metro with `bunx expo start --dev-client` in `apps/mobile`, in the background, as the Xcode and the Simulator section says. Restart Metro after each change to `.env.local`. Open the development build that is installed on the Simulator. The test sign-in needs no native build.
 5. Tap **Sign in as the test user** on the sign-in screen. The app opens on Recent.
 
 Delete `apps/mobile/.env.local` when you are done, so that the next Metro run uses hosted Supabase. Never set `EXPO_PUBLIC_TEST_SIGN_IN` for an EAS build.

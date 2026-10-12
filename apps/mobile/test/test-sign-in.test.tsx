@@ -1,10 +1,9 @@
+import { localSupabaseUrl } from '@mtgscan/supabase/test-user';
 import { act, fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { fakeSupabase, testUserIsNotSeeded } from './fake-supabase';
 import { openSettings, queryAppleSignInButton, selectedTab, showsSpinner } from './native-ui';
 import { renderApp } from './render-app';
-
-const localStack = 'http://127.0.0.1:54321';
 
 type Build = {
   development?: boolean;
@@ -15,7 +14,7 @@ type Build = {
 const buildSettings = ['EXPO_PUBLIC_TEST_SIGN_IN', 'EXPO_PUBLIC_SUPABASE_URL'] as const;
 const environment = Object.fromEntries(buildSettings.map((name) => [name, process.env[name]]));
 
-function runAs({ development = true, testSignIn = 'true', supabaseUrl = localStack }: Build = {}) {
+function runAs({ development = true, testSignIn = 'true', supabaseUrl = localSupabaseUrl }: Build = {}) {
   jest.replaceProperty(globalThis as typeof globalThis & { __DEV__: boolean }, '__DEV__', development);
   process.env.EXPO_PUBLIC_TEST_SIGN_IN = testSignIn;
   process.env.EXPO_PUBLIC_SUPABASE_URL = supabaseUrl;

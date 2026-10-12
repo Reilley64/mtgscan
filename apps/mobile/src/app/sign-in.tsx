@@ -131,8 +131,9 @@ export default function SignInScreen() {
             </Pressable>
             {TestSignInButton && (
               <TestSignInButton
-                signingIn={signingIn}
                 busy={signingInAsTestUser}
+                disabled={signingIn}
+                style={[styles.signInButton, signingIn && !signingInAsTestUser && styles.dimmed]}
                 onSignIn={(run) => void signIn('test-user', run)}
               />
             )}

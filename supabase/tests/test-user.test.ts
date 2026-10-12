@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import type { CollectionPrintingsPage } from '../collection';
 import { testUser } from '../test-user/account';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runTestUserCommand } from './catalog-import-command';
-import { anonymousClient, type AppClient } from './local-stack';
+import { anonymousClient, secretKeyClient, type AppClient } from './local-stack';
 
 setDefaultTimeout(60_000);
 
@@ -79,5 +79,16 @@ describe('the test user command', () => {
     const client = await signedInTestUser();
     expect(await ownedCardPrintings(client)).toEqual([]);
     expect(await additions(client)).toEqual([]);
+  });
+
+  test('the command also resets a test user whose password was changed', async () => {
+    const client = await signedInTestUser();
+    const { data } = await client.auth.getUser();
+    const { error } = await secretKeyClient().auth.admin.updateUserById(data.user!.id, { password: crypto.randomUUID() });
+    expect(error).toBeNull();
+
+    expect((await runTestUserCommand([])).exitCode).toBe(0);
+
+    await signedInTestUser();
   });
 });

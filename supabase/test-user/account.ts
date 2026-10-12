@@ -5,8 +5,8 @@ export const testUser = {
   password: 'local-test-user',
 };
 
-const localStackUrl = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/?$/;
+const localStackUrlPattern = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/?$/;
 
 export function isLocalStack(url: string | undefined): boolean {
-  return url !== undefined && localStackUrl.test(url);
+  return url !== undefined && localStackUrlPattern.test(url);
 }
