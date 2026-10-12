@@ -3,21 +3,18 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { ImportClient } from '../import/import-run';
-import { budgetReport, freePlan, gigabytes, megabytes } from './budget';
-import { type Manifest, galleryFormatVersion, partBytes, updateBytes, verifiedPartBytes } from './format';
+import { budgetReport, freePlan, gigabytes } from './budget';
+import { galleryFormatVersion, partBytes, updateBytes, verifiedPartBytes } from './format';
+import { type Manifest, type Pointer, type SignedVersion, manifestFile, megabytes, pointerFile } from './manifest';
 import type { Recognizer } from './recognizer';
-import type { SignedVersion } from './pointer';
 import { evidenceVersion } from './repository';
 import { localPartBytes, versionDirectory } from './work-folder';
 import {
   GalleryRefused,
   type ParityCheck,
-  type Pointer,
   downloadObject,
   forgetVersion,
-  manifestFile,
   markPublished,
-  pointerFile,
   publishedVersions,
   recordParity,
   recordedVersions,

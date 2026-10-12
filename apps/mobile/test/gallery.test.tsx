@@ -27,10 +27,6 @@ async function press(button: ReturnType<typeof screen.getByRole>) {
   await act(async () => {});
 }
 
-function settingsGalleryRow() {
-  return screen.getByText('Gallery').parent!.parent!;
-}
-
 beforeEach(() => {
   startSignedIn();
 });
@@ -155,8 +151,8 @@ describe('on a phone with the gallery', () => {
     await openSettings();
 
     expect(galleryDownloads()).toHaveLength(0);
-    expect(within(settingsGalleryRow()).getByText('12 October 2026')).toBeOnTheScreen();
-    expect(within(settingsGalleryRow()).getByText('Up to date')).toBeOnTheScreen();
+    expect(screen.getByText('12 October 2026')).toBeOnTheScreen();
+    expect(screen.getByText('Up to date')).toBeOnTheScreen();
   });
 
   test('a newer published gallery version downloads while scanning goes on, and the app switches when it is installed', async () => {
@@ -169,13 +165,13 @@ describe('on a phone with the gallery', () => {
     expect(within(tab).queryByText('Downloading gallery')).not.toBeOnTheScreen();
     await pressTab('Recent');
     await openSettings();
-    expect(within(settingsGalleryRow()).getByText('12 October 2026')).toBeOnTheScreen();
-    expect(within(settingsGalleryRow()).getByText('Downloading')).toBeOnTheScreen();
+    expect(screen.getByText('12 October 2026')).toBeOnTheScreen();
+    expect(screen.getByText('Downloading')).toBeOnTheScreen();
 
     await galleryDownloadReports('installed', { builtAt: '2026-11-09T08:00:00.000Z' });
 
-    expect(within(settingsGalleryRow()).getByText('9 November 2026')).toBeOnTheScreen();
-    expect(within(settingsGalleryRow()).getByText('Up to date')).toBeOnTheScreen();
+    expect(screen.getByText('9 November 2026')).toBeOnTheScreen();
+    expect(screen.getByText('Up to date')).toBeOnTheScreen();
   });
 
   test('a gallery update that waits for Wi-Fi shows the gallery as paused in settings', async () => {
@@ -185,6 +181,6 @@ describe('on a phone with the gallery', () => {
 
     await openSettings();
 
-    expect(within(settingsGalleryRow()).getByText('Paused')).toBeOnTheScreen();
+    expect(screen.getByText('Paused')).toBeOnTheScreen();
   });
 });

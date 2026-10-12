@@ -1,8 +1,5 @@
 import type { ImportClient } from '../import/import-run';
-import type { Manifest } from './format';
-import { galleryBucket, pointerFile } from './pointer';
-
-export { manifestFile, pointerFile, type Pointer } from './pointer';
+import { type Manifest, galleryBucket, pointerFile } from './manifest';
 
 const immutable = '31536000';
 

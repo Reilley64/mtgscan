@@ -1,4 +1,4 @@
-import { galleryBucket, pointerFile, type Pointer, type SignedVersion } from '@mtgscan/supabase/gallery-pointer';
+import { galleryBucket, type Manifest, pointerFile, type Pointer, type SignedVersion } from '@mtgscan/supabase/gallery-manifest';
 
 import { supabase } from '@/lib/supabase';
 
@@ -6,7 +6,6 @@ import { downloadGallery, installedGallery } from '../../modules/card-recognizer
 
 const signedUrlSeconds = 7 * 24 * 60 * 60;
 
-type ManifestParts = { parts: { name: string }[] };
 
 type GallerySource = {
   version: string;
@@ -14,7 +13,7 @@ type GallerySource = {
   urls: (manifest: string) => Promise<Record<string, string>>;
 };
 
-export type GalleryCheck = 'up_to_date' | 'downloading';
+type GalleryCheck = 'up_to_date' | 'downloading';
 
 export class GalleryOffline extends Error {}
 
@@ -31,7 +30,7 @@ async function storedText(path: string): Promise<string> {
 }
 
 async function signedPartUrls(version: string, manifest: string): Promise<Record<string, string>> {
-  const paths = (JSON.parse(manifest) as ManifestParts).parts.map((part) => `${version}/${part.name}`);
+  const paths = (JSON.parse(manifest) as Manifest).parts.map((part) => `${version}/${part.name}`);
   const { data, error } = await supabase.storage.from(galleryBucket).createSignedUrls(paths, signedUrlSeconds);
   if (error) {
     throw storageFailure('Could not sign the gallery parts', error);

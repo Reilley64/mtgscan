@@ -19,7 +19,7 @@ The card recognizer is a local Expo module in `apps/mobile/modules/card-recogniz
 
 ### Gallery download
 
-Gallery delivery in `apps/mobile/src/gallery` keeps the gallery on the phone up to date.
+The app keeps the gallery on the phone up to date. The code is in `apps/mobile/src/gallery` and in the recognizer module.
 
 1. On each app start with a session, it reads `published.json` from the `gallery` bucket with the user's session. When the published gallery version is the installed one, it does nothing.
 2. Otherwise it reads the manifest, signs a URL for every part for 7 days, and passes them to `downloadGallery` in the recognizer module.

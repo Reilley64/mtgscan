@@ -1,8 +1,7 @@
+import { megabytes } from '@mtgscan/supabase/gallery-manifest';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { SecondaryButton } from '@/components/secondary-button';
 import type { GalleryDelivery, GalleryProgress } from '@/gallery/gallery-state';
-import { megabytes } from '@/gallery/megabytes';
 import { colors, rounded, sizes, spacing, typography } from '@/theme';
 
 import { CameraMessage } from './camera-message';
@@ -14,31 +13,31 @@ type GalleryDownloadProps = {
 };
 
 function ProgressMessage({
-  title,
+  message,
   progress,
   action,
 }: {
-  title: string;
+  message: string;
   progress: GalleryProgress;
   action?: { label: string; onPress: () => void };
 }) {
   const share = progress.bytesTotal > 0 ? progress.bytesDone / progress.bytesTotal : 0;
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      <View
-        accessible
-        accessibilityRole="progressbar"
-        accessibilityLabel={title}
-        accessibilityValue={{ min: 0, max: progress.bytesTotal, now: progress.bytesDone }}
-        style={styles.track}>
-        <View style={[styles.fill, { width: `${Math.min(100, share * 100)}%` }]} />
+    <CameraMessage message={message} action={action}>
+      <View style={styles.progress}>
+        <View
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={message}
+          accessibilityValue={{ min: 0, max: progress.bytesTotal, now: progress.bytesDone }}
+          style={styles.track}>
+          <View style={[styles.fill, { width: `${Math.min(100, share * 100)}%` }]} />
+        </View>
+        <Text style={styles.amount}>
+          {megabytes(progress.bytesDone)} of {megabytes(progress.bytesTotal)}
+        </Text>
       </View>
-      <Text style={styles.amount}>
-        {megabytes(progress.bytesDone)} of {megabytes(progress.bytesTotal)}
-      </Text>
-      {action ? <SecondaryButton label={action.label} onPress={action.onPress} /> : null}
-    </View>
+    </CameraMessage>
   );
 }
 
@@ -46,11 +45,11 @@ export function GalleryDownload({ delivery, downloadNow, tryAgain }: GalleryDown
   const tryAgainAction = { label: 'Try again', onPress: tryAgain };
   switch (delivery.kind) {
     case 'downloading':
-      return <ProgressMessage title="Downloading gallery" progress={delivery} />;
+      return <ProgressMessage message="Downloading gallery" progress={delivery} />;
     case 'waiting_for_wifi':
       return (
         <ProgressMessage
-          title="Waiting for Wi-Fi"
+          message="Waiting for Wi-Fi"
           progress={delivery}
           action={{ label: 'Download now', onPress: downloadNow }}
         />
@@ -75,16 +74,8 @@ export function GalleryDownload({ delivery, downloadNow, tryAgain }: GalleryDown
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  title: {
-    ...typography.bodyStrong,
-    color: colors.text,
-    textAlign: 'center',
+  progress: {
+    gap: spacing.sm,
   },
   track: {
     height: sizes.progressBar,
@@ -94,7 +85,7 @@ const styles = StyleSheet.create({
   },
   fill: {
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.textMuted,
   },
   amount: {
     ...typography.meta,

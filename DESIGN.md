@@ -203,7 +203,7 @@ components:
     backgroundColor: "{colors.camera-off}"
   gallery-progress:
     backgroundColor: "{colors.line}"
-    textColor: "{colors.primary}"
+    textColor: "{colors.text-muted}"
     rounded: "{rounded.full}"
     height: 4px
   latest-scan-chip:
@@ -280,7 +280,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
   - Until the gallery is on the phone, the camera stays off and the tab shows the gallery download:
-    - "Downloading gallery" with a lime progress bar and the megabytes done of the total, such as "12.3 MB of 68.5 MB".
+    - "Downloading gallery" with a progress bar and the megabytes done of the total, such as "12.3 MB of 68.5 MB".
     - "Waiting for Wi-Fi" with the progress bar and a **Download now** button. The gallery downloads only on Wi-Fi until the user taps **Download now**, which uses mobile data.
     - "Gallery download paused. It continues when you are online." with a **Try again** button, when the phone is offline.
     - "Gallery download did not work." with a **Try again** button, when a part fails its SHA-256 check three times or the download is refused.

@@ -51,7 +51,7 @@ _Avoid_: To-add list, import
 The copies in a scan batch that share a card printing, finish, condition, and language. Batch review shows one row per stack, and committing the scan batch sends its stacks.
 
 **Gallery**:
-The feature prints and printing list that the phone recognizer searches. The owner builds it, and phones download it from Storage.
+The feature prints and printing list that the phone recognizer searches. The owner builds it, and phones download it from Storage. A phone downloads only the parts of the published gallery version that it does not have, checks each part's SHA-256 against the manifest, and switches to the new gallery version only when every part is there.
 
 **Gallery version**:
 One build of the gallery: a base plus zero or more add-ons. Each base and add-on is stored as compressed parts, and a manifest lists every part with its SHA-256. An add-on holds new card printings and card printings whose image or printing list row changed. A gallery version reaches phones only after the owner publishes it, and publishing needs a passing parity check. The pointer, `published.json`, names the published gallery version.

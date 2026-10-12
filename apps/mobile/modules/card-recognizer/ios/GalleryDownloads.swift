@@ -18,7 +18,6 @@ struct GalleryDownloadStatus: Sendable, Equatable {
   var bytesDone: Int64 = 0
   var bytesTotal: Int64 = 0
   var bytesNeeded: Int64 = 0
-  var reason: String?
 
   var javaScriptObject: [String: Any] {
     var object: [String: Any] = [
@@ -28,7 +27,6 @@ struct GalleryDownloadStatus: Sendable, Equatable {
       "bytesTotal": bytesTotal,
     ]
     if state == .notEnoughSpace { object["bytesNeeded"] = bytesNeeded }
-    if let reason { object["reason"] = reason }
     return object
   }
 }
@@ -41,7 +39,8 @@ struct InstalledGalleryVersion: Sendable {
 final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
   static let shared = GalleryDownloads()
   static let sessionIdentifier = "dev.reilley.mtgscan.gallery"
-  static let attemptsPerPart = 3
+  static let downloadsAgainPerPart = 3
+  static let networkRetrySeconds = 30.0
 
   private struct Job {
     let version: String
@@ -53,6 +52,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     var attempts: [String: Int] = [:]
     var written: [String: Int64] = [:]
     var resumed: Set<String> = []
+    var refused: Set<String> = []
     var bytesTotal: Int64
     var bytesVerified: Int64
     var installing = false
@@ -155,7 +155,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
       send(GalleryDownloadStatus(version: version, state: .installed))
       return
     }
-    if job?.installing == true, job?.version == version { return }
+    if job?.installing == true { return }
     let directory = Self.downloadsDirectory.appendingPathComponent(version, isDirectory: true)
     try prepare(directory: directory, manifestData: data)
     let needed = GalleryInstaller.partsToDownload(manifest, over: Self.installedDirectory)
@@ -258,11 +258,14 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     job?.directory.appendingPathComponent("\(part).resume")
   }
 
-  private func startTask(part: String) {
+  private func startTask(part: String, resuming: Bool = true) {
     guard let job else { return }
+    let resumeFile = resumeDataFile(part)
+    let resumeData = resuming && !job.allowsCellularAccess ? resumeFile.flatMap { try? Data(contentsOf: $0) } : nil
+    if let resumeFile { try? FileManager.default.removeItem(at: resumeFile) }
+    self.job?.written[part] = nil
     let task: URLSessionDownloadTask
-    if !job.allowsCellularAccess, let file = resumeDataFile(part), let resumeData = try? Data(contentsOf: file) {
-      try? FileManager.default.removeItem(at: file)
+    if let resumeData {
       task = session.downloadTask(withResumeData: resumeData)
       self.job?.resumed.insert(part)
     } else if let url = job.urls[part] {
@@ -278,19 +281,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     task.resume()
   }
 
-  private func restartFresh(part: String) {
-    if let file = resumeDataFile(part) { try? FileManager.default.removeItem(at: file) }
-    job?.written[part] = nil
-    job?.resumed.remove(part)
-    guard let job, let url = job.urls[part] else { return }
-    var request = URLRequest(url: url)
-    request.allowsCellularAccess = job.allowsCellularAccess
-    let task = session.downloadTask(with: request)
-    task.taskDescription = "\(job.version)/\(part)"
-    task.resume()
-  }
-
-  private func fail(reason: String) {
+  private func fail() {
     guard let job else { return }
     session.getAllTasks { tasks in
       self.queue.async { tasks.forEach(self.cancelOnPurpose) }
@@ -300,8 +291,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
       version: job.version,
       state: .failed,
       bytesDone: job.bytesDone,
-      bytesTotal: job.bytesTotal,
-      reason: reason
+      bytesTotal: job.bytesTotal
     ))
   }
 
@@ -358,7 +348,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
           try? FileManager.default.removeItem(at: directory)
           self.send(GalleryDownloadStatus(version: version, state: .installed))
         case .failure:
-          self.send(GalleryDownloadStatus(version: version, state: .failed, reason: "install_failed"))
+          self.send(GalleryDownloadStatus(version: version, state: .failed))
         }
       }
     }
@@ -413,10 +403,11 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     else { return }
     let statusCode = (downloadTask.response as? HTTPURLResponse)?.statusCode ?? 0
     guard (200 ..< 300).contains(statusCode) else {
-      if job.resumed.contains(partName) {
-        restartFresh(part: partName)
+      if job.resumed.contains(partName) || !job.refused.contains(partName) {
+        self.job?.refused.insert(partName)
+        startTask(part: partName, resuming: false)
       } else {
-        fail(reason: "download_refused")
+        fail()
       }
       return
     }
@@ -428,10 +419,10 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
       try? FileManager.default.removeItem(at: file)
       let attempts = (job.attempts[partName] ?? 0) + 1
       self.job?.attempts[partName] = attempts
-      if attempts >= Self.attemptsPerPart {
-        fail(reason: "part_mismatch")
+      if attempts > Self.downloadsAgainPerPart {
+        fail()
       } else {
-        restartFresh(part: partName)
+        startTask(part: partName, resuming: false)
       }
       return
     }
@@ -461,13 +452,16 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
       sendPendingStatus(force: true)
       return
     }
-    let attempts = (job?.attempts[part] ?? 0) + 1
-    job?.attempts[part] = attempts
-    if attempts >= Self.attemptsPerPart {
-      fail(reason: "network")
-    } else {
-      startTask(part: part)
-      sendPendingStatus(force: true)
+    sendPendingStatus(force: true)
+    queue.asyncAfter(deadline: .now() + Self.networkRetrySeconds) {
+      self.session.getAllTasks { tasks in
+        self.queue.async {
+          guard self.job?.version == version, self.job?.pending.contains(part) == true,
+                !tasks.contains(where: { Self.taskPart($0).map { $0 == (version, part) } ?? false })
+          else { return }
+          self.startTask(part: part)
+        }
+      }
     }
   }
 

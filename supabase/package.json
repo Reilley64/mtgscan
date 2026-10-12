@@ -6,7 +6,7 @@
   "exports": {
     "./collection": "./collection.ts",
     "./database.types": "./database.types.ts",
-    "./gallery-pointer": "./gallery/pointer.ts",
+    "./gallery-manifest": "./gallery/manifest.ts",
     "./search": "./search.ts"
   },
   "scripts": {

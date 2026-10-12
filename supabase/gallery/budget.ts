@@ -1,14 +1,11 @@
-import { type Manifest, partBytes } from './format';
+import { partBytes } from './format';
+import { type Manifest, megabytes } from './manifest';
 
 export const freePlan = {
   storageBytes: 1_000_000_000,
   egressBytes: 5_000_000_000,
   uploadBytes: 50_000_000,
 };
-
-export function megabytes(bytes: number): string {
-  return `${(bytes / 1_000_000).toFixed(1)} MB`;
-}
 
 export function gigabytes(bytes: number): string {
   return `${bytes / 1_000_000_000} GB`;

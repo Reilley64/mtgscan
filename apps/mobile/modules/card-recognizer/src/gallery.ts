@@ -18,7 +18,6 @@ export type GalleryDownloadStatus = {
   bytesDone: number;
   bytesTotal: number;
   bytesNeeded?: number;
-  reason?: string;
 };
 
 export type GalleryDownload = {
