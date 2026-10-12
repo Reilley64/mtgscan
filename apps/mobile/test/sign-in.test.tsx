@@ -26,8 +26,9 @@ import {
 } from './native-ui';
 import { renderApp } from './render-app';
 
-function continueWithGoogle() {
-  return fireEvent.press(screen.getByRole('button', { name: 'Continue with Google' }));
+async function continueWithGoogle() {
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue with Google' }));
+  await act(async () => {});
 }
 
 function failNetwork() {

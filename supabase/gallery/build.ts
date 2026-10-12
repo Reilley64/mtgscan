@@ -6,7 +6,6 @@ import { budgetReport } from './budget';
 import { featurePrints } from './feature-prints';
 import {
   type GalleryRow,
-  type Manifest,
   type Part,
   addOnLimit,
   featurePrintDimension,
@@ -17,12 +16,12 @@ import {
   updateBytes,
 } from './format';
 import { cachedImages } from './images';
+import { type Manifest, manifestFile } from './manifest';
 import { galleryPrintings } from './printings';
 import { type Recognizer, macOSMajor } from './recognizer';
 import {
   type RecordedVersion,
   copyObject,
-  manifestFile,
   publishedVersions,
   recordVersion,
   recordedVersions,

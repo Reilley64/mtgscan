@@ -6,7 +6,7 @@ import {
   readBulkFiles,
   readCards,
 } from '../import/scryfall-bulk-data';
-import type { PrintingListRow } from './format';
+import type { PrintingListRow } from './manifest';
 
 const layoutsOutsideTheGallery = new Set(['front_card']);
 

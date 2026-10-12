@@ -1,17 +1,7 @@
 import type { ImportClient } from '../import/import-run';
-import type { Manifest } from './format';
+import { type Manifest, galleryBucket, pointerFile } from './manifest';
 
-const galleryBucket = 'gallery';
-export const pointerFile = 'published.json';
-export const manifestFile = 'manifest.json';
 const immutable = '31536000';
-
-export type Pointer = {
-  formatVersion: number;
-  version: string;
-  manifest: string;
-  publishedAt: string;
-};
 
 export type RecordedVersion = {
   version: string;

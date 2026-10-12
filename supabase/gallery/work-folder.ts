@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { ImportClient } from '../import/import-run';
-import type { ManifestPart } from './format';
+import type { ManifestPart } from './manifest';
 import { downloadObject } from './storage';
 
 export function versionDirectory(workDirectory: string, version: string): string {

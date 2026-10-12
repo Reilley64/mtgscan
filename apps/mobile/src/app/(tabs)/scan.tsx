@@ -1,11 +1,13 @@
 import { Linking, StyleSheet, View } from 'react-native';
 
+import { useGallery } from '@/gallery/gallery-state';
 import { CameraMessage } from '@/scan/camera-message';
+import { GalleryDownload } from '@/scan/gallery-download';
 import { ScanCamera } from '@/scan/scan-camera';
 import { useCameraAccess } from '@/scan/use-camera-access';
 import { colors } from '@/theme';
 
-function ScanContent() {
+function CameraContent() {
   const access = useCameraAccess();
   switch (access) {
     case 'granted':
@@ -22,6 +24,17 @@ function ScanContent() {
     case 'checking':
       return null;
   }
+}
+
+function ScanContent() {
+  const { installed, delivery, downloadNow, tryAgain } = useGallery();
+  if (installed === undefined) {
+    return null;
+  }
+  if (installed === null) {
+    return <GalleryDownload delivery={delivery} downloadNow={downloadNow} tryAgain={tryAgain} />;
+  }
+  return <CameraContent />;
 }
 
 export default function ScanScreen() {

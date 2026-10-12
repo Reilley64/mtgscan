@@ -201,6 +201,11 @@ components:
     width: 3px
   scan-camera:
     backgroundColor: "{colors.camera-off}"
+  gallery-progress:
+    backgroundColor: "{colors.line}"
+    textColor: "{colors.text-muted}"
+    rounded: "{rounded.full}"
+    height: 4px
   latest-scan-chip:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
@@ -274,7 +279,14 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Search matches name, type, and printing, in the collection only. Filters: All, Free, Allocated, Protected.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
-  - The first time the user opens Scan, iOS asks for camera access.
+  - Until the gallery is on the phone, the camera stays off and the tab shows the gallery download:
+    - "Downloading gallery" with a progress bar and the megabytes done of the total, such as "12.3 MB of 68.5 MB".
+    - "Waiting for Wi-Fi" with the progress bar and a **Download now** button. The gallery downloads only on Wi-Fi until the user taps **Download now**, which uses mobile data.
+    - "Gallery download paused. It continues when you are online." with a **Try again** button, when the phone is offline.
+    - "Gallery download did not work." with a **Try again** button, when a part fails its SHA-256 check three times or the download is refused.
+    - "Not enough space for the gallery. It needs 269.4 MB." with a **Try again** button. The number is the space that this download and install need.
+  - A gallery update downloads in the background. Scanning goes on with the installed gallery, and the app switches to the new one when it is installed.
+  - The first time the user opens Scan with the gallery on the phone, iOS asks for camera access.
   - When camera access is off, the tab shows "Camera access is off." with an **Open Settings** button.
   - On a device without a camera, such as the Simulator, the tab shows "Camera not available".
   - The magenta card outline draws only around a detected card.
@@ -332,7 +344,8 @@ Settings is a bottom drawer, not a page sheet. The settings button on Recent, Co
 - Dragging it up takes it to full height. Dragging it down takes it back to half height.
 - A downward swipe or a tap outside closes it. It has no Done button.
 - Its content scrolls at either height. The title sits 32 px below the top edge, twice the page inset, so that it clears the grabber.
-- It shows the signed-in account in a card and **Sign out** below it. The card shows the provider of the current sign-in and the account email. Apple and Google sign-ins with the same verified email share one account, so the provider can change between sign-ins.
+- It shows the signed-in account in a card, a gallery card, and **Sign out** below them. The account card shows the provider of the current sign-in and the account email. Apple and Google sign-ins with the same verified email share one account, so the provider can change between sign-ins.
+- The gallery card shows "Gallery", the date of the installed gallery version, such as "12 October 2026", and "Up to date", "Downloading", or "Paused". "Paused" covers waiting for Wi-Fi, offline, a failed download, and too little space. All three cards fit at half height.
 
 ## Elevation & Depth
 

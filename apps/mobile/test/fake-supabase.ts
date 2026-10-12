@@ -27,6 +27,15 @@ const listeners = new Set<AuthListener>();
 const users = new Map<string, User>();
 let collectionPrintings: CollectionPrintingRow[] = [];
 let failingCollectionReads = 0;
+let galleryObjects = new Map<string, string>();
+let offlineGalleryReads = 0;
+
+export const publishedGalleryVersion = '20261012-cf1753';
+export const galleryPartNames = [
+  'base-gallery-1.zlib',
+  'base-gallery-2.zlib',
+  'base-printing-list-1.zlib',
+];
 
 const issuers: Record<SignInProvider, string> = {
   apple: 'https://appleid.apple.com',
@@ -92,6 +101,36 @@ function collectionPrintingsPage({ cursor, limit = 60 }: CollectionPrintingsQuer
   };
 }
 
+const offline = { name: 'StorageUnknownError', message: 'Network request failed' };
+
+function galleryBucket(bucket: string) {
+  if (bucket !== 'gallery') {
+    throw new Error(`The fake Supabase client has no ${bucket} bucket`);
+  }
+  return {
+    async download(path: string) {
+      if (offlineGalleryReads > 0) {
+        offlineGalleryReads -= 1;
+        return { data: null, error: offline };
+      }
+      const text = session ? galleryObjects.get(path) : undefined;
+      return text === undefined
+        ? { data: null, error: { name: 'StorageApiError', message: 'Object not found' } }
+        : { data: new Blob([text]), error: null };
+    },
+    async createSignedUrls(paths: string[], expiresIn: number) {
+      return {
+        data: paths.map((path) => ({
+          path,
+          signedUrl: `https://storage.example/gallery/${path}?expires=${expiresIn}`,
+          error: null,
+        })),
+        error: null,
+      };
+    },
+  };
+}
+
 function notify(event: AuthChangeEvent) {
   listeners.forEach((listener) => listener(event, session));
 }
@@ -103,6 +142,7 @@ export const fakeSupabase = {
     }
     return collectionPrintingsPage(query);
   },
+  storage: { from: galleryBucket },
   auth: {
     onAuthStateChange(listener: AuthListener) {
       listeners.add(listener);
@@ -161,10 +201,30 @@ export function failCollectionReads(count: number) {
   failingCollectionReads = count;
 }
 
+export function publishGallery(version: string, partNames: string[] = galleryPartNames) {
+  galleryObjects = new Map(galleryObjects);
+  galleryObjects.set('published.json', JSON.stringify({ formatVersion: 1, version, manifest: `${version}/manifest.json` }));
+  galleryObjects.set(
+    `${version}/manifest.json`,
+    JSON.stringify({ formatVersion: 1, version, parts: partNames.map((name) => ({ name })) }),
+  );
+}
+
+export function uploadUnpublishedGallery(version: string) {
+  galleryObjects.set(`${version}/manifest.json`, JSON.stringify({ formatVersion: 1, version, parts: [] }));
+}
+
+export function galleryStorageIsOffline(reads: number) {
+  offlineGalleryReads = reads;
+}
+
 export function resetFakeSupabase() {
   session = null;
   collectionPrintings = [];
   failingCollectionReads = 0;
+  galleryObjects = new Map();
+  offlineGalleryReads = 0;
+  publishGallery(publishedGalleryVersion);
   nextSignInEmail = defaultEmail;
   nextSignInError = null;
   listeners.clear();

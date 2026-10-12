@@ -1,6 +1,7 @@
 {
   "platforms": ["apple"],
   "apple": {
-    "modules": ["CardRecognizerModule"]
+    "modules": ["CardRecognizerModule"],
+    "appDelegateSubscribers": ["GalleryDownloadsAppDelegate"]
   }
 }

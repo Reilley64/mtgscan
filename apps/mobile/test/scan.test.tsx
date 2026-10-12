@@ -1,7 +1,8 @@
 import { act, fireEvent, within } from 'expo-router/testing-library';
-import { AppState, Linking } from 'react-native';
+import { Linking } from 'react-native';
 
 import type { DetectionSample, FrameQuad } from '../modules/card-detector';
+import { returnToTheApp } from './app-state';
 import {
   cameraAccessIs,
   cameraIsOn,
@@ -376,16 +377,6 @@ test('a different card under the same light takes a new photo', async () => {
 
   expect(photosTaken()).toBe(2);
 });
-
-async function returnToTheApp() {
-  const listeners = jest
-    .mocked(AppState.addEventListener)
-    .mock.calls.filter(([type]) => type === 'change')
-    .map(([, listener]) => listener);
-  await act(async () => {
-    listeners.forEach((listener) => listener('active'));
-  });
-}
 
 test('the camera shows when the user comes back after turning camera access on in Settings', async () => {
   cameraAccessIs('denied');

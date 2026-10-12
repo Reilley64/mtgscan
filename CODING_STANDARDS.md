@@ -56,7 +56,7 @@ The review agent checks each diff against these rules. CI already runs the type 
 - Test at the agreed seams from #29 and #43:
   - Database tests in `supabase/tests` call `supabase-js` against local Supabase, as the app does. Only test setup uses the secret key or a direct database owner connection. Per-user data tests use two signed-up users and also check an anonymous caller and refused direct writes.
   - Import tests run the import command with fixture files and never download.
-  - App component tests in `apps/mobile/test` render the real Expo Router navigation with `renderApp`. They fake only the Supabase client, the native sign-in modules, and the card detector module, in `test/fake-*.ts`. Only `test/native-ui.ts` reads native views.
+  - App component tests in `apps/mobile/test` render the real Expo Router navigation with `renderApp`. They fake only the Supabase client, the native sign-in modules, the card detector module, and the card recognizer module, in `test/fake-*.ts`. Only `test/native-ui.ts` reads native views.
   - The owner checks on the device what Jest cannot reach, such as real Apple and Google sign-in.
 - Test external behavior, such as screen text, roles, returned rows, error codes, and error fields. Leave out internal state, component structure, SQL text, and query plans.
 - Name each test as a sentence about the behavior, in glossary terms.

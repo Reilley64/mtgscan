@@ -22,6 +22,11 @@
 - The recorded gallery of the scanner evidence pack is gallery version `20261012-cf1753`. Install it once with `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753` in `supabase`. Set `RECOGNIZER_GALLERY_DIR` to `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`.
 - The 3,000 Scryfall `large` images for the simulated scans are in the ignored data of another worktree: `/Users/reilley/.herdr/worktrees/mtgscan/worktree-brave-harbor-93a0/prototypes/catalog-recognizer/.data/large`. Read them only. Set `RECOGNIZER_LARGE_IMAGES_DIR` to that folder. Copy it somewhere else before that worktree is removed.
 
+## Gallery on a development build
+
+- `README.md` (Gallery download) says how a development build installs a gallery version that is not published. Put `EXPO_PUBLIC_DEVELOPMENT_GALLERY` only in `apps/mobile/.env.development.local`. Its signed URLs open that gallery version to anyone who has them until they expire. Only development builds read it, but every `EXPO_PUBLIC_` value goes into the bundle, so never set it for an EAS build.
+- On the Simulator, serve the parts from the Mac instead of hosted Storage, so that a test download spends no hosted egress. `bun gallery/main.ts install` keeps the parts of a gallery version in `~/Library/Caches/mtgscan/gallery/versions/<version>`.
+
 ## Recognizer replay
 
 CI does not replay the scanner evidence pack. Before merging a change to the recognizer, the evidence pack, or the gallery, run `bun run recognizer:replay` on the owner's Mac with the recorded gallery, on the branch and on `main`, and record the result in the PR. `apps/mobile/test/scanner-evidence/README.md` (Local replay before merge) has the steps.

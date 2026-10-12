@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { signOut, useSession } from '@/auth/session';
 import { currentSignInProviderName } from '@/auth/sign-in';
 import { SecondaryButton } from '@/components/secondary-button';
+import { GalleryRow } from '@/gallery/gallery-row';
 import { colors, rounded, sizes, spacing, typography } from '@/theme';
 
 export default function SettingsDrawer() {
@@ -21,6 +22,7 @@ export default function SettingsDrawer() {
         <Text style={styles.accountProvider}>Signed in with {providerName}</Text>
         {user?.email && <Text style={styles.accountEmail}>{user.email}</Text>}
       </View>
+      <GalleryRow />
       <SecondaryButton label="Sign out" onPress={signOut} />
     </ScrollView>
   );

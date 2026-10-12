@@ -1,56 +1,13 @@
 import { createHash } from 'node:crypto';
 import { deflateSync, inflateSync } from 'node:zlib';
 
+import type { Manifest, ManifestPart, PartKind, PrintingListRow } from './manifest';
+
 export const featurePrintDimension = 768;
 export const galleryFormatVersion = 1;
 export const maxPartBytes = 50_000_000;
 export const addOnLimit = 0.1;
 const maxRawPartBytes = 45_000_000;
-
-export type PartKind = 'gallery' | 'printing_list';
-
-export type PrintingListRow = {
-  id: string;
-  oracleId: string;
-  illustrationId: string | null;
-  name: string;
-  faceNames: string[];
-  set: string;
-  collectorNumber: string;
-  frame: string;
-  finishes: string[];
-  basicLand: boolean;
-};
-
-export type ManifestPart = {
-  name: string;
-  kind: PartKind;
-  addOn: number;
-  firstRow: number;
-  rowCount: number;
-  compressedBytes: number;
-  rawBytes: number;
-  sha256: string;
-};
-
-export type BuiltWith = {
-  macOS: string;
-  recognizerCommit: string;
-  machine: string;
-};
-
-export type Manifest = {
-  formatVersion: number;
-  version: string;
-  builtAt: string;
-  featurePrint: { request: string; revision: number; dimension: number };
-  encoding: { type: 'int8'; scale: 'per_vector' };
-  rows: number;
-  scryfallSnapshot: string;
-  cardCatalogSnapshot: string;
-  builtWith: BuiltWith;
-  parts: ManifestPart[];
-};
 
 export type GalleryRow = {
   printing: PrintingListRow;
