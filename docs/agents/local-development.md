@@ -23,6 +23,10 @@
 - The 3,000 Scryfall `large` images for the simulated scans are in `.data/large` next to it. Set `RECOGNIZER_LARGE_IMAGES_DIR` to that folder.
 - Copy both folders somewhere else before that worktree is removed. A gallery built again from a newer Scryfall file does not match the expected files.
 
+## Recognizer replay
+
+CI does not replay the scanner evidence pack. Before merging a change to the recognizer, the evidence pack, or the gallery, run `bun run recognizer:replay` on the owner's Mac with the recorded gallery, on the branch and on `main`, and record the result in the PR. `apps/mobile/test/scanner-evidence/README.md` (Local replay before merge) has the steps.
+
 ## Expo SDK
 
 The app stays on Expo SDK 56. `README.md` (Versions) says why and when to upgrade. Keep `node_modules` unpatched.
