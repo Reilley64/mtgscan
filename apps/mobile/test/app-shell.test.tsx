@@ -4,12 +4,12 @@ import { startSignedIn } from './fake-supabase';
 import { renderApp } from './render-app';
 import {
   openSettings,
-  openSheet,
+  presentedDrawer,
   pressTab,
   selectedTab,
-  swipeDownSheet,
+  swipeDownDrawer,
   tabBarLabels,
-  tapOutsideSheet,
+  tapOutsideDrawer,
 } from './native-ui';
 
 beforeEach(() => {
@@ -66,7 +66,7 @@ test('settings opens as a bottom drawer with a grabber at half height', async ()
 
   await openSettings();
 
-  expect(openSheet()).toMatchObject({ showsGrabber: true, openingHeight: 0.5 });
+  expect(presentedDrawer()).toMatchObject({ showsGrabber: true, openingHeight: 0.5 });
 });
 
 test('the settings drawer can be dragged from half height to full height', async () => {
@@ -74,7 +74,7 @@ test('the settings drawer can be dragged from half height to full height', async
 
   await openSettings();
 
-  expect(openSheet().heights).toEqual([0.5, 1]);
+  expect(presentedDrawer().heights).toEqual([0.5, 1]);
 });
 
 test('the settings drawer has no Done button', async () => {
@@ -89,7 +89,7 @@ test('a downward swipe closes the settings drawer', async () => {
   await renderApp();
   await openSettings();
 
-  await swipeDownSheet();
+  await swipeDownDrawer();
 
   expect(screen.queryByRole('header', { name: 'Settings' })).not.toBeOnTheScreen();
   expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
@@ -99,7 +99,7 @@ test('a tap outside closes the settings drawer', async () => {
   await renderApp();
   await openSettings();
 
-  await tapOutsideSheet();
+  await tapOutsideDrawer();
 
   expect(screen.queryByRole('header', { name: 'Settings' })).not.toBeOnTheScreen();
   expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();

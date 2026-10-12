@@ -331,7 +331,7 @@ Settings is a bottom drawer, not a page sheet. The settings button on Recent, Co
 - It slides up from the bottom with the iOS grabber and opens at half the screen height.
 - Dragging it up takes it to full height. Dragging it down takes it back to half height.
 - A downward swipe or a tap outside closes it. It has no Done button.
-- Its content scrolls at either height.
+- Its content scrolls at either height. The title sits 32 px below the top edge, twice the page inset, so that it clears the grabber.
 - It shows the signed-in account in a card and **Sign out** below it. The card shows the provider of the current sign-in and the account email. Apple and Google sign-ins with the same verified email share one account, so the provider can change between sign-ins.
 
 ## Elevation & Depth
@@ -347,7 +347,7 @@ The interface is flat. Depth comes from tone, not shadow.
 
 - Chips and filter pills use 12 px corners. Count badges are fully round.
 - Buttons and segmented controls use 8 px corners.
-- Content cards and page sheets use 12 px corners. Sheets round only their top corners.
+- Content cards and page sheets use 12 px corners. Sheets round only their top corners. The settings drawer keeps the iOS system corners, which match the system grabber.
 - Card thumbnails use 4 px corners at a 63:88 card ratio. Full card images keep their own printed shape.
 - Binder tiles and the binder wall tiles on the sign-in screen use 8 px corners.
 

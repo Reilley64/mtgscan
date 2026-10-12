@@ -40,45 +40,52 @@ export async function pressTab(label: string) {
   });
 }
 
-function presentedSheet() {
-  const [sheet] = hostViews('RNSModalScreen').filter((candidate) =>
-    ['formSheet', 'pageSheet'].includes(candidate.props.stackPresentation),
+function presentedDrawerView() {
+  const [drawer] = hostViews('RNSModalScreen').filter(
+    (candidate) => candidate.props.stackPresentation === 'formSheet',
   );
-  if (!sheet) {
-    throw new Error('No sheet is open');
+  if (!drawer) {
+    throw new Error('No drawer is open');
   }
-  return sheet;
-}
-
-export function openSheet() {
-  const { stackPresentation, sheetGrabberVisible, sheetAllowedDetents, sheetInitialDetent } =
-    presentedSheet().props;
-  const heights: number[] = stackPresentation === 'formSheet' ? sheetAllowedDetents : [1];
+  const {
+    sheetGrabberVisible = false,
+    sheetAllowedDetents = [1],
+    sheetInitialDetent = 0,
+    sheetLargestUndimmedDetent = -1,
+    gestureEnabled = true,
+  } = drawer.props;
   return {
-    showsGrabber: sheetGrabberVisible === true,
-    heights,
-    openingHeight: heights[sheetInitialDetent ?? 0],
+    view: drawer,
+    showsGrabber: sheetGrabberVisible as boolean,
+    heights: sheetAllowedDetents as number[],
+    openingIndex: sheetInitialDetent as number,
+    largestUndimmedIndex: sheetLargestUndimmedDetent as number,
+    closesByGesture: gestureEnabled as boolean,
   };
 }
 
-async function dismissSheet(sheet: ReturnType<typeof presentedSheet>) {
-  if (sheet.props.gestureEnabled === false) {
-    throw new Error('This sheet does not close by gesture');
-  }
-  await fireEvent(sheet, 'dismissed', { nativeEvent: { dismissCount: 1 } });
+export function presentedDrawer() {
+  const { showsGrabber, heights, openingIndex } = presentedDrawerView();
+  return { showsGrabber, heights, openingHeight: heights[openingIndex] };
 }
 
-export async function swipeDownSheet() {
-  await dismissSheet(presentedSheet());
+async function closeDrawerByGesture(drawer: ReturnType<typeof presentedDrawerView>) {
+  if (!drawer.closesByGesture) {
+    throw new Error('This drawer does not close by gesture');
+  }
+  await fireEvent(drawer.view, 'dismissed', { nativeEvent: { dismissCount: 1 } });
 }
 
-export async function tapOutsideSheet() {
-  const sheet = presentedSheet();
-  const { sheetLargestUndimmedDetent = -1, sheetInitialDetent = 0 } = sheet.props;
-  if (sheetLargestUndimmedDetent >= sheetInitialDetent) {
-    throw new Error('The screen behind this sheet is not dimmed, so a tap there does not close it');
+export async function swipeDownDrawer() {
+  await closeDrawerByGesture(presentedDrawerView());
+}
+
+export async function tapOutsideDrawer() {
+  const drawer = presentedDrawerView();
+  if (drawer.largestUndimmedIndex >= drawer.openingIndex) {
+    throw new Error('The screen behind this drawer is not dimmed, so a tap there does not close it');
   }
-  await dismissSheet(sheet);
+  await closeDrawerByGesture(drawer);
 }
 
 export function showsSpinner(element: ReturnType<typeof screen.getByRole>) {
