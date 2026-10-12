@@ -35,11 +35,10 @@ function textStyle({ fontSize, lineHeight, fontWeight }: TextToken): TextClass {
 }
 
 const signInButtonColors = {
-  appleFill: appleButtonColors.background,
-  appleLabel: appleButtonColors.text,
-  googleFill: googleButtonColors.background,
-  googleLine: googleButtonColors.border,
-  googleLabel: googleButtonColors.text,
+  buttonApple: appleButtonColors.background,
+  buttonGoogle: googleButtonColors.background,
+  buttonGoogleBorder: googleButtonColors.border,
+  buttonGoogleText: googleButtonColors.text,
 };
 
 export const tailwindTheme = {

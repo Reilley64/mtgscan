@@ -13,7 +13,7 @@ export const buttonVariants = cva('h-button flex-row items-center justify-center
       primary: 'bg-primary',
       secondary: 'bg-surface-control',
       danger: 'bg-danger-tint',
-      google: 'border border-google-line bg-google-fill',
+      google: 'border border-button-google-border bg-button-google',
     },
     size: {
       default: 'min-w-touch-target rounded-sm px-md',
@@ -29,7 +29,7 @@ export const labelVariants = cva('text-body-strong', {
       primary: 'text-on-primary',
       secondary: 'text-text',
       danger: 'text-danger',
-      google: 'text-google-label',
+      google: 'text-button-google-text',
     },
     size: {
       default: '',

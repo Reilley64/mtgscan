@@ -5,7 +5,9 @@ import { Text } from '@/components/atoms/text';
 import { TileButton } from '@/components/atoms/tile-button';
 import { cn } from '@/lib/class-names';
 
-export const cardsPerRow = 3;
+const columnClasses = { 3: 'w-1/3' } as const;
+
+export const cardsPerRow: keyof typeof columnClasses = 3;
 
 export const cardRowClass = '-mx-xs';
 
@@ -24,7 +26,7 @@ export function CardTile({ uri, caption, accessibilityLabel, quantity, selected,
   );
 
   return (
-    <View className="w-1/3 px-xs">
+    <View className={cn(columnClasses[cardsPerRow], 'px-xs')}>
       {onPress ? (
         <TileButton accessibilityLabel={accessibilityLabel} selected={selected} onPress={onPress}>
           <View className={cn('rounded-sm border-selected-outline', selected ? 'border-primary' : 'border-transparent')}>

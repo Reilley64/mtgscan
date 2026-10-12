@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image, Linking, View } from 'react-native';
+import { Linking, View } from 'react-native';
 
 import { signInWithApple } from '@/auth/apple-sign-in';
 import { signInWithGoogle } from '@/auth/google-sign-in';
@@ -7,6 +7,7 @@ import type { SignInOutcome, SignInProvider } from '@/auth/sign-in';
 import { testSignInButton } from '@/auth/test-sign-in';
 import { AppleSignInButton } from '@/components/atoms/apple-sign-in-button';
 import { Button } from '@/components/atoms/button';
+import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { Text } from '@/components/atoms/text';
 import { Brand } from '@/components/molecules/brand';
 import { FailureNotice } from '@/components/molecules/failure-notice';
@@ -25,6 +26,7 @@ export default function SignInScreen() {
   const [TestSignInButton] = useState(testSignInButton);
   const signingIn = status.name === 'signing-in';
   const busyWith = (method: SignInMethod) => signingIn && status.method === method;
+  const othersBusy = (method: SignInMethod) => signingIn && status.method !== method;
 
   async function signIn(method: SignInMethod, run: () => Promise<SignInOutcome>) {
     setStatus({ name: 'signing-in', method });
@@ -58,24 +60,18 @@ export default function SignInScreen() {
           <>
             <AppleSignInButton
               busy={busyWith('apple')}
-              disabled={signingIn}
+              disabled={othersBusy('apple')}
               onPress={() => void signIn('apple', signInWithApple)}
             />
-            <Button
-              variant="google"
-              size="sign-in"
+            <GoogleSignInButton
               busy={busyWith('google')}
-              disabled={signingIn && !busyWith('google')}
-              onPress={() => void signIn('google', signInWithGoogle)}>
-              {busyWith('google') ? null : (
-                <Image source={require('../../assets/google-logo.png')} className="h-google-logo w-google-logo" />
-              )}
-              <Text>Continue with Google</Text>
-            </Button>
+              disabled={othersBusy('google')}
+              onPress={() => void signIn('google', signInWithGoogle)}
+            />
             {TestSignInButton && (
               <TestSignInButton
                 busy={busyWith('test-user')}
-                disabled={signingIn && !busyWith('test-user')}
+                disabled={othersBusy('test-user')}
                 onSignIn={(run) => void signIn('test-user', run)}
               />
             )}

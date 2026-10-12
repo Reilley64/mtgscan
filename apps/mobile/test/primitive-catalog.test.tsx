@@ -21,7 +21,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('switch', { name: 'Scan sounds' })).toBeChecked();
   expect(screen.getByRole('image', { name: 'Sol Ring, CMM 464, 2 owned' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sign in with Apple' })).toBeBusy();
-  expect(screen.getByRole('button', { name: 'Google busy' })).toBeBusy();
+  expect(screen.getAllByRole('button', { name: 'Continue with Google' }).map((button) => button.props.accessibilityState.busy)).toEqual([false, true]);
   expect(screen.getByRole('button', { name: 'Sign-in disabled' })).toBeDisabled();
   expect(screen.getByRole('alert', { name: 'Sign-in did not work.' })).toBeOnTheScreen();
   expect(screen.getByRole('link', { name: 'Text link' })).toBeOnTheScreen();

@@ -24,7 +24,7 @@ export function AppleSignInButton({ busy, disabled, onPress }: AppleSignInButton
         accessibilityLabel="Sign in with Apple"
         accessibilityRole="button"
         accessibilityState={{ busy: true, disabled: true }}
-        className="h-sign-in-button items-center justify-center rounded-sm bg-apple-fill">
+        className="h-sign-in-button items-center justify-center rounded-sm bg-button-apple">
         <ActivityIndicator color={appleButtonColors.text} />
       </View>
     );

@@ -318,7 +318,7 @@ The app shows the sign-in screen whenever there is no session. It is the binder 
 - **Sign-in buttons** stack in one column with 8 px gaps: **Sign in with Apple** first, then **Continue with Google**.
 - **Signing in.** The tapped button shows a spinner in place of its logo, and every sign-in button is disabled. Other sign-in buttons fade to 38% opacity. The system Apple button cannot show a spinner. While Apple sign-in runs, a white button of the same size with a black spinner takes its place.
 - **Cancel.** Cancelling the provider prompt returns to the buttons with no message.
-- **Failure.** A failure replaces the buttons with "Sign-in did not work." in a surface card with a danger mark, and a lime **Try again** button. The danger mark is a 22 px danger-tint circle with a "!" in danger body strong text. Try again brings back the buttons.
+- **Failure.** A failure replaces the buttons with "Sign-in did not work." in a surface card with a danger mark, and a lime **Try again** button. The danger mark is a 22 px danger-tint circle with a danger "!". Try again brings back the buttons.
 - **Test sign-in.** Only a development build against local Supabase with `EXPO_PUBLIC_TEST_SIGN_IN` on shows a third button, **Sign in as the test user**, under **Continue with Google**. It uses the control surface and the sign-in button height, and it signs in, fails, and dims like the other sign-in buttons. Production builds leave it out.
 
 ### Pushed screens
@@ -371,7 +371,7 @@ The settings drawer:
 The interface is flat. Depth comes from tone, not shadow.
 
 - Content sits on surface tones that step up from the background: surface, surface raised, surface control.
-- Page sheets slide over a dimmed, slightly scaled screen. The settings drawer slides over a dimmed screen that keeps its size. A soft shadow above the sheet is the only strong shadow. On the sign-in sheet it is black at 55%, 12 px up, with a 40 px blur. `theme.ts` names it `shadows.sheet`, and the binder wall scrim `gradients.binderWallScrim`.
+- Page sheets slide over a dimmed, slightly scaled screen. The settings drawer slides over a dimmed screen that keeps its size. A soft shadow above the sheet is the only strong shadow. On the sign-in sheet it is black at 55%, 12 px up, with a 40 px blur. `theme.ts` names it `shadows.sheet`. The binder wall scrim on the sign-in screen is the background color at 90% at the top, 20% at 16% of the height, 25% at 45%, and 90% from 62% down. `theme.ts` names it `gradients.binderWallScrim`. NativeWind 4 has no class for either, so both are style values.
 - The tab bar is a near-opaque bar with a hairline top border.
 - During a back swipe, the screen follows the finger with a shadow on its left edge.
 
@@ -396,6 +396,8 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Sign-in buttons.** Sign-in buttons and the sign-in Try again button are 50 px tall to match Apple's sign-in button sizing. This is the one exception to the 38 px button height. Try again uses sign-in button type (17 px, semibold). Continue with Google uses 16 px medium. The system Apple button sets its own type.
 - **Sign in with Apple.** The system Apple button in Apple's white style, with the "Sign in with Apple" title and 8 px corners. Apple's branding rules set its colors, logo, and type, so they sit outside the palette.
 - **Continue with Google.** Google's dark button style: a #131314 fill, a 1 px #8e918f border, #e3e3e3 text, and the four-color Google logo. Google's branding rules set these colors, so they sit outside the palette.
+- **Text links.** An in-app link inside a line of text, such as **Privacy policy**, keeps the type size of its line in bold lime. It is the one control without a 44 pt touch target, because a nested text run cannot take extra touch area.
+- **Failure notice.** A surface card with 12 px padding and a danger mark beside the message, such as "Sign-in did not work."
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
 - **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Their text uses the text, warning, danger, or info color. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, the batch button, and the card page Decks tab.

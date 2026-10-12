@@ -105,9 +105,15 @@ export const shadows = {
   sheet: '0px -12px 40px rgba(0, 0, 0, 0.55)',
 } as const;
 
+const scrimStops = [
+  ['e6', '0%'],
+  ['33', '16%'],
+  ['40', '45%'],
+  ['e6', '62%'],
+] as const;
+
 export const gradients = {
-  binderWallScrim:
-    'linear-gradient(180deg, rgba(8, 11, 13, 0.9) 0%, rgba(8, 11, 13, 0.2) 16%, rgba(8, 11, 13, 0.25) 45%, rgba(8, 11, 13, 0.9) 62%)',
+  binderWallScrim: `linear-gradient(180deg, ${scrimStops.map(([alpha, stop]) => `${colors.background}${alpha} ${stop}`).join(', ')})`,
 } as const;
 
 export const aspectRatios = {

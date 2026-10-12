@@ -1,14 +1,17 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { useState } from 'react';
 
+import { AppleSignInButton } from '@/components/atoms/apple-sign-in-button';
 import { Button } from '@/components/atoms/button';
+import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { Chip } from '@/components/atoms/chip';
 import { Surface } from '@/components/atoms/surface';
 import { Switch } from '@/components/atoms/switch';
 import { Text } from '@/components/atoms/text';
+import { TextLink } from '@/components/atoms/text-link';
 import { Toggle } from '@/components/atoms/toggle';
 
-import { showsSpinner, switchTrackColor, touchTarget } from './native-ui';
+import { appleSignInButton, pressSignInWithApple, showsSpinner, switchTrackColor, touchTarget } from './native-ui';
 import { tokenColors } from './token-colors';
 
 const { primary: lime, onPrimary, surface, surfaceControl, text: white, textMuted, textDim, warning, danger, info } = tokenColors;
@@ -338,5 +341,70 @@ describe('Switch', () => {
     await render(<ScanSoundsSwitch />);
 
     expect(switchTrackColor(screen.getByRole('switch', { name: 'Scan sounds' }))).toBe('#d8ff62');
+  });
+});
+
+describe('AppleSignInButton', () => {
+  test('the Apple sign-in button is the system button, 50 px tall, and runs its action when pressed', async () => {
+    const onPress = jest.fn();
+    await render(<AppleSignInButton busy={false} disabled={false} onPress={onPress} />);
+
+    expect(appleSignInButton()).toHaveStyle({ height: 50 });
+    await pressSignInWithApple();
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  test('a disabled Apple sign-in button is dimmed and does nothing when pressed', async () => {
+    const onPress = jest.fn();
+    await render(<AppleSignInButton busy={false} disabled onPress={onPress} />);
+
+    expect(appleSignInButton().parent).toHaveStyle(dimmed);
+    await pressSignInWithApple();
+
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  test('a busy Apple sign-in button is a white button with a spinner that reads as busy', async () => {
+    await render(<AppleSignInButton busy disabled={false} onPress={() => {}} />);
+
+    const button = screen.getByRole('button', { name: 'Sign in with Apple' });
+    expect(button).toBeBusy();
+    expect(button).toBeDisabled();
+    expect(showsSpinner(button)).toBe(true);
+    expect(button).toHaveStyle({ backgroundColor: 'rgba(255, 255, 255, 1)', height: 50, borderRadius: 8 });
+  });
+});
+
+describe('GoogleSignInButton', () => {
+  test('Continue with Google shows the Google logo until it is busy, then a spinner', async () => {
+    const { rerender } = await render(<GoogleSignInButton busy={false} disabled={false} onPress={() => {}} />);
+    const button = screen.getByRole('button', { name: 'Continue with Google' });
+    expect(button.queryAll((instance) => instance.type === 'Image')).toHaveLength(1);
+    expect(showsSpinner(button)).toBe(false);
+
+    await rerender(<GoogleSignInButton busy disabled={false} onPress={() => {}} />);
+
+    const busyButton = screen.getByRole('button', { name: 'Continue with Google' });
+    expect(busyButton.queryAll((instance) => instance.type === 'Image')).toHaveLength(0);
+    expect(showsSpinner(busyButton)).toBe(true);
+    expect(busyButton).toBeBusy();
+  });
+});
+
+describe('TextLink', () => {
+  test('a text link reads as a link in bold lime and runs its action when pressed', async () => {
+    const onPress = jest.fn();
+    await render(
+      <Text variant="meta">
+        Your collection stays private. <TextLink onPress={onPress}>Privacy policy</TextLink>
+      </Text>,
+    );
+
+    const link = screen.getByRole('link', { name: 'Privacy policy' });
+    await fireEvent.press(link);
+
+    expect(link).toHaveStyle({ color: lime, fontWeight: '700' });
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 });

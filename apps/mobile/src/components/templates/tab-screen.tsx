@@ -3,6 +3,7 @@ import { FlatList, ScrollView, View, type FlatListProps } from 'react-native';
 
 import { Text } from '@/components/atoms/text';
 import { SettingsButton } from '@/components/molecules/settings-button';
+import { cn } from '@/lib/class-names';
 
 const screenClass = 'flex-1 bg-background';
 
@@ -26,7 +27,7 @@ export function TabScreen({ title, children }: TabScreenProps) {
   return (
     <ScrollView
       className={screenClass}
-      contentContainerClassName={`${contentClass} gap-lg`}
+      contentContainerClassName={cn(contentClass, 'gap-lg')}
       contentInsetAdjustmentBehavior="automatic">
       <TabHeader title={title} />
       {children}

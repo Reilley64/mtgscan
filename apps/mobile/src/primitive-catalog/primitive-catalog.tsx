@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState, type ReactNode } from 'react';
-import { Image, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { AppleSignInButton } from '@/components/atoms/apple-sign-in-button';
 import { Button } from '@/components/atoms/button';
+import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { Chip } from '@/components/atoms/chip';
 import { Surface } from '@/components/atoms/surface';
@@ -87,14 +88,10 @@ function SignInButtons() {
   return (
     <Section title="Sign-in buttons">
       <AppleSignInButton busy={false} disabled={false} onPress={() => {}} />
-      <AppleSignInButton busy disabled onPress={() => {}} />
-      <Button variant="google" size="sign-in" onPress={() => {}}>
-        <Image source={require('../../assets/google-logo.png')} className="h-google-logo w-google-logo" />
-        <Text>Continue with Google</Text>
-      </Button>
-      <Button variant="google" size="sign-in" busy onPress={() => {}}>
-        <Text>Google busy</Text>
-      </Button>
+      <AppleSignInButton busy={false} disabled onPress={() => {}} />
+      <AppleSignInButton busy disabled={false} onPress={() => {}} />
+      <GoogleSignInButton busy={false} disabled={false} onPress={() => {}} />
+      <GoogleSignInButton busy disabled={false} onPress={() => {}} />
       <Button size="sign-in" disabled onPress={() => {}}>
         <Text>Sign-in disabled</Text>
       </Button>
@@ -158,6 +155,7 @@ function Surfaces() {
       </Surface>
       <AccountCard provider="Apple" email="you@example.com" />
       <GalleryCard date="12 October 2026" status="Up to date" />
+      <GalleryCard date={null} status={null} />
       <FailureNotice message="Sign-in did not work." />
     </Section>
   );
