@@ -112,6 +112,7 @@ export function appleSignInButton() {
 
 export async function pressSignInWithApple() {
   await fireEvent(appleSignInButton(), 'buttonPress');
+  await act(async () => {});
 }
 
 export function appearsBefore(

@@ -2,6 +2,7 @@ import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { SessionProvider, useSession } from '@/auth/session';
+import { GalleryProvider } from '@/gallery/gallery-state';
 import { colors } from '@/theme';
 
 const navigationTheme = {
@@ -46,7 +47,9 @@ export default function RootLayout() {
     <ThemeProvider value={navigationTheme}>
       <StatusBar style="light" />
       <SessionProvider>
-        <RootStack />
+        <GalleryProvider>
+          <RootStack />
+        </GalleryProvider>
       </SessionProvider>
     </ThemeProvider>
   );

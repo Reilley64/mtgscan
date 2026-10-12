@@ -64,4 +64,5 @@ export const sizes = {
   cardPadding: 10,
   googleLogo: 18,
   cardOutline: 3,
+  progressBar: 4,
 } as const;
