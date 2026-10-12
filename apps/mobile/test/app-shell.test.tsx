@@ -4,10 +4,12 @@ import { startSignedIn } from './fake-supabase';
 import { renderApp } from './render-app';
 import {
   openSettings,
+  presentedDrawer,
   pressTab,
   selectedTab,
-  swipeDownPageSheet,
+  swipeDownDrawer,
   tabBarLabels,
+  tapOutsideDrawer,
 } from './native-ui';
 
 beforeEach(() => {
@@ -50,7 +52,7 @@ test('Scan is a black screen with no settings button', async () => {
 });
 
 test.each(['Recent', 'Collection', 'Decks'])(
-  'the settings button on %s opens the settings sheet',
+  'the settings button on %s opens the settings drawer',
   async (tab) => {
     await renderApp();
     await pressTab(tab);
@@ -59,21 +61,46 @@ test.each(['Recent', 'Collection', 'Decks'])(
   },
 );
 
-test('Done closes the settings sheet', async () => {
+test('settings opens as a bottom drawer with a grabber at half height', async () => {
+  await renderApp();
+
+  await openSettings();
+
+  expect(presentedDrawer()).toMatchObject({ showsGrabber: true, openingHeight: 0.5 });
+});
+
+test('the settings drawer can be dragged from half height to full height', async () => {
+  await renderApp();
+
+  await openSettings();
+
+  expect(presentedDrawer().heights).toEqual([0.5, 1]);
+});
+
+test('the settings drawer has no Done button', async () => {
+  await renderApp();
+
+  await openSettings();
+
+  expect(screen.queryByRole('button', { name: 'Done' })).not.toBeOnTheScreen();
+});
+
+test('a downward swipe closes the settings drawer', async () => {
   await renderApp();
   await openSettings();
 
-  await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
+  await swipeDownDrawer();
 
   expect(screen.queryByRole('header', { name: 'Settings' })).not.toBeOnTheScreen();
   expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
 });
 
-test('a downward swipe closes the settings sheet', async () => {
+test('a tap outside closes the settings drawer', async () => {
   await renderApp();
   await openSettings();
 
-  await swipeDownPageSheet();
+  await tapOutsideDrawer();
 
   expect(screen.queryByRole('header', { name: 'Settings' })).not.toBeOnTheScreen();
+  expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
 });

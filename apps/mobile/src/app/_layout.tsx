@@ -25,7 +25,13 @@ function RootStack() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="settings"
-          options={{ presentation: 'pageSheet', contentStyle: { backgroundColor: colors.sheet } }}
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.5, 1],
+            sheetGrabberVisible: true,
+            sheetExpandsWhenScrolledToEdge: false,
+            contentStyle: { backgroundColor: colors.sheet },
+          }}
         />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>

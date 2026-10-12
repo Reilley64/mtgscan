@@ -40,14 +40,52 @@ export async function pressTab(label: string) {
   });
 }
 
-export async function swipeDownPageSheet() {
-  const [sheet] = hostViews('RNSModalScreen').filter(
-    (candidate) => candidate.props.stackPresentation === 'pageSheet',
+function presentedDrawerView() {
+  const [drawer] = hostViews('RNSModalScreen').filter(
+    (candidate) => candidate.props.stackPresentation === 'formSheet',
   );
-  if (!sheet) {
-    throw new Error('No page sheet is open');
+  if (!drawer) {
+    throw new Error('No drawer is open');
   }
-  await fireEvent(sheet, 'dismissed', { nativeEvent: { dismissCount: 1 } });
+  const {
+    sheetGrabberVisible = false,
+    sheetAllowedDetents = [1],
+    sheetInitialDetent = 0,
+    sheetLargestUndimmedDetent = -1,
+    gestureEnabled = true,
+  } = drawer.props;
+  return {
+    view: drawer,
+    showsGrabber: sheetGrabberVisible as boolean,
+    heights: sheetAllowedDetents as number[],
+    openingIndex: sheetInitialDetent as number,
+    largestUndimmedIndex: sheetLargestUndimmedDetent as number,
+    closesByGesture: gestureEnabled as boolean,
+  };
+}
+
+export function presentedDrawer() {
+  const { showsGrabber, heights, openingIndex } = presentedDrawerView();
+  return { showsGrabber, heights, openingHeight: heights[openingIndex] };
+}
+
+async function closeDrawerByGesture(drawer: ReturnType<typeof presentedDrawerView>) {
+  if (!drawer.closesByGesture) {
+    throw new Error('This drawer does not close by gesture');
+  }
+  await fireEvent(drawer.view, 'dismissed', { nativeEvent: { dismissCount: 1 } });
+}
+
+export async function swipeDownDrawer() {
+  await closeDrawerByGesture(presentedDrawerView());
+}
+
+export async function tapOutsideDrawer() {
+  const drawer = presentedDrawerView();
+  if (drawer.largestUndimmedIndex >= drawer.openingIndex) {
+    throw new Error('The screen behind this drawer is not dimmed, so a tap there does not close it');
+  }
+  await closeDrawerByGesture(drawer);
 }
 
 export function showsSpinner(element: ReturnType<typeof screen.getByRole>) {
