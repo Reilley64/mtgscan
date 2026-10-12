@@ -19,13 +19,15 @@ public struct GalleryHeader: Codable, Sendable {
   public let revision: Int
   public let createdAt: String
   public let encoding: String?
+  public let version: String?
 
-  public init(count: Int, dimension: Int, revision: Int, createdAt: String, encoding: String?) {
+  public init(count: Int, dimension: Int, revision: Int, createdAt: String, encoding: String?, version: String? = nil) {
     self.count = count
     self.dimension = dimension
     self.revision = revision
     self.createdAt = createdAt
     self.encoding = encoding
+    self.version = version
   }
 }
 

@@ -23,7 +23,10 @@ struct FeaturePrintLine: Encodable {
   let error: String?
 }
 
-let usage = "usage: card-recognizer index <gallery-dir> <images-dir> | serve <gallery-dir> | feature-prints <image>..."
+let usage = """
+usage: card-recognizer index <gallery-dir> <images-dir> | serve <gallery-dir> | feature-prints <image>...
+  | encode <image-list> <output> | install <version-dir> <gallery-dir> | about
+"""
 
 func fail(_ message: String) -> Never {
   FileHandle.standardError.write(Data("\(message)\n".utf8))
@@ -85,6 +88,27 @@ func featurePrint(ofCardAt url: URL) -> [Float]? {
   return try? FeaturePrint.vector(of: small)
 }
 
+func forEachFeaturePrint(of images: [URL], _ body: @Sendable (Int, [Float]) -> Void) {
+  let progress = OSAllocatedUnfairLock(initialState: (completed: 0, failures: [String]()))
+  DispatchQueue.concurrentPerform(iterations: images.count) { row in
+    autoreleasepool {
+      let vector = featurePrint(ofCardAt: images[row])
+      if let vector { body(row, vector) }
+      progress.withLock { state in
+        if vector == nil { state.failures.append(images[row].lastPathComponent) }
+        state.completed += 1
+        if state.completed % 5000 == 0 {
+          FileHandle.standardError.write(Data("computed \(state.completed) of \(images.count) feature prints\n".utf8))
+        }
+      }
+    }
+  }
+  let failures = progress.withLock { $0.failures }
+  guard failures.isEmpty else {
+    fail("\(failures.count) images failed, first: \(failures.prefix(5).joined(separator: ", "))")
+  }
+}
+
 func index(galleryDirectory: URL, imagesDirectory: URL) {
   let printings: [GalleryPrinting]
   do {
@@ -95,30 +119,13 @@ func index(galleryDirectory: URL, imagesDirectory: URL) {
   let dimension = FeaturePrint.dimension
   let startedAt = Date()
   var vectors = [Float16](repeating: 0, count: printings.count * dimension)
-  let progress = OSAllocatedUnfairLock(initialState: (completed: 0, failures: [String]()))
   vectors.withUnsafeMutableBufferPointer { output in
     nonisolated(unsafe) let buffer = output
-    DispatchQueue.concurrentPerform(iterations: printings.count) { row in
-      autoreleasepool {
-        let vector = featurePrint(ofCardAt: imagesDirectory.appendingPathComponent("\(printings[row].id).jpg"))
-        if let vector {
-          for component in 0 ..< dimension {
-            buffer[row * dimension + component] = Float16(vector[component])
-          }
-        }
-        progress.withLock { state in
-          if vector == nil { state.failures.append(printings[row].id) }
-          state.completed += 1
-          if state.completed % 5000 == 0 {
-            FileHandle.standardError.write(Data("indexed \(state.completed) of \(printings.count)\n".utf8))
-          }
-        }
+    forEachFeaturePrint(of: printings.map { imagesDirectory.appendingPathComponent("\($0.id).jpg") }) { row, vector in
+      for component in 0 ..< dimension {
+        buffer[row * dimension + component] = Float16(vector[component])
       }
     }
-  }
-  let failures = progress.withLock { $0.failures }
-  guard failures.isEmpty else {
-    fail("\(failures.count) images failed, first: \(failures.prefix(5).joined(separator: ", "))")
   }
   do {
     try vectors.withUnsafeBufferPointer { Data(buffer: $0) }
@@ -135,6 +142,69 @@ func index(galleryDirectory: URL, imagesDirectory: URL) {
     fail("cannot write the gallery: \(error)")
   }
   emit(["printings": printings.count, "seconds": Int(Date().timeIntervalSince(startedAt))])
+}
+
+func encode(imageList: URL, output: URL) {
+  let images: [URL]
+  do {
+    images = try String(contentsOf: imageList, encoding: .utf8)
+      .split(separator: "\n")
+      .map { URL(fileURLWithPath: String($0)) }
+  } catch {
+    fail("cannot read the image list: \(error)")
+  }
+  let dimension = FeaturePrint.dimension
+  let startedAt = Date()
+  var codes = [Int8](repeating: 0, count: images.count * dimension)
+  codes.withUnsafeMutableBufferPointer { output in
+    nonisolated(unsafe) let buffer = output
+    forEachFeaturePrint(of: images) { row, vector in
+      for (component, code) in GalleryEncoding.int8Codes(of: vector).enumerated() {
+        buffer[row * dimension + component] = code
+      }
+    }
+  }
+  do {
+    try codes.withUnsafeBufferPointer { Data(buffer: $0) }.write(to: output)
+  } catch {
+    fail("cannot write the feature prints: \(error)")
+  }
+  emit(["featurePrints": images.count, "seconds": Int(Date().timeIntervalSince(startedAt))])
+}
+
+func install(versionDirectory: URL, galleryDirectory: URL) {
+  let startedAt = Date()
+  do {
+    try GalleryInstaller.install(from: versionDirectory, into: galleryDirectory)
+  } catch {
+    fail("cannot install the gallery: \(error)")
+  }
+  emit(["seconds": Int(Date().timeIntervalSince(startedAt))])
+}
+
+func machineName() -> String {
+  var size = 0
+  sysctlbyname("machdep.cpu.brand_string", nil, &size, nil, 0)
+  var name = [CChar](repeating: 0, count: size)
+  sysctlbyname("machdep.cpu.brand_string", &name, &size, nil, 0)
+  return String(decoding: name.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
+}
+
+struct About: Encodable {
+  let macOS: String
+  let machine: String
+  let featurePrintRevision: Int
+  let dimension: Int
+}
+
+func about() {
+  let version = ProcessInfo.processInfo.operatingSystemVersion
+  emit(About(
+    macOS: "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)",
+    machine: machineName(),
+    featurePrintRevision: FeaturePrint.revision,
+    dimension: FeaturePrint.dimension
+  ))
 }
 
 func featurePrints(images: [String]) {
@@ -158,6 +228,12 @@ case "serve" where arguments.count == 3:
   serve(galleryDirectory: URL(fileURLWithPath: arguments[2]))
 case "feature-prints" where arguments.count > 2:
   featurePrints(images: Array(arguments.dropFirst(2)))
+case "encode" where arguments.count == 4:
+  encode(imageList: URL(fileURLWithPath: arguments[2]), output: URL(fileURLWithPath: arguments[3]))
+case "install" where arguments.count == 4:
+  install(versionDirectory: URL(fileURLWithPath: arguments[2]), galleryDirectory: URL(fileURLWithPath: arguments[3]))
+case "about" where arguments.count == 2:
+  about()
 default:
   fail(usage)
 }
