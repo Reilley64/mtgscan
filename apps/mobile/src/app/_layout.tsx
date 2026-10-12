@@ -1,4 +1,4 @@
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider, type NativeStackNavigationOptions } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { SessionProvider, useSession } from '@/auth/session';
@@ -19,6 +19,14 @@ const navigationTheme = {
   },
 };
 
+const drawerOptions: NativeStackNavigationOptions = {
+  presentation: 'formSheet',
+  sheetAllowedDetents: [0.5, 1],
+  sheetGrabberVisible: true,
+  sheetExpandsWhenScrolledToEdge: false,
+  contentStyle: { backgroundColor: colors.sheet },
+};
+
 function RootStack() {
   const signedIn = useSession() !== null;
 
@@ -26,24 +34,9 @@ function RootStack() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="scan-details"
-          options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.sheet } }}
-        />
-        <Stack.Screen
-          name="scan-printings"
-          options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.sheet } }}
-        />
-        <Stack.Screen
-          name="settings"
-          options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.5, 1],
-            sheetGrabberVisible: true,
-            sheetExpandsWhenScrolledToEdge: false,
-            contentStyle: { backgroundColor: colors.sheet },
-          }}
-        />
+        <Stack.Screen name="scan-details" options={drawerOptions} />
+        <Stack.Screen name="scan-printings" options={drawerOptions} />
+        <Stack.Screen name="settings" options={drawerOptions} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" />

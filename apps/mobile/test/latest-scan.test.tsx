@@ -2,6 +2,7 @@ import { act, fireEvent, screen, within } from 'expo-router/testing-library';
 
 import {
   cardImageUri as catalogImageUri,
+  setIconUri,
   lightningBolt2xm,
   lightningBoltList,
   lightningBoltM10,
@@ -23,10 +24,10 @@ import {
   appearsBefore,
   cardImageUri,
   openSettings,
+  presentedDrawer,
   pressTab,
   selectedTab,
   swipeDownDrawer,
-  swipeDownPageSheet,
 } from './native-ui';
 import { renderApp } from './render-app';
 
@@ -251,13 +252,23 @@ test('tapping the chip opens the details sheet with the card image, name, set an
   expect(screen.getByRole('button', { name: 'Remove scan' })).toBeOnTheScreen();
 });
 
+test('the details sheet opens as a bottom drawer with a grabber at half height that drags to full height', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+
+  await openLatestScan('Lightning Bolt, M10 146');
+
+  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [0.5, 1], openingHeight: 0.5 });
+});
+
 test('a downward swipe closes the details sheet', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
   await openLatestScan('Lightning Bolt, M10 146');
 
-  await swipeDownPageSheet();
+  await swipeDownDrawer();
 
   expect(screen.queryByRole('button', { name: 'Remove scan' })).not.toBeOnTheScreen();
 });
@@ -273,7 +284,7 @@ test('the details sheet offers only the finishes of the printing and changes the
   await fireEvent.press(screen.getByRole('button', { name: 'Foil' }));
   expect(selectedChoice('Foil')).toBeOnTheScreen();
 
-  await swipeDownPageSheet();
+  await swipeDownDrawer();
   expect(latestScanChip('Lightning Bolt, M10 146, Foil')).toBeOnTheScreen();
 });
 
@@ -287,7 +298,7 @@ test('the details sheet changes the condition and the language, which start at n
 
   await fireEvent.press(screen.getByRole('button', { name: 'LP' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Japanese' }));
-  await swipeDownPageSheet();
+  await swipeDownDrawer();
   await openLatestScan('Lightning Bolt, M10 146');
 
   expect(selectedChoice('LP')).toBeOnTheScreen();
@@ -337,7 +348,7 @@ test('choosing another option keeps the finish when the new printing has it', as
   await openLatestScan('Lightning Bolt, M10 146, Foil');
 
   await fireEvent.press(screen.getByRole('button', { name: 'Lightning Bolt, 2XM 117' }));
-  await swipeDownPageSheet();
+  await swipeDownDrawer();
 
   expect(latestScanChip('Lightning Bolt, 2XM 117, Foil')).toBeOnTheScreen();
 });
@@ -374,7 +385,7 @@ test('choosing a printing from name search fixes the scan', async () => {
   await fireEvent.press(await screen.findByRole('button', { name: 'Lightning Bolt, 2XM 117' }));
 
   expect(await screen.findByRole('header', { name: 'Lightning Bolt' })).toBeOnTheScreen();
-  await swipeDownPageSheet();
+  await swipeDownDrawer();
   expect(latestScanChip('Lightning Bolt, 2XM 117')).toBeOnTheScreen();
   expect(scanTab().getByRole('button', { name: '+1' })).toBeOnTheScreen();
 });
@@ -391,7 +402,7 @@ test('choosing a basic land in name search says it is not tracked and changes no
 
   expect(await screen.findByText('Basic lands are not tracked.')).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: /^Plains, / })).not.toBeOnTheScreen();
-  await swipeDownPageSheet();
+  await swipeDownDrawer();
   expect(latestScanChip('Shock, M19 156')).toBeOnTheScreen();
 });
 
@@ -573,4 +584,23 @@ test('a scan that is not recognized can be removed from name search', async () =
 
   expect(screen.queryByLabelText('Card name')).not.toBeOnTheScreen();
   expect(scanTab().queryByText('Not recognized')).not.toBeOnTheScreen();
+});
+
+test('the set quick action shows the set icon from the card catalog, tinted for the dark bar', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+
+  const setAction = scanTab().getByRole('button', { name: 'M10' });
+
+  expect(cardImageUri(setAction)).toBe(setIconUri('m10'));
+  expect(within(setAction).queryByText('M10')).not.toBeOnTheScreen();
+});
+
+test('the set quick action shows the set code when the card catalog has no icon for the set', async () => {
+  nextPhotosAre(cardRecognition([solRingCommander]));
+  await openScan();
+  await scanACard();
+
+  expect(within(scanTab().getByRole('button', { name: 'C21' })).getByText('C21')).toBeOnTheScreen();
 });

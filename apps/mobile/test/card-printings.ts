@@ -42,3 +42,9 @@ export const galleryPrintings: GalleryCardPrinting[] = [
 export function cardImageUri(printingId: string) {
   return `https://cards.scryfall.io/normal/front/${printingId}.jpg`;
 }
+
+const setsWithoutIcons = new Set(['c21']);
+
+export function setIconUri(setCode: string) {
+  return setsWithoutIcons.has(setCode) ? undefined : `https://svgs.scryfall.io/sets/${setCode}.svg`;
+}

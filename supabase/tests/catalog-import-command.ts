@@ -10,6 +10,7 @@ const supabaseDirectory = join(import.meta.dir, '..');
 const fixtureDirectory = join(import.meta.dir, 'fixtures', 'scryfall');
 
 export const catalogFixtureManifest = join(fixtureDirectory, 'bulk-data.json');
+export const setsFixture = join(fixtureDirectory, 'sets.json');
 export const catalogFixtureSnapshotAt = '2026-10-08T21:01:56.786+00:00';
 export const oracleTagFixtureSnapshotAt = '2026-10-09T21:00:33.548+00:00';
 export const spellbookFixtureVariants = join(import.meta.dir, 'fixtures', 'commander-spellbook', 'variants.json');
@@ -224,7 +225,7 @@ export function runImportCommand(...args: string[]): Promise<CommandResult> {
 }
 
 export function runCatalogImport(manifest: string, ...flags: string[]): Promise<CommandResult> {
-  return runImportCommand('catalog', '--manifest', manifest, ...flags);
+  return runImportCommand('catalog', '--manifest', manifest, '--sets', setsFixture, ...flags);
 }
 
 export function runPriceImport(manifest: string, ...flags: string[]): Promise<CommandResult> {
@@ -273,6 +274,7 @@ export async function resetCardCatalog(): Promise<void> {
     () => client.from('card_printings').delete().not('id', 'is', null),
     () => client.from('card_faces').delete().not('oracle_id', 'is', null),
     () => client.from('cards').delete().not('oracle_id', 'is', null),
+    () => client.from('card_sets').delete().not('code', 'is', null),
   ]) {
     const { error } = await request();
     if (error) {

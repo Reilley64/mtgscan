@@ -64,18 +64,6 @@ function presentedDrawerView() {
   };
 }
 
-function presentedPageSheet() {
-  const [sheet] = hostViews('RNSModalScreen').filter((candidate) => candidate.props.stackPresentation === 'modal');
-  if (!sheet) {
-    throw new Error('No page sheet is open');
-  }
-  return sheet;
-}
-
-export async function swipeDownPageSheet() {
-  await fireEvent(presentedPageSheet(), 'dismissed', { nativeEvent: { dismissCount: 1 } });
-}
-
 export function isInScrollView(element: HostElement) {
   let parent = element.parent;
   while (parent) {

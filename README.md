@@ -82,7 +82,7 @@ The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes o
 
 ### Latest scan
 
-`apps/mobile/src/scan/use-scan-recognition.ts` sends each photo to `recognize`, deletes the photo when the recognizer answers, and reports the result to the scan batch in `src/scan/scan-batch-state.tsx`. `src/scan/scan-batch.ts` holds the scans with their copies, the default finish rule from #75, and the edits from the quick actions and the details sheet. The batch stays in memory until #83 adds persistence, review, and commit. Card images on the chip and in the details sheet come from `image_uris` in the card catalog's `card_printings` table, and `expo-image` keeps them in its disk cache.
+`apps/mobile/src/scan/use-scan-recognition.ts` sends each photo to `recognize`, deletes the photo when the recognizer answers, and reports the result to the scan batch in `src/scan/scan-batch-state.tsx`. `src/scan/scan-batch.ts` holds the scans with their copies, the default finish rule from #75, and the edits from the quick actions and the details sheet. The batch stays in memory until #83 adds persistence, review, and commit. Card images on the chip and in the details sheet come from `image_uris` in the card catalog's `card_printings` table. The set button shows the expansion symbol from `icon_svg_uri` in `card_sets`. `expo-image` keeps both in its disk cache.
 
 ### Local Supabase
 
@@ -176,9 +176,9 @@ Signed-in users search their own collection entries with `supabase.rpc('search_c
 
 ### Card catalog imports
 
-`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file.
+`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file. Pass `--sets <path>` to read a fixture instead of the Scryfall sets list.
 
-- `catalog` imports cards and card printings. The Weekly import workflow runs it.
+- `catalog` imports cards and card printings. After the run, even a skipped one, it reads Scryfall's sets list in one request and adds or updates `card_sets`: each set's code, name, and `icon_svg_uri`. Some sets use the icon of a parent set, so the app reads the icon from this table, not from a URL pattern. Signed-in users can read `card_sets`. The Weekly import workflow runs it.
 - `oracle_tags` imports Oracle tags, tag edges, and card taggings from Scryfall. The Weekly import workflow runs it after `catalog`, even when the catalog run fails.
 - `commander_spellbook` imports combos, as `GLOSSARY.md` defines them, from the Commander Spellbook variants file. It drops and counts each combo that names a card outside the card catalog or has no Oracle ID. The Weekly import workflow runs it after `oracle_tags`, even when an earlier run fails.
 - `prices` imports current prices from Scryfall Default Cards and recomputes each card's lowest current price.

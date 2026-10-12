@@ -58,6 +58,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
+    paddingTop: spacing.lg * 2,
     paddingBottom: spacing.lg * 2,
   },
 });

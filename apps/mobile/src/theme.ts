@@ -72,6 +72,7 @@ export const sizes = {
   touchTarget: 44,
   selectedOutline: 2,
   chevron: 14,
+  setIcon: 16,
   chipPadding: 9,
   cardThumbnailWidth: 40,
   cardThumbnailHeight: 56,

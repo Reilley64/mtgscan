@@ -345,17 +345,18 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 - Bought with the acquired copy picker;
 - the swap-in confirmation for a protected copy;
 - revert;
-- the scan details sheet;
-- the printing picker for the latest scan;
 - batch review.
 
-Settings is a bottom drawer, not a page sheet. The settings button on Recent, Collection, and Decks opens it.
+Settings, the scan details sheet, and the printing picker are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all three.
 
 - It slides up from the bottom with the iOS grabber and opens at half the screen height.
 - Dragging it up takes it to full height. Dragging it down takes it back to half height.
 - A downward swipe or a tap outside closes it. It has no Done button.
-- The title sits 32 px below the top edge, twice the page inset, so that it clears the grabber. It stays at the top at either height.
-- The content below the title scrolls at either height, and it scrolls under the title.
+- Its content starts 32 px below the top edge, twice the page inset, so that it clears the grabber. The content scrolls at either height.
+
+The settings drawer:
+
+- The title "Settings" stays at the top at either height. The content below the title scrolls under it.
 - It shows the signed-in account in a card, a gallery card, a Scan sounds card, and **Sign out** below them. The account card shows the provider of the current sign-in and the account email. Apple and Google sign-ins with the same verified email share one account, so the provider can change between sign-ins.
 - The gallery card shows "Gallery", the date of the installed gallery version, such as "12 October 2026", and "Up to date", "Downloading", or "Paused". "Paused" covers waiting for Wi-Fi, offline, a failed download, and too little space.
 - The Scan sounds card has a "Scan sounds" switch with a lime track. It is on by default. Turning it off stops the scan sounds and keeps the scan haptics.
@@ -393,16 +394,16 @@ The interface is flat. Depth comes from tone, not shadow.
   - The meta line adds the finish when it is not nonfoil, and the copy count when the scan has more than one copy: "M10 146 · Foil · 2 copies".
   - A quick-action bar sits 8 px below the chip, centered, and is always on the Scan tab. It is one control-surface pill with 12 px corners and three buttons in chip type, split by short line-colored dividers. The bar is 32 px tall, and each button has a 44 pt touch target. From left to right:
     - The finish button shows the current finish: "Nonfoil", "Foil", or "Etched". Tapping it switches to the next finish of the card printing in the order nonfoil, foil, etched. It changes every copy of the scan, as the details sheet does. It is disabled when the card printing has one finish.
-    - The set button shows the set code in capitals, such as "MH3". It opens the printing picker.
+    - The set button shows the set's expansion symbol from Scryfall at 16 px, tinted with the text color. VoiceOver reads the set code in capitals, such as "MH3". When the card catalog has no symbol for the set, or it has not loaded, the button shows the set code instead. It opens the printing picker.
     - **+1** adds one copy to the scan.
-  - The buttons act on the latest scan. Before the first scan, while a photo is being recognized, and after a basic land or a scan that was not recognized, they are disabled, with text dim labels. Before the first scan they read "Finish", "Set", and "+1". A photo that is not a card leaves the bar on the previous scan.
-  - The printing picker is a page sheet with the card name and every card printing of that card in the gallery, as card images 3 per row with the set code and collector number. The scanned card printing and its same-text twins come first, then the rest newest first. The current card printing has a 2 px lime border and a lime caption. Tapping a card printing switches the scan to it and closes the sheet. The scan keeps its finish when the new card printing has it. Otherwise it takes the new card printing's default finish.
+  - The buttons act on the latest scan. Before the first scan, while a photo is being recognized, and after a basic land or a scan that was not recognized, they are disabled, with text dim labels. Before the first scan they read "Finish", a dashed square symbol for the set, and "+1". A photo that is not a card leaves the bar on the previous scan.
+  - The printing picker is a bottom drawer like the scan details sheet, with the card name and every card printing of that card in the gallery, as card images 3 per row with the set code and collector number. The scanned card printing and its same-text twins come first, then the rest newest first. The current card printing has a 2 px lime border and a lime caption. Tapping a card printing switches the scan to it and closes the sheet. The scan keeps its finish when the new card printing has it. Otherwise it takes the new card printing's default finish.
   - A pulsing skeleton chip, with a line-colored image block and two line-colored bars, shows from the moment the app takes the photo until the result arrives. VoiceOver reads it as "Recognizing card".
   - A photo that is not a card removes the skeleton chip and brings back the previous chip.
   - A basic land shows its image, its name, and "Basic land, not tracked". It does not enter the scan batch, and tapping it does nothing.
   - A failed recognition shows an empty thumbnail, "Not recognized", and "Tap to search".
   - Tapping the chip opens the scan details sheet.
-- **Scan details sheet.** A page sheet on the sheet color that closes with a downward swipe. Its content scrolls.
+- **Scan details sheet.** A bottom drawer like settings: the iOS grabber, opens at half the screen height, drags up to full height, and closes with a downward swipe or a tap outside. Its content scrolls at either height, starting 32 px below the top edge.
   - At the top: the card image at 55% of the sheet width, the card name in card title type, and the set code and collector number, with the copy count when there is more than one copy.
   - **Finish**, **Condition**, and **Language** sections, each with a row of chips. The selected chip is lime. Finish offers only the finishes of the card printing. Condition offers NM, LP, MP, HP, and DMG, and starts at NM. Language offers English, Japanese, German, French, Italian, Spanish, Portuguese, Korean, Russian, Simplified Chinese, and Traditional Chinese, and starts at English.
   - **Other options** lists the recognizer's other candidates as rows with a thumbnail, the name, and the set code and collector number. Every same-text twin comes first. Tapping a row switches the scan to that card printing. The scan keeps its condition and language, and its finish when the new card printing has it. Otherwise it takes the new card printing's default finish.

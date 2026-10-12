@@ -103,6 +103,20 @@ isOneToOne: false
       referencedColumns: ["oracle_id"]
     }
                   ]
+                },"card_sets": {
+                  Row: {
+                    "code": string,"icon_svg_uri": string,"name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "code": string,"icon_svg_uri": string,"name": string
+                  }
+                  Update: {
+                    "code"?: string,"icon_svg_uri"?: string,"name"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"card_taggings": {
                   Row: {
                     "oracle_id": string,"tag_id": string
@@ -459,6 +473,9 @@ isOneToOne: false
       } },
 "get_cards":
 { Args: { "query": Json }; Returns: Json
+                           },
+"import_card_sets":
+{ Args: { "sets": Json }; Returns: number
                            },
 "list_card_printings":
 { Args: { "query": Json }; Returns: Json

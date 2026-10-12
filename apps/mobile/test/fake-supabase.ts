@@ -11,7 +11,7 @@ import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 
 import type { SignInProvider } from '@/auth/sign-in';
 
-import { cardImageUri, galleryPrintings } from './card-printings';
+import { cardImageUri, galleryPrintings, setIconUri } from './card-printings';
 import { appleIdTokenNonce } from './fake-apple';
 
 type AuthListener = (event: AuthChangeEvent, session: Session | null) => void;
@@ -139,18 +139,26 @@ function notify(event: AuthChangeEvent) {
   listeners.forEach((listener) => listener(event, session));
 }
 
-function cardCatalogTable(table: string) {
-  if (table !== 'card_printings') {
-    throw new Error(`The fake Supabase client has no ${table} table`);
+function cardCatalogRows(table: string, ids: string[]) {
+  switch (table) {
+    case 'card_printings':
+      return galleryPrintings
+        .filter((printing) => ids.includes(printing.printingId))
+        .map((printing) => ({ id: printing.printingId, image_uris: [cardImageUri(printing.printingId)] }));
+    case 'card_sets':
+      return ids.flatMap((code) => {
+        const icon = setIconUri(code);
+        return icon ? [{ code, icon_svg_uri: icon }] : [];
+      });
+    default:
+      throw new Error(`The fake Supabase client has no ${table} table`);
   }
+}
+
+function cardCatalogTable(table: string) {
   return {
     select: () => ({
-      in: async (_column: 'id', ids: string[]) => ({
-        data: galleryPrintings
-          .filter((printing) => ids.includes(printing.printingId))
-          .map((printing) => ({ id: printing.printingId, image_uris: [cardImageUri(printing.printingId)] })),
-        error: null,
-      }),
+      in: async (_column: string, ids: string[]) => ({ data: cardCatalogRows(table, ids), error: null }),
     }),
   };
 }

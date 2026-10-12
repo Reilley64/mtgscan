@@ -1,4 +1,9 @@
+import { Image } from 'expo-image';
+import { SymbolView } from 'expo-symbols';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { useSetIcons } from '@/catalog/use-set-icons';
 
 import { finishes, finishLabels } from '@/collection/copy-labels';
 import { colors, rounded, sizes, spacing, typography } from '@/theme';
@@ -14,17 +19,36 @@ type QuickActionsProps = {
 
 const touchSlop = (sizes.touchTarget - sizes.quickAction) / 2;
 
-function QuickAction({ label, onPress }: { label: string; onPress: (() => void) | null }) {
+type QuickActionProps = {
+  label: string;
+  onPress: (() => void) | null;
+  children?: ReactNode;
+};
+
+function QuickAction({ label, onPress, children }: QuickActionProps) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       accessibilityState={{ disabled: !onPress }}
       disabled={!onPress}
       onPress={onPress ?? undefined}
       hitSlop={{ top: touchSlop, bottom: touchSlop }}
       style={styles.action}>
-      <Text style={[styles.label, !onPress && styles.disabledLabel]}>{label}</Text>
+      {children ?? <Text style={[styles.label, !onPress && styles.disabledLabel]}>{label}</Text>}
     </Pressable>
+  );
+}
+
+function SetAction({ setCode, onPress }: { setCode: string; onPress: () => void }) {
+  const iconOf = useSetIcons([setCode]);
+  const icon = iconOf(setCode);
+  return (
+    <QuickAction label={setCode.toUpperCase()} onPress={onPress}>
+      {icon ? (
+        <Image source={icon} tintColor={colors.text} contentFit="contain" cachePolicy="disk" style={styles.setIcon} />
+      ) : null}
+    </QuickAction>
   );
 }
 
@@ -38,7 +62,9 @@ export function QuickActions({ scan, onAddCopy, onChangeFinish, onChangeSet }: Q
       <View style={styles.bar}>
         <QuickAction label="Finish" onPress={null} />
         <Divider />
-        <QuickAction label="Set" onPress={null} />
+        <QuickAction label="Set" onPress={null}>
+          <SymbolView name="square.dashed" tintColor={colors.textDim} size={sizes.setIcon} />
+        </QuickAction>
         <Divider />
         <QuickAction label="+1" onPress={null} />
       </View>
@@ -53,7 +79,7 @@ export function QuickActions({ scan, onAddCopy, onChangeFinish, onChangeSet }: Q
         onPress={printingFinishes.length > 1 ? () => onChangeFinish(scan.scanId, nextFinish) : null}
       />
       <Divider />
-      <QuickAction label={scan.printing.setCode.toUpperCase()} onPress={() => onChangeSet(scan.scanId)} />
+      <SetAction setCode={scan.printing.setCode} onPress={() => onChangeSet(scan.scanId)} />
       <Divider />
       <QuickAction label="+1" onPress={() => onAddCopy(scan.scanId)} />
     </View>
@@ -81,6 +107,10 @@ const styles = StyleSheet.create({
   },
   disabledLabel: {
     color: colors.textDim,
+  },
+  setIcon: {
+    width: sizes.setIcon,
+    height: sizes.setIcon,
   },
   divider: {
     width: StyleSheet.hairlineWidth,
