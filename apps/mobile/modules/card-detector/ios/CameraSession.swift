@@ -22,6 +22,7 @@ final class CameraSession: NSObject, @unchecked Sendable {
 
   let session = AVCaptureSession()
   private let onSample: @Sendable (DetectionSample) -> Void
+  private let onShutter: @Sendable () -> Void
   private let sessionQueue = DispatchQueue(label: "dev.reilley.mtgscan.camera")
   private let analysisQueue = DispatchQueue(label: "dev.reilley.mtgscan.detector")
   private let videoOutput = AVCaptureVideoDataOutput()
@@ -31,8 +32,12 @@ final class CameraSession: NSObject, @unchecked Sendable {
   private var lastAnalyzedAt = CMTime.invalid
   private var photoCaptures: [Int64: PhotoCapture] = [:]
 
-  init(onSample: @escaping @Sendable (DetectionSample) -> Void) {
+  init(
+    onSample: @escaping @Sendable (DetectionSample) -> Void,
+    onShutter: @escaping @Sendable () -> Void
+  ) {
     self.onSample = onSample
+    self.onShutter = onShutter
     super.init()
     NotificationCenter.default.addObserver(
       self,
@@ -75,8 +80,11 @@ final class CameraSession: NSObject, @unchecked Sendable {
       settings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
       settings.flashMode = .off
       settings.photoQualityPrioritization = .balanced
+      if #available(iOS 18.0, *), photoOutput.isShutterSoundSuppressionSupported {
+        settings.isShutterSoundSuppressionEnabled = true
+      }
       let id = settings.uniqueID
-      let capture = PhotoCapture { [weak self] result in
+      let capture = PhotoCapture(onShutter: onShutter) { [weak self] result in
         if let self {
           sessionQueue.async { self.photoCaptures[id] = nil }
         }
@@ -202,10 +210,19 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
 }
 
 private final class PhotoCapture: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
+  private let onShutter: @Sendable () -> Void
   private let completion: @Sendable (Result<URL, PhotoFailure>) -> Void
 
-  init(completion: @escaping @Sendable (Result<URL, PhotoFailure>) -> Void) {
+  init(
+    onShutter: @escaping @Sendable () -> Void,
+    completion: @escaping @Sendable (Result<URL, PhotoFailure>) -> Void
+  ) {
+    self.onShutter = onShutter
     self.completion = completion
+  }
+
+  func photoOutput(_: AVCapturePhotoOutput, willCapturePhotoFor _: AVCaptureResolvedPhotoSettings) {
+    onShutter()
   }
 
   func photoOutput(_: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {

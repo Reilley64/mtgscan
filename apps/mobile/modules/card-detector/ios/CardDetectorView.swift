@@ -6,6 +6,7 @@ final class CardDetectorView: ExpoView {
   let onDetectionSample = EventDispatcher()
   private let previewLayer = AVCaptureVideoPreviewLayer()
   private let outlineLayer = CAShapeLayer()
+  private let shutterFeedback = UIImpactFeedbackGenerator(style: .light)
   private var camera: CameraSession?
 
   var active = false {
@@ -22,13 +23,22 @@ final class CardDetectorView: ExpoView {
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
-    let camera = CameraSession { [weak self] sample in
-      DispatchQueue.main.async {
-        MainActor.assumeIsolated {
-          self?.show(sample)
+    let camera = CameraSession(
+      onSample: { [weak self] sample in
+        DispatchQueue.main.async {
+          MainActor.assumeIsolated {
+            self?.show(sample)
+          }
+        }
+      },
+      onShutter: { [weak self] in
+        DispatchQueue.main.async {
+          MainActor.assumeIsolated {
+            self?.shutterFeedback.impactOccurred()
+          }
         }
       }
-    }
+    )
     self.camera = camera
     previewLayer.session = camera.session
     previewLayer.videoGravity = .resizeAspectFill
@@ -78,6 +88,9 @@ final class CardDetectorView: ExpoView {
   private func show(_ sample: DetectionSample) {
     guard active else { return }
     keepPreviewUpright()
+    if sample.detected {
+      shutterFeedback.prepare()
+    }
     outlineLayer.path = outlinePath(sample)
     onDetectionSample(sample.record)
   }
