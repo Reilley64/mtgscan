@@ -24,6 +24,20 @@ test('the app opens on Recent with its empty state', async () => {
   expect(recent.getByText('Nothing needs you yet')).toBeOnTheScreen();
 });
 
+test('the empty state on Recent has a white bold title and a muted message', async () => {
+  await renderApp();
+
+  const recent = within(selectedTab());
+  expect(recent.getByText('Nothing needs you yet')).toHaveStyle({
+    color: 'rgba(255, 255, 255, 1)',
+    fontSize: 14,
+    fontWeight: '700',
+  });
+  expect(
+    recent.getByText('Deck suggestions, planned swaps, and buylist cards show up here when they need you.'),
+  ).toHaveStyle({ color: 'rgba(181, 192, 197, 1)', fontSize: 14, lineHeight: 19 });
+});
+
 test('the tab bar shows Recent, Collection, Decks, and Scan in that order', async () => {
   await renderApp();
 

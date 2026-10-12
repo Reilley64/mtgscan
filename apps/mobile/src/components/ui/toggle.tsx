@@ -11,7 +11,7 @@ export function Toggle({ className, ...props }: ToggleProps) {
     <TextClassContext.Provider value={cn('text-body-strong', props.pressed ? 'text-on-primary' : 'text-text')}>
       <TogglePrimitive.Root
         className={cn(
-          'h-button flex-row items-center justify-center rounded-sm px-md transition-colors duration-200',
+          'h-button flex-row items-center justify-center rounded-sm px-md',
           props.pressed ? 'bg-primary' : 'bg-surface-control',
           props.disabled && 'opacity-50',
           className,

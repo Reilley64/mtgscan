@@ -1,6 +1,9 @@
+import { registerAppStyles } from './class-styles';
 import { resetFakeCardDetector } from './fake-card-detector';
 import { resetFakeCardRecognizer } from './fake-card-recognizer';
 import { resetFakeSupabase } from './fake-supabase';
+
+require('react-native-reanimated').setUpTests();
 
 jest.mock('expo-crypto', () => {
   const nodeCrypto = jest.requireActual('node:crypto');
@@ -20,7 +23,8 @@ jest.mock('../modules/card-detector', () => jest.requireActual('./fake-card-dete
 
 jest.mock('../modules/card-recognizer', () => jest.requireActual('./fake-card-recognizer').fakeCardRecognizer);
 
-beforeEach(() => {
+beforeEach(async () => {
+  await registerAppStyles();
   jest.spyOn(console, 'info').mockImplementation(() => {});
   resetFakeSupabase();
   resetFakeCardDetector();
