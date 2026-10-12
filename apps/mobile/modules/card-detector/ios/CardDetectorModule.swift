@@ -1,29 +1,5 @@
 import AVFoundation
 import ExpoModulesCore
-import UIKit
-
-enum ShutterFeedbackStyle: String, Enumerable {
-  case light
-  case medium
-  case heavy
-  case rigid
-  case soft
-
-  var impactStyle: UIImpactFeedbackGenerator.FeedbackStyle {
-    switch self {
-    case .light: .light
-    case .medium: .medium
-    case .heavy: .heavy
-    case .rigid: .rigid
-    case .soft: .soft
-    }
-  }
-}
-
-struct ShutterFeedback: Record {
-  @Field var style: ShutterFeedbackStyle = .medium
-  @Field var intensity: Double = 1.0
-}
 
 public final class CardDetectorModule: Module {
   public func definition() -> ModuleDefinition {
@@ -63,10 +39,6 @@ public final class CardDetectorModule: Module {
 
       Prop("outlineWidth") { (view: CardDetectorView, width: Double) in
         view.outlineWidth = width
-      }
-
-      Prop("shutterFeedback") { (view: CardDetectorView, feedback: ShutterFeedback) in
-        view.shutterFeedback = feedback
       }
 
       AsyncFunction("takePhoto") { (view: CardDetectorView, promise: Promise) in

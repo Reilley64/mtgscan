@@ -31,9 +31,4 @@ export type CapturedPhoto = {
   outline: CardOutline;
 };
 
-export type ShutterFeedback = {
-  style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft';
-  intensity: number;
-};
-
 export type CameraPermission = 'granted' | 'denied' | 'undetermined';

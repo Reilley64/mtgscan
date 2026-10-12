@@ -4,16 +4,9 @@ import { StyleSheet } from 'react-native';
 
 import { colors, sizes } from '@/theme';
 
-import {
-  CardDetectorView,
-  deletePhoto,
-  type CapturedPhoto,
-  type ShutterFeedback,
-} from '../../modules/card-detector';
+import { CardDetectorView, deletePhoto, type CapturedPhoto } from '../../modules/card-detector';
 import { CameraMessage } from './camera-message';
 import { useAutomaticCapture } from './use-automatic-capture';
-
-const shutterFeedback: ShutterFeedback = { style: 'medium', intensity: 1 };
 
 export function ScanCamera() {
   const focused = useIsFocused();
@@ -29,7 +22,6 @@ export function ScanCamera() {
         active={focused && !stopped}
         outlineColor={colors.cardOutline}
         outlineWidth={sizes.cardOutline}
-        shutterFeedback={shutterFeedback}
         onDetectionSample={onDetectionSample}
         style={styles.camera}
       />
