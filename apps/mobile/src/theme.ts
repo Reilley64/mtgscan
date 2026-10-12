@@ -89,10 +89,25 @@ export const sizes = {
   cardThumbnailHeight: 56,
   quantityBadge: 19,
   quantityBadgeInset: 5,
+  grabberWidth: 36,
+  grabberHeight: 5,
+  brandMarkWidth: 18,
+  brandMarkHeight: 25,
+  failureMark: 22,
 } as const;
 
 export const borderWidths = {
   selectedOutline: sizes.selectedOutline,
+  brandMark: 2.5,
+} as const;
+
+export const shadows = {
+  sheet: '0px -12px 40px rgba(0, 0, 0, 0.55)',
+} as const;
+
+export const gradients = {
+  binderWallScrim:
+    'linear-gradient(180deg, rgba(8, 11, 13, 0.9) 0%, rgba(8, 11, 13, 0.2) 16%, rgba(8, 11, 13, 0.25) 45%, rgba(8, 11, 13, 0.9) 62%)',
 } as const;
 
 export const aspectRatios = {

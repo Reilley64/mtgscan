@@ -318,7 +318,7 @@ The app shows the sign-in screen whenever there is no session. It is the binder 
 - **Sign-in buttons** stack in one column with 8 px gaps: **Sign in with Apple** first, then **Continue with Google**.
 - **Signing in.** The tapped button shows a spinner in place of its logo, and every sign-in button is disabled. Other sign-in buttons fade to 38% opacity. The system Apple button cannot show a spinner. While Apple sign-in runs, a white button of the same size with a black spinner takes its place.
 - **Cancel.** Cancelling the provider prompt returns to the buttons with no message.
-- **Failure.** A failure replaces the buttons with "Sign-in did not work." in a surface card with a danger mark, and a lime **Try again** button. Try again brings back the buttons.
+- **Failure.** A failure replaces the buttons with "Sign-in did not work." in a surface card with a danger mark, and a lime **Try again** button. The danger mark is a 22 px danger-tint circle with a "!" in danger body strong text. Try again brings back the buttons.
 - **Test sign-in.** Only a development build against local Supabase with `EXPO_PUBLIC_TEST_SIGN_IN` on shows a third button, **Sign in as the test user**, under **Continue with Google**. It uses the control surface and the sign-in button height, and it signs in, fails, and dims like the other sign-in buttons. Production builds leave it out.
 
 ### Pushed screens
@@ -371,7 +371,7 @@ The settings drawer:
 The interface is flat. Depth comes from tone, not shadow.
 
 - Content sits on surface tones that step up from the background: surface, surface raised, surface control.
-- Page sheets slide over a dimmed, slightly scaled screen. The settings drawer slides over a dimmed screen that keeps its size. A soft shadow above the sheet is the only strong shadow.
+- Page sheets slide over a dimmed, slightly scaled screen. The settings drawer slides over a dimmed screen that keeps its size. A soft shadow above the sheet is the only strong shadow. On the sign-in sheet it is black at 55%, 12 px up, with a 40 px blur. `theme.ts` names it `shadows.sheet`, and the binder wall scrim `gradients.binderWallScrim`.
 - The tab bar is a near-opaque bar with a hairline top border.
 - During a back swipe, the screen follows the finger with a shadow on its left edge.
 

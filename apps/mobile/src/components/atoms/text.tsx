@@ -9,6 +9,8 @@ const textVariants = cva('', {
     variant: {
       'large-title': 'text-large-title text-text',
       'card-title': 'text-card-title text-text',
+      'sign-in-title': 'text-sign-in-title text-text',
+      brand: 'text-brand text-text',
       'sheet-title': 'text-sheet-title text-text',
       body: 'text-body text-text',
       'body-strong': 'text-body-strong text-text',
@@ -22,7 +24,7 @@ const textVariants = cva('', {
 
 type TextVariant = NonNullable<VariantProps<typeof textVariants>['variant']>;
 
-const titles: readonly TextVariant[] = ['large-title', 'card-title', 'sheet-title'];
+const titles: readonly TextVariant[] = ['large-title', 'card-title', 'sign-in-title', 'sheet-title'];
 
 export const TextClassContext = createContext<string | undefined>(undefined);
 

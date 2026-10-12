@@ -25,7 +25,7 @@ The review agent checks each diff against these rules. CI already runs the type 
 
 ## App UI
 
-- Style new UI with NativeWind classes named after the `DESIGN.md` tokens, such as `bg-surface-control`, `text-text-muted`, `text-body-strong`, `rounded-sm`, and `gap-xs`. A new inline style object or `StyleSheet` entry is a finding, unless a native component takes only a style prop. Older screens move to classes in #105 and #106.
+- Style new UI with NativeWind classes named after the `DESIGN.md` tokens, such as `bg-surface-control`, `text-text-muted`, `text-body-strong`, `rounded-sm`, and `gap-xs`. A new inline style object or `StyleSheet` entry is a finding, unless a native component takes only a style prop, or NativeWind 4 has no class for the style, such as a box shadow or a gradient. Such a value comes from `theme.ts`. Older screens move to classes in #105 and #106.
 - Take colors, type, spacing, corners, and sizes from `apps/mobile/src/theme.ts`, which mirrors the `DESIGN.md` tokens. The Tailwind theme comes from it through `apps/mobile/src/tailwind-theme.ts`. `apps/mobile/test/design-tokens.test.ts` checks that the Tailwind theme has every `DESIGN.md` token. A new token goes into `theme.ts` and `DESIGN.md` in the same PR.
 - Merge class names with `cn()` from `apps/mobile/src/lib/class-names.ts`. It knows the token names. Plain `twMerge` drops a token class, such as `text-text` beside `text-body-strong`.
 - Leave out transition and animation classes until they work in Jest. See #102.

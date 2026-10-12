@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, View, type FlatListProps } from 'react-native';
+import { FlatList, ScrollView, View, type FlatListProps } from 'react-native';
 
+import { Text } from '@/components/atoms/text';
 import { SettingsButton } from '@/components/molecules/settings-button';
-import { colors, spacing, typography } from '@/theme';
+
+const screenClass = 'flex-1 bg-background';
+
+const contentClass = 'px-lg pt-sm';
 
 type TabScreenProps = {
   title: string;
@@ -11,10 +15,8 @@ type TabScreenProps = {
 
 function TabHeader({ title }: { title: string }) {
   return (
-    <View style={styles.titleRow}>
-      <Text accessibilityRole="header" style={styles.title}>
-        {title}
-      </Text>
+    <View className="flex-row items-center justify-between">
+      <Text variant="large-title">{title}</Text>
       <SettingsButton />
     </View>
   );
@@ -23,8 +25,8 @@ function TabHeader({ title }: { title: string }) {
 export function TabScreen({ title, children }: TabScreenProps) {
   return (
     <ScrollView
-      style={styles.screen}
-      contentContainerStyle={[styles.content, styles.spaced]}
+      className={screenClass}
+      contentContainerClassName={`${contentClass} gap-lg`}
       contentInsetAdjustmentBehavior="automatic">
       <TabHeader title={title} />
       {children}
@@ -43,37 +45,11 @@ export function TabListScreen<Item>({ title, ...listProps }: TabListScreenProps<
   return (
     <FlatList
       {...listProps}
-      style={styles.screen}
-      contentContainerStyle={styles.content}
+      className={screenClass}
+      contentContainerClassName={contentClass}
       contentInsetAdjustmentBehavior="automatic"
       ListHeaderComponent={<TabHeader title={title} />}
-      ListHeaderComponentStyle={styles.listHeader}
+      ListHeaderComponentClassName="mb-lg"
     />
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-  },
-  spaced: {
-    gap: spacing.lg,
-  },
-  listHeader: {
-    marginBottom: spacing.lg,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  title: {
-    ...typography.largeTitle,
-    color: colors.text,
-  },
-});

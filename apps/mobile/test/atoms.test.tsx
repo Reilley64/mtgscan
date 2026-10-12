@@ -111,10 +111,50 @@ describe('Button', () => {
   });
 });
 
+describe('Sign-in button', () => {
+  test.each([
+    ['primary', lime, onPrimary],
+    ['secondary', surfaceControl, white],
+  ] as const)('a %s sign-in button is 50 px tall with the sign-in button type', async (variant, fill, label) => {
+    await render(
+      <Button variant={variant} size="sign-in" onPress={() => {}}>
+        <Text>Try again</Text>
+      </Button>,
+    );
+
+    const button = screen.getByRole('button', { name: 'Try again' });
+    expect(button).toHaveStyle({ backgroundColor: fill, height: 50, borderRadius: 8 });
+    expect(touchTarget(button).height).toBe(50);
+    expect(screen.getByText('Try again')).toHaveStyle({ color: label, fontSize: 17, fontWeight: '600' });
+  });
+
+  test('Continue with Google has the Google dark fill, border, and label', async () => {
+    await render(
+      <Button variant="google" size="sign-in" onPress={() => {}}>
+        <Text>Continue with Google</Text>
+      </Button>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Continue with Google' })).toHaveStyle({
+      backgroundColor: 'rgba(19, 19, 20, 1)',
+      borderColor: 'rgba(142, 145, 143, 1)',
+      borderWidth: 1,
+      height: 50,
+    });
+    expect(screen.getByText('Continue with Google')).toHaveStyle({
+      color: 'rgba(227, 227, 227, 1)',
+      fontSize: 16,
+      fontWeight: '500',
+    });
+  });
+});
+
 describe('Text', () => {
   test.each([
     ['large-title', { fontSize: 28, fontWeight: '800', lineHeight: 31, color: white }],
     ['card-title', { fontSize: 20, fontWeight: '800', lineHeight: 23, color: white }],
+    ['sign-in-title', { fontSize: 24, fontWeight: '800', lineHeight: 28, color: white }],
+    ['brand', { fontSize: 22, fontWeight: '800', color: white }],
     ['sheet-title', { fontSize: 17, fontWeight: '800', color: white }],
     ['body', { fontSize: 14, lineHeight: 19, color: white }],
     ['body-strong', { fontSize: 14, fontWeight: '700', color: white }],
@@ -133,13 +173,13 @@ describe('Text', () => {
     expect(screen.getByText('Scan your cards.')).toHaveStyle({ fontSize: 14, lineHeight: 19, color: white });
   });
 
-  test.each(['large-title', 'card-title', 'sheet-title'] as const)('%s text is a heading', async (variant) => {
+  test.each(['large-title', 'card-title', 'sign-in-title', 'sheet-title'] as const)('%s text is a heading', async (variant) => {
     await render(<Text variant={variant}>Settings</Text>);
 
     expect(screen.getByRole('header', { name: 'Settings' })).toBeOnTheScreen();
   });
 
-  test.each(['body', 'body-strong', 'meta', 'chip', 'credit'] as const)('%s text is not a heading', async (variant) => {
+  test.each(['body', 'body-strong', 'meta', 'chip', 'credit', 'brand'] as const)('%s text is not a heading', async (variant) => {
     await render(<Text variant={variant}>Settings</Text>);
 
     expect(screen.queryByRole('header')).not.toBeOnTheScreen();
