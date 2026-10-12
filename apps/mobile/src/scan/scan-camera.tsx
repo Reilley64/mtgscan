@@ -15,24 +15,21 @@ import { useScanRecognition } from './use-scan-recognition';
 function LatestScan() {
   const { latest, dispatch } = useScanBatch();
   const { bottom } = useSafeAreaInsets();
-  if (!latest) {
-    return null;
-  }
-  const scan = latest.kind === 'scan' ? latest.scan : null;
+  const scan = latest?.kind === 'scan' && latest.scan.printing ? { ...latest.scan, printing: latest.scan.printing } : null;
   return (
     <View style={[styles.latestScan, { bottom: bottom + spacing.lg }]}>
-      <LatestScanChip
-        latest={latest}
-        onOpen={(scanId) => router.push({ pathname: '/scan-details', params: { scanId } })}
-      />
-      {scan?.printing ? (
-        <QuickActions
-          scan={{ ...scan, printing: scan.printing }}
-          onAddCopy={() => dispatch({ type: 'addCopy', scanId: scan.scanId })}
-          onChangeFinish={(finish) => dispatch({ type: 'setFinish', scanId: scan.scanId, finish })}
-          onChangeSet={() => router.push({ pathname: '/scan-printings', params: { scanId: scan.scanId } })}
+      {latest ? (
+        <LatestScanChip
+          latest={latest}
+          onOpen={(scanId) => router.push({ pathname: '/scan-details', params: { scanId } })}
         />
       ) : null}
+      <QuickActions
+        scan={scan}
+        onAddCopy={(scanId) => dispatch({ type: 'addCopy', scanId })}
+        onChangeFinish={(scanId, finish) => dispatch({ type: 'setFinish', scanId, finish })}
+        onChangeSet={(scanId) => router.push({ pathname: '/scan-printings', params: { scanId } })}
+      />
     </View>
   );
 }

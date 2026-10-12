@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SymbolView } from 'expo-symbols';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { usePrintingImages } from '@/catalog/use-printing-images';
@@ -81,6 +82,7 @@ function ScanChip({
       style={styles.chip}>
       <CardThumbnail uri={image} />
       <ChipText name={name} details={details} />
+      <SymbolView name="chevron.right" tintColor={colors.textDim} size={sizes.chevron} />
     </Pressable>
   );
 }
@@ -117,10 +119,12 @@ const styles = StyleSheet.create({
   name: {
     ...typography.bodyStrong,
     color: colors.text,
+    textAlign: 'center',
   },
   details: {
     ...typography.meta,
     color: colors.textMuted,
+    textAlign: 'center',
   },
   skeletonImage: {
     width: sizes.cardThumbnailWidth,

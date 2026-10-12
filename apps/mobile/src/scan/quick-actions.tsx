@@ -6,56 +6,85 @@ import { colors, rounded, sizes, spacing, typography } from '@/theme';
 import type { BatchScan, Printing } from './scan-batch';
 
 type QuickActionsProps = {
-  scan: BatchScan & { printing: Printing };
-  onAddCopy: () => void;
-  onChangeFinish: (finish: BatchScan['finish']) => void;
-  onChangeSet: () => void;
+  scan: (BatchScan & { printing: Printing }) | null;
+  onAddCopy: (scanId: string) => void;
+  onChangeFinish: (scanId: string, finish: BatchScan['finish']) => void;
+  onChangeSet: (scanId: string) => void;
 };
 
 const touchSlop = (sizes.touchTarget - sizes.quickAction) / 2;
 
-function QuickAction({ label, onPress }: { label: string; onPress: () => void }) {
+function QuickAction({ label, onPress }: { label: string; onPress: (() => void) | null }) {
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={onPress}
+      accessibilityState={{ disabled: !onPress }}
+      disabled={!onPress}
+      onPress={onPress ?? undefined}
       hitSlop={{ top: touchSlop, bottom: touchSlop }}
       style={styles.action}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, !onPress && styles.disabledLabel]}>{label}</Text>
     </Pressable>
   );
 }
 
+function Divider() {
+  return <View style={styles.divider} />;
+}
+
 export function QuickActions({ scan, onAddCopy, onChangeFinish, onChangeSet }: QuickActionsProps) {
+  if (!scan) {
+    return (
+      <View style={styles.bar}>
+        <QuickAction label="Finish" onPress={null} />
+        <Divider />
+        <QuickAction label="Set" onPress={null} />
+        <Divider />
+        <QuickAction label="+1" onPress={null} />
+      </View>
+    );
+  }
   const printingFinishes = finishes.filter((finish) => scan.printing.finishes.includes(finish));
   const nextFinish = printingFinishes[(printingFinishes.indexOf(scan.finish) + 1) % printingFinishes.length];
   return (
-    <View style={styles.actions}>
-      <QuickAction label="+1" onPress={onAddCopy} />
-      {printingFinishes.length > 1 ? (
-        <QuickAction label={finishLabels[scan.finish]} onPress={() => onChangeFinish(nextFinish)} />
-      ) : null}
-      <QuickAction label="Change set" onPress={onChangeSet} />
+    <View style={styles.bar}>
+      <QuickAction
+        label={finishLabels[scan.finish]}
+        onPress={printingFinishes.length > 1 ? () => onChangeFinish(scan.scanId, nextFinish) : null}
+      />
+      <Divider />
+      <QuickAction label={scan.printing.setCode.toUpperCase()} onPress={() => onChangeSet(scan.scanId)} />
+      <Divider />
+      <QuickAction label="+1" onPress={() => onAddCopy(scan.scanId)} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  actions: {
+  bar: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    alignItems: 'center',
+    alignSelf: 'center',
+    borderRadius: rounded.md,
+    backgroundColor: colors.surfaceControl,
   },
   action: {
     height: sizes.quickAction,
     minWidth: sizes.touchTarget,
     paddingHorizontal: spacing.md,
-    borderRadius: rounded.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surfaceControl,
   },
   label: {
     ...typography.chip,
     color: colors.text,
+  },
+  disabledLabel: {
+    color: colors.textDim,
+  },
+  divider: {
+    width: StyleSheet.hairlineWidth,
+    height: sizes.quickAction / 2,
+    backgroundColor: colors.line,
   },
 });

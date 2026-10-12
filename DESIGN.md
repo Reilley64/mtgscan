@@ -211,14 +211,15 @@ components:
     textColor: "{colors.text}"
     rounded: "{rounded.md}"
     padding: 8px 16px 8px 8px
-  scan-quick-action:
+  scan-quick-actions:
     backgroundColor: "{colors.surface-control}"
     textColor: "{colors.text}"
     typography: "{typography.chip}"
     rounded: "{rounded.md}"
     padding: 0 12px
     height: 32px
-    width: 44px
+  scan-quick-actions-disabled:
+    textColor: "{colors.text-dim}"
 ---
 
 # mtgscan design
@@ -388,17 +389,18 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, the batch button, and the card page Decks tab.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and card page deck lists. It opens the deck.
-- **Latest-scan chip.** One horizontal chip at the bottom of Scan, 16 px from the edges: a card thumbnail, the card name in body strong, and a meta line with the set code in capitals and the collector number, such as "M10 146". A new scan replaces it.
+- **Latest-scan chip.** One horizontal chip at the bottom of Scan, 16 px from the edges: a card thumbnail on the left, the card name in body strong centered over a centered meta line with the set code in capitals and the collector number, such as "M10 146", and a 14 px text dim `chevron.right` symbol on the right that shows the chip opens the details. The skeleton chip and the basic land chip have no chevron. A new scan replaces the chip.
   - The meta line adds the finish when it is not nonfoil, and the copy count when the scan has more than one copy: "M10 146 · Foil · 2 copies".
-  - A row of quick actions sits 8 px below the chip. They act on the latest scan, so the details sheet is needed only for the rest. Each is a control-surface pill in chip type, 32 px tall with a 44 pt touch target:
+  - A quick-action bar sits 8 px below the chip, centered, and is always on the Scan tab. It is one control-surface pill with 12 px corners and three buttons in chip type, split by short line-colored dividers. The bar is 32 px tall, and each button has a 44 pt touch target. From left to right:
+    - The finish button shows the current finish: "Nonfoil", "Foil", or "Etched". Tapping it switches to the next finish of the card printing in the order nonfoil, foil, etched. It changes every copy of the scan, as the details sheet does. It is disabled when the card printing has one finish.
+    - The set button shows the set code in capitals, such as "MH3". It opens the printing picker.
     - **+1** adds one copy to the scan.
-    - The finish action shows the current finish, such as "Nonfoil" or "Foil". Tapping it switches to the next finish of the card printing in the order nonfoil, foil, etched. It shows only when the card printing has more than one finish. It changes every copy of the scan, as the details sheet does.
-    - **Change set** opens the printing picker.
+  - The buttons act on the latest scan. Before the first scan, while a photo is being recognized, and after a basic land or a scan that was not recognized, they are disabled, with text dim labels. Before the first scan they read "Finish", "Set", and "+1". A photo that is not a card leaves the bar on the previous scan.
   - The printing picker is a page sheet with the card name and every card printing of that card in the gallery, as card images 3 per row with the set code and collector number. The scanned card printing and its same-text twins come first, then the rest newest first. The current card printing has a 2 px lime border and a lime caption. Tapping a card printing switches the scan to it and closes the sheet. The scan keeps its finish when the new card printing has it. Otherwise it takes the new card printing's default finish.
   - A pulsing skeleton chip, with a line-colored image block and two line-colored bars, shows from the moment the app takes the photo until the result arrives. VoiceOver reads it as "Recognizing card".
   - A photo that is not a card removes the skeleton chip and brings back the previous chip.
-  - A basic land shows its image, its name, and "Basic land, not tracked", with no quick actions. It does not enter the scan batch, and tapping it does nothing.
-  - A failed recognition shows an empty thumbnail, "Not recognized", and "Tap to search", with no quick actions.
+  - A basic land shows its image, its name, and "Basic land, not tracked". It does not enter the scan batch, and tapping it does nothing.
+  - A failed recognition shows an empty thumbnail, "Not recognized", and "Tap to search".
   - Tapping the chip opens the scan details sheet.
 - **Scan details sheet.** A page sheet on the sheet color that closes with a downward swipe. Its content scrolls.
   - At the top: the card image at 55% of the sheet width, the card name in card title type, and the set code and collector number, with the copy count when there is more than one copy.
