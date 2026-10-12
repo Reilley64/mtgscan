@@ -1,14 +1,17 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { useState } from 'react';
 
+import { AppleSignInButton } from '@/components/atoms/apple-sign-in-button';
 import { Button } from '@/components/atoms/button';
+import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { Chip } from '@/components/atoms/chip';
 import { Surface } from '@/components/atoms/surface';
 import { Switch } from '@/components/atoms/switch';
 import { Text } from '@/components/atoms/text';
+import { TextLink } from '@/components/atoms/text-link';
 import { Toggle } from '@/components/atoms/toggle';
 
-import { showsSpinner, switchTrackColor, touchTarget } from './native-ui';
+import { appleSignInButton, pressSignInWithApple, showsSpinner, switchTrackColor, touchTarget } from './native-ui';
 import { tokenColors } from './token-colors';
 
 const { primary: lime, onPrimary, surface, surfaceControl, text: white, textMuted, textDim, warning, danger, info } = tokenColors;
@@ -111,10 +114,50 @@ describe('Button', () => {
   });
 });
 
+describe('Sign-in button', () => {
+  test.each([
+    ['primary', lime, onPrimary],
+    ['secondary', surfaceControl, white],
+  ] as const)('a %s sign-in button is 50 px tall with the sign-in button type', async (variant, fill, label) => {
+    await render(
+      <Button variant={variant} size="sign-in" onPress={() => {}}>
+        <Text>Try again</Text>
+      </Button>,
+    );
+
+    const button = screen.getByRole('button', { name: 'Try again' });
+    expect(button).toHaveStyle({ backgroundColor: fill, height: 50, borderRadius: 8 });
+    expect(touchTarget(button).height).toBe(50);
+    expect(screen.getByText('Try again')).toHaveStyle({ color: label, fontSize: 17, fontWeight: '600' });
+  });
+
+  test('Continue with Google has the Google dark fill, border, and label', async () => {
+    await render(
+      <Button variant="google" size="sign-in" onPress={() => {}}>
+        <Text>Continue with Google</Text>
+      </Button>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Continue with Google' })).toHaveStyle({
+      backgroundColor: 'rgba(19, 19, 20, 1)',
+      borderColor: 'rgba(142, 145, 143, 1)',
+      borderWidth: 1,
+      height: 50,
+    });
+    expect(screen.getByText('Continue with Google')).toHaveStyle({
+      color: 'rgba(227, 227, 227, 1)',
+      fontSize: 16,
+      fontWeight: '500',
+    });
+  });
+});
+
 describe('Text', () => {
   test.each([
     ['large-title', { fontSize: 28, fontWeight: '800', lineHeight: 31, color: white }],
     ['card-title', { fontSize: 20, fontWeight: '800', lineHeight: 23, color: white }],
+    ['sign-in-title', { fontSize: 24, fontWeight: '800', lineHeight: 28, color: white }],
+    ['brand', { fontSize: 22, fontWeight: '800', color: white }],
     ['sheet-title', { fontSize: 17, fontWeight: '800', color: white }],
     ['body', { fontSize: 14, lineHeight: 19, color: white }],
     ['body-strong', { fontSize: 14, fontWeight: '700', color: white }],
@@ -133,13 +176,13 @@ describe('Text', () => {
     expect(screen.getByText('Scan your cards.')).toHaveStyle({ fontSize: 14, lineHeight: 19, color: white });
   });
 
-  test.each(['large-title', 'card-title', 'sheet-title'] as const)('%s text is a heading', async (variant) => {
+  test.each(['large-title', 'card-title', 'sign-in-title', 'sheet-title'] as const)('%s text is a heading', async (variant) => {
     await render(<Text variant={variant}>Settings</Text>);
 
     expect(screen.getByRole('header', { name: 'Settings' })).toBeOnTheScreen();
   });
 
-  test.each(['body', 'body-strong', 'meta', 'chip', 'credit'] as const)('%s text is not a heading', async (variant) => {
+  test.each(['body', 'body-strong', 'meta', 'chip', 'credit', 'brand'] as const)('%s text is not a heading', async (variant) => {
     await render(<Text variant={variant}>Settings</Text>);
 
     expect(screen.queryByRole('header')).not.toBeOnTheScreen();
@@ -298,5 +341,70 @@ describe('Switch', () => {
     await render(<ScanSoundsSwitch />);
 
     expect(switchTrackColor(screen.getByRole('switch', { name: 'Scan sounds' }))).toBe('#d8ff62');
+  });
+});
+
+describe('AppleSignInButton', () => {
+  test('the Apple sign-in button is the system button, 50 px tall, and runs its action when pressed', async () => {
+    const onPress = jest.fn();
+    await render(<AppleSignInButton busy={false} disabled={false} onPress={onPress} />);
+
+    expect(appleSignInButton()).toHaveStyle({ height: 50 });
+    await pressSignInWithApple();
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  test('a disabled Apple sign-in button is dimmed and does nothing when pressed', async () => {
+    const onPress = jest.fn();
+    await render(<AppleSignInButton busy={false} disabled onPress={onPress} />);
+
+    expect(appleSignInButton().parent).toHaveStyle(dimmed);
+    await pressSignInWithApple();
+
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  test('a busy Apple sign-in button is a white button with a spinner that reads as busy', async () => {
+    await render(<AppleSignInButton busy disabled={false} onPress={() => {}} />);
+
+    const button = screen.getByRole('button', { name: 'Sign in with Apple' });
+    expect(button).toBeBusy();
+    expect(button).toBeDisabled();
+    expect(showsSpinner(button)).toBe(true);
+    expect(button).toHaveStyle({ backgroundColor: 'rgba(255, 255, 255, 1)', height: 50, borderRadius: 8 });
+  });
+});
+
+describe('GoogleSignInButton', () => {
+  test('Continue with Google shows the Google logo until it is busy, then a spinner', async () => {
+    const { rerender } = await render(<GoogleSignInButton busy={false} disabled={false} onPress={() => {}} />);
+    const button = screen.getByRole('button', { name: 'Continue with Google' });
+    expect(button.queryAll((instance) => instance.type === 'Image')).toHaveLength(1);
+    expect(showsSpinner(button)).toBe(false);
+
+    await rerender(<GoogleSignInButton busy disabled={false} onPress={() => {}} />);
+
+    const busyButton = screen.getByRole('button', { name: 'Continue with Google' });
+    expect(busyButton.queryAll((instance) => instance.type === 'Image')).toHaveLength(0);
+    expect(showsSpinner(busyButton)).toBe(true);
+    expect(busyButton).toBeBusy();
+  });
+});
+
+describe('TextLink', () => {
+  test('a text link reads as a link in bold lime and runs its action when pressed', async () => {
+    const onPress = jest.fn();
+    await render(
+      <Text variant="meta">
+        Your collection stays private. <TextLink onPress={onPress}>Privacy policy</TextLink>
+      </Text>,
+    );
+
+    const link = screen.getByRole('link', { name: 'Privacy policy' });
+    await fireEvent.press(link);
+
+    expect(link).toHaveStyle({ color: lime, fontWeight: '700' });
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 });

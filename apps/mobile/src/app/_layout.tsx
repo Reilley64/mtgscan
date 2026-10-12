@@ -2,6 +2,7 @@ import '../global.css';
 
 import { DarkTheme, Stack, ThemeProvider, type NativeStackNavigationOptions } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SessionProvider, useSession } from '@/auth/session';
 import { GalleryProvider } from '@/gallery/gallery-state';
@@ -53,17 +54,19 @@ function RootStack() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider value={navigationTheme}>
-      <StatusBar style="light" />
-      <SessionProvider>
-        <GalleryProvider>
-          <ScanSoundsProvider>
-            <ScanBatchProvider>
-              <RootStack />
-            </ScanBatchProvider>
-          </ScanSoundsProvider>
-        </GalleryProvider>
-      </SessionProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider value={navigationTheme}>
+        <StatusBar style="light" />
+        <SessionProvider>
+          <GalleryProvider>
+            <ScanSoundsProvider>
+              <ScanBatchProvider>
+                <RootStack />
+              </ScanBatchProvider>
+            </ScanSoundsProvider>
+          </GalleryProvider>
+        </SessionProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

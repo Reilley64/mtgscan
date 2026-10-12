@@ -3,13 +3,22 @@ import { SymbolView } from 'expo-symbols';
 import { useState, type ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 
+import { AppleSignInButton } from '@/components/atoms/apple-sign-in-button';
 import { Button } from '@/components/atoms/button';
+import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { Chip } from '@/components/atoms/chip';
 import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
+import { TextLink } from '@/components/atoms/text-link';
 import { Toggle } from '@/components/atoms/toggle';
+import { AccountCard } from '@/components/molecules/account-card';
+import { Brand } from '@/components/molecules/brand';
+import { CardGrid } from '@/components/molecules/card-grid';
+import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
+import { FailureNotice } from '@/components/molecules/failure-notice';
+import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
@@ -34,6 +43,8 @@ function TextStyles() {
   return (
     <Section title="Text styles">
       <Text variant="large-title">Large title</Text>
+      <Text variant="sign-in-title">Sign-in title</Text>
+      <Text variant="brand">Brand</Text>
       <Text variant="card-title">Card title</Text>
       <Text variant="sheet-title">Sheet title</Text>
       <Text>Body</Text>
@@ -41,6 +52,9 @@ function TextStyles() {
       <Text variant="meta">Meta</Text>
       <Text variant="chip">Chip</Text>
       <Text variant="credit">Credit</Text>
+      <Text variant="meta">
+        Meta with a <TextLink onPress={() => {}}>Text link</TextLink>
+      </Text>
     </Section>
   );
 }
@@ -65,6 +79,24 @@ function Buttons() {
       </Button>
       <Button size="icon" accessibilityLabel="Settings" onPress={() => {}}>
         <SymbolView name="gearshape.fill" size={18} tintColor={colors.text} />
+      </Button>
+    </Section>
+  );
+}
+
+function SignInButtons() {
+  return (
+    <Section title="Sign-in buttons">
+      <AppleSignInButton busy={false} disabled={false} onPress={() => {}} />
+      <AppleSignInButton busy={false} disabled onPress={() => {}} />
+      <AppleSignInButton busy disabled={false} onPress={() => {}} />
+      <GoogleSignInButton busy={false} disabled={false} onPress={() => {}} />
+      <GoogleSignInButton busy disabled={false} onPress={() => {}} />
+      <Button size="sign-in" disabled onPress={() => {}}>
+        <Text>Sign-in disabled</Text>
+      </Button>
+      <Button variant="primary" size="sign-in" onPress={() => {}}>
+        <Text>Try again</Text>
       </Button>
     </Section>
   );
@@ -121,6 +153,10 @@ function Surfaces() {
       <Surface onPress={() => {}}>
         <Text variant="body-strong">Surface with an action</Text>
       </Surface>
+      <AccountCard provider="Apple" email="you@example.com" />
+      <GalleryCard date="12 October 2026" status="Up to date" />
+      <GalleryCard date={null} status={null} />
+      <FailureNotice message="Sign-in did not work." />
     </Section>
   );
 }
@@ -131,6 +167,27 @@ function ListRows() {
       <ListRow title="Sol Ring" detail="CMM 464" leading={<CardThumbnail uri={solRing} />} onPress={() => {}} />
       <ListRow title="Lightning Bolt" onPress={() => {}} />
       <ListRow title="Gallery" detail="Up to date" />
+    </Section>
+  );
+}
+
+function CardTiles() {
+  const [chosen, setChosen] = useState('CMM 464');
+  return (
+    <Section title="Card tiles">
+      <CardGrid>
+        <CardTile uri={solRing} caption="CMM 464" quantity={2} accessibilityLabel="Sol Ring, CMM 464, 2 owned" />
+        {['CMM 464', 'C21 263'].map((caption) => (
+          <CardTile
+            key={caption}
+            uri={solRing}
+            caption={caption}
+            accessibilityLabel={`Sol Ring, ${caption}`}
+            selected={chosen === caption}
+            onPress={() => setChosen(caption)}
+          />
+        ))}
+      </CardGrid>
     </Section>
   );
 }
@@ -146,23 +203,27 @@ function Switches() {
 
 export function PrimitiveCatalog() {
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerClassName="gap-xl px-lg pb-xl pt-sm"
-      contentInsetAdjustmentBehavior="automatic">
-      <Text variant="large-title">Primitives</Text>
-      <TextStyles />
-      <Buttons />
-      <Chips />
-      <Toggles />
-      <Surfaces />
-      <ListRows />
-      <Switches />
-      <Section title="Drawer sheet">
-        <Button onPress={() => router.push('/primitives-sheet')}>
-          <Text>Open the drawer sheet</Text>
-        </Button>
-      </Section>
-    </ScrollView>
+    <View className="flex-1 bg-background pt-safe">
+      <ScrollView className="flex-1" contentContainerClassName="gap-xl px-lg pb-safe-offset-xl pt-sm">
+        <Text variant="large-title">Primitives</Text>
+        <TextStyles />
+        <Section title="Brand">
+          <Brand />
+        </Section>
+        <Buttons />
+        <SignInButtons />
+        <Chips />
+        <Toggles />
+        <Surfaces />
+        <ListRows />
+        <CardTiles />
+        <Switches />
+        <Section title="Drawer sheet">
+          <Button onPress={() => router.push('/primitives-sheet')}>
+            <Text>Open the drawer sheet</Text>
+          </Button>
+        </Section>
+      </ScrollView>
+    </View>
   );
 }

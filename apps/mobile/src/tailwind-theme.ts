@@ -1,4 +1,15 @@
-import { colors, opacity, rounded, sizes, spacing, typography } from './theme';
+import {
+  appleButtonColors,
+  aspectRatios,
+  borderWidths,
+  colors,
+  googleButtonColors,
+  opacity,
+  rounded,
+  sizes,
+  spacing,
+  typography,
+} from './theme';
 
 type TextToken = { fontSize: number; lineHeight?: number; fontWeight?: string };
 
@@ -23,10 +34,19 @@ function textStyle({ fontSize, lineHeight, fontWeight }: TextToken): TextClass {
   ];
 }
 
+const signInButtonColors = {
+  buttonApple: appleButtonColors.background,
+  buttonGoogle: googleButtonColors.background,
+  buttonGoogleBorder: googleButtonColors.border,
+  buttonGoogleText: googleButtonColors.text,
+};
+
 export const tailwindTheme = {
-  colors: keyedByClassName(colors, (value) => value),
+  colors: keyedByClassName({ ...colors, ...signInButtonColors }, (value) => value),
   spacing: keyedByClassName({ ...spacing, ...sizes }, px),
   borderRadius: keyedByClassName(rounded, px),
   fontSize: keyedByClassName(typography, textStyle),
   opacity: keyedByClassName(opacity, String),
+  borderWidth: keyedByClassName(borderWidths, px),
+  aspectRatio: keyedByClassName(aspectRatios, String),
 };

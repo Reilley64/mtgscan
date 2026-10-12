@@ -5,7 +5,7 @@ import { ActivityIndicator, Pressable } from 'react-native';
 import { verticalTouchSlop } from '@/components/atoms/control-style';
 import { TextClassContext } from '@/components/atoms/text';
 import { cn } from '@/lib/class-names';
-import { colors, sizes } from '@/theme';
+import { colors, googleButtonColors, sizes } from '@/theme';
 
 export const buttonVariants = cva('h-button flex-row items-center justify-center gap-sm', {
   variants: {
@@ -13,10 +13,12 @@ export const buttonVariants = cva('h-button flex-row items-center justify-center
       primary: 'bg-primary',
       secondary: 'bg-surface-control',
       danger: 'bg-danger-tint',
+      google: 'border border-button-google-border bg-button-google',
     },
     size: {
       default: 'min-w-touch-target rounded-sm px-md',
       icon: 'w-button rounded-full',
+      'sign-in': 'h-sign-in-button rounded-sm px-md',
     },
   },
 });
@@ -27,14 +29,22 @@ export const labelVariants = cva('text-body-strong', {
       primary: 'text-on-primary',
       secondary: 'text-text',
       danger: 'text-danger',
+      google: 'text-button-google-text',
+    },
+    size: {
+      default: '',
+      icon: '',
+      'sign-in': 'text-sign-in-button',
     },
   },
+  compoundVariants: [{ variant: 'google', size: 'sign-in', className: 'text-google-button' }],
 });
 
 const spinnerColors = {
   primary: colors.onPrimary,
   secondary: colors.text,
   danger: colors.danger,
+  google: googleButtonColors.text,
 } as const;
 
 const verticalSlop = verticalTouchSlop(sizes.button);
@@ -42,6 +52,7 @@ const verticalSlop = verticalTouchSlop(sizes.button);
 const hitSlops = {
   default: verticalSlop,
   icon: { ...verticalSlop, left: verticalSlop.top, right: verticalSlop.top },
+  'sign-in': undefined,
 } as const;
 
 type ButtonVariants = VariantProps<typeof buttonVariants>;
@@ -63,7 +74,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   return (
-    <TextClassContext value={labelVariants({ variant })}>
+    <TextClassContext value={labelVariants({ variant, size })}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ disabled: disabled || busy, busy }}

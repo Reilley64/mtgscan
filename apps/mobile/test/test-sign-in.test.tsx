@@ -2,7 +2,7 @@ import { localSupabaseUrl } from '@mtgscan/supabase/test-user';
 import { act, fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { fakeSupabase, testUserIsNotSeeded } from './fake-supabase';
-import { openSettings, queryAppleSignInButton, selectedTab, showsSpinner } from './native-ui';
+import { appleSignInButton, openSettings, queryAppleSignInButton, selectedTab, showsSpinner } from './native-ui';
 import { renderApp } from './render-app';
 
 type Build = {
@@ -110,6 +110,18 @@ test('while the test sign-in runs, its button shows a spinner and no sign-in but
   expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeDisabled();
   await act(async () => finishSignIn());
   expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
+});
+
+test('while the test sign-in runs, the other sign-in buttons fade and the test sign-in button keeps its full color', async () => {
+  jest.spyOn(fakeSupabase.auth, 'signInWithPassword').mockReturnValueOnce(new Promise(() => {}));
+  runAs();
+  await renderApp();
+
+  await signInAsTheTestUser();
+
+  expect(screen.getByRole('button', { name: 'Sign in as the test user' })).not.toHaveStyle({ opacity: expect.closeTo(0.38) });
+  expect(screen.getByRole('button', { name: 'Continue with Google' })).toHaveStyle({ opacity: expect.closeTo(0.38) });
+  expect(appleSignInButton().parent).toHaveStyle({ opacity: expect.closeTo(0.38) });
 });
 
 test('when the test user is not seeded, the test sign-in says Sign-in did not work and offers Try again', async () => {

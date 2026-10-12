@@ -145,6 +145,19 @@ export function cardImageUri(tile: HostElement) {
   return image.props.source?.[0]?.uri;
 }
 
+export function cardImageOutline(tile: HostElement) {
+  const [image] = tile.queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage');
+  let frame = image?.parent ?? null;
+  while (frame && frame !== tile.parent) {
+    const { borderWidth, borderColor, borderRadius } = StyleSheet.flatten(frame.props.style) ?? {};
+    if (borderWidth) {
+      return { borderWidth, borderColor, borderRadius };
+    }
+    frame = frame.parent;
+  }
+  return null;
+}
+
 export async function scrollToEnd(tab: HostElement) {
   const [list] = tab.queryAll((instance) => instance.type === 'RCTScrollView');
   if (!list) {

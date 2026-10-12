@@ -18,9 +18,6 @@ const importsBelow = {
 const rawControls = ['Pressable', 'TouchableOpacity', 'TouchableHighlight', 'TouchableWithoutFeedback', 'Switch', 'Button'];
 
 const screensNotOnPrimitives = [
-  'src/app/settings.tsx',
-  'src/app/sign-in.tsx',
-  'src/auth/test-sign-in-button.tsx',
   'src/scan/latest-scan-chip.tsx',
   'src/scan/name-search.tsx',
   'src/scan/printing-grid.tsx',

@@ -11,6 +11,9 @@ const twMerge = extendTailwindMerge({
       spacing: Object.keys(tailwindTheme.spacing),
       radius: Object.keys(tailwindTheme.borderRadius),
     },
+    classGroups: {
+      'border-w': [{ border: Object.keys(tailwindTheme.borderWidth) }],
+    },
   },
 });
 

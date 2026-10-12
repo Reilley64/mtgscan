@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 
 import { CardImage, cardHeightPerWidth } from '@/components/atoms/card-image';
-import { spacing } from '@/theme';
+import { gradients, spacing } from '@/theme';
 
 type WallCard = {
   name: string;
@@ -208,15 +208,18 @@ export function BinderWall() {
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       pointerEvents="none"
-      style={styles.wall}>
-      {columns.map((column) => (
-        <DriftColumn
-          key={column.cards[0].name}
-          {...column}
-          tileHeight={tileHeight}
-          drifting={drifting}
-        />
-      ))}
+      className="absolute inset-0">
+      <View style={styles.wall}>
+        {columns.map((column) => (
+          <DriftColumn
+            key={column.cards[0].name}
+            {...column}
+            tileHeight={tileHeight}
+            drifting={drifting}
+          />
+        ))}
+      </View>
+      <View style={styles.scrim} />
     </View>
   );
 }
@@ -233,6 +236,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: wallPadding,
     opacity: 0.5,
     transform: [{ rotate: '-6deg' }, { scale: 1.12 }],
+  },
+  scrim: {
+    ...StyleSheet.absoluteFill,
+    experimental_backgroundImage: gradients.binderWallScrim,
   },
   column: {
     flex: 1,

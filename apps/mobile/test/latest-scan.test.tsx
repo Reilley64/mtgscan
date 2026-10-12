@@ -226,7 +226,7 @@ test('scan sounds are on by default and the Scan sounds switch turns them off bu
   const scanSounds = screen.getByRole('switch', { name: 'Scan sounds' });
   expect(scanSounds).toBeChecked();
 
-  await fireEvent(scanSounds, 'valueChange', false);
+  await fireEvent.press(scanSounds);
   expect(screen.getByRole('switch', { name: 'Scan sounds' })).not.toBeChecked();
   await swipeDownDrawer();
   await pressTab('Scan');
