@@ -2,14 +2,14 @@ import { View } from 'react-native';
 
 import { Chip } from '@/components/atoms/chip';
 
-type ChipGroupProps<Value extends string> = {
+export type SingleChoiceProps<Value extends string> = {
   values: readonly Value[];
   selected: Value;
   labelOf: (value: Value) => string;
   onSelect: (value: Value) => void;
 };
 
-export function ChipGroup<Value extends string>({ values, selected, labelOf, onSelect }: ChipGroupProps<Value>) {
+export function ChipGroup<Value extends string>({ values, selected, labelOf, onSelect }: SingleChoiceProps<Value>) {
   return (
     <View className="flex-row flex-wrap gap-sm">
       {values.map((value) => (

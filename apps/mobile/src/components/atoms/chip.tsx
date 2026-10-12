@@ -1,6 +1,7 @@
 import { cva } from 'class-variance-authority';
 import { Pressable, View } from 'react-native';
 
+import { choiceClasses, verticalTouchSlop } from '@/components/atoms/control-style';
 import { Text } from '@/components/atoms/text';
 import { cn } from '@/lib/class-names';
 import { sizes } from '@/theme';
@@ -17,8 +18,6 @@ const toneVariants = cva('text-chip', {
     },
   },
 });
-
-const extraTouch = (sizes.touchTarget - sizes.chip) / 2;
 
 type StatusChipProps = {
   label: string;
@@ -42,14 +41,15 @@ export function Chip({ label, tone = 'neutral', selected, onPress }: StatusChipP
       </View>
     );
   }
+  const { fill, label: labelColor } = choiceClasses(selected);
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      hitSlop={{ top: extraTouch, bottom: extraTouch }}
+      hitSlop={verticalTouchSlop(sizes.chip)}
       onPress={onPress}
-      className={cn(chipClass, 'min-w-touch-target items-center', selected ? 'bg-primary' : 'bg-surface-control')}>
-      <Text className={cn('text-chip', selected ? 'text-on-primary' : 'text-text')}>{label}</Text>
+      className={cn(chipClass, 'min-w-touch-target items-center', fill)}>
+      <Text className={cn('text-chip', labelColor)}>{label}</Text>
     </Pressable>
   );
 }

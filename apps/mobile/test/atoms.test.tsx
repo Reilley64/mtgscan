@@ -9,17 +9,9 @@ import { Text } from '@/components/atoms/text';
 import { Toggle } from '@/components/atoms/toggle';
 
 import { showsSpinner, switchTrackColor, touchTarget } from './native-ui';
+import { tokenColors } from './token-colors';
 
-const lime = 'rgba(216, 255, 98, 1)';
-const onPrimary = 'rgba(16, 21, 0, 1)';
-const surfaceControl = 'rgba(35, 44, 49, 1)';
-const white = 'rgba(255, 255, 255, 1)';
-const surface = 'rgba(17, 23, 26, 1)';
-const textMuted = 'rgba(181, 192, 197, 1)';
-const textDim = 'rgba(125, 138, 144, 1)';
-const warning = 'rgba(244, 208, 111, 1)';
-const info = 'rgba(143, 211, 255, 1)';
-const danger = 'rgba(255, 122, 112, 1)';
+const { primary: lime, onPrimary, surface, surfaceControl, text: white, textMuted, textDim, warning, danger, info } = tokenColors;
 const dangerTint = '#ff7a7029';
 const dimmed = { opacity: expect.closeTo(0.38) };
 

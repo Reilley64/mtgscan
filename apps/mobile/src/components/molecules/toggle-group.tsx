@@ -1,26 +1,12 @@
 import * as ToggleGroupPrimitive from '@rn-primitives/toggle-group';
 
+import { choiceClasses, verticalTouchSlop } from '@/components/atoms/control-style';
 import { Text } from '@/components/atoms/text';
+import type { SingleChoiceProps } from '@/components/molecules/chip-group';
 import { cn } from '@/lib/class-names';
 import { sizes } from '@/theme';
 
-const extraTouch = (sizes.touchTarget - sizes.button) / 2;
-
-type ToggleGroupProps<Value extends string> = {
-  accessibilityLabel: string;
-  values: readonly Value[];
-  selected: Value;
-  labelOf: (value: Value) => string;
-  onSelect: (value: Value) => void;
-};
-
-export function ToggleGroup<Value extends string>({
-  accessibilityLabel,
-  values,
-  selected,
-  labelOf,
-  onSelect,
-}: ToggleGroupProps<Value>) {
+export function ToggleGroup<Value extends string>({ values, selected, labelOf, onSelect }: SingleChoiceProps<Value>) {
   const select = (chosen: string | undefined) => {
     const value = values.find((candidate) => candidate === chosen);
     if (value) {
@@ -33,17 +19,16 @@ export function ToggleGroup<Value extends string>({
       type="single"
       value={selected}
       onValueChange={select}
-      accessibilityLabel={accessibilityLabel}
       className="flex-row rounded-sm bg-surface-control">
       {values.map((value) => {
-        const checked = value === selected;
+        const { fill, label } = choiceClasses(value === selected);
         return (
           <ToggleGroupPrimitive.Item
             key={value}
             value={value}
-            hitSlop={{ top: extraTouch, bottom: extraTouch }}
-            className={cn('h-button flex-1 items-center justify-center rounded-sm px-md', checked && 'bg-primary')}>
-            <Text variant="body-strong" className={checked ? 'text-on-primary' : 'text-text'}>
+            hitSlop={verticalTouchSlop(sizes.button)}
+            className={cn('h-button flex-1 items-center justify-center rounded-sm px-md', fill)}>
+            <Text variant="body-strong" className={label}>
               {labelOf(value)}
             </Text>
           </ToggleGroupPrimitive.Item>

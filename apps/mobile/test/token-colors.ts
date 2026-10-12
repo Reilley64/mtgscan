@@ -1,0 +1,12 @@
+export const tokenColors = {
+  primary: 'rgba(216, 255, 98, 1)',
+  onPrimary: 'rgba(16, 21, 0, 1)',
+  surface: 'rgba(17, 23, 26, 1)',
+  surfaceControl: 'rgba(35, 44, 49, 1)',
+  text: 'rgba(255, 255, 255, 1)',
+  textMuted: 'rgba(181, 192, 197, 1)',
+  textDim: 'rgba(125, 138, 144, 1)',
+  warning: 'rgba(244, 208, 111, 1)',
+  danger: 'rgba(255, 122, 112, 1)',
+  info: 'rgba(143, 211, 255, 1)',
+} as const;

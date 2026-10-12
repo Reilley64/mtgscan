@@ -34,10 +34,20 @@ const rawControlImports = {
   message: 'Use the control atoms in src/components/atoms. To use a native control, wrap it in an atom. See CODING_STANDARDS.md (Atomic Design).',
 };
 
-const controlStyle = {
-  selector: "JSXOpeningElement:has(> JSXAttribute[name.name=/^on(Press|LongPress|ValueChange)$/]) > JSXAttribute[name.name='style']",
-  message: 'Controls take their look from the atoms in src/components/atoms. To style a native control, wrap it in an atom. See CODING_STANDARDS.md (Atomic Design).',
-};
+const controlStyleMessage =
+  'Controls take their look from the atoms in src/components/atoms. To style a native control, wrap it in an atom. See CODING_STANDARDS.md (Atomic Design).';
+
+const controlStyles = [
+  {
+    selector: "JSXOpeningElement:has(> JSXAttribute[name.name=/^on(Press|LongPress|ValueChange)$/]) > JSXAttribute[name.name='style']",
+    message: controlStyleMessage,
+  },
+  {
+    selector:
+      'JSXOpeningElement[name.name=/^(Text|View)$/]:has(> JSXAttribute[name.name=/^on(Press|LongPress)$/]) > JSXAttribute[name.name="className"]',
+    message: controlStyleMessage,
+  },
+];
 
 module.exports = defineConfig([
   expoConfig,
@@ -52,7 +62,7 @@ module.exports = defineConfig([
     files: ['src/components/{molecules,organisms,templates}/**/*.tsx'],
     rules: {
       'no-restricted-imports': ['error', { paths: [rawControlImports] }],
-      'no-restricted-syntax': ['error', controlStyle],
+      'no-restricted-syntax': ['error', ...controlStyles],
     },
   },
   {
@@ -71,7 +81,7 @@ module.exports = defineConfig([
           ],
         },
       ],
-      'no-restricted-syntax': ['error', controlStyle],
+      'no-restricted-syntax': ['error', ...controlStyles],
     },
   },
   {

@@ -8,13 +8,10 @@ import { SwitchRow } from '@/components/molecules/switch-row';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 
 import { touchTarget } from './native-ui';
+import { tokenColors } from './token-colors';
 
-const lime = 'rgba(216, 255, 98, 1)';
-const surface = 'rgba(17, 23, 26, 1)';
-const surfaceControl = 'rgba(35, 44, 49, 1)';
-const white = 'rgba(255, 255, 255, 1)';
-const textMuted = 'rgba(181, 192, 197, 1)';
 
+const { primary: lime, surface, surfaceControl, text: white, textMuted } = tokenColors;
 const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
 
 describe('ChipGroup', () => {
@@ -48,7 +45,6 @@ describe('ToggleGroup', () => {
     const [section, setSection] = useState<(typeof sections)[number]>('Copies');
     return (
       <ToggleGroup
-        accessibilityLabel="Card page section"
         values={sections}
         selected={section}
         labelOf={(value) => value}
@@ -60,13 +56,10 @@ describe('ToggleGroup', () => {
     );
   }
 
-  test('a toggle group is a labelled control surface with the chosen option checked and lime', async () => {
+  test('a toggle group has the chosen option checked and lime, and the others on the control surface', async () => {
     await render(<CardPageSections />);
 
-    expect(screen.getByLabelText('Card page section')).toHaveStyle({
-      backgroundColor: surfaceControl,
-      borderRadius: 8,
-    });
+    expect(screen.getByRole('radio', { name: 'Decks', checked: false })).toHaveStyle({ backgroundColor: surfaceControl });
     expect(screen.getByRole('radio', { name: 'Copies', checked: true })).toHaveStyle({ backgroundColor: lime });
     expect(screen.getAllByRole('radio', { checked: false })).toHaveLength(3);
   });

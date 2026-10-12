@@ -2,11 +2,12 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import type { ComponentProps, ReactNode } from 'react';
 import { ActivityIndicator, Pressable } from 'react-native';
 
+import { verticalTouchSlop } from '@/components/atoms/control-style';
 import { TextClassContext } from '@/components/atoms/text';
 import { cn } from '@/lib/class-names';
 import { colors, sizes } from '@/theme';
 
-const buttonVariants = cva('h-button flex-row items-center justify-center gap-sm', {
+export const buttonVariants = cva('h-button flex-row items-center justify-center gap-sm', {
   variants: {
     variant: {
       primary: 'bg-primary',
@@ -20,7 +21,7 @@ const buttonVariants = cva('h-button flex-row items-center justify-center gap-sm
   },
 });
 
-const labelVariants = cva('text-body-strong', {
+export const labelVariants = cva('text-body-strong', {
   variants: {
     variant: {
       primary: 'text-on-primary',
@@ -36,11 +37,11 @@ const spinnerColors = {
   danger: colors.danger,
 } as const;
 
-const extraTouch = (sizes.touchTarget - sizes.button) / 2;
+const verticalSlop = verticalTouchSlop(sizes.button);
 
 const hitSlops = {
-  default: { top: extraTouch, bottom: extraTouch },
-  icon: extraTouch,
+  default: verticalSlop,
+  icon: { ...verticalSlop, left: verticalSlop.top, right: verticalSlop.top },
 } as const;
 
 type ButtonVariants = VariantProps<typeof buttonVariants>;

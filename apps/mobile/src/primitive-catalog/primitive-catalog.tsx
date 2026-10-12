@@ -7,7 +7,6 @@ import { Button } from '@/components/atoms/button';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { Chip } from '@/components/atoms/chip';
 import { Surface } from '@/components/atoms/surface';
-import { Switch } from '@/components/atoms/switch';
 import { Text } from '@/components/atoms/text';
 import { Toggle } from '@/components/atoms/toggle';
 import { ChipGroup } from '@/components/molecules/chip-group';
@@ -103,7 +102,6 @@ function Toggles() {
         </Toggle>
       </View>
       <ToggleGroup
-        accessibilityLabel="Card page section"
         values={cardPageSections}
         selected={section}
         labelOf={(value) => value}
@@ -139,11 +137,9 @@ function ListRows() {
 
 function Switches() {
   const [scanSounds, setScanSounds] = useState(true);
-  const [alone, setAlone] = useState(false);
   return (
     <Section title="Switches">
       <SwitchRow title="Scan sounds" value={scanSounds} onValueChange={setScanSounds} />
-      <Switch accessibilityLabel="Switch" value={alone} onValueChange={setAlone} />
     </Section>
   );
 }
