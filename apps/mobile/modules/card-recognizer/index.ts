@@ -1,7 +1,7 @@
 import { NativeModule, requireNativeModule } from 'expo';
 
 import type { GalleryDownload, GalleryDownloadStatus, InstalledGallery } from './src/gallery';
-import type { CardOutline, Recognition } from './src/recognition';
+import type { CardName, CardOutline, GalleryCardPrinting, Recognition } from './src/recognition';
 
 export type * from './src/gallery';
 export type * from './src/recognition';
@@ -15,6 +15,8 @@ declare class CardRecognizerModule extends NativeModule<CardRecognizerEvents> {
   installedGallery(): Promise<InstalledGallery | null>;
   galleryDownloadStatus(): Promise<GalleryDownloadStatus | null>;
   downloadGallery(download: GalleryDownload): Promise<void>;
+  searchCardNames(text: string): Promise<CardName[]>;
+  cardPrintings(oracleId: string): Promise<GalleryCardPrinting[]>;
 }
 
 const cardRecognizer = requireNativeModule<CardRecognizerModule>('CardRecognizer');
@@ -37,4 +39,12 @@ export function downloadGallery(download: GalleryDownload): Promise<void> {
 
 export function addGalleryDownloadListener(listener: (status: GalleryDownloadStatus) => void) {
   return cardRecognizer.addListener('onGalleryDownload', listener);
+}
+
+export function searchCardNames(text: string): Promise<CardName[]> {
+  return cardRecognizer.searchCardNames(text);
+}
+
+export function cardPrintings(oracleId: string): Promise<GalleryCardPrinting[]> {
+  return cardRecognizer.cardPrintings(oracleId);
 }

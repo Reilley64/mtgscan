@@ -31,7 +31,7 @@ A development build against local Supabase can sign in a local test user with on
    cd supabase
    export SUPABASE_URL=http://127.0.0.1:54321
    export SUPABASE_SECRET_KEY=$(bunx supabase@2.120.0 status -o json | jq -r .SECRET_KEY)
-   bun run import catalog --manifest tests/fixtures/scryfall/bulk-data.json
+   bun run import catalog --manifest tests/fixtures/scryfall/bulk-data.json --sets tests/fixtures/scryfall/sets.json
    bun run test-user --sample-collection
    ```
 

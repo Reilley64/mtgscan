@@ -14,6 +14,7 @@ struct GalleryDownloadRequest: Record {
 
 actor InstalledGallery {
   private var loaded: Gallery?
+  private var loadedNames: CardNameIndex?
 
   func gallery() throws(RecognitionFailure) -> Gallery {
     if let loaded { return loaded }
@@ -22,8 +23,17 @@ actor InstalledGallery {
     return gallery
   }
 
+  func names() throws(RecognitionFailure) -> (Gallery, CardNameIndex) {
+    let gallery = try gallery()
+    if let loadedNames { return (gallery, loadedNames) }
+    let names = CardNameIndex(printings: gallery.printings)
+    loadedNames = names
+    return (gallery, names)
+  }
+
   func reload() {
     loaded = nil
+    loadedNames = nil
   }
 }
 
@@ -76,6 +86,25 @@ public final class CardRecognizerModule: Module {
         throw Exception(name: "RecognitionError", description: error.code, code: error.code)
       }
       return try Self.javaScriptObject(recognition)
+    }
+
+    AsyncFunction("searchCardNames") { (text: String) async throws -> [[String: String]] in
+      let (_, names) = try await Self.galleryNames(installedGallery)
+      return names.search(text).map { ["oracleId": $0.oracleId, "name": $0.name] }
+    }
+
+    AsyncFunction("cardPrintings") { (oracleId: String) async throws -> [Any] in
+      let (gallery, names) = try await Self.galleryNames(installedGallery)
+      let printings = names.printings(oracleId: oracleId).map { RecognitionCandidate(printing: gallery.printings[$0]) }
+      return try JSONSerialization.jsonObject(with: JSONEncoder().encode(printings)) as? [Any] ?? []
+    }
+  }
+
+  private static func galleryNames(_ installedGallery: InstalledGallery) async throws -> (Gallery, CardNameIndex) {
+    do throws(RecognitionFailure) {
+      return try await installedGallery.names()
+    } catch {
+      throw Exception(name: "RecognitionError", description: error.code, code: error.code)
     }
   }
 

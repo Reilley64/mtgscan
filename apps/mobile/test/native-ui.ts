@@ -64,6 +64,17 @@ function presentedDrawerView() {
   };
 }
 
+export function isInScrollView(element: HostElement) {
+  let parent = element.parent;
+  while (parent) {
+    if (parent.type === 'RCTScrollView') {
+      return true;
+    }
+    parent = parent.parent;
+  }
+  return false;
+}
+
 export function presentedDrawer() {
   const { showsGrabber, heights, openingIndex } = presentedDrawerView();
   return { showsGrabber, heights, openingHeight: heights[openingIndex] };

@@ -114,14 +114,7 @@ public enum CardRecognizer {
     let leading = [first] + twins
     let ordered = leading + expanded.filter { !leading.contains($0) }
     let candidates = ordered.prefix(max(candidateCount, leading.count + 1)).map { index in
-      let printing = gallery.printings[index]
-      return RecognitionCandidate(
-        printingId: printing.id,
-        oracleId: printing.oracleId,
-        name: printing.name,
-        setCode: printing.set,
-        collectorNumber: printing.collectorNumber
-      )
+      RecognitionCandidate(printing: gallery.printings[index])
     }
     return .card(CardRecognition(
       candidates: Array(candidates),

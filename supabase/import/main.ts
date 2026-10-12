@@ -7,10 +7,12 @@ import { scryfallManifestUrl } from './scryfall-bulk-data';
 import { scryfallCatalog } from './scryfall-catalog';
 import { scryfallOracleTags } from './scryfall-oracle-tags';
 import { scryfallPrices } from './scryfall-prices';
+import { importCardSets, scryfallSetsUrl } from './scryfall-sets';
 import { type ImportAdapters, retryFailedWeeklySources } from './weekly-retry';
 
 const usage = `Usage:
-  bun import/main.ts catalog|oracle_tags|prices [--manifest <path or URL>] [--accept-shrink] [--batch-rows <n>]
+  bun import/main.ts catalog [--manifest <path or URL>] [--sets <path or URL>] [--accept-shrink] [--batch-rows <n>]
+  bun import/main.ts oracle_tags|prices [--manifest <path or URL>] [--accept-shrink] [--batch-rows <n>]
   bun import/main.ts commander_spellbook [--variants <path or URL>] [--accept-shrink] [--batch-rows <n>]
   bun import/main.ts retry-weekly [--manifest <path or URL>] [--variants <path or URL>] [--batch-rows <n>]
   bun import/main.ts prune-telemetry`;
@@ -21,6 +23,7 @@ const { positionals, values } = parseArgs({
   options: {
     manifest: { type: 'string', default: scryfallManifestUrl },
     variants: { type: 'string', default: commanderSpellbookVariantsUrl },
+    sets: { type: 'string', default: scryfallSetsUrl },
     'accept-shrink': { type: 'boolean', default: false },
     'batch-rows': { type: 'string', default: String(provisionalBatchLimits.rows) },
   },
@@ -51,6 +54,10 @@ const commands: Record<string, (client: ImportClient) => Promise<unknown>> = {
         runImport(client, await adapter(), { acceptShrink: values['accept-shrink'], batchLimits }),
     ]),
   ),
+  catalog: async (client: ImportClient) => {
+    await runImport(client, await adapters.catalog(), { acceptShrink: values['accept-shrink'], batchLimits });
+    await importCardSets(client, values.sets);
+  },
   'retry-weekly': (client) => retryFailedWeeklySources(client, adapters, batchLimits),
   'prune-telemetry': pruneSearchTelemetry,
 };

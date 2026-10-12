@@ -1,0 +1,1385 @@
+{
+  "object": "list",
+  "has_more": false,
+  "data": [
+    {
+      "object": "set",
+      "code": "mbc",
+      "name": "Mystery Booster Commander Edition",
+      "set_type": "draft_innovation",
+      "released_at": "2026-11-09",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mbc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pfra",
+      "name": "Reality Fracture Promos",
+      "set_type": "promo",
+      "released_at": "2026-10-02",
+      "parent_set_code": "fra",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/fra.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "fra",
+      "name": "Reality Fracture",
+      "set_type": "expansion",
+      "released_at": "2026-10-02",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/fra.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "frc",
+      "name": "Reality Fracture Commander",
+      "set_type": "commander",
+      "released_at": "2026-10-02",
+      "parent_set_code": "fra",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/frc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "hoc",
+      "name": "The Hobbit Eternal",
+      "set_type": "eternal",
+      "released_at": "2026-08-14",
+      "parent_set_code": "hob",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/hoc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "msc",
+      "name": "Marvel Super Heroes Commander",
+      "set_type": "commander",
+      "released_at": "2026-06-26",
+      "parent_set_code": "msh",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/msc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "msh",
+      "name": "Marvel Super Heroes",
+      "set_type": "expansion",
+      "released_at": "2026-06-26",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/msh.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "sos",
+      "name": "Secrets of Strixhaven",
+      "set_type": "expansion",
+      "released_at": "2026-04-24",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/sos.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ecl",
+      "name": "Lorwyn Eclipsed",
+      "set_type": "expansion",
+      "released_at": "2026-01-23",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ecl.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pf26",
+      "name": "MagicFest 2026",
+      "set_type": "promo",
+      "released_at": "2026-01-01",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/star.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "tle",
+      "name": "Avatar: The Last Airbender Eternal",
+      "set_type": "eternal",
+      "released_at": "2025-11-21",
+      "parent_set_code": "tla",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/tle.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "tla",
+      "name": "Avatar: The Last Airbender",
+      "set_type": "expansion",
+      "released_at": "2025-11-21",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/tla.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "spm",
+      "name": "Marvel's Spider-Man",
+      "set_type": "expansion",
+      "released_at": "2025-09-26",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/spm.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "yeoe",
+      "name": "Alchemy: Edge of Eternities",
+      "set_type": "alchemy",
+      "released_at": "2025-08-19",
+      "parent_set_code": "eoe",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/y25.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "peoe",
+      "name": "Edge of Eternities Promos",
+      "set_type": "promo",
+      "released_at": "2025-08-01",
+      "parent_set_code": "eoe",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/eoe.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "eoe",
+      "name": "Edge of Eternities",
+      "set_type": "expansion",
+      "released_at": "2025-08-01",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/eoe.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "eoc",
+      "name": "Edge of Eternities Commander",
+      "set_type": "commander",
+      "released_at": "2025-08-01",
+      "parent_set_code": "eoe",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/eoc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "fca",
+      "name": "Final Fantasy: Through the Ages",
+      "set_type": "masterpiece",
+      "released_at": "2025-06-13",
+      "parent_set_code": "fin",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/fca.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ptdm",
+      "name": "Tarkir: Dragonstorm Promos",
+      "set_type": "promo",
+      "released_at": "2025-04-11",
+      "parent_set_code": "tdm",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/tdm.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "tdc",
+      "name": "Tarkir: Dragonstorm Commander",
+      "set_type": "commander",
+      "released_at": "2025-04-11",
+      "parent_set_code": "tdm",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/tdc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "tdm",
+      "name": "Tarkir: Dragonstorm",
+      "set_type": "expansion",
+      "released_at": "2025-04-11",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/tdm.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "adft",
+      "name": "Aetherdrift Art Series",
+      "set_type": "memorabilia",
+      "released_at": "2025-02-14",
+      "parent_set_code": "dft",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/dft.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "inr",
+      "name": "Innistrad Remastered",
+      "set_type": "masters",
+      "released_at": "2025-01-24",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/inr.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "j25",
+      "name": "Foundations Jumpstart",
+      "set_type": "draft_innovation",
+      "released_at": "2024-11-15",
+      "parent_set_code": "fdn",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/j25.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "fdc",
+      "name": "Foundations Commander",
+      "set_type": "commander",
+      "released_at": "2024-11-15",
+      "parent_set_code": "fdn",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/fdc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "fj25",
+      "name": "Foundations Jumpstart Front Cards",
+      "set_type": "memorabilia",
+      "released_at": "2024-11-15",
+      "parent_set_code": "j25",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/j25.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "fdn",
+      "name": "Foundations",
+      "set_type": "core",
+      "released_at": "2024-11-15",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/fdn.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "dsc",
+      "name": "Duskmourn: House of Horror Commander",
+      "set_type": "commander",
+      "released_at": "2024-09-27",
+      "parent_set_code": "dsk",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/dsc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "mb2",
+      "name": "Mystery Booster 2",
+      "set_type": "masters",
+      "released_at": "2024-08-02",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mb2.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "blb",
+      "name": "Bloomburrow",
+      "set_type": "expansion",
+      "released_at": "2024-08-02",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/blb.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "blc",
+      "name": "Bloomburrow Commander",
+      "set_type": "commander",
+      "released_at": "2024-08-02",
+      "parent_set_code": "blb",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/blc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "mh3",
+      "name": "Modern Horizons 3",
+      "set_type": "draft_innovation",
+      "released_at": "2024-06-14",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mh3.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "potj",
+      "name": "Outlaws of Thunder Junction Promos",
+      "set_type": "promo",
+      "released_at": "2024-04-19",
+      "parent_set_code": "otj",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/otj.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "otp",
+      "name": "Breaking News",
+      "set_type": "masterpiece",
+      "released_at": "2024-04-19",
+      "parent_set_code": "otj",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/otp.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "otj",
+      "name": "Outlaws of Thunder Junction",
+      "set_type": "expansion",
+      "released_at": "2024-04-19",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/otj.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pip",
+      "name": "Fallout",
+      "set_type": "commander",
+      "released_at": "2024-03-08",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/pip.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "clu",
+      "name": "Ravnica: Clue Edition",
+      "set_type": "draft_innovation",
+      "released_at": "2024-02-23",
+      "parent_set_code": "mkm",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/clu.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "mkm",
+      "name": "Murders at Karlov Manor",
+      "set_type": "expansion",
+      "released_at": "2024-02-09",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mkm.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "rvr",
+      "name": "Ravnica Remastered",
+      "set_type": "masters",
+      "released_at": "2024-01-12",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/rvr.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "plci",
+      "name": "The Lost Caverns of Ixalan Promos",
+      "set_type": "promo",
+      "released_at": "2023-11-17",
+      "parent_set_code": "lci",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/lci.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "lci",
+      "name": "The Lost Caverns of Ixalan",
+      "set_type": "expansion",
+      "released_at": "2023-11-17",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/lci.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "who",
+      "name": "Doctor Who",
+      "set_type": "commander",
+      "released_at": "2023-10-13",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/who.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pwoe",
+      "name": "Wilds of Eldraine Promos",
+      "set_type": "promo",
+      "released_at": "2023-09-08",
+      "parent_set_code": "woe",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/woe.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "woe",
+      "name": "Wilds of Eldraine",
+      "set_type": "expansion",
+      "released_at": "2023-09-08",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/woe.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "cmm",
+      "name": "Commander Masters",
+      "set_type": "masters",
+      "released_at": "2023-08-04",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/cmm.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ltc",
+      "name": "Tales of Middle-earth Commander",
+      "set_type": "commander",
+      "released_at": "2023-06-23",
+      "parent_set_code": "ltr",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ltc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ltr",
+      "name": "The Lord of the Rings: Tales of Middle-earth",
+      "set_type": "draft_innovation",
+      "released_at": "2023-06-23",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ltr.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "mom",
+      "name": "March of the Machine",
+      "set_type": "expansion",
+      "released_at": "2023-04-21",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mom.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "mul",
+      "name": "Multiverse Legends",
+      "set_type": "masterpiece",
+      "released_at": "2023-04-21",
+      "parent_set_code": "mom",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mul.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pmom",
+      "name": "March of the Machine Promos",
+      "set_type": "promo",
+      "released_at": "2023-04-21",
+      "parent_set_code": "mom",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mom.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "moc",
+      "name": "March of the Machine Commander",
+      "set_type": "commander",
+      "released_at": "2023-04-21",
+      "parent_set_code": "mom",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/moc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "one",
+      "name": "Phyrexia: All Will Be One",
+      "set_type": "expansion",
+      "released_at": "2023-02-10",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/one.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "dmr",
+      "name": "Dominaria Remastered",
+      "set_type": "masters",
+      "released_at": "2023-01-13",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/dmr.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "j22",
+      "name": "Jumpstart 2022",
+      "set_type": "draft_innovation",
+      "released_at": "2022-12-02",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/j22.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "slc",
+      "name": "Secret Lair Countdown",
+      "set_type": "box",
+      "released_at": "2022-11-01",
+      "parent_set_code": "sld",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/star.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ulst",
+      "name": "The List (Unfinity Foil Edition)",
+      "set_type": "funny",
+      "released_at": "2022-10-07",
+      "parent_set_code": "plst",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/planeswalker.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "unf",
+      "name": "Unfinity",
+      "set_type": "funny",
+      "released_at": "2022-10-07",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/unf.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "40k",
+      "name": "Warhammer 40,000 Commander",
+      "set_type": "commander",
+      "released_at": "2022-10-07",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/40k.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "t40k",
+      "name": "Warhammer 40,000 Tokens",
+      "set_type": "token",
+      "released_at": "2022-10-07",
+      "parent_set_code": "40k",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/40k.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "dmc",
+      "name": "Dominaria United Commander",
+      "set_type": "commander",
+      "released_at": "2022-09-09",
+      "parent_set_code": "dmu",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/dmc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "clb",
+      "name": "Commander Legends: Battle for Baldur's Gate",
+      "set_type": "draft_innovation",
+      "released_at": "2022-06-10",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/clb.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "snc",
+      "name": "Streets of New Capenna",
+      "set_type": "expansion",
+      "released_at": "2022-04-29",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/snc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "psnc",
+      "name": "Streets of New Capenna Promos",
+      "set_type": "promo",
+      "released_at": "2022-04-29",
+      "parent_set_code": "snc",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/snc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "neo",
+      "name": "Kamigawa: Neon Dynasty",
+      "set_type": "expansion",
+      "released_at": "2022-02-18",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/neo.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "nec",
+      "name": "Neon Dynasty Commander",
+      "set_type": "commander",
+      "released_at": "2022-02-18",
+      "parent_set_code": "neo",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/nec.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "dbl",
+      "name": "Innistrad: Double Feature",
+      "set_type": "draft_innovation",
+      "released_at": "2022-01-28",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/star.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "voc",
+      "name": "Crimson Vow Commander",
+      "set_type": "commander",
+      "released_at": "2021-11-19",
+      "parent_set_code": "vow",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/voc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "vow",
+      "name": "Innistrad: Crimson Vow",
+      "set_type": "expansion",
+      "released_at": "2021-11-19",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/vow.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pmh2",
+      "name": "Modern Horizons 2 Promos",
+      "set_type": "promo",
+      "released_at": "2021-06-18",
+      "parent_set_code": "mh2",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mh2.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "mh2",
+      "name": "Modern Horizons 2",
+      "set_type": "draft_innovation",
+      "released_at": "2021-06-18",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mh2.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pstx",
+      "name": "Strixhaven: School of Mages Promos",
+      "set_type": "promo",
+      "released_at": "2021-04-23",
+      "parent_set_code": "stx",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/stx.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "stx",
+      "name": "Strixhaven: School of Mages",
+      "set_type": "expansion",
+      "released_at": "2021-04-23",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/stx.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "tsr",
+      "name": "Time Spiral Remastered",
+      "set_type": "masters",
+      "released_at": "2021-03-19",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/tsr.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "cmr",
+      "name": "Commander Legends",
+      "set_type": "draft_innovation",
+      "released_at": "2020-11-20",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/cmr.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "plst",
+      "name": "The List",
+      "set_type": "masters",
+      "released_at": "2020-09-26",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/planeswalker.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pznr",
+      "name": "Zendikar Rising Promos",
+      "set_type": "promo",
+      "released_at": "2020-09-25",
+      "parent_set_code": "znr",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/znr.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "znr",
+      "name": "Zendikar Rising",
+      "set_type": "expansion",
+      "released_at": "2020-09-25",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/znr.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "jmp",
+      "name": "Jumpstart",
+      "set_type": "draft_innovation",
+      "released_at": "2020-07-17",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/jmp.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "m21",
+      "name": "Core Set 2021",
+      "set_type": "core",
+      "released_at": "2020-07-03",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/m21.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "iko",
+      "name": "Ikoria: Lair of Behemoths",
+      "set_type": "expansion",
+      "released_at": "2020-04-24",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/iko.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "c20",
+      "name": "Commander 2020",
+      "set_type": "commander",
+      "released_at": "2020-04-17",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/c20.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "und",
+      "name": "Unsanctioned",
+      "set_type": "funny",
+      "released_at": "2020-02-29",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/und.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pthb",
+      "name": "Theros Beyond Death Promos",
+      "set_type": "promo",
+      "released_at": "2020-01-24",
+      "parent_set_code": "thb",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/thb.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "thb",
+      "name": "Theros Beyond Death",
+      "set_type": "expansion",
+      "released_at": "2020-01-24",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/thb.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "sld",
+      "name": "Secret Lair Drop",
+      "set_type": "box",
+      "released_at": "2019-12-02",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/star.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "peld",
+      "name": "Throne of Eldraine Promos",
+      "set_type": "promo",
+      "released_at": "2019-10-04",
+      "parent_set_code": "eld",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/eld.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "eld",
+      "name": "Throne of Eldraine",
+      "set_type": "expansion",
+      "released_at": "2019-10-04",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/eld.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "c19",
+      "name": "Commander 2019",
+      "set_type": "commander",
+      "released_at": "2019-08-23",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/c19.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "m20",
+      "name": "Core Set 2020",
+      "set_type": "core",
+      "released_at": "2019-07-12",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/m20.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "mh1",
+      "name": "Modern Horizons",
+      "set_type": "draft_innovation",
+      "released_at": "2019-06-14",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mh1.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "prna",
+      "name": "Ravnica Allegiance Promos",
+      "set_type": "promo",
+      "released_at": "2019-01-25",
+      "parent_set_code": "rna",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/rna.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "uma",
+      "name": "Ultimate Masters",
+      "set_type": "masters",
+      "released_at": "2018-12-07",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/uma.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "gk1",
+      "name": "GRN Guild Kit",
+      "set_type": "box",
+      "released_at": "2018-11-02",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/grn.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pana",
+      "name": "MTG Arena Promos",
+      "set_type": "promo",
+      "released_at": "2018-07-14",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mtga.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "m19",
+      "name": "Core Set 2019",
+      "set_type": "core",
+      "released_at": "2018-07-13",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/m19.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ss1",
+      "name": "Signature Spellbook: Jace",
+      "set_type": "spellbook",
+      "released_at": "2018-06-15",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ss1.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "bbd",
+      "name": "Battlebond",
+      "set_type": "draft_innovation",
+      "released_at": "2018-06-08",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/bbd.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ima",
+      "name": "Iconic Masters",
+      "set_type": "masters",
+      "released_at": "2017-11-17",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ima.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "xln",
+      "name": "Ixalan",
+      "set_type": "expansion",
+      "released_at": "2017-09-29",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/xln.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "h17",
+      "name": "HasCon 2017",
+      "set_type": "funny",
+      "released_at": "2017-09-20",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/h17.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "hou",
+      "name": "Hour of Devastation",
+      "set_type": "expansion",
+      "released_at": "2017-07-14",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/hou.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "akh",
+      "name": "Amonkhet",
+      "set_type": "expansion",
+      "released_at": "2017-04-28",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/akh.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "c16",
+      "name": "Commander 2016",
+      "set_type": "commander",
+      "released_at": "2016-11-11",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/c16.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pkld",
+      "name": "Kaladesh Promos",
+      "set_type": "promo",
+      "released_at": "2016-09-30",
+      "parent_set_code": "kld",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/kld.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "kld",
+      "name": "Kaladesh",
+      "set_type": "expansion",
+      "released_at": "2016-09-30",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/kld.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "cn2",
+      "name": "Conspiracy: Take the Crown",
+      "set_type": "draft_innovation",
+      "released_at": "2016-08-26",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/cn2.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "emn",
+      "name": "Eldritch Moon",
+      "set_type": "expansion",
+      "released_at": "2016-07-22",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/emn.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "soi",
+      "name": "Shadows over Innistrad",
+      "set_type": "expansion",
+      "released_at": "2016-04-08",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/soi.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pbfz",
+      "name": "Battle for Zendikar Promos",
+      "set_type": "promo",
+      "released_at": "2015-10-02",
+      "parent_set_code": "bfz",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/bfz.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "bfz",
+      "name": "Battle for Zendikar",
+      "set_type": "expansion",
+      "released_at": "2015-10-02",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/bfz.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ori",
+      "name": "Magic Origins",
+      "set_type": "core",
+      "released_at": "2015-07-17",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ori.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "dtk",
+      "name": "Dragons of Tarkir",
+      "set_type": "expansion",
+      "released_at": "2015-03-27",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/dtk.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pfrf",
+      "name": "Fate Reforged Promos",
+      "set_type": "promo",
+      "released_at": "2015-01-23",
+      "parent_set_code": "frf",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/frf.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "frf",
+      "name": "Fate Reforged",
+      "set_type": "expansion",
+      "released_at": "2015-01-23",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/frf.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "c14",
+      "name": "Commander 2014",
+      "set_type": "commander",
+      "released_at": "2014-11-07",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/c14.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "m15",
+      "name": "Magic 2015",
+      "set_type": "core",
+      "released_at": "2014-07-18",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/m15.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "jou",
+      "name": "Journey into Nyx",
+      "set_type": "expansion",
+      "released_at": "2014-05-02",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/jou.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ddm",
+      "name": "Duel Decks: Jace vs. Vraska",
+      "set_type": "duel_deck",
+      "released_at": "2014-03-14",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ddm.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ths",
+      "name": "Theros",
+      "set_type": "expansion",
+      "released_at": "2013-09-27",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ths.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "mma",
+      "name": "Modern Masters",
+      "set_type": "masters",
+      "released_at": "2013-06-07",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mma.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "rtr",
+      "name": "Return to Ravnica",
+      "set_type": "expansion",
+      "released_at": "2012-10-05",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/rtr.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "m13",
+      "name": "Magic 2013",
+      "set_type": "core",
+      "released_at": "2012-07-13",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/m13.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "avr",
+      "name": "Avacyn Restored",
+      "set_type": "expansion",
+      "released_at": "2012-05-04",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/avr.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "isd",
+      "name": "Innistrad",
+      "set_type": "expansion",
+      "released_at": "2011-09-30",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/isd.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "m12",
+      "name": "Magic 2012",
+      "set_type": "core",
+      "released_at": "2011-07-15",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/m12.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "cmd",
+      "name": "Commander 2011",
+      "set_type": "commander",
+      "released_at": "2011-06-17",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/cmd.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "som",
+      "name": "Scars of Mirrodin",
+      "set_type": "expansion",
+      "released_at": "2010-10-01",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/som.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "m11",
+      "name": "Magic 2011",
+      "set_type": "core",
+      "released_at": "2010-07-16",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/m11.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ala",
+      "name": "Shards of Alara",
+      "set_type": "expansion",
+      "released_at": "2008-10-03",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ala.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "shm",
+      "name": "Shadowmoor",
+      "set_type": "expansion",
+      "released_at": "2008-05-02",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/shm.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "lrw",
+      "name": "Lorwyn",
+      "set_type": "expansion",
+      "released_at": "2007-10-12",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/lrw.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "10e",
+      "name": "Tenth Edition",
+      "set_type": "core",
+      "released_at": "2007-07-13",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/10e.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "fut",
+      "name": "Future Sight",
+      "set_type": "expansion",
+      "released_at": "2007-05-04",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/fut.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "tsp",
+      "name": "Time Spiral",
+      "set_type": "expansion",
+      "released_at": "2006-10-06",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/tsp.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "cst",
+      "name": "Coldsnap Theme Decks",
+      "set_type": "box",
+      "released_at": "2006-07-21",
+      "parent_set_code": "csp",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/csp.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "csp",
+      "name": "Coldsnap",
+      "set_type": "expansion",
+      "released_at": "2006-07-21",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/csp.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "dis",
+      "name": "Dissension",
+      "set_type": "expansion",
+      "released_at": "2006-05-05",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/dis.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "gpt",
+      "name": "Guildpact",
+      "set_type": "expansion",
+      "released_at": "2006-02-03",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/gpt.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "rav",
+      "name": "Ravnica: City of Guilds",
+      "set_type": "expansion",
+      "released_at": "2005-10-07",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/rav.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "bok",
+      "name": "Betrayers of Kamigawa",
+      "set_type": "expansion",
+      "released_at": "2005-02-04",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/bok.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "chk",
+      "name": "Champions of Kamigawa",
+      "set_type": "expansion",
+      "released_at": "2004-10-01",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/chk.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "dst",
+      "name": "Darksteel",
+      "set_type": "expansion",
+      "released_at": "2004-02-06",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/dst.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "8ed",
+      "name": "Eighth Edition",
+      "set_type": "core",
+      "released_at": "2003-07-28",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/8ed.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ovnt",
+      "name": "Vintage Championship",
+      "set_type": "memorabilia",
+      "released_at": "2003-01-01",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/pmei.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ons",
+      "name": "Onslaught",
+      "set_type": "expansion",
+      "released_at": "2002-10-07",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ons.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "prm",
+      "name": "Magic Online Promos",
+      "set_type": "promo",
+      "released_at": "2002-06-24",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mtgo.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "jud",
+      "name": "Judgment",
+      "set_type": "expansion",
+      "released_at": "2002-05-27",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/jud.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "wc01",
+      "name": "World Championship Decks 2001",
+      "set_type": "memorabilia",
+      "released_at": "2001-08-08",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/default.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "apc",
+      "name": "Apocalypse",
+      "set_type": "expansion",
+      "released_at": "2001-06-04",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/apc.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "7ed",
+      "name": "Seventh Edition",
+      "set_type": "core",
+      "released_at": "2001-04-11",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/7ed.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pls",
+      "name": "Planeshift",
+      "set_type": "expansion",
+      "released_at": "2001-02-05",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/pls.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "inv",
+      "name": "Invasion",
+      "set_type": "expansion",
+      "released_at": "2000-10-02",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/inv.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "btd",
+      "name": "Beatdown Box Set",
+      "set_type": "box",
+      "released_at": "2000-10-01",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/btd.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "pcy",
+      "name": "Prophecy",
+      "set_type": "expansion",
+      "released_at": "2000-06-05",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/pcy.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "nem",
+      "name": "Nemesis",
+      "set_type": "expansion",
+      "released_at": "2000-02-14",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/nem.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "s99",
+      "name": "Starter 1999",
+      "set_type": "starter",
+      "released_at": "1999-07-01",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/s99.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ulg",
+      "name": "Urza's Legacy",
+      "set_type": "expansion",
+      "released_at": "1999-02-15",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ulg.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "usg",
+      "name": "Urza's Saga",
+      "set_type": "expansion",
+      "released_at": "1998-10-12",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/usg.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "sth",
+      "name": "Stronghold",
+      "set_type": "expansion",
+      "released_at": "1998-03-02",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/sth.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "tmp",
+      "name": "Tempest",
+      "set_type": "expansion",
+      "released_at": "1997-10-14",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/tmp.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "por",
+      "name": "Portal",
+      "set_type": "starter",
+      "released_at": "1997-05-01",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/por.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "vis",
+      "name": "Visions",
+      "set_type": "expansion",
+      "released_at": "1997-02-03",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/vis.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "mir",
+      "name": "Mirage",
+      "set_type": "expansion",
+      "released_at": "1996-10-08",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mir.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "all",
+      "name": "Alliances",
+      "set_type": "expansion",
+      "released_at": "1996-06-10",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/all.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ice",
+      "name": "Ice Age",
+      "set_type": "expansion",
+      "released_at": "1995-06-03",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ice.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "leg",
+      "name": "Legends",
+      "set_type": "expansion",
+      "released_at": "1994-06-01",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/leg.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "lea",
+      "name": "Limited Edition Alpha",
+      "set_type": "core",
+      "released_at": "1993-08-05",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/lea.svg?1791777600"
+    }
+  ]
+}

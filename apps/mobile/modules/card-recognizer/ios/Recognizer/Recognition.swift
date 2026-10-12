@@ -20,6 +20,18 @@ public struct RecognitionCandidate: Codable, Sendable, Equatable {
   public let name: String
   public let setCode: String
   public let collectorNumber: String
+  public let finishes: [String]
+  public let basicLand: Bool
+
+  public init(printing: GalleryPrinting) {
+    printingId = printing.id
+    oracleId = printing.oracleId
+    name = printing.name
+    setCode = printing.set
+    collectorNumber = printing.collectorNumber
+    finishes = printing.finishes
+    basicLand = printing.basicLand
+  }
 }
 
 public struct RecognitionDecision: Codable, Sendable, Equatable {

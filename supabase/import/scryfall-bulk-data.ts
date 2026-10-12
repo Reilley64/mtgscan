@@ -5,7 +5,7 @@ import { importUserAgent, isUrl, openLocation } from './source-file';
 
 export const scryfallManifestUrl = 'https://api.scryfall.com/bulk-data';
 
-const scryfallHeaders = {
+export const scryfallHeaders = {
   'User-Agent': importUserAgent,
   Accept: 'application/json;q=0.9,*/*;q=0.8',
 };

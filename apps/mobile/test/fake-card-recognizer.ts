@@ -1,6 +1,14 @@
 import { act } from 'expo-router/testing-library';
 
-import type { GalleryDownload, GalleryDownloadStatus, InstalledGallery } from '../modules/card-recognizer';
+import type {
+  GalleryCardPrinting,
+  GalleryDownload,
+  GalleryDownloadStatus,
+  InstalledGallery,
+  Recognition,
+  RecognitionErrorCode,
+} from '../modules/card-recognizer';
+import { galleryPrintings } from './card-printings';
 import { publishedGalleryVersion } from './fake-supabase';
 
 type Listener = (status: GalleryDownloadStatus) => void;
@@ -8,13 +16,39 @@ type Listener = (status: GalleryDownloadStatus) => void;
 export const galleryBuiltAt = '2026-10-12T09:30:00.000Z';
 
 let installed: InstalledGallery | null = null;
+let nextRecognitions: (Recognition | RecognitionErrorCode)[] = [];
+let recognizedPhotos: string[] = [];
+let heldRecognition: { finish: () => void } | null = null;
+let holdingNextRecognition = false;
 let downloads: GalleryDownload[] = [];
 const listeners = new Set<Listener>();
 
 export const fakeCardRecognizer = {
-  recognize: async () => {
-    throw new Error('The fake recognizer does not recognize cards yet');
+  recognize: async (photoUri: string): Promise<Recognition> => {
+    recognizedPhotos = [...recognizedPhotos, photoUri];
+    if (holdingNextRecognition) {
+      holdingNextRecognition = false;
+      await new Promise<void>((resolve) => {
+        heldRecognition = { finish: resolve };
+      });
+    }
+    const next = nextRecognitions.shift() ?? notACard();
+    if (typeof next === 'string') {
+      throw Object.assign(new Error(next), { code: next });
+    }
+    return next;
   },
+  searchCardNames: async (text: string) => {
+    const query = text.trim().toLowerCase();
+    const names = new Map(
+      galleryPrintings
+        .filter((printing) => query && printing.name.toLowerCase().includes(query))
+        .map((printing) => [printing.oracleId, { oracleId: printing.oracleId, name: printing.name }]),
+    );
+    return [...names.values()].slice(0, 10);
+  },
+  cardPrintings: async (oracleId: string) =>
+    galleryPrintings.filter((printing) => printing.oracleId === oracleId).reverse(),
   installedGallery: async () => installed,
   galleryDownloadStatus: async () => null,
   downloadGallery: async (download: GalleryDownload) => {
@@ -55,6 +89,47 @@ export async function galleryDownloadReports(
   });
 }
 
+export function cardRecognition(
+  candidates: GalleryCardPrinting[],
+  {
+    premiumMark = false,
+    accepted = true,
+    sameTextTwinCount = 0,
+  }: { premiumMark?: boolean; accepted?: boolean; sameTextTwinCount?: number } = {},
+): Recognition {
+  return {
+    kind: 'card',
+    candidates,
+    decision: { accepted, reasons: [] },
+    reading: { setCode: candidates[0]?.setCode, collectorNumber: candidates[0]?.collectorNumber, premiumMark },
+    sameTextTwinCount,
+    topSimilarity: 0.9,
+    rotation: 0,
+    stageMs: {},
+  };
+}
+
+export function notACard(): Recognition {
+  return { kind: 'not_a_card', topSimilarity: 0.3, stageMs: {} };
+}
+
+export function nextPhotosAre(...recognitions: (Recognition | RecognitionErrorCode)[]) {
+  nextRecognitions = [...nextRecognitions, ...recognitions];
+}
+
+export function holdNextRecognition() {
+  holdingNextRecognition = true;
+  return {
+    finish: async () => {
+      await act(async () => heldRecognition?.finish());
+    },
+  };
+}
+
+export function photosRecognized() {
+  return recognizedPhotos;
+}
+
 export function galleryDownloads() {
   return downloads;
 }
@@ -63,4 +138,8 @@ export function resetFakeCardRecognizer() {
   installed = { version: publishedGalleryVersion, builtAt: galleryBuiltAt };
   downloads = [];
   listeners.clear();
+  nextRecognitions = [];
+  recognizedPhotos = [];
+  heldRecognition = null;
+  holdingNextRecognition = false;
 }
