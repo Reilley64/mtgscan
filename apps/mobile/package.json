@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "test": "jest",
+    "test:production-bundle": "bun scripts/check-production-bundle.mjs",
     "detector:test": "swift test --package-path modules/card-detector --scratch-path modules/card-detector/.data/build",
     "scan-sounds": "bun scripts/generate-scan-sounds.mjs",
     "recognizer:test": "swift test --package-path modules/card-recognizer --scratch-path modules/card-recognizer/.data/build",

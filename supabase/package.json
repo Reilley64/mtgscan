@@ -7,7 +7,8 @@
     "./collection": "./collection.ts",
     "./database.types": "./database.types.ts",
     "./gallery-manifest": "./gallery/manifest.ts",
-    "./search": "./search.ts"
+    "./search": "./search.ts",
+    "./test-user": "./test-user/account.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -17,7 +18,8 @@
     "import": "bun import/main.ts",
     "oracle-tag": "bun import/oracle-tag.ts",
     "release-check": "bun release-check/main.ts",
-    "gallery": "bun gallery/main.ts"
+    "gallery": "bun gallery/main.ts",
+    "test-user": "bun test-user/main.ts"
   },
   "dependencies": {
     "@streamparser/json-whatwg": "^0.0.26",

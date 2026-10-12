@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { signInWithApple } from '@/auth/apple-sign-in';
 import { signInWithGoogle } from '@/auth/google-sign-in';
 import type { SignInOutcome, SignInProvider } from '@/auth/sign-in';
+import { testSignInButton } from '@/auth/test-sign-in';
 import { BinderWall } from '@/components/binder-wall';
 import {
   appleButtonColors,
@@ -23,25 +24,24 @@ import {
 
 const privacyPolicyUrl = 'https://mtgscan.reilley.dev/privacy';
 
-const providerSignIn: Record<SignInProvider, () => Promise<SignInOutcome>> = {
-  apple: signInWithApple,
-  google: signInWithGoogle,
-};
+type SignInMethod = SignInProvider | 'test-user';
 
 type SignInStatus =
-  { name: 'ready' } | { name: 'signing-in'; provider: SignInProvider } | { name: 'failed' };
+  { name: 'ready' } | { name: 'signing-in'; method: SignInMethod } | { name: 'failed' };
 
 export default function SignInScreen() {
   const insets = useSafeAreaInsets();
   const [status, setStatus] = useState<SignInStatus>({ name: 'ready' });
+  const [TestSignInButton] = useState(testSignInButton);
   const signingIn = status.name === 'signing-in';
-  const signingInWithApple = signingIn && status.provider === 'apple';
-  const signingInWithGoogle = signingIn && status.provider === 'google';
+  const signingInWithApple = signingIn && status.method === 'apple';
+  const signingInWithGoogle = signingIn && status.method === 'google';
+  const signingInAsTestUser = signingIn && status.method === 'test-user';
 
-  async function signIn(provider: SignInProvider) {
-    setStatus({ name: 'signing-in', provider });
+  async function signIn(method: SignInMethod, run: () => Promise<SignInOutcome>) {
+    setStatus({ name: 'signing-in', method });
     try {
-      const outcome = await providerSignIn[provider]();
+      const outcome = await run();
       if (outcome === 'cancelled') {
         setStatus({ name: 'ready' });
       }
@@ -105,7 +105,7 @@ export default function SignInScreen() {
                   cornerRadius={rounded.sm}
                   onPress={() => {
                     if (!signingIn) {
-                      void signIn('apple');
+                      void signIn('apple', signInWithApple);
                     }
                   }}
                   style={styles.appleButton}
@@ -116,7 +116,7 @@ export default function SignInScreen() {
               accessibilityRole="button"
               accessibilityState={{ busy: signingInWithGoogle }}
               disabled={signingIn}
-              onPress={() => void signIn('google')}
+              onPress={() => void signIn('google', signInWithGoogle)}
               style={[
                 styles.signInButton,
                 styles.googleButton,
@@ -129,6 +129,13 @@ export default function SignInScreen() {
               )}
               <Text style={styles.googleButtonLabel}>Continue with Google</Text>
             </Pressable>
+            {TestSignInButton && (
+              <TestSignInButton
+                signingIn={signingIn}
+                busy={signingInAsTestUser}
+                onSignIn={(run) => void signIn('test-user', run)}
+              />
+            )}
           </View>
         )}
         <Text style={styles.privacy}>

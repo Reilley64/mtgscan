@@ -247,6 +247,10 @@ export function runGalleryCommand(...args: string[]): Promise<CommandResult> {
   return runScript('gallery/main.ts', args, { GALLERY_RECOGNIZER: join(import.meta.dir, 'fake-recognizer.ts') });
 }
 
+export function runTestUserCommand(args: string[], env: Record<string, string> = {}): Promise<CommandResult> {
+  return runScript('test-user/main.ts', args, env);
+}
+
 export function runOracleTagCommand(action: 'disable' | 'enable', tagId: string): Promise<CommandResult> {
   return runScript('import/oracle-tag.ts', [action, tagId]);
 }
