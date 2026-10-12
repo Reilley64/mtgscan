@@ -26,8 +26,8 @@ The review agent checks each diff against these rules. CI already runs the type 
 ## App UI
 
 - Style new UI with NativeWind classes named after the `DESIGN.md` tokens, such as `bg-surface-control`, `text-text-muted`, `text-body-strong`, `rounded-sm`, and `gap-xs`. A new inline style object or `StyleSheet` entry is a finding, unless a native component takes only a style prop. Older screens move to classes in #105 and #106.
-- Take colors, type, spacing, corners, and sizes from `apps/mobile/src/theme.ts`, which mirrors the `DESIGN.md` tokens. The Tailwind theme comes from it through `src/tailwind-theme.ts`, and `test/design-tokens.test.ts` checks both against `DESIGN.md`. A new token goes into `theme.ts` and `DESIGN.md` in the same PR.
-- Merge class names with `cn()` from `src/lib/class-names.ts`. It knows the token names. Plain `twMerge` drops a token class, such as `text-text` beside `text-body-strong`.
+- Take colors, type, spacing, corners, and sizes from `apps/mobile/src/theme.ts`, which mirrors the `DESIGN.md` tokens. The Tailwind theme comes from it through `apps/mobile/src/tailwind-theme.ts`. `apps/mobile/test/design-tokens.test.ts` checks that the Tailwind theme has every `DESIGN.md` token. A new token goes into `theme.ts` and `DESIGN.md` in the same PR.
+- Merge class names with `cn()` from `apps/mobile/src/lib/class-names.ts`. It knows the token names. Plain `twMerge` drops a token class, such as `text-text` beside `text-body-strong`.
 - Leave out transition and animation classes until they work in Jest. See #102.
 - A value outside the tokens needs a reason in `DESIGN.md`, like the Apple and Google button colors.
 - Follow the `DESIGN.md` Do's and Don'ts, such as native tabs, page sheets, and no on-screen back buttons.
@@ -59,7 +59,8 @@ The review agent checks each diff against these rules. CI already runs the type 
 - Test at the agreed seams from #29 and #43:
   - Database tests in `supabase/tests` call `supabase-js` against local Supabase, as the app does. Only test setup uses the secret key or a direct database owner connection. Per-user data tests use two signed-up users and also check an anonymous caller and refused direct writes.
   - Import tests run the import command with fixture files and never download.
-  - App component tests in `apps/mobile/test` render the real Expo Router navigation with `renderApp`. They fake only the Supabase client, the native sign-in modules, the card detector module, the card recognizer module, `expo-haptics`, and the scan sounds in `src/scan/scan-sounds.ts`, in `test/fake-*.ts`. Only `test/native-ui.ts` reads native views.
+  - App component tests in `apps/mobile/test` render the real Expo Router navigation with `renderApp`. They fake only the Supabase client, the native sign-in modules, the card detector module, the card recognizer module, `expo-haptics`, and the scan sounds in `src/scan/scan-sounds.ts`, in `test/fake-*.ts`. Only `test/native-ui.ts` reads native views. Jest compiles the NativeWind classes in `test/class-styles.ts`, maps CSS files to an empty module, and runs the Reanimated test setup, so class styles show in `toHaveStyle`.
+  - Theme tests check the Tailwind theme against `DESIGN.md` and the class merges of `cn()`, with no rendering.
   - The owner checks on the device what Jest cannot reach, such as real Apple and Google sign-in.
 - Test external behavior, such as screen text, roles, returned rows, error codes, and error fields. Leave out internal state, component structure, SQL text, and query plans.
 - Name each test as a sentence about the behavior, in glossary terms.

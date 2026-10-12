@@ -29,16 +29,16 @@ function pixels(value: string) {
   return Number(value.replace('px', ''));
 }
 
-function pick<Value, Result>(scale: Record<string, Value>, names: string[], toResult: (value: Value) => Result) {
+function pick<Value, Result = Value>(
+  scale: Record<string, Value>,
+  names: string[],
+  toResult: (value: Value) => Result = (value) => value as unknown as Result,
+) {
   return Object.fromEntries(names.map((name) => [name, scale[name] === undefined ? undefined : toResult(scale[name])]));
 }
 
-function same<Value>(value: Value) {
-  return value;
-}
-
 test('the Tailwind theme has every DESIGN.md color', () => {
-  expect(pick(theme.colors, Object.keys(design.colors), same)).toEqual(design.colors);
+  expect(pick(theme.colors, Object.keys(design.colors))).toEqual(design.colors);
 });
 
 test('the Tailwind theme has every DESIGN.md type style', () => {
@@ -58,9 +58,9 @@ test('the Tailwind theme has every DESIGN.md type style', () => {
 });
 
 test('the Tailwind theme has every DESIGN.md corner radius', () => {
-  expect(pick(theme.borderRadius, Object.keys(design.rounded), same)).toEqual(design.rounded);
+  expect(pick(theme.borderRadius, Object.keys(design.rounded))).toEqual(design.rounded);
 });
 
 test('the Tailwind theme has every DESIGN.md spacing step', () => {
-  expect(pick(theme.spacing, Object.keys(design.spacing), same)).toEqual(design.spacing);
+  expect(pick(theme.spacing, Object.keys(design.spacing))).toEqual(design.spacing);
 });
