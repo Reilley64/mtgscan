@@ -1,9 +1,10 @@
 import { router, useIsFocused } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LatestScanChip } from '@/components/organisms/latest-scan-chip';
 import { ScanQuickActions } from '@/components/organisms/scan-quick-actions';
-import { colors, sizes } from '@/theme';
+import { colors, sizes, spacing } from '@/theme';
 
 import { CardDetectorView } from '../../modules/card-detector';
 import { CameraMessage } from './camera-message';
@@ -14,9 +15,10 @@ import { useScanRecognition } from './use-scan-recognition';
 
 function LatestScan() {
   const { latest, dispatch } = useScanBatch();
+  const { bottom } = useSafeAreaInsets();
   const scan = recognizedScan(latest?.kind === 'scan' ? latest.scan : null);
   return (
-    <View className="absolute inset-x-lg bottom-safe-offset-lg gap-sm">
+    <View className="absolute inset-x-lg gap-sm" style={{ bottom: bottom + spacing.lg }}>
       {latest ? (
         <LatestScanChip
           latest={latest}
