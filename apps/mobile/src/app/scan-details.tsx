@@ -2,7 +2,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { DangerButton } from '@/components/danger-button';
+import { Button } from '@/components/atoms/button';
+import { Text } from '@/components/atoms/text';
 
 import { NameSearch } from '@/scan/name-search';
 import { ScanDetails } from '@/scan/scan-details';
@@ -36,7 +37,11 @@ export default function ScanDetailsSheet() {
               setSearching(false);
             }}
           />
-          {scan.printing ? null : <DangerButton label="Remove scan" onPress={removeCopy} />}
+          {scan.printing ? null : (
+            <Button variant="danger" onPress={removeCopy}>
+              <Text>Remove scan</Text>
+            </Button>
+          )}
         </View>
       ) : null}
       {scan?.printing && !searching ? (

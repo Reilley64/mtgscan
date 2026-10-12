@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { CardThumbnail } from '@/components/card-thumbnail';
+import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { colors, rounded, spacing, typography } from '@/theme';
 
 import { printingCaption } from './printing-caption';

@@ -57,6 +57,7 @@ export const spacing = {
   sm: 8,
   md: 12,
   lg: 16,
+  xl: 32,
 } as const;
 
 export const rounded = {
@@ -64,6 +65,10 @@ export const rounded = {
   sm: 8,
   md: 12,
   full: 999,
+} as const;
+
+export const opacity = {
+  dimmed: 0.38,
 } as const;
 
 export const sizes = {

@@ -1,5 +1,5 @@
-import { EmptyState } from '@/components/empty-state';
-import { TabScreen } from '@/components/tab-screen';
+import { EmptyState } from '@/components/molecules/empty-state';
+import { TabScreen } from '@/components/templates/tab-screen';
 
 export default function DecksScreen() {
   return (

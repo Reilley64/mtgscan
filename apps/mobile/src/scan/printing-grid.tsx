@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { usePrintingImages } from '@/catalog/use-printing-images';
-import { CardImage } from '@/components/card-image';
+import { CardImage } from '@/components/atoms/card-image';
 import { colors, rounded, sizes, spacing, typography } from '@/theme';
 
 import { printingCaption } from './printing-caption';

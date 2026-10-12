@@ -1,4 +1,6 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+
+import { Text } from '@/components/atoms/text';
 
 type EmptyStateProps = {
   title: string;
@@ -8,8 +10,8 @@ type EmptyStateProps = {
 export function EmptyState({ title, message }: EmptyStateProps) {
   return (
     <View className="gap-xs py-lg">
-      <Text className="text-body-strong text-text">{title}</Text>
-      <Text className="text-body text-text-muted">{message}</Text>
+      <Text variant="body-strong">{title}</Text>
+      <Text className="text-text-muted">{message}</Text>
     </View>
   );
 }

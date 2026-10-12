@@ -3,7 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { usePrintingImages } from '@/catalog/use-printing-images';
-import { CardThumbnail } from '@/components/card-thumbnail';
+import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { colors, rounded, sizes, spacing, typography } from '@/theme';
 
 import { chipDetails } from './printing-caption';

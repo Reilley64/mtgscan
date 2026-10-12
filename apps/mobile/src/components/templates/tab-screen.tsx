@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { FlatList, ScrollView, StyleSheet, Text, View, type FlatListProps } from 'react-native';
 
-import { SettingsButton } from '@/components/settings-button';
+import { SettingsButton } from '@/components/molecules/settings-button';
 import { colors, spacing, typography } from '@/theme';
 
 type TabScreenProps = {

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text as NativeText, View } from 'react-native';
 
-import { SecondaryButton } from '@/components/secondary-button';
+import { Button } from '@/components/atoms/button';
+import { Text } from '@/components/atoms/text';
 import { colors, spacing, typography } from '@/theme';
 
 type CameraMessageProps = {
@@ -13,9 +14,13 @@ type CameraMessageProps = {
 export function CameraMessage({ message, action, children }: CameraMessageProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.message}>{message}</Text>
+      <NativeText style={styles.message}>{message}</NativeText>
       {children}
-      {action ? <SecondaryButton label={action.label} onPress={action.onPress} /> : null}
+      {action ? (
+        <Button onPress={action.onPress}>
+          <Text>{action.label}</Text>
+        </Button>
+      ) : null}
     </View>
   );
 }

@@ -43,6 +43,10 @@ function RootStack() {
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
+      <Stack.Protected guard={__DEV__}>
+        <Stack.Screen name="primitives" />
+        <Stack.Screen name="primitives-sheet" options={drawerOptions} />
+      </Stack.Protected>
     </Stack>
   );
 }

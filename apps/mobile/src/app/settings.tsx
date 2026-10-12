@@ -1,8 +1,9 @@
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text as NativeText, View } from 'react-native';
 
 import { signOut, useSession } from '@/auth/session';
 import { currentSignInProviderName } from '@/auth/sign-in';
-import { SecondaryButton } from '@/components/secondary-button';
+import { Button } from '@/components/atoms/button';
+import { Text } from '@/components/atoms/text';
 import { GalleryRow } from '@/gallery/gallery-row';
 import { useScanSounds } from '@/scan/scan-sounds-setting';
 import { colors, rounded, sizes, spacing, typography } from '@/theme';
@@ -11,7 +12,7 @@ function ScanSoundsRow() {
   const { scanSounds, setScanSounds } = useScanSounds();
   return (
     <View style={styles.row}>
-      <Text style={styles.rowTitle}>Scan sounds</Text>
+      <NativeText style={styles.rowTitle}>Scan sounds</NativeText>
       <Switch
         accessibilityLabel="Scan sounds"
         value={scanSounds}
@@ -29,21 +30,23 @@ export default function SettingsDrawer() {
   return (
     <>
       <View collapsable={false} style={styles.titleBar}>
-        <Text accessibilityRole="header" style={styles.title}>
+        <NativeText accessibilityRole="header" style={styles.title}>
           Settings
-        </Text>
+        </NativeText>
       </View>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic">
         <View style={styles.account}>
-          <Text style={styles.accountProvider}>Signed in with {providerName}</Text>
-          {user?.email && <Text style={styles.accountEmail}>{user.email}</Text>}
+          <NativeText style={styles.accountProvider}>Signed in with {providerName}</NativeText>
+          {user?.email && <NativeText style={styles.accountEmail}>{user.email}</NativeText>}
         </View>
         <GalleryRow />
         <ScanSoundsRow />
-        <SecondaryButton label="Sign out" onPress={signOut} />
+        <Button onPress={signOut}>
+          <Text>Sign out</Text>
+        </Button>
       </ScrollView>
     </>
   );

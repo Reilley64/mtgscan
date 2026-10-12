@@ -1,9 +1,10 @@
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
-import { BinderTile } from '@/components/binder-tile';
-import { EmptyState } from '@/components/empty-state';
-import { SecondaryButton } from '@/components/secondary-button';
-import { TabListScreen } from '@/components/tab-screen';
+import { Button } from '@/components/atoms/button';
+import { Text } from '@/components/atoms/text';
+import { BinderTile } from '@/components/molecules/binder-tile';
+import { EmptyState } from '@/components/molecules/empty-state';
+import { TabListScreen } from '@/components/templates/tab-screen';
 import { useCollectionPrintings, type BinderRead } from '@/collection/use-collection-printings';
 import { spacing } from '@/theme';
 
@@ -14,7 +15,9 @@ function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAg
     return (
       <View style={styles.placeholder}>
         <EmptyState title="Could not load your collection" message="Check your connection." />
-        <SecondaryButton label="Try again" onPress={onTryAgain} />
+        <Button onPress={onTryAgain}>
+          <Text>Try again</Text>
+        </Button>
       </View>
     );
   }
