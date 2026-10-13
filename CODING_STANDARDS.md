@@ -52,7 +52,7 @@ The app UI follows Brad Frost's Atomic Design (#101). Each level is a folder in 
 | Molecules (`molecules`) | Small groups of atoms with one job | `ListRow`, `SwitchRow`, `ChipGroup`, `ToggleGroup`, `EmptyState` |
 | Organisms (`organisms`) | Larger sections | `BinderWall`, `LatestScanChip`, `PrintingPicker`, and later the settings content |
 | Templates (`templates`) | Page layouts with no data | `TabScreen`, `DrawerSheet` |
-| Pages (`src/app`) | Expo Router routes. They load data and fill templates with organisms. | `settings.tsx`, `(tabs)/collection.tsx` |
+| Pages (`src/app`) | Expo Router routes. They load data and fill templates with organisms. | `settings.tsx`, `(tabs)/(collection)/collection.tsx` |
 
 - Each level imports only from its own level and the levels below it. Pages import from any level. Organisms and features may use feature modules such as `src/scan`. Templates, molecules, and atoms may not. ESLint enforces the direction with `eslint-plugin-boundaries` in `apps/mobile/eslint.config.js`.
 - Only atoms use raw controls. ESLint refuses `Pressable`, `TouchableOpacity`, `TouchableHighlight`, `TouchableWithoutFeedback`, `Switch`, and `Button` from `react-native` everywhere else, and `@rn-primitives` outside `src/components`. It also refuses a `style` prop on an element with `onPress`, `onLongPress`, or `onValueChange` outside atoms, and a `className` on a `Text` or `View` with `onPress` or `onLongPress`. Screens compose the primitives and do not restyle raw `Pressable`, `Text`, or `View` for controls.

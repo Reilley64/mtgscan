@@ -3,14 +3,16 @@ import { fireEvent, screen, within } from 'expo-router/testing-library';
 import { startSignedIn } from './fake-supabase';
 import { renderApp } from './render-app';
 import {
+  hasHeader,
+  headerButton,
   isInScrollView,
   openSettings,
   presentedDrawer,
   pressTab,
-  scrollTabTo,
   selectedTab,
   swipeDownDrawer,
   tabBarLabels,
+  tabHeader,
   tapOutsideDrawer,
 } from './native-ui';
 
@@ -21,9 +23,8 @@ beforeEach(() => {
 test('the app opens on Recent with its empty state', async () => {
   await renderApp();
 
-  const recent = within(selectedTab());
-  expect(recent.getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
-  expect(recent.getByText('Nothing needs you yet')).toBeOnTheScreen();
+  expect(tabHeader(selectedTab()).title).toBe('Recent');
+  expect(within(selectedTab()).getByText('Nothing needs you yet')).toBeOnTheScreen();
 });
 
 test.each([
@@ -42,15 +43,23 @@ test.each([
   expect(emptyState.getByText(message)).toHaveStyle({ color: 'rgba(181, 192, 197, 1)', fontSize: 14, lineHeight: 19 });
 });
 
-test.each(['Recent', 'Decks'])('when the user scrolls %s, a small-title header keeps the settings button', async (tab) => {
+test.each([
+  ['Recent', 'Nothing needs you yet'],
+  ['Collection', 'Your collection is empty'],
+  ['Decks', 'No decks yet'],
+])('%s has the tab header with a large title over its scrolling content, and the settings button on the right', async (tab, content) => {
   await renderApp();
   await pressTab(tab);
 
-  await scrollTabTo(selectedTab(), 80);
-
-  const screenForTab = within(selectedTab());
-  expect(screenForTab.getByRole('header', { name: tab })).toHaveStyle({ fontSize: 17, fontWeight: '800' });
-  expect(screenForTab.getAllByRole('button', { name: 'Settings' })).toHaveLength(1);
+  expect(tabHeader(selectedTab())).toEqual({
+    title: tab,
+    largeTitle: true,
+    largeTitleType: { fontSize: 28, fontWeight: '800' },
+    titleType: { fontSize: 17, fontWeight: '800' },
+    buttons: ['Settings'],
+  });
+  expect(headerButton(selectedTab(), 'Settings')).toMatchObject({ type: 'button', symbol: 'gearshape.fill' });
+  expect(isInScrollView(within(selectedTab()).getByText(content))).toBe(true);
 });
 
 test('the tab bar shows Recent, Collection, Decks, and Scan in that order', async () => {
@@ -65,19 +74,19 @@ test("Decks says there are no decks yet and that a deck starts from a commander'
   await pressTab('Decks');
 
   const decks = within(selectedTab());
-  expect(decks.getByRole('header', { name: 'Decks' })).toBeOnTheScreen();
+  expect(tabHeader(selectedTab()).title).toBe('Decks');
   expect(decks.getByText('No decks yet')).toBeOnTheScreen();
   expect(decks.getByText("A deck starts from a commander's card page.")).toBeOnTheScreen();
 });
 
-test('Scan is a black screen with no settings button', async () => {
+test('Scan is a black screen with no header and no settings button', async () => {
   await renderApp();
 
   await pressTab('Scan');
 
   const scan = within(selectedTab());
   expect(scan.getByLabelText('Camera')).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 1)' });
-  expect(scan.queryByRole('button', { name: 'Settings' })).not.toBeOnTheScreen();
+  expect(hasHeader(selectedTab())).toBe(false);
 });
 
 test.each(['Recent', 'Collection', 'Decks'])(
@@ -132,7 +141,7 @@ test('a downward swipe closes the settings drawer', async () => {
   await swipeDownDrawer();
 
   expect(screen.queryByRole('header', { name: 'Settings' })).not.toBeOnTheScreen();
-  expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
+  expect(tabHeader(selectedTab()).title).toBe('Recent');
 });
 
 test('a tap outside closes the settings drawer', async () => {
@@ -142,5 +151,5 @@ test('a tap outside closes the settings drawer', async () => {
   await tapOutsideDrawer();
 
   expect(screen.queryByRole('header', { name: 'Settings' })).not.toBeOnTheScreen();
-  expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
+  expect(tabHeader(selectedTab()).title).toBe('Recent');
 });

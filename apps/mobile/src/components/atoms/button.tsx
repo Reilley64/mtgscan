@@ -18,7 +18,6 @@ export const buttonVariants = cva('h-button flex-row items-center justify-center
     size: {
       default: 'min-w-touch-target rounded-sm px-md',
       icon: 'w-button rounded-full',
-      pill: 'min-w-touch-target rounded-full px-md',
       'sign-in': 'h-sign-in-button rounded-sm px-md',
     },
   },
@@ -35,7 +34,6 @@ export const labelVariants = cva('text-body-strong', {
     size: {
       default: '',
       icon: '',
-      pill: '',
       'sign-in': 'text-sign-in-button',
     },
   },
@@ -54,7 +52,6 @@ const verticalSlop = verticalTouchSlop(sizes.button);
 const hitSlops = {
   default: verticalSlop,
   icon: { ...verticalSlop, left: verticalSlop.top, right: verticalSlop.top },
-  pill: verticalSlop,
   'sign-in': undefined,
 } as const;
 

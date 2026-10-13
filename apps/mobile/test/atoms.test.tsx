@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { processColor, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -13,7 +13,6 @@ import { CountBadge } from '@/components/atoms/count-badge';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { GlassGroup, GlassSurface } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
-import { Popover } from '@/components/atoms/popover';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { SetIcon } from '@/components/atoms/set-icon';
@@ -39,7 +38,6 @@ import {
   showsSpinner,
   switchTrackColor,
   symbolTintColor,
-  tapOutsidePopover,
   touchTarget,
 } from './native-ui';
 import { tokenColors } from './token-colors';
@@ -173,17 +171,6 @@ describe('Button', () => {
     expect(touchTarget(button)).toEqual({ width: 44, height: 44 });
   });
 
-  test('a pill button is 38 px tall with full corners and a 44 pt touch target', async () => {
-    await render(
-      <Button size="pill" onPress={() => {}}>
-        <Text>$2,419.59</Text>
-      </Button>,
-    );
-
-    const button = screen.getByRole('button', { name: '$2,419.59' });
-    expect(button).toHaveStyle({ height: 38, borderRadius: 999, paddingLeft: 12, paddingRight: 12, backgroundColor: surfaceControl });
-    expect(touchTarget(button)).toEqual({ width: 44, height: 44 });
-  });
 });
 
 describe('Sign-in button', () => {
@@ -822,61 +809,5 @@ describe('CountBadge', () => {
     const numerals = screen.getByText('12');
     expect(numerals).toHaveStyle({ color: white, fontSize: 11, fontWeight: '700' });
     expect(numerals.parent).toHaveStyle({ backgroundColor: badge, borderRadius: 999, height: 17, minWidth: 17 });
-  });
-});
-
-describe('Popover', () => {
-  const phone = { frame: { x: 0, y: 0, width: 402, height: 874 }, insets: { top: 62, left: 0, right: 0, bottom: 34 } };
-
-  function OnPhone({ children }: { children: ReactNode }) {
-    return <SafeAreaProvider initialMetrics={phone}>{children}</SafeAreaProvider>;
-  }
-
-  function TotalPopover({ onClose = () => {} }: { onClose?: () => void }) {
-    const [open, setOpen] = useState(true);
-    return (
-      <Popover
-        open={open}
-        onClose={() => {
-          setOpen(false);
-          onClose();
-        }}
-        accessibilityLabel="Collection total, $2,419.59">
-        <Text>$2,419.59</Text>
-      </Popover>
-    );
-  }
-
-  test('an open popover is one VoiceOver element on the raised surface, under the header at the right page inset', async () => {
-    await render(<TotalPopover />, { wrapper: OnPhone });
-
-    const popover = screen.getByLabelText('Collection total, $2,419.59');
-    expect(popover).toHaveStyle({ backgroundColor: surfaceRaised, borderRadius: 12, width: 250, top: 62 + 44 + 8, right: 16 });
-    expect(popover).toHaveProp('accessible', true);
-    expect(within(popover).getByText('$2,419.59')).toBeOnTheScreen();
-  });
-
-  test('a closed popover shows nothing', async () => {
-    await render(
-      <Popover open={false} onClose={() => {}} accessibilityLabel="Collection total, $2,419.59">
-        <Text>$2,419.59</Text>
-      </Popover>,
-      { wrapper: OnPhone },
-    );
-
-    expect(screen.queryByText('$2,419.59')).not.toBeOnTheScreen();
-  });
-
-  test('a tap outside the popover closes it, and a tap inside does not', async () => {
-    const onClose = jest.fn();
-    await render(<TotalPopover onClose={onClose} />, { wrapper: OnPhone });
-
-    await fireEvent.press(screen.getByText('$2,419.59'));
-    expect(onClose).not.toHaveBeenCalled();
-
-    await tapOutsidePopover();
-
-    expect(onClose).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText('$2,419.59')).not.toBeOnTheScreen();
   });
 });

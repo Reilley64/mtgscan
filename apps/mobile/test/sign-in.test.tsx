@@ -18,11 +18,13 @@ import { failNextSignIn, signInNextWithEmail, startSignedIn } from './fake-supab
 import {
   appearsBefore,
   appleSignInButton,
+  headerTitles,
   openSettings,
   pressSignInWithApple,
   queryAppleSignInButton,
   selectedTab,
   showsSpinner,
+  tabHeader,
 } from './native-ui';
 import { renderApp } from './render-app';
 
@@ -39,7 +41,7 @@ test('with no session, the sign-in screen offers Continue with Google', async ()
   await renderApp();
 
   expect(await screen.findByRole('button', { name: 'Continue with Google' })).toBeOnTheScreen();
-  expect(screen.queryByRole('header', { name: 'Recent' })).not.toBeOnTheScreen();
+  expect(headerTitles()).not.toContain('Recent');
 });
 
 test('Sign in with Apple shows in white, 50 px tall, above Continue with Google', async () => {
@@ -130,7 +132,7 @@ test('a successful Apple sign-in lands on Recent', async () => {
 
   await pressSignInWithApple();
 
-  expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
+  expect(tabHeader(selectedTab()).title).toBe('Recent');
 });
 
 test('after an Apple sign-in with Hide My Email, settings shows Apple and the relay email', async () => {
@@ -161,7 +163,7 @@ test('a successful Google sign-in lands on Recent', async () => {
 
   await continueWithGoogle();
 
-  expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
+  expect(tabHeader(selectedTab()).title).toBe('Recent');
 });
 
 test('cancelling the Google prompt stays on the sign-in screen with no error', async () => {
@@ -215,7 +217,7 @@ test('Try again brings back the sign-in buttons, and the next sign-in lands on R
   expect(screen.queryByText('Sign-in did not work.')).not.toBeOnTheScreen();
   expect(appleSignInButton()).toBeOnTheScreen();
   await continueWithGoogle();
-  expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
+  expect(tabHeader(selectedTab()).title).toBe('Recent');
 });
 
 test('the settings drawer shows the provider and email of the signed-in account', async () => {
@@ -251,5 +253,5 @@ test('Sign out returns to the sign-in screen with no user data on screen', async
 
   expect(await screen.findByRole('button', { name: 'Continue with Google' })).toBeOnTheScreen();
   expect(screen.queryByText('player@example.com')).not.toBeOnTheScreen();
-  expect(screen.queryByRole('header', { name: 'Recent' })).not.toBeOnTheScreen();
+  expect(headerTitles()).not.toContain('Recent');
 });
