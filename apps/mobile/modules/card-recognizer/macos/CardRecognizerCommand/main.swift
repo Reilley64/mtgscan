@@ -81,18 +81,11 @@ func serve(galleryDirectory: URL) {
   }
 }
 
-func featurePrint(ofCardAt url: URL) -> [Float]? {
-  guard let card = CardRectifier.loadCard(at: url),
-        let small = FeaturePrint.input(of: card)
-  else { return nil }
-  return try? FeaturePrint.vector(of: small)
-}
-
 func forEachFeaturePrint(of images: [URL], _ body: @Sendable (Int, [Float]) -> Void) {
   let progress = OSAllocatedUnfairLock(initialState: (completed: 0, failures: [String]()))
   DispatchQueue.concurrentPerform(iterations: images.count) { row in
     autoreleasepool {
-      let vector = featurePrint(ofCardAt: images[row])
+      let vector = FeaturePrint.vector(ofCardAt: images[row])
       if let vector { body(row, vector) }
       progress.withLock { state in
         if vector == nil { state.failures.append(images[row].lastPathComponent) }
@@ -210,7 +203,7 @@ func about() {
 func featurePrints(images: [String]) {
   for input in images {
     autoreleasepool {
-      guard let vector = featurePrint(ofCardAt: URL(fileURLWithPath: input)) else {
+      guard let vector = FeaturePrint.vector(ofCardAt: URL(fileURLWithPath: input)) else {
         emit(FeaturePrintLine(input: input, vector: nil, error: RecognitionFailure.unreadablePhoto.code))
         return
       }

@@ -110,7 +110,16 @@ In the results, `falseAccepts` counts every accept that is not the exact printin
 
 This gate measures the whole phone path on physical cards: capture, recognition on the phone, and latency. It needs the iPhone and the 30 cards in `bin-deck/test-deck.tsv`.
 
-The cited runs used the native preview app on the `prototype/first-release` branch (`npm run physical-run:device-bin` in `prototypes/native-preview-scanner`). #84 moves the run to the real app. Keep each run's `summary.md`, `results.env`, `bin-batch-summaries.ndjson`, and `batch-1-detail.ndjson` in `bin-deck/<run>/`. Do not keep logs. Replace any LAN address.
+The run uses a development build of the app on the iPhone, with Metro on the Mac:
+
+1. Start Metro with its output in a log file.
+2. Check gallery parity in settings. Record the result with `bun run gallery parity` (README, Gallery build and publish).
+3. Scan the 30 cards with the torch off, one at a time, in any order. Do not fix any scan.
+4. Score the run from `apps/mobile`: `bun run bin-deck:score <metro-log> <run>`. It reads the `SCAN` lines from the log and writes `summary.md`, `results.env`, `bin-batch-summaries.ndjson`, and `batch-1-detail.ndjson` to `bin-deck/<run>/`. It exits 1 when a gate fails.
+
+The script matches each scan to a card of the test deck by its first candidate: first by card printing, then by card name. A scan of a deck card that already has a scan is a duplicate photo. An accept of a card that is not in the deck is a wrong-card accept, and the deck card it should have been is a missed card. Keep the four files of each run. Do not keep logs.
+
+The cited runs used the native preview app on the `prototype/first-release` branch (`npm run physical-run:device-bin` in `prototypes/native-preview-scanner`).
 
 Pass criteria from #10 and #21:
 

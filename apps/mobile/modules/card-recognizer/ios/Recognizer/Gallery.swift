@@ -129,6 +129,12 @@ public final class Gallery: Sendable {
     indexById[id]
   }
 
+  public func vector(at row: Int) -> [Float] {
+    vectors.withUnsafeBytes { buffer in
+      buffer.bindMemory(to: Float16.self)[row * dimension ..< (row + 1) * dimension].map { Float($0) }
+    }
+  }
+
   func similarities(to queries: [[Float]]) -> [[Float]] {
     let count = printings.count
     let queryCount = queries.count

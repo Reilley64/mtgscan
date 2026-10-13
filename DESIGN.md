@@ -469,6 +469,7 @@ The settings drawer:
 - The gallery card shows "Gallery", the date of the installed gallery version, such as "12 October 2026", and "Up to date", "Downloading", or "Paused". "Paused" covers waiting for Wi-Fi, offline, a failed download, and too little space.
 - The Scan sounds card has a "Scan sounds" switch with a lime track. It is on by default. Turning it off stops the scan sounds and keeps the scan haptics.
 - All three cards fit at half height.
+- Only a development build shows a "Gallery parity" section under **Sign out**, with a **Check gallery parity** button. After a check, the section lists the gallery version, "Lowest cosine" and "Mean cosine" with 5 decimals, the number of reference images, and each reference image that failed. Production builds leave it out.
 
 ## Elevation & Depth
 

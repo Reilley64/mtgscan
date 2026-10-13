@@ -1,17 +1,21 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { deletePhoto, type CapturedPhoto } from '../../modules/card-detector';
 import { recognize, type Recognition } from '../../modules/card-recognizer';
 import { outcomeOf, useScanBatch } from './scan-batch-state';
 import { playScanFeedback } from './scan-feedback';
+import { logScan } from './scan-log';
 import { preloadScanSounds } from './scan-sounds';
 import { useScanSounds } from './scan-sounds-setting';
 import type { PhotoHandlers } from './use-automatic-capture';
 
-async function recognizePhoto(photo: CapturedPhoto): Promise<Recognition | 'failed'> {
+async function recognizePhoto(photo: CapturedPhoto, photoRequestedAt: number): Promise<Recognition | 'failed'> {
   try {
-    return await recognize(photo.uri, photo.outline);
-  } catch {
+    const recognition = await recognize(photo.uri, photo.outline);
+    logScan(photoRequestedAt, recognition);
+    return recognition;
+  } catch (error) {
+    logScan(photoRequestedAt, { kind: 'failed', error: (error as { code?: string }).code ?? String(error) });
     return 'failed';
   } finally {
     void deletePhoto(photo.uri);
@@ -21,6 +25,7 @@ async function recognizePhoto(photo: CapturedPhoto): Promise<Recognition | 'fail
 export function useScanRecognition(): PhotoHandlers {
   const { recognitionStarted, recognitionEnded } = useScanBatch();
   const { scanSounds } = useScanSounds();
+  const photoRequests = useRef<number[]>([]);
 
   useEffect(() => {
     if (scanSounds) {
@@ -28,19 +33,27 @@ export function useScanRecognition(): PhotoHandlers {
     }
   }, [scanSounds]);
 
+  const onPhotoRequested = useCallback(() => {
+    photoRequests.current.push(Date.now());
+    recognitionStarted();
+  }, [recognitionStarted]);
+
   const onPhoto = useCallback(
     async (photo: CapturedPhoto) => {
-      const recognition = await recognizePhoto(photo);
+      const recognition = await recognizePhoto(photo, photoRequests.current.shift() ?? Date.now());
       recognitionEnded(recognition);
       playScanFeedback(outcomeOf(recognition), scanSounds);
     },
     [recognitionEnded, scanSounds],
   );
 
-  const onPhotoFailed = useCallback(() => recognitionEnded('no_photo'), [recognitionEnded]);
+  const onPhotoFailed = useCallback(() => {
+    photoRequests.current.shift();
+    recognitionEnded('no_photo');
+  }, [recognitionEnded]);
 
   return useMemo(
-    () => ({ onPhotoRequested: recognitionStarted, onPhoto: (photo) => void onPhoto(photo), onPhotoFailed }),
-    [onPhoto, onPhotoFailed, recognitionStarted],
+    () => ({ onPhotoRequested, onPhoto: (photo) => void onPhoto(photo), onPhotoFailed }),
+    [onPhoto, onPhotoFailed, onPhotoRequested],
   );
 }

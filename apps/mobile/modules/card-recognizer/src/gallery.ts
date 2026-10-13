@@ -26,3 +26,11 @@ export type GalleryDownload = {
   urls: Record<string, string>;
   allowsCellularAccess: boolean;
 };
+
+export type GalleryParity = {
+  version?: string;
+  references: number;
+  lowestCosine: number;
+  meanCosine: number;
+  failures: string[];
+};
