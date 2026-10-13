@@ -10,7 +10,7 @@ import {
   signInNextWithEmail,
   startSignedIn,
 } from './fake-supabase';
-import { isDrawerPresented, openSettings, presentedDrawer, pressTab, swipeDownDrawer } from './native-ui';
+import { isDrawerPresented, openSettings, presentedDrawer, pressTab, selectedTab, swipeDownDrawer } from './native-ui';
 import { restartTheApp } from './render-app';
 import { latestScanChip, openLatestScan, openScan, scanACard, scanTab, selectedChoice } from './scanning';
 
@@ -192,7 +192,7 @@ test('Add N to collection sends every copy with its own copy ID, with identical 
 });
 
 function expectAnEmptyChip() {
-  expect(scanTab().getAllByText(/./).map((text) => text.props.children)).toEqual(['Finish', '+1']);
+  expect(selectedTab()).toHaveTextContent('Finish+1', { exact: true });
   ['Finish', 'Set', '+1'].forEach((name) => expect(scanTab().getByRole('button', { name })).toBeDisabled());
 }
 
