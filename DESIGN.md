@@ -25,6 +25,11 @@ colors:
   badge: "#e0244a"
   card-outline: "#ff4fd8"
   camera-off: "#000000"
+  rarity-common: "#e6e8e9"
+  rarity-uncommon: "#a7bccb"
+  rarity-rare: "#e2bd5a"
+  rarity-mythic: "#f26a35"
+  rarity-special: "#b48ef0"
 typography:
   large-title:
     fontFamily: SF Pro Display
@@ -269,6 +274,7 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 - **Badge (#e0244a)** is only for count badges on tabs and buttons, such as Needs you.
 - **Card outline (#ff4fd8)** is the magenta line the scanner draws around a detected card. Nothing else uses it.
 - **Camera off (#000000).** The Scan tab is pure black until the camera feed replaces it.
+- **Rarity colors** tint the set symbol on binder tiles by the card printing's rarity. They follow Magic's own rarity colors, made flat and lighter for the dark UI: **rarity common (#e6e8e9)** light grey, **rarity uncommon (#a7bccb)** silver, **rarity rare (#e2bd5a)** gold, **rarity mythic (#f26a35)** orange-red, and **rarity special (#b48ef0)** purple for special and bonus. This is the one use of color on set symbols. Elsewhere, such as the quick-action bar, set symbols use the text color. A rarity the app does not know falls back to the text color.
 
 ## Typography
 
@@ -303,7 +309,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Copies of the same card printing sit next to each other. The card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
   - With no collection entries, the tab shows "Your collection is empty" and "Scan cards to add them to your collection."
   - When the read fails, the tab shows "Could not load your collection" and "Check your connection." with a **Try again** button.
-  - Chips under each card show the set, the collector number, the finish when it is not nonfoil, and the condition when it is not NM. Later, badges also show whether the copy is in a deck, held by a planned swap, or protected.
+  - One quiet meta line under each card shows the set icon in its rarity color, the collector number, and the condition when it is not NM. Foil and etched copies carry a sheen on the card image instead of a finish label. Later, badges also show whether the copy is in a deck, held by a planned swap, or protected.
   - Search matches name, type, and printing, in the collection only. Filters: All, Free, Allocated, Protected.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
@@ -385,7 +391,11 @@ The settings drawer:
 The interface is flat. Depth comes from tone, not shadow.
 
 - Content sits on surface tones that step up from the background: surface, surface raised, surface control.
-- Page sheets slide over a dimmed, slightly scaled screen. The settings drawer slides over a dimmed screen that keeps its size. A soft shadow above the sheet is the only strong shadow. On the sign-in sheet it is black at 55%, 12 px up, with a 40 px blur. `theme.ts` names it `shadows.sheet`. The binder wall scrim on the sign-in screen is the background color at 90% at the top, 20% at 16% of the height, 25% at 45%, and 90% from 62% down. `theme.ts` names it `gradients.binderWallScrim`. NativeWind 4 has no class for either, so both are style values.
+- Page sheets slide over a dimmed, slightly scaled screen. The settings drawer slides over a dimmed screen that keeps its size. A soft shadow above the sheet is the only strong shadow. On the sign-in sheet it is black at 55%, 12 px up, with a 40 px blur. `theme.ts` names it `shadows.sheet`. The binder wall scrim on the sign-in screen is the background color at 90% at the top, 20% at 16% of the height, 25% at 45%, and 90% from 62% down. `theme.ts` names it `gradients.binderWallScrim`.
+- The foil and etched sheens on binder tiles are diagonal gradients over the card image at 30% opacity (`opacity.sheen`). They sit outside the palette, like card art.
+  - **Foil sheen** (`gradients.foilSheen`, 115 degrees): clear to 22%, then pink `rgba(255, 80, 170, 0.55)`, yellow `rgba(255, 230, 90, 0.5)`, mint `rgba(80, 255, 200, 0.5)`, blue `rgba(80, 150, 255, 0.55)`, and violet `rgba(200, 110, 255, 0.5)` from 34% to 66%, then clear from 78%.
+  - **Etched sheen** (`gradients.etchedSheen`, 120 degrees): clear to 25%, then white `rgba(255, 255, 255, 0.55)`, silver `rgba(200, 210, 215, 0.25)`, and white again from 42% to 58%, then clear from 75%.
+- NativeWind 4 has no class for a box shadow or a gradient, so the shadow, the scrim, and the sheens are style values.
 - The tab bar is a near-opaque bar with a hairline top border.
 - During a back swipe, the screen follows the finger with a shadow on its left edge.
 
@@ -413,7 +423,7 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Text links.** An in-app link inside a line of text, such as **Privacy policy**, keeps the type size of its line in bold lime. It is the one control without a 44 pt touch target, because a nested text run cannot take extra touch area.
 - **Failure notice.** A surface card with 12 px padding and a danger mark beside the message, such as "Sign-in did not work." A long message wraps in the space beside the mark, and the mark lines up with its first line.
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
-- **Chips.** Status chips show priority, validity, estimated bracket, set, collector number, finish, condition, language, and copy states such as "2 free" or "Protected only". A set chip shows the set's expansion symbol in place of its text. Their text uses the text, warning, danger, or info color. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide.
+- **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Their text uses the text, warning, danger, or info color. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, the batch button, and the card page Decks tab.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and card page deck lists. It opens the deck.
@@ -454,16 +464,12 @@ The interface is flat. Depth comes from tone, not shadow.
   - When the app restarts after a commit that failed or was still running, it sends the commit again by itself.
   - While the commit runs, rows do not open.
   - The phone saves the scan batch and its defaults for each account, so they survive a restart. Another account on the phone does not see them.
-- **Binder tile.** One copy's card image with a row of status chips under it. There is no quantity badge and no caption. Tiles of foil copies carry a subtle sheen.
+- **Binder tile.** One copy's card image with one meta line under it. There is no quantity badge and no chip.
   - Until the image loads, the tile is a line-colored card shape.
-  - The chips sit 4 px below the card image and 4 px apart, in this order:
-    - the set chip, with the set's expansion symbol from Scryfall at 16 px tinted with the text color, or the set code in capitals when the card catalog has no symbol for the set or it has not loaded;
-    - the collector number, such as "136";
-    - the finish when it is not nonfoil: "Foil" or "Etched";
-    - the condition when it is not NM: "LP", "MP", "HP", or "DMG".
-  - The chips wrap to a second line when they do not fit the tile width. Each line is centered under the card. Card images in a row stay level.
-  - VoiceOver reads the tile as one image: the name, the set code in capitals and the collector number, and the finish and condition chips, such as "Angelic Curator, EXO 1, Foil, LP".
-  - Tiles open nothing yet. The card page, the badges for decks, planned swaps, and protected copies, and the sheen come later.
+  - The meta line sits 4 px below the card image, centered, in meta text in text muted: the set's expansion symbol from Scryfall at 16 px tinted with the rarity color of the card printing (see Colors), then the collector number. When the card catalog has no symbol for the set, or it has not loaded, the set code in capitals takes its place. A copy that is not NM adds a text dim " · " and its condition: "[symbol] 136 · MP". Every condition uses the same text muted color.
+  - The line never names the finish. A foil copy has a faint rainbow sheen over its card image, and an etched copy has a faint silver sheen. Nonfoil copies have none. The sheen does not move. It is a diagonal gradient at 30% opacity, so the card art reads normally.
+  - VoiceOver reads the tile as one image: the name, the set code in capitals and the collector number, then the finish when it is not nonfoil and the condition when it is not NM, in words: "Bloomvine Regent // Claim Territory, TDM 136, foil, moderately played".
+  - Tiles open nothing yet. The card page and the badges for decks, planned swaps, and protected copies come later.
 - **Commander gallery card.** Full-width commander art with a dark gradient, the deck name in card-title type, status chips, and a Needs you badge.
 
 ## Do's and Don'ts

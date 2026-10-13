@@ -72,7 +72,8 @@ describe('the test user command', () => {
     const client = await signedInTestUser();
     const entries = await collectionEntries(client);
     expect(entries).toHaveLength(30);
-    expect(entries.some((entry) => entry.finish !== 'nonfoil')).toBe(true);
+    expect(entries.some((entry) => entry.finish === 'foil')).toBe(true);
+    expect(entries.some((entry) => entry.finish === 'etched')).toBe(true);
     expect(entries.some((entry) => entry.condition !== 'near_mint')).toBe(true);
     expect(await additions(client)).toEqual([{ copy_count: (await ownedCopies(client)).length, source: 'scan_batch' }]);
   });

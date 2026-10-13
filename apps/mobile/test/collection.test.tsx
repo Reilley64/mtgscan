@@ -1,10 +1,14 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
+import { processColor } from 'react-native';
 
 import { failCollectionReads, ownCollectionCopies, startSignedIn } from './fake-supabase';
-import { appearsBefore, cardImageUri, pressTab, scrollToEnd, selectedTab } from './native-ui';
+import { appearsBefore, cardImageUri, cardSheen, imageTintColor, pressTab, scrollToEnd, selectedTab } from './native-ui';
 import { setIconUri } from './card-printings';
 import { renderApp } from './render-app';
+import { tokenColors } from './token-colors';
+
+const { textMuted } = tokenColors;
 
 let entryNumber = 0;
 
@@ -21,6 +25,7 @@ function collectionEntryCopies(
     name,
     set: 'isd',
     collector_number: String(entryNumber),
+    rarity: 'common',
     image_uris: [`https://cards.scryfall.io/normal/front/${entryNumber}.jpg`],
     finish: 'nonfoil',
     condition: 'near_mint',
@@ -79,50 +84,84 @@ test('the binder grid shows one tile per copy with its image and no quantity bad
   expect(collection.queryByText('Your collection is empty')).not.toBeOnTheScreen();
 });
 
-test('chips under a tile show the set icon from the card catalog and the collector number', async () => {
+test('under each card, one line shows the set icon from the card catalog and the collector number', async () => {
   ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1, { set: 'exo', collector_number: '146' }));
 
   const collection = await openCollection();
 
   const tile = collection.getByRole('image', { name: 'Angelic Curator, EXO 146' });
-  const setChip = await within(tile).findByLabelText('EXO');
-  expect(cardImageUri(setChip)).toBe(setIconUri('exo'));
+  const setIcon = await within(tile).findByLabelText('EXO');
+  expect(cardImageUri(setIcon)).toBe(setIconUri('exo'));
   expect(within(tile).queryByText('EXO')).not.toBeOnTheScreen();
   expect(within(tile).getByText('146')).toBeOnTheScreen();
+  expect(within(tile).queryByText('·')).not.toBeOnTheScreen();
   expect(within(tile).queryByText('EXO 146')).not.toBeOnTheScreen();
 });
 
-test('the set chip shows the set code when the card catalog has no icon for the set', async () => {
+test('the set icon has the rarity color of the card printing', async () => {
+  ownCollectionCopies([
+    ...collectionEntryCopies('Angelic Curator', 1, { set: 'exo', collector_number: '1', rarity: 'mythic' }),
+    ...collectionEntryCopies('Ponder', 1, { set: 'lrw', collector_number: '79', rarity: 'common' }),
+  ]);
+
+  const collection = await openCollection();
+
+  const mythic = await within(collection.getByRole('image', { name: 'Angelic Curator, EXO 1' })).findByLabelText('EXO');
+  const common = within(collection.getByRole('image', { name: 'Ponder, LRW 79' })).getByLabelText('LRW');
+  expect(imageTintColor(mythic)).toBe(processColor('#f26a35'));
+  expect(imageTintColor(common)).toBe(processColor('#e6e8e9'));
+});
+
+test('the line shows the set code when the card catalog has no icon for the set', async () => {
   ownCollectionCopies(collectionEntryCopies('Sol Ring', 1, { set: 'c21', collector_number: '263' }));
 
   const collection = await openCollection();
 
   const tile = collection.getByRole('image', { name: 'Sol Ring, C21 263' });
-  expect(within(within(tile).getByLabelText('C21')).getByText('C21')).toBeOnTheScreen();
+  expect(within(tile).getByText('C21')).toBeOnTheScreen();
 });
 
-test('a tile shows the finish when it is not nonfoil and the condition when it is not NM', async () => {
+test.each([
+  ['lightly_played', 'LP', 'lightly played'],
+  ['moderately_played', 'MP', 'moderately played'],
+  ['heavily_played', 'HP', 'heavily played'],
+  ['damaged', 'DMG', 'damaged'],
+] as const)('a %s copy adds its condition to the line in the same muted text', async (condition, shown, spoken) => {
+  ownCollectionCopies(collectionEntryCopies('Ponder', 1, { set: 'lrw', collector_number: '79', condition }));
+
+  const collection = await openCollection();
+
+  const tile = collection.getByRole('image', { name: `Ponder, LRW 79, ${spoken}` });
+  expect(within(tile).getByText('·')).toBeOnTheScreen();
+  expect(within(tile).getByText(shown)).toHaveStyle({ color: textMuted });
+});
+
+test('foil and etched copies have a sheen on the card image and say their finish only to VoiceOver', async () => {
   ownCollectionCopies([
-    ...collectionEntryCopies('Angelic Curator', 1, { set: 'exo', collector_number: '1', finish: 'foil', condition: 'lightly_played' }),
+    ...collectionEntryCopies('Bloomvine Regent // Claim Territory', 1, {
+      set: 'tdm',
+      collector_number: '136',
+      finish: 'foil',
+      condition: 'moderately_played',
+    }),
     ...collectionEntryCopies('Sol Ring', 1, { set: 'cmm', collector_number: '464', finish: 'etched' }),
-    ...collectionEntryCopies('Ponder', 1, { set: 'lrw', collector_number: '79', condition: 'damaged' }),
     ...collectionEntryCopies('Ribbons of Night', 1, { set: 'shm', collector_number: '74' }),
   ]);
 
   const collection = await openCollection();
 
-  const foil = collection.getByRole('image', { name: 'Angelic Curator, EXO 1, Foil, LP' });
-  expect(within(foil).getByText('1')).toBeOnTheScreen();
-  expect(within(foil).getByText('Foil')).toBeOnTheScreen();
-  expect(within(foil).getByText('LP')).toBeOnTheScreen();
-  const etched = collection.getByRole('image', { name: 'Sol Ring, CMM 464, Etched' });
-  expect(within(etched).getByText('Etched')).toBeOnTheScreen();
-  expect(within(etched).queryByText('NM')).not.toBeOnTheScreen();
-  const damaged = collection.getByRole('image', { name: 'Ponder, LRW 79, DMG' });
-  expect(within(damaged).getByText('DMG')).toBeOnTheScreen();
-  expect(within(damaged).queryByText('Nonfoil')).not.toBeOnTheScreen();
-  const plain = collection.getByRole('image', { name: 'Ribbons of Night, SHM 74' });
-  ['Nonfoil', 'NM', 'English'].forEach((detail) => expect(within(plain).queryByText(detail)).not.toBeOnTheScreen());
+  const foil = collection.getByRole('image', {
+    name: 'Bloomvine Regent // Claim Territory, TDM 136, foil, moderately played',
+  });
+  const etched = collection.getByRole('image', { name: 'Sol Ring, CMM 464, etched' });
+  const nonfoil = collection.getByRole('image', { name: 'Ribbons of Night, SHM 74' });
+  expect(cardSheen(foil)).toMatchObject({ opacity: expect.closeTo(0.3) });
+  expect(cardSheen(etched)).toMatchObject({ opacity: expect.closeTo(0.3) });
+  expect(cardSheen(etched)!.experimental_backgroundImage).not.toEqual(cardSheen(foil)!.experimental_backgroundImage);
+  expect(cardSheen(nonfoil)).toBeNull();
+  for (const finish of ['Foil', 'Etched', 'Nonfoil', 'NM']) {
+    expect(collection.queryByText(finish)).not.toBeOnTheScreen();
+  }
 });
 
 test('the binder grid shows the newest addition first', async () => {

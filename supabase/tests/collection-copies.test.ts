@@ -15,7 +15,7 @@ const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
 const ribbonsOfNight = '010eba83-30ec-4cca-b07e-f24d8d2f0787';
 
-type CatalogPrinting = Pick<CollectionCopyRow, 'printing_id' | 'name' | 'set' | 'collector_number' | 'image_uris'>;
+type CatalogPrinting = Pick<CollectionCopyRow, 'printing_id' | 'name' | 'set' | 'collector_number' | 'rarity' | 'image_uris'>;
 
 type CopyKey = [entryId: string, copyNumber: number];
 
@@ -29,7 +29,7 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
   const { data, error } = await secretKeyClient()
     .from('card_printings')
-    .select('id, set_code, collector_number, image_uris, cards(name)')
+    .select('id, set_code, collector_number, rarity, image_uris, cards(name)')
     .order('id');
   expect(error).toBeNull();
   catalog = data!.map((printing) => ({
@@ -37,6 +37,7 @@ beforeAll(async () => {
     name: printing.cards!.name,
     set: printing.set_code,
     collector_number: printing.collector_number,
+    rarity: printing.rarity,
     image_uris: printing.image_uris,
   }));
 });
@@ -102,7 +103,7 @@ describe('the binder grid read', () => {
     expect(await collectionCopies(user)).toEqual({ items: [], next_cursor: null });
   });
 
-  test('each collection entry is one row per copy, with its card printing, finish, condition, language, and protected flag', async () => {
+  test('each collection entry is one row per copy, with its card printing and rarity, finish, condition, language, and protected flag', async () => {
     const user = await signUpNewUser();
     const added = await committed(
       user,

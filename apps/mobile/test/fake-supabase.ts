@@ -130,6 +130,7 @@ function addToCollection(stacks: ScanBatchStack[]) {
       name: printing.name,
       set: printing.setCode,
       collector_number: printing.collectorNumber,
+      rarity: 'common',
       image_uris: [cardImageUri(printing.printingId)],
       finish,
       condition,

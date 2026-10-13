@@ -1,5 +1,4 @@
 import { cva } from 'class-variance-authority';
-import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { choiceStates, verticalTouchSlop } from '@/components/atoms/control-style';
@@ -23,7 +22,6 @@ const toneVariants = cva('text-chip', {
 type StatusChipProps = {
   label: string;
   tone?: 'neutral' | 'warning' | 'danger' | 'info';
-  children?: ReactNode;
   selected?: never;
   onPress?: never;
 };
@@ -31,16 +29,15 @@ type StatusChipProps = {
 type SelectableChipProps = {
   label: string;
   tone?: never;
-  children?: never;
   selected: boolean;
   onPress: () => void;
 };
 
-export function Chip({ label, tone = 'neutral', children, selected, onPress }: StatusChipProps | SelectableChipProps) {
+export function Chip({ label, tone = 'neutral', selected, onPress }: StatusChipProps | SelectableChipProps) {
   if (!onPress) {
     return (
       <View accessible accessibilityLabel={label} className={cn(chipClass, 'self-start bg-surface-control')}>
-        {children ?? <Text className={toneVariants({ tone })}>{label}</Text>}
+        <Text className={toneVariants({ tone })}>{label}</Text>
       </View>
     );
   }

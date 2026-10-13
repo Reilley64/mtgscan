@@ -23,6 +23,11 @@ export const colors = {
   badge: '#e0244a',
   cardOutline: '#ff4fd8',
   cameraOff: '#000000',
+  rarityCommon: '#e6e8e9',
+  rarityUncommon: '#a7bccb',
+  rarityRare: '#e2bd5a',
+  rarityMythic: '#f26a35',
+  raritySpecial: '#b48ef0',
 } as const;
 
 export const appleButtonColors = {
@@ -70,6 +75,7 @@ export const rounded = {
 
 export const opacity = {
   dimmed: 0.38,
+  sheen: 0.3,
 } as const;
 
 export const sizes = {
@@ -118,7 +124,31 @@ const scrimStops = [
   ['e6', '62%'],
 ] as const;
 
+const foilSheenStops = [
+  ['transparent', '22%'],
+  ['rgba(255, 80, 170, 0.55)', '34%'],
+  ['rgba(255, 230, 90, 0.5)', '42%'],
+  ['rgba(80, 255, 200, 0.5)', '50%'],
+  ['rgba(80, 150, 255, 0.55)', '58%'],
+  ['rgba(200, 110, 255, 0.5)', '66%'],
+  ['transparent', '78%'],
+] as const;
+
+const etchedSheenStops = [
+  ['transparent', '25%'],
+  ['rgba(255, 255, 255, 0.55)', '42%'],
+  ['rgba(200, 210, 215, 0.25)', '50%'],
+  ['rgba(255, 255, 255, 0.55)', '58%'],
+  ['transparent', '75%'],
+] as const;
+
+function linearGradient(angle: string, stops: readonly (readonly [string, string])[]) {
+  return `linear-gradient(${angle}, ${stops.map(([color, stop]) => `${color} ${stop}`).join(', ')})`;
+}
+
 export const gradients = {
+  foilSheen: linearGradient('115deg', foilSheenStops),
+  etchedSheen: linearGradient('120deg', etchedSheenStops),
   binderWallScrim: `linear-gradient(180deg, ${scrimStops.map(([alpha, stop]) => `${colors.background}${alpha} ${stop}`).join(', ')})`,
 } as const;
 

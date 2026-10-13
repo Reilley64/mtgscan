@@ -4,6 +4,7 @@ import { processColor, View } from 'react-native';
 
 import { AppleSignInButton } from '@/components/atoms/apple-sign-in-button';
 import { Button } from '@/components/atoms/button';
+import { CardImage } from '@/components/atoms/card-image';
 import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { Chip } from '@/components/atoms/chip';
 import { CountBadge } from '@/components/atoms/count-badge';
@@ -21,6 +22,7 @@ import { Toggle } from '@/components/atoms/toggle';
 import {
   appleSignInButton,
   cardImageUri,
+  cardSheen,
   imageTintColor,
   placeholderColor,
   pressSignInWithApple,
@@ -246,19 +248,6 @@ describe('Chip', () => {
       height: 24,
       borderRadius: 12,
     });
-  });
-
-  test('a status chip with an icon shows the icon in place of its label and keeps the label for VoiceOver', async () => {
-    await render(
-      <Chip label="M10">
-        <SetIcon uri="https://svgs.scryfall.io/sets/m10.svg" />
-      </Chip>,
-    );
-
-    const chip = screen.getByLabelText('M10');
-    expect(cardImageUri(chip)).toBe('https://svgs.scryfall.io/sets/m10.svg');
-    expect(screen.queryByText('M10')).not.toBeOnTheScreen();
-    expect(chip).toHaveStyle({ backgroundColor: surfaceControl, height: 24, borderRadius: 12 });
   });
 
   test('a status chip is not a button', async () => {
@@ -529,6 +518,61 @@ describe('SetIcon', () => {
     expect(icon).toHaveStyle({ width: 16, height: 16 });
     expect(cardImageUri(label)).toBe('https://svgs.scryfall.io/sets/m10.svg');
     expect(imageTintColor(label)).toBe(processColor('#ffffff'));
+  });
+
+  test.each([
+    ['common', '#e6e8e9'],
+    ['uncommon', '#a7bccb'],
+    ['rare', '#e2bd5a'],
+    ['mythic', '#f26a35'],
+    ['special', '#b48ef0'],
+    ['bonus', '#b48ef0'],
+  ] as const)('a set icon for the %s rarity is tinted with its rarity color', async (rarity, color) => {
+    await render(
+      <View accessibilityLabel="M10">
+        <SetIcon uri="https://svgs.scryfall.io/sets/m10.svg" rarity={rarity} />
+      </View>,
+    );
+
+    expect(imageTintColor(screen.getByLabelText('M10'))).toBe(processColor(color));
+  });
+
+  test('a set icon of a rarity the app does not know keeps the text color', async () => {
+    await render(
+      <View accessibilityLabel="M10">
+        <SetIcon uri="https://svgs.scryfall.io/sets/m10.svg" rarity={'timeshifted' as 'rare'} />
+      </View>,
+    );
+
+    expect(imageTintColor(screen.getByLabelText('M10'))).toBe(processColor('#ffffff'));
+  });
+});
+
+describe('CardImage', () => {
+  function tile(sheen?: 'foil' | 'etched') {
+    return render(
+      <View accessibilityLabel="Card">
+        <CardImage uri="https://cards.scryfall.io/normal/front/sol-ring.jpg" sheen={sheen} />
+      </View>,
+    );
+  }
+
+  test('a card image without a sheen has no overlay', async () => {
+    await tile();
+
+    expect(cardSheen(screen.getByLabelText('Card'))).toBeNull();
+  });
+
+  test.each([
+    ['foil', 'linear-gradient(115deg, transparent 22%, rgba(255, 80, 170, 0.55) 34%'],
+    ['etched', 'linear-gradient(120deg, transparent 25%, rgba(255, 255, 255, 0.55) 42%'],
+  ] as const)('the %s sheen is a faint, still gradient over the card image', async (sheen, gradientStart) => {
+    await tile(sheen);
+
+    const overlay = cardSheen(screen.getByLabelText('Card'))!;
+    expect(String(overlay.experimental_backgroundImage).startsWith(gradientStart)).toBe(true);
+    expect(overlay).toMatchObject({ position: 'absolute', opacity: expect.closeTo(0.3) });
+    expect(overlay).not.toHaveProperty('transform');
   });
 });
 

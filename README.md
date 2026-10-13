@@ -186,7 +186,7 @@ Signed-in users read their collection as copies with `supabase.rpc('list_collect
 
 - Each collection entry gives one row per copy.
 - The copy key is `collection_entry_id` and `copy_number`. The copy number runs from 1 to the entry's quantity.
-- The card printing is `printing_id`, `name`, `set`, `collector_number`, and `image_uris`.
+- The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`.
 - The collection entry gives `finish`, `condition`, `language`, and `protected`.
 - Copies that merge into an entry get the next copy numbers, and the existing copy keys stay the same. Copy numbers are positions in the entry, so when copies leave an entry, the last copy numbers go away.
 - Rows sort by the card printing's latest addition time, newest first, then by name, card printing ID, collection entry ID, and copy number. Copies of the same card printing sit next to each other.

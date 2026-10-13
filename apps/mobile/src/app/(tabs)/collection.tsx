@@ -5,10 +5,10 @@ import { useSetIcons } from '@/catalog/use-set-icons';
 import { Button } from '@/components/atoms/button';
 import { Text } from '@/components/atoms/text';
 import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
-import { CopyChips } from '@/components/molecules/copy-chips';
+import { CopyMeta } from '@/components/molecules/copy-meta';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { TabListScreen } from '@/components/templates/tab-screen';
-import { finishAndConditionLabels } from '@/collection/copy-labels';
+import { shownCondition, spokenFinishAndCondition } from '@/collection/copy-labels';
 import { useCollectionCopies, type BinderRead } from '@/collection/use-collection-copies';
 
 function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAgain: () => void }) {
@@ -31,13 +31,22 @@ function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAg
 }
 
 function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri: string | undefined }) {
-  const setCode = copy.set.toUpperCase();
-  const details = finishAndConditionLabels(copy);
   return (
     <CardTile
       uri={copy.image_uris[0]}
-      accessibilityLabel={[copy.name, `${setCode} ${copy.collector_number}`, ...details].join(', ')}>
-      <CopyChips setCode={copy.set} setIconUri={setIconUri} collectorNumber={copy.collector_number} details={details} />
+      sheen={copy.finish === 'nonfoil' ? undefined : copy.finish}
+      accessibilityLabel={[
+        copy.name,
+        `${copy.set.toUpperCase()} ${copy.collector_number}`,
+        ...spokenFinishAndCondition(copy),
+      ].join(', ')}>
+      <CopyMeta
+        setCode={copy.set}
+        rarity={copy.rarity}
+        setIconUri={setIconUri}
+        collectorNumber={copy.collector_number}
+        condition={shownCondition(copy.condition)}
+      />
     </CardTile>
   );
 }

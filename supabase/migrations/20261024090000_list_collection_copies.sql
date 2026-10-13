@@ -64,6 +64,7 @@ begin
       c.name,
       p.set_code as set,
       p.collector_number,
+      p.rarity,
       p.image_uris,
       owned.finish,
       owned.condition,
