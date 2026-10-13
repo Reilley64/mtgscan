@@ -28,6 +28,7 @@ import {
   cardImageUri,
   glassEffect,
   glassGroupOf,
+  isDrawerPresented,
   lineColoredBlocks,
   openSettings,
   presentedDrawer,
@@ -36,6 +37,7 @@ import {
   swipeDownDrawer,
   symbolNames,
   symbolTintColor,
+  tapOutsideDrawer,
 } from './native-ui';
 import { renderApp } from './render-app';
 import { latestScanChip, openLatestScan, openScan, scanACard, scanTab, selectedChoice } from './scanning';
@@ -344,14 +346,25 @@ test('tapping the chip opens the details sheet with the card image, name, set an
   expect(screen.getByRole('button', { name: 'Remove scan' })).toBeOnTheScreen();
 });
 
-test('the details sheet opens as a bottom drawer with a grabber at half height that drags to full height', async () => {
+test('the details sheet opens as a bottom drawer with a grabber at full height only', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
 
   await openLatestScan('Lightning Bolt, M10 146');
 
-  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [0.5, 1], openingHeight: 0.5 });
+  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [1], openingHeight: 1 });
+});
+
+test('a tap outside closes the details sheet', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+  await openLatestScan('Lightning Bolt, M10 146');
+
+  await tapOutsideDrawer();
+
+  expect(isDrawerPresented()).toBe(false);
 });
 
 test('a downward swipe closes the details sheet', async () => {
@@ -629,6 +642,23 @@ test('the set quick action lists every printing of the card with images, same-te
     ),
   );
   expect(screen.getByRole('button', { name: 'Lightning Bolt, M10 146', selected: true })).toBeOnTheScreen();
+});
+
+test('the printing picker opens as a bottom drawer with a grabber at full height only and closes with a downward swipe or a tap outside', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: 'M10' }));
+  await screen.findByRole('button', { name: 'Lightning Bolt, 2XM 117' });
+
+  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [1], openingHeight: 1 });
+  await swipeDownDrawer();
+  expect(isDrawerPresented()).toBe(false);
+  await fireEvent.press(scanTab().getByRole('button', { name: 'M10' }));
+  await screen.findByRole('button', { name: 'Lightning Bolt, 2XM 117' });
+  await tapOutsideDrawer();
+  expect(isDrawerPresented()).toBe(false);
 });
 
 test('picking a printing from the set quick action switches the latest scan and keeps its finish when the printing has it', async () => {

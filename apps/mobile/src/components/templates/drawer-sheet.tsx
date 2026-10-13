@@ -1,8 +1,23 @@
+import type { NativeStackNavigationOptions } from 'expo-router';
 import type { ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { Text } from '@/components/atoms/text';
 import { cn } from '@/lib/class-names';
+import { colors } from '@/theme';
+
+export const halfHeightDrawerOptions: NativeStackNavigationOptions = {
+  presentation: 'formSheet',
+  sheetAllowedDetents: [0.5, 1],
+  sheetGrabberVisible: true,
+  sheetExpandsWhenScrolledToEdge: false,
+  contentStyle: { backgroundColor: colors.sheet },
+};
+
+export const fullHeightDrawerOptions: NativeStackNavigationOptions = {
+  ...halfHeightDrawerOptions,
+  sheetAllowedDetents: [1],
+};
 
 type DrawerSheetProps = {
   title?: string;

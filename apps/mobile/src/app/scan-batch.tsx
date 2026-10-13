@@ -15,6 +15,7 @@ export default function BatchReviewSheet() {
   const navigation = useNavigation();
   const { batch, dispatch, commit, commitStatus } = useScanBatch();
   const copyCount = scansToAdd(batch).length;
+  const title = copyCount === 1 ? '1 card scanned' : `${copyCount} cards scanned`;
 
   const addToCollection = async () => {
     if ((await commit()) && navigation.isFocused()) {
@@ -32,13 +33,13 @@ export default function BatchReviewSheet() {
         disabled={copyCount === 0}
         busy={commitStatus === 'adding'}
         onPress={() => void addToCollection()}>
-        <Text>{commitStatus === 'failed' ? 'Try again' : `Add ${copyCount} to collection`}</Text>
+        <Text>{commitStatus === 'failed' ? 'Try again' : 'Add to collection'}</Text>
       </Button>
     </>
   );
 
   return (
-    <DrawerSheet title="Scan batch" footer={footer}>
+    <DrawerSheet title={title} footer={footer}>
       <SheetSection title="Condition for new scans">
         <ChipGroup
           values={conditions}

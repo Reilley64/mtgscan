@@ -382,6 +382,9 @@ export function PrimitiveCatalog() {
           <Button onPress={() => router.push('/primitives-sheet')}>
             <Text>Open the drawer sheet</Text>
           </Button>
+          <Button onPress={() => router.push('/primitives-full-height-sheet')}>
+            <Text>Open the full-height drawer sheet</Text>
+          </Button>
         </Section>
       </ScrollView>
     </View>

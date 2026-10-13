@@ -114,7 +114,7 @@ The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in accou
 - After every change, the phone writes the scan batch to `scan-batch-<user ID>.json` in the app's documents folder with `expo-file-system`. The file holds a format version, the scans, the condition and language for new scans, and the pending commit. `src/scan/scan-batch-file.ts` reads and writes it.
 - When an account signs in, the phone reads its file back. Sign-out keeps the file and clears the scan batch from the screen.
 - Each scan gets a UUID when it is made, including a scan from **+1**. It is the copy ID of that copy.
-- **Add N to collection** calls `add_scan_batch` with one stack per card printing, finish, condition, and language, and the copy IDs of its scans. The server adds each copy ID once, so a retry never adds a copy twice, even after the scan batch changed.
+- **Add to collection** calls `add_scan_batch` with one stack per card printing, finish, condition, and language, and the copy IDs of its scans. The server adds each copy ID once, so a retry never adds a copy twice, even after the scan batch changed.
 - The file marks a commit that has not finished. At sign-in, the phone sends that commit again by itself.
 - A commit that works removes the scans it sent. A commit that fails keeps every scan. Batch review rows do not open while a commit runs.
 - Pulling down on the Scan tab adds the scan batch with the same commit as **Add N to collection**. `src/scan/use-pull-to-add.ts` tracks the pull with React Native's `PanResponder`, so the app needs no gesture library.

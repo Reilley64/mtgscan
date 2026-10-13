@@ -74,3 +74,12 @@ test('the primitive catalog opens the drawer sheet sample as a bottom drawer', a
   expect(screen.getByRole('button', { name: 'The footer stays at the bottom' })).toBeOnTheScreen();
   expect(presentedDrawer()).toMatchObject({ showsGrabber: true, openingHeight: 0.5, heights: [0.5, 1] });
 });
+
+test('the primitive catalog opens the full-height drawer sheet sample at full height only', async () => {
+  await renderApp('/primitives');
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Open the full-height drawer sheet' }));
+
+  expect(await screen.findByRole('header', { name: 'Full-height drawer sheet' })).toBeOnTheScreen();
+  expect(presentedDrawer()).toEqual({ showsGrabber: true, openingHeight: 1, heights: [1] });
+});

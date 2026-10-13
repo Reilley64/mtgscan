@@ -44,7 +44,7 @@ module.exports = defineConfig([
     ignores: ['dist/*', 'ios/*', 'android/*', '.expo/*'],
   },
   {
-    files: ['src/auth/test-sign-in.ts', 'src/app/primitives.tsx', 'src/app/primitives-sheet.tsx'],
+    files: ['src/auth/test-sign-in.ts', 'src/app/primitives.tsx', 'src/app/primitives-sheet.tsx', 'src/app/primitives-full-height-sheet.tsx'],
     rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   {

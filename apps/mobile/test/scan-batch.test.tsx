@@ -10,13 +10,21 @@ import {
   signInNextWithEmail,
   startSignedIn,
 } from './fake-supabase';
-import { isDrawerPresented, openSettings, presentedDrawer, pressTab, selectedTab, swipeDownDrawer } from './native-ui';
+import {
+  isDrawerPresented,
+  openSettings,
+  presentedDrawer,
+  pressTab,
+  selectedTab,
+  swipeDownDrawer,
+  tapOutsideDrawer,
+} from './native-ui';
 import { restartTheApp } from './render-app';
 import { latestScanChip, openLatestScan, openScan, scanACard, scanTab, selectedChoice } from './scanning';
 
 async function openBatchReview(count?: number) {
   await fireEvent.press(scanTab().getByRole('button', { name: count ? `Scan batch, ${count}` : 'Scan batch' }));
-  return screen.findByRole('header', { name: 'Scan batch' });
+  return screen.findByRole('header', { name: /^\d+ cards? scanned$/ });
 }
 
 function reviewRows() {
@@ -26,8 +34,8 @@ function reviewRows() {
     .filter((label) => label?.includes(' · '));
 }
 
-async function addToCollection(copies: number) {
-  await fireEvent.press(screen.getByRole('button', { name: `Add ${copies} to collection` }));
+async function addToCollection() {
+  await fireEvent.press(screen.getByRole('button', { name: 'Add to collection' }));
 }
 
 async function pressPlusOne() {
@@ -52,18 +60,44 @@ test('the batch button counts the copies to add and leaves out scans that were n
   expect(scanTab().getByText('2')).toBeOnTheScreen();
   await openBatchReview(2);
   expect(screen.getByRole('button', { name: 'Not recognized, Tap to search' })).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Add 2 to collection' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: '2 cards scanned' })).toBeOnTheScreen();
 });
 
-test('the batch button opens batch review as a bottom drawer at half height that drags to full height', async () => {
+test('the batch button opens batch review as a bottom drawer with a grabber at full height only', async () => {
   await openScan();
 
   await openBatchReview();
 
-  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [0.5, 1], openingHeight: 0.5 });
-  expect(screen.getByRole('button', { name: 'Add 0 to collection' })).toBeDisabled();
+  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [1], openingHeight: 1 });
+  expect(screen.getByRole('header', { name: '0 cards scanned' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Add to collection' })).toBeDisabled();
   await swipeDownDrawer();
   expect(isDrawerPresented()).toBe(false);
+});
+
+test('a tap outside closes batch review', async () => {
+  await openScan();
+  await openBatchReview();
+
+  await tapOutsideDrawer();
+
+  expect(isDrawerPresented()).toBe(false);
+});
+
+test('batch review is titled with the number of cards scanned, one card in the singular', async () => {
+  nextPhotosAre('unreadable_photo', cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+  await scanACard();
+
+  await openBatchReview(1);
+
+  expect(screen.getByRole('header', { name: '1 card scanned' })).toBeOnTheScreen();
+  await swipeDownDrawer();
+  await pressPlusOne();
+  await openBatchReview(2);
+  expect(screen.getByRole('header', { name: '2 cards scanned' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Add to collection' })).toBeEnabled();
 });
 
 test('batch review lists every copy as its own row with no merging and no +/- control', async () => {
@@ -83,7 +117,7 @@ test('batch review lists every copy as its own row with no merging and no +/- co
     'Lightning Bolt, M10 146 · NM · English',
   ]);
   expect(screen.queryByRole('button', { name: /^[+-]$/ })).not.toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Add 4 to collection' })).toBeEnabled();
+  expect(screen.getByRole('header', { name: '4 cards scanned' })).toBeOnTheScreen();
 });
 
 test('+1 copies the finish, condition, and language, and each copy is edited on its own', async () => {
@@ -131,7 +165,7 @@ test('Remove scan in the scan details sheet removes only that copy from batch re
   await fireEvent.press(screen.getByRole('button', { name: 'Lightning Bolt, M10 146 · NM · English' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Remove scan' }));
 
-  expect(screen.getByRole('header', { name: 'Scan batch' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: '1 card scanned' })).toBeOnTheScreen();
   expect(reviewRows()).toEqual(['Shock, M19 156 · NM · English']);
   await swipeDownDrawer();
   expect(latestScanChip('Shock, M19 156')).toBeOnTheScreen();
@@ -145,7 +179,7 @@ test('batch review lists scans that were not recognized, and a tap opens name se
   await openBatchReview(1);
 
   expect(screen.getByRole('header', { name: 'Not recognized' })).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Add 1 to collection' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: '1 card scanned' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Not recognized, Tap to search' }));
 
   expect(await screen.findByLabelText('Card name')).toBeOnTheScreen();
@@ -170,7 +204,7 @@ test('the condition and language for new scans start at near mint and English an
   expect(selectedChoice('German')).toBeOnTheScreen();
 });
 
-test('Add N to collection sends every copy with its own copy ID, with identical copies in one stack', async () => {
+test('Add to collection sends every copy with its own copy ID, with identical copies in one stack', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock], { premiumMark: true }), 'unreadable_photo');
   await openScan();
   await scanACard();
@@ -179,7 +213,7 @@ test('Add N to collection sends every copy with its own copy ID, with identical 
   await scanACard();
   await openBatchReview(3);
 
-  await addToCollection(3);
+  await addToCollection();
 
   const [sent] = scanBatchesSentToTheServer();
   expect(sent.items.map(({ copy_ids, ...stack }) => ({ ...stack, copies: copy_ids.length }))).toEqual([
@@ -204,7 +238,7 @@ test('a commit closes batch review, leaves the chip empty, keeps scans that were
   await scanACard();
   await openBatchReview(2);
 
-  await addToCollection(2);
+  await addToCollection();
 
   expect(isDrawerPresented()).toBe(false);
   expectAnEmptyChip();
@@ -220,9 +254,9 @@ test('rows cannot be opened while the commit runs', async () => {
   await openBatchReview(1);
   const commit = holdNextScanBatchCommit();
 
-  await addToCollection(1);
+  await addToCollection();
 
-  expect(screen.getByRole('button', { name: 'Add 1 to collection' })).toBeBusy();
+  expect(screen.getByRole('button', { name: 'Add to collection' })).toBeBusy();
   expect(screen.queryByRole('button', { name: 'Lightning Bolt, M10 146 · NM · English' })).not.toBeOnTheScreen();
   expect(screen.getByLabelText('Lightning Bolt, M10 146 · NM · English')).toBeOnTheScreen();
   await commit.finish();
@@ -235,7 +269,7 @@ test('a failed commit keeps the batch and Try again sends the same copy IDs', as
   await openBatchReview(1);
   failNextScanBatchCommit('before the server adds it');
 
-  await addToCollection(1);
+  await addToCollection();
 
   expect(screen.getByText('Could not add to your collection. Your scans are kept.')).toBeOnTheScreen();
   expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English']);
@@ -255,7 +289,7 @@ test('Try again after a commit that the server added but the phone did not hear 
   await openBatchReview(2);
   failNextScanBatchCommit('after the server adds it');
 
-  await addToCollection(2);
+  await addToCollection();
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
   await pressTab('Collection');
 
@@ -268,7 +302,7 @@ test('Try again after the scan batch changed adds only the copies the server did
   await scanACard();
   await openBatchReview(1);
   failNextScanBatchCommit('after the server adds it');
-  await addToCollection(1);
+  await addToCollection();
   await swipeDownDrawer();
 
   await scanACard();
@@ -291,7 +325,7 @@ test('the failed commit stays after a change to the condition and language for n
   await scanACard();
   await openBatchReview(1);
   failNextScanBatchCommit('before the server adds it');
-  await addToCollection(1);
+  await addToCollection();
 
   await fireEvent.press(screen.getByRole('button', { name: 'LP' }));
 
@@ -324,7 +358,7 @@ test('a restart after a commit that did not finish sends it again with the same 
   await scanACard();
   await openBatchReview(1);
   failNextScanBatchCommit('after the server adds it');
-  await addToCollection(1);
+  await addToCollection();
 
   await restartTheApp();
   await pressTab('Scan');
