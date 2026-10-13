@@ -100,7 +100,7 @@ test('a tile shows the finish when it is not nonfoil and the condition when it i
   expect(within(damaged).getByText('DMG')).toBeOnTheScreen();
   expect(within(damaged).queryByText('Nonfoil')).not.toBeOnTheScreen();
   const plain = collection.getByRole('image', { name: 'Ribbons of Night, SHM 74' });
-  expect(within(plain).getAllByText(/./).map((text) => text.props.children)).toEqual(['SHM 74']);
+  ['Nonfoil', 'NM', 'English'].forEach((detail) => expect(within(plain).queryByText(detail)).not.toBeOnTheScreen());
 });
 
 test('the binder grid shows the newest addition first', async () => {

@@ -34,10 +34,14 @@ export const languageNames: Record<CardLanguage, string> = {
   zht: 'Traditional Chinese',
 };
 
-export function finishMark(finish: Finish) {
+export function finishDetails(finish: Finish) {
   return finish === 'nonfoil' ? [] : [finishLabels[finish]];
 }
 
-export function copyMarks({ finish, condition }: { finish: Finish; condition: CardCondition }) {
-  return [...finishMark(finish), ...(condition === 'near_mint' ? [] : [conditionLabels[condition]])];
+function conditionDetails(condition: CardCondition) {
+  return condition === 'near_mint' ? [] : [conditionLabels[condition]];
+}
+
+export function copyBadges({ finish, condition }: { finish: Finish; condition: CardCondition }) {
+  return [...finishDetails(finish), ...conditionDetails(condition)];
 }

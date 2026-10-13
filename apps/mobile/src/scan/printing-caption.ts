@@ -1,4 +1,4 @@
-import { conditionLabels, finishMark, languageNames } from '@/collection/copy-labels';
+import { conditionLabels, finishDetails, languageNames } from '@/collection/copy-labels';
 
 import type { Printing, RecognizedScan } from './scan-batch';
 
@@ -7,7 +7,7 @@ export function printingCaption(printing: Printing) {
 }
 
 export function chipDetails(scan: RecognizedScan) {
-  return [printingCaption(scan.printing), ...finishMark(scan.finish)];
+  return [printingCaption(scan.printing), ...finishDetails(scan.finish)];
 }
 
 export function copyDetails(scan: RecognizedScan) {

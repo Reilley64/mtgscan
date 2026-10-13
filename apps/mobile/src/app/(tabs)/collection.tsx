@@ -6,7 +6,7 @@ import { Text } from '@/components/atoms/text';
 import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { TabListScreen } from '@/components/templates/tab-screen';
-import { copyMarks } from '@/collection/copy-labels';
+import { copyBadges } from '@/collection/copy-labels';
 import { useCollectionCopies, type BinderRead } from '@/collection/use-collection-copies';
 
 function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAgain: () => void }) {
@@ -30,13 +30,13 @@ function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAg
 
 function BinderTile({ copy }: { copy: CollectionCopyRow }) {
   const caption = `${copy.set.toUpperCase()} ${copy.collector_number}`;
-  const marks = copyMarks(copy);
+  const badges = copyBadges(copy);
   return (
     <CardTile
       uri={copy.image_uris[0]}
       caption={caption}
-      badges={marks}
-      accessibilityLabel={[copy.name, caption, ...marks].join(', ')}
+      badges={badges}
+      accessibilityLabel={[copy.name, caption, ...badges].join(', ')}
     />
   );
 }
