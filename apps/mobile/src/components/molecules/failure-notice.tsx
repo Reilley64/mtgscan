@@ -15,7 +15,9 @@ export function FailureNotice({ message }: { message: string }) {
           !
         </Text>
       </View>
-      <Text variant="body-strong">{message}</Text>
+      <Text variant="body-strong" className="flex-1">
+        {message}
+      </Text>
     </Surface>
   );
 }
