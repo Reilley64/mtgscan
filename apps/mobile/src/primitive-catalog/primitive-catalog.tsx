@@ -168,6 +168,7 @@ function Surfaces() {
       <GalleryCard date="12 October 2026" status="Up to date" />
       <GalleryCard date={null} status={null} />
       <FailureNotice message="Sign-in did not work." />
+      <FailureNotice message="Could not add to your collection. Your scans are kept." />
     </Section>
   );
 }
