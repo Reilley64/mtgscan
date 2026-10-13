@@ -42,6 +42,6 @@ function conditionDetails(condition: CardCondition) {
   return condition === 'near_mint' ? [] : [conditionLabels[condition]];
 }
 
-export function copyBadges({ finish, condition }: { finish: Finish; condition: CardCondition }) {
+export function finishAndConditionLabels({ finish, condition }: { finish: Finish; condition: CardCondition }) {
   return [...finishDetails(finish), ...conditionDetails(condition)];
 }

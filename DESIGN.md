@@ -263,7 +263,7 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 - **Text (#ffffff)** is primary. **Text muted (#b5c0c5)** is for printing details and captions. **Text dim (#7d8a90)** is for unselected tab labels and quiet metadata.
 - **Primary (#d8ff62)**, the lime accent, is the single interaction color: the primary button, the selected chip, the selected tab, section headings, and in-app links. Text on it is **on-primary (#101500)**. The brand mark is the one non-action use of lime.
 - **Grabber (#4a555b)** draws the short bar at the top of the sign-in sheet. The settings drawer uses the iOS system grabber, which iOS draws in its own color.
-- **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message and the destructive buttons. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall and the finish and condition badges on binder tiles.
+- **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message and the destructive buttons. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall.
 - **Incoming (#d8ff62)** and **outgoing (#ff8a7a)** mark the plus and minus lines of a deck suggestion, planned swap, or deck change.
 - **Warning (#f4d06f)** marks protected copies and caution states. **Danger (#ff7a70)** marks invalid decks and destructive actions such as remove scan or revert. **Info (#8fd3ff)** marks the estimated bracket and in-deck counts.
 - **Badge (#e0244a)** is only for count badges on tabs and buttons, such as Needs you.
@@ -303,7 +303,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Copies of the same card printing sit next to each other. The card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
   - With no collection entries, the tab shows "Your collection is empty" and "Scan cards to add them to your collection."
   - When the read fails, the tab shows "Could not load your collection" and "Check your connection." with a **Try again** button.
-  - Each tile shows the finish when it is not nonfoil and the condition when it is not NM. Later, badges also show whether the copy is in a deck, held by a planned swap, or protected.
+  - Chips under each card show the set, the collector number, the finish when it is not nonfoil, and the condition when it is not NM. Later, badges also show whether the copy is in a deck, held by a planned swap, or protected.
   - Search matches name, type, and printing, in the collection only. Filters: All, Free, Allocated, Protected.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
@@ -413,7 +413,7 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Text links.** An in-app link inside a line of text, such as **Privacy policy**, keeps the type size of its line in bold lime. It is the one control without a 44 pt touch target, because a nested text run cannot take extra touch area.
 - **Failure notice.** A surface card with 12 px padding and a danger mark beside the message, such as "Sign-in did not work." A long message wraps in the space beside the mark, and the mark lines up with its first line.
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
-- **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Their text uses the text, warning, danger, or info color. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide.
+- **Chips.** Status chips show priority, validity, estimated bracket, set, collector number, finish, condition, language, and copy states such as "2 free" or "Protected only". A set chip shows the set's expansion symbol in place of its text. Their text uses the text, warning, danger, or info color. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, the batch button, and the card page Decks tab.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and card page deck lists. It opens the deck.
@@ -454,11 +454,15 @@ The interface is flat. Depth comes from tone, not shadow.
   - When the app restarts after a commit that failed or was still running, it sends the commit again by itself.
   - While the commit runs, rows do not open.
   - The phone saves the scan batch and its defaults for each account, so they survive a restart. Another account on the phone does not see them.
-- **Binder tile.** One copy's card image, with a set and collector number caption and corner badges for the copy. There is no quantity badge. Tiles of foil copies carry a subtle sheen.
+- **Binder tile.** One copy's card image with a row of status chips under it. There is no quantity badge and no caption. Tiles of foil copies carry a subtle sheen.
   - Until the image loads, the tile is a line-colored card shape.
-  - The caption is meta text in text muted: the set code in capitals and the collector number, such as "ISD 51".
-  - Badges sit in a row in the top left corner, 5 px from both edges and 4 px apart. Each is a quantity badge with a word in place of the number. The finish comes first when it is not nonfoil: "Foil" or "Etched". The condition follows when it is not NM: "LP", "MP", "HP", or "DMG".
-  - VoiceOver reads the name, the set code and collector number, and the badges, such as "Angelic Curator, EXO 1, Foil, LP".
+  - The chips sit 4 px below the card image and 4 px apart, in this order:
+    - the set chip, with the set's expansion symbol from Scryfall at 16 px tinted with the text color, or the set code in capitals when the card catalog has no symbol for the set or it has not loaded;
+    - the collector number, such as "136";
+    - the finish when it is not nonfoil: "Foil" or "Etched";
+    - the condition when it is not NM: "LP", "MP", "HP", or "DMG".
+  - The chips wrap to a second line when they do not fit the tile width. Each line is centered under the card. Card images in a row stay level.
+  - VoiceOver reads the tile as one image: the name, the set code in capitals and the collector number, and the finish and condition chips, such as "Angelic Curator, EXO 1, Foil, LP".
   - Tiles open nothing yet. The card page, the badges for decks, planned swaps, and protected copies, and the sheen come later.
 - **Commander gallery card.** Full-width commander art with a dark gradient, the deck name in card-title type, status chips, and a Needs you badge.
 

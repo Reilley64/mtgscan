@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -11,6 +11,7 @@ import { Brand } from '@/components/molecules/brand';
 import { CardGrid } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
+import { CopyChips } from '@/components/molecules/copy-chips';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
@@ -24,6 +25,7 @@ import { tokenColors } from './token-colors';
 
 const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted } = tokenColors;
 const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
+const mh3Symbol = 'https://svgs.scryfall.io/sets/mh3.svg';
 const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
 
 describe('ChipGroup', () => {
@@ -210,14 +212,17 @@ describe('CardTile', () => {
     expect(screen.queryByRole('button')).not.toBeOnTheScreen();
   });
 
-  test('a card tile with badges shows each in a round badge in the top left corner of the image', async () => {
-    await render(<CardTile uri={solRing} caption="CMM 464" accessibilityLabel="Sol Ring, CMM 464, Foil, LP" badges={['Foil', 'LP']} />);
+  test('a card tile without a caption shows what it holds under the card image', async () => {
+    await render(
+      <CardTile uri={solRing} accessibilityLabel="Sol Ring, CMM 464">
+        <Text>Under the card</Text>
+      </CardTile>,
+    );
 
-    for (const badge of ['Foil', 'LP']) {
-      expect(screen.getByText(badge)).toHaveStyle({ color: white, fontSize: 10, fontWeight: '700' });
-      expect(screen.getByText(badge).parent).toHaveStyle({ height: 19, minWidth: 19, borderRadius: 999 });
-    }
-    expect(screen.getByText('Foil').parent!.parent).toHaveStyle({ position: 'absolute', top: 5, left: 5, flexDirection: 'row', columnGap: 4 });
+    const tile = screen.getByRole('image', { name: 'Sol Ring, CMM 464' });
+    expect(cardImageUri(tile)).toBe(solRing);
+    expect(within(tile).getByText('Under the card')).toBeOnTheScreen();
+    expect(screen.queryByText('CMM 464')).not.toBeOnTheScreen();
   });
 
   test('a card tile with an action is a button with its selected state', async () => {
@@ -259,6 +264,38 @@ describe('CardTile', () => {
     );
 
     expect(screen.getByRole('image', { name: 'Sol Ring, CMM 464' }).parent).toHaveStyle({ width: '33.33%' });
+  });
+});
+
+describe('CopyChips', () => {
+  test('copy chips show the set icon, the collector number, and each detail as status chips', async () => {
+    await render(<CopyChips setCode="mh3" setIconUri={mh3Symbol} collectorNumber="136" details={['Foil', 'MP']} />);
+
+    const setChip = screen.getByLabelText('MH3');
+    expect(cardImageUri(setChip)).toBe(mh3Symbol);
+    expect(screen.queryByText('MH3')).not.toBeOnTheScreen();
+    for (const label of ['136', 'Foil', 'MP']) {
+      expect(screen.getByText(label)).toHaveStyle({ color: white, fontSize: 11, fontWeight: '700' });
+      expect(screen.getByLabelText(label)).toHaveStyle({ backgroundColor: surfaceControl, height: 24, borderRadius: 12 });
+    }
+  });
+
+  test('the set chip shows the set code when there is no set icon', async () => {
+    await render(<CopyChips setCode="c21" setIconUri={undefined} collectorNumber="263" details={[]} />);
+
+    expect(screen.getByLabelText('C21')).toHaveTextContent('C21');
+  });
+
+  test('copy chips wrap to more lines, and each line is centered', async () => {
+    await render(<CopyChips setCode="mh3" setIconUri={mh3Symbol} collectorNumber="136" details={['Foil']} />);
+
+    expect(screen.getByLabelText('MH3').parent).toHaveStyle({
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      columnGap: 4,
+      rowGap: 4,
+    });
   });
 });
 

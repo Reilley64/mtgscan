@@ -3,6 +3,7 @@ import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { failCollectionReads, ownCollectionCopies, startSignedIn } from './fake-supabase';
 import { appearsBefore, cardImageUri, pressTab, scrollToEnd, selectedTab } from './native-ui';
+import { setIconUri } from './card-printings';
 import { renderApp } from './render-app';
 
 let entryNumber = 0;
@@ -48,11 +49,11 @@ test('Collection keeps its empty state when the user has no collection entries',
   expect(collection.queryByRole('image')).not.toBeOnTheScreen();
 });
 
-test('the binder grid shows one tile per copy with its image and set and collector number, and no quantity badge', async () => {
+test('the binder grid shows one tile per copy with its image and no quantity badge', async () => {
   ownCollectionCopies([
     ...collectionEntryCopies('Angelic Curator', 3, {
       set: 'exo',
-      collector_number: '1',
+      collector_number: '146',
       image_uris: ['https://cards.scryfall.io/normal/front/curator.jpg'],
     }),
     ...collectionEntryCopies('Delver of Secrets // Insectile Aberration', 1, {
@@ -67,17 +68,37 @@ test('the binder grid shows one tile per copy with its image and set and collect
 
   const collection = await openCollection();
 
-  const curatorTiles = collection.getAllByRole('image', { name: 'Angelic Curator, EXO 1' });
+  const curatorTiles = collection.getAllByRole('image', { name: 'Angelic Curator, EXO 146' });
   expect(curatorTiles).toHaveLength(3);
   curatorTiles.forEach((tile) => {
-    expect(within(tile).getByText('EXO 1')).toBeOnTheScreen();
     expect(cardImageUri(tile)).toBe('https://cards.scryfall.io/normal/front/curator.jpg');
   });
   const delverTile = collection.getByRole('image', { name: 'Delver of Secrets // Insectile Aberration, ISD 51' });
   expect(cardImageUri(delverTile)).toBe('https://cards.scryfall.io/normal/front/delver.jpg');
   expect(collection.queryByText('3')).not.toBeOnTheScreen();
-  expect(collection.queryByText('1')).not.toBeOnTheScreen();
   expect(collection.queryByText('Your collection is empty')).not.toBeOnTheScreen();
+});
+
+test('chips under a tile show the set icon from the card catalog and the collector number', async () => {
+  ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1, { set: 'exo', collector_number: '146' }));
+
+  const collection = await openCollection();
+
+  const tile = collection.getByRole('image', { name: 'Angelic Curator, EXO 146' });
+  const setChip = await within(tile).findByLabelText('EXO');
+  expect(cardImageUri(setChip)).toBe(setIconUri('exo'));
+  expect(within(tile).queryByText('EXO')).not.toBeOnTheScreen();
+  expect(within(tile).getByText('146')).toBeOnTheScreen();
+  expect(within(tile).queryByText('EXO 146')).not.toBeOnTheScreen();
+});
+
+test('the set chip shows the set code when the card catalog has no icon for the set', async () => {
+  ownCollectionCopies(collectionEntryCopies('Sol Ring', 1, { set: 'c21', collector_number: '263' }));
+
+  const collection = await openCollection();
+
+  const tile = collection.getByRole('image', { name: 'Sol Ring, C21 263' });
+  expect(within(within(tile).getByLabelText('C21')).getByText('C21')).toBeOnTheScreen();
 });
 
 test('a tile shows the finish when it is not nonfoil and the condition when it is not NM', async () => {
@@ -91,6 +112,7 @@ test('a tile shows the finish when it is not nonfoil and the condition when it i
   const collection = await openCollection();
 
   const foil = collection.getByRole('image', { name: 'Angelic Curator, EXO 1, Foil, LP' });
+  expect(within(foil).getByText('1')).toBeOnTheScreen();
   expect(within(foil).getByText('Foil')).toBeOnTheScreen();
   expect(within(foil).getByText('LP')).toBeOnTheScreen();
   const etched = collection.getByRole('image', { name: 'Sol Ring, CMM 464, Etched' });

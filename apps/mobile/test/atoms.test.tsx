@@ -248,6 +248,19 @@ describe('Chip', () => {
     });
   });
 
+  test('a status chip with an icon shows the icon in place of its label and keeps the label for VoiceOver', async () => {
+    await render(
+      <Chip label="M10">
+        <SetIcon uri="https://svgs.scryfall.io/sets/m10.svg" />
+      </Chip>,
+    );
+
+    const chip = screen.getByLabelText('M10');
+    expect(cardImageUri(chip)).toBe('https://svgs.scryfall.io/sets/m10.svg');
+    expect(screen.queryByText('M10')).not.toBeOnTheScreen();
+    expect(chip).toHaveStyle({ backgroundColor: surfaceControl, height: 24, borderRadius: 12 });
+  });
+
   test('a status chip is not a button', async () => {
     await render(<Chip label="Valid" />);
 

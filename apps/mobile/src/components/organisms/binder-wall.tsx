@@ -188,11 +188,7 @@ function DriftColumn({ cards, tileHeight, durationMs, startProgress, drifting }:
     <View style={styles.column}>
       <Animated.View style={[styles.columnTiles, { transform: [{ translateY }] }]}>
         {[...cards, ...cards].map((card, index) => (
-          <CardImage
-            key={`${card.name}-${index}`}
-            uri={card.image}
-            badges={card.quantity ? [String(card.quantity)] : undefined}
-          />
+          <CardImage key={`${card.name}-${index}`} uri={card.image} quantity={card.quantity} />
         ))}
       </Animated.View>
     </View>
