@@ -12,6 +12,7 @@ import { CardGrid } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
+import { PriceLine } from '@/components/molecules/price-line';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
@@ -20,10 +21,10 @@ import { SheetSection } from '@/components/molecules/sheet-section';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 
-import { cardImageOutline, cardImageUri, cardSheen, imageTintColor, touchTarget } from './native-ui';
+import { cardImageOutline, cardImageUri, cardSheen, imageTintColor, symbolNames, touchTarget } from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim } = tokenColors;
+const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim, textPrice } = tokenColors;
 const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
 const mh3Symbol = 'https://svgs.scryfall.io/sets/mh3.svg';
 const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
@@ -297,6 +298,29 @@ describe('CopyMeta', () => {
     expect(screen.getByText('·')).toHaveStyle({ color: textDim });
     expect(screen.getByText('MP')).toHaveStyle({ color: textMuted, fontSize: 12 });
     expect(screen.getByText('MP').parent).toHaveStyle({ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' });
+  });
+});
+
+describe('PriceLine', () => {
+  test('a price line shows the current price in price text centered', async () => {
+    await render(<PriceLine price="$1,635.37" stale={false} />);
+
+    expect(screen.getByText('$1,635.37')).toHaveStyle({ color: textPrice, fontSize: 12, fontWeight: '600' });
+    expect(screen.getByText('$1,635.37').parent).toHaveStyle({ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' });
+    expect(symbolNames(screen.root!)).toEqual([]);
+  });
+
+  test('a stale price line has a clock symbol before the price', async () => {
+    await render(<PriceLine price="$36.96" stale />);
+
+    expect(symbolNames(screen.root!)).toEqual(['clock']);
+    expect(screen.getByText('$36.96')).toHaveStyle({ color: textPrice });
+  });
+
+  test('a price line with no current price shows a dim dash', async () => {
+    await render(<PriceLine price={undefined} stale={false} />);
+
+    expect(screen.getByText('–')).toHaveStyle({ color: textDim, fontSize: 12 });
   });
 });
 

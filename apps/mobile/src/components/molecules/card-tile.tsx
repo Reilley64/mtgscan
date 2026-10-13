@@ -15,11 +15,21 @@ export const cardRowClass = '-mx-xs';
 type CardTileProps = {
   uri: string | undefined;
   accessibilityLabel: string;
+  accessibilityHint?: string;
   sheen?: CardSheen;
 } & ({ caption: string; children?: never } | { caption?: never; children: ReactNode }) &
   ({ selected?: never; onPress?: never } | { selected: boolean; onPress: () => void });
 
-export function CardTile({ uri, caption, accessibilityLabel, sheen, children, selected, onPress }: CardTileProps) {
+export function CardTile({
+  uri,
+  caption,
+  accessibilityLabel,
+  accessibilityHint,
+  sheen,
+  children,
+  selected,
+  onPress,
+}: CardTileProps) {
   const underImage = children ?? (
     <Text variant="meta" numberOfLines={1} className="group-aria-selected/tile:text-primary">
       {caption}
@@ -29,14 +39,23 @@ export function CardTile({ uri, caption, accessibilityLabel, sheen, children, se
   return (
     <View className={cn(columnClasses[cardsPerRow], 'px-xs')}>
       {onPress ? (
-        <TileButton accessibilityLabel={accessibilityLabel} selected={selected} onPress={onPress}>
+        <TileButton
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          selected={selected}
+          onPress={onPress}>
           <View className="rounded-sm border-selected-outline border-transparent group-aria-selected/tile:border-primary">
             <CardImage uri={uri} sheen={sheen} />
           </View>
           {underImage}
         </TileButton>
       ) : (
-        <View accessible accessibilityRole="image" accessibilityLabel={accessibilityLabel} className="gap-xs">
+        <View
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          className="gap-xs">
           <CardImage uri={uri} sheen={sheen} />
           {underImage}
         </View>

@@ -25,13 +25,14 @@ A development build against local Supabase can sign in a local test user with on
 - Production builds leave the test sign-in out. `bun run test:production-bundle` in `apps/mobile` builds a production bundle with the test sign-in on and fails if the bundle holds the test sign-in. CI runs it.
 
 1. Start local Supabase as in Local Supabase.
-2. Seed or reset the test user from `supabase`. The command deletes the test user and its collection, and creates it again. `--sample-collection` also adds 30 sample collection entries through `add_scan_batch`, with 1 to 4 copies each. Some are foil, one is etched, and some are LP or MP. The sample needs the card catalog, so import the catalog fixture first:
+2. Seed or reset the test user from `supabase`. The command deletes the test user and its collection, and creates it again. `--sample-collection` also adds 30 sample collection entries through `add_scan_batch`, with 1 to 4 copies each. Some are foil, one is etched, and some are LP or MP. The sample needs the card catalog, and the binder tiles show current prices from the price import, so import both fixtures first:
 
    ```bash
    cd supabase
    export SUPABASE_URL=http://127.0.0.1:54321
    export SUPABASE_SECRET_KEY=$(bunx supabase@2.120.0 status -o json | jq -r .SECRET_KEY)
    bun run import catalog --manifest tests/fixtures/scryfall/bulk-data.json --sets tests/fixtures/scryfall/sets.json
+   bun run import prices --manifest tests/fixtures/scryfall/bulk-data.json
    bun run test-user --sample-collection
    ```
 

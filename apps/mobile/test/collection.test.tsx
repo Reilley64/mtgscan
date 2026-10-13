@@ -1,14 +1,23 @@
-import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
+import type { CollectionCopyRow, CurrentPrice } from '@mtgscan/supabase/collection';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 import { processColor } from 'react-native';
 
 import { failCollectionReads, ownCollectionCopies, startSignedIn } from './fake-supabase';
-import { appearsBefore, cardImageUri, cardSheen, imageTintColor, pressTab, scrollToEnd, selectedTab } from './native-ui';
+import {
+  appearsBefore,
+  cardImageUri,
+  cardSheen,
+  imageTintColor,
+  pressTab,
+  scrollToEnd,
+  selectedTab,
+  symbolNames,
+} from './native-ui';
 import { setIconUri } from './card-printings';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
 
-const { textMuted } = tokenColors;
+const { textDim, textMuted, textPrice } = tokenColors;
 
 let entryNumber = 0;
 
@@ -31,6 +40,7 @@ function collectionEntryCopies(
     condition: 'near_mint',
     language: 'en',
     protected: false,
+    price: null,
     ...changes,
   }));
 }
@@ -73,12 +83,12 @@ test('the binder grid shows one tile per copy with its image and no quantity bad
 
   const collection = await openCollection();
 
-  const curatorTiles = collection.getAllByRole('image', { name: 'Angelic Curator, EXO 146' });
+  const curatorTiles = collection.getAllByRole('image', { name: 'Angelic Curator, EXO 146, no price' });
   expect(curatorTiles).toHaveLength(3);
   curatorTiles.forEach((tile) => {
     expect(cardImageUri(tile)).toBe('https://cards.scryfall.io/normal/front/curator.jpg');
   });
-  const delverTile = collection.getByRole('image', { name: 'Delver of Secrets // Insectile Aberration, ISD 51' });
+  const delverTile = collection.getByRole('image', { name: 'Delver of Secrets // Insectile Aberration, ISD 51, no price' });
   expect(cardImageUri(delverTile)).toBe('https://cards.scryfall.io/normal/front/delver.jpg');
   expect(collection.queryByText('3')).not.toBeOnTheScreen();
   expect(collection.queryByText('Your collection is empty')).not.toBeOnTheScreen();
@@ -89,7 +99,7 @@ test('under each card, one line shows the set icon from the card catalog and the
 
   const collection = await openCollection();
 
-  const tile = collection.getByRole('image', { name: 'Angelic Curator, EXO 146' });
+  const tile = collection.getByRole('image', { name: 'Angelic Curator, EXO 146, no price' });
   const setIcon = await within(tile).findByLabelText('EXO');
   expect(cardImageUri(setIcon)).toBe(setIconUri('exo'));
   expect(within(tile).queryByText('EXO')).not.toBeOnTheScreen();
@@ -106,8 +116,8 @@ test('the set icon has the rarity color of the card printing', async () => {
 
   const collection = await openCollection();
 
-  const mythic = await within(collection.getByRole('image', { name: 'Angelic Curator, EXO 1' })).findByLabelText('EXO');
-  const common = within(collection.getByRole('image', { name: 'Ponder, LRW 79' })).getByLabelText('LRW');
+  const mythic = await within(collection.getByRole('image', { name: 'Angelic Curator, EXO 1, no price' })).findByLabelText('EXO');
+  const common = within(collection.getByRole('image', { name: 'Ponder, LRW 79, no price' })).getByLabelText('LRW');
   expect(imageTintColor(mythic)).toBe(processColor('#f26a35'));
   expect(imageTintColor(common)).toBe(processColor('#e6e8e9'));
 });
@@ -117,7 +127,7 @@ test('the line shows the set code when the card catalog has no icon for the set'
 
   const collection = await openCollection();
 
-  const tile = collection.getByRole('image', { name: 'Sol Ring, C21 263' });
+  const tile = collection.getByRole('image', { name: 'Sol Ring, C21 263, no price' });
   expect(within(tile).getByText('C21')).toBeOnTheScreen();
 });
 
@@ -131,7 +141,7 @@ test.each([
 
   const collection = await openCollection();
 
-  const tile = collection.getByRole('image', { name: `Ponder, LRW 79, ${spoken}` });
+  const tile = collection.getByRole('image', { name: `Ponder, LRW 79, ${spoken}, no price` });
   expect(within(tile).getByText('·')).toBeOnTheScreen();
   expect(within(tile).getByText(shown)).toHaveStyle({ color: textMuted });
 });
@@ -151,10 +161,10 @@ test('foil and etched copies have a sheen on the card image and say their finish
   const collection = await openCollection();
 
   const foil = collection.getByRole('image', {
-    name: 'Bloomvine Regent // Claim Territory, TDM 136, foil, moderately played',
+    name: 'Bloomvine Regent // Claim Territory, TDM 136, foil, moderately played, no price',
   });
-  const etched = collection.getByRole('image', { name: 'Sol Ring, CMM 464, etched' });
-  const nonfoil = collection.getByRole('image', { name: 'Ribbons of Night, SHM 74' });
+  const etched = collection.getByRole('image', { name: 'Sol Ring, CMM 464, etched, no price' });
+  const nonfoil = collection.getByRole('image', { name: 'Ribbons of Night, SHM 74, no price' });
   expect(cardSheen(foil)).toMatchObject({ opacity: expect.closeTo(0.3) });
   expect(cardSheen(etched)).toMatchObject({ opacity: expect.closeTo(0.3) });
   expect(cardSheen(etched)!.experimental_backgroundImage).not.toEqual(cardSheen(foil)!.experimental_backgroundImage);
@@ -162,6 +172,65 @@ test('foil and etched copies have a sheen on the card image and say their finish
   for (const finish of ['Foil', 'Etched', 'Nonfoil', 'NM']) {
     expect(collection.queryByText(finish)).not.toBeOnTheScreen();
   }
+});
+
+function currentPrice(amount: string, changes: Partial<CurrentPrice> = {}): CurrentPrice {
+  return { amount, currency: 'USD', finish: 'nonfoil', stale: false, ...changes };
+}
+
+test('under the meta line, a price line shows the current price in full in the price color', async () => {
+  ownCollectionCopies(
+    collectionEntryCopies('Black Lotus', 1, {
+      set: 'lea',
+      collector_number: '232',
+      condition: 'heavily_played',
+      price: currentPrice('1635.37'),
+    }),
+  );
+
+  const collection = await openCollection();
+
+  const tile = collection.getByRole('image', { name: 'Black Lotus, LEA 232, heavily played, $1,635.37' });
+  expect(within(tile).getByText('$1,635.37')).toHaveStyle({ color: textPrice, fontSize: 12, fontWeight: '600' });
+  expect(appearsBefore(within(tile).getByText('232'), within(tile).getByText('$1,635.37'))).toBe(true);
+  expect(symbolNames(tile)).toEqual([]);
+  expect(tile).not.toHaveProp('accessibilityHint');
+});
+
+test.each([
+  ['USD', '96.24', '$96.24'],
+  ['EUR', '96.24', '€96.24'],
+  ['USD', '0.21', '$0.21'],
+] as const)('a %s price of %s shows as %s', async (currency, amount, shown) => {
+  ownCollectionCopies(collectionEntryCopies('The One Ring', 1, { set: 'ltr', collector_number: '246', price: currentPrice(amount, { currency }) }));
+
+  const collection = await openCollection();
+
+  const tile = collection.getByRole('image', { name: `The One Ring, LTR 246, ${shown}` });
+  expect(within(tile).getByText(shown)).toBeOnTheScreen();
+});
+
+test('a copy with no price shows a dim dash, and VoiceOver says no price', async () => {
+  ownCollectionCopies(collectionEntryCopies('Sakashima of a Thousand Faces', 1, { set: 'cmr', collector_number: '561', finish: 'etched' }));
+
+  const collection = await openCollection();
+
+  const tile = collection.getByRole('image', { name: 'Sakashima of a Thousand Faces, CMR 561, etched, no price' });
+  expect(within(tile).getByText('–')).toHaveStyle({ color: textDim });
+  expect(symbolNames(tile)).toEqual([]);
+});
+
+test('a stale price has a clock symbol before it, and VoiceOver hears that it may be out of date', async () => {
+  ownCollectionCopies(
+    collectionEntryCopies('Rhystic Study', 1, { set: 'pcy', collector_number: '45', price: currentPrice('36.96', { stale: true }) }),
+  );
+
+  const collection = await openCollection();
+
+  const tile = collection.getByRole('image', { name: 'Rhystic Study, PCY 45, $36.96' });
+  expect(tile).toHaveProp('accessibilityHint', 'The price may be out of date.');
+  expect(symbolNames(tile)).toEqual(['clock']);
+  expect(within(tile).getByText('$36.96')).toHaveStyle({ color: textPrice });
 });
 
 test('the binder grid shows the newest addition first', async () => {

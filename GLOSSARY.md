@@ -20,6 +20,10 @@ _Avoid_: Card, item
 One commit of copies to the collection, with its time and a purchase-day price per card printing and finish. A scan batch becomes one addition. Each stack in it is an addition line, which records its quantity, its purchase-day price, and the collection entry it merged into.
 _Avoid_: Import, purchase
 
+**Current price**:
+The latest Scryfall price of a card printing and finish, in USD or EUR. Condition and language do not change it. A missing current price stays missing and is never taken from another finish or card printing. A current price is stale when mtgscan received it more than 24 hours ago.
+_Avoid_: Value
+
 **Purchase-day price**:
 The current price of a card printing and finish on the day copies were added to the collection. It is recorded on each addition, not on the collection entry.
 _Avoid_: Purchase price, cost

@@ -15,6 +15,7 @@ const textVariants = cva('', {
       body: 'text-body text-text',
       'body-strong': 'text-body-strong text-text',
       meta: 'text-meta text-text-muted',
+      price: 'text-price text-text-price',
       chip: 'text-chip text-text',
       credit: 'text-credit text-text-dim',
     },

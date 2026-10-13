@@ -205,7 +205,7 @@ test('a commit closes batch review, keeps scans that were not recognized, and th
   expect(scanTab().getByText('Added 2 cards to your collection.')).toBeOnTheScreen();
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   await pressTab('Collection');
-  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146' })).toHaveLength(2);
+  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
 });
 
 test('rows cannot be opened while the commit runs', async () => {
@@ -254,7 +254,7 @@ test('Try again after a commit that the server added but the phone did not hear 
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
   await pressTab('Collection');
 
-  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146' })).toHaveLength(2);
+  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
 });
 
 test('Try again after the scan batch changed adds only the copies the server did not add yet', async () => {
@@ -276,8 +276,8 @@ test('Try again after the scan batch changed adds only the copies the server did
   );
   expect(scanTab().getByText('Added 2 cards to your collection.')).toBeOnTheScreen();
   await pressTab('Collection');
-  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146' })).toHaveLength(1);
-  expect(screen.getAllByRole('image', { name: 'Shock, M19 156' })).toHaveLength(1);
+  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(1);
+  expect(screen.getAllByRole('image', { name: 'Shock, M19 156, no price' })).toHaveLength(1);
 });
 
 test('the failed commit stays after a change to the condition and language for new scans', async () => {
@@ -328,7 +328,7 @@ test('a restart after a commit that did not finish sends it again with the same 
   expect(retried.items).toEqual(first.items);
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   await pressTab('Collection');
-  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146' })).toHaveLength(1);
+  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(1);
 });
 
 test('another account on the phone has its own scan batch, and the first account gets its batch back', async () => {

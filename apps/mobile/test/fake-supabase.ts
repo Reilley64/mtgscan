@@ -136,6 +136,7 @@ function addToCollection(stacks: ScanBatchStack[]) {
       condition,
       language,
       protected: false,
+      price: null,
     };
     collectionCopies = [...ofPrinting, copy, ...collectionCopies.filter((row) => row.printing_id !== card_printing_id)];
   }

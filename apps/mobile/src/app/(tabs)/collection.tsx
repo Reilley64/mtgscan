@@ -6,9 +6,10 @@ import { Button } from '@/components/atoms/button';
 import { Text } from '@/components/atoms/text';
 import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
 import { CopyMeta } from '@/components/molecules/copy-meta';
+import { PriceLine } from '@/components/molecules/price-line';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { TabListScreen } from '@/components/templates/tab-screen';
-import { shownCondition, spokenFinishAndCondition } from '@/collection/copy-labels';
+import { shownCondition, shownPrice, spokenFinishAndCondition } from '@/collection/copy-labels';
 import { useCollectionCopies, type BinderRead } from '@/collection/use-collection-copies';
 
 function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAgain: () => void }) {
@@ -31,6 +32,7 @@ function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAg
 }
 
 function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri: string | undefined }) {
+  const price = copy.price ? shownPrice(copy.price) : undefined;
   return (
     <CardTile
       uri={copy.image_uris[0]}
@@ -39,7 +41,9 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
         copy.name,
         `${copy.set.toUpperCase()} ${copy.collector_number}`,
         ...spokenFinishAndCondition(copy),
-      ].join(', ')}>
+        price ?? 'no price',
+      ].join(', ')}
+      accessibilityHint={copy.price?.stale ? 'The price may be out of date.' : undefined}>
       <CopyMeta
         setCode={copy.set}
         rarity={copy.rarity}
@@ -47,6 +51,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
         collectorNumber={copy.collector_number}
         condition={shownCondition(copy.condition)}
       />
+      <PriceLine price={price} stale={copy.price?.stale ?? false} />
     </CardTile>
   );
 }

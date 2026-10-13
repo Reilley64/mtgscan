@@ -25,6 +25,7 @@ import { CardGrid } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
+import { PriceLine } from '@/components/molecules/price-line';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
@@ -62,6 +63,7 @@ function TextStyles() {
       <Text>Body</Text>
       <Text variant="body-strong">Body strong</Text>
       <Text variant="meta">Meta</Text>
+      <Text variant="price">Price</Text>
       <Text variant="chip">Chip</Text>
       <Text variant="credit">Credit</Text>
       <Text variant="meta">
@@ -189,11 +191,17 @@ function CardTiles() {
   return (
     <Section title="Card tiles">
       <CardGrid>
-        <CardTile uri={solRing} sheen="foil" accessibilityLabel="Sol Ring, M10 216, foil, lightly played">
+        <CardTile uri={solRing} sheen="foil" accessibilityLabel="Sol Ring, M10 216, foil, lightly played, $1,635.37">
           <CopyMeta setCode="m10" rarity="mythic" setIconUri={m10Symbol} collectorNumber="216" condition="LP" />
+          <PriceLine price="$1,635.37" stale={false} />
         </CardTile>
-        <CardTile uri={solRing} sheen="etched" accessibilityLabel="Sol Ring, C21 263, etched">
+        <CardTile uri={solRing} sheen="etched" accessibilityLabel="Sol Ring, C21 263, etched, no price">
           <CopyMeta setCode="c21" rarity="rare" setIconUri={undefined} collectorNumber="263" />
+          <PriceLine price={undefined} stale={false} />
+        </CardTile>
+        <CardTile uri={solRing} accessibilityLabel="Sol Ring, M10 216, $1.25" accessibilityHint="The price may be out of date.">
+          <CopyMeta setCode="m10" rarity="uncommon" setIconUri={m10Symbol} collectorNumber="216" />
+          <PriceLine price="$1.25" stale />
         </CardTile>
         {['CMM 464', 'C21 263'].map((caption) => (
           <CardTile

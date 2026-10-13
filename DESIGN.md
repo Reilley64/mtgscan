@@ -12,6 +12,7 @@ colors:
   text: "#ffffff"
   text-muted: "#b5c0c5"
   text-dim: "#7d8a90"
+  text-price: "#e4e8ea"
   primary: "#d8ff62"
   on-primary: "#101500"
   grabber: "#4a555b"
@@ -68,6 +69,10 @@ typography:
   meta:
     fontFamily: SF Pro Text
     fontSize: 12px
+  price:
+    fontFamily: SF Pro Text
+    fontSize: 12px
+    fontWeight: 600
   chip:
     fontFamily: SF Pro Text
     fontSize: 11px
@@ -188,6 +193,11 @@ components:
   meta-text:
     textColor: "{colors.text-muted}"
     typography: "{typography.meta}"
+  current-price:
+    textColor: "{colors.text-price}"
+    typography: "{typography.price}"
+  current-price-missing:
+    textColor: "{colors.text-dim}"
   change-line-incoming:
     backgroundColor: "{colors.surface-raised}"
     textColor: "{colors.incoming}"
@@ -265,7 +275,7 @@ The tokens at the top of this file are the app theme. `apps/mobile/src/theme.ts`
 The palette is near-black neutrals with one lime accent. Card art supplies every other color.
 
 - **Background (#080b0d)** is the screen base. **Surface (#11171a)** holds cards and grouped content. **Surface raised (#1a2125)** and **surface control (#232c31)** separate inner rows, buttons, chips, and segmented controls. **Sheet (#161c1f)** is the iOS page sheet and the settings drawer. **Line (#2a3238)** draws hairlines and empty image slots.
-- **Text (#ffffff)** is primary. **Text muted (#b5c0c5)** is for printing details and captions. **Text dim (#7d8a90)** is for unselected tab labels and quiet metadata.
+- **Text (#ffffff)** is primary. **Text muted (#b5c0c5)** is for printing details and captions. **Text dim (#7d8a90)** is for unselected tab labels and quiet metadata. **Text price (#e4e8ea)** is for the current price under a binder tile, slightly brighter than the meta line.
 - **Primary (#d8ff62)**, the lime accent, is the single interaction color: the primary button, the selected chip, the selected tab, section headings, and in-app links. Text on it is **on-primary (#101500)**. The brand mark is the one non-action use of lime.
 - **Grabber (#4a555b)** draws the short bar at the top of the sign-in sheet. The settings drawer uses the iOS system grabber, which iOS draws in its own color.
 - **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message and the destructive buttons. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall.
@@ -286,6 +296,7 @@ The app uses the iOS system font, SF Pro, at a few weights.
 - **Sheet title** (17 px, heavy) titles page sheets.
 - **Body** (14 px) carries reasons, rules text, and list content. **Body strong** labels buttons and card names in rows. **Field** (14 px) is the text in a text field, such as the card name in name search. It has no fixed line height, so iOS centers the text in the field.
 - **Meta** (12 px, muted) carries set and collector number, finish, condition, language, and timestamps.
+- **Price** (12 px, semibold, text price) carries the current price under a binder tile.
 - **Chip** (11 px, bold) labels chips and status pills. **Tab label** (10 px, bold) sits under tab bar icons. **Credit** (10 px, semibold, dim) credits image sources such as Scryfall.
 
 Copy is plain sentence case and uses glossary terms exactly: deck suggestion, planned swap, buylist card, free copy, protected copy, estimated bracket.
@@ -310,6 +321,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - With no collection entries, the tab shows "Your collection is empty" and "Scan cards to add them to your collection."
   - When the read fails, the tab shows "Could not load your collection" and "Check your connection." with a **Try again** button.
   - One quiet meta line under each card shows the set icon in its rarity color, the collector number, and the condition when it is not NM. Foil and etched copies carry a sheen on the card image instead of a finish label. Later, badges also show whether the copy is in a deck, held by a planned swap, or protected.
+  - A price line under the meta line shows the copy's current price (owner decision, #120). A copy with no current price shows "–". A stale price has a clock symbol.
   - Search matches name, type, and printing, in the collection only. Filters: All, Free, Allocated, Protected.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
@@ -464,11 +476,14 @@ The interface is flat. Depth comes from tone, not shadow.
   - When the app restarts after a commit that failed or was still running, it sends the commit again by itself.
   - While the commit runs, rows do not open.
   - The phone saves the scan batch and its defaults for each account, so they survive a restart. Another account on the phone does not see them.
-- **Binder tile.** One copy's card image with one meta line under it. There is no quantity badge and no chip.
+- **Binder tile.** One copy's card image with a meta line and a price line under it. There is no quantity badge and no chip.
   - Until the image loads, the tile is a line-colored card shape.
   - The meta line sits 4 px below the card image, centered, in meta text in text muted: the set's expansion symbol from Scryfall at 16 px tinted with the rarity color of the card printing (see Colors), then the collector number. When the card catalog has no symbol for the set, or it has not loaded, the set code in capitals takes its place. A copy that is not NM adds a text dim " · " and its condition: "[symbol] 136 · MP". Every condition uses the same text muted color.
   - The line never names the finish. A foil copy has a faint rainbow sheen over its card image, and an etched copy has a faint silver sheen. Nonfoil copies have none. The sheen does not move. It is a diagonal gradient at 30% opacity, so the card art reads normally.
-  - VoiceOver reads the tile as one image: the name, the set code in capitals and the collector number, then the finish when it is not nonfoil and the condition when it is not NM, in words: "Bloomvine Regent // Claim Territory, TDM 136, foil, moderately played".
+  - The price line sits 4 px below the meta line, centered, in price type (12 px, semibold) in text price, slightly brighter than the meta line. It shows the copy's current price in full, such as "$1,635.37". The price is the current Scryfall price for the card printing and finish. Condition and language do not change it. The currency is USD for now.
+  - A copy with no price for its card printing and finish shows a text dim "–". A price is never taken from another finish or card printing.
+  - A stale price, older than 24 hours, has a small 11 px `clock` symbol in text price before it. The symbol is neutral, not a warning.
+  - VoiceOver reads the tile as one image: the name, the set code in capitals and the collector number, then the finish when it is not nonfoil and the condition when it is not NM, in words, then the price or "no price": "Bloomvine Regent // Claim Territory, TDM 136, foil, moderately played, $1,635.37". A stale price adds the hint "The price may be out of date."
   - Tiles open nothing yet. The card page and the badges for decks, planned swaps, and protected copies come later.
 - **Commander gallery card.** Full-width commander art with a dark gradient, the deck name in card-title type, status chips, and a Needs you badge.
 

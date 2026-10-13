@@ -7,6 +7,7 @@ export const tokenColors = {
   text: 'rgba(255, 255, 255, 1)',
   textMuted: 'rgba(181, 192, 197, 1)',
   textDim: 'rgba(125, 138, 144, 1)',
+  textPrice: 'rgba(228, 232, 234, 1)',
   warning: 'rgba(244, 208, 111, 1)',
   danger: 'rgba(255, 122, 112, 1)',
   info: 'rgba(143, 211, 255, 1)',
