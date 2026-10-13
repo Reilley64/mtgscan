@@ -1,0 +1,480 @@
+<!doctype html>
+<!--
+PROTOTYPE, throwaway. Do not merge to main.
+Question: how should the Collection tab binder grid show one tile per copy (#116, PR #119) so the owner can tell copies apart at a glance?
+Plan: five radically different variants of the Collection tab in one iPhone 17 frame,
+switchable with ?variant=A..E, the bottom pill, or the left and right arrow keys.
+?dense=1 repeats the 24 sample copies to 120. ?img=0 hides card images.
+Card images and set symbols are hard-coded Scryfall URLs (fetched once from api.scryfall.com).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>PROTOTYPE · Collection copies (#116) · mtgscan</title>
+<style>
+:root{--bg:#080b0d;--surface:#11171a;--surface2:#1a2125;--surface3:#232c31;--sheet:#161c1f;--line:#2a3238;--text:#fff;--muted:#b5c0c5;--dim:#7d8a90;--accent:#d8ff62;--on-accent:#101500;--warning:#f4d06f;--danger:#ff7a70;--info:#8fd3ff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#15181b;color:var(--text);font:14px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+#page{min-height:100%;display:flex;align-items:flex-start;justify-content:center;padding:20px 24px 120px}
+#phone{zoom:var(--fit,1);position:relative;width:402px;height:874px;border-radius:58px;background:var(--bg);box-shadow:0 0 0 10px #101315,0 0 0 12px #3c4246,0 30px 90px rgba(0,0,0,.6);overflow:hidden;flex:none}
+#screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+#screen::-webkit-scrollbar{display:none}
+.statusbar{position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:6px 34px 0 46px;font-weight:700;font-size:16px;z-index:40;pointer-events:none;background:linear-gradient(180deg,rgba(8,11,13,.95) 60%,rgba(8,11,13,0))}
+.island{position:absolute;left:50%;top:11px;width:125px;height:37px;border-radius:20px;background:#000;transform:translateX(-50%)}
+.sb-icons{display:flex;gap:6px;align-items:center}
+.sig{display:flex;gap:2px;align-items:flex-end;height:11px}.sig i{width:3px;background:#fff;border-radius:1px}
+.batt{width:25px;height:12px;border:1.5px solid rgba(255,255,255,.55);border-radius:4px;position:relative}
+.batt:after{content:"";position:absolute;inset:1.5px;right:4px;background:#fff;border-radius:1.5px}
+.homebar{position:absolute;bottom:8px;left:50%;width:140px;height:5px;border-radius:3px;background:#fff;transform:translateX(-50%);z-index:60;pointer-events:none}
+
+/* app shell: large title, settings button, floating tab bar */
+.navtitle{padding:62px 16px 12px;display:flex;align-items:center;justify-content:space-between}
+.navtitle h1{font-size:28px;line-height:1.1;margin:0;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif}
+.gear{width:38px;height:38px;border-radius:19px;background:var(--surface3);display:flex;align-items:center;justify-content:center}
+.gear svg{width:18px;height:18px}
+.tabbar{position:absolute;left:20px;right:20px;bottom:22px;height:62px;border-radius:31px;z-index:50;display:flex;align-items:center;justify-content:space-around;padding:0 6px;background:rgba(26,33,37,.62);backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);box-shadow:0 0 0 1px rgba(255,255,255,.08) inset,0 10px 30px rgba(0,0,0,.45)}
+.tabbar span{flex:1;height:52px;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:700;color:var(--dim)}
+.tabbar span.sel{color:var(--accent);background:rgba(255,255,255,.08)}
+.tabbar svg{width:24px;height:24px}
+.list-end{height:110px}
+
+/* shared atoms */
+.img{position:relative;aspect-ratio:488/680;border-radius:6px;background:var(--line);overflow:hidden;flex:none}
+.img>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.img .ph{position:absolute;inset:0;padding:8px 7px;font-size:10px;font-weight:700;color:var(--muted);line-height:1.2;display:none;overflow-wrap:anywhere}
+body.noimg .img>img{display:none}
+body.noimg .img .ph{display:block}
+.seticon{width:14px;height:14px;object-fit:contain;filter:brightness(0) invert(1);flex:none;display:block}
+.seticon.muted{filter:brightness(0) invert(.78)}
+.chip{height:24px;min-width:24px;padding:3px 9px;border-radius:12px;background:var(--surface3);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
+.c-warn{color:var(--warning)}.c-danger{color:var(--danger)}
+.foiltxt{background:linear-gradient(90deg,#ff9ad5,#ffe48a,#8fffd8,#8fc7ff,#e3a6ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.etchtxt{background:linear-gradient(90deg,#e8e2d0,#a9b3b8,#f6f1e2,#9aa5ab);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* A: current design, chip row under the card (PR #119) */
+.vA .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 8px;padding:0 12px;align-items:start}
+.vA .tile{display:flex;flex-direction:column;gap:8px}
+.vA .chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+
+/* B: one compact meta line, foil sheen on the image */
+.vB .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px;padding:0 12px}
+.vB .tile{display:flex;flex-direction:column;gap:5px}
+.vB .meta{display:flex;align-items:center;justify-content:center;gap:4px;font-size:12px;color:var(--muted);white-space:nowrap;min-height:16px}
+.vB .meta .dot{color:var(--dim)}
+.vB .meta b{font-weight:700}
+.sheen::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:color-dodge;opacity:.55;background:linear-gradient(115deg,transparent 22%,rgba(255,80,170,.55) 34%,rgba(255,230,90,.5) 42%,rgba(80,255,200,.5) 50%,rgba(80,150,255,.55) 58%,rgba(200,110,255,.5) 66%,transparent 78%);background-size:300% 300%;background-position:0% 50%;animation:sheen 5s ease-in-out infinite alternate}
+.sheen.etched::after{mix-blend-mode:overlay;opacity:.6;background:linear-gradient(120deg,transparent 25%,rgba(255,255,255,.55) 42%,rgba(200,210,215,.25) 50%,rgba(255,255,255,.55) 58%,transparent 75%);background-size:300% 300%}
+@keyframes sheen{to{background-position:100% 50%}}
+
+/* C: marks on the image, nothing under the card */
+.vC .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 10px}
+.vC .pill{position:absolute;left:5px;bottom:5px;height:20px;padding:0 7px 0 5px;border-radius:10px;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;background:rgba(8,11,13,.55);backdrop-filter:blur(8px) saturate(1.3);-webkit-backdrop-filter:blur(8px) saturate(1.3);box-shadow:0 0 0 .5px rgba(255,255,255,.18) inset}
+.vC .pill .seticon{width:12px;height:12px}
+.vC .cond{position:absolute;right:5px;bottom:5px;height:20px;padding:0 6px;border-radius:10px;font-size:10px;font-weight:900;display:flex;align-items:center;color:#101500}
+.vC .cond.warn{background:var(--warning)}.vC .cond.danger{background:var(--danger)}
+.vC .fold{position:absolute;right:0;top:0;width:30px;height:30px;clip-path:polygon(0 0,100% 0,100% 100%);background:linear-gradient(135deg,#ff9ad5,#ffe48a 35%,#8fffd8 60%,#8fc7ff);box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+.vC .fold.etched{background:linear-gradient(135deg,#f6f1e2,#9aa5ab 50%,#e8e2d0)}
+.vC .fold b{position:absolute;right:3px;top:2px;font-size:10px;font-weight:900;color:#101500;line-height:1}
+
+/* D: a section per printing, its copies in a horizontal row */
+.vD .sec{margin:0 12px 10px;background:var(--surface);border-radius:12px;padding:10px 0 10px}
+.vD .sh{display:flex;align-items:center;gap:8px;padding:0 12px 8px}
+.vD .sh .nm{font-weight:700;font-size:14px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vD .sh .pr{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);white-space:nowrap}
+.vD .sh .n{font-size:11px;font-weight:700;color:var(--dim);white-space:nowrap}
+.vD .row{display:flex;gap:8px;overflow-x:auto;padding:0 12px;scrollbar-width:none}
+.vD .row::-webkit-scrollbar{display:none}
+.vD .copy{width:78px;flex:none;display:flex;flex-direction:column;gap:5px}
+.vD .copy .img{border-radius:4px}
+.vD .marks{display:flex;justify-content:center;gap:3px;min-height:18px}
+.vD .mk{height:18px;padding:0 6px;border-radius:9px;background:var(--surface3);font-size:10px;font-weight:800;display:flex;align-items:center}
+.vD .mk.nm{background:none;color:var(--dim);font-weight:700}
+
+/* E: two columns, bigger cards, short info block */
+.vE .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px;padding:0 16px}
+.vE .tile{display:flex;flex-direction:column;gap:7px}
+.vE .img{border-radius:9px}
+.vE .nm{font-weight:700;font-size:14px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px}
+.vE .pr{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);margin-top:-3px}
+.vE .pr span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.vE .pr .cn{flex:none}
+.vE .chips{display:flex;gap:6px;min-height:24px}
+.vE .chips .none{font-size:11px;color:var(--dim);font-weight:700;align-self:center}
+
+/* reduced motion */
+@media (prefers-reduced-motion:reduce){.sheen::after{animation:none;background-position:50% 50%}}
+body.rm .sheen::after{animation:none;background-position:50% 50%}
+
+/* prototype chrome */
+#switcher{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:4px;background:#fff;color:#111;border-radius:999px;padding:5px;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.2);font-weight:800;font-size:13px}
+#switcher button{width:34px;height:34px;border-radius:17px;background:#eee;color:#111;font-size:16px;font-weight:900;flex:none}
+#switcher button:hover{background:#ddd}
+#switcher .label{padding:0 12px;min-width:360px;text-align:center;line-height:1.25;white-space:nowrap}
+#switcher .label small{display:block;font-weight:600;font-size:11.5px;color:#555}
+#dev{position:fixed;top:14px;left:14px;z-index:100;width:270px;background:#f4f1e8;color:#1a1a1a;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.4);font-size:12px;overflow:hidden}
+#dev .dh{background:#ffb300;color:#1a1200;padding:7px 10px;font-weight:900;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+#dev .db{padding:8px 10px;display:flex;flex-direction:column;gap:8px}
+#dev.closed .db{display:none}
+#dev .t{font-weight:900;font-size:11px;color:#6b5a2a;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+#dev .btns{display:flex;flex-wrap:wrap;gap:4px}
+#dev button{background:#fff;border:1px solid #c9c2ad;border-radius:6px;padding:4px 7px;color:#1a1a1a;font-weight:700}
+#dev button:hover{background:#fffbe9}
+#dev button.sel{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+#dev pre{margin:0;background:#fff;border:1px solid #e0d8c0;border-radius:6px;padding:6px;font:11px/1.4 ui-monospace,Menlo,monospace;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div id="page"><div id="phone"><div id="screen"></div>
+<div class="statusbar"><span>9:41</span><div class="island"></div><div class="sb-icons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.5c2.3 0 4.4.9 5.9 2.4l1.1-1.1C13.2 2 10.7 1 8 1S2.8 2 1 3.8l1.1 1.1C3.6 3.4 5.7 2.5 8 2.5zm0 3c1.5 0 2.8.6 3.8 1.5l1.1-1.1C11.6 4.7 9.9 4 8 4s-3.6.7-4.9 1.9L4.2 7C5.2 6.1 6.5 5.5 8 5.5zm0 3c.7 0 1.3.3 1.7.7L8 11 6.3 9.2c.4-.4 1-.7 1.7-.7z" fill="#fff"/></svg><span class="batt"></span></div></div>
+<nav class="tabbar" aria-label="Tabs">
+  <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Recent</span>
+  <span class="sel"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="5" height="5" rx="1.2"/><rect x="9.5" y="3" width="5" height="5" rx="1.2"/><rect x="16" y="3" width="5" height="5" rx="1.2"/><rect x="3" y="9.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="16" y="9.5" width="5" height="5" rx="1.2"/><rect x="3" y="16" width="5" height="5" rx="1.2"/><rect x="9.5" y="16" width="5" height="5" rx="1.2"/><rect x="16" y="16" width="5" height="5" rx="1.2"/></svg>Collection</span>
+  <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="5" y="7" width="14" height="14" rx="2"/><path d="M7.5 4h9M10 1.8h4"/></svg>Decks</span>
+  <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.3" r="3.6"/></svg>Scan</span>
+</nav>
+<div class="homebar"></div></div></div>
+
+<div id="dev">
+  <div class="dh" data-act="toggleDev"><span>Dev menu · prototype</span><span id="devcaret">▾</span></div>
+  <div class="db">
+    <div><div class="t">Display</div><div class="btns"><button data-act="toggleImg" id="dev-img"></button><button data-act="toggleDense" id="dev-dense"></button><button data-act="toggleRm" id="dev-rm"></button></div></div>
+    <div><div class="t">State</div><pre id="dev-state"></pre></div>
+  </div>
+</div>
+<div id="switcher" role="toolbar" aria-label="Prototype variant switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span class="label" id="switcher-label">A</span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+
+<script>
+const PRINTINGS = {
+"tdm-136": {
+"name": "Bloomvine Regent // Claim Territory",
+"set": "TDM",
+"cn": "136",
+"img": "https://cards.scryfall.io/normal/front/1/0/10e0a9a3-f63a-4f92-a083-9d181580e498.jpg?1783907345",
+"dfc": false
+},
+"eld-115": {
+"name": "Bonecrusher Giant // Stomp",
+"set": "ELD",
+"cn": "115",
+"img": "https://cards.scryfall.io/normal/front/0/9/09fd2d9c-1793-4beb-a3fb-7a869f660cd4.jpg?1783932628",
+"dfc": false
+},
+"isd-51": {
+"name": "Delver of Secrets // Insectile Aberration",
+"set": "ISD",
+"cn": "51",
+"img": "https://cards.scryfall.io/normal/front/1/1/11bf83bb-c95b-4b4f-9a56-ce7a1816307a.jpg?1783940984",
+"dfc": true
+},
+"mh2-186": {
+"name": "Asmoranomardicadaistinaculdacar",
+"set": "MH2",
+"cn": "186",
+"img": "https://cards.scryfall.io/normal/front/d/9/d99a9a7d-d9ca-4c11-80ab-e39d5943a315.jpg?1783926821",
+"dfc": false
+},
+"ltr-246": {
+"name": "The One Ring",
+"set": "LTR",
+"cn": "246",
+"img": "https://cards.scryfall.io/normal/front/d/5/d5806e68-1054-458e-866d-1f2470f682b2.jpg?1790212038",
+"dfc": false
+},
+"mh2-138": {
+"name": "Ragavan, Nimble Pilferer",
+"set": "MH2",
+"cn": "138",
+"img": "https://cards.scryfall.io/normal/front/a/9/a9738cda-adb1-47fb-9f4c-ecd930228c4d.jpg?1791803835",
+"dfc": false
+},
+"sld-1144": {
+"name": "Sarkhan Vol",
+"set": "SLD",
+"cn": "1144",
+"img": "https://cards.scryfall.io/normal/front/1/d/1df8d25e-e519-4197-aa8e-ec596cb2a2d8.jpg?1783920200",
+"dfc": false
+},
+"khm-168": {
+"name": "Esika, God of the Tree // The Prismatic Bridge",
+"set": "KHM",
+"cn": "168",
+"img": "https://cards.scryfall.io/normal/front/f/6/f6cd7465-9dd0-473c-ac5e-dd9e2f22f5f6.jpg?1783928221",
+"dfc": true
+},
+"pcy-45": {
+"name": "Rhystic Study",
+"set": "PCY",
+"cn": "45",
+"img": "https://cards.scryfall.io/normal/front/3/3/3394cefd-a3c6-4917-8f46-234e441ecfb6.jpg?1783945789",
+"dfc": false
+},
+"dmu-107": {
+"name": "Sheoldred, the Apocalypse",
+"set": "DMU",
+"cn": "107",
+"img": "https://cards.scryfall.io/normal/front/d/6/d67be074-cdd4-41d9-ac89-0a0456c4e4b2.jpg?1783921327",
+"dfc": false
+},
+"ltc-284": {
+"name": "Sol Ring",
+"set": "LTC",
+"cn": "284",
+"img": "https://cards.scryfall.io/normal/front/5/8/5805f64c-dd88-4e94-8f0a-a01dae67e3ba.jpg?1783915895",
+"dfc": false
+},
+"rna-22": {
+"name": "Smothering Tithe",
+"set": "RNA",
+"cn": "22",
+"img": "https://cards.scryfall.io/normal/front/7/a/7af082fa-86a3-4f7b-966d-2be1f1d0c0bc.jpg?1783933717",
+"dfc": false
+},
+"blb-241": {
+"name": "Ygra, Eater of All",
+"set": "BLB",
+"cn": "241",
+"img": "https://cards.scryfall.io/normal/front/b/9/b9ac7673-eae8-4c4b-889e-5025213a6151.jpg?1783910790",
+"dfc": false
+},
+"dsk-120": {
+"name": "Valgavoth, Terror Eater",
+"set": "DSK",
+"cn": "120",
+"img": "https://cards.scryfall.io/normal/front/7/7/7740ff55-67bb-409e-90f7-2c2c8b8c770a.jpg?1783909475",
+"dfc": false
+},
+"cmr-561": {
+"name": "Sakashima of a Thousand Faces",
+"set": "CMR",
+"cn": "561",
+"img": "https://cards.scryfall.io/normal/front/6/9/69639b23-9975-4356-ab7d-0aa3387e02c7.jpg?1783928652",
+"dfc": false
+}
+};
+const SETS = {
+"BLB": {
+"name": "Bloomburrow",
+"icon": "https://svgs.scryfall.io/sets/blb.svg?1791777600"
+},
+"CMR": {
+"name": "Commander Legends",
+"icon": "https://svgs.scryfall.io/sets/cmr.svg?1791777600"
+},
+"DMU": {
+"name": "Dominaria United",
+"icon": "https://svgs.scryfall.io/sets/dmu.svg?1791777600"
+},
+"DSK": {
+"name": "Duskmourn: House of Horror",
+"icon": "https://svgs.scryfall.io/sets/dsk.svg?1791777600"
+},
+"ELD": {
+"name": "Throne of Eldraine",
+"icon": "https://svgs.scryfall.io/sets/eld.svg?1791777600"
+},
+"ISD": {
+"name": "Innistrad",
+"icon": "https://svgs.scryfall.io/sets/isd.svg?1791777600"
+},
+"KHM": {
+"name": "Kaldheim",
+"icon": "https://svgs.scryfall.io/sets/khm.svg?1791777600"
+},
+"LTC": {
+"name": "Tales of Middle-earth Commander",
+"icon": "https://svgs.scryfall.io/sets/ltc.svg?1791777600"
+},
+"LTR": {
+"name": "The Lord of the Rings: Tales of Middle-earth",
+"icon": "https://svgs.scryfall.io/sets/ltr.svg?1791777600"
+},
+"MH2": {
+"name": "Modern Horizons 2",
+"icon": "https://svgs.scryfall.io/sets/mh2.svg?1791777600"
+},
+"PCY": {
+"name": "Prophecy",
+"icon": "https://svgs.scryfall.io/sets/pcy.svg?1791777600"
+},
+"RNA": {
+"name": "Ravnica Allegiance",
+"icon": "https://svgs.scryfall.io/sets/rna.svg?1791777600"
+},
+"SLD": {
+"name": "Secret Lair Drop",
+"icon": "https://svgs.scryfall.io/sets/star.svg?1791777600"
+},
+"TDM": {
+"name": "Tarkir: Dragonstorm",
+"icon": "https://svgs.scryfall.io/sets/tdm.svg?1791777600"
+}
+};
+const COPIES = [{"p": "tdm-136", "finish": "nonfoil", "cond": "NM"},
+{"p": "tdm-136", "finish": "foil", "cond": "NM"},
+{"p": "tdm-136", "finish": "nonfoil", "cond": "MP"},
+{"p": "eld-115", "finish": "nonfoil", "cond": "NM"},
+{"p": "eld-115", "finish": "nonfoil", "cond": "LP"},
+{"p": "eld-115", "finish": "nonfoil", "cond": "LP"},
+{"p": "isd-51", "finish": "nonfoil", "cond": "NM"},
+{"p": "isd-51", "finish": "foil", "cond": "LP"},
+{"p": "mh2-186", "finish": "foil", "cond": "NM"},
+{"p": "ltr-246", "finish": "foil", "cond": "NM"},
+{"p": "ltr-246", "finish": "nonfoil", "cond": "HP"},
+{"p": "cmr-561", "finish": "etched", "cond": "NM"},
+{"p": "cmr-561", "finish": "etched", "cond": "MP"},
+{"p": "mh2-138", "finish": "nonfoil", "cond": "DMG"},
+{"p": "blb-241", "finish": "foil", "cond": "NM"},
+{"p": "dsk-120", "finish": "nonfoil", "cond": "NM"},
+{"p": "sld-1144", "finish": "foil", "cond": "MP"},
+{"p": "khm-168", "finish": "nonfoil", "cond": "LP"},
+{"p": "pcy-45", "finish": "nonfoil", "cond": "HP"},
+{"p": "dmu-107", "finish": "nonfoil", "cond": "NM"},
+{"p": "dmu-107", "finish": "nonfoil", "cond": "NM"},
+{"p": "ltc-284", "finish": "nonfoil", "cond": "NM"},
+{"p": "ltc-284", "finish": "nonfoil", "cond": "NM"},
+{"p": "rna-22", "finish": "foil", "cond": "NM"}];
+
+const VARIANTS = {
+  A: ['Chip row (current, PR #119)', 'Optimises for: matching the shipped build, every detail as an equal chip under the card.'],
+  B: ['Meta line + foil sheen', 'Optimises for: quiet chrome, the image itself says foil and one short line says the rest.'],
+  C: ['Marks on the image', 'Optimises for: density, more cards per screen with the marks on the image.'],
+  D: ['Grouped by printing', 'Optimises for: comparing copies of one printing side by side.'],
+  E: ['Two columns with details', 'Optimises for: readable names and set names, fewer cards but no guessing.'],
+};
+const KEYS = Object.keys(VARIANTS);
+const q = new URLSearchParams(location.search);
+const ui = {
+  variant: KEYS.includes(q.get('variant')) ? q.get('variant') : 'A',
+  noimg: q.get('img') === '0',
+  dense: q.get('dense') === '1',
+  rm: false,
+};
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const FINISH = { foil: 'Foil', etched: 'Etched' };
+const condTone = c => (c === 'HP' || c === 'DMG') ? 'danger' : (c === 'LP' || c === 'MP') ? 'warn' : '';
+function copies() {
+  const base = COPIES.map((c, i) => ({ ...c, ...PRINTINGS[c.p], key: `${c.p}#${i}` }));
+  if (!ui.dense) return base;
+  const out = [];
+  for (let r = 0; out.length < 120; r++) base.forEach(c => out.length < 120 && out.push({ ...c, key: `${c.key}r${r}` }));
+  return out;
+}
+const label = c => [c.name, `${c.set} ${c.cn}`, FINISH[c.finish], c.cond !== 'NM' && c.cond].filter(Boolean).join(', ');
+const setIcon = (code, cls = '') => `<img class="seticon ${cls}" src="${SETS[code].icon}" alt="${code}">`;
+const image = (c, cls = '') => `<div class="img ${cls}"><img src="${c.img}" alt="" loading="lazy"><div class="ph">${esc(c.name)}</div></div>`;
+const header = () => `<div class="navtitle"><h1>Collection</h1><button class="gear" aria-label="Settings"><svg viewBox="0 0 24 24" fill="#fff"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.3 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button></div>`;
+
+const V = {
+  A(list) {
+    return `<div class="vA">${header()}<div class="grid">${list.map(c => `
+      <div class="tile" aria-label="${esc(label(c))}">${image(c)}
+        <div class="chips"><span class="chip">${setIcon(c.set)}</span><span class="chip">${c.cn}</span>${c.finish !== 'nonfoil' ? `<span class="chip">${FINISH[c.finish]}</span>` : ''}${c.cond !== 'NM' ? `<span class="chip">${c.cond}</span>` : ''}</div>
+      </div>`).join('')}</div><div class="list-end"></div></div>`;
+  },
+  B(list) {
+    return `<div class="vB">${header()}<div class="grid">${list.map(c => {
+      const bits = [];
+      if (c.finish !== 'nonfoil') bits.push(`<b class="${c.finish === 'foil' ? 'foiltxt' : 'etchtxt'}">${FINISH[c.finish]}</b>`);
+      if (c.cond !== 'NM') bits.push(`<b class="c-${condTone(c.cond)}">${c.cond}</b>`);
+      return `<div class="tile" aria-label="${esc(label(c))}">${image(c, c.finish !== 'nonfoil' ? `sheen ${c.finish}` : '')}
+        <div class="meta">${setIcon(c.set, 'muted')}<span>${c.cn}</span>${bits.map(b => `<span class="dot">·</span>${b}`).join('')}</div></div>`;
+    }).join('')}</div><div class="list-end"></div></div>`;
+  },
+  C(list) {
+    return `<div class="vC">${header()}<div class="grid">${list.map(c => `
+      <div class="tile" aria-label="${esc(label(c))}"><div class="img"><img src="${c.img}" alt="" loading="lazy"><div class="ph">${esc(c.name)}</div>
+        ${c.finish !== 'nonfoil' ? `<div class="fold ${c.finish}"><b>${c.finish === 'foil' ? '✦' : 'E'}</b></div>` : ''}
+        <div class="pill">${setIcon(c.set)}${c.cn}</div>
+        ${c.cond !== 'NM' ? `<div class="cond ${condTone(c.cond)}">${c.cond}</div>` : ''}
+      </div></div>`).join('')}</div><div class="list-end"></div></div>`;
+  },
+  D(list) {
+    const groups = [];
+    list.forEach(c => { const g = groups[groups.length - 1]; if (g && g.p === c.p) g.copies.push(c); else groups.push({ p: c.p, copies: [c] }); });
+    return `<div class="vD">${header()}${groups.map(g => {
+      const p = g.copies[0];
+      return `<section class="sec"><div class="sh"><span class="nm">${esc(p.name)}</span><span class="pr">${setIcon(p.set, 'muted')}${p.cn}</span><span class="n">×${g.copies.length}</span></div>
+        <div class="row">${g.copies.map(c => {
+          const marks = [];
+          if (c.finish !== 'nonfoil') marks.push(`<span class="mk"><span class="${c.finish === 'foil' ? 'foiltxt' : 'etchtxt'}">${FINISH[c.finish]}</span></span>`);
+          if (c.cond !== 'NM') marks.push(`<span class="mk c-${condTone(c.cond)}">${c.cond}</span>`);
+          if (!marks.length) marks.push('<span class="mk nm">NM</span>');
+          return `<div class="copy" aria-label="${esc(label(c))}">${image(c)}<div class="marks">${marks.join('')}</div></div>`;
+        }).join('')}</div></section>`;
+    }).join('')}<div class="list-end"></div></div>`;
+  },
+  E(list) {
+    return `<div class="vE">${header()}<div class="grid">${list.map(c => {
+      const chips = [];
+      if (c.finish !== 'nonfoil') chips.push(`<span class="chip"><span class="${c.finish === 'foil' ? 'foiltxt' : 'etchtxt'}">${FINISH[c.finish]}</span></span>`);
+      if (c.cond !== 'NM') chips.push(`<span class="chip c-${condTone(c.cond)}">${c.cond}</span>`);
+      return `<div class="tile" aria-label="${esc(label(c))}">${image(c)}
+        <div class="nm">${esc(c.name)}</div>
+        <div class="pr">${setIcon(c.set, 'muted')}<span>${esc(SETS[c.set].name)}</span><span class="cn">· ${c.cn}</span></div>
+        <div class="chips">${chips.join('') || '<span class="none">Nonfoil · NM</span>'}</div></div>`;
+    }).join('')}</div><div class="list-end"></div></div>`;
+  },
+};
+
+function render() {
+  document.body.classList.toggle('noimg', ui.noimg);
+  document.body.classList.toggle('rm', ui.rm);
+  const list = copies();
+  const screen = document.getElementById('screen');
+  screen.innerHTML = V[ui.variant](list);
+  screen.scrollTop = 0;
+  const [name, caption] = VARIANTS[ui.variant];
+  document.getElementById('switcher-label').innerHTML = `${ui.variant} · ${esc(name)}<small>${esc(caption)}</small>`;
+  document.getElementById('dev-img').textContent = `Card images: ${ui.noimg ? 'off' : 'on'}`;
+  document.getElementById('dev-dense').textContent = `Dense collection: ${ui.dense ? '120 copies' : 'off'}`;
+  document.getElementById('dev-rm').textContent = `Reduce motion: ${ui.rm ? 'on' : 'off'}`;
+  document.getElementById('dev-state').textContent = JSON.stringify({
+    variant: `${ui.variant} (${name})`,
+    copies: list.length,
+    printings: new Set(list.map(c => c.p)).size,
+    foil: list.filter(c => c.finish === 'foil').length,
+    etched: list.filter(c => c.finish === 'etched').length,
+    played: list.filter(c => c.cond !== 'NM').length,
+    images: !ui.noimg,
+  }, null, 1);
+  const p = new URLSearchParams(location.search);
+  p.set('variant', ui.variant);
+  ui.dense ? p.set('dense', '1') : p.delete('dense');
+  ui.noimg ? p.set('img', '0') : p.delete('img');
+  history.replaceState(null, '', `${location.pathname}?${p}`);
+}
+
+const ACT = {
+  toggleImg() { ui.noimg = !ui.noimg; render(); },
+  toggleDense() { ui.dense = !ui.dense; render(); },
+  toggleRm() { ui.rm = !ui.rm; render(); },
+  toggleDev() { const el = document.getElementById('dev'); el.classList.toggle('closed'); document.getElementById('devcaret').textContent = el.classList.contains('closed') ? '▸' : '▾'; },
+};
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-act]');
+  if (el) ACT[el.dataset.act]();
+});
+function step(n) { ui.variant = KEYS[(KEYS.indexOf(ui.variant) + n + KEYS.length) % KEYS.length]; render(); }
+document.getElementById('prev').addEventListener('click', () => step(-1));
+document.getElementById('next').addEventListener('click', () => step(1));
+document.addEventListener('keydown', ev => {
+  const a = document.activeElement;
+  if (a && a.matches('input, textarea, select, [contenteditable]')) return;
+  if (ev.key === 'ArrowLeft') step(-1);
+  if (ev.key === 'ArrowRight') step(1);
+});
+function fit() { document.documentElement.style.setProperty('--fit', Math.min(1, (window.innerHeight - 120) / 900).toFixed(3)); }
+window.addEventListener('resize', fit);
+fit();
+render();
+</script>
+</body>
+</html>
