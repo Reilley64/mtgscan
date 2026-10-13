@@ -1,12 +1,11 @@
-import { SymbolView } from 'expo-symbols';
-
 import { useSetIcons } from '@/catalog/use-set-icons';
 import { finishes, finishLabels } from '@/collection/copy-labels';
+import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { SetIcon } from '@/components/atoms/set-icon';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import type { BatchScan, RecognizedScan } from '@/scan/scan-batch';
-import { colors, sizes } from '@/theme';
+import { sizes } from '@/theme';
 
 type ScanQuickActionsProps = {
   scan: RecognizedScan | null;
@@ -31,7 +30,7 @@ export function ScanQuickActions({ scan, onAddCopy, onChangeFinish, onChangeSet 
       <QuickActionBar>
         <QuickActionButton label="Finish" />
         <QuickActionButton label="Set">
-          <SymbolView name="square.dashed" tintColor={colors.textDim} size={sizes.setIcon} />
+          <DimSymbol name="square.dashed" size={sizes.setIcon} />
         </QuickActionButton>
         <QuickActionButton label="+1" />
       </QuickActionBar>

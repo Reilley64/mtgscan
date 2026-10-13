@@ -7,7 +7,10 @@ import { Button } from '@/components/atoms/button';
 import { CardImage } from '@/components/atoms/card-image';
 import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { Chip } from '@/components/atoms/chip';
+import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { CountBadge } from '@/components/atoms/count-badge';
+import { DimSymbol } from '@/components/atoms/dim-symbol';
+import { GlassGroup, GlassSurface } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
@@ -19,15 +22,21 @@ import { Text } from '@/components/atoms/text';
 import { TextLink } from '@/components/atoms/text-link';
 import { Toggle } from '@/components/atoms/toggle';
 
+import { liquidGlassIsAvailable } from './fake-glass-effect';
 import {
   appleSignInButton,
+  backdropOf,
+  blocksColored,
   cardImageUri,
   cardSheen,
+  glassEffect,
+  glassGroupOf,
   imageTintColor,
   placeholderColor,
   pressSignInWithApple,
   showsSpinner,
   switchTrackColor,
+  symbolTintColor,
   touchTarget,
 } from './native-ui';
 import { tokenColors } from './token-colors';
@@ -41,6 +50,9 @@ const {
   text: white,
   textMuted,
   textDim,
+  glassTextMuted,
+  glassTextDim,
+  glassSkeleton,
   warning,
   danger,
   info,
@@ -454,6 +466,99 @@ describe('TextLink', () => {
   });
 });
 
+describe('GlassSurface', () => {
+  test('on Liquid Glass, a glass surface is regular glass with no tint and its own corners', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <GlassSurface fallback="surface" className="rounded-md">
+        <Text>Lightning Bolt</Text>
+      </GlassSurface>,
+    );
+
+    const glass = backdropOf(screen.getByText('Lightning Bolt'));
+    expect(glassEffect(glass)).toEqual({ style: 'regular', interactive: false, tintColor: undefined });
+    expect(glass).toHaveStyle({ borderRadius: 12 });
+  });
+
+  test('an interactive glass surface reacts to touch', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <GlassSurface fallback="surface-control" interactive>
+        <Text>+1</Text>
+      </GlassSurface>,
+    );
+
+    expect(glassEffect(backdropOf(screen.getByText('+1')))).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
+  });
+
+  test.each([
+    ['surface', surface],
+    ['surface-control', surfaceControl],
+  ] as const)('without Liquid Glass, a glass surface falls back to the %s color', async (fallback, color) => {
+    await render(
+      <GlassSurface fallback={fallback} className="rounded-md" interactive>
+        <Text>Lightning Bolt</Text>
+      </GlassSurface>,
+    );
+
+    const background = backdropOf(screen.getByText('Lightning Bolt'));
+    expect(glassEffect(background)).toBeNull();
+    expect(background).toHaveStyle({ backgroundColor: color, borderRadius: 12 });
+  });
+
+  test('on Liquid Glass, glass surfaces in a glass group sit directly in one glass container', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <GlassGroup className="gap-sm">
+        <GlassSurface fallback="surface">
+          <Text>Lightning Bolt</Text>
+        </GlassSurface>
+        <GlassSurface fallback="surface-control" interactive>
+          <Text>+1</Text>
+        </GlassSurface>
+      </GlassGroup>,
+    );
+
+    const group = glassGroupOf(screen.getByText('Lightning Bolt'));
+    expect(group).not.toBeNull();
+    expect(glassGroupOf(screen.getByText('+1'))).toBe(group);
+    expect(group).toHaveStyle({ rowGap: 8 });
+  });
+
+  test('without Liquid Glass, a glass group is a plain view', async () => {
+    await render(
+      <GlassGroup className="gap-sm">
+        <GlassSurface fallback="surface">
+          <Text>Lightning Bolt</Text>
+        </GlassSurface>
+      </GlassGroup>,
+    );
+
+    expect(glassGroupOf(screen.getByText('Lightning Bolt'))).toBeNull();
+  });
+
+  test('on Liquid Glass, meta text is the lighter glass text muted color', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <GlassSurface fallback="surface">
+        <Text variant="meta">M10 146</Text>
+      </GlassSurface>,
+    );
+
+    expect(screen.getByText('M10 146')).toHaveStyle({ color: glassTextMuted });
+  });
+
+  test('without Liquid Glass, meta text keeps the text muted color', async () => {
+    await render(
+      <GlassSurface fallback="surface">
+        <Text variant="meta">M10 146</Text>
+      </GlassSurface>,
+    );
+
+    expect(screen.getByText('M10 146')).toHaveStyle({ color: textMuted });
+  });
+});
+
 describe('Skeleton', () => {
   test('a skeleton is a line-colored block with 4 px corners that starts dimmed', async () => {
     await render(
@@ -464,6 +569,73 @@ describe('Skeleton', () => {
 
     const [block] = screen.getByLabelText('Recognizing card').children as ReturnType<typeof screen.getByLabelText>[];
     expect(block).toHaveStyle({ backgroundColor: line, borderRadius: 4, height: 14, width: '70%', opacity: 0.45 });
+  });
+
+  test('on Liquid Glass, a skeleton takes the glass skeleton color', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <GlassSurface fallback="surface">
+        <View accessibilityLabel="Recognizing card">
+          <Skeleton className="h-skeleton-title-bar w-[70%]" />
+        </View>
+      </GlassSurface>,
+    );
+
+    const skeleton = screen.getByLabelText('Recognizing card');
+    expect(blocksColored(skeleton, glassSkeleton)).toBe(1);
+    expect(blocksColored(skeleton, line)).toBe(0);
+  });
+});
+
+describe('CardThumbnail', () => {
+  test('an empty card thumbnail is a line-colored card shape', async () => {
+    await render(
+      <View accessibilityLabel="Thumbnail">
+        <CardThumbnail uri={undefined} />
+      </View>,
+    );
+
+    expect(blocksColored(screen.getByLabelText('Thumbnail'), line)).toBe(1);
+  });
+
+  test('on Liquid Glass, an empty card thumbnail takes the glass skeleton color', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <GlassSurface fallback="surface">
+        <View accessibilityLabel="Thumbnail">
+          <CardThumbnail uri={undefined} />
+        </View>
+      </GlassSurface>,
+    );
+
+    const thumbnail = screen.getByLabelText('Thumbnail');
+    expect(blocksColored(thumbnail, glassSkeleton)).toBe(1);
+    expect(blocksColored(thumbnail, line)).toBe(0);
+  });
+});
+
+describe('DimSymbol', () => {
+  test('a dim symbol is tinted with the text dim color', async () => {
+    await render(
+      <View accessibilityLabel="Opens details">
+        <DimSymbol name="chevron.right" size={14} />
+      </View>,
+    );
+
+    expect(symbolTintColor(screen.getByLabelText('Opens details'))).toBe(textDim);
+  });
+
+  test('on Liquid Glass, a dim symbol takes the lighter glass text dim color', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <GlassSurface fallback="surface">
+        <View accessibilityLabel="Opens details">
+          <DimSymbol name="chevron.right" size={14} />
+        </View>
+      </GlassSurface>,
+    );
+
+    expect(symbolTintColor(screen.getByLabelText('Opens details'))).toBe(glassTextDim);
   });
 });
 
@@ -485,6 +657,19 @@ describe('QuickActionButton', () => {
 
     expect(screen.getByRole('button', { name: 'Finish' })).toBeDisabled();
     expect(screen.getByText('Finish')).toHaveStyle({ color: textDim });
+  });
+
+  test('on Liquid Glass, a quick action with no action has a glass text dim label', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <GlassSurface fallback="surface-control" interactive>
+        <QuickActionButton label="Finish" />
+        <QuickActionButton label="+1" onPress={() => {}} />
+      </GlassSurface>,
+    );
+
+    expect(screen.getByText('Finish')).toHaveStyle({ color: glassTextDim });
+    expect(screen.getByText('+1')).toHaveStyle({ color: white });
   });
 
   test('a quick action has a 44 pt touch target', async () => {

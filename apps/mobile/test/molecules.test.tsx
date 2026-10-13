@@ -19,9 +19,21 @@ import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { SwitchRow } from '@/components/molecules/switch-row';
+import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 
-import { cardImageOutline, cardImageUri, cardSheen, imageTintColor, symbolNames, touchTarget } from './native-ui';
+import { liquidGlassIsAvailable } from './fake-glass-effect';
+import {
+  backdropOf,
+  cardImageOutline,
+  cardImageUri,
+  cardSheen,
+  glassEffect,
+  imageTintColor,
+  sideColumnWidths,
+  symbolNames,
+  touchTarget,
+} from './native-ui';
 import { tokenColors } from './token-colors';
 
 const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim, textPrice } = tokenColors;
@@ -187,6 +199,92 @@ describe('QuickActionBar', () => {
     expect(dividers).toHaveLength(2);
     dividers.forEach((divider) => expect(divider).toHaveStyle({ height: 16, borderColor: line }));
     expect(screen.getAllByRole('button').map((action) => action.props.accessibilityLabel)).toEqual(['Nonfoil', 'M10', '+1']);
+  });
+
+  test('on Liquid Glass, a quick-action bar is regular glass with no tint that reacts to touch', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <QuickActionBar>
+        <QuickActionButton label="Nonfoil" />
+        <QuickActionButton label="+1" onPress={() => {}} />
+      </QuickActionBar>,
+    );
+
+    const bar = backdropOf(screen.getByRole('button', { name: '+1' }));
+    expect(glassEffect(bar)).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
+    expect(bar).toHaveStyle({ borderRadius: 12, alignSelf: 'center' });
+  });
+});
+
+describe('ThumbnailChip', () => {
+  test('a thumbnail chip centers its content between a thumbnail column and an accessory column of the same width', async () => {
+    await render(
+      <ThumbnailChip
+        accessibilityLabel="Lightning Bolt, M10 146"
+        thumbnail={<CardThumbnail uri={undefined} />}
+        accessory={<Text>Open</Text>}>
+        <Text className="text-center">Lightning Bolt</Text>
+      </ThumbnailChip>,
+    );
+
+    expect(sideColumnWidths(screen.getByText('Lightning Bolt'))).toEqual({ start: 40, end: 40 });
+  });
+
+  test('a thumbnail chip without an accessory keeps the accessory column at the same width', async () => {
+    await render(
+      <ThumbnailChip accessibilityLabel="Recognizing card" thumbnail={<CardThumbnail uri={undefined} />}>
+        <Text>Recognizing card</Text>
+      </ThumbnailChip>,
+    );
+
+    expect(sideColumnWidths(screen.getByText('Recognizing card'))).toEqual({ start: 40, end: 40 });
+  });
+
+  test('without Liquid Glass, a thumbnail chip with an action is a button on a surface card with 8 px padding', async () => {
+    const onPress = jest.fn();
+    await render(
+      <ThumbnailChip accessibilityLabel="Lightning Bolt, M10 146" thumbnail={<CardThumbnail uri={undefined} />} onPress={onPress}>
+        <Text>Lightning Bolt</Text>
+      </ThumbnailChip>,
+    );
+
+    const chip = screen.getByRole('button', { name: 'Lightning Bolt, M10 146' });
+    await fireEvent.press(chip);
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(chip).toHaveStyle({ padding: 8 });
+    expect(touchTarget(chip).height).toBeGreaterThanOrEqual(44);
+    expect(glassEffect(backdropOf(chip))).toBeNull();
+    expect(backdropOf(chip)).toHaveStyle({ backgroundColor: surface, borderRadius: 12 });
+  });
+
+  test('on Liquid Glass, a thumbnail chip with an action sits on glass that reacts to touch', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <ThumbnailChip accessibilityLabel="Lightning Bolt, M10 146" thumbnail={<CardThumbnail uri={undefined} />} onPress={() => {}}>
+        <Text>Lightning Bolt</Text>
+      </ThumbnailChip>,
+    );
+
+    const chip = screen.getByRole('button', { name: 'Lightning Bolt, M10 146' });
+    expect(glassEffect(backdropOf(chip))).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
+    expect(backdropOf(chip)).toHaveStyle({ borderRadius: 12 });
+  });
+
+  test('on Liquid Glass, a thumbnail chip without an action is not a button and its glass does not react to touch', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <ThumbnailChip accessibilityLabel="Plains, Basic land, not tracked" thumbnail={<CardThumbnail uri={undefined} />}>
+        <Text>Plains</Text>
+      </ThumbnailChip>,
+    );
+
+    expect(screen.queryByRole('button')).not.toBeOnTheScreen();
+    expect(glassEffect(backdropOf(screen.getByLabelText('Plains, Basic land, not tracked')))).toEqual({
+      style: 'regular',
+      interactive: false,
+      tintColor: undefined,
+    });
   });
 });
 
@@ -400,7 +498,9 @@ describe('BatchButton', () => {
     await render(<BatchButton count={3} onPress={onPress} />);
 
     const button = screen.getByRole('button', { name: 'Scan batch, 3' });
-    expect(button).toHaveStyle({ backgroundColor: surfaceControl, width: 38, height: 38, borderRadius: 999 });
+    expect(button).toHaveStyle({ width: 38, height: 38, borderRadius: 999 });
+    expect(glassEffect(backdropOf(button))).toBeNull();
+    expect(backdropOf(button)).toHaveStyle({ backgroundColor: surfaceControl, borderRadius: 999 });
     expect(touchTarget(button)).toEqual({ width: 44, height: 44 });
     expect(screen.getByText('3')).toBeOnTheScreen();
     await fireEvent.press(button);
@@ -412,5 +512,15 @@ describe('BatchButton', () => {
 
     expect(screen.getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
     expect(screen.queryByText('0')).not.toBeOnTheScreen();
+  });
+
+  test('on Liquid Glass, the batch button is round regular glass with no tint that reacts to touch', async () => {
+    liquidGlassIsAvailable();
+    await render(<BatchButton count={3} onPress={() => {}} />);
+
+    const button = screen.getByRole('button', { name: 'Scan batch, 3' });
+    expect(glassEffect(backdropOf(button))).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
+    expect(backdropOf(button)).toHaveStyle({ borderRadius: 999 });
+    expect(screen.getByText('3')).toBeOnTheScreen();
   });
 });

@@ -6,9 +6,12 @@ import { ScrollView, View } from 'react-native';
 import { AppleSignInButton } from '@/components/atoms/apple-sign-in-button';
 import { Button } from '@/components/atoms/button';
 import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
+import { CardImage } from '@/components/atoms/card-image';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { Chip } from '@/components/atoms/chip';
 import { CountBadge } from '@/components/atoms/count-badge';
+import { DimSymbol } from '@/components/atoms/dim-symbol';
+import { GlassGroup } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
@@ -32,8 +35,9 @@ import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { SwitchRow } from '@/components/molecules/switch-row';
+import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
-import { colors } from '@/theme';
+import { colors, sizes } from '@/theme';
 
 const m10Symbol = 'https://svgs.scryfall.io/sets/m10.svg';
 
@@ -263,6 +267,50 @@ function Skeletons() {
   );
 }
 
+function Glass() {
+  return (
+    <Section title="Glass">
+      <View>
+        <CardImage uri={solRing} />
+        <View className="absolute inset-x-md top-md items-end">
+          <BatchButton count={3} onPress={() => {}} />
+        </View>
+        <View className="absolute inset-x-md bottom-md">
+          <GlassGroup className="gap-sm">
+            <ThumbnailChip
+              accessibilityLabel="Sol Ring, CMM 464, Foil"
+              onPress={() => {}}
+              thumbnail={<CardThumbnail uri={solRing} />}
+              accessory={<DimSymbol name="chevron.right" size={sizes.chevron} />}>
+              <Text variant="body-strong" className="text-center">
+                Sol Ring
+              </Text>
+              <Text variant="meta" className="text-center">
+                CMM 464 · Foil
+              </Text>
+            </ThumbnailChip>
+            <ThumbnailChip
+              accessibilityLabel="Recognizing card"
+              accessibilityRole="progressbar"
+              thumbnail={<Skeleton className="h-card-thumbnail-height w-card-thumbnail-width" />}>
+              <View className="items-center">
+                <Skeleton className="h-skeleton-title-bar w-[70%]" />
+              </View>
+            </ThumbnailChip>
+            <QuickActionBar>
+              <QuickActionButton label="Finish" />
+              <QuickActionButton label="Set">
+                <DimSymbol name="square.dashed" size={sizes.setIcon} />
+              </QuickActionButton>
+              <QuickActionButton label="+1" onPress={() => {}} />
+            </QuickActionBar>
+          </GlassGroup>
+        </View>
+      </View>
+    </Section>
+  );
+}
+
 function Inputs() {
   const [name, setName] = useState('');
   return (
@@ -310,6 +358,7 @@ export function PrimitiveCatalog() {
         <CountBadges />
         <QuickActions />
         <Skeletons />
+        <Glass />
         <Inputs />
         <ProgressBars />
         <SheetSections />

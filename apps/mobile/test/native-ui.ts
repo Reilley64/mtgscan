@@ -143,6 +143,44 @@ export function appearsBefore(
 
 type HostElement = ReturnType<typeof screen.getByRole>;
 
+const glassHost = 'ViewManagerAdapter_ExpoGlassEffect';
+
+function isGlassView(element: HostElement) {
+  return element.type === glassHost && 'glassEffectStyle' in element.props;
+}
+
+function isGlassGroup(element: HostElement) {
+  return element.type === glassHost && 'spacing' in element.props;
+}
+
+function isTransparent(color: unknown) {
+  return color === undefined || color === '#00000000';
+}
+
+export function backdropOf(element: HostElement) {
+  let candidate: HostElement | null = element;
+  while (candidate) {
+    if (isGlassView(candidate) || !isTransparent(StyleSheet.flatten(candidate.props.style)?.backgroundColor)) {
+      return candidate;
+    }
+    candidate = candidate.parent;
+  }
+  throw new Error('Nothing draws a background behind this element');
+}
+
+export function glassEffect(element: HostElement) {
+  if (!isGlassView(element)) {
+    return null;
+  }
+  const { glassEffectStyle, isInteractive = false, tintColor } = element.props;
+  return { style: glassEffectStyle, interactive: isInteractive, tintColor };
+}
+
+export function glassGroupOf(element: HostElement) {
+  const glass = backdropOf(element);
+  return isGlassView(glass) && glass.parent && isGlassGroup(glass.parent) ? glass.parent : null;
+}
+
 export function cardImageUri(tile: HostElement) {
   const [image] = tile.queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage');
   if (!image) {
@@ -164,15 +202,37 @@ export function imageTintColor(element: HostElement) {
   return image.props.tintColor;
 }
 
+export function symbolTintColor(element: HostElement) {
+  const [symbol] = element.queryAll((instance) => instance.type === 'ViewManagerAdapter_SymbolModule');
+  if (!symbol) {
+    throw new Error('No symbol is in this element');
+  }
+  return symbol.props.tintColor;
+}
+
 export function symbolNames(element: HostElement) {
   return element
     .queryAll((instance) => instance.type === 'ViewManagerAdapter_SymbolModule')
     .map((symbol) => symbol.props.name);
 }
 
+export function blocksColored(element: HostElement, color: string) {
+  return element.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.backgroundColor === color).length;
+}
+
 export function lineColoredBlocks(element: HostElement) {
-  return element.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.backgroundColor === tokenColors.line)
-    .length;
+  return blocksColored(element, tokenColors.line);
+}
+
+export function sideColumnWidths(element: HostElement) {
+  let column = element;
+  while (column.parent && StyleSheet.flatten(column.parent.props.style)?.flexDirection !== 'row') {
+    column = column.parent;
+  }
+  const columns = (column.parent?.children ?? []).filter((child) => typeof child !== 'string') as HostElement[];
+  const index = columns.indexOf(column);
+  const widthOf = (side: HostElement | undefined) => StyleSheet.flatten(side?.props.style)?.width ?? null;
+  return { start: widthOf(columns[index - 1]), end: widthOf(columns[index + 1]) };
 }
 
 export function placeholderColor(element: HostElement) {

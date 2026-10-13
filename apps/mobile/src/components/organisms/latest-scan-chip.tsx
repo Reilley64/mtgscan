@@ -1,17 +1,15 @@
-import { SymbolView } from 'expo-symbols';
 import { View } from 'react-native';
 
 import { usePrintingImages } from '@/catalog/use-printing-images';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
+import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { Skeleton } from '@/components/atoms/skeleton';
-import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
+import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
 import { chipDetails } from '@/scan/printing-caption';
 import { recognizedScan, type BatchScan, type Printing } from '@/scan/scan-batch';
 import type { LatestScan } from '@/scan/scan-batch-state';
-import { colors, sizes } from '@/theme';
-
-const chipClass = 'flex-row items-center gap-md py-sm pl-sm pr-lg';
+import { sizes } from '@/theme';
 
 type LatestScanChipProps = {
   latest: LatestScan;
@@ -20,19 +18,21 @@ type LatestScanChipProps = {
 
 function SkeletonChip() {
   return (
-    <Surface accessible accessibilityRole="progressbar" accessibilityLabel="Recognizing card" className={chipClass}>
-      <Skeleton className="h-card-thumbnail-height w-card-thumbnail-width" />
-      <View className="flex-1 gap-xs">
+    <ThumbnailChip
+      accessibilityRole="progressbar"
+      accessibilityLabel="Recognizing card"
+      thumbnail={<Skeleton className="h-card-thumbnail-height w-card-thumbnail-width" />}>
+      <View className="items-center gap-xs">
         <Skeleton className="h-skeleton-title-bar w-[70%]" />
         <Skeleton className="h-skeleton-meta-bar w-[40%]" />
       </View>
-    </Surface>
+    </ThumbnailChip>
   );
 }
 
 function ChipText({ name, details }: { name: string; details: string[] }) {
   return (
-    <View className="flex-1 gap-xs">
+    <View className="gap-xs">
       <Text variant="body-strong" numberOfLines={1} className="text-center">
         {name}
       </Text>
@@ -45,10 +45,9 @@ function ChipText({ name, details }: { name: string; details: string[] }) {
 
 function BasicLandChip({ printing, image }: { printing: Printing; image: string | undefined }) {
   return (
-    <Surface accessible accessibilityLabel={`${printing.name}, Basic land, not tracked`} className={chipClass}>
-      <CardThumbnail uri={image} />
+    <ThumbnailChip accessibilityLabel={`${printing.name}, Basic land, not tracked`} thumbnail={<CardThumbnail uri={image} />}>
       <ChipText name={printing.name} details={['Basic land, not tracked']} />
-    </Surface>
+    </ThumbnailChip>
   );
 }
 
@@ -57,11 +56,13 @@ function ScanChip({ scan, image, onOpen }: { scan: BatchScan; image: string | un
   const name = recognized ? recognized.printing.name : 'Not recognized';
   const details = recognized ? chipDetails(recognized) : ['Tap to search'];
   return (
-    <Surface accessibilityLabel={[name, ...details].join(', ')} onPress={() => onOpen(scan.scanId)} className={chipClass}>
-      <CardThumbnail uri={image} />
+    <ThumbnailChip
+      accessibilityLabel={[name, ...details].join(', ')}
+      onPress={() => onOpen(scan.scanId)}
+      thumbnail={<CardThumbnail uri={image} />}
+      accessory={<DimSymbol name="chevron.right" size={sizes.chevron} />}>
       <ChipText name={name} details={details} />
-      <SymbolView name="chevron.right" tintColor={colors.textDim} size={sizes.chevron} />
-    </Surface>
+    </ThumbnailChip>
   );
 }
 
