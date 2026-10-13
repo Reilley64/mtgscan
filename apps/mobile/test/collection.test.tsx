@@ -10,6 +10,7 @@ import {
   headerButton,
   headerMenu,
   imageTintColor,
+  pressableMenuRows,
   pressTab,
   scrollToEnd,
   selectedTab,
@@ -326,6 +327,12 @@ describe('the collection total button', () => {
         { title: '26 of 27 cards', subtitle: 'Priced' },
       ],
     });
+  });
+
+  test('the rows of the collection total menu show information and are not actions', async () => {
+    const collection = await openCollectionWithTotal(collectionTotal());
+
+    expect(pressableMenuRows(collection, 'Collection total, $2,419.59')).toEqual([]);
   });
 
   test('a falling collection total shows the minus sign, and VoiceOver hears down', async () => {

@@ -117,7 +117,7 @@ type HeaderItem = {
   accessibilityHint?: string;
   buttonId?: string;
   sfSymbolName?: string;
-  menu?: { title: string; items: { title: string; subtitle?: string }[] };
+  menu?: { title: string; items: { title: string; subtitle?: string; disabled?: boolean }[] };
 };
 
 function shownHeaderConfigs(tab: HostElement) {
@@ -169,12 +169,23 @@ export function headerButton(tab: HostElement, name: string) {
   return { type, label: title || undefined, symbol: sfSymbolName, hint: accessibilityHint };
 }
 
-export function headerMenu(tab: HostElement, name: string) {
+function menuOf(tab: HostElement, name: string) {
   const { menu } = headerItem(tab, name);
   if (!menu) {
     throw new Error(`The header button ${name} has no menu`);
   }
-  return { title: menu.title, items: menu.items.map(({ title, subtitle }) => ({ title, subtitle })) };
+  return menu;
+}
+
+export function headerMenu(tab: HostElement, name: string) {
+  const { title, items } = menuOf(tab, name);
+  return { title, items: items.map(({ title: itemTitle, subtitle }) => ({ title: itemTitle, subtitle })) };
+}
+
+export function pressableMenuRows(tab: HostElement, name: string) {
+  return menuOf(tab, name)
+    .items.filter((item) => !item.disabled)
+    .map((item) => item.title);
 }
 
 async function pressHeaderButton(tab: HostElement, name: string) {
