@@ -21,8 +21,8 @@ One commit of copies to the collection, with its time and a purchase-day price p
 _Avoid_: Import, purchase
 
 **Current price**:
-The latest Scryfall price of a card printing and finish, in USD or EUR. Condition and language do not change it. A missing current price stays missing and is never taken from another finish or card printing. A current price is stale when the price snapshot is more than 24 hours old.
-_Avoid_: Value, market price
+The latest Scryfall price of a card printing and finish, in USD or EUR. Condition and language do not change it. A missing current price stays missing and is never taken from another finish or card printing. A current price is stale when mtgscan received it more than 24 hours ago.
+_Avoid_: Value
 
 **Purchase-day price**:
 The current price of a card printing and finish on the day copies were added to the collection. It is recorded on each addition, not on the collection entry.

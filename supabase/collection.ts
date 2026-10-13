@@ -1,5 +1,5 @@
 import type { Database } from './database.types';
-import { readSearchError, type CatalogQuery, type Finish, type PriceCurrency, type SearchError } from './search';
+import { readSearchError, type CatalogQuery, type Finish, type PriceCurrency, type PriceFrom, type SearchError } from './search';
 
 export type CardCondition = Database['public']['Enums']['card_condition'];
 
@@ -78,12 +78,7 @@ export type CollectionCopiesQuery = {
   price_currency?: PriceCurrency;
 };
 
-export type CurrentPrice = {
-  amount: string;
-  currency: PriceCurrency;
-  finish: Finish;
-  stale: boolean;
-};
+export type CurrentPrice = Omit<PriceFrom, 'basis'> & { stale: boolean };
 
 export type CollectionCopyRow = {
   collection_entry_id: string;

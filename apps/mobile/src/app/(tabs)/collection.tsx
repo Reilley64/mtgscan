@@ -6,7 +6,7 @@ import { Button } from '@/components/atoms/button';
 import { Text } from '@/components/atoms/text';
 import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
 import { CopyMeta } from '@/components/molecules/copy-meta';
-import { CurrentPrice } from '@/components/molecules/current-price';
+import { PriceLine } from '@/components/molecules/price-line';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { TabListScreen } from '@/components/templates/tab-screen';
 import { shownCondition, shownPrice, spokenFinishAndCondition } from '@/collection/copy-labels';
@@ -51,7 +51,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
         collectorNumber={copy.collector_number}
         condition={shownCondition(copy.condition)}
       />
-      <CurrentPrice price={price} stale={copy.price?.stale ?? false} />
+      <PriceLine price={price} stale={copy.price?.stale ?? false} />
     </CardTile>
   );
 }

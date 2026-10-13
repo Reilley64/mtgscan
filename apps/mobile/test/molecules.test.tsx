@@ -12,7 +12,7 @@ import { CardGrid } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
-import { CurrentPrice } from '@/components/molecules/current-price';
+import { PriceLine } from '@/components/molecules/price-line';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
@@ -301,24 +301,24 @@ describe('CopyMeta', () => {
   });
 });
 
-describe('CurrentPrice', () => {
-  test('a current price shows the price in price text, centered', async () => {
-    await render(<CurrentPrice price="$1,635.37" stale={false} />);
+describe('PriceLine', () => {
+  test('a price line shows the current price in price text centered', async () => {
+    await render(<PriceLine price="$1,635.37" stale={false} />);
 
     expect(screen.getByText('$1,635.37')).toHaveStyle({ color: textPrice, fontSize: 12, fontWeight: '600' });
     expect(screen.getByText('$1,635.37').parent).toHaveStyle({ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' });
     expect(symbolNames(screen.root!)).toEqual([]);
   });
 
-  test('a stale current price has a clock symbol before the price', async () => {
-    await render(<CurrentPrice price="$36.96" stale />);
+  test('a stale price line has a clock symbol before the price', async () => {
+    await render(<PriceLine price="$36.96" stale />);
 
     expect(symbolNames(screen.root!)).toEqual(['clock']);
     expect(screen.getByText('$36.96')).toHaveStyle({ color: textPrice });
   });
 
-  test('a copy with no price shows a dim dash', async () => {
-    await render(<CurrentPrice price={undefined} stale={false} />);
+  test('a price line with no current price shows a dim dash', async () => {
+    await render(<PriceLine price={undefined} stale={false} />);
 
     expect(screen.getByText('–')).toHaveStyle({ color: textDim, fontSize: 12 });
   });

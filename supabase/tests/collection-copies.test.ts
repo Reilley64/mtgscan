@@ -95,8 +95,8 @@ function byCopyKey(a: Pick<CollectionCopyRow, 'collection_entry_id' | 'copy_numb
   return a.copy_number - b.copy_number;
 }
 
-function usd(amount: string, finish: CurrentPrice['finish']): CurrentPrice {
-  return { amount, currency: 'USD', finish, stale: false };
+function currentPrice(currency: CurrentPrice['currency'], amount: string, finish: CurrentPrice['finish']): CurrentPrice {
+  return { amount, currency, finish, stale: false };
 }
 
 function entryId(result: Awaited<ReturnType<typeof committed>>, finish = 'nonfoil') {
@@ -130,10 +130,10 @@ describe('the binder grid read', () => {
       condition: 'near_mint',
       language: 'en',
       protected: false,
-      price: usd('0.21', 'nonfoil'),
+      price: currentPrice('USD', '0.21', 'nonfoil'),
       ...changes,
     });
-    const foil = { finish: 'foil', condition: 'lightly_played', language: 'ja', price: usd('0.30', 'foil') } as const;
+    const foil = { finish: 'foil', condition: 'lightly_played', language: 'ja', price: currentPrice('USD', '0.30', 'foil') } as const;
     const expected = [
       copy(entryId(added), 1),
       copy(entryId(added), 2),
@@ -216,9 +216,9 @@ describe('current prices', () => {
     const { items } = await collectionCopies(user);
 
     expect(pricesByFinish(items).sort()).toEqual([
-      ['etched', usd('0.44', 'etched')],
-      ['foil', usd('0.30', 'foil')],
-      ['nonfoil', usd('0.21', 'nonfoil')],
+      ['etched', currentPrice('USD', '0.44', 'etched')],
+      ['foil', currentPrice('USD', '0.30', 'foil')],
+      ['nonfoil', currentPrice('USD', '0.21', 'nonfoil')],
     ]);
   });
 
@@ -231,11 +231,10 @@ describe('current prices', () => {
 
     const { items } = await collectionCopies(user, { price_currency: 'EUR' });
 
-    const eur = (amount: string, finish: CurrentPrice['finish']): CurrentPrice => ({ amount, currency: 'EUR', finish, stale: false });
     expect(pricesByFinish(items).sort()).toEqual([
       ['etched', null],
-      ['foil', eur('0.24', 'foil')],
-      ['nonfoil', eur('0.04', 'nonfoil')],
+      ['foil', currentPrice('EUR', '0.24', 'foil')],
+      ['nonfoil', currentPrice('EUR', '0.04', 'nonfoil')],
     ]);
   });
 
@@ -248,14 +247,14 @@ describe('current prices', () => {
 
     expect(inUsd.map((row) => [row.printing_id, row.price]).sort()).toEqual(
       [
-        [secretLairNonfoilOnly, usd('4.41', 'nonfoil')],
+        [secretLairNonfoilOnly, currentPrice('USD', '4.41', 'nonfoil')],
         [secretLairWithNoPrice, null],
       ].sort(),
     );
     expect(inEur.map((row) => row.price)).toEqual([null, null]);
   });
 
-  describe('when the price snapshot ages', () => {
+  describe('when the current prices age', () => {
     let snapshotAt: string;
 
     beforeAll(async () => {

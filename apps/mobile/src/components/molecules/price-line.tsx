@@ -4,12 +4,12 @@ import { View } from 'react-native';
 import { Text } from '@/components/atoms/text';
 import { colors, sizes } from '@/theme';
 
-type CurrentPriceProps = {
+type PriceLineProps = {
   price: string | undefined;
   stale: boolean;
 };
 
-export function CurrentPrice({ price, stale }: CurrentPriceProps) {
+export function PriceLine({ price, stale }: PriceLineProps) {
   return (
     <View className="flex-row items-center justify-center gap-xs">
       {price === undefined ? (

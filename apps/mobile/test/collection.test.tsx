@@ -174,7 +174,7 @@ test('foil and etched copies have a sheen on the card image and say their finish
   }
 });
 
-function usd(amount: string, changes: Partial<CurrentPrice> = {}): CurrentPrice {
+function currentPrice(amount: string, changes: Partial<CurrentPrice> = {}): CurrentPrice {
   return { amount, currency: 'USD', finish: 'nonfoil', stale: false, ...changes };
 }
 
@@ -184,7 +184,7 @@ test('under the meta line, a price line shows the current price in full in the p
       set: 'lea',
       collector_number: '232',
       condition: 'heavily_played',
-      price: usd('1635.37'),
+      price: currentPrice('1635.37'),
     }),
   );
 
@@ -202,7 +202,7 @@ test.each([
   ['EUR', '96.24', '€96.24'],
   ['USD', '0.21', '$0.21'],
 ] as const)('a %s price of %s shows as %s', async (currency, amount, shown) => {
-  ownCollectionCopies(collectionEntryCopies('The One Ring', 1, { set: 'ltr', collector_number: '246', price: usd(amount, { currency }) }));
+  ownCollectionCopies(collectionEntryCopies('The One Ring', 1, { set: 'ltr', collector_number: '246', price: currentPrice(amount, { currency }) }));
 
   const collection = await openCollection();
 
@@ -222,7 +222,7 @@ test('a copy with no price shows a dim dash, and VoiceOver says no price', async
 
 test('a stale price has a clock symbol before it, and VoiceOver hears that it may be out of date', async () => {
   ownCollectionCopies(
-    collectionEntryCopies('Rhystic Study', 1, { set: 'pcy', collector_number: '45', price: usd('36.96', { stale: true }) }),
+    collectionEntryCopies('Rhystic Study', 1, { set: 'pcy', collector_number: '45', price: currentPrice('36.96', { stale: true }) }),
   );
 
   const collection = await openCollection();
