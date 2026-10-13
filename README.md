@@ -201,12 +201,12 @@ Signed-in users read their collection total with `supabase.rpc('get_collection_t
 
 - `total` is the sum of the current price of every copy for its card printing and finish, as a decimal string. Copies with no current price are left out.
 - `priced_copies` counts the copies with a current price, and `copies` counts every copy, so a missing price never silently lowers the total.
-- `change` is `total` minus the latest daily collection total from a day before the day of the current prices, as a signed decimal string. `change_since` is the day of that daily collection total. Both are null when there is none yet.
+- `change` is `total` minus the daily collection total of the day before the day of the current prices, as a signed decimal string. It is null when there is no daily collection total for that day, such as before the first one or after a day with no daily import.
 - The function runs with the caller's rights. An anonymous caller and the secret key are refused. A refused query has the code `invalid_argument` and the field at fault.
 
 `bun run import collection-totals` records the daily collection totals. It calls `record_daily_collection_totals`, which only `service_role` can run. For each user with collection entries, it stores the collection total in USD and in EUR, with the coverage, for the UTC day of the price snapshot. A later run on the same day keeps the first daily collection total. The Daily import workflow runs it right after `prices`, so the totals use the new prices.
 
-`collection_daily_totals` departs from the per-user data pattern in one way. No user changes it. The daily workflow writes it for every user with the secret key, through `record_daily_collection_totals`. The function runs with the owner's rights, because the import role has no access to user data. A user reads only their own rows.
+`daily_collection_totals` departs from the per-user data pattern in two ways. No user changes it, and its write function does not check a caller's identity. The daily workflow writes it for every user with the secret key, through `record_daily_collection_totals`, which only `service_role` can run. The function runs with the owner's rights, not as `catalog_importer`, because the import role has no access to user data. A user reads only their own rows.
 
 ### Collection search
 
@@ -251,7 +251,7 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `collection_entries`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, and `collection_daily_totals`. `search_telemetry` departs from the pattern, as Catalog search says. `collection_daily_totals` departs from it, as Collection total says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
+The tables with a user's data are `profiles`, `collection_entries`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, and `daily_collection_totals`. `search_telemetry` departs from the pattern, as Catalog search says. `daily_collection_totals` departs from it, as Collection total says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. A migration grants `execute` on a helper only to the roles whose functions call it.
 

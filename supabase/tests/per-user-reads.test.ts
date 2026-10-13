@@ -29,7 +29,7 @@ type PerUserTable =
   | 'collection_additions'
   | 'collection_addition_lines'
   | 'collection_addition_copies'
-  | 'collection_daily_totals';
+  | 'daily_collection_totals';
 
 const perUserTables: PerUserTable[] = [
   'profiles',
@@ -37,7 +37,7 @@ const perUserTables: PerUserTable[] = [
   'collection_additions',
   'collection_addition_lines',
   'collection_addition_copies',
-  'collection_daily_totals',
+  'daily_collection_totals',
 ];
 
 let alice: TestUser;

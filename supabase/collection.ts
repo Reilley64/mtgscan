@@ -111,7 +111,6 @@ export type CollectionTotal = {
   priced_copies: number;
   copies: number;
   change: string | null;
-  change_since: string | null;
 };
 
 export type ScanBatchErrorCode = 'invalid_argument' | 'unknown_printing' | 'basic_land';

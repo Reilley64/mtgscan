@@ -400,9 +400,9 @@ The collection total is always visible. The owner picked variant C of the HTML p
   - a "Priced" row with the coverage, such as "26 of 27 cards";
   - the credit "Current prices from Scryfall, in USD".
 - Row labels are body text in text muted. Values are body strong in the text color.
-- The change is neutral. The sign carries the direction: + or the minus sign. There is no green or red. No change shows "$0.00" with no sign. Before the first daily collection total, the change is a text dim "–".
-- The change is the collection total now minus the latest daily collection total from an earlier day. mtgscan stores a daily collection total for each user after the daily price import.
-- **VoiceOver.** The button reads "Collection total, $2,419.59" with the value "up $12.40 since yesterday, 26 of 27 cards priced". A falling total says "down", no change says "no change since yesterday", and before the first daily collection total it says "change since yesterday not known yet". The popover is one element that reads the total, the change, the coverage, and the credit.
+- The change is neutral. The sign carries the direction: + or the minus sign. There is no green or red. No change shows "$0.00" with no sign. When there is no daily collection total from the day before, such as before the first one, the change is a text dim "–".
+- The change is the collection total now minus the daily collection total of the day before the current prices. mtgscan stores a daily collection total for each user after the daily price import. Copies added since then count in the change.
+- **VoiceOver.** The button reads "Collection total, $2,419.59" with the value "up $12.40 since yesterday, 26 of 27 cards priced". A falling total says "down", no change says "no change since yesterday", and with no daily collection total from the day before it says "change since yesterday not known yet". The popover is one element that reads the total, the change, the coverage, and the credit.
 
 ### Sign-in screen
 

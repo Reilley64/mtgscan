@@ -286,7 +286,7 @@ test('a failed binder grid read offers Try again, which shows the tiles', async 
   expect(screen.queryByText('Could not load your collection')).not.toBeOnTheScreen();
 });
 
-describe('the collection total', () => {
+describe('the collection total button', () => {
   function collectionTotal(changes: Partial<CollectionTotal> = {}): CollectionTotal {
     return {
       total: '2419.59',
@@ -294,7 +294,6 @@ describe('the collection total', () => {
       priced_copies: 26,
       copies: 27,
       change: '12.40',
-      change_since: '2026-10-12',
       ...changes,
     };
   }
@@ -310,7 +309,7 @@ describe('the collection total', () => {
     return screen.getByLabelText(new RegExp(`^${RegExp.escape(name)}, `));
   }
 
-  test('a compact total button sits next to the settings button with the total and a chevron', async () => {
+  test('the collection total button sits next to the settings button with the collection total and a chevron', async () => {
     const collection = await openCollectionWithTotal(collectionTotal());
 
     const button = collection.getByRole('button', { name: 'Collection total, $2,419.59' });
@@ -322,7 +321,7 @@ describe('the collection total', () => {
     expect(appearsBefore(button, collection.getByRole('button', { name: 'Settings' }))).toBe(true);
   });
 
-  test('tapping the total opens a popover with the total, the change since yesterday, the coverage, and the price source', async () => {
+  test('tapping the collection total button opens a popover with the collection total, the change since yesterday, the coverage, and the price source', async () => {
     const collection = await openCollectionWithTotal(collectionTotal());
 
     const popover = await openTotal(collection, 'Collection total, $2,419.59');
@@ -350,7 +349,7 @@ describe('the collection total', () => {
     expect(collection.getByRole('button', { name: 'Collection total, $2,419.59' })).not.toBeExpanded();
   });
 
-  test('a falling total shows the minus sign in the same neutral text, and VoiceOver hears down', async () => {
+  test('a falling collection total shows the minus sign in the same neutral text, and VoiceOver hears down', async () => {
     const collection = await openCollectionWithTotal(collectionTotal({ total: '2368.44', change: '-38.75' }));
 
     const button = collection.getByRole('button', { name: 'Collection total, $2,368.44' });
@@ -359,7 +358,7 @@ describe('the collection total', () => {
     expect(within(popover).getByText('\u2212$38.75')).toHaveStyle({ color: white });
   });
 
-  test('an unchanged total shows the change with no sign', async () => {
+  test('an unchanged collection total shows the change with no sign', async () => {
     const collection = await openCollectionWithTotal(collectionTotal({ change: '0.00' }));
 
     const button = collection.getByRole('button', { name: 'Collection total, $2,419.59' });
@@ -368,8 +367,8 @@ describe('the collection total', () => {
     expect(within(popover).getByText('$0.00')).toBeOnTheScreen();
   });
 
-  test('before the first daily total, the change is a dim dash, and VoiceOver hears that it is not known yet', async () => {
-    const collection = await openCollectionWithTotal(collectionTotal({ change: null, change_since: null }));
+  test('with no daily collection total from yesterday, the change is a dim dash, and VoiceOver hears that it is not known yet', async () => {
+    const collection = await openCollectionWithTotal(collectionTotal({ change: null }));
 
     const button = collection.getByRole('button', { name: 'Collection total, $2,419.59' });
     expect(button).toHaveAccessibilityValue({ text: 'change since yesterday not known yet, 26 of 27 cards priced' });
@@ -377,7 +376,7 @@ describe('the collection total', () => {
     expect(within(popover).getByText('–')).toHaveStyle({ color: textDim });
   });
 
-  test('a long total and a large collection show in full', async () => {
+  test('a long collection total and a large collection show in full', async () => {
     const collection = await openCollectionWithTotal(
       collectionTotal({ total: '128406.92', priced_copies: 1262, copies: 1284, change: '412.60' }),
     );
@@ -387,7 +386,7 @@ describe('the collection total', () => {
     expect(within(popover).getByText('+$412.60')).toBeOnTheScreen();
   });
 
-  test('a EUR total shows in euros and names EUR as the price currency', async () => {
+  test('a EUR collection total shows in euros and names EUR as the price currency', async () => {
     const collection = await openCollectionWithTotal(collectionTotal({ total: '2096.10', currency: 'EUR', change: '10.85' }));
 
     const popover = await openTotal(collection, 'Collection total, €2,096.10');
@@ -395,14 +394,14 @@ describe('the collection total', () => {
     expect(within(popover).getByText('Current prices from Scryfall, in EUR')).toBeOnTheScreen();
   });
 
-  test('with no collection entries, the header shows no total', async () => {
+  test('with no collection entries, the header shows no collection total button', async () => {
     const collection = await openCollection();
 
     expect(collection.getByRole('button', { name: 'Settings' })).toBeOnTheScreen();
     expect(collection.queryByRole('button', { name: /^Collection total/ })).not.toBeOnTheScreen();
   });
 
-  test('the total reloads when the Collection tab gains focus again', async () => {
+  test('the collection total reloads when the Collection tab gains focus again', async () => {
     const collection = await openCollectionWithTotal(collectionTotal());
     expect(collection.getByRole('button', { name: 'Collection total, $2,419.59' })).toBeOnTheScreen();
 
@@ -413,7 +412,7 @@ describe('the collection total', () => {
     expect(await within(selectedTab()).findByRole('button', { name: 'Collection total, $2,420.80' })).toBeOnTheScreen();
   });
 
-  test('when the user scrolls, a small-title header keeps the total and the settings button', async () => {
+  test('when the user scrolls, a small-title header keeps the collection total button and the settings button', async () => {
     const collection = await openCollectionWithTotal(collectionTotal());
 
     await scrollTabTo(selectedTab(), 120);

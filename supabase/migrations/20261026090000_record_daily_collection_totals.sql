@@ -1,22 +1,22 @@
-create table public.collection_daily_totals (
+create table public.daily_collection_totals (
   user_id uuid not null references auth.users (id) on delete cascade,
   day date not null,
   currency public.price_currency not null,
   total_cents bigint not null check (total_cents >= 0),
   priced_copies integer not null check (priced_copies >= 0),
   copies integer not null check (copies >= priced_copies),
-  prices_snapshot_at timestamptz not null,
+  price_snapshot_at timestamptz not null,
   recorded_at timestamptz not null default now(),
   primary key (user_id, currency, day)
 );
 
-alter table public.collection_daily_totals enable row level security;
+alter table public.daily_collection_totals enable row level security;
 
-revoke all on table public.collection_daily_totals from anon, authenticated;
-grant select on table public.collection_daily_totals to authenticated;
+revoke all on table public.daily_collection_totals from anon, authenticated;
+grant select on table public.daily_collection_totals to authenticated;
 
 create policy "Users read their own daily collection totals"
-  on public.collection_daily_totals
+  on public.daily_collection_totals
   for select
   to authenticated
   using ((select auth.uid()) = user_id);
@@ -63,8 +63,8 @@ begin
       using errcode = 'object_not_in_prerequisite_state';
   end if;
 
-  insert into public.collection_daily_totals (
-    user_id, day, currency, total_cents, priced_copies, copies, prices_snapshot_at
+  insert into public.daily_collection_totals (
+    user_id, day, currency, total_cents, priced_copies, copies, price_snapshot_at
   )
   select t.user_id, private.price_day(snapshot_at), t.currency, t.total_cents, t.priced_copies, t.copies, snapshot_at
   from private.collection_totals t
@@ -120,7 +120,7 @@ declare
   chosen_currency public.price_currency;
   current_total private.collection_totals;
   current_day date;
-  latest_daily_total public.collection_daily_totals;
+  yesterdays_total public.daily_collection_totals;
   total_cents bigint;
 begin
   perform private.caller_user_id();
@@ -130,19 +130,16 @@ begin
   total_cents := coalesce(current_total.total_cents, 0);
 
   select private.price_day(f.snapshot_at) into current_day from public.catalog_freshness() f where f.source = 'prices';
-  select * into latest_daily_total
-    from public.collection_daily_totals d
-    where d.currency = chosen_currency and d.day < current_day
-    order by d.day desc
-    limit 1;
+  select * into yesterdays_total
+    from public.daily_collection_totals d
+    where d.currency = chosen_currency and d.day = current_day - 1;
 
   return jsonb_build_object(
     'total', (total_cents / 100.0)::numeric(14, 2)::text,
     'currency', chosen_currency,
     'priced_copies', coalesce(current_total.priced_copies, 0),
     'copies', coalesce(current_total.copies, 0),
-    'change', ((total_cents - latest_daily_total.total_cents) / 100.0)::numeric(14, 2)::text,
-    'change_since', latest_daily_total.day
+    'change', ((total_cents - yesterdays_total.total_cents) / 100.0)::numeric(14, 2)::text
   );
 end;
 $$;

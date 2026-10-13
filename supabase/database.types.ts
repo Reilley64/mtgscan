@@ -223,20 +223,6 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
-                },"collection_daily_totals": {
-                  Row: {
-                    "copies": number,"currency": Database["public"]['Enums']["price_currency"],"day": string,"priced_copies": number,"prices_snapshot_at": string,"recorded_at": string,"total_cents": number,"user_id": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "copies": number,"currency": Database["public"]['Enums']["price_currency"],"day": string,"priced_copies": number,"prices_snapshot_at": string,"recorded_at"?: string,"total_cents": number,"user_id": string
-                  }
-                  Update: {
-                    "copies"?: number,"currency"?: Database["public"]['Enums']["price_currency"],"day"?: string,"priced_copies"?: number,"prices_snapshot_at"?: string,"recorded_at"?: string,"total_cents"?: number,"user_id"?: string
-                  }
-                  Relationships: [
-                    
-                  ]
                 },"collection_entries": {
                   Row: {
                     "card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"created_at": string,"finish": Database["public"]['Enums']["card_finish"],"id": string,"is_protected": boolean,"language": Database["public"]['Enums']["card_language"],"latest_addition_at": string,"quantity": number,"user_id": string,"user_tag_ids": (string)[]
@@ -282,6 +268,20 @@ isOneToOne: false
       referencedRelation: "cards"
       referencedColumns: ["oracle_id"]
     }
+                  ]
+                },"daily_collection_totals": {
+                  Row: {
+                    "copies": number,"currency": Database["public"]['Enums']["price_currency"],"day": string,"price_snapshot_at": string,"priced_copies": number,"recorded_at": string,"total_cents": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "copies": number,"currency": Database["public"]['Enums']["price_currency"],"day": string,"price_snapshot_at": string,"priced_copies": number,"recorded_at"?: string,"total_cents": number,"user_id": string
+                  }
+                  Update: {
+                    "copies"?: number,"currency"?: Database["public"]['Enums']["price_currency"],"day"?: string,"price_snapshot_at"?: string,"priced_copies"?: number,"recorded_at"?: string,"total_cents"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    
                   ]
                 },"disabled_tags": {
                   Row: {

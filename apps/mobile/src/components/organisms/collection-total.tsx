@@ -6,7 +6,7 @@ import { View } from 'react-native';
 import { Button } from '@/components/atoms/button';
 import { Popover } from '@/components/atoms/popover';
 import { Text } from '@/components/atoms/text';
-import { priceSource, shownChange, shownCoverage, shownTotal, spokenChange } from '@/collection/total-labels';
+import { priceCredit, shownChange, shownCoverage, shownTotal, spokenChange } from '@/collection/total-labels';
 import { colors, sizes } from '@/theme';
 
 function TotalRow({ label, value }: { label: string; value: string | undefined }) {
@@ -44,11 +44,11 @@ export function CollectionTotalButton({ total }: { total: CollectionTotal }) {
       <Popover
         open={open}
         onClose={() => setOpen(false)}
-        accessibilityLabel={['Collection total', shown, ...details, priceSource(total)].join(', ')}>
+        accessibilityLabel={['Collection total', shown, ...details, priceCredit(total)].join(', ')}>
         <Text variant="card-title">{shown}</Text>
         <TotalRow label="Since yesterday" value={shownChange(total)} />
         <TotalRow label="Priced" value={shownCoverage(total)} />
-        <Text variant="credit">{priceSource(total)}</Text>
+        <Text variant="credit">{priceCredit(total)}</Text>
       </Popover>
     </>
   );

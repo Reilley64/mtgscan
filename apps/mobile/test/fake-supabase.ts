@@ -43,7 +43,6 @@ const emptyCollectionTotal: CollectionTotal = {
   priced_copies: 0,
   copies: 0,
   change: null,
-  change_since: null,
 };
 let collectionTotal = emptyCollectionTotal;
 let failingCollectionReads = 0;

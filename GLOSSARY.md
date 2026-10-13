@@ -29,8 +29,8 @@ The sum of the current prices of every copy in the collection, in one currency. 
 _Avoid_: Collection value, net worth
 
 **Daily collection total**:
-A collection total that mtgscan stores for each user once a day, after the price import, in USD and in EUR. The change since yesterday is the collection total now minus the latest daily collection total from an earlier day.
-_Avoid_: Snapshot, history
+A collection total that mtgscan stores for each user once a day, after the price import, in USD and in EUR. The change since yesterday is the collection total now minus the daily collection total of the day before the current prices.
+_Avoid_: Collection history
 
 **Purchase-day price**:
 The current price of a card printing and finish on the day copies were added to the collection. It is recorded on each addition, not on the collection entry.
