@@ -21,7 +21,7 @@ import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { cardImageOutline, cardImageUri, touchTarget } from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { primary: lime, surface, surfaceControl, line, text: white, textMuted } = tokenColors;
+const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted } = tokenColors;
 const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
 const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
 
@@ -71,7 +71,9 @@ describe('ToggleGroup', () => {
     await render(<CardPageSections />);
 
     expect(screen.getByRole('radio', { name: 'Decks', checked: false })).toHaveStyle({ backgroundColor: surfaceControl });
+    expect(screen.getByText('Decks')).toHaveStyle({ color: white });
     expect(screen.getByRole('radio', { name: 'Copies', checked: true })).toHaveStyle({ backgroundColor: lime });
+    expect(screen.getByText('Copies')).toHaveStyle({ color: onPrimary });
     expect(screen.getAllByRole('radio', { checked: false })).toHaveLength(3);
   });
 

@@ -101,6 +101,19 @@ describe('Button', () => {
     expect(onPress).not.toHaveBeenCalled();
   });
 
+  test('a busy button keeps its full color, even when it is also disabled', async () => {
+    await render(
+      <Button variant="primary" busy disabled onPress={() => {}}>
+        <Text>Add to collection</Text>
+      </Button>,
+    );
+
+    const button = screen.getByRole('button', { name: 'Add to collection' });
+    expect(button).toBeBusy();
+    expect(button).toHaveStyle({ backgroundColor: lime });
+    expect(button).not.toHaveStyle(dimmed);
+  });
+
   test('a button that is not busy shows no spinner', async () => {
     await render(
       <Button onPress={() => {}}>
@@ -244,6 +257,7 @@ describe('Chip', () => {
     await fireEvent.press(chip);
 
     expect(chip).toHaveStyle({ backgroundColor: surfaceControl });
+    expect(screen.getByText('Foil')).toHaveStyle({ color: white });
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 

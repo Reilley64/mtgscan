@@ -5,6 +5,7 @@ export function verticalTouchSlop(height: number) {
   return { top: extra, bottom: extra };
 }
 
-export function choiceClasses(chosen: boolean) {
-  return chosen ? { fill: 'bg-primary', label: 'text-on-primary' } : { fill: 'bg-surface-control', label: 'text-text' };
-}
+export const choiceStates = {
+  selected: { fill: 'group bg-surface-control aria-selected:bg-primary', label: 'text-text group-aria-selected:text-on-primary' },
+  checked: { fill: 'group bg-surface-control aria-checked:bg-primary', label: 'text-text group-aria-checked:text-on-primary' },
+} as const;

@@ -20,7 +20,7 @@ type CardTileProps = {
 
 export function CardTile({ uri, caption, accessibilityLabel, quantity, selected, onPress }: CardTileProps) {
   const captionText = (
-    <Text variant="meta" numberOfLines={1} className={cn(selected && 'text-primary')}>
+    <Text variant="meta" numberOfLines={1} className="group-aria-selected/tile:text-primary">
       {caption}
     </Text>
   );
@@ -29,7 +29,7 @@ export function CardTile({ uri, caption, accessibilityLabel, quantity, selected,
     <View className={cn(columnClasses[cardsPerRow], 'px-xs')}>
       {onPress ? (
         <TileButton accessibilityLabel={accessibilityLabel} selected={selected} onPress={onPress}>
-          <View className={cn('rounded-sm border-selected-outline', selected ? 'border-primary' : 'border-transparent')}>
+          <View className="rounded-sm border-selected-outline border-transparent group-aria-selected/tile:border-primary">
             <CardImage uri={uri} quantity={quantity} />
           </View>
           {captionText}

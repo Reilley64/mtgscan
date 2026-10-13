@@ -7,7 +7,7 @@ import { TextClassContext } from '@/components/atoms/text';
 import { cn } from '@/lib/class-names';
 import { colors, googleButtonColors, sizes } from '@/theme';
 
-export const buttonVariants = cva('h-button flex-row items-center justify-center gap-sm', {
+export const buttonVariants = cva('h-button flex-row items-center justify-center gap-sm disabled:opacity-dimmed aria-busy:opacity-100', {
   variants: {
     variant: {
       primary: 'bg-primary',
@@ -77,10 +77,10 @@ export function Button({
     <TextClassContext value={labelVariants({ variant, size })}>
       <Pressable
         accessibilityRole="button"
-        accessibilityState={{ disabled: disabled || busy, busy }}
+        aria-busy={busy}
         disabled={disabled || busy}
         hitSlop={hitSlops[size]}
-        className={cn(buttonVariants({ variant, size }), disabled && 'opacity-dimmed', className)}
+        className={cn(buttonVariants({ variant, size }), className)}
         {...props}>
         {busy ? <ActivityIndicator color={spinnerColors[variant]} /> : null}
         {children}
