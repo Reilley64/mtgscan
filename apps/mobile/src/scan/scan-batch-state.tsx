@@ -1,4 +1,3 @@
-import type { ScanBatchResult } from '@mtgscan/supabase/collection';
 import type { Json } from '@mtgscan/supabase/database.types';
 import { randomUUID } from 'expo-crypto';
 import {
@@ -37,8 +36,7 @@ export type ScanOutcome = 'recognized' | 'failed' | 'not_a_card' | 'no_photo';
 export type LatestScan =
   | { kind: 'recognizing' }
   | { kind: 'scan'; scan: BatchScan }
-  | { kind: 'basic_land'; printing: Printing }
-  | { kind: 'added'; copyCount: number };
+  | { kind: 'basic_land'; printing: Printing };
 
 export type CommitStatus = 'idle' | 'adding' | 'failed';
 
@@ -57,7 +55,7 @@ type ScanningAction =
   | { type: 'recognitionStarted' }
   | { type: 'recognitionEnded'; scanId: string; recognition: RecognitionResult }
   | { type: 'commitFailed' }
-  | { type: 'commitSucceeded'; scanIds: string[]; copyCount: number };
+  | { type: 'commitSucceeded'; scanIds: string[] };
 
 const initialScanning: Scanning = {
   restored: false,
@@ -117,7 +115,7 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
       return {
         ...state,
         batch: scanBatchReducer(state.batch, { type: 'committed', scanIds: action.scanIds }),
-        latest: { kind: 'added', copyCount: action.copyCount },
+        latest: null,
         commitStatus: 'idle',
       };
     default:
@@ -171,15 +169,14 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
   const commitBatch = useCallback(async (batch: ScanBatch) => {
     const scans = scansToAdd(batch);
     dispatchScanning({ type: 'commitStarted' });
-    const { data, error } = await supabase.rpc('add_scan_batch', {
+    const { error } = await supabase.rpc('add_scan_batch', {
       batch: { items: stacksOf(scans) } as unknown as Json,
     });
     if (error) {
       dispatchScanning({ type: 'commitFailed' });
       return false;
     }
-    const { copies } = data as unknown as ScanBatchResult;
-    dispatchScanning({ type: 'commitSucceeded', scanIds: scans.map((scan) => scan.scanId), copyCount: copies.length });
+    dispatchScanning({ type: 'commitSucceeded', scanIds: scans.map((scan) => scan.scanId) });
     return true;
   }, []);
 
