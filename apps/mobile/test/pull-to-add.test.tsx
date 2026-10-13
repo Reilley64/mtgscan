@@ -75,7 +75,7 @@ test('releasing past the threshold adds the scan batch through the batch commit 
   await waitForTheIndicatorToSlideAway();
 
   const [sent] = scanBatchesSentToTheServer();
-  expect(sent.items.map(({ copy_ids, ...stack }) => ({ card_printing_id: stack.card_printing_id, copies: copy_ids.length }))).toEqual([
+  expect(sent.items.map(({ card_printing_id, copy_ids }) => ({ card_printing_id, copies: copy_ids.length }))).toEqual([
     { card_printing_id: lightningBoltM10.printingId, copies: 2 },
     { card_printing_id: shock.printingId, copies: 1 },
   ]);
@@ -125,6 +125,7 @@ test('swiping back up before releasing cancels the add', async () => {
   await waitForTheIndicatorToSlideAway();
   expect(scanBatchesSentToTheServer()).toEqual([]);
   expect(scanTab().getByRole('button', { name: 'Scan batch, 2' })).toBeOnTheScreen();
+  expectNoIndicator();
 });
 
 test('with no recognized copies the indicator says there is nothing to add, and releasing adds nothing', async () => {
@@ -184,6 +185,32 @@ test('a pull while a card is being recognized does nothing', async () => {
 
   expectNoIndicator();
   expect(scanBatchesSentToTheServer()).toEqual([]);
+});
+
+test('releasing past the threshold adds nothing when a card started to be recognized during the pull', async () => {
+  await scanTwoCopies();
+  const pull = await startPullingDown();
+  await pull.pullTo(140);
+
+  holdNextRecognition();
+  await scanACard();
+  await pull.release();
+
+  expect(scanBatchesSentToTheServer()).toEqual([]);
+});
+
+test('a pull adds nothing and the VoiceOver action is gone while an add is still running', async () => {
+  await scanTwoCopies();
+  const commit = holdNextScanBatchCommit();
+  await performAccessibilityAction(scanTab().getByRole('button', { name: 'Scan batch, 2' }), 'Add 2 cards to collection');
+
+  const pull = await startPullingDown();
+  await pull.pullTo(140);
+  await pull.release();
+
+  expect(scanBatchesSentToTheServer()).toHaveLength(1);
+  expect(accessibilityActionLabels(scanTab().getByRole('button', { name: 'Scan batch, 2' }))).toEqual([]);
+  await commit.finish();
 });
 
 test('the pull also works over the Camera not available message', async () => {

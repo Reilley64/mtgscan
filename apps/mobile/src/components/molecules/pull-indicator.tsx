@@ -7,13 +7,14 @@ import { colors, sizes } from '@/theme';
 
 type PullIndicatorProps = {
   label: string;
-  symbol: SymbolViewProps['name'] | 'busy';
+  symbol: SymbolViewProps['name'];
+  busy?: boolean;
 };
 
-export function PullIndicator({ label, symbol }: PullIndicatorProps) {
+export function PullIndicator({ label, symbol, busy = false }: PullIndicatorProps) {
   return (
     <GlassSurface fallback="surface-control" className="h-button flex-row items-center gap-sm rounded-full px-md">
-      {symbol === 'busy' ? (
+      {busy ? (
         <ActivityIndicator color={colors.text} />
       ) : (
         <SymbolView name={symbol} size={sizes.iconButtonSymbol} tintColor={colors.text} />

@@ -5,16 +5,9 @@ import { FailureNotice } from '@/components/molecules/failure-notice';
 import { PullIndicator } from '@/components/molecules/pull-indicator';
 import { sizes } from '@/theme';
 
-import { pullLabel, pullTops, releaseDistance, type usePullToAdd } from './use-pull-to-add';
+import { pullIndicatorView, pullTops, releaseDistance, type usePullToAdd } from './use-pull-to-add';
 
 type PullToAddProps = Pick<ReturnType<typeof usePullToAdd>, 'pull' | 'count' | 'distance'>;
-
-function symbolOf({ pull, count }: Pick<PullToAddProps, 'pull' | 'count'>) {
-  if (pull.phase === 'adding') {
-    return 'busy';
-  }
-  return pull.phase === 'armed' && count > 0 ? 'plus' : 'arrow.down';
-}
 
 export function PullToAdd({ pull, count, distance }: PullToAddProps) {
   const tops = pullTops(useSafeAreaInsets().top);
@@ -23,7 +16,7 @@ export function PullToAdd({ pull, count, distance }: PullToAddProps) {
   }
   if (pull.phase === 'failed') {
     return (
-      <View className="absolute inset-x-lg" style={{ top: tops.start }}>
+      <View className="absolute inset-x-lg" style={{ top: tops.belowBatchButton }}>
         <FailureNotice message="Could not add to your collection. Your scans are kept." />
       </View>
     );
@@ -38,7 +31,7 @@ export function PullToAdd({ pull, count, distance }: PullToAddProps) {
       pointerEvents="none"
       className="absolute inset-x-lg items-center"
       style={{ top: tops.indicator, transform: [{ translateY }] }}>
-      <PullIndicator label={pullLabel(pull, count)} symbol={symbolOf({ pull, count })} />
+      <PullIndicator {...pullIndicatorView(pull, count)} />
     </Animated.View>
   );
 }

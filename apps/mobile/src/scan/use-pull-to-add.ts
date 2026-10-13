@@ -14,49 +14,53 @@ const slideAwayMs = 200;
 const failureNoticeMs = 4000;
 const addAction = 'addScanBatch';
 
-export type PullState =
+type PullState =
   | { phase: 'idle' | 'pulling' | 'armed' | 'failed' }
   | { phase: 'adding'; count: number }
-  | { phase: 'leaving'; label: string };
+  | { phase: 'leaving'; indicator: PullIndicatorView };
 
-function cards(count: number) {
+type PullIndicatorView = { label: string; symbol: 'arrow.down' | 'plus'; busy: boolean };
+
+function cardCount(count: number) {
   return count === 1 ? '1 card' : `${count} cards`;
 }
 
-export function pullLabel(pull: PullState, count: number) {
-  switch (pull.phase) {
-    case 'leaving':
-      return pull.label;
-    case 'adding':
-      return `Adding ${cards(pull.count)}`;
-    case 'armed':
-      return count > 0 ? `Release to add ${cards(count)}` : 'Nothing to add';
-    default:
-      return count > 0 ? `Pull to add ${cards(count)}` : 'Nothing to add';
+export function pullIndicatorView(pull: PullState, count: number): PullIndicatorView {
+  if (pull.phase === 'leaving') {
+    return pull.indicator;
   }
+  if (pull.phase === 'adding') {
+    return { label: `Adding ${cardCount(pull.count)}`, symbol: 'arrow.down', busy: true };
+  }
+  if (count === 0) {
+    return { label: 'Nothing to add', symbol: 'arrow.down', busy: false };
+  }
+  return pull.phase === 'armed'
+    ? { label: `Release to add ${cardCount(count)}`, symbol: 'plus', busy: false }
+    : { label: `Pull to add ${cardCount(count)}`, symbol: 'arrow.down', busy: false };
 }
 
 export function pullTops(safeAreaTop: number) {
   const indicator = safeAreaTop + spacing.sm;
-  return { indicator, start: indicator + sizes.button + spacing.sm };
+  return { indicator, belowBatchButton: indicator + sizes.button + spacing.sm };
 }
 
 type ScanScreenState = {
   count: number;
   top: number;
-  recognizing: boolean;
+  busy: boolean;
   commit: () => Promise<boolean>;
 };
 
 function createPullGesture(distance: Animated.Value, onChange: (pull: PullState) => void) {
   let pull: PullState = { phase: 'idle' };
-  let screen: ScanScreenState = { count: 0, top: 0, recognizing: false, commit: async () => false };
+  let screen: ScanScreenState = { count: 0, top: 0, busy: true, commit: async () => false };
   const show = (next: PullState) => {
     pull = next;
     onChange(next);
   };
   const slideAway = () => {
-    show({ phase: 'leaving', label: pullLabel(pull, screen.count) });
+    show({ phase: 'leaving', indicator: pullIndicatorView(pull, screen.count) });
     Animated.timing(distance, { toValue: 0, duration: slideAwayMs, useNativeDriver: true }).start(({ finished }) => {
       if (finished) {
         show({ phase: 'idle' });
@@ -75,11 +79,7 @@ function createPullGesture(distance: Animated.Value, onChange: (pull: PullState)
   };
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: (_, { dx, dy, moveY }) =>
-      pull.phase !== 'adding' &&
-      !screen.recognizing &&
-      dy > pullSlop &&
-      dy > Math.abs(dx) &&
-      moveY - dy > pullTops(screen.top).start,
+      !screen.busy && dy > pullSlop && dy > Math.abs(dx) && moveY - dy > pullTops(screen.top).belowBatchButton,
     onPanResponderGrant: () => {
       distance.stopAnimation();
       distance.setValue(0);
@@ -99,7 +99,7 @@ function createPullGesture(distance: Animated.Value, onChange: (pull: PullState)
     },
     onPanResponderTerminationRequest: () => false,
     onPanResponderRelease: () => {
-      if (pull.phase === 'armed' && screen.count > 0) {
+      if (pull.phase === 'armed' && screen.count > 0 && !screen.busy) {
         void add();
       } else {
         slideAway();
@@ -118,15 +118,16 @@ function createPullGesture(distance: Animated.Value, onChange: (pull: PullState)
 }
 
 export function usePullToAdd() {
-  const { batch, latest, commit } = useScanBatch();
+  const { batch, latest, commit, commitStatus } = useScanBatch();
   const { top } = useSafeAreaInsets();
   const count = scansToAdd(batch).length;
+  const busy = latest?.kind === 'recognizing' || commitStatus === 'adding';
   const [pull, setPull] = useState<PullState>({ phase: 'idle' });
   const [distance] = useState(() => new Animated.Value(0));
   const [gesture] = useState(() => createPullGesture(distance, setPull));
 
   useEffect(() => {
-    gesture.update({ count, top, recognizing: latest?.kind === 'recognizing', commit });
+    gesture.update({ count, top, busy, commit });
   });
 
   useEffect(() => {
@@ -138,9 +139,9 @@ export function usePullToAdd() {
   }, [gesture, pull.phase]);
 
   const batchButtonActions =
-    count > 0 && pull.phase !== 'adding'
+    count > 0 && !busy
       ? {
-          accessibilityActions: [{ name: addAction, label: `Add ${cards(count)} to collection` }],
+          accessibilityActions: [{ name: addAction, label: `Add ${cardCount(count)} to collection` }],
           onAccessibilityAction: ({ nativeEvent }: AccessibilityActionEvent) => {
             if (nativeEvent.actionName === addAction) {
               void gesture.add();

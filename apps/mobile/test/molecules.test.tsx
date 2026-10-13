@@ -31,6 +31,7 @@ import {
   cardSheen,
   glassEffect,
   imageTintColor,
+  showsSpinner,
   sideColumnWidths,
   symbolNames,
   touchTarget,
@@ -538,11 +539,11 @@ describe('PullIndicator', () => {
   });
 
   test('a busy pull indicator shows a spinner in place of its symbol', async () => {
-    await render(<PullIndicator label="Adding 3 cards" symbol="busy" />);
+    await render(<PullIndicator label="Adding 3 cards" symbol="arrow.down" busy />);
 
     const pill = backdropOf(screen.getByText('Adding 3 cards'));
     expect(symbolNames(pill)).toEqual([]);
-    expect(pill.queryAll((instance) => instance.type === 'ActivityIndicator')).toHaveLength(1);
+    expect(showsSpinner(pill)).toBe(true);
   });
 
   test('on Liquid Glass, a pull indicator is regular glass with no tint that does not react to touch', async () => {

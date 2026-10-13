@@ -365,8 +365,8 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
     - A commit that fails shows the failure notice "Could not add to your collection. Your scans are kept." under the batch button for 4 seconds. The scan batch is kept, and batch review offers **Try again**.
     - Releasing before 120 pt, or moving back above 120 pt and then releasing, adds nothing. The indicator slides away.
     - With no scan to add, the indicator says "Nothing to add", there is no haptic, and releasing does nothing.
-    - A pull counts only when it starts below the batch button, so it does not fight Notification Center at the top edge. It does not start while a card is being recognized. The camera keeps running during the pull.
-    - VoiceOver users add the scan batch with the batch button's action "Add 3 cards to collection". The action is there only when the batch has a scan to add.
+    - A pull counts only when it starts below the batch button, so it does not fight Notification Center at the top edge. It does not start while a card is being recognized or while an add runs. A release adds nothing when a card started to be recognized during the pull. The camera keeps running during the pull.
+    - VoiceOver users add the scan batch with the batch button's action "Add 3 cards to collection". The action is there only when the batch has a scan to add, no card is being recognized, and no add runs.
   - Taking a photo makes no shutter sound where iOS allows it, and no haptic. When the latest-scan chip shows a recognized card, the phone plays a heavy impact haptic and a soft two-note blip. When recognition fails, it plays a warning haptic and a lower tone. A photo that is not a card plays neither. The sounds follow the Ring/Silent switch, and a Scan sounds switch in settings turns them off (#82).
 
 ### Tab headers
@@ -477,7 +477,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
 - Only the controls that float over the camera or over scrolling content use glass: the latest-scan chip, the quick-action bar, the batch button, and the pull indicator (owner decisions, #113 and #130), and the tab header buttons (owner decision, #128). Every other surface stays flat.
 - The tab header buttons are native bar buttons. iOS 26 draws their glass, so `GlassSurface` does not wrap them.
-- The pull indicator does not react to touch. It moves by sliding, never by fading.
+- The pull indicator does not react to touch. It moves by sliding, never by fading. When an add fails, the failure notice takes its place.
 - The glass is the regular style with no tint. Glass that the user can tap, such as the chip, the quick-action bar, and the batch button, reacts to touch. The skeleton chip and the basic land chip do not.
 - The chip and the quick-action bar sit in one glass group with 8 px spacing, so they blend like iOS controls but do not merge at rest.
 - Text on glass:
