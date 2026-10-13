@@ -164,6 +164,12 @@ export function imageTintColor(element: HostElement) {
   return image.props.tintColor;
 }
 
+export function symbolNames(element: HostElement) {
+  return element
+    .queryAll((instance) => instance.type === 'ViewManagerAdapter_SymbolModule')
+    .map((symbol) => symbol.props.name);
+}
+
 export function lineColoredBlocks(element: HostElement) {
   return element.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.backgroundColor === tokenColors.line)
     .length;

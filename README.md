@@ -27,7 +27,7 @@ The app uses NativeWind 4 with Tailwind CSS 3. NativeWind 5 is a release candida
 Components follow Atomic Design in `src/components`. `CODING_STANDARDS.md` (Atomic Design) has the levels and the rules.
 
 - `atoms` holds the primitives: `Text`, `TextLink`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `CardImage`, `CardThumbnail`, `TileButton`, `AppleSignInButton`, `Input`, `ProgressBar`, `Skeleton`, `SetIcon`, `QuickActionButton`, and `CountBadge`. `Button` has a 50 px sign-in size and the Google variant. `AppleSignInButton` wraps the system Apple button. `Toggle` wraps `@rn-primitives/toggle`. `Switch` wraps the iOS switch.
-- `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`), `ListRow`, `SwitchRow`, `EmptyState`, `CardTile`, `CardGrid`, `AccountCard`, `GalleryCard`, `FailureNotice`, `Brand`, `QuickActionBar`, `SheetSection`, `SettingsButton`, and `BatchButton`. `CardTile` is a card image with its set and collector number, 3 to a row. The binder grid and the card printing grids on the Scan tab use it.
+- `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`), `ListRow`, `SwitchRow`, `EmptyState`, `CardTile`, `CardGrid`, `AccountCard`, `GalleryCard`, `FailureNotice`, `Brand`, `QuickActionBar`, `SheetSection`, `SettingsButton`, `BatchButton`, `CopyMeta`, and `CurrentPrice`. `CardTile` is a card image with its set and collector number, 3 to a row. The binder grid and the card printing grids on the Scan tab use it.
 - `organisms` holds `BinderWall`, `SignInSheet`, `SettingsContent`, and the Scan tab sections: `LatestScanChip`, `ScanQuickActions`, `ScanDetailsContent`, `NameSearch`, `PrintingPicker`, and `ScanBatchList`. `templates` holds `TabScreen` and `DrawerSheet`, the content layout of the bottom drawers, with an optional footer below the content that scrolls.
 - Expo Router routes in `src/app` are the pages.
 - ESLint checks the import direction between the levels with `eslint-plugin-boundaries`. It also keeps raw controls out of screens and features. See `apps/mobile/eslint.config.js`.
@@ -182,12 +182,13 @@ Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_
 
 ### Binder grid read
 
-Signed-in users read their collection as copies with `supabase.rpc('list_collection_copies', { query })`. The binder grid shows one tile for each row it returns. The query has an optional `limit` from 1 to 120, which defaults to 60, and an optional `cursor`. `supabase/collection.ts` has the shared types for the query and the page.
+Signed-in users read their collection as copies with `supabase.rpc('list_collection_copies', { query })`. The binder grid shows one tile for each row it returns. The query has an optional `limit` from 1 to 120, which defaults to 60, an optional `cursor`, and an optional `price_currency`, `USD` or `EUR`, which defaults to `USD`. `supabase/collection.ts` has the shared types for the query and the page.
 
 - Each collection entry gives one row per copy.
 - The copy key is `collection_entry_id` and `copy_number`. The copy number runs from 1 to the entry's quantity.
 - The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`.
 - The collection entry gives `finish`, `condition`, `language`, and `protected`.
+- `price` is the current price of the card printing and finish in the chosen currency: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says. Condition and language do not change it. `price` is null when `card_prices` has no price for that card printing, finish, and currency. A price is never taken from another finish. EUR etched prices are always null.
 - Copies that merge into an entry get the next copy numbers, and the existing copy keys stay the same. Copy numbers are positions in the entry, so when copies leave an entry, the last copy numbers go away.
 - Rows sort by the card printing's latest addition time, newest first, then by name, card printing ID, collection entry ID, and copy number. Copies of the same card printing sit next to each other.
 - `next_cursor` reads the next page. A cursor works only for the user who got it, for 15 minutes. A refused call has the code `invalid_argument` or `invalid_cursor` and the field at fault in `details`, as in catalog search.

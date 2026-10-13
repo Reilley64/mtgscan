@@ -1,5 +1,5 @@
 import { Constants } from '@mtgscan/supabase/database.types';
-import type { CardCondition, CardLanguage } from '@mtgscan/supabase/collection';
+import type { CardCondition, CardLanguage, CurrentPrice } from '@mtgscan/supabase/collection';
 import type { Finish } from '@mtgscan/supabase/search';
 
 export const finishes = Constants.public.Enums.card_finish;
@@ -51,4 +51,8 @@ export function spokenFinishAndCondition({ finish, condition }: { finish: Finish
     ...(finish === 'nonfoil' ? [] : [finishLabels[finish].toLowerCase()]),
     ...(condition === 'near_mint' ? [] : [conditionNames[condition]]),
   ];
+}
+
+export function shownPrice({ amount, currency }: CurrentPrice) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(amount));
 }

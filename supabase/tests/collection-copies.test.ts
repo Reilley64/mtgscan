@@ -1,9 +1,9 @@
-import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { type CollectionCopiesPage, type CollectionCopiesQuery, type CollectionCopyRow } from '../collection';
+import { type CollectionCopiesPage, type CollectionCopiesQuery, type CollectionCopyRow, type CurrentPrice } from '../collection';
 import type { Json } from '../database.types';
 import { readSearchError } from '../search';
-import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { seedCollectionEntries } from './collection-entry-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
@@ -14,6 +14,8 @@ const permissionDenied = '42501';
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
 const ribbonsOfNight = '010eba83-30ec-4cca-b07e-f24d8d2f0787';
+const secretLairNonfoilOnly = '018830b2-dff9-45f3-9cc2-dc5b2eec0e54';
+const secretLairWithNoPrice = '0cd83c0e-8e37-40bf-87a5-5b4c009248fb';
 
 type CatalogPrinting = Pick<CollectionCopyRow, 'printing_id' | 'name' | 'set' | 'collector_number' | 'rarity' | 'image_uris'>;
 
@@ -27,6 +29,7 @@ beforeAll(async () => {
   [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
+  expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
   const { data, error } = await secretKeyClient()
     .from('card_printings')
     .select('id, set_code, collector_number, rarity, image_uris, cards(name)')
@@ -92,6 +95,10 @@ function byCopyKey(a: Pick<CollectionCopyRow, 'collection_entry_id' | 'copy_numb
   return a.copy_number - b.copy_number;
 }
 
+function usd(amount: string, finish: CurrentPrice['finish']): CurrentPrice {
+  return { amount, currency: 'USD', finish, stale: false };
+}
+
 function entryId(result: Awaited<ReturnType<typeof committed>>, finish = 'nonfoil') {
   return result.items.find((item) => item.finish === finish)!.collection_entry_id!;
 }
@@ -103,7 +110,7 @@ describe('the binder grid read', () => {
     expect(await collectionCopies(user)).toEqual({ items: [], next_cursor: null });
   });
 
-  test('each collection entry is one row per copy, with its card printing and rarity, finish, condition, language, and protected flag', async () => {
+  test('each collection entry is one row per copy, with its card printing and rarity, finish, condition, language, protected flag, and price', async () => {
     const user = await signUpNewUser();
     const added = await committed(
       user,
@@ -123,9 +130,10 @@ describe('the binder grid read', () => {
       condition: 'near_mint',
       language: 'en',
       protected: false,
+      price: usd('0.21', 'nonfoil'),
       ...changes,
     });
-    const foil = { finish: 'foil', condition: 'lightly_played', language: 'ja' } as const;
+    const foil = { finish: 'foil', condition: 'lightly_played', language: 'ja', price: usd('0.30', 'foil') } as const;
     const expected = [
       copy(entryId(added), 1),
       copy(entryId(added), 2),
@@ -189,6 +197,101 @@ describe('the binder grid read', () => {
   });
 });
 
+describe('current prices', () => {
+  function pricesByFinish(rows: CollectionCopyRow[]) {
+    return rows.map((row) => [row.finish, row.price]);
+  }
+
+  test('each copy has the current USD price of its card printing and finish, whatever its condition and language', async () => {
+    const user = await signUpNewUser();
+    await committed(
+      user,
+      scanBatch([
+        stack(angelicCurator),
+        stack(angelicCurator, { finish: 'foil', condition: 'damaged', language: 'ja' }),
+        stack(angelicCurator, { finish: 'etched', condition: 'moderately_played', language: 'de' }),
+      ]),
+    );
+
+    const { items } = await collectionCopies(user);
+
+    expect(pricesByFinish(items).sort()).toEqual([
+      ['etched', usd('0.44', 'etched')],
+      ['foil', usd('0.30', 'foil')],
+      ['nonfoil', usd('0.21', 'nonfoil')],
+    ]);
+  });
+
+  test('in EUR, each copy has its EUR price, and an etched copy has no price', async () => {
+    const user = await signUpNewUser();
+    await committed(
+      user,
+      scanBatch([stack(angelicCurator), stack(angelicCurator, { finish: 'foil' }), stack(angelicCurator, { finish: 'etched' })]),
+    );
+
+    const { items } = await collectionCopies(user, { price_currency: 'EUR' });
+
+    const eur = (amount: string, finish: CurrentPrice['finish']): CurrentPrice => ({ amount, currency: 'EUR', finish, stale: false });
+    expect(pricesByFinish(items).sort()).toEqual([
+      ['etched', null],
+      ['foil', eur('0.24', 'foil')],
+      ['nonfoil', eur('0.04', 'nonfoil')],
+    ]);
+  });
+
+  test('a copy with no price for its card printing, finish, and currency has no price, never the price of another finish or currency', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(secretLairNonfoilOnly), stack(secretLairWithNoPrice, { finish: 'foil' })]));
+
+    const inUsd = (await collectionCopies(user)).items;
+    const inEur = (await collectionCopies(user, { price_currency: 'EUR' })).items;
+
+    expect(inUsd.map((row) => [row.printing_id, row.price]).sort()).toEqual(
+      [
+        [secretLairNonfoilOnly, usd('4.41', 'nonfoil')],
+        [secretLairWithNoPrice, null],
+      ].sort(),
+    );
+    expect(inEur.map((row) => row.price)).toEqual([null, null]);
+  });
+
+  describe('when the price snapshot ages', () => {
+    let snapshotAt: string;
+
+    beforeAll(async () => {
+      const { data, error } = await secretKeyClient().from('import_snapshots').select('snapshot_at').eq('source', 'prices').single();
+      expect(error).toBeNull();
+      snapshotAt = data!.snapshot_at;
+    });
+
+    afterAll(async () => {
+      await setPriceSnapshotAt(snapshotAt);
+    });
+
+    async function setPriceSnapshotAt(at: string) {
+      const { error } = await secretKeyClient().from('import_snapshots').update({ snapshot_at: at }).eq('source', 'prices');
+      expect(error).toBeNull();
+    }
+
+    function hoursAgo(hours: number) {
+      return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    }
+
+    test('every current price is stale once the price snapshot is more than 24 hours old', async () => {
+      const user = await signUpNewUser();
+      await committed(user, scanBatch([stack(angelicCurator), stack(ribbonsOfNight), stack(secretLairWithNoPrice, { finish: 'foil' })]));
+
+      await setPriceSnapshotAt(hoursAgo(23.9));
+      const fresh = (await collectionCopies(user)).items.map((row) => row.price?.stale);
+      await setPriceSnapshotAt(hoursAgo(24.1));
+      const aged = (await collectionCopies(user)).items.map((row) => row.price?.stale);
+
+      expect(fresh.sort()).toEqual([false, false, undefined]);
+      expect(aged.sort()).toEqual([true, true, undefined]);
+    });
+  });
+});
+
 describe('binder grid pages', () => {
   const seededEntries = 50;
   const seededCopies = 123;
@@ -242,6 +345,7 @@ describe('binder grid pages', () => {
     ['a limit that is not a number', { limit: '60' }, 'limit'],
     ['a cursor that is not a string', { cursor: 7 }, 'cursor'],
     ['an unknown field', { owned_only: true }, 'owned_only'],
+    ['a price currency other than USD or EUR', { price_currency: 'GBP' }, 'price_currency'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
     const { page, error } = await listCollectionCopies(user.client, query);
 

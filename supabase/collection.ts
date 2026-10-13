@@ -1,5 +1,5 @@
 import type { Database } from './database.types';
-import { readSearchError, type CatalogQuery, type Finish, type SearchError } from './search';
+import { readSearchError, type CatalogQuery, type Finish, type PriceCurrency, type SearchError } from './search';
 
 export type CardCondition = Database['public']['Enums']['card_condition'];
 
@@ -75,6 +75,14 @@ export type ScanBatchResult = {
 export type CollectionCopiesQuery = {
   limit?: number;
   cursor?: string | null;
+  price_currency?: PriceCurrency;
+};
+
+export type CurrentPrice = {
+  amount: string;
+  currency: PriceCurrency;
+  finish: Finish;
+  stale: boolean;
 };
 
 export type CollectionCopyRow = {
@@ -90,6 +98,7 @@ export type CollectionCopyRow = {
   condition: CardCondition;
   language: CardLanguage;
   protected: boolean;
+  price: CurrentPrice | null;
 };
 
 export type CollectionCopiesPage = {
