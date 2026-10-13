@@ -1,10 +1,16 @@
+import { useState } from 'react';
 import { Linking, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { GlassVariantContext, type GlassVariant } from '@/components/atoms/liquid-glass-prototype';
+import { GlassVariantSwitcher } from '@/components/organisms/glass-variant-switcher';
 
 import { useGallery } from '@/gallery/gallery-state';
 import { CameraMessage } from '@/scan/camera-message';
 import { GalleryDownload } from '@/scan/gallery-download';
 import { ScanCamera } from '@/scan/scan-camera';
 import { useCameraAccess } from '@/scan/use-camera-access';
+import { spacing } from '@/theme';
 
 function CameraContent() {
   const access = useCameraAccess();
@@ -37,9 +43,16 @@ function ScanContent() {
 }
 
 export default function ScanScreen() {
+  const [variant, setVariant] = useState<GlassVariant>('C');
+  const { top } = useSafeAreaInsets();
   return (
-    <View accessibilityLabel="Camera" className="flex-1 bg-camera-off">
-      <ScanContent />
-    </View>
+    <GlassVariantContext value={variant}>
+      <View accessibilityLabel="Camera" className="flex-1 bg-camera-off">
+        <ScanContent />
+        <View className="absolute inset-x-lg" style={{ top: top + spacing.sm }}>
+          <GlassVariantSwitcher variant={variant} onSelect={setVariant} />
+        </View>
+      </View>
+    </GlassVariantContext>
   );
 }
