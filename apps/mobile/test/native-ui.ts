@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, within } from 'expo-router/testing-library';
-import { StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { tokenColors } from './token-colors';
 
@@ -109,45 +109,89 @@ export async function tapOutsideDrawer() {
   await closeDrawerByGesture(drawer);
 }
 
-function touchHistory(pageX: number, previousPageX: number, timestamp: number) {
+const swipeTrackWidth = 360;
+
+function swipeTrack(control: HostElement) {
+  const [track] = control.queryAll((instance) => instance.type === 'RCTScrollView');
+  if (!track) {
+    throw new Error('Nothing in this control can be swiped');
+  }
+  return track;
+}
+
+const swipeDrags = new Map<HostElement, { offset: number; scrollsBefore: number }>();
+
+function scrollToCalls() {
+  return jest.mocked(ScrollView.prototype.scrollTo).mock;
+}
+
+function rendersTrack(scrollView: ScrollView, track: HostElement) {
+  return scrollView.props.onScrollEndDrag === track.props.onScrollEndDrag;
+}
+
+function handlePosition(track: HostElement, offset: number) {
+  const travel = track.props.contentOffset.x;
+  return (travel - offset) / travel;
+}
+
+function scrollTarget(call: unknown[]) {
+  return (call[0] as { x: number }).x;
+}
+
+function scrollEvent(x: number) {
+  return { nativeEvent: { contentOffset: { x, y: 0 } } };
+}
+
+export async function beginSwipe(control: HostElement) {
+  await fireEvent(control, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: swipeTrackWidth, height: 52 } } });
+  const track = () => swipeTrack(control);
+  const enabled = track().props.scrollEnabled !== false;
+  const travel = track().props.contentOffset.x;
+  let offset = travel;
+  if (enabled) {
+    await fireEvent(track(), 'scrollBeginDrag', scrollEvent(offset));
+  }
   return {
-    numberActiveTouches: 1,
-    indexOfSingleActiveTouch: 0,
-    mostRecentTimeStamp: timestamp,
-    touchBank: [
-      {
-        touchActive: true,
-        startPageX: previousPageX,
-        startPageY: 0,
-        startTimeStamp: timestamp,
-        currentPageX: pageX,
-        currentPageY: 0,
-        currentTimeStamp: timestamp,
-        previousPageX,
-        previousPageY: 0,
-        previousTimeStamp: timestamp,
-      },
-    ],
+    moveTo: async (fractionOfWidth: number) => {
+      if (enabled) {
+        offset = Math.max(0, travel - swipeTrackWidth * fractionOfWidth);
+        swipeDrags.set(track(), { offset, scrollsBefore: scrollToCalls().calls.length });
+        await fireEvent(track(), 'scroll', scrollEvent(offset));
+      }
+    },
+    release: async () => {
+      if (enabled) {
+        swipeDrags.set(track(), { offset, scrollsBefore: scrollToCalls().calls.length });
+        await fireEvent(track(), 'scrollEndDrag', scrollEvent(offset));
+      }
+    },
   };
 }
 
 export async function swipeRight(control: HostElement, fractionOfWidth: number) {
-  const width = 360;
-  await fireEvent(control, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width, height: 52 } } });
-  const [handle] = control.queryAll((instance) => instance.props.onResponderMove !== undefined);
-  if (!handle) {
-    throw new Error('Nothing in this control can be swiped');
-  }
-  const end = width * fractionOfWidth;
-  await fireEvent(handle, 'responderGrant', { touchHistory: touchHistory(0, 0, 1), nativeEvent: {} });
-  await fireEvent(handle, 'responderMove', { touchHistory: touchHistory(end, 0, 2), nativeEvent: {} });
-  await fireEvent(handle, 'responderRelease', { touchHistory: touchHistory(end, end, 3), nativeEvent: {} });
+  const swipe = await beginSwipe(control);
+  await swipe.moveTo(fractionOfWidth);
+  await swipe.release();
 }
 
-export function swipeHandleOffset(control: HostElement) {
-  const [handle] = control.queryAll((instance) => instance.props.onResponderMove !== undefined);
-  const transform: { translateX?: number }[] = StyleSheet.flatten(handle.props.style)?.transform ?? [];
-  return transform.find((step) => step.translateX !== undefined)?.translateX ?? 0;
+export function swipeHandlePosition(control: HostElement) {
+  const track = swipeTrack(control);
+  const scrolls = scrollToCalls();
+  const latestScroll = scrolls.contexts.findLastIndex((scrollView: ScrollView) => rendersTrack(scrollView, track));
+  const drag = swipeDrags.get(track);
+  if (drag && drag.scrollsBefore > latestScroll) {
+    return handlePosition(track, drag.offset);
+  }
+  return latestScroll === -1 ? 0 : handlePosition(track, scrollTarget(scrolls.calls[latestScroll]));
+}
+
+export function swipeHandleMovesAfterRelease(control: HostElement) {
+  const track = swipeTrack(control);
+  const scrolls = scrollToCalls();
+  const release = swipeDrags.get(track)?.scrollsBefore ?? 0;
+  return scrolls.calls.flatMap((call, index) =>
+    index >= release && rendersTrack(scrolls.contexts[index], track) ? [handlePosition(track, scrollTarget(call))] : [],
+  );
 }
 
 export function presentedDrawerCount() {
