@@ -188,7 +188,7 @@ function CardTiles() {
   return (
     <Section title="Card tiles">
       <CardGrid>
-        <CardTile uri={solRing} caption="CMM 464" quantity={2} accessibilityLabel="Sol Ring, CMM 464, 2 owned" />
+        <CardTile uri={solRing} caption="CMM 464" badges={['Foil', 'LP']} accessibilityLabel="Sol Ring, CMM 464, Foil, LP" />
         {['CMM 464', 'C21 263'].map((caption) => (
           <CardTile
             key={caption}

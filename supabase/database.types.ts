@@ -500,7 +500,7 @@ isOneToOne: false
 "list_card_printings":
 { Args: { "query": Json }; Returns: Json
                            },
-"list_collection_printings":
+"list_collection_copies":
 { Args: { "query": Json }; Returns: Json
                            },
 "list_gallery_printings":

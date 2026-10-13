@@ -182,11 +182,11 @@ Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_
 
 ### Binder grid read
 
-Signed-in users read their collection as card printings with `supabase.rpc('list_collection_printings', { query })`. The query has an optional `limit` from 1 to 120, which defaults to 60, and an optional `cursor`. `supabase/collection.ts` has the shared types for the query and the page.
+Signed-in users read their collection as copies with `supabase.rpc('list_collection_copies', { query })`. The binder grid shows one tile per row. The query has an optional `limit` from 1 to 120, which defaults to 60, and an optional `cursor`. `supabase/collection.ts` has the shared types for the query and the page.
 
-- Each row is one card printing that the user owns: `printing_id`, `name`, `set`, `collector_number`, `image_uris`, `owned_quantity`, and `latest_addition_at`.
-- The owned quantity sums every collection entry of the card printing, across finish, condition, language, protected flag, and user tags.
-- Rows sort by the latest addition time, newest first, then by name, then by card printing ID.
+- Each collection entry gives one row per copy. Each row has the copy key, `collection_entry_id` and `copy_number` from 1 to the entry's quantity, and the copy's card printing: `printing_id`, `name`, `set`, `collector_number`, `image_uris`, `finish`, `condition`, `language`, and `protected`.
+- A copy keeps its copy key while its collection entry keeps it. More copies merging into the entry get the next copy numbers.
+- Rows sort by the card printing's latest addition time, newest first, then by name, card printing ID, collection entry ID, and copy number. Copies of the same card printing sit next to each other.
 - `next_cursor` reads the next page. A cursor works only for the user who got it, for 15 minutes. A refused call has the code `invalid_argument` or `invalid_cursor` and the field at fault in `details`, as in catalog search.
 - The function runs with the caller's rights, so the read policy on `collection_entries` returns only the caller's collection entries. An anonymous caller and the secret key are refused.
 

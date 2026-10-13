@@ -8,16 +8,22 @@ export const cardHeightPerWidth = 1 / aspectRatios.cardImage;
 
 type CardImageProps = {
   uri: string | undefined;
-  quantity?: number;
+  badges?: string[];
 };
 
-export function CardImage({ uri, quantity }: CardImageProps) {
+export function CardImage({ uri, badges = [] }: CardImageProps) {
   return (
     <View className="aspect-card-image overflow-hidden rounded-sm bg-line">
       <Image source={uri} cachePolicy="disk" transition={200} style={StyleSheet.absoluteFill} />
-      {quantity !== undefined && (
-        <View className="absolute left-quantity-badge-inset top-quantity-badge-inset h-quantity-badge min-w-quantity-badge items-center justify-center rounded-full bg-quantity-badge px-quantity-badge-inset">
-          <Text className="text-tab-label text-text">{quantity}</Text>
+      {badges.length > 0 && (
+        <View className="absolute left-quantity-badge-inset top-quantity-badge-inset flex-row gap-xs">
+          {badges.map((badge) => (
+            <View
+              key={badge}
+              className="h-quantity-badge min-w-quantity-badge items-center justify-center rounded-full bg-quantity-badge px-quantity-badge-inset">
+              <Text className="text-tab-label text-text">{badge}</Text>
+            </View>
+          ))}
         </View>
       )}
     </View>

@@ -1,27 +1,32 @@
-import type { CollectionPrintingRow } from '@mtgscan/supabase/collection';
+import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
-import { failCollectionReads, ownCollectionPrintings, startSignedIn } from './fake-supabase';
+import { failCollectionReads, ownCollectionCopies, startSignedIn } from './fake-supabase';
 import { appearsBefore, cardImageUri, pressTab, scrollToEnd, selectedTab } from './native-ui';
 import { renderApp } from './render-app';
 
-let printingNumber = 0;
+let entryNumber = 0;
 
-function collectionPrinting(
+function collectionEntryCopies(
   name: string,
-  changes: Partial<Omit<CollectionPrintingRow, 'name'>> = {},
-): CollectionPrintingRow {
-  printingNumber += 1;
-  return {
-    printing_id: `printing-${printingNumber}`,
+  quantity: number,
+  changes: Partial<Omit<CollectionCopyRow, 'name' | 'collection_entry_id' | 'copy_number'>> = {},
+): CollectionCopyRow[] {
+  entryNumber += 1;
+  return Array.from({ length: quantity }, (_, copy) => ({
+    collection_entry_id: `entry-${entryNumber}`,
+    copy_number: copy + 1,
+    printing_id: `printing-${entryNumber}`,
     name,
     set: 'isd',
-    collector_number: String(printingNumber),
-    image_uris: [`https://cards.scryfall.io/normal/front/${printingNumber}.jpg`],
-    owned_quantity: 1,
-    latest_addition_at: new Date(Date.UTC(2026, 9, 18) - printingNumber * 1000).toISOString(),
+    collector_number: String(entryNumber),
+    image_uris: [`https://cards.scryfall.io/normal/front/${entryNumber}.jpg`],
+    finish: 'nonfoil',
+    condition: 'near_mint',
+    language: 'en',
+    protected: false,
     ...changes,
-  };
+  }));
 }
 
 async function openCollection() {
@@ -43,37 +48,63 @@ test('Collection keeps its empty state when the user has no collection entries',
   expect(collection.queryByRole('image')).not.toBeOnTheScreen();
 });
 
-test('the binder grid shows one tile per card printing with its image, set and collector number, and owned count', async () => {
-  const curator = collectionPrinting('Angelic Curator', {
-    set: 'exo',
-    collector_number: '1',
-    owned_quantity: 10,
-    image_uris: ['https://cards.scryfall.io/normal/front/curator.jpg'],
-  });
-  const delver = collectionPrinting('Delver of Secrets // Insectile Aberration', {
-    set: 'isd',
-    collector_number: '51',
-    owned_quantity: 1,
-    image_uris: ['https://cards.scryfall.io/normal/front/delver.jpg', 'https://cards.scryfall.io/normal/front/aberration.jpg'],
-  });
-  ownCollectionPrintings([curator, delver]);
+test('the binder grid shows one tile per copy with its image and set and collector number, and no quantity badge', async () => {
+  ownCollectionCopies([
+    ...collectionEntryCopies('Angelic Curator', 3, {
+      set: 'exo',
+      collector_number: '1',
+      image_uris: ['https://cards.scryfall.io/normal/front/curator.jpg'],
+    }),
+    ...collectionEntryCopies('Delver of Secrets // Insectile Aberration', 1, {
+      set: 'isd',
+      collector_number: '51',
+      image_uris: [
+        'https://cards.scryfall.io/normal/front/delver.jpg',
+        'https://cards.scryfall.io/normal/front/aberration.jpg',
+      ],
+    }),
+  ]);
 
   const collection = await openCollection();
 
-  const curatorTile = collection.getByRole('image', { name: 'Angelic Curator, EXO 1, 10 owned' });
-  expect(within(curatorTile).getByText('EXO 1')).toBeOnTheScreen();
-  expect(within(curatorTile).getByText('10')).toBeOnTheScreen();
-  expect(cardImageUri(curatorTile)).toBe('https://cards.scryfall.io/normal/front/curator.jpg');
-  const delverTile = collection.getByRole('image', {
-    name: 'Delver of Secrets // Insectile Aberration, ISD 51, 1 owned',
+  const curatorTiles = collection.getAllByRole('image', { name: 'Angelic Curator, EXO 1' });
+  expect(curatorTiles).toHaveLength(3);
+  curatorTiles.forEach((tile) => {
+    expect(within(tile).getByText('EXO 1')).toBeOnTheScreen();
+    expect(cardImageUri(tile)).toBe('https://cards.scryfall.io/normal/front/curator.jpg');
   });
-  expect(within(delverTile).getByText('1')).toBeOnTheScreen();
+  const delverTile = collection.getByRole('image', { name: 'Delver of Secrets // Insectile Aberration, ISD 51' });
   expect(cardImageUri(delverTile)).toBe('https://cards.scryfall.io/normal/front/delver.jpg');
+  expect(collection.queryByText('3')).not.toBeOnTheScreen();
+  expect(collection.queryByText('1')).not.toBeOnTheScreen();
   expect(collection.queryByText('Your collection is empty')).not.toBeOnTheScreen();
 });
 
+test('a tile shows the finish when it is not nonfoil and the condition when it is not NM', async () => {
+  ownCollectionCopies([
+    ...collectionEntryCopies('Angelic Curator', 1, { set: 'exo', collector_number: '1', finish: 'foil', condition: 'lightly_played' }),
+    ...collectionEntryCopies('Sol Ring', 1, { set: 'cmm', collector_number: '464', finish: 'etched' }),
+    ...collectionEntryCopies('Ponder', 1, { set: 'lrw', collector_number: '79', condition: 'damaged' }),
+    ...collectionEntryCopies('Ribbons of Night', 1, { set: 'shm', collector_number: '74' }),
+  ]);
+
+  const collection = await openCollection();
+
+  const foil = collection.getByRole('image', { name: 'Angelic Curator, EXO 1, Foil, LP' });
+  expect(within(foil).getByText('Foil')).toBeOnTheScreen();
+  expect(within(foil).getByText('LP')).toBeOnTheScreen();
+  const etched = collection.getByRole('image', { name: 'Sol Ring, CMM 464, Etched' });
+  expect(within(etched).getByText('Etched')).toBeOnTheScreen();
+  expect(within(etched).queryByText('NM')).not.toBeOnTheScreen();
+  const damaged = collection.getByRole('image', { name: 'Ponder, LRW 79, DMG' });
+  expect(within(damaged).getByText('DMG')).toBeOnTheScreen();
+  expect(within(damaged).queryByText('Nonfoil')).not.toBeOnTheScreen();
+  const plain = collection.getByRole('image', { name: 'Ribbons of Night, SHM 74' });
+  expect(within(plain).getAllByText(/./).map((text) => text.props.children)).toEqual(['SHM 74']);
+});
+
 test('the binder grid shows the newest addition first', async () => {
-  ownCollectionPrintings([collectionPrinting('Ribbons of Night'), collectionPrinting('Angelic Curator')]);
+  ownCollectionCopies([...collectionEntryCopies('Ribbons of Night', 1), ...collectionEntryCopies('Angelic Curator', 1)]);
 
   const collection = await openCollection();
 
@@ -86,23 +117,22 @@ test('the binder grid shows the newest addition first', async () => {
 });
 
 test('the binder grid loads more tiles as the user scrolls', async () => {
-  const printings = Array.from({ length: 70 }, (_, index) => collectionPrinting(`Card ${index + 1}`));
-  ownCollectionPrintings(printings);
+  ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
   const collection = await openCollection();
   expect(collection.queryByRole('image', { name: /^Card 70,/ })).not.toBeOnTheScreen();
 
   await scrollToEnd(selectedTab());
 
-
   expect(await collection.findByRole('image', { name: /^Card 70,/ })).toBeOnTheScreen();
 });
 
-test('the Collection tab shows newly added card printings when it gains focus again', async () => {
-  ownCollectionPrintings([collectionPrinting('Angelic Curator')]);
+test('the Collection tab shows newly added copies when it gains focus again', async () => {
+  const curator = collectionEntryCopies('Angelic Curator', 1);
+  ownCollectionCopies(curator);
   const collection = await openCollection();
   expect(collection.getByRole('image', { name: /^Angelic Curator/ })).toBeOnTheScreen();
 
-  ownCollectionPrintings([collectionPrinting('Ribbons of Night'), collectionPrinting('Angelic Curator')]);
+  ownCollectionCopies([...collectionEntryCopies('Ribbons of Night', 1), ...curator]);
   await pressTab('Recent');
   await pressTab('Collection');
 
@@ -110,7 +140,7 @@ test('the Collection tab shows newly added card printings when it gains focus ag
 });
 
 test('a failed binder grid read offers Try again, which shows the tiles', async () => {
-  ownCollectionPrintings([collectionPrinting('Angelic Curator')]);
+  ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
   failCollectionReads(1);
 
   const collection = await openCollection();

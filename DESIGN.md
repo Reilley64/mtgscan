@@ -263,7 +263,7 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 - **Text (#ffffff)** is primary. **Text muted (#b5c0c5)** is for printing details and captions. **Text dim (#7d8a90)** is for unselected tab labels and quiet metadata.
 - **Primary (#d8ff62)**, the lime accent, is the single interaction color: the primary button, the selected chip, the selected tab, section headings, and in-app links. Text on it is **on-primary (#101500)**. The brand mark is the one non-action use of lime.
 - **Grabber (#4a555b)** draws the short bar at the top of the sign-in sheet. The settings drawer uses the iOS system grabber, which iOS draws in its own color.
-- **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message and the destructive buttons. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall.
+- **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message and the destructive buttons. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall and the finish and condition badges on binder tiles.
 - **Incoming (#d8ff62)** and **outgoing (#ff8a7a)** mark the plus and minus lines of a deck suggestion, planned swap, or deck change.
 - **Warning (#f4d06f)** marks protected copies and caution states. **Danger (#ff7a70)** marks invalid decks and destructive actions such as remove scan or revert. **Info (#8fd3ff)** marks the estimated bracket and in-deck counts.
 - **Badge (#e0244a)** is only for count badges on tabs and buttons, such as Needs you.
@@ -299,11 +299,11 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Filter chips: All, Suggestions, Planned swaps, Buylist, Deck changes.
   - Every item keeps its actions inline: Promote, Dismiss, Swap in, Bought, and revert from here.
 - **Collection** is a binder grid.
-  - Card images sit 3 per row, with **one tile per printing**, newest addition first. More tiles load as the user scrolls. The tab reloads when it gains focus.
+  - Card images sit 3 per row, with **one tile per copy** and no quantity badge. Three copies of a card printing make three tiles (owner decision, #116).
+  - Copies of the same card printing sit next to each other. The card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
   - With no collection entries, the tab shows "Your collection is empty" and "Scan cards to add them to your collection."
   - When the read fails, the tab shows "Could not load your collection" and "Check your connection." with a **Try again** button.
-  - Corner badges total every copy of that printing, across finish, condition, language, and protected: owned, free, in decks, held by a planned swap, and protected.
-  - Free follows the glossary's free copy, so it includes protected free copies. The protected badge shows beside it.
+  - Each tile shows the finish when it is not nonfoil and the condition when it is not NM. Later, badges also show whether the copy is in a deck, held by a planned swap, or protected.
   - Search matches name, type, and printing, in the collection only. Filters: All, Free, Allocated, Protected.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
@@ -326,7 +326,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
 
 The app shows the sign-in screen whenever there is no session. It is the binder wall design (prototype `prototypes/sign-in/index.html?variant=D`, commit 4b31c79 on `prototype/first-release`).
 
-- **Binder wall.** Three columns of card images fill the screen behind everything else. The wall is tilted 6 degrees, dimmed to half opacity, and darkened at the top and bottom. Some tiles carry a quantity badge, as in the collection. Each column drifts slowly upward at its own speed, between 70 and 90 seconds per loop. With Reduce Motion on, the wall stands still.
+- **Binder wall.** Three columns of card images fill the screen behind everything else. The wall is tilted 6 degrees, dimmed to half opacity, and darkened at the top and bottom. Some tiles carry a quantity badge. Each column drifts slowly upward at its own speed, between 70 and 90 seconds per loop. With Reduce Motion on, the wall stands still.
 - **Card images** are 18 fixed Commander staples and commanders from Scryfall's image CDN. They are cached on the device. Until an image loads, its tile is a dark line-colored card shape, so the screen works offline.
 - **Brand.** The brand mark and the mtgscan name sit at the top left.
 - **Sheet.** A bottom sheet with a grabber holds the copy and the actions: the title "Every card you own, in one binder.", the line "Scan your cards, see what each one is worth, and build Commander decks from them.", the sign-in buttons, "Your collection and decks stay private." with a **Privacy policy** link, and the credit "Card images from Scryfall". The link opens https://mtgscan.reilley.dev/privacy in the system browser.
@@ -454,11 +454,12 @@ The interface is flat. Depth comes from tone, not shadow.
   - When the app restarts after a commit that failed or was still running, it sends the commit again by itself.
   - While the commit runs, rows do not open.
   - The phone saves the scan batch and its defaults for each account, so they survive a restart. Another account on the phone does not see them.
-- **Binder tile.** One printing's card image, with a set and collector number caption and corner badges totalled over its copies. Tiles of printings with a foil copy carry a subtle sheen.
+- **Binder tile.** One copy's card image, with a set and collector number caption and corner badges for the copy. There is no quantity badge. Tiles of foil copies carry a subtle sheen.
   - Until the image loads, the tile is a line-colored card shape.
   - The caption is meta text in text muted: the set code in capitals and the collector number, such as "ISD 51".
-  - The owned badge sits in the top left corner, 5 px from both edges. It is a quantity badge with the number of owned copies.
-  - Tiles open nothing yet. The card page, the other badges, and the sheen come later.
+  - Badges sit in a row in the top left corner, 5 px from both edges and 4 px apart. Each is a quantity badge with a word in place of the number. The finish comes first when it is not nonfoil: "Foil" or "Etched". The condition follows when it is not NM: "LP", "MP", "HP", or "DMG".
+  - VoiceOver reads the name, the set code and collector number, and the badges, such as "Angelic Curator, EXO 1, Foil, LP".
+  - Tiles open nothing yet. The card page, the badges for decks, planned swaps, and protected copies, and the sheen come later.
 - **Commander gallery card.** Full-width commander art with a dark gradient, the deck name in card-title type, status chips, and a Needs you badge.
 
 ## Do's and Don'ts

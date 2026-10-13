@@ -2,12 +2,14 @@ import { parseArgs } from 'node:util';
 
 import { createClient } from '@supabase/supabase-js';
 
-import type { ScanBatch } from '../collection';
+import type { CardCondition, ScanBatch } from '../collection';
+import type { Finish } from '../search';
 import type { Database, Json } from '../database.types';
 import { isLocalStack, localSupabaseUrl, testUser } from './account';
 
 const usage = 'Usage: bun test-user/main.ts [--sample-collection]';
 const sampleCollectionEntries = 30;
+const sampleConditions: CardCondition[] = ['near_mint', 'near_mint', 'lightly_played', 'near_mint', 'moderately_played'];
 const usersPerPage = 1000;
 
 const { values } = parseArgs({
@@ -69,6 +71,13 @@ async function createTestUser(admin: LocalClient) {
   }
 }
 
+function sampleFinish(finishes: Finish[], index: number): Finish {
+  if (index % 3 === 2 && finishes.includes('foil')) {
+    return 'foil';
+  }
+  return finishes.includes('nonfoil') ? 'nonfoil' : finishes[0]!;
+}
+
 async function sampleScanBatch(admin: LocalClient): Promise<ScanBatch> {
   const { data, error } = await admin
     .from('card_printings')
@@ -86,8 +95,8 @@ async function sampleScanBatch(admin: LocalClient): Promise<ScanBatch> {
   return {
     items: data.map((printing, index) => ({
       card_printing_id: printing.id,
-      finish: printing.finishes.includes('nonfoil') ? 'nonfoil' : printing.finishes[0]!,
-      condition: 'near_mint',
+      finish: sampleFinish(printing.finishes, index),
+      condition: sampleConditions[index % sampleConditions.length]!,
       language: 'en',
       copy_ids: Array.from({ length: (index % 4) + 1 }, () => crypto.randomUUID()),
     })),

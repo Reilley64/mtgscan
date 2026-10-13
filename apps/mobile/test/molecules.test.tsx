@@ -210,11 +210,14 @@ describe('CardTile', () => {
     expect(screen.queryByRole('button')).not.toBeOnTheScreen();
   });
 
-  test('a card tile with a quantity shows it in a round quantity badge', async () => {
-    await render(<CardTile uri={solRing} caption="CMM 464" accessibilityLabel="Sol Ring, CMM 464, 2 owned" quantity={2} />);
+  test('a card tile with badges shows each in a round badge in the top left corner of the image', async () => {
+    await render(<CardTile uri={solRing} caption="CMM 464" accessibilityLabel="Sol Ring, CMM 464, Foil, LP" badges={['Foil', 'LP']} />);
 
-    expect(screen.getByText('2')).toHaveStyle({ color: white, fontSize: 10, fontWeight: '700' });
-    expect(screen.getByText('2').parent).toHaveStyle({ height: 19, minWidth: 19, borderRadius: 999 });
+    for (const badge of ['Foil', 'LP']) {
+      expect(screen.getByText(badge)).toHaveStyle({ color: white, fontSize: 10, fontWeight: '700' });
+      expect(screen.getByText(badge).parent).toHaveStyle({ height: 19, minWidth: 19, borderRadius: 999 });
+    }
+    expect(screen.getByText('Foil').parent!.parent).toHaveStyle({ position: 'absolute', top: 5, left: 5, flexDirection: 'row', columnGap: 4 });
   });
 
   test('a card tile with an action is a button with its selected state', async () => {

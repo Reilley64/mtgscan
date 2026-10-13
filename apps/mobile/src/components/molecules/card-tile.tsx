@@ -15,10 +15,10 @@ type CardTileProps = {
   uri: string | undefined;
   caption: string;
   accessibilityLabel: string;
-  quantity?: number;
+  badges?: string[];
 } & ({ selected?: never; onPress?: never } | { selected: boolean; onPress: () => void });
 
-export function CardTile({ uri, caption, accessibilityLabel, quantity, selected, onPress }: CardTileProps) {
+export function CardTile({ uri, caption, accessibilityLabel, badges, selected, onPress }: CardTileProps) {
   const captionText = (
     <Text variant="meta" numberOfLines={1} className="group-aria-selected/tile:text-primary">
       {caption}
@@ -30,13 +30,13 @@ export function CardTile({ uri, caption, accessibilityLabel, quantity, selected,
       {onPress ? (
         <TileButton accessibilityLabel={accessibilityLabel} selected={selected} onPress={onPress}>
           <View className="rounded-sm border-selected-outline border-transparent group-aria-selected/tile:border-primary">
-            <CardImage uri={uri} quantity={quantity} />
+            <CardImage uri={uri} badges={badges} />
           </View>
           {captionText}
         </TileButton>
       ) : (
         <View accessible accessibilityRole="image" accessibilityLabel={accessibilityLabel} className="gap-xs">
-          <CardImage uri={uri} quantity={quantity} />
+          <CardImage uri={uri} badges={badges} />
           {captionText}
         </View>
       )}
