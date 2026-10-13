@@ -65,6 +65,17 @@ function ScanChip({ scan, image, onOpen }: { scan: BatchScan; image: string | un
   );
 }
 
+function AddedChip({ copyCount }: { copyCount: number }) {
+  const message = `Added ${copyCount} ${copyCount === 1 ? 'card' : 'cards'} to your collection.`;
+  return (
+    <Surface accessible accessibilityLabel={message} className="px-lg py-md">
+      <Text variant="body-strong" className="text-center">
+        {message}
+      </Text>
+    </Surface>
+  );
+}
+
 export function LatestScanChip({ latest, onOpen }: LatestScanChipProps) {
   const printing = latest.kind === 'scan' ? latest.scan.printing : latest.kind === 'basic_land' ? latest.printing : null;
   const imageOf = usePrintingImages(printing ? [printing.printingId] : []);
@@ -76,5 +87,7 @@ export function LatestScanChip({ latest, onOpen }: LatestScanChipProps) {
       return <BasicLandChip printing={latest.printing} image={image} />;
     case 'scan':
       return <ScanChip scan={latest.scan} image={image} onOpen={onOpen} />;
+    case 'added':
+      return <AddedChip copyCount={latest.copyCount} />;
   }
 }

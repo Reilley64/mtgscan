@@ -15,7 +15,7 @@ import {
   tamiyosJournalPrerelease,
   tamiyosJournalPromo,
 } from './card-printings';
-import { card, emptySurface, repeat, resetSampleClock, scan } from './detection-samples';
+import { resetSampleClock } from './detection-samples';
 import { photosDeleted } from './fake-card-detector';
 import { cardRecognition, holdNextRecognition, nextPhotosAre, notACard, photosRecognized } from './fake-card-recognizer';
 import { scanFeedback } from './fake-scan-feedback';
@@ -27,38 +27,13 @@ import {
   openSettings,
   presentedDrawer,
   pressTab,
-  selectedTab,
   swipeDownDrawer,
 } from './native-ui';
 import { renderApp } from './render-app';
+import { latestScanChip, openLatestScan, openScan, scanACard, scanTab, selectedChoice } from './scanning';
 import { tokenColors } from './token-colors';
 
 const { surface, text: white, textMuted } = tokenColors;
-
-async function openScan() {
-  await renderApp();
-  await pressTab('Scan');
-}
-
-async function scanACard() {
-  await scan([...repeat(4, card), ...repeat(6, emptySurface)]);
-}
-
-function scanTab() {
-  return within(selectedTab());
-}
-
-function latestScanChip(name: string | RegExp) {
-  return scanTab().getByRole('button', { name });
-}
-
-async function openLatestScan(name: string | RegExp) {
-  await fireEvent.press(latestScanChip(name));
-}
-
-function selectedChoice(name: string) {
-  return screen.getByRole('button', { name, selected: true });
-}
 
 beforeEach(() => {
   resetSampleClock();
@@ -140,16 +115,17 @@ test.each([
   expect(latestScanChip(chip)).toBeOnTheScreen();
 });
 
-test('+1 adds a copy and the chip shows the copy count', async () => {
+test('+1 adds another copy as its own scan and the chip edits the new copy', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
 
   await fireEvent.press(scanTab().getByRole('button', { name: '+1' }));
-  expect(latestScanChip('Lightning Bolt, M10 146, 2 copies')).toBeOnTheScreen();
+  await fireEvent.press(scanTab().getByRole('button', { name: 'Nonfoil' }));
 
-  await fireEvent.press(scanTab().getByRole('button', { name: '+1' }));
-  expect(latestScanChip('Lightning Bolt, M10 146, 3 copies')).toBeOnTheScreen();
+  expect(latestScanChip('Lightning Bolt, M10 146, Foil')).toBeOnTheScreen();
+  expect(scanTab().queryByText(/copies/)).not.toBeOnTheScreen();
+  expect(scanTab().getByRole('button', { name: 'Scan batch, 2' })).toBeOnTheScreen();
 });
 
 test('a new scan replaces the chip', async () => {
@@ -434,20 +410,19 @@ test('choosing a basic land in name search says it is not tracked and changes no
   expect(latestScanChip('Shock, M19 156')).toBeOnTheScreen();
 });
 
-test('Remove scan removes one copy at a time and removes the scan at its last copy', async () => {
+test('Remove scan removes only the current copy and leaves the chip empty', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
   await fireEvent.press(scanTab().getByRole('button', { name: '+1' }));
-  await openLatestScan('Lightning Bolt, M10 146, 2 copies');
-  expect(screen.getByText('M10 146 · 2 copies')).toBeOnTheScreen();
+  await openLatestScan('Lightning Bolt, M10 146');
 
   await fireEvent.press(screen.getByRole('button', { name: 'Remove scan' }));
-  expect(screen.getByText('M10 146')).toBeOnTheScreen();
 
-  await fireEvent.press(screen.getByRole('button', { name: 'Remove scan' }));
   expect(screen.queryByRole('button', { name: 'Remove scan' })).not.toBeOnTheScreen();
   expect(scanTab().queryByText('Lightning Bolt')).not.toBeOnTheScreen();
+  ['Finish', 'Set', '+1'].forEach((name) => expect(scanTab().getByRole('button', { name })).toBeDisabled());
+  expect(scanTab().getByRole('button', { name: 'Scan batch, 1' })).toBeOnTheScreen();
 });
 
 test('the scan stays after the user leaves the Scan tab and comes back', async () => {
@@ -543,7 +518,7 @@ test('the quick actions keep the latest scan after a photo that is not a card', 
 
   expect(scanTab().getByRole('button', { name: 'M10' })).toBeEnabled();
   await fireEvent.press(scanTab().getByRole('button', { name: '+1' }));
-  expect(latestScanChip('Lightning Bolt, M10 146, 2 copies')).toBeOnTheScreen();
+  expect(scanTab().getByRole('button', { name: 'Scan batch, 2' })).toBeOnTheScreen();
 });
 
 test('the set quick action lists every printing of the card with images, same-text twins first, then newest first', async () => {

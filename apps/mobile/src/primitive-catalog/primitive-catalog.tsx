@@ -8,6 +8,7 @@ import { Button } from '@/components/atoms/button';
 import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { Chip } from '@/components/atoms/chip';
+import { CountBadge } from '@/components/atoms/count-badge';
 import { Input } from '@/components/atoms/input';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
@@ -18,6 +19,7 @@ import { Text } from '@/components/atoms/text';
 import { TextLink } from '@/components/atoms/text-link';
 import { Toggle } from '@/components/atoms/toggle';
 import { AccountCard } from '@/components/molecules/account-card';
+import { BatchButton } from '@/components/molecules/batch-button';
 import { Brand } from '@/components/molecules/brand';
 import { CardGrid } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
@@ -210,6 +212,19 @@ function Switches() {
   );
 }
 
+function CountBadges() {
+  return (
+    <Section title="Count badges">
+      <View className="flex-row items-center gap-lg">
+        <CountBadge count={3} />
+        <CountBadge count={128} />
+        <BatchButton count={12} onPress={() => {}} />
+        <BatchButton count={0} onPress={() => {}} />
+      </View>
+    </Section>
+  );
+}
+
 function QuickActions() {
   return (
     <Section title="Quick actions">
@@ -277,6 +292,7 @@ export function PrimitiveCatalog() {
         <ListRows />
         <CardTiles />
         <Switches />
+        <CountBadges />
         <QuickActions />
         <Skeletons />
         <Inputs />
@@ -285,6 +301,11 @@ export function PrimitiveCatalog() {
         <Section title="Drawer sheet">
           <Button onPress={() => router.push('/primitives-sheet')}>
             <Text>Open the drawer sheet</Text>
+          </Button>
+        </Section>
+        <Section title="Page sheet">
+          <Button onPress={() => router.push('/primitives-page-sheet')}>
+            <Text>Open the page sheet</Text>
           </Button>
         </Section>
       </ScrollView>

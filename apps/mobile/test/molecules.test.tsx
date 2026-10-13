@@ -6,6 +6,7 @@ import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { Text } from '@/components/atoms/text';
 import { AccountCard } from '@/components/molecules/account-card';
+import { BatchButton } from '@/components/molecules/batch-button';
 import { Brand } from '@/components/molecules/brand';
 import { CardGrid } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
@@ -310,5 +311,26 @@ describe('Brand', () => {
     const name = screen.getByText('mtgscan');
     expect(name).toHaveStyle({ color: white, fontSize: 22, fontWeight: '800' });
     expect(name.parent?.children[0]).toHaveStyle({ width: 18, height: 25, borderWidth: 2.5, borderColor: lime, borderRadius: 4 });
+  });
+});
+
+describe('BatchButton', () => {
+  test('the batch button shows how many copies are in the scan batch in a count badge', async () => {
+    const onPress = jest.fn();
+    await render(<BatchButton count={3} onPress={onPress} />);
+
+    const button = screen.getByRole('button', { name: 'Scan batch, 3' });
+    expect(button).toHaveStyle({ backgroundColor: surfaceControl, width: 38, height: 38, borderRadius: 999 });
+    expect(touchTarget(button)).toEqual({ width: 44, height: 44 });
+    expect(screen.getByText('3')).toBeOnTheScreen();
+    await fireEvent.press(button);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  test('an empty scan batch shows the batch button with no count badge', async () => {
+    await render(<BatchButton count={0} onPress={() => {}} />);
+
+    expect(screen.getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
+    expect(screen.queryByText('0')).not.toBeOnTheScreen();
   });
 });

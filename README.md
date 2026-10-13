@@ -26,9 +26,9 @@ The app uses NativeWind 4 with Tailwind CSS 3. NativeWind 5 is a release candida
 
 Components follow Atomic Design in `src/components`. `CODING_STANDARDS.md` (Atomic Design) has the levels and the rules.
 
-- `atoms` holds the primitives: `Text`, `TextLink`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `CardImage`, `CardThumbnail`, `TileButton`, `AppleSignInButton`, `Input`, `ProgressBar`, `Skeleton`, `SetIcon`, and `QuickActionButton`. `Button` has a 50 px sign-in size and the Google variant. `AppleSignInButton` wraps the system Apple button. `Toggle` wraps `@rn-primitives/toggle`. `Switch` wraps the iOS switch.
-- `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`), `ListRow`, `SwitchRow`, `EmptyState`, `CardTile`, `CardGrid`, `AccountCard`, `GalleryCard`, `FailureNotice`, `Brand`, `QuickActionBar`, `SheetSection`, and `SettingsButton`. `CardTile` is a card image with its set and collector number, 3 to a row. The binder grid and the card printing grids on the Scan tab use it.
-- `organisms` holds `BinderWall`, `SignInSheet`, `SettingsContent`, and the Scan tab sections: `LatestScanChip`, `ScanQuickActions`, `ScanDetailsContent`, `NameSearch`, and `PrintingPicker`. `templates` holds `TabScreen` and `DrawerSheet`, the content layout of the bottom drawers.
+- `atoms` holds the primitives: `Text`, `TextLink`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `CardImage`, `CardThumbnail`, `TileButton`, `AppleSignInButton`, `Input`, `ProgressBar`, `Skeleton`, `SetIcon`, `QuickActionButton`, and `CountBadge`. `Button` has a 50 px sign-in size and the Google variant. `AppleSignInButton` wraps the system Apple button. `Toggle` wraps `@rn-primitives/toggle`. `Switch` wraps the iOS switch.
+- `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`), `ListRow`, `SwitchRow`, `EmptyState`, `CardTile`, `CardGrid`, `AccountCard`, `GalleryCard`, `FailureNotice`, `Brand`, `QuickActionBar`, `SheetSection`, `SettingsButton`, and `BatchButton`. `CardTile` is a card image with its set and collector number, 3 to a row. The binder grid and the card printing grids on the Scan tab use it.
+- `organisms` holds `BinderWall`, `SignInSheet`, `SettingsContent`, and the Scan tab sections: `LatestScanChip`, `ScanQuickActions`, `ScanDetailsContent`, `NameSearch`, `PrintingPicker`, and `ScanBatchList`. `templates` holds `TabScreen`, `DrawerSheet`, the content layout of the bottom drawers, and `PageSheet`, the layout of a page sheet with a title, **Done**, and a footer.
 - Expo Router routes in `src/app` are the pages.
 - ESLint checks the import direction between the levels with `eslint-plugin-boundaries`. It also keeps raw controls out of screens and features. See `apps/mobile/eslint.config.js`.
 - Only `Skeleton` animates. It pulses with React Native `Animated`, not Reanimated, so no test needs Reanimated animations.
@@ -104,7 +104,16 @@ The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes o
 
 ### Latest scan
 
-`apps/mobile/src/scan/use-scan-recognition.ts` sends each photo to `recognize`, deletes the photo when the recognizer answers, and reports the result to the scan batch in `src/scan/scan-batch-state.tsx`. `src/scan/scan-batch.ts` holds the scans with their copies, the default finish rule from #75, and the edits from the quick actions and the details sheet. The batch stays in memory until #83 adds persistence, review, and commit. Card images on the chip and in the details sheet come from `image_uris` in the card catalog's `card_printings` table. The set button shows the expansion symbol from `icon_svg_uri` in `card_sets`. `expo-image` keeps both in its disk cache.
+`apps/mobile/src/scan/use-scan-recognition.ts` sends each photo to `recognize`, deletes the photo when the recognizer answers, and reports the result to the scan batch in `src/scan/scan-batch-state.tsx`. `src/scan/scan-batch.ts` holds the scans, the default finish rule from #75, and the edits from the quick actions, the details sheet, and batch review. Each scan is one copy. **+1** adds a new scan with the same card printing, finish, condition, and language. Card images on the chip and in the details sheet come from `image_uris` in the card catalog's `card_printings` table. The set button shows the expansion symbol from `icon_svg_uri` in `card_sets`. `expo-image` keeps both in its disk cache.
+
+### Scan batch
+
+The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in account.
+
+- After every change, the phone writes the scan batch to `scan-batch-<user ID>.json` in the app's documents folder with `expo-file-system`. The file holds a format version, the scans, the condition and language for new scans, and the pending commit. `src/scan/scan-batch-file.ts` reads and writes it.
+- When an account signs in, the phone reads its file back. Sign-out keeps the file and clears the scan batch from the screen.
+- **Add N to collection** calls `add_scan_batch` with one stack per card printing, finish, condition, and language. The pending commit keeps the idempotency key and the stacks it sent. A retry with the same stacks sends the same key, so a commit that reached the server adds its copies once. When the stacks change, the next commit gets a new key. When the file still has a pending commit for the same stacks at sign-in, the phone sends it again by itself.
+- A commit that works removes the scans it sent. A commit that fails keeps every scan. Batch review rows do not open while a commit runs.
 
 ### Local Supabase
 

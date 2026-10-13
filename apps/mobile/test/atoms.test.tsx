@@ -6,6 +6,7 @@ import { AppleSignInButton } from '@/components/atoms/apple-sign-in-button';
 import { Button } from '@/components/atoms/button';
 import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { Chip } from '@/components/atoms/chip';
+import { CountBadge } from '@/components/atoms/count-badge';
 import { Input } from '@/components/atoms/input';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
@@ -29,8 +30,20 @@ import {
 } from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim, warning, danger, info } =
-  tokenColors;
+const {
+  primary: lime,
+  onPrimary,
+  surface,
+  surfaceControl,
+  line,
+  text: white,
+  textMuted,
+  textDim,
+  warning,
+  danger,
+  info,
+  badge,
+} = tokenColors;
 const dangerTint = '#ff7a7029';
 const dimmed = { opacity: expect.closeTo(0.38) };
 
@@ -541,5 +554,15 @@ describe('ProgressBar', () => {
 
     const [fill] = screen.getByRole('progressbar').children as ReturnType<typeof screen.getByLabelText>[];
     expect(fill).toHaveStyle({ width: '0%' });
+  });
+});
+
+describe('CountBadge', () => {
+  test('a count badge shows white numerals on a round badge-colored pill', async () => {
+    await render(<CountBadge count={12} />);
+
+    const numerals = screen.getByText('12');
+    expect(numerals).toHaveStyle({ color: white, fontSize: 11, fontWeight: '700' });
+    expect(numerals.parent).toHaveStyle({ backgroundColor: badge, borderRadius: 999, height: 17, minWidth: 17 });
   });
 });

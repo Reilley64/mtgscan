@@ -1,7 +1,7 @@
 import { fireEvent, screen } from 'expo-router/testing-library';
 
 import { startSignedIn } from './fake-supabase';
-import { presentedDrawer } from './native-ui';
+import { isPageSheetPresented, presentedDrawer } from './native-ui';
 import { renderApp } from './render-app';
 
 beforeEach(() => {
@@ -23,11 +23,13 @@ test('the primitive catalog shows every primitive', async () => {
     'Card tiles',
     'Switches',
     'Quick actions',
+    'Count badges',
     'Skeletons',
     'Inputs',
     'Progress bars',
     'Sheet sections',
     'Drawer sheet',
+    'Page sheet',
   ]) {
     expect(screen.getByRole('header', { name: section })).toBeOnTheScreen();
   }
@@ -49,6 +51,8 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('header', { name: 'Other options' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263', selected: false })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Scan batch, 12' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
 });
 
 test('the primitive catalog opens the drawer sheet sample as a bottom drawer', async () => {
@@ -58,4 +62,13 @@ test('the primitive catalog opens the drawer sheet sample as a bottom drawer', a
 
   expect(await screen.findByRole('header', { name: 'Drawer sheet' })).toBeOnTheScreen();
   expect(presentedDrawer()).toMatchObject({ showsGrabber: true, openingHeight: 0.5, heights: [0.5, 1] });
+});
+
+test('the primitive catalog opens the page sheet sample as a page sheet', async () => {
+  await renderApp('/primitives');
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Open the page sheet' }));
+
+  expect(await screen.findByRole('header', { name: 'Page sheet' })).toBeOnTheScreen();
+  expect(isPageSheetPresented()).toBe(true);
 });

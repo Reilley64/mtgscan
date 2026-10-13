@@ -1,6 +1,7 @@
 import { registerAppStyles } from './class-styles';
 import { resetFakeCardDetector } from './fake-card-detector';
 import { resetFakeCardRecognizer } from './fake-card-recognizer';
+import { resetFakeFileSystem } from './fake-file-system';
 import { resetFakeScanFeedback } from './fake-scan-feedback';
 import { resetFakeSupabase } from './fake-supabase';
 
@@ -24,6 +25,8 @@ jest.mock('../modules/card-detector', () => jest.requireActual('./fake-card-dete
 
 jest.mock('../modules/card-recognizer', () => jest.requireActual('./fake-card-recognizer').fakeCardRecognizer);
 
+jest.mock('expo-file-system', () => jest.requireActual('./fake-file-system').fakeFileSystem);
+
 jest.mock('expo-haptics', () => jest.requireActual('./fake-scan-feedback').fakeHaptics);
 
 jest.mock('@/scan/scan-sounds', () => jest.requireActual('./fake-scan-feedback').fakeScanSounds);
@@ -34,5 +37,6 @@ beforeEach(async () => {
   resetFakeSupabase();
   resetFakeCardDetector();
   resetFakeCardRecognizer();
+  resetFakeFileSystem();
   resetFakeScanFeedback();
 });

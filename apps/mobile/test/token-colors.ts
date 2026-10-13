@@ -10,4 +10,6 @@ export const tokenColors = {
   warning: 'rgba(244, 208, 111, 1)',
   danger: 'rgba(255, 122, 112, 1)',
   info: 'rgba(143, 211, 255, 1)',
+  badge: 'rgba(224, 36, 74, 1)',
+  sheet: 'rgba(22, 28, 31, 1)',
 } as const;

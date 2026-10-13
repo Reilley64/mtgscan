@@ -67,6 +67,22 @@ function presentedDrawerView() {
   };
 }
 
+function presentedPageSheetView() {
+  const [sheet] = hostViews('RNSModalScreen').filter((candidate) => candidate.props.stackPresentation === 'pageSheet');
+  if (!sheet) {
+    throw new Error('No page sheet is open');
+  }
+  return sheet;
+}
+
+export function isPageSheetPresented() {
+  return hostViews('RNSModalScreen').some((candidate) => candidate.props.stackPresentation === 'pageSheet');
+}
+
+export async function swipeDownPageSheet() {
+  await fireEvent(presentedPageSheetView(), 'dismissed', { nativeEvent: { dismissCount: 1 } });
+}
+
 export function isInScrollView(element: HostElement) {
   let parent = element.parent;
   while (parent) {

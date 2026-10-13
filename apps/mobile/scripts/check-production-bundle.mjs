@@ -32,7 +32,7 @@ try {
     console.error(`The production bundle has the test sign-in: ${found.join(', ')}`);
     process.exit(1);
   }
-  const catalogFound = ['Open the drawer sheet', 'The title stays at the top.'].filter((text) => bundle.includes(text));
+  const catalogFound = ['Open the drawer sheet', 'The title stays at the top.', 'The footer stays at the bottom'].filter((text) => bundle.includes(text));
   if (catalogFound.length > 0) {
     console.error(`The production bundle has the primitive catalog: ${catalogFound.join(', ')}`);
     process.exit(1);
