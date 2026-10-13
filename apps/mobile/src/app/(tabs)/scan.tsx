@@ -6,10 +6,12 @@ import { BatchButton } from '@/components/molecules/batch-button';
 import { useGallery } from '@/gallery/gallery-state';
 import { CameraMessage } from '@/scan/camera-message';
 import { GalleryDownload } from '@/scan/gallery-download';
+import { PullToAdd } from '@/scan/pull-to-add';
 import { scansToAdd } from '@/scan/scan-batch';
 import { useScanBatch } from '@/scan/scan-batch-state';
 import { ScanCamera } from '@/scan/scan-camera';
 import { useCameraAccess } from '@/scan/use-camera-access';
+import { usePullToAdd } from '@/scan/use-pull-to-add';
 import { spacing } from '@/theme';
 
 function CameraContent() {
@@ -42,21 +44,23 @@ function ScanContent() {
   return <CameraContent />;
 }
 
-function ScanBatchButton() {
+function ScanBatchButton({ actions }: { actions: ReturnType<typeof usePullToAdd>['batchButtonActions'] }) {
   const { batch } = useScanBatch();
   const { top } = useSafeAreaInsets();
   return (
     <View className="absolute right-lg" style={{ top: top + spacing.sm }}>
-      <BatchButton count={scansToAdd(batch).length} onPress={() => router.push('/scan-batch')} />
+      <BatchButton count={scansToAdd(batch).length} onPress={() => router.push('/scan-batch')} {...actions} />
     </View>
   );
 }
 
 export default function ScanScreen() {
+  const { pull, count, distance, panHandlers, batchButtonActions } = usePullToAdd();
   return (
-    <View accessibilityLabel="Camera" className="flex-1 bg-camera-off">
+    <View accessibilityLabel="Camera" className="flex-1 bg-camera-off" {...panHandlers}>
       <ScanContent />
-      <ScanBatchButton />
+      <PullToAdd pull={pull} count={count} distance={distance} />
+      <ScanBatchButton actions={batchButtonActions} />
     </View>
   );
 }

@@ -29,6 +29,7 @@ import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { PriceLine } from '@/components/molecules/price-line';
+import { PullIndicator } from '@/components/molecules/pull-indicator';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
@@ -311,6 +312,19 @@ function Glass() {
   );
 }
 
+function PullIndicators() {
+  return (
+    <Section title="Pull indicators">
+      <View className="items-center gap-sm">
+        <PullIndicator label="Pull to add 3 cards" symbol="arrow.down" />
+        <PullIndicator label="Release to add 3 cards" symbol="plus" />
+        <PullIndicator label="Nothing to add" symbol="arrow.down" />
+        <PullIndicator label="Adding 3 cards" symbol="busy" />
+      </View>
+    </Section>
+  );
+}
+
 function Inputs() {
   const [name, setName] = useState('');
   return (
@@ -359,6 +373,7 @@ export function PrimitiveCatalog() {
         <QuickActions />
         <Skeletons />
         <Glass />
+        <PullIndicators />
         <Inputs />
         <ProgressBars />
         <SheetSections />
