@@ -306,7 +306,7 @@ describe('the collection total button', () => {
 
   async function openTotal(collection: Awaited<ReturnType<typeof openCollection>>, name: string) {
     await fireEvent.press(collection.getByRole('button', { name }));
-    return screen.getByLabelText(new RegExp(`^${RegExp.escape(name)}, `));
+    return screen.getByLabelText(`${name}, `, { exact: false });
   }
 
   test('the collection total button sits next to the settings button with the collection total and a chevron', async () => {
