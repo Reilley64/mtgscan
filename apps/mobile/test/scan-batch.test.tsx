@@ -39,7 +39,7 @@ beforeEach(() => {
   startSignedIn();
 });
 
-test('the batch button shows how many copies are in the scan batch', async () => {
+test('the batch button counts the copies to add and leaves out scans that were not recognized', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
   await openScan();
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
@@ -48,8 +48,11 @@ test('the batch button shows how many copies are in the scan batch', async () =>
   await pressPlusOne();
   await scanACard();
 
-  expect(scanTab().getByRole('button', { name: 'Scan batch, 3' })).toBeOnTheScreen();
-  expect(scanTab().getByText('3')).toBeOnTheScreen();
+  expect(scanTab().getByRole('button', { name: 'Scan batch, 2' })).toBeOnTheScreen();
+  expect(scanTab().getByText('2')).toBeOnTheScreen();
+  await openBatchReview(2);
+  expect(screen.getByRole('button', { name: 'Not recognized, Tap to search' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Add 2 to collection' })).toBeOnTheScreen();
 });
 
 test('the batch button opens batch review as a page sheet that Done and a downward swipe close', async () => {
@@ -141,7 +144,7 @@ test('batch review lists scans that were not recognized, and a tap opens name se
   await openScan();
   await scanACard();
   await scanACard();
-  await openBatchReview(2);
+  await openBatchReview(1);
 
   expect(screen.getByRole('header', { name: 'Not recognized' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Add 1 to collection' })).toBeOnTheScreen();
@@ -176,7 +179,7 @@ test('Add N to collection sends every copy, with identical copies in one stack, 
   await pressPlusOne();
   await scanACard();
   await scanACard();
-  await openBatchReview(4);
+  await openBatchReview(3);
 
   await addToCollection(3);
 
@@ -194,13 +197,13 @@ test('a commit closes batch review, keeps scans that were not recognized, and th
   await scanACard();
   await pressPlusOne();
   await scanACard();
-  await openBatchReview(3);
+  await openBatchReview(2);
 
   await addToCollection(2);
 
   expect(isPageSheetPresented()).toBe(false);
   expect(scanTab().getByText('Added 2 cards to your collection.')).toBeOnTheScreen();
-  expect(scanTab().getByRole('button', { name: 'Scan batch, 1' })).toBeOnTheScreen();
+  expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   await pressTab('Collection');
   expect(await screen.findByRole('image', { name: 'Lightning Bolt, M10 146, 2 owned' })).toBeOnTheScreen();
 });
@@ -293,13 +296,13 @@ test('the scan batch and its defaults survive a restart of the app', async () =>
   await scanACard();
   await pressPlusOne();
   await scanACard();
-  await openBatchReview(3);
+  await openBatchReview(2);
   await fireEvent.press(screen.getByRole('button', { name: 'LP' }));
   await swipeDownPageSheet();
 
   await restartTheApp();
   await pressTab('Scan');
-  await openBatchReview(3);
+  await openBatchReview(2);
 
   expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English', 'Lightning Bolt, M10 146 · NM · English']);
   expect(screen.getByRole('button', { name: 'Not recognized, Tap to search' })).toBeOnTheScreen();

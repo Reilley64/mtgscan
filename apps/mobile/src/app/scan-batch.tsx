@@ -8,12 +8,13 @@ import { FailureNotice } from '@/components/molecules/failure-notice';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { ScanBatchList } from '@/components/organisms/scan-batch-list';
 import { PageSheet } from '@/components/templates/page-sheet';
+import { scansToAdd } from '@/scan/scan-batch';
 import { useScanBatch } from '@/scan/scan-batch-state';
 
 export default function BatchReviewSheet() {
   const navigation = useNavigation();
   const { batch, dispatch, commit, commitStatus } = useScanBatch();
-  const copyCount = batch.scans.filter((scan) => scan.printing).length;
+  const copyCount = scansToAdd(batch).length;
 
   const addToCollection = async () => {
     if ((await commit()) && navigation.isFocused()) {

@@ -6,6 +6,7 @@ import { BatchButton } from '@/components/molecules/batch-button';
 import { useGallery } from '@/gallery/gallery-state';
 import { CameraMessage } from '@/scan/camera-message';
 import { GalleryDownload } from '@/scan/gallery-download';
+import { scansToAdd } from '@/scan/scan-batch';
 import { useScanBatch } from '@/scan/scan-batch-state';
 import { ScanCamera } from '@/scan/scan-camera';
 import { useCameraAccess } from '@/scan/use-camera-access';
@@ -46,7 +47,7 @@ function ScanBatchButton() {
   const { top } = useSafeAreaInsets();
   return (
     <View className="absolute right-lg" style={{ top: top + spacing.sm }}>
-      <BatchButton count={batch.scans.length} onPress={() => router.push('/scan-batch')} />
+      <BatchButton count={scansToAdd(batch).length} onPress={() => router.push('/scan-batch')} />
     </View>
   );
 }

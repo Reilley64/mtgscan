@@ -444,7 +444,7 @@ The interface is flat. Depth comes from tone, not shadow.
   - Tapping a name lists every card printing of that card in the gallery, newest first, as card images 3 per row with the set code and collector number under each.
   - Tapping a card printing switches the scan to it and returns to the details.
   - Choosing a basic land shows "Basic lands are not tracked." and changes nothing.
-- **Batch button.** A round icon button at the top right of Scan, 8 px below the safe area, with the `rectangle.portrait.on.rectangle.portrait.angled` card-stack symbol. A count badge on its top right corner counts every scan in the scan batch, including scans that were not recognized. An empty scan batch shows no badge. VoiceOver reads "Scan batch, 3". The button shows in every Scan tab state, and it opens batch review.
+- **Batch button.** A round icon button at the top right of Scan, 8 px below the safe area, with the `rectangle.portrait.on.rectangle.portrait.angled` card-stack symbol. A count badge on its top right corner counts the scans with a card printing, the same N as **Add N to collection**. Scans that were not recognized are not counted, and they still show in batch review. With no scan to add, the button shows no badge. VoiceOver reads "Scan batch, 3". The button shows in every Scan tab state, and it opens batch review.
 - **Batch review.** An iOS page sheet titled "Scan batch", with **Done** at the top right.
   - **Condition for new scans** and **Language for new scans** come first, as rows of chips. They start at NM and English. A change applies to later scans only.
   - **Not recognized** lists one row per scan that was not recognized, with "Not recognized" and "Tap to search". A tap opens the scan details sheet in name search.
