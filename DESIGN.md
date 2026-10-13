@@ -430,6 +430,8 @@ Settings, the scan details sheet, the printing picker, and batch review are bott
 - A downward swipe or a tap outside closes it. It has no Done button.
 - Its content starts 32 px (spacing xl) below the top edge, twice the page inset, so that it clears the grabber. The content scrolls at either height.
 
+**One level only.** Drawers and modals (page sheets, alerts, and confirmation sheets) are never stacked: no drawer opens over a drawer, no modal over a modal, no drawer over a modal, and no modal over a drawer. When a task inside a drawer needs another step, such as editing a scan from batch review, it pushes a screen inside the same drawer with a back button and the swipe-back gesture. A confirmation needed from inside a drawer is shown inline in that drawer. Native menus (for example the collection total menu) are not drawers or modals and may open from a drawer.
+
 The settings drawer:
 
 - The title "Settings" stays at the top at either height. The content below the title scrolls under it.
@@ -565,3 +567,4 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Don't** use the primary lime for decoration. It always means "you can act here" or "selected". The brand mark is the one exception.
 - **Don't** draw anything over the camera except the card outline, the batch button, and the latest-scan chip.
 - **Do** keep Liquid Glass to the controls that float over the camera, and keep the dark surface fallback.
+- **Don't** stack drawers or modals. One level only: push a screen inside the drawer instead (see Sheets).
