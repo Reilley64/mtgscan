@@ -1,10 +1,16 @@
+import { router } from 'expo-router';
 import { Linking, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BatchButton } from '@/components/molecules/batch-button';
 import { useGallery } from '@/gallery/gallery-state';
 import { CameraMessage } from '@/scan/camera-message';
 import { GalleryDownload } from '@/scan/gallery-download';
+import { scansToAdd } from '@/scan/scan-batch';
+import { useScanBatch } from '@/scan/scan-batch-state';
 import { ScanCamera } from '@/scan/scan-camera';
 import { useCameraAccess } from '@/scan/use-camera-access';
+import { spacing } from '@/theme';
 
 function CameraContent() {
   const access = useCameraAccess();
@@ -36,10 +42,21 @@ function ScanContent() {
   return <CameraContent />;
 }
 
+function ScanBatchButton() {
+  const { batch } = useScanBatch();
+  const { top } = useSafeAreaInsets();
+  return (
+    <View className="absolute right-lg" style={{ top: top + spacing.sm }}>
+      <BatchButton count={scansToAdd(batch).length} onPress={() => router.push('/scan-batch')} />
+    </View>
+  );
+}
+
 export default function ScanScreen() {
   return (
     <View accessibilityLabel="Camera" className="flex-1 bg-camera-off">
       <ScanContent />
+      <ScanBatchButton />
     </View>
   );
 }

@@ -48,10 +48,13 @@ An editable group of scans waiting to be added to the collection together.
 _Avoid_: To-add list, import
 
 **Scan**:
-One card photo in the scan batch, with its card printing, finish, condition, language, and number of copies. **+1** adds a copy to a scan. A scan that was not recognized has no card printing until the user picks one in name search. A basic land and a photo that is not a card make no scan.
+One copy in the scan batch, with its card printing, finish, condition, and language. A card photo makes a scan. **+1** makes another scan for one more copy of the same card printing, with the same finish, condition, and language. Each scan is edited and removed on its own. A scan that was not recognized has no card printing until the user picks one in name search. A basic land and a photo that is not a card make no scan.
+
+**Copy ID**:
+The ID that the phone gives each scan when it makes the scan, including a scan from **+1**. Committing the scan batch sends the copy IDs, and the server adds each copy ID once for each user, so a retry never adds a copy twice.
 
 **Stack**:
-The copies in a scan batch that share a card printing, finish, condition, and language. Batch review shows one row per stack, and committing the scan batch sends its stacks.
+The scans in a scan batch that share a card printing, finish, condition, and language. Committing the scan batch sends its stacks, and each stack merges into one collection entry. Batch review shows each scan as its own row, not stacks.
 
 **Gallery**:
 The feature prints and printing list that the phone recognizer searches. The owner builds it, and phones download it from Storage. A phone downloads only the parts of the published gallery version that it does not have, checks each part's SHA-256 against the manifest, and switches to the new gallery version only when every part is there.

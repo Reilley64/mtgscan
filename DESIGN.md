@@ -171,7 +171,9 @@ components:
   count-badge:
     backgroundColor: "{colors.badge}"
     textColor: "{colors.text}"
+    typography: "{typography.chip}"
     rounded: "{rounded.full}"
+    padding: 0 4px
     height: 17px
   card-thumbnail:
     backgroundColor: "{colors.line}"
@@ -361,10 +363,9 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 - promote with a copy picker;
 - Bought with the acquired copy picker;
 - the swap-in confirmation for a protected copy;
-- revert;
-- batch review.
+- revert.
 
-Settings, the scan details sheet, and the printing picker are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all three.
+Settings, the scan details sheet, the printing picker, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all four.
 
 - It slides up from the bottom with the iOS grabber and opens at half the screen height.
 - Dragging it up takes it to full height. Dragging it down takes it back to half height.
@@ -401,7 +402,7 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Buttons.** Primary buttons are lime with dark text: Promote, Swap in, Bought, Add to collection. Secondary buttons use the control surface: Dismiss, Skip, Cancel. Destructive actions, such as **Remove scan**, use danger text on the danger tint.
   - A disabled button fades to 38% opacity, the same dimming as the other sign-in buttons while one signs in. `theme.ts` names it `opacity.dimmed`.
   - A busy button shows a spinner before its label and takes no taps. It keeps its full color.
-  - A round icon button, such as the settings button, is 38 px across on the control surface.
+  - A round icon button, such as the settings button or the batch button, is 38 px across on the control surface, with an 18 px symbol in the text color.
   - Every control has a touch target of at least 44 by 44 pt. A control that looks smaller, such as a 38 px button or a 24 px chip, gets the extra touch area above and below, and is at least 44 px wide.
 - **Toggles.** A toggle is a button that stays on or off, such as Protect. It uses the control surface when off and turns lime with dark text when on. A segmented control, such as Copies, Decks, Prices, and Rules on the card page, is a row of options on one control surface with 8 px corners. The chosen option is lime.
 - **Switch rows.** A switch row is a surface card with a label and an iOS switch with a lime track. A tap anywhere on the row turns the switch on or off.
@@ -417,31 +418,42 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and card page deck lists. It opens the deck.
 - **Latest-scan chip.** One horizontal chip at the bottom of Scan, 16 px from the edges: a card thumbnail on the left, the card name in body strong centered over a centered meta line with the set code in capitals and the collector number, such as "M10 146", and a 14 px text dim `chevron.right` symbol on the right that shows the chip opens the details. The skeleton chip and the basic land chip have no chevron. A new scan replaces the chip.
-  - The meta line adds the finish when it is not nonfoil, and the copy count when the scan has more than one copy: "M10 146 · Foil · 2 copies".
+  - The meta line adds the finish when it is not nonfoil: "M10 146 · Foil".
   - A quick-action bar sits 8 px below the chip, centered, and is always on the Scan tab. It is one control-surface pill with 12 px corners and three buttons in chip type, split by 16 px hairline dividers in the line color. The bar is 32 px tall, and each button has a 44 pt touch target. From left to right:
-    - The finish button shows the current finish: "Nonfoil", "Foil", or "Etched". Tapping it switches to the next finish of the card printing in the order nonfoil, foil, etched. It changes every copy of the scan, as the details sheet does. It is disabled when the card printing has one finish.
+    - The finish button shows the current finish: "Nonfoil", "Foil", or "Etched". Tapping it switches to the next finish of the card printing in the order nonfoil, foil, etched. It changes only the scan on the chip. It is disabled when the card printing has one finish.
     - The set button shows the set's expansion symbol from Scryfall at 16 px, tinted with the text color. VoiceOver reads the set code in capitals, such as "MH3". When the card catalog has no symbol for the set, or it has not loaded, the button shows the set code instead. It opens the printing picker.
-    - **+1** adds one copy to the scan.
-  - The buttons act on the latest scan. Before the first scan, while a photo is being recognized, and after a basic land or a scan that was not recognized, they are disabled, with text dim labels. Before the first scan they read "Finish", a dashed square symbol for the set, and "+1". A photo that is not a card leaves the bar on the previous scan.
+    - **+1** adds another copy of the card printing to the scan batch as its own scan, with the same finish, condition, and language. The chip moves to the new scan, so later edits on the chip change only that copy. The chip never shows a copy count.
+  - The buttons act on the scan on the chip. Before the first scan, while a photo is being recognized, after a basic land or a scan that was not recognized, after **Remove scan**, and after the scan batch is added to the collection, they are disabled, with text dim labels. Before the first scan they read "Finish", a dashed square symbol for the set, and "+1". A photo that is not a card leaves the bar on the previous scan.
   - The printing picker is a bottom drawer like the scan details sheet, with the card name and every card printing of that card in the gallery, as card images 3 per row with the set code and collector number. The scanned card printing and its same-text twins come first, then the rest newest first. The current card printing has a 2 px lime border and a lime caption. Tapping a card printing switches the scan to it and closes the sheet. The scan keeps its finish when the new card printing has it. Otherwise it takes the new card printing's default finish.
   - A pulsing skeleton chip, with a line-colored image block and two line-colored bars, shows from the moment the app takes the photo until the result arrives. The bars are as tall as body strong and meta type, 14 px and 12 px, and fill 70% and 40% of the text width. The blocks pulse between 45% and full opacity, 650 ms each way. VoiceOver reads it as "Recognizing card".
   - A photo that is not a card removes the skeleton chip and brings back the previous chip.
   - A basic land shows its image, its name, and "Basic land, not tracked". It does not enter the scan batch, and tapping it does nothing.
   - A failed recognition shows an empty thumbnail, "Not recognized", and "Tap to search".
+  - After **Add N to collection**, the chip shows "Added N cards to your collection." until the next scan. For one card it reads "Added 1 card to your collection."
   - Tapping the chip opens the scan details sheet.
 - **Scan details sheet.** A bottom drawer like settings: the iOS grabber, opens at half the screen height, drags up to full height, and closes with a downward swipe or a tap outside. Its content scrolls at either height, starting 32 px below the top edge.
-  - At the top: the card image at 55% of the sheet width, the card name in card title type, and the set code and collector number, with the copy count when there is more than one copy.
+  - At the top: the card image at 55% of the sheet width, the card name in card title type, and the set code and collector number.
   - **Finish**, **Condition**, and **Language** sections, each with a row of chips. The selected chip is lime. Finish offers only the finishes of the card printing. Condition offers NM, LP, MP, HP, and DMG, and starts at NM. Language offers English, Japanese, German, French, Italian, Spanish, Portuguese, Korean, Russian, Simplified Chinese, and Traditional Chinese, and starts at English.
   - **Other options** lists the recognizer's other candidates as rows with a thumbnail, the name, and the set code and collector number. Every same-text twin comes first. Tapping a row switches the scan to that card printing. The scan keeps its condition and language, and its finish when the new card printing has it. Otherwise it takes the new card printing's default finish.
   - **None of these: search** opens name search in the same sheet.
-  - **Remove scan**, a danger button, removes one copy. At the last copy it removes the scan and closes the sheet.
+  - **Remove scan**, a danger button, removes this scan and closes the sheet. The other copies stay in the scan batch. Removing the scan on the chip leaves the chip empty.
   - Section headings are lime body strong text.
 - **Name search.** A "Card name" field at the top of the scan details sheet, with the keyboard up. A failed scan opens the sheet straight into name search.
   - As the user types, up to 10 card names show as rows. The phone matches names and face names in the gallery, ignoring case, accents, and punctuation. Exact names come first, then names that start with the text, then names with a word that starts with it.
   - Tapping a name lists every card printing of that card in the gallery, newest first, as card images 3 per row with the set code and collector number under each.
   - Tapping a card printing switches the scan to it and returns to the details.
   - Choosing a basic land shows "Basic lands are not tracked." and changes nothing.
-- **Batch button.** A round card-stack icon at the top right of Scan with a count badge. It opens batch review, which merges identical copies into stacks before "Add to collection".
+- **Batch button.** A round icon button at the top right of Scan, 8 px below the safe area, with the `rectangle.portrait.on.rectangle.portrait.angled` card-stack symbol. A count badge on its top right corner counts the scans with a card printing, the same N as **Add N to collection**. Scans that were not recognized are not counted, and they still show in batch review. With no scan to add, the button shows no badge. VoiceOver reads "Scan batch, 3". The button shows in every Scan tab state, and it opens batch review.
+- **Batch review.** A bottom drawer like settings, titled "Scan batch". The scan details sheet opens over it from a row.
+  - **Condition for new scans** and **Language for new scans** come first, as rows of chips. They start at NM and English. A change applies to later scans only.
+  - **Not recognized** lists one row per scan that was not recognized, with "Not recognized" and "Tap to search". A tap opens the scan details sheet in name search.
+  - **Scans** lists every scan as its own row, newest first. Identical copies are not merged, and rows have no +/- control. A row has the thumbnail, the card name, and a meta line with the set code and collector number, the finish when it is not nonfoil, the condition, and the language: "M10 146 · Foil · NM · English". A tap opens the scan details sheet over the review, to edit or remove that copy.
+  - The primary button **Add N to collection** stays at the bottom of the drawer at half and full height. N counts the scans with a card printing. It is disabled when N is 0, and busy while the commit runs.
+  - A commit that works closes the review and removes the added scans. Scans that were not recognized stay. The chip shows "Added N cards to your collection.", and the Collection tab shows the cards the next time it opens.
+  - A commit that fails shows the failure notice "Could not add to your collection. Your scans are kept." above the button, and the button reads **Try again** until a commit works. Each scan has its own copy ID, so the server never adds the same copy twice, even when the scan batch changed after the failure.
+  - When the app restarts after a commit that failed or was still running, it sends the commit again by itself.
+  - While the commit runs, rows do not open.
+  - The phone saves the scan batch and its defaults for each account, so they survive a restart. Another account on the phone does not see them.
 - **Binder tile.** One printing's card image, with a set and collector number caption and corner badges totalled over its copies. Tiles of printings with a foil copy carry a subtle sheen.
   - Until the image loads, the tile is a line-colored card shape.
   - The caption is meta text in text muted: the set code in capitals and the collector number, such as "ISD 51".

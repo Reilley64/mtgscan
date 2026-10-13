@@ -17,11 +17,9 @@ export default function ScanDetailsSheet() {
   const recognized = recognizedScan(scan);
   const [searching, setSearching] = useState(false);
 
-  const removeCopy = () => {
-    if (scan?.copies === 1) {
-      router.back();
-    }
-    dispatch({ type: 'removeCopy', scanId });
+  const remove = () => {
+    router.back();
+    dispatch({ type: 'remove', scanId });
   };
 
   return (
@@ -35,7 +33,7 @@ export default function ScanDetailsSheet() {
             }}
           />
           {scan.printing ? null : (
-            <Button variant="danger" onPress={removeCopy}>
+            <Button variant="danger" onPress={remove}>
               <Text>Remove scan</Text>
             </Button>
           )}
@@ -46,7 +44,7 @@ export default function ScanDetailsSheet() {
           scan={recognized}
           dispatch={dispatch}
           onSearch={() => setSearching(true)}
-          onRemove={removeCopy}
+          onRemove={remove}
         />
       ) : null}
     </DrawerSheet>

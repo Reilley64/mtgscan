@@ -9,12 +9,12 @@ import { Text } from '@/components/atoms/text';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { ListRow } from '@/components/molecules/list-row';
 import { SheetSection } from '@/components/molecules/sheet-section';
-import { copiesDetail, printingCaption } from '@/scan/printing-caption';
-import type { RecognizedScan, ScanBatchAction } from '@/scan/scan-batch';
+import { printingCaption } from '@/scan/printing-caption';
+import type { RecognizedScan, ScanEdit } from '@/scan/scan-batch';
 
 type ScanDetailsContentProps = {
   scan: RecognizedScan;
-  dispatch: (action: ScanBatchAction) => void;
+  dispatch: (action: ScanEdit) => void;
   onSearch: () => void;
   onRemove: () => void;
 };
@@ -23,7 +23,6 @@ export function ScanDetailsContent({ scan, dispatch, onSearch, onRemove }: ScanD
   const { printing, scanId } = scan;
   const otherOptions = scan.options.filter((option) => option.printingId !== printing.printingId);
   const imageOf = usePrintingImages([printing, ...otherOptions].map((option) => option.printingId));
-  const caption = [printingCaption(printing), ...copiesDetail(scan.copies)].join(' · ');
 
   return (
     <View className="gap-lg">
@@ -34,7 +33,7 @@ export function ScanDetailsContent({ scan, dispatch, onSearch, onRemove }: ScanD
         <Text variant="card-title" className="text-center">
           {printing.name}
         </Text>
-        <Text variant="meta">{caption}</Text>
+        <Text variant="meta">{printingCaption(printing)}</Text>
       </View>
       <SheetSection title="Finish">
         <ChipGroup

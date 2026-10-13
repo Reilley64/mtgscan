@@ -23,6 +23,7 @@ test('the primitive catalog shows every primitive', async () => {
     'Card tiles',
     'Switches',
     'Quick actions',
+    'Count badges',
     'Skeletons',
     'Inputs',
     'Progress bars',
@@ -49,6 +50,8 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('header', { name: 'Other options' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263', selected: false })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Scan batch, 12' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
 });
 
 test('the primitive catalog opens the drawer sheet sample as a bottom drawer', async () => {
@@ -57,5 +60,6 @@ test('the primitive catalog opens the drawer sheet sample as a bottom drawer', a
   await fireEvent.press(screen.getByRole('button', { name: 'Open the drawer sheet' }));
 
   expect(await screen.findByRole('header', { name: 'Drawer sheet' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'The footer stays at the bottom' })).toBeOnTheScreen();
   expect(presentedDrawer()).toMatchObject({ showsGrabber: true, openingHeight: 0.5, heights: [0.5, 1] });
 });

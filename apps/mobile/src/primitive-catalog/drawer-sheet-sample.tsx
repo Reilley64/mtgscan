@@ -1,3 +1,6 @@
+import { router } from 'expo-router';
+
+import { Button } from '@/components/atoms/button';
 import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
 import { ListRow } from '@/components/molecules/list-row';
@@ -5,7 +8,13 @@ import { DrawerSheet } from '@/components/templates/drawer-sheet';
 
 export function DrawerSheetSample() {
   return (
-    <DrawerSheet title="Drawer sheet">
+    <DrawerSheet
+      title="Drawer sheet"
+      footer={
+        <Button variant="primary" onPress={() => router.back()}>
+          <Text>The footer stays at the bottom</Text>
+        </Button>
+      }>
       <Surface className="gap-xs">
         <Text variant="body-strong">The title stays at the top.</Text>
         <Text variant="meta">The content below it scrolls at half and full height.</Text>

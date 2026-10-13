@@ -14,7 +14,7 @@ import { useAutomaticCapture } from './use-automatic-capture';
 import { useScanRecognition } from './use-scan-recognition';
 
 function LatestScan() {
-  const { latest, dispatch } = useScanBatch();
+  const { latest, dispatch, addCopy } = useScanBatch();
   const { bottom } = useSafeAreaInsets();
   const scan = recognizedScan(latest?.kind === 'scan' ? latest.scan : null);
   return (
@@ -27,7 +27,7 @@ function LatestScan() {
       ) : null}
       <ScanQuickActions
         scan={scan}
-        onAddCopy={(scanId) => dispatch({ type: 'addCopy', scanId })}
+        onAddCopy={addCopy}
         onChangeFinish={(scanId, finish) => dispatch({ type: 'setFinish', scanId, finish })}
         onChangeSet={(scanId) => router.push({ pathname: '/scan-printings', params: { scanId } })}
       />

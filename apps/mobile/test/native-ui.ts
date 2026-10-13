@@ -44,9 +44,9 @@ export async function pressTab(label: string) {
 }
 
 function presentedDrawerView() {
-  const [drawer] = hostViews('RNSModalScreen').filter(
-    (candidate) => candidate.props.stackPresentation === 'formSheet',
-  );
+  const drawer = hostViews('RNSModalScreen')
+    .filter((candidate) => candidate.props.stackPresentation === 'formSheet')
+    .at(-1);
   if (!drawer) {
     throw new Error('No drawer is open');
   }
@@ -65,6 +65,10 @@ function presentedDrawerView() {
     largestUndimmedIndex: sheetLargestUndimmedDetent as number,
     closesByGesture: gestureEnabled as boolean,
   };
+}
+
+export function isDrawerPresented() {
+  return hostViews('RNSModalScreen').some((candidate) => candidate.props.stackPresentation === 'formSheet');
 }
 
 export function isInScrollView(element: HostElement) {

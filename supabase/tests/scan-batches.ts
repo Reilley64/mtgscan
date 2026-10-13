@@ -4,21 +4,25 @@ import { readScanBatchError, type ScanBatch, type ScanBatchResult, type ScanBatc
 import type { Json } from '../database.types';
 import type { AppClient, TestUser } from './local-stack';
 
-type StackChanges = Partial<Omit<ScanBatchStack, 'card_printing_id'>>;
+type StackChanges = Partial<Omit<ScanBatchStack, 'card_printing_id' | 'copy_ids'>> & { copies?: number };
 
-export function stack(cardPrintingId: string, changes: StackChanges = {}): ScanBatchStack {
+export function copyIds(count: number) {
+  return Array.from({ length: count }, () => crypto.randomUUID());
+}
+
+export function stack(cardPrintingId: string, { copies = 1, ...changes }: StackChanges = {}): ScanBatchStack {
   return {
     card_printing_id: cardPrintingId,
     finish: 'nonfoil',
     condition: 'near_mint',
     language: 'en',
-    quantity: 1,
+    copy_ids: copyIds(copies),
     ...changes,
   };
 }
 
 export function scanBatch(items: unknown[]): ScanBatch {
-  return { idempotency_key: crypto.randomUUID(), items: items as ScanBatchStack[] };
+  return { items: items as ScanBatchStack[] };
 }
 
 export async function addScanBatch(

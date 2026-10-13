@@ -1,4 +1,4 @@
-import { finishLabels } from '@/collection/copy-labels';
+import { conditionLabels, finishLabels, languageNames } from '@/collection/copy-labels';
 
 import type { Printing, RecognizedScan } from './scan-batch';
 
@@ -6,14 +6,10 @@ export function printingCaption(printing: Printing) {
   return `${printing.setCode.toUpperCase()} ${printing.collectorNumber}`;
 }
 
-export function copiesDetail(copies: number): string[] {
-  return copies > 1 ? [`${copies} copies`] : [];
+export function chipDetails(scan: RecognizedScan) {
+  return [printingCaption(scan.printing), ...(scan.finish === 'nonfoil' ? [] : [finishLabels[scan.finish]])];
 }
 
-export function chipDetails(scan: RecognizedScan) {
-  return [
-    printingCaption(scan.printing),
-    ...(scan.finish === 'nonfoil' ? [] : [finishLabels[scan.finish]]),
-    ...copiesDetail(scan.copies),
-  ];
+export function copyDetails(scan: RecognizedScan) {
+  return [...chipDetails(scan), conditionLabels[scan.condition], languageNames[scan.language]];
 }

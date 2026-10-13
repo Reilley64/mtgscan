@@ -1,4 +1,4 @@
-import type { CardCondition, CardLanguage } from '@mtgscan/supabase/collection';
+import type { CardCondition, CardLanguage, ScanBatchStack } from '@mtgscan/supabase/collection';
 import type { Finish } from '@mtgscan/supabase/search';
 
 import type { GalleryCardPrinting } from '../../modules/card-recognizer';
@@ -14,10 +14,9 @@ export type BatchScan = Readonly<{
   finish: Finish;
   condition: CardCondition;
   language: CardLanguage;
-  copies: number;
 }>;
 
-type BatchDefaults = Readonly<{
+export type BatchDefaults = Readonly<{
   condition: CardCondition;
   language: CardLanguage;
 }>;
@@ -31,6 +30,7 @@ export function recognizedScan(scan: BatchScan | null | undefined): RecognizedSc
 export type ScanBatch = Readonly<{
   scans: readonly BatchScan[];
   defaults: BatchDefaults;
+  commitPending: boolean;
 }>;
 
 export type ScanBatchAction =
@@ -46,12 +46,18 @@ export type ScanBatchAction =
   | { type: 'setFinish'; scanId: string; finish: Finish }
   | { type: 'setCondition'; scanId: string; condition: CardCondition }
   | { type: 'setLanguage'; scanId: string; language: CardLanguage }
-  | { type: 'addCopy'; scanId: string }
-  | { type: 'removeCopy'; scanId: string };
+  | { type: 'addCopy'; scanId: string; newScanId: string }
+  | { type: 'remove'; scanId: string }
+  | { type: 'setDefaults'; defaults: Partial<BatchDefaults> }
+  | { type: 'commitStarted' }
+  | { type: 'committed'; scanIds: readonly string[] };
+
+export type ScanEdit = Exclude<ScanBatchAction, { type: 'commitStarted' | 'committed' }>;
 
 export const emptyScanBatch: ScanBatch = {
   scans: [],
   defaults: { condition: 'near_mint', language: 'en' },
+  commitPending: false,
 };
 
 const premiumFinishes: readonly Finish[] = ['foil', 'etched'];
@@ -74,16 +80,13 @@ function updateScan(batch: ScanBatch, scanId: string, change: (scan: BatchScan) 
   return { ...batch, scans: batch.scans.map((scan) => (scan.scanId === scanId ? change(scan) : scan)) };
 }
 
-function addScan(batch: ScanBatch, scan: Omit<BatchScan, 'condition' | 'language' | 'copies'>): ScanBatch {
+function addScan(batch: ScanBatch, scan: Omit<BatchScan, 'condition' | 'language'>): ScanBatch {
   if (batch.scans.some((existing) => existing.scanId === scan.scanId)) {
     return batch;
   }
   return {
     ...batch,
-    scans: [
-      ...batch.scans,
-      { ...scan, condition: batch.defaults.condition, language: batch.defaults.language, copies: 1 },
-    ],
+    scans: [...batch.scans, { ...scan, condition: batch.defaults.condition, language: batch.defaults.language }],
   };
 }
 
@@ -121,19 +124,42 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
       return updateScan(batch, action.scanId, (scan) => ({ ...scan, condition: action.condition }));
     case 'setLanguage':
       return updateScan(batch, action.scanId, (scan) => ({ ...scan, language: action.language }));
-    case 'addCopy':
-      return updateScan(batch, action.scanId, (scan) => ({ ...scan, copies: scan.copies + 1 }));
-    case 'removeCopy':
+    case 'addCopy': {
+      const copied = batch.scans.find((scan) => scan.scanId === action.scanId);
+      return copied ? { ...batch, scans: [...batch.scans, { ...copied, scanId: action.newScanId }] } : batch;
+    }
+    case 'remove':
+      return { ...batch, scans: batch.scans.filter((scan) => scan.scanId !== action.scanId) };
+    case 'setDefaults':
+      return { ...batch, defaults: { ...batch.defaults, ...action.defaults } };
+    case 'commitStarted':
+      return { ...batch, commitPending: true };
+    case 'committed':
       return {
         ...batch,
-        scans: batch.scans.flatMap((scan) => {
-          if (scan.scanId !== action.scanId) {
-            return [scan];
-          }
-          return scan.copies > 1 ? [{ ...scan, copies: scan.copies - 1 }] : [];
-        }),
+        scans: batch.scans.filter((scan) => !action.scanIds.includes(scan.scanId)),
+        commitPending: false,
       };
   }
+}
+
+export function scansToAdd(batch: ScanBatch): RecognizedScan[] {
+  return batch.scans.filter((scan): scan is RecognizedScan => scan.printing !== null);
+}
+
+export function stacksOf(scans: readonly RecognizedScan[]): ScanBatchStack[] {
+  const stacks = new Map<string, ScanBatchStack>();
+  for (const scan of scans) {
+    const stack = {
+      card_printing_id: scan.printing.printingId,
+      finish: scan.finish,
+      condition: scan.condition,
+      language: scan.language,
+    };
+    const key = Object.values(stack).join('|');
+    stacks.set(key, { ...stack, copy_ids: [...(stacks.get(key)?.copy_ids ?? []), scan.scanId] });
+  }
+  return [...stacks.values()];
 }
 
 export function sameTextTwinsFirst(scan: BatchScan, printings: readonly Printing[]): Printing[] {

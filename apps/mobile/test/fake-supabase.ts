@@ -5,9 +5,15 @@ import {
   type Session,
   type User,
 } from '@supabase/supabase-js';
-import type { CollectionPrintingRow, CollectionPrintingsQuery } from '@mtgscan/supabase/collection';
+import type {
+  CollectionPrintingRow,
+  CollectionPrintingsQuery,
+  ScanBatch,
+  ScanBatchResult,
+} from '@mtgscan/supabase/collection';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
+import { act } from 'expo-router/testing-library';
 
 import type { SignInProvider } from '@/auth/sign-in';
 
@@ -30,6 +36,10 @@ const listeners = new Set<AuthListener>();
 const users = new Map<string, User>();
 let collectionPrintings: CollectionPrintingRow[] = [];
 let failingCollectionReads = 0;
+let scanBatchesSent: ScanBatch[] = [];
+let addedCopies = new Map<string, string>();
+let failingScanBatch: 'before the server adds it' | 'after the server adds it' | null = null;
+let heldScanBatch: Promise<void> | null = null;
 let galleryObjects = new Map<string, string>();
 let offlineGalleryReads = 0;
 
@@ -105,6 +115,63 @@ function collectionPrintingsPage({ cursor, limit = 60 }: CollectionPrintingsQuer
   };
 }
 
+const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
+
+function addToCollection(printingIds: string[], addedAt: string) {
+  for (const printingId of printingIds) {
+    const printing = galleryPrintings.find((candidate) => candidate.printingId === printingId)!;
+    const owned = collectionPrintings.find((row) => row.printing_id === printing.printingId);
+    collectionPrintings = [
+      {
+        printing_id: printing.printingId,
+        name: printing.name,
+        set: printing.setCode,
+        collector_number: printing.collectorNumber,
+        image_uris: [cardImageUri(printing.printingId)],
+        owned_quantity: (owned?.owned_quantity ?? 0) + 1,
+        latest_addition_at: addedAt,
+      },
+      ...collectionPrintings.filter((row) => row !== owned),
+    ];
+  }
+}
+
+async function addScanBatch(batch: ScanBatch) {
+  scanBatchesSent = [...scanBatchesSent, batch];
+  const held = heldScanBatch;
+  heldScanBatch = null;
+  await held;
+  const failure = failingScanBatch;
+  failingScanBatch = null;
+  if (failure === 'before the server adds it') {
+    return { data: null, error: networkFailure };
+  }
+  const copies = batch.items.flatMap((item) => item.copy_ids.map((copyId) => ({ copyId, item })));
+  const newCopies = copies.filter(({ copyId }) => !addedCopies.has(copyId));
+  const additionId = newCopies.length > 0 ? `addition-${new Set(addedCopies.values()).size + 1}` : null;
+  const addedAt = additionId && new Date(Date.UTC(2026, 9, 13, 10, addedCopies.size)).toISOString();
+  if (additionId && addedAt) {
+    addToCollection(
+      newCopies.map(({ item }) => item.card_printing_id),
+      addedAt,
+    );
+    newCopies.forEach(({ copyId }) => addedCopies.set(copyId, additionId));
+  }
+  const result: ScanBatchResult = {
+    addition_id: additionId,
+    added_at: addedAt,
+    copy_count: newCopies.length,
+    items: [],
+    copies: copies.map(({ copyId }) => ({
+      copy_id: copyId,
+      addition_id: addedCopies.get(copyId)!,
+      collection_entry_id: null,
+      replayed: addedCopies.get(copyId) !== additionId,
+    })),
+  };
+  return failure ? { data: null, error: networkFailure } : { data: result, error: null };
+}
+
 const offline = { name: 'StorageUnknownError', message: 'Network request failed' };
 
 function galleryBucket(bucket: string) {
@@ -165,11 +232,14 @@ function cardCatalogTable(table: string) {
 
 export const fakeSupabase = {
   from: cardCatalogTable,
-  async rpc(name: string, { query }: { query: CollectionPrintingsQuery }) {
-    if (name !== 'list_collection_printings') {
-      throw new Error(`The fake Supabase client has no ${name} function`);
+  async rpc(name: string, args: { query: CollectionPrintingsQuery } | { batch: ScanBatch }) {
+    if (name === 'list_collection_printings' && 'query' in args) {
+      return collectionPrintingsPage(args.query);
     }
-    return collectionPrintingsPage(query);
+    if (name === 'add_scan_batch' && 'batch' in args) {
+      return addScanBatch(args.batch);
+    }
+    throw new Error(`The fake Supabase client has no ${name} function`);
   },
   storage: { from: galleryBucket },
   auth: {
@@ -243,6 +313,26 @@ export function failCollectionReads(count: number) {
   failingCollectionReads = count;
 }
 
+export function scanBatchesSentToTheServer() {
+  return scanBatchesSent;
+}
+
+export function failNextScanBatchCommit(when: NonNullable<typeof failingScanBatch>) {
+  failingScanBatch = when;
+}
+
+export function holdNextScanBatchCommit() {
+  let finish = () => {};
+  heldScanBatch = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      await act(async () => finish());
+    },
+  };
+}
+
 export function publishGallery(version: string, partNames: string[] = galleryPartNames) {
   galleryObjects = new Map(galleryObjects);
   galleryObjects.set('published.json', JSON.stringify({ formatVersion: 1, version, manifest: `${version}/manifest.json` }));
@@ -264,6 +354,10 @@ export function resetFakeSupabase() {
   session = null;
   collectionPrintings = [];
   failingCollectionReads = 0;
+  scanBatchesSent = [];
+  addedCopies = new Map();
+  failingScanBatch = null;
+  heldScanBatch = null;
   galleryObjects = new Map();
   offlineGalleryReads = 0;
   publishGallery(publishedGalleryVersion);

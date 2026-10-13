@@ -13,7 +13,7 @@ import {
 } from './catalog-import-command';
 import { seedCollectionEntries } from './collection-entry-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
-import { addScanBatch, committed, scanBatch, stack } from './scan-batches';
+import { addScanBatch, committed, copyIds, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
 
@@ -48,6 +48,11 @@ function entryRow(cardPrintingId: string, quantity: number, changes: Partial<Ent
     quantity,
     ...changes,
   };
+}
+
+function entryLine(cardPrintingId: string) {
+  const { card_printing_id, finish, condition, language } = entryRow(cardPrintingId, 1);
+  return { card_printing_id, finish, condition, language };
 }
 
 async function entriesOf(user: { client: AppClient }) {
@@ -110,15 +115,23 @@ describe('committing a scan batch', () => {
   test('a commit creates collection entries for the scanned copies', async () => {
     const user = await signUpNewUser();
 
-    const result = await committed(user, scanBatch([stack(angelicCurator, { quantity: 2 })]));
+    const batch = scanBatch([stack(angelicCurator, { copies: 2 })]);
+
+    const result = await committed(user, batch);
 
     expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 2)]);
     const [entry] = (await user.client.from('collection_entries').select('id')).data!;
+    const [firstCopy, secondCopy] = batch.items[0]!.copy_ids;
     expect(result).toEqual({
       addition_id: expect.any(String),
       added_at: expect.any(String),
       copy_count: 2,
-      replayed: false,
+      copies: [firstCopy, secondCopy].map((copyId) => ({
+        copy_id: copyId,
+        addition_id: result.addition_id!,
+        collection_entry_id: entry!.id,
+        replayed: false,
+      })),
       items: [
         {
           card_printing_id: angelicCurator,
@@ -135,9 +148,9 @@ describe('committing a scan batch', () => {
 
   test('a second commit of identical copies merges into the same collection entry', async () => {
     const user = await signUpNewUser();
-    const first = await committed(user, scanBatch([stack(angelicCurator, { quantity: 2 })]));
+    const first = await committed(user, scanBatch([stack(angelicCurator, { copies: 2 })]));
 
-    const second = await committed(user, scanBatch([stack(angelicCurator, { quantity: 3 })]));
+    const second = await committed(user, scanBatch([stack(angelicCurator, { copies: 3 })]));
 
     expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 5)]);
     expect(second.items[0]!.collection_entry_id).toBe(first.items[0]!.collection_entry_id!);
@@ -176,7 +189,7 @@ describe('committing a scan batch', () => {
       entryRow(angelicCurator, 6, { user_tag_ids: [userTag] }),
     ]);
 
-    await committed(user, scanBatch([stack(angelicCurator, { quantity: 2 })]));
+    await committed(user, scanBatch([stack(angelicCurator, { copies: 2 })]));
 
     expect(await entriesOf(user)).toEqual([
       entryRow(angelicCurator, 2),
@@ -191,9 +204,9 @@ describe('committing a scan batch', () => {
     const result = await committed(
       user,
       scanBatch([
-        stack(angelicCurator, { quantity: 2 }),
+        stack(angelicCurator, { copies: 2 }),
         stack(delverInnistrad),
-        stack(angelicCurator, { quantity: 3 }),
+        stack(angelicCurator, { copies: 3 }),
       ]),
     );
 
@@ -239,29 +252,27 @@ describe('additions', () => {
   test('each commit records one addition with its time and copy count', async () => {
     const user = await signUpNewUser();
 
-    const first = await committed(user, scanBatch([stack(angelicCurator, { quantity: 2 }), stack(delverInnistrad)]));
+    const first = await committed(user, scanBatch([stack(angelicCurator, { copies: 2 }), stack(delverInnistrad)]));
     const second = await committed(user, scanBatch([stack(delverInnistrad, { finish: 'foil' })]));
 
     expect(await additionsOf(user)).toEqual([
       {
-        id: first.addition_id,
+        id: first.addition_id!,
         user_id: user.userId,
         added_at: expect.any(String),
         copy_count: 3,
         source: 'scan_batch',
-        idempotency_key: expect.any(String),
       },
       {
-        id: second.addition_id,
+        id: second.addition_id!,
         user_id: user.userId,
         added_at: expect.any(String),
         copy_count: 1,
         source: 'scan_batch',
-        idempotency_key: expect.any(String),
       },
     ]);
     const added = (await additionsOf(user)).map((addition) => new Date(addition.added_at).getTime());
-    expect(added).toEqual([new Date(first.added_at).getTime(), new Date(second.added_at).getTime()]);
+    expect(added).toEqual([new Date(first.added_at!).getTime(), new Date(second.added_at!).getTime()]);
     expect(Math.abs(Date.now() - added[1]!)).toBeLessThan(60_000);
   });
 
@@ -273,7 +284,7 @@ describe('additions', () => {
       scanBatch([
         stack(angelicCurator),
         stack(angelicCurator, { finish: 'foil' }),
-        stack(angelicCurator, { finish: 'etched', quantity: 2 }),
+        stack(angelicCurator, { finish: 'etched', copies: 2 }),
         stack(strongholdRatsWithoutPrice),
       ]),
     );
@@ -301,7 +312,7 @@ describe('additions', () => {
       purchase_day_usd_cents: usd,
       purchase_day_eur_cents: eur,
       price_snapshot_at: snapshotAt,
-      addition_id: result.addition_id,
+      addition_id: result.addition_id!,
     });
     expect(lines).toEqual([
       line(angelicCurator, 'nonfoil', 1, 21, 4),
@@ -314,7 +325,7 @@ describe('additions', () => {
   test('each addition line points at the collection entry it merged into', async () => {
     const user = await signUpNewUser();
 
-    const result = await committed(user, scanBatch([stack(angelicCurator), stack(delverInnistrad, { quantity: 2 })]));
+    const result = await committed(user, scanBatch([stack(angelicCurator), stack(delverInnistrad, { copies: 2 })]));
 
     const lines = await linesOf(user);
     expect(lines.map((line) => [line.card_printing_id, line.collection_entry_id, line.entry_quantity])).toEqual(
@@ -335,10 +346,10 @@ describe('additions', () => {
       data!.map((entry) => [entry.card_printing_id, new Date(entry.latest_addition_at).getTime()]),
     );
     expect(latest).toEqual({
-      [angelicCurator]: new Date(first.added_at).getTime(),
-      [delverInnistrad]: new Date(second.added_at).getTime(),
+      [angelicCurator]: new Date(first.added_at!).getTime(),
+      [delverInnistrad]: new Date(second.added_at!).getTime(),
     });
-    expect(new Date(second.added_at).getTime()).toBeGreaterThan(new Date(first.added_at).getTime());
+    expect(new Date(second.added_at!).getTime()).toBeGreaterThan(new Date(first.added_at!).getTime());
   });
 });
 
@@ -367,21 +378,16 @@ describe('refused scan batches', () => {
   });
 
   const tooManyItems = Array.from({ length: 2001 }, () => stack(angelicCurator));
+  const repeatedCopyId = crypto.randomUUID();
   const invalidBatches: [string, unknown, string | null][] = [
     ['a batch that is not an object', [], null],
-    ['a missing idempotency key', { items: [stack(angelicCurator)] }, 'idempotency_key'],
-    [
-      'an idempotency key that is not a UUID',
-      { idempotency_key: 'retry-1', items: [stack(angelicCurator)] },
-      'idempotency_key',
-    ],
-    ['missing items', { idempotency_key: crypto.randomUUID() }, 'items'],
-    ['an unknown field', { ...scanBatch([stack(angelicCurator)]), source: 'scan_batch' }, 'source'],
+    ['missing items', {}, 'items'],
+    ['an unknown field', { ...scanBatch([stack(angelicCurator)]), idempotency_key: crypto.randomUUID() }, 'idempotency_key'],
     ['no items', scanBatch([]), 'items'],
     ['2,001 items', scanBatch(tooManyItems), 'items'],
-    ['items that are not a list', { idempotency_key: crypto.randomUUID(), items: stack(angelicCurator) }, 'items'],
+    ['items that are not a list', { items: stack(angelicCurator) }, 'items'],
     ['a stack that is not an object', scanBatch([stack(angelicCurator), 'Angelic Curator']), 'items[1]'],
-    ['an unknown stack field', scanBatch([{ ...stack(angelicCurator), is_protected: true }]), 'items[0].is_protected'],
+    ['an unknown stack field', scanBatch([{ ...stack(angelicCurator), quantity: 1 }]), 'items[0].quantity'],
     [
       'a missing card printing',
       scanBatch([{ ...stack(angelicCurator), card_printing_id: undefined }]),
@@ -407,14 +413,31 @@ describe('refused scan batches', () => {
       scanBatch([stack(angelicCurator, { language: 'la' as CardLanguage })]),
       'items[0].language',
     ],
-    ['a missing quantity', scanBatch([{ ...stack(angelicCurator), quantity: undefined }]), 'items[0].quantity'],
-    ['quantity 0', scanBatch([stack(angelicCurator, { quantity: 0 })]), 'items[0].quantity'],
-    ['quantity 1,000', scanBatch([stack(angelicCurator, { quantity: 1000 })]), 'items[0].quantity'],
-    ['a fractional quantity', scanBatch([stack(angelicCurator, { quantity: 1.5 })]), 'items[0].quantity'],
+    ['missing copy IDs', scanBatch([{ ...stack(angelicCurator), copy_ids: undefined }]), 'items[0].copy_ids'],
+    ['no copy IDs', scanBatch([{ ...stack(angelicCurator), copy_ids: [] }]), 'items[0].copy_ids'],
+    ['1,000 copy IDs in a stack', scanBatch([stack(angelicCurator, { copies: 1000 })]), 'items[0].copy_ids'],
     [
-      'a quantity that is not a number',
-      scanBatch([stack(angelicCurator, { quantity: '2' as unknown as number })]),
-      'items[0].quantity',
+      'copy IDs that are not a list',
+      scanBatch([{ ...stack(angelicCurator), copy_ids: crypto.randomUUID() }]),
+      'items[0].copy_ids',
+    ],
+    [
+      'a copy ID that is not a UUID',
+      scanBatch([{ ...stack(angelicCurator), copy_ids: [crypto.randomUUID(), 'copy-2'] }]),
+      'items[0].copy_ids[1]',
+    ],
+    [
+      'a copy ID repeated in the batch',
+      scanBatch([
+        { ...stack(angelicCurator), copy_ids: [repeatedCopyId] },
+        { ...stack(delverInnistrad), copy_ids: [crypto.randomUUID(), repeatedCopyId] },
+      ]),
+      'items[1].copy_ids[1]',
+    ],
+    [
+      'more than 10,000 copy IDs',
+      scanBatch([...Array.from({ length: 10 }, () => stack(angelicCurator, { copies: 999 })), stack(angelicCurator, { copies: 11 })]),
+      'items',
     ],
   ];
   test.each(invalidBatches)('%s is refused with invalid_argument', async (_, batch, field) => {
@@ -427,16 +450,17 @@ describe('refused scan batches', () => {
     expect(await entriesOf(user)).toEqual([]);
   });
 
-  test('2,000 stacks with quantity 999 are accepted', async () => {
+  test('2,000 stacks and 10,000 copy IDs are accepted', async () => {
     const user = await signUpNewUser();
+    const stacks = [
+      ...Array.from({ length: 1990 }, () => stack(angelicCurator)),
+      ...Array.from({ length: 10 }, () => stack(angelicCurator, { copies: 801 })),
+    ];
 
-    const result = await committed(
-      user,
-      scanBatch(Array.from({ length: 2000 }, () => stack(angelicCurator, { quantity: 999 }))),
-    );
+    const result = await committed(user, scanBatch(stacks));
 
-    expect(result.copy_count).toBe(1_998_000);
-    expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 1_998_000)]);
+    expect(result.copy_count).toBe(10_000);
+    expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 10_000)]);
   });
 
   test('a refused commit writes nothing, even when earlier stacks were valid', async () => {
@@ -446,7 +470,7 @@ describe('refused scan batches', () => {
 
     const { error } = await addScanBatch(
       user,
-      scanBatch([stack(angelicCurator, { quantity: 3 }), stack(delverInnistrad), stack(unknownPrinting)]),
+      scanBatch([stack(angelicCurator, { copies: 3 }), stack(delverInnistrad), stack(unknownPrinting)]),
     );
 
     expect(error?.code).toBe('unknown_printing');
@@ -454,49 +478,94 @@ describe('refused scan batches', () => {
   });
 });
 
-describe('idempotency', () => {
-  test('a repeated idempotency key returns the first result and changes nothing', async () => {
+describe('copy IDs', () => {
+  test('a repeated copy ID adds nothing and returns the addition that added it', async () => {
     const user = await signUpNewUser();
-    const batch = scanBatch([stack(angelicCurator, { quantity: 2 }), stack(delverInnistrad)]);
+    const batch = scanBatch([stack(angelicCurator, { copies: 2 }), stack(delverInnistrad)]);
     const first = await committed(user, batch);
     await committed(user, scanBatch([stack(angelicCurator)]));
     const before = await collectionOf(user);
 
-    const replay = await committed(user, { ...batch, items: [...batch.items].reverse() });
+    const replay = await committed(user, { items: [...batch.items].reverse() });
 
-    expect(replay).toEqual({ ...first, replayed: true });
+    expect(replay.addition_id).toBeNull();
+    expect(replay.copy_count).toBe(0);
+    expect(replay.items).toEqual([]);
+    expect(replay.copies).toEqual(
+      [batch.items[1]!.copy_ids, batch.items[0]!.copy_ids].flat().map((copyId) => ({
+        ...first.copies.find((copy) => copy.copy_id === copyId)!,
+        replayed: true,
+      })),
+    );
     expect(await collectionOf(user)).toEqual(before);
   });
 
-  test('a repeated idempotency key with different items fails with idempotency_conflict', async () => {
+  test('a changed batch that repeats some copy IDs adds only the new copies', async () => {
     const user = await signUpNewUser();
-    const batch = scanBatch([stack(angelicCurator, { quantity: 2 })]);
-    await committed(user, batch);
+    const added = stack(angelicCurator, { copies: 2 });
+    const first = await committed(user, scanBatch([added]));
+    const edited = { ...added, condition: 'lightly_played' as const, copy_ids: [added.copy_ids[0]!] };
+    const newCopies = stack(delverInnistrad, { copies: 3 });
 
-    const { result, error } = await addScanBatch(user, { ...batch, items: [stack(angelicCurator, { quantity: 3 })] });
+    const second = await committed(user, scanBatch([edited, newCopies]));
 
-    expect(result).toBeNull();
-    expect(error).toMatchObject({ code: 'idempotency_conflict', field: 'idempotency_key' });
-    expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 2)]);
+    expect(await entriesOf(user)).toEqual([entryRow(delverInnistrad, 3), entryRow(angelicCurator, 2)]);
+    expect(second.copy_count).toBe(3);
+    expect(second.items.map((item) => [item.card_printing_id, item.quantity_added])).toEqual([[delverInnistrad, 3]]);
+    expect(second.copies.map((copy) => [copy.addition_id, copy.replayed])).toEqual([
+      [first.addition_id!, true],
+      [second.addition_id!, false],
+      [second.addition_id!, false],
+      [second.addition_id!, false],
+    ]);
+    expect((await additionsOf(user)).map((addition) => addition.copy_count)).toEqual([2, 3]);
   });
 
-  test("another user's idempotency key does not replay their addition", async () => {
-    const batch = scanBatch([stack(angelicCurator)]);
-    const first = await committed(alice, batch);
+  test('copy IDs belong to one user, so the same copy IDs add copies for another user', async () => {
+    const copies = copyIds(2);
+    const forAlice = await committed(alice, scanBatch([{ ...stack(angelicCurator), copy_ids: copies }]));
 
-    const second = await committed(bob, { ...batch, items: [stack(delverInnistrad)] });
+    const forBob = await committed(bob, scanBatch([{ ...stack(delverInnistrad), copy_ids: copies }]));
 
-    expect(second.replayed).toBe(false);
-    expect(second.addition_id).not.toBe(first.addition_id);
+    expect(forBob.copy_count).toBe(2);
+    expect(forBob.addition_id).not.toBe(forAlice.addition_id);
+    expect(forBob.copies.map((copy) => copy.replayed)).toEqual([false, false]);
+    expect(await entriesOf(bob)).toContainEqual(entryRow(delverInnistrad, 2));
+  });
+
+  test('each added copy is recorded with its addition line', async () => {
+    const user = await signUpNewUser();
+    const batch = scanBatch([stack(angelicCurator, { copies: 2 }), stack(delverInnistrad, { finish: 'foil' })]);
+
+    const result = await committed(user, batch);
+
+    const { data, error } = await user.client
+      .from('collection_addition_copies')
+      .select('copy_id, addition_id, card_printing_id, finish, condition, language');
+    expect(error).toBeNull();
+    expect(data!.toSorted((a, b) => a.copy_id.localeCompare(b.copy_id))).toEqual(
+      batch.items
+        .flatMap((item) =>
+          item.copy_ids.map((copyId) => ({
+            copy_id: copyId,
+            addition_id: result.addition_id!,
+            card_printing_id: item.card_printing_id,
+            finish: item.finish,
+            condition: item.condition,
+            language: item.language,
+          })),
+        )
+        .toSorted((a, b) => a.copy_id.localeCompare(b.copy_id)),
+    );
   });
 });
 
-test('concurrent commits of the same copies end with the summed quantity in one collection entry', async () => {
+test('concurrent commits with different copies end with the summed quantity in one collection entry', async () => {
   const user = await signUpNewUser();
 
   const results = await Promise.all(
     Array.from({ length: 4 }, (_, index) =>
-      addScanBatch(user, scanBatch([stack(angelicCurator, { quantity: index + 1 })])),
+      addScanBatch(user, scanBatch([stack(angelicCurator, { copies: index + 1 })])),
     ),
   );
 
@@ -505,26 +574,31 @@ test('concurrent commits of the same copies end with the summed quantity in one 
   expect((await additionsOf(user)).length).toBe(4);
 });
 
-test('concurrent commits with one idempotency key add the copies once', async () => {
+test('concurrent commits of the same copy IDs add the copies once', async () => {
   const user = await signUpNewUser();
-  const batch = scanBatch([stack(angelicCurator, { quantity: 2 })]);
+  const batch = scanBatch([stack(angelicCurator, { copies: 2 })]);
 
   const results = await Promise.all(Array.from({ length: 3 }, () => committed(user, batch)));
 
-  expect(results.filter((result) => !result.replayed).length).toBe(1);
+  expect(results.filter((result) => result.copy_count > 0).length).toBe(1);
   expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 2)]);
 });
 
 describe('access', () => {
   beforeAll(async () => {
-    await committed(alice, scanBatch([stack(angelicCurator, { quantity: 2 })]));
+    await committed(alice, scanBatch([stack(angelicCurator, { copies: 2 })]));
   });
 
   test("a user never reads another user's collection entries, additions, or addition lines", async () => {
     expect((await entriesOf(alice)).length).toBeGreaterThan(0);
     expect((await additionsOf(alice)).length).toBeGreaterThan(0);
     expect((await linesOf(alice)).length).toBeGreaterThan(0);
-    for (const table of ['collection_entries', 'collection_additions', 'collection_addition_lines'] as const) {
+    for (const table of [
+      'collection_entries',
+      'collection_additions',
+      'collection_addition_lines',
+      'collection_addition_copies',
+    ] as const) {
       const { data, error } = await bob.client.from(table).select('user_id').eq('user_id', alice.userId);
       expect(error).toBeNull();
       expect(data).toEqual([]);
@@ -533,7 +607,12 @@ describe('access', () => {
 
   test('an anonymous caller reads nothing and cannot commit a scan batch', async () => {
     const anonymous = anonymousClient();
-    for (const table of ['collection_entries', 'collection_additions', 'collection_addition_lines'] as const) {
+    for (const table of [
+      'collection_entries',
+      'collection_additions',
+      'collection_addition_lines',
+      'collection_addition_copies',
+    ] as const) {
       const { data } = await anonymous.from(table).select('user_id');
       expect(data ?? []).toEqual([]);
     }
@@ -575,7 +654,6 @@ describe('access', () => {
         added_at: new Date().toISOString(),
         copy_count: 1,
         source: 'scan_batch' as const,
-        idempotency_key: crypto.randomUUID(),
       };
 
       expect((await additions().insert(row)).error?.code).toBe(permissionDenied);
@@ -589,15 +667,33 @@ describe('access', () => {
       const lines = () => client().from('collection_addition_lines');
       const [addition] = await additionsOf(alice);
       const row = {
-        ...stack(delverInnistrad),
+        ...entryLine(delverInnistrad),
         addition_id: addition!.id,
         user_id: alice.userId,
+        quantity: 1,
         entry_quantity: 1,
       };
 
       expect((await lines().insert(row)).error?.code).toBe(permissionDenied);
       expect((await lines().update({ quantity: 99 }).eq('user_id', alice.userId)).error?.code).toBe(permissionDenied);
       expect((await lines().delete().eq('user_id', alice.userId)).error?.code).toBe(permissionDenied);
+    });
+
+    test('inserting, updating, and deleting addition copies is refused', async () => {
+      const copies = () => client().from('collection_addition_copies');
+      const [addition] = await additionsOf(alice);
+      const row = {
+        ...entryLine(angelicCurator),
+        copy_id: crypto.randomUUID(),
+        addition_id: addition!.id,
+        user_id: alice.userId,
+      };
+
+      expect((await copies().insert(row)).error?.code).toBe(permissionDenied);
+      expect((await copies().update({ condition: 'damaged' }).eq('user_id', alice.userId)).error?.code).toBe(
+        permissionDenied,
+      );
+      expect((await copies().delete().eq('user_id', alice.userId)).error?.code).toBe(permissionDenied);
     });
   });
 

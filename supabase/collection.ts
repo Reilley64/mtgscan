@@ -42,26 +42,32 @@ export type ScanBatchStack = {
   finish: Finish;
   condition: CardCondition;
   language: CardLanguage;
-  quantity: number;
+  copy_ids: string[];
 };
 
 export type ScanBatch = {
-  idempotency_key: string;
   items: ScanBatchStack[];
 };
 
-export type ScanBatchResultItem = Omit<ScanBatchStack, 'quantity'> & {
+export type ScanBatchResultItem = Omit<ScanBatchStack, 'copy_ids'> & {
   collection_entry_id: string | null;
   quantity_added: number;
   entry_quantity: number;
 };
 
-export type ScanBatchResult = {
+export type ScanBatchResultCopy = {
+  copy_id: string;
   addition_id: string;
-  added_at: string;
-  copy_count: number;
+  collection_entry_id: string | null;
   replayed: boolean;
+};
+
+export type ScanBatchResult = {
+  addition_id: string | null;
+  added_at: string | null;
+  copy_count: number;
   items: ScanBatchResultItem[];
+  copies: ScanBatchResultCopy[];
 };
 
 export type CollectionPrintingsQuery = {
@@ -84,7 +90,7 @@ export type CollectionPrintingsPage = {
   next_cursor: string | null;
 };
 
-export type ScanBatchErrorCode = 'invalid_argument' | 'unknown_printing' | 'basic_land' | 'idempotency_conflict';
+export type ScanBatchErrorCode = 'invalid_argument' | 'unknown_printing' | 'basic_land';
 
 export type ScanBatchError = Omit<SearchError, 'code'> & { code: ScanBatchErrorCode };
 
