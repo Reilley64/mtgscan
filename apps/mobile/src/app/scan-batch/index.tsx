@@ -15,11 +15,12 @@ export default function BatchReviewSheet() {
   const title = copyCount === 1 ? '1 card scanned' : `${copyCount} cards scanned`;
 
   const addToCollection = useCallback(async () => {
-    if ((await commit()) && navigation.isFocused()) {
+    const added = await commit();
+    if (added && navigation.isFocused()) {
       router.back();
     }
+    return added;
   }, [commit, navigation]);
-  const confirm = useCallback(() => void addToCollection(), [addToCollection]);
 
   const footer = (
     <>
@@ -30,7 +31,7 @@ export default function BatchReviewSheet() {
         label={commitStatus === 'failed' ? 'Try again' : 'Add to collection'}
         disabled={copyCount === 0}
         busy={commitStatus === 'adding'}
-        onConfirm={confirm}
+        onConfirm={addToCollection}
       />
     </>
   );

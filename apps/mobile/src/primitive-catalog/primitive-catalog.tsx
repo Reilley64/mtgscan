@@ -349,9 +349,9 @@ function ProgressBars() {
 function SwipeToConfirms() {
   return (
     <Section title="Swipe to confirm">
-      <SwipeToConfirm label="Swipe to confirm" onConfirm={() => {}} />
-      <SwipeToConfirm label="Swipe busy" busy onConfirm={() => {}} />
-      <SwipeToConfirm label="Swipe disabled" disabled onConfirm={() => {}} />
+      <SwipeToConfirm label="Swipe to confirm" onConfirm={async () => false} />
+      <SwipeToConfirm label="Swipe busy" busy onConfirm={async () => false} />
+      <SwipeToConfirm label="Swipe disabled" disabled onConfirm={async () => false} />
     </Section>
   );
 }

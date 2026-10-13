@@ -164,16 +164,26 @@ export async function swipeRight(control: HostElement, fractionOfWidth: number) 
   await swipe.release();
 }
 
-export function swipeHandleOffset(control: HostElement) {
+export function swipeHandlePosition(control: HostElement) {
   const track = swipeTrack(control);
   const travel = track.props.contentOffset.x;
   const scrolls = scrollToCalls();
   const latestScroll = scrolls.contexts.findLastIndex((scrollView: ScrollView) => rendersTrack(scrollView, track));
   const drag = swipeDrags.get(track);
   if (drag && drag.scrollsBefore > latestScroll) {
-    return travel - drag.offset;
+    return (travel - drag.offset) / travel;
   }
-  return latestScroll === -1 ? 0 : travel - (scrolls.calls[latestScroll][0] as { x: number }).x;
+  return latestScroll === -1 ? 0 : (travel - (scrolls.calls[latestScroll][0] as { x: number }).x) / travel;
+}
+
+export function swipeHandleMovesAfterRelease(control: HostElement) {
+  const track = swipeTrack(control);
+  const travel = track.props.contentOffset.x;
+  const scrolls = scrollToCalls();
+  const release = swipeDrags.get(track)?.scrollsBefore ?? 0;
+  return scrolls.calls.flatMap(([target], index) =>
+    index >= release && rendersTrack(scrolls.contexts[index], track) ? [(travel - (target as { x: number }).x) / travel] : [],
+  );
 }
 
 export function presentedDrawerCount() {

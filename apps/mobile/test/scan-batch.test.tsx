@@ -23,6 +23,7 @@ import {
   showsSpinner,
   swipeDownDrawer,
   swipeBackFromTheLeftEdge,
+  swipeHandlePosition,
   swipeRight,
 } from './native-ui';
 import { restartTheApp } from './render-app';
@@ -303,6 +304,7 @@ test('Add to collection shows a spinner on its handle while the commit runs, and
   const control = screen.getByRole('button', { name: 'Add to collection' });
   expect(control).toBeBusy();
   expect(showsSpinner(control)).toBe(true);
+  expect(swipeHandlePosition(control)).toBeCloseTo(1);
   await swipeRight(control, 1);
   expect(scanBatchesSentToTheServer()).toHaveLength(1);
   expect(screen.queryByRole('button', { name: 'Lightning Bolt, M10 146 · NM · English' })).not.toBeOnTheScreen();

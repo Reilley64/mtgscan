@@ -38,7 +38,8 @@ import {
   opacityOf,
   showsSpinner,
   sideColumnWidths,
-  swipeHandleOffset,
+  swipeHandleMovesAfterRelease,
+  swipeHandlePosition,
   swipeRight,
   symbolNames,
   touchTarget,
@@ -588,7 +589,7 @@ describe('SwipeToConfirm', () => {
   });
 
   test('a swipe to confirm is a lime pill button with its label in on-primary and a round handle', async () => {
-    await render(<SwipeToConfirm label="Add to collection" onConfirm={() => {}} />);
+    await render(<SwipeToConfirm label="Add to collection" onConfirm={async () => true} />);
 
     const control = screen.getByRole('button', { name: 'Add to collection' });
     expect(control).toHaveStyle({ backgroundColor: lime, borderRadius: 999, height: 52 });
@@ -597,7 +598,7 @@ describe('SwipeToConfirm', () => {
   });
 
   test('swiping the handle past the threshold confirms once, with a light haptic', async () => {
-    const onConfirm = jest.fn();
+    const onConfirm = jest.fn(async () => true);
     await render(<SwipeToConfirm label="Add to collection" onConfirm={onConfirm} />);
 
     await swipeRight(screen.getByRole('button', { name: 'Add to collection' }), 0.9);
@@ -607,7 +608,7 @@ describe('SwipeToConfirm', () => {
   });
 
   test('releasing the handle before the threshold confirms nothing', async () => {
-    const onConfirm = jest.fn();
+    const onConfirm = jest.fn(async () => true);
     await render(<SwipeToConfirm label="Add to collection" onConfirm={onConfirm} />);
 
     await swipeRight(screen.getByRole('button', { name: 'Add to collection' }), 0.5);
@@ -617,7 +618,7 @@ describe('SwipeToConfirm', () => {
   });
 
   test('a disabled swipe to confirm is dimmed and cannot be swiped or activated', async () => {
-    const onConfirm = jest.fn();
+    const onConfirm = jest.fn(async () => true);
     await render(<SwipeToConfirm label="Add to collection" disabled onConfirm={onConfirm} />);
 
     const control = screen.getByRole('button', { name: 'Add to collection' });
@@ -629,7 +630,7 @@ describe('SwipeToConfirm', () => {
   });
 
   test('a busy swipe to confirm shows a spinner on the handle, keeps its full color, and cannot be swiped', async () => {
-    const onConfirm = jest.fn();
+    const onConfirm = jest.fn(async () => true);
     await render(<SwipeToConfirm label="Add to collection" busy onConfirm={onConfirm} />);
 
     const control = screen.getByRole('button', { name: 'Add to collection' });
@@ -641,7 +642,7 @@ describe('SwipeToConfirm', () => {
   });
 
   test('the handle springs back after a swipe that stops before the threshold', async () => {
-    await render(<SwipeToConfirm label="Add to collection" onConfirm={() => {}} />);
+    await render(<SwipeToConfirm label="Add to collection" onConfirm={async () => true} />);
     const control = screen.getByRole('button', { name: 'Add to collection' });
 
     await swipeRight(control, 0.5);
@@ -649,20 +650,102 @@ describe('SwipeToConfirm', () => {
       jest.advanceTimersByTime(3000);
     });
 
-    expect(swipeHandleOffset(control)).toBeCloseTo(0);
+    expect(swipeHandlePosition(control)).toBeCloseTo(0);
   });
 
-  test('the handle stays at the end while busy and goes back to the start when the commit fails', async () => {
+  test('the handle stays at the end while busy and after the confirm works', async () => {
+    let finish = (_worked: boolean) => {};
+    function SuccessfulCommit() {
+      const [busy, setBusy] = useState(false);
+      const [added, setAdded] = useState(false);
+      return (
+        <>
+          <SwipeToConfirm
+            label="Add to collection"
+            busy={busy}
+            disabled={added}
+            onConfirm={() => {
+              setBusy(true);
+              return new Promise((resolve) => {
+                finish = resolve;
+              });
+            }}
+          />
+          <Button
+            onPress={() => {
+              setBusy(false);
+              setAdded(true);
+              finish(true);
+            }}>
+            <Text>Succeed</Text>
+          </Button>
+        </>
+      );
+    }
+    await render(<SuccessfulCommit />);
+    const control = screen.getByRole('button', { name: 'Add to collection' });
+
+    await swipeRight(control, 0.9);
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(swipeHandlePosition(control)).toBeCloseTo(1);
+    await fireEvent.press(screen.getByRole('button', { name: 'Succeed' }));
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+
+    expect(swipeHandleMovesAfterRelease(control)).toEqual([1]);
+    expect(showsSpinner(control)).toBe(true);
+    expect(opacityOf(control)).toBe(1);
+  });
+
+  test('the handle stays at the end from the release until the confirm ends', async () => {
+    let finish = (_worked: boolean) => {};
+    await render(
+      <SwipeToConfirm
+        label="Add to collection"
+        onConfirm={() =>
+          new Promise((resolve) => {
+            finish = resolve;
+          })
+        }
+      />,
+    );
+    const control = screen.getByRole('button', { name: 'Add to collection' });
+
+    await swipeRight(control, 0.9);
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+
+    expect(swipeHandlePosition(control)).toBeCloseTo(1);
+    expect(showsSpinner(control)).toBe(true);
+    await act(async () => finish(false));
+  });
+
+  test('the handle goes back to the start after the confirm fails, and the control reads Try again', async () => {
+    let finish = (_worked: boolean) => {};
     function FailingCommit() {
       const [busy, setBusy] = useState(false);
       const [failed, setFailed] = useState(false);
       return (
         <>
-          <SwipeToConfirm label={failed ? 'Try again' : 'Add to collection'} busy={busy} onConfirm={() => setBusy(true)} />
+          <SwipeToConfirm
+            label={failed ? 'Try again' : 'Add to collection'}
+            busy={busy}
+            onConfirm={() => {
+              setBusy(true);
+              return new Promise((resolve) => {
+                finish = resolve;
+              });
+            }}
+          />
           <Button
             onPress={() => {
               setBusy(false);
               setFailed(true);
+              finish(false);
             }}>
             <Text>Fail</Text>
           </Button>
@@ -675,14 +758,15 @@ describe('SwipeToConfirm', () => {
     await act(async () => {
       jest.advanceTimersByTime(3000);
     });
-    expect(swipeHandleOffset(screen.getByRole('button', { name: 'Add to collection' }))).toBeGreaterThan(0);
+    expect(swipeHandlePosition(screen.getByRole('button', { name: 'Add to collection' }))).toBeCloseTo(1);
     await fireEvent.press(screen.getByRole('button', { name: 'Fail' }));
     await act(async () => {
       jest.advanceTimersByTime(3000);
     });
 
     const retry = screen.getByRole('button', { name: 'Try again' });
-    expect(swipeHandleOffset(retry)).toBeCloseTo(0);
+    expect(swipeHandlePosition(retry)).toBeCloseTo(0);
+    expect(showsSpinner(retry)).toBe(false);
     expect(retry).toBeEnabled();
   });
 
@@ -692,7 +776,13 @@ describe('SwipeToConfirm', () => {
       const [renders, setRenders] = useState(0);
       return (
         <>
-          <SwipeToConfirm label="Add to collection" onConfirm={() => confirmed.push(renders)} />
+          <SwipeToConfirm
+            label="Add to collection"
+            onConfirm={async () => {
+              confirmed.push(renders);
+              return true;
+            }}
+          />
           <Button onPress={() => setRenders(renders + 1)}>
             <Text>Render again</Text>
           </Button>
@@ -712,7 +802,7 @@ describe('SwipeToConfirm', () => {
   });
 
   test('the VoiceOver default action confirms without a swipe', async () => {
-    const onConfirm = jest.fn();
+    const onConfirm = jest.fn(async () => true);
     await render(<SwipeToConfirm label="Add to collection" onConfirm={onConfirm} />);
 
     await fireEvent(screen.getByRole('button', { name: 'Add to collection' }), 'accessibilityAction', {
