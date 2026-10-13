@@ -191,7 +191,12 @@ test('Add N to collection sends every copy with its own copy ID, with identical 
   copyIds.forEach((copyId) => expect(copyId).toMatch(/^[0-9a-f-]{36}$/));
 });
 
-test('a commit closes batch review, keeps scans that were not recognized, and the binder grid shows the new cards', async () => {
+function expectAnEmptyChip() {
+  expect(scanTab().getAllByText(/./).map((text) => text.props.children)).toEqual(['Finish', '+1']);
+  ['Finish', 'Set', '+1'].forEach((name) => expect(scanTab().getByRole('button', { name })).toBeDisabled());
+}
+
+test('a commit closes batch review, leaves the chip empty, keeps scans that were not recognized, and the binder grid shows the new cards', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
   await openScan();
   await scanACard();
@@ -202,7 +207,7 @@ test('a commit closes batch review, keeps scans that were not recognized, and th
   await addToCollection(2);
 
   expect(isDrawerPresented()).toBe(false);
-  expect(scanTab().getByText('Added 2 cards to your collection.')).toBeOnTheScreen();
+  expectAnEmptyChip();
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   await pressTab('Collection');
   expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
@@ -274,7 +279,7 @@ test('Try again after the scan batch changed adds only the copies the server did
   expect(retried.items.flatMap((item) => item.copy_ids)).toEqual(
     expect.arrayContaining(first.items.flatMap((item) => item.copy_ids)),
   );
-  expect(scanTab().getByText('Added 2 cards to your collection.')).toBeOnTheScreen();
+  expectAnEmptyChip();
   await pressTab('Collection');
   expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(1);
   expect(screen.getAllByRole('image', { name: 'Shock, M19 156, no price' })).toHaveLength(1);

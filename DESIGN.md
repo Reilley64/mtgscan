@@ -451,7 +451,7 @@ The interface is flat. Depth comes from tone, not shadow.
   - A photo that is not a card removes the skeleton chip and brings back the previous chip.
   - A basic land shows its image, its name, and "Basic land, not tracked". It does not enter the scan batch, and tapping it does nothing.
   - A failed recognition shows an empty thumbnail, "Not recognized", and "Tap to search".
-  - After **Add N to collection**, the chip shows "Added N cards to your collection." until the next scan. For one card it reads "Added 1 card to your collection."
+  - After **Add N to collection**, the chip is empty until the next scan, as after **Remove scan**.
   - Tapping the chip opens the scan details sheet.
 - **Scan details sheet.** A bottom drawer like settings: the iOS grabber, opens at half the screen height, drags up to full height, and closes with a downward swipe or a tap outside. Its content scrolls at either height, starting 32 px below the top edge.
   - At the top: the card image at 55% of the sheet width, the card name in card title type, and the set code and collector number.
@@ -471,7 +471,7 @@ The interface is flat. Depth comes from tone, not shadow.
   - **Not recognized** lists one row per scan that was not recognized, with "Not recognized" and "Tap to search". A tap opens the scan details sheet in name search.
   - **Scans** lists every scan as its own row, newest first. Identical copies are not merged, and rows have no +/- control. A row has the thumbnail, the card name, and a meta line with the set code and collector number, the finish when it is not nonfoil, the condition, and the language: "M10 146 · Foil · NM · English". A tap opens the scan details sheet over the review, to edit or remove that copy.
   - The primary button **Add N to collection** stays at the bottom of the drawer at half and full height. N counts the scans with a card printing. It is disabled when N is 0, and busy while the commit runs.
-  - A commit that works closes the review and removes the added scans. Scans that were not recognized stay. The chip shows "Added N cards to your collection.", and the Collection tab shows the cards the next time it opens.
+  - A commit that works closes the review and removes the added scans. Scans that were not recognized stay. The chip is empty, and the Collection tab shows the cards the next time it opens.
   - A commit that fails shows the failure notice "Could not add to your collection. Your scans are kept." above the button, and the button reads **Try again** until a commit works. Each scan has its own copy ID, so the server never adds the same copy twice, even when the scan batch changed after the failure.
   - When the app restarts after a commit that failed or was still running, it sends the commit again by itself.
   - While the commit runs, rows do not open.
