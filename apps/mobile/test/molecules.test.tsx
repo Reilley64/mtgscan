@@ -19,9 +19,20 @@ import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { SwitchRow } from '@/components/molecules/switch-row';
+import { ThreeColumnRow } from '@/components/molecules/three-column-row';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 
-import { cardImageOutline, cardImageUri, cardSheen, imageTintColor, symbolNames, touchTarget } from './native-ui';
+import { liquidGlassIsAvailable } from './fake-glass-effect';
+import {
+  backdropOf,
+  cardImageOutline,
+  cardImageUri,
+  cardSheen,
+  glassEffect,
+  imageTintColor,
+  symbolNames,
+  touchTarget,
+} from './native-ui';
 import { tokenColors } from './token-colors';
 
 const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim, textPrice } = tokenColors;
@@ -187,6 +198,55 @@ describe('QuickActionBar', () => {
     expect(dividers).toHaveLength(2);
     dividers.forEach((divider) => expect(divider).toHaveStyle({ height: 16, borderColor: line }));
     expect(screen.getAllByRole('button').map((action) => action.props.accessibilityLabel)).toEqual(['Nonfoil', 'M10', '+1']);
+  });
+
+  test('on Liquid Glass, a quick-action bar is regular glass with no tint that reacts to touch', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <QuickActionBar>
+        <QuickActionButton label="Nonfoil" />
+        <QuickActionButton label="+1" onPress={() => {}} />
+      </QuickActionBar>,
+    );
+
+    const bar = backdropOf(screen.getByRole('button', { name: '+1' }));
+    expect(glassEffect(bar)).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
+    expect(bar).toHaveStyle({ borderRadius: 12, alignSelf: 'center' });
+  });
+});
+
+describe('ThreeColumnRow', () => {
+  type HostElement = ReturnType<typeof screen.getByLabelText>;
+
+  test('a three-column row gives both side columns the same fixed width and the middle the rest', async () => {
+    await render(
+      <ThreeColumnRow
+        sideClassName="w-card-thumbnail-width"
+        start={<CardThumbnail uri={undefined} />}
+        end={<View accessibilityLabel="Opens details" />}>
+        <Text className="text-center">Lightning Bolt</Text>
+      </ThreeColumnRow>,
+    );
+
+    const middle = screen.getByText('Lightning Bolt').parent as HostElement;
+    const [start, , end] = middle.parent!.children as HostElement[];
+    expect(start).toHaveStyle({ width: 40 });
+    expect(end).toHaveStyle({ width: 40, alignItems: 'center' });
+    expect(middle).toHaveStyle({ flexGrow: 1, flexShrink: 1 });
+    expect(screen.getByLabelText('Opens details').parent).toBe(end);
+  });
+
+  test('a three-column row keeps an empty side column at the same width', async () => {
+    await render(
+      <ThreeColumnRow sideClassName="w-card-thumbnail-width" start={<CardThumbnail uri={undefined} />}>
+        <Text>Recognizing card</Text>
+      </ThreeColumnRow>,
+    );
+
+    const middle = screen.getByText('Recognizing card').parent as HostElement;
+    const [start, , end] = middle.parent!.children as HostElement[];
+    expect(end).toHaveStyle({ width: 40 });
+    expect(start).toHaveStyle({ width: 40 });
   });
 });
 

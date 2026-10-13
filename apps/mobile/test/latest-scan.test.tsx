@@ -18,22 +18,30 @@ import {
 import { resetSampleClock } from './detection-samples';
 import { photosDeleted } from './fake-card-detector';
 import { cardRecognition, holdNextRecognition, nextPhotosAre, notACard, photosRecognized } from './fake-card-recognizer';
+import { liquidGlassIsAvailable } from './fake-glass-effect';
 import { scanFeedback } from './fake-scan-feedback';
 import { signInNextWithEmail, startSignedIn } from './fake-supabase';
 import {
   appearsBefore,
+  backdropOf,
+  blocksColored,
   cardImageUri,
+  glassEffect,
+  glassGroupOf,
   lineColoredBlocks,
   openSettings,
   presentedDrawer,
   pressTab,
+  sideColumnWidths,
   swipeDownDrawer,
+  symbolNames,
+  symbolTintColor,
 } from './native-ui';
 import { renderApp } from './render-app';
 import { latestScanChip, openLatestScan, openScan, scanACard, scanTab, selectedChoice } from './scanning';
 import { tokenColors } from './token-colors';
 
-const { surface, text: white, textMuted } = tokenColors;
+const { surface, text: white, textMuted, textDim, glassTextMuted, glassTextDim, glassSkeleton } = tokenColors;
 
 beforeEach(() => {
   resetSampleClock();
@@ -66,19 +74,76 @@ test('the latest-scan chip shows the card image, name, set and collector number'
   expect(within(chip).queryByText(/Nonfoil/)).not.toBeOnTheScreen();
 });
 
-test('the latest-scan chip is a surface card with the name centered over the meta line', async () => {
+test('without Liquid Glass, the latest-scan chip is a surface card with the name centered over the meta line', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
 
   await scanACard();
 
   const chip = latestScanChip('Lightning Bolt, M10 146');
-  expect(chip).toHaveStyle({ backgroundColor: surface, borderRadius: 12, paddingLeft: 8, paddingRight: 16 });
+  expect(glassEffect(backdropOf(chip))).toBeNull();
+  expect(backdropOf(chip)).toHaveStyle({ backgroundColor: surface, borderRadius: 12 });
+  expect(chip).toHaveStyle({ padding: 8 });
   expect(within(chip).getByText('Lightning Bolt')).toHaveStyle({ color: white, fontWeight: '700', textAlign: 'center' });
   expect(within(chip).getByText('M10 146')).toHaveStyle({ color: textMuted, fontSize: 12, textAlign: 'center' });
+  expect(symbolTintColor(chip)).toBe(textDim);
 });
 
-test('the skeleton chip shows line-colored blocks while the recognizer works', async () => {
+test('the latest-scan chip centers the name and meta line between a thumbnail column and a chevron column of the same width', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+
+  await scanACard();
+
+  const chip = latestScanChip('Lightning Bolt, M10 146');
+  expect(symbolNames(chip)).toEqual(['chevron.right']);
+  expect(sideColumnWidths(within(chip).getByText('Lightning Bolt'))).toEqual({ start: 40, end: 40 });
+  expect(sideColumnWidths(within(chip).getByText('M10 146'))).toEqual({ start: 40, end: 40 });
+});
+
+test('on Liquid Glass, the latest-scan chip and the quick-action bar are regular glass with no tint in one glass group', async () => {
+  liquidGlassIsAvailable();
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+
+  await scanACard();
+
+  const chip = latestScanChip('Lightning Bolt, M10 146');
+  const bar = scanTab().getByRole('button', { name: '+1' });
+  expect(glassEffect(backdropOf(chip))).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
+  expect(backdropOf(chip)).toHaveStyle({ borderRadius: 12 });
+  expect(glassEffect(backdropOf(bar))).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
+  expect(glassGroupOf(chip)).not.toBeNull();
+  expect(glassGroupOf(bar)).toBe(glassGroupOf(chip));
+});
+
+test('on Liquid Glass, the meta line and the chevron take the lighter glass text colors', async () => {
+  liquidGlassIsAvailable();
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+
+  await scanACard();
+
+  const chip = latestScanChip('Lightning Bolt, M10 146');
+  expect(within(chip).getByText('Lightning Bolt')).toHaveStyle({ color: white });
+  expect(within(chip).getByText('M10 146')).toHaveStyle({ color: glassTextMuted });
+  expect(symbolTintColor(chip)).toBe(glassTextDim);
+});
+
+test('on Liquid Glass, the disabled quick actions have glass text dim labels', async () => {
+  liquidGlassIsAvailable();
+  nextPhotosAre(cardRecognition([lightningBoltList]));
+  await openScan();
+  expect(within(scanTab().getByRole('button', { name: 'Finish' })).getByText('Finish')).toHaveStyle({ color: glassTextDim });
+  expect(symbolTintColor(scanTab().getByRole('button', { name: 'Set' }))).toBe(glassTextDim);
+
+  await scanACard();
+
+  expect(within(scanTab().getByRole('button', { name: 'Nonfoil' })).getByText('Nonfoil')).toHaveStyle({ color: glassTextDim });
+  expect(within(scanTab().getByRole('button', { name: '+1' })).getByText('+1')).toHaveStyle({ color: white });
+});
+
+test('without Liquid Glass, the skeleton chip shows line-colored blocks on a surface card', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   holdNextRecognition();
   await openScan();
@@ -86,8 +151,23 @@ test('the skeleton chip shows line-colored blocks while the recognizer works', a
   await scanACard();
 
   const skeleton = scanTab().getByRole('progressbar', { name: 'Recognizing card' });
-  expect(skeleton).toHaveStyle({ backgroundColor: surface, borderRadius: 12 });
+  expect(backdropOf(skeleton)).toHaveStyle({ backgroundColor: surface, borderRadius: 12 });
   expect(lineColoredBlocks(skeleton)).toBe(3);
+});
+
+test('on Liquid Glass, the skeleton chip shows glass skeleton blocks on glass that does not react to touch', async () => {
+  liquidGlassIsAvailable();
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  holdNextRecognition();
+  await openScan();
+
+  await scanACard();
+
+  const skeleton = scanTab().getByRole('progressbar', { name: 'Recognizing card' });
+  expect(glassEffect(backdropOf(skeleton))).toEqual({ style: 'regular', interactive: false, tintColor: undefined });
+  expect(blocksColored(skeleton, glassSkeleton)).toBe(3);
+  expect(lineColoredBlocks(skeleton)).toBe(0);
+  expect(glassGroupOf(skeleton)).toBe(glassGroupOf(scanTab().getByRole('button', { name: '+1' })));
 });
 
 test('the chip shows the finish when it is not nonfoil', async () => {

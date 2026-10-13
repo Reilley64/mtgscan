@@ -25,6 +25,7 @@ test('the primitive catalog shows every primitive', async () => {
     'Quick actions',
     'Count badges',
     'Skeletons',
+    'Glass',
     'Inputs',
     'Progress bars',
     'Sheet sections',

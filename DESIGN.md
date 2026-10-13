@@ -13,6 +13,9 @@ colors:
   text-muted: "#b5c0c5"
   text-dim: "#7d8a90"
   text-price: "#e4e8ea"
+  glass-text-muted: "#dce3e6"
+  glass-text-dim: "#b5c0c5"
+  glass-skeleton: "#ffffff1f"
   primary: "#d8ff62"
   on-primary: "#101500"
   grabber: "#4a555b"
@@ -232,7 +235,13 @@ components:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
     rounded: "{rounded.md}"
-    padding: 8px 16px 8px 8px
+    padding: 8px
+  latest-scan-chip-side-column:
+    width: 40px
+  latest-scan-chip-meta-glass:
+    textColor: "{colors.glass-text-muted}"
+  latest-scan-chip-chevron-glass:
+    textColor: "{colors.glass-text-dim}"
   scan-quick-actions:
     backgroundColor: "{colors.surface-control}"
     textColor: "{colors.text}"
@@ -242,12 +251,16 @@ components:
     height: 32px
   scan-quick-actions-disabled:
     textColor: "{colors.text-dim}"
+  scan-quick-actions-disabled-glass:
+    textColor: "{colors.glass-text-dim}"
   scan-quick-actions-divider:
     backgroundColor: "{colors.line}"
     height: 16px
   latest-scan-skeleton:
     backgroundColor: "{colors.line}"
     rounded: "{rounded.xs}"
+  latest-scan-skeleton-glass:
+    backgroundColor: "{colors.glass-skeleton}"
   latest-scan-skeleton-title-bar:
     height: 14px
   latest-scan-skeleton-meta-bar:
@@ -276,6 +289,7 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 
 - **Background (#080b0d)** is the screen base. **Surface (#11171a)** holds cards and grouped content. **Surface raised (#1a2125)** and **surface control (#232c31)** separate inner rows, buttons, chips, and segmented controls. **Sheet (#161c1f)** is the iOS page sheet and the settings drawer. **Line (#2a3238)** draws hairlines and empty image slots.
 - **Text (#ffffff)** is primary. **Text muted (#b5c0c5)** is for printing details and captions. **Text dim (#7d8a90)** is for unselected tab labels and quiet metadata. **Text price (#e4e8ea)** is for the current price under a binder tile, slightly brighter than the meta line.
+- **Glass text muted (#dce3e6)** and **glass text dim (#b5c0c5)** replace text muted and text dim on Liquid Glass, so the meta line, the chevron, and disabled labels stay readable when a bright card shows through. **Glass skeleton (white at 12%)** replaces line for the skeleton blocks and the empty thumbnail on glass. See Liquid Glass.
 - **Primary (#d8ff62)**, the lime accent, is the single interaction color: the primary button, the selected chip, the selected tab, section headings, and in-app links. Text on it is **on-primary (#101500)**. The brand mark is the one non-action use of lime.
 - **Grabber (#4a555b)** draws the short bar at the top of the sign-in sheet. The settings drawer uses the iOS system grabber, which iOS draws in its own color.
 - **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message and the destructive buttons. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall.
@@ -409,7 +423,24 @@ The interface is flat. Depth comes from tone, not shadow.
   - **Etched sheen** (`gradients.etchedSheen`, 120 degrees): clear to 25%, then white `rgba(255, 255, 255, 0.55)`, silver `rgba(200, 210, 215, 0.25)`, and white again from 42% to 58%, then clear from 75%.
 - NativeWind 4 has no class for a box shadow or a gradient, so the shadow, the scrim, and the sheens are style values.
 - The tab bar is a near-opaque bar with a hairline top border.
+- The controls that float over the camera use Liquid Glass. See Liquid Glass.
 - During a back swipe, the screen follows the finger with a shadow on its left edge.
+
+### Liquid Glass
+
+Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
+
+- Glass is only for controls that float over the camera: the latest-scan chip and the quick-action bar. The batch button keeps the control surface. Every other surface stays flat.
+- The glass is the regular style with no tint. Glass that the user can tap, such as the chip and the quick-action bar, reacts to touch. The skeleton chip and the basic land chip do not.
+- The chip and the quick-action bar sit in one glass group with 8 px spacing, so they blend like iOS controls but do not merge at rest.
+- Text on glass:
+  - The card name and enabled labels stay text white.
+  - The meta line uses glass text muted.
+  - The chevron and disabled quick-action labels and symbols use glass text dim.
+  - The skeleton blocks and the empty thumbnail use glass skeleton.
+- Without Liquid Glass, as on iOS 17 and 18, the chip falls back to surface and the quick-action bar to surface control, with the normal text colors.
+- The glass never fades with opacity, because glass under opacity 0 stops rendering. The skeleton pulse animates the blocks inside the chip, not the glass.
+- `expo-glass-effect` draws the glass. `GlassSurface` and `GlassGroup` in `src/components/atoms/glass-surface.tsx` wrap it.
 
 ## Shapes
 
@@ -439,15 +470,20 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, the batch button, and the card page Decks tab.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and card page deck lists. It opens the deck.
-- **Latest-scan chip.** One horizontal chip at the bottom of Scan, 16 px from the edges: a card thumbnail on the left, the card name in body strong centered over a centered meta line with the set code in capitals and the collector number, such as "M10 146", and a 14 px text dim `chevron.right` symbol on the right that shows the chip opens the details. The skeleton chip and the basic land chip have no chevron. A new scan replaces the chip.
+- **Latest-scan chip.** One horizontal chip at the bottom of Scan, 16 px from the edges, on Liquid Glass. It has 8 px padding and three columns (owner request, #113):
+  - The left column holds the card thumbnail.
+  - The middle column holds the card name in body strong, centered over a centered meta line with the set code in capitals and the collector number, such as "M10 146".
+  - The right column holds a 14 px text dim `chevron.right` symbol, centered, that shows the chip opens the details. The skeleton chip and the basic land chip have no chevron.
+  - The two side columns are both 40 px wide, the thumbnail width, so the name and the meta line sit centered on the chip.
+  - A new scan replaces the chip.
   - The meta line adds the finish when it is not nonfoil: "M10 146 · Foil".
-  - A quick-action bar sits 8 px below the chip, centered, and is always on the Scan tab. It is one control-surface pill with 12 px corners and three buttons in chip type, split by 16 px hairline dividers in the line color. The bar is 32 px tall, and each button has a 44 pt touch target. From left to right:
+  - A quick-action bar sits 8 px below the chip, centered, and is always on the Scan tab. It is one glass pill with 12 px corners and three buttons in chip type, split by 16 px hairline dividers in the line color. Without Liquid Glass, the pill uses the control surface. The bar is 32 px tall, and each button has a 44 pt touch target. From left to right:
     - The finish button shows the current finish: "Nonfoil", "Foil", or "Etched". Tapping it switches to the next finish of the card printing in the order nonfoil, foil, etched. It changes only the scan on the chip. It is disabled when the card printing has one finish.
     - The set button shows the set's expansion symbol from Scryfall at 16 px, tinted with the text color. VoiceOver reads the set code in capitals, such as "MH3". When the card catalog has no symbol for the set, or it has not loaded, the button shows the set code instead. It opens the printing picker.
     - **+1** adds another copy of the card printing to the scan batch as its own scan, with the same finish, condition, and language. The chip moves to the new scan, so later edits on the chip change only that copy. The chip never shows a copy count.
   - The buttons act on the scan on the chip. Before the first scan, while a photo is being recognized, after a basic land or a scan that was not recognized, after **Remove scan**, and after the scan batch is added to the collection, they are disabled, with text dim labels. Before the first scan they read "Finish", a dashed square symbol for the set, and "+1". A photo that is not a card leaves the bar on the previous scan.
   - The printing picker is a bottom drawer like the scan details sheet, with the card name and every card printing of that card in the gallery, as card images 3 per row with the set code and collector number. The scanned card printing and its same-text twins come first, then the rest newest first. The current card printing has a 2 px lime border and a lime caption. Tapping a card printing switches the scan to it and closes the sheet. The scan keeps its finish when the new card printing has it. Otherwise it takes the new card printing's default finish.
-  - A pulsing skeleton chip, with a line-colored image block and two line-colored bars, shows from the moment the app takes the photo until the result arrives. The bars are as tall as body strong and meta type, 14 px and 12 px, and fill 70% and 40% of the text width. The blocks pulse between 45% and full opacity, 650 ms each way. VoiceOver reads it as "Recognizing card".
+  - A pulsing skeleton chip, with an image block and two centered bars in glass skeleton, shows from the moment the app takes the photo until the result arrives. Without Liquid Glass, the blocks are line-colored. The bars are as tall as body strong and meta type, 14 px and 12 px, and fill 70% and 40% of the text width. The blocks pulse between 45% and full opacity, 650 ms each way. VoiceOver reads it as "Recognizing card".
   - A photo that is not a card removes the skeleton chip and brings back the previous chip.
   - A basic land shows its image, its name, and "Basic land, not tracked". It does not enter the scan batch, and tapping it does nothing.
   - A failed recognition shows an empty thumbnail, "Not recognized", and "Tap to search".
@@ -501,3 +537,4 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Don't** mark suggested-out or buylist-out cards on the deck's Cards tab. Only planned swaps are commitments.
 - **Don't** use the primary lime for decoration. It always means "you can act here" or "selected". The brand mark is the one exception.
 - **Don't** draw anything over the camera except the card outline, the batch button, and the latest-scan chip.
+- **Do** use Liquid Glass only for controls that float over the camera, and keep the dark surface fallback.

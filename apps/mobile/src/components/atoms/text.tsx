@@ -2,6 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { createContext, use, type ComponentProps } from 'react';
 import { Text as NativeText } from 'react-native';
 
+import { useOnGlass } from '@/components/atoms/glass-surface';
 import { cn } from '@/lib/class-names';
 
 const textVariants = cva('', {
@@ -19,7 +20,12 @@ const textVariants = cva('', {
       chip: 'text-chip text-text',
       credit: 'text-credit text-text-dim',
     },
+    onGlass: {
+      true: '',
+      false: '',
+    },
   },
+  compoundVariants: [{ variant: 'meta', onGlass: true, className: 'text-glass-text-muted' }],
   defaultVariants: { variant: 'body' },
 });
 
@@ -33,10 +39,11 @@ type TextProps = ComponentProps<typeof NativeText> & { variant?: TextVariant };
 
 export function Text({ className, variant = 'body', ...props }: TextProps) {
   const textClass = use(TextClassContext);
+  const onGlass = useOnGlass();
   return (
     <NativeText
       accessibilityRole={titles.includes(variant) ? 'header' : undefined}
-      className={cn(textVariants({ variant }), textClass, className)}
+      className={cn(textVariants({ variant, onGlass }), textClass, className)}
       {...props}
     />
   );
