@@ -311,6 +311,12 @@ describe('FailureNotice', () => {
       flexShrink: 1,
     });
   });
+
+  test('the danger mark lines up with the first line of a long failure message', async () => {
+    await render(<FailureNotice message="Could not add to your collection. Your scans are kept." />);
+
+    expect(screen.getByRole('alert')).toHaveStyle({ alignItems: 'baseline' });
+  });
 });
 
 describe('Brand', () => {
