@@ -117,6 +117,14 @@ test('on Liquid Glass, the latest-scan chip and the quick-action bar are regular
   expect(glassGroupOf(bar)).toBe(glassGroupOf(chip));
 });
 
+test('on Liquid Glass, the batch button over the camera is glass too', async () => {
+  liquidGlassIsAvailable();
+  await openScan();
+
+  const batchButton = scanTab().getByRole('button', { name: 'Scan batch' });
+  expect(glassEffect(backdropOf(batchButton))).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
+});
+
 test('on Liquid Glass, the meta line and the chevron take the lighter glass text colors', async () => {
   liquidGlassIsAvailable();
   nextPhotosAre(cardRecognition([lightningBoltM10]));

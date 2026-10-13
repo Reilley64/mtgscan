@@ -428,15 +428,15 @@ The interface is flat. Depth comes from tone, not shadow.
 
 Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
-- Only the latest-scan chip and the quick-action bar use glass. The batch button keeps the control surface. Every other surface stays flat.
-- The glass is the regular style with no tint. Glass that the user can tap, such as the chip and the quick-action bar, reacts to touch. The skeleton chip and the basic land chip do not.
+- Only the controls that float over the camera use glass: the latest-scan chip, the quick-action bar, and the batch button (owner decision, #113). Every other surface stays flat.
+- The glass is the regular style with no tint. Glass that the user can tap, such as the chip, the quick-action bar, and the batch button, reacts to touch. The skeleton chip and the basic land chip do not.
 - The chip and the quick-action bar sit in one glass group with 8 px spacing, so they blend like iOS controls but do not merge at rest.
 - Text on glass:
   - The card name and enabled labels stay text white.
   - The meta line uses glass text muted.
   - The chevron and disabled quick-action labels and symbols use glass text dim.
   - The skeleton blocks and the empty thumbnail use glass skeleton.
-- Without Liquid Glass, as on iOS 17 and 18, the chip falls back to surface and the quick-action bar to surface control, with the normal text colors.
+- Without Liquid Glass, as on iOS 17 and 18, the chip falls back to surface, and the quick-action bar and the batch button to surface control, with the normal text colors.
 - The glass never fades with opacity, because glass under opacity 0 stops rendering. The skeleton pulse animates the blocks inside the chip, not the glass.
 - `expo-glass-effect` draws the glass. `GlassSurface` and `GlassGroup` in `src/components/atoms/glass-surface.tsx` wrap it.
 
@@ -499,7 +499,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - Tapping a name lists every card printing of that card in the gallery, newest first, as card images 3 per row with the set code and collector number under each.
   - Tapping a card printing switches the scan to it and returns to the details.
   - Choosing a basic land shows "Basic lands are not tracked." and changes nothing.
-- **Batch button.** A round icon button at the top right of Scan, 8 px below the safe area, with the `rectangle.portrait.on.rectangle.portrait.angled` card-stack symbol. A count badge on its top right corner counts the scans with a card printing, the same N as **Add N to collection**. Scans that were not recognized are not counted, and they still show in batch review. With no scan to add, the button shows no badge. VoiceOver reads "Scan batch, 3". The button shows in every Scan tab state, and it opens batch review.
+- **Batch button.** A round icon button on glass at the top right of Scan, 8 px below the safe area, with the `rectangle.portrait.on.rectangle.portrait.angled` card-stack symbol. Without Liquid Glass, it uses the control surface. A count badge on its top right corner counts the scans with a card printing, the same N as **Add N to collection**. Scans that were not recognized are not counted, and they still show in batch review. With no scan to add, the button shows no badge. VoiceOver reads "Scan batch, 3". The button shows in every Scan tab state, and it opens batch review.
 - **Batch review.** A bottom drawer like settings, titled "Scan batch". The scan details sheet opens over it from a row.
   - **Condition for new scans** and **Language for new scans** come first, as rows of chips. They start at NM and English. A change applies to later scans only.
   - **Not recognized** lists one row per scan that was not recognized, with "Not recognized" and "Tap to search". A tap opens the scan details sheet in name search.

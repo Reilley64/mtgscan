@@ -498,7 +498,9 @@ describe('BatchButton', () => {
     await render(<BatchButton count={3} onPress={onPress} />);
 
     const button = screen.getByRole('button', { name: 'Scan batch, 3' });
-    expect(button).toHaveStyle({ backgroundColor: surfaceControl, width: 38, height: 38, borderRadius: 999 });
+    expect(button).toHaveStyle({ width: 38, height: 38, borderRadius: 999 });
+    expect(glassEffect(backdropOf(button))).toBeNull();
+    expect(backdropOf(button)).toHaveStyle({ backgroundColor: surfaceControl, borderRadius: 999 });
     expect(touchTarget(button)).toEqual({ width: 44, height: 44 });
     expect(screen.getByText('3')).toBeOnTheScreen();
     await fireEvent.press(button);
@@ -510,5 +512,15 @@ describe('BatchButton', () => {
 
     expect(screen.getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
     expect(screen.queryByText('0')).not.toBeOnTheScreen();
+  });
+
+  test('on Liquid Glass, the batch button is round regular glass with no tint that reacts to touch', async () => {
+    liquidGlassIsAvailable();
+    await render(<BatchButton count={3} onPress={() => {}} />);
+
+    const button = screen.getByRole('button', { name: 'Scan batch, 3' });
+    expect(glassEffect(backdropOf(button))).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
+    expect(backdropOf(button)).toHaveStyle({ borderRadius: 999 });
+    expect(screen.getByText('3')).toBeOnTheScreen();
   });
 });

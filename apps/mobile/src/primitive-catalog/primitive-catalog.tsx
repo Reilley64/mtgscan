@@ -272,6 +272,9 @@ function Glass() {
     <Section title="Glass">
       <View>
         <CardImage uri={solRing} />
+        <View className="absolute inset-x-md top-md items-end">
+          <BatchButton count={3} onPress={() => {}} />
+        </View>
         <View className="absolute inset-x-md bottom-md">
           <GlassGroup className="gap-sm">
             <ThumbnailChip
