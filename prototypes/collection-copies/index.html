@@ -1,11 +1,12 @@
 <!doctype html>
 <!--
 PROTOTYPE, throwaway. Do not merge to main.
-Question: how should the Collection tab binder grid show one tile per copy (#116, PR #119) so the owner can tell copies apart at a glance?
-Plan: five radically different variants of the Collection tab in one iPhone 17 frame,
-switchable with ?variant=A..E, the bottom pill, or the left and right arrow keys.
-?dense=1 repeats the 24 sample copies to 120. ?img=0 hides card images.
-Card images and set symbols are hard-coded Scryfall URLs (fetched once from api.scryfall.com).
+Question: how should the Collection tab binder grid show one tile per copy (#116, PR #119), and where should each copy's price go?
+Plan: A is the PR #119 chip row baseline. B is the owner's decision (quiet meta line, static sheen) with no price.
+C, D, and E add a price on top of B in three places. Switch with ?variant=A..E, the bottom pill, or the left and right arrow keys.
+?dense=1 repeats the sample copies to 120. ?img=0 hides card images. ?cur=EUR shows euro prices.
+Card images, set symbols, and prices are hard-coded from api.scryfall.com (fetched once, 2026-10-13).
+Value ignores condition. The stale flag on Rhystic Study is simulated; Black Lotus has no USD price on Scryfall.
 -->
 <html lang="en">
 <head>
@@ -48,65 +49,38 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;paddin
 body.noimg .img>img{display:none}
 body.noimg .img .ph{display:block}
 .seticon{width:14px;height:14px;object-fit:contain;filter:brightness(0) invert(1);flex:none;display:block}
-.seticon.muted{filter:brightness(0) invert(.78)}
 .chip{height:24px;min-width:24px;padding:3px 9px;border-radius:12px;background:var(--surface3);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
-.c-warn{color:var(--warning)}.c-danger{color:var(--danger)}
-.foiltxt{background:linear-gradient(90deg,#ff9ad5,#ffe48a,#8fffd8,#8fc7ff,#e3a6ff);-webkit-background-clip:text;background-clip:text;color:transparent}
-.etchtxt{background:linear-gradient(90deg,#e8e2d0,#a9b3b8,#f6f1e2,#9aa5ab);-webkit-background-clip:text;background-clip:text;color:transparent}
 
 /* A: current design, chip row under the card (PR #119) */
 .vA .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 8px;padding:0 12px;align-items:start}
 .vA .tile{display:flex;flex-direction:column;gap:8px}
 .vA .chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
 
-/* B: one compact meta line, foil sheen on the image */
-.vB .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px;padding:0 12px}
-.vB .tile{display:flex;flex-direction:column;gap:5px}
-.vB .meta{display:flex;align-items:center;justify-content:center;gap:4px;font-size:12px;color:var(--muted);white-space:nowrap;min-height:16px}
-.vB .meta .dot{color:var(--dim)}
-.vB .meta b{font-weight:700}
-.sheen::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:color-dodge;opacity:.55;background:linear-gradient(115deg,transparent 22%,rgba(255,80,170,.55) 34%,rgba(255,230,90,.5) 42%,rgba(80,255,200,.5) 50%,rgba(80,150,255,.55) 58%,rgba(200,110,255,.5) 66%,transparent 78%);background-size:300% 300%;background-position:0% 50%;animation:sheen 5s ease-in-out infinite alternate}
-.sheen.etched::after{mix-blend-mode:overlay;opacity:.6;background:linear-gradient(120deg,transparent 25%,rgba(255,255,255,.55) 42%,rgba(200,210,215,.25) 50%,rgba(255,255,255,.55) 58%,transparent 75%);background-size:300% 300%}
-@keyframes sheen{to{background-position:100% 50%}}
+/* B to E: the owner's quiet meta line and static sheen; C to E add a price */
+.vB .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px;padding:0 12px;align-items:start}
+.vB .tile{display:flex;flex-direction:column;gap:5px;min-width:0}
+.meta{--meta:rgb(186,186,186);display:flex;align-items:center;justify-content:center;gap:4px;font-size:12px;color:var(--meta);white-space:nowrap;min-height:16px;min-width:0;font-variant-numeric:tabular-nums}
+.meta .seticon{filter:brightness(0) invert(73%)}
+.meta .cn{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.meta>span{flex:none}
+.meta>.cn{flex:0 1 auto}
+.sheen::after{content:"";position:absolute;inset:0;pointer-events:none}
+.sheen.foil::after{mix-blend-mode:soft-light;opacity:.85;background:linear-gradient(125deg,rgba(255,110,190,.55) 0%,rgba(255,225,110,.5) 25%,rgba(110,255,205,.5) 50%,rgba(110,170,255,.55) 75%,rgba(205,130,255,.5) 100%)}
+.sheen.etched::after{mix-blend-mode:soft-light;opacity:.8;background:linear-gradient(125deg,rgba(255,255,255,.5) 0%,rgba(170,180,186,.15) 30%,rgba(255,255,255,.55) 52%,rgba(160,170,176,.15) 74%,rgba(255,255,255,.45) 100%)}
+.stale{width:11px;height:11px;flex:none;display:inline-block;vertical-align:-1px;opacity:.85}
+.nop{opacity:.7}
 
-/* C: marks on the image, nothing under the card */
-.vC .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 10px}
-.vC .pill{position:absolute;left:5px;bottom:5px;height:20px;padding:0 7px 0 5px;border-radius:10px;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;background:rgba(8,11,13,.55);backdrop-filter:blur(8px) saturate(1.3);-webkit-backdrop-filter:blur(8px) saturate(1.3);box-shadow:0 0 0 .5px rgba(255,255,255,.18) inset}
-.vC .pill .seticon{width:12px;height:12px}
-.vC .cond{position:absolute;right:5px;bottom:5px;height:20px;padding:0 6px;border-radius:10px;font-size:10px;font-weight:900;display:flex;align-items:center;color:#101500}
-.vC .cond.warn{background:var(--warning)}.vC .cond.danger{background:var(--danger)}
-.vC .fold{position:absolute;right:0;top:0;width:30px;height:30px;clip-path:polygon(0 0,100% 0,100% 100%);background:linear-gradient(135deg,#ff9ad5,#ffe48a 35%,#8fffd8 60%,#8fc7ff);box-shadow:0 0 0 1px rgba(0,0,0,.4)}
-.vC .fold.etched{background:linear-gradient(135deg,#f6f1e2,#9aa5ab 50%,#e8e2d0)}
-.vC .fold b{position:absolute;right:3px;top:2px;font-size:10px;font-weight:900;color:#101500;line-height:1}
+/* C: price at the end of the meta line */
+.vC .meta{gap:3px}
+.vC .meta .price{flex:none;display:inline-flex;align-items:center;gap:2px}
 
-/* D: a section per printing, its copies in a horizontal row */
-.vD .sec{margin:0 12px 10px;background:var(--surface);border-radius:12px;padding:10px 0 10px}
-.vD .sh{display:flex;align-items:center;gap:8px;padding:0 12px 8px}
-.vD .sh .nm{font-weight:700;font-size:14px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vD .sh .pr{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);white-space:nowrap}
-.vD .sh .n{font-size:11px;font-weight:700;color:var(--dim);white-space:nowrap}
-.vD .row{display:flex;gap:8px;overflow-x:auto;padding:0 12px;scrollbar-width:none}
-.vD .row::-webkit-scrollbar{display:none}
-.vD .copy{width:78px;flex:none;display:flex;flex-direction:column;gap:5px}
-.vD .copy .img{border-radius:4px}
-.vD .marks{display:flex;justify-content:center;gap:3px;min-height:18px}
-.vD .mk{height:18px;padding:0 6px;border-radius:9px;background:var(--surface3);font-size:10px;font-weight:800;display:flex;align-items:center}
-.vD .mk.nm{background:none;color:var(--dim);font-weight:700}
+/* D: price on its own line */
+.vD .tile{gap:3px}
+.vD .price{display:flex;align-items:center;justify-content:center;gap:4px;font-size:12.5px;font-weight:600;color:#e4e8ea;white-space:nowrap;min-height:17px;font-variant-numeric:tabular-nums;margin-top:-1px}
 
-/* E: two columns, bigger cards, short info block */
-.vE .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px;padding:0 16px}
-.vE .tile{display:flex;flex-direction:column;gap:7px}
-.vE .img{border-radius:9px}
-.vE .nm{font-weight:700;font-size:14px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px}
-.vE .pr{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);margin-top:-3px}
-.vE .pr span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.vE .pr .cn{flex:none}
-.vE .chips{display:flex;gap:6px;min-height:24px}
-.vE .chips .none{font-size:11px;color:var(--dim);font-weight:700;align-self:center}
-
-/* reduced motion */
-@media (prefers-reduced-motion:reduce){.sheen::after{animation:none;background-position:50% 50%}}
-body.rm .sheen::after{animation:none;background-position:50% 50%}
+/* E: frosted price pill on the image */
+.vE .ppill{position:absolute;right:4px;bottom:4px;height:18px;padding:0 6px;border-radius:9px;display:flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:#fff;white-space:nowrap;max-width:calc(100% - 8px);font-variant-numeric:tabular-nums;background:rgba(14,18,20,.58);backdrop-filter:blur(8px) saturate(1.2);-webkit-backdrop-filter:blur(8px) saturate(1.2);box-shadow:0 0 0 .5px rgba(255,255,255,.2) inset}
+body.noimg .vE .ppill{background:var(--surface3)}
 
 /* prototype chrome */
 #switcher{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:4px;background:#fff;color:#111;border-radius:999px;padding:5px;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.2);font-weight:800;font-size:13px}
@@ -140,7 +114,7 @@ body.rm .sheen::after{animation:none;background-position:50% 50%}
 <div id="dev">
   <div class="dh" data-act="toggleDev"><span>Dev menu · prototype</span><span id="devcaret">▾</span></div>
   <div class="db">
-    <div><div class="t">Display</div><div class="btns"><button data-act="toggleImg" id="dev-img"></button><button data-act="toggleDense" id="dev-dense"></button><button data-act="toggleRm" id="dev-rm"></button></div></div>
+    <div><div class="t">Display</div><div class="btns"><button data-act="toggleImg" id="dev-img"></button><button data-act="toggleDense" id="dev-dense"></button><button data-act="toggleRm" id="dev-rm"></button><button data-act="toggleCur" id="dev-cur"></button></div></div>
     <div><div class="t">State</div><pre id="dev-state"></pre></div>
   </div>
 </div>
@@ -157,105 +131,238 @@ const PRINTINGS = {
 "set": "TDM",
 "cn": "136",
 "img": "https://cards.scryfall.io/normal/front/1/0/10e0a9a3-f63a-4f92-a083-9d181580e498.jpg?1783907345",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": 0.67,
+"usd_foil": 1.15,
+"usd_etched": null,
+"eur": 0.71,
+"eur_foil": 0.91
+}
 },
 "eld-115": {
 "name": "Bonecrusher Giant // Stomp",
 "set": "ELD",
 "cn": "115",
 "img": "https://cards.scryfall.io/normal/front/0/9/09fd2d9c-1793-4beb-a3fb-7a869f660cd4.jpg?1783932628",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": 0.29,
+"usd_foil": 0.55,
+"usd_etched": null,
+"eur": 0.28,
+"eur_foil": 0.81
+}
 },
 "isd-51": {
 "name": "Delver of Secrets // Insectile Aberration",
 "set": "ISD",
 "cn": "51",
 "img": "https://cards.scryfall.io/normal/front/1/1/11bf83bb-c95b-4b4f-9a56-ce7a1816307a.jpg?1783940984",
-"dfc": true
+"dfc": true,
+"prices": {
+"usd": 0.31,
+"usd_foil": 2.13,
+"usd_etched": null,
+"eur": 0.52,
+"eur_foil": 3.4
+}
 },
 "mh2-186": {
 "name": "Asmoranomardicadaistinaculdacar",
 "set": "MH2",
 "cn": "186",
 "img": "https://cards.scryfall.io/normal/front/d/9/d99a9a7d-d9ca-4c11-80ab-e39d5943a315.jpg?1783926821",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": 0.33,
+"usd_foil": 0.97,
+"usd_etched": null,
+"eur": 0.14,
+"eur_foil": 0.92
+}
 },
 "ltr-246": {
 "name": "The One Ring",
 "set": "LTR",
 "cn": "246",
 "img": "https://cards.scryfall.io/normal/front/d/5/d5806e68-1054-458e-866d-1f2470f682b2.jpg?1790212038",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": 114.75,
+"usd_foil": 140.93,
+"usd_etched": null,
+"eur": 96.24,
+"eur_foil": 123.05
+}
 },
 "mh2-138": {
 "name": "Ragavan, Nimble Pilferer",
 "set": "MH2",
 "cn": "138",
 "img": "https://cards.scryfall.io/normal/front/a/9/a9738cda-adb1-47fb-9f4c-ecd930228c4d.jpg?1791803835",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": 40.69,
+"usd_foil": 57.4,
+"usd_etched": null,
+"eur": 33.58,
+"eur_foil": 53.92
+}
 },
 "sld-1144": {
 "name": "Sarkhan Vol",
 "set": "SLD",
 "cn": "1144",
 "img": "https://cards.scryfall.io/normal/front/1/d/1df8d25e-e519-4197-aa8e-ec596cb2a2d8.jpg?1783920200",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": 4.34,
+"usd_foil": 5.07,
+"usd_etched": null,
+"eur": 4.15,
+"eur_foil": 3.91
+}
 },
 "khm-168": {
 "name": "Esika, God of the Tree // The Prismatic Bridge",
 "set": "KHM",
 "cn": "168",
 "img": "https://cards.scryfall.io/normal/front/f/6/f6cd7465-9dd0-473c-ac5e-dd9e2f22f5f6.jpg?1783928221",
-"dfc": true
+"dfc": true,
+"prices": {
+"usd": 21.08,
+"usd_foil": 23.43,
+"usd_etched": null,
+"eur": 16.76,
+"eur_foil": 17.78
+}
 },
 "pcy-45": {
 "name": "Rhystic Study",
 "set": "PCY",
 "cn": "45",
 "img": "https://cards.scryfall.io/normal/front/3/3/3394cefd-a3c6-4917-8f46-234e441ecfb6.jpg?1783945789",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": 66.07,
+"usd_foil": 434.88,
+"usd_etched": null,
+"eur": 36.96,
+"eur_foil": 242.77
+}
 },
 "dmu-107": {
 "name": "Sheoldred, the Apocalypse",
 "set": "DMU",
 "cn": "107",
 "img": "https://cards.scryfall.io/normal/front/d/6/d67be074-cdd4-41d9-ac89-0a0456c4e4b2.jpg?1783921327",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": 98.2,
+"usd_foil": 106.85,
+"usd_etched": null,
+"eur": 81.34,
+"eur_foil": 95.4
+}
 },
 "ltc-284": {
 "name": "Sol Ring",
 "set": "LTC",
 "cn": "284",
 "img": "https://cards.scryfall.io/normal/front/5/8/5805f64c-dd88-4e94-8f0a-a01dae67e3ba.jpg?1783915895",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": 3.49,
+"usd_foil": null,
+"usd_etched": null,
+"eur": 2.32,
+"eur_foil": null
+}
 },
 "rna-22": {
 "name": "Smothering Tithe",
 "set": "RNA",
 "cn": "22",
 "img": "https://cards.scryfall.io/normal/front/7/a/7af082fa-86a3-4f7b-966d-2be1f1d0c0bc.jpg?1783933717",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": 57.8,
+"usd_foil": 60.21,
+"usd_etched": null,
+"eur": 37.73,
+"eur_foil": 43.45
+}
 },
 "blb-241": {
 "name": "Ygra, Eater of All",
 "set": "BLB",
 "cn": "241",
 "img": "https://cards.scryfall.io/normal/front/b/9/b9ac7673-eae8-4c4b-889e-5025213a6151.jpg?1783910790",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": 11.24,
+"usd_foil": 15.85,
+"usd_etched": null,
+"eur": 7.92,
+"eur_foil": 9.84
+}
 },
 "dsk-120": {
 "name": "Valgavoth, Terror Eater",
 "set": "DSK",
 "cn": "120",
 "img": "https://cards.scryfall.io/normal/front/7/7/7740ff55-67bb-409e-90f7-2c2c8b8c770a.jpg?1783909475",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": 19.48,
+"usd_foil": 26.05,
+"usd_etched": null,
+"eur": 16.47,
+"eur_foil": 19.56
+}
 },
 "cmr-561": {
 "name": "Sakashima of a Thousand Faces",
 "set": "CMR",
 "cn": "561",
 "img": "https://cards.scryfall.io/normal/front/6/9/69639b23-9975-4356-ab7d-0aa3387e02c7.jpg?1783928652",
-"dfc": false
+"dfc": false,
+"prices": {
+"usd": null,
+"usd_foil": null,
+"usd_etched": 41.83,
+"eur": null,
+"eur_foil": null
+}
+},
+"usg-321": {
+"name": "Gaea's Cradle",
+"set": "USG",
+"cn": "321",
+"img": "https://cards.scryfall.io/normal/front/2/5/25b0b816-0583-44aa-9dc5-f3ff48993a51.jpg?1783946299",
+"dfc": false,
+"prices": {
+"usd": 1635.37,
+"usd_foil": null,
+"usd_etched": null,
+"eur": 1086.92,
+"eur_foil": null
+}
+},
+"lea-232": {
+"name": "Black Lotus",
+"set": "LEA",
+"cn": "232",
+"img": "https://cards.scryfall.io/normal/front/b/0/b0faa7f2-b547-42c4-a810-839da50dadfe.jpg?1783948669",
+"dfc": false,
+"prices": {
+"usd": null,
+"usd_foil": null,
+"usd_etched": null,
+"eur": 33768.47,
+"eur_foil": null
+}
 }
 };
 const SETS = {
@@ -287,6 +394,10 @@ const SETS = {
 "name": "Kaldheim",
 "icon": "https://svgs.scryfall.io/sets/khm.svg?1791777600"
 },
+"LEA": {
+"name": "Limited Edition Alpha",
+"icon": "https://svgs.scryfall.io/sets/lea.svg?1791777600"
+},
 "LTC": {
 "name": "Tales of Middle-earth Commander",
 "icon": "https://svgs.scryfall.io/sets/ltc.svg?1791777600"
@@ -314,9 +425,21 @@ const SETS = {
 "TDM": {
 "name": "Tarkir: Dragonstorm",
 "icon": "https://svgs.scryfall.io/sets/tdm.svg?1791777600"
+},
+"USG": {
+"name": "Urza's Saga",
+"icon": "https://svgs.scryfall.io/sets/usg.svg?1791777600"
 }
 };
-const COPIES = [{"p": "tdm-136", "finish": "nonfoil", "cond": "NM"},
+// stale: the price is older than the refresh window (simulated).
+const COPIES = [{"p": "ltr-246", "finish": "foil", "cond": "NM"},
+{"p": "ltr-246", "finish": "nonfoil", "cond": "HP"},
+{"p": "usg-321", "finish": "nonfoil", "cond": "LP"},
+{"p": "lea-232", "finish": "nonfoil", "cond": "HP"},
+{"p": "cmr-561", "finish": "etched", "cond": "NM"},
+{"p": "cmr-561", "finish": "etched", "cond": "MP"},
+{"p": "pcy-45", "finish": "nonfoil", "cond": "HP", "stale": true},
+{"p": "tdm-136", "finish": "nonfoil", "cond": "NM"},
 {"p": "tdm-136", "finish": "foil", "cond": "NM"},
 {"p": "tdm-136", "finish": "nonfoil", "cond": "MP"},
 {"p": "eld-115", "finish": "nonfoil", "cond": "NM"},
@@ -325,16 +448,11 @@ const COPIES = [{"p": "tdm-136", "finish": "nonfoil", "cond": "NM"},
 {"p": "isd-51", "finish": "nonfoil", "cond": "NM"},
 {"p": "isd-51", "finish": "foil", "cond": "LP"},
 {"p": "mh2-186", "finish": "foil", "cond": "NM"},
-{"p": "ltr-246", "finish": "foil", "cond": "NM"},
-{"p": "ltr-246", "finish": "nonfoil", "cond": "HP"},
-{"p": "cmr-561", "finish": "etched", "cond": "NM"},
-{"p": "cmr-561", "finish": "etched", "cond": "MP"},
 {"p": "mh2-138", "finish": "nonfoil", "cond": "DMG"},
 {"p": "blb-241", "finish": "foil", "cond": "NM"},
 {"p": "dsk-120", "finish": "nonfoil", "cond": "NM"},
 {"p": "sld-1144", "finish": "foil", "cond": "MP"},
 {"p": "khm-168", "finish": "nonfoil", "cond": "LP"},
-{"p": "pcy-45", "finish": "nonfoil", "cond": "HP"},
 {"p": "dmu-107", "finish": "nonfoil", "cond": "NM"},
 {"p": "dmu-107", "finish": "nonfoil", "cond": "NM"},
 {"p": "ltc-284", "finish": "nonfoil", "cond": "NM"},
@@ -343,10 +461,10 @@ const COPIES = [{"p": "tdm-136", "finish": "nonfoil", "cond": "NM"},
 
 const VARIANTS = {
   A: ['Chip row (current, PR #119)', 'Optimises for: matching the shipped build, every detail as an equal chip under the card.'],
-  B: ['Meta line + foil sheen', 'Optimises for: quiet chrome, the image itself says foil and one short line says the rest.'],
-  C: ['Marks on the image', 'Optimises for: density, more cards per screen with the marks on the image.'],
-  D: ['Grouped by printing', 'Optimises for: comparing copies of one printing side by side.'],
-  E: ['Two columns with details', 'Optimises for: readable names and set names, fewer cards but no guessing.'],
+  B: ['Quiet meta line, no price', 'Optimises for: the owner\'s decision as is, the calmest grid with the sheen saying foil.'],
+  C: ['Price at the end of the meta line', 'Optimises for: density, one line per copy and no extra row height.'],
+  D: ['Price on its own line', 'Optimises for: reading value down the grid, the price never competes with the meta.'],
+  E: ['Price pill on the image', 'Optimises for: an untouched meta line, the price sits on the card like a sticker.'],
 };
 const KEYS = Object.keys(VARIANTS);
 const q = new URLSearchParams(location.search);
@@ -355,11 +473,26 @@ const ui = {
   noimg: q.get('img') === '0',
   dense: q.get('dense') === '1',
   rm: false,
+  cur: q.get('cur') === 'EUR' ? 'EUR' : 'USD',
 };
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const FINISH = { foil: 'Foil', etched: 'Etched' };
-const condTone = c => (c === 'HP' || c === 'DMG') ? 'danger' : (c === 'LP' || c === 'MP') ? 'warn' : '';
+// Scryfall has no EUR etched price, so etched copies have no euro value.
+const PRICE_FIELD = {
+  USD: { nonfoil: 'usd', foil: 'usd_foil', etched: 'usd_etched' },
+  EUR: { nonfoil: 'eur', foil: 'eur_foil' },
+};
+const price = c => c.prices[PRICE_FIELD[ui.cur][c.finish]] ?? null;
+const money = (v, opts = {}) => new Intl.NumberFormat('en-US', { style: 'currency', currency: ui.cur, ...opts }).format(v);
+// Compact for the meta line: whole units from 10, then thousands from 10,000. The collector number truncates last.
+const moneyShort = v => v >= 10000 ? money(v, { notation: 'compact', maximumFractionDigits: 1 }) : v >= 10 ? money(v, { maximumFractionDigits: 0 }) : money(v);
+const CLOCK = '<svg class="stale" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="4.9"/><path d="M6 3.4V6l1.7 1.1"/></svg>';
+function priceHtml(c, fmt = money) {
+  const v = price(c);
+  if (v === null) return '<span class="nop" title="No price">–</span>';
+  return `${c.stale ? CLOCK : ''}<span title="${c.stale ? 'Price may be out of date' : ''}">${fmt(v)}</span>`;
+}
 function copies() {
   const base = COPIES.map((c, i) => ({ ...c, ...PRINTINGS[c.p], key: `${c.p}#${i}` }));
   if (!ui.dense) return base;
@@ -367,10 +500,18 @@ function copies() {
   for (let r = 0; out.length < 120; r++) base.forEach(c => out.length < 120 && out.push({ ...c, key: `${c.key}r${r}` }));
   return out;
 }
-const label = c => [c.name, `${c.set} ${c.cn}`, FINISH[c.finish], c.cond !== 'NM' && c.cond].filter(Boolean).join(', ');
-const setIcon = (code, cls = '') => `<img class="seticon ${cls}" src="${SETS[code].icon}" alt="${code}">`;
-const image = (c, cls = '') => `<div class="img ${cls}"><img src="${c.img}" alt="" loading="lazy"><div class="ph">${esc(c.name)}</div></div>`;
+const label = (c, withPrice) => {
+  const v = price(c);
+  const p = withPrice && (v === null ? 'no price' : `${money(v)}${c.stale ? ', may be out of date' : ''}`);
+  return [c.name, `${c.set} ${c.cn}`, FINISH[c.finish], c.cond !== 'NM' && c.cond, p].filter(Boolean).join(', ');
+};
+const setIcon = code => `<img class="seticon" src="${SETS[code].icon}" alt="${code}">`;
+const image = (c, cls = '', inner = '') => `<div class="img ${cls}"><img src="${c.img}" alt="" loading="lazy"><div class="ph">${esc(c.name)}</div>${inner}</div>`;
+const sheenImage = (c, inner = '') => image(c, c.finish !== 'nonfoil' ? `sheen ${c.finish}` : '', inner);
+const meta = (c, tail = '') => `<div class="meta">${setIcon(c.set)}<span class="cn">${c.cn}</span>${c.cond !== 'NM' ? `<span>·</span><span>${c.cond}</span>` : ''}${tail}</div>`;
 const header = () => `<div class="navtitle"><h1>Collection</h1><button class="gear" aria-label="Settings"><svg viewBox="0 0 24 24" fill="#fff"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.3 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button></div>`;
+const quietGrid = (v, list, tile) => `<div class="vB v${v}">${header()}<div class="grid">${list.map(c =>
+  `<div class="tile" aria-label="${esc(label(c, v !== 'B'))}">${tile(c)}</div>`).join('')}</div><div class="list-end"></div></div>`;
 
 const V = {
   A(list) {
@@ -379,49 +520,10 @@ const V = {
         <div class="chips"><span class="chip">${setIcon(c.set)}</span><span class="chip">${c.cn}</span>${c.finish !== 'nonfoil' ? `<span class="chip">${FINISH[c.finish]}</span>` : ''}${c.cond !== 'NM' ? `<span class="chip">${c.cond}</span>` : ''}</div>
       </div>`).join('')}</div><div class="list-end"></div></div>`;
   },
-  B(list) {
-    return `<div class="vB">${header()}<div class="grid">${list.map(c => {
-      const bits = [];
-      if (c.finish !== 'nonfoil') bits.push(`<b class="${c.finish === 'foil' ? 'foiltxt' : 'etchtxt'}">${FINISH[c.finish]}</b>`);
-      if (c.cond !== 'NM') bits.push(`<b class="c-${condTone(c.cond)}">${c.cond}</b>`);
-      return `<div class="tile" aria-label="${esc(label(c))}">${image(c, c.finish !== 'nonfoil' ? `sheen ${c.finish}` : '')}
-        <div class="meta">${setIcon(c.set, 'muted')}<span>${c.cn}</span>${bits.map(b => `<span class="dot">·</span>${b}`).join('')}</div></div>`;
-    }).join('')}</div><div class="list-end"></div></div>`;
-  },
-  C(list) {
-    return `<div class="vC">${header()}<div class="grid">${list.map(c => `
-      <div class="tile" aria-label="${esc(label(c))}"><div class="img"><img src="${c.img}" alt="" loading="lazy"><div class="ph">${esc(c.name)}</div>
-        ${c.finish !== 'nonfoil' ? `<div class="fold ${c.finish}"><b>${c.finish === 'foil' ? '✦' : 'E'}</b></div>` : ''}
-        <div class="pill">${setIcon(c.set)}${c.cn}</div>
-        ${c.cond !== 'NM' ? `<div class="cond ${condTone(c.cond)}">${c.cond}</div>` : ''}
-      </div></div>`).join('')}</div><div class="list-end"></div></div>`;
-  },
-  D(list) {
-    const groups = [];
-    list.forEach(c => { const g = groups[groups.length - 1]; if (g && g.p === c.p) g.copies.push(c); else groups.push({ p: c.p, copies: [c] }); });
-    return `<div class="vD">${header()}${groups.map(g => {
-      const p = g.copies[0];
-      return `<section class="sec"><div class="sh"><span class="nm">${esc(p.name)}</span><span class="pr">${setIcon(p.set, 'muted')}${p.cn}</span><span class="n">×${g.copies.length}</span></div>
-        <div class="row">${g.copies.map(c => {
-          const marks = [];
-          if (c.finish !== 'nonfoil') marks.push(`<span class="mk"><span class="${c.finish === 'foil' ? 'foiltxt' : 'etchtxt'}">${FINISH[c.finish]}</span></span>`);
-          if (c.cond !== 'NM') marks.push(`<span class="mk c-${condTone(c.cond)}">${c.cond}</span>`);
-          if (!marks.length) marks.push('<span class="mk nm">NM</span>');
-          return `<div class="copy" aria-label="${esc(label(c))}">${image(c)}<div class="marks">${marks.join('')}</div></div>`;
-        }).join('')}</div></section>`;
-    }).join('')}<div class="list-end"></div></div>`;
-  },
-  E(list) {
-    return `<div class="vE">${header()}<div class="grid">${list.map(c => {
-      const chips = [];
-      if (c.finish !== 'nonfoil') chips.push(`<span class="chip"><span class="${c.finish === 'foil' ? 'foiltxt' : 'etchtxt'}">${FINISH[c.finish]}</span></span>`);
-      if (c.cond !== 'NM') chips.push(`<span class="chip c-${condTone(c.cond)}">${c.cond}</span>`);
-      return `<div class="tile" aria-label="${esc(label(c))}">${image(c)}
-        <div class="nm">${esc(c.name)}</div>
-        <div class="pr">${setIcon(c.set, 'muted')}<span>${esc(SETS[c.set].name)}</span><span class="cn">· ${c.cn}</span></div>
-        <div class="chips">${chips.join('') || '<span class="none">Nonfoil · NM</span>'}</div></div>`;
-    }).join('')}</div><div class="list-end"></div></div>`;
-  },
+  B: list => quietGrid('B', list, c => sheenImage(c) + meta(c)),
+  C: list => quietGrid('C', list, c => sheenImage(c) + meta(c, `<span>·</span><span class="price">${priceHtml(c, moneyShort)}</span>`)),
+  D: list => quietGrid('D', list, c => sheenImage(c) + meta(c) + `<div class="price">${priceHtml(c)}</div>`),
+  E: list => quietGrid('E', list, c => sheenImage(c, price(c) === null ? '' : `<div class="ppill">${priceHtml(c)}</div>`) + meta(c)),
 };
 
 function render() {
@@ -436,6 +538,7 @@ function render() {
   document.getElementById('dev-img').textContent = `Card images: ${ui.noimg ? 'off' : 'on'}`;
   document.getElementById('dev-dense').textContent = `Dense collection: ${ui.dense ? '120 copies' : 'off'}`;
   document.getElementById('dev-rm').textContent = `Reduce motion: ${ui.rm ? 'on' : 'off'}`;
+  document.getElementById('dev-cur').textContent = `Currency: ${ui.cur}`;
   document.getElementById('dev-state').textContent = JSON.stringify({
     variant: `${ui.variant} (${name})`,
     copies: list.length,
@@ -443,12 +546,17 @@ function render() {
     foil: list.filter(c => c.finish === 'foil').length,
     etched: list.filter(c => c.finish === 'etched').length,
     played: list.filter(c => c.cond !== 'NM').length,
+    currency: ui.cur,
+    priced: list.filter(c => price(c) !== null).length,
+    noPrice: list.filter(c => price(c) === null).length,
+    stale: list.filter(c => c.stale).length,
     images: !ui.noimg,
   }, null, 1);
   const p = new URLSearchParams(location.search);
   p.set('variant', ui.variant);
   ui.dense ? p.set('dense', '1') : p.delete('dense');
   ui.noimg ? p.set('img', '0') : p.delete('img');
+  ui.cur === 'EUR' ? p.set('cur', 'EUR') : p.delete('cur');
   history.replaceState(null, '', `${location.pathname}?${p}`);
 }
 
@@ -456,6 +564,7 @@ const ACT = {
   toggleImg() { ui.noimg = !ui.noimg; render(); },
   toggleDense() { ui.dense = !ui.dense; render(); },
   toggleRm() { ui.rm = !ui.rm; render(); },
+  toggleCur() { ui.cur = ui.cur === 'USD' ? 'EUR' : 'USD'; render(); },
   toggleDev() { const el = document.getElementById('dev'); el.classList.toggle('closed'); document.getElementById('devcaret').textContent = el.classList.contains('closed') ? '▸' : '▾'; },
 };
 document.addEventListener('click', ev => {
