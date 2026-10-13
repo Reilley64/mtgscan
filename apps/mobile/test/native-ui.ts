@@ -129,6 +129,15 @@ function rendersTrack(scrollView: ScrollView, track: HostElement) {
   return scrollView.props.onScrollEndDrag === track.props.onScrollEndDrag;
 }
 
+function handlePosition(track: HostElement, offset: number) {
+  const travel = track.props.contentOffset.x;
+  return (travel - offset) / travel;
+}
+
+function scrollTarget(call: unknown[]) {
+  return (call[0] as { x: number }).x;
+}
+
 function scrollEvent(x: number) {
   return { nativeEvent: { contentOffset: { x, y: 0 } } };
 }
@@ -152,6 +161,7 @@ export async function beginSwipe(control: HostElement) {
     },
     release: async () => {
       if (enabled) {
+        swipeDrags.set(track(), { offset, scrollsBefore: scrollToCalls().calls.length });
         await fireEvent(track(), 'scrollEndDrag', scrollEvent(offset));
       }
     },
@@ -166,23 +176,21 @@ export async function swipeRight(control: HostElement, fractionOfWidth: number) 
 
 export function swipeHandlePosition(control: HostElement) {
   const track = swipeTrack(control);
-  const travel = track.props.contentOffset.x;
   const scrolls = scrollToCalls();
   const latestScroll = scrolls.contexts.findLastIndex((scrollView: ScrollView) => rendersTrack(scrollView, track));
   const drag = swipeDrags.get(track);
   if (drag && drag.scrollsBefore > latestScroll) {
-    return (travel - drag.offset) / travel;
+    return handlePosition(track, drag.offset);
   }
-  return latestScroll === -1 ? 0 : (travel - (scrolls.calls[latestScroll][0] as { x: number }).x) / travel;
+  return latestScroll === -1 ? 0 : handlePosition(track, scrollTarget(scrolls.calls[latestScroll]));
 }
 
 export function swipeHandleMovesAfterRelease(control: HostElement) {
   const track = swipeTrack(control);
-  const travel = track.props.contentOffset.x;
   const scrolls = scrollToCalls();
   const release = swipeDrags.get(track)?.scrollsBefore ?? 0;
-  return scrolls.calls.flatMap(([target], index) =>
-    index >= release && rendersTrack(scrolls.contexts[index], track) ? [(travel - (target as { x: number }).x) / travel] : [],
+  return scrolls.calls.flatMap((call, index) =>
+    index >= release && rendersTrack(scrolls.contexts[index], track) ? [handlePosition(track, scrollTarget(call))] : [],
   );
 }
 

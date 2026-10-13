@@ -653,7 +653,7 @@ describe('SwipeToConfirm', () => {
     expect(swipeHandlePosition(control)).toBeCloseTo(0);
   });
 
-  test('the handle stays at the end while busy and after the confirm works', async () => {
+  test('the handle stays at the end while busy and after the action works', async () => {
     let finish = (_worked: boolean) => {};
     function SuccessfulCommit() {
       const [busy, setBusy] = useState(false);
@@ -700,7 +700,7 @@ describe('SwipeToConfirm', () => {
     expect(opacityOf(control)).toBe(1);
   });
 
-  test('the handle stays at the end from the release until the confirm ends', async () => {
+  test('the handle stays at the end from the release until the action ends', async () => {
     let finish = (_worked: boolean) => {};
     await render(
       <SwipeToConfirm
@@ -724,7 +724,7 @@ describe('SwipeToConfirm', () => {
     await act(async () => finish(false));
   });
 
-  test('the handle goes back to the start after the confirm fails, and the control reads Try again', async () => {
+  test('the handle goes back to the start after the action fails, and the control reads Try again', async () => {
     let finish = (_worked: boolean) => {};
     function FailingCommit() {
       const [busy, setBusy] = useState(false);
@@ -770,7 +770,7 @@ describe('SwipeToConfirm', () => {
     expect(retry).toBeEnabled();
   });
 
-  test('a swipe still confirms when the screen changes during the swipe', async () => {
+  test('a swipe still confirms when the control renders again during the swipe', async () => {
     const confirmed: number[] = [];
     function RenderingScreen() {
       const [renders, setRenders] = useState(0);

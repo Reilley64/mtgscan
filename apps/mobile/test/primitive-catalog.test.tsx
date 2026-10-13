@@ -55,6 +55,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Swipe to confirm' })).toBeEnabled();
   expect(screen.getByRole('button', { name: 'Swipe busy' })).toBeBusy();
   expect(screen.getByRole('button', { name: 'Swipe disabled' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Swipe busy and disabled' })).toBeBusy();
   expect(screen.getByLabelText('Card name')).toBeOnTheScreen();
   expect(screen.getByRole('progressbar', { name: 'Downloading gallery' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Other options' })).toBeOnTheScreen();

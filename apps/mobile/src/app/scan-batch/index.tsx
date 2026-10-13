@@ -15,11 +15,11 @@ export default function BatchReviewSheet() {
   const title = copyCount === 1 ? '1 card scanned' : `${copyCount} cards scanned`;
 
   const addToCollection = useCallback(async () => {
-    const added = await commit();
-    if (added && navigation.isFocused()) {
+    const closes = (await commit()) && navigation.isFocused();
+    if (closes) {
       router.back();
     }
-    return added;
+    return closes;
   }, [commit, navigation]);
 
   const footer = (

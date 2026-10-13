@@ -352,6 +352,7 @@ function SwipeToConfirms() {
       <SwipeToConfirm label="Swipe to confirm" onConfirm={async () => false} />
       <SwipeToConfirm label="Swipe busy" busy onConfirm={async () => false} />
       <SwipeToConfirm label="Swipe disabled" disabled onConfirm={async () => false} />
+      <SwipeToConfirm label="Swipe busy and disabled" busy disabled onConfirm={async () => false} />
     </Section>
   );
 }
