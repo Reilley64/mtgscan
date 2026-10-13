@@ -1,5 +1,5 @@
 import type { CollectionCopyRow, CollectionTotal, CurrentPrice } from '@mtgscan/supabase/collection';
-import { fireEvent, screen, within } from 'expo-router/testing-library';
+import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 import { processColor } from 'react-native';
 
 import { failCollectionReads, ownCollectionCopies, ownCollectionTotal, startSignedIn } from './fake-supabase';
@@ -7,21 +7,20 @@ import {
   appearsBefore,
   cardImageUri,
   cardSheen,
+  headerButton,
+  headerMenu,
   imageTintColor,
-  isPopoverOpen,
   pressTab,
-  scrollTabTo,
   scrollToEnd,
   selectedTab,
   symbolNames,
-  tapOutsidePopover,
-  touchTarget,
+  tabHeader,
 } from './native-ui';
 import { setIconUri } from './card-printings';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
 
-const { textDim, textMuted, textPrice, text: white, surfaceControl, surfaceRaised } = tokenColors;
+const { textDim, textMuted, textPrice } = tokenColors;
 
 let entryNumber = 0;
 
@@ -62,7 +61,7 @@ beforeEach(() => {
 test('Collection keeps its empty state when the user has no collection entries', async () => {
   const collection = await openCollection();
 
-  expect(collection.getByRole('header', { name: 'Collection' })).toBeOnTheScreen();
+  expect(tabHeader(selectedTab()).title).toBe('Collection');
   expect(collection.getByText('Your collection is empty')).toBeOnTheScreen();
   expect(collection.getByText('Scan cards to add them to your collection.')).toBeOnTheScreen();
   expect(collection.queryByRole('image')).not.toBeOnTheScreen();
@@ -301,79 +300,55 @@ describe('the collection total button', () => {
   async function openCollectionWithTotal(total: CollectionTotal) {
     ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
     ownCollectionTotal(total);
-    return openCollection();
+    await openCollection();
+    return selectedTab();
   }
 
-  async function openTotal(collection: Awaited<ReturnType<typeof openCollection>>, name: string) {
-    await fireEvent.press(collection.getByRole('button', { name }));
-    return screen.getByLabelText(`${name}, `, { exact: false });
-  }
-
-  test('the collection total button sits next to the settings button with the collection total and a chevron', async () => {
+  test('the collection total button sits in the header before the settings button and shows the collection total', async () => {
     const collection = await openCollectionWithTotal(collectionTotal());
 
-    const button = collection.getByRole('button', { name: 'Collection total, $2,419.59' });
-    expect(button).toHaveAccessibilityValue({ text: 'up $12.40 since yesterday, 26 of 27 cards priced' });
-    expect(within(button).getByText('$2,419.59')).toHaveStyle({ color: white, fontSize: 14, fontWeight: '700' });
-    expect(symbolNames(button)).toEqual(['chevron.down']);
-    expect(button).toHaveStyle({ backgroundColor: surfaceControl, borderRadius: 999, height: 38 });
-    expect(touchTarget(button).height).toBeGreaterThanOrEqual(44);
-    expect(appearsBefore(button, collection.getByRole('button', { name: 'Settings' }))).toBe(true);
+    expect(tabHeader(collection).buttons).toEqual(['Collection total, $2,419.59', 'Settings']);
+    expect(headerButton(collection, 'Collection total, $2,419.59')).toEqual({
+      type: 'menu',
+      label: '$2,419.59',
+      symbol: undefined,
+      hint: 'up $12.40 since yesterday, 26 of 27 cards priced',
+    });
   });
 
-  test('tapping the collection total button opens a popover with the collection total, the change since yesterday, the coverage, and the price source', async () => {
+  test('the collection total button opens a menu with the change since yesterday, the coverage, and the price source', async () => {
     const collection = await openCollectionWithTotal(collectionTotal());
 
-    const popover = await openTotal(collection, 'Collection total, $2,419.59');
-
-    expect(popover).toHaveAccessibleName(
-      'Collection total, $2,419.59, up $12.40 since yesterday, 26 of 27 cards priced, Current prices from Scryfall, in USD',
-    );
-    expect(within(popover).getByText('$2,419.59')).toHaveStyle({ fontSize: 20, fontWeight: '800' });
-    expect(within(popover).getByText('Since yesterday')).toHaveStyle({ color: textMuted });
-    expect(within(popover).getByText('+$12.40')).toHaveStyle({ color: white });
-    expect(within(popover).getByText('Priced')).toBeOnTheScreen();
-    expect(within(popover).getByText('26 of 27 cards')).toHaveStyle({ color: white });
-    expect(within(popover).getByText('Current prices from Scryfall, in USD')).toHaveStyle({ color: textDim });
-    expect(popover).toHaveStyle({ backgroundColor: surfaceRaised, borderRadius: 12 });
-    expect(collection.getByRole('button', { name: 'Collection total, $2,419.59' })).toBeExpanded();
+    expect(headerMenu(collection, 'Collection total, $2,419.59')).toEqual({
+      title: 'Current prices from Scryfall, in USD',
+      items: [
+        { title: '+$12.40', subtitle: 'Since yesterday' },
+        { title: '26 of 27 cards', subtitle: 'Priced' },
+      ],
+    });
   });
 
-  test('a tap outside the popover closes it', async () => {
-    const collection = await openCollectionWithTotal(collectionTotal());
-    await openTotal(collection, 'Collection total, $2,419.59');
-
-    await tapOutsidePopover();
-
-    expect(isPopoverOpen()).toBe(false);
-    expect(collection.getByRole('button', { name: 'Collection total, $2,419.59' })).not.toBeExpanded();
-  });
-
-  test('a falling collection total shows the minus sign in the same neutral text, and VoiceOver hears down', async () => {
+  test('a falling collection total shows the minus sign, and VoiceOver hears down', async () => {
     const collection = await openCollectionWithTotal(collectionTotal({ total: '2368.44', change: '-38.75' }));
 
-    const button = collection.getByRole('button', { name: 'Collection total, $2,368.44' });
-    expect(button).toHaveAccessibilityValue({ text: 'down $38.75 since yesterday, 26 of 27 cards priced' });
-    const popover = await openTotal(collection, 'Collection total, $2,368.44');
-    expect(within(popover).getByText('\u2212$38.75')).toHaveStyle({ color: white });
+    expect(headerButton(collection, 'Collection total, $2,368.44').hint).toBe('down $38.75 since yesterday, 26 of 27 cards priced');
+    expect(headerMenu(collection, 'Collection total, $2,368.44').items[0]).toEqual({ title: '\u2212$38.75', subtitle: 'Since yesterday' });
   });
 
   test('an unchanged collection total shows the change with no sign', async () => {
     const collection = await openCollectionWithTotal(collectionTotal({ change: '0.00' }));
 
-    const button = collection.getByRole('button', { name: 'Collection total, $2,419.59' });
-    expect(button).toHaveAccessibilityValue({ text: 'no change since yesterday, 26 of 27 cards priced' });
-    const popover = await openTotal(collection, 'Collection total, $2,419.59');
-    expect(within(popover).getByText('$0.00')).toBeOnTheScreen();
+    expect(headerButton(collection, 'Collection total, $2,419.59').hint).toBe('no change since yesterday, 26 of 27 cards priced');
+    expect(headerMenu(collection, 'Collection total, $2,419.59').items[0]).toEqual({ title: '$0.00', subtitle: 'Since yesterday' });
   });
 
-  test('with no daily collection total from yesterday, the change is a dim dash, and VoiceOver hears that it is not known yet', async () => {
+  test('with no daily collection total from yesterday, the change is a dash, and VoiceOver hears that it is not known yet', async () => {
     const collection = await openCollectionWithTotal(collectionTotal({ change: null }));
 
-    const button = collection.getByRole('button', { name: 'Collection total, $2,419.59' });
-    expect(button).toHaveAccessibilityValue({ text: 'change since yesterday not known yet, 26 of 27 cards priced' });
-    const popover = await openTotal(collection, 'Collection total, $2,419.59');
-    expect(within(popover).getByText('–')).toHaveStyle({ color: textDim });
+    expect(headerButton(collection, 'Collection total, $2,419.59').hint).toBe(
+      'change since yesterday not known yet, 26 of 27 cards priced',
+    );
+    expect(headerMenu(collection, 'Collection total, $2,419.59').items[0]).toEqual({ title: '–', subtitle: 'Since yesterday' });
   });
 
   test('a long collection total and a large collection show in full', async () => {
@@ -381,58 +356,38 @@ describe('the collection total button', () => {
       collectionTotal({ total: '128406.92', priced_copies: 1262, copies: 1284, change: '412.60' }),
     );
 
-    const popover = await openTotal(collection, 'Collection total, $128,406.92');
-    expect(within(popover).getByText('1,262 of 1,284 cards')).toBeOnTheScreen();
-    expect(within(popover).getByText('+$412.60')).toBeOnTheScreen();
+    expect(headerButton(collection, 'Collection total, $128,406.92').label).toBe('$128,406.92');
+    expect(headerMenu(collection, 'Collection total, $128,406.92').items).toEqual([
+      { title: '+$412.60', subtitle: 'Since yesterday' },
+      { title: '1,262 of 1,284 cards', subtitle: 'Priced' },
+    ]);
   });
 
   test('a EUR collection total shows in euros and names EUR as the price currency', async () => {
     const collection = await openCollectionWithTotal(collectionTotal({ total: '2096.10', currency: 'EUR', change: '10.85' }));
 
-    const popover = await openTotal(collection, 'Collection total, €2,096.10');
-    expect(within(popover).getByText('+€10.85')).toBeOnTheScreen();
-    expect(within(popover).getByText('Current prices from Scryfall, in EUR')).toBeOnTheScreen();
+    expect(headerMenu(collection, 'Collection total, €2,096.10')).toEqual({
+      title: 'Current prices from Scryfall, in EUR',
+      items: [
+        { title: '+€10.85', subtitle: 'Since yesterday' },
+        { title: '26 of 27 cards', subtitle: 'Priced' },
+      ],
+    });
   });
 
   test('with no collection entries, the header shows no collection total button', async () => {
-    const collection = await openCollection();
+    await openCollection();
 
-    expect(collection.getByRole('button', { name: 'Settings' })).toBeOnTheScreen();
-    expect(collection.queryByRole('button', { name: /^Collection total/ })).not.toBeOnTheScreen();
+    expect(tabHeader(selectedTab()).buttons).toEqual(['Settings']);
   });
 
   test('the collection total reloads when the Collection tab gains focus again', async () => {
-    const collection = await openCollectionWithTotal(collectionTotal());
-    expect(collection.getByRole('button', { name: 'Collection total, $2,419.59' })).toBeOnTheScreen();
+    await openCollectionWithTotal(collectionTotal());
 
     ownCollectionTotal(collectionTotal({ total: '2420.80', copies: 28, priced_copies: 27 }));
     await pressTab('Recent');
     await pressTab('Collection');
 
-    expect(await within(selectedTab()).findByRole('button', { name: 'Collection total, $2,420.80' })).toBeOnTheScreen();
-  });
-
-  test('when the user scrolls, a small-title header keeps the collection total button and the settings button', async () => {
-    const collection = await openCollectionWithTotal(collectionTotal());
-
-    await scrollTabTo(selectedTab(), 120);
-
-    const smallTitle = collection.getByRole('header', { name: 'Collection' });
-    expect(smallTitle).toHaveStyle({ fontSize: 17, fontWeight: '800' });
-    expect(collection.getAllByRole('button', { name: 'Collection total, $2,419.59' })).toHaveLength(1);
-    expect(collection.getAllByRole('button', { name: 'Settings' })).toHaveLength(1);
-    expect(appearsBefore(smallTitle, collection.getByRole('button', { name: 'Collection total, $2,419.59' }))).toBe(true);
-    const popover = await openTotal(collection, 'Collection total, $2,419.59');
-    expect(within(popover).getByText('+$12.40')).toBeOnTheScreen();
-  });
-
-  test('scrolling back to the top brings back the large title', async () => {
-    const collection = await openCollectionWithTotal(collectionTotal());
-    await scrollTabTo(selectedTab(), 120);
-
-    await scrollTabTo(selectedTab(), -62);
-
-    expect(collection.getByRole('header', { name: 'Collection' })).toHaveStyle({ fontSize: 28 });
-    expect(collection.getAllByRole('button', { name: 'Collection total, $2,419.59' })).toHaveLength(1);
+    await waitFor(() => expect(tabHeader(selectedTab()).buttons).toEqual(['Collection total, $2,420.80', 'Settings']));
   });
 });

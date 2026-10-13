@@ -13,7 +13,6 @@ import { CountBadge } from '@/components/atoms/count-badge';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { GlassGroup } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
-import { Popover } from '@/components/atoms/popover';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { SetIcon } from '@/components/atoms/set-icon';
@@ -98,9 +97,6 @@ function Buttons() {
       </Button>
       <Button size="icon" accessibilityLabel="Settings" onPress={() => {}}>
         <SymbolView name="gearshape.fill" size={18} tintColor={colors.text} />
-      </Button>
-      <Button size="pill" onPress={() => {}}>
-        <Text>Pill</Text>
       </Button>
     </Section>
   );
@@ -315,22 +311,6 @@ function Glass() {
   );
 }
 
-function Popovers() {
-  const [open, setOpen] = useState(false);
-  return (
-    <Section title="Popover">
-      <Button size="pill" aria-expanded={open} onPress={() => setOpen(true)}>
-        <Text>Open the popover</Text>
-      </Button>
-      <Popover open={open} onClose={() => setOpen(false)} accessibilityLabel="Popover, tap outside to close">
-        <Text variant="card-title">Popover</Text>
-        <Text className="text-text-muted">Tap outside to close</Text>
-        <Text variant="credit">Credit line</Text>
-      </Popover>
-    </Section>
-  );
-}
-
 function Inputs() {
   const [name, setName] = useState('');
   return (
@@ -379,7 +359,6 @@ export function PrimitiveCatalog() {
         <QuickActions />
         <Skeletons />
         <Glass />
-        <Popovers />
         <Inputs />
         <ProgressBars />
         <SheetSections />

@@ -2,7 +2,14 @@ import { localSupabaseUrl } from '@mtgscan/supabase/test-user';
 import { act, fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { fakeSupabase, testUserIsNotSeeded } from './fake-supabase';
-import { appleSignInButton, openSettings, queryAppleSignInButton, selectedTab, showsSpinner } from './native-ui';
+import {
+  appleSignInButton,
+  openSettings,
+  queryAppleSignInButton,
+  selectedTab,
+  showsSpinner,
+  tabHeader,
+} from './native-ui';
 import { renderApp } from './render-app';
 
 type Build = {
@@ -46,7 +53,7 @@ test('a development build on local Supabase signs the test user in with one tap 
 
   await signInAsTheTestUser();
 
-  expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
+  expect(tabHeader(selectedTab()).title).toBe('Recent');
   await openSettings();
   expect(screen.getByText('test-user@mtgscan.test')).toBeOnTheScreen();
 });
@@ -109,7 +116,7 @@ test('while the test sign-in runs, its button shows a spinner and no sign-in but
   expect(showsSpinner(button)).toBe(true);
   expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeDisabled();
   await act(async () => finishSignIn());
-  expect(within(selectedTab()).getByRole('header', { name: 'Recent' })).toBeOnTheScreen();
+  expect(tabHeader(selectedTab()).title).toBe('Recent');
 });
 
 test('while the test sign-in runs, the other sign-in buttons fade and the test sign-in button keeps its full color', async () => {

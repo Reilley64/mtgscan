@@ -13,15 +13,15 @@ export default function TabsLayout() {
         default: { ...typography.tabLabel, color: colors.textDim },
         selected: { ...typography.tabLabel, color: colors.primary },
       }}>
-      <NativeTabs.Trigger name="index">
+      <NativeTabs.Trigger name="(recent)">
         <NativeTabs.Trigger.Label>Recent</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="clock" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="collection">
+      <NativeTabs.Trigger name="(collection)">
         <NativeTabs.Trigger.Label>Collection</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="square.grid.3x3" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="decks">
+      <NativeTabs.Trigger name="(decks)">
         <NativeTabs.Trigger.Label>Decks</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="rectangle.stack" />
       </NativeTabs.Trigger>

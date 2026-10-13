@@ -110,8 +110,81 @@ export function showsSpinner(element: ReturnType<typeof screen.getByRole>) {
   return element.queryAll((instance) => instance.type === 'ActivityIndicator').length > 0;
 }
 
+type HeaderItem = {
+  type: string;
+  title?: string;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  buttonId?: string;
+  sfSymbolName?: string;
+  menu?: { title: string; items: { title: string; subtitle?: string }[] };
+};
+
+function shownHeaderConfigs(tab: HostElement) {
+  return tab.queryAll((instance) => instance.type === 'RNSScreenStackHeaderConfig' && !instance.props.hidden);
+}
+
+export function hasHeader(tab: HostElement) {
+  return shownHeaderConfigs(tab).length > 0;
+}
+
+function tabHeaderConfig(tab: HostElement) {
+  const [config] = shownHeaderConfigs(tab);
+  if (!config) {
+    throw new Error('This tab has no header');
+  }
+  return config;
+}
+
+function headerItems(tab: HostElement): HeaderItem[] {
+  return [...(tabHeaderConfig(tab).props.headerRightBarButtonItems ?? [])].reverse();
+}
+
+function headerItem(tab: HostElement, name: string) {
+  const item = headerItems(tab).find((candidate) => (candidate.accessibilityLabel ?? candidate.title) === name);
+  if (!item) {
+    throw new Error(`No header button is named ${name}`);
+  }
+  return item;
+}
+
+export function tabHeader(tab: HostElement) {
+  const { title, largeTitle, largeTitleFontSize, largeTitleFontWeight, titleFontSize, titleFontWeight } =
+    tabHeaderConfig(tab).props;
+  return {
+    title,
+    largeTitle: Boolean(largeTitle),
+    largeTitleType: { fontSize: largeTitleFontSize, fontWeight: largeTitleFontWeight },
+    titleType: { fontSize: titleFontSize, fontWeight: titleFontWeight },
+    buttons: headerItems(tab).map((item) => item.accessibilityLabel ?? item.title),
+  };
+}
+
+export function headerTitles() {
+  return shownHeaderConfigs(screen.container).map((config) => config.props.title);
+}
+
+export function headerButton(tab: HostElement, name: string) {
+  const { type, title, accessibilityHint, sfSymbolName } = headerItem(tab, name);
+  return { type, label: title || undefined, symbol: sfSymbolName, hint: accessibilityHint };
+}
+
+export function headerMenu(tab: HostElement, name: string) {
+  const { menu } = headerItem(tab, name);
+  if (!menu) {
+    throw new Error(`The header button ${name} has no menu`);
+  }
+  return { title: menu.title, items: menu.items.map(({ title, subtitle }) => ({ title, subtitle })) };
+}
+
+async function pressHeaderButton(tab: HostElement, name: string) {
+  await fireEvent(tabHeaderConfig(tab), 'pressHeaderBarButtonItem', {
+    nativeEvent: { buttonId: headerItem(tab, name).buttonId },
+  });
+}
+
 export async function openSettings() {
-  await fireEvent.press(within(selectedTab()).getByRole('button', { name: 'Settings' }));
+  await pressHeaderButton(selectedTab(), 'Settings');
   return screen.findByRole('header', { name: 'Settings' });
 }
 
@@ -273,27 +346,6 @@ export async function scrollToEnd(tab: HostElement) {
     jest.advanceTimersByTime(1000);
   });
   await fireEvent.scroll(list, scrolledToEnd);
-}
-
-export async function scrollTabTo(tab: HostElement, y: number) {
-  const [list] = tab.queryAll((instance) => instance.type === 'RCTScrollView');
-  if (!list) {
-    throw new Error('No scroll view is in this tab');
-  }
-  await fireEvent.scroll(list, { nativeEvent: { contentOffset: { x: 0, y } } });
-}
-
-export async function tapOutsidePopover() {
-  const [popover] = hostViews('Modal');
-  const outside = popover?.children.find((child) => typeof child !== 'string' && !child.props.accessible);
-  if (!outside || typeof outside === 'string') {
-    throw new Error('No popover is open');
-  }
-  await fireEvent.press(outside);
-}
-
-export function isPopoverOpen() {
-  return hostViews('Modal').length > 0;
 }
 
 type Insets = { top?: number; bottom?: number; left?: number; right?: number };
