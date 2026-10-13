@@ -30,9 +30,9 @@ The review agent checks each diff against these rules. CI already runs the type 
 - Merge class names with `cn()` from `apps/mobile/src/lib/class-names.ts`. It knows the token names. Plain `twMerge` drops a token class, such as `text-text` beside `text-body-strong`.
 - Style a control's state with class variants, not with JavaScript. Set the state as a prop and use the matching variant, instead of a conditional class or style object. NativeWind 4.2.7 on iOS supports these variants. Each was checked in Jest with the compiled classes and on the Simulator (#106):
   - `disabled:` with the `disabled` prop, and `active:` while a `Pressable` is pressed.
-  - `aria-selected:`, `aria-checked:`, and `aria-disabled:` with the `aria-selected`, `aria-checked`, and `aria-disabled` props. NativeWind does not read `accessibilityState`, so set the `aria-*` prop.
+  - `aria-selected:`, `aria-checked:`, `aria-disabled:`, and `aria-busy:` with the `aria-selected`, `aria-checked`, `aria-disabled`, and `aria-busy` props. NativeWind does not read `accessibilityState`, so set the `aria-*` prop. `aria-busy:` was checked in #112. A busy `Button` is also disabled, so `aria-busy:opacity-100` keeps it at full color over `disabled:opacity-dimmed`.
   - Data attributes through the `dataSet` prop: `[&[data-active]]:` for presence, and `[&[data-active='true']]:` or `data-[active=true]:` for a value. A `data-active` prop does nothing. `dataSet` is not in the React Native types, so prefer an `aria-*` prop when one fits.
-  - Parent state: `group` on the control and `group-disabled:`, `group-active:`, `group-aria-selected:`, or `group-[[data-active]]:` on the child, as `QuickActionButton` does. Named groups work too: `group/card` with `group-disabled/card:`.
+  - Parent state: `group` on the control and `group-disabled:`, `group-active:`, `group-aria-selected:`, or `group-[[data-active]]:` on the child, as `QuickActionButton`, `Chip`, and `CardTile` do. Named groups work too: `group/card` with `group-disabled/card:`.
   - When no variant fits, use a `cva` variant.
   - Jest checks `disabled:`, `aria-*:`, data attributes, and their `group` forms with `toHaveStyle`. It cannot hold a press, so check `active:` and `group-active:` on the Simulator.
 - Leave out transition and animation classes until they work in Jest. See #102.

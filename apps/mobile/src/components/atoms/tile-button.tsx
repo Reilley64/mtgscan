@@ -13,9 +13,9 @@ export function TileButton({ accessibilityLabel, selected, onPress, children }: 
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ selected }}
+      aria-selected={selected}
       onPress={onPress}
-      className="min-h-touch-target gap-xs">
+      className="group min-h-touch-target gap-xs">
       {children}
     </Pressable>
   );

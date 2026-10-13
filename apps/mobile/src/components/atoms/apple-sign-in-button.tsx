@@ -5,7 +5,6 @@ import {
 } from 'expo-apple-authentication';
 import { ActivityIndicator, View } from 'react-native';
 
-import { cn } from '@/lib/class-names';
 import { appleButtonColors, rounded, sizes } from '@/theme';
 
 type AppleSignInButtonProps = {
@@ -30,7 +29,7 @@ export function AppleSignInButton({ busy, disabled, onPress }: AppleSignInButton
     );
   }
   return (
-    <View className={cn(disabled && 'opacity-dimmed')}>
+    <View aria-disabled={disabled} className="aria-disabled:opacity-dimmed">
       <AppleAuthenticationButton
         buttonType={AppleAuthenticationButtonType.SIGN_IN}
         buttonStyle={AppleAuthenticationButtonStyle.WHITE}

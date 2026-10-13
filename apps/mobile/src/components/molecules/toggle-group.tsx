@@ -1,9 +1,8 @@
 import * as ToggleGroupPrimitive from '@rn-primitives/toggle-group';
 
-import { choiceClasses, verticalTouchSlop } from '@/components/atoms/control-style';
+import { verticalTouchSlop } from '@/components/atoms/control-style';
 import { Text } from '@/components/atoms/text';
 import type { SingleChoiceProps } from '@/components/molecules/chip-group';
-import { cn } from '@/lib/class-names';
 import { sizes } from '@/theme';
 
 export function ToggleGroup<Value extends string>({ values, selected, labelOf, onSelect }: SingleChoiceProps<Value>) {
@@ -20,20 +19,17 @@ export function ToggleGroup<Value extends string>({ values, selected, labelOf, o
       value={selected}
       onValueChange={select}
       className="flex-row rounded-sm bg-surface-control">
-      {values.map((value) => {
-        const { fill, label } = choiceClasses(value === selected);
-        return (
-          <ToggleGroupPrimitive.Item
-            key={value}
-            value={value}
-            hitSlop={verticalTouchSlop(sizes.button)}
-            className={cn('h-button flex-1 items-center justify-center rounded-sm px-md', fill)}>
-            <Text variant="body-strong" className={label}>
-              {labelOf(value)}
-            </Text>
-          </ToggleGroupPrimitive.Item>
-        );
-      })}
+      {values.map((value) => (
+        <ToggleGroupPrimitive.Item
+          key={value}
+          value={value}
+          hitSlop={verticalTouchSlop(sizes.button)}
+          className="group h-button flex-1 items-center justify-center rounded-sm bg-surface-control px-md aria-checked:bg-primary">
+          <Text variant="body-strong" className="group-aria-checked:text-on-primary">
+            {labelOf(value)}
+          </Text>
+        </ToggleGroupPrimitive.Item>
+      ))}
     </ToggleGroupPrimitive.Root>
   );
 }

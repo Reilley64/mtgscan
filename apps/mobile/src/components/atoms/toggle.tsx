@@ -9,17 +9,14 @@ import { sizes } from '@/theme';
 
 type ToggleProps = Omit<ComponentProps<typeof TogglePrimitive.Root>, 'style' | 'hitSlop'>;
 
-export function Toggle({ className, pressed, disabled, ...props }: ToggleProps) {
-  const variant = pressed ? 'primary' : 'secondary';
+const toggleClass = cn(buttonVariants({ variant: 'secondary', size: 'default' }), 'group aria-checked:bg-primary');
+
+const toggleLabelClass = cn(labelVariants({ variant: 'secondary' }), 'group-aria-checked:text-on-primary');
+
+export function Toggle({ className, ...props }: ToggleProps) {
   return (
-    <TextClassContext value={labelVariants({ variant })}>
-      <TogglePrimitive.Root
-        pressed={pressed}
-        disabled={disabled}
-        hitSlop={verticalTouchSlop(sizes.button)}
-        className={cn(buttonVariants({ variant, size: 'default' }), disabled && 'opacity-dimmed', className)}
-        {...props}
-      />
+    <TextClassContext value={toggleLabelClass}>
+      <TogglePrimitive.Root hitSlop={verticalTouchSlop(sizes.button)} className={cn(toggleClass, className)} {...props} />
     </TextClassContext>
   );
 }
