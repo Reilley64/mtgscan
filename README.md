@@ -26,9 +26,9 @@ The app uses NativeWind 4 with Tailwind CSS 3. NativeWind 5 is a release candida
 
 Components follow Atomic Design in `src/components`. `CODING_STANDARDS.md` (Atomic Design) has the levels and the rules.
 
-- `atoms` holds the primitives: `Text`, `TextLink`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `GlassSurface`, `GlassGroup`, `CardImage`, `CardThumbnail`, `TileButton`, `AppleSignInButton`, `Input`, `ProgressBar`, `Skeleton`, `SetIcon`, `DimSymbol`, `QuickActionButton`, and `CountBadge`. `Button` has a 50 px sign-in size and the Google variant. `AppleSignInButton` wraps the system Apple button. `Toggle` wraps `@rn-primitives/toggle`. `Switch` wraps the iOS switch. `GlassSurface` and `GlassGroup` wrap `GlassView` and `GlassContainer` from `expo-glass-effect`, and fall back to plain views when `isLiquidGlassAvailable()` is false. Inside a `GlassSurface`, `Text`, `QuickActionButton`, `Skeleton`, `CardThumbnail`, and `DimSymbol` take the glass colors.
+- `atoms` holds the primitives: `Text`, `TextLink`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `GlassSurface`, `GlassGroup`, `CardImage`, `CardThumbnail`, `TileButton`, `AppleSignInButton`, `Input`, `ProgressBar`, `Skeleton`, `SetIcon`, `DimSymbol`, `QuickActionButton`, `CountBadge`, and `Popover`. `Button` has a 50 px sign-in size, a pill size, and the Google variant. `Popover` is a React Native `Modal` with a card under the header at the right page inset. A tap outside closes it, and VoiceOver reads its card as one element. `AppleSignInButton` wraps the system Apple button. `Toggle` wraps `@rn-primitives/toggle`. `Switch` wraps the iOS switch. `GlassSurface` and `GlassGroup` wrap `GlassView` and `GlassContainer` from `expo-glass-effect`, and fall back to plain views when `isLiquidGlassAvailable()` is false. Inside a `GlassSurface`, `Text`, `QuickActionButton`, `Skeleton`, `CardThumbnail`, and `DimSymbol` take the glass colors.
 - `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`), `ListRow`, `SwitchRow`, `EmptyState`, `CardTile`, `CardGrid`, `AccountCard`, `GalleryCard`, `FailureNotice`, `Brand`, `QuickActionBar`, `SheetSection`, `SettingsButton`, `BatchButton`, `CopyMeta`, `PriceLine`, and `ThumbnailChip`. `CardTile` is a card image with its set and collector number, 3 to a row. The binder grid and the card printing grids on the Scan tab use it. `ThumbnailChip` is a chip on a `GlassSurface` with three columns: a thumbnail, a flexible middle, and an optional accessory. The side columns have the same fixed width, so the middle is centered. A chip with an action is a button on glass that reacts to touch. The latest-scan chip uses it.
-- `organisms` holds `BinderWall`, `SignInSheet`, `SettingsContent`, and the Scan tab sections: `LatestScanControls`, `LatestScanChip`, `ScanQuickActions`, `ScanDetailsContent`, `NameSearch`, `PrintingPicker`, and `ScanBatchList`. `templates` holds `TabScreen` and `DrawerSheet`, the content layout of the bottom drawers, with an optional footer below the content that scrolls.
+- `organisms` holds `BinderWall`, `SignInSheet`, `SettingsContent`, `CollectionTotalButton`, and the Scan tab sections: `LatestScanControls`, `LatestScanChip`, `ScanQuickActions`, `ScanDetailsContent`, `NameSearch`, `PrintingPicker`, and `ScanBatchList`. `templates` holds `TabScreen`, `TabListScreen`, and `DrawerSheet`. `TabScreen` and `TabListScreen` show the large title with optional header actions and the settings button. Once the user scrolls, a small-title header with the same actions replaces it. `DrawerSheet` is the content layout of the bottom drawers, with an optional footer below the content that scrolls.
 - Expo Router routes in `src/app` are the pages.
 - ESLint checks the import direction between the levels with `eslint-plugin-boundaries`. It also keeps raw controls out of screens and features. See `apps/mobile/eslint.config.js`.
 - `LatestScanControls` puts the latest-scan chip and the quick-action bar in one `GlassGroup`.
@@ -195,6 +195,19 @@ Signed-in users read their collection as copies with `supabase.rpc('list_collect
 - `next_cursor` reads the next page. A cursor works only for the user who got it, for 15 minutes. A refused call has the code `invalid_argument` or `invalid_cursor` and the field at fault in `details`, as in catalog search.
 - The function runs with the caller's rights, so the read policy on `collection_entries` returns only the caller's collection entries. An anonymous caller and the secret key are refused.
 
+### Collection total
+
+Signed-in users read their collection total with `supabase.rpc('get_collection_total', { query })`. The query has an optional `price_currency`, `USD` or `EUR`, which defaults to `USD`. `supabase/collection.ts` has the shared types.
+
+- `total` is the sum of the current price of every copy for its card printing and finish, as a decimal string. Copies with no current price are left out.
+- `priced_copies` counts the copies with a current price, and `copies` counts every copy, so a missing price never silently lowers the total.
+- `change` is `total` minus the latest daily collection total from a day before the day of the current prices, as a signed decimal string. `change_since` is the day of that daily collection total. Both are null when there is none yet.
+- The function runs with the caller's rights. An anonymous caller and the secret key are refused. A refused query has the code `invalid_argument` and the field at fault.
+
+`bun run import collection-totals` records the daily collection totals. It calls `record_daily_collection_totals`, which only `service_role` can run. For each user with collection entries, it stores the collection total in USD and in EUR, with the coverage, for the UTC day of the price snapshot. A later run on the same day keeps the first daily collection total. The Daily import workflow runs it right after `prices`, so the totals use the new prices.
+
+`collection_daily_totals` departs from the per-user data pattern in one way. No user changes it. The daily workflow writes it for every user with the secret key, through `record_daily_collection_totals`. The function runs with the owner's rights, because the import role has no access to user data. A user reads only their own rows.
+
 ### Collection search
 
 Signed-in users search their own collection entries with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips. `supabase/collection.ts` has the shared types for the query and the result rows.
@@ -222,11 +235,12 @@ Signed-in users search their own collection entries with `supabase.rpc('search_c
 - `commander_spellbook` imports combos, as `GLOSSARY.md` defines them, from the Commander Spellbook variants file. It drops and counts each combo that names a card outside the card catalog or has no Oracle ID. The Weekly import workflow runs it after `oracle_tags`, even when an earlier run fails.
 - `prices` imports current prices from Scryfall Default Cards and recomputes each card's lowest current price.
 - `prune-telemetry` deletes search telemetry older than 180 days.
+- `collection-totals` records the daily collection totals. See Collection total.
 - `retry-weekly` runs again each weekly source whose latest run failed.
 
 `bun run oracle-tag disable <tag UUID>` stops a bad Oracle tag from matching any search. `bun run oracle-tag enable <tag UUID>` undoes it. The Oracle tag workflow runs the same command by hand. A disabled tag stays disabled after every later tag import.
 
-The Daily import workflow runs `prices`, `prune-telemetry`, and `retry-weekly`. Each run records an import run, so the hosted project does not pause. The Import workflow runs one source by hand.
+The Daily import workflow runs `prices`, `collection-totals`, `prune-telemetry`, and `retry-weekly`. It records the daily collection totals only when the `prices` step succeeds. Each run records an import run, so the hosted project does not pause. The Import workflow runs one source by hand.
 
 ### Per-user data
 
@@ -237,7 +251,7 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `collection_entries`, `collection_additions`, `collection_addition_lines`, and `collection_addition_copies`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
+The tables with a user's data are `profiles`, `collection_entries`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, and `collection_daily_totals`. `search_telemetry` departs from the pattern, as Catalog search says. `collection_daily_totals` departs from it, as Collection total says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. A migration grants `execute` on a helper only to the roles whose functions call it.
 

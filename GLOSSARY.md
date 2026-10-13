@@ -24,6 +24,14 @@ _Avoid_: Import, purchase
 The latest Scryfall price of a card printing and finish, in USD or EUR. Condition and language do not change it. A missing current price stays missing and is never taken from another finish or card printing. A current price is stale when mtgscan received it more than 24 hours ago.
 _Avoid_: Value
 
+**Collection total**:
+The sum of the current prices of every copy in the collection, in one currency. Copies with no current price are left out and counted, so the total always comes with its coverage, such as "26 of 27 cards priced".
+_Avoid_: Collection value, net worth
+
+**Daily collection total**:
+A collection total that mtgscan stores for each user once a day, after the price import, in USD and in EUR. The change since yesterday is the collection total now minus the latest daily collection total from an earlier day.
+_Avoid_: Snapshot, history
+
 **Purchase-day price**:
 The current price of a card printing and finish on the day copies were added to the collection. It is recorded on each addition, not on the collection entry.
 _Avoid_: Purchase price, cost

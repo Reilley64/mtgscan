@@ -15,7 +15,8 @@ const usage = `Usage:
   bun import/main.ts oracle_tags|prices [--manifest <path or URL>] [--accept-shrink] [--batch-rows <n>]
   bun import/main.ts commander_spellbook [--variants <path or URL>] [--accept-shrink] [--batch-rows <n>]
   bun import/main.ts retry-weekly [--manifest <path or URL>] [--variants <path or URL>] [--batch-rows <n>]
-  bun import/main.ts prune-telemetry`;
+  bun import/main.ts prune-telemetry
+  bun import/main.ts collection-totals`;
 
 const { positionals, values } = parseArgs({
   args: Bun.argv.slice(2),
@@ -46,6 +47,14 @@ async function pruneSearchTelemetry(client: ImportClient): Promise<void> {
   console.log(`Deleted ${data} search telemetry rows older than 180 days.`);
 }
 
+async function recordDailyCollectionTotals(client: ImportClient): Promise<void> {
+  const { data, error } = await client.rpc('record_daily_collection_totals');
+  if (error) {
+    throw new ImportFailed(`Record daily collection totals: ${error.message}`);
+  }
+  console.log(`Recorded ${data} daily collection totals.`);
+}
+
 const commands: Record<string, (client: ImportClient) => Promise<unknown>> = {
   ...Object.fromEntries(
     Object.entries(adapters).map(([source, adapter]) => [
@@ -60,6 +69,7 @@ const commands: Record<string, (client: ImportClient) => Promise<unknown>> = {
   },
   'retry-weekly': (client) => retryFailedWeeklySources(client, adapters, batchLimits),
   'prune-telemetry': pruneSearchTelemetry,
+  'collection-totals': recordDailyCollectionTotals,
 };
 const run = command === undefined ? undefined : commands[command];
 

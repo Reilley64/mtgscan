@@ -223,6 +223,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"collection_daily_totals": {
+                  Row: {
+                    "copies": number,"currency": Database["public"]['Enums']["price_currency"],"day": string,"priced_copies": number,"prices_snapshot_at": string,"recorded_at": string,"total_cents": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "copies": number,"currency": Database["public"]['Enums']["price_currency"],"day": string,"priced_copies": number,"prices_snapshot_at": string,"recorded_at"?: string,"total_cents": number,"user_id": string
+                  }
+                  Update: {
+                    "copies"?: number,"currency"?: Database["public"]['Enums']["price_currency"],"day"?: string,"priced_copies"?: number,"prices_snapshot_at"?: string,"recorded_at"?: string,"total_cents"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"collection_entries": {
                   Row: {
                     "card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"created_at": string,"finish": Database["public"]['Enums']["card_finish"],"id": string,"is_protected": boolean,"language": Database["public"]['Enums']["card_language"],"latest_addition_at": string,"quantity": number,"user_id": string,"user_tag_ids": (string)[]
@@ -494,6 +508,9 @@ isOneToOne: false
 "get_cards":
 { Args: { "query": Json }; Returns: Json
                            },
+"get_collection_total":
+{ Args: { "query": Json }; Returns: Json
+                           },
 "import_card_sets":
 { Args: { "sets": Json }; Returns: number
                            },
@@ -513,6 +530,9 @@ isOneToOne: false
                            },
 "publish_gallery_version":
 { Args: { "version": string }; Returns: string
+                           },
+"record_daily_collection_totals":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "record_gallery_parity":
 { Args: { "lowest_cosine": number,"mean_cosine": number,"reference_count": number,"version": string }; Returns: boolean
