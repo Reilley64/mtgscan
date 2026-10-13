@@ -19,7 +19,7 @@ import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { SwitchRow } from '@/components/molecules/switch-row';
-import { ThreeColumnRow } from '@/components/molecules/three-column-row';
+import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 
 import { liquidGlassIsAvailable } from './fake-glass-effect';
@@ -30,6 +30,7 @@ import {
   cardSheen,
   glassEffect,
   imageTintColor,
+  sideColumnWidths,
   symbolNames,
   touchTarget,
 } from './native-ui';
@@ -215,38 +216,75 @@ describe('QuickActionBar', () => {
   });
 });
 
-describe('ThreeColumnRow', () => {
-  type HostElement = ReturnType<typeof screen.getByLabelText>;
-
-  test('a three-column row gives both side columns the same fixed width and the middle the rest', async () => {
+describe('ThumbnailChip', () => {
+  test('a thumbnail chip centers its content between a thumbnail column and an accessory column of the same width', async () => {
     await render(
-      <ThreeColumnRow
-        sideClassName="w-card-thumbnail-width"
-        start={<CardThumbnail uri={undefined} />}
-        end={<View accessibilityLabel="Opens details" />}>
+      <ThumbnailChip
+        accessibilityLabel="Lightning Bolt, M10 146"
+        thumbnail={<CardThumbnail uri={undefined} />}
+        accessory={<Text>Open</Text>}>
         <Text className="text-center">Lightning Bolt</Text>
-      </ThreeColumnRow>,
+      </ThumbnailChip>,
     );
 
-    const middle = screen.getByText('Lightning Bolt').parent as HostElement;
-    const [start, , end] = middle.parent!.children as HostElement[];
-    expect(start).toHaveStyle({ width: 40 });
-    expect(end).toHaveStyle({ width: 40, alignItems: 'center' });
-    expect(middle).toHaveStyle({ flexGrow: 1, flexShrink: 1 });
-    expect(screen.getByLabelText('Opens details').parent).toBe(end);
+    expect(sideColumnWidths(screen.getByText('Lightning Bolt'))).toEqual({ start: 40, end: 40 });
   });
 
-  test('a three-column row keeps an empty side column at the same width', async () => {
+  test('a thumbnail chip without an accessory keeps the accessory column at the same width', async () => {
     await render(
-      <ThreeColumnRow sideClassName="w-card-thumbnail-width" start={<CardThumbnail uri={undefined} />}>
+      <ThumbnailChip accessibilityLabel="Recognizing card" thumbnail={<CardThumbnail uri={undefined} />}>
         <Text>Recognizing card</Text>
-      </ThreeColumnRow>,
+      </ThumbnailChip>,
     );
 
-    const middle = screen.getByText('Recognizing card').parent as HostElement;
-    const [start, , end] = middle.parent!.children as HostElement[];
-    expect(end).toHaveStyle({ width: 40 });
-    expect(start).toHaveStyle({ width: 40 });
+    expect(sideColumnWidths(screen.getByText('Recognizing card'))).toEqual({ start: 40, end: 40 });
+  });
+
+  test('without Liquid Glass, a thumbnail chip with an action is a button on a surface card with 8 px padding', async () => {
+    const onPress = jest.fn();
+    await render(
+      <ThumbnailChip accessibilityLabel="Lightning Bolt, M10 146" thumbnail={<CardThumbnail uri={undefined} />} onPress={onPress}>
+        <Text>Lightning Bolt</Text>
+      </ThumbnailChip>,
+    );
+
+    const chip = screen.getByRole('button', { name: 'Lightning Bolt, M10 146' });
+    await fireEvent.press(chip);
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(chip).toHaveStyle({ padding: 8 });
+    expect(touchTarget(chip).height).toBeGreaterThanOrEqual(44);
+    expect(glassEffect(backdropOf(chip))).toBeNull();
+    expect(backdropOf(chip)).toHaveStyle({ backgroundColor: surface, borderRadius: 12 });
+  });
+
+  test('on Liquid Glass, a thumbnail chip with an action sits on glass that reacts to touch', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <ThumbnailChip accessibilityLabel="Lightning Bolt, M10 146" thumbnail={<CardThumbnail uri={undefined} />} onPress={() => {}}>
+        <Text>Lightning Bolt</Text>
+      </ThumbnailChip>,
+    );
+
+    const chip = screen.getByRole('button', { name: 'Lightning Bolt, M10 146' });
+    expect(glassEffect(backdropOf(chip))).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
+    expect(backdropOf(chip)).toHaveStyle({ borderRadius: 12 });
+  });
+
+  test('on Liquid Glass, a thumbnail chip without an action is not a button and its glass does not react to touch', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <ThumbnailChip accessibilityLabel="Plains, Basic land, not tracked" thumbnail={<CardThumbnail uri={undefined} />}>
+        <Text>Plains</Text>
+      </ThumbnailChip>,
+    );
+
+    expect(screen.queryByRole('button')).not.toBeOnTheScreen();
+    expect(glassEffect(backdropOf(screen.getByLabelText('Plains, Basic land, not tracked')))).toEqual({
+      style: 'regular',
+      interactive: false,
+      tintColor: undefined,
+    });
   });
 });
 

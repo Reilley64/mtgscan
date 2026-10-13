@@ -11,7 +11,7 @@ import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { Chip } from '@/components/atoms/chip';
 import { CountBadge } from '@/components/atoms/count-badge';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
-import { GlassGroup, GlassSurface } from '@/components/atoms/glass-surface';
+import { GlassGroup } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
@@ -35,7 +35,7 @@ import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { SwitchRow } from '@/components/molecules/switch-row';
-import { ThreeColumnRow } from '@/components/molecules/three-column-row';
+import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { colors, sizes } from '@/theme';
 
@@ -274,31 +274,26 @@ function Glass() {
         <CardImage uri={solRing} />
         <View className="absolute inset-x-md bottom-md">
           <GlassGroup className="gap-sm">
-            <GlassSurface fallback="surface" className="rounded-md p-sm" interactive>
-              <ThreeColumnRow
-                sideClassName="w-card-thumbnail-width"
-                start={<CardThumbnail uri={solRing} />}
-                end={<DimSymbol name="chevron.right" size={sizes.chevron} />}>
-                <View className="gap-xs">
-                  <Text variant="body-strong" className="text-center">
-                    Sol Ring
-                  </Text>
-                  <Text variant="meta" className="text-center">
-                    CMM 464 · Foil
-                  </Text>
-                </View>
-              </ThreeColumnRow>
-            </GlassSurface>
-            <GlassSurface fallback="surface" className="rounded-md p-sm">
-              <ThreeColumnRow
-                sideClassName="w-card-thumbnail-width"
-                start={<Skeleton className="h-card-thumbnail-height w-card-thumbnail-width" />}>
-                <View className="items-center gap-xs">
-                  <Skeleton className="h-skeleton-title-bar w-[70%]" />
-                  <Skeleton className="h-skeleton-meta-bar w-[40%]" />
-                </View>
-              </ThreeColumnRow>
-            </GlassSurface>
+            <ThumbnailChip
+              accessibilityLabel="Sol Ring, CMM 464, Foil"
+              onPress={() => {}}
+              thumbnail={<CardThumbnail uri={solRing} />}
+              accessory={<DimSymbol name="chevron.right" size={sizes.chevron} />}>
+              <Text variant="body-strong" className="text-center">
+                Sol Ring
+              </Text>
+              <Text variant="meta" className="text-center">
+                CMM 464 · Foil
+              </Text>
+            </ThumbnailChip>
+            <ThumbnailChip
+              accessibilityLabel="Recognizing card"
+              accessibilityRole="progressbar"
+              thumbnail={<Skeleton className="h-card-thumbnail-height w-card-thumbnail-width" />}>
+              <View className="items-center">
+                <Skeleton className="h-skeleton-title-bar w-[70%]" />
+              </View>
+            </ThumbnailChip>
             <QuickActionBar>
               <QuickActionButton label="Finish" />
               <QuickActionButton label="Set">

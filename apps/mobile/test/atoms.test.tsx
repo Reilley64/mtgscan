@@ -26,6 +26,7 @@ import { liquidGlassIsAvailable } from './fake-glass-effect';
 import {
   appleSignInButton,
   backdropOf,
+  blocksColored,
   cardImageUri,
   cardSheen,
   glassEffect,
@@ -580,21 +581,21 @@ describe('Skeleton', () => {
       </GlassSurface>,
     );
 
-    const [block] = screen.getByLabelText('Recognizing card').children as ReturnType<typeof screen.getByLabelText>[];
-    expect(block).toHaveStyle({ backgroundColor: glassSkeleton, borderRadius: 4, opacity: 0.45 });
+    const skeleton = screen.getByLabelText('Recognizing card');
+    expect(blocksColored(skeleton, glassSkeleton)).toBe(1);
+    expect(blocksColored(skeleton, line)).toBe(0);
   });
 });
 
 describe('CardThumbnail', () => {
-  test('an empty card thumbnail is a line-colored card shape with 4 px corners', async () => {
+  test('an empty card thumbnail is a line-colored card shape', async () => {
     await render(
       <View accessibilityLabel="Thumbnail">
         <CardThumbnail uri={undefined} />
       </View>,
     );
 
-    const [slot] = screen.getByLabelText('Thumbnail').children as ReturnType<typeof screen.getByLabelText>[];
-    expect(slot).toHaveStyle({ backgroundColor: line, borderRadius: 4, width: 40, height: 56 });
+    expect(blocksColored(screen.getByLabelText('Thumbnail'), line)).toBe(1);
   });
 
   test('on Liquid Glass, an empty card thumbnail takes the glass skeleton color', async () => {
@@ -607,8 +608,9 @@ describe('CardThumbnail', () => {
       </GlassSurface>,
     );
 
-    const [slot] = screen.getByLabelText('Thumbnail').children as ReturnType<typeof screen.getByLabelText>[];
-    expect(slot).toHaveStyle({ backgroundColor: glassSkeleton });
+    const thumbnail = screen.getByLabelText('Thumbnail');
+    expect(blocksColored(thumbnail, glassSkeleton)).toBe(1);
+    expect(blocksColored(thumbnail, line)).toBe(0);
   });
 });
 

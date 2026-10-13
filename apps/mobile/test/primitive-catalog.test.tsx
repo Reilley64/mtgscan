@@ -56,6 +56,8 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263', selected: false })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Scan batch, 12' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464, Foil' })).toBeOnTheScreen();
+  expect(screen.getByRole('progressbar', { name: 'Recognizing card' })).toBeOnTheScreen();
 });
 
 test('the primitive catalog opens the drawer sheet sample as a bottom drawer', async () => {

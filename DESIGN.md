@@ -236,8 +236,6 @@ components:
     textColor: "{colors.text}"
     rounded: "{rounded.md}"
     padding: 8px
-  latest-scan-chip-side-column:
-    width: 40px
   latest-scan-chip-meta-glass:
     textColor: "{colors.glass-text-muted}"
   latest-scan-chip-chevron-glass:
@@ -430,7 +428,7 @@ The interface is flat. Depth comes from tone, not shadow.
 
 Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
-- Glass is only for controls that float over the camera: the latest-scan chip and the quick-action bar. The batch button keeps the control surface. Every other surface stays flat.
+- Only the latest-scan chip and the quick-action bar use glass. The batch button keeps the control surface. Every other surface stays flat.
 - The glass is the regular style with no tint. Glass that the user can tap, such as the chip and the quick-action bar, reacts to touch. The skeleton chip and the basic land chip do not.
 - The chip and the quick-action bar sit in one glass group with 8 px spacing, so they blend like iOS controls but do not merge at rest.
 - Text on glass:
@@ -474,7 +472,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - The left column holds the card thumbnail.
   - The middle column holds the card name in body strong, centered over a centered meta line with the set code in capitals and the collector number, such as "M10 146".
   - The right column holds a 14 px text dim `chevron.right` symbol, centered, that shows the chip opens the details. The skeleton chip and the basic land chip have no chevron.
-  - The two side columns are both 40 px wide, the thumbnail width, so the name and the meta line sit centered on the chip.
+  - The two side columns are both as wide as the card thumbnail, so the name and the meta line sit centered on the chip.
   - A new scan replaces the chip.
   - The meta line adds the finish when it is not nonfoil: "M10 146 · Foil".
   - A quick-action bar sits 8 px below the chip, centered, and is always on the Scan tab. It is one glass pill with 12 px corners and three buttons in chip type, split by 16 px hairline dividers in the line color. Without Liquid Glass, the pill uses the control surface. The bar is 32 px tall, and each button has a 44 pt touch target. From left to right:
@@ -537,4 +535,4 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Don't** mark suggested-out or buylist-out cards on the deck's Cards tab. Only planned swaps are commitments.
 - **Don't** use the primary lime for decoration. It always means "you can act here" or "selected". The brand mark is the one exception.
 - **Don't** draw anything over the camera except the card outline, the batch button, and the latest-scan chip.
-- **Do** use Liquid Glass only for controls that float over the camera, and keep the dark surface fallback.
+- **Do** keep Liquid Glass to the controls that float over the camera, and keep the dark surface fallback.
