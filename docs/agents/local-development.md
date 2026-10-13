@@ -11,7 +11,9 @@
 ## Xcode and the Simulator
 
 - `xcode-select` may point to the Command Line Tools. Set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` for `xcrun simctl` and for builds.
-- Use the iPhone 17 Pro Simulator.
+- Use the one shared iPhone 16e Simulator. It matches the owner's phone. Do not create, boot, or erase another Simulator.
+- Only one agent at a time uses the Simulator, Metro, an Xcode or Expo native build, or the owner's iPhone. Take the device lock first with `mkdir /tmp/mtgscan-device.lock`, and write your name into `/tmp/mtgscan-device.lock/owner`. If `mkdir` fails, another agent has the device. Keep working on code and tests, and try again later.
+- When the device work is done, stop Metro, close the agent-device session, shut down the Simulator, delete the generated `ios/` and build folders, and remove `/tmp/mtgscan-device.lock`.
 - `expo run:ios` and `expo start` keep Metro running and never exit. Start them in the background with output to a log file, poll the log, and stop Metro when you are done.
 - Verify each UI change on the Simulator with agent-device. Read the `agent-device` and `ios-simulator` skills first. Save the screenshots for the PR evidence.
 - When a check needs a signed-in account, use the test sign-in against local Supabase. See Test sign-in. Ask the owner to sign in only for a check against hosted Supabase or of Apple or Google sign-in itself. Never type the owner's credentials.
