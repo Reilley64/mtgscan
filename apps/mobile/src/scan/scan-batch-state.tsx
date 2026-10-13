@@ -19,7 +19,6 @@ import { supabase } from '@/lib/supabase';
 import type { Recognition } from '../../modules/card-recognizer';
 import {
   emptyScanBatch,
-  pendingCommitMatches,
   scanBatchReducer,
   scansToAdd,
   stacksOf,
@@ -171,21 +170,16 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
 
   const commitBatch = useCallback(async (batch: ScanBatch) => {
     const scans = scansToAdd(batch);
-    const stacks = stacksOf(scans);
-    const pendingCommit =
-      batch.pendingCommit && pendingCommitMatches(batch)
-        ? batch.pendingCommit
-        : { idempotencyKey: randomUUID(), stacks };
-    dispatchScanning({ type: 'commitStarted', pendingCommit });
+    dispatchScanning({ type: 'commitStarted' });
     const { data, error } = await supabase.rpc('add_scan_batch', {
-      batch: { idempotency_key: pendingCommit.idempotencyKey, items: stacks } as unknown as Json,
+      batch: { items: stacksOf(scans) } as unknown as Json,
     });
     if (error) {
       dispatchScanning({ type: 'commitFailed' });
       return false;
     }
-    const { copy_count } = data as unknown as ScanBatchResult;
-    dispatchScanning({ type: 'commitSucceeded', scanIds: scans.map((scan) => scan.scanId), copyCount: copy_count });
+    const { copies } = data as unknown as ScanBatchResult;
+    dispatchScanning({ type: 'commitSucceeded', scanIds: scans.map((scan) => scan.scanId), copyCount: copies.length });
     return true;
   }, []);
 
@@ -199,7 +193,7 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
         return;
       }
       dispatchScanning({ type: 'restored', batch });
-      if (pendingCommitMatches(batch)) {
+      if (batch.commitPending) {
         void commitBatch(batch);
       }
     });
@@ -231,8 +225,7 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
     () => ({
       batch: state.batch,
       latest: latestScan(state),
-      commitStatus:
-        state.commitStatus === 'failed' && !pendingCommitMatches(state.batch) ? 'idle' : state.commitStatus,
+      commitStatus: state.commitStatus,
       dispatch: dispatchScanning,
       addCopy,
       commit,

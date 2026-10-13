@@ -28,7 +28,7 @@ Components follow Atomic Design in `src/components`. `CODING_STANDARDS.md` (Atom
 
 - `atoms` holds the primitives: `Text`, `TextLink`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `CardImage`, `CardThumbnail`, `TileButton`, `AppleSignInButton`, `Input`, `ProgressBar`, `Skeleton`, `SetIcon`, `QuickActionButton`, and `CountBadge`. `Button` has a 50 px sign-in size and the Google variant. `AppleSignInButton` wraps the system Apple button. `Toggle` wraps `@rn-primitives/toggle`. `Switch` wraps the iOS switch.
 - `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`), `ListRow`, `SwitchRow`, `EmptyState`, `CardTile`, `CardGrid`, `AccountCard`, `GalleryCard`, `FailureNotice`, `Brand`, `QuickActionBar`, `SheetSection`, `SettingsButton`, and `BatchButton`. `CardTile` is a card image with its set and collector number, 3 to a row. The binder grid and the card printing grids on the Scan tab use it.
-- `organisms` holds `BinderWall`, `SignInSheet`, `SettingsContent`, and the Scan tab sections: `LatestScanChip`, `ScanQuickActions`, `ScanDetailsContent`, `NameSearch`, `PrintingPicker`, and `ScanBatchList`. `templates` holds `TabScreen`, `DrawerSheet`, the content layout of the bottom drawers, and `PageSheet`, the layout of a page sheet with a title, **Done**, and a footer.
+- `organisms` holds `BinderWall`, `SignInSheet`, `SettingsContent`, and the Scan tab sections: `LatestScanChip`, `ScanQuickActions`, `ScanDetailsContent`, `NameSearch`, `PrintingPicker`, and `ScanBatchList`. `templates` holds `TabScreen` and `DrawerSheet`, the content layout of the bottom drawers, with an optional footer below the content that scrolls.
 - Expo Router routes in `src/app` are the pages.
 - ESLint checks the import direction between the levels with `eslint-plugin-boundaries`. It also keeps raw controls out of screens and features. See `apps/mobile/eslint.config.js`.
 - Only `Skeleton` animates. It pulses with React Native `Animated`, not Reanimated, so no test needs Reanimated animations.
@@ -112,7 +112,9 @@ The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in accou
 
 - After every change, the phone writes the scan batch to `scan-batch-<user ID>.json` in the app's documents folder with `expo-file-system`. The file holds a format version, the scans, the condition and language for new scans, and the pending commit. `src/scan/scan-batch-file.ts` reads and writes it.
 - When an account signs in, the phone reads its file back. Sign-out keeps the file and clears the scan batch from the screen.
-- **Add N to collection** calls `add_scan_batch` with one stack per card printing, finish, condition, and language. The pending commit keeps the idempotency key and the stacks it sent. A retry with the same stacks sends the same key, so a commit that reached the server adds its copies once. When the stacks change, the next commit gets a new key. When the file still has a pending commit for the same stacks at sign-in, the phone sends it again by itself.
+- Each scan gets a UUID when it is made, including a scan from **+1**. It is the copy ID of that copy.
+- **Add N to collection** calls `add_scan_batch` with one stack per card printing, finish, condition, and language, and the copy IDs of its scans. The server adds each copy ID once, so a retry never adds a copy twice, even after the scan batch changed.
+- The file marks a commit that has not finished. At sign-in, the phone sends that commit again by itself.
 - A commit that works removes the scans it sent. A commit that fails keeps every scan. Batch review rows do not open while a commit runs.
 
 ### Local Supabase
@@ -171,11 +173,12 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 
 Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_batch', { batch })`. It runs in one transaction. `supabase/collection.ts` has the shared types for the batch, the result, and errors.
 
-- The batch has an `idempotency_key` UUID and 1 to 2,000 stacks. Each stack has `card_printing_id`, `finish`, `condition`, `language`, and `quantity` from 1 to 999.
+- The batch has 1 to 2,000 stacks and at most 10,000 copy IDs. Each stack has `card_printing_id`, `finish`, `condition`, `language`, and `copy_ids`, a list of 1 to 999 copy IDs. A copy ID is a UUID that the phone gives each copy. It can appear only once in a batch.
 - Stacks with the same card printing, finish, condition, and language are summed. Each stack merges into the caller's collection entry with the same properties, no protected flag, and no user tags. If there is no such entry, the commit creates it.
 - Each commit writes one addition and one addition line per stack. The line records the purchase-day price in USD and EUR cents for the card printing and finish, with the price snapshot time. A missing price is null.
-- A repeated idempotency key with the same stacks returns the first result with `replayed` true and changes nothing. With different stacks it fails with `idempotency_conflict`.
-- A refused call writes nothing. Its error has a `code` of `invalid_argument`, `unknown_printing`, `basic_land`, or `idempotency_conflict`, and the field at fault in `details`, such as `items[3].finish`. `readScanBatchError` reads it.
+- `collection_addition_copies` records each added copy ID with its addition line, once per user. The function skips copy IDs that the caller already added, even when the stack around them changed. If every copy ID was added before, it changes nothing.
+- The result has the new addition (`addition_id`, `added_at`, `copy_count`, and `items`, or nulls and 0 when nothing was new) and one row in `copies` per copy ID: the addition and collection entry it went into, and `replayed` true when an earlier call added it.
+- A refused call writes nothing. Its error has a `code` of `invalid_argument`, `unknown_printing`, or `basic_land`, and the field at fault in `details`, such as `items[3].finish`. `readScanBatchError` reads it.
 
 ### Binder grid read
 
@@ -229,7 +232,7 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `collection_entries`, `collection_additions`, and `collection_addition_lines`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
+The tables with a user's data are `profiles`, `collection_entries`, `collection_additions`, `collection_addition_lines`, and `collection_addition_copies`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. A migration grants `execute` on a helper only to the roles whose functions call it.
 

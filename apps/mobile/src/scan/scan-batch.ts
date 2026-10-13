@@ -27,15 +27,10 @@ export function recognizedScan(scan: BatchScan | null | undefined): RecognizedSc
   return scan?.printing ? { ...scan, printing: scan.printing } : null;
 }
 
-export type PendingCommit = Readonly<{
-  idempotencyKey: string;
-  stacks: readonly ScanBatchStack[];
-}>;
-
 export type ScanBatch = Readonly<{
   scans: readonly BatchScan[];
   defaults: BatchDefaults;
-  pendingCommit: PendingCommit | null;
+  commitPending: boolean;
 }>;
 
 export type ScanBatchAction =
@@ -54,7 +49,7 @@ export type ScanBatchAction =
   | { type: 'addCopy'; scanId: string; newScanId: string }
   | { type: 'remove'; scanId: string }
   | { type: 'setDefaults'; defaults: Partial<BatchDefaults> }
-  | { type: 'commitStarted'; pendingCommit: PendingCommit }
+  | { type: 'commitStarted' }
   | { type: 'committed'; scanIds: readonly string[] };
 
 export type ScanEdit = Exclude<ScanBatchAction, { type: 'commitStarted' | 'committed' }>;
@@ -62,7 +57,7 @@ export type ScanEdit = Exclude<ScanBatchAction, { type: 'commitStarted' | 'commi
 export const emptyScanBatch: ScanBatch = {
   scans: [],
   defaults: { condition: 'near_mint', language: 'en' },
-  pendingCommit: null,
+  commitPending: false,
 };
 
 const premiumFinishes: readonly Finish[] = ['foil', 'etched'];
@@ -138,12 +133,12 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
     case 'setDefaults':
       return { ...batch, defaults: { ...batch.defaults, ...action.defaults } };
     case 'commitStarted':
-      return { ...batch, pendingCommit: action.pendingCommit };
+      return { ...batch, commitPending: true };
     case 'committed':
       return {
         ...batch,
         scans: batch.scans.filter((scan) => !action.scanIds.includes(scan.scanId)),
-        pendingCommit: null,
+        commitPending: false,
       };
   }
 }
@@ -162,16 +157,9 @@ export function stacksOf(scans: readonly RecognizedScan[]): ScanBatchStack[] {
       language: scan.language,
     };
     const key = Object.values(stack).join('|');
-    stacks.set(key, { ...stack, quantity: (stacks.get(key)?.quantity ?? 0) + 1 });
+    stacks.set(key, { ...stack, copy_ids: [...(stacks.get(key)?.copy_ids ?? []), scan.scanId] });
   }
-  return [...stacks.entries()].sort(([first], [second]) => first.localeCompare(second)).map(([, stack]) => stack);
-}
-
-export function pendingCommitMatches(batch: ScanBatch) {
-  return (
-    batch.pendingCommit !== null &&
-    JSON.stringify(batch.pendingCommit.stacks) === JSON.stringify(stacksOf(scansToAdd(batch)))
-  );
+  return [...stacks.values()];
 }
 
 export function sameTextTwinsFirst(scan: BatchScan, printings: readonly Printing[]): Printing[] {

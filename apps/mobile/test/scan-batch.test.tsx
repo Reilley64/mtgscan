@@ -10,7 +10,7 @@ import {
   signInNextWithEmail,
   startSignedIn,
 } from './fake-supabase';
-import { isPageSheetPresented, openSettings, pressTab, swipeDownDrawer, swipeDownPageSheet } from './native-ui';
+import { isDrawerPresented, openSettings, presentedDrawer, pressTab, swipeDownDrawer } from './native-ui';
 import { restartTheApp } from './render-app';
 import { latestScanChip, openLatestScan, openScan, scanACard, scanTab, selectedChoice } from './scanning';
 
@@ -55,17 +55,15 @@ test('the batch button counts the copies to add and leaves out scans that were n
   expect(screen.getByRole('button', { name: 'Add 2 to collection' })).toBeOnTheScreen();
 });
 
-test('the batch button opens batch review as a page sheet that Done and a downward swipe close', async () => {
+test('the batch button opens batch review as a bottom drawer at half height that drags to full height', async () => {
   await openScan();
 
   await openBatchReview();
-  expect(isPageSheetPresented()).toBe(true);
-  await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
-  expect(isPageSheetPresented()).toBe(false);
 
-  await openBatchReview();
-  await swipeDownPageSheet();
-  expect(isPageSheetPresented()).toBe(false);
+  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [0.5, 1], openingHeight: 0.5 });
+  expect(screen.getByRole('button', { name: 'Add 0 to collection' })).toBeDisabled();
+  await swipeDownDrawer();
+  expect(isDrawerPresented()).toBe(false);
 });
 
 test('batch review lists every copy as its own row with no merging and no +/- control', async () => {
@@ -135,7 +133,7 @@ test('Remove scan in the scan details sheet removes only that copy from batch re
 
   expect(screen.getByRole('header', { name: 'Scan batch' })).toBeOnTheScreen();
   expect(reviewRows()).toEqual(['Shock, M19 156 · NM · English']);
-  await swipeDownPageSheet();
+  await swipeDownDrawer();
   expect(latestScanChip('Shock, M19 156')).toBeOnTheScreen();
 });
 
@@ -163,7 +161,7 @@ test('the condition and language for new scans start at near mint and English an
 
   await fireEvent.press(screen.getByRole('button', { name: 'HP' }));
   await fireEvent.press(screen.getByRole('button', { name: 'German' }));
-  await swipeDownPageSheet();
+  await swipeDownDrawer();
   await scanACard();
   await openBatchReview(2);
 
@@ -172,7 +170,7 @@ test('the condition and language for new scans start at near mint and English an
   expect(selectedChoice('German')).toBeOnTheScreen();
 });
 
-test('Add N to collection sends every copy, with identical copies in one stack, and an idempotency key', async () => {
+test('Add N to collection sends every copy with its own copy ID, with identical copies in one stack', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock], { premiumMark: true }), 'unreadable_photo');
   await openScan();
   await scanACard();
@@ -184,11 +182,13 @@ test('Add N to collection sends every copy, with identical copies in one stack, 
   await addToCollection(3);
 
   const [sent] = scanBatchesSentToTheServer();
-  expect(sent.idempotency_key).toMatch(/^[0-9a-f-]{36}$/);
-  expect(sent.items).toEqual([
-    { card_printing_id: lightningBoltM10.printingId, finish: 'nonfoil', condition: 'near_mint', language: 'en', quantity: 2 },
-    { card_printing_id: shock.printingId, finish: 'foil', condition: 'near_mint', language: 'en', quantity: 1 },
+  expect(sent.items.map(({ copy_ids, ...stack }) => ({ ...stack, copies: copy_ids.length }))).toEqual([
+    { card_printing_id: lightningBoltM10.printingId, finish: 'nonfoil', condition: 'near_mint', language: 'en', copies: 2 },
+    { card_printing_id: shock.printingId, finish: 'foil', condition: 'near_mint', language: 'en', copies: 1 },
   ]);
+  const copyIds = sent.items.flatMap((item) => item.copy_ids);
+  expect(new Set(copyIds).size).toBe(3);
+  copyIds.forEach((copyId) => expect(copyId).toMatch(/^[0-9a-f-]{36}$/));
 });
 
 test('a commit closes batch review, keeps scans that were not recognized, and the binder grid shows the new cards', async () => {
@@ -201,7 +201,7 @@ test('a commit closes batch review, keeps scans that were not recognized, and th
 
   await addToCollection(2);
 
-  expect(isPageSheetPresented()).toBe(false);
+  expect(isDrawerPresented()).toBe(false);
   expect(scanTab().getByText('Added 2 cards to your collection.')).toBeOnTheScreen();
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   await pressTab('Collection');
@@ -223,7 +223,7 @@ test('rows cannot be opened while the commit runs', async () => {
   await commit.finish();
 });
 
-test('a failed commit keeps the batch and Try again sends the same idempotency key', async () => {
+test('a failed commit keeps the batch and Try again sends the same copy IDs', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
@@ -237,8 +237,8 @@ test('a failed commit keeps the batch and Try again sends the same idempotency k
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
 
   const [failed, retried] = scanBatchesSentToTheServer();
-  expect(retried.idempotency_key).toBe(failed.idempotency_key);
-  expect(isPageSheetPresented()).toBe(false);
+  expect(retried.items).toEqual(failed.items);
+  expect(isDrawerPresented()).toBe(false);
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
 });
 
@@ -257,23 +257,27 @@ test('Try again after a commit that the server added but the phone did not hear 
   expect(await screen.findByRole('image', { name: 'Lightning Bolt, M10 146, 2 owned' })).toBeOnTheScreen();
 });
 
-test('after a failed commit, a change to the scans to add brings back Add N to collection with a new idempotency key', async () => {
+test('Try again after the scan batch changed adds only the copies the server did not add yet', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
   await openScan();
   await scanACard();
   await openBatchReview(1);
-  failNextScanBatchCommit('before the server adds it');
+  failNextScanBatchCommit('after the server adds it');
   await addToCollection(1);
-  await swipeDownPageSheet();
+  await swipeDownDrawer();
 
   await scanACard();
   await openBatchReview(2);
-  expect(screen.queryByText('Could not add to your collection. Your scans are kept.')).not.toBeOnTheScreen();
-  await addToCollection(2);
+  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
 
-  const [failed, sent] = scanBatchesSentToTheServer();
-  expect(sent.idempotency_key).not.toBe(failed.idempotency_key);
-  expect(sent.items).toHaveLength(2);
+  const [first, retried] = scanBatchesSentToTheServer();
+  expect(retried.items.flatMap((item) => item.copy_ids)).toEqual(
+    expect.arrayContaining(first.items.flatMap((item) => item.copy_ids)),
+  );
+  expect(scanTab().getByText('Added 2 cards to your collection.')).toBeOnTheScreen();
+  await pressTab('Collection');
+  expect(await screen.findByRole('image', { name: 'Lightning Bolt, M10 146, 1 owned' })).toBeOnTheScreen();
+  expect(screen.getByRole('image', { name: 'Shock, M19 156, 1 owned' })).toBeOnTheScreen();
 });
 
 test('the failed commit stays after a change to the condition and language for new scans', async () => {
@@ -298,7 +302,7 @@ test('the scan batch and its defaults survive a restart of the app', async () =>
   await scanACard();
   await openBatchReview(2);
   await fireEvent.press(screen.getByRole('button', { name: 'LP' }));
-  await swipeDownPageSheet();
+  await swipeDownDrawer();
 
   await restartTheApp();
   await pressTab('Scan');
@@ -309,7 +313,7 @@ test('the scan batch and its defaults survive a restart of the app', async () =>
   expect(selectedChoice('LP')).toBeOnTheScreen();
 });
 
-test('a restart after a commit that did not finish sends it again with the same idempotency key', async () => {
+test('a restart after a commit that did not finish sends it again with the same copy IDs', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
@@ -321,7 +325,7 @@ test('a restart after a commit that did not finish sends it again with the same 
   await pressTab('Scan');
 
   const [first, retried] = scanBatchesSentToTheServer();
-  expect(retried.idempotency_key).toBe(first.idempotency_key);
+  expect(retried.items).toEqual(first.items);
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   await pressTab('Collection');
   expect(await screen.findByRole('image', { name: 'Lightning Bolt, M10 146, 1 owned' })).toBeOnTheScreen();

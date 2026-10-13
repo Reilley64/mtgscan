@@ -30,11 +30,6 @@ const drawerOptions: NativeStackNavigationOptions = {
   contentStyle: { backgroundColor: colors.sheet },
 };
 
-const pageSheetOptions: NativeStackNavigationOptions = {
-  presentation: 'pageSheet',
-  contentStyle: { backgroundColor: colors.sheet },
-};
-
 function RootStack() {
   const signedIn = useSession() !== null;
 
@@ -42,7 +37,7 @@ function RootStack() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="scan-batch" options={pageSheetOptions} />
+        <Stack.Screen name="scan-batch" options={drawerOptions} />
         <Stack.Screen name="scan-details" options={drawerOptions} />
         <Stack.Screen name="scan-printings" options={drawerOptions} />
         <Stack.Screen name="settings" options={drawerOptions} />
@@ -53,7 +48,6 @@ function RootStack() {
       <Stack.Protected guard={__DEV__}>
         <Stack.Screen name="primitives" />
         <Stack.Screen name="primitives-sheet" options={drawerOptions} />
-        <Stack.Screen name="primitives-page-sheet" options={pageSheetOptions} />
       </Stack.Protected>
     </Stack>
   );

@@ -84,13 +84,12 @@ async function sampleScanBatch(admin: LocalClient): Promise<ScanBatch> {
     fail('Could not add sample collection entries', 'The card catalog is empty. Import it first, as docs/agents/local-development.md says.');
   }
   return {
-    idempotency_key: crypto.randomUUID(),
     items: data.map((printing, index) => ({
       card_printing_id: printing.id,
       finish: printing.finishes.includes('nonfoil') ? 'nonfoil' : printing.finishes[0]!,
       condition: 'near_mint',
       language: 'en',
-      quantity: (index % 4) + 1,
+      copy_ids: Array.from({ length: (index % 4) + 1 }, () => crypto.randomUUID()),
     })),
   };
 }

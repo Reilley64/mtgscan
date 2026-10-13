@@ -1,7 +1,7 @@
 import { fireEvent, screen } from 'expo-router/testing-library';
 
 import { startSignedIn } from './fake-supabase';
-import { isPageSheetPresented, presentedDrawer } from './native-ui';
+import { presentedDrawer } from './native-ui';
 import { renderApp } from './render-app';
 
 beforeEach(() => {
@@ -29,7 +29,6 @@ test('the primitive catalog shows every primitive', async () => {
     'Progress bars',
     'Sheet sections',
     'Drawer sheet',
-    'Page sheet',
   ]) {
     expect(screen.getByRole('header', { name: section })).toBeOnTheScreen();
   }
@@ -61,14 +60,6 @@ test('the primitive catalog opens the drawer sheet sample as a bottom drawer', a
   await fireEvent.press(screen.getByRole('button', { name: 'Open the drawer sheet' }));
 
   expect(await screen.findByRole('header', { name: 'Drawer sheet' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'The footer stays at the bottom' })).toBeOnTheScreen();
   expect(presentedDrawer()).toMatchObject({ showsGrabber: true, openingHeight: 0.5, heights: [0.5, 1] });
-});
-
-test('the primitive catalog opens the page sheet sample as a page sheet', async () => {
-  await renderApp('/primitives');
-
-  await fireEvent.press(screen.getByRole('button', { name: 'Open the page sheet' }));
-
-  expect(await screen.findByRole('header', { name: 'Page sheet' })).toBeOnTheScreen();
-  expect(isPageSheetPresented()).toBe(true);
 });

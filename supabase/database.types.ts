@@ -157,6 +157,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"collection_addition_copies": {
+                  Row: {
+                    "addition_id": string,"card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"copy_id": string,"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "addition_id": string,"card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"copy_id": string,"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"user_id": string
+                  }
+                  Update: {
+                    "addition_id"?: string,"card_printing_id"?: string,"condition"?: Database["public"]['Enums']["card_condition"],"copy_id"?: string,"finish"?: Database["public"]['Enums']["card_finish"],"language"?: Database["public"]['Enums']["card_language"],"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "collection_addition_copies_addition_id_card_printing_id_fi_fkey"
+      columns: ["addition_id","card_printing_id","finish","condition","language"]
+isOneToOne: false
+      referencedRelation: "collection_addition_lines"
+      referencedColumns: ["addition_id","card_printing_id","finish","condition","language"]
+    }
+                  ]
                 },"collection_addition_lines": {
                   Row: {
                     "addition_id": string,"card_printing_id": string,"collection_entry_id": string | null,"condition": Database["public"]['Enums']["card_condition"],"entry_quantity": number,"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"price_snapshot_at": string | null,"purchase_day_eur_cents": number | null,"purchase_day_usd_cents": number | null,"quantity": number,"user_id": string
@@ -191,14 +211,14 @@ isOneToOne: false
                   ]
                 },"collection_additions": {
                   Row: {
-                    "added_at": string,"copy_count": number,"id": string,"idempotency_key": string,"source": Database["public"]['Enums']["collection_addition_source"],"user_id": string
+                    "added_at": string,"copy_count": number,"id": string,"source": Database["public"]['Enums']["collection_addition_source"],"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "added_at": string,"copy_count": number,"id"?: string,"idempotency_key": string,"source": Database["public"]['Enums']["collection_addition_source"],"user_id": string
+                    "added_at": string,"copy_count": number,"id"?: string,"source": Database["public"]['Enums']["collection_addition_source"],"user_id": string
                   }
                   Update: {
-                    "added_at"?: string,"copy_count"?: number,"id"?: string,"idempotency_key"?: string,"source"?: Database["public"]['Enums']["collection_addition_source"],"user_id"?: string
+                    "added_at"?: string,"copy_count"?: number,"id"?: string,"source"?: Database["public"]['Enums']["collection_addition_source"],"user_id"?: string
                   }
                   Relationships: [
                     

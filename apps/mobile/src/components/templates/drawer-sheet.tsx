@@ -6,10 +6,11 @@ import { cn } from '@/lib/class-names';
 
 type DrawerSheetProps = {
   title?: string;
+  footer?: ReactNode;
   children: ReactNode;
 };
 
-export function DrawerSheet({ title, children }: DrawerSheetProps) {
+export function DrawerSheet({ title, footer, children }: DrawerSheetProps) {
   return (
     <>
       {title ? (
@@ -27,6 +28,7 @@ export function DrawerSheet({ title, children }: DrawerSheetProps) {
         automaticallyAdjustKeyboardInsets>
         {children}
       </ScrollView>
+      {footer ? <View className="gap-sm bg-sheet px-lg pb-safe-offset-lg pt-sm">{footer}</View> : null}
     </>
   );
 }

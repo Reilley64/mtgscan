@@ -44,9 +44,9 @@ export async function pressTab(label: string) {
 }
 
 function presentedDrawerView() {
-  const [drawer] = hostViews('RNSModalScreen').filter(
-    (candidate) => candidate.props.stackPresentation === 'formSheet',
-  );
+  const drawer = hostViews('RNSModalScreen')
+    .filter((candidate) => candidate.props.stackPresentation === 'formSheet')
+    .at(-1);
   if (!drawer) {
     throw new Error('No drawer is open');
   }
@@ -67,20 +67,8 @@ function presentedDrawerView() {
   };
 }
 
-function presentedPageSheetView() {
-  const [sheet] = hostViews('RNSModalScreen').filter((candidate) => candidate.props.stackPresentation === 'pageSheet');
-  if (!sheet) {
-    throw new Error('No page sheet is open');
-  }
-  return sheet;
-}
-
-export function isPageSheetPresented() {
-  return hostViews('RNSModalScreen').some((candidate) => candidate.props.stackPresentation === 'pageSheet');
-}
-
-export async function swipeDownPageSheet() {
-  await fireEvent(presentedPageSheetView(), 'dismissed', { nativeEvent: { dismissCount: 1 } });
+export function isDrawerPresented() {
+  return hostViews('RNSModalScreen').some((candidate) => candidate.props.stackPresentation === 'formSheet');
 }
 
 export function isInScrollView(element: HostElement) {

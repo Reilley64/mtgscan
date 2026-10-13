@@ -7,7 +7,7 @@ import { ChipGroup } from '@/components/molecules/chip-group';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { ScanBatchList } from '@/components/organisms/scan-batch-list';
-import { PageSheet } from '@/components/templates/page-sheet';
+import { DrawerSheet } from '@/components/templates/drawer-sheet';
 import { scansToAdd } from '@/scan/scan-batch';
 import { useScanBatch } from '@/scan/scan-batch-state';
 
@@ -38,7 +38,7 @@ export default function BatchReviewSheet() {
   );
 
   return (
-    <PageSheet title="Scan batch" onDone={() => router.back()} footer={footer}>
+    <DrawerSheet title="Scan batch" footer={footer}>
       <SheetSection title="Condition for new scans">
         <ChipGroup
           values={conditions}
@@ -63,6 +63,6 @@ export default function BatchReviewSheet() {
             : (scanId) => router.push({ pathname: '/scan-details', params: { scanId } })
         }
       />
-    </PageSheet>
+    </DrawerSheet>
   );
 }

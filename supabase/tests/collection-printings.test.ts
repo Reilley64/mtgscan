@@ -90,13 +90,13 @@ describe('the binder grid read', () => {
     await committed(
       user,
       scanBatch([
-        stack(angelicCurator, { quantity: 2 }),
+        stack(angelicCurator, { copies: 2 }),
         stack(angelicCurator, { finish: 'foil' }),
-        stack(angelicCurator, { condition: 'lightly_played', language: 'ja', quantity: 3 }),
+        stack(angelicCurator, { condition: 'lightly_played', language: 'ja', copies: 3 }),
         stack(delverInnistrad),
       ]),
     );
-    const latest = await committed(user, scanBatch([stack(angelicCurator, { quantity: 4 })]));
+    const latest = await committed(user, scanBatch([stack(angelicCurator, { copies: 4 })]));
 
     const { items, next_cursor } = await collectionPrintings(user);
 
@@ -113,7 +113,7 @@ describe('the binder grid read', () => {
         latest_addition_at: expect.any(String),
       },
     ]);
-    expect(new Date(items[0]!.latest_addition_at).getTime()).toBe(new Date(latest.added_at).getTime());
+    expect(new Date(items[0]!.latest_addition_at).getTime()).toBe(new Date(latest.added_at!).getTime());
   });
 
   test('the owned quantity includes protected copies and copies with user tags', async () => {
@@ -250,7 +250,7 @@ describe('binder grid pages', () => {
 
 describe('access', () => {
   beforeAll(async () => {
-    await committed(alice, scanBatch([stack(ribbonsOfNight, { quantity: 2 })]));
+    await committed(alice, scanBatch([stack(ribbonsOfNight, { copies: 2 })]));
   });
 
   test("a user never reads another user's card printings", async () => {

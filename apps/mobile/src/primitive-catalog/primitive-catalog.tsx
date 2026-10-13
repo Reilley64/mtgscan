@@ -303,11 +303,6 @@ export function PrimitiveCatalog() {
             <Text>Open the drawer sheet</Text>
           </Button>
         </Section>
-        <Section title="Page sheet">
-          <Button onPress={() => router.push('/primitives-page-sheet')}>
-            <Text>Open the page sheet</Text>
-          </Button>
-        </Section>
       </ScrollView>
     </View>
   );

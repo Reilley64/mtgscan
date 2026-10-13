@@ -363,10 +363,9 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 - promote with a copy picker;
 - Bought with the acquired copy picker;
 - the swap-in confirmation for a protected copy;
-- revert;
-- batch review.
+- revert.
 
-Settings, the scan details sheet, and the printing picker are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all three.
+Settings, the scan details sheet, the printing picker, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all four.
 
 - It slides up from the bottom with the iOS grabber and opens at half the screen height.
 - Dragging it up takes it to full height. Dragging it down takes it back to half height.
@@ -445,14 +444,14 @@ The interface is flat. Depth comes from tone, not shadow.
   - Tapping a card printing switches the scan to it and returns to the details.
   - Choosing a basic land shows "Basic lands are not tracked." and changes nothing.
 - **Batch button.** A round icon button at the top right of Scan, 8 px below the safe area, with the `rectangle.portrait.on.rectangle.portrait.angled` card-stack symbol. A count badge on its top right corner counts the scans with a card printing, the same N as **Add N to collection**. Scans that were not recognized are not counted, and they still show in batch review. With no scan to add, the button shows no badge. VoiceOver reads "Scan batch, 3". The button shows in every Scan tab state, and it opens batch review.
-- **Batch review.** An iOS page sheet titled "Scan batch", with **Done** at the top right.
+- **Batch review.** A bottom drawer like settings, titled "Scan batch". The scan details sheet opens over it from a row.
   - **Condition for new scans** and **Language for new scans** come first, as rows of chips. They start at NM and English. A change applies to later scans only.
   - **Not recognized** lists one row per scan that was not recognized, with "Not recognized" and "Tap to search". A tap opens the scan details sheet in name search.
   - **Scans** lists every scan as its own row, newest first. Identical copies are not merged, and rows have no +/- control. A row has the thumbnail, the card name, and a meta line with the set code and collector number, the finish when it is not nonfoil, the condition, and the language: "M10 146 · Foil · NM · English". A tap opens the scan details sheet over the review, to edit or remove that copy.
-  - The primary button **Add N to collection** stays at the bottom. N counts the scans with a card printing. It is disabled when N is 0, and busy while the commit runs.
+  - The primary button **Add N to collection** stays at the bottom of the drawer at half and full height. N counts the scans with a card printing. It is disabled when N is 0, and busy while the commit runs.
   - A commit that works closes the review and removes the added scans. Scans that were not recognized stay. The chip shows "Added N cards to your collection.", and the Collection tab shows the cards the next time it opens.
-  - A commit that fails shows the failure notice "Could not add to your collection. Your scans are kept." above the button, and the button reads **Try again**. Try again sends the same idempotency key, so the server never adds the same copies twice. When the scans to add change, the notice goes away and the button reads **Add N to collection** again. That commit gets a new idempotency key.
-  - When the app restarts after a commit that failed or was still running, it sends that commit again with the same idempotency key, as long as the scans to add are unchanged.
+  - A commit that fails shows the failure notice "Could not add to your collection. Your scans are kept." above the button, and the button reads **Try again** until a commit works. Each scan has its own copy ID, so the server never adds the same copy twice, even when the scan batch changed after the failure.
+  - When the app restarts after a commit that failed or was still running, it sends the commit again by itself.
   - While the commit runs, rows do not open.
   - The phone saves the scan batch and its defaults for each account, so they survive a restart. Another account on the phone does not see them.
 - **Binder tile.** One printing's card image, with a set and collector number caption and corner badges totalled over its copies. Tiles of printings with a foil copy carry a subtle sheen.

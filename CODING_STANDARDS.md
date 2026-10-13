@@ -50,7 +50,7 @@ The app UI follows Brad Frost's Atomic Design (#101). Each level is a folder in 
 | Atoms (`atoms`) | The smallest pieces, mostly wrappers of `@rn-primitives` in the React Native Reusables pattern | `Text`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `CardImage` |
 | Molecules (`molecules`) | Small groups of atoms with one job | `ListRow`, `SwitchRow`, `ChipGroup`, `ToggleGroup`, `EmptyState` |
 | Organisms (`organisms`) | Larger sections | `BinderWall`, `LatestScanChip`, `PrintingPicker`, and later the settings content |
-| Templates (`templates`) | Page layouts with no data | `TabScreen`, `DrawerSheet`, `PageSheet` |
+| Templates (`templates`) | Page layouts with no data | `TabScreen`, `DrawerSheet` |
 | Pages (`src/app`) | Expo Router routes. They load data and fill templates with organisms. | `settings.tsx`, `(tabs)/collection.tsx` |
 
 - Each level imports only from its own level and the levels below it. Pages import from any level. Organisms and features may use feature modules such as `src/scan`. Templates, molecules, and atoms may not. ESLint enforces the direction with `eslint-plugin-boundaries` in `apps/mobile/eslint.config.js`.
@@ -88,7 +88,7 @@ The app UI follows Brad Frost's Atomic Design (#101). Each level is a folder in 
   - Import tests run the import command with fixture files and never download.
   - App component tests in `apps/mobile/test` render the real Expo Router navigation with `renderApp`. They fake only the Supabase client, the native sign-in modules, the card detector module, the card recognizer module, `expo-file-system`, `expo-haptics`, and the scan sounds in `src/scan/scan-sounds.ts`, in `test/fake-*.ts`. Only `test/native-ui.ts` reads native views. Jest compiles the NativeWind classes in `test/class-styles.ts`, maps CSS files to an empty module, and runs the Reanimated test setup, so class styles show in `toHaveStyle`.
   - Theme tests check the Tailwind theme against `DESIGN.md` and the class merges of `cn()`, with no rendering.
-  - Primitive tests in `apps/mobile/test/atoms.test.tsx`, `molecules.test.tsx`, `drawer-sheet.test.tsx`, and `page-sheet.test.tsx` render one atom, molecule, or template with `render` and check its roles, states, labels, touch target, and token styles.
+  - Primitive tests in `apps/mobile/test/atoms.test.tsx`, `molecules.test.tsx`, and `drawer-sheet.test.tsx` render one atom, molecule, or template with `render` and check its roles, states, labels, touch target, and token styles.
   - The owner checks on the device what Jest cannot reach, such as real Apple and Google sign-in.
 - Test external behavior, such as screen text, roles, returned rows, error codes, and error fields. Leave out internal state, component structure, SQL text, and query plans.
 - Name each test as a sentence about the behavior, in glossary terms.

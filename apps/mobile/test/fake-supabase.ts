@@ -37,7 +37,7 @@ const users = new Map<string, User>();
 let collectionPrintings: CollectionPrintingRow[] = [];
 let failingCollectionReads = 0;
 let scanBatchesSent: ScanBatch[] = [];
-let additions = new Map<string, ScanBatchResult>();
+let addedCopies = new Map<string, string>();
 let failingScanBatch: 'before the server adds it' | 'after the server adds it' | null = null;
 let heldScanBatch: Promise<void> | null = null;
 let galleryObjects = new Map<string, string>();
@@ -117,10 +117,9 @@ function collectionPrintingsPage({ cursor, limit = 60 }: CollectionPrintingsQuer
 
 const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
 
-function addToCollection(batch: ScanBatch): ScanBatchResult {
-  const addedAt = new Date(Date.UTC(2026, 9, 13, 10, additions.size)).toISOString();
-  for (const item of batch.items) {
-    const printing = galleryPrintings.find((candidate) => candidate.printingId === item.card_printing_id)!;
+function addToCollection(printingIds: string[], addedAt: string) {
+  for (const printingId of printingIds) {
+    const printing = galleryPrintings.find((candidate) => candidate.printingId === printingId)!;
     const owned = collectionPrintings.find((row) => row.printing_id === printing.printingId);
     collectionPrintings = [
       {
@@ -129,19 +128,12 @@ function addToCollection(batch: ScanBatch): ScanBatchResult {
         set: printing.setCode,
         collector_number: printing.collectorNumber,
         image_uris: [cardImageUri(printing.printingId)],
-        owned_quantity: (owned?.owned_quantity ?? 0) + item.quantity,
+        owned_quantity: (owned?.owned_quantity ?? 0) + 1,
         latest_addition_at: addedAt,
       },
       ...collectionPrintings.filter((row) => row !== owned),
     ];
   }
-  return {
-    addition_id: `addition-${additions.size + 1}`,
-    added_at: addedAt,
-    copy_count: batch.items.reduce((sum, item) => sum + item.quantity, 0),
-    replayed: false,
-    items: [],
-  };
 }
 
 async function addScanBatch(batch: ScanBatch) {
@@ -154,9 +146,29 @@ async function addScanBatch(batch: ScanBatch) {
   if (failure === 'before the server adds it') {
     return { data: null, error: networkFailure };
   }
-  const first = additions.get(batch.idempotency_key);
-  const result = first ? { ...first, replayed: true } : addToCollection(batch);
-  additions.set(batch.idempotency_key, first ?? result);
+  const copies = batch.items.flatMap((item) => item.copy_ids.map((copyId) => ({ copyId, item })));
+  const newCopies = copies.filter(({ copyId }) => !addedCopies.has(copyId));
+  const additionId = newCopies.length > 0 ? `addition-${new Set(addedCopies.values()).size + 1}` : null;
+  const addedAt = additionId && new Date(Date.UTC(2026, 9, 13, 10, addedCopies.size)).toISOString();
+  if (additionId && addedAt) {
+    addToCollection(
+      newCopies.map(({ item }) => item.card_printing_id),
+      addedAt,
+    );
+    newCopies.forEach(({ copyId }) => addedCopies.set(copyId, additionId));
+  }
+  const result: ScanBatchResult = {
+    addition_id: additionId,
+    added_at: addedAt,
+    copy_count: newCopies.length,
+    items: [],
+    copies: copies.map(({ copyId }) => ({
+      copy_id: copyId,
+      addition_id: addedCopies.get(copyId)!,
+      collection_entry_id: null,
+      replayed: addedCopies.get(copyId) !== additionId,
+    })),
+  };
   return failure ? { data: null, error: networkFailure } : { data: result, error: null };
 }
 
@@ -343,7 +355,7 @@ export function resetFakeSupabase() {
   collectionPrintings = [];
   failingCollectionReads = 0;
   scanBatchesSent = [];
-  additions = new Map();
+  addedCopies = new Map();
   failingScanBatch = null;
   heldScanBatch = null;
   galleryObjects = new Map();
