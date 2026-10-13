@@ -31,6 +31,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Import prices
         run: bun run import prices
+      - name: Record daily collection totals
+        run: bun run import collection-totals
       - name: Prune search telemetry older than 180 days
         if: ${{ !cancelled() }}
         run: bun run import prune-telemetry

@@ -8,9 +8,11 @@ import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { PriceLine } from '@/components/molecules/price-line';
 import { EmptyState } from '@/components/molecules/empty-state';
+import { CollectionTotalButton } from '@/components/organisms/collection-total';
 import { TabListScreen } from '@/components/templates/tab-screen';
 import { shownCondition, shownPrice, spokenFinishAndCondition } from '@/collection/copy-labels';
 import { useCollectionCopies, type BinderRead } from '@/collection/use-collection-copies';
+import { useCollectionTotal } from '@/collection/use-collection-total';
 
 function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAgain: () => void }) {
   if (binder.status === 'failed') {
@@ -60,10 +62,12 @@ export default function CollectionScreen() {
   const { binder, reload, loadMore } = useCollectionCopies();
   const copies = binder.status === 'loaded' ? binder.copies : [];
   const iconOf = useSetIcons([...new Set(copies.map((copy) => copy.set))]);
+  const total = useCollectionTotal();
 
   return (
     <TabListScreen
       title="Collection"
+      actions={total && total.copies > 0 ? <CollectionTotalButton total={total} /> : undefined}
       data={copies}
       keyExtractor={(copy) => `${copy.collection_entry_id}:${copy.copy_number}`}
       numColumns={cardsPerRow}

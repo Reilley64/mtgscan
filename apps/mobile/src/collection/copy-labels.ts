@@ -53,6 +53,6 @@ export function spokenFinishAndCondition({ finish, condition }: { finish: Finish
   ];
 }
 
-export function shownPrice({ amount, currency }: CurrentPrice) {
+export function shownPrice({ amount, currency }: Pick<CurrentPrice, 'amount' | 'currency'>) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(amount));
 }

@@ -112,6 +112,9 @@ export const sizes = {
   brandMarkWidth: 18,
   brandMarkHeight: 25,
   failureMark: 22,
+  collapsedHeader: 44,
+  popoverWidth: 250,
+  totalChevron: 10,
 } as const;
 
 export const borderWidths = {
@@ -121,6 +124,7 @@ export const borderWidths = {
 
 export const shadows = {
   sheet: '0px -12px 40px rgba(0, 0, 0, 0.55)',
+  popover: `0px 0px 0px 0.5px ${colors.line}, 0px 12px 40px rgba(0, 0, 0, 0.55)`,
 } as const;
 
 const scrimStops = [

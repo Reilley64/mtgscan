@@ -1,6 +1,12 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import {
+  catalogFixtureManifest,
+  resetCardCatalog,
+  runCatalogImport,
+  runImportCommand,
+  runPriceImport,
+} from './catalog-import-command';
 import {
   anonymousClient,
   asAnonymousCaller,
@@ -22,7 +28,8 @@ type PerUserTable =
   | 'collection_entries'
   | 'collection_additions'
   | 'collection_addition_lines'
-  | 'collection_addition_copies';
+  | 'collection_addition_copies'
+  | 'daily_collection_totals';
 
 const perUserTables: PerUserTable[] = [
   'profiles',
@@ -30,6 +37,7 @@ const perUserTables: PerUserTable[] = [
   'collection_additions',
   'collection_addition_lines',
   'collection_addition_copies',
+  'daily_collection_totals',
 ];
 
 let alice: TestUser;
@@ -41,9 +49,9 @@ async function userIdsInTable(user: TestUser, table: PerUserTable) {
   return [...new Set(data!.map((row) => row.user_id))];
 }
 
-async function userIdsInAvailabilityView(user: TestUser) {
+async function userIdsInView(user: TestUser, view: 'collection_availability' | 'collection_totals') {
   const rows = await asSignedInUser(user, (database) =>
-    database`select distinct user_id from private.collection_availability`,
+    database`select distinct user_id from ${database('private.' + view)}`,
   );
   return rows.map((row: { user_id: string }) => row.user_id);
 }
@@ -54,6 +62,8 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
   await committed(alice, scanBatch([stack(angelicCurator, { copies: 2 })]));
   await committed(bob, scanBatch([stack(angelicCurator), stack(delverInnistrad)]));
+  expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
+  expect((await runImportCommand('collection-totals')).exitCode).toBe(0);
 });
 
 describe('a read with no user filter', () => {
@@ -68,16 +78,22 @@ describe('a read with no user filter', () => {
     expect(error?.code).toBe(permissionDenied);
   });
 
-  test("returns only the caller's rows from the collection availability view", async () => {
-    expect(await userIdsInAvailabilityView(alice)).toEqual([alice.userId]);
-    expect(await userIdsInAvailabilityView(bob)).toEqual([bob.userId]);
-  });
+  test.each(['collection_availability', 'collection_totals'] as const)(
+    "returns only the caller's rows from the %s view",
+    async (view) => {
+      expect(await userIdsInView(alice, view)).toEqual([alice.userId]);
+      expect(await userIdsInView(bob, view)).toEqual([bob.userId]);
+    },
+  );
 
-  test('is refused to an anonymous caller on the collection availability view', async () => {
-    const read = asAnonymousCaller((database) => database`select user_id from private.collection_availability`);
+  test.each(['collection_availability', 'collection_totals'] as const)(
+    'is refused to an anonymous caller on the %s view',
+    async (view) => {
+      const read = asAnonymousCaller((database) => database`select user_id from ${database('private.' + view)}`);
 
-    await expect(read).rejects.toMatchObject({ errno: permissionDenied });
-  });
+      await expect(read).rejects.toMatchObject({ errno: permissionDenied });
+    },
+  );
 });
 
 test('a signed-in user cannot run a private helper that no read calls', async () => {

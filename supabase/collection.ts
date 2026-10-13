@@ -101,6 +101,18 @@ export type CollectionCopiesPage = {
   next_cursor: string | null;
 };
 
+export type CollectionTotalQuery = {
+  price_currency?: PriceCurrency;
+};
+
+export type CollectionTotal = {
+  total: string;
+  currency: PriceCurrency;
+  priced_copies: number;
+  copies: number;
+  change: string | null;
+};
+
 export type ScanBatchErrorCode = 'invalid_argument' | 'unknown_printing' | 'basic_land';
 
 export type ScanBatchError = Omit<SearchError, 'code'> & { code: ScanBatchErrorCode };
