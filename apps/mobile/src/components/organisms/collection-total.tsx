@@ -13,8 +13,8 @@ export function collectionTotalMenu(total: CollectionTotal) {
       accessibilityLabel={`Collection total, ${shown}`}
       accessibilityHint={[spokenChange(total), `${shownCoverage(total)} priced`].join(', ')}>
       <Stack.Toolbar.Label>{shown}</Stack.Toolbar.Label>
-      <Stack.Toolbar.MenuAction subtitle="Since yesterday">{shownChange(total) ?? '–'}</Stack.Toolbar.MenuAction>
-      <Stack.Toolbar.MenuAction subtitle="Priced">{shownCoverage(total)}</Stack.Toolbar.MenuAction>
+      <Stack.Toolbar.MenuAction disabled subtitle="Since yesterday">{shownChange(total) ?? '–'}</Stack.Toolbar.MenuAction>
+      <Stack.Toolbar.MenuAction disabled subtitle="Priced">{shownCoverage(total)}</Stack.Toolbar.MenuAction>
     </Stack.Toolbar.Menu>
   );
 }
