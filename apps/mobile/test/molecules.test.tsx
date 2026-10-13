@@ -302,6 +302,21 @@ describe('FailureNotice', () => {
     expect(screen.getByText('!')).toHaveStyle({ color: 'rgba(255, 122, 112, 1)' });
     expect(screen.getByText('!').parent).toHaveStyle({ width: 22, height: 22, borderRadius: 999 });
   });
+
+  test('a long failure message takes the width beside the danger mark and wraps inside the notice', async () => {
+    await render(<FailureNotice message="Could not add to your collection. Your scans are kept." />);
+
+    expect(screen.getByText('Could not add to your collection. Your scans are kept.')).toHaveStyle({
+      flexGrow: 1,
+      flexShrink: 1,
+    });
+  });
+
+  test('the danger mark lines up with the first line of a long failure message', async () => {
+    await render(<FailureNotice message="Could not add to your collection. Your scans are kept." />);
+
+    expect(screen.getByRole('alert')).toHaveStyle({ alignItems: 'baseline' });
+  });
 });
 
 describe('Brand', () => {

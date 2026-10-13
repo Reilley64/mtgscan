@@ -42,6 +42,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getAllByRole('button', { name: 'Continue with Google' }).map((button) => button.props.accessibilityState.busy)).toEqual([false, true]);
   expect(screen.getByRole('button', { name: 'Sign-in disabled' })).toBeDisabled();
   expect(screen.getByRole('alert', { name: 'Sign-in did not work.' })).toBeOnTheScreen();
+  expect(screen.getByRole('alert', { name: 'Could not add to your collection. Your scans are kept.' })).toBeOnTheScreen();
   expect(screen.getByRole('link', { name: 'Text link' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Nonfoil' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'M10' })).toBeEnabled();
