@@ -373,7 +373,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Pulling down on the Scan tab adds the scan batch to the collection without opening batch review (owner decision, #130). It works in every Scan tab state, also over "Camera not available".
     - While the finger moves down, the pull indicator slides down from under the top of the screen. It says "Pull to add 3 cards". The number is the batch button's count.
     - At 120 pt the indicator reaches its place, 8 px below the safe area, and says "Release to add 3 cards". The phone plays a light impact haptic as the pull crosses 120 pt.
-    - Releasing past 120 pt adds the scan batch with the same commit as **Add N to collection**. The indicator says "Adding 3 cards" with a spinner until the commit ends. A commit that works clears the batch button's badge and leaves the chip empty, as after **Add N to collection**. The indicator then slides away.
+    - Releasing past 120 pt adds the scan batch with the same commit as **Add to collection**. The indicator says "Adding 3 cards" with a spinner until the commit ends. A commit that works clears the batch button's badge and leaves the chip empty, as after **Add to collection**. The indicator then slides away.
     - A commit that fails shows "Failed to add" with the danger mark in the same pill for 4 seconds (owner decision, #130). The pill then slides away. VoiceOver announces "Failed to add. Your scans are kept." The scan batch is kept, and batch review offers **Try again**.
     - Releasing before 120 pt, or moving back above 120 pt and then releasing, adds nothing. The indicator slides away.
     - With no scan to add, the indicator says "Nothing to add", there is no haptic, and releasing does nothing.
