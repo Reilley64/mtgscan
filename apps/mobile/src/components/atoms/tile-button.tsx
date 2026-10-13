@@ -15,7 +15,7 @@ export function TileButton({ accessibilityLabel, selected, onPress, children }: 
       accessibilityLabel={accessibilityLabel}
       aria-selected={selected}
       onPress={onPress}
-      className="group min-h-touch-target gap-xs">
+      className="group/tile min-h-touch-target gap-xs">
       {children}
     </Pressable>
   );

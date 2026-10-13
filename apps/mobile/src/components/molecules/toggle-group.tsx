@@ -1,8 +1,9 @@
 import * as ToggleGroupPrimitive from '@rn-primitives/toggle-group';
 
-import { verticalTouchSlop } from '@/components/atoms/control-style';
+import { choiceStates, verticalTouchSlop } from '@/components/atoms/control-style';
 import { Text } from '@/components/atoms/text';
 import type { SingleChoiceProps } from '@/components/molecules/chip-group';
+import { cn } from '@/lib/class-names';
 import { sizes } from '@/theme';
 
 export function ToggleGroup<Value extends string>({ values, selected, labelOf, onSelect }: SingleChoiceProps<Value>) {
@@ -24,8 +25,8 @@ export function ToggleGroup<Value extends string>({ values, selected, labelOf, o
           key={value}
           value={value}
           hitSlop={verticalTouchSlop(sizes.button)}
-          className="group h-button flex-1 items-center justify-center rounded-sm bg-surface-control px-md aria-checked:bg-primary">
-          <Text variant="body-strong" className="group-aria-checked:text-on-primary">
+          className={cn('h-button flex-1 items-center justify-center rounded-sm px-md', choiceStates.checked.fill)}>
+          <Text variant="body-strong" className={choiceStates.checked.label}>
             {labelOf(value)}
           </Text>
         </ToggleGroupPrimitive.Item>
