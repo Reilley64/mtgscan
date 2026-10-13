@@ -2,12 +2,14 @@ import { parseArgs } from 'node:util';
 
 import { createClient } from '@supabase/supabase-js';
 
-import type { ScanBatch } from '../collection';
+import type { CardCondition, ScanBatch } from '../collection';
+import type { Finish } from '../search';
 import type { Database, Json } from '../database.types';
 import { isLocalStack, localSupabaseUrl, testUser } from './account';
 
 const usage = 'Usage: bun test-user/main.ts [--sample-collection]';
 const sampleCollectionEntries = 30;
+const sampleConditions: CardCondition[] = ['near_mint', 'near_mint', 'lightly_played', 'near_mint', 'moderately_played'];
 const usersPerPage = 1000;
 
 const { values } = parseArgs({
@@ -69,25 +71,44 @@ async function createTestUser(admin: LocalClient) {
   }
 }
 
-async function sampleScanBatch(admin: LocalClient): Promise<ScanBatch> {
-  const { data, error } = await admin
-    .from('card_printings')
-    .select('id, finishes')
-    .is('absent_since', null)
-    .in('rarity', ['uncommon', 'rare', 'mythic'])
-    .order('id')
-    .limit(sampleCollectionEntries);
+function sampleFinish(finishes: Finish[], index: number): Finish {
+  if (finishes.includes('etched')) {
+    return 'etched';
+  }
+  if (index % 3 === 2 && finishes.includes('foil')) {
+    return 'foil';
+  }
+  return finishes.includes('nonfoil') ? 'nonfoil' : finishes[0]!;
+}
+
+async function samplePrintings(admin: LocalClient) {
+  const printings = () =>
+    admin.from('card_printings').select('id, finishes').is('absent_since', null).in('rarity', ['uncommon', 'rare', 'mythic']).order('id');
+  const [etched, others] = await Promise.all([
+    printings().contains('finishes', ['etched']).limit(1),
+    printings().limit(sampleCollectionEntries),
+  ]);
+  const error = etched.error ?? others.error;
   if (error) {
     fail('Could not read the card catalog', error.message);
   }
+  const etchedIds = etched.data!.map((printing) => printing.id);
+  return [...etched.data!, ...others.data!.filter((printing) => !etchedIds.includes(printing.id))].slice(
+    0,
+    sampleCollectionEntries,
+  );
+}
+
+async function sampleScanBatch(admin: LocalClient): Promise<ScanBatch> {
+  const data = await samplePrintings(admin);
   if (data.length === 0) {
     fail('Could not add sample collection entries', 'The card catalog is empty. Import it first, as docs/agents/local-development.md says.');
   }
   return {
     items: data.map((printing, index) => ({
       card_printing_id: printing.id,
-      finish: printing.finishes.includes('nonfoil') ? 'nonfoil' : printing.finishes[0]!,
-      condition: 'near_mint',
+      finish: sampleFinish(printing.finishes, index),
+      condition: sampleConditions[index % sampleConditions.length]!,
       language: 'en',
       copy_ids: Array.from({ length: (index % 4) + 1 }, () => crypto.randomUUID()),
     })),

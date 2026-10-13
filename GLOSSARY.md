@@ -13,7 +13,7 @@ A published version of a card identified by its set and collector number.
 _Avoid_: Version, edition
 
 **Collection entry**:
-A quantity of owned physical copies that share a card printing, finish, language, condition, protected flag, and user tags. Adding a copy with the same properties merges it into the entry. Each addition keeps its own time and purchase-day price. To correct a copy, the user deletes it and adds it again.
+A quantity of owned physical copies that share a card printing, finish, language, condition, protected flag, and user tags. Adding a copy with the same properties merges it into the entry. Each addition keeps its own time and purchase-day price. To correct a copy, the user deletes it and adds it again. The copies of an entry have copy numbers from 1 to its quantity. The collection entry ID and the copy number are the copy key, which names one copy, such as one tile in the binder grid. A copy key is not a copy ID.
 _Avoid_: Card, item
 
 **Addition**:

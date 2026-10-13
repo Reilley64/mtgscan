@@ -33,3 +33,22 @@ export const languageNames: Record<CardLanguage, string> = {
   zhs: 'Simplified Chinese',
   zht: 'Traditional Chinese',
 };
+
+const conditionNames: Record<CardCondition, string> = {
+  near_mint: 'near mint',
+  lightly_played: 'lightly played',
+  moderately_played: 'moderately played',
+  heavily_played: 'heavily played',
+  damaged: 'damaged',
+};
+
+export function shownCondition(condition: CardCondition) {
+  return condition === 'near_mint' ? undefined : conditionLabels[condition];
+}
+
+export function spokenFinishAndCondition({ finish, condition }: { finish: Finish; condition: CardCondition }) {
+  return [
+    ...(finish === 'nonfoil' ? [] : [finishLabels[finish].toLowerCase()]),
+    ...(condition === 'near_mint' ? [] : [conditionNames[condition]]),
+  ];
+}

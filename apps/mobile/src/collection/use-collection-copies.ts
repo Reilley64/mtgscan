@@ -1,4 +1,4 @@
-import type { CollectionPrintingRow, CollectionPrintingsPage } from '@mtgscan/supabase/collection';
+import type { CollectionCopiesPage, CollectionCopyRow } from '@mtgscan/supabase/collection';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 
@@ -7,17 +7,17 @@ import { supabase } from '@/lib/supabase';
 export type BinderRead =
   | { status: 'loading' }
   | { status: 'failed' }
-  | { status: 'loaded'; printings: CollectionPrintingRow[]; nextCursor: string | null };
+  | { status: 'loaded'; copies: CollectionCopyRow[]; nextCursor: string | null };
 
-async function readCollectionPrintings(cursor: string | null) {
-  const { data, error } = await supabase.rpc('list_collection_printings', { query: { cursor } });
+async function readCollectionCopies(cursor: string | null) {
+  const { data, error } = await supabase.rpc('list_collection_copies', { query: { cursor } });
   if (error) {
     throw error;
   }
-  return data as unknown as CollectionPrintingsPage;
+  return data as unknown as CollectionCopiesPage;
 }
 
-export function useCollectionPrintings() {
+export function useCollectionCopies() {
   const [binder, setBinder] = useState<BinderRead>({ status: 'loading' });
   const latestRead = useRef(0);
   const readingMore = useRef(false);
@@ -26,10 +26,10 @@ export function useCollectionPrintings() {
     const read = ++latestRead.current;
     readingMore.current = false;
     setBinder((current) => (current.status === 'failed' ? { status: 'loading' } : current));
-    readCollectionPrintings(null).then(
+    readCollectionCopies(null).then(
       (page) => {
         if (read === latestRead.current) {
-          setBinder({ status: 'loaded', printings: page.items, nextCursor: page.next_cursor });
+          setBinder({ status: 'loaded', copies: page.items, nextCursor: page.next_cursor });
         }
       },
       () => {
@@ -48,7 +48,7 @@ export function useCollectionPrintings() {
     }
     const read = latestRead.current;
     readingMore.current = true;
-    readCollectionPrintings(binder.nextCursor).then(
+    readCollectionCopies(binder.nextCursor).then(
       (page) => {
         if (read !== latestRead.current) {
           return;
@@ -56,7 +56,7 @@ export function useCollectionPrintings() {
         readingMore.current = false;
         setBinder((current) =>
           current.status === 'loaded'
-            ? { ...current, printings: [...current.printings, ...page.items], nextCursor: page.next_cursor }
+            ? { ...current, copies: [...current.copies, ...page.items], nextCursor: page.next_cursor }
             : current,
         );
       },

@@ -5,6 +5,8 @@ export type CardCondition = Database['public']['Enums']['card_condition'];
 
 export type CardLanguage = Database['public']['Enums']['card_language'];
 
+export type CardRarity = Database['public']['Enums']['card_rarity'];
+
 export type CollectionQuery = CatalogQuery & {
   finishes?: Finish[];
   finishes_exclude?: Finish[];
@@ -70,23 +72,28 @@ export type ScanBatchResult = {
   copies: ScanBatchResultCopy[];
 };
 
-export type CollectionPrintingsQuery = {
+export type CollectionCopiesQuery = {
   limit?: number;
   cursor?: string | null;
 };
 
-export type CollectionPrintingRow = {
+export type CollectionCopyRow = {
+  collection_entry_id: string;
+  copy_number: number;
   printing_id: string;
   name: string;
   set: string;
   collector_number: string;
+  rarity: CardRarity;
   image_uris: string[];
-  owned_quantity: number;
-  latest_addition_at: string;
+  finish: Finish;
+  condition: CardCondition;
+  language: CardLanguage;
+  protected: boolean;
 };
 
-export type CollectionPrintingsPage = {
-  items: CollectionPrintingRow[];
+export type CollectionCopiesPage = {
+  items: CollectionCopyRow[];
   next_cursor: string | null;
 };
 

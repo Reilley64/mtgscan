@@ -25,6 +25,11 @@ colors:
   badge: "#e0244a"
   card-outline: "#ff4fd8"
   camera-off: "#000000"
+  rarity-common: "#e6e8e9"
+  rarity-uncommon: "#a7bccb"
+  rarity-rare: "#e2bd5a"
+  rarity-mythic: "#f26a35"
+  rarity-special: "#b48ef0"
 typography:
   large-title:
     fontFamily: SF Pro Display
@@ -269,6 +274,7 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 - **Badge (#e0244a)** is only for count badges on tabs and buttons, such as Needs you.
 - **Card outline (#ff4fd8)** is the magenta line the scanner draws around a detected card. Nothing else uses it.
 - **Camera off (#000000).** The Scan tab is pure black until the camera feed replaces it.
+- **Rarity colors** tint the set symbol on binder tiles by the card printing's rarity. They follow Magic's own rarity colors, made flat and lighter for the dark UI: **rarity common (#e6e8e9)** light grey, **rarity uncommon (#a7bccb)** silver, **rarity rare (#e2bd5a)** gold, **rarity mythic (#f26a35)** orange-red, and **rarity special (#b48ef0)** purple for special and bonus. This is the one use of color on set symbols. Elsewhere, such as the quick-action bar, set symbols use the text color. A rarity the app does not know falls back to the text color.
 
 ## Typography
 
@@ -299,11 +305,11 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Filter chips: All, Suggestions, Planned swaps, Buylist, Deck changes.
   - Every item keeps its actions inline: Promote, Dismiss, Swap in, Bought, and revert from here.
 - **Collection** is a binder grid.
-  - Card images sit 3 per row, with **one tile per printing**, newest addition first. More tiles load as the user scrolls. The tab reloads when it gains focus.
+  - Card images sit 3 per row, with **one tile per copy** and no quantity badge. Three copies of a card printing make three tiles (owner decision, #116).
+  - Copies of the same card printing sit next to each other. The card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
   - With no collection entries, the tab shows "Your collection is empty" and "Scan cards to add them to your collection."
   - When the read fails, the tab shows "Could not load your collection" and "Check your connection." with a **Try again** button.
-  - Corner badges total every copy of that printing, across finish, condition, language, and protected: owned, free, in decks, held by a planned swap, and protected.
-  - Free follows the glossary's free copy, so it includes protected free copies. The protected badge shows beside it.
+  - One quiet meta line under each card shows the set icon in its rarity color, the collector number, and the condition when it is not NM. Foil and etched copies carry a sheen on the card image instead of a finish label. Later, badges also show whether the copy is in a deck, held by a planned swap, or protected.
   - Search matches name, type, and printing, in the collection only. Filters: All, Free, Allocated, Protected.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
@@ -326,7 +332,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
 
 The app shows the sign-in screen whenever there is no session. It is the binder wall design (prototype `prototypes/sign-in/index.html?variant=D`, commit 4b31c79 on `prototype/first-release`).
 
-- **Binder wall.** Three columns of card images fill the screen behind everything else. The wall is tilted 6 degrees, dimmed to half opacity, and darkened at the top and bottom. Some tiles carry a quantity badge, as in the collection. Each column drifts slowly upward at its own speed, between 70 and 90 seconds per loop. With Reduce Motion on, the wall stands still.
+- **Binder wall.** Three columns of card images fill the screen behind everything else. The wall is tilted 6 degrees, dimmed to half opacity, and darkened at the top and bottom. Some tiles carry a quantity badge. Each column drifts slowly upward at its own speed, between 70 and 90 seconds per loop. With Reduce Motion on, the wall stands still.
 - **Card images** are 18 fixed Commander staples and commanders from Scryfall's image CDN. They are cached on the device. Until an image loads, its tile is a dark line-colored card shape, so the screen works offline.
 - **Brand.** The brand mark and the mtgscan name sit at the top left.
 - **Sheet.** A bottom sheet with a grabber holds the copy and the actions: the title "Every card you own, in one binder.", the line "Scan your cards, see what each one is worth, and build Commander decks from them.", the sign-in buttons, "Your collection and decks stay private." with a **Privacy policy** link, and the credit "Card images from Scryfall". The link opens https://mtgscan.reilley.dev/privacy in the system browser.
@@ -385,7 +391,11 @@ The settings drawer:
 The interface is flat. Depth comes from tone, not shadow.
 
 - Content sits on surface tones that step up from the background: surface, surface raised, surface control.
-- Page sheets slide over a dimmed, slightly scaled screen. The settings drawer slides over a dimmed screen that keeps its size. A soft shadow above the sheet is the only strong shadow. On the sign-in sheet it is black at 55%, 12 px up, with a 40 px blur. `theme.ts` names it `shadows.sheet`. The binder wall scrim on the sign-in screen is the background color at 90% at the top, 20% at 16% of the height, 25% at 45%, and 90% from 62% down. `theme.ts` names it `gradients.binderWallScrim`. NativeWind 4 has no class for either, so both are style values.
+- Page sheets slide over a dimmed, slightly scaled screen. The settings drawer slides over a dimmed screen that keeps its size. A soft shadow above the sheet is the only strong shadow. On the sign-in sheet it is black at 55%, 12 px up, with a 40 px blur. `theme.ts` names it `shadows.sheet`. The binder wall scrim on the sign-in screen is the background color at 90% at the top, 20% at 16% of the height, 25% at 45%, and 90% from 62% down. `theme.ts` names it `gradients.binderWallScrim`.
+- The foil and etched sheens on binder tiles are diagonal gradients over the card image at 30% opacity (`opacity.sheen`). They sit outside the palette, like card art.
+  - **Foil sheen** (`gradients.foilSheen`, 115 degrees): clear to 22%, then pink `rgba(255, 80, 170, 0.55)`, yellow `rgba(255, 230, 90, 0.5)`, mint `rgba(80, 255, 200, 0.5)`, blue `rgba(80, 150, 255, 0.55)`, and violet `rgba(200, 110, 255, 0.5)` from 34% to 66%, then clear from 78%.
+  - **Etched sheen** (`gradients.etchedSheen`, 120 degrees): clear to 25%, then white `rgba(255, 255, 255, 0.55)`, silver `rgba(200, 210, 215, 0.25)`, and white again from 42% to 58%, then clear from 75%.
+- NativeWind 4 has no class for a box shadow or a gradient, so the shadow, the scrim, and the sheens are style values.
 - The tab bar is a near-opaque bar with a hairline top border.
 - During a back swipe, the screen follows the finger with a shadow on its left edge.
 
@@ -454,11 +464,12 @@ The interface is flat. Depth comes from tone, not shadow.
   - When the app restarts after a commit that failed or was still running, it sends the commit again by itself.
   - While the commit runs, rows do not open.
   - The phone saves the scan batch and its defaults for each account, so they survive a restart. Another account on the phone does not see them.
-- **Binder tile.** One printing's card image, with a set and collector number caption and corner badges totalled over its copies. Tiles of printings with a foil copy carry a subtle sheen.
+- **Binder tile.** One copy's card image with one meta line under it. There is no quantity badge and no chip.
   - Until the image loads, the tile is a line-colored card shape.
-  - The caption is meta text in text muted: the set code in capitals and the collector number, such as "ISD 51".
-  - The owned badge sits in the top left corner, 5 px from both edges. It is a quantity badge with the number of owned copies.
-  - Tiles open nothing yet. The card page, the other badges, and the sheen come later.
+  - The meta line sits 4 px below the card image, centered, in meta text in text muted: the set's expansion symbol from Scryfall at 16 px tinted with the rarity color of the card printing (see Colors), then the collector number. When the card catalog has no symbol for the set, or it has not loaded, the set code in capitals takes its place. A copy that is not NM adds a text dim " · " and its condition: "[symbol] 136 · MP". Every condition uses the same text muted color.
+  - The line never names the finish. A foil copy has a faint rainbow sheen over its card image, and an etched copy has a faint silver sheen. Nonfoil copies have none. The sheen does not move. It is a diagonal gradient at 30% opacity, so the card art reads normally.
+  - VoiceOver reads the tile as one image: the name, the set code in capitals and the collector number, then the finish when it is not nonfoil and the condition when it is not NM, in words: "Bloomvine Regent // Claim Territory, TDM 136, foil, moderately played".
+  - Tiles open nothing yet. The card page and the badges for decks, planned swaps, and protected copies come later.
 - **Commander gallery card.** Full-width commander art with a dark gradient, the deck name in card-title type, status chips, and a Needs you badge.
 
 ## Do's and Don'ts

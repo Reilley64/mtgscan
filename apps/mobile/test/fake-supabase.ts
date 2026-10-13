@@ -6,10 +6,11 @@ import {
   type User,
 } from '@supabase/supabase-js';
 import type {
-  CollectionPrintingRow,
-  CollectionPrintingsQuery,
+  CollectionCopiesQuery,
+  CollectionCopyRow,
   ScanBatch,
   ScanBatchResult,
+  ScanBatchStack,
 } from '@mtgscan/supabase/collection';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
@@ -34,7 +35,7 @@ let nextSignInError: AuthError | null = null;
 let testUserSeeded = true;
 const listeners = new Set<AuthListener>();
 const users = new Map<string, User>();
-let collectionPrintings: CollectionPrintingRow[] = [];
+let collectionCopies: CollectionCopyRow[] = [];
 let failingCollectionReads = 0;
 let scanBatchesSent: ScanBatch[] = [];
 let addedCopies = new Map<string, string>();
@@ -99,7 +100,7 @@ async function nonceMatches(provider: SignInProvider, token: string, nonce: stri
   );
 }
 
-function collectionPrintingsPage({ cursor, limit = 60 }: CollectionPrintingsQuery) {
+function collectionCopiesPage({ cursor, limit = 60 }: CollectionCopiesQuery) {
   if (failingCollectionReads > 0) {
     failingCollectionReads -= 1;
     return { data: null, error: { code: 'PGRST000', message: 'Network request failed', details: null } };
@@ -108,8 +109,8 @@ function collectionPrintingsPage({ cursor, limit = 60 }: CollectionPrintingsQuer
   const end = start + limit;
   return {
     data: {
-      items: collectionPrintings.slice(start, end),
-      next_cursor: end < collectionPrintings.length ? String(end) : null,
+      items: collectionCopies.slice(start, end),
+      next_cursor: end < collectionCopies.length ? String(end) : null,
     },
     error: null,
   };
@@ -117,22 +118,26 @@ function collectionPrintingsPage({ cursor, limit = 60 }: CollectionPrintingsQuer
 
 const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
 
-function addToCollection(printingIds: string[], addedAt: string) {
-  for (const printingId of printingIds) {
-    const printing = galleryPrintings.find((candidate) => candidate.printingId === printingId)!;
-    const owned = collectionPrintings.find((row) => row.printing_id === printing.printingId);
-    collectionPrintings = [
-      {
-        printing_id: printing.printingId,
-        name: printing.name,
-        set: printing.setCode,
-        collector_number: printing.collectorNumber,
-        image_uris: [cardImageUri(printing.printingId)],
-        owned_quantity: (owned?.owned_quantity ?? 0) + 1,
-        latest_addition_at: addedAt,
-      },
-      ...collectionPrintings.filter((row) => row !== owned),
-    ];
+function addToCollection(stacks: ScanBatchStack[]) {
+  for (const { card_printing_id, finish, condition, language } of stacks) {
+    const printing = galleryPrintings.find((candidate) => candidate.printingId === card_printing_id)!;
+    const collectionEntryId = ['entry', card_printing_id, finish, condition, language].join('-');
+    const ofPrinting = collectionCopies.filter((row) => row.printing_id === card_printing_id);
+    const copy: CollectionCopyRow = {
+      collection_entry_id: collectionEntryId,
+      copy_number: ofPrinting.filter((row) => row.collection_entry_id === collectionEntryId).length + 1,
+      printing_id: printing.printingId,
+      name: printing.name,
+      set: printing.setCode,
+      collector_number: printing.collectorNumber,
+      rarity: 'common',
+      image_uris: [cardImageUri(printing.printingId)],
+      finish,
+      condition,
+      language,
+      protected: false,
+    };
+    collectionCopies = [...ofPrinting, copy, ...collectionCopies.filter((row) => row.printing_id !== card_printing_id)];
   }
 }
 
@@ -150,11 +155,8 @@ async function addScanBatch(batch: ScanBatch) {
   const newCopies = copies.filter(({ copyId }) => !addedCopies.has(copyId));
   const additionId = newCopies.length > 0 ? `addition-${new Set(addedCopies.values()).size + 1}` : null;
   const addedAt = additionId && new Date(Date.UTC(2026, 9, 13, 10, addedCopies.size)).toISOString();
-  if (additionId && addedAt) {
-    addToCollection(
-      newCopies.map(({ item }) => item.card_printing_id),
-      addedAt,
-    );
+  if (additionId) {
+    addToCollection(newCopies.map(({ item }) => item));
     newCopies.forEach(({ copyId }) => addedCopies.set(copyId, additionId));
   }
   const result: ScanBatchResult = {
@@ -232,9 +234,9 @@ function cardCatalogTable(table: string) {
 
 export const fakeSupabase = {
   from: cardCatalogTable,
-  async rpc(name: string, args: { query: CollectionPrintingsQuery } | { batch: ScanBatch }) {
-    if (name === 'list_collection_printings' && 'query' in args) {
-      return collectionPrintingsPage(args.query);
+  async rpc(name: string, args: { query: CollectionCopiesQuery } | { batch: ScanBatch }) {
+    if (name === 'list_collection_copies' && 'query' in args) {
+      return collectionCopiesPage(args.query);
     }
     if (name === 'add_scan_batch' && 'batch' in args) {
       return addScanBatch(args.batch);
@@ -305,8 +307,8 @@ export function testUserIsNotSeeded() {
   testUserSeeded = false;
 }
 
-export function ownCollectionPrintings(printings: CollectionPrintingRow[]) {
-  collectionPrintings = printings;
+export function ownCollectionCopies(copies: CollectionCopyRow[]) {
+  collectionCopies = copies;
 }
 
 export function failCollectionReads(count: number) {
@@ -352,7 +354,7 @@ export function galleryStorageIsOffline(reads: number) {
 
 export function resetFakeSupabase() {
   session = null;
-  collectionPrintings = [];
+  collectionCopies = [];
   failingCollectionReads = 0;
   scanBatchesSent = [];
   addedCopies = new Map();

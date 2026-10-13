@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CollectionPrintingsPage } from '../collection';
+import type { CollectionCopiesPage } from '../collection';
 import { testUser } from '../test-user/account';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runTestUserCommand } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, type AppClient } from './local-stack';
@@ -14,10 +14,16 @@ async function signedInTestUser(): Promise<AppClient> {
   return client;
 }
 
-async function ownedCardPrintings(client: AppClient) {
-  const { data, error } = await client.rpc('list_collection_printings', { query: { limit: 120 } });
+async function ownedCopies(client: AppClient) {
+  const { data, error } = await client.rpc('list_collection_copies', { query: { limit: 120 } });
   expect(error).toBeNull();
-  return (data as unknown as CollectionPrintingsPage).items;
+  return (data as unknown as CollectionCopiesPage).items;
+}
+
+async function collectionEntries(client: AppClient) {
+  const { data, error } = await client.from('collection_entries').select('finish, condition');
+  expect(error).toBeNull();
+  return data!;
 }
 
 async function additions(client: AppClient) {
@@ -53,7 +59,7 @@ describe('the test user command', () => {
 
     expect(exitCode).toBe(0);
     expect(output).toContain(`The test user ${testUser.email} is ready.`);
-    expect(await ownedCardPrintings(await signedInTestUser())).toEqual([]);
+    expect(await ownedCopies(await signedInTestUser())).toEqual([]);
   });
 
   test('--sample-collection adds sample collection entries to the test user through add_scan_batch', async () => {
@@ -64,11 +70,12 @@ describe('the test user command', () => {
     expect(exitCode).toBe(0);
     expect(output).toContain('Added 30 sample collection entries.');
     const client = await signedInTestUser();
-    const printings = await ownedCardPrintings(client);
-    expect(printings).toHaveLength(30);
-    expect(await additions(client)).toEqual([
-      { copy_count: printings.reduce((total, printing) => total + printing.owned_quantity, 0), source: 'scan_batch' },
-    ]);
+    const entries = await collectionEntries(client);
+    expect(entries).toHaveLength(30);
+    expect(entries.some((entry) => entry.finish === 'foil')).toBe(true);
+    expect(entries.some((entry) => entry.finish === 'etched')).toBe(true);
+    expect(entries.some((entry) => entry.condition !== 'near_mint')).toBe(true);
+    expect(await additions(client)).toEqual([{ copy_count: (await ownedCopies(client)).length, source: 'scan_batch' }]);
   });
 
   test('running the command again resets the test user to an empty collection', async () => {
@@ -77,7 +84,7 @@ describe('the test user command', () => {
     expect((await runTestUserCommand([])).exitCode).toBe(0);
 
     const client = await signedInTestUser();
-    expect(await ownedCardPrintings(client)).toEqual([]);
+    expect(await ownedCopies(client)).toEqual([]);
     expect(await additions(client)).toEqual([]);
   });
 

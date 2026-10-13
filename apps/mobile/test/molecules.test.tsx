@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { processColor, View } from 'react-native';
 
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
@@ -11,6 +11,7 @@ import { Brand } from '@/components/molecules/brand';
 import { CardGrid } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
+import { CopyMeta } from '@/components/molecules/copy-meta';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
@@ -19,11 +20,12 @@ import { SheetSection } from '@/components/molecules/sheet-section';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 
-import { cardImageOutline, cardImageUri, touchTarget } from './native-ui';
+import { cardImageOutline, cardImageUri, cardSheen, imageTintColor, touchTarget } from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted } = tokenColors;
+const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim } = tokenColors;
 const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
+const mh3Symbol = 'https://svgs.scryfall.io/sets/mh3.svg';
 const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
 
 describe('ChipGroup', () => {
@@ -210,11 +212,23 @@ describe('CardTile', () => {
     expect(screen.queryByRole('button')).not.toBeOnTheScreen();
   });
 
-  test('a card tile with a quantity shows it in a round quantity badge', async () => {
-    await render(<CardTile uri={solRing} caption="CMM 464" accessibilityLabel="Sol Ring, CMM 464, 2 owned" quantity={2} />);
+  test('a card tile without a caption shows what it holds under the card image', async () => {
+    await render(
+      <CardTile uri={solRing} accessibilityLabel="Sol Ring, CMM 464">
+        <Text>Under the card</Text>
+      </CardTile>,
+    );
 
-    expect(screen.getByText('2')).toHaveStyle({ color: white, fontSize: 10, fontWeight: '700' });
-    expect(screen.getByText('2').parent).toHaveStyle({ height: 19, minWidth: 19, borderRadius: 999 });
+    const tile = screen.getByRole('image', { name: 'Sol Ring, CMM 464' });
+    expect(cardImageUri(tile)).toBe(solRing);
+    expect(within(tile).getByText('Under the card')).toBeOnTheScreen();
+    expect(screen.queryByText('CMM 464')).not.toBeOnTheScreen();
+  });
+
+  test('a card tile passes its sheen to the card image', async () => {
+    await render(<CardTile uri={solRing} caption="CMM 464" sheen="etched" accessibilityLabel="Sol Ring, CMM 464, etched" />);
+
+    expect(cardSheen(screen.getByRole('image', { name: 'Sol Ring, CMM 464, etched' }))).toMatchObject({ opacity: expect.closeTo(0.3) });
   });
 
   test('a card tile with an action is a button with its selected state', async () => {
@@ -256,6 +270,33 @@ describe('CardTile', () => {
     );
 
     expect(screen.getByRole('image', { name: 'Sol Ring, CMM 464' }).parent).toHaveStyle({ width: '33.33%' });
+  });
+});
+
+describe('CopyMeta', () => {
+  test('a copy meta line shows the set icon in its rarity color, named by the set code, and the collector number in meta text', async () => {
+    await render(<CopyMeta setCode="mh3" rarity="rare" setIconUri={mh3Symbol} collectorNumber="136" />);
+
+    const setIcon = screen.getByLabelText('MH3');
+    expect(cardImageUri(setIcon)).toBe(mh3Symbol);
+    expect(imageTintColor(setIcon)).toBe(processColor('#e2bd5a'));
+    expect(screen.queryByText('MH3')).not.toBeOnTheScreen();
+    expect(screen.getByText('136')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(screen.queryByText('·')).not.toBeOnTheScreen();
+  });
+
+  test('a copy meta line shows the set code when there is no set icon', async () => {
+    await render(<CopyMeta setCode="c21" rarity="common" setIconUri={undefined} collectorNumber="263" />);
+
+    expect(screen.getByText('C21')).toHaveStyle({ color: textMuted, fontSize: 12 });
+  });
+
+  test('a copy meta line adds the condition after a dim dot, in the same muted text', async () => {
+    await render(<CopyMeta setCode="mh3" rarity="common" setIconUri={mh3Symbol} collectorNumber="136" condition="MP" />);
+
+    expect(screen.getByText('·')).toHaveStyle({ color: textDim });
+    expect(screen.getByText('MP')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(screen.getByText('MP').parent).toHaveStyle({ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' });
   });
 });
 

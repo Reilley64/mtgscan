@@ -151,6 +151,11 @@ export function cardImageUri(tile: HostElement) {
   return image.props.source?.[0]?.uri;
 }
 
+export function cardSheen(tile: HostElement) {
+  const [sheen] = tile.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage !== undefined);
+  return sheen ? StyleSheet.flatten(sheen.props.style) : null;
+}
+
 export function imageTintColor(element: HostElement) {
   const [image] = element.queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage');
   if (!image) {
