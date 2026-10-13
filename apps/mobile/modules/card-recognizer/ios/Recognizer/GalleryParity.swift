@@ -3,6 +3,7 @@ import Foundation
 public struct GalleryParity: Codable, Sendable {
   public static let referenceCount = 24
 
+  public let version: String?
   public let references: Int
   public let lowestCosine: Double
   public let meanCosine: Double
@@ -14,12 +15,12 @@ public struct GalleryParity: Codable, Sendable {
     case unreadableImage
   }
 
-  public static func referenceRows(rowCount: Int) -> [Int] {
+  static func referenceRows(rowCount: Int) -> [Int] {
     let count = min(referenceCount, rowCount)
     return (0 ..< count).map { $0 * rowCount / count }
   }
 
-  public static func imageURL(printingId: String) -> URL? {
+  static func imageURL(printingId: String) -> URL? {
     let id = printingId.lowercased()
     guard let first = id.first, let second = id.dropFirst().first else { return nil }
     return URL(string: "https://cards.scryfall.io/normal/front/\(first)/\(second)/\(id).jpg")
@@ -52,6 +53,7 @@ public struct GalleryParity: Codable, Sendable {
       }
     }
     return GalleryParity(
+      version: gallery.version,
       references: cosines.count,
       lowestCosine: cosines.min() ?? 0,
       meanCosine: cosines.isEmpty ? 0 : cosines.reduce(0, +) / Double(cosines.count),

@@ -113,11 +113,11 @@ This gate measures the whole phone path on physical cards: capture, recognition 
 The run uses a development build of the app on the iPhone, with Metro on the Mac:
 
 1. Start Metro with its output in a log file.
-2. Check gallery parity in settings. Record the result with `bun run gallery parity` (README, Gallery build and publish).
-3. Scan the 30 cards with the torch off, one at a time, in any order. Do not fix any scan.
-4. Score the run from `apps/mobile`: `bun run bin-deck:score <metro-log> <run>`. It reads the `SCAN` lines from the log and writes `summary.md`, `results.env`, `bin-batch-summaries.ndjson`, and `batch-1-detail.ndjson` to `bin-deck/<run>/`. It exits 1 when a gate fails.
+2. Tap **Run the parity check** in settings. Record the result with `bun run gallery parity` (README, Gallery build and publish).
+3. Scan the 30 cards with the torch off, one at a time, in the order of `test-deck.tsv`. Do not fix any scan.
+4. Score the run from `apps/mobile`: `bun run bin-deck:score <metro-log> <run> --device <model> --ios <version>`. It reads the `PARITY` and `RECOGNITION` lines from the log and writes `summary.md`, `results.env`, `bin-batch-summaries.ndjson`, and `batch-1-detail.ndjson` to `bin-deck/<run>/`. It exits 1 when a gate fails.
 
-The script matches each scan to a card of the test deck by its first candidate: first by card printing, then by card name. A scan of a deck card that already has a scan is a duplicate photo. An accept of a card that is not in the deck is a wrong-card accept, and the deck card it should have been is a missed card. Keep the four files of each run. Do not keep logs.
+The script gives each recognition to the next card of the test deck, in deck order. A photo that is not a card is counted apart. A recognition whose first candidate repeats the card before is a duplicate photo. A duplicate photo accepted as another card printing is a false accept. A skipped card shifts every later card, so the gates fail instead of passing by mistake. Keep the four files of each run. Do not keep logs.
 
 The cited runs used the native preview app on the `prototype/first-release` branch (`npm run physical-run:device-bin` in `prototypes/native-preview-scanner`).
 
@@ -127,7 +127,7 @@ Pass criteria from #10 and #21:
 - The right card first for at least 29 of 30.
 - The exact card printing first for at least 27 of 30. The other cards abstain or show a switchable same-text twin.
 - End-to-end p95 below 1.5 s.
-- Gallery parity on the phone: the lowest cosine is at least 0.98 (`DEVICE_PARITY`).
+- Gallery parity on the phone: the lowest cosine is at least 0.98 over 24 reference images (`DEVICE_PARITY`). `bun run gallery parity` checks this rule when it records the parity check. The score script copies the `PARITY` line into `DEVICE_PARITY`.
 
 Cards per minute is not a recognition gate. It moved to #11.
 

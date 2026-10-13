@@ -1,20 +1,15 @@
 import { Button } from '@/components/atoms/button';
 import { Text } from '@/components/atoms/text';
 import { SheetSection } from '@/components/molecules/sheet-section';
-import type { GalleryParityCheck as Check } from '@/gallery/gallery-parity';
-
-type GalleryParityCheckProps = {
-  check: Check;
-  onCheck: () => void;
-};
+import type { ParityCheck } from '@/gallery/parity-check';
 
 function cosine(value: number) {
   return value.toFixed(5);
 }
 
-function Result({ check }: { check: Check }) {
+function Result({ check }: { check: ParityCheck }) {
   if (check.status === 'failed') {
-    return <Text variant="meta">Could not check gallery parity: {check.code}</Text>;
+    return <Text variant="meta">Could not run the parity check: {check.code}</Text>;
   }
   if (check.status !== 'checked') {
     return null;
@@ -35,12 +30,12 @@ function Result({ check }: { check: Check }) {
   );
 }
 
-export function GalleryParityCheck({ check, onCheck }: GalleryParityCheckProps) {
+export function ParityCheckSection({ check, onRun }: { check: ParityCheck; onRun: () => void }) {
   return (
-    <SheetSection title="Gallery parity">
+    <SheetSection title="Parity check">
       <Result check={check} />
-      <Button busy={check.status === 'checking'} onPress={onCheck}>
-        <Text>Check gallery parity</Text>
+      <Button busy={check.status === 'checking'} onPress={onRun}>
+        <Text>Run the parity check</Text>
       </Button>
     </SheetSection>
   );

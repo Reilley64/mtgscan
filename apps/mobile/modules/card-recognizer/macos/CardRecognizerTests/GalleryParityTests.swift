@@ -46,7 +46,7 @@ private func galleryOfImages(_ images: [Data]) throws -> Gallery {
   }
   try JSONSerialization.data(withJSONObject: printings).write(to: directory.appendingPathComponent(GalleryFile.printingList))
   try JSONEncoder().encode(
-    GalleryHeader(count: images.count, dimension: FeaturePrint.dimension, revision: FeaturePrint.revision, createdAt: "", encoding: nil)
+    GalleryHeader(count: images.count, dimension: FeaturePrint.dimension, revision: FeaturePrint.revision, createdAt: "", encoding: nil, version: "20261021-a1b2c3")
   ).write(to: directory.appendingPathComponent(GalleryFile.header))
   try vectors.withUnsafeBufferPointer { Data(buffer: $0) }.write(to: directory.appendingPathComponent(GalleryFile.float16Vectors))
   return try Gallery(directory: directory)
@@ -63,8 +63,8 @@ func theParityCheckTakes24EvenlySpacedGalleryRowsAsReferenceImages() {
   #expect(GalleryParity.referenceRows(rowCount: 3) == [0, 1, 2])
 }
 
-@Test("the parity check fetches each reference image from the Scryfall image host")
-func theParityCheckFetchesEachReferenceImageFromTheScryfallImageHost() {
+@Test("the parity check names the Scryfall normal image of each reference image")
+func theParityCheckNamesTheScryfallNormalImageOfEachReferenceImage() {
   #expect(
     GalleryParity.imageURL(printingId: "77285d12-e658-4eb3-ba13-ff202afab9c8")?.absoluteString
       == "https://cards.scryfall.io/normal/front/7/7/77285d12-e658-4eb3-ba13-ff202afab9c8.jpg"
@@ -78,6 +78,7 @@ func featurePrintsOfTheSameImagesMatchTheGalleryRows() async throws {
 
   let parity = await GalleryParity.check(gallery: gallery) { images[row(of: $0)] }
 
+  #expect(parity.version == "20261021-a1b2c3")
   #expect(parity.references == 3)
   #expect(parity.lowestCosine > 0.999)
   #expect(parity.meanCosine > 0.999)

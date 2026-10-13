@@ -1,5 +1,7 @@
 import { fireEvent, screen } from 'expo-router/testing-library';
 
+import { developmentLogPrefixes } from '@/lib/development-log';
+
 import { galleryParityIs } from './fake-card-recognizer';
 import { startSignedIn } from './fake-supabase';
 import { openSettings } from './native-ui';
@@ -17,18 +19,18 @@ function runAs(development: boolean) {
   jest.replaceProperty(globalThis as typeof globalThis & { __DEV__: boolean }, '__DEV__', development);
 }
 
-async function checkGalleryParity() {
+async function runTheParityCheck() {
   await renderApp();
   await openSettings();
-  await fireEvent.press(screen.getByRole('button', { name: 'Check gallery parity' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Run the parity check' }));
 }
 
 function parityLogLines() {
   return jest
     .mocked(console.info)
     .mock.calls.map(([line]) => String(line))
-    .filter((line) => line.startsWith('PARITY '))
-    .map((line) => JSON.parse(line.slice('PARITY '.length)));
+    .filter((line) => line.startsWith(developmentLogPrefixes.parity))
+    .map((line) => JSON.parse(line.slice(developmentLogPrefixes.parity.length)));
 }
 
 beforeEach(() => {
@@ -40,10 +42,10 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-test('a development build checks gallery parity from settings and shows the lowest and mean cosine over the reference images', async () => {
+test('a development build runs the parity check from settings and shows the lowest and mean cosine over the reference images', async () => {
   galleryParityIs(passingParity);
 
-  await checkGalleryParity();
+  await runTheParityCheck();
 
   expect(await screen.findByText('Gallery version 20261012-cf1753')).toBeOnTheScreen();
   expect(screen.getByText('Lowest cosine 0.99976')).toBeOnTheScreen();
@@ -51,10 +53,10 @@ test('a development build checks gallery parity from settings and shows the lowe
   expect(screen.getByText('24 reference images')).toBeOnTheScreen();
 });
 
-test('the parity check logs its exact result to Metro for the gallery parity command', async () => {
+test('the parity check logs its exact result to Metro for the `gallery parity` command', async () => {
   galleryParityIs(passingParity);
 
-  await checkGalleryParity();
+  await runTheParityCheck();
 
   await screen.findByText('Lowest cosine 0.99976');
   expect(parityLogLines()).toEqual([passingParity]);
@@ -67,26 +69,26 @@ test('a reference image that could not be checked is listed under the result', a
     failures: ['bolt-m10: imageDownload(404)'],
   });
 
-  await checkGalleryParity();
+  await runTheParityCheck();
 
   expect(await screen.findByText('23 reference images')).toBeOnTheScreen();
   expect(screen.getByText('bolt-m10: imageDownload(404)')).toBeOnTheScreen();
 });
 
-test('without an installed gallery, the parity check says it could not check', async () => {
+test('without an installed gallery, the parity check says it could not run', async () => {
   galleryParityIs('gallery_not_ready');
 
-  await checkGalleryParity();
+  await runTheParityCheck();
 
-  expect(await screen.findByText('Could not check gallery parity: gallery_not_ready')).toBeOnTheScreen();
+  expect(await screen.findByText('Could not run the parity check: gallery_not_ready')).toBeOnTheScreen();
 });
 
-test('a production build has no gallery parity check in settings', async () => {
+test('a production build has no parity check in settings', async () => {
   runAs(false);
   await renderApp();
 
   await openSettings();
 
   expect(screen.getByText('Scan sounds')).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: 'Check gallery parity' })).not.toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Run the parity check' })).not.toBeOnTheScreen();
 });

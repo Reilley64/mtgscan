@@ -1,4 +1,6 @@
 import type { DetectionSample } from '../../modules/card-detector';
+import { logForDevelopment } from '@/lib/development-log';
+
 import { isStopped, type CaptureState, type CaptureStep } from './capture';
 
 const timingWindowSamples = 300;
@@ -6,12 +8,10 @@ const timingWindowSamples = 300;
 type TimingSample = { durationMs: number; sampledAtMs: number };
 
 function logCaptureEvent(event: string, details: Record<string, unknown>) {
-  if (__DEV__) {
-    console.info(`CAPTURE ${JSON.stringify({ event, ...details })}`);
-  }
+  logForDevelopment('capture', { event, ...details });
 }
 
-function nearestRank(sorted: number[], fraction: number) {
+export function nearestRank(sorted: number[], fraction: number) {
   return sorted[Math.max(0, Math.ceil(fraction * sorted.length) - 1)];
 }
 

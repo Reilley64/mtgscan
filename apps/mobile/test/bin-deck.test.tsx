@@ -1,4 +1,4 @@
-import { act } from 'expo-router/testing-library';
+import { act, fireEvent, screen } from 'expo-router/testing-library';
 
 import {
   lightningAxe,
@@ -9,14 +9,15 @@ import {
   solRingEtched,
 } from './card-printings';
 import { resetSampleClock } from './detection-samples';
-import { cardRecognition, holdNextRecognition, nextPhotosAre, notACard } from './fake-card-recognizer';
+import { cardRecognition, galleryParityIs, holdNextRecognition, nextPhotosAre, notACard } from './fake-card-recognizer';
 import { startSignedIn } from './fake-supabase';
-import { scoreBinDeck, type DeckCard } from './scanner-evidence/bin-deck';
+import { scoreBinDeck, type TestDeckCard } from './scanner-evidence/bin-deck';
+import { openSettings, pressTab, swipeDownDrawer } from './native-ui';
+import { renderApp } from './render-app';
 import { openScan, scanACard } from './scanning';
-import type { GalleryCardPrinting } from '../modules/card-recognizer';
 
-function deckOf(...printings: GalleryCardPrinting[]): DeckCard[] {
-  return printings.map(({ printingId, name, setCode, collectorNumber }) => ({ printingId, name, setCode, collectorNumber }));
+function deckOf(...printings: TestDeckCard[]): TestDeckCard[] {
+  return printings;
 }
 
 function metroLog() {
@@ -43,7 +44,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-test('a bin-deck run scores each scan in the development log against the test deck', async () => {
+test('a bin-deck run scores each recognition in the development log against the test deck, in deck order', async () => {
   nextPhotosAre(
     cardRecognition([lightningBoltM10, lightningBolt2xm]),
     cardRecognition([shock], { accepted: false }),
@@ -64,21 +65,30 @@ test('a bin-deck run scores each scan in the development log against the test de
     missedCards: 0,
     results: 3,
   });
-  expect(run.detail.map(({ card, status }) => [card, status])).toEqual([
+  expect(run.cards.map(({ card, status }) => [card, status])).toEqual([
     ['Lightning Bolt M10 #146', 'correct-accept'],
     ['Shock M19 #156', 'abstained'],
     ['Sol Ring C21 #263', 'false-accept'],
   ]);
 });
 
-test('an accept of a card outside the test deck is a wrong-card accept, and its deck card is missed', async () => {
+test('an accept of a card outside the test deck is a wrong-card accept of the card being scanned', async () => {
   nextPhotosAre(cardRecognition([lightningAxe]), cardRecognition([shock]));
   await scanCards(2);
 
   const run = scoreBinDeck(deckOf(lightningBoltM10, shock), metroLog());
 
-  expect(run.summary).toMatchObject({ presented: 2, identityTop1: 1, falseAccepts: 1, wrongCardAccepts: 1, missedCards: 1 });
+  expect(run.summary).toMatchObject({ presented: 2, identityTop1: 1, falseAccepts: 1, wrongCardAccepts: 1, missedCards: 0 });
   expect(run.gates.find((gate) => gate.name === 'No false accepts')?.passed).toBe(false);
+});
+
+test('an accept of the next deck card is a wrong-card accept of the card being scanned', async () => {
+  nextPhotosAre(cardRecognition([shock]), cardRecognition([shock]));
+  await scanCards(2);
+
+  const run = scoreBinDeck(deckOf(lightningBoltM10, shock), metroLog());
+
+  expect(run.summary).toMatchObject({ identityTop1: 1, correctAccepts: 1, falseAccepts: 1, wrongCardAccepts: 1 });
 });
 
 test('a second photo of a deck card is a duplicate photo, not another card', async () => {
@@ -90,13 +100,39 @@ test('a second photo of a deck card is a duplicate photo, not another card', asy
   expect(run.summary).toMatchObject({ presented: 2, identityTop1: 2, correctAccepts: 2, duplicatePhotos: 1, results: 3 });
 });
 
-test('a photo that is not a card and a failed recognition are counted apart from the deck cards', async () => {
-  nextPhotosAre(notACard(), 'unreadable_photo', cardRecognition([lightningBoltM10]));
+test('a duplicate photo accepted as another printing of the same card is a false accept', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([lightningBolt2xm]), cardRecognition([shock]));
   await scanCards(3);
 
-  const run = scoreBinDeck(deckOf(lightningBoltM10), metroLog());
+  const run = scoreBinDeck(deckOf(lightningBoltM10, shock), metroLog());
 
-  expect(run.summary).toMatchObject({ presented: 1, correctAccepts: 1, notACardResults: 1, failures: 1, missedCards: 0 });
+  expect(run.summary).toMatchObject({ correctAccepts: 2, duplicatePhotos: 1, falseAccepts: 1, wrongCardAccepts: 0 });
+});
+
+test('a photo that is not a card is counted apart, and a failed recognition counts against the card being scanned', async () => {
+  nextPhotosAre(notACard(), 'unreadable_photo', cardRecognition([shock]));
+  await scanCards(3);
+
+  const run = scoreBinDeck(deckOf(lightningBoltM10, shock), metroLog());
+
+  expect(run.summary).toMatchObject({ identityTop1: 1, correctAccepts: 1, notACardResults: 1, failures: 1, missedCards: 0 });
+});
+
+test('the run keeps the parity check from the same Metro log', async () => {
+  const parity = { version: '20261012-cf1753', references: 24, lowestCosine: 0.9997, meanCosine: 1.00003, failures: [] };
+  galleryParityIs(parity);
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await renderApp();
+  await openSettings();
+  await fireEvent.press(screen.getByRole('button', { name: 'Run the parity check' }));
+  await screen.findByText('Lowest cosine 0.99970');
+  await swipeDownDrawer();
+  await pressTab('Scan');
+
+  await scanACard();
+
+  const run = scoreBinDeck(deckOf(lightningBoltM10), metroLog());
+  expect(run.parity).toEqual(parity);
 });
 
 test('the end-to-end time runs from the photo request to the recognition', async () => {

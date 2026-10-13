@@ -96,9 +96,7 @@ public final class CardRecognizerModule: Module {
         throw Exception(name: "RecognitionError", description: error.code, code: error.code)
       }
       let parity = await GalleryParity.check(gallery: gallery, referenceImage: GalleryParity.scryfallImage)
-      var object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(parity)) as? [String: Any] ?? [:]
-      object["version"] = GalleryDownloads.installedVersion()?.version
-      return object
+      return try Self.javaScriptObject(parity)
     }
 
     AsyncFunction("searchCardNames") { (text: String) async throws -> [[String: String]] in
@@ -121,8 +119,8 @@ public final class CardRecognizerModule: Module {
     }
   }
 
-  private static func javaScriptObject(_ recognition: Recognition) throws -> [String: Any] {
-    let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(recognition))
+  private static func javaScriptObject(_ value: some Encodable) throws -> [String: Any] {
+    let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(value))
     return object as? [String: Any] ?? [:]
   }
 }

@@ -62,6 +62,7 @@ public final class Gallery: Sendable {
   public static let searchChunkRows = 4096
 
   public let printings: [GalleryPrinting]
+  public let version: String?
   public let dimension: Int
   public let printingsByIllustration: [String: [Int]]
   public let setCodes: Set<String>
@@ -90,6 +91,7 @@ public final class Gallery: Sendable {
       throw Failure.mismatch("gallery has \(header.count)x\(header.dimension), printing list has \(printings.count)")
     }
     dimension = header.dimension
+    version = header.version
     guard (header.encoding ?? GalleryHeader.float16) == GalleryHeader.float16 else {
       throw Failure.mismatch("unknown gallery encoding \(header.encoding ?? "")")
     }

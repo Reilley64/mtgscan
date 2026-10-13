@@ -1,22 +1,30 @@
-import { scanLogPrefix, type ScanLogLine } from '../../src/scan/scan-log';
+import type { GalleryCardPrinting, GalleryParity } from '../../modules/card-recognizer';
+import { developmentLogPrefixes } from '../../src/lib/development-log';
+import { nearestRank } from '../../src/scan/capture-log';
+import type { RecognitionLogLine } from '../../src/scan/recognition-log';
 
-export type DeckCard = { printingId: string; name: string; setCode: string; collectorNumber: string };
+export type TestDeckCard = Pick<GalleryCardPrinting, 'printingId' | 'name' | 'setCode' | 'collectorNumber'>;
 
-type ScanStatus = 'correct-accept' | 'false-accept' | 'abstained';
+type Judged = {
+  card: string;
+  status: 'correct-accept' | 'false-accept' | 'abstained';
+  identity: boolean;
+  printing: boolean;
+  top: string;
+  endToEndMs: number;
+};
 
-type Top = DeckCard;
+type CardResult = Judged | { card: string; status: 'failed'; endToEndMs: number } | { card: string; status: 'no-result' };
 
-export type CardDetail =
-  | { card: string; status: ScanStatus; identity: boolean; printing: boolean; top: string; endToEndMs: number }
-  | { card: string; status: 'no-result' };
-
-export type ExtraDetail = { card: 'duplicate photo' | 'not a card' | 'failed' | 'not in deck'; status: string; top: string };
-
-export type Gate = { name: string; passed: boolean; value: string };
+type OtherResult = {
+  card: 'duplicate photo' | 'not a card' | 'not in deck';
+  status: 'duplicate' | 'not-a-card' | 'false-accept' | 'abstained';
+  top: string;
+};
 
 const ansiCodes = /\u001b\[[0-9;]*m/g;
 
-export function testDeckCards(tsv: string): DeckCard[] {
+export function testDeckCards(tsv: string): TestDeckCard[] {
   return tsv
     .split('\n')
     .filter((line) => line.trim())
@@ -26,121 +34,107 @@ export function testDeckCards(tsv: string): DeckCard[] {
     });
 }
 
-export function scanLogLines(metroLog: string): ScanLogLine[] {
+function logLines<T>(metroLog: string, prefix: string): T[] {
   return metroLog.split('\n').flatMap((raw) => {
     const line = raw.replace(ansiCodes, '');
-    const start = line.indexOf(`${scanLogPrefix}{`);
-    return start < 0 ? [] : [JSON.parse(line.slice(start + scanLogPrefix.length)) as ScanLogLine];
+    const start = line.indexOf(`${prefix}{`);
+    return start < 0 ? [] : [JSON.parse(line.slice(start + prefix.length)) as T];
   });
 }
 
-function label(card: DeckCard) {
+function label(card: TestDeckCard) {
   return `${card.name} ${card.setCode.toUpperCase()} #${card.collectorNumber}`;
 }
 
-function topOf(scan: ScanLogLine): Top | null {
-  if (scan.kind !== 'card' || scan.candidates.length === 0) {
-    return null;
-  }
-  const [{ printingId, name, setCode, collectorNumber }] = scan.candidates;
-  return { printingId, name, setCode, collectorNumber };
+function firstCandidate(recognition: RecognitionLogLine): TestDeckCard | null {
+  return recognition.kind === 'card' ? (recognition.candidates[0] ?? null) : null;
 }
 
-function accepted(scan: ScanLogLine) {
-  return scan.kind === 'card' && scan.decision.accepted;
+function accepted(recognition: RecognitionLogLine) {
+  return recognition.kind === 'card' && recognition.decision.accepted;
 }
 
-function sameCard(a: DeckCard, b: DeckCard) {
+function sameCard(a: TestDeckCard, b: TestDeckCard) {
   return a.name.toLowerCase() === b.name.toLowerCase();
 }
 
-function nearestRank(values: number[], fraction: number) {
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted.length === 0 ? null : sorted[Math.max(0, Math.ceil(fraction * sorted.length) - 1)];
+function repeatsPrevious(top: TestDeckCard, previous: TestDeckCard | undefined, current: TestDeckCard | undefined) {
+  if (!previous || top.printingId === current?.printingId) {
+    return false;
+  }
+  return top.printingId === previous.printingId || (sameCard(top, previous) && !(current && sameCard(top, current)));
 }
 
-function judged(card: DeckCard, scan: ScanLogLine, top: Top): CardDetail {
+function judged(card: TestDeckCard, recognition: RecognitionLogLine): CardResult {
+  const top = firstCandidate(recognition);
+  if (!top) {
+    return { card: label(card), status: 'failed', endToEndMs: recognition.endToEndMs };
+  }
   const printing = top.printingId === card.printingId;
   return {
     card: label(card),
-    status: !accepted(scan) ? 'abstained' : printing ? 'correct-accept' : 'false-accept',
+    status: !accepted(recognition) ? 'abstained' : printing ? 'correct-accept' : 'false-accept',
     identity: sameCard(top, card),
     printing,
     top: label(top),
-    endToEndMs: scan.endToEndMs,
+    endToEndMs: recognition.endToEndMs,
   };
 }
 
-export function scoreBinDeck(deck: DeckCard[], metroLog: string) {
-  const scans = scanLogLines(metroLog);
-  const matched = new Map<DeckCard, ScanLogLine>();
-  const leftover: ScanLogLine[] = [];
-  for (const scan of scans) {
-    const top = topOf(scan);
-    const card = top && deck.find((candidate) => !matched.has(candidate) && candidate.printingId === top.printingId);
-    if (card) {
-      matched.set(card, scan);
+function matchToDeck(deck: TestDeckCard[], recognitions: RecognitionLogLine[]) {
+  const cards: CardResult[] = [];
+  const others: OtherResult[] = [];
+  for (const recognition of recognitions) {
+    const top = firstCandidate(recognition);
+    const previous = deck[cards.length - 1];
+    const current = deck[cards.length];
+    if (recognition.kind === 'not_a_card') {
+      others.push({ card: 'not a card', status: 'not-a-card', top: 'none' });
+    } else if (top && previous && repeatsPrevious(top, previous, current)) {
+      const wrongPrinting = accepted(recognition) && top.printingId !== previous.printingId;
+      others.push({ card: 'duplicate photo', status: wrongPrinting ? 'false-accept' : 'duplicate', top: label(top) });
+    } else if (current) {
+      cards.push(judged(current, recognition));
     } else {
-      leftover.push(scan);
+      others.push({ card: 'not in deck', status: accepted(recognition) ? 'false-accept' : 'abstained', top: top ? label(top) : 'none' });
     }
   }
-  const extras: ExtraDetail[] = [];
-  for (const scan of leftover) {
-    const top = topOf(scan);
-    const card =
-      top &&
-      !deck.some((candidate) => candidate.printingId === top.printingId) &&
-      deck.find((candidate) => !matched.has(candidate) && sameCard(candidate, top));
-    if (card) {
-      matched.set(card, scan);
-    } else if (scan.kind === 'failed') {
-      extras.push({ card: 'failed', status: scan.error, top: 'none' });
-    } else if (!top) {
-      extras.push({ card: 'not a card', status: 'not-a-card', top: 'none' });
-    } else if (deck.some((candidate) => sameCard(candidate, top))) {
-      extras.push({ card: 'duplicate photo', status: 'duplicate', top: label(top) });
-    } else {
-      extras.push({ card: 'not in deck', status: accepted(scan) ? 'false-accept' : 'abstained', top: label(top) });
-    }
-  }
+  const missed = deck.slice(cards.length).map((card): CardResult => ({ card: label(card), status: 'no-result' }));
+  return { cards: [...cards, ...missed], others };
+}
 
-  const detail: CardDetail[] = deck.map((card) => {
-    const scan = matched.get(card);
-    const top = scan && topOf(scan);
-    return scan && top ? judged(card, scan, top) : { card: label(card), status: 'no-result' };
-  });
-  const answered = detail.filter((row) => row.status !== 'no-result');
-  const count = (predicate: (row: CardDetail) => boolean) => detail.filter(predicate).length;
-  const outsideAccepts = extras.filter((extra) => extra.card === 'not in deck' && extra.status === 'false-accept').length;
-  const wrongCardAccepts =
-    answered.filter((row) => row.status === 'false-accept' && !row.identity).length + outsideAccepts;
-  const startedAt = scans.length > 0 ? scans[0].at - scans[0].endToEndMs : null;
-  const elapsedMs = startedAt === null ? 0 : scans[scans.length - 1].at - startedAt;
-  const perMinute = (value: number) => (elapsedMs > 0 ? Math.round((value / elapsedMs) * 600_000) / 10 : null);
-  const printingTop1 = count((row) => row.status !== 'no-result' && row.printing);
-
-  const summary = {
+function summarize(deck: TestDeckCard[], cards: CardResult[], others: OtherResult[], results: number) {
+  const scored = cards.filter((card): card is Judged => 'identity' in card);
+  const timed = cards.flatMap((card) => ('endToEndMs' in card ? [card.endToEndMs] : [])).sort((a, b) => a - b);
+  const cardsWith = (status: CardResult['status']) => cards.filter((card) => card.status === status).length;
+  const othersWith = (kind: OtherResult['card'], status?: OtherResult['status']) =>
+    others.filter((other) => other.card === kind && (status === undefined || other.status === status)).length;
+  const otherFalseAccepts = others.filter((other) => other.status === 'false-accept').length;
+  return {
     presented: deck.length,
-    identityTop1: count((row) => row.status !== 'no-result' && row.identity),
-    printingTop1,
-    correctAccepts: count((row) => row.status === 'correct-accept'),
-    falseAccepts: count((row) => row.status === 'false-accept') + outsideAccepts,
-    wrongCardAccepts,
-    abstentions: count((row) => row.status === 'abstained'),
-    failures: extras.filter((extra) => extra.card === 'failed').length,
-    endToEndP50Ms: nearestRank(answered.map((row) => row.endToEndMs), 0.5),
-    endToEndP95Ms: nearestRank(answered.map((row) => row.endToEndMs), 0.95),
-    results: scans.length,
-    duplicatePhotos: extras.filter((extra) => extra.card === 'duplicate photo').length,
-    notACardResults: extras.filter((extra) => extra.card === 'not a card').length,
-    notInDeckResults: extras.filter((extra) => extra.card === 'not in deck').length,
-    missedCards: count((row) => row.status === 'no-result'),
-    elapsedSeconds: Math.round(elapsedMs / 100) / 10,
-    cardsPerMinute: perMinute(scans.length),
-    correctCardsPerMinute: perMinute(printingTop1),
+    identityTop1: scored.filter((card) => card.identity).length,
+    printingTop1: scored.filter((card) => card.printing).length,
+    correctAccepts: cardsWith('correct-accept'),
+    falseAccepts: cardsWith('false-accept') + otherFalseAccepts,
+    wrongCardAccepts:
+      scored.filter((card) => card.status === 'false-accept' && !card.identity).length +
+      othersWith('not in deck', 'false-accept'),
+    abstentions: cardsWith('abstained'),
+    failures: cardsWith('failed'),
+    endToEndP50Ms: timed.length > 0 ? nearestRank(timed, 0.5) : null,
+    endToEndP95Ms: timed.length > 0 ? nearestRank(timed, 0.95) : null,
+    results,
+    duplicatePhotos: othersWith('duplicate photo'),
+    notACardResults: othersWith('not a card'),
+    notInDeckResults: othersWith('not in deck'),
+    missedCards: cardsWith('no-result'),
   };
+}
 
-  const gates: Gate[] = [
+type Summary = ReturnType<typeof summarize>;
+
+function releaseGates(deck: TestDeckCard[], summary: Summary) {
+  return [
     { name: 'No false accepts', passed: summary.falseAccepts === 0, value: `${summary.falseAccepts}` },
     {
       name: 'Right card first',
@@ -149,8 +143,8 @@ export function scoreBinDeck(deck: DeckCard[], metroLog: string) {
     },
     {
       name: 'Exact card printing first',
-      passed: printingTop1 >= deck.length - 3,
-      value: `${printingTop1} of ${deck.length}, needs ${deck.length - 3}`,
+      passed: summary.printingTop1 >= deck.length - 3,
+      value: `${summary.printingTop1} of ${deck.length}, needs ${deck.length - 3}`,
     },
     {
       name: 'End-to-end p95 below 1.5 s',
@@ -158,6 +152,20 @@ export function scoreBinDeck(deck: DeckCard[], metroLog: string) {
       value: `${summary.endToEndP95Ms} ms`,
     },
   ];
+}
 
-  return { summary, detail, extras, gates, startedAt };
+export function scoreBinDeck(deck: TestDeckCard[], metroLog: string) {
+  const recognitions = logLines<RecognitionLogLine>(metroLog, developmentLogPrefixes.recognition);
+  const parity = logLines<GalleryParity>(metroLog, developmentLogPrefixes.parity).at(-1) ?? null;
+  const { cards, others } = matchToDeck(deck, recognitions);
+  const summary = summarize(deck, cards, others, recognitions.length);
+  const [first] = recognitions;
+  return {
+    summary,
+    cards,
+    others,
+    parity,
+    gates: releaseGates(deck, summary),
+    startedAt: first ? first.at - first.endToEndMs : null,
+  };
 }
