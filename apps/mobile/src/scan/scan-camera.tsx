@@ -21,7 +21,9 @@ function LatestScan() {
         onOpen={(scanId) => router.push({ pathname: '/scan-details', params: { scanId } })}
         onAddCopy={addCopy}
         onChangeFinish={(scanId, finish) => dispatch({ type: 'setFinish', scanId, finish })}
+        onChangeCondition={(scanId) => router.push({ pathname: '/scan-condition', params: { scanId } })}
         onChangeSet={(scanId) => router.push({ pathname: '/scan-printings', params: { scanId } })}
+        onChangeLanguage={(scanId) => router.push({ pathname: '/scan-language', params: { scanId } })}
       />
     </View>
   );

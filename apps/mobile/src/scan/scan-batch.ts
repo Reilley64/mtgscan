@@ -16,11 +16,6 @@ export type BatchScan = Readonly<{
   language: CardLanguage;
 }>;
 
-export type BatchDefaults = Readonly<{
-  condition: CardCondition;
-  language: CardLanguage;
-}>;
-
 export type RecognizedScan = BatchScan & { printing: Printing };
 
 export function recognizedScan(scan: BatchScan | null | undefined): RecognizedScan | null {
@@ -29,7 +24,6 @@ export function recognizedScan(scan: BatchScan | null | undefined): RecognizedSc
 
 export type ScanBatch = Readonly<{
   scans: readonly BatchScan[];
-  defaults: BatchDefaults;
   commitPending: boolean;
 }>;
 
@@ -48,15 +42,15 @@ export type ScanBatchAction =
   | { type: 'setLanguage'; scanId: string; language: CardLanguage }
   | { type: 'addCopy'; scanId: string; newScanId: string }
   | { type: 'remove'; scanId: string }
-  | { type: 'setDefaults'; defaults: Partial<BatchDefaults> }
   | { type: 'commitStarted' }
   | { type: 'committed'; scanIds: readonly string[] };
 
 export type ScanEdit = Exclude<ScanBatchAction, { type: 'commitStarted' | 'committed' }>;
 
+export const newScanDefaults = { condition: 'near_mint', language: 'en' } as const satisfies Pick<BatchScan, 'condition' | 'language'>;
+
 export const emptyScanBatch: ScanBatch = {
   scans: [],
-  defaults: { condition: 'near_mint', language: 'en' },
   commitPending: false,
 };
 
@@ -86,7 +80,7 @@ function addScan(batch: ScanBatch, scan: Omit<BatchScan, 'condition' | 'language
   }
   return {
     ...batch,
-    scans: [...batch.scans, { ...scan, condition: batch.defaults.condition, language: batch.defaults.language }],
+    scans: [...batch.scans, { ...scan, ...newScanDefaults }],
   };
 }
 
@@ -130,8 +124,6 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
     }
     case 'remove':
       return { ...batch, scans: batch.scans.filter((scan) => scan.scanId !== action.scanId) };
-    case 'setDefaults':
-      return { ...batch, defaults: { ...batch.defaults, ...action.defaults } };
     case 'commitStarted':
       return { ...batch, commitPending: true };
     case 'committed':

@@ -28,17 +28,28 @@ import {
   cardImageUri,
   glassEffect,
   glassGroupOf,
+  isDrawerPresented,
   lineColoredBlocks,
   openSettings,
   presentedDrawer,
   pressTab,
+  selectedTab,
   sideColumnWidths,
   swipeDownDrawer,
   symbolNames,
   symbolTintColor,
 } from './native-ui';
 import { renderApp } from './render-app';
-import { latestScanChip, openLatestScan, openScan, scanACard, scanTab, selectedChoice } from './scanning';
+import {
+  expectDisabledQuickActions,
+  latestScanChip,
+  openLatestScan,
+  openScan,
+  quickActionsOfAnEmptyChip,
+  scanACard,
+  scanTab,
+  selectedChoice,
+} from './scanning';
 import { tokenColors } from './token-colors';
 
 const { surface, text: white, textMuted, textDim, glassTextMuted, glassTextDim, glassSkeleton } = tokenColors;
@@ -142,7 +153,7 @@ test('on Liquid Glass, the disabled quick actions have glass text dim labels', a
   liquidGlassIsAvailable();
   nextPhotosAre(cardRecognition([lightningBoltList]));
   await openScan();
-  expect(within(scanTab().getByRole('button', { name: 'Finish' })).getByText('Finish')).toHaveStyle({ color: glassTextDim });
+  expect(within(scanTab().getByRole('button', { name: 'Nonfoil' })).getByText('Nonfoil')).toHaveStyle({ color: glassTextDim });
   expect(symbolTintColor(scanTab().getByRole('button', { name: 'Set' }))).toBe(glassTextDim);
 
   await scanACard();
@@ -344,14 +355,14 @@ test('tapping the chip opens the details sheet with the card image, name, set an
   expect(screen.getByRole('button', { name: 'Remove scan' })).toBeOnTheScreen();
 });
 
-test('the details sheet opens as a bottom drawer with a grabber at half height that drags to full height', async () => {
+test('the details sheet opens as a bottom drawer with a grabber at full height only', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
 
   await openLatestScan('Lightning Bolt, M10 146');
 
-  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [0.5, 1], openingHeight: 0.5 });
+  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [1], openingHeight: 1 });
 });
 
 test('a downward swipe closes the details sheet', async () => {
@@ -509,7 +520,7 @@ test('Remove scan removes only the current copy and leaves the chip empty', asyn
 
   expect(screen.queryByRole('button', { name: 'Remove scan' })).not.toBeOnTheScreen();
   expect(scanTab().queryByText('Lightning Bolt')).not.toBeOnTheScreen();
-  ['Finish', 'Set', '+1'].forEach((name) => expect(scanTab().getByRole('button', { name })).toBeDisabled());
+  expectDisabledQuickActions();
   expect(scanTab().getByRole('button', { name: 'Scan batch, 1' })).toBeOnTheScreen();
 });
 
@@ -577,13 +588,47 @@ test('the finish quick action is disabled when the printing has one finish', asy
   expect(scanTab().getByRole('button', { name: '+1' })).toBeEnabled();
 });
 
-test('the quick actions show in the order finish, set, +1 and are disabled before the first scan', async () => {
+test('the quick actions show in the order finish, condition, set, language, +1 and are disabled before the first scan with the defaults', async () => {
   await openScan();
 
-  const actions = ['Finish', 'Set', '+1'].map((name) => scanTab().getByRole('button', { name }));
+  const actions = quickActionsOfAnEmptyChip.map((name) => scanTab().getByRole('button', { name }));
   actions.forEach((action) => expect(action).toBeDisabled());
-  expect(appearsBefore(actions[0], actions[1])).toBe(true);
-  expect(appearsBefore(actions[1], actions[2])).toBe(true);
+  actions.slice(1).forEach((action, index) => expect(appearsBefore(actions[index], action)).toBe(true));
+  expect(selectedTab()).toHaveTextContent('NonfoilNMEN+1', { exact: true });
+});
+
+test('the condition quick action opens a short picker with the current condition marked, and a pick changes only the latest scan', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: 'NM' }));
+  expect(await screen.findByRole('header', { name: 'Condition' })).toBeOnTheScreen();
+  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [0.5, 1], openingHeight: 0.5 });
+  expect(selectedChoice('NM')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'LP' }));
+
+  expect(isDrawerPresented()).toBe(false);
+  expect(scanTab().getByRole('button', { name: 'LP' })).toBeEnabled();
+  await scanACard();
+  expect(scanTab().getByRole('button', { name: 'NM' })).toBeEnabled();
+});
+
+test('the language quick action opens a short picker with the current language marked, and a pick changes only the latest scan', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: 'EN' }));
+  expect(await screen.findByRole('header', { name: 'Language' })).toBeOnTheScreen();
+  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [0.5, 1], openingHeight: 0.5 });
+  expect(selectedChoice('English')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Japanese' }));
+
+  expect(isDrawerPresented()).toBe(false);
+  expect(scanTab().getByRole('button', { name: 'JA' })).toBeEnabled();
+  await scanACard();
+  expect(scanTab().getByRole('button', { name: 'EN' })).toBeEnabled();
 });
 
 test('a scan that is not recognized and a basic land disable the quick actions', async () => {
@@ -591,10 +636,10 @@ test('a scan that is not recognized and a basic land disable the quick actions',
   await openScan();
 
   await scanACard();
-  ['Finish', 'Set', '+1'].forEach((name) => expect(scanTab().getByRole('button', { name })).toBeDisabled());
+  expectDisabledQuickActions();
 
   await scanACard();
-  ['Finish', 'Set', '+1'].forEach((name) => expect(scanTab().getByRole('button', { name })).toBeDisabled());
+  expectDisabledQuickActions();
 });
 
 test('the quick actions keep the latest scan after a photo that is not a card', async () => {
@@ -629,6 +674,29 @@ test('the set quick action lists every printing of the card with images, same-te
     ),
   );
   expect(screen.getByRole('button', { name: 'Lightning Bolt, M10 146', selected: true })).toBeOnTheScreen();
+});
+
+test('the printing picker opens as a bottom drawer with a grabber at full height only', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: 'M10' }));
+  await screen.findByRole('button', { name: 'Lightning Bolt, 2XM 117' });
+
+  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [1], openingHeight: 1 });
+});
+
+test('a downward swipe closes the printing picker', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+  await fireEvent.press(scanTab().getByRole('button', { name: 'M10' }));
+  await screen.findByRole('button', { name: 'Lightning Bolt, 2XM 117' });
+
+  await swipeDownDrawer();
+
+  expect(isDrawerPresented()).toBe(false);
 });
 
 test('picking a printing from the set quick action switches the latest scan and keeps its finish when the printing has it', async () => {

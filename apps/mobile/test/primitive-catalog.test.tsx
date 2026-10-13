@@ -30,6 +30,7 @@ test('the primitive catalog shows every primitive', async () => {
     'Inputs',
     'Progress bars',
     'Sheet sections',
+    'Swipe to confirm',
     'Drawer sheet',
   ]) {
     expect(screen.getByRole('header', { name: section })).toBeOnTheScreen();
@@ -50,6 +51,10 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('link', { name: 'Text link' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Nonfoil' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'M10' })).toBeEnabled();
+  expect(screen.getAllByRole('button', { name: 'JA' }).at(-1)).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Swipe to confirm' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Swipe busy' })).toBeBusy();
+  expect(screen.getByRole('button', { name: 'Swipe disabled' })).toBeDisabled();
   expect(screen.getByLabelText('Card name')).toBeOnTheScreen();
   expect(screen.getByRole('progressbar', { name: 'Downloading gallery' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Other options' })).toBeOnTheScreen();
@@ -73,4 +78,13 @@ test('the primitive catalog opens the drawer sheet sample as a bottom drawer', a
   expect(await screen.findByRole('header', { name: 'Drawer sheet' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'The footer stays at the bottom' })).toBeOnTheScreen();
   expect(presentedDrawer()).toMatchObject({ showsGrabber: true, openingHeight: 0.5, heights: [0.5, 1] });
+});
+
+test('the primitive catalog opens the full-height drawer sheet sample at full height only', async () => {
+  await renderApp('/primitives');
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Open the full-height drawer sheet' }));
+
+  expect(await screen.findByRole('header', { name: 'Full-height drawer sheet' })).toBeOnTheScreen();
+  expect(presentedDrawer()).toEqual({ showsGrabber: true, openingHeight: 1, heights: [1] });
 });

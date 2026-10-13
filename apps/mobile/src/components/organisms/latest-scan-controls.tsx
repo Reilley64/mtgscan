@@ -9,7 +9,9 @@ type LatestScanControlsProps = {
   onOpen: (scanId: string) => void;
   onAddCopy: (scanId: string) => void;
   onChangeFinish: (scanId: string, finish: BatchScan['finish']) => void;
+  onChangeCondition: (scanId: string) => void;
   onChangeSet: (scanId: string) => void;
+  onChangeLanguage: (scanId: string) => void;
 };
 
 export function LatestScanControls({ latest, onOpen, ...quickActions }: LatestScanControlsProps) {

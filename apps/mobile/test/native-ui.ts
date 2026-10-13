@@ -100,10 +100,103 @@ export async function swipeDownDrawer() {
 
 export async function tapOutsideDrawer() {
   const drawer = presentedDrawerView();
+  if (drawer.heights[drawer.openingIndex] === 1) {
+    throw new Error('A drawer at full height leaves no screen outside it to tap');
+  }
   if (drawer.largestUndimmedIndex >= drawer.openingIndex) {
     throw new Error('The screen behind this drawer is not dimmed, so a tap there does not close it');
   }
   await closeDrawerByGesture(drawer);
+}
+
+function touchHistory(pageX: number, previousPageX: number, timestamp: number) {
+  return {
+    numberActiveTouches: 1,
+    indexOfSingleActiveTouch: 0,
+    mostRecentTimeStamp: timestamp,
+    touchBank: [
+      {
+        touchActive: true,
+        startPageX: previousPageX,
+        startPageY: 0,
+        startTimeStamp: timestamp,
+        currentPageX: pageX,
+        currentPageY: 0,
+        currentTimeStamp: timestamp,
+        previousPageX,
+        previousPageY: 0,
+        previousTimeStamp: timestamp,
+      },
+    ],
+  };
+}
+
+export async function swipeRight(control: HostElement, fractionOfWidth: number) {
+  const width = 360;
+  await fireEvent(control, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width, height: 52 } } });
+  const [handle] = control.queryAll((instance) => instance.props.onResponderMove !== undefined);
+  if (!handle) {
+    throw new Error('Nothing in this control can be swiped');
+  }
+  const end = width * fractionOfWidth;
+  await fireEvent(handle, 'responderGrant', { touchHistory: touchHistory(0, 0, 1), nativeEvent: {} });
+  await fireEvent(handle, 'responderMove', { touchHistory: touchHistory(end, 0, 2), nativeEvent: {} });
+  await fireEvent(handle, 'responderRelease', { touchHistory: touchHistory(end, end, 3), nativeEvent: {} });
+}
+
+export function swipeHandleOffset(control: HostElement) {
+  const [handle] = control.queryAll((instance) => instance.props.onResponderMove !== undefined);
+  const transform: { translateX?: number }[] = StyleSheet.flatten(handle.props.style)?.transform ?? [];
+  return transform.find((step) => step.translateX !== undefined)?.translateX ?? 0;
+}
+
+export function presentedDrawerCount() {
+  return hostViews('RNSModalScreen').filter((candidate) => candidate.props.stackPresentation === 'formSheet').length;
+}
+
+function drawerStackScreens() {
+  return presentedDrawerView().view.queryAll((instance) => instance.type === 'RNSScreen');
+}
+
+function headerOf(stackScreen: HostElement) {
+  const [header] = stackScreen.queryAll((instance) => instance.type === 'RNSScreenStackHeaderConfig');
+  return header.props;
+}
+
+export function drawerBackButton() {
+  const [previous, current] = drawerStackScreens().slice(-2);
+  if (!current) {
+    return null;
+  }
+  const header = headerOf(current);
+  if (header.hidden || header.hideBackButton) {
+    return null;
+  }
+  return { label: (header.backTitle ?? headerOf(previous).title) as string };
+}
+
+async function popDrawerScreen() {
+  const [current] = drawerStackScreens().slice(-1);
+  await fireEvent(current, 'dismissed', { nativeEvent: { dismissCount: 1 } });
+}
+
+export async function pressDrawerBack() {
+  if (!drawerBackButton()) {
+    throw new Error('This drawer shows no back button');
+  }
+  await popDrawerScreen();
+}
+
+export async function swipeBackFromTheLeftEdge() {
+  const [current] = drawerStackScreens().slice(-1);
+  if (drawerStackScreens().length < 2 || current.props.gestureEnabled === false) {
+    throw new Error('This drawer screen does not go back with a swipe from the left edge');
+  }
+  await popDrawerScreen();
+}
+
+export function opacityOf(element: HostElement) {
+  return StyleSheet.flatten(element.props.style)?.opacity ?? 1;
 }
 
 export function showsSpinner(element: ReturnType<typeof screen.getByRole>) {

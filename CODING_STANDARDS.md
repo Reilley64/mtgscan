@@ -38,7 +38,7 @@ The review agent checks each diff against these rules. CI already runs the type 
   - Jest checks `disabled:`, `aria-*:`, data attributes, and their `group` forms with `toHaveStyle`. It cannot hold a press, so check `active:` and `group-active:` on the Simulator.
 - Leave out transition and animation classes until they work in Jest. See #102.
 - A value outside the tokens needs a reason in `DESIGN.md`, like the Apple and Google button colors.
-- Follow the `DESIGN.md` Do's and Don'ts, such as native tabs, page sheets, and no on-screen back buttons.
+- Follow the `DESIGN.md` Do's and Don'ts, such as native tabs, page sheets, and no on-screen back buttons outside a drawer.
 - Drawers and modals are one level deep (`DESIGN.md`, Sheets). A route or component that opens a drawer, page sheet, alert, or confirmation sheet from inside another drawer or modal is a finding. Push a screen inside the same drawer instead, or show the step inline. Native menus are allowed.
 - Give every control an accessibility role and a label that matches its visible text.
 - Give every control a touch target of at least 44 by 44 pt. Use `hitSlop` when the control looks smaller, as `Button` and `Chip` do.

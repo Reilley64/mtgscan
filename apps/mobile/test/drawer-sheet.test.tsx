@@ -33,17 +33,17 @@ test('a drawer sheet with no title scrolls all its content', async () => {
 test('a drawer sheet keeps its footer below the content that scrolls', async () => {
   await render(
     <DrawerSheet
-      title="Scan batch"
+      title="2 cards scanned"
       footer={
         <Button variant="primary" onPress={() => {}}>
-          <Text>Add 2 to collection</Text>
+          <Text>Add to collection</Text>
         </Button>
       }>
       <Text>Lightning Bolt</Text>
     </DrawerSheet>,
   );
 
-  const footer = screen.getByRole('button', { name: 'Add 2 to collection' });
+  const footer = screen.getByRole('button', { name: 'Add to collection' });
   expect(isInScrollView(footer)).toBe(false);
   expect(isInScrollView(screen.getByText('Lightning Bolt'))).toBe(true);
   expect(appearsBefore(screen.getByText('Lightning Bolt'), footer)).toBe(true);

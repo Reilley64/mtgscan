@@ -38,3 +38,9 @@ export async function startPullingDown({ from = 300 }: { from?: number } = {}) {
     release: finger.lift,
   };
 }
+
+export const quickActionsOfAnEmptyChip = ['Nonfoil', 'NM', 'Set', 'EN', '+1'];
+
+export function expectDisabledQuickActions() {
+  quickActionsOfAnEmptyChip.forEach((name) => expect(scanTab().getByRole('button', { name })).toBeDisabled());
+}

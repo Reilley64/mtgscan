@@ -34,6 +34,10 @@ export const languageNames: Record<CardLanguage, string> = {
   zht: 'Traditional Chinese',
 };
 
+export function languageCode(language: CardLanguage) {
+  return language.toUpperCase();
+}
+
 const conditionNames: Record<CardCondition, string> = {
   near_mint: 'near mint',
   lightly_played: 'lightly played',

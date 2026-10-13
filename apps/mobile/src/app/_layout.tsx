@@ -1,10 +1,11 @@
 import '../global.css';
 
-import { DarkTheme, Stack, ThemeProvider, type NativeStackNavigationOptions } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SessionProvider, useSession } from '@/auth/session';
+import { fullHeightDrawerOptions, halfHeightDrawerOptions } from '@/components/templates/drawer-sheet';
 import { GalleryProvider } from '@/gallery/gallery-state';
 import { ScanBatchProvider } from '@/scan/scan-batch-state';
 import { ScanSoundsProvider } from '@/scan/scan-sounds-setting';
@@ -22,14 +23,6 @@ const navigationTheme = {
   },
 };
 
-const drawerOptions: NativeStackNavigationOptions = {
-  presentation: 'formSheet',
-  sheetAllowedDetents: [0.5, 1],
-  sheetGrabberVisible: true,
-  sheetExpandsWhenScrolledToEdge: false,
-  contentStyle: { backgroundColor: colors.sheet },
-};
-
 function RootStack() {
   const signedIn = useSession() !== null;
 
@@ -37,17 +30,20 @@ function RootStack() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="scan-batch" options={drawerOptions} />
-        <Stack.Screen name="scan-details" options={drawerOptions} />
-        <Stack.Screen name="scan-printings" options={drawerOptions} />
-        <Stack.Screen name="settings" options={drawerOptions} />
+        <Stack.Screen name="scan-batch" options={fullHeightDrawerOptions} />
+        <Stack.Screen name="scan-details" options={fullHeightDrawerOptions} />
+        <Stack.Screen name="scan-printings" options={fullHeightDrawerOptions} />
+        <Stack.Screen name="scan-condition" options={halfHeightDrawerOptions} />
+        <Stack.Screen name="scan-language" options={halfHeightDrawerOptions} />
+        <Stack.Screen name="settings" options={halfHeightDrawerOptions} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
       <Stack.Protected guard={__DEV__}>
         <Stack.Screen name="primitives" />
-        <Stack.Screen name="primitives-sheet" options={drawerOptions} />
+        <Stack.Screen name="primitives-sheet" options={halfHeightDrawerOptions} />
+        <Stack.Screen name="primitives-full-height-sheet" options={fullHeightDrawerOptions} />
       </Stack.Protected>
     </Stack>
   );

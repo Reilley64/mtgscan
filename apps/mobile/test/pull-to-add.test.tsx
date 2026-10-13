@@ -37,7 +37,7 @@ function expectNoIndicator() {
 }
 
 function expectAnEmptyChip() {
-  expect(selectedTab()).toHaveTextContent('Finish+1', { exact: true });
+  expect(selectedTab()).toHaveTextContent('NonfoilNMEN+1', { exact: true });
 }
 
 beforeEach(() => {
