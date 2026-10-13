@@ -35,6 +35,7 @@ import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
+import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
@@ -250,9 +251,11 @@ function QuickActions() {
     <Section title="Quick actions">
       <QuickActionBar>
         <QuickActionButton label="Nonfoil" />
+        <QuickActionButton label="LP" onPress={() => {}} />
         <QuickActionButton label="M10" onPress={() => {}}>
           <SetIcon uri={m10Symbol} />
         </QuickActionButton>
+        <QuickActionButton label="JA" onPress={() => {}} />
         <QuickActionButton label="+1" onPress={() => {}} />
       </QuickActionBar>
     </Section>
@@ -343,6 +346,16 @@ function ProgressBars() {
   );
 }
 
+function SwipeToConfirms() {
+  return (
+    <Section title="Swipe to confirm">
+      <SwipeToConfirm label="Swipe to confirm" onConfirm={() => {}} />
+      <SwipeToConfirm label="Swipe busy" busy onConfirm={() => {}} />
+      <SwipeToConfirm label="Swipe disabled" disabled onConfirm={() => {}} />
+    </Section>
+  );
+}
+
 function SheetSections() {
   return (
     <Section title="Sheet sections">
@@ -378,6 +391,7 @@ export function PrimitiveCatalog() {
         <Inputs />
         <ProgressBars />
         <SheetSections />
+        <SwipeToConfirms />
         <Section title="Drawer sheet">
           <Button onPress={() => router.push('/primitives-sheet')}>
             <Text>Open the drawer sheet</Text>

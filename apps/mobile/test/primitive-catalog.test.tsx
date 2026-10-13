@@ -30,6 +30,7 @@ test('the primitive catalog shows every primitive', async () => {
     'Inputs',
     'Progress bars',
     'Sheet sections',
+    'Swipe to confirm',
     'Drawer sheet',
   ]) {
     expect(screen.getByRole('header', { name: section })).toBeOnTheScreen();
@@ -50,6 +51,10 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('link', { name: 'Text link' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Nonfoil' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'M10' })).toBeEnabled();
+  expect(screen.getAllByRole('button', { name: 'JA' }).at(-1)).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Swipe to confirm' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Swipe busy' })).toBeBusy();
+  expect(screen.getByRole('button', { name: 'Swipe disabled' })).toBeDisabled();
   expect(screen.getByLabelText('Card name')).toBeOnTheScreen();
   expect(screen.getByRole('progressbar', { name: 'Downloading gallery' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Other options' })).toBeOnTheScreen();

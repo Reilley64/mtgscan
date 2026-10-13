@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
-import { processColor, View } from 'react-native';
+import { processColor, StyleSheet, View } from 'react-native';
 
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
@@ -19,11 +19,13 @@ import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
+import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 
 import { liquidGlassIsAvailable } from './fake-glass-effect';
+import { scanFeedback } from './fake-scan-feedback';
 import {
   backdropOf,
   cardImageOutline,
@@ -33,6 +35,7 @@ import {
   imageTintColor,
   showsSpinner,
   sideColumnWidths,
+  swipeRight,
   symbolNames,
   touchTarget,
 } from './native-ui';
@@ -568,5 +571,71 @@ describe('PullIndicator', () => {
     const pill = backdropOf(screen.getByText('Release to add 3 cards'));
     expect(glassEffect(pill)).toEqual({ style: 'regular', interactive: false, tintColor: undefined });
     expect(pill).toHaveStyle({ height: 38, borderRadius: 999 });
+  });
+});
+
+describe('SwipeToConfirm', () => {
+  test('a swipe to confirm is a lime pill button with its label in on-primary and a round handle', async () => {
+    await render(<SwipeToConfirm label="Add to collection" onConfirm={() => {}} />);
+
+    const control = screen.getByRole('button', { name: 'Add to collection' });
+    expect(control).toHaveStyle({ backgroundColor: lime, borderRadius: 999, height: 52 });
+    expect(screen.getByText('Add to collection')).toHaveStyle({ color: onPrimary, fontSize: 14, fontWeight: '700' });
+    expect(symbolNames(control)).toEqual(['arrow.right']);
+  });
+
+  test('swiping the handle past the threshold confirms once, with a light haptic', async () => {
+    const onConfirm = jest.fn();
+    await render(<SwipeToConfirm label="Add to collection" onConfirm={onConfirm} />);
+
+    await swipeRight(screen.getByRole('button', { name: 'Add to collection' }), 0.9);
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(scanFeedback()).toEqual(['light impact']);
+  });
+
+  test('releasing the handle before the threshold confirms nothing', async () => {
+    const onConfirm = jest.fn();
+    await render(<SwipeToConfirm label="Add to collection" onConfirm={onConfirm} />);
+
+    await swipeRight(screen.getByRole('button', { name: 'Add to collection' }), 0.5);
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(scanFeedback()).toEqual([]);
+  });
+
+  test('a disabled swipe to confirm is dimmed and cannot be swiped or activated', async () => {
+    const onConfirm = jest.fn();
+    await render(<SwipeToConfirm label="Add to collection" disabled onConfirm={onConfirm} />);
+
+    const control = screen.getByRole('button', { name: 'Add to collection' });
+    expect(control).toBeDisabled();
+    expect(control).toHaveStyle({ opacity: expect.closeTo(0.38) });
+    await swipeRight(control, 0.9);
+    await fireEvent(control, 'accessibilityAction', { nativeEvent: { actionName: 'activate' } });
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  test('a busy swipe to confirm shows a spinner on the handle, keeps its full color, and cannot be swiped', async () => {
+    const onConfirm = jest.fn();
+    await render(<SwipeToConfirm label="Add to collection" busy onConfirm={onConfirm} />);
+
+    const control = screen.getByRole('button', { name: 'Add to collection' });
+    expect(control).toBeBusy();
+    expect(StyleSheet.flatten(control.props.style).opacity ?? 1).toBe(1);
+    expect(showsSpinner(control)).toBe(true);
+    await swipeRight(control, 0.9);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  test('the VoiceOver default action confirms without a swipe', async () => {
+    const onConfirm = jest.fn();
+    await render(<SwipeToConfirm label="Add to collection" onConfirm={onConfirm} />);
+
+    await fireEvent(screen.getByRole('button', { name: 'Add to collection' }), 'accessibilityAction', {
+      nativeEvent: { actionName: 'activate' },
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 });

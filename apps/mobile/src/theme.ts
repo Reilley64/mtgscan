@@ -94,6 +94,7 @@ export const sizes = {
   quickAction: 32,
   quickActionDivider: 16,
   touchTarget: 44,
+  swipeTrack: 52,
   selectedOutline: 2,
   chevron: 14,
   iconButtonSymbol: 18,

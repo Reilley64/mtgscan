@@ -19,7 +19,7 @@ export function DrawerSheetSample({ fullHeight = false }: { fullHeight?: boolean
         <Text variant="body-strong">The title stays at the top.</Text>
         <Text variant="meta">
           {fullHeight
-            ? 'It opens at full height only. The content below it scrolls.'
+            ? 'Batch review, the scan details sheet, and the printing picker open at full height only.'
             : 'The content below it scrolls at half and full height.'}
         </Text>
       </Surface>

@@ -33,6 +33,8 @@ function RootStack() {
         <Stack.Screen name="scan-batch" options={fullHeightDrawerOptions} />
         <Stack.Screen name="scan-details" options={fullHeightDrawerOptions} />
         <Stack.Screen name="scan-printings" options={fullHeightDrawerOptions} />
+        <Stack.Screen name="scan-condition" options={halfHeightDrawerOptions} />
+        <Stack.Screen name="scan-language" options={halfHeightDrawerOptions} />
         <Stack.Screen name="settings" options={halfHeightDrawerOptions} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>

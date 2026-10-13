@@ -1,5 +1,5 @@
 import { useSetIcons } from '@/catalog/use-set-icons';
-import { finishes, finishLabels } from '@/collection/copy-labels';
+import { conditionLabels, finishes, finishLabels } from '@/collection/copy-labels';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { SetIcon } from '@/components/atoms/set-icon';
@@ -11,7 +11,9 @@ type ScanQuickActionsProps = {
   scan: RecognizedScan | null;
   onAddCopy: (scanId: string) => void;
   onChangeFinish: (scanId: string, finish: BatchScan['finish']) => void;
+  onChangeCondition: (scanId: string) => void;
   onChangeSet: (scanId: string) => void;
+  onChangeLanguage: (scanId: string) => void;
 };
 
 function SetAction({ setCode, onPress }: { setCode: string; onPress: () => void }) {
@@ -24,14 +26,23 @@ function SetAction({ setCode, onPress }: { setCode: string; onPress: () => void 
   );
 }
 
-export function ScanQuickActions({ scan, onAddCopy, onChangeFinish, onChangeSet }: ScanQuickActionsProps) {
+export function ScanQuickActions({
+  scan,
+  onAddCopy,
+  onChangeFinish,
+  onChangeCondition,
+  onChangeSet,
+  onChangeLanguage,
+}: ScanQuickActionsProps) {
   if (!scan) {
     return (
       <QuickActionBar>
-        <QuickActionButton label="Finish" />
+        <QuickActionButton label={finishLabels.nonfoil} />
+        <QuickActionButton label={conditionLabels.near_mint} />
         <QuickActionButton label="Set">
           <DimSymbol name="square.dashed" size={sizes.setIcon} />
         </QuickActionButton>
+        <QuickActionButton label="EN" />
         <QuickActionButton label="+1" />
       </QuickActionBar>
     );
@@ -44,7 +55,9 @@ export function ScanQuickActions({ scan, onAddCopy, onChangeFinish, onChangeSet 
         label={finishLabels[scan.finish]}
         onPress={printingFinishes.length > 1 ? () => onChangeFinish(scan.scanId, nextFinish) : undefined}
       />
+      <QuickActionButton label={conditionLabels[scan.condition]} onPress={() => onChangeCondition(scan.scanId)} />
       <SetAction setCode={scan.printing.setCode} onPress={() => onChangeSet(scan.scanId)} />
+      <QuickActionButton label={scan.language.toUpperCase()} onPress={() => onChangeLanguage(scan.scanId)} />
       <QuickActionButton label="+1" onPress={() => onAddCopy(scan.scanId)} />
     </QuickActionBar>
   );

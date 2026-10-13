@@ -270,6 +270,18 @@ components:
     rounded: "{rounded.full}"
     padding: 0 12px
     height: 38px
+  swipe-to-confirm:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.on-primary}"
+    typography: "{typography.body-strong}"
+    rounded: "{rounded.full}"
+    padding: 0 4px
+    height: 52px
+  swipe-to-confirm-handle:
+    backgroundColor: "{colors.on-primary}"
+    textColor: "{colors.primary}"
+    rounded: "{rounded.full}"
+    height: 44px
 ---
 
 # mtgscan design
@@ -440,12 +452,12 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 - the swap-in confirmation for a protected copy;
 - revert.
 
-Settings, the scan details sheet, the printing picker, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all four.
+Settings, the scan details sheet, the printing picker, the condition and language pickers, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all of them.
 
 - It slides up from the bottom with the iOS grabber.
 - A drawer with a lot of content opens at full height and has no half height. These are the scan details sheet, the printing picker, and batch review.
-- Settings and other short drawers open at half the screen height. Dragging one up takes it to full height. Dragging it down takes it back to half height.
-- A downward swipe or a tap outside closes it. It has no Done button.
+- Settings, the condition and language pickers, and other short drawers open at half the screen height. Dragging one up takes it to full height. Dragging it down takes it back to half height.
+- A downward swipe closes it. At half height, a tap outside closes it too. At full height, iOS leaves no screen outside it to tap. It has no Done button.
 - Its content starts 32 px (spacing xl) below the top edge, twice the page inset, so that it clears the grabber. The content scrolls at every height.
 
 **One level only.** Drawers and modals (page sheets, alerts, and confirmation sheets) are never stacked: no drawer opens over a drawer, no modal over a modal, no drawer over a modal, and no modal over a drawer. When a task inside a drawer needs another step, such as editing a scan from batch review, it pushes a screen inside the same drawer with a back button and the swipe-back gesture. A confirmation needed from inside a drawer is shown inline in that drawer. Native menus (for example the collection total menu) are not drawers or modals and may open from a drawer.
@@ -505,6 +517,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - A busy button shows a spinner before its label and takes no taps. It keeps its full color.
   - A round icon button, such as the settings button or the batch button, is 38 px across on the control surface, with an 18 px symbol in the text color.
   - Every control has a touch target of at least 44 by 44 pt. A control that looks smaller, such as a 38 px button or a 24 px chip, gets the extra touch area above and below, and is at least 44 px wide.
+- **Swipe to confirm.** A 52 px lime pill track with a 44 px round handle in on-primary at its left, 4 px inside the track, with a lime arrow. The label sits in the center of the track in body strong, in on-primary. Dragging the handle to the right moves it along the track. Past 80% of the track, a light haptic plays, and releasing there confirms. Releasing before that point springs the handle back and does nothing. A busy control shows a spinner on the handle, keeps its full color, and cannot be swiped. A disabled control fades to 38% opacity. VoiceOver reads it as a button with its label, and its default action confirms without a swipe. The handle offset is the one style that is not a class, because it follows the drag.
 - **Toggles.** A toggle is a button that stays on or off, such as Protect. It uses the control surface when off and turns lime with dark text when on. A segmented control, such as Copies, Decks, Prices, and Rules on the card page, is a row of options on one control surface with 8 px corners. The chosen option is lime.
 - **Switch rows.** A switch row is a surface card with a label and an iOS switch with a lime track. A tap anywhere on the row turns the switch on or off.
 - **List rows.** A list row is a surface card with an optional thumbnail, a name in body strong, and an optional meta line, such as the set code and collector number.
@@ -525,11 +538,14 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - The two side columns are both as wide as the card thumbnail, so the name and the meta line sit centered on the chip.
   - A new scan replaces the chip.
   - The meta line adds the finish when it is not nonfoil: "M10 146 · Foil".
-  - A quick-action bar sits 8 px below the chip, centered, and is always on the Scan tab. It is one glass pill with 12 px corners and three buttons in chip type, split by 16 px hairline dividers in the line color. Without Liquid Glass, the pill uses the control surface. The bar is 32 px tall, and each button has a 44 pt touch target. From left to right:
+  - A quick-action bar sits 8 px below the chip, centered, and is always on the Scan tab. It is one glass pill with 12 px corners and five buttons in chip type, split by 16 px hairline dividers in the line color. Without Liquid Glass, the pill uses the control surface. The bar is 32 px tall, and each button has a 44 pt touch target. From left to right:
     - The finish button shows the current finish: "Nonfoil", "Foil", or "Etched". Tapping it switches to the next finish of the card printing in the order nonfoil, foil, etched. It changes only the scan on the chip. It is disabled when the card printing has one finish.
+    - The condition button shows the current condition: "NM", "LP", "MP", "HP", or "DMG". Tapping it opens the condition picker.
     - The set button shows the set's expansion symbol from Scryfall at 16 px, tinted with the text color. VoiceOver reads the set code in capitals, such as "MH3". When the card catalog has no symbol for the set, or it has not loaded, the button shows the set code instead. It opens the printing picker.
+    - The language button shows the language as a short code in capitals, such as "EN" or "JA". Tapping it opens the language picker.
     - **+1** adds another copy of the card printing to the scan batch as its own scan, with the same finish, condition, and language. The chip moves to the new scan, so later edits on the chip change only that copy. The chip never shows a copy count.
-  - The buttons act on the scan on the chip. Before the first scan, while a photo is being recognized, after a basic land or a scan that was not recognized, after **Remove scan**, and after the scan batch is added to the collection, they are disabled, with text dim labels. Before the first scan they read "Finish", a dashed square symbol for the set, and "+1". A photo that is not a card leaves the bar on the previous scan.
+  - The buttons act on the scan on the chip. Before the first scan, while a photo is being recognized, after a basic land or a scan that was not recognized, after **Remove scan**, and after the scan batch is added to the collection, they are disabled, with text dim labels. Disabled, they show the values a new scan starts with: "Nonfoil", "NM", a dashed square symbol for the set, "EN", and "+1". A photo that is not a card leaves the bar on the previous scan.
+  - The condition picker and the language picker are short bottom drawers, titled "Condition" and "Language", with one chip for each value. The current value is the lime chip. Picking a value changes only the scan on the chip and closes the drawer. Every new scan starts at NM and English.
   - The printing picker is a bottom drawer like the scan details sheet, at full height only, with the card name and every card printing of that card in the gallery, as card images 3 per row with the set code and collector number. The scanned card printing and its same-text twins come first, then the rest newest first. The current card printing has a 2 px lime border and a lime caption. Tapping a card printing switches the scan to it and closes the sheet. The scan keeps its finish when the new card printing has it. Otherwise it takes the new card printing's default finish.
   - A pulsing skeleton chip, with an image block and two centered bars in glass skeleton, shows from the moment the app takes the photo until the result arrives. Without Liquid Glass, the blocks are line-colored. The bars are as tall as body strong and meta type, 14 px and 12 px, and fill 70% and 40% of the text width. The blocks pulse between 45% and full opacity, 650 ms each way. VoiceOver reads it as "Recognizing card".
   - A photo that is not a card removes the skeleton chip and brings back the previous chip.
@@ -537,7 +553,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - A failed recognition shows an empty thumbnail, "Not recognized", and "Tap to search".
   - After **Add to collection**, the chip is empty until the next scan, as after **Remove scan**.
   - Tapping the chip opens the scan details sheet.
-- **Scan details sheet.** A bottom drawer with the iOS grabber. It opens at full height only and closes with a downward swipe or a tap outside. Its content scrolls, starting 32 px below the top edge.
+- **Scan details sheet.** A bottom drawer with the iOS grabber. It opens at full height only and closes with a downward swipe. Its content scrolls, starting 32 px below the top edge. The same scan details show inside batch review when a row opens them.
   - At the top: the card image at 55% of the sheet width, the card name in card title type, and the set code and collector number.
   - **Finish**, **Condition**, and **Language** sections, each with a row of chips. The selected chip is lime. Finish offers only the finishes of the card printing. Condition offers NM, LP, MP, HP, and DMG, and starts at NM. Language offers English, Japanese, German, French, Italian, Spanish, Portuguese, Korean, Russian, Simplified Chinese, and Traditional Chinese, and starts at English.
   - **Other options** lists the recognizer's other candidates as rows with a thumbnail, the name, and the set code and collector number. Every same-text twin comes first. Tapping a row switches the scan to that card printing. The scan keeps its condition and language, and its finish when the new card printing has it. Otherwise it takes the new card printing's default finish.
@@ -551,16 +567,16 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - Choosing a basic land shows "Basic lands are not tracked." and changes nothing.
 - **Batch button.** A round icon button on glass at the top right of Scan, 8 px below the safe area, with the `rectangle.portrait.on.rectangle.portrait.angled` card-stack symbol. Without Liquid Glass, it uses the control surface. A count badge on its top right corner counts the scans with a card printing, the same N as the batch review title. Scans that were not recognized are not counted, and they still show in batch review. With no scan to add, the button shows no badge. VoiceOver reads "Scan batch, 3". The button shows in every Scan tab state, and it opens batch review.
 - **Pull indicator.** A glass pill centered at the top of Scan, on the batch button's row. It is 38 px tall with full corners and 12 px side padding. It holds an 18 px symbol in the text color and its label in body strong, 8 px apart. The symbol is `arrow.down` while pulling and for "Nothing to add", `plus` for "Release to add", a spinner while adding, and the danger mark of the failure notice for "Failed to add". Without Liquid Glass, it uses the control surface. See Scan in Layout for its states.
-- **Batch review.** A bottom drawer with the iOS grabber, at full height only. It closes with a downward swipe or a tap outside. Its title is "N cards scanned", such as "3 cards scanned", or "1 card scanned" for one. N counts the scans with a card printing, the same N as the batch button badge. The scan details sheet opens over it from a row.
-  - **Condition for new scans** and **Language for new scans** come first, as rows of chips. They start at NM and English. A change applies to later scans only.
-  - **Not recognized** lists one row per scan that was not recognized, with "Not recognized" and "Tap to search". A tap opens the scan details sheet in name search.
-  - **Scans** lists every scan as its own row, newest first. Identical copies are not merged, and rows have no +/- control. A row has the thumbnail, the card name, and a meta line with the set code and collector number, the finish when it is not nonfoil, the condition, and the language: "M10 146 · Foil · NM · English". A tap opens the scan details sheet over the review, to edit or remove that copy.
-  - The primary button **Add to collection** stays at the bottom of the drawer. It shows no count. It is disabled when N is 0, and busy while the commit runs.
+- **Batch review.** A bottom drawer with the iOS grabber, at full height only. It closes with a downward swipe. Its title is "N cards scanned", such as "3 cards scanned", or "1 card scanned" for one. N counts the scans with a card printing, the same N as the batch button badge.
+  - A tap on a row pushes that scan's details into the same drawer, which stays at full height. The pushed details have the native back button, labeled with the drawer title, and go back with the swipe from the left edge too. This is the one on-screen back button in the app (owner decision, #129). **Remove scan** removes the copy and returns to the list.
+  - **Not recognized** lists one row per scan that was not recognized, with "Not recognized" and "Tap to search". A tap pushes the scan details in name search.
+  - **Scans** lists every scan as its own row, newest first. Identical copies are not merged, and rows have no +/- control. A row has the thumbnail, the card name, and a meta line with the set code and collector number, the finish when it is not nonfoil, the condition, and the language: "M10 146 · Foil · NM · English". A tap pushes the scan details, to edit or remove that copy.
+  - A swipe to confirm control labeled **Add to collection** stays at the bottom of the drawer. It shows no count. Swiping its handle past 80% of the track adds the scan batch. It is disabled when N is 0, and busy while the commit runs.
   - A commit that works closes the review and removes the added scans. Scans that were not recognized stay. The chip is empty, and the Collection tab shows the cards the next time it opens.
-  - A commit that fails shows the failure notice "Could not add to your collection. Your scans are kept." above the button, and the button reads **Try again** until a commit works. Each scan has its own copy ID, so the server never adds the same copy twice, even when the scan batch changed after the failure.
+  - A commit that fails shows the failure notice "Could not add to your collection. Your scans are kept." above the control, and the control reads **Try again** until a commit works. Each scan has its own copy ID, so the server never adds the same copy twice, even when the scan batch changed after the failure.
   - When the app restarts after a commit that failed or was still running, it sends the commit again by itself.
   - While the commit runs, rows do not open.
-  - The phone saves the scan batch and its defaults for each account, so they survive a restart. Another account on the phone does not see them.
+  - The phone saves the scan batch for each account, so they survive a restart. Another account on the phone does not see them.
 - **Binder tile.** One copy's card image with a meta line and a price line under it. There is no quantity badge and no chip.
   - Until the image loads, the tile is a line-colored card shape.
   - The meta line sits 4 px below the card image, centered, in meta text in text muted: the set's expansion symbol from Scryfall at 16 px tinted with the rarity color of the card printing (see Colors), then the collector number. When the card catalog has no symbol for the set, or it has not loaded, the set code in capitals takes its place. A copy that is not NM adds a text dim " · " and its condition: "[symbol] 136 · MP". Every condition uses the same text muted color.
@@ -582,7 +598,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Do** rely on the phone's back gesture for pushed screens.
 - **Do** flag validity problems ("would make this deck invalid") without blocking the action.
 - **Don't** show recognizer confidence, similarity scores, or "unsure" states.
-- **Don't** add on-screen back buttons or "Find in decks" style shortcuts that duplicate visible deck tags.
+- **Don't** add on-screen back buttons, except the native one in batch review (#129), or "Find in decks" style shortcuts that duplicate visible deck tags.
 - **Don't** mark suggested-out or buylist-out cards on the deck's Cards tab. Only planned swaps are commitments.
 - **Don't** use the primary lime for decoration. It always means "you can act here" or "selected". The brand mark is the one exception.
 - **Don't** draw anything over the camera except the card outline, the batch button, the latest-scan chip, and the pull indicator.

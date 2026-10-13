@@ -3,6 +3,7 @@ import { act, fireEvent, screen } from 'expo-router/testing-library';
 import { lightningBolt2xm, lightningBoltM10, shock } from './card-printings';
 import { resetSampleClock } from './detection-samples';
 import { cardRecognition, nextPhotosAre } from './fake-card-recognizer';
+import { scanFeedback } from './fake-scan-feedback';
 import {
   failNextScanBatchCommit,
   holdNextScanBatchCommit,
@@ -11,16 +12,29 @@ import {
   startSignedIn,
 } from './fake-supabase';
 import {
+  drawerBackButton,
   isDrawerPresented,
   openSettings,
   presentedDrawer,
+  presentedDrawerCount,
+  pressDrawerBack,
   pressTab,
   selectedTab,
+  showsSpinner,
   swipeDownDrawer,
-  tapOutsideDrawer,
+  swipeBackFromTheLeftEdge,
+  swipeRight,
 } from './native-ui';
 import { restartTheApp } from './render-app';
-import { latestScanChip, openLatestScan, openScan, scanACard, scanTab, selectedChoice } from './scanning';
+import {
+  expectDisabledQuickActions,
+  latestScanChip,
+  openLatestScan,
+  openScan,
+  scanACard,
+  scanTab,
+  selectedChoice,
+} from './scanning';
 
 async function openBatchReview(count?: number) {
   await fireEvent.press(scanTab().getByRole('button', { name: count ? `Scan batch, ${count}` : 'Scan batch' }));
@@ -35,7 +49,11 @@ function reviewRows() {
 }
 
 async function addToCollection() {
-  await fireEvent.press(screen.getByRole('button', { name: 'Add to collection' }));
+  await swipeRight(screen.getByRole('button', { name: 'Add to collection' }), 1);
+}
+
+async function tryAgain() {
+  await swipeRight(screen.getByRole('button', { name: 'Try again' }), 1);
 }
 
 async function pressPlusOne() {
@@ -72,15 +90,6 @@ test('the batch button opens batch review as a bottom drawer with a grabber at f
   expect(screen.getByRole('header', { name: '0 cards scanned' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Add to collection' })).toBeDisabled();
   await swipeDownDrawer();
-  expect(isDrawerPresented()).toBe(false);
-});
-
-test('a tap outside closes batch review', async () => {
-  await openScan();
-  await openBatchReview();
-
-  await tapOutsideDrawer();
-
   expect(isDrawerPresented()).toBe(false);
 });
 
@@ -131,6 +140,8 @@ test('+1 copies the finish, condition, and language, and each copy is edited on 
   await swipeDownDrawer();
 
   await pressPlusOne();
+  expect(scanTab().getByRole('button', { name: 'LP' })).toBeEnabled();
+  expect(scanTab().getByRole('button', { name: 'JA' })).toBeEnabled();
   await fireEvent.press(scanTab().getByRole('button', { name: 'Foil' }));
   await openBatchReview(2);
 
@@ -140,22 +151,43 @@ test('+1 copies the finish, condition, and language, and each copy is edited on 
   ]);
 });
 
-test('a row opens the scan details sheet to edit that copy', async () => {
+test('a row pushes the scan details into batch review, with a back button labeled with the drawer title', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10, lightningBolt2xm]));
   await openScan();
   await scanACard();
   await pressPlusOne();
   await openBatchReview(2);
+  expect(drawerBackButton()).toBeNull();
 
   await fireEvent.press(screen.getAllByRole('button', { name: 'Lightning Bolt, M10 146 · NM · English' })[1]);
   await fireEvent.press(await screen.findByRole('button', { name: 'MP' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Lightning Bolt, 2XM 117' }));
-  await swipeDownDrawer();
 
+  expect(presentedDrawerCount()).toBe(1);
+  expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [1], openingHeight: 1 });
+  expect(drawerBackButton()).toEqual({ label: '2 cards scanned' });
+  await pressDrawerBack();
+  expect(drawerBackButton()).toBeNull();
+  expect(screen.getByRole('header', { name: '2 cards scanned' })).toBeOnTheScreen();
   expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English', 'Lightning Bolt, 2XM 117 · MP · English']);
 });
 
-test('Remove scan in the scan details sheet removes only that copy from batch review', async () => {
+test('a swipe from the left edge takes the scan details back to the batch review list', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+  await openBatchReview(1);
+  await fireEvent.press(screen.getByRole('button', { name: 'Lightning Bolt, M10 146 · NM · English' }));
+  await screen.findByRole('button', { name: 'Remove scan' });
+
+  await swipeBackFromTheLeftEdge();
+
+  expect(screen.queryByRole('button', { name: 'Remove scan' })).not.toBeOnTheScreen();
+  expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English']);
+  expect(isDrawerPresented()).toBe(true);
+});
+
+test('Remove scan in the scan details removes only that copy and returns to the batch review list', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
   await openScan();
   await scanACard();
@@ -165,6 +197,8 @@ test('Remove scan in the scan details sheet removes only that copy from batch re
   await fireEvent.press(screen.getByRole('button', { name: 'Lightning Bolt, M10 146 · NM · English' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Remove scan' }));
 
+  expect(drawerBackButton()).toBeNull();
+  expect(presentedDrawerCount()).toBe(1);
   expect(screen.getByRole('header', { name: '1 card scanned' })).toBeOnTheScreen();
   expect(reviewRows()).toEqual(['Shock, M19 156 · NM · English']);
   await swipeDownDrawer();
@@ -183,25 +217,6 @@ test('batch review lists scans that were not recognized, and a tap opens name se
   await fireEvent.press(screen.getByRole('button', { name: 'Not recognized, Tap to search' }));
 
   expect(await screen.findByLabelText('Card name')).toBeOnTheScreen();
-});
-
-test('the condition and language for new scans start at near mint and English and apply only to new scans', async () => {
-  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
-  await openScan();
-  await scanACard();
-  await openBatchReview(1);
-  expect(selectedChoice('NM')).toBeOnTheScreen();
-  expect(selectedChoice('English')).toBeOnTheScreen();
-
-  await fireEvent.press(screen.getByRole('button', { name: 'HP' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'German' }));
-  await swipeDownDrawer();
-  await scanACard();
-  await openBatchReview(2);
-
-  expect(reviewRows()).toEqual(['Shock, M19 156 · HP · German', 'Lightning Bolt, M10 146 · NM · English']);
-  expect(selectedChoice('HP')).toBeOnTheScreen();
-  expect(selectedChoice('German')).toBeOnTheScreen();
 });
 
 test('Add to collection sends every copy with its own copy ID, with identical copies in one stack', async () => {
@@ -226,8 +241,8 @@ test('Add to collection sends every copy with its own copy ID, with identical co
 });
 
 function expectAnEmptyChip() {
-  expect(selectedTab()).toHaveTextContent('Finish+1', { exact: true });
-  ['Finish', 'Set', '+1'].forEach((name) => expect(scanTab().getByRole('button', { name })).toBeDisabled());
+  expect(selectedTab()).toHaveTextContent('NonfoilNMEN+1', { exact: true });
+  expectDisabledQuickActions();
 }
 
 test('a commit closes batch review, leaves the chip empty, keeps scans that were not recognized, and the binder grid shows the new cards', async () => {
@@ -247,7 +262,37 @@ test('a commit closes batch review, leaves the chip empty, keeps scans that were
   expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
 });
 
-test('rows cannot be opened while the commit runs', async () => {
+test('swiping Add to collection past the threshold adds the batch, and releasing it before the threshold adds nothing', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+  await openBatchReview(1);
+
+  await swipeRight(screen.getByRole('button', { name: 'Add to collection' }), 0.5);
+  expect(scanBatchesSentToTheServer()).toEqual([]);
+  expect(scanFeedback()).not.toContain('light impact');
+
+  await swipeRight(screen.getByRole('button', { name: 'Add to collection' }), 1);
+  expect(scanFeedback()).toContain('light impact');
+  expect(scanBatchesSentToTheServer()).toHaveLength(1);
+  expect(isDrawerPresented()).toBe(false);
+});
+
+test('the VoiceOver default action on Add to collection adds the batch without a swipe', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+  await openBatchReview(1);
+
+  await fireEvent(screen.getByRole('button', { name: 'Add to collection' }), 'accessibilityAction', {
+    nativeEvent: { actionName: 'activate' },
+  });
+
+  expect(scanBatchesSentToTheServer()).toHaveLength(1);
+  expect(isDrawerPresented()).toBe(false);
+});
+
+test('Add to collection shows a spinner on its handle while the commit runs, and rows cannot be opened', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
@@ -256,7 +301,11 @@ test('rows cannot be opened while the commit runs', async () => {
 
   await addToCollection();
 
-  expect(screen.getByRole('button', { name: 'Add to collection' })).toBeBusy();
+  const control = screen.getByRole('button', { name: 'Add to collection' });
+  expect(control).toBeBusy();
+  expect(showsSpinner(control)).toBe(true);
+  await swipeRight(control, 1);
+  expect(scanBatchesSentToTheServer()).toHaveLength(1);
   expect(screen.queryByRole('button', { name: 'Lightning Bolt, M10 146 · NM · English' })).not.toBeOnTheScreen();
   expect(screen.getByLabelText('Lightning Bolt, M10 146 · NM · English')).toBeOnTheScreen();
   await commit.finish();
@@ -273,7 +322,7 @@ test('a failed commit keeps the batch and Try again sends the same copy IDs', as
 
   expect(screen.getByText('Could not add to your collection. Your scans are kept.')).toBeOnTheScreen();
   expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English']);
-  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+  await tryAgain();
 
   const [failed, retried] = scanBatchesSentToTheServer();
   expect(retried.items).toEqual(failed.items);
@@ -290,7 +339,7 @@ test('Try again after a commit that the server added but the phone did not hear 
   failNextScanBatchCommit('after the server adds it');
 
   await addToCollection();
-  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+  await tryAgain();
   await pressTab('Collection');
 
   expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
@@ -307,7 +356,7 @@ test('Try again after the scan batch changed adds only the copies the server did
 
   await scanACard();
   await openBatchReview(2);
-  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+  await tryAgain();
 
   const [first, retried] = scanBatchesSentToTheServer();
   expect(retried.items.flatMap((item) => item.copy_ids)).toEqual(
@@ -319,29 +368,12 @@ test('Try again after the scan batch changed adds only the copies the server did
   expect(screen.getAllByRole('image', { name: 'Shock, M19 156, no price' })).toHaveLength(1);
 });
 
-test('the failed commit stays after a change to the condition and language for new scans', async () => {
-  nextPhotosAre(cardRecognition([lightningBoltM10]));
-  await openScan();
-  await scanACard();
-  await openBatchReview(1);
-  failNextScanBatchCommit('before the server adds it');
-  await addToCollection();
-
-  await fireEvent.press(screen.getByRole('button', { name: 'LP' }));
-
-  expect(screen.getByText('Could not add to your collection. Your scans are kept.')).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Try again' })).toBeOnTheScreen();
-});
-
-test('the scan batch and its defaults survive a restart of the app', async () => {
+test('the scan batch survives a restart of the app', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
   await openScan();
   await scanACard();
   await pressPlusOne();
   await scanACard();
-  await openBatchReview(2);
-  await fireEvent.press(screen.getByRole('button', { name: 'LP' }));
-  await swipeDownDrawer();
 
   await restartTheApp();
   await pressTab('Scan');
@@ -349,7 +381,6 @@ test('the scan batch and its defaults survive a restart of the app', async () =>
 
   expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English', 'Lightning Bolt, M10 146 · NM · English']);
   expect(screen.getByRole('button', { name: 'Not recognized, Tap to search' })).toBeOnTheScreen();
-  expect(selectedChoice('LP')).toBeOnTheScreen();
 });
 
 test('a restart after a commit that did not finish sends it again with the same copy IDs', async () => {

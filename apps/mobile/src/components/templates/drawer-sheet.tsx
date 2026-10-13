@@ -19,6 +19,19 @@ export const fullHeightDrawerOptions: NativeStackNavigationOptions = {
   sheetAllowedDetents: [1],
 };
 
+export const drawerStackOptions: NativeStackNavigationOptions = {
+  headerShown: false,
+  contentStyle: { backgroundColor: colors.sheet },
+};
+
+export const pushedDrawerScreenOptions: NativeStackNavigationOptions = {
+  headerShown: true,
+  title: '',
+  headerStyle: { backgroundColor: colors.sheet },
+  headerShadowVisible: false,
+  headerTintColor: colors.primary,
+};
+
 type DrawerSheetProps = {
   title?: string;
   footer?: ReactNode;
