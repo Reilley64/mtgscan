@@ -29,6 +29,7 @@ import { liquidGlassIsAvailable } from './fake-glass-effect';
 import { scanFeedback } from './fake-scan-feedback';
 import {
   backdropOf,
+  beginSwipe,
   cardImageOutline,
   cardImageUri,
   cardSheen,
@@ -683,6 +684,31 @@ describe('SwipeToConfirm', () => {
     const retry = screen.getByRole('button', { name: 'Try again' });
     expect(swipeHandleOffset(retry)).toBeCloseTo(0);
     expect(retry).toBeEnabled();
+  });
+
+  test('a swipe still confirms when the screen changes during the swipe', async () => {
+    const confirmed: number[] = [];
+    function RenderingScreen() {
+      const [renders, setRenders] = useState(0);
+      return (
+        <>
+          <SwipeToConfirm label="Add to collection" onConfirm={() => confirmed.push(renders)} />
+          <Button onPress={() => setRenders(renders + 1)}>
+            <Text>Render again</Text>
+          </Button>
+        </>
+      );
+    }
+    await render(<RenderingScreen />);
+
+    const swipe = await beginSwipe(screen.getByRole('button', { name: 'Add to collection' }));
+    await swipe.moveTo(0.5);
+    await fireEvent.press(screen.getByRole('button', { name: 'Render again' }));
+    await swipe.moveTo(0.9);
+    await swipe.release();
+
+    expect(confirmed).toEqual([1]);
+    expect(scanFeedback()).toEqual(['light impact']);
   });
 
   test('the VoiceOver default action confirms without a swipe', async () => {

@@ -1,50 +1,14 @@
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Animated, PanResponder, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 
 import { Text } from '@/components/atoms/text';
 import { colors, sizes, spacing } from '@/theme';
 
 const confirmAt = 0.8;
 
-type HandleGesture = {
-  offset: Animated.Value;
-  travel: number;
-  enabled: boolean;
-  onConfirm: () => void;
-};
-
-function springBack(offset: Animated.Value) {
-  Animated.spring(offset, { toValue: 0, useNativeDriver: false }).start();
-}
-
-function handleResponder({ offset, travel, enabled, onConfirm }: HandleGesture) {
-  let pastThreshold = false;
-  return PanResponder.create({
-    onStartShouldSetPanResponder: () => enabled,
-    onMoveShouldSetPanResponder: () => enabled,
-    onPanResponderGrant: () => {
-      pastThreshold = false;
-    },
-    onPanResponderMove: (_, { dx }) => {
-      const position = Math.min(Math.max(dx, 0), travel);
-      offset.setValue(position);
-      const past = travel > 0 && position >= travel * confirmAt;
-      if (past && !pastThreshold) {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-      pastThreshold = past;
-    },
-    onPanResponderRelease: () => {
-      springBack(offset);
-      if (pastThreshold) {
-        onConfirm();
-      }
-    },
-    onPanResponderTerminate: () => springBack(offset),
-  });
-}
+type ScrollEvent = NativeSyntheticEvent<NativeScrollEvent>;
 
 type SwipeToConfirmProps = {
   label: string;
@@ -54,17 +18,17 @@ type SwipeToConfirmProps = {
 };
 
 export function SwipeToConfirm({ label, disabled = false, busy = false, onConfirm }: SwipeToConfirmProps) {
-  const [offset] = useState(() => new Animated.Value(0));
+  const handleScroller = useRef<ScrollView>(null);
+  const dragging = useRef(false);
+  const pastThreshold = useRef(false);
   const [travel, setTravel] = useState(0);
   const enabled = !disabled && !busy;
-  const handle = useMemo(
-    () => handleResponder({ offset, travel, enabled, onConfirm }),
-    [offset, travel, enabled, onConfirm],
-  );
+  const isPastThreshold = ({ nativeEvent }: ScrollEvent) =>
+    travel > 0 && travel - nativeEvent.contentOffset.x >= travel * confirmAt;
 
   useEffect(() => {
-    Animated.spring(offset, { toValue: busy ? travel : 0, useNativeDriver: false }).start();
-  }, [busy, travel, offset]);
+    handleScroller.current?.scrollTo({ x: busy ? 0 : travel, animated: true });
+  }, [busy, travel]);
 
   return (
     <View
@@ -86,7 +50,40 @@ export function SwipeToConfirm({ label, disabled = false, busy = false, onConfir
           {label}
         </Text>
       </View>
-      <Animated.View {...handle.panHandlers} style={{ transform: [{ translateX: offset }] }}>
+      <ScrollView
+        ref={handleScroller}
+        horizontal
+        pointerEvents="box-none"
+        className="grow-0"
+        contentContainerClassName="pointer-events-box-none"
+        scrollEnabled={enabled}
+        bounces={false}
+        scrollsToTop={false}
+        showsHorizontalScrollIndicator={false}
+        scrollEventThrottle={16}
+        contentOffset={{ x: travel, y: 0 }}
+        contentContainerStyle={{ paddingHorizontal: travel }}
+        onScrollBeginDrag={() => {
+          dragging.current = true;
+          pastThreshold.current = false;
+        }}
+        onScroll={(event) => {
+          if (!dragging.current) {
+            return;
+          }
+          const past = isPastThreshold(event);
+          if (past && !pastThreshold.current) {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
+          pastThreshold.current = past;
+        }}
+        onScrollEndDrag={(event) => {
+          dragging.current = false;
+          handleScroller.current?.scrollTo({ x: travel, animated: true });
+          if (isPastThreshold(event)) {
+            onConfirm();
+          }
+        }}>
         <View className="h-touch-target w-touch-target items-center justify-center rounded-full bg-on-primary">
           {busy ? (
             <ActivityIndicator color={colors.primary} />
@@ -94,7 +91,7 @@ export function SwipeToConfirm({ label, disabled = false, busy = false, onConfir
             <SymbolView name="arrow.right" size={sizes.iconButtonSymbol} tintColor={colors.primary} />
           )}
         </View>
-      </Animated.View>
+      </ScrollView>
     </View>
   );
 }
