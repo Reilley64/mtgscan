@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { card, emptySurface, repeat, scan } from './detection-samples';
-import { pressTab, selectedTab } from './native-ui';
+import { pressTab, selectedTab, touchDown } from './native-ui';
 import { renderApp } from './render-app';
 
 export async function openScan() {
@@ -27,4 +27,14 @@ export async function openLatestScan(name: string | RegExp) {
 
 export function selectedChoice(name: string) {
   return screen.getByRole('button', { name, selected: true });
+}
+
+export async function startPullingDown({ from = 300 }: { from?: number } = {}) {
+  const finger = await touchDown(scanTab().getByLabelText('Camera'), { x: 200, y: from });
+  const grabbedAt = from + 20;
+  await finger.moveTo({ y: grabbedAt });
+  return {
+    pullTo: (distance: number) => finger.moveTo({ y: grabbedAt + distance }),
+    release: finger.lift,
+  };
 }

@@ -13,6 +13,7 @@ import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { PriceLine } from '@/components/molecules/price-line';
+import { PullIndicator } from '@/components/molecules/pull-indicator';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
@@ -30,6 +31,7 @@ import {
   cardSheen,
   glassEffect,
   imageTintColor,
+  showsSpinner,
   sideColumnWidths,
   symbolNames,
   touchTarget,
@@ -522,5 +524,49 @@ describe('BatchButton', () => {
     expect(glassEffect(backdropOf(button))).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
     expect(backdropOf(button)).toHaveStyle({ borderRadius: 999 });
     expect(screen.getByText('3')).toBeOnTheScreen();
+  });
+});
+
+describe('PullIndicator', () => {
+  test('a pull indicator is a pill on the control surface with its symbol and label', async () => {
+    await render(<PullIndicator label="Pull to add 3 cards" kind="pull" />);
+
+    const label = screen.getByText('Pull to add 3 cards');
+    expect(label).toHaveStyle({ color: white, fontSize: 14, fontWeight: '700' });
+    expect(glassEffect(backdropOf(label))).toBeNull();
+    expect(backdropOf(label)).toHaveStyle({ backgroundColor: surfaceControl, height: 38, borderRadius: 999 });
+    expect(symbolNames(backdropOf(label))).toEqual(['arrow.down']);
+  });
+
+  test('a pull indicator ready to release shows a plus', async () => {
+    await render(<PullIndicator label="Release to add 3 cards" kind="release" />);
+
+    expect(symbolNames(backdropOf(screen.getByText('Release to add 3 cards')))).toEqual(['plus']);
+  });
+
+  test('an adding pull indicator shows a spinner in place of its symbol', async () => {
+    await render(<PullIndicator label="Adding 3 cards" kind="adding" />);
+
+    const pill = backdropOf(screen.getByText('Adding 3 cards'));
+    expect(symbolNames(pill)).toEqual([]);
+    expect(showsSpinner(pill)).toBe(true);
+  });
+
+  test('a failed pull indicator shows the danger mark in place of its symbol', async () => {
+    await render(<PullIndicator label="Failed to add" kind="failed" />);
+
+    const pill = backdropOf(screen.getByText('Failed to add'));
+    expect(symbolNames(pill)).toEqual([]);
+    expect(screen.getByText('!')).toHaveStyle({ color: 'rgba(255, 122, 112, 1)' });
+    expect(screen.getByText('!').parent).toHaveStyle({ width: 22, height: 22, borderRadius: 999 });
+  });
+
+  test('on Liquid Glass, a pull indicator is regular glass with no tint that does not react to touch', async () => {
+    liquidGlassIsAvailable();
+    await render(<PullIndicator label="Release to add 3 cards" kind="release" />);
+
+    const pill = backdropOf(screen.getByText('Release to add 3 cards'));
+    expect(glassEffect(pill)).toEqual({ style: 'regular', interactive: false, tintColor: undefined });
+    expect(pill).toHaveStyle({ height: 38, borderRadius: 999 });
   });
 });

@@ -375,3 +375,98 @@ export function touchTarget(element: HostElement) {
 export function switchTrackColor(element: HostElement) {
   return element.props.onTintColor;
 }
+
+type TouchTrack = {
+  touchActive: boolean;
+  startPageX: number;
+  startPageY: number;
+  startTimeStamp: number;
+  currentPageX: number;
+  currentPageY: number;
+  currentTimeStamp: number;
+  previousPageX: number;
+  previousPageY: number;
+  previousTimeStamp: number;
+};
+
+function touchPath(target: HostElement) {
+  const path: HostElement[] = [];
+  let element: HostElement | null = target;
+  while (element) {
+    path.unshift(element);
+    element = element.parent;
+  }
+  return path;
+}
+
+export async function touchDown(target: HostElement, { x, y }: { x: number; y: number }) {
+  const path = touchPath(target);
+  const track: TouchTrack = {
+    touchActive: true,
+    startPageX: x,
+    startPageY: y,
+    startTimeStamp: 0,
+    currentPageX: x,
+    currentPageY: y,
+    currentTimeStamp: 0,
+    previousPageX: x,
+    previousPageY: y,
+    previousTimeStamp: 0,
+  };
+  let responder: HostElement | undefined;
+  const touchEvent = () => {
+    const touch = { pageX: track.currentPageX, pageY: track.currentPageY, timestamp: track.currentTimeStamp };
+    return {
+      nativeEvent: { ...touch, touches: track.touchActive ? [touch] : [], changedTouches: [touch] },
+      touchHistory: {
+        numberActiveTouches: track.touchActive ? 1 : 0,
+        indexOfSingleActiveTouch: 0,
+        mostRecentTimeStamp: track.currentTimeStamp,
+        touchBank: [track],
+      },
+    };
+  };
+  const negotiate = async (phase: 'Start' | 'Move') => {
+    await act(async () => {
+      const event = touchEvent();
+      responder =
+        path.find((element) => element.props[`on${phase}ShouldSetResponderCapture`]?.(event)) ??
+        [...path].reverse().find((element) => element.props[`on${phase}ShouldSetResponder`]?.(event));
+      responder?.props.onResponderGrant?.(event);
+    });
+  };
+  await negotiate('Start');
+  return {
+    async moveTo(position: { x?: number; y: number }) {
+      track.previousPageX = track.currentPageX;
+      track.previousPageY = track.currentPageY;
+      track.previousTimeStamp = track.currentTimeStamp;
+      track.currentPageX = position.x ?? track.currentPageX;
+      track.currentPageY = position.y;
+      track.currentTimeStamp += 16;
+      if (!responder) {
+        await negotiate('Move');
+        return;
+      }
+      await act(async () => responder?.props.onResponderMove?.(touchEvent()));
+    },
+    async lift() {
+      track.touchActive = false;
+      track.currentTimeStamp += 16;
+      await act(async () => responder?.props.onResponderRelease?.(touchEvent()));
+    },
+  };
+}
+
+export async function performAccessibilityAction(element: HostElement, label: string) {
+  const actions: { name: string; label?: string }[] = element.props.accessibilityActions ?? [];
+  const action = actions.find((candidate) => candidate.label === label);
+  if (!action) {
+    throw new Error(`No accessibility action is labelled ${label}. Actions: ${actions.map((candidate) => candidate.label).join(', ')}`);
+  }
+  await fireEvent(element, 'accessibilityAction', { nativeEvent: { actionName: action.name } });
+}
+
+export function accessibilityActionLabels(element: HostElement) {
+  return (element.props.accessibilityActions ?? []).map((action: { label?: string }) => action.label);
+}
