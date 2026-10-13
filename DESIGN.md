@@ -425,7 +425,7 @@ The app shows the sign-in screen whenever there is no session. It is the binder 
 
 ### Pushed screens
 
-Pushed screens cover the whole screen, including the app tab bar. There are **no on-screen back buttons**. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge. The one exception is the scan details pushed inside batch review, which keep the native back button (owner decision, #129).
+Pushed screens cover the whole screen, including the app tab bar. There are **no on-screen back buttons**. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge. The exception is a screen pushed inside a drawer, such as the scan details in batch review, which keeps the native back button (see Sheets).
 
 - **Card page**, from a collection tile, opens that printing:
   - a hero image of the printing over its blurred art;
@@ -568,7 +568,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Batch button.** A round icon button on glass at the top right of Scan, 8 px below the safe area, with the `rectangle.portrait.on.rectangle.portrait.angled` card-stack symbol. Without Liquid Glass, it uses the control surface. A count badge on its top right corner counts the scans with a card printing, the same N as the batch review title. Scans that were not recognized are not counted, and they still show in batch review. With no scan to add, the button shows no badge. VoiceOver reads "Scan batch, 3". The button shows in every Scan tab state, and it opens batch review.
 - **Pull indicator.** A glass pill centered at the top of Scan, on the batch button's row. It is 38 px tall with full corners and 12 px side padding. It holds an 18 px symbol in the text color and its label in body strong, 8 px apart. The symbol is `arrow.down` while pulling and for "Nothing to add", `plus` for "Release to add", a spinner while adding, and the danger mark of the failure notice for "Failed to add". Without Liquid Glass, it uses the control surface. See Scan in Layout for its states.
 - **Batch review.** A bottom drawer with the iOS grabber, at full height only. It closes with a downward swipe. Its title is "N cards scanned", such as "3 cards scanned", or "1 card scanned" for one. N counts the scans with a card printing, the same N as the batch button badge.
-  - A tap on a row pushes that scan's details into the same drawer, which stays at full height. The pushed details have the native back button, labeled with the drawer title, and go back with the swipe from the left edge too. This is the one on-screen back button in the app (owner decision, #129). **Remove scan** removes the copy and returns to the list.
+  - A tap on a row pushes that scan's details into the same drawer, which stays at full height. The pushed details have the native back button, labeled with the drawer title, and go back with the swipe from the left edge too. **Remove scan** removes the copy and returns to the list.
   - **Not recognized** lists one row per scan that was not recognized, with "Not recognized" and "Tap to search". A tap pushes the scan details in name search.
   - **Scans** lists every scan as its own row, newest first. Identical copies are not merged, and rows have no +/- control. A row has the thumbnail, the card name, and a meta line with the set code and collector number, the finish when it is not nonfoil, the condition, and the language: "M10 146 · Foil · NM · English". A tap pushes the scan details, to edit or remove that copy.
   - A swipe to confirm control labeled **Add to collection** stays at the bottom of the drawer. It shows no count. Swiping its handle past 80% of the track adds the scan batch. It is disabled when N is 0, and busy while the commit runs.
@@ -598,7 +598,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Do** rely on the phone's back gesture for pushed screens.
 - **Do** flag validity problems ("would make this deck invalid") without blocking the action.
 - **Don't** show recognizer confidence, similarity scores, or "unsure" states.
-- **Don't** add on-screen back buttons, except the native one in batch review (#129), or "Find in decks" style shortcuts that duplicate visible deck tags.
+- **Don't** add on-screen back buttons, except the native one on a screen pushed inside a drawer, or "Find in decks" style shortcuts that duplicate visible deck tags.
 - **Don't** mark suggested-out or buylist-out cards on the deck's Cards tab. Only planned swaps are commitments.
 - **Don't** use the primary lime for decoration. It always means "you can act here" or "selected". The brand mark is the one exception.
 - **Don't** draw anything over the camera except the card outline, the batch button, the latest-scan chip, and the pull indicator.
