@@ -275,6 +275,27 @@ export async function scrollToEnd(tab: HostElement) {
   await fireEvent.scroll(list, scrolledToEnd);
 }
 
+export async function scrollTabTo(tab: HostElement, y: number) {
+  const [list] = tab.queryAll((instance) => instance.type === 'RCTScrollView');
+  if (!list) {
+    throw new Error('No scroll view is in this tab');
+  }
+  await fireEvent.scroll(list, { nativeEvent: { contentOffset: { x: 0, y } } });
+}
+
+export async function tapOutsidePopover() {
+  const [popover] = hostViews('Modal');
+  const outside = popover?.children.find((child) => typeof child !== 'string' && !child.props.accessible);
+  if (!outside || typeof outside === 'string') {
+    throw new Error('No popover is open');
+  }
+  await fireEvent.press(outside);
+}
+
+export function isPopoverOpen() {
+  return hostViews('Modal').length > 0;
+}
+
 type Insets = { top?: number; bottom?: number; left?: number; right?: number };
 
 export function touchTarget(element: HostElement) {

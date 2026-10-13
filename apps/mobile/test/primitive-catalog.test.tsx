@@ -1,7 +1,7 @@
 import { fireEvent, screen } from 'expo-router/testing-library';
 
 import { startSignedIn } from './fake-supabase';
-import { presentedDrawer } from './native-ui';
+import { presentedDrawer, tapOutsidePopover } from './native-ui';
 import { renderApp } from './render-app';
 
 beforeEach(() => {
@@ -26,6 +26,7 @@ test('the primitive catalog shows every primitive', async () => {
     'Count badges',
     'Skeletons',
     'Glass',
+    'Popover',
     'Inputs',
     'Progress bars',
     'Sheet sections',
@@ -34,6 +35,7 @@ test('the primitive catalog shows every primitive', async () => {
     expect(screen.getByRole('header', { name: section })).toBeOnTheScreen();
   }
   expect(screen.getByRole('button', { name: 'Busy' })).toBeBusy();
+  expect(screen.getByRole('button', { name: 'Pill' })).toHaveStyle({ borderRadius: 999 });
   expect(screen.getByRole('button', { name: 'Disabled' })).toBeDisabled();
   expect(screen.getByRole('switch', { name: 'Protect' })).not.toBeChecked();
   expect(screen.getByRole('radio', { name: 'Copies', checked: true })).toBeOnTheScreen();
@@ -69,4 +71,15 @@ test('the primitive catalog opens the drawer sheet sample as a bottom drawer', a
   expect(await screen.findByRole('header', { name: 'Drawer sheet' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'The footer stays at the bottom' })).toBeOnTheScreen();
   expect(presentedDrawer()).toMatchObject({ showsGrabber: true, openingHeight: 0.5, heights: [0.5, 1] });
+});
+
+test('the primitive catalog opens the popover sample, and a tap outside closes it', async () => {
+  await renderApp('/primitives');
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Open the popover' }));
+  expect(screen.getByLabelText('Popover, tap outside to close')).toBeOnTheScreen();
+
+  await tapOutsidePopover();
+
+  expect(screen.queryByLabelText('Popover, tap outside to close')).not.toBeOnTheScreen();
 });

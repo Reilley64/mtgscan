@@ -254,6 +254,32 @@ components:
   scan-quick-actions-divider:
     backgroundColor: "{colors.line}"
     height: 16px
+  collapsed-header:
+    backgroundColor: "{colors.background}"
+    textColor: "{colors.text}"
+    typography: "{typography.sheet-title}"
+    height: 44px
+  collapsed-header-border:
+    backgroundColor: "{colors.line}"
+    height: 1px
+  collection-total-button:
+    backgroundColor: "{colors.surface-control}"
+    textColor: "{colors.text}"
+    typography: "{typography.body-strong}"
+    rounded: "{rounded.full}"
+    padding: 0 12px
+    height: 38px
+  collection-total-chevron:
+    textColor: "{colors.text-muted}"
+    width: 10px
+  popover:
+    backgroundColor: "{colors.surface-raised}"
+    rounded: "{rounded.md}"
+    padding: 12px
+    width: 250px
+  collection-total-change:
+    textColor: "{colors.text}"
+    typography: "{typography.body-strong}"
   latest-scan-skeleton:
     backgroundColor: "{colors.line}"
     rounded: "{rounded.xs}"
@@ -327,7 +353,8 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Each item carries a tag with the commander avatar and deck name, or a Collection tag. The tag opens that deck.
   - Filter chips: All, Suggestions, Planned swaps, Buylist, Deck changes.
   - Every item keeps its actions inline: Promote, Dismiss, Swap in, Bought, and revert from here.
-- **Collection** is a binder grid.
+- **Collection** is a binder grid with the collection total in its header.
+  - The header has the collection total button next to the settings button (owner decision, #125). See Collection header.
   - Card images sit 3 per row, with **one tile per copy** and no quantity badge. Three copies of a card printing make three tiles (owner decision, #116).
   - Copies of the same card printing sit next to each other. The card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
   - With no collection entries, the tab shows "Your collection is empty" and "Scan cards to add them to your collection."
@@ -351,6 +378,31 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - After three failed photos in a row or a camera error, the camera stops. The tab shows "Camera stopped." with a **Try again** button.
   - The camera stops when the user leaves Scan or the app.
   - Taking a photo makes no shutter sound where iOS allows it, and no haptic. When the latest-scan chip shows a recognized card, the phone plays a heavy impact haptic and a soft two-note blip. When recognition fails, it plays a warning haptic and a lower tone. A photo that is not a card plays neither. The sounds follow the Ring/Silent switch, and a Scan sounds switch in settings turns them off (#82).
+
+### Tab headers
+
+Recent, Collection, and Decks start with a large title and the settings button on one row. A tab can put more header actions before the settings button, as Collection does with the collection total button.
+
+- As soon as the user scrolls, a small-title header replaces the large title row. It sits under the status bar on the background color, 44 px tall, with a 1 px line at the bottom. The title is in sheet title type, centered, and the same header actions and settings button sit on the right.
+- Scrolling back to the top brings back the large title row.
+- Only one of the two headers is on the screen for VoiceOver at a time.
+
+### Collection header
+
+The collection total is always visible. The owner picked variant C of the HTML prototype (`prototypes/collection-copies/index.html` on `prototype/first-release`, commit bbe3f0f).
+
+- **Collection total button.** A pill on the control surface next to the settings button, in the large title row and in the small-title header. It shows the collection total in full in body strong, such as "$2,419.59", and a 10 px text muted `chevron.down` symbol. It is 38 px tall with full corners and 12 px side padding, and has a 44 pt touch target.
+- The total is the sum of every copy's current price for its card printing and finish. Copies with no current price are left out and counted in the coverage, so a missing price never silently lowers the total. The currency is USD for now.
+- With no collection entries, or before the total loads, the header shows no total button.
+- **Popover.** Tapping the button opens a small popover. It is a 250 px card on surface raised with 12 px corners, 12 px padding, and 4 px gaps, under the header at the right page inset, with a soft shadow (`shadows.popover`). A tap outside closes it. It holds:
+  - the collection total in card title type;
+  - a "Since yesterday" row with the change, such as "+$12.40" or "−$38.75";
+  - a "Priced" row with the coverage, such as "26 of 27 cards";
+  - the credit "Current prices from Scryfall, in USD".
+- Row labels are body text in text muted. Values are body strong in the text color.
+- The change is neutral. The sign carries the direction: + or the minus sign. There is no green or red. No change shows "$0.00" with no sign. Before the first daily collection total, the change is a text dim "–".
+- The change is the collection total now minus the latest daily collection total from an earlier day. mtgscan stores a daily collection total for each user after the daily price import.
+- **VoiceOver.** The button reads "Collection total, $2,419.59" with the value "up $12.40 since yesterday, 26 of 27 cards priced". A falling total says "down", no change says "no change since yesterday", and before the first daily collection total it says "change since yesterday not known yet". The popover is one element that reads the total, the change, the coverage, and the credit.
 
 ### Sign-in screen
 
@@ -419,7 +471,8 @@ The interface is flat. Depth comes from tone, not shadow.
 - The foil and etched sheens on binder tiles are diagonal gradients over the card image at 30% opacity (`opacity.sheen`). They sit outside the palette, like card art.
   - **Foil sheen** (`gradients.foilSheen`, 115 degrees): clear to 22%, then pink `rgba(255, 80, 170, 0.55)`, yellow `rgba(255, 230, 90, 0.5)`, mint `rgba(80, 255, 200, 0.5)`, blue `rgba(80, 150, 255, 0.55)`, and violet `rgba(200, 110, 255, 0.5)` from 34% to 66%, then clear from 78%.
   - **Etched sheen** (`gradients.etchedSheen`, 120 degrees): clear to 25%, then white `rgba(255, 255, 255, 0.55)`, silver `rgba(200, 210, 215, 0.25)`, and white again from 42% to 58%, then clear from 75%.
-- NativeWind 4 has no class for a box shadow or a gradient, so the shadow, the scrim, and the sheens are style values.
+- The popover has a 0.5 px line-colored ring and a soft shadow 12 px down: black at 55% with a 40 px blur. `theme.ts` names it `shadows.popover`.
+- NativeWind 4 has no class for a box shadow or a gradient, so the shadows, the scrim, and the sheens are style values.
 - The tab bar is a near-opaque bar with a hairline top border.
 - The controls that float over the camera use Liquid Glass. See Liquid Glass.
 - During a back swipe, the screen follows the finger with a shadow on its left edge.
@@ -461,6 +514,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Sign-in buttons.** Sign-in buttons and the sign-in Try again button are 50 px tall to match Apple's sign-in button sizing. This is the one exception to the 38 px button height. Try again uses sign-in button type (17 px, semibold). Continue with Google uses 16 px medium. The system Apple button sets its own type.
 - **Sign in with Apple.** The system Apple button in Apple's white style, with the "Sign in with Apple" title and 8 px corners. Apple's branding rules set its colors, logo, and type, so they sit outside the palette.
 - **Continue with Google.** Google's dark button style: a #131314 fill, a 1 px #8e918f border, #e3e3e3 text, and the four-color Google logo. Google's branding rules set these colors, so they sit outside the palette.
+- **Popover.** A small card on surface raised under the header, which a header button opens, such as the collection total. A tap outside closes it. VoiceOver reads it as one element.
 - **Text links.** An in-app link inside a line of text, such as **Privacy policy**, keeps the type size of its line in bold lime. It is the one control without a 44 pt touch target, because a nested text run cannot take extra touch area.
 - **Failure notice.** A surface card with 12 px padding and a danger mark beside the message, such as "Sign-in did not work." A long message wraps in the space beside the mark, and the mark lines up with its first line.
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.

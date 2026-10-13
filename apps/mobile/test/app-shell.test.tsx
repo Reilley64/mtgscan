@@ -7,6 +7,7 @@ import {
   openSettings,
   presentedDrawer,
   pressTab,
+  scrollTabTo,
   selectedTab,
   swipeDownDrawer,
   tabBarLabels,
@@ -39,6 +40,17 @@ test.each([
   const emptyState = within(selectedTab());
   expect(emptyState.getByText(title)).toHaveStyle({ color: 'rgba(255, 255, 255, 1)', fontSize: 14, fontWeight: '700' });
   expect(emptyState.getByText(message)).toHaveStyle({ color: 'rgba(181, 192, 197, 1)', fontSize: 14, lineHeight: 19 });
+});
+
+test.each(['Recent', 'Decks'])('when the user scrolls %s, a small-title header keeps the settings button', async (tab) => {
+  await renderApp();
+  await pressTab(tab);
+
+  await scrollTabTo(selectedTab(), 80);
+
+  const screenForTab = within(selectedTab());
+  expect(screenForTab.getByRole('header', { name: tab })).toHaveStyle({ fontSize: 17, fontWeight: '800' });
+  expect(screenForTab.getAllByRole('button', { name: 'Settings' })).toHaveLength(1);
 });
 
 test('the tab bar shows Recent, Collection, Decks, and Scan in that order', async () => {

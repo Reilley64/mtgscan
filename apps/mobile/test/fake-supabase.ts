@@ -8,6 +8,7 @@ import {
 import type {
   CollectionCopiesQuery,
   CollectionCopyRow,
+  CollectionTotal,
   ScanBatch,
   ScanBatchResult,
   ScanBatchStack,
@@ -36,6 +37,15 @@ let testUserSeeded = true;
 const listeners = new Set<AuthListener>();
 const users = new Map<string, User>();
 let collectionCopies: CollectionCopyRow[] = [];
+const emptyCollectionTotal: CollectionTotal = {
+  total: '0.00',
+  currency: 'USD',
+  priced_copies: 0,
+  copies: 0,
+  change: null,
+  change_since: null,
+};
+let collectionTotal = emptyCollectionTotal;
 let failingCollectionReads = 0;
 let scanBatchesSent: ScanBatch[] = [];
 let addedCopies = new Map<string, string>();
@@ -239,6 +249,9 @@ export const fakeSupabase = {
     if (name === 'list_collection_copies' && 'query' in args) {
       return collectionCopiesPage(args.query);
     }
+    if (name === 'get_collection_total') {
+      return { data: collectionTotal, error: null };
+    }
     if (name === 'add_scan_batch' && 'batch' in args) {
       return addScanBatch(args.batch);
     }
@@ -312,6 +325,10 @@ export function ownCollectionCopies(copies: CollectionCopyRow[]) {
   collectionCopies = copies;
 }
 
+export function ownCollectionTotal(total: CollectionTotal) {
+  collectionTotal = total;
+}
+
 export function failCollectionReads(count: number) {
   failingCollectionReads = count;
 }
@@ -356,6 +373,7 @@ export function galleryStorageIsOffline(reads: number) {
 export function resetFakeSupabase() {
   session = null;
   collectionCopies = [];
+  collectionTotal = emptyCollectionTotal;
   failingCollectionReads = 0;
   scanBatchesSent = [];
   addedCopies = new Map();
