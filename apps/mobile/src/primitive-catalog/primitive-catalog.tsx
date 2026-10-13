@@ -316,10 +316,11 @@ function PullIndicators() {
   return (
     <Section title="Pull indicators">
       <View className="items-center gap-sm">
-        <PullIndicator label="Pull to add 3 cards" symbol="arrow.down" />
-        <PullIndicator label="Release to add 3 cards" symbol="plus" />
-        <PullIndicator label="Nothing to add" symbol="arrow.down" />
-        <PullIndicator label="Adding 3 cards" symbol="arrow.down" busy />
+        <PullIndicator label="Pull to add 3 cards" kind="pull" />
+        <PullIndicator label="Release to add 3 cards" kind="release" />
+        <PullIndicator label="Nothing to add" kind="pull" />
+        <PullIndicator label="Adding 3 cards" kind="adding" />
+        <PullIndicator label="Failed to add" kind="failed" />
       </View>
     </Section>
   );

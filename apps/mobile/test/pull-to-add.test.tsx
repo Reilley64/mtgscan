@@ -1,4 +1,5 @@
 import { act, fireEvent, screen } from 'expo-router/testing-library';
+import { AccessibilityInfo } from 'react-native';
 
 import { lightningBoltM10, shock } from './card-printings';
 import { resetSampleClock } from './detection-samples';
@@ -32,7 +33,7 @@ async function waitForTheIndicatorToSlideAway() {
 }
 
 function expectNoIndicator() {
-  expect(scanTab().queryByText(/to add|Nothing to add|Adding/)).not.toBeOnTheScreen();
+  expect(scanTab().queryByText(/to add|Nothing to add|Adding|Failed to add/)).not.toBeOnTheScreen();
 }
 
 function expectAnEmptyChip() {
@@ -146,7 +147,8 @@ test('with no recognized copies the indicator says there is nothing to add, and 
   expect(scanBatchesSentToTheServer()).toEqual([]);
 });
 
-test('a failed add shows a short failure notice and keeps the scan batch', async () => {
+test('a failed add shows Failed to add in the pill, tells VoiceOver, keeps the scan batch, and slides away', async () => {
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
   await scanTwoCopies();
   failNextScanBatchCommit('before the server adds it');
 
@@ -154,13 +156,17 @@ test('a failed add shows a short failure notice and keeps the scan batch', async
   await pull.pullTo(140);
   await pull.release();
 
-  expect(scanTab().getByRole('alert', { name: 'Could not add to your collection. Your scans are kept.' })).toBeOnTheScreen();
+  expect(scanTab().getByText('Failed to add')).toBeOnTheScreen();
+  expect(scanTab().getByText('!')).toBeOnTheScreen();
+  expect(scanTab().queryByRole('alert')).not.toBeOnTheScreen();
+  expect(announce).toHaveBeenCalledWith('Failed to add. Your scans are kept.');
   expect(scanTab().getByRole('button', { name: 'Scan batch, 2' })).toBeOnTheScreen();
-  expectNoIndicator();
   await act(async () => {
     jest.advanceTimersByTime(4000);
   });
-  expect(scanTab().queryByRole('alert')).not.toBeOnTheScreen();
+  await waitForTheIndicatorToSlideAway();
+  expectNoIndicator();
+  expect(scanTab().getByRole('button', { name: 'Scan batch, 2' })).toBeOnTheScreen();
 });
 
 test('a pull that starts at the top of the screen does nothing, so it leaves room for Notification Center', async () => {

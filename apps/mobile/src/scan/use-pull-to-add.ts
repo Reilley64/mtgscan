@@ -1,8 +1,9 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
-import { Animated, PanResponder, type AccessibilityActionEvent } from 'react-native';
+import { AccessibilityInfo, Animated, PanResponder, type AccessibilityActionEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import type { PullIndicatorKind } from '@/components/molecules/pull-indicator';
 import { sizes, spacing } from '@/theme';
 
 import { scansToAdd } from './scan-batch';
@@ -11,7 +12,7 @@ import { useScanBatch } from './scan-batch-state';
 export const releaseDistance = 120;
 const pullSlop = 10;
 const slideAwayMs = 200;
-const failureNoticeMs = 4000;
+const failureShownMs = 4000;
 const addAction = 'addScanBatch';
 
 type PullState =
@@ -19,7 +20,7 @@ type PullState =
   | { phase: 'adding'; count: number }
   | { phase: 'leaving'; indicator: PullIndicatorView };
 
-type PullIndicatorView = { label: string; symbol: 'arrow.down' | 'plus'; busy: boolean };
+type PullIndicatorView = { label: string; kind: PullIndicatorKind };
 
 function cardCount(count: number) {
   return count === 1 ? '1 card' : `${count} cards`;
@@ -30,19 +31,22 @@ export function pullIndicatorView(pull: PullState, count: number): PullIndicator
     return pull.indicator;
   }
   if (pull.phase === 'adding') {
-    return { label: `Adding ${cardCount(pull.count)}`, symbol: 'arrow.down', busy: true };
+    return { label: `Adding ${cardCount(pull.count)}`, kind: 'adding' };
+  }
+  if (pull.phase === 'failed') {
+    return { label: 'Failed to add', kind: 'failed' };
   }
   if (count === 0) {
-    return { label: 'Nothing to add', symbol: 'arrow.down', busy: false };
+    return { label: 'Nothing to add', kind: 'pull' };
   }
   return pull.phase === 'armed'
-    ? { label: `Release to add ${cardCount(count)}`, symbol: 'plus', busy: false }
-    : { label: `Pull to add ${cardCount(count)}`, symbol: 'arrow.down', busy: false };
+    ? { label: `Release to add ${cardCount(count)}`, kind: 'release' }
+    : { label: `Pull to add ${cardCount(count)}`, kind: 'pull' };
 }
 
 export function pullTops(safeAreaTop: number) {
   const indicator = safeAreaTop + spacing.sm;
-  return { indicator, belowBatchButton: indicator + sizes.button + spacing.sm };
+  return { indicator, pullStart: indicator + sizes.button + spacing.sm };
 }
 
 type ScanScreenState = {
@@ -74,12 +78,12 @@ function createPullGesture(distance: Animated.Value, onChange: (pull: PullState)
       slideAway();
       return;
     }
-    distance.setValue(0);
     show({ phase: 'failed' });
+    AccessibilityInfo.announceForAccessibility('Failed to add. Your scans are kept.');
   };
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: (_, { dx, dy, moveY }) =>
-      !screen.busy && dy > pullSlop && dy > Math.abs(dx) && moveY - dy > pullTops(screen.top).belowBatchButton,
+      !screen.busy && dy > pullSlop && dy > Math.abs(dx) && moveY - dy > pullTops(screen.top).pullStart,
     onPanResponderGrant: () => {
       distance.stopAnimation();
       distance.setValue(0);
@@ -110,7 +114,7 @@ function createPullGesture(distance: Animated.Value, onChange: (pull: PullState)
   return {
     panHandlers: panResponder.panHandlers,
     add,
-    dismissFailure: () => show({ phase: 'idle' }),
+    slideAway,
     update: (next: ScanScreenState) => {
       screen = next;
     },
@@ -134,7 +138,7 @@ export function usePullToAdd() {
     if (pull.phase !== 'failed') {
       return;
     }
-    const timer = setTimeout(gesture.dismissFailure, failureNoticeMs);
+    const timer = setTimeout(gesture.slideAway, failureShownMs);
     return () => clearTimeout(timer);
   }, [gesture, pull.phase]);
 

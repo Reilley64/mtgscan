@@ -57,7 +57,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263', selected: false })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Scan batch, 12' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
-  for (const pullIndicator of ['Pull to add 3 cards', 'Release to add 3 cards', 'Nothing to add', 'Adding 3 cards']) {
+  for (const pullIndicator of ['Pull to add 3 cards', 'Release to add 3 cards', 'Nothing to add', 'Adding 3 cards', 'Failed to add']) {
     expect(screen.getByText(pullIndicator)).toBeOnTheScreen();
   }
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464, Foil' })).toBeOnTheScreen();

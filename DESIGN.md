@@ -362,7 +362,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
     - While the finger moves down, the pull indicator slides down from under the top of the screen. It says "Pull to add 3 cards". The number is the batch button's count.
     - At 120 pt the indicator reaches its place, 8 px below the safe area, and says "Release to add 3 cards". The phone plays a light impact haptic as the pull crosses 120 pt.
     - Releasing past 120 pt adds the scan batch with the same commit as **Add N to collection**. The indicator says "Adding 3 cards" with a spinner until the commit ends. A commit that works clears the batch button's badge and leaves the chip empty, as after **Add N to collection**. The indicator then slides away.
-    - A commit that fails shows the failure notice "Could not add to your collection. Your scans are kept." under the batch button for 4 seconds. The scan batch is kept, and batch review offers **Try again**.
+    - A commit that fails shows "Failed to add" with the danger mark in the same pill for 4 seconds (owner decision, #130). The pill then slides away. VoiceOver announces "Failed to add. Your scans are kept." The scan batch is kept, and batch review offers **Try again**.
     - Releasing before 120 pt, or moving back above 120 pt and then releasing, adds nothing. The indicator slides away.
     - With no scan to add, the indicator says "Nothing to add", there is no haptic, and releasing does nothing.
     - A pull counts only when it starts below the batch button, so it does not fight Notification Center at the top edge. It does not start while a card is being recognized or while an add runs. A release adds nothing when a card started to be recognized during the pull. The camera keeps running during the pull.
@@ -477,7 +477,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
 - Only the controls that float over the camera or over scrolling content use glass: the latest-scan chip, the quick-action bar, the batch button, and the pull indicator (owner decisions, #113 and #130), and the tab header buttons (owner decision, #128). Every other surface stays flat.
 - The tab header buttons are native bar buttons. iOS 26 draws their glass, so `GlassSurface` does not wrap them.
-- The pull indicator does not react to touch. It moves by sliding, never by fading. When an add fails, the failure notice takes its place.
+- The pull indicator does not react to touch. It moves by sliding, never by fading.
 - The glass is the regular style with no tint. Glass that the user can tap, such as the chip, the quick-action bar, and the batch button, reacts to touch. The skeleton chip and the basic land chip do not.
 - The chip and the quick-action bar sit in one glass group with 8 px spacing, so they blend like iOS controls but do not merge at rest.
 - Text on glass:
@@ -549,7 +549,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - Tapping a card printing switches the scan to it and returns to the details.
   - Choosing a basic land shows "Basic lands are not tracked." and changes nothing.
 - **Batch button.** A round icon button on glass at the top right of Scan, 8 px below the safe area, with the `rectangle.portrait.on.rectangle.portrait.angled` card-stack symbol. Without Liquid Glass, it uses the control surface. A count badge on its top right corner counts the scans with a card printing, the same N as **Add N to collection**. Scans that were not recognized are not counted, and they still show in batch review. With no scan to add, the button shows no badge. VoiceOver reads "Scan batch, 3". The button shows in every Scan tab state, and it opens batch review.
-- **Pull indicator.** A glass pill centered at the top of Scan, on the batch button's row. It is 38 px tall with full corners and 12 px side padding. It holds an 18 px symbol in the text color and its label in body strong, 8 px apart. The symbol is `arrow.down` while pulling and for "Nothing to add", `plus` for "Release to add", and a spinner while adding. Without Liquid Glass, it uses the control surface. See Scan in Layout for its states.
+- **Pull indicator.** A glass pill centered at the top of Scan, on the batch button's row. It is 38 px tall with full corners and 12 px side padding. It holds an 18 px symbol in the text color and its label in body strong, 8 px apart. The symbol is `arrow.down` while pulling and for "Nothing to add", `plus` for "Release to add", a spinner while adding, and the danger mark of the failure notice for "Failed to add". Without Liquid Glass, it uses the control surface. See Scan in Layout for its states.
 - **Batch review.** A bottom drawer like settings, titled "Scan batch". The scan details sheet opens over it from a row.
   - **Condition for new scans** and **Language for new scans** come first, as rows of chips. They start at NM and English. A change applies to later scans only.
   - **Not recognized** lists one row per scan that was not recognized, with "Not recognized" and "Tap to search". A tap opens the scan details sheet in name search.
@@ -584,6 +584,6 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Don't** add on-screen back buttons or "Find in decks" style shortcuts that duplicate visible deck tags.
 - **Don't** mark suggested-out or buylist-out cards on the deck's Cards tab. Only planned swaps are commitments.
 - **Don't** use the primary lime for decoration. It always means "you can act here" or "selected". The brand mark is the one exception.
-- **Don't** draw anything over the camera except the card outline, the batch button, the latest-scan chip, and the pull indicator with its failure notice.
+- **Don't** draw anything over the camera except the card outline, the batch button, the latest-scan chip, and the pull indicator.
 - **Do** keep Liquid Glass to the controls that float over the camera, and keep the dark surface fallback.
 - **Don't** stack drawers or modals. One level only: push a screen inside the drawer instead (see Sheets).
