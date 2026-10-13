@@ -425,7 +425,7 @@ The app shows the sign-in screen whenever there is no session. It is the binder 
 
 ### Pushed screens
 
-Pushed screens cover the whole screen, including the app tab bar. There are **no on-screen back buttons**. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge.
+Pushed screens cover the whole screen, including the app tab bar. There are **no on-screen back buttons**. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge. The one exception is the scan details pushed inside batch review, which keep the native back button (owner decision, #129).
 
 - **Card page**, from a collection tile, opens that printing:
   - a hero image of the printing over its blurred art;

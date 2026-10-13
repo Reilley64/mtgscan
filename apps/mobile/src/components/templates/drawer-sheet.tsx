@@ -6,12 +6,14 @@ import { Text } from '@/components/atoms/text';
 import { cn } from '@/lib/class-names';
 import { colors } from '@/theme';
 
+const sheetBackground = { backgroundColor: colors.sheet };
+
 export const halfHeightDrawerOptions: NativeStackNavigationOptions = {
   presentation: 'formSheet',
   sheetAllowedDetents: [0.5, 1],
   sheetGrabberVisible: true,
   sheetExpandsWhenScrolledToEdge: false,
-  contentStyle: { backgroundColor: colors.sheet },
+  contentStyle: sheetBackground,
 };
 
 export const fullHeightDrawerOptions: NativeStackNavigationOptions = {
@@ -21,13 +23,13 @@ export const fullHeightDrawerOptions: NativeStackNavigationOptions = {
 
 export const drawerStackOptions: NativeStackNavigationOptions = {
   headerShown: false,
-  contentStyle: { backgroundColor: colors.sheet },
+  contentStyle: sheetBackground,
 };
 
 export const pushedDrawerScreenOptions: NativeStackNavigationOptions = {
   headerShown: true,
   title: '',
-  headerStyle: { backgroundColor: colors.sheet },
+  headerStyle: sheetBackground,
   headerShadowVisible: false,
   headerTintColor: colors.primary,
 };

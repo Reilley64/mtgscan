@@ -47,6 +47,8 @@ export type ScanBatchAction =
 
 export type ScanEdit = Exclude<ScanBatchAction, { type: 'commitStarted' | 'committed' }>;
 
+export const newScanDefaults = { condition: 'near_mint', language: 'en' } as const satisfies Pick<BatchScan, 'condition' | 'language'>;
+
 export const emptyScanBatch: ScanBatch = {
   scans: [],
   commitPending: false,
@@ -78,7 +80,7 @@ function addScan(batch: ScanBatch, scan: Omit<BatchScan, 'condition' | 'language
   }
   return {
     ...batch,
-    scans: [...batch.scans, { ...scan, condition: 'near_mint', language: 'en' }],
+    scans: [...batch.scans, { ...scan, ...newScanDefaults }],
   };
 }
 

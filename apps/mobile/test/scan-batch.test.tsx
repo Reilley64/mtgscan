@@ -33,7 +33,6 @@ import {
   openScan,
   scanACard,
   scanTab,
-  selectedChoice,
 } from './scanning';
 
 async function openBatchReview(count?: number) {

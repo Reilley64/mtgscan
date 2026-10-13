@@ -1,4 +1,5 @@
 import { router, Stack, useNavigation } from 'expo-router';
+import { useCallback } from 'react';
 
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
@@ -13,11 +14,12 @@ export default function BatchReviewSheet() {
   const copyCount = scansToAdd(batch).length;
   const title = copyCount === 1 ? '1 card scanned' : `${copyCount} cards scanned`;
 
-  const addToCollection = async () => {
+  const addToCollection = useCallback(async () => {
     if ((await commit()) && navigation.isFocused()) {
       router.back();
     }
-  };
+  }, [commit, navigation]);
+  const confirm = useCallback(() => void addToCollection(), [addToCollection]);
 
   const footer = (
     <>
@@ -28,7 +30,7 @@ export default function BatchReviewSheet() {
         label={commitStatus === 'failed' ? 'Try again' : 'Add to collection'}
         disabled={copyCount === 0}
         busy={commitStatus === 'adding'}
-        onConfirm={() => void addToCollection()}
+        onConfirm={confirm}
       />
     </>
   );

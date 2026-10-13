@@ -16,7 +16,7 @@ type HandleGesture = {
 };
 
 function springBack(offset: Animated.Value) {
-  Animated.spring(offset, { toValue: 0, useNativeDriver: true }).start();
+  Animated.spring(offset, { toValue: 0, useNativeDriver: false }).start();
 }
 
 function handleResponder({ offset, travel, enabled, onConfirm }: HandleGesture) {
@@ -37,11 +37,9 @@ function handleResponder({ offset, travel, enabled, onConfirm }: HandleGesture) 
       pastThreshold = past;
     },
     onPanResponderRelease: () => {
+      springBack(offset);
       if (pastThreshold) {
-        offset.setValue(travel);
         onConfirm();
-      } else {
-        springBack(offset);
       }
     },
     onPanResponderTerminate: () => springBack(offset),
@@ -65,10 +63,8 @@ export function SwipeToConfirm({ label, disabled = false, busy = false, onConfir
   );
 
   useEffect(() => {
-    if (!busy) {
-      springBack(offset);
-    }
-  }, [busy, offset]);
+    Animated.spring(offset, { toValue: busy ? travel : 0, useNativeDriver: false }).start();
+  }, [busy, travel, offset]);
 
   return (
     <View

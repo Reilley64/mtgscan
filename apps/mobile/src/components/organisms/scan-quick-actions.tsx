@@ -1,10 +1,10 @@
 import { useSetIcons } from '@/catalog/use-set-icons';
-import { conditionLabels, finishes, finishLabels } from '@/collection/copy-labels';
+import { conditionLabels, finishes, finishLabels, languageCode } from '@/collection/copy-labels';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { SetIcon } from '@/components/atoms/set-icon';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
-import type { BatchScan, RecognizedScan } from '@/scan/scan-batch';
+import { newScanDefaults, type BatchScan, type RecognizedScan } from '@/scan/scan-batch';
 import { sizes } from '@/theme';
 
 type ScanQuickActionsProps = {
@@ -38,11 +38,11 @@ export function ScanQuickActions({
     return (
       <QuickActionBar>
         <QuickActionButton label={finishLabels.nonfoil} />
-        <QuickActionButton label={conditionLabels.near_mint} />
+        <QuickActionButton label={conditionLabels[newScanDefaults.condition]} />
         <QuickActionButton label="Set">
           <DimSymbol name="square.dashed" size={sizes.setIcon} />
         </QuickActionButton>
-        <QuickActionButton label="EN" />
+        <QuickActionButton label={languageCode(newScanDefaults.language)} />
         <QuickActionButton label="+1" />
       </QuickActionBar>
     );
@@ -57,7 +57,7 @@ export function ScanQuickActions({
       />
       <QuickActionButton label={conditionLabels[scan.condition]} onPress={() => onChangeCondition(scan.scanId)} />
       <SetAction setCode={scan.printing.setCode} onPress={() => onChangeSet(scan.scanId)} />
-      <QuickActionButton label={scan.language.toUpperCase()} onPress={() => onChangeLanguage(scan.scanId)} />
+      <QuickActionButton label={languageCode(scan.language)} onPress={() => onChangeLanguage(scan.scanId)} />
       <QuickActionButton label="+1" onPress={() => onAddCopy(scan.scanId)} />
     </QuickActionBar>
   );

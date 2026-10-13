@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, within } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
-import { processColor, StyleSheet, View } from 'react-native';
+import { processColor, View } from 'react-native';
 
+import { Button } from '@/components/atoms/button';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { Text } from '@/components/atoms/text';
@@ -33,8 +34,10 @@ import {
   cardSheen,
   glassEffect,
   imageTintColor,
+  opacityOf,
   showsSpinner,
   sideColumnWidths,
+  swipeHandleOffset,
   swipeRight,
   symbolNames,
   touchTarget,
@@ -575,6 +578,14 @@ describe('PullIndicator', () => {
 });
 
 describe('SwipeToConfirm', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   test('a swipe to confirm is a lime pill button with its label in on-primary and a round handle', async () => {
     await render(<SwipeToConfirm label="Add to collection" onConfirm={() => {}} />);
 
@@ -622,10 +633,56 @@ describe('SwipeToConfirm', () => {
 
     const control = screen.getByRole('button', { name: 'Add to collection' });
     expect(control).toBeBusy();
-    expect(StyleSheet.flatten(control.props.style).opacity ?? 1).toBe(1);
+    expect(opacityOf(control)).toBe(1);
     expect(showsSpinner(control)).toBe(true);
     await swipeRight(control, 0.9);
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  test('the handle springs back after a swipe that stops before the threshold', async () => {
+    await render(<SwipeToConfirm label="Add to collection" onConfirm={() => {}} />);
+    const control = screen.getByRole('button', { name: 'Add to collection' });
+
+    await swipeRight(control, 0.5);
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+
+    expect(swipeHandleOffset(control)).toBeCloseTo(0);
+  });
+
+  test('the handle stays at the end while busy and goes back to the start when the commit fails', async () => {
+    function FailingCommit() {
+      const [busy, setBusy] = useState(false);
+      const [failed, setFailed] = useState(false);
+      return (
+        <>
+          <SwipeToConfirm label={failed ? 'Try again' : 'Add to collection'} busy={busy} onConfirm={() => setBusy(true)} />
+          <Button
+            onPress={() => {
+              setBusy(false);
+              setFailed(true);
+            }}>
+            <Text>Fail</Text>
+          </Button>
+        </>
+      );
+    }
+    await render(<FailingCommit />);
+
+    await swipeRight(screen.getByRole('button', { name: 'Add to collection' }), 0.9);
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(swipeHandleOffset(screen.getByRole('button', { name: 'Add to collection' }))).toBeGreaterThan(0);
+    await fireEvent.press(screen.getByRole('button', { name: 'Fail' }));
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+
+    const retry = screen.getByRole('button', { name: 'Try again' });
+    expect(swipeHandleOffset(retry)).toBeCloseTo(0);
+    expect(retry).toBeEnabled();
   });
 
   test('the VoiceOver default action confirms without a swipe', async () => {

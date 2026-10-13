@@ -144,6 +144,12 @@ export async function swipeRight(control: HostElement, fractionOfWidth: number) 
   await fireEvent(handle, 'responderRelease', { touchHistory: touchHistory(end, end, 3), nativeEvent: {} });
 }
 
+export function swipeHandleOffset(control: HostElement) {
+  const [handle] = control.queryAll((instance) => instance.props.onResponderMove !== undefined);
+  const transform: { translateX?: number }[] = StyleSheet.flatten(handle.props.style)?.transform ?? [];
+  return transform.find((step) => step.translateX !== undefined)?.translateX ?? 0;
+}
+
 export function presentedDrawerCount() {
   return hostViews('RNSModalScreen').filter((candidate) => candidate.props.stackPresentation === 'formSheet').length;
 }
@@ -187,6 +193,10 @@ export async function swipeBackFromTheLeftEdge() {
     throw new Error('This drawer screen does not go back with a swipe from the left edge');
   }
   await popDrawerScreen();
+}
+
+export function opacityOf(element: HostElement) {
+  return StyleSheet.flatten(element.props.style)?.opacity ?? 1;
 }
 
 export function showsSpinner(element: ReturnType<typeof screen.getByRole>) {
