@@ -57,6 +57,9 @@ typography:
     fontFamily: SF Pro Text
     fontSize: 14px
     fontWeight: 700
+  field:
+    fontFamily: SF Pro Text
+    fontSize: 14px
   meta:
     fontFamily: SF Pro Text
     fontSize: 12px
@@ -222,6 +225,16 @@ components:
     height: 32px
   scan-quick-actions-disabled:
     textColor: "{colors.text-dim}"
+  scan-quick-actions-divider:
+    backgroundColor: "{colors.line}"
+    height: 16px
+  latest-scan-skeleton:
+    backgroundColor: "{colors.line}"
+    rounded: "{rounded.xs}"
+  latest-scan-skeleton-title-bar:
+    height: 14px
+  latest-scan-skeleton-meta-bar:
+    height: 12px
 ---
 
 # mtgscan design
@@ -263,7 +276,7 @@ The app uses the iOS system font, SF Pro, at a few weights.
 - **Sign-in title** (24 px, heavy) is the one line on the sign-in sheet. **Brand** (22 px, heavy) sets the mtgscan name next to the brand mark.
 - **Card title** (20 px, heavy) names a card on the card page, and a deck in the deck header and the commander gallery.
 - **Sheet title** (17 px, heavy) titles page sheets.
-- **Body** (14 px) carries reasons, rules text, and list content. **Body strong** labels buttons and card names in rows.
+- **Body** (14 px) carries reasons, rules text, and list content. **Body strong** labels buttons and card names in rows. **Field** (14 px) is the text in a text field, such as the card name in name search. It has no fixed line height, so iOS centers the text in the field.
 - **Meta** (12 px, muted) carries set and collector number, finish, condition, language, and timestamps.
 - **Chip** (11 px, bold) labels chips and status pills. **Tab label** (10 px, bold) sits under tab bar icons. **Credit** (10 px, semibold, dim) credits image sources such as Scryfall.
 
@@ -405,13 +418,13 @@ The interface is flat. Depth comes from tone, not shadow.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and card page deck lists. It opens the deck.
 - **Latest-scan chip.** One horizontal chip at the bottom of Scan, 16 px from the edges: a card thumbnail on the left, the card name in body strong centered over a centered meta line with the set code in capitals and the collector number, such as "M10 146", and a 14 px text dim `chevron.right` symbol on the right that shows the chip opens the details. The skeleton chip and the basic land chip have no chevron. A new scan replaces the chip.
   - The meta line adds the finish when it is not nonfoil, and the copy count when the scan has more than one copy: "M10 146 · Foil · 2 copies".
-  - A quick-action bar sits 8 px below the chip, centered, and is always on the Scan tab. It is one control-surface pill with 12 px corners and three buttons in chip type, split by short line-colored dividers. The bar is 32 px tall, and each button has a 44 pt touch target. From left to right:
+  - A quick-action bar sits 8 px below the chip, centered, and is always on the Scan tab. It is one control-surface pill with 12 px corners and three buttons in chip type, split by 16 px hairline dividers in the line color. The bar is 32 px tall, and each button has a 44 pt touch target. From left to right:
     - The finish button shows the current finish: "Nonfoil", "Foil", or "Etched". Tapping it switches to the next finish of the card printing in the order nonfoil, foil, etched. It changes every copy of the scan, as the details sheet does. It is disabled when the card printing has one finish.
     - The set button shows the set's expansion symbol from Scryfall at 16 px, tinted with the text color. VoiceOver reads the set code in capitals, such as "MH3". When the card catalog has no symbol for the set, or it has not loaded, the button shows the set code instead. It opens the printing picker.
     - **+1** adds one copy to the scan.
   - The buttons act on the latest scan. Before the first scan, while a photo is being recognized, and after a basic land or a scan that was not recognized, they are disabled, with text dim labels. Before the first scan they read "Finish", a dashed square symbol for the set, and "+1". A photo that is not a card leaves the bar on the previous scan.
   - The printing picker is a bottom drawer like the scan details sheet, with the card name and every card printing of that card in the gallery, as card images 3 per row with the set code and collector number. The scanned card printing and its same-text twins come first, then the rest newest first. The current card printing has a 2 px lime border and a lime caption. Tapping a card printing switches the scan to it and closes the sheet. The scan keeps its finish when the new card printing has it. Otherwise it takes the new card printing's default finish.
-  - A pulsing skeleton chip, with a line-colored image block and two line-colored bars, shows from the moment the app takes the photo until the result arrives. VoiceOver reads it as "Recognizing card".
+  - A pulsing skeleton chip, with a line-colored image block and two line-colored bars, shows from the moment the app takes the photo until the result arrives. The bars are as tall as body strong and meta type, 14 px and 12 px, and fill 70% and 40% of the text width. The blocks pulse between 45% and full opacity, 650 ms each way. VoiceOver reads it as "Recognizing card".
   - A photo that is not a card removes the skeleton chip and brings back the previous chip.
   - A basic land shows its image, its name, and "Basic land, not tracked". It does not enter the scan batch, and tapping it does nothing.
   - A failed recognition shows an empty thumbnail, "Not recognized", and "Tap to search".

@@ -1,7 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { useState } from 'react';
+import { View } from 'react-native';
 
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
+import { QuickActionButton } from '@/components/atoms/quick-action-button';
+import { Text } from '@/components/atoms/text';
 import { AccountCard } from '@/components/molecules/account-card';
 import { Brand } from '@/components/molecules/brand';
 import { CardGrid } from '@/components/molecules/card-grid';
@@ -10,13 +13,15 @@ import { ChipGroup } from '@/components/molecules/chip-group';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
+import { QuickActionBar } from '@/components/molecules/quick-action-bar';
+import { SheetSection } from '@/components/molecules/sheet-section';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 
 import { cardImageOutline, cardImageUri, touchTarget } from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { primary: lime, surface, surfaceControl, text: white, textMuted } = tokenColors;
+const { primary: lime, surface, surfaceControl, line, text: white, textMuted } = tokenColors;
 const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
 const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
 
@@ -155,6 +160,40 @@ describe('SwitchRow', () => {
     const row = screen.getByRole('switch', { name: 'Scan sounds' });
     expect(row).toHaveStyle({ backgroundColor: surface, borderRadius: 12 });
     expect(touchTarget(row).height).toBeGreaterThanOrEqual(44);
+  });
+});
+
+describe('QuickActionBar', () => {
+  test('a quick-action bar is one control-surface pill with a line-colored divider between its actions', async () => {
+    await render(
+      <View accessibilityLabel="Quick actions">
+        <QuickActionBar>
+          <QuickActionButton label="Nonfoil" onPress={() => {}} />
+          <QuickActionButton label="M10" onPress={() => {}} />
+          <QuickActionButton label="+1" onPress={() => {}} />
+        </QuickActionBar>
+      </View>,
+    );
+
+    const [bar] = screen.getByLabelText('Quick actions').children as ReturnType<typeof screen.getByLabelText>[];
+    expect(bar).toHaveStyle({ backgroundColor: surfaceControl, borderRadius: 12, alignSelf: 'center' });
+    const dividers = bar.children.filter((child) => typeof child !== 'string' && child.props.accessibilityRole !== 'button');
+    expect(dividers).toHaveLength(2);
+    dividers.forEach((divider) => expect(divider).toHaveStyle({ height: 16, borderColor: line }));
+    expect(screen.getAllByRole('button').map((action) => action.props.accessibilityLabel)).toEqual(['Nonfoil', 'M10', '+1']);
+  });
+});
+
+describe('SheetSection', () => {
+  test('a sheet section has a lime body strong heading over its content', async () => {
+    await render(
+      <SheetSection title="Other options">
+        <Text>Lightning Bolt</Text>
+      </SheetSection>,
+    );
+
+    expect(screen.getByRole('header', { name: 'Other options' })).toHaveStyle({ color: lime, fontSize: 14, fontWeight: '700' });
+    expect(screen.getByText('Lightning Bolt')).toBeOnTheScreen();
   });
 });
 

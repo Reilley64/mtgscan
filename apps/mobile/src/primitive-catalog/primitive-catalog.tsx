@@ -8,6 +8,11 @@ import { Button } from '@/components/atoms/button';
 import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { Chip } from '@/components/atoms/chip';
+import { Input } from '@/components/atoms/input';
+import { ProgressBar } from '@/components/atoms/progress-bar';
+import { QuickActionButton } from '@/components/atoms/quick-action-button';
+import { SetIcon } from '@/components/atoms/set-icon';
+import { Skeleton } from '@/components/atoms/skeleton';
 import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
 import { TextLink } from '@/components/atoms/text-link';
@@ -20,9 +25,13 @@ import { ChipGroup } from '@/components/molecules/chip-group';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
+import { QuickActionBar } from '@/components/molecules/quick-action-bar';
+import { SheetSection } from '@/components/molecules/sheet-section';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { colors } from '@/theme';
+
+const m10Symbol = 'https://svgs.scryfall.io/sets/m10.svg';
 
 const solRing = 'https://cards.scryfall.io/normal/front/8/e/8ee443cc-e17a-493b-9c93-1f9e141a30e4.jpg?1789644446';
 
@@ -201,6 +210,56 @@ function Switches() {
   );
 }
 
+function QuickActions() {
+  return (
+    <Section title="Quick actions">
+      <QuickActionBar>
+        <QuickActionButton label="Nonfoil" />
+        <QuickActionButton label="M10" onPress={() => {}}>
+          <SetIcon uri={m10Symbol} />
+        </QuickActionButton>
+        <QuickActionButton label="+1" onPress={() => {}} />
+      </QuickActionBar>
+    </Section>
+  );
+}
+
+function Skeletons() {
+  return (
+    <Section title="Skeletons">
+      <Skeleton className="h-card-thumbnail-height w-card-thumbnail-width" />
+      <Skeleton className="h-skeleton-title-bar w-[70%]" />
+    </Section>
+  );
+}
+
+function Inputs() {
+  const [name, setName] = useState('');
+  return (
+    <Section title="Inputs">
+      <Input accessibilityLabel="Card name" placeholder="Card name" value={name} onChangeText={setName} />
+    </Section>
+  );
+}
+
+function ProgressBars() {
+  return (
+    <Section title="Progress bars">
+      <ProgressBar label="Downloading gallery" value={12.3} max={68.5} />
+    </Section>
+  );
+}
+
+function SheetSections() {
+  return (
+    <Section title="Sheet sections">
+      <SheetSection title="Other options">
+        <ListRow title="Lightning Bolt" detail="M10 146" leading={<CardThumbnail uri={solRing} />} />
+      </SheetSection>
+    </Section>
+  );
+}
+
 export function PrimitiveCatalog() {
   return (
     <View className="flex-1 bg-background pt-safe">
@@ -218,6 +277,11 @@ export function PrimitiveCatalog() {
         <ListRows />
         <CardTiles />
         <Switches />
+        <QuickActions />
+        <Skeletons />
+        <Inputs />
+        <ProgressBars />
+        <SheetSections />
         <Section title="Drawer sheet">
           <Button onPress={() => router.push('/primitives-sheet')}>
             <Text>Open the drawer sheet</Text>

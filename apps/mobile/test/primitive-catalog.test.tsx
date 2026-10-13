@@ -11,7 +11,24 @@ beforeEach(() => {
 test('the primitive catalog shows every primitive', async () => {
   await renderApp('/primitives');
 
-  for (const section of ['Text styles', 'Brand', 'Buttons', 'Sign-in buttons', 'Chips', 'Toggles', 'Surfaces', 'List rows', 'Card tiles', 'Switches', 'Drawer sheet']) {
+  for (const section of [
+    'Text styles',
+    'Brand',
+    'Buttons',
+    'Sign-in buttons',
+    'Chips',
+    'Toggles',
+    'Surfaces',
+    'List rows',
+    'Card tiles',
+    'Switches',
+    'Quick actions',
+    'Skeletons',
+    'Inputs',
+    'Progress bars',
+    'Sheet sections',
+    'Drawer sheet',
+  ]) {
     expect(screen.getByRole('header', { name: section })).toBeOnTheScreen();
   }
   expect(screen.getByRole('button', { name: 'Busy' })).toBeBusy();
@@ -25,6 +42,11 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Sign-in disabled' })).toBeDisabled();
   expect(screen.getByRole('alert', { name: 'Sign-in did not work.' })).toBeOnTheScreen();
   expect(screen.getByRole('link', { name: 'Text link' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Nonfoil' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'M10' })).toBeEnabled();
+  expect(screen.getByLabelText('Card name')).toBeOnTheScreen();
+  expect(screen.getByRole('progressbar', { name: 'Downloading gallery' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: 'Other options' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263', selected: false })).toBeOnTheScreen();
 });

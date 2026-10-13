@@ -25,9 +25,16 @@ The review agent checks each diff against these rules. CI already runs the type 
 
 ## App UI
 
-- Style new UI with NativeWind classes named after the `DESIGN.md` tokens, such as `bg-surface-control`, `text-text-muted`, `text-body-strong`, `rounded-sm`, and `gap-xs`. A new inline style object or `StyleSheet` entry is a finding, unless a native component takes only a style prop, or NativeWind 4 has no class for the style, such as a box shadow or a gradient. Such a value comes from `theme.ts`. Older screens move to classes in #105 and #106.
+- Style new UI with NativeWind classes named after the `DESIGN.md` tokens, such as `bg-surface-control`, `text-text-muted`, `text-body-strong`, `rounded-sm`, and `gap-xs`. A new inline style object or `StyleSheet` entry is a finding, unless a native component takes only a style prop, or NativeWind 4 has no class for the style, such as a box shadow or a gradient. Such a value comes from `theme.ts`. A runtime value may stay a style prop, such as a progress width, an `Animated` value, or a `useSafeAreaInsets()` offset. Inside a tab screen, NativeWind's `*-safe` classes read the root insets, not the tab screen's, so the latest-scan overlay keeps the hook.
 - Take colors, type, spacing, corners, and sizes from `apps/mobile/src/theme.ts`, which mirrors the `DESIGN.md` tokens. The Tailwind theme comes from it through `apps/mobile/src/tailwind-theme.ts`. `apps/mobile/test/design-tokens.test.ts` checks that the Tailwind theme has every `DESIGN.md` token. A new token goes into `theme.ts` and `DESIGN.md` in the same PR.
 - Merge class names with `cn()` from `apps/mobile/src/lib/class-names.ts`. It knows the token names. Plain `twMerge` drops a token class, such as `text-text` beside `text-body-strong`.
+- Style a control's state with class variants, not with JavaScript. Set the state as a prop and use the matching variant, instead of a conditional class or style object. NativeWind 4.2.7 on iOS supports these variants. Each was checked in Jest with the compiled classes and on the Simulator (#106):
+  - `disabled:` with the `disabled` prop, and `active:` while a `Pressable` is pressed.
+  - `aria-selected:`, `aria-checked:`, and `aria-disabled:` with the `aria-selected`, `aria-checked`, and `aria-disabled` props. NativeWind does not read `accessibilityState`, so set the `aria-*` prop.
+  - Data attributes through the `dataSet` prop: `[&[data-active]]:` for presence, and `[&[data-active='true']]:` or `data-[active=true]:` for a value. A `data-active` prop does nothing. `dataSet` is not in the React Native types, so prefer an `aria-*` prop when one fits.
+  - Parent state: `group` on the control and `group-disabled:`, `group-active:`, `group-aria-selected:`, or `group-[[data-active]]:` on the child, as `QuickActionButton` does. Named groups work too: `group/card` with `group-disabled/card:`.
+  - When no variant fits, use a `cva` variant.
+  - Jest checks `disabled:`, `aria-*:`, data attributes, and their `group` forms with `toHaveStyle`. It cannot hold a press, so check `active:` and `group-active:` on the Simulator.
 - Leave out transition and animation classes until they work in Jest. See #102.
 - A value outside the tokens needs a reason in `DESIGN.md`, like the Apple and Google button colors.
 - Follow the `DESIGN.md` Do's and Don'ts, such as native tabs, page sheets, and no on-screen back buttons.
@@ -42,14 +49,14 @@ The app UI follows Brad Frost's Atomic Design (#101). Each level is a folder in 
 | --- | --- | --- |
 | Atoms (`atoms`) | The smallest pieces, mostly wrappers of `@rn-primitives` in the React Native Reusables pattern | `Text`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `CardImage` |
 | Molecules (`molecules`) | Small groups of atoms with one job | `ListRow`, `SwitchRow`, `ChipGroup`, `ToggleGroup`, `EmptyState` |
-| Organisms (`organisms`) | Larger sections | `BinderWall`, and later the latest-scan chip and the settings content |
+| Organisms (`organisms`) | Larger sections | `BinderWall`, `LatestScanChip`, `PrintingPicker`, and later the settings content |
 | Templates (`templates`) | Page layouts with no data | `TabScreen`, `DrawerSheet` |
 | Pages (`src/app`) | Expo Router routes. They load data and fill templates with organisms. | `settings.tsx`, `(tabs)/collection.tsx` |
 
 - Each level imports only from its own level and the levels below it. Pages import from any level. Organisms and features may use feature modules such as `src/scan`. Templates, molecules, and atoms may not. ESLint enforces the direction with `eslint-plugin-boundaries` in `apps/mobile/eslint.config.js`.
 - Only atoms use raw controls. ESLint refuses `Pressable`, `TouchableOpacity`, `TouchableHighlight`, `TouchableWithoutFeedback`, `Switch`, and `Button` from `react-native` everywhere else, and `@rn-primitives` outside `src/components`. It also refuses a `style` prop on an element with `onPress`, `onLongPress`, or `onValueChange` outside atoms, and a `className` on a `Text` or `View` with `onPress` or `onLongPress`. Screens compose the primitives and do not restyle raw `Pressable`, `Text`, or `View` for controls.
 - Escape hatch for native components: wrap the native control in an atom, which may import it and set its style props. `Switch` is the example: it wraps the iOS switch with the token colors. Use it through `SwitchRow`, which gives it a 44 pt touch target. Do not use an ESLint disable comment.
-- `screensNotOnPrimitives` in `apps/mobile/eslint.config.js` lists the files that still use raw controls. #105 and #106 move them to the primitives and empty the list. Never add a file to it.
+- The raw-control rules cover every file outside `src/components`, with no exception list. Never add one.
 - Shared UI is reused, never copied. Block a new control or card-like layout that duplicates an existing primitive or component. When the same UI appears on two screens, extract it to the right level.
 - A development build has a primitive catalog at `mtgscan://primitives` that shows every primitive in each state. Add each new primitive and state to it in `src/primitive-catalog`.
 

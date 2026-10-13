@@ -1,20 +1,36 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { useState } from 'react';
+import { processColor, View } from 'react-native';
 
 import { AppleSignInButton } from '@/components/atoms/apple-sign-in-button';
 import { Button } from '@/components/atoms/button';
 import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { Chip } from '@/components/atoms/chip';
+import { Input } from '@/components/atoms/input';
+import { ProgressBar } from '@/components/atoms/progress-bar';
+import { QuickActionButton } from '@/components/atoms/quick-action-button';
+import { SetIcon } from '@/components/atoms/set-icon';
+import { Skeleton } from '@/components/atoms/skeleton';
 import { Surface } from '@/components/atoms/surface';
 import { Switch } from '@/components/atoms/switch';
 import { Text } from '@/components/atoms/text';
 import { TextLink } from '@/components/atoms/text-link';
 import { Toggle } from '@/components/atoms/toggle';
 
-import { appleSignInButton, pressSignInWithApple, showsSpinner, switchTrackColor, touchTarget } from './native-ui';
+import {
+  appleSignInButton,
+  cardImageUri,
+  imageTintColor,
+  placeholderColor,
+  pressSignInWithApple,
+  showsSpinner,
+  switchTrackColor,
+  touchTarget,
+} from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { primary: lime, onPrimary, surface, surfaceControl, text: white, textMuted, textDim, warning, danger, info } = tokenColors;
+const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim, warning, danger, info } =
+  tokenColors;
 const dangerTint = '#ff7a7029';
 const dimmed = { opacity: expect.closeTo(0.38) };
 
@@ -406,5 +422,110 @@ describe('TextLink', () => {
 
     expect(link).toHaveStyle({ color: lime, fontWeight: '700' });
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Skeleton', () => {
+  test('a skeleton is a line-colored block with 4 px corners that starts dimmed', async () => {
+    await render(
+      <View accessibilityLabel="Recognizing card">
+        <Skeleton className="h-skeleton-title-bar w-[70%]" />
+      </View>,
+    );
+
+    const [block] = screen.getByLabelText('Recognizing card').children as ReturnType<typeof screen.getByLabelText>[];
+    expect(block).toHaveStyle({ backgroundColor: line, borderRadius: 4, height: 14, width: '70%', opacity: 0.45 });
+  });
+});
+
+describe('QuickActionButton', () => {
+  test('a quick action has its label in chip type and runs its action when pressed', async () => {
+    const onPress = jest.fn();
+    await render(<QuickActionButton label="+1" onPress={onPress} />);
+
+    const action = screen.getByRole('button', { name: '+1' });
+    await fireEvent.press(action);
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(action).toHaveStyle({ height: 32, paddingLeft: 12, paddingRight: 12 });
+    expect(screen.getByText('+1')).toHaveStyle({ color: white, fontSize: 11, fontWeight: '700' });
+  });
+
+  test('a quick action with no action reads as disabled and has a text dim label', async () => {
+    await render(<QuickActionButton label="Finish" />);
+
+    expect(screen.getByRole('button', { name: 'Finish' })).toBeDisabled();
+    expect(screen.getByText('Finish')).toHaveStyle({ color: textDim });
+  });
+
+  test('a quick action has a 44 pt touch target', async () => {
+    await render(<QuickActionButton label="+1" onPress={() => {}} />);
+
+    expect(touchTarget(screen.getByRole('button', { name: '+1' }))).toEqual({ width: 44, height: 44 });
+  });
+
+  test('a quick action shows its icon in place of its label', async () => {
+    await render(
+      <QuickActionButton label="M10" onPress={() => {}}>
+        <SetIcon uri="https://svgs.scryfall.io/sets/m10.svg" />
+      </QuickActionButton>,
+    );
+
+    expect(screen.getByRole('button', { name: 'M10' })).toBeOnTheScreen();
+    expect(screen.queryByText('M10')).not.toBeOnTheScreen();
+  });
+});
+
+describe('SetIcon', () => {
+  test('a set icon is 16 px and tinted with the text color', async () => {
+    await render(
+      <View accessibilityLabel="M10">
+        <SetIcon uri="https://svgs.scryfall.io/sets/m10.svg" />
+      </View>,
+    );
+
+    const label = screen.getByLabelText('M10');
+    const [icon] = label.children as ReturnType<typeof screen.getByLabelText>[];
+    expect(icon).toHaveStyle({ width: 16, height: 16 });
+    expect(cardImageUri(label)).toBe('https://svgs.scryfall.io/sets/m10.svg');
+    expect(imageTintColor(label)).toBe(processColor('#ffffff'));
+  });
+});
+
+describe('Input', () => {
+  test('an input is a 38 px field on the control surface with field text and a text dim placeholder', async () => {
+    await render(<Input accessibilityLabel="Card name" placeholder="Card name" />);
+
+    const input = screen.getByLabelText('Card name');
+    expect(input).toHaveStyle({
+      height: 38,
+      borderRadius: 8,
+      paddingLeft: 12,
+      paddingRight: 12,
+      backgroundColor: surfaceControl,
+      color: white,
+      fontSize: 14,
+    });
+    expect(input).not.toHaveStyle({ lineHeight: 19 });
+    expect(placeholderColor(input)).toBe('#7d8a90');
+  });
+});
+
+describe('ProgressBar', () => {
+  test('a progress bar reads its value and fills that share of a round line-colored track', async () => {
+    await render(<ProgressBar label="Downloading gallery" value={25} max={100} />);
+
+    const bar = screen.getByRole('progressbar', { name: 'Downloading gallery' });
+    expect(bar).toHaveAccessibilityValue({ min: 0, max: 100, now: 25 });
+    expect(bar).toHaveStyle({ height: 4, borderRadius: 999, backgroundColor: line });
+    const [fill] = bar.children as ReturnType<typeof screen.getByLabelText>[];
+    expect(fill).toHaveStyle({ width: '25%', backgroundColor: textMuted });
+  });
+
+  test('a progress bar with no total is empty', async () => {
+    await render(<ProgressBar label="Downloading gallery" value={0} max={0} />);
+
+    const [fill] = screen.getByRole('progressbar').children as ReturnType<typeof screen.getByLabelText>[];
+    expect(fill).toHaveStyle({ width: '0%' });
   });
 });

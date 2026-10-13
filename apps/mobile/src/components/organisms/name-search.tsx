@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, View } from 'react-native';
 
-import { colors, rounded, sizes, spacing, typography } from '@/theme';
+import { Input } from '@/components/atoms/input';
+import { Surface } from '@/components/atoms/surface';
+import { Text } from '@/components/atoms/text';
+import { SheetSection } from '@/components/molecules/sheet-section';
+import { PrintingPicker } from '@/components/organisms/printing-picker';
+import type { Printing } from '@/scan/scan-batch';
 
-import { cardPrintings, searchCardNames, type CardName } from '../../modules/card-recognizer';
-import { PrintingGrid } from './printing-grid';
-import type { Printing } from './scan-batch';
-import { SheetSection } from './sheet-section';
+import { cardPrintings, searchCardNames, type CardName } from '../../../modules/card-recognizer';
 
 type NameSearchProps = {
   onChoose: (printing: Printing) => void;
@@ -21,11 +23,11 @@ function CardPrintings({ chosen, onChoose }: { chosen: ChosenCard; onChoose: (pr
     return null;
   }
   if (printings.length > 0 && printings.every((printing) => printing.basicLand)) {
-    return <Text style={styles.message}>Basic lands are not tracked.</Text>;
+    return <Text className="text-text-muted">Basic lands are not tracked.</Text>;
   }
   return (
     <SheetSection title={chosen.card.name}>
-      <PrintingGrid printings={printings} onChoose={onChoose} />
+      <PrintingPicker printings={printings} onChoose={onChoose} />
     </SheetSection>
   );
 }
@@ -57,11 +59,10 @@ export function NameSearch({ onChoose }: NameSearchProps) {
   };
 
   return (
-    <View style={styles.search}>
-      <TextInput
+    <View className="gap-lg">
+      <Input
         accessibilityLabel="Card name"
         placeholder="Card name"
-        placeholderTextColor={colors.textDim}
         autoFocus
         autoCorrect={false}
         autoCapitalize="none"
@@ -71,50 +72,18 @@ export function NameSearch({ onChoose }: NameSearchProps) {
           setText(next);
           setChosen(null);
         }}
-        style={styles.input}
       />
       {chosen ? (
         <CardPrintings chosen={chosen} onChoose={onChoose} />
       ) : (
-        <View style={styles.names}>
+        <View className="gap-xs">
           {(text.trim() ? names : []).map((card) => (
-            <Pressable key={card.oracleId} accessibilityRole="button" onPress={() => chooseName(card)} style={styles.name}>
-              <Text style={styles.nameLabel}>{card.name}</Text>
-            </Pressable>
+            <Surface key={card.oracleId} onPress={() => chooseName(card)} className="justify-center rounded-sm p-md">
+              <Text variant="body-strong">{card.name}</Text>
+            </Surface>
           ))}
         </View>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  search: {
-    gap: spacing.lg,
-  },
-  input: {
-    height: sizes.button,
-    paddingHorizontal: spacing.md,
-    borderRadius: rounded.sm,
-    backgroundColor: colors.surfaceControl,
-    color: colors.text,
-    fontSize: typography.body.fontSize,
-  },
-  names: {
-    gap: spacing.xs,
-  },
-  name: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderRadius: rounded.sm,
-    backgroundColor: colors.surface,
-  },
-  nameLabel: {
-    ...typography.bodyStrong,
-    color: colors.text,
-  },
-  message: {
-    ...typography.body,
-    color: colors.textMuted,
-  },
-});

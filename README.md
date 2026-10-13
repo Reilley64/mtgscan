@@ -26,12 +26,12 @@ The app uses NativeWind 4 with Tailwind CSS 3. NativeWind 5 is a release candida
 
 Components follow Atomic Design in `src/components`. `CODING_STANDARDS.md` (Atomic Design) has the levels and the rules.
 
-- `atoms` holds the primitives: `Text`, `TextLink`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `CardImage`, `CardThumbnail`, `TileButton`, and `AppleSignInButton`. `Button` has a 50 px sign-in size and the Google variant. `AppleSignInButton` wraps the system Apple button. `Toggle` wraps `@rn-primitives/toggle`. `Switch` wraps the iOS switch.
-- `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`), `ListRow`, `SwitchRow`, `EmptyState`, `CardTile`, `CardGrid`, `AccountCard`, `GalleryCard`, `FailureNotice`, `Brand`, and `SettingsButton`. `CardTile` is a card image with its set and collector number, 3 to a row. The binder grid uses it. Its selectable form is for the card printing grids on the Scan tab (#106).
-- `organisms` holds `BinderWall`, `SignInSheet`, and `SettingsContent`. `templates` holds `TabScreen` and `DrawerSheet`, the content layout of the bottom drawers.
+- `atoms` holds the primitives: `Text`, `TextLink`, `Button`, `Chip`, `Toggle`, `Switch`, `Surface`, `CardImage`, `CardThumbnail`, `TileButton`, `AppleSignInButton`, `Input`, `ProgressBar`, `Skeleton`, `SetIcon`, and `QuickActionButton`. `Button` has a 50 px sign-in size and the Google variant. `AppleSignInButton` wraps the system Apple button. `Toggle` wraps `@rn-primitives/toggle`. `Switch` wraps the iOS switch.
+- `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`), `ListRow`, `SwitchRow`, `EmptyState`, `CardTile`, `CardGrid`, `AccountCard`, `GalleryCard`, `FailureNotice`, `Brand`, `QuickActionBar`, `SheetSection`, and `SettingsButton`. `CardTile` is a card image with its set and collector number, 3 to a row. The binder grid and the card printing grids on the Scan tab use it.
+- `organisms` holds `BinderWall`, `SignInSheet`, `SettingsContent`, and the Scan tab sections: `LatestScanChip`, `ScanQuickActions`, `ScanDetailsContent`, `NameSearch`, and `PrintingPicker`. `templates` holds `TabScreen` and `DrawerSheet`, the content layout of the bottom drawers.
 - Expo Router routes in `src/app` are the pages.
 - ESLint checks the import direction between the levels with `eslint-plugin-boundaries`. It also keeps raw controls out of screens and features. See `apps/mobile/eslint.config.js`.
-- No primitive animates, so no test needs Reanimated animations.
+- Only `Skeleton` animates. It pulses with React Native `Animated`, not Reanimated, so no test needs Reanimated animations.
 
 A development build has a primitive catalog that shows every primitive in each state. Open it on the Simulator with `xcrun simctl openurl booted mtgscan://primitives`. Production builds leave it out, and `bun run test:production-bundle` checks that.
 

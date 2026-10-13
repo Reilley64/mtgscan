@@ -3,6 +3,7 @@ export const tokenColors = {
   onPrimary: 'rgba(16, 21, 0, 1)',
   surface: 'rgba(17, 23, 26, 1)',
   surfaceControl: 'rgba(35, 44, 49, 1)',
+  line: 'rgba(42, 50, 56, 1)',
   text: 'rgba(255, 255, 255, 1)',
   textMuted: 'rgba(181, 192, 197, 1)',
   textDim: 'rgba(125, 138, 144, 1)',

@@ -1,19 +1,20 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Button } from '@/components/atoms/button';
 import { Text } from '@/components/atoms/text';
-
-import { NameSearch } from '@/scan/name-search';
-import { ScanDetails } from '@/scan/scan-details';
+import { NameSearch } from '@/components/organisms/name-search';
+import { ScanDetailsContent } from '@/components/organisms/scan-details-content';
+import { DrawerSheet } from '@/components/templates/drawer-sheet';
+import { recognizedScan } from '@/scan/scan-batch';
 import { useBatchScan, useScanBatch } from '@/scan/scan-batch-state';
-import { colors, spacing } from '@/theme';
 
 export default function ScanDetailsSheet() {
   const { scanId } = useLocalSearchParams<{ scanId: string }>();
   const { dispatch } = useScanBatch();
   const scan = useBatchScan(scanId);
+  const recognized = recognizedScan(scan);
   const [searching, setSearching] = useState(false);
 
   const removeCopy = () => {
@@ -24,13 +25,9 @@ export default function ScanDetailsSheet() {
   };
 
   return (
-    <ScrollView
-      style={styles.sheet}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-      automaticallyAdjustKeyboardInsets>
+    <DrawerSheet>
       {scan && (searching || !scan.printing) ? (
-        <View style={styles.search}>
+        <View className="gap-lg">
           <NameSearch
             onChoose={(printing) => {
               dispatch({ type: 'choose', scanId, printing });
@@ -44,29 +41,14 @@ export default function ScanDetailsSheet() {
           )}
         </View>
       ) : null}
-      {scan?.printing && !searching ? (
-        <ScanDetails
-          scan={{ ...scan, printing: scan.printing }}
+      {recognized && !searching ? (
+        <ScanDetailsContent
+          scan={recognized}
           dispatch={dispatch}
           onSearch={() => setSearching(true)}
           onRemove={removeCopy}
         />
       ) : null}
-    </ScrollView>
+    </DrawerSheet>
   );
 }
-
-const styles = StyleSheet.create({
-  sheet: {
-    flex: 1,
-    backgroundColor: colors.sheet,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingTop: spacing.lg * 2,
-    paddingBottom: spacing.lg * 2,
-  },
-  search: {
-    gap: spacing.lg,
-  },
-});
