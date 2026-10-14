@@ -91,7 +91,7 @@ export function useCollectionSearch() {
   };
 
   const suggestions = useSearchSuggestions(suggesting ? splitLastToken(text).token : '');
-  const { query, chipOfField } = useMemo(() => collectionSearchQuery(searchedText, chips), [searchedText, chips]);
+  const { query, chipIndexOfField } = useMemo(() => collectionSearchQuery(searchedText, chips), [searchedText, chips]);
 
   return {
     searchBar,
@@ -100,7 +100,7 @@ export function useCollectionSearch() {
     suggestions,
     pick,
     query,
-    chipOfField,
+    chipIndexOfField,
     searching: query.text !== undefined || chips.length > 0,
   };
 }

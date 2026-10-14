@@ -82,7 +82,7 @@ export default function CollectionScreen() {
   const copies = binder.status === 'loaded' && !suggesting ? binder.copies : [];
   const iconOf = useSetIcons([...new Set(copies.map((copy) => copy.set))]);
   const total = useCollectionTotal();
-  const refusedChip = binder.status === 'refused' ? search.chipOfField.get(binder.field) : undefined;
+  const refusedChipIndex = binder.status === 'refused' ? search.chipIndexOfField.get(binder.field) : undefined;
   const matchCount = binder.status === 'loaded' && search.searching ? binder.matchCount : null;
 
   return (
@@ -93,7 +93,7 @@ export default function CollectionScreen() {
       ListHeaderComponent={
         <CollectionSearchHeader
           chips={search.chips}
-          refusedChip={refusedChip}
+          refusedChipIndex={refusedChipIndex}
           onRemoveChip={search.removeChip}
           suggestions={search.suggestions}
           onPickSuggestion={search.pick}
@@ -111,7 +111,7 @@ export default function CollectionScreen() {
           <BinderPlaceholder
             binder={binder}
             searching={search.searching}
-            refusedChip={refusedChip === undefined ? undefined : search.chips[refusedChip]}
+            refusedChip={refusedChipIndex === undefined ? undefined : search.chips[refusedChipIndex]}
             onTryAgain={reload}
           />
         )

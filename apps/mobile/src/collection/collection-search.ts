@@ -3,10 +3,10 @@ import { Constants } from '@mtgscan/supabase/database.types';
 
 import { conditionLabels, conditionNames, finishes, languageNames, languages } from '@/collection/copy-labels';
 
-export type SearchOperator = ':' | '=' | '<' | '<=' | '>' | '>=';
+type SearchOperator = ':' | '=' | '<' | '<=' | '>' | '>=';
 
 export type SearchChip = {
-  key: string;
+  key: SearchKeyName;
   negated: boolean;
   operator: SearchOperator;
   value: string;
@@ -53,11 +53,11 @@ function sentenceCase(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-const searchKeys: Record<string, SearchKey> = {
+const searchKeys = {
   name: { kind: 'list', field: 'names', note: 'Card name' },
   type: { kind: 'list', field: 'types', note: 'Type line' },
   color: { kind: 'colors', field: 'colors', note: 'Colors', letters: 'wubrgc' },
-  identity: { kind: 'colors', field: 'identity_subset_of', note: 'Color identity', letters: 'wubrg' },
+  identity: { kind: 'colors', field: 'identity_subset_of', note: 'Color identity', letters: 'wubrgc' },
   mv: { kind: 'bound', min: 'mana_value_min', max: 'mana_value_max', note: 'Mana value', pattern: /^\d+$/, step: 1 },
   pow: { kind: 'bound', min: 'power_min', max: 'power_max', note: 'Power', pattern: /^\d+$/, step: 1 },
   tou: { kind: 'bound', min: 'toughness_min', max: 'toughness_max', note: 'Toughness', pattern: /^\d+$/, step: 1 },
@@ -88,7 +88,17 @@ const searchKeys: Record<string, SearchKey> = {
       protected: { field: 'is_protected', note: 'Protected copies' },
     },
   },
-};
+} satisfies Record<string, SearchKey>;
+
+type SearchKeyName = keyof typeof searchKeys;
+
+function searchKeyNamed(name: string) {
+  return name in searchKeys ? (name as SearchKeyName) : null;
+}
+
+function negatable(searchKey: SearchKey) {
+  return searchKey.kind !== 'bound' && !(searchKey.kind === 'colors' && searchKey.field === 'identity_subset_of');
+}
 
 const tokenPattern = /^(-?)([a-z_]+)(<=|>=|:|=|<|>)(.*)$/i;
 
@@ -99,7 +109,7 @@ function unquoted(value: string) {
   return /^"[^"]+"$/.test(value) ? value.slice(1, -1) : '';
 }
 
-function checkedValue(key: SearchKey, negated: boolean, operator: SearchOperator, value: string) {
+function checkedValue(key: SearchKey, operator: SearchOperator, value: string) {
   switch (key.kind) {
     case 'list':
       if (operator !== ':') {
@@ -111,31 +121,40 @@ function checkedValue(key: SearchKey, negated: boolean, operator: SearchOperator
       return value;
     case 'colors': {
       const letters = value.toLowerCase();
-      const valid = key.field === 'colors' ? /^[wubrgc]+$/.test(letters) : /^([wubrg]+|c)$/.test(letters);
-      return operator === ':' && valid && !(negated && key.field === 'identity_subset_of') ? letters : null;
+      return operator === ':' && [...letters].every((letter) => key.letters.includes(letter)) ? letters : null;
     }
     case 'bound':
-      return !negated && key.pattern.test(value) ? value : null;
+      return key.pattern.test(value) ? value : null;
     case 'flag':
       return operator === ':' && key.flags[value.toLowerCase()] ? value.toLowerCase() : null;
   }
 }
 
-export function chipOf(token: string): SearchChip | null {
+function parsedToken(token: string) {
   const match = tokenPattern.exec(token);
-  if (!match) {
+  const key = match && searchKeyNamed(match[2].toLowerCase());
+  if (!match || !key) {
     return null;
   }
-  const [, minus, typedKey, operator, typedValue] = match;
-  const key = typedKey.toLowerCase();
-  const searchKey = searchKeys[key];
-  const value = unquoted(typedValue);
-  if (!searchKey || value === '') {
+  const searchKey: SearchKey = searchKeys[key];
+  const negated = match[1] === '-';
+  return negated && !negatable(searchKey)
+    ? null
+    : { key, searchKey, negated, operator: match[3] as SearchOperator, value: match[4] };
+}
+
+function chipOf(token: string): SearchChip | null {
+  const parsed = parsedToken(token);
+  const value = parsed && unquoted(parsed.value);
+  if (!parsed || !value) {
     return null;
   }
-  const negated = minus === '-';
-  const checked = checkedValue(searchKey, negated, operator as SearchOperator, value);
-  return checked === null ? null : { key, negated, operator: operator as SearchOperator, value: checked };
+  const checked = checkedValue(parsed.searchKey, parsed.operator, value);
+  return checked === null ? null : { key: parsed.key, negated: parsed.negated, operator: parsed.operator, value: checked };
+}
+
+function isKeyToken(token: string) {
+  return tokenPattern.test(token) && searchKeyNamed(tokenPattern.exec(token)![2].toLowerCase()) !== null;
 }
 
 export function chipLabel({ key, negated, operator, value }: SearchChip) {
@@ -144,6 +163,10 @@ export function chipLabel({ key, negated, operator, value }: SearchChip) {
 
 function insideQuotes(text: string) {
   return (text.match(/"/g)?.length ?? 0) % 2 === 1;
+}
+
+function splitTokens(text: string) {
+  return text.match(/(?:"[^"]*"?|\S)+/g) ?? [];
 }
 
 export function splitLastToken(text: string) {
@@ -188,31 +211,34 @@ function boundOf(key: BoundKey, operator: SearchOperator, value: number) {
 
 export function collectionSearchQuery(text: string, chips: SearchChip[]) {
   const query: Record<string, unknown> = {};
-  const chipOfField = new Map<string, number>();
+  const chipIndexOfField = new Map<string, number>();
   const bounds: Bounds = {};
-  const words = text.trim().split(/\s+/).join(' ');
+  const words = splitTokens(text)
+    .filter((token) => !isKeyToken(token))
+    .join(' ');
   if (words) {
     query.text = words;
   }
 
   function addToList(field: string, values: string[], chipIndex: number) {
     const list = (query[field] as string[] | undefined) ?? [];
-    values.forEach((_, index) => chipOfField.set(`${field}[${list.length + index}]`, chipIndex));
+    values.forEach((_, index) => chipIndexOfField.set(`${field}[${list.length + index}]`, chipIndex));
     query[field] = [...list, ...values];
   }
 
   chips.forEach((chip, chipIndex) => {
-    const key = searchKeys[chip.key];
+    const key: SearchKey = searchKeys[chip.key];
     switch (key.kind) {
       case 'list':
         addToList(chip.negated ? `${key.field}_exclude` : key.field, [key.choices?.[chip.value].value ?? chip.value], chipIndex);
         break;
       case 'colors': {
-        const colors = chip.value === 'c' && key.field === 'identity_subset_of' ? [] : [...new Set(chip.value.toUpperCase())];
+        const letters = key.field === 'identity_subset_of' ? chip.value.replaceAll('c', '') : chip.value;
+        const colors = [...new Set(letters.toUpperCase())];
         const field = chip.negated ? `${key.field}_exclude` : key.field;
         if (colors.length === 0) {
           query[field] = [];
-          chipOfField.set(field, chipIndex);
+          chipIndexOfField.set(field, chipIndex);
         } else {
           addToList(field, colors, chipIndex);
         }
@@ -222,18 +248,18 @@ export function collectionSearchQuery(text: string, chips: SearchChip[]) {
         const { min, max } = boundOf(key, chip.operator, Number(chip.value));
         if (min !== undefined && !(bounds[key.min]! >= min)) {
           bounds[key.min] = min;
-          chipOfField.set(key.min, chipIndex);
+          chipIndexOfField.set(key.min, chipIndex);
         }
         if (max !== undefined && !(bounds[key.max]! <= max)) {
           bounds[key.max] = max;
-          chipOfField.set(key.max, chipIndex);
+          chipIndexOfField.set(key.max, chipIndex);
         }
         break;
       }
       case 'flag': {
         const { field } = key.flags[chip.value];
         query[field] = !chip.negated;
-        chipOfField.set(field, chipIndex);
+        chipIndexOfField.set(field, chipIndex);
         break;
       }
     }
@@ -242,7 +268,7 @@ export function collectionSearchQuery(text: string, chips: SearchChip[]) {
   for (const [field, bound] of Object.entries(bounds)) {
     query[field] = field.startsWith('price') ? bound.toFixed(2) : bound;
   }
-  return { query: query as CollectionQuery, chipOfField };
+  return { query: query as CollectionQuery, chipIndexOfField };
 }
 
 export function refusedChipMessage(chip: SearchChip) {
@@ -264,20 +290,16 @@ export type SearchSuggestion = {
   chip?: SearchChip;
 };
 
-export type TypedValue = { key: string; negated: boolean; value: string };
+export type TypedValue = { key: SearchKeyName; negated: boolean; value: string };
 
 export function chipSuggestion(typed: TypedValue, value: string, detail?: string): SearchSuggestion {
   const chip: SearchChip = { key: typed.key, negated: typed.negated, operator: ':', value };
   return { title: chipLabel(chip), detail, chip };
 }
 
-function negatable(searchKey: SearchKey) {
-  return searchKey.kind !== 'bound' && !(searchKey.kind === 'colors' && searchKey.field === 'identity_subset_of');
-}
-
 function keySuggestions(negated: boolean): SearchSuggestion[] {
   const minus = negated ? '-' : '';
-  return Object.entries(searchKeys)
+  return (Object.entries(searchKeys) as [SearchKeyName, SearchKey][])
     .filter(([, searchKey]) => !negated || negatable(searchKey))
     .flatMap(([key, searchKey]): SearchSuggestion[] => {
       switch (searchKey.kind) {
@@ -292,12 +314,11 @@ function keySuggestions(negated: boolean): SearchSuggestion[] {
 }
 
 export function typedValue(token: string): TypedValue | null {
-  const match = /^(-?)([a-z_]+):(.*)$/i.exec(token);
-  const key = match?.[2].toLowerCase();
-  if (!match || !key || !searchKeys[key] || searchKeys[key].kind === 'bound') {
+  const parsed = parsedToken(token);
+  if (!parsed || parsed.operator !== ':' || parsed.searchKey.kind === 'bound') {
     return null;
   }
-  return { key, negated: match[1] === '-', value: match[3].replace(/^"/, '') };
+  return { key: parsed.key, negated: parsed.negated, value: parsed.value.replace(/^"/, '') };
 }
 
 export function fixedSuggestions(token: string): SearchSuggestion[] {
@@ -309,10 +330,7 @@ export function fixedSuggestions(token: string): SearchSuggestion[] {
     }
     return keySuggestions(token.startsWith('-')).filter((suggestion) => suggestion.title.replace(/^-/, '').startsWith(word));
   }
-  const searchKey = searchKeys[typed.key];
-  if (typed.negated && !negatable(searchKey)) {
-    return [];
-  }
+  const searchKey: SearchKey = searchKeys[typed.key];
   const options: [string, string | undefined][] =
     searchKey.kind === 'list'
       ? Object.entries(searchKey.choices ?? {}).map(([value, choice]) => [value, choice.note])

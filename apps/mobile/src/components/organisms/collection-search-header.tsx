@@ -7,7 +7,7 @@ import { ListRow } from '@/components/molecules/list-row';
 
 type CollectionSearchHeaderProps = {
   chips: SearchChip[];
-  refusedChip: number | undefined;
+  refusedChipIndex: number | undefined;
   onRemoveChip: (index: number) => void;
   suggestions: SearchSuggestion[];
   onPickSuggestion: (suggestion: SearchSuggestion) => void;
@@ -16,7 +16,7 @@ type CollectionSearchHeaderProps = {
 
 export function CollectionSearchHeader({
   chips,
-  refusedChip,
+  refusedChipIndex,
   onRemoveChip,
   suggestions,
   onPickSuggestion,
@@ -33,7 +33,7 @@ export function CollectionSearchHeader({
             <Chip
               key={`${index}-${chipLabel(chip)}`}
               label={chipLabel(chip)}
-              tone={index === refusedChip ? 'danger' : 'neutral'}
+              tone={index === refusedChipIndex ? 'danger' : 'neutral'}
               onRemove={() => onRemoveChip(index)}
             />
           ))}

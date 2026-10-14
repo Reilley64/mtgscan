@@ -1,4 +1,5 @@
 import type { CollectionCopyRow, CollectionPage, CollectionQuery } from '@mtgscan/supabase/collection';
+import { readSearchError } from '@mtgscan/supabase/search';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 
@@ -19,8 +20,9 @@ async function readCollectionCopies(search: CollectionQuery, cursor: string | nu
   return data as unknown as CollectionPage<CollectionCopyRow>;
 }
 
-function refusedField(error: { code?: string; details?: string | null }) {
-  return error.code === 'invalid_argument' && error.details ? error.details : null;
+function refusedField(error: Parameters<typeof readSearchError>[0]) {
+  const { code, field } = readSearchError(error);
+  return code === 'invalid_argument' ? field : null;
 }
 
 export function useCollectionCopies(search: CollectionQuery) {

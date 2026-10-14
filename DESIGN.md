@@ -412,19 +412,19 @@ The collection total is always visible. The owner picked variant C of the HTML p
 The owner picked layout B of the HTML prototype (`prototypes/collection-management/collection-tab.html` on `prototype/collection-management`, commit 84a51cb).
 
 - **Search bar.** The native iOS search bar sits under the large title, with the placeholder "Search your collection". It stays visible when the grid scrolls. Its caret and Cancel are primary lime.
-- Typed text matches card names, type lines, and Oracle text, in the collection only.
+- Typed text matches card names, type lines, and Oracle text, in the collection only. A word that starts with a known key, such as `set:m`, is not sent as text.
 - **Suggestions.** While the user types, suggestions replace the grid. Each suggestion is a list row.
   - With no key typed, they offer the keys that start with the typed word, such as "set:" with "Set code".
   - After a key, they offer values: set codes from the card catalog with the set name, Oracle tags from the tag lookup with the tag label, and the fixed lists for finish, condition, language, rarity, and color.
   - Tapping a key puts it in the search bar. Tapping a value makes a chip. Enter closes the suggestions and shows the results.
 - **Chips.** A space, Enter, or a picked suggestion turns `key:value` text into a chip.
   - The keys are `name`, `type`, `color`, `identity`, `mv`, `pow`, `tou`, `price` (with `=`, `<`, `<=`, `>`, `>=`), `tag`, `keyword`, `set`, `rarity`, `finish`, `condition`, `lang`, `is:commander`, `is:gamechanger`, `is:free`, and `is:protected`.
-  - A value with spaces is quoted, as in `name:"sol ring"`. A leading `-` negates, as in `-rarity:common`.
+  - A value with spaces is quoted, as in `name:"sol ring"`. A leading `-` negates, as in `-rarity:common`. The number keys and `identity` cannot be negated, because collection search has no exclude field for them.
   - A key that the app does not know stays as text.
 - The app turns the text and the chips into the typed collection search query. The server never parses a string.
 - Chips sit under the search bar, at the top of the grid. Each chip shows its `key:value` text and ×. Tapping a chip removes it. Backspace in an empty field removes the last chip. Cancel clears the text and the chips.
 - **Results.** Results show as binder tiles, one per copy. While text or a chip is active, a count line in meta text, such as "6 of 27 copies", sits above the grid. With no results, the grid shows "No cards found."
-- A chip that the server refuses, such as an unknown set or Oracle tag, turns danger. The grid shows "No set named "zzz"." or "No Oracle tag named "zzz"."
+- A chip that the server refuses, such as an unknown set or Oracle tag, turns danger. The grid shows "No set named "zzz".", "No Oracle tag named "zzz".", or "No keyword named "zzz".". Any other refused chip shows "mv>25 is not a valid chip."
 - VoiceOver reads a chip as a button with its `key:value` text and the hint "Removes this chip."
 
 ### Sign-in screen

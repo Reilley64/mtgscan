@@ -522,6 +522,22 @@ describe('collection search', () => {
     });
   });
 
+  test('a key:value word still being typed is not sent as text', async () => {
+    await openCollection();
+
+    await typeInSearchBar('angel set:m');
+
+    expect(lastSearch()).toEqual({ text: 'angel' });
+  });
+
+  test('identity:c searches for a colorless color identity', async () => {
+    await openCollection();
+
+    await typeInSearchBar('identity:c ');
+
+    expect(lastSearch()).toEqual({ identity_subset_of: [] });
+  });
+
   test('an unknown key stays as text', async () => {
     await openCollection();
 
