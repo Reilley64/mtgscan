@@ -140,8 +140,11 @@ Cited runs, all on an iPhone 16e with iOS 26.6.1 and the torch off:
 | `20261008-123021` | `d7d2d46` | Mac | 30 | 29 | 26 | 0 | 1,334 ms |
 | `20261008-131416` | `2b6e4a4` | Phone | 29 | 27 | 26 | 0 | 1,164 ms |
 | `20261008-133032` | `63d4d15` | Phone | 30 | 28 | 26 | 0 | 1,185 ms |
+| `20261014-bin-deck` | `e9af3d0` | App | 30 | 26 | 13 | 0 | 789 ms |
 
 The first run had a bug that turned every card 90 degrees. The #21 resolution uses the last three runs.
+
+`20261014-bin-deck` is the first run in the app (#84), with gallery version `20261012-cf1753`. It ran in low light on a textured surface. It accepted no wrong card. The collector line was not read on 11 cards, so 17 cards abstained, and the exact card printing was first for 26 of 30, one below the gate. Six cards were captured only after the owner moved them to a smoother surface. A rerun in good light is a follow-up.
 
 ## GitHub Actions
 
