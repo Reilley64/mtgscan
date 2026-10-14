@@ -348,8 +348,8 @@ export function pressableMenuRows(tab: HostElement, name: string) {
     .map((item) => item.title);
 }
 
-export function headerButtonIsDisabled(tab: HostElement, name: string) {
-  return headerItem(tab, name).disabled ?? false;
+export function headerButtonIsDisabled(host: HostElement, name: string) {
+  return headerItem(host, name).disabled ?? false;
 }
 
 type MenuRow = { title: string; destructive: boolean; rows?: MenuRow[] };
@@ -362,12 +362,12 @@ function menuRows(items: HeaderMenuItem[]): MenuRow[] {
   }));
 }
 
-export function headerMenuRows(tab: HostElement, name: string) {
-  return menuRows(menuOf(tab, name).items);
+export function headerMenuRows(host: HostElement, name: string) {
+  return menuRows(menuOf(host, name).items);
 }
 
-export async function pressHeaderMenuAction(tab: HostElement, name: string, path: string[]) {
-  let items = menuOf(tab, name).items;
+export async function pressHeaderMenuAction(host: HostElement, name: string, path: string[]) {
+  let items = menuOf(host, name).items;
   let chosen: HeaderMenuItem | undefined;
   for (const title of path) {
     chosen = items.find((item) => item.title === title);
@@ -379,7 +379,7 @@ export async function pressHeaderMenuAction(tab: HostElement, name: string, path
   if (!chosen?.menuId || chosen.disabled) {
     throw new Error(`${path.join(' > ')} is not a menu action that can be chosen`);
   }
-  await fireEvent(tabHeaderConfig(tab), 'pressHeaderBarButtonMenuItem', { nativeEvent: { menuId: chosen.menuId } });
+  await fireEvent(tabHeaderConfig(host), 'pressHeaderBarButtonMenuItem', { nativeEvent: { menuId: chosen.menuId } });
 }
 
 async function pressHeaderButton(tab: HostElement, name: string) {

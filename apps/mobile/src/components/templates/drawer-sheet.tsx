@@ -4,7 +4,8 @@ import { ScrollView, View } from 'react-native';
 
 import { Text } from '@/components/atoms/text';
 import { cn } from '@/lib/class-names';
-import { colors, typography } from '@/theme';
+import { inlineTitleStyle } from '@/components/templates/tab-stack';
+import { colors } from '@/theme';
 
 const sheetBackground = { backgroundColor: colors.sheet };
 
@@ -34,7 +35,7 @@ const drawerHeaderOptions: NativeStackNavigationOptions = {
 
 export const titledDrawerScreenOptions: NativeStackNavigationOptions = {
   ...drawerHeaderOptions,
-  headerTitleStyle: { ...typography.sheetTitle, color: colors.text },
+  headerTitleStyle: inlineTitleStyle,
 };
 
 export const pushedDrawerScreenOptions: NativeStackNavigationOptions = {

@@ -380,7 +380,7 @@ async function removeAllScans(count: string) {
   await pressHeaderMenuAction(drawerScreen(), 'More', ['Remove all scans', count]);
 }
 
-test('the More button in batch review opens Remove all scans, and its submenu removes every scan in the scan batch', async () => {
+test('the More button in batch review opens Remove all scans, whose submenu offers Remove N scans for every scan in the scan batch', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
   await openScan();
   await scanACard();
@@ -472,7 +472,7 @@ test('the More button is hidden while the commit runs', async () => {
   await commit.finish();
 });
 
-test('Remove all scans only opens its submenu, so closing the menu at either step keeps the scan batch', async () => {
+test('Remove all scans is a submenu, not an action, so the scan batch stays until Remove N scans is chosen', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
