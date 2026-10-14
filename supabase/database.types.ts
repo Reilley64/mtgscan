@@ -472,6 +472,9 @@ isOneToOne: false
               "relation": string,"total_bytes": number
             }[]
                            },
+"delete_copy":
+{ Args: { "request": Json }; Returns: undefined
+                           },
 "delete_gallery_version":
 { Args: { "version": string }; Returns: undefined
                            },

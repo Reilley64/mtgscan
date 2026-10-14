@@ -108,6 +108,10 @@ export type CopyQuery = {
   price_currency?: PriceCurrency;
 };
 
+export type DeleteCopyRequest = {
+  copy_id: string;
+};
+
 export type CopyFace = {
   name: string;
   oracle_text: string;

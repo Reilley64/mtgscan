@@ -1,10 +1,12 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { Alert, View } from 'react-native';
 
+import { deleteCopy } from '@/collection/copy-writes';
 import { copyPriceCurrency, useCopy } from '@/collection/use-copy';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
+import { copyActionsMenu } from '@/components/organisms/copy-actions-menu';
 import { CopyPageContent } from '@/components/organisms/copy-page-content';
 import { PushedScreen } from '@/components/templates/pushed-screen';
 
@@ -18,9 +20,32 @@ export default function CopyScreen() {
     }
   }, [read.status]);
 
+  async function deleteThisCopy() {
+    const result = await deleteCopy(copyId);
+    if (result === 'done') {
+      router.back();
+    } else if (result === 'missing') {
+      reload();
+    } else {
+      Alert.alert('Could not delete this copy', 'Check your connection.');
+    }
+  }
+
+  function confirmDelete() {
+    Alert.alert('Delete this copy?', 'It leaves your collection with its user tags. This cannot be undone.', [
+      { text: 'Delete copy', style: 'destructive', onPress: deleteThisCopy },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
   return (
     <PushedScreen>
-      {read.status === 'loaded' ? <CopyPageContent copy={read.copy} currency={copyPriceCurrency} /> : null}
+      {read.status === 'loaded' ? (
+        <>
+          <Stack.Toolbar placement="right">{copyActionsMenu({ onDelete: confirmDelete })}</Stack.Toolbar>
+          <CopyPageContent copy={read.copy} currency={copyPriceCurrency} />
+        </>
+      ) : null}
       {read.status === 'failed' ? (
         <View className="px-lg pt-safe-offset-xl">
           <ReadFailure

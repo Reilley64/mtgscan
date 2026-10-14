@@ -268,7 +268,7 @@ function rootStackScreens() {
   return rootStack.queryAll((instance) => instance.type === 'RNSScreen' && nearestStack(instance) === rootStack);
 }
 
-function pushedScreen() {
+export function pushedScreen() {
   const screens = rootStackScreens();
   if (screens.length < 2) {
     throw new Error('No screen is pushed');

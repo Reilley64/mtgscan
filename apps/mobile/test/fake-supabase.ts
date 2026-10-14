@@ -12,6 +12,7 @@ import type {
   CollectionTotal,
   CopyDetails,
   CopyQuery,
+  DeleteCopyRequest,
   ScanBatch,
   ScanBatchResult,
   ScanBatchStack,
@@ -42,6 +43,8 @@ const users = new Map<string, User>();
 let collectionCopies: CollectionCopyRow[] = [];
 let copyDetails = new Map<string, CopyDetails>();
 let failingCopyReads = 0;
+let copyDeletes: string[] = [];
+let failingCopyDeletes = 0;
 const emptyCollectionTotal: CollectionTotal = {
   total: '0.00',
   currency: 'USD',
@@ -163,6 +166,19 @@ function copyRead({ copy_id }: CopyQuery) {
     return { data: null, error: { code: 'not_found', message: 'copy_id is not a copy in your collection.', details: 'copy_id' } };
   }
   return { data: details, error: null };
+}
+
+function deleteCopy({ copy_id }: DeleteCopyRequest) {
+  if (failingCopyDeletes > 0) {
+    failingCopyDeletes -= 1;
+    return { data: null, error: networkFailure };
+  }
+  if (!collectionCopies.some((copy) => copy.copy_id === copy_id)) {
+    return { data: null, error: { code: 'not_found', message: 'copy_id is not a copy in your collection.', details: 'copy_id' } };
+  }
+  copyDeletes = [...copyDeletes, copy_id];
+  removeCopyFromTheCollection(copy_id);
+  return { data: null, error: null };
 }
 
 function addToCollection(copies: { copyId: string; stack: ScanBatchStack }[]) {
@@ -295,7 +311,12 @@ export const fakeSupabase = {
   from: cardCatalogTable,
   async rpc(
     name: string,
-    args: { query: CollectionQuery } | { query: CopyQuery } | { query: { text: string; limit: number } } | { batch: ScanBatch },
+    args:
+      | { query: CollectionQuery }
+      | { query: CopyQuery }
+      | { query: { text: string; limit: number } }
+      | { request: DeleteCopyRequest }
+      | { batch: ScanBatch },
   ) {
     if (name === 'search_collection' && 'query' in args) {
       await heldCollectionReads;
@@ -306,6 +327,9 @@ export const fakeSupabase = {
     }
     if (name === 'get_copy' && 'query' in args) {
       return copyRead(args.query as CopyQuery);
+    }
+    if (name === 'delete_copy' && 'request' in args) {
+      return deleteCopy(args.request);
     }
     if (name === 'get_collection_total') {
       return { data: collectionTotal, error: null };
@@ -392,6 +416,14 @@ export function removeCopyFromTheCollection(copyId: string) {
   collectionCopies = collectionCopies.filter((copy) => copy.copy_id !== copyId);
 }
 
+export function copiesDeletedOnTheServer() {
+  return copyDeletes;
+}
+
+export function failCopyDeletes(count: number) {
+  failingCopyDeletes = count;
+}
+
 export function failCopyReads(count: number) {
   failingCopyReads = count;
 }
@@ -471,6 +503,8 @@ export function resetFakeSupabase() {
   collectionCopies = [];
   copyDetails = new Map();
   failingCopyReads = 0;
+  copyDeletes = [];
+  failingCopyDeletes = 0;
   collectionTotal = emptyCollectionTotal;
   failingCollectionReads = 0;
   collectionSearches = [];

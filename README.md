@@ -209,6 +209,14 @@ Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The qu
 - From its card: `type_line`, `faces` with each face's `name` and `oracle_text` in face order, and `commander_legality`.
 - The function runs with the caller's rights, so another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist. A refused query has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
+### Copy delete
+
+Signed-in users delete one copy with `supabase.rpc('delete_copy', { request })`. The request has only `copy_id`. `supabase/collection.ts` has the shared type. The copy page deletes its copy through it.
+
+- It deletes the copy in one transaction. The copy leaves collection search, `get_copy`, owned quantities, and the collection total and its coverage.
+- The copy's addition, its addition line, and its copy ID in `collection_addition_copies` stay. A replayed scan batch never adds the copy again.
+- It returns nothing. Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist or was already deleted. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
+
 ### Collection search
 
 Signed-in users search their own collection with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips and `rows`. `supabase/collection.ts` has the shared types for the query and the result rows. The Collection tab reads its binder grid only through collection search, with `rows: 'copies'`. Its search bar turns the typed text and chips into the typed query.
