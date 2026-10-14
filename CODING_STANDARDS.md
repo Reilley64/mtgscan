@@ -72,7 +72,7 @@ The app UI follows Brad Frost's Atomic Design (#101). Each level is a folder in 
 - Functions in `public` revoke `execute` from `public` and from every role that does not call them, then grant it to their callers.
 - Reads of per-user data run under row-level security. A read function is `security invoker`, and a view over a user's data sets `security_invoker`. A `security definer` function that filters on `auth.uid()` itself is a finding. See #90.
 - Put helper functions in the `private` schema, which the Data API does not expose. Every `private` function is closed by default. Grant `execute` only to the roles whose functions call it.
-- Import functions run as `catalog_importer`, write only card catalog, staging, and run tables, and only `service_role` can call them. See #43.
+- Import functions run as `catalog_importer`, write only card catalog, exchange rate, staging, and run tables, and only `service_role` can call them. See #43.
 - The card catalog never deletes a card or a card printing. It marks them absent.
 - A migration that replaces a function starts from the latest version on `main`, so that parallel changes survive.
 - `supabase/database.types.ts` comes only from `bun run types:database`.

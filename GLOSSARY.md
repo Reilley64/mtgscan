@@ -43,6 +43,10 @@ _Avoid_: Value
 The sum of the current prices of every copy in the collection, in one currency. Copies with no current price are left out and counted, so the total always comes with its coverage, such as "26 of 27 cards priced".
 _Avoid_: Collection value, net worth
 
+**Exchange rate**:
+The European Central Bank's reference rate from USD to another currency, as Frankfurter publishes it. mtgscan keeps only the latest exchange rate of each currency in Frankfurter's latest rates, with the ECB date it applies to. The ECB publishes rates on working days only.
+_Avoid_: FX rate, conversion rate
+
 **Purchase-day price**:
 The current price of a card printing and finish when copies were added to the collection. Each addition line records it once, and it never changes. A copy reads it from its addition line, not from the collection entry.
 _Avoid_: Purchase price, cost, price at add

@@ -5,6 +5,7 @@ import {
   type ScryfallRecord,
   catalogFixture,
   catalogFixtureManifest,
+  expectSuccess,
   latestRun,
   resetCardCatalog,
   runCatalogImport,
@@ -26,13 +27,6 @@ let alice: TestUser;
 beforeAll(async () => {
   alice = await signUpNewUser();
 });
-
-async function expectSuccess(result: Promise<{ exitCode: number; output: string }>) {
-  const { exitCode, output } = await result;
-  expect(output).not.toContain('error');
-  expect(exitCode).toBe(0);
-  return output;
-}
 
 async function printingId(set: string, collectorNumber: string) {
   const { data, error } = await alice.client
