@@ -18,7 +18,7 @@ async function readCopy(copyId: string, currency: PriceCurrency): Promise<CopyRe
 }
 
 export function useCopy(copyId: string) {
-  const currency = usePriceCurrency().currency?.currency;
+  const currency = usePriceCurrency().priceCurrency?.currency;
   const readOnce = useMemo(() => (currency ? () => readCopy(copyId, currency) : null), [copyId, currency]);
   return useFocusedRead(readOnce);
 }

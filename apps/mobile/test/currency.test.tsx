@@ -23,6 +23,7 @@ import {
   tabHeader,
   typeInSearchBar,
 } from './native-ui';
+import { returnToTheApp } from './app-state';
 import { renderApp, restartTheApp } from './render-app';
 
 const rateDate = '2026-10-12';
@@ -133,6 +134,18 @@ describe('the Currency row and list', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
 
     expect(await screen.findByRole('checkbox', { name: 'AUD Australian dollar' })).toBeChecked();
+  });
+
+  test('when the currency list cannot load, the app reads it again when the user returns to the app', async () => {
+    phoneRegionCurrencyIs('AUD');
+    failPriceCurrencyReads(1);
+    await openCollection();
+
+    await returnToTheApp();
+    await pressTab('Recent');
+    await pressTab('Collection');
+
+    expect(priceCurrenciesSent().at(-1)).toBe('AUD');
   });
 });
 

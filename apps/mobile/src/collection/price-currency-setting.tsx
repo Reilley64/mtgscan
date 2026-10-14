@@ -2,6 +2,7 @@ import type { PriceCurrencyList, PriceCurrencyRow } from '@mtgscan/supabase/sear
 import { getLocales } from 'expo-localization';
 import * as SecureStore from 'expo-secure-store';
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { AppState } from 'react-native';
 
 import { useSession } from '@/auth/session';
 import { supabase } from '@/lib/supabase';
@@ -10,10 +11,10 @@ const currencyKey = 'currency';
 
 const usd: PriceCurrencyRow = { currency: 'USD', minor_unit_digits: 2 };
 
-export type PriceCurrencies = { status: 'loading' } | { status: 'failed' } | { status: 'loaded'; items: PriceCurrencyRow[] };
+type PriceCurrencies = { status: 'loading' } | { status: 'failed' } | { status: 'loaded'; items: PriceCurrencyRow[] };
 
 type PriceCurrencySetting = {
-  currency: PriceCurrencyRow | null;
+  priceCurrency: PriceCurrencyRow | null;
   priceCurrencies: PriceCurrencies;
   reloadPriceCurrencies: () => void;
   setCurrency: (currency: string) => void;
@@ -62,9 +63,17 @@ export function PriceCurrencyProvider({ children }: { children: ReactNode }) {
     setReadCount((count) => count + 1);
   }, []);
 
+  useEffect(() => {
+    if (priceCurrencies.status !== 'failed') {
+      return;
+    }
+    const subscription = AppState.addEventListener('change', (state) => state === 'active' && reloadPriceCurrencies());
+    return () => subscription.remove();
+  }, [priceCurrencies.status, reloadPriceCurrencies]);
+
   const setting = useMemo<PriceCurrencySetting>(
     () => ({
-      currency: shownCurrency(chosen, priceCurrencies),
+      priceCurrency: shownCurrency(chosen, priceCurrencies),
       priceCurrencies,
       reloadPriceCurrencies,
       setCurrency: (currency) => {

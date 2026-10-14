@@ -14,7 +14,7 @@ export default function SettingsDrawer() {
   const user = useSession()?.user;
   const gallery = useGallerySummary();
   const { scanSounds, setScanSounds } = useScanSounds();
-  const { currency } = usePriceCurrency();
+  const { priceCurrency } = usePriceCurrency();
   const parityCheck = useParityCheck();
 
   return (
@@ -22,7 +22,7 @@ export default function SettingsDrawer() {
       <SettingsContent
         account={{ provider: user ? currentSignInProviderName(user) : '', email: user?.email }}
         gallery={gallery}
-        currency={currency?.currency}
+        currency={priceCurrency?.currency}
         onOpenCurrency={() => router.push('/settings/currency')}
         scanSounds={scanSounds}
         onScanSoundsChange={setScanSounds}

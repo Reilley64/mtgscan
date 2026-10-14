@@ -6,7 +6,7 @@ import { usePriceCurrency } from '@/collection/price-currency-setting';
 import { supabase } from '@/lib/supabase';
 
 export function useCollectionTotal() {
-  const currency = usePriceCurrency().currency?.currency;
+  const currency = usePriceCurrency().priceCurrency?.currency;
   const [total, setTotal] = useState<CollectionTotal | null>(null);
   const latestRead = useRef(0);
 

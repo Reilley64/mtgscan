@@ -9,7 +9,7 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { DrawerSheet } from '@/components/templates/drawer-sheet';
 
 export default function CurrencyScreen() {
-  const { currency, priceCurrencies, reloadPriceCurrencies, setCurrency } = usePriceCurrency();
+  const { priceCurrency, priceCurrencies, reloadPriceCurrencies, setCurrency } = usePriceCurrency();
 
   return (
     <DrawerSheet title="Currency">
@@ -19,7 +19,7 @@ export default function CurrencyScreen() {
             <ListRow
               key={row.currency}
               title={priceCurrencyLabel(row.currency)}
-              checked={row.currency === currency?.currency}
+              checked={row.currency === priceCurrency?.currency}
               onPress={() => {
                 setCurrency(row.currency);
                 router.back();

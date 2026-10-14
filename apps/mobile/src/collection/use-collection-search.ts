@@ -96,8 +96,11 @@ export function useCollectionSearch() {
   };
 
   const suggestions = useSearchSuggestions(typing ? splitLastToken(text).token : '');
-  const { currency } = usePriceCurrency();
-  const searched = useMemo(() => currency && collectionSearchQuery(searchedText, chips, currency), [searchedText, chips, currency]);
+  const { priceCurrency } = usePriceCurrency();
+  const searched = useMemo(
+    () => priceCurrency && collectionSearchQuery(searchedText, chips, priceCurrency),
+    [searchedText, chips, priceCurrency],
+  );
 
   return {
     searchBar,
