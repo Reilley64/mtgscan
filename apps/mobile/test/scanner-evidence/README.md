@@ -84,7 +84,7 @@ Pass criteria:
 - 11 of 11 non-card crops rejected.
 - 0 recognizer errors.
 
-Recorded result: 214 correct accepts of 250, 0 false accepts, 247 right cards first, and 234 right printings first. With the true printing missing, 0 accepts.
+Recorded result: 214 correct accepts of 250, 0 false accepts, 249 right cards first, and 236 right printings first. With the true printing missing, 0 accepts.
 
 ## Gate 2: simulated scans
 
@@ -102,7 +102,7 @@ Pass criteria:
 - No more accepted wrong printings outside the candidate list than recorded. The recorded count is 0. The #10 study had 1, Tamiyo's Journal `plst SOI-265` with 10 printings that share its art. The candidate list now includes every same-text twin, so that card is inside it.
 - 0 recognizer errors.
 
-Recorded result on the full gallery: 2,493 accepts, 2,135 exactly right, 358 other printings of the right card, and 0 wrong cards. 2,961 of 3,000 had the right card first. With the true printing missing: 382 accepts, all a printing that shares the art of the missing printing or its promo, and 0 wrong cards.
+Recorded result on the full gallery: 2,493 accepts, 2,135 exactly right, 358 other printings of the right card, and 0 wrong cards. 2,993 of 3,000 had the right card first. With the true printing missing: 382 accepts, all a printing that shares the art of the missing printing or its promo, and 0 wrong cards.
 
 In the results, `falseAccepts` counts every accept that is not the exact printing. Most are same-text twins, which are the product decision in #10. `check.mjs` reports wrong cards separately. `truthInTop5` counts the scans whose true printing is anywhere in the candidate list.
 
@@ -147,7 +147,7 @@ The first run had a bug that turned every card 90 degrees. The #21 resolution us
 
 `20261014-bin-deck` is the first run in the app (#84), with gallery version `20261012-cf1753`. It ran in low light on a textured surface. It accepted no wrong card. The collector line was not read on 11 cards, so 17 cards abstained, and the exact card printing was first for 26 of 30, one below the gate. Six cards were captured only after the owner moved them to a smoother surface.
 
-`20261015-bin-deck` is the rerun in good light on the same table (#165), with the same gallery version. It passes every gate. 25 cards were accepted correctly and 5 abstained. The phone read the full collector line on 23 cards. It read Big Score `SLD 7096` as `SLD 1096`, so the recognizer abstained and showed Sword of Truth and Justice `SLD 1096` first, with Big Score second. That is the only card whose first candidate was another card. The camera captured two foil Secret Lair cards, `SLD 7096` and `SLD 7094`, only after the owner moved them to the bin.
+`20261015-bin-deck` is the rerun in good light on the same table (#165), with the same gallery version. It passes every gate. 25 cards were accepted correctly and 5 abstained. The phone read the full collector line on 23 cards. It read Big Score `SLD 7096` as `SLD 1096`, so the recognizer abstained and showed Sword of Truth and Justice `SLD 1096` first, with Big Score second. That is the only card whose first candidate was another card. Since #206, a collector line that names a card the image does not support shows the image's top card printing first, and the card printing that the reading names stays among the candidates. The camera captured two foil Secret Lair cards, `SLD 7096` and `SLD 7094`, only after the owner moved them to the bin.
 
 ## GitHub Actions
 

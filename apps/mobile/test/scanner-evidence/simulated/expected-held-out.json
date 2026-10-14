@@ -1,6 +1,6 @@
 {
  "recordedWith": {
-  "recognizerCommit": "7fb6205",
+  "recognizerCommit": "5f93f41",
   "featurePrint": "VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values",
   "gallery": {
    "version": "20261012-cf1753",
@@ -14,16 +14,16 @@
    "cardCatalogSnapshot": "2026-10-09T09:01:54.966+00:00"
   },
   "machine": "Apple M3, macOS 15.7.3",
-  "recordedOn": "2026-10-12",
+  "recordedOn": "2026-10-15",
   "command": "bun run recognizer:replay (simulated-held-out)",
-  "note": "Recorded with gallery version 20261012-cf1753, the first int8 gallery (#79). Every accept is the same: 382 accepts, all a printing that shares the art of the missing printing or its promo, and 0 wrong cards. acceptedRows is removed because it does not name the scan."
+  "note": "Recorded again for #206. Every accept is the same: 382 accepts, all a printing that shares the art of the missing printing or its promo, and 0 wrong cards. 35 scans that abstain on a collector line that names a card the image does not support now show the image's top card printing first. 29 move to the right card and 5 stay on a different card. Debilitating Injury UGIN 68 (sim-02137) showed Debilitating Injury KTK 68 and now shows Firebreathing 30A 146. So nameTop1 is 2,264, not 2,236. Latencies are kept from the earlier recording, because this replay ran beside another replay. acceptedRows is removed because it does not name the scan."
  },
  "result": {
   "catalog": 102730,
   "heldOut": true,
   "truthInTop5": 0,
   "cards": 3000,
-  "nameTop1": 2236,
+  "nameTop1": 2264,
   "printingTop1": 0,
   "accepted": 382,
   "correctAccepts": 0,

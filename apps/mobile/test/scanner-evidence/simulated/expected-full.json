@@ -1,6 +1,6 @@
 {
  "recordedWith": {
-  "recognizerCommit": "7fb6205",
+  "recognizerCommit": "5f93f41",
   "featurePrint": "VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values",
   "gallery": {
    "version": "20261012-cf1753",
@@ -14,17 +14,17 @@
    "cardCatalogSnapshot": "2026-10-09T09:01:54.966+00:00"
   },
   "machine": "Apple M3, macOS 15.7.3",
-  "recordedOn": "2026-10-12",
+  "recordedOn": "2026-10-15",
   "command": "bun run recognizer:replay (simulated-full)",
-  "note": "Recorded with gallery version 20261012-cf1753, the first int8 gallery (#79). Every accept is the same: 2,493 accepts, 2,135 exactly right, 358 same-text twins, and 0 wrong cards. 8 scans that abstain show another first candidate. 7 stay on the right card. Thundering Giant USG 221 (sim-02872) now shows Hill Giant 30A 450 first, so nameTop1 is 2,961, not 2,962. truthInTop5 is 2,971, not 2,968. acceptedRows is removed because it does not name the scan."
+  "note": "Recorded again for #206. Every accept is the same: 2,493 accepts, 2,135 exactly right, 358 same-text twins, and 0 wrong cards. 32 scans that abstain on a collector line that names a card the image does not support showed that card first and now show the image's top card printing. All 32 now show the right card, and 22 show the exact printing. nameTop1 is 2,993 and printingTop1 is 2,481. Latencies are kept from the earlier recording, because this replay ran beside another replay. acceptedRows is removed because it does not name the scan."
  },
  "result": {
   "catalog": 102730,
   "heldOut": false,
   "truthInTop5": 2971,
   "cards": 3000,
-  "nameTop1": 2961,
-  "printingTop1": 2459,
+  "nameTop1": 2993,
+  "printingTop1": 2481,
   "accepted": 2493,
   "correctAccepts": 2135,
   "falseAccepts": 358,
@@ -4896,7 +4896,7 @@
     "input": "sim-00019.jpg",
     "truth": "72e805e9-69be-45c1-aa04-f460641a0c1e",
     "group": "same-art",
-    "top": "323a05ee-8296-41c0-94ab-00913d9d84f1",
+    "top": "b50fd7cb-b21c-46ee-bf2a-2c187088baf2",
     "accepted": null,
     "reason": "collector line LCI 12 names a card the image does not support"
    },
@@ -5376,7 +5376,7 @@
     "input": "sim-00079.jpg",
     "truth": "607d82bd-13b1-499a-9005-0381e716013a",
     "group": "same-art",
-    "top": "bc079c81-85e8-4a0d-83fe-533c4feaa343",
+    "top": "607d82bd-13b1-499a-9005-0381e716013a",
     "accepted": null,
     "reason": "collector line INR 123 names a card the image does not support"
    },
@@ -5984,7 +5984,7 @@
     "input": "sim-00155.jpg",
     "truth": "1abdf386-56bc-4575-af89-6edc9a38cd43",
     "group": "same-art",
-    "top": "15f81ac6-a550-4782-a3a9-22d7fef1c206",
+    "top": "373f199d-f1a6-4a3d-ac83-28741131f313",
     "accepted": null,
     "reason": "collector line MSC 245 names a card the image does not support"
    },
@@ -6080,7 +6080,7 @@
     "input": "sim-00167.jpg",
     "truth": "b9f1dbdc-e590-48a4-bc52-e9e4e907fb82",
     "group": "same-art",
-    "top": "367ac07a-a30f-4ebf-8877-27cd9ebe2f71",
+    "top": "b9f1dbdc-e590-48a4-bc52-e9e4e907fb82",
     "accepted": null,
     "reason": "collector line CMM 10 names a card the image does not support"
    },
@@ -6160,7 +6160,7 @@
     "input": "sim-00177.jpg",
     "truth": "fa393eeb-bccc-453c-b783-6b0ff445c3a6",
     "group": "same-art",
-    "top": "56d93855-c749-4bdf-9a90-4f69f4226e46",
+    "top": "fa393eeb-bccc-453c-b783-6b0ff445c3a6",
     "accepted": null,
     "reason": "collector line C21 3 names a card the image does not support"
    },
@@ -7216,7 +7216,7 @@
     "input": "sim-00309.jpg",
     "truth": "ffe0f77f-5092-4372-83fb-269dfb11f9b5",
     "group": "same-art",
-    "top": "a03fc1f1-31f6-4e52-87d0-e3d18ea60d3b",
+    "top": "ffe0f77f-5092-4372-83fb-269dfb11f9b5",
     "accepted": null,
     "reason": "collector line UMA 10 names a card the image does not support"
    },
@@ -8048,7 +8048,7 @@
     "input": "sim-00413.jpg",
     "truth": "cb28d217-795e-4320-a032-cd713f7ecc8a",
     "group": "same-art",
-    "top": "4396049c-b976-4b7f-8ecd-564e24ebd631",
+    "top": "ccd070c5-93c1-43bc-9f8d-615fc6824b71",
     "accepted": null,
     "reason": "collector line FDN 6 names a card the image does not support"
    },
@@ -8704,7 +8704,7 @@
     "input": "sim-00495.jpg",
     "truth": "1e6beba4-128c-418e-83ed-8a82afc0c39e",
     "group": "same-art",
-    "top": "e2c812bb-19f8-4a22-bda9-f2a6233cf700",
+    "top": "1e6beba4-128c-418e-83ed-8a82afc0c39e",
     "accepted": null,
     "reason": "collector line LCC 10 names a card the image does not support"
    },
@@ -9256,7 +9256,7 @@
     "input": "sim-00564.jpg",
     "truth": "6929750f-cf08-4e3e-83b0-076e1f6fa8e0",
     "group": "same-art",
-    "top": "d382fd32-b1f5-4ec7-9d42-fc2915ed3bc9",
+    "top": "6929750f-cf08-4e3e-83b0-076e1f6fa8e0",
     "accepted": null,
     "reason": "collector line WOE 17 names a card the image does not support"
    },
@@ -9456,7 +9456,7 @@
     "input": "sim-00589.jpg",
     "truth": "8c342309-aef7-4733-ac1c-ff0b704539a7",
     "group": "same-art",
-    "top": "b238485f-ef67-4295-892b-a10235368f74",
+    "top": "28416303-b036-4fab-b8eb-f5754d4ff7dc",
     "accepted": null,
     "reason": "collector line JMP 12 names a card the image does not support"
    },
@@ -11096,7 +11096,7 @@
     "input": "sim-00794.jpg",
     "truth": "1b635abe-ad7e-44b8-b3fe-6e365db87c29",
     "group": "same-art",
-    "top": "c87cecd6-ea9d-4515-890c-262bb15e9f37",
+    "top": "a2f7a05c-0cc2-4126-a1fe-295421f58f17",
     "accepted": null,
     "reason": "collector line CHR 83 names a card the image does not support"
    },
@@ -12360,7 +12360,7 @@
     "input": "sim-00952.jpg",
     "truth": "7fb62613-6a65-4f91-b1b2-24f6bf69e211",
     "group": "same-art",
-    "top": "4a54b36b-5a8d-41a1-9371-1a59d81c2733",
+    "top": "02ac4e89-d5fa-4f1b-bd61-be15eb322f40",
     "accepted": null,
     "reason": "collector line DTK 5 names a card the image does not support"
    },
@@ -12616,7 +12616,7 @@
     "input": "sim-00984.jpg",
     "truth": "11545710-6917-4e44-856f-4c9063a1313c",
     "group": "same-art",
-    "top": "8bafeaa8-5e77-4303-b30a-23fd137b7c35",
+    "top": "c9bc488a-957a-43d5-bff5-587ced5dadb3",
     "accepted": null,
     "reason": "collector line PIP 224 names a card the image does not support"
    },
@@ -13616,7 +13616,7 @@
     "input": "sim-01109.jpg",
     "truth": "51ef5fb3-236d-4ac1-a8a5-68ee230b8909",
     "group": "same-art",
-    "top": "d8999135-ddb1-4e4c-b885-e25f23dac3d3",
+    "top": "51ef5fb3-236d-4ac1-a8a5-68ee230b8909",
     "accepted": null,
     "reason": "collector line MOM 12 names a card the image does not support"
    },
@@ -15280,7 +15280,7 @@
     "input": "sim-01317.jpg",
     "truth": "662fe50f-d75c-422c-8c6c-1f9b5c4ba21f",
     "group": "same-art",
-    "top": "f501024b-79e8-48f8-8102-38d3e439dc64",
+    "top": "5cb76266-ae50-4bbc-8f96-d98f309b02d3",
     "accepted": null,
     "reason": "collector line RVR 4 names a card the image does not support"
    },
@@ -16792,7 +16792,7 @@
     "input": "sim-01506.jpg",
     "truth": "7c9079b4-71c9-4afb-ba81-3d3bece084e7",
     "group": "single-art",
-    "top": "1f69f0bf-6626-4418-9335-b79d75c99df1",
+    "top": "7c9079b4-71c9-4afb-ba81-3d3bece084e7",
     "accepted": null,
     "reason": "collector line J22 10 names a card the image does not support"
    },
@@ -18752,7 +18752,7 @@
     "input": "sim-01751.jpg",
     "truth": "3908c05d-ae7a-47ab-86ca-113f1562ec0a",
     "group": "single-art",
-    "top": "e42c5234-7395-4c9f-a885-8b63cf02c5e8",
+    "top": "3908c05d-ae7a-47ab-86ca-113f1562ec0a",
     "accepted": null,
     "reason": "collector line IMA 99 names a card the image does not support"
    },
@@ -19320,7 +19320,7 @@
     "input": "sim-01822.jpg",
     "truth": "cd56f047-6bdc-4e83-8a7c-923ebad26302",
     "group": "single-art",
-    "top": "f82f181b-a43b-4cec-b8f6-f6c1dd4c64fd",
+    "top": "cd56f047-6bdc-4e83-8a7c-923ebad26302",
     "accepted": null,
     "reason": "collector line FRA 8 names a card the image does not support"
    },
@@ -19880,7 +19880,7 @@
     "input": "sim-01892.jpg",
     "truth": "77a5ca5d-a377-4ee4-8e72-5a6b60c67521",
     "group": "single-art",
-    "top": "62c31cd8-0c30-4cfb-89d6-2e4dac19f6ea",
+    "top": "77a5ca5d-a377-4ee4-8e72-5a6b60c67521",
     "accepted": null,
     "reason": "collector line MSC 34 names a card the image does not support"
    },
@@ -20792,7 +20792,7 @@
     "input": "sim-02006.jpg",
     "truth": "ca2b53e2-aa6a-4cb2-899c-8e022e822ffc",
     "group": "single-art",
-    "top": "4c6fd0bf-3f02-46f3-9c9a-931eab190584",
+    "top": "ca2b53e2-aa6a-4cb2-899c-8e022e822ffc",
     "accepted": null,
     "reason": "collector line J22 5 names a card the image does not support"
    },
@@ -20864,7 +20864,7 @@
     "input": "sim-02015.jpg",
     "truth": "3711f61d-6381-4c92-a3f5-6deed29aae47",
     "group": "single-art",
-    "top": "24e1fbc9-a891-401a-99f6-0173ca7b45ad",
+    "top": "3711f61d-6381-4c92-a3f5-6deed29aae47",
     "accepted": null,
     "reason": "collector line FNM 2 names a card the image does not support"
    },
@@ -21416,7 +21416,7 @@
     "input": "sim-02084.jpg",
     "truth": "58ce16da-30d3-49ca-9c85-2dcb599f8913",
     "group": "single-art",
-    "top": "498f74a2-7e5e-4082-97e7-b938d703f869",
+    "top": "58ce16da-30d3-49ca-9c85-2dcb599f8913",
     "accepted": null,
     "reason": "collector line RTR 3 names a card the image does not support"
    },
@@ -23376,7 +23376,7 @@
     "input": "sim-02329.jpg",
     "truth": "f16c4abb-917a-4bd5-b0bc-b700611cd5b9",
     "group": "special",
-    "top": "8cb105d6-6bc1-4b8b-8797-8acc6af41be9",
+    "top": "f16c4abb-917a-4bd5-b0bc-b700611cd5b9",
     "accepted": null,
     "reason": "collector line SPG 12 names a card the image does not support"
    },
@@ -23784,7 +23784,7 @@
     "input": "sim-02380.jpg",
     "truth": "9967520f-3c8e-42a2-b9dd-887714477c2d",
     "group": "special",
-    "top": "685a9d6d-497b-44a1-963f-501d61ea7f66",
+    "top": "69f0f563-0f9b-4c61-966d-1384fefb8152",
     "accepted": null,
     "reason": "collector line SLD 4 names a card the image does not support"
    },
@@ -24096,7 +24096,7 @@
     "input": "sim-02419.jpg",
     "truth": "540d6d5a-acd4-444d-a670-2fc87e4d53b0",
     "group": "special",
-    "top": "2bb29a69-3e42-4268-8026-f01072d7b56c",
+    "top": "540d6d5a-acd4-444d-a670-2fc87e4d53b0",
     "accepted": null,
     "reason": "collector line ONE 7 names a card the image does not support"
    },
@@ -24368,7 +24368,7 @@
     "input": "sim-02453.jpg",
     "truth": "43805099-439c-45e0-b1cd-cd186abb1f97",
     "group": "special",
-    "top": "a1d27617-2d3d-44a1-b93f-0694253b6774",
+    "top": "521deca0-b00a-4269-bbb4-966f338a8341",
     "accepted": null,
     "reason": "collector line VOW 8 names a card the image does not support"
    },
@@ -24384,7 +24384,7 @@
     "input": "sim-02455.jpg",
     "truth": "37d595f6-7b51-4a4a-acb5-08e12bac6ea7",
     "group": "special",
-    "top": "92195708-cc07-44bf-85d8-6c5d6f0d789e",
+    "top": "37d595f6-7b51-4a4a-acb5-08e12bac6ea7",
     "accepted": null,
     "reason": "collector line SLD 5 names a card the image does not support"
    },
@@ -24432,7 +24432,7 @@
     "input": "sim-02461.jpg",
     "truth": "ba320b49-5f1a-4487-8d75-504c534cf522",
     "group": "special",
-    "top": "6fad8ca2-032d-40ee-b3d6-29ab2b59ba86",
+    "top": "ba320b49-5f1a-4487-8d75-504c534cf522",
     "accepted": null,
     "reason": "collector line SLD 10 names a card the image does not support"
    },
@@ -25360,7 +25360,7 @@
     "input": "sim-02577.jpg",
     "truth": "a785d199-3e8a-494a-9fd7-5215eb6b3eea",
     "group": "special",
-    "top": "53df7b80-71bf-4013-ad44-f76eae8ac81b",
+    "top": "a785d199-3e8a-494a-9fd7-5215eb6b3eea",
     "accepted": null,
     "reason": "collector line AFR 10 names a card the image does not support"
    },
@@ -25632,7 +25632,7 @@
     "input": "sim-02611.jpg",
     "truth": "8b5341ab-85a6-44b2-b738-1110e699c02b",
     "group": "special",
-    "top": "ea949741-af94-47ae-a577-2953c69ab71d",
+    "top": "8b5341ab-85a6-44b2-b738-1110e699c02b",
     "accepted": null,
     "reason": "collector line SLD 11 names a card the image does not support"
    },
@@ -25664,7 +25664,7 @@
     "input": "sim-02615.jpg",
     "truth": "1e945c79-6c1e-404a-8993-655851566928",
     "group": "special",
-    "top": "c3909816-5cc2-4712-bc7d-534ae0b9229c",
+    "top": "1e945c79-6c1e-404a-8993-655851566928",
     "accepted": null,
     "reason": "collector line UMA 3 names a card the image does not support"
    },
@@ -25712,7 +25712,7 @@
     "input": "sim-02621.jpg",
     "truth": "3da4d946-fd93-4211-96b2-c9bd0d2b572d",
     "group": "special",
-    "top": "7c337af5-35bf-4a80-8cc0-bb9af20305b3",
+    "top": "3da4d946-fd93-4211-96b2-c9bd0d2b572d",
     "accepted": null,
     "reason": "collector line J22 615 names a card the image does not support"
    },
