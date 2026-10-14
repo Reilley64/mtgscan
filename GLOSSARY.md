@@ -29,20 +29,16 @@ One commit of copies to the collection, with its time and a purchase-day price p
 _Avoid_: Import, purchase
 
 **Current price**:
-The latest Scryfall price of a card printing and finish, in USD or EUR. Condition and language do not change it. A missing current price stays missing and is never taken from another finish or card printing. A current price is stale when mtgscan received it more than 24 hours ago.
+The latest Scryfall USD price of a card printing and finish. mtgscan keeps only the latest one and no earlier prices. Condition and language do not change it. A missing current price stays missing and is never taken from another finish or card printing. A current price is stale when mtgscan received it more than 24 hours ago.
 _Avoid_: Value
 
 **Collection total**:
 The sum of the current prices of every copy in the collection, in one currency. Copies with no current price are left out and counted, so the total always comes with its coverage, such as "26 of 27 cards priced".
 _Avoid_: Collection value, net worth
 
-**Daily collection total**:
-A collection total that mtgscan stores for each user once a day, after the price import, in USD and in EUR. The change since yesterday is the collection total now minus the daily collection total of the day before the current prices.
-_Avoid_: Collection history
-
 **Purchase-day price**:
-The current price of a card printing and finish on the day copies were added to the collection. It is recorded on each addition, not on the collection entry.
-_Avoid_: Purchase price, cost
+The current price of a card printing and finish when copies were added to the collection. Each addition line records it once, and it never changes. A copy reads it from its addition line, not from the collection entry.
+_Avoid_: Purchase price, cost, price at add
 
 **Protected copy**:
 A copy that the user keeps out of decks. Only a free copy can be protected. The AI never offers a protected copy as the reason a card is available. A user action that would put a protected copy into a deck warns the user and unprotects it on confirmation. When the only free copies are protected, promoting a deck suggestion holds a protected copy after a warning.
