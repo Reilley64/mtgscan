@@ -481,15 +481,15 @@ export function imageTintColor(element: HostElement) {
 }
 
 export function symbolTintColor(element: HostElement) {
-  const [symbol] = element.queryAll((instance) => instance.type === 'ViewManagerAdapter_SymbolModule');
-  if (!symbol) {
-    throw new Error('No symbol is in this element');
-  }
-  return symbol.props.tintColor;
+  return symbolIn(element).props.tintColor;
+}
+
+function isSymbol(instance: HostElement) {
+  return instance.type === 'ViewManagerAdapter_SymbolModule';
 }
 
 export function symbolIn(element: HostElement) {
-  const [symbol] = element.queryAll((instance) => instance.type === 'ViewManagerAdapter_SymbolModule');
+  const [symbol] = element.queryAll(isSymbol);
   if (!symbol) {
     throw new Error('No symbol is in this element');
   }
@@ -497,15 +497,11 @@ export function symbolIn(element: HostElement) {
 }
 
 export function symbolSizes(element: HostElement) {
-  return element
-    .queryAll((instance) => instance.type === 'ViewManagerAdapter_SymbolModule')
-    .map((symbol) => symbol.props.size);
+  return element.queryAll(isSymbol).map((symbol) => symbol.props.size);
 }
 
 export function symbolNames(element: HostElement) {
-  return element
-    .queryAll((instance) => instance.type === 'ViewManagerAdapter_SymbolModule')
-    .map((symbol) => symbol.props.name);
+  return element.queryAll(isSymbol).map((symbol) => symbol.props.name);
 }
 
 export function blocksColored(element: HostElement, color: string) {

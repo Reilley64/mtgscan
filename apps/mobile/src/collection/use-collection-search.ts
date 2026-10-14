@@ -78,7 +78,6 @@ export function useCollectionSearch() {
     autoCapitalize: 'none',
     onChangeText: (event) => onChangeText(event.nativeEvent.text),
     onSearchButtonPress,
-    onFocus: () => setTyping(true),
     onBlur: () => setTyping(false),
     onCancelButtonPress: () => {
       setTyping(false);

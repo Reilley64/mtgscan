@@ -1,53 +1,46 @@
 import type { CollectionQuery, CollectionSort } from '@mtgscan/supabase/collection';
-import type { SFSymbol } from 'expo-symbols';
 
-type SortOrder = 'asc' | 'desc';
+export type SortDirection = 'asc' | 'desc';
 
-export type CollectionOrder = { sort: 'relevance' } | { sort: Exclude<CollectionSort, 'relevance' | 'edhrec_rank'>; order: SortOrder };
+type DirectedSort = Exclude<CollectionSort, 'relevance' | 'edhrec_rank'>;
 
-type OrderedSort = Extract<CollectionOrder, { order: SortOrder }>['sort'];
+export type CollectionOrder = { sort: 'relevance' } | { sort: DirectedSort; direction: SortDirection };
 
-type SortChoice = { title: string; first: SortOrder; directions: Record<SortOrder, string> };
+type DirectedSortRule = { title: string; firstDirection: SortDirection; directions: Record<SortDirection, string> };
 
-const orderedSorts: Record<OrderedSort, SortChoice> = {
-  added: { title: 'Recently added', first: 'desc', directions: { desc: 'newest first', asc: 'oldest first' } },
-  name: { title: 'Name', first: 'asc', directions: { asc: 'A to Z', desc: 'Z to A' } },
-  price: { title: 'Price', first: 'desc', directions: { desc: 'high to low', asc: 'low to high' } },
-  mana_value: { title: 'Mana value', first: 'asc', directions: { asc: 'low to high', desc: 'high to low' } },
-  release_date: { title: 'Release date', first: 'desc', directions: { desc: 'newest first', asc: 'oldest first' } },
+const directedSorts: Record<DirectedSort, DirectedSortRule> = {
+  added: { title: 'Recently added', firstDirection: 'desc', directions: { desc: 'newest first', asc: 'oldest first' } },
+  name: { title: 'Name', firstDirection: 'asc', directions: { asc: 'A to Z', desc: 'Z to A' } },
+  price: { title: 'Price', firstDirection: 'desc', directions: { desc: 'high to low', asc: 'low to high' } },
+  mana_value: { title: 'Mana value', firstDirection: 'asc', directions: { asc: 'low to high', desc: 'high to low' } },
+  release_date: { title: 'Release date', firstDirection: 'desc', directions: { desc: 'newest first', asc: 'oldest first' } },
 };
-
-const directionSymbols: Record<SortOrder, SFSymbol> = { asc: 'arrow.up', desc: 'arrow.down' };
 
 export const defaultCollectionOrder: CollectionOrder = { sort: 'relevance' };
 
-function picked(current: CollectionOrder, sort: OrderedSort): CollectionOrder {
-  if (current.sort === sort) {
-    return { sort, order: current.order === 'asc' ? 'desc' : 'asc' };
-  }
-  return { sort, order: orderedSorts[sort].first };
-}
+export const collectionSorts: { sort: CollectionOrder['sort']; title: string }[] = [
+  { sort: 'relevance', title: 'Relevance' },
+  ...(Object.entries(directedSorts) as [DirectedSort, DirectedSortRule][]).map(([sort, { title }]) => ({ sort, title })),
+];
 
-export function collectionOrderChoices(current: CollectionOrder, onChange: (order: CollectionOrder) => void) {
-  return [
-    { title: 'Relevance', checked: current.sort === 'relevance', onSelect: () => onChange(defaultCollectionOrder) },
-    ...(Object.entries(orderedSorts) as [OrderedSort, SortChoice][]).map(([sort, { title }]) => ({
-      title,
-      checked: current.sort === sort,
-      symbol: current.sort === sort ? directionSymbols[current.order] : undefined,
-      onSelect: () => onChange(picked(current, sort)),
-    })),
-  ];
+export function nextCollectionOrder(current: CollectionOrder, sort: CollectionOrder['sort']): CollectionOrder {
+  if (sort === 'relevance') {
+    return defaultCollectionOrder;
+  }
+  if (current.sort === sort) {
+    return { sort, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+  }
+  return { sort, direction: directedSorts[sort].firstDirection };
 }
 
 export function spokenCollectionOrder(order: CollectionOrder) {
   if (order.sort === 'relevance') {
     return 'Relevance';
   }
-  const { title, directions } = orderedSorts[order.sort];
-  return `${title}, ${directions[order.order]}`;
+  const { title, directions } = directedSorts[order.sort];
+  return `${title}, ${directions[order.direction]}`;
 }
 
 export function collectionOrderQuery(order: CollectionOrder): Pick<CollectionQuery, 'sort' | 'sort_order'> {
-  return order.sort === 'relevance' ? {} : { sort: order.sort, sort_order: order.order };
+  return order.sort === 'relevance' ? {} : { sort: order.sort, sort_order: order.direction };
 }

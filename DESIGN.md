@@ -277,13 +277,13 @@ components:
     rounded: "{rounded.full}"
     padding: 0 4px
     height: 52px
-  sort-button:
+  floating-button:
     backgroundColor: "{colors.surface-control}"
     textColor: "{colors.text}"
     rounded: "{rounded.full}"
     width: 48px
     height: 48px
-  sort-button-active:
+  floating-button-active:
     textColor: "{colors.primary}"
   swipe-to-confirm-handle:
     backgroundColor: "{colors.on-primary}"

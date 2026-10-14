@@ -1,5 +1,15 @@
+import type { SFSymbol } from 'expo-symbols';
+
 import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
-import { collectionOrderChoices, spokenCollectionOrder, type CollectionOrder } from '@/collection/collection-sort';
+import {
+  collectionSorts,
+  nextCollectionOrder,
+  spokenCollectionOrder,
+  type CollectionOrder,
+  type SortDirection,
+} from '@/collection/collection-sort';
+
+const directionSymbols: Record<SortDirection, SFSymbol> = { asc: 'arrow.up', desc: 'arrow.down' };
 
 type CollectionSortButtonProps = {
   order: CollectionOrder;
@@ -13,7 +23,12 @@ export function CollectionSortButton({ order, onChange }: CollectionSortButtonPr
       active={order.sort !== 'relevance'}
       accessibilityLabel={`Sort, ${spokenCollectionOrder(order)}`}
       menuTitle="Sort by"
-      choices={collectionOrderChoices(order, onChange)}
+      choices={collectionSorts.map(({ sort, title }) => ({
+        title,
+        checked: order.sort === sort,
+        symbol: order.sort === sort && 'direction' in order ? directionSymbols[order.direction] : undefined,
+        onSelect: () => onChange(nextCollectionOrder(order, sort)),
+      }))}
     />
   );
 }
