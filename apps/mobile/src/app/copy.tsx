@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Alert, View } from 'react-native';
 
 import { deleteCopy, setCopyProtected } from '@/collection/copy-writes';
-import { copyPriceCurrency, useCopy } from '@/collection/use-copy';
+import { useCopy } from '@/collection/use-copy';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { copyActionsMenu } from '@/components/organisms/copy-actions-menu';
@@ -59,7 +59,7 @@ export default function CopyScreen() {
           </Stack.Toolbar>
           <CopyPageContent
             copy={read.copy}
-            currency={copyPriceCurrency}
+            currency={read.currency}
             onOpenUserTags={() => router.push({ pathname: '/user-tag-picker', params: { copyId } })}
           />
         </>

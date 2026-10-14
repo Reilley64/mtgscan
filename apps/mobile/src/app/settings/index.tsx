@@ -1,5 +1,8 @@
+import { router } from 'expo-router';
+
 import { signOut, useSession } from '@/auth/session';
 import { currentSignInProviderName } from '@/auth/sign-in';
+import { usePriceCurrency } from '@/collection/price-currency-setting';
 import { ParityCheckSection } from '@/components/organisms/parity-check-section';
 import { SettingsContent } from '@/components/organisms/settings-content';
 import { DrawerSheet } from '@/components/templates/drawer-sheet';
@@ -11,6 +14,7 @@ export default function SettingsDrawer() {
   const user = useSession()?.user;
   const gallery = useGallerySummary();
   const { scanSounds, setScanSounds } = useScanSounds();
+  const { currency } = usePriceCurrency();
   const parityCheck = useParityCheck();
 
   return (
@@ -18,6 +22,8 @@ export default function SettingsDrawer() {
       <SettingsContent
         account={{ provider: user ? currentSignInProviderName(user) : '', email: user?.email }}
         gallery={gallery}
+        currency={currency?.currency}
+        onOpenCurrency={() => router.push('/settings/currency')}
         scanSounds={scanSounds}
         onScanSoundsChange={setScanSounds}
         onSignOut={signOut}

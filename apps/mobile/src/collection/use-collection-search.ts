@@ -10,11 +10,14 @@ import {
   type SearchChip,
   type SearchSuggestion,
 } from '@/collection/collection-search';
+import { usePriceCurrency } from '@/collection/price-currency-setting';
 import { useSearchSuggestions } from '@/collection/use-search-suggestions';
 
 const emptyFieldMark = '\u200b';
 
 const typingPause = 300;
+
+const noChipFields = new Map<string, number>();
 
 export function useCollectionSearch() {
   const field = useRef<SearchBarCommands>(null);
@@ -93,7 +96,8 @@ export function useCollectionSearch() {
   };
 
   const suggestions = useSearchSuggestions(typing ? splitLastToken(text).token : '');
-  const { query, chipIndexOfField } = useMemo(() => collectionSearchQuery(searchedText, chips), [searchedText, chips]);
+  const { currency } = usePriceCurrency();
+  const searched = useMemo(() => currency && collectionSearchQuery(searchedText, chips, currency), [searchedText, chips, currency]);
 
   return {
     searchBar,
@@ -102,9 +106,9 @@ export function useCollectionSearch() {
     replaceChips,
     suggestions,
     pick,
-    query,
-    chipIndexOfField,
+    query: searched?.query ?? null,
+    chipIndexOfField: searched?.chipIndexOfField ?? noChipFields,
     typing,
-    searching: query.text !== undefined || chips.length > 0,
+    searching: searched?.query.text !== undefined || chips.length > 0,
   };
 }

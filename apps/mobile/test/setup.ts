@@ -4,7 +4,9 @@ import { resetFakeCardDetector } from './fake-card-detector';
 import { resetFakeCardRecognizer } from './fake-card-recognizer';
 import { resetFakeFileSystem } from './fake-file-system';
 import { resetFakeGlassEffect } from './fake-glass-effect';
+import { resetFakeLocalization } from './fake-localization';
 import { resetFakeScanFeedback } from './fake-scan-feedback';
+import { resetFakeSecureStore } from './fake-secure-store';
 import { resetFakeSupabase } from './fake-supabase';
 
 require('react-native-reanimated').setUpTests();
@@ -35,6 +37,10 @@ jest.mock('expo-haptics', () => jest.requireActual('./fake-scan-feedback').fakeH
 
 jest.mock('@/scan/scan-sounds', () => jest.requireActual('./fake-scan-feedback').fakeScanSounds);
 
+jest.mock('expo-secure-store', () => jest.requireActual('./fake-secure-store').fakeSecureStore);
+
+jest.mock('expo-localization', () => jest.requireActual('./fake-localization').fakeLocalization);
+
 beforeEach(async () => {
   await registerAppStyles();
   jest.spyOn(console, 'info').mockImplementation(() => {});
@@ -45,4 +51,6 @@ beforeEach(async () => {
   resetFakeFileSystem();
   resetFakeGlassEffect();
   resetFakeScanFeedback();
+  resetFakeSecureStore();
+  resetFakeLocalization();
 });

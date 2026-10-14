@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SessionProvider, useSession } from '@/auth/session';
+import { PriceCurrencyProvider } from '@/collection/price-currency-setting';
 import { fullHeightDrawerOptions, halfHeightDrawerOptions } from '@/components/templates/drawer-sheet';
 import { GalleryProvider } from '@/gallery/gallery-state';
 import { ScanBatchProvider } from '@/scan/scan-batch-state';
@@ -62,9 +63,11 @@ export default function RootLayout() {
         <SessionProvider>
           <GalleryProvider>
             <ScanSoundsProvider>
-              <ScanBatchProvider>
-                <RootStack />
-              </ScanBatchProvider>
+              <PriceCurrencyProvider>
+                <ScanBatchProvider>
+                  <RootStack />
+                </ScanBatchProvider>
+              </PriceCurrencyProvider>
             </ScanSoundsProvider>
           </GalleryProvider>
         </SessionProvider>

@@ -8,6 +8,15 @@ export type CatalogSort = 'relevance' | 'name' | 'mana_value' | 'edhrec_rank' | 
 
 export type PriceCurrency = string;
 
+export type PriceCurrencyRow = {
+  currency: PriceCurrency;
+  minor_unit_digits: number;
+};
+
+export type PriceCurrencyList = {
+  items: PriceCurrencyRow[];
+};
+
 export type Finish = Database['public']['Enums']['card_finish'];
 
 export type CatalogQuery = {

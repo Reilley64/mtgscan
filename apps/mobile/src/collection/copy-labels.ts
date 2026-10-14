@@ -68,8 +68,28 @@ export function spokenFinishAndCondition({ finish, condition }: { finish: Finish
   ];
 }
 
-export function shownPrice({ amount, currency }: Pick<CurrentPrice, 'amount' | 'currency'>) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(amount));
+export type PriceAmount = Pick<CurrentPrice, 'amount' | 'currency' | 'approximate'>;
+
+export function minorUnitDigitsOf(amount: string) {
+  return amount.split('.')[1]?.length ?? 0;
+}
+
+export function shownAmount({ amount, currency }: Pick<PriceAmount, 'amount' | 'currency'>) {
+  const digits = minorUnitDigitsOf(amount);
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(Number(amount));
+}
+
+export function approximately(shown: string, { approximate }: Pick<PriceAmount, 'approximate'>) {
+  return approximate ? `≈ ${shown}` : shown;
+}
+
+export function shownPrice(price: PriceAmount) {
+  return approximately(shownAmount(price), price);
 }
 
 export function copyChipLabels(copy: Pick<CollectionCopyRow, 'set' | 'collector_number' | 'finish' | 'condition' | 'language'>) {

@@ -42,7 +42,7 @@ function refusedField(error: Parameters<typeof readSearchError>[0]) {
   return code === 'invalid_argument' ? field : null;
 }
 
-export function useCollectionCopies(search: CollectionQuery) {
+export function useCollectionCopies(search: CollectionQuery | null) {
   const [binder, setBinder] = useState<BinderRead>({ status: 'loading' });
   const latestRead = useRef(0);
   const readingMore = useRef(false);
@@ -54,6 +54,10 @@ export function useCollectionCopies(search: CollectionQuery) {
   }, [binder]);
 
   const reload = useCallback(() => {
+    const search: CollectionQuery | null = JSON.parse(searchKey);
+    if (!search) {
+      return;
+    }
     const read = ++latestRead.current;
     readingMore.current = false;
     setBinder((current) =>
@@ -61,7 +65,7 @@ export function useCollectionCopies(search: CollectionQuery) {
     );
     const shown = shownBinder.current;
     const shownCount = shown.status === 'loaded' && shown.searchKey === searchKey ? shown.copies.length : 0;
-    readCollectionCopiesAtLeast(JSON.parse(searchKey), shownCount).then(
+    readCollectionCopiesAtLeast(search, shownCount).then(
       (page) => {
         if (read === latestRead.current) {
           setBinder({
@@ -88,7 +92,7 @@ export function useCollectionCopies(search: CollectionQuery) {
   useFocusEffect(reload);
 
   const loadMore = useCallback(() => {
-    if (binder.status !== 'loaded' || binder.nextCursor === null || readingMore.current) {
+    if (binder.status !== 'loaded' || binder.searchKey !== searchKey || binder.nextCursor === null || readingMore.current) {
       return;
     }
     const read = latestRead.current;

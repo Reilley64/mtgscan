@@ -29,6 +29,7 @@
         "expo-haptics": "~56.0.3",
         "expo-image": "~56.0.13",
         "expo-linking": "~56.0.18",
+        "expo-localization": "~56.0.6",
         "expo-router": "~56.2.21",
         "expo-secure-store": "~56.0.4",
         "expo-status-bar": "~56.0.4",
@@ -1059,6 +1060,8 @@
 
     "expo-linking": ["expo-linking@56.0.18", "", { "dependencies": { "expo-constants": "~56.0.26", "invariant": "^2.2.4" }, "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-YPKGJwS7rNEW1pU3un05fl0ozz/2clSvqM9Vn2kzAwzUGIDmAcs3Oh1RG2ijmYVaq1gs+Ns5cgHLavBUkHS3lA=="],
 
+    "expo-localization": ["expo-localization@56.0.6", "", { "dependencies": { "rtl-detect": "^1.0.2" }, "peerDependencies": { "expo": "*", "react": "*" } }, "sha512-zzBVoUFHCVNBywcxGsspoZeIXebihOo/AnmQYE4jMv8gHCSKlLNFT+ft+0+mWcZCMs9necvUs8S8TDonAu/xBA=="],
+
     "expo-manifests": ["expo-manifests@56.0.4", "", { "dependencies": { "expo-json-utils": "~56.0.0" }, "peerDependencies": { "expo": "*" } }, "sha512-Fokawl2UkiExIF0bqGoblRFA8lYpROVD+EpvDwSW4LgqQyPwNua1gLSgHZjdl5GsVugfRMMWE3LHaibDyX93hw=="],
 
     "expo-modules-autolinking": ["expo-modules-autolinking@56.0.23", "", { "dependencies": { "@expo/require-utils": "^56.1.7", "@expo/spawn-async": "^1.8.0", "chalk": "^4.1.0", "commander": "^7.2.0" }, "bin": { "expo-modules-autolinking": "bin/expo-modules-autolinking.js" } }, "sha512-JGOJ5PznQeQJeKVoHDokIu9+q5L4urR48xSD1HlymssItsyg1NpqCic1znlywg4oPNJgrI1dJETgwzcBFZtpuQ=="],
@@ -1760,6 +1763,8 @@
     "restore-cursor": ["restore-cursor@2.0.0", "", { "dependencies": { "onetime": "^2.0.0", "signal-exit": "^3.0.2" } }, "sha512-6IzJLuGi4+R14vwagDHX+JrXmPVtPpn4mffDJ1UdR7/Edm87fl6yi8mMBIVvFtJaNTUvjughmW4hwLhRG7gC1Q=="],
 
     "reusify": ["reusify@1.1.0", "", {}, "sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw=="],
+
+    "rtl-detect": ["rtl-detect@1.1.2", "", {}, "sha512-PGMBq03+TTG/p/cRB7HCLKJ1MgDIi07+QU1faSjiYRfmY5UsAttV9Hs08jDAHVwcOwmVLcSJkpwyfXszVjWfIQ=="],
 
     "run-parallel": ["run-parallel@1.2.0", "", { "dependencies": { "queue-microtask": "^1.2.2" } }, "sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA=="],
 

@@ -1,32 +1,25 @@
-import type { CurrentPrice } from '@mtgscan/supabase/collection';
-
-import { shownPrice } from '@/collection/copy-labels';
-
-type PriceAmount = Pick<CurrentPrice, 'amount' | 'currency'>;
+import { approximately, minorUnitDigitsOf, shownAmount, type PriceAmount } from '@/collection/copy-labels';
 
 const minusSign = '\u2212';
 
 function changeSize({ amount, currency }: PriceAmount) {
-  const change = Number(amount);
-  return { direction: Math.sign(change), size: shownPrice({ amount: String(Math.abs(change)), currency }) };
+  return { direction: Math.sign(Number(amount)), size: shownAmount({ amount: amount.replace(/^-/, ''), currency }) };
 }
 
 export function shownPriceChange(change: PriceAmount) {
   const { direction, size } = changeSize(change);
-  return `${direction < 0 ? minusSign : direction > 0 ? '+' : ''}${size}`;
+  return approximately(`${direction < 0 ? minusSign : direction > 0 ? '+' : ''}${size}`, change);
 }
 
 export function spokenPriceChange(change: PriceAmount) {
   const { direction, size } = changeSize(change);
-  return direction === 0 ? 'no change' : `${direction < 0 ? 'down' : 'up'} ${size}`;
+  return direction === 0 ? 'no change' : `${direction < 0 ? 'down' : 'up'} ${approximately(size, change)}`;
 }
 
-export function changeSinceAdded(
-  price: PriceAmount | null,
-  purchaseDayPrice: PriceAmount | null,
-): PriceAmount | undefined {
+export function changeSinceAdded(price: PriceAmount | null, purchaseDayPrice: PriceAmount | null): PriceAmount | undefined {
   if (price === null || purchaseDayPrice === null) {
     return undefined;
   }
-  return { amount: String(Number(price.amount) - Number(purchaseDayPrice.amount)), currency: price.currency };
+  const change = Number(price.amount) - Number(purchaseDayPrice.amount);
+  return { amount: change.toFixed(minorUnitDigitsOf(price.amount)), currency: price.currency, approximate: price.approximate };
 }
