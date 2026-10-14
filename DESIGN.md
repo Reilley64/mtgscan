@@ -340,12 +340,10 @@ The app is built for an iPhone in portrait. The page inset is 16 px, cards sit 1
 
 A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Scan**. Recent has a count badge for the items that need the user.
 
-- **Recent** is the home across all decks.
-  - **Needs you** comes first, **oldest first**: open deck suggestions, planned swaps ready to swap in, and open buylist cards.
-  - **Recent changes** follows, newest first, with day separators. It holds deck changes, reverts, Bought, swap-ins, promotions, dismissals, AI withdrawals, reason edits, and collection events.
-  - Each item carries a tag with the commander avatar and deck name, or a Collection tag. The tag opens that deck.
-  - Filter chips: All, Suggestions, Planned swaps, Buylist, Deck changes.
-  - Every item keeps its actions inline: Promote, Dismiss, Swap in, Bought, and revert from here.
+- **Recent** is the home across all decks. It holds only the Needs you items, **oldest first**: open deck suggestions, planned swaps ready to swap in, and open buylist cards (owner decision, spec 4). Deck changes stay in each deck's History tab. Collection changes do not appear in Recent.
+  - Each item carries a tag with the commander avatar and deck name. The tag opens that deck.
+  - Filter chips: All, Suggestions, Planned swaps, Buylist.
+  - Every item keeps its actions inline: Promote, Dismiss, Swap in, and Bought.
 - **Collection** is a binder grid with the collection total in its header.
   - The header has the collection total button next to the settings button (owner decision, #125). See Collection header.
   - Card images sit 3 per row, with **one tile per copy** and no quantity badge. Three copies of a card printing make three tiles (owner decision, #116).
