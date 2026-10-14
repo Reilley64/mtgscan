@@ -69,6 +69,10 @@ async function openCollection() {
   return within(selectedTab());
 }
 
+function skeletonGrid() {
+  return within(selectedTab()).queryByRole('progressbar', { name: 'Loading collection' });
+}
+
 beforeEach(() => {
   startSignedIn();
 });
@@ -312,10 +316,6 @@ test('a failed binder grid read offers Try again, which shows the tiles', async 
 });
 
 describe('the skeleton grid', () => {
-  function skeletonGrid() {
-    return within(selectedTab()).queryByRole('progressbar', { name: 'Loading collection' });
-  }
-
   test('until the binder grid read returns, the Collection tab shows a skeleton grid, then the tiles', async () => {
     ownCollectionCopies(collectionEntryCopies('Angelic Curator', 2));
     const reads = holdCollectionReads();
@@ -772,13 +772,13 @@ describe('collection search', () => {
 
     await typeInSearchBar('curator');
 
-    expect(collection.getByRole('progressbar', { name: 'Loading collection' })).toBeOnTheScreen();
+    expect(skeletonGrid()).toBeOnTheScreen();
     expect(collection.queryByRole('image', { name: /^Ponder/ })).not.toBeOnTheScreen();
 
     await reads.finish();
 
     expect(await collection.findAllByRole('image', { name: /^Angelic Curator/ })).toHaveLength(2);
-    expect(collection.queryByRole('progressbar', { name: 'Loading collection' })).not.toBeOnTheScreen();
+    expect(skeletonGrid()).not.toBeOnTheScreen();
   });
 
   test('a search with no results shows "No cards found."', async () => {
