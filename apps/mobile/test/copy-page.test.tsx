@@ -44,7 +44,7 @@ import {
 } from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { warning, textPrice } = tokenColors;
+const { warning, textDim, textPrice } = tokenColors;
 
 beforeEach(() => {
   startSignedIn();
@@ -198,6 +198,51 @@ describe('the copy page', () => {
 
     expect(within(screen.getByLabelText('Current price, no price')).getByText('–')).toBeOnTheScreen();
     expect(within(screen.getByLabelText('Purchase-day price, no price')).getByText('–')).toBeOnTheScreen();
+  });
+
+  test.each([
+    ['a rise', '12.40', '9.20', '+$3.20', 'up $3.20'],
+    ['a fall', '9.20', '12.40', '\u2212$3.20', 'down $3.20'],
+    ['no change', '9.20', '9.20', '$0.00', 'no change'],
+  ])('Since added shows %s since the purchase-day price in neutral text', async (_, current, purchaseDay, shown, spoken) => {
+    ownCopies([
+      copyOf('copy-1', {
+        price: { amount: current, currency: 'USD', finish: 'nonfoil', stale: false },
+        purchase_day_price: { amount: purchaseDay, currency: 'USD', finish: 'nonfoil' },
+      }),
+    ]);
+
+    await openCopyPage(/^Angelic Curator/);
+
+    const sinceAdded = screen.getByLabelText(`Since added, ${spoken}`);
+    expect(within(sinceAdded).getByText(shown)).toHaveStyle({ color: textPrice });
+    expect(symbolNames(sinceAdded)).toEqual([]);
+    expect(appearsBefore(screen.getByLabelText(`Purchase-day price, $${purchaseDay}`), sinceAdded)).toBe(true);
+    expect(appearsBefore(sinceAdded, screen.getByText('Current prices from Scryfall, in USD'))).toBe(true);
+  });
+
+  test('Since added is in the currency of the prices', async () => {
+    ownCopies([
+      copyOf('copy-1', {
+        price: { amount: '12.40', currency: 'EUR', finish: 'nonfoil', stale: false },
+        purchase_day_price: { amount: '9.20', currency: 'EUR', finish: 'nonfoil' },
+      }),
+    ]);
+
+    await openCopyPage(/^Angelic Curator/);
+
+    expect(within(screen.getByLabelText('Since added, up \u20ac3.20')).getByText('+\u20ac3.20')).toBeOnTheScreen();
+  });
+
+  test.each([
+    ['the current price', { price: null }],
+    ['the purchase-day price', { purchase_day_price: null }],
+  ])('Since added shows a dim dash, and VoiceOver says no price, when %s is missing', async (_, changes: Partial<CopyDetails>) => {
+    ownCopies([copyOf('copy-1', changes)]);
+
+    await openCopyPage(/^Angelic Curator/);
+
+    expect(within(screen.getByLabelText('Since added, no price')).getByText('–')).toHaveStyle({ color: textDim });
   });
 
   test('Rules shows the Oracle text of each face and Commander legality', async () => {

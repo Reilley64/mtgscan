@@ -1,16 +1,10 @@
 import type { CollectionTotal } from '@mtgscan/supabase/collection';
 
 import { shownPrice } from '@/collection/copy-labels';
-
-const minusSign = '\u2212';
+import { shownPriceChange, spokenPriceChange } from '@/collection/price-change';
 
 function shownCount(count: number) {
   return new Intl.NumberFormat('en-US').format(count);
-}
-
-function changeSize(change: string, currency: CollectionTotal['currency']) {
-  const amount = Number(change);
-  return { direction: Math.sign(amount), size: shownPrice({ amount: String(Math.abs(amount)), currency }) };
 }
 
 export function shownTotal({ total, currency }: CollectionTotal) {
@@ -18,19 +12,11 @@ export function shownTotal({ total, currency }: CollectionTotal) {
 }
 
 export function shownChange({ change, currency }: CollectionTotal) {
-  if (change === null) {
-    return undefined;
-  }
-  const { direction, size } = changeSize(change, currency);
-  return `${direction < 0 ? minusSign : direction > 0 ? '+' : ''}${size}`;
+  return change === null ? undefined : shownPriceChange({ amount: change, currency });
 }
 
 export function spokenChange({ change, currency }: CollectionTotal) {
-  if (change === null) {
-    return 'change since yesterday not known yet';
-  }
-  const { direction, size } = changeSize(change, currency);
-  return direction === 0 ? 'no change since yesterday' : `${direction < 0 ? 'down' : 'up'} ${size} since yesterday`;
+  return change === null ? 'change since yesterday not known yet' : `${spokenPriceChange({ amount: change, currency })} since yesterday`;
 }
 
 export function shownCoverage({ priced_copies, copies }: CollectionTotal) {

@@ -3,6 +3,7 @@ import type { PriceCurrency } from '@mtgscan/supabase/search';
 import { View } from 'react-native';
 
 import { commanderLegalityLabels, copyChipLabels, sheenOf, shownPrice } from '@/collection/copy-labels';
+import { changeSinceAdded, shownPriceChange, spokenPriceChange } from '@/collection/price-change';
 import { priceCredit } from '@/collection/total-labels';
 import { Chip } from '@/components/atoms/chip';
 import { Surface } from '@/components/atoms/surface';
@@ -21,6 +22,15 @@ function PriceRow({ label, price, stale }: { label: string; price: string | unde
       spokenValue={price ?? 'no price'}
       accessibilityHint={stale ? 'The price may be out of date.' : undefined}>
       <PriceLine price={price} stale={stale} />
+    </ValueRow>
+  );
+}
+
+function SinceAddedRow({ price, purchaseDayPrice }: { price: CopyDetails['price']; purchaseDayPrice: CopyDetails['purchase_day_price'] }) {
+  const change = changeSinceAdded(price, purchaseDayPrice);
+  return (
+    <ValueRow label="Since added" spokenValue={change ? spokenPriceChange(change) : 'no price'}>
+      <PriceLine price={change && shownPriceChange(change)} stale={false} />
     </ValueRow>
   );
 }
@@ -106,6 +116,7 @@ export function CopyPageContent({ copy, currency, onOpenUserTags }: CopyPageCont
             price={copy.purchase_day_price ? shownPrice(copy.purchase_day_price) : undefined}
             stale={false}
           />
+          <SinceAddedRow price={copy.price} purchaseDayPrice={copy.purchase_day_price} />
           <Text variant="credit">{priceCredit({ currency })}</Text>
         </SheetSection>
         <SheetSection title="Rules">
