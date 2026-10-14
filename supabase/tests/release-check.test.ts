@@ -300,7 +300,7 @@ describe('release check command', () => {
     expect(exitCode).toBe(0);
     expect(output).toContain(report);
     expect(report).toContain('Result: pass.');
-    expect(report).toContain('Abandoned app searches: not recorded yet (#72).');
+    expect(report).not.toContain('Abandoned app searches');
     expect(report).toContain('Server p95 latency');
     expect(report).toContain('Database size:');
     expect(ungraded).toContainEqual({ search: 'fog', oracle_id: await oracleIdOf('Fog Bank'), card: 'Fog Bank', grade: null });

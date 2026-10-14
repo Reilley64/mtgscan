@@ -7,8 +7,6 @@ import {
   type ReleaseCheckReport,
 } from './release-check';
 
-const abandonedSearchesLine = 'Abandoned app searches: not recorded yet (#72).';
-
 function recall(value: number | null): string {
   return value === null ? 'no searches' : value.toFixed(3);
 }
@@ -99,7 +97,6 @@ export function renderReport(report: ReleaseCheckReport, ungradedPath: string): 
       (mode) =>
         `- ${mode.mode}: class 5 capped recall@20 is ${recall(classScore(mode.classes, 5).cappedRecall)}. The trigger (below ${vectorTriggerRecall}) ${mode.vectorTrigger ? 'fired' : 'did not fire'}.`,
     ),
-    `- ${abandonedSearchesLine}`,
     '',
     '## Latency and size',
     '',

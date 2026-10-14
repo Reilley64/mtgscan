@@ -87,7 +87,6 @@ Each search runs as a first page of 20 results. The report has:
 - uncapped recall@20 for each class, which divides by all relevant cards, as in #15;
 - chip violations: the script reads each returned card from the card catalog and checks it against every chip in the query;
 - the vector trigger: class 5 capped recall@20 below 0.5;
-- abandoned app searches from the last 30 days, after #72 records search follow-ups;
 - server p95 latency from the release check telemetry rows, and the database size;
 - the pooled cards with no grade.
 
