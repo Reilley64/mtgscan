@@ -36,14 +36,14 @@ export default function BatchReviewSheet() {
   }, [removeAll]);
 
   const confirmRemoveAllScans = useCallback(() => {
-    Alert.alert(
-      scanCount === 1 ? 'Remove 1 scan?' : `Remove all ${scanCount} scans?`,
-      scanCount === 1 ? 'It will not be added to your collection.' : 'They will not be added to your collection.',
-      [
-        { text: 'Remove', style: 'destructive', onPress: removeAllScans },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
+    const [alertTitle, alertMessage] =
+      scanCount === 1
+        ? ['Remove 1 scan?', 'It will not be added to your collection.']
+        : [`Remove all ${scanCount} scans?`, 'They will not be added to your collection.'];
+    Alert.alert(alertTitle, alertMessage, [
+      { text: 'Remove', style: 'destructive', onPress: removeAllScans },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   }, [removeAllScans, scanCount]);
 
   const footer = showsEmptyState ? undefined : (
