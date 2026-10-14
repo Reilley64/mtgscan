@@ -11,6 +11,7 @@ import type {
   CollectionQuery,
   CollectionTotal,
   CopyDetails,
+  CopyProtectedRequest,
   CopyQuery,
   DeleteCopyRequest,
   ScanBatch,
@@ -45,6 +46,8 @@ let copyDetails = new Map<string, CopyDetails>();
 let failingCopyReads = 0;
 let copyDeletes: string[] = [];
 let failingCopyDeletes = 0;
+let copyProtectedWrites: CopyProtectedRequest[] = [];
+let failingCopyWrites = 0;
 const emptyCollectionTotal: CollectionTotal = {
   total: '0.00',
   currency: 'USD',
@@ -156,16 +159,39 @@ function collectionCopiesPage({ rows, cursor, limit = 60, ...search }: Collectio
 
 const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
 
+const copyNotFound = {
+  data: null,
+  error: { code: 'not_found', message: 'copy_id is not a copy in your collection.', details: 'copy_id' },
+};
+
+function ownedCopyDetails(copyId: string) {
+  return collectionCopies.some((copy) => copy.copy_id === copyId) ? copyDetails.get(copyId) : undefined;
+}
+
 function copyRead({ copy_id }: CopyQuery) {
   if (failingCopyReads > 0) {
     failingCopyReads -= 1;
     return { data: null, error: networkFailure };
   }
-  const details = copyDetails.get(copy_id);
-  if (!details || !collectionCopies.some((copy) => copy.copy_id === copy_id)) {
-    return { data: null, error: { code: 'not_found', message: 'copy_id is not a copy in your collection.', details: 'copy_id' } };
+  const details = ownedCopyDetails(copy_id);
+  return details ? { data: details, error: null } : copyNotFound;
+}
+
+function setCopyProtected(request: CopyProtectedRequest) {
+  copyProtectedWrites = [...copyProtectedWrites, request];
+  if (failingCopyWrites > 0) {
+    failingCopyWrites -= 1;
+    return { data: null, error: networkFailure };
   }
-  return { data: details, error: null };
+  const details = ownedCopyDetails(request.copy_id);
+  if (!details) {
+    return copyNotFound;
+  }
+  copyDetails.set(request.copy_id, { ...details, protected: request.protected });
+  collectionCopies = collectionCopies.map((copy) =>
+    copy.copy_id === request.copy_id ? { ...copy, protected: request.protected } : copy,
+  );
+  return { data: request, error: null };
 }
 
 function deleteCopy({ copy_id }: DeleteCopyRequest) {
@@ -174,7 +200,7 @@ function deleteCopy({ copy_id }: DeleteCopyRequest) {
     return { data: null, error: networkFailure };
   }
   if (!collectionCopies.some((copy) => copy.copy_id === copy_id)) {
-    return { data: null, error: { code: 'not_found', message: 'copy_id is not a copy in your collection.', details: 'copy_id' } };
+    return copyNotFound;
   }
   copyDeletes = [...copyDeletes, copy_id];
   removeCopyFromTheCollection(copy_id);
@@ -316,6 +342,7 @@ export const fakeSupabase = {
       | { query: CopyQuery }
       | { query: { text: string; limit: number } }
       | { request: DeleteCopyRequest }
+      | { request: CopyProtectedRequest }
       | { batch: ScanBatch },
   ) {
     if (name === 'search_collection' && 'query' in args) {
@@ -330,6 +357,9 @@ export const fakeSupabase = {
     }
     if (name === 'delete_copy' && 'request' in args) {
       return deleteCopy(args.request);
+    }
+    if (name === 'set_copy_protected' && 'request' in args) {
+      return setCopyProtected(args.request as CopyProtectedRequest);
     }
     if (name === 'get_collection_total') {
       return { data: collectionTotal, error: null };
@@ -428,6 +458,14 @@ export function failCopyReads(count: number) {
   failingCopyReads = count;
 }
 
+export function failCopyWrites(count: number) {
+  failingCopyWrites = count;
+}
+
+export function copyProtectedWritesSent() {
+  return copyProtectedWrites;
+}
+
 export function ownCollectionTotal(total: CollectionTotal) {
   collectionTotal = total;
 }
@@ -505,6 +543,8 @@ export function resetFakeSupabase() {
   failingCopyReads = 0;
   copyDeletes = [];
   failingCopyDeletes = 0;
+  copyProtectedWrites = [];
+  failingCopyWrites = 0;
   collectionTotal = emptyCollectionTotal;
   failingCollectionReads = 0;
   collectionSearches = [];

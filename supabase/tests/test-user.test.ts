@@ -76,6 +76,7 @@ describe('the test user command', () => {
     expect(entries.some((entry) => entry.finish === 'foil')).toBe(true);
     expect(entries.some((entry) => entry.finish === 'etched')).toBe(true);
     expect(entries.some((entry) => entry.condition !== 'near_mint')).toBe(true);
+    expect((await ownedCopies(client)).filter((copy) => copy.protected)).toHaveLength(1);
     expect(await additions(client)).toEqual([{ copy_count: (await ownedCopies(client)).length, source: 'scan_batch' }]);
   });
 

@@ -209,6 +209,14 @@ Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The qu
 - From its card: `type_line`, `faces` with each face's `name` and `oracle_text` in face order, and `commander_legality`.
 - The function runs with the caller's rights, so another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist. A refused query has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
+### Protect a copy
+
+Signed-in users protect or unprotect one of their copies with `supabase.rpc('set_copy_protected', { request })`. The request has `copy_id` and `protected`, `true` or `false`. `supabase/collection.ts` has the shared types. The copy page's actions menu calls it.
+
+- It changes only that copy, in one transaction, and returns `copy_id` and `protected`. Doing what is already done changes nothing.
+- Only a free copy can be protected. Protecting a copy that is not free is refused with `copy_not_free` on `copy_id`. Until decks exist, every copy is free.
+- Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
+
 ### Copy delete
 
 Signed-in users delete one copy with `supabase.rpc('delete_copy', { request })`. The request has only `copy_id`. `supabase/collection.ts` has the shared type. The copy page deletes its copy through it.

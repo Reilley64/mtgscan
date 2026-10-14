@@ -75,6 +75,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
         copy.name,
         `${copy.set.toUpperCase()} ${copy.collector_number}`,
         ...spokenFinishAndCondition(copy),
+        ...(copy.protected ? ['protected'] : []),
         price ?? 'no price',
       ].join(', ')}
       accessibilityHint={copy.price?.stale ? 'The price may be out of date.' : undefined}
@@ -85,6 +86,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
         setIconUri={setIconUri}
         collectorNumber={copy.collector_number}
         condition={shownCondition(copy.condition)}
+        isProtected={copy.protected}
       />
       <PriceLine price={price} stale={copy.price?.stale ?? false} />
     </CardTile>

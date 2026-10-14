@@ -108,6 +108,11 @@ export type CopyQuery = {
   price_currency?: PriceCurrency;
 };
 
+export type CopyProtectedRequest = {
+  copy_id: string;
+  protected: boolean;
+};
+
 export type DeleteCopyRequest = {
   copy_id: string;
 };

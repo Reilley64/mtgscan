@@ -46,6 +46,7 @@ import {
   blurredImageUris,
   cardImageOutline,
   cardImageUri,
+  appearsBefore,
   cardSheen,
   dashedOutlinesColored,
   fadesDown,
@@ -57,12 +58,15 @@ import {
   swipeHandleMovesAfterRelease,
   swipeHandlePosition,
   swipeRight,
+  symbolIn,
   symbolNames,
+  symbolSizes,
+  symbolTintColor,
   touchTarget,
 } from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim, textPrice } = tokenColors;
+const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim, textPrice, warning } = tokenColors;
 const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
 const mh3Symbol = 'https://svgs.scryfall.io/sets/mh3.svg';
 const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
@@ -532,6 +536,16 @@ describe('CopyMeta', () => {
     expect(screen.getByText('·')).toHaveStyle({ color: textDim });
     expect(screen.getByText('MP')).toHaveStyle({ color: textMuted, fontSize: 12 });
     expect(screen.getByText('MP').parent).toHaveStyle({ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' });
+  });
+
+  test('a copy meta line of a protected copy starts with an 11 px shield in the warning color', async () => {
+    await render(<CopyMeta setCode="mh3" rarity="common" setIconUri={mh3Symbol} collectorNumber="136" isProtected />);
+
+    const line = screen.getByText('136').parent!;
+    expect(symbolNames(line)).toEqual(['shield.fill']);
+    expect(symbolSizes(line)).toEqual([11]);
+    expect(symbolTintColor(line)).toBe(warning);
+    expect(appearsBefore(symbolIn(line), screen.getByLabelText('MH3'))).toBe(true);
   });
 });
 
