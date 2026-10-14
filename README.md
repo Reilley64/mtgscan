@@ -119,7 +119,7 @@ The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in accou
 - **Add to collection** calls `add_scan_batch` with one stack per card printing, finish, condition, and language, and the copy IDs of its scans. The server adds each copy ID once, so a retry never adds a copy twice, even after the scan batch changed.
 - The file marks a commit that has not finished. At sign-in, the phone sends that commit again by itself.
 - A commit that works removes the scans it sent. A commit that fails keeps every scan. Batch review rows do not open while a commit runs.
-- **Remove N scans** in the batch review menu empties the scan batch and its file. It also clears a commit that has not finished. Nothing reaches the server.
+- **Remove N scans** in the batch review menu empties the scan batch and its file. It also clears a commit that has not finished. A recognition that is still running adds no scan when it ends. Nothing reaches the server.
 - Pulling down on the Scan tab adds the scan batch with the same commit as **Add to collection**. `src/scan/use-pull-to-add.ts` tracks the pull with React Native's `PanResponder`, so the app needs no gesture library.
 
 ### Local Supabase

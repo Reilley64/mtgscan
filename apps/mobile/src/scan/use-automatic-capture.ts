@@ -9,13 +9,13 @@ import type {
 import { initialCapture, isStopped, observeSample, photoFailed, photoTaken, type CaptureState } from './capture';
 import { createCaptureLog } from './capture-log';
 
-export type PhotoHandlers = {
-  onPhotoRequested: () => void;
-  onPhoto: (photo: CapturedPhoto) => void;
-  onPhotoFailed: () => void;
+export type PhotoHandlers<Request> = {
+  onPhotoRequested: () => Request;
+  onPhoto: (photo: CapturedPhoto, request: Request) => void;
+  onPhotoFailed: (request: Request) => void;
 };
 
-export function useAutomaticCapture({ onPhotoRequested, onPhoto, onPhotoFailed }: PhotoHandlers) {
+export function useAutomaticCapture<Request>({ onPhotoRequested, onPhoto, onPhotoFailed }: PhotoHandlers<Request>) {
   const camera = useRef<CardDetectorCamera>(null);
   const capture = useRef<CaptureState>(initialCapture());
   const [log] = useState(createCaptureLog);
@@ -27,7 +27,7 @@ export function useAutomaticCapture({ onPhotoRequested, onPhoto, onPhotoFailed }
   }, []);
 
   const takePhoto = useCallback(async (outline: FrameQuad) => {
-    onPhotoRequested();
+    const request = onPhotoRequested();
     let photo: CapturedPhoto;
     try {
       if (!camera.current) {
@@ -37,12 +37,12 @@ export function useAutomaticCapture({ onPhotoRequested, onPhoto, onPhotoFailed }
     } catch {
       update(photoFailed(capture.current));
       log.photoFailed(capture.current);
-      onPhotoFailed();
+      onPhotoFailed(request);
       return;
     }
     update(photoTaken(capture.current));
     log.photoTaken();
-    onPhoto(photo);
+    onPhoto(photo, request);
   }, [log, onPhoto, onPhotoFailed, onPhotoRequested, update]);
 
   const onDetectionSample = useCallback<CardDetectorViewProps['onDetectionSample']>(

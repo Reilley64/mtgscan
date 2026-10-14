@@ -2,7 +2,7 @@ import { act, fireEvent, screen } from 'expo-router/testing-library';
 
 import { lightningBolt2xm, lightningBoltM10, plains, shock } from './card-printings';
 import { resetSampleClock } from './detection-samples';
-import { cardRecognition, nextPhotosAre } from './fake-card-recognizer';
+import { cardRecognition, holdNextRecognition, nextPhotosAre } from './fake-card-recognizer';
 import { scanFeedback } from './fake-scan-feedback';
 import {
   failNextScanBatchCommit,
@@ -449,6 +449,23 @@ test('removing every scan after a failed commit leaves nothing to send again', a
   await openBatchReview();
   expect(screen.getByRole('button', { name: 'Add to collection' })).toBeDisabled();
   expect(screen.queryByText('Could not add to your collection. Your scans are kept.')).not.toBeOnTheScreen();
+});
+
+test('a card still being recognized when every scan is removed does not come back into the scan batch', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+  const recognition = holdNextRecognition();
+  await scanACard();
+  await openBatchReview(1);
+
+  await removeAllScans('Remove 1 scan');
+  await recognition.finish();
+
+  expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
+  expectAnEmptyChip();
+  await openBatchReview();
+  expect(reviewRows()).toEqual([]);
 });
 
 test('the More button is disabled when the scan batch is empty', async () => {
