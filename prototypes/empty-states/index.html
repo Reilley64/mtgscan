@@ -1,0 +1,350 @@
+<!doctype html>
+<!--
+PROTOTYPE, throwaway. Do not merge to main. Branch: prototype/empty-states.
+Question: what should the empty states look like on every page of mtgscan?
+Three variants, each applied to every page: A text only, B symbol + title + line + action, C illustration from the app's own visuals.
+Each page shows today's empty state (left) next to the chosen variant (right).
+Switch variants with ?variant=A..C, the bottom pill, or the left and right arrow keys. Switch pages with the side list, ?page=, or the up and down arrow keys.
+No network, no persistence. Look and device frame reused from prototypes/collection-management on prototype/collection-management.
+-->
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<style>
+
+:root{--bg:#080b0d;--surface:#11171a;--surface-raised:#1a2125;--surface-control:#232c31;--sheet:#161c1f;--line:#2a3238;--text:#fff;--muted:#b5c0c5;--dim:#7d8a90;--price:#e4e8ea;--accent:#d8ff62;--on-accent:#101500;--danger:#ff7a70;--warning:#f4d06f;--info:#8fd3ff;--danger-tint:#ff7a7029}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#15181b;color:var(--text);font:14px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+.phone{zoom:var(--fit,1);position:relative;width:402px;height:874px;border-radius:58px;background:var(--bg);box-shadow:0 0 0 10px #101315,0 0 0 12px #3c4246,0 30px 90px rgba(0,0,0,.6);overflow:hidden;flex:none}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.statusbar{position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:6px 34px 0 46px;font-weight:700;font-size:16px;z-index:40;pointer-events:none;background:linear-gradient(180deg,rgba(8,11,13,.95) 60%,rgba(8,11,13,0))}
+.island{position:absolute;left:50%;top:11px;width:125px;height:37px;border-radius:20px;background:#000;transform:translateX(-50%)}
+.sb-icons{display:flex;gap:6px;align-items:center}
+.sig{display:flex;gap:2px;align-items:flex-end;height:11px}.sig i{width:3px;background:#fff;border-radius:1px}
+.batt{width:25px;height:12px;border:1.5px solid rgba(255,255,255,.55);border-radius:4px;position:relative}
+.batt:after{content:"";position:absolute;inset:1.5px;right:4px;background:#fff;border-radius:1.5px}
+.homebar{position:absolute;bottom:8px;left:50%;width:140px;height:5px;border-radius:3px;background:#fff;transform:translateX(-50%);z-index:60;pointer-events:none}
+
+/* app shell: large title, settings button, floating tab bar */
+.navtitle{padding:62px 16px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.navtitle h1{font-size:28px;line-height:1.1;margin:0;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif}
+.trail{display:flex;align-items:center;gap:8px}
+.gear{width:38px;height:38px;border-radius:19px;background:var(--surface-control);display:flex;align-items:center;justify-content:center;flex:none}
+.gear svg{width:18px;height:18px}
+.tabbar{position:absolute;left:20px;right:20px;bottom:22px;height:62px;border-radius:31px;z-index:50;display:flex;align-items:center;justify-content:space-around;padding:0 6px;background:rgba(26,33,37,.62);backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);box-shadow:0 0 0 1px rgba(255,255,255,.08) inset,0 10px 30px rgba(0,0,0,.45)}
+.tabbar span{flex:1;height:52px;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:700;color:var(--dim)}
+.tabbar span.sel{color:var(--accent);background:rgba(255,255,255,.08)}
+.tabbar svg{width:24px;height:24px}
+.list-end{height:110px}
+
+
+#page{min-height:100%;display:flex;align-items:flex-start;justify-content:center;gap:28px;padding:20px 24px 120px}
+.col{display:flex;flex-direction:column;align-items:center;gap:12px;flex:none}
+.col h2{width:calc(402px * var(--fit,1));text-align:center;height:48px;overflow:hidden;margin:0;font:800 13px -apple-system,system-ui,sans-serif;color:#cfd8dc;letter-spacing:.02em;text-transform:uppercase}
+.col h2 small{display:block;text-transform:none;letter-spacing:0;font-weight:600;color:#7d8a90;text-align:center;margin-top:2px}
+.screen{display:flex;flex-direction:column;overflow:hidden}
+.screen.black{background:#000}
+.navtitle .trail .totbtn{height:38px;padding:0 12px;border-radius:19px;background:var(--surface-control);display:flex;align-items:center;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.fbtn{position:relative;width:38px;height:38px;border-radius:19px;background:var(--surface-control);display:flex;align-items:center;justify-content:center;flex:none}
+.fbtn svg{width:18px;height:18px}
+.fbtn .cb{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;background:#e0244a;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.srow{display:flex;align-items:center;gap:8px;padding:0 16px 8px}
+.sfield{display:flex;align-items:center;gap:6px;height:36px;border-radius:10px;background:var(--surface-control);padding:0 10px;color:var(--dim);flex:1;min-width:0}
+.sfield svg{width:16px;height:16px;flex:none}
+.sfield .tx{flex:1;color:var(--text)}
+.sfield .tx.ph{color:var(--dim)}
+.sfield .clear{width:18px;height:18px;border-radius:9px;background:var(--dim);color:var(--bg);font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.cancel{color:var(--accent);font-weight:600;font-size:15px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 10px}
+.chip{height:24px;padding:0 9px;border-radius:12px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--line);font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;min-width:44px;justify-content:center}
+.chip .x{opacity:.7;font-size:12px}
+.count{padding:0 16px 8px;font-size:12px;color:var(--muted)}
+.batchbtn{position:absolute;right:16px;top:62px;width:38px;height:38px;border-radius:19px;background:rgba(35,44,49,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 0 0 1px rgba(255,255,255,.1) inset;display:flex;align-items:center;justify-content:center;z-index:45}
+.batchbtn svg{width:18px;height:18px}
+/* drawer for batch review: full height only */
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:65}
+.drawer{position:absolute;left:0;right:0;bottom:0;top:58px;background:var(--sheet);border-radius:38px 38px 0 0;z-index:70;display:flex;flex-direction:column;padding:32px 16px 34px}
+.drawer .grab{position:absolute;top:8px;left:50%;width:36px;height:5px;border-radius:3px;background:#4a555b;transform:translateX(-50%)}
+.drawer .dtitle{font-size:17px;font-weight:800;margin:0 0 12px}
+.swipe{height:52px;border-radius:26px;background:var(--accent);color:var(--on-accent);position:relative;display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.swipe .h{position:absolute;left:4px;top:4px;width:44px;height:44px;border-radius:22px;background:var(--on-accent);color:var(--accent);display:flex;align-items:center;justify-content:center}
+.swipe .h svg{width:18px;height:18px}
+.swipe.dis{opacity:.38}
+
+/* today's EmptyState: body strong title and muted message, top left, gap-xs py-lg, inside px-lg pt-sm */
+.today-es{padding:24px 16px 16px;display:flex;flex-direction:column;gap:4px}
+.today-es b{font-weight:700}
+.today-es span{color:var(--muted)}
+.today-es .btn{margin-top:12px}
+.today-cam{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:0 16px 100px}
+.today-cam b{text-align:center;font-weight:700}
+.today-search{padding:40px 16px;text-align:center;color:var(--muted)}
+.today-search b{display:block;color:var(--text);font-size:17px;margin-bottom:4px}
+.btn{height:38px;border-radius:8px;padding:0 12px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;min-width:44px}
+.btn.sec{background:var(--surface-control);color:var(--text)}
+.btn.pri{background:var(--accent);color:var(--on-accent)}
+
+/* new empty state, shared frame: centred in the space between the header and the tab bar */
+.fill{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 32px 110px;text-align:center;min-height:0}
+.fill.drawerfill{padding:0 16px 40px}
+.es{display:flex;flex-direction:column;align-items:center;max-width:320px}
+.es .t{font-size:17px;font-weight:800;line-height:1.2}
+.es .b{margin-top:4px;color:var(--muted);font-size:14px;line-height:1.35}
+/* A: text only; the action is a plain lime text button */
+.vA .es .act{margin-top:8px;height:44px;display:flex;align-items:center;color:var(--accent);font-weight:700;font-size:14px}
+/* B: a symbol in text dim above the text; the action is a primary button */
+.vB .sym{width:44px;height:44px;color:var(--dim);margin-bottom:14px}
+.vB .sym svg{width:100%;height:100%}
+.vB .es .act,.vC .es .act{margin-top:16px}
+/* C: an illustration made of the app's own shapes: empty binder slots, ghost rows, a ghost commander card */
+.art{margin-bottom:20px;width:100%;display:flex;justify-content:center;-webkit-mask-image:linear-gradient(180deg,#000 30%,transparent 100%);mask-image:linear-gradient(180deg,#000 30%,transparent 100%)}
+.slots{display:grid;grid-template-columns:repeat(3,72px);gap:12px 8px}
+.slot{aspect-ratio:63/88;border-radius:8px;background:var(--line);opacity:.55}
+.slot.dash{background:none;box-shadow:inset 0 0 0 1.5px var(--line);opacity:1;border:0;outline:1.5px dashed #3a444b;outline-offset:-1.5px}
+.slotm{height:8px;border-radius:4px;background:var(--line);opacity:.4;margin:6px auto 0;width:60%}
+.ghostcard{width:300px;height:150px;border-radius:12px;background:linear-gradient(180deg,#1a2125,#11171a);outline:1.5px dashed #3a444b;outline-offset:-1.5px;position:relative}
+.ghostcard i{position:absolute;left:14px;height:10px;border-radius:5px;background:var(--line)}
+.ghostrows{display:flex;flex-direction:column;gap:8px;width:300px}
+.grow{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:12px;padding:10px}
+.grow .th{width:40px;height:56px;border-radius:4px;background:var(--line);flex:none}
+.grow .bars{flex:1;display:flex;flex-direction:column;gap:6px}
+.grow .bars i{height:10px;border-radius:5px;background:var(--line)}
+.ghostitem{width:300px;background:var(--surface);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.ghostitem .tag{display:flex;align-items:center;gap:6px}
+.ghostitem .tag .av{width:18px;height:18px;border-radius:9px;background:var(--line)}
+.ghostitem .tag i{width:90px;height:9px;border-radius:5px;background:var(--line)}
+.ghostitem .ln{display:flex;align-items:center;gap:8px;background:var(--surface-raised);border-radius:8px;padding:6px 8px;color:var(--dim);font-weight:800}
+.ghostitem .ln .th{width:22px;height:30px;border-radius:3px;background:var(--line)}
+.ghostitem .ln i{flex:1;height:9px;border-radius:5px;background:var(--line);max-width:150px}
+.frame{width:120px;height:168px;border-radius:10px;outline:2px dashed #3a444b;outline-offset:-2px;display:flex;align-items:center;justify-content:center;color:#3a444b}
+.frame svg{width:40px;height:40px}
+.vC .art.noMask{-webkit-mask-image:none;mask-image:none}
+
+/* side list */
+#side{position:sticky;top:20px;width:300px;flex:none;background:#101315;border:1px solid #2a3238;border-radius:12px;padding:12px;color:#cfd8dc;max-height:calc(100vh - 120px);overflow:auto;font:12.5px/1.45 -apple-system,system-ui,sans-serif}
+#side h3{font:800 12px -apple-system,system-ui,sans-serif;color:#ffb300;margin:12px 0 6px;text-transform:uppercase;letter-spacing:.04em}
+#side h3:first-child{margin-top:0}
+#pages{display:flex;flex-direction:column;gap:2px}
+#pages button{text-align:left;padding:7px 9px;border-radius:8px;color:#cfd8dc;font-size:13px;font-weight:600}
+#pages button small{display:block;color:#7d8a90;font-weight:500;font-size:11.5px}
+#pages button:hover{background:#1a2125}
+#pages button.on{background:#d8ff62;color:#101500}
+#pages button.on small{color:#3b4a00}
+#notes dl{margin:0}
+#notes dt{color:#7d8a90;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-top:8px}
+#notes dd{margin:2px 0 0;color:#e4e8ea}
+#notes .kept{color:#d8ff62}
+#notes .chg{color:#f4d06f}
+#switcher{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:4px;background:#fff;color:#111;border-radius:999px;padding:5px;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.2);font-weight:800;font-size:13px}
+#switcher button{width:34px;height:34px;border-radius:17px;background:#eee;color:#111;font-size:16px;font-weight:900;flex:none}
+#switcher button:hover{background:#ddd}
+#switcher .label{padding:0 12px;min-width:360px;max-width:560px;text-align:center;line-height:1.25}
+#switcher .label small{display:block;font-weight:600;font-size:11.5px;color:#555}
+</style><title>PROTOTYPE · Empty states · mtgscan</title></head>
+<body>
+<div id="page">
+<aside id="side"><h3>Pages</h3><div id="pages"></div><div id="notes"></div></aside>
+<div class="col"><h2>Today<small id="todaynote"></small></h2><div class="phone" id="today"></div></div>
+<div class="col"><h2 id="newhead">Variant</h2><div class="phone" id="proposed"></div></div>
+</div>
+<div id="switcher" role="toolbar" aria-label="Prototype variant switcher"><button id="prev" aria-label="Previous variant">←</button><span class="label" id="switcher-label">A</span><button id="next" aria-label="Next variant">→</button></div>
+<script>
+const STATUS = "<div class=\"statusbar\"><span>9:41</span><div class=\"island\"></div><div class=\"sb-icons\"><span class=\"sig\"><i style=\"height:4px\"></i><i style=\"height:6px\"></i><i style=\"height:8px\"></i><i style=\"height:11px\"></i></span><svg width=\"16\" height=\"12\" viewBox=\"0 0 16 12\"><path d=\"M8 2.5c2.3 0 4.4.9 5.9 2.4l1.1-1.1C13.2 2 10.7 1 8 1S2.8 2 1 3.8l1.1 1.1C3.6 3.4 5.7 2.5 8 2.5zm0 3c1.5 0 2.8.6 3.8 1.5l1.1-1.1C11.6 4.7 9.9 4 8 4s-3.6.7-4.9 1.9L4.2 7C5.2 6.1 6.5 5.5 8 5.5zm0 3c.7 0 1.3.3 1.7.7L8 11 6.3 9.2c.4-.4 1-.7 1.7-.7z\" fill=\"#fff\"/></svg><span class=\"batt\"></span></div></div>";
+const TABS = {"Recent": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/></svg>", "Collection": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\"><rect x=\"3\" y=\"3\" width=\"5\" height=\"5\" rx=\"1.2\"/><rect x=\"9.5\" y=\"3\" width=\"5\" height=\"5\" rx=\"1.2\"/><rect x=\"16\" y=\"3\" width=\"5\" height=\"5\" rx=\"1.2\"/><rect x=\"3\" y=\"9.5\" width=\"5\" height=\"5\" rx=\"1.2\"/><rect x=\"9.5\" y=\"9.5\" width=\"5\" height=\"5\" rx=\"1.2\"/><rect x=\"16\" y=\"9.5\" width=\"5\" height=\"5\" rx=\"1.2\"/><rect x=\"3\" y=\"16\" width=\"5\" height=\"5\" rx=\"1.2\"/><rect x=\"9.5\" y=\"16\" width=\"5\" height=\"5\" rx=\"1.2\"/><rect x=\"16\" y=\"16\" width=\"5\" height=\"5\" rx=\"1.2\"/></svg>", "Decks": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linejoin=\"round\"><rect x=\"5\" y=\"7\" width=\"14\" height=\"14\" rx=\"2\"/><path d=\"M7.5 4h9M10 1.8h4\"/></svg>", "Scan": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linejoin=\"round\"><path d=\"M4 8h3l1.6-2.5h6.8L17 8h3v11H4z\"/><circle cx=\"12\" cy=\"13.3\" r=\"3.6\"/></svg>"};
+
+const S = (d, extra='') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" ${extra}>${d}</svg>`;
+const SYM = {
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>',
+  search: S('<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/>'),
+  filter: S('<path d="M4 7h16M7 12h10M10 17h4"/>'),
+  stack: S('<rect x="9" y="4" width="10" height="14" rx="1.6" transform="rotate(12 14 11)"/><rect x="5" y="6" width="10" height="14" rx="1.6"/>'),
+  check: S('<circle cx="12" cy="12" r="9"/><path d="m8 12.3 2.7 2.7L16 9.6"/>'),
+  grid: S('<rect x="3.5" y="3.5" width="4.6" height="6.4" rx="1"/><rect x="9.7" y="3.5" width="4.6" height="6.4" rx="1"/><rect x="15.9" y="3.5" width="4.6" height="6.4" rx="1"/><rect x="3.5" y="13.6" width="4.6" height="6.4" rx="1"/><rect x="9.7" y="13.6" width="4.6" height="6.4" rx="1"/><rect x="15.9" y="13.6" width="4.6" height="6.4" rx="1"/>'),
+  deck: S('<rect x="5" y="7" width="14" height="14" rx="2"/><path d="M7.5 4h9M10 1.8h4"/>'),
+  camOff: S('<path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.3" r="3.6"/><path d="M3 3l18 18"/>'),
+  camQ: S('<path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4z"/><path d="M10.4 12a1.7 1.7 0 1 1 2.4 1.5c-.5.3-.8.6-.8 1.1"/><circle cx="12" cy="16.6" r=".4" fill="currentColor"/>'),
+  wifiOff: S('<path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.3a9.5 9.5 0 0 1 13 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r=".6" fill="currentColor"/><path d="M3 3l18 18"/>'),
+  arrow: S('<path d="M5 12h14M13 6l6 6-6 6"/>', 'stroke-width="2.4"'),
+  plus: S('<path d="M12 6v12M6 12h12"/>', 'stroke-width="2"'),
+};
+
+// art for variant C, built from the app's own shapes
+const slots = (n, dashed = 0) => `<div class="slots">${Array.from({length: n}, (_, i) => `<div><div class="slot${i < dashed ? ' dash' : ''}"></div>${i < dashed ? '' : '<div class="slotm"></div>'}</div>`).join('')}</div>`;
+const ART = {
+  recent: `<div class="ghostrows">${[0,1].map(() => `<div class="ghostitem"><div class="tag"><span class="av"></span><i></i></div><div class="ln">+<span class="th"></span><i></i></div><div class="ln">−<span class="th"></span><i style="max-width:110px"></i></div></div>`).join('')}</div>`,
+  collection: slots(6, 6),
+  search: slots(3, 3),
+  filters: slots(3, 3),
+  decks: `<div class="ghostcard"><i style="bottom:44px;width:150px;height:14px"></i><i style="bottom:22px;width:44px;height:14px;border-radius:7px"></i><i style="bottom:22px;left:64px;width:56px;height:14px;border-radius:7px"></i></div>`,
+  denied: `<div class="frame">${SYM.camOff}</div>`,
+  unavailable: `<div class="frame">${SYM.camQ}</div>`,
+  batch: `<div class="ghostrows">${[0,1,2].map(i => `<div class="grow"><span class="th"></span><div class="bars"><i style="width:${[70,55,62][i]}%"></i><i style="width:${[45,50,38][i]}%;height:8px"></i></div></div>`).join('')}</div>`,
+  failed: slots(3, 0),
+};
+
+const PAGES = {
+  recent: {
+    name: 'Recent', sub: 'No Needs you items', tab: 'Recent', sym: SYM.check,
+    todayLabel: 'Shipped (app/(tabs)/(recent)/index.tsx)',
+    today: { title: 'Nothing needs you yet', body: 'Deck suggestions, planned swaps, and buylist cards show up here when they need you.' },
+    next: { title: 'Nothing needs you yet', body: 'When a deck needs you, it shows up here.' },
+    kept: 'Title kept. Body shortened to one line.',
+    action: 'None. Deck suggestions come from an AI chat, and planned swaps and buylist cards come from decks, so there is nothing to start here. The filter chips hide while the list is empty.',
+  },
+  collection: {
+    name: 'Collection', sub: 'No copies yet (new user)', tab: 'Collection', sym: SYM.grid,
+    todayLabel: 'Shipped (app/(tabs)/(collection)/collection.tsx)',
+    today: { title: 'Your collection is empty', body: 'Scan cards to add them to your collection.' },
+    next: { title: 'Your collection is empty', body: 'Scan cards to add them to your collection.', action: 'Scan cards' },
+    kept: 'Title and body kept.',
+    action: '"Scan cards" opens the Scan tab. The header shows no collection total button, as today.',
+  },
+  search: {
+    name: 'Collection search', sub: 'No results', tab: 'Collection', sym: SYM.search,
+    todayLabel: 'Spec 4 plan (#143), not built yet',
+    today: { title: 'No cards found.' },
+    next: { title: 'No cards found', body: 'Check the spelling or try fewer words.' },
+    kept: 'Spec 4 title kept, without the period, so it matches the other titles. Body added.',
+    action: 'None. Cancel in the search bar already clears the search. No filter is loosened (spec 4).',
+  },
+  filters: {
+    name: 'Collection search', sub: 'Filters with no matches', tab: 'Collection', sym: SYM.filter,
+    todayLabel: 'Spec 4 plan (#143), not built yet',
+    today: { title: 'No cards found.' },
+    next: { title: 'No cards found', body: 'No copy matches your filters.', action: 'Clear filters' },
+    kept: 'Spec 4 title kept, without the period. Body added.',
+    action: '"Clear filters" removes the filter chips and keeps the typed text. Nothing is loosened by itself, so the empty result stays one the user can trust (spec 4).',
+  },
+  decks: {
+    name: 'Decks', sub: 'No decks yet', tab: 'Decks', sym: SYM.deck,
+    todayLabel: 'Shipped (app/(tabs)/(decks)/decks.tsx)',
+    today: { title: 'No decks yet', body: "A deck starts from a commander's card page." },
+    next: { title: 'No decks yet', body: 'Start a deck from a commander you own.', action: 'Open Collection' },
+    kept: 'Title kept. Body changed: "card page" is now the copy page, and users never see that name (GLOSSARY.md).',
+    action: '"Open Collection" opens the Collection tab, where the copy page of a commander starts a deck (spec 6).',
+  },
+  denied: {
+    name: 'Scan', sub: 'Camera access is off', tab: 'Scan', dark: true, sym: SYM.camOff,
+    todayLabel: 'Shipped (app/(tabs)/scan.tsx)',
+    today: { title: 'Camera access is off.', action: 'Open Settings' },
+    next: { title: 'Camera access is off', body: 'Turn it on in Settings to scan cards.', action: 'Open Settings' },
+    kept: 'Title kept, without the period. "Open Settings" kept. Body added.',
+    action: '"Open Settings" opens the app\'s page in iOS Settings, as today. The batch button stays.',
+  },
+  unavailable: {
+    name: 'Scan', sub: 'Camera not available', tab: 'Scan', dark: true, sym: SYM.camQ,
+    todayLabel: 'Shipped (app/(tabs)/scan.tsx)',
+    today: { title: 'Camera not available' },
+    next: { title: 'Camera not available', body: 'This device has no camera.' },
+    kept: 'Title kept. Body added.',
+    action: 'None. The batch button and pull to add still work, as today.',
+  },
+  batch: {
+    name: 'Batch review', sub: 'Empty scan batch', tab: 'Scan', dark: true, drawer: true, sym: SYM.stack,
+    todayLabel: 'Shipped (app/scan-batch/index.tsx): reached from the batch button with no badge',
+    today: {},
+    next: { title: 'No scans yet', body: 'Cards you scan wait here until you add them.' },
+    kept: 'Drawer title "0 cards scanned" kept. Today the drawer is blank with a disabled Add to collection control.',
+    action: 'None. A downward swipe goes back to Scan. With no scan at all, the disabled Add to collection control hides. It still shows, disabled, when only scans that were not recognized are left.',
+  },
+  failed: {
+    name: 'Collection', sub: 'Could not load (same component)', tab: 'Collection', sym: SYM.wifiOff,
+    todayLabel: 'Shipped (app/(tabs)/(collection)/collection.tsx)',
+    today: { title: 'Could not load your collection', body: 'Check your connection.', action: 'Try again' },
+    next: { title: 'Could not load your collection', body: 'Check your connection.', action: 'Try again' },
+    kept: 'All copy kept. Shown because it uses the same EmptyState component, so it should follow the chosen variant.',
+    action: '"Try again" reloads the binder, as today.',
+  },
+};
+const VARIANTS = {
+  A: ['Text only', 'Plain and quiet: a centred title and one line. The action is a lime text button.'],
+  B: ['Symbol', 'A small SF Symbol in text dim, the title, one line, and a primary button.'],
+  C: ['Illustration', 'Empty binder slots, ghost rows, or a ghost commander card in line color, fading down, then the text and a primary button.'],
+};
+const KEYS = Object.keys(VARIANTS), PKEYS = Object.keys(PAGES);
+const qs = new URLSearchParams(location.search);
+const ui = { variant: KEYS.includes(qs.get('variant')) ? qs.get('variant') : 'A', page: PKEYS.includes(qs.get('page')) ? qs.get('page') : 'recent' };
+
+function tabbar(sel) {
+  return `<nav class="tabbar">${Object.entries(TABS).map(([n, svg]) => `<span class="${n === sel ? 'sel' : ''}">${svg}${n}</span>`).join('')}</nav>`;
+}
+function header(title, trail = '') {
+  return `<div class="navtitle"><h1>${title}</h1><div class="trail">${trail}<span class="gear">${SYM.gear}</span></div></div>`;
+}
+function collectionHeader(p, key) {
+  if (key === 'search' || key === 'filters') {
+    const badge = key === 'filters' ? '<span class="cb">2</span>' : '';
+    const text = key === 'search' ? '<span class="tx">sheoldred foil</span><span class="clear">×</span>' : '<span class="tx ph">Search your collection</span>';
+    const chips = key === 'filters' ? '<div class="chips"><span class="chip">Protected <span class="x">×</span></span><span class="chip">Etched <span class="x">×</span></span></div>' : '';
+    return header('Collection', `<span class="fbtn">${SYM.filter}${badge}</span><span class="totbtn">$2,419.59</span>`) +
+      `<div class="srow"><div class="sfield">${SYM.search}${text}</div>${key === 'search' ? '<span class="cancel">Cancel</span>' : ''}</div>${chips}<div class="count">0 of 27 copies</div>`;
+  }
+  return header('Collection', key === 'failed' ? '' : '');
+}
+function topPart(p, key) {
+  if (p.dark) return `<span class="batchbtn">${SYM.stack}</span>`;
+  if (p.tab === 'Collection') return collectionHeader(p, key);
+  return header(p.tab);
+}
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+function todayBody(p, key) {
+  const t = p.today;
+  if (key === 'batch') return '';
+  if (p.dark) return `<div class="today-cam"><b>${esc(t.title)}</b>${t.action ? `<span class="btn sec">${t.action}</span>` : ''}</div>`;
+  if (key === 'search' || key === 'filters') return `<div class="today-search"><b>${esc(t.title)}</b></div>`;
+  return `<div class="today-es"><b>${esc(t.title)}</b><span>${esc(t.body)}</span>${t.action ? `<span class="btn sec">${t.action}</span>` : ''}</div>`;
+}
+function newBody(p, key, v) {
+  const n = p.next;
+  const act = n.action ? (v === 'A' ? `<span class="act">${n.action}</span>` : `<span class="act btn pri">${n.action}</span>`) : '';
+  const pre = v === 'B' ? `<div class="sym">${p.sym}</div>` : v === 'C' ? `<div class="art${p.dark ? ' noMask' : ''}">${ART[key]}</div>` : '';
+  return `<div class="fill${p.drawer ? ' drawerfill' : ''}"><div class="es">${pre}<div class="t">${esc(n.title)}</div>${n.body ? `<div class="b">${esc(n.body)}</div>` : ''}${act}</div></div>`;
+}
+function drawer(inner, today) {
+  const sw = `<div class="swipe dis"><span class="h">${SYM.arrow}</span>Add to collection</div>`;
+  return `<div class="scrim"></div><div class="drawer"><div class="grab"></div><div class="dtitle">0 cards scanned</div>${inner}${today ? '<div style="flex:1"></div>' + sw : ''}</div>`;
+}
+function phone(key, mode) {
+  const p = PAGES[key];
+  const v = ui.variant;
+  let body;
+  if (p.drawer) body = topPart(p, key) + drawer(mode === 'today' ? '' : newBody(p, key, v), mode === 'today');
+  else body = topPart(p, key) + (mode === 'today' ? todayBody(p, key) : newBody(p, key, v));
+  return `<div class="screen${p.dark ? ' black' : ''} v${v}">${body}</div>${STATUS}${tabbar(p.tab)}<div class="homebar"></div>`;
+}
+function render() {
+  const p = PAGES[ui.page], v = ui.variant;
+  document.getElementById('today').innerHTML = phone(ui.page, 'today');
+  document.getElementById('proposed').innerHTML = phone(ui.page, 'new');
+  document.getElementById('todaynote').textContent = p.todayLabel;
+  document.getElementById('newhead').innerHTML = `Variant ${v} · ${VARIANTS[v][0]}<small>${esc(VARIANTS[v][1])}</small>`;
+  document.getElementById('pages').innerHTML = PKEYS.map(k => `<button data-page="${k}" class="${k === ui.page ? 'on' : ''}">${PAGES[k].name}<small>${PAGES[k].sub}</small></button>`).join('');
+  const n = p.next;
+  document.getElementById('notes').innerHTML = `<h3>Wording</h3><dl>
+    <dt>Title</dt><dd>${esc(n.title)}</dd>
+    <dt>Body</dt><dd>${n.body ? esc(n.body) : '<i>none</i>'}</dd>
+    <dt>Action</dt><dd>${n.action ? esc(n.action) : '<i>none</i>'}</dd>
+    <dt>Where it leads</dt><dd>${esc(p.action)}</dd>
+    <dt>Today's copy</dt><dd>${p.today.title ? esc([p.today.title, p.today.body, p.today.action].filter(Boolean).join(' / ')) : '<i>blank drawer</i>'}</dd>
+    <dt>Kept or changed</dt><dd>${esc(p.kept)}</dd></dl>`;
+  document.getElementById('switcher-label').innerHTML = `${v} · ${VARIANTS[v][0]}<small>${p.name}: ${p.sub} · ← → variant · ↑ ↓ page</small>`;
+  history.replaceState(null, '', `?variant=${v}&page=${ui.page}`);
+}
+document.getElementById('pages').addEventListener('click', e => { const b = e.target.closest('button[data-page]'); if (b) { ui.page = b.dataset.page; render(); } });
+function step(d) { ui.variant = KEYS[(KEYS.indexOf(ui.variant) + d + KEYS.length) % KEYS.length]; render(); }
+function stepPage(d) { ui.page = PKEYS[(PKEYS.indexOf(ui.page) + d + PKEYS.length) % PKEYS.length]; render(); }
+document.getElementById('prev').onclick = () => step(-1);
+document.getElementById('next').onclick = () => step(1);
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') step(-1);
+  if (e.key === 'ArrowRight') step(1);
+  if (e.key === 'ArrowUp') { e.preventDefault(); stepPage(-1); }
+  if (e.key === 'ArrowDown') { e.preventDefault(); stepPage(1); }
+});
+function fit() { document.documentElement.style.setProperty('--fit', Math.min(1, (window.innerHeight - 140) / 900, (window.innerWidth - 400) / 880).toFixed(3)); }
+window.addEventListener('resize', fit); fit(); render();
+</script></body></html>
