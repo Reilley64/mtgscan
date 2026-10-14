@@ -15,6 +15,7 @@ const functionNotFound = 'PGRST202';
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const secretLairNonfoilOnly = '018830b2-dff9-45f3-9cc2-dc5b2eec0e54';
 const secretLairWithNoPrice = '0cd83c0e-8e37-40bf-87a5-5b4c009248fb';
+const kjeldoranHomeGuardWithOnlyEurPrice = '45145931-16e8-4401-9d67-57856ffef0dc';
 
 beforeAll(async () => {
   await resetCardCatalog();
@@ -66,24 +67,17 @@ describe('the collection total read', () => {
     expect(await collectionTotal(user)).toMatchObject({ total: '8.82', priced_copies: 2, copies: 3 });
   });
 
-  test('in EUR, the total uses EUR prices, and an etched copy has no price', async () => {
+  test('a copy of a card printing with only a Scryfall EUR price is left out of the total', async () => {
     const user = await signUpNewUser();
-    await committed(
-      user,
-      scanBatch([stack(angelicCurator), stack(angelicCurator, { finish: 'foil' }), stack(angelicCurator, { finish: 'etched' })]),
-    );
+    await committed(user, scanBatch([stack(angelicCurator), stack(kjeldoranHomeGuardWithOnlyEurPrice)]));
 
-    expect(await collectionTotal(user, { price_currency: 'EUR' })).toMatchObject({
-      total: '0.28',
-      currency: 'EUR',
-      priced_copies: 2,
-      copies: 3,
-    });
+    expect(await collectionTotal(user)).toMatchObject({ total: '0.21', priced_copies: 1, copies: 2 });
   });
 
   test.each<[string, Record<string, unknown> | unknown[], string | null]>([
     ['a query that is not an object', [], null],
-    ['a price currency other than USD or EUR', { price_currency: 'GBP' }, 'price_currency'],
+    ['a price currency other than USD', { price_currency: 'GBP' }, 'price_currency'],
+    ['a EUR price currency', { price_currency: 'EUR' }, 'price_currency'],
     ['an unknown field', { limit: 1 }, 'limit'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
     const user = await signUpNewUser();

@@ -266,7 +266,7 @@ describe('additions', () => {
     expect(Math.abs(Date.now() - added[1]!)).toBeLessThan(60_000);
   });
 
-  test('each stack records its purchase-day price in USD and EUR with the price snapshot time', async () => {
+  test('each stack records its purchase-day price in USD only with the price snapshot time', async () => {
     const user = await signUpNewUser();
 
     const result = await committed(
@@ -285,30 +285,22 @@ describe('additions', () => {
       finish: line.finish,
       quantity: line.quantity,
       purchase_day_usd_cents: line.purchase_day_usd_cents,
-      purchase_day_eur_cents: line.purchase_day_eur_cents,
       price_snapshot_at: line.price_snapshot_at && new Date(line.price_snapshot_at).getTime(),
       addition_id: line.addition_id,
     }));
-    const line = (
-      cardPrintingId: string,
-      finish: Finish,
-      quantity: number,
-      usd: number | null,
-      eur: number | null,
-    ) => ({
+    const line = (cardPrintingId: string, finish: Finish, quantity: number, usd: number | null) => ({
       card_printing_id: cardPrintingId,
       finish,
       quantity,
       purchase_day_usd_cents: usd,
-      purchase_day_eur_cents: eur,
       price_snapshot_at: snapshotAt,
       addition_id: result.addition_id!,
     });
     expect(lines).toEqual([
-      line(angelicCurator, 'nonfoil', 1, 21, 4),
-      line(angelicCurator, 'foil', 1, 30, 24),
-      line(angelicCurator, 'etched', 2, 44, null),
-      line(strongholdRatsWithoutPrice, 'nonfoil', 1, null, null),
+      line(angelicCurator, 'nonfoil', 1, 21),
+      line(angelicCurator, 'foil', 1, 30),
+      line(angelicCurator, 'etched', 2, 44),
+      line(strongholdRatsWithoutPrice, 'nonfoil', 1, null),
     ]);
   });
 

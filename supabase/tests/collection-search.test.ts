@@ -310,13 +310,7 @@ describe('after a catalog import', () => {
         { price_min: '1.00', price_max: '2.00' },
         ['fogBank', 'japaneseCurator'],
       ],
-      ['a price bound in EUR uses the EUR price', { price_max: '0.10', price_currency: 'EUR' }, ['curator']],
       ['an entry with no USD price never matches a price bound', { price_min: '0' }, everyLabelExcept('blackLotus')],
-      [
-        'an etched entry has no EUR price and never matches a EUR price bound',
-        { price_min: '0', price_currency: 'EUR' },
-        everyLabelExcept('etchedCurator'),
-      ],
     ])('%s', async (_, query, expected) => {
       expect(await labels(query)).toEqual(expected.toSorted());
     });

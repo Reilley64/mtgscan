@@ -91,19 +91,15 @@ async function collectionEntries(user: TestUser) {
   return Object.fromEntries([...quantities].toSorted());
 }
 
-async function collectionTotals(user: TestUser) {
-  const totals: CollectionTotal[] = [];
-  for (const price_currency of ['USD', 'EUR']) {
-    const { data, error } = await user.client.rpc('get_collection_total', { query: { price_currency } });
-    expect(error).toBeNull();
-    const { total, currency, priced_copies, copies } = data as unknown as CollectionTotal;
-    totals.push({ total, currency, priced_copies, copies });
-  }
-  return totals;
+async function collectionTotal(user: TestUser) {
+  const { data, error } = await user.client.rpc('get_collection_total', { query: { price_currency: 'USD' } });
+  expect(error).toBeNull();
+  const { total, currency, priced_copies, copies } = data as unknown as CollectionTotal;
+  return { total, currency, priced_copies, copies };
 }
 
 async function snapshot(user: TestUser) {
-  return { entries: await collectionEntries(user), totals: await collectionTotals(user) };
+  return { entries: await collectionEntries(user), total: await collectionTotal(user) };
 }
 
 type AdditionLineKey = { addition_id: string; card_printing_id: string; finish: string; condition: string; language: string };
@@ -181,7 +177,7 @@ describe('the migration to copies', () => {
         [`${delverInnistrad} foil near_mint en false`]: 3,
         [`${ribbonsOfNight} nonfoil near_mint en false`]: 4,
       });
-      expect(before.alice.totals.map((total) => total.copies)).toEqual([13, 13]);
+      expect(before.alice.total.copies).toBe(13);
     });
 
     test('each addition line gives one copy per unit of its quantity', async () => {
@@ -216,8 +212,8 @@ describe('the migration to copies', () => {
     });
 
     test('the collection total and its coverage stay the same', async () => {
-      expect(await collectionTotals(alice)).toEqual(before.alice.totals);
-      expect(await collectionTotals(bob)).toEqual(before.bob.totals);
+      expect(await collectionTotal(alice)).toEqual(before.alice.total);
+      expect(await collectionTotal(bob)).toEqual(before.bob.total);
     });
 
     test('a replay of a scan batch from before the migration adds no copy', async () => {

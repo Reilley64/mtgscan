@@ -234,7 +234,6 @@ test('under the meta line, a price line shows the current price in full in the p
 
 test.each([
   ['USD', '96.24', '$96.24'],
-  ['EUR', '96.24', '€96.24'],
   ['USD', '0.21', '$0.21'],
 ] as const)('a %s price of %s shows as %s', async (currency, amount, shown) => {
   ownCollectionCopies(collectionEntryCopies('The One Ring', 1, { set: 'ltr', collector_number: '246', price: currentPrice(amount, { currency }) }));
@@ -461,15 +460,6 @@ describe('the collection total button', () => {
     expect(headerMenu(collection, 'Collection total, $128,406.92').items).toEqual([
       { title: '1,262 of 1,284 cards', subtitle: 'Priced' },
     ]);
-  });
-
-  test('a EUR collection total shows in euros and names EUR as the price currency', async () => {
-    const collection = await openCollectionWithTotal(collectionTotal({ total: '2096.10', currency: 'EUR' }));
-
-    expect(headerMenu(collection, 'Collection total, €2,096.10')).toEqual({
-      title: 'Current prices from Scryfall, in EUR',
-      items: [{ title: '26 of 27 cards', subtitle: 'Priced' }],
-    });
   });
 
   test('with no collection entries, the header shows no collection total button', async () => {

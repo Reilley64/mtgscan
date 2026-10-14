@@ -229,19 +229,6 @@ describe('the copy page', () => {
     expect(appearsBefore(sinceAdded, screen.getByText('Current prices from Scryfall, in USD'))).toBe(true);
   });
 
-  test('Since added is in the currency of the prices', async () => {
-    ownCopies([
-      copyOf('copy-1', {
-        price: { amount: '12.40', currency: 'EUR', finish: 'nonfoil', stale: false },
-        purchase_day_price: { amount: '9.20', currency: 'EUR', finish: 'nonfoil' },
-      }),
-    ]);
-
-    await openCopyPage(/^Angelic Curator/);
-
-    expect(within(screen.getByLabelText('Since added, up \u20ac3.20')).getByText('+\u20ac3.20')).toBeOnTheScreen();
-  });
-
   test.each([
     ['the current price', { price: null }],
     ['the purchase-day price', { purchase_day_price: null }],

@@ -113,16 +113,22 @@ describe('the copy read', () => {
     expect((await copyOf(alice, { copy_id: copyId })).commander_legality).toBe('banned');
   });
 
-  test('a foil copy has the prices of its finish, in EUR when asked', async () => {
+  test('a foil copy has the USD prices of its finish', async () => {
     const { copyId } = await scannedCopy(alice, angelicCurator, { finish: 'foil' });
 
-    const copy = await copyOf(alice, { copy_id: copyId, price_currency: 'EUR' });
+    const copy = await copyOf(alice, { copy_id: copyId, price_currency: 'USD' });
 
     expect(copy).toMatchObject({
       finish: 'foil',
-      purchase_day_price: { amount: '0.24', currency: 'EUR', finish: 'foil' },
-      price: { amount: '0.24', currency: 'EUR', finish: 'foil', stale: false },
+      purchase_day_price: { amount: '0.30', currency: 'USD', finish: 'foil' },
+      price: { amount: '0.30', currency: 'USD', finish: 'foil', stale: false },
     });
+  });
+
+  test('a copy of a card printing with only a Scryfall EUR price has no current price and no purchase-day price', async () => {
+    const { copyId } = await scannedCopy(alice, blackLotusAlpha);
+
+    expect(await copyOf(alice, { copy_id: copyId })).toMatchObject({ purchase_day_price: null, price: null });
   });
 
   test('a copy with no price for its card printing and finish has no current price and no purchase-day price', async () => {
@@ -153,7 +159,8 @@ describe('the copy read', () => {
     ['a query that is not an object', [], null],
     ['a query with no copy ID', {}, 'copy_id'],
     ['a copy ID that is not a UUID', { copy_id: 'copy-1' }, 'copy_id'],
-    ['a price currency other than USD or EUR', { copy_id: crypto.randomUUID(), price_currency: 'GBP' }, 'price_currency'],
+    ['a price currency other than USD', { copy_id: crypto.randomUUID(), price_currency: 'GBP' }, 'price_currency'],
+    ['a EUR price currency', { copy_id: crypto.randomUUID(), price_currency: 'EUR' }, 'price_currency'],
     ['an unknown field', { copy_id: crypto.randomUUID(), rows: 'copies' }, 'rows'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
     const { copy, error } = await readCopy(alice.client, query);

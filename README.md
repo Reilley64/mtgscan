@@ -178,6 +178,7 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 
 - A text search ranks an exact full card name first. Next come exact face names, then other name matches, Oracle tag matches, type line matches, and Oracle text matches.
 - A refused call returns an error with a `code` such as `invalid_argument` or `invalid_cursor`. The field at fault is in `details`. `readSearchError` reads it as a `SearchError`.
+- `price_currency` defaults to `USD`. Until prices in other currencies land (#136), only `USD` is accepted. Collection search takes the same rule.
 - `get_cards` reads card details for up to 20 cards. Each card lists its direct Oracle tags that are not disabled, as `slug` and `label`, sorted by label. Each card also lists up to 5 combos as `combos`. Each combo has its `spellbook_id`, the `other_card` with its Oracle ID and name, its produced features, and its bracket tag. Combos sort by the other card's EDHREC rank, with missing ranks last, then by the other card's name, then by Spellbook ID. A card with no combos has an empty list.
 - Each first page writes one row to `search_telemetry`. It is the one table with user data that has no read policy: app users cannot read it, and only the secret key can.
 - Catalog search also accepts the secret key, for the search release check. Its telemetry row has the caller `release_check` and no user. It counts no owned copies. No other search or catalog read accepts the secret key.
@@ -189,14 +190,14 @@ Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_
 - The batch has 1 to 2,000 stacks and at most 10,000 copy IDs. Each stack has `card_printing_id`, `finish`, `condition`, `language`, and `copy_ids`, a list of 1 to 999 copy IDs. A copy ID is a UUID that the phone gives each copy. It can appear only once in a batch.
 - Stacks with the same card printing, finish, condition, and language are summed.
 - Each new copy ID becomes a copy in `copies`, with its card printing, finish, condition, language, and addition line. A scanned copy is not protected. Copies are never merged or split.
-- Each commit writes one addition and one addition line per stack. The line records the purchase-day price in USD and EUR cents for the card printing and finish, with the price snapshot time. A missing price is null.
+- Each commit writes one addition and one addition line per stack. The line records the purchase-day price in USD cents for the card printing and finish, with the price snapshot time. A missing price is null.
 - `collection_addition_copies` records each added copy ID with its addition line, once per user. A deleted copy's ID stays there. The function skips copy IDs that the caller already added, even when the stack around them changed or the copy was deleted. If every copy ID was added before, it changes nothing.
 - The result has the new addition (`addition_id`, `added_at`, `copy_count`, and `items`, or nulls and 0 when nothing was new) and one row in `copies` per copy ID: its `copy_id`, the addition it went into, and `replayed` true when an earlier call added it.
 - A refused call writes nothing. Its error has a `code` of `invalid_argument`, `unknown_printing`, or `basic_land`, and the field at fault in `details`, such as `items[3].finish`. `readScanBatchError` reads it.
 
 ### Collection total
 
-Signed-in users read their collection total with `supabase.rpc('get_collection_total', { query })`. The query has an optional `price_currency`, `USD` or `EUR`, which defaults to `USD`. `supabase/collection.ts` has the shared types.
+Signed-in users read their collection total with `supabase.rpc('get_collection_total', { query })`. The query has an optional `price_currency`, which defaults to `USD`. Until prices in other currencies land (#136), only `USD` is accepted. `supabase/collection.ts` has the shared types.
 
 - `total` is the sum of the current price of every copy for its card printing and finish, as a decimal string. Copies with no current price are left out.
 - `priced_copies` counts the copies with a current price, and `copies` counts every copy, so a missing price never silently lowers the total.
@@ -206,11 +207,11 @@ mtgscan stores no daily collection totals and no change since yesterday. `docs/a
 
 ### Copy read
 
-Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The query has `copy_id` and an optional `price_currency`, `USD` or `EUR`, which defaults to `USD`. `supabase/collection.ts` has the shared types. The copy page reads its copy through it.
+Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The query has `copy_id` and an optional `price_currency`, which defaults to `USD`. Until prices in other currencies land (#136), only `USD` is accepted. `supabase/collection.ts` has the shared types. The copy page reads its copy through it.
 
 - The result has the copy's `copy_id`, `finish`, `condition`, `language`, `protected`, and `free`, and its card printing as in a copy row of collection search: `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`.
 - `art_crop_uri` is the art crop of the card printing, or null when Scryfall has none.
-- `added_at` is the time of the copy's addition. `purchase_day_price` is the purchase-day price of its addition line in the chosen currency, with `amount`, `currency`, and `finish`, or null.
+- `added_at` is the time of the copy's addition. `purchase_day_price` is the purchase-day price of its addition line in USD, with `amount`, `currency`, and `finish`, or null.
 - `price` is the current price, as in a copy row of collection search, with `stale`.
 - From its card: `type_line`, `faces` with each face's `name` and `oracle_text` in face order, and `commander_legality`.
 - `user_tags` lists the copy's user tags, each with `user_tag_id` and `name`, sorted by name ignoring case.
@@ -256,7 +257,7 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 - `rows` is `entries` or `copies`, and defaults to `entries`.
   - With `entries`, each row is one collection entry: the matching copies that share a card printing, finish, condition, language, and protected flag. A collection entry has no ID of its own. Each row has the quantity, free quantity, allocated quantity, and held quantity of its matching copies. `limit` is 1 to 50 and defaults to 20.
   - With `copies`, each row is one copy, with its `copy_id`. `limit` is 1 to 120 and defaults to 60. The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`. The copy gives `finish`, `condition`, `language`, and `protected`.
-  - A copy row's `price` is the current price of the card printing and finish in the chosen currency: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says. Condition and language do not change it. `price` is null when `card_prices` has no price for that card printing, finish, and currency. A price is never taken from another finish. EUR etched prices are always null.
+  - A copy row's `price` is the current price of the card printing and finish in USD: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says. Condition and language do not change it. `price` is null when `card_prices` has no USD price for that card printing and finish. A price is never taken from another finish.
 - `sort` is `relevance` by default, with or without text. Without text, relevance means `added`, so an empty query lists the newest addition first.
 - `sort: 'added'` lists the card printing with the newest addition first. Its copies sit next to each other. `sort_order: 'asc'` puts the oldest addition first.
 - Rows with the same sort value sort by name, then by card printing ID, then by copy ID.
@@ -277,7 +278,7 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 - `catalog` imports cards and card printings. Each card printing keeps `image_uris`, the Scryfall `normal` image of each face, and `art_crop_uri`, the Scryfall `art_crop` image of its front face or null. After the run, even a skipped one, it reads Scryfall's sets list in one request and adds or updates `card_sets`: each set's code, name, and `icon_svg_uri`. Some sets use the icon of a parent set, so the app reads the icon from this table, not from a URL pattern. Signed-in users can read `card_sets`. The Weekly import workflow runs it.
 - `oracle_tags` imports Oracle tags, tag edges, and card taggings from Scryfall. The Weekly import workflow runs it after `catalog`, even when the catalog run fails.
 - `commander_spellbook` imports combos, as `GLOSSARY.md` defines them, from the Commander Spellbook variants file. It drops and counts each combo that names a card outside the card catalog or has no Oracle ID. The Weekly import workflow runs it after `oracle_tags`, even when an earlier run fails.
-- `prices` imports current prices from Scryfall Default Cards and recomputes each card's lowest current price.
+- `prices` imports current prices from Scryfall Default Cards and recomputes each card's lowest current price. It reads only the USD prices, `usd`, `usd_foil`, and `usd_etched`. A card printing with no USD price has no current price, even when Scryfall has a EUR price. `docs/adr/0005-convert-all-prices-from-usd.md` says why.
 - `prune-telemetry` deletes search telemetry older than 180 days.
 - `retry-weekly` runs again each weekly source whose latest run failed.
 
