@@ -1,6 +1,6 @@
 import { expect } from 'bun:test';
 
-import type { CardCondition, CardLanguage } from '../collection';
+import type { CardCondition, CardLanguage, CollectionRow } from '../collection';
 import type { Finish } from '../search';
 import { secretKeyClient, type TestUser } from './local-stack';
 
@@ -14,16 +14,38 @@ export type SeededCopies = {
   added_at?: string;
 };
 
+type CollectionEntryProperties = Pick<CollectionRow, 'printing_id' | 'finish' | 'condition' | 'language' | 'protected'>;
+
+export function collectionEntryKey(entry: CollectionEntryProperties) {
+  return [entry.printing_id, entry.finish, entry.condition, entry.language, entry.protected].join(' ');
+}
+
+function withDefaults(seed: SeededCopies) {
+  return {
+    finish: 'nonfoil' as const,
+    condition: 'near_mint' as const,
+    language: 'en' as const,
+    is_protected: false,
+    quantity: 1,
+    ...seed,
+  };
+}
+
+export function seededCollectionEntryKey(seed: SeededCopies) {
+  const { card_printing_id, finish, condition, language, is_protected } = withDefaults(seed);
+  return collectionEntryKey({ printing_id: card_printing_id, finish, condition, language, protected: is_protected });
+}
+
 export async function seedCopies(user: TestUser, seeds: SeededCopies[]): Promise<string[][]> {
   const client = secretKeyClient();
-  const lines = seeds.map((seed) => ({
+  const lines = seeds.map(withDefaults).map(({ card_printing_id, finish, condition, language, quantity }) => ({
     addition_id: crypto.randomUUID(),
     user_id: user.userId,
-    card_printing_id: seed.card_printing_id,
-    finish: seed.finish ?? 'nonfoil',
-    condition: seed.condition ?? 'near_mint',
-    language: seed.language ?? 'en',
-    quantity: seed.quantity ?? 1,
+    card_printing_id,
+    finish,
+    condition,
+    language,
+    quantity,
   }));
   const copies = lines.map((line) => Array.from({ length: line.quantity }, () => ({ ...line, copy_id: crypto.randomUUID() })));
   const additions = lines.map((line, index) => ({

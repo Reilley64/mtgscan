@@ -47,26 +47,23 @@ begin
       overfull_line.addition_id, overfull_line.card_printing_id, overfull_line.recorded, overfull_line.quantity;
   end if;
 
-  select coalesce(entry.user_id, line.user_id) as user_id,
-      coalesce(entry.card_printing_id, line.card_printing_id) as card_printing_id,
-      coalesce(entry.quantity, 0) as entry_quantity,
-      coalesce(line.quantity, 0) as line_quantity
+  select entry.id, entry.user_id, entry.card_printing_id, entry.quantity, coalesce(lines.quantity, 0) as line_quantity
     into mismatch
-    from (
-      select e.user_id, e.card_printing_id, e.finish, e.condition, e.language, sum(e.quantity) as quantity
-      from public.collection_entries e
-      group by e.user_id, e.card_printing_id, e.finish, e.condition, e.language
-    ) entry
-    full join (
-      select l.user_id, l.card_printing_id, l.finish, l.condition, l.language, sum(l.quantity) as quantity
-      from public.collection_addition_lines l
-      group by l.user_id, l.card_printing_id, l.finish, l.condition, l.language
-    ) line using (user_id, card_printing_id, finish, condition, language)
-    where entry.quantity is distinct from line.quantity
+    from public.collection_entries entry
+    left join (
+      select line.collection_entry_id, sum(line.quantity) as quantity
+      from public.collection_addition_lines line
+      group by line.collection_entry_id
+    ) lines on lines.collection_entry_id = entry.id
+    where entry.quantity is distinct from lines.quantity
     limit 1;
   if found then
-    raise exception 'User % has % copies of card printing % in collection entries and % in addition lines.',
-      mismatch.user_id, mismatch.entry_quantity, mismatch.card_printing_id, mismatch.line_quantity;
+    raise exception 'Collection entry % of user % has % copies of card printing %, and its addition lines have %.',
+      mismatch.id, mismatch.user_id, mismatch.quantity, mismatch.card_printing_id, mismatch.line_quantity;
+  end if;
+
+  if exists (select 1 from public.collection_addition_lines line where line.collection_entry_id is null) then
+    raise exception 'An addition line points at no collection entry.';
   end if;
 end;
 $$;
@@ -95,20 +92,12 @@ select
   done.finish,
   done.condition,
   done.language,
-  row_number() over (
-    partition by done.user_id, done.card_printing_id, done.finish, done.condition, done.language
-    order by addition.added_at, done.copy_id
-  ) <= coalesce(protected.quantity, 0)
+  entry.is_protected
 from public.collection_addition_copies done
-join public.collection_additions addition on addition.id = done.addition_id
-left join (
-  select e.user_id, e.card_printing_id, e.finish, e.condition, e.language, sum(e.quantity) as quantity
-  from public.collection_entries e
-  where e.is_protected
-  group by e.user_id, e.card_printing_id, e.finish, e.condition, e.language
-) protected
-  on (protected.user_id, protected.card_printing_id, protected.finish, protected.condition, protected.language)
-    = (done.user_id, done.card_printing_id, done.finish, done.condition, done.language);
+join public.collection_addition_lines line
+  on (line.addition_id, line.card_printing_id, line.finish, line.condition, line.language)
+    = (done.addition_id, done.card_printing_id, done.finish, done.condition, done.language)
+join public.collection_entries entry on entry.id = line.collection_entry_id;
 
 drop view private.collection_availability;
 drop view private.collection_totals;
@@ -141,8 +130,7 @@ cross join lateral (
 
 create view private.collection_entries with (security_invoker = true) as
 select
-  md5(concat_ws(' ', a.user_id, a.card_printing_id, a.finish, a.condition, a.language, a.is_protected))::uuid
-    as collection_entry_key,
+  min(a.copy_id::text)::uuid as lowest_copy_id,
   a.user_id,
   a.card_printing_id,
   a.oracle_id,
@@ -329,7 +317,7 @@ begin
       direction
     ),
     case when after_key is null then greatest(page_size, telemetry_ids) else page_size end + 1,
-    case api when 'catalog' then 'c.oracle_id' else 'a.collection_entry_key' end,
+    case api when 'catalog' then 'c.oracle_id' else 'a.lowest_copy_id' end,
     case api
       when 'catalog' then 'public.cards c'
       else 'private.collection_entries a '
@@ -390,7 +378,7 @@ begin
   ), '[]'::jsonb)
   into items
   from unnest(page_ids) with ordinality as page(row_id, ordinality)
-  left join private.collection_entries a on api = 'collection' and a.collection_entry_key = page.row_id
+  left join private.collection_entries a on api = 'collection' and a.lowest_copy_id = page.row_id
   left join public.card_printings p on p.id = a.card_printing_id
   join public.cards c on c.oracle_id = case api when 'catalog' then page.row_id else p.oracle_id end;
 

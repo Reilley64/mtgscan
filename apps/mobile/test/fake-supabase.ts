@@ -127,9 +127,9 @@ function collectionCopiesPage({ cursor, limit = 60 }: CollectionCopiesQuery) {
 
 const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
 
-function addToCollection(copies: { copyId: string; item: ScanBatchStack }[]) {
-  for (const { copyId, item } of copies) {
-    const { card_printing_id, finish, condition, language } = item;
+function addToCollection(copies: { copyId: string; stack: ScanBatchStack }[]) {
+  for (const { copyId, stack } of copies) {
+    const { card_printing_id, finish, condition, language } = stack;
     const printing = galleryPrintings.find((candidate) => candidate.printingId === card_printing_id)!;
     const ofPrinting = collectionCopies.filter((row) => row.printing_id === card_printing_id);
     const copy: CollectionCopyRow = {
@@ -160,7 +160,7 @@ async function addScanBatch(batch: ScanBatch) {
   if (failure === 'before the server adds it') {
     return { data: null, error: networkFailure };
   }
-  const copies = batch.items.flatMap((item) => item.copy_ids.map((copyId) => ({ copyId, item })));
+  const copies = batch.items.flatMap((stack) => stack.copy_ids.map((copyId) => ({ copyId, stack })));
   const newCopies = copies.filter(({ copyId }) => !addedCopies.has(copyId));
   const additionId = newCopies.length > 0 ? `addition-${new Set(addedCopies.values()).size + 1}` : null;
   const addedAt = additionId && new Date(Date.UTC(2026, 9, 13, 10, addedCopies.size)).toISOString();

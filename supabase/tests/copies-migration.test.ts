@@ -1,9 +1,10 @@
-import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { join } from 'node:path';
 
 import type { CollectionRow, CollectionTotal } from '../collection';
 import type { SearchPage } from '../search';
 import { catalogFixtureManifest, runCatalogImport, runPriceImport } from './catalog-import-command';
+import { collectionEntryKey } from './copy-seeds';
 import { asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -14,7 +15,7 @@ const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
 const ribbonsOfNight = '010eba83-30ec-4cca-b07e-f24d8d2f0787';
 
-type OldLine = {
+type OldAdditionLine = {
   card_printing_id: string;
   finish?: string;
   quantity: number;
@@ -44,14 +45,11 @@ async function resetToBeforeCopies() {
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
 }
 
-async function applyPendingMigrations() {
-  const result = await supabaseCli('migration', 'up', '--local');
-  await asDatabaseOwner((database) => database`notify pgrst, 'reload schema'`);
-  await Bun.sleep(1000);
-  return result;
+function applyPendingMigrations() {
+  return supabaseCli('migration', 'up', '--local');
 }
 
-async function addOldAdditionWithoutCopyIds(user: TestUser, lines: OldLine[]) {
+async function addOldAdditionWithoutCopyIds(user: TestUser, lines: OldAdditionLine[]) {
   await asDatabaseOwner((database) =>
     database.begin(async (transaction) => {
       const [addition] = await transaction`
@@ -87,7 +85,7 @@ async function collectionEntries(user: TestUser) {
   expect(error).toBeNull();
   const quantities = new Map<string, number>();
   for (const row of (data as unknown as SearchPage<CollectionRow>).items) {
-    const key = [row.printing_id, row.finish, row.condition, row.language, row.protected].join(' ');
+    const key = collectionEntryKey(row);
     quantities.set(key, (quantities.get(key) ?? 0) + row.quantity);
   }
   return Object.fromEntries([...quantities].toSorted());
@@ -107,27 +105,29 @@ async function snapshot(user: TestUser) {
   return { entries: await collectionEntries(user), totals: await collectionTotals(user) };
 }
 
-function copiesPerLine(userId: string) {
-  return asDatabaseOwner(
-    (database) => database`
-      select line.addition_id, line.card_printing_id, line.finish, line.quantity, count(copy.id)::integer as copies
-      from public.collection_addition_lines line
-      left join public.copies copy
-        on (copy.addition_id, copy.card_printing_id, copy.finish, copy.condition, copy.language)
-          = (line.addition_id, line.card_printing_id, line.finish, line.condition, line.language)
-      where line.user_id = ${userId}
-      group by line.addition_id, line.card_printing_id, line.finish, line.quantity
-      order by line.addition_id, line.card_printing_id, line.finish`,
-  );
+type AdditionLineKey = { addition_id: string; card_printing_id: string; finish: string; condition: string; language: string };
+
+function additionLineKey(row: AdditionLineKey) {
+  return [row.addition_id, row.card_printing_id, row.finish, row.condition, row.language].join(' ');
 }
 
-function copyIdsOf(userId: string) {
-  return asDatabaseOwner(async (database) =>
-    (await database`select id from public.copies where user_id = ${userId}`).map((row: { id: string }) => row.id),
-  );
+async function rowsOf(user: TestUser, table: 'copies' | 'collection_addition_copies' | 'collection_addition_lines') {
+  const { data, error } = await user.client.from(table).select('*');
+  expect(error).toBeNull();
+  return data!;
+}
+
+async function storedCopies(user: TestUser) {
+  return (await rowsOf(user, 'copies')) as (AdditionLineKey & { id: string; is_protected: boolean })[];
+}
+
+async function recordedCopyIds(user: TestUser) {
+  return ((await rowsOf(user, 'collection_addition_copies')) as { copy_id: string }[]).map((row) => row.copy_id);
 }
 
 describe('the migration to copies', () => {
+  afterAll(applyPendingMigrations);
+
   test('stops and changes nothing when collection entries and addition lines disagree', async () => {
     await resetToBeforeCopies();
     const user = await signUpNewUser();
@@ -138,10 +138,9 @@ describe('the migration to copies', () => {
 
     expect(exitCode).not.toBe(0);
     expect(output).toContain('has 3 copies of card printing');
-    const [entries] = await asDatabaseOwner(
-      (database) => database`select count(*)::integer as count from public.collection_entries where user_id = ${user.userId}`,
-    );
-    expect(entries.count).toBe(1);
+    expect(await collectionEntries(user)).toEqual({ [`${angelicCurator} nonfoil near_mint en false`]: 3 });
+    expect(await recordedCopyIds(user)).toEqual([]);
+    expect((await user.client.from('copies').select('*')).error).not.toBeNull();
   });
 
   describe('on a collection with scanned copies, older additions, protected entries, and user tag IDs', () => {
@@ -186,24 +185,28 @@ describe('the migration to copies', () => {
 
     test('each addition line gives one copy per unit of its quantity', async () => {
       for (const user of [alice, bob]) {
-        const lines = await copiesPerLine(user.userId);
+        const lines = (await rowsOf(user, 'collection_addition_lines')) as (AdditionLineKey & { quantity: number })[];
+        const copies = (await storedCopies(user)).map(additionLineKey);
         expect(lines.length).toBeGreaterThan(0);
-        lines.forEach((line: { quantity: number; copies: number }) => expect(line.copies).toBe(line.quantity));
+        expect(copies.toSorted()).toEqual(lines.flatMap((line) => Array(line.quantity).fill(additionLineKey(line))).toSorted());
       }
     });
 
     test('scanned copies keep their copy IDs, and older copies get new copy IDs that are recorded as added', async () => {
-      const copyIds = [...(await copyIdsOf(alice.userId)), ...(await copyIdsOf(bob.userId))];
-      const recorded = await asDatabaseOwner(async (database) =>
-        (
-          await database`select copy_id from public.collection_addition_copies where user_id in (${alice.userId}, ${bob.userId})`
-        ).map((row: { copy_id: string }) => row.copy_id),
-      );
+      const copyIds = [...(await storedCopies(alice)), ...(await storedCopies(bob))].map((copy) => copy.id);
+      const recorded = [...(await recordedCopyIds(alice)), ...(await recordedCopyIds(bob))];
 
       expect(copyIds.length).toBe(15);
       expect(new Set(copyIds).size).toBe(15);
       expect(copyIds).toEqual(expect.arrayContaining(scannedCopyIds));
       expect(recorded.toSorted()).toEqual(copyIds.toSorted());
+    });
+
+    test('copies take the protected flag of the collection entry their addition line went into', async () => {
+      const protectedCopies = (await storedCopies(alice)).filter((copy) => copy.is_protected);
+
+      expect(protectedCopies.map((copy) => copy.card_printing_id)).toEqual([angelicCurator, angelicCurator]);
+      expect(protectedCopies.filter((copy) => scannedCopyIds.includes(copy.id))).toEqual([]);
     });
 
     test('collection entries come back as the same groups with the same quantities, and user tag IDs no longer split them', async () => {

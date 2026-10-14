@@ -11,7 +11,7 @@ import {
   runPriceImport,
   withBasicLands,
 } from './catalog-import-command';
-import { seedCopies } from './copy-seeds';
+import { seedCopies, seededCollectionEntryKey } from './copy-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { addScanBatch, committed, copyIds, scanBatch, stack } from './scan-batches';
 
@@ -53,9 +53,7 @@ function entryLine(cardPrintingId: string) {
 }
 
 function byEntry(a: EntryRow, b: EntryRow) {
-  const key = (entry: EntryRow) =>
-    [entry.card_printing_id, entry.finish, entry.condition, entry.language, entry.is_protected].join(' ');
-  return key(a).localeCompare(key(b));
+  return seededCollectionEntryKey(a).localeCompare(seededCollectionEntryKey(b));
 }
 
 async function entriesOf(user: { client: AppClient }): Promise<EntryRow[]> {
@@ -334,8 +332,8 @@ describe('additions', () => {
       ].toSorted(),
     );
     expect((await linesOf(user)).map((line) => [...lineOf(line), line.quantity])).toEqual([
-      [result.addition_id!, angelicCurator, 'nonfoil', 1],
       [result.addition_id!, delverInnistrad, 'foil', 2],
+      [result.addition_id!, angelicCurator, 'nonfoil', 1],
     ]);
   });
 });

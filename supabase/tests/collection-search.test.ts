@@ -4,7 +4,7 @@ import type { CardCondition, CardLanguage, CollectionQuery, CollectionRow } from
 import type { Json } from '../database.types';
 import { readSearchError, type CardDetails, type CardPrintingsPage, type CatalogRow, type SearchPage } from '../search';
 import { catalogFixture, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
-import { seedCopies, type SeededCopies } from './copy-seeds';
+import { collectionEntryKey, seedCopies, seededCollectionEntryKey, type SeededCopies } from './copy-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -29,20 +29,6 @@ function entry(cardPrintingId: string, changes: Omit<SeededCopies, 'card_printin
   return { card_printing_id: cardPrintingId, ...changes };
 }
 
-function entryKey(entry: Pick<CollectionRow, 'printing_id' | 'finish' | 'condition' | 'language' | 'protected'>) {
-  return [entry.printing_id, entry.finish, entry.condition, entry.language, entry.protected].join(' ');
-}
-
-function seededEntryKey(seed: SeededCopies) {
-  return entryKey({
-    printing_id: seed.card_printing_id,
-    finish: seed.finish ?? 'nonfoil',
-    condition: seed.condition ?? 'near_mint',
-    language: seed.language ?? 'en',
-    protected: seed.is_protected ?? false,
-  });
-}
-
 const aliceEntries = {
   curator: entry(printings.angelicCuratorMh2, { quantity: 2 }),
   etchedCurator: entry(printings.angelicCuratorMh2, { finish: 'etched', condition: 'lightly_played' }),
@@ -61,7 +47,7 @@ const everyLabel = Object.keys(aliceEntries) as EntryLabel[];
 
 let alice: TestUser;
 let bob: TestUser;
-const labelOf = new Map(Object.entries(aliceEntries).map(([label, seed]) => [seededEntryKey(seed), label as EntryLabel]));
+const labelOf = new Map(Object.entries(aliceEntries).map(([label, seed]) => [seededCollectionEntryKey(seed), label as EntryLabel]));
 const bobEntries = [entry(printings.counterspellAlpha), entry(printings.angelicCuratorMh2, { quantity: 5 })];
 
 async function search(query: CollectionQuery | Record<string, unknown> | unknown[], user: TestUser = alice) {
@@ -76,7 +62,7 @@ async function page(query: CollectionQuery, user: TestUser = alice) {
 }
 
 async function labels(query: CollectionQuery) {
-  return (await page({ limit: 50, ...query })).items.map((row) => labelOf.get(entryKey(row))!).toSorted();
+  return (await page({ limit: 50, ...query })).items.map((row) => labelOf.get(collectionEntryKey(row))!).toSorted();
 }
 
 async function names(query: CollectionQuery) {
@@ -129,11 +115,11 @@ describe('after a catalog import', () => {
 
   describe('callers', () => {
     test("a user's collection search returns only their own collection entries", async () => {
-      const aliceEntryKeys = (await page({ limit: 50 })).items.map(entryKey);
-      const bobEntryKeys = (await page({ limit: 50 }, bob)).items.map(entryKey);
+      const aliceEntryKeys = (await page({ limit: 50 })).items.map(collectionEntryKey);
+      const bobEntryKeys = (await page({ limit: 50 }, bob)).items.map(collectionEntryKey);
 
       expect(aliceEntryKeys.toSorted()).toEqual([...labelOf.keys()].toSorted());
-      expect(bobEntryKeys.toSorted()).toEqual(bobEntries.map(seededEntryKey).toSorted());
+      expect(bobEntryKeys.toSorted()).toEqual(bobEntries.map(seededCollectionEntryKey).toSorted());
     });
 
     test("another user's collection entries never appear, whatever the chips", async () => {
@@ -432,15 +418,15 @@ describe('after a catalog import', () => {
     ])('%s', async (_, query, expected) => {
       const { items } = await page(query);
 
-      expect(items.map((row) => labelOf.get(entryKey(row)))).toEqual(expected);
+      expect(items.map((row) => labelOf.get(collectionEntryKey(row)))).toEqual(expected);
     });
 
     test("sort by release date uses the release date of the entry's own card printing", async () => {
       const oldestFirst = (await page({ names: ['curator'], sort: 'release_date' })).items;
       const newestFirst = (await page({ names: ['curator'], sort: 'release_date', sort_order: 'desc' })).items;
 
-      expect(labelOf.get(entryKey(oldestFirst[0]!))).toBe('japaneseCurator');
-      expect(labelOf.get(entryKey(newestFirst.at(-1)!))).toBe('japaneseCurator');
+      expect(labelOf.get(collectionEntryKey(oldestFirst[0]!))).toBe('japaneseCurator');
+      expect(labelOf.get(collectionEntryKey(newestFirst.at(-1)!))).toBe('japaneseCurator');
     });
   });
 
@@ -472,7 +458,7 @@ describe('after a catalog import', () => {
       const rows = pages.flatMap((next) => next.items);
 
       expect(pages.map((next) => next.items.length)).toEqual(limit === 50 ? [50, 10] : [20, 20, 20]);
-      expect(rows.map(entryKey).toSorted()).toEqual(seeded.map(seededEntryKey).toSorted());
+      expect(rows.map(collectionEntryKey).toSorted()).toEqual(seeded.map(seededCollectionEntryKey).toSorted());
       expect(rows.map((row) => row.name)).toEqual(
         ['Angelic Curator', 'Delver of Secrets // Insectile Aberration', 'Fog Bank'].flatMap((name) => Array(20).fill(name)),
       );
@@ -512,7 +498,7 @@ describe('after a catalog import', () => {
   });
 
   describe('telemetry', () => {
-    test('a first page writes one collection row with a result ID for each collection entry', async () => {
+    test('a first page writes one collection row with a copy ID from each collection entry', async () => {
       const first = await page({ names: ['curator'] });
 
       const { data, error } = await secretKeyClient()
@@ -529,7 +515,17 @@ describe('after a catalog import', () => {
         query: { names: ['curator'], sort: 'name', sort_order: 'asc', limit: 20, price_currency: 'USD' },
         result_count: 3,
       });
-      expect(new Set(data!.result_ids).size).toBe(first.items.length);
+      const { data: copies } = await alice.client
+        .from('copies')
+        .select('id, card_printing_id, finish, condition, language, is_protected')
+        .in('id', data!.result_ids);
+      const entryKeyOfCopy = new Map(
+        copies!.map((copy) => [
+          copy.id,
+          collectionEntryKey({ ...copy, printing_id: copy.card_printing_id, protected: copy.is_protected }),
+        ]),
+      );
+      expect(data!.result_ids.map((copyId) => entryKeyOfCopy.get(copyId))).toEqual(first.items.map(collectionEntryKey));
     });
 
     test('later pages and refused input write no row', async () => {
