@@ -144,8 +144,8 @@ describe('after a catalog import', () => {
   });
 
   describe('result rows', () => {
-    test('an empty query returns every collection entry from A to Z, including cards that are not Commander-legal', async () => {
-      const { items } = await page({});
+    test('sort by name returns every collection entry from A to Z, including cards that are not Commander-legal', async () => {
+      const { items } = await page({ sort: 'name' });
 
       expect(items.map((row) => row.name)).toEqual([
         'Angelic Curator',
@@ -309,7 +309,7 @@ describe('after a catalog import', () => {
     });
 
     test('catalog search refuses the collection chips', async () => {
-      for (const field of ['finishes', 'conditions', 'languages', 'deck_ids', 'is_free', 'is_protected']) {
+      for (const field of ['finishes', 'conditions', 'languages', 'deck_ids', 'is_free', 'is_protected', 'rows']) {
         const { data, error } = await alice.client.rpc('search_catalog', {
           query: { text: 'fog', [field]: field.startsWith('is_') ? true : ['x'] },
         });
@@ -359,7 +359,6 @@ describe('after a catalog import', () => {
       ['an is free value of the wrong type', { is_free: 'yes' }, 'is_free'],
       ['an is protected value of the wrong type', { is_protected: 1 }, 'is_protected'],
       ['an unknown field', { user_tag: ['trade binder'] }, 'user_tag'],
-      ['relevance without text', { sort: 'relevance' }, 'sort'],
     ])('%s is refused with an error on its field', async (_, query, field) => {
       const { page, error } = await search(query);
 
@@ -421,6 +420,24 @@ describe('after a catalog import', () => {
       expect(items.map((row) => labelOf.get(collectionEntryKey(row)))).toEqual(expected);
     });
 
+    test('an empty query lists the card printing with the newest addition first, as sort added does', async () => {
+      const user = await signUpNewUser();
+      await seedCopies(user, [
+        entry(printings.fogAlpha, { added_at: '2026-10-01T09:00:00.000Z' }),
+        entry(printings.blackLotusAlpha, { added_at: '2026-10-03T09:00:00.000Z' }),
+        entry(printings.lightningBoltAlpha, { added_at: '2026-10-02T09:00:00.000Z' }),
+        entry(printings.fogAlpha, { condition: 'damaged', added_at: '2026-10-04T09:00:00.000Z' }),
+      ]);
+
+      const newestFirst = (await page({}, user)).items.map((row) => row.name);
+      const added = (await page({ sort: 'added' }, user)).items.map((row) => row.name);
+      const oldestFirst = (await page({ sort: 'added', sort_order: 'asc' }, user)).items.map((row) => row.name);
+
+      expect(newestFirst).toEqual(['Fog', 'Fog', 'Black Lotus', 'Lightning Bolt']);
+      expect(added).toEqual(newestFirst);
+      expect(oldestFirst).toEqual(['Lightning Bolt', 'Black Lotus', 'Fog', 'Fog']);
+    });
+
     test("sort by release date uses the release date of the entry's own card printing", async () => {
       const oldestFirst = (await page({ names: ['curator'], sort: 'release_date' })).items;
       const newestFirst = (await page({ names: ['curator'], sort: 'release_date', sort_order: 'desc' })).items;
@@ -454,7 +471,7 @@ describe('after a catalog import', () => {
     });
 
     test.each([undefined, 50])('pages of %p cover every collection entry once, from A to Z', async (limit) => {
-      const pages = await allPages({ limit }, collector);
+      const pages = await allPages({ limit, sort: 'name' }, collector);
       const rows = pages.flatMap((next) => next.items);
 
       expect(pages.map((next) => next.items.length)).toEqual(limit === 50 ? [50, 10] : [20, 20, 20]);
@@ -512,7 +529,14 @@ describe('after a catalog import', () => {
         user_id: alice.userId,
         api: 'collection',
         caller: 'app',
-        query: { names: ['curator'], sort: 'name', sort_order: 'asc', limit: 20, price_currency: 'USD' },
+        query: {
+          names: ['curator'],
+          rows: 'entries',
+          sort: 'relevance',
+          sort_order: 'desc',
+          limit: 20,
+          price_currency: 'USD',
+        },
         result_count: 3,
       });
       const { data: copies } = await alice.client

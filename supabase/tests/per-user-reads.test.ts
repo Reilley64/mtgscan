@@ -49,7 +49,7 @@ async function userIdsInTable(user: TestUser, table: PerUserTable) {
   return [...new Set(data!.map((row) => row.user_id))];
 }
 
-async function userIdsInView(user: TestUser, view: 'collection_availability' | 'collection_entries' | 'collection_totals') {
+async function userIdsInView(user: TestUser, view: 'collection_availability' | 'collection_totals') {
   const rows = await asSignedInUser(user, (database) =>
     database`select distinct user_id from ${database('private.' + view)}`,
   );
@@ -78,7 +78,7 @@ describe('a read with no user filter', () => {
     expect(error?.code).toBe(permissionDenied);
   });
 
-  test.each(['collection_availability', 'collection_entries', 'collection_totals'] as const)(
+  test.each(['collection_availability', 'collection_totals'] as const)(
     "returns only the caller's rows from the %s view",
     async (view) => {
       expect(await userIdsInView(alice, view)).toEqual([alice.userId]);
@@ -86,7 +86,7 @@ describe('a read with no user filter', () => {
     },
   );
 
-  test.each(['collection_availability', 'collection_entries', 'collection_totals'] as const)(
+  test.each(['collection_availability', 'collection_totals'] as const)(
     'is refused to an anonymous caller on the %s view',
     async (view) => {
       const read = asAnonymousCaller((database) => database`select user_id from ${database('private.' + view)}`);

@@ -6,8 +6,8 @@ import {
   type User,
 } from '@supabase/supabase-js';
 import type {
-  CollectionCopiesQuery,
   CollectionCopyRow,
+  CollectionQuery,
   CollectionTotal,
   ScanBatch,
   ScanBatchResult,
@@ -109,7 +109,10 @@ async function nonceMatches(provider: SignInProvider, token: string, nonce: stri
   );
 }
 
-function collectionCopiesPage({ cursor, limit = 60 }: CollectionCopiesQuery) {
+function collectionCopiesPage({ rows, cursor, limit = 60 }: CollectionQuery) {
+  if (rows !== 'copies') {
+    throw new Error('The fake Supabase client searches the collection only for copy rows');
+  }
   if (failingCollectionReads > 0) {
     failingCollectionReads -= 1;
     return { data: null, error: { code: 'PGRST000', message: 'Network request failed', details: null } };
@@ -242,8 +245,8 @@ function cardCatalogTable(table: string) {
 
 export const fakeSupabase = {
   from: cardCatalogTable,
-  async rpc(name: string, args: { query: CollectionCopiesQuery } | { batch: ScanBatch }) {
-    if (name === 'list_collection_copies' && 'query' in args) {
+  async rpc(name: string, args: { query: CollectionQuery } | { batch: ScanBatch }) {
+    if (name === 'search_collection' && 'query' in args) {
       return collectionCopiesPage(args.query);
     }
     if (name === 'get_collection_total') {
