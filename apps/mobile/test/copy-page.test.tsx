@@ -580,7 +580,7 @@ describe('renaming and deleting a user tag', () => {
     expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
   });
 
-  test('a delete that fails says so and keeps the user tag', async () => {
+  test('a delete that fails says so and keeps the user tag and its confirmation', async () => {
     ownUserTags([{ name: 'Signed', copyIds: ['copy-1'] }]);
     await openUserTagPicker();
     failUserTagChanges(1);
@@ -590,5 +590,22 @@ describe('renaming and deleting a user tag', () => {
 
     expect(await screen.findByRole('alert', { name: 'Could not change the user tags. Check your connection.' })).toBeOnTheScreen();
     expect(screen.getByRole('checkbox', { name: 'Signed, 1 copy' })).toBeChecked();
+    expect(screen.getByText('Delete "Signed"? It comes off 1 copy.')).toBeOnTheScreen();
+  });
+
+  test('a user tag deleted on another phone leaves the picker when the user deletes it, with no failure', async () => {
+    ownUserTags([
+      { name: 'Signed', copyIds: ['copy-1'] },
+      { name: 'trade binder', copyIds: [] },
+    ]);
+    await openUserTagPicker();
+    ownUserTags([{ name: 'Signed', copyIds: ['copy-1'] }]);
+
+    await pressButtonMenuAction(menuButton(screen.container, 'More, trade binder'), 'Delete user tag');
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete user tag' }));
+
+    await waitFor(() => expect(screen.queryByRole('checkbox', { name: /^trade binder,/ })).not.toBeOnTheScreen());
+    expect(screen.queryByText(/^Delete "trade binder"\?/)).not.toBeOnTheScreen();
+    expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
   });
 });

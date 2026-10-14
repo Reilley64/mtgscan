@@ -6,6 +6,40 @@ as $$
   select private.raise_search_error('not_found', 'user_tag_id is not one of your user tags.', 'user_tag_id');
 $$;
 
+create function private.raise_user_tag_exists()
+returns void
+language sql
+set search_path = ''
+as $$
+  select private.raise_search_error('user_tag_exists', 'You already have a user tag with this name.', 'name');
+$$;
+
+create or replace function public.create_user_tag(request jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  caller uuid;
+  checked jsonb;
+  created public.user_tags;
+begin
+  caller := private.caller_user_id();
+  checked := private.check_user_tag_request(request, array['name']);
+
+  insert into public.user_tags (user_id, name)
+    values (caller, checked ->> 'name')
+    on conflict (user_id, lower(name)) do nothing
+    returning * into created;
+  if created.id is null then
+    perform private.raise_user_tag_exists();
+  end if;
+
+  return jsonb_build_object('user_tag_id', created.id, 'name', created.name);
+end;
+$$;
+
 create or replace function public.set_copy_user_tag(request jsonb)
 returns void
 language plpgsql
@@ -63,7 +97,7 @@ begin
       where user_tag.user_id = caller and user_tag.id = (checked ->> 'user_tag_id')::uuid
       returning * into renamed;
   exception when unique_violation then
-    perform private.raise_search_error('user_tag_exists', 'You already have a user tag with this name.', 'name');
+    perform private.raise_user_tag_exists();
   end;
   if renamed.id is null then
     perform private.raise_user_tag_not_found();

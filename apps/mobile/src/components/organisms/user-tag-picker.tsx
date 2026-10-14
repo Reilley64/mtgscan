@@ -23,7 +23,7 @@ type UserTagPickerProps = {
   onToggle: (userTag: UserTag, tagged: boolean) => void;
   onCreate: (name: string) => void;
   onRename: (userTag: UserTag, name: string) => Promise<UserTagWriteResult>;
-  onDelete: (userTag: UserTag) => void;
+  onDelete: (userTag: UserTag) => Promise<UserTagWriteResult>;
 };
 
 type RowAction = { userTagId: string; action: 'rename' | 'delete' };
@@ -93,9 +93,10 @@ export function UserTagPicker({ copy, userTags, changeFailed, onToggle, onCreate
               {action === 'delete' ? (
                 <ConfirmUserTagDelete
                   userTag={userTag}
-                  onDelete={() => {
-                    close();
-                    onDelete(userTag);
+                  onDelete={async () => {
+                    if ((await onDelete(userTag)) !== 'failed') {
+                      close();
+                    }
                   }}
                   onCancel={close}
                 />
@@ -121,6 +122,7 @@ function RenameUserTag({ userTag, onRename, onDone }: RenameUserTagProps) {
   const [text, setText] = useState(userTag.name);
   const [takenName, setTakenName] = useState<string | null>(null);
   const name = text.trim();
+  const canSave = name !== '';
 
   async function save() {
     if (name === userTag.name) {
@@ -147,9 +149,9 @@ function RenameUserTag({ userTag, onRename, onDone }: RenameUserTagProps) {
           className="flex-1"
           value={text}
           onChangeText={setText}
-          onSubmitEditing={() => name !== '' && save()}
+          onSubmitEditing={() => canSave && save()}
         />
-        <Button variant="primary" disabled={name === ''} onPress={save}>
+        <Button variant="primary" disabled={!canSave} onPress={save}>
           <Text>Save</Text>
         </Button>
       </View>
