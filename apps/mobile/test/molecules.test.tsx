@@ -35,6 +35,7 @@ import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { SwitchRow } from '@/components/molecules/switch-row';
+import { SymbolText } from '@/components/molecules/symbol-text';
 import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { ValueRow } from '@/components/molecules/value-row';
@@ -50,6 +51,7 @@ import {
   cardImageUri,
   appearsBefore,
   cardSheen,
+  splitColorsBehind,
   dashedOutlinesColored,
   fadesDown,
   glassEffect,
@@ -66,6 +68,7 @@ import {
   symbolSizes,
   symbolTintColor,
   touchTarget,
+  widthsAround,
 } from './native-ui';
 import { tokenColors } from './token-colors';
 
@@ -334,6 +337,74 @@ describe('CardHero', () => {
     await render(<CardHero uri={solRing} artUri={solRingArtCrop} name="Sol Ring" sheen="foil" />);
 
     expect(cardSheen(screen.getByRole('image', { name: 'Sol Ring' }))).toMatchObject({ opacity: expect.closeTo(0.3) });
+  });
+});
+
+describe('SymbolText', () => {
+  const scryfallSymbols = [
+    '{T}', '{Q}', '{E}', '{P}', '{PW}', '{CHAOS}', '{A}', '{TK}', '{X}', '{Y}', '{Z}', '{0}', '{½}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{10}', '{11}', '{12}', '{13}', '{14}', '{15}', '{16}', '{17}', '{18}', '{19}', '{20}', '{100}', '{1000000}', '{∞}', '{W/U}', '{W/B}', '{B/R}', '{B/G}', '{U/B}', '{U/R}', '{R/G}', '{R/W}', '{G/W}', '{G/U}', '{B/G/P}', '{B/R/P}', '{G/U/P}', '{G/W/P}', '{R/G/P}', '{R/W/P}', '{U/B/P}', '{U/R/P}', '{W/B/P}', '{W/U/P}', '{C/W}', '{C/U}', '{C/B}', '{C/R}', '{C/G}', '{2/W}', '{2/U}', '{2/B}', '{2/R}', '{2/G}', '{H}', '{W/P}', '{U/P}', '{B/P}', '{R/P}', '{G/P}', '{C/P}', '{HW}', '{HR}', '{W}', '{U}', '{B}', '{R}', '{G}', '{C}', '{S}', '{L}', '{D}',
+  ];
+  const { manaGeneric, manaWhite, manaBlue, manaGreen, manaGlyph } = tokenColors;
+
+  test.each(scryfallSymbols)('%s, which Scryfall lists, shows as a Mana font glyph with no braces left', async (symbol) => {
+    await render(<SymbolText text={symbol} />);
+
+    expect(screen.queryByText(/[{}]/)).not.toBeOnTheScreen();
+    expect(screen.getByLabelText(/^[^{}]+$/)).toBeOnTheScreen();
+    for (const glyph of screen.getAllByText(/^[\u{e000}-\u{f8ff}]$/u)) {
+      expect(glyph).toHaveStyle({ fontFamily: 'Mana' });
+    }
+  });
+
+  test.each([
+    ['{T}: Add {G}.', 'tap: Add green mana.'],
+    ['{2}{G}', 'two generic mana green mana'],
+    ['{C}', 'colorless mana'],
+    ['{X}', 'X generic mana'],
+    ['{W/U}', 'white or blue mana'],
+    ['{2/W}', 'two generic or white mana'],
+    ['{G/P}', 'Phyrexian green mana'],
+    ['{B/G/P}', 'Phyrexian black or green mana'],
+    ['{Q}', 'untap'],
+    ['{E}{E}', 'energy energy'],
+    ['{S}', 'snow mana'],
+  ])('VoiceOver reads %s as "%s"', async (text, spoken) => {
+    await render(<SymbolText text={text} />);
+
+    expect(screen.getByLabelText(spoken)).toBeOnTheScreen();
+  });
+
+  test('a mana symbol is its glyph on a circle of its mana color, inline with the text', async () => {
+    await render(<SymbolText text="{T}: Add {G}." />);
+
+    const green = screen.getByText('\u{e604}');
+    expect(green).toHaveStyle({ color: manaGlyph });
+    expect(backdropOf(green)).toHaveStyle({ backgroundColor: manaGreen });
+    expect(backdropOf(screen.getByText('\u{e61a}'))).toHaveStyle({ backgroundColor: manaGeneric });
+    expect(screen.getByLabelText('tap: Add green mana.')).toHaveTextContent('\u{e61a}: Add \u{e604}.');
+  });
+
+  test('a hybrid mana symbol is a circle split in its two colors, with both glyphs', async () => {
+    await render(<SymbolText text="{W/U}" />);
+
+    const white = screen.getByText('\u{e600}');
+    expect(splitColorsBehind(white)).toEqual([manaWhite, manaBlue]);
+    expect(splitColorsBehind(screen.getByText('\u{e601}'))).toEqual([manaWhite, manaBlue]);
+  });
+
+  test('an energy symbol is its glyph in the text color, with no circle', async () => {
+    await render(<SymbolText text="You get {E}." />);
+
+    const energy = screen.getByText('\u{e907}');
+    expect(energy).toHaveStyle({ fontFamily: 'Mana', fontSize: 12, color: white });
+    expect(widthsAround(energy)).toEqual([]);
+  });
+
+  test.each(['Pay {FOO}.', 'Pay {G.', 'Pay {}.'])('an unknown symbol in "%s" stays as its plain text', async (text) => {
+    await render(<SymbolText text={text} />);
+
+    expect(screen.getByText(text)).toBeOnTheScreen();
+    expect(screen.getByLabelText(text)).toBeOnTheScreen();
   });
 });
 

@@ -606,6 +606,34 @@ export function symbolNames(element: HostElement) {
   return element.queryAll(isSymbol).map((symbol) => symbol.props.name);
 }
 
+function rgbaOf(hex: string) {
+  const [red, green, blue] = [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16));
+  return `rgba(${red}, ${green}, ${blue}, 1)`;
+}
+
+export function splitColorsBehind(glyph: HostElement) {
+  let candidate = glyph.parent;
+  while (candidate) {
+    const gradient = StyleSheet.flatten(candidate.props.style)?.experimental_backgroundImage;
+    if (gradient !== undefined) {
+      return [...new Set(String(gradient).match(/#[0-9a-f]{6}/g))].map(rgbaOf);
+    }
+    candidate = candidate.parent;
+  }
+  return [];
+}
+
+export function widthsAround(element: HostElement) {
+  const widths: number[] = [];
+  for (let candidate = element.parent; candidate; candidate = candidate.parent) {
+    const width = StyleSheet.flatten(candidate.props.style)?.width;
+    if (typeof width === 'number') {
+      widths.push(width);
+    }
+  }
+  return widths;
+}
+
 export function blocksColored(element: HostElement, color: string) {
   return element.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.backgroundColor === color).length;
 }

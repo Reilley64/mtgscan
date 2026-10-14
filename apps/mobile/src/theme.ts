@@ -32,6 +32,13 @@ export const colors = {
   rarityRare: '#e2bd5a',
   rarityMythic: '#f26a35',
   raritySpecial: '#b48ef0',
+  manaGeneric: '#beb9b2',
+  manaWhite: '#f0f2c0',
+  manaBlue: '#b5cde3',
+  manaBlack: '#aca29a',
+  manaRed: '#db8664',
+  manaGreen: '#93b483',
+  manaGlyph: '#111111',
 } as const;
 
 export const appleButtonColors = {
@@ -61,7 +68,14 @@ export const typography = {
   chip: { fontSize: 11, fontWeight: '700' },
   credit: { fontSize: 10, fontWeight: '600' },
   tabLabel: { fontSize: 10, fontWeight: '700' },
+  manaSymbol: { fontSize: 9 },
+  manaSymbolSplit: { fontSize: 5 },
+  manaSymbolBare: { fontSize: 12 },
 } as const satisfies Record<string, TextStyle>;
+
+export const fontFamilies = {
+  mana: 'Mana',
+} as const;
 
 export const spacing = {
   xs: 4,
@@ -123,6 +137,8 @@ export const sizes = {
   brandMarkHeight: 25,
   failureMark: 22,
   emptyStateSymbol: 40,
+  manaSymbol: 12,
+  manaSymbolSplitInset: 1,
 } as const;
 
 export const borderWidths = {
@@ -170,6 +186,13 @@ export const gradients = {
   binderWallScrim: `linear-gradient(180deg, ${scrimStops.map(([alpha, stop]) => `${colors.background}${alpha} ${stop}`).join(', ')})`,
   emptyStateFade: `linear-gradient(180deg, ${colors.background}00 30%, ${colors.background} 100%)`,
 } as const;
+
+export function manaSplitGradient(top: string, bottom: string) {
+  return linearGradient('135deg', [
+    [top, '50%'],
+    [bottom, '50%'],
+  ]);
+}
 
 export const aspectRatios = {
   cardImage: 488 / 680,

@@ -15,6 +15,10 @@ _Avoid_: Version, edition
 **Art crop**:
 Scryfall's image of the art of a card printing, with no frame or text. A double-faced card printing uses the art of its front face. The copy page blurs it behind the card image.
 
+**Card symbol**:
+A symbol that Oracle text and mana costs write in braces, such as {G}, {2/W}, {T}, or {E}, as Scryfall's symbology lists it. The app draws it with the Mana font, and VoiceOver reads it as words.
+_Avoid_: Mana icon, icon
+
 **Copy**:
 One physical card that the user owns. It has a copy ID, a card printing, a finish, a condition, a language, a protected flag, and user tags. Each copy comes from one addition. To correct a copy, the user deletes it and scans it again.
 _Avoid_: Card, item, owned card

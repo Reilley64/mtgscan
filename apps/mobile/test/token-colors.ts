@@ -17,4 +17,11 @@ export const tokenColors = {
   info: 'rgba(143, 211, 255, 1)',
   badge: 'rgba(224, 36, 74, 1)',
   sheet: 'rgba(22, 28, 31, 1)',
+  manaGlyph: 'rgba(17, 17, 17, 1)',
+  manaGeneric: 'rgba(190, 185, 178, 1)',
+  manaWhite: 'rgba(240, 242, 192, 1)',
+  manaBlue: 'rgba(181, 205, 227, 1)',
+  manaBlack: 'rgba(172, 162, 154, 1)',
+  manaRed: 'rgba(219, 134, 100, 1)',
+  manaGreen: 'rgba(147, 180, 131, 1)',
 } as const;

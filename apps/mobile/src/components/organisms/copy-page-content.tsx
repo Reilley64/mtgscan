@@ -12,6 +12,7 @@ import { CardHero } from '@/components/molecules/card-hero';
 import { DisclosureRow } from '@/components/molecules/disclosure-row';
 import { PriceLine } from '@/components/molecules/price-line';
 import { SheetSection } from '@/components/molecules/sheet-section';
+import { SymbolText } from '@/components/molecules/symbol-text';
 import { ValueRow } from '@/components/molecules/value-row';
 import { shownDay } from '@/lib/shown-day';
 
@@ -53,7 +54,7 @@ function OracleText({ faces }: Pick<CopyDetails, 'faces'>) {
       {shownFaces.map((face, index) => (
         <View key={index} className="gap-xs">
           {faces.length > 1 ? <Text variant="body-strong">{face.name}</Text> : null}
-          <Text>{face.oracle_text}</Text>
+          <SymbolText text={face.oracle_text} />
         </View>
       ))}
     </Surface>

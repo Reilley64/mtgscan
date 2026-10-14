@@ -268,6 +268,23 @@ describe('the copy page', () => {
     expect(appearsBefore(back, screen.getByLabelText('Commander, Legal'))).toBe(true);
   });
 
+  test('Rules shows the card symbols of every face as symbols that VoiceOver reads as words', async () => {
+    ownCopies([
+      copyOf('copy-1', {
+        faces: [
+          { name: 'Front face', oracle_text: '{T}: Add {G}. {2/W}, {Q}: You get {E}.' },
+          { name: 'Back face', oracle_text: '{W/U}{G/P}: Pay {FOO}.' },
+        ],
+      }),
+    ]);
+
+    await openCopyPage(/^Angelic Curator/);
+
+    expect(screen.getByLabelText('tap: Add green mana. two generic or white mana, untap: You get energy.')).toBeOnTheScreen();
+    expect(screen.getByLabelText('white or blue mana Phyrexian green mana: Pay {FOO}.')).toBeOnTheScreen();
+    expect(screen.queryByText(/\{(T|G|E|W\/U)\}/)).not.toBeOnTheScreen();
+  });
+
   test('a card with one face shows its Oracle text without the face name', async () => {
     ownCopies([copyOf('copy-1')]);
 

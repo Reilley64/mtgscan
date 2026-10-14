@@ -52,6 +52,7 @@ import { SheetSection } from '@/components/molecules/sheet-section';
 import { ValueRow } from '@/components/molecules/value-row';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { SwitchRow } from '@/components/molecules/switch-row';
+import { SymbolText } from '@/components/molecules/symbol-text';
 import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { colors, sizes } from '@/theme';
@@ -187,6 +188,16 @@ function Toggles() {
         labelOf={(value) => value}
         onSelect={setSection}
       />
+    </Section>
+  );
+}
+
+function CardSymbols() {
+  return (
+    <Section title="Card symbols">
+      <SymbolText text="{T}: Add {C}{C}. Spend {X}{2}{W}{U}{B}{R}{G} or {S}." />
+      <SymbolText text="{W/U}{B/G}{2/W}{C/R} hybrid, {G/P}{W/U/P}{H} Phyrexian, {Q} untap, {HW} half." />
+      <SymbolText text="You get {E}{E}. {A} {TK} {PW} {CHAOS} {P} {D}. Unknown {FOO} stays text." />
     </Section>
   );
 }
@@ -512,6 +523,7 @@ export function PrimitiveCatalog() {
         <Buttons />
         <SignInButtons />
         <Chips />
+        <CardSymbols />
         <Toggles />
         <Surfaces />
         <ListRows />
