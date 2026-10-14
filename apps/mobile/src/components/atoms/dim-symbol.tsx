@@ -1,10 +1,8 @@
 import { cva } from 'class-variance-authority';
-import { SymbolView, type SymbolViewProps } from 'expo-symbols';
-import { cssInterop } from 'nativewind';
+import type { SymbolViewProps } from 'expo-symbols';
 
 import { useOnGlass } from '@/components/atoms/glass-surface';
-
-cssInterop(SymbolView, { className: { target: 'style', nativeStyleToProp: { color: 'tintColor' } } });
+import { SymbolView } from '@/components/atoms/symbol-view';
 
 const dimTints = cva('', {
   variants: {

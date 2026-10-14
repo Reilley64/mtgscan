@@ -14,12 +14,16 @@ import {
 } from './fake-supabase';
 import {
   appearsBefore,
+  buttonMenu,
   cardImageUri,
   cardSheen,
   headerButton,
   headerMenu,
   imageTintColor,
+  menuButton,
+  menuButtonNames,
   pressableMenuRows,
+  pressButtonMenuItem,
   pressBackspaceInSearchBar,
   pressSearchCancel,
   pressSearchKey,
@@ -28,6 +32,7 @@ import {
   selectedTab,
   shownSearchText,
   symbolNames,
+  symbolTintColor,
   tabHeader,
   tabSearchBar,
   typeInSearchBar,
@@ -36,7 +41,7 @@ import { setIconUri } from './card-printings';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
 
-const { danger, textDim, textMuted, textPrice } = tokenColors;
+const { danger, primary, text, textDim, textMuted, textPrice } = tokenColors;
 
 let entryNumber = 0;
 
@@ -806,5 +811,127 @@ describe('collection search', () => {
     expect(within(chipButton(typed)).getByText(typed)).toHaveStyle({ color: danger });
     expect(within(chipButton('finish:foil')).getByText('finish:foil')).not.toHaveStyle({ color: danger });
     expect(collection.queryByRole('image', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
+  });
+});
+
+describe('the sort button', () => {
+  function lastSearch() {
+    return collectionSearchesSent().at(-1);
+  }
+
+  function sortButton(name: string) {
+    return menuButton(selectedTab(), name);
+  }
+
+  test('the sort button opens a native menu titled "Sort by", and Relevance has the check mark', async () => {
+    await openCollection();
+
+    expect(buttonMenu(sortButton('Sort, Relevance'))).toEqual({
+      title: 'Sort by',
+      items: [
+        { title: 'Relevance', checked: true, symbol: undefined },
+        { title: 'Recently added', checked: false, symbol: undefined },
+        { title: 'Name', checked: false, symbol: undefined },
+        { title: 'Price', checked: false, symbol: undefined },
+        { title: 'Mana value', checked: false, symbol: undefined },
+        { title: 'Release date', checked: false, symbol: undefined },
+      ],
+    });
+    expect(lastSearch()).toEqual({});
+  });
+
+  test.each([
+    ['Recently added', 'added', 'desc', 'Sort, Recently added, newest first'],
+    ['Name', 'name', 'asc', 'Sort, Name, A to Z'],
+    ['Price', 'price', 'desc', 'Sort, Price, high to low'],
+    ['Mana value', 'mana_value', 'asc', 'Sort, Mana value, low to high'],
+    ['Release date', 'release_date', 'desc', 'Sort, Release date, newest first'],
+  ])('choosing %s sorts the collection in its first direction, and VoiceOver reads the sort and its direction', async (title, sort, order, spoken) => {
+    await openCollection();
+
+    await pressButtonMenuItem(sortButton('Sort, Relevance'), title);
+
+    expect(lastSearch()).toEqual({ sort, sort_order: order });
+    expect(buttonMenu(sortButton(spoken)).items.filter((item) => item.checked)).toEqual([
+      { title, checked: true, symbol: order === 'desc' ? 'arrow.down' : 'arrow.up' },
+    ]);
+  });
+
+  test('tapping the current sort again reverses it, and the arrow shows the new direction', async () => {
+    await openCollection();
+    await pressButtonMenuItem(sortButton('Sort, Relevance'), 'Price');
+
+    await pressButtonMenuItem(sortButton('Sort, Price, high to low'), 'Price');
+
+    expect(lastSearch()).toEqual({ sort: 'price', sort_order: 'asc' });
+    expect(buttonMenu(sortButton('Sort, Price, low to high')).items[3]).toEqual({ title: 'Price', checked: true, symbol: 'arrow.up' });
+
+    await pressButtonMenuItem(sortButton('Sort, Price, low to high'), 'Price');
+
+    expect(lastSearch()).toEqual({ sort: 'price', sort_order: 'desc' });
+  });
+
+  test('Relevance has one direction, and choosing it again changes nothing', async () => {
+    await openCollection();
+    await pressButtonMenuItem(sortButton('Sort, Relevance'), 'Name');
+    await pressButtonMenuItem(sortButton('Sort, Name, A to Z'), 'Relevance');
+    expect(lastSearch()).toEqual({});
+
+    await pressButtonMenuItem(sortButton('Sort, Relevance'), 'Relevance');
+
+    expect(lastSearch()).toEqual({});
+    expect(buttonMenu(sortButton('Sort, Relevance')).items[0]).toEqual({ title: 'Relevance', checked: true, symbol: undefined });
+  });
+
+  test('a new sort starts in its first direction, whatever the direction of the sort before', async () => {
+    await openCollection();
+    await pressButtonMenuItem(sortButton('Sort, Relevance'), 'Name');
+    await pressButtonMenuItem(sortButton('Sort, Name, A to Z'), 'Name');
+
+    await pressButtonMenuItem(sortButton('Sort, Name, Z to A'), 'Mana value');
+
+    expect(lastSearch()).toEqual({ sort: 'mana_value', sort_order: 'asc' });
+  });
+
+  test('the symbol is arrow.up.arrow.down in the text color for Relevance and primary lime for any other sort', async () => {
+    await openCollection();
+    expect(symbolNames(sortButton('Sort, Relevance'))).toEqual(['arrow.up.arrow.down']);
+    expect(symbolTintColor(sortButton('Sort, Relevance'))).toBe(text);
+
+    await pressButtonMenuItem(sortButton('Sort, Relevance'), 'Recently added');
+
+    expect(symbolTintColor(sortButton('Sort, Recently added, newest first'))).toBe(primary);
+    expect(within(sortButton('Sort, Recently added, newest first')).queryAllByText(/./)).toEqual([]);
+  });
+
+  test('the sort applies to search results', async () => {
+    await openCollection();
+    await pressButtonMenuItem(sortButton('Sort, Relevance'), 'Price');
+
+    await typeInSearchBar('angel');
+    await pressSearchKey();
+
+    expect(lastSearch()).toEqual({ text: 'angel', sort: 'price', sort_order: 'desc' });
+  });
+
+  test('the sort button hides while the user types and comes back after Enter', async () => {
+    await openCollection();
+
+    await typeInSearchBar('angel');
+    expect(menuButtonNames(selectedTab())).toEqual([]);
+
+    await pressSearchKey();
+    expect(menuButtonNames(selectedTab())).toEqual(['Sort, Relevance']);
+  });
+
+  test('the sort stays when the Collection tab gains focus again', async () => {
+    await openCollection();
+    await pressButtonMenuItem(sortButton('Sort, Relevance'), 'Name');
+
+    await pressTab('Recent');
+    await pressTab('Collection');
+
+    expect(menuButtonNames(selectedTab())).toEqual(['Sort, Name, A to Z']);
+    expect(lastSearch()).toEqual({ sort: 'name', sort_order: 'asc' });
   });
 });

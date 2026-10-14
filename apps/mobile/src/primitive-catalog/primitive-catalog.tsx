@@ -11,6 +11,7 @@ import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { Chip } from '@/components/atoms/chip';
 import { CountBadge } from '@/components/atoms/count-badge';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
+import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
 import { GlassGroup } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
 import { ProgressBar } from '@/components/atoms/progress-bar';
@@ -320,6 +321,25 @@ function Glass() {
   );
 }
 
+function FloatingMenuButtons() {
+  const [chosen, setChosen] = useState('Relevance');
+  const choices = ['Relevance', 'Price'].map((title) => ({ title, checked: chosen === title, onSelect: () => setChosen(title) }));
+  return (
+    <Section title="Floating menu buttons">
+      <View className="flex-row gap-lg">
+        <FloatingMenuButton
+          symbol="arrow.up.arrow.down"
+          active={chosen !== 'Relevance'}
+          accessibilityLabel={`Sort, ${chosen}`}
+          menuTitle="Sort by"
+          choices={choices}
+        />
+        <FloatingMenuButton symbol="arrow.up.arrow.down" active accessibilityLabel="Sort, Price, high to low" menuTitle="Sort by" choices={[]} />
+      </View>
+    </Section>
+  );
+}
+
 function PullIndicators() {
   return (
     <Section title="Pull indicators">
@@ -393,6 +413,7 @@ export function PrimitiveCatalog() {
         <QuickActions />
         <Skeletons />
         <Glass />
+        <FloatingMenuButtons />
         <PullIndicators />
         <Inputs />
         <ProgressBars />

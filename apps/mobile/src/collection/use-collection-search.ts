@@ -20,7 +20,7 @@ export function useCollectionSearch() {
   const pause = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [text, setText] = useState('');
   const [chips, setChips] = useState<SearchChip[]>([]);
-  const [suggesting, setSuggesting] = useState(false);
+  const [typing, setTyping] = useState(false);
   const [searchedText, setSearchedText] = useState('');
 
   useEffect(() => () => clearTimeout(pause.current), []);
@@ -43,7 +43,7 @@ export function useCollectionSearch() {
       change('', chips.slice(0, -1));
       return;
     }
-    setSuggesting(true);
+    setTyping(true);
     const committed = chipBeforeSpace(typed);
     if (committed) {
       change(committed.before, [...chips, committed.chip]);
@@ -58,7 +58,7 @@ export function useCollectionSearch() {
   }
 
   function onSearchButtonPress() {
-    setSuggesting(false);
+    setTyping(false);
     const committed = committedChip(text);
     change(committed ? committed.before : text, committed ? [...chips, committed.chip] : chips);
   }
@@ -78,14 +78,14 @@ export function useCollectionSearch() {
     autoCapitalize: 'none',
     onChangeText: (event) => onChangeText(event.nativeEvent.text),
     onSearchButtonPress,
-    onBlur: () => setSuggesting(false),
+    onBlur: () => setTyping(false),
     onCancelButtonPress: () => {
-      setSuggesting(false);
+      setTyping(false);
       change('', []);
     },
   };
 
-  const suggestions = useSearchSuggestions(suggesting ? splitLastToken(text).token : '');
+  const suggestions = useSearchSuggestions(typing ? splitLastToken(text).token : '');
   const { query, chipIndexOfField } = useMemo(() => collectionSearchQuery(searchedText, chips), [searchedText, chips]);
 
   return {
@@ -96,6 +96,7 @@ export function useCollectionSearch() {
     pick,
     query,
     chipIndexOfField,
+    typing,
     searching: query.text !== undefined || chips.length > 0,
   };
 }

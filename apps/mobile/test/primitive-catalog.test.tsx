@@ -1,7 +1,7 @@
 import { fireEvent, screen } from 'expo-router/testing-library';
 
 import { startSignedIn } from './fake-supabase';
-import { presentedDrawer } from './native-ui';
+import { menuButtonNames, presentedDrawer } from './native-ui';
 import { renderApp } from './render-app';
 
 beforeEach(() => {
@@ -26,6 +26,7 @@ test('the primitive catalog shows every primitive', async () => {
     'Count badges',
     'Skeletons',
     'Glass',
+    'Floating menu buttons',
     'Pull indicators',
     'Inputs',
     'Progress bars',
@@ -60,6 +61,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Swipe busy and disabled' })).toBeBusy();
   expect(screen.getByLabelText('Card name')).toBeOnTheScreen();
   expect(screen.getByRole('progressbar', { name: 'Loading collection' })).toBeOnTheScreen();
+  expect(menuButtonNames(screen.container)).toEqual(['Sort, Relevance', 'Sort, Price, high to low']);
   expect(screen.getByRole('progressbar', { name: 'Downloading gallery' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Other options' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();

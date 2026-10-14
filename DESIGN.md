@@ -277,6 +277,14 @@ components:
     rounded: "{rounded.full}"
     padding: 0 4px
     height: 52px
+  floating-button:
+    backgroundColor: "{colors.surface-control}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.full}"
+    width: 48px
+    height: 48px
+  floating-button-active:
+    textColor: "{colors.primary}"
   swipe-to-confirm-handle:
     backgroundColor: "{colors.on-primary}"
     textColor: "{colors.primary}"
@@ -347,7 +355,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
 - **Collection** is a binder grid with the collection total in its header.
   - The header has the collection total button next to the settings button (owner decision, #125). See Collection header.
   - Card images sit 3 per row, with **one tile per copy** and no quantity badge. Three copies of a card printing make three tiles (owner decision, #116).
-  - Copies of the same card printing sit next to each other. The card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
+  - Copies of the same card printing sit next to each other. By default, the card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
   - While the binder grid loads and shows no tiles yet, a skeleton grid fills the visible screen in its place. It has the shape of the grid: three tiles per row, with the same gaps. Each tile is a card-shaped block over two short bars for the meta line and the price line, 12 px tall and 60% and 40% wide. The blocks are line-colored on the background and pulse like the skeleton chip. VoiceOver reads the skeleton grid as one element, "Loading collection". When the read returns, the tiles, the empty state, or the error state replace it.
   - A reload when the tab gains focus and a new page keep the tiles already shown and bring no skeleton grid back.
   - With no collection entries, the tab shows "Your collection is empty" and "Scan cards to add them to your collection."
@@ -355,6 +363,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - One quiet meta line under each card shows the set icon in its rarity color, the collector number, and the condition when it is not NM. Foil and etched copies carry a sheen on the card image instead of a finish label. Later, badges also show whether the copy is in a deck, held by a planned swap, or protected.
   - A price line under the meta line shows the copy's current price (owner decision, #120). A copy with no current price shows "–". A stale price has a clock symbol.
   - A native search bar sits under the large title. See Collection search. Filters: All, Free, Allocated, Protected.
+  - A round sort button floats over the grid at the bottom right and changes the order. See Collection search.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
   - Until the gallery is on the phone, the camera stays off and the tab shows the gallery download:
@@ -428,6 +437,13 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
 - **Results.** Results show as binder tiles, one per copy. While text or a chip is active, a count line in meta text, such as "6 of 27 copies", sits above the grid. While a new search loads, the skeleton grid replaces the tiles. With no results, the grid shows "No cards found."
 - A chip that the server refuses, such as an unknown set or Oracle tag, turns danger. The grid shows "No set named "zzz".", "No Oracle tag named "zzz".", or "No keyword named "zzz".". Any other refused chip shows "mv>25 is not a valid chip."
 - VoiceOver reads a chip as a button with its `key:value` text and the hint "Removes this chip."
+- **Sort button.** A round Liquid Glass button, 48 px across, floats over the grid at the bottom right, 16 px above the tab bar. It shows the `arrow.up.arrow.down` symbol at 18 px. Without Liquid Glass, it uses the control surface. It reacts to touch.
+  - It opens a native menu titled "Sort by": Relevance, Recently added, Name, Price, Mana value, and Release date. The current sort has a check mark.
+  - Tapping the current sort again reverses it. An arrow beside it shows the direction: `arrow.down` for high to low, Z to A, and newest first, and `arrow.up` for the other way. Price starts high to low, Name A to Z, Mana value low to high, and Recently added and Release date newest first. Relevance has one direction.
+  - The sort applies to the binder and to search results. Relevance without text lists the newest addition first.
+  - The symbol is in the text color while the sort is Relevance. Any other sort turns it primary lime. There is no badge or dot, because count badges are only for counts.
+  - VoiceOver reads "Sort, Relevance", or the sort and its direction, such as "Sort, Price, high to low".
+  - The sort lasts until the app restarts and is not saved. The button hides while the user types in the search bar.
 
 ### Sign-in screen
 
@@ -509,17 +525,17 @@ The interface is flat. Depth comes from tone, not shadow.
 
 Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
-- Only the controls that float over the camera or over scrolling content use glass: the latest-scan chip, the quick-action bar, the batch button, and the pull indicator (owner decisions, #113 and #130), and the tab header buttons (owner decision, #128). Every other surface stays flat.
+- Only the controls that float over the camera or over scrolling content use glass: the latest-scan chip, the quick-action bar, the batch button, the pull indicator (owner decisions, #113 and #130), the tab header buttons (owner decision, #128), and the sort button on Collection (#143). Every other surface stays flat.
 - The tab header buttons are native bar buttons. iOS 26 draws their glass, so `GlassSurface` does not wrap them.
 - The pull indicator does not react to touch. It moves by sliding, never by fading.
-- The glass is the regular style with no tint. Glass that the user can tap, such as the chip, the quick-action bar, and the batch button, reacts to touch. The skeleton chip and the basic land chip do not.
+- The glass is the regular style with no tint. Glass that the user can tap, such as the chip, the quick-action bar, the batch button, and the sort button, reacts to touch. The skeleton chip and the basic land chip do not.
 - The chip and the quick-action bar sit in one glass group with 8 px spacing, so they blend like iOS controls but do not merge at rest.
 - Text on glass:
   - The card name and enabled labels stay text white.
   - The meta line uses glass text muted.
   - The chevron and disabled quick-action labels and symbols use glass text dim.
   - The skeleton blocks and the empty thumbnail use glass skeleton.
-- Without Liquid Glass, as on iOS 17 and 18, the chip falls back to surface, and the quick-action bar, the batch button, and the pull indicator to surface control, with the normal text colors.
+- Without Liquid Glass, as on iOS 17 and 18, the chip falls back to surface, and the quick-action bar, the batch button, the pull indicator, and the sort button to surface control, with the normal text colors.
 - The glass never fades with opacity, because glass under opacity 0 stops rendering. The skeleton pulse animates the blocks inside the chip, not the glass.
 - `expo-glass-effect` draws the glass. `GlassSurface` and `GlassGroup` in `src/components/atoms/glass-surface.tsx` wrap it.
 
