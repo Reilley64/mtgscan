@@ -1,6 +1,6 @@
-import { type GalleryDelivery, useGallery } from './gallery-state';
+import { shownDay } from '@/lib/shown-day';
 
-const galleryDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+import { type GalleryDelivery, useGallery } from './gallery-state';
 
 function deliveryLabel(delivery: GalleryDelivery): string | null {
   switch (delivery.kind) {
@@ -21,7 +21,7 @@ function deliveryLabel(delivery: GalleryDelivery): string | null {
 export function useGallerySummary() {
   const { installed, delivery } = useGallery();
   return {
-    date: installed ? galleryDate.format(new Date(installed.builtAt)) : null,
+    date: installed ? shownDay(installed.builtAt) : null,
     status: deliveryLabel(delivery),
   };
 }

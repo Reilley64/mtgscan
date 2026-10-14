@@ -511,6 +511,9 @@ isOneToOne: false
 "get_collection_total":
 { Args: { "query": Json }; Returns: Json
                            },
+"get_copy":
+{ Args: { "query": Json }; Returns: Json
+                           },
 "import_card_sets":
 { Args: { "sets": Json }; Returns: number
                            },

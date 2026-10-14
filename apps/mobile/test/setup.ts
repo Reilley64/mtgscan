@@ -1,4 +1,5 @@
 import { registerAppStyles } from './class-styles';
+import { resetFakeAlert } from './fake-alert';
 import { resetFakeCardDetector } from './fake-card-detector';
 import { resetFakeCardRecognizer } from './fake-card-recognizer';
 import { resetFakeFileSystem } from './fake-file-system';
@@ -38,6 +39,7 @@ beforeEach(async () => {
   await registerAppStyles();
   jest.spyOn(console, 'info').mockImplementation(() => {});
   resetFakeSupabase();
+  resetFakeAlert();
   resetFakeCardDetector();
   resetFakeCardRecognizer();
   resetFakeFileSystem();

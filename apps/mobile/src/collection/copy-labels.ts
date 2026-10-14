@@ -1,6 +1,6 @@
 import { Constants } from '@mtgscan/supabase/database.types';
 import type { CardCondition, CardLanguage, CurrentPrice } from '@mtgscan/supabase/collection';
-import type { Finish } from '@mtgscan/supabase/search';
+import type { CommanderLegality, Finish } from '@mtgscan/supabase/search';
 
 export const finishes = Constants.public.Enums.card_finish;
 export const conditions = Constants.public.Enums.card_condition;
@@ -34,6 +34,13 @@ export const languageNames: Record<CardLanguage, string> = {
   zht: 'Traditional Chinese',
 };
 
+export const commanderLegalityLabels: Record<CommanderLegality, string> = {
+  legal: 'Legal',
+  banned: 'Banned',
+  not_legal: 'Not legal',
+  unknown: 'Unknown',
+};
+
 export function languageCode(language: CardLanguage) {
   return language.toUpperCase();
 }
@@ -45,6 +52,10 @@ export const conditionNames: Record<CardCondition, string> = {
   heavily_played: 'heavily played',
   damaged: 'damaged',
 };
+
+export function sheenOf(finish: Finish) {
+  return finish === 'nonfoil' ? undefined : finish;
+}
 
 export function shownCondition(condition: CardCondition) {
   return condition === 'near_mint' ? undefined : conditionLabels[condition];

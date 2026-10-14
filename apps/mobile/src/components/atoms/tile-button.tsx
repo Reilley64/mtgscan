@@ -4,7 +4,7 @@ import { Pressable } from 'react-native';
 type TileButtonProps = {
   accessibilityLabel: string;
   accessibilityHint?: string;
-  selected: boolean;
+  selected?: boolean;
   onPress: () => void;
   children: ReactNode;
 };

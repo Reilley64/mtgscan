@@ -272,6 +272,15 @@ describe('Chip', () => {
     });
   });
 
+  test('a status chip with a symbol shows it before the label in the tone color', async () => {
+    await render(<Chip tone="warning" symbol="shield.fill" label="Protected" />);
+
+    const chip = screen.getByLabelText('Protected');
+    expect(symbolNames(chip)).toEqual(['shield.fill']);
+    expect(symbolTintColor(chip)).toBe(warning);
+    expect(screen.getByText('Protected')).toHaveStyle({ color: warning });
+  });
+
   test('a status chip is not a button', async () => {
     await render(<Chip label="Valid" />);
 

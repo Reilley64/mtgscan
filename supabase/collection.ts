@@ -1,5 +1,15 @@
 import type { Database } from './database.types';
-import { readSearchError, type CatalogQuery, type CatalogSort, type Finish, type PriceCurrency, type PriceFrom, type SearchError, type SearchPage } from './search';
+import {
+  readSearchError,
+  type CatalogQuery,
+  type CatalogSort,
+  type CommanderLegality,
+  type Finish,
+  type PriceCurrency,
+  type PriceFrom,
+  type SearchError,
+  type SearchPage,
+} from './search';
 
 export type CardCondition = Database['public']['Enums']['card_condition'];
 
@@ -91,6 +101,25 @@ export type CollectionCopyRow = {
   language: CardLanguage;
   protected: boolean;
   price: CurrentPrice | null;
+};
+
+export type CopyQuery = {
+  copy_id: string;
+  price_currency?: PriceCurrency;
+};
+
+export type CopyFace = {
+  name: string;
+  oracle_text: string;
+};
+
+export type CopyDetails = CollectionCopyRow & {
+  free: boolean;
+  added_at: string;
+  purchase_day_price: Omit<CurrentPrice, 'stale'> | null;
+  type_line: string;
+  faces: CopyFace[];
+  commander_legality: CommanderLegality;
 };
 
 export type CollectionTotalQuery = {

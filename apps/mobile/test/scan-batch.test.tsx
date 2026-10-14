@@ -314,7 +314,7 @@ test('a commit closes batch review, leaves the chip empty, and the binder grid s
   expectAnEmptyChip();
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   await pressTab('Collection');
-  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
+  expect(await screen.findAllByRole('button', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
 });
 
 test('a commit adds only the recognized scans and keeps a scan that was not recognized on the chip', async () => {
@@ -413,7 +413,7 @@ test('Try again after a commit that the server added but the phone did not hear 
   await tryAgain();
   await pressTab('Collection');
 
-  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
+  expect(await screen.findAllByRole('button', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
 });
 
 test('Try again after the scan batch changed adds only the copies the server did not add yet', async () => {
@@ -435,8 +435,8 @@ test('Try again after the scan batch changed adds only the copies the server did
   );
   expectAnEmptyChip();
   await pressTab('Collection');
-  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(1);
-  expect(screen.getAllByRole('image', { name: 'Shock, M19 156, no price' })).toHaveLength(1);
+  expect(await screen.findAllByRole('button', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(1);
+  expect(screen.getAllByRole('button', { name: 'Shock, M19 156, no price' })).toHaveLength(1);
 });
 
 async function removeAllScans(count: string) {
@@ -629,7 +629,7 @@ test('a restart after a commit that did not finish sends it again with the same 
   expect(retried.items).toEqual(first.items);
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   await pressTab('Collection');
-  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(1);
+  expect(await screen.findAllByRole('button', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(1);
 });
 
 test('another account on the phone has its own scan batch, and the first account gets its batch back', async () => {

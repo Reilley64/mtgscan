@@ -10,6 +10,8 @@ import type {
   CollectionPage,
   CollectionQuery,
   CollectionTotal,
+  CopyDetails,
+  CopyQuery,
   ScanBatch,
   ScanBatchResult,
   ScanBatchStack,
@@ -38,6 +40,8 @@ let testUserSeeded = true;
 const listeners = new Set<AuthListener>();
 const users = new Map<string, User>();
 let collectionCopies: CollectionCopyRow[] = [];
+let copyDetails = new Map<string, CopyDetails>();
+let failingCopyReads = 0;
 const emptyCollectionTotal: CollectionTotal = {
   total: '0.00',
   currency: 'USD',
@@ -148,6 +152,18 @@ function collectionCopiesPage({ rows, cursor, limit = 60, ...search }: Collectio
 }
 
 const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
+
+function copyRead({ copy_id }: CopyQuery) {
+  if (failingCopyReads > 0) {
+    failingCopyReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  const details = copyDetails.get(copy_id);
+  if (!details || !collectionCopies.some((copy) => copy.copy_id === copy_id)) {
+    return { data: null, error: { code: 'not_found', message: 'copy_id is not a copy in your collection.', details: 'copy_id' } };
+  }
+  return { data: details, error: null };
+}
 
 function addToCollection(copies: { copyId: string; stack: ScanBatchStack }[]) {
   for (const { copyId, stack } of copies) {
@@ -277,13 +293,19 @@ function oracleTagLookup({ text, limit }: { text: string; limit: number }) {
 
 export const fakeSupabase = {
   from: cardCatalogTable,
-  async rpc(name: string, args: { query: CollectionQuery } | { query: { text: string; limit: number } } | { batch: ScanBatch }) {
+  async rpc(
+    name: string,
+    args: { query: CollectionQuery } | { query: CopyQuery } | { query: { text: string; limit: number } } | { batch: ScanBatch },
+  ) {
     if (name === 'search_collection' && 'query' in args) {
       await heldCollectionReads;
       return collectionCopiesPage(args.query as CollectionQuery);
     }
     if (name === 'search_oracle_tags' && 'query' in args) {
       return oracleTagLookup(args.query as { text: string; limit: number });
+    }
+    if (name === 'get_copy' && 'query' in args) {
+      return copyRead(args.query as CopyQuery);
     }
     if (name === 'get_collection_total') {
       return { data: collectionTotal, error: null };
@@ -361,6 +383,19 @@ export function ownCollectionCopies(copies: CollectionCopyRow[]) {
   collectionCopies = copies;
 }
 
+export function ownCopies(copies: CopyDetails[]) {
+  collectionCopies = copies;
+  copyDetails = new Map(copies.map((copy) => [copy.copy_id, copy]));
+}
+
+export function removeCopyFromTheCollection(copyId: string) {
+  collectionCopies = collectionCopies.filter((copy) => copy.copy_id !== copyId);
+}
+
+export function failCopyReads(count: number) {
+  failingCopyReads = count;
+}
+
 export function ownCollectionTotal(total: CollectionTotal) {
   collectionTotal = total;
 }
@@ -434,6 +469,8 @@ export function galleryStorageIsOffline(reads: number) {
 export function resetFakeSupabase() {
   session = null;
   collectionCopies = [];
+  copyDetails = new Map();
+  failingCopyReads = 0;
   collectionTotal = emptyCollectionTotal;
   failingCollectionReads = 0;
   collectionSearches = [];

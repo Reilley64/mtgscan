@@ -81,6 +81,11 @@ export const rounded = {
 export const opacity = {
   dimmed: 0.38,
   sheen: 0.3,
+  heroArt: 0.45,
+} as const;
+
+export const blurRadii = {
+  heroArt: 26,
 } as const;
 
 export const sizes = {
@@ -101,6 +106,7 @@ export const sizes = {
   iconButtonSymbol: 18,
   setIcon: 16,
   staleSymbol: 11,
+  chipSymbol: 11,
   chipPadding: 9,
   cardThumbnailWidth: 40,
   cardThumbnailHeight: 56,

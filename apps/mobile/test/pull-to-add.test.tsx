@@ -83,7 +83,7 @@ test('releasing past the threshold adds the scan batch through the batch commit 
   expectAnEmptyChip();
   expectNoIndicator();
   await pressTab('Collection');
-  expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
+  expect(await screen.findAllByRole('button', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
 });
 
 test('releasing past the threshold adds only the recognized scans and keeps a scan that was not recognized on the chip', async () => {

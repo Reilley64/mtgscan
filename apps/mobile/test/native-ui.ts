@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, within } from 'expo-router/testing-library';
-import { ScrollView, StyleSheet } from 'react-native';
+import { Alert, ScrollView, StyleSheet, type AlertButton } from 'react-native';
 
 import { tokenColors } from './token-colors';
 
@@ -252,6 +252,75 @@ export async function swipeBackFromTheLeftEdge() {
   await popDrawerScreen();
 }
 
+function nearestStack(element: HostElement) {
+  let parent = element.parent;
+  while (parent && parent.type !== 'RNSScreenStack') {
+    parent = parent.parent;
+  }
+  return parent;
+}
+
+function rootStackScreens() {
+  const [rootStack] = hostViews('RNSScreenStack');
+  if (!rootStack) {
+    throw new Error('No stack is on the screen');
+  }
+  return rootStack.queryAll((instance) => instance.type === 'RNSScreen' && nearestStack(instance) === rootStack);
+}
+
+function pushedScreen() {
+  const screens = rootStackScreens();
+  if (screens.length < 2) {
+    throw new Error('No screen is pushed');
+  }
+  return screens.at(-1)!;
+}
+
+export function pushedScreenBackButton() {
+  const [header] = pushedScreen().queryAll((instance) => instance.type === 'RNSScreenStackHeaderConfig');
+  if (!header || header.props.hidden || header.props.hideBackButton) {
+    return null;
+  }
+  return { label: header.props.backTitle as string | undefined };
+}
+
+export async function swipeBackFromThePushedScreen() {
+  const current = pushedScreen();
+  if (current.props.gestureEnabled === false) {
+    throw new Error('This screen does not go back with a swipe from the left edge');
+  }
+  await fireEvent(current, 'dismissed', { nativeEvent: { dismissCount: 1 } });
+}
+
+const answeredAlerts = new WeakSet<unknown[]>();
+
+function openAlert() {
+  const call = jest.mocked(Alert.alert).mock.lastCall;
+  return call && !answeredAlerts.has(call) ? call : null;
+}
+
+function alertButtons(call: Parameters<typeof Alert.alert>): AlertButton[] {
+  return call[2] ?? [{ text: 'OK' }];
+}
+
+export function presentedAlert() {
+  const call = openAlert();
+  if (!call) {
+    return null;
+  }
+  return { title: call[0], message: call[1], buttons: alertButtons(call).map((button) => button.text) };
+}
+
+export async function pressAlertButton(label: string) {
+  const call = openAlert();
+  const button = call && alertButtons(call).find((candidate) => candidate.text === label);
+  if (!call || !button) {
+    throw new Error(`No alert button is labelled ${label}`);
+  }
+  answeredAlerts.add(call);
+  await act(async () => button.onPress?.());
+}
+
 export function opacityOf(element: HostElement) {
   return StyleSheet.flatten(element.props.style)?.opacity ?? 1;
 }
@@ -470,6 +539,12 @@ export function cardImageUri(tile: HostElement) {
 export function cardSheen(tile: HostElement) {
   const [sheen] = tile.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage !== undefined);
   return sheen ? StyleSheet.flatten(sheen.props.style) : null;
+}
+
+export function blurredImageUris() {
+  return hostViews('ViewManagerAdapter_ExpoImage')
+    .filter((image) => image.props.blurRadius > 0)
+    .map((image) => image.props.source?.[0]?.uri);
 }
 
 export function imageTintColor(element: HostElement) {

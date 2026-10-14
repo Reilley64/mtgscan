@@ -199,6 +199,16 @@ Signed-in users read their collection total with `supabase.rpc('get_collection_t
 
 `daily_collection_totals` departs from the per-user data pattern in two ways. No user changes it, and its write function does not check a caller's identity. The daily workflow writes it for every user with the secret key, through `record_daily_collection_totals`, which only `service_role` can run. The function runs with the owner's rights, not as `catalog_importer`, because the import role has no access to user data. A user reads only their own rows.
 
+### Copy read
+
+Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The query has `copy_id` and an optional `price_currency`, `USD` or `EUR`, which defaults to `USD`. `supabase/collection.ts` has the shared types. The copy page reads its copy through it.
+
+- The result has the copy's `copy_id`, `finish`, `condition`, `language`, `protected`, and `free`, and its card printing as in a copy row of collection search: `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`.
+- `added_at` is the time of the copy's addition. `purchase_day_price` is the purchase-day price of its addition line in the chosen currency, with `amount`, `currency`, and `finish`, or null.
+- `price` is the current price, as in a copy row of collection search, with `stale`.
+- From its card: `type_line`, `faces` with each face's `name` and `oracle_text` in face order, and `commander_legality`.
+- The function runs with the caller's rights, so another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist. A refused query has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
+
 ### Collection search
 
 Signed-in users search their own collection with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips and `rows`. `supabase/collection.ts` has the shared types for the query and the result rows. The Collection tab reads its binder grid only through collection search, with `rows: 'copies'`. Its search bar turns the typed text and chips into the typed query.
