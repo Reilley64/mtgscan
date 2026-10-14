@@ -1,3 +1,4 @@
+import { expect } from 'bun:test';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -15,6 +16,7 @@ export const catalogFixtureSnapshotAt = '2026-10-08T21:01:56.786+00:00';
 export const oracleTagFixtureSnapshotAt = '2026-10-09T21:00:33.548+00:00';
 export const spellbookFixtureVariants = join(import.meta.dir, 'fixtures', 'commander-spellbook', 'variants.json');
 export const spellbookFixtureSnapshotAt = '2026-10-10T09:35:39.161+00:00';
+export const exchangeRatesFixtureLatest = join(import.meta.dir, 'fixtures', 'frankfurter', 'latest.json');
 
 export type ScryfallRecord = {
   name?: string;
@@ -200,10 +202,34 @@ export async function spellbookFixture(changes: SpellbookFixtureChanges): Promis
   return variantsPath;
 }
 
+export type FrankfurterRates = {
+  amount: number;
+  base: string;
+  date: string;
+  rates: Record<string, number | string | null>;
+};
+
+export async function exchangeRatesFixture(
+  change: (rates: FrankfurterRates) => FrankfurterRates | string,
+): Promise<string> {
+  const directory = await mkdtemp(join(tmpdir(), 'mtgscan-exchange-rates-fixture-'));
+  const changed = change(await Bun.file(exchangeRatesFixtureLatest).json());
+  const ratesPath = join(directory, 'latest.json');
+  await Bun.write(ratesPath, typeof changed === 'string' ? changed : JSON.stringify(changed));
+  return ratesPath;
+}
+
 export type CommandResult = {
   exitCode: number;
   output: string;
 };
+
+export async function expectSuccess(result: Promise<CommandResult>): Promise<string> {
+  const { exitCode, output } = await result;
+  expect(output).not.toContain('error');
+  expect(exitCode).toBe(0);
+  return output;
+}
 
 async function runScript(script: string, args: string[], env: Record<string, string> = {}): Promise<CommandResult> {
   const command = Bun.spawn(['bun', script, ...args], {
@@ -238,6 +264,10 @@ export function runOracleTagImport(manifest: string, ...flags: string[]): Promis
 
 export function runComboImport(variants: string, ...flags: string[]): Promise<CommandResult> {
   return runImportCommand('commander_spellbook', '--variants', variants, ...flags);
+}
+
+export function runExchangeRateImport(rates: string, ...flags: string[]): Promise<CommandResult> {
+  return runImportCommand('exchange_rates', '--rates', rates, ...flags);
 }
 
 export function runReleaseCheckCommand(...args: string[]): Promise<CommandResult> {

@@ -11,6 +11,7 @@ on:
           - prices
           - oracle_tags
           - commander_spellbook
+          - exchange_rates
         default: catalog
       accept_shrink:
         description: Accept a shrink of more than 5%
