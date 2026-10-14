@@ -23,6 +23,9 @@ export function SettingsContent({ account, gallery, scanSounds, onScanSoundsChan
       <Button onPress={onSignOut}>
         <Text>Sign out</Text>
       </Button>
+      <Text variant="credit">
+        mtgscan is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
+      </Text>
     </>
   );
 }
