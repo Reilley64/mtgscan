@@ -788,6 +788,25 @@ function menuChoices(button: HostElement) {
   return button.queryAll((instance) => instance.type === expoUiHost && 'isOn' in instance.props);
 }
 
+function menuActions(button: HostElement) {
+  return button.queryAll((instance) => instance.type === expoUiHost && 'onButtonPress' in instance.props);
+}
+
+export function buttonMenuActions(button: HostElement) {
+  return menuActions(button).map((action) => ({
+    title: action.props.label as string,
+    destructive: action.props.role === 'destructive',
+  }));
+}
+
+export async function pressButtonMenuAction(button: HostElement, title: string) {
+  const action = menuActions(button).find((candidate) => candidate.props.label === title);
+  if (!action) {
+    throw new Error(`No menu action is titled ${title}. Actions: ${buttonMenuActions(button).map((item) => item.title).join(', ')}`);
+  }
+  await fireEvent(action, 'buttonPress');
+}
+
 export function buttonMenu(button: HostElement) {
   const [section] = button.queryAll((instance) => instance.type === expoUiHost && 'title' in instance.props);
   return {

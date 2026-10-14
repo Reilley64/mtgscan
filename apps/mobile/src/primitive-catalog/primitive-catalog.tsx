@@ -14,6 +14,7 @@ import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
 import { GlassGroup } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
+import { MenuButton } from '@/components/atoms/menu-button';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { SetIcon } from '@/components/atoms/set-icon';
@@ -210,6 +211,21 @@ function ListRows() {
       <ListRow title="Gallery" detail="Up to date" />
       <ListRow title="Signed" detail="3 copies" checked onPress={() => {}} />
       <ListRow title="Trade binder" detail="1 copy" checked={false} onPress={() => {}} />
+      <ListRow
+        title="Misprint"
+        detail="0 copies"
+        checked={false}
+        onPress={() => {}}
+        menu={
+          <MenuButton
+            accessibilityLabel="More, Misprint"
+            actions={[
+              { title: 'Rename', onSelect: () => {} },
+              { title: 'Delete user tag', destructive: true, onSelect: () => {} },
+            ]}
+          />
+        }
+      />
       <DisclosureRow accessibilityLabel="User tags, signed, trade binder" onPress={() => {}}>
         <View className="flex-row flex-wrap gap-sm">
           <Chip label="signed" />

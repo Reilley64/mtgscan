@@ -69,7 +69,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'User tags, signed, trade binder' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Add user tags' })).toBeOnTheScreen();
   expect(screen.getByRole('progressbar', { name: 'Loading collection' })).toBeOnTheScreen();
-  expect(menuButtonNames(screen.container)).toEqual(['Sort, Relevance', 'Sort, Price, high to low']);
+  expect(menuButtonNames(screen.container)).toEqual(['More, Misprint', 'Sort, Relevance', 'Sort, Price, high to low']);
   expect(screen.getByRole('progressbar', { name: 'Downloading gallery' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Other options' })).toBeOnTheScreen();
   expect(screen.getByLabelText('Protected')).toBeOnTheScreen();
@@ -78,6 +78,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByText('Could not load this card')).toBeOnTheScreen();
   expect(screen.getByLabelText('Current price, $1.25')).toHaveProp('accessibilityHint', 'The price may be out of date.');
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();
+  expect(screen.getByRole('checkbox', { name: 'Misprint, 0 copies' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263', selected: false })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Scan batch, 12' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
