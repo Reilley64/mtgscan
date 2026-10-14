@@ -12,12 +12,20 @@ _Avoid_: Oracle card
 A published version of a card identified by its set and collector number.
 _Avoid_: Version, edition
 
+**Copy**:
+One physical card that the user owns. It has a copy ID, a card printing, a finish, a condition, a language, a protected flag, and user tags. Each copy comes from one addition. To correct a copy, the user deletes it and scans it again.
+_Avoid_: Card, item, owned card
+
 **Collection entry**:
-A quantity of owned physical copies that share a card printing, finish, language, condition, protected flag, and user tags. Adding a copy with the same properties merges it into the entry. Each addition keeps its own time and purchase-day price. To correct a copy, the user deletes it and adds it again. The copies of an entry have copy numbers from 1 to its quantity. The collection entry ID and the copy number are the copy key, which names one copy, such as one tile in the binder grid. A copy key is not a copy ID.
-_Avoid_: Card, item
+The copies that share a card printing, finish, condition, language, and protected flag. It is a group of copies, not a thing of its own. Its quantity is the number of its copies. User tags do not split or merge collection entries.
+_Avoid_: Stack, item
+
+**Copy page**:
+The page about one copy, opened from its binder tile. It shows the copy's state and its card printing, and its actions menu acts on that copy. Users never see the name: the page shows the card.
+_Avoid_: Card page, card detail
 
 **Addition**:
-One commit of copies to the collection, with its time and a purchase-day price per card printing and finish. A scan batch becomes one addition. Each stack in it is an addition line, which records its quantity, its purchase-day price, and the collection entry it merged into.
+One commit of copies to the collection, with its time and a purchase-day price per card printing and finish. A scan batch becomes one addition. Each stack in it is an addition line, which records its quantity and its purchase-day price.
 _Avoid_: Import, purchase
 
 **Current price**:
@@ -37,15 +45,15 @@ The current price of a card printing and finish on the day copies were added to 
 _Avoid_: Purchase price, cost
 
 **Protected copy**:
-An owned copy that the user keeps out of decks. The AI never offers a protected copy as the reason a card is available. A user action that would put a protected copy into a deck warns the user and unprotects it on confirmation. When the only free copies are protected, promoting a deck suggestion holds a protected copy after a warning.
+A copy that the user keeps out of decks. Only a free copy can be protected. The AI never offers a protected copy as the reason a card is available. A user action that would put a protected copy into a deck warns the user and unprotects it on confirmation. When the only free copies are protected, promoting a deck suggestion holds a protected copy after a warning.
 _Avoid_: Don't touch, collection copy
 
 **User tag**:
-A private label that a user creates and attaches to individual owned copies. Copies with different user tags belong to different collection entries. A user tag is not an Oracle tag.
-_Avoid_: Tag, label
+A private label that a user creates and puts on individual copies. A copy can have many user tags. Its name is unique for the user, ignoring case. Renaming a user tag keeps it on its copies, and deleting it takes it off every copy. A user tag is not an Oracle tag.
+_Avoid_: Tag, label, collection tag
 
 **Collection**:
-The user's collection entries.
+The user's copies.
 _Avoid_: Inventory
 
 **Card catalog**:
@@ -63,10 +71,10 @@ _Avoid_: To-add list, import
 One copy in the scan batch, with its card printing, finish, condition, and language. A card photo makes a scan. **+1** makes another scan for one more copy of the same card printing, with the same finish, condition, and language. Each scan is edited and removed on its own. A scan that was not recognized has no card printing until the user picks one in name search. A basic land and a photo that is not a card make no scan.
 
 **Copy ID**:
-The ID that the phone gives each scan when it makes the scan, including a scan from **+1**. Committing the scan batch sends the copy IDs, and the server adds each copy ID once for each user, so a retry never adds a copy twice.
+The ID of one copy. It never changes. The phone gives each scan a copy ID when it makes the scan, including a scan from **+1**, and the copy keeps it in the collection. Committing the scan batch sends the copy IDs, and the server adds each copy ID once for each user, so a retry never adds a copy twice.
 
 **Stack**:
-The scans in a scan batch that share a card printing, finish, condition, and language. Committing the scan batch sends its stacks, and each stack merges into one collection entry. Batch review shows each scan as its own row, not stacks.
+The scans in a scan batch that share a card printing, finish, condition, and language. Committing the scan batch sends its stacks, and each stack adds its copies to the collection. Batch review shows each scan as its own row, not stacks.
 
 **Gallery**:
 The feature prints and printing list that the phone recognizer searches. The owner builds it, and phones download it from Storage. A phone downloads only the parts of the published gallery version that it does not have, checks each part's SHA-256 against the manifest, and switches to the new gallery version only when every part is there.
@@ -105,14 +113,14 @@ The committed real crops, simulated scans, expected results, and phone runs that
 ## Decks and changes
 
 **Deck**:
-A Commander deck made from exact owned copies in the collection. Each deck card points to a collection entry and a quantity. Basic lands are the exception.
+A Commander deck made from exact copies in the collection. Each deck card points to one copy. Basic lands are the exception.
 _Avoid_: Decklist
 
 **Allocation**:
-The owned copies of a collection entry that decks use. An owned copy is allocated to at most one deck.
+The link between a copy and the deck that uses it. A copy is allocated to at most one deck. Deleting an allocated copy removes it from its deck.
 
 **Free copy**:
-An owned copy that is not allocated to a deck or held by a planned swap. An entry's free quantity is its quantity minus its allocated and held copies, and never falls below zero.
+A copy that is not allocated to a deck or held by a planned swap. A collection entry's free quantity is the number of its free copies.
 _Avoid_: Spare, available copy
 
 **Basic land**:
@@ -164,7 +172,7 @@ A search of the card catalog that returns cards. It is separate from collection 
 _Avoid_: Card lookup
 
 **Collection search**:
-A search of the user's collection entries. It is separate from catalog search.
+A search of the user's copies. It is separate from catalog search.
 _Avoid_: Inventory search
 
 **Chip**:
