@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CardCondition, CardLanguage, CollectionQuery, CollectionRow } from '../collection';
+import type { CardCondition, CardLanguage, CollectionPage, CollectionQuery, CollectionRow } from '../collection';
 import type { Json } from '../database.types';
 import { readSearchError, type CardDetails, type CardPrintingsPage, type CatalogRow, type SearchPage } from '../search';
 import { catalogFixture, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
@@ -52,7 +52,7 @@ const bobEntries = [entry(printings.counterspellAlpha), entry(printings.angelicC
 
 async function search(query: CollectionQuery | Record<string, unknown> | unknown[], user: TestUser = alice) {
   const { data, error } = await user.client.rpc('search_collection', { query: query as Json });
-  return { page: data as unknown as SearchPage<CollectionRow> | null, error: error && readSearchError(error) };
+  return { page: data as unknown as CollectionPage<CollectionRow> | null, error: error && readSearchError(error) };
 }
 
 async function page(query: CollectionQuery, user: TestUser = alice) {
@@ -79,7 +79,7 @@ function withIssueTime(cursor: string, issuedAt: number) {
 }
 
 async function allPages(query: CollectionQuery, user: TestUser) {
-  const pages: SearchPage<CollectionRow>[] = [];
+  const pages: CollectionPage<CollectionRow>[] = [];
   let cursor: string | null = null;
   do {
     const next = await page({ ...query, cursor }, user);
@@ -481,6 +481,16 @@ describe('after a catalog import', () => {
       );
       expect(new Set(pages.map((next) => next.search_id)).size).toBe(1);
     });
+
+    test.each(['entries', 'copies'] as const)(
+      'with %s rows, the first page counts every match, and later pages carry no count',
+      async (rows) => {
+        const pages = await allPages({ rows, limit: 15, names: ['curator'] }, collector);
+
+        expect(pages.map((next) => next.items.length)).toEqual([15, 5]);
+        expect(pages.map((next) => next.total_count)).toEqual([20, null]);
+      },
+    );
 
     test('a malformed cursor fails with invalid_cursor', async () => {
       const { error } = await search({ cursor: 'not a cursor' }, collector);

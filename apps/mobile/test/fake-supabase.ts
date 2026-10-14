@@ -7,6 +7,7 @@ import {
 } from '@supabase/supabase-js';
 import type {
   CollectionCopyRow,
+  CollectionPage,
   CollectionQuery,
   CollectionTotal,
   ScanBatch,
@@ -19,7 +20,7 @@ import { act } from 'expo-router/testing-library';
 
 import type { SignInProvider } from '@/auth/sign-in';
 
-import { cardImageUri, galleryPrintings, setIconUri } from './card-printings';
+import { cardImageUri, cardSets, galleryPrintings, oracleTags, setIconUri } from './card-printings';
 import { appleIdTokenNonce } from './fake-apple';
 
 type AuthListener = (event: AuthChangeEvent, session: Session | null) => void;
@@ -46,6 +47,9 @@ const emptyCollectionTotal: CollectionTotal = {
 };
 let collectionTotal = emptyCollectionTotal;
 let failingCollectionReads = 0;
+let collectionSearches: CollectionQuery[] = [];
+let collectionSearchAnswer: ((query: CollectionQuery) => CollectionSearchAnswer) | null = null;
+let cursorGeneration = 0;
 let scanBatchesSent: ScanBatch[] = [];
 let addedCopies = new Map<string, string>();
 let failingScanBatch: 'before the server adds it' | 'after the server adds it' | null = null;
@@ -109,7 +113,11 @@ async function nonceMatches(provider: SignInProvider, token: string, nonce: stri
   );
 }
 
-function collectionCopiesPage({ rows, cursor, limit = 60 }: CollectionQuery) {
+export type CollectionSearchAnswer = CollectionCopyRow[] | { refusedField: string };
+
+const expiredCursor = { code: 'invalid_cursor', message: 'The cursor has expired. Start the search again.', details: 'cursor' };
+
+function collectionCopiesPage({ rows, cursor, limit = 60, ...search }: CollectionQuery) {
   if (rows !== 'copies') {
     throw new Error('The fake Supabase client searches the collection only for copy rows');
   }
@@ -117,15 +125,25 @@ function collectionCopiesPage({ rows, cursor, limit = 60 }: CollectionQuery) {
     failingCollectionReads -= 1;
     return { data: null, error: { code: 'PGRST000', message: 'Network request failed', details: null } };
   }
-  const start = cursor ? Number(cursor) : 0;
-  const end = start + limit;
-  return {
-    data: {
-      items: collectionCopies.slice(start, end),
-      next_cursor: end < collectionCopies.length ? String(end) : null,
-    },
-    error: null,
+  const [generation, offset] = cursor ? cursor.split(':').map(Number) : [cursorGeneration, 0];
+  if (generation !== cursorGeneration) {
+    return { data: null, error: expiredCursor };
+  }
+  if (!cursor) {
+    collectionSearches = [...collectionSearches, search];
+  }
+  const answer = collectionSearchAnswer ? collectionSearchAnswer(search) : collectionCopies;
+  if ('refusedField' in answer) {
+    const { refusedField } = answer;
+    return { data: null, error: { code: 'invalid_argument', message: `${refusedField} is not known.`, details: refusedField } };
+  }
+  const end = offset + limit;
+  const page: Pick<CollectionPage<CollectionCopyRow>, 'items' | 'next_cursor' | 'total_count'> = {
+    items: answer.slice(offset, end),
+    next_cursor: end < answer.length ? `${cursorGeneration}:${end}` : null,
+    total_count: cursor ? null : answer.length,
   };
+  return { data: page, error: null };
 }
 
 const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
@@ -239,15 +257,31 @@ function cardCatalogTable(table: string) {
   return {
     select: () => ({
       in: async (_column: string, ids: string[]) => ({ data: cardCatalogRows(table, ids), error: null }),
+      ilike: (_column: string, pattern: string) => ({
+        order: () => ({
+          limit: async (count: number) => ({
+            data: cardSets.filter((set) => set.code.startsWith(pattern.replace(/%$/, '').toLowerCase())).slice(0, count),
+            error: null,
+          }),
+        }),
+      }),
     }),
   };
 }
 
+function oracleTagLookup({ text, limit }: { text: string; limit: number }) {
+  const items = oracleTags.filter((tag) => tag.slug.includes(text.toLowerCase())).slice(0, limit);
+  return { data: { items }, error: null };
+}
+
 export const fakeSupabase = {
   from: cardCatalogTable,
-  async rpc(name: string, args: { query: CollectionQuery } | { batch: ScanBatch }) {
+  async rpc(name: string, args: { query: CollectionQuery } | { query: { text: string; limit: number } } | { batch: ScanBatch }) {
     if (name === 'search_collection' && 'query' in args) {
-      return collectionCopiesPage(args.query);
+      return collectionCopiesPage(args.query as CollectionQuery);
+    }
+    if (name === 'search_oracle_tags' && 'query' in args) {
+      return oracleTagLookup(args.query as { text: string; limit: number });
     }
     if (name === 'get_collection_total') {
       return { data: collectionTotal, error: null };
@@ -333,6 +367,18 @@ export function failCollectionReads(count: number) {
   failingCollectionReads = count;
 }
 
+export function answerCollectionSearches(answer: (query: CollectionQuery) => CollectionSearchAnswer) {
+  collectionSearchAnswer = answer;
+}
+
+export function collectionSearchesSent() {
+  return collectionSearches;
+}
+
+export function expireCollectionSearchCursors() {
+  cursorGeneration += 1;
+}
+
 export function scanBatchesSentToTheServer() {
   return scanBatchesSent;
 }
@@ -375,6 +421,9 @@ export function resetFakeSupabase() {
   collectionCopies = [];
   collectionTotal = emptyCollectionTotal;
   failingCollectionReads = 0;
+  collectionSearches = [];
+  collectionSearchAnswer = null;
+  cursorGeneration = 0;
   scanBatchesSent = [];
   addedCopies = new Map();
   failingScanBatch = null;

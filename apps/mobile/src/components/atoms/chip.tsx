@@ -19,11 +19,21 @@ const toneVariants = cva('text-chip', {
   },
 });
 
+const removableVariants = cva(cn(chipClass, 'min-w-touch-target flex-row items-center gap-xs'), {
+  variants: {
+    tone: {
+      neutral: 'bg-surface-control',
+      danger: 'bg-danger-tint',
+    },
+  },
+});
+
 type StatusChipProps = {
   label: string;
   tone?: 'neutral' | 'warning' | 'danger' | 'info';
   selected?: never;
   onPress?: never;
+  onRemove?: never;
 };
 
 type SelectableChipProps = {
@@ -31,9 +41,39 @@ type SelectableChipProps = {
   tone?: never;
   selected: boolean;
   onPress: () => void;
+  onRemove?: never;
 };
 
-export function Chip({ label, tone = 'neutral', selected, onPress }: StatusChipProps | SelectableChipProps) {
+type RemovableChipProps = {
+  label: string;
+  tone?: 'neutral' | 'danger';
+  selected?: never;
+  onPress?: never;
+  onRemove: () => void;
+};
+
+export function Chip({
+  label,
+  tone = 'neutral',
+  selected,
+  onPress,
+  onRemove,
+}: StatusChipProps | SelectableChipProps | RemovableChipProps) {
+  if (onRemove) {
+    const removableTone = tone === 'danger' ? 'danger' : 'neutral';
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityHint="Removes this chip."
+        hitSlop={verticalTouchSlop(sizes.chip)}
+        onPress={onRemove}
+        className={removableVariants({ tone: removableTone })}>
+        <Text className={toneVariants({ tone: removableTone })}>{label}</Text>
+        <Text className={toneVariants({ tone: removableTone })}>×</Text>
+      </Pressable>
+    );
+  }
   if (!onPress) {
     return (
       <View accessible accessibilityLabel={label} className={cn(chipClass, 'self-start bg-surface-control')}>

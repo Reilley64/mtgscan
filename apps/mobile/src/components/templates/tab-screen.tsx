@@ -1,6 +1,7 @@
 import { router, Stack } from 'expo-router';
 import type { ReactNode } from 'react';
 import { FlatList, ScrollView, type FlatListProps } from 'react-native';
+import type { SearchBarProps } from 'react-native-screens';
 
 import { cn } from '@/lib/class-names';
 import { colors } from '@/theme';
@@ -12,12 +13,24 @@ const contentClass = 'px-lg pt-sm';
 type TabHeaderProps = {
   title: string;
   actions?: ReactNode;
+  search?: SearchBarProps;
 };
 
-function TabHeader({ title, actions }: TabHeaderProps) {
+function TabHeader({ title, actions, search }: TabHeaderProps) {
   return (
     <>
-      <Stack.Screen options={{ title }} />
+      <Stack.Screen
+        options={{
+          title,
+          headerSearchBarOptions: search && {
+            placement: 'stacked',
+            hideWhenScrolling: false,
+            tintColor: colors.primary,
+            textColor: colors.text,
+            ...search,
+          },
+        }}
+      />
       <Stack.Toolbar placement="right">
         {actions}
         <Stack.Toolbar.Button
@@ -31,7 +44,7 @@ function TabHeader({ title, actions }: TabHeaderProps) {
   );
 }
 
-type TabScreenProps = TabHeaderProps & {
+type TabScreenProps = Omit<TabHeaderProps, 'search'> & {
   children: ReactNode;
 };
 
@@ -52,10 +65,10 @@ export function TabScreen({ title, actions, children }: TabScreenProps) {
 type TabListScreenProps<Item> = Omit<FlatListProps<Item>, 'style' | 'contentContainerStyle' | 'contentInsetAdjustmentBehavior'> &
   TabHeaderProps;
 
-export function TabListScreen<Item>({ title, actions, ...listProps }: TabListScreenProps<Item>) {
+export function TabListScreen<Item>({ title, actions, search, ...listProps }: TabListScreenProps<Item>) {
   return (
     <>
-      <TabHeader title={title} actions={actions} />
+      <TabHeader title={title} actions={actions} search={search} />
       <FlatList
         {...listProps}
         className={screenClass}

@@ -352,7 +352,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - When the read fails, the tab shows "Could not load your collection" and "Check your connection." with a **Try again** button.
   - One quiet meta line under each card shows the set icon in its rarity color, the collector number, and the condition when it is not NM. Foil and etched copies carry a sheen on the card image instead of a finish label. Later, badges also show whether the copy is in a deck, held by a planned swap, or protected.
   - A price line under the meta line shows the copy's current price (owner decision, #120). A copy with no current price shows "–". A stale price has a clock symbol.
-  - Search matches name, type, and printing, in the collection only. Filters: All, Free, Allocated, Protected.
+  - A native search bar sits under the large title. See Collection search. Filters: All, Free, Allocated, Protected.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
   - Until the gallery is on the phone, the camera stays off and the tab shows the gallery download:
@@ -406,6 +406,26 @@ The collection total is always visible. The owner picked variant C of the HTML p
 - The change is neutral. The sign carries the direction: + or the minus sign. There is no green or red. No change shows "$0.00" with no sign. When there is no daily collection total from the day before, such as before the first one, the change is "–".
 - The change is the collection total now minus the daily collection total of the day before the current prices. mtgscan stores a daily collection total for each user after the daily price import. Copies added since then count in the change.
 - **VoiceOver.** The button reads "Collection total, $2,419.59" with the hint "up $12.40 since yesterday, 26 of 27 cards priced". A falling total says "down", no change says "no change since yesterday", and with no daily collection total from the day before it says "change since yesterday not known yet".
+
+### Collection search
+
+The owner picked layout B of the HTML prototype (`prototypes/collection-management/collection-tab.html` on `prototype/collection-management`, commit 84a51cb).
+
+- **Search bar.** The native iOS search bar sits under the large title, with the placeholder "Search your collection". It stays visible when the grid scrolls. Its caret and Cancel are primary lime.
+- Typed text matches card names, type lines, and Oracle text, in the collection only.
+- **Suggestions.** While the user types, suggestions replace the grid. Each suggestion is a list row.
+  - With no key typed, they offer the keys that start with the typed word, such as "set:" with "Set code".
+  - After a key, they offer values: set codes from the card catalog with the set name, Oracle tags from the tag lookup with the tag label, and the fixed lists for finish, condition, language, rarity, and color.
+  - Tapping a key puts it in the search bar. Tapping a value makes a chip. Enter closes the suggestions and shows the results.
+- **Chips.** A space, Enter, or a picked suggestion turns `key:value` text into a chip.
+  - The keys are `name`, `type`, `color`, `identity`, `mv`, `pow`, `tou`, `price` (with `=`, `<`, `<=`, `>`, `>=`), `tag`, `keyword`, `set`, `rarity`, `finish`, `condition`, `lang`, `is:commander`, `is:gamechanger`, `is:free`, and `is:protected`.
+  - A value with spaces is quoted, as in `name:"sol ring"`. A leading `-` negates, as in `-rarity:common`.
+  - A key that the app does not know stays as text.
+- The app turns the text and the chips into the typed collection search query. The server never parses a string.
+- Chips sit under the search bar, at the top of the grid. Each chip shows its `key:value` text and ×. Tapping a chip removes it. Backspace in an empty field removes the last chip. Cancel clears the text and the chips.
+- **Results.** Results show as binder tiles, one per copy. While text or a chip is active, a count line in meta text, such as "6 of 27 copies", sits above the grid. With no results, the grid shows "No cards found."
+- A chip that the server refuses, such as an unknown set or Oracle tag, turns danger. The grid shows "No set named "zzz"." or "No Oracle tag named "zzz"."
+- VoiceOver reads a chip as a button with its `key:value` text and the hint "Removes this chip."
 
 ### Sign-in screen
 
@@ -526,7 +546,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Text links.** An in-app link inside a line of text, such as **Privacy policy**, keeps the type size of its line in bold lime. It is the one control without a 44 pt touch target, because a nested text run cannot take extra touch area.
 - **Failure notice.** A surface card with 12 px padding and a danger mark beside the message, such as "Sign-in did not work." A long message wraps in the space beside the mark, and the mark lines up with its first line.
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
-- **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Their text uses the text, warning, danger, or info color. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide.
+- **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Their text uses the text, warning, danger, or info color. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide. Search chips show their `key:value` text and × on the control surface, and a tap removes them. A refused search chip has danger text on the danger tint.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, the batch button, and the card page Decks tab.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and card page deck lists. It opens the deck.

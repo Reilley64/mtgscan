@@ -132,6 +132,10 @@ function Chips() {
         <Chip tone="danger" label="Not valid" />
         <Chip tone="info" label="Bracket 3" />
       </View>
+      <View className="flex-row flex-wrap gap-sm">
+        <Chip label="set:mh2" onRemove={() => {}} />
+        <Chip tone="danger" label="set:zzz" onRemove={() => {}} />
+      </View>
       <ChipGroup values={conditions} selected={condition} labelOf={(value) => value} onSelect={setCondition} />
     </Section>
   );

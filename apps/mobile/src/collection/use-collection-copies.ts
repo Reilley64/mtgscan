@@ -1,5 +1,4 @@
-import type { CollectionCopyRow, CollectionQuery } from '@mtgscan/supabase/collection';
-import type { SearchPage } from '@mtgscan/supabase/search';
+import type { CollectionCopyRow, CollectionPage, CollectionQuery } from '@mtgscan/supabase/collection';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 
@@ -8,39 +7,49 @@ import { supabase } from '@/lib/supabase';
 export type BinderRead =
   | { status: 'loading' }
   | { status: 'failed' }
-  | { status: 'loaded'; copies: CollectionCopyRow[]; nextCursor: string | null };
+  | { status: 'refused'; field: string }
+  | { status: 'loaded'; copies: CollectionCopyRow[]; nextCursor: string | null; matchCount: number | null };
 
-async function readCollectionCopies(cursor: string | null) {
-  const query: CollectionQuery = { rows: 'copies', cursor };
+async function readCollectionCopies(search: CollectionQuery, cursor: string | null) {
+  const query: CollectionQuery = { ...search, rows: 'copies', cursor };
   const { data, error } = await supabase.rpc('search_collection', { query });
   if (error) {
     throw error;
   }
-  return data as unknown as SearchPage<CollectionCopyRow>;
+  return data as unknown as CollectionPage<CollectionCopyRow>;
 }
 
-export function useCollectionCopies() {
+function refusedField(error: { code?: string; details?: string | null }) {
+  return error.code === 'invalid_argument' && error.details ? error.details : null;
+}
+
+export function useCollectionCopies(search: CollectionQuery) {
   const [binder, setBinder] = useState<BinderRead>({ status: 'loading' });
   const latestRead = useRef(0);
   const readingMore = useRef(false);
+  const searchKey = JSON.stringify(search);
 
   const reload = useCallback(() => {
     const read = ++latestRead.current;
     readingMore.current = false;
-    setBinder((current) => (current.status === 'failed' ? { status: 'loading' } : current));
-    readCollectionCopies(null).then(
+    setBinder((current) => (current.status === 'loaded' ? current : { status: 'loading' }));
+    readCollectionCopies(JSON.parse(searchKey), null).then(
       (page) => {
         if (read === latestRead.current) {
-          setBinder({ status: 'loaded', copies: page.items, nextCursor: page.next_cursor });
+          setBinder({ status: 'loaded', copies: page.items, nextCursor: page.next_cursor, matchCount: page.total_count });
         }
       },
-      () => {
-        if (read === latestRead.current) {
-          setBinder((current) => (current.status === 'loaded' ? current : { status: 'failed' }));
+      (error) => {
+        if (read !== latestRead.current) {
+          return;
         }
+        const field = refusedField(error);
+        setBinder((current) =>
+          field ? { status: 'refused', field } : current.status === 'loaded' ? current : { status: 'failed' },
+        );
       },
     );
-  }, []);
+  }, [searchKey]);
 
   useFocusEffect(reload);
 
@@ -50,7 +59,7 @@ export function useCollectionCopies() {
     }
     const read = latestRead.current;
     readingMore.current = true;
-    readCollectionCopies(binder.nextCursor).then(
+    readCollectionCopies(JSON.parse(searchKey), binder.nextCursor).then(
       (page) => {
         if (read !== latestRead.current) {
           return;
@@ -62,13 +71,17 @@ export function useCollectionCopies() {
             : current,
         );
       },
-      () => {
-        if (read === latestRead.current) {
-          readingMore.current = false;
+      (error) => {
+        if (read !== latestRead.current) {
+          return;
+        }
+        readingMore.current = false;
+        if (error.code === 'invalid_cursor') {
+          reload();
         }
       },
     );
-  }, [binder]);
+  }, [binder, reload, searchKey]);
 
   return { binder, reload, loadMore };
 }

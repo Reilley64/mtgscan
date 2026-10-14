@@ -8,14 +8,28 @@ import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { PriceLine } from '@/components/molecules/price-line';
 import { EmptyState } from '@/components/molecules/empty-state';
+import { CollectionSearchHeader } from '@/components/organisms/collection-search-header';
 import { collectionTotalMenu } from '@/components/organisms/collection-total';
 import { TabListScreen } from '@/components/templates/tab-screen';
+import { refusedChipMessage, type SearchChip } from '@/collection/collection-search';
 import { shownCondition, shownPrice, spokenFinishAndCondition } from '@/collection/copy-labels';
+import { shownMatchCount } from '@/collection/total-labels';
 import { useCollectionCopies, type BinderRead } from '@/collection/use-collection-copies';
+import { useCollectionSearch } from '@/collection/use-collection-search';
 import { useCollectionTotal } from '@/collection/use-collection-total';
 
-function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAgain: () => void }) {
-  if (binder.status === 'failed') {
+type BinderPlaceholderProps = {
+  binder: BinderRead;
+  searching: boolean;
+  refusedChip: SearchChip | undefined;
+  onTryAgain: () => void;
+};
+
+function BinderPlaceholder({ binder, searching, refusedChip, onTryAgain }: BinderPlaceholderProps) {
+  if (refusedChip) {
+    return <EmptyState title={refusedChipMessage(refusedChip)} />;
+  }
+  if (binder.status === 'failed' || binder.status === 'refused') {
     return (
       <View className="gap-lg">
         <EmptyState title="Could not load your collection" message="Check your connection." />
@@ -24,6 +38,9 @@ function BinderPlaceholder({ binder, onTryAgain }: { binder: BinderRead; onTryAg
         </Button>
       </View>
     );
+  }
+  if (binder.status === 'loaded' && searching) {
+    return <EmptyState title="No cards found." />;
   }
   if (binder.status === 'loaded') {
     return (
@@ -59,22 +76,46 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
 }
 
 export default function CollectionScreen() {
-  const { binder, reload, loadMore } = useCollectionCopies();
-  const copies = binder.status === 'loaded' ? binder.copies : [];
+  const search = useCollectionSearch();
+  const { binder, reload, loadMore } = useCollectionCopies(search.query);
+  const suggesting = search.suggestions.length > 0;
+  const copies = binder.status === 'loaded' && !suggesting ? binder.copies : [];
   const iconOf = useSetIcons([...new Set(copies.map((copy) => copy.set))]);
   const total = useCollectionTotal();
+  const refusedChip = binder.status === 'refused' ? search.chipOfField.get(binder.field) : undefined;
+  const matchCount = binder.status === 'loaded' && search.searching ? binder.matchCount : null;
 
   return (
     <TabListScreen
       title="Collection"
       actions={total && total.copies > 0 ? collectionTotalMenu(total) : undefined}
+      search={search.searchBar}
+      ListHeaderComponent={
+        <CollectionSearchHeader
+          chips={search.chips}
+          refusedChip={refusedChip}
+          onRemoveChip={search.removeChip}
+          suggestions={search.suggestions}
+          onPickSuggestion={search.pick}
+          countLine={!suggesting && matchCount && total ? shownMatchCount(matchCount, total) : undefined}
+        />
+      }
       data={copies}
       keyExtractor={(copy) => copy.copy_id}
       numColumns={cardsPerRow}
       columnWrapperClassName={cardRowClass}
       ItemSeparatorComponent={RowGap}
       renderItem={({ item }) => <BinderTile copy={item} setIconUri={iconOf(item.set)} />}
-      ListEmptyComponent={<BinderPlaceholder binder={binder} onTryAgain={reload} />}
+      ListEmptyComponent={
+        suggesting ? null : (
+          <BinderPlaceholder
+            binder={binder}
+            searching={search.searching}
+            refusedChip={refusedChip === undefined ? undefined : search.chips[refusedChip]}
+            onTryAgain={reload}
+          />
+        )
+      }
       onEndReached={loadMore}
       onEndReachedThreshold={1}
     />
