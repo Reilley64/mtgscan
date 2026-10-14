@@ -106,14 +106,18 @@ describe('the collection total read', () => {
 });
 
 describe('no price history', () => {
-  test('the daily collection totals table no longer exists', async () => {
-    const { error } = await secretKeyClient().from('daily_collection_totals' as never).select('*');
+  test('a signed-in user finds no daily collection totals table', async () => {
+    const user = await signUpNewUser();
+
+    const { error } = await user.client.from('daily_collection_totals' as never).select('*');
 
     expect(error?.code).toBe(tableNotFound);
   });
 
-  test('the function that recorded daily collection totals no longer exists', async () => {
-    const { error } = await secretKeyClient().rpc('record_daily_collection_totals' as never);
+  test('a signed-in user finds no function that records daily collection totals', async () => {
+    const user = await signUpNewUser();
+
+    const { error } = await user.client.rpc('record_daily_collection_totals' as never);
 
     expect(error?.code).toBe(functionNotFound);
   });
