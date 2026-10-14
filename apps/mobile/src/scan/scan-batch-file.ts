@@ -15,7 +15,9 @@ export async function readScanBatch(userId: string): Promise<ScanBatch> {
   }
   try {
     const { formatVersion: savedVersion, scans, commitPending } = JSON.parse(await file.text());
-    return savedVersion === formatVersion ? { scans, commitPending: commitPending === true } : emptyScanBatch;
+    return savedVersion === formatVersion
+      ? { scans: scans.filter((scan: { printing: unknown }) => scan.printing), commitPending: commitPending === true }
+      : emptyScanBatch;
   } catch {
     return emptyScanBatch;
   }

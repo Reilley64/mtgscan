@@ -1,3 +1,4 @@
+import { File, Paths } from 'expo-file-system';
 import { act, fireEvent, screen } from 'expo-router/testing-library';
 
 import { lightningBolt2xm, lightningBoltM10, plains, shock } from './card-printings';
@@ -67,12 +68,27 @@ async function pressPlusOne() {
   await fireEvent.press(scanTab().getByRole('button', { name: '+1' }));
 }
 
+const savedScan = {
+  options: [],
+  sameTextTwinCount: 0,
+  premiumMark: false,
+  finish: 'nonfoil',
+  condition: 'near_mint',
+  language: 'en',
+};
+
+function saveScanBatchFromAnOlderBuild(scans: object[]) {
+  new File(Paths.document, 'scan-batch-user-player@example.com.json').write(
+    JSON.stringify({ formatVersion: 1, scans, commitPending: false }),
+  );
+}
+
 beforeEach(() => {
   resetSampleClock();
   startSignedIn();
 });
 
-test('the batch button counts the copies to add and leaves out scans that were not recognized', async () => {
+test('a scan that is not recognized stays out of the scan batch, so the rows, the title, the batch badge, and Remove N scans count the same scans', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
   await openScan();
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
@@ -81,11 +97,58 @@ test('the batch button counts the copies to add and leaves out scans that were n
   await pressPlusOne();
   await scanACard();
 
+  expect(latestScanChip('Not recognized, Tap to search')).toBeOnTheScreen();
   expect(scanTab().getByRole('button', { name: 'Scan batch, 2' })).toBeOnTheScreen();
   expect(scanTab().getByText('2')).toBeOnTheScreen();
   await openBatchReview(2);
-  expect(screen.getByRole('button', { name: 'Not recognized, Tap to search' })).toBeOnTheScreen();
   expect(drawerTitle()).toBe('2 cards scanned');
+  expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English', 'Lightning Bolt, M10 146 · NM · English']);
+  expect(screen.queryByRole('header', { name: 'Not recognized' })).not.toBeOnTheScreen();
+  expect(screen.queryByText('Not recognized')).not.toBeOnTheScreen();
+  expect(headerMenuRows(drawerScreen(), 'More')).toEqual([
+    { title: 'Remove all scans', destructive: true, rows: [{ title: 'Remove 2 scans', destructive: true }] },
+  ]);
+});
+
+test('choosing a card printing in name search for a scan that was not recognized adds it to the scan batch as one scan with the defaults', async () => {
+  nextPhotosAre('unreadable_photo');
+  await openScan();
+  await scanACard();
+  expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
+  await openLatestScan('Not recognized, Tap to search');
+
+  await fireEvent.changeText(await screen.findByLabelText('Card name'), 'bolt');
+  await fireEvent.press(await screen.findByRole('button', { name: 'Lightning Bolt' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Lightning Bolt, 2XM 117' }));
+  await swipeDownDrawer();
+
+  expect(latestScanChip('Lightning Bolt, 2XM 117')).toBeOnTheScreen();
+  expect(scanTab().getByRole('button', { name: 'Scan batch, 1' })).toBeOnTheScreen();
+  await openBatchReview(1);
+  expect(reviewRows()).toEqual(['Lightning Bolt, 2XM 117 · NM · English']);
+  await addToCollection();
+  const [sent] = scanBatchesSentToTheServer();
+  expect(sent.items.map(({ copy_ids, ...stack }) => ({ ...stack, copies: copy_ids.length }))).toEqual([
+    { card_printing_id: lightningBolt2xm.printingId, finish: 'nonfoil', condition: 'near_mint', language: 'en', copies: 1 },
+  ]);
+});
+
+test('a new scan replaces a scan that was not recognized on the chip, and the scan that was not recognized is never added', async () => {
+  nextPhotosAre('unreadable_photo', cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+
+  await scanACard();
+
+  expect(latestScanChip('Shock, M19 156')).toBeOnTheScreen();
+  expect(scanTab().queryByText('Not recognized')).not.toBeOnTheScreen();
+  expect(scanTab().getByRole('button', { name: 'Scan batch, 1' })).toBeOnTheScreen();
+  await openBatchReview(1);
+  expect(reviewRows()).toEqual(['Shock, M19 156 · NM · English']);
+  expect(screen.queryByText('Not recognized')).not.toBeOnTheScreen();
+  await addToCollection();
+  const [sent] = scanBatchesSentToTheServer();
+  expect(sent.items.flatMap((item) => item.copy_ids)).toHaveLength(1);
 });
 
 test('the batch button opens batch review as a bottom drawer with a grabber at full height only', async () => {
@@ -212,20 +275,6 @@ test('Remove scan in the scan details removes only that copy and returns to the 
   expect(latestScanChip('Shock, M19 156')).toBeOnTheScreen();
 });
 
-test('batch review lists scans that were not recognized, and a tap opens name search', async () => {
-  nextPhotosAre('unreadable_photo', cardRecognition([shock]));
-  await openScan();
-  await scanACard();
-  await scanACard();
-  await openBatchReview(1);
-
-  expect(screen.getByRole('header', { name: 'Not recognized' })).toBeOnTheScreen();
-  expect(drawerTitle()).toBe('1 card scanned');
-  await fireEvent.press(screen.getByRole('button', { name: 'Not recognized, Tap to search' }));
-
-  expect(await screen.findByLabelText('Card name')).toBeOnTheScreen();
-});
-
 test('Add to collection sends every copy with its own copy ID, with identical copies in one stack', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock], { premiumMark: true }), 'unreadable_photo');
   await openScan();
@@ -252,12 +301,11 @@ function expectAnEmptyChip() {
   expectDisabledQuickActions();
 }
 
-test('a commit closes batch review, leaves the chip empty, keeps scans that were not recognized, and the binder grid shows the new cards', async () => {
-  nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
+test('a commit closes batch review, leaves the chip empty, and the binder grid shows the new cards', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
   await pressPlusOne();
-  await scanACard();
   await openBatchReview(2);
 
   await addToCollection();
@@ -267,6 +315,21 @@ test('a commit closes batch review, leaves the chip empty, keeps scans that were
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   await pressTab('Collection');
   expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
+});
+
+test('a commit adds only the recognized scans and keeps a scan that was not recognized on the chip', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
+  await openScan();
+  await scanACard();
+  await scanACard();
+  await openBatchReview(1);
+
+  await addToCollection();
+
+  const [sent] = scanBatchesSentToTheServer();
+  expect(sent.items.map((item) => item.card_printing_id)).toEqual([lightningBoltM10.printingId]);
+  expect(latestScanChip('Not recognized, Tap to search')).toBeOnTheScreen();
+  expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
 });
 
 test('swiping Add to collection past the threshold adds the batch, and releasing it before the threshold adds nothing', async () => {
@@ -392,7 +455,7 @@ test('the More button in batch review opens Remove all scans, whose submenu offe
   expect(headerButton(drawerScreen(), 'More')).toEqual({ type: 'menu', label: undefined, symbol: 'ellipsis', hint: undefined });
   expect(headerButtonIsDisabled(drawerScreen(), 'More')).toBe(false);
   expect(headerMenuRows(drawerScreen(), 'More')).toEqual([
-    { title: 'Remove all scans', destructive: true, rows: [{ title: 'Remove 3 scans', destructive: true }] },
+    { title: 'Remove all scans', destructive: true, rows: [{ title: 'Remove 2 scans', destructive: true }] },
   ]);
 });
 
@@ -406,7 +469,7 @@ test('Remove N scans empties the scan batch, the batch badge, and the latest-sca
   expect(scanTab().getByText('Basic land, not tracked')).toBeOnTheScreen();
   await openBatchReview(2);
 
-  await removeAllScans('Remove 3 scans');
+  await removeAllScans('Remove 2 scans');
 
   expect(isDrawerPresented()).toBe(false);
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
@@ -415,7 +478,6 @@ test('Remove N scans empties the scan batch, the batch badge, and the latest-sca
   await openBatchReview();
   expect(drawerTitle()).toBe('0 cards scanned');
   expect(reviewRows()).toEqual([]);
-  expect(screen.queryByRole('button', { name: 'Not recognized, Tap to search' })).not.toBeOnTheScreen();
 });
 
 test('removed scans stay removed after a restart of the app', async () => {
@@ -468,6 +530,21 @@ test('a card still being recognized when every scan is removed does not come bac
   expect(reviewRows()).toEqual([]);
 });
 
+test('a card still being recognized when every scan is removed plays no haptic and no sound', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+  const recognition = holdNextRecognition();
+  await scanACard();
+  await openBatchReview(1);
+  const feedbackBeforeRemoving = scanFeedback().length;
+
+  await removeAllScans('Remove 1 scan');
+  await recognition.finish();
+
+  expect(scanFeedback().slice(feedbackBeforeRemoving)).toEqual([]);
+});
+
 test('the More button is disabled when the scan batch is empty', async () => {
   await openScan();
 
@@ -504,18 +581,37 @@ test('Remove all scans is a submenu, not an action, so the scan batch stays unti
 });
 
 test('the scan batch survives a restart of the app', async () => {
-  nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
   await pressPlusOne();
-  await scanACard();
 
   await restartTheApp();
   await pressTab('Scan');
   await openBatchReview(2);
 
   expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English', 'Lightning Bolt, M10 146 · NM · English']);
-  expect(screen.getByRole('button', { name: 'Not recognized, Tap to search' })).toBeOnTheScreen();
+});
+
+test('a scan batch saved by an older build still loads, without its scans that were not recognized', async () => {
+  saveScanBatchFromAnOlderBuild([
+    { ...savedScan, scanId: 'older-recognized', printing: lightningBoltM10 },
+    { ...savedScan, scanId: 'older-not-recognized', printing: null },
+  ]);
+
+  await openScan();
+
+  expect(scanTab().getByRole('button', { name: 'Scan batch, 1' })).toBeOnTheScreen();
+  expect(scanTab().queryByText('Not recognized')).not.toBeOnTheScreen();
+  expectDisabledQuickActions();
+  await openBatchReview(1);
+  expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English']);
+  expect(screen.queryByText('Not recognized')).not.toBeOnTheScreen();
+  await addToCollection();
+  const [sent] = scanBatchesSentToTheServer();
+  expect(sent.items.map(({ card_printing_id, copy_ids }) => ({ card_printing_id, copy_ids }))).toEqual([
+    { card_printing_id: lightningBoltM10.printingId, copy_ids: ['older-recognized'] },
+  ]);
 });
 
 test('a restart after a commit that did not finish sends it again with the same copy IDs', async () => {

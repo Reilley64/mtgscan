@@ -63,11 +63,11 @@ test('pulling down shows the cards to add, and past the threshold asks to releas
 });
 
 test('releasing past the threshold adds the scan batch through the batch commit and leaves the chip empty', async () => {
-  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]), 'unreadable_photo');
+  nextPhotosAre('unreadable_photo', cardRecognition([lightningBoltM10]), cardRecognition([shock]));
   await openScan();
   await scanACard();
-  await pressPlusOne();
   await scanACard();
+  await pressPlusOne();
   await scanACard();
 
   const pull = await startPullingDown();

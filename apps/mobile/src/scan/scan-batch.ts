@@ -10,17 +10,11 @@ export type BatchScan = Readonly<{
   options: readonly Printing[];
   sameTextTwinCount: number;
   premiumMark: boolean;
-  printing: Printing | null;
+  printing: Printing;
   finish: Finish;
   condition: CardCondition;
   language: CardLanguage;
 }>;
-
-export type RecognizedScan = BatchScan & { printing: Printing };
-
-export function recognizedScan(scan: BatchScan | null | undefined): RecognizedScan | null {
-  return scan?.printing ? { ...scan, printing: scan.printing } : null;
-}
 
 export type ScanBatch = Readonly<{
   scans: readonly BatchScan[];
@@ -31,11 +25,11 @@ export type ScanBatchAction =
   | {
       type: 'recognized';
       scanId: string;
-      candidates: readonly Printing[];
+      printing: Printing;
+      options: readonly Printing[];
       sameTextTwinCount: number;
       premiumMark: boolean;
     }
-  | { type: 'failed'; scanId: string }
   | { type: 'choose'; scanId: string; printing: Printing }
   | { type: 'setFinish'; scanId: string; finish: Finish }
   | { type: 'setCondition'; scanId: string; condition: CardCondition }
@@ -45,7 +39,7 @@ export type ScanBatchAction =
   | { type: 'commitStarted' }
   | { type: 'committed'; scanIds: readonly string[] };
 
-export type ScanEdit = Exclude<ScanBatchAction, { type: 'commitStarted' | 'committed' }>;
+export type ScanEdit = Exclude<ScanBatchAction, { type: 'recognized' | 'commitStarted' | 'committed' }>;
 
 export const newScanDefaults = { condition: 'near_mint', language: 'en' } as const satisfies Pick<BatchScan, 'condition' | 'language'>;
 
@@ -74,38 +68,18 @@ function updateScan(batch: ScanBatch, scanId: string, change: (scan: BatchScan) 
   return { ...batch, scans: batch.scans.map((scan) => (scan.scanId === scanId ? change(scan) : scan)) };
 }
 
-function addScan(batch: ScanBatch, scan: Omit<BatchScan, 'condition' | 'language'>): ScanBatch {
-  if (batch.scans.some((existing) => existing.scanId === scan.scanId)) {
-    return batch;
-  }
-  return {
-    ...batch,
-    scans: [...batch.scans, { ...scan, ...newScanDefaults }],
-  };
-}
-
 export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): ScanBatch {
   switch (action.type) {
     case 'recognized': {
-      const printing = action.candidates[0] ?? null;
-      return addScan(batch, {
-        scanId: action.scanId,
-        options: action.candidates,
-        sameTextTwinCount: action.sameTextTwinCount,
-        premiumMark: action.premiumMark,
-        printing,
-        finish: printing ? defaultFinish(printing, action.premiumMark) : 'nonfoil',
-      });
+      if (batch.scans.some((existing) => existing.scanId === action.scanId)) {
+        return batch;
+      }
+      const { type, ...scan } = action;
+      return {
+        ...batch,
+        scans: [...batch.scans, { ...scan, finish: defaultFinish(scan.printing, scan.premiumMark), ...newScanDefaults }],
+      };
     }
-    case 'failed':
-      return addScan(batch, {
-        scanId: action.scanId,
-        options: [],
-        sameTextTwinCount: 0,
-        premiumMark: false,
-        printing: null,
-        finish: 'nonfoil',
-      });
     case 'choose':
       return updateScan(batch, action.scanId, (scan) => ({
         ...scan,
@@ -135,11 +109,7 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
   }
 }
 
-export function scansToAdd(batch: ScanBatch): RecognizedScan[] {
-  return batch.scans.filter((scan): scan is RecognizedScan => scan.printing !== null);
-}
-
-export function stacksOf(scans: readonly RecognizedScan[]): ScanBatchStack[] {
+export function stacksOf(scans: readonly BatchScan[]): ScanBatchStack[] {
   const stacks = new Map<string, ScanBatchStack>();
   for (const scan of scans) {
     const stack = {
@@ -155,7 +125,7 @@ export function stacksOf(scans: readonly RecognizedScan[]): ScanBatchStack[] {
 }
 
 export function sameTextTwinsFirst(scan: BatchScan, printings: readonly Printing[]): Printing[] {
-  const oracleId = scan.printing?.oracleId;
+  const oracleId = scan.printing.oracleId;
   const twins = scan.options.slice(0, scan.sameTextTwinCount + 1).filter((option) => option.oracleId === oracleId);
   const twinIds = new Set(twins.map((twin) => twin.printingId));
   return [...twins, ...printings.filter((printing) => !twinIds.has(printing.printingId))];
