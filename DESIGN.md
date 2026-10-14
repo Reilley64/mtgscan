@@ -34,6 +34,13 @@ colors:
   rarity-rare: "#e2bd5a"
   rarity-mythic: "#f26a35"
   rarity-special: "#b48ef0"
+  mana-generic: "#beb9b2"
+  mana-white: "#f0f2c0"
+  mana-blue: "#b5cde3"
+  mana-black: "#aca29a"
+  mana-red: "#db8664"
+  mana-green: "#93b483"
+  mana-glyph: "#111111"
 typography:
   large-title:
     fontFamily: SF Pro Display
@@ -96,6 +103,12 @@ typography:
     fontFamily: SF Pro Text
     fontSize: 10px
     fontWeight: 700
+  mana-symbol:
+    fontFamily: Mana
+    fontSize: 12px
+  mana-symbol-split:
+    fontFamily: Mana
+    fontSize: 7px
 rounded:
   xs: 4px
   sm: 8px
@@ -290,6 +303,15 @@ components:
     textColor: "{colors.primary}"
     rounded: "{rounded.full}"
     height: 44px
+  mana-symbol:
+    backgroundColor: "{colors.mana-generic}"
+    textColor: "{colors.mana-glyph}"
+    typography: "{typography.mana-symbol}"
+    rounded: "{rounded.full}"
+    width: 16px
+    height: 16px
+  mana-symbol-split:
+    typography: "{typography.mana-symbol-split}"
 ---
 
 # mtgscan design
@@ -324,6 +346,7 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 - **Card outline (#ff4fd8)** is the magenta line the scanner draws around a detected card. Nothing else uses it.
 - **Camera off (#000000).** The Scan tab is pure black until the camera feed replaces it.
 - **Rarity colors** tint the set symbol on binder tiles by the card printing's rarity. They follow Magic's own rarity colors, made flat and lighter for the dark UI: **rarity common (#e6e8e9)** light grey, **rarity uncommon (#a7bccb)** silver, **rarity rare (#e2bd5a)** gold, **rarity mythic (#f26a35)** orange-red, and **rarity special (#b48ef0)** purple for special and bonus. This is the one use of color on set symbols. Elsewhere, such as the quick-action bar, set symbols use the text color. A rarity the app does not know falls back to the text color.
+- **Mana colors** fill the circle behind a mana symbol, after the Mana font's cost style: **mana generic (#beb9b2)** for generic and colorless mana, tap, and snow, **mana white (#f0f2c0)**, **mana blue (#b5cde3)**, **mana black (#aca29a)**, **mana red (#db8664)**, and **mana green (#93b483)**. The glyph on the circle is **mana glyph (#111111)**. Untap is the other way round: a white glyph on a mana glyph circle. Nothing else uses these colors. See Card symbols.
 
 ## Typography
 
@@ -337,6 +360,7 @@ The app uses the iOS system font, SF Pro, at a few weights.
 - **Meta** (12 px, muted) carries set and collector number, finish, condition, language, and timestamps.
 - **Price** (12 px, semibold, text price) carries the current price under a binder tile.
 - **Chip** (11 px, bold) labels chips and status pills. **Tab label** (10 px, bold) sits under tab bar icons. **Credit** (10 px, semibold, dim) credits image and price sources such as Scryfall, and carries the Fan Content notice.
+- **Mana symbol** (12 px) is the one type style in another font: the Mana font, which the app bundles. It draws the glyph of a card symbol on its 16 px circle, inline with body text. **Mana symbol split** (7 px) draws the two small glyphs of a hybrid symbol. See Card symbols.
 
 Copy is plain sentence case and uses glossary terms exactly: deck suggestion, planned swap, buylist card, free copy, protected copy, estimated bracket.
 
@@ -481,7 +505,7 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - **User tags**: one disclosure row with the copy's user tags as chips, or "Add user tags" in text muted when it has none, and a chevron. VoiceOver reads it as a button, such as "User tags, signed, trade binder". A tap pushes the user tag picker;
   - **Price**: value rows for "Current price" with the stale clock, "Added" with the day, such as "12 October 2026", "Purchase-day price", and "Since added", then the credit "Current prices from Scryfall, in USD". A missing price shows a text dim "–", and VoiceOver hears "no price". A stale current price adds the hint "The price may be out of date.";
   - "Since added" is the current price minus the purchase-day price, such as "+$3.20" or "−$3.20". The change is neutral, in price type in text price. The sign carries the direction: + or the minus sign. There is no green or red. No change shows "$0.00" with no sign. It uses the currency and the format of the two prices above it. When either price is missing, the row shows a text dim "–". VoiceOver reads it as "Since added, up $3.20", "Since added, down $3.20", "Since added, no change", or "Since added, no price";
-  - **Rules**: the Oracle text in a surface card, with each face's name over its text for a card with more than one face, then a "Commander" value row: "Legal", "Banned", "Not legal", or "Unknown".
+  - **Rules**: the Oracle text in a surface card, with each face's name over its text for a card with more than one face, then a "Commander" value row: "Legal", "Banned", "Not legal", or "Unknown". The card symbols in the Oracle text of every face, such as {G}, {T}, or {E}, show as card symbols. See Card symbols.
   - Section headings are lime body strong text.
   - A close bar button with the `xmark` symbol sits on the left of the header, over the hero (owner decision, #181). It is a native bar button in the text color, like the ••• button on the right. VoiceOver reads it as "Close". It goes back to where the copy page was opened from, the binder or the search results. The swipe from the left edge does the same. The search text, chips, sort, and scroll position stay as they were. It also shows while the copy loads and when the read fails.
   - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the hero. VoiceOver reads it as "More". It opens the actions menu, a native menu of what the user can do to this copy. Its first item is **Protect** for a free copy or **Unprotect** for a protected copy. Its last item is **Delete copy**, in red.
@@ -601,6 +625,14 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Failure notice.** A surface card with 12 px padding and a danger mark beside the message, such as "Sign-in did not work." A long message wraps in the space beside the mark, and the mark lines up with its first line.
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
 - **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Their text uses the text, warning, danger, or info color. A status chip can show an 11 px symbol before its label in the same color, such as the shield on **Protected**. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide. Search chips show their `key:value` text and × on the control surface, and a tap removes them. A refused search chip has danger text on the danger tint.
+- **Card symbols.** Oracle text writes each card symbol in braces, such as {2}{G}, {T}, or {E}. The app draws every symbol that Scryfall's symbology lists with its glyph from the Mana font (andrewgioia/mana), inline with the text and sized to body text. `SymbolText` does it for the Rules section, and later for mana costs.
+  - A mana symbol is its mana glyph in mana glyph color on a 16 px circle in its mana color, like the font's cost style (`ms-cost`), with 1 px of space on each side. {G} is a green circle, and generic mana, {C}, {X}, {T}, and {S} are mana generic circles. {Q} is a white glyph on a mana glyph circle.
+  - A hybrid symbol, such as {W/U}, {2/W}, or {C/R}, splits its circle on the diagonal, with the first color at the top left. Its two glyphs sit small in the two halves, 2 px from the edge, in mana symbol split type.
+  - A Phyrexian symbol, such as {G/P}, is the Phyrexian glyph on the circle of its color. A hybrid Phyrexian symbol, such as {B/G/P}, splits the circle the same way. {H} is the Phyrexian glyph on a mana generic circle.
+  - A half symbol, {HW} or {HR}, shows the left half of its circle.
+  - Symbols that are not mana, such as {E}, {A}, {TK}, {PW}, {CHAOS}, {P}, and {D}, are bare glyphs in the text color.
+  - A symbol that the app does not know stays as its plain text in braces, never an empty box.
+  - VoiceOver reads the text with each symbol as words, such as "tap: Add green mana." or "two generic mana green mana".
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, and the batch button.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and the deck line of the copy page. It opens the deck.

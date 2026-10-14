@@ -20,7 +20,13 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-font",
+        {
+          "fonts": ["./assets/fonts/mana.ttf"]
+        }
+      ]
     ],
     "extra": {
       "router": {},
