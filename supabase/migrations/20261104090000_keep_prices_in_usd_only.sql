@@ -20,6 +20,8 @@ alter table public.card_lowest_prices
   add primary key (oracle_id);
 
 alter table public.card_lowest_prices rename column amount_cents to usd_cents;
+alter table public.card_lowest_prices
+  rename constraint card_lowest_prices_amount_cents_check to card_lowest_prices_usd_cents_check;
 
 drop view private.collection_totals;
 drop function catalog_import.current_lowest_prices();
@@ -787,8 +789,4 @@ begin
 end;
 $$;
 
-grant create on schema public to catalog_importer;
-
 alter function catalog_import.current_lowest_prices() owner to catalog_importer;
-
-revoke create on schema public from catalog_importer;

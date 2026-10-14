@@ -178,6 +178,7 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 
 - A text search ranks an exact full card name first. Next come exact face names, then other name matches, Oracle tag matches, type line matches, and Oracle text matches.
 - A refused call returns an error with a `code` such as `invalid_argument` or `invalid_cursor`. The field at fault is in `details`. `readSearchError` reads it as a `SearchError`.
+- `price_currency` defaults to `USD`. Until prices in other currencies land (#136), only `USD` is accepted. Collection search takes the same rule.
 - `get_cards` reads card details for up to 20 cards. Each card lists its direct Oracle tags that are not disabled, as `slug` and `label`, sorted by label. Each card also lists up to 5 combos as `combos`. Each combo has its `spellbook_id`, the `other_card` with its Oracle ID and name, its produced features, and its bracket tag. Combos sort by the other card's EDHREC rank, with missing ranks last, then by the other card's name, then by Spellbook ID. A card with no combos has an empty list.
 - Each first page writes one row to `search_telemetry`. It is the one table with user data that has no read policy: app users cannot read it, and only the secret key can.
 - Catalog search also accepts the secret key, for the search release check. Its telemetry row has the caller `release_check` and no user. It counts no owned copies. No other search or catalog read accepts the secret key.
@@ -196,7 +197,7 @@ Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_
 
 ### Collection total
 
-Signed-in users read their collection total with `supabase.rpc('get_collection_total', { query })`. The query has an optional `price_currency`, which defaults to `USD`. Until converted prices land (#136), only `USD` is accepted. `supabase/collection.ts` has the shared types.
+Signed-in users read their collection total with `supabase.rpc('get_collection_total', { query })`. The query has an optional `price_currency`, which defaults to `USD`. Until prices in other currencies land (#136), only `USD` is accepted. `supabase/collection.ts` has the shared types.
 
 - `total` is the sum of the current price of every copy for its card printing and finish, as a decimal string. Copies with no current price are left out.
 - `priced_copies` counts the copies with a current price, and `copies` counts every copy, so a missing price never silently lowers the total.
@@ -206,7 +207,7 @@ mtgscan stores no daily collection totals and no change since yesterday. `docs/a
 
 ### Copy read
 
-Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The query has `copy_id` and an optional `price_currency`, which defaults to `USD`. Until converted prices land (#136), only `USD` is accepted. `supabase/collection.ts` has the shared types. The copy page reads its copy through it.
+Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The query has `copy_id` and an optional `price_currency`, which defaults to `USD`. Until prices in other currencies land (#136), only `USD` is accepted. `supabase/collection.ts` has the shared types. The copy page reads its copy through it.
 
 - The result has the copy's `copy_id`, `finish`, `condition`, `language`, `protected`, and `free`, and its card printing as in a copy row of collection search: `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`.
 - `art_crop_uri` is the art crop of the card printing, or null when Scryfall has none.
