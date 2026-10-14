@@ -48,22 +48,22 @@ async function printingId(set: string, collectorNumber: string) {
 async function prices(set: string, collectorNumber: string) {
   const { data, error } = await alice.client
     .from('card_prices')
-    .select('usd_nonfoil_cents, usd_foil_cents, usd_etched_cents, eur_nonfoil_cents, eur_foil_cents')
+    .select('usd_nonfoil_cents, usd_foil_cents, usd_etched_cents')
     .eq('printing_id', await printingId(set, collectorNumber))
     .maybeSingle();
   expect(error).toBeNull();
   return data;
 }
 
-async function lowestPrices(name: string) {
+async function lowestPrice(name: string) {
   const { data: card } = await alice.client.from('cards').select('oracle_id').eq('name', name).single();
   const { data, error } = await alice.client
     .from('card_lowest_prices')
-    .select('currency, amount_cents, finish')
+    .select('usd_cents, finish')
     .eq('oracle_id', card!.oracle_id)
-    .order('currency');
+    .maybeSingle();
   expect(error).toBeNull();
-  return data!;
+  return data;
 }
 
 async function priceFreshness() {
@@ -111,14 +111,17 @@ describe('after one price import', () => {
     importEndedAt = Date.now();
   });
 
-  test('a card printing keeps its USD and EUR prices per finish in integer cents', async () => {
+  test('a card printing keeps only its USD prices per finish in integer cents', async () => {
     expect(await prices('rav', '101')).toEqual({
       usd_nonfoil_cents: 15,
       usd_foil_cents: 41,
       usd_etched_cents: null,
-      eur_nonfoil_cents: 12,
-      eur_foil_cents: 34,
     });
+  });
+
+  test('a card printing with only a Scryfall EUR price has no current prices', async () => {
+    expect(await prices('lea', '232')).toBeNull();
+    expect(await prices('cst', '8')).toBeNull();
   });
 
   test('an etched card printing keeps its USD etched price', async () => {
@@ -126,8 +129,6 @@ describe('after one price import', () => {
       usd_nonfoil_cents: null,
       usd_foil_cents: null,
       usd_etched_cents: 7272,
-      eur_nonfoil_cents: null,
-      eur_foil_cents: null,
     });
   });
 
@@ -136,8 +137,6 @@ describe('after one price import', () => {
       usd_nonfoil_cents: 441,
       usd_foil_cents: null,
       usd_etched_cents: null,
-      eur_nonfoil_cents: null,
-      eur_foil_cents: null,
     });
   });
 
@@ -145,12 +144,13 @@ describe('after one price import', () => {
     expect(await prices('sld', '1336b')).toBeNull();
   });
 
-  test('each card keeps its lowest current price per currency over printings and finishes', async () => {
-    expect(await lowestPrices('Hidetsugu and Kairi')).toEqual([
-      { currency: 'USD', amount_cents: 35, finish: 'foil' },
-      { currency: 'EUR', amount_cents: 15, finish: 'nonfoil' },
-    ]);
-    expect(await lowestPrices('Brisela, Voice of Nightmares')).toEqual([]);
+  test('each card keeps its lowest current USD price over printings and finishes', async () => {
+    expect(await lowestPrice('Hidetsugu and Kairi')).toEqual({ usd_cents: 35, finish: 'foil' });
+    expect(await lowestPrice('Brisela, Voice of Nightmares')).toBeNull();
+  });
+
+  test('a card with only Scryfall EUR prices has no lowest current price', async () => {
+    expect(await lowestPrice('Black Lotus')).toBeNull();
   });
 
   test('prices are as of the time mtgscan received the file, and fresh', async () => {
@@ -184,10 +184,7 @@ describe('price import runs', () => {
 
     expect((await prices('rav', '101'))!.usd_nonfoil_cents).toBe(20);
     expect(await prices('cmm', '473')).toBeNull();
-    expect(await lowestPrices('Smothering Tithe')).toEqual([
-      { currency: 'USD', amount_cents: 5859, finish: 'foil' },
-      { currency: 'EUR', amount_cents: 3419, finish: 'nonfoil' },
-    ]);
+    expect(await lowestPrice('Smothering Tithe')).toEqual({ usd_cents: 5859, finish: 'foil' });
     expect((await latestRun('prices')).counts).toMatchObject({
       card_prices: { inserted: 0, updated: 2, deleted: 1, dropped: 0 },
       card_lowest_prices: { inserted: 0, updated: 1, deleted: 0 },
@@ -204,28 +201,7 @@ describe('price import runs', () => {
       ),
     );
 
-    expect(await lowestPrices('Krenko, Mob Boss')).toContainEqual({
-      currency: 'USD',
-      amount_cents: 199,
-      finish: 'etched',
-    });
-  });
-
-  test('a EUR etched price is never stored', async () => {
-    await expectSuccess(
-      runPriceImport(
-        await catalogFixture({
-          updatedAt: laterSnapshotAt,
-          defaultCards: changePrinting('cmm', '473', pricedAt({ eur_etched: '0.01' })),
-        }),
-      ),
-    );
-
-    expect(await lowestPrices('Smothering Tithe')).toContainEqual({
-      currency: 'EUR',
-      amount_cents: 3419,
-      finish: 'nonfoil',
-    });
+    expect(await lowestPrice('Krenko, Mob Boss')).toEqual({ usd_cents: 199, finish: 'etched' });
   });
 
   test('a card printing marked absent no longer counts toward the lowest price', async () => {
@@ -236,10 +212,7 @@ describe('price import runs', () => {
     );
     await expectSuccess(runPriceImport(await catalogFixture({ updatedAt: laterSnapshotAt })));
 
-    expect(await lowestPrices('Hidetsugu and Kairi')).toEqual([
-      { currency: 'USD', amount_cents: 37, finish: 'nonfoil' },
-      { currency: 'EUR', amount_cents: 20, finish: 'nonfoil' },
-    ]);
+    expect(await lowestPrice('Hidetsugu and Kairi')).toEqual({ usd_cents: 37, finish: 'nonfoil' });
   });
 
   test('a price for a card printing outside the card catalog is dropped and counted', async () => {
@@ -302,7 +275,7 @@ describe('price import runs', () => {
       expect(run.failure_reason).toContain(reason);
       expect((await priceFreshness()).snapshot_at).toBe(before.snapshot_at);
       expect((await prices('rav', '101'))!.usd_nonfoil_cents).toBe(15);
-      expect(await lowestPrices('Hidetsugu and Kairi')).toHaveLength(2);
+      expect(await lowestPrice('Hidetsugu and Kairi')).toEqual({ usd_cents: 35, finish: 'foil' });
     },
   );
 

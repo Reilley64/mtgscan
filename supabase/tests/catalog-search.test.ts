@@ -535,6 +535,7 @@ describe('after a catalog import', () => {
       ['price above 999999.99', { text: 'fog', price_max: '1000000' }, 'price_max'],
       ['price minimum above its maximum', { text: 'fog', price_min: '5', price_max: '4.99' }, 'price_max'],
       ['unknown price currency', { text: 'fog', price_currency: 'GBP' }, 'price_currency'],
+      ['EUR price currency', { text: 'fog', price_currency: 'EUR' }, 'price_currency'],
     ])('%s is refused with an error on its field', async (_, query, field) => {
       const { page, error } = await search(query);
 
@@ -546,7 +547,7 @@ describe('after a catalog import', () => {
     test.each<[string, Record<string, unknown> | unknown[]]>([
       ['an empty query', {}],
       ['a query with only paging and sort fields', { sort: 'name', limit: 5, include_oracle_text: true }],
-      ['a query with only a price currency', { price_currency: 'EUR' }],
+      ['a query with only a price currency', { price_currency: 'USD' }],
       ['a query that is not an object', ['fog']],
     ])('%s is refused', async (_, query) => {
       const { page, error } = await search(query);
@@ -628,12 +629,10 @@ describe('after a catalog import', () => {
       expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
     });
 
-    test('a row shows the lowest current price, labelled with its finish and currency', async () => {
-      const [usd] = (await page({ names: ['hidetsugu'] })).items;
-      const [eur] = (await page({ names: ['hidetsugu'], price_currency: 'EUR' })).items;
+    test('a row shows the lowest current price in USD, labelled with its finish and currency', async () => {
+      const [card] = (await page({ names: ['hidetsugu'] })).items;
 
-      expect(usd!.price_from).toEqual({ currency: 'USD', amount: '0.35', finish: 'foil', basis });
-      expect(eur!.price_from).toEqual({ currency: 'EUR', amount: '0.15', finish: 'nonfoil', basis });
+      expect(card!.price_from).toEqual({ currency: 'USD', amount: '0.35', finish: 'foil', basis });
     });
 
     test('a card with no current price has no price_from', async () => {
@@ -656,25 +655,6 @@ describe('after a catalog import', () => {
         { text: 'creature', price_min: '20' },
         ["Atraxa, Praetors' Voice", 'Gisela, the Broken Blade', 'Ramses Overdark', "Thassa's Oracle"],
       ],
-      [
-        'price in EUR',
-        { price_max: '0.05', price_currency: 'EUR', types: ['creature'] },
-        [
-          'Angelic Curator',
-          'Drill-Skimmer',
-          'Estwald Shieldbasher',
-          'Favored of Iroas',
-          'Ghost Warden',
-          'Glimmerbell',
-          'Gloomwidow',
-          'Lurking Chupacabra',
-          'Rampant Elephant',
-          'Red Tiger Mechan',
-          'Scurrilous Sentry',
-          'Selfless Police Captain',
-          'Stormchaser Chimera',
-        ],
-      ],
       ['a card with no price never matches a price bound', { names: ['brisela'], price_max: '999999.99' }, []],
     ])('%s', async (_, query, expected) => {
       const results = await names({ ...query, limit: 50 });
@@ -690,10 +670,6 @@ describe('after a catalog import', () => {
       [
         { sort: 'price', sort_order: 'desc' },
         ["Atraxa, Praetors' Voice", 'Gisela, the Broken Blade', 'Bruna, the Fading Light', 'Angelic Curator', 'Brisela, Voice of Nightmares'],
-      ],
-      [
-        { sort: 'price', price_currency: 'EUR' },
-        ['Angelic Curator', 'Bruna, the Fading Light', 'Gisela, the Broken Blade', "Atraxa, Praetors' Voice", 'Brisela, Voice of Nightmares'],
       ],
     ])('sort %o puts missing prices last', async (sort, expected) => {
       expect(await names({ ...angels, ...sort })).toEqual(expected);

@@ -12,8 +12,6 @@ const priceColumns = {
   usd: 'usd_nonfoil_cents',
   usd_foil: 'usd_foil_cents',
   usd_etched: 'usd_etched_cents',
-  eur: 'eur_nonfoil_cents',
-  eur_foil: 'eur_foil_cents',
 } as const;
 
 type ScryfallPriceKey = keyof typeof priceColumns;

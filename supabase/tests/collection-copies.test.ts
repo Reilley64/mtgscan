@@ -15,6 +15,7 @@ const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
 const ribbonsOfNight = '010eba83-30ec-4cca-b07e-f24d8d2f0787';
 const secretLairNonfoilOnly = '018830b2-dff9-45f3-9cc2-dc5b2eec0e54';
 const secretLairWithNoPrice = '0cd83c0e-8e37-40bf-87a5-5b4c009248fb';
+const kjeldoranHomeGuardWithOnlyEurPrice = '45145931-16e8-4401-9d67-57856ffef0dc';
 
 type CatalogPrinting = Pick<CollectionCopyRow, 'printing_id' | 'name' | 'set' | 'collector_number' | 'rarity' | 'image_uris'>;
 
@@ -213,36 +214,27 @@ describe('current prices', () => {
     ]);
   });
 
-  test('in EUR, each copy has its EUR price, and an etched copy has no price', async () => {
+  test('a copy of a card printing with only a Scryfall EUR price has no price', async () => {
     const user = await signUpNewUser();
-    await committed(
-      user,
-      scanBatch([stack(angelicCurator), stack(angelicCurator, { finish: 'foil' }), stack(angelicCurator, { finish: 'etched' })]),
-    );
+    await committed(user, scanBatch([stack(kjeldoranHomeGuardWithOnlyEurPrice)]));
 
-    const { items } = await collectionCopies(user, { price_currency: 'EUR' });
+    const { items } = await collectionCopies(user);
 
-    expect(pricesByFinish(items).sort()).toEqual([
-      ['etched', null],
-      ['foil', currentPrice('EUR', '0.24', 'foil')],
-      ['nonfoil', currentPrice('EUR', '0.04', 'nonfoil')],
-    ]);
+    expect(items.map((row) => row.price)).toEqual([null]);
   });
 
-  test('a copy with no price for its card printing, finish, and currency has no price, never the price of another finish or currency', async () => {
+  test('a copy with no price for its card printing and finish has no price, never the price of another finish', async () => {
     const user = await signUpNewUser();
     await committed(user, scanBatch([stack(secretLairNonfoilOnly), stack(secretLairWithNoPrice, { finish: 'foil' })]));
 
-    const inUsd = (await collectionCopies(user)).items;
-    const inEur = (await collectionCopies(user, { price_currency: 'EUR' })).items;
+    const { items } = await collectionCopies(user);
 
-    expect(inUsd.map((row) => [row.printing_id, row.price]).sort()).toEqual(
+    expect(items.map((row) => [row.printing_id, row.price]).sort()).toEqual(
       [
         [secretLairNonfoilOnly, currentPrice('USD', '4.41', 'nonfoil')],
         [secretLairWithNoPrice, null],
       ].sort(),
     );
-    expect(inEur.map((row) => row.price)).toEqual([null, null]);
   });
 
   describe('when the current prices age', () => {
@@ -350,7 +342,8 @@ describe('pages of copy rows', () => {
     ['a limit that is not a number', { limit: '60' }, 'limit'],
     ['a cursor that is not a string', { cursor: 7 }, 'cursor'],
     ['an unknown field', { owned_only: true }, 'owned_only'],
-    ['a price currency other than USD or EUR', { price_currency: 'GBP' }, 'price_currency'],
+    ['a price currency other than USD', { price_currency: 'GBP' }, 'price_currency'],
+    ['a EUR price currency', { price_currency: 'EUR' }, 'price_currency'],
     ['rows other than entries or copies', { rows: 'printings' }, 'rows'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
     const { data, error } = await user.client.rpc('search_collection', {
@@ -475,7 +468,7 @@ describe('telemetry', () => {
 
   test.each<[string, CollectionQuery]>([
     ['a plain binder read', {}],
-    ['a plain binder read in another order', { sort: 'price', sort_order: 'desc', price_currency: 'EUR', limit: 120 }],
+    ['a plain binder read in another order', { sort: 'price', sort_order: 'desc', price_currency: 'USD', limit: 120 }],
     ['a plain read of collection entries', { rows: 'entries' }],
   ])('%s writes no telemetry row', async (_, query) => {
     const before = await telemetryRows();

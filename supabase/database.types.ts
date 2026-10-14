@@ -45,34 +45,34 @@ isOneToOne: false
                   ]
                 },"card_lowest_prices": {
                   Row: {
-                    "amount_cents": number,"currency": Database["public"]['Enums']["price_currency"],"finish": Database["public"]['Enums']["card_finish"],"oracle_id": string
+                    "finish": Database["public"]['Enums']["card_finish"],"oracle_id": string,"usd_cents": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_cents": number,"currency": Database["public"]['Enums']["price_currency"],"finish": Database["public"]['Enums']["card_finish"],"oracle_id": string
+                    "finish": Database["public"]['Enums']["card_finish"],"oracle_id": string,"usd_cents": number
                   }
                   Update: {
-                    "amount_cents"?: number,"currency"?: Database["public"]['Enums']["price_currency"],"finish"?: Database["public"]['Enums']["card_finish"],"oracle_id"?: string
+                    "finish"?: Database["public"]['Enums']["card_finish"],"oracle_id"?: string,"usd_cents"?: number
                   }
                   Relationships: [
                     {
       foreignKeyName: "card_lowest_prices_oracle_id_fkey"
       columns: ["oracle_id"]
-isOneToOne: false
+isOneToOne: true
       referencedRelation: "cards"
       referencedColumns: ["oracle_id"]
     }
                   ]
                 },"card_prices": {
                   Row: {
-                    "eur_foil_cents": number | null,"eur_nonfoil_cents": number | null,"printing_id": string,"usd_etched_cents": number | null,"usd_foil_cents": number | null,"usd_nonfoil_cents": number | null
+                    "printing_id": string,"usd_etched_cents": number | null,"usd_foil_cents": number | null,"usd_nonfoil_cents": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "eur_foil_cents"?: number | null,"eur_nonfoil_cents"?: number | null,"printing_id": string,"usd_etched_cents"?: number | null,"usd_foil_cents"?: number | null,"usd_nonfoil_cents"?: number | null
+                    "printing_id": string,"usd_etched_cents"?: number | null,"usd_foil_cents"?: number | null,"usd_nonfoil_cents"?: number | null
                   }
                   Update: {
-                    "eur_foil_cents"?: number | null,"eur_nonfoil_cents"?: number | null,"printing_id"?: string,"usd_etched_cents"?: number | null,"usd_foil_cents"?: number | null,"usd_nonfoil_cents"?: number | null
+                    "printing_id"?: string,"usd_etched_cents"?: number | null,"usd_foil_cents"?: number | null,"usd_nonfoil_cents"?: number | null
                   }
                   Relationships: [
                     {
@@ -179,14 +179,14 @@ isOneToOne: false
                   ]
                 },"collection_addition_lines": {
                   Row: {
-                    "addition_id": string,"card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"price_snapshot_at": string | null,"purchase_day_eur_cents": number | null,"purchase_day_usd_cents": number | null,"quantity": number,"user_id": string
+                    "addition_id": string,"card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"price_snapshot_at": string | null,"purchase_day_usd_cents": number | null,"quantity": number,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "addition_id": string,"card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"price_snapshot_at"?: string | null,"purchase_day_eur_cents"?: number | null,"purchase_day_usd_cents"?: number | null,"quantity": number,"user_id": string
+                    "addition_id": string,"card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"price_snapshot_at"?: string | null,"purchase_day_usd_cents"?: number | null,"quantity": number,"user_id": string
                   }
                   Update: {
-                    "addition_id"?: string,"card_printing_id"?: string,"condition"?: Database["public"]['Enums']["card_condition"],"finish"?: Database["public"]['Enums']["card_finish"],"language"?: Database["public"]['Enums']["card_language"],"price_snapshot_at"?: string | null,"purchase_day_eur_cents"?: number | null,"purchase_day_usd_cents"?: number | null,"quantity"?: number,"user_id"?: string
+                    "addition_id"?: string,"card_printing_id"?: string,"condition"?: Database["public"]['Enums']["card_condition"],"finish"?: Database["public"]['Enums']["card_finish"],"language"?: Database["public"]['Enums']["card_language"],"price_snapshot_at"?: string | null,"purchase_day_usd_cents"?: number | null,"quantity"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -598,7 +598,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices","price_currency": "USD"|"EUR","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
+            "card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices","price_currency": "USD","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -718,7 +718,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices"],"price_currency": ["USD", "EUR"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
+            "card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices"],"price_currency": ["USD"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
           }
         }
 } as const

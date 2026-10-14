@@ -1,5 +1,5 @@
 import type { ImportClient } from '../import/import-run';
-import type { CatalogQuery, Color, PriceCurrency, Rarity } from '../search';
+import type { CatalogQuery, Color, Rarity } from '../search';
 
 type CardFacts = {
   oracle_id: string;
@@ -13,7 +13,7 @@ type CardFacts = {
   is_game_changer: boolean | null;
   faces: { power: string | null; toughness: string | null }[];
   printings: { set_code: string; rarity: Rarity }[];
-  lowest_prices: Partial<Record<PriceCurrency, number>>;
+  lowest_usd_cents: number | null;
   tag_ids: Set<string>;
 };
 
@@ -67,10 +67,10 @@ function statWithin(card: CardFacts, stat: 'power' | 'toughness', min = -Infinit
 }
 
 function priceWithin(query: CatalogQuery, card: CardFacts): boolean {
-  const cents = card.lowest_prices[query.price_currency ?? 'USD'];
+  const cents = card.lowest_usd_cents;
   const min = query.price_min === undefined ? 0 : Math.round(Number(query.price_min) * 100);
   const max = query.price_max === undefined ? Infinity : Math.round(Number(query.price_max) * 100);
-  return cents !== undefined && cents >= min && cents <= max;
+  return cents !== null && cents >= min && cents <= max;
 }
 
 function keywordKeys(card: CardFacts): string[] {
@@ -176,10 +176,9 @@ export async function readCardFacts(client: ImportClient, oracleIds: string[]): 
     readAll((from, to) =>
       client
         .from('card_lowest_prices')
-        .select('oracle_id, currency, amount_cents')
+        .select('oracle_id, usd_cents')
         .in('oracle_id', oracleIds)
         .order('oracle_id')
-        .order('currency')
         .range(from, to),
     ),
     readAll((from, to) =>
@@ -195,7 +194,7 @@ export async function readCardFacts(client: ImportClient, oracleIds: string[]): 
   const facts = new Map<string, CardFacts>(
     cards.map((card) => [
       card.oracle_id,
-      { ...card, faces: [], printings: [], lowest_prices: {}, tag_ids: new Set<string>() },
+      { ...card, faces: [], printings: [], lowest_usd_cents: null, tag_ids: new Set<string>() },
     ]),
   );
   for (const face of faces) {
@@ -205,7 +204,7 @@ export async function readCardFacts(client: ImportClient, oracleIds: string[]): 
     facts.get(printing.oracle_id)?.printings.push(printing);
   }
   for (const price of prices) {
-    facts.get(price.oracle_id)!.lowest_prices[price.currency] = price.amount_cents;
+    facts.get(price.oracle_id)!.lowest_usd_cents = price.usd_cents;
   }
   for (const tagging of taggings) {
     facts.get(tagging.oracle_id)?.tag_ids.add(tagging.tag_id);
