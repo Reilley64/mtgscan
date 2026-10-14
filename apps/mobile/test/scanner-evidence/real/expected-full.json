@@ -1,6 +1,6 @@
 {
  "recordedWith": {
-  "recognizerCommit": "7fb6205",
+  "recognizerCommit": "5f93f41",
   "featurePrint": "VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values",
   "gallery": {
    "version": "20261012-cf1753",
@@ -14,17 +14,17 @@
    "cardCatalogSnapshot": "2026-10-09T09:01:54.966+00:00"
   },
   "machine": "Apple M3, macOS 15.7.3",
-  "recordedOn": "2026-10-12",
+  "recordedOn": "2026-10-15",
   "command": "bun run recognizer:replay (real-full)",
-  "note": "Recorded with gallery version 20261012-cf1753, the first int8 gallery (#79). Every accept is the same as on the float16 gallery of 6 October 2026: 214 correct accepts and 0 false accepts. One scan that abstains shows another printing of the same card first: Command Tower SLD 7097 (muyxcbms-24) shows Command Tower WOC 156 instead of FDC 3."
+  "note": "Recorded again for #206. Every accept is the same: 214 correct accepts and 0 false accepts. 3 scans that abstain on a collector line that names a card the image does not support now show the image's top card printing first. Academy Manufactor SLD 7094 (muyuq3pm-23) and Abrade SOA 37 (muyxcbms-2) now show the true printing, so nameTop1 is 249 and printingTop1 is 236. Abrade SOA 37 (muw8ssia-9) showed Summoned Dromedary SOS 37 and now shows Sol Ring 30A 266. Latencies are kept from the earlier recording, because this replay ran beside another replay."
  },
  "result": {
   "catalog": 102730,
   "heldOut": false,
   "truthInTop5": 247,
   "cards": 250,
-  "nameTop1": 247,
-  "printingTop1": 234,
+  "nameTop1": 249,
+  "printingTop1": 236,
   "accepted": 214,
   "correctAccepts": 214,
   "falseAccepts": 0,
@@ -1502,7 +1502,7 @@
     "input": "crops/rectified/muw8ssia-9.jpg",
     "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
     "group": null,
-    "top": "44d0277c-ca82-4334-a15a-cd67a9db0d02",
+    "top": "db0dfaa7-40b2-4065-9cef-22e6af8ad53c",
     "accepted": null,
     "reason": "collector line SOS 37 names a card the image does not support"
    },
@@ -2774,7 +2774,7 @@
     "input": "crops/catalog/muyuq3pm-23.jpg",
     "truth": "c88eb33d-efba-4ad9-878f-f051079c9bce",
     "group": null,
-    "top": "7f7c9b54-0b40-4007-8d24-bc3945be319f",
+    "top": "c88eb33d-efba-4ad9-878f-f051079c9bce",
     "accepted": null,
     "reason": "collector line SLD 94 names a card the image does not support"
    },
@@ -3086,7 +3086,7 @@
     "input": "crops/catalog-device/muyxcbms-2.jpg",
     "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
     "group": null,
-    "top": "5dc1904b-b0e6-49e5-9ef3-7ea538db202b",
+    "top": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
     "accepted": null,
     "reason": "collector line SOA 57 names a card the image does not support"
    },

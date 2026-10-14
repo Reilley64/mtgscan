@@ -106,29 +106,36 @@ public enum CardRecognizer {
       }
     }
     expanded.sort { scores[$0] > scores[$1] }
-    let (decision, decided) = decide(
-      ranked: expanded, scores: scores, reading: reading, gallery: gallery, excluded: excluded
-    )
-    let first = decided ?? expanded[0]
-    let twins = sameTextTwins(of: first, gallery: gallery).filter { !excluded.contains($0) }
-    let leading = [first] + twins
-    let ordered = leading + expanded.filter { !leading.contains($0) }
-    let candidates = ordered.prefix(max(candidateCount, leading.count + 1)).map { index in
-      RecognitionCandidate(printing: gallery.printings[index])
-    }
+    let choice = choose(ranked: expanded, scores: scores, reading: reading, gallery: gallery, excluded: excluded)
     return .card(CardRecognition(
-      candidates: Array(candidates),
-      decision: decision,
+      candidates: choice.candidates.map { RecognitionCandidate(printing: gallery.printings[$0]) },
+      decision: choice.decision,
       reading: CollectorLineReading(
         setCode: reading.setCode,
         collectorNumber: reading.collectorNumber,
         premiumMark: reading.premiumMark
       ),
-      sameTextTwinCount: twins.count,
+      sameTextTwinCount: choice.sameTextTwinCount,
       topSimilarity: Double(topSimilarity),
       rotation: isTurned ? 180 : 0,
       stageMs: stageMs
     ))
+  }
+
+  static func choose(
+    ranked: [Int],
+    scores: [Float],
+    reading: CollectorLine,
+    gallery: Gallery,
+    excluded: Set<Int>
+  ) -> (decision: RecognitionDecision, candidates: [Int], sameTextTwinCount: Int) {
+    let (decision, shownFirst) = decide(ranked: ranked, scores: scores, reading: reading, gallery: gallery, excluded: excluded)
+    let first = shownFirst.first ?? ranked[0]
+    let twins = sameTextTwins(of: first, gallery: gallery).filter { !excluded.contains($0) }
+    var leading = [first] + twins
+    leading += shownFirst.dropFirst().filter { !leading.contains($0) }
+    let ordered = leading + ranked.filter { !leading.contains($0) }
+    return (decision, Array(ordered.prefix(max(candidateCount, leading.count + 1))), twins.count)
   }
 
   static func decide(
@@ -137,12 +144,12 @@ public enum CardRecognizer {
     reading: CollectorLine,
     gallery: Gallery,
     excluded: Set<Int>
-  ) -> (RecognitionDecision, Int?) {
-    func accept(_ index: Int, _ reasons: String...) -> (RecognitionDecision, Int?) {
-      (RecognitionDecision(accepted: true, reasons: reasons), index)
+  ) -> (RecognitionDecision, [Int]) {
+    func accept(_ index: Int, _ reasons: String...) -> (RecognitionDecision, [Int]) {
+      (RecognitionDecision(accepted: true, reasons: reasons), [index])
     }
-    func abstain(_ reason: String, first: Int? = nil) -> (RecognitionDecision, Int?) {
-      (RecognitionDecision(accepted: false, reasons: [reason]), first)
+    func abstain(_ reasons: String..., shownFirst: [Int] = []) -> (RecognitionDecision, [Int]) {
+      (RecognitionDecision(accepted: false, reasons: reasons), shownFirst)
     }
     let top = ranked[0]
     let topOracleId = gallery.printings[top].oracleId
@@ -151,8 +158,7 @@ public enum CardRecognizer {
       let nearby = Set(ranked.compactMap { index -> String? in
         let printing = gallery.printings[index]
         guard shortlistOracleIds.contains(printing.oracleId),
-              printing.set.count == token.count,
-              zip(printing.set, token).filter({ $0 != $1 }).count <= 1
+              oneCharacterApart(printing.set, token)
         else { return nil }
         return printing.set
       })
@@ -167,7 +173,7 @@ public enum CardRecognizer {
       let imageArts = Set(ranked.prefix(artCheckDepth).compactMap { gallery.printings[$0].illustrationId })
       if shortlistOracleIds.contains(gallery.printings[read].oracleId),
          let readArt = gallery.printings[read].illustrationId, !imageArts.contains(readArt) {
-        return abstain("collector line \(readLabel) names a printing whose art the image does not match", first: ranked[0])
+        return abstain("collector line \(readLabel) names a printing whose art the image does not match", shownFirst: [ranked[0]])
       }
       if shortlistOracleIds.contains(gallery.printings[read].oracleId) {
         let twins = sameTextTwins(of: read, gallery: gallery).filter { !excluded.contains($0) }
@@ -178,7 +184,23 @@ public enum CardRecognizer {
         }.joined(separator: ", ")
         return accept(read, reason, "\(twins.count) same-text twins print the same collector line: \(names)")
       }
-      return abstain("collector line \(readLabel) names a card the image does not support", first: read)
+      let unsupportedReason = "collector line \(readLabel) names a card the image does not support"
+      let nearby = ranked.filter { index in
+        let printing = gallery.printings[index]
+        return printing.set == setCode
+          && printing.illustrationId.map(imageArts.contains) == true
+          && oneCharacterApart(
+            Gallery.key(set: setCode, collectorNumber: printing.collectorNumber),
+            Gallery.key(set: setCode, collectorNumber: number)
+          )
+      }
+      guard nearby.count == 1 else { return abstain(unsupportedReason, shownFirst: [ranked[0], read]) }
+      let near = gallery.printings[nearby[0]]
+      return abstain(
+        unsupportedReason,
+        "\(near.set.uppercased()) \(near.collectorNumber) has the art of a top image candidate and is one character from the collector line",
+        shownFirst: [nearby[0], read]
+      )
     }
 
     func contradicts(_ index: Int) -> Bool {
@@ -200,7 +222,7 @@ public enum CardRecognizer {
         return accept(matches[0], "set \(setCode.uppercased()) leaves one printing of the top card")
       }
       if matches.count > 1 {
-        return abstain("set \(setCode.uppercased()) leaves \(matches.count) printings of the top card", first: matches[0])
+        return abstain("set \(setCode.uppercased()) leaves \(matches.count) printings of the top card", shownFirst: [matches[0]])
       }
     }
 
@@ -227,6 +249,10 @@ public enum CardRecognizer {
       return abstain("only printing of its art, but the next art is \(format(margin)) behind; at least \(format(unreadArtMargin)) is required")
     }
     return accept(top, "only printing of its art, next art \(format(margin)) behind")
+  }
+
+  static func oneCharacterApart(_ text: String, _ other: String) -> Bool {
+    text.count == other.count && zip(text, other).filter { $0 != $1 }.count <= 1
   }
 
   public static func sameTextTwins(of index: Int, gallery: Gallery) -> [Int] {

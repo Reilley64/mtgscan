@@ -44,12 +44,7 @@ private func galleryOfImages(_ images: [Data]) throws -> Gallery {
       "collectorNumber": "\(row)", "frame": "2015",
     ])
   }
-  try JSONSerialization.data(withJSONObject: printings).write(to: directory.appendingPathComponent(GalleryFile.printingList))
-  try JSONEncoder().encode(
-    GalleryHeader(count: images.count, dimension: FeaturePrint.dimension, revision: FeaturePrint.revision, createdAt: "", encoding: nil, version: "20261021-a1b2c3")
-  ).write(to: directory.appendingPathComponent(GalleryFile.header))
-  try vectors.withUnsafeBufferPointer { Data(buffer: $0) }.write(to: directory.appendingPathComponent(GalleryFile.float16Vectors))
-  return try Gallery(directory: directory)
+  return try fixtureGallery(printings: printings, vectors: vectors, version: "20261021-a1b2c3")
 }
 
 private func row(of printing: GalleryPrinting) -> Int {
