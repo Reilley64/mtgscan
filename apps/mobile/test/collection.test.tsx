@@ -7,6 +7,7 @@ import {
   collectionSearchesSent,
   expireCollectionSearchCursors,
   failCollectionReads,
+  holdCollectionReads,
   ownCollectionCopies,
   ownCollectionTotal,
   startSignedIn,
@@ -66,6 +67,10 @@ async function openCollection() {
   await renderApp();
   await pressTab('Collection');
   return within(selectedTab());
+}
+
+function skeletonGrid() {
+  return within(selectedTab()).queryByRole('progressbar', { name: 'Loading collection' });
 }
 
 beforeEach(() => {
@@ -308,6 +313,84 @@ test('a failed binder grid read offers Try again, which shows the tiles', async 
 
   expect(await within(selectedTab()).findByRole('image', { name: /^Angelic Curator/ })).toBeOnTheScreen();
   expect(screen.queryByText('Could not load your collection')).not.toBeOnTheScreen();
+});
+
+describe('the skeleton grid', () => {
+  test('until the binder grid read returns, the Collection tab shows a skeleton grid, then the tiles', async () => {
+    ownCollectionCopies(collectionEntryCopies('Angelic Curator', 2));
+    const reads = holdCollectionReads();
+
+    const collection = await openCollection();
+    expect(skeletonGrid()).toBeOnTheScreen();
+    expect(collection.queryByRole('image')).not.toBeOnTheScreen();
+
+    await reads.finish();
+
+    expect(await collection.findAllByRole('image', { name: /^Angelic Curator/ })).toHaveLength(2);
+    expect(skeletonGrid()).not.toBeOnTheScreen();
+  });
+
+  test('VoiceOver reads the skeleton grid as one element and not each block', async () => {
+    holdCollectionReads();
+
+    await openCollection();
+
+    expect(skeletonGrid()).toHaveProp('accessible', true);
+    expect(within(skeletonGrid()!).queryAllByLabelText(/./)).toEqual([]);
+  });
+
+  test('an empty collection shows the skeleton grid, then the empty state', async () => {
+    const reads = holdCollectionReads();
+
+    const collection = await openCollection();
+    expect(skeletonGrid()).toBeOnTheScreen();
+    expect(collection.queryByText('Your collection is empty')).not.toBeOnTheScreen();
+
+    await reads.finish();
+
+    expect(await collection.findByText('Your collection is empty')).toBeOnTheScreen();
+    expect(skeletonGrid()).not.toBeOnTheScreen();
+  });
+
+  test('a failed binder grid read shows the skeleton grid, then Try again', async () => {
+    failCollectionReads(1);
+    const reads = holdCollectionReads();
+
+    const collection = await openCollection();
+    expect(skeletonGrid()).toBeOnTheScreen();
+
+    await reads.finish();
+
+    expect(await collection.findByText('Could not load your collection')).toBeOnTheScreen();
+    expect(skeletonGrid()).not.toBeOnTheScreen();
+  });
+
+  test('a reload when the tab gains focus keeps the tiles already shown and brings no skeleton grid back', async () => {
+    ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
+    const collection = await openCollection();
+    const reads = holdCollectionReads();
+
+    await pressTab('Recent');
+    await pressTab('Collection');
+
+    expect(within(selectedTab()).getByRole('image', { name: /^Angelic Curator/ })).toBeOnTheScreen();
+    expect(skeletonGrid()).not.toBeOnTheScreen();
+    await reads.finish();
+    expect(collection.getByRole('image', { name: /^Angelic Curator/ })).toBeOnTheScreen();
+  });
+
+  test('a new page keeps the tiles already shown and brings no skeleton grid back', async () => {
+    ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
+    const collection = await openCollection();
+    const reads = holdCollectionReads();
+
+    await scrollToEnd(selectedTab());
+
+    expect(collection.getByRole('image', { name: /^Card 1,/ })).toBeOnTheScreen();
+    expect(skeletonGrid()).not.toBeOnTheScreen();
+    await reads.finish();
+    expect(await collection.findByRole('image', { name: /^Card 70,/ })).toBeOnTheScreen();
+  });
 });
 
 describe('the collection total button', () => {
@@ -679,6 +762,23 @@ describe('collection search', () => {
     expect(collection.getAllByRole('image', { name: /^Angelic Curator/ })).toHaveLength(6);
     expect(collection.getByText('6 of 27 copies')).toHaveStyle({ color: textMuted });
     expect(collection.queryByRole('image', { name: /^Ponder/ })).not.toBeOnTheScreen();
+  });
+
+  test('a new search shows the skeleton grid in place of the tiles until its results arrive', async () => {
+    ownCollectionCopies(collectionEntryCopies('Ponder', 3));
+    answerCollectionSearches((query) => (query.text === 'curator' ? collectionEntryCopies('Angelic Curator', 2) : collectionEntryCopies('Ponder', 3)));
+    const collection = await openCollection();
+    const reads = holdCollectionReads();
+
+    await typeInSearchBar('curator');
+
+    expect(skeletonGrid()).toBeOnTheScreen();
+    expect(collection.queryByRole('image', { name: /^Ponder/ })).not.toBeOnTheScreen();
+
+    await reads.finish();
+
+    expect(await collection.findAllByRole('image', { name: /^Angelic Curator/ })).toHaveLength(2);
+    expect(skeletonGrid()).not.toBeOnTheScreen();
   });
 
   test('a search with no results shows "No cards found."', async () => {

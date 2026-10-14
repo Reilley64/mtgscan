@@ -9,7 +9,13 @@ export type BinderRead =
   | { status: 'loading' }
   | { status: 'failed' }
   | { status: 'refused'; field: string }
-  | { status: 'loaded'; copies: CollectionCopyRow[]; nextCursor: string | null; matchCount: number | null };
+  | {
+      status: 'loaded';
+      searchKey: string;
+      copies: CollectionCopyRow[];
+      nextCursor: string | null;
+      matchCount: number | null;
+    };
 
 async function readCollectionCopies(search: CollectionQuery, cursor: string | null) {
   const query: CollectionQuery = { ...search, rows: 'copies', cursor };
@@ -34,11 +40,19 @@ export function useCollectionCopies(search: CollectionQuery) {
   const reload = useCallback(() => {
     const read = ++latestRead.current;
     readingMore.current = false;
-    setBinder((current) => (current.status === 'loaded' ? current : { status: 'loading' }));
+    setBinder((current) =>
+      current.status === 'loaded' && current.searchKey === searchKey ? current : { status: 'loading' },
+    );
     readCollectionCopies(JSON.parse(searchKey), null).then(
       (page) => {
         if (read === latestRead.current) {
-          setBinder({ status: 'loaded', copies: page.items, nextCursor: page.next_cursor, matchCount: page.total_count });
+          setBinder({
+            status: 'loaded',
+            searchKey,
+            copies: page.items,
+            nextCursor: page.next_cursor,
+            matchCount: page.total_count,
+          });
         }
       },
       (error) => {

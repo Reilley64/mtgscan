@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { CardImage, type CardSheen } from '@/components/atoms/card-image';
+import { Skeleton } from '@/components/atoms/skeleton';
 import { Text } from '@/components/atoms/text';
 import { TileButton } from '@/components/atoms/tile-button';
 import { cn } from '@/lib/class-names';
@@ -60,6 +61,16 @@ export function CardTile({
           {underImage}
         </View>
       )}
+    </View>
+  );
+}
+
+export function CardTileSkeleton() {
+  return (
+    <View className={cn(columnClasses[cardsPerRow], 'gap-xs px-xs')}>
+      <Skeleton className="aspect-card-image rounded-sm" />
+      <Skeleton className="h-skeleton-meta-bar w-[60%] self-center" />
+      <Skeleton className="h-skeleton-meta-bar w-[40%] self-center" />
     </View>
   );
 }

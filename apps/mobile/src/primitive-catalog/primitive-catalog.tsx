@@ -24,7 +24,7 @@ import { Toggle } from '@/components/atoms/toggle';
 import { AccountCard } from '@/components/molecules/account-card';
 import { BatchButton } from '@/components/molecules/batch-button';
 import { Brand } from '@/components/molecules/brand';
-import { CardGrid } from '@/components/molecules/card-grid';
+import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
@@ -271,6 +271,7 @@ function Skeletons() {
     <Section title="Skeletons">
       <Skeleton className="h-card-thumbnail-height w-card-thumbnail-width" />
       <Skeleton className="h-skeleton-title-bar w-[70%]" />
+      <CardGridSkeleton accessibilityLabel="Loading collection" />
     </Section>
   );
 }

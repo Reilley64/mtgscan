@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
-import { processColor, View } from 'react-native';
+import { processColor, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/atoms/button';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
@@ -9,7 +9,7 @@ import { Text } from '@/components/atoms/text';
 import { AccountCard } from '@/components/molecules/account-card';
 import { BatchButton } from '@/components/molecules/batch-button';
 import { Brand } from '@/components/molecules/brand';
-import { CardGrid } from '@/components/molecules/card-grid';
+import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
@@ -30,6 +30,7 @@ import { scanFeedback } from './fake-scan-feedback';
 import {
   backdropOf,
   beginSwipe,
+  blocksColored,
   cardImageOutline,
   cardImageUri,
   cardSheen,
@@ -379,6 +380,34 @@ describe('CardTile', () => {
     );
 
     expect(screen.getByRole('image', { name: 'Sol Ring, CMM 464' }).parent).toHaveStyle({ width: '33.33%' });
+  });
+});
+
+describe('CardGridSkeleton', () => {
+  test('a card grid skeleton is one element that VoiceOver reads by its label', async () => {
+    await render(<CardGridSkeleton accessibilityLabel="Loading collection" />);
+
+    const skeleton = screen.getByRole('progressbar', { name: 'Loading collection' });
+    expect(skeleton).toHaveProp('accessible', true);
+    expect(within(skeleton).queryAllByLabelText(/./)).toEqual([]);
+  });
+
+  test('a card grid skeleton fills the screen with card tiles three to a row, each a card shape and two short bars', async () => {
+    await render(<CardGridSkeleton accessibilityLabel="Loading collection" />);
+
+    const [grid] = screen.getByRole('progressbar').children as ReturnType<typeof screen.getByRole>[];
+    const tiles = grid.children as ReturnType<typeof screen.getByRole>[];
+    expect(grid).toHaveStyle({ flexDirection: 'row', flexWrap: 'wrap', rowGap: 8 });
+    expect(tiles).toHaveLength(12);
+    tiles.forEach((tile) => {
+      expect(tile).toHaveStyle({ width: '33.33%' });
+      expect(blocksColored(tile, line)).toBe(3);
+    });
+    const [card, metaBar, priceBar] = tiles[0].children as ReturnType<typeof screen.getByRole>[];
+    expect(card).toHaveStyle({ borderRadius: 8, opacity: 0.45 });
+    expect(parseFloat(StyleSheet.flatten(card.props.style).aspectRatio)).toBeCloseTo(488 / 680);
+    expect(metaBar).toHaveStyle({ height: 12, width: '60%', alignSelf: 'center' });
+    expect(priceBar).toHaveStyle({ height: 12, width: '40%', alignSelf: 'center' });
   });
 });
 
