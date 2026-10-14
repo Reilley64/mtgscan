@@ -1,0 +1,22 @@
+# Bin-deck run 20261014-bin-deck
+
+Outcome: bin check failed: Exact card printing first
+
+| Key | Value |
+| --- | --- |
+| `RUN_STARTED_AT` | 2026-10-14T10:39:22.644Z |
+| `APP_COMMIT` | e9af3d0 |
+| `DEVICE_MODEL` | iPhone 16e |
+| `IOS_VERSION` | 26.6.1 |
+| `DEVICE_PARITY` | {"version":"20261012-cf1753","meanCosine":0.9997585043311119,"references":24,"lowestCosine":0.9994466304779053,"failures":[]} |
+| `BATCH_1_SUMMARY` | {"presented":30,"identityTop1":30,"printingTop1":26,"correctAccepts":13,"falseAccepts":0,"wrongCardAccepts":0,"abstentions":17,"failures":0,"endToEndP50Ms":618,"endToEndP95Ms":789,"results":30,"duplicatePhotos":0,"notACardResults":0,"notInDeckResults":0,"missedCards":0} |
+| `RUN_OUTCOME` | bin check failed: Exact card printing first |
+
+| Gate | Result | Value |
+| --- | --- | --- |
+| No false accepts | pass | 0 |
+| Right card first | pass | 30 of 30, needs 29 |
+| Exact card printing first | fail | 26 of 30, needs 27 |
+| End-to-end p95 below 1.5 s | pass | 789 ms |
+
+Files: `results.env`, `bin-batch-summaries.ndjson`, and `batch-1-detail.ndjson` in this folder. The Metro log is not kept.
