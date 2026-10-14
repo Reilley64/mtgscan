@@ -1,0 +1,683 @@
+<!doctype html>
+<!--
+PROTOTYPE, throwaway. Do not merge to main. Spec 4 (collection management).
+Settled: a binder tile opens the copy page (internal name; users never see it) for that copy only. One scrolling page, no tabs, no edits of
+finish, condition, language, or printing (deferred). The page shows state only: the hero, name, type line, chips for this copy with a Protected
+chip, the deck line (spec 6 fills it), user tags, the price (current price, added day, purchase-day price), and the rules.
+Actions live in a native menu from the ••• bar button: Protect or Unprotect, Add to deck and Create deck (spec 6, disabled here), Delete copy.
+Delete shows a native confirmation and goes back to the binder. In spec 6 the confirmation names the deck the copy is in.
+Question now: how the user reaches the user tag picker. A: an Edit user tags item in the menu. B: the user tags row on the page is a button.
+Back: Escape, Backspace, or the side panel button (the phone uses the edge swipe). Added days and purchase-day prices are made up.
+-->
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<style>
+:root{--bg:#080b0d;--surface:#11171a;--surface-raised:#1a2125;--surface-control:#232c31;--sheet:#161c1f;--line:#2a3238;--text:#fff;--muted:#b5c0c5;--dim:#7d8a90;--price:#e4e8ea;--accent:#d8ff62;--on-accent:#101500;--danger:#ff7a70;--warning:#f4d06f;--info:#8fd3ff;--danger-tint:#ff7a7029}
+
+:root{--bg:#080b0d;--surface:#11171a;--surface-raised:#1a2125;--surface-control:#232c31;--sheet:#161c1f;--line:#2a3238;--text:#fff;--muted:#b5c0c5;--dim:#7d8a90;--price:#e4e8ea;--accent:#d8ff62;--on-accent:#101500;--danger:#ff7a70}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#15181b;color:var(--text);font:14px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+#page{min-height:100%;display:flex;align-items:flex-start;justify-content:center;padding:20px 24px 120px}
+#phone{zoom:var(--fit,1);position:relative;width:402px;height:874px;border-radius:58px;background:var(--bg);box-shadow:0 0 0 10px #101315,0 0 0 12px #3c4246,0 30px 90px rgba(0,0,0,.6);overflow:hidden;flex:none}
+#screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+#screen::-webkit-scrollbar{display:none}
+.statusbar{position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:6px 34px 0 46px;font-weight:700;font-size:16px;z-index:40;pointer-events:none;background:linear-gradient(180deg,rgba(8,11,13,.95) 60%,rgba(8,11,13,0))}
+#phone.collapsed .statusbar{background:none}
+.island{position:absolute;left:50%;top:11px;width:125px;height:37px;border-radius:20px;background:#000;transform:translateX(-50%)}
+.sb-icons{display:flex;gap:6px;align-items:center}
+.sig{display:flex;gap:2px;align-items:flex-end;height:11px}.sig i{width:3px;background:#fff;border-radius:1px}
+.batt{width:25px;height:12px;border:1.5px solid rgba(255,255,255,.55);border-radius:4px;position:relative}
+.batt:after{content:"";position:absolute;inset:1.5px;right:4px;background:#fff;border-radius:1.5px}
+.homebar{position:absolute;bottom:8px;left:50%;width:140px;height:5px;border-radius:3px;background:#fff;transform:translateX(-50%);z-index:60;pointer-events:none}
+
+/* app shell: large title, settings button, floating tab bar */
+.navtitle{padding:62px 16px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.navtitle h1{font-size:28px;line-height:1.1;margin:0;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif}
+.trail{display:flex;align-items:center;gap:8px}
+.gear{width:38px;height:38px;border-radius:19px;background:var(--surface-control);display:flex;align-items:center;justify-content:center;flex:none}
+.gear svg{width:18px;height:18px}
+.tabbar{position:absolute;left:20px;right:20px;bottom:22px;height:62px;border-radius:31px;z-index:50;display:flex;align-items:center;justify-content:space-around;padding:0 6px;background:rgba(26,33,37,.62);backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);box-shadow:0 0 0 1px rgba(255,255,255,.08) inset,0 10px 30px rgba(0,0,0,.45)}
+.tabbar span{flex:1;height:52px;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:700;color:var(--dim)}
+.tabbar span.sel{color:var(--accent);background:rgba(255,255,255,.08)}
+.tabbar svg{width:24px;height:24px}
+.list-end{height:110px}
+
+/* the large title collapses into a small centred title once it scrolls under the bar (iOS large title behaviour) */
+#smallbar{position:absolute;top:0;left:0;right:0;height:98px;padding:54px 16px 0;z-index:39;display:flex;align-items:center;background:rgba(8,11,13,.86);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);box-shadow:0 .5px 0 var(--line);opacity:0;pointer-events:none;transition:opacity .16s ease}
+#phone.collapsed #smallbar{opacity:1;pointer-events:auto}
+/* like UINavigationBar, the title centres on the bar and moves left only when the trailing buttons need the room */
+#smallbar .lead{flex:1 1 0}
+#smallbar .stitle{flex:none;margin:0 8px;font-size:17px;font-weight:800;white-space:nowrap}
+#smallbar .trail{flex:1 1 0;justify-content:flex-end}
+body.rm #smallbar{transition:none}
+
+/* binder tile as shipped (DESIGN.md, Binder tile) */
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px;padding:0 12px;align-items:start}
+.tile{display:flex;flex-direction:column;min-width:0}
+.img{position:relative;aspect-ratio:488/680;border-radius:8px;background:var(--line);overflow:hidden;flex:none}
+.img>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.img .ph{position:absolute;inset:0;padding:8px 7px;font-size:10px;font-weight:700;color:var(--muted);line-height:1.2;display:none;overflow-wrap:anywhere}
+body.noimg .img>img{display:none}
+body.noimg .img .ph{display:block}
+.sheen::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.3}
+.sheen.foil::after{background:linear-gradient(115deg,rgba(255,80,170,0) 22%,rgba(255,80,170,.55) 34%,rgba(255,230,90,.5) 42%,rgba(80,255,200,.5) 50%,rgba(80,150,255,.55) 58%,rgba(200,110,255,.5) 66%,rgba(200,110,255,0) 78%)}
+.sheen.etched::after{background:linear-gradient(120deg,rgba(255,255,255,0) 25%,rgba(255,255,255,.55) 42%,rgba(200,210,215,.25) 50%,rgba(255,255,255,.55) 58%,rgba(255,255,255,0) 75%)}
+.meta{margin-top:4px;display:flex;align-items:center;justify-content:center;gap:4px;font-size:12px;line-height:16px;color:var(--muted);white-space:nowrap;min-width:0;font-variant-numeric:tabular-nums}
+.meta .cn{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.meta .sep{color:var(--dim)}
+.seticon{width:16px;height:16px;flex:none;display:block}
+.seticon svg{width:100%;height:100%;display:block;fill:currentColor}
+.r-common{color:#e6e8e9}.r-uncommon{color:#a7bccb}.r-rare{color:#e2bd5a}.r-mythic{color:#f26a35}.r-special,.r-bonus{color:#b48ef0}
+.price{margin-top:4px;display:flex;align-items:center;justify-content:center;gap:3px;font-size:12px;line-height:16px;font-weight:600;color:var(--price);white-space:nowrap;font-variant-numeric:tabular-nums}
+.price .nop{color:var(--dim)}
+.stale{width:11px;height:11px;flex:none;display:block}
+
+
+/* prototype chrome */
+#switcher{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:4px;background:#fff;color:#111;border-radius:999px;padding:5px;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.2);font-weight:800;font-size:13px}
+#switcher button{width:34px;height:34px;border-radius:17px;background:#eee;color:#111;font-size:16px;font-weight:900;flex:none}
+#switcher button:hover{background:#ddd}
+#switcher .label{padding:0 12px;min-width:360px;max-width:560px;text-align:center;line-height:1.25}
+#switcher .label small{display:block;font-weight:600;font-size:11.5px;color:#555}
+#dev{position:fixed;top:14px;left:14px;z-index:100;width:280px;background:#f4f1e8;color:#1a1a1a;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.4);font-size:12px;overflow:hidden}
+#dev .dh{background:#ffb300;color:#1a1200;padding:7px 10px;font-weight:900;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+#dev .db{padding:8px 10px;display:flex;flex-direction:column;gap:8px}
+#dev.closed .db{display:none}
+#dev .t{font-weight:900;font-size:11px;color:#6b5a2a;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+#dev .btns{display:flex;flex-wrap:wrap;gap:4px}
+#dev button{background:#fff;border:1px solid #c9c2ad;border-radius:6px;padding:4px 7px;color:#1a1a1a;font-weight:700}
+#dev button:hover{background:#fffbe9}
+#dev button.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+#dev pre{margin:0;background:#fff;border:1px solid #e0d8c0;border-radius:6px;padding:6px;font:11px/1.4 ui-monospace,Menlo,monospace;white-space:pre-wrap}
+
+
+#page{gap:28px}
+#side{position:sticky;top:20px;width:340px;flex:none;background:#101315;border:1px solid #2a3238;border-radius:12px;padding:12px;font:11.5px/1.45 ui-monospace,Menlo,monospace;color:#cfd8dc;max-height:calc(100vh - 140px);overflow:auto}
+#side h3{font:800 12px -apple-system,system-ui,sans-serif;color:#ffb300;margin:0 0 6px;text-transform:uppercase;letter-spacing:.04em}
+#side pre{margin:0 0 12px;white-space:pre-wrap}
+#side p{font:12px/1.4 -apple-system,system-ui,sans-serif;color:#b5c0c5;margin:0 0 10px}
+#side .back{background:#ffb300;color:#1a1200;font:800 12px -apple-system,system-ui,sans-serif;border-radius:8px;padding:6px 10px;margin-bottom:12px}
+.navtitle .trail .totbtn{height:38px;padding:0 12px;border-radius:19px;background:var(--surface-control);display:flex;align-items:center;font-weight:700;font-size:14px}
+.tile{cursor:pointer}
+.cbadge{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:11px;background:rgba(0,0,0,.72);color:var(--warning);display:flex;align-items:center;justify-content:center;z-index:2}
+.cbadge svg{width:13px;height:13px}
+.push{position:absolute;inset:0;overflow-y:auto;background:var(--bg);scrollbar-width:none;z-index:45}
+.hero{position:relative;height:330px;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px}
+.hero .blur{position:absolute;inset:-30px;background-size:cover;background-position:center 30%;filter:blur(26px) brightness(.45);transform:scale(1.15)}
+.hero .img{width:190px;position:relative;z-index:1;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.hero.small{height:230px}.hero.small .img{width:130px}
+.body{padding:12px 16px 0;display:flex;flex-direction:column;gap:12px}
+.ct{font:800 20px/1.15 -apple-system,"SF Pro Display",system-ui,sans-serif;margin:0}
+.tl{color:var(--muted);font-size:14px;margin-top:2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{height:24px;padding:0 9px;border-radius:12px;background:var(--surface-control);font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;min-width:44px;justify-content:center}
+.chip.sel{background:var(--accent);color:var(--on-accent)}
+.chip.warn{color:var(--warning)}
+.chip.tag{background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--line)}
+.chip.add{color:var(--accent);background:none;box-shadow:inset 0 0 0 1px var(--accent)}
+.chip svg{width:11px;height:11px}
+.seg{display:flex;background:var(--surface-control);border-radius:8px;padding:2px}
+.seg button{flex:1;height:32px;border-radius:7px;font-weight:700;font-size:13px}
+.seg button.sel{background:var(--accent);color:var(--on-accent)}
+.counts{display:flex;gap:16px;background:var(--surface);border-radius:12px;padding:10px 12px}
+.counts div{display:flex;flex-direction:column;font-size:12px;color:var(--muted)}
+.counts b{font-size:17px;color:var(--text)}
+.summary{font-size:12px;color:var(--muted)}
+h4{margin:4px 0 0;color:var(--accent);font-size:14px}
+.rows{display:flex;flex-direction:column;gap:8px}
+.row{background:var(--surface);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;position:relative}
+.row.mark{box-shadow:inset 3px 0 0 var(--accent)}
+.row .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.row .m{font-size:12px;color:var(--muted)}
+.row .nm{font-weight:700;font-size:14px}
+.row .pr{font-size:12px;font-weight:600;color:var(--price);white-space:nowrap}
+.row .chev{color:var(--dim);font-size:18px}
+.row .more{width:32px;height:32px;border-radius:16px;background:var(--surface-control);font-weight:900;letter-spacing:1px;color:var(--muted)}
+.confirm{background:var(--surface-raised);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.confirm p{margin:0;font-size:14px}
+.btns{display:flex;gap:8px}
+.btn{height:38px;border-radius:8px;padding:0 12px;font-weight:700;font-size:14px;background:var(--surface-control);display:inline-flex;align-items:center;justify-content:center}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.danger{background:var(--danger-tint);color:var(--danger)}
+.btn.wide{width:100%}
+.switchrow{background:var(--surface);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.switchrow small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.sw{width:51px;height:31px;border-radius:16px;background:#39444a;position:relative;flex:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:14px;background:#fff;transition:left .15s}
+.sw.on{background:var(--accent)}.sw.on::after{left:22px}
+.sw[aria-disabled=true]{opacity:.38}
+.kv{display:flex;justify-content:space-between;background:var(--surface);border-radius:12px;padding:10px 12px;font-size:14px}
+.kv span:first-child{color:var(--muted)}
+.oracle{background:var(--surface);border-radius:12px;padding:12px;font-size:14px;line-height:1.4}
+.ptop{display:flex;align-items:center;gap:10px;padding:62px 16px 6px}
+.ptop .thumb{width:40px;height:56px;border-radius:4px;background-size:cover;background-position:center;flex:none}
+.ptop .t{font:800 17px -apple-system,system-ui,sans-serif}
+.navback{position:absolute;top:56px;left:8px;color:var(--accent);font-size:15px;font-weight:600;z-index:3}
+.field{display:flex;align-items:center;gap:6px;height:36px;border-radius:10px;background:var(--surface-control);padding:0 10px}
+.field input{flex:1;background:none;border:0;outline:0;color:var(--text);font:14px -apple-system,system-ui,sans-serif}
+.check{width:22px;height:22px;border-radius:11px;box-shadow:inset 0 0 0 2px var(--dim);flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900}
+.check.on{background:var(--accent);box-shadow:none;color:var(--on-accent)}
+.menu{position:absolute;right:12px;top:44px;z-index:60;width:230px;background:rgba(40,48,53,.97);border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.menu button{display:flex;width:100%;justify-content:space-between;padding:11px 14px;font-size:15px;border-bottom:.5px solid rgba(255,255,255,.08);text-align:left}
+.menu button.d{color:var(--danger)}
+.menu .sub{display:flex;gap:4px;padding:8px 10px;flex-wrap:wrap;border-bottom:.5px solid rgba(255,255,255,.08)}
+.minis{display:flex;gap:8px;overflow-x:auto}
+.minis .mini{width:62px;flex:none;cursor:pointer}
+.minis .mini.cur .img{box-shadow:0 0 0 2px var(--accent)}
+.note{font-size:12px;color:var(--dim)}
+
+.mshield{width:13px;height:13px;color:var(--warning);flex:none;display:block}
+.editbtn{position:absolute;top:56px;right:12px;z-index:5;height:38px;width:38px;padding:0;letter-spacing:1px;border-radius:19px;background:rgba(35,44,49,.8);backdrop-filter:blur(12px);font-weight:700;font-size:15px}
+.push{position:absolute}
+.alertscrim{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:80}
+.alert{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:270px;z-index:81;background:rgba(40,48,53,.98);border-radius:14px;overflow:hidden;text-align:center}
+.alert b{display:block;padding:16px 16px 2px;font-size:17px}.alert p{margin:0;padding:2px 16px 14px;font-size:13px;color:var(--muted)}
+.alert button{display:block;width:100%;padding:11px;border-top:.5px solid rgba(255,255,255,.12);font-size:17px;color:var(--info)}
+.alert button.d{color:var(--danger);font-weight:600}
+#drawer{position:absolute;inset:0;z-index:90;display:none}#drawer.open{display:block}
+#drawer .scrim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+#drawer .sheet{position:absolute;left:0;right:0;bottom:0;top:60px;background:var(--sheet);border-radius:28px 28px 0 0;padding:32px 16px 30px;overflow:auto}
+#drawer .grab{position:absolute;top:8px;left:50%;width:36px;height:5px;border-radius:3px;background:#4a555b;transform:translateX(-50%)}
+#drawer .title{font-size:17px;font-weight:800;margin:0 0 14px;text-align:center}
+</style><title>PROTOTYPE · Copy page (spec 4) · mtgscan</title></head>
+<body>
+<div id="page"><div id="phone"><div id="screen"></div><div id="layer"></div><div id="drawer"></div>
+<div class="statusbar"><span>9:41</span><div class="island"></div><div class="sb-icons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.5c2.3 0 4.4.9 5.9 2.4l1.1-1.1C13.2 2 10.7 1 8 1S2.8 2 1 3.8l1.1 1.1C3.6 3.4 5.7 2.5 8 2.5zm0 3c1.5 0 2.8.6 3.8 1.5l1.1-1.1C11.6 4.7 9.9 4 8 4s-3.6.7-4.9 1.9L4.2 7C5.2 6.1 6.5 5.5 8 5.5zm0 3c.7 0 1.3.3 1.7.7L8 11 6.3 9.2c.4-.4 1-.7 1.7-.7z" fill="#fff"/></svg><span class="batt"></span></div></div>
+<nav class="tabbar" aria-label="Tabs">
+  <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Recent</span>
+  <span class="sel"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="5" height="5" rx="1.2"/><rect x="9.5" y="3" width="5" height="5" rx="1.2"/><rect x="16" y="3" width="5" height="5" rx="1.2"/><rect x="3" y="9.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="16" y="9.5" width="5" height="5" rx="1.2"/><rect x="3" y="16" width="5" height="5" rx="1.2"/><rect x="9.5" y="16" width="5" height="5" rx="1.2"/><rect x="16" y="16" width="5" height="5" rx="1.2"/></svg>Collection</span>
+  <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="5" y="7" width="14" height="14" rx="2"/><path d="M7.5 4h9M10 1.8h4"/></svg>Decks</span>
+  <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.3" r="3.6"/></svg>Scan</span>
+</nav>
+<div class="homebar"></div></div>
+<aside id="side"><button class="back" data-act="back">← Back (edge swipe)</button><h3>Why this variant</h3><p id="why"></p><h3>State</h3><pre id="state"></pre></aside></div>
+<div id="switcher" role="toolbar" aria-label="Prototype variant switcher"><button id="prev" aria-label="Previous variant">←</button><span class="label" id="switcher-label">A</span><button id="next" aria-label="Next variant">→</button></div>
+<script>
+const PRINTINGS = {
+"tdm-136": {
+"name": "Bloomvine Regent // Claim Territory",
+"set": "TDM",
+"cn": "136",
+"img": "https://cards.scryfall.io/normal/front/1/0/10e0a9a3-f63a-4f92-a083-9d181580e498.jpg?1783907345",
+"dfc": false,
+"prices": {
+"usd": 0.67,
+"usd_foil": 1.15,
+"usd_etched": null,
+"eur": 0.71,
+"eur_foil": 0.91
+},
+"rarity": "rare"
+},
+"eld-115": {
+"name": "Bonecrusher Giant // Stomp",
+"set": "ELD",
+"cn": "115",
+"img": "https://cards.scryfall.io/normal/front/0/9/09fd2d9c-1793-4beb-a3fb-7a869f660cd4.jpg?1783932628",
+"dfc": false,
+"prices": {
+"usd": 0.29,
+"usd_foil": 0.55,
+"usd_etched": null,
+"eur": 0.28,
+"eur_foil": 0.81
+},
+"rarity": "rare"
+},
+"isd-51": {
+"name": "Delver of Secrets // Insectile Aberration",
+"set": "ISD",
+"cn": "51",
+"img": "https://cards.scryfall.io/normal/front/1/1/11bf83bb-c95b-4b4f-9a56-ce7a1816307a.jpg?1783940984",
+"dfc": true,
+"prices": {
+"usd": 0.31,
+"usd_foil": 2.13,
+"usd_etched": null,
+"eur": 0.52,
+"eur_foil": 3.4
+},
+"rarity": "common"
+},
+"mh2-186": {
+"name": "Asmoranomardicadaistinaculdacar",
+"set": "MH2",
+"cn": "186",
+"img": "https://cards.scryfall.io/normal/front/d/9/d99a9a7d-d9ca-4c11-80ab-e39d5943a315.jpg?1783926821",
+"dfc": false,
+"prices": {
+"usd": 0.33,
+"usd_foil": 0.97,
+"usd_etched": null,
+"eur": 0.14,
+"eur_foil": 0.92
+},
+"rarity": "rare"
+},
+"ltr-246": {
+"name": "The One Ring",
+"set": "LTR",
+"cn": "246",
+"img": "https://cards.scryfall.io/normal/front/d/5/d5806e68-1054-458e-866d-1f2470f682b2.jpg?1790212038",
+"dfc": false,
+"prices": {
+"usd": 114.75,
+"usd_foil": 140.93,
+"usd_etched": null,
+"eur": 96.24,
+"eur_foil": 123.05
+},
+"rarity": "mythic"
+},
+"mh2-138": {
+"name": "Ragavan, Nimble Pilferer",
+"set": "MH2",
+"cn": "138",
+"img": "https://cards.scryfall.io/normal/front/a/9/a9738cda-adb1-47fb-9f4c-ecd930228c4d.jpg?1791803835",
+"dfc": false,
+"prices": {
+"usd": 40.69,
+"usd_foil": 57.4,
+"usd_etched": null,
+"eur": 33.58,
+"eur_foil": 53.92
+},
+"rarity": "mythic"
+},
+"sld-1144": {
+"name": "Sarkhan Vol",
+"set": "SLD",
+"cn": "1144",
+"img": "https://cards.scryfall.io/normal/front/1/d/1df8d25e-e519-4197-aa8e-ec596cb2a2d8.jpg?1783920200",
+"dfc": false,
+"prices": {
+"usd": 4.34,
+"usd_foil": 5.07,
+"usd_etched": null,
+"eur": 4.15,
+"eur_foil": 3.91
+},
+"rarity": "mythic"
+},
+"khm-168": {
+"name": "Esika, God of the Tree // The Prismatic Bridge",
+"set": "KHM",
+"cn": "168",
+"img": "https://cards.scryfall.io/normal/front/f/6/f6cd7465-9dd0-473c-ac5e-dd9e2f22f5f6.jpg?1783928221",
+"dfc": true,
+"prices": {
+"usd": 21.08,
+"usd_foil": 23.43,
+"usd_etched": null,
+"eur": 16.76,
+"eur_foil": 17.78
+},
+"rarity": "mythic"
+},
+"pcy-45": {
+"name": "Rhystic Study",
+"set": "PCY",
+"cn": "45",
+"img": "https://cards.scryfall.io/normal/front/3/3/3394cefd-a3c6-4917-8f46-234e441ecfb6.jpg?1783945789",
+"dfc": false,
+"prices": {
+"usd": 66.07,
+"usd_foil": 434.88,
+"usd_etched": null,
+"eur": 36.96,
+"eur_foil": 242.77
+},
+"rarity": "common"
+},
+"dmu-107": {
+"name": "Sheoldred, the Apocalypse",
+"set": "DMU",
+"cn": "107",
+"img": "https://cards.scryfall.io/normal/front/d/6/d67be074-cdd4-41d9-ac89-0a0456c4e4b2.jpg?1783921327",
+"dfc": false,
+"prices": {
+"usd": 98.2,
+"usd_foil": 106.85,
+"usd_etched": null,
+"eur": 81.34,
+"eur_foil": 95.4
+},
+"rarity": "mythic"
+},
+"ltc-284": {
+"name": "Sol Ring",
+"set": "LTC",
+"cn": "284",
+"img": "https://cards.scryfall.io/normal/front/5/8/5805f64c-dd88-4e94-8f0a-a01dae67e3ba.jpg?1783915895",
+"dfc": false,
+"prices": {
+"usd": 3.49,
+"usd_foil": null,
+"usd_etched": null,
+"eur": 2.32,
+"eur_foil": null
+},
+"rarity": "uncommon"
+},
+"rna-22": {
+"name": "Smothering Tithe",
+"set": "RNA",
+"cn": "22",
+"img": "https://cards.scryfall.io/normal/front/7/a/7af082fa-86a3-4f7b-966d-2be1f1d0c0bc.jpg?1783933717",
+"dfc": false,
+"prices": {
+"usd": 57.8,
+"usd_foil": 60.21,
+"usd_etched": null,
+"eur": 37.73,
+"eur_foil": 43.45
+},
+"rarity": "rare"
+},
+"blb-241": {
+"name": "Ygra, Eater of All",
+"set": "BLB",
+"cn": "241",
+"img": "https://cards.scryfall.io/normal/front/b/9/b9ac7673-eae8-4c4b-889e-5025213a6151.jpg?1783910790",
+"dfc": false,
+"prices": {
+"usd": 11.24,
+"usd_foil": 15.85,
+"usd_etched": null,
+"eur": 7.92,
+"eur_foil": 9.84
+},
+"rarity": "mythic"
+},
+"dsk-120": {
+"name": "Valgavoth, Terror Eater",
+"set": "DSK",
+"cn": "120",
+"img": "https://cards.scryfall.io/normal/front/7/7/7740ff55-67bb-409e-90f7-2c2c8b8c770a.jpg?1783909475",
+"dfc": false,
+"prices": {
+"usd": 19.48,
+"usd_foil": 26.05,
+"usd_etched": null,
+"eur": 16.47,
+"eur_foil": 19.56
+},
+"rarity": "mythic"
+},
+"cmr-561": {
+"name": "Sakashima of a Thousand Faces",
+"set": "CMR",
+"cn": "561",
+"img": "https://cards.scryfall.io/normal/front/6/9/69639b23-9975-4356-ab7d-0aa3387e02c7.jpg?1783928652",
+"dfc": false,
+"prices": {
+"usd": null,
+"usd_foil": null,
+"usd_etched": 41.83,
+"eur": null,
+"eur_foil": null
+},
+"rarity": "mythic"
+},
+"usg-321": {
+"name": "Gaea's Cradle",
+"set": "USG",
+"cn": "321",
+"img": "https://cards.scryfall.io/normal/front/2/5/25b0b816-0583-44aa-9dc5-f3ff48993a51.jpg?1783946299",
+"dfc": false,
+"prices": {
+"usd": 1635.37,
+"usd_foil": null,
+"usd_etched": null,
+"eur": 1086.92,
+"eur_foil": null
+},
+"rarity": "rare"
+},
+"lea-232": {
+"name": "Black Lotus",
+"set": "LEA",
+"cn": "232",
+"img": "https://cards.scryfall.io/normal/front/b/0/b0faa7f2-b547-42c4-a810-839da50dadfe.jpg?1783948669",
+"dfc": false,
+"prices": {
+"usd": null,
+"usd_foil": null,
+"usd_etched": null,
+"eur": 33768.47,
+"eur_foil": null
+},
+"rarity": "rare"
+},
+"tsr-406": {
+"name": "Bojuka Bog",
+"set": "TSR",
+"cn": "406",
+"img": "https://cards.scryfall.io/normal/front/d/4/d46ca7cb-4a04-4081-8834-6bc29e0762d2.jpg?1783927701",
+"dfc": false,
+"prices": {
+"usd": 6.28,
+"usd_foil": 127.01,
+"usd_etched": null,
+"eur": 4.06,
+"eur_foil": 102.16
+},
+"rarity": "special"
+}
+};
+
+const SETS = {
+"BLB": {
+"name": "Bloomburrow",
+"svg": "<svg viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path d=\"M399.3 111.2c-.4.7-2.2 4.4-4.1 8.2-6.7 14.1-17.9 29.4-31.2 42.6-6.9 6.9-14 13.7-15.9 15-1.9 1.4-3.9 3-4.5 3.5-4.2 4-16.6 11.5-31.8 19.3l-10.7 5.5 4.2 8.1c5.5 10.6 10.7 23.5 13.2 33.1 2.9 11.1 3.6 22.9 1.8 32.6-1.9 10.3-5.7 17.5-13.7 25.4-9.4 9.3-16.6 12.9-34.6 17.2-1.4.4-7.2.6-13 .7-15.7 0-24.6-3.8-35.3-14.9-4.3-4.5-10.3-15.2-12.8-22.5-2.8-8.4-3.9-14.5-4.6-25-.2-4.7-.9-8.9-1.4-9.4-.5-.6-2.3-.5-4.6.2-7 2-11.8 3.1-16.3 3.7-2.4.4-4.7.8-5 1-1.2.7-19.3 2-29 2-10.8 0-27.8-1.3-29.4-2.3-.5-.3-2.3-.6-4-.8-3.3-.4-8.7-1.8-15.1-4-6.2-2.1-6.7-1.9-6 2.3.4 2.1.9 4.5 1.2 5.3.4.8.8 2.8 1 4.5.3 1.6.8 3.5 1.3 4 .5.6 1.1 2.8 1.4 5 .3 2.2 1.1 7.4 1.8 11.5 2.1 12.8 1.5 52.3-.9 56.3-.2.4-.6 2-.9 3.5-.3 1.5-.7 3.4-1.1 4.2-.3.8-.7 2.2-.9 3-.2.8-.8 2.4-1.3 3.7-.6 1.3-1.5 3.3-2 4.5-.5 1.3-1.3 3.5-1.9 5-1 2.5-.9 2.7 1.8 3.3 1.6.4 3.2.6 3.5.6.2 0 1.9.5 3.7 1 1.8.6 4.1 1.2 5.1 1.4 4.1.9 17.6 5.9 22.2 8.2 8.1 4.2 13.6 8.2 21 15.7 13.4 13.5 20 30.6 20 51.2-.1 12.9-2.5 21.3-9.8 33.7-2.3 3.8-18.3 20.7-19.7 20.7-.4 0-2 1.1-3.6 2.5s-3.4 2.5-4 2.5c-.6 0-1.9.9-2.8 1.9-1.7 1.9-1.7 2.3.8 9.8 1.4 4.3 2.8 8.9 3.1 10.3.2 1.4.9 4.5 1.5 7 1.7 7.9 2 9.4 2.7 14 1.8 11.4.5 46.7-1.9 50.6-1.6 2.5 1.3 3.2 15.2 3.9 8 .4 14.7.8 15.1 1 .3.2 2.8.7 5.5 1 16.3 2.1 32.5 7.9 50.3 18 2.2 1.2 2.9 1 10-3.8 9.9-6.7 10.1-6.9 20.1-11.7 14.2-7 22.8-9.8 38.5-12.9 6.2-1.2 37.1-1.3 41.6-.1 1.9.5 4.8 1.1 6.4 1.4 4.3.7 14.7 3.5 17 4.6 15.7 7.1 19.1 7.6 17.5 2.1-1.2-3.9-10.1-22.5-15.2-31.6-2.5-4.4-5.7-10.3-7.3-13-26.8-47.9-78.4-113.9-130.2-166.6-7.8-8-14.3-14.9-14.3-15.4s1.2.3 2.8 1.6c1.5 1.4 9.5 8.6 17.7 15.9 36.5 32.6 83 81.8 111.1 117.5 15.2 19.3 36.7 50.3 43.3 62.5 9.5 17.3 10.1 17.5 10.1 3.2 0-6 .9-42.8 2-81.8s2.4-88.5 3-109.9c.5-21.5 1.2-45.5 1.5-53.5.2-8 .7-26.3 1.1-40.8.4-14.4.9-26.1 1.1-25.9.4.5 1 17.8 1.8 49.2.7 29.2 1.4 53.8 2 73.5.3 8.5.7 25.2 1 37 .5 21.3 1.2 45.1 2 71 .2 7.4.8 25.6 1.2 40.5.4 14.8.7 28.6.8 30.5 0 1.9.2 7.4.3 12.2.1 4.9.6 8.8 1 8.8.5 0 1.9-1.9 3.2-4.3 22.9-41.1 59.5-89 100.4-131.4 6.2-6.5 12.5-13.2 13.9-14.9 5.6-6.6 60.5-57.4 64.7-59.9.8-.4-3.2 4.1-9 10.1-60 62.1-101 114.6-135.1 172.4-9.1 15.5-19.9 39.1-19.9 43.3.1 3.5 1.6 3.8 7.1 1.4 9.9-4.4 19.1-7.2 31.9-9.7 6.3-1.2 35-1.2 40.7 0 2.1.5 5.2 1.1 6.8 1.4 4.8.8 14.7 3.5 18 5 1.7.7 6.2 2.6 10 4.1 3.9 1.6 7.5 3.2 8 3.6.6.4 3.3 1.9 6 3.4 2.8 1.5 8 4.9 11.7 7.6l6.8 4.9 3.2-2c8-4.9 24.3-11.8 31.8-13.5.8-.2 3-.8 4.8-1.4 1.8-.5 3.5-1 3.7-1 .3 0 1.5-.3 2.8-.6 1.2-.2 3.6-.6 5.2-.9 1.7-.2 4.8-.7 7-1.1 4.5-.7 13.7-1.2 23.8-1.4l6.9-.1-.6-2.7c-.4-1.6-.9-3.9-1.2-5.3-2.9-13.3-2.6-38 .6-54 1.2-5.7 2.4-10.8 2.7-11.3.3-.4.7-2.3 1-4 .2-1.8.9-3.6 1.4-4.2.5-.5.9-1.9.9-3.1 0-1.3.4-2.5.9-2.8.5-.3 1.1-1.9 1.3-3.6.4-2.7 0-3.3-4.5-6.1-6.6-4-7-4.4-15.1-12.4-12.8-12.6-16.7-19.2-20.5-34.7-2.9-11.8-2.8-15.6 1-31.8 1.3-5.4 1.8-6.8 5.5-14.5 6.2-12.8 16.6-23.4 29.9-30.5 1.7-.9 3.9-2.1 5-2.7 1.1-.6 3.1-1.5 4.5-2.1 1.4-.5 4.2-1.7 6.2-2.6 2-.9 5.1-1.9 7-2.2 1.8-.3 4.2-.9 5.3-1.4 1.1-.5 4.4-1.4 7.3-2 2.8-.7 5.2-1.4 5.2-1.6 0-.3-.7-1.8-1.5-3.4-.9-1.7-1.3-3-1-3 .3 0 0-1-.7-2.3-.6-1.2-1.3-3.1-1.5-4.1-.2-1.1-.8-2.4-1.3-3-.5-.7-1.1-2.3-1.3-3.6-.2-1.4-.6-3.2-1-4-.5-1.4-.8-3-2.7-16-.7-5.3-.5-32.8.3-38 .3-1.4.7-4.1 1.1-6 .3-1.9.8-4.7 1-6.3.3-1.5.7-3.5 1-4.5.3-.9.7-2.8 1-4.2.5-2.7 1.3-5.8 2.2-9.3.3-1.2.8-3.7 1.1-5.4.5-3.3.5-3.3-2.8-2.7-1.9.4-3.8 1-4.4 1.4-1 .7-3.8 1.4-12.5 2.8-2.5.4-5 1.1-5.5 1.4-1.6 1-18.3 2.3-29 2.3-10 0-28.3-1.3-29.7-2.2-.4-.2-2.9-.7-5.5-1-2.7-.3-5.6-1-6.5-1.5-1-.5-1.8-.7-1.8-.4 0 .3-2.1-.1-4.7-.9-7.1-2.2-7.3-2.1-7.3 3.1 0 11.5-3.9 27.8-9.4 39.4-3.7 7.8-4.6 9-11.4 15.7-13.1 12.9-31.4 16.2-54 9.7-26.9-7.8-41-25.5-41-51.2 0-12 3.6-27.4 9.5-41.2 2.9-6.6 8.2-17.2 9.4-18.6 2.2-2.7 1.1-3.7-10.1-8.8-6.5-3-16.5-8.7-18.2-10.4-.7-.7-1.8-1.2-2.5-1.2s-1.3-.5-1.3-1c0-.6-.7-1-1.5-1s-1.5-.3-1.5-.8c0-.4-1.8-1.8-4-3.2-2.2-1.4-4-2.8-4-3.2 0-.4-.9-.9-1.9-1.3-3.1-.9-25.8-24.1-32.3-32.9-6.8-9.1-15.8-24.1-18.3-30.4-1.8-4.3-2.8-5.1-4.2-3zM401.8 631c-.3.8-1.3 7.3-2.3 14.4-2.1 15.7-7.1 37.4-12 52.1-5.8 17.5-12.9 31.4-23.1 45.2-1.5 2.1-1.5 2.5-.1 4.7 2.8 4.2 23.5 25.2 30.7 31.1l7 5.7 4.7-4c6.3-5.2 34.3-33.8 34.3-35 0-1.2-6.3-9.2-7.2-9.2-.4 0-.8-.6-.8-1.4 0-.7-.7-1.9-1.5-2.6-.9-.7-2.2-2.9-3.1-4.9-.9-2-2.9-6.8-4.6-10.6-4.4-10.1-4.4-10.1-7.7-20.5-5.7-18.1-11.8-46.9-13.4-63-.2-2-.5-2.8-.9-2z\"/></svg>"
+},
+"CMR": {
+"name": "Commander Legends",
+"svg": "<svg viewBox=\"0 0 29 32\" aria-hidden=\"true\"><path d=\"M12.125 1.184c1.929-.881 4.326-.623 6.009.672.644.486.997 1.23 1.373 1.921 1.62-.057 3.165-.687 4.473-1.626.932.823 1.079 2.139 1.046 3.31 1.281.141 2.491-.358 3.553-1.024.429 1.197.684 2.511.392 3.77-.208.889-.836 1.606-1.573 2.115-.376-.38-.836-.736-1.406-.682-2.722-.02-5.443.008-8.163-.01-.662-.002-1.328-.302-1.716-.846-.727-1.001-1.12-2.19-1.534-3.343-.482 1.14-.832 2.36-1.586 3.361-.396.543-1.069.832-1.731.83-2.722.014-5.443-.014-8.163.01-.566-.051-1.005.329-1.402.676C.986 9.799.365 9.102.152 8.226-.136 6.965.105 5.647.534 4.448c1.075.644 2.272 1.157 3.559 1.018-.037-1.175.131-2.472 1.04-3.316 1.332.924 2.899 1.651 4.556 1.584a4.257 4.257 0 012.434-2.548zM2.478 13.55c-.356.02-.774-.031-1.054.241-.281.356-.272.566-.278 1.028v3.273l.003.058c.736 1.185 1.587 2.387 2.38 3.537.364-.11.725-.295.84-.721.014-.082.037-.162.043-.245.06-.819-.042-1.64.02-2.508 0-.485.389-.879.869-.879s.869.394.869.879l.019 1.667c.013 5.175-.068 1.842.037 5.31a36.692 36.692 0 002.852 3.128c.47.074.915-.374.885-.842.047-1.823-.049-3.651.039-5.474.1-.922 1.635-.926 1.731 0 .059 2.904.012 5.813.018 8.719.856.748 1.806 1.385 2.793 1.945a16.762 16.762 0 002.787-1.945c-.012-2.707.002-5.415-.008-8.122.002-.405-.031-.915.38-1.148.548-.411 1.463.029 1.391.74.033 1.761-.024 3.527.018 5.288-.02.47.421.905.893.842a35.013 35.013 0 002.846-3.132c.121-2.352-.024-4.72.067-7.076.039-.86 1.369-1.038 1.688-.264.219 1.079-.072 2.209.153 3.288.114.351.494.435.797.552.795-1.148 1.604-2.291 2.342-3.478.088-1.24.031-2.493.031-3.737.027-.505-.407-.952-.917-.909-3.069-.024-6.14-.008-9.209-.008-.85-.024-1.712.45-2.047 1.251-.711 1.62-.938 3.392-1.187 5.129-.384-1.757-.501-3.615-1.308-5.257-.378-.713-1.179-1.15-1.982-1.122-2.932-.008-5.866.004-8.8-.006z\"/></svg>"
+},
+"DMU": {
+"name": "Dominaria United",
+"svg": "<svg viewBox=\"0 0 270 300\" aria-hidden=\"true\"><path d=\"M46.092 154.953c49.056 25.943 76.415 74.292 82.075 145.047-26.887-11.32-47.406-25.472-61.556-42.453 5.188-33.49-11.557-62.264-50.236-86.32 8.962-6.604 18.868-12.029 29.717-16.274Zm176.886 0c10.85 4.245 20.755 9.67 29.717 16.273-38.679 24.057-55.424 52.83-50.235 86.321-14.151 16.981-34.67 31.132-61.557 42.453 5.66-70.755 33.019-119.104 82.075-145.047Zm-94.81-16.274v96.934c-12.265-37.736-34.435-66.51-66.51-86.32 20.283-7.548 42.453-11.085 66.51-10.614Zm12.735 0c24.057-.471 46.226 3.066 66.51 10.613-32.076 19.812-54.246 48.585-66.51 86.321V138.68ZM46.799 33.962C51.044 53.774 64.252 75 86.422 97.642c8.49-2.83 15.33-5.66 20.519-8.491 5.188 6.604 12.264 10.613 21.226 12.028v25.472c-45.283-.472-86.32 12.028-123.113 37.5-4.717-21.698-6.132-42.453-4.245-62.264 12.264 4.717 26.179 7.075 41.745 7.075-17.925-8.49-30.189-16.98-36.793-25.471C14.724 66.509 28.403 50 46.8 33.962Zm175.472 0C240.667 50 254.346 66.51 263.309 83.491c-6.604 8.49-18.868 16.98-36.793 25.471 15.566 0 29.481-2.358 41.745-7.075 1.887 19.811.472 40.566-4.245 62.264-36.792-25.472-77.83-37.972-123.113-37.5v-25.472c8.962-1.415 16.038-5.424 21.226-12.028 5.19 2.83 12.029 5.66 20.52 8.49C204.818 75 218.025 53.775 222.27 33.963Zm-87.972 53.774c-7.885-.059-24.528-3.07-24.528-26.887 0-16.038 8.255-36.32 24.764-60.849 16.51 24.528 24.764 44.811 24.764 60.85 0 24.056-16.98 26.886-24.764 26.886h-.236ZM119.677 0c-19.34 29.717-25.708 55.66-19.104 77.83L89.96 82.783c-19.34-21.226-30.425-40.33-33.255-57.311C75.1 11.32 96.092 2.83 119.677 0Zm29.717 0c23.584 2.83 44.575 11.32 62.971 25.472-2.83 16.98-13.915 36.085-33.254 57.311l-10.614-4.953c6.604-22.17.236-48.113-19.103-77.83Z\" fill-rule=\"nonzero\"/></svg>"
+},
+"DSK": {
+"name": "Duskmourn: House of Horror",
+"svg": "<svg viewBox=\"0 0 685 600\" aria-hidden=\"true\"><path d=\"M79.3 175.1c-25.4 2.4-49.9 11.6-60.6 22.7l-3.8 3.9 6.8.7c14.5 1.5 36.2 8.4 48.3 15.6 9.7 5.7 14.1 9.1 21.6 16.7 14.1 14.2 25.9 35 34.8 61.3 6.4 19.1 8 29.1 7.2 47-.3 8-.8 15.5-1.2 16.8l-.7 2.3 5.4-2.2c9-3.6 15.9-5.6 29-8.3 20.3-4.1 34.5-5.6 70.9-7.1 19-.8 36.3-1.9 38.6-2.5 19-4.5 26.5-16.6 30.9-49.9 2.3-17.1 4.3-24.7 8.6-33.4 2.2-4.2 3.8-7.7 3.6-7.7-.2 0-3 .9-6.3 2.1-7.5 2.7-24.3 3.7-32.3 1.9-10.3-2.3-19.4-7.6-42.3-24.9-26.7-20-37.1-26-62.3-36.2-32.2-13-45.9-16.9-67.1-18.9-12.1-1.1-17-1.1-29.1.1zm68.7 50.4c6.9.8 15.7 2.2 19.6 3 25.7 5.1 44.9 20.5 65.8 52.8 4.2 6.5 9.6 13.9 11.9 16.4 4.1 4.5 12.3 9.2 16.2 9.4 1.7 0 1.6.2-.5 1.1-4 1.7-31.9 2.2-40.8.8-35.2-5.6-55.6-22.7-76.9-64.4-3.9-7.8-8.3-14.9-11-17.7l-4.4-4.7 3.8.8c2.1.5 9.4 1.6 16.3 2.5z\"/><path d=\"M155 241.6c0 1.8 9.9 15.2 16.1 21.8 11.5 12.3 23 20.7 36 26.1 7.5 3.2 18.4 5.8 17.1 4.2-20.2-27-39.6-42.8-61.2-50.2-8.2-2.8-8-2.7-8-1.9zM580.5 174.7C561 176.3 546 180 521 189.6c-33.2 12.7-45.6 19.5-72 39.8-22.7 17.5-29.7 21.7-41.5 25.1-8 2.4-25.5 1.6-33.9-1.4-3.3-1.1-6.1-2.1-6.3-2.1-.2 0 1.2 3 3.1 6.8 4.6 9.1 6.3 15.3 8.1 29.6 4.1 31.3 10.1 45.4 21.9 51 8.6 4.1 12.5 4.6 48.1 6.1 46.5 2 71.8 5.4 92.4 12.7 14 4.9 12.9 5.2 11.8-3.4-1.5-12.5-.3-33.9 2.7-44.9 9-34.1 26.9-65.4 46.2-81 16.5-13.3 40.2-23.1 61.7-25.4 3.7-.4 6.7-1.1 6.7-1.5 0-1.2-7.4-7.6-12.2-10.6-17.2-10.9-51.5-17.9-77.3-15.7zm-25.7 51.8c-3.2 3.1-6.8 8.8-11.7 18.4-18.5 35.9-34.1 51.7-59.6 59.9-13.7 4.5-22.3 5.5-39.7 4.9-8.4-.3-16.6-1-18.3-1.5-2.9-1-2.9-1-.4-1.1 4.6-.2 12.7-5.1 17.2-10.4 2.4-2.9 8.3-11.2 13-18.4 14-21.4 30.6-37.3 45.9-44.2 9-4.1 15.5-5.6 37.3-8.6 10.4-1.5 19.2-2.8 19.4-3.1.2-.2.7-.4.9-.4.3 0-1.5 2-4 4.5z\"/><path d=\"M523.8 243.4c-14.9 5.3-31.5 16.2-42.9 28.4-7.5 7.9-19.3 22.2-18.8 22.6.2.2 3.4-.4 7.2-1.4 15.1-4 33.3-15.3 45.3-28.2 9-9.8 18.9-23.8 16.7-23.8-.5 0-3.8 1.1-7.5 2.4zM338.1 238.2c-4.8 6.6-12.7 22.5-16.1 32.6-4.7 14-3.8 21.7 3.7 32.8 6.7 9.9 9.2 14.7 13.2 25.5 3.9 10.1 4 10.3 5.1 7.4 4.2-11.7 7.9-19.6 12.1-26.3 8.9-14.1 10.4-17.9 10.3-25.7 0-10.3-6.3-26.9-16.1-42.5-5.9-9.4-7.7-9.9-12.2-3.8zM312 306.2c0 3.8-5.6 19.3-9.3 25.8-9.3 16.3-17.2 20-47.7 22-21.8 1.4-33.9 2.7-37.8 4.1-2.5.8-3.3 1.8-3.9 4.7-.9 4.1-1.1 37.8-.2 38.6.3.3 3.6-.5 7.5-1.9 21.2-7.3 40.6-10.7 61.5-10.7h15.7l7.9-6.3c13.8-11 19.5-20.3 21.4-34.6 1.7-12.2.1-20-6.2-31-2.7-4.8-5.8-9.8-6.9-11.1l-1.9-2.3-.1 2.7zM368.6 310.8c-8.9 13.7-10.1 17.2-10.1 29.7.1 13.9 1.9 20.3 8.3 28.7 2.6 3.5 8.5 9.4 13.2 13.1l8.5 6.9 8.9-.5c19.1-1 41.3 2.3 63 9.4 6.6 2.2 12.1 3.7 12.3 3.5 1.2-1.1 1.4-28.9.4-35.3-1.2-6.8-1.4-7.3-4.4-8.2-5.6-1.7-8.7-2.1-31.8-3.6-24.4-1.6-36-3.8-41.7-7.9-8.4-6-17.6-22.5-20.6-37.1l-1.3-6-4.7 7.3z\"/><path d=\"M198 369.9c-7 6.9-12.1 16.5-14.6 27.8-2.4 10.9-1.5 32.4 1.9 45.3 3.1 12.1 9.3 26.5 16 37.8l5.2 8.7.7-8.1c.8-10.1 2.2-15.2 6-22.9 8.4-16.6 23.5-33.6 38.8-43.7 4.7-3.1 13.5-8.1 19.7-11.2 6.1-3.1 11.5-6.1 11.9-6.8.5-.8-1.6-1-8.6-.5-16.9 1.2-42.9 7.5-59.2 14.3-3.2 1.3-6.2 2.4-6.7 2.4-1.9 0-4.4-22.4-3.9-35.9.2-7.2 0-13.1-.4-13.1s-3.5 2.6-6.8 5.9zM480.7 376.7c.4 9.3.1 15.7-1.2 23.7-2.3 14.7-1.8 14-7.3 11.2-7.2-3.6-25.7-9.3-39.5-12.1-14.7-3-31.4-4.4-30.3-2.7.4.7 6 3.9 12.5 7.2 14.7 7.5 21.7 12 30.6 19.7 12 10.3 24.8 27.7 29.6 40.3 1.2 3 2.7 10 3.3 15.5l1.1 10 4.7-8c25.2-42.9 26.6-89.1 3.6-111.6-3.4-3.2-6.4-5.9-6.8-5.9-.4 0-.5 5.7-.3 12.7z\"/></svg>"
+},
+"ELD": {
+"name": "Throne of Eldraine",
+"svg": "<svg viewBox=\"0 0 70.77 91.28\" aria-hidden=\"true\"><path d=\"M19.34 55.12c5.57-6.24 4.57-18 4.57-18-5-1.83-9.27-3.87-12.22-7.4-4-4.82 1.57-8.46 1.57-8.46-12.25-.69-9 9.29-9 9.29-7.73 6-2.66 13.68-2.66 13.68 1.25-4.37 6.74-9 11.48-6s1.66 10.06 1.66 10.06A41.22 41.22 0 0 1 10.61 55c-3.16 4.41-.83 11.72-.83 11.72 6.9-8 15-2.49 15-2.49v-11a5.92 5.92 0 0 1-5.44 1.89zM66.48 30.51s3.28-10-9-9.29c0 0 5.6 3.64 1.57 8.46-2.95 3.53-7.23 5.57-12.22 7.4 0 0-1 11.8 4.57 18a5.9 5.9 0 0 1-5.4-1.87v11s8.1-5.49 15 2.49c0 0 2.33-7.31-.83-11.72A41.22 41.22 0 0 1 56 48.22s-3.07-7.07 1.67-10.06 10.22 1.66 11.47 6c0 .03 5.07-7.66-2.66-13.65zM37.71 57s.2 15.32-.58 20.7a4.26 4.26 0 0 1-1.74 2.66 4.25 4.25 0 0 1-1.75-2.66c-.78-5.38-.58-20.7-.58-20.7V39a20.15 20.15 0 0 1-5-.83V80a28.26 28.26 0 0 0 7.32 11.3A28.3 28.3 0 0 0 42.7 80V38.16a20.15 20.15 0 0 1-5 .83z\" /><path d=\"M54.09 24V12.89l-5.15 3.32s0 7.82-9.65 10.06v-1.61a20.94 20.94 0 0 1 .5-5.15c.76-2 5.16-6.21 5.16-6.21a28.93 28.93 0 0 0-4-7.12 42.42 42.42 0 0 0-3-3.6C37.17 1.74 36.32.87 35.39 0c-7.49 7-9.56 13.3-9.56 13.3s4.39 4.23 5.15 6.21c.59 1.55.5 6.76.5 6.76-9.65-2.27-9.65-10.06-9.65-10.06l-5.15-3.32V24l-2.49 2.49c8.06 9.23 21.2 8.73 21.2 8.73s13.13.5 21.2-8.73z\" /></svg>"
+},
+"ISD": {
+"name": "Innistrad",
+"svg": "<svg viewBox=\"0 0 939 1024\" aria-hidden=\"true\"><path d=\"M460.764 115.691l164.39 70.047-94.341 40.467v352.906l29.676-21.507L671.028 188.43h156.291l94.246 199.402-132.021-70.072-45.754 150.909v272.142l-75.453 13.481 156.196 102.439-309.82-53.876-53.948 148.122-53.876-148.122-309.915 53.876 156.315-102.439-75.453-13.481V468.669L132.058 317.76.037 387.832 94.283 188.43h156.315l110.515 369.174 29.676 21.507V226.205l-94.341-40.467 164.318-70.047z\"/></svg>"
+},
+"KHM": {
+"name": "Kaldheim",
+"svg": "<svg viewBox=\"0 0 13 14\" aria-hidden=\"true\"><path d=\"M6.497 13.995c-.817-.015-1.397-.242-1.74-.68.305-.21.553-.473.744-.79-.295-.017-.488-.087-.58-.21.69-.701 1.008-1.59.955-2.666V6.577H4.593c-.398.373-.73.707-1 1.002-.268.294-.424.58-.465.854-.9-1.27-1.14-2.795-.718-4.577-.883 2.336-.418 4.325 1.395 5.967-.298.741-.863 1.36-1.694 1.858.162-1.352-.455-2.63-1.849-3.835-.369-1.798-.345-3.484.072-5.06C.744 1.796 1.802.868 3.51.003l-.375 2.414 1.457 1.46H5.74v-.41l.758-1.934.759 1.934v.41h1.146l1.457-1.46L9.484.003c1.709.865 2.768 1.793 3.177 2.783.417 1.576.44 3.262.072 5.06-1.394 1.204-2.01 2.483-1.85 3.835-.83-.497-1.395-1.117-1.693-1.858 1.813-1.642 2.278-3.63 1.395-5.967.422 1.782.182 3.308-.718 4.577-.041-.275-.197-.56-.465-.854a18.332 18.332 0 00-1-1.002H7.119V9.65c-.053 1.077.265 1.965.955 2.665-.092.124-.286.194-.58.21.19.318.439.581.745.79-.344.44-.924.666-1.742.681\" fill-rule=\"nonzero\"/></svg>"
+},
+"LEA": {
+"name": "Limited Edition Alpha",
+"svg": "<svg viewBox=\"0 0 1024 1024\" aria-hidden=\"true\"><path d=\"M731.186 83.138s54.03 5.86 54.03 61.718l200.508 55.858s50.092 19.316 34.62 84.878L854.622 904.298s-34.716 46.318-75.174 34.692l-267.382-73.532-267.454 73.532c-40.458 11.626-75.172-34.692-75.172-34.692L3.622 285.592c-15.376-65.562 34.716-84.878 34.716-84.878l200.508-55.858c0-55.858 53.936-61.718 53.936-61.718h438.404zm-1.736 23.182H294.516c-2.46.446-10.242 2.18-17.486 7.056-10.338 6.844-15.096 16.83-15.096 31.48v17.58S49.214 221.788 46.12 222.608c-5.602 2.554-22.268 12.634-22.268 39.262 0 5.416.75 11.462 2.296 18.33.282 1.01 161.692 603.494 164.364 613.198 7.032 8.064 28.012 29.02 47.794 23.44l273.76-75.36 273.688 75.36c19.784 5.58 40.67-15.376 47.796-23.44 2.672-9.704 164.082-612.19 164.362-613.198 1.548-6.868 2.298-12.914 2.298-18.33 0-26.628-16.76-36.708-22.268-39.262-3.094-.822-215.91-60.172-215.91-60.172v-17.58c0-14.65-4.758-24.636-15-31.48-7.244-4.876-15.026-6.61-17.582-7.056zm-472.11 87.996v594.96s5.04 38.654 35.982 38.654h167.01l-223.596 61.624s-12.822 6.4-19.314-7.688L52.964 271.41s-6.492-19.244 8.978-24.354l195.398-52.74zm509.474-1.29l195.212 52.74c15.47 5.134 9.048 24.356 9.048 24.356L806.546 880.576c-6.328 14.112-19.22 7.688-19.222 7.688l-223.596-61.718H730.81c30.778 0 36.004-38.536 36.004-38.536V193.026zm-39.192-57.78c8.978 0 10.244 11.532 10.244 11.532v639.944c0 10.266-10.244 12.822-10.244 12.822H297.166c-9.048 0-9.048-12.822-9.048-12.822V146.778c0-7.688 9.048-11.532 9.048-11.532h430.456zM619.546 269.678c-5.774.002-23.502 1.736-53.18 5.204-29.678 3.47-55.884 5.206-78.618 5.204-15.03.002-39.31-.866-72.84-2.602a9298.869 9298.869 0 0 1-96.532-5.476c0 13.102 27.362 20.998 82.084 23.692a1179.342 1179.342 0 0 0 33.536 12.136l-56.664 210.988c0-.376.292-2.106.874-5.194l.18-.938.692-2.528c-.004-.068.048-.172-.012-.202-.094-.044-.196.414-.328 1.01a47.35 47.35 0 0 0-.352 1.72c-7.692 28.124-15.218 56.294-22.726 84.468-10.214 38.346-17.15 58.87-20.808 61.568-3.658 2.7-7.414 4.048-11.272 4.048-3.47-.776-6.262-1.354-8.38-1.736-2.116-.382-3.176.384-3.176 2.302 0 2.316.578 7.908 1.73 16.776l110.416-7.514v-9.254s-1.93-6.36-5.786-7.524l-26.586 2.328c-7.714.002-11.958-2.986-12.728-8.96-.77-5.976-1.156-11.662-1.156-17.06 0-18.5 2.7-38.924 8.098-61.276s10.79-42.972 16.176-61.86c4.246-5.386 32.766-11.836 85.56-19.352 52.794-7.514 80.926-10.502 84.396-8.962 3.47 1.542 7.806 19.75 13.01 54.626a34301.986 34301.986 0 0 1 15.322 103.758c-3.082 5.398-12.04 9.734-26.876 13.01s-22.256 6.842-22.254 10.698c-.002 2.694 1.922 5.97 5.768 9.828.776.764 4.728.184 11.854-1.738 7.128-1.924 22.252-2.884 45.374-2.884 25.05 0 43.356.866 54.916 2.602 11.562 1.734 19.27 2.602 23.128 2.602 4.234 0 10.208-.776 17.924-2.33 1.54-13.478-4.05-20.216-16.768-20.216-12.72 0-22.066-2.026-28.04-6.078-5.976-4.052-12.814-25.73-20.518-65.034s-13.29-71.676-16.758-97.114c-2.706-6.162-8.49-32.656-17.35-79.482-8.862-46.826-13.294-78.906-13.294-96.242 0-5.398.288-9.35.864-11.856.578-2.504 7.03-4.624 19.362-6.358s21.196-4.532 26.594-8.39c-2.306-6.938-10.59-10.406-24.856-10.408zm-93.648 28.914c3.852 0 6.742.868 8.67 2.602 1.928 1.736 8.098 21.776 18.506 60.122s15.612 67.152 15.612 86.416c-20.428 2.316-43.07 4.342-67.928 6.076-24.856 1.736-46.728 2.602-65.616 2.602-11.172 0-17.334-.582-18.488-1.746-.388-.388 3.946-17.73 13.002-52.024s18.206-68.594 27.45-102.9c9.256-.376 19.084-.662 29.488-.856 10.402-.194 20.036-.292 28.904-.292h10.4z\"/></svg>"
+},
+"LTC": {
+"name": "Tales of Middle-earth Commander",
+"svg": "<svg viewBox=\"0 0 764 837\" aria-hidden=\"true\"><path fill-rule=\"evenodd\" d=\"M103.5.5c78.5 44.5 125 52 134 54 6 1.333 15.5 2.167 28.5 2.5h116v74.5c-99.5 0-152.5 34-182.5 56.5s-44 37.5-60 61.5c-10.667 16-15.833 33-15.5 51v55c0 22 7.5 44 22.5 66 25.667 35.667 56 62.167 91 79.5s83.167 26.5 144.5 27.5v308C262.667 782.833 183 733.667 143 689c41-4.5 80.5-23.5 86.5-65s-32-84-76-80.5c-29.333 2.333-50 15.333-62 39-39-47-66.5-95.667-82.5-146l.072-.024C11.403 435.707 69.87 415.96 88 365c18.5-52-9-80-37.5-80.5-19-.333-35.667 7.167-50 22.5-.667-59 8.333-123 27-192 33.667-58.667 59-96.833 76-114.5ZM148 564c28-3.667 47.333 7.167 58 32.5 8 26 .167 46-23.5 60-23.333-21.333-45.667-45.833-67-73.5 7.667-10.333 18.5-16.667 32.5-19Zm53-219c49.667 45.333 110 67.833 181 67.5V505c-88 0-153.833-23-197.5-69-14.667-15.667-19.5-32.167-14.5-49.5s15.333-31.167 31-41.5ZM49.5 304.5c16.333 0 24.5 10.833 24.5 32.5 0 6.667-2.5 15.167-7.5 25.5-9 17.333-21.333 30.167-37 38.5-11.333-26.667-17-53.167-17-79.5 11.667-11.333 24-17 37-17ZM382 291v102c-62 0-116.833-19.833-164.5-59.5C265.833 305.167 320.667 291 382 291Zm-1.828-138.005L382 153v118.5c-112.5 2-167.5 36-198.5 61.5-20.667 17-31.833 34.667-33.5 53-4-6.333-6.667-18.167-8-35.5v-53c0-10.333 6.167-24.833 18.5-43.5 16-22 36.333-40.833 61-56.5 46-30 99.5-44.833 160.5-44.5ZM660.5.5c-78.5 44.5-125 52-134 54-6 1.333-15.5 2.167-28.5 2.5H382v74.5c99.5 0 152.5 34 182.5 56.5s44 37.5 60 61.5c10.667 16 15.833 33 15.5 51v55c0 22-7.5 44-22.5 66-25.667 35.667-56 62.167-91 79.5s-83.167 26.5-144.5 27.5v308C501.333 782.833 581 733.667 621 689c-41-4.5-80.5-23.5-86.5-65s32-84 76-80.5c29.333 2.333 50 15.333 62 39 39-47 66.5-95.667 82.5-146l-.072-.024C752.597 435.707 694.13 415.96 676 365c-18.5-52 9-80 37.5-80.5 19-.333 35.667 7.167 50 22.5.667-59-8.333-123-27-192-33.667-58.667-59-96.833-76-114.5ZM616 564c-28-3.667-47.333 7.167-58 32.5-8 26-.167 46 23.5 60 23.333-21.333 45.667-45.833 67-73.5-7.667-10.333-18.5-16.667-32.5-19Zm-53-219c-49.667 45.333-110 67.833-181 67.5V505c88 0 153.833-23 197.5-69 14.667-15.667 19.5-32.167 14.5-49.5s-15.333-31.167-31-41.5Zm151.5-40.5c-16.333 0-24.5 10.833-24.5 32.5 0 6.667 2.5 15.167 7.5 25.5 9 17.333 21.333 30.167 37 38.5 11.333-26.667 17-53.167 17-79.5-11.667-11.333-24-17-37-17ZM382 291v102c62 0 116.833-19.833 164.5-59.5C498.167 305.167 443.333 291 382 291Zm1.828-138.005L382 153v118.5c112.5 2 167.5 36 198.5 61.5 20.667 17 31.833 34.667 33.5 53 4-6.333 6.667-18.167 8-35.5v-53c0-10.333-6.167-24.833-18.5-43.5-16-22-36.333-40.833-61-56.5-46-30-99.5-44.833-160.5-44.5Z\"/></svg>"
+},
+"LTR": {
+"name": "The Lord of the Rings: Tales of Middle-earth",
+"svg": "<svg viewBox=\"0 0 842 547\" aria-hidden=\"true\"><path fill-rule=\"evenodd\" d=\"M353.5 497c22.667 3 45.167 4.5 67.5 4.5V547c-27.333-19-49.833-35.667-67.5-50Zm135 0c-17.667 14.333-40.167 31-67.5 50v-45.5c22.333 0 44.833-1.5 67.5-4.5Zm-362-359.5s-12 69 87.5 124c67.333 38.333 136.333 58 207 59V487c-65.667 0-123.167-13-172.5-39-45-24.333-84.333-59.333-118-105-11.667-17.667-18.333-35-20-52-6.333-66.333-1-117.5 16-153.5Zm589 0c17 36 22.333 87.167 16 153.5-1.667 17-8.333 34.333-20 52-33.667 45.667-73 80.667-118 105-49.333 26-106.833 39-172.5 39V320.5c70.667-1 139.667-20.667 207-59 99.5-55 87.5-124 87.5-124ZM484.093 368.291a4.5 4.5 0 0 0-5.802 2.616c-2.904 7.676-4.131 16.39-3.71 26.14a203.856 203.856 0 0 1-7.57 7.09 4.5 4.5 0 0 0-.193.181c-2.05 2.05-8.974 5.574-14.941 6.843-7.741 1.646-13.287-.033-16.422-5.808-3.433-6.324-3.143-11.043-.178-15.161 2.196-3.05 5.099-5.135 9.878-7.741 2.365-1.29 4.871-1.29 7.96.135a4.5 4.5 0 1 0 3.77-8.172c-5.578-2.575-11.071-2.575-16.04.135-5.905 3.221-9.652 5.912-12.872 10.384-4.988 6.928-5.506 15.36-.428 24.714 5.319 9.798 14.943 12.711 26.203 10.317l.457-.1c7.324-1.653 15.364-5.733 18.77-8.98l.072-.073 1.093-.978a178.1 178.1 0 0 0 1.595-1.457c.59 3.773 1.39 7.678 2.4 11.715 4.31 17.245.834 32.055-10.512 44.934a4.5 4.5 0 1 0 6.754 5.95c13.32-15.121 17.51-32.977 12.489-53.066-4.462-17.846-4.462-32.44-.157-43.816a4.5 4.5 0 0 0-2.616-5.802ZM288.5 353.5a4.5 4.5 0 0 0 0 9l.54.003a41.55 41.55 0 0 1 3.428.165l.151.014-.009.07c-1.523 11.697-6.098 21.145-13.734 28.509a4.5 4.5 0 1 0 6.248 6.478 52.92 52.92 0 0 0 12.162-17.732c9.854-4.02 18.599-6.007 26.214-6.007l.305.002c5.946.096 8.861 3.017 9.68 10.097l.021.203.005.232c.14 8.567-3.748 13.788-12.413 16.534l-.212.066.171-.034c-3.18.681-5.625-.032-7.875-2.282a4.5 4.5 0 0 0-6.364 6.364c4.417 4.417 9.971 6.037 16.125 4.718a4.5 4.5 0 0 0 .362-.093c9.781-2.964 15.982-8.825 18.244-17.169 8.853-5.03 18.048-7.23 27.679-6.646 3.89.236 5.853 1.413 6.725 3.57l.08.205c.994 2.716.69 7.224-1.183 13.417l-.054.177-.032.068c-4.303 8.893-10.07 11.108-19.05 7.41a4.5 4.5 0 1 0-3.427 8.322c13.57 5.588 24.438 1.241 30.785-12.245a4.5 4.5 0 0 0 .225-.58c5.424-17.433.97-28.45-13.525-29.328-9.506-.576-18.68 1.148-27.467 5.148C340.715 371.153 334.141 365 323.5 365c-7.003 0-14.618 1.393-22.854 4.157a71.363 71.363 0 0 0 1.344-9.85 4.5 4.5 0 0 0-3.254-4.634c-2.784-.795-6.183-1.173-10.236-1.173Zm270.296 11.084c-5.765-9.06-13.21-12.422-21.212-8.656a4.5 4.5 0 0 0-.317.165c-7.776 4.444-15.07 10.59-21.889 18.42-.917-2.904-2.055-5.62-3.416-8.146a4.5 4.5 0 0 0-4.938-2.26c-3.997.888-7.63 3.24-10.887 6.903a4.5 4.5 0 1 0 6.726 5.98l.283-.313c.848-.917 1.689-1.666 2.523-2.254l.102-.071.005.012c2.868 7.173 3.987 16.188 3.286 27.07l-.04.582-.019.13c-.24 1.563-.543 2.552-.747 2.858a4.5 4.5 0 0 0 7.488 4.992c1.118-1.676 1.79-3.92 2.21-6.86a4.5 4.5 0 0 0 .035-.315c.436-6.104.356-11.762-.247-16.97 7.288-9.538 15.085-16.723 23.38-21.59l.441-.257.038-.016c3.192-1.407 5.993-.125 9.405 5.12l.118.184.145.27c4.431 8.331 3.688 15.158-2.232 21.522l-.168.176.058-.05-.252.226c-2.584 2.25-5.19 3.23-8.004 3.097l-.326-.02a4.5 4.5 0 1 0-.69 8.974c5.617.432 10.82-1.52 15.372-5.657a4.5 4.5 0 0 0 .222-.216c9.055-9.45 10.289-20.757 3.697-32.778a4.501 4.501 0 0 0-.15-.252Zm94.474-59.505c-4.23-3.304-9.185-3.377-13.766-.323a4.5 4.5 0 0 0-.267.192c-8.12 6.316-14.8 14.957-20.056 25.872-6.318-5.617-12.98-6.558-18.961-1.858a4.5 4.5 0 0 0-.224.187c-7.643 6.853-13.91 14.329-18.786 22.422a70.89 70.89 0 0 0-3.914-6.987 4.5 4.5 0 0 0-6.029-1.491c-2.714 1.551-5.519 3.795-8.449 6.725a4.5 4.5 0 0 0 6.364 6.364l.422-.417a43.91 43.91 0 0 1 2.438-2.223l.048-.04.118.22c4.485 8.474 6.9 17.843 7.248 28.156a877.69 877.69 0 0 1-3.327 1.53 4.5 4.5 0 1 0 3.742 8.185c35.233-16.107 64.133-32.07 86.713-47.909l.179-.132c6.79-5.282 11.344-12.301 13.591-20.916a4.5 4.5 0 0 0-8.708-2.272l-.15.557c-1.514 5.444-4.169 9.947-8.001 13.587.725-4.626.336-9.565-1.173-14.763a4.5 4.5 0 0 0-.113-.338c-2.599-6.868-5.485-11.63-8.939-14.328Zm-463.965-16.006a4.5 4.5 0 0 0-1.61 8.854l.439.083c1.01.196 1.928.418 2.752.662l.167.051-.143.3c-4.74 9.828-10.395 17.422-16.94 22.826-.673-.579-1.345-1.16-2.016-1.744a4.5 4.5 0 0 0-5.908 6.79c25.925 22.557 53.543 41.587 82.85 57.083a4.5 4.5 0 0 0 .331.158c5.505 2.36 12.606 2.92 21.331 1.83a4.5 4.5 0 1 0-1.116-8.931l-.62.074c-6.766.785-12.014.375-15.717-1.107l-.18-.076.176.094-.68-.36-.68-.364c9.377-3.707 15.396-10.887 17.657-21.345l.034-.169c1.404-7.96-3.04-14.274-12.07-18.379-6.898-3.135-15.397-4.157-25.484-3.16.032-.235.062-.472.09-.711l.02-.211c.82-11.462-4.392-19.166-14.938-21.697-6.397-1.535-13.146-2.324-20.242-2.37a108.665 108.665 0 0 0 4.328-8.981 4.5 4.5 0 0 0-1.64-5.517c-2.578-1.719-5.969-2.916-10.191-3.683Zm416.617 46.857c2.458-1.83 5.053-1.092 9.224 3.57 4.226 4.723 4.6 12.75.471 24.498-8.592 4.57-17.72 9.157-27.382 13.76-.42-5.264-1.343-10.325-2.766-15.178 4.602-9.52 11.202-18.213 19.83-26.091l.58-.528Zm-376.654 5.694c10.229-1.467 18.347-.765 24.37 1.973l.34.157c5.26 2.462 7.097 5.049 6.624 8.258l-.022.132-.066.3c-2.249 9.758-8.716 15.096-20.311 16.46a419.033 419.033 0 0 1-25.14-15.674c6.494-1.733 11.273-5.635 14.13-11.595Zm293.393-6.837c-3.312-8.043-9.724-10.791-16.894-6.694a4.5 4.5 0 0 0-.578.393c-8.969 7.175-15.923 16.982-20.867 29.343a4.5 4.5 0 1 0 8.356 3.342l.295-.728c4.265-10.38 10.042-18.53 17.327-24.515l.23-.188.143-.074c1.718-.895 2.343-.55 3.477 2.098l.089.211-.04-.148.045.164c.51 2.013-.125 4.973-2.215 8.891a4.5 4.5 0 0 0 7.942 4.236c3.174-5.952 4.235-11.259 2.84-15.911a4.5 4.5 0 0 0-.15-.42Zm-157.129 4.925a4.5 4.5 0 0 0-6.32-.744c-6.163 4.865-13.155 9.581-20.98 14.145a4.5 4.5 0 0 0 4.535 7.774c8.176-4.77 15.517-9.72 22.021-14.855a4.5 4.5 0 0 0 .744-6.32Zm279.145-27.586c1.3-.825 1.997-.78 3.053.045l.166.135c1.782 1.494 3.764 4.775 5.713 9.81l.115.3.083.293c2.375 8.613.708 15.638-5.062 21.684a4.399 4.399 0 0 0-.586.765c-6.703 4.261-13.88 8.538-21.533 12.83 1.496-7.456 1.126-13.833-1.233-19.056 4.86-11.522 11.158-20.328 18.872-26.488l.352-.279Zm-453.401 4.246c8.474-.422 16.362.249 23.674 2.004l.308.076c5.793 1.49 8.177 5.02 7.777 11.864l-.017.254-.032.265c-1.416 10.905-7.365 15.36-19.546 14.286a440.081 440.081 0 0 1-22.491-17.392c3.676-3.216 7.069-7 10.18-11.348ZM605.2 309.4a4.5 4.5 0 0 0-6.3.9l-1.5 2a4.5 4.5 0 1 0 7.2 5.4l1.5-2a4.5 4.5 0 0 0-.9-6.3Zm-356.018-7.582a4.5 4.5 0 0 0-6.364 6.364l2 2a4.5 4.5 0 0 0 6.364-6.364ZM623.2 298.4a4.5 4.5 0 0 0-6.3.9l-1.5 2a4.5 4.5 0 1 0 7.2 5.4l1.5-2a4.5 4.5 0 0 0-.9-6.3Zm-13.889-6.914a4.5 4.5 0 0 0-6.325.703l-2 2.5a4.5 4.5 0 0 0 7.028 5.622l2-2.5a4.5 4.5 0 0 0-.703-6.325ZM418.902 160.988 421 161v135.5c-61.333 0-124.167-18.167-188.5-54.5 54.553-53.573 115.99-80.576 184.309-81.007l2.093-.005Zm4.196 0 2.093.005c68.32.431 129.756 27.434 184.309 81.007-64.333 36.333-127.167 54.5-188.5 54.5V161l2.098-.012ZM129.5 101c-26 38-38.167 85.5-36.5 142.5C40 175.833 10.167 135.333 3.5 122c-6.667-14-2.667-21 12-21h114Zm697 0c14.667 0 18.667 7 12 21-6.667 13.333-36.5 53.833-89.5 121.5 1.667-57-10.5-104.5-36.5-142.5ZM421 0v136.5c-80.667 0-153.167 33-217.5 99-41-28.333-61-56.833-60-85.5 4-46 35-83.5 93-112.5C292.167 12.5 353.667 0 421 0Zm0 0c67.333 0 128.833 12.5 184.5 37.5 58 29 89 66.5 93 112.5 1 28.667-19 57.167-60 85.5-64.333-66-136.833-99-217.5-99ZM286.5 75.5c-4.745 0-8.289.625-10.815 2.141-2.92 1.752-3.48 5.696-2.223 10.94-13.655-.682-21.345.744-27.043 4.732-5.167 3.691-7.508 8.915-7.004 15.132-12.523.114-19.383 2.24-25.996 6.868-6.365 4.547-8.293 11.295-5.688 19.11a4.5 4.5 0 0 0 .133.35c2.417 5.64 6.014 9.66 10.774 11.824a28.04 28.04 0 0 0 4.227 1.512c-.815.63-1.626 1.26-2.432 1.895l-1.056.832.127-.08c-2.021 1.347-3.783 1.739-5.528 1.351a4.5 4.5 0 0 0-1.952 8.786c4.255.945 8.493.004 12.472-2.649a4.5 4.5 0 0 0 .301-.22c20.742-16.46 44.805-31.46 72.196-44.99a4.5 4.5 0 0 0-3.986-8.069l-1.266.628c-3.92-5.885-6.867-11.503-8.582-16.151l-.141-.388c-.55-1.537-.926-2.878-1.125-3.937l-.046-.259.097-.018c1.096-.208 2.627-.34 4.556-.34a4.5 4.5 0 0 0 0-9Zm315.01 35.717c1.105-.394 2.833.104 5.426 2.1l.068.053.232.236c5.622 5.772 10.405 13.754 14.307 23.974a79.073 79.073 0 0 0-4.911 10.448 401.611 401.611 0 0 0-14.465-9.69c-5.377-5.056-7.15-11.31-5.387-19.365l.06-.267.072-.217c1.44-4.298 3.064-6.619 4.486-7.228Zm-382.894 11.445c5.43-3.8 10.984-5.385 23.44-5.213 1.978 3.81 4.771 6.606 8.382 8.248.976.443 2.002.835 3.078 1.174a386.593 386.593 0 0 0-20.384 13.61c-4.434-.119-8.024-.83-10.77-2.078l-.274-.13c-2.356-1.162-4.278-3.317-5.78-6.655l-.096-.216-.041-.128c-1.26-4.008-.485-6.52 2.445-8.612ZM397 46c-3.947 0-7.263.947-9.811 2.986a4.5 4.5 0 0 0 5.622 7.028l.136-.102c.754-.534 1.961-.87 3.717-.908l.217-.004.324.02c4.98.342 8.685 2.252 11.433 5.83l.233.311.188.263c2.327 3.316 2.424 6.347.298 9.909l-.046.073.035-.045-.133.168c-3.933 4.807-8.925 6.929-15.419 6.517l-.435-.032c-6.91-.552-12.827-3.175-17.905-7.948-1.657-7.91-4.657-14.423-9.048-19.507a4.5 4.5 0 0 0-6.812 5.882C365.13 62.85 368 72.823 368 86.5c0 15.661 4.995 30.111 14.912 43.215a4.5 4.5 0 0 0 7.176-5.43C381.338 112.722 377 100.172 377 86.5c0-1.444-.03-2.857-.09-4.238 4.76 2.685 10.018 4.267 15.731 4.724 9.817.785 17.949-2.671 23.891-10.198a4.5 4.5 0 0 0 .284-.403c4.305-6.888 4.074-14.054-.687-20.546-4.486-6.117-10.913-9.434-18.904-9.833A4.5 4.5 0 0 0 397 46Zm172.174 46.792c.904-.177 1.778.047 2.126.308l.11.08c7.985 5.619 13.791 12.6 17.488 21.002a40.122 40.122 0 0 0-.68 1.933 4.5 4.5 0 0 0-.1.362c-1.063 4.553-1.27 8.84-.626 12.82l-.07-.041a565.846 565.846 0 0 0-16.826-9.622c-7.214-9.628-9.167-16.833-6.725-21.82l.065-.131-.003.002.016-.025.138-.232c1.793-2.987 3.524-4.331 5.087-4.636Zm-317.558 7.87c4.123-2.886 10.958-3.9 25.26-2.854 1.771 3.739 4.071 7.764 6.786 11.895a460.793 460.793 0 0 0-18.031 9.893c-4.757-.061-8.58-.78-11.469-2.093l-.236-.112c-2.19-1.089-3.857-3.26-4.999-6.809l-.096-.306-.064-.255c-1.08-4.406-.151-7.216 2.849-9.36Zm220.856-44.414c-11.428-3.956-19.22 1.238-20.93 13.637a4.5 4.5 0 0 0-.04.493c-.397 14.669 7.023 23.398 21.114 24.606a4.5 4.5 0 1 0 .768-8.968l-.357-.032c-8.868-.869-12.694-5.373-12.537-14.976l.002-.142.01-.067c.981-6.663 3.212-8.06 9.026-6.047 7.256 2.512 13.46 6.402 18.658 11.697-.123.856-.186 1.71-.186 2.551 0 3.691.818 8.065 2.962 12.108 3.344 6.307 9.265 10.335 17.748 10.883a4.5 4.5 0 0 0 .58-8.982c-5.282-.34-8.46-2.503-10.377-6.117C497.56 84.339 497 81.347 497 79c0-2.689 1.36-5.915 3.356-7.748 2.005-1.841 4.306-2.12 7.411-.345 6.232 3.561 12.281 9.244 18.114 17.09l.069.093-.055.724c-.383 5.353-.174 11.572.638 18.23a4.5 4.5 0 1 0 8.934-1.089c-1.1-9.024-.948-16.731.188-22.158l.08-.371c.325-1.46.706-2.644 1.09-3.488l.027-.038c1.074.468 2.31 1.283 3.685 2.487a4.5 4.5 0 0 0 5.926-6.774c-3.27-2.86-6.523-4.596-9.827-5.068-3.673-.525-6.437 1.83-8.265 6.196-5.128-5.872-10.503-10.428-16.138-13.648-6.534-3.733-13.097-2.94-17.964 1.53a17.992 17.992 0 0 0-2.485 2.834c-5.569-4.942-12.016-8.684-19.312-11.21Zm-122.38-.114c-4.497-1.124-8.362-1.51-11.65-1.1a4.5 4.5 0 0 0-3.925 4.07 53.266 53.266 0 0 0-.14 7.507C327.053 64.211 320.263 63 314 63c-10.16 0-16.246 6.554-17.474 18.02a4.5 4.5 0 0 0-.021.276c-.415 9.126 4.054 16.362 12.84 21.155a4.5 4.5 0 0 0 .832.35c5.614 1.727 11.28.856 16.681-2.469a4.5 4.5 0 1 0-4.716-7.664l-.337.202c-2.911 1.706-5.619 2.172-8.35 1.503l-.216-.056-.288-.165c-5.264-3.08-7.597-6.964-7.468-12.11l.007-.2.026-.231c.82-6.927 3.4-9.611 8.484-9.611 6.43 0 13.762 1.567 21.98 4.738 1.55 5.749 4.171 11.216 7.858 16.378a4.5 4.5 0 0 0 7.324-5.232l-.352-.498c-4.98-7.161-7.47-14.897-7.505-23.32v-.062l.266.03c1.298.158 2.745.433 4.338.832a4.5 4.5 0 1 0 2.182-8.732ZM226.456 93.62a4.5 4.5 0 0 0-6.338-.576l-3 2.5a4.5 4.5 0 0 0 5.762 6.914l3-2.5a4.5 4.5 0 0 0 .576-6.338Zm17.5-11.5a4.5 4.5 0 0 0-6.338-.576l-3 2.5a4.5 4.5 0 0 0 5.762 6.914l3-2.5a4.5 4.5 0 0 0 .576-6.338Zm-14-3.5a4.5 4.5 0 0 0-6.338-.576l-3 2.5a4.5 4.5 0 0 0 5.762 6.914l3-2.5a4.5 4.5 0 0 0 .576-6.338Zm373.854-.633a4.5 4.5 0 0 0-5.622 7.028l2.5 2a4.5 4.5 0 0 0 5.622-7.028ZM488.374 28.523a4.5 4.5 0 1 0-6.748 5.954c4.956 5.617 10.248 11.902 15.876 18.854a4.5 4.5 0 0 0 6.996-5.662c-5.706-7.048-11.08-13.43-16.124-19.146Zm-155.08-.333c-4.587-1.376-9.222-.68-13.61 1.951a4.5 4.5 0 0 0-.534.376c-5.16 4.222-7.25 9.002-4.557 13.716 1.817 3.18 4.822 5.756 8.895 7.792a4.5 4.5 0 1 0 4.024-8.05l-.364-.186c-2.267-1.184-3.776-2.47-4.615-3.811l.019-.037c.26-.506.859-1.216 1.825-2.06l.209-.18.025-.015c2.16-1.22 4.106-1.473 6.096-.876 8.187 2.456 11.945 4.335 20.352 11.596a4.5 4.5 0 1 0 5.882-6.812c-9.468-8.177-14.335-10.61-23.648-13.404ZM576.6 85.828l-.145-.105c-2.316-1.624-5.638-2.422-9.005-1.765-4.358.85-8.256 3.952-11.345 9.287l-.092.167c-2.688 5.131-2.842 10.91-.648 17.297-2.65-2.167-5.044-4.764-7.19-7.804a4.5 4.5 0 1 0-7.352 5.19c4.4 6.233 9.766 11.044 16.07 14.382 8.642 4.575 16.43 8.874 25.934 14.517a502.258 502.258 0 0 1 13.897 8.549c.233.183.48.34.736.469 8.57 5.492 16.574 11.033 23.805 16.563a4.5 4.5 0 1 0 5.468-7.15 286.679 286.679 0 0 0-2.528-1.91c2.315-6.7 5.618-12.991 9.918-18.884l.285-.387.212.302c.485.712.907 1.471 1.267 2.282a4.5 4.5 0 1 0 8.224-3.656c-1.646-3.704-4.134-6.813-7.412-9.272a4.5 4.5 0 0 0-6.146.706 87.32 87.32 0 0 0-3.054 3.849c-3.98-8.844-8.743-16.062-14.318-21.637a4.5 4.5 0 0 0-.389-.346c-7.01-5.55-13.44-5.734-18.319-1.22-4.313-7.598-10.287-14.086-17.884-19.432l.042.03.013.01-.034-.025-.01-.007Z\"/></svg>"
+},
+"MH2": {
+"name": "Modern Horizons 2",
+"svg": "<svg viewBox=\"0 0 17 11\" aria-hidden=\"true\"><path d=\"M7.245 4.52c-.08.315-.116.587-.109.815-.004 1.025.685 1.67 1.744 1.681 1.072 0 2.091-.47 3.059-1.41.455.643.682 1.325.682 2.046-1.448.871-2.709 1.841-3.782 2.91a32.694 32.694 0 00-3.673-2.867C5.055 6.559 5.748 5.5 7.245 4.52zM4.567 3.245c.087.883.37 1.57.845 2.064-.504.555-.78 1.227-.827 2.018a27.81 27.81 0 00-3.72-1.979 42.25 42.25 0 003.702-2.103zm8.565.003a27.81 27.81 0 003.72 1.978 39.066 39.066 0 00-3.727 2.094c-.058-.845-.333-1.535-.826-2.07.502-.561.78-1.228.833-2.002zm-4.298.832a1.228 1.228 0 110 2.456 1.228 1.228 0 010-2.456zM8.877.012a32.694 32.694 0 003.674 2.868c.111 1.135-.617 2.203-2.186 3.203.144-.3.211-.57.203-.809-.01-.9-.67-1.71-1.73-1.716-1.073 0-2.093.47-3.06 1.41-.455-.643-.683-1.325-.682-2.046 1.448-.87 2.708-1.84 3.781-2.91z\" fill-rule=\"nonzero\"/></svg>"
+},
+"PCY": {
+"name": "Prophecy",
+"svg": "<svg viewBox=\"0 0 896 1024\" aria-hidden=\"true\"><path d=\"M698.252 718.486l21.253 24.298 84.965-103.151-1.522-45.464-104.695 124.317zM149.084 456.082l-57.687-10.615 145.633 279.13s51.575 30.324 45.551-30.345l-133.497-238.17zm448.997-113.766l-45.462-45.549-27.278 430.897s5.96 57.602 51.488 45.529l21.251-430.877zM167.27 794.446L.384 484.971l45.549-121.424 130.429 27.278 130.517 230.622 12.071-327.66 154.813-148.702 178.959 166.886-18.272 351.957 109.351-121.335 106.131-9.18 9.178 112.331-82.007 109.177 30.345 6.047s72.806 45.549 72.806 84.966c0 39.503-42.395 42.569-42.395 42.569s-115.376 18.097-170.018 2.98c-54.557-15.14-130.43-9.093-218.462 18.186-87.946 27.365-142.502 3.045-206.304-27.279-63.734-30.345-221.442-12.158-221.442-12.158s-24.298-54.557 139.522-54.557c0 0 9.093-18.249 6.113-21.229z\"/></svg>"
+},
+"RNA": {
+"name": "Ravnica Allegiance",
+"svg": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path d=\"M0 8.027c1.512-.002 3.023.004 4.535-.003-.52.301-.883.869-.885 1.476-.004 1.4-.001 2.8-.001 4.2 1.8-1.776 3.925-3.24 6.279-4.178a16.256 16.256 0 0 1 8.468-.999c3.779.554 7.262 2.504 9.954 5.178.002-1.325-.001-2.649.002-3.974a1.793 1.793 0 0 0-.888-1.702c1.512.007 3.023.001 4.535.003 0 5.319.001 10.639-.001 15.958a18.628 18.628 0 0 0-3.646-4.457c-.004-.787-.002-1.573-.002-2.359a19.958 19.958 0 0 0-1.7-1.342c-.017.446.031.899-.024 1.342-.556 1.422-1.12 2.843-1.682 4.263-.561-1.432-1.137-2.86-1.689-4.294-.033-1.072-.005-2.147-.014-3.22a18.32 18.32 0 0 0-1.913-.702 17.385 17.385 0 0 0 .069 6.955 18.619 18.619 0 0 0-5.398 6.26 18.65 18.65 0 0 0-5.398-6.26 17.38 17.38 0 0 0 .068-6.954c-.649.199-1.287.434-1.911.701-.007 1.064.012 2.13-.009 3.195-.544 1.447-1.132 2.881-1.695 4.321L5.499 17.5c-.065-.172-.163-.342-.151-.532.001-.379.003-.759.001-1.138-.59.416-1.158.865-1.701 1.342l.001 2.355A18.708 18.708 0 0 0 0 23.989V8.029zm15.354 4.744a2.447 2.447 0 0 0-1.197.754c-.783.863-.794 2.29-.026 3.166.742.922 2.18 1.148 3.169.496.989-.596 1.421-1.939.955-2.998-.437-1.109-1.755-1.758-2.9-1.417z\"/></svg>"
+},
+"SLD": {
+"name": "Secret Lair Drop",
+"svg": "<svg viewBox=\"0 0 1024 1024\" aria-hidden=\"true\"><path d=\"M279.151 423.97s124.892-65.304 281.136-65.304c210.033 0 425.863 116.408 462.788 312.323 0 0-110.775-283.943-451.499-283.943-153.271 0-241.3 65.304-241.3 65.304l124.892 2.889-167.472 39.67 102.229 107.885-130.609-73.788 31.208 147.637-68.134-124.892-90.856 164.707 53.932-184.542L.924 574.414l173.169-85.139-110.691-96.596 133.436 56.842-17.007-113.601 53.932 107.947L307.53 307.54l-28.38 116.429z\"/></svg>"
+},
+"TDM": {
+"name": "Tarkir: Dragonstorm",
+"svg": "<svg viewBox=\"0 0 845 754\" aria-hidden=\"true\"><path d=\"M519 1.1c-7 1.2-20.6 3-30.5 3.9-19.3 1.9-53.7 10.4-77.5 19.1-16.4 6.1-48.3 21.7-60.5 29.7-21.1 13.7-45.5 36.7-61.2 57.7-9.8 13-22.1 33.4-27.8 46.1-5.3 11.8-5.7 11.1-5.6-10.5.1-17.2.5-20.4 5.7-40.1 4.3-16.8 6.1-21 17.4-43.5 5-9.9 10-20.1 11.1-22.8L292 36l-4.3 2.1c-2.3 1.2-7.3 4.3-11.2 6.9-3.8 2.6-10.4 6.5-14.5 8.7-4.1 2.2-15.5 8.7-25.2 14.4-9.7 5.7-21.4 12.4-26 14.9-17.2 9.4-39.3 26.7-60.7 47.5-30.1 29.4-46.4 51.2-62.7 83.7-9.8 19.5-19 42.4-24.2 60.1-4.6 15.5-4.7 15.8-6.5 13.6-2.8-3.5-13.7-22.1-23.7-40.4-5.1-9.4-10.7-19.3-12.5-22-1.8-2.8-5.2-9.3-7.7-14.5-2.5-5.2-5.4-10.6-6.5-11.9l-2-2.5-.6 12.5c-.4 6.8-1.2 19.6-1.9 28.4-2 26.9-1.5 70.6 1.1 93.5C15.3 437.9 53.6 524.6 116 587c26.3 26.3 48.4 42 84.9 60.3 32.8 16.5 53.5 24.6 86.2 34.1 17.5 5 28.3 6.8 54.9 9.1 10.2.9 18.6 1.8 18.8 2 .2.2-6.1 8.8-14 19.2-7.9 10.3-15.5 20.4-16.8 22.3-1.3 1.9-5 6.3-8.2 9.7-3.1 3.5-6.2 7.2-6.8 8.3-.9 1.8-.8 2 1.7 2 1.5 0 5.2-.4 8.2-1 8.2-1.4 21.4-3.1 31.6-4 19.3-1.9 53.7-10.4 77.5-19.1 16.4-6.1 48.3-21.7 60.5-29.7 21.1-13.7 45.5-36.7 61.2-57.7 9.8-13 22.1-33.4 27.8-46.1 3.6-7.9 4.4-9.2 5-7.3 1.1 3.3.7 32.7-.5 38.9-3.2 17.1-11 42.1-14.8 48-2.4 3.6-16.2 32.3-15.8 32.7.6.6 5.6-1.9 12.6-6.1 3.6-2.1 9.2-5.1 12.5-6.6 33.2-15 85.6-55.3 118.1-90.8 39-42.6 66.6-86.4 81-128.5l4.7-13.8 2.2 3.4c4.8 6.9 13.5 21.8 23 39.2 5.4 9.9 11.2 20.2 13 23 1.8 2.7 5.2 9.3 7.7 14.5 2.5 5.2 5.4 10.6 6.5 11.9l2 2.5.6-12.5c.4-6.8 1.2-19.6 1.9-28.4 2-26.9 1.5-70.6-1.1-93.5-12.4-106.9-50.7-193.7-113.1-256-17-17-30.3-28-48.9-40.2-14.7-9.7-51.1-28.4-71.6-36.8-32.4-13.3-74.5-25-97.1-27-7.1-.7-15.2-1.5-18.1-1.8l-5.2-.7 9.5-14.9c12-18.8 17.3-26.1 25.2-34.8 3.4-3.9 6.7-7.9 7.3-8.9.9-1.7.6-1.9-2.8-1.8-2.1.1-5.8.5-8.3 1Zm-69.5 154.5c23.4 3.4 46.4 10.8 70 22.4 24.7 12.1 41.7 24.3 59.1 42.2 17.9 18.4 30 35.8 42.5 60.8 20.7 41.5 26.9 72 19 94.3-3.7 10.8-13.6 22-24.3 27.8-5.5 2.9-7.4 3.4-15.3 3.7-11.3.5-18.4-1.2-32.3-7.8-14-6.7-22.7-12.6-30.5-20.9-7.4-7.9-14.3-20.6-15.3-28.2-.9-7 .2-7.3 20.7-6.6 13.3.5 19.4 1.3 30.4 3.7 14.5 3.3 19.8 3.5 20.3 1 .1-.8-1.4-4.2-3.4-7.5-2.1-3.3-5.9-9.6-8.6-13.9-4.9-8.2-22.9-28.8-34.3-39.4-7.8-7.3-17.5-13.2-28.1-16.9-7.4-2.6-9-2.8-23.9-2.8-12.5 0-17.5.4-23 1.9-5.5 1.4-27.9 9.4-39.6 14.1-1.3.5-3.7-2.3-10.5-12-6.6-9.6-11.2-14.9-18.8-21.8-5.6-5-10.2-9.4-10.4-9.8-.6-1.5 21.5-11.7 30.8-14.2 15.8-4.2 23.4-5 41.8-4.4 28.4 1 49.7 7.5 73.2 22.5l9.5 6.1 1.3-3.2c2.2-5.2.1-10-8.2-18.5-14.3-14.8-35.2-25.8-63.1-33.2-31.4-8.4-61.5-9-95.2-2-14.1 2.9-14.6 3.1-42.1 16.2-4.2 2-4.5 2-12 .4-10.3-2.2-26.4-4.3-39.2-5.2l-10.5-.7 5.1-1.7c2.8-.9 18.1-8.4 34-16.6 32.5-16.9 37.2-19 49.9-23.3 25.3-8.4 52.6-10.6 81-6.5Zm-189.1 193c8 2 27.2 11.3 35.1 16.9 12.8 9.1 22.4 22.1 26.1 35.2 2.2 8.1 1.7 9.3-4.3 9.3-7.5 0-28.5-2-43-4.1-16.6-2.4-22.1-2.5-23-.3-.4 1 1.7 6.3 5.2 13.2 5.4 10.7 6.9 12.8 20.3 27.1 8 8.6 17.4 18.1 21 21.3 16.6 14.4 38.5 22 58.7 20.4 14.1-1.2 21.3-3.4 55.2-16.7 2-.7 3 .4 10.9 11.7 6.6 9.5 11.2 14.8 18.8 21.7 5.6 5 10.2 9.4 10.4 9.8.2.5-4.5 3.3-10.5 6.2-17.5 8.8-34.7 12.7-56 12.7-28.9 0-52.5-6.5-77.1-21.4-6-3.6-11.2-6.6-11.5-6.6-.4 0-1.1 1.7-1.6 3.7-1.5 5.4 1.2 10.4 10 18.9 14.8 14.2 34.3 24.2 61 31.3 32 8.5 61.6 9.2 95.7 2.1 14.1-2.9 13.8-2.8 42-16.2 4.2-2 4.5-2 12-.4 10.3 2.2 26.4 4.3 39.2 5.2l10.5.7-5.1 1.7c-2.8.9-18.1 8.4-34 16.6-32.5 16.9-37.2 19-49.9 23.3-46.2 15.4-98.7 9.9-151-15.9-25-12.3-42-24.5-60-43.1-17.3-18-29.3-35.2-41.9-60.5-20.4-40.8-26.5-71.6-18.7-93.7 4.5-13 17.1-25.7 29.9-30.3 5.1-1.8 18.2-1.7 25.6.2Z\" fill-rule=\"nonzero\"/></svg>"
+},
+"TSR": {
+"name": "Time Spiral Remastered",
+"svg": "<svg viewBox=\"0 0 17 17\" aria-hidden=\"true\"><path d=\"M9.925 8.743c-.069.124-.218.479-.448 1.065s-.01 1.138.661 1.654c.888.835 1.136 1.946.746 3.333l-.012.042h.636c.183-.002.287.069.312.214.026.145.086.499.181 1.062.035.232-.076.35-.331.354-.383.006-6.246.617-11.057-3.884-.128-.13-.141-.249-.038-.358.103-.108.383-.381.84-.818.184-.18.351-.193.502-.037.15.157.29.292.42.404.352-1.202 1.316-1.934 2.893-2.196l.048-.008-3.202-.827h7.849zm-1.662 1.352c-.566 1.111-.722 2.18-.468 3.208.382 1.541 1.778 1.539 1.778 1.539.482-.907.318-1.802-.49-2.685-.603-.662-.877-1.35-.82-2.062zm-.954-.409c-.394.597-1.033.97-1.916 1.12-1.18.198-1.86.803-2.04 1.814 0 0 1.1.862 2.349-.118.832-.653 1.368-1.592 1.607-2.816zm8.654-5.264c.129.13.142.249.039.358-.104.108-.384.381-.84.818-.184.18-.351.193-.502.036a6.844 6.844 0 00-.42-.403c-.352 1.202-1.316 1.934-2.893 2.196l-.048.008 3.201.827H6.652c.068-.124.218-.479.447-1.065.23-.586.01-1.138-.66-1.654-.888-.835-1.137-1.946-.747-3.333l.012-.042h-.636c-.182.002-.286-.07-.312-.214a272.56 272.56 0 01-.18-1.062c-.035-.232.075-.35.33-.354.383-.006 6.247-.617 11.057 3.884zM7.27 2.268c-.398.71-.358 1.33.119 1.861.477.531 1.814 1.04 4.01 1.525.88.094 1.41-.36 1.591-1.364-1.659-1.148-3.566-1.821-5.72-2.022z\" fill-rule=\"nonzero\"/></svg>"
+},
+"USG": {
+"name": "Urza's Saga",
+"svg": "<svg viewBox=\"0 0 1024 1024\" aria-hidden=\"true\"><path d=\"M728.399 572.52c0 20.236 16.445 36.681 36.681 36.681 20.234 0 36.664-16.445 36.664-36.681 0-20.234-16.43-36.664-36.664-36.664-20.236 0-36.681 16.43-36.681 36.664zm36.681-98.878c54.485 0 98.877 44.326 98.877 98.877 0 54.485-44.392 98.895-98.877 98.895-54.554 0-98.895-44.409-98.895-98.895 0-54.552 44.341-98.877 98.895-98.877zm0-32.288c-72.491 0-131.234 58.743-131.234 131.166 0 72.441 58.743 131.185 131.234 131.185 72.422 0 131.232-58.743 131.232-131.185 0-72.422-58.81-131.166-131.232-131.166zm252.441 58.424l6.219 100.705-64.108 19.128c-2.481 10.143-5.7 20.035-9.69 29.539l43.942 54.554-62.147 68.432-60.37-30.913c-9.305 5.699-34.251 24.878-29.339 14.937 2.348-4.794-2.364 73.144-2.364 73.144l-101.961 1.241-21.408-66.203c-10.093-2.616-19.85-6.086-29.271-10.226l-48.802 49.12-75.827-70.914 35.692-55.743c-6.42-10.344-11.919-21.342-16.312-32.876l-75.373-5.885v-90.764l66.019-13.696a199.35 199.35 0 0 1 11.45-37.386l-43.94-58.407 63.454-70.864 52.524 41.392c10.209-6.873 21.158-12.909 32.608-17.821l6.89-75.827h92.071l11.383 62.281a193.123 193.123 0 0 1 49.389 14.804l49.891-50.964 73.412 60.972-40.269 59.918c8.317 12.254 15.256 25.482 20.688 39.431l65.55-1.108zm-795.265-5.632c0 20.234 16.43 36.731 36.664 36.731 20.236 0 36.681-16.497 36.681-36.731 0-20.236-16.445-36.681-36.681-36.681-20.234 0-36.664 16.445-36.664 36.681zm36.664-98.828c54.485 0 98.895 44.343 98.895 98.828 0 54.552-44.409 98.877-98.895 98.877-54.552 0-98.877-44.326-98.877-98.877 0-54.485 44.326-98.828 98.877-98.828zm0-32.356c-72.489 0-131.232 58.743-131.232 131.185 0 72.489 58.743 131.232 131.232 131.232 72.441 0 131.185-58.743 131.185-131.232 0-72.441-58.743-131.185-131.185-131.185zm252.46 58.426l6.219 100.772-64.108 19.062c-2.499 10.226-5.7 20.05-9.69 29.606l43.94 54.552-62.147 68.367-60.387-30.915c-9.288 5.767-34.183 24.895-29.338 15.005 2.364-4.796-2.347 73.144-2.347 73.144l-101.963 1.241-21.425-66.205a201.615 201.615 0 0 1-29.271-10.276l-48.785 49.104-75.894-70.849 35.693-55.724c-6.354-10.361-11.853-21.359-16.312-32.876L.258 559.428v-90.764l66.002-13.681a199.76 199.76 0 0 1 11.467-37.335l-43.94-58.407 63.454-70.864 52.524 41.392a196.818 196.818 0 0 1 32.539-17.872l6.941-75.776h92.071l11.401 62.215a196.66 196.66 0 0 1 49.37 14.87l49.91-50.949 73.344 60.957-40.218 59.866c8.332 12.305 15.273 25.465 20.704 39.48l65.551-1.172z\"/></svg>"
+}
+};
+// stale: the price is older than the refresh window (simulated).
+
+const TYPES = {"tdm-136": "Creature — Dragon // Sorcery — Omen", "eld-115": "Creature — Giant // Instant — Adventure", "isd-51": "Creature — Human Wizard // Creature — Human Insect", "mh2-186": "Legendary Creature — Human Warrior", "ltr-246": "Legendary Artifact", "mh2-138": "Legendary Creature — Monkey Pirate", "sld-1144": "Legendary Planeswalker — Sarkhan", "khm-168": "Legendary Creature — God // Legendary Artifact", "pcy-45": "Enchantment", "dmu-107": "Legendary Creature — Phyrexian Praetor", "ltc-284": "Artifact", "rna-22": "Enchantment", "blb-241": "Legendary Creature — Elemental Lizard", "dsk-120": "Legendary Creature — Elder Demon", "cmr-561": "Legendary Creature — Shapeshifter", "usg-321": "Legendary Land", "lea-232": "Artifact", "tsr-406": "Land"};
+const SEED_COPIES = [{"id": "c01", "p": "ltr-246", "finish": "foil", "cond": "NM", "lang": "en", "prot": true, "tags": ["signed"]}, {"id": "c02", "p": "ltr-246", "finish": "nonfoil", "cond": "HP", "lang": "en", "prot": false, "tags": ["trade binder"]}, {"id": "c03", "p": "usg-321", "finish": "nonfoil", "cond": "LP", "lang": "en", "prot": true, "tags": []}, {"id": "c04", "p": "lea-232", "finish": "nonfoil", "cond": "HP", "lang": "en", "prot": true, "tags": ["signed"]}, {"id": "c05", "p": "cmr-561", "finish": "etched", "cond": "NM", "lang": "en", "prot": false, "tags": ["for Atraxa"]}, {"id": "c06", "p": "cmr-561", "finish": "etched", "cond": "MP", "lang": "en", "prot": false, "tags": []}, {"id": "c07", "p": "pcy-45", "finish": "nonfoil", "cond": "HP", "lang": "en", "prot": false, "tags": ["trade binder"], "stale": true}, {"id": "c08", "p": "tsr-406", "finish": "nonfoil", "cond": "NM", "lang": "en", "prot": false, "tags": []}, {"id": "c09", "p": "tdm-136", "finish": "nonfoil", "cond": "NM", "lang": "en", "prot": false, "tags": []}, {"id": "c10", "p": "tdm-136", "finish": "foil", "cond": "NM", "lang": "ja", "prot": false, "tags": ["for Atraxa"]}, {"id": "c11", "p": "tdm-136", "finish": "nonfoil", "cond": "MP", "lang": "en", "prot": false, "tags": []}, {"id": "c12", "p": "eld-115", "finish": "nonfoil", "cond": "NM", "lang": "en", "prot": false, "tags": []}, {"id": "c13", "p": "eld-115", "finish": "nonfoil", "cond": "LP", "lang": "en", "prot": false, "tags": ["trade binder"]}, {"id": "c14", "p": "eld-115", "finish": "nonfoil", "cond": "LP", "lang": "en", "prot": false, "tags": []}, {"id": "c15", "p": "isd-51", "finish": "nonfoil", "cond": "NM", "lang": "en", "prot": false, "tags": []}, {"id": "c16", "p": "isd-51", "finish": "foil", "cond": "LP", "lang": "de", "prot": false, "tags": []}, {"id": "c17", "p": "mh2-186", "finish": "foil", "cond": "NM", "lang": "en", "prot": false, "tags": []}, {"id": "c18", "p": "mh2-138", "finish": "nonfoil", "cond": "DMG", "lang": "en", "prot": true, "tags": []}, {"id": "c19", "p": "blb-241", "finish": "foil", "cond": "NM", "lang": "en", "prot": false, "tags": ["for Atraxa"]}, {"id": "c20", "p": "dsk-120", "finish": "nonfoil", "cond": "NM", "lang": "en", "prot": false, "tags": []}, {"id": "c21", "p": "sld-1144", "finish": "foil", "cond": "MP", "lang": "en", "prot": false, "tags": ["signed", "trade binder"]}, {"id": "c22", "p": "khm-168", "finish": "nonfoil", "cond": "LP", "lang": "en", "prot": false, "tags": []}, {"id": "c23", "p": "dmu-107", "finish": "nonfoil", "cond": "NM", "lang": "en", "prot": true, "tags": []}, {"id": "c24", "p": "dmu-107", "finish": "nonfoil", "cond": "NM", "lang": "en", "prot": false, "tags": []}, {"id": "c25", "p": "ltc-284", "finish": "nonfoil", "cond": "NM", "lang": "en", "prot": false, "tags": []}, {"id": "c26", "p": "ltc-284", "finish": "nonfoil", "cond": "NM", "lang": "en", "prot": false, "tags": []}, {"id": "c27", "p": "rna-22", "finish": "foil", "cond": "NM", "lang": "en", "prot": false, "tags": []}];
+const SEED_TAGS = ["for Atraxa", "signed", "trade binder"];
+const FINISH = {nonfoil:'Nonfoil', foil:'Foil', etched:'Etched'};
+const COND = {NM:'near mint', LP:'lightly played', MP:'moderately played', HP:'heavily played', DMG:'damaged'};
+const LANG = {en:'English', ja:'Japanese', de:'German', fr:'French', it:'Italian', es:'Spanish', pt:'Portuguese', ko:'Korean', ru:'Russian', zhs:'Simplified Chinese', zht:'Traditional Chinese'};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const money = v => '$' + v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const priceOf = c => { const p = PRINTINGS[c.p].prices; return c.finish === 'foil' ? p.usd_foil : c.finish === 'etched' ? p.usd_etched : p.usd; };
+const full = c => ({...PRINTINGS[c.p], ...c, type: TYPES[c.p]});
+const setIcon = c => `<span class="seticon r-${c.rarity}" role="img" aria-label="${c.set}">${SETS[c.set].svg}</span>`;
+const CLOCK = '<svg class="stale" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 4.5V8l2.3 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const SHIELD = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.2 2.6 3.2v4.2c0 3.4 2.3 6 5.4 7.4 3.1-1.4 5.4-4 5.4-7.4V3.2z" fill="currentColor"/></svg>';
+const priceHtml = c => { const v = priceOf(c); return v === null ? '<span class="nop">–</span>' : `${c.stale ? CLOCK : ''}<span>${money(v)}</span>`; };
+
+const VARIANTS = {
+  A: ['Every action in the menu, user tags too', 'The copy page shows only state: the hero, the name, chips for this copy with a Protected chip, the deck line (spec 6), user tags, the price, and the rules. The ••• bar button opens a native menu: Protect or Unprotect, Edit user tags, Add to deck and Create deck (spec 6, shown disabled here), and Delete copy. Delete shows a native confirmation, then goes back to the binder.'],
+  B: ['Menu for actions, user tags row opens the picker', 'The same page and menu, but the user tags row on the page is also a button that opens the user tag picker, and the menu has no Edit user tags item.'],
+};
+const KEYS = Object.keys(VARIANTS);
+const qs = new URLSearchParams(location.search);
+const ui = { variant: KEYS.includes(qs.get('variant')) ? qs.get('variant') : 'A', stack: [{ s: 'binder' }], tab: 'copy', menu: false, confirm: null, tagText: '', tagMenu: null, rename: null, drawer: null, toast: null };
+let copies = SEED_COPIES.map((c, i) => ({ ...c, tags: [...c.tags], added: ['12 Oct 2026', '9 Oct 2026', '2 Oct 2026'][i % 3], paid: i % 4 === 0 ? null : 0.9 + (i % 5) * 0.07 }));
+let tags = [...SEED_TAGS];
+const F = id => full(copies.find(c => c.id === id));
+const topScreen = () => ui.stack[ui.stack.length - 1];
+const push = s => { ui.stack.push(s); ui.confirm = null; render(); };
+const back = () => { if (ui.drawer) { ui.drawer = null; render(); return; } if (ui.stack.length > 1) { ui.stack.pop(); ui.confirm = null; ui.tagMenu = null; ui.rename = null; render(); } };
+const metaText = c => [FINISH[c.finish], c.cond, LANG[c.lang]].join(' · ');
+const sheenCls = c => c.finish !== 'nonfoil' ? ` sheen ${c.finish}` : '';
+const imgHtml = c => `<div class="img${sheenCls(c)}"><img src="${c.img}" alt=""><span class="ph">${esc(c.name)}</span></div>`;
+const finishesOf = c => { const p = PRINTINGS[c.p].prices; return ['nonfoil', 'foil', 'etched'].filter(f => p['usd' + (f === 'nonfoil' ? '' : '_' + f)] !== null || f === c.finish); };
+function tileHtml(c) {
+  return `<div class="tile" data-open="${c.id}" role="button" aria-label="${esc(c.name)}"><div class="img${sheenCls(c)}"><img src="${c.img}" alt="" loading="lazy"><span class="ph">${esc(c.name)}</span></div><div class="meta">${c.prot ? `<span class="mshield" role="img" aria-label="Protected">${SHIELD}</span>` : ''}${setIcon(c)}<span class="cn">${c.cn}</span>${c.cond !== 'NM' ? `<span class="sep">·</span><span>${c.cond}</span>` : ''}</div><div class="price">${priceHtml(c)}</div></div>`;
+}
+function binder() { return `<div class="navtitle"><h1>Collection</h1><div class="trail"><span class="totbtn">$2,419.59</span><span class="gear"></span></div></div>${ui.toast ? `<div class="note" style="padding:0 16px 8px;color:var(--muted)">${ui.toast}</div>` : ''}<div class="grid">${copies.map(full).map(tileHtml).join('')}</div><div class="list-end"></div>`; }
+const copyChips = c => `<div class="chips"><span class="chip">${c.set}</span><span class="chip">${c.cn}</span>${c.finish !== 'nonfoil' ? `<span class="chip">${FINISH[c.finish]}</span>` : ''}<span class="chip">${c.cond}</span><span class="chip">${LANG[c.lang]}</span></div>`;
+const head = c => `<div class="hero"><div class="blur" style="background-image:url('${c.img}')"></div>${imgHtml(c)}</div><div class="body"><div><p class="ct">${esc(c.name)}</p><div class="tl">${esc(c.type)}</div></div>${copyChips(c)}`;
+const protRow = c => `<button class="switchrow" data-prot="${c.id}" role="switch" aria-checked="${c.prot}"><span style="text-align:left"><b>Protected</b><small>Keeps this copy out of decks.</small></span><span class="sw${c.prot ? ' on' : ''}"></span></button>`;
+const tagsRow = c => `<h4>User tags</h4><div class="chips">${c.tags.map(t => `<span class="chip tag">${esc(t)}</span>`).join('')}<button class="chip add" data-tags="${c.id}">${c.tags.length ? 'Edit user tags' : 'Add user tag'}</button></div>`;
+const priceSec = c => { const v = priceOf(c); return `<h4>Price</h4><div class="rows"><div class="kv"><span>Current price</span><span>${v === null ? '–' : (c.stale ? 'stale ' : '') + money(v)}</span></div><div class="kv"><span>Added</span><span>${c.added}</span></div><div class="kv"><span>Purchase-day price</span><span>${c.paid === null ? '–' : money(c.paid)}</span></div><div class="note">Current prices from Scryfall, in USD.</div></div>`; };
+const rulesSec = c => `<h4>Rules</h4><div class="oracle">Oracle text of ${esc(c.name)} from the card catalog.</div><div class="kv"><span>Commander</span><span>Legal</span></div>`;
+const editRows = c => { const opt = (k, vals) => `<div class="chips">${vals.map(([v, n]) => `<button class="chip${c[k] === v ? ' sel' : ''}" data-set="${c.id}:${k}:${v}">${n}</button>`).join('')}</div>`;
+  return `<h4>Finish</h4>${opt('finish', finishesOf(c).map(f => [f, FINISH[f]]))}<h4>Condition</h4>${opt('cond', ['NM', 'LP', 'MP', 'HP', 'DMG'].map(x => [x, x]))}<h4>Language</h4>${opt('lang', Object.entries(LANG).map(([v, n]) => [v, n]))}<h4>Card printing</h4><button class="row" data-act="printing" style="text-align:left"><div class="main"><span class="nm">${c.set} ${c.cn}</span><span class="m">Change to another printing of this card</span></div><span class="chev">›</span></button>`; };
+const delBtn = c => `<button class="btn danger wide" data-askdel="${c.id}">Delete copy</button>`;
+const deckSlot = `<div class="note" style="border:1px dashed var(--line);border-radius:12px;padding:10px">Spec 6: Decks section here (the deck this copy is in, or Add to deck and Create deck).</div>`;
+function copyPage(s) {
+  const c = F(s.id), v = ui.variant;
+  const menu = ui.menu ? `<div class="menu" style="top:100px;right:12px">
+    <button data-prot="${c.id}">${c.prot ? 'Unprotect' : 'Protect'}<span style="width:16px;color:var(--warning)">${SHIELD}</span></button>
+    ${v === 'A' ? `<button data-tags="${c.id}">Edit user tags<span>›</span></button>` : ''}
+    <button disabled style="opacity:.4">Add to deck<span>spec 6</span></button>
+    <button disabled style="opacity:.4">Create deck<span>spec 6</span></button>
+    <button class="d" data-askdel="${c.id}">Delete copy</button></div>` : '';
+  const chips = `<div class="chips">${c.prot ? `<span class="chip warn">${SHIELD}Protected</span>` : ''}<span class="chip">${c.set}</span><span class="chip">${c.cn}</span>${c.finish !== 'nonfoil' ? `<span class="chip">${FINISH[c.finish]}</span>` : ''}<span class="chip">${c.cond}</span><span class="chip">${LANG[c.lang]}</span></div>`;
+  const deck = `<div class="kv" style="border:1px dashed var(--line)"><span>Deck</span><span style="color:var(--dim)">Not in a deck (spec 6)</span></div>`;
+  const tagsHtml = c.tags.length ? c.tags.map(t => `<span class="chip tag">${esc(t)}</span>`).join('') : '<span class="note">No user tags</span>';
+  const tagsSec = v === 'B' ? `<button class="row" data-tags="${c.id}" style="text-align:left"><div class="main"><span class="m">User tags</span><div class="chips">${tagsHtml}</div></div><span class="chev">›</span></button>` : `<h4>User tags</h4><div class="chips">${tagsHtml}</div>`;
+  return `<button class="editbtn" data-act="menu" aria-label="Actions">•••</button>${menu}<div class="hero"><div class="blur" style="background-image:url('${c.img}')"></div>${imgHtml(c)}</div><div class="body"><div><p class="ct">${esc(c.name)}</p><div class="tl">${esc(c.type)}</div></div>${chips}${deck}${tagsSec}${priceSec(c)}${rulesSec(c)}</div><div class="list-end"></div>`;
+}
+function editScreen(s) { const c = F(s.id); return `<div class="ptop"><div class="thumb" style="background-image:url('${c.img}')"></div><div><div class="t">Edit copy</div><div style="color:var(--muted);font-size:12px">${esc(c.name)} · ${c.set} ${c.cn}</div></div></div><div class="body">${editRows(c)}<div class="note">Each change saves at once. The copy keeps its user tags and protected flag.</div></div><div class="list-end"></div>`; }
+function tagPicker(s) {
+  const c = F(s.id), q = ui.tagText.trim();
+  const shown = tags.filter(t => t.toLowerCase().includes(q.toLowerCase()));
+  const exists = tags.some(t => t.toLowerCase() === q.toLowerCase());
+  const rows = shown.map(t => {
+    const on = c.tags.includes(t), n = copies.filter(x => x.tags.includes(t)).length;
+    if (ui.rename === t) return `<div class="row"><div class="field" style="flex:1"><input id="rn" value="${esc(t)}" maxlength="64"></div><button class="btn primary" data-renameok="${esc(t)}">Save</button></div>`;
+    const row = `<div class="row" data-toggletag="${esc(t)}" role="checkbox" aria-checked="${on}"><span class="check${on ? ' on' : ''}">${on ? '✓' : ''}</span><div class="main"><span class="nm">${esc(t)}</span><span class="m">${n} ${n === 1 ? 'copy' : 'copies'}</span></div><button class="more" data-tagmenu="${esc(t)}" aria-label="Tag actions">•••</button>${ui.tagMenu === t ? `<div class="menu"><button data-rename="${esc(t)}">Rename</button><button class="d" data-askdeltag="${esc(t)}">Delete user tag</button></div>` : ''}</div>`;
+    return row;
+  }).join('');
+  const create = q && !exists ? `<div class="row" data-create="${esc(q)}" role="button"><span class="check" style="color:var(--accent)">+</span><div class="main"><span class="nm">Create "${esc(q)}"</span><span class="m">and add it to this copy</span></div></div>` : '';
+  return `<div class="ptop"><div class="t">User tags</div></div><div class="body"><div style="color:var(--muted);font-size:12px">${esc(c.name)} · ${c.set} ${c.cn} · ${metaText(c)}</div><div class="field"><input id="tq" placeholder="Find or create a user tag" value="${esc(ui.tagText)}" maxlength="64"></div><div class="rows">${create}${rows || (create ? '' : '<div class="note">No user tags yet. Type a name to create one.</div>')}</div></div><div class="list-end"></div>`;
+}
+function alertHtml() {
+  if (!ui.confirm) return '';
+  const [kind, id] = ui.confirm.split('|');
+  const text = kind === 'copy' ? ['Delete this copy?', 'It leaves your collection with its user tags. This cannot be undone.' + (false ? '' : ''), 'Delete copy', `data-del="${id}"`] : [`Delete "${esc(id)}"?`, `It comes off ${copies.filter(x => x.tags.includes(id)).length} copies.`, 'Delete user tag', `data-deltag="${esc(id)}"`];
+  return `<div class="alertscrim"></div><div class="alert"><b>${text[0]}</b><p>${text[1]}</p><button class="d" ${text[3]}>${text[2]}</button><button data-act="cancelConfirm">Cancel</button></div>`;
+}
+function printingDrawer(c) {
+  const others = [c, { ...c, set: 'PLST', cn: c.cn + 'a' }, { ...c, set: 'SLD', cn: '9' + c.cn }];
+  return `<div class="scrim" data-act="closeDrawer"></div><div class="sheet"><div class="grab"></div><p class="title">${esc(c.name)}</p><div class="grid" style="padding:0">${others.map((x, i) => `<div class="tile" data-pickprint="${i}"><div class="img" style="${i === 0 ? 'box-shadow:0 0 0 2px var(--accent)' : ''}"><img src="${c.img}" alt=""></div><div class="meta" style="${i === 0 ? 'color:var(--accent)' : ''}">${x.set} ${x.cn}</div></div>`).join('')}</div><div class="note" style="margin-top:10px">The printing picker drawer from the scan details, at full height. Picking a card printing changes this copy and closes the drawer. Opened from a pushed screen, so it is the only drawer.</div></div>`;
+}
+function render() {
+  const v = ui.variant;
+  document.getElementById('screen').innerHTML = binder();
+  document.getElementById('layer').innerHTML = ui.stack.slice(1).map((x, i) => {
+    const html = x.s === 'copy' ? copyPage(x) : x.s === 'edit' ? editScreen(x) : tagPicker(x);
+    return `<div class="push" style="z-index:${46 + i}${i < ui.stack.length - 2 ? ';display:none' : ''}">${html}</div>`;
+  }).join('') + alertHtml();
+  const dr = document.getElementById('drawer');
+  dr.className = ui.drawer ? 'open' : ''; dr.innerHTML = ui.drawer ? printingDrawer(F(topScreen().id)) : '';
+  document.querySelector('.tabbar').style.display = ui.stack.length > 1 ? 'none' : '';
+  const tq = document.getElementById('tq');
+  if (tq) tq.addEventListener('input', e => { ui.tagText = e.target.value; render(); const n = document.getElementById('tq'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); });
+  const [name, why] = VARIANTS[v];
+  document.getElementById('switcher-label').innerHTML = `${v} · ${esc(name)}<small>Copy page · actions menu (Q12, Q15), deck line (Q6), user tags entry (batch 3)</small>`;
+  document.getElementById('why').textContent = why;
+  const cur = topScreen().id ? F(topScreen().id) : null;
+  document.getElementById('state').textContent = JSON.stringify({ variant: v, stack: ui.stack.map(x => x.s + (x.id ? ':' + x.id : '')), drawer: ui.drawer, user_tags: tags, this_copy: cur ? { copy_id: cur.id, card_printing: cur.set + ' ' + cur.cn, finish: cur.finish, condition: cur.cond, language: cur.lang, protected: cur.prot, user_tags: cur.tags } : '(open a tile)' }, null, 2);
+  const url = new URL(location); url.searchParams.set('variant', v); history.replaceState(null, '', url);
+}
+function act(t) {
+  const d = t.dataset;
+  if (d.open) { ui.tab = 'copy'; ui.toast = null; push({ s: 'copy', id: d.open }); return; }
+  if (d.act !== 'menu') ui.menu = false;
+  if (d.tab) ui.tab = d.tab;
+  else if (d.edit) { push({ s: 'edit', id: d.edit }); return; }
+  else if (d.prot) { const c = copies.find(x => x.id === d.prot); c.prot = !c.prot; }
+  else if (d.set) { const [id, k, v] = d.set.split(':'); copies.find(x => x.id === id)[k] = v; }
+  else if (d.tags) { ui.tagText = ''; push({ s: 'tags', id: d.tags }); return; }
+  else if (d.askdel) ui.confirm = 'copy|' + d.askdel;
+  else if (d.del) { copies = copies.filter(x => x.id !== d.del); ui.confirm = null; ui.stack = [{ s: 'binder' }]; ui.toast = 'Back on the binder. The deleted copy\'s tile is gone.'; }
+  else if (d.toggletag) { const c = copies.find(x => x.id === topScreen().id); c.tags = c.tags.includes(d.toggletag) ? c.tags.filter(x => x !== d.toggletag) : [...c.tags, d.toggletag].sort(); }
+  else if (d.create) { tags.push(d.create); tags.sort((a, b) => a.localeCompare(b)); const c = copies.find(x => x.id === topScreen().id); c.tags = [...c.tags, d.create].sort(); ui.tagText = ''; }
+  else if (d.tagmenu) ui.tagMenu = ui.tagMenu === d.tagmenu ? null : d.tagmenu;
+  else if (d.rename) { ui.rename = d.rename; ui.tagMenu = null; }
+  else if (d.renameok) { const nv = document.getElementById('rn').value.trim(); if (nv && !tags.some(x => x.toLowerCase() === nv.toLowerCase() && x !== d.renameok)) { tags = tags.map(x => x === d.renameok ? nv : x); copies.forEach(c => { c.tags = c.tags.map(x => x === d.renameok ? nv : x); }); } ui.rename = null; }
+  else if (d.askdeltag) { ui.confirm = 'tag|' + d.askdeltag; ui.tagMenu = null; }
+  else if (d.deltag) { tags = tags.filter(x => x !== d.deltag); copies.forEach(c => { c.tags = c.tags.filter(x => x !== d.deltag); }); ui.confirm = null; }
+  else if (d.pickprint) { const c = copies.find(x => x.id === topScreen().id); if (+d.pickprint) c.altPrinting = d.pickprint; ui.drawer = null; }
+  else if (d.act === 'menu') ui.menu = !ui.menu;
+  else if (d.act === 'printing') ui.drawer = 'printing';
+  else if (d.act === 'closeDrawer') ui.drawer = null;
+  else if (d.act === 'cancelConfirm') ui.confirm = null;
+  else if (d.act === 'back') { back(); return; }
+  render();
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-open],[data-tab],[data-edit],[data-prot],[data-set],[data-tags],[data-askdel],[data-del],[data-toggletag],[data-create],[data-tagmenu],[data-rename],[data-renameok],[data-askdeltag],[data-deltag],[data-pickprint],[data-act]');
+  if (t) { e.preventDefault(); e.stopPropagation(); act(t); }
+  else if (ui.tagMenu || ui.menu) { ui.tagMenu = null; ui.menu = false; render(); }
+}, true);
+function step(dd) { ui.variant = KEYS[(KEYS.indexOf(ui.variant) + dd + KEYS.length) % KEYS.length]; ui.stack = [{ s: 'binder' }]; ui.confirm = null; ui.drawer = null; ui.toast = null; render(); }
+document.getElementById('prev').onclick = () => step(-1);
+document.getElementById('next').onclick = () => step(1);
+document.addEventListener('keydown', e => { if (e.target.closest('input,textarea,[contenteditable]')) { if (e.key === 'Escape') e.target.blur(); return; } if (e.key === 'ArrowLeft') step(-1); if (e.key === 'ArrowRight') step(1); if (e.key === 'Escape' || e.key === 'Backspace') back(); });
+function fit() { document.documentElement.style.setProperty('--fit', Math.min(1, (window.innerHeight - 120) / 900).toFixed(3)); }
+window.addEventListener('resize', fit); fit(); render();
+</script></body></html>
