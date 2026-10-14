@@ -4,7 +4,7 @@ import type { CardCondition, CardLanguage, CollectionQuery, CollectionRow } from
 import type { Json } from '../database.types';
 import { readSearchError, type CardDetails, type CardPrintingsPage, type CatalogRow, type SearchPage } from '../search';
 import { catalogFixture, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
-import { seedCollectionEntries, type SeededEntry } from './collection-entry-seeds';
+import { seedCopies, type SeededCopies } from './copy-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -25,8 +25,22 @@ const printings = {
   counterspellAlpha: '0df55e3f-14de-46ef-b6b1-616618724d9e',
 };
 
-function entry(cardPrintingId: string, changes: Omit<SeededEntry, 'card_printing_id'> = {}): SeededEntry {
+function entry(cardPrintingId: string, changes: Omit<SeededCopies, 'card_printing_id'> = {}): SeededCopies {
   return { card_printing_id: cardPrintingId, ...changes };
+}
+
+function entryKey(entry: Pick<CollectionRow, 'printing_id' | 'finish' | 'condition' | 'language' | 'protected'>) {
+  return [entry.printing_id, entry.finish, entry.condition, entry.language, entry.protected].join(' ');
+}
+
+function seededEntryKey(seed: SeededCopies) {
+  return entryKey({
+    printing_id: seed.card_printing_id,
+    finish: seed.finish ?? 'nonfoil',
+    condition: seed.condition ?? 'near_mint',
+    language: seed.language ?? 'en',
+    protected: seed.is_protected ?? false,
+  });
 }
 
 const aliceEntries = {
@@ -36,11 +50,7 @@ const aliceEntries = {
   protectedDelver: entry(printings.delverInnistrad, { quantity: 4, is_protected: true }),
   blackLotus: entry(printings.blackLotusAlpha, { condition: 'damaged' }),
   germanFog: entry(printings.fogAlpha, { condition: 'heavily_played', language: 'de' }),
-  taggedBolt: entry(printings.lightningBoltAlpha, {
-    quantity: 3,
-    condition: 'moderately_played',
-    user_tag_ids: [crypto.randomUUID()],
-  }),
+  bolt: entry(printings.lightningBoltAlpha, { quantity: 3, condition: 'moderately_played' }),
   fogBank: entry(printings.fogBankUrzasSaga),
   frenchTitan: entry(printings.primevalTitanM11, { finish: 'foil', language: 'fr' }),
 };
@@ -51,8 +61,8 @@ const everyLabel = Object.keys(aliceEntries) as EntryLabel[];
 
 let alice: TestUser;
 let bob: TestUser;
-let labelOf: Map<string, EntryLabel>;
-let bobEntryIds: string[];
+const labelOf = new Map(Object.entries(aliceEntries).map(([label, seed]) => [seededEntryKey(seed), label as EntryLabel]));
+const bobEntries = [entry(printings.counterspellAlpha), entry(printings.angelicCuratorMh2, { quantity: 5 })];
 
 async function search(query: CollectionQuery | Record<string, unknown> | unknown[], user: TestUser = alice) {
   const { data, error } = await user.client.rpc('search_collection', { query: query as Json });
@@ -66,7 +76,7 @@ async function page(query: CollectionQuery, user: TestUser = alice) {
 }
 
 async function labels(query: CollectionQuery) {
-  return (await page({ limit: 50, ...query })).items.map((row) => labelOf.get(row.collection_entry_id)!).toSorted();
+  return (await page({ limit: 50, ...query })).items.map((row) => labelOf.get(entryKey(row))!).toSorted();
 }
 
 async function names(query: CollectionQuery) {
@@ -113,21 +123,17 @@ describe('after a catalog import', () => {
     const manifest = await catalogFixture({});
     expect((await runCatalogImport(manifest)).exitCode).toBe(0);
     expect((await runPriceImport(manifest)).exitCode).toBe(0);
-    const ids = await seedCollectionEntries(alice, Object.values(aliceEntries));
-    labelOf = new Map(ids.map((id, index) => [id, everyLabel[index]!]));
-    bobEntryIds = await seedCollectionEntries(bob, [
-      entry(printings.counterspellAlpha),
-      entry(printings.angelicCuratorMh2, { quantity: 5 }),
-    ]);
+    await seedCopies(alice, Object.values(aliceEntries));
+    await seedCopies(bob, bobEntries);
   });
 
   describe('callers', () => {
     test("a user's collection search returns only their own collection entries", async () => {
-      const aliceIds = (await page({ limit: 50 })).items.map((row) => row.collection_entry_id);
-      const bobIds = (await page({ limit: 50 }, bob)).items.map((row) => row.collection_entry_id);
+      const aliceEntryKeys = (await page({ limit: 50 })).items.map(entryKey);
+      const bobEntryKeys = (await page({ limit: 50 }, bob)).items.map(entryKey);
 
-      expect(aliceIds.toSorted()).toEqual([...labelOf.keys()].toSorted());
-      expect(bobIds.toSorted()).toEqual(bobEntryIds.toSorted());
+      expect(aliceEntryKeys.toSorted()).toEqual([...labelOf.keys()].toSorted());
+      expect(bobEntryKeys.toSorted()).toEqual(bobEntries.map(seededEntryKey).toSorted());
     });
 
     test("another user's collection entries never appear, whatever the chips", async () => {
@@ -172,14 +178,13 @@ describe('after a catalog import', () => {
       ]);
     });
 
-    test('a row shows the collection entry with its free, allocated, and held quantities', async () => {
+    test('a row is a collection entry: the copies that share a card printing, finish, condition, language, and protected flag, with their free, allocated, and held quantities', async () => {
       const { items, next_cursor, rules_stale, prices_observed_at, prices_stale } = await page({
         names: ['delver'],
       });
 
       expect(items).toEqual([
         {
-          collection_entry_id: expect.any(String),
           oracle_id: delverOfSecretsCard,
           printing_id: printings.delverInnistrad,
           name: 'Delver of Secrets // Insectile Aberration',
@@ -196,7 +201,6 @@ describe('after a catalog import', () => {
           commander_legal: true,
         },
       ]);
-      expect(labelOf.get(items[0]!.collection_entry_id)).toBe('protectedDelver');
       expect(next_cursor).toBeNull();
       expect(rules_stale).toBe(false);
       expect(prices_observed_at).not.toBeNull();
@@ -247,7 +251,7 @@ describe('after a catalog import', () => {
       [
         "a rarity chip matches the entry's own card printing",
         { rarities: ['common'] },
-        ['germanFog', 'japaneseCurator', 'protectedDelver', 'taggedBolt'],
+        ['germanFog', 'japaneseCurator', 'protectedDelver', 'bolt'],
       ],
       [
         "a negated rarity chip leaves out the entry's own card printing",
@@ -269,7 +273,7 @@ describe('after a catalog import', () => {
       [
         'a negated condition chip leaves out that condition',
         { conditions_exclude: ['near_mint'] },
-        ['blackLotus', 'etchedCurator', 'germanFog', 'taggedBolt'],
+        ['blackLotus', 'etchedCurator', 'germanFog', 'bolt'],
       ],
       [
         'two condition chips must both match, so no collection entry matches',
@@ -383,12 +387,12 @@ describe('after a catalog import', () => {
       [
         'sort by name in descending order lists cards from Z to A',
         { sort: 'name', sort_order: 'desc', names_exclude: ['curator'] },
-        ['frenchTitan', 'taggedBolt', 'fogBank', 'germanFog', 'protectedDelver', 'blackLotus'],
+        ['frenchTitan', 'bolt', 'fogBank', 'germanFog', 'protectedDelver', 'blackLotus'],
       ],
       [
         'sort by mana value lists the lowest mana value first',
         { sort: 'mana_value', names_exclude: ['curator'] },
-        ['blackLotus', 'protectedDelver', 'germanFog', 'taggedBolt', 'fogBank', 'frenchTitan'],
+        ['blackLotus', 'protectedDelver', 'germanFog', 'bolt', 'fogBank', 'frenchTitan'],
       ],
       [
         'sort by price lists the lowest price of the exact card printing and finish first, and missing prices last',
@@ -401,7 +405,7 @@ describe('after a catalog import', () => {
           'japaneseCurator',
           'frenchTitan',
           'germanFog',
-          'taggedBolt',
+          'bolt',
           'blackLotus',
         ],
       ],
@@ -409,7 +413,7 @@ describe('after a catalog import', () => {
         'sort by price in descending order lists the highest price first, and missing prices last',
         { sort: 'price', sort_order: 'desc' },
         [
-          'taggedBolt',
+          'bolt',
           'germanFog',
           'frenchTitan',
           'japaneseCurator',
@@ -423,20 +427,20 @@ describe('after a catalog import', () => {
       [
         'sort by EDHREC rank lists the best rank first, and missing ranks last',
         { sort: 'edhrec_rank', names_exclude: ['curator'] },
-        ['taggedBolt', 'germanFog', 'fogBank', 'protectedDelver', 'blackLotus', 'frenchTitan'],
+        ['bolt', 'germanFog', 'fogBank', 'protectedDelver', 'blackLotus', 'frenchTitan'],
       ],
     ])('%s', async (_, query, expected) => {
       const { items } = await page(query);
 
-      expect(items.map((row) => labelOf.get(row.collection_entry_id))).toEqual(expected);
+      expect(items.map((row) => labelOf.get(entryKey(row)))).toEqual(expected);
     });
 
     test("sort by release date uses the release date of the entry's own card printing", async () => {
       const oldestFirst = (await page({ names: ['curator'], sort: 'release_date' })).items;
       const newestFirst = (await page({ names: ['curator'], sort: 'release_date', sort_order: 'desc' })).items;
 
-      expect(labelOf.get(oldestFirst[0]!.collection_entry_id)).toBe('japaneseCurator');
-      expect(labelOf.get(newestFirst.at(-1)!.collection_entry_id)).toBe('japaneseCurator');
+      expect(labelOf.get(entryKey(oldestFirst[0]!))).toBe('japaneseCurator');
+      expect(labelOf.get(entryKey(newestFirst.at(-1)!))).toBe('japaneseCurator');
     });
   });
 
@@ -450,22 +454,17 @@ describe('after a catalog import', () => {
     ];
     const languages: CardLanguage[] = ['en', 'ja', 'de', 'fr'];
     let collector: TestUser;
-    let idsByName: Map<string, string[]>;
+    let seeded: SeededCopies[];
 
     beforeAll(async () => {
       collector = await signUpNewUser();
-      const seeded = [printings.fogBankUrzasSaga, printings.angelicCuratorMh2, printings.delverInnistrad].flatMap(
+      seeded = [printings.fogBankUrzasSaga, printings.angelicCuratorMh2, printings.delverInnistrad].flatMap(
         (cardPrintingId) =>
           conditions.flatMap((condition) =>
             languages.map((language) => entry(cardPrintingId, { condition, language })),
           ),
       );
-      const ids = await seedCollectionEntries(collector, seeded);
-      idsByName = new Map([
-        ['Fog Bank', ids.slice(0, 20)],
-        ['Angelic Curator', ids.slice(20, 40)],
-        ['Delver of Secrets // Insectile Aberration', ids.slice(40, 60)],
-      ]);
+      await seedCopies(collector, seeded);
     });
 
     test.each([undefined, 50])('pages of %p cover every collection entry once, from A to Z', async (limit) => {
@@ -473,11 +472,10 @@ describe('after a catalog import', () => {
       const rows = pages.flatMap((next) => next.items);
 
       expect(pages.map((next) => next.items.length)).toEqual(limit === 50 ? [50, 10] : [20, 20, 20]);
-      expect(rows.map((row) => row.collection_entry_id)).toEqual([
-        ...idsByName.get('Angelic Curator')!.toSorted(),
-        ...idsByName.get('Delver of Secrets // Insectile Aberration')!.toSorted(),
-        ...idsByName.get('Fog Bank')!.toSorted(),
-      ]);
+      expect(rows.map(entryKey).toSorted()).toEqual(seeded.map(seededEntryKey).toSorted());
+      expect(rows.map((row) => row.name)).toEqual(
+        ['Angelic Curator', 'Delver of Secrets // Insectile Aberration', 'Fog Bank'].flatMap((name) => Array(20).fill(name)),
+      );
       expect(new Set(pages.map((next) => next.search_id)).size).toBe(1);
     });
 
@@ -514,7 +512,7 @@ describe('after a catalog import', () => {
   });
 
   describe('telemetry', () => {
-    test('a first page writes one collection row with the first 20 collection entry IDs', async () => {
+    test('a first page writes one collection row with a result ID for each collection entry', async () => {
       const first = await page({ names: ['curator'] });
 
       const { data, error } = await secretKeyClient()
@@ -530,8 +528,8 @@ describe('after a catalog import', () => {
         caller: 'app',
         query: { names: ['curator'], sort: 'name', sort_order: 'asc', limit: 20, price_currency: 'USD' },
         result_count: 3,
-        result_ids: first.items.map((row) => row.collection_entry_id),
       });
+      expect(new Set(data!.result_ids).size).toBe(first.items.length);
     });
 
     test('later pages and refused input write no row', async () => {

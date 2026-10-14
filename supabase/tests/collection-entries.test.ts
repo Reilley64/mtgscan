@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { type CardCondition, type CardLanguage } from '../collection';
+import { type CardCondition, type CardLanguage, type CollectionRow } from '../collection';
 import type { Json } from '../database.types';
-import type { Finish } from '../search';
+import type { Finish, SearchPage } from '../search';
 import {
   basicLands,
   catalogFixture,
@@ -11,14 +11,13 @@ import {
   runPriceImport,
   withBasicLands,
 } from './catalog-import-command';
-import { seedCollectionEntries } from './collection-entry-seeds';
+import { seedCopies } from './copy-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { addScanBatch, committed, copyIds, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
-const checkViolation = '23514';
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
 const ribbonsOfNight = '010eba83-30ec-4cca-b07e-f24d8d2f0787';
@@ -33,7 +32,6 @@ type EntryRow = {
   condition: CardCondition;
   language: CardLanguage;
   is_protected: boolean;
-  user_tag_ids: string[];
   quantity: number;
 };
 
@@ -44,7 +42,6 @@ function entryRow(cardPrintingId: string, quantity: number, changes: Partial<Ent
     condition: 'near_mint',
     language: 'en',
     is_protected: false,
-    user_tag_ids: [],
     quantity,
     ...changes,
   };
@@ -55,16 +52,36 @@ function entryLine(cardPrintingId: string) {
   return { card_printing_id, finish, condition, language };
 }
 
-async function entriesOf(user: { client: AppClient }) {
+function byEntry(a: EntryRow, b: EntryRow) {
+  const key = (entry: EntryRow) =>
+    [entry.card_printing_id, entry.finish, entry.condition, entry.language, entry.is_protected].join(' ');
+  return key(a).localeCompare(key(b));
+}
+
+async function entriesOf(user: { client: AppClient }): Promise<EntryRow[]> {
+  const { data, error } = await user.client.rpc('search_collection', { query: { limit: 50 } });
+  expect(error).toBeNull();
+  return (data as unknown as SearchPage<CollectionRow>).items
+    .map((row) => ({
+      card_printing_id: row.printing_id,
+      finish: row.finish,
+      condition: row.condition,
+      language: row.language,
+      is_protected: row.protected,
+      quantity: row.quantity,
+    }))
+    .toSorted(byEntry);
+}
+
+function entries(...rows: EntryRow[]) {
+  return rows.toSorted(byEntry);
+}
+
+async function copiesOf(user: { client: AppClient }) {
   const { data, error } = await user.client
-    .from('collection_entries')
-    .select('card_printing_id, finish, condition, language, is_protected, user_tag_ids, quantity')
-    .order('card_printing_id')
-    .order('finish')
-    .order('condition')
-    .order('language')
-    .order('is_protected')
-    .order('user_tag_ids');
+    .from('copies')
+    .select('id, user_id, addition_id, card_printing_id, finish, condition, language, is_protected')
+    .order('id');
   expect(error).toBeNull();
   return data!;
 }
@@ -86,7 +103,12 @@ async function linesOf(user: { client: AppClient }) {
 }
 
 async function collectionOf(user: { client: AppClient }) {
-  return { entries: await entriesOf(user), additions: await additionsOf(user), lines: await linesOf(user) };
+  return {
+    copies: await copiesOf(user),
+    entries: await entriesOf(user),
+    additions: await additionsOf(user),
+    lines: await linesOf(user),
+  };
 }
 
 async function pricesSnapshotAt() {
@@ -112,16 +134,13 @@ beforeAll(async () => {
 });
 
 describe('committing a scan batch', () => {
-  test('a commit creates collection entries for the scanned copies', async () => {
+  test('a commit stores each scanned copy with the copy ID the phone gave it', async () => {
     const user = await signUpNewUser();
-
     const batch = scanBatch([stack(angelicCurator, { copies: 2 })]);
+    const [firstCopy, secondCopy] = batch.items[0]!.copy_ids;
 
     const result = await committed(user, batch);
 
-    expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 2)]);
-    const [entry] = (await user.client.from('collection_entries').select('id')).data!;
-    const [firstCopy, secondCopy] = batch.items[0]!.copy_ids;
     expect(result).toEqual({
       addition_id: expect.any(String),
       added_at: expect.any(String),
@@ -129,7 +148,6 @@ describe('committing a scan batch', () => {
       copies: [firstCopy, secondCopy].map((copyId) => ({
         copy_id: copyId,
         addition_id: result.addition_id!,
-        collection_entry_id: entry!.id,
         replayed: false,
       })),
       items: [
@@ -138,27 +156,34 @@ describe('committing a scan batch', () => {
           finish: 'nonfoil',
           condition: 'near_mint',
           language: 'en',
-          collection_entry_id: entry!.id,
           quantity_added: 2,
-          entry_quantity: 2,
         },
       ],
     });
+    expect(await copiesOf(user)).toEqual(
+      [firstCopy!, secondCopy!].toSorted().map((copyId) => ({
+        id: copyId,
+        user_id: user.userId,
+        addition_id: result.addition_id!,
+        ...entryLine(angelicCurator),
+        is_protected: false,
+      })),
+    );
+    expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 2)]);
   });
 
-  test('a second commit of identical copies merges into the same collection entry', async () => {
+  test('copies of a second commit with the same properties join the same collection entry', async () => {
     const user = await signUpNewUser();
-    const first = await committed(user, scanBatch([stack(angelicCurator, { copies: 2 })]));
+    await committed(user, scanBatch([stack(angelicCurator, { copies: 2 })]));
 
     const second = await committed(user, scanBatch([stack(angelicCurator, { copies: 3 })]));
 
     expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 5)]);
-    expect(second.items[0]!.collection_entry_id).toBe(first.items[0]!.collection_entry_id!);
+    expect((await copiesOf(user)).length).toBe(5);
     expect(second.items[0]!.quantity_added).toBe(3);
-    expect(second.items[0]!.entry_quantity).toBe(5);
   });
 
-  test('copies that differ in card printing, finish, condition, or language make separate collection entries', async () => {
+  test('copies that differ in card printing, finish, condition, or language are in separate collection entries', async () => {
     const user = await signUpNewUser();
 
     await committed(
@@ -172,30 +197,26 @@ describe('committing a scan batch', () => {
       ]),
     );
 
-    expect(await entriesOf(user)).toEqual([
-      entryRow(delverInnistrad, 1),
-      entryRow(angelicCurator, 1),
-      entryRow(angelicCurator, 1, { language: 'ja' }),
-      entryRow(angelicCurator, 1, { condition: 'lightly_played' }),
-      entryRow(angelicCurator, 1, { finish: 'foil' }),
-    ]);
+    expect(await entriesOf(user)).toEqual(
+      entries(
+        entryRow(delverInnistrad, 1),
+        entryRow(angelicCurator, 1),
+        entryRow(angelicCurator, 1, { language: 'ja' }),
+        entryRow(angelicCurator, 1, { condition: 'lightly_played' }),
+        entryRow(angelicCurator, 1, { finish: 'foil' }),
+      ),
+    );
   });
 
-  test('scanned copies never merge into a protected collection entry or one with user tags', async () => {
+  test('scanned copies are not protected, so they never join a protected collection entry', async () => {
     const user = await signUpNewUser();
-    const userTag = crypto.randomUUID();
-    await seedCollectionEntries(user, [
-      entryRow(angelicCurator, 4, { is_protected: true }),
-      entryRow(angelicCurator, 6, { user_tag_ids: [userTag] }),
-    ]);
+    await seedCopies(user, [{ card_printing_id: angelicCurator, quantity: 4, is_protected: true }]);
 
     await committed(user, scanBatch([stack(angelicCurator, { copies: 2 })]));
 
-    expect(await entriesOf(user)).toEqual([
-      entryRow(angelicCurator, 2),
-      entryRow(angelicCurator, 6, { user_tag_ids: [userTag] }),
-      entryRow(angelicCurator, 4, { is_protected: true }),
-    ]);
+    expect(await entriesOf(user)).toEqual(
+      entries(entryRow(angelicCurator, 2), entryRow(angelicCurator, 4, { is_protected: true })),
+    );
   });
 
   test('stacks with the same properties in one commit are summed', async () => {
@@ -210,41 +231,12 @@ describe('committing a scan batch', () => {
       ]),
     );
 
-    expect(await entriesOf(user)).toEqual([entryRow(delverInnistrad, 1), entryRow(angelicCurator, 5)]);
+    expect(await entriesOf(user)).toEqual(entries(entryRow(delverInnistrad, 1), entryRow(angelicCurator, 5)));
     expect(result.copy_count).toBe(6);
     expect(result.items.map((item) => [item.card_printing_id, item.quantity_added])).toEqual([
       [delverInnistrad, 1],
       [angelicCurator, 5],
     ]);
-  });
-});
-
-describe('the user tag set', () => {
-  const [firstTag, secondTag] = [crypto.randomUUID(), crypto.randomUUID()].sort() as [string, string];
-
-  test('a collection entry keeps a sorted set of distinct user tags', async () => {
-    const user = await signUpNewUser();
-
-    await seedCollectionEntries(user, [entryRow(angelicCurator, 1, { user_tag_ids: [firstTag, secondTag] })]);
-
-    expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 1, { user_tag_ids: [firstTag, secondTag] })]);
-  });
-
-  test.each([
-    ['unsorted', [secondTag, firstTag]],
-    ['repeated', [firstTag, firstTag]],
-  ])('a user tag set with %s user tags is refused', async (_, userTagIds) => {
-    const user = await signUpNewUser();
-
-    const { error } = await secretKeyClient()
-      .from('collection_entries')
-      .insert({
-        ...entryRow(angelicCurator, 1, { user_tag_ids: userTagIds }),
-        user_id: user.userId,
-        latest_addition_at: new Date().toISOString(),
-      });
-
-    expect(error?.code).toBe(checkViolation);
   });
 });
 
@@ -322,34 +314,29 @@ describe('additions', () => {
     ]);
   });
 
-  test('each addition line points at the collection entry it merged into', async () => {
+  test('each copy points at the addition line it came from', async () => {
     const user = await signUpNewUser();
+    const curator = stack(angelicCurator);
+    const delvers = stack(delverInnistrad, { finish: 'foil', copies: 2 });
 
-    const result = await committed(user, scanBatch([stack(angelicCurator), stack(delverInnistrad, { copies: 2 })]));
+    const result = await committed(user, scanBatch([curator, delvers]));
 
-    const lines = await linesOf(user);
-    expect(lines.map((line) => [line.card_printing_id, line.collection_entry_id, line.entry_quantity])).toEqual(
-      result.items.map((item) => [item.card_printing_id, item.collection_entry_id, item.entry_quantity]),
+    const lineOf = (copy: { addition_id: string; card_printing_id: string; finish: Finish }) => [
+      copy.addition_id,
+      copy.card_printing_id,
+      copy.finish,
+    ];
+    expect((await copiesOf(user)).map(lineOf).toSorted()).toEqual(
+      [
+        [result.addition_id!, angelicCurator, 'nonfoil'],
+        [result.addition_id!, delverInnistrad, 'foil'],
+        [result.addition_id!, delverInnistrad, 'foil'],
+      ].toSorted(),
     );
-  });
-
-  test('each touched collection entry gets the commit time as its latest addition time', async () => {
-    const user = await signUpNewUser();
-    const first = await committed(user, scanBatch([stack(angelicCurator), stack(delverInnistrad)]));
-
-    const second = await committed(user, scanBatch([stack(delverInnistrad)]));
-
-    const { data } = await user.client
-      .from('collection_entries')
-      .select('card_printing_id, latest_addition_at, created_at');
-    const latest = Object.fromEntries(
-      data!.map((entry) => [entry.card_printing_id, new Date(entry.latest_addition_at).getTime()]),
-    );
-    expect(latest).toEqual({
-      [angelicCurator]: new Date(first.added_at!).getTime(),
-      [delverInnistrad]: new Date(second.added_at!).getTime(),
-    });
-    expect(new Date(second.added_at!).getTime()).toBeGreaterThan(new Date(first.added_at!).getTime());
+    expect((await linesOf(user)).map((line) => [...lineOf(line), line.quantity])).toEqual([
+      [result.addition_id!, angelicCurator, 'nonfoil', 1],
+      [result.addition_id!, delverInnistrad, 'foil', 2],
+    ]);
   });
 });
 
@@ -500,6 +487,24 @@ describe('copy IDs', () => {
     expect(await collectionOf(user)).toEqual(before);
   });
 
+  test('a replay of a deleted copy adds no copy', async () => {
+    const user = await signUpNewUser();
+    const batch = scanBatch([stack(angelicCurator, { copies: 2 })]);
+    const first = await committed(user, batch);
+    const [deletedCopy, keptCopy] = batch.items[0]!.copy_ids as [string, string];
+    const { error } = await secretKeyClient().from('copies').delete().eq('user_id', user.userId).eq('id', deletedCopy);
+    expect(error).toBeNull();
+    const before = await collectionOf(user);
+
+    const replay = await committed(user, batch);
+
+    expect(replay.addition_id).toBeNull();
+    expect(replay.copies).toEqual(first.copies.map((copy) => ({ ...copy, replayed: true })));
+    expect(await collectionOf(user)).toEqual(before);
+    expect((await copiesOf(user)).map((copy) => copy.id)).toEqual([keptCopy]);
+    expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 1)]);
+  });
+
   test('a changed batch that repeats some copy IDs adds only the new copies', async () => {
     const user = await signUpNewUser();
     const added = stack(angelicCurator, { copies: 2 });
@@ -509,7 +514,7 @@ describe('copy IDs', () => {
 
     const second = await committed(user, scanBatch([edited, newCopies]));
 
-    expect(await entriesOf(user)).toEqual([entryRow(delverInnistrad, 3), entryRow(angelicCurator, 2)]);
+    expect(await entriesOf(user)).toEqual(entries(entryRow(delverInnistrad, 3), entryRow(angelicCurator, 2)));
     expect(second.copy_count).toBe(3);
     expect(second.items.map((item) => [item.card_printing_id, item.quantity_added])).toEqual([[delverInnistrad, 3]]);
     expect(second.copies.map((copy) => [copy.addition_id, copy.replayed])).toEqual([
@@ -589,12 +594,12 @@ describe('access', () => {
     await committed(alice, scanBatch([stack(angelicCurator, { copies: 2 })]));
   });
 
-  test("a user never reads another user's collection entries, additions, or addition lines", async () => {
+  test("a user never reads another user's copies, collection entries, additions, or addition lines", async () => {
     expect((await entriesOf(alice)).length).toBeGreaterThan(0);
     expect((await additionsOf(alice)).length).toBeGreaterThan(0);
     expect((await linesOf(alice)).length).toBeGreaterThan(0);
     for (const table of [
-      'collection_entries',
+      'copies',
       'collection_additions',
       'collection_addition_lines',
       'collection_addition_copies',
@@ -608,7 +613,7 @@ describe('access', () => {
   test('an anonymous caller reads nothing and cannot commit a scan batch', async () => {
     const anonymous = anonymousClient();
     for (const table of [
-      'collection_entries',
+      'copies',
       'collection_additions',
       'collection_addition_lines',
       'collection_addition_copies',
@@ -634,17 +639,21 @@ describe('access', () => {
     ['a signed-in user', () => alice.client],
     ['an anonymous caller', () => anonymousClient()],
   ])('direct writes by %s are refused', (_, client) => {
-    test('inserting, updating, and deleting collection entries is refused', async () => {
-      const entries = () => client().from('collection_entries');
+    test('inserting, updating, and deleting copies is refused', async () => {
+      const copies = () => client().from('copies');
+      const [addition] = await additionsOf(alice);
       const row = {
-        ...entryRow(angelicCurator, 1),
+        ...entryLine(angelicCurator),
+        id: crypto.randomUUID(),
+        addition_id: addition!.id,
         user_id: alice.userId,
-        latest_addition_at: new Date().toISOString(),
       };
 
-      expect((await entries().insert(row)).error?.code).toBe(permissionDenied);
-      expect((await entries().update({ quantity: 99 }).eq('user_id', alice.userId)).error?.code).toBe(permissionDenied);
-      expect((await entries().delete().eq('user_id', alice.userId)).error?.code).toBe(permissionDenied);
+      expect((await copies().insert(row)).error?.code).toBe(permissionDenied);
+      expect((await copies().update({ is_protected: true }).eq('user_id', alice.userId)).error?.code).toBe(
+        permissionDenied,
+      );
+      expect((await copies().delete().eq('user_id', alice.userId)).error?.code).toBe(permissionDenied);
     });
 
     test('inserting, updating, and deleting additions is refused', async () => {
@@ -671,7 +680,6 @@ describe('access', () => {
         addition_id: addition!.id,
         user_id: alice.userId,
         quantity: 1,
-        entry_quantity: 1,
       };
 
       expect((await lines().insert(row)).error?.code).toBe(permissionDenied);

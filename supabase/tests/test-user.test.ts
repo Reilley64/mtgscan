@@ -21,9 +21,9 @@ async function ownedCopies(client: AppClient) {
 }
 
 async function collectionEntries(client: AppClient) {
-  const { data, error } = await client.from('collection_entries').select('finish, condition');
+  const { data, error } = await client.from('copies').select('card_printing_id, finish, condition, language, is_protected');
   expect(error).toBeNull();
-  return data!;
+  return [...new Map(data!.map((copy) => [JSON.stringify(copy), copy])).values()];
 }
 
 async function additions(client: AppClient) {

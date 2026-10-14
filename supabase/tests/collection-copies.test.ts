@@ -5,7 +5,7 @@ import type { Json } from '../database.types';
 import { readSearchError } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
-import { seedCollectionEntries } from './collection-entry-seeds';
+import { seedCopies } from './copy-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
@@ -18,8 +18,6 @@ const secretLairNonfoilOnly = '018830b2-dff9-45f3-9cc2-dc5b2eec0e54';
 const secretLairWithNoPrice = '0cd83c0e-8e37-40bf-87a5-5b4c009248fb';
 
 type CatalogPrinting = Pick<CollectionCopyRow, 'printing_id' | 'name' | 'set' | 'collector_number' | 'rarity' | 'image_uris'>;
-
-type CopyKey = [entryId: string, copyNumber: number];
 
 let catalog: CatalogPrinting[];
 let alice: TestUser;
@@ -84,47 +82,35 @@ function printingIds(rows: CollectionCopyRow[]) {
   return rows.map((row) => row.printing_id);
 }
 
-function copyKeys(rows: CollectionCopyRow[]): CopyKey[] {
-  return rows.map((row) => [row.collection_entry_id, row.copy_number]);
+function copyIdsOf(rows: CollectionCopyRow[]) {
+  return rows.map((row) => row.copy_id);
 }
 
-function byCopyKey(a: Pick<CollectionCopyRow, 'collection_entry_id' | 'copy_number'>, b: typeof a) {
-  if (a.collection_entry_id !== b.collection_entry_id) {
-    return a.collection_entry_id < b.collection_entry_id ? -1 : 1;
-  }
-  return a.copy_number - b.copy_number;
+function byCopyId(a: Pick<CollectionCopyRow, 'copy_id'>, b: typeof a) {
+  return a.copy_id < b.copy_id ? -1 : 1;
 }
 
 function currentPrice(currency: CurrentPrice['currency'], amount: string, finish: CurrentPrice['finish']): CurrentPrice {
   return { amount, currency, finish, stale: false };
 }
 
-function entryId(result: Awaited<ReturnType<typeof committed>>, finish = 'nonfoil') {
-  return result.items.find((item) => item.finish === finish)!.collection_entry_id!;
-}
-
 describe('the binder grid read', () => {
-  test('a user with no collection entries gets an empty page', async () => {
+  test('a user with no copies gets an empty page', async () => {
     const user = await signUpNewUser();
 
     expect(await collectionCopies(user)).toEqual({ items: [], next_cursor: null });
   });
 
-  test('each collection entry is one row per copy, with its card printing and rarity, finish, condition, language, protected flag, and price', async () => {
+  test('each copy is one row with its copy ID, card printing and rarity, finish, condition, language, protected flag, and price', async () => {
     const user = await signUpNewUser();
-    const added = await committed(
-      user,
-      scanBatch([
-        stack(angelicCurator, { copies: 2 }),
-        stack(angelicCurator, { finish: 'foil', condition: 'lightly_played', language: 'ja' }),
-      ]),
-    );
-    const [protectedEntry] = await seedCollectionEntries(user, [
-      { card_printing_id: angelicCurator, latest_addition_at: new Date(0).toISOString(), quantity: 2, is_protected: true },
+    const nonfoil = stack(angelicCurator, { copies: 2 });
+    const foilCopy = stack(angelicCurator, { finish: 'foil', condition: 'lightly_played', language: 'ja' });
+    await committed(user, scanBatch([nonfoil, foilCopy]));
+    const [protectedCopies] = await seedCopies(user, [
+      { card_printing_id: angelicCurator, added_at: new Date(0).toISOString(), quantity: 2, is_protected: true },
     ]);
-    const copy = (collectionEntryId: string, copyNumber: number, changes: Partial<CollectionCopyRow> = {}): CollectionCopyRow => ({
-      collection_entry_id: collectionEntryId,
-      copy_number: copyNumber,
+    const copy = (copyId: string, changes: Partial<CollectionCopyRow> = {}): CollectionCopyRow => ({
+      copy_id: copyId,
       ...catalogPrinting(angelicCurator),
       finish: 'nonfoil',
       condition: 'near_mint',
@@ -135,31 +121,26 @@ describe('the binder grid read', () => {
     });
     const foil = { finish: 'foil', condition: 'lightly_played', language: 'ja', price: currentPrice('USD', '0.30', 'foil') } as const;
     const expected = [
-      copy(entryId(added), 1),
-      copy(entryId(added), 2),
-      copy(entryId(added, 'foil'), 1, foil),
-      copy(protectedEntry!, 1, { protected: true }),
-      copy(protectedEntry!, 2, { protected: true }),
+      ...nonfoil.copy_ids.map((copyId) => copy(copyId)),
+      copy(foilCopy.copy_ids[0]!, foil),
+      ...protectedCopies!.map((copyId) => copy(copyId, { protected: true })),
     ];
 
     const { items, next_cursor } = await collectionCopies(user);
 
     expect(next_cursor).toBeNull();
-    expect(items).toEqual(expected.sort(byCopyKey));
+    expect(items).toEqual(expected.sort(byCopyId));
   });
 
-  test('a copy keeps its copy key when more copies merge into its collection entry', async () => {
+  test('each scanned copy keeps its copy ID when more copies of the same card printing are added', async () => {
     const user = await signUpNewUser();
-    const first = await committed(user, scanBatch([stack(angelicCurator, { copies: 2 })]));
-    const before = copyKeys((await collectionCopies(user)).items);
+    const first = stack(angelicCurator, { copies: 2 });
+    await committed(user, scanBatch([first]));
+    const second = stack(angelicCurator);
 
-    await committed(user, scanBatch([stack(angelicCurator)]));
+    await committed(user, scanBatch([second]));
 
-    expect(before).toEqual([
-      [entryId(first), 1],
-      [entryId(first), 2],
-    ]);
-    expect(copyKeys((await collectionCopies(user)).items)).toEqual([...before, [entryId(first), 3]]);
+    expect(copyIdsOf((await collectionCopies(user)).items).toSorted()).toEqual([...first.copy_ids, ...second.copy_ids].toSorted());
   });
 
   test('the newest addition comes first, and copies of the same card printing sit next to each other', async () => {
@@ -180,11 +161,11 @@ describe('the binder grid read', () => {
     const sameName = catalog.filter((printing) => printing.name === catalogPrinting(delverInnistrad).name);
     expect(sameName.length).toBeGreaterThan(1);
     const byName = [catalogPrinting(angelicCurator), ...sameName, catalogPrinting(ribbonsOfNight)];
-    await seedCollectionEntries(
+    await seedCopies(
       user,
       [...byName].reverse().map((printing) => ({
         card_printing_id: printing.printing_id,
-        latest_addition_at: addedAt,
+        added_at: addedAt,
         quantity: 2,
       })),
     );
@@ -292,23 +273,20 @@ describe('current prices', () => {
 });
 
 describe('binder grid pages', () => {
-  const seededEntries = 50;
+  const seededPrintings = 50;
   const seededCopies = 123;
   let user: TestUser;
-  let seeded: CopyKey[];
+  let seeded: string[];
 
   beforeAll(async () => {
     user = await signUpNewUser();
     const start = Date.parse('2026-10-18T09:00:00.000Z');
-    const entries = catalog.slice(0, seededEntries).map((printing, index) => ({
+    const seeds = catalog.slice(0, seededPrintings).map((printing, index) => ({
       card_printing_id: printing.printing_id,
-      latest_addition_at: new Date(start + Math.floor(index / 2) * 1000).toISOString(),
+      added_at: new Date(start + Math.floor(index / 2) * 1000).toISOString(),
       quantity: (index % 4) + 1,
     }));
-    const ids = await seedCollectionEntries(user, entries);
-    seeded = ids.flatMap((id, index) =>
-      Array.from({ length: entries[index]!.quantity }, (_, copy): CopyKey => [id, copy + 1]),
-    );
+    seeded = (await seedCopies(user, seeds)).flat();
   });
 
   test('the first page holds 60 copies', async () => {
@@ -322,18 +300,18 @@ describe('binder grid pages', () => {
     const { rows } = await allCollectionCopies(user, 1);
 
     expect(rows.length).toBe(seededCopies);
-    expect([...copyKeys(rows)].sort()).toEqual([...seeded].sort());
+    expect(copyIdsOf(rows).toSorted()).toEqual(seeded.toSorted());
   });
 
   test.each([
     [60, [60, 60, 3]],
     [120, [120, 3]],
   ])('pages of %p cover every copy once, in the same order', async (limit, pageSizes) => {
-    const reference = copyKeys((await allCollectionCopies(user, 1)).rows);
+    const reference = copyIdsOf((await allCollectionCopies(user, 1)).rows);
 
     const { rows, sizes } = await allCollectionCopies(user, limit);
 
-    expect(copyKeys(rows)).toEqual(reference);
+    expect(copyIdsOf(rows)).toEqual(reference);
     expect(sizes).toEqual(pageSizes);
   });
 
@@ -358,11 +336,11 @@ describe('binder grid pages', () => {
     expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
   });
 
-  test('a cursor with a broken copy key is refused with invalid_cursor', async () => {
+  test('a cursor with a broken copy ID is refused with invalid_cursor', async () => {
     const { next_cursor } = await collectionCopies(user, { limit: 1 });
     const payload = JSON.parse(Buffer.from(next_cursor!, 'base64').toString('utf8'));
     const broken = Buffer.from(
-      JSON.stringify({ ...payload, after: [...payload.after.slice(0, 4), 'first'] }),
+      JSON.stringify({ ...payload, after: [...payload.after.slice(0, 3), 'first'] }),
     ).toString('base64');
 
     const { error } = await listCollectionCopies(user.client, { limit: 1, cursor: broken });
