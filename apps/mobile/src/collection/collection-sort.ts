@@ -29,9 +29,8 @@ function picked(current: CollectionOrder, sort: OrderedSort): CollectionOrder {
 }
 
 export function collectionOrderChoices(current: CollectionOrder, onChange: (order: CollectionOrder) => void) {
-  const relevance = { title: 'Relevance', checked: current.sort === 'relevance', onSelect: () => onChange(defaultCollectionOrder) };
   return [
-    relevance,
+    { title: 'Relevance', checked: current.sort === 'relevance', onSelect: () => onChange(defaultCollectionOrder) },
     ...(Object.entries(orderedSorts) as [OrderedSort, SortChoice][]).map(([sort, { title }]) => ({
       title,
       checked: current.sort === sort,

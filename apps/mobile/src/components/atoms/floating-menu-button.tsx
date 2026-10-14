@@ -16,7 +16,7 @@ const symbolTints = cva('', {
   },
 });
 
-export type MenuChoice = {
+type MenuChoice = {
   title: string;
   checked: boolean;
   symbol?: SFSymbol;
