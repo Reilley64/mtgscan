@@ -3,11 +3,13 @@ import { fireEvent, screen, within } from 'expo-router/testing-library';
 import { startSignedIn } from './fake-supabase';
 import { renderApp } from './render-app';
 import {
+  appearsBefore,
   hasHeader,
   headerButton,
   isInScrollView,
   openSettings,
   presentedDrawer,
+  presentedDrawerContent,
   pressTab,
   selectedTab,
   swipeDownDrawer,
@@ -15,6 +17,9 @@ import {
   tabHeader,
   tapOutsideDrawer,
 } from './native-ui';
+import { tokenColors } from './token-colors';
+
+const { textDim } = tokenColors;
 
 beforeEach(() => {
   startSignedIn();
@@ -143,6 +148,20 @@ test('the settings title stays at the top while the drawer content scrolls under
   expect(isInScrollView(screen.getByText('Gallery'))).toBe(true);
   expect(isInScrollView(screen.getByRole('switch', { name: 'Scan sounds' }))).toBe(true);
   expect(isInScrollView(screen.getByRole('button', { name: 'Sign out' }))).toBe(true);
+});
+
+test('the settings drawer shows the Fan Content notice in dim credit type under Sign out, with no Scryfall price note', async () => {
+  await renderApp();
+
+  await openSettings();
+
+  const notice = screen.getByText(
+    'mtgscan is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.',
+  );
+  expect(notice).toHaveStyle({ color: textDim, fontSize: 10, fontWeight: '600' });
+  expect(isInScrollView(notice)).toBe(true);
+  expect(appearsBefore(screen.getByRole('button', { name: 'Sign out' }), notice)).toBe(true);
+  expect(within(presentedDrawerContent()).queryByText(/Scryfall/)).not.toBeOnTheScreen();
 });
 
 test('a downward swipe closes the settings drawer', async () => {

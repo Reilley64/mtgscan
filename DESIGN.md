@@ -336,7 +336,7 @@ The app uses the iOS system font, SF Pro, at a few weights.
 - **Body** (14 px) carries reasons, rules text, and list content. **Body strong** labels buttons and card names in rows. **Field** (14 px) is the text in a text field, such as the card name in name search. It has no fixed line height, so iOS centers the text in the field.
 - **Meta** (12 px, muted) carries set and collector number, finish, condition, language, and timestamps.
 - **Price** (12 px, semibold, text price) carries the current price under a binder tile.
-- **Chip** (11 px, bold) labels chips and status pills. **Tab label** (10 px, bold) sits under tab bar icons. **Credit** (10 px, semibold, dim) credits image sources such as Scryfall.
+- **Chip** (11 px, bold) labels chips and status pills. **Tab label** (10 px, bold) sits under tab bar icons. **Credit** (10 px, semibold, dim) credits image and price sources such as Scryfall, and carries the Fan Content notice.
 
 Copy is plain sentence case and uses glossary terms exactly: deck suggestion, planned swap, buylist card, free copy, protected copy, estimated bracket.
 
@@ -536,7 +536,9 @@ The settings drawer:
 - The gallery card shows "Gallery", the date of the installed gallery version, such as "12 October 2026", and "Up to date", "Downloading", or "Paused". "Paused" covers waiting for Wi-Fi, offline, a failed download, and too little space.
 - The Scan sounds card has a "Scan sounds" switch with a lime track. It is on by default. Turning it off stops the scan sounds and keeps the scan haptics.
 - All three cards fit at half height.
-- Only a development build shows a "Parity check" section under **Sign out**, with a **Run the parity check** button. After a check, the section lists "Gallery version 20261012-cf1753", "Lowest cosine 0.99976", "Mean cosine 1.00003", and "24 reference images", with the cosines to 5 decimals, then each reference image that failed. When the check cannot run, it shows "Could not run the parity check:" and the error code. Production builds leave it out.
+- Under **Sign out**, the Wizards Fan Content notice sits in credit type in text dim: "mtgscan is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC."
+- The settings drawer shows no Scryfall price note. Scryfall's API guidelines do not require one. The price credit already names Scryfall.
+- Only a development build shows a "Parity check" section under the Fan Content notice, with a **Run the parity check** button. After a check, the section lists "Gallery version 20261012-cf1753", "Lowest cosine 0.99976", "Mean cosine 1.00003", and "24 reference images", with the cosines to 5 decimals, then each reference image that failed. When the check cannot run, it shows "Could not run the parity check:" and the error code. Production builds leave it out.
 
 ## Elevation & Depth
 

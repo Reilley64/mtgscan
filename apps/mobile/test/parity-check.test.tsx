@@ -4,7 +4,7 @@ import { developmentLogPrefixes } from '@/lib/development-log';
 
 import { galleryParityIs } from './fake-card-recognizer';
 import { startSignedIn } from './fake-supabase';
-import { openSettings } from './native-ui';
+import { appearsBefore, openSettings } from './native-ui';
 import { renderApp } from './render-app';
 
 const passingParity = {
@@ -81,6 +81,14 @@ test('without an installed gallery, the parity check says it could not run', asy
   await runTheParityCheck();
 
   expect(await screen.findByText('Could not run the parity check: gallery_not_ready')).toBeOnTheScreen();
+});
+
+test('a development build shows the parity check section under the Fan Content notice', async () => {
+  await renderApp();
+
+  await openSettings();
+
+  expect(appearsBefore(screen.getByText(/^mtgscan is unofficial Fan Content/), screen.getByText('Parity check'))).toBe(true);
 });
 
 test('a production build has no parity check in settings', async () => {
