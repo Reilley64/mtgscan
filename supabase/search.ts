@@ -94,7 +94,9 @@ export type DataAsOf = {
   rules_stale: boolean;
 };
 
-export type CardDetailsQuery = { oracle_ids: string[]; printing_ids?: never } | { printing_ids: string[]; oracle_ids?: never };
+export type CardDetailsQuery = ({ oracle_ids: string[]; printing_ids?: never } | { printing_ids: string[]; oracle_ids?: never }) & {
+  price_currency?: PriceCurrency;
+};
 
 export type CardFace = {
   name: string;
@@ -148,7 +150,8 @@ export type CardDetailsRow = {
   printing?: CardDetailsPrinting;
 };
 
-export type CardDetails = DataAsOf & {
+export type CardDetails = DataAsOf &
+  Pick<ExchangeRateFields, 'rate_date'> & {
   items: CardDetailsRow[];
   not_found: string[];
   prices_observed_at: string | null;

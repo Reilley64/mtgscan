@@ -24,6 +24,7 @@ import {
   spellbookFixtureVariant,
   type SpellbookVariant,
 } from './catalog-import-command';
+import { convertedPrice, daysAgo, storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -473,25 +474,85 @@ describe('after a catalog import', () => {
 });
 
 describe('after a price import', () => {
+  const basis = 'lowest current price over printings and finishes';
+  let briselaVoiceOfNightmares: string;
+
   beforeAll(async () => {
     expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
+    await storeExchangeRates();
+    briselaVoiceOfNightmares = await oracleIdOf('Brisela, Voice of Nightmares');
   });
 
   test('card details carry the lowest current price in USD over printings and finishes', async () => {
-    const { items, prices_observed_at, prices_stale } = await cards({ oracle_ids: [delverOfSecrets, valakutAwakening] });
+    const { items, prices_observed_at, prices_stale, rate_date } = await cards({
+      oracle_ids: [delverOfSecrets, valakutAwakening],
+    });
 
     expect(items.map((card) => [card.name, card.price_from])).toEqual([
-      [
-        'Delver of Secrets // Insectile Aberration',
-        { currency: 'USD', amount: '0.32', finish: 'nonfoil', basis: 'lowest current price over printings and finishes' },
-      ],
-      [
-        'Valakut Awakening // Valakut Stoneforge',
-        { currency: 'USD', amount: '16.47', finish: 'nonfoil', basis: 'lowest current price over printings and finishes' },
-      ],
+      ['Delver of Secrets // Insectile Aberration', { currency: 'USD', amount: '0.32', finish: 'nonfoil', basis }],
+      ['Valakut Awakening // Valakut Stoneforge', { currency: 'USD', amount: '16.47', finish: 'nonfoil', basis }],
     ]);
     expect(prices_observed_at).not.toBeNull();
     expect(prices_stale).toBe(false);
+    expect(rate_date).toBeUndefined();
+  });
+
+  test('a price currency of USD reads the same card details as no price currency', async () => {
+    const ids = { oracle_ids: [delverOfSecrets, valakutAwakening] };
+
+    expect((await cards({ ...ids, price_currency: 'USD' })).items).toEqual((await cards(ids)).items);
+  });
+
+  test.each<[string, string, [string, string]]>([
+    ['AUD', '1.5234', ['0.49', '25.09']],
+    ['JPY', '151.37', ['48', '2493']],
+  ])('card details in %s convert the lowest USD price at the latest exchange rate', async (currency, exchangeRate, amounts) => {
+    const { items, prices_stale, rate_date } = await cards({
+      oracle_ids: [delverOfSecrets, valakutAwakening],
+      price_currency: currency,
+    });
+
+    expect(items.map((card) => card.price_from)).toEqual(
+      amounts.map((amount) => ({ ...convertedPrice(currency, exchangeRate, amount, 'nonfoil'), basis })),
+    );
+    expect(prices_stale).toBe(false);
+    expect(rate_date).toBe(daysAgo(0));
+  });
+
+  test.each(['USD', 'AUD', 'JPY'])('a card with no lowest USD price has no price_from in %s', async (currency) => {
+    const { items } = await cards({ oracle_ids: [briselaVoiceOfNightmares], price_currency: currency });
+
+    expect(items[0]!.price_from).toBeNull();
+  });
+
+  test.each<[number, boolean]>([
+    [4, false],
+    [5, true],
+  ])('card details in AUD with an exchange rate %p days old are stale: %p', async (days, stale) => {
+    await storeExchangeRates(undefined, daysAgo(days));
+    const aud = await cards({ oracle_ids: [delverOfSecrets], price_currency: 'AUD' });
+    const usd = await cards({ oracle_ids: [delverOfSecrets] });
+    await storeExchangeRates();
+
+    expect(aud.prices_stale).toBe(stale);
+    expect(aud.rate_date).toBe(daysAgo(days));
+    expect(usd.prices_stale).toBe(false);
+  });
+
+  test.each<[string, unknown]>([
+    ['a currency with no exchange rate', 'XYZ'],
+    ['a currency of the wrong type', 36],
+  ])('get cards refuses %s on price_currency', async (_, priceCurrency) => {
+    const { result, error } = await getCards({ oracle_ids: [delverOfSecrets], price_currency: priceCurrency });
+
+    expect(result).toBeNull();
+    expect(error).toMatchObject({ code: 'invalid_argument', field: 'price_currency' });
+  });
+
+  test('get cards with only a price currency asks for IDs', async () => {
+    const { error } = await getCards({ price_currency: 'AUD' });
+
+    expect(error).toMatchObject({ code: 'invalid_argument', field: 'oracle_ids' });
   });
 });
 
