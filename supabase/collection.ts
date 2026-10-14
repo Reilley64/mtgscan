@@ -143,6 +143,15 @@ export type CreateUserTagRequest = {
   name: string;
 };
 
+export type RenameUserTagRequest = {
+  user_tag_id: string;
+  name: string;
+};
+
+export type DeleteUserTagRequest = {
+  user_tag_id: string;
+};
+
 export type CopyUserTagRequest = {
   copy_id: string;
   user_tag_id: string;

@@ -1,5 +1,5 @@
 import type { CopyDetails } from '@mtgscan/supabase/collection';
-import { fireEvent, screen, within } from 'expo-router/testing-library';
+import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 
 import { copyOf, delver, openCollection, openCopyPage } from './copies';
 import {
@@ -15,11 +15,16 @@ import {
 import {
   appearsBefore,
   blurredImageUris,
+  buttonMenuActions,
   cardImageUri,
   cardSheen,
+  menuButton,
+  menuButtonNames,
   pressAlertButton,
+  pressButtonMenuAction,
   presentedAlert,
   pressTab,
+  pushedScreen,
   pushedScreenBackButton,
   selectedTab,
   swipeBackFromThePushedScreen,
@@ -436,5 +441,171 @@ describe('the user tag picker', () => {
 
     expect(await screen.findByRole('alert', { name: 'Could not change the user tags. Check your connection.' })).toBeOnTheScreen();
     expect(screen.getByRole('checkbox', { name: 'signed, 0 copies' })).not.toBeChecked();
+  });
+});
+
+describe('renaming and deleting a user tag', () => {
+  async function openUserTagPicker() {
+    ownCopies([copyOf('copy-1'), { ...delver, copy_id: 'copy-2' }, { ...delver, copy_id: 'copy-3' }]);
+    await openCopyPage(/^Angelic Curator/);
+    await fireEvent.press(screen.getByRole('button', { name: /^(User tags,|Add user tags)/ }));
+    return screen.findByLabelText('Find or create a user tag');
+  }
+
+  test('each row has a native menu with Rename and Delete user tag', async () => {
+    ownUserTags([
+      { name: 'Signed', copyIds: ['copy-1'] },
+      { name: 'trade binder', copyIds: [] },
+    ]);
+    await openUserTagPicker();
+
+    expect(menuButtonNames(pushedScreen())).toEqual(['More, Signed', 'More, trade binder']);
+    expect(buttonMenuActions(menuButton(screen.container, 'More, Signed'))).toEqual([
+      { title: 'Rename', destructive: false },
+      { title: 'Delete user tag', destructive: true },
+    ]);
+  });
+
+  test('Rename edits the name in the row, Save keeps the user tag on its copies, and the copy page shows the new name', async () => {
+    ownUserTags([{ name: 'Signd', copyIds: ['copy-1', 'copy-2'] }]);
+    await openUserTagPicker();
+
+    await pressButtonMenuAction(menuButton(screen.container, 'More, Signd'), 'Rename');
+    const field = screen.getByLabelText('User tag name');
+    expect(field).toHaveProp('value', 'Signd');
+    expect(field).toHaveProp('maxLength', 64);
+    expect(screen.queryByRole('checkbox', { name: 'Signd, 2 copies' })).not.toBeOnTheScreen();
+    await fireEvent.changeText(field, ' Signed ');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('checkbox', { name: 'Signed, 2 copies' })).toBeChecked();
+    expect(screen.queryByLabelText('User tag name')).not.toBeOnTheScreen();
+    await swipeBackFromThePushedScreen();
+    expect(await screen.findByRole('button', { name: 'User tags, Signed' })).toBeOnTheScreen();
+  });
+
+  test('Save is off while the name is empty', async () => {
+    ownUserTags([{ name: 'Signed', copyIds: [] }]);
+    await openUserTagPicker();
+
+    await pressButtonMenuAction(menuButton(screen.container, 'More, Signed'), 'Rename');
+    await fireEvent.changeText(screen.getByLabelText('User tag name'), '   ');
+
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  test('a name that matches another user tag ignoring case is refused, and the name stays in the row to change', async () => {
+    ownUserTags([
+      { name: 'Signed', copyIds: ['copy-1'] },
+      { name: 'trade binder', copyIds: [] },
+    ]);
+    await openUserTagPicker();
+
+    await pressButtonMenuAction(menuButton(screen.container, 'More, Signed'), 'Rename');
+    await fireEvent.changeText(screen.getByLabelText('User tag name'), 'Trade Binder');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('alert', { name: 'You already have a user tag named "Trade Binder".' })).toBeOnTheScreen();
+    expect(screen.getByLabelText('User tag name')).toHaveProp('value', 'Trade Binder');
+    expect(screen.getByRole('checkbox', { name: 'trade binder, 0 copies' })).toBeOnTheScreen();
+  });
+
+  test('Delete user tag asks under the row how many copies it comes off, and Cancel keeps it', async () => {
+    ownUserTags([
+      { name: 'Signed', copyIds: ['copy-1', 'copy-2', 'copy-3'] },
+      { name: 'trade binder', copyIds: ['copy-2'] },
+    ]);
+    await openUserTagPicker();
+
+    await pressButtonMenuAction(menuButton(screen.container, 'More, Signed'), 'Delete user tag');
+    const question = screen.getByText('Delete "Signed"? It comes off 3 copies.');
+    expect(appearsBefore(screen.getByRole('checkbox', { name: 'Signed, 3 copies' }), question)).toBe(true);
+    expect(appearsBefore(question, screen.getByRole('checkbox', { name: 'trade binder, 1 copy' }))).toBe(true);
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByText(/^Delete "Signed"\?/)).not.toBeOnTheScreen();
+    expect(screen.getByRole('checkbox', { name: 'Signed, 3 copies' })).toBeChecked();
+    await pressButtonMenuAction(menuButton(screen.container, 'More, trade binder'), 'Delete user tag');
+    expect(screen.getByText('Delete "trade binder"? It comes off 1 copy.')).toBeOnTheScreen();
+  });
+
+  test('Delete user tag takes it off every copy, and the copy page shows the result', async () => {
+    ownUserTags([
+      { name: 'Signed', copyIds: ['copy-1', 'copy-2'] },
+      { name: 'trade binder', copyIds: ['copy-1'] },
+    ]);
+    await openUserTagPicker();
+
+    await pressButtonMenuAction(menuButton(screen.container, 'More, Signed'), 'Delete user tag');
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete user tag' }));
+
+    await waitFor(() => expect(screen.queryByRole('checkbox', { name: /^Signed,/ })).not.toBeOnTheScreen());
+    expect(screen.queryByText(/^Delete "Signed"\?/)).not.toBeOnTheScreen();
+    expect(screen.getByRole('checkbox', { name: 'trade binder, 1 copy' })).toBeChecked();
+    await swipeBackFromThePushedScreen();
+    expect(await screen.findByRole('button', { name: 'User tags, trade binder' })).toBeOnTheScreen();
+  });
+
+  test('a user tag deleted on another phone leaves the picker when the user renames it, with no failure', async () => {
+    ownUserTags([
+      { name: 'Signed', copyIds: ['copy-1'] },
+      { name: 'trade binder', copyIds: [] },
+    ]);
+    await openUserTagPicker();
+    ownUserTags([{ name: 'Signed', copyIds: ['copy-1'] }]);
+
+    await pressButtonMenuAction(menuButton(screen.container, 'More, trade binder'), 'Rename');
+    await fireEvent.changeText(screen.getByLabelText('User tag name'), 'Trade');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(screen.queryByLabelText('User tag name')).not.toBeOnTheScreen());
+    expect(screen.queryByRole('checkbox', { name: /^(trade binder|Trade),/ })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
+  });
+
+  test('a rename that fails says so and keeps the new name in the row to try again', async () => {
+    ownUserTags([{ name: 'Signed', copyIds: ['copy-1'] }]);
+    await openUserTagPicker();
+    failUserTagChanges(1);
+
+    await pressButtonMenuAction(menuButton(screen.container, 'More, Signed'), 'Rename');
+    await fireEvent.changeText(screen.getByLabelText('User tag name'), 'Autographed');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('alert', { name: 'Could not change the user tags. Check your connection.' })).toBeOnTheScreen();
+    expect(screen.getByLabelText('User tag name')).toHaveProp('value', 'Autographed');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('checkbox', { name: 'Autographed, 1 copy' })).toBeChecked();
+    expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
+  });
+
+  test('a delete that fails says so and keeps the user tag and its confirmation', async () => {
+    ownUserTags([{ name: 'Signed', copyIds: ['copy-1'] }]);
+    await openUserTagPicker();
+    failUserTagChanges(1);
+
+    await pressButtonMenuAction(menuButton(screen.container, 'More, Signed'), 'Delete user tag');
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete user tag' }));
+
+    expect(await screen.findByRole('alert', { name: 'Could not change the user tags. Check your connection.' })).toBeOnTheScreen();
+    expect(screen.getByRole('checkbox', { name: 'Signed, 1 copy' })).toBeChecked();
+    expect(screen.getByText('Delete "Signed"? It comes off 1 copy.')).toBeOnTheScreen();
+  });
+
+  test('a user tag deleted on another phone leaves the picker when the user deletes it, with no failure', async () => {
+    ownUserTags([
+      { name: 'Signed', copyIds: ['copy-1'] },
+      { name: 'trade binder', copyIds: [] },
+    ]);
+    await openUserTagPicker();
+    ownUserTags([{ name: 'Signed', copyIds: ['copy-1'] }]);
+
+    await pressButtonMenuAction(menuButton(screen.container, 'More, trade binder'), 'Delete user tag');
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete user tag' }));
+
+    await waitFor(() => expect(screen.queryByRole('checkbox', { name: /^trade binder,/ })).not.toBeOnTheScreen());
+    expect(screen.queryByText(/^Delete "trade binder"\?/)).not.toBeOnTheScreen();
+    expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
   });
 });

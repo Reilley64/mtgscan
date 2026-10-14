@@ -14,6 +14,7 @@ import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
 import { GlassGroup, GlassSurface } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
+import { MenuButton } from '@/components/atoms/menu-button';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { SetIcon } from '@/components/atoms/set-icon';
@@ -30,6 +31,7 @@ import {
   backdropOf,
   blocksColored,
   buttonMenu,
+  buttonMenuActions,
   cardImageUri,
   cardSheen,
   glassEffect,
@@ -37,6 +39,7 @@ import {
   imageTintColor,
   menuButton,
   placeholderColor,
+  pressButtonMenuAction,
   pressButtonMenuItem,
   pressSignInWithApple,
   showsSpinner,
@@ -922,5 +925,34 @@ describe('FloatingMenuButton', () => {
     await pressButtonMenuItem(button, 'Price');
 
     expect(onSelect).toHaveBeenCalledWith('Price');
+  });
+});
+
+describe('MenuButton', () => {
+  test('a menu button is a 44 pt ellipsis in text muted that opens a native menu of its actions, and runs the chosen one', async () => {
+    const onRename = jest.fn();
+    await render(
+      <MenuButton
+        accessibilityLabel="More, Signed"
+        actions={[
+          { title: 'Rename', onSelect: onRename },
+          { title: 'Delete user tag', destructive: true, onSelect: () => {} },
+        ]}
+      />,
+    );
+
+    const button = menuButton(screen.container, 'More, Signed');
+    expect(symbolNames(button)).toEqual(['ellipsis']);
+    expect(symbolSizes(button)).toEqual([18]);
+    expect(symbolTintColor(button)).toBe(textMuted);
+    expect(symbolIn(button).parent).toHaveStyle({ width: 44, height: 44 });
+    expect(buttonMenuActions(button)).toEqual([
+      { title: 'Rename', destructive: false },
+      { title: 'Delete user tag', destructive: true },
+    ]);
+
+    await pressButtonMenuAction(button, 'Rename');
+
+    expect(onRename).toHaveBeenCalledTimes(1);
   });
 });

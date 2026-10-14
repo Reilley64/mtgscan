@@ -16,6 +16,8 @@ import type {
   CopyUserTagRequest,
   CreateUserTagRequest,
   DeleteCopyRequest,
+  DeleteUserTagRequest,
+  RenameUserTagRequest,
   ScanBatch,
   ScanBatchResult,
   ScanBatchStack,
@@ -52,6 +54,7 @@ let failingCopyDeletes = 0;
 let copyProtectedWrites: CopyProtectedRequest[] = [];
 let failingCopyWrites = 0;
 let userTags: UserTag[] = [];
+let nextUserTagNumber = 1;
 let copyUserTags = new Map<string, Set<string>>();
 let failingUserTagChanges = 0;
 let failingUserTagReads = 0;
@@ -223,6 +226,16 @@ function userTagList() {
   return { data: { items }, error: null };
 }
 
+const userTagExists = {
+  data: null,
+  error: { code: 'user_tag_exists', message: 'You already have a user tag with this name.', details: 'name' },
+};
+
+const userTagNotFound = {
+  data: null,
+  error: { code: 'not_found', message: 'user_tag_id is not one of your user tags.', details: 'user_tag_id' },
+};
+
 function failedUserTagChange() {
   if (failingUserTagChanges === 0) {
     return false;
@@ -237,11 +250,38 @@ function createUserTag({ name }: CreateUserTagRequest) {
   }
   const trimmed = name.trim();
   if (userTags.some((userTag) => userTag.name.toLowerCase() === trimmed.toLowerCase())) {
-    return { data: null, error: { code: 'user_tag_exists', message: 'You already have a user tag with this name.', details: 'name' } };
+    return userTagExists;
   }
-  const userTag = { user_tag_id: `user-tag-${userTags.length + 1}`, name: trimmed };
+  const userTag = { user_tag_id: `user-tag-${nextUserTagNumber++}`, name: trimmed };
   userTags = [...userTags, userTag];
   return { data: userTag, error: null };
+}
+
+function renameUserTag({ user_tag_id, name }: RenameUserTagRequest) {
+  if (failedUserTagChange()) {
+    return { data: null, error: networkFailure };
+  }
+  const trimmed = name.trim();
+  if (!userTags.some((userTag) => userTag.user_tag_id === user_tag_id)) {
+    return userTagNotFound;
+  }
+  if (userTags.some((userTag) => userTag.user_tag_id !== user_tag_id && userTag.name.toLowerCase() === trimmed.toLowerCase())) {
+    return userTagExists;
+  }
+  userTags = userTags.map((userTag) => (userTag.user_tag_id === user_tag_id ? { ...userTag, name: trimmed } : userTag));
+  return { data: { user_tag_id, name: trimmed }, error: null };
+}
+
+function deleteUserTag({ user_tag_id }: DeleteUserTagRequest) {
+  if (failedUserTagChange()) {
+    return { data: null, error: networkFailure };
+  }
+  if (!userTags.some((userTag) => userTag.user_tag_id === user_tag_id)) {
+    return userTagNotFound;
+  }
+  userTags = userTags.filter((userTag) => userTag.user_tag_id !== user_tag_id);
+  copyUserTags = new Map([...copyUserTags].map(([copyId, onCopy]) => [copyId, new Set([...onCopy].filter((id) => id !== user_tag_id))]));
+  return { data: null, error: null };
 }
 
 function setCopyUserTag({ copy_id, user_tag_id, tagged }: CopyUserTagRequest) {
@@ -409,13 +449,27 @@ export const fakeSupabase = {
       | { query: CopyQuery }
       | { query: { text: string; limit: number } }
       | { batch: ScanBatch }
-      | { request: DeleteCopyRequest | CopyProtectedRequest | CreateUserTagRequest | CopyUserTagRequest },
+      | {
+          request:
+            | DeleteCopyRequest
+            | CopyProtectedRequest
+            | CreateUserTagRequest
+            | CopyUserTagRequest
+            | RenameUserTagRequest
+            | DeleteUserTagRequest;
+        },
   ) {
     if (name === 'list_user_tags') {
       return userTagList();
     }
     if (name === 'create_user_tag' && args && 'request' in args) {
       return createUserTag(args.request as CreateUserTagRequest);
+    }
+    if (name === 'rename_user_tag' && args && 'request' in args) {
+      return renameUserTag(args.request as RenameUserTagRequest);
+    }
+    if (name === 'delete_user_tag' && args && 'request' in args) {
+      return deleteUserTag(args.request as DeleteUserTagRequest);
     }
     if (name === 'set_copy_user_tag' && args && 'request' in args) {
       return setCopyUserTag(args.request as CopyUserTagRequest);
@@ -531,6 +585,7 @@ export function failCopyDeletes(count: number) {
 
 export function ownUserTags(seeds: { name: string; copyIds: string[] }[]) {
   userTags = seeds.map(({ name }, index) => ({ user_tag_id: `user-tag-${index + 1}`, name }));
+  nextUserTagNumber = seeds.length + 1;
   copyUserTags = new Map();
   seeds.forEach(({ copyIds }, index) => {
     for (const copyId of copyIds) {
@@ -639,6 +694,7 @@ export function resetFakeSupabase() {
   copyProtectedWrites = [];
   failingCopyWrites = 0;
   userTags = [];
+  nextUserTagNumber = 1;
   copyUserTags = new Map();
   failingUserTagChanges = 0;
   failingUserTagReads = 0;

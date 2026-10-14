@@ -521,6 +521,9 @@ isOneToOne: false
 "delete_gallery_version":
 { Args: { "version": string }; Returns: undefined
                            },
+"delete_user_tag":
+{ Args: { "request": Json }; Returns: undefined
+                           },
 "disable_oracle_tag":
 { Args: { "tag_id": string }; Returns: {
               "disabled": boolean,"id": string,"slug": string
@@ -588,6 +591,9 @@ isOneToOne: false
                            },
 "record_gallery_version":
 { Args: { "manifest": Json,"version": string }; Returns: undefined
+                           },
+"rename_user_tag":
+{ Args: { "request": Json }; Returns: Json
                            },
 "search_catalog":
 { Args: { "query": Json }; Returns: Json

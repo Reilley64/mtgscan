@@ -13,11 +13,11 @@ type ListRowProps = {
   title: string;
   detail?: string;
 } & (
-  | { leading?: ReactNode; checked?: never; onPress?: () => void }
-  | { leading?: never; checked: boolean; onPress: () => void }
+  | { leading?: ReactNode; checked?: never; onPress?: () => void; menu?: never }
+  | { leading?: never; checked: boolean; onPress: () => void; menu?: ReactNode }
 );
 
-export function ListRow({ title, detail, leading, checked, onPress }: ListRowProps) {
+export function ListRow({ title, detail, menu, leading, checked, onPress }: ListRowProps) {
   const label = detail ? `${title}, ${detail}` : title;
   const checkRow = checked !== undefined;
   const content = (
@@ -41,16 +41,17 @@ export function ListRow({ title, detail, leading, checked, onPress }: ListRowPro
   );
 
   if (onPress) {
-    return (
+    const row = (
       <Surface
         accessibilityLabel={label}
         accessibilityRole={checkRow ? 'checkbox' : 'button'}
         aria-checked={checked}
         onPress={onPress}
-        className={cn(rowClass, 'group')}>
+        className={cn(rowClass, 'group', menu ? 'flex-1' : undefined)}>
         {content}
       </Surface>
     );
+    return menu ? <Surface className="flex-row items-center p-0 pr-xs">{row}{menu}</Surface> : row;
   }
   return (
     <Surface accessible accessibilityLabel={label} className={rowClass}>

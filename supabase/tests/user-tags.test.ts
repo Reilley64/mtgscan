@@ -49,6 +49,16 @@ async function putOnCopy(user: TestUser, copyId: string, userTag: UserTag, tagge
   expect(await setCopyUserTag(user.client, { copy_id: copyId, user_tag_id: userTag.user_tag_id, tagged })).toBeNull();
 }
 
+async function renameUserTag(client: AppClient, request: unknown) {
+  const { data, error } = await client.rpc('rename_user_tag', { request: request as Json });
+  return { userTag: data as unknown as UserTag | null, error: error && readUserTagError(error) };
+}
+
+async function deleteUserTag(client: AppClient, request: unknown) {
+  const { error } = await client.rpc('delete_user_tag', { request: request as Json });
+  return error && readUserTagError(error);
+}
+
 async function userTagsOf(user: TestUser) {
   const { data, error } = await user.client.rpc('list_user_tags');
   expect(error).toBeNull();
@@ -246,6 +256,125 @@ describe('the user tag list', () => {
   });
 });
 
+describe('renaming a user tag', () => {
+  test('renames a user tag to the trimmed name, keeps its ID, and every copy shows the new name', async () => {
+    const user = await signUpNewUser();
+    const [copyId, otherCopyId] = (await scannedCopies(user, angelicCurator, 2)) as [string, string];
+    const signed = await created(user, 'Signd');
+    await putOnCopy(user, copyId, signed);
+    await putOnCopy(user, otherCopyId, signed);
+
+    const { userTag, error } = await renameUserTag(user.client, { user_tag_id: signed.user_tag_id, name: ' Signed ' });
+
+    expect(error).toBeNull();
+    expect(userTag).toEqual({ user_tag_id: signed.user_tag_id, name: 'Signed' });
+    expect(await userTagsOf(user)).toEqual([{ user_tag_id: signed.user_tag_id, name: 'Signed', copy_count: 2 }]);
+    expect(await userTagsOnCopy(user, copyId)).toEqual([userTag!]);
+    expect(await userTagsOnCopy(user, otherCopyId)).toEqual([userTag!]);
+  });
+
+  test('a user tag can be renamed to its own name in another case', async () => {
+    const user = await signUpNewUser();
+    const signed = await created(user, 'signed');
+
+    const { userTag, error } = await renameUserTag(user.client, { user_tag_id: signed.user_tag_id, name: 'Signed' });
+
+    expect(error).toBeNull();
+    expect(userTag).toEqual({ user_tag_id: signed.user_tag_id, name: 'Signed' });
+  });
+
+  test('a name that matches another user tag ignoring case is refused with user_tag_exists on name', async () => {
+    const user = await signUpNewUser();
+    await created(user, 'Signed');
+    const trade = await created(user, 'Trade binder');
+
+    const { userTag, error } = await renameUserTag(user.client, { user_tag_id: trade.user_tag_id, name: 'SIGNED' });
+
+    expect(userTag).toBeNull();
+    expect(error).toMatchObject({ code: 'user_tag_exists', field: 'name' });
+    expect((await userTagsOf(user)).map((row) => row.name)).toEqual(['Signed', 'Trade binder']);
+  });
+
+  test('a user tag that does not exist is not_found on user_tag_id', async () => {
+    const { error } = await renameUserTag(alice.client, { user_tag_id: crypto.randomUUID(), name: 'Signed' });
+
+    expect(error).toMatchObject({ code: 'not_found', field: 'user_tag_id' });
+  });
+
+  test.each<[string, Record<string, unknown> | unknown[], string | null]>([
+    ['a request that is not an object', [], null],
+    ['a request with no user tag ID', { name: 'Signed' }, 'user_tag_id'],
+    ['a request with no name', { user_tag_id: crypto.randomUUID() }, 'name'],
+    ['a user tag ID that is not a UUID', { user_tag_id: 'user-tag-1', name: 'Signed' }, 'user_tag_id'],
+    ['a name of only spaces', { user_tag_id: crypto.randomUUID(), name: '   ' }, 'name'],
+    ['a name of 65 characters', { user_tag_id: crypto.randomUUID(), name: 'x'.repeat(65) }, 'name'],
+    ['an unknown field', { user_tag_id: crypto.randomUUID(), name: 'Signed', copy_id: crypto.randomUUID() }, 'copy_id'],
+  ])('%s is refused with invalid_argument', async (_, request, field) => {
+    const user = await signUpNewUser();
+    const signed = await created(user, 'Signed');
+
+    const { userTag, error } = await renameUserTag(user.client, request);
+
+    expect(userTag).toBeNull();
+    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await userTagsOf(user)).toEqual([{ ...signed, copy_count: 0 }]);
+  });
+});
+
+describe('deleting a user tag', () => {
+  test('deletes the user tag and takes it off every copy, and changes no collection entry', async () => {
+    const user = await signUpNewUser();
+    const curators = (await scannedCopies(user, angelicCurator, 2)) as [string, string];
+    const [delver] = (await scannedCopies(user, delverInnistrad)) as [string];
+    const signed = await created(user, 'Signed');
+    const trade = await created(user, 'Trade binder');
+    for (const copyId of [...curators, delver]) {
+      await putOnCopy(user, copyId, signed);
+    }
+    await putOnCopy(user, delver, trade);
+    const before = await collectionEntriesOf(user);
+
+    expect(await deleteUserTag(user.client, { user_tag_id: signed.user_tag_id })).toBeNull();
+
+    expect(await userTagsOf(user)).toEqual([{ ...trade, copy_count: 1 }]);
+    expect(await userTagsOnCopy(user, curators[0])).toEqual([]);
+    expect(await userTagsOnCopy(user, curators[1])).toEqual([]);
+    expect(await userTagsOnCopy(user, delver)).toEqual([trade]);
+    const { data } = await user.client.from('copy_user_tags').select('user_tag_id');
+    expect(data).toEqual([{ user_tag_id: trade.user_tag_id }]);
+    expect(await collectionEntriesOf(user)).toEqual(before);
+  });
+
+  test('a deleted user tag is not_found when deleted again, renamed, or put on a copy', async () => {
+    const user = await signUpNewUser();
+    const [copyId] = (await scannedCopies(user, angelicCurator)) as [string];
+    const signed = await created(user, 'Signed');
+    expect(await deleteUserTag(user.client, { user_tag_id: signed.user_tag_id })).toBeNull();
+
+    const notFound = { code: 'not_found', field: 'user_tag_id' };
+    expect(await deleteUserTag(user.client, { user_tag_id: signed.user_tag_id })).toMatchObject(notFound);
+    expect((await renameUserTag(user.client, { user_tag_id: signed.user_tag_id, name: 'Signed' })).error).toMatchObject(notFound);
+    expect(await setCopyUserTag(user.client, { copy_id: copyId, user_tag_id: signed.user_tag_id, tagged: true })).toMatchObject(notFound);
+  });
+
+  test('the name of a deleted user tag can be used again', async () => {
+    const user = await signUpNewUser();
+    const signed = await created(user, 'Signed');
+    expect(await deleteUserTag(user.client, { user_tag_id: signed.user_tag_id })).toBeNull();
+
+    expect((await created(user, 'signed')).name).toBe('signed');
+  });
+
+  test.each<[string, Record<string, unknown> | unknown[], string | null]>([
+    ['a request that is not an object', [], null],
+    ['a request with no user tag ID', {}, 'user_tag_id'],
+    ['a user tag ID that is not a UUID', { user_tag_id: 7 }, 'user_tag_id'],
+    ['a name', { user_tag_id: crypto.randomUUID(), name: 'Signed' }, 'name'],
+  ])('%s is refused with invalid_argument', async (_, request, field) => {
+    expect(await deleteUserTag(alice.client, request)).toMatchObject({ code: 'invalid_argument', field });
+  });
+});
+
 describe('access', () => {
   test("a user cannot see another user's user tags or links", async () => {
     const [copyId] = (await scannedCopies(alice, angelicCurator)) as [string];
@@ -278,16 +407,29 @@ describe('access', () => {
     expect(await userTagsOnCopy(bob, bobCopy)).toEqual([]);
   });
 
+  test("a user cannot rename or delete another user's user tag", async () => {
+    const [copyId] = (await scannedCopies(alice, angelicCurator)) as [string];
+    const signed = await created(alice, `Signed ${crypto.randomUUID()}`);
+    await putOnCopy(alice, copyId, signed);
+
+    const notFound = { code: 'not_found', field: 'user_tag_id' };
+    expect((await renameUserTag(bob.client, { user_tag_id: signed.user_tag_id, name: 'Mine' })).error).toMatchObject(notFound);
+    expect(await deleteUserTag(bob.client, { user_tag_id: signed.user_tag_id })).toMatchObject(notFound);
+    expect(await userTagsOnCopy(alice, copyId)).toEqual([signed]);
+  });
+
   test.each<[string, () => AppClient]>([
     ['an anonymous caller', anonymousClient],
     ['the secret key', secretKeyClient],
-  ])('%s cannot create, set, or list user tags', async (_, client) => {
+  ])('%s cannot create, set, list, rename, or delete user tags', async (_, client) => {
     const calls = [
       client().rpc('create_user_tag', { request: { name: 'Signed' } }),
       client().rpc('set_copy_user_tag', {
         request: { copy_id: crypto.randomUUID(), user_tag_id: crypto.randomUUID(), tagged: true },
       }),
       client().rpc('list_user_tags'),
+      client().rpc('rename_user_tag', { request: { user_tag_id: crypto.randomUUID(), name: 'Signed' } }),
+      client().rpc('delete_user_tag', { request: { user_tag_id: crypto.randomUUID() } }),
     ];
 
     for (const { error } of await Promise.all(calls)) {

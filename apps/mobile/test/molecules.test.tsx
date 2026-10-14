@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { processColor, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/atoms/button';
+import { MenuButton } from '@/components/atoms/menu-button';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { Text } from '@/components/atoms/text';
@@ -53,6 +54,7 @@ import {
   fadesDown,
   glassEffect,
   imageTintColor,
+  menuButtonNames,
   opacityOf,
   showsSpinner,
   sideColumnWidths,
@@ -202,6 +204,28 @@ describe('ListRow with a check', () => {
     expect(row).not.toBeChecked();
     expect(symbolNames(row)).toEqual(['circle']);
     expect(symbolTintColor(row)).toBe(textDim);
+  });
+
+  test('a list row with a menu keeps the check row as one checkbox and puts the menu button beside it on the same surface', async () => {
+    const onPress = jest.fn();
+    await render(
+      <ListRow
+        title="Signed"
+        detail="3 copies"
+        checked
+        onPress={onPress}
+        menu={<MenuButton accessibilityLabel="More, Signed" actions={[{ title: 'Rename', onSelect: () => {} }]} />}
+      />,
+    );
+
+    const row = screen.getByRole('checkbox', { name: 'Signed, 3 copies' });
+    await fireEvent.press(row);
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(menuButtonNames(row)).toEqual([]);
+    expect(menuButtonNames(row.parent!)).toEqual(['More, Signed']);
+    expect(backdropOf(row)).toBe(row);
+    expect(row.parent).toHaveStyle({ backgroundColor: surface, flexDirection: 'row' });
   });
 });
 

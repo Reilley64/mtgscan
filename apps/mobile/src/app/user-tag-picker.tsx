@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { useCopy } from '@/collection/use-copy';
-import { setCopyUserTag, type CopyWriteResult } from '@/collection/copy-writes';
-import { createUserTagOnCopy, useUserTags } from '@/collection/user-tags';
+import { setCopyUserTag } from '@/collection/copy-writes';
+import { createUserTagOnCopy, deleteUserTag, renameUserTag, useUserTags, type UserTagWriteResult } from '@/collection/user-tags';
 import { Text } from '@/components/atoms/text';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
@@ -28,9 +28,11 @@ export default function UserTagPickerScreen() {
     reloadUserTags();
   };
 
-  const change = async (write: Promise<CopyWriteResult>) => {
-    setChangeFailed((await write) === 'failed');
+  const change = async <Result extends UserTagWriteResult>(write: Promise<Result>) => {
+    const result = await write;
+    setChangeFailed(result === 'failed');
     reload();
+    return result;
   };
 
   const readFailed = copyRead.status === 'failed' || userTagsRead.status === 'failed';
@@ -48,6 +50,8 @@ export default function UserTagPickerScreen() {
               change(setCopyUserTag({ copy_id: copyId, user_tag_id: userTag.user_tag_id, tagged }))
             }
             onCreate={(name) => change(createUserTagOnCopy(copyId, name))}
+            onRename={(userTag, name) => change(renameUserTag({ user_tag_id: userTag.user_tag_id, name }))}
+            onDelete={(userTag) => change(deleteUserTag({ user_tag_id: userTag.user_tag_id }))}
           />
         ) : null}
         {readFailed ? (
