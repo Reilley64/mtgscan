@@ -552,6 +552,9 @@ isOneToOne: false
 "search_oracle_tags":
 { Args: { "query": Json }; Returns: Json
                            },
+"set_copy_protected":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "stage_import_batch":
 { Args: { "batch_number": number,"batch_rows": Json,"run_id": string,"target": string }; Returns: number
                            }

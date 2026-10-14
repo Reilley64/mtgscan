@@ -27,7 +27,7 @@ A development build against local Supabase can sign in a local test user with on
 - Production builds leave the test sign-in out. `bun run test:production-bundle` in `apps/mobile` builds a production bundle with the test sign-in on and fails if the bundle holds the test sign-in. CI runs it.
 
 1. Start local Supabase as in Local Supabase.
-2. Seed or reset the test user from `supabase`. The command deletes the test user and its collection, and creates it again. `--sample-collection` also adds 30 sample collection entries through `add_scan_batch`, with 1 to 4 copies each. Some are foil, one is etched, and some are LP or MP. The sample needs the card catalog, and the binder tiles show current prices from the price import, so import both fixtures first:
+2. Seed or reset the test user from `supabase`. The command deletes the test user and its collection, and creates it again. `--sample-collection` also adds 30 sample collection entries through `add_scan_batch`, with 1 to 4 copies each. Some are foil, one is etched, and some are LP or MP. One copy is protected. The sample needs the card catalog, and the binder tiles show current prices from the price import, so import both fixtures first:
 
    ```bash
    cd supabase

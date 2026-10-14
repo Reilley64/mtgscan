@@ -107,6 +107,7 @@ export const sizes = {
   setIcon: 16,
   staleSymbol: 11,
   chipSymbol: 11,
+  protectedSymbol: 11,
   chipPadding: 9,
   cardThumbnailWidth: 40,
   cardThumbnailHeight: 56,

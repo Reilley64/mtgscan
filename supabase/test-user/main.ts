@@ -2,7 +2,7 @@ import { parseArgs } from 'node:util';
 
 import { createClient } from '@supabase/supabase-js';
 
-import type { CardCondition, ScanBatch } from '../collection';
+import type { CardCondition, CopyProtectedRequest, ScanBatch } from '../collection';
 import type { Finish } from '../search';
 import type { Database, Json } from '../database.types';
 import { isLocalStack, localSupabaseUrl, testUser } from './account';
@@ -127,6 +127,12 @@ async function addSampleCollection(admin: LocalClient) {
     fail('Could not add sample collection entries', error.message);
   }
   console.log(`Added ${batch.items.length} sample collection entries.`);
+  const request: CopyProtectedRequest = { copy_id: batch.items[0]!.copy_ids[0]!, protected: true };
+  const { error: protectError } = await testUserClient.rpc('set_copy_protected', { request });
+  if (protectError) {
+    fail('Could not protect a sample copy', protectError.message);
+  }
+  console.log('Protected 1 sample copy.');
 }
 
 const admin = localClient();

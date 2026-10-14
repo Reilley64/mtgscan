@@ -228,6 +228,10 @@ function CardTiles() {
           <CopyMeta setCode="m10" rarity="uncommon" setIconUri={m10Symbol} collectorNumber="216" />
           <PriceLine price="$1.25" stale />
         </CardTile>
+        <CardTile uri={solRing} accessibilityLabel="Sol Ring, M10 216, protected, $1.25">
+          <CopyMeta setCode="m10" rarity="rare" setIconUri={m10Symbol} collectorNumber="216" isProtected />
+          <PriceLine price="$1.25" stale={false} />
+        </CardTile>
         {['CMM 464', 'C21 263'].map((caption) => (
           <CardTile
             key={caption}
