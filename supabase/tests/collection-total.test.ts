@@ -1,9 +1,10 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CollectionTotal, CollectionTotalQuery } from '../collection';
+import type { CollectionCopyRow, CollectionTotal, CollectionTotalQuery } from '../collection';
 import type { Json } from '../database.types';
-import { readSearchError } from '../search';
+import { readSearchError, type SearchPage } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
+import { daysAgo, storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -21,6 +22,7 @@ beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
+  await storeExchangeRates();
 });
 
 async function readCollectionTotal(client: AppClient, query: CollectionTotalQuery | Record<string, unknown> | unknown[] = {}) {
@@ -76,8 +78,8 @@ describe('the collection total read', () => {
 
   test.each<[string, Record<string, unknown> | unknown[], string | null]>([
     ['a query that is not an object', [], null],
-    ['a price currency other than USD', { price_currency: 'GBP' }, 'price_currency'],
-    ['a EUR price currency', { price_currency: 'EUR' }, 'price_currency'],
+    ['a price currency with no exchange rate', { price_currency: 'GBP' }, 'price_currency'],
+    ['a price currency that is not a string', { price_currency: 36 }, 'price_currency'],
     ['an unknown field', { limit: 1 }, 'limit'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
     const user = await signUpNewUser();
@@ -96,6 +98,80 @@ describe('the collection total read', () => {
 
     expect(data).toBeNull();
     expect(error?.code).toBe(permissionDenied);
+  });
+});
+
+describe('the collection total in another currency', () => {
+  async function curatorCollection() {
+    const user = await signUpNewUser();
+    await committed(
+      user,
+      scanBatch([
+        stack(angelicCurator, { copies: 2 }),
+        stack(angelicCurator, { finish: 'foil' }),
+        stack(angelicCurator, { finish: 'etched' }),
+      ]),
+    );
+    return user;
+  }
+
+  test('the total is the USD total times the exchange rate, rounded to cents, with the exchange rate and its date', async () => {
+    const user = await curatorCollection();
+
+    expect(await collectionTotal(user, { price_currency: 'AUD' })).toEqual({
+      total: '1.77',
+      currency: 'AUD',
+      priced_copies: 4,
+      copies: 4,
+      approximate: true,
+      exchange_rate: '1.5234',
+      rate_date: daysAgo(0),
+    });
+  });
+
+  test('a total in JPY rounds to whole yen', async () => {
+    const user = await curatorCollection();
+
+    expect(await collectionTotal(user, { price_currency: 'JPY' })).toMatchObject({ total: '176', currency: 'JPY' });
+  });
+
+  test('a total in EUR converts the USD total once, so it can differ from the sum of the converted copy prices', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(angelicCurator, { copies: 5 })]));
+    const { data, error } = await user.client.rpc('search_collection', { query: { rows: 'copies', price_currency: 'EUR' } });
+    expect(error).toBeNull();
+    const copyPrices = (data as unknown as SearchPage<CollectionCopyRow>).items.map((row) => row.price?.amount);
+
+    expect(copyPrices).toEqual(['0.20', '0.20', '0.20', '0.20', '0.20']);
+    expect(await collectionTotal(user, { price_currency: 'EUR' })).toMatchObject({ total: '0.98', currency: 'EUR' });
+  });
+
+  test('a USD total has no approximate flag, exchange rate, or rate date', async () => {
+    const user = await curatorCollection();
+
+    expect(await collectionTotal(user, { price_currency: 'USD' })).toEqual({
+      total: '1.16',
+      currency: 'USD',
+      priced_copies: 4,
+      copies: 4,
+    });
+  });
+
+  test('a copy with no USD price is left out of the total in every currency', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(angelicCurator), stack(kjeldoranHomeGuardWithOnlyEurPrice)]));
+
+    expect(await collectionTotal(user, { price_currency: 'AUD' })).toMatchObject({ total: '0.32', priced_copies: 1, copies: 2 });
+  });
+
+  test('a currency that left the exchange rates is refused with invalid_argument', async () => {
+    const user = await signUpNewUser();
+    await storeExchangeRates({ AUD: 1.5234 });
+
+    const { error } = await readCollectionTotal(user.client, { price_currency: 'JPY' });
+    await storeExchangeRates();
+
+    expect(error).toMatchObject({ code: 'invalid_argument', field: 'price_currency' });
   });
 });
 

@@ -10,6 +10,7 @@ import {
   runCatalogImport,
   runPriceImport,
 } from './catalog-import-command';
+import { convertedPrice, daysAgo, storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -532,10 +533,10 @@ describe('after a catalog import', () => {
       ['price that is not a decimal amount', { text: 'fog', price_min: 'five' }, 'price_min'],
       ['price with more than 2 decimals', { text: 'fog', price_min: '1.234' }, 'price_min'],
       ['negative price', { text: 'fog', price_min: '-1' }, 'price_min'],
-      ['price above 999999.99', { text: 'fog', price_max: '1000000' }, 'price_max'],
+      ['price above 9999999999.99', { text: 'fog', price_max: '10000000000' }, 'price_max'],
       ['price minimum above its maximum', { text: 'fog', price_min: '5', price_max: '4.99' }, 'price_max'],
-      ['unknown price currency', { text: 'fog', price_currency: 'GBP' }, 'price_currency'],
-      ['EUR price currency', { text: 'fog', price_currency: 'EUR' }, 'price_currency'],
+      ['price currency with no exchange rate', { text: 'fog', price_currency: 'XYZ' }, 'price_currency'],
+      ['price currency of the wrong type', { text: 'fog', price_currency: 36 }, 'price_currency'],
     ])('%s is refused with an error on its field', async (_, query, field) => {
       const { page, error } = await search(query);
 
@@ -627,6 +628,22 @@ describe('after a catalog import', () => {
 
     beforeAll(async () => {
       expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
+      await storeExchangeRates();
+    });
+
+    test('a row in AUD shows the lowest current price converted from USD, with the exchange rate and its date', async () => {
+      const { items, rate_date } = await page({ names: ['hidetsugu'], price_currency: 'AUD' });
+
+      expect(items[0]!.price_from).toEqual({ ...convertedPrice('AUD', '1.5234', '0.53', 'foil'), basis });
+      expect(rate_date).toBe(daysAgo(0));
+    });
+
+    test('a price bound in IDR can go above 999999.99', async () => {
+      await storeExchangeRates({ IDR: 17921 });
+      const results = await names({ price_currency: 'IDR', price_min: '1000000' });
+      await storeExchangeRates();
+
+      expect(results).toContain("Serra's Sanctum");
     });
 
     test('a row shows the lowest current price in USD, labelled with its finish and currency', async () => {
