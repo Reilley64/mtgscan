@@ -401,7 +401,7 @@ Recent, Collection, and Decks use the native iOS navigation bar as their tab hea
 - The settings button and any header actions sit on the right of the bar, above the large title.
 - When the user scrolls, the large title collapses into the inline title in sheet title type.
 - The bar and its buttons stay at the top. The content scrolls under the bar.
-- The header buttons are native bar buttons in the text color. A tab can put more header actions before the settings button, as Collection does with the collection total button.
+- The header buttons are native bar buttons in the text color. A tab can put more header actions before the settings button, as Collection does with the Filters and collection total buttons.
 - On iOS 26, the bar buttons are Liquid Glass. Content that scrolls under the bar blurs and fades behind it with the system scroll edge effect. There is no line under the bar.
 - On iOS 18 and earlier, the bar is the standard iOS navigation bar, with no Liquid Glass.
 
@@ -409,7 +409,7 @@ Recent, Collection, and Decks use the native iOS navigation bar as their tab hea
 
 The collection total is always visible. The owner picked variant C of the HTML prototype (`prototypes/collection-copies/index.html` on `prototype/first-release`, commit bbe3f0f).
 
-- **Collection total button.** A native bar button before the settings button. It shows the collection total in full, such as "$2,419.59".
+- **Collection total button.** A native bar button between the Filters button (see Collection search) and the settings button. It shows the collection total in full, such as "$2,419.59".
 - The total is the sum of every copy's current price for its card printing and finish. Copies with no current price are left out and counted in the coverage, so a missing price never silently lowers the total. The currency is USD for now.
 - With no collection entries, or before the total loads, the header shows no total button.
 - **Menu.** Tapping the button opens a native menu under the button. A tap outside closes it. It holds:
@@ -441,13 +441,20 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
 - **Results.** Results show as binder tiles, one per copy. While text or a chip is active, a count line in meta text, such as "6 of 27 copies", sits above the grid. While a new search loads, the skeleton grid replaces the tiles. With no results, the grid shows the empty state "No cards found". See Empty states.
 - A chip that the server refuses, such as an unknown set, Oracle tag, or user tag, turns danger. The grid shows "No set named "zzz".", "No Oracle tag named "zzz".", "No keyword named "zzz".", or "No user tag named "signd".". Any other refused chip shows "mv>25 is not a valid chip."
 - VoiceOver reads a chip as a button with its `key:value` text and the hint "Removes this chip."
+- **Filters button.** A native bar button with the `line.3.horizontal.decrease` symbol sits before the collection total button, in every Collection state. A count badge in the badge color counts the active chips, typed or chosen in the Filters drawer. With no chip, it shows no badge. VoiceOver reads "Filters", or "Filters, 3" with three chips.
+- **Filters drawer.** The Filters button opens a half-height drawer titled "Filters". It holds only chips and opens nothing else, so it stays one level deep. Its sections are:
+  - **Show**: All, Free, and Protected. Free is the `is:free` and `-is:protected` chips, so it sends `is_free: true` with `is_protected: false`. Protected is the `is:protected` chip.
+  - **With user tags** and **Without user tags**: one chip per user tag. Each puts a `user_tag:` or `-user_tag:` chip on or takes it off. The two sections show only when the user has user tags.
+  - **Finish**, **Condition**, and **Language**: Any, then one choice each. Finish offers Nonfoil, Foil, and Etched. Condition offers NM, LP, MP, HP, and DMG. Language offers the language names. A choice replaces the chips of its key, and Any removes them.
+- The drawer and the chips are one state. A drawer choice adds its chips under the search bar. A typed chip selects its choice in the drawer, so `finish:foil` selects Foil. A section whose chips match none of its choices, such as two typed finish chips, shows no choice selected.
+- The collection searches again when the Filters drawer closes, not on each tap in it.
 - **Sort button.** A round Liquid Glass button, 48 px across, floats over the grid at the bottom right, 16 px above the tab bar. It shows the `arrow.up.arrow.down` symbol at 18 px. Without Liquid Glass, it uses the control surface. It reacts to touch.
   - It opens a native menu titled "Sort by": Relevance, Recently added, Name, Price, Mana value, and Release date. The current sort has a check mark.
   - Tapping the current sort again reverses it. An arrow beside it shows the direction: `arrow.down` for high to low, Z to A, and newest first, and `arrow.up` for the other way. Price starts high to low, Name A to Z, Mana value low to high, and Recently added and Release date newest first. Relevance has one direction.
   - The sort applies to the binder and to search results. Relevance without text lists the newest addition first.
   - The symbol is in the text color while the sort is Relevance. Any other sort turns it primary lime. There is no badge or dot, because count badges are only for counts.
   - VoiceOver reads "Sort, Relevance", or the sort and its direction, such as "Sort, Price, high to low".
-  - The sort lasts until the app restarts and is not saved. The button hides while the user types in the search bar, and while the tab shows an empty state, because there is nothing to sort.
+  - The sort lasts until the app restarts and is not saved. The button hides while the user types in the search bar and while the Filters drawer is open. It also hides while the tab shows an empty state, because there is nothing to sort.
 
 ### Sign-in screen
 
@@ -510,11 +517,11 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 - the swap-in confirmation for a protected copy;
 - revert.
 
-Settings, the scan details sheet, the printing picker, the condition and language pickers, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all of them.
+Settings, the scan details sheet, the printing picker, the condition and language pickers, the Filters drawer, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all of them.
 
 - It slides up from the bottom with the iOS grabber.
 - A drawer with a lot of content opens at full height and has no half height. These are the scan details sheet, the printing picker, and batch review.
-- Settings, the condition and language pickers, and other short drawers open at half the screen height. Dragging one up takes it to full height. Dragging it down takes it back to half height.
+- Settings, the condition and language pickers, the Filters drawer, and other short drawers open at half the screen height. Dragging one up takes it to full height. Dragging it down takes it back to half height.
 - A downward swipe closes it. At half height, a tap outside closes it too. At full height, iOS leaves no screen outside it to tap. It has no Done button.
 - Its content starts 32 px (spacing xl) below the top edge, twice the page inset, so that it clears the grabber. The content scrolls at every height.
 

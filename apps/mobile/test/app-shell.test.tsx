@@ -52,10 +52,10 @@ test('Recent has no action and no filter chips while it is empty', async () => {
 });
 
 test.each([
-  ['Recent', 'Nothing needs you yet'],
-  ['Collection', 'Your collection is empty'],
-  ['Decks', 'No decks yet'],
-])('%s has the tab header with a large title over its scrolling content, and the settings button on the right', async (tab, content) => {
+  ['Recent', 'Nothing needs you yet', ['Settings']],
+  ['Collection', 'Your collection is empty', ['Filters', 'Settings']],
+  ['Decks', 'No decks yet', ['Settings']],
+])('%s has the tab header with a large title over its scrolling content, and the settings button on the right', async (tab, content, buttons) => {
   await renderApp();
   await pressTab(tab);
 
@@ -64,7 +64,7 @@ test.each([
     largeTitle: true,
     largeTitleType: { fontSize: 28, fontWeight: '800' },
     titleType: { fontSize: 17, fontWeight: '800' },
-    buttons: ['Settings'],
+    buttons,
   });
   expect(headerButton(selectedTab(), 'Settings')).toMatchObject({ type: 'button', symbol: 'gearshape.fill' });
   expect(isInScrollView(within(selectedTab()).getByText(content))).toBe(true);

@@ -1,5 +1,5 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -13,14 +13,15 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
 import { CollectionSearchHeader } from '@/components/organisms/collection-search-header';
 import { CollectionSortButton } from '@/components/organisms/collection-sort-button';
+import { collectionFiltersButton } from '@/components/organisms/collection-filters-button';
 import { collectionTotalMenu } from '@/components/organisms/collection-total';
 import { TabListScreen } from '@/components/templates/tab-screen';
 import { refusedChipMessage, type SearchChip } from '@/collection/collection-search';
+import { useCollectionSearchState } from '@/collection/collection-search-state';
 import { collectionOrderQuery, defaultCollectionOrder } from '@/collection/collection-sort';
 import { sheenOf, shownCondition, shownPrice, spokenFinishAndCondition } from '@/collection/copy-labels';
 import { shownMatchCount } from '@/collection/total-labels';
 import { useCollectionCopies, type BinderRead } from '@/collection/use-collection-copies';
-import { useCollectionSearch } from '@/collection/use-collection-search';
 import { useCollectionTotal } from '@/collection/use-collection-total';
 
 type BinderPlaceholderProps = {
@@ -94,7 +95,8 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
 }
 
 export default function CollectionScreen() {
-  const search = useCollectionSearch();
+  const search = useCollectionSearchState();
+  const filtersOpen = usePathname() === '/filters';
   const [order, setOrder] = useState(defaultCollectionOrder);
   const { binder, reload, loadMore } = useCollectionCopies({ ...search.query, ...collectionOrderQuery(order) });
   const suggesting = search.suggestions.length > 0;
@@ -108,7 +110,7 @@ export default function CollectionScreen() {
   return (
     <TabListScreen
       title="Collection"
-      actions={total && total.copies > 0 ? collectionTotalMenu(total) : undefined}
+      actions={[collectionFiltersButton(search.chips.length), total && total.copies > 0 ? collectionTotalMenu(total) : null]}
       search={search.searchBar}
       ListHeaderComponent={
         <CollectionSearchHeader
@@ -138,7 +140,9 @@ export default function CollectionScreen() {
       }
       onEndReached={loadMore}
       onEndReachedThreshold={1}
-      floatingButton={search.typing || showsEmptyState ? null : <CollectionSortButton order={order} onChange={setOrder} />}
+      floatingButton={
+        search.typing || filtersOpen || showsEmptyState ? null : <CollectionSortButton order={order} onChange={setOrder} />
+      }
     />
   );
 }
