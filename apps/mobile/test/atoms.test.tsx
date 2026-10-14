@@ -296,6 +296,34 @@ describe('Chip', () => {
 
     expect(touchTarget(screen.getByRole('button', { name: 'NM' }))).toEqual({ width: 44, height: 44 });
   });
+
+  test('a removable chip shows its label and ×, keeps the control surface, and removes itself when pressed', async () => {
+    const onRemove = jest.fn();
+    await render(<Chip label="set:mh2" onRemove={onRemove} />);
+
+    const chip = screen.getByRole('button', { name: 'set:mh2' });
+    await fireEvent.press(chip);
+
+    expect(chip).toHaveProp('accessibilityHint', 'Removes this chip.');
+    expect(chip).toHaveStyle({ backgroundColor: surfaceControl, height: 24, borderRadius: 12 });
+    expect(within(chip).getByText('set:mh2')).toHaveStyle({ color: white, fontSize: 11, fontWeight: '700' });
+    expect(within(chip).getByText('×')).toBeOnTheScreen();
+    expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
+  test('a removable chip in the danger tone has danger text on the danger tint', async () => {
+    await render(<Chip tone="danger" label="set:zzz" onRemove={() => {}} />);
+
+    const chip = screen.getByRole('button', { name: 'set:zzz' });
+    expect(chip).toHaveStyle({ backgroundColor: dangerTint });
+    expect(within(chip).getByText('set:zzz')).toHaveStyle({ color: danger });
+  });
+
+  test('a removable chip has a 44 pt touch target', async () => {
+    await render(<Chip label="is:free" onRemove={() => {}} />);
+
+    expect(touchTarget(screen.getByRole('button', { name: 'is:free' }))).toEqual({ width: 44, height: 44 });
+  });
 });
 
 describe('Toggle', () => {

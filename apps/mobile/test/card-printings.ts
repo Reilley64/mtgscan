@@ -48,3 +48,16 @@ const setsWithoutIcons = new Set(['c21']);
 export function setIconUri(setCode: string) {
   return setsWithoutIcons.has(setCode) ? undefined : `https://svgs.scryfall.io/sets/${setCode}.svg`;
 }
+
+export const cardSets = [
+  { code: 'm10', name: 'Magic 2010' },
+  { code: 'mh2', name: 'Modern Horizons 2' },
+  { code: 'mh3', name: 'Modern Horizons 3' },
+  { code: 'mid', name: 'Innistrad: Midnight Hunt' },
+];
+
+export const oracleTags = [
+  { slug: 'card-draw', label: 'Card draw' },
+  { slug: 'ramp', label: 'Ramp' },
+  { slug: 'removal', label: 'Removal' },
+];

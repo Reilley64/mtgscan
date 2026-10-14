@@ -1,5 +1,5 @@
 import type { Database } from './database.types';
-import { readSearchError, type CatalogQuery, type CatalogSort, type Finish, type PriceCurrency, type PriceFrom, type SearchError } from './search';
+import { readSearchError, type CatalogQuery, type CatalogSort, type Finish, type PriceCurrency, type PriceFrom, type SearchError, type SearchPage } from './search';
 
 export type CardCondition = Database['public']['Enums']['card_condition'];
 
@@ -22,6 +22,10 @@ export type CollectionQuery = Omit<CatalogQuery, 'sort'> & {
   deck_ids_exclude?: string[];
   is_free?: boolean;
   is_protected?: boolean;
+};
+
+export type CollectionPage<Row> = SearchPage<Row> & {
+  total_count: number | null;
 };
 
 export type CollectionRow = {

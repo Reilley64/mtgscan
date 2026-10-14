@@ -201,7 +201,7 @@ Signed-in users read their collection total with `supabase.rpc('get_collection_t
 
 ### Collection search
 
-Signed-in users search their own collection with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips and `rows`. `supabase/collection.ts` has the shared types for the query and the result rows. The Collection tab reads its binder grid only through collection search, with `rows: 'copies'`.
+Signed-in users search their own collection with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips and `rows`. `supabase/collection.ts` has the shared types for the query and the result rows. The Collection tab reads its binder grid only through collection search, with `rows: 'copies'`. Its search bar turns the typed text and chips into the typed query.
 
 - Chips match copies. `finishes`, `conditions`, and `languages` take the finish, condition, and language values of copies.
 - `sets` and `rarities` match the copy's own card printing. `price_min`, `price_max`, and `sort: 'price'` use the current price of that card printing and finish. `sort: 'release_date'` uses the release date of that card printing.
@@ -218,6 +218,7 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 - Each row counts the copies in the collection availability view. The view has one row for each copy of the caller, with its allocated, held, and free flags. Allocated and held stay false until decks and planned swaps exist.
 - Collection search runs with the caller's rights, like catalog search. The views set `security_invoker`, so the read policy on `copies` keeps only the caller's rows.
 - Catalog search, `get_cards`, and `list_card_printings` read owned quantities from the same view. A printing list keeps an absent card printing when the caller owns it.
+- A first page also has `total_count`, the number of matching rows. Later pages have `total_count: null`. The Collection tab shows it in its count line, such as "6 of 27 copies".
 - A first page with text or a filter writes one row to `search_telemetry` with the API `collection`. A read with no text and no filter writes none, so a plain binder read is not recorded. `rows`, `sort`, `sort_order`, `limit`, `price_currency`, and `include_oracle_text` are not filters. The secret key cannot call collection search.
 
 ### Search release check

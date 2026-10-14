@@ -539,13 +539,11 @@ export async function scrollToEnd(tab: HostElement) {
   const content = { width: 400, height: 10_000 };
   await fireEvent(list, 'layout', { nativeEvent: { layout: { x: 0, y: 0, ...viewport } } });
   await fireEvent(list, 'contentSizeChange', content.width, content.height);
-  const scrolledToEnd = {
-    nativeEvent: {
-      contentOffset: { x: 0, y: content.height - viewport.height },
-      contentSize: content,
-      layoutMeasurement: viewport,
-    },
-  };
+  const scrolledTo = (y: number) => ({
+    nativeEvent: { contentOffset: { x: 0, y }, contentSize: content, layoutMeasurement: viewport },
+  });
+  const scrolledToEnd = scrolledTo(content.height - viewport.height);
+  await fireEvent.scroll(list, scrolledTo(0));
   await fireEvent.scroll(list, scrolledToEnd);
   await act(async () => {
     jest.advanceTimersByTime(1000);
@@ -663,4 +661,70 @@ export async function performAccessibilityAction(element: HostElement, label: st
 
 export function accessibilityActionLabels(element: HostElement) {
   return (element.props.accessibilityActions ?? []).map((action: { label?: string }) => action.label);
+}
+
+let searchFieldText = '';
+
+const searchBarCommands: { setText: (searchBar: unknown, text: string) => void } = jest.requireActual(
+  'react-native-screens/lib/commonjs/fabric/SearchBarNativeComponent',
+).Commands;
+
+jest.spyOn(searchBarCommands, 'setText').mockImplementation((_searchBar, text) => {
+  searchFieldText = text;
+});
+
+beforeEach(() => {
+  searchFieldText = '';
+});
+
+function searchBarView(tab: HostElement) {
+  const [searchBar] = tab.queryAll((instance) => instance.type === 'RNSSearchBar');
+  if (!searchBar) {
+    throw new Error('This tab has no search bar');
+  }
+  return searchBar;
+}
+
+export function shownSearchText() {
+  return searchFieldText.replaceAll('\u200b', '');
+}
+
+export function tabSearchBar(tab: HostElement) {
+  const { placeholder, placement, hideWhenScrolling } = searchBarView(tab).props;
+  return { placeholder, placement, hidesWhenScrolling: hideWhenScrolling };
+}
+
+async function changeSearchText(text: string) {
+  searchFieldText = text;
+  await fireEvent(searchBarView(selectedTab()), 'changeText', { nativeEvent: { text } });
+}
+
+async function pauseTyping() {
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+}
+
+export async function typeInSearchBar(text: string) {
+  await fireEvent(searchBarView(selectedTab()), 'searchFocus', { nativeEvent: {} });
+  for (const character of text) {
+    await changeSearchText(searchFieldText + character);
+  }
+  await pauseTyping();
+}
+
+export async function pressBackspaceInSearchBar() {
+  if (searchFieldText !== '') {
+    await changeSearchText(searchFieldText.slice(0, -1));
+    await pauseTyping();
+  }
+}
+
+export async function pressSearchKey() {
+  await fireEvent(searchBarView(selectedTab()), 'searchButtonPress', { nativeEvent: { text: searchFieldText } });
+}
+
+export async function pressSearchCancel() {
+  searchFieldText = '';
+  await fireEvent(searchBarView(selectedTab()), 'cancelButtonPress', { nativeEvent: {} });
 }

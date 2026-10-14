@@ -37,6 +37,10 @@ export function shownCoverage({ priced_copies, copies }: CollectionTotal) {
   return `${shownCount(priced_copies)} of ${shownCount(copies)} cards`;
 }
 
+export function shownMatchCount(matchCount: number, { copies }: CollectionTotal) {
+  return `${shownCount(matchCount)} of ${shownCount(copies)} ${copies === 1 ? 'copy' : 'copies'}`;
+}
+
 export function priceCredit({ currency }: CollectionTotal) {
   return `Current prices from Scryfall, in ${currency}`;
 }

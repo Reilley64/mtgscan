@@ -2,7 +2,15 @@ import type { CollectionCopyRow, CollectionTotal, CurrentPrice } from '@mtgscan/
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 import { processColor } from 'react-native';
 
-import { failCollectionReads, ownCollectionCopies, ownCollectionTotal, startSignedIn } from './fake-supabase';
+import {
+  answerCollectionSearches,
+  collectionSearchesSent,
+  expireCollectionSearchCursors,
+  failCollectionReads,
+  ownCollectionCopies,
+  ownCollectionTotal,
+  startSignedIn,
+} from './fake-supabase';
 import {
   appearsBefore,
   cardImageUri,
@@ -11,17 +19,23 @@ import {
   headerMenu,
   imageTintColor,
   pressableMenuRows,
+  pressBackspaceInSearchBar,
+  pressSearchCancel,
+  pressSearchKey,
   pressTab,
   scrollToEnd,
   selectedTab,
+  shownSearchText,
   symbolNames,
   tabHeader,
+  tabSearchBar,
+  typeInSearchBar,
 } from './native-ui';
 import { setIconUri } from './card-printings';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
 
-const { textDim, textMuted, textPrice } = tokenColors;
+const { danger, textDim, textMuted, textPrice } = tokenColors;
 
 let entryNumber = 0;
 
@@ -259,6 +273,17 @@ test('the binder grid loads more tiles as the user scrolls', async () => {
   expect(await collection.findByRole('image', { name: /^Card 70,/ })).toBeOnTheScreen();
 });
 
+test('when its cursor has expired, the binder grid starts its read again, so scrolling loads more tiles', async () => {
+  ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
+  const collection = await openCollection();
+  expireCollectionSearchCursors();
+
+  await scrollToEnd(selectedTab());
+  await scrollToEnd(selectedTab());
+
+  expect(await collection.findByRole('image', { name: /^Card 70,/ })).toBeOnTheScreen();
+});
+
 test('the Collection tab shows newly added copies when it gains focus again', async () => {
   const curator = collectionEntryCopies('Angelic Curator', 1);
   ownCollectionCopies(curator);
@@ -395,5 +420,291 @@ describe('the collection total button', () => {
     await pressTab('Collection');
 
     await waitFor(() => expect(tabHeader(selectedTab()).buttons).toEqual(['Collection total, $2,420.80', 'Settings']));
+  });
+});
+
+describe('collection search', () => {
+  function lastSearch() {
+    return collectionSearchesSent().at(-1);
+  }
+
+  function chipButton(label: string) {
+    return within(selectedTab()).getByRole('button', { name: label });
+  }
+
+  function chipLabels() {
+    return within(selectedTab())
+      .queryAllByRole('button')
+      .filter((button) => button.props.accessibilityHint === 'Removes this chip.')
+      .map((button) => button.props.accessibilityLabel);
+  }
+
+  test('the native search bar sits under the large title, with the placeholder "Search your collection"', async () => {
+    await openCollection();
+
+    expect(tabSearchBar(selectedTab())).toEqual({
+      placeholder: 'Search your collection',
+      placement: 'stacked',
+      hidesWhenScrolling: false,
+    });
+  });
+
+  test('a plain binder read sends no text and no chips', async () => {
+    await openCollection();
+
+    expect(lastSearch()).toEqual({});
+  });
+
+  test('typed text searches the collection', async () => {
+    await openCollection();
+
+    await typeInSearchBar('angel');
+
+    expect(lastSearch()).toEqual({ text: 'angel' });
+  });
+
+  test('a space turns typed key:value text into a chip, and the app sends it in the typed query', async () => {
+    await openCollection();
+
+    await typeInSearchBar('set:mh2 ');
+
+    expect(chipLabels()).toEqual(['set:mh2']);
+    expect(shownSearchText()).toBe('');
+    expect(lastSearch()).toEqual({ sets: ['mh2'] });
+  });
+
+  test('Enter turns typed key:value text into a chip', async () => {
+    await openCollection();
+
+    await typeInSearchBar('angel finish:foil');
+    await pressSearchKey();
+
+    expect(chipLabels()).toEqual(['finish:foil']);
+    expect(shownSearchText()).toBe('angel ');
+    expect(lastSearch()).toEqual({ text: 'angel', finishes: ['foil'] });
+  });
+
+  test('a leading minus negates a chip, and a value with spaces is quoted', async () => {
+    await openCollection();
+
+    await typeInSearchBar('-name:"sol ring" ');
+
+    expect(chipLabels()).toEqual(['-name:"sol ring"']);
+    expect(lastSearch()).toEqual({ names_exclude: ['sol ring'] });
+  });
+
+  test('text and chips of every kind make one typed query', async () => {
+    await openCollection();
+
+    await typeInSearchBar(
+      'angel type:creature color:wu identity:wub mv<4 pow>=2 tou=3 price>2.5 tag:ramp keyword:flying -rarity:common condition:lp lang:ja is:commander -is:gamechanger is:free -is:protected ',
+    );
+
+    expect(lastSearch()).toEqual({
+      text: 'angel',
+      types: ['creature'],
+      colors: ['W', 'U'],
+      identity_subset_of: ['W', 'U', 'B'],
+      mana_value_max: 3,
+      power_min: 2,
+      toughness_min: 3,
+      toughness_max: 3,
+      price_min: '2.51',
+      tags: ['ramp'],
+      keywords: ['flying'],
+      rarities_exclude: ['common'],
+      conditions: ['lightly_played'],
+      languages: ['ja'],
+      is_commander: true,
+      is_game_changer: false,
+      is_free: true,
+      is_protected: false,
+    });
+  });
+
+  test('a key:value word still being typed is not sent as text', async () => {
+    await openCollection();
+
+    await typeInSearchBar('angel set:m');
+
+    expect(lastSearch()).toEqual({ text: 'angel' });
+  });
+
+  test('identity:c searches for a colorless color identity', async () => {
+    await openCollection();
+
+    await typeInSearchBar('identity:c ');
+
+    expect(lastSearch()).toEqual({ identity_subset_of: [] });
+  });
+
+  test('an unknown key stays as text', async () => {
+    await openCollection();
+
+    await typeInSearchBar('foo:bar ');
+
+    expect(chipLabels()).toEqual([]);
+    expect(lastSearch()).toEqual({ text: 'foo:bar' });
+  });
+
+  test('with no key typed, suggestions offer keys and replace the grid', async () => {
+    ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
+    const collection = await openCollection();
+
+    await typeInSearchBar('s');
+
+    expect(collection.getByRole('button', { name: 'set:, Set code' })).toBeOnTheScreen();
+    expect(collection.queryByRole('image', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
+  });
+
+  test('a picked key goes into the search bar, and suggestions then offer its values', async () => {
+    const collection = await openCollection();
+
+    await typeInSearchBar('fin');
+    await fireEvent.press(collection.getByRole('button', { name: 'finish:, Finish' }));
+
+    expect(shownSearchText()).toBe('finish:');
+    expect(lastSearch()).toEqual({});
+    expect(collection.getByRole('button', { name: 'finish:foil' })).toBeOnTheScreen();
+    expect(collection.getByRole('button', { name: 'finish:etched' })).toBeOnTheScreen();
+  });
+
+  test('a picked suggestion turns into a chip', async () => {
+    const collection = await openCollection();
+
+    await typeInSearchBar('angel -finish:f');
+    await fireEvent.press(collection.getByRole('button', { name: '-finish:foil' }));
+
+    expect(chipLabels()).toEqual(['-finish:foil']);
+    expect(shownSearchText()).toBe('angel ');
+    expect(lastSearch()).toEqual({ text: 'angel', finishes_exclude: ['foil'] });
+  });
+
+  test.each([
+    ['condition:l', 'condition:lp, Lightly played'],
+    ['lang:j', 'lang:ja, Japanese'],
+    ['rarity:m', 'rarity:mythic'],
+    ['color:u', 'color:u, Blue'],
+    ['is:p', 'is:protected, Protected copies'],
+  ])('after %s, suggestions offer values from the fixed list', async (typed, suggestion) => {
+    const collection = await openCollection();
+
+    await typeInSearchBar(typed);
+
+    expect(collection.getByRole('button', { name: suggestion })).toBeOnTheScreen();
+  });
+
+  test('after set:, suggestions offer set codes from the card catalog', async () => {
+    const collection = await openCollection();
+
+    await typeInSearchBar('set:mh');
+
+    expect(await collection.findByRole('button', { name: 'set:mh2, Modern Horizons 2' })).toBeOnTheScreen();
+    expect(collection.getByRole('button', { name: 'set:mh3, Modern Horizons 3' })).toBeOnTheScreen();
+    expect(collection.queryByRole('button', { name: /^set:m10/ })).not.toBeOnTheScreen();
+  });
+
+  test('after tag:, suggestions offer Oracle tags from the tag lookup', async () => {
+    const collection = await openCollection();
+
+    await typeInSearchBar('tag:ram');
+    await fireEvent.press(await collection.findByRole('button', { name: 'tag:ramp, Ramp' }));
+
+    expect(chipLabels()).toEqual(['tag:ramp']);
+    expect(lastSearch()).toEqual({ tags: ['ramp'] });
+  });
+
+  test('Enter closes the suggestions and shows the results', async () => {
+    ownCollectionCopies(collectionEntryCopies('Sol Ring', 1));
+    const collection = await openCollection();
+
+    await typeInSearchBar('s');
+    await pressSearchKey();
+
+    expect(collection.queryByRole('button', { name: 'set:, Set code' })).not.toBeOnTheScreen();
+    expect(collection.getByRole('image', { name: /^Sol Ring/ })).toBeOnTheScreen();
+    expect(lastSearch()).toEqual({ text: 's' });
+  });
+
+  test('the × on a chip removes it', async () => {
+    await openCollection();
+    await typeInSearchBar('set:mh2 finish:foil ');
+
+    await fireEvent.press(chipButton('set:mh2'));
+
+    expect(chipLabels()).toEqual(['finish:foil']);
+    expect(lastSearch()).toEqual({ finishes: ['foil'] });
+  });
+
+  test('Backspace deletes typed text first, then removes the last chip in an empty field', async () => {
+    await openCollection();
+    await typeInSearchBar('set:mh2 finish:foil ab');
+
+    await pressBackspaceInSearchBar();
+    await pressBackspaceInSearchBar();
+    expect(chipLabels()).toEqual(['set:mh2', 'finish:foil']);
+
+    await pressBackspaceInSearchBar();
+    expect(chipLabels()).toEqual(['set:mh2']);
+    expect(lastSearch()).toEqual({ sets: ['mh2'] });
+
+    await pressBackspaceInSearchBar();
+    expect(chipLabels()).toEqual([]);
+    expect(lastSearch()).toEqual({});
+  });
+
+  test('Cancel clears the text and the chips and shows the whole binder again', async () => {
+    ownCollectionCopies([...collectionEntryCopies('Angelic Curator', 1), ...collectionEntryCopies('Sol Ring', 1)]);
+    answerCollectionSearches((query) => (query.text ? [] : collectionEntryCopies('Angelic Curator', 1)));
+    const collection = await openCollection();
+    await typeInSearchBar('set:mh2 ring');
+
+    await pressSearchCancel();
+
+    expect(chipLabels()).toEqual([]);
+    expect(lastSearch()).toEqual({});
+    expect(await collection.findByRole('image', { name: /^Angelic Curator/ })).toBeOnTheScreen();
+  });
+
+  test('results show as binder tiles, one per copy, under a count line', async () => {
+    ownCollectionCopies(collectionEntryCopies('Ponder', 27));
+    ownCollectionTotal({ total: '27.00', currency: 'USD', priced_copies: 27, copies: 27, change: null });
+    const curators = collectionEntryCopies('Angelic Curator', 6);
+    answerCollectionSearches((query) => (query.text === 'curator' ? curators : collectionEntryCopies('Ponder', 27)));
+    const collection = await openCollection();
+    expect(collection.queryByText(/ of 27 copies$/)).not.toBeOnTheScreen();
+
+    await typeInSearchBar('curator');
+
+    expect(collection.getAllByRole('image', { name: /^Angelic Curator/ })).toHaveLength(6);
+    expect(collection.getByText('6 of 27 copies')).toHaveStyle({ color: textMuted });
+    expect(collection.queryByRole('image', { name: /^Ponder/ })).not.toBeOnTheScreen();
+  });
+
+  test('a search with no results shows "No cards found."', async () => {
+    ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
+    answerCollectionSearches((query) => (query.text ? [] : collectionEntryCopies('Angelic Curator', 1)));
+    const collection = await openCollection();
+
+    await typeInSearchBar('dragon');
+
+    expect(collection.getByText('No cards found.')).toBeOnTheScreen();
+    expect(collection.queryByText('Your collection is empty')).not.toBeOnTheScreen();
+  });
+
+  test.each([
+    ['set:zzz', 'sets[0]', 'No set named "zzz".'],
+    ['tag:zzz', 'tags[0]', 'No Oracle tag named "zzz".'],
+  ])('a %s chip that the server refuses turns danger, and the grid shows its message', async (typed, field, message) => {
+    ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
+    answerCollectionSearches((query) => (query.sets || query.tags ? { refusedField: field } : collectionEntryCopies('Angelic Curator', 1)));
+    const collection = await openCollection();
+
+    await typeInSearchBar(`finish:foil ${typed} `);
+
+    expect(collection.getByText(message)).toBeOnTheScreen();
+    expect(within(chipButton(typed)).getByText(typed)).toHaveStyle({ color: danger });
+    expect(within(chipButton('finish:foil')).getByText('finish:foil')).not.toHaveStyle({ color: danger });
+    expect(collection.queryByRole('image', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
   });
 });
