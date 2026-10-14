@@ -11,6 +11,8 @@ import { BatchButton } from '@/components/molecules/batch-button';
 import { Brand } from '@/components/molecules/brand';
 import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardHero } from '@/components/molecules/card-hero';
+import { LargeCardImage } from '@/components/molecules/large-card-image';
+import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
@@ -185,6 +187,30 @@ describe('ValueRow', () => {
     );
 
     expect(screen.getByLabelText('Current price, $0.35')).toHaveProp('accessibilityHint', 'The price may be out of date.');
+  });
+});
+
+describe('LargeCardImage', () => {
+  test('a large card image is one image named by the card, with its sheen', async () => {
+    await render(<LargeCardImage uri={solRing} name="Sol Ring" sheen="etched" />);
+
+    const image = screen.getByRole('image', { name: 'Sol Ring' });
+    expect(cardImageUri(image)).toBe(solRing);
+    expect(cardSheen(image)).toMatchObject({ opacity: expect.closeTo(0.3) });
+    expect(image).toHaveStyle({ width: '55%' });
+  });
+});
+
+describe('ReadFailure', () => {
+  test('a read failure names what did not load, asks to check the connection, and tries again', async () => {
+    const onTryAgain = jest.fn();
+    await render(<ReadFailure title="Could not load this card" onTryAgain={onTryAgain} />);
+
+    expect(screen.getByText('Could not load this card')).toBeOnTheScreen();
+    expect(screen.getByText('Check your connection.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(onTryAgain).toHaveBeenCalledTimes(1);
   });
 });
 

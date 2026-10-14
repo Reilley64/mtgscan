@@ -3,10 +3,10 @@ import { View } from 'react-native';
 import { usePrintingImages } from '@/catalog/use-printing-images';
 import { conditionLabels, conditions, finishLabels, languageNames, languages } from '@/collection/copy-labels';
 import { Button } from '@/components/atoms/button';
-import { CardImage } from '@/components/atoms/card-image';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { Text } from '@/components/atoms/text';
 import { ChipGroup } from '@/components/molecules/chip-group';
+import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ListRow } from '@/components/molecules/list-row';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { printingCaption } from '@/scan/printing-caption';
@@ -26,14 +26,14 @@ export function ScanDetailsContent({ scan, dispatch, onSearch, onRemove }: ScanD
 
   return (
     <View className="gap-lg">
-      <View className="items-center gap-xs">
-        <View accessible accessibilityRole="image" accessibilityLabel={printing.name} className="mb-sm w-[55%]">
-          <CardImage uri={imageOf(printing.printingId)} />
+      <View className="items-center gap-md">
+        <LargeCardImage uri={imageOf(printing.printingId)} name={printing.name} />
+        <View className="items-center gap-xs">
+          <Text variant="card-title" className="text-center">
+            {printing.name}
+          </Text>
+          <Text variant="meta">{printingCaption(printing)}</Text>
         </View>
-        <Text variant="card-title" className="text-center">
-          {printing.name}
-        </Text>
-        <Text variant="meta">{printingCaption(printing)}</Text>
       </View>
       <SheetSection title="Finish">
         <ChipGroup

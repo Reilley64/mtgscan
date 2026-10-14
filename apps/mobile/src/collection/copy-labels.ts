@@ -53,6 +53,10 @@ export const conditionNames: Record<CardCondition, string> = {
   damaged: 'damaged',
 };
 
+export function sheenOf(finish: Finish) {
+  return finish === 'nonfoil' ? undefined : finish;
+}
+
 export function shownCondition(condition: CardCondition) {
   return condition === 'near_mint' ? undefined : conditionLabels[condition];
 }

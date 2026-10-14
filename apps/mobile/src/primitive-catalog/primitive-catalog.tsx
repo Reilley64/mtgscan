@@ -27,6 +27,8 @@ import { BatchButton } from '@/components/molecules/batch-button';
 import { Brand } from '@/components/molecules/brand';
 import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardHero } from '@/components/molecules/card-hero';
+import { LargeCardImage } from '@/components/molecules/large-card-image';
+import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
@@ -186,6 +188,7 @@ function Surfaces() {
       <GalleryCard date={null} status={null} />
       <FailureNotice message="Sign-in did not work." />
       <FailureNotice message="Could not add to your collection. Your scans are kept." />
+      <ReadFailure title="Could not load this card" onTryAgain={() => {}} />
     </Section>
   );
 }
@@ -253,6 +256,9 @@ function CardHeroes() {
     <Section title="Card heroes">
       <View className="-mx-lg">
         <CardHero uri={solRing} name="Sol Ring" sheen="foil" />
+      </View>
+      <View className="items-center">
+        <LargeCardImage uri={solRing} name="Sol Ring, large" />
       </View>
     </Section>
   );

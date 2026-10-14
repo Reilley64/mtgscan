@@ -38,6 +38,11 @@ async function setCuratorNonfoilPrice(cents: number) {
   expect(error).toBeNull();
 }
 
+async function setPriceSnapshotAt(at: string) {
+  const { error } = await secretKeyClient().from('import_snapshots').update({ snapshot_at: at }).eq('source', 'prices');
+  expect(error).toBeNull();
+}
+
 async function readCopy(client: AppClient, query: CopyQuery | Record<string, unknown> | unknown[]) {
   const { data, error } = await client.rpc('get_copy', { query: query as Json });
   return { copy: data as unknown as CopyDetails | null, error: error && readSearchError(error) };
@@ -121,6 +126,18 @@ describe('the copy read', () => {
     const { copyId } = await scannedCopy(alice, secretLairWithNoPrice, { finish: 'foil' });
 
     expect(await copyOf(alice, { copy_id: copyId })).toMatchObject({ purchase_day_price: null, price: null });
+  });
+
+  test('the current price is stale once the price snapshot is more than 24 hours old', async () => {
+    const { copyId } = await scannedCopy(alice, angelicCurator);
+    const { data, error } = await secretKeyClient().from('import_snapshots').select('snapshot_at').eq('source', 'prices').single();
+    expect(error).toBeNull();
+
+    await setPriceSnapshotAt(new Date(Date.now() - 24.1 * 60 * 60 * 1000).toISOString());
+    const copy = await copyOf(alice, { copy_id: copyId });
+    await setPriceSnapshotAt(data!.snapshot_at);
+
+    expect(copy.price).toEqual({ amount: '0.21', currency: 'USD', finish: 'nonfoil', stale: true });
   });
 
   test('a protected copy is protected and free', async () => {

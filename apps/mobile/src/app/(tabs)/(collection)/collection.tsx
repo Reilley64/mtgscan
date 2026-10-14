@@ -4,20 +4,19 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { useSetIcons } from '@/catalog/use-set-icons';
-import { Button } from '@/components/atoms/button';
-import { Text } from '@/components/atoms/text';
 import { CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { PriceLine } from '@/components/molecules/price-line';
 import { EmptyState } from '@/components/molecules/empty-state';
+import { ReadFailure } from '@/components/molecules/read-failure';
 import { CollectionSearchHeader } from '@/components/organisms/collection-search-header';
 import { CollectionSortButton } from '@/components/organisms/collection-sort-button';
 import { collectionTotalMenu } from '@/components/organisms/collection-total';
 import { TabListScreen } from '@/components/templates/tab-screen';
 import { refusedChipMessage, type SearchChip } from '@/collection/collection-search';
 import { collectionOrderQuery, defaultCollectionOrder } from '@/collection/collection-sort';
-import { shownCondition, shownPrice, spokenFinishAndCondition } from '@/collection/copy-labels';
+import { sheenOf, shownCondition, shownPrice, spokenFinishAndCondition } from '@/collection/copy-labels';
 import { shownMatchCount } from '@/collection/total-labels';
 import { useCollectionCopies, type BinderRead } from '@/collection/use-collection-copies';
 import { useCollectionSearch } from '@/collection/use-collection-search';
@@ -35,14 +34,7 @@ function BinderPlaceholder({ binder, searching, refusedChip, onTryAgain }: Binde
     return <EmptyState title={refusedChipMessage(refusedChip)} />;
   }
   if (binder.status === 'failed' || binder.status === 'refused') {
-    return (
-      <View className="gap-lg">
-        <EmptyState title="Could not load your collection" message="Check your connection." />
-        <Button onPress={onTryAgain}>
-          <Text>Try again</Text>
-        </Button>
-      </View>
-    );
+    return <ReadFailure title="Could not load your collection" onTryAgain={onTryAgain} />;
   }
   if (binder.status === 'loaded' && searching) {
     return <EmptyState title="No cards found." />;
@@ -60,7 +52,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
   return (
     <CardTile
       uri={copy.image_uris[0]}
-      sheen={copy.finish === 'nonfoil' ? undefined : copy.finish}
+      sheen={sheenOf(copy.finish)}
       accessibilityLabel={[
         copy.name,
         `${copy.set.toUpperCase()} ${copy.collector_number}`,

@@ -2,7 +2,14 @@ import type { CopyDetails } from '@mtgscan/supabase/collection';
 import type { PriceCurrency } from '@mtgscan/supabase/search';
 import { View } from 'react-native';
 
-import { commanderLegalityLabels, conditionLabels, finishLabels, languageNames, shownPrice } from '@/collection/copy-labels';
+import {
+  commanderLegalityLabels,
+  conditionLabels,
+  finishLabels,
+  languageNames,
+  sheenOf,
+  shownPrice,
+} from '@/collection/copy-labels';
 import { priceCredit } from '@/collection/total-labels';
 import { Chip } from '@/components/atoms/chip';
 import { Surface } from '@/components/atoms/surface';
@@ -53,7 +60,7 @@ export function CopyPageContent({ copy, currency }: { copy: CopyDetails; currenc
   const legality = commanderLegalityLabels[copy.commander_legality];
   return (
     <>
-      <CardHero uri={copy.image_uris[0]} name={copy.name} sheen={copy.finish === 'nonfoil' ? undefined : copy.finish} />
+      <CardHero uri={copy.image_uris[0]} name={copy.name} sheen={sheenOf(copy.finish)} />
       <View className="gap-lg px-lg">
         <View className="gap-xs">
           <Text variant="card-title">{copy.name}</Text>

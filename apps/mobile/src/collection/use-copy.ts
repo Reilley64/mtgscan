@@ -5,7 +5,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import { supabase } from '@/lib/supabase';
 
-export type CopyRead =
+type CopyRead =
   | { status: 'loading' }
   | { status: 'failed' }
   | { status: 'missing' }

@@ -68,6 +68,8 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('header', { name: 'Other options' })).toBeOnTheScreen();
   expect(screen.getByLabelText('Protected')).toBeOnTheScreen();
   expect(screen.getByRole('image', { name: 'Sol Ring' })).toBeOnTheScreen();
+  expect(screen.getByRole('image', { name: 'Sol Ring, large' })).toBeOnTheScreen();
+  expect(screen.getByText('Could not load this card')).toBeOnTheScreen();
   expect(screen.getByLabelText('Current price, $1.25')).toHaveProp('accessibilityHint', 'The price may be out of date.');
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263', selected: false })).toBeOnTheScreen();

@@ -1,7 +1,8 @@
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
-import { CardImage, type CardSheen } from '@/components/atoms/card-image';
+import type { CardSheen } from '@/components/atoms/card-image';
+import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { blurRadii } from '@/theme';
 
 type CardHeroProps = {
@@ -16,9 +17,7 @@ export function CardHero({ uri, name, sheen }: CardHeroProps) {
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className="absolute inset-0 opacity-hero-art">
         <Image source={uri} blurRadius={blurRadii.heroArt} contentFit="cover" cachePolicy="disk" style={StyleSheet.absoluteFill} />
       </View>
-      <View accessible accessibilityRole="image" accessibilityLabel={name} className="w-[55%]">
-        <CardImage uri={uri} sheen={sheen} />
-      </View>
+      <LargeCardImage uri={uri} name={name} sheen={sheen} />
     </View>
   );
 }
