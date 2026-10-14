@@ -358,7 +358,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Card images sit 3 per row, with **one tile per copy** and no quantity badge. Three copies of a card printing make three tiles (owner decision, #116).
   - Copies of the same card printing sit next to each other. By default, the card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
   - While the binder grid loads and shows no tiles yet, a skeleton grid fills the visible screen in its place. It has the shape of the grid: three tiles per row, with the same gaps. Each tile is a card-shaped block over two short bars for the meta line and the price line, 12 px tall and 60% and 40% wide. The blocks are line-colored on the background and pulse like the skeleton chip. VoiceOver reads the skeleton grid as one element, "Loading collection". When the read returns, the tiles, the empty state, or the error state replace it.
-  - A reload when the tab gains focus and a new page keep the tiles already shown and bring no skeleton grid back.
+  - A reload when the tab gains focus and a new page keep the tiles already shown and bring no skeleton grid back. The reload reads as many tiles as the tab showed, so the scroll position stays.
   - With no copies, the tab shows its empty state with a **Scan cards** button, which opens the Scan tab. See Empty states.
   - When the read fails, the tab shows the empty state "Could not load your collection" with a **Try again** button, which reloads the binder grid.
   - One quiet meta line under each card shows a warning shield when the copy is protected, the set icon in its rarity color, the collector number, and the condition when it is not NM. Foil and etched copies carry a sheen on the card image instead of a finish label. Later, badges also show whether the copy is in a deck or held by a planned swap.
@@ -473,7 +473,7 @@ The app shows the sign-in screen whenever there is no session. It is the binder 
 
 ### Pushed screens
 
-Pushed screens cover the whole screen, including the app tab bar. There are **no on-screen back buttons**. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge. The exception is a screen pushed inside a drawer, such as the scan details in batch review, which keeps the native back button (see Sheets).
+Pushed screens cover the whole screen, including the app tab bar. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge. A screen pushed inside a drawer, such as the scan details in batch review, also has the native back button (see Sheets).
 
 - **Copy page**, from a binder tile, shows that copy only (owner decision, spec 4). It is one scrolling page with no segmented control and no list of other copies or printings. Users never see the name "copy page": the page shows the card. From top to bottom:
   - the hero: the card image at 55% of the screen width over the same image blurred, with the foil or etched sheen of the copy;
@@ -484,6 +484,7 @@ Pushed screens cover the whole screen, including the app tab bar. There are **no
   - **Price**: value rows for "Current price" with the stale clock, "Added" with the day, such as "12 October 2026", and "Purchase-day price", then the credit "Current prices from Scryfall, in USD". A missing price shows a text dim "–", and VoiceOver hears "no price". A stale current price adds the hint "The price may be out of date.";
   - **Rules**: the Oracle text in a surface card, with each face's name over its text for a card with more than one face, then a "Commander" value row: "Legal", "Banned", "Not legal", or "Unknown".
   - Section headings are lime body strong text.
+  - A close bar button with the `xmark` symbol sits on the left of the header, over the hero (owner decision, #181). It is a native bar button in the text color, like the ••• button on the right. VoiceOver reads it as "Close". It goes back to where the copy page was opened from, the binder or the search results, as the swipe from the left edge does. The search text, chips, sort, and scroll position stay as they were. It also shows while the copy loads and when the read fails.
   - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the hero. VoiceOver reads it as "More". It opens the actions menu, a native menu of what the user can do to this copy. Its first item is **Protect** for a free copy or **Unprotect** for a protected copy. Its last item is **Delete copy**, in red.
   - **Protect** and **Unprotect** act at once on this copy only, and the Protected chip changes. When the write fails, a native alert says "Could not protect this card" or "Could not unprotect this card" and "Check your connection.", and the copy stays as it was.
   - **Delete copy** shows a native alert "Delete this copy?" with "It leaves your collection with its user tags. This cannot be undone.", **Delete copy** in red, and **Cancel**. After the delete, the app goes back to the binder, which reloads without the tile. When the delete fails, a native alert says "Could not delete this copy" and "Check your connection.", and the page stays.
@@ -695,10 +696,10 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Do** show the most likely printing after every scan, and keep the other options one tap away.
 - **Do** list "Needs you" items oldest first, so the longest wait is on top.
 - **Do** keep every deck change a user action, and show the AI's reason with every deck suggestion.
-- **Do** rely on the phone's back gesture for pushed screens.
+- **Do** keep the phone's back gesture working on every pushed screen.
 - **Do** flag validity problems ("would make this deck invalid") without blocking the action.
 - **Don't** show recognizer confidence, similarity scores, or "unsure" states.
-- **Don't** add on-screen back buttons, except the native one on a screen pushed inside a drawer, or "Find in decks" style shortcuts that duplicate visible deck tags.
+- **Don't** add "Find in decks" style shortcuts that duplicate visible deck tags.
 - **Don't** mark suggested-out or buylist-out cards on the deck's Cards tab. Only planned swaps are commitments.
 - **Don't** use the primary lime for decoration. It always means "you can act here" or "selected". The brand mark is the one exception.
 - **Don't** draw anything over the camera except the card outline, the batch button, the latest-scan chip, and the pull indicator.

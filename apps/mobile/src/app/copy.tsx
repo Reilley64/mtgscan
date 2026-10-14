@@ -9,6 +9,7 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { copyActionsMenu } from '@/components/organisms/copy-actions-menu';
 import { CopyPageContent } from '@/components/organisms/copy-page-content';
 import { PushedScreen } from '@/components/templates/pushed-screen';
+import { colors } from '@/theme';
 
 export default function CopyScreen() {
   const { copyId } = useLocalSearchParams<{ copyId: string }>();
@@ -48,6 +49,9 @@ export default function CopyScreen() {
 
   return (
     <PushedScreen>
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button icon="xmark" tintColor={colors.text} accessibilityLabel="Close" onPress={() => router.back()} />
+      </Stack.Toolbar>
       {read.status === 'loaded' ? (
         <>
           <Stack.Toolbar placement="right">
