@@ -88,6 +88,17 @@ public final class CardRecognizerModule: Module {
       return try Self.javaScriptObject(recognition)
     }
 
+    AsyncFunction("checkGalleryParity") { () async throws -> [String: Any] in
+      let gallery: Gallery
+      do throws(RecognitionFailure) {
+        gallery = try await installedGallery.gallery()
+      } catch {
+        throw Exception(name: "RecognitionError", description: error.code, code: error.code)
+      }
+      let parity = await GalleryParity.check(gallery: gallery, referenceImage: GalleryParity.scryfallImage)
+      return try Self.javaScriptObject(parity)
+    }
+
     AsyncFunction("searchCardNames") { (text: String) async throws -> [[String: String]] in
       let (_, names) = try await Self.galleryNames(installedGallery)
       return names.search(text).map { ["oracleId": $0.oracleId, "name": $0.name] }
@@ -108,8 +119,8 @@ public final class CardRecognizerModule: Module {
     }
   }
 
-  private static func javaScriptObject(_ recognition: Recognition) throws -> [String: Any] {
-    let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(recognition))
+  private static func javaScriptObject(_ value: some Encodable) throws -> [String: Any] {
+    let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(value))
     return object as? [String: Any] ?? [:]
   }
 }

@@ -62,6 +62,7 @@ public final class Gallery: Sendable {
   public static let searchChunkRows = 4096
 
   public let printings: [GalleryPrinting]
+  public let version: String?
   public let dimension: Int
   public let printingsByIllustration: [String: [Int]]
   public let setCodes: Set<String>
@@ -90,6 +91,7 @@ public final class Gallery: Sendable {
       throw Failure.mismatch("gallery has \(header.count)x\(header.dimension), printing list has \(printings.count)")
     }
     dimension = header.dimension
+    version = header.version
     guard (header.encoding ?? GalleryHeader.float16) == GalleryHeader.float16 else {
       throw Failure.mismatch("unknown gallery encoding \(header.encoding ?? "")")
     }
@@ -127,6 +129,12 @@ public final class Gallery: Sendable {
 
   public func index(id: String) -> Int? {
     indexById[id]
+  }
+
+  public func vector(at row: Int) -> [Float] {
+    vectors.withUnsafeBytes { buffer in
+      buffer.bindMemory(to: Float16.self)[row * dimension ..< (row + 1) * dimension].map { Float($0) }
+    }
   }
 
   func similarities(to queries: [[Float]]) -> [[Float]] {

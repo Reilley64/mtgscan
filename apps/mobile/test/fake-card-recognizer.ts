@@ -4,6 +4,7 @@ import type {
   GalleryCardPrinting,
   GalleryDownload,
   GalleryDownloadStatus,
+  GalleryParity,
   InstalledGallery,
   Recognition,
   RecognitionErrorCode,
@@ -21,6 +22,7 @@ let recognizedPhotos: string[] = [];
 let heldRecognition: { finish: () => void } | null = null;
 let holdingNextRecognition = false;
 let downloads: GalleryDownload[] = [];
+let galleryParity: GalleryParity | RecognitionErrorCode = 'gallery_not_ready';
 const listeners = new Set<Listener>();
 
 export const fakeCardRecognizer = {
@@ -53,6 +55,12 @@ export const fakeCardRecognizer = {
   galleryDownloadStatus: async () => null,
   downloadGallery: async (download: GalleryDownload) => {
     downloads = [...downloads, download];
+  },
+  checkGalleryParity: async (): Promise<GalleryParity> => {
+    if (typeof galleryParity === 'string') {
+      throw Object.assign(new Error(galleryParity), { code: galleryParity });
+    }
+    return galleryParity;
   },
   addGalleryDownloadListener: (listener: Listener) => {
     listeners.add(listener);
@@ -113,6 +121,10 @@ export function notACard(): Recognition {
   return { kind: 'not_a_card', topSimilarity: 0.3, stageMs: {} };
 }
 
+export function galleryParityIs(parity: GalleryParity | RecognitionErrorCode) {
+  galleryParity = parity;
+}
+
 export function nextPhotosAre(...recognitions: (Recognition | RecognitionErrorCode)[]) {
   nextRecognitions = [...nextRecognitions, ...recognitions];
 }
@@ -137,6 +149,7 @@ export function galleryDownloads() {
 export function resetFakeCardRecognizer() {
   installed = { version: publishedGalleryVersion, builtAt: galleryBuiltAt };
   downloads = [];
+  galleryParity = 'gallery_not_ready';
   listeners.clear();
   nextRecognitions = [];
   recognizedPhotos = [];

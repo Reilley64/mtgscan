@@ -18,6 +18,11 @@ public enum FeaturePrint {
     CardRectifier.resized(card, width: inputWidth, height: inputHeight)
   }
 
+  public static func vector(ofCardAt url: URL) -> [Float]? {
+    guard let card = CardRectifier.loadCard(at: url), let small = input(of: card) else { return nil }
+    return try? vector(of: small)
+  }
+
   public static func vector(of image: CGImage) throws -> [Float] {
     guard #available(iOS 17.0, macOS 14.0, *) else { throw Failure.unsupportedRevision }
     let request = VNGenerateImageFeaturePrintRequest()
