@@ -269,8 +269,8 @@ describe('renaming a user tag', () => {
     expect(error).toBeNull();
     expect(userTag).toEqual({ user_tag_id: signed.user_tag_id, name: 'Signed' });
     expect(await userTagsOf(user)).toEqual([{ user_tag_id: signed.user_tag_id, name: 'Signed', copy_count: 2 }]);
-    expect(await userTagsOnCopy(user, copyId)).toEqual([userTag]);
-    expect(await userTagsOnCopy(user, otherCopyId)).toEqual([userTag]);
+    expect(await userTagsOnCopy(user, copyId)).toEqual([userTag!]);
+    expect(await userTagsOnCopy(user, otherCopyId)).toEqual([userTag!]);
   });
 
   test('a user tag can be renamed to its own name in another case', async () => {
