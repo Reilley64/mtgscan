@@ -24,8 +24,10 @@ import {
   presentedDrawer,
   presentedDrawerCount,
   pressDrawerBack,
+  pressAlertButton,
   pressHeaderMenuAction,
   pressTab,
+  presentedAlert,
   selectedTab,
   showsSpinner,
   swipeDownDrawer,
@@ -93,7 +95,7 @@ beforeEach(() => {
   startSignedIn();
 });
 
-test('a scan that is not recognized stays out of the scan batch, so the rows, the title, the batch badge, and Remove N scans count the same scans', async () => {
+test('a scan that is not recognized stays out of the scan batch, so the rows, the title, the batch badge, and the Remove all scans alert count the same scans', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
   await openScan();
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
@@ -110,9 +112,9 @@ test('a scan that is not recognized stays out of the scan batch, so the rows, th
   expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English', 'Lightning Bolt, M10 146 · NM · English']);
   expect(screen.queryByRole('header', { name: 'Not recognized' })).not.toBeOnTheScreen();
   expect(screen.queryByText('Not recognized')).not.toBeOnTheScreen();
-  expect(headerMenuRows(drawerScreen(), 'More')).toEqual([
-    { title: 'Remove all scans', destructive: true, rows: [{ title: 'Remove 2 scans', destructive: true }] },
-  ]);
+  expect(headerMenuRows(drawerScreen(), 'More')).toEqual([{ title: 'Remove all scans', destructive: true }]);
+  await chooseRemoveAllScans();
+  expect(presentedAlert()?.title).toBe('Remove all 2 scans?');
 });
 
 test('choosing a card printing in name search for a scan that was not recognized adds it to the scan batch as one scan with the defaults', async () => {
@@ -444,11 +446,16 @@ test('Try again after the scan batch changed adds only the copies the server did
   expect(screen.getAllByRole('button', { name: 'Shock, M19 156, no price' })).toHaveLength(1);
 });
 
-async function removeAllScans(count: string) {
-  await pressHeaderMenuAction(drawerScreen(), 'More', ['Remove all scans', count]);
+async function chooseRemoveAllScans() {
+  await pressHeaderMenuAction(drawerScreen(), 'More', ['Remove all scans']);
 }
 
-test('the More button in batch review opens Remove all scans, whose submenu offers Remove N scans for every scan in the scan batch', async () => {
+async function removeAllScans() {
+  await chooseRemoveAllScans();
+  await pressAlertButton('Remove');
+}
+
+test('the More button in batch review has one destructive item, Remove all scans, with no submenu', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
   await openScan();
   await scanACard();
@@ -459,12 +466,43 @@ test('the More button in batch review opens Remove all scans, whose submenu offe
   expect(tabHeader(drawerScreen()).buttons).toEqual(['More']);
   expect(headerButton(drawerScreen(), 'More')).toEqual({ type: 'menu', label: undefined, symbol: 'ellipsis', hint: undefined });
   expect(headerButtonIsDisabled(drawerScreen(), 'More')).toBe(false);
-  expect(headerMenuRows(drawerScreen(), 'More')).toEqual([
-    { title: 'Remove all scans', destructive: true, rows: [{ title: 'Remove 2 scans', destructive: true }] },
-  ]);
+  expect(headerMenuRows(drawerScreen(), 'More')).toEqual([{ title: 'Remove all scans', destructive: true }]);
 });
 
-test('Remove N scans empties the scan batch, the batch badge, and the latest-scan chip, closes batch review, and adds nothing', async () => {
+test('Remove all scans asks for a native confirmation that counts every scan in the scan batch', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+  await pressPlusOne();
+  await scanACard();
+  await openBatchReview(3);
+
+  await chooseRemoveAllScans();
+
+  expect(presentedAlert()).toEqual({
+    title: 'Remove all 3 scans?',
+    message: 'They will not be added to your collection.',
+    buttons: ['Remove', 'Cancel'],
+  });
+  expect(reviewRows()).toHaveLength(3);
+});
+
+test('Remove all scans asks to remove 1 scan when the scan batch has one scan', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+  await openBatchReview(1);
+
+  await chooseRemoveAllScans();
+
+  expect(presentedAlert()).toEqual({
+    title: 'Remove 1 scan?',
+    message: 'It will not be added to your collection.',
+    buttons: ['Remove', 'Cancel'],
+  });
+});
+
+test('Remove empties the scan batch, the batch badge, and the latest-scan chip, closes batch review, and adds nothing', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]), 'unreadable_photo', cardRecognition([plains]));
   await openScan();
   await scanACard();
@@ -474,7 +512,7 @@ test('Remove N scans empties the scan batch, the batch badge, and the latest-sca
   expect(scanTab().getByText('Basic land, not tracked')).toBeOnTheScreen();
   await openBatchReview(2);
 
-  await removeAllScans('Remove 2 scans');
+  await removeAllScans();
 
   expect(isDrawerPresented()).toBe(false);
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
@@ -491,7 +529,7 @@ test('removed scans stay removed after a restart of the app', async () => {
   await scanACard();
   await openBatchReview(1);
 
-  await removeAllScans('Remove 1 scan');
+  await removeAllScans();
   await restartTheApp();
   await pressTab('Scan');
 
@@ -508,7 +546,7 @@ test('removing every scan after a failed commit leaves nothing to send again', a
   failNextScanBatchCommit('before the server adds it');
   await addToCollection();
 
-  await removeAllScans('Remove 1 scan');
+  await removeAllScans();
   await restartTheApp();
   await pressTab('Scan');
 
@@ -526,7 +564,7 @@ test('a card still being recognized when every scan is removed does not come bac
   await scanACard();
   await openBatchReview(1);
 
-  await removeAllScans('Remove 1 scan');
+  await removeAllScans();
   await recognition.finish();
 
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
@@ -544,7 +582,7 @@ test('a card still being recognized when every scan is removed plays no haptic a
   await openBatchReview(1);
   const feedbackBeforeRemoving = scanFeedback().length;
 
-  await removeAllScans('Remove 1 scan');
+  await removeAllScans();
   await recognition.finish();
 
   expect(scanFeedback().slice(feedbackBeforeRemoving)).toEqual([]);
@@ -571,18 +609,22 @@ test('the More button is hidden while the commit runs', async () => {
   await commit.finish();
 });
 
-test('Remove all scans is a submenu, not an action, so the scan batch stays until Remove N scans is chosen', async () => {
+test('Cancel keeps the scan batch, the batch badge, and the latest-scan chip', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
   await openBatchReview(1);
 
-  await expect(pressHeaderMenuAction(drawerScreen(), 'More', ['Remove all scans'])).rejects.toThrow('is not a menu action');
+  await chooseRemoveAllScans();
+  await pressAlertButton('Cancel');
 
+  expect(presentedAlert()).toBeNull();
+  expect(isDrawerPresented()).toBe(true);
   expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English']);
   await swipeDownDrawer();
   expect(scanTab().getByRole('button', { name: 'Scan batch, 1' })).toBeOnTheScreen();
   expect(latestScanChip('Lightning Bolt, M10 146')).toBeOnTheScreen();
+  expect(scanBatchesSentToTheServer()).toEqual([]);
 });
 
 test('the scan batch survives a restart of the app', async () => {

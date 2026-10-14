@@ -1,5 +1,6 @@
 import { router, Stack, useNavigation } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { Alert } from 'react-native';
 
 import { EmptyState } from '@/components/molecules/empty-state';
 import { GhostBatchRows } from '@/components/molecules/empty-state-illustrations';
@@ -34,6 +35,17 @@ export default function BatchReviewSheet() {
     router.back();
   }, [removeAll]);
 
+  const confirmRemoveAllScans = useCallback(() => {
+    Alert.alert(
+      scanCount === 1 ? 'Remove 1 scan?' : `Remove all ${scanCount} scans?`,
+      scanCount === 1 ? 'It will not be added to your collection.' : 'They will not be added to your collection.',
+      [
+        { text: 'Remove', style: 'destructive', onPress: removeAllScans },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  }, [removeAllScans, scanCount]);
+
   const footer = showsEmptyState ? undefined : (
     <>
       {commitStatus === 'failed' ? (
@@ -55,7 +67,7 @@ export default function BatchReviewSheet() {
         {batchReviewMenu({
           scanCount,
           hidden: commitStatus === 'adding',
-          onRemoveAll: removeAllScans,
+          onRemoveAll: confirmRemoveAllScans,
         })}
       </Stack.Toolbar>
       {showsEmptyState ? (
