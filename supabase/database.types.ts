@@ -269,6 +269,32 @@ isOneToOne: false
       referencedColumns: ["user_id","copy_id"]
     }
                   ]
+                },"copy_user_tags": {
+                  Row: {
+                    "copy_id": string,"user_id": string,"user_tag_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "copy_id": string,"user_id": string,"user_tag_id": string
+                  }
+                  Update: {
+                    "copy_id"?: string,"user_id"?: string,"user_tag_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "copy_user_tags_user_id_copy_id_fkey"
+      columns: ["user_id","copy_id"]
+isOneToOne: false
+      referencedRelation: "copies"
+      referencedColumns: ["user_id","id"]
+    },{
+      foreignKeyName: "copy_user_tags_user_id_user_tag_id_fkey"
+      columns: ["user_id","user_tag_id"]
+isOneToOne: false
+      referencedRelation: "user_tags"
+      referencedColumns: ["user_id","id"]
+    }
+                  ]
                 },"daily_collection_totals": {
                   Row: {
                     "copies": number,"currency": Database["public"]['Enums']["price_currency"],"day": string,"price_snapshot_at": string,"priced_copies": number,"recorded_at": string,"total_cents": number,"user_id": string
@@ -413,6 +439,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"user_tags": {
+                  Row: {
+                    "created_at": string,"id": string,"name": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"name": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"name"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
@@ -472,6 +512,9 @@ isOneToOne: false
               "relation": string,"total_bytes": number
             }[]
                            },
+"create_user_tag":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "delete_copy":
 { Args: { "request": Json }; Returns: undefined
                            },
@@ -528,6 +571,9 @@ isOneToOne: false
               "basic_land": boolean,"id": string
             }[]
                            },
+"list_user_tags":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "prune_search_telemetry":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -554,6 +600,9 @@ isOneToOne: false
                            },
 "set_copy_protected":
 { Args: { "request": Json }; Returns: Json
+                           },
+"set_copy_user_tag":
+{ Args: { "request": Json }; Returns: undefined
                            },
 "stage_import_batch":
 { Args: { "batch_number": number,"batch_rows": Json,"run_id": string,"target": string }; Returns: number

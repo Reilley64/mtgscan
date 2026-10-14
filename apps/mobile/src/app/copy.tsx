@@ -53,7 +53,11 @@ export default function CopyScreen() {
           <Stack.Toolbar placement="right">
             {copyActionsMenu({ copy: read.copy, onSetProtected: changeProtected, onDelete: confirmDelete })}
           </Stack.Toolbar>
-          <CopyPageContent copy={read.copy} currency={copyPriceCurrency} />
+          <CopyPageContent
+            copy={read.copy}
+            currency={copyPriceCurrency}
+            onOpenUserTags={() => router.push({ pathname: '/user-tag-picker', params: { copyId } })}
+          />
         </>
       ) : null}
       {read.status === 'failed' ? (

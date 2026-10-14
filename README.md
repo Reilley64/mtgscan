@@ -207,6 +207,7 @@ Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The qu
 - `added_at` is the time of the copy's addition. `purchase_day_price` is the purchase-day price of its addition line in the chosen currency, with `amount`, `currency`, and `finish`, or null.
 - `price` is the current price, as in a copy row of collection search, with `stale`.
 - From its card: `type_line`, `faces` with each face's `name` and `oracle_text` in face order, and `commander_legality`.
+- `user_tags` lists the copy's user tags, each with `user_tag_id` and `name`, sorted by name ignoring case.
 - The function runs with the caller's rights, so another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist. A refused query has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
 ### Protect a copy
@@ -224,6 +225,15 @@ Signed-in users delete one copy with `supabase.rpc('delete_copy', { request })`.
 - It deletes the copy in one transaction. The copy leaves collection search, `get_copy`, owned quantities, and the collection total and its coverage.
 - The copy's addition, its addition line, and its copy ID in `collection_addition_copies` stay. A replayed scan batch never adds the copy again.
 - It returns nothing. Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist or was already deleted. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
+
+### User tags
+
+A user tag is a private label that a user puts on copies. `user_tags` holds each user tag with its user, its name, and its created time. The name is trimmed of white space at both ends and has 1 to 64 characters. A user's user tag names are unique ignoring case. `copy_user_tags` links copies to user tags, with the user ID. Deleting a copy or a user tag removes its links. `supabase/collection.ts` has the shared types.
+
+- `supabase.rpc('create_user_tag', { request: { name } })` trims the name, creates the user tag, and returns its `user_tag_id` and `name`. A name that matches one of the user's user tags ignoring case is refused with `user_tag_exists` on `name`.
+- `supabase.rpc('set_copy_user_tag', { request: { copy_id, user_tag_id, tagged } })` puts the user tag on the copy when `tagged` is true and takes it off when it is false. It returns nothing. Doing what is already done changes nothing. Putting a user tag on a copy or taking it off changes no collection entry.
+- `supabase.rpc('list_user_tags')` returns `items`: the caller's user tags with `user_tag_id`, `name`, and `copy_count`, sorted by name ignoring case. It runs with the caller's rights.
+- The write functions check the caller's identity and run in one transaction each. Another user's copy or user tag is refused with `not_found` on `copy_id` or `user_tag_id`, like one that does not exist. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
 ### Collection search
 
@@ -276,7 +286,7 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, and `daily_collection_totals`. `search_telemetry` departs from the pattern, as Catalog search says. `daily_collection_totals` departs from it, as Collection total says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
+The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `daily_collection_totals`, `user_tags`, and `copy_user_tags`. `search_telemetry` departs from the pattern, as Catalog search says. `daily_collection_totals` departs from it, as Collection total says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. A migration grants `execute` on a helper only to the roles whose functions call it.
 

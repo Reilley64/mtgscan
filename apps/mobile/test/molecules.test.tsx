@@ -16,6 +16,7 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
+import { DisclosureRow } from '@/components/molecules/disclosure-row';
 import { EmptyState } from '@/components/molecules/empty-state';
 import {
   DashedCardFrame,
@@ -175,6 +176,53 @@ describe('ListRow', () => {
     await render(<ListRow title="Lightning Bolt" onPress={() => {}} />);
 
     expect(touchTarget(screen.getByRole('button', { name: 'Lightning Bolt' })).height).toBeGreaterThanOrEqual(44);
+  });
+});
+
+describe('ListRow with a check', () => {
+  test('a checked list row is a checked checkbox named by its title and detail, with a lime check mark', async () => {
+    const onPress = jest.fn();
+    await render(<ListRow title="Signed" detail="3 copies" checked onPress={onPress} />);
+
+    const row = screen.getByRole('checkbox', { name: 'Signed, 3 copies' });
+    await fireEvent.press(row);
+
+    expect(row).toBeChecked();
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(symbolNames(row)).toEqual(['checkmark.circle.fill']);
+    expect(symbolSizes(row)).toEqual([22]);
+    expect(symbolTintColor(row)).toBe(lime);
+    expect(touchTarget(row).height).toBeGreaterThanOrEqual(44);
+  });
+
+  test('an unchecked list row is an unchecked checkbox with an empty circle in text dim', async () => {
+    await render(<ListRow title="Signed" detail="0 copies" checked={false} onPress={() => {}} />);
+
+    const row = screen.getByRole('checkbox', { name: 'Signed, 0 copies' });
+    expect(row).not.toBeChecked();
+    expect(symbolNames(row)).toEqual(['circle']);
+    expect(symbolTintColor(row)).toBe(textDim);
+  });
+});
+
+describe('DisclosureRow', () => {
+  test('a disclosure row is a button on the surface with its content and a text dim chevron', async () => {
+    const onPress = jest.fn();
+    await render(
+      <DisclosureRow accessibilityLabel="Add user tags" onPress={onPress}>
+        <Text>Add user tags</Text>
+      </DisclosureRow>,
+    );
+
+    const row = screen.getByRole('button', { name: 'Add user tags' });
+    await fireEvent.press(row);
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(row).toHaveStyle({ backgroundColor: surface });
+    expect(symbolNames(row)).toEqual(['chevron.right']);
+    expect(symbolSizes(row)).toEqual([14]);
+    expect(symbolTintColor(row)).toBe(textDim);
+    expect(touchTarget(row).height).toBeGreaterThanOrEqual(44);
   });
 });
 

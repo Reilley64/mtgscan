@@ -1,5 +1,5 @@
 import { Constants } from '@mtgscan/supabase/database.types';
-import type { CardCondition, CardLanguage, CurrentPrice } from '@mtgscan/supabase/collection';
+import type { CardCondition, CardLanguage, CollectionCopyRow, CurrentPrice } from '@mtgscan/supabase/collection';
 import type { CommanderLegality, Finish } from '@mtgscan/supabase/search';
 
 export const finishes = Constants.public.Enums.card_finish;
@@ -70,4 +70,14 @@ export function spokenFinishAndCondition({ finish, condition }: { finish: Finish
 
 export function shownPrice({ amount, currency }: Pick<CurrentPrice, 'amount' | 'currency'>) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(amount));
+}
+
+export function copyChipLabels(copy: Pick<CollectionCopyRow, 'set' | 'collector_number' | 'finish' | 'condition' | 'language'>) {
+  return [
+    copy.set.toUpperCase(),
+    copy.collector_number,
+    ...(copy.finish === 'nonfoil' ? [] : [finishLabels[copy.finish]]),
+    conditionLabels[copy.condition],
+    languageNames[copy.language],
+  ];
 }

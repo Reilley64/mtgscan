@@ -64,6 +64,10 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Swipe disabled' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Swipe busy and disabled' })).toBeBusy();
   expect(screen.getByLabelText('Card name')).toBeOnTheScreen();
+  expect(screen.getByRole('checkbox', { name: 'Signed, 3 copies' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Trade binder, 1 copy' })).not.toBeChecked();
+  expect(screen.getByRole('button', { name: 'User tags, signed, trade binder' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Add user tags' })).toBeOnTheScreen();
   expect(screen.getByRole('progressbar', { name: 'Loading collection' })).toBeOnTheScreen();
   expect(menuButtonNames(screen.container)).toEqual(['Sort, Relevance', 'Sort, Price, high to low']);
   expect(screen.getByRole('progressbar', { name: 'Downloading gallery' })).toBeOnTheScreen();

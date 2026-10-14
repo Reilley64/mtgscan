@@ -6,7 +6,8 @@ export function PushedScreen({ children }: { children: ReactNode }) {
     <ScrollView
       className="flex-1 bg-background"
       contentContainerClassName="gap-lg pb-safe-offset-xl"
-      contentInsetAdjustmentBehavior="never">
+      contentInsetAdjustmentBehavior="never"
+      keyboardShouldPersistTaps="handled">
       {children}
     </ScrollView>
   );

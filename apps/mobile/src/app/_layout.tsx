@@ -34,6 +34,7 @@ function RootStack() {
           name="copy"
           options={{ headerShown: true, headerTransparent: true, title: '', headerBackVisible: false }}
         />
+        <Stack.Screen name="user-tag-picker" />
         <Stack.Screen name="scan-batch" options={fullHeightDrawerOptions} />
         <Stack.Screen name="scan-details" options={fullHeightDrawerOptions} />
         <Stack.Screen name="scan-printings" options={fullHeightDrawerOptions} />

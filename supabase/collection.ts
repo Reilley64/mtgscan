@@ -122,6 +122,31 @@ export type CopyFace = {
   oracle_text: string;
 };
 
+export const userTagNameLength = 64;
+
+export type UserTag = {
+  user_tag_id: string;
+  name: string;
+};
+
+export type UserTagRow = UserTag & {
+  copy_count: number;
+};
+
+export type UserTagList = {
+  items: UserTagRow[];
+};
+
+export type CreateUserTagRequest = {
+  name: string;
+};
+
+export type CopyUserTagRequest = {
+  copy_id: string;
+  user_tag_id: string;
+  tagged: boolean;
+};
+
 export type CopyDetails = CollectionCopyRow & {
   free: boolean;
   added_at: string;
@@ -129,6 +154,7 @@ export type CopyDetails = CollectionCopyRow & {
   type_line: string;
   faces: CopyFace[];
   commander_legality: CommanderLegality;
+  user_tags: UserTag[];
 };
 
 export type CollectionTotalQuery = {
@@ -149,4 +175,12 @@ export type ScanBatchError = Omit<SearchError, 'code'> & { code: ScanBatchErrorC
 
 export function readScanBatchError(error: Parameters<typeof readSearchError>[0]): ScanBatchError {
   return { ...readSearchError(error), code: error.code as ScanBatchErrorCode };
+}
+
+export type UserTagErrorCode = 'invalid_argument' | 'not_found' | 'user_tag_exists';
+
+export type UserTagError = Omit<SearchError, 'code'> & { code: UserTagErrorCode };
+
+export function readUserTagError(error: Parameters<typeof readSearchError>[0]): UserTagError {
+  return { ...readSearchError(error), code: error.code as UserTagErrorCode };
 }

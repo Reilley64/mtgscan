@@ -29,7 +29,9 @@ type PerUserTable =
   | 'collection_additions'
   | 'collection_addition_lines'
   | 'collection_addition_copies'
-  | 'daily_collection_totals';
+  | 'daily_collection_totals'
+  | 'user_tags'
+  | 'copy_user_tags';
 
 const perUserTables: PerUserTable[] = [
   'profiles',
@@ -38,6 +40,8 @@ const perUserTables: PerUserTable[] = [
   'collection_addition_lines',
   'collection_addition_copies',
   'daily_collection_totals',
+  'user_tags',
+  'copy_user_tags',
 ];
 
 let alice: TestUser;
@@ -56,12 +60,24 @@ async function userIdsInView(user: TestUser, view: 'collection_availability' | '
   return rows.map((row: { user_id: string }) => row.user_id);
 }
 
+async function tagCopy(user: TestUser, copyId: string) {
+  const created = await user.client.rpc('create_user_tag', { request: { name: 'Signed' } });
+  expect(created.error).toBeNull();
+  const { user_tag_id } = created.data as { user_tag_id: string };
+  const { error } = await user.client.rpc('set_copy_user_tag', { request: { copy_id: copyId, user_tag_id, tagged: true } });
+  expect(error).toBeNull();
+}
+
 beforeAll(async () => {
   [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
-  await committed(alice, scanBatch([stack(angelicCurator, { copies: 2 })]));
-  await committed(bob, scanBatch([stack(angelicCurator), stack(delverInnistrad)]));
+  const aliceCopies = stack(angelicCurator, { copies: 2 });
+  const bobCopies = stack(angelicCurator);
+  await committed(alice, scanBatch([aliceCopies]));
+  await committed(bob, scanBatch([bobCopies, stack(delverInnistrad)]));
+  await tagCopy(alice, aliceCopies.copy_ids[0]!);
+  await tagCopy(bob, bobCopies.copy_ids[0]!);
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
   expect((await runImportCommand('collection-totals')).exitCode).toBe(0);
 });
