@@ -295,20 +295,6 @@ isOneToOne: false
       referencedColumns: ["user_id","id"]
     }
                   ]
-                },"daily_collection_totals": {
-                  Row: {
-                    "copies": number,"currency": Database["public"]['Enums']["price_currency"],"day": string,"price_snapshot_at": string,"priced_copies": number,"recorded_at": string,"total_cents": number,"user_id": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "copies": number,"currency": Database["public"]['Enums']["price_currency"],"day": string,"price_snapshot_at": string,"priced_copies": number,"recorded_at"?: string,"total_cents": number,"user_id": string
-                  }
-                  Update: {
-                    "copies"?: number,"currency"?: Database["public"]['Enums']["price_currency"],"day"?: string,"price_snapshot_at"?: string,"priced_copies"?: number,"recorded_at"?: string,"total_cents"?: number,"user_id"?: string
-                  }
-                  Relationships: [
-                    
-                  ]
                 },"disabled_tags": {
                   Row: {
                     "disabled_at": string,"tag_id": string
@@ -582,9 +568,6 @@ isOneToOne: false
                            },
 "publish_gallery_version":
 { Args: { "version": string }; Returns: string
-                           },
-"record_daily_collection_totals":
-{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "record_gallery_parity":
 { Args: { "lowest_cosine": number,"mean_cosine": number,"reference_count": number,"version": string }; Returns: boolean

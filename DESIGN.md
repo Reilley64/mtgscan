@@ -414,12 +414,10 @@ The collection total is always visible. The owner picked variant C of the HTML p
 - With no collection entries, or before the total loads, the header shows no total button.
 - **Menu.** Tapping the button opens a native menu under the button. A tap outside closes it. It holds:
   - the credit "Current prices from Scryfall, in USD" as the menu title;
-  - the change, such as "+$12.40" or "−$38.75", with the subtitle "Since yesterday";
   - the coverage, such as "26 of 27 cards", with the subtitle "Priced".
-- The change and coverage rows show information. They are disabled menu items, so a tap on them does nothing, and iOS shows them dimmed.
-- The change is neutral. The sign carries the direction: + or the minus sign. There is no green or red. No change shows "$0.00" with no sign. When there is no daily collection total from the day before, such as before the first one, the change is "–".
-- The change is the collection total now minus the daily collection total of the day before the current prices. mtgscan stores a daily collection total for each user after the daily price import. Copies added since then count in the change.
-- **VoiceOver.** The button reads "Collection total, $2,419.59" with the hint "up $12.40 since yesterday, 26 of 27 cards priced". A falling total says "down", no change says "no change since yesterday", and with no daily collection total from the day before it says "change since yesterday not known yet".
+- The coverage row shows information. It is a disabled menu item, so a tap on it does nothing, and iOS shows it dimmed.
+- The menu has no change since yesterday. mtgscan keeps no price history (`docs/adr/0004-keep-only-current-prices.md`).
+- **VoiceOver.** The button reads "Collection total, $2,419.59" with the hint "26 of 27 cards priced".
 
 ### Collection search
 

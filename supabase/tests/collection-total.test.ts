@@ -1,54 +1,26 @@
-import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
+import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { CollectionTotal, CollectionTotalQuery } from '../collection';
 import type { Json } from '../database.types';
 import { readSearchError } from '../search';
-import {
-  catalogFixtureManifest,
-  resetCardCatalog,
-  runCatalogImport,
-  runImportCommand,
-  runPriceImport,
-} from './catalog-import-command';
+import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
+const tableNotFound = 'PGRST205';
+const functionNotFound = 'PGRST202';
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const secretLairNonfoilOnly = '018830b2-dff9-45f3-9cc2-dc5b2eec0e54';
 const secretLairWithNoPrice = '0cd83c0e-8e37-40bf-87a5-5b4c009248fb';
-const curatorNonfoilCents = 21;
-
-let importedSnapshotAt: string;
 
 beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
-  const { data, error } = await secretKeyClient().from('import_snapshots').select('snapshot_at').eq('source', 'prices').single();
-  expect(error).toBeNull();
-  importedSnapshotAt = data!.snapshot_at;
 });
-
-afterEach(async () => {
-  await setPriceSnapshotAt(importedSnapshotAt);
-  await setCuratorNonfoilPrice(curatorNonfoilCents);
-});
-
-async function setPriceSnapshotAt(at: string) {
-  const { error } = await secretKeyClient().from('import_snapshots').update({ snapshot_at: at }).eq('source', 'prices');
-  expect(error).toBeNull();
-}
-
-async function setCuratorNonfoilPrice(cents: number) {
-  const { error } = await secretKeyClient()
-    .from('card_prices')
-    .update({ usd_nonfoil_cents: cents })
-    .eq('printing_id', angelicCurator);
-  expect(error).toBeNull();
-}
 
 async function readCollectionTotal(client: AppClient, query: CollectionTotalQuery | Record<string, unknown> | unknown[] = {}) {
   const { data, error } = await client.rpc('get_collection_total', { query: query as Json });
@@ -61,33 +33,8 @@ async function collectionTotal(user: TestUser, query: CollectionTotalQuery = {})
   return total!;
 }
 
-async function recordDailyCollectionTotals() {
-  const { exitCode, output } = await runImportCommand('collection-totals');
-  expect(output).toMatch(/Recorded \d+ daily collection totals\./);
-  expect(exitCode).toBe(0);
-}
-
-async function recordDailyCollectionTotalsOn(day: string) {
-  await setPriceSnapshotAt(`${day}T23:30:00.000Z`);
-  await recordDailyCollectionTotals();
-}
-
-async function dailyCollectionTotals(client: AppClient) {
-  const { data, error } = await client
-    .from('daily_collection_totals')
-    .select('day, currency, total_cents, priced_copies, copies, price_snapshot_at')
-    .order('day')
-    .order('currency');
-  expect(error).toBeNull();
-  return data!;
-}
-
-function sameTime(actual: string, expected: string) {
-  expect(Date.parse(actual)).toBe(Date.parse(expected));
-}
-
 describe('the collection total read', () => {
-  test('a user with no collection entries has a total of 0 with no copies and no change', async () => {
+  test('a user with no collection entries has a total of 0 with no copies', async () => {
     const user = await signUpNewUser();
 
     expect(await collectionTotal(user)).toEqual({
@@ -95,7 +42,6 @@ describe('the collection total read', () => {
       currency: 'USD',
       priced_copies: 0,
       copies: 0,
-      change: null,
     });
   });
 
@@ -159,149 +105,20 @@ describe('the collection total read', () => {
   });
 });
 
-describe('daily collection totals', () => {
-  test("the daily workflow stores each user's daily collection total in USD and EUR for the day of the price snapshot", async () => {
-    const user = await signUpNewUser();
-    await committed(user, scanBatch([stack(angelicCurator, { copies: 2 }), stack(angelicCurator, { finish: 'etched' })]));
-
-    await recordDailyCollectionTotalsOn('2026-10-20');
-
-    const totals = await dailyCollectionTotals(user.client);
-    expect(totals.map(({ price_snapshot_at, ...total }) => total)).toEqual([
-      { day: '2026-10-20', currency: 'USD', total_cents: 86, priced_copies: 3, copies: 3 },
-      { day: '2026-10-20', currency: 'EUR', total_cents: 8, priced_copies: 2, copies: 3 },
-    ]);
-    totals.forEach((total) => sameTime(total.price_snapshot_at, '2026-10-20T23:30:00.000Z'));
-  });
-
-  test('a user with no collection entries gets no daily collection total', async () => {
+describe('no price history', () => {
+  test('a signed-in user finds no daily collection totals table', async () => {
     const user = await signUpNewUser();
 
-    await recordDailyCollectionTotalsOn('2026-10-20');
+    const { error } = await user.client.from('daily_collection_totals' as never).select('*');
 
-    expect(await dailyCollectionTotals(user.client)).toEqual([]);
+    expect(error?.code).toBe(tableNotFound);
   });
 
-  test('there is no change while the only daily collection total is from the day of the current prices', async () => {
+  test('a signed-in user finds no function that records daily collection totals', async () => {
     const user = await signUpNewUser();
-    await committed(user, scanBatch([stack(angelicCurator)]));
 
-    await recordDailyCollectionTotalsOn('2026-10-20');
+    const { error } = await user.client.rpc('record_daily_collection_totals' as never);
 
-    expect(await collectionTotal(user)).toMatchObject({ total: '0.21', change: null });
-  });
-
-  test('after the next price import, the change is the collection total minus the daily collection total of the day before', async () => {
-    const user = await signUpNewUser();
-    await committed(user, scanBatch([stack(angelicCurator, { copies: 2 })]));
-    await recordDailyCollectionTotalsOn('2026-10-20');
-
-    await setPriceSnapshotAt('2026-10-21T23:30:00.000Z');
-    await setCuratorNonfoilPrice(121);
-
-    expect(await collectionTotal(user)).toMatchObject({ total: '2.42', change: '2.00' });
-  });
-
-  test('a falling collection total has a negative change', async () => {
-    const user = await signUpNewUser();
-    await committed(user, scanBatch([stack(angelicCurator, { copies: 2 })]));
-    await recordDailyCollectionTotalsOn('2026-10-20');
-
-    await setPriceSnapshotAt('2026-10-21T23:30:00.000Z');
-    await setCuratorNonfoilPrice(1);
-
-    expect(await collectionTotal(user)).toMatchObject({ total: '0.02', change: '-0.40' });
-  });
-
-  test('copies added since the daily collection total count in the change', async () => {
-    const user = await signUpNewUser();
-    await committed(user, scanBatch([stack(angelicCurator)]));
-    await recordDailyCollectionTotalsOn('2026-10-20');
-
-    await setPriceSnapshotAt('2026-10-21T23:30:00.000Z');
-    await committed(user, scanBatch([stack(angelicCurator, { copies: 3 })]));
-
-    expect(await collectionTotal(user)).toMatchObject({ total: '0.84', change: '0.63' });
-  });
-
-  test('the change compares with the daily collection total of the day before, not an earlier one', async () => {
-    const user = await signUpNewUser();
-    await committed(user, scanBatch([stack(angelicCurator)]));
-    await recordDailyCollectionTotalsOn('2026-10-19');
-    await setCuratorNonfoilPrice(51);
-    await recordDailyCollectionTotalsOn('2026-10-20');
-
-    await setPriceSnapshotAt('2026-10-21T23:30:00.000Z');
-    await setCuratorNonfoilPrice(71);
-
-    expect(await collectionTotal(user)).toMatchObject({ total: '0.71', change: '0.20' });
-  });
-
-  test('there is no change when the latest daily collection total is older than the day before', async () => {
-    const user = await signUpNewUser();
-    await committed(user, scanBatch([stack(angelicCurator)]));
-    await recordDailyCollectionTotalsOn('2026-10-19');
-
-    await setPriceSnapshotAt('2026-10-21T23:30:00.000Z');
-
-    expect(await collectionTotal(user)).toMatchObject({ total: '0.21', change: null });
-  });
-
-  test('a second run on the same price day keeps the first daily collection total', async () => {
-    const user = await signUpNewUser();
-    await committed(user, scanBatch([stack(angelicCurator)]));
-    await recordDailyCollectionTotalsOn('2026-10-20');
-    const first = await dailyCollectionTotals(user.client);
-
-    await committed(user, scanBatch([stack(angelicCurator)]));
-    await recordDailyCollectionTotals();
-
-    expect(await dailyCollectionTotals(user.client)).toEqual(first);
-  });
-});
-
-describe('access to daily collection totals', () => {
-  let alice: TestUser;
-
-  beforeAll(async () => {
-    alice = await signUpNewUser();
-    await committed(alice, scanBatch([stack(angelicCurator)]));
-    await recordDailyCollectionTotalsOn('2026-10-20');
-  });
-
-  test("a user never reads another user's daily collection totals", async () => {
-    const stranger = await signUpNewUser();
-
-    expect((await dailyCollectionTotals(alice.client)).map((total) => total.currency)).toEqual(['USD', 'EUR']);
-    expect(await dailyCollectionTotals(stranger.client)).toEqual([]);
-  });
-
-  test('an anonymous caller cannot read daily collection totals', async () => {
-    const { error } = await anonymousClient().from('daily_collection_totals').select('*');
-
-    expect(error?.code).toBe(permissionDenied);
-  });
-
-  const row = { day: '2026-10-22', currency: 'USD', total_cents: 1, priced_copies: 1, copies: 1, price_snapshot_at: '2026-10-22T00:00:00Z' } as const;
-
-  test.each([
-    ['insert', (client: AppClient, userId: string) => client.from('daily_collection_totals').insert({ ...row, user_id: userId })],
-    ['update', (client: AppClient, userId: string) => client.from('daily_collection_totals').update({ total_cents: 0 }).eq('user_id', userId)],
-    ['delete', (client: AppClient, userId: string) => client.from('daily_collection_totals').delete().eq('user_id', userId)],
-  ])('a direct %s is refused for a signed-in user and an anonymous caller', async (_, write) => {
-    const before = await dailyCollectionTotals(alice.client);
-
-    expect((await write(alice.client, alice.userId)).error?.code).toBe(permissionDenied);
-    expect((await write(anonymousClient(), alice.userId)).error?.code).toBe(permissionDenied);
-    expect(await dailyCollectionTotals(alice.client)).toEqual(before);
-  });
-
-  test.each([
-    ['a signed-in user', () => alice.client],
-    ['the publishable key', anonymousClient],
-  ])('%s cannot record daily collection totals', async (_, client) => {
-    const { error } = await client().rpc('record_daily_collection_totals');
-
-    expect(error?.code).toBe(permissionDenied);
+    expect(error?.code).toBe(functionNotFound);
   });
 });
