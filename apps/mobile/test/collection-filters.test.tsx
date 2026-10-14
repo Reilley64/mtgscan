@@ -204,6 +204,19 @@ test('a user tag chip in the drawer puts its chip on and takes it off', async ()
   expect(lastSearch()).toEqual({});
 });
 
+test('a user tag chosen in Without user tags leaves With user tags', async () => {
+  await openCollection();
+  await openFilters();
+
+  await chooseFilter('With user tags', 'Signed');
+  await chooseFilter('Without user tags', 'Signed');
+
+  expect(filtersSection('With user tags').queryAllByRole('button', { selected: true })).toEqual([]);
+  expect(chosenFilters('Without user tags')).toEqual(['Signed']);
+  await swipeDownDrawer();
+  expect(lastSearch()).toEqual({ user_tags_exclude: ['Signed'] });
+});
+
 test('typed chips select their choices in the drawer', async () => {
   await openCollection();
   await typeInSearchBar('finish:foil user_tag:signed -user_tag:"trade binder" is:protected lang:ja ');

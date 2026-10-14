@@ -9,12 +9,22 @@ export type SingleChoiceProps<Value extends string> = {
   onSelect: (value: Value) => void;
 };
 
-export function ChipGroup<Value extends string>({ values, selected, labelOf, onSelect }: SingleChoiceProps<Value>) {
+export type SelectableChip = { label: string; selected: boolean; onPress: () => void };
+
+export function SelectableChips({ chips }: { chips: SelectableChip[] }) {
   return (
     <View className="flex-row flex-wrap gap-sm">
-      {values.map((value) => (
-        <Chip key={value} label={labelOf(value)} selected={value === selected} onPress={() => onSelect(value)} />
+      {chips.map(({ label, selected, onPress }) => (
+        <Chip key={label} label={label} selected={selected} onPress={onPress} />
       ))}
     </View>
+  );
+}
+
+export function ChipGroup<Value extends string>({ values, selected, labelOf, onSelect }: SingleChoiceProps<Value>) {
+  return (
+    <SelectableChips
+      chips={values.map((value) => ({ label: labelOf(value), selected: value === selected, onPress: () => onSelect(value) }))}
+    />
   );
 }

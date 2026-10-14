@@ -13,7 +13,7 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
 import { CollectionSearchHeader } from '@/components/organisms/collection-search-header';
 import { CollectionSortButton } from '@/components/organisms/collection-sort-button';
-import { collectionFiltersButton } from '@/components/organisms/collection-filters-button';
+import { collectionFiltersButton, filtersDrawerPath } from '@/components/organisms/collection-filters-button';
 import { collectionTotalMenu } from '@/components/organisms/collection-total';
 import { TabListScreen } from '@/components/templates/tab-screen';
 import { refusedChipMessage, type SearchChip } from '@/collection/collection-search';
@@ -96,7 +96,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
 
 export default function CollectionScreen() {
   const search = useCollectionSearchState();
-  const filtersOpen = usePathname() === '/filters';
+  const filtersOpen = usePathname() === filtersDrawerPath;
   const [order, setOrder] = useState(defaultCollectionOrder);
   const { binder, reload, loadMore } = useCollectionCopies({ ...search.query, ...collectionOrderQuery(order) });
   const suggesting = search.suggestions.length > 0;

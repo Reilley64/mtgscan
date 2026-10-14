@@ -1,32 +1,15 @@
-import { View } from 'react-native';
-
+import type { SearchChip } from '@/collection/collection-search';
 import {
   copyFilters,
-  hasChip,
+  hasUserTagChip,
   isChosen,
   showFilter,
-  userTagChip,
-  withChipToggled,
   withChoice,
+  withUserTagChipToggled,
   type SingleChoiceFilter,
-} from '@/collection/collection-filters';
-import type { SearchChip } from '@/collection/collection-search';
-import { Chip } from '@/components/atoms/chip';
+} from '@/collection/filter-choices';
+import { SelectableChips } from '@/components/molecules/chip-group';
 import { SheetSection } from '@/components/molecules/sheet-section';
-
-type FilterChip = { label: string; selected: boolean; onPress: () => void };
-
-function FilterSection({ title, chips }: { title: string; chips: FilterChip[] }) {
-  return (
-    <SheetSection title={title}>
-      <View className="flex-row flex-wrap gap-sm">
-        {chips.map(({ label, selected, onPress }) => (
-          <Chip key={label} label={label} selected={selected} onPress={onPress} />
-        ))}
-      </View>
-    </SheetSection>
-  );
-}
 
 type CollectionFiltersProps = {
   chips: SearchChip[];
@@ -37,28 +20,29 @@ type CollectionFiltersProps = {
 export function CollectionFilters({ chips, userTagNames, onChange }: CollectionFiltersProps) {
   function singleChoiceSection(filter: SingleChoiceFilter) {
     return (
-      <FilterSection
-        key={filter.title}
-        title={filter.title}
-        chips={filter.choices.map((choice) => ({
-          label: choice.label,
-          selected: isChosen(filter, choice, chips),
-          onPress: () => onChange(withChoice(filter, choice, chips)),
-        }))}
-      />
+      <SheetSection key={filter.title} title={filter.title}>
+        <SelectableChips
+          chips={filter.choices.map((choice) => ({
+            label: choice.label,
+            selected: isChosen(filter, choice, chips),
+            onPress: () => onChange(withChoice(filter, choice, chips)),
+          }))}
+        />
+      </SheetSection>
     );
   }
 
   function userTagSection(title: string, negated: boolean) {
     return (
-      <FilterSection
-        title={title}
-        chips={userTagNames.map((name) => ({
-          label: name,
-          selected: hasChip(chips, userTagChip(name, negated)),
-          onPress: () => onChange(withChipToggled(chips, userTagChip(name, negated))),
-        }))}
-      />
+      <SheetSection title={title}>
+        <SelectableChips
+          chips={userTagNames.map((name) => ({
+            label: name,
+            selected: hasUserTagChip(chips, name, negated),
+            onPress: () => onChange(withUserTagChipToggled(chips, name, negated)),
+          }))}
+        />
+      </SheetSection>
     );
   }
 

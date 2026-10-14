@@ -56,6 +56,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('link', { name: 'Text link' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'set:mh2' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'set:zzz' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Trade binder', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Nonfoil' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'M10' })).toBeEnabled();
   expect(screen.getAllByRole('button', { name: 'JA' }).at(-1)).toBeEnabled();

@@ -15,7 +15,7 @@ import { CardHero } from '@/components/molecules/card-hero';
 import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
-import { ChipGroup } from '@/components/molecules/chip-group';
+import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { DisclosureRow } from '@/components/molecules/disclosure-row';
 import { EmptyState } from '@/components/molecules/empty-state';
@@ -96,6 +96,24 @@ describe('ChipGroup', () => {
     expect(screen.getByRole('button', { name: 'LP', selected: true })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'NM', selected: false })).toHaveStyle({ backgroundColor: surfaceControl });
   });
+});
+
+test('selectable chips can show more than one chip selected', async () => {
+  await render(
+    <SelectableChips
+      chips={[
+        { label: 'Signed', selected: true, onPress: () => {} },
+        { label: 'Trade binder', selected: true, onPress: () => {} },
+        { label: 'Sold', selected: false, onPress: () => {} },
+      ]}
+    />,
+  );
+
+  expect(screen.getAllByRole('button', { selected: true }).map((chip) => within(chip).getByText(/./).props.children)).toEqual([
+    'Signed',
+    'Trade binder',
+  ]);
+  expect(screen.getByRole('button', { name: 'Signed', selected: true })).toHaveStyle({ backgroundColor: lime });
 });
 
 describe('ToggleGroup', () => {
