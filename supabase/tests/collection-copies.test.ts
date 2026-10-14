@@ -390,9 +390,11 @@ describe('pages of copy rows', () => {
 
 describe('collection entries and copy rows', () => {
   let user: TestUser;
+  let protectedCopies: string[];
 
   beforeAll(async () => {
     user = await signUpNewUser();
+    protectedCopies = (await seedCopies(user, [{ card_printing_id: ribbonsOfNight, is_protected: true }]))[0]!;
     await committed(
       user,
       scanBatch([
@@ -436,9 +438,12 @@ describe('collection entries and copy rows', () => {
   });
 
   test('the free chip with the negated protected chip gives the free copies that are not protected', async () => {
-    expect(copyIdsOf((await collectionCopies(user, { is_free: true, is_protected: false })).items).toSorted()).toEqual(
-      copyIdsOf((await collectionCopies(user)).items).toSorted(),
-    );
+    const every = copyIdsOf((await collectionCopies(user)).items);
+    const free = copyIdsOf((await collectionCopies(user, { is_free: true })).items);
+    const freeAndNotProtected = copyIdsOf((await collectionCopies(user, { is_free: true, is_protected: false })).items);
+
+    expect(free.toSorted()).toEqual(every.toSorted());
+    expect(freeAndNotProtected.toSorted()).toEqual(every.filter((copyId) => !protectedCopies.includes(copyId)).toSorted());
     expect((await collectionCopies(user, { is_free: false })).items).toEqual([]);
   });
 
