@@ -1,7 +1,7 @@
 import type { CopyDetails } from '@mtgscan/supabase/collection';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
-import { failCopyReads, ownCopies, removeCopyFromTheCollection, startSignedIn } from './fake-supabase';
+import { answerCollectionSearches, failCopyReads, ownCopies, removeCopyFromTheCollection, startSignedIn } from './fake-supabase';
 import {
   appearsBefore,
   blurredImageUris,
@@ -15,6 +15,7 @@ import {
   swipeBackFromThePushedScreen,
   symbolNames,
   symbolTintColor,
+  typeInSearchBar,
 } from './native-ui';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
@@ -92,6 +93,18 @@ describe('the binder tile', () => {
     expect(title).toBeOnTheScreen();
     expect(within(selectedTab()).queryByRole('header', { name: 'Delver of Secrets // Insectile Aberration' })).not.toBeOnTheScreen();
     expect(screen.queryByRole('header', { name: 'Angelic Curator' })).not.toBeOnTheScreen();
+  });
+
+  test('a binder tile in search results opens the copy page for that copy', async () => {
+    const curator = copyOf('copy-1');
+    ownCopies([curator, delver]);
+    answerCollectionSearches((query) => (query.text === 'delver' ? [delver] : [curator, delver]));
+    const collection = await openCollection();
+
+    await typeInSearchBar('delver');
+    await fireEvent.press(collection.getByRole('button', { name: /^Delver of Secrets/ }));
+
+    expect(await screen.findByRole('header', { name: 'Delver of Secrets // Insectile Aberration' })).toBeOnTheScreen();
   });
 });
 

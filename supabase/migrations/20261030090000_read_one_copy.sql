@@ -321,7 +321,10 @@ begin
     'rules_stale', rules_freshness.is_stale,
     'prices_observed_at', prices_freshness.snapshot_at,
     'prices_stale', prices_freshness.is_stale
-  );
+  ) || case
+    when api = 'collection' then jsonb_build_object('total_count', case when after_key is null then total_count end)
+    else '{}'::jsonb
+  end;
 end;
 $$;
 

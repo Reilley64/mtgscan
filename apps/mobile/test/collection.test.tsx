@@ -291,7 +291,7 @@ test('when its cursor has expired, the binder grid starts its read again, so scr
   await scrollToEnd(selectedTab());
   await scrollToEnd(selectedTab());
 
-  expect(await collection.findByRole('image', { name: /^Card 70,/ })).toBeOnTheScreen();
+  expect(await collection.findByRole('button', { name: /^Card 70,/ })).toBeOnTheScreen();
 });
 
 test('the Collection tab shows newly added copies when it gains focus again', async () => {
@@ -642,7 +642,7 @@ describe('collection search', () => {
     await typeInSearchBar('s');
 
     expect(collection.getByRole('button', { name: 'set:, Set code' })).toBeOnTheScreen();
-    expect(collection.queryByRole('image', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
+    expect(collection.queryByRole('button', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
   });
 
   test('a picked key goes into the search bar, and suggestions then offer its values', async () => {
@@ -710,7 +710,7 @@ describe('collection search', () => {
     await pressSearchKey();
 
     expect(collection.queryByRole('button', { name: 'set:, Set code' })).not.toBeOnTheScreen();
-    expect(collection.getByRole('image', { name: /^Sol Ring/ })).toBeOnTheScreen();
+    expect(collection.getByRole('button', { name: /^Sol Ring/ })).toBeOnTheScreen();
     expect(lastSearch()).toEqual({ text: 's' });
   });
 
@@ -751,7 +751,7 @@ describe('collection search', () => {
 
     expect(chipLabels()).toEqual([]);
     expect(lastSearch()).toEqual({});
-    expect(await collection.findByRole('image', { name: /^Angelic Curator/ })).toBeOnTheScreen();
+    expect(await collection.findByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
   });
 
   test('results show as binder tiles, one per copy, under a count line', async () => {
@@ -764,9 +764,9 @@ describe('collection search', () => {
 
     await typeInSearchBar('curator');
 
-    expect(collection.getAllByRole('image', { name: /^Angelic Curator/ })).toHaveLength(6);
+    expect(collection.getAllByRole('button', { name: /^Angelic Curator/ })).toHaveLength(6);
     expect(collection.getByText('6 of 27 copies')).toHaveStyle({ color: textMuted });
-    expect(collection.queryByRole('image', { name: /^Ponder/ })).not.toBeOnTheScreen();
+    expect(collection.queryByRole('button', { name: /^Ponder/ })).not.toBeOnTheScreen();
   });
 
   test('a new search shows the skeleton grid in place of the tiles until its results arrive', async () => {
@@ -810,7 +810,7 @@ describe('collection search', () => {
     expect(collection.getByText(message)).toBeOnTheScreen();
     expect(within(chipButton(typed)).getByText(typed)).toHaveStyle({ color: danger });
     expect(within(chipButton('finish:foil')).getByText('finish:foil')).not.toHaveStyle({ color: danger });
-    expect(collection.queryByRole('image', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
+    expect(collection.queryByRole('button', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
   });
 });
 
