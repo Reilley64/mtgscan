@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 import { deletePhoto, type CapturedPhoto } from '../../modules/card-detector';
 import { recognize, type Recognition } from '../../modules/card-recognizer';
@@ -23,10 +23,11 @@ async function recognizePhoto(photo: CapturedPhoto, photoRequestedAt: number): P
   }
 }
 
-export function useScanRecognition(): PhotoHandlers {
+type PhotoRequest = { requestedAt: number; photoId: string };
+
+export function useScanRecognition(): PhotoHandlers<PhotoRequest> {
   const { recognitionStarted, recognitionEnded } = useScanBatch();
   const { scanSounds } = useScanSounds();
-  const photoRequests = useRef<number[]>([]);
 
   useEffect(() => {
     if (scanSounds) {
@@ -34,27 +35,27 @@ export function useScanRecognition(): PhotoHandlers {
     }
   }, [scanSounds]);
 
-  const onPhotoRequested = useCallback(() => {
-    photoRequests.current.push(Date.now());
-    recognitionStarted();
-  }, [recognitionStarted]);
+  const onPhotoRequested = useCallback(
+    () => ({ requestedAt: Date.now(), photoId: recognitionStarted() }),
+    [recognitionStarted],
+  );
 
   const onPhoto = useCallback(
-    async (photo: CapturedPhoto) => {
-      const recognition = await recognizePhoto(photo, photoRequests.current.shift() ?? Date.now());
-      recognitionEnded(recognition);
+    async (photo: CapturedPhoto, { requestedAt, photoId }: PhotoRequest) => {
+      const recognition = await recognizePhoto(photo, requestedAt);
+      recognitionEnded(photoId, recognition);
       playScanFeedback(outcomeOf(recognition), scanSounds);
     },
     [recognitionEnded, scanSounds],
   );
 
-  const onPhotoFailed = useCallback(() => {
-    photoRequests.current.shift();
-    recognitionEnded('no_photo');
-  }, [recognitionEnded]);
+  const onPhotoFailed = useCallback(
+    ({ photoId }: PhotoRequest) => recognitionEnded(photoId, 'no_photo'),
+    [recognitionEnded],
+  );
 
   return useMemo(
-    () => ({ onPhotoRequested, onPhoto: (photo) => void onPhoto(photo), onPhotoFailed }),
+    () => ({ onPhotoRequested, onPhoto: (photo, request) => void onPhoto(photo, request), onPhotoFailed }),
     [onPhoto, onPhotoFailed, onPhotoRequested],
   );
 }

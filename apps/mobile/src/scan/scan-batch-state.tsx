@@ -44,7 +44,7 @@ type Scanning = Readonly<{
   restored: boolean;
   batch: ScanBatch;
   latest: Exclude<LatestScan, { kind: 'recognizing' | 'scan' }> | { kind: 'scan'; scanId: string } | null;
-  recognizing: number;
+  recognizing: readonly string[];
   commitStatus: CommitStatus;
 }>;
 
@@ -52,21 +52,28 @@ type ScanningAction =
   | ScanBatchAction
   | { type: 'accountChanged' }
   | { type: 'restored'; batch: ScanBatch }
-  | { type: 'recognitionStarted' }
-  | { type: 'recognitionEnded'; scanId: string; recognition: RecognitionResult }
+  | { type: 'recognitionStarted'; photoId: string }
+  | { type: 'recognitionEnded'; photoId: string; scanId: string; recognition: RecognitionResult }
   | { type: 'commitFailed' }
-  | { type: 'commitSucceeded'; scanIds: string[] };
+  | { type: 'commitSucceeded'; scanIds: string[] }
+  | { type: 'removedAll' };
 
 const initialScanning: Scanning = {
   restored: false,
   batch: emptyScanBatch,
   latest: null,
-  recognizing: 0,
+  recognizing: [],
   commitStatus: 'idle',
 };
 
-function recognitionEnded(state: Scanning, scanId: string, recognition: RecognitionResult): Scanning {
-  const ended = { ...state, recognizing: Math.max(0, state.recognizing - 1) };
+function recognitionEnded(
+  state: Scanning,
+  { photoId, scanId, recognition }: Extract<ScanningAction, { type: 'recognitionEnded' }>,
+): Scanning {
+  if (!state.recognizing.includes(photoId)) {
+    return state;
+  }
+  const ended = { ...state, recognizing: state.recognizing.filter((id) => id !== photoId) };
   if (recognition === 'no_photo' || (recognition !== 'failed' && recognition.kind === 'not_a_card')) {
     return ended;
   }
@@ -98,9 +105,9 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
         batch: { ...action.batch, scans: [...action.batch.scans, ...state.batch.scans] },
       };
     case 'recognitionStarted':
-      return { ...state, recognizing: state.recognizing + 1 };
+      return { ...state, recognizing: [...state.recognizing, action.photoId] };
     case 'recognitionEnded':
-      return recognitionEnded(state, action.scanId, action.recognition);
+      return recognitionEnded(state, action);
     case 'addCopy':
       return {
         ...state,
@@ -118,6 +125,8 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
         latest: null,
         commitStatus: 'idle',
       };
+    case 'removedAll':
+      return { ...initialScanning, restored: state.restored };
     default:
       return { ...state, batch: scanBatchReducer(state.batch, action) };
   }
@@ -139,15 +148,16 @@ type ScanBatchState = {
   commitStatus: CommitStatus;
   dispatch: Dispatch<ScanEdit>;
   addCopy: (scanId: string) => void;
+  removeAll: () => void;
   commit: () => Promise<boolean>;
-  recognitionStarted: () => void;
-  recognitionEnded: (recognition: RecognitionResult) => void;
+  recognitionStarted: () => string;
+  recognitionEnded: (photoId: string, recognition: RecognitionResult) => void;
 };
 
 const ScanBatchContext = createContext<ScanBatchState | null>(null);
 
 function latestScan({ batch, latest, recognizing }: Scanning): LatestScan | null {
-  if (recognizing > 0) {
+  if (recognizing.length > 0) {
     return { kind: 'recognizing' };
   }
   if (latest?.kind === 'scan') {
@@ -205,16 +215,22 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
     }
   }, [state.batch, state.restored, userId]);
 
-  const recognitionStarted = useCallback(() => dispatchScanning({ type: 'recognitionStarted' }), []);
+  const recognitionStarted = useCallback(() => {
+    const photoId = randomUUID();
+    dispatchScanning({ type: 'recognitionStarted', photoId });
+    return photoId;
+  }, []);
   const recognitionEnded = useCallback(
-    (recognition: RecognitionResult) =>
-      dispatchScanning({ type: 'recognitionEnded', scanId: randomUUID(), recognition }),
+    (photoId: string, recognition: RecognitionResult) =>
+      dispatchScanning({ type: 'recognitionEnded', photoId, scanId: randomUUID(), recognition }),
     [],
   );
   const addCopy = useCallback(
     (scanId: string) => dispatchScanning({ type: 'addCopy', scanId, newScanId: randomUUID() }),
     [],
   );
+
+  const removeAll = useCallback(() => dispatchScanning({ type: 'removedAll' }), []);
 
   const commit = useCallback(() => commitBatch(state.batch), [commitBatch, state.batch]);
 
@@ -225,11 +241,12 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
       commitStatus: state.commitStatus,
       dispatch: dispatchScanning,
       addCopy,
+      removeAll,
       commit,
       recognitionStarted,
       recognitionEnded,
     }),
-    [addCopy, commit, recognitionEnded, recognitionStarted, state],
+    [addCopy, commit, recognitionEnded, recognitionStarted, removeAll, state],
   );
 
   return <ScanBatchContext value={value}>{children}</ScanBatchContext>;

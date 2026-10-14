@@ -4,6 +4,7 @@ import { ScrollView, View } from 'react-native';
 
 import { Text } from '@/components/atoms/text';
 import { cn } from '@/lib/class-names';
+import { inlineTitleStyle } from '@/components/templates/tab-stack';
 import { colors } from '@/theme';
 
 const sheetBackground = { backgroundColor: colors.sheet };
@@ -26,11 +27,20 @@ export const drawerStackOptions: NativeStackNavigationOptions = {
   contentStyle: sheetBackground,
 };
 
-export const pushedDrawerScreenOptions: NativeStackNavigationOptions = {
+const drawerHeaderOptions: NativeStackNavigationOptions = {
   headerShown: true,
-  title: '',
   headerStyle: sheetBackground,
   headerShadowVisible: false,
+};
+
+export const titledDrawerScreenOptions: NativeStackNavigationOptions = {
+  ...drawerHeaderOptions,
+  headerTitleStyle: inlineTitleStyle,
+};
+
+export const pushedDrawerScreenOptions: NativeStackNavigationOptions = {
+  ...drawerHeaderOptions,
+  title: '',
   headerTintColor: colors.primary,
 };
 

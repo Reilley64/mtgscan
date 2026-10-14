@@ -2,6 +2,8 @@ import { Stack } from 'expo-router';
 
 import { colors, typography } from '@/theme';
 
+export const inlineTitleStyle = { ...typography.sheetTitle, color: colors.text };
+
 export function TabStack() {
   return (
     <Stack
@@ -12,7 +14,7 @@ export function TabStack() {
           fontWeight: typography.largeTitle.fontWeight,
           color: colors.text,
         },
-        headerTitleStyle: { ...typography.sheetTitle, color: colors.text },
+        headerTitleStyle: inlineTitleStyle,
       }}
     />
   );
