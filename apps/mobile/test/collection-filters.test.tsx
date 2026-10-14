@@ -141,7 +141,7 @@ test('Free sends free copies that are not protected, Protected sends protected c
   expect(lastSearch()).toEqual({});
 });
 
-test('drawer choices show as chips under the search bar, and the badge counts them for the eye and for VoiceOver', async () => {
+test('drawer choices show as chips under the search bar, and the badge counts the filters for the eye and for VoiceOver', async () => {
   await openCollection();
   await openFilters();
 
@@ -159,7 +159,26 @@ test('drawer choices show as chips under the search bar, and the badge counts th
     user_tags_exclude: ['Signed'],
     conditions: ['lightly_played'],
   });
-  expect(headerButtonBadge(selectedTab(), 'Filters, 5')).toEqual({ count: '5', color: processColor(badge) });
+  expect(headerButtonBadge(selectedTab(), 'Filters, 4')).toEqual({ count: '4', color: processColor(badge) });
+});
+
+test('Free counts as one filter in the badge, though it is two chips', async () => {
+  await openCollection();
+
+  await chooseInFilters('Show', 'Free');
+
+  expect(chipLabels()).toEqual(['is:free', '-is:protected']);
+  expect(headerButtonBadge(selectedTab(), 'Filters, 1')).toEqual({ count: '1', color: processColor(badge) });
+});
+
+test('typed chips count one filter each, and typed Free chips count as one', async () => {
+  await openCollection();
+
+  await typeInSearchBar('set:mh2 is:free ');
+  expect(headerButtonBadge(selectedTab(), 'Filters, 2')?.count).toBe('2');
+
+  await typeInSearchBar('-is:protected ');
+  expect(headerButtonBadge(selectedTab(), 'Filters, 2')?.count).toBe('2');
 });
 
 test('the collection searches again when the Filters drawer closes', async () => {

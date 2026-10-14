@@ -17,14 +17,12 @@ function anyOrOne(title: string, key: SearchChip['key'], values: [string, string
   };
 }
 
+const freeChoice: FilterChoice = { label: 'Free', chips: [keyValueChip('is', 'free'), keyValueChip('is', 'protected', true)] };
+
 export const showFilter: SingleChoiceFilter = {
   title: 'Show',
   owns: (chip) => chip.key === 'is' && (chip.value === 'free' || chip.value === 'protected'),
-  choices: [
-    { label: 'All', chips: [] },
-    { label: 'Free', chips: [keyValueChip('is', 'free'), keyValueChip('is', 'protected', true)] },
-    { label: 'Protected', chips: [keyValueChip('is', 'protected')] },
-  ],
+  choices: [{ label: 'All', chips: [] }, freeChoice, { label: 'Protected', chips: [keyValueChip('is', 'protected')] }],
 };
 
 export const copyFilters: SingleChoiceFilter[] = [
@@ -65,4 +63,8 @@ export function withUserTagChipToggled(chips: SearchChip[], name: string, negate
   return hasUserTagChip(chips, name, negated)
     ? chips.filter((chip) => !sameChip(chip, userTagChip))
     : [...chips.filter((chip) => !sameChip(chip, opposite)), userTagChip];
+}
+
+export function activeFilterCount(chips: SearchChip[]) {
+  return isChosen(showFilter, freeChoice, chips) ? chips.length - 1 : chips.length;
 }

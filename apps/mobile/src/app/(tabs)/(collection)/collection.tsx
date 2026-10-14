@@ -18,6 +18,7 @@ import { collectionTotalMenu } from '@/components/organisms/collection-total';
 import { TabListScreen } from '@/components/templates/tab-screen';
 import { refusedChipMessage, type SearchChip } from '@/collection/collection-search';
 import { useCollectionSearchState } from '@/collection/collection-search-state';
+import { activeFilterCount } from '@/collection/filter-choices';
 import { collectionOrderQuery, defaultCollectionOrder } from '@/collection/collection-sort';
 import { sheenOf, shownCondition, shownPrice, spokenFinishAndCondition } from '@/collection/copy-labels';
 import { shownMatchCount } from '@/collection/total-labels';
@@ -110,7 +111,7 @@ export default function CollectionScreen() {
   return (
     <TabListScreen
       title="Collection"
-      actions={[collectionFiltersButton(search.chips.length), total && total.copies > 0 ? collectionTotalMenu(total) : null]}
+      actions={[collectionFiltersButton(activeFilterCount(search.chips)), total && total.copies > 0 ? collectionTotalMenu(total) : null]}
       search={search.searchBar}
       ListHeaderComponent={
         <CollectionSearchHeader
