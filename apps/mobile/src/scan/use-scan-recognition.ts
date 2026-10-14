@@ -3,8 +3,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { deletePhoto, type CapturedPhoto } from '../../modules/card-detector';
 import { recognize, type Recognition } from '../../modules/card-recognizer';
 import { errorCode } from '@/lib/error-code';
-import { outcomeOf, useScanBatch } from './scan-batch-state';
-import { playScanFeedback } from './scan-feedback';
+import { useScanBatch } from './scan-batch-state';
 import { logRecognition } from './recognition-log';
 import { preloadScanSounds } from './scan-sounds';
 import { useScanSounds } from './scan-sounds-setting';
@@ -42,11 +41,9 @@ export function useScanRecognition(): PhotoHandlers<PhotoRequest> {
 
   const onPhoto = useCallback(
     async (photo: CapturedPhoto, { requestedAt, photoId }: PhotoRequest) => {
-      const recognition = await recognizePhoto(photo, requestedAt);
-      recognitionEnded(photoId, recognition);
-      playScanFeedback(outcomeOf(recognition), scanSounds);
+      recognitionEnded(photoId, await recognizePhoto(photo, requestedAt));
     },
-    [recognitionEnded, scanSounds],
+    [recognitionEnded],
   );
 
   const onPhotoFailed = useCallback(

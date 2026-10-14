@@ -1,7 +1,7 @@
 import { GlassGroup } from '@/components/atoms/glass-surface';
 import { LatestScanChip } from '@/components/organisms/latest-scan-chip';
 import { ScanQuickActions } from '@/components/organisms/scan-quick-actions';
-import { recognizedScan, type BatchScan } from '@/scan/scan-batch';
+import type { BatchScan } from '@/scan/scan-batch';
 import type { LatestScan } from '@/scan/scan-batch-state';
 
 type LatestScanControlsProps = {
@@ -18,7 +18,7 @@ export function LatestScanControls({ latest, onOpen, ...quickActions }: LatestSc
   return (
     <GlassGroup className="gap-sm">
       {latest ? <LatestScanChip latest={latest} onOpen={onOpen} /> : null}
-      <ScanQuickActions scan={recognizedScan(latest?.kind === 'scan' ? latest.scan : null)} {...quickActions} />
+      <ScanQuickActions scan={latest?.kind === 'scan' ? latest.scan : null} {...quickActions} />
     </GlassGroup>
   );
 }

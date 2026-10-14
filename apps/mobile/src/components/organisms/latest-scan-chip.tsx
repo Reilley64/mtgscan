@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/atoms/skeleton';
 import { Text } from '@/components/atoms/text';
 import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
 import { chipDetails } from '@/scan/printing-caption';
-import { recognizedScan, type BatchScan, type Printing } from '@/scan/scan-batch';
+import type { Printing } from '@/scan/scan-batch';
 import type { LatestScan } from '@/scan/scan-batch-state';
 import { sizes } from '@/theme';
 
@@ -51,14 +51,13 @@ function BasicLandChip({ printing, image }: { printing: Printing; image: string 
   );
 }
 
-function ScanChip({ scan, image, onOpen }: { scan: BatchScan; image: string | undefined; onOpen: (scanId: string) => void }) {
-  const recognized = recognizedScan(scan);
-  const name = recognized ? recognized.printing.name : 'Not recognized';
-  const details = recognized ? chipDetails(recognized) : ['Tap to search'];
+type ScanChipProps = { name: string; details: string[]; image: string | undefined; onOpen: () => void };
+
+function ScanChip({ name, details, image, onOpen }: ScanChipProps) {
   return (
     <ThumbnailChip
       accessibilityLabel={[name, ...details].join(', ')}
-      onPress={() => onOpen(scan.scanId)}
+      onPress={onOpen}
       thumbnail={<CardThumbnail uri={image} />}
       accessory={<DimSymbol name="chevron.right" size={sizes.chevron} />}>
       <ChipText name={name} details={details} />
@@ -76,6 +75,17 @@ export function LatestScanChip({ latest, onOpen }: LatestScanChipProps) {
     case 'basic_land':
       return <BasicLandChip printing={latest.printing} image={image} />;
     case 'scan':
-      return <ScanChip scan={latest.scan} image={image} onOpen={onOpen} />;
+      return (
+        <ScanChip
+          name={latest.scan.printing.name}
+          details={chipDetails(latest.scan)}
+          image={image}
+          onOpen={() => onOpen(latest.scan.scanId)}
+        />
+      );
+    case 'not_recognized':
+      return (
+        <ScanChip name="Not recognized" details={['Tap to search']} image={undefined} onOpen={() => onOpen(latest.scanId)} />
+      );
   }
 }

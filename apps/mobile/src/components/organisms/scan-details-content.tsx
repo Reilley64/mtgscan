@@ -10,10 +10,10 @@ import { ChipGroup } from '@/components/molecules/chip-group';
 import { ListRow } from '@/components/molecules/list-row';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { printingCaption } from '@/scan/printing-caption';
-import type { RecognizedScan, ScanEdit } from '@/scan/scan-batch';
+import type { BatchScan, ScanEdit } from '@/scan/scan-batch';
 
 type ScanDetailsContentProps = {
-  scan: RecognizedScan;
+  scan: BatchScan;
   dispatch: (action: ScanEdit) => void;
   onSearch: () => void;
   onRemove: () => void;

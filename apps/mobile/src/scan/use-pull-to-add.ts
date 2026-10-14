@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { PullIndicatorKind } from '@/components/molecules/pull-indicator';
 import { sizes, spacing } from '@/theme';
 
-import { scansToAdd } from './scan-batch';
 import { useScanBatch } from './scan-batch-state';
 
 export const releaseDistance = 120;
@@ -124,7 +123,7 @@ function createPullGesture(distance: Animated.Value, onChange: (pull: PullState)
 export function usePullToAdd() {
   const { batch, latest, commit, commitStatus } = useScanBatch();
   const { top } = useSafeAreaInsets();
-  const count = scansToAdd(batch).length;
+  const count = batch.scans.length;
   const busy = latest?.kind === 'recognizing' || commitStatus === 'adding';
   const [pull, setPull] = useState<PullState>({ phase: 'idle' });
   const [distance] = useState(() => new Animated.Value(0));

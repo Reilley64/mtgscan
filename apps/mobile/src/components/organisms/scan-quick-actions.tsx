@@ -4,11 +4,11 @@ import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { SetIcon } from '@/components/atoms/set-icon';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
-import { newScanDefaults, type BatchScan, type RecognizedScan } from '@/scan/scan-batch';
+import { newScanDefaults, type BatchScan } from '@/scan/scan-batch';
 import { sizes } from '@/theme';
 
 type ScanQuickActionsProps = {
-  scan: RecognizedScan | null;
+  scan: BatchScan | null;
   onAddCopy: (scanId: string) => void;
   onChangeFinish: (scanId: string, finish: BatchScan['finish']) => void;
   onChangeCondition: (scanId: string) => void;
