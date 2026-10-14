@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CollectionCopiesPage } from '../collection';
+import type { CollectionCopyRow } from '../collection';
+import type { SearchPage } from '../search';
 import { testUser } from '../test-user/account';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runTestUserCommand } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, type AppClient } from './local-stack';
@@ -15,9 +16,9 @@ async function signedInTestUser(): Promise<AppClient> {
 }
 
 async function ownedCopies(client: AppClient) {
-  const { data, error } = await client.rpc('list_collection_copies', { query: { limit: 120 } });
+  const { data, error } = await client.rpc('search_collection', { query: { rows: 'copies', limit: 120 } });
   expect(error).toBeNull();
-  return (data as unknown as CollectionCopiesPage).items;
+  return (data as unknown as SearchPage<CollectionCopyRow>).items;
 }
 
 async function collectionEntries(client: AppClient) {
@@ -59,7 +60,7 @@ describe('the test user command', () => {
 
     expect(exitCode).toBe(0);
     expect(output).toContain(`The test user ${testUser.email} is ready.`);
-    expect(await ownedCopies(await signedInTestUser())).toEqual([]);
+    expect(await collectionEntries(await signedInTestUser())).toEqual([]);
   });
 
   test('--sample-collection adds sample collection entries to the test user through add_scan_batch', async () => {

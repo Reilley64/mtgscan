@@ -1,4 +1,5 @@
-import type { CollectionCopiesPage, CollectionCopyRow } from '@mtgscan/supabase/collection';
+import type { CollectionCopyRow, CollectionQuery } from '@mtgscan/supabase/collection';
+import type { SearchPage } from '@mtgscan/supabase/search';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 
@@ -10,11 +11,12 @@ export type BinderRead =
   | { status: 'loaded'; copies: CollectionCopyRow[]; nextCursor: string | null };
 
 async function readCollectionCopies(cursor: string | null) {
-  const { data, error } = await supabase.rpc('list_collection_copies', { query: { cursor } });
+  const query: CollectionQuery = { rows: 'copies', cursor };
+  const { data, error } = await supabase.rpc('search_collection', { query });
   if (error) {
     throw error;
   }
-  return data as unknown as CollectionCopiesPage;
+  return data as unknown as SearchPage<CollectionCopyRow>;
 }
 
 export function useCollectionCopies() {

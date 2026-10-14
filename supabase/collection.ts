@@ -1,5 +1,5 @@
 import type { Database } from './database.types';
-import { readSearchError, type CatalogQuery, type Finish, type PriceCurrency, type PriceFrom, type SearchError } from './search';
+import { readSearchError, type CatalogQuery, type CatalogSort, type Finish, type PriceCurrency, type PriceFrom, type SearchError } from './search';
 
 export type CardCondition = Database['public']['Enums']['card_condition'];
 
@@ -7,7 +7,11 @@ export type CardLanguage = Database['public']['Enums']['card_language'];
 
 export type CardRarity = Database['public']['Enums']['card_rarity'];
 
-export type CollectionQuery = CatalogQuery & {
+export type CollectionSort = CatalogSort | 'added';
+
+export type CollectionQuery = Omit<CatalogQuery, 'sort'> & {
+  rows?: 'entries' | 'copies';
+  sort?: CollectionSort;
   finishes?: Finish[];
   finishes_exclude?: Finish[];
   conditions?: CardCondition[];
@@ -68,12 +72,6 @@ export type ScanBatchResult = {
   copies: ScanBatchResultCopy[];
 };
 
-export type CollectionCopiesQuery = {
-  limit?: number;
-  cursor?: string | null;
-  price_currency?: PriceCurrency;
-};
-
 export type CurrentPrice = Omit<PriceFrom, 'basis'> & { stale: boolean };
 
 export type CollectionCopyRow = {
@@ -89,11 +87,6 @@ export type CollectionCopyRow = {
   language: CardLanguage;
   protected: boolean;
   price: CurrentPrice | null;
-};
-
-export type CollectionCopiesPage = {
-  items: CollectionCopyRow[];
-  next_cursor: string | null;
 };
 
 export type CollectionTotalQuery = {

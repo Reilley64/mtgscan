@@ -185,18 +185,6 @@ Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_
 - The result has the new addition (`addition_id`, `added_at`, `copy_count`, and `items`, or nulls and 0 when nothing was new) and one row in `copies` per copy ID: its `copy_id`, the addition it went into, and `replayed` true when an earlier call added it.
 - A refused call writes nothing. Its error has a `code` of `invalid_argument`, `unknown_printing`, or `basic_land`, and the field at fault in `details`, such as `items[3].finish`. `readScanBatchError` reads it.
 
-### Binder grid read
-
-Signed-in users read their collection as copies with `supabase.rpc('list_collection_copies', { query })`. The binder grid shows one tile for each row it returns. The query has an optional `limit` from 1 to 120, which defaults to 60, an optional `cursor`, and an optional `price_currency`, `USD` or `EUR`, which defaults to `USD`. `supabase/collection.ts` has the shared types for the query and the page.
-
-- Each copy gives one row, with its `copy_id`.
-- The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`.
-- The copy gives `finish`, `condition`, `language`, and `protected`.
-- `price` is the current price of the card printing and finish in the chosen currency: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says. Condition and language do not change it. `price` is null when `card_prices` has no price for that card printing, finish, and currency. A price is never taken from another finish. EUR etched prices are always null.
-- Rows sort by the card printing's latest addition time, newest first, then by name, card printing ID, and copy ID. Copies of the same card printing sit next to each other.
-- `next_cursor` reads the next page. A cursor works only for the user who got it, for 15 minutes. A refused call has the code `invalid_argument` or `invalid_cursor` and the field at fault in `details`, as in catalog search.
-- The function runs with the caller's rights, so the read policy on `copies` returns only the caller's copies. An anonymous caller and the secret key are refused.
-
 ### Collection total
 
 Signed-in users read their collection total with `supabase.rpc('get_collection_total', { query })`. The query has an optional `price_currency`, `USD` or `EUR`, which defaults to `USD`. `supabase/collection.ts` has the shared types.
@@ -212,18 +200,24 @@ Signed-in users read their collection total with `supabase.rpc('get_collection_t
 
 ### Collection search
 
-Signed-in users search their own collection entries with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips. `supabase/collection.ts` has the shared types for the query and the result rows.
+Signed-in users search their own collection with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips and `rows`. `supabase/collection.ts` has the shared types for the query and the result rows. The Collection tab reads its binder grid only through collection search, with `rows: 'copies'`.
 
-- An empty query returns every collection entry from A to Z. Collection search also returns cards that are not Commander-legal, and collection entries whose card printing is marked absent.
-- `finishes`, `conditions`, and `languages` match the collection entry. They take the finish, condition, and language values of collection entries.
-- `sets` and `rarities` match the entry's own card printing. `price_min`, `price_max`, and `sort: 'price'` use the current price of that card printing and finish. `sort: 'release_date'` uses the release date of that card printing.
-- `is_free` matches entries with at least one free copy. A protected copy can be free. `is_protected` matches the protected flag. The Collection tab's Free filter is `is_free: true` with `is_protected: false`.
+- Chips match copies. `finishes`, `conditions`, and `languages` take the finish, condition, and language values of copies.
+- `sets` and `rarities` match the copy's own card printing. `price_min`, `price_max`, and `sort: 'price'` use the current price of that card printing and finish. `sort: 'release_date'` uses the release date of that card printing.
+- `is_free` matches free copies. A protected copy can be free. `is_protected` matches the protected flag. The Collection tab's Free filter is `is_free: true` with `is_protected: false`.
 - `deck_ids` and `deck_ids_exclude` take deck IDs. Until decks exist, every deck ID is refused with `invalid_argument` on its field.
-- Each row is one collection entry: the copies that share a card printing, finish, condition, language, and protected flag. A collection entry has no ID of its own.
-- Each row has the collection entry's quantity, free quantity, allocated quantity, and held quantity. They count the copies in the collection availability view. The view has one row for each copy of the caller, with its allocated, held, and free flags. Allocated and held stay false until decks and planned swaps exist.
+- Collection search also returns cards that are not Commander-legal, and copies whose card printing is marked absent.
+- `rows` is `entries` or `copies`, and defaults to `entries`.
+  - With `entries`, each row is one collection entry: the matching copies that share a card printing, finish, condition, language, and protected flag. A collection entry has no ID of its own. Each row has the quantity, free quantity, allocated quantity, and held quantity of its matching copies. `limit` is 1 to 50 and defaults to 20.
+  - With `copies`, each row is one copy, with its `copy_id`. `limit` is 1 to 120 and defaults to 60. The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`. The copy gives `finish`, `condition`, `language`, and `protected`.
+  - A copy row's `price` is the current price of the card printing and finish in the chosen currency: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says. Condition and language do not change it. `price` is null when `card_prices` has no price for that card printing, finish, and currency. A price is never taken from another finish. EUR etched prices are always null.
+- `sort` is `relevance` by default, with or without text. Without text, relevance means `added`, so an empty query lists the newest addition first.
+- `sort: 'added'` lists the card printing with the newest addition first. Its copies sit next to each other. `sort_order: 'asc'` puts the oldest addition first.
+- Rows with the same sort value sort by name, then by card printing ID, then by copy ID.
+- Each row counts the copies in the collection availability view. The view has one row for each copy of the caller, with its allocated, held, and free flags. Allocated and held stay false until decks and planned swaps exist.
 - Collection search runs with the caller's rights, like catalog search. The views set `security_invoker`, so the read policy on `copies` keeps only the caller's rows.
 - Catalog search, `get_cards`, and `list_card_printings` read owned quantities from the same view. A printing list keeps an absent card printing when the caller owns it.
-- Each first page writes one row to `search_telemetry` with the API `collection`. The secret key cannot call collection search.
+- A first page with text or a filter writes one row to `search_telemetry` with the API `collection`. A read with no text and no filter writes none, so a plain binder read is not recorded. `rows`, `sort`, `sort_order`, `limit`, `price_currency`, and `include_oracle_text` are not filters. The secret key cannot call collection search.
 
 ### Search release check
 

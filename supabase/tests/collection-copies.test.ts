@@ -1,16 +1,15 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { type CollectionCopiesPage, type CollectionCopiesQuery, type CollectionCopyRow, type CurrentPrice } from '../collection';
+import type { CollectionCopyRow, CollectionQuery, CollectionRow, CurrentPrice } from '../collection';
 import type { Json } from '../database.types';
-import { readSearchError } from '../search';
+import { readSearchError, type SearchPage } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
-import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
+import { secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { seedCopies } from './copy-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
 
-const permissionDenied = '42501';
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
 const ribbonsOfNight = '010eba83-30ec-4cca-b07e-f24d8d2f0787';
@@ -21,10 +20,9 @@ type CatalogPrinting = Pick<CollectionCopyRow, 'printing_id' | 'name' | 'set' | 
 
 let catalog: CatalogPrinting[];
 let alice: TestUser;
-let bob: TestUser;
 
 beforeAll(async () => {
-  [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
+  alice = await signUpNewUser();
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
@@ -51,26 +49,23 @@ function catalogPrinting(printingId: string): CatalogPrinting {
   return printing;
 }
 
-async function listCollectionCopies(
-  client: AppClient,
-  query: CollectionCopiesQuery | Record<string, unknown> | unknown[] = {},
-) {
-  const { data, error } = await client.rpc('list_collection_copies', { query: query as Json });
-  return { page: data as unknown as CollectionCopiesPage | null, error: error && readSearchError(error) };
+async function searchCopies(client: AppClient, query: CollectionQuery | Record<string, unknown> = {}) {
+  const { data, error } = await client.rpc('search_collection', { query: { rows: 'copies', ...query } as Json });
+  return { page: data as unknown as SearchPage<CollectionCopyRow> | null, error: error && readSearchError(error) };
 }
 
-async function collectionCopies(user: TestUser, query: CollectionCopiesQuery = {}) {
-  const { page, error } = await listCollectionCopies(user.client, query);
+async function collectionCopies(user: TestUser, query: CollectionQuery = {}) {
+  const { page, error } = await searchCopies(user.client, query);
   expect(error).toBeNull();
   return page!;
 }
 
-async function allCollectionCopies(user: TestUser, limit: number) {
+async function allCollectionCopies(user: TestUser, limit: number, query: CollectionQuery = {}) {
   const rows: CollectionCopyRow[] = [];
   const sizes: number[] = [];
   let cursor: string | null = null;
   do {
-    const page = await collectionCopies(user, { limit, cursor });
+    const page = await collectionCopies(user, { ...query, limit, cursor });
     rows.push(...page.items);
     sizes.push(page.items.length);
     cursor = page.next_cursor;
@@ -94,11 +89,11 @@ function currentPrice(currency: CurrentPrice['currency'], amount: string, finish
   return { amount, currency, finish, stale: false };
 }
 
-describe('the binder grid read', () => {
+describe('copy rows', () => {
   test('a user with no copies gets an empty page', async () => {
     const user = await signUpNewUser();
 
-    expect(await collectionCopies(user)).toEqual({ items: [], next_cursor: null });
+    expect(await collectionCopies(user)).toMatchObject({ items: [], next_cursor: null });
   });
 
   test('each copy is one row with its copy ID, card printing and rarity, finish, condition, language, protected flag, and price', async () => {
@@ -153,6 +148,21 @@ describe('the binder grid read', () => {
     const { items } = await collectionCopies(user);
 
     expect(printingIds(items)).toEqual([angelicCurator, angelicCurator, ribbonsOfNight, ribbonsOfNight, delverInnistrad]);
+  });
+
+  test('with no text, relevance gives the same order as sort added, and sort added in ascending order puts the oldest addition first', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(angelicCurator)]));
+    await committed(user, scanBatch([stack(delverInnistrad)]));
+    await committed(user, scanBatch([stack(ribbonsOfNight)]));
+
+    const relevance = (await collectionCopies(user, { sort: 'relevance' })).items;
+    const added = (await collectionCopies(user, { sort: 'added' })).items;
+    const oldestFirst = (await collectionCopies(user, { sort: 'added', sort_order: 'asc' })).items;
+
+    expect(printingIds(added)).toEqual([ribbonsOfNight, delverInnistrad, angelicCurator]);
+    expect(printingIds(relevance)).toEqual(printingIds(added));
+    expect(printingIds(oldestFirst)).toEqual([angelicCurator, delverInnistrad, ribbonsOfNight]);
   });
 
   test('card printings added at the same time sort by name, then by card printing ID', async () => {
@@ -272,7 +282,7 @@ describe('current prices', () => {
   });
 });
 
-describe('binder grid pages', () => {
+describe('pages of copy rows', () => {
   const seededPrintings = 50;
   const seededCopies = 123;
   let user: TestUser;
@@ -315,6 +325,24 @@ describe('binder grid pages', () => {
     expect(sizes).toEqual(pageSizes);
   });
 
+  test.each(['relevance', 'added', 'name', 'mana_value', 'edhrec_rank', 'price', 'release_date'] as const)(
+    'sort %p and its reverse cover every copy once, in the same order in pages of 1 and of 120',
+    async (sort) => {
+      for (const sort_order of ['asc', 'desc'] as const) {
+        const query: CollectionQuery = sort === 'relevance' ? { sort, sort_order, text: 'a' } : { sort, sort_order };
+        const reference = copyIdsOf((await allCollectionCopies(user, 120, query)).rows);
+
+        const { rows } = await allCollectionCopies(user, 1, query);
+
+        expect(copyIdsOf(rows)).toEqual(reference);
+        expect(new Set(reference).size).toBe(reference.length);
+        if (sort !== 'relevance') {
+          expect(reference.toSorted()).toEqual(seeded.toSorted());
+        }
+      }
+    },
+  );
+
   test.each<[string, Record<string, unknown> | unknown[], string | null]>([
     ['a query that is not an object', [], null],
     ['a limit of 0', { limit: 0 }, 'limit'],
@@ -323,15 +351,18 @@ describe('binder grid pages', () => {
     ['a cursor that is not a string', { cursor: 7 }, 'cursor'],
     ['an unknown field', { owned_only: true }, 'owned_only'],
     ['a price currency other than USD or EUR', { price_currency: 'GBP' }, 'price_currency'],
+    ['rows other than entries or copies', { rows: 'printings' }, 'rows'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
-    const { page, error } = await listCollectionCopies(user.client, query);
+    const { data, error } = await user.client.rpc('search_collection', {
+      query: (Array.isArray(query) ? query : { rows: 'copies', ...query }) as Json,
+    });
 
-    expect(page).toBeNull();
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(data).toBeNull();
+    expect(error && readSearchError(error)).toMatchObject({ code: 'invalid_argument', field });
   });
 
   test('a malformed cursor is refused with invalid_cursor', async () => {
-    const { error } = await listCollectionCopies(user.client, { cursor: 'not a cursor' });
+    const { error } = await searchCopies(user.client, { cursor: 'not a cursor' });
 
     expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
   });
@@ -340,21 +371,138 @@ describe('binder grid pages', () => {
     const { next_cursor } = await collectionCopies(user, { limit: 1 });
     const payload = JSON.parse(Buffer.from(next_cursor!, 'base64').toString('utf8'));
     const broken = Buffer.from(
-      JSON.stringify({ ...payload, after: [...payload.after.slice(0, 3), 'first'] }),
+      JSON.stringify({ ...payload, after: [...payload.after.slice(0, 5), 'first'] }),
     ).toString('base64');
 
-    const { error } = await listCollectionCopies(user.client, { limit: 1, cursor: broken });
+    const { error } = await searchCopies(user.client, { limit: 1, cursor: broken });
 
     expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
   });
 
-  test("another user's cursor is refused with invalid_cursor", async () => {
-    await committed(bob, scanBatch([stack(angelicCurator, { copies: 2 })]));
-    const { next_cursor } = await collectionCopies(bob, { limit: 1 });
+  test('a cursor from collection entries is refused for copy rows', async () => {
+    const { next_cursor } = await collectionCopies(user, { rows: 'entries', limit: 1 });
 
-    const { error } = await listCollectionCopies(user.client, { limit: 1, cursor: next_cursor });
+    const { error } = await searchCopies(user.client, { limit: 1, cursor: next_cursor });
 
     expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+  });
+});
+
+describe('collection entries and copy rows', () => {
+  let user: TestUser;
+  let protectedCopies: string[];
+
+  beforeAll(async () => {
+    user = await signUpNewUser();
+    protectedCopies = (await seedCopies(user, [{ card_printing_id: ribbonsOfNight, is_protected: true }]))[0]!;
+    await committed(
+      user,
+      scanBatch([
+        stack(angelicCurator, { copies: 3 }),
+        stack(angelicCurator, { finish: 'foil', copies: 2 }),
+        stack(delverInnistrad, { condition: 'damaged' }),
+        stack(ribbonsOfNight, { copies: 2 }),
+      ]),
+    );
+  });
+
+  function entryKey(row: Pick<CollectionCopyRow, 'printing_id' | 'finish' | 'condition' | 'language' | 'protected'>) {
+    return [row.printing_id, row.finish, row.condition, row.language, row.protected].join(' ');
+  }
+
+  async function entryQuantities(query: CollectionQuery) {
+    const { page, error } = await searchCopies(user.client, { ...query, rows: 'entries' });
+    expect(error).toBeNull();
+    const rows = page!.items as unknown as CollectionRow[];
+    return Object.fromEntries(rows.map((row) => [entryKey(row), row.quantity]).toSorted());
+  }
+
+  async function copiesPerEntry(query: CollectionQuery) {
+    const counts = new Map<string, number>();
+    for (const row of (await collectionCopies(user, query)).items) {
+      counts.set(entryKey(row), (counts.get(entryKey(row)) ?? 0) + 1);
+    }
+    return Object.fromEntries([...counts].toSorted());
+  }
+
+  test.each<[string, CollectionQuery]>([
+    ['no chips', {}],
+    ['a name chip', { names: ['curator'] }],
+    ['a finish chip', { finishes: ['foil'] }],
+    ['a negated condition chip', { conditions_exclude: ['damaged'] }],
+  ])("with %s, each collection entry's quantity counts its matching copy rows", async (_, query) => {
+    const entries = await entryQuantities(query);
+
+    expect(Object.keys(entries).length).toBeGreaterThan(0);
+    expect(entries).toEqual(await copiesPerEntry(query));
+  });
+
+  test('the free chip with the negated protected chip gives the free copies that are not protected', async () => {
+    const every = copyIdsOf((await collectionCopies(user)).items);
+    const free = copyIdsOf((await collectionCopies(user, { is_free: true })).items);
+    const freeAndNotProtected = copyIdsOf((await collectionCopies(user, { is_free: true, is_protected: false })).items);
+
+    expect(free.toSorted()).toEqual(every.toSorted());
+    expect(freeAndNotProtected.toSorted()).toEqual(every.filter((copyId) => !protectedCopies.includes(copyId)).toSorted());
+    expect((await collectionCopies(user, { is_free: false })).items).toEqual([]);
+  });
+
+  test('collection entries take a limit up to 50, and copy rows up to 120', async () => {
+    const entries = await searchCopies(user.client, { rows: 'entries', limit: 51 });
+    const copies = await searchCopies(user.client, { limit: 120 });
+
+    expect(entries.error).toMatchObject({ code: 'invalid_argument', field: 'limit' });
+    expect(copies.error).toBeNull();
+  });
+});
+
+describe('telemetry', () => {
+  let user: TestUser;
+
+  beforeAll(async () => {
+    user = await signUpNewUser();
+    await committed(user, scanBatch([stack(angelicCurator, { copies: 2 }), stack(ribbonsOfNight)]));
+  });
+
+  async function telemetryRows() {
+    const { data, error } = await secretKeyClient()
+      .from('search_telemetry')
+      .select('search_id, api, query, result_count, result_ids')
+      .eq('user_id', user.userId);
+    expect(error).toBeNull();
+    return data!;
+  }
+
+  test.each<[string, CollectionQuery]>([
+    ['a plain binder read', {}],
+    ['a plain binder read in another order', { sort: 'price', sort_order: 'desc', price_currency: 'EUR', limit: 120 }],
+    ['a plain read of collection entries', { rows: 'entries' }],
+  ])('%s writes no telemetry row', async (_, query) => {
+    const before = await telemetryRows();
+
+    await collectionCopies(user, query);
+
+    expect(await telemetryRows()).toEqual(before);
+  });
+
+  test.each<[string, CollectionQuery]>([
+    ['text', { text: 'curator' }],
+    ['a filter', { finishes: ['nonfoil'] }],
+  ])('a first page with %s writes one telemetry row with its copy IDs', async (_, query) => {
+    const first = await collectionCopies(user, query);
+    await collectionCopies(user, { ...query, limit: 1 });
+
+    const rows = (await telemetryRows()).filter((row) => row.search_id === first.search_id);
+
+    expect(rows).toEqual([
+      {
+        search_id: first.search_id,
+        api: 'collection',
+        query: expect.objectContaining({ ...query, rows: 'copies', limit: 60 }),
+        result_count: first.items.length,
+        result_ids: copyIdsOf(first.items),
+      },
+    ]);
   });
 });
 
@@ -367,20 +515,6 @@ describe('access', () => {
     const stranger = await signUpNewUser();
 
     expect(printingIds((await collectionCopies(alice)).items)).toEqual([ribbonsOfNight, ribbonsOfNight]);
-    expect(await collectionCopies(stranger)).toEqual({ items: [], next_cursor: null });
-  });
-
-  test('an anonymous caller cannot read the binder grid', async () => {
-    const { data, error } = await anonymousClient().rpc('list_collection_copies', { query: {} });
-
-    expect(data).toBeNull();
-    expect(error?.code).toBe(permissionDenied);
-  });
-
-  test('the secret key cannot read the binder grid', async () => {
-    const { data, error } = await secretKeyClient().rpc('list_collection_copies', { query: {} });
-
-    expect(data).toBeNull();
-    expect(error?.code).toBe(permissionDenied);
+    expect((await collectionCopies(stranger)).items).toEqual([]);
   });
 });
