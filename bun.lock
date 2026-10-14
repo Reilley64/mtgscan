@@ -9,6 +9,7 @@
       "name": "@mtgscan/mobile",
       "version": "0.0.0",
       "dependencies": {
+        "@expo/ui": "~56.0.26",
         "@mtgscan/supabase": "workspace:*",
         "@react-native-google-signin/google-signin": "^16.1.5",
         "@rn-primitives/toggle": "1.5.2",

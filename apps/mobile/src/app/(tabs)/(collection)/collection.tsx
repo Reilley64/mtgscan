@@ -1,4 +1,5 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
+import { useState } from 'react';
 import { View } from 'react-native';
 
 import { useSetIcons } from '@/catalog/use-set-icons';
@@ -10,9 +11,11 @@ import { CopyMeta } from '@/components/molecules/copy-meta';
 import { PriceLine } from '@/components/molecules/price-line';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { CollectionSearchHeader } from '@/components/organisms/collection-search-header';
+import { CollectionSortButton } from '@/components/organisms/collection-sort-button';
 import { collectionTotalMenu } from '@/components/organisms/collection-total';
 import { TabListScreen } from '@/components/templates/tab-screen';
 import { refusedChipMessage, type SearchChip } from '@/collection/collection-search';
+import { collectionOrderQuery, defaultCollectionOrder } from '@/collection/collection-sort';
 import { shownCondition, shownPrice, spokenFinishAndCondition } from '@/collection/copy-labels';
 import { shownMatchCount } from '@/collection/total-labels';
 import { useCollectionCopies, type BinderRead } from '@/collection/use-collection-copies';
@@ -78,7 +81,8 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
 
 export default function CollectionScreen() {
   const search = useCollectionSearch();
-  const { binder, reload, loadMore } = useCollectionCopies(search.query);
+  const [order, setOrder] = useState(defaultCollectionOrder);
+  const { binder, reload, loadMore } = useCollectionCopies({ ...search.query, ...collectionOrderQuery(order) });
   const suggesting = search.suggestions.length > 0;
   const copies = binder.status === 'loaded' && !suggesting ? binder.copies : [];
   const iconOf = useSetIcons([...new Set(copies.map((copy) => copy.set))]);
@@ -119,6 +123,7 @@ export default function CollectionScreen() {
       }
       onEndReached={loadMore}
       onEndReachedThreshold={1}
+      floatingButton={search.typing ? null : <CollectionSortButton order={order} onChange={setOrder} />}
     />
   );
 }

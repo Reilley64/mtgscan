@@ -18,6 +18,7 @@
     "bin-deck:score": "bun test/scanner-evidence/score-bin-deck.ts"
   },
   "dependencies": {
+    "@expo/ui": "~56.0.26",
     "@mtgscan/supabase": "workspace:*",
     "@react-native-google-signin/google-signin": "^16.1.5",
     "@rn-primitives/toggle": "1.5.2",

@@ -11,6 +11,7 @@ import { Chip } from '@/components/atoms/chip';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { CountBadge } from '@/components/atoms/count-badge';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
+import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
 import { GlassGroup, GlassSurface } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
 import { ProgressBar } from '@/components/atoms/progress-bar';
@@ -28,15 +29,21 @@ import {
   appleSignInButton,
   backdropOf,
   blocksColored,
+  buttonMenu,
   cardImageUri,
   cardSheen,
   glassEffect,
   glassGroupOf,
   imageTintColor,
+  menuButton,
   placeholderColor,
+  pressButtonMenuItem,
   pressSignInWithApple,
   showsSpinner,
   switchTrackColor,
+  symbolIn,
+  symbolNames,
+  symbolSizes,
   symbolTintColor,
   touchTarget,
 } from './native-ui';
@@ -837,5 +844,74 @@ describe('CountBadge', () => {
     const numerals = screen.getByText('12');
     expect(numerals).toHaveStyle({ color: white, fontSize: 11, fontWeight: '700' });
     expect(numerals.parent).toHaveStyle({ backgroundColor: badge, borderRadius: 999, height: 17, minWidth: 17 });
+  });
+});
+
+describe('FloatingMenuButton', () => {
+  function sortChoices(onSelect: (title: string) => void) {
+    return [
+      { title: 'Relevance', checked: false, onSelect: () => onSelect('Relevance') },
+      { title: 'Price', checked: true, symbol: 'arrow.down' as const, onSelect: () => onSelect('Price') },
+    ];
+  }
+
+  test('on Liquid Glass, a floating menu button is a 48 px round glass button that reacts to touch, with an 18 px symbol', async () => {
+    liquidGlassIsAvailable();
+    await render(
+      <FloatingMenuButton symbol="arrow.up.arrow.down" active={false} accessibilityLabel="Sort, Relevance" menuTitle="Sort by" choices={[]} />,
+    );
+
+    const button = menuButton(screen.container, 'Sort, Relevance');
+    const glass = backdropOf(symbolIn(button));
+    expect(glassEffect(glass)).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
+    expect(glass).toHaveStyle({ width: 48, height: 48, borderRadius: 999 });
+    expect(symbolNames(button)).toEqual(['arrow.up.arrow.down']);
+    expect(symbolSizes(button)).toEqual([18]);
+    expect(symbolTintColor(button)).toBe(white);
+  });
+
+  test('without Liquid Glass, a floating menu button uses the control surface', async () => {
+    await render(
+      <FloatingMenuButton symbol="arrow.up.arrow.down" active={false} accessibilityLabel="Sort, Relevance" menuTitle="Sort by" choices={[]} />,
+    );
+
+    const button = menuButton(screen.container, 'Sort, Relevance');
+    const background = backdropOf(symbolIn(button));
+    expect(glassEffect(background)).toBeNull();
+    expect(background).toHaveStyle({ backgroundColor: surfaceControl, width: 48, height: 48, borderRadius: 999 });
+  });
+
+  test('an active floating menu button has a lime symbol', async () => {
+    await render(
+      <FloatingMenuButton symbol="arrow.up.arrow.down" active accessibilityLabel="Sort, Price, high to low" menuTitle="Sort by" choices={[]} />,
+    );
+
+    expect(symbolTintColor(menuButton(screen.container, 'Sort, Price, high to low'))).toBe(lime);
+  });
+
+  test('a floating menu button opens a native menu with its title and choices, and runs the chosen one', async () => {
+    const onSelect = jest.fn();
+    await render(
+      <FloatingMenuButton
+        symbol="arrow.up.arrow.down"
+        active
+        accessibilityLabel="Sort, Price, high to low"
+        menuTitle="Sort by"
+        choices={sortChoices(onSelect)}
+      />,
+    );
+
+    const button = menuButton(screen.container, 'Sort, Price, high to low');
+    expect(buttonMenu(button)).toEqual({
+      title: 'Sort by',
+      items: [
+        { title: 'Relevance', checked: false, symbol: undefined },
+        { title: 'Price', checked: true, symbol: 'arrow.down' },
+      ],
+    });
+
+    await pressButtonMenuItem(button, 'Price');
+
+    expect(onSelect).toHaveBeenCalledWith('Price');
   });
 });

@@ -488,6 +488,20 @@ export function symbolTintColor(element: HostElement) {
   return symbol.props.tintColor;
 }
 
+export function symbolIn(element: HostElement) {
+  const [symbol] = element.queryAll((instance) => instance.type === 'ViewManagerAdapter_SymbolModule');
+  if (!symbol) {
+    throw new Error('No symbol is in this element');
+  }
+  return symbol;
+}
+
+export function symbolSizes(element: HostElement) {
+  return element
+    .queryAll((instance) => instance.type === 'ViewManagerAdapter_SymbolModule')
+    .map((symbol) => symbol.props.size);
+}
+
 export function symbolNames(element: HostElement) {
   return element
     .queryAll((instance) => instance.type === 'ViewManagerAdapter_SymbolModule')
@@ -661,6 +675,53 @@ export async function performAccessibilityAction(element: HostElement, label: st
 
 export function accessibilityActionLabels(element: HostElement) {
   return (element.props.accessibilityActions ?? []).map((action: { label?: string }) => action.label);
+}
+
+const expoUiHost = 'ViewManagerAdapter_ExpoUI';
+
+function isNativeMenu(element: HostElement) {
+  return element.type === expoUiHost && 'hasPrimaryAction' in element.props;
+}
+
+function spokenLabelOf(element: HostElement): string | undefined {
+  const modifiers: { $type: string; label?: string }[] = element.props.modifiers ?? [];
+  return modifiers.find((modifier) => modifier.$type === 'accessibilityLabel')?.label;
+}
+
+export function menuButtonNames(host: HostElement) {
+  return host.queryAll(isNativeMenu).map(spokenLabelOf);
+}
+
+export function menuButton(host: HostElement, name: string) {
+  const button = host.queryAll(isNativeMenu).find((candidate) => spokenLabelOf(candidate) === name);
+  if (!button) {
+    throw new Error(`No menu button is named ${name}. Menu buttons: ${menuButtonNames(host).join(', ')}`);
+  }
+  return button;
+}
+
+function menuChoices(button: HostElement) {
+  return button.queryAll((instance) => instance.type === expoUiHost && 'isOn' in instance.props);
+}
+
+export function buttonMenu(button: HostElement) {
+  const [section] = button.queryAll((instance) => instance.type === expoUiHost && 'title' in instance.props);
+  return {
+    title: section?.props.title as string | undefined,
+    items: menuChoices(button).map((choice) => ({
+      title: choice.props.label as string,
+      checked: Boolean(choice.props.isOn),
+      symbol: choice.props.systemImage as string | undefined,
+    })),
+  };
+}
+
+export async function pressButtonMenuItem(button: HostElement, title: string) {
+  const choice = menuChoices(button).find((candidate) => candidate.props.label === title);
+  if (!choice) {
+    throw new Error(`No menu row is titled ${title}. Rows: ${buttonMenu(button).items.map((item) => item.title).join(', ')}`);
+  }
+  await fireEvent(choice, 'isOnChange', { nativeEvent: { isOn: !choice.props.isOn } });
 }
 
 let searchFieldText = '';
