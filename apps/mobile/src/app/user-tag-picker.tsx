@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { useCopy } from '@/collection/use-copy';
 import { createUserTagOnCopy, setCopyUserTag, useUserTags } from '@/collection/user-tags';
 import { Text } from '@/components/atoms/text';
+import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { UserTagPicker } from '@/components/organisms/user-tag-picker';
 import { PushedScreen } from '@/components/templates/pushed-screen';
@@ -48,7 +49,13 @@ export default function UserTagPickerScreen() {
             onCreate={(name) => change(createUserTagOnCopy(copyId, name))}
           />
         ) : null}
-        {readFailed ? <ReadFailure title="Could not load your user tags" onTryAgain={reload} /> : null}
+        {readFailed ? (
+          <ReadFailure
+            illustration={<DashedCardFrame symbol="wifi.slash" />}
+            title="Could not load your user tags"
+            onTryAgain={reload}
+          />
+        ) : null}
       </View>
     </PushedScreen>
   );
