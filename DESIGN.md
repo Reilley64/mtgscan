@@ -474,6 +474,8 @@ Pushed screens cover the whole screen, including the app tab bar. There are **no
   - **Price**: value rows for "Current price" with the stale clock, "Added" with the day, such as "12 October 2026", and "Purchase-day price", then the credit "Current prices from Scryfall, in USD". A missing price shows a text dim "–", and VoiceOver hears "no price". A stale current price adds the hint "The price may be out of date.";
   - **Rules**: the Oracle text in a surface card, with each face's name over its text for a card with more than one face, then a "Commander" value row: "Legal", "Banned", "Not legal", or "Unknown".
   - Section headings are lime body strong text.
+  - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the hero. VoiceOver reads it as "More". It opens the actions menu, a native menu of what the user can do to this copy. Its last item is **Delete copy**, in red.
+  - **Delete copy** shows a native alert "Delete this copy?" with "It leaves your collection with its user tags. This cannot be undone.", **Delete copy** in red, and **Cancel**. After the delete, the app goes back to the binder, which reloads without the tile. When the delete fails, a native alert says "Could not delete this copy" and "Check your connection.", and the page stays.
   - A copy that no longer exists, such as one deleted on another phone, shows a native alert "This card is no longer in your collection." with **OK**, which goes back to the binder.
   - When the read fails, the page shows the empty state "Could not load this card" with a **Try again** button. See Empty states.
 - **Deck screen**, from the gallery or a deck tag:
