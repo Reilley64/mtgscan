@@ -24,6 +24,7 @@ export function copyOf(copyId: string, changes: Partial<CopyDetails> = {}): Copy
     type_line: 'Creature — Angel Spirit',
     faces: [{ name: 'Angelic Curator', oracle_text: 'Flying, protection from artifacts' }],
     commander_legality: 'legal',
+    user_tags: [],
     ...changes,
   };
 }

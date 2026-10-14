@@ -32,6 +32,7 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
+import { DisclosureRow } from '@/components/molecules/disclosure-row';
 import { EmptyState } from '@/components/molecules/empty-state';
 import {
   DashedCardFrame,
@@ -207,6 +208,17 @@ function ListRows() {
       <ListRow title="Sol Ring" detail="CMM 464" leading={<CardThumbnail uri={solRing} />} onPress={() => {}} />
       <ListRow title="Lightning Bolt" onPress={() => {}} />
       <ListRow title="Gallery" detail="Up to date" />
+      <ListRow title="Signed" detail="3 copies" checked onPress={() => {}} />
+      <ListRow title="Trade binder" detail="1 copy" checked={false} onPress={() => {}} />
+      <DisclosureRow accessibilityLabel="User tags, signed, trade binder" onPress={() => {}}>
+        <View className="flex-row flex-wrap gap-sm">
+          <Chip label="signed" />
+          <Chip label="trade binder" />
+        </View>
+      </DisclosureRow>
+      <DisclosureRow accessibilityLabel="Add user tags" onPress={() => {}}>
+        <Text className="text-text-muted">Add user tags</Text>
+      </DisclosureRow>
     </Section>
   );
 }

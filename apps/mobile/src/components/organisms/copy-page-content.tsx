@@ -15,6 +15,7 @@ import { Chip } from '@/components/atoms/chip';
 import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
 import { CardHero } from '@/components/molecules/card-hero';
+import { DisclosureRow } from '@/components/molecules/disclosure-row';
 import { PriceLine } from '@/components/molecules/price-line';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { ValueRow } from '@/components/molecules/value-row';
@@ -56,7 +57,32 @@ function OracleText({ faces }: Pick<CopyDetails, 'faces'>) {
   );
 }
 
-export function CopyPageContent({ copy, currency }: { copy: CopyDetails; currency: PriceCurrency }) {
+function UserTagsRow({ userTags, onPress }: { userTags: CopyDetails['user_tags']; onPress: () => void }) {
+  if (userTags.length === 0) {
+    return (
+      <DisclosureRow accessibilityLabel="Add user tags" onPress={onPress}>
+        <Text className="text-text-muted">Add user tags</Text>
+      </DisclosureRow>
+    );
+  }
+  return (
+    <DisclosureRow accessibilityLabel={['User tags', ...userTags.map((userTag) => userTag.name)].join(', ')} onPress={onPress}>
+      <View className="flex-row flex-wrap gap-sm">
+        {userTags.map((userTag) => (
+          <Chip key={userTag.user_tag_id} label={userTag.name} />
+        ))}
+      </View>
+    </DisclosureRow>
+  );
+}
+
+type CopyPageContentProps = {
+  copy: CopyDetails;
+  currency: PriceCurrency;
+  onOpenUserTags: () => void;
+};
+
+export function CopyPageContent({ copy, currency, onOpenUserTags }: CopyPageContentProps) {
   const legality = commanderLegalityLabels[copy.commander_legality];
   return (
     <>
@@ -74,6 +100,9 @@ export function CopyPageContent({ copy, currency }: { copy: CopyDetails; currenc
           <Chip label={conditionLabels[copy.condition]} />
           <Chip label={languageNames[copy.language]} />
         </View>
+        <SheetSection title="User tags">
+          <UserTagsRow userTags={copy.user_tags} onPress={onOpenUserTags} />
+        </SheetSection>
         <SheetSection title="Price">
           <PriceRow
             label="Current price"

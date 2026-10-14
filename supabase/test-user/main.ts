@@ -2,13 +2,17 @@ import { parseArgs } from 'node:util';
 
 import { createClient } from '@supabase/supabase-js';
 
-import type { CardCondition, CopyProtectedRequest, ScanBatch } from '../collection';
+import type { CardCondition, CopyProtectedRequest, ScanBatch, UserTag } from '../collection';
 import type { Finish } from '../search';
 import type { Database, Json } from '../database.types';
 import { isLocalStack, localSupabaseUrl, testUser } from './account';
 
 const usage = 'Usage: bun test-user/main.ts [--sample-collection]';
 const sampleCollectionEntries = 30;
+const sampleUserTags = [
+  { name: 'Signed', copies: 1 },
+  { name: 'Trade binder', copies: 3 },
+];
 const sampleConditions: CardCondition[] = ['near_mint', 'near_mint', 'lightly_played', 'near_mint', 'moderately_played'];
 const usersPerPage = 1000;
 
@@ -133,6 +137,26 @@ async function addSampleCollection(admin: LocalClient) {
     fail('Could not protect a sample copy', protectError.message);
   }
   console.log('Protected 1 sample copy.');
+  await addSampleUserTags(testUserClient, batch.items.map((item) => item.copy_ids[0]!));
+}
+
+async function addSampleUserTags(testUserClient: LocalClient, copyIds: string[]) {
+  for (const { name, copies } of sampleUserTags) {
+    const { data, error } = await testUserClient.rpc('create_user_tag', { request: { name } });
+    if (error) {
+      fail('Could not add sample user tags', error.message);
+    }
+    const { user_tag_id } = data as unknown as UserTag;
+    for (const copyId of copyIds.slice(0, copies)) {
+      const { error: tagError } = await testUserClient.rpc('set_copy_user_tag', {
+        request: { copy_id: copyId, user_tag_id, tagged: true },
+      });
+      if (tagError) {
+        fail('Could not add sample user tags', tagError.message);
+      }
+    }
+  }
+  console.log(`Added ${sampleUserTags.length} sample user tags.`);
 }
 
 const admin = localClient();

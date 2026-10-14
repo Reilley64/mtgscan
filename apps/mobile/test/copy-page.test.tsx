@@ -1,7 +1,16 @@
+import type { CopyDetails } from '@mtgscan/supabase/collection';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { copyOf, delver, openCollection, openCopyPage } from './copies';
-import { answerCollectionSearches, failCopyReads, ownCopies, removeCopyFromTheCollection, startSignedIn } from './fake-supabase';
+import {
+  answerCollectionSearches,
+  failCopyReads,
+  failUserTagChanges,
+  ownCopies,
+  ownUserTags,
+  removeCopyFromTheCollection,
+  startSignedIn,
+} from './fake-supabase';
 import {
   appearsBefore,
   blurredImageUris,
@@ -233,5 +242,173 @@ describe('the copy page', () => {
 
     expect(await screen.findByRole('header', { name: 'Angelic Curator' })).toBeOnTheScreen();
     expect(screen.queryByText('Could not load this card')).not.toBeOnTheScreen();
+  });
+});
+
+describe('user tags on the copy page', () => {
+  test("the copy page has a User tags heading and one row with the copy's user tags as chips, read as a button", async () => {
+    ownCopies([copyOf('copy-1')]);
+    ownUserTags([
+      { name: 'trade binder', copyIds: ['copy-1'] },
+      { name: 'signed', copyIds: ['copy-1'] },
+      { name: 'Foil binder', copyIds: [] },
+    ]);
+
+    await openCopyPage(/^Angelic Curator/);
+
+    const heading = screen.getByRole('header', { name: 'User tags' });
+    const row = screen.getByRole('button', { name: 'User tags, signed, trade binder' });
+    expect(within(row).getByLabelText('signed')).toBeOnTheScreen();
+    expect(within(row).getByLabelText('trade binder')).toBeOnTheScreen();
+    expect(within(row).queryByLabelText('Foil binder')).not.toBeOnTheScreen();
+    expect(symbolNames(row)).toEqual(['chevron.right']);
+    expect(appearsBefore(screen.getByLabelText('English'), heading)).toBe(true);
+    expect(appearsBefore(heading, row)).toBe(true);
+    expect(appearsBefore(row, screen.getByRole('header', { name: 'Price' }))).toBe(true);
+  });
+
+  test('a copy with no user tags has an Add user tags row', async () => {
+    ownCopies([copyOf('copy-1')]);
+
+    await openCopyPage(/^Angelic Curator/);
+
+    const row = screen.getByRole('button', { name: 'Add user tags' });
+    expect(within(row).getByText('Add user tags')).toBeOnTheScreen();
+    expect(symbolNames(row)).toEqual(['chevron.right']);
+  });
+
+  test('binder tiles still show no user tags', async () => {
+    ownCopies([copyOf('copy-1')]);
+    ownUserTags([{ name: 'signed', copyIds: ['copy-1'] }]);
+
+    const collection = await openCollection();
+
+    expect(collection.getByRole('button', { name: 'Angelic Curator, MH2 262, $0.35' })).toBeOnTheScreen();
+    expect(collection.queryByText('signed')).not.toBeOnTheScreen();
+  });
+});
+
+describe('the user tag picker', () => {
+  async function openUserTagPicker(copy: CopyDetails = copyOf('copy-1')) {
+    ownCopies([copy]);
+    await openCopyPage(/^Angelic Curator/);
+    await fireEvent.press(screen.getByRole('button', { name: /^(User tags,|Add user tags)/ }));
+    return screen.findByLabelText('Find or create a user tag');
+  }
+
+  test('the User tags row pushes the user tag picker, titled User tags, with a line that names the copy', async () => {
+    const field = await openUserTagPicker(copyOf('copy-1', { finish: 'foil', condition: 'lightly_played' }));
+
+    const title = screen.getAllByRole('header', { name: 'User tags' }).at(-1)!;
+    const copyLine = screen.getByText('Angelic Curator · MH2 262 · Foil · LP');
+    expect(appearsBefore(title, copyLine)).toBe(true);
+    expect(appearsBefore(copyLine, field)).toBe(true);
+    expect(field).toHaveProp('placeholder', 'Find or create a user tag');
+    expect(field).toHaveProp('maxLength', 64);
+  });
+
+  test('the user tag picker has no on-screen back button and goes back to the copy page with the edge swipe', async () => {
+    await openUserTagPicker();
+
+    expect(pushedScreenBackButton()).toBeNull();
+    await swipeBackFromThePushedScreen();
+
+    expect(screen.queryByLabelText('Find or create a user tag')).not.toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Add user tags' })).toBeOnTheScreen();
+  });
+
+  test('rows list the user tags that match the typed text ignoring case, with a check when this copy has it and the copy count', async () => {
+    ownUserTags([
+      { name: 'Signed', copyIds: ['copy-1', 'copy-2', 'copy-3'] },
+      { name: 'trade binder', copyIds: ['copy-2'] },
+      { name: 'misprint', copyIds: [] },
+    ]);
+    const field = await openUserTagPicker();
+
+    expect(screen.getAllByRole('checkbox').map((row) => row.props.accessibilityLabel)).toEqual([
+      'misprint, 0 copies',
+      'Signed, 1 copy',
+      'trade binder, 0 copies',
+    ]);
+    expect(screen.getByRole('checkbox', { name: 'Signed, 1 copy' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'trade binder, 0 copies' })).not.toBeChecked();
+
+    await fireEvent.changeText(field, 'IN');
+
+    expect(screen.getAllByRole('checkbox').map((row) => row.props.accessibilityLabel)).toEqual([
+      'misprint, 0 copies',
+      'trade binder, 0 copies',
+    ]);
+    await fireEvent.changeText(field, 'SIG');
+    expect(screen.getAllByRole('checkbox').map((row) => row.props.accessibilityLabel)).toEqual(['Signed, 1 copy']);
+  });
+
+  test('tapping a row adds the user tag to this copy, tapping it again takes it off, and the copy page shows the result', async () => {
+    ownUserTags([
+      { name: 'signed', copyIds: [] },
+      { name: 'trade binder', copyIds: [] },
+    ]);
+    await openUserTagPicker();
+
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'signed, 0 copies' }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'trade binder, 0 copies' }));
+    expect(await screen.findByRole('checkbox', { name: 'trade binder, 1 copy' })).toBeChecked();
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'trade binder, 1 copy' }));
+
+    expect(await screen.findByRole('checkbox', { name: 'trade binder, 0 copies' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'signed, 1 copy' })).toBeChecked();
+    await swipeBackFromThePushedScreen();
+    expect(await screen.findByRole('button', { name: 'User tags, signed' })).toBeOnTheScreen();
+  });
+
+  test('a name that matches no user tag ignoring case offers to create it, which adds it to this copy', async () => {
+    ownUserTags([{ name: 'Signed', copyIds: [] }]);
+    const field = await openUserTagPicker();
+
+    await fireEvent.changeText(field, 'signed ');
+    expect(screen.queryByRole('button', { name: /^Create/ })).not.toBeOnTheScreen();
+    await fireEvent.changeText(field, '  Trade binder ');
+    const create = screen.getByRole('button', { name: 'Create "Trade binder", and add it to this copy' });
+    expect(symbolNames(create)).toEqual(['plus']);
+    await fireEvent.press(create);
+
+    expect(await screen.findByRole('checkbox', { name: 'Trade binder, 1 copy' })).toBeChecked();
+    expect(field).toHaveProp('value', '');
+    expect(screen.getAllByRole('checkbox').map((row) => row.props.accessibilityLabel)).toEqual([
+      'Signed, 0 copies',
+      'Trade binder, 1 copy',
+    ]);
+    await swipeBackFromThePushedScreen();
+    expect(await screen.findByRole('button', { name: 'User tags, Trade binder' })).toBeOnTheScreen();
+  });
+
+  test('the Create row comes first, before the user tags that contain the text', async () => {
+    ownUserTags([{ name: 'Signed', copyIds: [] }]);
+    const field = await openUserTagPicker();
+
+    await fireEvent.changeText(field, 'Sign');
+
+    expect(appearsBefore(screen.getByRole('button', { name: /^Create "Sign"/ }), screen.getByRole('checkbox', { name: 'Signed, 0 copies' }))).toBe(true);
+  });
+
+  test('with no user tags the picker says how to create one', async () => {
+    const field = await openUserTagPicker();
+
+    expect(screen.getByText('No user tags yet. Type a name to create one.')).toBeOnTheScreen();
+    await fireEvent.changeText(field, 'Signed');
+
+    expect(screen.queryByText('No user tags yet. Type a name to create one.')).not.toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Create "Signed", and add it to this copy' })).toBeOnTheScreen();
+  });
+
+  test('a change that fails says so and leaves the copy as it was', async () => {
+    ownUserTags([{ name: 'signed', copyIds: [] }]);
+    failUserTagChanges(1);
+    await openUserTagPicker();
+
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'signed, 0 copies' }));
+
+    expect(await screen.findByRole('alert', { name: 'Could not change the user tags. Check your connection.' })).toBeOnTheScreen();
+    expect(screen.getByRole('checkbox', { name: 'signed, 0 copies' })).not.toBeChecked();
   });
 });

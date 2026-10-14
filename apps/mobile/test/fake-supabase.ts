@@ -13,10 +13,13 @@ import type {
   CopyDetails,
   CopyProtectedRequest,
   CopyQuery,
+  CopyUserTagRequest,
+  CreateUserTagRequest,
   DeleteCopyRequest,
   ScanBatch,
   ScanBatchResult,
   ScanBatchStack,
+  UserTag,
 } from '@mtgscan/supabase/collection';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
@@ -48,6 +51,9 @@ let copyDeletes: string[] = [];
 let failingCopyDeletes = 0;
 let copyProtectedWrites: CopyProtectedRequest[] = [];
 let failingCopyWrites = 0;
+let userTags: UserTag[] = [];
+let copyUserTags = new Map<string, Set<string>>();
+let failingUserTagChanges = 0;
 const emptyCollectionTotal: CollectionTotal = {
   total: '0.00',
   currency: 'USD',
@@ -174,7 +180,7 @@ function copyRead({ copy_id }: CopyQuery) {
     return { data: null, error: networkFailure };
   }
   const details = ownedCopyDetails(copy_id);
-  return details ? { data: details, error: null } : copyNotFound;
+  return details ? { data: { ...details, user_tags: userTagsOnCopy(copy_id) }, error: null } : copyNotFound;
 }
 
 function setCopyProtected(request: CopyProtectedRequest) {
@@ -192,6 +198,62 @@ function setCopyProtected(request: CopyProtectedRequest) {
     copy.copy_id === request.copy_id ? { ...copy, protected: request.protected } : copy,
   );
   return { data: request, error: null };
+}
+
+function byName(a: UserTag, b: UserTag) {
+  return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+}
+
+function userTagsOnCopy(copyId: string) {
+  const onCopy = copyUserTags.get(copyId) ?? new Set();
+  return userTags.filter((userTag) => onCopy.has(userTag.user_tag_id)).toSorted(byName);
+}
+
+function copiesWithUserTag(userTagId: string) {
+  return collectionCopies.filter((copy) => copyUserTags.get(copy.copy_id)?.has(userTagId)).length;
+}
+
+function userTagList() {
+  const items = userTags.toSorted(byName).map((userTag) => ({ ...userTag, copy_count: copiesWithUserTag(userTag.user_tag_id) }));
+  return { data: { items }, error: null };
+}
+
+function failedUserTagChange() {
+  if (failingUserTagChanges === 0) {
+    return false;
+  }
+  failingUserTagChanges -= 1;
+  return true;
+}
+
+function createUserTag({ name }: CreateUserTagRequest) {
+  if (failedUserTagChange()) {
+    return { data: null, error: networkFailure };
+  }
+  const trimmed = name.trim();
+  if (userTags.some((userTag) => userTag.name.toLowerCase() === trimmed.toLowerCase())) {
+    return { data: null, error: { code: 'user_tag_exists', message: 'You already have a user tag with this name.', details: 'name' } };
+  }
+  const userTag = { user_tag_id: `user-tag-${userTags.length + 1}`, name: trimmed };
+  userTags = [...userTags, userTag];
+  return { data: userTag, error: null };
+}
+
+function setCopyUserTag({ copy_id, user_tag_id, tagged }: CopyUserTagRequest) {
+  if (failedUserTagChange()) {
+    return { data: null, error: networkFailure };
+  }
+  if (!ownedCopyDetails(copy_id)) {
+    return copyNotFound;
+  }
+  const onCopy = new Set(copyUserTags.get(copy_id));
+  if (tagged) {
+    onCopy.add(user_tag_id);
+  } else {
+    onCopy.delete(user_tag_id);
+  }
+  copyUserTags = new Map(copyUserTags).set(copy_id, onCopy);
+  return { data: null, error: null };
 }
 
 function deleteCopy({ copy_id }: DeleteCopyRequest) {
@@ -337,34 +399,42 @@ export const fakeSupabase = {
   from: cardCatalogTable,
   async rpc(
     name: string,
-    args:
+    args?:
       | { query: CollectionQuery }
       | { query: CopyQuery }
       | { query: { text: string; limit: number } }
-      | { request: DeleteCopyRequest }
-      | { request: CopyProtectedRequest }
-      | { batch: ScanBatch },
+      | { batch: ScanBatch }
+      | { request: DeleteCopyRequest | CopyProtectedRequest | CreateUserTagRequest | CopyUserTagRequest },
   ) {
-    if (name === 'search_collection' && 'query' in args) {
+    if (name === 'list_user_tags') {
+      return userTagList();
+    }
+    if (name === 'create_user_tag' && args && 'request' in args) {
+      return createUserTag(args.request as CreateUserTagRequest);
+    }
+    if (name === 'set_copy_user_tag' && args && 'request' in args) {
+      return setCopyUserTag(args.request as CopyUserTagRequest);
+    }
+    if (name === 'search_collection' && args && 'query' in args) {
       await heldCollectionReads;
       return collectionCopiesPage(args.query as CollectionQuery);
     }
-    if (name === 'search_oracle_tags' && 'query' in args) {
+    if (name === 'search_oracle_tags' && args && 'query' in args) {
       return oracleTagLookup(args.query as { text: string; limit: number });
     }
-    if (name === 'get_copy' && 'query' in args) {
+    if (name === 'get_copy' && args && 'query' in args) {
       return copyRead(args.query as CopyQuery);
     }
-    if (name === 'delete_copy' && 'request' in args) {
-      return deleteCopy(args.request);
+    if (name === 'delete_copy' && args && 'request' in args) {
+      return deleteCopy(args.request as DeleteCopyRequest);
     }
-    if (name === 'set_copy_protected' && 'request' in args) {
+    if (name === 'set_copy_protected' && args && 'request' in args) {
       return setCopyProtected(args.request as CopyProtectedRequest);
     }
     if (name === 'get_collection_total') {
       return { data: collectionTotal, error: null };
     }
-    if (name === 'add_scan_batch' && 'batch' in args) {
+    if (name === 'add_scan_batch' && args && 'batch' in args) {
       return addScanBatch(args.batch);
     }
     throw new Error(`The fake Supabase client has no ${name} function`);
@@ -452,6 +522,20 @@ export function copiesDeletedOnTheServer() {
 
 export function failCopyDeletes(count: number) {
   failingCopyDeletes = count;
+}
+
+export function ownUserTags(tags: { name: string; copyIds: string[] }[]) {
+  userTags = tags.map(({ name }, index) => ({ user_tag_id: `user-tag-${index + 1}`, name }));
+  copyUserTags = new Map();
+  tags.forEach(({ copyIds }, index) => {
+    for (const copyId of copyIds) {
+      copyUserTags.set(copyId, new Set(copyUserTags.get(copyId)).add(`user-tag-${index + 1}`));
+    }
+  });
+}
+
+export function failUserTagChanges(count: number) {
+  failingUserTagChanges = count;
 }
 
 export function failCopyReads(count: number) {
@@ -545,6 +629,9 @@ export function resetFakeSupabase() {
   failingCopyDeletes = 0;
   copyProtectedWrites = [];
   failingCopyWrites = 0;
+  userTags = [];
+  copyUserTags = new Map();
+  failingUserTagChanges = 0;
   collectionTotal = emptyCollectionTotal;
   failingCollectionReads = 0;
   collectionSearches = [];

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CollectionCopyRow } from '../collection';
+import type { CollectionCopyRow, UserTagList } from '../collection';
 import type { SearchPage } from '../search';
 import { testUser } from '../test-user/account';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runTestUserCommand } from './catalog-import-command';
@@ -31,6 +31,12 @@ async function additions(client: AppClient) {
   const { data, error } = await client.from('collection_additions').select('copy_count, source');
   expect(error).toBeNull();
   return data!;
+}
+
+async function userTags(client: AppClient) {
+  const { data, error } = await client.rpc('list_user_tags');
+  expect(error).toBeNull();
+  return (data as unknown as UserTagList).items;
 }
 
 describe('the test user command', () => {
@@ -78,6 +84,11 @@ describe('the test user command', () => {
     expect(entries.some((entry) => entry.condition !== 'near_mint')).toBe(true);
     expect((await ownedCopies(client)).filter((copy) => copy.protected)).toHaveLength(1);
     expect(await additions(client)).toEqual([{ copy_count: (await ownedCopies(client)).length, source: 'scan_batch' }]);
+    expect(output).toContain('Added 2 sample user tags.');
+    expect(await userTags(client)).toEqual([
+      { user_tag_id: expect.any(String), name: 'Signed', copy_count: 1 },
+      { user_tag_id: expect.any(String), name: 'Trade binder', copy_count: 3 },
+    ]);
   });
 
   test('running the command again resets the test user to an empty collection', async () => {
@@ -88,6 +99,7 @@ describe('the test user command', () => {
     const client = await signedInTestUser();
     expect(await ownedCopies(client)).toEqual([]);
     expect(await additions(client)).toEqual([]);
+    expect(await userTags(client)).toEqual([]);
   });
 
   test('the command also resets a test user whose password was changed', async () => {
