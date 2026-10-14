@@ -54,6 +54,7 @@ let scanBatchesSent: ScanBatch[] = [];
 let addedCopies = new Map<string, string>();
 let failingScanBatch: 'before the server adds it' | 'after the server adds it' | null = null;
 let heldScanBatch: Promise<void> | null = null;
+let heldCollectionReads: Promise<void> | null = null;
 let galleryObjects = new Map<string, string>();
 let offlineGalleryReads = 0;
 
@@ -278,6 +279,7 @@ export const fakeSupabase = {
   from: cardCatalogTable,
   async rpc(name: string, args: { query: CollectionQuery } | { query: { text: string; limit: number } } | { batch: ScanBatch }) {
     if (name === 'search_collection' && 'query' in args) {
+      await heldCollectionReads;
       return collectionCopiesPage(args.query as CollectionQuery);
     }
     if (name === 'search_oracle_tags' && 'query' in args) {
@@ -399,6 +401,19 @@ export function holdNextScanBatchCommit() {
   };
 }
 
+export function holdCollectionReads() {
+  let finish = () => {};
+  heldCollectionReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldCollectionReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
 export function publishGallery(version: string, partNames: string[] = galleryPartNames) {
   galleryObjects = new Map(galleryObjects);
   galleryObjects.set('published.json', JSON.stringify({ formatVersion: 1, version, manifest: `${version}/manifest.json` }));
@@ -428,6 +443,7 @@ export function resetFakeSupabase() {
   addedCopies = new Map();
   failingScanBatch = null;
   heldScanBatch = null;
+  heldCollectionReads = null;
   galleryObjects = new Map();
   offlineGalleryReads = 0;
   publishGallery(publishedGalleryVersion);

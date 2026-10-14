@@ -348,6 +348,8 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - The header has the collection total button next to the settings button (owner decision, #125). See Collection header.
   - Card images sit 3 per row, with **one tile per copy** and no quantity badge. Three copies of a card printing make three tiles (owner decision, #116).
   - Copies of the same card printing sit next to each other. The card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
+  - While the binder grid loads and shows no tiles yet, a skeleton grid fills the visible screen in its place. It has the shape of the grid: three tiles per row, with the same gaps. Each tile is a card-shaped block over two short bars for the meta line and the price line, 12 px tall and 60% and 40% wide. The blocks are line-colored on the background and pulse like the skeleton chip. VoiceOver reads the skeleton grid as one element, "Loading collection". When the read returns, the tiles, the empty state, or the error state replace it.
+  - A reload when the tab gains focus and a new page keep the tiles already shown and bring no skeleton grid back.
   - With no collection entries, the tab shows "Your collection is empty" and "Scan cards to add them to your collection."
   - When the read fails, the tab shows "Could not load your collection" and "Check your connection." with a **Try again** button.
   - One quiet meta line under each card shows the set icon in its rarity color, the collector number, and the condition when it is not NM. Foil and etched copies carry a sheen on the card image instead of a finish label. Later, badges also show whether the copy is in a deck, held by a planned swap, or protected.
@@ -423,7 +425,7 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
   - A key that the app does not know stays as text.
 - The app turns the text and the chips into the typed collection search query. The server never parses a string.
 - Chips sit under the search bar, at the top of the grid. Each chip shows its `key:value` text and ×. Tapping a chip removes it. Backspace in an empty field removes the last chip. Cancel clears the text and the chips.
-- **Results.** Results show as binder tiles, one per copy. While text or a chip is active, a count line in meta text, such as "6 of 27 copies", sits above the grid. With no results, the grid shows "No cards found."
+- **Results.** Results show as binder tiles, one per copy. While text or a chip is active, a count line in meta text, such as "6 of 27 copies", sits above the grid. While a new search loads, the skeleton grid replaces the tiles. With no results, the grid shows "No cards found."
 - A chip that the server refuses, such as an unknown set or Oracle tag, turns danger. The grid shows "No set named "zzz".", "No Oracle tag named "zzz".", or "No keyword named "zzz".". Any other refused chip shows "mv>25 is not a valid chip."
 - VoiceOver reads a chip as a button with its `key:value` text and the hint "Removes this chip."
 

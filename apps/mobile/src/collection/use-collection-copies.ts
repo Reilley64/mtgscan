@@ -29,15 +29,19 @@ export function useCollectionCopies(search: CollectionQuery) {
   const [binder, setBinder] = useState<BinderRead>({ status: 'loading' });
   const latestRead = useRef(0);
   const readingMore = useRef(false);
+  const shownSearchKey = useRef<string>(undefined);
   const searchKey = JSON.stringify(search);
 
   const reload = useCallback(() => {
     const read = ++latestRead.current;
     readingMore.current = false;
-    setBinder((current) => (current.status === 'loaded' ? current : { status: 'loading' }));
+    setBinder((current) =>
+      current.status === 'loaded' && shownSearchKey.current === searchKey ? current : { status: 'loading' },
+    );
     readCollectionCopies(JSON.parse(searchKey), null).then(
       (page) => {
         if (read === latestRead.current) {
+          shownSearchKey.current = searchKey;
           setBinder({ status: 'loaded', copies: page.items, nextCursor: page.next_cursor, matchCount: page.total_count });
         }
       },

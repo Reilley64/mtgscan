@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { useSetIcons } from '@/catalog/use-set-icons';
 import { Button } from '@/components/atoms/button';
 import { Text } from '@/components/atoms/text';
+import { CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { PriceLine } from '@/components/molecules/price-line';
@@ -47,7 +48,7 @@ function BinderPlaceholder({ binder, searching, refusedChip, onTryAgain }: Binde
       <EmptyState title="Your collection is empty" message="Scan cards to add them to your collection." />
     );
   }
-  return null;
+  return <CardGridSkeleton accessibilityLabel="Loading collection" />;
 }
 
 function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri: string | undefined }) {
