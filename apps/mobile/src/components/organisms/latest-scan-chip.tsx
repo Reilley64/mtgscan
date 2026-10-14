@@ -83,7 +83,7 @@ export function LatestScanChip({ latest, onOpen }: LatestScanChipProps) {
           onOpen={() => onOpen(latest.scan.scanId)}
         />
       );
-    case 'failed':
+    case 'not_recognized':
       return (
         <ScanChip name="Not recognized" details={['Tap to search']} image={undefined} onOpen={() => onOpen(latest.scanId)} />
       );

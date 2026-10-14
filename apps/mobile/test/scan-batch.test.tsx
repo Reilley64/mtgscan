@@ -531,7 +531,7 @@ test('a card still being recognized when every scan is removed does not come bac
 });
 
 test('a card still being recognized when every scan is removed plays no haptic and no sound', async () => {
-  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
   await openScan();
   await scanACard();
   const recognition = holdNextRecognition();

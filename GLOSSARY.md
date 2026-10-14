@@ -68,7 +68,7 @@ An editable group of scans waiting to be added to the collection together. Every
 _Avoid_: To-add list, import
 
 **Scan**:
-One copy in the scan batch, with its card printing, finish, condition, and language. A card photo makes a scan. **+1** makes another scan for one more copy of the same card printing, with the same finish, condition, and language. Each scan is edited and removed on its own. A card photo that was not recognized makes no scan. It shows only on the latest-scan chip. It becomes a scan when the user picks a card printing in name search, and the next scan drops it. A basic land and a photo that is not a card make no scan.
+One copy in the scan batch, with its card printing, finish, condition, and language. A card photo makes a scan. **+1** makes another scan for one more copy of the same card printing, with the same finish, condition, and language. Each scan is edited and removed on its own. A scan that was not recognized has no card printing and is not in the scan batch. It shows only on the latest-scan chip. Picking a card printing in name search adds it to the scan batch. The next scan drops it. A basic land and a photo that is not a card make no scan.
 
 **Copy ID**:
 The ID of one copy. It never changes. The phone gives each scan a copy ID when it makes the scan, including a scan from **+1**, and the copy keeps it in the collection. Committing the scan batch sends the copy IDs, and the server adds each copy ID once for each user, so a retry never adds a copy twice.

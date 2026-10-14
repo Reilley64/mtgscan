@@ -8,9 +8,9 @@ import { ScanDetailsContent } from '@/components/organisms/scan-details-content'
 import { useBatchScan, useScanBatch } from '@/scan/scan-batch-state';
 
 export function ScanDetails({ scanId, onRemove }: { scanId: string; onRemove: () => void }) {
-  const { dispatch, failedScanId } = useScanBatch();
+  const { dispatch, notRecognizedScanId } = useScanBatch();
   const scan = useBatchScan(scanId);
-  const failed = failedScanId === scanId;
+  const notRecognized = notRecognizedScanId === scanId;
   const [searching, setSearching] = useState(false);
 
   const remove = () => {
@@ -18,7 +18,7 @@ export function ScanDetails({ scanId, onRemove }: { scanId: string; onRemove: ()
     dispatch({ type: 'remove', scanId });
   };
 
-  if (failed || (scan && searching)) {
+  if (notRecognized || (scan && searching)) {
     return (
       <View className="gap-lg">
         <NameSearch
@@ -27,7 +27,7 @@ export function ScanDetails({ scanId, onRemove }: { scanId: string; onRemove: ()
             setSearching(false);
           }}
         />
-        {failed ? (
+        {notRecognized ? (
           <Button variant="danger" onPress={remove}>
             <Text>Remove scan</Text>
           </Button>

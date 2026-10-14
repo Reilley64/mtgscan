@@ -38,7 +38,7 @@ export type ScanOutcome = 'recognized' | 'failed' | 'not_a_card' | 'no_photo';
 export type LatestScan =
   | { kind: 'recognizing' }
   | { kind: 'scan'; scan: BatchScan }
-  | { kind: 'failed'; scanId: string }
+  | { kind: 'not_recognized'; scanId: string }
   | { kind: 'basic_land'; printing: Printing };
 
 export type CommitStatus = 'idle' | 'adding' | 'failed';
@@ -88,42 +88,27 @@ function recognitionEnded(
   }
   const first = recognition === 'failed' ? undefined : recognition.candidates[0];
   if (recognition === 'failed' || !first) {
-    return { ...ended, latest: { kind: 'failed', scanId } };
+    return { ...ended, latest: { kind: 'not_recognized', scanId } };
   }
   if (first.basicLand) {
     return { ...ended, latest: { kind: 'basic_land', printing: first } };
   }
-  return {
-    ...ended,
-    latest: { kind: 'scan', scanId },
-    batch: scanBatchReducer(state.batch, {
-      type: 'recognized',
-      scanId,
-      printing: first,
-      options: recognition.candidates,
-      sameTextTwinCount: recognition.sameTextTwinCount,
-      premiumMark: recognition.reading.premiumMark,
-    }),
-  };
+  return addScan(ended, {
+    type: 'recognized',
+    scanId,
+    printing: first,
+    options: recognition.candidates,
+    sameTextTwinCount: recognition.sameTextTwinCount,
+    premiumMark: recognition.reading.premiumMark,
+  });
 }
 
-function isFailedScan(state: Scanning, scanId: string) {
-  return state.latest?.kind === 'failed' && state.latest.scanId === scanId;
+function addScan(state: Scanning, action: Extract<ScanBatchAction, { type: 'recognized' }>): Scanning {
+  return { ...state, latest: { kind: 'scan', scanId: action.scanId }, batch: scanBatchReducer(state.batch, action) };
 }
 
-function chooseForFailedScan(state: Scanning, { scanId, printing }: Extract<ScanBatchAction, { type: 'choose' }>): Scanning {
-  return {
-    ...state,
-    latest: { kind: 'scan', scanId },
-    batch: scanBatchReducer(state.batch, {
-      type: 'recognized',
-      scanId,
-      printing,
-      options: [],
-      sameTextTwinCount: 0,
-      premiumMark: false,
-    }),
-  };
+function notRecognizedScanIdOf({ latest }: Scanning) {
+  return latest?.kind === 'not_recognized' ? latest.scanId : null;
 }
 
 function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
@@ -141,11 +126,11 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
     case 'recognitionEnded':
       return recognitionEnded(state, action);
     case 'choose':
-      return isFailedScan(state, action.scanId)
-        ? chooseForFailedScan(state, action)
+      return notRecognizedScanIdOf(state) === action.scanId
+        ? addScan(state, { ...action, type: 'recognized', options: [], sameTextTwinCount: 0, premiumMark: false })
         : { ...state, batch: scanBatchReducer(state.batch, action) };
     case 'remove':
-      return isFailedScan(state, action.scanId)
+      return notRecognizedScanIdOf(state) === action.scanId
         ? { ...state, latest: null }
         : { ...state, batch: scanBatchReducer(state.batch, action) };
     case 'addCopy':
@@ -162,7 +147,7 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
       return {
         ...state,
         batch: scanBatchReducer(state.batch, { type: 'committed', scanIds: action.scanIds }),
-        latest: state.latest?.kind === 'failed' ? state.latest : null,
+        latest: notRecognizedScanIdOf(state) ? state.latest : null,
         commitStatus: 'idle',
       };
     case 'removedAll':
@@ -172,7 +157,7 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
   }
 }
 
-export function outcomeOf(recognition: RecognitionResult): ScanOutcome {
+function outcomeOf(recognition: RecognitionResult): ScanOutcome {
   if (recognition === 'failed' || recognition === 'no_photo') {
     return recognition;
   }
@@ -185,7 +170,7 @@ export function outcomeOf(recognition: RecognitionResult): ScanOutcome {
 type ScanBatchState = {
   batch: ScanBatch;
   latest: LatestScan | null;
-  failedScanId: string | null;
+  notRecognizedScanId: string | null;
   commitStatus: CommitStatus;
   dispatch: Dispatch<ScanEdit>;
   addCopy: (scanId: string) => void;
@@ -287,7 +272,7 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
     () => ({
       batch: state.batch,
       latest: latestScan(state),
-      failedScanId: state.latest?.kind === 'failed' ? state.latest.scanId : null,
+      notRecognizedScanId: notRecognizedScanIdOf(state),
       commitStatus: state.commitStatus,
       dispatch: dispatchScanning,
       addCopy,

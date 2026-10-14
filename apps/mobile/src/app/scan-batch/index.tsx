@@ -11,8 +11,8 @@ import { useScanBatch } from '@/scan/scan-batch-state';
 export default function BatchReviewSheet() {
   const navigation = useNavigation();
   const { batch, commit, commitStatus, removeAll } = useScanBatch();
-  const copyCount = batch.scans.length;
-  const title = copyCount === 1 ? '1 card scanned' : `${copyCount} cards scanned`;
+  const scanCount = batch.scans.length;
+  const title = scanCount === 1 ? '1 card scanned' : `${scanCount} cards scanned`;
 
   const addToCollection = useCallback(async () => {
     const closes = (await commit()) && navigation.isFocused();
@@ -34,7 +34,7 @@ export default function BatchReviewSheet() {
       ) : null}
       <SwipeToConfirm
         label={commitStatus === 'failed' ? 'Try again' : 'Add to collection'}
-        disabled={copyCount === 0}
+        disabled={scanCount === 0}
         busy={commitStatus === 'adding'}
         onConfirm={addToCollection}
       />
@@ -46,7 +46,7 @@ export default function BatchReviewSheet() {
       <Stack.Screen options={{ title }} />
       <Stack.Toolbar placement="right">
         {batchReviewMenu({
-          scanCount: copyCount,
+          scanCount,
           hidden: commitStatus === 'adding',
           onRemoveAll: removeAllScans,
         })}

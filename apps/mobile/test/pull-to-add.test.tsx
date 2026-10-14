@@ -63,9 +63,8 @@ test('pulling down shows the cards to add, and past the threshold asks to releas
 });
 
 test('releasing past the threshold adds the scan batch through the batch commit and leaves the chip empty', async () => {
-  nextPhotosAre('unreadable_photo', cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
   await openScan();
-  await scanACard();
   await scanACard();
   await pressPlusOne();
   await scanACard();
@@ -85,6 +84,26 @@ test('releasing past the threshold adds the scan batch through the batch commit 
   expectNoIndicator();
   await pressTab('Collection');
   expect(await screen.findAllByRole('image', { name: 'Lightning Bolt, M10 146, no price' })).toHaveLength(2);
+});
+
+test('releasing past the threshold adds only the recognized scans and keeps a scan that was not recognized on the chip', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
+  await openScan();
+  await scanACard();
+  await scanACard();
+
+  const pull = await startPullingDown();
+  await pull.pullTo(140);
+  expect(scanTab().getByText('Release to add 1 card')).toBeOnTheScreen();
+  await pull.release();
+  await waitForTheIndicatorToSlideAway();
+
+  const [sent] = scanBatchesSentToTheServer();
+  expect(sent.items.map(({ card_printing_id, copy_ids }) => ({ card_printing_id, copies: copy_ids.length }))).toEqual([
+    { card_printing_id: lightningBoltM10.printingId, copies: 1 },
+  ]);
+  expect(scanTab().getByRole('button', { name: 'Not recognized, Tap to search' })).toBeOnTheScreen();
+  expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
 });
 
 test('the indicator says it is adding the cards while the commit runs', async () => {
