@@ -43,7 +43,7 @@ describe('the actions menu', () => {
 
     await openCopyPage(/^Angelic Curator/);
 
-    expect(actionsMenuRows()).toEqual(['Protect']);
+    expect(actionsMenuRows()).toEqual(['Protect', 'Delete copy']);
   });
 
   test('the actions menu of a protected copy offers Unprotect', async () => {
@@ -51,7 +51,7 @@ describe('the actions menu', () => {
 
     await openCopyPage(/^Angelic Curator/);
 
-    expect(actionsMenuRows()).toEqual(['Unprotect']);
+    expect(actionsMenuRows()).toEqual(['Unprotect', 'Delete copy']);
   });
 
   test('the actions menu of a copy that is not free offers no Protect', async () => {
@@ -72,7 +72,7 @@ describe('the actions menu', () => {
 
     expect(await screen.findByLabelText('Protected')).toBeOnTheScreen();
     expect(copyProtectedWritesSent()).toEqual([{ copy_id: 'copy-2', protected: true }]);
-    expect(actionsMenuRows()).toEqual(['Unprotect']);
+    expect(actionsMenuRows()).toEqual(['Unprotect', 'Delete copy']);
   });
 
   test('Unprotect unprotects this copy and removes the Protected chip', async () => {
@@ -84,7 +84,7 @@ describe('the actions menu', () => {
     expect(copyProtectedWritesSent()).toEqual([{ copy_id: 'copy-1', protected: false }]);
     await screen.findByLabelText('MH2');
     expect(screen.queryByLabelText('Protected')).not.toBeOnTheScreen();
-    expect(actionsMenuRows()).toEqual(['Protect']);
+    expect(actionsMenuRows()).toEqual(['Protect', 'Delete copy']);
   });
 
   test('after Protect, the binder tile of this copy shows the shield and the other tile does not', async () => {
@@ -124,7 +124,7 @@ describe('the actions menu', () => {
     expect(presentedAlert()).toEqual({ title: 'Could not protect this card', message: 'Check your connection.', buttons: ['OK'] });
     await pressAlertButton('OK');
     expect(screen.queryByLabelText('Protected')).not.toBeOnTheScreen();
-    expect(actionsMenuRows()).toEqual(['Protect']);
+    expect(actionsMenuRows()).toEqual(['Protect', 'Delete copy']);
   });
 });
 
