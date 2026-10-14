@@ -844,10 +844,17 @@ let focusedSearchBar: HostElement | null = null;
 const searchBarCommands: {
   setText: (searchBar: unknown, text: string) => void;
   blur: (searchBar: unknown) => void;
+  focus: (searchBar: unknown) => void;
 } = jest.requireActual('react-native-screens/lib/commonjs/fabric/SearchBarNativeComponent').Commands;
 
 jest.spyOn(searchBarCommands, 'setText').mockImplementation((_searchBar, text) => {
   searchFieldText = text;
+});
+
+jest.spyOn(searchBarCommands, 'focus').mockImplementation((searchBar) => {
+  const { onSearchFocus } = (searchBar as { props: { onSearchFocus?: unknown } }).props;
+  focusedSearchBar = hostViews('RNSSearchBar').find((candidate) => candidate.props.onSearchFocus === onSearchFocus) ?? null;
+  focusedSearchBar?.props.onSearchFocus?.({ nativeEvent: {} });
 });
 
 jest.spyOn(searchBarCommands, 'blur').mockImplementation(() => {
