@@ -19,6 +19,8 @@ const permissionDenied = '42501';
 const objectInUse = '55006';
 const invalidParameterValue = '22023';
 const laterSnapshotAt = '2026-10-15T21:00:00.000+00:00';
+const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
+const curatorArtCrop = 'https://cards.scryfall.io/art_crop/front/3/3/332352c2-98f2-4eb8-b49a-026a39df227b.jpg?1783926792';
 const importKeyClient = secretKeyClient();
 
 let alice: TestUser;
@@ -128,6 +130,47 @@ describe('after one catalog import', () => {
     expect(data!.oracle_id).toBe(await oracleIdOf("Jinnie Fay, Jetmir's Second"));
     expect(data!.image_uris).toHaveLength(2);
   });
+
+  test.each([
+    ['a card printing', angelicCurator, curatorArtCrop],
+    ['a double-faced card printing', '11bf83bb-c95b-4b4f-9a56-ce7a1816307a', 'https://cards.scryfall.io/art_crop/front/1/1/11bf83bb-c95b-4b4f-9a56-ce7a1816307a.jpg?1783940984'],
+  ])('%s keeps the art crop of its front face', async (_, printingId, artCropUri) => {
+    const { data, error } = await alice.client.from('card_printings').select('art_crop_uri').eq('id', printingId).single();
+
+    expect(error).toBeNull();
+    expect(data!.art_crop_uri).toBe(artCropUri);
+  });
+});
+
+test('a card printing with no art crop has none, and a later run with its art crop adds it', async () => {
+  await resetCardCatalog();
+  await expectImported(
+    await catalogFixture({
+      defaultCards: (records) =>
+        records.map((record) =>
+          record.id === angelicCurator
+            ? { ...record, image_uris: { normal: (record.image_uris as { normal: string }).normal } }
+            : record,
+        ),
+    }),
+  );
+
+  const { data } = await alice.client
+    .from('card_printings')
+    .select('image_uris, art_crop_uri')
+    .eq('id', angelicCurator)
+    .single();
+
+  expect(data).toEqual({ image_uris: [expect.stringContaining('https://cards.scryfall.io/normal/')], art_crop_uri: null });
+
+  await expectImported(await catalogFixture({ updatedAt: laterSnapshotAt }));
+  const { data: later } = await alice.client
+    .from('card_printings')
+    .select('art_crop_uri')
+    .eq('id', angelicCurator)
+    .single();
+
+  expect(later!.art_crop_uri).toBe(curatorArtCrop);
 });
 
 test('a reversible card printing whose faces name different cards belongs to its first face', async () => {

@@ -75,6 +75,7 @@ describe('the copy read', () => {
       collector_number: '262',
       rarity: 'uncommon',
       image_uris: [expect.stringContaining('https://cards.scryfall.io/normal/')],
+      art_crop_uri: expect.stringContaining('https://cards.scryfall.io/art_crop/front/'),
       finish: 'nonfoil',
       condition: 'lightly_played',
       language: 'ja',
@@ -97,6 +98,7 @@ describe('the copy read', () => {
     const copy = await copyOf(alice, { copy_id: copyId });
 
     expect(copy).toMatchObject({
+      art_crop_uri: expect.stringContaining('https://cards.scryfall.io/art_crop/front/'),
       type_line: 'Creature — Human Wizard // Creature — Human Insect',
       faces: [
         { name: 'Delver of Secrets', oracle_text: expect.stringMatching(/^At the beginning of your upkeep/) },

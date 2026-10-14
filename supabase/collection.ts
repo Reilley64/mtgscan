@@ -159,6 +159,7 @@ export type CopyUserTagRequest = {
 };
 
 export type CopyDetails = CollectionCopyRow & {
+  art_crop_uri: string | null;
   free: boolean;
   added_at: string;
   purchase_day_price: Omit<CurrentPrice, 'stale'> | null;

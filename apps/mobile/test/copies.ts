@@ -13,6 +13,7 @@ export function copyOf(copyId: string, changes: Partial<CopyDetails> = {}): Copy
     collector_number: '262',
     rarity: 'uncommon',
     image_uris: ['https://cards.scryfall.io/normal/front/curator.jpg'],
+    art_crop_uri: 'https://cards.scryfall.io/art_crop/front/curator.jpg',
     finish: 'nonfoil',
     condition: 'near_mint',
     language: 'en',
@@ -35,6 +36,7 @@ export const delver = copyOf('copy-delver', {
   set: 'isd',
   collector_number: '51',
   image_uris: ['https://cards.scryfall.io/normal/front/delver.jpg', 'https://cards.scryfall.io/normal/back/delver.jpg'],
+  art_crop_uri: 'https://cards.scryfall.io/art_crop/front/delver.jpg',
   type_line: 'Creature — Human Wizard // Creature — Human Insect',
   faces: [
     { name: 'Delver of Secrets', oracle_text: 'At the beginning of your upkeep, look at the top card of your library.' },

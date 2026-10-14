@@ -474,7 +474,7 @@ The app shows the sign-in screen whenever there is no session. It is the binder 
 Pushed screens cover the whole screen, including the app tab bar. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge. A screen pushed inside a drawer, such as the scan details in batch review, also has the native back button (see Sheets).
 
 - **Copy page**, from a binder tile, shows that copy only (owner decision, spec 4). It is one scrolling page with no segmented control and no list of other copies or printings. Users never see the name "copy page": the page shows the card. From top to bottom:
-  - the hero: the card image at 55% of the screen width over the same image blurred, with the foil or etched sheen of the copy;
+  - the hero: the card image at 55% of the screen width, with the foil or etched sheen of the copy, over the art crop of the same card printing blurred. A double-faced card printing uses the art crop of its front face. A card printing with no art crop uses its card image blurred. While the art crop loads, the background color shows behind the card image;
   - the card name in card title type and the type line in text muted;
   - chips: **Protected** in warning with a shield symbol when the copy is protected, the set code in capitals, the collector number, the finish when it is not nonfoil, the condition, such as "NM", and the language, such as "English";
   - the deck line, which shows the deck tag of the deck the copy is in. It stays empty until decks exist;
@@ -548,7 +548,7 @@ The interface is flat. Depth comes from tone, not shadow.
 - The foil and etched sheens on binder tiles are diagonal gradients over the card image at 30% opacity (`opacity.sheen`). They sit outside the palette, like card art.
   - **Foil sheen** (`gradients.foilSheen`, 115 degrees): clear to 22%, then pink `rgba(255, 80, 170, 0.55)`, yellow `rgba(255, 230, 90, 0.5)`, mint `rgba(80, 255, 200, 0.5)`, blue `rgba(80, 150, 255, 0.55)`, and violet `rgba(200, 110, 255, 0.5)` from 34% to 66%, then clear from 78%.
   - **Etched sheen** (`gradients.etchedSheen`, 120 degrees): clear to 25%, then white `rgba(255, 255, 255, 0.55)`, silver `rgba(200, 210, 215, 0.25)`, and white again from 42% to 58%, then clear from 75%.
-- The hero of the copy page blurs the card image with a 26 px radius (`blurRadii.heroArt`) and shows it at 45% opacity over the background (`opacity.heroArt`), so the card stands out from its own art. The blur radius is an image prop, not a class.
+- The hero of the copy page blurs the art crop with a 26 px radius (`blurRadii.heroArt`) and shows it at 45% opacity over the background (`opacity.heroArt`), so the card stands out from its own art. The blur radius is an image prop, not a class.
 - The empty state illustrations on the background fade downward into it (`gradients.emptyStateFade`). See Empty states.
 - NativeWind 4 has no class for a box shadow or a gradient, so the shadows, the scrim, the sheens, and the empty state fade are style values.
 - The tab bar is a near-opaque bar with a hairline top border.

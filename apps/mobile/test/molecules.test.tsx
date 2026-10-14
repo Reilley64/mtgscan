@@ -71,6 +71,7 @@ import { tokenColors } from './token-colors';
 
 const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim, textPrice, warning } = tokenColors;
 const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
+const solRingArtCrop = 'https://cards.scryfall.io/art_crop/front/sol-ring.jpg';
 const mh3Symbol = 'https://svgs.scryfall.io/sets/mh3.svg';
 const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
 
@@ -319,18 +320,18 @@ describe('ReadFailure', () => {
 });
 
 describe('CardHero', () => {
-  test('a card hero shows the card image, named by the card, over the same image blurred', async () => {
-    await render(<CardHero uri={solRing} name="Sol Ring" />);
+  test('a card hero shows the card image, named by the card, over its art blurred', async () => {
+    await render(<CardHero uri={solRing} artUri={solRingArtCrop} name="Sol Ring" />);
 
     const hero = screen.getByRole('image', { name: 'Sol Ring' });
     expect(cardImageUri(hero)).toBe(solRing);
     expect(cardSheen(hero)).toBeNull();
-    expect(blurredImageUris()).toEqual([solRing]);
+    expect(blurredImageUris()).toEqual([solRingArtCrop]);
     expect(screen.getAllByRole('image')).toHaveLength(1);
   });
 
   test('a card hero passes its sheen to the card image', async () => {
-    await render(<CardHero uri={solRing} name="Sol Ring" sheen="foil" />);
+    await render(<CardHero uri={solRing} artUri={solRingArtCrop} name="Sol Ring" sheen="foil" />);
 
     expect(cardSheen(screen.getByRole('image', { name: 'Sol Ring' }))).toMatchObject({ opacity: expect.closeTo(0.3) });
   });
