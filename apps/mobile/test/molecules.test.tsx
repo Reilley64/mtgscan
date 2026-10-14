@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
+import { act, fireEvent, isHiddenFromAccessibility, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
 import { processColor, StyleSheet, View } from 'react-native';
 
@@ -16,6 +16,14 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
+import { EmptyState } from '@/components/molecules/empty-state';
+import {
+  DashedCardFrame,
+  EmptyBinderSlots,
+  GhostBatchRows,
+  GhostCommanderCard,
+  GhostNeedsYouItems,
+} from '@/components/molecules/empty-state-illustrations';
 import { PriceLine } from '@/components/molecules/price-line';
 import { PullIndicator } from '@/components/molecules/pull-indicator';
 import { FailureNotice } from '@/components/molecules/failure-notice';
@@ -39,6 +47,8 @@ import {
   cardImageOutline,
   cardImageUri,
   cardSheen,
+  dashedOutlinesColored,
+  fadesDown,
   glassEffect,
   imageTintColor,
   opacityOf,
@@ -204,7 +214,7 @@ describe('LargeCardImage', () => {
 describe('ReadFailure', () => {
   test('a read failure names what did not load, asks to check the connection, and tries again', async () => {
     const onTryAgain = jest.fn();
-    await render(<ReadFailure title="Could not load this card" onTryAgain={onTryAgain} />);
+    await render(<ReadFailure illustration={null} title="Could not load this card" onTryAgain={onTryAgain} />);
 
     expect(screen.getByText('Could not load this card')).toBeOnTheScreen();
     expect(screen.getByText('Check your connection.')).toBeOnTheScreen();
@@ -926,5 +936,77 @@ describe('SwipeToConfirm', () => {
     });
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('EmptyState', () => {
+  test('an empty state shows its illustration, a white title in sheet title type, and a muted message', async () => {
+    await render(<EmptyState illustration={<Text>Illustration</Text>} title="No decks yet" message="Start a deck from a commander you own." />);
+
+    expect(screen.getByText('Illustration', { includeHiddenElements: true })).toBeOnTheScreen();
+    expect(screen.getByText('No decks yet')).toHaveStyle({ color: white, fontSize: 17, fontWeight: '800', textAlign: 'center' });
+    expect(screen.getByText('Start a deck from a commander you own.')).toHaveStyle({ color: textMuted, fontSize: 14, textAlign: 'center' });
+  });
+
+  test('VoiceOver reads an empty state as its title and message and skips the illustration', async () => {
+    await render(<EmptyState illustration={<Text>Illustration</Text>} title="No decks yet" message="Start a deck from a commander you own." />);
+
+    expect(screen.getByLabelText('No decks yet, Start a deck from a commander you own.')).toHaveProp('accessible', true);
+    expect(isHiddenFromAccessibility(screen.getByText('Illustration', { includeHiddenElements: true }))).toBe(true);
+    expect(screen.queryByRole('button')).not.toBeOnTheScreen();
+  });
+
+  test('an empty state action is a primary button that VoiceOver reads by its label', async () => {
+    const onPress = jest.fn();
+    await render(
+      <EmptyState
+        illustration={null}
+        title="Your collection is empty"
+        message="Scan cards to add them to your collection."
+        action={{ label: 'Scan cards', onPress }}
+      />,
+    );
+
+    const action = screen.getByRole('button', { name: 'Scan cards' });
+    expect(action).toHaveStyle({ backgroundColor: lime });
+    expect(screen.getByText('Scan cards')).toHaveStyle({ color: onPrimary });
+    expect(touchTarget(action).height).toBeGreaterThanOrEqual(44);
+    await fireEvent.press(action);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('empty state illustrations', () => {
+  test('empty binder slots are dashed card shapes in line color, three to a row, fading down', async () => {
+    await render(<EmptyBinderSlots rows={2} />);
+
+    expect(dashedOutlinesColored(screen.root!, line)).toBe(6);
+    expect(blocksColored(screen.root!, line)).toBe(0);
+    expect(fadesDown(screen.root!)).toBe(true);
+  });
+
+  test('ghost Needs you items and a ghost commander card are line-colored shapes that fade down', async () => {
+    await render(<GhostNeedsYouItems />);
+    expect(blocksColored(screen.root!, line)).toBeGreaterThan(0);
+    expect(fadesDown(screen.root!)).toBe(true);
+
+    await render(<GhostCommanderCard />);
+    expect(dashedOutlinesColored(screen.root!, line)).toBe(1);
+    expect(fadesDown(screen.root!)).toBe(true);
+  });
+
+  test('a dashed card frame holds its symbol, and it and the ghost batch rows do not fade', async () => {
+    await render(
+      <View>
+        <DashedCardFrame symbol="video.slash" />
+      </View>,
+    );
+    expect(dashedOutlinesColored(screen.root!, line)).toBe(1);
+    expect(symbolNames(screen.root!)).toEqual(['video.slash']);
+    expect(fadesDown(screen.root!)).toBe(false);
+
+    await render(<GhostBatchRows />);
+    expect(blocksColored(screen.root!, surface)).toBe(3);
+    expect(fadesDown(screen.root!)).toBe(false);
   });
 });

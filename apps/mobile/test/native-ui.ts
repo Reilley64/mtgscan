@@ -583,6 +583,19 @@ export function blocksColored(element: HostElement, color: string) {
   return element.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.backgroundColor === color).length;
 }
 
+export function dashedOutlinesColored(element: HostElement, color: string) {
+  return element.queryAll((instance) => {
+    const style = StyleSheet.flatten(instance.props.style);
+    return style?.borderStyle === 'dashed' && style.borderColor === color;
+  }).length;
+}
+
+export function fadesDown(element: HostElement) {
+  return element.queryAll((instance) =>
+    String(StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage).startsWith('linear-gradient(180deg'),
+  ).length > 0;
+}
+
 export function lineColoredBlocks(element: HostElement) {
   return blocksColored(element, tokenColors.line);
 }

@@ -28,19 +28,27 @@ test('the app opens on Recent with its empty state', async () => {
 });
 
 test.each([
-  [
-    'Recent',
-    'Nothing needs you yet',
-    'Deck suggestions, planned swaps, and buylist cards show up here when they need you.',
-  ],
-  ['Decks', 'No decks yet', "A deck starts from a commander's card page."],
-])('the empty state on %s has a white bold title and a muted message', async (tab, title, message) => {
+  ['Recent', 'Nothing needs you yet', 'When a deck needs you, it shows up here.'],
+  ['Decks', 'No decks yet', 'Start a deck from a commander you own.'],
+])('the empty state on %s has a white title in sheet title type and a muted message, read as one', async (tab, title, message) => {
   await renderApp();
   await pressTab(tab);
 
   const emptyState = within(selectedTab());
-  expect(emptyState.getByText(title)).toHaveStyle({ color: 'rgba(255, 255, 255, 1)', fontSize: 14, fontWeight: '700' });
+  expect(emptyState.getByText(title)).toHaveStyle({ color: 'rgba(255, 255, 255, 1)', fontSize: 17, fontWeight: '800' });
   expect(emptyState.getByText(message)).toHaveStyle({ color: 'rgba(181, 192, 197, 1)', fontSize: 14, lineHeight: 19 });
+  expect(emptyState.getByLabelText(`${title}, ${message}`)).toHaveProp('accessible', true);
+});
+
+test('Recent has no action and no filter chips while it is empty', async () => {
+  await renderApp();
+
+  const recent = within(selectedTab());
+  expect(recent.getByText('Nothing needs you yet')).toBeOnTheScreen();
+  expect(recent.queryAllByRole('button')).toEqual([]);
+  for (const filter of ['All', 'Suggestions', 'Planned swaps', 'Buylist']) {
+    expect(recent.queryByText(filter)).not.toBeOnTheScreen();
+  }
 });
 
 test.each([
@@ -68,15 +76,18 @@ test('the tab bar shows Recent, Collection, Decks, and Scan in that order', asyn
   expect(tabBarLabels()).toEqual(['Recent', 'Collection', 'Decks', 'Scan']);
 });
 
-test("Decks says there are no decks yet and that a deck starts from a commander's card page", async () => {
+test('Decks says there are no decks yet, and Open Collection opens the Collection tab', async () => {
   await renderApp();
-
   await pressTab('Decks');
 
   const decks = within(selectedTab());
   expect(tabHeader(selectedTab()).title).toBe('Decks');
   expect(decks.getByText('No decks yet')).toBeOnTheScreen();
-  expect(decks.getByText("A deck starts from a commander's card page.")).toBeOnTheScreen();
+  expect(decks.getByText('Start a deck from a commander you own.')).toBeOnTheScreen();
+
+  await fireEvent.press(decks.getByRole('button', { name: 'Open Collection' }));
+
+  expect(selectedTab().props.title).toBe('Collection');
 });
 
 test('Scan is a black screen with no header and no settings button', async () => {

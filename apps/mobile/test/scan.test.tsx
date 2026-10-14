@@ -257,7 +257,7 @@ test('the Scan tab says the camera is off when the user denies camera access', a
   await openScan();
 
   const scanTab = within(selectedTab());
-  expect(scanTab.getByText('Camera access is off.')).toBeOnTheScreen();
+  expect(scanTab.getByLabelText('Camera access is off, Turn it on in Settings to scan cards.')).toBeOnTheScreen();
   expect(scanTab.getByRole('button', { name: 'Open Settings' })).toBeOnTheScreen();
   expect(cameraIsOn()).toBe(false);
 });
@@ -278,7 +278,9 @@ test('the Scan tab says the camera is not available on a phone without a camera'
 
   await openScan();
 
-  expect(within(selectedTab()).getByText('Camera not available')).toBeOnTheScreen();
+  const scanTab = within(selectedTab());
+  expect(scanTab.getByLabelText('Camera not available, This device has no camera.')).toBeOnTheScreen();
+  expect(scanTab.queryByRole('button', { name: /Settings/ })).not.toBeOnTheScreen();
   expect(cameraPrompts()).toBe(0);
   expect(cameraIsOn()).toBe(false);
 });
@@ -309,12 +311,12 @@ test('a different card under the same light takes a new photo', async () => {
 test('the camera shows when the user comes back after turning camera access on in Settings', async () => {
   cameraAccessIs('denied');
   await openScan();
-  expect(within(selectedTab()).getByText('Camera access is off.')).toBeOnTheScreen();
+  expect(within(selectedTab()).getByText('Camera access is off')).toBeOnTheScreen();
 
   cameraAccessIs('granted');
   await returnToTheApp();
 
-  expect(within(selectedTab()).queryByText('Camera access is off.')).not.toBeOnTheScreen();
+  expect(within(selectedTab()).queryByText('Camera access is off')).not.toBeOnTheScreen();
   expect(cameraIsOn()).toBe(true);
 });
 

@@ -3,8 +3,9 @@ import { Linking, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BatchButton } from '@/components/molecules/batch-button';
+import { EmptyState } from '@/components/molecules/empty-state';
+import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { useGallery } from '@/gallery/gallery-state';
-import { CameraMessage } from '@/scan/camera-message';
 import { GalleryDownload } from '@/scan/gallery-download';
 import { PullToAdd } from '@/scan/pull-to-add';
 import { ScanCamera } from '@/scan/scan-camera';
@@ -19,13 +20,21 @@ function CameraContent() {
       return <ScanCamera />;
     case 'denied':
       return (
-        <CameraMessage
-          message="Camera access is off."
+        <EmptyState
+          illustration={<DashedCardFrame symbol="video.slash" />}
+          title="Camera access is off"
+          message="Turn it on in Settings to scan cards."
           action={{ label: 'Open Settings', onPress: () => void Linking.openSettings() }}
         />
       );
     case 'unavailable':
-      return <CameraMessage message="Camera not available" />;
+      return (
+        <EmptyState
+          illustration={<DashedCardFrame symbol="questionmark.video" />}
+          title="Camera not available"
+          message="This device has no camera."
+        />
+      );
     case 'checking':
       return null;
   }

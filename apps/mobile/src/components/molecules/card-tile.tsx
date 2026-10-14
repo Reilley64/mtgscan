@@ -11,6 +11,8 @@ const columnClasses = { 3: 'w-1/3' } as const;
 
 export const cardsPerRow: keyof typeof columnClasses = 3;
 
+export const cardColumnClass = columnClasses[cardsPerRow];
+
 export const cardRowClass = '-mx-xs';
 
 type CardTileProps = {
@@ -38,7 +40,7 @@ export function CardTile({
   );
 
   return (
-    <View className={cn(columnClasses[cardsPerRow], 'px-xs')}>
+    <View className={cn(cardColumnClass, 'px-xs')}>
       {onPress ? (
         <TileButton
           accessibilityLabel={accessibilityLabel}
@@ -67,7 +69,7 @@ export function CardTile({
 
 export function CardTileSkeleton() {
   return (
-    <View className={cn(columnClasses[cardsPerRow], 'gap-xs px-xs')}>
+    <View className={cn(cardColumnClass, 'gap-xs px-xs')}>
       <Skeleton className="aspect-card-image rounded-sm" />
       <Skeleton className="h-skeleton-meta-bar w-[60%] self-center" />
       <Skeleton className="h-skeleton-meta-bar w-[40%] self-center" />
