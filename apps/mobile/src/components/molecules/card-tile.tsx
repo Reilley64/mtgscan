@@ -19,7 +19,7 @@ type CardTileProps = {
   accessibilityHint?: string;
   sheen?: CardSheen;
 } & ({ caption: string; children?: never } | { caption?: never; children: ReactNode }) &
-  ({ selected?: never; onPress?: never } | { selected: boolean; onPress: () => void });
+  ({ selected?: never; onPress?: never } | { selected?: boolean; onPress: () => void });
 
 export function CardTile({
   uri,

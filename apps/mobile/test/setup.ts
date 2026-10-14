@@ -1,3 +1,5 @@
+import { Alert } from 'react-native';
+
 import { registerAppStyles } from './class-styles';
 import { resetFakeCardDetector } from './fake-card-detector';
 import { resetFakeCardRecognizer } from './fake-card-recognizer';
@@ -37,6 +39,7 @@ jest.mock('@/scan/scan-sounds', () => jest.requireActual('./fake-scan-feedback')
 beforeEach(async () => {
   await registerAppStyles();
   jest.spyOn(console, 'info').mockImplementation(() => {});
+  jest.spyOn(Alert, 'alert').mockReset();
   resetFakeSupabase();
   resetFakeCardDetector();
   resetFakeCardRecognizer();

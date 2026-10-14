@@ -331,7 +331,7 @@ The app uses the iOS system font, SF Pro, at a few weights.
 
 - **Large title** (28 px, heavy) names top-level tabs: Recent, Collection, Decks.
 - **Sign-in title** (24 px, heavy) is the one line on the sign-in sheet. **Brand** (22 px, heavy) sets the mtgscan name next to the brand mark.
-- **Card title** (20 px, heavy) names a card on the card page, and a deck in the deck header and the commander gallery.
+- **Card title** (20 px, heavy) names a card on the copy page, and a deck in the deck header and the commander gallery.
 - **Sheet title** (17 px, heavy) titles page sheets.
 - **Body** (14 px) carries reasons, rules text, and list content. **Body strong** labels buttons and card names in rows. **Field** (14 px) is the text in a text field, such as the card name in name search. It has no fixed line height, so iOS centers the text in the field.
 - **Meta** (12 px, muted) carries set and collector number, finish, condition, language, and timestamps.
@@ -362,6 +362,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - When the read fails, the tab shows "Could not load your collection" and "Check your connection." with a **Try again** button.
   - One quiet meta line under each card shows the set icon in its rarity color, the collector number, and the condition when it is not NM. Foil and etched copies carry a sheen on the card image instead of a finish label. Later, badges also show whether the copy is in a deck, held by a planned swap, or protected.
   - A price line under the meta line shows the copy's current price (owner decision, #120). A copy with no current price shows "–". A stale price has a clock symbol.
+  - Tapping a tile opens the copy page for that copy, from the binder and from search results alike.
   - A native search bar sits under the large title. See Collection search. Filters: All, Free, Allocated, Protected.
   - A round sort button floats over the grid at the bottom right and changes the order. See Collection search.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
@@ -463,14 +464,16 @@ The app shows the sign-in screen whenever there is no session. It is the binder 
 
 Pushed screens cover the whole screen, including the app tab bar. There are **no on-screen back buttons**. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge. The exception is a screen pushed inside a drawer, such as the scan details in batch review, which keeps the native back button (see Sheets).
 
-- **Card page**, from a collection tile, opens that printing:
-  - a hero image of the printing over its blurred art;
-  - name, type line, and chips for the set code and collector number;
-  - a segmented control:
-    - **Copies**: counts totalled over every copy of this printing, a one-line summary for the card across printings, this printing's copies listed by collection entry (finish, condition, language, quantity, decks, protected) with a Protect or Unprotect control on each row, and the user's other printings, each opening its own page;
-    - **Decks**: deck tags and open deck suggestions with the card, with a badge for them;
-    - **Prices**: per finish for this printing, and the value of its copies;
-    - **Rules**: Oracle text and Commander legality.
+- **Copy page**, from a binder tile, shows that copy only (owner decision, spec 4). It is one scrolling page with no segmented control and no list of other copies or printings. Users never see the name "copy page": the page shows the card. From top to bottom:
+  - the hero: the card image at 55% of the screen width over the same image blurred, with the foil or etched sheen of the copy;
+  - the card name in card title type and the type line in text muted;
+  - chips: **Protected** in warning with a shield symbol when the copy is protected, the set code in capitals, the collector number, the finish when it is not nonfoil, the condition, such as "NM", and the language, such as "English";
+  - the deck line, which shows the deck tag of the deck the copy is in. It stays empty until decks exist;
+  - **Price**: value rows for "Current price" with the stale clock, "Added" with the day, such as "12 October 2026", and "Purchase-day price", then the credit "Current prices from Scryfall, in USD". A missing price shows a text dim "–", and VoiceOver hears "no price". A stale current price adds the hint "The price may be out of date.";
+  - **Rules**: the Oracle text in a surface card, with each face's name over its text for a card with more than one face, then a "Commander" value row: "Legal", "Banned", "Not legal", or "Unknown".
+  - Section headings are lime body strong text.
+  - A copy that no longer exists, such as one deleted on another phone, shows a native alert "This card is no longer in your collection." with **OK**, which goes back to the binder.
+  - When the read fails, the page shows "Could not load this card" and "Check your connection." with a **Try again** button.
 - **Deck screen**, from the gallery or a deck tag:
   - The top bar is a compact header: the commander picture, the deck name, and chips for priority, validity, and estimated bracket. When the deck is not valid, its violations and the bracket signals show under the chips. Nothing else goes in the header.
   - A deck tab bar replaces the app tab bar: **Cards / Suggestions / History**.
@@ -516,6 +519,7 @@ The interface is flat. Depth comes from tone, not shadow.
 - The foil and etched sheens on binder tiles are diagonal gradients over the card image at 30% opacity (`opacity.sheen`). They sit outside the palette, like card art.
   - **Foil sheen** (`gradients.foilSheen`, 115 degrees): clear to 22%, then pink `rgba(255, 80, 170, 0.55)`, yellow `rgba(255, 230, 90, 0.5)`, mint `rgba(80, 255, 200, 0.5)`, blue `rgba(80, 150, 255, 0.55)`, and violet `rgba(200, 110, 255, 0.5)` from 34% to 66%, then clear from 78%.
   - **Etched sheen** (`gradients.etchedSheen`, 120 degrees): clear to 25%, then white `rgba(255, 255, 255, 0.55)`, silver `rgba(200, 210, 215, 0.25)`, and white again from 42% to 58%, then clear from 75%.
+- The hero of the copy page blurs the card image with a 26 px radius (`blurRadii.heroArt`) and shows it at 45% opacity over the background (`opacity.heroArt`), so the card stands out from its own art. The blur radius is an image prop, not a class.
 - NativeWind 4 has no class for a box shadow or a gradient, so the shadows, the scrim, and the sheens are style values.
 - The tab bar is a near-opaque bar with a hairline top border.
 - The controls that float over the camera or over scrolling content use Liquid Glass. See Liquid Glass.
@@ -555,19 +559,20 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - A round icon button, such as the settings button or the batch button, is 38 px across on the control surface, with an 18 px symbol in the text color.
   - Every control has a touch target of at least 44 by 44 pt. A control that looks smaller, such as a 38 px button or a 24 px chip, gets the extra touch area above and below, and is at least 44 px wide.
 - **Swipe to confirm.** A 52 px lime pill track with a 44 px round handle in on-primary at its left, 4 px inside the track, with a lime arrow. The label sits in the center of the track in body strong, in on-primary. Dragging the handle to the right moves it along the track with the finger. The handle rides a native horizontal scroll view, so the drawer's own drag cannot take the touch when the finger drifts up or down. Past 80% of the track, a light haptic plays, and releasing there confirms. The handle then moves to the end and shows a spinner. It stays at the end with the spinner while the action runs. When the action works and the screen closes, it stays there until the screen is gone. It goes back to the start after a release before 80%, which does nothing. It also goes back when the action fails or leaves the screen open. A busy control shows a spinner on the handle at the end and cannot be swiped. It keeps its full color, even when it is also disabled. A disabled control fades to 38% opacity. VoiceOver reads it as a button with its label, and its default action confirms without a swipe. The scroll padding is the one style that is not a class, because it comes from the track width.
-- **Toggles.** A toggle is a button that stays on or off, such as Protect. It uses the control surface when off and turns lime with dark text when on. A segmented control, such as Copies, Decks, Prices, and Rules on the card page, is a row of options on one control surface with 8 px corners. The chosen option is lime.
+- **Toggles.** A toggle is a button that stays on or off, such as Protect. It uses the control surface when off and turns lime with dark text when on. A segmented control is a row of options on one control surface with 8 px corners. The chosen option is lime.
 - **Switch rows.** A switch row is a surface card with a label and an iOS switch with a lime track. A tap anywhere on the row turns the switch on or off.
 - **List rows.** A list row is a surface card with an optional thumbnail, a name in body strong, and an optional meta line, such as the set code and collector number.
+- **Value rows.** A value row is a surface card with a label in body text muted on the left and its value on the right, such as "Current price" and "$1.87". VoiceOver reads the row as one element: the label, then the value.
 - **Sign-in buttons.** Sign-in buttons and the sign-in Try again button are 50 px tall to match Apple's sign-in button sizing. This is the one exception to the 38 px button height. Try again uses sign-in button type (17 px, semibold). Continue with Google uses 16 px medium. The system Apple button sets its own type.
 - **Sign in with Apple.** The system Apple button in Apple's white style, with the "Sign in with Apple" title and 8 px corners. Apple's branding rules set its colors, logo, and type, so they sit outside the palette.
 - **Continue with Google.** Google's dark button style: a #131314 fill, a 1 px #8e918f border, #e3e3e3 text, and the four-color Google logo. Google's branding rules set these colors, so they sit outside the palette.
 - **Text links.** An in-app link inside a line of text, such as **Privacy policy**, keeps the type size of its line in bold lime. It is the one control without a 44 pt touch target, because a nested text run cannot take extra touch area.
 - **Failure notice.** A surface card with 12 px padding and a danger mark beside the message, such as "Sign-in did not work." A long message wraps in the space beside the mark, and the mark lines up with its first line.
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
-- **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Their text uses the text, warning, danger, or info color. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide. Search chips show their `key:value` text and × on the control surface, and a tap removes them. A refused search chip has danger text on the danger tint.
-- **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, the batch button, and the card page Decks tab.
+- **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Their text uses the text, warning, danger, or info color. A status chip can show an 11 px symbol before its label in the same color, such as the shield on **Protected**. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide. Search chips show their `key:value` text and × on the control surface, and a tap removes them. A refused search chip has danger text on the danger tint.
+- **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, and the batch button.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
-- **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and card page deck lists. It opens the deck.
+- **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and the deck line of the copy page. It opens the deck.
 - **Latest-scan chip.** One horizontal chip at the bottom of Scan, 16 px from the edges, on Liquid Glass. It has 8 px padding and three columns (owner request, #113):
   - The left column holds the card thumbnail.
   - The middle column holds the card name in body strong, centered over a centered meta line with the set code in capitals and the collector number, such as "M10 146".
@@ -624,8 +629,8 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - The price line sits 4 px below the meta line, centered, in price type (12 px, semibold) in text price, slightly brighter than the meta line. It shows the copy's current price in full, such as "$1,635.37". The price is the current Scryfall price for the card printing and finish. Condition and language do not change it. The currency is USD for now.
   - A copy with no price for its card printing and finish shows a text dim "–". A price is never taken from another finish or card printing.
   - A stale price, older than 24 hours, has a small 11 px `clock` symbol in text price before it. The symbol is neutral, not a warning.
-  - VoiceOver reads the tile as one image: the name, the set code in capitals and the collector number, then the finish when it is not nonfoil and the condition when it is not NM, in words, then the price or "no price": "Bloomvine Regent // Claim Territory, TDM 136, foil, moderately played, $1,635.37". A stale price adds the hint "The price may be out of date."
-  - Tiles open nothing yet. The card page and the badges for decks, planned swaps, and protected copies come later.
+  - VoiceOver reads the tile as one button: the name, the set code in capitals and the collector number, then the finish when it is not nonfoil and the condition when it is not NM, in words, then the price or "no price": "Bloomvine Regent // Claim Territory, TDM 136, foil, moderately played, $1,635.37". A stale price adds the hint "The price may be out of date."
+  - Tapping the tile opens the copy page. The badges for decks, planned swaps, and protected copies come later.
 - **Commander gallery card.** Full-width commander art with a dark gradient, the deck name in card-title type, status chips, and a Needs you badge.
 
 ## Do's and Don'ts

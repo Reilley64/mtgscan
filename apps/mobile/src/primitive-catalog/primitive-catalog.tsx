@@ -26,6 +26,7 @@ import { AccountCard } from '@/components/molecules/account-card';
 import { BatchButton } from '@/components/molecules/batch-button';
 import { Brand } from '@/components/molecules/brand';
 import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
+import { CardHero } from '@/components/molecules/card-hero';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
@@ -36,6 +37,7 @@ import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
+import { ValueRow } from '@/components/molecules/value-row';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
@@ -132,6 +134,7 @@ function Chips() {
         <Chip tone="warning" label="Protected only" />
         <Chip tone="danger" label="Not valid" />
         <Chip tone="info" label="Bracket 3" />
+        <Chip tone="warning" symbol="shield.fill" label="Protected" />
       </View>
       <View className="flex-row flex-wrap gap-sm">
         <Chip label="set:mh2" onRemove={() => {}} />
@@ -225,6 +228,32 @@ function CardTiles() {
           />
         ))}
       </CardGrid>
+    </Section>
+  );
+}
+
+function ValueRows() {
+  return (
+    <Section title="Value rows">
+      <ValueRow label="Current price" spokenValue="$1.25" accessibilityHint="The price may be out of date.">
+        <PriceLine price="$1.25" stale />
+      </ValueRow>
+      <ValueRow label="Purchase-day price" spokenValue="no price">
+        <PriceLine price={undefined} stale={false} />
+      </ValueRow>
+      <ValueRow label="Added" spokenValue="12 October 2026">
+        <Text>12 October 2026</Text>
+      </ValueRow>
+    </Section>
+  );
+}
+
+function CardHeroes() {
+  return (
+    <Section title="Card heroes">
+      <View className="-mx-lg">
+        <CardHero uri={solRing} name="Sol Ring" sheen="foil" />
+      </View>
     </Section>
   );
 }
@@ -408,6 +437,8 @@ export function PrimitiveCatalog() {
         <Surfaces />
         <ListRows />
         <CardTiles />
+        <CardHeroes />
+        <ValueRows />
         <Switches />
         <CountBadges />
         <QuickActions />

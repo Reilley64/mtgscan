@@ -10,6 +10,7 @@ import { AccountCard } from '@/components/molecules/account-card';
 import { BatchButton } from '@/components/molecules/batch-button';
 import { Brand } from '@/components/molecules/brand';
 import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
+import { CardHero } from '@/components/molecules/card-hero';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
@@ -24,6 +25,7 @@ import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
+import { ValueRow } from '@/components/molecules/value-row';
 
 import { liquidGlassIsAvailable } from './fake-glass-effect';
 import { scanFeedback } from './fake-scan-feedback';
@@ -31,6 +33,7 @@ import {
   backdropOf,
   beginSwipe,
   blocksColored,
+  blurredImageUris,
   cardImageOutline,
   cardImageUri,
   cardSheen,
@@ -156,6 +159,50 @@ describe('ListRow', () => {
     await render(<ListRow title="Lightning Bolt" onPress={() => {}} />);
 
     expect(touchTarget(screen.getByRole('button', { name: 'Lightning Bolt' })).height).toBeGreaterThanOrEqual(44);
+  });
+});
+
+describe('ValueRow', () => {
+  test('a value row is one element on the surface, with its label in muted text and its value', async () => {
+    await render(
+      <ValueRow label="Added" spokenValue="12 October 2026">
+        <Text>12 October 2026</Text>
+      </ValueRow>,
+    );
+
+    const row = screen.getByLabelText('Added, 12 October 2026');
+    expect(row).toHaveStyle({ backgroundColor: surface, borderRadius: 12 });
+    expect(within(row).getByText('Added')).toHaveStyle({ color: textMuted, fontSize: 14 });
+    expect(within(row).getByText('12 October 2026')).toHaveStyle({ color: white });
+    expect(screen.queryByRole('button')).not.toBeOnTheScreen();
+  });
+
+  test('a value row passes its hint to VoiceOver', async () => {
+    await render(
+      <ValueRow label="Current price" spokenValue="$0.35" accessibilityHint="The price may be out of date.">
+        <PriceLine price="$0.35" stale />
+      </ValueRow>,
+    );
+
+    expect(screen.getByLabelText('Current price, $0.35')).toHaveProp('accessibilityHint', 'The price may be out of date.');
+  });
+});
+
+describe('CardHero', () => {
+  test('a card hero shows the card image, named by the card, over the same image blurred', async () => {
+    await render(<CardHero uri={solRing} name="Sol Ring" />);
+
+    const hero = screen.getByRole('image', { name: 'Sol Ring' });
+    expect(cardImageUri(hero)).toBe(solRing);
+    expect(cardSheen(hero)).toBeNull();
+    expect(blurredImageUris()).toEqual([solRing]);
+    expect(screen.getAllByRole('image')).toHaveLength(1);
+  });
+
+  test('a card hero passes its sheen to the card image', async () => {
+    await render(<CardHero uri={solRing} name="Sol Ring" sheen="foil" />);
+
+    expect(cardSheen(screen.getByRole('image', { name: 'Sol Ring' }))).toMatchObject({ opacity: expect.closeTo(0.3) });
   });
 });
 
@@ -370,6 +417,20 @@ describe('CardTile', () => {
     expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();
     expect(screen.getByText('CMM 464')).toHaveStyle({ color: lime });
     expect(cardImageOutline(screen.getByRole('button'))).toEqual({ borderColor: lime, borderWidth: 2, borderRadius: 8 });
+  });
+
+  test('a card tile with an action and no selected state is a button that runs its action', async () => {
+    const onPress = jest.fn();
+    await render(
+      <CardTile uri={solRing} accessibilityLabel="Sol Ring, CMM 464, $1.25" onPress={onPress}>
+        <PriceLine price="$1.25" stale={false} />
+      </CardTile>,
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sol Ring, CMM 464, $1.25' }));
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(cardImageOutline(screen.getByRole('button'))).toMatchObject({ borderColor: '#00000000' });
   });
 
   test('card tiles sit three to a row', async () => {

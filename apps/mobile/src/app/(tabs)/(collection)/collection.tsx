@@ -1,4 +1,5 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -66,7 +67,8 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
         ...spokenFinishAndCondition(copy),
         price ?? 'no price',
       ].join(', ')}
-      accessibilityHint={copy.price?.stale ? 'The price may be out of date.' : undefined}>
+      accessibilityHint={copy.price?.stale ? 'The price may be out of date.' : undefined}
+      onPress={() => router.push({ pathname: '/copy', params: { copyId: copy.copy_id } })}>
       <CopyMeta
         setCode={copy.set}
         rarity={copy.rarity}

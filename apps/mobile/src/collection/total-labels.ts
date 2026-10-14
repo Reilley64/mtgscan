@@ -41,6 +41,6 @@ export function shownMatchCount(matchCount: number, { copies }: CollectionTotal)
   return `${shownCount(matchCount)} of ${shownCount(copies)} ${copies === 1 ? 'copy' : 'copies'}`;
 }
 
-export function priceCredit({ currency }: CollectionTotal) {
+export function priceCredit({ currency }: Pick<CollectionTotal, 'currency'>) {
   return `Current prices from Scryfall, in ${currency}`;
 }

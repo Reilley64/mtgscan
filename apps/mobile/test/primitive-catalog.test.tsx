@@ -21,6 +21,8 @@ test('the primitive catalog shows every primitive', async () => {
     'Surfaces',
     'List rows',
     'Card tiles',
+    'Card heroes',
+    'Value rows',
     'Switches',
     'Quick actions',
     'Count badges',
@@ -64,6 +66,9 @@ test('the primitive catalog shows every primitive', async () => {
   expect(menuButtonNames(screen.container)).toEqual(['Sort, Relevance', 'Sort, Price, high to low']);
   expect(screen.getByRole('progressbar', { name: 'Downloading gallery' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Other options' })).toBeOnTheScreen();
+  expect(screen.getByLabelText('Protected')).toBeOnTheScreen();
+  expect(screen.getByRole('image', { name: 'Sol Ring' })).toBeOnTheScreen();
+  expect(screen.getByLabelText('Current price, $1.25')).toHaveProp('accessibilityHint', 'The price may be out of date.');
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263', selected: false })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Scan batch, 12' })).toBeOnTheScreen();

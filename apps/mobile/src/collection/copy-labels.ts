@@ -1,6 +1,6 @@
 import { Constants } from '@mtgscan/supabase/database.types';
 import type { CardCondition, CardLanguage, CurrentPrice } from '@mtgscan/supabase/collection';
-import type { Finish } from '@mtgscan/supabase/search';
+import type { CommanderLegality, Finish } from '@mtgscan/supabase/search';
 
 export const finishes = Constants.public.Enums.card_finish;
 export const conditions = Constants.public.Enums.card_condition;
@@ -32,6 +32,13 @@ export const languageNames: Record<CardLanguage, string> = {
   ru: 'Russian',
   zhs: 'Simplified Chinese',
   zht: 'Traditional Chinese',
+};
+
+export const commanderLegalityLabels: Record<CommanderLegality, string> = {
+  legal: 'Legal',
+  banned: 'Banned',
+  not_legal: 'Not legal',
+  unknown: 'Unknown',
 };
 
 export function languageCode(language: CardLanguage) {
