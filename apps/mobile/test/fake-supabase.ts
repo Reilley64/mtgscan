@@ -63,7 +63,6 @@ const emptyCollectionTotal: CollectionTotal = {
   currency: 'USD',
   priced_copies: 0,
   copies: 0,
-  change: null,
 };
 let collectionTotal = emptyCollectionTotal;
 let failingCollectionReads = 0;

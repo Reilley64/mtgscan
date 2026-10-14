@@ -413,7 +413,6 @@ describe('the collection total button', () => {
       currency: 'USD',
       priced_copies: 26,
       copies: 27,
-      change: '12.40',
       ...changes,
     };
   }
@@ -433,19 +432,16 @@ describe('the collection total button', () => {
       type: 'menu',
       label: '$2,419.59',
       symbol: undefined,
-      hint: 'up $12.40 since yesterday, 26 of 27 cards priced',
+      hint: '26 of 27 cards priced',
     });
   });
 
-  test('the collection total button opens a menu with the change since yesterday, the coverage, and the price source', async () => {
+  test('the collection total button opens a menu with the coverage and the price source, and no change since yesterday', async () => {
     const collection = await openCollectionWithTotal(collectionTotal());
 
     expect(headerMenu(collection, 'Collection total, $2,419.59')).toEqual({
       title: 'Current prices from Scryfall, in USD',
-      items: [
-        { title: '+$12.40', subtitle: 'Since yesterday' },
-        { title: '26 of 27 cards', subtitle: 'Priced' },
-      ],
+      items: [{ title: '26 of 27 cards', subtitle: 'Priced' }],
     });
   });
 
@@ -455,50 +451,24 @@ describe('the collection total button', () => {
     expect(pressableMenuRows(collection, 'Collection total, $2,419.59')).toEqual([]);
   });
 
-  test('a falling collection total shows the minus sign, and VoiceOver hears down', async () => {
-    const collection = await openCollectionWithTotal(collectionTotal({ total: '2368.44', change: '-38.75' }));
-
-    expect(headerButton(collection, 'Collection total, $2,368.44').hint).toBe('down $38.75 since yesterday, 26 of 27 cards priced');
-    expect(headerMenu(collection, 'Collection total, $2,368.44').items[0]).toEqual({ title: '\u2212$38.75', subtitle: 'Since yesterday' });
-  });
-
-  test('an unchanged collection total shows the change with no sign', async () => {
-    const collection = await openCollectionWithTotal(collectionTotal({ change: '0.00' }));
-
-    expect(headerButton(collection, 'Collection total, $2,419.59').hint).toBe('no change since yesterday, 26 of 27 cards priced');
-    expect(headerMenu(collection, 'Collection total, $2,419.59').items[0]).toEqual({ title: '$0.00', subtitle: 'Since yesterday' });
-  });
-
-  test('with no daily collection total from yesterday, the change is a dash, and VoiceOver hears that it is not known yet', async () => {
-    const collection = await openCollectionWithTotal(collectionTotal({ change: null }));
-
-    expect(headerButton(collection, 'Collection total, $2,419.59').hint).toBe(
-      'change since yesterday not known yet, 26 of 27 cards priced',
-    );
-    expect(headerMenu(collection, 'Collection total, $2,419.59').items[0]).toEqual({ title: '–', subtitle: 'Since yesterday' });
-  });
-
   test('a long collection total and a large collection show in full', async () => {
-    const collection = await openCollectionWithTotal(
-      collectionTotal({ total: '128406.92', priced_copies: 1262, copies: 1284, change: '412.60' }),
-    );
+    const collection = await openCollectionWithTotal(collectionTotal({ total: '128406.92', priced_copies: 1262, copies: 1284 }));
 
-    expect(headerButton(collection, 'Collection total, $128,406.92').label).toBe('$128,406.92');
+    expect(headerButton(collection, 'Collection total, $128,406.92')).toMatchObject({
+      label: '$128,406.92',
+      hint: '1,262 of 1,284 cards priced',
+    });
     expect(headerMenu(collection, 'Collection total, $128,406.92').items).toEqual([
-      { title: '+$412.60', subtitle: 'Since yesterday' },
       { title: '1,262 of 1,284 cards', subtitle: 'Priced' },
     ]);
   });
 
   test('a EUR collection total shows in euros and names EUR as the price currency', async () => {
-    const collection = await openCollectionWithTotal(collectionTotal({ total: '2096.10', currency: 'EUR', change: '10.85' }));
+    const collection = await openCollectionWithTotal(collectionTotal({ total: '2096.10', currency: 'EUR' }));
 
     expect(headerMenu(collection, 'Collection total, €2,096.10')).toEqual({
       title: 'Current prices from Scryfall, in EUR',
-      items: [
-        { title: '+€10.85', subtitle: 'Since yesterday' },
-        { title: '26 of 27 cards', subtitle: 'Priced' },
-      ],
+      items: [{ title: '26 of 27 cards', subtitle: 'Priced' }],
     });
   });
 
@@ -804,7 +774,7 @@ describe('collection search', () => {
 
   test('results show as binder tiles, one per copy, under a count line', async () => {
     ownCollectionCopies(collectionEntryCopies('Ponder', 27));
-    ownCollectionTotal({ total: '27.00', currency: 'USD', priced_copies: 27, copies: 27, change: null });
+    ownCollectionTotal({ total: '27.00', currency: 'USD', priced_copies: 27, copies: 27 });
     const curators = collectionEntryCopies('Angelic Curator', 6);
     answerCollectionSearches((query) => (query.text === 'curator' ? curators : collectionEntryCopies('Ponder', 27)));
     const collection = await openCollection();

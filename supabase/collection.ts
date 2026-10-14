@@ -177,7 +177,6 @@ export type CollectionTotal = {
   currency: PriceCurrency;
   priced_copies: number;
   copies: number;
-  change: string | null;
 };
 
 export type ScanBatchErrorCode = 'invalid_argument' | 'unknown_printing' | 'basic_land';

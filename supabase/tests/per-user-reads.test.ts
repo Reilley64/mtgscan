@@ -1,12 +1,6 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import {
-  catalogFixtureManifest,
-  resetCardCatalog,
-  runCatalogImport,
-  runImportCommand,
-  runPriceImport,
-} from './catalog-import-command';
+import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import {
   anonymousClient,
   asAnonymousCaller,
@@ -29,7 +23,6 @@ type PerUserTable =
   | 'collection_additions'
   | 'collection_addition_lines'
   | 'collection_addition_copies'
-  | 'daily_collection_totals'
   | 'user_tags'
   | 'copy_user_tags';
 
@@ -39,7 +32,6 @@ const perUserTables: PerUserTable[] = [
   'collection_additions',
   'collection_addition_lines',
   'collection_addition_copies',
-  'daily_collection_totals',
   'user_tags',
   'copy_user_tags',
 ];
@@ -79,7 +71,6 @@ beforeAll(async () => {
   await tagCopy(alice, aliceCopies.copy_ids[0]!);
   await tagCopy(bob, bobCopies.copy_ids[0]!);
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
-  expect((await runImportCommand('collection-totals')).exitCode).toBe(0);
 });
 
 describe('a read with no user filter', () => {

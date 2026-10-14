@@ -192,12 +192,9 @@ Signed-in users read their collection total with `supabase.rpc('get_collection_t
 
 - `total` is the sum of the current price of every copy for its card printing and finish, as a decimal string. Copies with no current price are left out.
 - `priced_copies` counts the copies with a current price, and `copies` counts every copy, so a missing price never silently lowers the total.
-- `change` is `total` minus the daily collection total of the day before the day of the current prices, as a signed decimal string. It is null when there is no daily collection total for that day, such as before the first one or after a day with no daily import.
 - The function runs with the caller's rights. An anonymous caller and the secret key are refused. A refused query has the code `invalid_argument` and the field at fault.
 
-`bun run import collection-totals` records the daily collection totals. It calls `record_daily_collection_totals`, which only `service_role` can run. For each user with copies, it stores the collection total in USD and in EUR, with the coverage, for the UTC day of the price snapshot. A later run on the same day keeps the first daily collection total. The Daily import workflow runs it right after `prices`, so the totals use the new prices.
-
-`daily_collection_totals` departs from the per-user data pattern in two ways. No user changes it, and its write function does not check a caller's identity. The daily workflow writes it for every user with the secret key, through `record_daily_collection_totals`, which only `service_role` can run. The function runs with the owner's rights, not as `catalog_importer`, because the import role has no access to user data. A user reads only their own rows.
+mtgscan stores no daily collection totals and no change since yesterday. `docs/adr/0004-keep-only-current-prices.md` says why.
 
 ### Copy read
 
@@ -273,12 +270,11 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 - `commander_spellbook` imports combos, as `GLOSSARY.md` defines them, from the Commander Spellbook variants file. It drops and counts each combo that names a card outside the card catalog or has no Oracle ID. The Weekly import workflow runs it after `oracle_tags`, even when an earlier run fails.
 - `prices` imports current prices from Scryfall Default Cards and recomputes each card's lowest current price.
 - `prune-telemetry` deletes search telemetry older than 180 days.
-- `collection-totals` records the daily collection totals. See Collection total.
 - `retry-weekly` runs again each weekly source whose latest run failed.
 
 `bun run oracle-tag disable <tag UUID>` stops a bad Oracle tag from matching any search. `bun run oracle-tag enable <tag UUID>` undoes it. The Oracle tag workflow runs the same command by hand. A disabled tag stays disabled after every later tag import.
 
-The Daily import workflow runs `prices`, `collection-totals`, `prune-telemetry`, and `retry-weekly`. It records the daily collection totals only when the `prices` step succeeds. Each run records an import run, so the hosted project does not pause. The Import workflow runs one source by hand.
+The Daily import workflow runs `prices`, `prune-telemetry`, and `retry-weekly`. Each run records an import run, so the hosted project does not pause. The Import workflow runs one source by hand.
 
 ### Per-user data
 
@@ -289,7 +285,7 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `daily_collection_totals`, `user_tags`, and `copy_user_tags`. `search_telemetry` departs from the pattern, as Catalog search says. `daily_collection_totals` departs from it, as Collection total says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
+The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, and `copy_user_tags`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. A migration grants `execute` on a helper only to the roles whose functions call it.
 

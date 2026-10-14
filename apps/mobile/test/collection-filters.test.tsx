@@ -28,7 +28,7 @@ beforeEach(() => {
     { name: 'Signed', copyIds: ['copy-1'] },
     { name: 'Trade binder', copyIds: ['copy-2'] },
   ]);
-  ownCollectionTotal({ total: '0.70', currency: 'USD', priced_copies: 2, copies: 2, change: null });
+  ownCollectionTotal({ total: '0.70', currency: 'USD', priced_copies: 2, copies: 2 });
 });
 
 function lastSearch() {

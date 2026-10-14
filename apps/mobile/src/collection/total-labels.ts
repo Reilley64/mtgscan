@@ -1,7 +1,6 @@
 import type { CollectionTotal } from '@mtgscan/supabase/collection';
 
 import { shownPrice } from '@/collection/copy-labels';
-import { shownPriceChange, spokenPriceChange } from '@/collection/price-change';
 
 function shownCount(count: number) {
   return new Intl.NumberFormat('en-US').format(count);
@@ -9,14 +8,6 @@ function shownCount(count: number) {
 
 export function shownTotal({ total, currency }: CollectionTotal) {
   return shownPrice({ amount: total, currency });
-}
-
-export function shownChange({ change, currency }: CollectionTotal) {
-  return change === null ? undefined : shownPriceChange({ amount: change, currency });
-}
-
-export function spokenChange({ change, currency }: CollectionTotal) {
-  return change === null ? 'change since yesterday not known yet' : `${spokenPriceChange({ amount: change, currency })} since yesterday`;
 }
 
 export function shownCoverage({ priced_copies, copies }: CollectionTotal) {
