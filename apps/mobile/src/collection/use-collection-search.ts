@@ -72,6 +72,10 @@ export function useCollectionSearch() {
     change(text, chips.filter((_, chipIndex) => chipIndex !== index));
   }
 
+  function replaceChips(nextChips: SearchChip[]) {
+    change(text, nextChips);
+  }
+
   const searchBar: SearchBarProps = {
     ref: field,
     placeholder: 'Search your collection',
@@ -92,6 +96,7 @@ export function useCollectionSearch() {
     searchBar,
     chips,
     removeChip,
+    replaceChips,
     suggestions,
     pick,
     query,

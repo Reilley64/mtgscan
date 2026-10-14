@@ -425,10 +425,10 @@ describe('the collection total button', () => {
     return selectedTab();
   }
 
-  test('the collection total button sits in the header before the settings button and shows the collection total', async () => {
+  test('the collection total button sits in the header between the Filters button and the settings button and shows the collection total', async () => {
     const collection = await openCollectionWithTotal(collectionTotal());
 
-    expect(tabHeader(collection).buttons).toEqual(['Collection total, $2,419.59', 'Settings']);
+    expect(tabHeader(collection).buttons).toEqual(['Filters', 'Collection total, $2,419.59', 'Settings']);
     expect(headerButton(collection, 'Collection total, $2,419.59')).toEqual({
       type: 'menu',
       label: '$2,419.59',
@@ -505,7 +505,7 @@ describe('the collection total button', () => {
   test('with no collection entries, the header shows no collection total button', async () => {
     await openCollection();
 
-    expect(tabHeader(selectedTab()).buttons).toEqual(['Settings']);
+    expect(tabHeader(selectedTab()).buttons).toEqual(['Filters', 'Settings']);
   });
 
   test('the collection total reloads when the Collection tab gains focus again', async () => {
@@ -515,7 +515,7 @@ describe('the collection total button', () => {
     await pressTab('Recent');
     await pressTab('Collection');
 
-    await waitFor(() => expect(tabHeader(selectedTab()).buttons).toEqual(['Collection total, $2,420.80', 'Settings']));
+    await waitFor(() => expect(tabHeader(selectedTab()).buttons).toEqual(['Filters', 'Collection total, $2,420.80', 'Settings']));
   });
 });
 

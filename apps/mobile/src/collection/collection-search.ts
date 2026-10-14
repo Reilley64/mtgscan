@@ -1,7 +1,7 @@
 import type { CardCondition, CollectionQuery } from '@mtgscan/supabase/collection';
 import { Constants } from '@mtgscan/supabase/database.types';
 
-import { conditionLabels, conditionNames, finishes, languageNames, languages } from '@/collection/copy-labels';
+import { conditionLabels, conditionNames, conditions, finishes, languageNames, languages } from '@/collection/copy-labels';
 
 type SearchOperator = ':' | '=' | '<' | '<=' | '>' | '>=';
 
@@ -49,6 +49,10 @@ const colorNames: Record<string, string> = {
   c: 'Colorless',
 };
 
+export function conditionChipValue(condition: CardCondition) {
+  return conditionLabels[condition].toLowerCase();
+}
+
 function sentenceCase(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -72,8 +76,8 @@ const searchKeys = {
     field: 'conditions',
     note: 'Condition',
     choices: Object.fromEntries(
-      (Object.entries(conditionLabels) as [CardCondition, string][]).map(([condition, label]) => [
-        label.toLowerCase(),
+      conditions.map((condition) => [
+        conditionChipValue(condition),
         { value: condition, note: sentenceCase(conditionNames[condition]) },
       ]),
     ),
@@ -295,8 +299,12 @@ export type SearchSuggestion = {
 
 export type TypedValue = { key: SearchKeyName; negated: boolean; value: string };
 
+export function keyValueChip(key: SearchKeyName, value: string, negated = false): SearchChip {
+  return { key, negated, operator: ':', value };
+}
+
 export function chipSuggestion(typed: TypedValue, value: string, detail?: string): SearchSuggestion {
-  const chip: SearchChip = { key: typed.key, negated: typed.negated, operator: ':', value };
+  const chip = keyValueChip(typed.key, value, typed.negated);
   return { title: chipLabel(chip), detail, chip };
 }
 

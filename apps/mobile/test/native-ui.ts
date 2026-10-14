@@ -338,6 +338,7 @@ type HeaderItem = {
   sfSymbolName?: string;
   disabled?: boolean;
   menu?: { title: string; items: HeaderMenuItem[] };
+  badge?: { value: string; style: { backgroundColor: unknown } };
 };
 
 type HeaderMenuItem = {
@@ -391,6 +392,15 @@ export function tabHeader(tab: HostElement) {
 
 export function headerTitles() {
   return shownHeaderConfigs(screen.container).map((config) => config.props.title);
+}
+
+export function headerButtonBadge(tab: HostElement, name: string) {
+  const { badge } = headerItem(tab, name);
+  return badge ? { count: badge.value, color: badge.style.backgroundColor } : null;
+}
+
+export function presentedDrawerContent() {
+  return presentedDrawerView().view;
 }
 
 export function headerButton(tab: HostElement, name: string) {
@@ -451,7 +461,7 @@ export async function pressHeaderMenuAction(host: HostElement, name: string, pat
   await fireEvent(tabHeaderConfig(host), 'pressHeaderBarButtonMenuItem', { nativeEvent: { menuId: chosen.menuId } });
 }
 
-async function pressHeaderButton(tab: HostElement, name: string) {
+export async function pressHeaderButton(tab: HostElement, name: string) {
   await fireEvent(tabHeaderConfig(tab), 'pressHeaderBarButtonItem', {
     nativeEvent: { buttonId: headerItem(tab, name).buttonId },
   });
