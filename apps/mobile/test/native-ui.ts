@@ -336,6 +336,7 @@ type HeaderItem = {
   accessibilityHint?: string;
   buttonId?: string;
   sfSymbolName?: string;
+  tintColor?: unknown;
   disabled?: boolean;
   menu?: { title: string; items: HeaderMenuItem[] };
   badge?: { value: string; style: { backgroundColor: unknown } };
@@ -366,12 +367,24 @@ function tabHeaderConfig(tab: HostElement) {
   return config;
 }
 
-function headerItems(tab: HostElement): HeaderItem[] {
+function rightHeaderItems(tab: HostElement): HeaderItem[] {
   return [...(tabHeaderConfig(tab).props.headerRightBarButtonItems ?? [])].reverse();
 }
 
+function leftHeaderItems(tab: HostElement): HeaderItem[] {
+  return tabHeaderConfig(tab).props.headerLeftBarButtonItems ?? [];
+}
+
+function headerItemName(item: HeaderItem) {
+  return item.accessibilityLabel ?? item.title;
+}
+
+export function leftHeaderButtons(tab: HostElement) {
+  return leftHeaderItems(tab).map(headerItemName);
+}
+
 function headerItem(tab: HostElement, name: string) {
-  const item = headerItems(tab).find((candidate) => (candidate.accessibilityLabel ?? candidate.title) === name);
+  const item = [...leftHeaderItems(tab), ...rightHeaderItems(tab)].find((candidate) => headerItemName(candidate) === name);
   if (!item) {
     throw new Error(`No header button is named ${name}`);
   }
@@ -386,7 +399,7 @@ export function tabHeader(tab: HostElement) {
     largeTitle: Boolean(largeTitle),
     largeTitleType: { fontSize: largeTitleFontSize, fontWeight: largeTitleFontWeight },
     titleType: { fontSize: titleFontSize, fontWeight: titleFontWeight },
-    buttons: headerItems(tab).map((item) => item.accessibilityLabel ?? item.title),
+    buttons: rightHeaderItems(tab).map(headerItemName),
   };
 }
 
@@ -397,6 +410,10 @@ export function headerTitles() {
 export function headerButtonBadge(tab: HostElement, name: string) {
   const { badge } = headerItem(tab, name);
   return badge ? { count: badge.value, color: badge.style.backgroundColor } : null;
+}
+
+export function headerButtonColor(tab: HostElement, name: string) {
+  return headerItem(tab, name).tintColor;
 }
 
 export function presentedDrawerContent() {

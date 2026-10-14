@@ -1,7 +1,7 @@
 import type { CollectionCopyRow, CollectionPage, CollectionQuery } from '@mtgscan/supabase/collection';
 import { readSearchError } from '@mtgscan/supabase/search';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { supabase } from '@/lib/supabase';
 
@@ -26,6 +26,17 @@ async function readCollectionCopies(search: CollectionQuery, cursor: string | nu
   return data as unknown as CollectionPage<CollectionCopyRow>;
 }
 
+async function readCollectionCopiesAtLeast(search: CollectionQuery, count: number) {
+  const first = await readCollectionCopies(search, null);
+  let { items, next_cursor: nextCursor } = first;
+  while (items.length < count && nextCursor !== null) {
+    const page = await readCollectionCopies(search, nextCursor);
+    items = [...items, ...page.items];
+    nextCursor = page.next_cursor;
+  }
+  return { ...first, items, next_cursor: nextCursor };
+}
+
 function refusedField(error: Parameters<typeof readSearchError>[0]) {
   const { code, field } = readSearchError(error);
   return code === 'invalid_argument' ? field : null;
@@ -35,7 +46,12 @@ export function useCollectionCopies(search: CollectionQuery) {
   const [binder, setBinder] = useState<BinderRead>({ status: 'loading' });
   const latestRead = useRef(0);
   const readingMore = useRef(false);
+  const shownBinder = useRef(binder);
   const searchKey = JSON.stringify(search);
+
+  useEffect(() => {
+    shownBinder.current = binder;
+  }, [binder]);
 
   const reload = useCallback(() => {
     const read = ++latestRead.current;
@@ -43,7 +59,9 @@ export function useCollectionCopies(search: CollectionQuery) {
     setBinder((current) =>
       current.status === 'loaded' && current.searchKey === searchKey ? current : { status: 'loading' },
     );
-    readCollectionCopies(JSON.parse(searchKey), null).then(
+    const shown = shownBinder.current;
+    const shownCount = shown.status === 'loaded' && shown.searchKey === searchKey ? shown.copies.length : 0;
+    readCollectionCopiesAtLeast(JSON.parse(searchKey), shownCount).then(
       (page) => {
         if (read === latestRead.current) {
           setBinder({

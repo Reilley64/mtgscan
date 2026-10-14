@@ -4,6 +4,7 @@ import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library'
 import { copyOf, delver, openCollection, openCopyPage } from './copies';
 import {
   answerCollectionSearches,
+  collectionSearchesSent,
   failCopyReads,
   failUserTagChanges,
   failUserTagReads,
@@ -18,20 +19,27 @@ import {
   buttonMenuActions,
   cardImageUri,
   cardSheen,
+  headerButton,
+  headerButtonColor,
+  leftHeaderButtons,
   menuButton,
   menuButtonNames,
   pressAlertButton,
   pressButtonMenuAction,
+  pressButtonMenuItem,
+  pressHeaderButton,
   presentedAlert,
   pressTab,
   pushedScreen,
   pushedScreenBackButton,
+  scrollToEnd,
   searchBarHasFocus,
   selectedTab,
   shownSearchText,
   swipeBackFromThePushedScreen,
   symbolNames,
   symbolTintColor,
+  tabHeader,
   typeInSearchBar,
 } from './native-ui';
 import { tokenColors } from './token-colors';
@@ -243,7 +251,7 @@ describe('the copy page', () => {
     expect(screen.queryByRole('button', { name: /^Angelic Curator,/ })).not.toBeOnTheScreen();
   });
 
-  test('the copy page has no on-screen back button and goes back to the binder with the edge swipe', async () => {
+  test('the copy page has no native back button and goes back to the binder with the edge swipe', async () => {
     ownCopies([copyOf('copy-1')]);
     await openCopyPage(/^Angelic Curator/);
 
@@ -280,6 +288,80 @@ describe('the copy page', () => {
 
     expect(await screen.findByRole('header', { name: 'Angelic Curator' })).toBeOnTheScreen();
     expect(screen.queryByText('Could not load this card')).not.toBeOnTheScreen();
+  });
+});
+
+describe('closing the copy page', () => {
+  test('the copy page has a Close bar button with the xmark symbol at the top left, styled like the More button at the top right', async () => {
+    ownCopies([copyOf('copy-1')]);
+
+    await openCopyPage(/^Angelic Curator/);
+
+    expect(leftHeaderButtons(pushedScreen())).toEqual(['Close']);
+    expect(tabHeader(pushedScreen()).buttons).toEqual(['More']);
+    expect(headerButton(pushedScreen(), 'Close')).toEqual({ type: 'button', label: undefined, symbol: 'xmark', hint: undefined });
+    expect(headerButton(pushedScreen(), 'More')).toMatchObject({ type: 'menu', symbol: 'ellipsis' });
+    expect(headerButtonColor(pushedScreen(), 'Close')).toBe(headerButtonColor(pushedScreen(), 'More'));
+  });
+
+  test('Close goes back to the binder', async () => {
+    ownCopies([copyOf('copy-1'), delver]);
+    await openCopyPage(/^Delver of Secrets/);
+
+    await pressHeaderButton(pushedScreen(), 'Close');
+
+    expect(screen.queryByRole('header', { name: 'Delver of Secrets // Insectile Aberration' })).not.toBeOnTheScreen();
+    expect(within(selectedTab()).getByRole('button', { name: /^Delver of Secrets/ })).toBeOnTheScreen();
+    expect(within(selectedTab()).getByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
+  });
+
+  test('Close goes back to the search results with the search text, chips, and sort kept', async () => {
+    const curator = copyOf('copy-1');
+    ownCopies([curator, delver]);
+    answerCollectionSearches((query) => (query.text === 'delver' ? [delver] : [curator, delver]));
+    const collection = await openCollection();
+    await pressButtonMenuItem(menuButton(selectedTab(), 'Sort, Relevance'), 'Name');
+    await typeInSearchBar('set:isd delver');
+    await fireEvent.press(collection.getByRole('button', { name: /^Delver of Secrets/ }));
+    await screen.findByRole('header', { name: 'Delver of Secrets // Insectile Aberration' });
+
+    await pressHeaderButton(pushedScreen(), 'Close');
+
+    expect(screen.queryByRole('header', { name: 'Delver of Secrets // Insectile Aberration' })).not.toBeOnTheScreen();
+    expect(collection.getByRole('button', { name: 'set:isd' })).toBeOnTheScreen();
+    expect(shownSearchText()).toBe('delver');
+    expect(menuButtonNames(selectedTab())).toEqual(['Sort, Name, A to Z']);
+    expect(collection.getByRole('button', { name: /^Delver of Secrets/ })).toBeOnTheScreen();
+    expect(collection.queryByRole('button', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
+    expect(searchBarHasFocus()).toBe(false);
+  });
+
+  test('Close keeps the tiles that the user scrolled to in the binder', async () => {
+    const copies = Array.from({ length: 70 }, (_, index) => copyOf(`copy-${index + 1}`, { name: `Card ${index + 1}` }));
+    ownCopies(copies);
+    const collection = await openCollection();
+    await scrollToEnd(selectedTab());
+    await fireEvent.press(await collection.findByRole('button', { name: /^Card 70,/ }));
+    await screen.findByRole('header', { name: 'Card 70' });
+
+    await pressHeaderButton(pushedScreen(), 'Close');
+
+    expect(screen.queryByRole('header', { name: 'Card 70' })).not.toBeOnTheScreen();
+    await waitFor(() => expect(collectionSearchesSent()).toHaveLength(2));
+    expect(collection.getByRole('button', { name: /^Card 70,/ })).toBeOnTheScreen();
+  });
+
+  test('a copy page that could not load still has Close, which goes back to the binder', async () => {
+    ownCopies([copyOf('copy-1')]);
+    failCopyReads(1);
+    const collection = await openCollection();
+    await fireEvent.press(collection.getByRole('button', { name: /^Angelic Curator/ }));
+    await screen.findByText('Could not load this card');
+
+    await pressHeaderButton(pushedScreen(), 'Close');
+
+    expect(screen.queryByText('Could not load this card')).not.toBeOnTheScreen();
+    expect(within(selectedTab()).getByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
   });
 });
 
