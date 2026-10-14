@@ -367,7 +367,7 @@ function tabHeaderConfig(tab: HostElement) {
   return config;
 }
 
-function headerItems(tab: HostElement): HeaderItem[] {
+function rightHeaderItems(tab: HostElement): HeaderItem[] {
   return [...(tabHeaderConfig(tab).props.headerRightBarButtonItems ?? [])].reverse();
 }
 
@@ -384,7 +384,7 @@ export function leftHeaderButtons(tab: HostElement) {
 }
 
 function headerItem(tab: HostElement, name: string) {
-  const item = [...leftHeaderItems(tab), ...headerItems(tab)].find((candidate) => headerItemName(candidate) === name);
+  const item = [...leftHeaderItems(tab), ...rightHeaderItems(tab)].find((candidate) => headerItemName(candidate) === name);
   if (!item) {
     throw new Error(`No header button is named ${name}`);
   }
@@ -399,7 +399,7 @@ export function tabHeader(tab: HostElement) {
     largeTitle: Boolean(largeTitle),
     largeTitleType: { fontSize: largeTitleFontSize, fontWeight: largeTitleFontWeight },
     titleType: { fontSize: titleFontSize, fontWeight: titleFontWeight },
-    buttons: headerItems(tab).map(headerItemName),
+    buttons: rightHeaderItems(tab).map(headerItemName),
   };
 }
 

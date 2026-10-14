@@ -26,7 +26,7 @@ async function readCollectionCopies(search: CollectionQuery, cursor: string | nu
   return data as unknown as CollectionPage<CollectionCopyRow>;
 }
 
-async function readCollectionCopiesUpTo(search: CollectionQuery, count: number) {
+async function readCollectionCopiesAtLeast(search: CollectionQuery, count: number) {
   const first = await readCollectionCopies(search, null);
   let { items, next_cursor: nextCursor } = first;
   while (items.length < count && nextCursor !== null) {
@@ -46,13 +46,11 @@ export function useCollectionCopies(search: CollectionQuery) {
   const [binder, setBinder] = useState<BinderRead>({ status: 'loading' });
   const latestRead = useRef(0);
   const readingMore = useRef(false);
-  const shownCopies = useRef({ searchKey: '', count: 0 });
+  const shownBinder = useRef(binder);
   const searchKey = JSON.stringify(search);
 
   useEffect(() => {
-    if (binder.status === 'loaded') {
-      shownCopies.current = { searchKey: binder.searchKey, count: binder.copies.length };
-    }
+    shownBinder.current = binder;
   }, [binder]);
 
   const reload = useCallback(() => {
@@ -61,8 +59,9 @@ export function useCollectionCopies(search: CollectionQuery) {
     setBinder((current) =>
       current.status === 'loaded' && current.searchKey === searchKey ? current : { status: 'loading' },
     );
-    const shownCount = shownCopies.current.searchKey === searchKey ? shownCopies.current.count : 0;
-    readCollectionCopiesUpTo(JSON.parse(searchKey), shownCount).then(
+    const shown = shownBinder.current;
+    const shownCount = shown.status === 'loaded' && shown.searchKey === searchKey ? shown.copies.length : 0;
+    readCollectionCopiesAtLeast(JSON.parse(searchKey), shownCount).then(
       (page) => {
         if (read === latestRead.current) {
           setBinder({
