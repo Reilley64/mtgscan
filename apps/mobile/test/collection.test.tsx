@@ -327,11 +327,11 @@ describe('the skeleton grid', () => {
 
     const collection = await openCollection();
     expect(skeletonGrid()).toBeOnTheScreen();
-    expect(collection.queryByRole('image')).not.toBeOnTheScreen();
+    expect(collection.queryByRole('button', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
 
     await reads.finish();
 
-    expect(await collection.findAllByRole('image', { name: /^Angelic Curator/ })).toHaveLength(2);
+    expect(await collection.findAllByRole('button', { name: /^Angelic Curator/ })).toHaveLength(2);
     expect(skeletonGrid()).not.toBeOnTheScreen();
   });
 
@@ -378,10 +378,10 @@ describe('the skeleton grid', () => {
     await pressTab('Recent');
     await pressTab('Collection');
 
-    expect(within(selectedTab()).getByRole('image', { name: /^Angelic Curator/ })).toBeOnTheScreen();
+    expect(within(selectedTab()).getByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
     expect(skeletonGrid()).not.toBeOnTheScreen();
     await reads.finish();
-    expect(collection.getByRole('image', { name: /^Angelic Curator/ })).toBeOnTheScreen();
+    expect(collection.getByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
   });
 
   test('a new page keeps the tiles already shown and brings no skeleton grid back', async () => {
@@ -391,10 +391,10 @@ describe('the skeleton grid', () => {
 
     await scrollToEnd(selectedTab());
 
-    expect(collection.getByRole('image', { name: /^Card 1,/ })).toBeOnTheScreen();
+    expect(collection.getByRole('button', { name: /^Card 1,/ })).toBeOnTheScreen();
     expect(skeletonGrid()).not.toBeOnTheScreen();
     await reads.finish();
-    expect(await collection.findByRole('image', { name: /^Card 70,/ })).toBeOnTheScreen();
+    expect(await collection.findByRole('button', { name: /^Card 70,/ })).toBeOnTheScreen();
   });
 });
 
@@ -778,11 +778,11 @@ describe('collection search', () => {
     await typeInSearchBar('curator');
 
     expect(skeletonGrid()).toBeOnTheScreen();
-    expect(collection.queryByRole('image', { name: /^Ponder/ })).not.toBeOnTheScreen();
+    expect(collection.queryByRole('button', { name: /^Ponder/ })).not.toBeOnTheScreen();
 
     await reads.finish();
 
-    expect(await collection.findAllByRole('image', { name: /^Angelic Curator/ })).toHaveLength(2);
+    expect(await collection.findAllByRole('button', { name: /^Angelic Curator/ })).toHaveLength(2);
     expect(skeletonGrid()).not.toBeOnTheScreen();
   });
 
