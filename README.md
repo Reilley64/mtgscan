@@ -242,6 +242,7 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 - Chips match copies. `finishes`, `conditions`, and `languages` take the finish, condition, and language values of copies.
 - `sets` and `rarities` match the copy's own card printing. `price_min`, `price_max`, and `sort: 'price'` use the current price of that card printing and finish. `sort: 'release_date'` uses the release date of that card printing.
 - `is_free` matches free copies. A protected copy can be free. `is_protected` matches the protected flag. The Collection tab's Free filter is `is_free: true` with `is_protected: false`.
+- `user_tags` and `user_tags_exclude` take user tag names, matched ignoring case. A copy matches `user_tags` when it has every listed user tag, and `user_tags_exclude` when it has none of them. A name that is not one of the caller's user tags is refused with `invalid_argument` on that list item, such as `user_tags[0]`.
 - `deck_ids` and `deck_ids_exclude` take deck IDs. Until decks exist, every deck ID is refused with `invalid_argument` on its field.
 - Collection search also returns cards that are not Commander-legal, and copies whose card printing is marked absent.
 - `rows` is `entries` or `copies`, and defaults to `entries`.

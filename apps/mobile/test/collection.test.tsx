@@ -10,6 +10,7 @@ import {
   holdCollectionReads,
   ownCollectionCopies,
   ownCollectionTotal,
+  ownUserTags,
   startSignedIn,
 } from './fake-supabase';
 import {
@@ -709,6 +710,46 @@ describe('collection search', () => {
     expect(lastSearch()).toEqual({ tags: ['ramp'] });
   });
 
+  test('typed user_tag:value text becomes a chip, a name with spaces is quoted, and a leading minus negates', async () => {
+    await openCollection();
+
+    await typeInSearchBar('user_tag:signed -user_tag:"trade binder" ');
+
+    expect(chipLabels()).toEqual(['user_tag:signed', '-user_tag:"trade binder"']);
+    expect(lastSearch()).toEqual({ user_tags: ['signed'], user_tags_exclude: ['trade binder'] });
+  });
+
+  test("after user_tag:, suggestions offer the user's user tags with their copy counts", async () => {
+    const [signed, ...tradeBinder] = collectionEntryCopies('Angelic Curator', 3);
+    ownCollectionCopies([signed!, ...tradeBinder]);
+    ownUserTags([
+      { name: 'Signed', copyIds: [signed!.copy_id] },
+      { name: 'Trade binder', copyIds: tradeBinder.map((copy) => copy.copy_id) },
+    ]);
+    const collection = await openCollection();
+
+    await typeInSearchBar('us');
+    await fireEvent.press(collection.getByRole('button', { name: 'user_tag:, User tag' }));
+
+    expect(await collection.findByRole('button', { name: 'user_tag:Signed, 1 copy' })).toBeOnTheScreen();
+    expect(collection.getByRole('button', { name: 'user_tag:"Trade binder", 2 copies' })).toBeOnTheScreen();
+  });
+
+  test('suggestions find user tags that contain the typed text ignoring case, and a picked one becomes a chip', async () => {
+    ownUserTags([
+      { name: 'Signed', copyIds: [] },
+      { name: 'Trade binder', copyIds: [] },
+    ]);
+    const collection = await openCollection();
+
+    await typeInSearchBar('-user_tag:BIND');
+    await fireEvent.press(await collection.findByRole('button', { name: '-user_tag:"Trade binder", 0 copies' }));
+
+    expect(collection.queryByRole('button', { name: /^-user_tag:Signed/ })).not.toBeOnTheScreen();
+    expect(chipLabels()).toEqual(['-user_tag:"Trade binder"']);
+    expect(lastSearch()).toEqual({ user_tags_exclude: ['Trade binder'] });
+  });
+
   test('Enter closes the suggestions and shows the results', async () => {
     ownCollectionCopies(collectionEntryCopies('Sol Ring', 1));
     const collection = await openCollection();
@@ -808,9 +849,12 @@ describe('collection search', () => {
   test.each([
     ['set:zzz', 'sets[0]', 'No set named "zzz".'],
     ['tag:zzz', 'tags[0]', 'No Oracle tag named "zzz".'],
+    ['user_tag:signd', 'user_tags[0]', 'No user tag named "signd".'],
   ])('a %s chip that the server refuses turns danger, and the grid shows its message', async (typed, field, message) => {
     ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
-    answerCollectionSearches((query) => (query.sets || query.tags ? { refusedField: field } : collectionEntryCopies('Angelic Curator', 1)));
+    answerCollectionSearches((query) =>
+      query.sets || query.tags || query.user_tags ? { refusedField: field } : collectionEntryCopies('Angelic Curator', 1),
+    );
     const collection = await openCollection();
 
     await typeInSearchBar(`finish:foil ${typed} `);

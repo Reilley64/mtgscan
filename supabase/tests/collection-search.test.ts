@@ -1,6 +1,14 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CardCondition, CardLanguage, CollectionPage, CollectionQuery, CollectionRow } from '../collection';
+import type {
+  CardCondition,
+  CardLanguage,
+  CollectionCopyRow,
+  CollectionPage,
+  CollectionQuery,
+  CollectionRow,
+  UserTag,
+} from '../collection';
 import type { Json } from '../database.types';
 import { readSearchError, type CardDetails, type CardPrintingsPage, type CatalogRow, type SearchPage } from '../search';
 import { catalogFixture, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
@@ -47,6 +55,7 @@ const everyLabel = Object.keys(aliceEntries) as EntryLabel[];
 
 let alice: TestUser;
 let bob: TestUser;
+let aliceCopyIds: Record<EntryLabel, string[]>;
 const labelOf = new Map(Object.entries(aliceEntries).map(([label, seed]) => [seededCollectionEntryKey(seed), label as EntryLabel]));
 const bobEntries = [entry(printings.counterspellAlpha), entry(printings.angelicCuratorMh2, { quantity: 5 })];
 
@@ -109,7 +118,11 @@ describe('after a catalog import', () => {
     const manifest = await catalogFixture({});
     expect((await runCatalogImport(manifest)).exitCode).toBe(0);
     expect((await runPriceImport(manifest)).exitCode).toBe(0);
-    await seedCopies(alice, Object.values(aliceEntries));
+    const seededCopyIds = await seedCopies(alice, Object.values(aliceEntries));
+    aliceCopyIds = Object.fromEntries(everyLabel.map((label, index) => [label, seededCopyIds[index]!])) as Record<
+      EntryLabel,
+      string[]
+    >;
     await seedCopies(bob, bobEntries);
   });
 
@@ -320,6 +333,81 @@ describe('after a catalog import', () => {
     });
   });
 
+  describe('user tag chips', () => {
+    async function createdUserTag(user: TestUser, name: string) {
+      const { data, error } = await user.client.rpc('create_user_tag', { request: { name } });
+      expect(error).toBeNull();
+      return (data as unknown as UserTag).user_tag_id;
+    }
+
+    async function putOnCopies(user: TestUser, userTagId: string, copyIds: string[]) {
+      for (const copyId of copyIds) {
+        const { error } = await user.client.rpc('set_copy_user_tag', {
+          request: { copy_id: copyId, user_tag_id: userTagId, tagged: true },
+        });
+        expect(error).toBeNull();
+      }
+    }
+
+    async function quantities(query: CollectionQuery) {
+      return Object.fromEntries(
+        (await page({ limit: 50, ...query })).items.map((row) => [labelOf.get(collectionEntryKey(row))!, row.quantity]),
+      );
+    }
+
+    beforeAll(async () => {
+      const signed = await createdUserTag(alice, 'Signed');
+      const tradeBinder = await createdUserTag(alice, 'Trade binder');
+      await putOnCopies(alice, signed, [aliceCopyIds.curator[0]!, aliceCopyIds.bolt[0]!]);
+      await putOnCopies(alice, tradeBinder, [aliceCopyIds.curator[1]!, aliceCopyIds.bolt[0]!, aliceCopyIds.bolt[1]!]);
+      await createdUserTag(bob, 'Proxy');
+    });
+
+    test('a user tag chip matches copies with that user tag, ignoring case', async () => {
+      expect(await quantities({ user_tags: ['SIGNED'] })).toEqual({ curator: 1, bolt: 1 });
+    });
+
+    test('a copy matches two user tag chips only when it has both user tags', async () => {
+      expect(await quantities({ user_tags: ['signed', 'trade binder'] })).toEqual({ bolt: 1 });
+    });
+
+    test('negated user tag chips leave out copies that have any of the user tags, ignoring case', async () => {
+      const left = await quantities({ user_tags_exclude: ['Signed', 'TRADE BINDER'] });
+
+      expect(Object.keys(left).toSorted()).toEqual(everyLabelExcept('curator'));
+      expect(left.bolt).toBe(1);
+    });
+
+    test('with rows entries, the quantity of each collection entry counts only its matching copies', async () => {
+      expect(await quantities({ user_tags: ['Trade binder'] })).toEqual({ curator: 1, bolt: 2 });
+    });
+
+    test('with rows copies, a user tag chip returns each matching copy', async () => {
+      const { items } = await page({ rows: 'copies', user_tags: ['signed'] });
+
+      expect(items.map((row) => (row as unknown as CollectionCopyRow).copy_id).toSorted()).toEqual(
+        [aliceCopyIds.curator[0]!, aliceCopyIds.bolt[0]!].toSorted(),
+      );
+    });
+
+    test.each<[string, CollectionQuery, string]>([
+      ['a user tag name that the user does not have', { user_tags: ['signed', 'signd'] }, 'user_tags[1]'],
+      ["another user's user tag name", { user_tags_exclude: ['proxy'] }, 'user_tags_exclude[0]'],
+    ])('%s is refused with invalid_argument on that list item', async (_, query, field) => {
+      const { page, error } = await search(query);
+
+      expect(page).toBeNull();
+      expect(error).toMatchObject({ code: 'invalid_argument', field });
+    });
+
+    test('catalog search refuses user tag chips', async () => {
+      const { data, error } = await alice.client.rpc('search_catalog', { query: { text: 'fog', user_tags: ['signed'] } });
+
+      expect(data).toBeNull();
+      expect(error && readSearchError(error)).toMatchObject({ code: 'invalid_argument', field: 'user_tags' });
+    });
+  });
+
   describe('deck chips', () => {
     test.each(['deck_ids', 'deck_ids_exclude'])('%s refuses any deck ID until decks exist', async (field) => {
       const { page, error } = await search({ [field]: [crypto.randomUUID()] });
@@ -358,6 +446,9 @@ describe('after a catalog import', () => {
       ['a repeated condition', { conditions: ['damaged', 'damaged'] }, 'conditions[1]'],
       ['an is free value of the wrong type', { is_free: 'yes' }, 'is_free'],
       ['an is protected value of the wrong type', { is_protected: 1 }, 'is_protected'],
+      ['an empty list of user tags', { user_tags: [] }, 'user_tags'],
+      ['a user tag name that is not a string', { user_tags_exclude: [7] }, 'user_tags_exclude[0]'],
+      ['a user tag name repeated in another case', { user_tags: ['Signed', 'signed'] }, 'user_tags[1]'],
       ['an unknown field', { user_tag: ['trade binder'] }, 'user_tag'],
     ])('%s is refused with an error on its field', async (_, query, field) => {
       const { page, error } = await search(query);
