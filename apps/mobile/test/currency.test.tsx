@@ -36,8 +36,22 @@ function audPrice(amount: string): CurrentPrice {
   return { ...converted(amount, 'AUD', '1.5234'), finish: 'nonfoil', stale: false };
 }
 
-const usdTotal: CollectionTotal = { total: '27.00', currency: 'USD', priced_copies: 2, copies: 2 };
-const audTotal: CollectionTotal = { ...converted('41.13', 'AUD', '1.5234'), total: '41.13', priced_copies: 2, copies: 2 };
+const usdTotal: CollectionTotal = {
+  total: '27.00',
+  currency: 'USD',
+  priced_copies: 2,
+  copies: 2,
+  stale: false,
+  prices_observed_at: '2026-10-14T06:00:00.000Z',
+};
+const audTotal: CollectionTotal = {
+  ...usdTotal,
+  total: '41.13',
+  currency: 'AUD',
+  approximate: true,
+  exchange_rate: '1.5234',
+  rate_date: rateDate,
+};
 
 function audCopy(copyId: string, changes: Partial<CopyDetails> = {}) {
   return copyOf(copyId, {
