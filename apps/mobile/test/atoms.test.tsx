@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
-import { processColor, View } from 'react-native';
+import { Dimensions, processColor, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppleSignInButton } from '@/components/atoms/apple-sign-in-button';
@@ -14,6 +14,7 @@ import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
 import { GlassGroup, GlassSurface } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
+import { ManaSymbol } from '@/components/atoms/mana-symbol';
 import { MenuButton } from '@/components/atoms/menu-button';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
@@ -24,6 +25,7 @@ import { Switch } from '@/components/atoms/switch';
 import { Text } from '@/components/atoms/text';
 import { TextLink } from '@/components/atoms/text-link';
 import { Toggle } from '@/components/atoms/toggle';
+import { cardSymbolParts } from '@/lib/card-symbols';
 
 import { liquidGlassIsAvailable } from './fake-glass-effect';
 import {
@@ -42,6 +44,7 @@ import {
   pressButtonMenuAction,
   pressButtonMenuItem,
   pressSignInWithApple,
+  splitColorsBehind,
   showsSpinner,
   switchTrackColor,
   symbolIn,
@@ -49,6 +52,7 @@ import {
   symbolSizes,
   symbolTintColor,
   touchTarget,
+  widthsAround,
 } from './native-ui';
 import { tokenColors } from './token-colors';
 
@@ -72,6 +76,74 @@ const {
 } = tokenColors;
 const dangerTint = '#ff7a7029';
 const dimmed = { opacity: expect.closeTo(0.38) };
+
+describe('ManaSymbol', () => {
+  const { manaGlyph, manaBlack, manaGreen, manaWhite } = tokenColors;
+
+  function symbolOf(token: string) {
+    const [{ symbol }] = cardSymbolParts(token);
+    if (!symbol) {
+      throw new Error(`${token} is not a card symbol`);
+    }
+    return symbol;
+  }
+
+  function setTextScale(fontScale: number) {
+    const window = Dimensions.get('window');
+    Dimensions.set({ window: { ...window, fontScale }, screen: { ...Dimensions.get('screen'), fontScale } });
+  }
+
+  const defaultTextScale = Dimensions.get('window').fontScale;
+
+  beforeEach(() => {
+    setTextScale(1);
+  });
+
+  afterAll(() => {
+    setTextScale(defaultTextScale);
+  });
+
+  test('a mana symbol is a 12 px circle with its glyph in mana symbol type', async () => {
+    await render(<ManaSymbol symbol={symbolOf('{W}')} />);
+
+    const glyph = screen.getByText('\u{e600}');
+    expect(glyph).toHaveStyle({ fontFamily: 'Mana', fontSize: 9, color: manaGlyph });
+    expect(backdropOf(glyph)).toHaveStyle({ backgroundColor: manaWhite, width: 12, height: 12, borderRadius: 999 });
+  });
+
+  test('an untap symbol is a white glyph on a mana glyph circle', async () => {
+    await render(<ManaSymbol symbol={symbolOf('{Q}')} />);
+
+    const glyph = screen.getByText('\u{e61b}');
+    expect(glyph).toHaveStyle({ color: white });
+    expect(backdropOf(glyph)).toHaveStyle({ backgroundColor: manaGlyph });
+  });
+
+  test('a hybrid Phyrexian symbol is a split circle with a small Phyrexian glyph in each half', async () => {
+    await render(<ManaSymbol symbol={symbolOf('{B/G/P}')} />);
+
+    const glyphs = screen.getAllByText('\u{e618}');
+    expect(glyphs).toHaveLength(2);
+    for (const glyph of glyphs) {
+      expect(glyph).toHaveStyle({ fontSize: 5, color: manaGlyph, position: 'absolute' });
+      expect(splitColorsBehind(glyph)).toEqual([manaBlack, manaGreen]);
+    }
+  });
+
+  test('a half symbol shows the left half of its circle', async () => {
+    await render(<ManaSymbol symbol={symbolOf('{HW}')} />);
+
+    expect(widthsAround(screen.getByText('\u{e600}'))).toEqual([12, 6]);
+  });
+
+  test('the circle grows with the text size that the user sets in iOS', async () => {
+    setTextScale(1.5);
+
+    await render(<ManaSymbol symbol={symbolOf('{W}')} />);
+
+    expect(backdropOf(screen.getByText('\u{e600}'))).toHaveStyle({ width: 18, height: 18 });
+  });
+});
 
 describe('Button', () => {
   test.each([

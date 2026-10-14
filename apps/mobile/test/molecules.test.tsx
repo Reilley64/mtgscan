@@ -51,7 +51,7 @@ import {
   cardImageUri,
   appearsBefore,
   cardSheen,
-  circleColorsBehind,
+  splitColorsBehind,
   dashedOutlinesColored,
   fadesDown,
   glassEffect,
@@ -68,6 +68,7 @@ import {
   symbolSizes,
   symbolTintColor,
   touchTarget,
+  widthsAround,
 } from './native-ui';
 import { tokenColors } from './token-colors';
 
@@ -345,13 +346,12 @@ describe('SymbolText', () => {
   ];
   const { manaGeneric, manaWhite, manaBlue, manaGreen, manaGlyph } = tokenColors;
 
-  test('every card symbol that Scryfall lists shows as a Mana font glyph, with no braces left', async () => {
-    await render(<SymbolText text={scryfallSymbols.join('')} />);
+  test.each(scryfallSymbols)('%s, which Scryfall lists, shows as a Mana font glyph with no braces left', async (symbol) => {
+    await render(<SymbolText text={symbol} />);
 
     expect(screen.queryByText(/[{}]/)).not.toBeOnTheScreen();
-    const glyphs = screen.getAllByText(/^[\u{e000}-\u{f8ff}]$/u);
-    expect(glyphs.length).toBeGreaterThanOrEqual(scryfallSymbols.length);
-    for (const glyph of glyphs) {
+    expect(screen.getByLabelText(/^[^{}]+$/)).toBeOnTheScreen();
+    for (const glyph of screen.getAllByText(/^[\u{e000}-\u{f8ff}]$/u)) {
       expect(glyph).toHaveStyle({ fontFamily: 'Mana' });
     }
   });
@@ -379,8 +379,8 @@ describe('SymbolText', () => {
 
     const green = screen.getByText('\u{e604}');
     expect(green).toHaveStyle({ color: manaGlyph });
-    expect(circleColorsBehind(green)).toEqual([manaGreen]);
-    expect(circleColorsBehind(screen.getByText('\u{e61a}'))).toEqual([manaGeneric]);
+    expect(backdropOf(green)).toHaveStyle({ backgroundColor: manaGreen });
+    expect(backdropOf(screen.getByText('\u{e61a}'))).toHaveStyle({ backgroundColor: manaGeneric });
     expect(screen.getByLabelText('tap: Add green mana.')).toHaveTextContent('\u{e61a}: Add \u{e604}.');
   });
 
@@ -388,16 +388,16 @@ describe('SymbolText', () => {
     await render(<SymbolText text="{W/U}" />);
 
     const white = screen.getByText('\u{e600}');
-    expect(circleColorsBehind(white)).toEqual([manaWhite, manaBlue]);
-    expect(circleColorsBehind(screen.getByText('\u{e601}'))).toEqual([manaWhite, manaBlue]);
+    expect(splitColorsBehind(white)).toEqual([manaWhite, manaBlue]);
+    expect(splitColorsBehind(screen.getByText('\u{e601}'))).toEqual([manaWhite, manaBlue]);
   });
 
   test('an energy symbol is its glyph in the text color, with no circle', async () => {
     await render(<SymbolText text="You get {E}." />);
 
     const energy = screen.getByText('\u{e907}');
-    expect(energy).toHaveStyle({ fontFamily: 'Mana', color: white });
-    expect(circleColorsBehind(energy)).toEqual([]);
+    expect(energy).toHaveStyle({ fontFamily: 'Mana', fontSize: 12, color: white });
+    expect(widthsAround(energy)).toEqual([]);
   });
 
   test.each(['Pay {FOO}.', 'Pay {G.', 'Pay {}.'])('an unknown symbol in "%s" stays as its plain text', async (text) => {

@@ -1,73 +1,78 @@
 import { cva } from 'class-variance-authority';
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 
 import { Text } from '@/components/atoms/text';
-import { cn } from '@/lib/class-names';
 import type { CardSymbol, ManaColor } from '@/lib/card-symbols';
-import { colors, manaSplitGradient } from '@/theme';
+import { cn } from '@/lib/class-names';
+import { colors, manaSplitGradient, sizes } from '@/theme';
 
-const manaColors: Record<ManaColor, string> = {
+const splitColors: Record<ManaColor, string> = {
   generic: colors.manaGeneric,
   white: colors.manaWhite,
   blue: colors.manaBlue,
   black: colors.manaBlack,
   red: colors.manaRed,
   green: colors.manaGreen,
-  untap: colors.manaGlyph,
 };
 
-const glyphVariants = cva('font-mana', {
+const circleVariants = cva('items-center justify-center overflow-hidden rounded-full', {
   variants: {
-    look: {
-      plain: 'text-text',
-      mana: 'text-mana-glyph',
-      untap: 'text-text',
-    },
-    split: {
-      true: 'absolute text-mana-symbol-split',
-      false: 'text-mana-symbol',
+    fill: {
+      generic: 'bg-mana-generic',
+      white: 'bg-mana-white',
+      blue: 'bg-mana-blue',
+      black: 'bg-mana-black',
+      red: 'bg-mana-red',
+      green: 'bg-mana-green',
+      untap: 'bg-mana-glyph',
+      split: '',
     },
   },
 });
 
-function circleBackground([top, bottom = top]: readonly [ManaColor] | readonly [ManaColor, ManaColor]) {
-  return { experimental_backgroundImage: manaSplitGradient(manaColors[top], manaColors[bottom]) };
-}
+const glyphVariants = cva('font-mana', {
+  variants: {
+    onCircle: {
+      true: 'text-mana-glyph',
+      false: 'text-text',
+    },
+    corner: {
+      bare: 'text-mana-symbol-bare',
+      none: 'text-mana-symbol',
+      'top-left': 'absolute left-mana-symbol-split-inset top-mana-symbol-split-inset text-mana-symbol-split',
+      'bottom-right': 'absolute bottom-mana-symbol-split-inset right-mana-symbol-split-inset text-mana-symbol-split',
+    },
+  },
+});
 
-function lookOf({ colors: symbolColors }: CardSymbol) {
-  if (symbolColors.length === 0) {
-    return 'plain';
-  }
-  return symbolColors[0] === 'untap' ? 'untap' : 'mana';
-}
-
-function Glyphs({ symbol }: { symbol: CardSymbol }) {
-  const look = lookOf(symbol);
-  const [first, second] = symbol.glyphs;
+function Glyphs({ glyphs: [first, second], onCircle }: { glyphs: CardSymbol['glyphs']; onCircle: boolean }) {
   if (second === undefined) {
-    return <Text className={glyphVariants({ look, split: false })}>{first}</Text>;
+    return <Text className={glyphVariants({ onCircle, corner: onCircle ? 'none' : 'bare' })}>{first}</Text>;
   }
   return (
     <>
-      <Text className={cn(glyphVariants({ look, split: true }), 'left-mana-symbol-split-inset top-mana-symbol-split-inset')}>{first}</Text>
-      <Text className={cn(glyphVariants({ look, split: true }), 'bottom-mana-symbol-split-inset right-mana-symbol-split-inset')}>{second}</Text>
+      <Text className={glyphVariants({ onCircle, corner: 'top-left' })}>{first}</Text>
+      <Text className={glyphVariants({ onCircle, corner: 'bottom-right' })}>{second}</Text>
     </>
   );
 }
 
 export function ManaSymbol({ symbol }: { symbol: CardSymbol }) {
-  if (symbol.colors.length === 0) {
-    return <Glyphs symbol={symbol} />;
+  const { fontScale } = useWindowDimensions();
+  const { circle } = symbol;
+  if (circle === 'none') {
+    return <Glyphs glyphs={symbol.glyphs} onCircle={false} />;
   }
-  const circle = (
-    <View
-      className="mx-px h-mana-symbol w-mana-symbol items-center justify-center rounded-full"
-      style={circleBackground(symbol.colors)}>
-      <Glyphs symbol={symbol} />
+  const size = sizes.manaSymbol * fontScale;
+  const [top, bottom] = circle === 'untap' ? [] : circle;
+  const fill = circle === 'untap' ? 'untap' : bottom ? 'split' : top;
+  return (
+    <View className={cn('mx-px', symbol.half && 'overflow-hidden')} style={{ width: symbol.half ? size / 2 : size, height: size }}>
+      <View
+        className={circleVariants({ fill })}
+        style={[{ width: size, height: size }, top && bottom ? { experimental_backgroundImage: manaSplitGradient(splitColors[top], splitColors[bottom]) } : null]}>
+        <Glyphs glyphs={symbol.glyphs} onCircle={circle !== 'untap'} />
+      </View>
     </View>
   );
-  if (symbol.half) {
-    return <View className="w-mana-symbol-half overflow-hidden">{circle}</View>;
-  }
-  return circle;
 }

@@ -68,8 +68,9 @@ export const typography = {
   chip: { fontSize: 11, fontWeight: '700' },
   credit: { fontSize: 10, fontWeight: '600' },
   tabLabel: { fontSize: 10, fontWeight: '700' },
-  manaSymbol: { fontSize: 12 },
-  manaSymbolSplit: { fontSize: 7 },
+  manaSymbol: { fontSize: 9 },
+  manaSymbolSplit: { fontSize: 5 },
+  manaSymbolBare: { fontSize: 12 },
 } as const satisfies Record<string, TextStyle>;
 
 export const fontFamilies = {
@@ -136,9 +137,8 @@ export const sizes = {
   brandMarkHeight: 25,
   failureMark: 22,
   emptyStateSymbol: 40,
-  manaSymbol: 16,
-  manaSymbolHalf: 8,
-  manaSymbolSplitInset: 2,
+  manaSymbol: 12,
+  manaSymbolSplitInset: 1,
 } as const;
 
 export const borderWidths = {

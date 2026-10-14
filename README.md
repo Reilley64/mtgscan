@@ -27,7 +27,7 @@ The app uses NativeWind 4 with Tailwind CSS 3. NativeWind 5 is a release candida
 The app draws card symbols with the Mana font by Andrew Gioia (https://github.com/andrewgioia/mana), version 1.18.0.
 
 - The font file is `assets/fonts/mana.ttf`. Its license is the SIL Open Font License 1.1, and `assets/fonts/OFL.txt` holds it. The license lets the app bundle and ship the font. The Mana CSS is MIT licensed, and the app does not use it. The symbol images are copyright Wizards of the Coast.
-- The `expo-font` config plugin in `app.json` embeds the font in the native build. The app never downloads it. A change to the font file needs a new native build.
+- The `expo-font` config plugin in `app.json` embeds the font in the native build. The app never downloads it. A change to the font file needs a new native build. The font file names its license, SIL OFL 1.1, and the license link in its metadata, as the license allows for a font inside an app.
 - `src/lib/card-symbols.ts` maps each symbol that Scryfall's symbology lists to its glyphs, its circle colors, and the words VoiceOver reads.
 
 ### Components

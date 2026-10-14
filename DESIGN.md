@@ -105,10 +105,13 @@ typography:
     fontWeight: 700
   mana-symbol:
     fontFamily: Mana
-    fontSize: 12px
+    fontSize: 9px
   mana-symbol-split:
     fontFamily: Mana
-    fontSize: 7px
+    fontSize: 5px
+  mana-symbol-bare:
+    fontFamily: Mana
+    fontSize: 12px
 rounded:
   xs: 4px
   sm: 8px
@@ -308,8 +311,8 @@ components:
     textColor: "{colors.mana-glyph}"
     typography: "{typography.mana-symbol}"
     rounded: "{rounded.full}"
-    width: 16px
-    height: 16px
+    width: 12px
+    height: 12px
   mana-symbol-split:
     typography: "{typography.mana-symbol-split}"
 ---
@@ -360,7 +363,7 @@ The app uses the iOS system font, SF Pro, at a few weights.
 - **Meta** (12 px, muted) carries set and collector number, finish, condition, language, and timestamps.
 - **Price** (12 px, semibold, text price) carries the current price under a binder tile.
 - **Chip** (11 px, bold) labels chips and status pills. **Tab label** (10 px, bold) sits under tab bar icons. **Credit** (10 px, semibold, dim) credits image and price sources such as Scryfall, and carries the Fan Content notice.
-- **Mana symbol** (12 px) is the one type style in another font: the Mana font, which the app bundles. It draws the glyph of a card symbol on its 16 px circle, inline with body text. **Mana symbol split** (7 px) draws the two small glyphs of a hybrid symbol. See Card symbols.
+- **Mana symbol** (9 px) is the one type style in another font: the Mana font, which the app bundles. It draws the glyph of a card symbol on its 12 px circle, inline with body text. **Mana symbol split** (5 px) draws the two small glyphs of a hybrid symbol. **Mana symbol bare** (12 px) draws a symbol with no circle, such as {E}, at the size of a circle. See Card symbols.
 
 Copy is plain sentence case and uses glossary terms exactly: deck suggestion, planned swap, buylist card, free copy, protected copy, estimated bracket.
 
@@ -625,14 +628,14 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Failure notice.** A surface card with 12 px padding and a danger mark beside the message, such as "Sign-in did not work." A long message wraps in the space beside the mark, and the mark lines up with its first line.
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
 - **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Their text uses the text, warning, danger, or info color. A status chip can show an 11 px symbol before its label in the same color, such as the shield on **Protected**. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide. Search chips show their `key:value` text and × on the control surface, and a tap removes them. A refused search chip has danger text on the danger tint.
-- **Card symbols.** Oracle text writes each card symbol in braces, such as {2}{G}, {T}, or {E}. The app draws every symbol that Scryfall's symbology lists with its glyph from the Mana font (andrewgioia/mana), inline with the text and sized to body text. `SymbolText` does it for the Rules section, and later for mana costs.
-  - A mana symbol is its mana glyph in mana glyph color on a 16 px circle in its mana color, like the font's cost style (`ms-cost`), with 1 px of space on each side. {G} is a green circle, and generic mana, {C}, {X}, {T}, and {S} are mana generic circles. {Q} is a white glyph on a mana glyph circle.
-  - A hybrid symbol, such as {W/U}, {2/W}, or {C/R}, splits its circle on the diagonal, with the first color at the top left. Its two glyphs sit small in the two halves, 2 px from the edge, in mana symbol split type.
+- **Card symbols.** Oracle text writes each card symbol in braces, such as {2}{G}, {T}, or {E}. The app draws every symbol that Scryfall's symbology lists with its glyph from the Mana font (andrewgioia/mana), inline with the text and sized to body text. `SymbolText` does it for the Rules section.
+  - A mana symbol is its mana glyph in mana glyph color on a 12 px circle in its mana color, like the font's cost style (`ms-cost`). The circle is about the cap height of body text, 0.85 of its 14 px size, as on Scryfall and Gatherer. It sits on the text baseline, does not raise the line height, and has 1 px of space on each side. It grows with the text size that the user sets in iOS. {G} is a green circle, and generic mana, {C}, {X}, {T}, and {S} are mana generic circles. {Q} is a white glyph on a mana glyph circle.
+  - A hybrid symbol, such as {W/U}, {2/W}, or {C/R}, splits its circle on the diagonal, with the first color at the top left. Its two glyphs sit small in the two halves, 1 px from the edge, in mana symbol split type.
   - A Phyrexian symbol, such as {G/P}, is the Phyrexian glyph on the circle of its color. A hybrid Phyrexian symbol, such as {B/G/P}, splits the circle the same way. {H} is the Phyrexian glyph on a mana generic circle.
   - A half symbol, {HW} or {HR}, shows the left half of its circle.
-  - Symbols that are not mana, such as {E}, {A}, {TK}, {PW}, {CHAOS}, {P}, and {D}, are bare glyphs in the text color.
+  - Symbols that are not mana, such as {E}, {A}, {TK}, {PW}, {CHAOS}, {P}, and {D}, are bare glyphs in the text color, in mana symbol bare type.
   - A symbol that the app does not know stays as its plain text in braces, never an empty box.
-  - VoiceOver reads the text with each symbol as words, such as "tap: Add green mana." or "two generic mana green mana".
+  - VoiceOver reads the text with each symbol as words, such as "tap: Add green mana." or "two generic mana green mana". The words are: "white mana" for {W} and the same for each color, "colorless mana" for {C}, "two generic mana" for {2} and the same for each number, "zero mana" for {0}, "X generic mana" for {X}, {Y}, and {Z}, "half generic mana" for {½}, "infinite generic mana" for {∞}, "white or blue mana" for {W/U}, "two generic or white mana" for {2/W}, "colorless or white mana" for {C/W}, "Phyrexian green mana" for {G/P}, "Phyrexian black or green mana" for {B/G/P}, "Phyrexian colorless mana" for {C/P}, "Phyrexian mana" for {H}, "half white mana" for {HW}, "snow mana" for {S}, "legendary mana" for {L}, "tap" for {T}, "untap" for {Q}, "energy" for {E}, "acorn" for {A}, "ticket" for {TK}, "planeswalker" for {PW}, "chaos" for {CHAOS}, "pawprint" for {P}, and "land drop" for {D}.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, and the batch button.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and the deck line of the copy page. It opens the deck.

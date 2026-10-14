@@ -611,7 +611,7 @@ function rgbaOf(hex: string) {
   return `rgba(${red}, ${green}, ${blue}, 1)`;
 }
 
-export function circleColorsBehind(glyph: HostElement) {
+export function splitColorsBehind(glyph: HostElement) {
   let candidate = glyph.parent;
   while (candidate) {
     const gradient = StyleSheet.flatten(candidate.props.style)?.experimental_backgroundImage;
@@ -621,6 +621,17 @@ export function circleColorsBehind(glyph: HostElement) {
     candidate = candidate.parent;
   }
   return [];
+}
+
+export function widthsAround(element: HostElement) {
+  const widths: number[] = [];
+  for (let candidate = element.parent; candidate; candidate = candidate.parent) {
+    const width = StyleSheet.flatten(candidate.props.style)?.width;
+    if (typeof width === 'number') {
+      widths.push(width);
+    }
+  }
+  return widths;
 }
 
 export function blocksColored(element: HostElement, color: string) {
