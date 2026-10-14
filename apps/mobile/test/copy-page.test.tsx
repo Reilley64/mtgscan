@@ -114,7 +114,7 @@ describe('the binder tile', () => {
 });
 
 describe('the copy page', () => {
-  test('the copy page shows the card large over its blurred art, then its name and type line', async () => {
+  test('the copy page shows the card large over the art crop of its card printing blurred, then its name and type line', async () => {
     ownCopies([copyOf('copy-1')]);
 
     await openCopyPage(/^Angelic Curator/);
@@ -122,10 +122,18 @@ describe('the copy page', () => {
     const hero = screen.getByRole('image', { name: 'Angelic Curator' });
     expect(cardImageUri(hero)).toBe('https://cards.scryfall.io/normal/front/curator.jpg');
     expect(cardSheen(hero)).toBeNull();
-    expect(blurredImageUris()).toEqual(['https://cards.scryfall.io/normal/front/curator.jpg']);
+    expect(blurredImageUris()).toEqual(['https://cards.scryfall.io/art_crop/front/curator.jpg']);
     const title = screen.getByRole('header', { name: 'Angelic Curator' });
     expect(appearsBefore(hero, title)).toBe(true);
     expect(appearsBefore(title, screen.getByText('Creature — Angel Spirit'))).toBe(true);
+  });
+
+  test('a card printing with no art crop shows the card image blurred', async () => {
+    ownCopies([copyOf('copy-1', { art_crop_uri: null })]);
+
+    await openCopyPage(/^Angelic Curator/);
+
+    expect(blurredImageUris()).toEqual(['https://cards.scryfall.io/normal/front/curator.jpg']);
   });
 
   test.each(['foil', 'etched'] as const)('%s copies keep their sheen on the copy page', async (finish) => {

@@ -31,7 +31,7 @@ export type ScryfallFace = {
   toughness?: string;
   loyalty?: string;
   illustration_id?: string;
-  image_uris?: { normal?: string };
+  image_uris?: { normal?: string; art_crop?: string };
 };
 
 export type ScryfallCard = ScryfallFace & {

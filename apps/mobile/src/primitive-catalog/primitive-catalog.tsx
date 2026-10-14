@@ -59,6 +59,7 @@ import { colors, sizes } from '@/theme';
 const m10Symbol = 'https://svgs.scryfall.io/sets/m10.svg';
 
 const solRing = 'https://cards.scryfall.io/normal/front/8/e/8ee443cc-e17a-493b-9c93-1f9e141a30e4.jpg?1789644446';
+const solRingArtCrop = 'https://cards.scryfall.io/art_crop/front/8/e/8ee443cc-e17a-493b-9c93-1f9e141a30e4.jpg?1789644446';
 
 const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
 
@@ -302,7 +303,7 @@ function CardHeroes() {
   return (
     <Section title="Card heroes">
       <View className="-mx-lg">
-        <CardHero uri={solRing} name="Sol Ring" sheen="foil" />
+        <CardHero uri={solRing} artUri={solRingArtCrop} name="Sol Ring" sheen="foil" />
       </View>
       <View className="items-center">
         <LargeCardImage uri={solRing} name="Sol Ring, large" />

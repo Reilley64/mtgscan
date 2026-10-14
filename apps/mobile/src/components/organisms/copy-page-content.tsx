@@ -89,7 +89,12 @@ export function CopyPageContent({ copy, currency, onOpenUserTags }: CopyPageCont
   const legality = commanderLegalityLabels[copy.commander_legality];
   return (
     <>
-      <CardHero uri={copy.image_uris[0]} name={copy.name} sheen={sheenOf(copy.finish)} />
+      <CardHero
+        uri={copy.image_uris[0]}
+        artUri={copy.art_crop_uri ?? copy.image_uris[0]}
+        name={copy.name}
+        sheen={sheenOf(copy.finish)}
+      />
       <View className="gap-lg px-lg">
         <View className="gap-xs">
           <Text variant="card-title">{copy.name}</Text>

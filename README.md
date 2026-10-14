@@ -201,6 +201,7 @@ mtgscan stores no daily collection totals and no change since yesterday. `docs/a
 Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The query has `copy_id` and an optional `price_currency`, `USD` or `EUR`, which defaults to `USD`. `supabase/collection.ts` has the shared types. The copy page reads its copy through it.
 
 - The result has the copy's `copy_id`, `finish`, `condition`, `language`, `protected`, and `free`, and its card printing as in a copy row of collection search: `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`.
+- `art_crop_uri` is the art crop of the card printing, or null when Scryfall has none.
 - `added_at` is the time of the copy's addition. `purchase_day_price` is the purchase-day price of its addition line in the chosen currency, with `amount`, `currency`, and `finish`, or null.
 - `price` is the current price, as in a copy row of collection search, with `stale`.
 - From its card: `type_line`, `faces` with each face's `name` and `oracle_text` in face order, and `commander_legality`.
@@ -265,7 +266,7 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 
 `bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file. Pass `--sets <path>` to read a fixture instead of the Scryfall sets list.
 
-- `catalog` imports cards and card printings. After the run, even a skipped one, it reads Scryfall's sets list in one request and adds or updates `card_sets`: each set's code, name, and `icon_svg_uri`. Some sets use the icon of a parent set, so the app reads the icon from this table, not from a URL pattern. Signed-in users can read `card_sets`. The Weekly import workflow runs it.
+- `catalog` imports cards and card printings. Each card printing keeps `image_uris`, the Scryfall `normal` image of each face, and `art_crop_uri`, the Scryfall `art_crop` image of its front face or null. After the run, even a skipped one, it reads Scryfall's sets list in one request and adds or updates `card_sets`: each set's code, name, and `icon_svg_uri`. Some sets use the icon of a parent set, so the app reads the icon from this table, not from a URL pattern. Signed-in users can read `card_sets`. The Weekly import workflow runs it.
 - `oracle_tags` imports Oracle tags, tag edges, and card taggings from Scryfall. The Weekly import workflow runs it after `catalog`, even when the catalog run fails.
 - `commander_spellbook` imports combos, as `GLOSSARY.md` defines them, from the Commander Spellbook variants file. It drops and counts each combo that names a card outside the card catalog or has no Oracle ID. The Weekly import workflow runs it after `oracle_tags`, even when an earlier run fails.
 - `prices` imports current prices from Scryfall Default Cards and recomputes each card's lowest current price.
