@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>PROTOTYPE spec 5 prices and value (throwaway)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--bg:#080b0d;--surface:#11171a;--raised:#1a2125;--control:#232c31;--sheet:#161c1f;--line:#2a3238;--text:#fff;--muted:#b5c0c5;--dim:#7d8a90;--price:#e4e8ea;--primary:#d8ff62;--warning:#f4d06f;--grabber:#4a555b}
+*{box-sizing:border-box}body{margin:0;background:#2b2f33;font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;color:var(--text);display:flex;gap:24px;padding:24px;align-items:flex-start}
+.side{width:340px;font-size:14px;line-height:1.4;color:#ddd}.side h1{font-size:18px;margin:0 0 8px}.side h2{font-size:14px;margin:16px 0 4px;color:var(--primary)}
+.side button{background:#3a4146;color:#fff;border:0;border-radius:8px;padding:6px 10px;margin:2px;cursor:pointer;font-size:13px}.side button.on{background:var(--primary);color:#101500;font-weight:700}
+.side .q{background:#1d2226;border-radius:8px;padding:8px 10px;margin-top:8px}
+.phone{width:393px;height:852px;background:var(--bg);border-radius:48px;border:10px solid #000;position:relative;overflow:hidden}
+.status{height:50px}.bar{display:flex;justify-content:flex-end;gap:8px;padding:0 14px;height:44px;align-items:center}
+.pill{background:rgba(255,255,255,.1);border-radius:999px;height:36px;padding:0 12px;display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600}
+.round{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:15px}
+.lt{font-size:28px;font-weight:800;padding:4px 16px 8px}
+.search{margin:0 16px 8px;background:#1c2226;border-radius:10px;height:36px;display:flex;align-items:center;padding:0 10px;color:var(--dim);font-size:15px}
+.chips{display:flex;gap:6px;padding:0 16px 8px;flex-wrap:wrap}.chip{background:var(--control);border-radius:12px;font-size:11px;font-weight:700;padding:4px 9px}
+.chip.warn{color:var(--warning)}
+.count{padding:0 16px 8px;font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 16px}
+.tile .img{aspect-ratio:63/88;border-radius:6px;background:linear-gradient(135deg,#3b4a3f,#1b2a33)}.tile .meta{font-size:12px;color:var(--muted);text-align:center;margin-top:4px}.tile .pr{font-size:12px;font-weight:600;color:var(--price);text-align:center;margin-top:4px}
+.menu{position:absolute;right:56px;top:96px;width:270px;background:rgba(40,46,50,.97);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.6);overflow:hidden;z-index:5}
+.menu .title{font-size:12px;color:#a9b2b6;padding:10px 14px;border-bottom:1px solid #3a4246;text-align:center}
+.menu .row{padding:9px 14px;border-bottom:1px solid #3a4246;opacity:.6}.menu .row .s{font-size:12px;color:#c3cbcf}
+.hero{height:300px;background:linear-gradient(#24323a,#0d1215);display:flex;align-items:center;justify-content:center}.hero .card{width:55%;aspect-ratio:63/88;border-radius:10px;background:linear-gradient(135deg,#556b4b,#1f3b4c)}
+.sec{padding:0 16px}.h{color:var(--primary);font-weight:700;font-size:14px;margin:16px 0 8px}
+.vr{background:var(--surface);border-radius:12px;padding:10px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:14px}.vr .l{color:var(--muted)}.vr .v{font-weight:600;color:var(--price);text-align:right}.vr .sub{font-size:12px;color:var(--muted);font-weight:400}
+.credit{font-size:10px;font-weight:600;color:var(--dim);margin-top:4px}
+.drawer{position:absolute;left:0;right:0;bottom:0;height:62%;background:var(--sheet);border-radius:12px 12px 0 0;padding:8px 16px;overflow:auto}
+.grab{width:36px;height:5px;border-radius:999px;background:var(--grabber);margin:0 auto 24px}
+.card2{background:var(--surface);border-radius:12px;padding:10px;margin-bottom:8px;font-size:14px}.btn{background:var(--control);border-radius:8px;height:38px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;margin:8px 0}
+.dim{color:var(--dim)}.small{font-size:12px}
+.switcher{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#fff;color:#000;border-radius:999px;padding:8px 14px;display:flex;gap:12px;align-items:center;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.4);z-index:10}
+.switcher button{border:0;background:#eee;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px}
+</style></head><body>
+<div class="side">
+<h1>PROTOTYPE: spec 5 prices and value</h1>
+<div class="small dim">Throwaway. Not committed. Fake data. Pick a screen, then flip variants with the bottom bar or the arrow keys.</div>
+<h2>Screen</h2><div id="screens"></div>
+<h2>State</h2>
+<div>Currency: <span id="cur"></span></div>
+<div>Prices: <span id="fresh"></span></div>
+<div>Coverage: <span id="cov"></span></div>
+<div class="q" id="explain"></div>
+</div>
+<div class="phone" id="phone"></div>
+<div class="switcher"><button id="prev">←</button><span id="label"></span><button id="next">→</button></div>
+<script>
+const P=new URLSearchParams(location.search);
+const S={screen:P.get('screen')||'total',variant:P.get('variant')||'A',cur:P.get('cur')||'USD',stale:P.get('stale')==='1',partial:P.get('partial')!=='0'};
+const screens={total:'Collection total menu (Q2, Q3)',copy:'Copy page Price section (Q4)',search:'Value of search results (Q5)',settings:'Notice in settings (Q8)'};
+const names={
+ total:{A:'Clock on button + "Prices from" row',B:'Date in the menu title, stale row only',C:'Clock on button, date row only when stale'},
+ copy:{A:'"Since added" value row',B:'Change under the current price',C:'As today (no change)'},
+ search:{A:'Value in the count line',B:'Header total shows the matches',C:'As today (count only)'},
+ settings:{A:'Footer text under Sign out',B:'About card above Sign out',C:'About row that pushes a page'}};
+const explain={
+ total:'Q2: should the total show the stale clock when prices are more than 24 hours old? Q3: should the menu say which day the prices are from?',
+ copy:'Q4: should the copy page show the change between the purchase-day price and the current price?',
+ search:'Q5: while text or a filter is active, should mtgscan show the value of the matching copies?',
+ settings:'Q8: where does the Wizards Fan Content notice and the Scryfall price note go in the app?'};
+const R={USD:1,AUD:1.52};
+function money(usd,approx){const c=S.cur;const v=usd*R[c];const f=new Intl.NumberFormat('en-US',{style:'currency',currency:c}).format(v);return (c!=='USD'?'≈ ':'')+f.replace('A$','A$')}
+function signed(usd){const v=usd*R[S.cur];const s=v>0?'+':v<0?'\u2212':'';return s+(S.cur!=='USD'?'≈ ':'')+new Intl.NumberFormat('en-US',{style:'currency',currency:S.cur}).format(Math.abs(v))}
+const clock='<span title="stale">🕒</span>';
+function credit(){return S.cur==='USD'?'Current prices from Scryfall, in USD':'TCGplayer Market price via Scryfall, converted from USD at the ECB rate for 13 Oct'}
+const day=S.stale?'12 October':'14 October';
+function header(btn){return `<div class="status"></div><div class="bar"><div class="round">⏷</div>${btn}<div class="round">⚙︎</div></div><div class="lt">Collection</div><div class="search">🔍 Search your collection</div>`}
+function tiles(n){let h='<div class="grid">';const ps=[1.87,0.85,548.98,null,12.4,3.1,0.25,22,5.5];for(let i=0;i<n;i++){const p=ps[i%ps.length];h+=`<div class="tile"><div class="img"></div><div class="meta">MH2 · ${100+i}</div><div class="pr">${p===null?'<span class="dim">–</span>':(S.stale?clock+' ':'')+money(p)}</div></div>`}return h+'</div>'}
+function totalScreen(v){
+ const covered=S.partial?'26 of 27 cards':'27 of 27 cards';
+ let btnClock=(v==='A'||v==='C')&&S.stale?clock+' ':'';
+ let btn=`<div class="pill">${btnClock}${money(2419.59)} ⌄</div>`;
+ let title=credit();let rows=`<div class="row">${signed(12.4)}<div class="s">Since yesterday</div></div><div class="row">${covered}<div class="s">Priced</div></div>`;
+ if(v==='A')rows+=`<div class="row">${S.stale?clock+' ':''}${day}<div class="s">Prices from</div></div>`;
+ if(v==='B'){title=S.cur==='USD'?'Current prices from Scryfall, '+day+', in USD':credit()+'. Prices from '+day;if(S.stale)rows+=`<div class="row">${clock} May be out of date<div class="s">Prices</div></div>`}
+ if(v==='C'&&S.stale)rows+=`<div class="row">${clock} ${day}<div class="s">Prices from</div></div>`;
+ return header(btn)+tiles(9)+`<div class="menu"><div class="title">${title}</div>${rows}</div>`}
+function copyScreen(v){
+ const cur=12.40,buy=9.20;
+ let rows='';
+ const curRow=v==='B'?`<div class="vr"><span class="l">Current price</span><span class="v">${S.stale?clock+' ':''}${money(cur)}<div class="sub">${signed(cur-buy)} since added</div></span></div>`:`<div class="vr"><span class="l">Current price</span><span class="v">${S.stale?clock+' ':''}${money(cur)}</span></div>`;
+ rows+=curRow+`<div class="vr"><span class="l">Added</span><span class="v" style="color:#fff;font-weight:400">2 September 2026</span></div><div class="vr"><span class="l">Purchase-day price</span><span class="v">${money(buy)}</span></div>`;
+ if(v==='A')rows+=`<div class="vr"><span class="l">Since added</span><span class="v">${signed(cur-buy)}</span></div>`;
+ return `<div class="hero"><div class="card"></div></div><div class="sec"><div style="font-size:20px;font-weight:800;margin-top:12px">Ragavan, Nimble Pilferer</div><div class="small" style="color:var(--muted)">Legendary Creature — Monkey Pirate</div><div class="chips" style="padding:8px 0 0"><span class="chip">MH2</span><span class="chip">138</span><span class="chip">Foil</span><span class="chip">NM</span><span class="chip">English</span></div><div class="h">User tags</div><div class="vr"><span class="l">Add user tags</span><span>›</span></div><div class="h">Price</div>${rows}<div class="credit">${credit()}</div></div>`}
+function searchScreen(v){
+ const btn=v==='B'?`<div class="pill">${money(123.45)} ⌄</div>`:`<div class="pill">${money(2419.59)} ⌄</div>`;
+ let h=`<div class="status"></div><div class="bar"><div class="round">⏷<sup style="background:#e0244a;border-radius:9px;font-size:10px;padding:0 4px">1</sup></div>${btn}<div class="round">⚙︎</div></div><div class="lt">Collection</div><div class="search" style="color:#fff">🔍 </div><div class="chips"><span class="chip">user_tag:"trade binder" ✕</span></div>`;
+ const pc=S.partial?' · 5 priced':'';
+ if(v==='A')h+=`<div class="count">6 of 27 copies · ${S.stale?clock+' ':''}${money(123.45)}${pc}</div>`;
+ else h+=`<div class="count">6 of 27 copies</div>`;
+ h+=tiles(6);
+ if(v==='B')h+=`<div class="menu"><div class="title">Value of 6 matching copies. ${credit()}</div><div class="row">${S.partial?'5 of 6 cards':'6 of 6 cards'}<div class="s">Priced</div></div><div class="row">${money(2419.59)}<div class="s">Whole collection</div></div></div>`;
+ return h}
+const notice='mtgscan is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.';
+const pnote='Prices are estimates from Scryfall, for information only.';
+function settingsScreen(v){
+ let h=header(`<div class="pill">${money(2419.59)} ⌄</div>`)+tiles(6)+`<div class="drawer"><div class="grab"></div><div style="font-size:17px;font-weight:800;margin-bottom:12px">Settings</div><div class="card2">Signed in with Apple<div class="small dim">owner@example.com</div></div><div class="card2">Currency<span style="float:right;color:var(--muted)">${S.cur} ›</span></div><div class="card2">Gallery<div class="small dim">12 October 2026 · Up to date</div></div><div class="card2">Scan sounds<span style="float:right">🟢</span></div>`;
+ if(v==='B')h+=`<div class="card2"><b>About</b><div class="small" style="color:var(--muted);margin-top:4px">${pnote}</div><div class="credit">${notice}</div></div>`;
+ if(v==='C')h+=`<div class="card2">About mtgscan<span style="float:right;color:var(--muted)">›</span><div class="small dim">Pushes a page in the drawer with the notice, the price note, and links to the website and privacy policy.</div></div>`;
+ h+=`<div class="btn">Sign out</div>`;
+ if(v==='A')h+=`<div class="credit" style="margin-top:12px">${pnote}</div><div class="credit" style="margin-top:6px">${notice}</div>`;
+ return h+'</div>'}
+function render(){
+ const f={total:totalScreen,copy:copyScreen,search:searchScreen,settings:settingsScreen}[S.screen];
+ document.getElementById('phone').innerHTML=f(S.variant);
+ document.getElementById('label').textContent=`${S.variant} (${names[S.screen][S.variant]})`;
+ document.getElementById('explain').textContent=explain[S.screen];
+ const b=(k,vals,lab)=>vals.map(v=>`<button class="${S[k]===v?'on':''}" onclick="set('${k}',${JSON.stringify(v).replace(/"/g,"'")})">${lab(v)}</button>`).join('');
+ document.getElementById('screens').innerHTML=Object.keys(screens).map(k=>`<button class="${S.screen===k?'on':''}" onclick="set('screen','${k}')">${screens[k]}</button>`).join('<br>');
+ document.getElementById('cur').innerHTML=b('cur',['USD','AUD'],x=>x);
+ document.getElementById('fresh').innerHTML=b('stale',[false,true],x=>x?'stale (over 24 h)':'fresh');
+ document.getElementById('cov').innerHTML=b('partial',[true,false],x=>x?'one card unpriced':'all priced');
+ const q=new URLSearchParams({screen:S.screen,variant:S.variant,cur:S.cur,stale:S.stale?'1':'0',partial:S.partial?'1':'0'});history.replaceState(null,'','?'+q)}
+function set(k,v){S[k]=v;if(k==='screen')S.variant='A';render()}
+const order=['A','B','C'];function step(d){S.variant=order[(order.indexOf(S.variant)+d+3)%3];render()}
+document.getElementById('prev').onclick=()=>step(-1);document.getElementById('next').onclick=()=>step(1);
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft')step(-1);if(e.key==='ArrowRight')step(1)});
+render();
+</script></body></html>
