@@ -1,7 +1,7 @@
 create table public.user_tags (
   id uuid not null default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
-  name text not null check (name = btrim(name) and char_length(name) between 1 and 64),
+  name text not null check (name !~ '^\s|\s$' and char_length(name) between 1 and 64),
   created_at timestamptz not null default now(),
   primary key (user_id, id)
 );
@@ -43,11 +43,17 @@ language plpgsql
 immutable
 set search_path = ''
 as $$
+declare
+  trimmed text;
 begin
-  if jsonb_typeof(value) is distinct from 'string' or char_length(btrim(value #>> '{}')) not between 1 and 64 then
+  if jsonb_typeof(value) is distinct from 'string' then
+    perform private.invalid_argument('name', 'name must be a string.');
+  end if;
+  trimmed := regexp_replace(value #>> '{}', '^\s+|\s+$', '', 'g');
+  if char_length(trimmed) not between 1 and 64 then
     perform private.invalid_argument('name', 'name must be 1 to 64 characters after trimming.');
   end if;
-  return to_jsonb(btrim(value #>> '{}'));
+  return to_jsonb(trimmed);
 end;
 $$;
 
@@ -138,7 +144,7 @@ begin
     perform private.raise_search_error('not_found', 'copy_id is not a copy in your collection.', 'copy_id');
   end if;
   if not exists (
-    select 1 from public.user_tags tag where tag.user_id = caller and tag.id = chosen_user_tag_id
+    select 1 from public.user_tags user_tag where user_tag.user_id = caller and user_tag.id = chosen_user_tag_id
   ) then
     perform private.raise_search_error('not_found', 'user_tag_id is not one of your user tags.', 'user_tag_id');
   end if;
@@ -167,15 +173,15 @@ begin
   return jsonb_build_object('items', coalesce((
     select jsonb_agg(
       jsonb_build_object(
-        'user_tag_id', tag.id,
-        'name', tag.name,
+        'user_tag_id', user_tag.id,
+        'name', user_tag.name,
         'copy_count', (
-          select count(*) from public.copy_user_tags link where link.user_id = tag.user_id and link.user_tag_id = tag.id
+          select count(*) from public.copy_user_tags link where link.user_id = user_tag.user_id and link.user_tag_id = user_tag.id
         )
       )
-      order by lower(tag.name), tag.name, tag.id
+      order by lower(user_tag.name), user_tag.name, user_tag.id
     )
-    from public.user_tags tag
+    from public.user_tags user_tag
   ), '[]'::jsonb));
 end;
 $$;
@@ -227,9 +233,9 @@ begin
     ), '[]'::jsonb),
     'commander_legality', c.commander_legality,
     'user_tags', coalesce((
-      select jsonb_agg(jsonb_build_object('user_tag_id', tag.id, 'name', tag.name) order by lower(tag.name), tag.name, tag.id)
+      select jsonb_agg(jsonb_build_object('user_tag_id', user_tag.id, 'name', user_tag.name) order by lower(user_tag.name), user_tag.name, user_tag.id)
       from public.copy_user_tags link
-      join public.user_tags tag on tag.user_id = link.user_id and tag.id = link.user_tag_id
+      join public.user_tags user_tag on user_tag.user_id = link.user_id and user_tag.id = link.user_tag_id
       where link.user_id = a.user_id and link.copy_id = a.copy_id
     ), '[]'::jsonb)
   )

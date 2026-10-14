@@ -103,7 +103,7 @@ export const sizes = {
   swipeTrack: 52,
   selectedOutline: 2,
   chevron: 14,
-  checkMark: 22,
+  rowSymbol: 22,
   iconButtonSymbol: 18,
   setIcon: 16,
   staleSymbol: 11,

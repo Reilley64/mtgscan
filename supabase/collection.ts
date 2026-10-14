@@ -122,6 +122,8 @@ export type CopyFace = {
   oracle_text: string;
 };
 
+export const userTagNameLength = 64;
+
 export type UserTag = {
   user_tag_id: string;
   name: string;

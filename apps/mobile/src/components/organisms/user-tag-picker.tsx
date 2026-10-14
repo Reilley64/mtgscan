@@ -1,10 +1,10 @@
-import type { CopyDetails, UserTag, UserTagRow } from '@mtgscan/supabase/collection';
+import { userTagNameLength, type CopyDetails, type UserTag, type UserTagRow } from '@mtgscan/supabase/collection';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { conditionLabels, finishLabels } from '@/collection/copy-labels';
+import { copyChipLabels } from '@/collection/copy-labels';
 import { shownCopyCount } from '@/collection/total-labels';
-import { matchesUserTagName, userTagNameLength, userTagsFound } from '@/collection/user-tags';
+import { matchesUserTagName, userTagsFound } from '@/collection/user-tag-names';
 import { Input } from '@/components/atoms/input';
 import { SymbolView } from '@/components/atoms/symbol-view';
 import { Text } from '@/components/atoms/text';
@@ -20,24 +20,15 @@ type UserTagPickerProps = {
   onCreate: (name: string) => void;
 };
 
-function copyLine(copy: CopyDetails) {
-  return [
-    copy.name,
-    `${copy.set.toUpperCase()} ${copy.collector_number}`,
-    ...(copy.finish === 'nonfoil' ? [] : [finishLabels[copy.finish]]),
-    conditionLabels[copy.condition],
-  ].join(' · ');
-}
-
 export function UserTagPicker({ copy, userTags, changeFailed, onToggle, onCreate }: UserTagPickerProps) {
   const [text, setText] = useState('');
   const name = text.trim();
   const canCreate = name !== '' && !userTags.some((userTag) => matchesUserTagName(userTag, name));
-  const onCopy = new Set(copy.user_tags.map((userTag) => userTag.user_tag_id));
+  const userTagIdsOnCopy = new Set(copy.user_tags.map((userTag) => userTag.user_tag_id));
 
   return (
     <View className="gap-lg">
-      <Text variant="meta">{copyLine(copy)}</Text>
+      <Text variant="meta">{[copy.name, ...copyChipLabels(copy)].join(' · ')}</Text>
       <Input
         accessibilityLabel="Find or create a user tag"
         placeholder="Find or create a user tag"
@@ -52,7 +43,7 @@ export function UserTagPicker({ copy, userTags, changeFailed, onToggle, onCreate
       <View className="gap-xs">
         {canCreate ? (
           <ListRow
-            leading={<SymbolView name="plus" size={sizes.checkMark} className="text-primary" />}
+            leading={<SymbolView name="plus" size={sizes.rowSymbol} className="text-primary" />}
             title={`Create "${name}"`}
             detail="and add it to this copy"
             onPress={() => {
@@ -62,7 +53,7 @@ export function UserTagPicker({ copy, userTags, changeFailed, onToggle, onCreate
           />
         ) : null}
         {userTagsFound(userTags, name).map((userTag) => {
-          const checked = onCopy.has(userTag.user_tag_id);
+          const checked = userTagIdsOnCopy.has(userTag.user_tag_id);
           return (
             <ListRow
               key={userTag.user_tag_id}

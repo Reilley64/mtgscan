@@ -2,14 +2,7 @@ import type { CopyDetails } from '@mtgscan/supabase/collection';
 import type { PriceCurrency } from '@mtgscan/supabase/search';
 import { View } from 'react-native';
 
-import {
-  commanderLegalityLabels,
-  conditionLabels,
-  finishLabels,
-  languageNames,
-  sheenOf,
-  shownPrice,
-} from '@/collection/copy-labels';
+import { commanderLegalityLabels, copyChipLabels, sheenOf, shownPrice } from '@/collection/copy-labels';
 import { priceCredit } from '@/collection/total-labels';
 import { Chip } from '@/components/atoms/chip';
 import { Surface } from '@/components/atoms/surface';
@@ -94,11 +87,9 @@ export function CopyPageContent({ copy, currency, onOpenUserTags }: CopyPageCont
         </View>
         <View className="flex-row flex-wrap gap-sm">
           {copy.protected ? <Chip tone="warning" symbol="shield.fill" label="Protected" /> : null}
-          <Chip label={copy.set.toUpperCase()} />
-          <Chip label={copy.collector_number} />
-          {copy.finish === 'nonfoil' ? null : <Chip label={finishLabels[copy.finish]} />}
-          <Chip label={conditionLabels[copy.condition]} />
-          <Chip label={languageNames[copy.language]} />
+          {copyChipLabels(copy).map((label, index) => (
+            <Chip key={index} label={label} />
+          ))}
         </View>
         <SheetSection title="User tags">
           <UserTagsRow userTags={copy.user_tags} onPress={onOpenUserTags} />

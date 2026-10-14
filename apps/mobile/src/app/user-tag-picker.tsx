@@ -1,5 +1,5 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { useCopy } from '@/collection/use-copy';
@@ -15,6 +15,12 @@ export default function UserTagPickerScreen() {
   const { read: userTagsRead, reload: reloadUserTags } = useUserTags();
   const [changeFailed, setChangeFailed] = useState(false);
 
+  useEffect(() => {
+    if (copyRead.status === 'missing') {
+      router.back();
+    }
+  }, [copyRead.status]);
+
   const reload = () => {
     reloadCopy();
     reloadUserTags();
@@ -25,7 +31,7 @@ export default function UserTagPickerScreen() {
     reload();
   };
 
-  const readFailed = copyRead.status === 'failed' || copyRead.status === 'missing' || userTagsRead.status === 'failed';
+  const readFailed = copyRead.status === 'failed' || userTagsRead.status === 'failed';
 
   return (
     <PushedScreen>

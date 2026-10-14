@@ -6,6 +6,7 @@ import {
   answerCollectionSearches,
   failCopyReads,
   failUserTagChanges,
+  failUserTagReads,
   ownCopies,
   ownUserTags,
   removeCopyFromTheCollection,
@@ -300,7 +301,7 @@ describe('the user tag picker', () => {
     const field = await openUserTagPicker(copyOf('copy-1', { finish: 'foil', condition: 'lightly_played' }));
 
     const title = screen.getAllByRole('header', { name: 'User tags' }).at(-1)!;
-    const copyLine = screen.getByText('Angelic Curator · MH2 262 · Foil · LP');
+    const copyLine = screen.getByText('Angelic Curator · MH2 · 262 · Foil · LP · English');
     expect(appearsBefore(title, copyLine)).toBe(true);
     expect(appearsBefore(copyLine, field)).toBe(true);
     expect(field).toHaveProp('placeholder', 'Find or create a user tag');
@@ -399,6 +400,31 @@ describe('the user tag picker', () => {
 
     expect(screen.queryByText('No user tags yet. Type a name to create one.')).not.toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Create "Signed", and add it to this copy' })).toBeOnTheScreen();
+  });
+
+  test('a copy that no longer exists goes back to the copy page, which says so', async () => {
+    ownUserTags([{ name: 'signed', copyIds: [] }]);
+    await openUserTagPicker();
+    removeCopyFromTheCollection('copy-1');
+
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'signed, 0 copies' }));
+
+    expect(presentedAlert()).toEqual({ title: 'This card is no longer in your collection.', message: undefined, buttons: ['OK'] });
+    expect(screen.queryByLabelText('Find or create a user tag')).not.toBeOnTheScreen();
+  });
+
+  test('a failed read offers Try again, which shows the user tags', async () => {
+    ownUserTags([{ name: 'signed', copyIds: [] }]);
+    ownCopies([copyOf('copy-1')]);
+    failUserTagReads(1);
+    await openCopyPage(/^Angelic Curator/);
+    await fireEvent.press(screen.getByRole('button', { name: 'Add user tags' }));
+
+    expect(await screen.findByText('Could not load your user tags')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByRole('checkbox', { name: 'signed, 0 copies' })).toBeOnTheScreen();
+    expect(screen.queryByText('Could not load your user tags')).not.toBeOnTheScreen();
   });
 
   test('a change that fails says so and leaves the copy as it was', async () => {

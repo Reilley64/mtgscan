@@ -54,6 +54,7 @@ let failingCopyWrites = 0;
 let userTags: UserTag[] = [];
 let copyUserTags = new Map<string, Set<string>>();
 let failingUserTagChanges = 0;
+let failingUserTagReads = 0;
 const emptyCollectionTotal: CollectionTotal = {
   total: '0.00',
   currency: 'USD',
@@ -214,6 +215,10 @@ function copiesWithUserTag(userTagId: string) {
 }
 
 function userTagList() {
+  if (failingUserTagReads > 0) {
+    failingUserTagReads -= 1;
+    return { data: null, error: networkFailure };
+  }
   const items = userTags.toSorted(byName).map((userTag) => ({ ...userTag, copy_count: copiesWithUserTag(userTag.user_tag_id) }));
   return { data: { items }, error: null };
 }
@@ -524,14 +529,18 @@ export function failCopyDeletes(count: number) {
   failingCopyDeletes = count;
 }
 
-export function ownUserTags(tags: { name: string; copyIds: string[] }[]) {
-  userTags = tags.map(({ name }, index) => ({ user_tag_id: `user-tag-${index + 1}`, name }));
+export function ownUserTags(seeds: { name: string; copyIds: string[] }[]) {
+  userTags = seeds.map(({ name }, index) => ({ user_tag_id: `user-tag-${index + 1}`, name }));
   copyUserTags = new Map();
-  tags.forEach(({ copyIds }, index) => {
+  seeds.forEach(({ copyIds }, index) => {
     for (const copyId of copyIds) {
       copyUserTags.set(copyId, new Set(copyUserTags.get(copyId)).add(`user-tag-${index + 1}`));
     }
   });
+}
+
+export function failUserTagReads(count: number) {
+  failingUserTagReads = count;
 }
 
 export function failUserTagChanges(count: number) {
@@ -632,6 +641,7 @@ export function resetFakeSupabase() {
   userTags = [];
   copyUserTags = new Map();
   failingUserTagChanges = 0;
+  failingUserTagReads = 0;
   collectionTotal = emptyCollectionTotal;
   failingCollectionReads = 0;
   collectionSearches = [];

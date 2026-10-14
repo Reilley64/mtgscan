@@ -481,12 +481,14 @@ Pushed screens cover the whole screen, including the app tab bar. There are **no
   - A copy that no longer exists, such as one deleted on another phone, shows a native alert "This card is no longer in your collection." with **OK**, which goes back to the binder. The same alert shows when the copy is gone by the time the user picks an action.
   - When the read fails, the page shows the empty state "Could not load this card" with a **Try again** button. See Empty states.
 - **User tag picker**, from the User tags row of the copy page. It is a pushed screen, not a drawer:
-  - The title "User tags" in sheet title type, then a meta line that names the copy, such as "Angelic Curator · MH2 262 · Foil · LP".
+  - The title "User tags" in sheet title type, then a meta line that names the copy with its chip labels, such as "Angelic Curator · MH2 · 262 · Foil · LP · English".
   - A field, "Find or create a user tag", that takes at most 64 characters.
   - When the trimmed text matches no user tag ignoring case, the first row reads "Create "<name>"" with "and add it to this copy" and a lime `plus`. A tap creates the user tag, puts it on the copy, and clears the field.
   - Then one check row for each user tag whose name contains the text, ignoring case, sorted by name. The meta line has its copy count, such as "3 copies". A lime filled check mark shows when this copy has the user tag. A tap adds it to this copy or takes it off.
   - With no user tags, it shows "No user tags yet. Type a name to create one." in text muted.
   - A change that fails shows the failure notice "Could not change the user tags. Check your connection."
+  - When a read fails, the picker shows "Could not load your user tags" and "Check your connection." with a **Try again** button.
+  - A copy that no longer exists goes back to the copy page, which says so.
 - **Deck screen**, from the gallery or a deck tag:
   - The top bar is a compact header: the commander picture, the deck name, and chips for priority, validity, and estimated bracket. When the deck is not valid, its violations and the bracket signals show under the chips. Nothing else goes in the header.
   - A deck tab bar replaces the app tab bar: **Cards / Suggestions / History**.

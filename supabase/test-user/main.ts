@@ -148,11 +148,11 @@ async function addSampleUserTags(testUserClient: LocalClient, copyIds: string[])
     }
     const { user_tag_id } = data as unknown as UserTag;
     for (const copyId of copyIds.slice(0, copies)) {
-      const { error: tagError } = await testUserClient.rpc('set_copy_user_tag', {
+      const { error: userTagError } = await testUserClient.rpc('set_copy_user_tag', {
         request: { copy_id: copyId, user_tag_id, tagged: true },
       });
-      if (tagError) {
-        fail('Could not add sample user tags', tagError.message);
+      if (userTagError) {
+        fail('Could not add sample user tags', userTagError.message);
       }
     }
   }

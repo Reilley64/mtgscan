@@ -45,8 +45,8 @@ async function setCopyUserTag(client: AppClient, request: CopyUserTagRequest | R
   return error && readUserTagError(error);
 }
 
-async function tagged(user: TestUser, copyId: string, userTag: UserTag, isTagged = true) {
-  expect(await setCopyUserTag(user.client, { copy_id: copyId, user_tag_id: userTag.user_tag_id, tagged: isTagged })).toBeNull();
+async function putOnCopy(user: TestUser, copyId: string, userTag: UserTag, tagged = true) {
+  expect(await setCopyUserTag(user.client, { copy_id: copyId, user_tag_id: userTag.user_tag_id, tagged })).toBeNull();
 }
 
 async function userTagsOf(user: TestUser) {
@@ -81,6 +81,12 @@ describe('creating a user tag', () => {
 
     expect(userTag).toEqual({ user_tag_id: expect.any(String), name: 'Trade binder' });
     expect(await userTagsOf(user)).toEqual([{ ...userTag, copy_count: 0 }]);
+  });
+
+  test('a name is trimmed of tabs and line breaks too', async () => {
+    const user = await signUpNewUser();
+
+    expect((await created(user, '\tSigned\n')).name).toBe('Signed');
   });
 
   test('a name of 64 characters is kept', async () => {
@@ -128,18 +134,18 @@ describe('creating a user tag', () => {
 });
 
 describe('putting a user tag on a copy', () => {
-  test('tags and untags one copy, and doing it twice changes nothing', async () => {
+  test('puts a user tag on one copy and takes it off, and doing either twice changes nothing', async () => {
     const [copyId, otherCopyId] = (await scannedCopies(alice, angelicCurator, 2)) as [string, string];
     const signed = await created(alice, `Signed ${crypto.randomUUID()}`);
 
-    await tagged(alice, copyId, signed);
-    await tagged(alice, copyId, signed);
+    await putOnCopy(alice, copyId, signed);
+    await putOnCopy(alice, copyId, signed);
 
     expect(await userTagsOnCopy(alice, copyId)).toEqual([signed]);
     expect(await userTagsOnCopy(alice, otherCopyId)).toEqual([]);
 
-    await tagged(alice, copyId, signed, false);
-    await tagged(alice, copyId, signed, false);
+    await putOnCopy(alice, copyId, signed, false);
+    await putOnCopy(alice, copyId, signed, false);
 
     expect(await userTagsOnCopy(alice, copyId)).toEqual([]);
   });
@@ -151,21 +157,21 @@ describe('putting a user tag on a copy', () => {
     const alpha = await created(user, 'Alpha');
     const signed = await created(user, 'Signed');
     for (const userTag of [trade, alpha, signed]) {
-      await tagged(user, copyId, userTag);
+      await putOnCopy(user, copyId, userTag);
     }
 
     expect(await userTagsOnCopy(user, copyId)).toEqual([alpha, signed, trade]);
   });
 
-  test('tagging and untagging change no collection entry', async () => {
+  test('putting a user tag on a copy and taking it off change no collection entry', async () => {
     const user = await signUpNewUser();
     const [copyId] = (await scannedCopies(user, angelicCurator, 3)) as [string];
     const signed = await created(user, 'Signed');
     const before = await collectionEntriesOf(user);
 
-    await tagged(user, copyId, signed);
+    await putOnCopy(user, copyId, signed);
     const whileTagged = await collectionEntriesOf(user);
-    await tagged(user, copyId, signed, false);
+    await putOnCopy(user, copyId, signed, false);
 
     expect(whileTagged).toEqual(before);
     expect(await collectionEntriesOf(user)).toEqual(before);
@@ -208,10 +214,10 @@ describe('the user tag list', () => {
     const trade = await created(user, 'trade binder');
     const signed = await created(user, 'Signed');
     const alpha = await created(user, 'alpha');
-    await tagged(user, curators[0], signed);
-    await tagged(user, curators[1], signed);
-    await tagged(user, delver, signed);
-    await tagged(user, delver, trade);
+    await putOnCopy(user, curators[0], signed);
+    await putOnCopy(user, curators[1], signed);
+    await putOnCopy(user, delver, signed);
+    await putOnCopy(user, delver, trade);
 
     expect(await userTagsOf(user)).toEqual([
       { ...alpha, copy_count: 0 },
@@ -228,8 +234,8 @@ describe('the user tag list', () => {
     const user = await signUpNewUser();
     const [keptCopy, deletedCopy] = (await scannedCopies(user, angelicCurator, 2)) as [string, string];
     const signed = await created(user, 'Signed');
-    await tagged(user, keptCopy, signed);
-    await tagged(user, deletedCopy, signed);
+    await putOnCopy(user, keptCopy, signed);
+    await putOnCopy(user, deletedCopy, signed);
 
     const { error } = await secretKeyClient().from('copies').delete().eq('user_id', user.userId).eq('id', deletedCopy);
     expect(error).toBeNull();
@@ -244,7 +250,7 @@ describe('access', () => {
   test("a user cannot see another user's user tags or links", async () => {
     const [copyId] = (await scannedCopies(alice, angelicCurator)) as [string];
     const signed = await created(alice, `Signed ${crypto.randomUUID()}`);
-    await tagged(alice, copyId, signed);
+    await putOnCopy(alice, copyId, signed);
 
     expect((await userTagsOf(bob)).map((row) => row.user_tag_id)).not.toContain(signed.user_tag_id);
     for (const table of ['user_tags', 'copy_user_tags'] as const) {

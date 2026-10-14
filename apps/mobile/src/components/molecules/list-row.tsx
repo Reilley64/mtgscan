@@ -1,46 +1,36 @@
-import { cva } from 'class-variance-authority';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { Surface } from '@/components/atoms/surface';
 import { SymbolView } from '@/components/atoms/symbol-view';
 import { Text } from '@/components/atoms/text';
+import { cn } from '@/lib/class-names';
 import { sizes } from '@/theme';
 
 const rowClass = 'flex-row items-center gap-md p-sm';
 
-const checkMarkTints = cva('', {
-  variants: {
-    checked: {
-      true: 'text-primary',
-      false: 'text-text-dim',
-    },
-  },
-});
-
-function CheckMark({ checked }: { checked: boolean }) {
-  return (
-    <SymbolView
-      name={checked ? 'checkmark.circle.fill' : 'circle'}
-      size={sizes.checkMark}
-      className={checkMarkTints({ checked })}
-    />
-  );
-}
-
 type ListRowProps = {
   title: string;
   detail?: string;
-  leading?: ReactNode;
-  checked?: boolean;
-  onPress?: () => void;
-};
+} & (
+  | { leading?: ReactNode; checked?: never; onPress?: () => void }
+  | { leading?: never; checked: boolean; onPress: () => void }
+);
 
 export function ListRow({ title, detail, leading, checked, onPress }: ListRowProps) {
   const label = detail ? `${title}, ${detail}` : title;
+  const checkRow = checked !== undefined;
   const content = (
     <>
-      {checked === undefined ? leading : <CheckMark checked={checked} />}
+      {checkRow ? (
+        <SymbolView
+          name={checked ? 'checkmark.circle.fill' : 'circle'}
+          size={sizes.rowSymbol}
+          className="text-text-dim group-aria-checked:text-primary"
+        />
+      ) : (
+        leading
+      )}
       <View className="flex-1 gap-xs">
         <Text variant="body-strong" numberOfLines={1}>
           {title}
@@ -54,10 +44,10 @@ export function ListRow({ title, detail, leading, checked, onPress }: ListRowPro
     return (
       <Surface
         accessibilityLabel={label}
-        accessibilityRole={checked === undefined ? 'button' : 'checkbox'}
+        accessibilityRole={checkRow ? 'checkbox' : 'button'}
         aria-checked={checked}
         onPress={onPress}
-        className={rowClass}>
+        className={cn(rowClass, 'group')}>
         {content}
       </Surface>
     );
