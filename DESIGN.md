@@ -482,7 +482,7 @@ Pushed screens cover the whole screen, including the app tab bar. There are **no
   - When the read fails, the page shows the empty state "Could not load this card" with a **Try again** button. See Empty states.
 - **User tag picker**, from the User tags row of the copy page. It is a pushed screen, not a drawer:
   - The title "User tags" in sheet title type, then a meta line that names the copy with its chip labels, such as "Angelic Curator · MH2 · 262 · Foil · LP · English".
-  - A field, "Find or create a user tag", that takes at most 64 characters.
+  - A field, "Find or create a user tag", that takes at most 64 characters. A tap on a row acts at once, even while the keyboard is up.
   - When the trimmed text matches no user tag ignoring case, the first row reads "Create "<name>"" with "and add it to this copy" and a 22 px lime `plus`. A tap creates the user tag, puts it on the copy, and clears the field.
   - Then one check row for each user tag whose name contains the text, ignoring case, sorted by name. The meta line has its copy count, such as "3 copies". A lime filled check mark shows when this copy has the user tag. A tap adds it to this copy or takes it off.
   - With no user tags, it shows "No user tags yet. Type a name to create one." in text muted.
