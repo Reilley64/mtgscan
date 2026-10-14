@@ -56,7 +56,7 @@ describe('deleting a copy', () => {
   test('confirming deletes the copy and goes back to the binder, which no longer shows it', async () => {
     ownCopies([copyOf('copy-1'), delver]);
     await openCopyPage(/^Delver of Secrets/);
-    ownCollectionTotal({ total: '0.35', currency: 'USD', priced_copies: 1, copies: 1 });
+    ownCollectionTotal({ total: '0.35', currency: 'USD', priced_copies: 1, copies: 1, stale: false, prices_observed_at: null });
 
     await chooseDeleteCopy();
     await pressAlertButton('Delete copy');

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { CollectionCopyRow, CollectionTotal, CollectionTotalQuery } from '../collection';
 import type { Json } from '../database.types';
@@ -18,12 +18,26 @@ const secretLairNonfoilOnly = '018830b2-dff9-45f3-9cc2-dc5b2eec0e54';
 const secretLairWithNoPrice = '0cd83c0e-8e37-40bf-87a5-5b4c009248fb';
 const kjeldoranHomeGuardWithOnlyEurPrice = '45145931-16e8-4401-9d67-57856ffef0dc';
 
+let pricesObservedAt: string;
+
 beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
   await storeExchangeRates();
+  const { data, error } = await secretKeyClient().from('import_snapshots').select('snapshot_at').eq('source', 'prices').single();
+  expect(error).toBeNull();
+  pricesObservedAt = data!.snapshot_at;
 });
+
+async function setPriceSnapshotAt(at: string) {
+  const { error } = await secretKeyClient().from('import_snapshots').update({ snapshot_at: at }).eq('source', 'prices');
+  expect(error).toBeNull();
+}
+
+function hoursAgo(hours: number) {
+  return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+}
 
 async function readCollectionTotal(client: AppClient, query: CollectionTotalQuery | Record<string, unknown> | unknown[] = {}) {
   const { data, error } = await client.rpc('get_collection_total', { query: query as Json });
@@ -45,6 +59,8 @@ describe('the collection total read', () => {
       currency: 'USD',
       priced_copies: 0,
       copies: 0,
+      stale: false,
+      prices_observed_at: pricesObservedAt,
     });
   });
 
@@ -123,6 +139,8 @@ describe('the collection total in another currency', () => {
       currency: 'AUD',
       priced_copies: 4,
       copies: 4,
+      stale: false,
+      prices_observed_at: pricesObservedAt,
       approximate: true,
       exchange_rate: '1.5234',
       rate_date: daysAgo(0),
@@ -154,6 +172,8 @@ describe('the collection total in another currency', () => {
       currency: 'USD',
       priced_copies: 4,
       copies: 4,
+      stale: false,
+      prices_observed_at: pricesObservedAt,
     });
   });
 
@@ -172,6 +192,46 @@ describe('the collection total in another currency', () => {
     await storeExchangeRates();
 
     expect(error).toMatchObject({ code: 'invalid_argument', field: 'price_currency' });
+  });
+});
+
+describe('a stale collection total', () => {
+  let user: TestUser;
+
+  beforeAll(async () => {
+    user = await signUpNewUser();
+    await committed(user, scanBatch([stack(angelicCurator), stack(secretLairWithNoPrice, { finish: 'foil' })]));
+  });
+
+  afterAll(async () => {
+    await setPriceSnapshotAt(pricesObservedAt);
+    await storeExchangeRates();
+  });
+
+  test('the collection total is stale once the price snapshot is more than 24 hours old, and gives the time of the price snapshot', async () => {
+    const fresh = hoursAgo(23.9);
+    const aged = hoursAgo(24.1);
+
+    await setPriceSnapshotAt(fresh);
+    const freshTotal = await collectionTotal(user);
+    await setPriceSnapshotAt(aged);
+    const agedTotal = await collectionTotal(user);
+
+    expect(freshTotal.stale).toBe(false);
+    expect(Date.parse(freshTotal.prices_observed_at!)).toBe(Date.parse(fresh));
+    expect(agedTotal.stale).toBe(true);
+    expect(Date.parse(agedTotal.prices_observed_at!)).toBe(Date.parse(aged));
+  });
+
+  test.each<[string, number, boolean]>([
+    ['a converted collection total with an exchange rate 4 days old is not stale', 4, false],
+    ['a converted collection total with an exchange rate more than 4 days old is stale', 5, true],
+  ])('%s', async (_, age, stale) => {
+    await setPriceSnapshotAt(hoursAgo(1));
+    await storeExchangeRates(undefined, daysAgo(age));
+
+    expect(await collectionTotal(user, { price_currency: 'AUD' })).toMatchObject({ stale, rate_date: daysAgo(age) });
+    expect((await collectionTotal(user, { price_currency: 'USD' })).stale).toBe(false);
   });
 });
 

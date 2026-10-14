@@ -441,10 +441,12 @@ The collection total is always visible. The owner picked variant C of the HTML p
 - With no collection entries, or before the total loads, the header shows no total button.
 - **Menu.** Tapping the button opens a native menu under the button. A tap outside closes it. It holds:
   - the credit "Current prices from Scryfall, in USD" as the menu title;
-  - the coverage, such as "26 of 27 cards", with the subtitle "Priced".
-- The coverage row shows information. It is a disabled menu item, so a tap on it does nothing, and iOS shows it dimmed.
+  - the coverage, such as "26 of 27 cards", with the subtitle "Priced";
+  - only when the prices are stale, the day of the price snapshot, such as "12 October", with the `clock` symbol and the subtitle "Prices from".
+- Prices are stale when they are more than 24 hours old, or when the exchange rate of a converted currency is stale.
+- The rows show information. They are disabled menu items, so a tap on them does nothing, and iOS shows them dimmed.
 - The menu has no change since yesterday. mtgscan keeps no price history (`docs/adr/0004-keep-only-current-prices.md`).
-- **VoiceOver.** The button reads "Collection total, $2,419.59" with the hint "26 of 27 cards priced".
+- **VoiceOver.** The button reads "Collection total, $2,419.59" with the hint "26 of 27 cards priced". When the prices are stale, the hint adds "The prices may be out of date."
 
 ### Collection search
 

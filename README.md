@@ -215,6 +215,8 @@ Signed-in users read their collection total with `supabase.rpc('get_collection_t
 - `total` is the sum of the current price of every copy for its card printing and finish, as a decimal string. Copies with no current price are left out.
 - In another currency, the function converts the USD total once at the latest exchange rate. It does not add up converted copy prices, so the total can differ by a few cents from the sum of the copy prices. The total also has `approximate: true`, `exchange_rate`, and `rate_date`, as Converted prices says.
 - `priced_copies` counts the copies with a current price, and `copies` counts every copy, so a missing price never silently lowers the total.
+- `stale` is true when the current prices are more than 24 hours old, as `catalog_freshness` says. In another currency, it is also true when the exchange rate is stale, as Converted prices says.
+- `prices_observed_at` is the time of the price snapshot, or null before the first price import.
 - The function runs with the caller's rights. An anonymous caller and the secret key are refused. A refused query has the code `invalid_argument` and the field at fault.
 
 mtgscan stores no daily collection totals and no change since yesterday. `docs/adr/0004-keep-only-current-prices.md` says why.
