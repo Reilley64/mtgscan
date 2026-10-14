@@ -230,14 +230,14 @@ describe('the user tag list', () => {
     expect(await userTagsOf(await signUpNewUser())).toEqual([]);
   });
 
-  test('a deleted copy loses its user tag links, and the count drops', async () => {
+  test('deleting a copy removes its user tag links, and the count drops', async () => {
     const user = await signUpNewUser();
     const [keptCopy, deletedCopy] = (await scannedCopies(user, angelicCurator, 2)) as [string, string];
     const signed = await created(user, 'Signed');
     await putOnCopy(user, keptCopy, signed);
     await putOnCopy(user, deletedCopy, signed);
 
-    const { error } = await secretKeyClient().from('copies').delete().eq('user_id', user.userId).eq('id', deletedCopy);
+    const { error } = await user.client.rpc('delete_copy', { request: { copy_id: deletedCopy } });
     expect(error).toBeNull();
 
     expect(await userTagsOf(user)).toEqual([{ ...signed, copy_count: 1 }]);

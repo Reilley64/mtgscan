@@ -92,11 +92,6 @@ begin
 end;
 $$;
 
-grant execute on function
-  private.check_user_tag_request(jsonb, text[]),
-  private.checked_user_tag_name(jsonb)
-to authenticated;
-
 create function public.create_user_tag(request jsonb)
 returns jsonb
 language plpgsql
@@ -124,7 +119,7 @@ end;
 $$;
 
 create function public.set_copy_user_tag(request jsonb)
-returns jsonb
+returns void
 language plpgsql
 security definer
 set search_path = ''
@@ -136,12 +131,12 @@ declare
   chosen_user_tag_id uuid;
 begin
   caller := private.caller_user_id();
-  checked := private.check_user_tag_request(request, array['copy_id', 'user_tag_id', 'tagged']);
-  chosen_copy_id := (checked ->> 'copy_id')::uuid;
+  chosen_copy_id := private.checked_copy_id(request, array['user_tag_id', 'tagged']);
+  checked := private.check_user_tag_request(request - 'copy_id', array['user_tag_id', 'tagged']);
   chosen_user_tag_id := (checked ->> 'user_tag_id')::uuid;
 
   if not exists (select 1 from public.copies copy where copy.user_id = caller and copy.id = chosen_copy_id) then
-    perform private.raise_search_error('not_found', 'copy_id is not a copy in your collection.', 'copy_id');
+    perform private.raise_copy_not_found();
   end if;
   if not exists (
     select 1 from public.user_tags user_tag where user_tag.user_id = caller and user_tag.id = chosen_user_tag_id
@@ -157,8 +152,6 @@ begin
     delete from public.copy_user_tags link
       where link.user_id = caller and link.copy_id = chosen_copy_id and link.user_tag_id = chosen_user_tag_id;
   end if;
-
-  return checked;
 end;
 $$;
 

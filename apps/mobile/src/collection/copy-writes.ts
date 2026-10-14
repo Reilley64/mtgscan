@@ -1,4 +1,4 @@
-import type { CopyProtectedRequest, DeleteCopyRequest } from '@mtgscan/supabase/collection';
+import type { CopyProtectedRequest, CopyUserTagRequest, DeleteCopyRequest } from '@mtgscan/supabase/collection';
 import { readSearchError } from '@mtgscan/supabase/search';
 
 import { supabase } from '@/lib/supabase';
@@ -21,5 +21,10 @@ export async function setCopyProtected(copyId: string, isProtected: boolean): Pr
 export async function deleteCopy(copyId: string): Promise<CopyWriteResult> {
   const request: DeleteCopyRequest = { copy_id: copyId };
   const { error } = await supabase.rpc('delete_copy', { request });
+  return resultOf(error);
+}
+
+export async function setCopyUserTag(request: CopyUserTagRequest): Promise<CopyWriteResult> {
+  const { error } = await supabase.rpc('set_copy_user_tag', { request });
   return resultOf(error);
 }

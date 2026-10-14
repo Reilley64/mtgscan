@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { useCopy } from '@/collection/use-copy';
-import { createUserTagOnCopy, setCopyUserTag, useUserTags } from '@/collection/user-tags';
+import { setCopyUserTag, type CopyWriteResult } from '@/collection/copy-writes';
+import { createUserTagOnCopy, useUserTags } from '@/collection/user-tags';
 import { Text } from '@/components/atoms/text';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
@@ -27,8 +28,8 @@ export default function UserTagPickerScreen() {
     reloadUserTags();
   };
 
-  const change = async (write: Promise<boolean>) => {
-    setChangeFailed(!(await write));
+  const change = async (write: Promise<CopyWriteResult>) => {
+    setChangeFailed((await write) === 'failed');
     reload();
   };
 

@@ -1,12 +1,12 @@
 import {
   readUserTagError,
-  type CopyUserTagRequest,
   type CreateUserTagRequest,
   type UserTag,
   type UserTagList,
   type UserTagRow,
 } from '@mtgscan/supabase/collection';
 
+import { setCopyUserTag, type CopyWriteResult } from '@/collection/copy-writes';
 import { supabase } from '@/lib/supabase';
 import { useFocusedRead } from '@/lib/use-focused-read';
 
@@ -19,16 +19,11 @@ export function useUserTags() {
   return useFocusedRead(readUserTags);
 }
 
-export async function setCopyUserTag(request: CopyUserTagRequest) {
-  const { error } = await supabase.rpc('set_copy_user_tag', { request });
-  return error === null;
-}
-
-export async function createUserTagOnCopy(copyId: string, name: string) {
+export async function createUserTagOnCopy(copyId: string, name: string): Promise<CopyWriteResult> {
   const request: CreateUserTagRequest = { name };
   const { data, error } = await supabase.rpc('create_user_tag', { request });
   if (error) {
-    return readUserTagError(error).code === 'user_tag_exists';
+    return readUserTagError(error).code === 'user_tag_exists' ? 'done' : 'failed';
   }
   return setCopyUserTag({ copy_id: copyId, user_tag_id: (data as unknown as UserTag).user_tag_id, tagged: true });
 }
