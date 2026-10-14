@@ -5,7 +5,7 @@ import type { Json } from '../database.types';
 import { readSearchError } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { seedCopies } from './copy-seeds';
-import { daysAgo, storeExchangeRates } from './exchange-rate-seeds';
+import { convertedPrice, daysAgo, storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -180,10 +180,6 @@ describe('the copy read', () => {
 });
 
 describe('the copy read in another currency', () => {
-  function converted(currency: string, exchangeRate: string, amount: string, rateDate = daysAgo(0)): CopyDetails['purchase_day_price'] {
-    return { amount, currency, finish: 'nonfoil', approximate: true, exchange_rate: exchangeRate, rate_date: rateDate };
-  }
-
   test.each<[string, string, string, string]>([
     ['AUD', '1.5234', '0.32', '0.53'],
     ['EUR', '0.93', '0.20', '0.33'],
@@ -193,8 +189,8 @@ describe('the copy read in another currency', () => {
     await setCuratorNonfoilPrice(35);
 
     expect(await copyOf(alice, { copy_id: copyId, price_currency: currency })).toMatchObject({
-      purchase_day_price: converted(currency, exchangeRate, purchaseDay),
-      price: { ...converted(currency, exchangeRate, current)!, stale: false },
+      purchase_day_price: convertedPrice(currency, exchangeRate, purchaseDay, 'nonfoil'),
+      price: { ...convertedPrice(currency, exchangeRate, current, 'nonfoil'), stale: false },
     });
   });
 
@@ -204,7 +200,7 @@ describe('the copy read in another currency', () => {
     await storeExchangeRates({ AUD: 2 });
     const copy = await copyOf(alice, { copy_id: copyId, price_currency: 'AUD' });
 
-    expect(copy.purchase_day_price).toEqual(converted('AUD', '2', '0.42'));
+    expect(copy.purchase_day_price).toEqual(convertedPrice('AUD', '2', '0.42', 'nonfoil'));
   });
 
   test('a USD copy has no approximate flag, exchange rate, or rate date', async () => {
@@ -223,7 +219,7 @@ describe('the copy read in another currency', () => {
   });
 
   test.each<[string, number, boolean]>([
-    ["Friday's rate on a Monday", 3, false],
+    ["a rate 3 days old, as Friday's rate is on a Monday", 3, false],
     ['a rate more than 4 days old', 5, true],
   ])('with %s, the converted current price is stale: %p', async (_, age, stale) => {
     const { copyId } = await scannedCopy(alice, angelicCurator);
@@ -232,7 +228,7 @@ describe('the copy read in another currency', () => {
     const aud = await copyOf(alice, { copy_id: copyId, price_currency: 'AUD' });
     const usd = await copyOf(alice, { copy_id: copyId, price_currency: 'USD' });
 
-    expect(aud.price).toEqual({ ...converted('AUD', '1.5234', '0.32', daysAgo(age))!, stale });
+    expect(aud.price).toEqual({ ...convertedPrice('AUD', '1.5234', '0.32', 'nonfoil', daysAgo(age)), stale });
     expect(usd.price!.stale).toBe(false);
   });
 

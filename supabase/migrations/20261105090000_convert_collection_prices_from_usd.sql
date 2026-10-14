@@ -129,14 +129,26 @@ stable
 set search_path = ''
 as $$
 begin
-  if jsonb_typeof(value) is distinct from 'string'
-    or not (
-      value #>> '{}' = 'USD'
-      or exists (select 1 from public.exchange_rates r where r.currency = value #>> '{}')
-    ) then
+  if jsonb_typeof(value) is distinct from 'string' or private.exchange_rate(value #>> '{}') is null then
     perform private.invalid_argument(
       field,
       format('%s must be USD or a currency with an exchange rate, such as EUR.', field)
+    );
+  end if;
+  return value;
+end;
+$$;
+
+create or replace function private.checked_price(field text, value jsonb)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if jsonb_typeof(value) is distinct from 'string' or (value #>> '{}') !~ '^[0-9]{1,10}(\.[0-9]{1,2})?$' then
+    perform private.invalid_argument(
+      field,
+      format('%s must be a decimal amount from 0 to 9999999999.99 as a string, such as "4.99".', field)
     );
   end if;
   return value;
@@ -150,12 +162,13 @@ stable
 set search_path = ''
 as $$
   select format(
-    '%s::numeric between %L and %L',
+    '%1$s::numeric >= %2$L and %1$s::numeric < %3$L',
     price_cents,
-    coalesce(round((checked ->> 'price_min')::numeric * 100 / rate.rate), 0),
-    coalesce(round((checked ->> 'price_max')::numeric * 100 / rate.rate), 'Infinity')
+    coalesce(((checked ->> 'price_min')::numeric - half_minor_unit) * 100 / rate.rate, 0),
+    coalesce(((checked ->> 'price_max')::numeric + half_minor_unit) * 100 / rate.rate, 'Infinity')
   )
-  from private.exchange_rate(checked ->> 'price_currency') rate;
+  from private.exchange_rate(checked ->> 'price_currency') rate
+  cross join lateral (select 0.5 / power(10::numeric, private.minor_unit_digits(rate.currency))) as unit(half_minor_unit);
 $$;
 
 create or replace function private.check_search_query(query jsonb, api public.search_api)
@@ -599,10 +612,7 @@ begin
     'rules_stale', rules_freshness.is_stale,
     'prices_observed_at', prices_freshness.snapshot_at,
     'prices_stale', prices_stale
-  ) || case
-    when rate.currency <> 'USD' then jsonb_build_object('rate_date', rate.rate_date)
-    else '{}'::jsonb
-  end || case
+  ) || jsonb_strip_nulls(jsonb_build_object('rate_date', rate.rate_date)) || case
     when api = 'collection' then jsonb_build_object('total_count', case when after_key is null then total_count end)
     else '{}'::jsonb
   end;

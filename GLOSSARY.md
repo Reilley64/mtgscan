@@ -36,7 +36,7 @@ One commit of copies to the collection, with its time and a purchase-day price p
 _Avoid_: Import, purchase
 
 **Current price**:
-The latest Scryfall USD price of a card printing and finish. mtgscan keeps only the latest one and no earlier prices. Condition and language do not change it. A missing current price stays missing and is never taken from another finish or card printing. A current price is stale when mtgscan received it more than 24 hours ago.
+The latest Scryfall USD price of a card printing and finish. mtgscan keeps only the latest one and no earlier prices. Condition and language do not change it. A missing current price stays missing and is never taken from another finish or card printing. A current price is stale when mtgscan received it more than 24 hours ago. In another currency, it is a converted price.
 _Avoid_: Value
 
 **Collection total**:
@@ -46,6 +46,10 @@ _Avoid_: Collection value, net worth
 **Exchange rate**:
 The European Central Bank's reference rate from USD to another currency, as Frankfurter publishes it. mtgscan keeps only the latest exchange rate of each currency in Frankfurter's latest rates, with the ECB date it applies to. The ECB publishes rates on working days only.
 _Avoid_: FX rate, conversion rate
+
+**Converted price**:
+A USD amount, such as a current price, a purchase-day price, or a collection total, times the latest exchange rate of another currency. It is rounded to that currency's minor unit, such as whole yen. It is an estimate, not a store price. It is stale when its USD price is stale, or when its exchange rate's date is more than 4 days before today. A card printing and finish with no USD price has no converted price.
+_Avoid_: Local price, FX price
 
 **Purchase-day price**:
 The current price of a card printing and finish when copies were added to the collection. Each addition line records it once, and it never changes. A copy reads it from its addition line, not from the collection entry.

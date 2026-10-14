@@ -197,10 +197,13 @@ Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_
 
 ### Converted prices
 
-mtgscan stores every price in USD and converts it when it reads it. `docs/adr/0005-convert-all-prices-from-usd.md` says why.
+mtgscan stores every price in USD. A read in another currency returns converted prices. `docs/adr/0005-convert-all-prices-from-usd.md` says why.
 
-- A converted amount is the USD amount times the latest exchange rate in `exchange_rates`, rounded to the currency's minor unit. JPY, KRW, ISK, and other currencies with no minor unit round to whole units.
-- A price that is not in USD has `approximate: true`, `exchange_rate`, the rate from USD as a decimal string, and `rate_date`, the ECB date of the rate. A USD price has none of these fields.
+- A converted price is the USD amount times the latest exchange rate in `exchange_rates`, rounded to the currency's minor unit. JPY, KRW, ISK, and other currencies with no minor unit round to whole units.
+- A converted price has `approximate: true`.
+- It has `exchange_rate`, the rate from USD as a decimal string.
+- It has `rate_date`, the ECB date of the rate.
+- A USD price has none of these three fields.
 - A search page in another currency has `rate_date` next to `prices_observed_at`, and its `prices_stale` is also true when the exchange rate is stale.
 - An exchange rate is stale when its date is more than 4 days before today in UTC. The ECB publishes rates on working days only, so Friday's rate on a weekend is not stale.
 - A card printing and finish with no USD price has no price in any currency.
@@ -260,7 +263,7 @@ A user tag is a private label that a user puts on copies. `user_tags` holds each
 Signed-in users search their own collection with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips and `rows`. `supabase/collection.ts` has the shared types for the query and the result rows. The Collection tab reads its binder grid only through collection search, with `rows: 'copies'`. Its search bar and its Filters drawer turn the typed text and chips into the typed query.
 
 - Chips match copies. `finishes`, `conditions`, and `languages` take the finish, condition, and language values of copies.
-- `sets` and `rarities` match the copy's own card printing. `price_min`, `price_max`, and `sort: 'price'` use the current price of that card printing and finish. In another currency, `price_min` and `price_max` convert to USD cents at the latest exchange rate before they compare. `sort: 'price'` uses the USD amount, so every currency gives the same order. `sort: 'release_date'` uses the release date of that card printing.
+- `sets` and `rarities` match the copy's own card printing. `price_min`, `price_max`, and `sort: 'price'` use the current price of that card printing and finish. In another currency, `price_min` and `price_max` convert to USD at the latest exchange rate before they compare. A bound matches every price that shows as that amount. A bound goes up to 9999999999.99, so that currencies with large rates, such as IDR, have room. `sort: 'price'` uses the USD amount, so every currency gives the same order. `sort: 'release_date'` uses the release date of that card printing.
 - `is_free` matches free copies. A protected copy can be free. `is_protected` matches the protected flag. The Collection tab's Free filter is `is_free: true` with `is_protected: false`.
 - `user_tags` and `user_tags_exclude` take user tag names, matched ignoring case. A copy matches `user_tags` when it has every listed user tag, and `user_tags_exclude` when it has none of them. A name that is not one of the caller's user tags is refused with `invalid_argument` on that list item, such as `user_tags[0]`.
 - `deck_ids` and `deck_ids_exclude` take deck IDs. Until decks exist, every deck ID is refused with `invalid_argument` on its field.

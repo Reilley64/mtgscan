@@ -45,7 +45,7 @@ export type CatalogQuery = {
   cursor?: string | null;
 };
 
-export type SearchPage<Row> = {
+export type SearchPage<Row> = Pick<ExchangeRateFields, 'rate_date'> & {
   items: Row[];
   next_cursor: string | null;
   search_id: string;
@@ -53,7 +53,6 @@ export type SearchPage<Row> = {
   rules_stale: boolean;
   prices_observed_at: string | null;
   prices_stale: boolean;
-  rate_date?: string;
 };
 
 export type ExchangeRateFields = {

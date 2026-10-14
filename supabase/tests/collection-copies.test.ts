@@ -6,7 +6,7 @@ import { readSearchError, type Finish, type SearchPage } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { seedCopies } from './copy-seeds';
-import { daysAgo, storeExchangeRates } from './exchange-rate-seeds';
+import { convertedPrice, daysAgo, storeExchangeRates } from './exchange-rate-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
@@ -300,10 +300,6 @@ describe('current prices in another currency', () => {
     return rows.filter((row) => row.price).map((row) => [row.finish, row.price]).sort();
   }
 
-  function convertedPrice(currency: string, exchangeRate: string, amount: string, finish: CurrentPrice['finish']): CurrentPrice {
-    return { ...currentPrice(currency, amount, finish), approximate: true, exchange_rate: exchangeRate, rate_date: daysAgo(0) };
-  }
-
   test.each<[string, string, string[]]>([
     ['AUD', '1.5234', ['0.67', '0.46', '0.32']],
     ['EUR', '0.93', ['0.41', '0.28', '0.20']],
@@ -312,9 +308,9 @@ describe('current prices in another currency', () => {
     const page = await collectionCopies(user, { price_currency: currency });
 
     expect(pricesByFinish(page.items)).toEqual([
-      ['etched', convertedPrice(currency, exchangeRate, amounts[0]!, 'etched')],
-      ['foil', convertedPrice(currency, exchangeRate, amounts[1]!, 'foil')],
-      ['nonfoil', convertedPrice(currency, exchangeRate, amounts[2]!, 'nonfoil')],
+      ['etched', { ...convertedPrice(currency, exchangeRate, amounts[0]!, 'etched'), stale: false }],
+      ['foil', { ...convertedPrice(currency, exchangeRate, amounts[1]!, 'foil'), stale: false }],
+      ['nonfoil', { ...convertedPrice(currency, exchangeRate, amounts[2]!, 'nonfoil'), stale: false }],
     ]);
     expect(page).toMatchObject({ prices_stale: false, rate_date: daysAgo(0) });
   });
@@ -340,6 +336,8 @@ describe('current prices in another currency', () => {
     ['an AUD price range', { price_currency: 'AUD', price_min: '0.40', price_max: '0.50' }, ['foil']],
     ['a JPY maximum equal to a shown price', { price_currency: 'JPY', price_max: '45' }, ['foil', 'nonfoil']],
     ['a EUR minimum equal to a shown price', { price_currency: 'EUR', price_min: '0.41' }, ['etched']],
+    ['a EUR range whose bounds equal the shown prices', { price_currency: 'EUR', price_min: '0.20', price_max: '0.28' }, ['foil', 'nonfoil']],
+    ['a EUR maximum just below a shown price', { price_currency: 'EUR', price_max: '0.19' }, []],
   ])('%s converts the bound to USD at the exchange rate before it compares', async (_, query, finishes) => {
     const { items } = await collectionCopies(user, query);
 
@@ -355,7 +353,7 @@ describe('current prices in another currency', () => {
   });
 
   test.each<[string, number, boolean]>([
-    ["Friday's rate on a Monday", 3, false],
+    ["a rate 3 days old, as Friday's rate is on a Monday", 3, false],
     ['a rate 4 days old', 4, false],
     ['a rate more than 4 days old', 5, true],
   ])('with %s, converted prices and their page are stale: %p', async (_, age, stale) => {
