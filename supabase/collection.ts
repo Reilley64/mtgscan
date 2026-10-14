@@ -179,6 +179,8 @@ export type CollectionTotal = ExchangeRateFields & {
   currency: PriceCurrency;
   priced_copies: number;
   copies: number;
+  stale: boolean;
+  prices_observed_at: string | null;
 };
 
 export type ScanBatchErrorCode = 'invalid_argument' | 'unknown_printing' | 'basic_land';

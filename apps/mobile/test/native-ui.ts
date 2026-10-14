@@ -345,6 +345,7 @@ type HeaderItem = {
 type HeaderMenuItem = {
   title: string;
   subtitle?: string;
+  sfSymbolName?: string;
   disabled?: boolean;
   destructive?: boolean;
   menuId?: string;
@@ -435,7 +436,10 @@ function menuOf(tab: HostElement, name: string) {
 
 export function headerMenu(tab: HostElement, name: string) {
   const { title, items } = menuOf(tab, name);
-  return { title, items: items.map(({ title: itemTitle, subtitle }) => ({ title: itemTitle, subtitle })) };
+  return {
+    title,
+    items: items.map(({ title: itemTitle, subtitle, sfSymbolName }) => ({ title: itemTitle, subtitle, symbol: sfSymbolName })),
+  };
 }
 
 export function pressableMenuRows(tab: HostElement, name: string) {

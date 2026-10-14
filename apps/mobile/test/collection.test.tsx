@@ -412,6 +412,8 @@ describe('the collection total button', () => {
       currency: 'USD',
       priced_copies: 26,
       copies: 27,
+      stale: false,
+      prices_observed_at: '2026-10-14T03:00:00Z',
       ...changes,
     };
   }
@@ -460,6 +462,41 @@ describe('the collection total button', () => {
     expect(headerMenu(collection, 'Collection total, $128,406.92').items).toEqual([
       { title: '1,262 of 1,284 cards', subtitle: 'Priced' },
     ]);
+  });
+
+
+  describe('when the current prices are stale', () => {
+    const staleTotal = () => collectionTotal({ stale: true, prices_observed_at: '2026-10-12T03:00:00Z' });
+
+    test('the menu adds the day of the price snapshot with the clock symbol, under the coverage and the price credit', async () => {
+      const collection = await openCollectionWithTotal(staleTotal());
+
+      expect(headerMenu(collection, 'Collection total, $2,419.59')).toEqual({
+        title: 'Current prices from Scryfall, in USD',
+        items: [
+          { title: '26 of 27 cards', subtitle: 'Priced', symbol: undefined },
+          { title: '12 October', subtitle: 'Prices from', symbol: 'clock' },
+        ],
+      });
+      expect(pressableMenuRows(collection, 'Collection total, $2,419.59')).toEqual([]);
+    });
+
+    test('VoiceOver hears that the prices may be out of date', async () => {
+      const collection = await openCollectionWithTotal(staleTotal());
+
+      expect(headerButton(collection, 'Collection total, $2,419.59')).toEqual({
+        type: 'menu',
+        label: '$2,419.59',
+        symbol: undefined,
+        hint: '26 of 27 cards priced. The prices may be out of date.',
+      });
+    });
+  });
+
+  test('when the current prices are fresh, the menu has no Prices from row', async () => {
+    const collection = await openCollectionWithTotal(collectionTotal({ prices_observed_at: '2026-10-14T03:00:00Z' }));
+
+    expect(headerMenu(collection, 'Collection total, $2,419.59').items.map((item) => item.subtitle)).toEqual(['Priced']);
   });
 
   test('with no collection entries, the header shows no collection total button', async () => {
@@ -764,7 +801,7 @@ describe('collection search', () => {
 
   test('results show as binder tiles, one per copy, under a count line', async () => {
     ownCollectionCopies(collectionEntryCopies('Ponder', 27));
-    ownCollectionTotal({ total: '27.00', currency: 'USD', priced_copies: 27, copies: 27 });
+    ownCollectionTotal({ total: '27.00', currency: 'USD', priced_copies: 27, copies: 27, stale: false, prices_observed_at: null });
     const curators = collectionEntryCopies('Angelic Curator', 6);
     answerCollectionSearches((query) => (query.text === 'curator' ? curators : collectionEntryCopies('Ponder', 27)));
     const collection = await openCollection();
