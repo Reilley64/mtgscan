@@ -14,7 +14,7 @@ export type SearchChip = {
 
 type Choice = { value: string; note?: string };
 
-type ListField = 'names' | 'types' | 'tags' | 'keywords' | 'sets' | 'rarities' | 'finishes' | 'conditions' | 'languages';
+type ListField = 'names' | 'types' | 'tags' | 'keywords' | 'sets' | 'rarities' | 'finishes' | 'conditions' | 'languages' | 'user_tags';
 
 type ListKey = { kind: 'list'; field: ListField; note: string; choices?: Record<string, Choice> };
 
@@ -79,6 +79,7 @@ const searchKeys = {
     ),
   },
   lang: { kind: 'list', field: 'languages', note: 'Language', choices: choices(languages, (language) => languageNames[language as keyof typeof languageNames]) },
+  user_tag: { kind: 'list', field: 'user_tags', note: 'User tag' },
   is: {
     kind: 'flag',
     flags: {
@@ -279,6 +280,8 @@ export function refusedChipMessage(chip: SearchChip) {
       return `No Oracle tag named "${chip.value}".`;
     case 'keyword':
       return `No keyword named "${chip.value}".`;
+    case 'user_tag':
+      return `No user tag named "${chip.value}".`;
     default:
       return `${chipLabel(chip)} is not a valid chip.`;
   }

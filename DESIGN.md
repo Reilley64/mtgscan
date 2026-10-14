@@ -430,15 +430,16 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
 - **Suggestions.** While the user types, suggestions replace the grid. Each suggestion is a list row.
   - With no key typed, they offer the keys that start with the typed word, such as "set:" with "Set code".
   - After a key, they offer values: set codes from the card catalog with the set name, Oracle tags from the tag lookup with the tag label, and the fixed lists for finish, condition, language, rarity, and color.
+  - After `user_tag:`, they offer the user's user tags whose names contain the typed text, ignoring case. Each shows its copy count, such as "3 copies".
   - Tapping a key puts it in the search bar. Tapping a value makes a chip. Enter closes the suggestions and shows the results.
 - **Chips.** A space, Enter, or a picked suggestion turns `key:value` text into a chip.
-  - The keys are `name`, `type`, `color`, `identity`, `mv`, `pow`, `tou`, `price` (with `=`, `<`, `<=`, `>`, `>=`), `tag`, `keyword`, `set`, `rarity`, `finish`, `condition`, `lang`, `is:commander`, `is:gamechanger`, `is:free`, and `is:protected`.
-  - A value with spaces is quoted, as in `name:"sol ring"`. A leading `-` negates, as in `-rarity:common`. The number keys and `identity` cannot be negated, because collection search has no exclude field for them.
+  - The keys are `name`, `type`, `color`, `identity`, `mv`, `pow`, `tou`, `price` (with `=`, `<`, `<=`, `>`, `>=`), `tag`, `keyword`, `set`, `rarity`, `finish`, `condition`, `lang`, `user_tag`, `is:commander`, `is:gamechanger`, `is:free`, and `is:protected`.
+  - A value with spaces is quoted, as in `name:"sol ring"` or `user_tag:"trade binder"`. A leading `-` negates, as in `-rarity:common`. The number keys and `identity` cannot be negated, because collection search has no exclude field for them.
   - A key that the app does not know stays as text.
 - The app turns the text and the chips into the typed collection search query. The server never parses a string.
 - Chips sit under the search bar, at the top of the grid. Each chip shows its `key:value` text and ×. Tapping a chip removes it. Backspace in an empty field removes the last chip. Cancel clears the text and the chips.
 - **Results.** Results show as binder tiles, one per copy. While text or a chip is active, a count line in meta text, such as "6 of 27 copies", sits above the grid. While a new search loads, the skeleton grid replaces the tiles. With no results, the grid shows the empty state "No cards found". See Empty states.
-- A chip that the server refuses, such as an unknown set or Oracle tag, turns danger. The grid shows "No set named "zzz".", "No Oracle tag named "zzz".", or "No keyword named "zzz".". Any other refused chip shows "mv>25 is not a valid chip."
+- A chip that the server refuses, such as an unknown set, Oracle tag, or user tag, turns danger. The grid shows "No set named "zzz".", "No Oracle tag named "zzz".", "No keyword named "zzz".", or "No user tag named "signd".". Any other refused chip shows "mv>25 is not a valid chip."
 - VoiceOver reads a chip as a button with its `key:value` text and the hint "Removes this chip."
 - **Sort button.** A round Liquid Glass button, 48 px across, floats over the grid at the bottom right, 16 px above the tab bar. It shows the `arrow.up.arrow.down` symbol at 18 px. Without Liquid Glass, it uses the control surface. It reacts to touch.
   - It opens a native menu titled "Sort by": Relevance, Recently added, Name, Price, Mana value, and Release date. The current sort has a check mark.

@@ -32,6 +32,8 @@ export type CollectionQuery = Omit<CatalogQuery, 'sort'> & {
   deck_ids_exclude?: string[];
   is_free?: boolean;
   is_protected?: boolean;
+  user_tags?: string[];
+  user_tags_exclude?: string[];
 };
 
 export type CollectionPage<Row> = SearchPage<Row> & {

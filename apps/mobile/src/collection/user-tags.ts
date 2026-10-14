@@ -10,7 +10,7 @@ import { setCopyUserTag, type CopyWriteResult } from '@/collection/copy-writes';
 import { supabase } from '@/lib/supabase';
 import { useFocusedRead } from '@/lib/use-focused-read';
 
-async function readUserTags(): Promise<{ status: 'failed' } | { status: 'loaded'; userTags: UserTagRow[] }> {
+export async function readUserTags(): Promise<{ status: 'failed' } | { status: 'loaded'; userTags: UserTagRow[] }> {
   const { data, error } = await supabase.rpc('list_user_tags');
   return error ? { status: 'failed' } : { status: 'loaded', userTags: (data as unknown as UserTagList).items };
 }
