@@ -26,7 +26,9 @@ import {
   pressTab,
   pushedScreen,
   pushedScreenBackButton,
+  searchBarHasFocus,
   selectedTab,
+  shownSearchText,
   swipeBackFromThePushedScreen,
   symbolNames,
   symbolTintColor,
@@ -70,6 +72,36 @@ describe('the binder tile', () => {
     await fireEvent.press(collection.getByRole('button', { name: /^Delver of Secrets/ }));
 
     expect(await screen.findByRole('header', { name: 'Delver of Secrets // Insectile Aberration' })).toBeOnTheScreen();
+  });
+
+  test('opening a copy page from search results takes the focus off the search bar', async () => {
+    ownCopies([copyOf('copy-1'), delver]);
+    const collection = await openCollection();
+    await typeInSearchBar('delver');
+    expect(searchBarHasFocus()).toBe(true);
+
+    await fireEvent.press(collection.getByRole('button', { name: /^Delver of Secrets/ }));
+
+    expect(await screen.findByRole('header', { name: 'Delver of Secrets // Insectile Aberration' })).toBeOnTheScreen();
+    expect(searchBarHasFocus()).toBe(false);
+  });
+
+  test('going back to the Collection tab keeps the search text and chips, and the search bar stays without focus', async () => {
+    const curator = copyOf('copy-1');
+    ownCopies([curator, delver]);
+    answerCollectionSearches((query) => (query.text === 'delver' ? [delver] : [curator, delver]));
+    const collection = await openCollection();
+    await typeInSearchBar('set:isd delver');
+    await fireEvent.press(collection.getByRole('button', { name: /^Delver of Secrets/ }));
+    await screen.findByRole('header', { name: 'Delver of Secrets // Insectile Aberration' });
+
+    await swipeBackFromThePushedScreen();
+
+    expect(collection.getByRole('button', { name: 'set:isd' })).toBeOnTheScreen();
+    expect(shownSearchText()).toBe('delver');
+    expect(collection.getByRole('button', { name: /^Delver of Secrets/ })).toBeOnTheScreen();
+    expect(collection.queryByRole('button', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
+    expect(searchBarHasFocus()).toBe(false);
   });
 });
 

@@ -839,16 +839,33 @@ export async function pressButtonMenuItem(button: HostElement, title: string) {
 
 let searchFieldText = '';
 
-const searchBarCommands: { setText: (searchBar: unknown, text: string) => void } = jest.requireActual(
-  'react-native-screens/lib/commonjs/fabric/SearchBarNativeComponent',
-).Commands;
+let focusedSearchBar: HostElement | null = null;
+
+const searchBarCommands: {
+  setText: (searchBar: unknown, text: string) => void;
+  blur: (searchBar: unknown) => void;
+  focus: (searchBar: unknown) => void;
+} = jest.requireActual('react-native-screens/lib/commonjs/fabric/SearchBarNativeComponent').Commands;
 
 jest.spyOn(searchBarCommands, 'setText').mockImplementation((_searchBar, text) => {
   searchFieldText = text;
 });
 
+jest.spyOn(searchBarCommands, 'focus').mockImplementation((searchBar) => {
+  const { onSearchFocus } = (searchBar as { props: { onSearchFocus?: unknown } }).props;
+  focusedSearchBar = hostViews('RNSSearchBar').find((candidate) => candidate.props.onSearchFocus === onSearchFocus) ?? null;
+  focusedSearchBar?.props.onSearchFocus?.({ nativeEvent: {} });
+});
+
+jest.spyOn(searchBarCommands, 'blur').mockImplementation(() => {
+  const searchBar = focusedSearchBar;
+  focusedSearchBar = null;
+  searchBar?.props.onSearchBlur?.({ nativeEvent: {} });
+});
+
 beforeEach(() => {
   searchFieldText = '';
+  focusedSearchBar = null;
 });
 
 function searchBarView(tab: HostElement) {
@@ -857,6 +874,10 @@ function searchBarView(tab: HostElement) {
     throw new Error('This tab has no search bar');
   }
   return searchBar;
+}
+
+export function searchBarHasFocus() {
+  return focusedSearchBar !== null;
 }
 
 export function shownSearchText() {
@@ -880,7 +901,8 @@ async function pauseTyping() {
 }
 
 export async function typeInSearchBar(text: string) {
-  await fireEvent(searchBarView(selectedTab()), 'searchFocus', { nativeEvent: {} });
+  focusedSearchBar = searchBarView(selectedTab());
+  await fireEvent(focusedSearchBar, 'searchFocus', { nativeEvent: {} });
   for (const character of text) {
     await changeSearchText(searchFieldText + character);
   }

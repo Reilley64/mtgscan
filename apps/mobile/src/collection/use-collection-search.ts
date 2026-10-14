@@ -1,5 +1,6 @@
+import { useFocusEffect } from 'expo-router';
 import type { SearchBarCommands, SearchBarProps } from 'react-native-screens';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   chipBeforeSpace,
@@ -24,6 +25,8 @@ export function useCollectionSearch() {
   const [searchedText, setSearchedText] = useState('');
 
   useEffect(() => () => clearTimeout(pause.current), []);
+
+  useFocusEffect(useCallback(() => () => field.current?.blur(), []));
 
   function showInField(nextText: string, nextChips: SearchChip[]) {
     field.current?.setText((nextChips.length > 0 ? emptyFieldMark : '') + nextText);
