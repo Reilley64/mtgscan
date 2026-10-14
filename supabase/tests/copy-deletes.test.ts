@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { CollectionCopyRow, CollectionPage, CollectionRow, CollectionTotal, DeleteCopyRequest } from '../collection';
 import type { Json } from '../database.types';
-import { readSearchError, type CardDetails, type CardPrintingsPage } from '../search';
+import { readSearchError, type CardDetails, type CardPrintingsPage, type CatalogRow, type SearchPage } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
@@ -30,11 +30,10 @@ async function deleted(user: TestUser, copyId: string) {
   expect(error).toBeNull();
 }
 
-async function scannedCurators(user: TestUser) {
+async function scannedCuratorCopyIds(user: TestUser) {
   const curators = stack(angelicCurator, { copies: 2 });
   await committed(user, scanBatch([curators, stack(delverInnistrad)]));
-  const [deletedCopyId, keptCopyId] = curators.copy_ids as [string, string];
-  return { deletedCopyId, keptCopyId };
+  return curators.copy_ids as [string, string];
 }
 
 async function searchedRows<Row>(user: TestUser, rows: 'copies' | 'entries') {
@@ -62,7 +61,7 @@ describe('deleting a copy', () => {
 
   beforeAll(async () => {
     alice = await signUpNewUser();
-    ({ deletedCopyId, keptCopyId } = await scannedCurators(alice));
+    [deletedCopyId, keptCopyId] = await scannedCuratorCopyIds(alice);
     delverCopyId = (await copyIdsInTheCollection(alice)).find((id) => id !== deletedCopyId && id !== keptCopyId)!;
     totalBefore = await collectionTotal(alice);
     await deleted(alice, deletedCopyId);
@@ -88,12 +87,11 @@ describe('deleting a copy', () => {
     const printings = await alice.client.rpc('list_card_printings', {
       query: { oracle_id: angelicCuratorCard, owned_only: true },
     });
+    const catalog = await alice.client.rpc('search_catalog', { query: { names: ['angelic curator'] } });
+    const oneFreeCopy = { quantity: 1, free_quantity: 1, protected_free_quantity: 0 };
 
-    expect((cards.data as unknown as CardDetails).items[0]!.owned).toEqual({
-      quantity: 1,
-      free_quantity: 1,
-      protected_free_quantity: 0,
-    });
+    expect((cards.data as unknown as CardDetails).items[0]!.owned).toEqual(oneFreeCopy);
+    expect((catalog.data as unknown as SearchPage<CatalogRow>).items[0]!.owned).toEqual(oneFreeCopy);
     expect((printings.data as unknown as CardPrintingsPage).items.map((row) => [row.set, row.owned_quantity])).toEqual([
       ['mh2', 1],
     ]);
@@ -155,23 +153,23 @@ describe('refused deletes', () => {
 
   test("another user's copy is not_found and stays in their collection", async () => {
     const bob = await signUpNewUser();
-    const { deletedCopyId } = await scannedCurators(bob);
+    const [bobCopyId] = await scannedCuratorCopyIds(bob);
 
-    const { error } = await deleteCopy(alice.client, { copy_id: deletedCopyId });
+    const { error } = await deleteCopy(alice.client, { copy_id: bobCopyId });
 
     expect(error).toMatchObject({ code: 'not_found', field: 'copy_id' });
-    expect(await copyIdsInTheCollection(bob)).toContain(deletedCopyId);
+    expect(await copyIdsInTheCollection(bob)).toContain(bobCopyId);
   });
 
   test.each<[string, () => AppClient]>([
     ['an anonymous caller', anonymousClient],
     ['the secret key', secretKeyClient],
   ])('%s cannot delete a copy', async (_, client) => {
-    const { deletedCopyId } = await scannedCurators(alice);
+    const [copyId] = await scannedCuratorCopyIds(alice);
 
-    const { error } = await client().rpc('delete_copy', { request: { copy_id: deletedCopyId } });
+    const { error } = await client().rpc('delete_copy', { request: { copy_id: copyId } });
 
     expect(error?.code).toBe(permissionDenied);
-    expect(await copyIdsInTheCollection(alice)).toContain(deletedCopyId);
+    expect(await copyIdsInTheCollection(alice)).toContain(copyId);
   });
 });

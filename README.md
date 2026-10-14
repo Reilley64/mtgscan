@@ -214,7 +214,7 @@ Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The qu
 Signed-in users delete one copy with `supabase.rpc('delete_copy', { request })`. The request has only `copy_id`. `supabase/collection.ts` has the shared type. The copy page deletes its copy through it.
 
 - It deletes the copy in one transaction. The copy leaves collection search, `get_copy`, owned quantities, and the collection total and its coverage.
-- The copy's addition, its addition line, and its copy ID in `collection_addition_copies` stay, so the addition history stays true, and a replayed scan batch never adds the copy again.
+- The copy's addition, its addition line, and its copy ID in `collection_addition_copies` stay. A replayed scan batch never adds the copy again.
 - It returns nothing. Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist or was already deleted. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
 ### Collection search

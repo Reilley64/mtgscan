@@ -3,7 +3,7 @@ import { screen, within } from 'expo-router/testing-library';
 import { copyOf, delver, openCopyPage } from './copies';
 import {
   copiesDeletedOnTheServer,
-  failNextCopyDelete,
+  failCopyDeletes,
   ownCollectionTotal,
   ownCopies,
   removeCopyFromTheCollection,
@@ -99,7 +99,7 @@ describe('deleting a copy', () => {
   test('a failed delete says so and keeps the copy page', async () => {
     ownCopies([copyOf('copy-1')]);
     await openCopyPage(/^Angelic Curator/);
-    failNextCopyDelete();
+    failCopyDeletes(1);
 
     await chooseDeleteCopy();
     await pressAlertButton('Delete copy');

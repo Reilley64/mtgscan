@@ -3,9 +3,9 @@ import { readSearchError } from '@mtgscan/supabase/search';
 
 import { supabase } from '@/lib/supabase';
 
-export type CopyWrite = 'done' | 'missing' | 'failed';
+export type CopyWriteResult = 'done' | 'missing' | 'failed';
 
-export async function deleteCopy(copyId: string): Promise<CopyWrite> {
+export async function deleteCopy(copyId: string): Promise<CopyWriteResult> {
   const request: DeleteCopyRequest = { copy_id: copyId };
   const { error } = await supabase.rpc('delete_copy', { request });
   if (!error) {

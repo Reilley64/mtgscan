@@ -420,8 +420,8 @@ export function copiesDeletedOnTheServer() {
   return copyDeletes;
 }
 
-export function failNextCopyDelete() {
-  failingCopyDeletes = 1;
+export function failCopyDeletes(count: number) {
+  failingCopyDeletes = count;
 }
 
 export function failCopyReads(count: number) {
