@@ -444,6 +444,7 @@ The collection total is always visible. The owner picked variant C of the HTML p
   - the coverage, such as "26 of 27 cards", with the subtitle "Priced";
   - only when the prices are stale, the day of the price snapshot, such as "12 October", with the `clock` symbol and the subtitle "Prices from".
 - Prices are stale when they are more than 24 hours old, or when the exchange rate of a converted currency is stale.
+- The button shows no stale clock. A native bar button with a symbol and a label shows only the symbol, so the stale state lives in the menu and the VoiceOver hint (owner decision, #190).
 - The rows show information. They are disabled menu items, so a tap on them does nothing, and iOS shows them dimmed.
 - The menu has no change since yesterday. mtgscan keeps no price history (`docs/adr/0004-keep-only-current-prices.md`).
 - **VoiceOver.** The button reads "Collection total, $2,419.59" with the hint "26 of 27 cards priced". When the prices are stale, the hint adds "The prices may be out of date."
