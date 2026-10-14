@@ -65,12 +65,7 @@ export function useCollectionSearch() {
 
   function pick(suggestion: SearchSuggestion) {
     const { before } = splitLastToken(text);
-    if (suggestion.chip) {
-      change(before, [...chips, suggestion.chip]);
-      return;
-    }
-    setText(before + suggestion.title);
-    showInField(before + suggestion.title, chips);
+    change(before + (suggestion.chip ? '' : suggestion.title), suggestion.chip ? [...chips, suggestion.chip] : chips);
   }
 
   function removeChip(index: number) {

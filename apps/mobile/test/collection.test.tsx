@@ -564,6 +564,7 @@ describe('collection search', () => {
     await fireEvent.press(collection.getByRole('button', { name: 'finish:, Finish' }));
 
     expect(shownSearchText()).toBe('finish:');
+    expect(lastSearch()).toEqual({});
     expect(collection.getByRole('button', { name: 'finish:foil' })).toBeOnTheScreen();
     expect(collection.getByRole('button', { name: 'finish:etched' })).toBeOnTheScreen();
   });
