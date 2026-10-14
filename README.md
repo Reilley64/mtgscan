@@ -176,25 +176,24 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_batch', { batch })`. It runs in one transaction. `supabase/collection.ts` has the shared types for the batch, the result, and errors.
 
 - The batch has 1 to 2,000 stacks and at most 10,000 copy IDs. Each stack has `card_printing_id`, `finish`, `condition`, `language`, and `copy_ids`, a list of 1 to 999 copy IDs. A copy ID is a UUID that the phone gives each copy. It can appear only once in a batch.
-- Stacks with the same card printing, finish, condition, and language are summed. Each stack merges into the caller's collection entry with the same properties, no protected flag, and no user tags. If there is no such entry, the commit creates it.
+- Stacks with the same card printing, finish, condition, and language are summed.
+- Each new copy ID becomes a copy in `copies`, with its card printing, finish, condition, language, and addition line. A scanned copy is not protected. Copies are never merged or split.
 - Each commit writes one addition and one addition line per stack. The line records the purchase-day price in USD and EUR cents for the card printing and finish, with the price snapshot time. A missing price is null.
-- `collection_addition_copies` records each added copy ID with its addition line, once per user. The function skips copy IDs that the caller already added, even when the stack around them changed. If every copy ID was added before, it changes nothing.
-- The result has the new addition (`addition_id`, `added_at`, `copy_count`, and `items`, or nulls and 0 when nothing was new) and one row in `copies` per copy ID: the addition and collection entry it went into, and `replayed` true when an earlier call added it.
+- `collection_addition_copies` records each added copy ID with its addition line, once per user. A deleted copy's ID stays there. The function skips copy IDs that the caller already added, even when the stack around them changed or the copy was deleted. If every copy ID was added before, it changes nothing.
+- The result has the new addition (`addition_id`, `added_at`, `copy_count`, and `items`, or nulls and 0 when nothing was new) and one row in `copies` per copy ID: its `copy_id`, the addition it went into, and `replayed` true when an earlier call added it.
 - A refused call writes nothing. Its error has a `code` of `invalid_argument`, `unknown_printing`, or `basic_land`, and the field at fault in `details`, such as `items[3].finish`. `readScanBatchError` reads it.
 
 ### Binder grid read
 
 Signed-in users read their collection as copies with `supabase.rpc('list_collection_copies', { query })`. The binder grid shows one tile for each row it returns. The query has an optional `limit` from 1 to 120, which defaults to 60, an optional `cursor`, and an optional `price_currency`, `USD` or `EUR`, which defaults to `USD`. `supabase/collection.ts` has the shared types for the query and the page.
 
-- Each collection entry gives one row per copy.
-- The copy key is `collection_entry_id` and `copy_number`. The copy number runs from 1 to the entry's quantity.
+- Each copy gives one row, with its `copy_id`.
 - The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`.
-- The collection entry gives `finish`, `condition`, `language`, and `protected`.
+- The copy gives `finish`, `condition`, `language`, and `protected`.
 - `price` is the current price of the card printing and finish in the chosen currency: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says. Condition and language do not change it. `price` is null when `card_prices` has no price for that card printing, finish, and currency. A price is never taken from another finish. EUR etched prices are always null.
-- Copies that merge into an entry get the next copy numbers, and the existing copy keys stay the same. Copy numbers are positions in the entry, so when copies leave an entry, the last copy numbers go away.
-- Rows sort by the card printing's latest addition time, newest first, then by name, card printing ID, collection entry ID, and copy number. Copies of the same card printing sit next to each other.
+- Rows sort by the card printing's latest addition time, newest first, then by name, card printing ID, and copy ID. Copies of the same card printing sit next to each other.
 - `next_cursor` reads the next page. A cursor works only for the user who got it, for 15 minutes. A refused call has the code `invalid_argument` or `invalid_cursor` and the field at fault in `details`, as in catalog search.
-- The function runs with the caller's rights, so the read policy on `collection_entries` returns only the caller's collection entries. An anonymous caller and the secret key are refused.
+- The function runs with the caller's rights, so the read policy on `copies` returns only the caller's copies. An anonymous caller and the secret key are refused.
 
 ### Collection total
 
@@ -205,7 +204,7 @@ Signed-in users read their collection total with `supabase.rpc('get_collection_t
 - `change` is `total` minus the daily collection total of the day before the day of the current prices, as a signed decimal string. It is null when there is no daily collection total for that day, such as before the first one or after a day with no daily import.
 - The function runs with the caller's rights. An anonymous caller and the secret key are refused. A refused query has the code `invalid_argument` and the field at fault.
 
-`bun run import collection-totals` records the daily collection totals. It calls `record_daily_collection_totals`, which only `service_role` can run. For each user with collection entries, it stores the collection total in USD and in EUR, with the coverage, for the UTC day of the price snapshot. A later run on the same day keeps the first daily collection total. The Daily import workflow runs it right after `prices`, so the totals use the new prices.
+`bun run import collection-totals` records the daily collection totals. It calls `record_daily_collection_totals`, which only `service_role` can run. For each user with copies, it stores the collection total in USD and in EUR, with the coverage, for the UTC day of the price snapshot. A later run on the same day keeps the first daily collection total. The Daily import workflow runs it right after `prices`, so the totals use the new prices.
 
 `daily_collection_totals` departs from the per-user data pattern in two ways. No user changes it, and its write function does not check a caller's identity. The daily workflow writes it for every user with the secret key, through `record_daily_collection_totals`, which only `service_role` can run. The function runs with the owner's rights, not as `catalog_importer`, because the import role has no access to user data. A user reads only their own rows.
 
@@ -218,8 +217,9 @@ Signed-in users search their own collection entries with `supabase.rpc('search_c
 - `sets` and `rarities` match the entry's own card printing. `price_min`, `price_max`, and `sort: 'price'` use the current price of that card printing and finish. `sort: 'release_date'` uses the release date of that card printing.
 - `is_free` matches entries with at least one free copy. A protected copy can be free. `is_protected` matches the protected flag. The Collection tab's Free filter is `is_free: true` with `is_protected: false`.
 - `deck_ids` and `deck_ids_exclude` take deck IDs. Until decks exist, every deck ID is refused with `invalid_argument` on its field.
-- Each row has the collection entry's quantity, free quantity, allocated quantity, and held quantity, from the collection availability view. The view has one row for each collection entry of the caller. Allocated and held quantities are zero until decks and planned swaps exist.
-- Collection search runs with the caller's rights, like catalog search. The view sets `security_invoker`, so the read policy on `collection_entries` keeps only the caller's rows.
+- Each row is one collection entry: the copies that share a card printing, finish, condition, language, and protected flag. A collection entry has no ID of its own.
+- Each row has the collection entry's quantity, free quantity, allocated quantity, and held quantity. They count the copies in the collection availability view. The view has one row for each copy of the caller, with its allocated, held, and free flags. Allocated and held stay false until decks and planned swaps exist.
+- Collection search runs with the caller's rights, like catalog search. The views set `security_invoker`, so the read policy on `copies` keeps only the caller's rows.
 - Catalog search, `get_cards`, and `list_card_printings` read owned quantities from the same view. A printing list keeps an absent card printing when the caller owns it.
 - Each first page writes one row to `search_telemetry` with the API `collection`. The secret key cannot call collection search.
 
@@ -252,7 +252,7 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `collection_entries`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, and `daily_collection_totals`. `search_telemetry` departs from the pattern, as Catalog search says. `daily_collection_totals` departs from it, as Collection total says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
+The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, and `daily_collection_totals`. `search_telemetry` departs from the pattern, as Catalog search says. `daily_collection_totals` departs from it, as Collection total says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. A migration grants `execute` on a helper only to the roles whose functions call it.
 

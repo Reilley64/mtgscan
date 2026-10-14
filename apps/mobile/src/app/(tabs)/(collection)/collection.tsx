@@ -69,7 +69,7 @@ export default function CollectionScreen() {
       title="Collection"
       actions={total && total.copies > 0 ? collectionTotalMenu(total) : undefined}
       data={copies}
-      keyExtractor={(copy) => `${copy.collection_entry_id}:${copy.copy_number}`}
+      keyExtractor={(copy) => copy.copy_id}
       numColumns={cardsPerRow}
       columnWrapperClassName={cardRowClass}
       ItemSeparatorComponent={RowGap}

@@ -21,7 +21,6 @@ export type CollectionQuery = CatalogQuery & {
 };
 
 export type CollectionRow = {
-  collection_entry_id: string;
   oracle_id: string;
   printing_id: string;
   name: string;
@@ -52,15 +51,12 @@ export type ScanBatch = {
 };
 
 export type ScanBatchResultItem = Omit<ScanBatchStack, 'copy_ids'> & {
-  collection_entry_id: string | null;
   quantity_added: number;
-  entry_quantity: number;
 };
 
 export type ScanBatchResultCopy = {
   copy_id: string;
   addition_id: string;
-  collection_entry_id: string | null;
   replayed: boolean;
 };
 
@@ -81,8 +77,7 @@ export type CollectionCopiesQuery = {
 export type CurrentPrice = Omit<PriceFrom, 'basis'> & { stale: boolean };
 
 export type CollectionCopyRow = {
-  collection_entry_id: string;
-  copy_number: number;
+  copy_id: string;
   printing_id: string;
   name: string;
   set: string;

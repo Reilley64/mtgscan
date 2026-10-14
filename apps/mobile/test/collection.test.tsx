@@ -28,12 +28,11 @@ let entryNumber = 0;
 function collectionEntryCopies(
   name: string,
   quantity: number,
-  changes: Partial<Omit<CollectionCopyRow, 'name' | 'collection_entry_id' | 'copy_number'>> = {},
+  changes: Partial<Omit<CollectionCopyRow, 'name' | 'copy_id'>> = {},
 ): CollectionCopyRow[] {
   entryNumber += 1;
   return Array.from({ length: quantity }, (_, copy) => ({
-    collection_entry_id: `entry-${entryNumber}`,
-    copy_number: copy + 1,
+    copy_id: `copy-${entryNumber}-${copy + 1}`,
     printing_id: `printing-${entryNumber}`,
     name,
     set: 'isd',

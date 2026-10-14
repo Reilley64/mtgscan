@@ -179,14 +179,14 @@ isOneToOne: false
                   ]
                 },"collection_addition_lines": {
                   Row: {
-                    "addition_id": string,"card_printing_id": string,"collection_entry_id": string | null,"condition": Database["public"]['Enums']["card_condition"],"entry_quantity": number,"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"price_snapshot_at": string | null,"purchase_day_eur_cents": number | null,"purchase_day_usd_cents": number | null,"quantity": number,"user_id": string
+                    "addition_id": string,"card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"price_snapshot_at": string | null,"purchase_day_eur_cents": number | null,"purchase_day_usd_cents": number | null,"quantity": number,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "addition_id": string,"card_printing_id": string,"collection_entry_id"?: string | null,"condition": Database["public"]['Enums']["card_condition"],"entry_quantity": number,"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"price_snapshot_at"?: string | null,"purchase_day_eur_cents"?: number | null,"purchase_day_usd_cents"?: number | null,"quantity": number,"user_id": string
+                    "addition_id": string,"card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"finish": Database["public"]['Enums']["card_finish"],"language": Database["public"]['Enums']["card_language"],"price_snapshot_at"?: string | null,"purchase_day_eur_cents"?: number | null,"purchase_day_usd_cents"?: number | null,"quantity": number,"user_id": string
                   }
                   Update: {
-                    "addition_id"?: string,"card_printing_id"?: string,"collection_entry_id"?: string | null,"condition"?: Database["public"]['Enums']["card_condition"],"entry_quantity"?: number,"finish"?: Database["public"]['Enums']["card_finish"],"language"?: Database["public"]['Enums']["card_language"],"price_snapshot_at"?: string | null,"purchase_day_eur_cents"?: number | null,"purchase_day_usd_cents"?: number | null,"quantity"?: number,"user_id"?: string
+                    "addition_id"?: string,"card_printing_id"?: string,"condition"?: Database["public"]['Enums']["card_condition"],"finish"?: Database["public"]['Enums']["card_finish"],"language"?: Database["public"]['Enums']["card_language"],"price_snapshot_at"?: string | null,"purchase_day_eur_cents"?: number | null,"purchase_day_usd_cents"?: number | null,"quantity"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -200,12 +200,6 @@ isOneToOne: false
       columns: ["card_printing_id"]
 isOneToOne: false
       referencedRelation: "card_printings"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "collection_addition_lines_collection_entry_id_fkey"
-      columns: ["collection_entry_id"]
-isOneToOne: false
-      referencedRelation: "collection_entries"
       referencedColumns: ["id"]
     }
                   ]
@@ -222,26 +216,6 @@ isOneToOne: false
                   }
                   Relationships: [
                     
-                  ]
-                },"collection_entries": {
-                  Row: {
-                    "card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"created_at": string,"finish": Database["public"]['Enums']["card_finish"],"id": string,"is_protected": boolean,"language": Database["public"]['Enums']["card_language"],"latest_addition_at": string,"quantity": number,"user_id": string,"user_tag_ids": (string)[]
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"created_at"?: string,"finish": Database["public"]['Enums']["card_finish"],"id"?: string,"is_protected"?: boolean,"language": Database["public"]['Enums']["card_language"],"latest_addition_at": string,"quantity": number,"user_id": string,"user_tag_ids"?: (string)[]
-                  }
-                  Update: {
-                    "card_printing_id"?: string,"condition"?: Database["public"]['Enums']["card_condition"],"created_at"?: string,"finish"?: Database["public"]['Enums']["card_finish"],"id"?: string,"is_protected"?: boolean,"language"?: Database["public"]['Enums']["card_language"],"latest_addition_at"?: string,"quantity"?: number,"user_id"?: string,"user_tag_ids"?: (string)[]
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "collection_entries_card_printing_id_fkey"
-      columns: ["card_printing_id"]
-isOneToOne: false
-      referencedRelation: "card_printings"
-      referencedColumns: ["id"]
-    }
                   ]
                 },"combos": {
                   Row: {
@@ -267,6 +241,32 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "cards"
       referencedColumns: ["oracle_id"]
+    }
+                  ]
+                },"copies": {
+                  Row: {
+                    "addition_id": string,"card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"finish": Database["public"]['Enums']["card_finish"],"id": string,"is_protected": boolean,"language": Database["public"]['Enums']["card_language"],"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "addition_id": string,"card_printing_id": string,"condition": Database["public"]['Enums']["card_condition"],"finish": Database["public"]['Enums']["card_finish"],"id": string,"is_protected"?: boolean,"language": Database["public"]['Enums']["card_language"],"user_id": string
+                  }
+                  Update: {
+                    "addition_id"?: string,"card_printing_id"?: string,"condition"?: Database["public"]['Enums']["card_condition"],"finish"?: Database["public"]['Enums']["card_finish"],"id"?: string,"is_protected"?: boolean,"language"?: Database["public"]['Enums']["card_language"],"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "copies_addition_id_card_printing_id_finish_condition_langu_fkey"
+      columns: ["addition_id","card_printing_id","finish","condition","language"]
+isOneToOne: false
+      referencedRelation: "collection_addition_lines"
+      referencedColumns: ["addition_id","card_printing_id","finish","condition","language"]
+    },{
+      foreignKeyName: "copies_user_id_id_fkey"
+      columns: ["user_id","id"]
+isOneToOne: false
+      referencedRelation: "collection_addition_copies"
+      referencedColumns: ["user_id","copy_id"]
     }
                   ]
                 },"daily_collection_totals": {
