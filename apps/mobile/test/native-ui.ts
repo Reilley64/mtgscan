@@ -224,6 +224,19 @@ async function popDrawerScreen() {
   await fireEvent(current, 'dismissed', { nativeEvent: { dismissCount: 1 } });
 }
 
+export function drawerScreen() {
+  const [current] = drawerStackScreens().slice(-1);
+  return current;
+}
+
+export function drawerTitle() {
+  const header = headerOf(drawerScreen());
+  if (header.hidden) {
+    throw new Error('This drawer screen shows no title bar');
+  }
+  return header.title as string;
+}
+
 export async function pressDrawerBack() {
   if (!drawerBackButton()) {
     throw new Error('This drawer shows no back button');
@@ -254,7 +267,17 @@ type HeaderItem = {
   accessibilityHint?: string;
   buttonId?: string;
   sfSymbolName?: string;
-  menu?: { title: string; items: { title: string; subtitle?: string; disabled?: boolean }[] };
+  disabled?: boolean;
+  menu?: { title: string; items: HeaderMenuItem[] };
+};
+
+type HeaderMenuItem = {
+  title: string;
+  subtitle?: string;
+  disabled?: boolean;
+  destructive?: boolean;
+  menuId?: string;
+  items?: HeaderMenuItem[];
 };
 
 function shownHeaderConfigs(tab: HostElement) {
@@ -323,6 +346,40 @@ export function pressableMenuRows(tab: HostElement, name: string) {
   return menuOf(tab, name)
     .items.filter((item) => !item.disabled)
     .map((item) => item.title);
+}
+
+export function headerButtonIsDisabled(tab: HostElement, name: string) {
+  return headerItem(tab, name).disabled ?? false;
+}
+
+type MenuRow = { title: string; destructive: boolean; rows?: MenuRow[] };
+
+function menuRows(items: HeaderMenuItem[]): MenuRow[] {
+  return items.map((item) => ({
+    title: item.title,
+    destructive: item.destructive ?? false,
+    ...(item.items ? { rows: menuRows(item.items) } : {}),
+  }));
+}
+
+export function headerMenuRows(tab: HostElement, name: string) {
+  return menuRows(menuOf(tab, name).items);
+}
+
+export async function pressHeaderMenuAction(tab: HostElement, name: string, path: string[]) {
+  let items = menuOf(tab, name).items;
+  let chosen: HeaderMenuItem | undefined;
+  for (const title of path) {
+    chosen = items.find((item) => item.title === title);
+    if (!chosen) {
+      throw new Error(`No menu row is titled ${title}. Rows: ${items.map((item) => item.title).join(', ')}`);
+    }
+    items = chosen.items ?? [];
+  }
+  if (!chosen?.menuId || chosen.disabled) {
+    throw new Error(`${path.join(' > ')} is not a menu action that can be chosen`);
+  }
+  await fireEvent(tabHeaderConfig(tab), 'pressHeaderBarButtonMenuItem', { nativeEvent: { menuId: chosen.menuId } });
 }
 
 async function pressHeaderButton(tab: HostElement, name: string) {

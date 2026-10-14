@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
+import { batchReviewMenu } from '@/components/organisms/batch-review-menu';
 import { ScanBatchList } from '@/components/organisms/scan-batch-list';
 import { DrawerSheet } from '@/components/templates/drawer-sheet';
 import { scansToAdd } from '@/scan/scan-batch';
@@ -10,7 +11,7 @@ import { useScanBatch } from '@/scan/scan-batch-state';
 
 export default function BatchReviewSheet() {
   const navigation = useNavigation();
-  const { batch, commit, commitStatus } = useScanBatch();
+  const { batch, commit, commitStatus, removeAll } = useScanBatch();
   const copyCount = scansToAdd(batch).length;
   const title = copyCount === 1 ? '1 card scanned' : `${copyCount} cards scanned`;
 
@@ -21,6 +22,11 @@ export default function BatchReviewSheet() {
     }
     return closes;
   }, [commit, navigation]);
+
+  const removeAllScans = useCallback(() => {
+    removeAll();
+    router.back();
+  }, [removeAll]);
 
   const footer = (
     <>
@@ -37,8 +43,15 @@ export default function BatchReviewSheet() {
   );
 
   return (
-    <DrawerSheet title={title} footer={footer}>
+    <DrawerSheet footer={footer}>
       <Stack.Screen options={{ title }} />
+      <Stack.Toolbar placement="right">
+        {batchReviewMenu({
+          scanCount: batch.scans.length,
+          hidden: commitStatus === 'adding',
+          onRemoveAll: removeAllScans,
+        })}
+      </Stack.Toolbar>
       <ScanBatchList
         scans={[...batch.scans].reverse()}
         onOpen={

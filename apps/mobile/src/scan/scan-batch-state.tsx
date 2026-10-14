@@ -55,7 +55,8 @@ type ScanningAction =
   | { type: 'recognitionStarted' }
   | { type: 'recognitionEnded'; scanId: string; recognition: RecognitionResult }
   | { type: 'commitFailed' }
-  | { type: 'commitSucceeded'; scanIds: string[] };
+  | { type: 'commitSucceeded'; scanIds: string[] }
+  | { type: 'removedAll' };
 
 const initialScanning: Scanning = {
   restored: false,
@@ -118,6 +119,8 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
         latest: null,
         commitStatus: 'idle',
       };
+    case 'removedAll':
+      return { ...state, batch: emptyScanBatch, latest: null, commitStatus: 'idle' };
     default:
       return { ...state, batch: scanBatchReducer(state.batch, action) };
   }
@@ -139,6 +142,7 @@ type ScanBatchState = {
   commitStatus: CommitStatus;
   dispatch: Dispatch<ScanEdit>;
   addCopy: (scanId: string) => void;
+  removeAll: () => void;
   commit: () => Promise<boolean>;
   recognitionStarted: () => void;
   recognitionEnded: (recognition: RecognitionResult) => void;
@@ -216,6 +220,8 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const removeAll = useCallback(() => dispatchScanning({ type: 'removedAll' }), []);
+
   const commit = useCallback(() => commitBatch(state.batch), [commitBatch, state.batch]);
 
   const value = useMemo<ScanBatchState>(
@@ -225,11 +231,12 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
       commitStatus: state.commitStatus,
       dispatch: dispatchScanning,
       addCopy,
+      removeAll,
       commit,
       recognitionStarted,
       recognitionEnded,
     }),
-    [addCopy, commit, recognitionEnded, recognitionStarted, state],
+    [addCopy, commit, recognitionEnded, recognitionStarted, removeAll, state],
   );
 
   return <ScanBatchContext value={value}>{children}</ScanBatchContext>;
