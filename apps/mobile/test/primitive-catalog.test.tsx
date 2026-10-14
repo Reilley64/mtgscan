@@ -34,6 +34,7 @@ test('the primitive catalog shows every primitive', async () => {
     'Progress bars',
     'Sheet sections',
     'Swipe to confirm',
+    'Empty states',
     'Drawer sheet',
   ]) {
     expect(screen.getByRole('header', { name: section })).toBeOnTheScreen();
@@ -81,6 +82,12 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464, Foil' })).toBeOnTheScreen();
   expect(screen.getByRole('progressbar', { name: 'Recognizing card' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Scan batch, 3' })).toBeOnTheScreen();
+  expect(screen.getByLabelText('Your collection is empty, Scan cards to add them to your collection.')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Scan cards' })).toBeOnTheScreen();
+  expect(screen.getByLabelText('Camera not available, This device has no camera.')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Nothing needs you yet, When a deck needs you, it shows up here.')).toBeOnTheScreen();
+  expect(screen.getByLabelText('No decks yet, Start a deck from a commander you own.')).toBeOnTheScreen();
+  expect(screen.getByLabelText('No scans yet, Cards you scan wait here until you add them.')).toBeOnTheScreen();
 });
 
 test('the primitive catalog opens the drawer sheet sample as a bottom drawer', async () => {

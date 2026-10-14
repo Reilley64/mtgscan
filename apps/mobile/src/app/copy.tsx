@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Alert, View } from 'react-native';
 
 import { copyPriceCurrency, useCopy } from '@/collection/use-copy';
+import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { CopyPageContent } from '@/components/organisms/copy-page-content';
 import { PushedScreen } from '@/components/templates/pushed-screen';
@@ -22,7 +23,11 @@ export default function CopyScreen() {
       {read.status === 'loaded' ? <CopyPageContent copy={read.copy} currency={copyPriceCurrency} /> : null}
       {read.status === 'failed' ? (
         <View className="px-lg pt-safe-offset-xl">
-          <ReadFailure title="Could not load this card" onTryAgain={reload} />
+          <ReadFailure
+            illustration={<DashedCardFrame symbol="wifi.slash" />}
+            title="Could not load this card"
+            onTryAgain={reload}
+          />
         </View>
       ) : null}
     </PushedScreen>

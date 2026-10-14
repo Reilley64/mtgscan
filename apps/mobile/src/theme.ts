@@ -120,11 +120,13 @@ export const sizes = {
   brandMarkWidth: 18,
   brandMarkHeight: 25,
   failureMark: 22,
+  emptyStateSymbol: 40,
 } as const;
 
 export const borderWidths = {
   selectedOutline: sizes.selectedOutline,
   brandMark: 2.5,
+  illustrationOutline: 2,
 } as const;
 
 export const shadows = {
@@ -164,6 +166,7 @@ export const gradients = {
   foilSheen: linearGradient('115deg', foilSheenStops),
   etchedSheen: linearGradient('120deg', etchedSheenStops),
   binderWallScrim: `linear-gradient(180deg, ${scrimStops.map(([alpha, stop]) => `${colors.background}${alpha} ${stop}`).join(', ')})`,
+  emptyStateFade: `linear-gradient(180deg, ${colors.background}00 30%, ${colors.background} 100%)`,
 } as const;
 
 export const aspectRatios = {

@@ -1,16 +1,20 @@
-import { View } from 'react-native';
+import type { ReactNode } from 'react';
 
-import { Button } from '@/components/atoms/button';
-import { Text } from '@/components/atoms/text';
 import { EmptyState } from '@/components/molecules/empty-state';
 
-export function ReadFailure({ title, onTryAgain }: { title: string; onTryAgain: () => void }) {
+type ReadFailureProps = {
+  illustration: ReactNode;
+  title: string;
+  onTryAgain: () => void;
+};
+
+export function ReadFailure({ illustration, title, onTryAgain }: ReadFailureProps) {
   return (
-    <View className="gap-lg">
-      <EmptyState title={title} message="Check your connection." />
-      <Button onPress={onTryAgain}>
-        <Text>Try again</Text>
-      </Button>
-    </View>
+    <EmptyState
+      illustration={illustration}
+      title={title}
+      message="Check your connection."
+      action={{ label: 'Try again', onPress: onTryAgain }}
+    />
   );
 }

@@ -46,7 +46,12 @@ import {
 
 async function openBatchReview(count?: number) {
   await fireEvent.press(scanTab().getByRole('button', { name: count ? `Scan batch, ${count}` : 'Scan batch' }));
-  await screen.findByRole('button', { name: /^(Add to collection|Try again)$/ });
+  await screen.findByText(/^(Add to collection|Try again|No scans yet)$/);
+}
+
+function expectAnEmptyBatchReview() {
+  expect(screen.getByLabelText('No scans yet, Cards you scan wait here until you add them.')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Add to collection' })).not.toBeOnTheScreen();
 }
 
 function reviewRows() {
@@ -151,14 +156,14 @@ test('a new scan replaces a scan that was not recognized on the chip, and the sc
   expect(sent.items.flatMap((item) => item.copy_ids)).toHaveLength(1);
 });
 
-test('the batch button opens batch review as a bottom drawer with a grabber at full height only', async () => {
+test('the batch button opens batch review as a bottom drawer with a grabber at full height only, empty with no Add to collection control', async () => {
   await openScan();
 
   await openBatchReview();
 
   expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [1], openingHeight: 1 });
   expect(drawerTitle()).toBe('0 cards scanned');
-  expect(screen.getByRole('button', { name: 'Add to collection' })).toBeDisabled();
+  expectAnEmptyBatchReview();
   await swipeDownDrawer();
   expect(isDrawerPresented()).toBe(false);
 });
@@ -477,7 +482,7 @@ test('Remove N scans empties the scan batch, the batch badge, and the latest-sca
   expect(scanBatchesSentToTheServer()).toEqual([]);
   await openBatchReview();
   expect(drawerTitle()).toBe('0 cards scanned');
-  expect(reviewRows()).toEqual([]);
+  expectAnEmptyBatchReview();
 });
 
 test('removed scans stay removed after a restart of the app', async () => {
@@ -492,7 +497,7 @@ test('removed scans stay removed after a restart of the app', async () => {
 
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   await openBatchReview();
-  expect(reviewRows()).toEqual([]);
+  expectAnEmptyBatchReview();
 });
 
 test('removing every scan after a failed commit leaves nothing to send again', async () => {
@@ -509,7 +514,7 @@ test('removing every scan after a failed commit leaves nothing to send again', a
 
   expect(scanBatchesSentToTheServer()).toHaveLength(1);
   await openBatchReview();
-  expect(screen.getByRole('button', { name: 'Add to collection' })).toBeDisabled();
+  expectAnEmptyBatchReview();
   expect(screen.queryByText('Could not add to your collection. Your scans are kept.')).not.toBeOnTheScreen();
 });
 
@@ -527,7 +532,7 @@ test('a card still being recognized when every scan is removed does not come bac
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   expectAnEmptyChip();
   await openBatchReview();
-  expect(reviewRows()).toEqual([]);
+  expectAnEmptyBatchReview();
 });
 
 test('a card still being recognized when every scan is removed plays no haptic and no sound', async () => {

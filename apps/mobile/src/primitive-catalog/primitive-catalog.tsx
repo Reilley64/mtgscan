@@ -32,6 +32,14 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
+import { EmptyState } from '@/components/molecules/empty-state';
+import {
+  DashedCardFrame,
+  EmptyBinderSlots,
+  GhostBatchRows,
+  GhostCommanderCard,
+  GhostNeedsYouItems,
+} from '@/components/molecules/empty-state-illustrations';
 import { PriceLine } from '@/components/molecules/price-line';
 import { PullIndicator } from '@/components/molecules/pull-indicator';
 import { FailureNotice } from '@/components/molecules/failure-notice';
@@ -188,7 +196,7 @@ function Surfaces() {
       <GalleryCard date={null} status={null} />
       <FailureNotice message="Sign-in did not work." />
       <FailureNotice message="Could not add to your collection. Your scans are kept." />
-      <ReadFailure title="Could not load this card" onTryAgain={() => {}} />
+      <ReadFailure illustration={<DashedCardFrame symbol="wifi.slash" />} title="Could not load this card" onTryAgain={() => {}} />
     </Section>
   );
 }
@@ -406,6 +414,31 @@ function ProgressBars() {
   );
 }
 
+function EmptyStates() {
+  return (
+    <Section title="Empty states">
+      <EmptyState
+        illustration={<EmptyBinderSlots rows={2} />}
+        title="Your collection is empty"
+        message="Scan cards to add them to your collection."
+        action={{ label: 'Scan cards', onPress: () => {} }}
+      />
+      <EmptyState illustration={<GhostNeedsYouItems />} title="Nothing needs you yet" message="When a deck needs you, it shows up here." />
+      <EmptyState illustration={<GhostCommanderCard />} title="No decks yet" message="Start a deck from a commander you own." />
+      <View className="bg-camera-off">
+        <EmptyState
+          illustration={<DashedCardFrame symbol="questionmark.video" />}
+          title="Camera not available"
+          message="This device has no camera."
+        />
+      </View>
+      <View className="bg-sheet">
+        <EmptyState illustration={<GhostBatchRows />} title="No scans yet" message="Cards you scan wait here until you add them." />
+      </View>
+    </Section>
+  );
+}
+
 function SwipeToConfirms() {
   return (
     <Section title="Swipe to confirm">
@@ -456,6 +489,7 @@ export function PrimitiveCatalog() {
         <ProgressBars />
         <SheetSections />
         <SwipeToConfirms />
+        <EmptyStates />
         <Section title="Drawer sheet">
           <Button onPress={() => router.push('/primitives-sheet')}>
             <Text>Open the drawer sheet</Text>

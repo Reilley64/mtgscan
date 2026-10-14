@@ -82,13 +82,20 @@ beforeEach(() => {
   startSignedIn();
 });
 
-test('Collection keeps its empty state when the user has no collection entries', async () => {
+test('Collection shows its empty state when the user has no copies', async () => {
   const collection = await openCollection();
 
   expect(tabHeader(selectedTab()).title).toBe('Collection');
-  expect(collection.getByText('Your collection is empty')).toBeOnTheScreen();
-  expect(collection.getByText('Scan cards to add them to your collection.')).toBeOnTheScreen();
-  expect(collection.queryByRole('button')).not.toBeOnTheScreen();
+  expect(collection.getByLabelText('Your collection is empty, Scan cards to add them to your collection.')).toBeOnTheScreen();
+  expect(collection.getAllByRole('button')).toEqual([collection.getByRole('button', { name: 'Scan cards' })]);
+});
+
+test('Scan cards in the empty state opens the Scan tab', async () => {
+  const collection = await openCollection();
+
+  await fireEvent.press(collection.getByRole('button', { name: 'Scan cards' }));
+
+  expect(selectedTab().props.title).toBe('Scan');
 });
 
 test('the binder grid shows one tile per copy with its image and no quantity badge', async () => {
@@ -312,7 +319,7 @@ test('a failed binder grid read offers Try again, which shows the tiles', async 
   failCollectionReads(1);
 
   const collection = await openCollection();
-  expect(collection.getByText('Could not load your collection')).toBeOnTheScreen();
+  expect(collection.getByLabelText('Could not load your collection, Check your connection.')).toBeOnTheScreen();
 
   await fireEvent.press(collection.getByRole('button', { name: 'Try again' }));
 
@@ -786,14 +793,15 @@ describe('collection search', () => {
     expect(skeletonGrid()).not.toBeOnTheScreen();
   });
 
-  test('a search with no results shows "No cards found."', async () => {
+  test('a search with no results shows No cards found, with no action', async () => {
     ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
     answerCollectionSearches((query) => (query.text ? [] : collectionEntryCopies('Angelic Curator', 1)));
     const collection = await openCollection();
 
     await typeInSearchBar('dragon');
 
-    expect(collection.getByText('No cards found.')).toBeOnTheScreen();
+    expect(collection.getByLabelText('No cards found, Check the spelling or try fewer words.')).toBeOnTheScreen();
+    expect(collection.queryByRole('button', { name: 'Scan cards' })).not.toBeOnTheScreen();
     expect(collection.queryByText('Your collection is empty')).not.toBeOnTheScreen();
   });
 
@@ -815,6 +823,10 @@ describe('collection search', () => {
 });
 
 describe('the sort button', () => {
+  beforeEach(() => {
+    ownCollectionCopies(collectionEntryCopies('Angelic Curator', 2));
+  });
+
   function lastSearch() {
     return collectionSearchesSent().at(-1);
   }
@@ -921,6 +933,29 @@ describe('the sort button', () => {
     expect(menuButtonNames(selectedTab())).toEqual([]);
 
     await pressSearchKey();
+    expect(menuButtonNames(selectedTab())).toEqual(['Sort, Relevance']);
+  });
+
+  test('the sort button hides on an empty collection, because there is nothing to sort', async () => {
+    ownCollectionCopies([]);
+
+    const collection = await openCollection();
+
+    expect(collection.getByText('Your collection is empty')).toBeOnTheScreen();
+    expect(menuButtonNames(selectedTab())).toEqual([]);
+  });
+
+  test('the sort button hides when a search finds no copies, and comes back when the search is cleared', async () => {
+    answerCollectionSearches((query) => (query.text ? [] : collectionEntryCopies('Angelic Curator', 1)));
+    const collection = await openCollection();
+
+    await typeInSearchBar('dragon');
+    await pressSearchKey();
+    expect(collection.getByText('No cards found')).toBeOnTheScreen();
+    expect(menuButtonNames(selectedTab())).toEqual([]);
+
+    await pressSearchCancel();
+    expect(await within(selectedTab()).findByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
     expect(menuButtonNames(selectedTab())).toEqual(['Sort, Relevance']);
   });
 

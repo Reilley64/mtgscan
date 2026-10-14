@@ -10,6 +10,7 @@ import { CopyMeta } from '@/components/molecules/copy-meta';
 import { PriceLine } from '@/components/molecules/price-line';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { ReadFailure } from '@/components/molecules/read-failure';
+import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
 import { CollectionSearchHeader } from '@/components/organisms/collection-search-header';
 import { CollectionSortButton } from '@/components/organisms/collection-sort-button';
 import { collectionTotalMenu } from '@/components/organisms/collection-total';
@@ -31,17 +32,34 @@ type BinderPlaceholderProps = {
 
 function BinderPlaceholder({ binder, searching, refusedChip, onTryAgain }: BinderPlaceholderProps) {
   if (refusedChip) {
-    return <EmptyState title={refusedChipMessage(refusedChip)} />;
+    return <EmptyState illustration={<EmptyBinderSlots rows={1} />} title={refusedChipMessage(refusedChip)} />;
   }
   if (binder.status === 'failed' || binder.status === 'refused') {
-    return <ReadFailure title="Could not load your collection" onTryAgain={onTryAgain} />;
+    return (
+      <ReadFailure
+        illustration={<EmptyBinderSlots rows={1} />}
+        title="Could not load your collection"
+        onTryAgain={onTryAgain}
+      />
+    );
   }
   if (binder.status === 'loaded' && searching) {
-    return <EmptyState title="No cards found." />;
+    return (
+      <EmptyState
+        illustration={<EmptyBinderSlots rows={1} />}
+        title="No cards found"
+        message="Check the spelling or try fewer words."
+      />
+    );
   }
   if (binder.status === 'loaded') {
     return (
-      <EmptyState title="Your collection is empty" message="Scan cards to add them to your collection." />
+      <EmptyState
+        illustration={<EmptyBinderSlots rows={2} />}
+        title="Your collection is empty"
+        message="Scan cards to add them to your collection."
+        action={{ label: 'Scan cards', onPress: () => router.navigate('/scan') }}
+      />
     );
   }
   return <CardGridSkeleton accessibilityLabel="Loading collection" />;
@@ -83,6 +101,7 @@ export default function CollectionScreen() {
   const total = useCollectionTotal();
   const refusedChipIndex = binder.status === 'refused' ? search.chipIndexOfField.get(binder.field) : undefined;
   const matchCount = binder.status === 'loaded' && search.searching ? binder.matchCount : null;
+  const showsEmptyState = binder.status !== 'loading' && copies.length === 0;
 
   return (
     <TabListScreen
@@ -117,7 +136,7 @@ export default function CollectionScreen() {
       }
       onEndReached={loadMore}
       onEndReachedThreshold={1}
-      floatingButton={search.typing ? null : <CollectionSortButton order={order} onChange={setOrder} />}
+      floatingButton={search.typing || showsEmptyState ? null : <CollectionSortButton order={order} onChange={setOrder} />}
     />
   );
 }

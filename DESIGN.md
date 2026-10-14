@@ -350,7 +350,8 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
 
 - **Recent** is the home across all decks. It holds only the Needs you items, **oldest first**: open deck suggestions, planned swaps ready to swap in, and open buylist cards (owner decision, spec 4). Deck changes stay in each deck's History tab. Collection changes do not appear in Recent.
   - Each item carries a tag with the commander avatar and deck name. The tag opens that deck.
-  - Filter chips: All, Suggestions, Planned swaps, Buylist.
+  - Filter chips: All, Suggestions, Planned swaps, Buylist. They hide while Recent is empty.
+  - With no Needs you items, Recent shows its empty state. See Empty states.
   - Every item keeps its actions inline: Promote, Dismiss, Swap in, and Bought.
 - **Collection** is a binder grid with the collection total in its header.
   - The header has the collection total button next to the settings button (owner decision, #125). See Collection header.
@@ -358,14 +359,15 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Copies of the same card printing sit next to each other. By default, the card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
   - While the binder grid loads and shows no tiles yet, a skeleton grid fills the visible screen in its place. It has the shape of the grid: three tiles per row, with the same gaps. Each tile is a card-shaped block over two short bars for the meta line and the price line, 12 px tall and 60% and 40% wide. The blocks are line-colored on the background and pulse like the skeleton chip. VoiceOver reads the skeleton grid as one element, "Loading collection". When the read returns, the tiles, the empty state, or the error state replace it.
   - A reload when the tab gains focus and a new page keep the tiles already shown and bring no skeleton grid back.
-  - With no collection entries, the tab shows "Your collection is empty" and "Scan cards to add them to your collection."
-  - When the read fails, the tab shows "Could not load your collection" and "Check your connection." with a **Try again** button.
+  - With no copies, the tab shows its empty state with a **Scan cards** button, which opens the Scan tab. See Empty states.
+  - When the read fails, the tab shows the empty state "Could not load your collection" with a **Try again** button, which reloads the binder grid.
   - One quiet meta line under each card shows the set icon in its rarity color, the collector number, and the condition when it is not NM. Foil and etched copies carry a sheen on the card image instead of a finish label. Later, badges also show whether the copy is in a deck, held by a planned swap, or protected.
   - A price line under the meta line shows the copy's current price (owner decision, #120). A copy with no current price shows "–". A stale price has a clock symbol.
   - Tapping a tile opens the copy page for that copy, from the binder and from search results alike.
   - A native search bar sits under the large title. See Collection search. Filters: All, Free, Allocated, Protected.
   - A round sort button floats over the grid at the bottom right and changes the order. See Collection search.
 - **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
+  - With no decks, Decks shows its empty state with an **Open Collection** button, which opens the Collection tab. See Empty states.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
   - Until the gallery is on the phone, the camera stays off and the tab shows the gallery download:
     - "Downloading gallery" with a progress bar and the megabytes done of the total, such as "12.3 MB of 68.5 MB".
@@ -375,8 +377,8 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
     - "Not enough space for the gallery. It needs 269.4 MB." with a **Try again** button. The number is the space that this download and install need.
   - A gallery update downloads in the background. Scanning goes on with the installed gallery, and the app switches to the new one when it is installed.
   - The first time the user opens Scan with the gallery on the phone, iOS asks for camera access.
-  - When camera access is off, the tab shows "Camera access is off." with an **Open Settings** button.
-  - On a device without a camera, such as the Simulator, the tab shows "Camera not available".
+  - When camera access is off, the tab shows its empty state with an **Open Settings** button, which opens the app's page in iOS Settings. See Empty states.
+  - On a device without a camera, such as the Simulator, the tab shows the empty state "Camera not available".
   - The magenta card outline draws only around a detected card.
   - After three failed photos in a row or a camera error, the camera stops. The tab shows "Camera stopped." with a **Try again** button.
   - The camera stops when the user leaves Scan or the app.
@@ -435,7 +437,7 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
   - A key that the app does not know stays as text.
 - The app turns the text and the chips into the typed collection search query. The server never parses a string.
 - Chips sit under the search bar, at the top of the grid. Each chip shows its `key:value` text and ×. Tapping a chip removes it. Backspace in an empty field removes the last chip. Cancel clears the text and the chips.
-- **Results.** Results show as binder tiles, one per copy. While text or a chip is active, a count line in meta text, such as "6 of 27 copies", sits above the grid. While a new search loads, the skeleton grid replaces the tiles. With no results, the grid shows "No cards found."
+- **Results.** Results show as binder tiles, one per copy. While text or a chip is active, a count line in meta text, such as "6 of 27 copies", sits above the grid. While a new search loads, the skeleton grid replaces the tiles. With no results, the grid shows the empty state "No cards found". See Empty states.
 - A chip that the server refuses, such as an unknown set or Oracle tag, turns danger. The grid shows "No set named "zzz".", "No Oracle tag named "zzz".", or "No keyword named "zzz".". Any other refused chip shows "mv>25 is not a valid chip."
 - VoiceOver reads a chip as a button with its `key:value` text and the hint "Removes this chip."
 - **Sort button.** A round Liquid Glass button, 48 px across, floats over the grid at the bottom right, 16 px above the tab bar. It shows the `arrow.up.arrow.down` symbol at 18 px. Without Liquid Glass, it uses the control surface. It reacts to touch.
@@ -444,7 +446,7 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
   - The sort applies to the binder and to search results. Relevance without text lists the newest addition first.
   - The symbol is in the text color while the sort is Relevance. Any other sort turns it primary lime. There is no badge or dot, because count badges are only for counts.
   - VoiceOver reads "Sort, Relevance", or the sort and its direction, such as "Sort, Price, high to low".
-  - The sort lasts until the app restarts and is not saved. The button hides while the user types in the search bar.
+  - The sort lasts until the app restarts and is not saved. The button hides while the user types in the search bar, and while the tab shows an empty state, because there is nothing to sort.
 
 ### Sign-in screen
 
@@ -473,7 +475,7 @@ Pushed screens cover the whole screen, including the app tab bar. There are **no
   - **Rules**: the Oracle text in a surface card, with each face's name over its text for a card with more than one face, then a "Commander" value row: "Legal", "Banned", "Not legal", or "Unknown".
   - Section headings are lime body strong text.
   - A copy that no longer exists, such as one deleted on another phone, shows a native alert "This card is no longer in your collection." with **OK**, which goes back to the binder.
-  - When the read fails, the page shows "Could not load this card" and "Check your connection." with a **Try again** button.
+  - When the read fails, the page shows the empty state "Could not load this card" with a **Try again** button. See Empty states.
 - **Deck screen**, from the gallery or a deck tag:
   - The top bar is a compact header: the commander picture, the deck name, and chips for priority, validity, and estimated bracket. When the deck is not valid, its violations and the bracket signals show under the chips. Nothing else goes in the header.
   - A deck tab bar replaces the app tab bar: **Cards / Suggestions / History**.
@@ -520,7 +522,8 @@ The interface is flat. Depth comes from tone, not shadow.
   - **Foil sheen** (`gradients.foilSheen`, 115 degrees): clear to 22%, then pink `rgba(255, 80, 170, 0.55)`, yellow `rgba(255, 230, 90, 0.5)`, mint `rgba(80, 255, 200, 0.5)`, blue `rgba(80, 150, 255, 0.55)`, and violet `rgba(200, 110, 255, 0.5)` from 34% to 66%, then clear from 78%.
   - **Etched sheen** (`gradients.etchedSheen`, 120 degrees): clear to 25%, then white `rgba(255, 255, 255, 0.55)`, silver `rgba(200, 210, 215, 0.25)`, and white again from 42% to 58%, then clear from 75%.
 - The hero of the copy page blurs the card image with a 26 px radius (`blurRadii.heroArt`) and shows it at 45% opacity over the background (`opacity.heroArt`), so the card stands out from its own art. The blur radius is an image prop, not a class.
-- NativeWind 4 has no class for a box shadow or a gradient, so the shadows, the scrim, and the sheens are style values.
+- The empty state illustrations on the background fade downward into it (`gradients.emptyStateFade`). See Empty states.
+- NativeWind 4 has no class for a box shadow or a gradient, so the shadows, the scrim, the sheens, and the empty state fade are style values.
 - The tab bar is a near-opaque bar with a hairline top border.
 - The controls that float over the camera or over scrolling content use Liquid Glass. See Liquid Glass.
 - During a back swipe, the screen follows the finger with a shadow on its left edge.
@@ -616,11 +619,12 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - The ••• button is disabled when the scan batch is empty, and hidden while the commit runs.
   - A tap on a row pushes that scan's details into the same drawer, which stays at full height. The pushed details have the native back button, labeled with the drawer title, and go back with the swipe from the left edge too. **Remove scan** removes the copy and returns to the list.
   - **Scans** lists every scan as its own row, newest first. Identical copies are not merged, and rows have no +/- control. A row has the thumbnail, the card name, and a meta line with the set code and collector number, the finish when it is not nonfoil, the condition, and the language: "M10 146 · Foil · NM · English". A tap pushes the scan details, to edit or remove that copy.
-  - A swipe to confirm control labeled **Add to collection** stays at the bottom of the drawer. It shows no count. Swiping its handle past 80% of the track adds the scan batch. It is disabled when N is 0, and busy while the commit runs. After a commit that works, the handle stays at the end with its spinner until the drawer has closed. After a commit that fails, the handle goes back to the start, and the control reads **Try again**.
+  - A swipe to confirm control labeled **Add to collection** stays at the bottom of the drawer. It shows no count. Swiping its handle past 80% of the track adds the scan batch. It is busy while the commit runs. After a commit that works, the handle stays at the end with its spinner until the drawer has closed. After a commit that fails, the handle goes back to the start, and the control reads **Try again**.
   - A commit that works closes the review and removes the added scans. The chip is empty, unless it shows a scan that was not recognized. The Collection tab shows the cards the next time it opens.
   - A commit that fails shows the failure notice "Could not add to your collection. Your scans are kept." above the control, and the control reads **Try again** until a commit works. Each scan has its own copy ID, so the server never adds the same copy twice, even when the scan batch changed after the failure.
   - When the app restarts after a commit that failed or was still running, it sends the commit again by itself.
   - While the commit runs, rows do not open.
+  - With an empty scan batch, batch review shows its empty state in place of the list, and the **Add to collection** control hides. See Empty states. The control stays while a commit that works closes the drawer. Scans that were not recognized never enter the scan batch, so the control never shows disabled.
   - The phone saves the scan batch for each account, so they survive a restart. Another account on the phone does not see them.
 - **Binder tile.** One copy's card image with a meta line and a price line under it. There is no quantity badge and no chip.
   - Until the image loads, the tile is a line-colored card shape.
@@ -631,6 +635,27 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - A stale price, older than 24 hours, has a small 11 px `clock` symbol in text price before it. The symbol is neutral, not a warning.
   - VoiceOver reads the tile as one button: the name, the set code in capitals and the collector number, then the finish when it is not nonfoil and the condition when it is not NM, in words, then the price or "no price": "Bloomvine Regent // Claim Territory, TDM 136, foil, moderately played, $1,635.37". A stale price adds the hint "The price may be out of date."
   - Tapping the tile opens the copy page. The badges for decks, planned swaps, and protected copies come later.
+- **Empty states.** Every empty state uses one layout, variant C of the HTML prototype (`prototypes/empty-states/index.html` on `prototype/empty-states`, commit 961e3ae). The `EmptyState` molecule draws it, and each page passes its own illustration.
+  - From top to bottom: an illustration, a title in sheet title type in text white, one line of body text in text muted, and at most one primary (lime) button, 16 px apart. The text is centered.
+  - The illustration is made of shapes from the app in line color, such as empty binder slots or ghost rows. It uses no images. On the background, it fades downward into the background from 30% of its height (`gradients.emptyStateFade`). Over the camera and in batch review it does not fade.
+  - A dashed shape has a 2 px dashed line-colored outline (`borderWidths.illustrationOutline`). The symbol in the dashed card frame is 40 px (`sizes.emptyStateSymbol`) in line color.
+  - Titles have no final period.
+  - VoiceOver reads the title and the body as one element, such as "No decks yet, Start a deck from a commander you own." It skips the illustration and reads the action as a button.
+  - Each page's text:
+
+    | Page | Illustration | Title | Body | Action |
+    | --- | --- | --- | --- | --- |
+    | Recent, no Needs you items | two ghost Needs you items | Nothing needs you yet | When a deck needs you, it shows up here. | none |
+    | Collection, no copies | two rows of empty binder slots | Your collection is empty | Scan cards to add them to your collection. | **Scan cards** opens the Scan tab |
+    | Collection, read failed | one row of empty binder slots | Could not load your collection | Check your connection. | **Try again** reloads the binder grid |
+    | Copy page, read failed | a dashed card frame with `wifi.slash` | Could not load this card | Check your connection. | **Try again** reads the copy again |
+    | Collection search, no results | one row of empty binder slots | No cards found | Check the spelling or try fewer words. | none |
+    | Decks, no decks | a ghost commander card | No decks yet | Start a deck from a commander you own. | **Open Collection** opens the Collection tab |
+    | Scan, camera access off | a dashed card frame with `video.slash` | Camera access is off | Turn it on in Settings to scan cards. | **Open Settings** opens iOS Settings |
+    | Scan, no camera | a dashed card frame with `questionmark.video` | Camera not available | This device has no camera. | none |
+    | Batch review, empty scan batch | three ghost batch rows | No scans yet | Cards you scan wait here until you add them. | none |
+
+  - A refused search chip shows its message, such as "No set named "zzz".", as the title of the Collection search empty state, with no body.
 - **Commander gallery card.** Full-width commander art with a dark gradient, the deck name in card-title type, status chips, and a Needs you badge.
 
 ## Do's and Don'ts
