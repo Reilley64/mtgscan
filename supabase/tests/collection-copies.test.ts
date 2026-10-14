@@ -2,10 +2,11 @@ import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from '
 
 import type { CollectionCopyRow, CollectionQuery, CollectionRow, CurrentPrice } from '../collection';
 import type { Json } from '../database.types';
-import { readSearchError, type SearchPage } from '../search';
+import { readSearchError, type Finish, type SearchPage } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { seedCopies } from './copy-seeds';
+import { daysAgo, storeExchangeRates } from './exchange-rate-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
@@ -27,6 +28,7 @@ beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
+  await storeExchangeRates();
   const { data, error } = await secretKeyClient()
     .from('card_printings')
     .select('id, set_code, collector_number, rarity, image_uris, cards(name)')
@@ -274,6 +276,101 @@ describe('current prices', () => {
   });
 });
 
+describe('current prices in another currency', () => {
+  let user: TestUser;
+
+  beforeAll(async () => {
+    user = await signUpNewUser();
+    await committed(
+      user,
+      scanBatch([
+        stack(angelicCurator),
+        stack(angelicCurator, { finish: 'foil' }),
+        stack(angelicCurator, { finish: 'etched' }),
+        stack(kjeldoranHomeGuardWithOnlyEurPrice),
+      ]),
+    );
+  });
+
+  afterAll(async () => {
+    await storeExchangeRates();
+  });
+
+  function pricesByFinish(rows: CollectionCopyRow[]) {
+    return rows.filter((row) => row.price).map((row) => [row.finish, row.price]).sort();
+  }
+
+  function convertedPrice(currency: string, exchangeRate: string, amount: string, finish: CurrentPrice['finish']): CurrentPrice {
+    return { ...currentPrice(currency, amount, finish), approximate: true, exchange_rate: exchangeRate, rate_date: daysAgo(0) };
+  }
+
+  test.each<[string, string, string[]]>([
+    ['AUD', '1.5234', ['0.67', '0.46', '0.32']],
+    ['EUR', '0.93', ['0.41', '0.28', '0.20']],
+    ['JPY', '151.37', ['67', '45', '32']],
+  ])('each price in %s is the USD price times the exchange rate, rounded to its minor unit', async (currency, exchangeRate, amounts) => {
+    const page = await collectionCopies(user, { price_currency: currency });
+
+    expect(pricesByFinish(page.items)).toEqual([
+      ['etched', convertedPrice(currency, exchangeRate, amounts[0]!, 'etched')],
+      ['foil', convertedPrice(currency, exchangeRate, amounts[1]!, 'foil')],
+      ['nonfoil', convertedPrice(currency, exchangeRate, amounts[2]!, 'nonfoil')],
+    ]);
+    expect(page).toMatchObject({ prices_stale: false, rate_date: daysAgo(0) });
+  });
+
+  test('a USD price and its page have no approximate flag, exchange rate, or rate date', async () => {
+    const page = await collectionCopies(user, { price_currency: 'USD' });
+
+    expect(pricesByFinish(page.items)).toEqual([
+      ['etched', currentPrice('USD', '0.44', 'etched')],
+      ['foil', currentPrice('USD', '0.30', 'foil')],
+      ['nonfoil', currentPrice('USD', '0.21', 'nonfoil')],
+    ]);
+    expect(page).not.toHaveProperty('rate_date');
+  });
+
+  test('a copy with no USD price has no price in another currency', async () => {
+    const { items } = await collectionCopies(user, { price_currency: 'AUD' });
+
+    expect(items.find((row) => row.printing_id === kjeldoranHomeGuardWithOnlyEurPrice)!.price).toBeNull();
+  });
+
+  test.each<[string, CollectionQuery, Finish[]]>([
+    ['an AUD price range', { price_currency: 'AUD', price_min: '0.40', price_max: '0.50' }, ['foil']],
+    ['a JPY maximum equal to a shown price', { price_currency: 'JPY', price_max: '45' }, ['foil', 'nonfoil']],
+    ['a EUR minimum equal to a shown price', { price_currency: 'EUR', price_min: '0.41' }, ['etched']],
+  ])('%s converts the bound to USD at the exchange rate before it compares', async (_, query, finishes) => {
+    const { items } = await collectionCopies(user, query);
+
+    expect(items.map((row) => row.finish).sort()).toEqual(finishes);
+  });
+
+  test.each(['AUD', 'JPY'])('sort price in %s gives the same order as USD', async (currency) => {
+    for (const sort_order of ['asc', 'desc'] as const) {
+      const usd = copyIdsOf((await collectionCopies(user, { sort: 'price', sort_order })).items);
+
+      expect(copyIdsOf((await collectionCopies(user, { sort: 'price', sort_order, price_currency: currency })).items)).toEqual(usd);
+    }
+  });
+
+  test.each<[string, number, boolean]>([
+    ["Friday's rate on a Monday", 3, false],
+    ['a rate 4 days old', 4, false],
+    ['a rate more than 4 days old', 5, true],
+  ])('with %s, converted prices and their page are stale: %p', async (_, age, stale) => {
+    await storeExchangeRates(undefined, daysAgo(age));
+
+    const aud = await collectionCopies(user, { price_currency: 'AUD' });
+    const usd = await collectionCopies(user, { price_currency: 'USD' });
+
+    expect(aud.items.filter((row) => row.price).map((row) => row.price!.stale)).toEqual([stale, stale, stale]);
+    expect(aud).toMatchObject({ prices_stale: stale, rate_date: daysAgo(age) });
+    expect(usd.items.filter((row) => row.price).map((row) => row.price!.stale)).toEqual([false, false, false]);
+    expect(usd.prices_stale).toBe(false);
+  });
+});
+
 describe('pages of copy rows', () => {
   const seededPrintings = 50;
   const seededCopies = 123;
@@ -342,8 +439,8 @@ describe('pages of copy rows', () => {
     ['a limit that is not a number', { limit: '60' }, 'limit'],
     ['a cursor that is not a string', { cursor: 7 }, 'cursor'],
     ['an unknown field', { owned_only: true }, 'owned_only'],
-    ['a price currency other than USD', { price_currency: 'GBP' }, 'price_currency'],
-    ['a EUR price currency', { price_currency: 'EUR' }, 'price_currency'],
+    ['a price currency with no exchange rate', { price_currency: 'GBP' }, 'price_currency'],
+    ['a price currency that is not a string', { price_currency: 36 }, 'price_currency'],
     ['rows other than entries or copies', { rows: 'printings' }, 'rows'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
     const { data, error } = await user.client.rpc('search_collection', {

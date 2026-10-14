@@ -4,6 +4,7 @@ import {
   type CatalogQuery,
   type CatalogSort,
   type CommanderLegality,
+  type ExchangeRateFields,
   type Finish,
   type PriceCurrency,
   type PriceFrom,
@@ -173,7 +174,7 @@ export type CollectionTotalQuery = {
   price_currency?: PriceCurrency;
 };
 
-export type CollectionTotal = {
+export type CollectionTotal = ExchangeRateFields & {
   total: string;
   currency: PriceCurrency;
   priced_copies: number;

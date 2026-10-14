@@ -534,8 +534,8 @@ describe('after a catalog import', () => {
       ['negative price', { text: 'fog', price_min: '-1' }, 'price_min'],
       ['price above 999999.99', { text: 'fog', price_max: '1000000' }, 'price_max'],
       ['price minimum above its maximum', { text: 'fog', price_min: '5', price_max: '4.99' }, 'price_max'],
-      ['unknown price currency', { text: 'fog', price_currency: 'GBP' }, 'price_currency'],
-      ['EUR price currency', { text: 'fog', price_currency: 'EUR' }, 'price_currency'],
+      ['price currency with no exchange rate', { text: 'fog', price_currency: 'XYZ' }, 'price_currency'],
+      ['price currency of the wrong type', { text: 'fog', price_currency: 36 }, 'price_currency'],
     ])('%s is refused with an error on its field', async (_, query, field) => {
       const { page, error } = await search(query);
 

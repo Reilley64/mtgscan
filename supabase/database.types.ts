@@ -612,7 +612,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices"|"exchange_rates","price_currency": "USD","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
+            "card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices"|"exchange_rates","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -732,7 +732,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices", "exchange_rates"],"price_currency": ["USD"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
+            "card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices", "exchange_rates"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
           }
         }
 } as const

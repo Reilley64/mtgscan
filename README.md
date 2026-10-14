@@ -178,7 +178,7 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 
 - A text search ranks an exact full card name first. Next come exact face names, then other name matches, Oracle tag matches, type line matches, and Oracle text matches.
 - A refused call returns an error with a `code` such as `invalid_argument` or `invalid_cursor`. The field at fault is in `details`. `readSearchError` reads it as a `SearchError`.
-- `price_currency` defaults to `USD`. Until prices in other currencies land (#136), only `USD` is accepted. Collection search takes the same rule.
+- `price_currency` defaults to `USD`. It takes `USD` or any currency in `exchange_rates`. Any other value is refused with `invalid_argument`. Collection search, the collection total, and the copy read take the same rule.
 - `get_cards` reads card details for up to 20 cards. Each card lists its direct Oracle tags that are not disabled, as `slug` and `label`, sorted by label. Each card also lists up to 5 combos as `combos`. Each combo has its `spellbook_id`, the `other_card` with its Oracle ID and name, its produced features, and its bracket tag. Combos sort by the other card's EDHREC rank, with missing ranks last, then by the other card's name, then by Spellbook ID. A card with no combos has an empty list.
 - Each first page writes one row to `search_telemetry`. It is the one table with user data that has no read policy: app users cannot read it, and only the secret key can.
 - Catalog search also accepts the secret key, for the search release check. Its telemetry row has the caller `release_check` and no user. It counts no owned copies. No other search or catalog read accepts the secret key.
@@ -195,11 +195,22 @@ Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_
 - The result has the new addition (`addition_id`, `added_at`, `copy_count`, and `items`, or nulls and 0 when nothing was new) and one row in `copies` per copy ID: its `copy_id`, the addition it went into, and `replayed` true when an earlier call added it.
 - A refused call writes nothing. Its error has a `code` of `invalid_argument`, `unknown_printing`, or `basic_land`, and the field at fault in `details`, such as `items[3].finish`. `readScanBatchError` reads it.
 
+### Converted prices
+
+mtgscan stores every price in USD and converts it when it reads it. `docs/adr/0005-convert-all-prices-from-usd.md` says why.
+
+- A converted amount is the USD amount times the latest exchange rate in `exchange_rates`, rounded to the currency's minor unit. JPY, KRW, ISK, and other currencies with no minor unit round to whole units.
+- A price that is not in USD has `approximate: true`, `exchange_rate`, the rate from USD as a decimal string, and `rate_date`, the ECB date of the rate. A USD price has none of these fields.
+- A search page in another currency has `rate_date` next to `prices_observed_at`, and its `prices_stale` is also true when the exchange rate is stale.
+- An exchange rate is stale when its date is more than 4 days before today in UTC. The ECB publishes rates on working days only, so Friday's rate on a weekend is not stale.
+- A card printing and finish with no USD price has no price in any currency.
+
 ### Collection total
 
-Signed-in users read their collection total with `supabase.rpc('get_collection_total', { query })`. The query has an optional `price_currency`, which defaults to `USD`. Until prices in other currencies land (#136), only `USD` is accepted. `supabase/collection.ts` has the shared types.
+Signed-in users read their collection total with `supabase.rpc('get_collection_total', { query })`. The query has an optional `price_currency`, which defaults to `USD`. `supabase/collection.ts` has the shared types.
 
 - `total` is the sum of the current price of every copy for its card printing and finish, as a decimal string. Copies with no current price are left out.
+- In another currency, the function converts the USD total once at the latest exchange rate. It does not add up converted copy prices, so the total can differ by a few cents from the sum of the copy prices. The total also has `approximate: true`, `exchange_rate`, and `rate_date`, as Converted prices says.
 - `priced_copies` counts the copies with a current price, and `copies` counts every copy, so a missing price never silently lowers the total.
 - The function runs with the caller's rights. An anonymous caller and the secret key are refused. A refused query has the code `invalid_argument` and the field at fault.
 
@@ -207,11 +218,11 @@ mtgscan stores no daily collection totals and no change since yesterday. `docs/a
 
 ### Copy read
 
-Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The query has `copy_id` and an optional `price_currency`, which defaults to `USD`. Until prices in other currencies land (#136), only `USD` is accepted. `supabase/collection.ts` has the shared types. The copy page reads its copy through it.
+Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The query has `copy_id` and an optional `price_currency`, which defaults to `USD`. `supabase/collection.ts` has the shared types. The copy page reads its copy through it.
 
 - The result has the copy's `copy_id`, `finish`, `condition`, `language`, `protected`, and `free`, and its card printing as in a copy row of collection search: `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`.
 - `art_crop_uri` is the art crop of the card printing, or null when Scryfall has none.
-- `added_at` is the time of the copy's addition. `purchase_day_price` is the purchase-day price of its addition line in USD, with `amount`, `currency`, and `finish`, or null.
+- `added_at` is the time of the copy's addition. `purchase_day_price` is the purchase-day price of its addition line, with `amount`, `currency`, and `finish`, or null. In another currency, it converts at the latest exchange rate, not the rate of the day of its addition.
 - `price` is the current price, as in a copy row of collection search, with `stale`.
 - From its card: `type_line`, `faces` with each face's `name` and `oracle_text` in face order, and `commander_legality`.
 - `user_tags` lists the copy's user tags, each with `user_tag_id` and `name`, sorted by name ignoring case.
@@ -249,7 +260,7 @@ A user tag is a private label that a user puts on copies. `user_tags` holds each
 Signed-in users search their own collection with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips and `rows`. `supabase/collection.ts` has the shared types for the query and the result rows. The Collection tab reads its binder grid only through collection search, with `rows: 'copies'`. Its search bar and its Filters drawer turn the typed text and chips into the typed query.
 
 - Chips match copies. `finishes`, `conditions`, and `languages` take the finish, condition, and language values of copies.
-- `sets` and `rarities` match the copy's own card printing. `price_min`, `price_max`, and `sort: 'price'` use the current price of that card printing and finish. `sort: 'release_date'` uses the release date of that card printing.
+- `sets` and `rarities` match the copy's own card printing. `price_min`, `price_max`, and `sort: 'price'` use the current price of that card printing and finish. In another currency, `price_min` and `price_max` convert to USD cents at the latest exchange rate before they compare. `sort: 'price'` uses the USD amount, so every currency gives the same order. `sort: 'release_date'` uses the release date of that card printing.
 - `is_free` matches free copies. A protected copy can be free. `is_protected` matches the protected flag. The Collection tab's Free filter is `is_free: true` with `is_protected: false`.
 - `user_tags` and `user_tags_exclude` take user tag names, matched ignoring case. A copy matches `user_tags` when it has every listed user tag, and `user_tags_exclude` when it has none of them. A name that is not one of the caller's user tags is refused with `invalid_argument` on that list item, such as `user_tags[0]`.
 - `deck_ids` and `deck_ids_exclude` take deck IDs. Until decks exist, every deck ID is refused with `invalid_argument` on its field.
@@ -257,7 +268,7 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 - `rows` is `entries` or `copies`, and defaults to `entries`.
   - With `entries`, each row is one collection entry: the matching copies that share a card printing, finish, condition, language, and protected flag. A collection entry has no ID of its own. Each row has the quantity, free quantity, allocated quantity, and held quantity of its matching copies. `limit` is 1 to 50 and defaults to 20.
   - With `copies`, each row is one copy, with its `copy_id`. `limit` is 1 to 120 and defaults to 60. The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`. The copy gives `finish`, `condition`, `language`, and `protected`.
-  - A copy row's `price` is the current price of the card printing and finish in USD: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says. Condition and language do not change it. `price` is null when `card_prices` has no USD price for that card printing and finish. A price is never taken from another finish.
+  - A copy row's `price` is the current price of the card printing and finish in `price_currency`: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says, or when the exchange rate is stale. Condition and language do not change it. `price` is null when `card_prices` has no USD price for that card printing and finish, in every currency. A price is never taken from another finish.
 - `sort` is `relevance` by default, with or without text. Without text, relevance means `added`, so an empty query lists the newest addition first.
 - `sort: 'added'` lists the card printing with the newest addition first. Its copies sit next to each other. `sort_order: 'asc'` puts the oldest addition first.
 - Rows with the same sort value sort by name, then by card printing ID, then by copy ID.

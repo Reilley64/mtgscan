@@ -6,7 +6,7 @@ export type Rarity = Database['public']['Enums']['card_rarity'];
 
 export type CatalogSort = 'relevance' | 'name' | 'mana_value' | 'edhrec_rank' | 'price' | 'release_date';
 
-export type PriceCurrency = Database['public']['Enums']['price_currency'];
+export type PriceCurrency = string;
 
 export type Finish = Database['public']['Enums']['card_finish'];
 
@@ -53,9 +53,16 @@ export type SearchPage<Row> = {
   rules_stale: boolean;
   prices_observed_at: string | null;
   prices_stale: boolean;
+  rate_date?: string;
 };
 
-export type PriceFrom = {
+export type ExchangeRateFields = {
+  approximate?: true;
+  exchange_rate?: string;
+  rate_date?: string;
+};
+
+export type PriceFrom = ExchangeRateFields & {
   currency: PriceCurrency;
   amount: string;
   finish: Finish;

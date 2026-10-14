@@ -11,7 +11,7 @@ The owner changed the plan on 2026-10-14 (spec 5). mtgscan keeps only the latest
 - A user in Europe sees the TCGplayer Market price converted to EUR, not the Cardmarket price. A price converted from USD is an estimate, so it shows "≈".
 - A purchase-day price in another currency moves with today's exchange rate. Only the USD amount keeps the value it had on the day of the addition.
 - Prices in other currencies depend on the daily exchange rate import. A price converted from USD is stale when its exchange rate is more than 4 days old.
-- Until prices in other currencies land, every read refuses a `price_currency` other than USD.
+- The set of currencies is not fixed. It is the currencies in Frankfurter's latest rates, plus USD. A read refuses a `price_currency` that has no stored exchange rate.
 
 ## Considered options
 
