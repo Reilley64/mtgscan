@@ -47,6 +47,10 @@ _Avoid_: Collection value, net worth
 The European Central Bank's reference rate from USD to another currency, as Frankfurter publishes it. mtgscan keeps only the latest exchange rate of each currency in Frankfurter's latest rates, with the ECB date it applies to. The ECB publishes rates on working days only.
 _Avoid_: FX rate, conversion rate
 
+**Lowest current price**:
+The lowest current price of a card over all its card printings and finishes. Catalog search and card details return it as `price_from`, with its finish. A card with no current price on any card printing has no lowest current price. In another currency, it is a converted price.
+_Avoid_: Cheapest price, card price
+
 **Converted price**:
 A USD amount, such as a current price, a purchase-day price, or a collection total, times the latest exchange rate of another currency. It is rounded to that currency's minor unit, such as whole yen. It is an estimate, not a store price. It is stale when its USD price is stale, or when its exchange rate's date is more than 4 days before today. A card printing and finish with no USD price has no converted price.
 _Avoid_: Local price, FX price

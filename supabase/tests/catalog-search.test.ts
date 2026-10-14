@@ -646,13 +646,13 @@ describe('after a catalog import', () => {
       expect(results).toContain("Serra's Sanctum");
     });
 
-    test('a row in JPY rounds the converted lowest price to whole yen', async () => {
+    test('a row in JPY rounds the lowest current price to whole yen', async () => {
       const { items } = await page({ names: ['hidetsugu'], price_currency: 'JPY' });
 
       expect(items[0]!.price_from).toEqual({ ...convertedPrice('JPY', '151.37', '53', 'foil'), basis });
     });
 
-    test.each(['AUD', 'JPY'])('a card with no lowest USD price has no price_from in %s', async (currency) => {
+    test.each(['AUD', 'JPY'])('a card with no lowest current price has no price_from in %s', async (currency) => {
       expect((await page({ names: ['brisela'], price_currency: currency })).items[0]!.price_from).toBeNull();
     });
 
@@ -664,7 +664,7 @@ describe('after a catalog import', () => {
       ],
       ['a JPY maximum', { price_currency: 'JPY', price_max: '513' }, ['Angelic Curator', 'Bruna, the Fading Light']],
       ['a JPY minimum', { price_currency: 'JPY', price_min: '514' }, ["Atraxa, Praetors' Voice", 'Gisela, the Broken Blade']],
-    ])('a price filter in a converted currency compares the lowest price: %s', async (_, query, expected) => {
+    ])('a price filter in a converted currency compares the lowest current price: %s', async (_, query, expected) => {
       expect(await names({ ...angels, ...query })).toEqual(expected);
     });
 
