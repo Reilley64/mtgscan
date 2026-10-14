@@ -16,11 +16,9 @@ export function batchReviewMenu({ scanCount, hidden, onRemoveAll }: BatchReviewM
       accessibilityLabel="More"
       disabled={scanCount === 0}
       hidden={hidden}>
-      <Stack.Toolbar.Menu title="Remove all scans" destructive>
-        <Stack.Toolbar.MenuAction destructive onPress={onRemoveAll}>
-          {scanCount === 1 ? 'Remove 1 scan' : `Remove ${scanCount} scans`}
-        </Stack.Toolbar.MenuAction>
-      </Stack.Toolbar.Menu>
+      <Stack.Toolbar.MenuAction destructive onPress={onRemoveAll}>
+        Remove all scans
+      </Stack.Toolbar.MenuAction>
     </Stack.Toolbar.Menu>
   );
 }
