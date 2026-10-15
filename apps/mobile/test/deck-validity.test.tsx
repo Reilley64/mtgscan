@@ -221,18 +221,18 @@ describe('cards that break a rule on the Cards tab', () => {
               cards: [evaluationCardOf(firstSolRing), evaluationCardOf(secondSolRing)],
             },
             {
-              rule: 'color_identity',
-              citation: 'CR 903.5c',
-              message: '1 card is outside Blue, Black, Red, Green, and White.',
-              hint: null,
-              cards: [basicLandCardOf('Mountain')],
-            },
-            {
               rule: 'banned',
               citation: null,
               message: 'Golos, Tireless Pilgrim is banned in Commander.',
               hint: null,
               cards: [evaluationCardOf(golos)],
+            },
+            {
+              rule: 'not_legal',
+              citation: null,
+              message: 'Mountain is not legal in Commander.',
+              hint: null,
+              cards: [basicLandCardOf('Mountain')],
             },
           ],
           undetermined: [
