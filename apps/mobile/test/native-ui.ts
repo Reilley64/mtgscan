@@ -570,6 +570,12 @@ export function cardImageUri(tile: HostElement) {
   return image.props.source?.[0]?.uri;
 }
 
+export function imageFrames(element: HostElement) {
+  return element
+    .queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage')
+    .map((image) => ({ uri: image.props.source?.[0]?.uri, width: StyleSheet.flatten(image.parent?.props.style)?.width }));
+}
+
 export function cardSheen(tile: HostElement) {
   const [sheen] = tile.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage !== undefined);
   return sheen ? StyleSheet.flatten(sheen.props.style) : null;
@@ -832,6 +838,16 @@ function isNativeMenu(element: HostElement) {
 function spokenLabelOf(element: HostElement): string | undefined {
   const modifiers: { $type: string; label?: string }[] = element.props.modifiers ?? [];
   return modifiers.find((modifier) => modifier.$type === 'accessibilityLabel')?.label;
+}
+
+export function contextMenu(element: HostElement) {
+  for (let parent = element.parent; parent; parent = parent.parent) {
+    const items = parent.children.find((child) => typeof child !== 'string' && child.type === expoUiHost && child.props.name === 'items');
+    if (items && typeof items !== 'string') {
+      return items;
+    }
+  }
+  throw new Error('This element has no context menu');
 }
 
 export function menuButtonNames(host: HostElement) {

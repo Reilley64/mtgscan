@@ -129,6 +129,7 @@ export const sizes = {
   cardThumbnailWidth: 40,
   cardThumbnailHeight: 56,
   commanderAvatar: 40,
+  bannerCommanderAvatar: 48,
   deckTagAvatar: 18,
   skeletonTitleBar: typography.bodyStrong.fontSize,
   skeletonMetaBar: typography.meta.fontSize,
@@ -189,6 +190,7 @@ export const gradients = {
   etchedSheen: linearGradient('120deg', etchedSheenStops),
   binderWallScrim: `linear-gradient(180deg, ${scrimStops.map(([alpha, stop]) => `${colors.background}${alpha} ${stop}`).join(', ')})`,
   emptyStateFade: `linear-gradient(180deg, ${colors.background}00 30%, ${colors.background} 100%)`,
+  commanderArtScrim: `linear-gradient(180deg, ${colors.background}00 30%, ${colors.background}e6 100%)`,
 } as const;
 
 export function manaSplitGradient(top: string, bottom: string) {

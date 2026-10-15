@@ -1,4 +1,4 @@
-import { deckNameLength, type Deck, type DeckPriority } from '@mtgscan/supabase/decks';
+import { deckNameLength, type Deck, type DeckCard, type DeckPriority } from '@mtgscan/supabase/decks';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -13,6 +13,7 @@ import { deckActionsMenu } from '@/components/organisms/deck-actions-menu';
 import { DeckCardOrderButtons } from '@/components/organisms/deck-card-order-buttons';
 import { DeckCards } from '@/components/organisms/deck-cards';
 import { PushedScreen } from '@/components/templates/pushed-screen';
+import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
 import { cardCountLabel, deckChips } from '@/decks/deck-labels';
 import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
@@ -30,6 +31,10 @@ const deckTabLabels: Record<DeckTab, string> = { cards: 'Cards', history: 'Histo
 function deleteMessage(cardCount: number) {
   const verb = cardCount === 1 ? 'becomes' : 'become';
   return `Its ${cardCountLabel(cardCount)} ${verb} free, and its history is deleted. This cannot be undone.`;
+}
+
+function openCard(card: DeckCard) {
+  router.push({ pathname: '/copy', params: { copyId: card.copy_id } });
 }
 
 function backToGallery() {
@@ -69,6 +74,16 @@ export default function DeckScreen() {
 
   function deleteThisDeck() {
     return showWriteResult(deleteDeck(deckId), 'Could not delete this deck', backToGallery);
+  }
+
+  function menuActionsOf(deck: Deck) {
+    return (card: DeckCard) => {
+      const action = commanderAction(card.role, deck.commanders.length);
+      return [
+        { title: 'Open card', onSelect: () => openCard(card) },
+        ...(action ? [{ title: action.title, onSelect: () => void applyCommanderAction(card.copy_id, action, reload) }] : []),
+      ];
+    };
   }
 
   function confirmDelete(deck: Deck) {
@@ -111,7 +126,7 @@ export default function DeckScreen() {
             />
           ) : null}
           <View className="px-lg pt-safe-offset-xl">
-            <CommanderCard name={read.deck.name} chips={deckChips(read.deck)} size="banner" />
+            <CommanderCard name={read.deck.name} chips={deckChips(read.deck)} commanders={read.deck.commanders} size="banner" />
           </View>
           <View className="gap-lg px-lg">
             <ToggleGroup values={deckTabs} selected={tab} labelOf={(value) => deckTabLabels[value]} onSelect={setTab} />
@@ -120,7 +135,8 @@ export default function DeckScreen() {
                 deck={read.deck}
                 grouping={grouping}
                 order={order}
-                onOpenCard={(card) => router.push({ pathname: '/copy', params: { copyId: card.copy_id } })}
+                onOpenCard={openCard}
+                menuActionsOf={menuActionsOf(read.deck)}
                 onOpenCollection={() => router.dismissTo('/collection')}
               />
             ) : null}

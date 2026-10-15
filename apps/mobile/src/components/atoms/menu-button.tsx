@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { SymbolView } from '@/components/atoms/symbol-view';
 import { sizes } from '@/theme';
 
-type MenuAction = {
+export type MenuAction = {
   title: string;
   destructive?: boolean;
   onSelect: () => void;
@@ -15,6 +15,12 @@ type MenuButtonProps = {
   accessibilityLabel: string;
   actions: MenuAction[];
 };
+
+export function MenuActionButtons({ actions }: { actions: MenuAction[] }) {
+  return actions.map(({ title, destructive, onSelect }) => (
+    <Button key={title} label={title} role={destructive ? 'destructive' : undefined} onPress={onSelect} />
+  ));
+}
 
 export function MenuButton({ accessibilityLabel, actions }: MenuButtonProps) {
   return (
@@ -28,9 +34,7 @@ export function MenuButton({ accessibilityLabel, actions }: MenuButtonProps) {
             </View>
           </RNHostView>
         }>
-        {actions.map(({ title, destructive, onSelect }) => (
-          <Button key={title} label={title} role={destructive ? 'destructive' : undefined} onPress={onSelect} />
-        ))}
+        <MenuActionButtons actions={actions} />
       </Menu>
     </Host>
   );

@@ -7,11 +7,12 @@ import {
   type DeleteDeckRequest,
   type MarkDeckUsedRequest,
   type RenameDeckRequest,
+  type SetDeckCommanderRequest,
   type SetDeckPriorityRequest,
 } from '@mtgscan/supabase/decks';
 
 import { supabase } from '@/lib/supabase';
-import { writeResultOf } from '@/lib/write-result';
+import { writeResultOf, type WriteResult } from '@/lib/write-result';
 
 export async function createDeck(name: string): Promise<CreatedDeck | null> {
   const request: CreateDeckRequest = { name };
@@ -54,4 +55,13 @@ export async function addDeckCard(request: AddDeckCardRequest): Promise<AddDeckC
     return 'not_free';
   }
   return code === 'not_found' && field === 'copy_id' ? 'missing' : 'failed';
+}
+
+export async function setDeckCommander(copyId: string, commander: boolean): Promise<WriteResult> {
+  const request: SetDeckCommanderRequest = { copy_id: copyId, commander };
+  const { error } = await supabase.rpc('set_deck_commander', { request });
+  if (error && ['copy_not_in_deck', 'commander_limit'].includes(readDeckError(error).code)) {
+    return 'missing';
+  }
+  return writeResultOf(error);
 }

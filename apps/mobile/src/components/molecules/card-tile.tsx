@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
+import { CardContextMenu } from '@/components/atoms/card-context-menu';
 import { CardImage, type CardSheen } from '@/components/atoms/card-image';
+import type { MenuAction } from '@/components/atoms/menu-button';
 import { Skeleton } from '@/components/atoms/skeleton';
 import { Text } from '@/components/atoms/text';
 import { TileButton } from '@/components/atoms/tile-button';
@@ -20,6 +22,7 @@ type CardTileProps = {
   accessibilityLabel: string;
   accessibilityHint?: string;
   sheen?: CardSheen;
+  menuActions?: MenuAction[];
 } & ({ caption: string; children?: never } | { caption?: never; children?: ReactNode }) &
   ({ selected?: never; onPress?: never } | { selected?: boolean; onPress: () => void });
 
@@ -31,6 +34,7 @@ export function CardTile({
   sheen,
   children,
   selected,
+  menuActions,
   onPress,
 }: CardTileProps) {
   const underImage =
@@ -40,19 +44,29 @@ export function CardTile({
       </Text>
     );
 
+  function tileButton(onTilePress: () => void) {
+    return (
+      <TileButton
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        selected={selected}
+        onPress={onTilePress}>
+        <View className="rounded-sm border-selected-outline border-transparent group-aria-selected/tile:border-primary">
+          <CardImage uri={uri} sheen={sheen} />
+        </View>
+        {underImage}
+      </TileButton>
+    );
+  }
+
   return (
     <View className={cn(cardColumnClass, 'px-xs')}>
       {onPress ? (
-        <TileButton
-          accessibilityLabel={accessibilityLabel}
-          accessibilityHint={accessibilityHint}
-          selected={selected}
-          onPress={onPress}>
-          <View className="rounded-sm border-selected-outline border-transparent group-aria-selected/tile:border-primary">
-            <CardImage uri={uri} sheen={sheen} />
-          </View>
-          {underImage}
-        </TileButton>
+        menuActions ? (
+          <CardContextMenu actions={menuActions}>{tileButton(onPress)}</CardContextMenu>
+        ) : (
+          tileButton(onPress)
+        )
       ) : (
         <View
           accessible

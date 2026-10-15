@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppleSignInButton } from '@/components/atoms/apple-sign-in-button';
 import { Button } from '@/components/atoms/button';
+import { CardContextMenu } from '@/components/atoms/card-context-menu';
 import { CardImage } from '@/components/atoms/card-image';
 import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { Chip } from '@/components/atoms/chip';
@@ -39,6 +40,7 @@ import {
   buttonMenuActions,
   cardImageUri,
   cardSheen,
+  contextMenu,
   glassEffect,
   glassGroupOf,
   imageTintColor,
@@ -1135,6 +1137,33 @@ describe('CommanderAvatar', () => {
       borderStyle: 'dashed',
       borderColor: line,
     });
+  });
+});
+
+describe('CardContextMenu', () => {
+  test('a long press on the card opens a menu of its actions, with destructive ones in red', async () => {
+    const onOpen = jest.fn();
+    await render(
+      <CardContextMenu
+        actions={[
+          { title: 'Open card', onSelect: onOpen },
+          { title: 'Remove from deck', destructive: true, onSelect: () => {} },
+        ]}>
+        <View accessibilityLabel="Sol Ring">
+          <CardImage uri="https://cards.scryfall.io/normal/front/sol-ring.jpg" />
+        </View>
+      </CardContextMenu>,
+    );
+
+    const menu = contextMenu(screen.getByLabelText('Sol Ring'));
+    expect(buttonMenuActions(menu)).toEqual([
+      { title: 'Open card', destructive: false },
+      { title: 'Remove from deck', destructive: true },
+    ]);
+
+    await pressButtonMenuAction(menu, 'Open card');
+
+    expect(onOpen).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -1,6 +1,7 @@
 import type { Deck, DeckCard } from '@mtgscan/supabase/decks';
 
 import { sheenOf, spokenCopy } from '@/collection/copy-labels';
+import type { MenuAction } from '@/components/atoms/menu-button';
 import { Text } from '@/components/atoms/text';
 import { CardGrid } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
@@ -9,15 +10,19 @@ import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustratio
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { deckCommanders, mainDeckGroups, type DeckGrouping, type DeckOrder } from '@/decks/deck-groups';
 
-type DeckCardsProps = {
+type CardHandlers = {
+  onOpenCard: (card: DeckCard) => void;
+  menuActionsOf: (card: DeckCard) => MenuAction[];
+};
+
+type DeckCardsProps = CardHandlers & {
   deck: Deck;
   grouping: DeckGrouping;
   order: DeckOrder;
-  onOpenCard: (card: DeckCard) => void;
   onOpenCollection: () => void;
 };
 
-function DeckCardGrid({ cards, onOpenCard }: { cards: DeckCard[]; onOpenCard: (card: DeckCard) => void }) {
+function DeckCardGrid({ cards, onOpenCard, menuActionsOf }: CardHandlers & { cards: DeckCard[] }) {
   return (
     <CardGrid>
       {cards.map((card) => (
@@ -26,6 +31,7 @@ function DeckCardGrid({ cards, onOpenCard }: { cards: DeckCard[]; onOpenCard: (c
           uri={card.image_uris[0]}
           sheen={sheenOf(card.finish)}
           accessibilityLabel={spokenCopy(card).join(', ')}
+          menuActions={menuActionsOf(card)}
           onPress={() => onOpenCard(card)}
         />
       ))}
@@ -33,13 +39,13 @@ function DeckCardGrid({ cards, onOpenCard }: { cards: DeckCard[]; onOpenCard: (c
   );
 }
 
-export function DeckCards({ deck, grouping, order, onOpenCard, onOpenCollection }: DeckCardsProps) {
+export function DeckCards({ deck, grouping, order, onOpenCard, menuActionsOf, onOpenCollection }: DeckCardsProps) {
   const commanders = deckCommanders(deck.cards);
   return (
     <>
       <SheetSection title="Commander" count={commanders.length > 0 ? commanders.length : undefined}>
         {commanders.length > 0 ? (
-          <DeckCardGrid cards={commanders} onOpenCard={onOpenCard} />
+          <DeckCardGrid cards={commanders} onOpenCard={onOpenCard} menuActionsOf={menuActionsOf} />
         ) : (
           <Text className="text-text-muted">No commander yet.</Text>
         )}
@@ -54,7 +60,7 @@ export function DeckCards({ deck, grouping, order, onOpenCard, onOpenCollection 
       ) : (
         mainDeckGroups(deck.cards, grouping, order).map((group) => (
           <SheetSection key={group.title} title={group.title} count={group.cards.length}>
-            <DeckCardGrid cards={group.cards} onOpenCard={onOpenCard} />
+            <DeckCardGrid cards={group.cards} onOpenCard={onOpenCard} menuActionsOf={menuActionsOf} />
           </SheetSection>
         ))
       )}

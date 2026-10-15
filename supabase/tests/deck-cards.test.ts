@@ -110,8 +110,9 @@ async function whileCopyIsLocked<T>(copyId: string, calls: () => Promise<T>) {
   return pending!;
 }
 
-async function makeCommander(copyId: string) {
-  await asDatabaseOwner((database) => database`update public.deck_cards set commander_at = now() where copy_id = ${copyId}`);
+async function makeCommander(user: TestUser, copyId: string) {
+  const { error } = await user.client.rpc('set_deck_commander', { request: { copy_id: copyId, commander: true } });
+  expect(error).toBeNull();
 }
 
 describe('adding a copy to a deck', () => {
@@ -341,7 +342,7 @@ describe('reading a deck with cards', () => {
     const mainDeckCard = await scannedCopy(user, delverInnistrad);
     await added(user, deckId, commander);
     await added(user, deckId, mainDeckCard);
-    await makeCommander(commander);
+    await makeCommander(user, commander);
 
     const deck = await deckOf(user, deckId);
 
@@ -357,6 +358,7 @@ describe('reading a deck with cards', () => {
       name: 'Atraxa',
       role: 'main',
       commander_art_crop_uri: deck.commanders[0]!.art_crop_uri,
+      commander_count: 1,
     });
     expect((await copyOf(user, commander)).deck?.role).toBe('commander');
   });
@@ -381,7 +383,7 @@ describe('reading a deck with cards', () => {
     const free = await scannedCopy(user);
     await added(user, deckId, inDeck);
 
-    expect((await copyOf(user, inDeck)).deck).toEqual({ deck_id: deckId, name: 'Atraxa', role: 'main', commander_art_crop_uri: null });
+    expect((await copyOf(user, inDeck)).deck).toEqual({ deck_id: deckId, name: 'Atraxa', role: 'main', commander_art_crop_uri: null, commander_count: 0 });
     expect((await copyOf(user, free)).deck).toBeNull();
   });
 });

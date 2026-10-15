@@ -10,6 +10,7 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { copyActionsMenu } from '@/components/organisms/copy-actions-menu';
 import { CopyPageContent } from '@/components/organisms/copy-page-content';
 import { PushedScreen } from '@/components/templates/pushed-screen';
+import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDecks } from '@/decks/use-decks';
 import { colors } from '@/theme';
 
@@ -78,8 +79,10 @@ export default function CopyScreen() {
             {copyActionsMenu({
               copy: read.copy,
               canAddToDeck: hasDecks,
+              commanderAction: read.copy.deck && commanderAction(read.copy.deck.role, read.copy.deck.commander_count),
               onSetProtected: changeProtected,
               onAddToDeck: () => addToDeck(read.copy.protected),
+              onSetCommander: (action) => applyCommanderAction(copyId, action, reload),
               onDelete: confirmDelete,
             })}
           </Stack.Toolbar>

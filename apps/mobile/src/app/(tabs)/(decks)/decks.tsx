@@ -61,7 +61,13 @@ export default function DecksScreen() {
       ) : null}
       {read.status === 'loaded'
         ? read.decks.map((deck) => (
-            <CommanderGalleryCard key={deck.deck_id} name={deck.name} chips={deckChips(deck)} onPress={() => openDeck(deck.deck_id)} />
+            <CommanderGalleryCard
+              key={deck.deck_id}
+              name={deck.name}
+              chips={deckChips(deck)}
+              commanders={deck.commanders}
+              onPress={() => openDeck(deck.deck_id)}
+            />
           ))
         : null}
     </TabScreen>
