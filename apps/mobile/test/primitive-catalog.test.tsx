@@ -37,6 +37,7 @@ test('the primitive catalog shows every primitive', async () => {
     'Stepper rows',
     'Save bars',
     'Deck tags',
+    'Rule rows',
     'Swipe to confirm',
     'Empty states',
     'Drawer sheet',
@@ -71,6 +72,11 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Save 0 changes' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Save 1 change' })).toBeBusy();
   expect(screen.getByLabelText('tap: Add colorless mana colorless mana. Spend X generic mana two generic mana white mana blue mana black mana red mana green mana or snow mana.')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Deck validity, Valid' })).toBeOnTheScreen();
+  expect(screen.getAllByRole('button', { name: 'Deck validity, Invalid' })).toHaveLength(2);
+  expect(screen.getByRole('button', { name: 'Deck validity, Cannot be determined' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Yuriko, Medium priority, 87 cards, Invalid' })).toBeOnTheScreen();
+  expect(screen.getByRole('link', { name: 'CR 903.5a' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'set:mh2' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'set:zzz' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Trade binder', selected: true })).toBeOnTheScreen();

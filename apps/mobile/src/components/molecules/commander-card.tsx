@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import type { ComponentProps, ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Chip } from '@/components/atoms/chip';
+import { Chip, StatusChipButton, type StatusChipButtonProps, type StatusChipProps } from '@/components/atoms/chip';
 import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { dashedOutlineClass } from '@/components/atoms/dashed-outline';
 import { Text } from '@/components/atoms/text';
@@ -42,15 +42,24 @@ function SecondCommanderAvatar({ commander, size }: { commander: DeckCommander; 
   );
 }
 
-function DeckTitle({ name, chips }: { name: string; chips: string[] }) {
+type DeckTitleProps = {
+  name: string;
+  chips: StatusChipProps[];
+  chipButtons?: StatusChipButtonProps[];
+};
+
+function DeckTitle({ name, chips, chipButtons = [] }: DeckTitleProps) {
   return (
     <>
       <Text variant="card-title" numberOfLines={2}>
         {name}
       </Text>
-      <View className="flex-row gap-sm">
+      <View className="flex-row flex-wrap gap-sm">
         {chips.map((chip) => (
-          <Chip key={chip} label={chip} />
+          <Chip key={chip.label} {...chip} />
+        ))}
+        {chipButtons.map((chip) => (
+          <StatusChipButton key={chip.label} {...chip} />
         ))}
       </View>
     </>
@@ -59,7 +68,7 @@ function DeckTitle({ name, chips }: { name: string; chips: string[] }) {
 
 type CommanderCardProps = {
   name: string;
-  chips: string[];
+  chips: StatusChipProps[];
   commanders: DeckCommander[];
 };
 
@@ -78,14 +87,18 @@ function CommanderCard({ name, chips, commanders }: CommanderCardProps) {
   );
 }
 
-export function DeckBanner({ name, chips, commanders }: CommanderCardProps) {
+type DeckBannerProps = CommanderCardProps & {
+  chipButtons?: StatusChipButtonProps[];
+};
+
+export function DeckBanner({ name, chips, chipButtons, commanders }: DeckBannerProps) {
   const [commander, secondCommander] = commanders;
   return (
     <View className={bannerVariants({ ghost: !commander })}>
       {commander ? <CommanderArt uri={commander.art_crop_uri} /> : null}
       <View className="h-deck-banner flex-row items-end gap-md p-lg">
         <View className="flex-1 gap-sm">
-          <DeckTitle name={name} chips={chips} />
+          <DeckTitle name={name} chips={chips} chipButtons={chipButtons} />
         </View>
         {secondCommander ? <SecondCommanderAvatar commander={secondCommander} size="banner" /> : null}
       </View>
@@ -99,7 +112,7 @@ type CommanderGalleryCardProps = CommanderCardProps & {
 
 export function CommanderGalleryCard({ name, chips, commanders, onPress }: CommanderGalleryCardProps) {
   return (
-    <TileButton accessibilityLabel={[name, ...chips].join(', ')} onPress={onPress}>
+    <TileButton accessibilityLabel={[name, ...chips.map((chip) => chip.label)].join(', ')} onPress={onPress}>
       <CommanderCard name={name} chips={chips} commanders={commanders} />
     </TileButton>
   );

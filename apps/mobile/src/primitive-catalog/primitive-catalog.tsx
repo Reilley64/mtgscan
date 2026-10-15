@@ -9,7 +9,7 @@ import { Button } from '@/components/atoms/button';
 import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { CardImage } from '@/components/atoms/card-image';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
-import { Chip } from '@/components/atoms/chip';
+import { Chip, StatusChipButton } from '@/components/atoms/chip';
 import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { CountBadge } from '@/components/atoms/count-badge';
 import { DeckTag } from '@/components/atoms/deck-tag';
@@ -33,9 +33,11 @@ import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardHero } from '@/components/molecules/card-hero';
 import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ReadFailure } from '@/components/molecules/read-failure';
+import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChangeLine } from '@/components/molecules/change-line';
 import { CommanderGalleryCard, DeckBanner } from '@/components/molecules/commander-card';
+import { CardChip } from '@/components/molecules/card-chip';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { DisclosureRow } from '@/components/molecules/disclosure-row';
@@ -161,6 +163,17 @@ function Chips() {
         <Chip tone="danger" label="Not valid" />
         <Chip tone="info" label="Bracket 3" />
         <Chip tone="warning" symbol="shield.fill" label="Protected" />
+      </View>
+      <View className="flex-row flex-wrap gap-sm">
+        <StatusChipButton symbol="checkmark" label="Valid" accessibilityLabel="Deck validity, Valid" onPress={() => {}} />
+        <StatusChipButton tone="danger" symbol="nosign" label="Invalid" accessibilityLabel="Deck validity, Invalid" onPress={() => {}} />
+        <StatusChipButton
+          tone="warning"
+          symbol="questionmark"
+          label="Cannot be determined"
+          accessibilityLabel="Deck validity, Cannot be determined"
+          onPress={() => {}}
+        />
       </View>
       <View className="flex-row flex-wrap gap-sm">
         <Chip label="set:mh2" onRemove={() => {}} />
@@ -642,21 +655,35 @@ function NameAlerts() {
 function CommanderCards() {
   return (
     <Section title="Commander cards">
-      <CommanderGalleryCard name="Atraxa" chips={['Medium priority', '0 cards']} commanders={[]} onPress={() => {}} />
-      <CommanderGalleryCard name="Sol Ring" chips={['Medium priority', '1 card']} commanders={[solRingCommander]} onPress={() => {}} />
+      <CommanderGalleryCard name="Atraxa" chips={[{ label: 'Medium priority' }, { label: '0 cards' }]} commanders={[]} onPress={() => {}} />
+      <CommanderGalleryCard name="Sol Ring" chips={[{ label: 'Medium priority' }, { label: '1 card' }]} commanders={[solRingCommander]} onPress={() => {}} />
       <CommanderGalleryCard
         name="Partners"
-        chips={['Low priority', '2 cards']}
+        chips={[{ label: 'Low priority' }, { label: '2 cards' }]}
         commanders={[solRingCommander, { ...solRingCommander, copy_id: 'second-commander' }]}
         onPress={() => {}}
       />
+      <CommanderGalleryCard
+        name="Yuriko"
+        chips={[{ label: 'Medium priority' }, { label: '87 cards' }, { label: 'Invalid', tone: 'danger', symbol: 'nosign' }]}
+        commanders={[]}
+        onPress={() => {}}
+      />
       <View className="-mx-lg">
-        <DeckBanner name="Kinnan" chips={['High priority', '1 card']} commanders={[]} />
+        <DeckBanner name="Kinnan" chips={[{ label: 'High priority' }, { label: '1 card' }]} commanders={[]} />
+      </View>
+      <View className="-mx-lg">
+        <DeckBanner
+          name="Yuriko"
+          chips={[{ label: 'Medium priority' }, { label: '87 cards' }]}
+          chipButtons={[{ label: 'Invalid', tone: 'danger', symbol: 'nosign', accessibilityLabel: 'Deck validity, Invalid', onPress: () => {} }]}
+          commanders={[]}
+        />
       </View>
       <View className="-mx-lg">
         <DeckBanner
           name="Partners"
-          chips={['High priority', '2 cards']}
+          chips={[{ label: 'High priority' }, { label: '2 cards' }]}
           commanders={[solRingCommander, { ...solRingCommander, copy_id: 'second-commander' }]}
         />
       </View>
@@ -670,6 +697,30 @@ function ChangeLines() {
       <ChangeLine direction="incoming" uri={solRing} name="Sol Ring" detail="Artifact" />
       <ChangeLine direction="outgoing" uri={solRing} name="Sol Ring" detail="Commander" />
       <ChangeLine direction="incoming" uri={solRing} name="Snow-Covered Island" detail="+2" />
+    </Section>
+  );
+}
+
+function RuleRows() {
+  return (
+    <Section title="Rule rows">
+      <RuleRow
+        tone="danger"
+        rule="Deck size"
+        citation={{ label: 'CR 903.5a', onPress: () => {} }}
+        message="87 of 100 cards."
+        cards={[]}
+        hint="Add 13 cards."
+      />
+      <RuleRow
+        tone="danger"
+        rule="Singleton"
+        citation={{ label: 'CR 903.5b', onPress: () => {} }}
+        message="2 copies of Sol Ring."
+        cards={[{ key: 'sol-ring', name: 'Sol Ring', uri: solRing }]}
+      />
+      <RuleRow tone="warning" rule="Deck size" message="No rules data for Sol Ring." cards={[{ key: 'sol-ring', name: 'Sol Ring', uri: solRing }]} />
+      <CardChip uri={solRing} name="Sol Ring" />
     </Section>
   );
 }
@@ -760,6 +811,7 @@ export function PrimitiveCatalog() {
         <CommanderCards />
         <DeckTags />
         <ChangeLines />
+        <RuleRows />
         <WarningLines />
         <SwipeToConfirms />
         <EmptyStates />

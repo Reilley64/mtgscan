@@ -14,6 +14,53 @@ export type DeckCommander = {
   art_crop_uri: string | null;
 };
 
+export type DeckValidity = Database['public']['Enums']['deck_validity'];
+
+export type DeckRule = 'no_commander' | 'deck_size';
+
+export type DeckEvaluationCopy = {
+  kind: 'copy';
+  copy_id: string;
+  name: string;
+  image_uris: string[];
+};
+
+export type DeckEvaluationBasicLand = {
+  kind: 'basic_land';
+  oracle_id: string;
+  name: string;
+  image_uris: string[];
+};
+
+export type DeckEvaluationCard = DeckEvaluationCopy | DeckEvaluationBasicLand;
+
+export type Violation = {
+  rule: DeckRule;
+  citation: string | null;
+  message: string;
+  hint: string | null;
+  cards: DeckEvaluationCard[];
+};
+
+export type UndeterminedCheck = {
+  rule: DeckRule;
+  reason: string;
+  cards: DeckEvaluationCard[];
+};
+
+export type DeckEvaluationSummary = {
+  validity: DeckValidity;
+};
+
+export type DeckEvaluation = DeckEvaluationSummary & {
+  violations: Violation[];
+  undetermined: UndeterminedCheck[];
+  revision: number;
+  catalog_at: string | null;
+  judged_at: string;
+  validity_rules_data_at: string | null;
+};
+
 export type DeckRow = {
   deck_id: string;
   name: string;
@@ -21,6 +68,7 @@ export type DeckRow = {
   card_count: number;
   commanders: DeckCommander[];
   last_used_at: string;
+  evaluation: DeckEvaluationSummary | null;
 };
 
 export type DeckList = {
@@ -43,7 +91,8 @@ export type DeckBasicLand = {
   count: number;
 };
 
-export type Deck = DeckRow & {
+export type Deck = Omit<DeckRow, 'evaluation'> & {
+  evaluation: DeckEvaluation | null;
   revision: number;
   created_at: string;
   cards: DeckCard[];

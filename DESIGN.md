@@ -574,6 +574,7 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - A copy that no longer exists goes back to the copy page, which says so.
 - **Deck screen**, from the gallery or a deck tag. It is a pushed screen over the app tab bar, and it marks the deck used when it opens:
   - The banner runs edge to edge and starts at the top edge of the screen, under the status bar, like the copy page hero (owner request, #259). It has square corners. Below the safe area it is 200 px tall, and the header with Close and ••• floats over its top. The deck name in card title type and chips for the deck priority, such as "Medium priority", and the card count, such as "0 cards", sit at its bottom, 16 px from the sides and the bottom, so they stay clear of the status bar and the buttons. The card count includes commanders and basic lands. The banner shows the art crop of the deck's first commander, the one made commander first, fading into the background (`gradients.commanderArtScrim`). A second commander shows as a 48 px commander avatar at the bottom right of the banner, beside the name and chips. A deck with no commander shows the ghost commander card edge to edge: a dashed line-colored outline on the surface color, with the name and chips at its bottom.
+  - Once the deck has a card, the validity chip follows the priority and card count chips. The chips wrap to a second line when they do not fit. The validity chip is a status chip button (see Components): "Valid" in the text color with a `checkmark`, "Invalid" in danger with a `nosign`, or "Cannot be determined" in warning with a `questionmark`. VoiceOver reads it as a button, such as "Deck validity, Invalid". It opens the Deck validity drawer (see Sheets). An empty deck shows only the priority chip and "0 cards". The validity chip shows with the first card, a commander, a main deck card, or a basic land, and hides again when the last card is removed.
   - A close bar button with the `xmark` symbol sits on the left of the header, over the banner, as on the copy page. VoiceOver reads it as "Close". It goes back to where the deck screen was opened from. The swipe from the left edge does the same.
   - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the banner. VoiceOver reads it as "More". It opens a native menu:
     - **Rename** opens the name alert "Rename deck" with "Name your deck.", the deck name in the field, and **Cancel** and **Save**.
@@ -634,11 +635,11 @@ The revert page sheet, from the **Revert** button of a deck change on History:
 - A revert that fails shows the native alert "Could not revert this change" with "Check your connection.", and the sheet stays.
 - When the effect cannot load, the sheet shows the empty state "Could not load this revert" with a **Try again** button, and Revert is off.
 
-Settings, the scan details sheet, the printing picker, the condition and language pickers, the Filters drawer, the Add to deck drawer, the basic lands drawer, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all of them.
+Settings, the scan details sheet, the printing picker, the condition and language pickers, the Filters drawer, the Add to deck drawer, the basic lands drawer, the Deck validity drawer, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all of them.
 
 - It slides up from the bottom with the iOS grabber.
 - A drawer with a lot of content opens at full height and has no half height. These are the scan details sheet, the printing picker, and batch review.
-- Settings, the condition and language pickers, the Filters drawer, the Add to deck drawer, the basic lands drawer, and other short drawers open at half the screen height. Dragging one up takes it to full height. Dragging it down takes it back to half height.
+- Settings, the condition and language pickers, the Filters drawer, the Add to deck drawer, the basic lands drawer, the Deck validity drawer, and other short drawers open at half the screen height. Dragging one up takes it to full height. Dragging it down takes it back to half height.
 - A downward swipe closes it. At half height, a tap outside closes it too. At full height, iOS leaves no screen outside it to tap. It has no Done button.
 - Its content starts 32 px (spacing xl) below the top edge, twice the page inset, so that it clears the grabber. The content scrolls at every height.
 
@@ -661,6 +662,21 @@ The basic lands drawer, from **Edit** on the Basic lands group of a deck's Cards
 - Save sends every changed count as one deck change, closes the drawer, and the group shows the new counts. When the save fails, the alert "Could not save the basic lands" with "Check your connection." shows, and the drawer stays with the changes.
 - **Cancel** or a downward swipe closes the drawer and changes nothing.
 - A deck that was deleted elsewhere closes the drawer and goes back to the gallery.
+- When the deck cannot load, the drawer shows the empty state "Could not load this deck" with a **Try again** button.
+
+The Deck validity drawer, from the validity chip in the deck screen header. The deck screen is a pushed screen, so this drawer is the only one open:
+
+- The title "Deck validity", then the text "Checked against the current Commander rules." in meta text.
+- One rule row per violation, in the fixed violation order. A rule row is a surface card:
+  - the rule name in danger body strong, such as "No commander" or "Deck size";
+  - the citation as a lime text link at the right end of the first line, such as "CR 903.5a". It opens `https://magic.wizards.com/en/rules` in the browser;
+  - the message in meta text, such as "87 of 100 cards.";
+  - the cards as thumbnail chips, which are not buttons (see Components);
+  - the hint in meta text, when there is one, such as "Add 13 cards.".
+- One rule row per undetermined check, in warning, with the rule name, the reason in meta text, and its cards. It has no link and no hint.
+- A valid deck shows "This deck follows the Commander rules." in place of the rows.
+- The last line, in meta text: "Rules data as of 12 October 2026". With no rules data time, the line is left out.
+- The drawer reads from the deck read. It loads nothing more.
 - When the deck cannot load, the drawer shows the empty state "Could not load this deck" with a **Try again** button.
 
 The settings drawer:
@@ -741,6 +757,8 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Warning line.** An 11 px `shield.fill` symbol and a body text message, both in warning, such as "Sol Ring is protected. Reverting unprotects it." VoiceOver reads the message.
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
 - **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Their text uses the text, warning, danger, or info color. A status chip can show an 11 px symbol before its label in the same color, such as the shield on **Protected**. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide. Search chips show their `key:value` text and × on the control surface, and a tap removes them. A refused search chip has danger text on the danger tint.
+- **Status chip buttons.** A status chip that the user can tap, such as the validity chip in the deck screen header. It has the look of a status chip, with its symbol before its label, and a small 11 px `chevron.right` after its label in the same color. It is at least 44 px wide and gets the extra touch area of a chip. VoiceOver reads it as a button with its own label, such as "Deck validity, Invalid".
+- **Thumbnail chips.** A card's thumbnail and its name in chip type, on surface raised with 12 px corners. They are not buttons. VoiceOver reads the card name. The Deck validity drawer shows the cards of a rule row with them.
 - **Deck box symbol.** A deck box drawn for mtgscan as a template image, `assets/deck-box.svg`. SF Symbols has no deck box. Like the set icon, it takes its tint from a text color class. The binder tile meta line shows it at 11 px (`sizes.deckBoxSymbol`) in info for a copy in a deck.
 - **Card symbols.** Oracle text writes each card symbol in braces, such as {2}{G}, {T}, or {E}. The app draws every symbol that Scryfall's symbology lists with its glyph from the Mana font (andrewgioia/mana), inline with the text and sized to body text. `SymbolText` does it for the Rules section.
   - A mana symbol is its mana glyph in mana glyph color on a 12 px circle in its mana color, like the font's cost style (`ms-cost`). The circle is about the cap height of body text, 0.85 of its 14 px size, as on Scryfall and Gatherer. It sits on the text baseline, does not raise the line height, and has 1 px of space on each side. It grows with the text size that the user sets in iOS. {G} is a green circle, and generic mana, {C}, {X}, {T}, and {S} are mana generic circles. {Q} is a white glyph on a mana glyph circle.
@@ -848,7 +866,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
     | Batch review, empty scan batch | three ghost batch rows | No scans yet | Cards you scan wait here until you add them. | none |
 
   - A refused search chip shows its message, such as "No set named "zzz".", as the title of the Collection search empty state, with no body.
-- **Commander gallery card.** A full-width button, 140 px tall, with 12 px corners. The deck name sits at its bottom in card title type, over chips for the deck priority and the card count. VoiceOver reads it as one button, such as "Atraxa, Medium priority, 0 cards". It shows the art crop of the deck's first commander under a dark gradient (`gradients.commanderArtScrim`), and a second commander as a 40 px commander avatar at its top right. A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color. Later, more status chips and a Needs you badge come. The deck screen banner uses the same art, fade, and ghost commander card, but runs edge to edge with square corners. See Pushed screens.
+- **Commander gallery card.** A full-width button, 140 px tall, with 12 px corners. The deck name sits at its bottom in card title type, over chips for the deck priority, the card count, and the validity chip, with the look of the deck screen header. The chips are not buttons, and a tap anywhere opens the deck. An empty deck shows only the priority chip and "0 cards". VoiceOver reads it as one button, such as "Kinnan, Medium priority, 87 cards, Invalid" or "Atraxa, Medium priority, 0 cards". It shows the art crop of the deck's first commander under a dark gradient (`gradients.commanderArtScrim`), and a second commander as a 40 px commander avatar at its top right. A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color. Later, the bracket chip and a Needs you badge come. The deck screen banner uses the same art, fade, and ghost commander card, but runs edge to edge with square corners. See Pushed screens.
 - **Floating menu buttons.** A round Liquid Glass button, 48 px across, with an 18 px symbol, that opens a native menu with a title and a check mark on the current choice. Without Liquid Glass, it uses the control surface. The symbol is in the text color while the choice is the default, and primary lime otherwise. There is no badge or dot.
   - The sort button shows `arrow.up.arrow.down` and a menu titled "Sort by". An arrow beside the current sort shows its direction. VoiceOver reads "Sort" and the sort with its direction, such as "Sort, Name, A to Z". Collection and the deck screen's Cards tab share it.
   - The group button on the deck screen's Cards tab shows `rectangle.3.group` and a menu titled "Group by". VoiceOver reads "Group" and the grouping, such as "Group, Type".
