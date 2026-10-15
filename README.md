@@ -228,6 +228,21 @@ Signed-in users read their collection total with `supabase.rpc('get_collection_t
 
 mtgscan stores no daily collection totals and no change since yesterday. `docs/adr/0004-keep-only-current-prices.md` says why.
 
+### Current prices read
+
+Signed-in users read the current prices of card printings and finishes with `supabase.rpc('get_current_prices', { query })`. The phone reads the prices of its scans through it. `supabase/collection.ts` has the shared types.
+
+- The query has `items`, a list of 1 to 100 objects, each with `printing_id` and `finish`, and an optional `price_currency`, which defaults to `USD`. An item can appear only once.
+- The result has `items` in the same order. Each item has `printing_id`, `finish`, and `price`.
+- `price` is the current price, as in a copy row of collection search, with `stale`, or null when the card printing and finish has no current price. A card printing that is not in the card catalog has a null price.
+- The function reads only the card catalog and prices. It runs with the caller's rights. An anonymous caller and the secret key are refused. A refused query has the code `invalid_argument` and the field at fault, such as `items[3].finish`.
+
+`apps/mobile/src/scan/current-prices.tsx` keeps the current prices of scans in memory for the app session, keyed by card printing, finish, and currency. They are not saved on the phone or in the scan batch file. A restart or a change of currency clears them.
+
+- Batch review reads every key of the scan batch that the app does not know yet, in calls of at most 100 items. The latest-scan chip reads the key of the scan it shows. A change of finish or card printing makes a new key.
+- The app reads each key once. A read that fails, for example offline, shows nothing. The key is read again the next time batch review opens or the chip shows a scan with that key.
+- Prices never block scanning or the commit.
+
 ### Copy read
 
 Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The query has `copy_id` and an optional `price_currency`, which defaults to `USD`. `supabase/collection.ts` has the shared types. The copy page reads its copy through it.

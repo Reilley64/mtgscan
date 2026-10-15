@@ -5,7 +5,9 @@ import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { Skeleton } from '@/components/atoms/skeleton';
 import { Text } from '@/components/atoms/text';
+import { PriceLine } from '@/components/molecules/price-line';
 import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
+import { useScanPrices, type ScanPrice } from '@/scan/current-prices';
 import { chipDetails } from '@/scan/printing-caption';
 import type { Printing } from '@/scan/scan-batch';
 import type { LatestScan } from '@/scan/scan-batch-state';
@@ -30,15 +32,25 @@ function SkeletonChip() {
   );
 }
 
-function ChipText({ name, details }: { name: string; details: string[] }) {
+function ChipText({ name, details, price }: { name: string; details: string[]; price?: ScanPrice }) {
+  const meta = details.join(' · ');
   return (
     <View className="gap-xs">
       <Text variant="body-strong" numberOfLines={1} className="text-center">
         {name}
       </Text>
-      <Text variant="meta" numberOfLines={1} className="text-center">
-        {details.join(' · ')}
-      </Text>
+      {price ? (
+        <View className="flex-row items-center justify-center gap-xs">
+          <Text variant="meta" numberOfLines={1} className="shrink">
+            {`${meta} ·`}
+          </Text>
+          <PriceLine price={price.shown} stale={price.stale} tone="meta" />
+        </View>
+      ) : (
+        <Text variant="meta" numberOfLines={1} className="text-center">
+          {meta}
+        </Text>
+      )}
     </View>
   );
 }
@@ -51,16 +63,22 @@ function BasicLandChip({ printing, image }: { printing: Printing; image: string 
   );
 }
 
-type ScanChipProps = { name: string; details: string[]; image: string | undefined; onOpen: () => void };
+type ScanChipProps = {
+  name: string;
+  details: string[];
+  price?: ScanPrice;
+  image: string | undefined;
+  onOpen: () => void;
+};
 
-function ScanChip({ name, details, image, onOpen }: ScanChipProps) {
+function ScanChip({ name, details, price, image, onOpen }: ScanChipProps) {
   return (
     <ThumbnailChip
-      accessibilityLabel={[name, ...details].join(', ')}
+      accessibilityLabel={[name, ...details, ...(price ? [price.spoken] : [])].join(', ')}
       onPress={onOpen}
       thumbnail={<CardThumbnail uri={image} />}
       accessory={<DimSymbol name="chevron.right" size={sizes.chevron} />}>
-      <ChipText name={name} details={details} />
+      <ChipText name={name} details={details} price={price} />
     </ThumbnailChip>
   );
 }
@@ -69,6 +87,8 @@ export function LatestScanChip({ latest, onOpen }: LatestScanChipProps) {
   const printing = latest.kind === 'scan' ? latest.scan.printing : latest.kind === 'basic_land' ? latest.printing : null;
   const imageOf = usePrintingImages(printing ? [printing.printingId] : []);
   const image = printing ? imageOf(printing.printingId) : undefined;
+  const scans = latest.kind === 'scan' ? [latest.scan] : [];
+  const priceOf = useScanPrices(scans);
   switch (latest.kind) {
     case 'recognizing':
       return <SkeletonChip />;
@@ -79,6 +99,7 @@ export function LatestScanChip({ latest, onOpen }: LatestScanChipProps) {
         <ScanChip
           name={latest.scan.printing.name}
           details={chipDetails(latest.scan)}
+          price={priceOf(latest.scan)}
           image={image}
           onOpen={() => onOpen(latest.scan.scanId)}
         />

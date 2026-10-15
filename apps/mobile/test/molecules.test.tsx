@@ -196,6 +196,20 @@ describe('ListRow', () => {
     expect(row).toHaveStyle({ backgroundColor: surface });
   });
 
+  test('a list row with a trailing price shows it after the title and adds it to the row name', async () => {
+    await render(
+      <ListRow
+        title="Lightning Bolt"
+        detail="M10 146 · NM · English"
+        trailing={{ content: <PriceLine price="$1.87" stale={false} />, spoken: '$1.87' }}
+        onPress={() => {}}
+      />,
+    );
+
+    const row = screen.getByRole('button', { name: 'Lightning Bolt, M10 146 · NM · English, $1.87' });
+    expect(appearsBefore(within(row).getByText('Lightning Bolt'), within(row).getByText('$1.87'))).toBe(true);
+  });
+
   test('a list row with only a title has a 44 pt touch target', async () => {
     await render(<ListRow title="Lightning Bolt" onPress={() => {}} />);
 
@@ -731,6 +745,13 @@ describe('PriceLine', () => {
     await render(<PriceLine price={undefined} stale={false} />);
 
     expect(screen.getByText('–')).toHaveStyle({ color: textDim, fontSize: 12 });
+  });
+
+  test('a price line in the meta tone takes the meta line color for the price and the clock', async () => {
+    await render(<PriceLine price="$1.87" stale tone="meta" />);
+
+    expect(screen.getByText('$1.87')).toHaveStyle({ color: textMuted, fontSize: 12, fontWeight: '600' });
+    expect(symbolTintColor(screen.root!)).toBe(textMuted);
   });
 });
 

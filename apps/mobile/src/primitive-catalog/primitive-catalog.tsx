@@ -226,6 +226,20 @@ function ListRows() {
   return (
     <Section title="List rows">
       <ListRow title="Sol Ring" detail="CMM 464" leading={<CardThumbnail uri={solRing} />} onPress={() => {}} />
+      <ListRow
+        title="Sol Ring"
+        detail="CMM 464 · NM · English"
+        trailing={{ content: <PriceLine price="$1.25" stale />, spoken: '$1.25' }}
+        leading={<CardThumbnail uri={solRing} />}
+        onPress={() => {}}
+      />
+      <ListRow
+        title="Sol Ring"
+        detail="C21 263 · NM · English"
+        trailing={{ content: <PriceLine price={undefined} stale={false} />, spoken: 'no price' }}
+        leading={<CardThumbnail uri={solRing} />}
+        onPress={() => {}}
+      />
       <ListRow title="Lightning Bolt" onPress={() => {}} />
       <ListRow title="Gallery" detail="Up to date" />
       <ListRow title="Signed" detail="3 copies" checked onPress={() => {}} />
@@ -392,6 +406,19 @@ function Glass() {
               <Text variant="meta" className="text-center">
                 CMM 464 · Foil
               </Text>
+            </ThumbnailChip>
+            <ThumbnailChip
+              accessibilityLabel="Sol Ring, CMM 464, Foil, $1.25"
+              onPress={() => {}}
+              thumbnail={<CardThumbnail uri={solRing} />}
+              accessory={<DimSymbol name="chevron.right" size={sizes.chevron} />}>
+              <Text variant="body-strong" className="text-center">
+                Sol Ring
+              </Text>
+              <View className="flex-row items-center justify-center gap-xs">
+                <Text variant="meta">CMM 464 · Foil ·</Text>
+                <PriceLine price="$1.25" stale tone="meta" />
+              </View>
             </ThumbnailChip>
             <ThumbnailChip
               accessibilityLabel="Recognizing card"

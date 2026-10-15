@@ -16,6 +16,9 @@ import type {
   CopyQuery,
   CopyUserTagRequest,
   CreateUserTagRequest,
+  CurrentPrice,
+  CurrentPriceRow,
+  CurrentPricesQuery,
   DeleteCopyRequest,
   DeleteUserTagRequest,
   RenameUserTagRequest,
@@ -88,6 +91,10 @@ let heldScanBatch: Promise<void> | null = null;
 let heldCollectionReads: Promise<void> | null = null;
 let galleryObjects = new Map<string, string>();
 let offlineGalleryReads = 0;
+let currentPrices: Map<string, CurrentPrice | null> | null = null;
+let currentPriceReads: CurrentPricesQuery[] = [];
+let failingCurrentPriceReads = 0;
+let heldCurrentPriceReads: Promise<void> | null = null;
 
 export const publishedGalleryVersion = '20261012-cf1753';
 export const galleryPartNames = [
@@ -207,6 +214,23 @@ function priceCurrencyList() {
     currency,
     minor_unit_digits: wholeUnitCurrencies.includes(currency) ? 0 : 2,
   }));
+  return { data: { items }, error: null };
+}
+
+function currentPriceKey(currency: string, { printing_id, finish }: Pick<CurrentPriceRow, 'printing_id' | 'finish'>) {
+  return `${currency}|${printing_id}|${finish}`;
+}
+
+async function currentPricesRead(query: CurrentPricesQuery) {
+  currentPriceReads = [...currentPriceReads, query];
+  await heldCurrentPriceReads;
+  if (!currentPrices || failingCurrentPriceReads > 0) {
+    failingCurrentPriceReads = Math.max(failingCurrentPriceReads - 1, 0);
+    return { data: null, error: networkFailure };
+  }
+  const known = currentPrices;
+  const currency = query.price_currency ?? 'USD';
+  const items: CurrentPriceRow[] = query.items.map((item) => ({ ...item, price: known.get(currentPriceKey(currency, item)) ?? null }));
   return { data: { items }, error: null };
 }
 
@@ -490,6 +514,7 @@ export const fakeSupabase = {
       | { query: CollectionQuery }
       | { query: CopyQuery }
       | { query: CollectionTotalQuery }
+      | { query: CurrentPricesQuery }
       | { query: { text: string; limit: number } }
       | { batch: ScanBatch }
       | {
@@ -535,6 +560,9 @@ export const fakeSupabase = {
     }
     if (name === 'get_collection_total' && args && 'query' in args) {
       return collectionTotalRead(args.query as CollectionTotalQuery);
+    }
+    if (name === 'get_current_prices' && args && 'query' in args) {
+      return currentPricesRead(args.query as CurrentPricesQuery);
     }
     if (name === 'list_price_currencies') {
       return priceCurrencyList();
@@ -668,6 +696,31 @@ export function priceReadsSent() {
   return priceReads;
 }
 
+export function offerCurrentPrices(rows: CurrentPriceRow[], currency = 'USD') {
+  currentPrices = new Map([...(currentPrices ?? []), ...rows.map((row) => [currentPriceKey(currency, row), row.price] as const)]);
+}
+
+export function currentPriceReadsSent() {
+  return currentPriceReads;
+}
+
+export function failCurrentPriceReads(count: number) {
+  failingCurrentPriceReads = count;
+}
+
+export function holdCurrentPriceReads() {
+  let finish = () => {};
+  heldCurrentPriceReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldCurrentPriceReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
 export function offerPriceCurrencies(currencies: string[]) {
   priceCurrencies = currencies;
 }
@@ -771,6 +824,10 @@ export function resetFakeSupabase() {
   heldCollectionReads = null;
   galleryObjects = new Map();
   offlineGalleryReads = 0;
+  currentPrices = null;
+  currentPriceReads = [];
+  failingCurrentPriceReads = 0;
+  heldCurrentPriceReads = null;
   publishGallery(publishedGalleryVersion);
   nextSignInEmail = defaultEmail;
   nextSignInError = null;

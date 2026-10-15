@@ -563,6 +563,9 @@ isOneToOne: false
 "get_copy":
 { Args: { "query": Json }; Returns: Json
                            },
+"get_current_prices":
+{ Args: { "query": Json }; Returns: Json
+                           },
 "import_card_sets":
 { Args: { "sets": Json }; Returns: number
                            },

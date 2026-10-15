@@ -93,6 +93,24 @@ export type ScanBatchResult = {
 
 export type CurrentPrice = Omit<PriceFrom, 'basis'> & { stale: boolean };
 
+export type CurrentPriceKey = {
+  printing_id: string;
+  finish: Finish;
+};
+
+export type CurrentPricesQuery = {
+  items: CurrentPriceKey[];
+  price_currency?: PriceCurrency;
+};
+
+export type CurrentPriceRow = CurrentPriceKey & {
+  price: CurrentPrice | null;
+};
+
+export type CurrentPrices = {
+  items: CurrentPriceRow[];
+};
+
 export type CollectionCopyRow = {
   copy_id: string;
   printing_id: string;
