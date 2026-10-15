@@ -667,6 +667,9 @@ isOneToOne: false
 "import_card_sets":
 { Args: { "sets": Json }; Returns: number
                            },
+"limit_email_sign_ups":
+{ Args: { "event": Json }; Returns: Json
+                           },
 "list_card_printings":
 { Args: { "query": Json }; Returns: Json
                            },

@@ -1,7 +1,7 @@
-import { localSupabaseUrl } from '@mtgscan/supabase/test-user';
+import { localSupabaseUrl, testUser } from '@mtgscan/supabase/test-user';
 import { act, fireEvent, screen, within } from 'expo-router/testing-library';
 
-import { fakeSupabase, testUserIsNotSeeded } from './fake-supabase';
+import { fakeSupabase, testUserHasPassword, testUserIsNotSeeded } from './fake-supabase';
 import {
   appleSignInButton,
   openSettings,
@@ -18,13 +18,28 @@ type Build = {
   supabaseUrl?: string;
 };
 
-const buildSettings = ['EXPO_PUBLIC_TEST_SIGN_IN', 'EXPO_PUBLIC_SUPABASE_URL'] as const;
+const hostedSupabaseUrl = 'https://abcdefghijklmnop.supabase.co';
+const hostedTestUserPassword = 'hosted-test-user-password';
+
+const buildSettings = [
+  'EXPO_PUBLIC_TEST_SIGN_IN',
+  'EXPO_PUBLIC_SUPABASE_URL',
+  'EXPO_PUBLIC_APP_VARIANT',
+  'EXPO_PUBLIC_TEST_USER_PASSWORD',
+] as const;
 const environment = Object.fromEntries(buildSettings.map((name) => [name, process.env[name]]));
 
 function runAs({ development = true, testSignIn = 'true', supabaseUrl = localSupabaseUrl }: Build = {}) {
   jest.replaceProperty(globalThis as typeof globalThis & { __DEV__: boolean }, '__DEV__', development);
   process.env.EXPO_PUBLIC_TEST_SIGN_IN = testSignIn;
   process.env.EXPO_PUBLIC_SUPABASE_URL = supabaseUrl;
+}
+
+function runAsTestApp(password = hostedTestUserPassword) {
+  runAs({ development: false, testSignIn: '', supabaseUrl: hostedSupabaseUrl });
+  process.env.EXPO_PUBLIC_APP_VARIANT = 'test';
+  process.env.EXPO_PUBLIC_TEST_USER_PASSWORD = password;
+  testUserHasPassword(hostedTestUserPassword);
 }
 
 function queryTestSignIn() {
@@ -143,4 +158,43 @@ test('when the test user is not seeded, the test sign-in says Sign-in did not wo
   expect(queryAppleSignInButton()).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
   expect(queryTestSignIn()).toBeOnTheScreen();
+});
+
+test('the test app signs the hosted test user in with one tap and lands on Recent', async () => {
+  runAsTestApp();
+  await renderApp();
+
+  await signInAsTheTestUser();
+
+  expect(tabHeader(selectedTab()).title).toBe('Recent');
+  await openSettings();
+  expect(screen.getByText('test-user@mtgscan.test')).toBeOnTheScreen();
+});
+
+test('the test app has no Apple or Google sign-in', async () => {
+  runAsTestApp();
+  await renderApp();
+
+  expect(await screen.findByRole('button', { name: 'Sign in as the test user' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Continue with Google' })).not.toBeOnTheScreen();
+  expect(queryAppleSignInButton()).toBeNull();
+});
+
+test('the test app signs in with its own password, not the local default', async () => {
+  runAsTestApp(testUser.password);
+  await renderApp();
+
+  await signInAsTheTestUser();
+
+  expect(screen.getByRole('alert', { name: 'Sign-in did not work.' })).toBeOnTheScreen();
+});
+
+test('a build without the test app variant keeps Apple and Google sign-in and has no test sign-in', async () => {
+  runAs({ development: false, testSignIn: '', supabaseUrl: hostedSupabaseUrl });
+  process.env.EXPO_PUBLIC_APP_VARIANT = '';
+  await renderApp();
+
+  expect(await screen.findByRole('button', { name: 'Continue with Google' })).toBeOnTheScreen();
+  expect(appleSignInButton()).toBeTruthy();
+  expect(queryTestSignIn()).not.toBeOnTheScreen();
 });

@@ -147,6 +147,8 @@ To run the app against the local stack, put the local API URL and publishable ke
 
 A development build against the local stack can sign in a local test user with one tap. Set `EXPO_PUBLIC_TEST_SIGN_IN=true` in `apps/mobile/.env.local`, and seed the test user with `bun run test-user` in `supabase`. The command and the app refuse any Supabase URL other than the local stack, and production builds leave the test sign-in out. `docs/agents/local-development.md` (Test sign-in) has the steps.
 
+The before-user-created auth hook `public.limit_email_sign_ups` refuses every email sign-up except the test email. Apple and Google sign-up stay open. `supabase/config.toml` turns it on for the local stack. On hosted Supabase, the owner turns it on under Auth > Hooks.
+
 To use Sign in with Apple in the iOS simulator, sign in with an Apple ID in the simulator's Settings app first. The build signs with the team in `ios.appleTeamId`, because the Sign in with Apple capability needs a signed app.
 
 ### Development build on an iPhone
@@ -169,6 +171,18 @@ Run the commands from `apps/mobile`. Run the EAS CLI as `npx eas-cli@latest`, wh
 4. Start Metro with `bunx expo start --dev-client`. The Mac and the iPhone must be on the same network. Open mtgscan on the iPhone and choose the server, or scan the QR code in the terminal with the Camera app.
 
 A preview or production build bundles its JavaScript with the values from its EAS environment. A development build gets its JavaScript from Metro, which reads `apps/mobile/.env`. Only the Google iOS URL scheme in the development build comes from the EAS development environment. Keep `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` the same in both places, or Google sign-in fails. Delete `apps/mobile/.env.local` to use the hosted Supabase project.
+
+### Test app on the iPhone
+
+Agent builds on the owner's iPhone are a separate app, mtgscan Test, so the owner's mtgscan app holds only the owner's collection. `EXPO_PUBLIC_APP_VARIANT=test` makes it. `app.config.ts` then sets the name `mtgscan Test`, the bundle ID `dev.reilley.mtgscan.test`, and the URL scheme `mtgscan-test`, and refuses an EAS build. Babel inlines the variable, so other builds leave out the test app code.
+
+- The test app uses hosted Supabase. It signs in the hosted test user, `test-user@mtgscan.test`, with one tap, and has no Apple or Google button.
+- The hosted test user's password is random. It lives only in `~/.config/mtgscan/test-app.env`, as `EXPO_PUBLIC_TEST_USER_PASSWORD`.
+- The owner seeds or resets the hosted test user with the sample collection from `supabase` in the main checkout: `bun --env-file=.env.hosted --env-file=$HOME/.config/mtgscan/test-app.env test-user/main.ts --hosted --sample-collection`. The command refuses a missing password and the local default password.
+- `bun run ios:test-device --device <identifier>` in `apps/mobile` builds the test app in the Release configuration and installs it on the iPhone. It reads the password from `test-app.env` and never writes it to the worktree.
+- `bun run test:production-bundle` checks that a production bundle has no test sign-in and that the test app bundle has one.
+
+Agents build and install only the test app on the iPhone, and never sign in to the owner's mtgscan app. `docs/agents/local-development.md` (Test app on the iPhone) has the steps and the rules for agents.
 
 ### Versions
 

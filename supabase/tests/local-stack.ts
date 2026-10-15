@@ -69,13 +69,15 @@ export function secretKeyClient(): AppClient {
 }
 
 export async function signUpNewUser(): Promise<TestUser> {
+  const account = { email: `${crypto.randomUUID()}@example.test`, password: crypto.randomUUID() };
+  const created = await secretKeyClient().auth.admin.createUser({ ...account, email_confirm: true });
+  if (created.error) {
+    throw created.error;
+  }
   const client = anonymousClient();
-  const { data, error } = await client.auth.signUp({
-    email: `${crypto.randomUUID()}@example.test`,
-    password: crypto.randomUUID(),
-  });
+  const { data, error } = await client.auth.signInWithPassword(account);
   if (error || !data.user) {
-    throw error ?? new Error('Sign-up returned no user');
+    throw error ?? new Error('Sign-in returned no user');
   }
   return { client, userId: data.user.id };
 }

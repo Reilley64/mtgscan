@@ -8,9 +8,11 @@ import { anonymousClient, secretKeyClient, type AppClient } from './local-stack'
 
 setDefaultTimeout(60_000);
 
-async function signedInTestUser(): Promise<AppClient> {
+const hostedPassword = 'hosted-test-user-password';
+
+async function signedInTestUser(password = testUser.password): Promise<AppClient> {
   const client = anonymousClient();
-  const { error } = await client.auth.signInWithPassword(testUser);
+  const { error } = await client.auth.signInWithPassword({ email: testUser.email, password });
   expect(error).toBeNull();
   return client;
 }
@@ -111,5 +113,40 @@ describe('the test user command', () => {
     expect((await runTestUserCommand([])).exitCode).toBe(0);
 
     await signedInTestUser();
+  });
+
+  test.each([
+    ['a missing password', {}],
+    ['an empty password', { EXPO_PUBLIC_TEST_USER_PASSWORD: '' }],
+    ['the local default password', { EXPO_PUBLIC_TEST_USER_PASSWORD: testUser.password }],
+  ])('with --hosted, refuses %s', async (_, env) => {
+    const { exitCode, output } = await runTestUserCommand(['--hosted', '--sample-collection'], env);
+
+    expect(exitCode).toBe(2);
+    expect(output).toContain('Set EXPO_PUBLIC_TEST_USER_PASSWORD to the hosted test user password');
+  });
+
+  test('with --hosted, the test user signs in with the password from the environment and has the sample collection', async () => {
+    const { exitCode, output } = await runTestUserCommand(['--hosted', '--sample-collection'], {
+      EXPO_PUBLIC_TEST_USER_PASSWORD: hostedPassword,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output).toContain(`The test user ${testUser.email} is ready.`);
+    expect(output).toContain('Added 30 sample collection entries.');
+    expect(await collectionEntries(await signedInTestUser(hostedPassword))).toHaveLength(30);
+    const { error } = await anonymousClient().auth.signInWithPassword(testUser);
+    expect(error?.code).toBe('invalid_credentials');
+  });
+
+  test('with --hosted, running the command again resets the test user to the sample collection', async () => {
+    const env = { EXPO_PUBLIC_TEST_USER_PASSWORD: hostedPassword };
+    expect((await runTestUserCommand(['--hosted', '--sample-collection'], env)).exitCode).toBe(0);
+
+    expect((await runTestUserCommand(['--hosted', '--sample-collection'], env)).exitCode).toBe(0);
+
+    const client = await signedInTestUser(hostedPassword);
+    expect(await collectionEntries(client)).toHaveLength(30);
+    expect(await additions(client)).toHaveLength(1);
   });
 });

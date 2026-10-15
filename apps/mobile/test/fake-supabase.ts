@@ -59,6 +59,7 @@ let session: Session | null = null;
 let nextSignInEmail = defaultEmail;
 let nextSignInError: AuthError | null = null;
 let testUserSeeded = true;
+let testUserPassword = testUser.password;
 const listeners = new Set<AuthListener>();
 const users = new Map<string, User>();
 let collectionCopies: CollectionCopyRow[] = [];
@@ -816,7 +817,7 @@ export const fakeSupabase = {
       return { data: { session, user: session.user }, error: null };
     },
     async signInWithPassword({ email, password }: { email: string; password: string }) {
-      if (!testUserSeeded || email !== testUser.email || password !== testUser.password) {
+      if (!testUserSeeded || email !== testUser.email || password !== testUserPassword) {
         const error = new AuthApiError('Invalid login credentials', 400, 'invalid_credentials');
         return { data: { session: null, user: null }, error };
       }
@@ -846,6 +847,10 @@ export function failNextSignIn(error: AuthError) {
 
 export function testUserIsNotSeeded() {
   testUserSeeded = false;
+}
+
+export function testUserHasPassword(password: string) {
+  testUserPassword = password;
 }
 
 export function ownCollectionCopies(copies: CollectionCopyRow[]) {
@@ -1094,6 +1099,7 @@ export function resetFakeSupabase() {
   nextSignInEmail = defaultEmail;
   nextSignInError = null;
   testUserSeeded = true;
+  testUserPassword = testUser.password;
   listeners.clear();
   users.clear();
 }

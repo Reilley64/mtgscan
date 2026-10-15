@@ -22,9 +22,11 @@
 
 A development build against local Supabase can sign in a local test user with one tap, with no Apple or Google account. Use it for Simulator checks with agent-device. Do not add a temporary password sign-in.
 
-- The test user is `test-user@mtgscan.test`. Its password is a local default in `supabase/test-user/account.ts`.
-- The command and the app work only with the local stack at `http://127.0.0.1:54321` or `http://localhost:54321`. Both refuse every other Supabase URL, so the test user never exists on hosted Supabase.
-- Production builds leave the test sign-in out. `bun run test:production-bundle` in `apps/mobile` builds a production bundle with the test sign-in on and fails if the bundle holds the test sign-in. CI runs it.
+- The test user is `test-user@mtgscan.test`. On local Supabase, its password is a local default in `supabase/test-user/account.ts`.
+- The local command and the development build test sign-in work only with the local stack at `http://127.0.0.1:54321` or `http://localhost:54321`. Both refuse every other Supabase URL.
+- Hosted Supabase has its own test user with a random password, for the test app. See Test app on the iPhone.
+- The sign-up hook refuses every email sign-up except the test email. Apple and Google sign-up stay open.
+- Production builds leave the test sign-in out. `bun run test:production-bundle` in `apps/mobile` builds a production bundle with the test sign-in on, the local stack, and a sentinel test user password. It fails if the bundle holds the test email, the local password, the sentinel, or the test sign-in button. It then builds the test app bundle and fails if that bundle has no test sign-in button. CI runs it.
 
 1. Start local Supabase as in Local Supabase.
 2. Seed or reset the test user from `supabase`. The command deletes the test user and its collection, and creates it again. `--sample-collection` also adds 30 sample collection entries through `add_scan_batch`, with 1 to 4 copies each. Some are foil, one is etched, and some are LP or MP. One copy is protected. It also adds two user tags: "Signed" on one copy and "Trade binder" on three copies. The sample needs the card catalog, and the binder tiles show current prices from the price import, so import both fixtures first:
@@ -50,6 +52,38 @@ A development build against local Supabase can sign in a local test user with on
 5. Tap **Sign in as the test user** on the sign-in screen. The app opens on Recent.
 
 Delete `apps/mobile/.env.local` when you are done, so that the next Metro run uses hosted Supabase. Never set `EXPO_PUBLIC_TEST_SIGN_IN` for an EAS build.
+
+## Test app on the iPhone
+
+Agent builds on the owner's iPhone are a separate app, **mtgscan Test**. It installs next to the owner's mtgscan app, with its own keychain and data. It uses hosted Supabase and signs in the hosted test user with one tap. It has no Apple or Google button. Row-level security keeps the test user's data apart from the owner's collection.
+
+- `EXPO_PUBLIC_APP_VARIANT=test` makes the test app. `app.config.ts` then sets the name `mtgscan Test`, the bundle ID `dev.reilley.mtgscan.test`, and the URL scheme `mtgscan-test`. It refuses the test app in an EAS build.
+- The hosted test user's password lives only in `~/.config/mtgscan/test-app.env`, as `EXPO_PUBLIC_TEST_USER_PASSWORD`. Never copy it into a worktree `.env` file. Never print it. Check that it is set with `grep -q '^EXPO_PUBLIC_TEST_USER_PASSWORD=.' ~/.config/mtgscan/test-app.env`.
+- Build and install only the test app on the iPhone. Never build or install `dev.reilley.mtgscan` on the iPhone unless the owner asks. Never sign in to the owner's mtgscan app.
+- Hold the device lock for the whole build and install.
+
+The owner seeds or resets the hosted test user. The command needs the hosted secret key, so only the owner runs it, from the main checkout. It deletes the hosted test user and its collection, creates it again with the password from `test-app.env`, and adds the sample collection. It refuses a missing password and the local default password:
+
+```bash
+cd supabase
+bun --env-file=.env.hosted --env-file=$HOME/.config/mtgscan/test-app.env test-user/main.ts --hosted --sample-collection
+```
+
+To build and install the test app:
+
+1. Take the device lock.
+2. Move `apps/mobile/.env.local` and `apps/mobile/.env.production.local` out of `apps/mobile`. The script refuses to build with them, because the test app uses the hosted Supabase URL from `apps/mobile/.env`.
+3. Find the iPhone's identifier with `xcrun devicectl list devices`.
+4. Run `bun run ios:test-device --device <identifier>` in `apps/mobile`. The script:
+   1. reads the password from `test-app.env`, and refuses a missing password or the local default password;
+   2. runs `bunx expo prebuild --clean --platform ios` with the test app variant;
+   3. builds the Release configuration with `xcodebuild -allowProvisioningUpdates` and the team `YDZJL5K3RQ`, into `apps/mobile/ios/build`;
+   4. installs the app with `xcrun devicectl device install app`.
+
+   It shows `<test user password>` in place of the password in the build output.
+5. Delete `apps/mobile/ios`, and release the device lock.
+
+If Xcode cannot turn on Sign in with Apple for the new App ID, the owner turns it on in the Apple Developer portal.
 
 ## Scanner evidence replay
 

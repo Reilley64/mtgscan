@@ -21,9 +21,19 @@ const withGoogleIosUrlScheme: ConfigPlugin = (config) =>
     return infoPlistConfig;
   });
 
-export default ({ config }: ConfigContext): ExpoConfig =>
-  withGoogleIosUrlScheme({
+function testAppConfig(config: ExpoConfig): ExpoConfig {
+  if (process.env.EAS_BUILD) {
+    throw new Error('The test app is for local builds only. Unset EXPO_PUBLIC_APP_VARIANT for EAS builds.');
+  }
+  return {
     ...config,
-    name: config.name ?? 'mtgscan',
-    slug: config.slug ?? 'mtgscan',
-  });
+    name: 'mtgscan Test',
+    scheme: 'mtgscan-test',
+    ios: { ...config.ios, bundleIdentifier: 'dev.reilley.mtgscan.test' },
+  };
+}
+
+export default ({ config }: ConfigContext): ExpoConfig => {
+  const appConfig: ExpoConfig = { ...config, name: config.name ?? 'mtgscan', slug: config.slug ?? 'mtgscan' };
+  return withGoogleIosUrlScheme(process.env.EXPO_PUBLIC_APP_VARIANT === 'test' ? testAppConfig(appConfig) : appConfig);
+};

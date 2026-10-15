@@ -5,8 +5,8 @@ import { Button } from '@/components/atoms/button';
 import { Text } from '@/components/atoms/text';
 import { supabase } from '@/lib/supabase';
 
-async function signInAsTestUser(): Promise<SignInOutcome> {
-  const { error } = await supabase.auth.signInWithPassword(testUser);
+async function signInAsTestUser(password: string): Promise<SignInOutcome> {
+  const { error } = await supabase.auth.signInWithPassword({ email: testUser.email, password });
   if (error) {
     throw error;
   }
@@ -14,14 +14,15 @@ async function signInAsTestUser(): Promise<SignInOutcome> {
 }
 
 type TestSignInButtonProps = {
+  password: string;
   busy: boolean;
   disabled: boolean;
   onSignIn: (signIn: () => Promise<SignInOutcome>) => void;
 };
 
-export function TestSignInButton({ busy, disabled, onSignIn }: TestSignInButtonProps) {
+export function TestSignInButton({ password, busy, disabled, onSignIn }: TestSignInButtonProps) {
   return (
-    <Button size="sign-in" busy={busy} disabled={disabled} onPress={() => onSignIn(signInAsTestUser)}>
+    <Button size="sign-in" busy={busy} disabled={disabled} onPress={() => onSignIn(() => signInAsTestUser(password))}>
       <Text>Sign in as the test user</Text>
     </Button>
   );
