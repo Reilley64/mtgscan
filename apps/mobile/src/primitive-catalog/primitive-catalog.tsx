@@ -349,6 +349,8 @@ function CardTiles() {
           onPress={() => {}}
         />
         <CardTile uri={solRing} count={8} accessibilityLabel="Island, 8" />
+        <CardTile uri={solRing} accessibilityLabel="Sol Ring, C21 263" inViolation onPress={() => {}} />
+        <CardTile uri={solRing} count={2} accessibilityLabel="Mountain, 2" inViolation />
         {['CMM 464', 'C21 263'].map((caption) => (
           <CardTile
             key={caption}

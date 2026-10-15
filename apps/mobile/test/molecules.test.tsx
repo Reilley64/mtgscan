@@ -862,6 +862,27 @@ describe('CardTile', () => {
     expect(badge.parent).toHaveStyle({ position: 'absolute', top: 4, right: 4 });
   });
 
+  test('a card tile in a violation has a 2 px danger outline around the card image, and VoiceOver adds that it breaks a Commander rule', async () => {
+    await render(<CardTile uri={solRing} accessibilityLabel="Sol Ring, C21 263" inViolation onPress={() => {}} />);
+
+    const tile = screen.getByRole('button', { name: 'Sol Ring, C21 263, breaks a Commander rule' });
+    expect(cardImageOutline(tile)).toEqual({ borderColor: danger, borderWidth: 2, borderRadius: 8 });
+  });
+
+  test('a card tile with a count in a violation has the danger outline, and VoiceOver adds that it breaks a Commander rule', async () => {
+    await render(<CardTile uri={solRing} count={8} accessibilityLabel="Island, 8" inViolation />);
+
+    const tile = screen.getByRole('image', { name: 'Island, 8, breaks a Commander rule' });
+    expect(cardImageOutline(tile)).toEqual({ borderColor: danger, borderWidth: 2, borderRadius: 8 });
+    expect(within(tile).getByText('×8')).toBeOnTheScreen();
+  });
+
+  test('a card tile with a count that is not in a violation has no visible outline', async () => {
+    await render(<CardTile uri={solRing} count={8} accessibilityLabel="Island, 8" />);
+
+    expect(cardImageOutline(screen.getByRole('image', { name: 'Island, 8' }))).toMatchObject({ borderColor: '#00000000' });
+  });
+
   test('card tiles sit three to a row', async () => {
     await render(
       <CardGrid>
