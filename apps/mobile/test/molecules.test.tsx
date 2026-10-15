@@ -15,6 +15,7 @@ import { CardHero } from '@/components/molecules/card-hero';
 import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
+import { ChangeLine } from '@/components/molecules/change-line';
 import { CommanderCard, CommanderGalleryCard } from '@/components/molecules/commander-card';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
@@ -343,6 +344,21 @@ describe('ReadFailure', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
 
     expect(onTryAgain).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ChangeLine', () => {
+  test.each([
+    ['incoming', '+', tokenColors.incoming],
+    ['outgoing', '−', tokenColors.outgoing],
+  ] as const)('an %s change line is one row with a %s sign in its color, the thumbnail, the name, and the meta', async (direction, sign, color) => {
+    await render(<ChangeLine direction={direction} uri={solRing} name="Sol Ring" detail="Artifact" />);
+
+    const row = screen.getByLabelText(`${sign}, Sol Ring, Artifact`);
+    expect(within(row).getByText(sign)).toHaveStyle({ color, fontWeight: '700' });
+    expect(within(row).getByText('Sol Ring')).toHaveStyle({ color: white, fontWeight: '700' });
+    expect(within(row).getByText('Artifact')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(cardImageUri(row)).toBe(solRing);
   });
 });
 

@@ -12,6 +12,8 @@ export const tokenColors = {
   glassTextMuted: 'rgba(220, 227, 230, 1)',
   glassTextDim: 'rgba(181, 192, 197, 1)',
   glassSkeleton: '#ffffff1f',
+  incoming: 'rgba(216, 255, 98, 1)',
+  outgoing: 'rgba(255, 138, 122, 1)',
   warning: 'rgba(244, 208, 111, 1)',
   danger: 'rgba(255, 122, 112, 1)',
   info: 'rgba(143, 211, 255, 1)',

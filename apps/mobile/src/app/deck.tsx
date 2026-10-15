@@ -13,6 +13,7 @@ import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { deckActionsMenu } from '@/components/organisms/deck-actions-menu';
 import { DeckCardOrderButtons } from '@/components/organisms/deck-card-order-buttons';
 import { DeckCards } from '@/components/organisms/deck-cards';
+import { DeckHistory } from '@/components/organisms/deck-history';
 import { PushedScreen } from '@/components/templates/pushed-screen';
 import { basicLandDraftOf, changedBasicLands, type BasicLandDraft } from '@/decks/basic-lands';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
@@ -21,8 +22,8 @@ import { cardCountLabel, deckChips } from '@/decks/deck-labels';
 import { deleteDeck, markDeckUsed, renameDeck, setBasicLands, setDeckPriority } from '@/decks/deck-writes';
 import { removeFromDeck } from '@/decks/remove-from-deck';
 import { useDeck } from '@/decks/use-deck';
+import { useDeckChanges } from '@/decks/use-deck-changes';
 import type { WriteResult } from '@/lib/write-result';
-import { shownDay } from '@/lib/shown-day';
 import { colors } from '@/theme';
 
 const deckTabs = ['cards', 'history'] as const;
@@ -58,6 +59,7 @@ async function showWriteResult(write: Promise<WriteResult>, failureTitle: string
 export default function DeckScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const { read, reload } = useDeck(deckId);
+  const { history, tryAgain: tryHistoryAgain, loadMore } = useDeckChanges(deckId, read.status === 'loaded' ? read.deck.revision : null);
   const [tab, setTab] = useState<DeckTab>('cards');
   const [renaming, setRenaming] = useState(false);
   const [basicLandDraft, setBasicLandDraft] = useState<BasicLandDraft | null>(null);
@@ -125,6 +127,7 @@ export default function DeckScreen() {
   return (
     <PushedScreen
       footer={basicLandFooter}
+      onEndReached={tab === 'history' ? loadMore : undefined}
       floatingButtons={
         showsCardOrderButtons ? (
           <DeckCardOrderButtons grouping={grouping} order={order} onChangeGrouping={setGrouping} onChangeOrder={setOrder} />
@@ -175,7 +178,12 @@ export default function DeckScreen() {
                 onOpenCollection={() => router.dismissTo('/collection')}
               />
             ) : null}
-            {tab === 'history' ? <Text variant="meta">Created {shownDay(read.deck.created_at)}</Text> : null}
+            {tab === 'history' && history.status === 'loaded' ? (
+              <DeckHistory changes={history.changes} createdAt={read.deck.created_at} />
+            ) : null}
+            {tab === 'history' && history.status === 'failed' ? (
+              <ReadFailure illustration={<DashedCardFrame symbol="wifi.slash" />} title="Could not load this deck" onTryAgain={tryHistoryAgain} />
+            ) : null}
           </View>
         </>
       ) : null}

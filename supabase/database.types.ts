@@ -401,14 +401,14 @@ isOneToOne: false
                   ]
                 },"deck_changes": {
                   Row: {
-                    "changed_at": string,"deck_id": string,"id": string,"kind": Database["public"]['Enums']["deck_change_kind"],"revision": number,"user_id": string
+                    "changed_at": string,"deck_id": string,"id": string,"kind": Database["public"]['Enums']["deck_change_kind"],"reverted_by": string | null,"revision": number,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "changed_at"?: string,"deck_id": string,"id"?: string,"kind": Database["public"]['Enums']["deck_change_kind"],"revision": number,"user_id": string
+                    "changed_at"?: string,"deck_id": string,"id"?: string,"kind": Database["public"]['Enums']["deck_change_kind"],"reverted_by"?: string | null,"revision": number,"user_id": string
                   }
                   Update: {
-                    "changed_at"?: string,"deck_id"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["deck_change_kind"],"revision"?: number,"user_id"?: string
+                    "changed_at"?: string,"deck_id"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["deck_change_kind"],"reverted_by"?: string | null,"revision"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -416,6 +416,12 @@ isOneToOne: false
       columns: ["user_id","deck_id"]
 isOneToOne: false
       referencedRelation: "decks"
+      referencedColumns: ["user_id","id"]
+    },{
+      foreignKeyName: "deck_changes_user_id_reverted_by_fkey"
+      columns: ["user_id","reverted_by"]
+isOneToOne: false
+      referencedRelation: "deck_changes"
       referencedColumns: ["user_id","id"]
     }
                   ]
@@ -723,6 +729,9 @@ isOneToOne: false
 { Args: { "event": Json }; Returns: Json
                            },
 "list_card_printings":
+{ Args: { "query": Json }; Returns: Json
+                           },
+"list_deck_changes":
 { Args: { "query": Json }; Returns: Json
                            },
 "list_decks":
