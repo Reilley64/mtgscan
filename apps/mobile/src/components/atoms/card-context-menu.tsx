@@ -12,7 +12,7 @@ type CardContextMenuProps = {
 export function CardContextMenu({ actions, children }: CardContextMenuProps) {
   return (
     <View className="aspect-card-image w-full">
-      <Host style={StyleSheet.absoluteFill}>
+      <Host style={StyleSheet.absoluteFill} ignoreSafeArea="all">
         <ContextMenu>
           <ContextMenu.Trigger>
             <RNHostView>{children}</RNHostView>
