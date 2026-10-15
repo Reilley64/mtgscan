@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { basicLands, catalogFixture, resetCardCatalog, runCatalogImport, withBasicLands } from './catalog-import-command';
+import { basicLands, catalogFixture, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { cleanGallery, recordTestVersion } from './gallery-versions';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
@@ -182,13 +182,12 @@ describe('gallery printings', () => {
 
   beforeAll(async () => {
     await resetCardCatalog();
-    expect((await runCatalogImport(await catalogFixture({ oracleCards: withBasicLands, defaultCards: withBasicLands }))).exitCode).toBe(0);
+    expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
     const { data } = await importKeyClient.from('card_printings').select('id, cards!inner(name)').eq('cards.name', 'Fog');
     fogPrintings = data!.map((row) => row.id);
     const withoutFog = await catalogFixture({
       updatedAt: '2026-10-15T21:00:00.000+00:00',
-      oracleCards: withBasicLands,
-      defaultCards: (records) => withBasicLands(records).filter((record) => record.name !== 'Fog'),
+      defaultCards: (records) => records.filter((record) => record.name !== 'Fog'),
     });
     expect((await runCatalogImport(withoutFog)).exitCode).toBe(0);
   });
@@ -209,8 +208,8 @@ describe('gallery printings', () => {
   test('every card printing in the card catalog is listed once, and basic lands are flagged', async () => {
     const rows = await galleryPrintings();
 
-    expect(rows).toHaveLength(351);
-    expect(new Set(rows.map((row) => row.id)).size).toBe(351);
+    expect(rows).toHaveLength(377);
+    expect(new Set(rows.map((row) => row.id)).size).toBe(377);
     expect(rows.filter((row) => row.basic_land).map((row) => row.id).sort()).toEqual(basicLands.map((land) => land.id).sort());
   });
 

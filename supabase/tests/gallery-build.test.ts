@@ -12,7 +12,6 @@ import {
   runCatalogImport,
   runGalleryCommand,
   type ScryfallRecord,
-  withBasicLands,
   withoutCards,
 } from './catalog-import-command';
 import { cleanGallery } from './gallery-versions';
@@ -39,7 +38,7 @@ const importKeyClient = secretKeyClient();
 const bucket = importKeyClient.storage.from('gallery');
 const lightningBolt = 'Lightning Bolt';
 const blackLotus = 'Black Lotus';
-const firstBuildRows = 350;
+const firstBuildRows = 376;
 
 let alice: TestUser;
 let images: ReturnType<typeof Bun.serve>;
@@ -60,8 +59,7 @@ function withLocalImages(records: ScryfallRecord[], imageVersion: (record: Scryf
 
 async function galleryFixture(imageVersion?: (record: ScryfallRecord) => number): Promise<string> {
   return catalogFixture({
-    oracleCards: withBasicLands,
-    defaultCards: (records) => withLocalImages(withBasicLands(records), imageVersion),
+    defaultCards: (records) => withLocalImages(records, imageVersion),
   });
 }
 
@@ -120,10 +118,7 @@ beforeAll(async () => {
   workDirectory = await mkdtemp(join(tmpdir(), 'mtgscan-gallery-work-'));
   await cleanGallery();
   await resetCardCatalog();
-  const catalog = await catalogFixture({
-    oracleCards: (records) => withBasicLands(withoutCards([lightningBolt]).oracleCards(records)),
-    defaultCards: (records) => withBasicLands(withoutCards([lightningBolt]).defaultCards(records)),
-  });
+  const catalog = await catalogFixture(withoutCards([lightningBolt]));
   expect((await runCatalogImport(catalog)).exitCode).toBe(0);
 });
 
@@ -256,8 +251,6 @@ describe('the next gallery builds', () => {
     first = await manifestOf((await recordedVersions())[0]!.version);
     const catalog = await catalogFixture({
       updatedAt: '2026-10-15T21:00:00.000+00:00',
-      oracleCards: withBasicLands,
-      defaultCards: withBasicLands,
     });
     expect((await runCatalogImport(catalog)).exitCode).toBe(0);
     const addOnBuild = await build(await galleryFixture((record) => (record.name === blackLotus && record.set === 'lea' ? 2 : 1)));

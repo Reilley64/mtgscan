@@ -221,6 +221,7 @@ describe('after a catalog import', () => {
           'Ayesha Tanaka, Armorer',
           'Inspirit, Flagship Vessel',
           'Lavinia, Foil to Conspiracy',
+          'Rory Williams',
           'Search Warrant',
           'Shorikai, Genesis Engine',
           'Warrant // Warden',
@@ -233,6 +234,7 @@ describe('after a catalog import', () => {
           'Ayesha Tanaka, Armorer',
           'Inspirit, Flagship Vessel',
           'Lavinia, Foil to Conspiracy',
+          'Rory Williams',
           'Search Warrant',
           'Shorikai, Genesis Engine',
           'Warrant // Warden',
@@ -240,23 +242,35 @@ describe('after a catalog import', () => {
       ],
       [
         'colorless',
-        { colors: ['C'], mana_value_max: 2 },
+        { colors: ['C'], mana_value_max: 2, limit: 50 },
         [
           'Bladed Pinions',
           'Chronomaton',
+          'Forest',
+          'Island',
           'Mister Gutsy',
+          'Mountain',
+          'Plains',
           'Prism Ring',
           'Rix Maadi, Dungeon Palace',
           'Rockface Village',
           "Serra's Sanctum",
+          'Snow-Covered Forest',
+          'Snow-Covered Island',
+          'Snow-Covered Mountain',
+          'Snow-Covered Plains',
+          'Snow-Covered Swamp',
+          'Snow-Covered Wastes',
+          'Swamp',
           'The Biblioplex',
           'Wall of Forgotten Pharaohs',
+          'Wastes',
         ],
       ],
       ['negated colorless', { types: ['wall'], colors_exclude: ['C'] }, ['Fog Bank']],
       [
         'color identity fits a white-blue deck',
-        { identity_subset_of: ['W', 'U'], mana_value_min: 5 },
+        { identity_subset_of: ['W', 'U'], mana_value_min: 5, limit: 50 },
         [
           'Ayesha Tanaka, Armorer',
           'Boon of the Spirit Realm',
@@ -264,6 +278,7 @@ describe('after a catalog import', () => {
           'Brisela, Voice of Nightmares',
           'Bruna, the Fading Light',
           'Buy Your Silence',
+          'Clara Oswald',
           'Conduit of Ruin',
           'Essence Fracture',
           'Everything Comes to Dust',
@@ -275,6 +290,7 @@ describe('after a catalog import', () => {
           'Supplant Form',
           'Teferi, Temporal Archmage',
           'The Eternity Elevator',
+          'The Prismatic Piper',
           'Warrant // Warden',
           'Waterspout Elemental',
         ],
@@ -284,11 +300,13 @@ describe('after a catalog import', () => {
         { identity_subset_of: [], types: ['creature'] },
         [
           'Chronomaton',
+          'Clara Oswald',
           'Conduit of Ruin',
           'Drill-Skimmer',
           'Matopi Golem',
           'Mister Gutsy',
           'Searchlight Companion',
+          'The Prismatic Piper',
           'Wall of Forgotten Pharaohs',
         ],
       ],
@@ -347,6 +365,7 @@ describe('after a catalog import', () => {
           'Ayesha Tanaka, Armorer',
           'Brisela, Voice of Nightmares',
           'Bruna, the Fading Light',
+          'Clara Oswald',
           'Hidetsugu and Kairi',
           'Kenrith, the Returned King',
           'Kiki-Jiki, Mirror Breaker',
@@ -354,6 +373,8 @@ describe('after a catalog import', () => {
           'Ramses Overdark',
           'Red Hulk',
           'Teferi, Temporal Archmage',
+          'The Prismatic Piper',
+          'The Tenth Doctor',
           'Witch-king, Sky Scourge',
         ],
       ],
@@ -385,7 +406,7 @@ describe('after a catalog import', () => {
       [
         'is not Game Changer',
         { is_game_changer: false, types: ['enchantment'], identity_subset_of: ['U'], mana_value_min: 3 },
-        ['Shimmer'],
+        ['An Unearthly Child', 'Shimmer'],
       ],
     ])('%s', async (_, query, expected) => {
       expect(await names(query)).toEqual(expected);
@@ -454,12 +475,12 @@ describe('after a catalog import', () => {
   });
 
   describe('paging', () => {
-    const creatures = ["Adventurous Eater // Have a Bite", "Akki Lavarunner // Tok-Tok, Volcano Born", "Angelic Curator", "Atraxa, Praetors' Voice", "Ayesha Tanaka, Armorer", "Azra Oddsmaker", "Bladegraft Aspirant", "Bloomvine Regent // Claim Territory", "Bonecrusher Giant // Stomp", "Boreal Elemental", "Brambleguard Captain", "Brisela, Voice of Nightmares", "Bruna, the Fading Light", "Caldera Kavu", "Caustic Caterpillar", "Chaos Harlequin", "Chronomaton", "Conduit of Ruin", "Copper Host Crusher", "Cruel Sadist", "Dakmor Lancer", "Dauthi Ghoul", "Deathcap Marionette", "Delver of Secrets // Insectile Aberration", "Dissatisfied Customer", "Drill-Skimmer", "Dryad Arbor", "Emeritus of Truce // Swords to Plowshares", "Estwald Shieldbasher", "Favored of Iroas", "Field Marshal", "Fire Nation Salvagers", "Fog Bank", "Ghostflame Sliver", "Ghost Warden", "Gisela, the Broken Blade", "Glimmerbell", "Gloomwidow", "Goblin Instigator", "Hancock, Ghoulish Mayor", "Heirloom Auntie", "Hidetsugu and Kairi", "Hobblefiend", "Hollowhead Sliver", "Jinnie Fay, Jetmir's Second", "Kenrith, the Returned King", "Kiki-Jiki, Mirror Breaker", "Kjeldoran Home Guard", "Krenko, Mob Boss", "Lavinia, Foil to Conspiracy", "Leonin Lightscribe", "Lesser Werewolf", "Lifecreed Duo", "Llanowar Elves", "Lurking Chupacabra", "Matopi Golem", "Mesmeric Sliver", "Mischievous Mystic", "Mister Gutsy", "Nessian Boar", "Opal-Eye, Konda's Yojimbo", "Orcish Siegemaster", "Ormos, Archive Keeper", "Pale Wayfarer", "Peri Brown", "Phantasmal Mount", "Primaris Chaplain", "Rampant Elephant", "Ramses Overdark", "Ravenous Necrotitan", "Red Hulk", "Red Tiger Mechan", "Robobrain War Mind", "Roil Cartographer", "Sabertooth Nishoba", "Satoru, the Infiltrator", "Schema Thief", "Scoria Cat", "Scurrilous Sentry", "Searchlight Companion", "Selfless Police Captain", "Shackle Slinger", "Specter of Mortality", "Spike Breeder", "Spined Tyrranax", "Stormchaser Chimera", "Stronghold Rats", "Suspicious Shambler", "Tarmogoyf", "Thassa's Oracle", "Thundering Mightmare", "Thundering Wurm", "Urban Daggertooth", "Verdant Eidolon", "Vizier of Tumbling Sands", "Wall of Forgotten Pharaohs", "Waterspout Elemental", "Witch-king, Sky Scourge", "Zephyrim"];
+    const creatures = ["Adventurous Eater // Have a Bite", "Akki Lavarunner // Tok-Tok, Volcano Born", "Amy Pond", "Angelic Curator", "Atraxa, Praetors' Voice", "Ayesha Tanaka, Armorer", "Azra Oddsmaker", "Bladegraft Aspirant", "Bloomvine Regent // Claim Territory", "Bonecrusher Giant // Stomp", "Boreal Elemental", "Brambleguard Captain", "Brisela, Voice of Nightmares", "Bruna, the Fading Light", "Caldera Kavu", "Caustic Caterpillar", "Chaos Harlequin", "Chronomaton", "Clara Oswald", "Conduit of Ruin", "Copper Host Crusher", "Cruel Sadist", "Dakmor Lancer", "Dauthi Ghoul", "Deathcap Marionette", "Delver of Secrets // Insectile Aberration", "Dissatisfied Customer", "Drill-Skimmer", "Dryad Arbor", "Ellie, Brick Master", "Emeritus of Truce // Swords to Plowshares", "Estwald Shieldbasher", "Favored of Iroas", "Field Marshal", "Fire Nation Salvagers", "Fog Bank", "Ghostflame Sliver", "Ghost Warden", "Gisela, the Broken Blade", "Glimmerbell", "Gloomwidow", "Goblin Instigator", "Hancock, Ghoulish Mayor", "Heirloom Auntie", "Hidetsugu and Kairi", "Hobblefiend", "Hollowhead Sliver", "Jinnie Fay, Jetmir's Second", "Kenrith, the Returned King", "Kiki-Jiki, Mirror Breaker", "Kjeldoran Home Guard", "Krenko, Mob Boss", "Lavinia, Foil to Conspiracy", "Leonin Lightscribe", "Lesser Werewolf", "Lifecreed Duo", "Llanowar Elves", "Lurking Chupacabra", "Matopi Golem", "Mesmeric Sliver", "Mischievous Mystic", "Mister Gutsy", "Nessian Boar", "Opal-Eye, Konda's Yojimbo", "Orcish Siegemaster", "Ormos, Archive Keeper", "Othelm, Sigardian Outcast", "Pale Wayfarer", "Peri Brown", "Phantasmal Mount", "Primaris Chaplain", "Rampant Elephant", "Ramses Overdark", "Ravenous Necrotitan", "Red Hulk", "Red Tiger Mechan", "Relentless Rats", "Robobrain War Mind", "Roil Cartographer", "Rory Williams", "Sabertooth Nishoba", "Satoru, the Infiltrator", "Schema Thief", "Scoria Cat", "Scurrilous Sentry", "Searchlight Companion", "Selfless Police Captain", "Seven Dwarves", "Shackle Slinger", "Sophina, Spearsage Deserter", "Specter of Mortality", "Spike Breeder", "Spined Tyrranax", "Stormchaser Chimera", "Stronghold Rats", "Suspicious Shambler", "Tarmogoyf", "Thassa's Oracle", "The Prismatic Piper", "The Tenth Doctor", "Thrasios, Triton Hero", "Thundering Mightmare", "Thundering Wurm", "Tymna the Weaver", "Urban Daggertooth", "Verdant Eidolon", "Vizier of Tumbling Sands", "Wall of Forgotten Pharaohs", "Waterspout Elemental", "Wilson, Refined Grizzly", "Witch-king, Sky Scourge", "Zephyrim"];
 
     test.each([undefined, 50])('pages of %p cover every row once, in order', async (limit) => {
       const pages = await allPages({ types: ['creature'], limit });
 
-      expect(pages.map((next) => next.items.length)).toEqual(limit === 50 ? [50, 49] : [20, 20, 20, 20, 19]);
+      expect(pages.map((next) => next.items.length)).toEqual(limit === 50 ? [50, 50, 12] : [20, 20, 20, 20, 20, 12]);
       expect(pages.flatMap((next) => next.items.map((row) => row.name))).toEqual(creatures);
       expect(new Set(pages.map((next) => next.search_id)).size).toBe(1);
     });
@@ -579,7 +600,7 @@ describe('after a catalog import', () => {
         api: 'catalog',
         caller: 'app',
         query: { types: ['creature'], sort: 'name', sort_order: 'asc', limit: 30 },
-        result_count: 99,
+        result_count: 112,
         result_ids: first.items.slice(0, 20).map((row) => row.oracle_id),
       });
       expect(rows.at(-1)!.latency_ms).toBeGreaterThan(0);
@@ -668,7 +689,14 @@ describe('after a catalog import', () => {
       [
         'price at least, with text',
         { text: 'creature', price_min: '20' },
-        ["Atraxa, Praetors' Voice", 'Gisela, the Broken Blade', 'Ramses Overdark', "Thassa's Oracle"],
+        [
+          "Atraxa, Praetors' Voice",
+          'Gisela, the Broken Blade',
+          'Ramses Overdark',
+          "Thassa's Oracle",
+          'Thrasios, Triton Hero',
+          'Tymna the Weaver',
+        ],
       ],
       ['a card with no price never matches a price bound', { names: ['brisela'], price_max: '999999.99' }, []],
     ])('%s', async (_, query, expected) => {

@@ -82,63 +82,23 @@ export function printingOracleId(record: ScryfallRecord): string | undefined {
   return record.oracle_id ?? record.card_faces?.[0]?.oracle_id;
 }
 
-export const basicLands = [
-  {
-    name: 'Forest',
-    type_line: 'Basic Land — Forest',
-    oracle_id: 'b34bb2dc-c1af-4d77-b0b3-a0fb342a5fc6',
-    id: 'c0f8b1a4-0d6e-4c1e-9f5e-2b7f3c1f2a01',
-    set: 'blb',
-    set_name: 'Bloomburrow',
-    collector_number: '278',
-    image_uris: {
-      normal: 'https://cards.scryfall.io/normal/front/f/7/f791876a-f3fb-45b8-90a9-af846d8b8f74.jpg?1783910776',
-      art_crop: 'https://cards.scryfall.io/art_crop/front/f/7/f791876a-f3fb-45b8-90a9-af846d8b8f74.jpg?1783910776',
-    },
-  },
-  {
-    name: 'Wastes',
-    type_line: 'Basic Land',
-    oracle_id: '05d24b0c-904a-46b6-b42a-96a4d91a0dd4',
-    id: 'c0f8b1a4-0d6e-4c1e-9f5e-2b7f3c1f2a02',
-    set: 'ogw',
-    set_name: 'Oath of the Gatewatch',
-    collector_number: '183',
-    image_uris: {
-      normal: 'https://cards.scryfall.io/normal/front/7/0/7019912c-bd9b-4b96-9388-400794909aa1.jpg?1783937889',
-      art_crop: 'https://cards.scryfall.io/art_crop/front/7/0/7019912c-bd9b-4b96-9388-400794909aa1.jpg?1783937889',
-    },
-  },
-  {
-    name: 'Snow-Covered Forest',
-    type_line: 'Basic Snow Land — Forest',
-    oracle_id: '5f0d3be8-e63e-4ade-ae58-6b0c14f2ce6d',
-    id: 'c0f8b1a4-0d6e-4c1e-9f5e-2b7f3c1f2a03',
-    set: 'khm',
-    set_name: 'Kaldheim',
-    collector_number: '285',
-    image_uris: {
-      normal: 'https://cards.scryfall.io/normal/front/f/e/fe241460-f7c1-4ba8-a156-6720b494ac97.jpg?1783928164',
-      art_crop: 'https://cards.scryfall.io/art_crop/front/f/e/fe241460-f7c1-4ba8-a156-6720b494ac97.jpg?1783928164',
-    },
-  },
-];
+type BasicLandPrinting = {
+  name: string;
+  oracle_id: string;
+  id: string;
+  image_uris: { normal: string };
+};
 
-export function withBasicLands(records: ScryfallRecord[]): ScryfallRecord[] {
-  const template = records.find((record) => record.name === 'Rockface Village');
-  if (!template) {
-    throw new Error('Rockface Village is not in the catalog fixture');
+export const basicLands = (await readRecords('default-cards.jsonl.gz')).filter((record) =>
+  String(record.type_line).startsWith('Basic '),
+) as BasicLandPrinting[];
+
+export function basicLand(name: string): BasicLandPrinting {
+  const land = basicLands.find((record) => record.name === name);
+  if (!land) {
+    throw new Error(`${name} is not a basic land in the catalog fixture`);
   }
-  return [
-    ...records,
-    ...basicLands.map((land) => ({
-      ...template,
-      ...land,
-      oracle_text: '',
-      color_identity: [],
-      edhrec_rank: undefined,
-    })),
-  ];
+  return land;
 }
 
 export async function oracleTagOf(slug: string): Promise<ScryfallOracleTag> {

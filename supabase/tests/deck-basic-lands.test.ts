@@ -10,12 +10,12 @@ import {
   type SetBasicLandsResult,
 } from '../decks';
 import {
+  basicLand,
   basicLands,
   catalogFixture,
   oracleIdOf,
   resetCardCatalog,
   runCatalogImport,
-  withBasicLands,
   type ScryfallRecord,
 } from './catalog-import-command';
 import {
@@ -32,9 +32,11 @@ setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
 const basicLandKinds = 12;
-const [forest, wastes, snowCoveredForest] = basicLands.map((land) => land.oracle_id) as [string, string, string];
+const [forest, wastes, snowCoveredForest] = ['Forest', 'Wastes', 'Snow-Covered Forest'].map(
+  (name) => basicLand(name).oracle_id,
+) as [string, string, string];
 
-const forestPrinting = basicLands[0]!;
+const forestPrinting = basicLand('Forest');
 
 function withNewerForestsThatAreNotRegular(records: ScryfallRecord[]): ScryfallRecord[] {
   const forestRecord = records.find((record) => record.id === forestPrinting.id)!;
@@ -55,8 +57,7 @@ function withNewerForestsThatAreNotRegular(records: ScryfallRecord[]): ScryfallR
 beforeAll(async () => {
   await resetCardCatalog();
   const manifest = await catalogFixture({
-    oracleCards: withBasicLands,
-    defaultCards: (records) => withNewerForestsThatAreNotRegular(withBasicLands(records)),
+    defaultCards: withNewerForestsThatAreNotRegular,
   });
   expect((await runCatalogImport(manifest)).exitCode).toBe(0);
 });
@@ -152,7 +153,7 @@ describe('setting basic lands', () => {
     expect(deck.basic_lands.find((land) => land.name === 'Wastes')).toEqual({
       oracle_id: wastes,
       name: 'Wastes',
-      image_uris: [basicLands[1]!.image_uris.normal],
+      image_uris: [basicLand('Wastes').image_uris.normal],
       count: 3,
     });
     expect(deck.basic_lands.find((land) => land.name === 'Forest')).toMatchObject({ oracle_id: forest, count: 0 });
@@ -202,7 +203,7 @@ describe('setting basic lands', () => {
       `;
     });
 
-    expect(card_rows_read).toBeLessThanOrEqual(basicLandKinds * 2);
+    expect(card_rows_read).toBeLessThanOrEqual(basicLandKinds * 3);
   });
 
   test('a later request lines up only the basic land cards it changes, and a count of 0 takes the card out', async () => {

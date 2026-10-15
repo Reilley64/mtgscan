@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { Json } from '../database.types';
 import { readDeckError, type CreatedDeck, type DeckChangePage, type DeckRole } from '../decks';
-import { basicLands, catalogFixture, resetCardCatalog, runCatalogImport, withBasicLands } from './catalog-import-command';
+import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -11,12 +11,13 @@ setDefaultTimeout(60_000);
 const permissionDenied = '42501';
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
-const [forest, wastes, snowCoveredForest] = basicLands.map((land) => land.oracle_id) as [string, string, string];
+const [forest, wastes, snowCoveredForest] = ['Forest', 'Wastes', 'Snow-Covered Forest'].map(
+  (name) => basicLand(name).oracle_id,
+) as [string, string, string];
 
 beforeAll(async () => {
   await resetCardCatalog();
-  const manifest = await catalogFixture({ oracleCards: withBasicLands, defaultCards: withBasicLands });
-  expect((await runCatalogImport(manifest)).exitCode).toBe(0);
+  expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
 async function created(user: TestUser, name = 'Atraxa') {
