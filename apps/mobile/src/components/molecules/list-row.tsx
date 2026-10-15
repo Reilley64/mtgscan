@@ -12,13 +12,14 @@ const rowClass = 'flex-row items-center gap-md p-sm';
 type ListRowProps = {
   title: string;
   detail?: string;
+  trailing?: { content: ReactNode; spoken: string };
 } & (
   | { leading?: ReactNode; checked?: never; onPress?: () => void; menu?: never }
   | { leading?: never; checked: boolean; onPress: () => void; menu?: ReactNode }
 );
 
-export function ListRow({ title, detail, menu, leading, checked, onPress }: ListRowProps) {
-  const label = detail ? `${title}, ${detail}` : title;
+export function ListRow({ title, detail, trailing, menu, leading, checked, onPress }: ListRowProps) {
+  const label = [title, detail, trailing?.spoken].filter(Boolean).join(', ');
   const checkRow = checked !== undefined;
   const content = (
     <>
@@ -37,6 +38,7 @@ export function ListRow({ title, detail, menu, leading, checked, onPress }: List
         </Text>
         {detail ? <Text variant="meta">{detail}</Text> : null}
       </View>
+      {trailing?.content}
     </>
   );
 

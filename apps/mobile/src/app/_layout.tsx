@@ -8,6 +8,7 @@ import { SessionProvider, useSession } from '@/auth/session';
 import { PriceCurrencyProvider } from '@/collection/price-currency-setting';
 import { fullHeightDrawerOptions, halfHeightDrawerOptions } from '@/components/templates/drawer-sheet';
 import { GalleryProvider } from '@/gallery/gallery-state';
+import { CurrentPricesProvider } from '@/scan/current-prices';
 import { ScanBatchProvider } from '@/scan/scan-batch-state';
 import { ScanSoundsProvider } from '@/scan/scan-sounds-setting';
 import { colors } from '@/theme';
@@ -64,9 +65,11 @@ export default function RootLayout() {
           <GalleryProvider>
             <ScanSoundsProvider>
               <PriceCurrencyProvider>
-                <ScanBatchProvider>
-                  <RootStack />
-                </ScanBatchProvider>
+                <CurrentPricesProvider>
+                  <ScanBatchProvider>
+                    <RootStack />
+                  </ScanBatchProvider>
+                </CurrentPricesProvider>
               </PriceCurrencyProvider>
             </ScanSoundsProvider>
           </GalleryProvider>
