@@ -36,6 +36,7 @@ import type {
   DeckQuery,
   DeleteDeckRequest,
   MarkDeckUsedRequest,
+  RemoveDeckCardRequest,
   RenameDeckRequest,
   SetDeckCommanderRequest,
   SetBasicLandsRequest,
@@ -595,7 +596,7 @@ function setDeckCommander(request: SetDeckCommanderRequest) {
   if (failedDeckWrite()) {
     return { data: null, error: networkFailure };
   }
-  const deck = decks.find((candidate) => candidate.cards.some((card) => card.copy_id === request.copy_id));
+  const deck = deckOfCopy(request.copy_id);
   if (!deck) {
     return copyNotFound;
   }
@@ -610,8 +611,13 @@ function setDeckCommander(request: SetDeckCommanderRequest) {
     .toSorted((a, b) => a.commander_at!.localeCompare(b.commander_at!))
     .map((card) => ({ copy_id: card.copy_id, name: card.name, art_crop_uri: copyDetails.get(card.copy_id)?.art_crop_uri ?? null }));
   const changed: Deck = { ...deck, cards, commanders, revision: deck.revision + 1, last_used_at: time };
-  decks = decks.map((candidate) => (candidate.deck_id === deck.deck_id ? changed : candidate));
-  for (const card of cards) {
+  saveDeck(changed);
+  return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
+}
+
+function saveDeck(changed: Deck) {
+  decks = decks.map((candidate) => (candidate.deck_id === changed.deck_id ? changed : candidate));
+  for (const card of changed.cards) {
     const details = copyDetails.get(card.copy_id);
     if (details?.deck) {
       copyDetails.set(card.copy_id, {
@@ -619,12 +625,50 @@ function setDeckCommander(request: SetDeckCommanderRequest) {
         deck: {
           ...details.deck,
           role: card.role,
-          commander_art_crop_uri: commanders[0]?.art_crop_uri ?? null,
-          commander_count: commanders.length,
+          commander_art_crop_uri: changed.commanders[0]?.art_crop_uri ?? null,
+          commander_count: changed.commanders.length,
         },
       });
     }
   }
+}
+
+const copyNotInDeck = {
+  data: null,
+  error: { code: 'copy_not_in_deck', message: 'copy_id is not in a deck.', details: 'copy_id' },
+};
+
+function deckOfCopy(copyId: string) {
+  return decks.find((candidate) => candidate.cards.some((card) => card.copy_id === copyId));
+}
+
+function takeCopyOutOfItsDeck(copyId: string, deck: Deck) {
+  const changed: Deck = {
+    ...deck,
+    cards: deck.cards.filter((card) => card.copy_id !== copyId),
+    commanders: deck.commanders.filter((commander) => commander.copy_id !== copyId),
+    card_count: deck.card_count - 1,
+    revision: deck.revision + 1,
+    last_used_at: nextDeckTime(),
+  };
+  saveDeck(changed);
+  copyDetails.set(copyId, { ...copyDetails.get(copyId)!, free: true, deck: null });
+  return changed;
+}
+
+function removeDeckCard(request: RemoveDeckCardRequest) {
+  deckWrites = [...deckWrites, { name: 'remove_deck_card', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  if (!ownedCopyDetails(request.copy_id)) {
+    return copyNotFound;
+  }
+  const deck = deckOfCopy(request.copy_id);
+  if (!deck) {
+    return copyNotInDeck;
+  }
+  const changed = takeCopyOutOfItsDeck(request.copy_id, deck);
   return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
 }
 
@@ -820,7 +864,8 @@ export const fakeSupabase = {
             | DeleteDeckRequest
             | AddDeckCardRequest
             | SetDeckCommanderRequest
-            | SetBasicLandsRequest;
+            | SetBasicLandsRequest
+            | RemoveDeckCardRequest;
         },
   ) {
     if (name === 'list_decks') {
@@ -854,6 +899,9 @@ export const fakeSupabase = {
     }
     if (name === 'set_basic_lands' && args && 'request' in args) {
       return setBasicLands(args.request as SetBasicLandsRequest);
+    }
+    if (name === 'remove_deck_card' && args && 'request' in args) {
+      return removeDeckCard(args.request as RemoveDeckCardRequest);
     }
     if (name === 'list_user_tags') {
       return userTagList();
@@ -1026,8 +1074,17 @@ export function ownDecks(
   });
 }
 
+export function ownDeckOfCopies(name: string, copies: CopyDetails[]) {
+  ownDecks([{ name, priority: 'medium', card_count: copies.length, cards: copies.map((copy) => deckCardOf(copy, nextDeckTime())) }]);
+  ownCopies(copies.map((copy) => ({ ...copy, free: false, deck: { deck_id: 'deck-1', name, role: 'main', commander_art_crop_uri: null, commander_count: 0 } })));
+}
+
 export function allocateCopyElsewhere(copyId: string) {
   copyDetails.set(copyId, { ...copyDetails.get(copyId)!, free: false });
+}
+
+export function removeDeckCardOnTheServer(copyId: string) {
+  takeCopyOutOfItsDeck(copyId, deckOfCopy(copyId)!);
 }
 
 export function decksOnTheServer() {

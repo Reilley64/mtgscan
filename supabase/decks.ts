@@ -121,6 +121,12 @@ export type SetBasicLandsRequest = {
 
 export type SetBasicLandsResult = AddedDeckCard;
 
+export type RemoveDeckCardRequest = {
+  copy_id: string;
+};
+
+export type RemovedDeckCard = AddedDeckCard;
+
 export type DeckErrorCode =
   | 'invalid_argument'
   | 'not_found'

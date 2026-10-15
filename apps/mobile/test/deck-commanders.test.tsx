@@ -72,23 +72,23 @@ describe('the long-press menu', () => {
     deckWith([solRing], []);
     await openDeck();
 
-    expect(tileMenuTitles(/^Sol Ring/)).toEqual(['Open card', 'Make commander']);
+    expect(tileMenuTitles(/^Sol Ring/)).toEqual(['Open card', 'Make commander', 'Remove from deck']);
   });
 
   test('with one commander, the commander offers Move to main deck and another card offers Make partner', async () => {
     deckWith([atraxa, solRing], [commanderOf(atraxa, atraxaArt)]);
     await openDeck();
 
-    expect(tileMenuTitles(/^Atraxa/)).toEqual(['Open card', 'Move to main deck']);
-    expect(tileMenuTitles(/^Sol Ring/)).toEqual(['Open card', 'Make partner']);
+    expect(tileMenuTitles(/^Atraxa/)).toEqual(['Open card', 'Move to main deck', 'Remove from deck']);
+    expect(tileMenuTitles(/^Sol Ring/)).toEqual(['Open card', 'Make partner', 'Remove from deck']);
   });
 
   test('with two commanders, a main deck card offers neither Make item', async () => {
     deckWith([atraxa, kinnan, solRing], [commanderOf(atraxa, atraxaArt), commanderOf(kinnan, kinnanArt)]);
     await openDeck();
 
-    expect(tileMenuTitles(/^Sol Ring/)).toEqual(['Open card']);
-    expect(tileMenuTitles(/^Kinnan/)).toEqual(['Open card', 'Move to main deck']);
+    expect(tileMenuTitles(/^Sol Ring/)).toEqual(['Open card', 'Remove from deck']);
+    expect(tileMenuTitles(/^Kinnan/)).toEqual(['Open card', 'Move to main deck', 'Remove from deck']);
   });
 
   test('Make commander makes the card a commander, and it moves to the Commander group', async () => {
@@ -170,11 +170,11 @@ describe('the copy page menu', () => {
   }
 
   test.each([
-    ['main', 0, ['Make commander', 'Delete copy']],
-    ['main', 1, ['Make partner', 'Delete copy']],
-    ['commander', 1, ['Move to main deck', 'Delete copy']],
-    ['main', 2, ['Delete copy']],
-    ['commander', 2, ['Move to main deck', 'Delete copy']],
+    ['main', 0, ['Make commander', 'Remove from deck', 'Delete copy']],
+    ['main', 1, ['Make partner', 'Remove from deck', 'Delete copy']],
+    ['commander', 1, ['Move to main deck', 'Remove from deck', 'Delete copy']],
+    ['main', 2, ['Remove from deck', 'Delete copy']],
+    ['commander', 2, ['Move to main deck', 'Remove from deck', 'Delete copy']],
   ] as const)('a %s deck card in a deck with %i commanders offers %j', async (role, commanderCount, rows) => {
     copyInDeck(role, commanderCount);
 
@@ -193,7 +193,7 @@ describe('the copy page menu', () => {
 
     expect(commanderWrites()).toEqual([{ copy_id: 'copy-1', commander: true }]);
     await screen.findByRole('header', { name: 'Price' });
-    expect(actionsMenuRows()).toEqual(['Move to main deck', 'Delete copy']);
+    expect(actionsMenuRows()).toEqual(['Move to main deck', 'Remove from deck', 'Delete copy']);
   });
 
   test('a commander write that fails shows an alert', async () => {

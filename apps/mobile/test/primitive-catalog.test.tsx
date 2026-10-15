@@ -1,7 +1,7 @@
 import { fireEvent, screen } from 'expo-router/testing-library';
 
 import { startSignedIn } from './fake-supabase';
-import { menuButtonNames, presentedDrawer } from './native-ui';
+import { buttonMenuActions, contextMenu, menuButtonNames, presentedDrawer } from './native-ui';
 import { renderApp } from './render-app';
 
 beforeEach(() => {
@@ -95,6 +95,11 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByText('Could not load this card')).toBeOnTheScreen();
   expect(screen.getByLabelText('Current price, $1.25')).toHaveProp('accessibilityHint', 'The price may be out of date.');
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();
+  expect(buttonMenuActions(contextMenu(screen.getByRole('button', { name: 'Sol Ring, M10 216, long press for a menu' })))).toEqual([
+    { title: 'Open card', destructive: false },
+    { title: 'Make commander', destructive: false },
+    { title: 'Remove from deck', destructive: true },
+  ]);
   expect(screen.getByRole('checkbox', { name: 'Misprint, 0 copies' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263', selected: false })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Scan batch, 12' })).toBeOnTheScreen();

@@ -6,6 +6,7 @@ import {
   type DeckPriority,
   type DeleteDeckRequest,
   type MarkDeckUsedRequest,
+  type RemoveDeckCardRequest,
   type RenameDeckRequest,
   type SetBasicLandsRequest,
   type SetDeckCommanderRequest,
@@ -67,6 +68,15 @@ export async function setDeckCommander(copyId: string, commander: boolean): Prom
   const request: SetDeckCommanderRequest = { copy_id: copyId, commander };
   const { error } = await supabase.rpc('set_deck_commander', { request });
   if (error && ['copy_not_in_deck', 'commander_limit'].includes(readDeckError(error).code)) {
+    return 'missing';
+  }
+  return writeResultOf(error);
+}
+
+export async function removeDeckCard(copyId: string): Promise<WriteResult> {
+  const request: RemoveDeckCardRequest = { copy_id: copyId };
+  const { error } = await supabase.rpc('remove_deck_card', { request });
+  if (error && readDeckError(error).code === 'copy_not_in_deck') {
     return 'missing';
   }
   return writeResultOf(error);
