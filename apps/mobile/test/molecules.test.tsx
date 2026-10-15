@@ -14,7 +14,9 @@ import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardHero } from '@/components/molecules/card-hero';
 import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ReadFailure } from '@/components/molecules/read-failure';
+import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
+import { CardChip } from '@/components/molecules/card-chip';
 import { ChangeLine } from '@/components/molecules/change-line';
 import { CommanderGalleryCard, DeckBanner } from '@/components/molecules/commander-card';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
@@ -86,7 +88,7 @@ import {
 } from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim, textPrice, warning, info } = tokenColors;
+const { primary: lime, onPrimary, surface, surfaceControl, surfaceRaised, line, text: white, textMuted, textDim, textPrice, warning, danger, info } = tokenColors;
 const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
 const solRingArtCrop = 'https://cards.scryfall.io/art_crop/front/sol-ring.jpg';
 const mh3Symbol = 'https://svgs.scryfall.io/sets/mh3.svg';
@@ -374,6 +376,56 @@ describe('WarningLine', () => {
     expect(symbolNames(line)).toEqual(['shield.fill']);
     expect(symbolSizes(line)).toEqual([11]);
     expect(symbolTintColor(line)).toBe(tokenColors.warning);
+  });
+});
+
+describe('CardChip', () => {
+  test('a card chip shows the card thumbnail and name on surface raised, and is not a button', async () => {
+    await render(<CardChip uri={solRing} name="Sol Ring" />);
+
+    const chip = screen.getByLabelText('Sol Ring');
+    expect(chip).toHaveStyle({ backgroundColor: surfaceRaised, borderRadius: 12 });
+    expect(imageSources(chip)).toEqual([solRing]);
+    expect(within(chip).getByText('Sol Ring')).toHaveStyle({ color: white, fontSize: 11, fontWeight: '700' });
+    expect(screen.queryByRole('button')).not.toBeOnTheScreen();
+  });
+});
+
+describe('RuleRow', () => {
+  test('a rule row in danger shows the rule in danger body strong, the citation link at the end of its line, the message and the hint in meta text, and the card chips', async () => {
+    const onOpenCitation = jest.fn();
+    await render(
+      <RuleRow
+        tone="danger"
+        rule="Singleton"
+        citation={{ label: 'CR 903.5b', onPress: onOpenCitation }}
+        message="2 copies of Sol Ring."
+        cards={[{ key: 'copy-1', name: 'Sol Ring', uri: solRing }]}
+        hint="Remove 1 Sol Ring."
+      />,
+    );
+
+    const rule = screen.getByText('Singleton');
+    expect(rule).toHaveStyle({ color: danger, fontSize: 14, fontWeight: '700' });
+    const link = screen.getByRole('link', { name: 'CR 903.5b' });
+    expect(link).toHaveStyle({ color: lime, fontWeight: '700' });
+    expect(appearsBefore(rule, link)).toBe(true);
+    expect(screen.getByText('2 copies of Sol Ring.')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(screen.getByLabelText('Sol Ring')).toBeOnTheScreen();
+    expect(screen.getByText('Remove 1 Sol Ring.')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(appearsBefore(screen.getByLabelText('Sol Ring'), screen.getByText('Remove 1 Sol Ring.'))).toBe(true);
+
+    await fireEvent.press(link);
+
+    expect(onOpenCitation).toHaveBeenCalledTimes(1);
+  });
+
+  test('a rule row in warning shows the rule in warning, with no link and no hint', async () => {
+    await render(<RuleRow tone="warning" rule="Partner" message="mtgscan cannot read the partner ability of Tymna." cards={[]} />);
+
+    expect(screen.getByText('Partner')).toHaveStyle({ color: warning, fontWeight: '700' });
+    expect(screen.queryByRole('link')).not.toBeOnTheScreen();
+    expect(screen.getByText('mtgscan cannot read the partner ability of Tymna.')).toHaveStyle({ color: textMuted });
   });
 });
 
@@ -1394,7 +1446,7 @@ const partnerCommanders = [
 
 describe('CommanderGalleryCard', () => {
   test('a commander gallery card with no commander is a 140 px ghost card with the name in card title type and its chips', async () => {
-    await render(<CommanderGalleryCard name="Atraxa" chips={['Medium priority', '62 cards']} commanders={[]} onPress={() => {}} />);
+    await render(<CommanderGalleryCard name="Atraxa" chips={[{ label: 'Medium priority' }, { label: '62 cards' }]} commanders={[]} onPress={() => {}} />);
 
     const title = screen.getByRole('header', { name: 'Atraxa' });
     expect(title).toHaveStyle({ color: white, fontSize: 20, fontWeight: '800' });
@@ -1405,15 +1457,31 @@ describe('CommanderGalleryCard', () => {
 
   test('a commander gallery card is one button named by the deck and its chips', async () => {
     const onPress = jest.fn();
-    await render(<CommanderGalleryCard name="Atraxa" chips={['High priority', '1 card']} commanders={[]} onPress={onPress} />);
+    await render(<CommanderGalleryCard name="Atraxa" chips={[{ label: 'High priority' }, { label: '1 card' }]} commanders={[]} onPress={onPress} />);
 
     await fireEvent.press(screen.getByRole('button', { name: 'Atraxa, High priority, 1 card' }));
 
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
+  test('a commander gallery card shows a status chip with its symbol, and reads it as part of its one button', async () => {
+    await render(
+      <CommanderGalleryCard
+        name="Kinnan"
+        chips={[{ label: 'Medium priority' }, { label: '87 cards' }, { label: 'Invalid', tone: 'danger', symbol: 'nosign' }]}
+        commanders={[]}
+        onPress={() => {}}
+      />,
+    );
+
+    const card = screen.getByRole('button', { name: 'Kinnan, Medium priority, 87 cards, Invalid' });
+    expect(within(card).getByText('Invalid')).toHaveStyle({ color: danger });
+    expect(symbolNames(card)).toEqual(['nosign']);
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+  });
+
   test('a commander gallery card shows the first commander as art under a fade, and the second as a 40 px avatar at the top right', async () => {
-    await render(<CommanderGalleryCard name="Atraxa" chips={['High priority', '2 cards']} commanders={partnerCommanders} onPress={() => {}} />);
+    await render(<CommanderGalleryCard name="Atraxa" chips={[{ label: 'High priority' }, { label: '2 cards' }]} commanders={partnerCommanders} onPress={() => {}} />);
 
     const frame = screen.getByRole('header', { name: 'Atraxa' }).parent!;
     expect(imageFrames(frame)).toEqual([
@@ -1427,7 +1495,7 @@ describe('CommanderGalleryCard', () => {
 
 describe('DeckBanner', () => {
   test('a deck banner with no commander is a full-width ghost banner with square corners, and its name and chips sit in the 200 px under the safe area', async () => {
-    await render(<DeckBanner name="Atraxa" chips={['Medium priority', '62 cards']} commanders={[]} />);
+    await render(<DeckBanner name="Atraxa" chips={[{ label: 'Medium priority' }, { label: '62 cards' }]} commanders={[]} />);
 
     const title = screen.getByRole('header', { name: 'Atraxa' });
     expect(title).toHaveStyle({ color: white, fontSize: 20, fontWeight: '800' });
@@ -1438,8 +1506,27 @@ describe('DeckBanner', () => {
     expect(screen.getByLabelText('62 cards')).toBeOnTheScreen();
   });
 
+  test('a deck banner shows its status chip buttons after its chips, in a row that wraps', async () => {
+    const onPress = jest.fn();
+    await render(
+      <DeckBanner
+        name="Kinnan"
+        chips={[{ label: 'Medium priority' }, { label: '87 cards' }]}
+        chipButtons={[{ label: 'Invalid', tone: 'danger', symbol: 'nosign', accessibilityLabel: 'Deck validity, Invalid', onPress }]}
+        commanders={[]}
+      />,
+    );
+
+    const chip = screen.getByRole('button', { name: 'Deck validity, Invalid' });
+    await fireEvent.press(chip);
+
+    expect(appearsBefore(screen.getByLabelText('87 cards'), chip)).toBe(true);
+    expect(chip.parent).toHaveStyle({ flexWrap: 'wrap' });
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
   test('a deck banner shows the first commander as art under a fade, and the second as a 48 px avatar', async () => {
-    await render(<DeckBanner name="Atraxa" chips={['High priority', '2 cards']} commanders={partnerCommanders} />);
+    await render(<DeckBanner name="Atraxa" chips={[{ label: 'High priority' }, { label: '2 cards' }]} commanders={partnerCommanders} />);
 
     expect(imageFrames(screen.root!)).toEqual([
       { uri: 'https://cards.scryfall.io/art_crop/front/atraxa.jpg', width: undefined },

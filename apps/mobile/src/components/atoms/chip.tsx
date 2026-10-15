@@ -1,4 +1,4 @@
-import { cva } from 'class-variance-authority';
+import { cva, type VariantProps } from 'class-variance-authority';
 import type { SFSymbol } from 'expo-symbols';
 import { Pressable, View } from 'react-native';
 
@@ -30,10 +30,15 @@ const removableVariants = cva(cn(chipClass, 'min-w-touch-target flex-row items-c
   },
 });
 
-type StatusChipProps = {
+type ChipTone = NonNullable<VariantProps<typeof toneVariants>['tone']>;
+
+export type StatusChipProps = {
   label: string;
-  tone?: 'neutral' | 'warning' | 'danger' | 'info';
+  tone?: ChipTone;
   symbol?: SFSymbol;
+};
+
+type StatusChipOnlyProps = StatusChipProps & {
   selected?: never;
   onPress?: never;
   onRemove?: never;
@@ -57,6 +62,34 @@ type RemovableChipProps = {
   onRemove: () => void;
 };
 
+function StatusChipLabel({ label, tone = 'neutral', symbol }: StatusChipProps) {
+  return (
+    <>
+      {symbol && <SymbolView name={symbol} size={sizes.chipSymbol} className={toneVariants({ tone })} />}
+      <Text className={cn('text-chip', toneVariants({ tone }))}>{label}</Text>
+    </>
+  );
+}
+
+export type StatusChipButtonProps = StatusChipProps & {
+  accessibilityLabel: string;
+  onPress: () => void;
+};
+
+export function StatusChipButton({ accessibilityLabel, onPress, ...chip }: StatusChipButtonProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      hitSlop={verticalTouchSlop(sizes.chip)}
+      onPress={onPress}
+      className={cn(chipClass, 'min-w-touch-target flex-row items-center gap-xs bg-surface-control')}>
+      <StatusChipLabel {...chip} />
+      <SymbolView name="chevron.right" size={sizes.chipSymbol} className={toneVariants({ tone: chip.tone ?? 'neutral' })} />
+    </Pressable>
+  );
+}
+
 export function Chip({
   label,
   tone = 'neutral',
@@ -64,7 +97,7 @@ export function Chip({
   selected,
   onPress,
   onRemove,
-}: StatusChipProps | SelectableChipProps | RemovableChipProps) {
+}: StatusChipOnlyProps | SelectableChipProps | RemovableChipProps) {
   if (onRemove) {
     const removableTone = tone === 'danger' ? 'danger' : 'neutral';
     return (
@@ -86,8 +119,7 @@ export function Chip({
         accessible
         accessibilityLabel={label}
         className={cn(chipClass, 'flex-row items-center gap-xs self-start bg-surface-control')}>
-        {symbol && <SymbolView name={symbol} size={sizes.chipSymbol} className={toneVariants({ tone })} />}
-        <Text className={cn('text-chip', toneVariants({ tone }))}>{label}</Text>
+        <StatusChipLabel label={label} tone={tone} symbol={symbol} />
       </View>
     );
   }

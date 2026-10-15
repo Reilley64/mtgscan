@@ -8,7 +8,7 @@ import { Button } from '@/components/atoms/button';
 import { CardContextMenu } from '@/components/atoms/card-context-menu';
 import { CardImage } from '@/components/atoms/card-image';
 import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
-import { Chip } from '@/components/atoms/chip';
+import { Chip, StatusChipButton } from '@/components/atoms/chip';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { CountBadge } from '@/components/atoms/count-badge';
@@ -61,6 +61,7 @@ import {
   symbolNames,
   symbolSizes,
   symbolTintColor,
+  symbolTintColors,
   touchTarget,
   typeInAlertField,
   widthsAround,
@@ -425,6 +426,36 @@ describe('Chip', () => {
     await render(<Chip label="is:free" onRemove={() => {}} />);
 
     expect(touchTarget(screen.getByRole('button', { name: 'is:free' }))).toEqual({ width: 44, height: 44 });
+  });
+
+  test.each([
+    ['neutral', 'checkmark', white],
+    ['warning', 'questionmark', warning],
+    ['danger', 'nosign', danger],
+    ['info', undefined, info],
+  ] as const)(
+    'a status chip button in the %s tone has the control surface, its symbol before the label, and a chevron after it, in its text color',
+    async (tone, symbol, color) => {
+      await render(<StatusChipButton tone={tone} symbol={symbol} label="Invalid" accessibilityLabel="Deck validity, Invalid" onPress={() => {}} />);
+
+      const chip = screen.getByRole('button', { name: 'Deck validity, Invalid' });
+      expect(chip).toHaveStyle({ backgroundColor: surfaceControl, height: 24, borderRadius: 12 });
+      expect(within(chip).getByText('Invalid')).toHaveStyle({ color, fontSize: 11, fontWeight: '700' });
+      expect(symbolNames(chip)).toEqual([...(symbol ? [symbol] : []), 'chevron.right']);
+      expect(symbolSizes(chip)).toEqual(symbol ? [11, 11] : [11]);
+      expect(symbolTintColors(chip).every((tint) => tint === color)).toBe(true);
+    },
+  );
+
+  test('a status chip button has a 44 pt touch target and runs its action when pressed', async () => {
+    const onPress = jest.fn();
+    await render(<StatusChipButton tone="danger" symbol="nosign" label="Invalid" accessibilityLabel="Deck validity, Invalid" onPress={onPress} />);
+
+    const chip = screen.getByRole('button', { name: 'Deck validity, Invalid' });
+    await fireEvent.press(chip);
+
+    expect(touchTarget(chip)).toEqual({ width: 44, height: 44 });
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 });
 

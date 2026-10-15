@@ -629,6 +629,10 @@ export function symbolIn(element: HostElement) {
   return symbol;
 }
 
+export function symbolTintColors(element: HostElement) {
+  return element.queryAll(isSymbol).map((symbol) => symbol.props.tintColor);
+}
+
 export function symbolSizes(element: HostElement) {
   return element.queryAll(isSymbol).map((symbol) => symbol.props.size);
 }

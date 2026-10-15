@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/molecules/empty-state';
 import { GhostCommanderCard } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { TabScreen } from '@/components/templates/tab-screen';
-import { deckChips } from '@/decks/deck-labels';
+import { galleryCardChips } from '@/decks/deck-labels';
 import { createDeck } from '@/decks/deck-writes';
 import { useDecks } from '@/decks/use-decks';
 import { colors } from '@/theme';
@@ -64,7 +64,7 @@ export default function DecksScreen() {
             <CommanderGalleryCard
               key={deck.deck_id}
               name={deck.name}
-              chips={deckChips(deck)}
+              chips={galleryCardChips(deck)}
               commanders={deck.commanders}
               onPress={() => openDeck(deck.deck_id)}
             />

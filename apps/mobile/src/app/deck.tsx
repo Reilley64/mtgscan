@@ -15,7 +15,7 @@ import { DeckHistory } from '@/components/organisms/deck-history';
 import { PushedScreen } from '@/components/templates/pushed-screen';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
-import { cardCountLabel, deckChips } from '@/decks/deck-labels';
+import { cardCountLabel, deckChips, validityChips } from '@/decks/deck-labels';
 import { backToGallery, showDeckWriteResult } from '@/decks/deck-write-result';
 import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
 import { removeFromDeck } from '@/decks/remove-from-deck';
@@ -36,6 +36,20 @@ function deleteMessage(cardCount: number) {
 
 function openCard(card: DeckCard) {
   router.push({ pathname: '/copy', params: { copyId: card.copy_id } });
+}
+
+function validityChipButtons(deck: Deck) {
+  if (!deck.evaluation) {
+    return [];
+  }
+  const chip = validityChips[deck.evaluation.validity];
+  return [
+    {
+      ...chip,
+      accessibilityLabel: `Deck validity, ${chip.label}`,
+      onPress: () => router.push({ pathname: '/deck-validity', params: { deckId: deck.deck_id } }),
+    },
+  ];
 }
 
 function openRevert(deck: Deck, change: DeckChange) {
@@ -121,7 +135,12 @@ export default function DeckScreen() {
               onClose={() => setRenaming(false)}
             />
           ) : null}
-          <DeckBanner name={read.deck.name} chips={deckChips(read.deck)} commanders={read.deck.commanders} />
+          <DeckBanner
+            name={read.deck.name}
+            chips={deckChips(read.deck).map((label) => ({ label }))}
+            chipButtons={validityChipButtons(read.deck)}
+            commanders={read.deck.commanders}
+          />
           <View className="gap-lg px-lg">
             <ToggleGroup values={deckTabs} selected={tab} labelOf={(value) => deckTabLabels[value]} onSelect={setTab} />
             {tab === 'cards' ? (

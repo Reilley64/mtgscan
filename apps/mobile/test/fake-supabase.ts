@@ -35,6 +35,7 @@ import type {
   DeckCard,
   DeckChange,
   DeckChangesQuery,
+  DeckEvaluation,
   DeckQuery,
   DeleteDeckRequest,
   MarkDeckUsedRequest,
@@ -46,6 +47,7 @@ import type {
   SetDeckCommanderRequest,
   SetBasicLandsRequest,
   SetDeckPriorityRequest,
+  Violation,
 } from '@mtgscan/supabase/decks';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
@@ -454,13 +456,55 @@ function basicLandTotalOf(lands: DeckBasicLand[]) {
   return lands.reduce((total, land) => total + land.count, 0);
 }
 
+const rulesDataAt = '2026-10-12T06:00:00.000Z';
+
+function cardCountText(count: number) {
+  return count === 1 ? '1 card' : `${count} cards`;
+}
+
+function deckSizeViolations(cardCount: number): Violation[] {
+  if (cardCount === 100) {
+    return [];
+  }
+  const hint = cardCount < 100 ? `Add ${cardCountText(100 - cardCount)}.` : `Remove ${cardCountText(cardCount - 100)}.`;
+  return [{ rule: 'deck_size', citation: 'CR 903.5a', message: `${cardCount} of 100 cards.`, hint, cards: [] }];
+}
+
+function judgeDeck(deck: Omit<Deck, 'evaluation'>): DeckEvaluation | null {
+  if (deck.card_count === 0) {
+    return null;
+  }
+  const violations: Violation[] = [
+    ...(deck.commanders.length === 0
+      ? [{ rule: 'no_commander' as const, citation: 'CR 903.3', message: 'This deck has no commander.', hint: null, cards: [] }]
+      : []),
+    ...deckSizeViolations(deck.card_count),
+  ];
+  return {
+    validity: violations.length > 0 ? 'invalid' : 'valid',
+    violations,
+    undetermined: [],
+    revision: deck.revision,
+    catalog_at: rulesDataAt,
+    judged_at: deck.last_used_at,
+    validity_rules_data_at: rulesDataAt,
+  };
+}
+
+function judged(deck: Omit<Deck, 'evaluation'>): Deck {
+  return { ...deck, evaluation: judgeDeck(deck) };
+}
+
 function deckList() {
   if (failedDeckRead()) {
     return { data: null, error: networkFailure };
   }
   const items = decks
     .toSorted((a, b) => b.last_used_at.localeCompare(a.last_used_at) || a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
-    .map(({ revision, created_at, cards, basic_lands, ...row }) => row);
+    .map(({ revision, created_at, cards, basic_lands, evaluation, ...row }) => ({
+      ...row,
+      evaluation: evaluation && { validity: evaluation.validity },
+    }));
   return { data: { items }, error: null };
 }
 
@@ -556,6 +600,7 @@ function createDeck(request: CreateDeckRequest) {
     created_at: time,
     cards: [],
     basic_lands: basicLandsOf(),
+    evaluation: null,
   };
   decks = [...decks, deck];
   return { data: { deck_id: deck.deck_id }, error: null };
@@ -647,7 +692,7 @@ function addDeckCard(request: AddDeckCardRequest) {
     revision: deck.revision + 1,
     last_used_at: time,
   };
-  decks = decks.map((candidate) => (candidate.deck_id === deck.deck_id ? changed : candidate));
+  saveDeck(changed);
   copyDetails.set(request.copy_id, {
     ...details,
     protected: false,
@@ -691,7 +736,7 @@ function setDeckCommander(request: SetDeckCommanderRequest) {
 }
 
 function saveDeck(changed: Deck) {
-  decks = decks.map((candidate) => (candidate.deck_id === changed.deck_id ? changed : candidate));
+  decks = decks.map((candidate) => (candidate.deck_id === changed.deck_id ? judged(changed) : candidate));
   for (const card of changed.cards) {
     const details = copyDetails.get(card.copy_id);
     if (details?.deck) {
@@ -768,7 +813,7 @@ function setBasicLands(request: SetBasicLandsRequest) {
     revision: deck.revision + 1,
     last_used_at: nextDeckTime(),
   };
-  decks = decks.map((candidate) => (candidate.deck_id === deck.deck_id ? changed : candidate));
+  saveDeck(changed);
   return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
 }
 
@@ -1144,11 +1189,11 @@ export function failUserTagChanges(count: number) {
 }
 
 export function ownDecks(
-  seeds: (Pick<Deck, 'name' | 'priority' | 'card_count'> & Partial<Pick<Deck, 'commanders' | 'cards' | 'basic_lands'>>)[],
+  seeds: (Pick<Deck, 'name' | 'priority' | 'card_count'> & Partial<Pick<Deck, 'commanders' | 'cards' | 'basic_lands' | 'evaluation'>>)[],
 ) {
-  decks = seeds.map((seed, index) => {
+  decks = seeds.map(({ evaluation, ...seed }, index) => {
     const time = nextDeckTime();
-    return {
+    const deck = judged({
       deck_id: `deck-${index + 1}`,
       commanders: [],
       last_used_at: time,
@@ -1157,7 +1202,8 @@ export function ownDecks(
       cards: [],
       basic_lands: basicLandsOf(),
       ...seed,
-    };
+    });
+    return evaluation === undefined ? deck : { ...deck, evaluation };
   });
 }
 

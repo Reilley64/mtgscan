@@ -93,7 +93,7 @@ describe('the long-press menu on the Cards tab', () => {
     await deck.findByRole('header', { name: 'Creatures, 1' });
     await pressHeaderButton(pushedScreen(), 'Close');
 
-    expect(await within(selectedTab()).findByRole('button', { name: 'Atraxa, Medium priority, 1 card' })).toBeOnTheScreen();
+    expect(await within(selectedTab()).findByRole('button', { name: 'Atraxa, Medium priority, 1 card, Invalid' })).toBeOnTheScreen();
   });
 
   test('removing the last card shows the empty deck', async () => {
