@@ -4,26 +4,23 @@ import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import { NameAlert } from '@/components/atoms/name-alert';
-import { Text } from '@/components/atoms/text';
-import { CommanderCard } from '@/components/molecules/commander-card';
+import { DeckBanner } from '@/components/molecules/commander-card';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
-import { SaveBar } from '@/components/molecules/save-bar';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { deckActionsMenu } from '@/components/organisms/deck-actions-menu';
 import { DeckCardOrderButtons } from '@/components/organisms/deck-card-order-buttons';
 import { DeckCards } from '@/components/organisms/deck-cards';
 import { DeckHistory } from '@/components/organisms/deck-history';
 import { PushedScreen } from '@/components/templates/pushed-screen';
-import { basicLandDraftOf, changedBasicLands, type BasicLandDraft } from '@/decks/basic-lands';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
 import { cardCountLabel, deckChips } from '@/decks/deck-labels';
-import { deleteDeck, markDeckUsed, renameDeck, setBasicLands, setDeckPriority } from '@/decks/deck-writes';
+import { backToGallery, showDeckWriteResult } from '@/decks/deck-write-result';
+import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
 import { removeFromDeck } from '@/decks/remove-from-deck';
 import { useDeck } from '@/decks/use-deck';
 import { useDeckChanges } from '@/decks/use-deck-changes';
-import type { WriteResult } from '@/lib/write-result';
 import { colors } from '@/theme';
 
 const deckTabs = ['cards', 'history'] as const;
@@ -48,46 +45,29 @@ function openRevert(deck: Deck, change: DeckChange) {
   });
 }
 
-function backToGallery() {
-  router.dismissTo('/decks');
-}
-
-async function showWriteResult(write: Promise<WriteResult>, failureTitle: string, onDone: () => void) {
-  const result = await write;
-  if (result === 'failed') {
-    Alert.alert(failureTitle, 'Check your connection.');
-  } else if (result === 'missing') {
-    backToGallery();
-  } else {
-    onDone();
-  }
-}
-
 export default function DeckScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const { read, reload } = useDeck(deckId);
   const { history, tryAgain: tryHistoryAgain, loadMore } = useDeckChanges(deckId, read.status === 'loaded' ? read.deck.revision : null);
   const [tab, setTab] = useState<DeckTab>('cards');
   const [renaming, setRenaming] = useState(false);
-  const [basicLandDraft, setBasicLandDraft] = useState<BasicLandDraft | null>(null);
-  const [savingBasicLands, setSavingBasicLands] = useState(false);
   const { grouping, order, setGrouping, setOrder } = useDeckCardOrder();
-  const showsCardOrderButtons = tab === 'cards' && read.status === 'loaded' && read.deck.card_count > 0 && !basicLandDraft;
+  const showsCardOrderButtons = tab === 'cards' && read.status === 'loaded' && read.deck.card_count > 0;
 
   useEffect(() => {
     void markDeckUsed(deckId);
   }, [deckId]);
 
   function rename(name: string) {
-    return showWriteResult(renameDeck(deckId, name), 'Could not rename this deck', reload);
+    return showDeckWriteResult(renameDeck(deckId, name), 'Could not rename this deck', reload);
   }
 
   function changePriority(priority: DeckPriority) {
-    return showWriteResult(setDeckPriority(deckId, priority), 'Could not change the deck priority', reload);
+    return showDeckWriteResult(setDeckPriority(deckId, priority), 'Could not change the deck priority', reload);
   }
 
   function deleteThisDeck() {
-    return showWriteResult(deleteDeck(deckId), 'Could not delete this deck', backToGallery);
+    return showDeckWriteResult(deleteDeck(deckId), 'Could not delete this deck', backToGallery);
   }
 
   function menuActionsOf(deck: Deck) {
@@ -101,19 +81,6 @@ export default function DeckScreen() {
     };
   }
 
-  async function saveBasicLands(deck: Deck, draft: BasicLandDraft) {
-    setSavingBasicLands(true);
-    await showWriteResult(
-      setBasicLands({ deck_id: deckId, counts: changedBasicLands(deck.basic_lands, draft) }),
-      'Could not save the basic lands',
-      () => {
-        setBasicLandDraft(null);
-        reload();
-      },
-    );
-    setSavingBasicLands(false);
-  }
-
   function confirmDelete(deck: Deck) {
     Alert.alert(`Delete ${deck.name}?`, deleteMessage(deck.card_count), [
       { text: 'Delete deck', style: 'destructive', onPress: deleteThisDeck },
@@ -121,19 +88,8 @@ export default function DeckScreen() {
     ]);
   }
 
-  const basicLandFooter =
-    read.status === 'loaded' && tab === 'cards' && basicLandDraft ? (
-      <SaveBar
-        changeCount={changedBasicLands(read.deck.basic_lands, basicLandDraft).length}
-        saving={savingBasicLands}
-        onCancel={() => setBasicLandDraft(null)}
-        onSave={() => saveBasicLands(read.deck, basicLandDraft)}
-      />
-    ) : undefined;
-
   return (
     <PushedScreen
-      footer={basicLandFooter}
       onEndReached={tab === 'history' ? loadMore : undefined}
       floatingButtons={
         showsCardOrderButtons ? (
@@ -165,9 +121,7 @@ export default function DeckScreen() {
               onClose={() => setRenaming(false)}
             />
           ) : null}
-          <View className="px-lg pt-safe-offset-xl">
-            <CommanderCard name={read.deck.name} chips={deckChips(read.deck)} commanders={read.deck.commanders} size="banner" />
-          </View>
+          <DeckBanner name={read.deck.name} chips={deckChips(read.deck)} commanders={read.deck.commanders} />
           <View className="gap-lg px-lg">
             <ToggleGroup values={deckTabs} selected={tab} labelOf={(value) => deckTabLabels[value]} onSelect={setTab} />
             {tab === 'cards' ? (
@@ -175,11 +129,7 @@ export default function DeckScreen() {
                 deck={read.deck}
                 grouping={grouping}
                 order={order}
-                basicLandEdit={{
-                  draft: basicLandDraft,
-                  onEdit: () => setBasicLandDraft(basicLandDraftOf(read.deck.basic_lands)),
-                  onChange: (oracleId, count) => setBasicLandDraft((draft) => draft && { ...draft, [oracleId]: count }),
-                }}
+                onEditBasicLands={() => router.push({ pathname: '/basic-lands', params: { deckId } })}
                 onOpenCard={openCard}
                 menuActionsOf={menuActionsOf(read.deck)}
                 onOpenCollection={() => router.dismissTo('/collection')}

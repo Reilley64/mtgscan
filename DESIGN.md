@@ -308,8 +308,7 @@ components:
     height: 140px
   deck-banner:
     backgroundColor: "{colors.surface}"
-    rounded: "{rounded.md}"
-    padding: 12px
+    padding: 16px
     height: 200px
   deck-tag:
     backgroundColor: "{colors.surface-control}"
@@ -561,6 +560,7 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - A copy that no longer exists, such as one deleted on another phone, shows a native alert "This card is no longer in your collection." with **OK**, which goes back to the binder. The same alert shows when the copy is gone by the time the user picks an action.
   - When the read fails, the page shows the empty state "Could not load this card" with a **Try again** button. See Empty states.
 - **User tag picker**, from the User tags row of the copy page. It is a pushed screen, not a drawer:
+  - A back bar button with the `chevron.left` symbol sits on the left of its navigation bar. It is a native bar button in the text color, like the copy page's close button. VoiceOver reads it as "Back". It goes back to the copy page. The swipe from the left edge does the same.
   - The title "User tags" in sheet title type, then a meta line that names the copy with its chip labels, such as "Angelic Curator · MH2 · 262 · Foil · LP · English".
   - A field, "Find or create a user tag", that takes at most 64 characters. A tap on a row acts at once, even while the keyboard is up.
   - When the trimmed text matches no user tag ignoring case, the first row reads "Create "<name>"" with "and add it to this copy" and a 22 px lime `plus`. A tap creates the user tag, puts it on the copy, and clears the field.
@@ -573,7 +573,7 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - When a read fails, the picker shows the empty state "Could not load your user tags" with a **Try again** button. See Empty states.
   - A copy that no longer exists goes back to the copy page, which says so.
 - **Deck screen**, from the gallery or a deck tag. It is a pushed screen over the app tab bar, and it marks the deck used when it opens:
-  - The banner is 200 px tall, 32 px below the safe area, with the deck name in card title type and chips for the deck priority, such as "Medium priority", and the card count, such as "0 cards". The card count includes commanders and basic lands. The banner shows the art crop of the deck's first commander, the one made commander first, fading into the background (`gradients.commanderArtScrim`). A second commander shows as a 48 px commander avatar at the top right of the banner. A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color, with the name and chips at its bottom.
+  - The banner runs edge to edge and starts at the top edge of the screen, under the status bar, like the copy page hero (owner request, #259). It has square corners. Below the safe area it is 200 px tall, and the header with Close and ••• floats over its top. The deck name in card title type and chips for the deck priority, such as "Medium priority", and the card count, such as "0 cards", sit at its bottom, 16 px from the sides and the bottom, so they stay clear of the status bar and the buttons. The card count includes commanders and basic lands. The banner shows the art crop of the deck's first commander, the one made commander first, fading into the background (`gradients.commanderArtScrim`). A second commander shows as a 48 px commander avatar at the bottom right of the banner, beside the name and chips. A deck with no commander shows the ghost commander card edge to edge: a dashed line-colored outline on the surface color, with the name and chips at its bottom.
   - A close bar button with the `xmark` symbol sits on the left of the header, over the banner, as on the copy page. VoiceOver reads it as "Close". It goes back to where the deck screen was opened from. The swipe from the left edge does the same.
   - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the banner. VoiceOver reads it as "More". It opens a native menu:
     - **Rename** opens the name alert "Rename deck" with "Name your deck.", the deck name in the field, and **Cancel** and **Save**.
@@ -605,7 +605,7 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - The group and sort choices last until the app restarts and apply to every deck. They are not saved.
   - Two round floating menu buttons float at the bottom right, 16 px above the bottom safe area, while Cards shows deck cards. The sort button is at the right, where the Collection sort button is. The group button sits 8 px to its left. See Components.
   - **Basic lands** is the last group. Its header shows the total count of basic lands, such as "Basic lands 10", or no count with none, and a secondary **Edit** button on the right. The group shows the basic land cards with a count above zero, in the order Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Each is its card image with a count badge, such as ×8, at the top right. VoiceOver reads it as an image, "Island, 8". A basic land tile is not a button and has no long-press menu. An empty deck shows the group with **Edit** after the empty state.
-  - **Edit** shows all twelve basic land cards, each with a stepper under its image: a minus button, the count, and a plus button. VoiceOver reads them as "Remove one Island", "Island, 8", and "Add one Island". A count goes from 0 to 99. A Save bar at the bottom of the screen holds **Cancel** and a primary **Save N changes**, where N counts the basic land cards whose count changed, such as "Save 1 change". Save is off with no change. The Save bar shows only on Cards, and the group and sort buttons hide while it shows. Save sends all the counts as one deck change, and the group shows the new counts. Cancel puts the counts back. When the save fails, the alert "Could not save the basic lands" with "Check your connection." shows, and the changes stay.
+  - **Edit** opens the basic lands drawer (see Sheets). The group and sort buttons stay while it shows.
   - **History** lists the deck changes, newest first, one surface card each. More deck changes load as the user scrolls near the end, 20 at a time.
     - A card shows the kind in body strong: "Added", "Removed", "Made commander", "Made partner", "Moved to main deck", "Basic lands", "Removed from collection", or "Revert". A reverted deck change has a "Reverted" chip after its kind. The day and time follow in meta text, such as "16 October 2026 at 18:05". A **Revert** button in danger sits on the right of the card. It opens the revert page sheet. See Sheets.
     - Change lines follow. See Components. A copy that comes into the deck is a green + row, and a copy that leaves is a red − row. The meta is the type line. A commander change shows the new place instead, "Commander" or "Main deck". A basic land line shows the count change, such as "+2" or "−2".
@@ -634,11 +634,11 @@ The revert page sheet, from the **Revert** button of a deck change on History:
 - A revert that fails shows the native alert "Could not revert this change" with "Check your connection.", and the sheet stays.
 - When the effect cannot load, the sheet shows the empty state "Could not load this revert" with a **Try again** button, and Revert is off.
 
-Settings, the scan details sheet, the printing picker, the condition and language pickers, the Filters drawer, the Add to deck drawer, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all of them.
+Settings, the scan details sheet, the printing picker, the condition and language pickers, the Filters drawer, the Add to deck drawer, the basic lands drawer, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all of them.
 
 - It slides up from the bottom with the iOS grabber.
 - A drawer with a lot of content opens at full height and has no half height. These are the scan details sheet, the printing picker, and batch review.
-- Settings, the condition and language pickers, the Filters drawer, the Add to deck drawer, and other short drawers open at half the screen height. Dragging one up takes it to full height. Dragging it down takes it back to half height.
+- Settings, the condition and language pickers, the Filters drawer, the Add to deck drawer, the basic lands drawer, and other short drawers open at half the screen height. Dragging one up takes it to full height. Dragging it down takes it back to half height.
 - A downward swipe closes it. At half height, a tap outside closes it too. At full height, iOS leaves no screen outside it to tap. It has no Done button.
 - Its content starts 32 px (spacing xl) below the top edge, twice the page inset, so that it clears the grabber. The content scrolls at every height.
 
@@ -653,6 +653,15 @@ The Add to deck drawer, from the copy page's actions menu:
 - A write that fails shows the native alert "Could not add this card" with "Check your connection.", and the drawer stays.
 - A copy that no longer exists closes the drawer, and the copy page says so, as for its other actions.
 - When the deck list cannot load, the drawer shows the empty state "Could not load your decks" with a **Try again** button. See Empty states.
+
+The basic lands drawer, from **Edit** on the Basic lands group of a deck's Cards (owner request, #259). The deck screen is a pushed screen, so this drawer is the only one open:
+
+- The title "Basic lands", then one stepper row for each of the twelve basic land cards, in the order of the group: the card thumbnail, the name in body strong, and a stepper: a minus button, the count, and a plus button. VoiceOver reads them as "Remove one Island", "Island, 8", and "Add one Island". A count goes from 0 to 99.
+- A Save bar at the bottom of the drawer holds **Cancel** and a primary **Save N changes**, where N counts the basic land cards whose count changed, such as "Save 1 change". Save is off with no change.
+- Save sends every changed count as one deck change, closes the drawer, and the group shows the new counts. When the save fails, the alert "Could not save the basic lands" with "Check your connection." shows, and the drawer stays with the changes.
+- **Cancel** or a downward swipe closes the drawer and changes nothing.
+- A deck that was deleted elsewhere closes the drawer and goes back to the gallery.
+- When the deck cannot load, the drawer shows the empty state "Could not load this deck" with a **Try again** button.
 
 The settings drawer:
 
@@ -742,8 +751,9 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - A symbol that the app does not know stays as its plain text in braces, never an empty box.
   - VoiceOver reads the text with each symbol as words, such as "tap: Add green mana." or "two generic mana green mana". The words are: "white mana" for {W} and the same for each color, "colorless mana" for {C}, "two generic mana" for {2} and the same for each number, "zero mana" for {0}, "X generic mana" for {X}, {Y}, and {Z}, "half generic mana" for {½}, "infinite generic mana" for {∞}, "white or blue mana" for {W/U}, "two generic or white mana" for {2/W}, "colorless or white mana" for {C/W}, "Phyrexian green mana" for {G/P}, "Phyrexian black or green mana" for {B/G/P}, "Phyrexian colorless mana" for {C/P}, "Phyrexian mana" for {H}, "half white mana" for {HW}, "snow mana" for {S}, "legendary mana" for {L}, "tap" for {T}, "untap" for {Q}, "energy" for {E}, "acorn" for {A}, "ticket" for {TK}, "planeswalker" for {PW}, "chaos" for {CHAOS}, "pawprint" for {P}, and "land drop" for {D}.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, and the batch button. On a basic land tile of a deck, the count badge shows × before the count, such as ×8, 4 px from the top right corner of the card image.
-- **Stepper.** A secondary icon button with the `minus` symbol, the count in body strong, and a secondary icon button with the `plus` symbol, in one row. Minus is off at the lowest count and plus at the highest. The basic land tiles use it in Edit.
-- **Save bar.** A row at the bottom of a screen, below the content that scrolls, with a secondary **Cancel** and a primary **Save N changes** that share the width. It shows while the user edits several values to save as one change, such as basic land counts.
+- **Stepper.** A secondary icon button with the `minus` symbol, the count in body strong, and a secondary icon button with the `plus` symbol, in one row. Minus is off at the lowest count and plus at the highest. The count sits in a 44 px wide column, so the buttons do not move as it changes.
+- **Stepper row.** A surface row with the card thumbnail, the name in body strong, and a stepper at its right end. The basic lands drawer uses it.
+- **Save bar.** A row at the bottom of a screen or a drawer, below the content that scrolls, with a secondary **Cancel** and a primary **Save N changes** that share the width. It shows while the user edits several values to save as one change, such as basic land counts in the basic lands drawer.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A pill on the control surface, as tall as a chip, with the 18 px commander avatar and the deck name in chip type. It is used on Recent items and the deck line of the copy page. It opens the deck. VoiceOver reads it as a button with the deck name and the hint "Opens the deck." It gets the extra touch area of a chip.
 - **Commander avatar.** The art crop of a commander in a circle: 40 px in a list row and on the commander gallery card, 48 px on the deck screen banner, and 18 px in a deck tag. A list row and a deck tag show the deck's first commander. The gallery card and the banner show the second. A deck with no commander shows a dashed line-colored circle instead.
@@ -838,7 +848,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
     | Batch review, empty scan batch | three ghost batch rows | No scans yet | Cards you scan wait here until you add them. | none |
 
   - A refused search chip shows its message, such as "No set named "zzz".", as the title of the Collection search empty state, with no body.
-- **Commander gallery card.** A full-width button, 140 px tall, with 12 px corners. The deck name sits at its bottom in card title type, over chips for the deck priority and the card count. VoiceOver reads it as one button, such as "Atraxa, Medium priority, 0 cards". It shows the art crop of the deck's first commander under a dark gradient (`gradients.commanderArtScrim`), and a second commander as a 40 px commander avatar at its top right. A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color. Later, more status chips and a Needs you badge come. The deck screen banner is the same card at 200 px, with a 48 px avatar for the second commander.
+- **Commander gallery card.** A full-width button, 140 px tall, with 12 px corners. The deck name sits at its bottom in card title type, over chips for the deck priority and the card count. VoiceOver reads it as one button, such as "Atraxa, Medium priority, 0 cards". It shows the art crop of the deck's first commander under a dark gradient (`gradients.commanderArtScrim`), and a second commander as a 40 px commander avatar at its top right. A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color. Later, more status chips and a Needs you badge come. The deck screen banner uses the same art, fade, and ghost commander card, but runs edge to edge with square corners. See Pushed screens.
 - **Floating menu buttons.** A round Liquid Glass button, 48 px across, with an 18 px symbol, that opens a native menu with a title and a check mark on the current choice. Without Liquid Glass, it uses the control surface. The symbol is in the text color while the choice is the default, and primary lime otherwise. There is no badge or dot.
   - The sort button shows `arrow.up.arrow.down` and a menu titled "Sort by". An arrow beside the current sort shows its direction. VoiceOver reads "Sort" and the sort with its direction, such as "Sort, Name, A to Z". Collection and the deck screen's Cards tab share it.
   - The group button on the deck screen's Cards tab shows `rectangle.3.group` and a menu titled "Group by". VoiceOver reads "Group" and the grouping, such as "Group, Type".

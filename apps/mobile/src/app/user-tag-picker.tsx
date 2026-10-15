@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
@@ -10,6 +10,7 @@ import { DashedCardFrame } from '@/components/molecules/empty-state-illustration
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { UserTagPicker } from '@/components/organisms/user-tag-picker';
 import { PushedScreen } from '@/components/templates/pushed-screen';
+import { colors } from '@/theme';
 
 export default function UserTagPickerScreen() {
   const { copyId } = useLocalSearchParams<{ copyId: string }>();
@@ -39,7 +40,10 @@ export default function UserTagPickerScreen() {
 
   return (
     <PushedScreen>
-      <View className="gap-lg px-lg pt-safe-offset-xl">
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button icon="chevron.left" tintColor={colors.text} accessibilityLabel="Back" onPress={() => router.back()} />
+      </Stack.Toolbar>
+      <View className="gap-lg px-lg pt-lg">
         <Text variant="sheet-title">User tags</Text>
         {copyRead.status === 'loaded' && userTagsRead.status === 'loaded' ? (
           <UserTagPicker

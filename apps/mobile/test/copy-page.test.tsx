@@ -484,10 +484,27 @@ describe('the user tag picker', () => {
     expect(field).toHaveProp('maxLength', 64);
   });
 
-  test('the user tag picker has no on-screen back button and goes back to the copy page with the edge swipe', async () => {
-    await openUserTagPicker();
+  test('the user tag picker has a Back button on the left, like the copy page Close, that goes back to the copy page', async () => {
+    ownCopies([copyOf('copy-1')]);
+    await openCopyPage(/^Angelic Curator/);
+    const closeColor = headerButtonColor(pushedScreen(), 'Close');
+    await fireEvent.press(screen.getByRole('button', { name: 'Add user tags' }));
+    await screen.findByLabelText('Find or create a user tag');
 
     expect(pushedScreenBackButton()).toBeNull();
+    expect(leftHeaderButtons(pushedScreen())).toEqual(['Back']);
+    expect(headerButton(pushedScreen(), 'Back')).toEqual({ type: 'button', label: undefined, symbol: 'chevron.left', hint: undefined });
+    expect(headerButtonColor(pushedScreen(), 'Back')).toBe(closeColor);
+
+    await pressHeaderButton(pushedScreen(), 'Back');
+
+    expect(screen.queryByLabelText('Find or create a user tag')).not.toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Add user tags' })).toBeOnTheScreen();
+  });
+
+  test('the user tag picker goes back to the copy page with the edge swipe', async () => {
+    await openUserTagPicker();
+
     await swipeBackFromThePushedScreen();
 
     expect(screen.queryByLabelText('Find or create a user tag')).not.toBeOnTheScreen();

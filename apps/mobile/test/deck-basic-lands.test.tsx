@@ -1,12 +1,40 @@
 import { fireEvent, within } from 'expo-router/testing-library';
 
-import { pressAlertButton, presentedAlert, pressTab, pushedScreen, selectedTab, cardImageUri } from './native-ui';
+import {
+  cardImageUri,
+  imageSources,
+  isDrawerPresented,
+  menuButtonNames,
+  pressAlertButton,
+  presentedAlert,
+  presentedDrawer,
+  presentedDrawerContent,
+  pressTab,
+  pushedScreen,
+  selectedTab,
+  swipeDownDrawer,
+} from './native-ui';
 import { basicLandOracleId, basicLandsOf, deckWritesSent, failDeckWrites, ownDecks, startSignedIn } from './fake-supabase';
 import { renderApp } from './render-app';
 
 beforeEach(() => {
   startSignedIn();
 });
+
+const basicLandNames = [
+  'Plains',
+  'Island',
+  'Swamp',
+  'Mountain',
+  'Forest',
+  'Wastes',
+  'Snow-Covered Plains',
+  'Snow-Covered Island',
+  'Snow-Covered Swamp',
+  'Snow-Covered Mountain',
+  'Snow-Covered Forest',
+  'Snow-Covered Wastes',
+];
 
 async function openDeck(counts: Record<string, number>, cardCount = Object.values(counts).reduce((total, count) => total + count, 0)) {
   ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: cardCount, basic_lands: basicLandsOf(counts) }]);
@@ -18,19 +46,26 @@ async function openDeck(counts: Record<string, number>, cardCount = Object.value
   return deck;
 }
 
-type Deck = Awaited<ReturnType<typeof openDeck>>;
+type Queries = Awaited<ReturnType<typeof openDeck>>;
+
+async function openBasicLandsDrawer(deck: Queries) {
+  await fireEvent.press(deck.getByRole('button', { name: 'Edit' }));
+  const drawer = within(presentedDrawerContent());
+  await drawer.findByRole('header', { name: 'Basic lands' });
+  return drawer;
+}
 
 function basicLandsSent() {
   return deckWritesSent().flatMap(({ name, request }) => (name === 'set_basic_lands' ? [request] : []));
 }
 
-async function step(deck: Deck, label: string, times = 1) {
+async function step(drawer: Queries, label: string, times = 1) {
   for (let press = 0; press < times; press += 1) {
-    await fireEvent.press(deck.getByRole('button', { name: label }));
+    await fireEvent.press(drawer.getByRole('button', { name: label }));
   }
 }
 
-function headers(deck: Deck) {
+function headers(deck: Queries) {
   return deck.getAllByRole('header').map((header) => header.props.accessibilityLabel ?? header.props.children);
 }
 
@@ -59,65 +94,70 @@ describe('basic lands on the Cards tab', () => {
     expect(headers(deck).at(-1)).toBe('Basic lands');
     expect(deck.getByRole('button', { name: 'Edit' })).toBeOnTheScreen();
   });
+});
 
-  test('Edit shows all twelve basic land cards with a stepper under each, and a Save bar with Cancel and Save 0 changes', async () => {
+describe('the basic lands drawer', () => {
+  test('Edit opens a half-height drawer titled Basic lands with one row per basic land card, each with its image, name, and a stepper', async () => {
     const deck = await openDeck({ Island: 8 });
 
-    await fireEvent.press(deck.getByRole('button', { name: 'Edit' }));
+    const drawer = await openBasicLandsDrawer(deck);
 
-    expect(deck.queryByRole('button', { name: 'Edit' })).not.toBeOnTheScreen();
-    expect(deck.getAllByRole('button', { name: /^Add one / }).map((button) => button.props.accessibilityLabel)).toEqual([
-      'Add one Plains',
-      'Add one Island',
-      'Add one Swamp',
-      'Add one Mountain',
-      'Add one Forest',
-      'Add one Wastes',
-      'Add one Snow-Covered Plains',
-      'Add one Snow-Covered Island',
-      'Add one Snow-Covered Swamp',
-      'Add one Snow-Covered Mountain',
-      'Add one Snow-Covered Forest',
-      'Add one Snow-Covered Wastes',
-    ]);
-    expect(deck.getAllByRole('button', { name: /^Remove one / })).toHaveLength(12);
-    expect(deck.getByLabelText('Island, 8')).toHaveTextContent('8');
-    expect(deck.getByLabelText('Plains, 0')).toHaveTextContent('0');
-    expect(deck.getByRole('button', { name: 'Remove one Plains' })).toBeDisabled();
-    expect(deck.getByRole('button', { name: 'Cancel' })).toBeEnabled();
-    expect(deck.getByRole('button', { name: 'Save 0 changes' })).toBeDisabled();
+    expect(presentedDrawer()).toEqual({ showsGrabber: true, heights: [0.5, 1], openingHeight: 0.5 });
+    expect(basicLandNames.map((name) => drawer.getByText(name))).toHaveLength(12);
+    expect(imageSources(presentedDrawerContent())).toEqual(
+      basicLandNames.map((name) => `https://cards.scryfall.io/normal/front/${basicLandOracleId(name)}.jpg`),
+    );
+    expect(drawer.getAllByRole('button', { name: /^Add one / }).map((button) => button.props.accessibilityLabel)).toEqual(
+      basicLandNames.map((name) => `Add one ${name}`),
+    );
+    expect(drawer.getAllByRole('button', { name: /^Remove one / })).toHaveLength(12);
+    expect(drawer.getByLabelText('Island, 8')).toHaveTextContent('8');
+    expect(drawer.getByLabelText('Plains, 0')).toHaveTextContent('0');
+    expect(drawer.getByRole('button', { name: 'Remove one Plains' })).toBeDisabled();
+    expect(drawer.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+    expect(drawer.getByRole('button', { name: 'Save 0 changes' })).toBeDisabled();
   });
 
-  test('the Save bar counts the basic land cards whose count changed', async () => {
+  test('the deck screen keeps its count badges, Edit, and the group and sort buttons, and shows no steppers', async () => {
     const deck = await openDeck({ Island: 8 });
-    await fireEvent.press(deck.getByRole('button', { name: 'Edit' }));
 
-    await step(deck, 'Add one Plains', 2);
-    expect(deck.getByRole('button', { name: 'Save 1 change' })).toBeEnabled();
+    await openBasicLandsDrawer(deck);
 
-    await step(deck, 'Remove one Island');
-    expect(deck.getByRole('button', { name: 'Save 2 changes' })).toBeEnabled();
+    const behindTheDrawer = { includeHiddenElements: true };
+    expect(deck.getByRole('image', { name: 'Island, 8', ...behindTheDrawer })).toBeOnTheScreen();
+    expect(deck.getByRole('button', { name: 'Edit', ...behindTheDrawer })).toBeOnTheScreen();
+    expect(deck.queryByRole('button', { name: /^Add one /, ...behindTheDrawer })).not.toBeOnTheScreen();
+    expect(deck.queryByRole('button', { name: /^Save/, ...behindTheDrawer })).not.toBeOnTheScreen();
+    expect(menuButtonNames(pushedScreen())).toEqual(['Group, Type', 'Sort, Name, A to Z']);
+  });
 
-    await step(deck, 'Add one Island');
-    expect(deck.getByRole('button', { name: 'Save 1 change' })).toBeEnabled();
+  test('Save counts the basic land cards whose count changed', async () => {
+    const drawer = await openBasicLandsDrawer(await openDeck({ Island: 8 }));
+
+    await step(drawer, 'Add one Plains', 2);
+    expect(drawer.getByRole('button', { name: 'Save 1 change' })).toBeEnabled();
+
+    await step(drawer, 'Remove one Island');
+    expect(drawer.getByRole('button', { name: 'Save 2 changes' })).toBeEnabled();
+
+    await step(drawer, 'Add one Island');
+    expect(drawer.getByRole('button', { name: 'Save 1 change' })).toBeEnabled();
   });
 
   test('a stepper stops at 99', async () => {
-    const deck = await openDeck({ Island: 99 });
+    const drawer = await openBasicLandsDrawer(await openDeck({ Island: 99 }));
 
-    await fireEvent.press(deck.getByRole('button', { name: 'Edit' }));
-
-    expect(deck.getByRole('button', { name: 'Add one Island' })).toBeDisabled();
-    expect(deck.getByRole('button', { name: 'Remove one Island' })).toBeEnabled();
+    expect(drawer.getByRole('button', { name: 'Add one Island' })).toBeDisabled();
+    expect(drawer.getByRole('button', { name: 'Remove one Island' })).toBeEnabled();
   });
 
-  test('Save sends one write with the changed basic land cards, then shows the new counts', async () => {
+  test('Save sends one write with every changed count, closes the drawer, and the deck shows the new counts', async () => {
     const deck = await openDeck({ Island: 8 });
-    await fireEvent.press(deck.getByRole('button', { name: 'Edit' }));
-    await step(deck, 'Add one Plains', 2);
-    await step(deck, 'Remove one Island');
+    const drawer = await openBasicLandsDrawer(deck);
+    await step(drawer, 'Add one Plains', 2);
+    await step(drawer, 'Remove one Island');
 
-    await fireEvent.press(deck.getByRole('button', { name: 'Save 2 changes' }));
+    await fireEvent.press(drawer.getByRole('button', { name: 'Save 2 changes' }));
 
     expect(basicLandsSent()).toEqual([
       {
@@ -128,54 +168,56 @@ describe('basic lands on the Cards tab', () => {
         ],
       },
     ]);
+    expect(isDrawerPresented()).toBe(false);
     expect(await deck.findByRole('image', { name: 'Plains, 2' })).toBeOnTheScreen();
     expect(deck.getByRole('image', { name: 'Island, 7' })).toBeOnTheScreen();
     expect(headers(deck).at(-1)).toBe('Basic lands, 9');
-    expect(deck.queryByRole('button', { name: /^Save/ })).not.toBeOnTheScreen();
-    expect(deck.getByRole('button', { name: 'Edit' })).toBeOnTheScreen();
   });
 
-  test('Cancel restores the counts and sends nothing', async () => {
+  test('Cancel closes the drawer and changes nothing', async () => {
     const deck = await openDeck({ Island: 8 });
-    await fireEvent.press(deck.getByRole('button', { name: 'Edit' }));
-    await step(deck, 'Add one Plains');
-    await step(deck, 'Remove one Island', 3);
+    const drawer = await openBasicLandsDrawer(deck);
+    await step(drawer, 'Add one Plains');
+    await step(drawer, 'Remove one Island', 3);
 
-    await fireEvent.press(deck.getByRole('button', { name: 'Cancel' }));
+    await fireEvent.press(drawer.getByRole('button', { name: 'Cancel' }));
 
+    expect(isDrawerPresented()).toBe(false);
     expect(basicLandsSent()).toEqual([]);
     expect(deck.getByRole('image', { name: 'Island, 8' })).toBeOnTheScreen();
     expect(deck.queryByRole('image', { name: /^Plains/ })).not.toBeOnTheScreen();
-    expect(deck.queryByRole('button', { name: 'Cancel' })).not.toBeOnTheScreen();
 
-    await fireEvent.press(deck.getByRole('button', { name: 'Edit' }));
-    expect(deck.getByLabelText('Island, 8')).toHaveTextContent('8');
-    expect(deck.getByLabelText('Plains, 0')).toHaveTextContent('0');
+    const reopened = await openBasicLandsDrawer(deck);
+    expect(reopened.getByLabelText('Island, 8')).toHaveTextContent('8');
+    expect(reopened.getByLabelText('Plains, 0')).toHaveTextContent('0');
   });
 
-  test('the Save bar shows only on Cards, and the changes stay while History shows', async () => {
+  test('a swipe down closes the drawer and changes nothing', async () => {
     const deck = await openDeck({ Island: 8 });
-    await fireEvent.press(deck.getByRole('button', { name: 'Edit' }));
-    await step(deck, 'Add one Plains');
+    const drawer = await openBasicLandsDrawer(deck);
+    await step(drawer, 'Add one Plains');
 
-    await fireEvent.press(deck.getByRole('radio', { name: 'History' }));
-    expect(deck.queryByRole('button', { name: 'Save 1 change' })).not.toBeOnTheScreen();
+    await swipeDownDrawer();
 
-    await fireEvent.press(deck.getByRole('radio', { name: 'Cards' }));
-    expect(deck.getByRole('button', { name: 'Save 1 change' })).toBeEnabled();
+    expect(isDrawerPresented()).toBe(false);
+    expect(basicLandsSent()).toEqual([]);
+    expect(deck.queryByRole('image', { name: /^Plains/ })).not.toBeOnTheScreen();
+
+    const reopened = await openBasicLandsDrawer(deck);
+    expect(reopened.getByLabelText('Plains, 0')).toHaveTextContent('0');
   });
 
-  test('a save that fails says so and keeps the changes', async () => {
-    const deck = await openDeck({ Island: 8 });
-    await fireEvent.press(deck.getByRole('button', { name: 'Edit' }));
-    await step(deck, 'Add one Plains');
+  test('a save that fails says so and keeps the drawer open with the changes', async () => {
+    const drawer = await openBasicLandsDrawer(await openDeck({ Island: 8 }));
+    await step(drawer, 'Add one Plains');
     failDeckWrites(1);
 
-    await fireEvent.press(deck.getByRole('button', { name: 'Save 1 change' }));
+    await fireEvent.press(drawer.getByRole('button', { name: 'Save 1 change' }));
 
     expect(presentedAlert()).toEqual({ title: 'Could not save the basic lands', message: 'Check your connection.', buttons: ['OK'] });
     await pressAlertButton('OK');
-    expect(deck.getByRole('button', { name: 'Save 1 change' })).toBeEnabled();
-    expect(deck.getByLabelText('Plains, 1')).toHaveTextContent('1');
+    expect(isDrawerPresented()).toBe(true);
+    expect(drawer.getByRole('button', { name: 'Save 1 change' })).toBeEnabled();
+    expect(drawer.getByLabelText('Plains, 1')).toHaveTextContent('1');
   });
 });

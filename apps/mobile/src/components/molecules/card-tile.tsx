@@ -25,7 +25,6 @@ type CardTileProps = {
   sheen?: CardSheen;
   menuActions?: MenuAction[];
   count?: number;
-  control?: ReactNode;
 } & ({ caption: string; children?: never } | { caption?: never; children?: ReactNode }) &
   ({ selected?: never; onPress?: never } | { selected?: boolean; onPress: () => void });
 
@@ -39,7 +38,6 @@ export function CardTile({
   selected,
   menuActions,
   count,
-  control,
   onPress,
 }: CardTileProps) {
   const image = (
@@ -90,7 +88,6 @@ export function CardTile({
           {underImage}
         </View>
       )}
-      {control}
     </View>
   );
 }

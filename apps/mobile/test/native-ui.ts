@@ -654,15 +654,38 @@ export function splitColorsBehind(glyph: HostElement) {
   return [];
 }
 
-export function widthsAround(element: HostElement) {
-  const widths: number[] = [];
+function sizesAround(element: HostElement, dimension: 'width' | 'height') {
+  const sizes: number[] = [];
   for (let candidate = element.parent; candidate; candidate = candidate.parent) {
-    const width = StyleSheet.flatten(candidate.props.style)?.width;
-    if (typeof width === 'number') {
-      widths.push(width);
+    const size = StyleSheet.flatten(candidate.props.style)?.[dimension];
+    if (typeof size === 'number') {
+      sizes.push(size);
     }
   }
-  return widths;
+  return sizes;
+}
+
+export function widthsAround(element: HostElement) {
+  return sizesAround(element, 'width');
+}
+
+export function heightsAround(element: HostElement) {
+  return sizesAround(element, 'height');
+}
+
+export function placeInScrollView(element: HostElement) {
+  let block = element;
+  while (block.parent && block.parent.parent?.type !== 'RCTScrollView') {
+    block = block.parent;
+  }
+  const content = block.parent;
+  if (!content) {
+    throw new Error('This element is not in a scroll view');
+  }
+  const { padding = 0, paddingHorizontal = padding, paddingVertical = padding, paddingTop = paddingVertical, paddingLeft = paddingHorizontal, paddingRight = paddingHorizontal } =
+    StyleSheet.flatten(content.props.style) ?? {};
+  const [first] = content.children.filter((child) => typeof child !== 'string');
+  return { block, isFirst: first === block, contentInsets: { top: paddingTop, left: paddingLeft, right: paddingRight } };
 }
 
 export function blocksColored(element: HostElement, color: string) {
