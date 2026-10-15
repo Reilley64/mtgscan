@@ -4,18 +4,20 @@ language plpgsql
 set search_path = ''
 as $$
 declare
-  chosen_deck_id uuid;
+  locked_deck_id uuid;
   found_card public.deck_cards;
 begin
-  select card.deck_id into chosen_deck_id
-    from public.deck_cards card
-    where card.user_id = caller and card.copy_id = chosen_copy_id;
-  if chosen_deck_id is not null then
-    perform private.lock_deck(caller, chosen_deck_id);
+  loop
+    select card.deck_id into locked_deck_id
+      from public.deck_cards card
+      where card.user_id = caller and card.copy_id = chosen_copy_id;
+    perform 1 from public.decks deck where deck.user_id = caller and deck.id = locked_deck_id for update;
+    perform 1 from public.copies copy where copy.user_id = caller and copy.id = chosen_copy_id for update;
     select * into found_card
       from public.deck_cards card
-      where card.user_id = caller and card.copy_id = chosen_copy_id and card.deck_id = chosen_deck_id;
-  end if;
+      where card.user_id = caller and card.copy_id = chosen_copy_id;
+    exit when found_card.deck_id is not distinct from locked_deck_id;
+  end loop;
   return found_card;
 end;
 $$;
@@ -41,7 +43,7 @@ begin
 end;
 $$;
 
-create function private.remove_from_deck(caller uuid, removed public.deck_cards, change_kind public.deck_change_kind)
+create function private.remove_from_deck(caller uuid, deck_card public.deck_cards, change_kind public.deck_change_kind)
 returns void
 language plpgsql
 set search_path = ''
@@ -50,10 +52,10 @@ declare
   chosen_copy public.copies;
   change_id uuid;
 begin
-  delete from public.deck_cards card where card.user_id = caller and card.copy_id = removed.copy_id;
-  select * into chosen_copy from public.copies copy where copy.user_id = caller and copy.id = removed.copy_id;
+  delete from public.deck_cards card where card.user_id = caller and card.copy_id = deck_card.copy_id;
+  select * into chosen_copy from public.copies copy where copy.user_id = caller and copy.id = deck_card.copy_id;
 
-  change_id := private.record_deck_change(caller, removed.deck_id, change_kind);
+  change_id := private.record_deck_change(caller, deck_card.deck_id, change_kind);
   insert into public.deck_change_lines (user_id, deck_change_id, copy_id, card_printing_id, finish, place_before, place_after)
     values (
       caller,
@@ -61,7 +63,7 @@ begin
       chosen_copy.id,
       chosen_copy.card_printing_id,
       chosen_copy.finish,
-      private.deck_role(removed.commander_at),
+      private.deck_role(deck_card.commander_at),
       null
     );
 end;

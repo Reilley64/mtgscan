@@ -5,7 +5,7 @@ import type { Json } from '../database.types';
 import type { CreatedDeck, Deck, DeckChangePage, DeckList } from '../decks';
 import { readSearchError, type CardDetails, type CardPrintingsPage, type CatalogRow, type SearchPage } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
-import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
+import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
@@ -51,6 +51,35 @@ async function collectionTotal(user: TestUser) {
   const { data, error } = await user.client.rpc('get_collection_total', { query: {} });
   expect(error).toBeNull();
   return data as unknown as CollectionTotal;
+}
+
+async function created(user: TestUser, name: string) {
+  const { data, error } = await user.client.rpc('create_deck', { request: { name } });
+  expect(error).toBeNull();
+  return (data as unknown as CreatedDeck).deck_id;
+}
+
+async function added(user: TestUser, deckId: string, copyId: string) {
+  const { error } = await user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: copyId, unprotect: false } });
+  expect(error).toBeNull();
+}
+
+async function deckOf(user: TestUser, deckId: string) {
+  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
+  expect(error).toBeNull();
+  return data as unknown as Deck;
+}
+
+async function deckChangesOf(user: TestUser, deckId: string) {
+  const { data, error } = await user.client.rpc('list_deck_changes', { query: { deck_id: deckId } });
+  expect(error).toBeNull();
+  return (data as unknown as DeckChangePage).items;
+}
+
+async function deckNamesOf(user: TestUser) {
+  const { data, error } = await user.client.rpc('list_decks');
+  expect(error).toBeNull();
+  return (data as unknown as DeckList).items.map((deck) => deck.name);
 }
 
 describe('deleting a copy', () => {
@@ -129,35 +158,6 @@ describe('deleting a copy', () => {
 });
 
 describe('deleting a copy in a deck', () => {
-  async function created(user: TestUser, name: string) {
-    const { data, error } = await user.client.rpc('create_deck', { request: { name } });
-    expect(error).toBeNull();
-    return (data as unknown as CreatedDeck).deck_id;
-  }
-
-  async function added(user: TestUser, deckId: string, copyId: string) {
-    const { error } = await user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: copyId, unprotect: false } });
-    expect(error).toBeNull();
-  }
-
-  async function deckOf(user: TestUser, deckId: string) {
-    const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-    expect(error).toBeNull();
-    return data as unknown as Deck;
-  }
-
-  async function deckChangesOf(user: TestUser, deckId: string) {
-    const { data, error } = await user.client.rpc('list_deck_changes', { query: { deck_id: deckId } });
-    expect(error).toBeNull();
-    return (data as unknown as DeckChangePage).items;
-  }
-
-  async function deckNamesOf(user: TestUser) {
-    const { data, error } = await user.client.rpc('list_decks');
-    expect(error).toBeNull();
-    return (data as unknown as DeckList).items.map((deck) => deck.name);
-  }
-
   test('removes the copy from its deck with one removed_from_collection deck change, raises the revision, then deletes the copy', async () => {
     const user = await signUpNewUser();
     const deckId = await created(user, 'Atraxa');
@@ -224,7 +224,7 @@ describe('deleting a copy in a deck', () => {
     expect(await deckNamesOf(user)).toEqual(['Atraxa', 'Kinnan']);
   });
 
-  test('deleting a free copy makes no deck change', async () => {
+  test('deleting a copy in no deck makes no deck change', async () => {
     const user = await signUpNewUser();
     const deckId = await created(user, 'Atraxa');
     const [inDeck, free] = await scannedCuratorCopyIds(user);
@@ -234,6 +234,51 @@ describe('deleting a copy in a deck', () => {
 
     expect((await deckOf(user, deckId)).revision).toBe(1);
     expect((await deckChangesOf(user, deckId)).map((change) => change.kind)).toEqual(['added']);
+  });
+
+  test('an add that waits on the copy while it is deleted still ends with a removed_from_collection deck change', async () => {
+    const user = await signUpNewUser();
+    const deckId = await created(user, 'Atraxa');
+    const [copyId] = await scannedCuratorCopyIds(user);
+
+    const { add, remove } = await asDatabaseOwner((database) =>
+      database.begin(async (transaction) => {
+        await transaction`select id from public.copies where id = ${copyId} for update`;
+        const add = (async () =>
+          user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: copyId, unprotect: false } }))();
+        await Bun.sleep(250);
+        const remove = deleteCopy(user.client, { copy_id: copyId });
+        await Bun.sleep(250);
+        return { add, remove };
+      }),
+    );
+
+    expect((await add).error).toBeNull();
+    expect((await remove).error).toBeNull();
+    expect((await deckChangesOf(user, deckId)).map((change) => [change.revision, change.kind])).toEqual([
+      [2, 'removed_from_collection'],
+      [1, 'added'],
+    ]);
+    expect((await deckOf(user, deckId)).cards).toEqual([]);
+  });
+
+  test('a copy whose deck is deleted while the copy is deleted is still deleted, with no error', async () => {
+    const user = await signUpNewUser();
+    const deckId = await created(user, 'Atraxa');
+    const [copyId] = await scannedCuratorCopyIds(user);
+    await added(user, deckId, copyId);
+
+    const { remove } = await asDatabaseOwner((database) =>
+      database.begin(async (transaction) => {
+        await transaction`delete from public.decks where id = ${deckId}`;
+        const remove = deleteCopy(user.client, { copy_id: copyId });
+        await Bun.sleep(250);
+        return { remove };
+      }),
+    );
+
+    expect((await remove).error).toBeNull();
+    expect(await copyIdsInTheCollection(user)).not.toContain(copyId);
   });
 
   test("deleting another user's copy in a deck is not_found and leaves their deck as it was", async () => {

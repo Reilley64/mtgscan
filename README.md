@@ -288,7 +288,7 @@ Signed-in users protect or unprotect one of their copies with `supabase.rpc('set
 Signed-in users delete one copy with `supabase.rpc('delete_copy', { request })`. The request has only `copy_id`. `supabase/collection.ts` has the shared type. The copy page deletes its copy through it.
 
 - It deletes the copy in one transaction. The copy leaves collection search, `get_copy`, owned quantities, and the collection total and its coverage.
-- A copy in a deck leaves its deck first, with one `removed_from_collection` deck change. It raises the deck revision by one and sets the last used time. Its line keeps the card printing and finish, so History still shows the card. Deleting a free copy makes no deck change.
+- A copy in a deck leaves its deck first, with one `removed_from_collection` deck change. It raises the deck revision by one and sets the last used time. Its line keeps the card printing and finish. History still shows the card. Deleting a copy in no deck makes no deck change.
 - The copy's addition, its addition line, and its copy ID in `collection_addition_copies` stay. A replayed scan batch never adds the copy again.
 - It returns nothing. Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist or was already deleted. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
