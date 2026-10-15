@@ -10,13 +10,14 @@ const avatarVariants = cva('overflow-hidden rounded-full', {
     size: {
       tag: 'size-deck-tag-avatar',
       row: 'size-commander-avatar',
+      banner: 'size-banner-commander-avatar',
     },
   },
 });
 
 type CommanderAvatarProps = {
   uri: string | null;
-  size: 'tag' | 'row';
+  size: 'tag' | 'row' | 'banner';
 };
 
 export function CommanderAvatar({ uri, size }: CommanderAvatarProps) {

@@ -68,6 +68,8 @@ const m10Symbol = 'https://svgs.scryfall.io/sets/m10.svg';
 const solRing = 'https://cards.scryfall.io/normal/front/8/e/8ee443cc-e17a-493b-9c93-1f9e141a30e4.jpg?1789644446';
 const solRingArtCrop = 'https://cards.scryfall.io/art_crop/front/8/e/8ee443cc-e17a-493b-9c93-1f9e141a30e4.jpg?1789644446';
 
+const solRingCommander = { copy_id: 'sol-ring', name: 'Sol Ring', art_crop_uri: solRingArtCrop };
+
 const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
 
 const cardPageSections = ['Copies', 'Decks', 'Prices', 'Rules'] as const;
@@ -311,6 +313,15 @@ function CardTiles() {
           <PriceLine price="$1.25" stale={false} />
         </CardTile>
         <CardTile uri={solRing} sheen="foil" accessibilityLabel="Sol Ring, M10 216, foil, deck card" onPress={() => {}} />
+        <CardTile
+          uri={solRing}
+          accessibilityLabel="Sol Ring, M10 216, long press for a menu"
+          menuActions={[
+            { title: 'Open card', onSelect: () => {} },
+            { title: 'Make commander', onSelect: () => {} },
+          ]}
+          onPress={() => {}}
+        />
         {['CMM 464', 'C21 263'].map((caption) => (
           <CardTile
             key={caption}
@@ -591,8 +602,21 @@ function NameAlerts() {
 function CommanderCards() {
   return (
     <Section title="Commander cards">
-      <CommanderGalleryCard name="Atraxa" chips={['Medium priority', '0 cards']} onPress={() => {}} />
-      <CommanderCard name="Kinnan" chips={['High priority', '1 card']} size="banner" />
+      <CommanderGalleryCard name="Atraxa" chips={['Medium priority', '0 cards']} commanders={[]} onPress={() => {}} />
+      <CommanderGalleryCard name="Sol Ring" chips={['Medium priority', '1 card']} commanders={[solRingCommander]} onPress={() => {}} />
+      <CommanderGalleryCard
+        name="Partners"
+        chips={['Low priority', '2 cards']}
+        commanders={[solRingCommander, { ...solRingCommander, copy_id: 'second-commander' }]}
+        onPress={() => {}}
+      />
+      <CommanderCard name="Kinnan" chips={['High priority', '1 card']} commanders={[]} size="banner" />
+      <CommanderCard
+        name="Partners"
+        chips={['High priority', '2 cards']}
+        commanders={[solRingCommander, { ...solRingCommander, copy_id: 'second-commander' }]}
+        size="banner"
+      />
     </Section>
   );
 }

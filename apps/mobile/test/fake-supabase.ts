@@ -36,6 +36,7 @@ import type {
   DeleteDeckRequest,
   MarkDeckUsedRequest,
   RenameDeckRequest,
+  SetDeckCommanderRequest,
   SetDeckPriorityRequest,
 } from '@mtgscan/supabase/decks';
 import { testUser } from '@mtgscan/supabase/test-user';
@@ -541,9 +542,53 @@ function addDeckCard(request: AddDeckCardRequest) {
     ...details,
     protected: false,
     free: false,
-    deck: { deck_id: deck.deck_id, name: deck.name, role: 'main', commander_art_crop_uri: deck.commanders[0]?.art_crop_uri ?? null },
+    deck: {
+      deck_id: deck.deck_id,
+      name: deck.name,
+      role: 'main',
+      commander_art_crop_uri: deck.commanders[0]?.art_crop_uri ?? null,
+      commander_count: deck.commanders.length,
+    },
   });
   collectionCopies = collectionCopies.map((copy) => (copy.copy_id === request.copy_id ? { ...copy, protected: false } : copy));
+  return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
+}
+
+function setDeckCommander(request: SetDeckCommanderRequest) {
+  deckWrites = [...deckWrites, { name: 'set_deck_commander', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  const deck = decks.find((candidate) => candidate.cards.some((card) => card.copy_id === request.copy_id));
+  if (!deck) {
+    return copyNotFound;
+  }
+  const time = nextDeckTime();
+  const cards = deck.cards.map((card) =>
+    card.copy_id === request.copy_id
+      ? { ...card, role: request.commander ? ('commander' as const) : ('main' as const), commander_at: request.commander ? time : null }
+      : card,
+  );
+  const commanders = cards
+    .filter((card) => card.commander_at !== null)
+    .toSorted((a, b) => a.commander_at!.localeCompare(b.commander_at!))
+    .map((card) => ({ copy_id: card.copy_id, name: card.name, art_crop_uri: copyDetails.get(card.copy_id)?.art_crop_uri ?? null }));
+  const changed: Deck = { ...deck, cards, commanders, revision: deck.revision + 1, last_used_at: time };
+  decks = decks.map((candidate) => (candidate.deck_id === deck.deck_id ? changed : candidate));
+  for (const card of cards) {
+    const details = copyDetails.get(card.copy_id);
+    if (details?.deck) {
+      copyDetails.set(card.copy_id, {
+        ...details,
+        deck: {
+          ...details.deck,
+          role: card.role,
+          commander_art_crop_uri: commanders[0]?.art_crop_uri ?? null,
+          commander_count: commanders.length,
+        },
+      });
+    }
+  }
   return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
 }
 
@@ -711,7 +756,8 @@ export const fakeSupabase = {
             | RenameDeckRequest
             | SetDeckPriorityRequest
             | DeleteDeckRequest
-            | AddDeckCardRequest;
+            | AddDeckCardRequest
+            | SetDeckCommanderRequest;
         },
   ) {
     if (name === 'list_decks') {
@@ -739,6 +785,9 @@ export const fakeSupabase = {
     }
     if (name === 'add_deck_card' && args && 'request' in args) {
       return addDeckCard(args.request as AddDeckCardRequest);
+    }
+    if (name === 'set_deck_commander' && args && 'request' in args) {
+      return setDeckCommander(args.request as SetDeckCommanderRequest);
     }
     if (name === 'list_user_tags') {
       return userTagList();

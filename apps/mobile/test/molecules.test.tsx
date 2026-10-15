@@ -59,6 +59,7 @@ import {
   dashedOutlinesColored,
   fadesDown,
   glassEffect,
+  imageFrames,
   imageTintColor,
   menuButton,
   menuButtonNames,
@@ -1220,7 +1221,7 @@ describe('CommanderCard', () => {
     ['gallery', 140],
     ['banner', 200],
   ] as const)('a %s commander card with no commander is a %i px ghost card with the name in card title type and its chips', async (size, height) => {
-    await render(<CommanderCard name="Atraxa" chips={['Medium priority', '62 cards']} size={size} />);
+    await render(<CommanderCard name="Atraxa" chips={['Medium priority', '62 cards']} commanders={[]} size={size} />);
 
     const title = screen.getByRole('header', { name: 'Atraxa' });
     expect(title).toHaveStyle({ color: white, fontSize: 20, fontWeight: '800' });
@@ -1231,11 +1232,30 @@ describe('CommanderCard', () => {
 
   test('a commander gallery card is one button named by the deck and its chips', async () => {
     const onPress = jest.fn();
-    await render(<CommanderGalleryCard name="Atraxa" chips={['High priority', '1 card']} onPress={onPress} />);
+    await render(<CommanderGalleryCard name="Atraxa" chips={['High priority', '1 card']} commanders={[]} onPress={onPress} />);
 
     await fireEvent.press(screen.getByRole('button', { name: 'Atraxa, High priority, 1 card' }));
 
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    ['gallery', 40],
+    ['banner', 48],
+  ] as const)('a %s commander card shows the first commander as art under a fade, and the second as a %i px avatar', async (size, avatar) => {
+    const commanders = [
+      { copy_id: 'atraxa', name: 'Atraxa', art_crop_uri: 'https://cards.scryfall.io/art_crop/front/atraxa.jpg' },
+      { copy_id: 'kinnan', name: 'Kinnan', art_crop_uri: 'https://cards.scryfall.io/art_crop/front/kinnan.jpg' },
+    ];
+    await render(<CommanderCard name="Atraxa" chips={['High priority', '2 cards']} commanders={commanders} size={size} />);
+
+    const frame = screen.getByRole('header', { name: 'Atraxa' }).parent!;
+    expect(imageFrames(frame)).toEqual([
+      { uri: 'https://cards.scryfall.io/art_crop/front/atraxa.jpg', width: undefined },
+      { uri: 'https://cards.scryfall.io/art_crop/front/kinnan.jpg', width: avatar },
+    ]);
+    expect(fadesDown(frame)).toBe(true);
+    expect(frame).not.toHaveStyle({ borderStyle: 'dashed' });
   });
 });
 

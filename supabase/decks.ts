@@ -55,6 +55,7 @@ export type CopyDeck = {
   name: string;
   role: DeckRole;
   commander_art_crop_uri: string | null;
+  commander_count: number;
 };
 
 export type CreateDeckRequest = {
@@ -98,7 +99,20 @@ export type AddedDeckCard = {
   revision: number;
 };
 
-export type DeckErrorCode = 'invalid_argument' | 'not_found' | 'copy_not_free' | 'copy_protected';
+export type SetDeckCommanderRequest = {
+  copy_id: string;
+  commander: boolean;
+};
+
+export type SetDeckCommanderResult = AddedDeckCard;
+
+export type DeckErrorCode =
+  | 'invalid_argument'
+  | 'not_found'
+  | 'copy_not_free'
+  | 'copy_protected'
+  | 'copy_not_in_deck'
+  | 'commander_limit';
 
 export type DeckError = Omit<SearchError, 'code'> & { code: DeckErrorCode };
 

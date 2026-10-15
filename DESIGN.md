@@ -322,6 +322,11 @@ components:
     rounded: "{rounded.full}"
     width: 40px
     height: 40px
+  banner-commander-avatar:
+    backgroundColor: "{colors.line}"
+    rounded: "{rounded.full}"
+    width: 48px
+    height: 48px
   deck-tag-avatar:
     rounded: "{rounded.full}"
     width: 18px
@@ -546,7 +551,7 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - **Rules**: the Oracle text in a surface card, with each face's name over its text for a card with more than one face, then a "Commander" value row: "Legal", "Banned", "Not legal", or "Unknown". The card symbols in the Oracle text of every face, such as {G}, {T}, or {E}, show as card symbols. See Card symbols.
   - Section headings are lime body strong text.
   - A close bar button with the `xmark` symbol sits on the left of the header, over the hero (owner decision, #181). It is a native bar button in the text color, like the ••• button on the right. VoiceOver reads it as "Close". It goes back to where the copy page was opened from, the binder or the search results. The swipe from the left edge does the same. The search text, chips, sort, and scroll position stay as they were. It also shows while the copy loads and when the read fails.
-  - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the hero. VoiceOver reads it as "More". It opens the actions menu, a native menu of what the user can do to this copy. Its first item is **Protect** for a free copy or **Unprotect** for a protected copy. **Add to deck** follows on a free or protected copy when the user has a deck. Its last item is **Delete copy**, in red. A copy in a deck has no Protect and no Add to deck, because copies never move straight from one deck to another. There is no Create deck item.
+  - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the hero. VoiceOver reads it as "More". It opens the actions menu, a native menu of what the user can do to this copy. Its first item is **Protect** for a free copy or **Unprotect** for a protected copy. **Add to deck** follows on a free or protected copy when the user has a deck. Its last item is **Delete copy**, in red. A copy in a deck has no Protect and no Add to deck, because copies never move straight from one deck to another. It has the commander item of the deck screen's long-press menu first, with the same rules and alerts. There is no Create deck item.
   - **Add to deck** opens the Add to deck drawer (see Sheets). On a protected copy, a native alert comes first: "This copy is protected." with "Putting it in a deck unprotects it.", **Unprotect and add**, and **Cancel**. **Unprotect and add** opens the drawer, and the add then unprotects the copy. **Cancel** opens nothing.
   - **Protect** and **Unprotect** act at once on this copy only, and the Protected chip changes. When the write fails, a native alert says "Could not protect this card" or "Could not unprotect this card" and "Check your connection.", and the copy stays as it was.
   - **Delete copy** shows a native alert "Delete this copy?" with "It leaves your collection with its user tags. This cannot be undone.", **Delete copy** in red, and **Cancel**. After the delete, the app goes back to the binder, which reloads without the tile. When the delete fails, a native alert says "Could not delete this copy" and "Check your connection.", and the page stays.
@@ -565,7 +570,7 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - When a read fails, the picker shows the empty state "Could not load your user tags" with a **Try again** button. See Empty states.
   - A copy that no longer exists goes back to the copy page, which says so.
 - **Deck screen**, from the gallery or a deck tag. It is a pushed screen over the app tab bar, and it marks the deck used when it opens:
-  - The banner is 200 px tall, 32 px below the safe area, with the deck name in card title type and chips for the deck priority, such as "Medium priority", and the card count, such as "0 cards". The card count includes commanders and basic lands. A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color, with the name and chips at its bottom. Commander art comes with commanders.
+  - The banner is 200 px tall, 32 px below the safe area, with the deck name in card title type and chips for the deck priority, such as "Medium priority", and the card count, such as "0 cards". The card count includes commanders and basic lands. The banner shows the art crop of the deck's first commander, the one made commander first, fading into the background (`gradients.commanderArtScrim`). A second commander shows as a 48 px commander avatar at the top right of the banner. A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color, with the name and chips at its bottom.
   - A close bar button with the `xmark` symbol sits on the left of the header, over the banner, as on the copy page. VoiceOver reads it as "Close". It goes back to where the deck screen was opened from. The swipe from the left edge does the same.
   - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the banner. VoiceOver reads it as "More". It opens a native menu:
     - **Rename** opens the name alert "Rename deck" with "Name your deck.", the deck name in the field, and **Cancel** and **Save**.
@@ -578,6 +583,12 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - A segmented control under the banner switches between **Cards** and **History**. The deck screen opens on Cards. Suggestions comes later.
   - **Cards** starts with a "Commander" group. With no commander, it shows "No commander yet." in text muted under the heading. An empty deck then shows the empty state "No cards yet". See Empty states. **Open Collection** closes the deck screen and opens the Collection tab.
   - **Cards** shows the deck cards as card images 3 per row, with the binder grid's gaps and corners. A tile has the finish sheen of its copy, and no meta line and no price. VoiceOver reads it as a button with the name, the set code in capitals and the collector number, and the finish and condition as on a binder tile, such as "Sol Ring, C21 263, foil". A tap opens the copy page.
+  - A long press on a card tile opens a native context menu with the card as its preview. It has **Open card**, then the commander item:
+    - **Make commander** when the deck has no commander;
+    - **Make partner** when the deck has one commander and this card is not it;
+    - **Move to main deck** when this card is a commander;
+    - nothing when the deck has two commanders and this card is not one.
+  - The commander items act at once, with no confirmation. Each is a deck change. Any card can be made a commander. When the write fails, a native alert says "Could not make this card a commander" or "Could not move this card to the main deck" with "Check your connection.", and the deck stays as it was.
   - Commanders come first, in the Commander group, with the oldest commander first. The main deck follows in groups. Each group header shows its name in lime body strong and its count in meta text, such as "Creatures 12". VoiceOver reads it as one header, "Creatures, 12". Empty groups are hidden.
   - The group button chooses the groups. The choices are:
     - **Type**, the default: Creatures, Planeswalkers, Battles, Artifacts, Enchantments, Instants, Sorceries, Lands. A card with several types goes into the first match in that order, so an artifact creature is in Creatures. A card with none of these types goes into the last group, Lands.
@@ -646,6 +657,7 @@ The interface is flat. Depth comes from tone, not shadow.
   - **Etched sheen** (`gradients.etchedSheen`, 120 degrees): clear to 25%, then white `rgba(255, 255, 255, 0.55)`, silver `rgba(200, 210, 215, 0.25)`, and white again from 42% to 58%, then clear from 75%.
 - The hero of the copy page blurs the art crop with a 26 px radius (`blurRadii.heroArt`) and shows it at 45% opacity over the background (`opacity.heroArt`), so the card stands out from its own art. The blur radius is an image prop, not a class.
 - The empty state illustrations on the background fade downward into it (`gradients.emptyStateFade`). See Empty states.
+- Commander art on the commander gallery card and the deck screen banner fades down into the background color, clear to 30% of the height and 90% at the bottom (`gradients.commanderArtScrim`), so the deck name and chips stay readable.
 - NativeWind 4 has no class for a box shadow or a gradient, so the shadows, the scrim, the sheens, and the empty state fade are style values.
 - The tab bar is a near-opaque bar with a hairline top border.
 - The controls that float over the camera or over scrolling content use Liquid Glass. See Liquid Glass.
@@ -708,7 +720,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, and the batch button.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A pill on the control surface, as tall as a chip, with the 18 px commander avatar and the deck name in chip type. It is used on Recent items and the deck line of the copy page. It opens the deck. VoiceOver reads it as a button with the deck name and the hint "Opens the deck." It gets the extra touch area of a chip.
-- **Commander avatar.** The art crop of the deck's first commander in a circle: 40 px in a list row and 18 px in a deck tag. A deck with no commander shows a dashed line-colored circle instead.
+- **Commander avatar.** The art crop of a commander in a circle: 40 px in a list row and on the commander gallery card, 48 px on the deck screen banner, and 18 px in a deck tag. A list row and a deck tag show the deck's first commander. The gallery card and the banner show the second. A deck with no commander shows a dashed line-colored circle instead.
 - **Latest-scan chip.** One horizontal chip at the bottom of Scan, 16 px from the edges, on Liquid Glass. It has 8 px padding and three columns (owner request, #113):
   - The left column holds the card thumbnail.
   - The middle column holds the card name in body strong, centered over a centered meta line with the set code in capitals and the collector number, such as "M10 146".
@@ -800,7 +812,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
     | Batch review, empty scan batch | three ghost batch rows | No scans yet | Cards you scan wait here until you add them. | none |
 
   - A refused search chip shows its message, such as "No set named "zzz".", as the title of the Collection search empty state, with no body.
-- **Commander gallery card.** A full-width button, 140 px tall, with 12 px corners. The deck name sits at its bottom in card title type, over chips for the deck priority and the card count. VoiceOver reads it as one button, such as "Atraxa, Medium priority, 0 cards". A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color. Later, commander art with a dark gradient, more status chips, and a Needs you badge come. The deck screen banner is the same card at 200 px.
+- **Commander gallery card.** A full-width button, 140 px tall, with 12 px corners. The deck name sits at its bottom in card title type, over chips for the deck priority and the card count. VoiceOver reads it as one button, such as "Atraxa, Medium priority, 0 cards". It shows the art crop of the deck's first commander under a dark gradient (`gradients.commanderArtScrim`), and a second commander as a 40 px commander avatar at its top right. A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color. Later, more status chips and a Needs you badge come. The deck screen banner is the same card at 200 px, with a 48 px avatar for the second commander.
 - **Floating menu buttons.** A round Liquid Glass button, 48 px across, with an 18 px symbol, that opens a native menu with a title and a check mark on the current choice. Without Liquid Glass, it uses the control surface. The symbol is in the text color while the choice is the default, and primary lime otherwise. There is no badge or dot.
   - The sort button shows `arrow.up.arrow.down` and a menu titled "Sort by". An arrow beside the current sort shows its direction. VoiceOver reads "Sort" and the sort with its direction, such as "Sort, Name, A to Z". Collection and the deck screen's Cards tab share it.
   - The group button on the deck screen's Cards tab shows `rectangle.3.group` and a menu titled "Group by". VoiceOver reads "Group" and the grouping, such as "Group, Type".

@@ -723,6 +723,9 @@ isOneToOne: false
 "set_copy_user_tag":
 { Args: { "request": Json }; Returns: undefined
                            },
+"set_deck_commander":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "set_deck_priority":
 { Args: { "request": Json }; Returns: undefined
                            },
