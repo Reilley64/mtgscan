@@ -47,6 +47,7 @@ import {
   imageSources,
   imageTintColor,
   menuButton,
+  movesWithSafeArea,
   placeholderColor,
   pressAlertWithFieldButton,
   pressButtonMenuAction,
@@ -1188,6 +1189,17 @@ describe('CardContextMenu', () => {
     await pressButtonMenuAction(menu, 'Open card');
 
     expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+  test('the card draws in its place in the grid, wherever the grid scrolls it on the screen', async () => {
+    await render(
+      <CardContextMenu actions={[{ title: 'Open card', onSelect: () => {} }]}>
+        <View accessibilityLabel="Sol Ring">
+          <CardImage uri="https://cards.scryfall.io/normal/front/sol-ring.jpg" />
+        </View>
+      </CardContextMenu>,
+    );
+
+    expect(movesWithSafeArea(screen.getByLabelText('Sol Ring'))).toBe(false);
   });
 });
 

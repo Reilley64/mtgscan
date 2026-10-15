@@ -868,6 +868,15 @@ export function contextMenu(element: HostElement) {
   throw new Error('This element has no context menu');
 }
 
+export function movesWithSafeArea(element: HostElement) {
+  for (let parent = element.parent; parent; parent = parent.parent) {
+    if (parent.type === expoUiHost && 'layoutDirection' in parent.props) {
+      return parent.props.ignoreSafeArea !== 'all';
+    }
+  }
+  throw new Error('This element is not drawn by SwiftUI');
+}
+
 export function menuButtonNames(host: HostElement) {
   return host.queryAll(isNativeMenu).map(spokenLabelOf);
 }
