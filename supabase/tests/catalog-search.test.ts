@@ -248,6 +248,7 @@ describe('after a catalog import', () => {
           'Chronomaton',
           'Forest',
           'Island',
+          'Mind Stone',
           'Mister Gutsy',
           'Mountain',
           'Plains',
@@ -263,6 +264,7 @@ describe('after a catalog import', () => {
           'Snow-Covered Wastes',
           'Swamp',
           'The Biblioplex',
+          'Walking Ballista',
           'Wall of Forgotten Pharaohs',
           'Wastes',
         ],
@@ -278,10 +280,12 @@ describe('after a catalog import', () => {
           'Brisela, Voice of Nightmares',
           'Bruna, the Fading Light',
           'Buy Your Silence',
+          'Capture of Jingzhou',
           'Clara Oswald',
           'Conduit of Ruin',
           'Essence Fracture',
           'Everything Comes to Dust',
+          'Leveler',
           'Matopi Golem',
           'Nazgûl Battle-Mace',
           'Ormos, Archive Keeper',
@@ -289,8 +293,11 @@ describe('after a catalog import', () => {
           'Read the Tides',
           'Supplant Form',
           'Teferi, Temporal Archmage',
+          'Temporal Manipulation',
           'The Eternity Elevator',
           'The Prismatic Piper',
+          'Time Warp',
+          'Walk the Aeons',
           'Warrant // Warden',
           'Waterspout Elemental',
         ],
@@ -303,10 +310,12 @@ describe('after a catalog import', () => {
           'Clara Oswald',
           'Conduit of Ruin',
           'Drill-Skimmer',
+          'Leveler',
           'Matopi Golem',
           'Mister Gutsy',
           'Searchlight Companion',
           'The Prismatic Piper',
+          'Walking Ballista',
           'Wall of Forgotten Pharaohs',
         ],
       ],
@@ -316,6 +325,7 @@ describe('after a catalog import', () => {
         [
           'Brisela, Voice of Nightmares',
           'Copper Host Crusher',
+          'Leveler',
           'Nessian Boar',
           'Ravenous Necrotitan',
           'Red Hulk',
@@ -325,12 +335,12 @@ describe('after a catalog import', () => {
       [
         'power exactly',
         { power_min: 0, power_max: 0 },
-        ['Fog Bank', 'Orcish Siegemaster', 'Spike Breeder', 'Wall of Forgotten Pharaohs'],
+        ['Fog Bank', 'Orcish Siegemaster', 'Spike Breeder', 'Walking Ballista', 'Wall of Forgotten Pharaohs'],
       ],
       [
         'power between a negative and a fractional bound',
         { power_min: -1, power_max: 0.5 },
-        ['Fog Bank', 'Orcish Siegemaster', 'Spike Breeder', 'Wall of Forgotten Pharaohs'],
+        ['Fog Bank', 'Orcish Siegemaster', 'Spike Breeder', 'Walking Ballista', 'Wall of Forgotten Pharaohs'],
       ],
       [
         'toughness at least',
@@ -339,6 +349,7 @@ describe('after a catalog import', () => {
           'Brisela, Voice of Nightmares',
           'Bruna, the Fading Light',
           'Copper Host Crusher',
+          'Leveler',
           'Red Hulk',
           'Shorikai, Genesis Engine',
         ],
@@ -406,7 +417,7 @@ describe('after a catalog import', () => {
       [
         'is not Game Changer',
         { is_game_changer: false, types: ['enchantment'], identity_subset_of: ['U'], mana_value_min: 3 },
-        ['An Unearthly Child', 'Shimmer'],
+        ['An Unearthly Child', 'Intruder Alarm', 'Shimmer'],
       ],
     ])('%s', async (_, query, expected) => {
       expect(await names(query)).toEqual(expected);
@@ -475,12 +486,12 @@ describe('after a catalog import', () => {
   });
 
   describe('paging', () => {
-    const creatures = ["Adventurous Eater // Have a Bite", "Akki Lavarunner // Tok-Tok, Volcano Born", "Amy Pond", "Angelic Curator", "Atraxa, Praetors' Voice", "Ayesha Tanaka, Armorer", "Azra Oddsmaker", "Bladegraft Aspirant", "Bloomvine Regent // Claim Territory", "Bonecrusher Giant // Stomp", "Boreal Elemental", "Brambleguard Captain", "Brisela, Voice of Nightmares", "Bruna, the Fading Light", "Caldera Kavu", "Caustic Caterpillar", "Chaos Harlequin", "Chronomaton", "Clara Oswald", "Conduit of Ruin", "Copper Host Crusher", "Cruel Sadist", "Dakmor Lancer", "Dauthi Ghoul", "Deathcap Marionette", "Delver of Secrets // Insectile Aberration", "Dissatisfied Customer", "Drill-Skimmer", "Dryad Arbor", "Ellie, Brick Master", "Emeritus of Truce // Swords to Plowshares", "Estwald Shieldbasher", "Favored of Iroas", "Field Marshal", "Fire Nation Salvagers", "Fog Bank", "Ghostflame Sliver", "Ghost Warden", "Gisela, the Broken Blade", "Glimmerbell", "Gloomwidow", "Goblin Instigator", "Hancock, Ghoulish Mayor", "Heirloom Auntie", "Hidetsugu and Kairi", "Hobblefiend", "Hollowhead Sliver", "Jinnie Fay, Jetmir's Second", "Kenrith, the Returned King", "Kiki-Jiki, Mirror Breaker", "Kjeldoran Home Guard", "Krenko, Mob Boss", "Lavinia, Foil to Conspiracy", "Leonin Lightscribe", "Lesser Werewolf", "Lifecreed Duo", "Llanowar Elves", "Lurking Chupacabra", "Matopi Golem", "Mesmeric Sliver", "Mischievous Mystic", "Mister Gutsy", "Nessian Boar", "Opal-Eye, Konda's Yojimbo", "Orcish Siegemaster", "Ormos, Archive Keeper", "Othelm, Sigardian Outcast", "Pale Wayfarer", "Peri Brown", "Phantasmal Mount", "Primaris Chaplain", "Rampant Elephant", "Ramses Overdark", "Ravenous Necrotitan", "Red Hulk", "Red Tiger Mechan", "Relentless Rats", "Robobrain War Mind", "Roil Cartographer", "Rory Williams", "Sabertooth Nishoba", "Satoru, the Infiltrator", "Schema Thief", "Scoria Cat", "Scurrilous Sentry", "Searchlight Companion", "Selfless Police Captain", "Seven Dwarves", "Shackle Slinger", "Sophina, Spearsage Deserter", "Specter of Mortality", "Spike Breeder", "Spined Tyrranax", "Stormchaser Chimera", "Stronghold Rats", "Suspicious Shambler", "Tarmogoyf", "Thassa's Oracle", "The Prismatic Piper", "The Tenth Doctor", "Thrasios, Triton Hero", "Thundering Mightmare", "Thundering Wurm", "Tymna the Weaver", "Urban Daggertooth", "Verdant Eidolon", "Vizier of Tumbling Sands", "Wall of Forgotten Pharaohs", "Waterspout Elemental", "Wilson, Refined Grizzly", "Witch-king, Sky Scourge", "Zephyrim"];
+    const creatures = ["Adventurous Eater // Have a Bite", "Akki Lavarunner // Tok-Tok, Volcano Born", "Amy Pond", "Angelic Curator", "Atraxa, Praetors' Voice", "Auriok Salvagers", "Ayesha Tanaka, Armorer", "Azra Oddsmaker", "Bladegraft Aspirant", "Bloomvine Regent // Claim Territory", "Bonecrusher Giant // Stomp", "Boreal Elemental", "Brambleguard Captain", "Brisela, Voice of Nightmares", "Bruna, the Fading Light", "Caldera Kavu", "Caustic Caterpillar", "Chaos Harlequin", "Chronomaton", "Clara Oswald", "Conduit of Ruin", "Copper Host Crusher", "Cruel Sadist", "Dakmor Lancer", "Dauthi Ghoul", "Deathcap Marionette", "Delver of Secrets // Insectile Aberration", "Dissatisfied Customer", "Drill-Skimmer", "Dryad Arbor", "Ellie, Brick Master", "Emeritus of Truce // Swords to Plowshares", "Estwald Shieldbasher", "Favored of Iroas", "Field Marshal", "Fire Nation Salvagers", "Fog Bank", "Ghostflame Sliver", "Ghost Warden", "Gisela, the Broken Blade", "Glimmerbell", "Gloomwidow", "Goblin Instigator", "Hancock, Ghoulish Mayor", "Heirloom Auntie", "Hidetsugu and Kairi", "Hobblefiend", "Hollowhead Sliver", "Jinnie Fay, Jetmir's Second", "Kenrith, the Returned King", "Kiki-Jiki, Mirror Breaker", "Kjeldoran Home Guard", "Krenko, Mob Boss", "Lavinia, Foil to Conspiracy", "Leonin Lightscribe", "Lesser Werewolf", "Leveler", "Lifecreed Duo", "Llanowar Elves", "Lurking Chupacabra", "Matopi Golem", "Mesmeric Sliver", "Mischievous Mystic", "Mister Gutsy", "Nessian Boar", "Opal-Eye, Konda's Yojimbo", "Orcish Siegemaster", "Ormos, Archive Keeper", "Othelm, Sigardian Outcast", "Pale Wayfarer", "Peri Brown", "Phantasmal Mount", "Primaris Chaplain", "Rampant Elephant", "Ramses Overdark", "Ravenous Necrotitan", "Red Hulk", "Red Tiger Mechan", "Relentless Rats", "Robobrain War Mind", "Roil Cartographer", "Rory Williams", "Sabertooth Nishoba", "Satoru, the Infiltrator", "Schema Thief", "Scoria Cat", "Scurrilous Sentry", "Searchlight Companion", "Selfless Police Captain", "Seven Dwarves", "Shackle Slinger", "Sophina, Spearsage Deserter", "Specter of Mortality", "Spike Breeder", "Spined Tyrranax", "Stormchaser Chimera", "Stronghold Rats", "Suspicious Shambler", "Tarmogoyf", "Teardrop Kami", "Thassa's Oracle", "The Prismatic Piper", "The Tenth Doctor", "Thrasios, Triton Hero", "Thundering Mightmare", "Thundering Wurm", "Tymna the Weaver", "Urban Daggertooth", "Verdant Eidolon", "Vizier of Tumbling Sands", "Walking Ballista", "Wall of Forgotten Pharaohs", "Waterspout Elemental", "Wilson, Refined Grizzly", "Witch-king, Sky Scourge", "Zephyrim"];
 
     test.each([undefined, 50])('pages of %p cover every row once, in order', async (limit) => {
       const pages = await allPages({ types: ['creature'], limit });
 
-      expect(pages.map((next) => next.items.length)).toEqual(limit === 50 ? [50, 50, 12] : [20, 20, 20, 20, 20, 12]);
+      expect(pages.map((next) => next.items.length)).toEqual(limit === 50 ? [50, 50, 16] : [20, 20, 20, 20, 20, 16]);
       expect(pages.flatMap((next) => next.items.map((row) => row.name))).toEqual(creatures);
       expect(new Set(pages.map((next) => next.search_id)).size).toBe(1);
     });
@@ -600,7 +611,7 @@ describe('after a catalog import', () => {
         api: 'catalog',
         caller: 'app',
         query: { types: ['creature'], sort: 'name', sort_order: 'asc', limit: 30 },
-        result_count: 112,
+        result_count: 116,
         result_ids: first.items.slice(0, 20).map((row) => row.oracle_id),
       });
       expect(rows.at(-1)!.latency_ms).toBeGreaterThan(0);
@@ -685,7 +696,7 @@ describe('after a catalog import', () => {
     test.each<[string, CatalogQuery, string[]]>([
       ['price at least', { price_min: '100' }, ["Serra's Sanctum"]],
       ['price at most', { price_max: '0.05', types: ['creature'] }, ['Favored of Iroas', 'Ghost Warden']],
-      ['price between two bounds', { price_min: '10.00', price_max: '12.00' }, ['Shimmer']],
+      ['price between two bounds', { price_min: '10.00', price_max: '12.00' }, ['Shimmer', 'Walking Ballista']],
       [
         'price at least, with text',
         { text: 'creature', price_min: '20' },

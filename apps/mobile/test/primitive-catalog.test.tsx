@@ -77,7 +77,9 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Deck validity, Valid' })).toBeOnTheScreen();
   expect(screen.getAllByRole('button', { name: 'Deck validity, Invalid' })).toHaveLength(2);
   expect(screen.getByRole('button', { name: 'Deck validity, Cannot be determined' })).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Yuriko, Medium priority, 87 cards, Invalid' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Yuriko, Medium priority, 87 cards, Invalid, Estimated bracket 4' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Estimated bracket 4' })).toBeOnTheScreen();
+  expect(screen.getByText('Infinite colorless mana (Commander Spellbook, ruthless)')).toBeOnTheScreen();
   expect(screen.getByRole('link', { name: 'CR 903.5a' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'set:mh2' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'set:zzz' })).toBeOnTheScreen();

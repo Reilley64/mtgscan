@@ -4,6 +4,10 @@ export function evaluationCardKey(card: DeckEvaluationCard) {
   return card.kind === 'copy' ? card.copy_id : card.oracle_id;
 }
 
+export function evaluationCardChip(card: DeckEvaluationCard) {
+  return { key: evaluationCardKey(card), name: card.name, uri: card.image_uris[0] };
+}
+
 export function violationCardKeys(evaluation: DeckEvaluation | null) {
   return new Set((evaluation?.violations ?? []).flatMap((violation) => violation.cards.map(evaluationCardKey)));
 }

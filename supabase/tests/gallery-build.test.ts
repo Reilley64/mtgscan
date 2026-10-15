@@ -38,7 +38,7 @@ const importKeyClient = secretKeyClient();
 const bucket = importKeyClient.storage.from('gallery');
 const lightningBolt = 'Lightning Bolt';
 const blackLotus = 'Black Lotus';
-const firstBuildRows = 376;
+const firstBuildRows = 388;
 
 let alice: TestUser;
 let images: ReturnType<typeof Bun.serve>;

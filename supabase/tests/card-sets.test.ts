@@ -42,7 +42,7 @@ describe('the catalog import', () => {
   test('adds every set with its name and its Scryfall icon', async () => {
     const { count } = await alice.client.from('card_sets').select('*', { count: 'exact', head: true });
 
-    expect(count).toBe(173);
+    expect(count).toBe(176);
     expect(await cardSet('mul')).toEqual({
       code: 'mul',
       name: 'Multiverse Legends',

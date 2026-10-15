@@ -16,3 +16,18 @@ export function CardChip({ uri, name }: CardChipProps) {
     </View>
   );
 }
+
+export type CardChipItem = CardChipProps & { key: string };
+
+export function CardChips({ cards }: { cards: CardChipItem[] }) {
+  if (cards.length === 0) {
+    return null;
+  }
+  return (
+    <View className="flex-row flex-wrap gap-xs">
+      {cards.map(({ key, ...card }) => (
+        <CardChip key={key} {...card} />
+      ))}
+    </View>
+  );
+}

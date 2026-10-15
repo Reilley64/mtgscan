@@ -1,6 +1,6 @@
 import type { CollectionCopyRow } from './collection';
 import type { Database } from './database.types';
-import { readSearchError, type SearchError } from './search';
+import { readSearchError, type ComboBracketTag, type SearchError } from './search';
 
 export type DeckPriority = Database['public']['Enums']['deck_priority'];
 
@@ -50,17 +50,46 @@ export type UndeterminedCheck = {
   cards: DeckEvaluationCard[];
 };
 
+export type EstimatedBracket = 2 | 3 | 4;
+
+export type DeckCombo = {
+  cards: DeckEvaluationCard[];
+  produced_features: string[];
+  bracket_tag: ComboBracketTag;
+};
+
+type BracketSignalFields = {
+  source: 'official' | 'heuristic';
+  count: number;
+  lowest_bracket: EstimatedBracket;
+  cards: DeckEvaluationCard[];
+};
+
+export type BracketSignal =
+  | (BracketSignalFields & { kind: 'game_changers' | 'mass_land_denial' | 'extra_turns' })
+  | (BracketSignalFields & { kind: 'two_card_combo'; combos: DeckCombo[] });
+
+export type BracketSignalKind = BracketSignal['kind'];
+
 export type DeckEvaluationSummary = {
   validity: DeckValidity;
+  estimated_bracket: EstimatedBracket;
 };
 
 export type DeckEvaluation = DeckEvaluationSummary & {
   violations: Violation[];
   undetermined: UndeterminedCheck[];
+  bracket_signals: BracketSignal[];
+  missing_signal_count: number;
   revision: number;
   catalog_at: string | null;
+  oracle_tags_at: string | null;
+  commander_spellbook_at: string | null;
   judged_at: string;
   validity_rules_data_at: string | null;
+  bracket_rules_data_at: string | null;
+  no_oracle_tag_data: boolean;
+  no_combo_data: boolean;
 };
 
 export type DeckRow = {

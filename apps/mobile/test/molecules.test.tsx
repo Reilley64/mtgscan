@@ -14,6 +14,7 @@ import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardHero } from '@/components/molecules/card-hero';
 import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ReadFailure } from '@/components/molecules/read-failure';
+import { BracketSignalRow } from '@/components/molecules/bracket-signal-row';
 import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
 import { CardChip } from '@/components/molecules/card-chip';
@@ -426,6 +427,31 @@ describe('RuleRow', () => {
     expect(screen.getByText('Partner')).toHaveStyle({ color: warning, fontWeight: '700' });
     expect(screen.queryByRole('link')).not.toBeOnTheScreen();
     expect(screen.getByText('mtgscan cannot read the partner ability of Tymna.')).toHaveStyle({ color: textMuted });
+  });
+});
+
+describe('BracketSignalRow', () => {
+  test('a bracket signal row shows its title in body strong, its lowest bracket in info at the end of the line, its source in meta text, its card chips, and its details', async () => {
+    await render(
+      <BracketSignalRow
+        title="Two-card combos: 1"
+        source="heuristic"
+        lowestBracket="Bracket 4"
+        cards={[{ key: 'copy-1', name: 'Sol Ring', uri: solRing }]}
+        details={['Infinite colorless mana (Commander Spellbook, ruthless)']}
+      />,
+    );
+
+    const title = screen.getByText('Two-card combos: 1');
+    expect(title).toHaveStyle({ color: white, fontSize: 14, fontWeight: '700' });
+    const lowestBracket = screen.getByText('Bracket 4');
+    expect(lowestBracket).toHaveStyle({ color: info });
+    expect(appearsBefore(title, lowestBracket)).toBe(true);
+    expect(screen.getByText('heuristic')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    const detail = screen.getByText('Infinite colorless mana (Commander Spellbook, ruthless)');
+    expect(detail).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(appearsBefore(screen.getByLabelText('Sol Ring'), detail)).toBe(true);
+    expect(screen.queryByRole('button')).not.toBeOnTheScreen();
   });
 });
 

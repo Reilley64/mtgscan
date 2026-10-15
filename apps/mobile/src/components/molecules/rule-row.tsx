@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
 import { TextLink } from '@/components/atoms/text-link';
-import { CardChip, type CardChipProps } from '@/components/molecules/card-chip';
+import { CardChips, type CardChipItem } from '@/components/molecules/card-chip';
 
 const ruleVariants = cva('flex-1', {
   variants: {
@@ -19,7 +19,7 @@ type RuleRowProps = Required<VariantProps<typeof ruleVariants>> & {
   rule: string;
   citation?: { label: string; onPress: () => void };
   message: string;
-  cards: (CardChipProps & { key: string })[];
+  cards: CardChipItem[];
   hint?: string | null;
 };
 
@@ -37,13 +37,7 @@ export function RuleRow({ tone, rule, citation, message, cards, hint }: RuleRowP
         ) : null}
       </View>
       <Text variant="meta">{message}</Text>
-      {cards.length > 0 ? (
-        <View className="flex-row flex-wrap gap-xs">
-          {cards.map(({ key, ...card }) => (
-            <CardChip key={key} {...card} />
-          ))}
-        </View>
-      ) : null}
+      <CardChips cards={cards} />
       {hint ? <Text variant="meta">{hint}</Text> : null}
     </Surface>
   );

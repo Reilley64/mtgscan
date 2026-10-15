@@ -138,7 +138,7 @@ describe('deck validity', () => {
 
     const evaluation = await evaluationOf(user, deckId);
     expect(evaluation).toMatchObject({ validity: violations.length > 0 ? 'invalid' : 'valid', violations, undetermined: [] });
-    expect(await listedEvaluationOf(user, deckId)).toEqual({ validity: evaluation!.validity });
+    expect(await listedEvaluationOf(user, deckId)).toEqual({ validity: evaluation!.validity, estimated_bracket: 2 });
   });
 
   test('basic lands of every basic land card count toward deck size', async () => {
@@ -181,10 +181,18 @@ describe('deck validity', () => {
       validity: 'invalid',
       violations: [deckSize(2, 'Add 98 cards.')],
       undetermined: [],
+      estimated_bracket: 2,
+      bracket_signals: [{ kind: 'game_changers', source: 'official', count: 0, lowest_bracket: 2, cards: [] }],
+      missing_signal_count: 0,
       revision: deck.revision,
       catalog_at: catalogFixtureSnapshotAt,
+      oracle_tags_at: null,
+      commander_spellbook_at: null,
       judged_at: expect.any(String),
       validity_rules_data_at: catalogFixtureSnapshotAt,
+      bracket_rules_data_at: catalogFixtureSnapshotAt,
+      no_oracle_tag_data: true,
+      no_combo_data: true,
     });
   });
 });
@@ -325,6 +333,9 @@ describe('access', () => {
         validity: 'valid',
         violations: [],
         undetermined: [],
+        estimated_bracket: 2,
+        bracket_signals: [],
+        missing_signal_count: 0,
         revision: 1,
       }),
       user.client.from('deck_evaluations').update({ validity: 'valid' }).eq('deck_id', deckId),

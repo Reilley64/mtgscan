@@ -638,6 +638,12 @@ describe('after a combo import', () => {
         produced_features: ['Exile your library', 'Win the game'],
         bracket_tag: 'ruthless',
       },
+      {
+        spellbook_id: '1068-1295',
+        other_card: { oracle_id: await oracleIdOf('Leveler'), name: 'Leveler' },
+        produced_features: ['Exile your library', 'Win the game'],
+        bracket_tag: 'powerful',
+      },
     ]);
   });
 

@@ -1,5 +1,13 @@
 import { Constants } from '@mtgscan/supabase/database.types';
-import type { UndeterminedRule, DeckEvaluationSummary, DeckPriority, DeckRow, DeckValidity } from '@mtgscan/supabase/decks';
+import type {
+  BracketSignalKind,
+  DeckEvaluationSummary,
+  DeckPriority,
+  DeckRow,
+  DeckValidity,
+  EstimatedBracket,
+  UndeterminedRule,
+} from '@mtgscan/supabase/decks';
 import type { SFSymbol } from 'expo-symbols';
 
 export const deckPriorities = Constants.public.Enums.deck_priority;
@@ -27,6 +35,25 @@ export const ruleNames: Record<UndeterminedRule, string> = {
   legality: 'Legality',
 };
 
+export const bracketSignalNames: Record<BracketSignalKind, string> = {
+  game_changers: 'Game Changers',
+  mass_land_denial: 'Mass land denial',
+  two_card_combo: 'Two-card combos',
+  extra_turns: 'Extra turns',
+};
+
+export function bracketLabel(bracket: EstimatedBracket) {
+  return `Bracket ${bracket}`;
+}
+
+export function estimatedBracketName(bracket: EstimatedBracket) {
+  return `Estimated bracket ${bracket}`;
+}
+
+export function estimatedBracketChip(bracket: EstimatedBracket) {
+  return { label: bracketLabel(bracket), tone: 'info' as const, accessibilityLabel: estimatedBracketName(bracket) };
+}
+
 export function cardCountLabel(count: number) {
   return count === 1 ? '1 card' : `${count} cards`;
 }
@@ -36,7 +63,10 @@ export function deckChips(deck: Pick<DeckRow, 'priority' | 'card_count'>) {
 }
 
 export function galleryCardChips(deck: Pick<DeckRow, 'priority' | 'card_count'> & { evaluation: DeckEvaluationSummary | null }) {
-  return [...deckChips(deck).map((label) => ({ label })), ...(deck.evaluation ? [validityChips[deck.evaluation.validity]] : [])];
+  return [
+    ...deckChips(deck).map((label) => ({ label })),
+    ...(deck.evaluation ? [validityChips[deck.evaluation.validity], estimatedBracketChip(deck.evaluation.estimated_bracket)] : []),
+  ];
 }
 
 export function deckDetail(deck: Pick<DeckRow, 'priority' | 'card_count'>) {

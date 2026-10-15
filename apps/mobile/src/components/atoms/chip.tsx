@@ -36,6 +36,7 @@ export type StatusChipProps = {
   label: string;
   tone?: ChipTone;
   symbol?: SFSymbol;
+  accessibilityLabel?: string;
 };
 
 type StatusChipOnlyProps = StatusChipProps & {
@@ -48,6 +49,7 @@ type SelectableChipProps = {
   label: string;
   tone?: never;
   symbol?: never;
+  accessibilityLabel?: never;
   selected: boolean;
   onPress: () => void;
   onRemove?: never;
@@ -57,12 +59,13 @@ type RemovableChipProps = {
   label: string;
   tone?: 'neutral' | 'danger';
   symbol?: never;
+  accessibilityLabel?: never;
   selected?: never;
   onPress?: never;
   onRemove: () => void;
 };
 
-function StatusChipLabel({ label, tone = 'neutral', symbol }: StatusChipProps) {
+function StatusChipLabel({ label, tone = 'neutral', symbol }: Omit<StatusChipProps, 'accessibilityLabel'>) {
   return (
     <>
       {symbol && <SymbolView name={symbol} size={sizes.chipSymbol} className={toneVariants({ tone })} />}
@@ -94,6 +97,7 @@ export function Chip({
   label,
   tone = 'neutral',
   symbol,
+  accessibilityLabel,
   selected,
   onPress,
   onRemove,
@@ -117,7 +121,7 @@ export function Chip({
     return (
       <View
         accessible
-        accessibilityLabel={label}
+        accessibilityLabel={accessibilityLabel ?? label}
         className={cn(chipClass, 'flex-row items-center gap-xs self-start bg-surface-control')}>
         <StatusChipLabel label={label} tone={tone} symbol={symbol} />
       </View>
