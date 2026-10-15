@@ -67,5 +67,4 @@ describe('the sign-up hook', () => {
   test.each(['apple', 'google'])('allows a %s sign-up with any email', async (provider) => {
     expect(await hookAnswer(provider, `${crypto.randomUUID()}@example.test`)).toEqual({});
   });
-
 });

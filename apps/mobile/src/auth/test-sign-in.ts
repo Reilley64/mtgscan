@@ -3,7 +3,7 @@ import type { TestSignInButton } from '@/auth/test-sign-in-button';
 type TestUserAccount = typeof import('@mtgscan/supabase/test-user');
 type TestSignInButtonModule = typeof import('@/auth/test-sign-in-button');
 
-export type TestSignIn = {
+type TestSignIn = {
   TestSignInButton: typeof TestSignInButton;
   password: string;
   hidesAppleAndGoogle: boolean;

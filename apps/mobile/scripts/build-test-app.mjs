@@ -5,11 +5,12 @@ import { parseArgs } from 'node:util';
 
 import { isHostedTestUserPassword } from '@mtgscan/supabase/test-user';
 
+import appJson from '../app.json';
+
 const usage = 'Usage: bun run ios:test-device --device <device identifier from `xcrun devicectl list devices`>';
 const appFolder = join(import.meta.dir, '..');
 const testAppEnvFile = join(homedir(), '.config', 'mtgscan', 'test-app.env');
 const derivedDataFolder = join(appFolder, 'ios', 'build');
-const developmentTeam = 'YDZJL5K3RQ';
 
 const { values } = parseArgs({ args: Bun.argv.slice(2), options: { device: { type: 'string' } } });
 
@@ -79,7 +80,7 @@ await run([
   '-derivedDataPath',
   derivedDataFolder,
   '-allowProvisioningUpdates',
-  `DEVELOPMENT_TEAM=${developmentTeam}`,
+  `DEVELOPMENT_TEAM=${appJson.expo.ios.appleTeamId}`,
   'build',
 ]);
 await run([
