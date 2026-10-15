@@ -178,10 +178,10 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 
 - A text search ranks an exact full card name first. Next come exact face names, then other name matches, Oracle tag matches, type line matches, and Oracle text matches.
 - A refused call returns an error with a `code` such as `invalid_argument` or `invalid_cursor`. The field at fault is in `details`. `readSearchError` reads it as a `SearchError`.
-- `price_currency` defaults to `USD`. It takes `USD` or any currency in `exchange_rates`. Any other value is refused with `invalid_argument`. Collection search, `get_cards`, the collection total, and the copy read take the same rule.
-- Each row's `price_from` is the card's lowest current price, in `price_currency`. In another currency, it is a converted price, with the fields in Converted prices. A card with no lowest current price has no `price_from` in any currency.
-- `price_min` and `price_max` compare with the lowest current price. In another currency, the bound converts to USD at the latest exchange rate before it compares, as in Collection search. `sort: 'price'` uses the USD amount, so every currency gives the same order.
-- `get_cards` takes `oracle_ids` or `printing_ids`, and `price_currency`. Its `price_from` converts as in catalog search. In another currency, the result has `rate_date` next to `prices_observed_at`. Its `prices_stale` is also true when the exchange rate is stale.
+- Prices are in USD. No price read takes `price_currency`. A query that sends it, even `USD`, is refused with `invalid_argument` on `price_currency`, so an old build fails loudly. The app converts prices itself, as Converted prices says, and the MCP service will too. Collection search, `get_cards`, the collection total, the current prices read, and the copy read take the same rule.
+- Each row's `price_from` is the card's lowest current price in USD. A card with no lowest current price has no `price_from`.
+- `price_min` and `price_max` are USD amounts. They compare with the lowest current price, and a bound matches a price equal to it. `sort: 'price'` uses the USD amount.
+- `get_cards` takes `oracle_ids` or `printing_ids`. Its `price_from` is as in catalog search.
 - `get_cards` reads card details for up to 20 cards. Each card lists its direct Oracle tags that are not disabled, as `slug` and `label`, sorted by label. Each card also lists up to 5 combos as `combos`. Each combo has its `spellbook_id`, the `other_card` with its Oracle ID and name, its produced features, and its bracket tag. Combos sort by the other card's EDHREC rank, with missing ranks last, then by the other card's name, then by Spellbook ID. A card with no combos has an empty list.
 - Each first page writes one row to `search_telemetry`. It is the one table with user data that has no read policy: app users cannot read it, and only the secret key can.
 - Catalog search also accepts the secret key, for the search release check. Its telemetry row has the caller `release_check` and no user. It counts no owned copies. No other search or catalog read accepts the secret key.
@@ -200,29 +200,29 @@ Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_
 
 ### Converted prices
 
-mtgscan stores every price in USD. A read in another currency returns converted prices. `docs/adr/0005-convert-all-prices-from-usd.md` says why.
+mtgscan stores every price in USD, and every read returns USD. The app converts prices into the price currency with the shared module `supabase/converted-prices.ts` (`@mtgscan/supabase/converted-prices`). The MCP service will use the same module. `docs/adr/0005-convert-all-prices-from-usd.md` says why.
 
-- A converted price is the USD amount times the latest exchange rate in `exchange_rates`, rounded to the currency's minor unit. JPY, KRW, ISK, and other currencies with no minor unit round to whole units.
-- A converted price has `approximate: true`.
-- It has `exchange_rate`, the rate from USD as a decimal string.
-- It has `rate_date`, the ECB date of the rate.
-- A USD price has none of these three fields.
-- A search page in another currency has `rate_date` next to `prices_observed_at`, and its `prices_stale` is also true when the exchange rate is stale.
-- An exchange rate is stale when its date is more than 4 days before today in UTC. The ECB publishes rates on working days only, so Friday's rate on a weekend is not stale.
+- A converted price is the USD amount times the latest exchange rate, rounded half up to the currency's minor unit. JPY, KRW, ISK, and other currencies with no minor unit round to whole units. The module computes with exact decimals, not floating point.
+- A converted price has `approximate: true`, `exchange_rate`, the rate from USD as a decimal string, and `rate_date`, the ECB date of the rate. A USD price has none of these three fields.
+- An exchange rate is stale when its date is more than 4 days before today in UTC. The ECB publishes rates on working days only, so Friday's rate on a weekend is not stale. A converted current price is stale when its USD price is stale or its exchange rate is stale.
+- The collection total converts the USD total once. It does not add up converted copy prices, so the total can differ by a few cents from the sum of the copy prices.
 - A card printing and finish with no USD price has no price in any currency.
+- `usdPriceBounds` turns a price filter in another currency into USD bounds for `price_min` and `price_max`. A bound matches every USD price whose converted price shows inside it, so each bound widens by half a minor unit before it converts, and rounds to whole cents. A range that no USD price can show inside sends a USD range above every stored price, so the search matches nothing. A bound converts to at most 9999999999.99 USD.
 
-Signed-in users list the price currencies with `supabase.rpc('list_price_currencies')`. The result has `items`: USD and every currency in `exchange_rates`, in code order. Each item has `currency` and `minor_unit_digits`, the decimals that a converted price in that currency has. The function runs with the caller's rights. An anonymous caller and the secret key are refused.
+Signed-in users read the exchange rates with `supabase.rpc('list_exchange_rates')`. The result has `items`: USD and every currency in `exchange_rates`, in code order. Each item has `currency`, `rate` as a decimal string, `rate_date`, and `minor_unit_digits`, the decimals that a converted price in that currency has. USD has the rate `1` and no `rate_date`. The function runs with the caller's rights. An anonymous caller and the secret key are refused.
 
-The app keeps the chosen currency on the phone, in the keychain with `expo-secure-store`. On first launch, it is the phone's region currency from `expo-localization` when the list offers it, otherwise USD. `expo-localization` is a native module, so a change to it needs a new native build. When the list no longer offers the chosen currency, the app reads prices in USD. Every price read sends the currency as `price_currency`. The app shows each amount with as many decimals as the server returns, so the display agrees with the server's rounding. A price filter steps by one minor unit of the currency, so `price<500` in JPY sends `price_max` 499.
+The app keeps the chosen currency on the phone, in the keychain with `expo-secure-store`. On first launch, it is the phone's region currency from `expo-localization` when it has an exchange rate, otherwise USD. `expo-localization` is a native module, so a change to it needs a new native build. When the chosen currency no longer has an exchange rate, the app shows prices in USD. The app reads the exchange rates once for each app session, and again when it returns to the foreground more than a day after the last read. It keeps them in memory. Price reads send no currency, so a change of currency converts the prices on the screen again and reads nothing. A price filter steps by one minor unit of the currency, so `price<500` in JPY is `price<=499` in yen before it converts to USD.
+
+The app writes an amount with the currency's narrow symbol from `apps/mobile/src/collection/price-currency-labels.ts`, such as "$2.67" for AUD or "¥53" for JPY, with no country letters. Hermes on iOS treats `currencyDisplay: 'narrowSymbol'` like `'symbol'` and writes "A$2.67", so the app does not use it. A symbol that ends in a letter, such as "kr", has a no-break space before the number. A currency missing from the table shows with the `Intl` currency symbol. A converted price shows no "≈". The price credit says that prices are converted, and VoiceOver hears "about" before a converted price.
 
 ### Collection total
 
-Signed-in users read their collection total with `supabase.rpc('get_collection_total', { query })`. The query has an optional `price_currency`, which defaults to `USD`. `supabase/collection.ts` has the shared types.
+Signed-in users read their collection total with `supabase.rpc('get_collection_total', { query })`. The query is an empty object. `supabase/collection.ts` has the shared types.
 
-- `total` is the sum of the current price of every copy for its card printing and finish, as a decimal string. Copies with no current price are left out.
-- In another currency, the function converts the USD total once at the latest exchange rate. It does not add up converted copy prices, so the total can differ by a few cents from the sum of the copy prices. The total also has `approximate: true`, `exchange_rate`, and `rate_date`, as Converted prices says.
+- `total` is the sum of the current price of every copy for its card printing and finish, in USD, as a decimal string. `currency` is `USD`. Copies with no current price are left out.
+- The app converts the USD total once, as Converted prices says.
 - `priced_copies` counts the copies with a current price, and `copies` counts every copy, so a missing price never silently lowers the total.
-- `stale` is true when the current prices are more than 24 hours old, as `catalog_freshness` says. In another currency, it is also true when the exchange rate is stale, as Converted prices says.
+- `stale` is true when the current prices are more than 24 hours old, as `catalog_freshness` says. The app also marks a converted total stale when its exchange rate is stale.
 - `prices_observed_at` is the time of the price snapshot, or null before the first price import.
 - The function runs with the caller's rights. An anonymous caller and the secret key are refused. A refused query has the code `invalid_argument` and the field at fault.
 
@@ -232,13 +232,13 @@ mtgscan stores no daily collection totals and no change since yesterday. `docs/a
 
 Signed-in users read the current prices of card printings and finishes with `supabase.rpc('get_current_prices', { query })`. The phone reads the prices of its scans through it. `supabase/collection.ts` has the shared types.
 
-- The query has `items`, a list of 1 to 100 objects, each with `printing_id` and `finish`, and an optional `price_currency`, which defaults to `USD`. An item can appear only once.
+- The query has `items`, a list of 1 to 100 objects, each with `printing_id` and `finish`. An item can appear only once.
 - The result has `items` in the same order. Each item has `printing_id`, `finish`, and `price`.
 - `price` is the current price, as in a copy row of collection search, with `stale`.
 - `price` is null when the card printing and finish has no current price. A card printing that is not in the card catalog has a null price too.
 - The function reads only the card catalog and prices. It runs with the caller's rights. An anonymous caller and the secret key are refused. A refused query has the code `invalid_argument` and the field at fault, such as `items[3].finish`.
 
-`apps/mobile/src/scan/current-prices.tsx` keeps the current prices of scans in memory for the app session, keyed by card printing, finish, and currency. They are not saved on the phone or in the scan batch file. A restart or a change of currency clears them.
+`apps/mobile/src/scan/current-prices.tsx` keeps the current USD prices of scans in memory for the app session, keyed by card printing and finish. They are not saved on the phone or in the scan batch file. A restart clears them. A change of currency converts them again and reads nothing.
 
 - Batch review reads every key of the scan batch that the app does not know yet, in calls of at most 100 items. The latest-scan chip reads the key of the scan it shows. A change of finish or card printing makes a new key.
 - The app reads each key once. A read that fails, for example offline, shows nothing. The key is read again the next time batch review opens or the chip shows a scan with that key.
@@ -246,11 +246,11 @@ Signed-in users read the current prices of card printings and finishes with `sup
 
 ### Copy read
 
-Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The query has `copy_id` and an optional `price_currency`, which defaults to `USD`. `supabase/collection.ts` has the shared types. The copy page reads its copy through it.
+Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The query has only `copy_id`. `supabase/collection.ts` has the shared types. The copy page reads its copy through it.
 
 - The result has the copy's `copy_id`, `finish`, `condition`, `language`, `protected`, and `free`, and its card printing as in a copy row of collection search: `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`.
 - `art_crop_uri` is the art crop of the card printing, or null when Scryfall has none.
-- `added_at` is the time of the copy's addition. `purchase_day_price` is the purchase-day price of its addition line, with `amount`, `currency`, and `finish`, or null. In another currency, it converts at the latest exchange rate, not the rate of the day of its addition.
+- `added_at` is the time of the copy's addition. `purchase_day_price` is the purchase-day price of its addition line in USD, with `amount`, `currency`, and `finish`, or null. The app converts it at the latest exchange rate, not the rate of the day of its addition.
 - `price` is the current price, as in a copy row of collection search, with `stale`.
 - From its card: `type_line`, `faces` with each face's `name` and `oracle_text` in face order, and `commander_legality`.
 - `user_tags` lists the copy's user tags, each with `user_tag_id` and `name`, sorted by name ignoring case.
@@ -288,7 +288,7 @@ A user tag is a private label that a user puts on copies. `user_tags` holds each
 Signed-in users search their own collection with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips and `rows`. `supabase/collection.ts` has the shared types for the query and the result rows. The Collection tab reads its binder grid only through collection search, with `rows: 'copies'`. Its search bar and its Filters drawer turn the typed text and chips into the typed query.
 
 - Chips match copies. `finishes`, `conditions`, and `languages` take the finish, condition, and language values of copies.
-- `sets` and `rarities` match the copy's own card printing. `price_min`, `price_max`, and `sort: 'price'` use the current price of that card printing and finish. In another currency, `price_min` and `price_max` convert to USD at the latest exchange rate before they compare. A bound matches every price that shows as that amount. A bound goes up to 9999999999.99, so that currencies with large rates, such as IDR, have room. `sort: 'price'` uses the USD amount, so every currency gives the same order. `sort: 'release_date'` uses the release date of that card printing.
+- `sets` and `rarities` match the copy's own card printing. `price_min`, `price_max`, and `sort: 'price'` use the current USD price of that card printing and finish. A bound matches a price equal to it, and goes up to 9999999999.99. The app turns a bound in another currency into USD bounds, as Converted prices says. `sort: 'release_date'` uses the release date of that card printing.
 - `is_free` matches free copies. A protected copy can be free. `is_protected` matches the protected flag. The Collection tab's Free filter is `is_free: true` with `is_protected: false`.
 - `user_tags` and `user_tags_exclude` take user tag names, matched ignoring case. A copy matches `user_tags` when it has every listed user tag, and `user_tags_exclude` when it has none of them. A name that is not one of the caller's user tags is refused with `invalid_argument` on that list item, such as `user_tags[0]`.
 - `deck_ids` and `deck_ids_exclude` take deck IDs. Until decks exist, every deck ID is refused with `invalid_argument` on its field.
@@ -296,8 +296,8 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 - `rows` is `entries` or `copies`, and defaults to `entries`.
   - With `entries`, each row is one collection entry: the matching copies that share a card printing, finish, condition, language, and protected flag. A collection entry has no ID of its own. Each row has the quantity, free quantity, allocated quantity, and held quantity of its matching copies. `limit` is 1 to 50 and defaults to 20.
   - With `copies`, each row is one copy, with its `copy_id`. `limit` is 1 to 120 and defaults to 60. The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`. The copy gives `finish`, `condition`, `language`, and `protected`.
-  - A copy row's `price` is the current price of the card printing and finish in `price_currency`: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says, or when the exchange rate is stale. Condition and language do not change it. `price` is null when `card_prices` has no USD price for that card printing and finish, in every currency. A price is never taken from another finish.
-  - A collection entry row's `price` is the current price of its card printing and finish, in the shape of a copy row's `price`. Its `total` is the entry total: `price` times the row's `quantity`, as a decimal string. In another currency, `total` is the converted price times `quantity`. Condition and language do not change either. Both are null when `price` is null.
+  - A copy row's `price` is the current USD price of the card printing and finish: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says. Condition and language do not change it. `price` is null when `card_prices` has no USD price for that card printing and finish. A price is never taken from another finish.
+  - A collection entry row's `price` is the current price of its card printing and finish, in the shape of a copy row's `price`. Its `total` is the entry total: `price` times the row's `quantity`, as a USD decimal string. An AI chat converts both with the shared module. Condition and language do not change either. Both are null when `price` is null.
 - `sort` is `relevance` by default, with or without text. Without text, relevance means `added`, so an empty query lists the newest addition first.
 - `sort: 'added'` lists the card printing with the newest addition first. Its copies sit next to each other. `sort_order: 'asc'` puts the oldest addition first.
 - Rows with the same sort value sort by name, then by card printing ID, then by copy ID.
@@ -305,7 +305,7 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 - Collection search runs with the caller's rights, like catalog search. The views set `security_invoker`, so the read policy on `copies` keeps only the caller's rows.
 - Catalog search, `get_cards`, and `list_card_printings` read owned quantities from the same view. A printing list keeps an absent card printing when the caller owns it.
 - A first page also has `total_count`, the number of matching rows. Later pages have `total_count: null`. The Collection tab shows it in its count line, such as "6 of 27 copies".
-- A first page with text or a filter writes one row to `search_telemetry` with the API `collection`. A read with no text and no filter writes none, so a plain binder read is not recorded. `rows`, `sort`, `sort_order`, `limit`, `price_currency`, and `include_oracle_text` are not filters. The secret key cannot call collection search.
+- A first page with text or a filter writes one row to `search_telemetry` with the API `collection`. A read with no text and no filter writes none, so a plain binder read is not recorded. `rows`, `sort`, `sort_order`, `limit`, and `include_oracle_text` are not filters. The secret key cannot call collection search.
 
 ### Search release check
 

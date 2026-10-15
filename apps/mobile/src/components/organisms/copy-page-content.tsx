@@ -1,9 +1,10 @@
 import type { CopyDetails } from '@mtgscan/supabase/collection';
-import type { PriceCurrency } from '@mtgscan/supabase/search';
+import { convertedPrice, type ExchangeRate } from '@mtgscan/supabase/converted-prices';
 import { View } from 'react-native';
 
-import { commanderLegalityLabels, copyChipLabels, sheenOf, shownPrice } from '@/collection/copy-labels';
+import { commanderLegalityLabels, copyChipLabels, sheenOf } from '@/collection/copy-labels';
 import { changeSinceAdded, shownPriceChange, spokenPriceChange } from '@/collection/price-change';
+import { priceLabels, type PriceAmount } from '@/collection/price-currency-labels';
 import { priceCredit } from '@/collection/total-labels';
 import { Chip } from '@/components/atoms/chip';
 import { Surface } from '@/components/atoms/surface';
@@ -16,18 +17,16 @@ import { SymbolText } from '@/components/molecules/symbol-text';
 import { ValueRow } from '@/components/molecules/value-row';
 import { shownDay } from '@/lib/shown-day';
 
-function PriceRow({ label, price, stale }: { label: string; price: string | undefined; stale: boolean }) {
+function PriceRow({ label, price }: { label: string; price: (PriceAmount & { stale?: boolean }) | null }) {
+  const { shown, stale, spoken } = priceLabels(price);
   return (
-    <ValueRow
-      label={label}
-      spokenValue={price ?? 'no price'}
-      accessibilityHint={stale ? 'The price may be out of date.' : undefined}>
-      <PriceLine price={price} stale={stale} />
+    <ValueRow label={label} spokenValue={spoken} accessibilityHint={stale ? 'The price may be out of date.' : undefined}>
+      <PriceLine price={shown} stale={stale} />
     </ValueRow>
   );
 }
 
-function SinceAddedRow({ price, purchaseDayPrice }: { price: CopyDetails['price']; purchaseDayPrice: CopyDetails['purchase_day_price'] }) {
+function SinceAddedRow({ price, purchaseDayPrice }: { price: PriceAmount | null; purchaseDayPrice: PriceAmount | null }) {
   const change = changeSinceAdded(price, purchaseDayPrice);
   return (
     <ValueRow label="Since added" spokenValue={change ? spokenPriceChange(change) : 'no price'}>
@@ -82,13 +81,15 @@ function UserTagsRow({ userTags, onPress }: { userTags: CopyDetails['user_tags']
 
 type CopyPageContentProps = {
   copy: CopyDetails;
-  currency: PriceCurrency;
+  priceCurrency: ExchangeRate;
   onOpenUserTags: () => void;
 };
 
-export function CopyPageContent({ copy, currency, onOpenUserTags }: CopyPageContentProps) {
+export function CopyPageContent({ copy, priceCurrency, onOpenUserTags }: CopyPageContentProps) {
   const legality = commanderLegalityLabels[copy.commander_legality];
-  const credit = priceCredit(copy.price ?? copy.purchase_day_price ?? { currency });
+  const price = copy.price && convertedPrice(copy.price, priceCurrency);
+  const purchaseDayPrice = copy.purchase_day_price && convertedPrice(copy.purchase_day_price, priceCurrency);
+  const credit = priceCredit(price ?? purchaseDayPrice ?? { currency: priceCurrency.currency });
   return (
     <>
       <CardHero
@@ -112,18 +113,10 @@ export function CopyPageContent({ copy, currency, onOpenUserTags }: CopyPageCont
           <UserTagsRow userTags={copy.user_tags} onPress={onOpenUserTags} />
         </SheetSection>
         <SheetSection title="Price">
-          <PriceRow
-            label="Current price"
-            price={copy.price ? shownPrice(copy.price) : undefined}
-            stale={copy.price?.stale ?? false}
-          />
+          <PriceRow label="Current price" price={price} />
           <TextRow label="Added" value={shownDay(copy.added_at)} />
-          <PriceRow
-            label="Purchase-day price"
-            price={copy.purchase_day_price ? shownPrice(copy.purchase_day_price) : undefined}
-            stale={false}
-          />
-          <SinceAddedRow price={copy.price} purchaseDayPrice={copy.purchase_day_price} />
+          <PriceRow label="Purchase-day price" price={purchaseDayPrice} />
+          <SinceAddedRow price={price} purchaseDayPrice={purchaseDayPrice} />
           {credit ? <Text variant="credit">{credit}</Text> : null}
         </SheetSection>
         <SheetSection title="Rules">

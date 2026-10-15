@@ -6,17 +6,6 @@ export type Rarity = Database['public']['Enums']['card_rarity'];
 
 export type CatalogSort = 'relevance' | 'name' | 'mana_value' | 'edhrec_rank' | 'price' | 'release_date';
 
-export type PriceCurrency = string;
-
-export type PriceCurrencyRow = {
-  currency: PriceCurrency;
-  minor_unit_digits: number;
-};
-
-export type PriceCurrencyList = {
-  items: PriceCurrencyRow[];
-};
-
 export type Finish = Database['public']['Enums']['card_finish'];
 
 export type CatalogQuery = {
@@ -36,7 +25,6 @@ export type CatalogQuery = {
   toughness_max?: number;
   price_min?: string;
   price_max?: string;
-  price_currency?: PriceCurrency;
   keywords?: string[];
   keywords_exclude?: string[];
   sets?: string[];
@@ -54,7 +42,7 @@ export type CatalogQuery = {
   cursor?: string | null;
 };
 
-export type PricesAsOf = Pick<ExchangeRateFields, 'rate_date'> & {
+export type PricesAsOf = {
   prices_observed_at: string | null;
   prices_stale: boolean;
 };
@@ -67,14 +55,8 @@ export type SearchPage<Row> = PricesAsOf & {
   rules_stale: boolean;
 };
 
-export type ExchangeRateFields = {
-  approximate?: true;
-  exchange_rate?: string;
-  rate_date?: string;
-};
-
-export type PriceFrom = ExchangeRateFields & {
-  currency: PriceCurrency;
+export type PriceFrom = {
+  currency: string;
   amount: string;
   finish: Finish;
   basis: 'lowest current price over printings and finishes';
@@ -106,9 +88,7 @@ export type DataAsOf = {
   rules_stale: boolean;
 };
 
-export type CardDetailsQuery = ({ oracle_ids: string[]; printing_ids?: never } | { printing_ids: string[]; oracle_ids?: never }) & {
-  price_currency?: PriceCurrency;
-};
+export type CardDetailsQuery = { oracle_ids: string[]; printing_ids?: never } | { printing_ids: string[]; oracle_ids?: never };
 
 export type CardFace = {
   name: string;

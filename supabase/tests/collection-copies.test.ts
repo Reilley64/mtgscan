@@ -2,11 +2,12 @@ import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from '
 
 import type { CollectionCopyRow, CollectionQuery, CollectionRow, CurrentPrice } from '../collection';
 import type { Json } from '../database.types';
+import { usdPriceBounds, type PriceBounds } from '../converted-prices';
 import { readSearchError, type Finish, type SearchPage } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { seedCopies } from './copy-seeds';
-import { convertedPrice, daysAgo, storeExchangeRates } from './exchange-rate-seeds';
+import { exchangeRateOf, storeExchangeRates } from './exchange-rate-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
@@ -276,7 +277,7 @@ describe('current prices', () => {
   });
 });
 
-describe('current prices in another currency', () => {
+describe('current prices with exchange rates stored', () => {
   let user: TestUser;
 
   beforeAll(async () => {
@@ -292,31 +293,12 @@ describe('current prices in another currency', () => {
     );
   });
 
-  afterAll(async () => {
-    await storeExchangeRates();
-  });
-
   function pricesByFinish(rows: CollectionCopyRow[]) {
     return rows.filter((row) => row.price).map((row) => [row.finish, row.price]).sort();
   }
 
-  test.each<[string, string, string[]]>([
-    ['AUD', '1.5234', ['0.67', '0.46', '0.32']],
-    ['EUR', '0.93', ['0.41', '0.28', '0.20']],
-    ['JPY', '151.37', ['67', '45', '32']],
-  ])('each price in %s is the USD price times the exchange rate, rounded to its minor unit', async (currency, exchangeRate, amounts) => {
-    const page = await collectionCopies(user, { price_currency: currency });
-
-    expect(pricesByFinish(page.items)).toEqual([
-      ['etched', { ...convertedPrice(currency, exchangeRate, amounts[0]!, 'etched'), stale: false }],
-      ['foil', { ...convertedPrice(currency, exchangeRate, amounts[1]!, 'foil'), stale: false }],
-      ['nonfoil', { ...convertedPrice(currency, exchangeRate, amounts[2]!, 'nonfoil'), stale: false }],
-    ]);
-    expect(page).toMatchObject({ prices_stale: false, rate_date: daysAgo(0) });
-  });
-
-  test('a USD price and its page have no approximate flag, exchange rate, or rate date', async () => {
-    const page = await collectionCopies(user, { price_currency: 'USD' });
+  test('prices and their page are in USD, with no approximate flag, exchange rate, or rate date', async () => {
+    const page = await collectionCopies(user);
 
     expect(pricesByFinish(page.items)).toEqual([
       ['etched', currentPrice('USD', '0.44', 'etched')],
@@ -326,46 +308,34 @@ describe('current prices in another currency', () => {
     expect(page).not.toHaveProperty('rate_date');
   });
 
-  test('a copy with no USD price has no price in another currency', async () => {
-    const { items } = await collectionCopies(user, { price_currency: 'AUD' });
+  test('a copy with no USD price has no price', async () => {
+    const { items } = await collectionCopies(user);
 
     expect(items.find((row) => row.printing_id === kjeldoranHomeGuardWithOnlyEurPrice)!.price).toBeNull();
   });
 
   test.each<[string, CollectionQuery, Finish[]]>([
-    ['an AUD price range', { price_currency: 'AUD', price_min: '0.40', price_max: '0.50' }, ['foil']],
-    ['a JPY maximum equal to a shown price', { price_currency: 'JPY', price_max: '45' }, ['foil', 'nonfoil']],
-    ['a EUR minimum equal to a shown price', { price_currency: 'EUR', price_min: '0.41' }, ['etched']],
-    ['a EUR range whose bounds equal the shown prices', { price_currency: 'EUR', price_min: '0.20', price_max: '0.28' }, ['foil', 'nonfoil']],
-    ['a EUR maximum just below a shown price', { price_currency: 'EUR', price_max: '0.19' }, []],
-  ])('%s converts the bound to USD at the exchange rate before it compares', async (_, query, finishes) => {
+    ['a USD range whose bounds equal the prices', { price_min: '0.21', price_max: '0.30' }, ['foil', 'nonfoil']],
+    ['a USD maximum just below a price', { price_max: '0.20' }, []],
+    ['a USD minimum equal to a price', { price_min: '0.44' }, ['etched']],
+  ])('%s matches every price inside it, bounds included', async (_, query, finishes) => {
     const { items } = await collectionCopies(user, query);
 
     expect(items.map((row) => row.finish).sort()).toEqual(finishes);
   });
 
-  test.each(['AUD', 'JPY'])('sort price in %s gives the same order as USD', async (currency) => {
-    for (const sort_order of ['asc', 'desc'] as const) {
-      const usd = copyIdsOf((await collectionCopies(user, { sort: 'price', sort_order })).items);
+  test.each<[string, string, PriceBounds, Finish[]]>([
+    ['an AUD price range', 'AUD', { price_min: '0.40', price_max: '0.50' }, ['foil']],
+    ['a JPY maximum equal to a shown price', 'JPY', { price_max: '45' }, ['foil', 'nonfoil']],
+    ['a EUR minimum equal to a shown price', 'EUR', { price_min: '0.41' }, ['etched']],
+    ['a EUR range whose bounds equal the shown prices', 'EUR', { price_min: '0.20', price_max: '0.28' }, ['foil', 'nonfoil']],
+    ['a EUR maximum just below a shown price', 'EUR', { price_max: '0.19' }, []],
+  ])('%s, converted to USD at the stored exchange rate, matches the copies whose converted price shows inside it', async (_, currency, bounds, finishes) => {
+    const usdBounds = usdPriceBounds(bounds, await exchangeRateOf(user.client, currency));
 
-      expect(copyIdsOf((await collectionCopies(user, { sort: 'price', sort_order, price_currency: currency })).items)).toEqual(usd);
-    }
-  });
+    const { items } = await collectionCopies(user, usdBounds);
 
-  test.each<[string, number, boolean]>([
-    ["a rate 3 days old, as Friday's rate is on a Monday", 3, false],
-    ['a rate 4 days old', 4, false],
-    ['a rate more than 4 days old', 5, true],
-  ])('with %s, converted prices and their page are stale: %p', async (_, age, stale) => {
-    await storeExchangeRates(undefined, daysAgo(age));
-
-    const aud = await collectionCopies(user, { price_currency: 'AUD' });
-    const usd = await collectionCopies(user, { price_currency: 'USD' });
-
-    expect(aud.items.filter((row) => row.price).map((row) => row.price!.stale)).toEqual([stale, stale, stale]);
-    expect(aud).toMatchObject({ prices_stale: stale, rate_date: daysAgo(age) });
-    expect(usd.items.filter((row) => row.price).map((row) => row.price!.stale)).toEqual([false, false, false]);
-    expect(usd.prices_stale).toBe(false);
+    expect(items.map((row) => row.finish).sort()).toEqual(finishes);
   });
 });
 
@@ -437,8 +407,7 @@ describe('pages of copy rows', () => {
     ['a limit that is not a number', { limit: '60' }, 'limit'],
     ['a cursor that is not a string', { cursor: 7 }, 'cursor'],
     ['an unknown field', { owned_only: true }, 'owned_only'],
-    ['a price currency with no exchange rate', { price_currency: 'GBP' }, 'price_currency'],
-    ['a price currency that is not a string', { price_currency: 36 }, 'price_currency'],
+    ['a price currency, even USD, as the app converts prices itself', { price_currency: 'USD' }, 'price_currency'],
     ['rows other than entries or copies', { rows: 'printings' }, 'rows'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
     const { data, error } = await user.client.rpc('search_collection', {
@@ -563,7 +532,7 @@ describe('telemetry', () => {
 
   test.each<[string, CollectionQuery]>([
     ['a plain binder read', {}],
-    ['a plain binder read in another order', { sort: 'price', sort_order: 'desc', price_currency: 'USD', limit: 120 }],
+    ['a plain binder read in another order', { sort: 'price', sort_order: 'desc', limit: 120 }],
     ['a plain read of collection entries', { rows: 'entries' }],
   ])('%s writes no telemetry row', async (_, query) => {
     const before = await telemetryRows();

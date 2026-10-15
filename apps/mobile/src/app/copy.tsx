@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Alert, View } from 'react-native';
 
 import { deleteCopy, setCopyProtected } from '@/collection/copy-writes';
+import { usePriceCurrency } from '@/collection/price-currency-setting';
 import { useCopy } from '@/collection/use-copy';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
@@ -14,6 +15,7 @@ import { colors } from '@/theme';
 export default function CopyScreen() {
   const { copyId } = useLocalSearchParams<{ copyId: string }>();
   const { read, reload } = useCopy(copyId);
+  const { priceCurrency } = usePriceCurrency();
 
   useEffect(() => {
     if (read.status === 'missing') {
@@ -52,14 +54,14 @@ export default function CopyScreen() {
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button icon="xmark" tintColor={colors.text} accessibilityLabel="Close" onPress={() => router.back()} />
       </Stack.Toolbar>
-      {read.status === 'loaded' ? (
+      {read.status === 'loaded' && priceCurrency ? (
         <>
           <Stack.Toolbar placement="right">
             {copyActionsMenu({ copy: read.copy, onSetProtected: changeProtected, onDelete: confirmDelete })}
           </Stack.Toolbar>
           <CopyPageContent
             copy={read.copy}
-            currency={read.currency}
+            priceCurrency={priceCurrency}
             onOpenUserTags={() => router.push({ pathname: '/user-tag-picker', params: { copyId } })}
           />
         </>

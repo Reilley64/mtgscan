@@ -1,12 +1,16 @@
-import type { CollectionTotal, CopyDetails, CurrentPrice } from '@mtgscan/supabase/collection';
+import type { CollectionTotal } from '@mtgscan/supabase/collection';
 import { act, fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 
+import { returnToTheApp } from './app-state';
+import { timePasses, todayIs } from './clock';
 import { copyOf, openCollection, openCopyPage } from './copies';
 import { phoneRegionCurrencyIs } from './fake-localization';
 import {
   answerCollectionSearches,
-  failPriceCurrencyReads,
-  offerPriceCurrencies,
+  exchangeRateReadCount,
+  failExchangeRateReads,
+  holdCollectionReads,
+  offerExchangeRates,
   ownCollectionTotal,
   ownCopies,
   priceReadsSent,
@@ -23,18 +27,9 @@ import {
   tabHeader,
   typeInSearchBar,
 } from './native-ui';
-import { returnToTheApp } from './app-state';
 import { renderApp, restartTheApp } from './render-app';
 
-const rateDate = '2026-10-12';
-
-function converted(amount: string, currency: string, exchangeRate: string) {
-  return { amount, currency, approximate: true as const, exchange_rate: exchangeRate, rate_date: rateDate };
-}
-
-function audPrice(amount: string): CurrentPrice {
-  return { ...converted(amount, 'AUD', '1.5234'), finish: 'nonfoil', stale: false };
-}
+const audCredit = 'TCGplayer Market price via Scryfall, converted from USD at the ECB rate for 12 Oct';
 
 const usdTotal: CollectionTotal = {
   total: '27.00',
@@ -44,26 +39,6 @@ const usdTotal: CollectionTotal = {
   stale: false,
   prices_observed_at: '2026-10-14T06:00:00.000Z',
 };
-const audTotal: CollectionTotal = {
-  ...usdTotal,
-  total: '41.13',
-  currency: 'AUD',
-  approximate: true,
-  exchange_rate: '1.5234',
-  rate_date: rateDate,
-};
-
-function audCopy(copyId: string, changes: Partial<CopyDetails> = {}) {
-  return copyOf(copyId, {
-    price: audPrice('12.30'),
-    purchase_day_price: { ...converted('7.62', 'AUD', '1.5234'), finish: 'nonfoil' },
-    ...changes,
-  });
-}
-
-function priceCurrenciesSent() {
-  return priceReadsSent().map(({ price_currency }) => price_currency);
-}
 
 async function openCurrencyList() {
   await openSettings();
@@ -81,8 +56,19 @@ function collectionTotalButtons() {
   return tabHeader(selectedTab()).buttons.filter((button) => button?.startsWith('Collection total'));
 }
 
+function curatorTile() {
+  return within(selectedTab()).getByRole('button', { name: /^Angelic Curator/ });
+}
+
 beforeEach(() => {
+  todayIs('2026-10-14T06:00:00Z');
   startSignedIn();
+  ownCopies([copyOf('copy-1')]);
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+  jest.restoreAllMocks();
 });
 
 describe('the Currency row and list', () => {
@@ -100,8 +86,8 @@ describe('the Currency row and list', () => {
     expect(drawerBackButton()).toEqual({ label: 'Settings' });
   });
 
-  test('the currency list shows each offered currency with its code and name, and the current currency has the check mark', async () => {
-    offerPriceCurrencies(['AUD', 'EUR', 'JPY', 'USD']);
+  test('the currency list shows each currency with an exchange rate with its code and name, and the current currency has the check mark', async () => {
+    offerExchangeRates(['AUD', 'EUR', 'JPY', 'USD']);
     await renderApp();
 
     await openCurrencyList();
@@ -116,8 +102,8 @@ describe('the Currency row and list', () => {
     expect(screen.getByRole('checkbox', { name: 'AUD Australian dollar' })).not.toBeChecked();
   });
 
-  test('the currency list comes from the server, so it offers a currency the app has no name for by its code', async () => {
-    offerPriceCurrencies(['AUD', 'USD', 'XYZ']);
+  test('the currency list comes from the exchange rates, so it offers a currency the app has no name for by its code', async () => {
+    offerExchangeRates(['AUD', 'USD', 'XYZ']);
     await renderApp();
 
     await openCurrencyList();
@@ -137,11 +123,11 @@ describe('the Currency row and list', () => {
     expect(screen.getByRole('checkbox', { name: 'USD US dollar' })).not.toBeChecked();
   });
 
-  test('when the currency list cannot load, prices stay in USD and the list offers Try again', async () => {
+  test('when the exchange rates cannot load, prices stay in USD and the list offers Try again', async () => {
     phoneRegionCurrencyIs('AUD');
-    failPriceCurrencyReads(1);
+    failExchangeRateReads(1);
     await openCollection();
-    expect(priceCurrenciesSent()).toEqual(['USD', 'USD']);
+    expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, $0.35');
 
     await openCurrencyList();
     expect(screen.getByText('Could not load the currencies')).toBeOnTheScreen();
@@ -150,37 +136,67 @@ describe('the Currency row and list', () => {
     expect(await screen.findByRole('checkbox', { name: 'AUD Australian dollar' })).toBeChecked();
   });
 
-  test('when the currency list cannot load, the app reads it again when the user returns to the app', async () => {
+  test('when the exchange rates cannot load, the app reads them again when the user returns to the app', async () => {
     phoneRegionCurrencyIs('AUD');
-    failPriceCurrencyReads(1);
+    failExchangeRateReads(1);
     await openCollection();
 
+    await returnToTheApp();
+
+    await waitFor(() => expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, about $0.53'));
+  });
+});
+
+describe('the exchange rate read', () => {
+  test('the app reads the exchange rates once for the app session', async () => {
+    await openCopyPage(/^Angelic Curator/);
     await returnToTheApp();
     await pressTab('Recent');
     await pressTab('Collection');
 
-    expect(priceCurrenciesSent().at(-1)).toBe('AUD');
+    expect(exchangeRateReadCount()).toBe(1);
+  });
+
+  test('the app reads the exchange rates again when the user returns to the app more than a day later', async () => {
+    phoneRegionCurrencyIs('AUD');
+    ownCollectionTotal(usdTotal);
+    await openCollection();
+
+    await timePasses(23 * 60 * 60 * 1000);
+    await returnToTheApp();
+    expect(exchangeRateReadCount()).toBe(1);
+
+    offerExchangeRates(['AUD', 'USD'], '2026-10-15');
+    await timePasses(2 * 60 * 60 * 1000);
+    await returnToTheApp();
+
+    expect(exchangeRateReadCount()).toBe(2);
+    await waitFor(() =>
+      expect(headerMenu(selectedTab(), 'Collection total, about $41.13').title).toBe(
+        'TCGplayer Market price via Scryfall, converted from USD at the ECB rate for 15 Oct',
+      ),
+    );
   });
 });
 
 describe('the currency setting', () => {
-  test('on first launch, the currency is the phone region currency when it is offered', async () => {
+  test('on first launch, the currency is the phone region currency when it has an exchange rate', async () => {
     phoneRegionCurrencyIs('AUD');
 
     await openCollection();
 
-    expect(priceCurrenciesSent()).toEqual(['AUD', 'AUD']);
+    expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, about $0.53');
   });
 
   test.each([
-    ['is not offered', 'ARS'],
+    ['has no exchange rate', 'ARS'],
     ['is unknown', null],
   ])('on first launch, the currency is USD when the phone region currency %s', async (_, regionCurrency) => {
     phoneRegionCurrencyIs(regionCurrency);
 
     await openCollection();
 
-    expect(priceCurrenciesSent()).toEqual(['USD', 'USD']);
+    expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, $0.35');
   });
 
   test('the chosen currency survives a restart of the app', async () => {
@@ -190,7 +206,7 @@ describe('the currency setting', () => {
     await restartTheApp();
     await pressTab('Collection');
 
-    expect(priceCurrenciesSent().at(-1)).toBe('JPY');
+    expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, about ¥53');
     await openSettings();
     expect(screen.getByRole('button', { name: 'Currency, JPY' })).toBeOnTheScreen();
   });
@@ -208,39 +224,46 @@ describe('the currency setting', () => {
     expect(screen.getByRole('button', { name: 'Currency, EUR' })).toBeOnTheScreen();
   });
 
-  test('a chosen currency that is no longer offered falls back to USD and says nothing', async () => {
+  test('a chosen currency that no longer has an exchange rate falls back to USD and says nothing', async () => {
     await renderApp();
     await chooseCurrency('HUF Hungarian forint');
-    offerPriceCurrencies(['AUD', 'USD']);
+    offerExchangeRates(['AUD', 'USD']);
 
     await restartTheApp();
     await pressTab('Collection');
 
-    expect(priceCurrenciesSent().at(-1)).toBe('USD');
+    expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, $0.35');
     await openSettings();
     expect(screen.getByRole('button', { name: 'Currency, USD' })).toBeOnTheScreen();
   });
 });
 
-describe('price reads in the chosen currency', () => {
-  test('binder tiles, the collection total, and the copy page send the chosen currency', async () => {
+describe('price reads', () => {
+  test('binder tiles, the collection total, and the copy page read USD prices and send no currency', async () => {
     phoneRegionCurrencyIs('AUD');
-    ownCopies([audCopy('copy-1')]);
-    ownCollectionTotal(audTotal);
 
     await openCopyPage(/^Angelic Curator/);
 
-    expect(priceReadsSent()).toHaveLength(3);
-    expect(priceReadsSent()).toEqual(
-      expect.arrayContaining([
-        { read: 'search_collection', price_currency: 'AUD' },
-        { read: 'get_collection_total', price_currency: 'AUD' },
-        { read: 'get_copy', price_currency: 'AUD' },
-      ]),
-    );
+    expect(priceReadsSent().map(({ read }) => read).sort()).toEqual(['get_collection_total', 'get_copy', 'search_collection']);
+    expect(priceReadsSent().filter(({ query }) => 'price_currency' in query)).toEqual([]);
   });
 
-  test('a price filter sends its bound in the chosen currency, one minor unit below a "less than" bound', async () => {
+  test('changing the currency switches every price at once without reading prices again', async () => {
+    ownCollectionTotal(usdTotal);
+    await openCollection();
+    expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, $0.35');
+    expect(collectionTotalButtons()).toEqual(['Collection total, $27.00']);
+    const reads = holdCollectionReads();
+
+    await chooseCurrency('AUD Australian dollar');
+
+    expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, about $0.53');
+    await waitFor(() => expect(collectionTotalButtons()).toEqual(['Collection total, about $41.13']));
+    await reads.finish();
+    expect(priceReadsSent().filter(({ query }) => 'price_currency' in query)).toEqual([]);
+  });
+
+  test('a price filter converts its bound to USD, one minor unit below a "less than" bound', async () => {
     phoneRegionCurrencyIs('JPY');
     let lastQuery = {};
     answerCollectionSearches((query) => {
@@ -251,10 +274,10 @@ describe('price reads in the chosen currency', () => {
 
     await typeInSearchBar('price<500 ');
 
-    expect(lastQuery).toEqual({ price_currency: 'JPY', price_max: '499' });
+    expect(lastQuery).toEqual({ price_max: '3.29' });
   });
 
-  test('a price filter in a currency with cents keeps two decimals', async () => {
+  test('a large price filter in a currency with cents converts to USD cents', async () => {
     phoneRegionCurrencyIs('AUD');
     let lastQuery = {};
     answerCollectionSearches((query) => {
@@ -265,22 +288,20 @@ describe('price reads in the chosen currency', () => {
 
     await typeInSearchBar('price>1500000 ');
 
-    expect(lastQuery).toEqual({ price_currency: 'AUD', price_min: '1500000.01' });
+    expect(lastQuery).toEqual({ price_min: '984639.63' });
   });
 
-  test('changing the currency switches every price at once', async () => {
-    ownCopies([copyOf('copy-1')]);
-    answerCollectionSearches((query) => (query.price_currency === 'AUD' ? [audCopy('copy-1')] : [copyOf('copy-1')]));
-    ownCollectionTotal(usdTotal, audTotal);
-    const collection = await openCollection();
-    expect(collection.getByRole('button', { name: /\$0\.35$/ })).toBeOnTheScreen();
-    expect(collectionTotalButtons()).toEqual(['Collection total, $27.00']);
+  test('a price filter in USD sends its bound as it is', async () => {
+    let lastQuery = {};
+    answerCollectionSearches((query) => {
+      lastQuery = query;
+      return [];
+    });
+    await openCollection();
 
-    await chooseCurrency('AUD Australian dollar');
+    await typeInSearchBar('price<=5 ');
 
-    await waitFor(() => expect(collectionTotalButtons()).toEqual(['Collection total, ≈ A$41.13']));
-    expect(collection.getByRole('button', { name: /≈ A\$12\.30$/ })).toBeOnTheScreen();
-    expect(collection.queryByRole('button', { name: /\$0\.35$/ })).not.toBeOnTheScreen();
+    expect(lastQuery).toEqual({ price_max: '5.00' });
   });
 });
 
@@ -289,50 +310,56 @@ describe('converted prices', () => {
     phoneRegionCurrencyIs('AUD');
   });
 
-  test('a converted tile price shows "≈" before it, and VoiceOver reads it', async () => {
-    ownCopies([audCopy('copy-1')]);
+  test('a converted tile price shows with no "≈" and no currency letters, and VoiceOver hears "about"', async () => {
+    await openCollection();
 
-    const collection = await openCollection();
-
-    const tile = collection.getByRole('button', { name: 'Angelic Curator, MH2 262, ≈ A$12.30' });
-    expect(within(tile).getByText('≈ A$12.30')).toBeOnTheScreen();
+    expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, about $0.53');
+    expect(within(curatorTile()).getByText('$0.53')).toBeOnTheScreen();
   });
 
-  test.each([
-    ['JPY', '1820', '≈ ¥1,820'],
-    ['HUF', '4011.50', '≈ HUF\u00a04,011.50'],
-    ['IDR', '220000.00', '≈ IDR\u00a0220,000.00'],
-    ['EUR', '11.04', '≈ €11.04'],
-  ])('a converted %s price of %s shows as %s, with the minor unit of the server', async (currency, amount, shown) => {
-    ownCopies([copyOf('copy-1', { price: { ...converted(amount, currency, '1'), finish: 'nonfoil', stale: false } })]);
-
-    const collection = await openCollection();
-
-    expect(within(collection.getByRole('button', { name: /^Angelic Curator/ })).getByText(shown)).toBeOnTheScreen();
-  });
-
-  test('the converted collection total shows "≈", and its menu credits the converted price with the date of the exchange rate', async () => {
-    ownCopies([audCopy('copy-1')]);
-    ownCollectionTotal(audTotal);
+  test('an AUD price shows "$" even where Intl treats narrowSymbol as symbol, as Hermes does on iOS', async () => {
+    const NodeNumberFormat = Intl.NumberFormat;
+    jest
+      .spyOn(Intl, 'NumberFormat')
+      .mockImplementation((locales, options) =>
+        NodeNumberFormat(locales, options?.currencyDisplay === 'narrowSymbol' ? { ...options, currencyDisplay: 'symbol' } : options),
+      );
 
     await openCollection();
 
-    expect(headerButton(selectedTab(), 'Collection total, ≈ A$41.13')).toMatchObject({ label: '≈ A$41.13' });
-    expect(headerMenu(selectedTab(), 'Collection total, ≈ A$41.13').title).toBe(
-      'TCGplayer Market price via Scryfall, converted from USD at the ECB rate for 12 Oct',
-    );
+    expect(within(curatorTile()).getByText('$0.53')).toBeOnTheScreen();
   });
 
-  test('the copy page shows "≈" on the current price, the purchase-day price, and Since added, with the converted credit', async () => {
-    ownCopies([audCopy('copy-1')]);
+  test.each([
+    ['JPY', '¥53'],
+    ['HUF', 'Ft\u00a0113.58'],
+    ['IDR', 'Rp\u00a06,272.35'],
+    ['EUR', '€0.33'],
+    ['CHF', 'CHF\u00a00.44'],
+  ])('a price converted to %s shows as %s, with the narrow symbol and the minor unit of the currency', async (currency, shown) => {
+    phoneRegionCurrencyIs(currency);
 
+    await openCollection();
+
+    expect(within(curatorTile()).getByText(shown)).toBeOnTheScreen();
+  });
+
+  test('the converted collection total converts the USD total once, and its menu credits the converted price with the date of the exchange rate', async () => {
+    ownCollectionTotal(usdTotal);
+
+    await openCollection();
+
+    expect(headerButton(selectedTab(), 'Collection total, about $41.13')).toMatchObject({ label: '$41.13' });
+    expect(headerMenu(selectedTab(), 'Collection total, about $41.13').title).toBe(audCredit);
+  });
+
+  test('the copy page converts the current price, the purchase-day price, and Since added, with the converted credit once', async () => {
     await openCopyPage(/^Angelic Curator/);
 
-    expect(screen.getByLabelText('Current price, ≈ A$12.30')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Purchase-day price, ≈ A$7.62')).toBeOnTheScreen();
-    const sinceAdded = screen.getByLabelText('Since added, up ≈ A$4.68');
-    expect(within(sinceAdded).getByText('≈ +A$4.68')).toBeOnTheScreen();
-    expect(screen.getByText('TCGplayer Market price via Scryfall, converted from USD at the ECB rate for 12 Oct')).toBeOnTheScreen();
+    expect(within(screen.getByLabelText('Current price, about $0.53')).getByText('$0.53')).toBeOnTheScreen();
+    expect(within(screen.getByLabelText('Purchase-day price, about $0.32')).getByText('$0.32')).toBeOnTheScreen();
+    expect(within(screen.getByLabelText('Since added, up about $0.21')).getByText('+$0.21')).toBeOnTheScreen();
+    expect(screen.getAllByText(audCredit)).toHaveLength(1);
   });
 
   test('a converted copy with no price shows no credit', async () => {
@@ -342,20 +369,44 @@ describe('converted prices', () => {
 
     expect(screen.queryByText(/Scryfall/)).not.toBeOnTheScreen();
   });
+
+  test.each<[string, string, string | undefined]>([
+    ["Friday's rate on a Monday", '2026-10-12', undefined],
+    ['a rate 4 days old', '2026-10-10', undefined],
+    ['a rate 5 days old', '2026-10-09', 'The price may be out of date.'],
+  ])('with %s, a converted tile price has the stale clock: %p', async (_, rateDate, hint) => {
+    offerExchangeRates(['AUD', 'USD'], rateDate);
+
+    await openCollection();
+
+    expect(curatorTile().props.accessibilityHint).toBe(hint);
+  });
+
+  test('a converted collection total is stale when its exchange rate is more than 4 days old', async () => {
+    offerExchangeRates(['AUD', 'USD'], '2026-10-09');
+    ownCollectionTotal(usdTotal);
+
+    await openCollection();
+
+    expect(headerButton(selectedTab(), 'Collection total, about $41.13')).toMatchObject({
+      hint: '2 of 2 cards priced. The prices may be out of date.',
+    });
+  });
 });
 
 describe('USD prices', () => {
-  test('USD prices show with no "≈" and keep the USD credit', async () => {
-    ownCopies([copyOf('copy-1')]);
+  test('USD prices show with no "about" and keep the USD credit', async () => {
+    offerExchangeRates(['AUD', 'USD'], '2026-10-01');
     ownCollectionTotal(usdTotal);
 
-    const collection = await openCollection();
-    expect(collection.getByRole('button', { name: 'Angelic Curator, MH2 262, $0.35' })).toBeOnTheScreen();
+    await openCollection();
+    expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, $0.35');
+    expect(curatorTile().props.accessibilityHint).toBeUndefined();
     expect(headerMenu(selectedTab(), 'Collection total, $27.00').title).toBe('Current prices from Scryfall, in USD');
 
-    await fireEvent.press(collection.getByRole('button', { name: /^Angelic Curator/ }));
+    await fireEvent.press(curatorTile());
     await screen.findByRole('header', { name: 'Price' });
-    expect(screen.getByLabelText('Since added, up $0.14')).toBeOnTheScreen();
+    expect(within(screen.getByLabelText('Since added, up $0.14')).getByText('+$0.14')).toBeOnTheScreen();
     expect(screen.getByText('Current prices from Scryfall, in USD')).toBeOnTheScreen();
   });
 });

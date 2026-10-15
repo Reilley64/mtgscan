@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
+import { usdPriceBounds, type PriceBounds } from '../converted-prices';
 import type { Json } from '../database.types';
 import { readSearchError, type CatalogQuery, type CatalogRow, type SearchPage } from '../search';
 import {
@@ -10,7 +11,7 @@ import {
   runCatalogImport,
   runPriceImport,
 } from './catalog-import-command';
-import { convertedPrice, daysAgo, storeExchangeRates } from './exchange-rate-seeds';
+import { exchangeRateOf, storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -535,8 +536,7 @@ describe('after a catalog import', () => {
       ['negative price', { text: 'fog', price_min: '-1' }, 'price_min'],
       ['price above 9999999999.99', { text: 'fog', price_max: '10000000000' }, 'price_max'],
       ['price minimum above its maximum', { text: 'fog', price_min: '5', price_max: '4.99' }, 'price_max'],
-      ['price currency with no exchange rate', { text: 'fog', price_currency: 'XYZ' }, 'price_currency'],
-      ['price currency of the wrong type', { text: 'fog', price_currency: 36 }, 'price_currency'],
+      ['price currency, even USD, as the app converts prices itself', { text: 'fog', price_currency: 'USD' }, 'price_currency'],
     ])('%s is refused with an error on its field', async (_, query, field) => {
       const { page, error } = await search(query);
 
@@ -548,7 +548,6 @@ describe('after a catalog import', () => {
     test.each<[string, Record<string, unknown> | unknown[]]>([
       ['an empty query', {}],
       ['a query with only paging and sort fields', { sort: 'name', limit: 5, include_oracle_text: true }],
-      ['a query with only a price currency', { price_currency: 'USD' }],
       ['a query that is not an object', ['fog']],
     ])('%s is refused', async (_, query) => {
       const { page, error } = await search(query);
@@ -579,7 +578,7 @@ describe('after a catalog import', () => {
         user_id: alice.userId,
         api: 'catalog',
         caller: 'app',
-        query: { types: ['creature'], sort: 'name', sort_order: 'asc', limit: 30, price_currency: 'USD' },
+        query: { types: ['creature'], sort: 'name', sort_order: 'asc', limit: 30 },
         result_count: 99,
         result_ids: first.items.slice(0, 20).map((row) => row.oracle_id),
       });
@@ -631,47 +630,18 @@ describe('after a catalog import', () => {
       await storeExchangeRates();
     });
 
-    test('a row in AUD shows the lowest current price converted from USD, with the exchange rate and its date', async () => {
-      const { items, rate_date } = await page({ names: ['hidetsugu'], price_currency: 'AUD' });
+    test.each<[string, string, PriceBounds, string[]]>([
+      ['an AUD range whose bounds equal the shown prices', 'AUD', { price_min: '5.16', price_max: '34.60' }, ['Bruna, the Fading Light', 'Gisela, the Broken Blade']],
+      ['a JPY maximum', 'JPY', { price_max: '513' }, ['Angelic Curator', 'Bruna, the Fading Light']],
+      ['a JPY minimum', 'JPY', { price_min: '514' }, ["Atraxa, Praetors' Voice", 'Gisela, the Broken Blade']],
+    ])('a price filter converted to USD at the stored exchange rate compares the lowest current price: %s', async (_, currency, bounds, expected) => {
+      const usdBounds = usdPriceBounds(bounds, await exchangeRateOf(alice.client, currency));
 
-      expect(items[0]!.price_from).toEqual({ ...convertedPrice('AUD', '1.5234', '0.53', 'foil'), basis });
-      expect(rate_date).toBe(daysAgo(0));
+      expect(await names({ ...angels, ...usdBounds })).toEqual(expected);
     });
 
-    test('a price bound in IDR can go above 999999.99', async () => {
-      await storeExchangeRates({ IDR: 17921 });
-      const results = await names({ price_currency: 'IDR', price_min: '1000000' });
-      await storeExchangeRates();
-
-      expect(results).toContain("Serra's Sanctum");
-    });
-
-    test('a row in JPY rounds the lowest current price to whole yen', async () => {
-      const { items } = await page({ names: ['hidetsugu'], price_currency: 'JPY' });
-
-      expect(items[0]!.price_from).toEqual({ ...convertedPrice('JPY', '151.37', '53', 'foil'), basis });
-    });
-
-    test.each(['AUD', 'JPY'])('a card with no lowest current price has no price_from in %s', async (currency) => {
-      expect((await page({ names: ['brisela'], price_currency: currency })).items[0]!.price_from).toBeNull();
-    });
-
-    test.each<[string, CatalogQuery, string[]]>([
-      [
-        'an AUD range whose bounds equal the shown prices',
-        { price_currency: 'AUD', price_min: '5.16', price_max: '34.60' },
-        ['Bruna, the Fading Light', 'Gisela, the Broken Blade'],
-      ],
-      ['a JPY maximum', { price_currency: 'JPY', price_max: '513' }, ['Angelic Curator', 'Bruna, the Fading Light']],
-      ['a JPY minimum', { price_currency: 'JPY', price_min: '514' }, ["Atraxa, Praetors' Voice", 'Gisela, the Broken Blade']],
-    ])('a price filter in a converted currency compares the lowest current price: %s', async (_, query, expected) => {
-      expect(await names({ ...angels, ...query })).toEqual(expected);
-    });
-
-    test.each(['AUD', 'JPY'])('sort by price in %s gives the same order as USD', async (currency) => {
-      const query: CatalogQuery = { types: ['creature'], sort: 'price', limit: 50 };
-
-      expect(await names({ ...query, price_currency: currency })).toEqual(await names(query));
+    test('a page has no rate date while exchange rates are stored', async () => {
+      expect(await page({ names: ['hidetsugu'] })).not.toHaveProperty('rate_date');
     });
 
     test('a row shows the lowest current price in USD, labelled with its finish and currency', async () => {

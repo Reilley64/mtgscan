@@ -92,7 +92,7 @@ async function collectionEntries(user: TestUser) {
 }
 
 async function collectionTotal(user: TestUser) {
-  const { data, error } = await user.client.rpc('get_collection_total', { query: { price_currency: 'USD' } });
+  const { data, error } = await user.client.rpc('get_collection_total', { query: {} });
   expect(error).toBeNull();
   const { total, currency, priced_copies, copies } = data as unknown as CollectionTotal;
   return { total, currency, priced_copies, copies };

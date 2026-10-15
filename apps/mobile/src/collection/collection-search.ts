@@ -1,6 +1,6 @@
 import type { CardCondition, CollectionQuery } from '@mtgscan/supabase/collection';
+import { usdPriceBounds, type ExchangeRate, type PriceBounds } from '@mtgscan/supabase/converted-prices';
 import { Constants } from '@mtgscan/supabase/database.types';
-import type { PriceCurrencyRow } from '@mtgscan/supabase/search';
 
 import { conditionLabels, conditionNames, conditions, finishes, languageNames, languages } from '@/collection/copy-labels';
 
@@ -215,9 +215,9 @@ function boundOf(step: number, operator: SearchOperator, value: number) {
   }
 }
 
-export function collectionSearchQuery(text: string, chips: SearchChip[], { currency, minor_unit_digits }: PriceCurrencyRow) {
-  const query: Record<string, unknown> = { price_currency: currency };
-  const minorUnit = 10 ** -minor_unit_digits;
+export function collectionSearchQuery(text: string, chips: SearchChip[], priceCurrency: ExchangeRate) {
+  const query: Record<string, unknown> = {};
+  const minorUnit = 10 ** -priceCurrency.minor_unit_digits;
   const chipIndexOfField = new Map<string, number>();
   const bounds: Bounds = {};
   const words = splitTokens(text)
@@ -272,9 +272,15 @@ export function collectionSearchQuery(text: string, chips: SearchChip[], { curre
     }
   });
 
+  const priceBounds: PriceBounds = {};
   for (const [field, bound] of Object.entries(bounds)) {
-    query[field] = field.startsWith('price') ? bound.toFixed(minor_unit_digits) : bound;
+    if (field === 'price_min' || field === 'price_max') {
+      priceBounds[field] = bound.toFixed(priceCurrency.minor_unit_digits);
+    } else {
+      query[field] = bound;
+    }
   }
+  Object.assign(query, usdPriceBounds(priceBounds, priceCurrency));
   return { query: query as CollectionQuery, chipIndexOfField };
 }
 
