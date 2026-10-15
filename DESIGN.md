@@ -424,6 +424,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - The magenta card outline draws only around a detected card.
   - After three failed photos in a row or a camera error, the camera stops. The tab shows "Camera stopped." with a **Try again** button.
   - The camera stops when the user leaves Scan or the app.
+  - The screen stays on while Scan is open. Batch review, the scan details, and the printing, condition, and language pickers opened from Scan keep it on too. Another tab, another screen over Scan, or the app in the background lets the phone auto-lock as usual.
   - Pulling down on the Scan tab adds the scan batch to the collection without opening batch review (owner decision, #130). It works in every Scan tab state, also over "Camera not available".
     - While the finger moves down, the pull indicator slides down from under the top of the screen. It says "Pull to add 3 cards". The number is the batch button's count.
     - At 120 pt the indicator reaches its place, 8 px below the safe area, and says "Release to add 3 cards". The phone plays a light impact haptic as the pull crosses 120 pt.

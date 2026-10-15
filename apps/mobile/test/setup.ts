@@ -4,6 +4,7 @@ import { resetFakeCardDetector } from './fake-card-detector';
 import { resetFakeCardRecognizer } from './fake-card-recognizer';
 import { resetFakeFileSystem } from './fake-file-system';
 import { resetFakeGlassEffect } from './fake-glass-effect';
+import { resetFakeKeepAwake } from './fake-keep-awake';
 import { resetFakeLocalization } from './fake-localization';
 import { resetFakeScanFeedback } from './fake-scan-feedback';
 import { resetFakeSecureStore } from './fake-secure-store';
@@ -33,6 +34,8 @@ jest.mock('expo-file-system', () => jest.requireActual('./fake-file-system').fak
 
 jest.mock('expo-glass-effect', () => jest.requireActual('./fake-glass-effect').fakeGlassEffect);
 
+jest.mock('expo-keep-awake', () => jest.requireActual('./fake-keep-awake').fakeKeepAwake);
+
 jest.mock('expo-haptics', () => jest.requireActual('./fake-scan-feedback').fakeHaptics);
 
 jest.mock('@/scan/scan-sounds', () => jest.requireActual('./fake-scan-feedback').fakeScanSounds);
@@ -50,6 +53,7 @@ beforeEach(async () => {
   resetFakeCardRecognizer();
   resetFakeFileSystem();
   resetFakeGlassEffect();
+  resetFakeKeepAwake();
   resetFakeScanFeedback();
   resetFakeSecureStore();
   resetFakeLocalization();
