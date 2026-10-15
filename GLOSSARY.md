@@ -139,8 +139,16 @@ A release gate on the iPhone. The owner scans the 30 cards of the test deck in o
 ## Decks and changes
 
 **Deck**:
-A Commander deck made from exact copies in the collection. Each deck card points to one copy. Basic lands are the exception.
+A Commander deck made from exact copies in the collection. It has a name, a deck priority, commanders, and a main deck. Each deck card points to one copy. Basic lands are the exception. A deck starts empty. Two decks can have the same name.
 _Avoid_: Decklist
+
+**Commander**:
+A deck card that the user made a commander of its deck. A deck has no, one, or two commanders. The user can make any deck card a commander, and deck validity judges the choice. Moving a commander to the main deck keeps it in the deck.
+_Avoid_: General, promoted card
+
+**Main deck**:
+The deck cards that are not commanders, basic lands included.
+_Avoid_: Library, the 99
 
 **Allocation**:
 The link between a copy and the deck that uses it. A copy is allocated to at most one deck. Deleting an allocated copy removes it from its deck.
@@ -150,7 +158,7 @@ A copy that is not allocated to a deck or held by a planned swap. A collection e
 _Avoid_: Spare, available copy
 
 **Basic land**:
-A card with the basic supertype, including Wastes and snow-covered basics. mtgscan does not track basic lands as owned. A deck can hold any number of them by type, and they never appear in the collection, allocation, or buylist.
+A card with the basic supertype, including Wastes and snow-covered basics. mtgscan does not track basic lands as owned. A deck counts them by basic land card: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. They never appear in the collection, allocation, or buylist.
 
 **Deck priority**:
 How strongly the user wants to keep a deck's cards: high, medium, or low. Priority guides deck suggestions and does not restrict the user.
@@ -184,7 +192,7 @@ The cards the user does not own yet and needs to buy. Each buylist card names a 
 _Avoid_: Wishlist
 
 **Deck change**:
-An atomic record of cards moved into or out of one deck. The user makes every deck change. A change that comes from a deck suggestion keeps its reason. Copies never move directly between decks.
+An atomic record of cards moved into or out of one deck, and of commanders made or moved to the main deck. The user makes every deck change. Deleting an allocated copy makes one too. Creating, renaming, or deleting a deck, and changing its deck priority, are not deck changes. A change that comes from a deck suggestion keeps its reason. Copies never move directly between decks.
 _Avoid_: Changelist
 
 **Deck change history**:
