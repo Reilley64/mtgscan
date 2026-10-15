@@ -28,10 +28,10 @@ type DeckCardsProps = CardHandlers & {
 
 type DeckCardGridProps = CardHandlers & {
   cards: DeckCard[];
-  violationCards: Set<string>;
+  violationKeys: Set<string>;
 };
 
-function DeckCardGrid({ cards, violationCards, onOpenCard, menuActionsOf }: DeckCardGridProps) {
+function DeckCardGrid({ cards, violationKeys, onOpenCard, menuActionsOf }: DeckCardGridProps) {
   return (
     <CardGrid>
       {cards.map((card) => (
@@ -40,7 +40,7 @@ function DeckCardGrid({ cards, violationCards, onOpenCard, menuActionsOf }: Deck
           uri={card.image_uris[0]}
           sheen={sheenOf(card.finish)}
           accessibilityLabel={spokenCopy(card).join(', ')}
-          inViolation={violationCards.has(card.copy_id)}
+          inViolation={violationKeys.has(card.copy_id)}
           menuActions={menuActionsOf(card)}
           onPress={() => onOpenCard(card)}
         />
@@ -51,11 +51,11 @@ function DeckCardGrid({ cards, violationCards, onOpenCard, menuActionsOf }: Deck
 
 type BasicLandsProps = {
   lands: DeckBasicLand[];
-  violationCards: Set<string>;
+  violationKeys: Set<string>;
   onEdit: () => void;
 };
 
-function BasicLands({ lands, violationCards, onEdit }: BasicLandsProps) {
+function BasicLands({ lands, violationKeys, onEdit }: BasicLandsProps) {
   const total = basicLandTotal(lands);
   const shownLands = lands.filter((land) => land.count > 0);
 
@@ -76,7 +76,7 @@ function BasicLands({ lands, violationCards, onEdit }: BasicLandsProps) {
               uri={land.image_uris[0]}
               count={land.count}
               accessibilityLabel={`${land.name}, ${land.count}`}
-              inViolation={land.oracle_id !== null && violationCards.has(land.oracle_id)}
+              inViolation={land.oracle_id !== null && violationKeys.has(land.oracle_id)}
             />
           ))}
         </CardGrid>
@@ -87,12 +87,12 @@ function BasicLands({ lands, violationCards, onEdit }: BasicLandsProps) {
 
 export function DeckCards({ deck, grouping, order, onEditBasicLands, onOpenCard, menuActionsOf, onOpenCollection }: DeckCardsProps) {
   const commanders = deckCommanders(deck.cards);
-  const violationCards = violationCardKeys(deck.evaluation);
+  const violationKeys = violationCardKeys(deck.evaluation);
   return (
     <>
       <SheetSection title="Commander" count={commanders.length > 0 ? commanders.length : undefined}>
         {commanders.length > 0 ? (
-          <DeckCardGrid cards={commanders} violationCards={violationCards} onOpenCard={onOpenCard} menuActionsOf={menuActionsOf} />
+          <DeckCardGrid cards={commanders} violationKeys={violationKeys} onOpenCard={onOpenCard} menuActionsOf={menuActionsOf} />
         ) : (
           <Text className="text-text-muted">No commander yet.</Text>
         )}
@@ -107,11 +107,11 @@ export function DeckCards({ deck, grouping, order, onEditBasicLands, onOpenCard,
       ) : (
         mainDeckGroups(deck.cards, grouping, order).map((group) => (
           <SheetSection key={group.title} title={group.title} count={group.cards.length}>
-            <DeckCardGrid cards={group.cards} violationCards={violationCards} onOpenCard={onOpenCard} menuActionsOf={menuActionsOf} />
+            <DeckCardGrid cards={group.cards} violationKeys={violationKeys} onOpenCard={onOpenCard} menuActionsOf={menuActionsOf} />
           </SheetSection>
         ))
       )}
-      <BasicLands lands={deck.basic_lands} violationCards={violationCards} onEdit={onEditBasicLands} />
+      <BasicLands lands={deck.basic_lands} violationKeys={violationKeys} onEdit={onEditBasicLands} />
     </>
   );
 }

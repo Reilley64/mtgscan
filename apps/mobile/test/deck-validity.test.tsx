@@ -258,7 +258,7 @@ describe('cards that break a rule on the Cards tab', () => {
     }
   });
 
-  test('a card in no violation and an undetermined card have no outline, and VoiceOver reads them as before', async () => {
+  test('a card in no violation and a card in a check that cannot run have no outline, and VoiceOver reads them as before', async () => {
     const deck = await openCards();
 
     const plain = [

@@ -3,10 +3,11 @@ import type { DeckEvaluation, DeckEvaluationCard } from '@mtgscan/supabase/decks
 import { Text } from '@/components/atoms/text';
 import { RuleRow } from '@/components/molecules/rule-row';
 import { ruleNames } from '@/decks/deck-labels';
+import { evaluationCardKey } from '@/decks/violation-cards';
 import { shownDay } from '@/lib/shown-day';
 
 function cardChipOf(card: DeckEvaluationCard) {
-  return { key: card.kind === 'copy' ? card.copy_id : card.oracle_id, name: card.name, uri: card.image_uris[0] };
+  return { key: evaluationCardKey(card), name: card.name, uri: card.image_uris[0] };
 }
 
 type DeckValidityContentProps = {
