@@ -669,11 +669,11 @@ The Deck validity drawer, from the validity chip in the deck screen header. The 
 - The title "Deck validity", then the text "Checked against the current Commander rules." in meta text.
 - One rule row per violation, in the fixed violation order. A rule row is a surface card:
   - the rule name in danger body strong, such as "No commander" or "Deck size";
-  - the citation as a lime text link at the right end of the first line, such as "CR 903.5a". It opens `https://magic.wizards.com/en/rules` in the browser;
+  - the citation as a lime text link at the right end of the first line, such as "CR 903.5a". It opens `https://magic.wizards.com/en/rules` in the browser. "Banned" and "Not legal" have no link;
   - the message in meta text, such as "87 of 100 cards.";
   - the cards as thumbnail chips, which are not buttons (see Components);
   - the hint in meta text, when there is one, such as "Add 13 cards.".
-- One rule row per undetermined check, in warning, with the rule name, the reason in meta text, and its cards. It has no link and no hint.
+- One rule row per undetermined check, in warning, with the rule name, the reason in meta text, and its cards. It has no link and no hint. A legality check with no rules data has the rule name "Legality" and the reason "No rules data for Mine Security.".
 - A valid deck shows "This deck follows the Commander rules." in place of the rows.
 - The last line, in meta text: "Rules data as of 12 October 2026". With no rules data time, the line is left out.
 - The drawer reads from the deck read. It loads nothing more.

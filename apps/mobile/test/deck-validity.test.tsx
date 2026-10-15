@@ -256,6 +256,69 @@ describe('the Deck validity drawer', () => {
     expect(drawer.queryByRole('button', { name: /Sol Ring|Island/ })).not.toBeOnTheScreen();
   });
 
+  test('Banned and Not legal show as two rows in danger with no link', async () => {
+    const swordOfDungeonsAndDragons: DeckEvaluationCard = {
+      kind: 'copy',
+      copy_id: 'copy-sword',
+      name: 'Sword of Dungeons & Dragons',
+      image_uris: ['https://cards.scryfall.io/normal/front/sword.jpg'],
+    };
+    ownDecks([
+      {
+        name: 'Kinnan',
+        priority: 'medium',
+        card_count: 100,
+        commanders: [kinnan],
+        evaluation: evaluationOf({
+          validity: 'invalid',
+          violations: [
+            { rule: 'banned', citation: null, message: 'Sol Ring is banned in Commander.', hint: null, cards: [solRing] },
+            {
+              rule: 'not_legal',
+              citation: null,
+              message: 'Sword of Dungeons & Dragons is not legal in Commander.',
+              hint: null,
+              cards: [swordOfDungeonsAndDragons],
+            },
+          ],
+        }),
+      },
+    ]);
+
+    const drawer = await openDrawer('Invalid');
+
+    expect(drawer.getByText('Banned')).toHaveStyle({ color: danger, fontSize: 14, fontWeight: '700' });
+    expect(drawer.getByText('Not legal')).toHaveStyle({ color: danger, fontSize: 14, fontWeight: '700' });
+    expect(drawer.getByText('Sol Ring is banned in Commander.')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(drawer.getByText('Sword of Dungeons & Dragons is not legal in Commander.')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(drawer.getByLabelText('Sol Ring')).toBeOnTheScreen();
+    expect(drawer.getByLabelText('Sword of Dungeons & Dragons')).toBeOnTheScreen();
+    expect(appearsBefore(drawer.getByText('Banned'), drawer.getByText('Not legal'))).toBe(true);
+    expect(drawer.queryByRole('link')).not.toBeOnTheScreen();
+  });
+
+  test('a legality check with no rules data shows a Legality row in warning with its reason and its cards', async () => {
+    ownDecks([
+      {
+        name: 'Kinnan',
+        priority: 'medium',
+        card_count: 100,
+        commanders: [kinnan],
+        evaluation: evaluationOf({
+          validity: 'cannot_be_determined',
+          undetermined: [{ rule: 'legality', reason: 'No rules data for Sol Ring.', cards: [solRing] }],
+        }),
+      },
+    ]);
+
+    const drawer = await openDrawer('Cannot be determined');
+
+    expect(drawer.getByText('Legality')).toHaveStyle({ color: warning, fontWeight: '700' });
+    expect(drawer.getByText('No rules data for Sol Ring.')).toBeOnTheScreen();
+    expect(drawer.getByLabelText('Sol Ring')).toBeOnTheScreen();
+    expect(drawer.queryByRole('link')).not.toBeOnTheScreen();
+  });
+
   test('a deck that cannot be determined shows one warning row per undetermined check, with its rule name, its reason, and its cards', async () => {
     ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 100, commanders: [kinnan], evaluation: cannotBeDetermined }]);
 

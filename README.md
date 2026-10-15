@@ -376,6 +376,10 @@ mtgscan judges each deck against the Commander rules and stores the result as on
   | --- | --- | --- | --- |
   | `no_commander` | The deck has no commander. The other checks still run. | CR 903.3 | "This deck has no commander." |
   | `deck_size` | The deck does not have exactly 100 cards, commanders and basic lands included. It names no cards. | CR 903.5a | "87 of 100 cards." with "Add 13 cards.", or "101 of 100 cards." with "Remove 1 card." |
+  | `banned` | A card's Commander legality is banned. | none | "Dockside Extortionist is banned in Commander.", one sentence per card |
+  | `not_legal` | A card's Commander legality is not legal, such as an Un-card. | none | "Mine Security is not legal in Commander.", one sentence per card |
+
+- A card that the card catalog no longer lists, or whose Commander legality is unknown, makes the legality check undetermined. Its undetermined check has `rule` `legality`, the reason "No rules data for Mine Security.", one sentence per card, and its cards. A banned or not legal card still makes the deck invalid.
 
 - `add_deck_card`, `remove_deck_card`, `set_deck_commander`, `set_basic_lands`, `revert_deck_changes`, and `delete_copy` for a copy in a deck save the deck evaluation in the same transaction, after they change the cards, with the new deck revision. A refused request or one that makes no deck change saves nothing. Creating, renaming, and deleting a deck, and changing its deck priority, save nothing.
 - The deck change that adds a deck's first card creates its deck evaluation, and the one that removes its last card deletes it. An empty deck has none.
