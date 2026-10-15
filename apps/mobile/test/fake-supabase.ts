@@ -40,6 +40,9 @@ import type {
   MarkDeckUsedRequest,
   RemoveDeckCardRequest,
   RenameDeckRequest,
+  RevertDeckChangesRequest,
+  RevertPreview,
+  RevertPreviewQuery,
   SetDeckCommanderRequest,
   SetBasicLandsRequest,
   SetDeckPriorityRequest,
@@ -87,6 +90,7 @@ let failingDeckReads = 0;
 let failingDeckWrites = 0;
 let deckChanges = new Map<string, DeckChange[]>();
 let failingDeckChangeReads = 0;
+let revertPreviews = new Map<string, Omit<RevertPreview, 'revision'>>();
 const emptyCollectionTotal: CollectionTotal = {
   total: '0.00',
   currency: 'USD',
@@ -490,6 +494,51 @@ function deckChangeList({ deck_id, cursor }: DeckChangesQuery) {
   };
 }
 
+function revertPreviewRead({ deck_id, deck_change_id }: RevertPreviewQuery) {
+  if (failedDeckRead()) {
+    return { data: null, error: networkFailure };
+  }
+  const deck = decks.find((candidate) => candidate.deck_id === deck_id);
+  const preview = revertPreviews.get(deck_change_id);
+  return deck && preview ? { data: { ...preview, revision: deck.revision }, error: null } : deckNotFound;
+}
+
+const staleRevision = {
+  data: null,
+  error: { code: 'stale_revision', message: 'expected_revision is not the deck revision.', details: 'expected_revision' },
+};
+
+function revertDeckChanges(request: RevertDeckChangesRequest) {
+  deckWrites = [...deckWrites, { name: 'revert_deck_changes', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  const deck = decks.find((candidate) => candidate.deck_id === request.deck_id);
+  const changes = deckChanges.get(request.deck_id) ?? [];
+  const reverted = changes.find((change) => change.deck_change_id === request.deck_change_id);
+  if (!deck || !reverted) {
+    return deckNotFound;
+  }
+  if (request.expected_revision !== deck.revision) {
+    return staleRevision;
+  }
+  const revision = deck.revision + 1;
+  const revert: DeckChange = {
+    deck_change_id: `deck-change-${revision}`,
+    revision,
+    kind: 'revert',
+    changed_at: nextDeckTime(),
+    reverted: false,
+    lines: revertPreviews.get(request.deck_change_id)!.lines,
+  };
+  saveDeck({ ...deck, revision, last_used_at: revert.changed_at });
+  ownDeckChanges(request.deck_id, [
+    revert,
+    ...changes.map((change) => (change.revision >= reverted.revision ? { ...change, reverted: true } : change)),
+  ]);
+  return { data: { deck_id: deck.deck_id, revision }, error: null };
+}
+
 function createDeck(request: CreateDeckRequest) {
   deckWrites = [...deckWrites, { name: 'create_deck', request }];
   if (failedDeckWrite()) {
@@ -872,6 +921,7 @@ export const fakeSupabase = {
       | { query: CopyQuery }
       | { query: DeckQuery }
       | { query: DeckChangesQuery }
+      | { query: RevertPreviewQuery }
       | { query: Record<string, never> }
       | { query: CurrentPricesQuery }
       | { query: { text: string; limit: number } }
@@ -892,7 +942,8 @@ export const fakeSupabase = {
             | AddDeckCardRequest
             | SetDeckCommanderRequest
             | SetBasicLandsRequest
-            | RemoveDeckCardRequest;
+            | RemoveDeckCardRequest
+            | RevertDeckChangesRequest;
         },
   ) {
     if (name === 'list_decks') {
@@ -903,6 +954,12 @@ export const fakeSupabase = {
     }
     if (name === 'list_deck_changes' && args && 'query' in args) {
       return deckChangeList(args.query as DeckChangesQuery);
+    }
+    if (name === 'preview_revert' && args && 'query' in args) {
+      return revertPreviewRead(args.query as RevertPreviewQuery);
+    }
+    if (name === 'revert_deck_changes' && args && 'request' in args) {
+      return revertDeckChanges(args.request as RevertDeckChangesRequest);
     }
     if (name === 'create_deck' && args && 'request' in args) {
       return createDeck(args.request as CreateDeckRequest);
@@ -1117,6 +1174,16 @@ export function failDeckChangeReads(count: number) {
   failingDeckChangeReads = count;
 }
 
+export function ownRevertPreview(deckChangeId: string, preview: Omit<RevertPreview, 'revision'>) {
+  revertPreviews = new Map(revertPreviews).set(deckChangeId, preview);
+}
+
+export function changeDeckElsewhere(deckId: string, change: DeckChange) {
+  const deck = decks.find((candidate) => candidate.deck_id === deckId)!;
+  saveDeck({ ...deck, revision: change.revision });
+  ownDeckChanges(deckId, [change, ...(deckChanges.get(deckId) ?? [])]);
+}
+
 export function allocateCopyElsewhere(copyId: string) {
   copyDetails.set(copyId, { ...copyDetails.get(copyId)!, free: false });
 }
@@ -1289,6 +1356,7 @@ export function resetFakeSupabase() {
   failingDeckWrites = 0;
   deckChanges = new Map();
   failingDeckChangeReads = 0;
+  revertPreviews = new Map();
   collectionTotal = emptyCollectionTotal;
   priceReads = [];
   exchangeRates = exchangeRatesOf(frankfurterCurrencies);

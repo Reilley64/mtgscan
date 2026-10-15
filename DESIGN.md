@@ -607,7 +607,7 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - **Basic lands** is the last group. Its header shows the total count of basic lands, such as "Basic lands 10", or no count with none, and a secondary **Edit** button on the right. The group shows the basic land cards with a count above zero, in the order Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Each is its card image with a count badge, such as ×8, at the top right. VoiceOver reads it as an image, "Island, 8". A basic land tile is not a button and has no long-press menu. An empty deck shows the group with **Edit** after the empty state.
   - **Edit** shows all twelve basic land cards, each with a stepper under its image: a minus button, the count, and a plus button. VoiceOver reads them as "Remove one Island", "Island, 8", and "Add one Island". A count goes from 0 to 99. A Save bar at the bottom of the screen holds **Cancel** and a primary **Save N changes**, where N counts the basic land cards whose count changed, such as "Save 1 change". Save is off with no change. The Save bar shows only on Cards, and the group and sort buttons hide while it shows. Save sends all the counts as one deck change, and the group shows the new counts. Cancel puts the counts back. When the save fails, the alert "Could not save the basic lands" with "Check your connection." shows, and the changes stay.
   - **History** lists the deck changes, newest first, one surface card each. More deck changes load as the user scrolls near the end, 20 at a time.
-    - A card shows the kind in body strong: "Added", "Removed", "Made commander", "Made partner", "Moved to main deck", "Basic lands", "Removed from collection", or "Revert". A reverted deck change has a "Reverted" chip after its kind. The day and time follow in meta text, such as "16 October 2026 at 18:05".
+    - A card shows the kind in body strong: "Added", "Removed", "Made commander", "Made partner", "Moved to main deck", "Basic lands", "Removed from collection", or "Revert". A reverted deck change has a "Reverted" chip after its kind. The day and time follow in meta text, such as "16 October 2026 at 18:05". A **Revert** button in danger sits on the right of the card. It opens the revert page sheet. See Sheets.
     - Change lines follow. See Components. A copy that comes into the deck is a green + row, and a copy that leaves is a red − row. The meta is the type line. A commander change shows the new place instead, "Commander" or "Main deck". A basic land line shows the count change, such as "+2" or "−2".
     - The list ends with the day the deck was created, such as "Created 15 October 2026", in meta text.
     - When the read fails, History shows the empty state "Could not load this deck" with a **Try again** button.
@@ -621,6 +621,18 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 - Bought with the acquired copy picker;
 - the swap-in confirmation for a protected copy;
 - revert.
+
+The revert page sheet, from the **Revert** button of a deck change on History:
+
+- Its native navigation bar has **Cancel** on the left, the title "Revert" in sheet title type, and **Revert** in lime on the right.
+- The text says what the revert undoes: "Undo "<kind>" and the N later changes in <deck name> as one new change.", such as "Undo "Added" and the 1 later change in Atraxa as one new change.". With no later change, it says "Undo "<kind>" as one new change.".
+- The change lines follow: a + line for each card that comes back and a − line for each card that goes out, as on History.
+- Each block shows as a failure notice, such as "Cyclonic Rift is no longer in your collection." or "Sol Ring is in Kinnan.". Revert is off while a block shows.
+- Each protected copy that comes back shows as a warning line: "<card> is protected. Reverting unprotects it.". Revert unprotects it.
+- Revert makes one new deck change, closes the sheet, and History shows it. Cancel or a downward swipe closes the sheet and changes nothing.
+- When the deck changed since the sheet loaded, Revert reloads the sheet, and History reloads when the sheet closes.
+- A revert that fails shows the native alert "Could not revert this change" with "Check your connection.", and the sheet stays.
+- When the effect cannot load, the sheet shows the empty state "Could not load this revert" with a **Try again** button, and Revert is off.
 
 Settings, the scan details sheet, the printing picker, the condition and language pickers, the Filters drawer, the Add to deck drawer, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all of them.
 
@@ -717,6 +729,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Continue with Google.** Google's dark button style: a #131314 fill, a 1 px #8e918f border, #e3e3e3 text, and the four-color Google logo. Google's branding rules set these colors, so they sit outside the palette.
 - **Text links.** An in-app link inside a line of text, such as **Privacy policy**, keeps the type size of its line in bold lime. It is the one control without a 44 pt touch target, because a nested text run cannot take extra touch area.
 - **Failure notice.** A surface card with 12 px padding and a danger mark beside the message, such as "Sign-in did not work." A long message wraps in the space beside the mark, and the mark lines up with its first line.
+- **Warning line.** An 11 px `shield.fill` symbol and a body text message, both in warning, such as "Sol Ring is protected. Reverting unprotects it." VoiceOver reads the message.
 - **Brand mark.** A lime outlined card shape, 18 by 25 px with a 2.5 px border and 4 px corners, beside the mtgscan name. It is the one non-action use of lime.
 - **Chips.** Status chips show priority, validity, estimated bracket, finish, condition, language, and copy states such as "2 free" or "Protected only". Their text uses the text, warning, danger, or info color. A status chip can show an 11 px symbol before its label in the same color, such as the shield on **Protected**. Filter chips switch to the primary lime when selected. A chip that the user can tap is at least 44 px wide. Search chips show their `key:value` text and × on the control surface, and a tap removes them. A refused search chip has danger text on the danger tint.
 - **Deck box symbol.** A deck box drawn for mtgscan as a template image, `assets/deck-box.svg`. SF Symbols has no deck box. Like the set icon, it takes its tint from a text color class. The binder tile meta line shows it at 11 px (`sizes.deckBoxSymbol`) in info for a copy in a deck.

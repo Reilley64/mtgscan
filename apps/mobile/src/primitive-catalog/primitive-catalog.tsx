@@ -60,6 +60,7 @@ import { SortButton } from '@/components/molecules/sort-button';
 import { Stepper } from '@/components/molecules/stepper';
 import { ValueRow } from '@/components/molecules/value-row';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
+import { WarningLine } from '@/components/molecules/warning-line';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { SymbolText } from '@/components/molecules/symbol-text';
 import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
@@ -669,6 +670,14 @@ function ChangeLines() {
   );
 }
 
+function WarningLines() {
+  return (
+    <Section title="Warning lines">
+      <WarningLine message="Sol Ring is protected. Reverting unprotects it." />
+    </Section>
+  );
+}
+
 function SwipeToConfirms() {
   return (
     <Section title="Swipe to confirm">
@@ -746,6 +755,7 @@ export function PrimitiveCatalog() {
         <CommanderCards />
         <DeckTags />
         <ChangeLines />
+        <WarningLines />
         <SwipeToConfirms />
         <EmptyStates />
         <Section title="Drawer sheet">

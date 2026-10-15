@@ -72,6 +72,18 @@ export function isDrawerPresented() {
   return hostViews('RNSModalScreen').some((candidate) => candidate.props.stackPresentation === 'formSheet');
 }
 
+export function presentedPageSheet() {
+  const sheet = hostViews('RNSModalScreen').find((candidate) => candidate.props.stackPresentation === 'pageSheet');
+  if (!sheet) {
+    throw new Error('No page sheet is presented');
+  }
+  return sheet;
+}
+
+export function isPageSheetPresented() {
+  return hostViews('RNSModalScreen').some((candidate) => candidate.props.stackPresentation === 'pageSheet');
+}
+
 export function isInScrollView(element: HostElement) {
   let parent = element.parent;
   while (parent) {

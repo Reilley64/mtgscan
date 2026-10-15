@@ -40,6 +40,7 @@ import { SortButton } from '@/components/molecules/sort-button';
 import { GroupButton } from '@/components/molecules/group-button';
 import { Stepper } from '@/components/molecules/stepper';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
+import { WarningLine } from '@/components/molecules/warning-line';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { SymbolText } from '@/components/molecules/symbol-text';
 import { ThumbnailChip } from '@/components/molecules/thumbnail-chip';
@@ -359,6 +360,18 @@ describe('ChangeLine', () => {
     expect(within(row).getByText('Sol Ring')).toHaveStyle({ color: white, fontWeight: '700' });
     expect(within(row).getByText('Artifact')).toHaveStyle({ color: textMuted, fontSize: 12 });
     expect(cardImageUri(row)).toBe(solRing);
+  });
+});
+
+describe('WarningLine', () => {
+  test('a warning line is named by its message, with a shield and the message in warning', async () => {
+    await render(<WarningLine message="Sol Ring is protected. Reverting unprotects it." />);
+
+    const line = screen.getByLabelText('Sol Ring is protected. Reverting unprotects it.');
+    expect(within(line).getByText('Sol Ring is protected. Reverting unprotects it.')).toHaveStyle({ color: tokenColors.warning, fontSize: 14 });
+    expect(symbolNames(line)).toEqual(['shield.fill']);
+    expect(symbolSizes(line)).toEqual([11]);
+    expect(symbolTintColor(line)).toBe(tokenColors.warning);
   });
 });
 

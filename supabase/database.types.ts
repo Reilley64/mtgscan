@@ -751,6 +751,9 @@ isOneToOne: false
 "mark_deck_used":
 { Args: { "request": Json }; Returns: undefined
                            },
+"preview_revert":
+{ Args: { "query": Json }; Returns: Json
+                           },
 "prune_search_telemetry":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -770,6 +773,9 @@ isOneToOne: false
 { Args: { "request": Json }; Returns: undefined
                            },
 "rename_user_tag":
+{ Args: { "request": Json }; Returns: Json
+                           },
+"revert_deck_changes":
 { Args: { "request": Json }; Returns: Json
                            },
 "search_catalog":

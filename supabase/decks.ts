@@ -170,6 +170,36 @@ export type RemoveDeckCardRequest = {
 
 export type RemovedDeckCard = AddedDeckCard;
 
+export type RevertPreviewQuery = {
+  deck_id: string;
+  deck_change_id: string;
+};
+
+export type RevertBlock = {
+  copy_id: string;
+  name: string;
+  deck: CopyRowDeck | null;
+};
+
+export type RevertProtectedCopy = {
+  copy_id: string;
+  name: string;
+};
+
+export type RevertPreview = {
+  revision: number;
+  lines: DeckChangeLine[];
+  blocks: RevertBlock[];
+  protected_copies: RevertProtectedCopy[];
+};
+
+export type RevertDeckChangesRequest = RevertPreviewQuery & {
+  expected_revision: number;
+  unprotect: boolean;
+};
+
+export type RevertedDeckChanges = AddedDeckCard;
+
 export type DeckErrorCode =
   | 'invalid_argument'
   | 'invalid_cursor'
@@ -177,7 +207,9 @@ export type DeckErrorCode =
   | 'copy_not_free'
   | 'copy_protected'
   | 'copy_not_in_deck'
-  | 'commander_limit';
+  | 'commander_limit'
+  | 'stale_revision'
+  | 'revert_blocked';
 
 export type DeckError = Omit<SearchError, 'code'> & { code: DeckErrorCode };
 

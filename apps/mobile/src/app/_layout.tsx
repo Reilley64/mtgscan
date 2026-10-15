@@ -7,7 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SessionProvider, useSession } from '@/auth/session';
 import { PriceCurrencyProvider } from '@/collection/price-currency-setting';
 import { DeckCardOrderProvider } from '@/decks/deck-card-order';
-import { fullHeightDrawerOptions, halfHeightDrawerOptions } from '@/components/templates/drawer-sheet';
+import { fullHeightDrawerOptions, halfHeightDrawerOptions, pageSheetOptions } from '@/components/templates/drawer-sheet';
 import { GalleryProvider } from '@/gallery/gallery-state';
 import { CurrentPricesProvider } from '@/scan/current-prices';
 import { KeepAwakeWhileScanning } from '@/scan/keep-awake-while-scanning';
@@ -40,6 +40,7 @@ function RootStack() {
         <Stack.Screen name="deck" options={pushedScreenOptions} />
         <Stack.Screen name="user-tag-picker" />
         <Stack.Screen name="add-to-deck" options={halfHeightDrawerOptions} />
+        <Stack.Screen name="revert" options={pageSheetOptions} />
         <Stack.Screen name="scan-batch" options={fullHeightDrawerOptions} />
         <Stack.Screen name="scan-details" options={fullHeightDrawerOptions} />
         <Stack.Screen name="scan-printings" options={fullHeightDrawerOptions} />
