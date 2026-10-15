@@ -168,20 +168,32 @@ A number on each deck that starts at 0. Every deck change raises it by one. Crea
 _Avoid_: Version
 
 **Deck validity**:
-The deck's conformance to the current official Commander rules, judged on its commanders and main deck. It is valid, invalid, or cannot be determined. An invalid deck remains editable and lists its violations.
+Whether a deck follows the current official Commander rules, judged on its commanders and main deck against the rules data. It is valid, invalid, or cannot be determined. A deck with a violation is invalid. A deck with no violation cannot be determined when the rules data that a check needs is missing or not recognized. An invalid deck stays editable, and deck validity never blocks a change. An empty deck has no deck validity.
 _Avoid_: Legality status
 
 **Violation**:
-One Commander rule that a deck breaks, with the cards that break it.
+One Commander rule that a deck breaks, such as color identity or singleton, with the cards that break it.
 _Avoid_: Error, issue
 
+**Chosen color**:
+The color that a commander that says "choose a color", such as The Prismatic Piper, adds to the deck's color identity. mtgscan infers it. When every card outside the rest of the deck's color identity shares one color, that color is the chosen color. With no such card, the deck has no chosen color.
+_Avoid_: Picked color
+
 **Bracket signal**:
-A fact about a deck that Commander Brackets guidance mentions, such as its Game Changers or extra-turn cards.
+A fact about a deck that Commander Brackets guidance mentions, such as its Game Changers, a two-card combo, or extra-turn cards. Each bracket signal sets a lowest estimated bracket.
 _Avoid_: Power level
 
 **Estimated bracket**:
-The Commander bracket that a deck's bracket signals suggest. It is an estimate for a pregame conversation, not a certified bracket.
+The Commander bracket, 2, 3, or 4, that a deck's bracket signals suggest. Each bracket signal sets a lowest bracket, and the highest of them wins. With no bracket signal, it is 2. It is an estimate for a pregame conversation, not a certified bracket, and it is never cannot be determined. An empty deck has no estimated bracket.
 _Avoid_: Bracket, deck bracket, power level
+
+**Rules data**:
+The data that deck validity and the estimated bracket read: the card catalog's Commander legality, color identity, Game Changer flag, and deck-construction facts read from Oracle text, such as partner abilities and copy limits; the Oracle tags and the disabled tags; and the combos. Prices and exchange rates are not rules data. Each source of rules data is stale after 7 days without a successful import.
+_Avoid_: Rules snapshot, catalog data
+
+**Deck evaluation**:
+The stored deck validity, violations, chosen color, estimated bracket, and bracket signals of one deck, with the deck revision it judged and the time of the rules data it read. Each deck change saves a new deck evaluation, and each rules data import recomputes the deck evaluation of every deck. mtgscan keeps only the current one. An empty deck has none. A deck evaluation is stale when its rules data is stale or older than the latest rules data.
+_Avoid_: Validity result, deck check
 
 **Deck suggestion**:
 An AI proposal to add a card to a deck, optionally replacing a deck card, with the AI's reason. It always names an incoming card. It is open, promoted, dismissed, withdrawn, or stale. An AI cannot suggest replacing a card that has already left the deck. An open suggestion becomes stale when its outgoing card leaves the deck later. Any connected AI client can withdraw an open suggestion or replace its reason, and a withdrawn suggestion stays withdrawn. Promoting it creates a planned swap when a free copy exists, otherwise a buylist card, and both keep the reason. Promoting a basic-land suggestion makes a deck change at once.
