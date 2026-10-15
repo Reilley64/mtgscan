@@ -312,8 +312,9 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
 - The deck revision starts at 0.
 - `supabase.rpc('create_deck', { request: { name } })` trims the name and creates an empty deck with no commander. It returns `deck_id`. Creating a deck counts as using it.
 - `supabase.rpc('mark_deck_used', { request: { deck_id } })` sets the deck's last used time. The deck screen calls it when it opens. It returns nothing.
-- `supabase.rpc('list_decks')` returns `items`: the caller's decks with `deck_id`, `name`, `priority`, `card_count`, `commanders`, and `last_used_at`. The deck used most recently comes first. Decks used at the same time sort by name ignoring case. `card_count` counts the deck's commanders, main deck, and basic lands. `commanders` lists each commander's `copy_id`, `name`, and `art_crop_uri`, the oldest commander first.
+- `supabase.rpc('list_decks')` returns `items`: the caller's decks with `deck_id`, `name`, `priority`, `card_count`, `commanders`, `last_used_at`, and `evaluation`. The deck used most recently comes first. Decks used at the same time sort by name ignoring case. `card_count` counts the deck's commanders, main deck, and basic lands. `commanders` lists each commander's `copy_id`, `name`, and `art_crop_uri`, the oldest commander first. `evaluation` is null for an empty deck. Otherwise it has the `validity` of the deck evaluation.
 - `supabase.rpc('get_deck', { query: { deck_id } })` returns the fields of a `list_decks` item, plus `revision`, `created_at`, `cards`, and `basic_lands`. Reading a deck does not count as using it.
+  - `evaluation` is null for an empty deck. Otherwise it has every stored field of the deck evaluation, as Deck evaluations says, and `validity_rules_data_at`, the snapshot time of the card catalog that the validity used.
   - `cards` lists every copy in the deck. Each has its card printing as in a copy row of collection search, its `finish`, `condition`, `language`, `protected`, and `price` with `stale`. It adds `role` (`commander` or `main`), `commander_at`, the time the card was made a commander or null, `added_at`, the time the copy went into the deck, and its card's `type_line`, `mana_value`, and `colors`. The app groups and sorts the cards.
   - `basic_lands` lists the twelve basic land cards in order: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Each has its card's `oracle_id`, its `name`, the `image_uris` of its basic land image, and its `count`, 0 when the deck has none. A basic land card that the card catalog does not have has a null `oracle_id` and no image.
   - The basic land image is the image of one card printing of that basic land, chosen the same way each time: a printing with an image first, then English, then one with a nonfoil finish, then the newest, then by set code and collector number. The lookup finds each basic land card through the `name_key` index, so it reads only those cards from the card catalog.
@@ -359,6 +360,25 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
   - A protected copy that comes back is refused with `copy_protected` on `unprotect` unless `unprotect` is true. Then it unprotects the copy in the same transaction.
   - A deck change of another deck or another user is refused with `not_found` on `deck_change_id`.
 - The write functions check the caller's identity and run in one transaction each. The reads run with the caller's rights. Another user's deck is refused with `not_found` on `deck_id`, like one that does not exist. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
+
+### Deck evaluations
+
+mtgscan judges each deck against the Commander rules and stores the result as one deck evaluation per deck. `docs/adr/0006-store-deck-evaluations-and-recompute-them-after-rules-data-imports.md` says why. `supabase/decks.ts` has the shared types.
+
+- `deck_evaluations` holds one row per deck that has a card, with the user ID. Deleting a deck deletes its row. mtgscan keeps only the current deck evaluation, with no history.
+- A row has `validity` (`valid`, `invalid`, or `cannot_be_determined`), `violations` in a fixed order, `undetermined`, the checks that could not run with their cards and reason, `revision`, the deck revision it judged, `catalog_at`, the snapshot time of the card catalog it read or null before the first catalog import, and `judged_at`.
+- One private function, `private.judge_deck`, judges a deck and writes nothing. Its input is the deck's copies, each with its card printing and `commander` or `main`, and each basic land card with its count. Its output is a deck evaluation without the deck revision.
+- The validity is `invalid` with any violation, `cannot_be_determined` with no violation and at least one check that could not run, and `valid` otherwise.
+- Each violation has `rule`, `citation` or null, `message`, `hint` or null, and `cards`. A card is a copy with `kind` `copy`, `copy_id`, `name`, and `image_uris`, or a basic land card with `kind` `basic_land`, `oracle_id`, `name`, and `image_uris`.
+- The violations so far, in their order:
+
+  | Rule | Checks | Citation | Message and hint |
+  | --- | --- | --- | --- |
+  | `no_commander` | The deck has no commander. The other checks still run. | CR 903.3 | "This deck has no commander." |
+  | `deck_size` | The deck does not have exactly 100 cards, commanders and basic lands included. It names no cards. | CR 903.5a | "87 of 100 cards." with "Add 13 cards.", or "101 of 100 cards." with "Remove 1 card." |
+
+- `add_deck_card`, `remove_deck_card`, `set_deck_commander`, `set_basic_lands`, `revert_deck_changes`, and `delete_copy` for a copy in a deck save the deck evaluation in the same transaction, after they change the cards, with the new deck revision. A refused request or one that makes no deck change saves nothing. Creating, renaming, and deleting a deck, and changing its deck priority, save nothing.
+- The deck change that adds a deck's first card creates its deck evaluation, and the one that removes its last card deletes it. An empty deck has none.
 
 ### Collection search
 
@@ -422,7 +442,7 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, and `deck_change_basic_lands`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
+The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, and `deck_evaluations`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. A migration grants `execute` on a helper only to the roles whose functions call it.
 

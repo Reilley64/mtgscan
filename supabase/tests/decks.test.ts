@@ -68,10 +68,12 @@ describe('creating a deck', () => {
       card_count: 0,
       commanders: [],
       last_used_at: expect.any(String),
+      evaluation: null,
     };
     expect(await decksOf(user)).toEqual([expected]);
     expect((await getDeck(user.client, { deck_id: deckId })).deck).toEqual({
       ...expected,
+      evaluation: null,
       revision: 0,
       created_at: expect.any(String),
       cards: [],
