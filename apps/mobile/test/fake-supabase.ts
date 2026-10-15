@@ -550,7 +550,9 @@ function addDeckCard(request: AddDeckCardRequest) {
       commander_count: deck.commanders.length,
     },
   });
-  collectionCopies = collectionCopies.map((copy) => (copy.copy_id === request.copy_id ? { ...copy, protected: false } : copy));
+  collectionCopies = collectionCopies.map((copy) =>
+    copy.copy_id === request.copy_id ? { ...copy, protected: false, deck: { deck_id: deck.deck_id, name: deck.name } } : copy,
+  );
   return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
 }
 
@@ -623,6 +625,7 @@ function addToCollection(copies: { copyId: string; stack: ScanBatchStack }[]) {
       language,
       protected: false,
       price: null,
+      deck: null,
     };
     collectionCopies = [...ofPrinting, copy, ...collectionCopies.filter((row) => row.printing_id !== card_printing_id)];
   }

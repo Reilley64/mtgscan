@@ -1,10 +1,20 @@
 import type { TagLookupPage } from '@mtgscan/supabase/search';
 import { useEffect, useMemo, useState } from 'react';
 
-import { chipSuggestion, fixedSuggestions, typedValue, type SearchSuggestion, type TypedValue } from '@/collection/collection-search';
+import {
+  chipLabel,
+  chipSuggestion,
+  fixedSuggestions,
+  keyValueChip,
+  typedValue,
+  type SearchSuggestion,
+  type TypedValue,
+} from '@/collection/collection-search';
 import { shownCopyCount } from '@/collection/total-labels';
 import { userTagsFound } from '@/collection/user-tag-names';
 import { readUserTags } from '@/collection/user-tags';
+import { cardCountLabel } from '@/decks/deck-labels';
+import { readDecks } from '@/decks/use-decks';
 import { supabase } from '@/lib/supabase';
 
 const suggestionLimit = 8;
@@ -40,6 +50,23 @@ async function userTagSuggestions(typed: TypedValue): Promise<SearchSuggestion[]
     .map((userTag) => chipSuggestion(typed, userTag.name, shownCopyCount(userTag.copy_count)));
 }
 
+async function deckSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
+  const { decks } = await readDecks();
+  const found = typed.value.trim().toLowerCase();
+  return decks
+    .filter((deck) => deck.name.toLowerCase().includes(found))
+    .slice(0, suggestionLimit)
+    .map((deck) => {
+      const chip = { ...keyValueChip(typed.key, deck.name, typed.negated), deckId: deck.deck_id };
+      return {
+        title: chipLabel(chip),
+        detail: cardCountLabel(deck.card_count),
+        chip,
+        avatar: { uri: deck.commanders[0]?.art_crop_uri ?? null },
+      };
+    });
+}
+
 function suggestionLookup(token: string) {
   const typed = typedValue(token);
   switch (typed?.key) {
@@ -49,6 +76,8 @@ function suggestionLookup(token: string) {
       return typed.value ? oracleTagSuggestions(typed) : null;
     case 'user_tag':
       return userTagSuggestions(typed);
+    case 'deck':
+      return deckSuggestions(typed);
     default:
       return null;
   }

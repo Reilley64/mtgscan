@@ -312,6 +312,14 @@ function CardTiles() {
           <CopyMeta setCode="m10" rarity="rare" setIconUri={m10Symbol} collectorNumber="216" isProtected />
           <PriceLine price="$1.25" stale={false} />
         </CardTile>
+        <CardTile uri={solRing} accessibilityLabel="Sol Ring, M10 216, protected, in the deck Atraxa, $1.25">
+          <CopyMeta setCode="m10" rarity="rare" setIconUri={m10Symbol} collectorNumber="216" isProtected inDeck />
+          <PriceLine price="$1.25" stale={false} />
+        </CardTile>
+        <CardTile uri={solRing} accessibilityLabel="Sol Ring, C21 263, in the deck Atraxa, $1.25">
+          <CopyMeta setCode="c21" rarity="rare" setIconUri={undefined} collectorNumber="263" inDeck />
+          <PriceLine price="$1.25" stale={false} />
+        </CardTile>
         <CardTile uri={solRing} sheen="foil" accessibilityLabel="Sol Ring, M10 216, foil, deck card" onPress={() => {}} />
         <CardTile
           uri={solRing}

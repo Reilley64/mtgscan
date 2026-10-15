@@ -10,16 +10,20 @@ import {
   holdCollectionReads,
   ownCollectionCopies,
   ownCollectionTotal,
+  ownDecks,
+  failDeckReads,
   ownUserTags,
   startSignedIn,
 } from './fake-supabase';
 import {
   appearsBefore,
+  dashedOutlinesColored,
   buttonMenu,
   cardImageUri,
   cardSheen,
   headerButton,
   headerMenu,
+  imageSources,
   imageTintColor,
   menuButton,
   menuButtonNames,
@@ -42,7 +46,7 @@ import { setIconUri } from './card-printings';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
 
-const { danger, primary, text, textDim, textMuted, textPrice } = tokenColors;
+const { danger, info, line: lineColor, primary, text, textDim, textMuted, textPrice } = tokenColors;
 
 let entryNumber = 0;
 
@@ -65,6 +69,7 @@ function collectionEntryCopies(
     language: 'en',
     protected: false,
     price: null,
+    deck: null,
     ...changes,
   }));
 }
@@ -127,6 +132,28 @@ test('the binder grid shows one tile per copy with its image and no quantity bad
   expect(cardImageUri(delverTile)).toBe('https://cards.scryfall.io/normal/front/delver.jpg');
   expect(collection.queryByText('3')).not.toBeOnTheScreen();
   expect(collection.queryByText('Your collection is empty')).not.toBeOnTheScreen();
+});
+
+test('a copy in a deck starts its line with the deck box symbol in the info color, and VoiceOver hears its deck after protected', async () => {
+  ownCollectionCopies([
+    ...collectionEntryCopies('Sol Ring', 1, {
+      set: 'c21',
+      collector_number: '263',
+      protected: true,
+      deck: { deck_id: 'deck-1', name: 'Atraxa' },
+    }),
+    ...collectionEntryCopies('Ponder', 1, { set: 'c21', collector_number: '79' }),
+  ]);
+
+  const collection = await openCollection();
+
+  const inDeck = collection.getByRole('button', { name: 'Sol Ring, C21 263, protected, in the deck Atraxa, no price' });
+  const line = within(inDeck).getByText('263').parent!;
+  expect(imageSources(line)).toEqual([expect.stringMatching(/assets\/deck-box\.svg$/)]);
+  expect(imageTintColor(line)).toBe(processColor(info));
+  expect(appearsBefore(line.children[0] as typeof inDeck, within(line).getByText('C21'))).toBe(true);
+  const free = collection.getByRole('button', { name: 'Ponder, C21 79, no price' });
+  expect(imageSources(within(free).getByText('79').parent!)).toEqual([]);
 });
 
 test('under each card, one line shows the set icon from the card catalog and the collector number', async () => {
@@ -679,6 +706,7 @@ describe('collection search', () => {
     ['rarity:m', 'rarity:mythic'],
     ['color:u', 'color:u, Blue'],
     ['is:p', 'is:protected, Protected copies'],
+    ['is:a', 'is:allocated, Copies in decks'],
   ])('after %s, suggestions offer values from the fixed list', async (typed, suggestion) => {
     const collection = await openCollection();
 
@@ -841,6 +869,77 @@ describe('collection search', () => {
     expect(collection.getByLabelText('No cards found, Check the spelling or try fewer words.')).toBeOnTheScreen();
     expect(collection.queryByRole('button', { name: 'Scan cards' })).not.toBeOnTheScreen();
     expect(collection.queryByText('Your collection is empty')).not.toBeOnTheScreen();
+  });
+
+  describe('deck chips', () => {
+    const atraxaArt = 'https://cards.scryfall.io/art_crop/front/atraxa.jpg';
+
+    beforeEach(() => {
+      ownDecks([
+        { name: 'Atraxa', priority: 'medium', card_count: 62, commanders: [{ copy_id: 'copy-9', name: 'Atraxa, Praetors\' Voice', art_crop_uri: atraxaArt }] },
+        { name: 'atraxa', priority: 'low', card_count: 3 },
+        { name: 'Kinnan', priority: 'high', card_count: 0 },
+      ]);
+    });
+
+    test('after deck:, suggestions offer the decks whose names contain the typed text, with avatar, name, and card count', async () => {
+      const collection = await openCollection();
+
+      await typeInSearchBar('deck:TRAX');
+
+      const first = await collection.findByRole('button', { name: 'deck:"Atraxa", 62 cards' });
+      const second = collection.getByRole('button', { name: 'deck:"atraxa", 3 cards' });
+      expect(cardImageUri(first)).toBe(atraxaArt);
+      expect(dashedOutlinesColored(second, lineColor)).toBe(1);
+      expect(collection.queryByRole('button', { name: /^deck:"Kinnan"/ })).not.toBeOnTheScreen();
+    });
+
+    test('a picked deck suggestion makes a chip for that one deck, even when another deck has its name', async () => {
+      const collection = await openCollection();
+
+      await typeInSearchBar('-deck:atr');
+      await fireEvent.press(await collection.findByRole('button', { name: '-deck:"atraxa", 3 cards' }));
+
+      expect(chipLabels()).toEqual(['-deck:"atraxa"']);
+      expect(lastSearch()).toEqual({ deck_ids_exclude: ['deck-2'] });
+    });
+
+    test('a typed deck: name matches every deck with exactly that name, ignoring case', async () => {
+      await openCollection();
+
+      await typeInSearchBar('deck:ATRAXA -deck:kinnan ');
+
+      expect(chipLabels()).toEqual(['deck:"ATRAXA"', '-deck:"kinnan"']);
+      expect(lastSearch()?.deck_ids?.toSorted()).toEqual(['deck-1', 'deck-2']);
+      expect(lastSearch()?.deck_ids_exclude).toEqual(['deck-3']);
+    });
+
+    test('a typed deck: name that matches no deck turns danger, and the grid shows its message', async () => {
+      ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
+      const collection = await openCollection();
+      const searchesBefore = collectionSearchesSent().length;
+
+      await typeInSearchBar('deck:atrax ');
+
+      expect(collection.getByText('No deck named "atrax".')).toBeOnTheScreen();
+      expect(within(chipButton('deck:"atrax"')).getByText('deck:"atrax"')).toHaveStyle({ color: danger });
+      expect(collection.queryByRole('button', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
+      expect(collectionSearchesSent()).toHaveLength(searchesBefore);
+    });
+
+    test('when the decks cannot be read for a typed deck: name, Try again reads them again', async () => {
+      ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
+      const collection = await openCollection();
+      await typeInSearchBar('deck:kinnan ');
+      failDeckReads(1);
+
+      await pressTab('Recent');
+      await pressTab('Collection');
+      await fireEvent.press(await collection.findByRole('button', { name: 'Try again' }));
+
+      expect(await collection.findByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
+      expect(lastSearch()).toEqual({ deck_ids: ['deck-3'] });
+    });
   });
 
   test.each([

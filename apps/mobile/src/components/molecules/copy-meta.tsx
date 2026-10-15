@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react';
 import { View } from 'react-native';
 
+import { DeckBoxSymbol } from '@/components/atoms/deck-box-symbol';
 import { SetIcon } from '@/components/atoms/set-icon';
 import { SymbolView } from '@/components/atoms/symbol-view';
 import { Text } from '@/components/atoms/text';
@@ -13,12 +14,14 @@ type CopyMetaProps = {
   collectorNumber: string;
   condition?: string;
   isProtected?: boolean;
+  inDeck?: boolean;
 };
 
-export function CopyMeta({ setCode, rarity, setIconUri, collectorNumber, condition, isProtected = false }: CopyMetaProps) {
+export function CopyMeta({ setCode, rarity, setIconUri, collectorNumber, condition, isProtected = false, inDeck = false }: CopyMetaProps) {
   const setLabel = setCode.toUpperCase();
   return (
     <View className="flex-row items-center justify-center gap-xs">
+      {inDeck && <DeckBoxSymbol />}
       {isProtected && <SymbolView name="shield.fill" size={sizes.protectedSymbol} className="text-warning" />}
       {setIconUri ? (
         <View accessible accessibilityLabel={setLabel}>

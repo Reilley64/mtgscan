@@ -91,7 +91,7 @@ test('the Filters button opens a half-height drawer titled Filters with only chi
   await openFilters();
 
   expect(presentedDrawer()).toMatchObject({ showsGrabber: true, openingHeight: 0.5 });
-  expect(filterChoices('Show')).toEqual(['All', 'Free', 'Protected']);
+  expect(filterChoices('Show')).toEqual(['All', 'Free', 'Allocated', 'Protected']);
   expect(filterChoices('With user tags')).toEqual(['Signed', 'Trade binder']);
   expect(filterChoices('Without user tags')).toEqual(['Signed', 'Trade binder']);
   expect(filterChoices('Finish')).toEqual(['Any', 'Nonfoil', 'Foil', 'Etched']);
@@ -113,8 +113,8 @@ test('the Filters button opens a half-height drawer titled Filters with only chi
   for (const title of ['Show', 'Finish', 'Condition', 'Language']) {
     expect(chosenFilters(title)).toEqual([title === 'Show' ? 'All' : 'Any']);
   }
-  expect(within(presentedDrawerContent()).getAllByRole('button')).toHaveLength(3 + 2 + 2 + 4 + 6 + 12);
-  expect(within(presentedDrawerContent()).queryAllByRole('button', { selected: false })).toHaveLength(3 + 2 + 2 + 4 + 6 + 12 - 4);
+  expect(within(presentedDrawerContent()).getAllByRole('button')).toHaveLength(4 + 2 + 2 + 4 + 6 + 12);
+  expect(within(presentedDrawerContent()).queryAllByRole('button', { selected: false })).toHaveLength(4 + 2 + 2 + 4 + 6 + 12 - 4);
 });
 
 test('with no user tags, the drawer leaves out the user tag sections', async () => {
@@ -125,14 +125,18 @@ test('with no user tags, the drawer leaves out the user tag sections', async () 
 
   expect(screen.queryByRole('header', { name: 'With user tags' })).not.toBeOnTheScreen();
   expect(screen.queryByRole('header', { name: 'Without user tags' })).not.toBeOnTheScreen();
-  expect(filterChoices('Show')).toEqual(['All', 'Free', 'Protected']);
+  expect(filterChoices('Show')).toEqual(['All', 'Free', 'Allocated', 'Protected']);
 });
 
-test('Free sends free copies that are not protected, Protected sends protected copies, and All sends neither', async () => {
+test('Free sends free copies that are not protected, Allocated sends copies in decks, Protected sends protected copies, and All sends none', async () => {
   await openCollection();
 
   await chooseInFilters('Show', 'Free');
   expect(lastSearch()).toEqual({ is_free: true, is_protected: false });
+
+  await chooseInFilters('Show', 'Allocated');
+  expect(chipLabels()).toEqual(['is:allocated']);
+  expect(lastSearch()).toEqual({ is_allocated: true });
 
   await chooseInFilters('Show', 'Protected');
   expect(lastSearch()).toEqual({ is_protected: true });
@@ -169,6 +173,23 @@ test('Free counts as one filter in the badge, though it is two chips', async () 
 
   expect(chipLabels()).toEqual(['is:free', '-is:protected']);
   expect(headerButtonBadge(selectedTab(), 'Filters, 1')).toEqual({ count: '1', color: processColor(badge) });
+});
+
+test('Allocated counts as one filter in the badge', async () => {
+  await openCollection();
+
+  await chooseInFilters('Show', 'Allocated');
+
+  expect(headerButtonBadge(selectedTab(), 'Filters, 1')).toEqual({ count: '1', color: processColor(badge) });
+});
+
+test('a typed is:allocated chip selects Allocated in the drawer', async () => {
+  await openCollection();
+  await typeInSearchBar('is:allocated ');
+
+  await openFilters();
+
+  expect(chosenFilters('Show')).toEqual(['Allocated']);
 });
 
 test('typed chips count one filter each, and typed Free chips count as one', async () => {

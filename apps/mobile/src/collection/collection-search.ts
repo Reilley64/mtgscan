@@ -1,6 +1,7 @@
 import type { CardCondition, CollectionQuery } from '@mtgscan/supabase/collection';
 import { usdPriceBounds, type ExchangeRate, type PriceBounds } from '@mtgscan/supabase/converted-prices';
 import { Constants } from '@mtgscan/supabase/database.types';
+import type { DeckRow } from '@mtgscan/supabase/decks';
 
 import { conditionLabels, conditionNames, conditions, finishes, languageNames, languages } from '@/collection/copy-labels';
 
@@ -11,6 +12,7 @@ export type SearchChip = {
   negated: boolean;
   operator: SearchOperator;
   value: string;
+  deckId?: string;
 };
 
 type Choice = { value: string; note?: string };
@@ -32,10 +34,12 @@ type BoundKey = {
 
 type FlagKey = {
   kind: 'flag';
-  flags: Record<string, { field: 'is_commander' | 'is_game_changer' | 'is_free' | 'is_protected'; note: string }>;
+  flags: Record<string, { field: 'is_commander' | 'is_game_changer' | 'is_free' | 'is_allocated' | 'is_protected'; note: string }>;
 };
 
-type SearchKey = ListKey | ColorKey | BoundKey | FlagKey;
+type DeckKey = { kind: 'deck'; note: string };
+
+type SearchKey = ListKey | ColorKey | BoundKey | FlagKey | DeckKey;
 
 function choices(values: readonly string[], noteOf: (value: string) => string | undefined = () => undefined) {
   return Object.fromEntries(values.map((value) => [value, { value, note: noteOf(value) }]));
@@ -85,12 +89,14 @@ const searchKeys = {
   },
   lang: { kind: 'list', field: 'languages', note: 'Language', choices: choices(languages, (language) => languageNames[language as keyof typeof languageNames]) },
   user_tag: { kind: 'list', field: 'user_tags', note: 'User tag' },
+  deck: { kind: 'deck', note: 'Deck name' },
   is: {
     kind: 'flag',
     flags: {
       commander: { field: 'is_commander', note: 'Can be your commander' },
       gamechanger: { field: 'is_game_changer', note: 'Game Changer' },
       free: { field: 'is_free', note: 'Free copies' },
+      allocated: { field: 'is_allocated', note: 'Copies in decks' },
       protected: { field: 'is_protected', note: 'Protected copies' },
     },
   },
@@ -133,6 +139,8 @@ function checkedValue(key: SearchKey, operator: SearchOperator, value: string) {
       return key.pattern.test(value) ? value : null;
     case 'flag':
       return operator === ':' && key.flags[value.toLowerCase()] ? value.toLowerCase() : null;
+    case 'deck':
+      return operator === ':' ? value : null;
   }
 }
 
@@ -164,7 +172,7 @@ function isKeyToken(token: string) {
 }
 
 export function chipLabel({ key, negated, operator, value }: SearchChip) {
-  return `${negated ? '-' : ''}${key}${operator}${/\s/.test(value) ? `"${value}"` : value}`;
+  return `${negated ? '-' : ''}${key}${operator}${key === 'deck' || /\s/.test(value) ? `"${value}"` : value}`;
 }
 
 function insideQuotes(text: string) {
@@ -215,11 +223,26 @@ function boundOf(step: number, operator: SearchOperator, value: number) {
   }
 }
 
-export function collectionSearchQuery(text: string, chips: SearchChip[], priceCurrency: ExchangeRate) {
+export function isTypedDeckChip(chip: SearchChip) {
+  return chip.key === 'deck' && chip.deckId === undefined;
+}
+
+type NamedDeck = Pick<DeckRow, 'deck_id' | 'name'>;
+
+function deckIdsOf(chip: SearchChip, decks: NamedDeck[]) {
+  if (chip.deckId !== undefined) {
+    return [chip.deckId];
+  }
+  const name = chip.value.trim().toLowerCase();
+  return decks.filter((deck) => deck.name.toLowerCase() === name).map((deck) => deck.deck_id);
+}
+
+export function collectionSearchQuery(text: string, chips: SearchChip[], priceCurrency: ExchangeRate, decks: NamedDeck[]) {
   const query: Record<string, unknown> = {};
   const minorUnit = 10 ** -priceCurrency.minor_unit_digits;
   const chipIndexOfField = new Map<string, number>();
   const bounds: Bounds = {};
+  let refusedChipIndex: number | undefined;
   const words = splitTokens(text)
     .filter((token) => !isKeyToken(token))
     .join(' ');
@@ -269,6 +292,16 @@ export function collectionSearchQuery(text: string, chips: SearchChip[], priceCu
         chipIndexOfField.set(field, chipIndex);
         break;
       }
+      case 'deck': {
+        const field = chip.negated ? 'deck_ids_exclude' : 'deck_ids';
+        const deckIds = deckIdsOf(chip, decks);
+        const listed = (query[field] as string[] | undefined) ?? [];
+        if (deckIds.length === 0) {
+          refusedChipIndex ??= chipIndex;
+        }
+        addToList(field, deckIds.filter((deckId) => !listed.includes(deckId)), chipIndex);
+        break;
+      }
     }
   });
 
@@ -281,7 +314,7 @@ export function collectionSearchQuery(text: string, chips: SearchChip[], priceCu
     }
   }
   Object.assign(query, usdPriceBounds(priceBounds, priceCurrency));
-  return { query: query as CollectionQuery, chipIndexOfField };
+  return { query: query as CollectionQuery, chipIndexOfField, refusedChipIndex };
 }
 
 export function refusedChipMessage(chip: SearchChip) {
@@ -294,6 +327,8 @@ export function refusedChipMessage(chip: SearchChip) {
       return `No keyword named "${chip.value}".`;
     case 'user_tag':
       return `No user tag named "${chip.value}".`;
+    case 'deck':
+      return `No deck named "${chip.value}".`;
     default:
       return `${chipLabel(chip)} is not a valid chip.`;
   }
@@ -303,6 +338,7 @@ export type SearchSuggestion = {
   title: string;
   detail?: string;
   chip?: SearchChip;
+  avatar?: { uri: string | null };
 };
 
 export type TypedValue = { key: SearchKeyName; negated: boolean; value: string };

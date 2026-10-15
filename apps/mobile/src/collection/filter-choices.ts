@@ -21,8 +21,13 @@ const freeChoice: FilterChoice = { label: 'Free', chips: [keyValueChip('is', 'fr
 
 export const showFilter: SingleChoiceFilter = {
   title: 'Show',
-  owns: (chip) => chip.key === 'is' && (chip.value === 'free' || chip.value === 'protected'),
-  choices: [{ label: 'All', chips: [] }, freeChoice, { label: 'Protected', chips: [keyValueChip('is', 'protected')] }],
+  owns: (chip) => chip.key === 'is' && ['free', 'allocated', 'protected'].includes(chip.value),
+  choices: [
+    { label: 'All', chips: [] },
+    freeChoice,
+    { label: 'Allocated', chips: [keyValueChip('is', 'allocated')] },
+    { label: 'Protected', chips: [keyValueChip('is', 'protected')] },
+  ],
 };
 
 export const copyFilters: SingleChoiceFilter[] = [

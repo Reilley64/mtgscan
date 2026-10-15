@@ -11,6 +11,7 @@ import type {
   UserTag,
 } from '../collection';
 import type { Json } from '../database.types';
+import type { CreatedDeck } from '../decks';
 import { readSearchError, type CardDetails, type CardPrintingsPage, type CatalogRow, type SearchPage } from '../search';
 import { catalogFixture, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { collectionEntryKey, seedCopies, seededCollectionEntryKey, type SeededCopies } from './copy-seeds';
@@ -426,7 +427,7 @@ describe('after a catalog import', () => {
     });
 
     test('catalog search refuses the collection chips', async () => {
-      for (const field of ['finishes', 'conditions', 'languages', 'deck_ids', 'is_free', 'is_protected', 'rows']) {
+      for (const field of ['finishes', 'conditions', 'languages', 'deck_ids', 'is_free', 'is_protected', 'is_allocated', 'rows']) {
         const { data, error } = await alice.client.rpc('search_catalog', {
           query: { text: 'fog', [field]: field.startsWith('is_') ? true : ['x'] },
         });
@@ -520,13 +521,87 @@ describe('after a catalog import', () => {
   });
 
   describe('deck chips', () => {
-    test.each(['deck_ids', 'deck_ids_exclude'])('%s refuses any deck ID until decks exist', async (field) => {
-      const { page, error } = await search({ [field]: [crypto.randomUUID()] });
+    let carol: TestUser;
+    let carolCopyIds: string[];
+    let atraxa: string;
+    let kinnan: string;
+    let bobDeck: string;
 
-      expect(page).toBeNull();
-      expect(error).toMatchObject({ code: 'invalid_argument', field: `${field}[0]` });
-      expect(error!.message).toContain('not one of your decks');
+    async function createdDeck(user: TestUser, name: string) {
+      const { data, error } = await user.client.rpc('create_deck', { request: { name } });
+      expect(error).toBeNull();
+      return (data as unknown as CreatedDeck).deck_id;
+    }
+
+    async function addedToDeck(user: TestUser, deckId: string, copyId: string) {
+      const { error } = await user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: copyId, unprotect: false } });
+      expect(error).toBeNull();
+    }
+
+    async function copyRows(query: CollectionQuery) {
+      return (await page({ ...query, rows: 'copies' }, carol)).items as unknown as CollectionCopyRow[];
+    }
+
+    async function copyIds(query: CollectionQuery) {
+      return (await copyRows(query)).map((row) => row.copy_id).toSorted();
+    }
+
+    function sorted(...ids: (string | undefined)[]) {
+      return (ids as string[]).toSorted();
+    }
+
+    beforeAll(async () => {
+      carol = await signUpNewUser();
+      carolCopyIds = (await seedCopies(carol, [entry(printings.angelicCuratorMh2, { quantity: 3 }), entry(printings.lightningBoltAlpha)])).flat();
+      atraxa = await createdDeck(carol, 'Atraxa');
+      kinnan = await createdDeck(carol, 'Kinnan');
+      await addedToDeck(carol, atraxa, carolCopyIds[0]!);
+      await addedToDeck(carol, kinnan, carolCopyIds[1]!);
+      await addedToDeck(carol, kinnan, carolCopyIds[3]!);
+      bobDeck = await createdDeck(bob, 'Atraxa');
     });
+
+    test('is_allocated true matches copies in a deck, and false matches copies in no deck', async () => {
+      expect(await copyIds({ is_allocated: true })).toEqual(sorted(carolCopyIds[0], carolCopyIds[1], carolCopyIds[3]));
+      expect(await copyIds({ is_allocated: false })).toEqual(sorted(carolCopyIds[2]));
+    });
+
+    test('deck_ids matches copies in any of the listed decks', async () => {
+      expect(await copyIds({ deck_ids: [kinnan] })).toEqual(sorted(carolCopyIds[1], carolCopyIds[3]));
+      expect(await copyIds({ deck_ids: [atraxa, kinnan] })).toEqual(sorted(carolCopyIds[0], carolCopyIds[1], carolCopyIds[3]));
+    });
+
+    test('deck_ids_exclude leaves out copies in any of the listed decks', async () => {
+      expect(await copyIds({ deck_ids_exclude: [kinnan] })).toEqual(sorted(carolCopyIds[0], carolCopyIds[2]));
+      expect(await copyIds({ deck_ids_exclude: [atraxa, kinnan] })).toEqual(sorted(carolCopyIds[2]));
+    });
+
+    test('a copy row returns the deck ID and name of its deck, or null for a copy in no deck', async () => {
+      const decks = Object.fromEntries((await copyRows({})).map((row) => [row.copy_id, row.deck]));
+
+      expect(decks).toEqual({
+        [carolCopyIds[0]!]: { deck_id: atraxa, name: 'Atraxa' },
+        [carolCopyIds[1]!]: { deck_id: kinnan, name: 'Kinnan' },
+        [carolCopyIds[2]!]: null,
+        [carolCopyIds[3]!]: { deck_id: kinnan, name: 'Kinnan' },
+      });
+    });
+
+    test.each(['deck_ids', 'deck_ids_exclude'])(
+      "%s refuses another user's deck ID and an unknown deck ID on its item",
+      async (field) => {
+        for (const [deckIds, refused] of [
+          [[atraxa, bobDeck], 1],
+          [[crypto.randomUUID(), kinnan], 0],
+        ] as const) {
+          const { page, error } = await search({ [field]: deckIds }, carol);
+
+          expect(page).toBeNull();
+          expect(error).toMatchObject({ code: 'invalid_argument', field: `${field}[${refused}]` });
+          expect(error!.message).toContain('not one of your decks');
+        }
+      },
+    );
 
     test.each<[string, Record<string, unknown>, string]>([
       ['a deck ID that is not a UUID', { deck_ids: ['deck-1'] }, 'deck_ids[0]'],
@@ -557,6 +632,7 @@ describe('after a catalog import', () => {
       ['a repeated condition', { conditions: ['damaged', 'damaged'] }, 'conditions[1]'],
       ['an is free value of the wrong type', { is_free: 'yes' }, 'is_free'],
       ['an is protected value of the wrong type', { is_protected: 1 }, 'is_protected'],
+      ['an is allocated value of the wrong type', { is_allocated: 'yes' }, 'is_allocated'],
       ['an empty list of user tags', { user_tags: [] }, 'user_tags'],
       ['a user tag name that is not a string', { user_tags_exclude: [7] }, 'user_tags_exclude[0]'],
       ['a user tag name repeated in another case', { user_tags: ['Signed', 'signed'] }, 'user_tags[1]'],
