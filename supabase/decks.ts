@@ -16,7 +16,7 @@ export type DeckCommander = {
 
 export type DeckValidity = Database['public']['Enums']['deck_validity'];
 
-export type DeckRule = 'no_commander' | 'deck_size' | 'singleton' | 'banned' | 'not_legal';
+export type DeckRule = 'no_commander' | 'commander_eligibility' | 'partner' | 'deck_size' | 'singleton' | 'banned' | 'not_legal';
 
 export type UndeterminedRule = DeckRule | 'legality';
 

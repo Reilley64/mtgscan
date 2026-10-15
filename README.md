@@ -375,14 +375,20 @@ mtgscan judges each deck against the Commander rules and stores the result as on
   | Rule | Checks | Citation | Message and hint |
   | --- | --- | --- | --- |
   | `no_commander` | The deck has no commander. The other checks still run. | CR 903.3 | "This deck has no commander." |
+  | `commander_eligibility` | A commander cannot be your commander. Legendary creatures can be. Legendary Vehicles and Spacecraft with power and toughness can be. Cards that say they can be your commander can be. A Background can be beside a commander with choose a Background. | CR 903.3 | "Lightning Bolt cannot be your commander.", one sentence per commander |
+  | `partner` | Two commanders are not a pair. Two commanders with the same partner ability and the same text are a pair. So are two commanders whose partner-with names name each other. So are a commander with choose a Background and a Background. So are a commander with Doctor's companion and a Time Lord Doctor. | CR 702.124 | "Tymna the Weaver and Krenko, Mob Boss cannot be commanders together." |
   | `deck_size` | The deck does not have exactly 100 cards, commanders and basic lands included. It names no cards. | CR 903.5a | "87 of 100 cards." with "Add 13 cards.", or "101 of 100 cards." with "Remove 1 card." |
   | `singleton` | A card has more copies than its copy limit. Copies of every card printing and both roles count together. Basic lands are exempt. | CR 903.5b | "2 copies of Sol Ring." with "Remove 1 Sol Ring.", one sentence each per card, in name order |
   | `banned` | A card's Commander legality is banned. | none | "Dockside Extortionist is banned in Commander.", one sentence per card |
   | `not_legal` | A card's Commander legality is not legal, such as an Un-card. | none | "Mine Security is not legal in Commander.", one sentence per card |
 
-- Singleton reads the card's copy limit from `copy_limit` and `copy_limit_number`. A second copy of a card with an unknown copy limit makes singleton undetermined for that card, with the reason "mtgscan cannot read the copy limit of Tolabow, Loch Rascal.". One copy of that card makes nothing undetermined.
-- A card that the card catalog no longer lists, or whose Commander legality is unknown, makes the legality check undetermined. Its undetermined check has `rule` `legality`, the reason "No rules data for Mine Security.", one sentence per card, and its cards. A banned or not legal card still makes the deck invalid.
-
+- Each check that could not run has `rule`, `reason`, and its cards. They come in the violation order:
+  - `commander_eligibility`, "No rules data for Krenko, Mob Boss.", for a commander that the card catalog no longer lists. One check per commander.
+  - `partner`, only in a deck with two commanders that are not a pair by what mtgscan can read. "No rules data for Krenko, Mob Boss." is for a commander that the card catalog no longer lists. "mtgscan cannot read the partner ability of Tymna the Weaver." is for a commander with an unknown partner ability, choose a Background, or Doctor's companion. A Partner with line that mtgscan does not recognize makes the partner ability unknown. One check per commander.
+  - `singleton`, "mtgscan cannot read the copy limit of Tolabow, Loch Rascal.", for a second copy of a card with an unknown copy limit. One copy of that card makes nothing undetermined.
+  - `legality`, "No rules data for Mine Security.", one sentence per card, for cards that the card catalog no longer lists or whose Commander legality is unknown. A banned or not legal card still makes the deck invalid.
+- Singleton reads the card's copy limit from `copy_limit` and `copy_limit_number`.
+- A migration that changes deck validity recomputes the deck evaluation of every deck that has a card.
 - `add_deck_card`, `remove_deck_card`, `set_deck_commander`, `set_basic_lands`, `revert_deck_changes`, and `delete_copy` for a copy in a deck save the deck evaluation in the same transaction, after they change the cards, with the new deck revision. A refused request or one that makes no deck change saves nothing. Creating, renaming, and deleting a deck, and changing its deck priority, save nothing.
 - The deck change that adds a deck's first card creates its deck evaluation, and the one that removes its last card deletes it. An empty deck has none.
 
