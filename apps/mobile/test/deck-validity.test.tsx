@@ -437,3 +437,109 @@ describe('the Deck validity drawer', () => {
     expect(drawer.queryByText(/^Rules data as of/)).not.toBeOnTheScreen();
   });
 });
+
+describe('commander eligibility and partner in the Deck validity drawer', () => {
+  const lightningBolt: DeckEvaluationCard = {
+    kind: 'copy',
+    copy_id: 'copy-lightning-bolt',
+    name: 'Lightning Bolt',
+    image_uris: ['https://cards.scryfall.io/normal/front/lightning-bolt.jpg'],
+  };
+  const tymna: DeckEvaluationCard = {
+    kind: 'copy',
+    copy_id: 'copy-tymna',
+    name: 'Tymna the Weaver',
+    image_uris: ['https://cards.scryfall.io/normal/front/tymna.jpg'],
+  };
+  const krenko: DeckEvaluationCard = {
+    kind: 'copy',
+    copy_id: 'copy-krenko',
+    name: 'Krenko, Mob Boss',
+    image_uris: ['https://cards.scryfall.io/normal/front/krenko.jpg'],
+  };
+
+  async function openDrawer(label: string) {
+    const deck = await openDeck();
+    await fireEvent.press(deck.getByRole('button', { name: `Deck validity, ${label}` }));
+    const drawer = within(presentedDrawerContent());
+    await drawer.findByRole('header', { name: 'Deck validity' });
+    return drawer;
+  }
+
+  test('a refused commander and a refused pair show the Commander eligibility and Partner rows in danger with their CR links and cards', async () => {
+    ownDecks([
+      {
+        name: 'Kinnan',
+        priority: 'medium',
+        card_count: 100,
+        commanders: [kinnan],
+        evaluation: evaluationOf({
+          validity: 'invalid',
+          violations: [
+            {
+              rule: 'commander_eligibility',
+              citation: 'CR 903.3',
+              message: 'Lightning Bolt cannot be your commander.',
+              hint: null,
+              cards: [lightningBolt],
+            },
+            {
+              rule: 'partner',
+              citation: 'CR 702.124',
+              message: 'Tymna the Weaver and Krenko, Mob Boss cannot be commanders together.',
+              hint: null,
+              cards: [tymna, krenko],
+            },
+          ],
+        }),
+      },
+    ]);
+
+    const drawer = await openDrawer('Invalid');
+
+    const eligibility = drawer.getByText('Commander eligibility');
+    const pair = drawer.getByText('Partner');
+    expect(eligibility).toHaveStyle({ color: danger, fontWeight: '700' });
+    expect(pair).toHaveStyle({ color: danger, fontWeight: '700' });
+    expect(drawer.getAllByRole('link').map((link) => link.props.children)).toEqual(['CR 903.3', 'CR 702.124']);
+    expect(appearsBefore(eligibility, drawer.getByText('Lightning Bolt cannot be your commander.'))).toBe(true);
+    expect(appearsBefore(drawer.getByText('Lightning Bolt cannot be your commander.'), pair)).toBe(true);
+    expect(appearsBefore(pair, drawer.getByText('Tymna the Weaver and Krenko, Mob Boss cannot be commanders together.'))).toBe(true);
+    expect(drawer.getByLabelText('Lightning Bolt')).toBeOnTheScreen();
+    expect(drawer.getByLabelText('Tymna the Weaver')).toBeOnTheScreen();
+    expect(drawer.getByLabelText('Krenko, Mob Boss')).toBeOnTheScreen();
+  });
+
+  test('a commander with no rules data and an unreadable partner ability show warning rows, and the chip says Cannot be determined', async () => {
+    ownDecks([
+      {
+        name: 'Kinnan',
+        priority: 'medium',
+        card_count: 100,
+        commanders: [kinnan],
+        evaluation: evaluationOf({
+          validity: 'cannot_be_determined',
+          undetermined: [
+            { rule: 'commander_eligibility', reason: 'No rules data for Krenko, Mob Boss.', cards: [krenko] },
+            { rule: 'partner', reason: 'mtgscan cannot read the partner ability of Tymna the Weaver.', cards: [tymna] },
+          ],
+        }),
+      },
+    ]);
+    const deck = await openDeck();
+    const chip = deck.getByRole('button', { name: 'Deck validity, Cannot be determined' });
+    expect(within(chip).getByText('Cannot be determined')).toHaveStyle({ color: warning });
+
+    await fireEvent.press(chip);
+    const drawer = within(presentedDrawerContent());
+    await drawer.findByRole('header', { name: 'Deck validity' });
+
+    expect(drawer.getByText('Commander eligibility')).toHaveStyle({ color: warning, fontWeight: '700' });
+    expect(drawer.getByText('Partner')).toHaveStyle({ color: warning, fontWeight: '700' });
+    expect(drawer.getByText('No rules data for Krenko, Mob Boss.')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(drawer.getByText('mtgscan cannot read the partner ability of Tymna the Weaver.')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(drawer.getByLabelText('Krenko, Mob Boss')).toBeOnTheScreen();
+    expect(drawer.getByLabelText('Tymna the Weaver')).toBeOnTheScreen();
+    expect(drawer.queryByRole('link')).not.toBeOnTheScreen();
+  });
+});

@@ -146,6 +146,10 @@ _Avoid_: Decklist
 A deck card that the user made a commander of its deck. A deck has no, one, or two commanders. The user can make any deck card a commander, and deck validity judges the choice. Moving a commander to the main deck keeps it in the deck.
 _Avoid_: General, promoted card
 
+**Partner ability**:
+An ability that lets two commanders lead one deck: Partner, Partner with a named card, Choose a Background, or Doctor's companion. Partner can carry text, such as Partner—Friends forever. Two commanders are a pair when their partner abilities match. A deck with two commanders that are not a pair breaks the partner rule.
+_Avoid_: Partner mechanic
+
 **Main deck**:
 The deck cards that are not commanders, basic lands included.
 _Avoid_: Library, the 99
