@@ -459,6 +459,20 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
+                },"disabled_tag_changes": {
+                  Row: {
+                    "changed_at": string,"tag_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "changed_at"?: string,"tag_id": string
+                  }
+                  Update: {
+                    "changed_at"?: string,"tag_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"disabled_tags": {
                   Row: {
                     "disabled_at": string,"tag_id": string
@@ -685,6 +699,9 @@ isOneToOne: false
 "create_user_tag":
 { Args: { "request": Json }; Returns: Json
                            },
+"deck_evaluations_are_behind":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "delete_copy":
 { Args: { "request": Json }; Returns: undefined
                            },
@@ -782,6 +799,9 @@ isOneToOne: false
                            },
 "publish_gallery_version":
 { Args: { "version": string }; Returns: string
+                           },
+"recompute_deck_evaluations":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "record_gallery_parity":
 { Args: { "lowest_cosine": number,"mean_cosine": number,"reference_count": number,"version": string }; Returns: boolean

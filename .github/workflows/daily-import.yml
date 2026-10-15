@@ -40,3 +40,6 @@ jobs:
       - name: Retry weekly sources whose latest run failed
         if: ${{ !cancelled() }}
         run: bun run import retry-weekly
+      - name: Recompute deck evaluations that are behind
+        if: ${{ !cancelled() }}
+        run: bun run import deck-evaluations

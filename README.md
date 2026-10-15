@@ -406,6 +406,11 @@ mtgscan judges each deck against the Commander rules and stores the result as on
 - `add_deck_card`, `remove_deck_card`, `set_deck_commander`, `set_basic_lands`, `revert_deck_changes`, and `delete_copy` for a copy in a deck save the deck evaluation in the same transaction, after they change the cards, with the new deck revision. A refused request or one that makes no deck change saves nothing. Creating, renaming, and deleting a deck, and changing its deck priority, save nothing.
 - The deck change that adds a deck's first card creates its deck evaluation, and the one that removes its last card deletes it. An empty deck has none.
 - `private.judge_deck` reads only rules data, never user data, so it runs with its owner's rights. The previews run with the caller's rights and call it, while the import snapshots stay closed to signed-in users.
+- `recompute_deck_evaluations()` judges every deck that has a card again and saves every deck evaluation in one transaction. It returns the number of decks that have a card. A failure rolls back every deck evaluation.
+  - It runs as the `deck_evaluator` role. The role can read the card catalog, the rules data, the import snapshots, decks, deck cards, deck basic lands, and copies. It can write only deck evaluations. Only the secret key can call the function. The import role still cannot read or write user data.
+  - It locks each deck as a deck change does. A deck change waits for it, and it waits for a deck change, so a deck evaluation is never overwritten by an older one.
+  - The rules data imports and the Oracle tag command run it. Card catalog imports says when.
+- A deck evaluation is behind when the `catalog`, `oracle_tags`, or `commander_spellbook` import snapshot is newer than the one it read, or an Oracle tag was disabled or enabled after it was judged. `deck_evaluations_are_behind()` says whether any deck evaluation is behind. Only the secret key can call it. `disabled_tag_changes` keeps the time of each disable and enable.
 
 #### Previews
 
@@ -466,10 +471,13 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 - `exchange_rates` imports the latest exchange rates from Frankfurter, which publishes the European Central Bank's reference rates. mtgscan keeps one row for each currency in Frankfurter's latest rates, and one for USD at a rate of 1. A currency that leaves the latest rates is removed, and a new one is added. Each row holds the currency, the rate from USD, and the ECB date of the rate. Each run replaces the rows. The ECB publishes rates on working days only. A run whose ECB date is not newer than the stored one is skipped. Signed-in users can read `exchange_rates`.
 - `prune-telemetry` deletes search telemetry older than 180 days.
 - `retry-weekly` runs again each weekly source whose latest run failed.
+- `deck-evaluations` runs the recompute when any deck evaluation is behind, and does nothing otherwise.
 
-`bun run oracle-tag disable <tag UUID>` stops a bad Oracle tag from matching any search. `bun run oracle-tag enable <tag UUID>` undoes it. The Oracle tag workflow runs the same command by hand. A disabled tag stays disabled after every later tag import.
+After a successful `catalog`, `oracle_tags`, or `commander_spellbook` run, the command recomputes every deck evaluation, as Deck evaluations says. A skipped run recomputes nothing. A failed recompute fails the command, and the imported data stays. The next `deck-evaluations` run tries again. `retry-weekly` does not recompute. The Daily import runs `deck-evaluations` after it.
 
-The Daily import workflow runs `prices`, `exchange_rates`, `prune-telemetry`, and `retry-weekly`. A failed step fails the workflow run, and the later steps still run. Each run records an import run, so the hosted project does not pause. The Import workflow runs one source by hand.
+`bun run oracle-tag disable <tag UUID>` stops a bad Oracle tag from matching any search. `bun run oracle-tag enable <tag UUID>` undoes it. The Oracle tag workflow runs the same command by hand. A disabled tag stays disabled after every later tag import. After the change, the command recomputes every deck evaluation. A failed recompute fails the command, and the change stays.
+
+The Daily import workflow runs `prices`, `exchange_rates`, `prune-telemetry`, `retry-weekly`, and `deck-evaluations`. A failed step fails the workflow run, and the later steps still run. Each run records an import run, so the hosted project does not pause. The Import workflow runs one source by hand.
 
 ### Per-user data
 
@@ -480,7 +488,7 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, and `deck_evaluations`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
+The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, and `deck_evaluations`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. A migration grants `execute` on a helper only to the roles whose functions call it.
 

@@ -203,7 +203,7 @@ The data that deck validity and the estimated bracket read: the card catalog's C
 _Avoid_: Rules snapshot, catalog data
 
 **Deck evaluation**:
-The stored deck validity, violations, chosen color, estimated bracket, and bracket signals of one deck, with the deck revision it judged and the time of the rules data it read. Each deck change saves a new deck evaluation, and each rules data import recomputes the deck evaluation of every deck. mtgscan keeps only the current one. An empty deck has none. A deck evaluation is stale when its rules data is stale or older than the latest rules data.
+The stored deck validity, violations, chosen color, estimated bracket, and bracket signals of one deck, with the deck revision it judged and the time of the rules data it read. Each deck change saves a new deck evaluation. Each rules data import, and each Oracle tag that is disabled or enabled, recomputes the deck evaluation of every deck. A deck evaluation is behind when it read older rules data than the latest import, or an Oracle tag changed after it was judged. A failed recompute leaves it behind. mtgscan keeps only the current one. An empty deck has none. A deck evaluation is stale when its rules data is stale or older than the latest rules data.
 _Avoid_: Validity result, deck check
 
 **Deck suggestion**:

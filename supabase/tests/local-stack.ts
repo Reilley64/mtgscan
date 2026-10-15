@@ -19,8 +19,8 @@ export async function asDatabaseOwner<T>(work: (database: SQL) => Promise<T>): P
   }
 }
 
-async function asDatabaseRole<T>(
-  role: 'anon' | 'authenticated',
+export async function asDatabaseRole<T>(
+  role: 'anon' | 'authenticated' | 'deck_evaluator' | 'catalog_importer',
   claims: Record<string, string>,
   work: (database: SQL) => Promise<T>,
 ): Promise<T> {
