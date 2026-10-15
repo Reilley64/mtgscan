@@ -28,11 +28,11 @@ function typeGroupOf(card: DeckCard) {
 export function deckCommanders(cards: DeckCard[]) {
   return cards
     .filter((card) => card.role === 'commander')
-    .toSorted((a, b) => a.commander_at!.localeCompare(b.commander_at!) || byName(a, b));
+    .sort((a, b) => a.commander_at!.localeCompare(b.commander_at!) || byName(a, b));
 }
 
 export function mainDeckGroups(cards: DeckCard[]): DeckGroup[] {
-  const mainDeck = cards.filter((card) => card.role === 'main').toSorted(byName);
+  const mainDeck = cards.filter((card) => card.role === 'main').sort(byName);
   return typeGroups
     .map(({ title }) => ({ title, cards: mainDeck.filter((card) => typeGroupOf(card) === title) }))
     .filter((group) => group.cards.length > 0);
