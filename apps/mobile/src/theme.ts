@@ -128,6 +128,8 @@ export const sizes = {
   chipPadding: 9,
   cardThumbnailWidth: 40,
   cardThumbnailHeight: 56,
+  commanderAvatar: 40,
+  deckTagAvatar: 18,
   skeletonTitleBar: typography.bodyStrong.fontSize,
   skeletonMetaBar: typography.meta.fontSize,
   quantityBadge: 19,

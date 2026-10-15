@@ -1,4 +1,5 @@
 import type { Database } from './database.types';
+import type { CopyDeck } from './decks';
 import {
   readSearchError,
   type CatalogQuery,
@@ -184,6 +185,7 @@ export type CopyDetails = CollectionCopyRow & {
   faces: CopyFace[];
   commander_legality: CommanderLegality;
   user_tags: UserTag[];
+  deck: CopyDeck | null;
 };
 
 export type CollectionTotal = {

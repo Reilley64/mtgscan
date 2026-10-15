@@ -34,6 +34,7 @@ test('the primitive catalog shows every primitive', async () => {
     'Inputs',
     'Progress bars',
     'Sheet sections',
+    'Deck tags',
     'Swipe to confirm',
     'Empty states',
     'Drawer sheet',
@@ -55,6 +56,9 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('alert', { name: 'Sign-in did not work.' })).toBeOnTheScreen();
   expect(screen.getByRole('alert', { name: 'Could not add to your collection. Your scans are kept.' })).toBeOnTheScreen();
   expect(screen.getByRole('link', { name: 'Text link' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Atraxa' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Kinnan, High priority · 0 cards' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: 'Creatures, 3' })).toBeOnTheScreen();
   expect(screen.getByLabelText('tap: Add colorless mana colorless mana. Spend X generic mana two generic mana white mana blue mana black mana red mana green mana or snow mana.')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'set:mh2' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'set:zzz' })).toBeOnTheScreen();

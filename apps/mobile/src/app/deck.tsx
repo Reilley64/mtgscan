@@ -6,12 +6,11 @@ import { Alert, View } from 'react-native';
 import { NameAlert } from '@/components/atoms/name-alert';
 import { Text } from '@/components/atoms/text';
 import { CommanderCard } from '@/components/molecules/commander-card';
-import { EmptyState } from '@/components/molecules/empty-state';
-import { DashedCardFrame, EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
+import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
-import { SheetSection } from '@/components/molecules/sheet-section';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { deckActionsMenu } from '@/components/organisms/deck-actions-menu';
+import { DeckCards } from '@/components/organisms/deck-cards';
 import { PushedScreen } from '@/components/templates/pushed-screen';
 import { cardCountLabel, deckChips } from '@/decks/deck-labels';
 import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
@@ -25,22 +24,6 @@ const deckTabs = ['cards', 'history'] as const;
 type DeckTab = (typeof deckTabs)[number];
 
 const deckTabLabels: Record<DeckTab, string> = { cards: 'Cards', history: 'History' };
-
-function EmptyCards() {
-  return (
-    <>
-      <SheetSection title="Commander">
-        <Text className="text-text-muted">No commander yet.</Text>
-      </SheetSection>
-      <EmptyState
-        illustration={<EmptyBinderSlots rows={1} />}
-        title="No cards yet"
-        message="Add cards from a copy's page in your collection."
-        action={{ label: 'Open Collection', onPress: () => router.dismissTo('/collection') }}
-      />
-    </>
-  );
-}
 
 function deleteMessage(cardCount: number) {
   const verb = cardCount === 1 ? 'becomes' : 'become';
@@ -123,7 +106,13 @@ export default function DeckScreen() {
           </View>
           <View className="gap-lg px-lg">
             <ToggleGroup values={deckTabs} selected={tab} labelOf={(value) => deckTabLabels[value]} onSelect={setTab} />
-            {tab === 'cards' && read.deck.card_count === 0 ? <EmptyCards /> : null}
+            {tab === 'cards' ? (
+              <DeckCards
+                deck={read.deck}
+                onOpenCard={(card) => router.push({ pathname: '/copy', params: { copyId: card.copy_id } })}
+                onOpenCollection={() => router.dismissTo('/collection')}
+              />
+            ) : null}
             {tab === 'history' ? <Text variant="meta">Created {shownDay(read.deck.created_at)}</Text> : null}
           </View>
         </>

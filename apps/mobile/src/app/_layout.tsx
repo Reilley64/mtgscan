@@ -38,6 +38,7 @@ function RootStack() {
         <Stack.Screen name="copy" options={pushedScreenOptions} />
         <Stack.Screen name="deck" options={pushedScreenOptions} />
         <Stack.Screen name="user-tag-picker" />
+        <Stack.Screen name="add-to-deck" options={halfHeightDrawerOptions} />
         <Stack.Screen name="scan-batch" options={fullHeightDrawerOptions} />
         <Stack.Screen name="scan-details" options={fullHeightDrawerOptions} />
         <Stack.Screen name="scan-printings" options={fullHeightDrawerOptions} />

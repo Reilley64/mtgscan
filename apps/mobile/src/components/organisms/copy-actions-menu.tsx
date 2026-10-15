@@ -5,11 +5,13 @@ import { colors } from '@/theme';
 
 type CopyActionsMenuProps = {
   copy: Pick<CopyDetails, 'protected' | 'free'>;
+  canAddToDeck: boolean;
   onSetProtected: (isProtected: boolean) => void;
+  onAddToDeck: () => void;
   onDelete: () => void;
 };
 
-export function copyActionsMenu({ copy, onSetProtected, onDelete }: CopyActionsMenuProps) {
+export function copyActionsMenu({ copy, canAddToDeck, onSetProtected, onAddToDeck, onDelete }: CopyActionsMenuProps) {
   return (
     <Stack.Toolbar.Menu icon="ellipsis" tintColor={colors.text} accessibilityLabel="More">
       {copy.protected ? (
@@ -18,6 +20,7 @@ export function copyActionsMenu({ copy, onSetProtected, onDelete }: CopyActionsM
       {!copy.protected && copy.free ? (
         <Stack.Toolbar.MenuAction onPress={() => onSetProtected(true)}>Protect</Stack.Toolbar.MenuAction>
       ) : null}
+      {copy.free && canAddToDeck ? <Stack.Toolbar.MenuAction onPress={onAddToDeck}>Add to deck</Stack.Toolbar.MenuAction> : null}
       <Stack.Toolbar.MenuAction destructive onPress={onDelete}>
         Delete copy
       </Stack.Toolbar.MenuAction>

@@ -258,6 +258,7 @@ Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The qu
 - `price` is the current price, as in a copy row of collection search, with `stale`.
 - From its card: `type_line`, `faces` with each face's `name` and `oracle_text` in face order, and `commander_legality`.
 - `user_tags` lists the copy's user tags, each with `user_tag_id` and `name`, sorted by name ignoring case.
+- `deck` is the deck the copy is in, with `deck_id`, `name`, the copy's `role` (`commander` or `main`), and `commander_art_crop_uri`, the art crop of the deck's first commander or null. It is null for a copy in no deck. `free` is false for a copy in a deck.
 - The function runs with the caller's rights, so another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist. A refused query has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
 ### Protect a copy
@@ -265,7 +266,7 @@ Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The qu
 Signed-in users protect or unprotect one of their copies with `supabase.rpc('set_copy_protected', { request })`. The request has `copy_id` and `protected`, `true` or `false`. `supabase/collection.ts` has the shared types. The copy page's actions menu calls it.
 
 - It changes only that copy, in one transaction, and returns `copy_id` and `protected`. Doing what is already done changes nothing.
-- Only a free copy can be protected. Protecting a copy that is not free is refused with `copy_not_free` on `copy_id`. Until copies can go into decks, every copy is free.
+- Only a free copy can be protected. Protecting a copy that is not free, such as a copy in a deck, is refused with `copy_not_free` on `copy_id`.
 - Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
 ### Copy delete
@@ -296,12 +297,20 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
 - The deck revision starts at 0.
 - `supabase.rpc('create_deck', { request: { name } })` trims the name and creates an empty deck with no commander. It returns `deck_id`. Creating a deck counts as using it.
 - `supabase.rpc('mark_deck_used', { request: { deck_id } })` sets the deck's last used time. The deck screen calls it when it opens. It returns nothing.
-- `supabase.rpc('list_decks')` returns `items`: the caller's decks with `deck_id`, `name`, `priority`, `card_count`, `commanders`, and `last_used_at`. The deck used most recently comes first. Decks used at the same time sort by name ignoring case. Until copies can go into decks, `card_count` is 0 and `commanders` is empty.
-- `supabase.rpc('get_deck', { query: { deck_id } })` returns the fields of a `list_decks` item, plus `revision` and `created_at`. Reading a deck does not count as using it.
+- `supabase.rpc('list_decks')` returns `items`: the caller's decks with `deck_id`, `name`, `priority`, `card_count`, `commanders`, and `last_used_at`. The deck used most recently comes first. Decks used at the same time sort by name ignoring case. `card_count` counts the deck's commanders, main deck, and basic lands. `commanders` lists each commander's `copy_id`, `name`, and `art_crop_uri`, the oldest commander first.
+- `supabase.rpc('get_deck', { query: { deck_id } })` returns the fields of a `list_decks` item, plus `revision`, `created_at`, `cards`, and `basic_lands`. Reading a deck does not count as using it.
+  - `cards` lists every copy in the deck. Each has its card printing as in a copy row of collection search, its `finish`, `condition`, `language`, `protected`, and `price` with `stale`. It adds `role` (`commander` or `main`), `commander_at`, the time the card was made a commander or null, `added_at`, the time the copy went into the deck, and its card's `type_line`, `mana_value`, and `colors`. The app groups and sorts the cards.
+  - `basic_lands` lists the twelve basic land kinds in order: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Each has its card's `oracle_id`, its `name`, the `image_uris` of its newest English card printing, and its `count`. Until basic lands can go into decks, every count is 0. A kind that the card catalog does not have has a null `oracle_id` and no image.
 - `supabase.rpc('rename_deck', { request: { deck_id, name } })` trims the name and renames the deck. It returns nothing.
 - `supabase.rpc('set_deck_priority', { request: { deck_id, priority } })` sets the deck priority. It returns nothing.
 - Renaming a deck and setting its deck priority count as using it. Neither is a deck change, and neither raises the deck revision.
-- `supabase.rpc('delete_deck', { request: { deck_id } })` deletes the deck. It returns nothing.
+- `supabase.rpc('delete_deck', { request: { deck_id } })` deletes the deck, its deck cards, and its deck changes. Its copies become free. It returns nothing.
+- `deck_cards` links copies to decks, with the user ID and the time the copy went into the deck. A copy is in at most one deck. `commander_at` is the time the card was made a commander, or null for the main deck. Deleting a deck or a copy removes its rows.
+- `supabase.rpc('add_deck_card', { request: { deck_id, copy_id, unprotect } })` puts a free copy into the deck's main deck. It returns `deck_id` and the new `revision`.
+  - A copy in a deck is refused with `copy_not_free` on `copy_id`. It locks the copy first, so two adds of one copy at the same time put it in one deck.
+  - A protected copy is refused with `copy_protected` on `copy_id` unless `unprotect` is true. Then it unprotects the copy in the same transaction.
+  - Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist.
+- Each change to a deck's cards is one deck change. It locks the deck, raises the deck revision by one, and sets the last used time. `deck_changes` holds each deck change with its deck, its user, the `revision` it made, its `kind`, and its `changed_at` time. `deck_change_lines` holds one line per copy that the deck change moved: the copy ID, its card printing, its finish, and its place before and after, `commander`, `main`, or null for out of the deck. A line keeps the card printing and finish so that it can still show the card after the copy is deleted. Deleting a deck deletes its deck changes.
 - The write functions check the caller's identity and run in one transaction each. The reads run with the caller's rights. Another user's deck is refused with `not_found` on `deck_id`, like one that does not exist. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
 ### Collection search
@@ -322,7 +331,7 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 - `sort` is `relevance` by default, with or without text. Without text, relevance means `added`, so an empty query lists the newest addition first.
 - `sort: 'added'` lists the card printing with the newest addition first. Its copies sit next to each other. `sort_order: 'asc'` puts the oldest addition first.
 - Rows with the same sort value sort by name, then by card printing ID, then by copy ID.
-- Each row counts the copies in the collection availability view. The view has one row for each copy of the caller, with its allocated, held, and free flags. Allocated and held stay false until decks and planned swaps exist.
+- Each row counts the copies in the collection availability view. The view has one row for each copy of the caller, with its allocated, held, and free flags. A copy in a deck is allocated. Held stays false until planned swaps exist.
 - Collection search runs with the caller's rights, like catalog search. The views set `security_invoker`, so the read policy on `copies` keeps only the caller's rows.
 - Catalog search, `get_cards`, and `list_card_printings` read owned quantities from the same view. A printing list keeps an absent card printing when the caller owns it.
 - A first page also has `total_count`, the number of matching rows. Later pages have `total_count: null`. The Collection tab shows it in its count line, such as "6 of 27 copies".
@@ -357,7 +366,7 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, and `decks`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
+The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_changes`, and `deck_change_lines`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. A migration grants `execute` on a helper only to the roles whose functions call it.
 

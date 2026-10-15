@@ -91,6 +91,7 @@ describe('the copy read', () => {
       faces: [{ name: 'Angelic Curator', oracle_text: 'Flying, protection from artifacts' }],
       commander_legality: 'legal',
       user_tags: [],
+      deck: null,
     });
     expect(Date.parse(copy.added_at)).toBe(Date.parse(addedAt));
   });

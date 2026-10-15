@@ -20,7 +20,7 @@ type CardTileProps = {
   accessibilityLabel: string;
   accessibilityHint?: string;
   sheen?: CardSheen;
-} & ({ caption: string; children?: never } | { caption?: never; children: ReactNode }) &
+} & ({ caption: string; children?: never } | { caption?: never; children?: ReactNode }) &
   ({ selected?: never; onPress?: never } | { selected?: boolean; onPress: () => void });
 
 export function CardTile({
@@ -33,11 +33,12 @@ export function CardTile({
   selected,
   onPress,
 }: CardTileProps) {
-  const underImage = children ?? (
-    <Text variant="meta" numberOfLines={1} className="group-aria-selected/tile:text-primary">
-      {caption}
-    </Text>
-  );
+  const underImage =
+    caption === undefined ? children : (
+      <Text variant="meta" numberOfLines={1} className="group-aria-selected/tile:text-primary">
+        {caption}
+      </Text>
+    );
 
   return (
     <View className={cn(cardColumnClass, 'px-xs')}>

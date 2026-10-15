@@ -295,6 +295,78 @@ isOneToOne: false
       referencedColumns: ["user_id","id"]
     }
                   ]
+                },"deck_cards": {
+                  Row: {
+                    "added_at": string,"commander_at": string | null,"copy_id": string,"deck_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "added_at"?: string,"commander_at"?: string | null,"copy_id": string,"deck_id": string,"user_id": string
+                  }
+                  Update: {
+                    "added_at"?: string,"commander_at"?: string | null,"copy_id"?: string,"deck_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deck_cards_user_id_copy_id_fkey"
+      columns: ["user_id","copy_id"]
+isOneToOne: true
+      referencedRelation: "copies"
+      referencedColumns: ["user_id","id"]
+    },{
+      foreignKeyName: "deck_cards_user_id_deck_id_fkey"
+      columns: ["user_id","deck_id"]
+isOneToOne: false
+      referencedRelation: "decks"
+      referencedColumns: ["user_id","id"]
+    }
+                  ]
+                },"deck_change_lines": {
+                  Row: {
+                    "card_printing_id": string,"copy_id": string,"deck_change_id": string,"finish": Database["public"]['Enums']["card_finish"],"place_after": Database["public"]['Enums']["deck_role"] | null,"place_before": Database["public"]['Enums']["deck_role"] | null,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "card_printing_id": string,"copy_id": string,"deck_change_id": string,"finish": Database["public"]['Enums']["card_finish"],"place_after"?: Database["public"]['Enums']["deck_role"] | null,"place_before"?: Database["public"]['Enums']["deck_role"] | null,"user_id": string
+                  }
+                  Update: {
+                    "card_printing_id"?: string,"copy_id"?: string,"deck_change_id"?: string,"finish"?: Database["public"]['Enums']["card_finish"],"place_after"?: Database["public"]['Enums']["deck_role"] | null,"place_before"?: Database["public"]['Enums']["deck_role"] | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deck_change_lines_card_printing_id_fkey"
+      columns: ["card_printing_id"]
+isOneToOne: false
+      referencedRelation: "card_printings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "deck_change_lines_user_id_deck_change_id_fkey"
+      columns: ["user_id","deck_change_id"]
+isOneToOne: false
+      referencedRelation: "deck_changes"
+      referencedColumns: ["user_id","id"]
+    }
+                  ]
+                },"deck_changes": {
+                  Row: {
+                    "changed_at": string,"deck_id": string,"id": string,"kind": Database["public"]['Enums']["deck_change_kind"],"revision": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "changed_at"?: string,"deck_id": string,"id"?: string,"kind": Database["public"]['Enums']["deck_change_kind"],"revision": number,"user_id": string
+                  }
+                  Update: {
+                    "changed_at"?: string,"deck_id"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["deck_change_kind"],"revision"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deck_changes_user_id_deck_id_fkey"
+      columns: ["user_id","deck_id"]
+isOneToOne: false
+      referencedRelation: "decks"
+      referencedColumns: ["user_id","id"]
+    }
+                  ]
                 },"decks": {
                   Row: {
                     "created_at": string,"id": string,"last_used_at": string,"name": string,"priority": Database["public"]['Enums']["deck_priority"],"revision": number,"user_id": string
@@ -493,6 +565,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"add_deck_card":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "add_scan_batch":
 { Args: { "batch": Json }; Returns: Json
                            },
@@ -653,7 +728,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","deck_priority": "high"|"medium"|"low","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices"|"exchange_rates","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
+            "card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","deck_change_kind": "added"|"removed"|"made_commander"|"made_partner"|"moved_to_main_deck"|"basic_lands"|"removed_from_collection"|"revert","deck_priority": "high"|"medium"|"low","deck_role": "commander"|"main","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices"|"exchange_rates","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -773,7 +848,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"deck_priority": ["high", "medium", "low"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices", "exchange_rates"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
+            "card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"deck_change_kind": ["added", "removed", "made_commander", "made_partner", "moved_to_main_deck", "basic_lands", "removed_from_collection", "revert"],"deck_priority": ["high", "medium", "low"],"deck_role": ["commander", "main"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices", "exchange_rates"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
           }
         }
 } as const

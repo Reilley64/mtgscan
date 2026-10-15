@@ -9,7 +9,9 @@ import { CardImage } from '@/components/atoms/card-image';
 import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { Chip } from '@/components/atoms/chip';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
+import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { CountBadge } from '@/components/atoms/count-badge';
+import { DeckTag } from '@/components/atoms/deck-tag';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
 import { GlassGroup, GlassSurface } from '@/components/atoms/glass-surface';
@@ -1098,5 +1100,59 @@ describe('NameAlert', () => {
     await pressAlertWithFieldButton('Create');
 
     expect(onConfirm).toHaveBeenCalledWith('Atraxa');
+  });
+});
+
+describe('CommanderAvatar', () => {
+  test("a commander avatar is a round art crop, 40 px in a row and 18 px in a deck tag", async () => {
+    await render(
+      <>
+        <View accessibilityLabel="Row">
+          <CommanderAvatar uri="https://cards.scryfall.io/art_crop/front/atraxa.jpg" size="row" />
+        </View>
+        <View accessibilityLabel="Tag">
+          <CommanderAvatar uri="https://cards.scryfall.io/art_crop/front/atraxa.jpg" size="tag" />
+        </View>
+      </>,
+    );
+
+    const row = screen.getByLabelText('Row');
+    expect(cardImageUri(row)).toBe('https://cards.scryfall.io/art_crop/front/atraxa.jpg');
+    expect(row.children[0]).toHaveStyle({ width: 40, height: 40, borderRadius: 999 });
+    expect(screen.getByLabelText('Tag').children[0]).toHaveStyle({ width: 18, height: 18, borderRadius: 999 });
+  });
+
+  test('with no commander, the avatar is a dashed line-colored circle', async () => {
+    await render(
+      <View accessibilityLabel="Avatar">
+        <CommanderAvatar uri={null} size="row" />
+      </View>,
+    );
+
+    expect(screen.getByLabelText('Avatar').children[0]).toHaveStyle({
+      width: 40,
+      borderRadius: 999,
+      borderStyle: 'dashed',
+      borderColor: line,
+    });
+  });
+});
+
+describe('DeckTag', () => {
+  test('a deck tag is a button with the avatar and the deck name in chip type, with a 44 pt touch target', async () => {
+    const onPress = jest.fn();
+    await render(<DeckTag name="Atraxa" commanderArtUri="https://cards.scryfall.io/art_crop/front/atraxa.jpg" onPress={onPress} />);
+
+    const tag = screen.getByRole('button', { name: 'Atraxa' });
+    expect(tag).toHaveProp('accessibilityHint', 'Opens the deck.');
+    expect(tag).toHaveStyle({ height: 24, backgroundColor: surfaceControl, borderRadius: 999 });
+    expect(within(tag).getByText('Atraxa')).toHaveStyle({ fontSize: 11, fontWeight: '700', color: white });
+    expect(cardImageUri(tag)).toBe('https://cards.scryfall.io/art_crop/front/atraxa.jpg');
+    expect(touchTarget(tag).height).toBeGreaterThanOrEqual(44);
+    expect(touchTarget(tag).width).toBeGreaterThanOrEqual(44);
+
+    await fireEvent.press(tag);
+
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 });
