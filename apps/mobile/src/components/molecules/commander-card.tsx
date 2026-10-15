@@ -1,30 +1,37 @@
 import { cva } from 'class-variance-authority';
+import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { Chip } from '@/components/atoms/chip';
+import { dashedOutlineClass } from '@/components/atoms/dashed-outline';
 import { Text } from '@/components/atoms/text';
 import { TileButton } from '@/components/atoms/tile-button';
-import { dashedOutlineClass } from '@/components/molecules/empty-state-illustrations';
 import { cn } from '@/lib/class-names';
 
-const cardVariants = cva(cn(dashedOutlineClass, 'w-full justify-end gap-sm overflow-hidden rounded-md bg-surface p-md'), {
+const frameVariants = cva(cn(dashedOutlineClass, 'w-full justify-end gap-sm overflow-hidden rounded-md bg-surface p-md'), {
   variants: {
     size: {
-      gallery: 'h-commander-gallery-art',
+      gallery: 'h-commander-gallery-card',
       banner: 'h-deck-banner',
     },
   },
 });
 
+type CommanderCardSize = 'gallery' | 'banner';
+
+export function CommanderCardFrame({ size, children }: { size: CommanderCardSize; children: ReactNode }) {
+  return <View className={frameVariants({ size })}>{children}</View>;
+}
+
 type CommanderCardProps = {
   name: string;
   chips: string[];
-  size: 'gallery' | 'banner';
+  size: CommanderCardSize;
 };
 
 export function CommanderCard({ name, chips, size }: CommanderCardProps) {
   return (
-    <View className={cardVariants({ size })}>
+    <CommanderCardFrame size={size}>
       <Text variant="card-title" numberOfLines={2}>
         {name}
       </Text>
@@ -33,7 +40,7 @@ export function CommanderCard({ name, chips, size }: CommanderCardProps) {
           <Chip key={chip} label={chip} />
         ))}
       </View>
-    </View>
+    </CommanderCardFrame>
   );
 }
 

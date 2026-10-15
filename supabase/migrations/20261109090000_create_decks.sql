@@ -26,7 +26,9 @@ create policy "Users read their own decks"
 
 alter function private.checked_user_tag_name(jsonb) rename to checked_name;
 
-create or replace function private.check_user_tag_request(request jsonb, fields text[])
+alter function private.check_user_tag_request(jsonb, text[]) rename to check_request;
+
+create or replace function private.check_request(request jsonb, fields text[])
 returns jsonb
 language plpgsql
 immutable
@@ -61,37 +63,117 @@ begin
 end;
 $$;
 
-create function private.check_deck_request(request jsonb, fields text[])
+create or replace function public.create_user_tag(request jsonb)
 returns jsonb
 language plpgsql
-immutable
+security definer
 set search_path = ''
 as $$
 declare
-  checked jsonb := '{}';
-  field text;
-  value jsonb;
+  caller uuid;
+  checked jsonb;
+  created public.user_tags;
 begin
-  if jsonb_typeof(request) is distinct from 'object' then
-    perform private.invalid_argument(null, 'The request must be a JSON object.');
+  caller := private.caller_user_id();
+  checked := private.check_request(request, array['name']);
+
+  insert into public.user_tags (user_id, name)
+    values (caller, checked ->> 'name')
+    on conflict (user_id, lower(name)) do nothing
+    returning * into created;
+  if created.id is null then
+    perform private.raise_user_tag_exists();
   end if;
 
-  for field, value in select entry.key, entry.value from jsonb_each(request) as entry order by entry.key loop
-    if not field = any(fields) then
-      perform private.invalid_argument(field, format('%s is not a known field.', field));
-    end if;
-    checked := checked || jsonb_build_object(field, case field
-      when 'name' then private.checked_name(value)
-      else private.checked_uuid(field, value)
-    end);
-  end loop;
+  return jsonb_build_object('user_tag_id', created.id, 'name', created.name);
+end;
+$$;
 
-  foreach field in array fields loop
-    if not checked ? field then
-      perform private.invalid_argument(field, format('%s is required.', field));
-    end if;
-  end loop;
-  return checked;
+create or replace function public.set_copy_user_tag(request jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  caller uuid;
+  checked jsonb;
+  chosen_copy_id uuid;
+  chosen_user_tag_id uuid;
+begin
+  caller := private.caller_user_id();
+  chosen_copy_id := private.checked_copy_id(request, array['user_tag_id', 'tagged']);
+  checked := private.check_request(request - 'copy_id', array['user_tag_id', 'tagged']);
+  chosen_user_tag_id := (checked ->> 'user_tag_id')::uuid;
+
+  if not exists (select 1 from public.copies copy where copy.user_id = caller and copy.id = chosen_copy_id) then
+    perform private.raise_copy_not_found();
+  end if;
+  if not exists (
+    select 1 from public.user_tags user_tag where user_tag.user_id = caller and user_tag.id = chosen_user_tag_id
+  ) then
+    perform private.raise_user_tag_not_found();
+  end if;
+
+  if (checked ->> 'tagged')::boolean then
+    insert into public.copy_user_tags (user_id, copy_id, user_tag_id)
+      values (caller, chosen_copy_id, chosen_user_tag_id)
+      on conflict do nothing;
+  else
+    delete from public.copy_user_tags link
+      where link.user_id = caller and link.copy_id = chosen_copy_id and link.user_tag_id = chosen_user_tag_id;
+  end if;
+end;
+$$;
+
+create or replace function public.rename_user_tag(request jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  caller uuid;
+  checked jsonb;
+  renamed public.user_tags;
+begin
+  caller := private.caller_user_id();
+  checked := private.check_request(request, array['user_tag_id', 'name']);
+
+  begin
+    update public.user_tags user_tag
+      set name = checked ->> 'name'
+      where user_tag.user_id = caller and user_tag.id = (checked ->> 'user_tag_id')::uuid
+      returning * into renamed;
+  exception when unique_violation then
+    perform private.raise_user_tag_exists();
+  end;
+  if renamed.id is null then
+    perform private.raise_user_tag_not_found();
+  end if;
+
+  return jsonb_build_object('user_tag_id', renamed.id, 'name', renamed.name);
+end;
+$$;
+
+create or replace function public.delete_user_tag(request jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  caller uuid;
+  checked jsonb;
+begin
+  caller := private.caller_user_id();
+  checked := private.check_request(request, array['user_tag_id']);
+
+  delete from public.user_tags user_tag
+    where user_tag.user_id = caller and user_tag.id = (checked ->> 'user_tag_id')::uuid;
+  if not found then
+    perform private.raise_user_tag_not_found();
+  end if;
 end;
 $$;
 
@@ -121,7 +203,7 @@ $$;
 
 grant execute on function
   private.checked_name(jsonb),
-  private.check_deck_request(jsonb, text[]),
+  private.check_request(jsonb, text[]),
   private.raise_deck_not_found(),
   private.deck_row(public.decks)
 to authenticated;
@@ -138,7 +220,7 @@ declare
   created_id uuid;
 begin
   caller := private.caller_user_id();
-  checked := private.check_deck_request(request, array['name']);
+  checked := private.check_request(request, array['name']);
 
   insert into public.decks (user_id, name)
     values (caller, checked ->> 'name')
@@ -159,7 +241,7 @@ declare
   checked jsonb;
 begin
   caller := private.caller_user_id();
-  checked := private.check_deck_request(request, array['deck_id']);
+  checked := private.check_request(request, array['deck_id']);
 
   update public.decks deck
     set last_used_at = now()
@@ -196,7 +278,7 @@ declare
   result jsonb;
 begin
   perform private.caller_user_id();
-  checked := private.check_deck_request(query, array['deck_id']);
+  checked := private.check_request(query, array['deck_id']);
 
   select private.deck_row(deck) || jsonb_build_object('revision', deck.revision, 'created_at', deck.created_at)
     into result

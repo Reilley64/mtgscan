@@ -68,7 +68,7 @@ describe('creating a deck', () => {
     expect(headerButton(selectedTab(), 'Create deck')).toMatchObject({ type: 'button', symbol: 'plus' });
   });
 
-  test('the + button opens the native alert New deck with a name field, Cancel, and Create', async () => {
+  test('the Create deck bar button opens the native alert New deck with a name field, Cancel, and Create', async () => {
     await openDecks();
 
     await openNameAlert();
@@ -235,7 +235,7 @@ describe('the deck screen', () => {
 
     const title = deck.getByRole('header', { name: 'Atraxa' });
     expect(title).toHaveStyle({ fontSize: 20, fontWeight: '800' });
-    expect(title.parent).toHaveStyle({ height: 200 });
+    expect(title.parent).toHaveStyle({ height: 200, borderStyle: 'dashed', borderColor: line });
     expect(deck.getByText('High priority')).toBeOnTheScreen();
     expect(deck.getByText('0 cards')).toBeOnTheScreen();
     expect(within(selectedTab()).queryByRole('header', { name: 'Atraxa' })).not.toBeOnTheScreen();

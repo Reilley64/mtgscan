@@ -391,8 +391,7 @@ function failedDeckRead() {
   return true;
 }
 
-function failedDeckWrite(name: string, request: object) {
-  deckWrites = [...deckWrites, { name, request }];
+function failedDeckWrite() {
   if (failingDeckWrites === 0) {
     return false;
   }
@@ -419,7 +418,8 @@ function deckRead({ deck_id }: DeckQuery) {
 }
 
 function createDeck(request: CreateDeckRequest) {
-  if (failedDeckWrite('create_deck', request)) {
+  deckWrites = [...deckWrites, { name: 'create_deck', request }];
+  if (failedDeckWrite()) {
     return { data: null, error: networkFailure };
   }
   const time = nextDeckTime();
@@ -438,7 +438,8 @@ function createDeck(request: CreateDeckRequest) {
 }
 
 function markDeckUsed(request: MarkDeckUsedRequest) {
-  if (failedDeckWrite('mark_deck_used', request)) {
+  deckWrites = [...deckWrites, { name: 'mark_deck_used', request }];
+  if (failedDeckWrite()) {
     return { data: null, error: networkFailure };
   }
   if (!decks.some((deck) => deck.deck_id === request.deck_id)) {

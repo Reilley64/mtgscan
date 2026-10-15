@@ -114,7 +114,7 @@ export const sizes = {
   quickActionDivider: 16,
   touchTarget: 44,
   floatingButton: 48,
-  commanderGalleryArt: 140,
+  commanderGalleryCard: 140,
   deckBanner: 200,
   swipeTrack: 52,
   selectedOutline: 2,

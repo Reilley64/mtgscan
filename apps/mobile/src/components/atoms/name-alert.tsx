@@ -24,7 +24,7 @@ export function NameAlert({ title, message, placeholder, confirmLabel, maxLength
         </Alert.Trigger>
         <Alert.Actions>
           <TextField placeholder={placeholder} maxLength={maxLength} autoFocus onTextChange={setName} />
-          <Button label="Cancel" role="cancel" onPress={() => {}} />
+          <Button label="Cancel" role="cancel" />
           <Button label={confirmLabel} modifiers={[disabled(trimmed === '')]} onPress={() => onConfirm(trimmed)} />
         </Alert.Actions>
         <Alert.Message>

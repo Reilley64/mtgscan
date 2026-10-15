@@ -1,3 +1,4 @@
+import { deckNameLength } from '@mtgscan/supabase/decks';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState, type ReactNode } from 'react';
@@ -549,7 +550,7 @@ function NameAlerts() {
           message="Name your deck."
           placeholder="Deck name"
           confirmLabel="Create"
-          maxLength={64}
+          maxLength={deckNameLength}
           onConfirm={() => {}}
           onClose={() => setNaming(false)}
         />
