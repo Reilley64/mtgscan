@@ -1,6 +1,7 @@
 import { act, fireEvent, screen, within } from 'expo-router/testing-library';
 import { Alert, ScrollView, StyleSheet, type AlertButton } from 'react-native';
 
+import { nativeStateValue, setNativeStateValue } from './fake-native-state';
 import { tokenColors } from './token-colors';
 
 function hostViews(type: string) {
@@ -348,6 +349,7 @@ type HeaderMenuItem = {
   sfSymbolName?: string;
   disabled?: boolean;
   destructive?: boolean;
+  state?: 'on' | 'off';
   menuId?: string;
   items?: HeaderMenuItem[];
 };
@@ -452,12 +454,13 @@ export function headerButtonIsDisabled(host: HostElement, name: string) {
   return headerItem(host, name).disabled ?? false;
 }
 
-type MenuRow = { title: string; destructive: boolean; rows?: MenuRow[] };
+type MenuRow = { title: string; destructive: boolean; checked?: true; rows?: MenuRow[] };
 
 function menuRows(items: HeaderMenuItem[]): MenuRow[] {
   return items.map((item) => ({
     title: item.title,
     destructive: item.destructive ?? false,
+    ...(item.state === 'on' ? { checked: true } : {}),
     ...(item.items ? { rows: menuRows(item.items) } : {}),
   }));
 }
@@ -1011,7 +1014,11 @@ export function presentedAlertWithField() {
   return {
     title: alert.props.title as string,
     message: message?.props.text as string | undefined,
-    field: { placeholder: field.props.placeholder as string, maxLength: field.props.maxLength as number },
+    field: {
+      placeholder: field.props.placeholder as string,
+      maxLength: field.props.maxLength as number,
+      text: (nativeStateValue(field.props.text) ?? '') as string,
+    },
     buttons: alertActions(alert).map((button) => ({ label: button.props.label as string, enabled: !isTurnedOff(button) })),
   };
 }
@@ -1025,7 +1032,9 @@ function openAlertWithField() {
 }
 
 export async function typeInAlertField(text: string) {
-  await fireEvent(alertField(openAlertWithField()), 'textChange', { nativeEvent: { value: text } });
+  const field = alertField(openAlertWithField());
+  setNativeStateValue(field.props.text, text);
+  await fireEvent(field, 'textChange', { nativeEvent: { value: text } });
 }
 
 export async function pressAlertWithFieldButton(label: string) {

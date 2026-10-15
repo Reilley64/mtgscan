@@ -1,7 +1,9 @@
+import { deckNameLength, type Deck, type DeckPriority } from '@mtgscan/supabase/decks';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 
+import { NameAlert } from '@/components/atoms/name-alert';
 import { Text } from '@/components/atoms/text';
 import { CommanderCard } from '@/components/molecules/commander-card';
 import { EmptyState } from '@/components/molecules/empty-state';
@@ -9,9 +11,10 @@ import { DashedCardFrame, EmptyBinderSlots } from '@/components/molecules/empty-
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
+import { deckActionsMenu } from '@/components/organisms/deck-actions-menu';
 import { PushedScreen } from '@/components/templates/pushed-screen';
-import { deckChips } from '@/decks/deck-labels';
-import { markDeckUsed } from '@/decks/deck-writes';
+import { cardCountLabel, deckChips } from '@/decks/deck-labels';
+import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
 import { useDeck } from '@/decks/use-deck';
 import { shownDay } from '@/lib/shown-day';
 import { colors } from '@/theme';
@@ -38,25 +41,83 @@ function EmptyCards() {
   );
 }
 
+function deleteMessage(cardCount: number) {
+  const verb = cardCount === 1 ? 'becomes' : 'become';
+  return `Its ${cardCountLabel(cardCount)} ${verb} free, and its history is deleted. This cannot be undone.`;
+}
+
+function failedWrite(title: string) {
+  Alert.alert(title, 'Check your connection.');
+}
+
 export default function DeckScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const { read, reload } = useDeck(deckId);
   const [tab, setTab] = useState<DeckTab>('cards');
+  const [renaming, setRenaming] = useState(false);
 
   useEffect(() => {
     void markDeckUsed(deckId);
   }, [deckId]);
+
+  async function rename(name: string) {
+    if (await renameDeck(deckId, name)) {
+      reload();
+    } else {
+      failedWrite('Could not rename this deck');
+    }
+  }
+
+  async function changePriority(priority: DeckPriority) {
+    if (await setDeckPriority(deckId, priority)) {
+      reload();
+    } else {
+      failedWrite('Could not change the deck priority');
+    }
+  }
+
+  async function deleteThisDeck() {
+    if (await deleteDeck(deckId)) {
+      router.dismissTo('/decks');
+    } else {
+      failedWrite('Could not delete this deck');
+    }
+  }
+
+  function confirmDelete(deck: Deck) {
+    Alert.alert(`Delete ${deck.name}?`, deleteMessage(deck.card_count), [
+      { text: 'Delete deck', style: 'destructive', onPress: deleteThisDeck },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
 
   return (
     <PushedScreen>
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button icon="xmark" tintColor={colors.text} accessibilityLabel="Close" onPress={() => router.back()} />
       </Stack.Toolbar>
-      <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button icon="ellipsis" tintColor={colors.text} accessibilityLabel="More" disabled />
-      </Stack.Toolbar>
       {read.status === 'loaded' ? (
         <>
+          <Stack.Toolbar placement="right">
+            {deckActionsMenu({
+              priority: read.deck.priority,
+              onRename: () => setRenaming(true),
+              onSetPriority: changePriority,
+              onDelete: () => confirmDelete(read.deck),
+            })}
+          </Stack.Toolbar>
+          {renaming ? (
+            <NameAlert
+              title="Rename deck"
+              message="Name your deck."
+              placeholder="Deck name"
+              confirmLabel="Save"
+              maxLength={deckNameLength}
+              initialName={read.deck.name}
+              onConfirm={rename}
+              onClose={() => setRenaming(false)}
+            />
+          ) : null}
           <View className="px-lg pt-safe-offset-xl">
             <CommanderCard name={read.deck.name} chips={deckChips(read.deck)} size="banner" />
           </View>

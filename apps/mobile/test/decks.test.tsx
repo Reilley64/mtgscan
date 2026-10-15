@@ -12,9 +12,11 @@ import {
   appearsBefore,
   dashedOutlinesColored,
   headerButton,
-  headerButtonIsDisabled,
+  headerMenuRows,
   leftHeaderButtons,
+  pressAlertButton,
   pressAlertWithFieldButton,
+  pressHeaderMenuAction,
   pressHeaderButton,
   presentedAlert,
   presentedAlertWithField,
@@ -76,7 +78,7 @@ describe('creating a deck', () => {
     expect(presentedAlertWithField()).toEqual({
       title: 'New deck',
       message: 'Name your deck.',
-      field: { placeholder: 'Deck name', maxLength: 64 },
+      field: { placeholder: 'Deck name', maxLength: 64, text: '' },
       buttons: [
         { label: 'Cancel', enabled: true },
         { label: 'Create', enabled: false },
@@ -249,7 +251,6 @@ describe('the deck screen', () => {
     expect(headerButton(pushedScreen(), 'Close')).toMatchObject({ type: 'button', symbol: 'xmark' });
     expect(tabHeader(pushedScreen()).buttons).toEqual(['More']);
     expect(headerButton(pushedScreen(), 'More')).toMatchObject({ symbol: 'ellipsis' });
-    expect(headerButtonIsDisabled(pushedScreen(), 'More')).toBe(true);
 
     await pressHeaderButton(pushedScreen(), 'Close');
 
@@ -302,5 +303,174 @@ describe('the deck screen', () => {
     await fireEvent.press(deck.getByRole('button', { name: 'Try again' }));
 
     expect(await deck.findByRole('header', { name: 'Atraxa' })).toBeOnTheScreen();
+  });
+});
+
+describe('the deck menu', () => {
+  async function openDeck(seed: { priority?: 'high' | 'medium' | 'low'; card_count?: number } = {}) {
+    ownDecks([
+      { name: 'Kinnan', ...medium },
+      { name: 'Atraxa', ...medium, ...seed },
+    ]);
+    const decks = await openDecks();
+    await fireEvent.press(decks.getByRole('button', { name: /^Atraxa,/ }));
+    const deck = within(pushedScreen());
+    await deck.findByRole('header', { name: 'Atraxa' });
+    return deck;
+  }
+
+  function deckWrites(name: string) {
+    return deckWritesSent().flatMap((write) => (write.name === name ? [write.request] : []));
+  }
+
+  async function chooseFromMenu(...path: string[]) {
+    await pressHeaderMenuAction(pushedScreen(), 'More', path);
+  }
+
+  test('More has Rename, Priority with High, Medium, and Low, and Delete deck in red', async () => {
+    await openDeck();
+
+    expect(headerMenuRows(pushedScreen(), 'More')).toEqual([
+      { title: 'Rename', destructive: false },
+      {
+        title: 'Priority',
+        destructive: false,
+        rows: [
+          { title: 'High', destructive: false },
+          { title: 'Medium', destructive: false, checked: true },
+          { title: 'Low', destructive: false },
+        ],
+      },
+      { title: 'Delete deck', destructive: true },
+    ]);
+  });
+
+  test('Rename opens a native alert with the name filled in, and Cancel and Save', async () => {
+    await openDeck();
+
+    await chooseFromMenu('Rename');
+
+    expect(presentedAlertWithField()).toEqual({
+      title: 'Rename deck',
+      message: 'Name your deck.',
+      field: { placeholder: 'Deck name', maxLength: 64, text: 'Atraxa' },
+      buttons: [
+        { label: 'Cancel', enabled: true },
+        { label: 'Save', enabled: true },
+      ],
+    });
+  });
+
+  test('Save renames the deck with the trimmed name, and the banner shows it', async () => {
+    const deck = await openDeck();
+    await chooseFromMenu('Rename');
+    await typeInAlertField('  Atraxa Superfriends ');
+
+    await pressAlertWithFieldButton('Save');
+
+    expect(deckWrites('rename_deck')).toEqual([{ deck_id: 'deck-2', name: 'Atraxa Superfriends' }]);
+    expect(await deck.findByRole('header', { name: 'Atraxa Superfriends' })).toBeOnTheScreen();
+    expect(presentedAlertWithField()).toBeNull();
+  });
+
+  test('Cancel in the rename alert keeps the name', async () => {
+    const deck = await openDeck();
+    await chooseFromMenu('Rename');
+    await typeInAlertField('Kinnan');
+
+    await pressAlertWithFieldButton('Cancel');
+
+    expect(deckWrites('rename_deck')).toEqual([]);
+    expect(deck.getByRole('header', { name: 'Atraxa' })).toBeOnTheScreen();
+  });
+
+  test('a rename that fails shows an alert and keeps the name', async () => {
+    const deck = await openDeck();
+    failDeckWrites(1);
+    await chooseFromMenu('Rename');
+    await typeInAlertField('Kinnan');
+
+    await pressAlertWithFieldButton('Save');
+
+    expect(presentedAlert()).toEqual({ title: 'Could not rename this deck', message: 'Check your connection.', buttons: ['OK'] });
+    expect(deck.getByRole('header', { name: 'Atraxa' })).toBeOnTheScreen();
+    expect(decksOnTheServer().map((saved) => saved.name)).toEqual(['Kinnan', 'Atraxa']);
+  });
+
+  test('a priority sets the deck priority, and the chip and the check mark follow it', async () => {
+    const deck = await openDeck();
+
+    await chooseFromMenu('Priority', 'Low');
+
+    expect(deckWrites('set_deck_priority')).toEqual([{ deck_id: 'deck-2', priority: 'low' }]);
+    expect(await deck.findByText('Low priority')).toBeOnTheScreen();
+    expect(headerMenuRows(pushedScreen(), 'More')[1].rows).toEqual([
+      { title: 'High', destructive: false },
+      { title: 'Medium', destructive: false },
+      { title: 'Low', destructive: false, checked: true },
+    ]);
+  });
+
+  test('a priority change that fails shows an alert and keeps the priority', async () => {
+    const deck = await openDeck({ priority: 'high' });
+    failDeckWrites(1);
+
+    await chooseFromMenu('Priority', 'Low');
+
+    expect(presentedAlert()).toEqual({
+      title: 'Could not change the deck priority',
+      message: 'Check your connection.',
+      buttons: ['OK'],
+    });
+    expect(deck.getByText('High priority')).toBeOnTheScreen();
+    expect(decksOnTheServer().map((saved) => saved.priority)).toEqual(['medium', 'high']);
+  });
+
+  test.each([
+    [0, 'Its 0 cards become free, and its history is deleted. This cannot be undone.'],
+    [1, 'Its 1 card becomes free, and its history is deleted. This cannot be undone.'],
+    [96, 'Its 96 cards become free, and its history is deleted. This cannot be undone.'],
+  ])('Delete deck asks first, naming the deck and how many cards become free (%i)', async (cardCount, message) => {
+    await openDeck({ card_count: cardCount });
+
+    await chooseFromMenu('Delete deck');
+
+    expect(presentedAlert()).toEqual({ title: 'Delete Atraxa?', message, buttons: ['Delete deck', 'Cancel'] });
+    expect(deckWrites('delete_deck')).toEqual([]);
+  });
+
+  test('confirming Delete deck deletes the deck and goes back to the gallery', async () => {
+    await openDeck();
+    await chooseFromMenu('Delete deck');
+
+    await pressAlertButton('Delete deck');
+
+    expect(deckWrites('delete_deck')).toEqual([{ deck_id: 'deck-2' }]);
+    expect(() => pushedScreen()).toThrow('No screen is pushed');
+    expect(tabHeader(selectedTab()).title).toBe('Decks');
+    expect(await within(selectedTab()).findByRole('button', { name: /^Kinnan,/ })).toBeOnTheScreen();
+    expect(within(selectedTab()).queryByRole('button', { name: /^Atraxa,/ })).not.toBeOnTheScreen();
+  });
+
+  test('Cancel in the delete alert keeps the deck open', async () => {
+    const deck = await openDeck();
+    await chooseFromMenu('Delete deck');
+
+    await pressAlertButton('Cancel');
+
+    expect(deckWrites('delete_deck')).toEqual([]);
+    expect(deck.getByRole('header', { name: 'Atraxa' })).toBeOnTheScreen();
+  });
+
+  test('a delete that fails shows an alert and keeps the deck open', async () => {
+    const deck = await openDeck();
+    failDeckWrites(1);
+    await chooseFromMenu('Delete deck');
+
+    await pressAlertButton('Delete deck');
+
+    expect(presentedAlert()).toEqual({ title: 'Could not delete this deck', message: 'Check your connection.', buttons: ['OK'] });
+    expect(deck.getByRole('header', { name: 'Atraxa' })).toBeOnTheScreen();
+    expect(decksOnTheServer()).toHaveLength(2);
   });
 });

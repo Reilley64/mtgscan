@@ -6,6 +6,7 @@ import { resetFakeFileSystem } from './fake-file-system';
 import { resetFakeGlassEffect } from './fake-glass-effect';
 import { resetFakeKeepAwake } from './fake-keep-awake';
 import { resetFakeLocalization } from './fake-localization';
+import { resetFakeNativeState } from './fake-native-state';
 import { resetFakeScanFeedback } from './fake-scan-feedback';
 import { resetFakeSecureStore } from './fake-secure-store';
 import { resetFakeSupabase } from './fake-supabase';
@@ -44,6 +45,8 @@ jest.mock('expo-secure-store', () => jest.requireActual('./fake-secure-store').f
 
 jest.mock('expo-localization', () => jest.requireActual('./fake-localization').fakeLocalization);
 
+jest.mock('@expo/ui/swift-ui', () => jest.requireActual('./fake-native-state').fakeSwiftUI);
+
 beforeEach(async () => {
   await registerAppStyles();
   jest.spyOn(console, 'info').mockImplementation(() => {});
@@ -57,4 +60,5 @@ beforeEach(async () => {
   resetFakeScanFeedback();
   resetFakeSecureStore();
   resetFakeLocalization();
+  resetFakeNativeState();
 });

@@ -1,9 +1,12 @@
+import { Constants } from '@mtgscan/supabase/database.types';
 import type { DeckPriority, DeckRow } from '@mtgscan/supabase/decks';
 
-const priorityLabels: Record<DeckPriority, string> = {
-  high: 'High priority',
-  medium: 'Medium priority',
-  low: 'Low priority',
+export const deckPriorities = Constants.public.Enums.deck_priority;
+
+export const priorityNames: Record<DeckPriority, string> = {
+  high: 'High',
+  medium: 'Medium',
+  low: 'Low',
 };
 
 export function cardCountLabel(count: number) {
@@ -11,5 +14,5 @@ export function cardCountLabel(count: number) {
 }
 
 export function deckChips(deck: Pick<DeckRow, 'priority' | 'card_count'>) {
-  return [priorityLabels[deck.priority], cardCountLabel(deck.card_count)];
+  return [`${priorityNames[deck.priority]} priority`, cardCountLabel(deck.card_count)];
 }

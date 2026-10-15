@@ -27,7 +27,15 @@ import type {
   UserTag,
 } from '@mtgscan/supabase/collection';
 import type { ExchangeRate } from '@mtgscan/supabase/converted-prices';
-import type { CreateDeckRequest, Deck, DeckQuery, MarkDeckUsedRequest } from '@mtgscan/supabase/decks';
+import type {
+  CreateDeckRequest,
+  Deck,
+  DeckQuery,
+  DeleteDeckRequest,
+  MarkDeckUsedRequest,
+  RenameDeckRequest,
+  SetDeckPriorityRequest,
+} from '@mtgscan/supabase/decks';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 import { act } from 'expo-router/testing-library';
@@ -437,8 +445,8 @@ function createDeck(request: CreateDeckRequest) {
   return { data: { deck_id: deck.deck_id }, error: null };
 }
 
-function markDeckUsed(request: MarkDeckUsedRequest) {
-  deckWrites = [...deckWrites, { name: 'mark_deck_used', request }];
+function changeDeck(name: string, request: { deck_id: string }, change: Partial<Deck>) {
+  deckWrites = [...deckWrites, { name, request }];
   if (failedDeckWrite()) {
     return { data: null, error: networkFailure };
   }
@@ -446,7 +454,19 @@ function markDeckUsed(request: MarkDeckUsedRequest) {
     return deckNotFound;
   }
   const time = nextDeckTime();
-  decks = decks.map((deck) => (deck.deck_id === request.deck_id ? { ...deck, last_used_at: time } : deck));
+  decks = decks.map((deck) => (deck.deck_id === request.deck_id ? { ...deck, ...change, last_used_at: time } : deck));
+  return { data: null, error: null };
+}
+
+function deleteDeck(request: DeleteDeckRequest) {
+  deckWrites = [...deckWrites, { name: 'delete_deck', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  if (!decks.some((deck) => deck.deck_id === request.deck_id)) {
+    return deckNotFound;
+  }
+  decks = decks.filter((deck) => deck.deck_id !== request.deck_id);
   return { data: null, error: null };
 }
 
@@ -610,7 +630,10 @@ export const fakeSupabase = {
             | RenameUserTagRequest
             | DeleteUserTagRequest
             | CreateDeckRequest
-            | MarkDeckUsedRequest;
+            | MarkDeckUsedRequest
+            | RenameDeckRequest
+            | SetDeckPriorityRequest
+            | DeleteDeckRequest;
         },
   ) {
     if (name === 'list_decks') {
@@ -623,7 +646,18 @@ export const fakeSupabase = {
       return createDeck(args.request as CreateDeckRequest);
     }
     if (name === 'mark_deck_used' && args && 'request' in args) {
-      return markDeckUsed(args.request as MarkDeckUsedRequest);
+      return changeDeck(name, args.request as MarkDeckUsedRequest, {});
+    }
+    if (name === 'rename_deck' && args && 'request' in args) {
+      const request = args.request as RenameDeckRequest;
+      return changeDeck(name, request, { name: request.name.trim() });
+    }
+    if (name === 'set_deck_priority' && args && 'request' in args) {
+      const request = args.request as SetDeckPriorityRequest;
+      return changeDeck(name, request, { priority: request.priority });
+    }
+    if (name === 'delete_deck' && args && 'request' in args) {
+      return deleteDeck(args.request as DeleteDeckRequest);
     }
     if (name === 'list_user_tags') {
       return userTagList();
