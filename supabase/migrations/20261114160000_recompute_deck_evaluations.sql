@@ -69,14 +69,7 @@ declare
   readable_table text;
 begin
   foreach readable_table in array array[
-    'cards',
-    'card_printings',
-    'oracle_tags',
-    'tag_edges',
-    'card_taggings',
-    'disabled_tags',
     'disabled_tag_changes',
-    'combos',
     'import_snapshots',
     'decks',
     'deck_cards',
@@ -122,29 +115,7 @@ grant execute on function
   private.save_deck_evaluation(uuid, uuid),
   private.deck_contents(uuid, uuid),
   private.deck_role(timestamptz),
-  private.judge_deck(jsonb),
-  private.judge_color_identity(jsonb),
-  private.basic_land_type_colors(text),
-  private.color_names(text[]),
-  private.judge_estimated_bracket(jsonb),
-  private.bracket_signal(text, text, integer, integer, jsonb),
-  private.ordered_cards(jsonb),
-  private.tagged_deck_cards(jsonb, text),
-  private.tag_closure(uuid[]),
-  private.deck_combos(jsonb),
-  private.combo_lowest_bracket(public.combo_bracket_tag),
-  private.violation(text, text, text, text),
-  private.card_count_label(integer),
-  private.judge_legality(jsonb),
-  private.judge_singleton(jsonb),
-  private.judge_commander_eligibility(jsonb),
-  private.judge_partner(jsonb),
-  private.deck_commanders(jsonb),
-  private.has_subtype(text, text),
-  private.deck_evaluation_cards(jsonb),
-  private.basic_land_cards(),
-  private.basic_land_kinds(),
-  private.name_key(text)
+  private.judge_deck(jsonb)
 to deck_evaluator;
 
 create function public.recompute_deck_evaluations()
