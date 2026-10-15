@@ -15,6 +15,7 @@ import { CardHero } from '@/components/molecules/card-hero';
 import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
+import { CommanderCard, CommanderGalleryCard } from '@/components/molecules/commander-card';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { DisclosureRow } from '@/components/molecules/disclosure-row';
@@ -1139,17 +1140,17 @@ describe('SwipeToConfirm', () => {
 
 describe('EmptyState', () => {
   test('an empty state shows its illustration, a white title in sheet title type, and a muted message', async () => {
-    await render(<EmptyState illustration={<Text>Illustration</Text>} title="No decks yet" message="Start a deck from a commander you own." />);
+    await render(<EmptyState illustration={<Text>Illustration</Text>} title="No decks yet" message="Create a deck, then add cards to it from your collection." />);
 
     expect(screen.getByText('Illustration', { includeHiddenElements: true })).toBeOnTheScreen();
     expect(screen.getByText('No decks yet')).toHaveStyle({ color: white, fontSize: 17, fontWeight: '800', textAlign: 'center' });
-    expect(screen.getByText('Start a deck from a commander you own.')).toHaveStyle({ color: textMuted, fontSize: 14, textAlign: 'center' });
+    expect(screen.getByText('Create a deck, then add cards to it from your collection.')).toHaveStyle({ color: textMuted, fontSize: 14, textAlign: 'center' });
   });
 
   test('VoiceOver reads an empty state as its title and message and skips the illustration', async () => {
-    await render(<EmptyState illustration={<Text>Illustration</Text>} title="No decks yet" message="Start a deck from a commander you own." />);
+    await render(<EmptyState illustration={<Text>Illustration</Text>} title="No decks yet" message="Create a deck, then add cards to it from your collection." />);
 
-    expect(screen.getByLabelText('No decks yet, Start a deck from a commander you own.')).toHaveProp('accessible', true);
+    expect(screen.getByLabelText('No decks yet, Create a deck, then add cards to it from your collection.')).toHaveProp('accessible', true);
     expect(isHiddenFromAccessibility(screen.getByText('Illustration', { includeHiddenElements: true }))).toBe(true);
     expect(screen.queryByRole('button')).not.toBeOnTheScreen();
   });
@@ -1206,5 +1207,29 @@ describe('empty state illustrations', () => {
     await render(<GhostBatchRows />);
     expect(blocksColored(screen.root!, surface)).toBe(3);
     expect(fadesDown(screen.root!)).toBe(false);
+  });
+});
+
+describe('CommanderCard', () => {
+  test.each([
+    ['gallery', 140],
+    ['banner', 200],
+  ] as const)('a %s commander card with no commander is a %i px ghost card with the name in card title type and its chips', async (size, height) => {
+    await render(<CommanderCard name="Atraxa" chips={['Medium priority', '62 cards']} size={size} />);
+
+    const title = screen.getByRole('header', { name: 'Atraxa' });
+    expect(title).toHaveStyle({ color: white, fontSize: 20, fontWeight: '800' });
+    expect(title.parent).toHaveStyle({ height, backgroundColor: surface, borderRadius: 12, borderStyle: 'dashed', borderColor: line });
+    expect(screen.getByLabelText('Medium priority')).toBeOnTheScreen();
+    expect(screen.getByLabelText('62 cards')).toBeOnTheScreen();
+  });
+
+  test('a commander gallery card is one button named by the deck and its chips', async () => {
+    const onPress = jest.fn();
+    await render(<CommanderGalleryCard name="Atraxa" chips={['High priority', '1 card']} onPress={onPress} />);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Atraxa, High priority, 1 card' }));
+
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 });

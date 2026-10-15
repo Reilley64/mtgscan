@@ -301,6 +301,16 @@ components:
     height: 48px
   floating-button-active:
     textColor: "{colors.primary}"
+  commander-gallery-card:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.md}"
+    padding: 12px
+    height: 140px
+  deck-banner:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.md}"
+    padding: 12px
+    height: 200px
   swipe-to-confirm-handle:
     backgroundColor: "{colors.on-primary}"
     textColor: "{colors.primary}"
@@ -393,8 +403,13 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Tapping a tile opens the copy page for that copy, from the binder and from search results alike.
   - A native search bar sits under the large title. See Collection search. Filters: All, Free, Allocated, Protected.
   - A round sort button floats over the grid at the bottom right and changes the order. See Collection search.
-- **Decks** is a commander gallery: one large commander art card per row, highest priority first. The name, priority, validity, and estimated bracket sit over the art, with a Needs you count.
-  - With no decks, Decks shows its empty state with an **Open Collection** button, which opens the Collection tab. See Empty states.
+- **Decks** is a commander gallery: one commander gallery card per deck, the deck used most recently first. Decks used at the same time sort by name, ignoring case. See Components.
+  - Opening a deck counts as using it. Later, changing its cards, renaming it, and changing its deck priority count too.
+  - A tap on a gallery card opens the deck screen on Cards.
+  - A **Create deck** bar button with the `plus` symbol sits before the settings button. It opens the native name alert "New deck" with "Name your deck.", a "Deck name" field, **Cancel**, and **Create**. The name takes at most 64 characters. **Create** is off while the trimmed name is empty. **Create** makes an empty deck at medium priority and opens it on Cards. **Cancel** creates nothing. Two decks can have the same name.
+  - When the create fails, a native alert says "Could not create this deck" and "Check your connection.", and nothing opens.
+  - With no decks, Decks shows its empty state with a **Create deck** button, which opens the same name alert. See Empty states.
+  - When the read fails, the tab shows the empty state "Could not load your decks" with a **Try again** button, which reads the decks again.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
   - Until the gallery is on the phone, the camera stays off and the tab shows the gallery download:
     - "Downloading gallery" with a progress bar and the megabytes done of the total, such as "12.3 MB of 68.5 MB".
@@ -428,7 +443,7 @@ Recent, Collection, and Decks use the native iOS navigation bar as their tab hea
 - The settings button and any header actions sit on the right of the bar, above the large title.
 - When the user scrolls, the large title collapses into the inline title in sheet title type.
 - The bar and its buttons stay at the top. The content scrolls under the bar.
-- The header buttons are native bar buttons in the text color. A tab can put more header actions before the settings button, as Collection does with the Filters and collection total buttons.
+- The header buttons are native bar buttons in the text color. A tab can put more header actions before the settings button, as Collection does with the Filters and collection total buttons, and Decks does with the **Create deck** button.
 - On iOS 26, the bar buttons are Liquid Glass. Content that scrolls under the bar blurs and fades behind it with the system scroll edge effect. There is no line under the bar.
 - On iOS 18 and earlier, the bar is the standard iOS navigation bar, with no Liquid Glass.
 
@@ -532,13 +547,14 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - A change that fails shows the failure notice "Could not change the user tags. Check your connection."
   - When a read fails, the picker shows the empty state "Could not load your user tags" with a **Try again** button. See Empty states.
   - A copy that no longer exists goes back to the copy page, which says so.
-- **Deck screen**, from the gallery or a deck tag:
-  - The top bar is a compact header: the commander picture, the deck name, and chips for priority, validity, and estimated bracket. When the deck is not valid, its violations and the bracket signals show under the chips. Nothing else goes in the header.
-  - A deck tab bar replaces the app tab bar: **Cards / Suggestions / History**.
-    - **Cards** is the deck list. Only "Planned out" is marked.
-    - **Suggestions** holds open deck suggestions, planned swaps, and buylist cards with their actions, plus a collapsed Closed and dismissed section. Its tab carries a Needs you badge.
-    - **History** holds deck changes with revert from a selected change onward.
-  - Opening a deck from Recent lands on Suggestions. From Decks or the Collection it lands on Cards.
+- **Deck screen**, from the gallery or a deck tag. It is a pushed screen over the app tab bar, and it marks the deck used when it opens:
+  - The banner is 200 px tall, 32 px below the safe area, with the deck name in card title type and chips for the deck priority, such as "Medium priority", and the card count, such as "0 cards". The card count includes commanders and basic lands. A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color, with the name and chips at its bottom. Commander art comes with commanders.
+  - A close bar button with the `xmark` symbol sits on the left of the header, over the banner, as on the copy page. VoiceOver reads it as "Close". It goes back to where the deck screen was opened from. The swipe from the left edge does the same.
+  - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the banner. VoiceOver reads it as "More". It stays off until the deck menu comes.
+  - A segmented control under the banner switches between **Cards** and **History**. The deck screen opens on Cards. Suggestions comes later.
+  - **Cards** of an empty deck shows a "Commander" heading in lime body strong with "No commander yet." in text muted, then the empty state "No cards yet". See Empty states. **Open Collection** closes the deck screen and opens the Collection tab.
+  - **History** ends with the day the deck was created, such as "Created 15 October 2026", in meta text. Deck changes come later.
+  - When the read fails, the deck screen shows the empty state "Could not load this deck" with a **Try again** button. Close still shows.
 
 ### Sheets
 
@@ -716,7 +732,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - The illustration is made of shapes from the app in line color, such as empty binder slots or ghost rows. It uses no images. On the background, it fades downward into the background from 30% of its height (`gradients.emptyStateFade`). Over the camera and in batch review it does not fade.
   - A dashed shape has a 2 px dashed line-colored outline (`borderWidths.illustrationOutline`). The symbol in the dashed card frame is 40 px (`sizes.emptyStateSymbol`) in line color.
   - Titles have no final period.
-  - VoiceOver reads the title and the body as one element, such as "No decks yet, Start a deck from a commander you own." It skips the illustration and reads the action as a button.
+  - VoiceOver reads the title and the body as one element, such as "No decks yet, Create a deck, then add cards to it from your collection." It skips the illustration and reads the action as a button.
   - Each page's text:
 
     | Page | Illustration | Title | Body | Action |
@@ -727,13 +743,17 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
     | Copy page, read failed | a dashed card frame with `wifi.slash` | Could not load this card | Check your connection. | **Try again** reads the copy again |
     | User tag picker, read failed | a dashed card frame with `wifi.slash` | Could not load your user tags | Check your connection. | **Try again** reads the copy and the user tags again |
     | Collection search, no results | one row of empty binder slots | No cards found | Check the spelling or try fewer words. | none |
-    | Decks, no decks | a ghost commander card | No decks yet | Start a deck from a commander you own. | **Open Collection** opens the Collection tab |
+    | Decks, no decks | a ghost commander card | No decks yet | Create a deck, then add cards to it from your collection. | **Create deck** opens the name alert |
+    | Decks, read failed | a ghost commander card | Could not load your decks | Check your connection. | **Try again** reads the decks again |
+    | Deck screen, Cards of an empty deck | one row of empty binder slots | No cards yet | Add cards from a copy's page in your collection. | **Open Collection** opens the Collection tab |
+    | Deck screen, read failed | a dashed card frame with `wifi.slash` | Could not load this deck | Check your connection. | **Try again** reads the deck again |
     | Scan, camera access off | a dashed card frame with `video.slash` | Camera access is off | Turn it on in Settings to scan cards. | **Open Settings** opens iOS Settings |
     | Scan, no camera | a dashed card frame with `questionmark.video` | Camera not available | This device has no camera. | none |
     | Batch review, empty scan batch | three ghost batch rows | No scans yet | Cards you scan wait here until you add them. | none |
 
   - A refused search chip shows its message, such as "No set named "zzz".", as the title of the Collection search empty state, with no body.
-- **Commander gallery card.** Full-width commander art with a dark gradient, the deck name in card-title type, status chips, and a Needs you badge.
+- **Commander gallery card.** A full-width button, 140 px tall, with 12 px corners. The deck name sits at its bottom in card title type, over chips for the deck priority and the card count. VoiceOver reads it as one button, such as "Atraxa, Medium priority, 0 cards". A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color. Later, commander art with a dark gradient, more status chips, and a Needs you badge come. The deck screen banner is the same card at 200 px.
+- **Name alert.** A native alert with a title, a message, a name field, **Cancel**, and a confirm button, such as **Create**. The field takes at most 64 characters. The confirm button is off while the trimmed name is empty. A new alert starts with an empty field.
 
 ## Do's and Don'ts
 

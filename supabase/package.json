@@ -7,6 +7,7 @@
     "./collection": "./collection.ts",
     "./converted-prices": "./converted-prices.ts",
     "./database.types": "./database.types.ts",
+    "./decks": "./decks.ts",
     "./gallery-manifest": "./gallery/manifest.ts",
     "./search": "./search.ts",
     "./test-user": "./test-user/account.ts"

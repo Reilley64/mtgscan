@@ -27,6 +27,7 @@ import type {
   UserTag,
 } from '@mtgscan/supabase/collection';
 import type { ExchangeRate } from '@mtgscan/supabase/converted-prices';
+import type { CreateDeckRequest, Deck, DeckQuery, MarkDeckUsedRequest } from '@mtgscan/supabase/decks';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 import { act } from 'expo-router/testing-library';
@@ -62,6 +63,11 @@ let nextUserTagNumber = 1;
 let copyUserTags = new Map<string, Set<string>>();
 let failingUserTagChanges = 0;
 let failingUserTagReads = 0;
+let decks: Deck[] = [];
+let deckClock = 0;
+let deckWrites: { name: string; request: object }[] = [];
+let failingDeckReads = 0;
+let failingDeckWrites = 0;
 const emptyCollectionTotal: CollectionTotal = {
   total: '0.00',
   currency: 'USD',
@@ -367,6 +373,83 @@ function setCopyUserTag({ copy_id, user_tag_id, tagged }: CopyUserTagRequest) {
   return { data: null, error: null };
 }
 
+function nextDeckTime() {
+  deckClock += 1;
+  return new Date(Date.UTC(2026, 9, 15, 9, deckClock)).toISOString();
+}
+
+const deckNotFound = {
+  data: null,
+  error: { code: 'not_found', message: 'deck_id is not one of your decks.', details: 'deck_id' },
+};
+
+function failedDeckRead() {
+  if (failingDeckReads === 0) {
+    return false;
+  }
+  failingDeckReads -= 1;
+  return true;
+}
+
+function failedDeckWrite() {
+  if (failingDeckWrites === 0) {
+    return false;
+  }
+  failingDeckWrites -= 1;
+  return true;
+}
+
+function deckList() {
+  if (failedDeckRead()) {
+    return { data: null, error: networkFailure };
+  }
+  const items = decks
+    .toSorted((a, b) => b.last_used_at.localeCompare(a.last_used_at) || a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+    .map(({ revision, created_at, ...row }) => row);
+  return { data: { items }, error: null };
+}
+
+function deckRead({ deck_id }: DeckQuery) {
+  if (failedDeckRead()) {
+    return { data: null, error: networkFailure };
+  }
+  const deck = decks.find((candidate) => candidate.deck_id === deck_id);
+  return deck ? { data: deck, error: null } : deckNotFound;
+}
+
+function createDeck(request: CreateDeckRequest) {
+  deckWrites = [...deckWrites, { name: 'create_deck', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  const time = nextDeckTime();
+  const deck: Deck = {
+    deck_id: `deck-${decks.length + 1}`,
+    name: request.name.trim(),
+    priority: 'medium',
+    card_count: 0,
+    commanders: [],
+    last_used_at: time,
+    revision: 0,
+    created_at: time,
+  };
+  decks = [...decks, deck];
+  return { data: { deck_id: deck.deck_id }, error: null };
+}
+
+function markDeckUsed(request: MarkDeckUsedRequest) {
+  deckWrites = [...deckWrites, { name: 'mark_deck_used', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  if (!decks.some((deck) => deck.deck_id === request.deck_id)) {
+    return deckNotFound;
+  }
+  const time = nextDeckTime();
+  decks = decks.map((deck) => (deck.deck_id === request.deck_id ? { ...deck, last_used_at: time } : deck));
+  return { data: null, error: null };
+}
+
 function deleteCopy({ copy_id }: DeleteCopyRequest) {
   if (failingCopyDeletes > 0) {
     failingCopyDeletes -= 1;
@@ -513,6 +596,7 @@ export const fakeSupabase = {
     args?:
       | { query: CollectionQuery }
       | { query: CopyQuery }
+      | { query: DeckQuery }
       | { query: Record<string, never> }
       | { query: CurrentPricesQuery }
       | { query: { text: string; limit: number } }
@@ -524,9 +608,23 @@ export const fakeSupabase = {
             | CreateUserTagRequest
             | CopyUserTagRequest
             | RenameUserTagRequest
-            | DeleteUserTagRequest;
+            | DeleteUserTagRequest
+            | CreateDeckRequest
+            | MarkDeckUsedRequest;
         },
   ) {
+    if (name === 'list_decks') {
+      return deckList();
+    }
+    if (name === 'get_deck' && args && 'query' in args) {
+      return deckRead(args.query as DeckQuery);
+    }
+    if (name === 'create_deck' && args && 'request' in args) {
+      return createDeck(args.request as CreateDeckRequest);
+    }
+    if (name === 'mark_deck_used' && args && 'request' in args) {
+      return markDeckUsed(args.request as MarkDeckUsedRequest);
+    }
     if (name === 'list_user_tags') {
       return userTagList();
     }
@@ -676,6 +774,29 @@ export function failUserTagChanges(count: number) {
   failingUserTagChanges = count;
 }
 
+export function ownDecks(seeds: Pick<Deck, 'name' | 'priority' | 'card_count'>[]) {
+  decks = seeds.map((seed, index) => {
+    const time = nextDeckTime();
+    return { deck_id: `deck-${index + 1}`, commanders: [], last_used_at: time, revision: 0, created_at: time, ...seed };
+  });
+}
+
+export function decksOnTheServer() {
+  return decks;
+}
+
+export function deckWritesSent() {
+  return deckWrites;
+}
+
+export function failDeckReads(count: number) {
+  failingDeckReads = count;
+}
+
+export function failDeckWrites(count: number) {
+  failingDeckWrites = count;
+}
+
 export function failCopyReads(count: number) {
   failingCopyReads = count;
 }
@@ -813,6 +934,11 @@ export function resetFakeSupabase() {
   copyUserTags = new Map();
   failingUserTagChanges = 0;
   failingUserTagReads = 0;
+  decks = [];
+  deckClock = 0;
+  deckWrites = [];
+  failingDeckReads = 0;
+  failingDeckWrites = 0;
   collectionTotal = emptyCollectionTotal;
   priceReads = [];
   exchangeRates = exchangeRatesOf(frankfurterCurrencies);

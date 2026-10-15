@@ -295,6 +295,20 @@ isOneToOne: false
       referencedColumns: ["user_id","id"]
     }
                   ]
+                },"decks": {
+                  Row: {
+                    "created_at": string,"id": string,"last_used_at": string,"name": string,"priority": Database["public"]['Enums']["deck_priority"],"revision": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"last_used_at"?: string,"name": string,"priority"?: Database["public"]['Enums']["deck_priority"],"revision"?: number,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"last_used_at"?: string,"name"?: string,"priority"?: Database["public"]['Enums']["deck_priority"],"revision"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"disabled_tags": {
                   Row: {
                     "disabled_at": string,"tag_id": string
@@ -512,6 +526,9 @@ isOneToOne: false
               "relation": string,"total_bytes": number
             }[]
                            },
+"create_deck":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "create_user_tag":
 { Args: { "request": Json }; Returns: Json
                            },
@@ -566,11 +583,17 @@ isOneToOne: false
 "get_current_prices":
 { Args: { "query": Json }; Returns: Json
                            },
+"get_deck":
+{ Args: { "query": Json }; Returns: Json
+                           },
 "import_card_sets":
 { Args: { "sets": Json }; Returns: number
                            },
 "list_card_printings":
 { Args: { "query": Json }; Returns: Json
+                           },
+"list_decks":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "list_exchange_rates":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -582,6 +605,9 @@ isOneToOne: false
                            },
 "list_user_tags":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"mark_deck_used":
+{ Args: { "request": Json }; Returns: undefined
                            },
 "prune_search_telemetry":
 { Args: Record<PropertyKey, never>; Returns: number
@@ -618,7 +644,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices"|"exchange_rates","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
+            "card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","deck_priority": "high"|"medium"|"low","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices"|"exchange_rates","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -738,7 +764,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices", "exchange_rates"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
+            "card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"deck_priority": ["high", "medium", "low"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices", "exchange_rates"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
           }
         }
 } as const

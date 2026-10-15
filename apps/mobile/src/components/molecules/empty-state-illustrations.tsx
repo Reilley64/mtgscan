@@ -3,16 +3,16 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
+import { dashedOutlineClass } from '@/components/atoms/dashed-outline';
 import { Surface } from '@/components/atoms/surface';
 import { SymbolView } from '@/components/atoms/symbol-view';
 import { Text } from '@/components/atoms/text';
 import { cardColumnClass, cardsPerRow } from '@/components/molecules/card-tile';
+import { CommanderCardFrame } from '@/components/molecules/commander-card';
 import { cn } from '@/lib/class-names';
 import { gradients, sizes } from '@/theme';
 
 const barClass = 'h-skeleton-meta-bar rounded-full bg-line';
-
-const dashedOutlineClass = 'border-illustration-outline border-dashed border-line';
 
 function FadesDown({ children }: { children: ReactNode }) {
   return (
@@ -71,14 +71,13 @@ export function GhostNeedsYouItems() {
 export function GhostCommanderCard() {
   return (
     <FadesDown>
-      <View className={cn(dashedOutlineClass, 'w-full justify-end gap-sm rounded-md bg-surface p-md pt-xl')}>
-        <View className="h-card-thumbnail-height" />
+      <CommanderCardFrame size="gallery">
         <View className="h-skeleton-title-bar w-1/2 rounded-full bg-line" />
         <View className="flex-row gap-sm">
           <View className="h-chip w-1/6 rounded-md bg-line" />
           <View className="h-chip w-1/5 rounded-md bg-line" />
         </View>
-      </View>
+      </CommanderCardFrame>
     </FadesDown>
   );
 }
