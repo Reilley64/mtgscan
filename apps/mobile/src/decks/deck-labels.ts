@@ -65,8 +65,12 @@ const effectNames: Record<DeckChangeEffect['kind'], { chip: string; spoken: (dec
   adds_violation: { chip: 'Adds a violation', spoken: (deckName) => `Adds a violation to ${deckName}` },
 };
 
-function spokenEffectRule({ rule, colors = [] }: DeckChangeEffectRule) {
-  return [ruleNames[rule].toLowerCase(), ...colors.map((color) => colorNames[color])].join(', ');
+function effectRuleName({ rule }: DeckChangeEffectRule) {
+  return ruleNames[rule].toLowerCase();
+}
+
+function spokenEffectRule(effectRule: DeckChangeEffectRule) {
+  return [effectRuleName(effectRule), ...(effectRule.colors ?? []).map((color) => colorNames[color])].join(', ');
 }
 
 export function effectStatus(effect: DeckChangeEffect, deckName: string) {
@@ -74,6 +78,14 @@ export function effectStatus(effect: DeckChangeEffect, deckName: string) {
   return {
     chip: { label: chip, tone: 'danger' as const },
     spoken: `${spoken(deckName)}: ${effect.rules.map(spokenEffectRule).join(', ')}`,
+  };
+}
+
+export function revertEffectChip(effect: DeckChangeEffect, deckName: string) {
+  return {
+    label: `${effectNames[effect.kind].chip}: ${effect.rules.map(effectRuleName).join(', ')}`,
+    tone: 'danger' as const,
+    accessibilityLabel: effectStatus(effect, deckName).spoken,
   };
 }
 

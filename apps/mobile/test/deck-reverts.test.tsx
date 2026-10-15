@@ -65,13 +65,13 @@ const history = [
   deckChange(2, 'removed', [solRingIn]),
   deckChange(1, 'added', [copyLine('Sol Ring', { place_before: null, place_after: 'main' })]),
 ];
-const noEffect: Omit<RevertPreview, 'revision'> = { lines: [], blocks: [], protected_copies: [] };
+const noChanges: Omit<RevertPreview, 'revision'> = { lines: [], blocks: [], protected_copies: [], effect: null };
 
 async function openRevert(revision: number, preview: Partial<Omit<RevertPreview, 'revision'>> = {}, changes = history) {
   ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 0 }, { name: 'Kinnan', priority: 'low', card_count: 1 }]);
   ownDeckChanges('deck-1', changes.slice(1));
   changeDeckElsewhere('deck-1', changes[0]!);
-  ownRevertPreview(`deck-change-${revision}`, { ...noEffect, ...preview });
+  ownRevertPreview(`deck-change-${revision}`, { ...noChanges, ...preview });
   await renderApp();
   await pressTab('Decks');
   await fireEvent.press(within(selectedTab()).getByRole('button', { name: /^Atraxa,/ }));
@@ -171,7 +171,7 @@ describe('the Revert page sheet', () => {
     await sheet.findByLabelText('+, Sol Ring, Artifact');
     changeDeckElsewhere('deck-1', deckChange(4, 'added', [copyLine('Cyclonic Rift', { place_before: null, place_after: 'main' })]));
     ownRevertPreview('deck-change-2', {
-      ...noEffect,
+      ...noChanges,
       lines: [
         copyLine('Cyclonic Rift', { place_before: 'main', place_after: null }),
         copyLine('Sol Ring', { place_before: null, place_after: 'main' }),
@@ -188,6 +188,34 @@ describe('the Revert page sheet', () => {
 
     await waitFor(() => expect(isPageSheetPresented()).toBe(false));
     expect(await within(pushedScreen()).findByLabelText('+, Cyclonic Rift, Artifact')).toBeOnTheScreen();
+  });
+
+  test.each<[string, RevertPreview['effect'], string, string]>([
+    [
+      'Would make it invalid',
+      { kind: 'would_make_invalid', rules: [{ rule: 'color_identity', colors: ['U', 'B'] }, { rule: 'singleton' }] },
+      'Would make it invalid: color identity, singleton',
+      'Would make Atraxa invalid: color identity, Blue, Black, singleton',
+    ],
+    ['Adds a violation', { kind: 'adds_violation', rules: [{ rule: 'singleton' }] }, 'Adds a violation: singleton', 'Adds a violation to Atraxa: singleton'],
+  ])('an effect shows as a danger chip, "%s", that VoiceOver reads in full, and Revert stays on', async (_, effect, text, spoken) => {
+    const sheet = await openRevert(2, { lines: [solRingIn], effect });
+
+    const chip = await sheet.findByLabelText(spoken);
+    expect(within(chip).getByText(text)).toHaveStyle({ color: tokenColors.danger });
+    expect(headerButtonIsDisabled(presentedPageSheet(), 'Revert')).toBe(false);
+
+    await pressHeaderButton(presentedPageSheet(), 'Revert');
+
+    await waitFor(() => expect(isPageSheetPresented()).toBe(false));
+    expect(revertWrites()).toHaveLength(1);
+  });
+
+  test('a revert with no effect shows no effect chip', async () => {
+    const sheet = await openRevert(2, { lines: [solRingIn] });
+
+    await sheet.findByLabelText('−, Sol Ring, Artifact');
+    expect(sheet.queryByText(/^(Would make it invalid|Adds a violation)/)).not.toBeOnTheScreen();
   });
 
   test('a revert that fails shows an alert, and the sheet stays', async () => {
