@@ -24,7 +24,7 @@ One physical card that the user owns. It has a copy ID, a card printing, a finis
 _Avoid_: Card, item, owned card
 
 **Collection entry**:
-The copies that share a card printing, finish, condition, language, and protected flag. It is a group of copies, not a thing of its own. Its quantity is the number of its copies. User tags do not split or merge collection entries.
+The copies that share a card printing, finish, condition, language, and protected flag. It is a group of copies, not a thing of its own. Its quantity is the number of its copies. User tags do not split or merge collection entries. Its entry total is the current price of its card printing and finish times its quantity. An entry total is not a collection total.
 _Avoid_: Stack, item
 
 **Copy page**:
