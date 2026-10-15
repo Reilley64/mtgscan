@@ -1190,7 +1190,8 @@ describe('CardContextMenu', () => {
 
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
-  test('the card draws in its place in the grid, wherever the grid scrolls it on the screen', async () => {
+
+  test('the card ignores the safe area of the screen, so it draws where the grid places it', async () => {
     await render(
       <CardContextMenu actions={[{ title: 'Open card', onSelect: () => {} }]}>
         <View accessibilityLabel="Sol Ring">

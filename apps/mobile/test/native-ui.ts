@@ -868,9 +868,13 @@ export function contextMenu(element: HostElement) {
   throw new Error('This element has no context menu');
 }
 
+function isSwiftUiHost(element: HostElement) {
+  return element.type === expoUiHost && 'matchContentsVertical' in element.props;
+}
+
 export function movesWithSafeArea(element: HostElement) {
   for (let parent = element.parent; parent; parent = parent.parent) {
-    if (parent.type === expoUiHost && 'layoutDirection' in parent.props) {
+    if (isSwiftUiHost(parent)) {
       return parent.props.ignoreSafeArea !== 'all';
     }
   }
