@@ -6,6 +6,7 @@
   "scripts": {
     "start": "expo start",
     "ios": "expo run:ios",
+    "ios:test-device": "bun scripts/build-test-app.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "test": "jest",
