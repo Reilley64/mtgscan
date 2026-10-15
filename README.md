@@ -381,6 +381,7 @@ mtgscan judges each deck against the Commander rules and stores the result as on
   | `not_legal` | A card's Commander legality is not legal, such as an Un-card. | none | "Mine Security is not legal in Commander.", one sentence per card |
 
 - Singleton reads the card's copy limit from `copy_limit` and `copy_limit_number`. A second copy of a card with an unknown copy limit makes singleton undetermined for that card, with the reason "mtgscan cannot read the copy limit of Tolabow, Loch Rascal.". One copy of that card makes nothing undetermined.
+- A card that the card catalog no longer lists, or whose Commander legality is unknown, makes the legality check undetermined. Its undetermined check has `rule` `legality`, the reason "No rules data for Mine Security.", one sentence per card, and its cards. A banned or not legal card still makes the deck invalid.
 
 - `add_deck_card`, `remove_deck_card`, `set_deck_commander`, `set_basic_lands`, `revert_deck_changes`, and `delete_copy` for a copy in a deck save the deck evaluation in the same transaction, after they change the cards, with the new deck revision. A refused request or one that makes no deck change saves nothing. Creating, renaming, and deleting a deck, and changing its deck priority, save nothing.
 - The deck change that adds a deck's first card creates its deck evaluation, and the one that removes its last card deletes it. An empty deck has none.
