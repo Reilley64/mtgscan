@@ -9,6 +9,7 @@ import { PriceCurrencyProvider } from '@/collection/price-currency-setting';
 import { fullHeightDrawerOptions, halfHeightDrawerOptions } from '@/components/templates/drawer-sheet';
 import { GalleryProvider } from '@/gallery/gallery-state';
 import { CurrentPricesProvider } from '@/scan/current-prices';
+import { KeepAwakeWhileScanning } from '@/scan/keep-awake-while-scanning';
 import { ScanBatchProvider } from '@/scan/scan-batch-state';
 import { ScanSoundsProvider } from '@/scan/scan-sounds-setting';
 import { colors } from '@/theme';
@@ -61,6 +62,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider value={navigationTheme}>
         <StatusBar style="light" />
+        <KeepAwakeWhileScanning />
         <SessionProvider>
           <GalleryProvider>
             <ScanSoundsProvider>
