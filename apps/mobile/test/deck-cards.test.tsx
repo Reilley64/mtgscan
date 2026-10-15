@@ -1,7 +1,7 @@
 import type { DeckCard } from '@mtgscan/supabase/decks';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
-import { copyOf, openCopyPage } from './copies';
+import { copyOf, deckCardOf, openCopyPage } from './copies';
 import {
   allocateCopyElsewhere,
   deckWritesSent,
@@ -52,23 +52,6 @@ function addedCards() {
 
 function drawer() {
   return within(presentedDrawerContent());
-}
-
-function deckCardOf(copyId: string, name: string, typeLine: string, changes: Partial<DeckCard> = {}): DeckCard {
-  const { deck, free, added_at, purchase_day_price, faces, commander_legality, user_tags, art_crop_uri, ...row } = copyOf(copyId, {
-    name,
-    image_uris: [`https://cards.scryfall.io/normal/front/${copyId}.jpg`],
-  });
-  return {
-    ...row,
-    role: 'main',
-    commander_at: null,
-    added_at: '2026-10-15T09:00:00.000Z',
-    type_line: typeLine,
-    mana_value: 2,
-    colors: [],
-    ...changes,
-  };
 }
 
 describe('the copy page actions menu', () => {

@@ -1,11 +1,11 @@
 import { router, Stack } from 'expo-router';
 import type { ReactNode } from 'react';
-import { FlatList, ScrollView, View, type FlatListProps } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FlatList, ScrollView, type FlatListProps } from 'react-native';
 import type { SearchBarProps } from 'react-native-screens';
 
+import { FloatingButtons } from '@/components/templates/floating-buttons';
 import { cn } from '@/lib/class-names';
-import { colors, spacing } from '@/theme';
+import { colors } from '@/theme';
 
 const screenClass = 'flex-1 bg-background';
 
@@ -63,21 +63,12 @@ export function TabScreen({ title, actions, children }: TabScreenProps) {
   );
 }
 
-function FloatingButton({ children }: { children: ReactNode }) {
-  const { bottom } = useSafeAreaInsets();
-  return (
-    <View className="absolute right-lg" style={{ bottom: bottom + spacing.lg }}>
-      {children}
-    </View>
-  );
-}
-
 type TabListScreenProps<Item> = Omit<FlatListProps<Item>, 'style' | 'contentContainerStyle' | 'contentInsetAdjustmentBehavior'> &
   TabHeaderProps & {
-    floatingButton?: ReactNode;
+    floatingButtons?: ReactNode;
   };
 
-export function TabListScreen<Item>({ title, actions, search, floatingButton, ...listProps }: TabListScreenProps<Item>) {
+export function TabListScreen<Item>({ title, actions, search, floatingButtons, ...listProps }: TabListScreenProps<Item>) {
   return (
     <>
       <TabHeader title={title} actions={actions} search={search} />
@@ -87,7 +78,7 @@ export function TabListScreen<Item>({ title, actions, search, floatingButton, ..
         contentContainerClassName={contentClass}
         contentInsetAdjustmentBehavior="automatic"
       />
-      {floatingButton ? <FloatingButton>{floatingButton}</FloatingButton> : null}
+      {floatingButtons ? <FloatingButtons>{floatingButtons}</FloatingButtons> : null}
     </>
   );
 }

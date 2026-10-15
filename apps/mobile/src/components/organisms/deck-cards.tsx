@@ -1,16 +1,31 @@
 import type { Deck, DeckCard } from '@mtgscan/supabase/decks';
 
 import { sheenOf, spokenCopy } from '@/collection/copy-labels';
+import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
 import { Text } from '@/components/atoms/text';
 import { CardGrid } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
 import { SheetSection } from '@/components/molecules/sheet-section';
-import { deckCommanders, mainDeckGroups } from '@/decks/deck-groups';
+import { SortButton } from '@/components/molecules/sort-button';
+import {
+  deckCommanders,
+  deckGroupings,
+  deckSorts,
+  defaultDeckGrouping,
+  groupingTitle,
+  isDefaultDeckOrder,
+  mainDeckGroups,
+  type DeckGrouping,
+  type DeckOrder,
+} from '@/decks/deck-groups';
+import { nextSortOrder, spokenSortOrder } from '@/lib/sort-order';
 
 type DeckCardsProps = {
   deck: Deck;
+  grouping: DeckGrouping;
+  order: DeckOrder;
   onOpenCard: (card: DeckCard) => void;
   onOpenCollection: () => void;
 };
@@ -31,7 +46,7 @@ function DeckCardGrid({ cards, onOpenCard }: { cards: DeckCard[]; onOpenCard: (c
   );
 }
 
-export function DeckCards({ deck, onOpenCard, onOpenCollection }: DeckCardsProps) {
+export function DeckCards({ deck, grouping, order, onOpenCard, onOpenCollection }: DeckCardsProps) {
   const commanders = deckCommanders(deck.cards);
   return (
     <>
@@ -50,12 +65,44 @@ export function DeckCards({ deck, onOpenCard, onOpenCollection }: DeckCardsProps
           action={{ label: 'Open Collection', onPress: onOpenCollection }}
         />
       ) : (
-        mainDeckGroups(deck.cards).map((group) => (
+        mainDeckGroups(deck.cards, grouping, order).map((group) => (
           <SheetSection key={group.title} title={group.title} count={group.cards.length}>
             <DeckCardGrid cards={group.cards} onOpenCard={onOpenCard} />
           </SheetSection>
         ))
       )}
+    </>
+  );
+}
+
+type DeckCardOrderButtonsProps = {
+  grouping: DeckGrouping;
+  order: DeckOrder;
+  onChangeGrouping: (grouping: DeckGrouping) => void;
+  onChangeOrder: (order: DeckOrder) => void;
+};
+
+export function DeckCardOrderButtons({ grouping, order, onChangeGrouping, onChangeOrder }: DeckCardOrderButtonsProps) {
+  return (
+    <>
+      <FloatingMenuButton
+        symbol="rectangle.3.group"
+        active={grouping !== defaultDeckGrouping}
+        accessibilityLabel={`Group, ${groupingTitle(grouping)}`}
+        menuTitle="Group by"
+        choices={deckGroupings.map((choice) => ({
+          title: choice.title,
+          checked: choice.grouping === grouping,
+          onSelect: () => onChangeGrouping(choice.grouping),
+        }))}
+      />
+      <SortButton
+        sorts={deckSorts}
+        order={order}
+        spokenOrder={spokenSortOrder(order)}
+        active={!isDefaultDeckOrder(order)}
+        onSelect={(sort) => onChangeOrder(nextSortOrder(order, sort))}
+      />
     </>
   );
 }

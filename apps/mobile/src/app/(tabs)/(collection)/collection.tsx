@@ -7,20 +7,26 @@ import { View } from 'react-native';
 import { useSetIcons } from '@/catalog/use-set-icons';
 import { CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
+import { SortButton } from '@/components/molecules/sort-button';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { PriceLine } from '@/components/molecules/price-line';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
 import { CollectionSearchHeader } from '@/components/organisms/collection-search-header';
-import { CollectionSortButton } from '@/components/organisms/collection-sort-button';
 import { collectionFiltersButton, filtersDrawerPath } from '@/components/organisms/collection-filters-button';
 import { collectionTotalMenu } from '@/components/organisms/collection-total';
 import { TabListScreen } from '@/components/templates/tab-screen';
 import { refusedChipMessage, type SearchChip } from '@/collection/collection-search';
 import { useCollectionSearchState } from '@/collection/collection-search-state';
 import { activeFilterCount } from '@/collection/filter-choices';
-import { collectionOrderQuery, defaultCollectionOrder } from '@/collection/collection-sort';
+import {
+  collectionOrderQuery,
+  collectionSorts,
+  defaultCollectionOrder,
+  nextCollectionOrder,
+  spokenCollectionOrder,
+} from '@/collection/collection-sort';
 import { sheenOf, shownCondition, spokenCopy } from '@/collection/copy-labels';
 import { usePriceCurrency } from '@/collection/price-currency-setting';
 import { priceLabels } from '@/collection/price-currency-labels';
@@ -143,8 +149,16 @@ export default function CollectionScreen() {
       }
       onEndReached={loadMore}
       onEndReachedThreshold={1}
-      floatingButton={
-        search.typing || filtersOpen || showsEmptyState ? null : <CollectionSortButton order={order} onChange={setOrder} />
+      floatingButtons={
+        search.typing || filtersOpen || showsEmptyState ? null : (
+          <SortButton
+            sorts={collectionSorts}
+            order={order}
+            spokenOrder={spokenCollectionOrder(order)}
+            active={order.sort !== 'relevance'}
+            onSelect={(sort) => setOrder(nextCollectionOrder(order, sort))}
+          />
+        )
       }
     />
   );

@@ -54,6 +54,7 @@ import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
+import { SortButton } from '@/components/molecules/sort-button';
 import { ValueRow } from '@/components/molecules/value-row';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { SwitchRow } from '@/components/molecules/switch-row';
@@ -472,20 +473,34 @@ function Glass() {
   );
 }
 
+const groupings = ['Type', 'Mana value'];
+
+const sorts = [
+  { sort: 'relevance', title: 'Relevance' },
+  { sort: 'price', title: 'Price' },
+] as const;
+
 function FloatingMenuButtons() {
-  const [chosen, setChosen] = useState('Relevance');
-  const choices = ['Relevance', 'Price'].map((title) => ({ title, checked: chosen === title, onSelect: () => setChosen(title) }));
+  const [grouping, setGrouping] = useState('Type');
+  const [sort, setSort] = useState<(typeof sorts)[number]['sort']>('relevance');
   return (
     <Section title="Floating menu buttons">
-      <View className="flex-row gap-lg">
+      <View className="flex-row gap-sm">
         <FloatingMenuButton
-          symbol="arrow.up.arrow.down"
-          active={chosen !== 'Relevance'}
-          accessibilityLabel={`Sort, ${chosen}`}
-          menuTitle="Sort by"
-          choices={choices}
+          symbol="rectangle.3.group"
+          active={grouping !== 'Type'}
+          accessibilityLabel={`Group, ${grouping}`}
+          menuTitle="Group by"
+          choices={groupings.map((title) => ({ title, checked: grouping === title, onSelect: () => setGrouping(title) }))}
         />
-        <FloatingMenuButton symbol="arrow.up.arrow.down" active accessibilityLabel="Sort, Price, high to low" menuTitle="Sort by" choices={[]} />
+        <SortButton
+          sorts={[...sorts]}
+          order={sort === 'price' ? { sort, direction: 'desc' } : { sort }}
+          spokenOrder={sort === 'price' ? 'Price, high to low' : 'Relevance'}
+          active={sort !== 'relevance'}
+          onSelect={setSort}
+        />
+        <SortButton sorts={[...sorts]} order={{ sort: 'price', direction: 'desc' }} spokenOrder="Price, high to low" active onSelect={() => {}} />
       </View>
     </Section>
   );

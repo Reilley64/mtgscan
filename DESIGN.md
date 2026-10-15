@@ -578,7 +578,17 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - A segmented control under the banner switches between **Cards** and **History**. The deck screen opens on Cards. Suggestions comes later.
   - **Cards** starts with a "Commander" group. With no commander, it shows "No commander yet." in text muted under the heading. An empty deck then shows the empty state "No cards yet". See Empty states. **Open Collection** closes the deck screen and opens the Collection tab.
   - **Cards** shows the deck cards as card images 3 per row, with the binder grid's gaps and corners. A tile has the finish sheen of its copy, and no meta line and no price. VoiceOver reads it as a button with the name, the set code in capitals and the collector number, and the finish and condition as on a binder tile, such as "Sol Ring, C21 263, foil". A tap opens the copy page.
-  - Commanders come first, in the Commander group. The main deck is grouped by type: Creatures, Planeswalkers, Battles, Artifacts, Enchantments, Instants, Sorceries, Lands. A card with several types goes into the first match in that order, so an artifact creature is in Creatures. A card with none of these types goes into the last group, Lands. Each group header shows its name in lime body strong and its count in meta text, such as "Creatures 12". VoiceOver reads it as one header, "Creatures, 12". Empty groups are hidden. Cards in a group sort by name, A to Z.
+  - Commanders come first, in the Commander group, with the oldest commander first. The main deck follows in groups. Each group header shows its name in lime body strong and its count in meta text, such as "Creatures 12". VoiceOver reads it as one header, "Creatures, 12". Empty groups are hidden.
+  - The group button chooses the groups. The choices are:
+    - **Type**, the default: Creatures, Planeswalkers, Battles, Artifacts, Enchantments, Instants, Sorceries, Lands. A card with several types goes into the first match in that order, so an artifact creature is in Creatures. A card with none of these types goes into the last group, Lands.
+    - **Mana value**: 0, 1, 2, 3, 4, 5, 6, 7+, then Lands. Lands holds the cards that Type puts in Lands. A mana value with a half, such as 0.5, goes into the group of its whole number.
+    - **Color**: White, Blue, Black, Red, Green, Multicolor, Colorless. A card with two or more colors is Multicolor, and a card with no color is Colorless.
+    - **Rarity**: Mythic, Rare, Uncommon, Common, Special. Bonus cards are in Special.
+    - **None**: one group, "Main deck".
+  - The sort button sorts the cards inside each group. The choices are **Name**, the default, A to Z; **Mana value**, low to high; **Price**, high to low; and **Recently added**, the newest addition to the deck first. Price uses the current price, and cards with no current price come last in both directions. Cards with the same value sort by name, A to Z. The sort does not change the Commander group.
+  - Tapping the current sort again reverses it, as on Collection.
+  - The group and sort choices last until the app restarts and apply to every deck. They are not saved.
+  - Two round floating menu buttons float at the bottom right, 16 px above the bottom safe area, while Cards shows deck cards. The sort button is at the right, where the Collection sort button is. The group button sits 8 px to its left. See Components.
   - **History** ends with the day the deck was created, such as "Created 15 October 2026", in meta text. Deck changes come later.
   - When the read fails, the deck screen shows the empty state "Could not load this deck" with a **Try again** button. Close still shows.
 
@@ -645,17 +655,17 @@ The interface is flat. Depth comes from tone, not shadow.
 
 Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
-- Only the controls that float over the camera or over scrolling content use glass: the latest-scan chip, the quick-action bar, the batch button, the pull indicator (owner decisions, #113 and #130), the tab header buttons (owner decision, #128), and the sort button on Collection (#143). Every other surface stays flat.
+- Only the controls that float over the camera or over scrolling content use glass: the latest-scan chip, the quick-action bar, the batch button, the pull indicator (owner decisions, #113 and #130), the tab header buttons (owner decision, #128), the sort button on Collection (#143), and the group and sort buttons on the deck screen's Cards tab (#229). Every other surface stays flat.
 - The tab header buttons are native bar buttons. iOS 26 draws their glass, so `GlassSurface` does not wrap them.
 - The pull indicator does not react to touch. It moves by sliding, never by fading.
-- The glass is the regular style with no tint. Glass that the user can tap, such as the chip, the quick-action bar, the batch button, and the sort button, reacts to touch. The skeleton chip and the basic land chip do not.
+- The glass is the regular style with no tint. Glass that the user can tap, such as the chip, the quick-action bar, the batch button, and the group and sort buttons, reacts to touch. The skeleton chip and the basic land chip do not.
 - The chip and the quick-action bar sit in one glass group with 8 px spacing, so they blend like iOS controls but do not merge at rest.
 - Text on glass:
   - The card name and enabled labels stay text white.
   - The meta line uses glass text muted.
   - The chevron and disabled quick-action labels and symbols use glass text dim.
   - The skeleton blocks and the empty thumbnail use glass skeleton.
-- Without Liquid Glass, as on iOS 17 and 18, the chip falls back to surface, and the quick-action bar, the batch button, the pull indicator, and the sort button to surface control, with the normal text colors.
+- Without Liquid Glass, as on iOS 17 and 18, the chip falls back to surface, and the quick-action bar, the batch button, the pull indicator, and the group and sort buttons to surface control, with the normal text colors.
 - The glass never fades with opacity, because glass under opacity 0 stops rendering. The skeleton pulse animates the blocks inside the chip, not the glass.
 - `expo-glass-effect` draws the glass. `GlassSurface` and `GlassGroup` in `src/components/atoms/glass-surface.tsx` wrap it.
 
@@ -791,6 +801,9 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
   - A refused search chip shows its message, such as "No set named "zzz".", as the title of the Collection search empty state, with no body.
 - **Commander gallery card.** A full-width button, 140 px tall, with 12 px corners. The deck name sits at its bottom in card title type, over chips for the deck priority and the card count. VoiceOver reads it as one button, such as "Atraxa, Medium priority, 0 cards". A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color. Later, commander art with a dark gradient, more status chips, and a Needs you badge come. The deck screen banner is the same card at 200 px.
+- **Floating menu buttons.** A round Liquid Glass button, 48 px across, with an 18 px symbol, that opens a native menu with a title and a check mark on the current choice. Without Liquid Glass, it uses the control surface. The symbol is in the text color while the choice is the default, and primary lime otherwise. There is no badge or dot.
+  - The sort button shows `arrow.up.arrow.down` and a menu titled "Sort by". An arrow beside the current sort shows its direction. VoiceOver reads "Sort" and the sort with its direction, such as "Sort, Name, A to Z". Collection and the deck screen's Cards tab share it.
+  - The group button on the deck screen's Cards tab shows `rectangle.3.group` and a menu titled "Group by". VoiceOver reads "Group" and the grouping, such as "Group, Type".
 - **Name alert.** A native alert with a title, a message, a name field, **Cancel**, and a confirm button, such as **Create**. The field takes at most 64 characters. The confirm button is off while the trimmed name is empty. A new alert starts with an empty field, or with the current name when it renames.
 
 ## Do's and Don'ts
