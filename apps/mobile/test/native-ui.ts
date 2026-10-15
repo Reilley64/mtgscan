@@ -576,6 +576,12 @@ export function imageFrames(element: HostElement) {
     .map((image) => ({ uri: image.props.source?.[0]?.uri, width: StyleSheet.flatten(image.parent?.props.style)?.width }));
 }
 
+export function imageSources(element: HostElement) {
+  return element
+    .queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage')
+    .map((image) => image.props.source?.[0]?.uri ?? image.props.source?.[0]?.testUri);
+}
+
 export function cardSheen(tile: HostElement) {
   const [sheen] = tile.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage !== undefined);
   return sheen ? StyleSheet.flatten(sheen.props.style) : null;

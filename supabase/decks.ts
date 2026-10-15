@@ -27,7 +27,7 @@ export type DeckList = {
   items: DeckRow[];
 };
 
-export type DeckCard = CollectionCopyRow & {
+export type DeckCard = Omit<CollectionCopyRow, 'deck'> & {
   role: DeckRole;
   commander_at: string | null;
   added_at: string;
@@ -50,9 +50,12 @@ export type Deck = DeckRow & {
   basic_lands: DeckBasicLand[];
 };
 
-export type CopyDeck = {
+export type CopyRowDeck = {
   deck_id: string;
   name: string;
+};
+
+export type CopyDeck = CopyRowDeck & {
   role: DeckRole;
   commander_art_crop_uri: string | null;
   commander_count: number;

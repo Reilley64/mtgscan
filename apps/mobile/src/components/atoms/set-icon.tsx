@@ -1,11 +1,8 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Image } from 'expo-image';
-import { cssInterop } from 'nativewind';
 import { StyleSheet, View } from 'react-native';
 
+import { TintedImage } from '@/components/atoms/tinted-image';
 import { cn } from '@/lib/class-names';
-
-cssInterop(Image, { className: { target: 'style', nativeStyleToProp: { color: 'tintColor' } } });
 
 const rarityTints = cva('text-text', {
   variants: {
@@ -27,7 +24,7 @@ type SetIconProps = {
 export function SetIcon({ uri, rarity }: SetIconProps) {
   return (
     <View className="h-set-icon w-set-icon">
-      <Image
+      <TintedImage
         source={uri}
         className={cn(rarityTints({ rarity }))}
         contentFit="contain"

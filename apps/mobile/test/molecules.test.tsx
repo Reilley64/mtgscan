@@ -60,6 +60,7 @@ import {
   fadesDown,
   glassEffect,
   imageFrames,
+  imageSources,
   imageTintColor,
   menuButton,
   menuButtonNames,
@@ -79,7 +80,7 @@ import {
 } from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim, textPrice, warning } = tokenColors;
+const { primary: lime, onPrimary, surface, surfaceControl, line, text: white, textMuted, textDim, textPrice, warning, info } = tokenColors;
 const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
 const solRingArtCrop = 'https://cards.scryfall.io/art_crop/front/sol-ring.jpg';
 const mh3Symbol = 'https://svgs.scryfall.io/sets/mh3.svg';
@@ -729,6 +730,23 @@ describe('CopyMeta', () => {
     expect(symbolSizes(line)).toEqual([11]);
     expect(symbolTintColor(line)).toBe(warning);
     expect(appearsBefore(symbolIn(line), screen.getByLabelText('MH3'))).toBe(true);
+  });
+
+  test('a copy meta line of a copy in a deck starts with the deck box symbol, before the protected shield', async () => {
+    await render(<CopyMeta setCode="mh3" rarity="common" setIconUri={mh3Symbol} collectorNumber="136" isProtected inDeck />);
+
+    const line = screen.getByText('136').parent!;
+    expect(imageSources(line)).toEqual([expect.stringMatching(/assets\/deck-box\.svg$/), mh3Symbol]);
+    const [deckBox] = line.children as ReturnType<typeof screen.getByText>[];
+    expect(deckBox).toHaveStyle({ width: 11, height: 11 });
+    expect(imageTintColor(deckBox!)).toBe(processColor(info));
+    expect(appearsBefore(deckBox!, symbolIn(line))).toBe(true);
+  });
+
+  test('a copy meta line of a copy in no deck has no deck box symbol', async () => {
+    await render(<CopyMeta setCode="mh3" rarity="common" setIconUri={mh3Symbol} collectorNumber="136" />);
+
+    expect(imageSources(screen.getByText('136').parent!)).toEqual([mh3Symbol]);
   });
 });
 

@@ -86,6 +86,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
       accessibilityLabel={[
         ...spokenCopy(copy),
         ...(copy.protected ? ['protected'] : []),
+        ...(copy.deck ? [`in the deck ${copy.deck.name}`] : []),
         price.spoken,
       ].join(', ')}
       accessibilityHint={price.stale ? 'The price may be out of date.' : undefined}
@@ -97,6 +98,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
         collectorNumber={copy.collector_number}
         condition={shownCondition(copy.condition)}
         isProtected={copy.protected}
+        inDeck={copy.deck !== null}
       />
       <PriceLine price={price.shown} stale={price.stale} />
     </CardTile>
@@ -107,14 +109,19 @@ export default function CollectionScreen() {
   const search = useCollectionSearchState();
   const filtersOpen = usePathname() === filtersDrawerPath;
   const [order, setOrder] = useState(defaultCollectionOrder);
-  const { binder, reload, loadMore } = useCollectionCopies(search.query && { ...search.query, ...collectionOrderQuery(order) });
+  const { binder: searchedBinder, reload, loadMore } = useCollectionCopies(
+    search.query && { ...search.query, ...collectionOrderQuery(order) },
+  );
+  const binder: BinderRead = search.decksFailed ? { status: 'failed' } : searchedBinder;
   const suggesting = search.suggestions.length > 0;
-  const copies = binder.status === 'loaded' && !suggesting ? binder.copies : [];
+  const refusedChipIndex =
+    search.refusedChipIndex ?? (binder.status === 'refused' ? search.chipIndexOfField.get(binder.field) : undefined);
+  const refused = refusedChipIndex !== undefined;
+  const copies = binder.status === 'loaded' && !suggesting && !refused ? binder.copies : [];
   const iconOf = useSetIcons([...new Set(copies.map((copy) => copy.set))]);
   const total = useCollectionTotal();
-  const refusedChipIndex = binder.status === 'refused' ? search.chipIndexOfField.get(binder.field) : undefined;
-  const matchCount = binder.status === 'loaded' && search.searching ? binder.matchCount : null;
-  const showsEmptyState = binder.status !== 'loading' && copies.length === 0;
+  const matchCount = binder.status === 'loaded' && search.searching && !refused ? binder.matchCount : null;
+  const showsEmptyState = (refused || binder.status !== 'loading') && copies.length === 0;
 
   return (
     <TabListScreen
@@ -142,8 +149,8 @@ export default function CollectionScreen() {
           <BinderPlaceholder
             binder={binder}
             searching={search.searching}
-            refusedChip={refusedChipIndex === undefined ? undefined : search.chips[refusedChipIndex]}
-            onTryAgain={reload}
+            refusedChip={refused ? search.chips[refusedChipIndex] : undefined}
+            onTryAgain={search.decksFailed ? search.reloadDecks : reload}
           />
         )
       }

@@ -2,22 +2,28 @@ import { useFocusEffect } from 'expo-router';
 import type { SearchBarCommands, SearchBarProps } from 'react-native-screens';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import type { DeckRow } from '@mtgscan/supabase/decks';
+
 import {
   chipBeforeSpace,
   collectionSearchQuery,
   committedChip,
+  isTypedDeckChip,
   splitLastToken,
   type SearchChip,
   type SearchSuggestion,
 } from '@/collection/collection-search';
 import { usePriceCurrency } from '@/collection/price-currency-setting';
 import { useSearchSuggestions } from '@/collection/use-search-suggestions';
+import { useDecks } from '@/decks/use-decks';
 
 const emptyFieldMark = '\u200b';
 
 const typingPause = 300;
 
 const noChipFields = new Map<string, number>();
+
+const noDecks: DeckRow[] = [];
 
 export function useCollectionSearch() {
   const field = useRef<SearchBarCommands>(null);
@@ -97,9 +103,12 @@ export function useCollectionSearch() {
 
   const suggestions = useSearchSuggestions(typing ? splitLastToken(text).token : '');
   const { priceCurrency } = usePriceCurrency();
+  const needsDecks = chips.some(isTypedDeckChip);
+  const { read: decksRead, reload: reloadDecks } = useDecks(needsDecks);
+  const decks = !needsDecks ? noDecks : decksRead.status === 'loaded' ? decksRead.decks : null;
   const searched = useMemo(
-    () => priceCurrency && collectionSearchQuery(searchedText, chips, priceCurrency),
-    [searchedText, chips, priceCurrency],
+    () => priceCurrency && decks && collectionSearchQuery(searchedText, chips, priceCurrency, decks),
+    [searchedText, chips, priceCurrency, decks],
   );
 
   return {
@@ -109,8 +118,11 @@ export function useCollectionSearch() {
     replaceChips,
     suggestions,
     pick,
-    query: searched?.query ?? null,
+    query: searched && searched.refusedChipIndex === undefined ? searched.query : null,
     chipIndexOfField: searched?.chipIndexOfField ?? noChipFields,
+    refusedChipIndex: searched?.refusedChipIndex,
+    decksFailed: needsDecks && decksRead.status === 'failed',
+    reloadDecks,
     typing,
     searching: searched?.query.text !== undefined || chips.length > 0,
   };

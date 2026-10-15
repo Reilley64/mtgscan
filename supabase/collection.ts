@@ -1,5 +1,5 @@
 import type { Database } from './database.types';
-import type { CopyDeck } from './decks';
+import type { CopyDeck, CopyRowDeck } from './decks';
 import {
   readSearchError,
   type CatalogQuery,
@@ -32,6 +32,7 @@ export type CollectionQuery = Omit<CatalogQuery, 'sort'> & {
   deck_ids_exclude?: string[];
   is_free?: boolean;
   is_protected?: boolean;
+  is_allocated?: boolean;
   user_tags?: string[];
   user_tags_exclude?: string[];
 };
@@ -122,6 +123,7 @@ export type CollectionCopyRow = {
   language: CardLanguage;
   protected: boolean;
   price: CurrentPrice | null;
+  deck: CopyRowDeck | null;
 };
 
 export type CopyQuery = {

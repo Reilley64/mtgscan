@@ -2,6 +2,7 @@ import { View } from 'react-native';
 
 import { chipLabel, type SearchChip, type SearchSuggestion } from '@/collection/collection-search';
 import { Chip } from '@/components/atoms/chip';
+import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { Text } from '@/components/atoms/text';
 import { ListRow } from '@/components/molecules/list-row';
 
@@ -41,7 +42,8 @@ export function CollectionSearchHeader({
       ) : null}
       {suggestions.map((suggestion) => (
         <ListRow
-          key={suggestion.title}
+          key={suggestion.chip?.deckId ?? suggestion.title}
+          leading={suggestion.avatar ? <CommanderAvatar uri={suggestion.avatar.uri} size="row" /> : undefined}
           title={suggestion.title}
           detail={suggestion.detail}
           onPress={() => onPickSuggestion(suggestion)}

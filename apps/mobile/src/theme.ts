@@ -125,6 +125,7 @@ export const sizes = {
   staleSymbol: 11,
   chipSymbol: 11,
   protectedSymbol: 11,
+  deckBoxSymbol: 11,
   chipPadding: 9,
   cardThumbnailWidth: 40,
   cardThumbnailHeight: 56,

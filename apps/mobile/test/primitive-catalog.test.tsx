@@ -50,6 +50,8 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('image', { name: 'Sol Ring, C21 263, etched, no price' })).toBeOnTheScreen();
   expect(screen.getByRole('image', { name: 'Sol Ring, M10 216, $1.25' })).toHaveProp('accessibilityHint', 'The price may be out of date.');
   expect(screen.getByRole('image', { name: 'Sol Ring, M10 216, protected, $1.25' })).toBeOnTheScreen();
+  expect(screen.getByRole('image', { name: 'Sol Ring, M10 216, protected, in the deck Atraxa, $1.25' })).toBeOnTheScreen();
+  expect(screen.getByRole('image', { name: 'Sol Ring, C21 263, in the deck Atraxa, $1.25' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sign in with Apple' })).toBeBusy();
   expect(screen.getAllByRole('button', { name: 'Continue with Google' }).map((button) => button.props.accessibilityState.busy)).toEqual([false, true]);
   expect(screen.getByRole('button', { name: 'Sign-in disabled' })).toBeDisabled();
