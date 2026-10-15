@@ -10,6 +10,7 @@ import type {
   CollectionPage,
   CollectionQuery,
   CollectionTotal,
+  CollectionTotalQuery,
   CopyDetails,
   CopyProtectedRequest,
   CopyQuery,
@@ -23,6 +24,7 @@ import type {
   ScanBatchStack,
   UserTag,
 } from '@mtgscan/supabase/collection';
+import type { PriceCurrencyRow } from '@mtgscan/supabase/search';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 import { act } from 'expo-router/testing-library';
@@ -66,7 +68,15 @@ const emptyCollectionTotal: CollectionTotal = {
   stale: false,
   prices_observed_at: null,
 };
-let collectionTotal = emptyCollectionTotal;
+let collectionTotals = [emptyCollectionTotal];
+let priceReads: PriceRead[] = [];
+const wholeUnitCurrencies = ['ISK', 'JPY', 'KRW'];
+const frankfurterCurrencies = [
+  'AUD', 'BRL', 'CAD', 'CHF', 'CNY', 'CZK', 'DKK', 'EUR', 'GBP', 'HKD', 'HUF', 'IDR', 'ILS', 'INR', 'ISK',
+  'JPY', 'KRW', 'MXN', 'MYR', 'NOK', 'NZD', 'PHP', 'PLN', 'RON', 'SEK', 'SGD', 'THB', 'TRY', 'USD', 'ZAR',
+];
+let priceCurrencies = frankfurterCurrencies;
+let failingPriceCurrencyReads = 0;
 let failingCollectionReads = 0;
 let collectionSearches: CollectionQuery[] = [];
 let collectionSearchAnswer: ((query: CollectionQuery) => CollectionSearchAnswer) | null = null;
@@ -137,9 +147,12 @@ async function nonceMatches(provider: SignInProvider, token: string, nonce: stri
 
 export type CollectionSearchAnswer = CollectionCopyRow[] | { refusedField: string };
 
+type PriceRead = { read: 'search_collection' | 'get_collection_total' | 'get_copy'; price_currency: string | undefined };
+
 const expiredCursor = { code: 'invalid_cursor', message: 'The cursor has expired. Start the search again.', details: 'cursor' };
 
-function collectionCopiesPage({ rows, cursor, limit = 60, ...search }: CollectionQuery) {
+function collectionCopiesPage({ rows, cursor, limit = 60, price_currency, ...search }: CollectionQuery) {
+  priceReads = [...priceReads, { read: 'search_collection', price_currency }];
   if (rows !== 'copies') {
     throw new Error('The fake Supabase client searches the collection only for copy rows');
   }
@@ -154,7 +167,7 @@ function collectionCopiesPage({ rows, cursor, limit = 60, ...search }: Collectio
   if (!cursor) {
     collectionSearches = [...collectionSearches, search];
   }
-  const answer = collectionSearchAnswer ? collectionSearchAnswer(search) : collectionCopies;
+  const answer = collectionSearchAnswer ? collectionSearchAnswer({ ...search, price_currency }) : collectionCopies;
   if ('refusedField' in answer) {
     const { refusedField } = answer;
     return { data: null, error: { code: 'invalid_argument', message: `${refusedField} is not known.`, details: refusedField } };
@@ -170,6 +183,33 @@ function collectionCopiesPage({ rows, cursor, limit = 60, ...search }: Collectio
 
 const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
 
+const unknownPriceCurrency = {
+  data: null,
+  error: {
+    code: 'invalid_argument',
+    message: 'price_currency must be USD or a currency with an exchange rate, such as EUR.',
+    details: 'price_currency',
+  },
+};
+
+function collectionTotalRead({ price_currency }: CollectionTotalQuery) {
+  priceReads = [...priceReads, { read: 'get_collection_total', price_currency }];
+  const total = collectionTotals.find(({ currency }) => currency === (price_currency ?? 'USD'));
+  return total ? { data: total, error: null } : unknownPriceCurrency;
+}
+
+function priceCurrencyList() {
+  if (failingPriceCurrencyReads > 0) {
+    failingPriceCurrencyReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  const items: PriceCurrencyRow[] = priceCurrencies.map((currency) => ({
+    currency,
+    minor_unit_digits: wholeUnitCurrencies.includes(currency) ? 0 : 2,
+  }));
+  return { data: { items }, error: null };
+}
+
 const copyNotFound = {
   data: null,
   error: { code: 'not_found', message: 'copy_id is not a copy in your collection.', details: 'copy_id' },
@@ -179,7 +219,8 @@ function ownedCopyDetails(copyId: string) {
   return collectionCopies.some((copy) => copy.copy_id === copyId) ? copyDetails.get(copyId) : undefined;
 }
 
-function copyRead({ copy_id }: CopyQuery) {
+function copyRead({ copy_id, price_currency }: CopyQuery) {
+  priceReads = [...priceReads, { read: 'get_copy', price_currency }];
   if (failingCopyReads > 0) {
     failingCopyReads -= 1;
     return { data: null, error: networkFailure };
@@ -448,6 +489,7 @@ export const fakeSupabase = {
     args?:
       | { query: CollectionQuery }
       | { query: CopyQuery }
+      | { query: CollectionTotalQuery }
       | { query: { text: string; limit: number } }
       | { batch: ScanBatch }
       | {
@@ -491,8 +533,11 @@ export const fakeSupabase = {
     if (name === 'set_copy_protected' && args && 'request' in args) {
       return setCopyProtected(args.request as CopyProtectedRequest);
     }
-    if (name === 'get_collection_total') {
-      return { data: collectionTotal, error: null };
+    if (name === 'get_collection_total' && args && 'query' in args) {
+      return collectionTotalRead(args.query as CollectionTotalQuery);
+    }
+    if (name === 'list_price_currencies') {
+      return priceCurrencyList();
     }
     if (name === 'add_scan_batch' && args && 'batch' in args) {
       return addScanBatch(args.batch);
@@ -615,8 +660,20 @@ export function copyProtectedWritesSent() {
   return copyProtectedWrites;
 }
 
-export function ownCollectionTotal(total: CollectionTotal) {
-  collectionTotal = total;
+export function ownCollectionTotal(...totals: CollectionTotal[]) {
+  collectionTotals = totals;
+}
+
+export function priceReadsSent() {
+  return priceReads;
+}
+
+export function offerPriceCurrencies(currencies: string[]) {
+  priceCurrencies = currencies;
+}
+
+export function failPriceCurrencyReads(count: number) {
+  failingPriceCurrencyReads = count;
 }
 
 export function failCollectionReads(count: number) {
@@ -699,7 +756,10 @@ export function resetFakeSupabase() {
   copyUserTags = new Map();
   failingUserTagChanges = 0;
   failingUserTagReads = 0;
-  collectionTotal = emptyCollectionTotal;
+  collectionTotals = [emptyCollectionTotal];
+  priceReads = [];
+  priceCurrencies = frankfurterCurrencies;
+  failingPriceCurrencyReads = 0;
   failingCollectionReads = 0;
   collectionSearches = [];
   collectionSearchAnswer = null;

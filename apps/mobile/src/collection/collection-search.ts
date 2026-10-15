@@ -1,5 +1,6 @@
 import type { CardCondition, CollectionQuery } from '@mtgscan/supabase/collection';
 import { Constants } from '@mtgscan/supabase/database.types';
+import type { PriceCurrencyRow } from '@mtgscan/supabase/search';
 
 import { conditionLabels, conditionNames, conditions, finishes, languageNames, languages } from '@/collection/copy-labels';
 
@@ -26,7 +27,7 @@ type BoundKey = {
   max: 'mana_value_max' | 'power_max' | 'toughness_max' | 'price_max';
   note: string;
   pattern: RegExp;
-  step: number;
+  step: number | 'minor unit';
 };
 
 type FlagKey = {
@@ -65,7 +66,7 @@ const searchKeys = {
   mv: { kind: 'bound', min: 'mana_value_min', max: 'mana_value_max', note: 'Mana value', pattern: /^\d+$/, step: 1 },
   pow: { kind: 'bound', min: 'power_min', max: 'power_max', note: 'Power', pattern: /^\d+$/, step: 1 },
   tou: { kind: 'bound', min: 'toughness_min', max: 'toughness_max', note: 'Toughness', pattern: /^\d+$/, step: 1 },
-  price: { kind: 'bound', min: 'price_min', max: 'price_max', note: 'Current price', pattern: /^\d{1,6}(\.\d{1,2})?$/, step: 0.01 },
+  price: { kind: 'bound', min: 'price_min', max: 'price_max', note: 'Current price', pattern: /^\d{1,10}(\.\d{1,2})?$/, step: 'minor unit' },
   tag: { kind: 'list', field: 'tags', note: 'Oracle tag' },
   keyword: { kind: 'list', field: 'keywords', note: 'Keyword' },
   set: { kind: 'list', field: 'sets', note: 'Set code' },
@@ -199,14 +200,14 @@ export function chipBeforeSpace(text: string) {
 
 type Bounds = Partial<Record<BoundKey['min'] | BoundKey['max'], number>>;
 
-function boundOf(key: BoundKey, operator: SearchOperator, value: number) {
+function boundOf(step: number, operator: SearchOperator, value: number) {
   switch (operator) {
     case '<':
-      return { max: value - key.step };
+      return { max: value - step };
     case '<=':
       return { max: value };
     case '>':
-      return { min: value + key.step };
+      return { min: value + step };
     case '>=':
       return { min: value };
     default:
@@ -214,8 +215,9 @@ function boundOf(key: BoundKey, operator: SearchOperator, value: number) {
   }
 }
 
-export function collectionSearchQuery(text: string, chips: SearchChip[]) {
-  const query: Record<string, unknown> = {};
+export function collectionSearchQuery(text: string, chips: SearchChip[], { currency, minor_unit_digits }: PriceCurrencyRow) {
+  const query: Record<string, unknown> = { price_currency: currency };
+  const minorUnit = 10 ** -minor_unit_digits;
   const chipIndexOfField = new Map<string, number>();
   const bounds: Bounds = {};
   const words = splitTokens(text)
@@ -250,7 +252,7 @@ export function collectionSearchQuery(text: string, chips: SearchChip[]) {
         break;
       }
       case 'bound': {
-        const { min, max } = boundOf(key, chip.operator, Number(chip.value));
+        const { min, max } = boundOf(key.step === 'minor unit' ? minorUnit : key.step, chip.operator, Number(chip.value));
         if (min !== undefined && !(bounds[key.min]! >= min)) {
           bounds[key.min] = min;
           chipIndexOfField.set(key.min, chipIndex);
@@ -271,7 +273,7 @@ export function collectionSearchQuery(text: string, chips: SearchChip[]) {
   });
 
   for (const [field, bound] of Object.entries(bounds)) {
-    query[field] = field.startsWith('price') ? bound.toFixed(2) : bound;
+    query[field] = field.startsWith('price') ? bound.toFixed(minor_unit_digits) : bound;
   }
   return { query: query as CollectionQuery, chipIndexOfField };
 }

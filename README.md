@@ -211,6 +211,10 @@ mtgscan stores every price in USD. A read in another currency returns converted 
 - An exchange rate is stale when its date is more than 4 days before today in UTC. The ECB publishes rates on working days only, so Friday's rate on a weekend is not stale.
 - A card printing and finish with no USD price has no price in any currency.
 
+Signed-in users list the price currencies with `supabase.rpc('list_price_currencies')`. The result has `items`: USD and every currency in `exchange_rates`, in code order. Each item has `currency` and `minor_unit_digits`, the decimals that a converted price in that currency has. The function runs with the caller's rights. An anonymous caller and the secret key are refused.
+
+The app keeps the chosen currency on the phone, in the keychain with `expo-secure-store`. On first launch, it is the phone's region currency from `expo-localization` when the list offers it, otherwise USD. `expo-localization` is a native module, so a change to it needs a new native build. When the list no longer offers the chosen currency, the app reads prices in USD. Every price read sends the currency as `price_currency`. The app shows each amount with as many decimals as the server returns, so the display agrees with the server's rounding. A price filter steps by one minor unit of the currency, so `price<500` in JPY sends `price_max` 499.
+
 ### Collection total
 
 Signed-in users read their collection total with `supabase.rpc('get_collection_total', { query })`. The query has an optional `price_currency`, which defaults to `USD`. `supabase/collection.ts` has the shared types.

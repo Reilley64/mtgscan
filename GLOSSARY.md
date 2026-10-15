@@ -55,6 +55,14 @@ _Avoid_: Cheapest price, card price
 A USD amount, such as a current price, a purchase-day price, or a collection total, times the latest exchange rate of another currency. It is rounded to that currency's minor unit, such as whole yen. It is an estimate, not a store price. It is stale when its USD price is stale, or when its exchange rate's date is more than 4 days before today. A card printing and finish with no USD price has no converted price.
 _Avoid_: Local price, FX price
 
+**Price currency**:
+The currency that the app shows prices in. The user chooses it in settings, and the phone keeps it. It is USD or a currency with an exchange rate. Prices in a price currency other than USD are converted prices.
+_Avoid_: Display currency, local currency
+
+**Price credit**:
+The line that names the source of the prices, under the prices of the copy page and as the title of the collection total menu. For USD it reads "Current prices from Scryfall, in USD". For another price currency, it names the TCGplayer Market price via Scryfall, the conversion from USD, and the date of the exchange rate.
+_Avoid_: Price note, attribution
+
 **Purchase-day price**:
 The current price of a card printing and finish when copies were added to the collection. Each addition line records it once, and it never changes. A copy reads it from its addition line, not from the collection entry.
 _Avoid_: Purchase price, cost, price at add

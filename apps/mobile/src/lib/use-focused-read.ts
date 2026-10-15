@@ -3,11 +3,14 @@ import { useCallback, useRef, useState } from 'react';
 
 export type FocusedRead<Loaded extends { status: string }> = { status: 'loading' } | { status: 'failed' } | Loaded;
 
-export function useFocusedRead<Loaded extends { status: string }>(readOnce: () => Promise<Loaded>) {
+export function useFocusedRead<Loaded extends { status: string }>(readOnce: (() => Promise<Loaded>) | null) {
   const [read, setRead] = useState<FocusedRead<Loaded>>({ status: 'loading' });
   const latestRead = useRef(0);
 
   const reload = useCallback(() => {
+    if (!readOnce) {
+      return;
+    }
     const thisRead = ++latestRead.current;
     setRead((current) => (current.status === 'failed' ? { status: 'loading' } : current));
     readOnce().then(

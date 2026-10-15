@@ -574,6 +574,9 @@ isOneToOne: false
               "basic_land": boolean,"id": string
             }[]
                            },
+"list_price_currencies":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "list_user_tags":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },

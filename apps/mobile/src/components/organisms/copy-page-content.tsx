@@ -88,6 +88,7 @@ type CopyPageContentProps = {
 
 export function CopyPageContent({ copy, currency, onOpenUserTags }: CopyPageContentProps) {
   const legality = commanderLegalityLabels[copy.commander_legality];
+  const credit = priceCredit(copy.price ?? copy.purchase_day_price ?? { currency });
   return (
     <>
       <CardHero
@@ -123,7 +124,7 @@ export function CopyPageContent({ copy, currency, onOpenUserTags }: CopyPageCont
             stale={false}
           />
           <SinceAddedRow price={copy.price} purchaseDayPrice={copy.purchase_day_price} />
-          <Text variant="credit">{priceCredit({ currency })}</Text>
+          {credit ? <Text variant="credit">{credit}</Text> : null}
         </SheetSection>
         <SheetSection title="Rules">
           <OracleText faces={copy.faces} />

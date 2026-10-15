@@ -99,7 +99,7 @@ export default function CollectionScreen() {
   const search = useCollectionSearchState();
   const filtersOpen = usePathname() === filtersDrawerPath;
   const [order, setOrder] = useState(defaultCollectionOrder);
-  const { binder, reload, loadMore } = useCollectionCopies({ ...search.query, ...collectionOrderQuery(order) });
+  const { binder, reload, loadMore } = useCollectionCopies(search.query && { ...search.query, ...collectionOrderQuery(order) });
   const suggesting = search.suggestions.length > 0;
   const copies = binder.status === 'loaded' && !suggesting ? binder.copies : [];
   const iconOf = useSetIcons([...new Set(copies.map((copy) => copy.set))]);
