@@ -63,6 +63,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('link', { name: 'Text link' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Atraxa' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Kinnan, High priority · 0 cards' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Tymna, Medium priority · 100 cards, Would make Tymna invalid: deck size' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Creatures, 3' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Basic lands, 10' })).toBeOnTheScreen();
   expect(screen.getByRole('image', { name: 'Island, 8' })).toBeOnTheScreen();

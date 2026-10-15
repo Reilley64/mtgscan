@@ -277,6 +277,13 @@ function ListRows() {
         onPress={() => {}}
       />
       <ListRow title="Kinnan" detail="High priority · 0 cards" leading={<CommanderAvatar uri={null} size="row" />} onPress={() => {}} />
+      <ListRow
+        title="Tymna"
+        detail="Medium priority · 100 cards"
+        status={{ chip: { label: 'Would make it invalid', tone: 'danger' }, spoken: 'Would make Tymna invalid: deck size' }}
+        leading={<CommanderAvatar uri={solRingArtCrop} size="row" />}
+        onPress={() => {}}
+      />
       <ListRow title="Lightning Bolt" onPress={() => {}} />
       <ListRow title="Gallery" detail="Up to date" />
       <ListRow title="Signed" detail="3 copies" checked onPress={() => {}} />

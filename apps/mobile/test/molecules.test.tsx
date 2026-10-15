@@ -227,6 +227,22 @@ describe('ListRow', () => {
     expect(appearsBefore(within(row).getByText('Lightning Bolt'), within(row).getByText('$1.87'))).toBe(true);
   });
 
+  test('a list row with a status chip shows it under its detail and adds its spoken text to the row name', async () => {
+    await render(
+      <ListRow
+        title="Kinnan"
+        detail="High priority · 87 cards"
+        status={{ chip: { label: 'Adds a violation', tone: 'danger' }, spoken: 'Adds a violation to Kinnan: singleton' }}
+        onPress={() => {}}
+      />,
+    );
+
+    const row = screen.getByRole('button', { name: 'Kinnan, High priority · 87 cards, Adds a violation to Kinnan: singleton' });
+    const chip = within(row).getByText('Adds a violation');
+    expect(chip).toHaveStyle({ color: danger, fontSize: 11, fontWeight: '700' });
+    expect(appearsBefore(within(row).getByText('High priority · 87 cards'), chip)).toBe(true);
+  });
+
   test('a list row with only a title has a 44 pt touch target', async () => {
     await render(<ListRow title="Lightning Bolt" onPress={() => {}} />);
 

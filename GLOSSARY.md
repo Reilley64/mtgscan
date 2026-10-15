@@ -179,6 +179,10 @@ _Avoid_: Legality status
 One Commander rule that a deck breaks, such as color identity or singleton, with the cards that break it.
 _Avoid_: Error, issue
 
+**Effect**:
+What a deck change would do to a deck's deck validity, shown before the change. It lists each new violation: a rule the deck does not break yet, or a new card in a rule it breaks. An effect never blocks the change.
+_Avoid_: Warning, impact
+
 **Copy limit**:
 How many copies of one card a deck can have. It is one for most cards. Some cards allow any number of copies, such as Relentless Rats, or up to a number, such as seven for Seven Dwarves. mtgscan reads it from Oracle text. It is unknown when the Oracle text mentions a copy limit but mtgscan does not recognize it.
 

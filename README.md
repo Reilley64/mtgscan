@@ -405,6 +405,18 @@ mtgscan judges each deck against the Commander rules and stores the result as on
 - A tag counts with its descendant tags, as in tag search, and a disabled tag never counts. `count` is the number of cards, or of combos for `two_card_combo`. A `two_card_combo` signal adds `combos`: each combo with its two `cards`, `produced_features`, and `bracket_tag`. A signal with a count of 0 is left out, except `game_changers`.
 - `add_deck_card`, `remove_deck_card`, `set_deck_commander`, `set_basic_lands`, `revert_deck_changes`, and `delete_copy` for a copy in a deck save the deck evaluation in the same transaction, after they change the cards, with the new deck revision. A refused request or one that makes no deck change saves nothing. Creating, renaming, and deleting a deck, and changing its deck priority, save nothing.
 - The deck change that adds a deck's first card creates its deck evaluation, and the one that removes its last card deletes it. An empty deck has none.
+- `private.judge_deck` reads only rules data, never user data, so it runs with its owner's rights. The previews run with the caller's rights and call it, while the import snapshots stay closed to signed-in users.
+
+#### Previews
+
+A preview judges a deck as a change would leave it and compares the result with the stored deck evaluation. It writes nothing, and it never blocks the change.
+
+- `supabase.rpc('preview_add_deck_card', { query: { copy_id } })` returns `items`, one per deck of the caller, with `deck_id` and `effect`. It judges each deck with the copy added to its main deck. The Add to deck drawer reads it. A copy that is not the caller's is refused with `not_found` on `copy_id`.
+- An `effect` is null, or has `kind` and `rules`:
+  - `kind` is `would_make_invalid` when the stored validity is `valid` or `cannot_be_determined`, and `adds_violation` when it is `invalid`.
+  - `rules` lists each rule with a new violation, in the violation order, such as `{ rule: 'singleton' }`. A `color_identity` rule also has `colors`, the colors outside the color identity.
+  - A new violation is a rule that the stored deck evaluation does not break, or a card in a rule that it breaks but not with that card. So `deck_size` counts only when the deck has exactly 100 cards before the change and not after.
+  - A deck with no deck evaluation has no effect.
 
 ### Collection search
 

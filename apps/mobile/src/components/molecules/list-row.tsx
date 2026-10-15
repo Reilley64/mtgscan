@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
+import { Chip, type StatusChipProps } from '@/components/atoms/chip';
 import { Surface } from '@/components/atoms/surface';
 import { SymbolView } from '@/components/atoms/symbol-view';
 import { Text } from '@/components/atoms/text';
@@ -12,6 +13,7 @@ const rowClass = 'flex-row items-center gap-md p-sm';
 type ListRowProps = {
   title: string;
   detail?: string;
+  status?: { chip: StatusChipProps; spoken: string };
   spokenBefore?: string;
   trailing?: { content: ReactNode; spoken: string };
 } & (
@@ -19,8 +21,8 @@ type ListRowProps = {
   | { leading?: never; checked: boolean; onPress: () => void; menu?: ReactNode }
 );
 
-export function ListRow({ title, detail, spokenBefore, trailing, menu, leading, checked, onPress }: ListRowProps) {
-  const label = [spokenBefore, title, detail, trailing?.spoken].filter(Boolean).join(', ');
+export function ListRow({ title, detail, status, spokenBefore, trailing, menu, leading, checked, onPress }: ListRowProps) {
+  const label = [spokenBefore, title, detail, status?.spoken, trailing?.spoken].filter(Boolean).join(', ');
   const checkRow = checked !== undefined;
   const content = (
     <>
@@ -38,6 +40,7 @@ export function ListRow({ title, detail, spokenBefore, trailing, menu, leading, 
           {title}
         </Text>
         {detail ? <Text variant="meta">{detail}</Text> : null}
+        {status ? <Chip {...status.chip} /> : null}
       </View>
       {trailing?.content}
     </>
