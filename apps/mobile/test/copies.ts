@@ -2,7 +2,8 @@ import type { CopyDetails } from '@mtgscan/supabase/collection';
 import type { DeckCard } from '@mtgscan/supabase/decks';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
-import { pressTab, selectedTab } from './native-ui';
+import { ownDecks } from './fake-supabase';
+import { pressTab, pushedScreen, selectedTab } from './native-ui';
 import { renderApp } from './render-app';
 
 export function copyOf(copyId: string, changes: Partial<CopyDetails> = {}): CopyDetails {
@@ -47,6 +48,20 @@ export function deckCardOf(copyId: string, name: string, typeLine: string, chang
     colors: [],
     ...changes,
   };
+}
+
+export async function openDeckNamed(name: string) {
+  await fireEvent.press(within(selectedTab()).getByRole('button', { name: new RegExp(`^${name},`) }));
+  const deck = within(pushedScreen());
+  await deck.findByRole('header', { name });
+  return deck;
+}
+
+export async function openDeckWithCards(cards: DeckCard[]) {
+  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: cards.length, cards }]);
+  await renderApp();
+  await pressTab('Decks');
+  return openDeckNamed('Atraxa');
 }
 
 export const delver = copyOf('copy-delver', {

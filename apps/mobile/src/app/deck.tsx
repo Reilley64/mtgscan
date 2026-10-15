@@ -10,7 +10,8 @@ import { DashedCardFrame } from '@/components/molecules/empty-state-illustration
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { deckActionsMenu } from '@/components/organisms/deck-actions-menu';
-import { DeckCardOrderButtons, DeckCards } from '@/components/organisms/deck-cards';
+import { DeckCardOrderButtons } from '@/components/organisms/deck-card-order-buttons';
+import { DeckCards } from '@/components/organisms/deck-cards';
 import { PushedScreen } from '@/components/templates/pushed-screen';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
 import { cardCountLabel, deckChips } from '@/decks/deck-labels';

@@ -1,7 +1,6 @@
-import type { DeckCard } from '@mtgscan/supabase/decks';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
-import { copyOf, deckCardOf, openCopyPage } from './copies';
+import { copyOf, deckCardOf, openCopyPage, openDeckWithCards } from './copies';
 import {
   allocateCopyElsewhere,
   deckWritesSent,
@@ -21,11 +20,8 @@ import {
   presentedAlert,
   presentedDrawer,
   presentedDrawerContent,
-  pressTab,
   pushedScreen,
-  selectedTab,
 } from './native-ui';
-import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
 
 const { line } = tokenColors;
@@ -231,18 +227,8 @@ describe('the deck tag', () => {
 });
 
 describe('the Cards tab', () => {
-  async function openDeck(cards: DeckCard[]) {
-    ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: cards.length, cards }]);
-    await renderApp();
-    await pressTab('Decks');
-    await fireEvent.press(within(selectedTab()).getByRole('button', { name: /^Atraxa,/ }));
-    const deck = within(pushedScreen());
-    await deck.findByRole('header', { name: 'Atraxa' });
-    return deck;
-  }
-
   test('groups the main deck by type in order, with each group header and its count, and hides empty groups', async () => {
-    const deck = await openDeck([
+    const deck = await openDeckWithCards([
       deckCardOf('land', 'Command Tower', 'Land'),
       deckCardOf('instant', 'Swords to Plowshares', 'Instant'),
       deckCardOf('artifact-creature', 'Solemn Simulacrum', 'Artifact Creature — Golem'),
@@ -271,7 +257,7 @@ describe('the Cards tab', () => {
   });
 
   test('sorts the cards of a group by name', async () => {
-    const deck = await openDeck([
+    const deck = await openDeckWithCards([
       deckCardOf('c', 'Sol Ring', 'Artifact'),
       deckCardOf('a', 'Arcane Signet', 'Artifact'),
       deckCardOf('b', 'Mind Stone', 'Artifact'),
@@ -285,7 +271,7 @@ describe('the Cards tab', () => {
   });
 
   test('a commander is in the Commander group, not in its type group', async () => {
-    const deck = await openDeck([
+    const deck = await openDeckWithCards([
       deckCardOf('commander', 'Atraxa, Praetors\' Voice', 'Legendary Creature — Phyrexian Angel Horror', {
         role: 'commander',
         commander_at: '2026-10-15T09:00:00.000Z',
@@ -299,7 +285,7 @@ describe('the Cards tab', () => {
   });
 
   test('a tile is the card image with the finish sheen, and no meta line and no price', async () => {
-    const deck = await openDeck([deckCardOf('foil', 'Sol Ring', 'Artifact', { finish: 'foil' })]);
+    const deck = await openDeckWithCards([deckCardOf('foil', 'Sol Ring', 'Artifact', { finish: 'foil' })]);
 
     const tile = deck.getByRole('button', { name: 'Sol Ring, MH2 262, foil' });
     expect(cardImageUri(tile)).toBe('https://cards.scryfall.io/normal/front/foil.jpg');
@@ -309,7 +295,7 @@ describe('the Cards tab', () => {
 
   test('a tap on a tile opens its copy page', async () => {
     ownCopies([copyOf('copy-1', { free: false, deck: { deck_id: 'deck-1', name: 'Atraxa', role: 'main', commander_art_crop_uri: null } })]);
-    const deck = await openDeck([deckCardOf('copy-1', 'Angelic Curator', 'Creature — Angel Spirit')]);
+    const deck = await openDeckWithCards([deckCardOf('copy-1', 'Angelic Curator', 'Creature — Angel Spirit')]);
 
     await fireEvent.press(deck.getByRole('button', { name: 'Angelic Curator, MH2 262' }));
 

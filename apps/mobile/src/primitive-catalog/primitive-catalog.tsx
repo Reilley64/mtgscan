@@ -14,7 +14,6 @@ import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { CountBadge } from '@/components/atoms/count-badge';
 import { DeckTag } from '@/components/atoms/deck-tag';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
-import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
 import { GlassGroup } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
 import { MenuButton } from '@/components/atoms/menu-button';
@@ -54,6 +53,7 @@ import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
+import { GroupButton } from '@/components/molecules/group-button';
 import { SortButton } from '@/components/molecules/sort-button';
 import { ValueRow } from '@/components/molecules/value-row';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
@@ -473,7 +473,10 @@ function Glass() {
   );
 }
 
-const groupings = ['Type', 'Mana value'];
+const groupings = [
+  { grouping: 'type', title: 'Type' },
+  { grouping: 'mana_value', title: 'Mana value' },
+] as const;
 
 const sorts = [
   { sort: 'relevance', title: 'Relevance' },
@@ -481,18 +484,12 @@ const sorts = [
 ] as const;
 
 function FloatingMenuButtons() {
-  const [grouping, setGrouping] = useState('Type');
+  const [grouping, setGrouping] = useState<(typeof groupings)[number]['grouping']>('type');
   const [sort, setSort] = useState<(typeof sorts)[number]['sort']>('relevance');
   return (
     <Section title="Floating menu buttons">
       <View className="flex-row gap-sm">
-        <FloatingMenuButton
-          symbol="rectangle.3.group"
-          active={grouping !== 'Type'}
-          accessibilityLabel={`Group, ${grouping}`}
-          menuTitle="Group by"
-          choices={groupings.map((title) => ({ title, checked: grouping === title, onSelect: () => setGrouping(title) }))}
-        />
+        <GroupButton groupings={[...groupings]} grouping={grouping} active={grouping !== 'type'} onSelect={setGrouping} />
         <SortButton
           sorts={[...sorts]}
           order={sort === 'price' ? { sort, direction: 'desc' } : { sort }}

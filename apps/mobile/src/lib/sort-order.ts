@@ -1,6 +1,6 @@
 export type SortDirection = 'asc' | 'desc';
 
-export type DirectedSort = 'added' | 'name' | 'price' | 'mana_value' | 'release_date';
+type DirectedSort = 'added' | 'name' | 'price' | 'mana_value' | 'release_date';
 
 export type SortOrder<Sort extends DirectedSort = DirectedSort> = { sort: Sort; direction: SortDirection };
 

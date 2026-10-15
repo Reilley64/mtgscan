@@ -1,7 +1,6 @@
-import type { DeckCard } from '@mtgscan/supabase/decks';
-import { fireEvent, within } from 'expo-router/testing-library';
+import { fireEvent } from 'expo-router/testing-library';
 
-import { deckCardOf } from './copies';
+import { deckCardOf, openDeckNamed, openDeckWithCards } from './copies';
 import { ownDecks, startSignedIn } from './fake-supabase';
 import {
   buttonMenu,
@@ -11,11 +10,10 @@ import {
   pressHeaderButton,
   pressTab,
   pushedScreen,
-  selectedTab,
   symbolNames,
   symbolTintColor,
 } from './native-ui';
-import { renderApp } from './render-app';
+import { renderApp, restartTheApp } from './render-app';
 import { tokenColors } from './token-colors';
 
 const { primary, text } = tokenColors;
@@ -32,28 +30,14 @@ const commander = deckCardOf('commander', "Atraxa, Praetors' Voice", 'Legendary 
   rarity: 'mythic',
 });
 
-async function openDeck(name: string) {
-  await fireEvent.press(within(selectedTab()).getByRole('button', { name: new RegExp(`^${name},`) }));
-  const deck = within(pushedScreen());
-  await deck.findByRole('header', { name });
-  return deck;
-}
-
-async function openTheDeck(cards: DeckCard[]) {
-  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: cards.length, cards }]);
-  await renderApp();
-  await pressTab('Decks');
-  return openDeck('Atraxa');
-}
-
-function groupHeaders(deck: Awaited<ReturnType<typeof openDeck>>) {
+function groupHeaders(deck: Awaited<ReturnType<typeof openDeckNamed>>) {
   return deck
     .getAllByRole('header')
     .map((header) => header.props.accessibilityLabel ?? header.props.children)
     .slice(1);
 }
 
-function tileNames(deck: Awaited<ReturnType<typeof openDeck>>) {
+function tileNames(deck: Awaited<ReturnType<typeof openDeckNamed>>) {
   return deck.getAllByRole('button', { name: /MH2 262/ }).map((tile) => tile.props.accessibilityLabel.split(', MH2')[0]);
 }
 
@@ -63,7 +47,7 @@ function deckMenuButton(name: string) {
 
 describe('the group button', () => {
   test('opens a native menu titled "Group by" with Type checked, and VoiceOver reads "Group, Type"', async () => {
-    await openTheDeck([deckCardOf('sol-ring', 'Sol Ring', 'Artifact')]);
+    await openDeckWithCards([deckCardOf('sol-ring', 'Sol Ring', 'Artifact')]);
 
     expect(menuButtonNames(pushedScreen())).toEqual(['Group, Type', 'Sort, Name, A to Z']);
     expect(buttonMenu(deckMenuButton('Group, Type'))).toEqual({
@@ -79,7 +63,7 @@ describe('the group button', () => {
   });
 
   test('groups by mana value from 0 to 7+, then the cards of the Type group Lands, with the commanders first and empty groups hidden', async () => {
-    const deck = await openTheDeck([
+    const deck = await openDeckWithCards([
       commander,
       deckCardOf('tower', 'Command Tower', 'Land', { mana_value: 0 }),
       deckCardOf('dryad', 'Dryad Arbor', 'Land Creature — Forest Dryad', { mana_value: 0 }),
@@ -101,7 +85,7 @@ describe('the group button', () => {
   });
 
   test('groups by color: White, Blue, Black, Red, Green, Multicolor, Colorless', async () => {
-    const deck = await openTheDeck([
+    const deck = await openDeckWithCards([
       commander,
       deckCardOf('tower', 'Command Tower', 'Land'),
       deckCardOf('ring', 'Sol Ring', 'Artifact'),
@@ -128,22 +112,23 @@ describe('the group button', () => {
   });
 
   test('groups by rarity: Mythic, Rare, Uncommon, Common, Special, with bonus cards in Special', async () => {
-    const deck = await openTheDeck([
+    const deck = await openDeckWithCards([
       commander,
       deckCardOf('common', 'Arcane Signet', 'Artifact', { rarity: 'common' }),
       deckCardOf('special', 'Sol Ring', 'Artifact', { rarity: 'special' }),
       deckCardOf('bonus', 'Mana Crypt', 'Artifact', { rarity: 'bonus' }),
       deckCardOf('mythic', 'Jeweled Lotus', 'Artifact', { rarity: 'mythic' }),
       deckCardOf('rare', 'Smothering Tithe', 'Enchantment', { rarity: 'rare' }),
+      deckCardOf('uncommon', 'Swords to Plowshares', 'Instant', { rarity: 'uncommon' }),
     ]);
 
     await pressButtonMenuItem(deckMenuButton('Group, Type'), 'Rarity');
 
-    expect(groupHeaders(deck)).toEqual(['Commander, 1', 'Mythic, 1', 'Rare, 1', 'Common, 1', 'Special, 2']);
+    expect(groupHeaders(deck)).toEqual(['Commander, 1', 'Mythic, 1', 'Rare, 1', 'Uncommon, 1', 'Common, 1', 'Special, 2']);
   });
 
   test('None puts the main deck in one group after the commanders', async () => {
-    const deck = await openTheDeck([
+    const deck = await openDeckWithCards([
       commander,
       deckCardOf('tower', 'Command Tower', 'Land'),
       deckCardOf('ring', 'Sol Ring', 'Artifact'),
@@ -157,7 +142,7 @@ describe('the group button', () => {
   });
 
   test('the symbol is rectangle.3.group in the text color for Type and primary lime for any other grouping', async () => {
-    await openTheDeck([deckCardOf('ring', 'Sol Ring', 'Artifact')]);
+    await openDeckWithCards([deckCardOf('ring', 'Sol Ring', 'Artifact')]);
     expect(symbolNames(deckMenuButton('Group, Type'))).toEqual(['rectangle.3.group']);
     expect(symbolTintColor(deckMenuButton('Group, Type'))).toBe(text);
 
@@ -178,7 +163,7 @@ describe('the sort button', () => {
   ];
 
   test('opens a native menu titled "Sort by" with Name checked A to Z, and VoiceOver reads "Sort, Name, A to Z"', async () => {
-    const deck = await openTheDeck(cards);
+    const deck = await openDeckWithCards(cards);
 
     expect(buttonMenu(deckMenuButton('Sort, Name, A to Z'))).toEqual({
       title: 'Sort by',
@@ -194,11 +179,32 @@ describe('the sort button', () => {
   });
 
   test.each([
-    ['Mana value', 'Sort, Mana value, low to high', ['Jeweled Lotus', 'Mana Vault', 'Sol Ring', 'Arcane Signet'], 'Sort, Mana value, high to low', ['Arcane Signet', 'Mana Vault', 'Sol Ring', 'Jeweled Lotus']],
-    ['Price', 'Sort, Price, high to low', ['Mana Vault', 'Jeweled Lotus', 'Sol Ring', 'Arcane Signet'], 'Sort, Price, low to high', ['Sol Ring', 'Jeweled Lotus', 'Mana Vault', 'Arcane Signet']],
-    ['Recently added', 'Sort, Recently added, newest first', ['Arcane Signet', 'Mana Vault', 'Sol Ring', 'Jeweled Lotus'], 'Sort, Recently added, oldest first', ['Jeweled Lotus', 'Sol Ring', 'Mana Vault', 'Arcane Signet']],
-  ])('sorts by %s, and tapping it again reverses the sort', async (title, spoken, sorted, reversedSpoken, reversed) => {
-    const deck = await openTheDeck(cards);
+    {
+      title: 'Mana value',
+      spoken: 'Sort, Mana value, low to high',
+      sorted: ['Jeweled Lotus', 'Mana Vault', 'Sol Ring', 'Arcane Signet'],
+      reversedSpoken: 'Sort, Mana value, high to low',
+      reversed: ['Arcane Signet', 'Mana Vault', 'Sol Ring', 'Jeweled Lotus'],
+      reversedSymbol: 'arrow.down',
+    },
+    {
+      title: 'Price',
+      spoken: 'Sort, Price, high to low',
+      sorted: ['Mana Vault', 'Jeweled Lotus', 'Sol Ring', 'Arcane Signet'],
+      reversedSpoken: 'Sort, Price, low to high',
+      reversed: ['Sol Ring', 'Jeweled Lotus', 'Mana Vault', 'Arcane Signet'],
+      reversedSymbol: 'arrow.up',
+    },
+    {
+      title: 'Recently added',
+      spoken: 'Sort, Recently added, newest first',
+      sorted: ['Arcane Signet', 'Mana Vault', 'Sol Ring', 'Jeweled Lotus'],
+      reversedSpoken: 'Sort, Recently added, oldest first',
+      reversed: ['Jeweled Lotus', 'Sol Ring', 'Mana Vault', 'Arcane Signet'],
+      reversedSymbol: 'arrow.up',
+    },
+  ])('sorts by $title, and tapping it again reverses the sort', async ({ title, spoken, sorted, reversedSpoken, reversed, reversedSymbol }) => {
+    const deck = await openDeckWithCards(cards);
 
     await pressButtonMenuItem(deckMenuButton('Sort, Name, A to Z'), title);
 
@@ -209,12 +215,12 @@ describe('the sort button', () => {
 
     expect(tileNames(deck)).toEqual(reversed);
     expect(buttonMenu(deckMenuButton(reversedSpoken)).items.filter((item) => item.checked)).toEqual([
-      { title, checked: true, symbol: reversedSpoken.endsWith('low to high') || reversedSpoken.endsWith('oldest first') ? 'arrow.up' : 'arrow.down' },
+      { title, checked: true, symbol: reversedSymbol },
     ]);
   });
 
   test('tapping Name reverses it to Z to A in primary lime, and again back to A to Z in the text color', async () => {
-    const deck = await openTheDeck(cards);
+    const deck = await openDeckWithCards(cards);
     expect(symbolTintColor(deckMenuButton('Sort, Name, A to Z'))).toBe(text);
 
     await pressButtonMenuItem(deckMenuButton('Sort, Name, A to Z'), 'Name');
@@ -229,7 +235,7 @@ describe('the sort button', () => {
   });
 
   test('sorts inside each group, and the commanders stay first', async () => {
-    const deck = await openTheDeck([
+    const deck = await openDeckWithCards([
       commander,
       ...cards,
       deckCardOf('birds', 'Birds of Paradise', 'Creature — Bird', { mana_value: 1 }),
@@ -261,19 +267,31 @@ describe('the group and sort choices', () => {
     ]);
     await renderApp();
     await pressTab('Decks');
-    await openDeck('Atraxa');
+    await openDeckNamed('Atraxa');
     await pressButtonMenuItem(deckMenuButton('Group, Type'), 'Mana value');
     await pressButtonMenuItem(deckMenuButton('Sort, Name, A to Z'), 'Price');
 
     await pressHeaderButton(pushedScreen(), 'Close');
-    const kinnan = await openDeck('Kinnan');
+    const kinnan = await openDeckNamed('Kinnan');
 
     expect(menuButtonNames(pushedScreen())).toEqual(['Group, Mana value', 'Sort, Price, high to low']);
     expect(groupHeaders(kinnan)).toEqual(['Commander', '1, 1', '2, 1']);
   });
 
+  test('go back to Type and Name, A to Z after a restart of the app', async () => {
+    await openDeckWithCards([deckCardOf('ring', 'Sol Ring', 'Artifact')]);
+    await pressButtonMenuItem(deckMenuButton('Group, Type'), 'Rarity');
+    await pressButtonMenuItem(deckMenuButton('Sort, Name, A to Z'), 'Price');
+
+    await restartTheApp();
+    await pressTab('Decks');
+    await openDeckNamed('Atraxa');
+
+    expect(menuButtonNames(pushedScreen())).toEqual(['Group, Type', 'Sort, Name, A to Z']);
+  });
+
   test('the buttons show only on the Cards tab of a deck with cards', async () => {
-    const deck = await openTheDeck([deckCardOf('ring', 'Sol Ring', 'Artifact')]);
+    const deck = await openDeckWithCards([deckCardOf('ring', 'Sol Ring', 'Artifact')]);
 
     await fireEvent.press(deck.getByRole('radio', { name: 'History' }));
 
@@ -281,7 +299,7 @@ describe('the group and sort choices', () => {
   });
 
   test('an empty deck shows no group and sort buttons', async () => {
-    const deck = await openTheDeck([]);
+    const deck = await openDeckWithCards([]);
 
     expect(deck.getByText('No cards yet')).toBeOnTheScreen();
     expect(menuButtonNames(pushedScreen())).toEqual([]);

@@ -35,6 +35,7 @@ import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { SortButton } from '@/components/molecules/sort-button';
+import { GroupButton } from '@/components/molecules/group-button';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { SymbolText } from '@/components/molecules/symbol-text';
@@ -1278,5 +1279,39 @@ describe('SortButton', () => {
     await pressButtonMenuItem(button, 'Price');
 
     expect(onSelect).toHaveBeenCalledWith('price');
+  });
+});
+
+describe('GroupButton', () => {
+  const groupings = [
+    { grouping: 'type', title: 'Type' },
+    { grouping: 'rarity', title: 'Rarity' },
+  ] as const;
+
+  test('a group button is the rectangle.3.group floating menu button with a "Group by" menu, and VoiceOver reads "Group" and the grouping', async () => {
+    await render(<GroupButton groupings={[...groupings]} grouping="type" active={false} onSelect={() => {}} />);
+
+    const button = menuButton(screen.container, 'Group, Type');
+    expect(symbolNames(button)).toEqual(['rectangle.3.group']);
+    expect(symbolTintColor(button)).toBe(white);
+    expect(buttonMenu(button)).toEqual({
+      title: 'Group by',
+      items: [
+        { title: 'Type', checked: true, symbol: undefined },
+        { title: 'Rarity', checked: false, symbol: undefined },
+      ],
+    });
+  });
+
+  test('an active group button is lime, and a choice runs with its grouping', async () => {
+    const onSelect = jest.fn();
+    await render(<GroupButton groupings={[...groupings]} grouping="rarity" active onSelect={onSelect} />);
+
+    const button = menuButton(screen.container, 'Group, Rarity');
+    expect(symbolTintColor(button)).toBe(lime);
+
+    await pressButtonMenuItem(button, 'Type');
+
+    expect(onSelect).toHaveBeenCalledWith('type');
   });
 });

@@ -30,9 +30,9 @@ const typeGroups = [
   { title: 'Lands', type: 'Land' },
 ] as const;
 
-const lands = typeGroups[typeGroups.length - 1].title;
+const landsGroup = typeGroups[typeGroups.length - 1].title;
 
-const mainDeck = 'Main deck';
+const mainDeckGroup = 'Main deck';
 
 const colorGroups: Record<string, string> = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' };
 
@@ -49,12 +49,12 @@ const highestManaValueGroup = 7;
 
 function typeGroupOf(card: DeckCard) {
   const words = card.type_line.split(/[^A-Za-z]+/);
-  return typeGroups.find(({ type }) => words.includes(type))?.title ?? lands;
+  return typeGroups.find(({ type }) => words.includes(type))?.title ?? landsGroup;
 }
 
 function manaValueGroupOf(card: DeckCard) {
-  if (typeGroupOf(card) === lands) {
-    return lands;
+  if (typeGroupOf(card) === landsGroup) {
+    return landsGroup;
   }
   const manaValue = Math.floor(card.mana_value);
   return manaValue >= highestManaValueGroup ? `${highestManaValueGroup}+` : `${manaValue}`;
@@ -71,12 +71,12 @@ const groupingRules: Record<DeckGrouping, GroupingRule> = {
   type: { title: 'Type', groups: typeGroups.map(({ title }) => title), groupOf: typeGroupOf },
   mana_value: {
     title: 'Mana value',
-    groups: [...Array.from({ length: highestManaValueGroup }, (_, manaValue) => `${manaValue}`), `${highestManaValueGroup}+`, lands],
+    groups: [...Array.from({ length: highestManaValueGroup }, (_, manaValue) => `${manaValue}`), `${highestManaValueGroup}+`, landsGroup],
     groupOf: manaValueGroupOf,
   },
   color: { title: 'Color', groups: [...Object.values(colorGroups), 'Multicolor', 'Colorless'], groupOf: colorGroupOf },
   rarity: { title: 'Rarity', groups: [...new Set(Object.values(rarityGroups))], groupOf: (card) => rarityGroups[card.rarity] },
-  none: { title: 'None', groups: [mainDeck], groupOf: () => mainDeck },
+  none: { title: 'None', groups: [mainDeckGroup], groupOf: () => mainDeckGroup },
 };
 
 export const defaultDeckGrouping: DeckGrouping = 'type';
@@ -89,10 +89,6 @@ export const deckGroupings = (Object.entries(groupingRules) as [DeckGrouping, Gr
 }));
 
 export const deckSorts = sortChoices<DeckSort>(['name', 'mana_value', 'price', 'added']);
-
-export function groupingTitle(grouping: DeckGrouping) {
-  return groupingRules[grouping].title;
-}
 
 export function isDefaultDeckOrder(order: DeckOrder) {
   return order.sort === defaultDeckOrder.sort && order.direction === defaultDeckOrder.direction;
