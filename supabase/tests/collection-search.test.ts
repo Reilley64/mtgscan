@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type {
   CardCondition,
@@ -7,12 +7,14 @@ import type {
   CollectionPage,
   CollectionQuery,
   CollectionRow,
+  CurrentPrice,
   UserTag,
 } from '../collection';
 import type { Json } from '../database.types';
 import { readSearchError, type CardDetails, type CardPrintingsPage, type CatalogRow, type SearchPage } from '../search';
 import { catalogFixture, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { collectionEntryKey, seedCopies, seededCollectionEntryKey, type SeededCopies } from './copy-seeds';
+import { convertedPrice, storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -31,6 +33,7 @@ const printings = {
   fogBankUrzasSaga: '6ade0d30-5a57-439e-95e8-5f865880031f',
   primevalTitanM11: 'feee9327-b937-46ba-a2aa-6c015ab6cdd5',
   counterspellAlpha: '0df55e3f-14de-46ef-b6b1-616618724d9e',
+  jinnieFayNonfoilOnly: '018830b2-dff9-45f3-9cc2-dc5b2eec0e54',
 };
 
 function entry(cardPrintingId: string, changes: Omit<SeededCopies, 'card_printing_id'> = {}): SeededCopies {
@@ -76,6 +79,16 @@ async function labels(query: CollectionQuery) {
 
 async function names(query: CollectionQuery) {
   return (await page(query)).items.map((row) => row.name);
+}
+
+function usdPrice(amount: string, finish: CurrentPrice['finish']): CurrentPrice {
+  return { amount, currency: 'USD', finish, stale: false };
+}
+
+async function pricesAndTotals(query: CollectionQuery = {}) {
+  return Object.fromEntries(
+    (await page({ limit: 50, ...query })).items.map((row) => [labelOf.get(collectionEntryKey(row))!, [row.price, row.total]]),
+  );
 }
 
 function everyLabelExcept(...excluded: EntryLabel[]) {
@@ -198,6 +211,8 @@ describe('after a catalog import', () => {
           allocated_quantity: 0,
           held_quantity: 0,
           commander_legal: true,
+          price: usdPrice('0.32', 'nonfoil'),
+          total: '1.28',
         },
       ]);
       expect(next_cursor).toBeNull();
@@ -214,6 +229,110 @@ describe('after a catalog import', () => {
 
     test('a text search ranks an exact name first', async () => {
       expect(await names({ text: 'fog' })).toEqual(['Fog', 'Fog Bank']);
+    });
+  });
+
+  describe('current prices of collection entries', () => {
+    test('each collection entry has the current price of its card printing and finish, whatever its condition and language, and its entry total', async () => {
+      expect(await pricesAndTotals()).toEqual({
+        curator: [usdPrice('0.21', 'nonfoil'), '0.42'],
+        etchedCurator: [usdPrice('0.44', 'etched'), '0.44'],
+        japaneseCurator: [usdPrice('1.97', 'foil'), '1.97'],
+        protectedDelver: [usdPrice('0.32', 'nonfoil'), '1.28'],
+        blackLotus: [null, null],
+        germanFog: [usdPrice('62.96', 'nonfoil'), '62.96'],
+        bolt: [usdPrice('626.67', 'nonfoil'), '1880.01'],
+        fogBank: [usdPrice('1.11', 'nonfoil'), '1.11'],
+        frenchTitan: [usdPrice('54.09', 'foil'), '54.09'],
+      });
+    });
+
+    test('collection entries of the same card printing and finish have the same current price, whatever their condition and language', async () => {
+      const user = await signUpNewUser();
+      await seedCopies(user, [
+        entry(printings.angelicCuratorMh2, { quantity: 2 }),
+        entry(printings.angelicCuratorMh2, { condition: 'damaged', language: 'ja' }),
+      ]);
+
+      const { items } = await page({ limit: 50 }, user);
+
+      expect(items.map((row) => [row.condition, row.language, row.price, row.total]).toSorted()).toEqual([
+        ['damaged', 'ja', usdPrice('0.21', 'nonfoil'), '0.21'],
+        ['near_mint', 'en', usdPrice('0.21', 'nonfoil'), '0.42'],
+      ]);
+    });
+
+    test('a collection entry with no price for its finish has no price and no entry total, never the price of another finish', async () => {
+      const user = await signUpNewUser();
+      await seedCopies(user, [
+        entry(printings.jinnieFayNonfoilOnly, { quantity: 2 }),
+        entry(printings.jinnieFayNonfoilOnly, { finish: 'foil', quantity: 3 }),
+      ]);
+
+      const { items } = await page({ limit: 50 }, user);
+
+      expect(items.map((row) => [row.finish, row.price, row.total]).toSorted()).toEqual([
+        ['foil', null, null],
+        ['nonfoil', usdPrice('4.41', 'nonfoil'), '8.82'],
+      ]);
+    });
+
+    describe('when the current prices age', () => {
+      let snapshotAt: string;
+
+      beforeAll(async () => {
+        const { data, error } = await secretKeyClient().from('import_snapshots').select('snapshot_at').eq('source', 'prices').single();
+        expect(error).toBeNull();
+        snapshotAt = data!.snapshot_at;
+      });
+
+      afterAll(async () => {
+        await setPriceSnapshotAt(snapshotAt);
+      });
+
+      async function setPriceSnapshotAt(at: string) {
+        const { error } = await secretKeyClient().from('import_snapshots').update({ snapshot_at: at }).eq('source', 'prices');
+        expect(error).toBeNull();
+      }
+
+      function hoursAgo(hours: number) {
+        return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+      }
+
+      async function staleFlags() {
+        return (await page({ limit: 50 })).items.map((row) => row.price?.stale).toSorted();
+      }
+
+      test('every current price of a collection entry is stale once the price snapshot is more than 24 hours old', async () => {
+        await setPriceSnapshotAt(hoursAgo(23.9));
+        const fresh = await staleFlags();
+        await setPriceSnapshotAt(hoursAgo(24.1));
+        const aged = await staleFlags();
+
+        expect(fresh).toEqual([...Array(8).fill(false), undefined]);
+        expect(aged).toEqual([...Array(8).fill(true), undefined]);
+      });
+    });
+
+    describe('in another currency', () => {
+      beforeAll(async () => {
+        await storeExchangeRates();
+      });
+
+      test.each<[string, string, string, string]>([
+        ['AUD', '1.5234', '0.49', '1.96'],
+        ['JPY', '151.37', '48', '192'],
+      ])('the current price of a collection entry in %s is a converted price, and its entry total is that price times the quantity', async (currency, exchangeRate, amount, total) => {
+        const { items } = await page({ names: ['delver'], price_currency: currency });
+
+        expect(items.map((row) => [row.price, row.total])).toEqual([
+          [{ ...convertedPrice(currency, exchangeRate, amount, 'nonfoil'), stale: false }, total],
+        ]);
+      });
+
+      test('a collection entry with no USD price has no price and no entry total in another currency', async () => {
+        expect((await pricesAndTotals({ price_currency: 'AUD' })).blackLotus).toEqual([null, null]);
+      });
     });
   });
 
@@ -374,6 +493,13 @@ describe('after a catalog import', () => {
 
     test('with rows entries, the quantity of each collection entry counts only its matching copies', async () => {
       expect(await quantities({ user_tags: ['Trade binder'] })).toEqual({ curator: 1, bolt: 2 });
+    });
+
+    test('with rows entries, the entry total of each collection entry counts only its matching copies', async () => {
+      expect(await pricesAndTotals({ user_tags: ['Trade binder'] })).toEqual({
+        curator: [usdPrice('0.21', 'nonfoil'), '0.21'],
+        bolt: [usdPrice('626.67', 'nonfoil'), '1253.34'],
+      });
     });
 
     test('with rows copies, a user tag chip returns each matching copy', async () => {

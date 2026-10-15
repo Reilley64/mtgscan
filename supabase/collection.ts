@@ -56,6 +56,8 @@ export type CollectionRow = {
   allocated_quantity: number;
   held_quantity: number;
   commander_legal: boolean;
+  price: CurrentPrice | null;
+  total: string | null;
   oracle_text?: string;
 };
 
