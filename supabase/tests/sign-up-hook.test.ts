@@ -1,7 +1,8 @@
+import { SQL } from 'bun';
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 import { testUser } from '../test-user/account';
-import { anonymousClient, asDatabaseOwner, secretKeyClient } from './local-stack';
+import { anonymousClient, secretKeyClient } from './local-stack';
 
 async function removeTestUser() {
   const admin = secretKeyClient();
@@ -32,14 +33,14 @@ function signUpEvent(provider: string, email: string) {
   };
 }
 
-function hookAnswer(provider: string, email: string) {
-  return asDatabaseOwner((database) =>
-    database.begin(async (transaction) => {
-      await transaction`set local role supabase_auth_admin`;
-      const [{ answer }] = await transaction`select public.limit_email_sign_ups(${signUpEvent(provider, email)}::jsonb) as answer`;
-      return answer;
-    }),
-  );
+async function hookAnswer(provider: string, email: string) {
+  const auth = new SQL('postgresql://supabase_auth_admin:postgres@127.0.0.1:54322/postgres');
+  try {
+    const [{ answer }] = await auth`select public.limit_email_sign_ups(${signUpEvent(provider, email)}::jsonb) as answer`;
+    return answer;
+  } finally {
+    await auth.close();
+  }
 }
 
 describe('the sign-up hook', () => {
@@ -64,7 +65,10 @@ describe('the sign-up hook', () => {
     expect(data.user?.email).toBe(testUser.email);
   });
 
-  test.each(['apple', 'google'])('allows a %s sign-up with any email', async (provider) => {
+  test.each([
+    ['an Apple', 'apple'],
+    ['a Google', 'google'],
+  ])('allows %s sign-up with any email', async (_, provider) => {
     expect(await hookAnswer(provider, `${crypto.randomUUID()}@example.test`)).toEqual({});
   });
 });
