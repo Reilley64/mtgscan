@@ -1,11 +1,12 @@
-import type { Deck, DeckEvaluation, DeckEvaluationCard } from '@mtgscan/supabase/decks';
+import type { Deck, DeckCard, DeckEvaluation, DeckEvaluationCard } from '@mtgscan/supabase/decks';
 import { fireEvent, within } from 'expo-router/testing-library';
 import { Linking } from 'react-native';
 
-import { copyOf, openDeckNamed } from './copies';
+import { copyOf, deckCardOf, openDeckNamed } from './copies';
 import { basicLandsOf, ownDeckOfCopies, ownDecks, startSignedIn } from './fake-supabase';
 import {
   appearsBefore,
+  cardImageOutline,
   contextMenu,
   imageSources,
   pressButtonMenuAction,
@@ -22,6 +23,8 @@ import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
 
 const { text: white, textMuted, danger, warning } = tokenColors;
+
+const transparent = '#00000000';
 
 const kinnan = { copy_id: 'copy-kinnan', name: 'Kinnan, Bonder Prodigy', art_crop_uri: null };
 
@@ -175,6 +178,97 @@ describe('the validity chip comes and goes with the cards', () => {
     const decks = await openDecks();
 
     expect(decks.getByRole('button', { name: 'Kinnan, Medium priority, 1 card, Invalid' })).toBeOnTheScreen();
+  });
+});
+
+describe('cards that break a rule on the Cards tab', () => {
+  const golos = deckCardOf('copy-golos', 'Golos, Tireless Pilgrim', 'Legendary Artifact Creature — Scout', {
+    role: 'commander',
+    commander_at: '2026-10-15T09:00:00.000Z',
+  });
+  const firstSolRing = deckCardOf('copy-sol-ring', 'Sol Ring', 'Artifact');
+  const secondSolRing = deckCardOf('copy-sol-ring-2', 'Sol Ring', 'Artifact');
+  const arcaneSignet = deckCardOf('copy-arcane-signet', 'Arcane Signet', 'Artifact');
+  const tolabow = deckCardOf('copy-tolabow', 'Tolabow, Loch Rascal', 'Creature — Otter');
+  const basicLands = basicLandsOf({ Island: 6, Mountain: 2 });
+
+  function evaluationCardOf(card: DeckCard): DeckEvaluationCard {
+    return { kind: 'copy', copy_id: card.copy_id, name: card.name, image_uris: card.image_uris };
+  }
+
+  function basicLandCardOf(name: string): DeckEvaluationCard {
+    const land = basicLands.find((candidate) => candidate.name === name)!;
+    return { kind: 'basic_land', oracle_id: land.oracle_id!, name, image_uris: land.image_uris };
+  }
+
+  async function openCards() {
+    ownDecks([
+      {
+        name: 'Golos',
+        priority: 'medium',
+        card_count: 13,
+        commanders: [{ copy_id: golos.copy_id, name: golos.name, art_crop_uri: null }],
+        cards: [golos, firstSolRing, secondSolRing, arcaneSignet, tolabow],
+        basic_lands: basicLands,
+        evaluation: evaluationOf({
+          validity: 'invalid',
+          violations: [
+            {
+              rule: 'singleton',
+              citation: 'CR 903.5b',
+              message: '2 copies of Sol Ring.',
+              hint: 'Remove 1 Sol Ring.',
+              cards: [evaluationCardOf(firstSolRing), evaluationCardOf(secondSolRing)],
+            },
+            {
+              rule: 'banned',
+              citation: null,
+              message: 'Golos, Tireless Pilgrim is banned in Commander.',
+              hint: null,
+              cards: [evaluationCardOf(golos)],
+            },
+            {
+              rule: 'not_legal',
+              citation: null,
+              message: 'Mountain is not legal in Commander.',
+              hint: null,
+              cards: [basicLandCardOf('Mountain')],
+            },
+          ],
+          undetermined: [
+            { rule: 'singleton', reason: 'mtgscan cannot read the copy limit of Tolabow, Loch Rascal.', cards: [evaluationCardOf(tolabow)] },
+          ],
+        }),
+      },
+    ]);
+    return openDeck('Golos');
+  }
+
+  test('a commander, a main deck card, and a basic land in a violation have the danger outline, and VoiceOver adds that they break a Commander rule', async () => {
+    const deck = await openCards();
+
+    const outlined = [
+      deck.getByRole('button', { name: 'Golos, Tireless Pilgrim, MH2 262, breaks a Commander rule' }),
+      ...deck.getAllByRole('button', { name: 'Sol Ring, MH2 262, breaks a Commander rule' }),
+      deck.getByRole('image', { name: 'Mountain, 2, breaks a Commander rule' }),
+    ];
+    expect(outlined).toHaveLength(4);
+    for (const tile of outlined) {
+      expect(cardImageOutline(tile)).toEqual({ borderColor: danger, borderWidth: 2, borderRadius: 8 });
+    }
+  });
+
+  test('a card in no violation and a card in a check that cannot run have no outline, and VoiceOver reads them as before', async () => {
+    const deck = await openCards();
+
+    const plain = [
+      deck.getByRole('button', { name: 'Arcane Signet, MH2 262' }),
+      deck.getByRole('button', { name: 'Tolabow, Loch Rascal, MH2 262' }),
+      deck.getByRole('image', { name: 'Island, 6' }),
+    ];
+    for (const tile of plain) {
+      expect(cardImageOutline(tile)).toMatchObject({ borderColor: transparent });
+    }
   });
 });
 

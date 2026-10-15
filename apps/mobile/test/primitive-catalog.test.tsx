@@ -66,6 +66,8 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('header', { name: 'Creatures, 3' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Basic lands, 10' })).toBeOnTheScreen();
   expect(screen.getByRole('image', { name: 'Island, 8' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Sol Ring, C21 263, breaks a Commander rule' })).toBeOnTheScreen();
+  expect(screen.getByRole('image', { name: 'Mountain, 2, breaks a Commander rule' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Remove one Island' })).toBeEnabled();
   expect(screen.getByRole('button', { name: 'Remove one Plains' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Add one Swamp' })).toBeDisabled();

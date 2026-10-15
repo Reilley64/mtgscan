@@ -1,3 +1,4 @@
+import { cva } from 'class-variance-authority';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
@@ -18,6 +19,12 @@ export const cardColumnClass = columnClasses[cardsPerRow];
 
 export const cardRowClass = '-mx-xs';
 
+const imageOutlineVariants = cva('rounded-sm border-selected-outline border-transparent group-aria-selected/tile:border-primary', {
+  variants: {
+    inViolation: { true: 'border-danger' },
+  },
+});
+
 type CardTileProps = {
   uri: string | undefined;
   accessibilityLabel: string;
@@ -25,6 +32,7 @@ type CardTileProps = {
   sheen?: CardSheen;
   menuActions?: MenuAction[];
   count?: number;
+  inViolation?: boolean;
 } & ({ caption: string; children?: never } | { caption?: never; children?: ReactNode }) &
   ({ selected?: never; onPress?: never } | { selected?: boolean; onPress: () => void });
 
@@ -38,10 +46,13 @@ export function CardTile({
   selected,
   menuActions,
   count,
+  inViolation,
   onPress,
 }: CardTileProps) {
+  const label = inViolation ? `${accessibilityLabel}, breaks a Commander rule` : accessibilityLabel;
+
   const image = (
-    <View>
+    <View className={cn(imageOutlineVariants({ inViolation }))}>
       <CardImage uri={uri} sheen={sheen} />
       {count === undefined ? null : <CountBadge count={count} prefix="×" className="absolute right-xs top-xs" />}
     </View>
@@ -56,14 +67,8 @@ export function CardTile({
 
   function tileButton(onTilePress: () => void) {
     return (
-      <TileButton
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint={accessibilityHint}
-        selected={selected}
-        onPress={onTilePress}>
-        <View className="rounded-sm border-selected-outline border-transparent group-aria-selected/tile:border-primary">
-          {image}
-        </View>
+      <TileButton accessibilityLabel={label} accessibilityHint={accessibilityHint} selected={selected} onPress={onTilePress}>
+        {image}
         {underImage}
       </TileButton>
     );
@@ -81,7 +86,7 @@ export function CardTile({
         <View
           accessible
           accessibilityRole="image"
-          accessibilityLabel={accessibilityLabel}
+          accessibilityLabel={label}
           accessibilityHint={accessibilityHint}
           className="gap-xs">
           {image}
