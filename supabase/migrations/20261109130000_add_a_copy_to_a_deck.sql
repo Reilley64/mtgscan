@@ -99,7 +99,7 @@ cross join lateral (
 create or replace function private.check_request(request jsonb, fields text[])
 returns jsonb
 language plpgsql
-immutable
+stable
 set search_path = ''
 as $$
 declare
@@ -119,6 +119,7 @@ begin
       when 'name' then private.checked_name(value)
       when 'tagged' then private.checked_boolean(field, value)
       when 'unprotect' then private.checked_boolean(field, value)
+      when 'priority' then private.checked_choice(field, value, enum_range(null::public.deck_priority)::text[])
       else private.checked_uuid(field, value)
     end);
   end loop;

@@ -386,6 +386,24 @@ describe('reading a deck with cards', () => {
   });
 });
 
+describe('deleting a deck', () => {
+  test('deletes its deck cards and deck changes and frees its copies', async () => {
+    const user = await signUpNewUser();
+    const deckId = await created(user, 'Atraxa');
+    const copyId = await scannedCopy(user);
+    await added(user, deckId, copyId);
+
+    const { error } = await user.client.rpc('delete_deck', { request: { deck_id: deckId } });
+
+    expect(error).toBeNull();
+    expect(await deckIdsHolding(copyId)).toEqual([]);
+    const changes = await asDatabaseOwner((database) => database`select id from public.deck_changes where deck_id = ${deckId}`);
+    expect([...changes]).toEqual([]);
+    expect(await copyOf(user, copyId)).toMatchObject({ free: true, deck: null });
+    expect(await setProtected(user, copyId, true)).toBeNull();
+  });
+});
+
 describe('access', () => {
   test("a user cannot add another user's copy, add to another user's deck, or read another user's deck cards", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
