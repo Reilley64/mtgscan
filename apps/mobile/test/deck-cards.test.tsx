@@ -83,7 +83,7 @@ describe('the copy page actions menu', () => {
 
     await openCopyPage(/^Angelic Curator/);
 
-    expect(actionsMenuRows()).toEqual(['Make commander', 'Delete copy']);
+    expect(actionsMenuRows()).toEqual(['Make commander', 'Remove from deck', 'Delete copy']);
   });
 });
 
@@ -137,7 +137,7 @@ describe('the Add to deck drawer', () => {
     expect(addedCards()).toEqual([{ deck_id: 'deck-1', copy_id: 'copy-1', unprotect: false }]);
     expect(isDrawerPresented()).toBe(false);
     expect(await within(pushedScreen()).findByRole('button', { name: 'Atraxa' })).toBeOnTheScreen();
-    expect(actionsMenuRows()).toEqual(['Make commander', 'Delete copy']);
+    expect(actionsMenuRows()).toEqual(['Make commander', 'Remove from deck', 'Delete copy']);
   });
 
   test('a protected copy shows the protected alert first, and Cancel opens no drawer', async () => {

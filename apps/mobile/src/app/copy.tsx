@@ -11,6 +11,7 @@ import { copyActionsMenu } from '@/components/organisms/copy-actions-menu';
 import { CopyPageContent } from '@/components/organisms/copy-page-content';
 import { PushedScreen } from '@/components/templates/pushed-screen';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
+import { removeFromDeck } from '@/decks/remove-from-deck';
 import { useDecks } from '@/decks/use-decks';
 import { colors } from '@/theme';
 
@@ -83,6 +84,7 @@ export default function CopyScreen() {
               onSetProtected: changeProtected,
               onAddToDeck: () => addToDeck(read.copy.protected),
               onSetCommander: (action) => applyCommanderAction(copyId, action, reload),
+              onRemoveFromDeck: () => removeFromDeck(copyId, reload),
               onDelete: confirmDelete,
             })}
           </Stack.Toolbar>

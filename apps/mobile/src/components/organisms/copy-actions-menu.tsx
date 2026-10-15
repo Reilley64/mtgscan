@@ -5,12 +5,13 @@ import type { CommanderAction } from '@/decks/commander-actions';
 import { colors } from '@/theme';
 
 type CopyActionsMenuProps = {
-  copy: Pick<CopyDetails, 'protected' | 'free'>;
+  copy: Pick<CopyDetails, 'protected' | 'free' | 'deck'>;
   canAddToDeck: boolean;
   commanderAction: CommanderAction | null;
   onSetProtected: (isProtected: boolean) => void;
   onAddToDeck: () => void;
   onSetCommander: (action: CommanderAction) => void;
+  onRemoveFromDeck: () => void;
   onDelete: () => void;
 };
 
@@ -21,6 +22,7 @@ export function copyActionsMenu({
   onSetProtected,
   onAddToDeck,
   onSetCommander,
+  onRemoveFromDeck,
   onDelete,
 }: CopyActionsMenuProps) {
   return (
@@ -35,6 +37,7 @@ export function copyActionsMenu({
       {commanderAction ? (
         <Stack.Toolbar.MenuAction onPress={() => onSetCommander(commanderAction)}>{commanderAction.title}</Stack.Toolbar.MenuAction>
       ) : null}
+      {copy.deck ? <Stack.Toolbar.MenuAction onPress={onRemoveFromDeck}>Remove from deck</Stack.Toolbar.MenuAction> : null}
       <Stack.Toolbar.MenuAction destructive onPress={onDelete}>
         Delete copy
       </Stack.Toolbar.MenuAction>

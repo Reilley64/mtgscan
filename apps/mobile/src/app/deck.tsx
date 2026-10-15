@@ -19,6 +19,7 @@ import { applyCommanderAction, commanderAction } from '@/decks/commander-actions
 import { useDeckCardOrder } from '@/decks/deck-card-order';
 import { cardCountLabel, deckChips } from '@/decks/deck-labels';
 import { deleteDeck, markDeckUsed, renameDeck, setBasicLands, setDeckPriority } from '@/decks/deck-writes';
+import { removeFromDeck } from '@/decks/remove-from-deck';
 import { useDeck } from '@/decks/use-deck';
 import type { WriteResult } from '@/lib/write-result';
 import { shownDay } from '@/lib/shown-day';
@@ -86,6 +87,7 @@ export default function DeckScreen() {
       return [
         { title: 'Open card', onSelect: () => openCard(card) },
         ...(action ? [{ title: action.title, onSelect: () => void applyCommanderAction(card.copy_id, action, reload) }] : []),
+        { title: 'Remove from deck', destructive: true, onSelect: () => void removeFromDeck(card.copy_id, reload) },
       ];
     };
   }

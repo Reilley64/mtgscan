@@ -329,6 +329,7 @@ function CardTiles() {
           menuActions={[
             { title: 'Open card', onSelect: () => {} },
             { title: 'Make commander', onSelect: () => {} },
+            { title: 'Remove from deck', destructive: true, onSelect: () => {} },
           ]}
           onPress={() => {}}
         />

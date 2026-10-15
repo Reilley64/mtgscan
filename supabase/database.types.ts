@@ -754,6 +754,9 @@ isOneToOne: false
 "record_gallery_version":
 { Args: { "manifest": Json,"version": string }; Returns: undefined
                            },
+"remove_deck_card":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "rename_deck":
 { Args: { "request": Json }; Returns: undefined
                            },
