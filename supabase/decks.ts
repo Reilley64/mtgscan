@@ -16,7 +16,9 @@ export type DeckCommander = {
 
 export type DeckValidity = Database['public']['Enums']['deck_validity'];
 
-export type DeckRule = 'no_commander' | 'deck_size';
+export type DeckRule = 'no_commander' | 'deck_size' | 'banned' | 'not_legal';
+
+export type UndeterminedRule = DeckRule | 'legality';
 
 export type DeckEvaluationCopy = {
   kind: 'copy';
@@ -43,7 +45,7 @@ export type Violation = {
 };
 
 export type UndeterminedCheck = {
-  rule: DeckRule;
+  rule: UndeterminedRule;
   reason: string;
   cards: DeckEvaluationCard[];
 };
