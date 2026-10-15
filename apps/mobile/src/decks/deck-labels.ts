@@ -16,3 +16,7 @@ export function cardCountLabel(count: number) {
 export function deckChips(deck: Pick<DeckRow, 'priority' | 'card_count'>) {
   return [`${priorityNames[deck.priority]} priority`, cardCountLabel(deck.card_count)];
 }
+
+export function deckDetail(deck: Pick<DeckRow, 'priority' | 'card_count'>) {
+  return deckChips(deck).join(' · ');
+}

@@ -10,7 +10,9 @@ import { GoogleSignInButton } from '@/components/atoms/google-sign-in-button';
 import { CardImage } from '@/components/atoms/card-image';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { Chip } from '@/components/atoms/chip';
+import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { CountBadge } from '@/components/atoms/count-badge';
+import { DeckTag } from '@/components/atoms/deck-tag';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
 import { GlassGroup } from '@/components/atoms/glass-surface';
@@ -247,6 +249,13 @@ function ListRows() {
         <Text variant="meta">M10 146 ·</Text>
         <PriceLine price="$1.87" stale={false} tone="meta" />
       </View>
+      <ListRow
+        title="Atraxa"
+        detail="Medium priority · 62 cards"
+        leading={<CommanderAvatar uri={solRingArtCrop} size="row" />}
+        onPress={() => {}}
+      />
+      <ListRow title="Kinnan" detail="High priority · 0 cards" leading={<CommanderAvatar uri={null} size="row" />} onPress={() => {}} />
       <ListRow title="Lightning Bolt" onPress={() => {}} />
       <ListRow title="Gallery" detail="Up to date" />
       <ListRow title="Signed" detail="3 copies" checked onPress={() => {}} />
@@ -300,6 +309,7 @@ function CardTiles() {
           <CopyMeta setCode="m10" rarity="rare" setIconUri={m10Symbol} collectorNumber="216" isProtected />
           <PriceLine price="$1.25" stale={false} />
         </CardTile>
+        <CardTile uri={solRing} sheen="foil" accessibilityLabel="Sol Ring, M10 216, foil, deck card" onPress={() => {}} />
         {['CMM 464', 'C21 263'].map((caption) => (
           <CardTile
             key={caption}
@@ -586,11 +596,23 @@ function SwipeToConfirms() {
   );
 }
 
+function DeckTags() {
+  return (
+    <Section title="Deck tags">
+      <DeckTag name="Atraxa" commanderArtUri={solRingArtCrop} onPress={() => {}} />
+      <DeckTag name="Kinnan" commanderArtUri={null} onPress={() => {}} />
+    </Section>
+  );
+}
+
 function SheetSections() {
   return (
     <Section title="Sheet sections">
       <SheetSection title="Other options">
         <ListRow title="Lightning Bolt" detail="M10 146" leading={<CardThumbnail uri={solRing} />} />
+      </SheetSection>
+      <SheetSection title="Creatures" count={3}>
+        <ListRow title="Birds of Paradise" detail="M12 165" leading={<CardThumbnail uri={solRing} />} />
       </SheetSection>
     </Section>
   );
@@ -627,6 +649,7 @@ export function PrimitiveCatalog() {
         <SheetSections />
         <NameAlerts />
         <CommanderCards />
+        <DeckTags />
         <SwipeToConfirms />
         <EmptyStates />
         <Section title="Drawer sheet">

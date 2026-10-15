@@ -68,6 +68,10 @@ export function spokenFinishAndCondition({ finish, condition }: { finish: Finish
   ];
 }
 
+export function spokenCopy(copy: Pick<CollectionCopyRow, 'name' | 'set' | 'collector_number' | 'finish' | 'condition'>) {
+  return [copy.name, `${copy.set.toUpperCase()} ${copy.collector_number}`, ...spokenFinishAndCondition(copy)];
+}
+
 export function copyChipLabels(copy: Pick<CollectionCopyRow, 'set' | 'collector_number' | 'finish' | 'condition' | 'language'>) {
   return [
     copy.set.toUpperCase(),
@@ -76,4 +80,8 @@ export function copyChipLabels(copy: Pick<CollectionCopyRow, 'set' | 'collector_
     conditionLabels[copy.condition],
     languageNames[copy.language],
   ];
+}
+
+export function copyNameLine(copy: Pick<CollectionCopyRow, 'name' | 'set' | 'collector_number' | 'finish' | 'condition' | 'language'>) {
+  return [copy.name, ...copyChipLabels(copy)].join(' · ');
 }

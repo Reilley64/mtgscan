@@ -1,11 +1,13 @@
-import type {
-  CreateDeckRequest,
-  CreatedDeck,
-  DeckPriority,
-  DeleteDeckRequest,
-  MarkDeckUsedRequest,
-  RenameDeckRequest,
-  SetDeckPriorityRequest,
+import {
+  readDeckError,
+  type AddDeckCardRequest,
+  type CreateDeckRequest,
+  type CreatedDeck,
+  type DeckPriority,
+  type DeleteDeckRequest,
+  type MarkDeckUsedRequest,
+  type RenameDeckRequest,
+  type SetDeckPriorityRequest,
 } from '@mtgscan/supabase/decks';
 
 import { supabase } from '@/lib/supabase';
@@ -38,4 +40,18 @@ export async function deleteDeck(deckId: string) {
   const request: DeleteDeckRequest = { deck_id: deckId };
   const { error } = await supabase.rpc('delete_deck', { request });
   return writeResultOf(error);
+}
+
+type AddDeckCardResult = 'done' | 'not_free' | 'missing' | 'failed';
+
+export async function addDeckCard(request: AddDeckCardRequest): Promise<AddDeckCardResult> {
+  const { error } = await supabase.rpc('add_deck_card', { request });
+  if (!error) {
+    return 'done';
+  }
+  const { code, field } = readDeckError(error);
+  if (code === 'copy_not_free') {
+    return 'not_free';
+  }
+  return code === 'not_found' && field === 'copy_id' ? 'missing' : 'failed';
 }

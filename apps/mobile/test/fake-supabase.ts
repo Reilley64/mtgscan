@@ -28,8 +28,10 @@ import type {
 } from '@mtgscan/supabase/collection';
 import type { ExchangeRate } from '@mtgscan/supabase/converted-prices';
 import type {
+  AddDeckCardRequest,
   CreateDeckRequest,
   Deck,
+  DeckCard,
   DeckQuery,
   DeleteDeckRequest,
   MarkDeckUsedRequest,
@@ -413,7 +415,7 @@ function deckList() {
   }
   const items = decks
     .toSorted((a, b) => b.last_used_at.localeCompare(a.last_used_at) || a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
-    .map(({ revision, created_at, ...row }) => row);
+    .map(({ revision, created_at, cards, basic_lands, ...row }) => row);
   return { data: { items }, error: null };
 }
 
@@ -440,6 +442,8 @@ function createDeck(request: CreateDeckRequest) {
     last_used_at: time,
     revision: 0,
     created_at: time,
+    cards: [],
+    basic_lands: [],
   };
   decks = [...decks, deck];
   return { data: { deck_id: deck.deck_id }, error: null };
@@ -468,6 +472,78 @@ function deleteDeck(request: DeleteDeckRequest) {
   }
   deleteDeckOnTheServer(request.deck_id);
   return { data: null, error: null };
+}
+
+const copyNotFree = {
+  data: null,
+  error: { code: 'copy_not_free', message: 'Only a free copy can go into a deck.', details: 'copy_id' },
+};
+
+const copyProtected = {
+  data: null,
+  error: { code: 'copy_protected', message: 'copy_id is a protected copy.', details: 'copy_id' },
+};
+
+function deckCardOf(details: CopyDetails, addedAt: string): DeckCard {
+  const { copy_id, printing_id, name, set, collector_number, rarity, image_uris, finish, condition, language, price, type_line } = details;
+  return {
+    copy_id,
+    printing_id,
+    name,
+    set,
+    collector_number,
+    rarity,
+    image_uris,
+    finish,
+    condition,
+    language,
+    protected: false,
+    price,
+    role: 'main',
+    commander_at: null,
+    added_at: addedAt,
+    type_line,
+    mana_value: 0,
+    colors: [],
+  };
+}
+
+function addDeckCard(request: AddDeckCardRequest) {
+  deckWrites = [...deckWrites, { name: 'add_deck_card', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  const deck = decks.find((candidate) => candidate.deck_id === request.deck_id);
+  if (!deck) {
+    return deckNotFound;
+  }
+  const details = ownedCopyDetails(request.copy_id);
+  if (!details) {
+    return copyNotFound;
+  }
+  if (!details.free) {
+    return copyNotFree;
+  }
+  if (details.protected && !request.unprotect) {
+    return copyProtected;
+  }
+  const time = nextDeckTime();
+  const changed: Deck = {
+    ...deck,
+    cards: [...deck.cards, deckCardOf(details, time)],
+    card_count: deck.card_count + 1,
+    revision: deck.revision + 1,
+    last_used_at: time,
+  };
+  decks = decks.map((candidate) => (candidate.deck_id === deck.deck_id ? changed : candidate));
+  copyDetails.set(request.copy_id, {
+    ...details,
+    protected: false,
+    free: false,
+    deck: { deck_id: deck.deck_id, name: deck.name, role: 'main', commander_art_crop_uri: deck.commanders[0]?.art_crop_uri ?? null },
+  });
+  collectionCopies = collectionCopies.map((copy) => (copy.copy_id === request.copy_id ? { ...copy, protected: false } : copy));
+  return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
 }
 
 function deleteCopy({ copy_id }: DeleteCopyRequest) {
@@ -633,7 +709,8 @@ export const fakeSupabase = {
             | MarkDeckUsedRequest
             | RenameDeckRequest
             | SetDeckPriorityRequest
-            | DeleteDeckRequest;
+            | DeleteDeckRequest
+            | AddDeckCardRequest;
         },
   ) {
     if (name === 'list_decks') {
@@ -658,6 +735,9 @@ export const fakeSupabase = {
     }
     if (name === 'delete_deck' && args && 'request' in args) {
       return deleteDeck(args.request as DeleteDeckRequest);
+    }
+    if (name === 'add_deck_card' && args && 'request' in args) {
+      return addDeckCard(args.request as AddDeckCardRequest);
     }
     if (name === 'list_user_tags') {
       return userTagList();
@@ -808,11 +888,24 @@ export function failUserTagChanges(count: number) {
   failingUserTagChanges = count;
 }
 
-export function ownDecks(seeds: Pick<Deck, 'name' | 'priority' | 'card_count'>[]) {
+export function ownDecks(seeds: (Pick<Deck, 'name' | 'priority' | 'card_count'> & Partial<Pick<Deck, 'commanders' | 'cards'>>)[]) {
   decks = seeds.map((seed, index) => {
     const time = nextDeckTime();
-    return { deck_id: `deck-${index + 1}`, commanders: [], last_used_at: time, revision: 0, created_at: time, ...seed };
+    return {
+      deck_id: `deck-${index + 1}`,
+      commanders: [],
+      last_used_at: time,
+      revision: 0,
+      created_at: time,
+      cards: [],
+      basic_lands: [],
+      ...seed,
+    };
   });
+}
+
+export function allocateCopyElsewhere(copyId: string) {
+  copyDetails.set(copyId, { ...copyDetails.get(copyId)!, free: false });
 }
 
 export function decksOnTheServer() {

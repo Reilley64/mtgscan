@@ -26,6 +26,7 @@ export function copyOf(copyId: string, changes: Partial<CopyDetails> = {}): Copy
     faces: [{ name: 'Angelic Curator', oracle_text: 'Flying, protection from artifacts' }],
     commander_legality: 'legal',
     user_tags: [],
+    deck: null,
     ...changes,
   };
 }

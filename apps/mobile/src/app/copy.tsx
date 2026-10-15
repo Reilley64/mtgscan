@@ -10,12 +10,15 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { copyActionsMenu } from '@/components/organisms/copy-actions-menu';
 import { CopyPageContent } from '@/components/organisms/copy-page-content';
 import { PushedScreen } from '@/components/templates/pushed-screen';
+import { useDecks } from '@/decks/use-decks';
 import { colors } from '@/theme';
 
 export default function CopyScreen() {
   const { copyId } = useLocalSearchParams<{ copyId: string }>();
   const { read, reload } = useCopy(copyId);
   const { priceCurrency } = usePriceCurrency();
+  const { read: decksRead } = useDecks();
+  const hasDecks = decksRead.status === 'loaded' && decksRead.decks.length > 0;
 
   useEffect(() => {
     if (read.status === 'missing') {
@@ -42,6 +45,21 @@ export default function CopyScreen() {
     reload();
   }
 
+  function openAddToDeck(unprotect: boolean) {
+    router.push({ pathname: '/add-to-deck', params: { copyId, unprotect: String(unprotect) } });
+  }
+
+  function addToDeck(isProtected: boolean) {
+    if (!isProtected) {
+      openAddToDeck(false);
+      return;
+    }
+    Alert.alert('This copy is protected.', 'Putting it in a deck unprotects it.', [
+      { text: 'Unprotect and add', onPress: () => openAddToDeck(true) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
   function confirmDelete() {
     Alert.alert('Delete this copy?', 'It leaves your collection with its user tags. This cannot be undone.', [
       { text: 'Delete copy', style: 'destructive', onPress: deleteThisCopy },
@@ -57,12 +75,19 @@ export default function CopyScreen() {
       {read.status === 'loaded' && priceCurrency ? (
         <>
           <Stack.Toolbar placement="right">
-            {copyActionsMenu({ copy: read.copy, onSetProtected: changeProtected, onDelete: confirmDelete })}
+            {copyActionsMenu({
+              copy: read.copy,
+              canAddToDeck: hasDecks,
+              onSetProtected: changeProtected,
+              onAddToDeck: () => addToDeck(read.copy.protected),
+              onDelete: confirmDelete,
+            })}
           </Stack.Toolbar>
           <CopyPageContent
             copy={read.copy}
             priceCurrency={priceCurrency}
             onOpenUserTags={() => router.push({ pathname: '/user-tag-picker', params: { copyId } })}
+            onOpenDeck={(deckId) => router.push({ pathname: '/deck', params: { deckId } })}
           />
         </>
       ) : null}

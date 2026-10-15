@@ -7,6 +7,7 @@ import { changeSinceAdded, shownPriceChange, spokenPriceChange } from '@/collect
 import { priceLabels, type PriceAmount } from '@/collection/price-currency-labels';
 import { priceCredit } from '@/collection/total-labels';
 import { Chip } from '@/components/atoms/chip';
+import { DeckTag } from '@/components/atoms/deck-tag';
 import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
 import { CardHero } from '@/components/molecules/card-hero';
@@ -83,9 +84,10 @@ type CopyPageContentProps = {
   copy: CopyDetails;
   priceCurrency: ExchangeRate;
   onOpenUserTags: () => void;
+  onOpenDeck: (deckId: string) => void;
 };
 
-export function CopyPageContent({ copy, priceCurrency, onOpenUserTags }: CopyPageContentProps) {
+export function CopyPageContent({ copy, priceCurrency, onOpenUserTags, onOpenDeck }: CopyPageContentProps) {
   const legality = commanderLegalityLabels[copy.commander_legality];
   const price = copy.price && convertedPrice(copy.price, priceCurrency);
   const purchaseDayPrice = copy.purchase_day_price && convertedPrice(copy.purchase_day_price, priceCurrency);
@@ -109,6 +111,13 @@ export function CopyPageContent({ copy, priceCurrency, onOpenUserTags }: CopyPag
             <Chip key={index} label={label} />
           ))}
         </View>
+        {copy.deck ? (
+          <DeckTag
+            name={copy.deck.name}
+            commanderArtUri={copy.deck.commander_art_crop_uri}
+            onPress={() => onOpenDeck(copy.deck!.deck_id)}
+          />
+        ) : null}
         <SheetSection title="User tags">
           <UserTagsRow userTags={copy.user_tags} onPress={onOpenUserTags} />
         </SheetSection>

@@ -1,7 +1,10 @@
+import type { CollectionCopyRow } from './collection';
 import type { Database } from './database.types';
 import { readSearchError, type SearchError } from './search';
 
 export type DeckPriority = Database['public']['Enums']['deck_priority'];
+
+export type DeckRole = Database['public']['Enums']['deck_role'];
 
 export const deckNameLength = 64;
 
@@ -24,9 +27,34 @@ export type DeckList = {
   items: DeckRow[];
 };
 
+export type DeckCard = CollectionCopyRow & {
+  role: DeckRole;
+  commander_at: string | null;
+  added_at: string;
+  type_line: string;
+  mana_value: number;
+  colors: string[];
+};
+
+export type DeckBasicLand = {
+  oracle_id: string | null;
+  name: string;
+  image_uris: string[];
+  count: number;
+};
+
 export type Deck = DeckRow & {
   revision: number;
   created_at: string;
+  cards: DeckCard[];
+  basic_lands: DeckBasicLand[];
+};
+
+export type CopyDeck = {
+  deck_id: string;
+  name: string;
+  role: DeckRole;
+  commander_art_crop_uri: string | null;
 };
 
 export type CreateDeckRequest = {
@@ -59,7 +87,18 @@ export type DeleteDeckRequest = {
   deck_id: string;
 };
 
-export type DeckErrorCode = 'invalid_argument' | 'not_found';
+export type AddDeckCardRequest = {
+  deck_id: string;
+  copy_id: string;
+  unprotect: boolean;
+};
+
+export type AddedDeckCard = {
+  deck_id: string;
+  revision: number;
+};
+
+export type DeckErrorCode = 'invalid_argument' | 'not_found' | 'copy_not_free' | 'copy_protected';
 
 export type DeckError = Omit<SearchError, 'code'> & { code: DeckErrorCode };
 

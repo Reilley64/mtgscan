@@ -74,6 +74,8 @@ describe('creating a deck', () => {
       ...expected,
       revision: 0,
       created_at: expect.any(String),
+      cards: [],
+      basic_lands: expect.any(Array),
     });
   });
 

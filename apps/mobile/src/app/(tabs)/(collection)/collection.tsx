@@ -21,7 +21,7 @@ import { refusedChipMessage, type SearchChip } from '@/collection/collection-sea
 import { useCollectionSearchState } from '@/collection/collection-search-state';
 import { activeFilterCount } from '@/collection/filter-choices';
 import { collectionOrderQuery, defaultCollectionOrder } from '@/collection/collection-sort';
-import { sheenOf, shownCondition, spokenFinishAndCondition } from '@/collection/copy-labels';
+import { sheenOf, shownCondition, spokenCopy } from '@/collection/copy-labels';
 import { usePriceCurrency } from '@/collection/price-currency-setting';
 import { priceLabels } from '@/collection/price-currency-labels';
 import { shownMatchCount } from '@/collection/total-labels';
@@ -78,9 +78,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
       uri={copy.image_uris[0]}
       sheen={sheenOf(copy.finish)}
       accessibilityLabel={[
-        copy.name,
-        `${copy.set.toUpperCase()} ${copy.collector_number}`,
-        ...spokenFinishAndCondition(copy),
+        ...spokenCopy(copy),
         ...(copy.protected ? ['protected'] : []),
         price.spoken,
       ].join(', ')}

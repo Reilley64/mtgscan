@@ -311,6 +311,21 @@ components:
     rounded: "{rounded.md}"
     padding: 12px
     height: 200px
+  deck-tag:
+    backgroundColor: "{colors.surface-control}"
+    textColor: "{colors.text}"
+    typography: "{typography.chip}"
+    rounded: "{rounded.full}"
+    height: 24px
+  commander-avatar:
+    backgroundColor: "{colors.line}"
+    rounded: "{rounded.full}"
+    width: 40px
+    height: 40px
+  deck-tag-avatar:
+    rounded: "{rounded.full}"
+    width: 18px
+    height: 18px
   swipe-to-confirm-handle:
     backgroundColor: "{colors.on-primary}"
     textColor: "{colors.primary}"
@@ -524,14 +539,15 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - the hero: the card image at 55% of the screen width, with the foil or etched sheen of the copy, over the art crop of the same card printing blurred. A double-faced card printing uses the art crop of its front face. A card printing with no art crop uses its card image blurred. While the art crop loads, the background color shows behind the card image;
   - the card name in card title type and the type line in text muted;
   - chips: **Protected** in warning with a shield symbol when the copy is protected, the set code in capitals, the collector number, the finish when it is not nonfoil, the condition, such as "NM", and the language, such as "English";
-  - the deck line, which shows the deck tag of the deck the copy is in. It stays empty until decks exist;
+  - the deck line, with the deck tag of the deck the copy is in. A tap opens the deck on Cards. A copy in no deck has no deck line;
   - **User tags**: one disclosure row with the copy's user tags as chips, or "Add user tags" in text muted when it has none, and a chevron. VoiceOver reads it as a button, such as "User tags, signed, trade binder". A tap pushes the user tag picker;
   - **Price**: value rows for "Current price" with the stale clock, "Added" with the day, such as "12 October 2026", "Purchase-day price", and "Since added", then the price credit, the same as in the collection total menu. A converted copy with no current price and no purchase-day price shows no credit. A converted price shows no "≈" and no currency letters, such as "$12.30" in AUD, because the credit under the prices says once that they are converted. VoiceOver hears "about" before a converted price. A missing price shows a text dim "–", and VoiceOver hears "no price". A stale current price adds the hint "The price may be out of date.";
   - "Since added" is the current price minus the purchase-day price, such as "+$3.20" or "−$3.20". The change is neutral, in price type in text price. The sign carries the direction: + or the minus sign. There is no green or red. No change shows "$0.00" with no sign. It uses the currency and the format of the two prices above it. A converted change shows no "≈", such as "+$4.68" in AUD. When either price is missing, the row shows a text dim "–". VoiceOver reads it as "Since added, up $3.20", "Since added, down $3.20", "Since added, up about $4.68", "Since added, no change", or "Since added, no price";
   - **Rules**: the Oracle text in a surface card, with each face's name over its text for a card with more than one face, then a "Commander" value row: "Legal", "Banned", "Not legal", or "Unknown". The card symbols in the Oracle text of every face, such as {G}, {T}, or {E}, show as card symbols. See Card symbols.
   - Section headings are lime body strong text.
   - A close bar button with the `xmark` symbol sits on the left of the header, over the hero (owner decision, #181). It is a native bar button in the text color, like the ••• button on the right. VoiceOver reads it as "Close". It goes back to where the copy page was opened from, the binder or the search results. The swipe from the left edge does the same. The search text, chips, sort, and scroll position stay as they were. It also shows while the copy loads and when the read fails.
-  - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the hero. VoiceOver reads it as "More". It opens the actions menu, a native menu of what the user can do to this copy. Its first item is **Protect** for a free copy or **Unprotect** for a protected copy. Its last item is **Delete copy**, in red.
+  - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the hero. VoiceOver reads it as "More". It opens the actions menu, a native menu of what the user can do to this copy. Its first item is **Protect** for a free copy or **Unprotect** for a protected copy. **Add to deck** follows on a free or protected copy when the user has a deck. Its last item is **Delete copy**, in red. A copy in a deck has no Protect and no Add to deck, because copies never move straight from one deck to another. There is no Create deck item.
+  - **Add to deck** opens the Add to deck drawer (see Sheets). On a protected copy, a native alert comes first: "This copy is protected." with "Putting it in a deck unprotects it.", **Unprotect and add**, and **Cancel**. **Unprotect and add** opens the drawer, and the add then unprotects the copy. **Cancel** opens nothing.
   - **Protect** and **Unprotect** act at once on this copy only, and the Protected chip changes. When the write fails, a native alert says "Could not protect this card" or "Could not unprotect this card" and "Check your connection.", and the copy stays as it was.
   - **Delete copy** shows a native alert "Delete this copy?" with "It leaves your collection with its user tags. This cannot be undone.", **Delete copy** in red, and **Cancel**. After the delete, the app goes back to the binder, which reloads without the tile. When the delete fails, a native alert says "Could not delete this copy" and "Check your connection.", and the page stays.
   - A copy that no longer exists, such as one deleted on another phone, shows a native alert "This card is no longer in your collection." with **OK**, which goes back to the binder. The same alert shows when the copy is gone by the time the user picks an action.
@@ -560,7 +576,9 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
     - A write that fails shows a native alert with "Check your connection." and changes nothing. The titles are "Could not rename this deck", "Could not change the deck priority", and "Could not delete this deck".
     - A deck that was deleted elsewhere goes back to the gallery.
   - A segmented control under the banner switches between **Cards** and **History**. The deck screen opens on Cards. Suggestions comes later.
-  - **Cards** of an empty deck shows a "Commander" heading in lime body strong with "No commander yet." in text muted, then the empty state "No cards yet". See Empty states. **Open Collection** closes the deck screen and opens the Collection tab.
+  - **Cards** starts with a "Commander" group. With no commander, it shows "No commander yet." in text muted under the heading. An empty deck then shows the empty state "No cards yet". See Empty states. **Open Collection** closes the deck screen and opens the Collection tab.
+  - **Cards** shows the deck cards as card images 3 per row, with the binder grid's gaps and corners. A tile has the finish sheen of its copy, and no meta line and no price. VoiceOver reads it as a button with the name, the set code in capitals and the collector number, and the finish and condition as on a binder tile, such as "Sol Ring, C21 263, foil". A tap opens the copy page.
+  - Commanders come first, in the Commander group. The main deck is grouped by type: Creatures, Planeswalkers, Battles, Artifacts, Enchantments, Instants, Sorceries, Lands. A card with several types goes into the first match in that order, so an artifact creature is in Creatures. A card with none of these types goes into the last group, Lands. Each group header shows its name in lime body strong and its count in meta text, such as "Creatures 12". VoiceOver reads it as one header, "Creatures, 12". Empty groups are hidden. Cards in a group sort by name, A to Z.
   - **History** ends with the day the deck was created, such as "Created 15 October 2026", in meta text. Deck changes come later.
   - When the read fails, the deck screen shows the empty state "Could not load this deck" with a **Try again** button. Close still shows.
 
@@ -573,15 +591,25 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 - the swap-in confirmation for a protected copy;
 - revert.
 
-Settings, the scan details sheet, the printing picker, the condition and language pickers, the Filters drawer, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all of them.
+Settings, the scan details sheet, the printing picker, the condition and language pickers, the Filters drawer, the Add to deck drawer, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all of them.
 
 - It slides up from the bottom with the iOS grabber.
 - A drawer with a lot of content opens at full height and has no half height. These are the scan details sheet, the printing picker, and batch review.
-- Settings, the condition and language pickers, the Filters drawer, and other short drawers open at half the screen height. Dragging one up takes it to full height. Dragging it down takes it back to half height.
+- Settings, the condition and language pickers, the Filters drawer, the Add to deck drawer, and other short drawers open at half the screen height. Dragging one up takes it to full height. Dragging it down takes it back to half height.
 - A downward swipe closes it. At half height, a tap outside closes it too. At full height, iOS leaves no screen outside it to tap. It has no Done button.
 - Its content starts 32 px (spacing xl) below the top edge, twice the page inset, so that it clears the grabber. The content scrolls at every height.
 
 **One level only.** Drawers and modals (page sheets, alerts, and confirmation sheets) stack one level at most: no drawer opens over a drawer, no modal over a modal, and no drawer over a modal. A modal may open over a drawer, such as the native alert for **Remove all scans** in batch review. When a task inside a drawer needs another step, such as editing a scan from batch review, it pushes a screen inside the same drawer with a back button and the swipe-back gesture. Native menus (for example the collection total menu) are not drawers or modals and may open from a drawer.
+
+The Add to deck drawer, from the copy page's actions menu:
+
+- The title "Add to deck", then a meta line that names the copy with its chip labels, as in the user tag picker, such as "Angelic Curator · MH2 · 262 · Foil · LP · English".
+- One list row per deck, in the order of the Decks gallery. A row has the 40 px commander avatar, or a dashed circle with no commander, the deck name, and its deck priority and card count, such as "Medium priority · 62 cards". The avatar and the card count tell apart two decks with one name.
+- A tap puts the copy in that deck's main deck, closes the drawer, and the copy page reloads with the deck tag.
+- A copy that is no longer free closes the drawer and shows the native alert "This card is already in a deck.". The copy page reloads.
+- A write that fails shows the native alert "Could not add this card" with "Check your connection.", and the drawer stays.
+- A copy that no longer exists closes the drawer, and the copy page says so, as for its other actions.
+- When the deck list cannot load, the drawer shows the empty state "Could not load your decks" with a **Try again** button. See Empty states.
 
 The settings drawer:
 
@@ -669,7 +697,8 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - VoiceOver reads the text with each symbol as words, such as "tap: Add green mana." or "two generic mana green mana". The words are: "white mana" for {W} and the same for each color, "colorless mana" for {C}, "two generic mana" for {2} and the same for each number, "zero mana" for {0}, "X generic mana" for {X}, {Y}, and {Z}, "half generic mana" for {½}, "infinite generic mana" for {∞}, "white or blue mana" for {W/U}, "two generic or white mana" for {2/W}, "colorless or white mana" for {C/W}, "Phyrexian green mana" for {G/P}, "Phyrexian black or green mana" for {B/G/P}, "Phyrexian colorless mana" for {C/P}, "Phyrexian mana" for {H}, "half white mana" for {HW}, "snow mana" for {S}, "legendary mana" for {L}, "tap" for {T}, "untap" for {Q}, "energy" for {E}, "acorn" for {A}, "ticket" for {TK}, "planeswalker" for {PW}, "chaos" for {CHAOS}, "pawprint" for {P}, and "land drop" for {D}.
 - **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, and the batch button.
 - **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
-- **Deck tag.** A small commander avatar plus the short deck name, used on Recent items and the deck line of the copy page. It opens the deck.
+- **Deck tag.** A pill on the control surface, as tall as a chip, with the 18 px commander avatar and the deck name in chip type. It is used on Recent items and the deck line of the copy page. It opens the deck. VoiceOver reads it as a button with the deck name and the hint "Opens the deck." It gets the extra touch area of a chip.
+- **Commander avatar.** The art crop of the deck's first commander in a circle: 40 px in a list row and 18 px in a deck tag. A deck with no commander shows a dashed line-colored circle instead.
 - **Latest-scan chip.** One horizontal chip at the bottom of Scan, 16 px from the edges, on Liquid Glass. It has 8 px padding and three columns (owner request, #113):
   - The left column holds the card thumbnail.
   - The middle column holds the card name in body strong, centered over a centered meta line with the set code in capitals and the collector number, such as "M10 146".
@@ -753,6 +782,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
     | Collection search, no results | one row of empty binder slots | No cards found | Check the spelling or try fewer words. | none |
     | Decks, no decks | a ghost commander card | No decks yet | Create a deck, then add cards to it from your collection. | **Create deck** opens the name alert |
     | Decks, read failed | a ghost commander card | Could not load your decks | Check your connection. | **Try again** reads the decks again |
+    | Add to deck drawer, read failed | a ghost commander card | Could not load your decks | Check your connection. | **Try again** reads the decks again |
     | Deck screen, Cards of an empty deck | one row of empty binder slots | No cards yet | Add cards from a copy's page in your collection. | **Open Collection** opens the Collection tab |
     | Deck screen, read failed | a dashed card frame with `wifi.slash` | Could not load this deck | Check your connection. | **Try again** reads the deck again |
     | Scan, camera access off | a dashed card frame with `video.slash` | Camera access is off | Turn it on in Settings to scan cards. | **Open Settings** opens iOS Settings |
