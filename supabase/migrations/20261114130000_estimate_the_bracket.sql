@@ -163,6 +163,8 @@ declare
   undetermined jsonb := '[]';
   singleton jsonb;
   legality jsonb;
+  eligibility jsonb;
+  partner jsonb;
 begin
   select count(*) filter (where copy.role = 'commander'), count(*)
     into commander_count, card_count
@@ -175,6 +177,12 @@ begin
   if commander_count = 0 then
     violations := violations || private.violation('no_commander', 'CR 903.3', 'This deck has no commander.', null);
   end if;
+  eligibility := private.judge_commander_eligibility(contents);
+  violations := violations || (eligibility -> 'violations');
+  undetermined := undetermined || (eligibility -> 'undetermined');
+  partner := private.judge_partner(contents);
+  violations := violations || (partner -> 'violations');
+  undetermined := undetermined || (partner -> 'undetermined');
   if card_count <> 100 then
     violations := violations || private.violation(
       'deck_size',
