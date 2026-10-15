@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SessionProvider, useSession } from '@/auth/session';
 import { PriceCurrencyProvider } from '@/collection/price-currency-setting';
+import { DeckCardOrderProvider } from '@/decks/deck-card-order';
 import { fullHeightDrawerOptions, halfHeightDrawerOptions } from '@/components/templates/drawer-sheet';
 import { GalleryProvider } from '@/gallery/gallery-state';
 import { CurrentPricesProvider } from '@/scan/current-prices';
@@ -70,7 +71,9 @@ export default function RootLayout() {
               <PriceCurrencyProvider>
                 <CurrentPricesProvider>
                   <ScanBatchProvider>
-                    <RootStack />
+                    <DeckCardOrderProvider>
+                      <RootStack />
+                    </DeckCardOrderProvider>
                   </ScanBatchProvider>
                 </CurrentPricesProvider>
               </PriceCurrencyProvider>

@@ -34,6 +34,8 @@ import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
+import { SortButton } from '@/components/molecules/sort-button';
+import { GroupButton } from '@/components/molecules/group-button';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { SymbolText } from '@/components/molecules/symbol-text';
@@ -51,14 +53,17 @@ import {
   cardImageOutline,
   cardImageUri,
   appearsBefore,
+  buttonMenu,
   cardSheen,
   splitColorsBehind,
   dashedOutlinesColored,
   fadesDown,
   glassEffect,
   imageTintColor,
+  menuButton,
   menuButtonNames,
   opacityOf,
+  pressButtonMenuItem,
   showsSpinner,
   sideColumnWidths,
   swipeHandleMovesAfterRelease,
@@ -1231,5 +1236,82 @@ describe('CommanderCard', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Atraxa, High priority, 1 card' }));
 
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('SortButton', () => {
+  const sorts = [
+    { sort: 'relevance', title: 'Relevance' },
+    { sort: 'price', title: 'Price' },
+  ] as const;
+
+  test('a sort button is the arrow.up.arrow.down floating menu button with a "Sort by" menu, and VoiceOver reads "Sort" and the order', async () => {
+    await render(<SortButton sorts={[...sorts]} order={{ sort: 'relevance' }} spokenOrder="Relevance" active={false} onSelect={() => {}} />);
+
+    const button = menuButton(screen.container, 'Sort, Relevance');
+    expect(symbolNames(button)).toEqual(['arrow.up.arrow.down']);
+    expect(symbolTintColor(button)).toBe(white);
+    expect(buttonMenu(button)).toEqual({
+      title: 'Sort by',
+      items: [
+        { title: 'Relevance', checked: true, symbol: undefined },
+        { title: 'Price', checked: false, symbol: undefined },
+      ],
+    });
+  });
+
+  test('the current sort has an arrow for its direction, an active sort button is lime, and a choice runs with its sort', async () => {
+    const onSelect = jest.fn();
+    await render(
+      <SortButton
+        sorts={[...sorts]}
+        order={{ sort: 'price', direction: 'asc' }}
+        spokenOrder="Price, low to high"
+        active
+        onSelect={onSelect}
+      />,
+    );
+
+    const button = menuButton(screen.container, 'Sort, Price, low to high');
+    expect(symbolTintColor(button)).toBe(lime);
+    expect(buttonMenu(button).items[1]).toEqual({ title: 'Price', checked: true, symbol: 'arrow.up' });
+
+    await pressButtonMenuItem(button, 'Price');
+
+    expect(onSelect).toHaveBeenCalledWith('price');
+  });
+});
+
+describe('GroupButton', () => {
+  const groupings = [
+    { grouping: 'type', title: 'Type' },
+    { grouping: 'rarity', title: 'Rarity' },
+  ] as const;
+
+  test('a group button is the rectangle.3.group floating menu button with a "Group by" menu, and VoiceOver reads "Group" and the grouping', async () => {
+    await render(<GroupButton groupings={[...groupings]} grouping="type" active={false} onSelect={() => {}} />);
+
+    const button = menuButton(screen.container, 'Group, Type');
+    expect(symbolNames(button)).toEqual(['rectangle.3.group']);
+    expect(symbolTintColor(button)).toBe(white);
+    expect(buttonMenu(button)).toEqual({
+      title: 'Group by',
+      items: [
+        { title: 'Type', checked: true, symbol: undefined },
+        { title: 'Rarity', checked: false, symbol: undefined },
+      ],
+    });
+  });
+
+  test('an active group button is lime, and a choice runs with its grouping', async () => {
+    const onSelect = jest.fn();
+    await render(<GroupButton groupings={[...groupings]} grouping="rarity" active onSelect={onSelect} />);
+
+    const button = menuButton(screen.container, 'Group, Rarity');
+    expect(symbolTintColor(button)).toBe(lime);
+
+    await pressButtonMenuItem(button, 'Type');
+
+    expect(onSelect).toHaveBeenCalledWith('type');
   });
 });

@@ -14,7 +14,6 @@ import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { CountBadge } from '@/components/atoms/count-badge';
 import { DeckTag } from '@/components/atoms/deck-tag';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
-import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
 import { GlassGroup } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
 import { MenuButton } from '@/components/atoms/menu-button';
@@ -54,6 +53,8 @@ import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
+import { GroupButton } from '@/components/molecules/group-button';
+import { SortButton } from '@/components/molecules/sort-button';
 import { ValueRow } from '@/components/molecules/value-row';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { SwitchRow } from '@/components/molecules/switch-row';
@@ -472,20 +473,31 @@ function Glass() {
   );
 }
 
+const groupings = [
+  { grouping: 'type', title: 'Type' },
+  { grouping: 'mana_value', title: 'Mana value' },
+] as const;
+
+const sorts = [
+  { sort: 'relevance', title: 'Relevance' },
+  { sort: 'price', title: 'Price' },
+] as const;
+
 function FloatingMenuButtons() {
-  const [chosen, setChosen] = useState('Relevance');
-  const choices = ['Relevance', 'Price'].map((title) => ({ title, checked: chosen === title, onSelect: () => setChosen(title) }));
+  const [grouping, setGrouping] = useState<(typeof groupings)[number]['grouping']>('type');
+  const [sort, setSort] = useState<(typeof sorts)[number]['sort']>('relevance');
   return (
     <Section title="Floating menu buttons">
-      <View className="flex-row gap-lg">
-        <FloatingMenuButton
-          symbol="arrow.up.arrow.down"
-          active={chosen !== 'Relevance'}
-          accessibilityLabel={`Sort, ${chosen}`}
-          menuTitle="Sort by"
-          choices={choices}
+      <View className="flex-row gap-sm">
+        <GroupButton groupings={[...groupings]} grouping={grouping} active={grouping !== 'type'} onSelect={setGrouping} />
+        <SortButton
+          sorts={[...sorts]}
+          order={sort === 'price' ? { sort, direction: 'desc' } : { sort }}
+          spokenOrder={sort === 'price' ? 'Price, high to low' : 'Relevance'}
+          active={sort !== 'relevance'}
+          onSelect={setSort}
         />
-        <FloatingMenuButton symbol="arrow.up.arrow.down" active accessibilityLabel="Sort, Price, high to low" menuTitle="Sort by" choices={[]} />
+        <SortButton sorts={[...sorts]} order={{ sort: 'price', direction: 'desc' }} spokenOrder="Price, high to low" active onSelect={() => {}} />
       </View>
     </Section>
   );

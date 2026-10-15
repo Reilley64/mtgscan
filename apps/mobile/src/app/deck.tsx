@@ -10,8 +10,10 @@ import { DashedCardFrame } from '@/components/molecules/empty-state-illustration
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { deckActionsMenu } from '@/components/organisms/deck-actions-menu';
+import { DeckCardOrderButtons } from '@/components/organisms/deck-card-order-buttons';
 import { DeckCards } from '@/components/organisms/deck-cards';
 import { PushedScreen } from '@/components/templates/pushed-screen';
+import { useDeckCardOrder } from '@/decks/deck-card-order';
 import { cardCountLabel, deckChips } from '@/decks/deck-labels';
 import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
 import { useDeck } from '@/decks/use-deck';
@@ -50,6 +52,8 @@ export default function DeckScreen() {
   const { read, reload } = useDeck(deckId);
   const [tab, setTab] = useState<DeckTab>('cards');
   const [renaming, setRenaming] = useState(false);
+  const { grouping, order, setGrouping, setOrder } = useDeckCardOrder();
+  const showsCardOrderButtons = tab === 'cards' && read.status === 'loaded' && read.deck.card_count > 0;
 
   useEffect(() => {
     void markDeckUsed(deckId);
@@ -75,7 +79,12 @@ export default function DeckScreen() {
   }
 
   return (
-    <PushedScreen>
+    <PushedScreen
+      floatingButtons={
+        showsCardOrderButtons ? (
+          <DeckCardOrderButtons grouping={grouping} order={order} onChangeGrouping={setGrouping} onChangeOrder={setOrder} />
+        ) : null
+      }>
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button icon="xmark" tintColor={colors.text} accessibilityLabel="Close" onPress={() => router.back()} />
       </Stack.Toolbar>
@@ -109,6 +118,8 @@ export default function DeckScreen() {
             {tab === 'cards' ? (
               <DeckCards
                 deck={read.deck}
+                grouping={grouping}
+                order={order}
                 onOpenCard={(card) => router.push({ pathname: '/copy', params: { copyId: card.copy_id } })}
                 onOpenCollection={() => router.dismissTo('/collection')}
               />

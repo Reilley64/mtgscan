@@ -1,7 +1,9 @@
 import type { CopyDetails } from '@mtgscan/supabase/collection';
+import type { DeckCard } from '@mtgscan/supabase/decks';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
-import { pressTab, selectedTab } from './native-ui';
+import { ownDecks } from './fake-supabase';
+import { pressTab, pushedScreen, selectedTab } from './native-ui';
 import { renderApp } from './render-app';
 
 export function copyOf(copyId: string, changes: Partial<CopyDetails> = {}): CopyDetails {
@@ -29,6 +31,37 @@ export function copyOf(copyId: string, changes: Partial<CopyDetails> = {}): Copy
     deck: null,
     ...changes,
   };
+}
+
+export function deckCardOf(copyId: string, name: string, typeLine: string, changes: Partial<DeckCard> = {}): DeckCard {
+  const { deck, free, added_at, purchase_day_price, faces, commander_legality, user_tags, art_crop_uri, ...row } = copyOf(copyId, {
+    name,
+    image_uris: [`https://cards.scryfall.io/normal/front/${copyId}.jpg`],
+  });
+  return {
+    ...row,
+    role: 'main',
+    commander_at: null,
+    added_at: '2026-10-15T09:00:00.000Z',
+    type_line: typeLine,
+    mana_value: 2,
+    colors: [],
+    ...changes,
+  };
+}
+
+export async function openDeckNamed(name: string) {
+  await fireEvent.press(within(selectedTab()).getByRole('button', { name: new RegExp(`^${name},`) }));
+  const deck = within(pushedScreen());
+  await deck.findByRole('header', { name });
+  return deck;
+}
+
+export async function openDeckWithCards(cards: DeckCard[]) {
+  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: cards.length, cards }]);
+  await renderApp();
+  await pressTab('Decks');
+  return openDeckNamed('Atraxa');
 }
 
 export const delver = copyOf('copy-delver', {

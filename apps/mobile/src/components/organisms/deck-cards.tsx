@@ -7,10 +7,12 @@ import { CardTile } from '@/components/molecules/card-tile';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
 import { SheetSection } from '@/components/molecules/sheet-section';
-import { deckCommanders, mainDeckGroups } from '@/decks/deck-groups';
+import { deckCommanders, mainDeckGroups, type DeckGrouping, type DeckOrder } from '@/decks/deck-groups';
 
 type DeckCardsProps = {
   deck: Deck;
+  grouping: DeckGrouping;
+  order: DeckOrder;
   onOpenCard: (card: DeckCard) => void;
   onOpenCollection: () => void;
 };
@@ -31,7 +33,7 @@ function DeckCardGrid({ cards, onOpenCard }: { cards: DeckCard[]; onOpenCard: (c
   );
 }
 
-export function DeckCards({ deck, onOpenCard, onOpenCollection }: DeckCardsProps) {
+export function DeckCards({ deck, grouping, order, onOpenCard, onOpenCollection }: DeckCardsProps) {
   const commanders = deckCommanders(deck.cards);
   return (
     <>
@@ -50,7 +52,7 @@ export function DeckCards({ deck, onOpenCard, onOpenCollection }: DeckCardsProps
           action={{ label: 'Open Collection', onPress: onOpenCollection }}
         />
       ) : (
-        mainDeckGroups(deck.cards).map((group) => (
+        mainDeckGroups(deck.cards, grouping, order).map((group) => (
           <SheetSection key={group.title} title={group.title} count={group.cards.length}>
             <DeckCardGrid cards={group.cards} onOpenCard={onOpenCard} />
           </SheetSection>
