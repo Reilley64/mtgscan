@@ -8,6 +8,7 @@ import type {
   EstimatedBracket,
   UndeterminedRule,
 } from '@mtgscan/supabase/decks';
+import type { Color } from '@mtgscan/supabase/search';
 import type { SFSymbol } from 'expo-symbols';
 
 export const deckPriorities = Constants.public.Enums.deck_priority;
@@ -30,10 +31,13 @@ export const ruleNames: Record<UndeterminedRule, string> = {
   partner: 'Partner',
   deck_size: 'Deck size',
   singleton: 'Singleton',
+  color_identity: 'Color identity',
   banned: 'Banned',
   not_legal: 'Not legal',
   legality: 'Legality',
 };
+
+export const colorNames: Record<Color, string> = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' };
 
 export const bracketSignalNames: Record<BracketSignalKind, string> = {
   game_changers: 'Game Changers',

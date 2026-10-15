@@ -39,6 +39,7 @@ function evaluationOf(fields: Pick<DeckEvaluation, 'validity'> & Partial<DeckEva
   return {
     violations: [],
     undetermined: [],
+    chosen_color: null,
     estimated_bracket: 2,
     bracket_signals: [],
     missing_signal_count: 0,
@@ -316,6 +317,68 @@ describe('the Deck validity drawer', () => {
     expect(appearsBefore(deckSize, drawer.getByText('87 of 100 cards.'))).toBe(true);
     expect(appearsBefore(drawer.getByText('87 of 100 cards.'), drawer.getByText('Add 13 cards.'))).toBe(true);
     expect(drawer.queryByText('This deck follows the Commander rules.')).not.toBeOnTheScreen();
+  });
+
+  test('a color identity violation shows the Color identity row with its CR link and its cards', async () => {
+    const lightningBolt: DeckEvaluationCard = {
+      kind: 'copy',
+      copy_id: 'copy-lightning-bolt',
+      name: 'Lightning Bolt',
+      image_uris: ['https://cards.scryfall.io/normal/front/lightning-bolt.jpg'],
+    };
+    ownDecks([
+      {
+        name: 'Kinnan',
+        priority: 'medium',
+        card_count: 100,
+        commanders: [kinnan],
+        evaluation: evaluationOf({
+          validity: 'invalid',
+          violations: [
+            { rule: 'color_identity', citation: 'CR 903.5c', message: '1 card is outside Green and Blue.', hint: null, cards: [lightningBolt] },
+          ],
+        }),
+      },
+    ]);
+
+    const drawer = await openDrawer('Invalid');
+
+    const colorIdentity = drawer.getByText('Color identity');
+    expect(colorIdentity).toHaveStyle({ color: danger, fontSize: 14, fontWeight: '700' });
+    expect(drawer.getByRole('link', { name: 'CR 903.5c' })).toBeOnTheScreen();
+    expect(drawer.getByText('1 card is outside Green and Blue.')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(imageSources(drawer.getByLabelText('Lightning Bolt'))).toEqual(['https://cards.scryfall.io/normal/front/lightning-bolt.jpg']);
+    expect(appearsBefore(colorIdentity, drawer.getByText('1 card is outside Green and Blue.'))).toBe(true);
+  });
+
+  test('a deck with a chosen color says which color mtgscan inferred, before the rows', async () => {
+    ownDecks([
+      {
+        name: 'Kinnan',
+        priority: 'medium',
+        card_count: 87,
+        commanders: [kinnan],
+        evaluation: evaluationOf({
+          validity: 'invalid',
+          chosen_color: 'U',
+          violations: [{ rule: 'deck_size', citation: 'CR 903.5a', message: '87 of 100 cards.', hint: 'Add 13 cards.', cards: [] }],
+        }),
+      },
+    ]);
+
+    const drawer = await openDrawer('Invalid');
+
+    const chosenColor = drawer.getByText('Chosen color: Blue (inferred)');
+    expect(appearsBefore(drawer.getByText('Checked against the current Commander rules.'), chosenColor)).toBe(true);
+    expect(appearsBefore(chosenColor, drawer.getByText('Deck size'))).toBe(true);
+  });
+
+  test('a deck with no chosen color has no chosen color line', async () => {
+    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 100, commanders: [kinnan] }]);
+
+    const drawer = await openDrawer('Valid');
+
+    expect(drawer.queryByText(/^Chosen color/)).not.toBeOnTheScreen();
   });
 
   test('a citation link opens the Comprehensive Rules on magic.wizards.com', async () => {

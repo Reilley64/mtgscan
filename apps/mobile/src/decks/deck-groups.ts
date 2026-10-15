@@ -1,5 +1,7 @@
 import type { DeckCard } from '@mtgscan/supabase/decks';
+import type { Color } from '@mtgscan/supabase/search';
 
+import { colorNames } from '@/decks/deck-labels';
 import { sortChoices, type SortOrder } from '@/lib/sort-order';
 
 export type DeckGrouping = 'type' | 'mana_value' | 'color' | 'rarity' | 'none';
@@ -34,8 +36,6 @@ const landsGroup = typeGroups[typeGroups.length - 1].title;
 
 const mainDeckGroup = 'Main deck';
 
-const colorGroups: Record<string, string> = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' };
-
 const rarityGroups: Record<DeckCard['rarity'], string> = {
   mythic: 'Mythic',
   rare: 'Rare',
@@ -64,7 +64,7 @@ function colorGroupOf(card: DeckCard) {
   if (card.colors.length > 1) {
     return 'Multicolor';
   }
-  return card.colors.length === 1 ? colorGroups[card.colors[0]] : 'Colorless';
+  return card.colors.length === 1 ? colorNames[card.colors[0] as Color] : 'Colorless';
 }
 
 const groupingRules: Record<DeckGrouping, GroupingRule> = {
@@ -74,7 +74,7 @@ const groupingRules: Record<DeckGrouping, GroupingRule> = {
     groups: [...Array.from({ length: highestManaValueGroup }, (_, manaValue) => `${manaValue}`), `${highestManaValueGroup}+`, landsGroup],
     groupOf: manaValueGroupOf,
   },
-  color: { title: 'Color', groups: [...Object.values(colorGroups), 'Multicolor', 'Colorless'], groupOf: colorGroupOf },
+  color: { title: 'Color', groups: [...Object.values(colorNames), 'Multicolor', 'Colorless'], groupOf: colorGroupOf },
   rarity: { title: 'Rarity', groups: [...new Set(Object.values(rarityGroups))], groupOf: (card) => rarityGroups[card.rarity] },
   none: { title: 'None', groups: [mainDeckGroup], groupOf: () => mainDeckGroup },
 };

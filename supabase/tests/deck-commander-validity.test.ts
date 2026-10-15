@@ -40,7 +40,7 @@ type CardName = keyof typeof printings;
 
 const foilOnly = new Set<CardName>(['Tymna the Weaver', 'Thrasios, Triton Hero', 'The Tenth Doctor']);
 
-const forest = basicLand('Forest').oracle_id;
+const wastes = basicLand('Wastes').oracle_id;
 
 beforeAll(async () => {
   await resetCardCatalog();
@@ -74,7 +74,7 @@ async function deckWith(user: TestUser, commanders: DeckCopy[], mainDeck: DeckCo
     await rpc(user, 'set_deck_commander', { copy_id: copyId, commander: true });
   }
   const basicLandCount = 100 - commanders.length - mainDeck.length;
-  await rpc(user, 'set_basic_lands', { deck_id: deckId, counts: [{ oracle_id: forest, count: basicLandCount }] });
+  await rpc(user, 'set_basic_lands', { deck_id: deckId, counts: [{ oracle_id: wastes, count: basicLandCount }] });
   const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
   expect(error).toBeNull();
   const cards = Object.fromEntries([...commanders, ...mainDeck].map((copy) => [copy.name, expectedCard(copy)]));

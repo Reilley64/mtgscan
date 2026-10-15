@@ -139,22 +139,20 @@ describe('the legality check with no rules data', () => {
 
     await islandsSet(user, deckId, 97);
 
-    expect(await evaluationOf(user, deckId)).toMatchObject({
-      validity: 'cannot_be_determined',
-      violations: [],
-      undetermined: [
-        {
-          rule: 'legality',
-          reason: `No rules data for Black Lotus. No rules data for ${delverName}.`,
-          cards: [copyCard(lotus, 'Black Lotus'), copyCard(delver, delverName)],
-        },
-      ],
-    });
+    const evaluation = await evaluationOf(user, deckId);
+    expect(evaluation).toMatchObject({ validity: 'cannot_be_determined', violations: [] });
+    expect(evaluation.undetermined.filter((check) => check.rule === 'legality')).toEqual([
+      {
+        rule: 'legality',
+        reason: `No rules data for Black Lotus. No rules data for ${delverName}.`,
+        cards: [copyCard(lotus, 'Black Lotus'), copyCard(delver, delverName)],
+      },
+    ]);
 
     await addedCopy(user, deckId, primevalTitan);
     const withBanned = await evaluationOf(user, deckId);
     expect(withBanned.validity).toBe('invalid');
     expect(legalityViolations(withBanned.violations).map((violation) => violation.rule)).toEqual(['banned']);
-    expect(withBanned.undetermined.map((check) => check.rule)).toEqual(['legality']);
+    expect(withBanned.undetermined.map((check) => check.rule)).toContain('legality');
   });
 });
