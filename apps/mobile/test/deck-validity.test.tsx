@@ -229,6 +229,76 @@ describe('the Deck validity drawer', () => {
     expect(drawer.queryByText('No commander')).not.toBeOnTheScreen();
   });
 
+  test('a singleton violation shows the Singleton row with its CR link, its message, its cards, and its hint', async () => {
+    const secondSolRing: DeckEvaluationCard = { ...solRing, copy_id: 'copy-sol-ring-2' };
+    ownDecks([
+      {
+        name: 'Kinnan',
+        priority: 'medium',
+        card_count: 100,
+        commanders: [kinnan],
+        evaluation: evaluationOf({
+          validity: 'invalid',
+          violations: [
+            {
+              rule: 'singleton',
+              citation: 'CR 903.5b',
+              message: '2 copies of Sol Ring.',
+              hint: 'Remove 1 Sol Ring.',
+              cards: [solRing, secondSolRing],
+            },
+          ],
+        }),
+      },
+    ]);
+
+    const drawer = await openDrawer('Invalid');
+
+    const singleton = drawer.getByText('Singleton');
+    expect(singleton).toHaveStyle({ color: danger, fontSize: 14, fontWeight: '700' });
+    expect(drawer.getAllByRole('link').map((link) => link.props.children)).toEqual(['CR 903.5b']);
+    expect(drawer.getByText('2 copies of Sol Ring.')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(drawer.getAllByLabelText('Sol Ring')).toHaveLength(2);
+    const hint = drawer.getByText('Remove 1 Sol Ring.');
+    expect(hint).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(appearsBefore(singleton, drawer.getByText('2 copies of Sol Ring.'))).toBe(true);
+    expect(appearsBefore(drawer.getByText('2 copies of Sol Ring.'), hint)).toBe(true);
+  });
+
+  test('a card with an unknown copy limit shows a warning Singleton row with its reason and its cards', async () => {
+    const tolabow: DeckEvaluationCard = {
+      kind: 'copy',
+      copy_id: 'copy-tolabow',
+      name: 'Tolabow, Loch Rascal',
+      image_uris: ['https://cards.scryfall.io/normal/front/tolabow.jpg'],
+    };
+    ownDecks([
+      {
+        name: 'Kinnan',
+        priority: 'medium',
+        card_count: 100,
+        commanders: [kinnan],
+        evaluation: evaluationOf({
+          validity: 'cannot_be_determined',
+          undetermined: [
+            {
+              rule: 'singleton',
+              reason: 'mtgscan cannot read the copy limit of Tolabow, Loch Rascal.',
+              cards: [tolabow, { ...tolabow, copy_id: 'copy-tolabow-2' }],
+            },
+          ],
+        }),
+      },
+    ]);
+
+    const drawer = await openDrawer('Cannot be determined');
+
+    expect(drawer.getByText('Singleton')).toHaveStyle({ color: warning, fontWeight: '700' });
+    expect(drawer.getByText('mtgscan cannot read the copy limit of Tolabow, Loch Rascal.')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(drawer.getAllByLabelText('Tolabow, Loch Rascal')).toHaveLength(2);
+    expect(drawer.queryByRole('link')).not.toBeOnTheScreen();
+  });
+
   test('a violation shows its cards as thumbnail chips that are not buttons', async () => {
     const island: DeckEvaluationCard = {
       kind: 'basic_land',

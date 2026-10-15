@@ -25,6 +25,7 @@ setDefaultTimeout(60_000);
 const permissionDenied = '42501';
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
+const relentlessRats = '75f47b6e-9557-4853-b8d6-7602a91c59a7';
 const [forest, wastes] = ['Forest', 'Wastes'].map((name) => basicLand(name).oracle_id) as [string, string];
 
 const noCommander: Violation = {
@@ -191,7 +192,7 @@ describe('saving after a deck change', () => {
   test('every deck change saves a deck evaluation with its deck revision', async () => {
     const user = await signUpNewUser();
     const deckId = await created(user);
-    const [commander, main, other] = [await scannedCopy(user), await scannedCopy(user, delverInnistrad), await scannedCopy(user)];
+    const [commander, main, other] = [await scannedCopy(user), await scannedCopy(user, delverInnistrad), await scannedCopy(user, relentlessRats)];
     const changes: [string, () => Promise<void>, unknown[]][] = [
       ['add_deck_card', () => added(user, deckId, commander), [noCommander, deckSize(1, 'Add 99 cards.')]],
       ['set_deck_commander', () => madeCommander(user, commander), [deckSize(1, 'Add 99 cards.')]],
