@@ -33,9 +33,11 @@ import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
+import { SaveBar } from '@/components/molecules/save-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { SortButton } from '@/components/molecules/sort-button';
 import { GroupButton } from '@/components/molecules/group-button';
+import { Stepper } from '@/components/molecules/stepper';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { SwitchRow } from '@/components/molecules/switch-row';
 import { SymbolText } from '@/components/molecules/symbol-text';
@@ -581,6 +583,106 @@ describe('SheetSection', () => {
     expect(screen.getByRole('header', { name: 'Other options' })).toHaveStyle({ color: lime, fontSize: 14, fontWeight: '700' });
     expect(screen.getByText('Lightning Bolt')).toBeOnTheScreen();
   });
+
+  test('a sheet section with an action shows it on the right of its heading', async () => {
+    const onEdit = jest.fn();
+    await render(
+      <SheetSection
+        title="Basic lands"
+        count={10}
+        action={
+          <Button onPress={onEdit}>
+            <Text>Edit</Text>
+          </Button>
+        }>
+        <Text>Island</Text>
+      </SheetSection>,
+    );
+
+    expect(screen.getByRole('header', { name: 'Basic lands, 10' })).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Basic lands, 10' }).parent).toHaveStyle({ flexDirection: 'row', justifyContent: 'space-between' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Edit' }));
+    expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Stepper', () => {
+  function CountedStepper({ initial }: { initial: number }) {
+    const [count, setCount] = useState(initial);
+    return <Stepper label="Island" value={count} min={0} max={99} onChange={setCount} />;
+  }
+
+  test('a stepper shows its count between a minus and a plus button that change it by one', async () => {
+    await render(<CountedStepper initial={8} />);
+
+    expect(screen.getByLabelText('Island, 8')).toHaveTextContent('8');
+    await fireEvent.press(screen.getByRole('button', { name: 'Add one Island' }));
+    expect(screen.getByLabelText('Island, 9')).toHaveTextContent('9');
+    await fireEvent.press(screen.getByRole('button', { name: 'Remove one Island' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Remove one Island' }));
+    expect(screen.getByLabelText('Island, 7')).toHaveTextContent('7');
+    expect(symbolNames(screen.getByRole('button', { name: 'Remove one Island' }))).toEqual(['minus']);
+    expect(symbolNames(screen.getByRole('button', { name: 'Add one Island' }))).toEqual(['plus']);
+  });
+
+  test('a stepper turns off minus at its minimum and plus at its maximum', async () => {
+    await render(
+      <>
+        <Stepper label="Plains" value={0} min={0} max={99} onChange={() => {}} />
+        <Stepper label="Island" value={99} min={0} max={99} onChange={() => {}} />
+      </>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Remove one Plains' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add one Plains' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Remove one Island' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Add one Island' })).toBeDisabled();
+  });
+
+  test('stepper buttons have a 44 pt touch target', async () => {
+    await render(<Stepper label="Island" value={8} min={0} max={99} onChange={() => {}} />);
+
+    for (const name of ['Remove one Island', 'Add one Island']) {
+      const target = touchTarget(screen.getByRole('button', { name }));
+      expect(target.height).toBeGreaterThanOrEqual(44);
+      expect(target.width).toBeGreaterThanOrEqual(44);
+    }
+  });
+});
+
+describe('SaveBar', () => {
+  test('a save bar has Cancel and a primary Save N changes button', async () => {
+    const onCancel = jest.fn();
+    const onSave = jest.fn();
+    await render(<SaveBar changeCount={2} saving={false} onCancel={onCancel} onSave={onSave} />);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Save 2 changes' }));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Save 2 changes' })).toHaveStyle({ backgroundColor: lime });
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveStyle({ backgroundColor: surfaceControl });
+  });
+
+  test('a save bar with one change says Save 1 change, and with none turns Save off', async () => {
+    await render(
+      <>
+        <SaveBar changeCount={1} saving={false} onCancel={() => {}} onSave={() => {}} />
+        <SaveBar changeCount={0} saving={false} onCancel={() => {}} onSave={() => {}} />
+      </>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Save 1 change' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save 0 changes' })).toBeDisabled();
+  });
+
+  test('while saving, Save is busy and Cancel is off', async () => {
+    await render(<SaveBar changeCount={1} saving onCancel={() => {}} onSave={() => {}} />);
+
+    expect(screen.getByRole('button', { name: 'Save 1 change' })).toBeBusy();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+  });
 });
 
 describe('CardTile', () => {
@@ -655,6 +757,30 @@ describe('CardTile', () => {
 
     expect(onPress).toHaveBeenCalledTimes(1);
     expect(cardImageOutline(screen.getByRole('button'))).toMatchObject({ borderColor: '#00000000' });
+  });
+
+  test('a card tile with a count shows it as a ×N count badge at the top right of the card image', async () => {
+    await render(<CardTile uri={solRing} count={8} accessibilityLabel="Island, 8" />);
+
+    const badge = within(screen.getByRole('image', { name: 'Island, 8' })).getByText('×8');
+    expect(badge.parent).toHaveStyle({ position: 'absolute', top: 4, right: 4 });
+  });
+
+  test('a card tile shows its control under the card image, outside the image', async () => {
+    await render(
+      <CardTile
+        uri={solRing}
+        accessibilityLabel="Island"
+        control={
+          <Button onPress={() => {}}>
+            <Text>Add one Island</Text>
+          </Button>
+        }
+      />,
+    );
+
+    expect(within(screen.getByRole('image', { name: 'Island' })).queryByRole('button')).not.toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Add one Island' })).toBeOnTheScreen();
   });
 
   test('card tiles sit three to a row', async () => {

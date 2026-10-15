@@ -955,6 +955,12 @@ describe('CountBadge', () => {
     expect(numerals).toHaveStyle({ color: white, fontSize: 11, fontWeight: '700' });
     expect(numerals.parent).toHaveStyle({ backgroundColor: badge, borderRadius: 999, height: 17, minWidth: 17 });
   });
+
+  test('a count badge with the × prefix shows it before the count', async () => {
+    await render(<CountBadge count={8} prefix="×" />);
+
+    expect(screen.getByText('×8')).toHaveStyle({ color: white });
+  });
 });
 
 describe('FloatingMenuButton', () => {

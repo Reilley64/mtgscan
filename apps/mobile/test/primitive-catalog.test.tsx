@@ -34,6 +34,7 @@ test('the primitive catalog shows every primitive', async () => {
     'Inputs',
     'Progress bars',
     'Sheet sections',
+    'Save bars',
     'Deck tags',
     'Swipe to confirm',
     'Empty states',
@@ -61,6 +62,13 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Atraxa' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Kinnan, High priority · 0 cards' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Creatures, 3' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: 'Basic lands, 10' })).toBeOnTheScreen();
+  expect(screen.getByRole('image', { name: 'Island, 8' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Remove one Island' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Remove one Plains' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Add one Swamp' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Save 0 changes' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Save 1 change' })).toBeBusy();
   expect(screen.getByLabelText('tap: Add colorless mana colorless mana. Spend X generic mana two generic mana white mana blue mana black mana red mana green mana or snow mana.')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'set:mh2' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'set:zzz' })).toBeOnTheScreen();

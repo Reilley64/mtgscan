@@ -8,15 +8,17 @@ import { Text } from '@/components/atoms/text';
 import { CommanderCard } from '@/components/molecules/commander-card';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
+import { SaveBar } from '@/components/molecules/save-bar';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { deckActionsMenu } from '@/components/organisms/deck-actions-menu';
 import { DeckCardOrderButtons } from '@/components/organisms/deck-card-order-buttons';
 import { DeckCards } from '@/components/organisms/deck-cards';
 import { PushedScreen } from '@/components/templates/pushed-screen';
+import { basicLandDraftOf, changedBasicLands, type BasicLandDraft } from '@/decks/basic-lands';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
 import { cardCountLabel, deckChips } from '@/decks/deck-labels';
-import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
+import { deleteDeck, markDeckUsed, renameDeck, setBasicLands, setDeckPriority } from '@/decks/deck-writes';
 import { useDeck } from '@/decks/use-deck';
 import type { WriteResult } from '@/lib/write-result';
 import { shownDay } from '@/lib/shown-day';
@@ -57,8 +59,10 @@ export default function DeckScreen() {
   const { read, reload } = useDeck(deckId);
   const [tab, setTab] = useState<DeckTab>('cards');
   const [renaming, setRenaming] = useState(false);
+  const [basicLandDraft, setBasicLandDraft] = useState<BasicLandDraft | null>(null);
+  const [savingBasicLands, setSavingBasicLands] = useState(false);
   const { grouping, order, setGrouping, setOrder } = useDeckCardOrder();
-  const showsCardOrderButtons = tab === 'cards' && read.status === 'loaded' && read.deck.card_count > 0;
+  const showsCardOrderButtons = tab === 'cards' && read.status === 'loaded' && read.deck.card_count > 0 && !basicLandDraft;
 
   useEffect(() => {
     void markDeckUsed(deckId);
@@ -86,6 +90,19 @@ export default function DeckScreen() {
     };
   }
 
+  async function saveBasicLands(deck: Deck, draft: BasicLandDraft) {
+    setSavingBasicLands(true);
+    await showWriteResult(
+      setBasicLands({ deck_id: deckId, counts: changedBasicLands(deck.basic_lands, draft) }),
+      'Could not save the basic lands',
+      () => {
+        setBasicLandDraft(null);
+        reload();
+      },
+    );
+    setSavingBasicLands(false);
+  }
+
   function confirmDelete(deck: Deck) {
     Alert.alert(`Delete ${deck.name}?`, deleteMessage(deck.card_count), [
       { text: 'Delete deck', style: 'destructive', onPress: deleteThisDeck },
@@ -93,8 +110,19 @@ export default function DeckScreen() {
     ]);
   }
 
+  const basicLandFooter =
+    read.status === 'loaded' && tab === 'cards' && basicLandDraft ? (
+      <SaveBar
+        changeCount={changedBasicLands(read.deck.basic_lands, basicLandDraft).length}
+        saving={savingBasicLands}
+        onCancel={() => setBasicLandDraft(null)}
+        onSave={() => saveBasicLands(read.deck, basicLandDraft)}
+      />
+    ) : undefined;
+
   return (
     <PushedScreen
+      footer={basicLandFooter}
       floatingButtons={
         showsCardOrderButtons ? (
           <DeckCardOrderButtons grouping={grouping} order={order} onChangeGrouping={setGrouping} onChangeOrder={setOrder} />
@@ -135,6 +163,11 @@ export default function DeckScreen() {
                 deck={read.deck}
                 grouping={grouping}
                 order={order}
+                basicLandEdit={{
+                  draft: basicLandDraft,
+                  onEdit: () => setBasicLandDraft(basicLandDraftOf(read.deck.basic_lands)),
+                  onChange: (oracleId, count) => setBasicLandDraft((draft) => draft && { ...draft, [oracleId]: count }),
+                }}
                 onOpenCard={openCard}
                 menuActionsOf={menuActionsOf(read.deck)}
                 onOpenCollection={() => router.dismissTo('/collection')}

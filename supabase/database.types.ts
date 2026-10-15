@@ -295,6 +295,32 @@ isOneToOne: false
       referencedColumns: ["user_id","id"]
     }
                   ]
+                },"deck_basic_lands": {
+                  Row: {
+                    "count": number,"deck_id": string,"oracle_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "count": number,"deck_id": string,"oracle_id": string,"user_id": string
+                  }
+                  Update: {
+                    "count"?: number,"deck_id"?: string,"oracle_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deck_basic_lands_oracle_id_fkey"
+      columns: ["oracle_id"]
+isOneToOne: false
+      referencedRelation: "cards"
+      referencedColumns: ["oracle_id"]
+    },{
+      foreignKeyName: "deck_basic_lands_user_id_deck_id_fkey"
+      columns: ["user_id","deck_id"]
+isOneToOne: false
+      referencedRelation: "decks"
+      referencedColumns: ["user_id","id"]
+    }
+                  ]
                 },"deck_cards": {
                   Row: {
                     "added_at": string,"commander_at": string | null,"copy_id": string,"deck_id": string,"user_id": string
@@ -318,6 +344,32 @@ isOneToOne: true
       columns: ["user_id","deck_id"]
 isOneToOne: false
       referencedRelation: "decks"
+      referencedColumns: ["user_id","id"]
+    }
+                  ]
+                },"deck_change_basic_lands": {
+                  Row: {
+                    "count_after": number,"count_before": number,"deck_change_id": string,"oracle_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "count_after": number,"count_before": number,"deck_change_id": string,"oracle_id": string,"user_id": string
+                  }
+                  Update: {
+                    "count_after"?: number,"count_before"?: number,"deck_change_id"?: string,"oracle_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deck_change_basic_lands_oracle_id_fkey"
+      columns: ["oracle_id"]
+isOneToOne: false
+      referencedRelation: "cards"
+      referencedColumns: ["oracle_id"]
+    },{
+      foreignKeyName: "deck_change_basic_lands_user_id_deck_change_id_fkey"
+      columns: ["user_id","deck_change_id"]
+isOneToOne: false
+      referencedRelation: "deck_changes"
       referencedColumns: ["user_id","id"]
     }
                   ]
@@ -716,6 +768,9 @@ isOneToOne: false
                            },
 "search_oracle_tags":
 { Args: { "query": Json }; Returns: Json
+                           },
+"set_basic_lands":
+{ Args: { "request": Json }; Returns: Json
                            },
 "set_copy_protected":
 { Args: { "request": Json }; Returns: Json
