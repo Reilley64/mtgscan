@@ -5,9 +5,9 @@ import { createClient } from '@supabase/supabase-js';
 import type { CardCondition, CopyProtectedRequest, ScanBatch, UserTag } from '../collection';
 import type { Finish } from '../search';
 import type { Database, Json } from '../database.types';
-import { isLocalStack, localSupabaseUrl, testUser } from './account';
+import { isHostedTestUserPassword, isLocalStack, localSupabaseUrl, testUser } from './account';
 
-const usage = 'Usage: bun test-user/main.ts [--sample-collection]';
+const usage = 'Usage: bun test-user/main.ts [--hosted] [--sample-collection]';
 const sampleCollectionEntries = 30;
 const sampleUserTags = [
   { name: 'Signed', copies: 1 },
@@ -18,25 +18,46 @@ const usersPerPage = 1000;
 
 const { values } = parseArgs({
   args: Bun.argv.slice(2),
-  options: { 'sample-collection': { type: 'boolean', default: false } },
+  options: {
+    hosted: { type: 'boolean', default: false },
+    'sample-collection': { type: 'boolean', default: false },
+  },
 });
 
 const url = process.env.SUPABASE_URL ?? localSupabaseUrl;
 const secretKey = process.env.SUPABASE_SECRET_KEY;
 
-if (!isLocalStack(url)) {
-  console.error(`The test user is only for local Supabase. Set SUPABASE_URL to the local stack, such as ${localSupabaseUrl}.`);
-  process.exit(2);
+function testUserPassword(): string {
+  if (!values.hosted) {
+    if (!isLocalStack(url)) {
+      console.error(`The test user is only for local Supabase. Set SUPABASE_URL to the local stack, such as ${localSupabaseUrl}.`);
+      console.error('Use --hosted for the hosted test user.');
+      process.exit(2);
+    }
+    return testUser.password;
+  }
+  const password = process.env.EXPO_PUBLIC_TEST_USER_PASSWORD;
+  if (!isHostedTestUserPassword(password)) {
+    console.error(
+      'Set EXPO_PUBLIC_TEST_USER_PASSWORD to the hosted test user password from ~/.config/mtgscan/test-app.env. The local default password is refused.',
+    );
+    console.error(usage);
+    process.exit(2);
+  }
+  return password;
 }
+
+const account = { email: testUser.email, password: testUserPassword() };
+
 if (!secretKey) {
   console.error('Set SUPABASE_SECRET_KEY to the SECRET_KEY value from `bunx supabase@2.120.0 status -o env`.');
   console.error(usage);
   process.exit(2);
 }
 
-type LocalClient = ReturnType<typeof localClient>;
+type Client = ReturnType<typeof newClient>;
 
-function localClient() {
+function newClient() {
   return createClient<Database>(url, secretKey!, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
@@ -45,7 +66,7 @@ function fail(action: string, message: string): never {
   process.exit(1);
 }
 
-async function existingTestUser(admin: LocalClient) {
+async function existingTestUser(admin: Client) {
   for (let page = 1; ; page += 1) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: usersPerPage });
     if (error) {
@@ -58,7 +79,7 @@ async function existingTestUser(admin: LocalClient) {
   }
 }
 
-async function removeTestUser(admin: LocalClient) {
+async function removeTestUser(admin: Client) {
   const user = await existingTestUser(admin);
   if (user) {
     const { error } = await admin.auth.admin.deleteUser(user.id);
@@ -68,8 +89,8 @@ async function removeTestUser(admin: LocalClient) {
   }
 }
 
-async function createTestUser(admin: LocalClient) {
-  const { error } = await admin.auth.admin.createUser({ ...testUser, email_confirm: true });
+async function createTestUser(admin: Client) {
+  const { error } = await admin.auth.admin.createUser({ ...account, email_confirm: true });
   if (error) {
     fail('Could not create the test user', error.message);
   }
@@ -85,7 +106,7 @@ function sampleFinish(finishes: Finish[], index: number): Finish {
   return finishes.includes('nonfoil') ? 'nonfoil' : finishes[0]!;
 }
 
-async function samplePrintings(admin: LocalClient) {
+async function samplePrintings(admin: Client) {
   const printings = () =>
     admin.from('card_printings').select('id, finishes').is('absent_since', null).in('rarity', ['uncommon', 'rare', 'mythic']).order('id');
   const [etched, others] = await Promise.all([
@@ -103,7 +124,7 @@ async function samplePrintings(admin: LocalClient) {
   );
 }
 
-async function sampleScanBatch(admin: LocalClient): Promise<ScanBatch> {
+async function sampleScanBatch(admin: Client): Promise<ScanBatch> {
   const data = await samplePrintings(admin);
   if (data.length === 0) {
     fail('Could not add sample collection entries', 'The card catalog is empty. Import it first, as docs/agents/local-development.md says.');
@@ -119,10 +140,10 @@ async function sampleScanBatch(admin: LocalClient): Promise<ScanBatch> {
   };
 }
 
-async function addSampleCollection(admin: LocalClient) {
+async function addSampleCollection(admin: Client) {
   const batch = await sampleScanBatch(admin);
-  const testUserClient = localClient();
-  const { error: signInError } = await testUserClient.auth.signInWithPassword(testUser);
+  const testUserClient = newClient();
+  const { error: signInError } = await testUserClient.auth.signInWithPassword(account);
   if (signInError) {
     fail('Could not sign in as the test user', signInError.message);
   }
@@ -140,7 +161,7 @@ async function addSampleCollection(admin: LocalClient) {
   await addSampleUserTags(testUserClient, batch.items.map((item) => item.copy_ids[0]!));
 }
 
-async function addSampleUserTags(testUserClient: LocalClient, copyIds: string[]) {
+async function addSampleUserTags(testUserClient: Client, copyIds: string[]) {
   for (const { name, copies } of sampleUserTags) {
     const { data, error } = await testUserClient.rpc('create_user_tag', { request: { name } });
     if (error) {
@@ -159,7 +180,7 @@ async function addSampleUserTags(testUserClient: LocalClient, copyIds: string[])
   console.log(`Added ${sampleUserTags.length} sample user tags.`);
 }
 
-const admin = localClient();
+const admin = newClient();
 await removeTestUser(admin);
 await createTestUser(admin);
 console.log(`The test user ${testUser.email} is ready.`);
