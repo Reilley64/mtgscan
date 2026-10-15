@@ -124,7 +124,7 @@ async function storedEvaluationRows(deckId: string) {
   );
 }
 
-describe('the judge', () => {
+describe('deck validity', () => {
   test.each<[number, unknown[]]>([
     [87, [deckSize(87, 'Add 13 cards.')]],
     [99, [deckSize(99, 'Add 1 card.')]],
@@ -171,7 +171,7 @@ describe('the judge', () => {
     expect(await evaluationOf(user, deckId)).toMatchObject({ validity: 'invalid', violations: [noCommander] });
   });
 
-  test('a deck evaluation keeps the deck revision it judged and the snapshot time of the card catalog', async () => {
+  test('a deck evaluation keeps the deck revision it judged and the time of the rules data it read', async () => {
     const user = await signUpNewUser();
     const { deckId } = await deckWithCommander(user);
 

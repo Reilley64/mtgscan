@@ -30,7 +30,7 @@ export function DeckValidityContent({ evaluation, onOpenRules }: DeckValidityCon
         />
       ))}
       {evaluation.undetermined.map((check) => (
-        <RuleRow key={check.rule} tone="warning" rule={ruleNames[check.rule]} message={check.reason} cards={check.cards.map(cardChipOf)} />
+        <RuleRow key={`${check.rule} ${check.reason}`} tone="warning" rule={ruleNames[check.rule]} message={check.reason} cards={check.cards.map(cardChipOf)} />
       ))}
       {evaluation.validity === 'valid' ? <Text>This deck follows the Commander rules.</Text> : null}
       {evaluation.validity_rules_data_at ? (
