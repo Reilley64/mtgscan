@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
+import type { DeckConstructionFields } from '../import/deck-construction';
 import {
   type FixtureChanges,
   catalogFixture,
@@ -41,6 +42,24 @@ async function card(name: string) {
   return data!;
 }
 
+
+const plainDeckConstructionFields: DeckConstructionFields = {
+  has_partner: false,
+  partner_text: null,
+  partner_with_name: null,
+  has_choose_a_background: false,
+  has_doctors_companion: false,
+  commander_chooses_a_color: false,
+  copy_limit: 'one',
+  copy_limit_number: null,
+};
+
+function deckConstructionFieldsOf(row: DeckConstructionFields): DeckConstructionFields {
+  return Object.fromEntries(
+    Object.keys(plainDeckConstructionFields).map((field) => [field, row[field as keyof DeckConstructionFields]]),
+  ) as DeckConstructionFields;
+}
+
 async function catalogFreshness(client: AppClient = alice.client) {
   const { data, error } = await client.rpc('catalog_freshness');
   expect(error).toBeNull();
@@ -65,9 +84,9 @@ describe('after one catalog import', () => {
   });
 
   test('every paper card, card face, and card printing is in the card catalog', async () => {
-    expect(await rowCount(alice.client, 'cards')).toBe(176);
-    expect(await rowCount(alice.client, 'card_faces')).toBe(186);
-    expect(await rowCount(alice.client, 'card_printings')).toBe(351);
+    expect(await rowCount(alice.client, 'cards')).toBe(205);
+    expect(await rowCount(alice.client, 'card_faces')).toBe(215);
+    expect(await rowCount(alice.client, 'card_printings')).toBe(380);
   });
 
   test('tokens, art series cards, and digital-only cards are left out', async () => {
@@ -112,6 +131,41 @@ describe('after one catalog import', () => {
     ['Lightning Bolt', false],
   ])('%s can be commander: %p', async (name, expected) => {
     expect((await card(name)).can_be_commander).toBe(expected);
+  });
+
+  test.each([
+    ['Tymna the Weaver', { has_partner: true }],
+    ['Sophina, Spearsage Deserter', { has_partner: true, partner_text: 'Friends forever' }],
+    ['Ellie, Brick Master', { has_partner: true, partner_text: 'Survivors' }],
+    ['Rory Williams', { partner_with_name: 'Amy Pond' }],
+    ['Amy Pond', { partner_with_name: 'Rory Williams', has_doctors_companion: true }],
+    ['Wilson, Refined Grizzly', { has_choose_a_background: true }],
+    ['Clara Oswald', { has_doctors_companion: true, commander_chooses_a_color: true }],
+    ['The Prismatic Piper', { has_partner: true, commander_chooses_a_color: true }],
+    ['Relentless Rats', { copy_limit: 'any_number' }],
+    ['Seven Dwarves', { copy_limit: 'number', copy_limit_number: 7 }],
+    ['Krenko, Mob Boss', {}],
+    ['Prism Ring', {}],
+    ['Forest', {}],
+    ['Sol, Advocate Eternal', { has_partner: null }],
+    ['An Unearthly Child', { has_doctors_companion: null }],
+    ['Tolabow, Loch Rascal', { commander_chooses_a_color: null, copy_limit: 'unknown' }],
+    ['Once More with Feeling', {}],
+  ] satisfies [string, Partial<DeckConstructionFields>][])(
+    '%s has the deck-construction fields that its Oracle text says',
+    async (name, fields) => {
+      expect(deckConstructionFieldsOf(await card(name))).toEqual({ ...plainDeckConstructionFields, ...fields });
+    },
+  );
+
+  test.each([
+    ['Dungeon Delver', 'Legendary Enchantment — Background'],
+    ['The Tenth Doctor', 'Legendary Creature — Time Lord Doctor'],
+    ['Snow-Covered Forest', 'Basic Snow Land — Forest'],
+    ['Snow-Covered Wastes', 'Basic Snow Land'],
+    ['Dryad Arbor', 'Land Creature — Forest Dryad'],
+  ])('%s keeps its type line, which names its Background, Time Lord Doctor, and basic land types', async (name, typeLine) => {
+    expect((await card(name)).type_line).toBe(typeLine);
   });
 
   test('a card keeps the release date of its earliest paper printing', async () => {
@@ -231,6 +285,45 @@ describe('catalog import runs', () => {
     });
   });
 
+  test('a later run reads the deck-construction fields again from changed Oracle text', async () => {
+    await expectImported(catalogFixtureManifest);
+    const changedText: Record<string, string> = {
+      'Krenko, Mob Boss': 'Partner—Survivors',
+      'Tymna the Weaver': 'You can have Tymna and a partner with any name as commanders.',
+      'Wilson, Refined Grizzly': 'Choose a Background or a Doctor',
+      'Clara Oswald': "Doctor's companion or partner with a Doctor",
+      'The Prismatic Piper': 'If The Prismatic Piper is your commander, choose a color of your choice.',
+      'Relentless Rats': 'A deck can have up to seven cards named Relentless Rats.',
+      'Seven Dwarves': 'A deck can have up to eleven cards named Seven Dwarves.',
+    };
+
+    await expectImported(
+      await catalogFixture({
+        updatedAt: laterSnapshotAt,
+        oracleCards: (records) =>
+          records.map((record) =>
+            record.name! in changedText ? { ...record, oracle_text: changedText[record.name!] } : record,
+          ),
+      }),
+    );
+
+    expect(
+      Object.fromEntries(
+        await Promise.all(
+          Object.keys(changedText).map(async (name) => [name, deckConstructionFieldsOf(await card(name))]),
+        ),
+      ),
+    ).toEqual({
+      'Krenko, Mob Boss': { ...plainDeckConstructionFields, has_partner: true, partner_text: 'Survivors' },
+      'Tymna the Weaver': { ...plainDeckConstructionFields, has_partner: null },
+      'Wilson, Refined Grizzly': { ...plainDeckConstructionFields, has_choose_a_background: null },
+      'Clara Oswald': { ...plainDeckConstructionFields, has_partner: null, has_doctors_companion: null },
+      'The Prismatic Piper': { ...plainDeckConstructionFields, commander_chooses_a_color: null },
+      'Relentless Rats': { ...plainDeckConstructionFields, copy_limit: 'number', copy_limit_number: 7 },
+      'Seven Dwarves': { ...plainDeckConstructionFields, copy_limit: 'unknown' },
+    });
+  });
+
   test('a card that returns is present again', async () => {
     await expectImported(catalogFixtureManifest);
     await expectImported(await catalogFixture({ ...withoutCards(['Shock']), updatedAt: laterSnapshotAt }));
@@ -282,8 +375,8 @@ describe('catalog import runs', () => {
     expect(run.status).toBe('failed');
     expect(run.failure_reason).toContain(reason);
     sameTime((await catalogFreshness()).snapshot_at, catalogFixtureSnapshotAt);
-    expect(await rowCount(alice.client, 'cards')).toBe(176);
-    expect(await rowCount(alice.client, 'card_printings')).toBe(351);
+    expect(await rowCount(alice.client, 'cards')).toBe(205);
+    expect(await rowCount(alice.client, 'card_printings')).toBe(380);
     expect((await card('Fog')).absent_since).toBeNull();
   });
 
@@ -312,7 +405,7 @@ describe('catalog import runs', () => {
 
     expect(result.output).toContain('Skipped');
     expect((await latestRun('catalog')).status).toBe('skipped');
-    expect(await rowCount(alice.client, 'cards')).toBe(176);
+    expect(await rowCount(alice.client, 'cards')).toBe(205);
     expect((await catalogFreshness()).succeeded_at).toBe(before.succeeded_at);
   });
 
@@ -349,7 +442,7 @@ describe('catalog import runs', () => {
 
     const { data } = await importKeyClient.from('import_runs').select('status').eq('id', staleRun!.id).single();
     expect(data!.status).toBe('expired');
-    expect(await rowCount(alice.client, 'cards')).toBe(176);
+    expect(await rowCount(alice.client, 'cards')).toBe(205);
   });
 
   test("an import run leaves the user's profile unchanged", async () => {

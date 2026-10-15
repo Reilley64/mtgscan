@@ -1,4 +1,5 @@
 import type { Database } from '../database.types';
+import { deckConstructionFields } from './deck-construction';
 import type { ImportAdapter, StagedRow } from './import-run';
 import {
   type BulkFile,
@@ -67,6 +68,7 @@ function cardRows(card: ScryfallCard): StagedRow[] {
         commander_legality: commanderLegality(card.legalities?.commander),
         is_game_changer: card.game_changer ?? null,
         can_be_commander: canBeCommander(faces[0]!),
+        ...deckConstructionFields(card),
       },
     },
     ...faces.map((face, faceIndex) => ({

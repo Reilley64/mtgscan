@@ -4,7 +4,7 @@ import type { CollectionCopyRow, UserTagList } from '../collection';
 import type { Deck, DeckChangePage, DeckList } from '../decks';
 import type { SearchPage } from '../search';
 import { testUser } from '../test-user/account';
-import { catalogFixture, resetCardCatalog, runCatalogImport, runTestUserCommand, withBasicLands } from './catalog-import-command';
+import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runTestUserCommand } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, type AppClient } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -91,8 +91,7 @@ describe('the test user command', () => {
   });
 
   test('--sample-collection adds sample collection entries to the test user through add_scan_batch', async () => {
-    const manifest = await catalogFixture({ oracleCards: withBasicLands, defaultCards: withBasicLands });
-    expect((await runCatalogImport(manifest)).exitCode).toBe(0);
+    expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 
     const { exitCode, output } = await runTestUserCommand(['--sample-collection']);
 
@@ -117,11 +116,11 @@ describe('the test user command', () => {
     const { exitCode, output } = await runTestUserCommand(['--sample-collection']);
 
     expect(exitCode).toBe(0);
-    expect(output).toContain('Added a sample deck with 2 commanders, 10 main deck cards, 10 basic lands, and 17 deck changes.');
+    expect(output).toContain('Added a sample deck with 2 commanders, 10 main deck cards, 16 basic lands, and 17 deck changes.');
     const client = await signedInTestUser();
     const [row, ...otherDecks] = await decks(client);
     expect(otherDecks).toEqual([]);
-    expect(row!.card_count).toBe(22);
+    expect(row!.card_count).toBe(28);
     const deck = await deckOf(client, row!.deck_id);
     const commanders = deck.cards.filter((card) => card.role === 'commander');
     expect(commanders).toHaveLength(2);
@@ -130,6 +129,7 @@ describe('the test user command', () => {
     expect(deck.cards.filter((card) => card.role === 'main')).toHaveLength(10);
     expect(deck.cards.some((card) => card.protected)).toBe(false);
     expect(deck.basic_lands.filter((land) => land.count > 0).map(({ name, count }) => ({ name, count }))).toEqual([
+      { name: 'Island', count: 6 },
       { name: 'Forest', count: 8 },
       { name: 'Snow-Covered Forest', count: 2 },
     ]);

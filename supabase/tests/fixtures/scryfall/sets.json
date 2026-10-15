@@ -4,6 +4,14 @@
   "data": [
     {
       "object": "set",
+      "code": "mdd",
+      "name": "Marvel: Darkhold Destiny",
+      "set_type": "expansion",
+      "released_at": "2027-04-09",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/mdd.svg?1791777600"
+    },
+    {
+      "object": "set",
       "code": "mbc",
       "name": "Mystery Booster Commander Edition",
       "set_type": "draft_innovation",
@@ -539,6 +547,15 @@
     },
     {
       "object": "set",
+      "code": "slx",
+      "name": "Universes Within",
+      "set_type": "masters",
+      "released_at": "2022-03-03",
+      "parent_set_code": "sld",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/star.svg?1791777600"
+    },
+    {
+      "object": "set",
       "code": "neo",
       "name": "Kamigawa: Neon Dynasty",
       "set_type": "expansion",
@@ -620,6 +637,14 @@
       "set_type": "masters",
       "released_at": "2021-03-19",
       "icon_svg_uri": "https://svgs.scryfall.io/sets/tsr.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "khm",
+      "name": "Kaldheim",
+      "set_type": "expansion",
+      "released_at": "2021-02-05",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/khm.svg?1791777600"
     },
     {
       "object": "set",
@@ -746,6 +771,14 @@
     },
     {
       "object": "set",
+      "code": "ph18",
+      "name": "2018 Heroes of the Realm",
+      "set_type": "funny",
+      "released_at": "2019-08-01",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/star.svg?1791777600"
+    },
+    {
+      "object": "set",
       "code": "m20",
       "name": "Core Set 2020",
       "set_type": "core",
@@ -816,6 +849,14 @@
       "set_type": "draft_innovation",
       "released_at": "2018-06-08",
       "icon_svg_uri": "https://svgs.scryfall.io/sets/bbd.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "a25",
+      "name": "Masters 25",
+      "set_type": "masters",
+      "released_at": "2018-03-16",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/a25.svg?1791777600"
     },
     {
       "object": "set",
@@ -1308,6 +1349,14 @@
       "set_type": "expansion",
       "released_at": "1998-10-12",
       "icon_svg_uri": "https://svgs.scryfall.io/sets/usg.svg?1791777600"
+    },
+    {
+      "object": "set",
+      "code": "ugl",
+      "name": "Unglued",
+      "set_type": "funny",
+      "released_at": "1998-08-11",
+      "icon_svg_uri": "https://svgs.scryfall.io/sets/ugl.svg?1791777600"
     },
     {
       "object": "set",

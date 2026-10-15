@@ -4,12 +4,12 @@ import { type CardCondition, type CardLanguage, type CollectionRow } from '../co
 import type { Json } from '../database.types';
 import type { Finish, SearchPage } from '../search';
 import {
-  basicLands,
+  basicLand,
   catalogFixture,
+  catalogFixtureManifest,
   resetCardCatalog,
   runCatalogImport,
   runPriceImport,
-  withBasicLands,
 } from './catalog-import-command';
 import { seedCopies, seededCollectionEntryKey } from './copy-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
@@ -24,7 +24,9 @@ const ribbonsOfNight = '010eba83-30ec-4cca-b07e-f24d8d2f0787';
 const strongholdRatsWithoutPrice = '86cdaa71-b605-42f8-97e2-1a2569840f57';
 const unknownPrinting = '00000000-0000-4000-8000-000000000000';
 
-const [forest, wastes, snowCoveredForest] = basicLands.map((land) => land.id) as [string, string, string];
+const [forest, wastes, snowCoveredForest] = ['Forest', 'Wastes', 'Snow-Covered Forest'].map(
+  (name) => basicLand(name).id,
+) as [string, string, string];
 
 type EntryRow = {
   card_printing_id: string;
@@ -121,14 +123,12 @@ async function pricesSnapshotAt() {
 
 let alice: TestUser;
 let bob: TestUser;
-let manifest: string;
 
 beforeAll(async () => {
   [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
   await resetCardCatalog();
-  manifest = await catalogFixture({ oracleCards: withBasicLands, defaultCards: withBasicLands });
-  expect((await runCatalogImport(manifest)).exitCode).toBe(0);
-  expect((await runPriceImport(manifest)).exitCode).toBe(0);
+  expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
+  expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
 describe('committing a scan batch', () => {
@@ -698,11 +698,7 @@ describe('access', () => {
   test('an import run leaves collection entries and additions unchanged', async () => {
     const before = await collectionOf(alice);
 
-    const later = await catalogFixture({
-      oracleCards: withBasicLands,
-      defaultCards: withBasicLands,
-      updatedAt: '2026-10-22T21:00:00.000+00:00',
-    });
+    const later = await catalogFixture({ updatedAt: '2026-10-22T21:00:00.000+00:00' });
     expect((await runCatalogImport(later)).exitCode).toBe(0);
     expect((await runPriceImport(later)).exitCode).toBe(0);
 
