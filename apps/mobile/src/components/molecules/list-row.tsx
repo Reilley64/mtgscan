@@ -12,14 +12,15 @@ const rowClass = 'flex-row items-center gap-md p-sm';
 type ListRowProps = {
   title: string;
   detail?: string;
+  spokenBefore?: string;
   trailing?: { content: ReactNode; spoken: string };
 } & (
   | { leading?: ReactNode; checked?: never; onPress?: () => void; menu?: never }
   | { leading?: never; checked: boolean; onPress: () => void; menu?: ReactNode }
 );
 
-export function ListRow({ title, detail, trailing, menu, leading, checked, onPress }: ListRowProps) {
-  const label = [title, detail, trailing?.spoken].filter(Boolean).join(', ');
+export function ListRow({ title, detail, spokenBefore, trailing, menu, leading, checked, onPress }: ListRowProps) {
+  const label = [spokenBefore, title, detail, trailing?.spoken].filter(Boolean).join(', ');
   const checkRow = checked !== undefined;
   const content = (
     <>

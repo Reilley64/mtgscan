@@ -61,6 +61,49 @@ export type CopyDeck = CopyRowDeck & {
   commander_count: number;
 };
 
+export type DeckChangeKind = Database['public']['Enums']['deck_change_kind'];
+
+export type DeckChangesQuery = {
+  deck_id: string;
+  cursor?: string | null;
+  limit?: number;
+};
+
+export type DeckChangeCopyLine = {
+  kind: 'copy';
+  copy_id: string;
+  name: string;
+  image_uris: string[];
+  type_line: string;
+  place_before: DeckRole | null;
+  place_after: DeckRole | null;
+};
+
+export type DeckChangeBasicLandLine = {
+  kind: 'basic_land';
+  oracle_id: string;
+  name: string;
+  image_uris: string[];
+  count_before: number;
+  count_after: number;
+};
+
+export type DeckChangeLine = DeckChangeCopyLine | DeckChangeBasicLandLine;
+
+export type DeckChange = {
+  deck_change_id: string;
+  revision: number;
+  kind: DeckChangeKind;
+  changed_at: string;
+  reverted: boolean;
+  lines: DeckChangeLine[];
+};
+
+export type DeckChangePage = {
+  items: DeckChange[];
+  next_cursor: string | null;
+};
+
 export type CreateDeckRequest = {
   name: string;
 };
@@ -129,6 +172,7 @@ export type RemovedDeckCard = AddedDeckCard;
 
 export type DeckErrorCode =
   | 'invalid_argument'
+  | 'invalid_cursor'
   | 'not_found'
   | 'copy_not_free'
   | 'copy_protected'

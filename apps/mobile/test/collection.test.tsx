@@ -5,7 +5,7 @@ import { processColor } from 'react-native';
 import {
   answerCollectionSearches,
   collectionSearchesSent,
-  expireCollectionSearchCursors,
+  expirePageCursors,
   failCollectionReads,
   holdCollectionReads,
   ownCollectionCopies,
@@ -320,7 +320,7 @@ test('the binder grid loads more tiles as the user scrolls', async () => {
 test('when its cursor has expired, the binder grid starts its read again, so scrolling loads more tiles', async () => {
   ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
   const collection = await openCollection();
-  expireCollectionSearchCursors();
+  expirePageCursors();
 
   await scrollToEnd(selectedTab());
   await scrollToEnd(selectedTab());

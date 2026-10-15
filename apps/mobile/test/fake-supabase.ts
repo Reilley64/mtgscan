@@ -33,6 +33,8 @@ import type {
   Deck,
   DeckBasicLand,
   DeckCard,
+  DeckChange,
+  DeckChangesQuery,
   DeckQuery,
   DeleteDeckRequest,
   MarkDeckUsedRequest,
@@ -83,6 +85,8 @@ let deckClock = 0;
 let deckWrites: { name: string; request: object }[] = [];
 let failingDeckReads = 0;
 let failingDeckWrites = 0;
+let deckChanges = new Map<string, DeckChange[]>();
+let failingDeckChangeReads = 0;
 const emptyCollectionTotal: CollectionTotal = {
   total: '0.00',
   currency: 'USD',
@@ -462,6 +466,28 @@ function deckRead({ deck_id }: DeckQuery) {
   }
   const deck = decks.find((candidate) => candidate.deck_id === deck_id);
   return deck ? { data: deck, error: null } : deckNotFound;
+}
+
+const deckChangePageSize = 20;
+
+function deckChangeList({ deck_id, cursor }: DeckChangesQuery) {
+  if (failingDeckChangeReads > 0) {
+    failingDeckChangeReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  if (!decks.some((deck) => deck.deck_id === deck_id)) {
+    return deckNotFound;
+  }
+  const [generation, offset] = cursor ? cursor.split(':').map(Number) : [cursorGeneration, 0];
+  if (generation !== cursorGeneration) {
+    return { data: null, error: expiredCursor };
+  }
+  const changes = deckChanges.get(deck_id) ?? [];
+  const end = offset + deckChangePageSize;
+  return {
+    data: { items: changes.slice(offset, end), next_cursor: end < changes.length ? `${cursorGeneration}:${end}` : null },
+    error: null,
+  };
 }
 
 function createDeck(request: CreateDeckRequest) {
@@ -845,6 +871,7 @@ export const fakeSupabase = {
       | { query: CollectionQuery }
       | { query: CopyQuery }
       | { query: DeckQuery }
+      | { query: DeckChangesQuery }
       | { query: Record<string, never> }
       | { query: CurrentPricesQuery }
       | { query: { text: string; limit: number } }
@@ -873,6 +900,9 @@ export const fakeSupabase = {
     }
     if (name === 'get_deck' && args && 'query' in args) {
       return deckRead(args.query as DeckQuery);
+    }
+    if (name === 'list_deck_changes' && args && 'query' in args) {
+      return deckChangeList(args.query as DeckChangesQuery);
     }
     if (name === 'create_deck' && args && 'request' in args) {
       return createDeck(args.request as CreateDeckRequest);
@@ -1079,6 +1109,14 @@ export function ownDeckOfCopies(name: string, copies: CopyDetails[]) {
   ownCopies(copies.map((copy) => ({ ...copy, free: false, deck: { deck_id: 'deck-1', name, role: 'main', commander_art_crop_uri: null, commander_count: 0 } })));
 }
 
+export function ownDeckChanges(deckId: string, changes: DeckChange[]) {
+  deckChanges = new Map(deckChanges).set(deckId, changes);
+}
+
+export function failDeckChangeReads(count: number) {
+  failingDeckChangeReads = count;
+}
+
 export function allocateCopyElsewhere(copyId: string) {
   copyDetails.set(copyId, { ...copyDetails.get(copyId)!, free: false });
 }
@@ -1176,7 +1214,7 @@ export function collectionSearchesSent() {
   return collectionSearches;
 }
 
-export function expireCollectionSearchCursors() {
+export function expirePageCursors() {
   cursorGeneration += 1;
 }
 
@@ -1249,6 +1287,8 @@ export function resetFakeSupabase() {
   deckWrites = [];
   failingDeckReads = 0;
   failingDeckWrites = 0;
+  deckChanges = new Map();
+  failingDeckChangeReads = 0;
   collectionTotal = emptyCollectionTotal;
   priceReads = [];
   exchangeRates = exchangeRatesOf(frankfurterCurrencies);

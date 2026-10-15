@@ -34,6 +34,7 @@ import { CardHero } from '@/components/molecules/card-hero';
 import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
+import { ChangeLine } from '@/components/molecules/change-line';
 import { CommanderCard, CommanderGalleryCard } from '@/components/molecules/commander-card';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
@@ -658,6 +659,16 @@ function CommanderCards() {
   );
 }
 
+function ChangeLines() {
+  return (
+    <Section title="Change lines">
+      <ChangeLine direction="incoming" uri={solRing} name="Sol Ring" detail="Artifact" />
+      <ChangeLine direction="outgoing" uri={solRing} name="Sol Ring" detail="Commander" />
+      <ChangeLine direction="incoming" uri={solRing} name="Snow-Covered Island" detail="+2" />
+    </Section>
+  );
+}
+
 function SwipeToConfirms() {
   return (
     <Section title="Swipe to confirm">
@@ -734,6 +745,7 @@ export function PrimitiveCatalog() {
         <NameAlerts />
         <CommanderCards />
         <DeckTags />
+        <ChangeLines />
         <SwipeToConfirms />
         <EmptyStates />
         <Section title="Drawer sheet">
