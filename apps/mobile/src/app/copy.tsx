@@ -1,3 +1,4 @@
+import type { CopyDeck } from '@mtgscan/supabase/decks';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { Alert, View } from 'react-native';
@@ -62,8 +63,11 @@ export default function CopyScreen() {
     ]);
   }
 
-  function confirmDelete() {
-    Alert.alert('Delete this copy?', 'It leaves your collection with its user tags. This cannot be undone.', [
+  function confirmDelete(deck: CopyDeck | null) {
+    const message = deck
+      ? `It leaves ${deck.name} and your collection, with its user tags. This cannot be undone.`
+      : 'It leaves your collection with its user tags. This cannot be undone.';
+    Alert.alert('Delete this copy?', message, [
       { text: 'Delete copy', style: 'destructive', onPress: deleteThisCopy },
       { text: 'Cancel', style: 'cancel' },
     ]);
@@ -85,7 +89,7 @@ export default function CopyScreen() {
               onAddToDeck: () => addToDeck(read.copy.protected),
               onSetCommander: (action) => applyCommanderAction(copyId, action, reload),
               onRemoveFromDeck: () => removeFromDeck(copyId, reload),
-              onDelete: confirmDelete,
+              onDelete: () => confirmDelete(read.copy.deck),
             })}
           </Stack.Toolbar>
           <CopyPageContent
