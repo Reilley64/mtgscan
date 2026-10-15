@@ -654,26 +654,23 @@ export function splitColorsBehind(glyph: HostElement) {
   return [];
 }
 
-export function widthsAround(element: HostElement) {
-  const widths: number[] = [];
+function sizesAround(element: HostElement, dimension: 'width' | 'height') {
+  const sizes: number[] = [];
   for (let candidate = element.parent; candidate; candidate = candidate.parent) {
-    const width = StyleSheet.flatten(candidate.props.style)?.width;
-    if (typeof width === 'number') {
-      widths.push(width);
+    const size = StyleSheet.flatten(candidate.props.style)?.[dimension];
+    if (typeof size === 'number') {
+      sizes.push(size);
     }
   }
-  return widths;
+  return sizes;
+}
+
+export function widthsAround(element: HostElement) {
+  return sizesAround(element, 'width');
 }
 
 export function heightsAround(element: HostElement) {
-  const heights: number[] = [];
-  for (let candidate = element.parent; candidate; candidate = candidate.parent) {
-    const height = StyleSheet.flatten(candidate.props.style)?.height;
-    if (typeof height === 'number') {
-      heights.push(height);
-    }
-  }
-  return heights;
+  return sizesAround(element, 'height');
 }
 
 export function placeInScrollView(element: HostElement) {

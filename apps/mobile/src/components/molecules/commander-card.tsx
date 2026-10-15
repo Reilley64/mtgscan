@@ -1,7 +1,7 @@
 import type { DeckCommander } from '@mtgscan/supabase/decks';
 import { cva } from 'class-variance-authority';
 import { Image } from 'expo-image';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Chip } from '@/components/atoms/chip';
@@ -34,7 +34,7 @@ function CommanderArt({ uri }: { uri: string | null }) {
   );
 }
 
-function SecondCommanderAvatar({ commander, size }: { commander: DeckCommander; size: 'row' | 'banner' }) {
+function SecondCommanderAvatar({ commander, size }: { commander: DeckCommander; size: ComponentProps<typeof CommanderAvatar>['size'] }) {
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <CommanderAvatar uri={commander.art_crop_uri} size={size} />
@@ -63,7 +63,7 @@ type CommanderCardProps = {
   commanders: DeckCommander[];
 };
 
-export function CommanderCard({ name, chips, commanders }: CommanderCardProps) {
+function CommanderCard({ name, chips, commanders }: CommanderCardProps) {
   const [commander, secondCommander] = commanders;
   return (
     <View className={cardFrameVariants({ ghost: !commander })}>
@@ -83,7 +83,7 @@ export function DeckBanner({ name, chips, commanders }: CommanderCardProps) {
   return (
     <View className={bannerVariants({ ghost: !commander })}>
       {commander ? <CommanderArt uri={commander.art_crop_uri} /> : null}
-      <View className="h-deck-banner flex-row items-end gap-md px-lg pb-md">
+      <View className="h-deck-banner flex-row items-end gap-md p-lg">
         <View className="flex-1 gap-sm">
           <DeckTitle name={name} chips={chips} />
         </View>

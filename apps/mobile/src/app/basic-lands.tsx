@@ -1,7 +1,7 @@
 import type { Deck } from '@mtgscan/supabase/decks';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
@@ -9,6 +9,7 @@ import { SaveBar } from '@/components/molecules/save-bar';
 import { StepperRow } from '@/components/molecules/stepper-row';
 import { DrawerSheet } from '@/components/templates/drawer-sheet';
 import { basicLandCountLimit, catalogBasicLands, changedBasicLands, draftCount, type BasicLandDraft } from '@/decks/basic-lands';
+import { showDeckWriteResult } from '@/decks/deck-write-result';
 import { setBasicLands } from '@/decks/deck-writes';
 import { useDeck } from '@/decks/use-deck';
 
@@ -20,15 +21,12 @@ export default function BasicLandsDrawer() {
 
   async function save(deck: Deck) {
     setSaving(true);
-    const result = await setBasicLands({ deck_id: deckId, counts: changedBasicLands(deck.basic_lands, draft) });
+    await showDeckWriteResult(
+      setBasicLands({ deck_id: deckId, counts: changedBasicLands(deck.basic_lands, draft) }),
+      'Could not save the basic lands',
+      router.back,
+    );
     setSaving(false);
-    if (result === 'failed') {
-      Alert.alert('Could not save the basic lands', 'Check your connection.');
-    } else if (result === 'missing') {
-      router.dismissTo('/decks');
-    } else {
-      router.back();
-    }
   }
 
   return (

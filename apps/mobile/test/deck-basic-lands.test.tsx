@@ -46,9 +46,9 @@ async function openDeck(counts: Record<string, number>, cardCount = Object.value
   return deck;
 }
 
-type Screen = Awaited<ReturnType<typeof openDeck>>;
+type Queries = Awaited<ReturnType<typeof openDeck>>;
 
-async function openBasicLandsDrawer(deck: Screen) {
+async function openBasicLandsDrawer(deck: Queries) {
   await fireEvent.press(deck.getByRole('button', { name: 'Edit' }));
   const drawer = within(presentedDrawerContent());
   await drawer.findByRole('header', { name: 'Basic lands' });
@@ -59,13 +59,13 @@ function basicLandsSent() {
   return deckWritesSent().flatMap(({ name, request }) => (name === 'set_basic_lands' ? [request] : []));
 }
 
-async function step(drawer: Screen, label: string, times = 1) {
+async function step(drawer: Queries, label: string, times = 1) {
   for (let press = 0; press < times; press += 1) {
     await fireEvent.press(drawer.getByRole('button', { name: label }));
   }
 }
 
-function headers(deck: Screen) {
+function headers(deck: Queries) {
   return deck.getAllByRole('header').map((header) => header.props.accessibilityLabel ?? header.props.children);
 }
 

@@ -16,11 +16,11 @@ import { PushedScreen } from '@/components/templates/pushed-screen';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
 import { cardCountLabel, deckChips } from '@/decks/deck-labels';
+import { backToGallery, showDeckWriteResult } from '@/decks/deck-write-result';
 import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
 import { removeFromDeck } from '@/decks/remove-from-deck';
 import { useDeck } from '@/decks/use-deck';
 import { useDeckChanges } from '@/decks/use-deck-changes';
-import type { WriteResult } from '@/lib/write-result';
 import { colors } from '@/theme';
 
 const deckTabs = ['cards', 'history'] as const;
@@ -45,21 +45,6 @@ function openRevert(deck: Deck, change: DeckChange) {
   });
 }
 
-function backToGallery() {
-  router.dismissTo('/decks');
-}
-
-async function showWriteResult(write: Promise<WriteResult>, failureTitle: string, onDone: () => void) {
-  const result = await write;
-  if (result === 'failed') {
-    Alert.alert(failureTitle, 'Check your connection.');
-  } else if (result === 'missing') {
-    backToGallery();
-  } else {
-    onDone();
-  }
-}
-
 export default function DeckScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const { read, reload } = useDeck(deckId);
@@ -74,15 +59,15 @@ export default function DeckScreen() {
   }, [deckId]);
 
   function rename(name: string) {
-    return showWriteResult(renameDeck(deckId, name), 'Could not rename this deck', reload);
+    return showDeckWriteResult(renameDeck(deckId, name), 'Could not rename this deck', reload);
   }
 
   function changePriority(priority: DeckPriority) {
-    return showWriteResult(setDeckPriority(deckId, priority), 'Could not change the deck priority', reload);
+    return showDeckWriteResult(setDeckPriority(deckId, priority), 'Could not change the deck priority', reload);
   }
 
   function deleteThisDeck() {
-    return showWriteResult(deleteDeck(deckId), 'Could not delete this deck', backToGallery);
+    return showDeckWriteResult(deleteDeck(deckId), 'Could not delete this deck', backToGallery);
   }
 
   function menuActionsOf(deck: Deck) {

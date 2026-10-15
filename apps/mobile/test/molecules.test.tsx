@@ -16,7 +16,7 @@ import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChangeLine } from '@/components/molecules/change-line';
-import { CommanderCard, CommanderGalleryCard, DeckBanner } from '@/components/molecules/commander-card';
+import { CommanderGalleryCard, DeckBanner } from '@/components/molecules/commander-card';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { DisclosureRow } from '@/components/molecules/disclosure-row';
@@ -1392,9 +1392,9 @@ const partnerCommanders = [
   { copy_id: 'kinnan', name: 'Kinnan', art_crop_uri: 'https://cards.scryfall.io/art_crop/front/kinnan.jpg' },
 ];
 
-describe('CommanderCard', () => {
-  test('a commander card with no commander is a 140 px ghost card with the name in card title type and its chips', async () => {
-    await render(<CommanderCard name="Atraxa" chips={['Medium priority', '62 cards']} commanders={[]} />);
+describe('CommanderGalleryCard', () => {
+  test('a commander gallery card with no commander is a 140 px ghost card with the name in card title type and its chips', async () => {
+    await render(<CommanderGalleryCard name="Atraxa" chips={['Medium priority', '62 cards']} commanders={[]} onPress={() => {}} />);
 
     const title = screen.getByRole('header', { name: 'Atraxa' });
     expect(title).toHaveStyle({ color: white, fontSize: 20, fontWeight: '800' });
@@ -1412,8 +1412,8 @@ describe('CommanderCard', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  test('a commander card shows the first commander as art under a fade, and the second as a 40 px avatar at the top right', async () => {
-    await render(<CommanderCard name="Atraxa" chips={['High priority', '2 cards']} commanders={partnerCommanders} />);
+  test('a commander gallery card shows the first commander as art under a fade, and the second as a 40 px avatar at the top right', async () => {
+    await render(<CommanderGalleryCard name="Atraxa" chips={['High priority', '2 cards']} commanders={partnerCommanders} onPress={() => {}} />);
 
     const frame = screen.getByRole('header', { name: 'Atraxa' }).parent!;
     expect(imageFrames(frame)).toEqual([
