@@ -88,7 +88,9 @@ describe('the History tab', () => {
   ])('the deck change kind %s reads "%s"', async (kind, name) => {
     const deck = await openHistory([deckChange(1, kind)]);
 
-    expect(await deck.findByText(name)).toBeOnTheScreen();
+    const texts = await deck.findAllByText(name);
+    const revertLabel = within(deck.getByRole('button', { name: 'Revert' })).getByText('Revert');
+    expect(texts.filter((text) => text !== revertLabel)).toHaveLength(1);
   });
 
   test('a copy that comes into the deck is a green + line, and one that leaves is a red − line, with the thumbnail, the name, and the type line', async () => {

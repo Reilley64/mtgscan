@@ -8,6 +8,7 @@ import {
   type MarkDeckUsedRequest,
   type RemoveDeckCardRequest,
   type RenameDeckRequest,
+  type RevertDeckChangesRequest,
   type SetBasicLandsRequest,
   type SetDeckCommanderRequest,
   type SetDeckPriorityRequest,
@@ -78,6 +79,16 @@ export async function removeDeckCard(copyId: string): Promise<WriteResult> {
   const { error } = await supabase.rpc('remove_deck_card', { request });
   if (error && readDeckError(error).code === 'copy_not_in_deck') {
     return 'missing';
+  }
+  return writeResultOf(error);
+}
+
+const outdatedPreviewCodes = ['stale_revision', 'revert_blocked', 'copy_protected'];
+
+export async function revertDeckChanges(request: RevertDeckChangesRequest): Promise<WriteResult | 'outdated'> {
+  const { error } = await supabase.rpc('revert_deck_changes', { request });
+  if (error && outdatedPreviewCodes.includes(readDeckError(error).code)) {
+    return 'outdated';
   }
   return writeResultOf(error);
 }

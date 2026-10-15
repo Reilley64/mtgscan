@@ -38,6 +38,12 @@ export const titledDrawerScreenOptions: NativeStackNavigationOptions = {
   headerTitleStyle: inlineTitleStyle,
 };
 
+export const pageSheetOptions: NativeStackNavigationOptions = {
+  ...titledDrawerScreenOptions,
+  presentation: 'pageSheet',
+  contentStyle: sheetBackground,
+};
+
 export const pushedDrawerScreenOptions: NativeStackNavigationOptions = {
   ...drawerHeaderOptions,
   title: '',

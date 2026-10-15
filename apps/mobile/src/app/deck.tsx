@@ -1,4 +1,4 @@
-import { deckNameLength, type Deck, type DeckCard, type DeckPriority } from '@mtgscan/supabase/decks';
+import { deckNameLength, type Deck, type DeckCard, type DeckChange, type DeckPriority } from '@mtgscan/supabase/decks';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -39,6 +39,13 @@ function deleteMessage(cardCount: number) {
 
 function openCard(card: DeckCard) {
   router.push({ pathname: '/copy', params: { copyId: card.copy_id } });
+}
+
+function openRevert(deck: Deck, change: DeckChange) {
+  router.push({
+    pathname: '/revert',
+    params: { deckId: deck.deck_id, deckName: deck.name, deckChangeId: change.deck_change_id, kind: change.kind, changeRevision: change.revision },
+  });
 }
 
 function backToGallery() {
@@ -179,7 +186,7 @@ export default function DeckScreen() {
               />
             ) : null}
             {tab === 'history' && history.status === 'loaded' ? (
-              <DeckHistory changes={history.changes} createdAt={read.deck.created_at} />
+              <DeckHistory changes={history.changes} createdAt={read.deck.created_at} onRevert={(change) => openRevert(read.deck, change)} />
             ) : null}
             {tab === 'history' && history.status === 'failed' ? (
               <ReadFailure illustration={<DashedCardFrame symbol="wifi.slash" />} title="Could not load this deck" onTryAgain={tryHistoryAgain} />

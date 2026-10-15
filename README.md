@@ -332,7 +332,7 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
   - A copy in no deck is refused with `copy_not_in_deck` on `copy_id`. Another user's copy is refused with `not_found` on `copy_id`.
 - `supabase.rpc('remove_deck_card', { request: { copy_id } })` takes the copy out of its deck with a `removed` deck change. The copy becomes free. It returns `deck_id` and the new `revision`.
   - A copy in no deck is refused with `copy_not_in_deck` on `copy_id`. Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist.
-- Each change to a deck's cards is one deck change. It locks the deck, raises the deck revision by one, and sets the last used time. `deck_changes` holds each deck change with its deck, its user, the `revision` it made, its `kind`, its `changed_at` time, and `reverted_by`, the revert that undid it, or null. Nothing reverts deck changes yet. `deck_change_lines` holds one line per copy that the deck change moved: the copy ID, its card printing, its finish, and its place before and after, `commander`, `main`, or null for out of the deck. A line keeps the card printing and finish so that it can still show the card after the copy is deleted. Deleting a deck deletes its deck changes.
+- Each change to a deck's cards is one deck change. It locks the deck, raises the deck revision by one, and sets the last used time. `deck_changes` holds each deck change with its deck, its user, the `revision` it made, its `kind`, its `changed_at` time, and `reverted_by`, the revert that undid it, or null. `deck_change_lines` holds one line per copy that the deck change moved: the copy ID, its card printing, its finish, and its place before and after, `commander`, `main`, or null for out of the deck. A line keeps the card printing and finish so that it can still show the card after the copy is deleted. Deleting a deck deletes its deck changes.
 - `supabase.rpc('set_basic_lands', { request: { deck_id, counts } })` sets basic land counts. `counts` lists up to twelve items, each with a basic land card's `oracle_id` and its new `count`, 0 to 99. It returns `deck_id` and the `revision`.
   - Only the twelve basic land cards are accepted. Any other card, a repeated card, or a count outside 0 to 99 is refused with `invalid_argument` on its item, such as `counts[1].oracle_id`.
   - A basic land card that the request leaves out keeps its count.
@@ -343,6 +343,19 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
   - Each deck change has `deck_change_id`, `revision`, `kind`, `changed_at`, `reverted`, and `lines`. `reverted` is true when a revert undid it.
   - A copy line has `kind` `copy`, `copy_id`, the card's `name`, the `image_uris` of the line's card printing, the card's `type_line`, and `place_before` and `place_after`. A deleted copy's lines still show its card. Lines sort by card name.
   - A basic land line has `kind` `basic_land`, the basic land card's `oracle_id`, its `name`, the `image_uris` of its newest English card printing, and `count_before` and `count_after`. Basic land lines follow the copy lines, in the order of the twelve kinds.
+- Reverting a deck change undoes it and every later deck change in that deck, as one new `revert` deck change. Each copy and basic land card that the range touched goes back to its place or count before the reverted deck change. One private function computes the effect, and the revert preview and the revert both use it.
+- `supabase.rpc('preview_revert', { query: { deck_id, deck_change_id } })` returns the effect without changing anything. The revert page sheet reads it.
+  - `revision` is the deck revision. Send it back as `expected_revision`.
+  - `lines` has the lines the revert would write, in the shape of `list_deck_changes` lines.
+  - `blocks` lists each copy that must come back but was deleted or is in another deck, with `copy_id`, the card's `name`, and `deck`, the other deck's `deck_id` and `name`, or null for a deleted copy.
+  - `protected_copies` lists each protected copy that comes back, with `copy_id` and `name`.
+- `supabase.rpc('revert_deck_changes', { request: { deck_id, deck_change_id, expected_revision, unprotect } })` applies the effect. It returns `deck_id` and the new `revision`.
+  - It writes one `revert` deck change with the effect's lines, and sets `reverted_by` on every deck change in the range that no revert undid yet. A revert can be reverted too.
+  - A restored commander is made a commander again at the time of the revert.
+  - An `expected_revision` that is not the deck revision is refused with `stale_revision` on `expected_revision`.
+  - A block is refused with `revert_blocked` on `deck_change_id`. The message names the card, such as "Cyclonic Rift is no longer in your collection." or "Sol Ring is in Kinnan.".
+  - A protected copy that comes back is refused with `copy_protected` on `unprotect` unless `unprotect` is true. Then it unprotects the copy in the same transaction.
+  - A deck change of another deck or another user is refused with `not_found` on `deck_change_id`.
 - The write functions check the caller's identity and run in one transaction each. The reads run with the caller's rights. Another user's deck is refused with `not_found` on `deck_id`, like one that does not exist. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
 ### Collection search

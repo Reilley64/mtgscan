@@ -200,7 +200,7 @@ An atomic record of cards moved into or out of one deck, and of commanders made 
 _Avoid_: Changelist
 
 **Deck change history**:
-The ordered record of a deck's changes. Reverting a change undoes it and every later change in that deck as one new change. A revert is available only while every copy it needs is still owned and free.
+The ordered record of a deck's changes. Reverting a change undoes it and every later change in that deck as one new change. A revert is available only while every copy it needs is still owned and free. A copy that it needs but that was deleted or is in another deck blocks it.
 _Avoid_: Audit log, checkpoint
 
 ## Search
