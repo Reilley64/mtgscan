@@ -11,12 +11,11 @@ import {
   type Violation,
 } from '../decks';
 import {
-  basicLands,
-  catalogFixture,
+  basicLand,
+  catalogFixtureManifest,
   catalogFixtureSnapshotAt,
   resetCardCatalog,
   runCatalogImport,
-  withBasicLands,
 } from './catalog-import-command';
 import { anonymousClient, asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
@@ -26,7 +25,7 @@ setDefaultTimeout(60_000);
 const permissionDenied = '42501';
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
-const [forest, wastes] = basicLands.map((land) => land.oracle_id) as [string, string];
+const [forest, wastes] = ['Forest', 'Wastes'].map((name) => basicLand(name).oracle_id) as [string, string];
 
 const noCommander: Violation = {
   rule: 'no_commander',
@@ -42,8 +41,7 @@ function deckSize(cardCount: number, hint: string): Violation {
 
 beforeAll(async () => {
   await resetCardCatalog();
-  const manifest = await catalogFixture({ oracleCards: withBasicLands, defaultCards: withBasicLands });
-  expect((await runCatalogImport(manifest)).exitCode).toBe(0);
+  expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
 async function call(user: TestUser, name: string, request: Record<string, unknown>) {
