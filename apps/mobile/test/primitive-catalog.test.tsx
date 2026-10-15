@@ -99,6 +99,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Atraxa, Medium priority, 0 cards' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Kinnan' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Open the name alert' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Open the name alert with a name' })).toBeOnTheScreen();
   expect(screen.getByLabelText('No scans yet, Cards you scan wait here until you add them.')).toBeOnTheScreen();
 });
 

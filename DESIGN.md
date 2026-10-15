@@ -551,7 +551,14 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
 - **Deck screen**, from the gallery or a deck tag. It is a pushed screen over the app tab bar, and it marks the deck used when it opens:
   - The banner is 200 px tall, 32 px below the safe area, with the deck name in card title type and chips for the deck priority, such as "Medium priority", and the card count, such as "0 cards". The card count includes commanders and basic lands. A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color, with the name and chips at its bottom. Commander art comes with commanders.
   - A close bar button with the `xmark` symbol sits on the left of the header, over the banner, as on the copy page. VoiceOver reads it as "Close". It goes back to where the deck screen was opened from. The swipe from the left edge does the same.
-  - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the banner. VoiceOver reads it as "More". It stays off until the deck menu comes.
+  - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the banner. VoiceOver reads it as "More". It opens a native menu:
+    - **Rename** opens the name alert "Rename deck" with "Name your deck.", the deck name in the field, and **Cancel** and **Save**.
+    - **Priority** opens a submenu with **High**, **Medium**, and **Low**, with a check mark on the deck priority.
+    - **Delete deck** is in red. It asks first with the alert "Delete <name>?".
+    - The alert says "Its N cards become free, and its history is deleted. This cannot be undone.", such as "Its 1 card becomes free, …". N is the card count.
+    - The alert has **Delete deck** in red and **Cancel**. Delete deck goes back to the gallery.
+    - A write that fails shows a native alert with "Check your connection." and changes nothing. The titles are "Could not rename this deck", "Could not change the deck priority", and "Could not delete this deck".
+    - A deck that was deleted elsewhere goes back to the gallery.
   - A segmented control under the banner switches between **Cards** and **History**. The deck screen opens on Cards. Suggestions comes later.
   - **Cards** of an empty deck shows a "Commander" heading in lime body strong with "No commander yet." in text muted, then the empty state "No cards yet". See Empty states. **Open Collection** closes the deck screen and opens the Collection tab.
   - **History** ends with the day the deck was created, such as "Created 15 October 2026", in meta text. Deck changes come later.
@@ -754,7 +761,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
   - A refused search chip shows its message, such as "No set named "zzz".", as the title of the Collection search empty state, with no body.
 - **Commander gallery card.** A full-width button, 140 px tall, with 12 px corners. The deck name sits at its bottom in card title type, over chips for the deck priority and the card count. VoiceOver reads it as one button, such as "Atraxa, Medium priority, 0 cards". A deck with no commander shows the ghost commander card: a dashed line-colored outline on the surface color. Later, commander art with a dark gradient, more status chips, and a Needs you badge come. The deck screen banner is the same card at 200 px.
-- **Name alert.** A native alert with a title, a message, a name field, **Cancel**, and a confirm button, such as **Create**. The field takes at most 64 characters. The confirm button is off while the trimmed name is empty. A new alert starts with an empty field.
+- **Name alert.** A native alert with a title, a message, a name field, **Cancel**, and a confirm button, such as **Create**. The field takes at most 64 characters. The confirm button is off while the trimmed name is empty. A new alert starts with an empty field, or with the current name when it renames.
 
 ## Do's and Don'ts
 

@@ -537,22 +537,29 @@ function EmptyStates() {
   );
 }
 
+const nameAlertExamples = {
+  new: { title: 'New deck', confirmLabel: 'Create', initialName: '' },
+  rename: { title: 'Rename deck', confirmLabel: 'Save', initialName: 'Atraxa' },
+};
+
 function NameAlerts() {
-  const [naming, setNaming] = useState(false);
+  const [opened, setOpened] = useState<keyof typeof nameAlertExamples | null>(null);
   return (
     <Section title="Name alerts">
-      <Button onPress={() => setNaming(true)}>
+      <Button onPress={() => setOpened('new')}>
         <Text>Open the name alert</Text>
       </Button>
-      {naming ? (
+      <Button onPress={() => setOpened('rename')}>
+        <Text>Open the name alert with a name</Text>
+      </Button>
+      {opened ? (
         <NameAlert
-          title="New deck"
+          {...nameAlertExamples[opened]}
           message="Name your deck."
           placeholder="Deck name"
-          confirmLabel="Create"
           maxLength={deckNameLength}
           onConfirm={() => {}}
-          onClose={() => setNaming(false)}
+          onClose={() => setOpened(null)}
         />
       ) : null}
     </Section>

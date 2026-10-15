@@ -1034,7 +1034,7 @@ describe('MenuButton', () => {
 });
 
 describe('NameAlert', () => {
-  async function renderNameAlert() {
+  async function renderNameAlert(initialName?: string) {
     const onConfirm = jest.fn();
     const onClose = jest.fn();
     await render(
@@ -1044,6 +1044,7 @@ describe('NameAlert', () => {
         placeholder="Deck name"
         confirmLabel="Create"
         maxLength={64}
+        initialName={initialName}
         onConfirm={onConfirm}
         onClose={onClose}
       />,
@@ -1057,7 +1058,7 @@ describe('NameAlert', () => {
     expect(presentedAlertWithField()).toEqual({
       title: 'New deck',
       message: 'Name your deck.',
-      field: { placeholder: 'Deck name', maxLength: 64 },
+      field: { placeholder: 'Deck name', maxLength: 64, text: '' },
       buttons: [
         { label: 'Cancel', enabled: true },
         { label: 'Create', enabled: false },
@@ -1086,5 +1087,16 @@ describe('NameAlert', () => {
 
     expect(onConfirm).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('a name alert can start with a name in its field, with the confirm button on', async () => {
+    const { onConfirm } = await renderNameAlert('Atraxa');
+
+    expect(presentedAlertWithField()?.field.text).toBe('Atraxa');
+    expect(presentedAlertWithField()?.buttons[1]).toEqual({ label: 'Create', enabled: true });
+
+    await pressAlertWithFieldButton('Create');
+
+    expect(onConfirm).toHaveBeenCalledWith('Atraxa');
   });
 });

@@ -535,6 +535,9 @@ isOneToOne: false
 "delete_copy":
 { Args: { "request": Json }; Returns: undefined
                            },
+"delete_deck":
+{ Args: { "request": Json }; Returns: undefined
+                           },
 "delete_gallery_version":
 { Args: { "version": string }; Returns: undefined
                            },
@@ -621,6 +624,9 @@ isOneToOne: false
 "record_gallery_version":
 { Args: { "manifest": Json,"version": string }; Returns: undefined
                            },
+"rename_deck":
+{ Args: { "request": Json }; Returns: undefined
+                           },
 "rename_user_tag":
 { Args: { "request": Json }; Returns: Json
                            },
@@ -637,6 +643,9 @@ isOneToOne: false
 { Args: { "request": Json }; Returns: Json
                            },
 "set_copy_user_tag":
+{ Args: { "request": Json }; Returns: undefined
+                           },
+"set_deck_priority":
 { Args: { "request": Json }; Returns: undefined
                            },
 "stage_import_batch":

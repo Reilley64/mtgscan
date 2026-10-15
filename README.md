@@ -298,6 +298,10 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
 - `supabase.rpc('mark_deck_used', { request: { deck_id } })` sets the deck's last used time. The deck screen calls it when it opens. It returns nothing.
 - `supabase.rpc('list_decks')` returns `items`: the caller's decks with `deck_id`, `name`, `priority`, `card_count`, `commanders`, and `last_used_at`. The deck used most recently comes first. Decks used at the same time sort by name ignoring case. Until copies can go into decks, `card_count` is 0 and `commanders` is empty.
 - `supabase.rpc('get_deck', { query: { deck_id } })` returns the fields of a `list_decks` item, plus `revision` and `created_at`. Reading a deck does not count as using it.
+- `supabase.rpc('rename_deck', { request: { deck_id, name } })` trims the name and renames the deck. It returns nothing.
+- `supabase.rpc('set_deck_priority', { request: { deck_id, priority } })` sets the deck priority. It returns nothing.
+- Renaming a deck and setting its deck priority count as using it. Neither is a deck change, and neither raises the deck revision.
+- `supabase.rpc('delete_deck', { request: { deck_id } })` deletes the deck. It returns nothing.
 - The write functions check the caller's identity and run in one transaction each. The reads run with the caller's rights. Another user's deck is refused with `not_found` on `deck_id`, like one that does not exist. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
 ### Collection search

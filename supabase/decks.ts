@@ -45,6 +45,20 @@ export type MarkDeckUsedRequest = {
   deck_id: string;
 };
 
+export type RenameDeckRequest = {
+  deck_id: string;
+  name: string;
+};
+
+export type SetDeckPriorityRequest = {
+  deck_id: string;
+  priority: DeckPriority;
+};
+
+export type DeleteDeckRequest = {
+  deck_id: string;
+};
+
 export type DeckErrorCode = 'invalid_argument' | 'not_found';
 
 export type DeckError = Omit<SearchError, 'code'> & { code: DeckErrorCode };
