@@ -554,8 +554,11 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - A ••• bar button with the `ellipsis` symbol sits on the right of the header, over the banner. VoiceOver reads it as "More". It opens a native menu:
     - **Rename** opens the name alert "Rename deck" with "Name your deck.", the deck name in the field, and **Cancel** and **Save**.
     - **Priority** opens a submenu with **High**, **Medium**, and **Low**, with a check mark on the deck priority.
-    - **Delete deck**, in danger, asks first with the alert "Delete <name>?" and "Its N cards become free, and its history is deleted. This cannot be undone.", with **Delete deck** in danger and **Cancel**. Delete deck goes back to the gallery.
-    - A write that fails shows a native alert with "Check your connection." and changes nothing: "Could not rename this deck", "Could not change the deck priority", or "Could not delete this deck".
+    - **Delete deck** is in red. It asks first with the alert "Delete <name>?".
+    - The alert says "Its N cards become free, and its history is deleted. This cannot be undone.", such as "Its 1 card becomes free, …". N is the card count.
+    - The alert has **Delete deck** in red and **Cancel**. Delete deck goes back to the gallery.
+    - A write that fails shows a native alert with "Check your connection." and changes nothing. The titles are "Could not rename this deck", "Could not change the deck priority", and "Could not delete this deck".
+    - A deck that was deleted elsewhere goes back to the gallery.
   - A segmented control under the banner switches between **Cards** and **History**. The deck screen opens on Cards. Suggestions comes later.
   - **Cards** of an empty deck shows a "Commander" heading in lime body strong with "No commander yet." in text muted, then the empty state "No cards yet". See Empty states. **Open Collection** closes the deck screen and opens the Collection tab.
   - **History** ends with the day the deck was created, such as "Created 15 October 2026", in meta text. Deck changes come later.

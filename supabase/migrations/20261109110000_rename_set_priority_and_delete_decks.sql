@@ -1,7 +1,7 @@
 create or replace function private.check_request(request jsonb, fields text[])
 returns jsonb
 language plpgsql
-immutable
+stable
 set search_path = ''
 as $$
 declare

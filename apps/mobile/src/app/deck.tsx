@@ -16,6 +16,7 @@ import { PushedScreen } from '@/components/templates/pushed-screen';
 import { cardCountLabel, deckChips } from '@/decks/deck-labels';
 import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
 import { useDeck } from '@/decks/use-deck';
+import type { WriteResult } from '@/lib/write-result';
 import { shownDay } from '@/lib/shown-day';
 import { colors } from '@/theme';
 
@@ -46,8 +47,19 @@ function deleteMessage(cardCount: number) {
   return `Its ${cardCountLabel(cardCount)} ${verb} free, and its history is deleted. This cannot be undone.`;
 }
 
-function failedWrite(title: string) {
-  Alert.alert(title, 'Check your connection.');
+function backToGallery() {
+  router.dismissTo('/decks');
+}
+
+async function showWriteResult(write: Promise<WriteResult>, failureTitle: string, onDone: () => void) {
+  const result = await write;
+  if (result === 'failed') {
+    Alert.alert(failureTitle, 'Check your connection.');
+  } else if (result === 'missing') {
+    backToGallery();
+  } else {
+    onDone();
+  }
 }
 
 export default function DeckScreen() {
@@ -60,28 +72,16 @@ export default function DeckScreen() {
     void markDeckUsed(deckId);
   }, [deckId]);
 
-  async function rename(name: string) {
-    if (await renameDeck(deckId, name)) {
-      reload();
-    } else {
-      failedWrite('Could not rename this deck');
-    }
+  function rename(name: string) {
+    return showWriteResult(renameDeck(deckId, name), 'Could not rename this deck', reload);
   }
 
-  async function changePriority(priority: DeckPriority) {
-    if (await setDeckPriority(deckId, priority)) {
-      reload();
-    } else {
-      failedWrite('Could not change the deck priority');
-    }
+  function changePriority(priority: DeckPriority) {
+    return showWriteResult(setDeckPriority(deckId, priority), 'Could not change the deck priority', reload);
   }
 
-  async function deleteThisDeck() {
-    if (await deleteDeck(deckId)) {
-      router.dismissTo('/decks');
-    } else {
-      failedWrite('Could not delete this deck');
-    }
+  function deleteThisDeck() {
+    return showWriteResult(deleteDeck(deckId), 'Could not delete this deck', backToGallery);
   }
 
   function confirmDelete(deck: Deck) {

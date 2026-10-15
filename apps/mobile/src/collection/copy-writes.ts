@@ -1,30 +1,21 @@
 import type { CopyProtectedRequest, CopyUserTagRequest, DeleteCopyRequest } from '@mtgscan/supabase/collection';
-import { readSearchError } from '@mtgscan/supabase/search';
 
 import { supabase } from '@/lib/supabase';
+import { writeResultOf, type WriteResult } from '@/lib/write-result';
 
-export type CopyWriteResult = 'done' | 'missing' | 'failed';
-
-export function writeResultOf(error: Parameters<typeof readSearchError>[0] | null): CopyWriteResult {
-  if (!error) {
-    return 'done';
-  }
-  return readSearchError(error).code === 'not_found' ? 'missing' : 'failed';
-}
-
-export async function setCopyProtected(copyId: string, isProtected: boolean): Promise<CopyWriteResult> {
+export async function setCopyProtected(copyId: string, isProtected: boolean): Promise<WriteResult> {
   const request: CopyProtectedRequest = { copy_id: copyId, protected: isProtected };
   const { error } = await supabase.rpc('set_copy_protected', { request });
   return writeResultOf(error);
 }
 
-export async function deleteCopy(copyId: string): Promise<CopyWriteResult> {
+export async function deleteCopy(copyId: string): Promise<WriteResult> {
   const request: DeleteCopyRequest = { copy_id: copyId };
   const { error } = await supabase.rpc('delete_copy', { request });
   return writeResultOf(error);
 }
 
-export async function setCopyUserTag(request: CopyUserTagRequest): Promise<CopyWriteResult> {
+export async function setCopyUserTag(request: CopyUserTagRequest): Promise<WriteResult> {
   const { error } = await supabase.rpc('set_copy_user_tag', { request });
   return writeResultOf(error);
 }

@@ -1,8 +1,10 @@
+import type { Deck } from '@mtgscan/supabase/decks';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import {
   deckWritesSent,
   decksOnTheServer,
+  deleteDeckOnTheServer,
   failDeckReads,
   failDeckWrites,
   ownDecks,
@@ -307,7 +309,7 @@ describe('the deck screen', () => {
 });
 
 describe('the deck menu', () => {
-  async function openDeck(seed: { priority?: 'high' | 'medium' | 'low'; card_count?: number } = {}) {
+  async function openDeck(seed: Partial<Pick<Deck, 'priority' | 'card_count'>> = {}) {
     ownDecks([
       { name: 'Kinnan', ...medium },
       { name: 'Atraxa', ...medium, ...seed },
@@ -395,6 +397,20 @@ describe('the deck menu', () => {
     expect(presentedAlert()).toEqual({ title: 'Could not rename this deck', message: 'Check your connection.', buttons: ['OK'] });
     expect(deck.getByRole('header', { name: 'Atraxa' })).toBeOnTheScreen();
     expect(decksOnTheServer().map((saved) => saved.name)).toEqual(['Kinnan', 'Atraxa']);
+  });
+
+  test('renaming a deck that was deleted elsewhere goes back to the gallery', async () => {
+    await openDeck();
+    deleteDeckOnTheServer('deck-2');
+    await chooseFromMenu('Rename');
+    await typeInAlertField('Kinnan');
+
+    await pressAlertWithFieldButton('Save');
+
+    expect(presentedAlert()).toBeNull();
+    expect(() => pushedScreen()).toThrow('No screen is pushed');
+    expect(await within(selectedTab()).findByRole('button', { name: /^Kinnan,/ })).toBeOnTheScreen();
+    expect(within(selectedTab()).queryByRole('button', { name: /^Atraxa,/ })).not.toBeOnTheScreen();
   });
 
   test('a priority sets the deck priority, and the chip and the check mark follow it', async () => {

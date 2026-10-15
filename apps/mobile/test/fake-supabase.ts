@@ -466,7 +466,7 @@ function deleteDeck(request: DeleteDeckRequest) {
   if (!decks.some((deck) => deck.deck_id === request.deck_id)) {
     return deckNotFound;
   }
-  decks = decks.filter((deck) => deck.deck_id !== request.deck_id);
+  deleteDeckOnTheServer(request.deck_id);
   return { data: null, error: null };
 }
 
@@ -817,6 +817,10 @@ export function ownDecks(seeds: Pick<Deck, 'name' | 'priority' | 'card_count'>[]
 
 export function decksOnTheServer() {
   return decks;
+}
+
+export function deleteDeckOnTheServer(deckId: string) {
+  decks = decks.filter((deck) => deck.deck_id !== deckId);
 }
 
 export function deckWritesSent() {
