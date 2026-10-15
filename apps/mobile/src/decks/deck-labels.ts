@@ -19,6 +19,7 @@ export const validityChips: Record<DeckValidity, { label: string; tone: 'neutral
 export const ruleNames: Record<UndeterminedRule, string> = {
   no_commander: 'No commander',
   deck_size: 'Deck size',
+  singleton: 'Singleton',
   banned: 'Banned',
   not_legal: 'Not legal',
   legality: 'Legality',
