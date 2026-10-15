@@ -665,6 +665,32 @@ export function widthsAround(element: HostElement) {
   return widths;
 }
 
+export function heightsAround(element: HostElement) {
+  const heights: number[] = [];
+  for (let candidate = element.parent; candidate; candidate = candidate.parent) {
+    const height = StyleSheet.flatten(candidate.props.style)?.height;
+    if (typeof height === 'number') {
+      heights.push(height);
+    }
+  }
+  return heights;
+}
+
+export function placeInScrollView(element: HostElement) {
+  let block = element;
+  while (block.parent && block.parent.parent?.type !== 'RCTScrollView') {
+    block = block.parent;
+  }
+  const content = block.parent;
+  if (!content) {
+    throw new Error('This element is not in a scroll view');
+  }
+  const { padding = 0, paddingHorizontal = padding, paddingVertical = padding, paddingTop = paddingVertical, paddingLeft = paddingHorizontal, paddingRight = paddingHorizontal } =
+    StyleSheet.flatten(content.props.style) ?? {};
+  const [first] = content.children.filter((child) => typeof child !== 'string');
+  return { block, isFirst: first === block, contentInsets: { top: paddingTop, left: paddingLeft, right: paddingRight } };
+}
+
 export function blocksColored(element: HostElement, color: string) {
   return element.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.backgroundColor === color).length;
 }

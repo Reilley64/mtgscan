@@ -10,14 +10,14 @@ export function catalogBasicLands(lands: DeckBasicLand[]) {
   return lands.filter((land): land is CatalogBasicLand => land.oracle_id !== null);
 }
 
-export function basicLandDraftOf(lands: DeckBasicLand[]): BasicLandDraft {
-  return Object.fromEntries(catalogBasicLands(lands).map((land) => [land.oracle_id, land.count]));
+export function draftCount(land: CatalogBasicLand, draft: BasicLandDraft) {
+  return draft[land.oracle_id] ?? land.count;
 }
 
 export function changedBasicLands(lands: DeckBasicLand[], draft: BasicLandDraft): BasicLandCount[] {
   return catalogBasicLands(lands)
-    .filter((land) => draft[land.oracle_id] !== land.count)
-    .map((land) => ({ oracle_id: land.oracle_id, count: draft[land.oracle_id]! }));
+    .filter((land) => draftCount(land, draft) !== land.count)
+    .map((land) => ({ oracle_id: land.oracle_id, count: draftCount(land, draft) }));
 }
 
 export function basicLandTotal(lands: DeckBasicLand[]) {

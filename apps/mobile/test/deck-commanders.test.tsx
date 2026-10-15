@@ -10,6 +10,7 @@ import {
   fadesDown,
   headerMenuRows,
   imageFrames,
+  placeInScrollView,
   presentedAlert,
   pressButtonMenuAction,
   pressHeaderMenuAction,
@@ -64,7 +65,7 @@ function commanderWrites() {
 }
 
 function banner() {
-  return within(pushedScreen()).getByRole('header', { name: 'Atraxa' }).parent!;
+  return placeInScrollView(within(pushedScreen()).getByRole('header', { name: 'Atraxa' })).block;
 }
 
 describe('the long-press menu', () => {

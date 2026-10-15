@@ -34,6 +34,7 @@ test('the primitive catalog shows every primitive', async () => {
     'Inputs',
     'Progress bars',
     'Sheet sections',
+    'Stepper rows',
     'Save bars',
     'Deck tags',
     'Swipe to confirm',

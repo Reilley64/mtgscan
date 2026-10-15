@@ -71,7 +71,7 @@ export function GhostNeedsYouItems() {
 export function GhostCommanderCard() {
   return (
     <FadesDown>
-      <CommanderCardFrame size="gallery">
+      <CommanderCardFrame>
         <View className="h-skeleton-title-bar w-1/2 rounded-full bg-line" />
         <View className="flex-row gap-sm">
           <View className="h-chip w-1/6 rounded-md bg-line" />

@@ -1,5 +1,6 @@
 import type { Deck } from '@mtgscan/supabase/decks';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
+import { StyleSheet } from 'react-native';
 
 import {
   deckWritesSent,
@@ -14,6 +15,7 @@ import {
   appearsBefore,
   dashedOutlinesColored,
   headerButton,
+  heightsAround,
   headerMenuRows,
   leftHeaderButtons,
   pressAlertButton,
@@ -23,6 +25,7 @@ import {
   presentedAlert,
   presentedAlertWithField,
   pressTab,
+  placeInScrollView,
   pushedScreen,
   selectedTab,
   swipeBackFromThePushedScreen,
@@ -32,7 +35,7 @@ import {
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
 
-const { line, primary } = tokenColors;
+const { line, primary, surface } = tokenColors;
 
 beforeEach(() => {
   startSignedIn();
@@ -232,14 +235,19 @@ describe('the deck screen', () => {
     return deck;
   }
 
-  test('is pushed over the tab bar with a 200 px ghost commander banner, the name, and the chips', async () => {
+  test('is pushed over the tab bar with a full-width ghost commander banner from the top edge, the name, and the chips', async () => {
     ownDecks([{ name: 'Atraxa', priority: 'high', card_count: 0 }]);
 
     const deck = await openDeck();
 
     const title = deck.getByRole('header', { name: 'Atraxa' });
     expect(title).toHaveStyle({ fontSize: 20, fontWeight: '800' });
-    expect(title.parent).toHaveStyle({ height: 200, borderStyle: 'dashed', borderColor: line });
+    const { block: banner, isFirst, contentInsets } = placeInScrollView(title);
+    expect(isFirst).toBe(true);
+    expect(contentInsets).toEqual({ top: 0, left: 0, right: 0 });
+    expect(banner).toHaveStyle({ width: '100%', backgroundColor: surface, borderStyle: 'dashed', borderColor: line });
+    expect(StyleSheet.flatten(banner.props.style).borderRadius).toBeUndefined();
+    expect(heightsAround(title)).toContain(200);
     expect(deck.getByText('High priority')).toBeOnTheScreen();
     expect(deck.getByText('0 cards')).toBeOnTheScreen();
     expect(within(selectedTab()).queryByRole('header', { name: 'Atraxa' })).not.toBeOnTheScreen();

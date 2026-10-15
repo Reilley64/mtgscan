@@ -11,25 +11,18 @@ import { Text } from '@/components/atoms/text';
 import { TileButton } from '@/components/atoms/tile-button';
 import { gradients } from '@/theme';
 
-const frameVariants = cva('w-full justify-end gap-sm overflow-hidden rounded-md bg-surface p-md', {
-  variants: {
-    size: {
-      gallery: 'h-commander-gallery-card',
-      banner: 'h-deck-banner',
-    },
-    ghost: {
-      true: dashedOutlineClass,
-      false: '',
-    },
-  },
+const ghostVariant = { true: dashedOutlineClass, false: '' };
+
+const cardFrameVariants = cva('h-commander-gallery-card w-full justify-end gap-sm overflow-hidden rounded-md bg-surface p-md', {
+  variants: { ghost: ghostVariant },
 });
 
-type CommanderCardSize = 'gallery' | 'banner';
+const bannerVariants = cva('w-full overflow-hidden bg-surface pt-safe', {
+  variants: { ghost: ghostVariant },
+});
 
-const secondCommanderAvatarSizes = { gallery: 'row', banner: 'banner' } as const;
-
-export function CommanderCardFrame({ size, children }: { size: CommanderCardSize; children: ReactNode }) {
-  return <View className={frameVariants({ size, ghost: true })}>{children}</View>;
+export function CommanderCardFrame({ children }: { children: ReactNode }) {
+  return <View className={cardFrameVariants({ ghost: true })}>{children}</View>;
 }
 
 function CommanderArt({ uri }: { uri: string | null }) {
@@ -41,23 +34,17 @@ function CommanderArt({ uri }: { uri: string | null }) {
   );
 }
 
-type CommanderCardProps = {
-  name: string;
-  chips: string[];
-  commanders: DeckCommander[];
-  size: CommanderCardSize;
-};
-
-export function CommanderCard({ name, chips, commanders, size }: CommanderCardProps) {
-  const [commander, secondCommander] = commanders;
+function SecondCommanderAvatar({ commander, size }: { commander: DeckCommander; size: 'row' | 'banner' }) {
   return (
-    <View className={frameVariants({ size, ghost: !commander })}>
-      {commander ? <CommanderArt uri={commander.art_crop_uri} /> : null}
-      {secondCommander ? (
-        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className="absolute right-md top-md">
-          <CommanderAvatar uri={secondCommander.art_crop_uri} size={secondCommanderAvatarSizes[size]} />
-        </View>
-      ) : null}
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <CommanderAvatar uri={commander.art_crop_uri} size={size} />
+    </View>
+  );
+}
+
+function DeckTitle({ name, chips }: { name: string; chips: string[] }) {
+  return (
+    <>
       <Text variant="card-title" numberOfLines={2}>
         {name}
       </Text>
@@ -66,18 +53,54 @@ export function CommanderCard({ name, chips, commanders, size }: CommanderCardPr
           <Chip key={chip} label={chip} />
         ))}
       </View>
+    </>
+  );
+}
+
+type CommanderCardProps = {
+  name: string;
+  chips: string[];
+  commanders: DeckCommander[];
+};
+
+export function CommanderCard({ name, chips, commanders }: CommanderCardProps) {
+  const [commander, secondCommander] = commanders;
+  return (
+    <View className={cardFrameVariants({ ghost: !commander })}>
+      {commander ? <CommanderArt uri={commander.art_crop_uri} /> : null}
+      {secondCommander ? (
+        <View className="absolute right-md top-md">
+          <SecondCommanderAvatar commander={secondCommander} size="row" />
+        </View>
+      ) : null}
+      <DeckTitle name={name} chips={chips} />
     </View>
   );
 }
 
-type CommanderGalleryCardProps = Omit<CommanderCardProps, 'size'> & {
+export function DeckBanner({ name, chips, commanders }: CommanderCardProps) {
+  const [commander, secondCommander] = commanders;
+  return (
+    <View className={bannerVariants({ ghost: !commander })}>
+      {commander ? <CommanderArt uri={commander.art_crop_uri} /> : null}
+      <View className="h-deck-banner flex-row items-end gap-md px-lg pb-md">
+        <View className="flex-1 gap-sm">
+          <DeckTitle name={name} chips={chips} />
+        </View>
+        {secondCommander ? <SecondCommanderAvatar commander={secondCommander} size="banner" /> : null}
+      </View>
+    </View>
+  );
+}
+
+type CommanderGalleryCardProps = CommanderCardProps & {
   onPress: () => void;
 };
 
 export function CommanderGalleryCard({ name, chips, commanders, onPress }: CommanderGalleryCardProps) {
   return (
     <TileButton accessibilityLabel={[name, ...chips].join(', ')} onPress={onPress}>
-      <CommanderCard name={name} chips={chips} commanders={commanders} size="gallery" />
+      <CommanderCard name={name} chips={chips} commanders={commanders} />
     </TileButton>
   );
 }

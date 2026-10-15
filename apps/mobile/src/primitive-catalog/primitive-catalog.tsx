@@ -35,7 +35,7 @@ import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChangeLine } from '@/components/molecules/change-line';
-import { CommanderCard, CommanderGalleryCard } from '@/components/molecules/commander-card';
+import { CommanderGalleryCard, DeckBanner } from '@/components/molecules/commander-card';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { DisclosureRow } from '@/components/molecules/disclosure-row';
@@ -57,7 +57,7 @@ import { SaveBar } from '@/components/molecules/save-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { GroupButton } from '@/components/molecules/group-button';
 import { SortButton } from '@/components/molecules/sort-button';
-import { Stepper } from '@/components/molecules/stepper';
+import { StepperRow } from '@/components/molecules/stepper-row';
 import { ValueRow } from '@/components/molecules/value-row';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { WarningLine } from '@/components/molecules/warning-line';
@@ -336,9 +336,6 @@ function CardTiles() {
           onPress={() => {}}
         />
         <CardTile uri={solRing} count={8} accessibilityLabel="Island, 8" />
-        <BasicLandStepperTile name="Plains" initial={0} />
-        <BasicLandStepperTile name="Island" initial={8} />
-        <BasicLandStepperTile name="Swamp" initial={99} />
         {['CMM 464', 'C21 263'].map((caption) => (
           <CardTile
             key={caption}
@@ -392,14 +389,18 @@ function Switches() {
   );
 }
 
-function BasicLandStepperTile({ name, initial }: { name: string; initial: number }) {
+function BasicLandStepperRow({ name, initial }: { name: string; initial: number }) {
   const [count, setCount] = useState(initial);
+  return <StepperRow uri={solRing} label={name} value={count} min={0} max={99} onChange={setCount} />;
+}
+
+function StepperRows() {
   return (
-    <CardTile
-      uri={solRing}
-      accessibilityLabel={name}
-      control={<Stepper label={name} value={count} min={0} max={99} onChange={setCount} />}
-    />
+    <Section title="Stepper rows">
+      <BasicLandStepperRow name="Plains" initial={0} />
+      <BasicLandStepperRow name="Island" initial={8} />
+      <BasicLandStepperRow name="Swamp" initial={99} />
+    </Section>
   );
 }
 
@@ -649,13 +650,16 @@ function CommanderCards() {
         commanders={[solRingCommander, { ...solRingCommander, copy_id: 'second-commander' }]}
         onPress={() => {}}
       />
-      <CommanderCard name="Kinnan" chips={['High priority', '1 card']} commanders={[]} size="banner" />
-      <CommanderCard
-        name="Partners"
-        chips={['High priority', '2 cards']}
-        commanders={[solRingCommander, { ...solRingCommander, copy_id: 'second-commander' }]}
-        size="banner"
-      />
+      <View className="-mx-lg">
+        <DeckBanner name="Kinnan" chips={['High priority', '1 card']} commanders={[]} />
+      </View>
+      <View className="-mx-lg">
+        <DeckBanner
+          name="Partners"
+          chips={['High priority', '2 cards']}
+          commanders={[solRingCommander, { ...solRingCommander, copy_id: 'second-commander' }]}
+        />
+      </View>
     </Section>
   );
 }
@@ -750,6 +754,7 @@ export function PrimitiveCatalog() {
         <Inputs />
         <ProgressBars />
         <SheetSections />
+        <StepperRows />
         <SaveBars />
         <NameAlerts />
         <CommanderCards />

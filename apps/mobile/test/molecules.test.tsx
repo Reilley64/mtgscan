@@ -16,7 +16,7 @@ import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChangeLine } from '@/components/molecules/change-line';
-import { CommanderCard, CommanderGalleryCard } from '@/components/molecules/commander-card';
+import { CommanderCard, CommanderGalleryCard, DeckBanner } from '@/components/molecules/commander-card';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { DisclosureRow } from '@/components/molecules/disclosure-row';
@@ -39,6 +39,7 @@ import { SheetSection } from '@/components/molecules/sheet-section';
 import { SortButton } from '@/components/molecules/sort-button';
 import { GroupButton } from '@/components/molecules/group-button';
 import { Stepper } from '@/components/molecules/stepper';
+import { StepperRow } from '@/components/molecules/stepper-row';
 import { SwipeToConfirm } from '@/components/molecules/swipe-to-confirm';
 import { WarningLine } from '@/components/molecules/warning-line';
 import { SwitchRow } from '@/components/molecules/switch-row';
@@ -64,6 +65,7 @@ import {
   fadesDown,
   glassEffect,
   imageFrames,
+  heightsAround,
   imageSources,
   imageTintColor,
   menuButton,
@@ -679,6 +681,19 @@ describe('Stepper', () => {
   });
 });
 
+describe('StepperRow', () => {
+  test('a stepper row shows the card thumbnail, the name, and a stepper for its count', async () => {
+    const onChange = jest.fn();
+    await render(<StepperRow uri={solRing} label="Island" value={8} min={0} max={99} onChange={onChange} />);
+
+    expect(imageSources(screen.root!)).toEqual([solRing]);
+    expect(screen.getByText('Island')).toHaveStyle({ color: white, fontSize: 14, fontWeight: '700' });
+    expect(screen.getByLabelText('Island, 8')).toHaveTextContent('8');
+    await fireEvent.press(screen.getByRole('button', { name: 'Add one Island' }));
+    expect(onChange).toHaveBeenCalledWith(9);
+  });
+});
+
 describe('SaveBar', () => {
   test('a save bar has Cancel and a primary Save N changes button', async () => {
     const onCancel = jest.fn();
@@ -793,23 +808,6 @@ describe('CardTile', () => {
 
     const badge = within(screen.getByRole('image', { name: 'Island, 8' })).getByText('×8');
     expect(badge.parent).toHaveStyle({ position: 'absolute', top: 4, right: 4 });
-  });
-
-  test('a card tile shows its control under the card image, outside the image', async () => {
-    await render(
-      <CardTile
-        uri={solRing}
-        accessibilityLabel="Island"
-        control={
-          <Button onPress={() => {}}>
-            <Text>Add one Island</Text>
-          </Button>
-        }
-      />,
-    );
-
-    expect(within(screen.getByRole('image', { name: 'Island' })).queryByRole('button')).not.toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Add one Island' })).toBeOnTheScreen();
   });
 
   test('card tiles sit three to a row', async () => {
@@ -1389,16 +1387,18 @@ describe('empty state illustrations', () => {
   });
 });
 
+const partnerCommanders = [
+  { copy_id: 'atraxa', name: 'Atraxa', art_crop_uri: 'https://cards.scryfall.io/art_crop/front/atraxa.jpg' },
+  { copy_id: 'kinnan', name: 'Kinnan', art_crop_uri: 'https://cards.scryfall.io/art_crop/front/kinnan.jpg' },
+];
+
 describe('CommanderCard', () => {
-  test.each([
-    ['gallery', 140],
-    ['banner', 200],
-  ] as const)('a %s commander card with no commander is a %i px ghost card with the name in card title type and its chips', async (size, height) => {
-    await render(<CommanderCard name="Atraxa" chips={['Medium priority', '62 cards']} commanders={[]} size={size} />);
+  test('a commander card with no commander is a 140 px ghost card with the name in card title type and its chips', async () => {
+    await render(<CommanderCard name="Atraxa" chips={['Medium priority', '62 cards']} commanders={[]} />);
 
     const title = screen.getByRole('header', { name: 'Atraxa' });
     expect(title).toHaveStyle({ color: white, fontSize: 20, fontWeight: '800' });
-    expect(title.parent).toHaveStyle({ height, backgroundColor: surface, borderRadius: 12, borderStyle: 'dashed', borderColor: line });
+    expect(title.parent).toHaveStyle({ height: 140, backgroundColor: surface, borderRadius: 12, borderStyle: 'dashed', borderColor: line });
     expect(screen.getByLabelText('Medium priority')).toBeOnTheScreen();
     expect(screen.getByLabelText('62 cards')).toBeOnTheScreen();
   });
@@ -1412,23 +1412,41 @@ describe('CommanderCard', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  test.each([
-    ['gallery', 40],
-    ['banner', 48],
-  ] as const)('a %s commander card shows the first commander as art under a fade, and the second as a %i px avatar', async (size, avatar) => {
-    const commanders = [
-      { copy_id: 'atraxa', name: 'Atraxa', art_crop_uri: 'https://cards.scryfall.io/art_crop/front/atraxa.jpg' },
-      { copy_id: 'kinnan', name: 'Kinnan', art_crop_uri: 'https://cards.scryfall.io/art_crop/front/kinnan.jpg' },
-    ];
-    await render(<CommanderCard name="Atraxa" chips={['High priority', '2 cards']} commanders={commanders} size={size} />);
+  test('a commander card shows the first commander as art under a fade, and the second as a 40 px avatar at the top right', async () => {
+    await render(<CommanderCard name="Atraxa" chips={['High priority', '2 cards']} commanders={partnerCommanders} />);
 
     const frame = screen.getByRole('header', { name: 'Atraxa' }).parent!;
     expect(imageFrames(frame)).toEqual([
       { uri: 'https://cards.scryfall.io/art_crop/front/atraxa.jpg', width: undefined },
-      { uri: 'https://cards.scryfall.io/art_crop/front/kinnan.jpg', width: avatar },
+      { uri: 'https://cards.scryfall.io/art_crop/front/kinnan.jpg', width: 40 },
     ]);
     expect(fadesDown(frame)).toBe(true);
     expect(frame).not.toHaveStyle({ borderStyle: 'dashed' });
+  });
+});
+
+describe('DeckBanner', () => {
+  test('a deck banner with no commander is a full-width ghost banner with square corners, and its name and chips sit in the 200 px under the safe area', async () => {
+    await render(<DeckBanner name="Atraxa" chips={['Medium priority', '62 cards']} commanders={[]} />);
+
+    const title = screen.getByRole('header', { name: 'Atraxa' });
+    expect(title).toHaveStyle({ color: white, fontSize: 20, fontWeight: '800' });
+    expect(screen.root).toHaveStyle({ width: '100%', backgroundColor: surface, borderStyle: 'dashed', borderColor: line });
+    expect(StyleSheet.flatten(screen.root!.props.style).borderRadius).toBeUndefined();
+    expect(heightsAround(title)).toEqual([200]);
+    expect(screen.getByLabelText('Medium priority')).toBeOnTheScreen();
+    expect(screen.getByLabelText('62 cards')).toBeOnTheScreen();
+  });
+
+  test('a deck banner shows the first commander as art under a fade, and the second as a 48 px avatar', async () => {
+    await render(<DeckBanner name="Atraxa" chips={['High priority', '2 cards']} commanders={partnerCommanders} />);
+
+    expect(imageFrames(screen.root!)).toEqual([
+      { uri: 'https://cards.scryfall.io/art_crop/front/atraxa.jpg', width: undefined },
+      { uri: 'https://cards.scryfall.io/art_crop/front/kinnan.jpg', width: 48 },
+    ]);
+    expect(fadesDown(screen.root!)).toBe(true);
+    expect(screen.root).not.toHaveStyle({ borderStyle: 'dashed' });
   });
 });
 
