@@ -49,6 +49,7 @@ function evaluationOf(fields: Partial<DeckEvaluation>): DeckEvaluation {
     validity: 'invalid',
     violations: [],
     undetermined: [],
+    chosen_color: null,
     estimated_bracket: 4,
     bracket_signals: signals,
     missing_signal_count: 0,

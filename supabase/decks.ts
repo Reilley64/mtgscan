@@ -1,6 +1,6 @@
 import type { CollectionCopyRow } from './collection';
 import type { Database } from './database.types';
-import { readSearchError, type ComboBracketTag, type SearchError } from './search';
+import { readSearchError, type Color, type ComboBracketTag, type SearchError } from './search';
 
 export type DeckPriority = Database['public']['Enums']['deck_priority'];
 
@@ -16,7 +16,7 @@ export type DeckCommander = {
 
 export type DeckValidity = Database['public']['Enums']['deck_validity'];
 
-export type DeckRule = 'no_commander' | 'commander_eligibility' | 'partner' | 'deck_size' | 'singleton' | 'banned' | 'not_legal';
+export type DeckRule = 'no_commander' | 'commander_eligibility' | 'partner' | 'deck_size' | 'singleton' | 'color_identity' | 'banned' | 'not_legal';
 
 export type UndeterminedRule = DeckRule | 'legality';
 
@@ -42,6 +42,7 @@ export type Violation = {
   message: string;
   hint: string | null;
   cards: DeckEvaluationCard[];
+  colors?: Color[];
 };
 
 export type UndeterminedCheck = {
@@ -79,6 +80,7 @@ export type DeckEvaluationSummary = {
 export type DeckEvaluation = DeckEvaluationSummary & {
   violations: Violation[];
   undetermined: UndeterminedCheck[];
+  chosen_color: Color | null;
   bracket_signals: BracketSignal[];
   missing_signal_count: number;
   revision: number;

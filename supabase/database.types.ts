@@ -427,14 +427,14 @@ isOneToOne: false
                   ]
                 },"deck_evaluations": {
                   Row: {
-                    "bracket_signals": NonNullable<Json>,"catalog_at": string | null,"commander_spellbook_at": string | null,"deck_id": string,"estimated_bracket": number,"judged_at": string,"missing_signal_count": number,"oracle_tags_at": string | null,"revision": number,"undetermined": NonNullable<Json>,"user_id": string,"validity": Database["public"]['Enums']["deck_validity"],"violations": NonNullable<Json>
+                    "bracket_signals": NonNullable<Json>,"catalog_at": string | null,"chosen_color": string | null,"commander_spellbook_at": string | null,"deck_id": string,"estimated_bracket": number,"judged_at": string,"missing_signal_count": number,"oracle_tags_at": string | null,"revision": number,"undetermined": NonNullable<Json>,"user_id": string,"validity": Database["public"]['Enums']["deck_validity"],"violations": NonNullable<Json>
                   }
                   ComputedFields: never
                   Insert: {
-                    "bracket_signals": NonNullable<Json>,"catalog_at"?: string | null,"commander_spellbook_at"?: string | null,"deck_id": string,"estimated_bracket": number,"judged_at"?: string,"missing_signal_count": number,"oracle_tags_at"?: string | null,"revision": number,"undetermined": NonNullable<Json>,"user_id": string,"validity": Database["public"]['Enums']["deck_validity"],"violations": NonNullable<Json>
+                    "bracket_signals": NonNullable<Json>,"catalog_at"?: string | null,"chosen_color"?: string | null,"commander_spellbook_at"?: string | null,"deck_id": string,"estimated_bracket": number,"judged_at"?: string,"missing_signal_count": number,"oracle_tags_at"?: string | null,"revision": number,"undetermined": NonNullable<Json>,"user_id": string,"validity": Database["public"]['Enums']["deck_validity"],"violations": NonNullable<Json>
                   }
                   Update: {
-                    "bracket_signals"?: NonNullable<Json>,"catalog_at"?: string | null,"commander_spellbook_at"?: string | null,"deck_id"?: string,"estimated_bracket"?: number,"judged_at"?: string,"missing_signal_count"?: number,"oracle_tags_at"?: string | null,"revision"?: number,"undetermined"?: NonNullable<Json>,"user_id"?: string,"validity"?: Database["public"]['Enums']["deck_validity"],"violations"?: NonNullable<Json>
+                    "bracket_signals"?: NonNullable<Json>,"catalog_at"?: string | null,"chosen_color"?: string | null,"commander_spellbook_at"?: string | null,"deck_id"?: string,"estimated_bracket"?: number,"judged_at"?: string,"missing_signal_count"?: number,"oracle_tags_at"?: string | null,"revision"?: number,"undetermined"?: NonNullable<Json>,"user_id"?: string,"validity"?: Database["public"]['Enums']["deck_validity"],"violations"?: NonNullable<Json>
                   }
                   Relationships: [
                     {

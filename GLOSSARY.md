@@ -183,7 +183,7 @@ _Avoid_: Error, issue
 How many copies of one card a deck can have. It is one for most cards. Some cards allow any number of copies, such as Relentless Rats, or up to a number, such as seven for Seven Dwarves. mtgscan reads it from Oracle text. It is unknown when the Oracle text mentions a copy limit but mtgscan does not recognize it.
 
 **Chosen color**:
-The color that a commander that says "choose a color", such as The Prismatic Piper, adds to the deck's color identity. mtgscan infers it. When every card outside the rest of the deck's color identity shares one color, that color is the chosen color. With no such card, the deck has no chosen color.
+The color that a commander that says "choose a color", such as The Prismatic Piper, adds to the deck's color identity. mtgscan infers it. When every card outside the rest of the commanders' color identity shares one color, that color is the chosen color. With no such card, the deck has no chosen color. With such cards in two or more colors, the deck has no chosen color, and those cards break color identity.
 _Avoid_: Picked color
 
 **Bracket signal**:

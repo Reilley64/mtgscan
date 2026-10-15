@@ -484,6 +484,7 @@ function judgeDeck(deck: Omit<Deck, 'evaluation'>): DeckEvaluation | null {
     validity: violations.length > 0 ? 'invalid' : 'valid',
     violations,
     undetermined: [],
+    chosen_color: null,
     estimated_bracket: 2,
     bracket_signals: [{ kind: 'game_changers', source: 'official', count: 0, lowest_bracket: 2, cards: [] }],
     missing_signal_count: 0,

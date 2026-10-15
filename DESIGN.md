@@ -668,8 +668,9 @@ The basic lands drawer, from **Edit** on the Basic lands group of a deck's Cards
 The Deck validity drawer, from the validity chip in the deck screen header. The deck screen is a pushed screen, so this drawer is the only one open:
 
 - The title "Deck validity", then the text "Checked against the current Commander rules." in meta text.
+- "Chosen color: Blue (inferred)" when the deck has a chosen color.
 - One rule row per violation, in the fixed violation order. A rule row is a surface card:
-  - the rule name in danger body strong, such as "No commander" or "Deck size";
+  - the rule name in danger body strong, such as "No commander", "Deck size", or "Color identity";
   - the citation as a lime text link at the right end of the first line, such as "CR 903.5a". It opens `https://magic.wizards.com/en/rules` in the browser. "Banned" and "Not legal" have no link;
   - the message in meta text, such as "87 of 100 cards.";
   - the cards as thumbnail chips, which are not buttons (see Components);

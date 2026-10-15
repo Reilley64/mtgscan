@@ -2,7 +2,7 @@ import type { DeckEvaluation } from '@mtgscan/supabase/decks';
 
 import { Text } from '@/components/atoms/text';
 import { RuleRow } from '@/components/molecules/rule-row';
-import { ruleNames } from '@/decks/deck-labels';
+import { colorNames, ruleNames } from '@/decks/deck-labels';
 import { evaluationCardChip } from '@/decks/violation-cards';
 import { shownDay } from '@/lib/shown-day';
 
@@ -15,6 +15,7 @@ export function DeckValidityContent({ evaluation, onOpenRules }: DeckValidityCon
   return (
     <>
       <Text variant="meta">Checked against the current Commander rules.</Text>
+      {evaluation.chosen_color ? <Text>Chosen color: {colorNames[evaluation.chosen_color]} (inferred)</Text> : null}
       {evaluation.violations.map((violation) => (
         <RuleRow
           key={violation.rule}
