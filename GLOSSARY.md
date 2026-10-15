@@ -52,7 +52,7 @@ The lowest current price of a card over all its card printings and finishes. Cat
 _Avoid_: Cheapest price, card price
 
 **Converted price**:
-A USD amount, such as a current price, a purchase-day price, or a collection total, times the latest exchange rate of another currency. It is rounded to that currency's minor unit, such as whole yen. It is an estimate, not a store price. It is stale when its USD price is stale, or when its exchange rate's date is more than 4 days before today. A card printing and finish with no USD price has no converted price.
+A USD amount, such as a current price, a purchase-day price, or a collection total, times the latest exchange rate of another currency. It is rounded to that currency's minor unit, such as whole yen. It is an estimate, not a store price. The database stores and returns only USD amounts. The app converts them with the shared module in `@mtgscan/supabase`, and the MCP service will too. It is stale when its USD price is stale, or when its exchange rate's date is more than 4 days before today. A card printing and finish with no USD price has no converted price. The app shows it with the currency's narrow symbol, such as "$" for AUD, and no "≈". The price credit says once that prices are converted.
 _Avoid_: Local price, FX price
 
 **Price currency**:

@@ -42,7 +42,7 @@ function reviewRows() {
 }
 
 function keysRead() {
-  return currentPriceReadsSent().map(({ items, price_currency }) => ({ items, price_currency }));
+  return currentPriceReadsSent();
 }
 
 beforeEach(() => {
@@ -80,8 +80,8 @@ describe('prices in batch review', () => {
     expect(symbolNames(screen.getByRole('button', { name: 'Lightning Bolt, M10 146 · NM · English, $1.87' }))).toEqual(['clock']);
   });
 
-  test('a converted price on a batch review row keeps its ≈', async () => {
-    offerCurrentPrices([{ ...boltM10, price: usdPrice('2.85', { currency: 'AUD', approximate: true, exchange_rate: '1.5234', rate_date: '2026-10-12' }) }], 'AUD');
+  test('a converted price on a batch review row shows with no "≈" and no currency letters, and VoiceOver hears "about"', async () => {
+    offerCurrentPrices([{ ...boltM10, price: usdPrice('1.87') }]);
     nextPhotosAre(cardRecognition([lightningBoltM10]));
     await openScan();
     await chooseCurrency('AUD Australian dollar');
@@ -89,7 +89,8 @@ describe('prices in batch review', () => {
 
     await openBatchReview(1);
 
-    expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English, ≈ A$2.85']);
+    expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English, about $2.85']);
+    expect(within(screen.getByRole('button', { name: /^Lightning Bolt/ })).getByText('$2.85')).toBeOnTheScreen();
   });
 
   test('opening batch review reads every card printing and finish it has no price for yet, in calls of at most 100 items', async () => {
@@ -172,10 +173,7 @@ describe('prices on the latest-scan chip', () => {
     await fireEvent.press(scanTab().getByRole('button', { name: 'Foil' }));
 
     expect(latestScanChip('Lightning Bolt, M10 146, $1.87')).toBeOnTheScreen();
-    expect(keysRead()).toEqual([
-      { items: [boltM10], price_currency: 'USD' },
-      { items: [boltM10Foil], price_currency: 'USD' },
-    ]);
+    expect(keysRead()).toEqual([{ items: [boltM10] }, { items: [boltM10Foil] }]);
   });
 });
 
@@ -271,7 +269,7 @@ describe('reading prices', () => {
     await openBatchReview(3);
 
     expect(reviewRows()).toEqual(Array(3).fill('Lightning Bolt, M10 146 · NM · English, $1.87'));
-    expect(keysRead()).toEqual([{ items: [boltM10], price_currency: 'USD' }]);
+    expect(keysRead()).toEqual([{ items: [boltM10] }]);
   });
 
   test('a restart clears the prices, and they stay out of the scan batch file', async () => {
@@ -290,19 +288,19 @@ describe('reading prices', () => {
     expect(currentPriceReadsSent()).toHaveLength(2);
   });
 
-  test('a currency change clears the prices and reads them again in the new currency', async () => {
+  test('a currency change converts the known prices again without reading them again', async () => {
     offerCurrentPrices([{ ...boltM10, price: usdPrice('1.87') }]);
-    offerCurrentPrices([{ ...boltM10, price: usdPrice('2.85', { currency: 'AUD', approximate: true, exchange_rate: '1.5234', rate_date: '2026-10-12' }) }], 'AUD');
     nextPhotosAre(cardRecognition([lightningBoltM10]));
     await openScan();
     await scanACard();
     expect(latestScanChip('Lightning Bolt, M10 146, $1.87')).toBeOnTheScreen();
 
     await chooseCurrency('AUD Australian dollar');
+    expect(latestScanChip('Lightning Bolt, M10 146, about $2.85')).toBeOnTheScreen();
     await chooseCurrency('USD US dollar');
 
     expect(latestScanChip('Lightning Bolt, M10 146, $1.87')).toBeOnTheScreen();
-    expect(keysRead().map(({ price_currency }) => price_currency)).toEqual(['USD', 'AUD', 'USD']);
+    expect(keysRead()).toEqual([{ items: [boltM10] }]);
   });
 });
 

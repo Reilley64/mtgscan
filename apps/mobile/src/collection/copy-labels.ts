@@ -1,5 +1,5 @@
 import { Constants } from '@mtgscan/supabase/database.types';
-import type { CardCondition, CardLanguage, CollectionCopyRow, CurrentPrice } from '@mtgscan/supabase/collection';
+import type { CardCondition, CardLanguage, CollectionCopyRow } from '@mtgscan/supabase/collection';
 import type { CommanderLegality, Finish } from '@mtgscan/supabase/search';
 
 export const finishes = Constants.public.Enums.card_finish;
@@ -66,30 +66,6 @@ export function spokenFinishAndCondition({ finish, condition }: { finish: Finish
     ...(finish === 'nonfoil' ? [] : [finishLabels[finish].toLowerCase()]),
     ...(condition === 'near_mint' ? [] : [conditionNames[condition]]),
   ];
-}
-
-export type PriceAmount = Pick<CurrentPrice, 'amount' | 'currency' | 'approximate'>;
-
-export function minorUnitDigitsOf(amount: string) {
-  return amount.split('.')[1]?.length ?? 0;
-}
-
-export function shownAmount({ amount, currency }: Pick<PriceAmount, 'amount' | 'currency'>) {
-  const digits = minorUnitDigitsOf(amount);
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  }).format(Number(amount));
-}
-
-export function approximately(shown: string, { approximate }: Pick<PriceAmount, 'approximate'>) {
-  return approximate ? `≈ ${shown}` : shown;
-}
-
-export function shownPrice(price: PriceAmount) {
-  return approximately(shownAmount(price), price);
 }
 
 export function copyChipLabels(copy: Pick<CollectionCopyRow, 'set' | 'collector_number' | 'finish' | 'condition' | 'language'>) {

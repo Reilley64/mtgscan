@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./collection": "./collection.ts",
+    "./converted-prices": "./converted-prices.ts",
     "./database.types": "./database.types.ts",
     "./gallery-manifest": "./gallery/manifest.ts",
     "./search": "./search.ts",

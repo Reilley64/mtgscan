@@ -1,18 +1,18 @@
 import type { CurrentPrice, CurrentPriceKey, CurrentPrices, CurrentPricesQuery } from '@mtgscan/supabase/collection';
-import type { PriceCurrency } from '@mtgscan/supabase/search';
+import { convertedPrice } from '@mtgscan/supabase/converted-prices';
 import { createContext, use, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from 'react';
 
-import { shownPrice } from '@/collection/copy-labels';
 import { usePriceCurrency } from '@/collection/price-currency-setting';
+import { priceLabels, type PriceLabels } from '@/collection/price-currency-labels';
 import { supabase } from '@/lib/supabase';
 
 import type { BatchScan } from './scan-batch';
 
 const itemsPerRead = 100;
 
-type KnownPrices = Readonly<{ currency: PriceCurrency | undefined; prices: ReadonlyMap<string, CurrentPrice | null> }>;
+type KnownPrices = ReadonlyMap<string, CurrentPrice | null>;
 
-export type ScanPrice = { shown: string | undefined; stale: boolean; spoken: string };
+export type ScanPrice = PriceLabels;
 
 type CurrentPricesState = {
   known: KnownPrices;
@@ -38,42 +38,24 @@ function chunks<Item>(items: Item[], size: number) {
 }
 
 export function CurrentPricesProvider({ children }: { children: ReactNode }) {
-  const currency = usePriceCurrency().priceCurrency?.currency;
-  const [known, setKnown] = useState<KnownPrices>({ currency, prices: new Map() });
-  const asked = useRef<{ currency: PriceCurrency | undefined; ids: Set<string> }>({ currency, ids: new Set() });
-  if (known.currency !== currency) {
-    setKnown({ currency, prices: new Map() });
-  }
+  const [known, setKnown] = useState<KnownPrices>(new Map());
+  const asked = useRef(new Set<string>());
 
-  const readPrices = useCallback(
-    (keys: CurrentPriceKey[]) => {
-      if (!currency) {
-        return;
-      }
-      if (asked.current.currency !== currency) {
-        asked.current = { currency, ids: new Set() };
-      }
-      const askedNow = asked.current;
-      const unknown = new Map(keys.filter((key) => !askedNow.ids.has(keyId(key))).map((key) => [keyId(key), key]));
-      for (const items of chunks([...unknown.values()], itemsPerRead)) {
-        items.forEach((key) => askedNow.ids.add(keyId(key)));
-        const query: CurrentPricesQuery = { items, price_currency: currency };
-        void supabase.rpc('get_current_prices', { query }).then(({ data, error }) => {
-          if (error) {
-            items.forEach((key) => askedNow.ids.delete(keyId(key)));
-            return;
-          }
-          const rows = (data as unknown as CurrentPrices).items;
-          setKnown((current) =>
-            current.currency === currency
-              ? { currency, prices: new Map([...current.prices, ...rows.map((row) => [keyId(row), row.price] as const)]) }
-              : current,
-          );
-        });
-      }
-    },
-    [currency],
-  );
+  const readPrices = useCallback((keys: CurrentPriceKey[]) => {
+    const unknown = new Map(keys.filter((key) => !asked.current.has(keyId(key))).map((key) => [keyId(key), key]));
+    for (const items of chunks([...unknown.values()], itemsPerRead)) {
+      items.forEach((key) => asked.current.add(keyId(key)));
+      const query: CurrentPricesQuery = { items };
+      void supabase.rpc('get_current_prices', { query }).then(({ data, error }) => {
+        if (error) {
+          items.forEach((key) => asked.current.delete(keyId(key)));
+          return;
+        }
+        const rows = (data as unknown as CurrentPrices).items;
+        setKnown((current) => new Map([...current, ...rows.map((row) => [keyId(row), row.price] as const)]));
+      });
+    }
+  }, []);
 
   const state = useMemo(() => ({ known, readPrices }), [known, readPrices]);
 
@@ -86,14 +68,11 @@ export function useScanPrices(scans: readonly BatchScan[]) {
     throw new Error('useScanPrices needs a CurrentPricesProvider');
   }
   const { known, readPrices } = state;
-  const requested = useRef({ readPrices, scanKeys: new Set<string>() });
+  const { priceCurrency } = usePriceCurrency();
+  const scanKeys = useRef(new Set<string>());
   const readNewScanKeys = useEffectEvent(() => {
-    if (requested.current.readPrices !== readPrices) {
-      requested.current = { readPrices, scanKeys: new Set() };
-    }
-    const { scanKeys } = requested.current;
-    const newScans = scans.filter((scan) => !scanKeys.has(scanKeyId(scan)));
-    newScans.forEach((scan) => scanKeys.add(scanKeyId(scan)));
+    const newScans = scans.filter((scan) => !scanKeys.current.has(scanKeyId(scan)));
+    newScans.forEach((scan) => scanKeys.current.add(scanKeyId(scan)));
     readPrices(newScans.map(keyOf));
   });
 
@@ -102,11 +81,10 @@ export function useScanPrices(scans: readonly BatchScan[]) {
   }, [readPrices, scans]);
 
   return (scan: BatchScan): ScanPrice | undefined => {
-    const price = known.prices.get(keyId(keyOf(scan)));
-    if (price === undefined) {
+    const usdPrice = known.get(keyId(keyOf(scan)));
+    if (usdPrice === undefined || !priceCurrency) {
       return undefined;
     }
-    const shown = price ? shownPrice(price) : undefined;
-    return { shown, stale: price?.stale ?? false, spoken: shown ?? 'no price' };
+    return priceLabels(usdPrice && convertedPrice(usdPrice, priceCurrency));
   };
 }

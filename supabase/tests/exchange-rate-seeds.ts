@@ -1,7 +1,7 @@
 import { expect } from 'bun:test';
 
-import type { CurrentPrice } from '../collection';
-import { secretKeyClient } from './local-stack';
+import type { ExchangeRate, ExchangeRateList } from '../converted-prices';
+import { secretKeyClient, type AppClient } from './local-stack';
 
 const testExchangeRates = { AUD: 1.5234, EUR: 0.93, JPY: 151.37 };
 
@@ -16,12 +16,16 @@ export async function storeExchangeRates(rates: Record<string, number> = testExc
   expect((await client.from('exchange_rates').insert(rows)).error).toBeNull();
 }
 
-export function convertedPrice(
-  currency: string,
-  exchangeRate: string,
-  amount: string,
-  finish: CurrentPrice['finish'],
-  rateDate = daysAgo(0),
-): Omit<CurrentPrice, 'stale'> {
-  return { amount, currency, finish, approximate: true, exchange_rate: exchangeRate, rate_date: rateDate };
+export async function exchangeRates(client: AppClient): Promise<ExchangeRate[]> {
+  const { data, error } = await client.rpc('list_exchange_rates');
+  expect(error).toBeNull();
+  return (data as unknown as ExchangeRateList).items;
+}
+
+export async function exchangeRateOf(client: AppClient, currency: string): Promise<ExchangeRate> {
+  const rate = (await exchangeRates(client)).find((row) => row.currency === currency);
+  if (!rate) {
+    throw new Error(`${currency} has no stored exchange rate`);
+  }
+  return rate;
 }

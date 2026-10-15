@@ -4,9 +4,7 @@ import {
   type CatalogQuery,
   type CatalogSort,
   type CommanderLegality,
-  type ExchangeRateFields,
   type Finish,
-  type PriceCurrency,
   type PriceFrom,
   type SearchError,
   type SearchPage,
@@ -100,7 +98,6 @@ export type CurrentPriceKey = {
 
 export type CurrentPricesQuery = {
   items: CurrentPriceKey[];
-  price_currency?: PriceCurrency;
 };
 
 export type CurrentPriceRow = CurrentPriceKey & {
@@ -128,7 +125,6 @@ export type CollectionCopyRow = {
 
 export type CopyQuery = {
   copy_id: string;
-  price_currency?: PriceCurrency;
 };
 
 export type CopyProtectedRequest = {
@@ -190,13 +186,9 @@ export type CopyDetails = CollectionCopyRow & {
   user_tags: UserTag[];
 };
 
-export type CollectionTotalQuery = {
-  price_currency?: PriceCurrency;
-};
-
-export type CollectionTotal = ExchangeRateFields & {
+export type CollectionTotal = {
   total: string;
-  currency: PriceCurrency;
+  currency: string;
   priced_copies: number;
   copies: number;
   stale: boolean;

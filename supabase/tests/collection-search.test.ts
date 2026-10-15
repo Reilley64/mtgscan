@@ -14,7 +14,7 @@ import type { Json } from '../database.types';
 import { readSearchError, type CardDetails, type CardPrintingsPage, type CatalogRow, type SearchPage } from '../search';
 import { catalogFixture, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { collectionEntryKey, seedCopies, seededCollectionEntryKey, type SeededCopies } from './copy-seeds';
-import { convertedPrice, storeExchangeRates } from './exchange-rate-seeds';
+import { storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -314,24 +314,15 @@ describe('after a catalog import', () => {
       });
     });
 
-    describe('in another currency', () => {
+    describe('with exchange rates stored', () => {
       beforeAll(async () => {
         await storeExchangeRates();
       });
 
-      test.each<[string, string, string, string]>([
-        ['AUD', '1.5234', '0.49', '1.96'],
-        ['JPY', '151.37', '48', '192'],
-      ])('the current price of a collection entry in %s is a converted price, and its entry total is that price times the quantity', async (currency, exchangeRate, amount, total) => {
-        const { items } = await page({ names: ['delver'], price_currency: currency });
+      test('the current price and the entry total of a collection entry stay in USD, for an AI chat to convert', async () => {
+        const { items } = await page({ names: ['delver'] });
 
-        expect(items.map((row) => [row.price, row.total])).toEqual([
-          [{ ...convertedPrice(currency, exchangeRate, amount, 'nonfoil'), stale: false }, total],
-        ]);
-      });
-
-      test('a collection entry with no USD price has no price and no entry total in another currency', async () => {
-        expect((await pricesAndTotals({ price_currency: 'AUD' })).blackLotus).toEqual([null, null]);
+        expect(items.map((row) => [row.price, row.total])).toEqual([[{ amount: '0.32', currency: 'USD', finish: 'nonfoil', stale: false }, '1.28']]);
       });
     });
   });
@@ -756,7 +747,6 @@ describe('after a catalog import', () => {
           sort: 'relevance',
           sort_order: 'desc',
           limit: 20,
-          price_currency: 'USD',
         },
         result_count: 3,
       });

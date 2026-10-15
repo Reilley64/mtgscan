@@ -1,4 +1,4 @@
-import type { PriceCurrencyList, PriceCurrencyRow } from '@mtgscan/supabase/search';
+import { usdExchangeRate, type ExchangeRate, type ExchangeRateList } from '@mtgscan/supabase/converted-prices';
 import { getLocales } from 'expo-localization';
 import * as SecureStore from 'expo-secure-store';
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -9,12 +9,15 @@ import { supabase } from '@/lib/supabase';
 
 const currencyKey = 'currency';
 
-const usd: PriceCurrencyRow = { currency: 'USD', minor_unit_digits: 2 };
+const ratesReadAgainAfterMs = 24 * 60 * 60 * 1000;
 
-type PriceCurrencies = { status: 'loading' } | { status: 'failed' } | { status: 'loaded'; items: PriceCurrencyRow[] };
+type PriceCurrencies =
+  | { status: 'loading' }
+  | { status: 'failed' }
+  | { status: 'loaded'; items: ExchangeRate[]; readAt: number };
 
 type PriceCurrencySetting = {
-  priceCurrency: PriceCurrencyRow | null;
+  priceCurrency: ExchangeRate | null;
   priceCurrencies: PriceCurrencies;
   reloadPriceCurrencies: () => void;
   setCurrency: (currency: string) => void;
@@ -23,7 +26,7 @@ type PriceCurrencySetting = {
 const PriceCurrencyContext = createContext<PriceCurrencySetting | null>(null);
 
 function regionCurrency() {
-  return getLocales()[0]?.currencyCode ?? usd.currency;
+  return getLocales()[0]?.currencyCode ?? usdExchangeRate.currency;
 }
 
 function shownCurrency(chosen: string, priceCurrencies: PriceCurrencies) {
@@ -31,9 +34,9 @@ function shownCurrency(chosen: string, priceCurrencies: PriceCurrencies) {
     case 'loading':
       return null;
     case 'failed':
-      return usd;
+      return usdExchangeRate;
     case 'loaded':
-      return priceCurrencies.items.find((row) => row.currency === chosen) ?? usd;
+      return priceCurrencies.items.find((row) => row.currency === chosen) ?? usdExchangeRate;
   }
 }
 
@@ -48,10 +51,17 @@ export function PriceCurrencyProvider({ children }: { children: ReactNode }) {
       return;
     }
     let current = true;
-    supabase.rpc('list_price_currencies').then(({ data, error }) => {
-      if (current) {
-        setPriceCurrencies(error ? { status: 'failed' } : { status: 'loaded', items: (data as unknown as PriceCurrencyList).items });
+    supabase.rpc('list_exchange_rates').then(({ data, error }) => {
+      if (!current) {
+        return;
       }
+      setPriceCurrencies((shown) =>
+        error
+          ? shown.status === 'loaded'
+            ? shown
+            : { status: 'failed' }
+          : { status: 'loaded', items: (data as unknown as ExchangeRateList).items, readAt: Date.now() },
+      );
     });
     return () => {
       current = false;
@@ -64,12 +74,18 @@ export function PriceCurrencyProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (priceCurrencies.status !== 'failed') {
-      return;
-    }
-    const subscription = AppState.addEventListener('change', (state) => state === 'active' && reloadPriceCurrencies());
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') {
+        return;
+      }
+      if (priceCurrencies.status === 'failed') {
+        reloadPriceCurrencies();
+      } else if (priceCurrencies.status === 'loaded' && Date.now() - priceCurrencies.readAt > ratesReadAgainAfterMs) {
+        setReadCount((count) => count + 1);
+      }
+    });
     return () => subscription.remove();
-  }, [priceCurrencies.status, reloadPriceCurrencies]);
+  }, [priceCurrencies, reloadPriceCurrencies]);
 
   const setting = useMemo<PriceCurrencySetting>(
     () => ({

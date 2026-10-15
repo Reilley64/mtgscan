@@ -10,7 +10,6 @@ import type {
   CollectionPage,
   CollectionQuery,
   CollectionTotal,
-  CollectionTotalQuery,
   CopyDetails,
   CopyProtectedRequest,
   CopyQuery,
@@ -27,7 +26,7 @@ import type {
   ScanBatchStack,
   UserTag,
 } from '@mtgscan/supabase/collection';
-import type { PriceCurrencyRow } from '@mtgscan/supabase/search';
+import type { ExchangeRate } from '@mtgscan/supabase/converted-prices';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 import { act } from 'expo-router/testing-library';
@@ -71,15 +70,18 @@ const emptyCollectionTotal: CollectionTotal = {
   stale: false,
   prices_observed_at: null,
 };
-let collectionTotals = [emptyCollectionTotal];
+let collectionTotal = emptyCollectionTotal;
 let priceReads: PriceRead[] = [];
 const wholeUnitCurrencies = ['ISK', 'JPY', 'KRW'];
+const testExchangeRates: Record<string, string> = { AUD: '1.5234', EUR: '0.93', HUF: '324.52', IDR: '17921', JPY: '151.37' };
+export const testRateDate = '2026-10-12';
 const frankfurterCurrencies = [
   'AUD', 'BRL', 'CAD', 'CHF', 'CNY', 'CZK', 'DKK', 'EUR', 'GBP', 'HKD', 'HUF', 'IDR', 'ILS', 'INR', 'ISK',
   'JPY', 'KRW', 'MXN', 'MYR', 'NOK', 'NZD', 'PHP', 'PLN', 'RON', 'SEK', 'SGD', 'THB', 'TRY', 'USD', 'ZAR',
 ];
-let priceCurrencies = frankfurterCurrencies;
-let failingPriceCurrencyReads = 0;
+let exchangeRates = exchangeRatesOf(frankfurterCurrencies);
+let exchangeRateReads = 0;
+let failingExchangeRateReads = 0;
 let failingCollectionReads = 0;
 let collectionSearches: CollectionQuery[] = [];
 let collectionSearchAnswer: ((query: CollectionQuery) => CollectionSearchAnswer) | null = null;
@@ -154,12 +156,13 @@ async function nonceMatches(provider: SignInProvider, token: string, nonce: stri
 
 export type CollectionSearchAnswer = CollectionCopyRow[] | { refusedField: string };
 
-type PriceRead = { read: 'search_collection' | 'get_collection_total' | 'get_copy'; price_currency: string | undefined };
+type PriceRead = { read: 'search_collection' | 'get_collection_total' | 'get_copy' | 'get_current_prices'; query: object };
 
 const expiredCursor = { code: 'invalid_cursor', message: 'The cursor has expired. Start the search again.', details: 'cursor' };
 
-function collectionCopiesPage({ rows, cursor, limit = 60, price_currency, ...search }: CollectionQuery) {
-  priceReads = [...priceReads, { read: 'search_collection', price_currency }];
+function collectionCopiesPage(query: CollectionQuery) {
+  const { rows, cursor, limit = 60, ...search } = query;
+  priceReads = [...priceReads, { read: 'search_collection', query }];
   if (rows !== 'copies') {
     throw new Error('The fake Supabase client searches the collection only for copy rows');
   }
@@ -174,7 +177,7 @@ function collectionCopiesPage({ rows, cursor, limit = 60, price_currency, ...sea
   if (!cursor) {
     collectionSearches = [...collectionSearches, search];
   }
-  const answer = collectionSearchAnswer ? collectionSearchAnswer({ ...search, price_currency }) : collectionCopies;
+  const answer = collectionSearchAnswer ? collectionSearchAnswer(search) : collectionCopies;
   if ('refusedField' in answer) {
     const { refusedField } = answer;
     return { data: null, error: { code: 'invalid_argument', message: `${refusedField} is not known.`, details: refusedField } };
@@ -190,47 +193,43 @@ function collectionCopiesPage({ rows, cursor, limit = 60, price_currency, ...sea
 
 const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
 
-const unknownPriceCurrency = {
-  data: null,
-  error: {
-    code: 'invalid_argument',
-    message: 'price_currency must be USD or a currency with an exchange rate, such as EUR.',
-    details: 'price_currency',
-  },
-};
-
-function collectionTotalRead({ price_currency }: CollectionTotalQuery) {
-  priceReads = [...priceReads, { read: 'get_collection_total', price_currency }];
-  const total = collectionTotals.find(({ currency }) => currency === (price_currency ?? 'USD'));
-  return total ? { data: total, error: null } : unknownPriceCurrency;
+function collectionTotalRead(query: object) {
+  priceReads = [...priceReads, { read: 'get_collection_total', query }];
+  return { data: collectionTotal, error: null };
 }
 
-function priceCurrencyList() {
-  if (failingPriceCurrencyReads > 0) {
-    failingPriceCurrencyReads -= 1;
-    return { data: null, error: networkFailure };
-  }
-  const items: PriceCurrencyRow[] = priceCurrencies.map((currency) => ({
+function exchangeRatesOf(currencies: string[], rateDate = testRateDate): ExchangeRate[] {
+  return currencies.map((currency) => ({
     currency,
+    rate: currency === 'USD' ? '1' : (testExchangeRates[currency] ?? '1.25'),
+    rate_date: currency === 'USD' ? null : rateDate,
     minor_unit_digits: wholeUnitCurrencies.includes(currency) ? 0 : 2,
   }));
-  return { data: { items }, error: null };
 }
 
-function currentPriceKey(currency: string, { printing_id, finish }: Pick<CurrentPriceRow, 'printing_id' | 'finish'>) {
-  return `${currency}|${printing_id}|${finish}`;
+function exchangeRateList() {
+  exchangeRateReads += 1;
+  if (failingExchangeRateReads > 0) {
+    failingExchangeRateReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  return { data: { items: exchangeRates }, error: null };
+}
+
+function currentPriceKey({ printing_id, finish }: Pick<CurrentPriceRow, 'printing_id' | 'finish'>) {
+  return `${printing_id}|${finish}`;
 }
 
 async function currentPricesRead(query: CurrentPricesQuery) {
   currentPriceReads = [...currentPriceReads, query];
+  priceReads = [...priceReads, { read: 'get_current_prices', query }];
   await heldCurrentPriceReads;
   if (!currentPrices || failingCurrentPriceReads > 0) {
     failingCurrentPriceReads = Math.max(failingCurrentPriceReads - 1, 0);
     return { data: null, error: networkFailure };
   }
   const known = currentPrices;
-  const currency = query.price_currency ?? 'USD';
-  const items: CurrentPriceRow[] = query.items.map((item) => ({ ...item, price: known.get(currentPriceKey(currency, item)) ?? null }));
+  const items: CurrentPriceRow[] = query.items.map((item) => ({ ...item, price: known.get(currentPriceKey(item)) ?? null }));
   return { data: { items }, error: null };
 }
 
@@ -243,8 +242,9 @@ function ownedCopyDetails(copyId: string) {
   return collectionCopies.some((copy) => copy.copy_id === copyId) ? copyDetails.get(copyId) : undefined;
 }
 
-function copyRead({ copy_id, price_currency }: CopyQuery) {
-  priceReads = [...priceReads, { read: 'get_copy', price_currency }];
+function copyRead(query: CopyQuery) {
+  const { copy_id } = query;
+  priceReads = [...priceReads, { read: 'get_copy', query }];
   if (failingCopyReads > 0) {
     failingCopyReads -= 1;
     return { data: null, error: networkFailure };
@@ -513,7 +513,7 @@ export const fakeSupabase = {
     args?:
       | { query: CollectionQuery }
       | { query: CopyQuery }
-      | { query: CollectionTotalQuery }
+      | { query: Record<string, never> }
       | { query: CurrentPricesQuery }
       | { query: { text: string; limit: number } }
       | { batch: ScanBatch }
@@ -559,13 +559,13 @@ export const fakeSupabase = {
       return setCopyProtected(args.request as CopyProtectedRequest);
     }
     if (name === 'get_collection_total' && args && 'query' in args) {
-      return collectionTotalRead(args.query as CollectionTotalQuery);
+      return collectionTotalRead(args.query as object);
     }
     if (name === 'get_current_prices' && args && 'query' in args) {
       return currentPricesRead(args.query as CurrentPricesQuery);
     }
-    if (name === 'list_price_currencies') {
-      return priceCurrencyList();
+    if (name === 'list_exchange_rates') {
+      return exchangeRateList();
     }
     if (name === 'add_scan_batch' && args && 'batch' in args) {
       return addScanBatch(args.batch);
@@ -688,16 +688,16 @@ export function copyProtectedWritesSent() {
   return copyProtectedWrites;
 }
 
-export function ownCollectionTotal(...totals: CollectionTotal[]) {
-  collectionTotals = totals;
+export function ownCollectionTotal(total: CollectionTotal) {
+  collectionTotal = total;
 }
 
 export function priceReadsSent() {
   return priceReads;
 }
 
-export function offerCurrentPrices(rows: CurrentPriceRow[], currency = 'USD') {
-  currentPrices = new Map([...(currentPrices ?? []), ...rows.map((row) => [currentPriceKey(currency, row), row.price] as const)]);
+export function offerCurrentPrices(rows: CurrentPriceRow[]) {
+  currentPrices = new Map([...(currentPrices ?? []), ...rows.map((row) => [currentPriceKey(row), row.price] as const)]);
 }
 
 export function currentPriceReadsSent() {
@@ -721,12 +721,16 @@ export function holdCurrentPriceReads() {
   };
 }
 
-export function offerPriceCurrencies(currencies: string[]) {
-  priceCurrencies = currencies;
+export function offerExchangeRates(currencies: string[], rateDate = testRateDate) {
+  exchangeRates = exchangeRatesOf(currencies, rateDate);
 }
 
-export function failPriceCurrencyReads(count: number) {
-  failingPriceCurrencyReads = count;
+export function exchangeRateReadCount() {
+  return exchangeRateReads;
+}
+
+export function failExchangeRateReads(count: number) {
+  failingExchangeRateReads = count;
 }
 
 export function failCollectionReads(count: number) {
@@ -809,10 +813,11 @@ export function resetFakeSupabase() {
   copyUserTags = new Map();
   failingUserTagChanges = 0;
   failingUserTagReads = 0;
-  collectionTotals = [emptyCollectionTotal];
+  collectionTotal = emptyCollectionTotal;
   priceReads = [];
-  priceCurrencies = frankfurterCurrencies;
-  failingPriceCurrencyReads = 0;
+  exchangeRates = exchangeRatesOf(frankfurterCurrencies);
+  exchangeRateReads = 0;
+  failingExchangeRateReads = 0;
   failingCollectionReads = 0;
   collectionSearches = [];
   collectionSearchAnswer = null;

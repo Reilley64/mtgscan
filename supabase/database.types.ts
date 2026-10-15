@@ -572,13 +572,13 @@ isOneToOne: false
 "list_card_printings":
 { Args: { "query": Json }; Returns: Json
                            },
+"list_exchange_rates":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "list_gallery_printings":
 { Args: { "after_id"?: string }; Returns: {
               "basic_land": boolean,"id": string
             }[]
-                           },
-"list_price_currencies":
-{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "list_user_tags":
 { Args: Record<PropertyKey, never>; Returns: Json

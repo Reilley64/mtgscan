@@ -4,7 +4,7 @@ import type { CurrentPrices, CurrentPricesQuery } from '../collection';
 import type { Json } from '../database.types';
 import { readSearchError } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
-import { convertedPrice, daysAgo, storeExchangeRates } from './exchange-rate-seeds';
+import { daysAgo, storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -93,18 +93,6 @@ describe('the current prices read', () => {
     ]);
   });
 
-  test('a price currency gives converted prices', async () => {
-    expect(
-      await currentPrices({ items: [{ printing_id: angelicCurator, finish: 'foil' }], price_currency: 'AUD' }),
-    ).toEqual([
-      {
-        printing_id: angelicCurator,
-        finish: 'foil',
-        price: { ...convertedPrice('AUD', '1.5234', '0.46', 'foil'), stale: false },
-      },
-    ]);
-  });
-
   test('100 items are read', async () => {
     const items = Array.from({ length: 100 }, (_, index) => ({
       printing_id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
@@ -149,7 +137,7 @@ describe('the current prices read', () => {
       'items[1]',
     ],
     ['a card printing ID that is not a UUID', { items: [{ printing_id: 'mh2-262', finish: 'foil' }] }, 'items[0].printing_id'],
-    ['a price currency with no exchange rate', { items: [{ printing_id: angelicCurator, finish: 'foil' }], price_currency: 'GBP' }, 'price_currency'],
+    ['a price currency, even USD, as the app converts prices itself', { items: [{ printing_id: angelicCurator, finish: 'foil' }], price_currency: 'USD' }, 'price_currency'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
     const { prices, error } = await readCurrentPrices(user.client, query);
 
@@ -184,14 +172,12 @@ describe('stale current prices', () => {
     expect(aged!.price?.stale).toBe(true);
   });
 
-  test('a converted current price is stale once its exchange rate is more than 4 days old', async () => {
+  test('an exchange rate more than 4 days old leaves the USD current price fresh', async () => {
     await storeExchangeRates(undefined, daysAgo(5));
 
-    const [converted] = await currentPrices({ ...curatorFoil, price_currency: 'AUD' });
     const [usd] = await currentPrices(curatorFoil);
     await storeExchangeRates();
 
-    expect(converted!.price).toMatchObject({ stale: true, rate_date: daysAgo(5) });
-    expect(usd!.price?.stale).toBe(false);
+    expect(usd!.price).toEqual({ amount: '0.30', currency: 'USD', finish: 'foil', stale: false });
   });
 });

@@ -1,19 +1,19 @@
-import { approximately, minorUnitDigitsOf, shownAmount, type PriceAmount } from '@/collection/copy-labels';
+import { minorUnitDigitsOf, shownPrice, spokenPrice, type PriceAmount } from '@/collection/price-currency-labels';
 
 const minusSign = '\u2212';
 
-function changeSize({ amount, currency }: PriceAmount) {
-  return { direction: Math.sign(Number(amount)), size: shownAmount({ amount: amount.replace(/^-/, ''), currency }) };
+function changeSize(change: PriceAmount) {
+  return { direction: Math.sign(Number(change.amount)), size: { ...change, amount: change.amount.replace(/^-/, '') } };
 }
 
 export function shownPriceChange(change: PriceAmount) {
   const { direction, size } = changeSize(change);
-  return approximately(`${direction < 0 ? minusSign : direction > 0 ? '+' : ''}${size}`, change);
+  return `${direction < 0 ? minusSign : direction > 0 ? '+' : ''}${shownPrice(size)}`;
 }
 
 export function spokenPriceChange(change: PriceAmount) {
   const { direction, size } = changeSize(change);
-  return direction === 0 ? 'no change' : `${direction < 0 ? 'down' : 'up'} ${approximately(size, change)}`;
+  return direction === 0 ? 'no change' : `${direction < 0 ? 'down' : 'up'} ${spokenPrice(size)}`;
 }
 
 export function changeSinceAdded(price: PriceAmount | null, purchaseDayPrice: PriceAmount | null): PriceAmount | undefined {

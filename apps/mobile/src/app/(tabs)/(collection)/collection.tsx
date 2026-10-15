@@ -1,4 +1,5 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
+import { convertedPrice } from '@mtgscan/supabase/converted-prices';
 import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -20,7 +21,9 @@ import { refusedChipMessage, type SearchChip } from '@/collection/collection-sea
 import { useCollectionSearchState } from '@/collection/collection-search-state';
 import { activeFilterCount } from '@/collection/filter-choices';
 import { collectionOrderQuery, defaultCollectionOrder } from '@/collection/collection-sort';
-import { sheenOf, shownCondition, shownPrice, spokenFinishAndCondition } from '@/collection/copy-labels';
+import { sheenOf, shownCondition, spokenFinishAndCondition } from '@/collection/copy-labels';
+import { usePriceCurrency } from '@/collection/price-currency-setting';
+import { priceLabels } from '@/collection/price-currency-labels';
 import { shownMatchCount } from '@/collection/total-labels';
 import { useCollectionCopies, type BinderRead } from '@/collection/use-collection-copies';
 import { useCollectionTotal } from '@/collection/use-collection-total';
@@ -68,7 +71,8 @@ function BinderPlaceholder({ binder, searching, refusedChip, onTryAgain }: Binde
 }
 
 function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri: string | undefined }) {
-  const price = copy.price ? shownPrice(copy.price) : undefined;
+  const { priceCurrency } = usePriceCurrency();
+  const price = priceLabels(copy.price && priceCurrency && convertedPrice(copy.price, priceCurrency));
   return (
     <CardTile
       uri={copy.image_uris[0]}
@@ -78,9 +82,9 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
         `${copy.set.toUpperCase()} ${copy.collector_number}`,
         ...spokenFinishAndCondition(copy),
         ...(copy.protected ? ['protected'] : []),
-        price ?? 'no price',
+        price.spoken,
       ].join(', ')}
-      accessibilityHint={copy.price?.stale ? 'The price may be out of date.' : undefined}
+      accessibilityHint={price.stale ? 'The price may be out of date.' : undefined}
       onPress={() => router.push({ pathname: '/copy', params: { copyId: copy.copy_id } })}>
       <CopyMeta
         setCode={copy.set}
@@ -90,7 +94,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
         condition={shownCondition(copy.condition)}
         isProtected={copy.protected}
       />
-      <PriceLine price={price} stale={copy.price?.stale ?? false} />
+      <PriceLine price={price.shown} stale={price.stale} />
     </CardTile>
   );
 }
