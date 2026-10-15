@@ -6,6 +6,7 @@ import {
   failCopyDeletes,
   ownCollectionTotal,
   ownCopies,
+  ownDeckOfCopies,
   removeCopyFromTheCollection,
   startSignedIn,
 } from './fake-supabase';
@@ -51,6 +52,20 @@ describe('deleting a copy', () => {
 
     expect(presentedAlert()).toEqual(deleteAlert);
     expect(copiesDeletedOnTheServer()).toEqual([]);
+  });
+
+  test('Delete copy on a copy in a deck names the deck it leaves', async () => {
+    ownDeckOfCopies('Atraxa', [copyOf('copy-1')]);
+    await openCopyPage(/^Angelic Curator/);
+
+    await chooseDeleteCopy();
+
+    expect(presentedAlert()).toEqual({
+      ...deleteAlert,
+      message: 'It leaves Atraxa and your collection, with its user tags. This cannot be undone.',
+    });
+    await pressAlertButton('Delete copy');
+    expect(copiesDeletedOnTheServer()).toEqual(['copy-1']);
   });
 
   test('confirming deletes the copy and goes back to the binder, which no longer shows it', async () => {
