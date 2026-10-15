@@ -4,12 +4,16 @@ import { copyOf, deckCardOf, openCopyPage, openDeckWithCards } from './copies';
 import {
   allocateCopyElsewhere,
   deckWritesSent,
+  failAddPreviews,
   failDeckWrites,
+  holdAddPreviews,
+  ownAddPreviewEffects,
   ownCopies,
   ownDecks,
   startSignedIn,
 } from './fake-supabase';
 import {
+  appearsBefore,
   cardImageUri,
   cardSheen,
   dashedOutlinesColored,
@@ -24,7 +28,7 @@ import {
 } from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { line } = tokenColors;
+const { line, danger } = tokenColors;
 
 const medium = { priority: 'medium', card_count: 0 } as const;
 
@@ -197,6 +201,64 @@ describe('the Add to deck drawer', () => {
 
     expect(presentedAlert()).toEqual({ title: 'Could not add this card', message: 'Check your connection.', buttons: ['OK'] });
     expect(isDrawerPresented()).toBe(true);
+  });
+
+  test('a row with an effect shows a danger chip under its meta line, and VoiceOver reads the full effect', async () => {
+    ownDecks([
+      { name: 'Atraxa', ...medium },
+      { name: 'Kinnan', ...medium },
+      { name: 'Tymna', ...medium },
+    ]);
+    ownAddPreviewEffects({
+      'deck-1': { kind: 'would_make_invalid', rules: [{ rule: 'deck_size' }, { rule: 'color_identity', colors: ['R'] }] },
+      'deck-2': { kind: 'adds_violation', rules: [{ rule: 'singleton' }] },
+    });
+    ownCopies([copyOf('copy-1')]);
+    await openCopyPage(/^Angelic Curator/);
+
+    await chooseAction('Add to deck');
+
+    const atraxa = await drawer().findByRole('button', { name: /^Atraxa/ });
+    expect(atraxa.props.accessibilityLabel).toBe(
+      'Atraxa, Medium priority · 0 cards, Would make Atraxa invalid: deck size, color identity, Red',
+    );
+    expect(within(atraxa).getByText('Would make it invalid')).toHaveStyle({ color: danger });
+    expect(appearsBefore(within(atraxa).getByText('Medium priority · 0 cards'), within(atraxa).getByText('Would make it invalid'))).toBe(true);
+    const kinnan = drawer().getByRole('button', { name: /^Kinnan/ });
+    expect(kinnan.props.accessibilityLabel).toBe('Kinnan, Medium priority · 0 cards, Adds a violation to Kinnan: singleton');
+    expect(within(kinnan).getByText('Adds a violation')).toHaveStyle({ color: danger });
+    expect(drawer().getByRole('button', { name: 'Tymna, Medium priority · 0 cards' })).toBeOnTheScreen();
+  });
+
+  test('rows show no effect chip and no error while the preview loads or after it fails', async () => {
+    ownDecks([{ name: 'Atraxa', ...medium }]);
+    ownAddPreviewEffects({ 'deck-1': { kind: 'adds_violation', rules: [{ rule: 'singleton' }] } });
+    ownCopies([copyOf('copy-1')]);
+    await openCopyPage(/^Angelic Curator/);
+    const held = holdAddPreviews();
+
+    await chooseAction('Add to deck');
+
+    expect(await drawer().findByRole('button', { name: 'Atraxa, Medium priority · 0 cards' })).toBeOnTheScreen();
+    expect(drawer().queryByText('Adds a violation')).not.toBeOnTheScreen();
+    failAddPreviews(1);
+    await held.finish();
+    expect(drawer().getByRole('button', { name: 'Atraxa, Medium priority · 0 cards' })).toBeOnTheScreen();
+    expect(drawer().queryByText('Adds a violation')).not.toBeOnTheScreen();
+    expect(drawer().queryByText(/Could not/)).not.toBeOnTheScreen();
+  });
+
+  test('a tap on a row with an effect still adds the copy', async () => {
+    ownDecks([{ name: 'Atraxa', ...medium }]);
+    ownAddPreviewEffects({ 'deck-1': { kind: 'would_make_invalid', rules: [{ rule: 'banned' }] } });
+    ownCopies([copyOf('copy-1')]);
+    await openCopyPage(/^Angelic Curator/);
+    await chooseAction('Add to deck');
+
+    await fireEvent.press(await drawer().findByRole('button', { name: /Would make Atraxa invalid: banned$/ }));
+
+    expect(addedCards()).toEqual([{ deck_id: 'deck-1', copy_id: 'copy-1', unprotect: false }]);
+    expect(isDrawerPresented()).toBe(false);
   });
 });
 

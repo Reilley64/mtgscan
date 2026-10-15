@@ -771,6 +771,9 @@ isOneToOne: false
 "mark_deck_used":
 { Args: { "request": Json }; Returns: undefined
                            },
+"preview_add_deck_card":
+{ Args: { "query": Json }; Returns: Json
+                           },
 "preview_revert":
 { Args: { "query": Json }; Returns: Json
                            },

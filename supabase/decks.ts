@@ -114,7 +114,7 @@ export type DeckCard = Omit<CollectionCopyRow, 'deck'> & {
   added_at: string;
   type_line: string;
   mana_value: number;
-  colors: string[];
+  colors: Color[];
 };
 
 export type DeckBasicLand = {
@@ -273,6 +273,21 @@ export type RevertPreview = {
   lines: DeckChangeLine[];
   blocks: RevertBlock[];
   protected_copies: RevertProtectedCopy[];
+};
+
+export type DeckChangeEffectRule = Pick<Violation, 'rule' | 'colors'>;
+
+export type DeckChangeEffect = {
+  kind: 'would_make_invalid' | 'adds_violation';
+  rules: DeckChangeEffectRule[];
+};
+
+export type AddDeckCardPreviewQuery = {
+  copy_id: string;
+};
+
+export type AddDeckCardPreview = {
+  items: { deck_id: string; effect: DeckChangeEffect | null }[];
 };
 
 export type RevertDeckChangesRequest = RevertPreviewQuery & {

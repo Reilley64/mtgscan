@@ -1,6 +1,8 @@
 import { Constants } from '@mtgscan/supabase/database.types';
 import type {
   BracketSignalKind,
+  DeckChangeEffect,
+  DeckChangeEffectRule,
   DeckEvaluationSummary,
   DeckPriority,
   DeckRow,
@@ -56,6 +58,23 @@ export function estimatedBracketName(bracket: EstimatedBracket) {
 
 export function estimatedBracketChip(bracket: EstimatedBracket) {
   return { label: bracketLabel(bracket), tone: 'info' as const, accessibilityLabel: estimatedBracketName(bracket) };
+}
+
+const effectNames: Record<DeckChangeEffect['kind'], { chip: string; spoken: (deckName: string) => string }> = {
+  would_make_invalid: { chip: 'Would make it invalid', spoken: (deckName) => `Would make ${deckName} invalid` },
+  adds_violation: { chip: 'Adds a violation', spoken: (deckName) => `Adds a violation to ${deckName}` },
+};
+
+function spokenEffectRule({ rule, colors = [] }: DeckChangeEffectRule) {
+  return [ruleNames[rule].toLowerCase(), ...colors.map((color) => colorNames[color])].join(', ');
+}
+
+export function effectStatus(effect: DeckChangeEffect, deckName: string) {
+  const { chip, spoken } = effectNames[effect.kind];
+  return {
+    chip: { label: chip, tone: 'danger' as const },
+    spoken: `${spoken(deckName)}: ${effect.rules.map(spokenEffectRule).join(', ')}`,
+  };
 }
 
 export function cardCountLabel(count: number) {

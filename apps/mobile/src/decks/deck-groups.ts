@@ -1,5 +1,4 @@
 import type { DeckCard } from '@mtgscan/supabase/decks';
-import type { Color } from '@mtgscan/supabase/search';
 
 import { colorNames } from '@/decks/deck-labels';
 import { sortChoices, type SortOrder } from '@/lib/sort-order';
@@ -64,7 +63,7 @@ function colorGroupOf(card: DeckCard) {
   if (card.colors.length > 1) {
     return 'Multicolor';
   }
-  return card.colors.length === 1 ? colorNames[card.colors[0] as Color] : 'Colorless';
+  return card.colors.length === 1 ? colorNames[card.colors[0]] : 'Colorless';
 }
 
 const groupingRules: Record<DeckGrouping, GroupingRule> = {

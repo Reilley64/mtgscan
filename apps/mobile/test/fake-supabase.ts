@@ -28,12 +28,14 @@ import type {
 } from '@mtgscan/supabase/collection';
 import type { ExchangeRate } from '@mtgscan/supabase/converted-prices';
 import type {
+  AddDeckCardPreviewQuery,
   AddDeckCardRequest,
   CreateDeckRequest,
   Deck,
   DeckBasicLand,
   DeckCard,
   DeckChange,
+  DeckChangeEffect,
   DeckChangesQuery,
   DeckEvaluation,
   DeckQuery,
@@ -93,6 +95,9 @@ let failingDeckWrites = 0;
 let deckChanges = new Map<string, DeckChange[]>();
 let failingDeckChangeReads = 0;
 let revertPreviews = new Map<string, Omit<RevertPreview, 'revision'>>();
+let addPreviewEffects = new Map<string, DeckChangeEffect>();
+let failingAddPreviews = 0;
+let heldAddPreviews: Promise<void> | null = null;
 const emptyCollectionTotal: CollectionTotal = {
   total: '0.00',
   currency: 'USD',
@@ -556,6 +561,16 @@ function revertPreviewRead({ deck_id, deck_change_id }: RevertPreviewQuery) {
   return deck && preview ? { data: { ...preview, revision: deck.revision }, error: null } : deckNotFound;
 }
 
+async function addDeckCardPreviewRead() {
+  await heldAddPreviews;
+  if (failingAddPreviews > 0) {
+    failingAddPreviews -= 1;
+    return { data: null, error: networkFailure };
+  }
+  const items = decks.map((deck) => ({ deck_id: deck.deck_id, effect: addPreviewEffects.get(deck.deck_id) ?? null }));
+  return { data: { items }, error: null };
+}
+
 const staleRevision = {
   data: null,
   error: { code: 'stale_revision', message: 'expected_revision is not the deck revision.', details: 'expected_revision' },
@@ -976,6 +991,7 @@ export const fakeSupabase = {
       | { query: DeckQuery }
       | { query: DeckChangesQuery }
       | { query: RevertPreviewQuery }
+      | { query: AddDeckCardPreviewQuery }
       | { query: Record<string, never> }
       | { query: CurrentPricesQuery }
       | { query: { text: string; limit: number } }
@@ -1008,6 +1024,9 @@ export const fakeSupabase = {
     }
     if (name === 'list_deck_changes' && args && 'query' in args) {
       return deckChangeList(args.query as DeckChangesQuery);
+    }
+    if (name === 'preview_add_deck_card' && args && 'query' in args) {
+      return addDeckCardPreviewRead();
     }
     if (name === 'preview_revert' && args && 'query' in args) {
       return revertPreviewRead(args.query as RevertPreviewQuery);
@@ -1233,6 +1252,27 @@ export function ownRevertPreview(deckChangeId: string, preview: Omit<RevertPrevi
   revertPreviews = new Map(revertPreviews).set(deckChangeId, preview);
 }
 
+export function ownAddPreviewEffects(effects: Record<string, DeckChangeEffect>) {
+  addPreviewEffects = new Map(Object.entries(effects));
+}
+
+export function failAddPreviews(count: number) {
+  failingAddPreviews = count;
+}
+
+export function holdAddPreviews() {
+  let finish = () => {};
+  heldAddPreviews = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldAddPreviews = null;
+      await act(async () => finish());
+    },
+  };
+}
+
 export function changeDeckElsewhere(deckId: string, change: DeckChange) {
   const deck = decks.find((candidate) => candidate.deck_id === deckId)!;
   saveDeck({ ...deck, revision: change.revision });
@@ -1412,6 +1452,9 @@ export function resetFakeSupabase() {
   deckChanges = new Map();
   failingDeckChangeReads = 0;
   revertPreviews = new Map();
+  addPreviewEffects = new Map();
+  failingAddPreviews = 0;
+  heldAddPreviews = null;
   collectionTotal = emptyCollectionTotal;
   priceReads = [];
   exchangeRates = exchangeRatesOf(frankfurterCurrencies);
