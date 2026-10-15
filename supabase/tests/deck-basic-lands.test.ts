@@ -1,7 +1,14 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { Json } from '../database.types';
-import { readDeckError, type CreatedDeck, type Deck, type DeckList, type SetBasicLandsResult } from '../decks';
+import {
+  readDeckError,
+  type CreatedDeck,
+  type Deck,
+  type DeckChangePage,
+  type DeckList,
+  type SetBasicLandsResult,
+} from '../decks';
 import {
   basicLands,
   catalogFixture,
@@ -9,17 +16,48 @@ import {
   resetCardCatalog,
   runCatalogImport,
   withBasicLands,
+  type ScryfallRecord,
 } from './catalog-import-command';
-import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
+import {
+  anonymousClient,
+  asDatabaseOwner,
+  asSignedInUser,
+  secretKeyClient,
+  signUpNewUser,
+  type AppClient,
+  type TestUser,
+} from './local-stack';
 
 setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
+const basicLandKinds = 12;
 const [forest, wastes, snowCoveredForest] = basicLands.map((land) => land.oracle_id) as [string, string, string];
+
+const forestPrinting = basicLands[0]!;
+
+function withNewerForestsThatAreNotRegular(records: ScryfallRecord[]): ScryfallRecord[] {
+  const forestRecord = records.find((record) => record.id === forestPrinting.id)!;
+  const newerForest = (changes: ScryfallRecord): ScryfallRecord => ({
+    ...forestRecord,
+    id: crypto.randomUUID(),
+    released_at: '2030-01-01',
+    ...changes,
+  });
+  return [
+    ...records,
+    newerForest({ collector_number: '279', image_uris: undefined }),
+    newerForest({ lang: 'ja', image_uris: { normal: 'https://cards.scryfall.io/normal/front/forest-ja.jpg' } }),
+    newerForest({ collector_number: '280', finishes: ['foil'], image_uris: { normal: 'https://cards.scryfall.io/normal/front/forest-foil.jpg' } }),
+  ];
+}
 
 beforeAll(async () => {
   await resetCardCatalog();
-  const manifest = await catalogFixture({ oracleCards: withBasicLands, defaultCards: withBasicLands });
+  const manifest = await catalogFixture({
+    oracleCards: withBasicLands,
+    defaultCards: (records) => withNewerForestsThatAreNotRegular(withBasicLands(records)),
+  });
   expect((await runCatalogImport(manifest)).exitCode).toBe(0);
 });
 
@@ -44,6 +82,12 @@ async function deckOf(user: TestUser, deckId: string) {
   const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
   expect(error).toBeNull();
   return data as unknown as Deck;
+}
+
+async function deckChangesPageOf(user: TestUser, deckId: string) {
+  const { data, error } = await user.client.rpc('list_deck_changes', { query: { deck_id: deckId } });
+  expect(error).toBeNull();
+  return data as unknown as DeckChangePage;
 }
 
 async function decksOf(user: TestUser) {
@@ -108,10 +152,57 @@ describe('setting basic lands', () => {
     expect(deck.basic_lands.find((land) => land.name === 'Wastes')).toEqual({
       oracle_id: wastes,
       name: 'Wastes',
-      image_uris: [expect.stringContaining('https://cards.scryfall.io/normal/')],
+      image_uris: [basicLands[1]!.image_uris.normal],
       count: 3,
     });
     expect(deck.basic_lands.find((land) => land.name === 'Forest')).toMatchObject({ oracle_id: forest, count: 0 });
+  });
+
+  test('each basic land card shows the image of a printing of that basic land, in get_deck and in its deck change lines', async () => {
+    const user = await signUpNewUser();
+    const deckId = await created(user, 'Atraxa');
+    await basicLandsSet(user, deckId, basicLands.map((land) => ({ oracle_id: land.oracle_id, count: 2 })));
+
+    const deck = await deckOf(user, deckId);
+    const [change] = (await deckChangesPageOf(user, deckId)).items;
+
+    for (const land of basicLands) {
+      const image = deck.basic_lands.find((deckLand) => deckLand.oracle_id === land.oracle_id)!.image_uris;
+      const { data: printings } = await user.client.from('card_printings').select('oracle_id').contains('image_uris', image);
+      expect(image).toHaveLength(1);
+      expect(printings!.map((printing) => printing.oracle_id)).toEqual([land.oracle_id]);
+      expect(change!.lines).toContainEqual(expect.objectContaining({ oracle_id: land.oracle_id, image_uris: image }));
+    }
+  });
+
+  test('the image of a basic land card is its newest English printing with an image and a nonfoil finish', async () => {
+    const user = await signUpNewUser();
+    const deckId = await created(user, 'Atraxa');
+
+    const deck = await deckOf(user, deckId);
+
+    expect(deck.basic_lands.find((land) => land.name === 'Forest')!.image_uris).toEqual([forestPrinting.image_uris.normal]);
+  });
+
+  test('get_deck and list_deck_changes read only the basic land cards from the card catalog', async () => {
+    const user = await signUpNewUser();
+    const deckId = await created(user, 'Atraxa');
+    await basicLandsSet(user, deckId, [{ oracle_id: forest, count: 8 }]);
+    const query = JSON.stringify({ deck_id: deckId });
+    await asDatabaseOwner((database) => database`analyze public.cards, public.card_printings`);
+
+    const [{ card_rows_read }] = await asSignedInUser(user, async (database) => {
+      await database`set local enable_seqscan = off`;
+      await database`select public.get_deck(${query}::text::jsonb)`;
+      await database`select public.list_deck_changes(${query}::text::jsonb)`;
+      return database`
+        select coalesce(sum(seq_tup_read + idx_tup_fetch), 0)::integer as card_rows_read
+        from pg_stat_xact_user_tables
+        where schemaname = 'public' and relname = 'cards'
+      `;
+    });
+
+    expect(card_rows_read).toBeLessThanOrEqual(basicLandKinds * 2);
   });
 
   test('a later request lines up only the basic land cards it changes, and a count of 0 takes the card out', async () => {

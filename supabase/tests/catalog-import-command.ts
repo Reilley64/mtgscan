@@ -91,6 +91,10 @@ export const basicLands = [
     set: 'blb',
     set_name: 'Bloomburrow',
     collector_number: '278',
+    image_uris: {
+      normal: 'https://cards.scryfall.io/normal/front/f/7/f791876a-f3fb-45b8-90a9-af846d8b8f74.jpg?1783910776',
+      art_crop: 'https://cards.scryfall.io/art_crop/front/f/7/f791876a-f3fb-45b8-90a9-af846d8b8f74.jpg?1783910776',
+    },
   },
   {
     name: 'Wastes',
@@ -100,6 +104,10 @@ export const basicLands = [
     set: 'ogw',
     set_name: 'Oath of the Gatewatch',
     collector_number: '183',
+    image_uris: {
+      normal: 'https://cards.scryfall.io/normal/front/7/0/7019912c-bd9b-4b96-9388-400794909aa1.jpg?1783937889',
+      art_crop: 'https://cards.scryfall.io/art_crop/front/7/0/7019912c-bd9b-4b96-9388-400794909aa1.jpg?1783937889',
+    },
   },
   {
     name: 'Snow-Covered Forest',
@@ -109,6 +117,10 @@ export const basicLands = [
     set: 'khm',
     set_name: 'Kaldheim',
     collector_number: '285',
+    image_uris: {
+      normal: 'https://cards.scryfall.io/normal/front/f/e/fe241460-f7c1-4ba8-a156-6720b494ac97.jpg?1783928164',
+      art_crop: 'https://cards.scryfall.io/art_crop/front/f/e/fe241460-f7c1-4ba8-a156-6720b494ac97.jpg?1783928164',
+    },
   },
 ];
 
