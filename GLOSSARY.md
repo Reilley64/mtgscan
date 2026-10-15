@@ -163,6 +163,10 @@ A card with the basic supertype, including Wastes and snow-covered basics. mtgsc
 **Deck priority**:
 How strongly the user wants to keep a deck's cards: high, medium, or low. Priority guides deck suggestions and does not restrict the user.
 
+**Deck revision**:
+A number on each deck that starts at 0. Every deck change raises it by one. Creating, renaming, and deleting a deck, and changing its deck priority, leave it as it is.
+_Avoid_: Version
+
 **Deck validity**:
 The deck's conformance to the current official Commander rules, judged on its commanders and main deck. It is valid, invalid, or cannot be determined. An invalid deck remains editable and lists its violations.
 _Avoid_: Legality status

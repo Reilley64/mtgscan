@@ -12,7 +12,7 @@ import { gradients, sizes } from '@/theme';
 
 const barClass = 'h-skeleton-meta-bar rounded-full bg-line';
 
-const dashedOutlineClass = 'border-illustration-outline border-dashed border-line';
+export const dashedOutlineClass = 'border-illustration-outline border-dashed border-line';
 
 function FadesDown({ children }: { children: ReactNode }) {
   return (

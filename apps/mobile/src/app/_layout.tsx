@@ -25,6 +25,8 @@ const navigationTheme = {
   },
 };
 
+const pushedScreenOptions = { headerShown: true, headerTransparent: true, title: '', headerBackVisible: false };
+
 function RootStack() {
   const signedIn = useSession() !== null;
 
@@ -32,10 +34,8 @@ function RootStack() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="copy"
-          options={{ headerShown: true, headerTransparent: true, title: '', headerBackVisible: false }}
-        />
+        <Stack.Screen name="copy" options={pushedScreenOptions} />
+        <Stack.Screen name="deck" options={pushedScreenOptions} />
         <Stack.Screen name="user-tag-picker" />
         <Stack.Screen name="scan-batch" options={fullHeightDrawerOptions} />
         <Stack.Screen name="scan-details" options={fullHeightDrawerOptions} />

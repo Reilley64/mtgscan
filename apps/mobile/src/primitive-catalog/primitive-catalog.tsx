@@ -15,6 +15,7 @@ import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
 import { GlassGroup } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
 import { MenuButton } from '@/components/atoms/menu-button';
+import { NameAlert } from '@/components/atoms/name-alert';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { SetIcon } from '@/components/atoms/set-icon';
@@ -31,6 +32,7 @@ import { CardHero } from '@/components/molecules/card-hero';
 import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { CardTile } from '@/components/molecules/card-tile';
+import { CommanderCard, CommanderGalleryCard } from '@/components/molecules/commander-card';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { DisclosureRow } from '@/components/molecules/disclosure-row';
@@ -519,7 +521,7 @@ function EmptyStates() {
         action={{ label: 'Scan cards', onPress: () => {} }}
       />
       <EmptyState illustration={<GhostNeedsYouItems />} title="Nothing needs you yet" message="When a deck needs you, it shows up here." />
-      <EmptyState illustration={<GhostCommanderCard />} title="No decks yet" message="Start a deck from a commander you own." />
+      <EmptyState illustration={<GhostCommanderCard />} title="No decks yet" message="Create a deck, then add cards to it from your collection." />
       <View className="bg-camera-off">
         <EmptyState
           illustration={<DashedCardFrame symbol="questionmark.video" />}
@@ -530,6 +532,37 @@ function EmptyStates() {
       <View className="bg-sheet">
         <EmptyState illustration={<GhostBatchRows />} title="No scans yet" message="Cards you scan wait here until you add them." />
       </View>
+    </Section>
+  );
+}
+
+function NameAlerts() {
+  const [naming, setNaming] = useState(false);
+  return (
+    <Section title="Name alerts">
+      <Button onPress={() => setNaming(true)}>
+        <Text>Open the name alert</Text>
+      </Button>
+      {naming ? (
+        <NameAlert
+          title="New deck"
+          message="Name your deck."
+          placeholder="Deck name"
+          confirmLabel="Create"
+          maxLength={64}
+          onConfirm={() => {}}
+          onClose={() => setNaming(false)}
+        />
+      ) : null}
+    </Section>
+  );
+}
+
+function CommanderCards() {
+  return (
+    <Section title="Commander cards">
+      <CommanderGalleryCard name="Atraxa" chips={['Medium priority', '0 cards']} onPress={() => {}} />
+      <CommanderCard name="Kinnan" chips={['High priority', '1 card']} size="banner" />
     </Section>
   );
 }
@@ -584,6 +617,8 @@ export function PrimitiveCatalog() {
         <Inputs />
         <ProgressBars />
         <SheetSections />
+        <NameAlerts />
+        <CommanderCards />
         <SwipeToConfirms />
         <EmptyStates />
         <Section title="Drawer sheet">

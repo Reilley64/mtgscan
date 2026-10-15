@@ -973,3 +973,70 @@ export async function pressSearchCancel() {
   searchFieldText = '';
   await fireEvent(searchBarView(selectedTab()), 'cancelButtonPress', { nativeEvent: {} });
 }
+
+function isAlertWithField(instance: HostElement) {
+  return instance.type === expoUiHost && 'isPresented' in instance.props;
+}
+
+function presentedFieldAlert() {
+  return hostViews(expoUiHost).find((candidate) => isAlertWithField(candidate) && candidate.props.isPresented) ?? null;
+}
+
+function slotOf(alert: HostElement, name: string) {
+  const [slot] = alert.queryAll((instance) => instance.type === expoUiHost && instance.props.name === name);
+  return slot;
+}
+
+function alertField(alert: HostElement) {
+  const [field] = slotOf(alert, 'actions').queryAll((instance) => instance.type === expoUiHost && 'placeholder' in instance.props);
+  return field;
+}
+
+function alertActions(alert: HostElement) {
+  return slotOf(alert, 'actions').queryAll((instance) => instance.type === expoUiHost && 'onButtonPress' in instance.props);
+}
+
+function isTurnedOff(button: HostElement) {
+  const modifiers: { $type: string; disabled?: boolean }[] = button.props.modifiers ?? [];
+  return modifiers.some((modifier) => modifier.$type === 'disabled' && modifier.disabled);
+}
+
+export function presentedAlertWithField() {
+  const alert = presentedFieldAlert();
+  if (!alert) {
+    return null;
+  }
+  const [message] = slotOf(alert, 'message').queryAll((instance) => instance.type === expoUiHost && 'text' in instance.props);
+  const field = alertField(alert);
+  return {
+    title: alert.props.title as string,
+    message: message?.props.text as string | undefined,
+    field: { placeholder: field.props.placeholder as string, maxLength: field.props.maxLength as number },
+    buttons: alertActions(alert).map((button) => ({ label: button.props.label as string, enabled: !isTurnedOff(button) })),
+  };
+}
+
+function openAlertWithField() {
+  const alert = presentedFieldAlert();
+  if (!alert) {
+    throw new Error('No alert with a text field is open');
+  }
+  return alert;
+}
+
+export async function typeInAlertField(text: string) {
+  await fireEvent(alertField(openAlertWithField()), 'textChange', { nativeEvent: { value: text } });
+}
+
+export async function pressAlertWithFieldButton(label: string) {
+  const alert = openAlertWithField();
+  const button = alertActions(alert).find((candidate) => candidate.props.label === label);
+  if (!button) {
+    throw new Error(`No alert button is labelled ${label}`);
+  }
+  if (isTurnedOff(button)) {
+    throw new Error(`The alert button ${label} is off`);
+  }
+  await fireEvent(button, 'buttonPress');
+  await fireEvent(alert, 'isPresentedChange', { nativeEvent: { isPresented: false } });
+}

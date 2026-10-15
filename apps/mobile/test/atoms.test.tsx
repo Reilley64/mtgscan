@@ -16,6 +16,7 @@ import { GlassGroup, GlassSurface } from '@/components/atoms/glass-surface';
 import { Input } from '@/components/atoms/input';
 import { ManaSymbol } from '@/components/atoms/mana-symbol';
 import { MenuButton } from '@/components/atoms/menu-button';
+import { NameAlert } from '@/components/atoms/name-alert';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { SetIcon } from '@/components/atoms/set-icon';
@@ -41,8 +42,10 @@ import {
   imageTintColor,
   menuButton,
   placeholderColor,
+  pressAlertWithFieldButton,
   pressButtonMenuAction,
   pressButtonMenuItem,
+  presentedAlertWithField,
   pressSignInWithApple,
   splitColorsBehind,
   showsSpinner,
@@ -52,6 +55,7 @@ import {
   symbolSizes,
   symbolTintColor,
   touchTarget,
+  typeInAlertField,
   widthsAround,
 } from './native-ui';
 import { tokenColors } from './token-colors';
@@ -1026,5 +1030,61 @@ describe('MenuButton', () => {
     await pressButtonMenuAction(button, 'Rename');
 
     expect(onRename).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('NameAlert', () => {
+  async function renderNameAlert() {
+    const onConfirm = jest.fn();
+    const onClose = jest.fn();
+    await render(
+      <NameAlert
+        title="New deck"
+        message="Name your deck."
+        placeholder="Deck name"
+        confirmLabel="Create"
+        maxLength={64}
+        onConfirm={onConfirm}
+        onClose={onClose}
+      />,
+    );
+    return { onConfirm, onClose };
+  }
+
+  test('a name alert is a native alert with its title, message, a name field of at most 64 characters, Cancel, and the confirm button', async () => {
+    await renderNameAlert();
+
+    expect(presentedAlertWithField()).toEqual({
+      title: 'New deck',
+      message: 'Name your deck.',
+      field: { placeholder: 'Deck name', maxLength: 64 },
+      buttons: [
+        { label: 'Cancel', enabled: true },
+        { label: 'Create', enabled: false },
+      ],
+    });
+  });
+
+  test('the confirm button is off until the trimmed name has a character, and it confirms the trimmed name and closes', async () => {
+    const { onConfirm, onClose } = await renderNameAlert();
+
+    await typeInAlertField('  ');
+    expect(presentedAlertWithField()?.buttons[1]).toEqual({ label: 'Create', enabled: false });
+
+    await typeInAlertField(' Atraxa ');
+    await pressAlertWithFieldButton('Create');
+
+    expect(onConfirm).toHaveBeenCalledWith('Atraxa');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('Cancel closes the alert and confirms nothing', async () => {
+    const { onConfirm, onClose } = await renderNameAlert();
+    await typeInAlertField('Atraxa');
+
+    await pressAlertWithFieldButton('Cancel');
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
