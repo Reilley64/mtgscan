@@ -1,9 +1,10 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { CollectionCopyRow, UserTagList } from '../collection';
+import type { Deck, DeckChangePage, DeckList } from '../decks';
 import type { SearchPage } from '../search';
 import { testUser } from '../test-user/account';
-import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runTestUserCommand } from './catalog-import-command';
+import { catalogFixture, resetCardCatalog, runCatalogImport, runTestUserCommand, withBasicLands } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, type AppClient } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -41,6 +42,24 @@ async function userTags(client: AppClient) {
   return (data as unknown as UserTagList).items;
 }
 
+async function decks(client: AppClient) {
+  const { data, error } = await client.rpc('list_decks');
+  expect(error).toBeNull();
+  return (data as unknown as DeckList).items;
+}
+
+async function deckOf(client: AppClient, deckId: string) {
+  const { data, error } = await client.rpc('get_deck', { query: { deck_id: deckId } });
+  expect(error).toBeNull();
+  return data as unknown as Deck;
+}
+
+async function deckChangesOf(client: AppClient, deckId: string) {
+  const { data, error } = await client.rpc('list_deck_changes', { query: { deck_id: deckId } });
+  expect(error).toBeNull();
+  return (data as unknown as DeckChangePage).items;
+}
+
 describe('the test user command', () => {
   beforeAll(async () => {
     await resetCardCatalog();
@@ -72,7 +91,8 @@ describe('the test user command', () => {
   });
 
   test('--sample-collection adds sample collection entries to the test user through add_scan_batch', async () => {
-    expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
+    const manifest = await catalogFixture({ oracleCards: withBasicLands, defaultCards: withBasicLands });
+    expect((await runCatalogImport(manifest)).exitCode).toBe(0);
 
     const { exitCode, output } = await runTestUserCommand(['--sample-collection']);
 
@@ -93,6 +113,36 @@ describe('the test user command', () => {
     ]);
   });
 
+  test('--sample-collection adds a sample deck with a commander, a partner, ten main deck cards, basic lands, and a reverted deck change', async () => {
+    const { exitCode, output } = await runTestUserCommand(['--sample-collection']);
+
+    expect(exitCode).toBe(0);
+    expect(output).toContain('Added a sample deck with 2 commanders, 10 main deck cards, 10 basic lands, and 17 deck changes.');
+    const client = await signedInTestUser();
+    const [row, ...otherDecks] = await decks(client);
+    expect(otherDecks).toEqual([]);
+    expect(row!.card_count).toBe(22);
+    const deck = await deckOf(client, row!.deck_id);
+    const commanders = deck.cards.filter((card) => card.role === 'commander');
+    expect(commanders).toHaveLength(2);
+    expect(commanders.every((card) => card.type_line.includes('Legendary'))).toBe(true);
+    expect(deck.name).toBe(row!.commanders[0]!.name);
+    expect(deck.cards.filter((card) => card.role === 'main')).toHaveLength(10);
+    expect(deck.cards.some((card) => card.protected)).toBe(false);
+    expect(deck.basic_lands.filter((land) => land.count > 0).map(({ name, count }) => ({ name, count }))).toEqual([
+      { name: 'Forest', count: 8 },
+      { name: 'Snow-Covered Forest', count: 2 },
+    ]);
+    expect((await deckChangesOf(client, deck.deck_id)).map(({ kind, reverted }) => ({ kind, reverted }))).toEqual([
+      { kind: 'revert', reverted: false },
+      { kind: 'added', reverted: true },
+      { kind: 'basic_lands', reverted: false },
+      { kind: 'made_partner', reverted: false },
+      { kind: 'made_commander', reverted: false },
+      ...Array.from({ length: 12 }, () => ({ kind: 'added' as const, reverted: false })),
+    ]);
+  });
+
   test('running the command again resets the test user to an empty collection', async () => {
     expect((await runTestUserCommand(['--sample-collection'])).exitCode).toBe(0);
 
@@ -102,6 +152,7 @@ describe('the test user command', () => {
     expect(await ownedCopies(client)).toEqual([]);
     expect(await additions(client)).toEqual([]);
     expect(await userTags(client)).toEqual([]);
+    expect(await decks(client)).toEqual([]);
   });
 
   test('the command also resets a test user whose password was changed', async () => {

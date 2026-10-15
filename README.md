@@ -178,7 +178,7 @@ Agent builds on the owner's iPhone are a separate app, mtgscan Test, so the owne
 
 - The test app uses hosted Supabase. It signs in the hosted test user, `test-user@mtgscan.test`, with one tap, and has no Apple or Google button.
 - The hosted test user's password is random. It lives only in `~/.config/mtgscan/test-app.env`, as `EXPO_PUBLIC_TEST_USER_PASSWORD`.
-- The owner seeds or resets the hosted test user with the sample collection from `supabase` in the main checkout: `bun --env-file=.env.hosted --env-file=$HOME/.config/mtgscan/test-app.env test-user/main.ts --hosted --sample-collection`. The command refuses a missing password and the local default password.
+- The owner seeds or resets the hosted test user with the sample collection and the sample deck from `supabase` in the main checkout: `bun --env-file=.env.hosted --env-file=$HOME/.config/mtgscan/test-app.env test-user/main.ts --hosted --sample-collection`. The command refuses a missing password and the local default password.
 - `bun run ios:test-device --device <identifier>` in `apps/mobile` builds the test app in the Release configuration and installs it on the iPhone. It reads the password from `test-app.env` and never writes it to the worktree.
 - `bun run test:production-bundle` checks that a production bundle has no test sign-in and that the test app bundle has one.
 

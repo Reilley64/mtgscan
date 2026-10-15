@@ -29,7 +29,7 @@ A development build against local Supabase can sign in a local test user with on
 - Production builds leave the test sign-in out. `bun run test:production-bundle` in `apps/mobile` builds a production bundle with the test sign-in on, the local stack, and a sentinel test user password. It fails if the bundle holds the test email, the local password, the sentinel, or the test sign-in button. It then builds the test app bundle and fails if that bundle has no test sign-in button. CI runs it.
 
 1. Start local Supabase as in Local Supabase.
-2. Seed or reset the test user from `supabase`. The command deletes the test user and its collection, and creates it again. `--sample-collection` also adds 30 sample collection entries through `add_scan_batch`, with 1 to 4 copies each. Some are foil, one is etched, and some are LP or MP. One copy is protected. It also adds two user tags: "Signed" on one copy and "Trade binder" on three copies. The sample needs the card catalog, and the binder tiles show current prices from the price import, so import both fixtures first:
+2. Seed or reset the test user from `supabase`. The command deletes the test user and its collection, and creates it again. `--sample-collection` also adds 30 sample collection entries through `add_scan_batch`, with 1 to 4 copies each. Some are foil, one is etched, and some are LP or MP. One copy is protected. It also adds two user tags: "Signed" on one copy and "Trade binder" on three copies. It also adds a sample deck with the name of its commander. The deck has a commander, a partner, and ten main deck cards from the sample copies. It has 8 Forest, 6 Island, and 2 Snow-Covered Forest, for each of them that the card catalog has. The card catalog fixture has no basic lands, so the local sample deck has none. The last deck change adds a card, and a revert undoes it. The sample needs the card catalog, and the binder tiles show current prices from the price import, so import both fixtures first:
 
    ```bash
    cd supabase
@@ -62,7 +62,7 @@ Agent builds on the owner's iPhone are a separate app, **mtgscan Test**. It inst
 - Build and install only the test app on the iPhone. Never build or install `dev.reilley.mtgscan` on the iPhone unless the owner asks. Never sign in to the owner's mtgscan app.
 - Hold the device lock for the whole build and install.
 
-The owner seeds or resets the hosted test user. The command needs the hosted secret key, so only the owner runs it, from the main checkout. It deletes the hosted test user and its collection, creates it again with the password from `test-app.env`, and adds the sample collection. It refuses a missing password and the local default password:
+The owner seeds or resets the hosted test user. The command needs the hosted secret key, so only the owner runs it, from the main checkout. It deletes the hosted test user and its collection, creates it again with the password from `test-app.env`, and adds the sample collection and the sample deck. It refuses a missing password and the local default password:
 
 ```bash
 cd supabase
