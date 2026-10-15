@@ -42,7 +42,7 @@ export async function deleteDeck(deckId: string) {
   return writeResultOf(error);
 }
 
-export type AddDeckCardResult = 'done' | 'not_free' | 'missing' | 'failed';
+type AddDeckCardResult = 'done' | 'not_free' | 'missing' | 'failed';
 
 export async function addDeckCard(request: AddDeckCardRequest): Promise<AddDeckCardResult> {
   const { error } = await supabase.rpc('add_deck_card', { request });

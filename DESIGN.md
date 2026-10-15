@@ -578,7 +578,7 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - A segmented control under the banner switches between **Cards** and **History**. The deck screen opens on Cards. Suggestions comes later.
   - **Cards** starts with a "Commander" group. With no commander, it shows "No commander yet." in text muted under the heading. An empty deck then shows the empty state "No cards yet". See Empty states. **Open Collection** closes the deck screen and opens the Collection tab.
   - **Cards** shows the deck cards as card images 3 per row, with the binder grid's gaps and corners. A tile has the finish sheen of its copy, and no meta line and no price. VoiceOver reads it as a button with the name, the set code in capitals and the collector number, and the finish and condition as on a binder tile, such as "Sol Ring, C21 263, foil". A tap opens the copy page.
-  - Commanders come first, in the Commander group. The main deck is grouped by type: Creatures, Planeswalkers, Battles, Artifacts, Enchantments, Instants, Sorceries, Lands. A card with several types goes into the first match in that order, so an artifact creature is in Creatures. Each group header shows its name in lime body strong and its count in meta text, such as "Creatures 12". VoiceOver reads it as one header, "Creatures, 12". Empty groups are hidden. Cards in a group sort by name, A to Z.
+  - Commanders come first, in the Commander group. The main deck is grouped by type: Creatures, Planeswalkers, Battles, Artifacts, Enchantments, Instants, Sorceries, Lands. A card with several types goes into the first match in that order, so an artifact creature is in Creatures. A card with none of these types goes into the last group, Lands. Each group header shows its name in lime body strong and its count in meta text, such as "Creatures 12". VoiceOver reads it as one header, "Creatures, 12". Empty groups are hidden. Cards in a group sort by name, A to Z.
   - **History** ends with the day the deck was created, such as "Created 15 October 2026", in meta text. Deck changes come later.
   - When the read fails, the deck screen shows the empty state "Could not load this deck" with a **Try again** button. Close still shows.
 
@@ -608,6 +608,8 @@ The Add to deck drawer, from the copy page's actions menu:
 - A tap puts the copy in that deck's main deck, closes the drawer, and the copy page reloads with the deck tag.
 - A copy that is no longer free closes the drawer and shows the native alert "This card is already in a deck.". The copy page reloads.
 - A write that fails shows the native alert "Could not add this card" with "Check your connection.", and the drawer stays.
+- A copy that no longer exists closes the drawer, and the copy page says so, as for its other actions.
+- When the deck list cannot load, the drawer shows the empty state "Could not load your decks" with a **Try again** button. See Empty states.
 
 The settings drawer:
 
@@ -780,6 +782,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
     | Collection search, no results | one row of empty binder slots | No cards found | Check the spelling or try fewer words. | none |
     | Decks, no decks | a ghost commander card | No decks yet | Create a deck, then add cards to it from your collection. | **Create deck** opens the name alert |
     | Decks, read failed | a ghost commander card | Could not load your decks | Check your connection. | **Try again** reads the decks again |
+    | Add to deck drawer, read failed | a ghost commander card | Could not load your decks | Check your connection. | **Try again** reads the decks again |
     | Deck screen, Cards of an empty deck | one row of empty binder slots | No cards yet | Add cards from a copy's page in your collection. | **Open Collection** opens the Collection tab |
     | Deck screen, read failed | a dashed card frame with `wifi.slash` | Could not load this deck | Check your connection. | **Try again** reads the deck again |
     | Scan, camera access off | a dashed card frame with `video.slash` | Camera access is off | Turn it on in Settings to scan cards. | **Open Settings** opens iOS Settings |

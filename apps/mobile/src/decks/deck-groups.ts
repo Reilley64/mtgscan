@@ -11,7 +11,7 @@ const typeGroups = [
   { title: 'Lands', type: 'Land' },
 ] as const;
 
-export type DeckGroup = {
+type DeckGroup = {
   title: string;
   cards: DeckCard[];
 };

@@ -2,7 +2,7 @@ import { userTagNameLength, type CopyDetails, type UserTag, type UserTagRow } fr
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { copyChipLabels } from '@/collection/copy-labels';
+import { copyNameLine } from '@/collection/copy-labels';
 import { shownCopyCount } from '@/collection/total-labels';
 import { matchesUserTagName, userTagsFound } from '@/collection/user-tag-names';
 import type { UserTagWriteResult } from '@/collection/user-tags';
@@ -38,7 +38,7 @@ export function UserTagPicker({ copy, userTags, changeFailed, onToggle, onCreate
 
   return (
     <View className="gap-lg">
-      <Text variant="meta">{[copy.name, ...copyChipLabels(copy)].join(' · ')}</Text>
+      <Text variant="meta">{copyNameLine(copy)}</Text>
       <Input
         accessibilityLabel="Find or create a user tag"
         placeholder="Find or create a user tag"

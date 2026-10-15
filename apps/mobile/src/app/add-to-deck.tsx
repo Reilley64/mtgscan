@@ -2,7 +2,7 @@ import type { DeckRow } from '@mtgscan/supabase/decks';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Alert } from 'react-native';
 
-import { copyChipLabels } from '@/collection/copy-labels';
+import { copyNameLine } from '@/collection/copy-labels';
 import { useCopy } from '@/collection/use-copy';
 import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { Text } from '@/components/atoms/text';
@@ -33,7 +33,7 @@ export default function AddToDeckSheet() {
 
   return (
     <DrawerSheet title="Add to deck">
-      {copyRead.status === 'loaded' ? <Text variant="meta">{[copyRead.copy.name, ...copyChipLabels(copyRead.copy)].join(' · ')}</Text> : null}
+      {copyRead.status === 'loaded' ? <Text variant="meta">{copyNameLine(copyRead.copy)}</Text> : null}
       {decksRead.status === 'loaded'
         ? decksRead.decks.map((deck) => (
             <ListRow

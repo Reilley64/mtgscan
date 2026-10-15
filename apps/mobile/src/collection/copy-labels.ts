@@ -81,3 +81,7 @@ export function copyChipLabels(copy: Pick<CollectionCopyRow, 'set' | 'collector_
     languageNames[copy.language],
   ];
 }
+
+export function copyNameLine(copy: Pick<CollectionCopyRow, 'name' | 'set' | 'collector_number' | 'finish' | 'condition' | 'language'>) {
+  return [copy.name, ...copyChipLabels(copy)].join(' · ');
+}
