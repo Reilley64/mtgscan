@@ -50,7 +50,11 @@ function testUserPassword(): string {
 const account = { email: testUser.email, password: testUserPassword() };
 
 if (!secretKey) {
-  console.error('Set SUPABASE_SECRET_KEY to the SECRET_KEY value from `bunx supabase@2.120.0 status -o env`.');
+  console.error(
+    values.hosted
+      ? 'Load the hosted SUPABASE_URL and SUPABASE_SECRET_KEY with `bun --env-file=.env.hosted`.'
+      : 'Set SUPABASE_SECRET_KEY to the SECRET_KEY value from `bunx supabase@2.120.0 status -o env`.',
+  );
   console.error(usage);
   process.exit(2);
 }

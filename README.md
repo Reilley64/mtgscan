@@ -182,7 +182,7 @@ Agent builds on the owner's iPhone are a separate app, mtgscan Test, so the owne
 - `bun run ios:test-device --device <identifier>` in `apps/mobile` builds the test app in the Release configuration and installs it on the iPhone. It reads the password from `test-app.env` and never writes it to the worktree.
 - `bun run test:production-bundle` checks that a production bundle has no test sign-in and that the test app bundle has one.
 
-`docs/agents/local-development.md` (Test app on the iPhone) has the steps and the rules for agents.
+Agents build and install only the test app on the iPhone, and never sign in to the owner's mtgscan app. `docs/agents/local-development.md` (Test app on the iPhone) has the steps and the rules for agents.
 
 ### Versions
 

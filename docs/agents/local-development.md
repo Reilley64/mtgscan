@@ -60,7 +60,7 @@ Agent builds on the owner's iPhone are a separate app, **mtgscan Test**. It inst
 - `EXPO_PUBLIC_APP_VARIANT=test` makes the test app. `app.config.ts` then sets the name `mtgscan Test`, the bundle ID `dev.reilley.mtgscan.test`, and the URL scheme `mtgscan-test`. It refuses the test app in an EAS build.
 - The hosted test user's password lives only in `~/.config/mtgscan/test-app.env`, as `EXPO_PUBLIC_TEST_USER_PASSWORD`. Never copy it into a worktree `.env` file. Never print it. Check that it is set with `grep -q '^EXPO_PUBLIC_TEST_USER_PASSWORD=.' ~/.config/mtgscan/test-app.env`.
 - Build and install only the test app on the iPhone. Never build or install `dev.reilley.mtgscan` on the iPhone unless the owner asks. Never sign in to the owner's mtgscan app.
-- Ask the owner before you install on the iPhone. Hold the device lock for the whole build and install.
+- Hold the device lock for the whole build and install.
 
 The owner seeds or resets the hosted test user. The command needs the hosted secret key, so only the owner runs it, from the main checkout. It deletes the hosted test user and its collection, creates it again with the password from `test-app.env`, and adds the sample collection. It refuses a missing password and the local default password:
 
