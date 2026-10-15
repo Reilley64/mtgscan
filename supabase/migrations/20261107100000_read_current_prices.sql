@@ -96,8 +96,7 @@ begin
     jsonb_build_object(
       'printing_id', item.printing_id,
       'finish', item.finish,
-      'price', private.price_json(private.finish_price_cents(price, item.finish), rate, item.finish)
-        || jsonb_build_object('stale', prices_stale)
+      'price', private.current_price(price, item.finish, rate, prices_stale)
     )
     order by item.ordinality
   )

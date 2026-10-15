@@ -29,6 +29,10 @@ function keyOf(scan: BatchScan): CurrentPriceKey {
   return { printing_id: scan.printing.printingId, finish: scan.finish };
 }
 
+function scanKeyId(scan: BatchScan) {
+  return `${scan.scanId}|${keyId(keyOf(scan))}`;
+}
+
 function chunks<Item>(items: Item[], size: number) {
   return Array.from({ length: Math.ceil(items.length / size) }, (_, index) => items.slice(index * size, (index + 1) * size));
 }
@@ -49,20 +53,20 @@ export function CurrentPricesProvider({ children }: { children: ReactNode }) {
       if (asked.current.currency !== currency) {
         asked.current = { currency, ids: new Set() };
       }
-      const thisAsked = asked.current;
-      const unknown = new Map(keys.filter((key) => !thisAsked.ids.has(keyId(key))).map((key) => [keyId(key), key]));
+      const askedNow = asked.current;
+      const unknown = new Map(keys.filter((key) => !askedNow.ids.has(keyId(key))).map((key) => [keyId(key), key]));
       for (const items of chunks([...unknown.values()], itemsPerRead)) {
-        items.forEach((key) => thisAsked.ids.add(keyId(key)));
+        items.forEach((key) => askedNow.ids.add(keyId(key)));
         const query: CurrentPricesQuery = { items, price_currency: currency };
         void supabase.rpc('get_current_prices', { query }).then(({ data, error }) => {
           if (error) {
-            items.forEach((key) => thisAsked.ids.delete(keyId(key)));
+            items.forEach((key) => askedNow.ids.delete(keyId(key)));
             return;
           }
-          const read = (data as unknown as CurrentPrices).items;
+          const rows = (data as unknown as CurrentPrices).items;
           setKnown((current) =>
             current.currency === currency
-              ? { currency, prices: new Map([...current.prices, ...read.map((row) => [keyId(row), row.price] as const)]) }
+              ? { currency, prices: new Map([...current.prices, ...rows.map((row) => [keyId(row), row.price] as const)]) }
               : current,
           );
         });
@@ -82,12 +86,20 @@ export function useScanPrices(scans: readonly BatchScan[]) {
     throw new Error('useScanPrices needs a CurrentPricesProvider');
   }
   const { known, readPrices } = state;
-  const shownScans = scans.map((scan) => `${scan.scanId}|${keyId(keyOf(scan))}`).join(',');
-  const readShownPrices = useEffectEvent(() => readPrices(scans.map(keyOf)));
+  const requested = useRef({ readPrices, scanKeys: new Set<string>() });
+  const readNewScanKeys = useEffectEvent(() => {
+    if (requested.current.readPrices !== readPrices) {
+      requested.current = { readPrices, scanKeys: new Set() };
+    }
+    const { scanKeys } = requested.current;
+    const newScans = scans.filter((scan) => !scanKeys.has(scanKeyId(scan)));
+    newScans.forEach((scan) => scanKeys.add(scanKeyId(scan)));
+    readPrices(newScans.map(keyOf));
+  });
 
   useEffect(() => {
-    readShownPrices();
-  }, [readPrices, shownScans]);
+    readNewScanKeys();
+  }, [readPrices, scans]);
 
   return (scan: BatchScan): ScanPrice | undefined => {
     const price = known.prices.get(keyId(keyOf(scan)));

@@ -738,6 +738,7 @@ describe('PriceLine', () => {
     await render(<PriceLine price="$36.96" stale />);
 
     expect(symbolNames(screen.root!)).toEqual(['clock']);
+    expect(symbolTintColor(screen.root!)).toBe(textPrice);
     expect(screen.getByText('$36.96')).toHaveStyle({ color: textPrice });
   });
 

@@ -234,7 +234,8 @@ Signed-in users read the current prices of card printings and finishes with `sup
 
 - The query has `items`, a list of 1 to 100 objects, each with `printing_id` and `finish`, and an optional `price_currency`, which defaults to `USD`. An item can appear only once.
 - The result has `items` in the same order. Each item has `printing_id`, `finish`, and `price`.
-- `price` is the current price, as in a copy row of collection search, with `stale`, or null when the card printing and finish has no current price. A card printing that is not in the card catalog has a null price.
+- `price` is the current price, as in a copy row of collection search, with `stale`.
+- `price` is null when the card printing and finish has no current price. A card printing that is not in the card catalog has a null price too.
 - The function reads only the card catalog and prices. It runs with the caller's rights. An anonymous caller and the secret key are refused. A refused query has the code `invalid_argument` and the field at fault, such as `items[3].finish`.
 
 `apps/mobile/src/scan/current-prices.tsx` keeps the current prices of scans in memory for the app session, keyed by card printing, finish, and currency. They are not saved on the phone or in the scan batch file. A restart or a change of currency clears them.

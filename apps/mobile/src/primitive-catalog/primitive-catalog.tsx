@@ -240,6 +240,10 @@ function ListRows() {
         leading={<CardThumbnail uri={solRing} />}
         onPress={() => {}}
       />
+      <View className="flex-row items-center justify-center gap-xs">
+        <Text variant="meta">M10 146 ·</Text>
+        <PriceLine price="$1.87" stale={false} tone="meta" />
+      </View>
       <ListRow title="Lightning Bolt" onPress={() => {}} />
       <ListRow title="Gallery" detail="Up to date" />
       <ListRow title="Signed" detail="3 copies" checked onPress={() => {}} />
@@ -418,6 +422,19 @@ function Glass() {
               <View className="flex-row items-center justify-center gap-xs">
                 <Text variant="meta">CMM 464 · Foil ·</Text>
                 <PriceLine price="$1.25" stale tone="meta" />
+              </View>
+            </ThumbnailChip>
+            <ThumbnailChip
+              accessibilityLabel="Sol Ring, C21 263, no price"
+              onPress={() => {}}
+              thumbnail={<CardThumbnail uri={solRing} />}
+              accessory={<DimSymbol name="chevron.right" size={sizes.chevron} />}>
+              <Text variant="body-strong" className="text-center">
+                Sol Ring
+              </Text>
+              <View className="flex-row items-center justify-center gap-xs">
+                <Text variant="meta">C21 263 ·</Text>
+                <PriceLine price={undefined} stale={false} tone="meta" />
               </View>
             </ThumbnailChip>
             <ThumbnailChip

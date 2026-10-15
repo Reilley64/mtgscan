@@ -143,6 +143,11 @@ describe('the current prices read', () => {
       'items[3].finish',
     ],
     ['an item with no finish', { items: [{ printing_id: angelicCurator }] }, 'items[0].finish'],
+    [
+      'an item that repeats an earlier item',
+      { items: [{ printing_id: angelicCurator, finish: 'foil' }, { printing_id: angelicCurator, finish: 'foil' }] },
+      'items[1]',
+    ],
     ['a card printing ID that is not a UUID', { items: [{ printing_id: 'mh2-262', finish: 'foil' }] }, 'items[0].printing_id'],
     ['a price currency with no exchange rate', { items: [{ printing_id: angelicCurator, finish: 'foil' }], price_currency: 'GBP' }, 'price_currency'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {

@@ -84,10 +84,10 @@ function ScanChip({ name, details, price, image, onOpen }: ScanChipProps) {
 }
 
 export function LatestScanChip({ latest, onOpen }: LatestScanChipProps) {
-  const printing = latest.kind === 'scan' ? latest.scan.printing : latest.kind === 'basic_land' ? latest.printing : null;
+  const scans = latest.kind === 'scan' ? [latest.scan] : [];
+  const printing = scans[0]?.printing ?? (latest.kind === 'basic_land' ? latest.printing : null);
   const imageOf = usePrintingImages(printing ? [printing.printingId] : []);
   const image = printing ? imageOf(printing.printingId) : undefined;
-  const scans = latest.kind === 'scan' ? [latest.scan] : [];
   const priceOf = useScanPrices(scans);
   switch (latest.kind) {
     case 'recognizing':
