@@ -55,7 +55,6 @@ async function deckSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
   const found = typed.value.trim().toLowerCase();
   return decks
     .filter((deck) => deck.name.toLowerCase().includes(found))
-    .slice(0, suggestionLimit)
     .map((deck) => {
       const chip = { ...keyValueChip(typed.key, deck.name, typed.negated), deckId: deck.deck_id };
       return {
