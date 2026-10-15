@@ -15,7 +15,7 @@ import { DeckHistory } from '@/components/organisms/deck-history';
 import { PushedScreen } from '@/components/templates/pushed-screen';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
-import { cardCountLabel, deckChips, validityChips } from '@/decks/deck-labels';
+import { cardCountLabel, deckChips, estimatedBracketChip, validityChips } from '@/decks/deck-labels';
 import { backToGallery, showDeckWriteResult } from '@/decks/deck-write-result';
 import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
 import { removeFromDeck } from '@/decks/remove-from-deck';
@@ -38,7 +38,7 @@ function openCard(card: DeckCard) {
   router.push({ pathname: '/copy', params: { copyId: card.copy_id } });
 }
 
-function validityChipButtons(deck: Deck) {
+function evaluationChipButtons(deck: Deck) {
   if (!deck.evaluation) {
     return [];
   }
@@ -48,6 +48,10 @@ function validityChipButtons(deck: Deck) {
       ...chip,
       accessibilityLabel: `Deck validity, ${chip.label}`,
       onPress: () => router.push({ pathname: '/deck-validity', params: { deckId: deck.deck_id } }),
+    },
+    {
+      ...estimatedBracketChip(deck.evaluation.estimated_bracket),
+      onPress: () => router.push({ pathname: '/estimated-bracket', params: { deckId: deck.deck_id } }),
     },
   ];
 }
@@ -138,7 +142,7 @@ export default function DeckScreen() {
           <DeckBanner
             name={read.deck.name}
             chips={deckChips(read.deck).map((label) => ({ label }))}
-            chipButtons={validityChipButtons(read.deck)}
+            chipButtons={evaluationChipButtons(read.deck)}
             commanders={read.deck.commanders}
           />
           <View className="gap-lg px-lg">

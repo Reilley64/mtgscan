@@ -189,7 +189,7 @@ describe('the commander gallery', () => {
 
     expect(decks.getAllByRole('button', { name: /priority/ }).map((card) => card.props.accessibilityLabel)).toEqual([
       'Yuriko, Low priority, 0 cards',
-      'Kinnan, High priority, 1 card, Invalid',
+      'Kinnan, High priority, 1 card, Invalid, Estimated bracket 2',
       'Atraxa, Medium priority, 0 cards',
     ]);
   });

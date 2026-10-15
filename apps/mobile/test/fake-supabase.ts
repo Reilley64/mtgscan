@@ -484,10 +484,18 @@ function judgeDeck(deck: Omit<Deck, 'evaluation'>): DeckEvaluation | null {
     validity: violations.length > 0 ? 'invalid' : 'valid',
     violations,
     undetermined: [],
+    estimated_bracket: 2,
+    bracket_signals: [{ kind: 'game_changers', source: 'official', count: 0, lowest_bracket: 2, cards: [] }],
+    missing_signal_count: 0,
     revision: deck.revision,
     catalog_at: rulesDataAt,
+    oracle_tags_at: rulesDataAt,
+    commander_spellbook_at: rulesDataAt,
     judged_at: deck.last_used_at,
     validity_rules_data_at: rulesDataAt,
+    bracket_rules_data_at: rulesDataAt,
+    no_oracle_tag_data: false,
+    no_combo_data: false,
   };
 }
 
@@ -503,7 +511,7 @@ function deckList() {
     .toSorted((a, b) => b.last_used_at.localeCompare(a.last_used_at) || a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
     .map(({ revision, created_at, cards, basic_lands, evaluation, ...row }) => ({
       ...row,
-      evaluation: evaluation && { validity: evaluation.validity },
+      evaluation: evaluation && { validity: evaluation.validity, estimated_bracket: evaluation.estimated_bracket },
     }));
   return { data: { items }, error: null };
 }

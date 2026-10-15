@@ -1,14 +1,10 @@
-import type { DeckEvaluation, DeckEvaluationCard } from '@mtgscan/supabase/decks';
+import type { DeckEvaluation } from '@mtgscan/supabase/decks';
 
 import { Text } from '@/components/atoms/text';
 import { RuleRow } from '@/components/molecules/rule-row';
 import { ruleNames } from '@/decks/deck-labels';
-import { evaluationCardKey } from '@/decks/violation-cards';
+import { evaluationCardChip } from '@/decks/violation-cards';
 import { shownDay } from '@/lib/shown-day';
-
-function cardChipOf(card: DeckEvaluationCard) {
-  return { key: evaluationCardKey(card), name: card.name, uri: card.image_uris[0] };
-}
 
 type DeckValidityContentProps = {
   evaluation: DeckEvaluation;
@@ -26,12 +22,12 @@ export function DeckValidityContent({ evaluation, onOpenRules }: DeckValidityCon
           rule={ruleNames[violation.rule]}
           citation={violation.citation ? { label: violation.citation, onPress: onOpenRules } : undefined}
           message={violation.message}
-          cards={violation.cards.map(cardChipOf)}
+          cards={violation.cards.map(evaluationCardChip)}
           hint={violation.hint}
         />
       ))}
       {evaluation.undetermined.map((check) => (
-        <RuleRow key={`${check.rule} ${check.reason}`} tone="warning" rule={ruleNames[check.rule]} message={check.reason} cards={check.cards.map(cardChipOf)} />
+        <RuleRow key={`${check.rule} ${check.reason}`} tone="warning" rule={ruleNames[check.rule]} message={check.reason} cards={check.cards.map(evaluationCardChip)} />
       ))}
       {evaluation.validity === 'valid' ? <Text>This deck follows the Commander rules.</Text> : null}
       {evaluation.validity_rules_data_at ? (

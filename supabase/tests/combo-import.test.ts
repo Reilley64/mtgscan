@@ -24,6 +24,17 @@ const invalidParameterValue = '22023';
 const laterSnapshotAt = '2026-10-17T09:00:00.000+00:00';
 const kikiJikiCombo = '618-1719';
 const thassasOracleCombo = '742-1295';
+const importedComboIds = [
+  '1068-1295',
+  '2055-4808',
+  '2484-4083',
+  '3693-5017',
+  '467-1636',
+  '618-1039',
+  kikiJikiCombo,
+  thassasOracleCombo,
+];
+const importedComboIdsWithout = (id: string) => importedComboIds.filter((comboId) => comboId !== id);
 const importKeyClient = secretKeyClient();
 
 let alice: TestUser;
@@ -79,7 +90,7 @@ describe('after one combo import', () => {
   });
 
   test('every two-card combo whose cards are both in the card catalog is imported', async () => {
-    expect(await comboIds()).toEqual([kikiJikiCombo, thassasOracleCombo]);
+    expect(await comboIds()).toEqual(importedComboIds);
   });
 
   test('a combo keeps its Spellbook ID, both Oracle IDs, color identity, produced features, and bracket tag', async () => {
@@ -95,7 +106,7 @@ describe('after one combo import', () => {
 
   test('combos that name a card outside the card catalog are dropped and counted', async () => {
     expect((await latestRun('commander_spellbook')).counts).toEqual({
-      combos: { staged: 4, accepted: 2, dropped: 2, inserted: 2, updated: 0, deleted: 0 },
+      combos: { staged: 10, accepted: 8, dropped: 2, inserted: 8, updated: 0, deleted: 0 },
     });
   });
 
@@ -124,7 +135,7 @@ describe('after one combo import', () => {
   test('a signed-in user reads combos, and an anonymous caller reads none', async () => {
     const { data } = await anonymousClient().from('combos').select('id');
 
-    expect(await comboIds()).toHaveLength(2);
+    expect(await comboIds()).toHaveLength(importedComboIds.length);
     expect(data ?? []).toEqual([]);
   });
 
@@ -174,8 +185,8 @@ describe('only two-card combos with status OK and no template requirement are im
 
       await expectImported(await spellbookFixture({ variants: editVariant(thassasOracleCombo, () => changed) }));
 
-      expect(await comboIds()).toEqual([kikiJikiCombo]);
-      expect((await latestRun('commander_spellbook')).counts).toMatchObject({ combos: { staged: 3, accepted: 1 } });
+      expect(await comboIds()).toEqual(importedComboIdsWithout(thassasOracleCombo));
+      expect((await latestRun('commander_spellbook')).counts).toMatchObject({ combos: { staged: 9, accepted: 7 } });
     },
   );
 
@@ -199,8 +210,8 @@ describe('combo import runs', () => {
       }),
     );
 
-    expect(await comboIds()).toEqual([kikiJikiCombo]);
-    expect((await latestRun('commander_spellbook')).counts).toMatchObject({ combos: { staged: 4, dropped: 3 } });
+    expect(await comboIds()).toEqual(importedComboIdsWithout(thassasOracleCombo));
+    expect((await latestRun('commander_spellbook')).counts).toMatchObject({ combos: { staged: 10, dropped: 3 } });
   });
 
   test('a later run adds new combos and updates changed ones', async () => {
@@ -210,7 +221,7 @@ describe('combo import runs', () => {
       await laterFile({ variants: editVariant(kikiJikiCombo, (variant) => ({ ...variant, bracketTag: 'S' })) }),
     );
 
-    expect(await comboIds()).toEqual([kikiJikiCombo, thassasOracleCombo]);
+    expect(await comboIds()).toEqual(importedComboIds);
     expect((await combos()).find((combo) => combo.id === kikiJikiCombo)!.bracket_tag).toBe('spicy');
     expect((await latestRun('commander_spellbook')).counts).toMatchObject({
       combos: { inserted: 1, updated: 1, deleted: 0 },
@@ -223,7 +234,7 @@ describe('combo import runs', () => {
 
     await expectImported(await laterFile({ variants: editVariant(kikiJikiCombo, () => null) }), '--accept-shrink');
 
-    expect(await comboIds()).toEqual([thassasOracleCombo]);
+    expect(await comboIds()).toEqual(importedComboIdsWithout(kikiJikiCombo));
     expect((await latestRun('commander_spellbook')).counts).toMatchObject({ combos: { deleted: 1 } });
   });
 
@@ -258,7 +269,7 @@ describe('combo import runs', () => {
       expect(run.status).toBe('failed');
       expect(run.failure_reason).toContain(reason);
       sameTime((await comboFreshness()).snapshot_at, spellbookFixtureSnapshotAt);
-      expect(await comboIds()).toEqual([kikiJikiCombo, thassasOracleCombo]);
+      expect(await comboIds()).toEqual(importedComboIds);
     },
   );
 
@@ -271,7 +282,7 @@ describe('combo import runs', () => {
     expect(result.exitCode).toBe(1);
     expect(result.output).toContain('it has no timestamp before its variants');
     expect(await latestRun('commander_spellbook')).toEqual(before);
-    expect(await comboIds()).toEqual([kikiJikiCombo, thassasOracleCombo]);
+    expect(await comboIds()).toEqual(importedComboIds);
   });
 
   test('an unchanged source file records a skipped run and changes nothing', async () => {
@@ -281,7 +292,7 @@ describe('combo import runs', () => {
 
     expect(result.output).toContain('Skipped');
     expect((await latestRun('commander_spellbook')).status).toBe('skipped');
-    expect(await comboIds()).toEqual([kikiJikiCombo, thassasOracleCombo]);
+    expect(await comboIds()).toEqual(importedComboIds);
   });
 
   test('a combo import before any catalog import drops every combo', async () => {
@@ -290,7 +301,7 @@ describe('combo import runs', () => {
     await expectImported(spellbookFixtureVariants);
 
     expect(await comboIds()).toEqual([]);
-    expect((await latestRun('commander_spellbook')).counts).toMatchObject({ combos: { staged: 4, dropped: 4 } });
+    expect((await latestRun('commander_spellbook')).counts).toMatchObject({ combos: { staged: 10, dropped: 10 } });
   });
 
   test("a combo import leaves the card catalog and the user's profile unchanged", async () => {
@@ -337,6 +348,6 @@ describe('combo import runs', () => {
     expect(result.exitCode).toBe(0);
     expect(result.output).toContain('Retrying the commander_spellbook import');
     expect((await latestRun('commander_spellbook')).status).toBe('succeeded');
-    expect(await comboIds()).toEqual([kikiJikiCombo, thassasOracleCombo]);
+    expect(await comboIds()).toEqual(importedComboIds);
   });
 });

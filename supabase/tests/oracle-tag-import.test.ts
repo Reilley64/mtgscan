@@ -92,9 +92,9 @@ describe('after one Oracle tag import', () => {
   });
 
   test('every tag, tag edge, and card tagging for a known card is in the card catalog', async () => {
-    expect(await rowCount('oracle_tags')).toBe(656);
-    expect(await rowCount('tag_edges')).toBe(536);
-    expect(await rowCount('card_taggings')).toBe(1178);
+    expect(await rowCount('oracle_tags')).toBe(658);
+    expect(await rowCount('tag_edges')).toBe(537);
+    expect(await rowCount('card_taggings')).toBe(1183);
   });
 
   test('a tag keeps its UUID, slug, label, description, and aliases', async () => {
@@ -115,9 +115,9 @@ describe('after one Oracle tag import', () => {
 
     expect(data).toEqual([]);
     expect((await latestRun('oracle_tags')).counts).toMatchObject({
-      oracle_tags: { staged: 656, inserted: 656 },
-      tag_edges: { staged: 536, accepted: 536, dropped: 0, inserted: 536 },
-      card_taggings: { staged: 1187, accepted: 1178, dropped: 9, inserted: 1178 },
+      oracle_tags: { staged: 658, inserted: 658 },
+      tag_edges: { staged: 537, accepted: 537, dropped: 0, inserted: 537 },
+      card_taggings: { staged: 1192, accepted: 1183, dropped: 9, inserted: 1183 },
     });
   });
 
@@ -216,8 +216,8 @@ describe('Oracle tag import runs', () => {
       expect(run.status).toBe('failed');
       expect(run.failure_reason).toContain(reason);
       sameTime((await tagFreshness()).snapshot_at, oracleTagFixtureSnapshotAt);
-      expect(await rowCount('oracle_tags')).toBe(656);
-      expect(await rowCount('card_taggings')).toBe(1178);
+      expect(await rowCount('oracle_tags')).toBe(658);
+      expect(await rowCount('card_taggings')).toBe(1183);
     },
   );
 
@@ -242,7 +242,7 @@ describe('Oracle tag import runs', () => {
 
     expect(result.output).toContain('Skipped');
     expect((await latestRun('oracle_tags')).status).toBe('skipped');
-    expect(await rowCount('oracle_tags')).toBe(656);
+    expect(await rowCount('oracle_tags')).toBe(658);
   });
 
   test('a tag import before any catalog import drops every tagging', async () => {
@@ -250,7 +250,7 @@ describe('Oracle tag import runs', () => {
 
     await expectImported(catalogFixtureManifest);
 
-    expect(await rowCount('oracle_tags')).toBe(656);
+    expect(await rowCount('oracle_tags')).toBe(658);
     expect(await rowCount('card_taggings')).toBe(0);
   });
 

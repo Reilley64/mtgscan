@@ -944,6 +944,897 @@
         "cardmarket": "8.48"
       },
       "variantCount": 200
+    },
+    {
+      "id": "2055-4808",
+      "status": "OK",
+      "uses": [
+        {
+          "card": {
+            "id": 2055,
+            "name": "Auriok Salvagers",
+            "oracleId": "db2f3a06-f75e-4689-b147-9820aebb30e2",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Creature — Human Soldier",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/b/e/befb996b-1da6-41a3-8d9a-a45c2353c401.png?1783930221",
+            "imageUriFrontLarge": "https://cards.scryfall.io/display/front/b/e/befb996b-1da6-41a3-8d9a-a45c2353c401.webp?1783930221",
+            "imageUriFrontNormal": "https://cards.scryfall.io/grid/front/b/e/befb996b-1da6-41a3-8d9a-a45c2353c401.webp?1783930221",
+            "imageUriFrontSmall": "https://cards.scryfall.io/thumb/front/b/e/befb996b-1da6-41a3-8d9a-a45c2353c401.webp?1783930221",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art/front/b/e/befb996b-1da6-41a3-8d9a-a45c2353c401.webp?1783930221",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 4808,
+            "name": "Black Lotus",
+            "oracleId": "5089ec1a-f881-4d55-af14-5d996171203b",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Artifact",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.png?1783939332",
+            "imageUriFrontLarge": "https://cards.scryfall.io/display/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.webp?1783939332",
+            "imageUriFrontNormal": "https://cards.scryfall.io/grid/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.webp?1783939332",
+            "imageUriFrontSmall": "https://cards.scryfall.io/thumb/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.webp?1783939332",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.webp?1783939332",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        }
+      ],
+      "requires": [],
+      "produces": [
+        {
+          "feature": {
+            "id": 5,
+            "name": "Infinite colored mana",
+            "uncountable": true,
+            "status": "S"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 4,
+            "name": "Infinite creature ETB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 3,
+            "name": "Infinite creature LTB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 6,
+            "name": "Infinite creature sacrifice triggers",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 17,
+            "name": "Infinite storm count",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        }
+      ],
+      "of": [
+        {
+          "id": 6242
+        }
+      ],
+      "includes": [
+        {
+          "id": 6242
+        }
+      ],
+      "identity": "W",
+      "manaNeeded": "",
+      "manaValueNeeded": 0,
+      "easyPrerequisites": "",
+      "notablePrerequisites": "",
+      "description": "Activate Black Lotus, sacrificing it to add {W}{W}{W}.\nActivate Auriok Salvager, returning Black Lotus from your graveyard to your hand.\nCast Black Lotus.\nRepeat.",
+      "notes": "",
+      "popularity": 0,
+      "salt": null,
+      "saltVoteCount": 0,
+      "spoiler": false,
+      "bracketTag": "B",
+      "legalities": {
+        "commander": false,
+        "pauperCommanderMain": false,
+        "pauperCommander": false,
+        "oathbreaker": false,
+        "predh": false,
+        "standardBrawl": false,
+        "brawl": false,
+        "competitiveBrawl": false,
+        "alchemy": false,
+        "vintage": true,
+        "legacy": false,
+        "premodern": false,
+        "modern": false,
+        "pioneer": false,
+        "standard": false,
+        "pauper": false
+      },
+      "prices": {
+        "tcgplayer": "21275.19",
+        "cardkingdom": "35000.34",
+        "cardmarket": "13967.77"
+      },
+      "variantCount": 1
+    },
+    {
+      "id": "1068-1295",
+      "status": "OK",
+      "uses": [
+        {
+          "card": {
+            "id": 1068,
+            "name": "Leveler",
+            "oracleId": "ba1d34ab-7529-4f47-a5e7-7d8f66d7b901",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Artifact Creature — Juggernaut",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/0/3/03ffa3c3-dd29-47eb-abf2-7951fadb5c37.png?1783944515",
+            "imageUriFrontLarge": "https://cards.scryfall.io/display/front/0/3/03ffa3c3-dd29-47eb-abf2-7951fadb5c37.webp?1783944515",
+            "imageUriFrontNormal": "https://cards.scryfall.io/grid/front/0/3/03ffa3c3-dd29-47eb-abf2-7951fadb5c37.webp?1783944515",
+            "imageUriFrontSmall": "https://cards.scryfall.io/thumb/front/0/3/03ffa3c3-dd29-47eb-abf2-7951fadb5c37.webp?1783944515",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art/front/0/3/03ffa3c3-dd29-47eb-abf2-7951fadb5c37.webp?1783944515",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "H"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 1295,
+            "name": "Thassa's Oracle",
+            "oracleId": "1de1b591-a73f-4974-b507-8c63e07a0868",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Creature — Merfolk Wizard",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.png?1783931575",
+            "imageUriFrontLarge": "https://cards.scryfall.io/display/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.webp?1783931575",
+            "imageUriFrontNormal": "https://cards.scryfall.io/grid/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.webp?1783931575",
+            "imageUriFrontSmall": "https://cards.scryfall.io/thumb/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.webp?1783931575",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.webp?1783931575",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "H"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        }
+      ],
+      "requires": [],
+      "produces": [
+        {
+          "feature": {
+            "id": 88,
+            "name": "Exile your library",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 2,
+            "name": "Win the game",
+            "uncountable": true,
+            "status": "S"
+          },
+          "quantity": 1
+        }
+      ],
+      "of": [
+        {
+          "id": 1020
+        }
+      ],
+      "includes": [
+        {
+          "id": 1020
+        }
+      ],
+      "identity": "U",
+      "manaNeeded": "{5}{U}{U}",
+      "manaValueNeeded": 7,
+      "easyPrerequisites": "",
+      "notablePrerequisites": "",
+      "description": "Cast Leveler by paying {5}.\nLeveler enters the battlefield, triggering itself, exiling your library.\nCast Thassa's Oracle by paying {U}{U}.\nThassa's Oracle enters the battlefield, triggering itself, causing you to win the game.",
+      "notes": "",
+      "popularity": 9106,
+      "salt": null,
+      "saltVoteCount": 0,
+      "spoiler": false,
+      "bracketTag": "P",
+      "legalities": {
+        "commander": true,
+        "pauperCommanderMain": false,
+        "pauperCommander": false,
+        "oathbreaker": true,
+        "predh": false,
+        "standardBrawl": false,
+        "brawl": false,
+        "competitiveBrawl": false,
+        "alchemy": false,
+        "vintage": true,
+        "legacy": true,
+        "premodern": false,
+        "modern": true,
+        "pioneer": false,
+        "standard": false,
+        "pauper": false
+      },
+      "prices": {
+        "tcgplayer": "24.73",
+        "cardkingdom": "29.48",
+        "cardmarket": "14.31"
+      },
+      "variantCount": 1
+    },
+    {
+      "id": "3693-5017",
+      "status": "OK",
+      "uses": [
+        {
+          "card": {
+            "id": 5017,
+            "name": "Urban Daggertooth",
+            "oracleId": "cc545c68-829f-4c57-94d2-cd1edf2667a7",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Creature — Dinosaur",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/4/a/4ab83a39-d90d-403e-b74d-fe99c8b2aacd.png?1783926824",
+            "imageUriFrontLarge": "https://cards.scryfall.io/display/front/4/a/4ab83a39-d90d-403e-b74d-fe99c8b2aacd.webp?1783926824",
+            "imageUriFrontNormal": "https://cards.scryfall.io/grid/front/4/a/4ab83a39-d90d-403e-b74d-fe99c8b2aacd.webp?1783926824",
+            "imageUriFrontSmall": "https://cards.scryfall.io/thumb/front/4/a/4ab83a39-d90d-403e-b74d-fe99c8b2aacd.webp?1783926824",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art/front/4/a/4ab83a39-d90d-403e-b74d-fe99c8b2aacd.webp?1783926824",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 3693,
+            "name": "Walking Ballista",
+            "oracleId": "4b515bb0-f275-4400-8032-3173b799ab40",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Artifact Creature — Construct",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/5/2/5272436e-74f0-44c4-a291-ea8ebc3f1525.png?1783930088",
+            "imageUriFrontLarge": "https://cards.scryfall.io/display/front/5/2/5272436e-74f0-44c4-a291-ea8ebc3f1525.webp?1783930088",
+            "imageUriFrontNormal": "https://cards.scryfall.io/grid/front/5/2/5272436e-74f0-44c4-a291-ea8ebc3f1525.webp?1783930088",
+            "imageUriFrontSmall": "https://cards.scryfall.io/thumb/front/5/2/5272436e-74f0-44c4-a291-ea8ebc3f1525.webp?1783930088",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art/front/5/2/5272436e-74f0-44c4-a291-ea8ebc3f1525.webp?1783930088",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        }
+      ],
+      "requires": [],
+      "produces": [
+        {
+          "feature": {
+            "id": 2244,
+            "name": "Infinite +1/+1 counters on a creature",
+            "uncountable": true,
+            "status": "C"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 314,
+            "name": "Infinite proliferate",
+            "uncountable": true,
+            "status": "C"
+          },
+          "quantity": 1
+        }
+      ],
+      "of": [
+        {
+          "id": 14253
+        }
+      ],
+      "includes": [
+        {
+          "id": 14253
+        }
+      ],
+      "identity": "G",
+      "manaNeeded": "",
+      "manaValueNeeded": 0,
+      "easyPrerequisites": "",
+      "notablePrerequisites": "Urban Daggertooth has at least one +1/+1 counter.\nWalking Ballista has at least two +1/+1 counters.",
+      "description": "Activate Walking Ballista's second ability by removing a +1/+1 counter from it, dealing 1 damage to Urban Daggertooth.\nUrban Daggertooth triggers, putting a +1/+1 counter on itself and Walking Ballista.\nRepeat.",
+      "notes": "",
+      "popularity": 508,
+      "salt": null,
+      "saltVoteCount": 0,
+      "spoiler": false,
+      "bracketTag": "O",
+      "legalities": {
+        "commander": true,
+        "pauperCommanderMain": false,
+        "pauperCommander": false,
+        "oathbreaker": true,
+        "predh": false,
+        "standardBrawl": false,
+        "brawl": false,
+        "competitiveBrawl": false,
+        "alchemy": false,
+        "vintage": true,
+        "legacy": true,
+        "premodern": false,
+        "modern": true,
+        "pioneer": false,
+        "standard": false,
+        "pauper": false
+      },
+      "prices": {
+        "tcgplayer": "5.57",
+        "cardkingdom": "7.84",
+        "cardmarket": "6.84"
+      },
+      "variantCount": 1
+    },
+    {
+      "id": "618-1039",
+      "status": "OK",
+      "uses": [
+        {
+          "card": {
+            "id": 618,
+            "name": "Kiki-Jiki, Mirror Breaker",
+            "oracleId": "a34b7416-cfe3-4a1e-a8c1-a3056b747519",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Legendary Creature — Goblin Shaman",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.png?1783935527",
+            "imageUriFrontLarge": "https://cards.scryfall.io/display/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.webp?1783935527",
+            "imageUriFrontNormal": "https://cards.scryfall.io/grid/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.webp?1783935527",
+            "imageUriFrontSmall": "https://cards.scryfall.io/thumb/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.webp?1783935527",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art/front/a/2/a2ff0ee3-9600-4c7d-acec-6ec90595384e.webp?1783935527",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 1039,
+            "name": "Teardrop Kami",
+            "oracleId": "6f47a67e-1fcd-4f3f-81d0-1a6868606390",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Creature — Spirit",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/b/0/b015ae03-c083-4e4a-b4a2-88e55aef9001.png?1783944202",
+            "imageUriFrontLarge": "https://cards.scryfall.io/display/front/b/0/b015ae03-c083-4e4a-b4a2-88e55aef9001.webp?1783944202",
+            "imageUriFrontNormal": "https://cards.scryfall.io/grid/front/b/0/b015ae03-c083-4e4a-b4a2-88e55aef9001.webp?1783944202",
+            "imageUriFrontSmall": "https://cards.scryfall.io/thumb/front/b/0/b015ae03-c083-4e4a-b4a2-88e55aef9001.webp?1783944202",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art/front/b/0/b015ae03-c083-4e4a-b4a2-88e55aef9001.webp?1783944202",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        }
+      ],
+      "requires": [],
+      "produces": [
+        {
+          "feature": {
+            "id": 7,
+            "name": "Infinite death triggers",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 4,
+            "name": "Infinite creature ETB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 3,
+            "name": "Infinite creature LTB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 6,
+            "name": "Infinite creature sacrifice triggers",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        }
+      ],
+      "of": [
+        {
+          "id": 8413
+        }
+      ],
+      "includes": [
+        {
+          "id": 8413
+        }
+      ],
+      "identity": "UR",
+      "manaNeeded": "",
+      "manaValueNeeded": 0,
+      "easyPrerequisites": "",
+      "notablePrerequisites": "",
+      "description": "Activate Kiki-Jiki by tapping it, creating a token copy of Teardrop Kami with haste.\nActivate the Teardrop Kami token by sacrificing it, untapping Kiki-Jiki.\nRepeat.",
+      "notes": "",
+      "popularity": 13,
+      "salt": null,
+      "saltVoteCount": 0,
+      "spoiler": false,
+      "bracketTag": "E",
+      "legalities": {
+        "commander": true,
+        "pauperCommanderMain": false,
+        "pauperCommander": false,
+        "oathbreaker": true,
+        "predh": true,
+        "standardBrawl": false,
+        "brawl": false,
+        "competitiveBrawl": false,
+        "alchemy": false,
+        "vintage": true,
+        "legacy": true,
+        "premodern": false,
+        "modern": true,
+        "pioneer": false,
+        "standard": false,
+        "pauper": false
+      },
+      "prices": {
+        "tcgplayer": "13.05",
+        "cardkingdom": "14.34",
+        "cardmarket": "7.17"
+      },
+      "variantCount": 1
+    },
+    {
+      "id": "467-1636",
+      "status": "OK",
+      "uses": [
+        {
+          "card": {
+            "id": 467,
+            "name": "Shorikai, Genesis Engine",
+            "oracleId": "e2962883-6daf-4a84-af73-917afc73092c",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Legendary Artifact — Vehicle",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/9/6/969ac7dd-f3aa-4888-9ff0-d16a31b5e7a9.png?1783923999",
+            "imageUriFrontLarge": "https://cards.scryfall.io/display/front/9/6/969ac7dd-f3aa-4888-9ff0-d16a31b5e7a9.webp?1783923999",
+            "imageUriFrontNormal": "https://cards.scryfall.io/grid/front/9/6/969ac7dd-f3aa-4888-9ff0-d16a31b5e7a9.webp?1783923999",
+            "imageUriFrontSmall": "https://cards.scryfall.io/thumb/front/9/6/969ac7dd-f3aa-4888-9ff0-d16a31b5e7a9.webp?1783923999",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art/front/9/6/969ac7dd-f3aa-4888-9ff0-d16a31b5e7a9.webp?1783923999",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "without summoning sickness",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 1636,
+            "name": "Intruder Alarm",
+            "oracleId": "1e943e04-e213-4781-b1a7-935aad8790e1",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Enchantment",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/8/d/8d62468e-ed9d-4932-bbbd-103b33b98b25.png?1783944797",
+            "imageUriFrontLarge": "https://cards.scryfall.io/display/front/8/d/8d62468e-ed9d-4932-bbbd-103b33b98b25.webp?1783944797",
+            "imageUriFrontNormal": "https://cards.scryfall.io/grid/front/8/d/8d62468e-ed9d-4932-bbbd-103b33b98b25.webp?1783944797",
+            "imageUriFrontSmall": "https://cards.scryfall.io/thumb/front/8/d/8d62468e-ed9d-4932-bbbd-103b33b98b25.webp?1783944797",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art/front/8/d/8d62468e-ed9d-4932-bbbd-103b33b98b25.webp?1783944797",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        }
+      ],
+      "requires": [],
+      "produces": [
+        {
+          "feature": {
+            "id": 36,
+            "name": "Infinite self-discard triggers",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 60,
+            "name": "Near-infinite creature ETB",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 61,
+            "name": "Infinite draw triggers",
+            "uncountable": true,
+            "status": "H"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 207,
+            "name": "Near-infinite creature tokens",
+            "uncountable": true,
+            "status": "S"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 292,
+            "name": "Near-infinite card draw",
+            "uncountable": true,
+            "status": "S"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 350,
+            "name": "Near-infinite untap of all creatures",
+            "uncountable": true,
+            "status": "C"
+          },
+          "quantity": 1
+        },
+        {
+          "feature": {
+            "id": 375,
+            "name": "Near-infinite looting",
+            "uncountable": true,
+            "status": "C"
+          },
+          "quantity": 1
+        }
+      ],
+      "of": [
+        {
+          "id": 29545
+        }
+      ],
+      "includes": [
+        {
+          "id": 29545
+        }
+      ],
+      "identity": "WU",
+      "manaNeeded": "",
+      "manaValueNeeded": 0,
+      "easyPrerequisites": "You have a way to cause Shorikai to become a creature this turn.",
+      "notablePrerequisites": "You control a creature that can tap to produce at least {1}.",
+      "description": "Cause Shorikai to become a creature.\nActivate a creature by tapping it, adding at least {1}.\nActivate Shorikai by paying {1} and tapping it, causing you to draw two cards, discard a card, and create a 1/1 Pilot creature token.\nWhen the Pilot enters the battlefield, Intruder Alarm triggers, untapping all creatures.\nRepeat from step 2.",
+      "notes": "",
+      "popularity": 7010,
+      "salt": null,
+      "saltVoteCount": 0,
+      "spoiler": false,
+      "bracketTag": "S",
+      "legalities": {
+        "commander": true,
+        "pauperCommanderMain": false,
+        "pauperCommander": false,
+        "oathbreaker": true,
+        "predh": false,
+        "standardBrawl": false,
+        "brawl": false,
+        "competitiveBrawl": false,
+        "alchemy": false,
+        "vintage": true,
+        "legacy": true,
+        "premodern": false,
+        "modern": false,
+        "pioneer": false,
+        "standard": false,
+        "pauper": false
+      },
+      "prices": {
+        "tcgplayer": "7.25",
+        "cardkingdom": "10.48",
+        "cardmarket": "5.19"
+      },
+      "variantCount": 1
+    },
+    {
+      "id": "2484-4083",
+      "status": "OK",
+      "uses": [
+        {
+          "card": {
+            "id": 2484,
+            "name": "Blasphemous Act",
+            "oracleId": "7a2484a9-04fd-41a0-8224-610c1c07ed10",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Sorcery",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/7/d/7d4b1d44-126e-4987-9a9f-f0f9627a09cb.png?1783903234",
+            "imageUriFrontLarge": "https://cards.scryfall.io/display/front/7/d/7d4b1d44-126e-4987-9a9f-f0f9627a09cb.webp?1783903234",
+            "imageUriFrontNormal": "https://cards.scryfall.io/grid/front/7/d/7d4b1d44-126e-4987-9a9f-f0f9627a09cb.webp?1783903234",
+            "imageUriFrontSmall": "https://cards.scryfall.io/thumb/front/7/d/7d4b1d44-126e-4987-9a9f-f0f9627a09cb.webp?1783903234",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art/front/7/d/7d4b1d44-126e-4987-9a9f-f0f9627a09cb.webp?1783903234",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "H"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        },
+        {
+          "card": {
+            "id": 4083,
+            "name": "Repercussion",
+            "oracleId": "f6069a4f-744e-43e8-9f8b-7c13b8b0187f",
+            "spoiler": false,
+            "faces": 1,
+            "typeLine": "Enchantment",
+            "imageUriFrontPng": "https://cards.scryfall.io/png/front/d/0/d0f3c78e-16c0-4fbc-8ef4-fbf610f9d464.png?1783946065",
+            "imageUriFrontLarge": "https://cards.scryfall.io/display/front/d/0/d0f3c78e-16c0-4fbc-8ef4-fbf610f9d464.webp?1783946065",
+            "imageUriFrontNormal": "https://cards.scryfall.io/grid/front/d/0/d0f3c78e-16c0-4fbc-8ef4-fbf610f9d464.webp?1783946065",
+            "imageUriFrontSmall": "https://cards.scryfall.io/thumb/front/d/0/d0f3c78e-16c0-4fbc-8ef4-fbf610f9d464.webp?1783946065",
+            "imageUriFrontArtCrop": "https://cards.scryfall.io/art/front/d/0/d0f3c78e-16c0-4fbc-8ef4-fbf610f9d464.webp?1783946065",
+            "layoutRotationFront": null,
+            "imageUriBackPng": null,
+            "imageUriBackLarge": null,
+            "imageUriBackNormal": null,
+            "imageUriBackSmall": null,
+            "imageUriBackArtCrop": null
+          },
+          "zoneLocations": [
+            "B"
+          ],
+          "battlefieldCardState": "",
+          "exileCardState": "",
+          "libraryCardState": "",
+          "graveyardCardState": "",
+          "mustBeCommander": false,
+          "quantity": 1,
+          "usedFace": null
+        }
+      ],
+      "requires": [],
+      "produces": [
+        {
+          "feature": {
+            "id": 1227,
+            "name": "Near-infinite damage to all players",
+            "uncountable": true,
+            "status": "S"
+          },
+          "quantity": 1
+        }
+      ],
+      "of": [
+        {
+          "id": 28202
+        }
+      ],
+      "includes": [
+        {
+          "id": 28202
+        }
+      ],
+      "identity": "R",
+      "manaNeeded": "{8}{R} at most",
+      "manaValueNeeded": 9,
+      "easyPrerequisites": "",
+      "notablePrerequisites": "",
+      "description": "Cast Blasphemous Act by paying at most {8}{R}, dealing 13 damage to each creature.\nRepercussion triggers for each creature dealt damage this way.\nResolve the first Repercussion trigger, dealing 13 damage to an opponent.\nRepeat step 3 for each Repercussion trigger, ensuring to resolve all triggers that would damage your opponent(s) first.",
+      "notes": "This combo will also deal damage to you equal to 13 times the number of creatures you control. It is recommended that your life total is above this number to ensure you don't lose the game from the damage if your opponents will not take lethal damage from this combo.",
+      "popularity": 39288,
+      "salt": null,
+      "saltVoteCount": 4,
+      "spoiler": false,
+      "bracketTag": "C",
+      "legalities": {
+        "commander": true,
+        "pauperCommanderMain": false,
+        "pauperCommander": false,
+        "oathbreaker": true,
+        "predh": false,
+        "standardBrawl": false,
+        "brawl": true,
+        "competitiveBrawl": true,
+        "alchemy": false,
+        "vintage": true,
+        "legacy": true,
+        "premodern": false,
+        "modern": false,
+        "pioneer": false,
+        "standard": false,
+        "pauper": false
+      },
+      "prices": {
+        "tcgplayer": "11.97",
+        "cardkingdom": "15.98",
+        "cardmarket": "6.72"
+      },
+      "variantCount": 1
     }
   ],
   "aliases": [

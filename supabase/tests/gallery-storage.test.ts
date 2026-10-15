@@ -208,8 +208,8 @@ describe('gallery printings', () => {
   test('every card printing in the card catalog is listed once, and basic lands are flagged', async () => {
     const rows = await galleryPrintings();
 
-    expect(rows).toHaveLength(377);
-    expect(new Set(rows.map((row) => row.id)).size).toBe(377);
+    expect(rows).toHaveLength(389);
+    expect(new Set(rows.map((row) => row.id)).size).toBe(389);
     expect(rows.filter((row) => row.basic_land).map((row) => row.id).sort()).toEqual(basicLands.map((land) => land.id).sort());
   });
 

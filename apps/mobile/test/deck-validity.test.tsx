@@ -39,10 +39,18 @@ function evaluationOf(fields: Pick<DeckEvaluation, 'validity'> & Partial<DeckEva
   return {
     violations: [],
     undetermined: [],
+    estimated_bracket: 2,
+    bracket_signals: [],
+    missing_signal_count: 0,
     revision: 1,
     catalog_at: '2026-10-12T06:00:00.000Z',
+    oracle_tags_at: '2026-10-12T06:00:00.000Z',
+    commander_spellbook_at: '2026-10-12T06:00:00.000Z',
     judged_at: '2026-10-15T09:00:00.000Z',
     validity_rules_data_at: '2026-10-12T06:00:00.000Z',
+    bracket_rules_data_at: '2026-10-12T06:00:00.000Z',
+    no_oracle_tag_data: false,
+    no_combo_data: false,
     ...fields,
   };
 }
@@ -109,7 +117,7 @@ describe('the validity chip on the gallery card', () => {
 
     const decks = await openDecks();
 
-    const card = decks.getByRole('button', { name: `Kinnan, Medium priority, ${seed.card_count} cards, ${label}` });
+    const card = decks.getByRole('button', { name: `Kinnan, Medium priority, ${seed.card_count} cards, ${label}, Estimated bracket 2` });
     expect(within(card).getByText(label)).toHaveStyle({ color });
     expect(symbolNames(card)).toEqual([symbol]);
     expect(symbolTintColors(card)).toEqual([color]);
@@ -121,7 +129,7 @@ describe('the validity chip on the gallery card', () => {
     ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 87 }]);
     const decks = await openDecks();
 
-    await fireEvent.press(decks.getByRole('button', { name: 'Kinnan, Medium priority, 87 cards, Invalid' }));
+    await fireEvent.press(decks.getByRole('button', { name: 'Kinnan, Medium priority, 87 cards, Invalid, Estimated bracket 2' }));
 
     expect(await within(pushedScreen()).findByRole('header', { name: 'Kinnan' })).toBeOnTheScreen();
   });
@@ -177,7 +185,7 @@ describe('the validity chip comes and goes with the cards', () => {
 
     const decks = await openDecks();
 
-    expect(decks.getByRole('button', { name: 'Kinnan, Medium priority, 1 card, Invalid' })).toBeOnTheScreen();
+    expect(decks.getByRole('button', { name: 'Kinnan, Medium priority, 1 card, Invalid, Estimated bracket 2' })).toBeOnTheScreen();
   });
 });
 

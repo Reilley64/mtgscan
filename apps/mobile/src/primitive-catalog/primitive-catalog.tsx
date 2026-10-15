@@ -33,6 +33,7 @@ import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardHero } from '@/components/molecules/card-hero';
 import { LargeCardImage } from '@/components/molecules/large-card-image';
 import { ReadFailure } from '@/components/molecules/read-failure';
+import { BracketSignalRow } from '@/components/molecules/bracket-signal-row';
 import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChangeLine } from '@/components/molecules/change-line';
@@ -667,7 +668,12 @@ function CommanderCards() {
       />
       <CommanderGalleryCard
         name="Yuriko"
-        chips={[{ label: 'Medium priority' }, { label: '87 cards' }, { label: 'Invalid', tone: 'danger', symbol: 'nosign' }]}
+        chips={[
+          { label: 'Medium priority' },
+          { label: '87 cards' },
+          { label: 'Invalid', tone: 'danger', symbol: 'nosign' },
+          { label: 'Bracket 4', tone: 'info', accessibilityLabel: 'Estimated bracket 4' },
+        ]}
         commanders={[]}
         onPress={() => {}}
       />
@@ -678,7 +684,10 @@ function CommanderCards() {
         <DeckBanner
           name="Yuriko"
           chips={[{ label: 'Medium priority' }, { label: '87 cards' }]}
-          chipButtons={[{ label: 'Invalid', tone: 'danger', symbol: 'nosign', accessibilityLabel: 'Deck validity, Invalid', onPress: () => {} }]}
+          chipButtons={[
+            { label: 'Invalid', tone: 'danger', symbol: 'nosign', accessibilityLabel: 'Deck validity, Invalid', onPress: () => {} },
+            { label: 'Bracket 4', tone: 'info', accessibilityLabel: 'Estimated bracket 4', onPress: () => {} },
+          ]}
           commanders={[]}
         />
       </View>
@@ -723,6 +732,27 @@ function RuleRows() {
       />
       <RuleRow tone="warning" rule="Deck size" message="No rules data for Sol Ring." cards={[{ key: 'sol-ring', name: 'Sol Ring', uri: solRing }]} />
       <CardChip uri={solRing} name="Sol Ring" />
+    </Section>
+  );
+}
+
+function BracketSignalRows() {
+  return (
+    <Section title="Bracket signal rows">
+      <BracketSignalRow
+        title="Game Changers: 1"
+        source="official"
+        lowestBracket="Bracket 3"
+        cards={[{ key: 'sol-ring', name: 'Sol Ring', uri: solRing }]}
+        details={[]}
+      />
+      <BracketSignalRow
+        title="Two-card combos: 1"
+        source="heuristic"
+        lowestBracket="Bracket 4"
+        cards={[{ key: 'sol-ring', name: 'Sol Ring', uri: solRing }]}
+        details={['Infinite colorless mana (Commander Spellbook, ruthless)']}
+      />
     </Section>
   );
 }
@@ -814,6 +844,7 @@ export function PrimitiveCatalog() {
         <DeckTags />
         <ChangeLines />
         <RuleRows />
+        <BracketSignalRows />
         <WarningLines />
         <SwipeToConfirms />
         <EmptyStates />

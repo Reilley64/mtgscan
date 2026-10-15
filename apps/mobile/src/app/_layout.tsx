@@ -44,6 +44,7 @@ function RootStack() {
         <Stack.Screen name="add-to-deck" options={halfHeightDrawerOptions} />
         <Stack.Screen name="basic-lands" options={halfHeightDrawerOptions} />
         <Stack.Screen name="deck-validity" options={halfHeightDrawerOptions} />
+        <Stack.Screen name="estimated-bracket" options={halfHeightDrawerOptions} />
         <Stack.Screen name="revert" options={pageSheetOptions} />
         <Stack.Screen name="scan-batch" options={fullHeightDrawerOptions} />
         <Stack.Screen name="scan-details" options={fullHeightDrawerOptions} />
