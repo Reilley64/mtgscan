@@ -117,7 +117,7 @@ describe('banned and not legal', () => {
 });
 
 describe('the legality check with no rules data', () => {
-  test('a card that the card catalog no longer lists and a card with an unknown Commander legality make the deck cannot be determined, and a violation still wins', async () => {
+  test('a card that the card catalog no longer lists and a card with an unknown Commander legality make the legality check undetermined, and a violation still wins', async () => {
     const user = await signUpNewUser();
     const deckId = await deckOfOrmos(user);
     const delver = await addedCopy(user, deckId, delverInnistrad);

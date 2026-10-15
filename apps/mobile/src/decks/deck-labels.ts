@@ -1,5 +1,5 @@
 import { Constants } from '@mtgscan/supabase/database.types';
-import type { DeckCheck, DeckEvaluationSummary, DeckPriority, DeckRow, DeckValidity } from '@mtgscan/supabase/decks';
+import type { UndeterminedRule, DeckEvaluationSummary, DeckPriority, DeckRow, DeckValidity } from '@mtgscan/supabase/decks';
 import type { SFSymbol } from 'expo-symbols';
 
 export const deckPriorities = Constants.public.Enums.deck_priority;
@@ -16,7 +16,7 @@ export const validityChips: Record<DeckValidity, { label: string; tone: 'neutral
   cannot_be_determined: { label: 'Cannot be determined', tone: 'warning', symbol: 'questionmark' },
 };
 
-export const ruleNames: Record<DeckCheck, string> = {
+export const ruleNames: Record<UndeterminedRule, string> = {
   no_commander: 'No commander',
   deck_size: 'Deck size',
   banned: 'Banned',

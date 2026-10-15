@@ -67,7 +67,7 @@ as $$
     'violations', coalesce((
       select jsonb_agg(
         private.violation(outcomes.outcome, null, outcomes.message, null) || jsonb_build_object('cards', outcomes.cards)
-        order by outcomes.outcome
+        order by outcomes.outcome = 'not_legal'
       )
       from outcomes
       where outcomes.outcome in ('banned', 'not_legal')
