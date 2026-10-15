@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { CardContextMenu } from '@/components/atoms/card-context-menu';
 import { CardImage, type CardSheen } from '@/components/atoms/card-image';
+import { CountBadge } from '@/components/atoms/count-badge';
 import type { MenuAction } from '@/components/atoms/menu-button';
 import { Skeleton } from '@/components/atoms/skeleton';
 import { Text } from '@/components/atoms/text';
@@ -23,6 +24,8 @@ type CardTileProps = {
   accessibilityHint?: string;
   sheen?: CardSheen;
   menuActions?: MenuAction[];
+  count?: number;
+  control?: ReactNode;
 } & ({ caption: string; children?: never } | { caption?: never; children?: ReactNode }) &
   ({ selected?: never; onPress?: never } | { selected?: boolean; onPress: () => void });
 
@@ -35,8 +38,17 @@ export function CardTile({
   children,
   selected,
   menuActions,
+  count,
+  control,
   onPress,
 }: CardTileProps) {
+  const image = (
+    <View>
+      <CardImage uri={uri} sheen={sheen} />
+      {count === undefined ? null : <CountBadge count={count} prefix="×" className="absolute right-xs top-xs" />}
+    </View>
+  );
+
   const underImage =
     caption === undefined ? children : (
       <Text variant="meta" numberOfLines={1} className="group-aria-selected/tile:text-primary">
@@ -52,7 +64,7 @@ export function CardTile({
         selected={selected}
         onPress={onTilePress}>
         <View className="rounded-sm border-selected-outline border-transparent group-aria-selected/tile:border-primary">
-          <CardImage uri={uri} sheen={sheen} />
+          {image}
         </View>
         {underImage}
       </TileButton>
@@ -60,7 +72,7 @@ export function CardTile({
   }
 
   return (
-    <View className={cn(cardColumnClass, 'px-xs')}>
+    <View className={cn(cardColumnClass, 'gap-xs px-xs')}>
       {onPress ? (
         menuActions ? (
           <CardContextMenu actions={menuActions}>{tileButton(onPress)}</CardContextMenu>
@@ -74,10 +86,11 @@ export function CardTile({
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
           className="gap-xs">
-          <CardImage uri={uri} sheen={sheen} />
+          {image}
           {underImage}
         </View>
       )}
+      {control}
     </View>
   );
 }

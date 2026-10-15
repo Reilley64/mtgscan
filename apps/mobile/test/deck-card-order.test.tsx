@@ -80,7 +80,7 @@ describe('the group button', () => {
 
     await pressButtonMenuItem(deckMenuButton('Group, Type'), 'Mana value');
 
-    expect(groupHeaders(deck)).toEqual(['Commander, 1', '0, 2', '1, 1', '2, 1', '3, 1', '6, 1', '7+, 4', 'Lands, 1']);
+    expect(groupHeaders(deck)).toEqual(['Commander, 1', '0, 2', '1, 1', '2, 1', '3, 1', '6, 1', '7+, 4', 'Lands, 1', 'Basic lands']);
     expect(menuButtonNames(pushedScreen())).toEqual(['Group, Mana value', 'Sort, Name, A to Z']);
   });
 
@@ -108,6 +108,7 @@ describe('the group button', () => {
       'Green, 1',
       'Multicolor, 1',
       'Colorless, 2',
+      'Basic lands',
     ]);
   });
 
@@ -124,7 +125,7 @@ describe('the group button', () => {
 
     await pressButtonMenuItem(deckMenuButton('Group, Type'), 'Rarity');
 
-    expect(groupHeaders(deck)).toEqual(['Commander, 1', 'Mythic, 1', 'Rare, 1', 'Uncommon, 1', 'Common, 1', 'Special, 2']);
+    expect(groupHeaders(deck)).toEqual(['Commander, 1', 'Mythic, 1', 'Rare, 1', 'Uncommon, 1', 'Common, 1', 'Special, 2', 'Basic lands']);
   });
 
   test('None puts the main deck in one group after the commanders', async () => {
@@ -137,7 +138,7 @@ describe('the group button', () => {
 
     await pressButtonMenuItem(deckMenuButton('Group, Type'), 'None');
 
-    expect(groupHeaders(deck)).toEqual(['Commander, 1', 'Main deck, 3']);
+    expect(groupHeaders(deck)).toEqual(['Commander, 1', 'Main deck, 3', 'Basic lands']);
     expect(tileNames(deck)).toEqual(["Atraxa, Praetors' Voice", 'Birds of Paradise', 'Command Tower', 'Sol Ring']);
   });
 
@@ -245,7 +246,7 @@ describe('the sort button', () => {
     await pressButtonMenuItem(deckMenuButton('Sort, Name, A to Z'), 'Mana value');
     await pressButtonMenuItem(deckMenuButton('Sort, Mana value, low to high'), 'Mana value');
 
-    expect(groupHeaders(deck)).toEqual(['Commander, 1', 'Creatures, 2', 'Artifacts, 4']);
+    expect(groupHeaders(deck)).toEqual(['Commander, 1', 'Creatures, 2', 'Artifacts, 4', 'Basic lands']);
     expect(tileNames(deck)).toEqual([
       "Atraxa, Praetors' Voice",
       'Primeval Titan',
@@ -275,7 +276,7 @@ describe('the group and sort choices', () => {
     const kinnan = await openDeckNamed('Kinnan');
 
     expect(menuButtonNames(pushedScreen())).toEqual(['Group, Mana value', 'Sort, Price, high to low']);
-    expect(groupHeaders(kinnan)).toEqual(['Commander', '1, 1', '2, 1']);
+    expect(groupHeaders(kinnan)).toEqual(['Commander', '1, 1', '2, 1', 'Basic lands']);
   });
 
   test('go back to Type and Name, A to Z after a restart of the app', async () => {

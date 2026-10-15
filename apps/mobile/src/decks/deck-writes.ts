@@ -7,6 +7,7 @@ import {
   type DeleteDeckRequest,
   type MarkDeckUsedRequest,
   type RenameDeckRequest,
+  type SetBasicLandsRequest,
   type SetDeckCommanderRequest,
   type SetDeckPriorityRequest,
 } from '@mtgscan/supabase/decks';
@@ -40,6 +41,11 @@ export async function setDeckPriority(deckId: string, priority: DeckPriority) {
 export async function deleteDeck(deckId: string) {
   const request: DeleteDeckRequest = { deck_id: deckId };
   const { error } = await supabase.rpc('delete_deck', { request });
+  return writeResultOf(error);
+}
+
+export async function setBasicLands(request: SetBasicLandsRequest) {
+  const { error } = await supabase.rpc('set_basic_lands', { request });
   return writeResultOf(error);
 }
 

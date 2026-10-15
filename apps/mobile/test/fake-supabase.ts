@@ -31,12 +31,14 @@ import type {
   AddDeckCardRequest,
   CreateDeckRequest,
   Deck,
+  DeckBasicLand,
   DeckCard,
   DeckQuery,
   DeleteDeckRequest,
   MarkDeckUsedRequest,
   RenameDeckRequest,
   SetDeckCommanderRequest,
+  SetBasicLandsRequest,
   SetDeckPriorityRequest,
 } from '@mtgscan/supabase/decks';
 import { testUser } from '@mtgscan/supabase/test-user';
@@ -411,6 +413,38 @@ function failedDeckWrite() {
   return true;
 }
 
+const basicLandNames = [
+  'Plains',
+  'Island',
+  'Swamp',
+  'Mountain',
+  'Forest',
+  'Wastes',
+  'Snow-Covered Plains',
+  'Snow-Covered Island',
+  'Snow-Covered Swamp',
+  'Snow-Covered Mountain',
+  'Snow-Covered Forest',
+  'Snow-Covered Wastes',
+];
+
+export function basicLandOracleId(name: string) {
+  return `oracle-${name.toLowerCase().replaceAll(' ', '-')}`;
+}
+
+export function basicLandsOf(counts: Record<string, number> = {}): DeckBasicLand[] {
+  return basicLandNames.map((name) => ({
+    oracle_id: basicLandOracleId(name),
+    name,
+    image_uris: [`https://cards.scryfall.io/normal/front/${basicLandOracleId(name)}.jpg`],
+    count: counts[name] ?? 0,
+  }));
+}
+
+function basicLandTotalOf(lands: DeckBasicLand[]) {
+  return lands.reduce((total, land) => total + land.count, 0);
+}
+
 function deckList() {
   if (failedDeckRead()) {
     return { data: null, error: networkFailure };
@@ -445,7 +479,7 @@ function createDeck(request: CreateDeckRequest) {
     revision: 0,
     created_at: time,
     cards: [],
-    basic_lands: [],
+    basic_lands: basicLandsOf(),
   };
   decks = [...decks, deck];
   return { data: { deck_id: deck.deck_id }, error: null };
@@ -591,6 +625,31 @@ function setDeckCommander(request: SetDeckCommanderRequest) {
       });
     }
   }
+  return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
+}
+
+function setBasicLands(request: SetBasicLandsRequest) {
+  deckWrites = [...deckWrites, { name: 'set_basic_lands', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  const deck = decks.find((candidate) => candidate.deck_id === request.deck_id);
+  if (!deck) {
+    return deckNotFound;
+  }
+  const counts = new Map(request.counts.map(({ oracle_id, count }) => [oracle_id, count]));
+  const basicLands = deck.basic_lands.map((land) => ({ ...land, count: counts.get(land.oracle_id ?? '') ?? land.count }));
+  if (basicLands.every((land, index) => land.count === deck.basic_lands[index]!.count)) {
+    return { data: { deck_id: deck.deck_id, revision: deck.revision }, error: null };
+  }
+  const changed: Deck = {
+    ...deck,
+    basic_lands: basicLands,
+    card_count: deck.card_count - basicLandTotalOf(deck.basic_lands) + basicLandTotalOf(basicLands),
+    revision: deck.revision + 1,
+    last_used_at: nextDeckTime(),
+  };
+  decks = decks.map((candidate) => (candidate.deck_id === deck.deck_id ? changed : candidate));
   return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
 }
 
@@ -760,7 +819,8 @@ export const fakeSupabase = {
             | SetDeckPriorityRequest
             | DeleteDeckRequest
             | AddDeckCardRequest
-            | SetDeckCommanderRequest;
+            | SetDeckCommanderRequest
+            | SetBasicLandsRequest;
         },
   ) {
     if (name === 'list_decks') {
@@ -791,6 +851,9 @@ export const fakeSupabase = {
     }
     if (name === 'set_deck_commander' && args && 'request' in args) {
       return setDeckCommander(args.request as SetDeckCommanderRequest);
+    }
+    if (name === 'set_basic_lands' && args && 'request' in args) {
+      return setBasicLands(args.request as SetBasicLandsRequest);
     }
     if (name === 'list_user_tags') {
       return userTagList();
@@ -945,7 +1008,9 @@ export function failUserTagChanges(count: number) {
   failingUserTagChanges = count;
 }
 
-export function ownDecks(seeds: (Pick<Deck, 'name' | 'priority' | 'card_count'> & Partial<Pick<Deck, 'commanders' | 'cards'>>)[]) {
+export function ownDecks(
+  seeds: (Pick<Deck, 'name' | 'priority' | 'card_count'> & Partial<Pick<Deck, 'commanders' | 'cards' | 'basic_lands'>>)[],
+) {
   decks = seeds.map((seed, index) => {
     const time = nextDeckTime();
     return {
@@ -955,7 +1020,7 @@ export function ownDecks(seeds: (Pick<Deck, 'name' | 'priority' | 'card_count'> 
       revision: 0,
       created_at: time,
       cards: [],
-      basic_lands: [],
+      basic_lands: basicLandsOf(),
       ...seed,
     };
   });

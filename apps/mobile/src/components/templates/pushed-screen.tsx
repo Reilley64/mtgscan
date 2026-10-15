@@ -1,14 +1,15 @@
 import type { ReactNode } from 'react';
-import { ScrollView } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { FloatingButtons } from '@/components/templates/floating-buttons';
 
 type PushedScreenProps = {
   children: ReactNode;
   floatingButtons?: ReactNode;
+  footer?: ReactNode;
 };
 
-export function PushedScreen({ children, floatingButtons }: PushedScreenProps) {
+export function PushedScreen({ children, floatingButtons, footer }: PushedScreenProps) {
   return (
     <>
       <ScrollView
@@ -19,6 +20,7 @@ export function PushedScreen({ children, floatingButtons }: PushedScreenProps) {
         {children}
       </ScrollView>
       {floatingButtons ? <FloatingButtons>{floatingButtons}</FloatingButtons> : null}
+      {footer ? <View className="gap-sm bg-background px-lg pb-safe-offset-lg pt-sm">{footer}</View> : null}
     </>
   );
 }

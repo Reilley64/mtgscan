@@ -145,6 +145,7 @@ describe('the Cards tab', () => {
       'Atraxa',
       'Commander, 2',
       'Artifacts, 1',
+      'Basic lands',
     ]);
     expect(deck.getAllByRole('button', { name: /MH2 262/ }).map((tile) => tile.props.accessibilityLabel)).toEqual([
       "Atraxa, Praetors' Voice, MH2 262",

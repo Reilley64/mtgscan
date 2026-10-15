@@ -252,6 +252,7 @@ describe('the Cards tab', () => {
       'Instants, 2',
       'Sorceries, 1',
       'Lands, 1',
+      'Basic lands',
     ]);
     expect(deck.getByText('No commander yet.')).toBeOnTheScreen();
   });

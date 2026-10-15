@@ -109,6 +109,18 @@ export type SetDeckCommanderRequest = {
 
 export type SetDeckCommanderResult = AddedDeckCard;
 
+export type BasicLandCount = {
+  oracle_id: string;
+  count: number;
+};
+
+export type SetBasicLandsRequest = {
+  deck_id: string;
+  counts: BasicLandCount[];
+};
+
+export type SetBasicLandsResult = AddedDeckCard;
+
 export type DeckErrorCode =
   | 'invalid_argument'
   | 'not_found'
