@@ -149,7 +149,7 @@ describe('the test user command', () => {
     ]);
   });
 
-  test('the sample deck is invalid with a violation of each kind but the commanders, and has bracket signals up to bracket 4', async () => {
+  test('the sample deck is invalid by every rule except the commander rules, and has bracket signals up to bracket 4', async () => {
     expect((await runOracleTagImport(catalogFixtureManifest)).exitCode).toBe(0);
     expect((await runComboImport(spellbookFixtureVariants)).exitCode).toBe(0);
 
@@ -185,7 +185,9 @@ describe('the test user command', () => {
     expect(evaluation!.missing_signal_count).toBe(1);
   });
 
-  test('adding the free Lightning Bolt to the sample deck, or reverting its revert, adds a singleton and a color identity violation', async () => {
+  test('adding the free copy of Lightning Bolt to the sample deck, or reverting its revert, adds a singleton and a color identity violation', async () => {
+    expect((await runTestUserCommand(['--sample-collection'])).exitCode).toBe(0);
+
     const client = await signedInTestUser();
     const [row] = await decks(client);
     const freeBolt = (await ownedCopies(client)).find((copy) => copy.name === 'Lightning Bolt' && !copy.deck)!;

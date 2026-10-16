@@ -133,11 +133,11 @@ function sampleFinish(finishes: Finish[], index: number): Finish {
   return finishes.includes('nonfoil') ? 'nonfoil' : finishes[0]!;
 }
 
-type SamplePrinting = { id: string; oracle_id: string; finishes: Finish[]; cards: { name: string } };
-
 function sampleCardPrintings(admin: Client) {
   return admin.from('card_printings').select('id, oracle_id, finishes, cards!inner(name)').is('absent_since', null).order('id');
 }
+
+type SamplePrinting = NonNullable<Awaited<ReturnType<typeof sampleCardPrintings>>['data']>[number];
 
 async function requireCardCatalog(admin: Client) {
   const { count, error } = await admin.from('cards').select('oracle_id', { count: 'exact', head: true });
@@ -196,10 +196,17 @@ function sampleScanBatch(entries: SampleEntry[]): ScanBatch {
   };
 }
 
-function sampleDeckCopyIds(batch: ScanBatch, deckPrintings: SamplePrinting[]): string[] {
-  const deckItems = batch.items.slice(-deckPrintings.length);
+type SampleDeckCopies = { commander: string; partner: string; mainDeck: string[]; revertedCopy: string };
+
+function sampleDeckCopies(deckPrintings: SamplePrinting[], deckItems: ScanBatch['items']): SampleDeckCopies {
   const copyIds = new Map(deckPrintings.map((printing, index) => [printing.cards.name, [...deckItems[index]!.copy_ids]]));
-  return sampleDeckCards.map((name) => copyIds.get(name)!.shift()!);
+  const takeCopy = (name: string) => copyIds.get(name)!.shift()!;
+  return {
+    commander: takeCopy(sampleDeck.commander),
+    partner: takeCopy(sampleDeck.partner),
+    mainDeck: sampleDeck.mainDeck.map(takeCopy),
+    revertedCopy: takeCopy(sampleDeck.revertedCard),
+  };
 }
 
 async function addSampleCollection(admin: Client) {
@@ -230,7 +237,7 @@ async function addSampleCollection(admin: Client) {
   }
   console.log('Protected 1 sample copy.');
   await addSampleUserTags(testUserClient, batch.items.map((item) => item.copy_ids[0]!));
-  await addSampleDeck(testUserClient, sampleDeckCopyIds(batch, deckPrintings));
+  await addSampleDeck(testUserClient, sampleDeckCopies(deckPrintings, batch.items.slice(otherPrintings.length)));
 }
 
 async function addSampleUserTags(testUserClient: Client, copyIds: string[]) {
@@ -270,17 +277,14 @@ async function deckRead<Result>(testUserClient: Client, read: 'get_deck' | 'list
   return data as unknown as Result;
 }
 
-async function addSampleDeck(testUserClient: Client, copyIds: string[]) {
-  const [commander, partner, ...rest] = copyIds;
-  const mainDeck = rest.slice(0, -1);
-  const revertedCopy = rest.at(-1)!;
+async function addSampleDeck(testUserClient: Client, { commander, partner, mainDeck, revertedCopy }: SampleDeckCopies) {
   const { deck_id } = await deckWrite<CreatedDeck>(testUserClient, 'create_deck', {
     name: sampleDeck.commander,
   });
-  for (const copyId of [commander!, partner!, ...mainDeck]) {
+  for (const copyId of [commander, partner, ...mainDeck]) {
     await deckWrite(testUserClient, 'add_deck_card', { deck_id, copy_id: copyId, unprotect: false });
   }
-  for (const copyId of [commander!, partner!]) {
+  for (const copyId of [commander, partner]) {
     await deckWrite(testUserClient, 'set_deck_commander', { copy_id: copyId, commander: true });
   }
   const { basic_lands } = await deckRead<Deck>(testUserClient, 'get_deck', { deck_id });
