@@ -95,6 +95,18 @@ describe('the effect of a revert', () => {
     expect(evaluation.violations[1]!.cards).toContainEqual(expect.objectContaining({ copy_id: secondBolt }));
   });
 
+  test('a revert that takes the commander out judges the deck without it', async () => {
+    const user = await signUpNewUser();
+    const deckId = await created(user);
+    await succeeded(user, 'set_basic_lands', { deck_id: deckId, counts: [{ oracle_id: mountain, count: 99 }] });
+    const commander = await addedCopy(user, deckId, krenko);
+    const commanderAdded = await lastChange(user, deckId);
+    await succeeded(user, 'set_deck_commander', { copy_id: commander, commander: true });
+    expect((await evaluationOf(user, deckId))!.validity).toBe('valid');
+
+    expect((await previewOf(user, deckId, commanderAdded)).effect).toEqual(effect('would_make_invalid', 'no_commander', 'deck_size'));
+  });
+
   test('only a new violation counts, and an invalid deck gives adds_violation', async () => {
     const user = await signUpNewUser();
     const deckId = await deckOfKrenko(user, 87, [blackLotus, lightningBolt, lightningBolt]);
