@@ -71,7 +71,7 @@ The app UI follows Brad Frost's Atomic Design (#101). Each level is a folder in 
 - Database functions set `search_path = ''` and use schema-qualified names.
 - Functions in `public` revoke `execute` from `public` and from every role that does not call them, then grant it to their callers.
 - Reads of per-user data run under row-level security. A read function is `security invoker`, and a view over a user's data sets `security_invoker`. A `security definer` function that filters on `auth.uid()` itself is a finding. See #90.
-- Put helper functions in the `private` schema, which the Data API does not expose. Every `private` function is closed by default. Grant `execute` only to the roles whose functions call it.
+- Put helper functions in the `private` schema, which the Data API does not expose. Every `private` function is closed by default. Functions that `postgres` creates have no `execute` grant for `PUBLIC`. Never grant `execute` on a `private` function to `public` or `anon`. Grant it only to the roles whose functions call it. `supabase/tests/private-functions.test.ts` checks it. See #287.
 - Import functions run as `catalog_importer`, write only card catalog, exchange rate, staging, and run tables, and only `service_role` can call them. See #43.
 - The recompute runs as `deck_evaluator`, reads decks, and writes only deck evaluations. It judges through `private.judge_deck`, which reads the rules data with its owner's rights. Grant `execute` on each `private` function that the recompute calls outside `private.judge_deck`, and `select` with a read policy on each table it reads, to `deck_evaluator`. See #271.
 - The card catalog never deletes a card or a card printing. It marks them absent.

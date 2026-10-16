@@ -503,6 +503,6 @@ Every table that holds a user's data follows one pattern:
 
 The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, and `deck_evaluations`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
 
-The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. A migration grants `execute` on a helper only to the roles whose functions call it.
+The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. Functions that `postgres` creates have no `execute` grant for `PUBLIC`, so a new `private` function starts closed. A migration grants `execute` on a helper only to the roles whose functions call it.
 
 Signing up creates the user's profile through a trigger on `auth.users`.
