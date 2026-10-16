@@ -6,7 +6,7 @@ The brief planned one marker for both checks: a custom access token hook that ad
 
 So mtgscan uses two markers (owner decision, spec 8):
 
-- **Postgres refuses by `client_id`.** Every app write function calls one private helper first. The helper refuses any token that has a `client_id` claim. The suggestion write functions do the reverse and accept only tokens that have one.
+- **Postgres refuses by `client_id`.** Every app write function calls one private helper right after the caller check. The helper refuses any token that has a `client_id` claim. The suggestion write functions do the reverse and accept only tokens that have one.
 - **The MCP server checks the audience.** The hook sets `aud` to `authenticated` plus the MCP server URL for OAuth tokens. The MCP server refuses a token without that audience, as the MCP authorization spec asks.
 
 ## Consequences
