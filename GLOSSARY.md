@@ -246,5 +246,13 @@ A manual run of the graded search corpus through catalog search on the hosted pr
 ## AI access
 
 **MCP connection**:
-The authenticated remote connection through which a compatible AI chat client can inspect the user's card data, search the collection and card catalog, and make deck suggestions.
+The authenticated remote connection through which a compatible AI chat client can inspect the user's card data, search the collection and card catalog, and make deck suggestions. Its address is the MCP server URL, which the settings drawer shows.
 _Avoid_: MCP/AI connection
+
+**AI client**:
+A compatible AI chat client that the user allowed on the consent page to use the MCP connection. The settings drawer lists each one with the day it was allowed. Revoking it ends its access at once.
+_Avoid_: integration
+
+**Consent page**:
+The page on the public site where the user signs in and allows or denies an AI client.
+_Avoid_: authorization page

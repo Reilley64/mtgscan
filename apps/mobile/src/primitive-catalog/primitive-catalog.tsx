@@ -27,6 +27,7 @@ import { Text } from '@/components/atoms/text';
 import { TextLink } from '@/components/atoms/text-link';
 import { Toggle } from '@/components/atoms/toggle';
 import { AccountCard } from '@/components/molecules/account-card';
+import { ActionRow } from '@/components/molecules/action-row';
 import { BatchButton } from '@/components/molecules/batch-button';
 import { Brand } from '@/components/molecules/brand';
 import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
@@ -322,6 +323,27 @@ function ListRows() {
       <DisclosureRow accessibilityLabel="Add user tags" onPress={() => {}}>
         <Text className="text-text-muted">Add user tags</Text>
       </DisclosureRow>
+      <Surface>
+        <ActionRow title="MCP server URL" detail="https://abcdefghijklmnop.supabase.co/functions/v1/mcp" action={{ label: 'Copy', onPress: () => {} }} />
+      </Surface>
+      <Surface>
+        <ActionRow
+          title="ChatGPT"
+          detail="Allowed 16 October 2026"
+          action={{ label: 'Revoke', variant: 'danger', onPress: () => {} }}
+        />
+      </Surface>
+      <Surface>
+        <ActionRow title="Claude" detail="Allowed 3 October 2026" action={{ label: 'Revoke', variant: 'danger', busy: true, onPress: () => {} }} />
+      </Surface>
+      <Surface>
+        <ActionRow
+          title="Added"
+          badge={{ content: <Chip label="Reverted" />, spoken: 'Reverted' }}
+          detail="16 October 2026 at 18:05"
+          action={{ label: 'Revert', variant: 'danger', onPress: () => {} }}
+        />
+      </Surface>
     </Section>
   );
 }

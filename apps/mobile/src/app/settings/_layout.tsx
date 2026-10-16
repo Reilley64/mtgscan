@@ -7,6 +7,7 @@ export default function SettingsStack() {
     <Stack screenOptions={drawerStackOptions}>
       <Stack.Screen name="index" options={{ title: 'Settings' }} />
       <Stack.Screen name="currency" options={pushedDrawerScreenOptions} />
+      <Stack.Screen name="ai-clients" options={pushedDrawerScreenOptions} />
     </Stack>
   );
 }

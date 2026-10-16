@@ -8,6 +8,7 @@ import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
 import { Text } from '@/components/atoms/text';
 import { AccountCard } from '@/components/molecules/account-card';
+import { ActionRow } from '@/components/molecules/action-row';
 import { BatchButton } from '@/components/molecules/batch-button';
 import { Brand } from '@/components/molecules/brand';
 import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
@@ -316,6 +317,49 @@ describe('DisclosureRow', () => {
     expect(symbolSizes(row)).toEqual([14]);
     expect(symbolTintColor(row)).toBe(textDim);
     expect(touchTarget(row).height).toBeGreaterThanOrEqual(44);
+  });
+});
+
+describe('ActionRow', () => {
+  test('an action row reads its title and detail as one element and keeps its trailing button reachable', async () => {
+    const onPress = jest.fn();
+    await render(<ActionRow title="ChatGPT" detail="Allowed 16 October 2026" action={{ label: 'Revoke', variant: 'danger', onPress }} />);
+
+    const text = screen.getByLabelText('ChatGPT, Allowed 16 October 2026');
+    expect(within(text).getByText('ChatGPT')).toHaveStyle({ color: white, fontSize: 14, fontWeight: '700' });
+    expect(within(text).getByText('Allowed 16 October 2026')).toHaveStyle({ color: textMuted, fontSize: 12 });
+    const button = screen.getByRole('button', { name: 'Revoke' });
+    expect(isHiddenFromAccessibility(button)).toBe(false);
+    expect(within(button).getByText('Revoke')).toHaveStyle({ color: danger });
+    expect(touchTarget(button).height).toBeGreaterThanOrEqual(44);
+    await fireEvent.press(button);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  test('an action row with a badge shows it after the title, and VoiceOver hears it between the title and the detail', async () => {
+    await render(
+      <ActionRow
+        title="Added"
+        badge={{ content: <Text>Reverted</Text>, spoken: 'Reverted' }}
+        detail="16 October 2026 at 18:05"
+        action={{ label: 'Revert', variant: 'danger', onPress: () => {} }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Added, Reverted, 16 October 2026 at 18:05')).toBeOnTheScreen();
+    expect(appearsBefore(screen.getByText('Added'), screen.getByText('Reverted'))).toBe(true);
+  });
+
+  test('a busy action row button shows a spinner and cannot be tapped', async () => {
+    const onPress = jest.fn();
+    await render(<ActionRow title="ChatGPT" detail="Allowed 16 October 2026" action={{ label: 'Revoke', variant: 'danger', busy: true, onPress }} />);
+
+    const button = screen.getByRole('button', { name: 'Revoke' });
+    expect(button).toBeBusy();
+    expect(button).toBeDisabled();
+    expect(showsSpinner(button)).toBe(true);
+    await fireEvent.press(button);
+    expect(onPress).not.toHaveBeenCalled();
   });
 });
 

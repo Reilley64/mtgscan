@@ -316,12 +316,18 @@ function alertButtons(call: Parameters<typeof Alert.alert>): AlertButton[] {
   return call[2] ?? [{ text: 'OK' }];
 }
 
-export function presentedAlert() {
+function openAlertDetails() {
   const call = openAlert();
-  if (!call) {
-    return null;
-  }
-  return { title: call[0], message: call[1], buttons: alertButtons(call).map((button) => button.text) };
+  return call ? { title: call[0], message: call[1], buttons: alertButtons(call) } : null;
+}
+
+export function presentedAlert() {
+  const alert = openAlertDetails();
+  return alert ? { ...alert, buttons: alert.buttons.map((button) => button.text) } : null;
+}
+
+export function presentedAlertButtonStyles() {
+  return openAlertDetails()?.buttons.map(({ text, style = 'default' }) => ({ text, style })) ?? null;
 }
 
 export async function pressAlertButton(label: string) {
