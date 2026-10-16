@@ -869,6 +869,9 @@ isOneToOne: false
 "list_deck_changes":
 { Args: { "query": Json }; Returns: Json
                            },
+"list_deck_suggestions":
+{ Args: { "query"?: Json }; Returns: Json
+                           },
 "list_decks":
 { Args: { "query"?: Json }; Returns: Json
                            },

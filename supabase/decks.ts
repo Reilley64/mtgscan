@@ -335,6 +335,41 @@ export type CreatedDeckSuggestions = {
   replayed: boolean;
 };
 
+export type DeckSuggestionStatus = Database['public']['Enums']['deck_suggestion_status'];
+
+export type DeckSuggestionsQuery = {
+  deck_id?: string;
+  status?: DeckSuggestionStatus;
+  cursor?: string | null;
+  limit?: number;
+};
+
+export type DeckSuggestionEvent = {
+  kind: Database['public']['Enums']['deck_suggestion_event_kind'];
+  client_name: string | null;
+  created_at: string;
+};
+
+export type DeckSuggestionRow = {
+  suggestion_id: string;
+  deck_id: string;
+  deck_name: string;
+  incoming: { oracle_id: string; name: string; as_commander: boolean; from_deck_id: string | null };
+  outgoing: (DeckSuggestionOutgoing & { name: string }) | null;
+  reason: string;
+  status: DeckSuggestionStatus;
+  paired_suggestion_id: string | null;
+  client_name: string | null;
+  created_at: string;
+  status_changed_at: string;
+  events: DeckSuggestionEvent[];
+};
+
+export type DeckSuggestionPage = {
+  items: DeckSuggestionRow[];
+  next_cursor: string | null;
+};
+
 export type DeckErrorCode =
   | 'invalid_argument'
   | 'invalid_cursor'

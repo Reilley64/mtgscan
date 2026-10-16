@@ -386,6 +386,27 @@ const deckChange = z.strictObject({
   lines: z.array(deckChangeLine),
 });
 
+const deckSuggestionStatus = z.enum(['open', 'withdrawn', 'stale']);
+
+const deckSuggestionRow = z.strictObject({
+  suggestion_id: id,
+  deck_id: id,
+  deck_name: z.string(),
+  incoming: z.strictObject({ oracle_id: id, name: z.string(), as_commander: z.boolean(), from_deck_id: id.nullable() }),
+  outgoing: z
+    .union([z.strictObject({ copy_id: id, name: z.string() }), z.strictObject({ basic_land_oracle_id: id, name: z.string() })])
+    .nullable(),
+  reason: z.string(),
+  status: deckSuggestionStatus,
+  paired_suggestion_id: id.nullable(),
+  client_name: z.string().nullable(),
+  created_at: z.string(),
+  status_changed_at: z.string(),
+  events: z.array(
+    z.strictObject({ kind: z.enum(['withdrawn', 'reason_replaced']), client_name: z.string().nullable(), created_at: z.string() }),
+  ),
+});
+
 const keyPattern = (minLength: number) => z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${minLength},64}$`));
 
 const deckSuggestionInput = z.strictObject({
@@ -633,6 +654,25 @@ export const tools: Tool[] = [
     output: z.strictObject({ next_cursor: nextCursor, items: z.array(deckChange) }),
     summary: (result) => pageSummary(plural(result.items.length, 'deck change', 'deck changes'), result.next_cursor),
     tooLargeHint: 'Ask for fewer deck changes with limit.',
+  }),
+  defineTool({
+    name: 'list_deck_suggestions',
+    title: 'List deck suggestions',
+    description: [
+      'Read past deck suggestions in every state, newest first: open, withdrawn, and stale. Filter them by deck_id or status.',
+      'Each suggestion has its deck name, the incoming and outgoing card names, the reason, the status, the pair, the name of the AI client that made it, its times, and its events.',
+      'An event is a withdrawal or a reason replacement, with the name of the AI client that made it.',
+    ].join(' '),
+    annotations: readOnly,
+    postgresFunction: 'list_deck_suggestions',
+    input: z.strictObject({
+      deck_id: id.optional().describe("Only this deck's suggestions."),
+      status: deckSuggestionStatus.optional().describe('Only suggestions in this state. Every state by default.'),
+      ...page,
+    }),
+    output: z.strictObject({ next_cursor: nextCursor, items: z.array(deckSuggestionRow) }),
+    summary: (result) => pageSummary(plural(result.items.length, 'deck suggestion', 'deck suggestions'), result.next_cursor),
+    tooLargeHint: 'Ask for fewer suggestions with limit, or filter by deck_id or status.',
   }),
   defineTool({
     name: 'create_deck_suggestions',

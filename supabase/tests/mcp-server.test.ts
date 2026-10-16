@@ -51,6 +51,7 @@ const readTools = [
   'list_decks',
   'get_deck',
   'list_deck_changes',
+  'list_deck_suggestions',
 ];
 const toolNames = [...readTools, 'create_deck_suggestions'];
 
@@ -197,6 +198,9 @@ describe('the MCP server over HTTP', () => {
     expect((getDeck.outputSchema!.anyOf as { required: string[] }[])[0]!.required).toEqual(
       expect.arrayContaining(['deck_id', 'cards', 'evaluation']),
     );
+    const listDeckSuggestions = tools.find(({ name }) => name === 'list_deck_suggestions')!;
+    expect(listDeckSuggestions.inputSchema.required).toBeUndefined();
+    expect(listDeckSuggestions.inputSchema.properties).toMatchObject({ status: { enum: ['open', 'withdrawn', 'stale'] } });
     const createDeckSuggestions = tools.find(({ name }) => name === 'create_deck_suggestions')!;
     expect(createDeckSuggestions!.annotations).toEqual({
       readOnlyHint: false,
@@ -673,4 +677,80 @@ describe('create_deck_suggestions over HTTP', () => {
       retryable: false,
     });
   });
+});
+
+describe('list_deck_suggestions over HTTP', () => {
+  test('one page lists a withdrawn and a stale suggestion with their events, a one-line summary, and the minified JSON', async () => {
+    const user = await signUpNewUser();
+    const scanned = stack(lightningBolt);
+    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
+    const { data } = await user.client.rpc('create_deck', { request: { name: 'Krenko' } });
+    const deckId = (data as { deck_id: string }).deck_id;
+    const added = await user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: scanned.copy_ids[0]!, unprotect: false } });
+    const [counterspellCard] = await asDatabaseOwner(
+      (database) => database`select oracle_id from public.card_printings where id = ${counterspell}`,
+    );
+    const { mcp } = await connected(user);
+    const created = await mcp.callTool({
+      name: 'create_deck_suggestions',
+      arguments: {
+        idempotency_key: crypto.randomUUID(),
+        suggestions: [
+          {
+            ref: 'swap',
+            deck_id: deckId,
+            expected_deck_revision: (added.data as { revision: number }).revision,
+            incoming: { oracle_id: counterspellCard.oracle_id },
+            outgoing: { copy_id: scanned.copy_ids[0]! },
+            reason: 'Counterspell answers more threats than Lightning Bolt here.',
+          },
+          {
+            ref: 'add',
+            deck_id: deckId,
+            expected_deck_revision: (added.data as { revision: number }).revision,
+            incoming: { oracle_id: counterspellCard.oracle_id },
+            reason: 'Counterspell protects the commander from removal.',
+          },
+        ],
+      },
+    });
+    const [swap, addition] = (created.structuredContent as { suggestions: { suggestion_id: string }[] }).suggestions;
+    await asDatabaseOwner(
+      (database) => database`
+        with withdrawn as (
+          update public.deck_suggestions set status = 'withdrawn', status_changed_at = now()
+          where id = ${addition!.suggestion_id}
+          returning user_id, id, client_id, client_name
+        )
+        insert into public.deck_suggestion_events (user_id, suggestion_id, kind, client_id, client_name)
+        select user_id, id, 'withdrawn', client_id, client_name from withdrawn
+      `,
+    );
+    expect((await user.client.rpc('remove_deck_card', { request: { copy_id: scanned.copy_ids[0]! } })).error).toBeNull();
+
+    const result = await mcp.callTool({ name: 'list_deck_suggestions', arguments: { deck_id: deckId } });
+
+    expect(result.isError).toBeFalsy();
+    expect(textOf(result)).toBe(`2 deck suggestions.\n${JSON.stringify(result.structuredContent)}`);
+    const { items, next_cursor } = result.structuredContent as {
+      items: { suggestion_id: string; status: string; events: { kind: string; client_name: string }[] }[];
+      next_cursor: string | null;
+    };
+    expect(next_cursor).toBeNull();
+    expect(items.map(({ suggestion_id }) => suggestion_id).toSorted()).toEqual([swap!.suggestion_id, addition!.suggestion_id].toSorted());
+    expect(items.find(({ suggestion_id }) => suggestion_id === swap!.suggestion_id)).toMatchObject({
+      deck_name: 'Krenko',
+      incoming: { name: 'Counterspell' },
+      outgoing: { copy_id: scanned.copy_ids[0], name: 'Lightning Bolt' },
+      status: 'stale',
+      client_name: 'Test AI chat',
+      events: [],
+    });
+    expect(items.find(({ suggestion_id }) => suggestion_id === addition!.suggestion_id)).toMatchObject({
+      outgoing: null,
+      status: 'withdrawn',
+      events: [{ kind: 'withdrawn', client_name: 'Test AI chat', created_at: expect.any(String) }],
+    });
+  });
+
 });
