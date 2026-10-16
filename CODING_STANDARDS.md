@@ -68,6 +68,7 @@ The app UI follows Brad Frost's Atomic Design (#101). Each level is a folder in 
 - Use full Supabase with no ORM. The app, the tests, and the import jobs use `supabase-js`. They read through the Data API and write by calling database functions. See #29.
 - Every table with a user's data follows the per-user data pattern in `README.md`. Its read policy returns only the owner's rows. Direct writes are revoked for `anon` and `authenticated`. Changes go only through database functions that check the caller's identity, one transaction each.
 - A table that departs from the pattern says why in `README.md`, as `search_telemetry` does.
+- Every new app write function calls `private.refuse_mcp_token()` right after `private.caller_user_id()`. It refuses a token that an OAuth client holds, so an AI client cannot change a deck, a copy, or a user tag. Read functions do not call it. `supabase/tests/mcp-token-refusals.test.ts` checks it. See ADR 0007.
 - Database functions set `search_path = ''` and use schema-qualified names.
 - Functions in `public` revoke `execute` from `public` and from every role that does not call them, then grant it to their callers.
 - Reads of per-user data run under row-level security. A read function is `security invoker`, and a view over a user's data sets `security_invoker`. A `security definer` function that filters on `auth.uid()` itself is a finding. See #90.
