@@ -5,13 +5,12 @@ import { join } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { renewalReminderDue } from '../apple-web-secret/renewal-reminder';
+import { renewalIssueTitle, renewalReminderDue } from '../apple-web-secret/renewal-reminder';
 
 const supabaseDirectory = join(import.meta.dir, '..');
 const sixMonthsInSeconds = 15_777_000;
-const renewalIssueTitle = 'Renew the Apple web client secret';
 const testKey = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
-const appleWebKey = {
+const appleWebKeySettings = {
   APPLE_WEB_KEY_ID: 'TESTKEY123',
   APPLE_TEAM_ID: 'TESTTEAM45',
   APPLE_WEB_SERVICES_ID: 'dev.reilley.mtgscan.web',
@@ -33,7 +32,10 @@ async function runPackageScript(script: string, env: Record<string, string>) {
 }
 
 async function testKeyPath() {
-  const path = join(await mkdtemp(join(tmpdir(), 'apple-web-secret-')), `AuthKey_${appleWebKey.APPLE_WEB_KEY_ID}.p8`);
+  const path = join(
+    await mkdtemp(join(tmpdir(), 'apple-web-secret-')),
+    `AuthKey_${appleWebKeySettings.APPLE_WEB_KEY_ID}.p8`,
+  );
   await writeFile(path, testKey.privateKey.export({ type: 'pkcs8', format: 'pem' }));
   return path;
 }
@@ -78,7 +80,7 @@ describe('the Apple web client secret', () => {
   test('bun run apple-web-secret signs a client secret with the key that is valid for 6 months and prints its expiry date', async () => {
     const issuedAfter = Math.floor(Date.now() / 1000);
     const { exitCode, stdout } = await runPackageScript('apple-web-secret', {
-      ...appleWebKey,
+      ...appleWebKeySettings,
       APPLE_WEB_KEY_PATH: await testKeyPath(),
     });
     const issuedBefore = Math.floor(Date.now() / 1000);
@@ -111,7 +113,7 @@ describe('the Apple web client secret', () => {
       APPLE_WEB_KEY_PATH: await testKeyPath(),
       APPLE_WEB_KEY_ID: '',
       APPLE_TEAM_ID: '',
-      APPLE_WEB_SERVICES_ID: appleWebKey.APPLE_WEB_SERVICES_ID,
+      APPLE_WEB_SERVICES_ID: appleWebKeySettings.APPLE_WEB_SERVICES_ID,
     });
 
     expect(exitCode).toBe(2);
@@ -136,7 +138,16 @@ describe('the Apple web client secret', () => {
     expect(renewalReminderDue('2027-04-16', new Date('2027-04-03T00:00:00Z'), [])).toBe(true);
   });
 
-  test('the reminder workflow opens a ready-for-human issue with the steps when the reminder is due', async () => {
+  test.each(['2027-02-30', '2027-4-16'])(
+    'the renewal reminder refuses %s, which is not a date that the script prints',
+    (expiresOn) => {
+      expect(() => renewalReminderDue(expiresOn, new Date('2027-04-02T00:00:00Z'), [])).toThrow(
+        'APPLE_WEB_SECRET_EXPIRES_ON must be the date',
+      );
+    },
+  );
+
+  test('the reminder workflow opens a ready-for-human issue that links to the renewal steps when the reminder is due', async () => {
     const gh = await fakeGh([]);
     const expiresOn = daysFromToday(13);
     const { exitCode } = await runPackageScript('apple-web-secret:reminder', {
@@ -166,8 +177,7 @@ describe('the Apple web client secret', () => {
     ]);
     expect(create![6]).toBe('--body');
     expect(create![7]).toContain(`expires on ${expiresOn}`);
-    expect(create![7]).toContain('bun run apple-web-secret');
-    expect(create![7]).toContain('gh variable set APPLE_WEB_SECRET_EXPIRES_ON');
+    expect(create![7]).toContain('https://github.com/Reilley64/mtgscan/blob/main/README.md#apple-web-client-secret');
   });
 
   test('the reminder workflow opens no issue when a reminder is already open', async () => {

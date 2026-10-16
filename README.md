@@ -548,7 +548,7 @@ Apple sign-in on the consent page uses the Services ID `dev.reilley.mtgscan.web`
 - Supabase's Apple provider lists the Services ID first and then the bundle ID in its client IDs: `dev.reilley.mtgscan.web,dev.reilley.mtgscan`. The order matters. Supabase's web flow sends only the first client ID to Apple, so with the bundle ID first, Apple sign-in on the consent page fails. Native sign-in accepts any client ID in the list. `supabase/config.toml` and the Client IDs field in the hosted dashboard use the same order.
 - The web flow also needs a client secret. It is a JWT signed with a Sign in with Apple key, a `.p8` file. Apple accepts a client secret for 6 months at most. The `.p8` key stays on the owner's Mac. It never goes in the repo or in GitHub, and Git ignores `*.p8` files.
 - `supabase/config.toml` reads the secret from `SUPABASE_AUTH_EXTERNAL_APPLE_SECRET`. The local stack does not need it.
-- `.github/workflows/apple-web-secret-reminder.yml` runs every Monday. It reads the repository variable `APPLE_WEB_SECRET_EXPIRES_ON`. When that date is less than 14 days away and no issue "Renew the Apple web client secret" is open, it opens one with the steps below, labelled `ready-for-human`. It fails when the variable is not a date, such as when it is not set.
+- `.github/workflows/apple-web-secret-reminder.yml` runs every Monday. It reads the repository variable `APPLE_WEB_SECRET_EXPIRES_ON`. When that date is less than 14 days away and no issue "Renew the Apple web client secret" is open, it opens one labelled `ready-for-human` that links to the steps below. It fails when the variable is not a date, such as when it is not set.
 
 To renew the secret:
 

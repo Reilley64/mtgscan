@@ -57,7 +57,7 @@ function session(
 }
 
 export function googleSession() {
-  return session({ provider: 'apple' }, { iss: 'https://accounts.google.com' });
+  return session({ provider: 'google' }, { iss: 'https://accounts.google.com' });
 }
 
 export function appleSession() {

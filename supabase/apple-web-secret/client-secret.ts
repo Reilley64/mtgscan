@@ -1,16 +1,16 @@
 import { createPrivateKey, sign } from 'node:crypto';
 
-export const appleAudience = 'https://appleid.apple.com';
-export const clientSecretLifetimeSeconds = 15_777_000;
+const appleAudience = 'https://appleid.apple.com';
+const clientSecretLifetimeSeconds = 15_777_000;
 
-export type AppleWebKey = {
+type AppleWebKey = {
   privateKey: string;
   keyId: string;
   teamId: string;
   servicesId: string;
 };
 
-export type AppleWebClientSecret = {
+type AppleWebClientSecret = {
   secret: string;
   expiresOn: string;
 };
