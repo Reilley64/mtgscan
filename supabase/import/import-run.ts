@@ -3,8 +3,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Json } from '../database.types';
 
 export type ImportClient = SupabaseClient<Database>;
-type ImportSource = Database['public']['Enums']['import_source'];
-type ImportRun = Database['public']['Tables']['import_runs']['Row'];
+export type ImportSource = Database['public']['Enums']['import_source'];
+export type ImportRun = Database['public']['Tables']['import_runs']['Row'];
 
 export type StagedRow = {
   target: string;

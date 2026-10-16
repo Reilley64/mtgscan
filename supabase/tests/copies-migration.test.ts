@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import type { CollectionRow, CollectionTotal } from '../collection';
 import type { SearchPage } from '../search';
-import { catalogFixtureManifest, runCatalogImport, runPriceImport } from './catalog-import-command';
+import { catalogFixtureManifest, latestRun, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { collectionEntryKey } from './copy-seeds';
 import { asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
@@ -41,7 +41,10 @@ async function resetToBeforeCopies() {
   const { exitCode, output } = await supabaseCli('db', 'reset', '--local', '--no-seed', '--version', migrationBeforeCopies);
   expect(output).not.toContain('20261027');
   expect(exitCode).toBe(0);
-  expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
+  const catalogImport = await runCatalogImport(catalogFixtureManifest);
+  expect(catalogImport.exitCode).toBe(1);
+  expect(catalogImport.output).toContain('Recompute deck evaluations:');
+  expect((await latestRun('catalog')).status).toBe('succeeded');
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
 }
 

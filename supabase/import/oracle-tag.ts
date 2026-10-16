@@ -1,4 +1,6 @@
+import { recomputeDeckEvaluations } from './deck-evaluations';
 import { importClientFromEnvironment } from './import-client';
+import { ImportFailed } from './import-run';
 
 const usage = 'Usage: bun import/oracle-tag.ts <disable | enable> <tag UUID>';
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -22,3 +24,10 @@ if (error) {
 
 const name = data.slug ? `${data.slug} (${data.id})` : data.id;
 console.log(`${data.disabled ? 'Disabled' : 'Enabled'} the Oracle tag ${name}.`);
+
+try {
+  await recomputeDeckEvaluations(client);
+} catch (error) {
+  console.error(error instanceof ImportFailed ? error.message : error);
+  process.exit(1);
+}
