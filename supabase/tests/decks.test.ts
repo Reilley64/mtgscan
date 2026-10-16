@@ -69,12 +69,12 @@ describe('creating a deck', () => {
       commanders: [],
       last_used_at: expect.any(String),
       evaluation: null,
+      revision: 0,
     };
     expect(await decksOf(user)).toEqual([expected]);
     expect((await getDeck(user.client, { deck_id: deckId })).deck).toEqual({
       ...expected,
       evaluation: null,
-      revision: 0,
       created_at: expect.any(String),
       cards: [],
       basic_lands: expect.any(Array),
@@ -150,6 +150,16 @@ describe('the deck list', () => {
 
     expect(await deckNamesOf(user)).toEqual(['Atraxa', 'Kinnan']);
     expect(await lastUsedAt(atraxa) > before).toBe(true);
+  });
+
+  test.each<[string, unknown, string | null]>([
+    ['a query that is not an object', [], null],
+    ['an unknown field', { deck_id: crypto.randomUUID() }, 'deck_id'],
+  ])('%s is refused with invalid_argument', async (_, query, field) => {
+    const { data, error } = await (await signUpNewUser()).client.rpc('list_decks', { query: query as Json });
+
+    expect(data).toBeNull();
+    expect(error && readDeckError(error)).toMatchObject({ code: 'invalid_argument', field });
   });
 
   test('decks used at the same time sort by name ignoring case', async () => {

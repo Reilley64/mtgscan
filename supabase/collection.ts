@@ -124,6 +124,7 @@ export type CollectionCopyRow = {
   protected: boolean;
   price: CurrentPrice | null;
   deck: CopyRowDeck | null;
+  oracle_text?: string;
 };
 
 export type CopyQuery = {

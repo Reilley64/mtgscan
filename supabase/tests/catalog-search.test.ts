@@ -12,7 +12,7 @@ import {
   runPriceImport,
 } from './catalog-import-command';
 import { exchangeRateOf, storeExchangeRates } from './exchange-rate-seeds';
-import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
+import { anonymousClient, asDatabaseRole, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
 
@@ -643,6 +643,19 @@ describe('after a catalog import', () => {
       expect((await telemetryRows()).find((row) => row.search_id === search_id)).toMatchObject({
         result_count: 0,
         result_ids: [],
+      });
+    });
+
+    test("a search with an AI client's token writes the caller mcp", async () => {
+      const claims = { sub: alice.userId, role: 'authenticated', client_id: crypto.randomUUID() };
+      const [{ result }] = await asDatabaseRole('authenticated', claims, (database) =>
+        database`select public.search_catalog(${{ types: ['creature'] }}::jsonb) as result`,
+      );
+
+      expect((await telemetryRows()).find((row) => row.search_id === result.search_id)).toMatchObject({
+        user_id: alice.userId,
+        api: 'catalog',
+        caller: 'mcp',
       });
     });
 

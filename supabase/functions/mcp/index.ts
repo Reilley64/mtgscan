@@ -12,7 +12,7 @@ import {
   type Problem,
   type ProblemName,
 } from './problems.ts';
-import { toolResult, tools, type Tool } from './tools.ts';
+import { pagedArguments, toolResult, tools, type Tool } from './tools.ts';
 
 const mcpServerUrl = getEnv('MCP_SERVER_URL')!;
 const issuer = mcpServerUrl.replace(/\/functions\/v1\/mcp$/, '/auth/v1');
@@ -117,8 +117,12 @@ function mcpServer(supabase: UserClient, refusal: Problem | null, log: RequestLo
 }
 
 async function callTool(supabase: UserClient, tool: Tool, toolArguments: Record<string, unknown>): Promise<CallToolResult> {
+  const paged = pagedArguments(tool, toolArguments);
+  if ('problem' in paged) {
+    return problemResult(paged.problem);
+  }
   const argumentName = tool.annotations.readOnlyHint ? 'query' : 'request';
-  const { data, error } = await supabase.rpc(tool.postgresFunction, { [argumentName]: toolArguments });
+  const { data, error } = await supabase.rpc(tool.postgresFunction, { [argumentName]: paged.toolArguments });
   if (error) {
     return problemResult(problemFromPostgres(error));
   }

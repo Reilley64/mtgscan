@@ -2,7 +2,16 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { Client } from '@modelcontextprotocol/client';
 
-import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import {
+  catalogFixtureManifest,
+  oracleIdOf,
+  resetCardCatalog,
+  runCatalogImport,
+  runComboImport,
+  runOracleTagImport,
+  runPriceImport,
+  spellbookFixtureVariants,
+} from './catalog-import-command';
 import {
   claimsOf,
   connectAiClient,
@@ -19,17 +28,38 @@ import { stack } from './scan-batches';
 setDefaultTimeout(120_000);
 
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
+const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
+const gristModernHorizons = '1925dc45-4dee-4772-aa16-3b4ca54be6c7';
+const thassasOracle = '69e615d8-1b79-4a82-ba9f-ee211d67dc95';
 const problems = 'https://mtgscan.reilley.dev/problems/';
-const toolNames = ['get_deck', 'create_deck_suggestions'];
 const lightningBolt = '132dc07f-74e2-4bd7-bdb1-4f5d5253c7f2';
 const counterspell = '0df55e3f-14de-46ef-b6b1-616618724d9e';
 const reason = 'Moves the only Lightning Bolt to the deck that needs removal.';
 const bracketSentence =
   'The estimated bracket is an estimate for a pregame conversation, not a certified bracket. Signals labelled heuristic are not official.';
+const usdSentence = 'Prices are current Scryfall prices in USD (TCGplayer Market). There is no other currency.';
+const catalogSentence =
+  'Returns only Commander-legal cards. Misspelled names return no results; there is no fuzzy match. Use search_oracle_tags to find tag slugs.';
+const readTools = [
+  'search_catalog',
+  'search_collection',
+  'search_oracle_tags',
+  'get_cards',
+  'list_card_printings',
+  'list_user_tags',
+  'get_collection_summary',
+  'list_decks',
+  'get_deck',
+  'list_deck_changes',
+];
+const toolNames = [...readTools, 'create_deck_suggestions'];
 
 beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
+  expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
+  expect((await runOracleTagImport(catalogFixtureManifest)).exitCode).toBe(0);
+  expect((await runComboImport(spellbookFixtureVariants)).exitCode).toBe(0);
 });
 
 async function deckWithCopies(user: TestUser, name: string, copies: number): Promise<string> {
@@ -55,6 +85,16 @@ function textOf(result: { content: unknown }): string {
   expect(rest).toEqual([]);
   expect(block!.type).toBe('text');
   return block!.text;
+}
+
+async function summaryOf(mcp: Client, name: string, args: Record<string, unknown>): Promise<string> {
+  const result = await mcp.callTool({ name, arguments: args });
+  expect(result.isError).toBeFalsy();
+  const json = JSON.stringify(result.structuredContent);
+  expect(json).not.toMatch(/image_uris|art_crop_uri/);
+  const [summary, rest] = textOf(result).split('\n');
+  expect(rest).toBe(json);
+  return summary!;
 }
 
 describe('the MCP server over HTTP', () => {
@@ -137,23 +177,27 @@ describe('the MCP server over HTTP', () => {
     });
   });
 
-  test('lists the read tools, then create_deck_suggestions, with their annotations and schemas', async () => {
+  test('lists the read tools in order, then create_deck_suggestions, with their annotations and schemas', async () => {
     const { mcp } = await connected(await signUpNewUser());
 
     const { tools } = await mcp.listTools();
 
     expect(tools.map(({ name }) => name)).toEqual(toolNames);
-    const [getDeck, createDeckSuggestions] = tools;
-    expect(getDeck!.annotations).toEqual({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
-    expect(getDeck!.description).toContain(bracketSentence);
-    expect(getDeck!.inputSchema).toMatchObject({ type: 'object', required: ['deck_id'], additionalProperties: false });
-    expect(getDeck!.outputSchema).toMatchObject({
-      type: 'object',
-      anyOf: [
-        expect.objectContaining({ required: expect.arrayContaining(['deck_id', 'cards', 'evaluation']) }),
-        expect.objectContaining({ required: ['type', 'title', 'detail', 'retryable'] }),
-      ],
-    });
+    for (const tool of tools.filter(({ name }) => readTools.includes(name))) {
+      const [result, toolProblem] = tool.outputSchema!.anyOf as { type: string; additionalProperties: boolean; required: string[] }[];
+      expect(tool.annotations).toEqual({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+      expect([tool.inputSchema.type, tool.inputSchema.additionalProperties]).toEqual(['object', false]);
+      expect([tool.outputSchema!.type, result!.type, result!.additionalProperties]).toEqual(['object', 'object', false]);
+      expect(toolProblem!.required).toEqual(['type', 'title', 'detail', 'retryable']);
+    }
+    const getDeck = tools.find(({ name }) => name === 'get_deck')!;
+    expect(getDeck.inputSchema.required).toEqual(['deck_id']);
+    const getCards = tools.find(({ name }) => name === 'get_cards')!;
+    expect(getCards.inputSchema.oneOf).toEqual([{ required: ['oracle_ids'] }, { required: ['printing_ids'] }]);
+    expect((getDeck.outputSchema!.anyOf as { required: string[] }[])[0]!.required).toEqual(
+      expect.arrayContaining(['deck_id', 'cards', 'evaluation']),
+    );
+    const createDeckSuggestions = tools.find(({ name }) => name === 'create_deck_suggestions')!;
     expect(createDeckSuggestions!.annotations).toEqual({
       readOnlyHint: false,
       destructiveHint: false,
@@ -181,6 +225,17 @@ describe('the MCP server over HTTP', () => {
         expect.objectContaining({ required: ['type', 'title', 'detail', 'retryable'] }),
       ],
     });
+  });
+
+  test('the descriptions carry the catalog sentence, the USD sentence on each tool that returns prices, and the bracket sentence on the deck reads', async () => {
+    const { mcp } = await connected(await signUpNewUser());
+
+    const { tools } = await mcp.listTools();
+
+    const withSentence = (sentence: string) => tools.filter(({ description }) => description!.includes(sentence)).map(({ name }) => name);
+    expect(withSentence(catalogSentence)).toEqual(['search_catalog']);
+    expect(withSentence(usdSentence)).toEqual(['search_catalog', 'search_collection', 'get_cards', 'get_collection_summary', 'get_deck']);
+    expect(withSentence(bracketSentence)).toEqual(['list_decks', 'get_deck']);
   });
 
   test('also serves a client on the 2025 protocol', async () => {
@@ -284,7 +339,12 @@ describe('the MCP server over HTTP', () => {
     const result = await mcp.callTool({ name: 'get_deck', arguments: { deck_id: deckId } });
 
     expect(result.isError).toBe(true);
-    expect(result.structuredContent).toMatchObject({ type: `${problems}result-too-large`, retryable: false });
+    expect(result.structuredContent).toEqual({
+      type: `${problems}result-too-large`,
+      title: 'Result too large',
+      detail: "The result is over 48 KB. Search the deck's cards with search_collection and its deck filter instead.",
+      retryable: false,
+    });
   });
 
   test('answers an unknown tool with invalid-argument on /params/name and does not count the call', async () => {
@@ -358,6 +418,98 @@ describe('the MCP server over HTTP', () => {
       expect(text).not.toContain('Yuriko');
     }
   });
+});
+
+describe('the read tools over HTTP', () => {
+  let mcp: Client;
+  let deckId: string;
+  let curatorOracleId: string;
+
+  beforeAll(async () => {
+    const user = await signUpNewUser();
+    deckId = await deckWithCopies(user, 'Tymna', 2);
+    const delver = stack(delverInnistrad);
+    expect((await user.client.rpc('add_scan_batch', { batch: { items: [delver] } })).error).toBeNull();
+    const { data: userTag } = await user.client.rpc('create_user_tag', { request: { name: 'Signed' } });
+    const userTagId = (userTag as { user_tag_id: string }).user_tag_id;
+    const tagged = { copy_id: delver.copy_ids[0], user_tag_id: userTagId, tagged: true };
+    expect((await user.client.rpc('set_copy_user_tag', { request: tagged })).error).toBeNull();
+    curatorOracleId = await oracleIdOf('Angelic Curator');
+    ({ mcp } = await connected(user));
+  });
+
+  test.each<[string, () => Record<string, unknown>, string]>([
+    ['search_catalog', () => ({ types: ['angel'], limit: 2 }), '2 cards. More with next_cursor.'],
+    ['search_collection', () => ({}), '2 of 2 collection entries.'],
+    ['search_collection', () => ({ rows: 'copies', deck_ids: [deckId], include_oracle_text: true }), '2 of 2 copies.'],
+    ['search_collection', () => ({ user_tags: ['Signed'], is_allocated: true }), 'Nothing in the collection matches.'],
+    ['search_oracle_tags', () => ({ text: 'burn', limit: 3 }), '3 Oracle tags.'],
+    ['get_cards', () => ({ oracle_ids: [curatorOracleId, crypto.randomUUID()] }), '1 card. 1 not found.'],
+    ['get_cards', () => ({ printing_ids: [thassasOracle] }), '1 card.'],
+    ['list_card_printings', () => ({ oracle_id: curatorOracleId, owned_only: true }), '1 card printing.'],
+    ['list_user_tags', () => ({}), '1 user tag.'],
+    ['get_collection_summary', () => ({}), 'Collection total 0.74 USD, 3 of 3 copies priced.'],
+    ['list_decks', () => ({}), '1 deck.'],
+    ['get_deck', () => ({ deck_id: deckId }), 'Tymna: 2 cards at deck revision 2.'],
+    ['list_deck_changes', () => ({ deck_id: deckId, limit: 1 }), '1 deck change. More with next_cursor.'],
+  ])('%s returns its result without image URIs, with a one-line summary and the minified JSON', async (name, args, summary) => {
+    expect(await summaryOf(mcp, name, args())).toBe(summary);
+  });
+
+  test('list_decks returns the deck revision of each deck', async () => {
+    const result = await mcp.callTool({ name: 'list_decks', arguments: {} });
+
+    expect(result.structuredContent).toMatchObject({ items: [{ deck_id: deckId, name: 'Tymna', revision: 2 }] });
+  });
+
+  test('a bad cursor gets invalid-cursor and its pointer', async () => {
+    const result = await mcp.callTool({ name: 'search_catalog', arguments: { types: ['angel'], cursor: 'not a cursor' } });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      type: `${problems}invalid-cursor`,
+      title: 'Invalid cursor',
+      detail: 'The cursor is not valid. Start the search again.',
+      pointer: '/cursor',
+      retryable: false,
+    });
+  });
+
+  test('an unknown argument to a tool with no arguments gets invalid-argument and its pointer', async () => {
+    const result = await mcp.callTool({ name: 'list_decks', arguments: { deck_id: deckId } });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toMatchObject({ type: `${problems}invalid-argument`, pointer: '/deck_id' });
+  });
+
+  test('a page holds 20 rows by default, for copies too', async () => {
+    const user = await signUpNewUser();
+    expect((await user.client.rpc('add_scan_batch', { batch: { items: [stack(gristModernHorizons, { copies: 25 })] } })).error).toBeNull();
+    const { mcp } = await connected(user);
+
+    expect(await summaryOf(mcp, 'search_collection', { rows: 'copies' })).toBe('20 of 25 copies. More with next_cursor.');
+  });
+
+  test.each<[string, Record<string, unknown>]>([
+    ['search_catalog', { types: ['angel'] }],
+    ['search_collection', { rows: 'copies' }],
+    ['list_card_printings', {}],
+    ['list_deck_changes', {}],
+  ])(
+    '%s refuses a page of more than 50 rows with invalid-argument on /limit',
+    async (name, args) => {
+      const result = await mcp.callTool({ name, arguments: { ...args, limit: 51 } });
+
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent).toEqual({
+        type: `${problems}invalid-argument`,
+        title: 'Invalid argument',
+        detail: 'limit can be at most 50 over MCP.',
+        pointer: '/limit',
+        retryable: false,
+      });
+    },
+  );
 });
 
 describe('create_deck_suggestions over HTTP', () => {
