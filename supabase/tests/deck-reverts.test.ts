@@ -316,6 +316,7 @@ describe('reverting deck changes', () => {
       ],
       blocks: [],
       protected_copies: [],
+      effect: null,
     });
     expect(reverted!.revision).toBe(5);
     expect((await changesOf(user, deckId))[0]!.lines).toEqual(preview.lines);

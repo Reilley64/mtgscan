@@ -628,13 +628,14 @@ The revert page sheet, from the **Revert** button of a deck change on History:
 
 - Its native navigation bar has **Cancel** on the left, the title "Revert" in sheet title type, and **Revert** in lime on the right.
 - The text says what the revert undoes: "Undo "<kind>" and the N later changes in <deck name> as one new change.", such as "Undo "Added" and the 1 later change in Atraxa as one new change.". With no later change, it says "Undo "<kind>" as one new change.".
+- When the revert would break a new rule, a small danger status chip follows: "Would make it invalid: color identity" when the deck is valid or cannot be determined, or "Adds a violation: singleton" when it is already invalid. It names the rules in the violation order, joined by commas. VoiceOver reads the full text, as on the Add to deck drawer row, such as "Would make Kinnan invalid: color identity, Red". Revert stays on.
 - The change lines follow: a + line for each card that comes back and a − line for each card that goes out, as on History.
 - Each block shows as a failure notice, such as "Cyclonic Rift is no longer in your collection." or "Sol Ring is in Kinnan.". Revert is off while a block shows.
 - Each protected copy that comes back shows as a warning line: "<card> is protected. Reverting unprotects it.". Revert unprotects it.
 - Revert makes one new deck change, closes the sheet, and History shows it. Cancel or a downward swipe closes the sheet and changes nothing.
 - When the deck changed since the sheet loaded, Revert reloads the sheet, and History reloads when the sheet closes.
 - A revert that fails shows the native alert "Could not revert this change" with "Check your connection.", and the sheet stays.
-- When the effect cannot load, the sheet shows the empty state "Could not load this revert" with a **Try again** button, and Revert is off.
+- When the revert preview cannot load, the sheet shows the empty state "Could not load this revert" with a **Try again** button, and Revert is off.
 
 Settings, the scan details sheet, the printing picker, the condition and language pickers, the Filters drawer, the Add to deck drawer, the basic lands drawer, the Deck validity drawer, the Estimated bracket drawer, and batch review are bottom drawers, not page sheets. The settings button on Recent, Collection, and Decks opens the settings drawer. The rules below hold for all of them.
 

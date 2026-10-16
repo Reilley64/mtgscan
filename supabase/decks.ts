@@ -268,18 +268,19 @@ export type RevertProtectedCopy = {
   name: string;
 };
 
-export type RevertPreview = {
-  revision: number;
-  lines: DeckChangeLine[];
-  blocks: RevertBlock[];
-  protected_copies: RevertProtectedCopy[];
-};
-
 export type DeckChangeEffectRule = Pick<Violation, 'rule' | 'colors'>;
 
 export type DeckChangeEffect = {
   kind: 'would_make_invalid' | 'adds_violation';
   rules: DeckChangeEffectRule[];
+};
+
+export type RevertPreview = {
+  revision: number;
+  lines: DeckChangeLine[];
+  blocks: RevertBlock[];
+  protected_copies: RevertProtectedCopy[];
+  effect: DeckChangeEffect | null;
 };
 
 export type AddDeckCardPreviewQuery = {

@@ -346,14 +346,15 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
   - Each deck change has `deck_change_id`, `revision`, `kind`, `changed_at`, `reverted`, and `lines`. `reverted` is true when a revert undid it.
   - A copy line has `kind` `copy`, `copy_id`, the card's `name`, the `image_uris` of the line's card printing, the card's `type_line`, and `place_before` and `place_after`. A deleted copy's lines still show its card. Lines sort by card name.
   - A basic land line has `kind` `basic_land`, the basic land card's `oracle_id`, its `name`, the `image_uris` of its basic land image, and `count_before` and `count_after`. Basic land lines follow the copy lines, in the order of the twelve kinds.
-- Reverting a deck change undoes it and every later deck change in that deck, as one new `revert` deck change. Each copy and basic land card that the range touched goes back to its place or count before the reverted deck change. One private function computes the effect, and the revert preview and the revert both use it.
-- `supabase.rpc('preview_revert', { query: { deck_id, deck_change_id } })` returns the effect without changing anything. The revert page sheet reads it.
+- Reverting a deck change undoes it and every later deck change in that deck, as one new `revert` deck change. Each copy and basic land card that the range touched goes back to its place or count before the reverted deck change. One private function works out what the revert changes, and the revert preview and the revert both use it.
+- `supabase.rpc('preview_revert', { query: { deck_id, deck_change_id } })` returns what the revert would change, without changing anything. The revert page sheet reads it.
   - `revision` is the deck revision. Send it back as `expected_revision`.
   - `lines` has the lines the revert would write, in the shape of `list_deck_changes` lines.
   - `blocks` lists each copy that must come back but was deleted or is in another deck, with `copy_id`, the card's `name`, and `deck`, the other deck's `deck_id` and `name`, or null for a deleted copy.
   - `protected_copies` lists each protected copy that comes back, with `copy_id` and `name`.
-- `supabase.rpc('revert_deck_changes', { request: { deck_id, deck_change_id, expected_revision, unprotect } })` applies the effect. It returns `deck_id` and the new `revision`.
-  - It writes one `revert` deck change with the effect's lines, and sets `reverted_by` on every deck change in the range that no revert undid yet. A revert can be reverted too.
+  - `effect` is the revert's effect, or null. See Previews.
+- `supabase.rpc('revert_deck_changes', { request: { deck_id, deck_change_id, expected_revision, unprotect } })` makes those changes. It returns `deck_id` and the new `revision`.
+  - It writes one `revert` deck change with the preview's lines, and sets `reverted_by` on every deck change in the range that no revert undid yet. A revert can be reverted too.
   - A restored commander is made a commander again at the time of the revert.
   - An `expected_revision` that is not the deck revision is refused with `stale_revision` on `expected_revision`.
   - A block is refused with `revert_blocked` on `deck_change_id`. The message names the card, such as "Cyclonic Rift is no longer in your collection." or "Sol Ring is in Kinnan.".
@@ -417,11 +418,13 @@ mtgscan judges each deck against the Commander rules and stores the result as on
 A preview judges a deck as a change would leave it and compares the result with the stored deck evaluation. It writes nothing, and it never blocks the change.
 
 - `supabase.rpc('preview_add_deck_card', { query: { copy_id } })` returns `items`, one per deck of the caller, with `deck_id` and `effect`. It judges each deck with the copy added to its main deck. The Add to deck drawer reads it. A copy that is not the caller's is refused with `not_found` on `copy_id`.
+- `preview_revert` returns `effect`. It judges the deck as the revert would leave it. The revert page sheet reads it.
 - An `effect` is null, or has `kind` and `rules`:
   - `kind` is `would_make_invalid` when the stored validity is `valid` or `cannot_be_determined`, and `adds_violation` when it is `invalid`.
   - `rules` lists each rule with a new violation, in the violation order, such as `{ rule: 'singleton' }`. A `color_identity` rule also has `colors`, the colors outside the color identity.
   - A new violation is a rule that the stored deck evaluation does not break, or a card in a rule that it breaks but not with that card. So `deck_size` counts only when the deck has exactly 100 cards before the change and not after.
   - A deck with no deck evaluation has no effect.
+  - A change that leaves a deck empty has no effect.
 
 ### Collection search
 
