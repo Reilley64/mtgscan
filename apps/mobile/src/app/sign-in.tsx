@@ -1,9 +1,10 @@
+import type { SignInProvider } from '@mtgscan/supabase/sign-in-providers';
 import { useState } from 'react';
 import { Linking, View } from 'react-native';
 
 import { signInWithApple } from '@/auth/apple-sign-in';
 import { signInWithGoogle } from '@/auth/google-sign-in';
-import type { SignInOutcome, SignInProvider } from '@/auth/sign-in';
+import type { SignInOutcome } from '@/auth/sign-in';
 import { testSignIn } from '@/auth/test-sign-in';
 import { AppleSignInButton } from '@/components/atoms/apple-sign-in-button';
 import { Button } from '@/components/atoms/button';

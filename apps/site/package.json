@@ -1,0 +1,21 @@
+{
+  "name": "@mtgscan/site",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "bun build oauth/consent/main.ts --outfile oauth/consent/consent.js --minify",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@mtgscan/supabase": "workspace:*",
+    "@supabase/supabase-js": "^2.117.3"
+  },
+  "devDependencies": {
+    "@happy-dom/global-registrator": "^21.0.3",
+    "@testing-library/dom": "^10.4.2",
+    "@types/bun": "^1.4.2",
+    "typescript": "~6.0.3"
+  }
+}

@@ -12,3 +12,6 @@ apps/mobile/dist/
 apps/mobile/ios/
 apps/mobile/android/
 apps/mobile/expo-env.d.ts
+
+apps/site/oauth/consent/consent.js
+.wrangler/

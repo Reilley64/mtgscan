@@ -537,6 +537,21 @@ The app shows the sign-in screen whenever there is no session. It is the binder 
 - **Failure.** A failure replaces the buttons with "Sign-in did not work." in a surface card with a danger mark, and a lime **Try again** button. The danger mark is a 22 px danger-tint circle with a danger "!". Try again brings back the buttons.
 - **Test sign-in.** A development build against local Supabase with `EXPO_PUBLIC_TEST_SIGN_IN` on shows a third button, **Sign in as the test user**, under **Continue with Google**. The test app shows **Sign in as the test user** as its only sign-in button, with no Apple or Google button. The button uses the control surface and the sign-in button height, and it signs in, fails, and dims like the other sign-in buttons. Other production builds leave it out.
 
+### Consent page
+
+The consent page is on the website at `mtgscan.reilley.dev/oauth/consent`, not in the app. An AI client sends the user there to sign in and allow or deny it. It is plain HTML and CSS in `apps/site`, with the site's colors and the system font. It has the site header with the brand, and one column of content up to 28 rem wide.
+
+- **Expired link.** A missing `authorization_id`, or one that Supabase cannot find or that is no longer pending, shows "This link has expired. Start again from your AI chat." in text muted, with no buttons.
+- **Signed out.** The title "Sign in to mtgscan" in sign-in title type, the line "Use the same sign-in as in the app" in text muted, and **Continue with Google**. The button is the app's Google button: 50 px tall, full width, with the Google colors and logo. A sign-in that cannot start shows "Could not start the sign-in. Try again." in danger under the button.
+- **Signed in.** From top to bottom:
+  - an account card on surface: "Signed in with Google" in body strong, the account email in text muted at meta size, "Use the same sign-in as in the app", and **Switch account** as a secondary button. **Switch account** signs out of this browser only and shows **Continue with Google**;
+  - the AI client's name as the title, in sign-in title type, and "Returns you to chatgpt.com" in text muted. The host comes from the AI client's redirect URI, never from its name;
+  - a card on surface with "Read your cards, collection, decks, and deck history. Suggest deck changes. It cannot change your decks or collection.";
+  - **Allow** as the primary button and **Deny** as a secondary button, side by side. After a tap, both dim to 38% while the page waits for Supabase.
+- **Could not reach mtgscan.** When Supabase cannot be reached, the account card stays with **Switch account**. Below it, a card on surface says "Could not reach mtgscan." and has a primary **Try again** button that repeats the step.
+- **Rejected session.** When Supabase rejects the session, the page signs out of this browser and shows the signed-out view.
+- **Allow** and **Deny** go back to the AI client. Deny sends it `access_denied`.
+
 ### Pushed screens
 
 Pushed screens cover the whole screen, including the app tab bar. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge. A screen pushed inside a drawer, such as the scan details in batch review, also has the native back button (see Sheets).

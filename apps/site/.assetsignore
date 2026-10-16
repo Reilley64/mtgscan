@@ -1,0 +1,6 @@
+node_modules
+package.json
+tsconfig.json
+bunfig.toml
+test
+*.ts

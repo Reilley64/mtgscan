@@ -52,11 +52,10 @@ import type {
   SetDeckPriorityRequest,
   Violation,
 } from '@mtgscan/supabase/decks';
+import type { SignInProvider } from '@mtgscan/supabase/sign-in-providers';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 import { act } from 'expo-router/testing-library';
-
-import type { SignInProvider } from '@/auth/sign-in';
 
 import { cardImageUri, cardSets, galleryPrintings, oracleTags, setIconUri } from './card-printings';
 import { appleIdTokenNonce } from './fake-apple';

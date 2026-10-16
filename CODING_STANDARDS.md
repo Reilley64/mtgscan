@@ -19,7 +19,7 @@ The review agent checks each diff against these rules. CI already runs the type 
 ## Code
 
 - Add no code comments. Names, types, and small functions carry the meaning.
-- Prefer small modules with one job. Put shared UI in the Atomic Design levels in `apps/mobile/src/components` (see Atomic Design) and sign-in and session logic in `apps/mobile/src/auth`.
+- Prefer small modules with one job. Put shared UI in the Atomic Design levels in `apps/mobile/src/components` (see Atomic Design). Put the app's sign-in and session logic in `apps/mobile/src/auth`. Sign-in code that the consent page shares with the app lives in `@mtgscan/supabase`, such as `sign-in-providers.ts`.
 - Keep one source of truth for each rule or list, such as one validator, one command map, or one staging table list. A second copy is a finding.
 - Remove what nothing uses: exports, helpers, indexes, and dependencies.
 

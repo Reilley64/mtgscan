@@ -4,14 +4,14 @@ An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and
 
 ## Development
 
-The repo is a Bun workspace. The Expo app lives in `apps/mobile`. The public website, with the homepage and privacy policy, is static HTML in `apps/site`.
+The repo is a Bun workspace. The Expo app lives in `apps/mobile`. The public website, with the homepage, the privacy policy, and the consent page, lives in `apps/site`. It is static HTML, and only the consent page has a script.
 
 1. Install dependencies with `bun install`.
 2. Build and open the development build in the iOS simulator with `bun run --filter @mtgscan/mobile ios`.
 
 Public build-time settings go in `apps/mobile/.env`. `apps/mobile/.env.example` lists their names. Never put a service role key in the app.
 
-Checks run on pull requests that change what they check. The app checks run when the app, the workspace files, or the `@mtgscan/supabase` modules that the app imports change. The database checks run when anything in `supabase` changes. A pull request that changes neither, such as a docs change, runs only the title check. `.github/workflows/checks.yml` lists the paths. Run the checks locally with `bun run typecheck`, `bun run lint`, and `bun run test`.
+Checks run on pull requests that change what they check. The app checks run when the app, the workspace files, or the `@mtgscan/supabase` modules that the app imports change. The database checks run when anything in `supabase` changes. The site checks run when `apps/site`, `wrangler.jsonc`, the workspace files, or the `@mtgscan/supabase` module that the consent page imports change. A pull request that changes none of them, such as a docs change, runs only the title check. `.github/workflows/checks.yml` lists the paths. Run the checks locally with `bun run typecheck`, `bun run lint`, and `bun run test`.
 
 ### Styling
 
@@ -510,3 +510,31 @@ The tables with a user's data are `profiles`, `copies`, `collection_additions`, 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. Functions that `postgres` creates have no `execute` grant for `PUBLIC`, so a new `private` function starts closed. A migration grants `execute` on a helper only to the roles whose functions call it.
 
 Signing up creates the user's profile through a trigger on `auth.users`.
+
+### MCP connection
+
+#### Consent page
+
+Supabase Auth's OAuth server sends the user to the consent page at `https://mtgscan.reilley.dev/oauth/consent?authorization_id=<id>`. There the user signs in and allows or denies the AI client. `DESIGN.md` (Consent page) describes what it shows.
+
+- `apps/site/oauth/consent/` holds the page: `index.html`, `consent.css`, and TypeScript with `supabase-js`. `consent-page.ts` holds the page logic, and `main.ts` starts it with the PKCE flow.
+- `supabase-project.ts` holds the hosted Supabase URL and the publishable key. Both are public, and the app ships them too. The `/oauth/*` rule in `apps/site/_headers` names the same URL, and a test checks that they match.
+- With no session, **Continue with Google** calls `signInWithOAuth` with a redirect back to the consent page and its `authorization_id`. With a session, the page calls `getAuthorizationDetails`. **Allow** calls `approveAuthorization`, and **Deny** calls `denyAuthorization`. Each follows the redirect that Supabase returns. An AI client that the user already allowed goes straight back to that redirect. **Switch account** signs out of this browser only.
+- When one of those calls fails:
+  - an authorization that Supabase cannot find, or that is no longer pending, shows the expired link;
+  - a session that Supabase rejects signs out of this browser and shows the sign-in button;
+  - any other failure shows "Could not reach mtgscan." with **Try again**, which repeats the call.
+- A sign-in that cannot start shows "Could not start the sign-in. Try again." under the button.
+- `bun run --filter @mtgscan/site build` bundles the page into `apps/site/oauth/consent/consent.js`. Git ignores the built file.
+- `bun run --filter @mtgscan/site test` runs the page tests in Bun with happy-dom and a fake Supabase client.
+
+The site is a Cloudflare Worker with static assets, set up in `wrangler.jsonc`:
+
+- Cloudflare Workers Builds deploys the site on each push to `main`. It installs the workspace and runs `wrangler deploy`.
+- The `build` command runs the page build, so `wrangler deploy` and `wrangler dev` build the page first.
+- The Workers Builds build variable `BUN_VERSION` is `1.4.2`, the Bun version in `package.json`. The build image has an older Bun by default.
+- `apps/site/.assetsignore` keeps the TypeScript, the tests, and the package files out of the upload.
+- `html_handling` is `drop-trailing-slash`, so `/oauth/consent` serves the page with no redirect.
+- `apps/site/_headers` gives `/oauth/*` its own CSP. It removes the site CSP and allows the page script, plus `connect-src` and `form-action` for the Supabase project, and nothing more. The rest of the site keeps the strict CSP.
+
+Run `bunx wrangler dev` at the repo root to build and serve the site locally. The local page talks to hosted Supabase. Google sign-in on the page uses the Google web client of Supabase's Google provider.

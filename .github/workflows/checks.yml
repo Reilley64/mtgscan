@@ -19,6 +19,7 @@ jobs:
     outputs:
       app: ${{ steps.filter.outputs.app }}
       database: ${{ steps.filter.outputs.database }}
+      site: ${{ steps.filter.outputs.site }}
     steps:
       - id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
@@ -37,6 +38,13 @@ jobs:
               - supabase/*.ts
               - supabase/gallery/manifest.ts
               - supabase/test-user/account.ts
+            site:
+              - *workspace
+              - wrangler.jsonc
+              - apps/site/**
+              # The @mtgscan/supabase export that the consent page imports.
+              - supabase/package.json
+              - supabase/sign-in-providers.ts
             database:
               - *workspace
               - supabase/**
@@ -63,6 +71,23 @@ jobs:
         env:
           EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ci-ios-client-id.apps.googleusercontent.com
         run: bun run --filter @mtgscan/mobile test:production-bundle
+
+  site:
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Type check
+        run: bun run --filter @mtgscan/site typecheck
+      - name: Build the consent page
+        run: bun run --filter @mtgscan/site build
+      - name: Consent page tests
+        run: bun run --filter @mtgscan/site test
 
   database:
     needs: changes
