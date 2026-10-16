@@ -20,6 +20,7 @@ type ToolDefinition<Output extends z.ZodType> = Omit<Tool, 'inputSchema' | 'outp
 };
 
 const readOnly: ToolAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
+const write: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 
 const usdPrices = 'Prices are current Scryfall prices in USD (TCGplayer Market). There is no other currency.';
 const estimatedBracket =
@@ -69,6 +70,7 @@ const id = z.guid();
 const color = z.enum(['W', 'U', 'B', 'R', 'G']);
 const finish = z.enum(['nonfoil', 'foil', 'etched']);
 const estimatedBracketValue = z.union([z.literal(2), z.literal(3), z.literal(4)]);
+const deckPriority = z.enum(['high', 'medium', 'low']);
 const deckRule = z.enum(['no_commander', 'commander_eligibility', 'partner', 'deck_size', 'singleton', 'color_identity', 'banned', 'not_legal']);
 
 const currentPrice = z.strictObject({ currency: z.literal('USD'), amount: z.string(), finish, stale: z.boolean() });
@@ -135,7 +137,7 @@ const deckEvaluation = z.strictObject({
 const deck = z.strictObject({
   deck_id: id,
   name: z.string(),
-  priority: z.enum(['high', 'medium', 'low']),
+  priority: deckPriority,
   card_count: z.number().int(),
   commanders: z.array(z.strictObject({ copy_id: id, name: z.string() })),
   last_used_at: z.string(),
@@ -159,6 +161,50 @@ const deck = z.strictObject({
   basic_lands: z.array(z.strictObject({ oracle_id: id.nullable(), name: z.string(), count: z.number().int() })),
 });
 
+const keyPattern = (minLength: number) => z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${minLength},64}$`));
+
+const deckSuggestionInput = z.strictObject({
+  ref: keyPattern(1).describe('A name for this suggestion, unique in the call, such as to_b. pair_with names it.'),
+  deck_id: id.describe("The deck's ID."),
+  expected_deck_revision: z.number().int().min(0).describe('The deck revision that get_deck returned.'),
+  incoming: z.strictObject({
+    oracle_id: id.describe('The incoming card. It may be a basic land card.'),
+    as_commander: z.boolean().optional().describe('Make the incoming card a commander. Defaults to true when the outgoing copy is a commander.'),
+    from_deck_id: id.optional().describe('The deck the copy moves out of. Send it with pair_with.'),
+  }),
+  outgoing: z
+    .union([
+      z.strictObject({ copy_id: id.describe('A copy in the deck.') }),
+      z.strictObject({ basic_land_oracle_id: id.describe('A basic land card in the deck, meaning one fewer of it.') }),
+    ])
+    .optional(),
+  reason: z.string().min(20).max(600),
+  pair_with: keyPattern(1).optional().describe('The ref of the suggestion that takes the copy out of from_deck_id.'),
+});
+
+const deckSuggestionWarning = z.union([
+  z.strictObject({
+    code: z.literal('would_break_validity'),
+    effect: z.strictObject({
+      kind: z.enum(['would_make_invalid', 'adds_violation']),
+      rules: z.array(z.strictObject({ rule: deckRule, colors: z.array(color).optional() })),
+    }),
+  }),
+  z.strictObject({ code: z.enum(['protected_only', 'not_owned', 'replaces_commander', 'rules_stale']) }),
+  z.strictObject({
+    code: z.literal('in_other_decks'),
+    decks: z.array(z.strictObject({ deck_id: id, name: z.string(), priority: deckPriority })),
+  }),
+  z.strictObject({ code: z.literal('against_deck_priority'), from_deck_priority: deckPriority, deck_priority: deckPriority }),
+]);
+
+const createdDeckSuggestions = z.strictObject({
+  suggestions: z.array(
+    z.strictObject({ ref: z.string(), suggestion_id: id, paired_suggestion_id: id.nullable(), warnings: z.array(deckSuggestionWarning) }),
+  ),
+  replayed: z.boolean(),
+});
+
 export const tools: Tool[] = [
   defineTool({
     name: 'get_deck',
@@ -176,5 +222,31 @@ export const tools: Tool[] = [
     leftOut: { cards: ['added_at', 'commander_at', 'condition', 'language', 'rarity', 'collector_number', 'set'] },
     summary: (result) => `${result.name}: ${result.card_count} cards at deck revision ${result.revision}.`,
     tooLargeHint: "Search the deck's cards with search_collection and its deck filter instead.",
+  }),
+  defineTool({
+    name: 'create_deck_suggestions',
+    title: 'Create deck suggestions',
+    description: [
+      'Make 1 to 10 deck suggestions in one call, all saved or none.',
+      'Each suggestion names an incoming card, an optional outgoing card in the deck, and a reason of 20 to 600 characters.',
+      'Send the deck revision from get_deck, and a new idempotency_key for each new call. A retry with the same key and input returns the first result.',
+      'This tool does not change any deck. The user reviews each suggestion in the app and decides.',
+      'Never offer a protected copy as the reason a card is available.',
+      'When two decks want a card and there is one copy for them, the deck with the higher deck priority should get it. Between decks of equal priority, decide which deck needs it more. To move a card, send a pair of suggestions in one call, and make each reason name the other.',
+      'Read past suggestions with list_deck_suggestions first.',
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'create_deck_suggestions',
+    input: z.strictObject({
+      idempotency_key: keyPattern(8).describe('8 to 64 of A-Z a-z 0-9 _ -. Send a new key for each new call.'),
+      suggestions: z.array(deckSuggestionInput).min(1).max(10),
+    }),
+    output: createdDeckSuggestions,
+    leftOut: {},
+    summary: (result) => {
+      const warningCount = result.suggestions.reduce((count, suggestion) => count + suggestion.warnings.length, 0);
+      return `${result.replayed ? 'Replayed' : 'Saved'} ${result.suggestions.length} deck suggestions with ${warningCount} warnings.`;
+    },
+    tooLargeHint: 'Send fewer suggestions in one call.',
   }),
 ];

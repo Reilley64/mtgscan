@@ -12,7 +12,7 @@ setDefaultTimeout(60_000);
 const permissionDenied = '42501';
 const refusal = 'AI clients cannot change decks or the collection.';
 const securityDefinerReads = ['catalog_freshness', 'search_oracle_tags'];
-const requiresAnAiClientsToken = ['begin_mcp_call'];
+const requiresAnAiClientsToken = ['begin_mcp_call', 'create_deck_suggestions'];
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const forest = basicLand('Forest').oracle_id;
 
