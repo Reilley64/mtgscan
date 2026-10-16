@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { type ConsentAuth, showConsentPage } from '../oauth/consent/consent-page';
 import {
+  appleSession,
   approvedRedirect,
   authorizationId,
   authorizationNotFound,
@@ -56,12 +57,30 @@ describe('consent page', () => {
     expect(screen.queryAllByRole('button')).toEqual([]);
   });
 
+  test('signed out, Continue with Apple signs in with a redirect back to the consent page', async () => {
+    const { auth, calls } = fakeAuth();
+    const navigations = await openConsentPage(auth);
+
+    screen.getByRole('button', { name: 'Continue with Apple' }).click();
+
+    await waitFor(() => expect(navigations).toEqual(['https://supabase.test/auth/v1/authorize?provider=apple']));
+    expect(calls.signIns).toEqual([
+      {
+        provider: 'apple',
+        options: {
+          redirectTo: `${consentPageUrl}?authorization_id=${authorizationId}`,
+          skipBrowserRedirect: true,
+        },
+      },
+    ]);
+  });
+
   test('signed out, Continue with Google signs in with a redirect back to the consent page', async () => {
     const { auth, calls } = fakeAuth();
     const navigations = await openConsentPage(auth);
 
     expect(screen.getByText('Use the same sign-in as in the app')).toBeDefined();
-    expect(buttonNames()).toEqual(['Continue with Google']);
+    expect(buttonNames()).toEqual(['Continue with Apple', 'Continue with Google']);
     screen.getByRole('button', { name: 'Continue with Google' }).click();
 
     await waitFor(() => expect(navigations).toEqual(['https://supabase.test/auth/v1/authorize?provider=google']));
@@ -77,13 +96,14 @@ describe('consent page', () => {
     ]);
   });
 
-  test('a sign-in that cannot start says so under the button, and the button tries again', async () => {
+  test('a sign-in that cannot start says so under the buttons, and the button tries again', async () => {
     const { auth } = fakeAuth({ failures: { signIn: [unreachable] } });
     const navigations = await openConsentPage(auth);
 
     screen.getByRole('button', { name: 'Continue with Google' }).click();
 
     expect(await screen.findByText('Could not start the sign-in. Try again.')).toBeDefined();
+    expect(buttonNames()).toEqual(['Continue with Apple', 'Continue with Google']);
     expect(navigations).toEqual([]);
     screen.getByRole('button', { name: 'Continue with Google' }).click();
     await waitFor(() => expect(navigations).toEqual(['https://supabase.test/auth/v1/authorize?provider=google']));
@@ -99,6 +119,13 @@ describe('consent page', () => {
     expect(screen.getByText('Returns you to chatgpt.com')).toBeDefined();
     expect(screen.getByText(permissions)).toBeDefined();
     expect(buttonNames()).toEqual(['Switch account', 'Allow', 'Deny']);
+  });
+
+  test('signed in with Apple, the account card says so', async () => {
+    await openConsentPage(fakeAuth({ session: appleSession() }).auth);
+
+    expect(screen.getByText('Signed in with Apple')).toBeDefined();
+    expect(screen.getByText('player@example.com')).toBeDefined();
   });
 
   test('the AI client host comes from its redirect URI, not its name', async () => {
@@ -129,7 +156,7 @@ describe('consent page', () => {
     expect(calls).toMatchObject({ approvals: [], denials: [authorizationId] });
   });
 
-  test('Switch account signs out of this browser only and shows the sign-in button', async () => {
+  test('Switch account signs out of this browser only and shows the sign-in buttons', async () => {
     const { auth, calls } = fakeAuth({ session: googleSession() });
     await openConsentPage(auth);
 
@@ -150,11 +177,11 @@ describe('consent page', () => {
   test.each([
     ['rejected', sessionRejected],
     ['gone', sessionNotFound],
-  ])('a session that Supabase finds %s signs out of this browser and shows the sign-in button', async (_, error) => {
+  ])('a session that Supabase finds %s signs out of this browser and shows the sign-in buttons', async (_, error) => {
     const { auth, calls } = fakeAuth({ session: googleSession(), failures: { details: [error] } });
     await openConsentPage(auth);
 
-    expect(buttonNames()).toEqual(['Continue with Google']);
+    expect(buttonNames()).toEqual(['Continue with Apple', 'Continue with Google']);
     expect(calls.signOuts).toEqual([{ scope: 'local' }]);
   });
 
@@ -201,7 +228,7 @@ describe('consent page', () => {
     expect(screen.queryAllByRole('button')).toEqual([]);
   });
 
-  test('Deny with a rejected session signs out of this browser and shows the sign-in button', async () => {
+  test('Deny with a rejected session signs out of this browser and shows the sign-in buttons', async () => {
     const { auth, calls } = fakeAuth({ session: googleSession(), failures: { deny: [sessionRejected] } });
     await openConsentPage(auth);
 

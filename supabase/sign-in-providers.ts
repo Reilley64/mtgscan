@@ -2,7 +2,7 @@ import type { User } from '@supabase/supabase-js';
 
 export type SignInProvider = 'apple' | 'google';
 
-const signInProviderNames: Record<SignInProvider, string> = {
+export const signInProviderNames: Record<SignInProvider, string> = {
   apple: 'Apple',
   google: 'Google',
 };

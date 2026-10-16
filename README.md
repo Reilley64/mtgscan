@@ -142,7 +142,7 @@ The settings drawer lists the AI clients that the user allowed, from `supabase.a
 
 The Supabase project lives in `supabase`: configuration, SQL migrations, generated types, and database tests. The local stack needs Docker and the Supabase CLI 2.120.0.
 
-1. Copy `supabase/.env.example` to `supabase/.env` and fill in the Google client IDs, web ID first, then iOS ID, separated by a comma. Native Google sign-in does not use the secret. The Apple provider needs no setting. Its client ID is the bundle ID, `dev.reilley.mtgscan`. Native Sign in with Apple does not use a secret.
+1. Copy `supabase/.env.example` to `supabase/.env` and fill in the Google client IDs, web ID first, then iOS ID, separated by a comma. Native Google sign-in does not use the secret. Leave `SUPABASE_AUTH_EXTERNAL_APPLE_SECRET` empty. Only Apple sign-in on the consent page uses it, and the consent page talks to hosted Supabase. Native Sign in with Apple does not use a secret. MCP connection (Apple web client secret) explains the Apple client IDs.
 2. Start the stack from the repo root with `bunx supabase@2.120.0 start`. Stop it with `bunx supabase@2.120.0 stop`.
 3. Run the database tests with `bun run test:database`.
 4. After you change a migration, run `bunx supabase@2.120.0 db reset` and then `bun run types:database`. CI fails when `supabase/database.types.ts` does not match the migrations.
@@ -521,12 +521,12 @@ Supabase Auth's OAuth server sends the user to the consent page at `https://mtgs
 
 - `apps/site/oauth/consent/` holds the page: `index.html`, `consent.css`, and TypeScript with `supabase-js`. `consent-page.ts` holds the page logic, and `main.ts` starts it with the PKCE flow.
 - `supabase-project.ts` holds the hosted Supabase URL and the publishable key. Both are public, and the app ships them too. The `/oauth/*` rule in `apps/site/_headers` names the same URL, and a test checks that they match.
-- With no session, **Continue with Google** calls `signInWithOAuth` with a redirect back to the consent page and its `authorization_id`. With a session, the page calls `getAuthorizationDetails`. **Allow** calls `approveAuthorization`, and **Deny** calls `denyAuthorization`. Each follows the redirect that Supabase returns. An AI client that the user already allowed goes straight back to that redirect. **Switch account** signs out of this browser only.
+- With no session, **Continue with Apple** and **Continue with Google** call `signInWithOAuth` with their provider and a redirect back to the consent page and its `authorization_id`. With a session, the page calls `getAuthorizationDetails`. **Allow** calls `approveAuthorization`, and **Deny** calls `denyAuthorization`. Each follows the redirect that Supabase returns. An AI client that the user already allowed goes straight back to that redirect. **Switch account** signs out of this browser only.
 - When one of those calls fails:
   - an authorization that Supabase cannot find, or that is no longer pending, shows the expired link;
-  - a session that Supabase rejects signs out of this browser and shows the sign-in button;
+  - a session that Supabase rejects signs out of this browser and shows the sign-in buttons;
   - any other failure shows "Could not reach mtgscan." with **Try again**, which repeats the call.
-- A sign-in that cannot start shows "Could not start the sign-in. Try again." under the button.
+- A sign-in that cannot start shows "Could not start the sign-in. Try again." under the buttons.
 - `bun run --filter @mtgscan/site build` bundles the page into `apps/site/oauth/consent/consent.js`. Git ignores the built file.
 - `bun run --filter @mtgscan/site test` runs the page tests in Bun with happy-dom and a fake Supabase client.
 
@@ -539,4 +539,31 @@ The site is a Cloudflare Worker with static assets, set up in `wrangler.jsonc`:
 - `html_handling` is `drop-trailing-slash`, so `/oauth/consent` serves the page with no redirect.
 - `apps/site/_headers` gives `/oauth/*` its own CSP. It removes the site CSP and allows the page script, plus `connect-src` and `form-action` for the Supabase project, and nothing more. The rest of the site keeps the strict CSP.
 
-Run `bunx wrangler dev` at the repo root to build and serve the site locally. The local page talks to hosted Supabase. Google sign-in on the page uses the Google web client of Supabase's Google provider.
+Run `bunx wrangler dev` at the repo root to build and serve the site locally. The local page talks to hosted Supabase. Google sign-in on the page uses the Google web client of Supabase's Google provider. Apple sign-in on the page uses the Services ID and the Apple web client secret of Supabase's Apple provider.
+
+#### Apple web client secret
+
+Apple sign-in on the consent page uses the Services ID `dev.reilley.mtgscan.web`. Native Sign in with Apple in the app uses the bundle ID `dev.reilley.mtgscan` and no secret.
+
+- Supabase's Apple provider lists the Services ID first and then the bundle ID in its client IDs: `dev.reilley.mtgscan.web,dev.reilley.mtgscan`. The order matters. Supabase's web flow sends only the first client ID to Apple, so with the bundle ID first, Apple sign-in on the consent page fails. Native sign-in accepts any client ID in the list. `supabase/config.toml` and the Client IDs field in the hosted dashboard use the same order.
+- The web flow also needs a client secret. It is a JWT signed with a Sign in with Apple key, a `.p8` file. Apple accepts a client secret for 6 months at most. The `.p8` key stays on the owner's Mac. It never goes in the repo or in GitHub, and Git ignores `*.p8` files.
+- `supabase/config.toml` reads the secret from `SUPABASE_AUTH_EXTERNAL_APPLE_SECRET`. The local stack does not need it.
+- `.github/workflows/apple-web-secret-reminder.yml` runs every Monday. It reads the repository variable `APPLE_WEB_SECRET_EXPIRES_ON`. When that date is less than 14 days away and no issue "Renew the Apple web client secret" is open, it opens one labelled `ready-for-human` that links to the steps below. It fails when the variable is not a date, such as when it is not set.
+
+To renew the secret:
+
+1. On the Mac, run the script in `supabase` with the key's settings. It prints the secret and its expiry date.
+
+   ```bash
+   cd supabase
+   APPLE_WEB_KEY_PATH=<path to AuthKey_<key ID>.p8> \
+   APPLE_WEB_KEY_ID=<key ID> \
+   APPLE_TEAM_ID=<team ID> \
+   APPLE_WEB_SERVICES_ID=dev.reilley.mtgscan.web \
+   bun run apple-web-secret
+   ```
+
+   `APPLE_WEB_KEY_PATH` is the path of the `.p8` key, and `APPLE_WEB_KEY_ID` is its key ID. `APPLE_TEAM_ID` is the Apple Developer team ID. `APPLE_WEB_SERVICES_ID` is the Services ID.
+2. In the Supabase dashboard, open Authentication, Sign In / Providers, Apple. Paste the secret into **Secret Key (for OAuth)** and save.
+3. Set the reminder to the expiry date that the script prints: `gh variable set APPLE_WEB_SECRET_EXPIRES_ON --body <expiry date>`.
+4. Start a connection from your AI chat, and sign in with **Continue with Apple** on the consent page. Then close the renewal issue, if one is open.

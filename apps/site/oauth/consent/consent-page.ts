@@ -1,4 +1,8 @@
-import { currentSignInProviderName } from '@mtgscan/supabase/sign-in-providers';
+import {
+  currentSignInProviderName,
+  type SignInProvider,
+  signInProviderNames,
+} from '@mtgscan/supabase/sign-in-providers';
 import {
   type AuthError,
   type AuthOAuthServerApi,
@@ -20,6 +24,11 @@ type ConsentPage = {
 };
 
 type Answer = 'approveAuthorization' | 'denyAuthorization';
+
+const signInButtons: Record<SignInProvider, { logo: string; queryParams?: { [key: string]: string } }> = {
+  apple: { logo: '/oauth/consent/apple-logo.svg' },
+  google: { logo: '/oauth/consent/google-logo.png', queryParams: { prompt: 'select_account' } },
+};
 
 const expiredAuthorizationCodes = ['oauth_authorization_not_found', 'validation_failed'];
 
@@ -47,11 +56,11 @@ function button(text: string, className: string, onClick: () => Promise<void>, .
   return node;
 }
 
-function googleLogo() {
-  const logo = element('img', '');
-  logo.src = '/oauth/consent/google-logo.png';
-  logo.alt = '';
-  return logo;
+function logo(src: string) {
+  const image = element('img', '');
+  image.src = src;
+  image.alt = '';
+  return image;
 }
 
 function sameSignInHint() {
@@ -75,28 +84,29 @@ export async function showConsentPage({ auth, root, url, navigate }: ConsentPage
     show(element('p', 'lead', 'This link has expired. Start again from your AI chat.'));
   }
 
+  function signInButton(provider: SignInProvider) {
+    const { logo: logoSrc, queryParams } = signInButtons[provider];
+    return button(
+      `Continue with ${signInProviderNames[provider]}`,
+      `button-${provider}`,
+      async () => {
+        disableButtons();
+        const { data, error } = await auth.signInWithOAuth({
+          provider,
+          options: { redirectTo: consentUrl.href, skipBrowserRedirect: true, ...(queryParams && { queryParams }) },
+        });
+        if (error || !data.url) showSignIn(true);
+        else navigate(data.url);
+      },
+      logo(logoSrc),
+    );
+  }
+
   function showSignIn(failed = false) {
     show(
       element('h1', '', 'Sign in to mtgscan'),
       sameSignInHint(),
-      button(
-        'Continue with Google',
-        'button-google',
-        async () => {
-          disableButtons();
-          const { data, error } = await auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-              redirectTo: consentUrl.href,
-              skipBrowserRedirect: true,
-              queryParams: { prompt: 'select_account' },
-            },
-          });
-          if (error || !data.url) showSignIn(true);
-          else navigate(data.url);
-        },
-        googleLogo(),
-      ),
+      element('div', 'sign-in-buttons', signInButton('apple'), signInButton('google')),
       ...(failed ? [element('p', 'consent-error', 'Could not start the sign-in. Try again.')] : []),
     );
   }

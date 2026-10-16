@@ -36,7 +36,10 @@ export const sessionNotFound = new AuthApiError(
 );
 export const unreachable = new AuthRetryableFetchError('Failed to fetch', 0);
 
-export function googleSession(): Session {
+function session(
+  app_metadata: Session['user']['app_metadata'],
+  user_metadata: Session['user']['user_metadata'],
+): Session {
   return {
     access_token: 'access-token',
     refresh_token: 'refresh-token',
@@ -46,11 +49,19 @@ export function googleSession(): Session {
       id: 'user-1',
       aud: 'authenticated',
       email: 'player@example.com',
-      app_metadata: { provider: 'apple' },
-      user_metadata: { iss: 'https://accounts.google.com' },
+      app_metadata,
+      user_metadata,
       created_at: '2026-10-16T00:00:00Z',
     },
   };
+}
+
+export function googleSession() {
+  return session({ provider: 'google' }, { iss: 'https://accounts.google.com' });
+}
+
+export function appleSession() {
+  return session({ provider: 'apple' }, { iss: 'https://appleid.apple.com' });
 }
 
 type FakeAuthOptions = {
@@ -80,7 +91,10 @@ export function fakeAuth({ session, details = chatGptDetails, failures = {} }: F
       const error = failures.signIn?.shift();
       if (error) return { data: { provider: credentials.provider, url: null }, error };
       return {
-        data: { provider: credentials.provider, url: 'https://supabase.test/auth/v1/authorize?provider=google' },
+        data: {
+          provider: credentials.provider,
+          url: `https://supabase.test/auth/v1/authorize?provider=${credentials.provider}`,
+        },
         error: null,
       };
     },
