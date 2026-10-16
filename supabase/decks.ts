@@ -300,6 +300,41 @@ export type RevertDeckChangesRequest = RevertPreviewQuery & {
 
 export type RevertedDeckChanges = AddedDeckCard;
 
+export type DeckSuggestionOutgoing = { copy_id: string } | { basic_land_oracle_id: string };
+
+export type DeckSuggestionInput = {
+  ref: string;
+  deck_id: string;
+  expected_deck_revision: number;
+  incoming: { oracle_id: string; as_commander?: boolean; from_deck_id?: string };
+  outgoing?: DeckSuggestionOutgoing;
+  reason: string;
+  pair_with?: string;
+};
+
+export type CreateDeckSuggestionsRequest = {
+  idempotency_key: string;
+  suggestions: DeckSuggestionInput[];
+};
+
+export type DeckSuggestionWarning =
+  | { code: 'would_break_validity'; effect: DeckChangeEffect }
+  | { code: 'protected_only' | 'not_owned' | 'replaces_commander' | 'rules_stale' }
+  | { code: 'in_other_decks'; decks: { deck_id: string; name: string; priority: DeckPriority }[] }
+  | { code: 'against_deck_priority'; from_deck_priority: DeckPriority; deck_priority: DeckPriority };
+
+export type CreatedDeckSuggestion = {
+  ref: string;
+  suggestion_id: string;
+  paired_suggestion_id: string | null;
+  warnings: DeckSuggestionWarning[];
+};
+
+export type CreatedDeckSuggestions = {
+  suggestions: CreatedDeckSuggestion[];
+  replayed: boolean;
+};
+
 export type DeckErrorCode =
   | 'invalid_argument'
   | 'invalid_cursor'

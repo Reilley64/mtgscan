@@ -440,6 +440,73 @@ A preview judges a deck as a change would leave it and compares the result with 
   - A deck with no deck evaluation has no effect.
   - A change that leaves a deck empty has no effect.
 
+### Deck suggestions
+
+A deck suggestion is an AI client's proposal for one deck, as `GLOSSARY.md` defines it. `deck_suggestions` holds each one. `deck_suggestion_events` holds one row per withdrawal or reason replacement. `deck_suggestion_requests` holds the idempotency keys. `supabase/decks.ts` has the shared types.
+
+- A deck suggestion has its user and deck, the incoming card's `oracle_id`, `as_commander`, and an optional outgoing card. The outgoing card is a copy in the deck, with `outgoing_copy_id` and its card's `outgoing_oracle_id`, or a basic land card, with only `outgoing_oracle_id`. It also has `reason`, `status`, `from_deck_id` and `paired_suggestion_id` for a pair, the AI client's `client_id` and `client_name`, `created_at`, and `status_changed_at`.
+- `status` is `open`, `withdrawn`, or `stale`. Spec 9 adds promoted and dismissed.
+- Deleting a deck deletes its deck suggestions. `from_deck_id` and `paired_suggestion_id` become null when that deck or suggestion is deleted, and the other suggestion stays open.
+- `client_name` is copied from Supabase Auth's client record, `auth.oauth_clients`, when the suggestion is made. A `security definer` function can read it.
+
+#### Create deck suggestions
+
+`create_deck_suggestions(request)` saves 1 to 10 deck suggestions in one transaction. Only an AI client can call it: a token without a `client_id` claim is refused with `insufficient_privilege` and "Only an AI client can change deck suggestions." The MCP connection calls it. The app does not.
+
+```json
+{
+  "idempotency_key": "8 to 64 of A-Z a-z 0-9 _ -",
+  "suggestions": [
+    {
+      "ref": "to_b",
+      "deck_id": "uuid",
+      "expected_deck_revision": 41,
+      "incoming": { "oracle_id": "uuid", "as_commander": false, "from_deck_id": "uuid" },
+      "outgoing": { "copy_id": "uuid" },
+      "reason": "20 to 600 characters",
+      "pair_with": "from_a"
+    }
+  ]
+}
+```
+
+- `ref` is 1 to 64 of A-Z a-z 0-9 _ -, and unique in the call. Suggestions for the same deck send the same `expected_deck_revision`.
+- `outgoing` is optional. It is `{ copy_id }` or `{ basic_land_oracle_id }`. A basic land card as the outgoing card means one fewer of it.
+- `as_commander` is optional. It defaults to true when the outgoing copy is a commander, and to false otherwise.
+- `incoming.from_deck_id` and `pair_with` go together. They move a copy from one deck to another as a pair. The suggestion that `pair_with` names must be in `from_deck_id` and take a copy of the incoming card out of it. The two saved suggestions name each other in `paired_suggestion_id`.
+- It returns `suggestions`, in the order sent, each with `ref`, `suggestion_id`, `paired_suggestion_id`, and `warnings`, and `replayed`.
+
+These errors refuse the whole call and save nothing. `details` is the field at fault as a JSON path, such as `suggestions[1].reason`, unless the row says it is a JSON object.
+
+| Code | When |
+| --- | --- |
+| `invalid_argument` | The request does not have this shape. Two suggestions share a `ref`, send different revisions for one deck, or repeat each other. `from_deck_id` is the suggestion's own deck. |
+| `not_found` | A deck, an outgoing copy, `from_deck_id`, or the `pair_with` ref is missing or not the caller's. |
+| `invalid_card` | `incoming.oracle_id` is not a card in the card catalog. |
+| `stale_revision` | `expected_deck_revision` is not the deck revision. `details` is a JSON object with `pointer`, `expected`, and `current`. |
+| `outgoing_not_in_deck` | The outgoing copy or basic land card is not in the deck. |
+| `pair_incomplete` | `from_deck_id` names a deck without the incoming card, or the `pair_with` suggestion does not take that card out of that deck. |
+| `duplicate_open_suggestion` | An open suggestion has the same deck, incoming card, `as_commander`, and outgoing card. `details` is a JSON object with `pointer` and the open suggestion's `suggestion_id`. |
+| `limit_exceeded` | The call would pass 30 suggestions an hour for the user, or 50 open suggestions in one deck. |
+| `idempotency_conflict` | The idempotency key was used with different input. |
+
+These warnings save the suggestion and come back in its `warnings`. Each has a `code`:
+
+- `would_break_validity` has the `effect` of the suggestion, as Previews describes. It judges the deck with the incoming card added, as a commander when `as_commander` is true, and the outgoing card taken out. It uses `private.judge_deck` and `private.deck_change_effect`, as the Add to deck drawer does.
+- `protected_only`: the user owns the card, and every free copy is protected.
+- `in_other_decks`: no copy is free, copies sit in other decks, and no pair was sent. `decks` lists each of those decks with `deck_id`, `name`, and `priority`.
+- `not_owned`: the user owns no copy.
+- `replaces_commander`: the outgoing copy is a commander.
+- `against_deck_priority`: a pair moves a copy from a deck of higher priority to one of lower priority. It has `from_deck_priority` and `deck_priority`.
+- `rules_stale`: the deck's rules data is stale, as Deck evaluations (Freshness) says for the estimated bracket. A deck with no deck evaluation is stale when the card catalog, the Oracle tags, or Commander Spellbook is stale.
+- A basic land card is never `protected_only`, `in_other_decks`, or `not_owned`.
+
+Idempotency keys are per user. Each call saves its key with its input and result for 24 hours. A repeat with the same key and input returns the first result with `replayed: true` and saves nothing. Each call deletes the keys that are older than 24 hours.
+
+#### Stale deck suggestions
+
+`private.mark_stale_deck_suggestions` runs at the end of every deck change: adding a copy, making or moving a commander, setting basic lands, removing a card, deleting a copy in a deck, and reverting. It marks an open suggestion of that deck stale when its outgoing copy is no longer in the deck, or when the deck has none left of its outgoing basic land card. A stale or withdrawn suggestion never changes back.
+
 ### Collection search
 
 Signed-in users search their own collection with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips and `rows`. `supabase/collection.ts` has the shared types for the query and the result rows. The Collection tab reads its binder grid only through collection search, with `rows: 'copies'`. Its search bar and its Filters drawer turn the typed text and chips into the typed query.
@@ -505,13 +572,13 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, and `deck_evaluations`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
+The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, `deck_evaluations`, `deck_suggestions`, `deck_suggestion_events`, and `deck_suggestion_requests`. `deck_suggestion_requests` is the store of idempotency keys for `create_deck_suggestions`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. Functions that `postgres` creates have no `execute` grant for `PUBLIC`, so a new `private` function starts closed. A migration grants `execute` on a helper only to the roles whose functions call it.
 
 Every app write function refuses an AI client's token. Each one calls `private.refuse_mcp_token()` right after `private.caller_user_id()`. The helper raises `insufficient_privilege` with "AI clients cannot change decks or the collection." when the token has a `client_id` claim. Supabase Auth's OAuth server puts that claim on every AI client's token. The app's sign-in never does, so the refusal does not affect the app. Read functions and previews do not call the helper. So an AI client's token can read through the Data API the same data that the MCP connection returns. `docs/adr/0007-refuse-mcp-tokens-by-client-id.md` says why.
 
-`public.begin_mcp_call` does the reverse. It requires an AI client's token, and so will the deck suggestion writes. `supabase/tests/ai-client-tokens.test.ts` leaves these functions out of its release gate by name, in the group `requiresAnAiClientsToken`.
+`public.begin_mcp_call` and `public.create_deck_suggestions` do the reverse. They require an AI client's token. `supabase/tests/ai-client-tokens.test.ts` leaves these functions out of its release gate by name, in the group `requiresAnAiClientsToken`.
 
 `mcp_call_counts` departs from the pattern too. It has no read policy, because nothing reads it. Only `begin_mcp_call` writes it.
 
@@ -542,11 +609,12 @@ Each request goes through these steps:
 | Tool | Postgres function |
 | --- | --- |
 | `get_deck` | `get_deck` |
+| `create_deck_suggestions` | `create_deck_suggestions` |
 
 - `supabase/functions/mcp/tools.ts` lists the tools. Each one has all four annotations, an input schema with `additionalProperties: false`, and an output schema that also allows a problem details object.
 - `tools.ts` writes the schemas with zod. They follow the types in `supabase/decks.ts`, less the fields that the tool leaves out. The function imports nothing from outside `supabase/functions`, so the schemas copy those types by hand. Every object in an output schema has `additionalProperties: false`. The official MCP client checks each result against it in the HTTP tests, so a change to the result's shape fails them.
 - A call to a tool that does not exist gets `invalid-argument` with the pointer `/params/name`. It is not counted against the limits.
-- A tool sends its arguments to its Postgres function as the query, so Postgres checks them, as it does for the app.
+- A read tool sends its arguments to its Postgres function as `query`, and a write tool as `request`, so Postgres checks them, as it does for the app.
 - A result leaves out image URIs and art crop URIs. Each tool can also leave out fields at a named path. `get_deck` leaves out `added_at`, `commander_at`, `condition`, `language`, `rarity`, `collector_number`, and `set` of each deck card.
 - A result carries `structuredContent` and one text block: a one-line summary, then the minified JSON.
 
