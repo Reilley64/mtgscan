@@ -2,8 +2,9 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { SQL } from 'bun';
 
+import { claimsOf } from '../mcp-connection';
 import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
-import { claimsOf, connectAiClient, mcpServerUrl } from './ai-clients';
+import { connectAiClient, mcpServerUrl } from './ai-clients';
 import { asDatabaseOwner, asDatabaseRole, signUpNewUser, tokenClient, type TestUser } from './local-stack';
 import { stack } from './scan-batches';
 

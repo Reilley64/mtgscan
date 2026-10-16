@@ -6,7 +6,7 @@ import type { Database } from '../database.types';
 import { localSupabaseUrl } from '../test-user/account';
 
 const url = process.env.SUPABASE_URL ?? localSupabaseUrl;
-const publishableKey =
+export const localPublishableKey =
   process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
 export const localStackUrl = url;
 
@@ -69,13 +69,13 @@ export type TestUser = {
 };
 
 export function anonymousClient(): AppClient {
-  return createClient<Database>(url, publishableKey, {
+  return createClient<Database>(url, localPublishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
 
 export function tokenClient(token: string): AppClient {
-  return createClient<Database>(url, publishableKey, {
+  return createClient<Database>(url, localPublishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
