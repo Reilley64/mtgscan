@@ -8,7 +8,6 @@ export type Tool = Pick<ListedTool, 'name' | 'inputSchema' | 'outputSchema'> & {
   description: string;
   annotations: ToolAnnotations;
   postgresFunction: string;
-  postgresArgument: 'query' | 'request';
   leftOut: Record<string, string[]>;
   summary: (result: unknown) => string;
   tooLargeHint: string;
@@ -162,10 +161,10 @@ const deck = z.strictObject({
   basic_lands: z.array(z.strictObject({ oracle_id: id.nullable(), name: z.string(), count: z.number().int() })),
 });
 
-const suggestionKey = (minLength: number) => z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${minLength},64}$`));
+const keyPattern = (minLength: number) => z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${minLength},64}$`));
 
 const deckSuggestionInput = z.strictObject({
-  ref: suggestionKey(1).describe('A name for this suggestion, unique in the call, such as to_b. pair_with names it.'),
+  ref: keyPattern(1).describe('A name for this suggestion, unique in the call, such as to_b. pair_with names it.'),
   deck_id: id.describe("The deck's ID."),
   expected_deck_revision: z.number().int().min(0).describe('The deck revision that get_deck returned.'),
   incoming: z.strictObject({
@@ -180,7 +179,7 @@ const deckSuggestionInput = z.strictObject({
     ])
     .optional(),
   reason: z.string().min(20).max(600),
-  pair_with: suggestionKey(1).optional().describe('The ref of the suggestion that takes the copy out of from_deck_id.'),
+  pair_with: keyPattern(1).optional().describe('The ref of the suggestion that takes the copy out of from_deck_id.'),
 });
 
 const deckSuggestionWarning = z.union([
@@ -218,7 +217,6 @@ export const tools: Tool[] = [
     ].join(' '),
     annotations: readOnly,
     postgresFunction: 'get_deck',
-    postgresArgument: 'query',
     input: z.strictObject({ deck_id: id.describe("The deck's ID.") }),
     output: deck,
     leftOut: { cards: ['added_at', 'commander_at', 'condition', 'language', 'rarity', 'collector_number', 'set'] },
@@ -239,9 +237,8 @@ export const tools: Tool[] = [
     ].join(' '),
     annotations: write,
     postgresFunction: 'create_deck_suggestions',
-    postgresArgument: 'request',
     input: z.strictObject({
-      idempotency_key: suggestionKey(8).describe('8 to 64 of A-Z a-z 0-9 _ -. Send a new key for each new call.'),
+      idempotency_key: keyPattern(8).describe('8 to 64 of A-Z a-z 0-9 _ -. Send a new key for each new call.'),
       suggestions: z.array(deckSuggestionInput).min(1).max(10),
     }),
     output: createdDeckSuggestions,

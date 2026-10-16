@@ -117,7 +117,8 @@ function mcpServer(supabase: UserClient, refusal: Problem | null, log: RequestLo
 }
 
 async function callTool(supabase: UserClient, tool: Tool, toolArguments: Record<string, unknown>): Promise<CallToolResult> {
-  const { data, error } = await supabase.rpc(tool.postgresFunction, { [tool.postgresArgument]: toolArguments });
+  const argumentName = tool.annotations.readOnlyHint ? 'query' : 'request';
+  const { data, error } = await supabase.rpc(tool.postgresFunction, { [argumentName]: toolArguments });
   if (error) {
     return problemResult(problemFromPostgres(error));
   }

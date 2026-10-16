@@ -445,6 +445,7 @@ A preview judges a deck as a change would leave it and compares the result with 
 A deck suggestion is an AI client's proposal for one deck, as `GLOSSARY.md` defines it. `deck_suggestions` holds each one. `deck_suggestion_events` holds one row per withdrawal or reason replacement. `deck_suggestion_requests` holds the idempotency keys. `supabase/decks.ts` has the shared types.
 
 - A deck suggestion has its user and deck, the incoming card's `oracle_id`, `as_commander`, and an optional outgoing card. The outgoing card is a copy in the deck, with `outgoing_copy_id` and its card's `outgoing_oracle_id`, or a basic land card, with only `outgoing_oracle_id`. It also has `reason`, `status`, `from_deck_id` and `paired_suggestion_id` for a pair, the AI client's `client_id` and `client_name`, `created_at`, and `status_changed_at`.
+- `outgoing_copy_id` has no foreign key. A suggestion has to survive the delete of its outgoing copy, and the stale rule then marks it stale.
 - `status` is `open`, `withdrawn`, or `stale`. Spec 9 adds promoted and dismissed.
 - Deleting a deck deletes its deck suggestions. `from_deck_id` and `paired_suggestion_id` become null when that deck or suggestion is deleted, and the other suggestion stays open.
 - `client_name` is copied from Supabase Auth's client record, `auth.oauth_clients`, when the suggestion is made. A `security definer` function can read it.
@@ -487,7 +488,7 @@ These errors refuse the whole call and save nothing. `details` is the field at f
 | `outgoing_not_in_deck` | The outgoing copy or basic land card is not in the deck. |
 | `pair_incomplete` | `from_deck_id` names a deck without the incoming card, or the `pair_with` suggestion does not take that card out of that deck. |
 | `duplicate_open_suggestion` | An open suggestion has the same deck, incoming card, `as_commander`, and outgoing card. `details` is a JSON object with `pointer` and the open suggestion's `suggestion_id`. |
-| `limit_exceeded` | The call would pass 30 suggestions an hour for the user, or 50 open suggestions in one deck. |
+| `limit_exceeded` | The call would pass 30 suggestions an hour for the user. `details` is a JSON object with `pointer` and `retry_after_seconds`, the time until enough suggestions leave the hour. Or the call would pass 50 open suggestions in one deck. |
 | `idempotency_conflict` | The idempotency key was used with different input. |
 
 These warnings save the suggestion and come back in its `warnings`. Each has a `code`:
@@ -572,7 +573,7 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, `deck_evaluations`, `deck_suggestions`, `deck_suggestion_events`, and `deck_suggestion_requests`. `deck_suggestion_requests` is the store of idempotency keys for `create_deck_suggestions`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
+The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, `deck_evaluations`, `deck_suggestions`, and `deck_suggestion_events`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. Functions that `postgres` creates have no `execute` grant for `PUBLIC`, so a new `private` function starts closed. A migration grants `execute` on a helper only to the roles whose functions call it.
 
@@ -581,6 +582,8 @@ Every app write function refuses an AI client's token. Each one calls `private.r
 `public.begin_mcp_call` and `public.create_deck_suggestions` do the reverse. They require an AI client's token. `supabase/tests/ai-client-tokens.test.ts` leaves these functions out of its release gate by name, in the group `requiresAnAiClientsToken`.
 
 `mcp_call_counts` departs from the pattern too. It has no read policy, because nothing reads it. Only `begin_mcp_call` writes it.
+
+`deck_suggestion_requests` departs from the pattern in the same way. It is the store of idempotency keys for `create_deck_suggestions`. Row-level security is on with no policies, and no app role can read or write it, because nothing reads it through the Data API. Only `create_deck_suggestions` reads and writes it.
 
 Signing up creates the user's profile through a trigger on `auth.users`.
 
@@ -614,7 +617,7 @@ Each request goes through these steps:
 - `supabase/functions/mcp/tools.ts` lists the tools. Each one has all four annotations, an input schema with `additionalProperties: false`, and an output schema that also allows a problem details object.
 - `tools.ts` writes the schemas with zod. They follow the types in `supabase/decks.ts`, less the fields that the tool leaves out. The function imports nothing from outside `supabase/functions`, so the schemas copy those types by hand. Every object in an output schema has `additionalProperties: false`. The official MCP client checks each result against it in the HTTP tests, so a change to the result's shape fails them.
 - A call to a tool that does not exist gets `invalid-argument` with the pointer `/params/name`. It is not counted against the limits.
-- A read tool sends its arguments to its Postgres function as `query`, and a write tool as `request`, so Postgres checks them, as it does for the app.
+- A read tool sends its arguments to its Postgres function as `query`, and a write tool as `request`. The tool's `readOnlyHint` says which. Postgres checks the arguments, as it does for the app.
 - A result leaves out image URIs and art crop URIs. Each tool can also leave out fields at a named path. `get_deck` leaves out `added_at`, `commander_at`, `condition`, `language`, `rarity`, `collector_number`, and `set` of each deck card.
 - A result carries `structuredContent` and one text block: a one-line summary, then the minified JSON.
 
@@ -627,6 +630,7 @@ Each request goes through these steps:
 #### Problems
 
 - A tool problem is a result with `isError: true`. Its `structuredContent` is an RFC 9457 problem details object: `type`, `title`, `detail`, an optional `pointer`, `retryable`, and the members of its type, such as `retry_after_seconds`. The `pointer` is a JSON Pointer to the argument at fault, such as `/deck_id`. The text block is "title: detail", then the minified JSON.
+- A problem with `retry_after_seconds` is retryable.
 - HTTP 401, 413, and 500 use `application/problem+json` with `status`. The 401 keeps its `WWW-Authenticate` header.
 - `type` is `https://mtgscan.reilley.dev/problems/<name>`.
 - `supabase/functions/mcp/problems.ts` maps each Postgres error code to its problem type, such as `not_found` to `not-found`. A code with no entry is `internal-error`. The pointer comes from the error's `details`. A field such as `oracle_ids[1]` becomes `/oracle_ids/1`. A JSON object gives the pointer and the other members.

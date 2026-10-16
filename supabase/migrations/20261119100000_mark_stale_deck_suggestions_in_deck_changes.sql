@@ -8,19 +8,7 @@ as $$
     where suggestion.user_id = owner_id
       and suggestion.deck_id = chosen_deck_id
       and suggestion.status = 'open'
-      and case
-        when suggestion.outgoing_copy_id is not null then not exists (
-          select 1
-          from public.deck_cards deck_card
-          where deck_card.user_id = owner_id and deck_card.deck_id = chosen_deck_id and deck_card.copy_id = suggestion.outgoing_copy_id
-        )
-        when suggestion.outgoing_oracle_id is not null then not exists (
-          select 1
-          from public.deck_basic_lands basic_land
-          where basic_land.user_id = owner_id and basic_land.deck_id = chosen_deck_id and basic_land.oracle_id = suggestion.outgoing_oracle_id
-        )
-        else false
-      end;
+      and not private.outgoing_card_is_in_deck(owner_id, chosen_deck_id, suggestion.outgoing_copy_id, suggestion.outgoing_oracle_id);
 $$;
 
 create or replace function private.remove_from_deck(caller uuid, deck_card public.deck_cards, change_kind public.deck_change_kind)

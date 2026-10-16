@@ -41,25 +41,11 @@ create table public.deck_suggestion_events (
   foreign key (user_id, suggestion_id) references public.deck_suggestions (user_id, id) on delete cascade
 );
 
-create table public.deck_suggestion_requests (
-  user_id uuid not null references auth.users (id) on delete cascade,
-  idempotency_key text not null,
-  request jsonb not null,
-  result jsonb not null,
-  created_at timestamptz not null default now(),
-  primary key (user_id, idempotency_key)
-);
-
-create index deck_suggestion_requests_by_creation on public.deck_suggestion_requests (created_at);
-
 alter table public.deck_suggestions enable row level security;
 alter table public.deck_suggestion_events enable row level security;
-alter table public.deck_suggestion_requests enable row level security;
 
-revoke all on table public.deck_suggestions, public.deck_suggestion_events, public.deck_suggestion_requests
-  from anon, authenticated;
-grant select on table public.deck_suggestions, public.deck_suggestion_events, public.deck_suggestion_requests
-  to authenticated;
+revoke all on table public.deck_suggestions, public.deck_suggestion_events from anon, authenticated;
+grant select on table public.deck_suggestions, public.deck_suggestion_events to authenticated;
 
 create policy "Users read their own deck suggestions"
   on public.deck_suggestions
@@ -73,11 +59,39 @@ create policy "Users read their own deck suggestion events"
   to authenticated
   using ((select auth.uid()) = user_id);
 
-create policy "Users read their own deck suggestion requests"
-  on public.deck_suggestion_requests
-  for select
-  to authenticated
-  using ((select auth.uid()) = user_id);
+create table public.deck_suggestion_requests (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  idempotency_key text not null,
+  request jsonb not null,
+  result jsonb not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, idempotency_key)
+);
+
+create index deck_suggestion_requests_by_creation on public.deck_suggestion_requests (created_at);
+
+alter table public.deck_suggestion_requests enable row level security;
+
+revoke all on table public.deck_suggestion_requests from anon, authenticated, service_role;
+
+create type private.new_deck_suggestion as (
+  index integer,
+  suggestion_id uuid,
+  ref text,
+  deck_id uuid,
+  deck_priority public.deck_priority,
+  incoming_oracle_id uuid,
+  incoming_is_basic_land boolean,
+  as_commander boolean,
+  from_deck_id uuid,
+  from_deck_priority public.deck_priority,
+  outgoing_copy_id uuid,
+  outgoing_oracle_id uuid,
+  outgoing_is_commander boolean,
+  reason text,
+  pair_with text,
+  paired_suggestion_id uuid
+);
 
 create function private.caller_ai_client()
 returns table (client_id uuid, client_name text)
@@ -96,32 +110,6 @@ begin
 end;
 $$;
 
-create function private.check_object_fields(field text, value jsonb, known text[], required text[])
-returns void
-language plpgsql
-immutable
-set search_path = ''
-as $$
-declare
-  prefix text := coalesce(field || '.', '');
-  unknown_field text;
-  required_field text;
-begin
-  if jsonb_typeof(value) is distinct from 'object' then
-    perform private.invalid_argument(field, format('%s must be a JSON object.', coalesce(field, 'The request')));
-  end if;
-  select key into unknown_field from jsonb_object_keys(value) key where key <> all (known) order by key limit 1;
-  if unknown_field is not null then
-    perform private.invalid_argument(prefix || unknown_field, format('%s%s is not a known field.', prefix, unknown_field));
-  end if;
-  foreach required_field in array required loop
-    if not value ? required_field then
-      perform private.invalid_argument(prefix || required_field, format('%s%s is required.', prefix, required_field));
-    end if;
-  end loop;
-end;
-$$;
-
 create function private.checked_key(field text, value jsonb, min_length integer)
 returns jsonb
 language plpgsql
@@ -136,96 +124,488 @@ begin
 end;
 $$;
 
-create function private.checked_deck_suggestion(field text, item jsonb)
+create function private.checked_reason(field text, value jsonb)
 returns jsonb
 language plpgsql
 immutable
 set search_path = ''
 as $$
-declare
-  incoming jsonb := item -> 'incoming';
-  outgoing jsonb := item -> 'outgoing';
-  reason jsonb := item -> 'reason';
 begin
-  perform private.check_object_fields(
-    field,
-    item,
-    array['ref', 'deck_id', 'expected_deck_revision', 'incoming', 'outgoing', 'reason', 'pair_with'],
-    array['ref', 'deck_id', 'expected_deck_revision', 'incoming', 'reason']
-  );
-  perform private.check_object_fields(field || '.incoming', incoming, array['oracle_id', 'as_commander', 'from_deck_id'], array['oracle_id']);
-  if outgoing is not null then
-    perform private.check_object_fields(field || '.outgoing', outgoing, array['copy_id', 'basic_land_oracle_id'], '{}');
-    if (select count(*) from jsonb_object_keys(outgoing)) <> 1 then
-      perform private.invalid_argument(
-        field || '.outgoing',
-        format('%s.outgoing must have either copy_id or basic_land_oracle_id.', field)
-      );
-    end if;
+  if jsonb_typeof(value) is distinct from 'string' or char_length(value #>> '{}') not between 20 and 600 then
+    perform private.invalid_argument(field, format('%s must be a string of 20 to 600 characters.', field));
   end if;
-  if jsonb_typeof(reason) is distinct from 'string' or char_length(reason #>> '{}') not between 20 and 600 then
-    perform private.invalid_argument(field || '.reason', format('%s.reason must be a string of 20 to 600 characters.', field));
-  end if;
-  if (incoming ? 'from_deck_id') <> (item ? 'pair_with') then
-    perform private.invalid_argument(
-      field || case when item ? 'pair_with' then '.incoming.from_deck_id' else '.pair_with' end,
-      format('%s.incoming.from_deck_id and %s.pair_with go together.', field, field)
-    );
-  end if;
-
-  return jsonb_build_object(
-    'ref', private.checked_key(field || '.ref', item -> 'ref', 1),
-    'deck_id', private.checked_uuid(field || '.deck_id', item -> 'deck_id'),
-    'expected_deck_revision', private.checked_integer(field || '.expected_deck_revision', item -> 'expected_deck_revision', 0, 2147483647),
-    'incoming_oracle_id', private.checked_uuid(field || '.incoming.oracle_id', incoming -> 'oracle_id'),
-    'as_commander', case when incoming ? 'as_commander' then private.checked_boolean(field || '.incoming.as_commander', incoming -> 'as_commander') end,
-    'from_deck_id', case when incoming ? 'from_deck_id' then private.checked_uuid(field || '.incoming.from_deck_id', incoming -> 'from_deck_id') end,
-    'outgoing_copy_id', case when outgoing ? 'copy_id' then private.checked_uuid(field || '.outgoing.copy_id', outgoing -> 'copy_id') end,
-    'outgoing_basic_land_oracle_id', case when outgoing ? 'basic_land_oracle_id'
-      then private.checked_uuid(field || '.outgoing.basic_land_oracle_id', outgoing -> 'basic_land_oracle_id') end,
-    'reason', reason,
-    'pair_with', case when item ? 'pair_with' then private.checked_key(field || '.pair_with', item -> 'pair_with', 1) end
-  );
+  return value;
 end;
 $$;
 
-create function private.deck_suggestion_effect(owner_id uuid, item jsonb)
+create function private.checked_object(path text, value jsonb, required_fields text[], optional_fields text[])
 returns jsonb
 language plpgsql
 stable
 set search_path = ''
 as $$
 declare
-  chosen_deck_id uuid := (item ->> 'deck_id')::uuid;
-  incoming_oracle_id uuid := (item ->> 'incoming_oracle_id')::uuid;
-  incoming_is_basic_land boolean := (item ->> 'incoming_is_basic_land')::boolean;
-  outgoing_basic_land_oracle_id uuid := case when item ->> 'outgoing_copy_id' is null then (item ->> 'outgoing_oracle_id')::uuid end;
-  contents jsonb;
-  evaluation public.deck_evaluations;
+  checked jsonb := '{}';
+  key text;
+  member jsonb;
+  field text;
 begin
-  contents := private.deck_contents(owner_id, chosen_deck_id);
-  select * into evaluation from public.deck_evaluations stored where stored.user_id = owner_id and stored.deck_id = chosen_deck_id;
+  if jsonb_typeof(value) is distinct from 'object' then
+    perform private.invalid_argument(path, coalesce(path || ' must be a JSON object.', 'The request must be a JSON object.'));
+  end if;
 
+  for key, member in select entry.key, entry.value from jsonb_each(value) as entry order by entry.key loop
+    field := concat_ws('.', path, key);
+    if not key = any(required_fields || optional_fields) then
+      perform private.invalid_argument(field, format('%s is not a known field.', field));
+    end if;
+    checked := checked || jsonb_build_object(key, case key
+      when 'name' then private.checked_name(member)
+      when 'tagged' then private.checked_boolean(field, member)
+      when 'unprotect' then private.checked_boolean(field, member)
+      when 'commander' then private.checked_boolean(field, member)
+      when 'as_commander' then private.checked_boolean(field, member)
+      when 'priority' then private.checked_choice(field, member, enum_range(null::public.deck_priority)::text[])
+      when 'counts' then private.checked_basic_land_counts(field, member)
+      when 'expected_revision' then private.checked_integer(field, member, 0, 2147483647)
+      when 'expected_deck_revision' then private.checked_integer(field, member, 0, 2147483647)
+      when 'idempotency_key' then private.checked_key(field, member, 8)
+      when 'ref' then private.checked_key(field, member, 1)
+      when 'pair_with' then private.checked_key(field, member, 1)
+      when 'reason' then private.checked_reason(field, member)
+      when 'suggestions' then private.checked_deck_suggestions(field, member)
+      when 'incoming' then private.checked_object(field, member, array['oracle_id'], array['as_commander', 'from_deck_id'])
+      when 'outgoing' then private.checked_outgoing(field, member)
+      else private.checked_uuid(field, member)
+    end);
+  end loop;
+
+  foreach key in array required_fields loop
+    if not checked ? key then
+      field := concat_ws('.', path, key);
+      perform private.invalid_argument(field, format('%s is required.', field));
+    end if;
+  end loop;
+  return checked;
+end;
+$$;
+
+
+create or replace function private.check_request(request jsonb, fields text[])
+returns jsonb
+language sql
+stable
+set search_path = ''
+as $$
+  select private.checked_object(null, request, fields, '{}');
+$$;
+
+create function private.checked_outgoing(field text, value jsonb)
+returns jsonb
+language plpgsql
+stable
+set search_path = ''
+as $$
+declare
+  checked jsonb := private.checked_object(field, value, '{}', array['copy_id', 'basic_land_oracle_id']);
+begin
+  if (select count(*) from jsonb_object_keys(checked)) <> 1 then
+    perform private.invalid_argument(field, format('%s must have either copy_id or basic_land_oracle_id.', field));
+  end if;
+  return checked;
+end;
+$$;
+
+create function private.checked_deck_suggestions(field text, value jsonb)
+returns jsonb
+language plpgsql
+stable
+set search_path = ''
+as $$
+declare
+  checked jsonb := '[]';
+  suggestion jsonb;
+  suggestion_field text;
+  suggestion_index integer;
+  earlier jsonb;
+  earlier_index integer;
+begin
+  if jsonb_typeof(value) is distinct from 'array' or jsonb_array_length(value) not between 1 and 10 then
+    perform private.invalid_argument(field, format('%s must be a list of 1 to 10 suggestions.', field));
+  end if;
+
+  for suggestion_index in 0 .. jsonb_array_length(value) - 1 loop
+    suggestion_field := format('%s[%s]', field, suggestion_index);
+    suggestion := private.checked_object(
+      suggestion_field,
+      value -> suggestion_index,
+      array['ref', 'deck_id', 'expected_deck_revision', 'incoming', 'reason'],
+      array['outgoing', 'pair_with']
+    );
+    if (suggestion -> 'incoming' ? 'from_deck_id') <> (suggestion ? 'pair_with') then
+      perform private.invalid_argument(
+        suggestion_field || case when suggestion ? 'pair_with' then '.incoming.from_deck_id' else '.pair_with' end,
+        format('%s.incoming.from_deck_id and %s.pair_with go together.', suggestion_field, suggestion_field)
+      );
+    end if;
+    if suggestion -> 'incoming' ->> 'from_deck_id' = suggestion ->> 'deck_id' then
+      perform private.invalid_argument(
+        suggestion_field || '.incoming.from_deck_id',
+        format('%s.incoming.from_deck_id must be another deck.', suggestion_field)
+      );
+    end if;
+    for earlier, earlier_index in
+      select element, ordinality - 1 from jsonb_array_elements(checked) with ordinality as listed(element, ordinality)
+    loop
+      if earlier ->> 'ref' = suggestion ->> 'ref' then
+        perform private.invalid_argument(
+          suggestion_field || '.ref',
+          format('%s.ref repeats the ref of %s[%s].', suggestion_field, field, earlier_index)
+        );
+      end if;
+      if earlier ->> 'deck_id' = suggestion ->> 'deck_id' and earlier -> 'expected_deck_revision' <> suggestion -> 'expected_deck_revision' then
+        perform private.invalid_argument(
+          suggestion_field || '.expected_deck_revision',
+          format('%s.expected_deck_revision must match %s[%s], which names the same deck.', suggestion_field, field, earlier_index)
+        );
+      end if;
+    end loop;
+    checked := checked || jsonb_build_array(suggestion);
+  end loop;
+  return checked;
+end;
+$$;
+
+grant execute on function
+  private.checked_key(text, jsonb, integer),
+  private.checked_reason(text, jsonb),
+  private.checked_object(text, jsonb, text[], text[]),
+  private.checked_outgoing(text, jsonb),
+  private.checked_deck_suggestions(text, jsonb)
+to authenticated;
+
+create function private.is_basic_land_card(card_oracle_id uuid)
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  select exists (select 1 from private.basic_land_cards() land where land.oracle_id = card_oracle_id);
+$$;
+
+create function private.outgoing_card_is_in_deck(owner_id uuid, chosen_deck_id uuid, outgoing_copy_id uuid, outgoing_oracle_id uuid)
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  select case
+    when outgoing_copy_id is not null then exists (
+      select 1
+      from public.deck_cards deck_card
+      where deck_card.user_id = owner_id and deck_card.deck_id = chosen_deck_id and deck_card.copy_id = outgoing_copy_id
+    )
+    when outgoing_oracle_id is not null then exists (
+      select 1
+      from public.deck_basic_lands basic_land
+      where basic_land.user_id = owner_id and basic_land.deck_id = chosen_deck_id and basic_land.oracle_id = outgoing_oracle_id
+    )
+    else true
+  end;
+$$;
+
+create function private.deck_suggestion_identity(suggestion jsonb)
+returns jsonb
+language sql
+immutable
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'deck_id', suggestion -> 'deck_id',
+    'incoming_oracle_id', suggestion -> 'incoming_oracle_id',
+    'as_commander', suggestion -> 'as_commander',
+    'outgoing_copy_id', suggestion -> 'outgoing_copy_id',
+    'outgoing_oracle_id', suggestion -> 'outgoing_oracle_id'
+  );
+$$;
+
+create function private.resolved_deck_suggestion(owner_id uuid, suggestion_index integer, checked jsonb)
+returns private.new_deck_suggestion
+language plpgsql
+stable
+set search_path = ''
+as $$
+declare
+  field text := format('suggestions[%s]', suggestion_index);
+  resolved private.new_deck_suggestion;
+  deck public.decks;
+  from_deck public.decks;
+begin
+  select * into deck from public.decks found_deck where found_deck.user_id = owner_id and found_deck.id = (checked ->> 'deck_id')::uuid;
+  if deck.id is null then
+    perform private.raise_search_error('not_found', format('%s.deck_id is not one of your decks.', field), field || '.deck_id');
+  end if;
+  if deck.revision <> (checked ->> 'expected_deck_revision')::integer then
+    perform private.raise_search_error(
+      'stale_revision',
+      format('%s.expected_deck_revision is not the deck revision. Read the deck again.', field),
+      jsonb_build_object(
+        'pointer', format('/suggestions/%s/expected_deck_revision', suggestion_index),
+        'expected', (checked ->> 'expected_deck_revision')::integer,
+        'current', deck.revision
+      )::text
+    );
+  end if;
+
+  resolved.index := suggestion_index;
+  resolved.suggestion_id := gen_random_uuid();
+  resolved.ref := checked ->> 'ref';
+  resolved.deck_id := deck.id;
+  resolved.deck_priority := deck.priority;
+  resolved.incoming_oracle_id := (checked -> 'incoming' ->> 'oracle_id')::uuid;
+  resolved.reason := checked ->> 'reason';
+  resolved.pair_with := checked ->> 'pair_with';
+  resolved.outgoing_is_commander := false;
+  if not exists (select 1 from public.cards card where card.oracle_id = resolved.incoming_oracle_id) then
+    perform private.raise_search_error(
+      'invalid_card',
+      format('%s.incoming.oracle_id is not a card in the card catalog.', field),
+      field || '.incoming.oracle_id'
+    );
+  end if;
+  resolved.incoming_is_basic_land := private.is_basic_land_card(resolved.incoming_oracle_id);
+
+  if checked -> 'outgoing' ? 'copy_id' then
+    resolved.outgoing_copy_id := (checked -> 'outgoing' ->> 'copy_id')::uuid;
+    select printing.oracle_id, deck_card.commander_at is not null
+      into resolved.outgoing_oracle_id, resolved.outgoing_is_commander
+      from public.copies copy
+      join public.card_printings printing on printing.id = copy.card_printing_id
+      left join public.deck_cards deck_card
+        on deck_card.user_id = copy.user_id and deck_card.copy_id = copy.id and deck_card.deck_id = deck.id
+      where copy.user_id = owner_id and copy.id = resolved.outgoing_copy_id;
+    if resolved.outgoing_oracle_id is null then
+      perform private.raise_search_error(
+        'not_found',
+        format('%s.outgoing.copy_id is not one of your copies.', field),
+        field || '.outgoing.copy_id'
+      );
+    end if;
+  elsif checked -> 'outgoing' ? 'basic_land_oracle_id' then
+    resolved.outgoing_oracle_id := (checked -> 'outgoing' ->> 'basic_land_oracle_id')::uuid;
+    if not private.is_basic_land_card(resolved.outgoing_oracle_id) then
+      perform private.invalid_argument(
+        field || '.outgoing.basic_land_oracle_id',
+        format('%s.outgoing.basic_land_oracle_id is not a basic land card.', field)
+      );
+    end if;
+  end if;
+  if not private.outgoing_card_is_in_deck(owner_id, deck.id, resolved.outgoing_copy_id, resolved.outgoing_oracle_id) then
+    perform private.raise_search_error(
+      'outgoing_not_in_deck',
+      format('%s.outgoing is not in the deck. Read the deck again.', field),
+      field || '.outgoing.' || case when resolved.outgoing_copy_id is not null then 'copy_id' else 'basic_land_oracle_id' end
+    );
+  end if;
+  resolved.as_commander := coalesce((checked -> 'incoming' ->> 'as_commander')::boolean, resolved.outgoing_is_commander);
+
+  resolved.from_deck_id := (checked -> 'incoming' ->> 'from_deck_id')::uuid;
+  if resolved.from_deck_id is not null then
+    select * into from_deck from public.decks found_deck where found_deck.user_id = owner_id and found_deck.id = resolved.from_deck_id;
+    if from_deck.id is null then
+      perform private.raise_search_error(
+        'not_found',
+        format('%s.incoming.from_deck_id is not one of your decks.', field),
+        field || '.incoming.from_deck_id'
+      );
+    end if;
+    resolved.from_deck_priority := from_deck.priority;
+    if not exists (
+      select 1
+      from public.deck_cards deck_card
+      join public.copies copy on copy.user_id = deck_card.user_id and copy.id = deck_card.copy_id
+      join public.card_printings printing on printing.id = copy.card_printing_id
+      where deck_card.user_id = owner_id and deck_card.deck_id = from_deck.id and printing.oracle_id = resolved.incoming_oracle_id
+    ) then
+      perform private.raise_search_error(
+        'pair_incomplete',
+        format('%s.incoming.from_deck_id names a deck without the incoming card.', field),
+        field || '.incoming.from_deck_id'
+      );
+    end if;
+  end if;
+  return resolved;
+end;
+$$;
+
+create function private.paired_deck_suggestions(suggestions private.new_deck_suggestion[])
+returns private.new_deck_suggestion[]
+language plpgsql
+immutable
+set search_path = ''
+as $$
+declare
+  suggestion private.new_deck_suggestion;
+  partner private.new_deck_suggestion;
+  field text;
+begin
+  foreach suggestion in array suggestions loop
+    continue when suggestion.pair_with is null;
+    field := format('suggestions[%s].pair_with', suggestion.index);
+    select * into partner from unnest(suggestions) candidate where candidate.ref = suggestion.pair_with;
+    if partner.ref is null then
+      perform private.raise_search_error('not_found', format('%s is not the ref of a suggestion in this call.', field), field);
+    end if;
+    if partner.deck_id <> suggestion.from_deck_id
+      or partner.outgoing_copy_id is null
+      or partner.outgoing_oracle_id <> suggestion.incoming_oracle_id then
+      perform private.raise_search_error(
+        'pair_incomplete',
+        format('%s must take the incoming card out of incoming.from_deck_id with an incoming card of its own.', field),
+        field
+      );
+    end if;
+    if coalesce(partner.pair_with, suggestion.ref) <> suggestion.ref or exists (
+      select 1 from unnest(suggestions) other_suggestion
+      where other_suggestion.pair_with = suggestion.pair_with and other_suggestion.index <> suggestion.index
+    ) then
+      perform private.invalid_argument(field, format('%s names a suggestion paired with another one.', field));
+    end if;
+    suggestion.paired_suggestion_id := partner.suggestion_id;
+    partner.paired_suggestion_id := suggestion.suggestion_id;
+    suggestions[suggestion.index + 1] := suggestion;
+    suggestions[partner.index + 1] := partner;
+  end loop;
+  return suggestions;
+end;
+$$;
+
+create function private.check_duplicate_deck_suggestions(owner_id uuid, suggestions private.new_deck_suggestion[])
+returns void
+language plpgsql
+stable
+set search_path = ''
+as $$
+declare
+  suggestion private.new_deck_suggestion;
+  open_suggestion_id uuid;
+begin
+  foreach suggestion in array suggestions loop
+    if exists (
+      select 1
+      from unnest(suggestions) earlier
+      where earlier.index < suggestion.index
+        and private.deck_suggestion_identity(to_jsonb(earlier)) = private.deck_suggestion_identity(to_jsonb(suggestion))
+    ) then
+      perform private.invalid_argument(
+        format('suggestions[%s]', suggestion.index),
+        format('suggestions[%s] repeats another suggestion in this call.', suggestion.index)
+      );
+    end if;
+    select saved.id into open_suggestion_id
+      from public.deck_suggestions saved
+      where saved.user_id = owner_id
+        and saved.deck_id = suggestion.deck_id
+        and saved.status = 'open'
+        and private.deck_suggestion_identity(to_jsonb(saved)) = private.deck_suggestion_identity(to_jsonb(suggestion))
+      limit 1;
+    if open_suggestion_id is not null then
+      perform private.raise_search_error(
+        'duplicate_open_suggestion',
+        format('suggestions[%s] is the same as an open suggestion. Withdraw it or replace its reason instead.', suggestion.index),
+        jsonb_build_object('pointer', format('/suggestions/%s', suggestion.index), 'suggestion_id', open_suggestion_id)::text
+      );
+    end if;
+  end loop;
+end;
+$$;
+
+create function private.check_deck_suggestion_limits(owner_id uuid, suggestions private.new_deck_suggestion[])
+returns void
+language plpgsql
+stable
+set search_path = ''
+as $$
+declare
+  hour_count integer;
+  frees_room_at timestamptz;
+  full_deck_index integer;
+begin
+  select count(*) into hour_count
+    from public.deck_suggestions saved
+    where saved.user_id = owner_id and saved.created_at > now() - interval '1 hour';
+  if hour_count + cardinality(suggestions) > 30 then
+    select saved.created_at + interval '1 hour' into frees_room_at
+      from public.deck_suggestions saved
+      where saved.user_id = owner_id and saved.created_at > now() - interval '1 hour'
+      order by saved.created_at
+      offset hour_count + cardinality(suggestions) - 31
+      limit 1;
+    perform private.raise_search_error(
+      'limit_exceeded',
+      'This call would pass 30 suggestions in an hour. Wait, then try again.',
+      jsonb_build_object(
+        'pointer', '/suggestions',
+        'retry_after_seconds', greatest(1, ceil(extract(epoch from frees_room_at - now()))::integer)
+      )::text
+    );
+  end if;
+
+  select min(per_deck.first_index) into full_deck_index
+    from (
+      select suggestion.deck_id, count(*) as new_count, min(suggestion.index) as first_index
+      from unnest(suggestions) suggestion
+      group by suggestion.deck_id
+    ) per_deck
+    where per_deck.new_count + (
+      select count(*)
+      from public.deck_suggestions saved
+      where saved.user_id = owner_id and saved.deck_id = per_deck.deck_id and saved.status = 'open'
+    ) > 50;
+  if full_deck_index is not null then
+    perform private.raise_search_error(
+      'limit_exceeded',
+      format('This call would pass 50 open suggestions in the deck of suggestions[%s]. Withdraw some first.', full_deck_index),
+      format('suggestions[%s].deck_id', full_deck_index)
+    );
+  end if;
+end;
+$$;
+
+create function private.deck_suggestion_effect(
+  owner_id uuid,
+  suggestion private.new_deck_suggestion,
+  evaluation public.deck_evaluations
+)
+returns jsonb
+language plpgsql
+stable
+set search_path = ''
+as $$
+declare
+  contents jsonb := private.deck_contents(owner_id, suggestion.deck_id);
+  outgoing_basic_land_oracle_id uuid := case when suggestion.outgoing_copy_id is null then suggestion.outgoing_oracle_id end;
+begin
   contents := jsonb_build_object(
     'copies', coalesce((
       select jsonb_agg(copy)
       from (
         select copy
         from jsonb_array_elements(contents -> 'copies') copy
-        where (copy ->> 'copy_id') is distinct from (item ->> 'outgoing_copy_id')
+        where (copy ->> 'copy_id')::uuid is distinct from suggestion.outgoing_copy_id
         union all
         select jsonb_build_object(
-          'copy_id', item -> 'suggestion_id',
+          'copy_id', suggestion.suggestion_id,
           'card_printing_id', (
             select printing.id
             from public.card_printings printing
-            where printing.oracle_id = incoming_oracle_id
+            where printing.oracle_id = suggestion.incoming_oracle_id
             order by printing.absent_since is not null, printing.released_at desc, printing.id
             limit 1
           ),
-          'role', case when (item ->> 'as_commander')::boolean then 'commander' else 'main' end
+          'role', case when suggestion.as_commander then 'commander' else 'main' end
         )
-        where not incoming_is_basic_land
+        where not suggestion.incoming_is_basic_land
       ) suggested_copies
     ), '[]'::jsonb),
     'basic_lands', coalesce((
@@ -236,7 +616,7 @@ begin
           select (stored_land ->> 'oracle_id')::uuid as oracle_id, (stored_land ->> 'count')::integer as count
           from jsonb_array_elements(contents -> 'basic_lands') stored_land
           union all
-          select incoming_oracle_id, 1 where incoming_is_basic_land
+          select suggestion.incoming_oracle_id, 1 where suggestion.incoming_is_basic_land
           union all
           select outgoing_basic_land_oracle_id, -1 where outgoing_basic_land_oracle_id is not null
         ) counted
@@ -250,38 +630,14 @@ begin
 end;
 $$;
 
-create function private.deck_rules_data_is_stale(owner_id uuid, chosen_deck_id uuid)
-returns boolean
-language plpgsql
-stable
-set search_path = ''
-as $$
-declare
-  evaluation public.deck_evaluations;
-begin
-  select * into evaluation from public.deck_evaluations stored where stored.user_id = owner_id and stored.deck_id = chosen_deck_id;
-  if evaluation.deck_id is not null then
-    return (private.deck_evaluation_staleness(evaluation) ->> 'bracket_stale')::boolean;
-  end if;
-  return exists (
-    select 1
-    from public.catalog_freshness() freshness
-    where freshness.source in ('catalog', 'oracle_tags', 'commander_spellbook')
-      and freshness.succeeded_at is not null
-      and freshness.is_stale
-  );
-end;
-$$;
-
-create function private.deck_suggestion_warnings(owner_id uuid, item jsonb)
+create function private.deck_suggestion_warnings(owner_id uuid, suggestion private.new_deck_suggestion)
 returns jsonb
 language plpgsql
 stable
 set search_path = ''
 as $$
 declare
-  deck public.decks;
-  from_deck public.decks;
+  evaluation public.deck_evaluations;
   effect jsonb;
   owned_count integer;
   free_count integer;
@@ -289,40 +645,39 @@ declare
   other_decks jsonb;
   warnings jsonb := '[]';
 begin
-  select * into deck from public.decks named_deck where named_deck.user_id = owner_id and named_deck.id = (item ->> 'deck_id')::uuid;
-  select * into from_deck from public.decks named_deck where named_deck.user_id = owner_id and named_deck.id = (item ->> 'from_deck_id')::uuid;
+  select * into evaluation
+    from public.deck_evaluations stored
+    where stored.user_id = owner_id and stored.deck_id = suggestion.deck_id;
 
-  effect := private.deck_suggestion_effect(owner_id, item);
+  effect := private.deck_suggestion_effect(owner_id, suggestion, evaluation);
   if effect is not null then
     warnings := warnings || jsonb_build_object('code', 'would_break_validity', 'effect', effect);
   end if;
 
-  if not (item ->> 'incoming_is_basic_land')::boolean then
+  if not suggestion.incoming_is_basic_land then
     select count(*), count(*) filter (where a.is_free), count(*) filter (where a.is_free and not a.is_protected)
       into owned_count, free_count, free_unprotected_count
       from private.collection_availability a
-      where a.user_id = owner_id and a.oracle_id = (item ->> 'incoming_oracle_id')::uuid;
+      where a.user_id = owner_id and a.oracle_id = suggestion.incoming_oracle_id;
     select jsonb_agg(
-        jsonb_build_object('deck_id', other.id, 'name', other.name, 'priority', other.priority)
-        order by other.priority, lower(other.name), other.id
+        jsonb_build_object('deck_id', holding_deck.id, 'name', holding_deck.name, 'priority', holding_deck.priority)
+        order by holding_deck.priority, lower(holding_deck.name), holding_deck.id
       )
       into other_decks
-      from public.decks other
-      where other.user_id = owner_id
-        and other.id <> deck.id
+      from public.decks holding_deck
+      where holding_deck.user_id = owner_id
+        and holding_deck.id <> suggestion.deck_id
         and exists (
           select 1
           from public.deck_cards deck_card
           join private.collection_availability a on a.user_id = deck_card.user_id and a.copy_id = deck_card.copy_id
-          where deck_card.user_id = owner_id
-            and deck_card.deck_id = other.id
-            and a.oracle_id = (item ->> 'incoming_oracle_id')::uuid
+          where deck_card.user_id = owner_id and deck_card.deck_id = holding_deck.id and a.oracle_id = suggestion.incoming_oracle_id
         );
 
     if free_count > 0 and free_unprotected_count = 0 then
       warnings := warnings || jsonb_build_object('code', 'protected_only');
     end if;
-    if free_count = 0 and other_decks is not null and from_deck.id is null then
+    if free_count = 0 and other_decks is not null and suggestion.from_deck_id is null then
       warnings := warnings || jsonb_build_object('code', 'in_other_decks', 'decks', other_decks);
     end if;
     if owned_count = 0 then
@@ -330,21 +685,45 @@ begin
     end if;
   end if;
 
-  if (item ->> 'outgoing_is_commander')::boolean then
+  if suggestion.outgoing_is_commander then
     warnings := warnings || jsonb_build_object('code', 'replaces_commander');
   end if;
-  if from_deck.priority < deck.priority then
+  if suggestion.from_deck_priority < suggestion.deck_priority then
     warnings := warnings || jsonb_build_object(
       'code', 'against_deck_priority',
-      'from_deck_priority', from_deck.priority,
-      'deck_priority', deck.priority
+      'from_deck_priority', suggestion.from_deck_priority,
+      'deck_priority', suggestion.deck_priority
     );
   end if;
-  if private.deck_rules_data_is_stale(owner_id, deck.id) then
+  if (private.deck_evaluation_staleness(evaluation) ->> 'bracket_stale')::boolean then
     warnings := warnings || jsonb_build_object('code', 'rules_stale');
   end if;
   return warnings;
 end;
+$$;
+
+create or replace function private.rules_data_behind(evaluation public.deck_evaluations)
+returns table (source public.import_source)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select snapshot.source
+  from public.import_snapshots snapshot
+  where evaluation.deck_id is not null
+    and snapshot.source in ('catalog', 'oracle_tags', 'commander_spellbook')
+    and snapshot.snapshot_at > coalesce(
+      case snapshot.source
+        when 'catalog' then evaluation.catalog_at
+        when 'oracle_tags' then evaluation.oracle_tags_at
+        when 'commander_spellbook' then evaluation.commander_spellbook_at
+      end,
+      '-infinity'
+    )
+  union
+  select 'oracle_tags'::public.import_source
+  where evaluation.judged_at < (select max(change.changed_at) from public.disabled_tag_changes change);
 $$;
 
 create function public.create_deck_suggestions(request jsonb)
@@ -357,337 +736,78 @@ declare
   caller uuid;
   ai_client_id uuid;
   ai_client_name text;
-  request_key text;
-  stored public.deck_suggestion_requests;
-  items jsonb := '[]';
-  resolved jsonb := '[]';
-  item jsonb;
-  other jsonb;
-  field text;
-  pointer text;
-  item_index integer;
-  deck public.decks;
-  outgoing record;
-  from_deck_id uuid;
-  duplicate_id uuid;
+  checked jsonb;
+  earlier_request public.deck_suggestion_requests;
+  suggestions private.new_deck_suggestion[] := '{}';
+  suggestion_index integer;
   result jsonb;
 begin
   caller := private.caller_user_id();
   select client.client_id, client.client_name into ai_client_id, ai_client_name from private.caller_ai_client() client;
-
-  perform private.check_object_fields(null, request, array['idempotency_key', 'suggestions'], array['idempotency_key', 'suggestions']);
-  request_key := private.checked_key('idempotency_key', request -> 'idempotency_key', 8) #>> '{}';
-  if jsonb_typeof(request -> 'suggestions') is distinct from 'array'
-    or jsonb_array_length(request -> 'suggestions') not between 1 and 10 then
-    perform private.invalid_argument('suggestions', 'suggestions must be a list of 1 to 10 suggestions.');
-  end if;
-  for item_index in 0 .. jsonb_array_length(request -> 'suggestions') - 1 loop
-    field := format('suggestions[%s]', item_index);
-    item := private.checked_deck_suggestion(field, request -> 'suggestions' -> item_index);
-    for other in select value from jsonb_array_elements(items) loop
-      if other ->> 'ref' = item ->> 'ref' then
-        perform private.invalid_argument(field || '.ref', format('%s.ref repeats the ref of suggestions[%s].', field, other ->> 'index'));
-      end if;
-      if other ->> 'deck_id' = item ->> 'deck_id' and other -> 'expected_deck_revision' <> item -> 'expected_deck_revision' then
-        perform private.invalid_argument(
-          field || '.expected_deck_revision',
-          format('%s.expected_deck_revision must match suggestions[%s], which names the same deck.', field, other ->> 'index')
-        );
-      end if;
-    end loop;
-    if item ->> 'from_deck_id' = item ->> 'deck_id' then
-      perform private.invalid_argument(
-        field || '.incoming.from_deck_id',
-        format('%s.incoming.from_deck_id must be another deck.', field)
-      );
-    end if;
-    items := items || (jsonb_build_object('index', item_index, 'suggestion_id', gen_random_uuid()) || item);
-  end loop;
+  checked := private.check_request(request, array['idempotency_key', 'suggestions']);
 
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('create_deck_suggestions ' || caller::text, 0));
-  delete from public.deck_suggestion_requests old where old.created_at < now() - interval '24 hours';
-  select * into stored
-    from public.deck_suggestion_requests earlier_request
-    where earlier_request.user_id = caller and earlier_request.idempotency_key = request_key;
-  if stored.user_id is not null then
-    if stored.request <> request then
+  delete from public.deck_suggestion_requests expired where expired.created_at < now() - interval '24 hours';
+  select * into earlier_request
+    from public.deck_suggestion_requests saved
+    where saved.user_id = caller and saved.idempotency_key = checked ->> 'idempotency_key';
+  if earlier_request.user_id is not null then
+    if earlier_request.request <> request then
       perform private.raise_search_error(
         'idempotency_conflict',
         'idempotency_key was used with different input. Send a new idempotency_key.',
         'idempotency_key'
       );
     end if;
-    return stored.result || jsonb_build_object('replayed', true);
+    return earlier_request.result || jsonb_build_object('replayed', true);
   end if;
 
   perform 1
-    from public.decks locked
-    where locked.user_id = caller
-      and locked.id in (
-        select (named ->> 'deck_id')::uuid from jsonb_array_elements(items) named
+    from public.decks locked_deck
+    where locked_deck.user_id = caller
+      and locked_deck.id in (
+        select (sent.suggestion ->> 'deck_id')::uuid from jsonb_array_elements(checked -> 'suggestions') sent(suggestion)
         union
-        select (named ->> 'from_deck_id')::uuid from jsonb_array_elements(items) named
+        select (sent.suggestion -> 'incoming' ->> 'from_deck_id')::uuid from jsonb_array_elements(checked -> 'suggestions') sent(suggestion)
       )
-    order by locked.id
+    order by locked_deck.id
     for update;
 
-  for item in select value from jsonb_array_elements(items) order by (value ->> 'index')::integer loop
-    field := format('suggestions[%s]', item ->> 'index');
-    pointer := format('/suggestions/%s', item ->> 'index');
-    select * into deck from public.decks named_deck where named_deck.user_id = caller and named_deck.id = (item ->> 'deck_id')::uuid;
-    if deck.id is null then
-      perform private.raise_search_error('not_found', format('%s.deck_id is not one of your decks.', field), field || '.deck_id');
-    end if;
-    if deck.revision <> (item ->> 'expected_deck_revision')::integer then
-      perform private.raise_search_error(
-        'stale_revision',
-        format('%s.expected_deck_revision is not the deck revision. Read the deck again.', field),
+  for suggestion_index in 0 .. jsonb_array_length(checked -> 'suggestions') - 1 loop
+    suggestions := suggestions || private.resolved_deck_suggestion(caller, suggestion_index, checked -> 'suggestions' -> suggestion_index);
+  end loop;
+  suggestions := private.paired_deck_suggestions(suggestions);
+  perform private.check_duplicate_deck_suggestions(caller, suggestions);
+  perform private.check_deck_suggestion_limits(caller, suggestions);
+
+  result := jsonb_build_object(
+    'suggestions', (
+      select jsonb_agg(
         jsonb_build_object(
-          'pointer', pointer || '/expected_deck_revision',
-          'expected', (item ->> 'expected_deck_revision')::integer,
-          'current', deck.revision
-        )::text
-      );
-    end if;
-    if not exists (select 1 from public.cards card where card.oracle_id = (item ->> 'incoming_oracle_id')::uuid) then
-      perform private.raise_search_error(
-        'invalid_card',
-        format('%s.incoming.oracle_id is not a card in the card catalog.', field),
-        field || '.incoming.oracle_id'
-      );
-    end if;
-    item := item || jsonb_build_object(
-      'incoming_is_basic_land',
-      exists (select 1 from private.basic_land_cards() land where land.oracle_id = (item ->> 'incoming_oracle_id')::uuid),
-      'outgoing_oracle_id', null,
-      'outgoing_is_commander', false
-    );
-
-    if item ->> 'outgoing_copy_id' is not null then
-      select printing.oracle_id, deck_card.deck_id, deck_card.commander_at is not null as is_commander
-        into outgoing
-        from public.copies copy
-        join public.card_printings printing on printing.id = copy.card_printing_id
-        left join public.deck_cards deck_card on deck_card.user_id = copy.user_id and deck_card.copy_id = copy.id
-        where copy.user_id = caller and copy.id = (item ->> 'outgoing_copy_id')::uuid;
-      if outgoing.oracle_id is null then
-        perform private.raise_search_error(
-          'not_found',
-          format('%s.outgoing.copy_id is not one of your copies.', field),
-          field || '.outgoing.copy_id'
-        );
-      end if;
-      if outgoing.deck_id is distinct from deck.id then
-        perform private.raise_search_error(
-          'outgoing_not_in_deck',
-          format('%s.outgoing.copy_id is not in the deck. Read the deck again.', field),
-          field || '.outgoing.copy_id'
-        );
-      end if;
-      item := item || jsonb_build_object('outgoing_oracle_id', outgoing.oracle_id, 'outgoing_is_commander', outgoing.is_commander);
-    elsif item ->> 'outgoing_basic_land_oracle_id' is not null then
-      if not exists (
-        select 1 from private.basic_land_cards() land where land.oracle_id = (item ->> 'outgoing_basic_land_oracle_id')::uuid
-      ) then
-        perform private.invalid_argument(
-          field || '.outgoing.basic_land_oracle_id',
-          format('%s.outgoing.basic_land_oracle_id is not a basic land card.', field)
-        );
-      end if;
-      if not exists (
-        select 1
-        from public.deck_basic_lands land
-        where land.user_id = caller and land.deck_id = deck.id and land.oracle_id = (item ->> 'outgoing_basic_land_oracle_id')::uuid
-      ) then
-        perform private.raise_search_error(
-          'outgoing_not_in_deck',
-          format('%s.outgoing.basic_land_oracle_id is not in the deck. Read the deck again.', field),
-          field || '.outgoing.basic_land_oracle_id'
-        );
-      end if;
-      item := item || jsonb_build_object('outgoing_oracle_id', item -> 'outgoing_basic_land_oracle_id');
-    end if;
-    item := item || jsonb_build_object(
-      'as_commander',
-      coalesce((item ->> 'as_commander')::boolean, (item ->> 'outgoing_is_commander')::boolean)
-    );
-
-    from_deck_id := (item ->> 'from_deck_id')::uuid;
-    if from_deck_id is not null then
-      if not exists (select 1 from public.decks named_deck where named_deck.user_id = caller and named_deck.id = from_deck_id) then
-        perform private.raise_search_error(
-          'not_found',
-          format('%s.incoming.from_deck_id is not one of your decks.', field),
-          field || '.incoming.from_deck_id'
-        );
-      end if;
-      if not exists (
-        select 1
-        from public.deck_cards deck_card
-        join public.copies copy on copy.user_id = deck_card.user_id and copy.id = deck_card.copy_id
-        join public.card_printings printing on printing.id = copy.card_printing_id
-        where deck_card.user_id = caller
-          and deck_card.deck_id = from_deck_id
-          and printing.oracle_id = (item ->> 'incoming_oracle_id')::uuid
-      ) then
-        perform private.raise_search_error(
-          'pair_incomplete',
-          format('%s.incoming.from_deck_id names a deck without the incoming card.', field),
-          field || '.incoming.from_deck_id'
-        );
-      end if;
-      if not exists (select 1 from jsonb_array_elements(items) partner where partner ->> 'ref' = item ->> 'pair_with') then
-        perform private.raise_search_error(
-          'not_found',
-          format('%s.pair_with is not the ref of a suggestion in this call.', field),
-          field || '.pair_with'
-        );
-      end if;
-    end if;
-    resolved := resolved || item;
-  end loop;
-
-  items := resolved;
-  resolved := '[]';
-  for item in select value from jsonb_array_elements(items) order by (value ->> 'index')::integer loop
-    field := format('suggestions[%s]', item ->> 'index');
-    pointer := format('/suggestions/%s', item ->> 'index');
-    if item ->> 'pair_with' is not null then
-      select partner into other from jsonb_array_elements(items) partner where partner ->> 'ref' = item ->> 'pair_with';
-      if other ->> 'deck_id' <> item ->> 'from_deck_id' or other ->> 'outgoing_copy_id' is null
-        or other ->> 'outgoing_oracle_id' <> item ->> 'incoming_oracle_id' then
-        perform private.raise_search_error(
-          'pair_incomplete',
-          format('%s.pair_with must take the incoming card out of incoming.from_deck_id with an incoming card of its own.', field),
-          field || '.pair_with'
-        );
-      end if;
-      if other ->> 'pair_with' is distinct from item ->> 'ref' and other ->> 'pair_with' is not null then
-        perform private.invalid_argument(field || '.pair_with', format('%s.pair_with names a suggestion paired with another one.', field));
-      end if;
-      if exists (
-        select 1
-        from jsonb_array_elements(items) rival
-        where rival ->> 'pair_with' = item ->> 'pair_with' and (rival ->> 'index')::integer < (item ->> 'index')::integer
-      ) then
-        perform private.invalid_argument(field || '.pair_with', format('%s.pair_with names a suggestion paired with another one.', field));
-      end if;
-      item := item || jsonb_build_object('paired_suggestion_id', other -> 'suggestion_id');
-    else
-      select partner -> 'suggestion_id' into other
-        from jsonb_array_elements(items) partner
-        where partner ->> 'pair_with' = item ->> 'ref';
-      item := item || jsonb_build_object('paired_suggestion_id', other);
-    end if;
-
-    if exists (
-      select 1
-      from jsonb_array_elements(items) earlier
-      where (earlier ->> 'index')::integer < (item ->> 'index')::integer
-        and earlier ->> 'deck_id' = item ->> 'deck_id'
-        and earlier ->> 'incoming_oracle_id' = item ->> 'incoming_oracle_id'
-        and earlier -> 'as_commander' = item -> 'as_commander'
-        and earlier -> 'outgoing_copy_id' = item -> 'outgoing_copy_id'
-        and earlier -> 'outgoing_oracle_id' = item -> 'outgoing_oracle_id'
-    ) then
-      perform private.invalid_argument(field, format('%s repeats another suggestion in this call.', field));
-    end if;
-    select suggestion.id into duplicate_id
-      from public.deck_suggestions suggestion
-      where suggestion.user_id = caller
-        and suggestion.deck_id = (item ->> 'deck_id')::uuid
-        and suggestion.status = 'open'
-        and suggestion.incoming_oracle_id = (item ->> 'incoming_oracle_id')::uuid
-        and suggestion.as_commander = (item ->> 'as_commander')::boolean
-        and suggestion.outgoing_copy_id is not distinct from (item ->> 'outgoing_copy_id')::uuid
-        and suggestion.outgoing_oracle_id is not distinct from (item ->> 'outgoing_oracle_id')::uuid
-      limit 1;
-    if duplicate_id is not null then
-      perform private.raise_search_error(
-        'duplicate_open_suggestion',
-        format('%s is the same as an open suggestion. Withdraw it or replace its reason instead.', field),
-        jsonb_build_object('pointer', pointer, 'suggestion_id', duplicate_id)::text
-      );
-    end if;
-    resolved := resolved || item;
-  end loop;
-  items := resolved;
-
-  if (
-    select count(*)
-    from public.deck_suggestions suggestion
-    where suggestion.user_id = caller and suggestion.created_at > now() - interval '1 hour'
-  ) + jsonb_array_length(items) > 30 then
-    perform private.raise_search_error(
-      'limit_exceeded',
-      'This call would pass 30 suggestions in an hour. Try again later.',
-      'suggestions'
-    );
-  end if;
-  select format('suggestions[%s].deck_id', named.first_index) into field
-    from (
-      select (named_item ->> 'deck_id')::uuid as deck_id, count(*) as item_count, min((named_item ->> 'index')::integer) as first_index
-      from jsonb_array_elements(items) named_item
-      group by named_item ->> 'deck_id'
-    ) named
-    where named.item_count + (
-      select count(*)
-      from public.deck_suggestions suggestion
-      where suggestion.user_id = caller and suggestion.deck_id = named.deck_id and suggestion.status = 'open'
-    ) > 50
-    order by named.first_index
-    limit 1;
-  if field is not null then
-    perform private.raise_search_error(
-      'limit_exceeded',
-      format('This call would pass 50 open suggestions in the deck of %s. Withdraw some first.', field),
-      field
-    );
-  end if;
-
-  resolved := '[]';
-  for item in select value from jsonb_array_elements(items) order by (value ->> 'index')::integer loop
-    resolved := resolved || (item || jsonb_build_object('warnings', private.deck_suggestion_warnings(caller, item)));
-  end loop;
-  items := resolved;
+          'ref', suggestion.ref,
+          'suggestion_id', suggestion.suggestion_id,
+          'paired_suggestion_id', suggestion.paired_suggestion_id,
+          'warnings', private.deck_suggestion_warnings(caller, suggestion)
+        )
+        order by suggestion.index
+      )
+      from unnest(suggestions) suggestion
+    ),
+    'replayed', false
+  );
 
   insert into public.deck_suggestions (
     id, user_id, deck_id, incoming_oracle_id, as_commander, outgoing_copy_id, outgoing_oracle_id, reason,
     from_deck_id, paired_suggestion_id, client_id, client_name
   )
   select
-    suggested.suggestion_id, caller, suggested.deck_id, suggested.incoming_oracle_id, suggested.as_commander,
-    suggested.outgoing_copy_id, suggested.outgoing_oracle_id, suggested.reason, suggested.from_deck_id,
-    suggested.paired_suggestion_id, ai_client_id, ai_client_name
-  from jsonb_to_recordset(items) as suggested(
-    suggestion_id uuid,
-    deck_id uuid,
-    incoming_oracle_id uuid,
-    as_commander boolean,
-    outgoing_copy_id uuid,
-    outgoing_oracle_id uuid,
-    reason text,
-    from_deck_id uuid,
-    paired_suggestion_id uuid
-  );
+    suggestion.suggestion_id, caller, suggestion.deck_id, suggestion.incoming_oracle_id, suggestion.as_commander,
+    suggestion.outgoing_copy_id, suggestion.outgoing_oracle_id, suggestion.reason, suggestion.from_deck_id,
+    suggestion.paired_suggestion_id, ai_client_id, ai_client_name
+  from unnest(suggestions) suggestion;
 
-  result := jsonb_build_object(
-    'suggestions', (
-      select jsonb_agg(
-        jsonb_build_object(
-          'ref', suggested -> 'ref',
-          'suggestion_id', suggested -> 'suggestion_id',
-          'paired_suggestion_id', suggested -> 'paired_suggestion_id',
-          'warnings', suggested -> 'warnings'
-        )
-        order by (suggested ->> 'index')::integer
-      )
-      from jsonb_array_elements(items) suggested
-    ),
-    'replayed', false
-  );
   insert into public.deck_suggestion_requests (user_id, idempotency_key, request, result)
-    values (caller, request_key, request, result);
+    values (caller, checked ->> 'idempotency_key', request, result);
   return result;
 end;
 $$;

@@ -163,10 +163,12 @@ async function storedSuggestion(user: TestUser, suggestionId: string) {
   return (await storedSuggestions(user)).find((suggestion) => suggestion.id === suggestionId);
 }
 
-async function storedRequests(user: TestUser) {
-  const { data, error } = await user.client.from('deck_suggestion_requests').select('idempotency_key');
-  expect(error).toBeNull();
-  return data!;
+function storedRequests(user: TestUser) {
+  return asDatabaseOwner(
+    (database) => database`
+      select idempotency_key from public.deck_suggestion_requests where user_id = ${user.userId} order by idempotency_key
+    `,
+  );
 }
 
 function codesOf(warnings: DeckSuggestionWarning[]) {
@@ -488,7 +490,7 @@ const rejects: [string, RejectCase][] = [
     'more than 30 suggestions in an hour',
     {
       code: 'limit_exceeded',
-      details: 'suggestions',
+      details: { pointer: '/suggestions', retry_after_seconds: expect.any(Number) },
       call: async ({ user }, { deckId }) => {
         await seededSuggestions(user, deckId, 29, '59 minutes');
         return {
@@ -555,6 +557,26 @@ describe('rejects', () => {
     }
     expect(await storedSuggestions(client.user)).toEqual(suggestionsBefore);
     expect(await storedRequests(client.user)).toEqual(requestsBefore);
+  });
+});
+
+describe('limits', () => {
+  test('the hourly limit says when enough suggestions leave the hour', async () => {
+    const client = await connectedAiClient();
+    const { deckId } = await krenkoDeck(client.user);
+    await seededSuggestions(client.user, deckId, 1, '50 minutes');
+    await seededSuggestions(client.user, deckId, 28, '30 minutes');
+    const items = await Promise.all(
+      [oracleIds[counterspell]!, oracleIds[lightningBolt]!, forest].map((oracleId) => suggestionItem(client.user, deckId, oracleId)),
+    );
+
+    const problem = await refusalOf(client, { idempotency_key: 'three-over-the-hour', suggestions: items });
+
+    expect(problem.code).toBe('limit_exceeded');
+    const { retry_after_seconds } = JSON.parse(problem.details!) as { retry_after_seconds: number };
+    expect(retry_after_seconds).toBeGreaterThan(29 * 60);
+    expect(retry_after_seconds).toBeLessThanOrEqual(30 * 60);
+    expect((await suggested(client, items.slice(0, 1))).suggestions).toHaveLength(1);
   });
 });
 
@@ -927,7 +949,7 @@ describe('access', () => {
     expect(error?.code).toBe(permissionDenied);
   });
 
-  test("another user's deck suggestions, events, and idempotency keys are unreadable", async () => {
+  test("another user's deck suggestions and events are unreadable, and no app role reads idempotency keys", async () => {
     const alice = await connectedAiClient();
     const bob = await signUpNewUser();
     const { deckId } = await krenkoDeck(alice.user);
@@ -939,10 +961,14 @@ describe('access', () => {
       `,
     );
 
-    for (const table of ['deck_suggestions', 'deck_suggestion_events', 'deck_suggestion_requests'] as const) {
+    for (const table of ['deck_suggestions', 'deck_suggestion_events'] as const) {
       expect((await alice.user.client.from(table).select('user_id')).data).toEqual([{ user_id: alice.user.userId }]);
       expect((await bob.client.from(table).select('user_id')).data).toEqual([]);
     }
+    for (const client of [alice.user.client, secretKeyClient()]) {
+      expect((await client.from('deck_suggestion_requests').select('user_id')).error?.code).toBe(permissionDenied);
+    }
+    expect(await storedRequests(alice.user)).toEqual([{ idempotency_key: 'alices-key' }]);
   });
 
   test('direct writes are refused', async () => {

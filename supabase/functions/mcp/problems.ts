@@ -71,7 +71,8 @@ function problemBase(name: ProblemName, detail: string) {
 
 export function problem(name: ProblemName, detail: string, members: Record<string, unknown> = {}): Problem {
   const extraMembers = Object.entries(members).filter(([member]) => !reservedMembers.has(member));
-  return { ...problemBase(name, detail), ...Object.fromEntries(extraMembers), retryable: problemKinds[name].retryable };
+  const retryable = problemKinds[name].retryable || 'retry_after_seconds' in members;
+  return { ...problemBase(name, detail), ...Object.fromEntries(extraMembers), retryable };
 }
 
 export function httpProblem(name: ProblemName, status: number, detail: string): Response {
