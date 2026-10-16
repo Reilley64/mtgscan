@@ -505,6 +505,17 @@ These warnings save the suggestion and come back in its `warnings`. Each has a `
 
 Idempotency keys are per user. Each call saves its key with its input and result for 24 hours. A repeat with the same key and input returns the first result with `replayed: true` and saves nothing. Each call deletes the keys that are older than 24 hours.
 
+#### List deck suggestions
+
+`supabase.rpc('list_deck_suggestions', { query: { deck_id, status, cursor, limit } })` returns `items`, the caller's deck suggestions newest first, and `next_cursor`. It is a `security invoker` read under row-level security. Every field of the query is optional.
+
+- It lists every state by default. `status` (`open`, `withdrawn`, or `stale`) lists one state. `deck_id` lists one deck's suggestions. A deck that is not the caller's is refused with `not_found` on `deck_id`.
+- A page has 20 suggestions, or `limit`, from 1 to 50. To read the next page, send `next_cursor` back as `cursor`, with the same filters. It is null on the last page. Suggestions saved in one call share `created_at`, and sort by `suggestion_id` among themselves. A cursor that is not valid, that comes from other filters, or that is older than 15 minutes is refused with `invalid_cursor` on `cursor`.
+- Each suggestion has `suggestion_id`, `deck_id`, `deck_name`, `incoming`, `outgoing`, `reason`, `status`, `paired_suggestion_id`, `client_name`, `created_at`, `status_changed_at`, and `events`.
+- `incoming` has the card's `oracle_id`, its `name`, `as_commander`, and `from_deck_id`. `from_deck_id` is null unless the suggestion is the paired suggestion that moves the card in from another deck.
+- `outgoing` is null, `{ copy_id, name }`, or `{ basic_land_oracle_id, name }`, the shapes that `create_deck_suggestions` takes plus the card's name.
+- `events` lists the suggestion's deck suggestion events, oldest first. Each has `kind` (`withdrawn` or `reason_replaced`), `client_name`, and `created_at`.
+
 #### Stale deck suggestions
 
 `private.mark_stale_deck_suggestions` runs at the end of every deck change: adding a copy, making or moving a commander, setting basic lands, removing a card, deleting a copy in a deck, and reverting. It marks an open suggestion of that deck stale when its outgoing copy is no longer in the deck, or when the deck has none left of its outgoing basic land card. A stale or withdrawn suggestion never changes back.
@@ -624,6 +635,7 @@ The tools come in this order. Every tool has `destructiveHint: false`, `idempote
 | `list_decks` | `list_decks` |
 | `get_deck` | `get_deck` |
 | `list_deck_changes` | `list_deck_changes` |
+| `list_deck_suggestions` | `list_deck_suggestions` |
 | `create_deck_suggestions` | `create_deck_suggestions` |
 
 - `supabase/functions/mcp/tools.ts` lists the tools. Each one has all four annotations, an input schema with `additionalProperties: false`, and an output schema that also allows a problem details object.
