@@ -13,14 +13,15 @@
 - `xcode-select` may point to the Command Line Tools. Set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` for `xcrun simctl` and for builds.
 - Use the one shared iPhone 16e Simulator. It matches the owner's phone. Do not create, boot, or erase another Simulator.
 - Only one agent at a time uses the Simulator, Metro, an Xcode or Expo native build, or the owner's iPhone. Take the device lock first with `mkdir /tmp/mtgscan-device.lock`, and write your name into `/tmp/mtgscan-device.lock/owner`. If `mkdir` fails, another agent has the device. Keep working on code and tests, and try again later.
-- When the device work is done, stop Metro, close the agent-device session, shut down the Simulator, delete the generated `ios/` and build folders, and remove `/tmp/mtgscan-device.lock`.
+- When the device work is done, stop Metro, close the Simulator with `device_close` and `shutdown: true`, delete the generated `ios/` and build folders, and remove `/tmp/mtgscan-device.lock`.
 - `expo run:ios` and `expo start` keep Metro running and never exit. Start them in the background with output to a log file, poll the log, and stop Metro when you are done.
-- Verify each UI change on the Simulator with agent-device. Read the `agent-device` and `ios-simulator` skills first. Save the screenshots for the PR evidence.
+- Verify each UI change on the Simulator with T3 Code's built-in device tools on the `t3-code` MCP server. Open the iPhone 16e with `device_open`. It shows the Simulator in the owner's Device panel and returns an agent-device command pinned to that Simulator. Use that command for taps, typing, and scrolling. Take screenshots with `device_screenshot`, and save them for the PR evidence.
+- Check web pages, such as an HTML prototype, in T3 Code's built-in browser with the `preview_` tools on the same server. Start with `preview_status`, then `preview_open`.
 - When a check needs a signed-in account, use the test sign-in against local Supabase. See Test sign-in. Ask the owner to sign in only for a check against hosted Supabase or of Apple or Google sign-in itself. Never type the owner's credentials.
 
 ## Test sign-in
 
-A development build against local Supabase can sign in a local test user with one tap, with no Apple or Google account. Use it for Simulator checks with agent-device. Do not add a temporary password sign-in.
+A development build against local Supabase can sign in a local test user with one tap, with no Apple or Google account. Use it for Simulator checks with T3 Code's device tools. Do not add a temporary password sign-in.
 
 - The test user is `test-user@mtgscan.test`. On local Supabase, its password is a local default in `supabase/test-user/account.ts`.
 - The local command and the development build test sign-in work only with the local stack at `http://127.0.0.1:54321` or `http://localhost:54321`. Both refuse every other Supabase URL.
