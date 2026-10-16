@@ -1,4 +1,4 @@
-import { SQL } from 'bun';
+import { SQL, type TransactionSQL } from 'bun';
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
@@ -10,8 +10,10 @@ const publishableKey =
   process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
 export const localStackUrl = url;
 
-export async function asDatabaseOwner<T>(work: (database: SQL) => Promise<T>): Promise<T> {
-  const database = new SQL(process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres');
+const databaseUrl = process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+
+async function asDatabaseUser<T>(url: string, work: (database: SQL) => Promise<T>): Promise<T> {
+  const database = new SQL(url);
   try {
     return await work(database);
   } finally {
@@ -19,10 +21,20 @@ export async function asDatabaseOwner<T>(work: (database: SQL) => Promise<T>): P
   }
 }
 
+export function asDatabaseOwner<T>(work: (database: SQL) => Promise<T>): Promise<T> {
+  return asDatabaseUser(databaseUrl, work);
+}
+
+export function asAuthAdmin<T>(work: (database: SQL) => Promise<T>): Promise<T> {
+  const url = new URL(databaseUrl);
+  url.username = 'supabase_auth_admin';
+  return asDatabaseUser(url.toString(), work);
+}
+
 export async function asDatabaseRole<T>(
   role: 'anon' | 'authenticated' | 'deck_evaluator' | 'catalog_importer',
   claims: Record<string, string | string[]>,
-  work: (database: SQL) => Promise<T>,
+  work: (database: TransactionSQL) => Promise<T>,
 ): Promise<T> {
   return asDatabaseOwner((database) =>
     database.begin(async (transaction) => {
@@ -59,6 +71,13 @@ export type TestUser = {
 export function anonymousClient(): AppClient {
   return createClient<Database>(url, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+export function tokenClient(token: string): AppClient {
+  return createClient<Database>(url, publishableKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
   });
 }
 

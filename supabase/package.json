@@ -14,7 +14,7 @@
     "./test-user": "./test-user/account.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && deno check --no-lock --config functions/mcp/deno.json functions/mcp",
     "test": "bun test",
     "types": "supabase gen types typescript --local > database.types.ts",
     "types:check": "supabase gen types typescript --local | diff database.types.ts -",
@@ -31,7 +31,9 @@
     "@supabase/supabase-js": "^2.117.3"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
     "@types/bun": "^1.4.2",
+    "deno": "2.9.6",
     "typescript": "~6.0.3"
   }
 }

@@ -3,7 +3,8 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import type { SQL } from 'bun';
 
 import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
-import { asDatabaseOwner, asDatabaseRole, localStackUrl, signUpNewUser, type TestUser } from './local-stack';
+import { claimsOf, connectAiClient, mcpServerUrl } from './ai-clients';
+import { asDatabaseOwner, asDatabaseRole, signUpNewUser, tokenClient, type TestUser } from './local-stack';
 import { stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
@@ -11,6 +12,7 @@ setDefaultTimeout(60_000);
 const permissionDenied = '42501';
 const refusal = 'AI clients cannot change decks or the collection.';
 const securityDefinerReads = ['catalog_freshness', 'search_oracle_tags'];
+const requiresAnAiClientsToken = ['begin_mcp_call'];
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const forest = basicLand('Forest').oracle_id;
 
@@ -26,7 +28,7 @@ function aiClientToken(user: TestUser): Claims {
   return {
     sub: user.userId,
     role: 'authenticated',
-    aud: ['authenticated', `${localStackUrl}/functions/v1/mcp`],
+    aud: ['authenticated', mcpServerUrl],
     client_id: crypto.randomUUID(),
   };
 }
@@ -46,7 +48,7 @@ function appWriteFunctions(): Promise<DatabaseFunction[]> {
       where p.pronamespace = 'public'::regnamespace
         and p.prosecdef
         and has_function_privilege('authenticated', p.oid, 'execute')
-        and p.proname not in ${database(securityDefinerReads)}
+        and p.proname not in ${database([...securityDefinerReads, ...requiresAnAiClientsToken])}
       group by p.oid, p.proname
       order by p.proname
     `,
@@ -157,5 +159,20 @@ describe("refusing an AI client's token", () => {
     expect(await read('search_oracle_tags', { text: 'ramp' })).toMatchObject({ items: expect.any(Array) });
     const sources = await asDatabaseRole('authenticated', aiClientToken(user), (database) => database`select source from public.catalog_freshness()`);
     expect(sources).toContainEqual({ source: 'catalog' });
+  });
+
+  test("the Data API reads with an AI client's real token and an app write function refuses it", async () => {
+    const user = await signUpNewUser();
+    const { data } = await user.client.rpc('create_deck', { request: { name: 'Tymna' } });
+    const { deck_id } = data as { deck_id: string };
+    const aiClient = await connectAiClient(user);
+    const dataApi = tokenClient(aiClient.token);
+
+    expect(claimsOf(aiClient.token)).toMatchObject({ client_id: aiClient.clientId, aud: ['authenticated', mcpServerUrl] });
+    expect((await dataApi.rpc('get_deck', { query: { deck_id } })).data).toMatchObject({ name: 'Tymna' });
+    expect((await dataApi.rpc('create_deck', { request: { name: 'Kinnan' } })).error).toMatchObject({
+      code: permissionDenied,
+      message: refusal,
+    });
   });
 });

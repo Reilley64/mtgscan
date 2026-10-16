@@ -282,9 +282,9 @@ enabled = true
 uri = "pg-functions://postgres/public/limit_email_sign_ups"
 
 # This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
-# [auth.hook.custom_access_token]
-# enabled = true
-# uri = "pg-functions://<database>/<schema>/<hook_name>"
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/set_mcp_audience"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 [auth.sms.twilio]
@@ -371,11 +371,11 @@ enabled = false
 # OAuth server configuration
 [auth.oauth_server]
 # Enable OAuth server functionality
-enabled = false
+enabled = true
 # Path for OAuth consent flow UI
 authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
-allow_dynamic_registration = false
+allow_dynamic_registration = true
 
 [edge_runtime]
 enabled = true
@@ -388,8 +388,11 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
-# [edge_runtime.secrets]
-# secret_key = "env(SECRET_VALUE)"
+[edge_runtime.secrets]
+MCP_SERVER_URL = "http://127.0.0.1:54321/functions/v1/mcp"
+
+[functions.mcp]
+verify_jwt = false
 
 [analytics]
 enabled = true

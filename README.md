@@ -511,9 +511,68 @@ The `anon` role cannot use the `private` schema. `authenticated` and `service_ro
 
 Every app write function refuses an AI client's token. Each one calls `private.refuse_mcp_token()` right after `private.caller_user_id()`. The helper raises `insufficient_privilege` with "AI clients cannot change decks or the collection." when the token has a `client_id` claim. Supabase Auth's OAuth server puts that claim on every AI client's token. The app's sign-in never does, so the refusal does not affect the app. Read functions and previews do not call the helper. So an AI client's token can read through the Data API the same data that the MCP connection returns. `docs/adr/0007-refuse-mcp-tokens-by-client-id.md` says why.
 
+`public.begin_mcp_call` does the reverse. It requires an AI client's token, and so will the deck suggestion writes. `supabase/tests/ai-client-tokens.test.ts` leaves these functions out of its release gate by name, in the group `requiresAnAiClientsToken`.
+
+`mcp_call_counts` departs from the pattern too. It has no read policy, because nothing reads it. Only `begin_mcp_call` writes it.
+
 Signing up creates the user's profile through a trigger on `auth.users`.
 
 ### MCP connection
+
+AI clients reach mtgscan through the MCP server, the Edge Function in `supabase/functions/mcp`. Its MCP server URL is `<Supabase URL>/functions/v1/mcp`. The AI clients list in the settings drawer shows it. The function serves MCP over Streamable HTTP with `@modelcontextprotocol/server` 2.3.1. It answers protocol 2026-07-28, and the 2025 versions through the SDK's stateless fallback. It keeps no session state: each request gets a new server.
+
+#### MCP server URL
+
+- Supabase Auth's OAuth server signs AI clients in, with dynamic client registration. `supabase/config.toml` turns both on for the local stack.
+- The access token hook `public.set_mcp_audience` sets `aud` to `["authenticated", "<MCP server URL>"]` for a token with a `client_id`. It makes the URL from the token's `iss` by replacing `/auth/v1` with `/functions/v1/mcp`. It leaves the app's tokens unchanged. Only `supabase_auth_admin` can call it.
+- The function reads the MCP server URL from `MCP_SERVER_URL`. It uses it for the protected resource metadata and the audience check. It makes the issuer from it by replacing `/functions/v1/mcp` with `/auth/v1`. `supabase/config.toml` sets it for the local stack. The deploy workflow sets it on the hosted project from the project ref.
+- So the hook and the function both derive the URL from the project URL. If they ever disagree, every call fails with 401. The HTTP tests catch it.
+
+#### Token checks
+
+Each request goes through these steps:
+
+1. A body over 64 KB gets 413.
+2. `@supabase/server` checks the JWT against the project's JWKS, with `exp`, `iss`, and the MCP audience. The token must have a `client_id`. A failure gets 401 with `WWW-Authenticate: Bearer resource_metadata="<MCP server URL>/oauth-protected-resource"`. That URL serves the protected resource metadata.
+3. `public.begin_mcp_call(tool)` runs with the user's own token. It refuses a token with no `client_id`, and a token whose `session_id` has no live session. Revoking an AI client deletes its sessions, so its next call gets 401.
+4. The tool's Postgres function runs with the user's own token under row-level security. The function never uses the secret key.
+
+#### Tools
+
+| Tool | Postgres function |
+| --- | --- |
+| `get_deck` | `get_deck` |
+
+- `supabase/functions/mcp/tools.ts` lists the tools. Each one has all four annotations, an input schema with `additionalProperties: false`, and an output schema that also allows a problem details object.
+- `tools.ts` writes the schemas with zod. They follow the types in `supabase/decks.ts`, less the fields that the tool leaves out. The function imports nothing from outside `supabase/functions`, so the schemas copy those types by hand. Every object in an output schema has `additionalProperties: false`. The official MCP client checks each result against it in the HTTP tests, so a change to the result's shape fails them.
+- A call to a tool that does not exist gets `invalid-argument` with the pointer `/params/name`. It is not counted against the limits.
+- A tool sends its arguments to its Postgres function as the query, so Postgres checks them, as it does for the app.
+- A result leaves out image URIs and art crop URIs. Each tool can also leave out fields at a named path. `get_deck` leaves out `added_at`, `commander_at`, `condition`, `language`, `rarity`, `collector_number`, and `set` of each deck card.
+- A result carries `structuredContent` and one text block: a one-line summary, then the minified JSON.
+
+#### Limits
+
+- Each user can make 120 tool calls a minute and 2,000 a day. `begin_mcp_call` counts tool calls in `mcp_call_counts`, by UTC minute and UTC day. A request that is not a tool call, such as `tools/list`, is not counted.
+- A tool call over a limit gets `rate-limited` with `retry_after_seconds`.
+- A result over 48 KB gets `result-too-large`.
+
+#### Problems
+
+- A tool problem is a result with `isError: true`. Its `structuredContent` is an RFC 9457 problem details object: `type`, `title`, `detail`, an optional `pointer`, `retryable`, and the members of its type, such as `retry_after_seconds`. The `pointer` is a JSON Pointer to the argument at fault, such as `/deck_id`. The text block is "title: detail", then the minified JSON.
+- HTTP 401, 413, and 500 use `application/problem+json` with `status`. The 401 keeps its `WWW-Authenticate` header.
+- `type` is `https://mtgscan.reilley.dev/problems/<name>`.
+- `supabase/functions/mcp/problems.ts` maps each Postgres error code to its problem type, such as `not_found` to `not-found`. A code with no entry is `internal-error`. The pointer comes from the error's `details`. A field such as `oracle_ids[1]` becomes `/oracle_ids/1`. A JSON object gives the pointer and the other members.
+
+#### Log line
+
+Each request logs one JSON line with `tool`, `client_id`, `result`, `protocol_version`, and `duration_ms`. `tool` is null for a request that is not a call to a known tool. `result` is `ok` or the name of the problem type. A request that the MCP SDK refuses logs `invalid-argument`, or `internal-error` for a server error. The line has no arguments, results, or tokens.
+
+#### Running and deploying
+
+- `bunx supabase@2.120.0 start` serves the function on the local stack. `bunx supabase@2.120.0 functions serve` serves it with a reload on each change.
+- `supabase/functions/mcp/deno.json` pins the function's packages. `bun run typecheck` in `supabase` runs `deno check` on the function.
+- The HTTP tests in `supabase/tests/mcp-server.test.ts` get tokens from the local OAuth server, as an AI client does. They read the log lines from the edge runtime container with `docker logs`.
+- `.github/workflows/mcp-function.yml` deploys the function on each push to `main` that changes `supabase/functions/**`.
 
 #### Consent page
 

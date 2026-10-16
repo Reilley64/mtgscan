@@ -549,6 +549,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"mcp_call_counts": {
+                  Row: {
+                    "count": number,"period": string,"period_start": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "count": number,"period": string,"period_start": string,"user_id": string
+                  }
+                  Update: {
+                    "count"?: number,"period"?: string,"period_start"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"oracle_tags": {
                   Row: {
                     "alias_keys": (string)[] | null,"aliases": (string)[],"description": string | null,"id": string,"label": string,"label_keys": (string)[] | null,"search_vector": unknown,"slug": string
@@ -683,6 +697,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"begin_mcp_call":
+{ Args: { "tool": string }; Returns: undefined
+                           },
 "catalog_freshness":
 { Args: Record<PropertyKey, never>; Returns: {
               "is_stale": boolean,"last_attempt_at": string,"last_attempt_status": Database["public"]['Enums']["import_run_status"],"snapshot_at": string,"source": Database["public"]['Enums']["import_source"],"succeeded_at": string
@@ -844,6 +861,9 @@ isOneToOne: false
                            },
 "set_deck_priority":
 { Args: { "request": Json }; Returns: undefined
+                           },
+"set_mcp_audience":
+{ Args: { "event": Json }; Returns: Json
                            },
 "stage_import_batch":
 { Args: { "batch_number": number,"batch_rows": Json,"run_id": string,"target": string }; Returns: number
