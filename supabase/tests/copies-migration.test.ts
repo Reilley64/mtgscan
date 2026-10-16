@@ -37,10 +37,18 @@ async function supabaseCli(...args: string[]) {
   return { exitCode, output: stdout + stderr };
 }
 
+async function standInForTheAccessTokenHook() {
+  await asDatabaseOwner(async (database) => {
+    await database`create function public.set_mcp_audience(event jsonb) returns jsonb language sql as 'select event'`;
+    await database`grant execute on function public.set_mcp_audience(jsonb) to supabase_auth_admin`;
+  });
+}
+
 async function resetToBeforeCopies() {
   const { exitCode, output } = await supabaseCli('db', 'reset', '--local', '--no-seed', '--version', migrationBeforeCopies);
   expect(output).not.toContain('20261027');
   expect(exitCode).toBe(0);
+  await standInForTheAccessTokenHook();
   const catalogImport = await runCatalogImport(catalogFixtureManifest);
   expect(catalogImport.exitCode).toBe(1);
   expect(catalogImport.output).toContain('Recompute deck evaluations:');

@@ -1,4 +1,4 @@
-import { SQL } from 'bun';
+import { SQL, type TransactionSQL } from 'bun';
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
@@ -22,7 +22,7 @@ export async function asDatabaseOwner<T>(work: (database: SQL) => Promise<T>): P
 export async function asDatabaseRole<T>(
   role: 'anon' | 'authenticated' | 'deck_evaluator' | 'catalog_importer',
   claims: Record<string, string | string[]>,
-  work: (database: SQL) => Promise<T>,
+  work: (database: TransactionSQL) => Promise<T>,
 ): Promise<T> {
   return asDatabaseOwner((database) =>
     database.begin(async (transaction) => {
@@ -59,6 +59,13 @@ export type TestUser = {
 export function anonymousClient(): AppClient {
   return createClient<Database>(url, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+export function tokenClient(token: string): AppClient {
+  return createClient<Database>(url, publishableKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
   });
 }
 

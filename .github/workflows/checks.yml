@@ -108,7 +108,7 @@ jobs:
       - name: Type check
         run: bun run --filter @mtgscan/supabase typecheck
       - name: Start local Supabase
-        run: supabase start --exclude realtime,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor
+        run: supabase start --exclude realtime,imgproxy,mailpit,studio,logflare,vector,supavisor
       - name: Generated types match the migrations
         run: bun run types:database:check
       - name: Read the local secret key

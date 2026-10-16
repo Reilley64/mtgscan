@@ -1,0 +1,34 @@
+name: MCP function
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - supabase/functions/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-function
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: unused-by-functions-deploy
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: unused-by-functions-deploy
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: 2.120.0
+      - name: Set the MCP server URL
+        run: supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" "MCP_SERVER_URL=https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/mcp"
+      - name: Deploy the function
+        run: supabase functions deploy mcp --project-ref "$SUPABASE_PROJECT_REF" --use-api
