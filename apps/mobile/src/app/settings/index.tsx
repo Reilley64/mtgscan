@@ -1,8 +1,8 @@
+import { currentSignInProviderName } from '@mtgscan/supabase/sign-in-providers';
 import { router } from 'expo-router';
 
 import { useAiClients } from '@/ai-clients/ai-clients';
 import { signOut, useSession } from '@/auth/session';
-import { currentSignInProviderName } from '@/auth/sign-in';
 import { usePriceCurrency } from '@/collection/price-currency-setting';
 import { ParityCheckSection } from '@/components/organisms/parity-check-section';
 import { SettingsContent } from '@/components/organisms/settings-content';
