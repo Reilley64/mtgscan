@@ -4,14 +4,14 @@ An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and
 
 ## Development
 
-The repo is a Bun workspace. The Expo app lives in `apps/mobile`. The public website, with the homepage, the privacy policy, and the consent page, lives in `apps/site`. It is static HTML, and only the consent page has a script.
+The repo is a Bun workspace. The Expo app lives in `apps/mobile`. The public website, with the homepage, the privacy policy, the consent page, and the problem pages, lives in `apps/site`. It is static HTML, and only the consent page has a script.
 
 1. Install dependencies with `bun install`.
 2. Build and open the development build in the iOS simulator with `bun run --filter @mtgscan/mobile ios`.
 
 Public build-time settings go in `apps/mobile/.env`. `apps/mobile/.env.example` lists their names. Never put a service role key in the app.
 
-Checks run on pull requests that change what they check. The app checks run when the app, the workspace files, or the `@mtgscan/supabase` modules that the app imports change. The database checks run when anything in `supabase` changes. The site checks run when `apps/site`, `wrangler.jsonc`, the workspace files, or the `@mtgscan/supabase` module that the consent page imports change. A pull request that changes none of them, such as a docs change, runs only the title check. `.github/workflows/checks.yml` lists the paths. Run the checks locally with `bun run typecheck`, `bun run lint`, and `bun run test`.
+Checks run on pull requests that change what they check. The app checks run when the app, the workspace files, or the `@mtgscan/supabase` modules that the app imports change. The database checks run when anything in `supabase` changes. The site checks run when `apps/site`, `wrangler.jsonc`, the workspace files, or the `@mtgscan/supabase` modules that the site imports change. A pull request that changes none of them, such as a docs change, runs only the title check. `.github/workflows/checks.yml` lists the paths. Run the checks locally with `bun run typecheck`, `bun run lint`, and `bun run test`.
 
 ### Styling
 
@@ -475,7 +475,7 @@ A deck suggestion is an AI client's proposal for one deck, as `GLOSSARY.md` defi
 - `ref` is 1 to 64 of A-Z a-z 0-9 _ -, and unique in the call. Suggestions for the same deck send the same `expected_deck_revision`.
 - `outgoing` is optional. It is `{ copy_id }` or `{ basic_land_oracle_id }`. A basic land card as the outgoing card means one fewer of it.
 - `as_commander` is optional. It defaults to true when the outgoing copy is a commander, and to false otherwise.
-- `incoming.from_deck_id` and `pair_with` go together. They move a copy from one deck to another as a pair. The suggestion that `pair_with` names must be in `from_deck_id` and take a copy of the incoming card out of it. The two saved suggestions name each other in `paired_suggestion_id`.
+- `incoming.from_deck_id` and `pair_with` go together. They move a copy from one deck to another as paired suggestions. The suggestion that `pair_with` names must be in `from_deck_id` and take a copy of the incoming card out of it. The two saved suggestions name each other in `paired_suggestion_id`.
 - It returns `suggestions`, in the order sent, each with `ref`, `suggestion_id`, `paired_suggestion_id`, and `warnings`, and `replayed`.
 
 These errors refuse the whole call and save nothing. `details` is the field at fault as a JSON path, such as `suggestions[1].reason`, unless the row says it is a JSON object.
@@ -549,7 +549,7 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
   - With `entries`, each row is one collection entry: the matching copies that share a card printing, finish, condition, language, and protected flag. A collection entry has no ID of its own. Each row has the quantity, free quantity, allocated quantity, and held quantity of its matching copies. `limit` is 1 to 50 and defaults to 20.
   - With `copies`, each row is one copy, with its `copy_id`. `limit` is 1 to 120 and defaults to 60. The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`. The copy gives `finish`, `condition`, `language`, and `protected`. `deck` is the copy's deck with `deck_id` and `name`, or null for a copy in no deck.
   - A copy row's `price` is the current USD price of the card printing and finish: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says. Condition and language do not change it. `price` is null when `card_prices` has no USD price for that card printing and finish. A price is never taken from another finish.
-  - A collection entry row's `price` is the current price of its card printing and finish, in the shape of a copy row's `price`. Its `total` is the entry total: `price` times the row's `quantity`, as a USD decimal string. An AI chat converts both with the shared module. Condition and language do not change either. Both are null when `price` is null.
+  - A collection entry row's `price` is the current price of its card printing and finish, in the shape of a copy row's `price`. Its `total` is the entry total: `price` times the row's `quantity`, as a USD decimal string. The app converts both with the shared module. Condition and language do not change either. Both are null when `price` is null.
 - `sort` is `relevance` by default, with or without text. Without text, relevance means `added`, so an empty query lists the newest addition first.
 - `sort: 'added'` lists the card printing with the newest addition first. Its copies sit next to each other. `sort_order: 'asc'` puts the oldest addition first.
 - Rows with the same sort value sort by name, then by card printing ID, then by copy ID.
@@ -615,7 +615,7 @@ Signing up creates the user's profile through a trigger on `auth.users`.
 
 ### MCP connection
 
-AI clients reach mtgscan through the MCP server, the Edge Function in `supabase/functions/mcp`. Its MCP server URL is `<Supabase URL>/functions/v1/mcp`. The AI clients list in the settings drawer shows it. The function serves MCP over Streamable HTTP with `@modelcontextprotocol/server` 2.3.1. It answers protocol 2026-07-28, and the 2025 versions through the SDK's stateless fallback. It keeps no session state: each request gets a new server.
+AI clients reach mtgscan through the MCP server, the Edge Function in `supabase/functions/mcp`. Its MCP server URL is `<Supabase URL>/functions/v1/mcp`. On the hosted project, it is `https://gjzecqwkruixdousbual.supabase.co/functions/v1/mcp`. The AI clients list in the settings drawer shows it. The function serves MCP over Streamable HTTP with `@modelcontextprotocol/server` 2.3.1. It answers protocol 2026-07-28, and the 2025 versions through the SDK's stateless fallback. It keeps no session state: each request gets a new server. The user allows each AI client on the consent page, as Consent page says. The [MCP pre-flight](#mcp-pre-flight) checks the whole chain on the hosted project.
 
 #### MCP server URL
 
@@ -632,6 +632,8 @@ Each request goes through these steps:
 2. `@supabase/server` checks the JWT against the project's JWKS, with `exp`, `iss`, and the MCP audience. The token must have a `client_id`. A failure gets 401 with `WWW-Authenticate: Bearer resource_metadata="<MCP server URL>/oauth-protected-resource"`. That URL serves the protected resource metadata.
 3. `public.begin_mcp_call(tool)` runs with the user's own token. It refuses a token with no `client_id`, and a token whose `session_id` has no live session. Revoking an AI client deletes its sessions, so its next call gets 401.
 4. The tool's Postgres function runs with the user's own token under row-level security. The function never uses the secret key.
+
+An AI client's token also works on the Data API. Every app write function refuses it, as Per-user data says, so an AI client can change only deck suggestions. `docs/adr/0007-refuse-mcp-tokens-by-client-id.md` says why.
 
 #### Tools
 
@@ -669,7 +671,10 @@ The tools come in this order. Every tool has `destructiveHint: false`, `idempote
 - Each user can make 120 tool calls a minute and 2,000 a day. `begin_mcp_call` counts tool calls in `mcp_call_counts`, by UTC minute and UTC day. A request that is not a tool call, such as `tools/list`, is not counted.
 - A tool call over a limit gets `rate-limited` with `retry_after_seconds`.
 - Pages hold 20 rows by default and 50 at most. This holds for `search_catalog`, `search_collection`, `list_card_printings`, and `list_deck_changes`. The function sends `limit: 20` when the call has none, so copies also come 20 at a time, not 60 as in the app. A `limit` over 50 gets `invalid-argument` on `/limit`. Postgres checks the rest of the query.
-- A result over 48 KB gets `result-too-large`. Its detail says how to narrow the request, such as a lower `limit` or no `include_oracle_text`.
+- `get_cards` reads up to 20 IDs in one call.
+- `create_deck_suggestions` saves 1 to 10 deck suggestions in one call. Each user can make 30 deck suggestions an hour, and each deck holds 50 open deck suggestions at most. A call over either limit gets `limit-exceeded` and saves nothing, as Create deck suggestions says.
+- A request body over 64 KB gets 413 with `request-too-large`.
+- Results aim for under 16 KB. A result over 48 KB gets `result-too-large`. Its detail says how to narrow the request, such as a lower `limit` or no `include_oracle_text`.
 
 #### Problems
 
@@ -678,6 +683,28 @@ The tools come in this order. Every tool has `destructiveHint: false`, `idempote
 - HTTP 401, 413, and 500 use `application/problem+json` with `status`. The 401 keeps its `WWW-Authenticate` header.
 - `type` is `https://mtgscan.reilley.dev/problems/<name>`.
 - `supabase/functions/mcp/problems.ts` maps each Postgres error code to its problem type, such as `not_found` to `not-found`. A code with no entry is `internal-error`. The pointer comes from the error's `details`. A field such as `oracle_ids[1]` becomes `/oracle_ids/1`. A JSON object gives the pointer and the other members.
+
+The problem types, each linked to its page:
+
+- [`invalid-argument`](apps/site/problems/invalid-argument.html)
+- [`invalid-cursor`](apps/site/problems/invalid-cursor.html)
+- [`not-found`](apps/site/problems/not-found.html)
+- [`invalid-card`](apps/site/problems/invalid-card.html)
+- [`stale-revision`](apps/site/problems/stale-revision.html)
+- [`outgoing-not-in-deck`](apps/site/problems/outgoing-not-in-deck.html)
+- [`pair-incomplete`](apps/site/problems/pair-incomplete.html)
+- [`duplicate-open-suggestion`](apps/site/problems/duplicate-open-suggestion.html)
+- [`not-open`](apps/site/problems/not-open.html)
+- [`limit-exceeded`](apps/site/problems/limit-exceeded.html)
+- [`idempotency-conflict`](apps/site/problems/idempotency-conflict.html)
+- [`data-unavailable`](apps/site/problems/data-unavailable.html)
+- [`result-too-large`](apps/site/problems/result-too-large.html)
+- [`rate-limited`](apps/site/problems/rate-limited.html)
+- [`internal-error`](apps/site/problems/internal-error.html)
+- [`unauthorized`](apps/site/problems/unauthorized.html)
+- [`request-too-large`](apps/site/problems/request-too-large.html)
+
+Each page is served at its `type` URL and says what the problem means and what to do next. `apps/site/test/problem-pages.test.ts` checks that every type in `problems.ts` has its page, and that every page is a type. The site serves each page at `/problems/<name>`, as the site setup under Consent page says.
 
 #### Log line
 
@@ -764,8 +791,8 @@ The site is a Cloudflare Worker with static assets, set up in `wrangler.jsonc`:
 - The `build` command runs the page build, so `wrangler deploy` and `wrangler dev` build the page first.
 - The Workers Builds build variable `BUN_VERSION` is `1.4.2`, the Bun version in `package.json`. The build image has an older Bun by default.
 - `apps/site/.assetsignore` keeps the TypeScript, the tests, and the package files out of the upload.
-- `html_handling` is `drop-trailing-slash`, so `/oauth/consent` serves the page with no redirect.
-- `apps/site/_headers` gives `/oauth/*` its own CSP. It removes the site CSP and allows the page script, plus `connect-src` and `form-action` for the Supabase project, and nothing more. The rest of the site keeps the strict CSP.
+- `html_handling` is `drop-trailing-slash`, so `/oauth/consent` serves the page, and `/problems/not-found` serves `problems/not-found.html`, with no redirect.
+- `apps/site/_headers` gives `/oauth/*` its own CSP. It removes the site CSP and allows the page script, plus `connect-src` and `form-action` for the Supabase project, and nothing more. The rest of the site keeps the strict CSP. The problem pages have no script and no inline style, so it fits them, and their test checks that.
 
 Run `bunx wrangler dev` at the repo root to build and serve the site locally. The local page talks to hosted Supabase. Google sign-in on the page uses the Google web client of Supabase's Google provider. Apple sign-in on the page uses the Services ID and the Apple web client secret of Supabase's Apple provider.
 

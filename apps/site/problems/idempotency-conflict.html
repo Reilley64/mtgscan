@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#080b0d">
+<title>Idempotency conflict · mtgscan</title>
+<meta name="description" content="What the idempotency conflict problem of the mtgscan MCP connection means, and what to do next.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="page">
+<header class="site-header">
+<a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>mtgscan</a>
+<nav class="site-nav" aria-label="Site">
+<a href="/privacy">Privacy</a>
+<a href="https://github.com/Reilley64/mtgscan">GitHub</a>
+</nav>
+</header>
+<main>
+<h1>Idempotency conflict</h1>
+<p class="meta">Problem type <code>https://mtgscan.reilley.dev/problems/idempotency-conflict</code> of the mtgscan MCP connection</p>
+<h2>What it means</h2>
+<p>The <code>idempotency_key</code> was used in the last 24 hours with different input. Nothing was saved.</p>
+<h2>What to do next</h2>
+<p>Send new input with a new <code>idempotency_key</code>.</p>
+<p>Repeat a key only to retry the same call with the same input. That call returns the first result with <code>replayed: true</code>.</p>
+</main>
+<footer class="site-footer">
+<p>mtgscan is not affiliated with, approved by, or endorsed by Wizards of the Coast. Card data and prices come from <a href="https://scryfall.com">Scryfall</a>.</p>
+<p>mtgscan is unofficial Fan Content permitted under the <a href="https://company.wizards.com/en/legal/fancontentpolicy">Fan Content Policy</a>. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.</p>
+<p><a href="/privacy">Privacy policy</a> · <a href="https://github.com/Reilley64/mtgscan">Source on GitHub</a></p>
+</footer>
+</div>
+</body>
+</html>

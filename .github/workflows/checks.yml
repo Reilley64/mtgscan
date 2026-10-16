@@ -42,9 +42,10 @@ jobs:
               - *workspace
               - wrangler.jsonc
               - apps/site/**
-              # The @mtgscan/supabase export that the consent page imports.
+              # The @mtgscan/supabase exports that the site imports.
               - supabase/package.json
               - supabase/sign-in-providers.ts
+              - supabase/functions/mcp/problems.ts
             database:
               - *workspace
               - supabase/**
@@ -86,7 +87,7 @@ jobs:
         run: bun run --filter @mtgscan/site typecheck
       - name: Build the consent page
         run: bun run --filter @mtgscan/site build
-      - name: Consent page tests
+      - name: Site tests
         run: bun run --filter @mtgscan/site test
 
   database:

@@ -21,7 +21,7 @@
 </header>
 <main>
 <h1>Privacy policy</h1>
-<p class="meta">Effective date: 9 October 2026</p>
+<p class="meta">Effective date: 16 October 2026</p>
 <p>This policy explains what data mtgscan collects, why it collects it, and what you can do about it.</p>
 <p>mtgscan is in development for iPhone and is not on the App Store yet. This policy describes how the app handles data as the developer builds it. The app does not have every feature described here yet.</p>
 <h2>Who runs mtgscan</h2>
@@ -42,14 +42,17 @@
 <li>the time you added each copy and its purchase-day price;</li>
 <li>decks, with their commanders, cards, and deck priority;</li>
 <li>deck changes and deck change history;</li>
-<li>deck suggestions from connected AI clients, with their reasons and the name of the AI client;</li>
+<li>deck suggestions from connected AI clients, with their reasons;</li>
+<li>the name of the AI client that made each deck suggestion;</li>
+<li>each withdrawal and reason replacement of a deck suggestion, with the name of its AI client;</li>
 <li>planned swaps and buylist cards;</li>
 <li>your settings, such as your currency and whether training crop uploads are on.</li>
 </ul>
 <h3>Searches</h3>
 <p>mtgscan logs each collection search and catalog search, from the app or from a connected AI client. A log records the query, the number of results, how long the search took, and the first 20 results. Searches in the app also record which result you opened and whether you searched again soon after. mtgscan keeps search logs for 180 days and uses them to improve search.</p>
 <h3>Connected AI clients</h3>
-<p>When you connect an AI client, mtgscan stores a record of that connection so the client can reach your data.</p>
+<p>When you connect an AI client, mtgscan stores a record of that connection so the client can reach your data. You can see each connected AI client in the settings and revoke it there.</p>
+<p>mtgscan logs each tool call of an AI client: the tool, the AI client, whether the call worked, how long it took, and the MCP protocol version. The log holds no arguments, results, or tokens.</p>
 <h3>Training crops</h3>
 <p>If training crop uploads are on, mtgscan stores training crops of scanned cards with their evidence records. The next section explains them.</p>
 <h2>How scanning works</h2>
@@ -84,15 +87,16 @@
 </ul>
 <p>Uploads stop for everyone when mtgscan's file storage is 90% full.</p>
 <h2>AI clients and the MCP connection</h2>
-<p>You can connect a compatible AI chat client, such as ChatGPT, to mtgscan through the MCP connection. A client can connect only after you sign in to mtgscan and give your consent.</p>
+<p>You can connect a compatible AI chat client, such as ChatGPT, to mtgscan through the MCP connection. A client can connect only after you sign in to mtgscan and give your consent on the consent page. The consent page is on this website, at mtgscan.reilley.dev/oauth/consent. It keeps your sign-in in your browser's local storage. <strong>Switch account</strong> removes it.</p>
 <p>A connected AI client can read:</p>
 <ul>
 <li>the card catalog, with card prices and Oracle tags;</li>
-<li>your collection entries and your collection summary, including the value of your collection;</li>
+<li>your collection entries and copies, your user tags, and your collection summary, including the value of your collection;</li>
 <li>your decks, with deck validity, violations, and the estimated bracket;</li>
 <li>your deck changes, planned swaps, and buylist;</li>
 <li>your deck suggestions, including dismissed and withdrawn ones.</li>
 </ul>
+<p>An AI client reads every price in USD, as Scryfall gives it. mtgscan does not convert prices for AI clients.</p>
 <p>The only data a connected AI client can write is deck suggestions. It can create deck suggestions, withdraw open ones, and replace their reasons. It cannot change your collection or your decks. You make every deck change.</p>
 <p>The data an AI client reads goes to the company that runs that client, such as OpenAI for ChatGPT. That company's privacy policy covers what it does with the data.</p>
 <h2>Where your data is stored</h2>
@@ -106,8 +110,8 @@
 <li>Supabase stores your data and runs sign-in, file storage, and the server functions.</li>
 <li>Apple provides Sign in with Apple. Apple also runs TestFlight, if you install a test build through it.</li>
 <li>Google provides Google sign-in.</li>
-<li>Expo builds the app and hosts the sign-in and consent page that AI clients use.</li>
-<li>Cloudflare hosts this website.</li>
+<li>Expo builds the app.</li>
+<li>Cloudflare hosts this website, including the consent page that AI clients use.</li>
 <li>GitHub hosts the source code and runs the jobs that import card data. These jobs do not handle personal data.</li>
 </ul>
 <p>Card data and prices come from Scryfall. Combo data comes from Commander Spellbook. mtgscan does not send your account, collection, or deck data to Scryfall or Commander Spellbook. Card images may load from Scryfall's servers, which see your device's IP address, as any website does.</p>

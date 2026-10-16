@@ -552,6 +552,14 @@ The consent page is on the website at `mtgscan.reilley.dev/oauth/consent`, not i
 - **Rejected session.** When Supabase rejects the session, the page signs out of this browser and shows the signed-out view.
 - **Allow** and **Deny** go back to the AI client. Deny sends it `access_denied`.
 
+### Problem pages
+
+Each problem type of the MCP connection has a short page on the website at `mtgscan.reilley.dev/problems/<name>`, such as `/problems/stale-revision`. An AI client gets the URL as the problem's `type`. The pages use the site's `styles.css`: the site header and footer, one column up to 44 rem wide, and no script.
+
+- The title is the problem's title, such as "Stale revision", in the site's h1.
+- A meta line in text muted names the problem type URL in the system monospace font.
+- "What it means" and "What to do next" follow as lime section headings, each with one or two short paragraphs. Tool names and argument names, such as `get_deck` and `expected_deck_revision`, are in the monospace font.
+
 ### Pushed screens
 
 Pushed screens cover the whole screen, including the app tab bar. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge. A screen pushed inside a drawer, such as the scan details in batch review, also has the native back button (see Sheets).

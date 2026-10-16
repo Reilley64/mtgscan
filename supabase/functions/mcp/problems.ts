@@ -2,7 +2,7 @@ export const problemTypeBase = 'https://mtgscan.reilley.dev/problems/';
 
 export const internalErrorDetail = 'Something went wrong in mtgscan. Try again.';
 
-const problemKinds = {
+export const problemKinds = {
   'invalid-argument': { title: 'Invalid argument', retryable: false },
   'invalid-cursor': { title: 'Invalid cursor', retryable: false },
   'not-found': { title: 'Not found', retryable: false },

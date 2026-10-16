@@ -120,6 +120,12 @@ strong {
   font-weight: 700;
 }
 
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
 .lead {
   color: var(--text-muted);
   font-size: 19px;
