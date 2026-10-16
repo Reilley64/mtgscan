@@ -136,7 +136,7 @@ The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in accou
 
 ### AI clients
 
-The settings drawer lists the AI clients that the user allowed, from `supabase.auth.oauth.listGrants()`. **Revoke** calls `revokeGrant()`. `src/lib/app-config.ts` makes the MCP server URL from `EXPO_PUBLIC_SUPABASE_URL` as `<Supabase URL>/functions/v1/mcp`, so the app has no second setting to keep in sync. **Copy** puts it on the clipboard with `expo-clipboard`. `expo-clipboard` is a native module, so a change to it needs a new native build.
+The settings drawer lists the AI clients that the user allowed, from `supabase.auth.oauth.listGrants()`. **Revoke** calls `revokeGrant()` and removes the row when it works. `src/lib/app-config.ts` reads the Supabase URL and the publishable key from `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. It makes the MCP server URL from the Supabase URL as `<Supabase URL>/functions/v1/mcp`, so the app has no second setting to keep in sync. **Copy** puts it on the clipboard with `expo-clipboard`. `expo-clipboard` is a native module, so a change to it needs a new native build.
 
 ### Local Supabase
 

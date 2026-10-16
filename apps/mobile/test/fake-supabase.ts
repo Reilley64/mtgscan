@@ -138,6 +138,7 @@ let aiClients: OAuthGrant[] = [];
 let failingAiClientReads = 0;
 let aiClientRevokes: string[] = [];
 let failingAiClientRevokes = 0;
+let heldAiClientRevokes: Promise<void> | null = null;
 
 export const publishedGalleryVersion = '20261012-cf1753';
 export const galleryPartNames = [
@@ -1004,6 +1005,7 @@ const oauthServer = {
     return { data: session ? aiClients : [], error: null };
   },
   async revokeGrant({ clientId }: { clientId: string }) {
+    await heldAiClientRevokes;
     if (failingAiClientRevokes > 0) {
       failingAiClientRevokes -= 1;
       return { data: null, error: aiClientsUnreachable };
@@ -1484,6 +1486,19 @@ export function failAiClientRevokes(count: number) {
   failingAiClientRevokes = count;
 }
 
+export function holdAiClientRevokes() {
+  let finish = () => {};
+  heldAiClientRevokes = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldAiClientRevokes = null;
+      await act(async () => finish());
+    },
+  };
+}
+
 export function resetFakeSupabase() {
   session = null;
   collectionCopies = [];
@@ -1533,6 +1548,7 @@ export function resetFakeSupabase() {
   failingAiClientReads = 0;
   aiClientRevokes = [];
   failingAiClientRevokes = 0;
+  heldAiClientRevokes = null;
   publishGallery(publishedGalleryVersion);
   nextSignInEmail = defaultEmail;
   nextSignInError = null;

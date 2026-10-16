@@ -6,6 +6,7 @@ import {
   allowAiClients,
   failAiClientReads,
   failAiClientRevokes,
+  holdAiClientRevokes,
   startSignedIn,
 } from './fake-supabase';
 import {
@@ -27,6 +28,11 @@ async function openAiClientsList() {
   await openSettings();
   await fireEvent.press(await screen.findByRole('button', { name: /^AI clients/ }));
   return screen.findByRole('header', { name: 'AI clients' });
+}
+
+async function openAiClientsListWithChatGPT() {
+  await openAiClientsList();
+  await screen.findByLabelText(/^ChatGPT, Allowed/);
 }
 
 function aiClientRow(name: string) {
@@ -141,8 +147,7 @@ describe('Revoke', () => {
   });
 
   test('Revoke asks first, with a destructive Revoke and Cancel', async () => {
-    await openAiClientsList();
-    await screen.findByLabelText(/^ChatGPT, Allowed/);
+    await openAiClientsListWithChatGPT();
 
     await pressRevoke('ChatGPT');
 
@@ -159,8 +164,7 @@ describe('Revoke', () => {
   });
 
   test('Revoke in the alert revokes the AI client and removes its row', async () => {
-    await openAiClientsList();
-    await screen.findByLabelText(/^ChatGPT, Allowed/);
+    await openAiClientsListWithChatGPT();
 
     await pressRevoke('ChatGPT');
     await pressAlertButton('Revoke');
@@ -171,8 +175,7 @@ describe('Revoke', () => {
   });
 
   test('after a revoke, the AI clients row in settings shows the new number', async () => {
-    await openAiClientsList();
-    await screen.findByLabelText(/^ChatGPT, Allowed/);
+    await openAiClientsListWithChatGPT();
     await pressRevoke('ChatGPT');
     await pressAlertButton('Revoke');
     await waitFor(() => expect(screen.queryByLabelText(/^ChatGPT, Allowed/)).not.toBeOnTheScreen());
@@ -182,9 +185,37 @@ describe('Revoke', () => {
     expect(await screen.findByRole('button', { name: 'AI clients, 1' })).toBeOnTheScreen();
   });
 
+  test('a revoke that works removes the row even when the AI clients cannot be read again', async () => {
+    await openAiClientsListWithChatGPT();
+    failAiClientReads(1);
+
+    await pressRevoke('ChatGPT');
+    await pressAlertButton('Revoke');
+
+    expect(aiClientsRevokedOnTheServer()).toEqual(['ai-client-1']);
+    await waitFor(() => expect(screen.queryByLabelText(/^ChatGPT, Allowed/)).not.toBeOnTheScreen());
+    expect(screen.queryByText('Could not load the AI clients')).not.toBeOnTheScreen();
+    expect(screen.getByLabelText('Claude, Allowed 3 October 2026')).toBeOnTheScreen();
+  });
+
+  test('while a revoke runs, its Revoke button is busy and cannot be tapped again', async () => {
+    const revokes = holdAiClientRevokes();
+    await openAiClientsListWithChatGPT();
+
+    await pressRevoke('ChatGPT');
+    await pressAlertButton('Revoke');
+
+    const revoking = within(aiClientRow('ChatGPT')).getByRole('button', { name: 'Revoke' });
+    expect(revoking).toBeBusy();
+    expect(revoking).toBeDisabled();
+    expect(within(aiClientRow('Claude')).getByRole('button', { name: 'Revoke' })).toBeEnabled();
+    await revokes.finish();
+    expect(screen.queryByLabelText(/^ChatGPT, Allowed/)).not.toBeOnTheScreen();
+    expect(aiClientsRevokedOnTheServer()).toEqual(['ai-client-1']);
+  });
+
   test('Cancel in the alert keeps the AI client', async () => {
-    await openAiClientsList();
-    await screen.findByLabelText(/^ChatGPT, Allowed/);
+    await openAiClientsListWithChatGPT();
 
     await pressRevoke('ChatGPT');
     await pressAlertButton('Cancel');
@@ -195,8 +226,7 @@ describe('Revoke', () => {
 
   test('when a revoke fails, the row stays and an alert says so', async () => {
     failAiClientRevokes(1);
-    await openAiClientsList();
-    await screen.findByLabelText(/^ChatGPT, Allowed/);
+    await openAiClientsListWithChatGPT();
 
     await pressRevoke('ChatGPT');
     await pressAlertButton('Revoke');

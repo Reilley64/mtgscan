@@ -110,6 +110,8 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('image', { name: 'Sol Ring, large' })).toBeOnTheScreen();
   expect(screen.getByText('Could not load this card')).toBeOnTheScreen();
   expect(screen.getByLabelText('Current price, $1.25')).toHaveProp('accessibilityHint', 'The price may be out of date.');
+  expect(screen.getByLabelText('ChatGPT, Allowed 16 October 2026')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Added, Reverted, 16 October 2026 at 18:05')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();
   expect(buttonMenuActions(contextMenu(screen.getByRole('button', { name: 'Sol Ring, M10 216, long press for a menu' })))).toEqual([
     { title: 'Open card', destructive: false },
