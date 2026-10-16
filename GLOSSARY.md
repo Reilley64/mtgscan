@@ -52,7 +52,7 @@ The lowest current price of a card over all its card printings and finishes. Cat
 _Avoid_: Cheapest price, card price
 
 **Converted price**:
-A USD amount, such as a current price, a purchase-day price, or a collection total, times the latest exchange rate of another currency. It is rounded to that currency's minor unit, such as whole yen. It is an estimate, not a store price. The database stores and returns only USD amounts. The app converts them with the shared module in `@mtgscan/supabase`, and the MCP service will too. It is stale when its USD price is stale, or when its exchange rate's date is more than 4 days before today. A card printing and finish with no USD price has no converted price. The app shows it with the currency's narrow symbol, such as "$" for AUD, and no "≈". The price credit says once that prices are converted.
+A USD amount, such as a current price, a purchase-day price, or a collection total, times the latest exchange rate of another currency. It is rounded to that currency's minor unit, such as whole yen. It is an estimate, not a store price. The database stores and returns only USD amounts. The app converts them with the shared module in `@mtgscan/supabase`. The MCP connection returns USD amounts only. It is stale when its USD price is stale, or when its exchange rate's date is more than 4 days before today. A card printing and finish with no USD price has no converted price. The app shows it with the currency's narrow symbol, such as "$" for AUD, and no "≈". The price credit says once that prices are converted.
 _Avoid_: Local price, FX price
 
 **Price currency**:
@@ -165,7 +165,7 @@ _Avoid_: Spare, available copy
 A card with the basic supertype, including Wastes and snow-covered basics. mtgscan does not track basic lands as owned. A deck counts them by basic land card: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. They never appear in the collection, allocation, or buylist.
 
 **Deck priority**:
-How strongly the user wants to keep a deck's cards: high, medium, or low. Priority guides deck suggestions and does not restrict the user.
+How strongly the user wants to keep a deck's cards: high, medium, or low. The user sets it. When two decks want a card and there is only one copy for them, the deck with the higher priority should get it. Between decks of equal priority, the AI decides which deck needs the card more. Deck suggestions follow this: an AI may suggest moving a copy from a lower-priority deck to a higher-priority one and should not suggest the reverse, but nothing stops it. Priority does not restrict the user.
 
 **Deck revision**:
 A number on each deck that starts at 0. Every deck change raises it by one. Creating, renaming, and deleting a deck, and changing its deck priority, leave it as it is.

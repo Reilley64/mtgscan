@@ -15,7 +15,7 @@ The owner changed the plan on 2026-10-14 (spec 5). mtgscan keeps only the latest
 
 ## Where conversion happens
 
-The first version converted in the database: every price read took `price_currency` and returned the rate fields (#202). The owner moved conversion to one shared TypeScript module in `@mtgscan/supabase` on 2026-10-15 (#216). Every read now returns USD, and one read, `list_exchange_rates`, returns the rates. The app converts on the phone, so a change of currency reads no prices again. Decks, the buylist, suggestions, and the MCP service use the same module, so each new read does not have to carry a currency. A read that sends `price_currency` is refused, so an old build fails loudly instead of showing USD as another currency.
+The first version converted in the database: every price read took `price_currency` and returned the rate fields (#202). The owner moved conversion to one shared TypeScript module in `@mtgscan/supabase` on 2026-10-15 (#216). Every read now returns USD, and one read, `list_exchange_rates`, returns the rates. The app converts on the phone, so a change of currency reads no prices again. Decks, the buylist, and suggestions use the same module, so each new read does not have to carry a currency. The MCP connection does not convert: it returns USD only (owner decision, spec 8). A read that sends `price_currency` is refused, so an old build fails loudly instead of showing USD as another currency.
 
 ## Considered options
 
