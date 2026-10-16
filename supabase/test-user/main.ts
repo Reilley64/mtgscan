@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { CardCondition, CopyProtectedRequest, ScanBatch, UserTag } from '../collection';
 import type { Finish } from '../search';
 import type { Database, Json } from '../database.types';
-import { deckNameLength, type AddedDeckCard, type CreatedDeck, type Deck, type DeckChangePage } from '../decks';
+import type { AddedDeckCard, CreatedDeck, Deck, DeckChangePage } from '../decks';
 import { isHostedTestUserPassword, isLocalStack, localSupabaseUrl, testUser } from './account';
 
 const usage = 'Usage: bun test-user/main.ts [--hosted] [--sample-collection]';
@@ -14,7 +14,27 @@ const sampleUserTags = [
   { name: 'Signed', copies: 1 },
   { name: 'Trade binder', copies: 3 },
 ];
-const sampleMainDeckCards = 10;
+const sampleDeck = {
+  commander: 'Tymna the Weaver',
+  partner: 'Thrasios, Triton Hero',
+  mainDeck: [
+    'Rhystic Study',
+    'Smothering Tithe',
+    "Thassa's Oracle",
+    'Demonic Consultation',
+    'Time Warp',
+    'Temporal Manipulation',
+    'Once More with Feeling',
+    'Black Lotus',
+    'Lightning Bolt',
+    'Mind Stone',
+    'Counterspell',
+    'Counterspell',
+  ],
+  revertedCard: 'Lightning Bolt',
+};
+const sampleDeckCards = [sampleDeck.commander, sampleDeck.partner, ...sampleDeck.mainDeck, sampleDeck.revertedCard];
+const sampleDeckCardNames = [...new Set(sampleDeckCards)];
 const sampleBasicLands: Record<string, number> = { Forest: 8, Island: 6, 'Snow-Covered Forest': 2 };
 const sampleConditions: CardCondition[] = ['near_mint', 'near_mint', 'lightly_played', 'near_mint', 'moderately_played'];
 const usersPerPage = 1000;
@@ -113,49 +133,86 @@ function sampleFinish(finishes: Finish[], index: number): Finish {
   return finishes.includes('nonfoil') ? 'nonfoil' : finishes[0]!;
 }
 
-type SamplePrinting = Awaited<ReturnType<typeof samplePrintings>>[number];
+type SamplePrinting = { id: string; oracle_id: string; finishes: Finish[]; cards: { name: string } };
 
-async function samplePrintings(admin: Client) {
+function sampleCardPrintings(admin: Client) {
+  return admin.from('card_printings').select('id, oracle_id, finishes, cards!inner(name)').is('absent_since', null).order('id');
+}
+
+async function requireCardCatalog(admin: Client) {
+  const { count, error } = await admin.from('cards').select('oracle_id', { count: 'exact', head: true });
+  if (error) {
+    fail('Could not read the card catalog', error.message);
+  }
+  if (count === 0) {
+    fail('Could not add sample collection entries', 'The card catalog is empty. Import it first, as docs/agents/local-development.md says.');
+  }
+}
+
+async function sampleDeckPrintings(admin: Client): Promise<SamplePrinting[]> {
+  const results = await Promise.all(
+    sampleDeckCardNames.map((name) => sampleCardPrintings(admin).eq('lang', 'en').eq('cards.name', name).limit(1)),
+  );
+  const error = results.find((result) => result.error)?.error;
+  if (error) {
+    fail('Could not read the card catalog', error.message);
+  }
+  const missing = sampleDeckCardNames.filter((_, index) => results[index]!.data!.length === 0);
+  if (missing.length > 0) {
+    fail('Could not add the sample deck', `The card catalog has no ${missing.join(', ')}.`);
+  }
+  return results.map((result) => result.data![0]!);
+}
+
+async function otherSamplePrintings(admin: Client, deckPrintings: SamplePrinting[]): Promise<SamplePrinting[]> {
+  const entries = sampleCollectionEntries - deckPrintings.length;
   const printings = () =>
-    admin
-      .from('card_printings')
-      .select('id, finishes, cards(name, can_be_commander)')
-      .is('absent_since', null)
+    sampleCardPrintings(admin)
       .in('rarity', ['uncommon', 'rare', 'mythic'])
-      .order('id');
+      .not('oracle_id', 'in', `(${deckPrintings.map((printing) => printing.oracle_id).join(',')})`);
   const [etched, others] = await Promise.all([
     printings().contains('finishes', ['etched']).limit(1),
-    printings().limit(sampleCollectionEntries),
+    printings().limit(entries),
   ]);
   const error = etched.error ?? others.error;
   if (error) {
     fail('Could not read the card catalog', error.message);
   }
   const etchedIds = etched.data!.map((printing) => printing.id);
-  return [...etched.data!, ...others.data!.filter((printing) => !etchedIds.includes(printing.id))].slice(
-    0,
-    sampleCollectionEntries,
-  );
+  return [...etched.data!, ...others.data!.filter((printing) => !etchedIds.includes(printing.id))].slice(0, entries);
 }
 
-function sampleScanBatch(data: SamplePrinting[]): ScanBatch {
+type SampleEntry = { printing: SamplePrinting; copies: number };
+
+function sampleScanBatch(entries: SampleEntry[]): ScanBatch {
   return {
-    items: data.map((printing, index) => ({
+    items: entries.map(({ printing, copies }, index) => ({
       card_printing_id: printing.id,
       finish: sampleFinish(printing.finishes, index),
       condition: sampleConditions[index % sampleConditions.length]!,
       language: 'en',
-      copy_ids: Array.from({ length: (index % 4) + 1 }, () => crypto.randomUUID()),
+      copy_ids: Array.from({ length: copies }, () => crypto.randomUUID()),
     })),
   };
 }
 
+function sampleDeckCopyIds(batch: ScanBatch, deckPrintings: SamplePrinting[]): string[] {
+  const deckItems = batch.items.slice(-deckPrintings.length);
+  const copyIds = new Map(deckPrintings.map((printing, index) => [printing.cards.name, [...deckItems[index]!.copy_ids]]));
+  return sampleDeckCards.map((name) => copyIds.get(name)!.shift()!);
+}
+
 async function addSampleCollection(admin: Client) {
-  const printings = await samplePrintings(admin);
-  if (printings.length === 0) {
-    fail('Could not add sample collection entries', 'The card catalog is empty. Import it first, as docs/agents/local-development.md says.');
-  }
-  const batch = sampleScanBatch(printings);
+  await requireCardCatalog(admin);
+  const deckPrintings = await sampleDeckPrintings(admin);
+  const otherPrintings = await otherSamplePrintings(admin, deckPrintings);
+  const batch = sampleScanBatch([
+    ...otherPrintings.map((printing, index) => ({ printing, copies: (index % 4) + 1 })),
+    ...deckPrintings.map((printing) => ({
+      printing,
+      copies: sampleDeckCards.filter((name) => name === printing.cards.name).length,
+    })),
+  ]);
   const testUserClient = newClient();
   const { error: signInError } = await testUserClient.auth.signInWithPassword(account);
   if (signInError) {
@@ -173,10 +230,7 @@ async function addSampleCollection(admin: Client) {
   }
   console.log('Protected 1 sample copy.');
   await addSampleUserTags(testUserClient, batch.items.map((item) => item.copy_ids[0]!));
-  await addSampleDeck(
-    testUserClient,
-    printings.slice(1).map((printing, index) => ({ copyId: batch.items[index + 1]!.copy_ids[0]!, card: printing.cards })),
-  );
+  await addSampleDeck(testUserClient, sampleDeckCopyIds(batch, deckPrintings));
 }
 
 async function addSampleUserTags(testUserClient: Client, copyIds: string[]) {
@@ -216,18 +270,17 @@ async function deckRead<Result>(testUserClient: Client, read: 'get_deck' | 'list
   return data as unknown as Result;
 }
 
-async function addSampleDeck(testUserClient: Client, copies: { copyId: string; card: SamplePrinting['cards'] }[]) {
-  const [commander, partner, ...mainDeck] = copies.toSorted(
-    (a, b) => Number(b.card.can_be_commander) - Number(a.card.can_be_commander),
-  );
+async function addSampleDeck(testUserClient: Client, copyIds: string[]) {
+  const [commander, partner, ...rest] = copyIds;
+  const mainDeck = rest.slice(0, -1);
+  const revertedCopy = rest.at(-1)!;
   const { deck_id } = await deckWrite<CreatedDeck>(testUserClient, 'create_deck', {
-    name: commander!.card.name.slice(0, deckNameLength),
+    name: sampleDeck.commander,
   });
-  const deckCards = [commander!, partner!, ...mainDeck.slice(0, sampleMainDeckCards)];
-  for (const { copyId } of deckCards) {
+  for (const copyId of [commander!, partner!, ...mainDeck]) {
     await deckWrite(testUserClient, 'add_deck_card', { deck_id, copy_id: copyId, unprotect: false });
   }
-  for (const { copyId } of [commander!, partner!]) {
+  for (const copyId of [commander!, partner!]) {
     await deckWrite(testUserClient, 'set_deck_commander', { copy_id: copyId, commander: true });
   }
   const { basic_lands } = await deckRead<Deck>(testUserClient, 'get_deck', { deck_id });
@@ -239,7 +292,7 @@ async function addSampleDeck(testUserClient: Client, copies: { copyId: string; c
   }
   const { revision } = await deckWrite<AddedDeckCard>(testUserClient, 'add_deck_card', {
     deck_id,
-    copy_id: mainDeck[sampleMainDeckCards]!.copyId,
+    copy_id: revertedCopy,
     unprotect: false,
   });
   const { items } = await deckRead<DeckChangePage>(testUserClient, 'list_deck_changes', { deck_id, limit: 1 });
@@ -251,8 +304,10 @@ async function addSampleDeck(testUserClient: Client, copies: { copyId: string; c
   });
   const basicLandCount = counts.reduce((total, { count }) => total + count, 0);
   console.log(
-    `Added a sample deck with 2 commanders, ${sampleMainDeckCards} main deck cards, ${basicLandCount} basic lands, and ${revision + 1} deck changes.`,
+    `Added a sample deck with 2 commanders, ${mainDeck.length} main deck cards, ${basicLandCount} basic lands, and ${revision + 1} deck changes.`,
   );
+  const { evaluation } = await deckRead<Deck>(testUserClient, 'get_deck', { deck_id });
+  console.log(`The sample deck is ${evaluation!.validity}, with estimated bracket ${evaluation!.estimated_bracket}.`);
 }
 
 const admin = newClient();
