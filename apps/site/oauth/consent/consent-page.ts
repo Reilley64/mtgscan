@@ -4,6 +4,7 @@ import {
   type AuthOAuthServerApi,
   isAuthSessionMissingError,
   type OAuthAuthorizationDetails,
+  type SignInWithOAuthCredentials,
   type SupabaseClient,
   type User,
 } from '@supabase/supabase-js';
@@ -47,11 +48,11 @@ function button(text: string, className: string, onClick: () => Promise<void>, .
   return node;
 }
 
-function googleLogo() {
-  const logo = element('img', '');
-  logo.src = '/oauth/consent/google-logo.png';
-  logo.alt = '';
-  return logo;
+function logo(src: string) {
+  const image = element('img', '');
+  image.src = src;
+  image.alt = '';
+  return image;
 }
 
 function sameSignInHint() {
@@ -75,27 +76,39 @@ export async function showConsentPage({ auth, root, url, navigate }: ConsentPage
     show(element('p', 'lead', 'This link has expired. Start again from your AI chat.'));
   }
 
+  function signInButton(text: string, className: string, logoSrc: string, credentials: SignInWithOAuthCredentials) {
+    return button(
+      text,
+      className,
+      async () => {
+        disableButtons();
+        const { data, error } = await auth.signInWithOAuth(credentials);
+        if (error || !data.url) showSignIn(true);
+        else navigate(data.url);
+      },
+      logo(logoSrc),
+    );
+  }
+
   function showSignIn(failed = false) {
     show(
       element('h1', '', 'Sign in to mtgscan'),
       sameSignInHint(),
-      button(
-        'Continue with Google',
-        'button-google',
-        async () => {
-          disableButtons();
-          const { data, error } = await auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-              redirectTo: consentUrl.href,
-              skipBrowserRedirect: true,
-              queryParams: { prompt: 'select_account' },
-            },
-          });
-          if (error || !data.url) showSignIn(true);
-          else navigate(data.url);
-        },
-        googleLogo(),
+      element(
+        'div',
+        'sign-in-buttons',
+        signInButton('Continue with Apple', 'button-apple', '/oauth/consent/apple-logo.svg', {
+          provider: 'apple',
+          options: { redirectTo: consentUrl.href, skipBrowserRedirect: true },
+        }),
+        signInButton('Continue with Google', 'button-google', '/oauth/consent/google-logo.png', {
+          provider: 'google',
+          options: {
+            redirectTo: consentUrl.href,
+            skipBrowserRedirect: true,
+            queryParams: { prompt: 'select_account' },
+          },
+        }),
       ),
       ...(failed ? [element('p', 'consent-error', 'Could not start the sign-in. Try again.')] : []),
     );
