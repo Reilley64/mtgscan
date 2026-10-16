@@ -6,7 +6,7 @@ import type { Database } from '../database.types';
 import { localSupabaseUrl } from '../test-user/account';
 
 const url = process.env.SUPABASE_URL ?? localSupabaseUrl;
-const publishableKey =
+export const publishableKey =
   process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
 export const localStackUrl = url;
 

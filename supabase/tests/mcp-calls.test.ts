@@ -1,6 +1,7 @@
 import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { claimsOf, connectAiClient, mcpServerUrl, seedMcpCallCounts } from './ai-clients';
+import { claimsOf } from '../mcp-connection';
+import { connectAiClient, mcpServerUrl, seedMcpCallCounts } from './ai-clients';
 import {
   anonymousClient,
   asAuthAdmin,

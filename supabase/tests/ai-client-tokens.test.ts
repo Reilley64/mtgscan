@@ -2,15 +2,15 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { SQL } from 'bun';
 
+import { appWriteRefusal, claimsOf } from '../mcp-connection';
 import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
-import { claimsOf, connectAiClient, mcpServerUrl } from './ai-clients';
+import { connectAiClient, mcpServerUrl } from './ai-clients';
 import { asDatabaseOwner, asDatabaseRole, signUpNewUser, tokenClient, type TestUser } from './local-stack';
 import { stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
-const refusal = 'AI clients cannot change decks or the collection.';
 const securityDefinerReads = ['catalog_freshness', 'search_oracle_tags'];
 const requiresAnAiClientsToken = ['begin_mcp_call', 'create_deck_suggestions', 'withdraw_deck_suggestion', 'update_deck_suggestion_reason'];
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
@@ -89,7 +89,7 @@ describe("refusing an AI client's token", () => {
     }
 
     expect(writes.length).toBeGreaterThan(0);
-    expect(refusals).toEqual(writes.map(({ name }) => ({ name, refusal: { errno: permissionDenied, message: refusal } })));
+    expect(refusals).toEqual(writes.map(({ name }) => ({ name, refusal: { errno: permissionDenied, message: appWriteRefusal } })));
   });
 
   test("every app write function refuses an AI client's token and accepts the same request from the app", async () => {
@@ -98,7 +98,7 @@ describe("refusing an AI client's token", () => {
     const refuseAiClientThenWrite = async (name: string, request: object) => {
       await expect(callFunction(aiClientToken(user), name, request)).rejects.toMatchObject({
         errno: permissionDenied,
-        message: refusal,
+        message: appWriteRefusal,
       });
       writesCalled.push(name);
       return callFunction(appToken(user), name, request);
@@ -172,7 +172,7 @@ describe("refusing an AI client's token", () => {
     expect((await dataApi.rpc('get_deck', { query: { deck_id } })).data).toMatchObject({ name: 'Tymna' });
     expect((await dataApi.rpc('create_deck', { request: { name: 'Kinnan' } })).error).toMatchObject({
       code: permissionDenied,
-      message: refusal,
+      message: appWriteRefusal,
     });
   });
 });

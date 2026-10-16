@@ -690,6 +690,59 @@ Each request logs one JSON line with `tool`, `client_id`, `result`, `protocol_ve
 - The HTTP tests in `supabase/tests/mcp-server.test.ts` get tokens from the local OAuth server, as an AI client does. They read the log lines from the edge runtime container with `docker logs`.
 - `.github/workflows/mcp-function.yml` deploys the function on each push to `main` that changes `supabase/functions/**`.
 
+#### MCP pre-flight
+
+The MCP pre-flight, `bun run mcp-preflight` in `supabase`, checks the whole OAuth and MCP chain against a Supabase project, the way an AI client meets it. It is a release gate. The owner runs it on the hosted project before launch and again after each Supabase Auth upgrade, because Supabase's OAuth server is in beta.
+
+The script signs in the test user and connects two AI clients. It approves each one as the consent page does. It prints `PASS` or `FAIL` and a detail line for each check, and it exits with 1 when any check fails. A check that needs an earlier check that failed prints `FAIL` with "Not run". Cleanup runs at the end, even after a failure.
+
+What the checks prove:
+
+- A call with no token gets 401 with `WWW-Authenticate`. The protected resource metadata names the MCP server URL and the issuer.
+- The authorization server metadata names the issuer, the registration, authorization, and token endpoints, PKCE with `S256`, and `offline_access`. With `--hosted`, it must answer at the RFC 8414 URL, `<Supabase URL>/.well-known/oauth-authorization-server/auth/v1`, which ChatGPT may use. The local stack answers only at `<Supabase URL>/auth/v1/.well-known/openid-configuration`, so without `--hosted`, the check takes the first discovery URL of the MCP client SDK that answers, and prints it.
+- The test user signs in with email and password.
+- For a public client and for a confidential client, because ChatGPT may register either kind:
+  - dynamic client registration works;
+  - authorize, with `resource` and the scopes that ChatGPT asks for, sends the user to the consent page (supabase/auth#2820). With `--hosted`, it must be `https://mtgscan.reilley.dev/oauth/consent`;
+  - the consent page reads the authorization details with the client name;
+  - approval returns a code;
+  - the code exchange with PKCE and `resource` issues an access token and a refresh token;
+  - refresh issues a new access token;
+  - both access tokens have `aud` `["authenticated", "<MCP server URL>"]`, the issuer, and the AI client's `client_id`.
+- The Data API reads with an AI client's token and its array `aud`. If this fails, the hook is dropped, and the MCP server refuses tokens without a `client_id` instead, as ADR 0007 says. The audience check in the MCP pre-flight then changes too.
+- `create_deck` refuses an AI client's token with `42501`.
+- The MCP server serves protocol 2026-07-28 to the official MCP client, and each earlier version that the client SDK supports through `initialize`.
+- `tools/list` returns the 14 tools in order, with their annotations.
+- `search_catalog` finds Counterspell. The test user then creates a deck named "MCP pre-flight" in the app, and `get_deck` reads it.
+- `create_deck_suggestions` saves one deck suggestion on that deck.
+- `list_deck_suggestions` shows the client name that the database function read from Supabase Auth's client record.
+- A stale deck revision gets `stale-revision` and saves nothing.
+- A replay with the same idempotency key returns the first result with `replayed: true` and saves nothing.
+- The MCP server refuses the app's token.
+- `revokeGrant` ends the AI client's access at once: its next call gets 401, because `begin_mcp_call` finds no live session. If this fails, the AI clients alert must say "within an hour" instead of "at once". Its refresh token is refused too.
+- Cleanup deletes the deck, which deletes its deck suggestions. It deletes the AI clients, and checks that no AI client and no deck suggestion is left. The idempotency key stays for 24 hours, as for every call.
+
+On the hosted project, the owner runs it from the main checkout. `.env.hosted` gives `SUPABASE_URL` and `SUPABASE_SECRET_KEY`, and `test-app.env` gives the hosted test user password. The script uses the secret key only in cleanup, to delete the AI clients and to check that nothing is left. The publishable key is in the Supabase dashboard, under API Keys. The AI client's Data API calls send it, as an AI client would. The hosted test user must exist, as Test app on the iPhone says. The owner posts the output on the release ticket.
+
+```bash
+cd supabase
+SUPABASE_PUBLISHABLE_KEY=<hosted publishable key> \
+bun --env-file=.env.hosted --env-file=$HOME/.config/mtgscan/test-app.env run mcp-preflight --hosted
+```
+
+Without `--hosted`, the script runs only on the local stack, with the local default password of the test user. With `--hosted`, it reads the password from `EXPO_PUBLIC_TEST_USER_PASSWORD` and refuses a missing password and the local default password. To run it on the local stack, import the card catalog fixture and seed the test user first, as `docs/agents/local-development.md` (Test sign-in) says:
+
+```bash
+cd supabase
+export SUPABASE_URL=http://127.0.0.1:54321
+export SUPABASE_PUBLISHABLE_KEY=$(bunx supabase@2.120.0 status -o json | jq -r .PUBLISHABLE_KEY)
+export SUPABASE_SECRET_KEY=$(bunx supabase@2.120.0 status -o json | jq -r .SECRET_KEY)
+bun run test-user
+bun run mcp-preflight
+```
+
+`supabase/tests/mcp-preflight.test.ts` runs the MCP pre-flight on the local stack. `supabase/mcp-connection.ts` holds the OAuth steps, the MCP client, the tool names and their annotations, and the refusal of the app write functions. The HTTP tests and the MCP pre-flight both use it.
+
 #### Consent page
 
 Supabase Auth's OAuth server sends the user to the consent page at `https://mtgscan.reilley.dev/oauth/consent?authorization_id=<id>`. There the user signs in and allows or denies the AI client. `DESIGN.md` (Consent page) describes what it shows.

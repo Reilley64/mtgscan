@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { Client } from '@modelcontextprotocol/client';
 
+import { claimsOf, mcpClient, mcpReadToolNames, mcpToolAnnotations, mcpToolNames, mcpWriteToolNames } from '../mcp-connection';
 import {
   catalogFixtureManifest,
   oracleIdOf,
@@ -13,9 +14,7 @@ import {
   spellbookFixtureVariants,
 } from './catalog-import-command';
 import {
-  claimsOf,
   connectAiClient,
-  mcpClient,
   mcpLogLines,
   mcpServerUrl,
   postMcp,
@@ -40,22 +39,6 @@ const bracketSentence =
 const usdSentence = 'Prices are current Scryfall prices in USD (TCGplayer Market). There is no other currency.';
 const catalogSentence =
   'Returns only Commander-legal cards. Misspelled names return no results; there is no fuzzy match. Use search_oracle_tags to find tag slugs.';
-const readTools = [
-  'search_catalog',
-  'search_collection',
-  'search_oracle_tags',
-  'get_cards',
-  'list_card_printings',
-  'list_user_tags',
-  'get_collection_summary',
-  'list_decks',
-  'get_deck',
-  'list_deck_changes',
-  'list_deck_suggestions',
-];
-const writeTools = ['create_deck_suggestions', 'withdraw_deck_suggestion', 'update_deck_suggestion_reason'];
-const toolNames = [...readTools, ...writeTools];
-
 beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
@@ -77,7 +60,7 @@ async function deckWithCopies(user: TestUser, name: string, copies: number): Pro
 
 async function connected(user: TestUser): Promise<AiClient & { mcp: Client }> {
   const aiClient = await connectAiClient(user);
-  const mcp = await mcpClient(aiClient.token);
+  const mcp = await mcpClient(mcpServerUrl, aiClient.token);
   await mcp.listTools();
   return { ...aiClient, mcp };
 }
@@ -146,7 +129,7 @@ describe('the MCP server over HTTP', () => {
   test("refuses a revoked AI client's token on its next call", async () => {
     const user = await signUpNewUser();
     const { clientId, token, mcp } = await connected(user);
-    expect((await mcp.listTools()).tools.map(({ name }) => name)).toEqual(toolNames);
+    expect((await mcp.listTools()).tools.map(({ name }) => name)).toEqual(mcpToolNames);
 
     expect((await user.client.auth.oauth.revokeGrant({ clientId })).error).toBeNull();
 
@@ -184,10 +167,10 @@ describe('the MCP server over HTTP', () => {
 
     const { tools } = await mcp.listTools();
 
-    expect(tools.map(({ name }) => name)).toEqual(toolNames);
-    for (const tool of tools.filter(({ name }) => readTools.includes(name))) {
+    expect(tools.map(({ name }) => name)).toEqual(mcpToolNames);
+    for (const tool of tools.filter(({ name }) => mcpReadToolNames.includes(name))) {
       const [result, toolProblem] = tool.outputSchema!.anyOf as { type: string; additionalProperties: boolean; required: string[] }[];
-      expect(tool.annotations).toEqual({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+      expect(tool.annotations).toEqual(mcpToolAnnotations(tool.name));
       expect([tool.inputSchema.type, tool.inputSchema.additionalProperties]).toEqual(['object', false]);
       expect([tool.outputSchema!.type, result!.type, result!.additionalProperties]).toEqual(['object', 'object', false]);
       expect(toolProblem!.required).toEqual(['type', 'title', 'detail', 'retryable']);
@@ -202,15 +185,10 @@ describe('the MCP server over HTTP', () => {
     const listDeckSuggestions = tools.find(({ name }) => name === 'list_deck_suggestions')!;
     expect(listDeckSuggestions.inputSchema.required).toBeUndefined();
     expect(listDeckSuggestions.inputSchema.properties).toMatchObject({ status: { enum: ['open', 'withdrawn', 'stale'] } });
-    const [createDeckSuggestions, withdrawDeckSuggestion, updateDeckSuggestionReason] = writeTools.map(
+    const [createDeckSuggestions, withdrawDeckSuggestion, updateDeckSuggestionReason] = mcpWriteToolNames.map(
       (writeTool) => tools.find(({ name }) => name === writeTool)!,
     );
-    expect(createDeckSuggestions!.annotations).toEqual({
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    });
+    expect(createDeckSuggestions!.annotations).toEqual(mcpToolAnnotations('create_deck_suggestions'));
     for (const sentence of [
       'This tool does not change any deck. The user reviews each suggestion in the app and decides.',
       'Never offer a protected copy as the reason a card is available.',
@@ -262,9 +240,9 @@ describe('the MCP server over HTTP', () => {
 
   test('also serves a client on the 2025 protocol', async () => {
     const { token } = await connectAiClient(await signUpNewUser());
-    const legacy = await mcpClient(token, 'legacy');
+    const legacy = await mcpClient(mcpServerUrl, token, 'legacy');
 
-    expect((await legacy.listTools()).tools.map(({ name }) => name)).toEqual(toolNames);
+    expect((await legacy.listTools()).tools.map(({ name }) => name)).toEqual(mcpToolNames);
   });
 
   test("get_deck returns the user's deck without image URIs or the deck card fields it leaves out, with a one-line summary and the minified JSON", async () => {
@@ -411,7 +389,7 @@ describe('the MCP server over HTTP', () => {
     const deckId = await deckWithCopies(user, 'Yuriko', 1);
     const aiClient = await connectAiClient(user);
     let requests = 0;
-    const mcp = await mcpClient(aiClient.token, 'modern', () => {
+    const mcp = await mcpClient(mcpServerUrl, aiClient.token, 'modern', () => {
       requests += 1;
     });
 

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import type { Database } from '../database.types';
 import { readGzipJsonLines } from '../import/gzip-json-lines';
-import { localSecretKey, localStackUrl, secretKeyClient } from './local-stack';
+import { publishableKey, localSecretKey, localStackUrl, secretKeyClient } from './local-stack';
 
 const supabaseDirectory = join(import.meta.dir, '..');
 const fixtureDirectory = join(import.meta.dir, 'fixtures', 'scryfall');
@@ -252,6 +252,10 @@ export function runGalleryCommand(...args: string[]): Promise<CommandResult> {
 
 export function runTestUserCommand(args: string[], env: Record<string, string> = {}): Promise<CommandResult> {
   return runScript('test-user/main.ts', args, env);
+}
+
+export function runMcpPreflightCommand(args: string[], env: Record<string, string> = {}): Promise<CommandResult> {
+  return runScript('mcp-preflight/main.ts', args, { SUPABASE_PUBLISHABLE_KEY: publishableKey, ...env });
 }
 
 export function runOracleTagCommand(action: 'disable' | 'enable', tagId: string): Promise<CommandResult> {
