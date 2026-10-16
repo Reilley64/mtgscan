@@ -4,12 +4,15 @@ import type { Json } from '../database.types';
 import type {
   AddDeckCardPreview,
   AddedDeckCard,
+  ChangedDeckSuggestion,
   CreatedDeck,
   CreatedDeckSuggestions,
   Deck,
   DeckPriority,
   DeckSuggestionInput,
   DeckSuggestionWarning,
+  UpdateDeckSuggestionReasonRequest,
+  WithdrawDeckSuggestionRequest,
 } from '../decks';
 import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import {
@@ -40,6 +43,7 @@ const [mountain, island, forest] = ['Mountain', 'Island', 'Forest'].map((name) =
 const reason = 'Cheap removal that also answers an early threat.';
 
 type Problem = { code: string; message: string; details: string | null };
+type DeckSuggestionFunction = 'create_deck_suggestions' | 'withdraw_deck_suggestion' | 'update_deck_suggestion_reason';
 type AiClient = { user: TestUser; clientId: string };
 type KrenkoDeck = { deckId: string; commander: string; bolt: string };
 
@@ -132,25 +136,29 @@ async function suggestionItem(
   };
 }
 
-async function callCreate(client: AiClient, request: object): Promise<CreatedDeckSuggestions> {
+async function aiClientCall<T>(client: AiClient, name: DeckSuggestionFunction, request: object): Promise<T> {
   const [row] = await asDatabaseRole('authenticated', aiClientToken(client), (database) =>
-    database`select public.create_deck_suggestions(${request}::jsonb) as result`,
+    database`select ${database.unsafe(`public.${name}`)}(${request}::jsonb) as result`,
   );
   return row.result;
+}
+
+function callCreate(client: AiClient, request: object): Promise<CreatedDeckSuggestions> {
+  return aiClientCall(client, 'create_deck_suggestions', request);
 }
 
 function suggested(client: AiClient, suggestions: DeckSuggestionInput[], idempotencyKey: string = crypto.randomUUID()) {
   return callCreate(client, { idempotency_key: idempotencyKey, suggestions });
 }
 
-async function refusalOf(client: AiClient, request: object): Promise<Problem> {
+async function refusalOf(client: AiClient, request: object, name: DeckSuggestionFunction = 'create_deck_suggestions'): Promise<Problem> {
   try {
-    await callCreate(client, request);
+    await aiClientCall(client, name, request);
   } catch (error) {
     const { errno, message } = error as { errno: string; message: string };
     return errno === 'PGRST' ? (JSON.parse(message) as Problem) : { code: errno, message, details: null };
   }
-  throw new Error('create_deck_suggestions saved the call');
+  throw new Error(`${name} saved the call`);
 }
 
 async function storedSuggestions(user: TestUser) {
@@ -832,6 +840,225 @@ describe('idempotency', () => {
     expect(await storedRequests(client.user)).toEqual([]);
     const reused = await suggested(client, [await suggestionItem(client.user, deckId, oracleIds[counterspell]!)], 'old-idempotency-key');
     expect(reused.replayed).toBe(false);
+  });
+});
+
+describe('withdrawing a deck suggestion and replacing its reason', () => {
+  const newReason = 'Counterspell answers the combo pieces this deck fears most.';
+  const suggestionChanges: [DeckSuggestionFunction, object][] = [
+    ['withdraw_deck_suggestion', {}],
+    ['update_deck_suggestion_reason', { reason: newReason }],
+  ];
+
+  async function openSuggestion(client: AiClient, changes: Partial<DeckSuggestionInput> = {}) {
+    const deck = await krenkoDeck(client.user);
+    const { suggestions } = await suggested(client, [await suggestionItem(client.user, deck.deckId, oracleIds[counterspell]!, changes)]);
+    return { ...deck, suggestionId: suggestions[0]!.suggestion_id };
+  }
+
+  async function storedEvents(user: TestUser) {
+    const { data, error } = await user.client.from('deck_suggestion_events').select('*').order('created_at').order('id');
+    expect(error).toBeNull();
+    return data!;
+  }
+
+  function withdrawn(client: AiClient, suggestionId: string) {
+    const request: WithdrawDeckSuggestionRequest = { suggestion_id: suggestionId };
+    return aiClientCall<ChangedDeckSuggestion>(client, 'withdraw_deck_suggestion', request);
+  }
+
+  function reasonReplaced(client: AiClient, suggestionId: string, replacement: string) {
+    const request: UpdateDeckSuggestionReasonRequest = { suggestion_id: suggestionId, reason: replacement };
+    return aiClientCall<ChangedDeckSuggestion>(client, 'update_deck_suggestion_reason', request);
+  }
+
+  test('a second AI client withdraws an open suggestion, and one deck suggestion event records it', async () => {
+    const maker = await connectedAiClient();
+    const { deckId, suggestionId } = await openSuggestion(maker);
+    const other = await connectedAiClient(maker.user, 'Claude');
+    const revision = await revisionOf(maker.user, deckId);
+    const before = (await storedSuggestion(maker.user, suggestionId))!;
+
+    expect(await withdrawn(other, suggestionId)).toEqual({ suggestion_id: suggestionId, changed: true });
+
+    const after = (await storedSuggestion(maker.user, suggestionId))!;
+    expect(after).toMatchObject({ status: 'withdrawn', reason, client_id: maker.clientId, client_name: 'ChatGPT' });
+    expect(new Date(after.status_changed_at).getTime()).toBeGreaterThan(new Date(before.status_changed_at).getTime());
+    expect(await storedEvents(maker.user)).toEqual([
+      {
+        id: expect.any(String),
+        user_id: maker.user.userId,
+        suggestion_id: suggestionId,
+        kind: 'withdrawn',
+        client_id: other.clientId,
+        client_name: 'Claude',
+        created_at: expect.any(String),
+      },
+    ]);
+    expect(await revisionOf(maker.user, deckId)).toBe(revision);
+  });
+
+  test('a second AI client replaces the reason of an open suggestion, one deck suggestion event records it, and no old reason text is kept', async () => {
+    const maker = await connectedAiClient();
+    const { suggestionId } = await openSuggestion(maker);
+    const other = await connectedAiClient(maker.user, 'Claude');
+    const before = (await storedSuggestion(maker.user, suggestionId))!;
+
+    expect(await reasonReplaced(other, suggestionId, newReason)).toEqual({ suggestion_id: suggestionId, changed: true });
+
+    expect(await storedSuggestion(maker.user, suggestionId)).toEqual({ ...before, reason: newReason });
+    const events = await storedEvents(maker.user);
+    expect(events).toEqual([
+      {
+        id: expect.any(String),
+        user_id: maker.user.userId,
+        suggestion_id: suggestionId,
+        kind: 'reason_replaced',
+        client_id: other.clientId,
+        client_name: 'Claude',
+        created_at: expect.any(String),
+      },
+    ]);
+    expect(JSON.stringify([await storedSuggestions(maker.user), events])).not.toContain(reason);
+  });
+
+  test('withdrawing a withdrawn suggestion succeeds, changes nothing, and writes no deck suggestion event', async () => {
+    const client = await connectedAiClient();
+    const { suggestionId } = await openSuggestion(client);
+    await withdrawn(client, suggestionId);
+    const suggestion = await storedSuggestion(client.user, suggestionId);
+    const events = await storedEvents(client.user);
+
+    expect(await withdrawn(client, suggestionId)).toEqual({ suggestion_id: suggestionId, changed: false });
+
+    expect(await storedSuggestion(client.user, suggestionId)).toEqual(suggestion);
+    expect(await storedEvents(client.user)).toEqual(events);
+  });
+
+  test('setting the reason a suggestion already has succeeds, changes nothing, and writes no deck suggestion event', async () => {
+    const client = await connectedAiClient();
+    const { suggestionId } = await openSuggestion(client);
+    const suggestion = await storedSuggestion(client.user, suggestionId);
+
+    expect(await reasonReplaced(client, suggestionId, reason)).toEqual({ suggestion_id: suggestionId, changed: false });
+
+    expect(await storedSuggestion(client.user, suggestionId)).toEqual(suggestion);
+    expect(await storedEvents(client.user)).toEqual([]);
+  });
+
+  test('a stale suggestion is not_open, and neither call changes it', async () => {
+    const client = await connectedAiClient();
+    const { deckId, bolt } = await krenkoDeck(client.user);
+    const { suggestions } = await suggested(client, [
+      await suggestionItem(client.user, deckId, oracleIds[counterspell]!, { outgoing: { copy_id: bolt } }),
+    ]);
+    const suggestionId = suggestions[0]!.suggestion_id;
+    await appRequest(client.user, 'remove_deck_card', { copy_id: bolt });
+    const suggestion = await storedSuggestion(client.user, suggestionId);
+    const notOpen = {
+      code: 'not_open',
+      message: 'The deck suggestion is stale. Only an open deck suggestion can change.',
+      details: 'suggestion_id',
+    };
+
+    expect(suggestion).toMatchObject({ status: 'stale' });
+    expect(await refusalOf(client, { suggestion_id: suggestionId }, 'withdraw_deck_suggestion')).toMatchObject(notOpen);
+    expect(await refusalOf(client, { suggestion_id: suggestionId, reason: newReason }, 'update_deck_suggestion_reason')).toMatchObject(notOpen);
+    expect(await storedSuggestion(client.user, suggestionId)).toEqual(suggestion);
+    expect(await storedEvents(client.user)).toEqual([]);
+  });
+
+  test('withdrawn is final: replacing the reason of a withdrawn suggestion is not_open', async () => {
+    const client = await connectedAiClient();
+    const { suggestionId } = await openSuggestion(client);
+    await withdrawn(client, suggestionId);
+    const suggestion = await storedSuggestion(client.user, suggestionId);
+
+    expect(await refusalOf(client, { suggestion_id: suggestionId, reason: newReason }, 'update_deck_suggestion_reason')).toMatchObject({
+      code: 'not_open',
+      message: 'The deck suggestion is withdrawn. Only an open deck suggestion can change.',
+      details: 'suggestion_id',
+    });
+    expect(await storedSuggestion(client.user, suggestionId)).toEqual(suggestion);
+    expect(await storedEvents(client.user)).toHaveLength(1);
+  });
+
+  test.each([
+    ['20 characters', 20],
+    ['600 characters', 600],
+  ])('a reason of %s is saved', async (_, length) => {
+    const client = await connectedAiClient();
+    const { suggestionId } = await openSuggestion(client);
+    const replacement = 'x'.repeat(length);
+
+    expect(await reasonReplaced(client, suggestionId, replacement)).toEqual({ suggestion_id: suggestionId, changed: true });
+    expect(await storedSuggestion(client.user, suggestionId)).toMatchObject({ reason: replacement });
+  });
+
+  test.each([
+    ['19 characters', 19],
+    ['601 characters', 601],
+  ])('a reason of %s is refused with invalid_argument on reason', async (_, length) => {
+    const client = await connectedAiClient();
+    const { suggestionId } = await openSuggestion(client);
+
+    expect(await refusalOf(client, { suggestion_id: suggestionId, reason: 'x'.repeat(length) }, 'update_deck_suggestion_reason')).toMatchObject({
+      code: 'invalid_argument',
+      message: 'reason must be a string of 20 to 600 characters.',
+      details: 'reason',
+    });
+    expect(await storedSuggestion(client.user, suggestionId)).toMatchObject({ reason });
+    expect(await storedEvents(client.user)).toEqual([]);
+  });
+
+  test.each(suggestionChanges)("%s refuses another user's deck suggestion with not_found", async (name, rest) => {
+    const owner = await connectedAiClient();
+    const { suggestionId } = await openSuggestion(owner);
+    const stranger = await connectedAiClient();
+    const suggestion = await storedSuggestion(owner.user, suggestionId);
+
+    for (const missing of [suggestionId, crypto.randomUUID()]) {
+      expect(await refusalOf(stranger, { suggestion_id: missing, ...rest }, name)).toMatchObject({
+        code: 'not_found',
+        message: 'suggestion_id is not one of your deck suggestions.',
+        details: 'suggestion_id',
+      });
+    }
+    expect(await storedSuggestion(owner.user, suggestionId)).toEqual(suggestion);
+    expect(await storedEvents(owner.user)).toEqual([]);
+  });
+
+  test.each(suggestionChanges)("%s refuses the app's token, an anonymous caller, and the secret key", async (name, rest) => {
+    const client = await connectedAiClient();
+    const { suggestionId } = await openSuggestion(client);
+    const suggestion = await storedSuggestion(client.user, suggestionId);
+    const request = { suggestion_id: suggestionId, ...rest } as Json;
+
+    const appCall = await client.user.client.rpc(name, { request });
+    expect(appCall.error).toMatchObject({ code: permissionDenied, message: aiClientOnly });
+    for (const other of [anonymousClient(), secretKeyClient()]) {
+      expect((await other.rpc(name, { request })).error?.code).toBe(permissionDenied);
+    }
+    expect(await storedSuggestion(client.user, suggestionId)).toEqual(suggestion);
+    expect(await storedEvents(client.user)).toEqual([]);
+  });
+
+  test("the app's token is refused when the call would change nothing", async () => {
+    const client = await connectedAiClient();
+    const { suggestionId: withdrawnId } = await openSuggestion(client);
+    const { suggestionId: openId } = await openSuggestion(client);
+    await withdrawn(client, withdrawnId);
+    const app = client.user.client;
+
+    const repeats = [
+      await app.rpc('withdraw_deck_suggestion', { request: { suggestion_id: withdrawnId } }),
+      await app.rpc('update_deck_suggestion_reason', { request: { suggestion_id: openId, reason } }),
+    ];
+
+    expect(repeats.map(({ error }) => error)).toEqual([
+      expect.objectContaining({ code: permissionDenied, message: aiClientOnly }),
+      expect.objectContaining({ code: permissionDenied, message: aiClientOnly }),
+    ]);
   });
 });
 

@@ -370,6 +370,20 @@ export type DeckSuggestionPage = {
   next_cursor: string | null;
 };
 
+export type WithdrawDeckSuggestionRequest = {
+  suggestion_id: string;
+};
+
+export type UpdateDeckSuggestionReasonRequest = {
+  suggestion_id: string;
+  reason: string;
+};
+
+export type ChangedDeckSuggestion = {
+  suggestion_id: string;
+  changed: boolean;
+};
+
 export type DeckErrorCode =
   | 'invalid_argument'
   | 'invalid_cursor'
