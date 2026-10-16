@@ -1,6 +1,6 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 
-import { localStackUrl, type TestUser } from './local-stack';
+import { asDatabaseOwner, localStackUrl, type TestUser } from './local-stack';
 
 export const mcpServerUrl = `${localStackUrl}/functions/v1/mcp`;
 const redirectUri = 'https://chat.example.test/connector/callback';
@@ -141,4 +141,14 @@ export function postMcp(body: unknown, headers: Record<string, string> = {}): Pr
     headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', ...headers },
     body: typeof body === 'string' ? body : JSON.stringify(body),
   });
+}
+
+export function seedMcpCallCounts(user: TestUser, period: 'minute' | 'day', count: number) {
+  return asDatabaseOwner(
+    (database) => database`
+      insert into public.mcp_call_counts (user_id, period, period_start, count)
+      select ${user.userId}, ${period}, date_trunc(${period}, now(), 'UTC') + later * ${`1 ${period}`}::interval, ${count}
+      from generate_series(0, 1) later
+    `,
+  );
 }

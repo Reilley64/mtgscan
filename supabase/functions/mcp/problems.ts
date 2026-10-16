@@ -1,5 +1,7 @@
 export const problemTypeBase = 'https://mtgscan.reilley.dev/problems/';
 
+export const internalErrorDetail = 'Something went wrong in mtgscan. Try again.';
+
 const problemKinds = {
   'invalid-argument': { title: 'Invalid argument', retryable: false },
   'invalid-cursor': { title: 'Invalid cursor', retryable: false },
@@ -22,6 +24,8 @@ const problemOfPostgresCode: Record<string, ProblemName> = {
   rate_limited: 'rate-limited',
   unauthorized: 'unauthorized',
 };
+
+const reservedMembers = new Set(['type', 'title', 'detail', 'retryable', 'status']);
 
 export type Problem = {
   type: string;
@@ -47,19 +51,30 @@ export const problemSchema = {
   required: ['type', 'title', 'detail', 'retryable'],
 };
 
-export function problem(name: ProblemName, detail: string, members: Record<string, unknown> = {}): Problem {
-  const { title, retryable } = problemKinds[name];
-  return { type: problemTypeBase + name, title, detail, ...members, retryable };
+function problemBase(name: ProblemName, detail: string) {
+  return { type: problemTypeBase + name, title: problemKinds[name].title, detail };
 }
 
-export function nameOf(found: Problem): ProblemName {
-  return found.type.slice(problemTypeBase.length) as ProblemName;
+export function problem(name: ProblemName, detail: string, members: Record<string, unknown> = {}): Problem {
+  const extraMembers = Object.entries(members).filter(([member]) => !reservedMembers.has(member));
+  return { ...problemBase(name, detail), ...Object.fromEntries(extraMembers), retryable: problemKinds[name].retryable };
+}
+
+export function httpProblem(name: ProblemName, status: number, detail: string): Response {
+  return new Response(JSON.stringify({ ...problemBase(name, detail), status }), {
+    status,
+    headers: { 'Content-Type': 'application/problem+json' },
+  });
+}
+
+export function nameOf(toolProblem: Problem): ProblemName {
+  return toolProblem.type.slice(problemTypeBase.length) as ProblemName;
 }
 
 export function problemFromPostgres(error: PostgresError): Problem {
   const name = problemOfPostgresCode[error.code];
   if (!name) {
-    return problem('internal-error', 'Something went wrong in mtgscan. Try again.');
+    return problem('internal-error', internalErrorDetail);
   }
   return problem(name, error.message, membersOfDetails(error.details));
 }
@@ -68,10 +83,16 @@ function membersOfDetails(details: string | null): Record<string, unknown> {
   if (!details) {
     return {};
   }
-  if (details.startsWith('{')) {
-    return JSON.parse(details);
+  return jsonObject(details) ?? { pointer: pointerOfField(details) };
+}
+
+function jsonObject(text: string): Record<string, unknown> | null {
+  try {
+    const value = JSON.parse(text);
+    return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
+  } catch {
+    return null;
   }
-  return { pointer: pointerOfField(details) };
 }
 
 function pointerOfField(field: string): string {
@@ -80,12 +101,4 @@ function pointerOfField(field: string): string {
     .split('.')
     .map((token) => '/' + token.replaceAll('~', '~0').replaceAll('/', '~1'))
     .join('');
-}
-
-export function httpProblem(name: ProblemName, status: number, detail: string): Response {
-  const { title } = problemKinds[name];
-  return new Response(JSON.stringify({ type: problemTypeBase + name, title, status, detail }), {
-    status,
-    headers: { 'Content-Type': 'application/problem+json' },
-  });
 }

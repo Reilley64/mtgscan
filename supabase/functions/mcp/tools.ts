@@ -1,14 +1,22 @@
 import type { Tool as ListedTool, ToolAnnotations } from '@modelcontextprotocol/server';
+import { z } from 'zod';
 
 import { problemSchema } from './problems.ts';
 
-type JsonSchema = Record<string, unknown>;
-
-export type Tool = Required<Pick<ListedTool, 'name' | 'title' | 'description' | 'annotations' | 'inputSchema' | 'outputSchema'>> & {
+export type Tool = Pick<ListedTool, 'name' | 'inputSchema' | 'outputSchema'> & {
+  title: string;
+  description: string;
+  annotations: ToolAnnotations;
   postgresFunction: string;
-  leftOut: string[];
-  summary: (result: never) => string;
-  narrowing: string;
+  leftOut: Record<string, string[]>;
+  summary: (result: unknown) => string;
+  tooLargeHint: string;
+};
+
+type ToolDefinition<Output extends z.ZodType> = Omit<Tool, 'inputSchema' | 'outputSchema' | 'summary'> & {
+  input: z.ZodObject;
+  output: Output;
+  summary: (result: z.infer<Output>) => string;
 };
 
 const readOnly: ToolAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
@@ -17,101 +25,142 @@ const usdPrices = 'Prices are current Scryfall prices in USD (TCGplayer Market).
 const estimatedBracket =
   'The estimated bracket is an estimate for a pregame conversation, not a certified bracket. Signals labelled heuristic are not official.';
 
-const uuid = { type: 'string', format: 'uuid' };
-const timestamp = { type: 'string', format: 'date-time' };
-const nullable = (schema: JsonSchema) => ({ anyOf: [schema, { type: 'null' }] });
-const finish = { enum: ['nonfoil', 'foil', 'etched'] };
-const price = nullable({
-  type: 'object',
-  properties: { amount: { type: 'string' }, currency: { const: 'USD' }, finish, stale: { type: 'boolean' } },
-  required: ['amount', 'currency', 'finish', 'stale'],
-});
-const evaluationCard = {
-  type: 'object',
-  properties: { kind: { enum: ['copy', 'basic_land'] }, copy_id: uuid, oracle_id: uuid, name: { type: 'string' } },
-  required: ['kind', 'name'],
+function isImageField(key: string): boolean {
+  return key === 'image_uris' || key.endsWith('art_crop_uri');
+}
+
+function jsonSchemaOf(schema: z.ZodType): ListedTool['inputSchema'] {
+  const { $schema: _, ...jsonSchema } = z.toJSONSchema(schema);
+  return jsonSchema as ListedTool['inputSchema'];
+}
+
+function defineTool<Output extends z.ZodType>({ input, output, summary, ...tool }: ToolDefinition<Output>): Tool {
+  return {
+    ...tool,
+    inputSchema: jsonSchemaOf(input),
+    outputSchema: { type: 'object', anyOf: [jsonSchemaOf(output), problemSchema] },
+    summary: (result) => summary(result as z.infer<Output>),
+  };
+}
+
+function withoutKeys(isLeftOut: (key: string) => boolean, value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => withoutKeys(isLeftOut, item));
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key]) => !isLeftOut(key))
+        .map(([key, member]) => [key, withoutKeys(isLeftOut, member)]),
+    );
+  }
+  return value;
+}
+
+export function toolResult(tool: Tool, result: unknown): Record<string, unknown> {
+  const shown = withoutKeys(isImageField, result) as Record<string, unknown>;
+  for (const [field, keys] of Object.entries(tool.leftOut)) {
+    shown[field] = withoutKeys((key) => keys.includes(key), shown[field]);
+  }
+  return shown;
+}
+
+const id = z.guid();
+const color = z.enum(['W', 'U', 'B', 'R', 'G']);
+const finish = z.enum(['nonfoil', 'foil', 'etched']);
+const estimatedBracketValue = z.union([z.literal(2), z.literal(3), z.literal(4)]);
+const deckRule = z.enum(['no_commander', 'commander_eligibility', 'partner', 'deck_size', 'singleton', 'color_identity', 'banned', 'not_legal']);
+
+const currentPrice = z.strictObject({ currency: z.literal('USD'), amount: z.string(), finish, stale: z.boolean() });
+
+const deckEvaluationCard = z.union([
+  z.strictObject({ kind: z.literal('copy'), copy_id: id, name: z.string() }),
+  z.strictObject({ kind: z.literal('basic_land'), oracle_id: id, name: z.string() }),
+]);
+
+const bracketSignalFields = {
+  source: z.enum(['official', 'heuristic']),
+  count: z.number().int(),
+  lowest_bracket: estimatedBracketValue,
+  cards: z.array(deckEvaluationCard),
 };
 
-const deckSchema = {
-  type: 'object',
-  properties: {
-    deck_id: uuid,
-    name: { type: 'string' },
-    priority: { enum: ['high', 'medium', 'low'] },
-    revision: { type: 'integer' },
-    card_count: { type: 'integer' },
-    created_at: timestamp,
-    last_used_at: timestamp,
-    commanders: {
-      type: 'array',
-      items: { type: 'object', properties: { copy_id: uuid, name: { type: 'string' } }, required: ['copy_id', 'name'] },
-    },
-    cards: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          copy_id: uuid,
-          printing_id: uuid,
-          name: { type: 'string' },
-          finish,
-          protected: { type: 'boolean' },
-          price,
-          role: { enum: ['commander', 'main'] },
-          type_line: { type: 'string' },
-          mana_value: { type: 'number' },
-          colors: { type: 'array', items: { enum: ['W', 'U', 'B', 'R', 'G'] } },
-        },
-        required: ['copy_id', 'printing_id', 'name', 'role', 'protected', 'price', 'finish', 'type_line', 'mana_value', 'colors'],
-      },
-    },
-    basic_lands: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: { oracle_id: nullable(uuid), name: { type: 'string' }, count: { type: 'integer' } },
-        required: ['oracle_id', 'name', 'count'],
-      },
-    },
-    evaluation: nullable({
-      type: 'object',
-      properties: {
-        validity: { enum: ['valid', 'invalid', 'cannot_be_determined'] },
-        validity_stale: { type: 'boolean' },
-        violations: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: { rule: { type: 'string' }, message: { type: 'string' }, cards: { type: 'array', items: evaluationCard } },
-            required: ['rule', 'message', 'cards'],
-          },
-        },
-        estimated_bracket: { enum: [2, 3, 4] },
-        bracket_stale: { type: 'boolean' },
-        bracket_signals: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              kind: { type: 'string' },
-              source: { enum: ['official', 'heuristic'] },
-              lowest_bracket: { enum: [2, 3, 4] },
-              cards: { type: 'array', items: evaluationCard },
-            },
-            required: ['kind', 'source', 'lowest_bracket', 'cards'],
-          },
-        },
-      },
-      required: ['validity', 'validity_stale', 'violations', 'estimated_bracket', 'bracket_stale', 'bracket_signals'],
+const deckEvaluation = z.strictObject({
+  validity: z.enum(['valid', 'invalid', 'cannot_be_determined']),
+  validity_stale: z.boolean(),
+  estimated_bracket: estimatedBracketValue,
+  bracket_stale: z.boolean(),
+  violations: z.array(
+    z.strictObject({
+      rule: deckRule,
+      citation: z.string().nullable(),
+      message: z.string(),
+      hint: z.string().nullable(),
+      cards: z.array(deckEvaluationCard),
+      colors: z.array(color).optional(),
     }),
-  },
-  required: ['deck_id', 'name', 'priority', 'revision', 'card_count', 'commanders', 'cards', 'basic_lands', 'evaluation'],
-};
+  ),
+  undetermined: z.array(
+    z.strictObject({ rule: z.union([deckRule, z.literal('legality')]), reason: z.string(), cards: z.array(deckEvaluationCard) }),
+  ),
+  chosen_color: color.nullable(),
+  bracket_signals: z.array(
+    z.union([
+      z.strictObject({ kind: z.enum(['game_changers', 'mass_land_denial', 'extra_turns']), ...bracketSignalFields }),
+      z.strictObject({
+        kind: z.literal('two_card_combo'),
+        ...bracketSignalFields,
+        combos: z.array(
+          z.strictObject({
+            cards: z.array(deckEvaluationCard),
+            produced_features: z.array(z.string()),
+            bracket_tag: z.enum(['ruthless', 'spicy', 'powerful', 'oddball', 'core', 'exhibition', 'banned']),
+          }),
+        ),
+      }),
+    ]),
+  ),
+  missing_signal_count: z.number().int(),
+  revision: z.number().int(),
+  catalog_at: z.string().nullable(),
+  oracle_tags_at: z.string().nullable(),
+  commander_spellbook_at: z.string().nullable(),
+  judged_at: z.string(),
+  validity_rules_data_at: z.string().nullable(),
+  bracket_rules_data_at: z.string().nullable(),
+  no_oracle_tag_data: z.boolean(),
+  no_combo_data: z.boolean(),
+});
 
-type DeckSummary = { name: string; card_count: number; revision: number };
+const deck = z.strictObject({
+  deck_id: id,
+  name: z.string(),
+  priority: z.enum(['high', 'medium', 'low']),
+  card_count: z.number().int(),
+  commanders: z.array(z.strictObject({ copy_id: id, name: z.string() })),
+  last_used_at: z.string(),
+  evaluation: deckEvaluation.nullable(),
+  revision: z.number().int(),
+  created_at: z.string(),
+  cards: z.array(
+    z.strictObject({
+      copy_id: id,
+      printing_id: id,
+      name: z.string(),
+      finish,
+      protected: z.boolean(),
+      price: currentPrice.nullable(),
+      role: z.enum(['commander', 'main']),
+      type_line: z.string(),
+      mana_value: z.number(),
+      colors: z.array(color),
+    }),
+  ),
+  basic_lands: z.array(z.strictObject({ oracle_id: id.nullable(), name: z.string(), count: z.number().int() })),
+});
 
 export const tools: Tool[] = [
-  {
+  defineTool({
     name: 'get_deck',
     title: 'Get a deck',
     description: [
@@ -120,17 +169,12 @@ export const tools: Tool[] = [
       estimatedBracket,
       usdPrices,
     ].join(' '),
-    postgresFunction: 'get_deck',
-    leftOut: ['added_at', 'commander_at', 'condition', 'language', 'rarity', 'collector_number', 'set'],
     annotations: readOnly,
-    inputSchema: {
-      type: 'object',
-      properties: { deck_id: { ...uuid, description: "The deck's ID." } },
-      required: ['deck_id'],
-      additionalProperties: false,
-    },
-    outputSchema: { type: 'object', anyOf: [deckSchema, problemSchema] },
-    summary: (deck: DeckSummary) => `${deck.name}: ${deck.card_count} cards at deck revision ${deck.revision}.`,
-    narrowing: "Search the deck's cards with search_collection and its deck filter instead.",
-  },
+    postgresFunction: 'get_deck',
+    input: z.strictObject({ deck_id: id.describe("The deck's ID.") }),
+    output: deck,
+    leftOut: { cards: ['added_at', 'commander_at', 'condition', 'language', 'rarity', 'collector_number', 'set'] },
+    summary: (result) => `${result.name}: ${result.card_count} cards at deck revision ${result.revision}.`,
+    tooLargeHint: "Search the deck's cards with search_collection and its deck filter instead.",
+  }),
 ];

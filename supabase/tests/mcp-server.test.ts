@@ -3,7 +3,16 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import type { Client } from '@modelcontextprotocol/client';
 
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
-import { claimsOf, connectAiClient, mcpClient, mcpLogLines, mcpServerUrl, postMcp, type AiClient } from './ai-clients';
+import {
+  claimsOf,
+  connectAiClient,
+  mcpClient,
+  mcpLogLines,
+  mcpServerUrl,
+  postMcp,
+  seedMcpCallCounts,
+  type AiClient,
+} from './ai-clients';
 import { asDatabaseOwner, localStackUrl, signUpNewUser, type TestUser } from './local-stack';
 import { stack } from './scan-batches';
 
@@ -32,17 +41,9 @@ async function deckWithCopies(user: TestUser, name: string, copies: number): Pro
 
 async function connected(user: TestUser): Promise<AiClient & { mcp: Client }> {
   const aiClient = await connectAiClient(user);
-  return { ...aiClient, mcp: await mcpClient(aiClient.token) };
-}
-
-function seedMinuteCounts(user: TestUser, count: number) {
-  return asDatabaseOwner(
-    (database) => database`
-      insert into public.mcp_call_counts (user_id, period, period_start, count)
-      select ${user.userId}, 'minute', date_trunc('minute', now(), 'UTC') + make_interval(mins => minute), ${count}
-      from generate_series(0, 1) minute
-    `,
-  );
+  const mcp = await mcpClient(aiClient.token);
+  await mcp.listTools();
+  return { ...aiClient, mcp };
 }
 
 function textOf(result: { content: unknown }): string {
@@ -230,7 +231,7 @@ describe('the MCP server over HTTP', () => {
     const user = await signUpNewUser();
     const deckId = await deckWithCopies(user, 'Atraxa', 1);
     const { mcp } = await connected(user);
-    await seedMinuteCounts(user, 120);
+    await seedMcpCallCounts(user, 'minute', 120);
 
     const result = await mcp.callTool({ name: 'get_deck', arguments: { deck_id: deckId } });
 
@@ -253,6 +254,42 @@ describe('the MCP server over HTTP', () => {
 
     expect(result.isError).toBe(true);
     expect(result.structuredContent).toMatchObject({ type: `${problems}result-too-large`, retryable: false });
+  });
+
+  test('answers an unknown tool with invalid-argument on /params/name and does not count the call', async () => {
+    const since = new Date();
+    const user = await signUpNewUser();
+    const { clientId, mcp } = await connected(user);
+
+    const result = await mcp.callTool({ name: 'get_decks', arguments: {} });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      type: `${problems}invalid-argument`,
+      title: 'Invalid argument',
+      detail: 'There is no tool named get_decks.',
+      pointer: '/params/name',
+      retryable: false,
+    });
+    const counts = await asDatabaseOwner((database) => database`select count from public.mcp_call_counts where user_id = ${user.userId}`);
+    expect(counts).toEqual([]);
+    const [line] = (await mcpLogLines(since, clientId, 1)).filter(({ parsed }) => parsed.result !== 'ok');
+    expect(line!.parsed).toMatchObject({ tool: null, result: 'invalid-argument' });
+  });
+
+  test('logs invalid-argument for a request that the MCP SDK refuses', async () => {
+    const since = new Date();
+    const { clientId, token } = await connectAiClient(await signUpNewUser());
+
+    const response = await postMcp(
+      { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+      { Authorization: `Bearer ${token}`, 'MCP-Protocol-Version': '2026-07-28' },
+    );
+
+    expect(response.ok).toBe(false);
+    expect((await mcpLogLines(since, clientId, 1)).map(({ parsed }) => parsed)).toEqual([
+      { tool: null, client_id: clientId, result: 'invalid-argument', protocol_version: '2026-07-28', duration_ms: expect.any(Number) },
+    ]);
   });
 
   test('logs one line for each request, with no arguments, results, or tokens', async () => {

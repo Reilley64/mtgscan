@@ -1,35 +1,24 @@
-import {
-  createMcpHandler,
-  ProtocolError,
-  ProtocolErrorCode,
-  Server,
-  type CallToolResult,
-} from '@modelcontextprotocol/server';
+import { createMcpHandler, Server, type CallToolResult } from '@modelcontextprotocol/server';
 import { getEnv } from '@supabase/middleware';
 import { createContextClient, verifyAuth } from '@supabase/server/core';
 import { withOAuthProtectedResource } from '@supabase/server/oauth-protected-resource';
 
 import {
   httpProblem,
+  internalErrorDetail,
   nameOf,
   problem,
   problemFromPostgres,
-  type PostgresError,
   type Problem,
   type ProblemName,
 } from './problems.ts';
-import { tools, type Tool } from './tools.ts';
+import { toolResult, tools, type Tool } from './tools.ts';
 
 const mcpServerUrl = getEnv('MCP_SERVER_URL')!;
 const issuer = mcpServerUrl.replace(/\/functions\/v1\/mcp$/, '/auth/v1');
 const maxRequestBytes = 64 * 1024;
 const maxResultBytes = 48 * 1024;
 const toolsByName = new Map(tools.map((tool) => [tool.name, tool]));
-
-type CallPostgres = (
-  name: string,
-  args: Record<string, unknown>,
-) => PromiseLike<{ data: unknown; error: PostgresError | null }>;
 
 type RequestLog = {
   tool: string | null;
@@ -40,33 +29,39 @@ type RequestLog = {
 
 type JsonRpcMessage = { method?: unknown; params?: { name?: unknown; protocolVersion?: unknown } };
 
+type UserClient = ReturnType<typeof userClient>;
+
 export default {
   fetch: withOAuthProtectedResource({ resourceServer: mcpServerUrl, authorizationServer: issuer }, async (request: Request) => {
     const started = performance.now();
     const body = request.method === 'POST' ? await request.text() : null;
     const message = readMessage(body);
     const log: RequestLog = {
-      tool: message?.method === 'tools/call' && typeof message.params?.name === 'string' ? message.params.name : null,
+      tool: toolsByName.has(calledToolName(message) ?? '') ? calledToolName(message) : null,
       client_id: null,
       result: 'ok',
       protocol_version: request.headers.get('mcp-protocol-version') ?? initializeVersion(message),
     };
-    const response = await answer(request, body, log).catch(() => failWith(log, 'internal-error', 500, 'Something went wrong in mtgscan. Try again.'));
+    const response = await verifyAndServe(request, body, log).catch(() => failWith(log, 'internal-error', 500, internalErrorDetail));
     console.log(JSON.stringify({ ...log, duration_ms: Math.round(performance.now() - started) }));
     return response;
   }),
 };
 
-async function answer(request: Request, body: string | null, log: RequestLog): Promise<Response> {
+function userClient(token: string) {
+  return createContextClient({ auth: { token } });
+}
+
+async function verifyAndServe(request: Request, body: string | null, log: RequestLog): Promise<Response> {
   if (body !== null && new TextEncoder().encode(body).length > maxRequestBytes) {
-    return failWith(log, 'request-too-large', 413, 'The request body is over 64 KB.');
+    return failWith(log, 'request-too-large', 413, `The request body is over ${maxRequestBytes / 1024} KB.`);
   }
 
   const { data: auth, error } = await verifyAuth(request, { auth: 'user', issuer, audience: mcpServerUrl });
   if (error) {
     return error.status === 401
       ? failWith(log, 'unauthorized', 401, 'Sign in to mtgscan from your AI chat.')
-      : failWith(log, 'internal-error', 500, 'Something went wrong in mtgscan. Try again.');
+      : failWith(log, 'internal-error', 500, internalErrorDetail);
   }
   const clientId = auth.jwtClaims?.client_id;
   if (typeof clientId !== 'string') {
@@ -74,25 +69,27 @@ async function answer(request: Request, body: string | null, log: RequestLog): P
   }
   log.client_id = clientId;
 
-  const supabase = createContextClient({ auth: { token: auth.token } });
-  const callPostgres: CallPostgres = (name, args) => supabase.rpc(name, args);
-  const begun = await callPostgres('begin_mcp_call', { tool: log.tool });
-  let refusal: Problem | null = null;
-  if (begun.error) {
-    refusal = problemFromPostgres(begun.error);
-    if (nameOf(refusal) === 'unauthorized') {
-      return failWith(log, 'unauthorized', 401, refusal.detail);
-    }
-    if (nameOf(refusal) !== 'rate-limited') {
-      return failWith(log, 'internal-error', 500, 'Something went wrong in mtgscan. Try again.');
-    }
+  const supabase = userClient(auth.token!);
+  const callStart = await supabase.rpc('begin_mcp_call', { tool: log.tool });
+  const refusal = callStart.error ? problemFromPostgres(callStart.error) : null;
+  if (refusal && nameOf(refusal) === 'unauthorized') {
+    return failWith(log, 'unauthorized', 401, refusal.detail);
+  }
+  if (refusal && nameOf(refusal) !== 'rate-limited') {
+    return failWith(log, 'internal-error', 500, internalErrorDetail);
   }
 
-  const handler = createMcpHandler(() => mcpServer(callPostgres, refusal, log), { responseMode: 'json' });
-  return handler.fetch(body === null ? request : new Request(request.url, { method: request.method, headers: request.headers, body }));
+  const handler = createMcpHandler(() => mcpServer(supabase, refusal, log), { responseMode: 'json' });
+  const response = await handler.fetch(
+    body === null ? request : new Request(request.url, { method: request.method, headers: request.headers, body }),
+  );
+  if (log.result === 'ok') {
+    log.result = (await protocolProblemOf(response)) ?? 'ok';
+  }
+  return response;
 }
 
-function mcpServer(callPostgres: CallPostgres, refusal: Problem | null, log: RequestLog): Server {
+function mcpServer(supabase: UserClient, refusal: Problem | null, log: RequestLog): Server {
   const server = new Server({ name: 'mtgscan', version: '1.0.0' }, { capabilities: { tools: {} } });
   server.setRequestHandler('tools/list', () => ({
     tools: tools.map(({ name, title, description, annotations, inputSchema, outputSchema }) => ({
@@ -106,53 +103,52 @@ function mcpServer(callPostgres: CallPostgres, refusal: Problem | null, log: Req
   }));
   server.setRequestHandler('tools/call', async (request) => {
     const tool = toolsByName.get(request.params.name);
-    if (!tool) {
-      throw new ProtocolError(ProtocolErrorCode.InvalidParams, `There is no tool named ${request.params.name}.`);
-    }
-    const result = refusal ? problemResult(refusal) : await callTool(callPostgres, tool, request.params.arguments ?? {});
+    const result = !tool
+      ? problemResult(problem('invalid-argument', `There is no tool named ${request.params.name}.`, { pointer: '/params/name' }))
+      : refusal
+        ? problemResult(refusal)
+        : await callTool(supabase, tool, request.params.arguments ?? {});
     if (result.isError) {
       log.result = nameOf(result.structuredContent as Problem);
     }
-    return server.projectCallToolResult(result, tool.outputSchema);
+    return server.projectCallToolResult(result, tool?.outputSchema);
   });
   return server;
 }
 
-async function callTool(callPostgres: CallPostgres, tool: Tool, query: Record<string, unknown>): Promise<CallToolResult> {
-  const { data, error } = await callPostgres(tool.postgresFunction, { query });
+async function callTool(supabase: UserClient, tool: Tool, query: Record<string, unknown>): Promise<CallToolResult> {
+  const { data, error } = await supabase.rpc(tool.postgresFunction, { query });
   if (error) {
     return problemResult(problemFromPostgres(error));
   }
-  const leftOut = new Set(tool.leftOut);
-  const isLeftOut = (key: string) => key === 'image_uris' || key.endsWith('art_crop_uri') || leftOut.has(key);
-  const structuredContent = without(isLeftOut, data) as Record<string, unknown>;
+  const structuredContent = toolResult(tool, data);
   const json = JSON.stringify(structuredContent);
   if (new TextEncoder().encode(json).length > maxResultBytes) {
-    return problemResult(problem('result-too-large', `The result is over 48 KB. ${tool.narrowing}`));
+    return problemResult(problem('result-too-large', `The result is over ${maxResultBytes / 1024} KB. ${tool.tooLargeHint}`));
   }
-  return { structuredContent, content: [{ type: 'text', text: `${tool.summary(structuredContent as never)}\n${json}` }] };
+  return { structuredContent, content: [{ type: 'text', text: `${tool.summary(structuredContent)}\n${json}` }] };
 }
 
-function problemResult(found: Problem): CallToolResult {
+function problemResult(toolProblem: Problem): CallToolResult {
   return {
     isError: true,
-    structuredContent: found,
-    content: [{ type: 'text', text: `${found.title}: ${found.detail}\n${JSON.stringify(found)}` }],
+    structuredContent: toolProblem,
+    content: [{ type: 'text', text: `${toolProblem.title}: ${toolProblem.detail}\n${JSON.stringify(toolProblem)}` }],
   };
 }
 
-function without(isLeftOut: (key: string) => boolean, value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => without(isLeftOut, item));
+async function protocolProblemOf(response: Response): Promise<ProblemName | null> {
+  if (response.status >= 500) {
+    return 'internal-error';
   }
-  if (value !== null && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value)
-        .filter(([key]) => !isLeftOut(key))
-        .map(([key, member]) => [key, without(isLeftOut, member)]),
-    );
+  if (response.status >= 400) {
+    return 'invalid-argument';
   }
-  return value;
+  const reply = response.headers.get('content-type')?.includes('application/json') ? await response.clone().json() : null;
+  if (!reply?.error) {
+    return null;
+  }
+  return reply.error.code === -32603 ? 'internal-error' : 'invalid-argument';
 }
 
 function failWith(log: RequestLog, name: ProblemName, status: number, detail: string): Response {
@@ -167,6 +163,10 @@ function readMessage(body: string | null): JsonRpcMessage | null {
   } catch {
     return null;
   }
+}
+
+function calledToolName(message: JsonRpcMessage | null): string | null {
+  return message?.method === 'tools/call' && typeof message.params?.name === 'string' ? message.params.name : null;
 }
 
 function initializeVersion(message: JsonRpcMessage | null): string | null {

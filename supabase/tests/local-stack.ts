@@ -10,13 +10,25 @@ const publishableKey =
   process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
 export const localStackUrl = url;
 
-export async function asDatabaseOwner<T>(work: (database: SQL) => Promise<T>): Promise<T> {
-  const database = new SQL(process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres');
+const databaseUrl = process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+
+async function asDatabaseUser<T>(url: string, work: (database: SQL) => Promise<T>): Promise<T> {
+  const database = new SQL(url);
   try {
     return await work(database);
   } finally {
     await database.close();
   }
+}
+
+export function asDatabaseOwner<T>(work: (database: SQL) => Promise<T>): Promise<T> {
+  return asDatabaseUser(databaseUrl, work);
+}
+
+export function asAuthAdmin<T>(work: (database: SQL) => Promise<T>): Promise<T> {
+  const url = new URL(databaseUrl);
+  url.username = 'supabase_auth_admin';
+  return asDatabaseUser(url.toString(), work);
 }
 
 export async function asDatabaseRole<T>(

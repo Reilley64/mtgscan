@@ -27,14 +27,7 @@ create table public.mcp_call_counts (
 
 alter table public.mcp_call_counts enable row level security;
 
-create policy "Users read their own MCP call counts"
-  on public.mcp_call_counts
-  for select
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-revoke all on table public.mcp_call_counts from anon, authenticated;
-grant select on table public.mcp_call_counts to authenticated;
+revoke all on table public.mcp_call_counts from anon, authenticated, service_role;
 
 create function private.count_mcp_call(caller uuid, call_period text, call_limit integer)
 returns void

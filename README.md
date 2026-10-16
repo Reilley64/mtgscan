@@ -505,24 +505,28 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, `deck_evaluations`, and `mcp_call_counts`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
+The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, and `deck_evaluations`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. Functions that `postgres` creates have no `execute` grant for `PUBLIC`, so a new `private` function starts closed. A migration grants `execute` on a helper only to the roles whose functions call it.
 
 Every app write function refuses an AI client's token. Each one calls `private.refuse_mcp_token()` right after `private.caller_user_id()`. The helper raises `insufficient_privilege` with "AI clients cannot change decks or the collection." when the token has a `client_id` claim. Supabase Auth's OAuth server puts that claim on every AI client's token. The app's sign-in never does, so the refusal does not affect the app. Read functions and previews do not call the helper. So an AI client's token can read through the Data API the same data that the MCP connection returns. `docs/adr/0007-refuse-mcp-tokens-by-client-id.md` says why.
 
+`public.begin_mcp_call` does the reverse. It requires an AI client's token, and so will the deck suggestion writes. `supabase/tests/ai-client-tokens.test.ts` leaves these functions out of its release gate by name, in the group `requiresAnAiClientsToken`.
+
+`mcp_call_counts` departs from the pattern too. It has no read policy, because nothing reads it. Only `begin_mcp_call` writes it.
+
 Signing up creates the user's profile through a trigger on `auth.users`.
 
 ### MCP connection
 
-AI clients reach mtgscan through the MCP server, the Edge Function in `supabase/functions/mcp`. Its MCP server URL is `<Supabase URL>/functions/v1/mcp`, as the app shows it. The function serves MCP over Streamable HTTP with `@modelcontextprotocol/server` 2.3.1. It answers protocol 2026-07-28, and the 2025 versions through the SDK's stateless fallback. It keeps no session state: each request gets a new server.
+AI clients reach mtgscan through the MCP server, the Edge Function in `supabase/functions/mcp`. Its MCP server URL is `<Supabase URL>/functions/v1/mcp`. The AI clients list in the settings drawer shows it. The function serves MCP over Streamable HTTP with `@modelcontextprotocol/server` 2.3.1. It answers protocol 2026-07-28, and the 2025 versions through the SDK's stateless fallback. It keeps no session state: each request gets a new server.
 
 #### MCP server URL
 
 - Supabase Auth's OAuth server signs AI clients in, with dynamic client registration. `supabase/config.toml` turns both on for the local stack.
 - The access token hook `public.set_mcp_audience` sets `aud` to `["authenticated", "<MCP server URL>"]` for a token with a `client_id`. It makes the URL from the token's `iss` by replacing `/auth/v1` with `/functions/v1/mcp`. It leaves the app's tokens unchanged. Only `supabase_auth_admin` can call it.
 - The function reads the MCP server URL from `MCP_SERVER_URL`. It uses it for the protected resource metadata and the audience check. It makes the issuer from it by replacing `/functions/v1/mcp` with `/auth/v1`. `supabase/config.toml` sets it for the local stack. The deploy workflow sets it on the hosted project from the project ref.
-- So the hook and the function both derive the URL from the project URL. If they ever disagree, every call fails with 401. The HTTP tests and the pre-flight catch it.
+- So the hook and the function both derive the URL from the project URL. If they ever disagree, every call fails with 401. The HTTP tests catch it.
 
 #### Token checks
 
@@ -540,8 +544,11 @@ Each request goes through these steps:
 | `get_deck` | `get_deck` |
 
 - `supabase/functions/mcp/tools.ts` lists the tools. Each one has all four annotations, an input schema with `additionalProperties: false`, and an output schema that also allows a problem details object.
+- `tools.ts` writes the schemas with zod. They follow the types in `supabase/decks.ts`, less the fields that the tool leaves out. The function imports nothing from outside `supabase/functions`, so the schemas copy those types by hand. Every object in an output schema has `additionalProperties: false`. The official MCP client checks each result against it in the HTTP tests, so a change to the result's shape fails them.
+- A call to a tool that does not exist gets `invalid-argument` with the pointer `/params/name`. It is not counted against the limits.
 - A tool sends its arguments to its Postgres function as the query, so Postgres checks them, as it does for the app.
-- A result leaves out image URIs and art crop URIs. It carries `structuredContent` and one text block: a one-line summary, then the minified JSON.
+- A result leaves out image URIs and art crop URIs. Each tool can also leave out fields at a named path. `get_deck` leaves out `added_at`, `commander_at`, `condition`, `language`, `rarity`, `collector_number`, and `set` of each deck card.
+- A result carries `structuredContent` and one text block: a one-line summary, then the minified JSON.
 
 #### Limits
 
@@ -558,7 +565,7 @@ Each request goes through these steps:
 
 #### Log line
 
-Each request logs one JSON line with `tool`, `client_id`, `result`, `protocol_version`, and `duration_ms`. `tool` is null for a request that is not a tool call. `result` is `ok` or the name of the problem type. The line has no arguments, results, or tokens.
+Each request logs one JSON line with `tool`, `client_id`, `result`, `protocol_version`, and `duration_ms`. `tool` is null for a request that is not a call to a known tool. `result` is `ok` or the name of the problem type. A request that the MCP SDK refuses logs `invalid-argument`, or `internal-error` for a server error. The line has no arguments, results, or tokens.
 
 #### Running and deploying
 

@@ -1,10 +1,9 @@
-import { SQL } from 'bun';
 import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { claimsOf, connectAiClient, mcpServerUrl } from './ai-clients';
+import { claimsOf, connectAiClient, mcpServerUrl, seedMcpCallCounts } from './ai-clients';
 import {
   anonymousClient,
-  asDatabaseOwner,
+  asAuthAdmin,
   asDatabaseRole,
   localStackUrl,
   signUpNewUser,
@@ -32,13 +31,8 @@ function tokenEvent(claims: Record<string, unknown>) {
 }
 
 async function hookAnswer(event: object) {
-  const auth = new SQL('postgresql://supabase_auth_admin:postgres@127.0.0.1:54322/postgres');
-  try {
-    const [{ answer }] = await auth`select public.set_mcp_audience(${event}::jsonb) as answer`;
-    return answer;
-  } finally {
-    await auth.close();
-  }
+  const [{ answer }] = await asAuthAdmin((database) => database`select public.set_mcp_audience(${event}::jsonb) as answer`);
+  return answer;
 }
 
 async function aiClientClaims(user: TestUser): Promise<Claims> {
@@ -56,15 +50,6 @@ function beginMcpCalls(claims: Claims, count: number) {
     }
     return { call: count, error: null };
   });
-}
-
-function seedDayCount(user: TestUser, count: number) {
-  return asDatabaseOwner(
-    (database) => database`
-      insert into public.mcp_call_counts (user_id, period, period_start, count)
-      values (${user.userId}, 'day', date_trunc('day', now(), 'UTC'), ${count})
-    `,
-  );
 }
 
 describe('the access token hook', () => {
@@ -125,7 +110,7 @@ describe('beginning an MCP call', () => {
   test('refuses the 2,001st tool call in a day and says how long to wait', async () => {
     const user = await signUpNewUser();
     const claims = await aiClientClaims(user);
-    await seedDayCount(user, 1999);
+    await seedMcpCallCounts(user, 'day', 1999);
 
     const { call, error } = await beginMcpCalls(claims, 2);
 
@@ -137,7 +122,7 @@ describe('beginning an MCP call', () => {
   test("counts each user's tool calls apart", async () => {
     const limited = await signUpNewUser();
     const other = await signUpNewUser();
-    await seedDayCount(limited, 2000);
+    await seedMcpCallCounts(limited, 'day', 2000);
 
     expect((await beginMcpCalls(await aiClientClaims(limited), 1)).error).toMatchObject({ code: 'rate_limited' });
     expect((await beginMcpCalls(await aiClientClaims(other), 120)).error).toBeNull();
@@ -146,24 +131,23 @@ describe('beginning an MCP call', () => {
   test('checks the session of a request that is not a tool call but does not count it', async () => {
     const user = await signUpNewUser();
     const claims = await aiClientClaims(user);
-    await seedDayCount(user, 2000);
+    await seedMcpCallCounts(user, 'day', 2000);
 
     const counted = await asDatabaseRole('authenticated', claims, (database) => database`select public.begin_mcp_call(null)`);
 
     expect(counted).toHaveLength(1);
   });
 
-  test('only the user reads their MCP call counts, and nobody writes them directly', async () => {
+  test('nobody reads or writes the MCP call counts directly', async () => {
     const user = await signUpNewUser();
-    const other = await signUpNewUser();
-    await seedDayCount(user, 5);
+    await seedMcpCallCounts(user, 'day', 5);
+    const row = { user_id: user.userId, period: 'minute', period_start: new Date().toISOString(), count: 0 };
 
-    expect((await user.client.from('mcp_call_counts').select('period, count')).data).toEqual([{ period: 'day', count: 5 }]);
-    expect((await other.client.from('mcp_call_counts').select()).data).toEqual([]);
-    expect((await anonymousClient().from('mcp_call_counts').select()).error?.code).toBe('42501');
-    expect(
-      (await user.client.from('mcp_call_counts').insert({ user_id: user.userId, period: 'minute', period_start: new Date().toISOString(), count: 0 }))
-        .error?.code,
-    ).toBe('42501');
+    for (const client of [user.client, anonymousClient()]) {
+      expect((await client.from('mcp_call_counts').select()).error?.code).toBe('42501');
+      expect((await client.from('mcp_call_counts').insert(row)).error?.code).toBe('42501');
+      expect((await client.from('mcp_call_counts').update({ count: 0 }).eq('user_id', user.userId)).error?.code).toBe('42501');
+      expect((await client.from('mcp_call_counts').delete().eq('user_id', user.userId)).error?.code).toBe('42501');
+    }
   });
 });
