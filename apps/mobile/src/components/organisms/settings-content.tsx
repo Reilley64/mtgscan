@@ -13,16 +13,33 @@ type SettingsContentProps = {
   gallery: ComponentProps<typeof GalleryCard>;
   currency: string | undefined;
   onOpenCurrency: () => void;
+  aiClientCount: number | undefined;
+  onOpenAiClients: () => void;
   scanSounds: boolean;
   onScanSoundsChange: (on: boolean) => void;
   onSignOut: () => void;
 };
+
+function SettingRow({ title, value, onPress }: { title: string; value: string | undefined; onPress: () => void }) {
+  return (
+    <DisclosureRow accessibilityLabel={value ? `${title}, ${value}` : title} onPress={onPress}>
+      <View className="flex-row items-center gap-md">
+        <Text variant="body-strong" className="flex-1">
+          {title}
+        </Text>
+        {value ? <Text className="text-text-muted">{value}</Text> : null}
+      </View>
+    </DisclosureRow>
+  );
+}
 
 export function SettingsContent({
   account,
   gallery,
   currency,
   onOpenCurrency,
+  aiClientCount,
+  onOpenAiClients,
   scanSounds,
   onScanSoundsChange,
   onSignOut,
@@ -31,14 +48,8 @@ export function SettingsContent({
     <>
       <AccountCard {...account} />
       <GalleryCard {...gallery} />
-      <DisclosureRow accessibilityLabel={currency ? `Currency, ${currency}` : 'Currency'} onPress={onOpenCurrency}>
-        <View className="flex-row items-center gap-md">
-          <Text variant="body-strong" className="flex-1">
-            Currency
-          </Text>
-          {currency ? <Text className="text-text-muted">{currency}</Text> : null}
-        </View>
-      </DisclosureRow>
+      <SettingRow title="Currency" value={currency} onPress={onOpenCurrency} />
+      <SettingRow title="AI clients" value={aiClientCount?.toString()} onPress={onOpenAiClients} />
       <SwitchRow title="Scan sounds" value={scanSounds} onValueChange={onScanSoundsChange} />
       <Button onPress={onSignOut}>
         <Text>Sign out</Text>

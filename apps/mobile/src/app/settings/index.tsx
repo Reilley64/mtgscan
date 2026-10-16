@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 
+import { useAiClients } from '@/ai-clients/ai-clients';
 import { signOut, useSession } from '@/auth/session';
 import { currentSignInProviderName } from '@/auth/sign-in';
 import { usePriceCurrency } from '@/collection/price-currency-setting';
@@ -16,6 +17,7 @@ export default function SettingsDrawer() {
   const { scanSounds, setScanSounds } = useScanSounds();
   const { priceCurrency } = usePriceCurrency();
   const parityCheck = useParityCheck();
+  const { read: aiClients } = useAiClients();
 
   return (
     <DrawerSheet title="Settings">
@@ -24,6 +26,8 @@ export default function SettingsDrawer() {
         gallery={gallery}
         currency={priceCurrency?.currency}
         onOpenCurrency={() => router.push('/settings/currency')}
+        aiClientCount={aiClients.status === 'loaded' ? aiClients.aiClients.length : undefined}
+        onOpenAiClients={() => router.push('/settings/ai-clients')}
         scanSounds={scanSounds}
         onScanSoundsChange={setScanSounds}
         onSignOut={signOut}

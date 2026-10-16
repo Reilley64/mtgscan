@@ -324,6 +324,11 @@ export function presentedAlert() {
   return { title: call[0], message: call[1], buttons: alertButtons(call).map((button) => button.text) };
 }
 
+export function presentedAlertButtonStyles() {
+  const call = openAlert();
+  return call ? alertButtons(call).map(({ text, style = 'default' }) => ({ text, style })) : null;
+}
+
 export async function pressAlertButton(label: string) {
   const call = openAlert();
   const button = call && alertButtons(call).find((candidate) => candidate.text === label);

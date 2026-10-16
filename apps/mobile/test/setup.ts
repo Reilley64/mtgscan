@@ -2,6 +2,7 @@ import { registerAppStyles } from './class-styles';
 import { resetFakeAlert } from './fake-alert';
 import { resetFakeCardDetector } from './fake-card-detector';
 import { resetFakeCardRecognizer } from './fake-card-recognizer';
+import { resetFakeClipboard } from './fake-clipboard';
 import { resetFakeFileSystem } from './fake-file-system';
 import { resetFakeGlassEffect } from './fake-glass-effect';
 import { resetFakeKeepAwake } from './fake-keep-awake';
@@ -10,6 +11,8 @@ import { resetFakeNativeState } from './fake-native-state';
 import { resetFakeScanFeedback } from './fake-scan-feedback';
 import { resetFakeSecureStore } from './fake-secure-store';
 import { resetFakeSupabase } from './fake-supabase';
+
+process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://abcdefghijklmnop.supabase.co';
 
 require('react-native-reanimated').setUpTests();
 
@@ -30,6 +33,8 @@ jest.mock('@/lib/supabase', () => ({
 jest.mock('../modules/card-detector', () => jest.requireActual('./fake-card-detector').fakeCardDetector);
 
 jest.mock('../modules/card-recognizer', () => jest.requireActual('./fake-card-recognizer').fakeCardRecognizer);
+
+jest.mock('expo-clipboard', () => jest.requireActual('./fake-clipboard').fakeClipboard);
 
 jest.mock('expo-file-system', () => jest.requireActual('./fake-file-system').fakeFileSystem);
 
@@ -54,6 +59,7 @@ beforeEach(async () => {
   resetFakeAlert();
   resetFakeCardDetector();
   resetFakeCardRecognizer();
+  resetFakeClipboard();
   resetFakeFileSystem();
   resetFakeGlassEffect();
   resetFakeKeepAwake();

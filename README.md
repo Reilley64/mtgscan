@@ -134,6 +134,10 @@ The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in accou
 - **Remove** in the **Remove all scans** alert of batch review empties the scan batch and its file. It also clears a commit that has not finished. A recognition that is still running adds no scan when it ends. Nothing reaches the server.
 - Pulling down on the Scan tab adds the scan batch with the same commit as **Add to collection**. `src/scan/use-pull-to-add.ts` tracks the pull with React Native's `PanResponder`, so the app needs no gesture library.
 
+### AI clients
+
+The settings drawer lists the AI clients that the user allowed, from `supabase.auth.oauth.listGrants()`. **Revoke** calls `revokeGrant()`. `src/lib/app-config.ts` makes the MCP server URL from `EXPO_PUBLIC_SUPABASE_URL` as `<Supabase URL>/functions/v1/mcp`, so the app has no second setting to keep in sync. **Copy** puts it on the clipboard with `expo-clipboard`. `expo-clipboard` is a native module, so a change to it needs a new native build.
+
 ### Local Supabase
 
 The Supabase project lives in `supabase`: configuration, SQL migrations, generated types, and database tests. The local stack needs Docker and the Supabase CLI 2.120.0.

@@ -2,6 +2,7 @@ import {
   AuthApiError,
   type AuthChangeEvent,
   type AuthError,
+  type OAuthGrant,
   type Session,
   type User,
 } from '@supabase/supabase-js';
@@ -133,6 +134,10 @@ let currentPrices: Map<string, CurrentPrice | null> | null = null;
 let currentPriceReads: CurrentPricesQuery[] = [];
 let failingCurrentPriceReads = 0;
 let heldCurrentPriceReads: Promise<void> | null = null;
+let aiClients: OAuthGrant[] = [];
+let failingAiClientReads = 0;
+let aiClientRevokes: string[] = [];
+let failingAiClientRevokes = 0;
 
 export const publishedGalleryVersion = '20261012-cf1753';
 export const galleryPartNames = [
@@ -988,6 +993,27 @@ function oracleTagLookup({ text, limit }: { text: string; limit: number }) {
   return { data: { items }, error: null };
 }
 
+const aiClientsUnreachable = new AuthApiError('Network request failed', 0, undefined);
+
+const oauthServer = {
+  async listGrants() {
+    if (failingAiClientReads > 0) {
+      failingAiClientReads -= 1;
+      return { data: null, error: aiClientsUnreachable };
+    }
+    return { data: session ? aiClients : [], error: null };
+  },
+  async revokeGrant({ clientId }: { clientId: string }) {
+    if (failingAiClientRevokes > 0) {
+      failingAiClientRevokes -= 1;
+      return { data: null, error: aiClientsUnreachable };
+    }
+    aiClientRevokes.push(clientId);
+    aiClients = aiClients.filter((aiClient) => aiClient.client.id !== clientId);
+    return { data: {}, error: null };
+  },
+};
+
 export const fakeSupabase = {
   from: cardCatalogTable,
   async rpc(
@@ -1124,6 +1150,7 @@ export const fakeSupabase = {
     },
     async startAutoRefresh() {},
     async stopAutoRefresh() {},
+    oauth: oauthServer,
     async signInWithIdToken({
       provider,
       token,
@@ -1437,6 +1464,26 @@ export function galleryStorageIsOffline(reads: number) {
   offlineGalleryReads = reads;
 }
 
+export function allowAiClients(seeds: { name: string; allowedAt: string }[]) {
+  aiClients = seeds.map(({ name, allowedAt }, index) => ({
+    client: { id: `ai-client-${index + 1}`, name, uri: '', logo_uri: '' },
+    scopes: ['openid', 'email', 'profile'],
+    granted_at: allowedAt,
+  }));
+}
+
+export function failAiClientReads(count: number) {
+  failingAiClientReads = count;
+}
+
+export function aiClientsRevokedOnTheServer() {
+  return aiClientRevokes;
+}
+
+export function failAiClientRevokes(count: number) {
+  failingAiClientRevokes = count;
+}
+
 export function resetFakeSupabase() {
   session = null;
   collectionCopies = [];
@@ -1482,6 +1529,10 @@ export function resetFakeSupabase() {
   currentPriceReads = [];
   failingCurrentPriceReads = 0;
   heldCurrentPriceReads = null;
+  aiClients = [];
+  failingAiClientReads = 0;
+  aiClientRevokes = [];
+  failingAiClientRevokes = 0;
   publishGallery(publishedGalleryVersion);
   nextSignInEmail = defaultEmail;
   nextSignInError = null;
