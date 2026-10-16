@@ -512,9 +512,9 @@ Idempotency keys are per user. Each call saves its key with its input and result
 - It lists every state by default. `status` (`open`, `withdrawn`, or `stale`) lists one state. `deck_id` lists one deck's suggestions. A deck that is not the caller's is refused with `not_found` on `deck_id`.
 - A page has 20 suggestions, or `limit`, from 1 to 50. To read the next page, send `next_cursor` back as `cursor`, with the same filters. It is null on the last page. Suggestions saved in one call share `created_at`, and sort by `suggestion_id` among themselves. A cursor that is not valid, that comes from other filters, or that is older than 15 minutes is refused with `invalid_cursor` on `cursor`.
 - Each suggestion has `suggestion_id`, `deck_id`, `deck_name`, `incoming`, `outgoing`, `reason`, `status`, `paired_suggestion_id`, `client_name`, `created_at`, `status_changed_at`, and `events`.
-- `incoming` has the card's `oracle_id`, its `name`, `as_commander`, and `from_deck_id`, which is null unless the suggestion is the incoming side of a pair.
+- `incoming` has the card's `oracle_id`, its `name`, `as_commander`, and `from_deck_id`. `from_deck_id` is null unless the suggestion is the paired suggestion that moves the card in from another deck.
 - `outgoing` is null, `{ copy_id, name }`, or `{ basic_land_oracle_id, name }`, the shapes that `create_deck_suggestions` takes plus the card's name.
-- `events` lists the suggestion's withdrawals and reason replacements from `deck_suggestion_events`, oldest first. Each has `kind` (`withdrawn` or `reason_replaced`), `client_name`, and `created_at`.
+- `events` lists the suggestion's deck suggestion events, oldest first. Each has `kind` (`withdrawn` or `reason_replaced`), `client_name`, and `created_at`.
 
 #### Stale deck suggestions
 

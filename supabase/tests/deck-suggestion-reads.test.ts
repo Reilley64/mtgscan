@@ -132,7 +132,7 @@ describe('list_deck_suggestions', () => {
     expect(next_cursor).toBeNull();
   });
 
-  test('each row has its deck name, card names, reason, status, pair, client name, times, and events', async () => {
+  test('each row has its deck name, card names, reason, status, paired suggestion, client name, times, and deck suggestion events', async () => {
     const user = await signUpNewUser();
     const krenko = await deckNamed(user, 'Krenko');
     const goblins = await deckNamed(user, 'Goblins');
@@ -292,7 +292,7 @@ describe('list_deck_suggestions', () => {
     });
   });
 
-  test("another user's deck suggestions and events are not listed", async () => {
+  test("another user's deck suggestions and deck suggestion events are not listed", async () => {
     const alice = await signUpNewUser();
     const bob = await signUpNewUser();
     const alicesDeck = await deckNamed(alice, 'Krenko');

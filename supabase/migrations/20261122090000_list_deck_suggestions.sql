@@ -69,6 +69,15 @@ begin
 end;
 $$;
 
+create or replace function private.check_deck_changes_query(query jsonb)
+returns jsonb
+language sql
+stable
+set search_path = ''
+as $$
+  select jsonb_build_object('limit', 20) || private.checked_object(null, query, array['deck_id'], array['cursor', 'limit']);
+$$;
+
 create function public.list_deck_suggestions(query jsonb default '{}')
 returns jsonb
 language plpgsql

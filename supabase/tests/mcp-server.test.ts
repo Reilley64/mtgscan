@@ -680,7 +680,7 @@ describe('create_deck_suggestions over HTTP', () => {
 });
 
 describe('list_deck_suggestions over HTTP', () => {
-  test('one page lists a withdrawn and a stale suggestion with their events, a one-line summary, and the minified JSON', async () => {
+  test('one page lists a withdrawn and a stale suggestion with their deck suggestion events, a one-line summary, and the minified JSON', async () => {
     const user = await signUpNewUser();
     const scanned = stack(lightningBolt);
     expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
@@ -752,5 +752,4 @@ describe('list_deck_suggestions over HTTP', () => {
       events: [{ kind: 'withdrawn', client_name: 'Test AI chat', created_at: expect.any(String) }],
     });
   });
-
 });

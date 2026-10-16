@@ -207,7 +207,7 @@ The stored deck validity, violations, chosen color, estimated bracket, and brack
 _Avoid_: Validity result, deck check
 
 **Deck suggestion**:
-An AI proposal to add a card to a deck, optionally replacing a deck card, with the AI's reason. It always names an incoming card. It is open, promoted, dismissed, withdrawn, or stale. An AI cannot suggest replacing a card that has already left the deck. An open suggestion becomes stale when its outgoing card leaves the deck later. Any connected AI client can withdraw an open suggestion or replace its reason, and a withdrawn suggestion stays withdrawn. Promoting it creates a planned swap when a free copy exists, otherwise a buylist card, and both keep the reason. Promoting a basic-land suggestion makes a deck change at once.
+An AI proposal to add a card to a deck, optionally replacing a deck card, with the AI's reason. It always names an incoming card. It is open, promoted, dismissed, withdrawn, or stale. An AI cannot suggest replacing a card that has already left the deck. An open suggestion becomes stale when its outgoing card leaves the deck later. Any connected AI client can withdraw an open suggestion or replace its reason, and a withdrawn suggestion stays withdrawn. Two deck suggestions sent in one call to move a card from one deck to another are paired suggestions, and each names the other. Each withdrawal and reason replacement is recorded as a deck suggestion event, with the AI client and the time. Promoting it creates a planned swap when a free copy exists, otherwise a buylist card, and both keep the reason. Promoting a basic-land suggestion makes a deck change at once.
 _Avoid_: AI change, recommendation
 
 **Planned swap**:

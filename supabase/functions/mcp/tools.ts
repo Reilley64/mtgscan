@@ -387,6 +387,7 @@ const deckChange = z.strictObject({
 });
 
 const deckSuggestionStatus = z.enum(['open', 'withdrawn', 'stale']);
+const deckSuggestionEventKind = z.enum(['withdrawn', 'reason_replaced']);
 
 const deckSuggestionRow = z.strictObject({
   suggestion_id: id,
@@ -402,9 +403,7 @@ const deckSuggestionRow = z.strictObject({
   client_name: z.string().nullable(),
   created_at: z.string(),
   status_changed_at: z.string(),
-  events: z.array(
-    z.strictObject({ kind: z.enum(['withdrawn', 'reason_replaced']), client_name: z.string().nullable(), created_at: z.string() }),
-  ),
+  events: z.array(z.strictObject({ kind: deckSuggestionEventKind, client_name: z.string().nullable(), created_at: z.string() })),
 });
 
 const keyPattern = (minLength: number) => z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${minLength},64}$`));
@@ -660,8 +659,8 @@ export const tools: Tool[] = [
     title: 'List deck suggestions',
     description: [
       'Read past deck suggestions in every state, newest first: open, withdrawn, and stale. Filter them by deck_id or status.',
-      'Each suggestion has its deck name, the incoming and outgoing card names, the reason, the status, the pair, the name of the AI client that made it, its times, and its events.',
-      'An event is a withdrawal or a reason replacement, with the name of the AI client that made it.',
+      'Each suggestion has its deck name, the incoming and outgoing card names, the reason, the status, its paired suggestion, the name of the AI client that made it, its times, and its deck suggestion events.',
+      'A deck suggestion event is a withdrawal or a reason replacement, with the name of the AI client that made it.',
     ].join(' '),
     annotations: readOnly,
     postgresFunction: 'list_deck_suggestions',
