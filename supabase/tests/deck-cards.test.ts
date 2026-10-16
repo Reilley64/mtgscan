@@ -363,6 +363,19 @@ describe('reading a deck with cards', () => {
     expect((await copyOf(user, commander)).deck?.role).toBe('commander');
   });
 
+  test('list_decks shows the deck revision of each deck', async () => {
+    const user = await signUpNewUser();
+    const atraxa = await created(user, 'Atraxa');
+    await created(user, 'Kinnan');
+    await added(user, atraxa, await scannedCopy(user));
+    await added(user, atraxa, await scannedCopy(user, delverInnistrad));
+
+    expect((await decksOf(user)).map((deck) => [deck.name, deck.revision])).toEqual([
+      ['Atraxa', 2],
+      ['Kinnan', 0],
+    ]);
+  });
+
   test('list_decks counts the cards of each deck', async () => {
     const user = await signUpNewUser();
     const atraxa = await created(user, 'Atraxa');

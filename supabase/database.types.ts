@@ -870,7 +870,7 @@ isOneToOne: false
 { Args: { "query": Json }; Returns: Json
                            },
 "list_decks":
-{ Args: Record<PropertyKey, never>; Returns: Json
+{ Args: { "query"?: Json }; Returns: Json
                            },
 "list_exchange_rates":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -881,7 +881,7 @@ isOneToOne: false
             }[]
                            },
 "list_user_tags":
-{ Args: Record<PropertyKey, never>; Returns: Json
+{ Args: { "query"?: Json }; Returns: Json
                            },
 "mark_deck_used":
 { Args: { "request": Json }; Returns: undefined

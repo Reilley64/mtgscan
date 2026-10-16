@@ -103,6 +103,7 @@ export type DeckRow = {
   card_count: number;
   commanders: DeckCommander[];
   last_used_at: string;
+  revision: number;
   evaluation: DeckEvaluationSummary | null;
 };
 
@@ -128,7 +129,6 @@ export type DeckBasicLand = {
 
 export type Deck = Omit<DeckRow, 'evaluation'> & {
   evaluation: DeckEvaluation | null;
-  revision: number;
   created_at: string;
   cards: DeckCard[];
   basic_lands: DeckBasicLand[];

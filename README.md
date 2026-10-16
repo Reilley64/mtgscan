@@ -200,12 +200,13 @@ Signed-in users search the card catalog with `supabase.rpc('search_catalog', { q
 
 - A text search ranks an exact full card name first. Next come exact face names, then other name matches, Oracle tag matches, type line matches, and Oracle text matches.
 - A refused call returns an error with a `code` such as `invalid_argument` or `invalid_cursor`. The field at fault is in `details`. `readSearchError` reads it as a `SearchError`.
-- Prices are in USD. No price read takes `price_currency`. A query that sends it, even `USD`, is refused with `invalid_argument` on `price_currency`, so an old build fails loudly. The app converts prices itself, as Converted prices says, and the MCP service will too. Collection search, `get_cards`, the collection total, the current prices read, and the copy read take the same rule.
+- Prices are in USD. No price read takes `price_currency`. A query that sends it, even `USD`, is refused with `invalid_argument` on `price_currency`, so an old build fails loudly. The app converts prices itself, as Converted prices says. The MCP connection returns USD. Collection search, `get_cards`, the collection total, the current prices read, and the copy read take the same rule.
 - Each row's `price_from` is the card's lowest current price in USD. A card with no lowest current price has no `price_from`.
 - `price_min` and `price_max` are USD amounts. They compare with the lowest current price, and a bound matches a price equal to it. `sort: 'price'` uses the USD amount.
 - `get_cards` takes `oracle_ids` or `printing_ids`. Its `price_from` is as in catalog search.
 - `get_cards` reads card details for up to 20 cards. Each card lists its direct Oracle tags that are not disabled, as `slug` and `label`, sorted by label. Each card also lists up to 5 combos as `combos`. Each combo has its `spellbook_id`, the `other_card` with its Oracle ID and name, its produced features, and its bracket tag. Combos sort by the other card's EDHREC rank, with missing ranks last, then by the other card's name, then by Spellbook ID. A card with no combos has an empty list.
 - Each first page writes one row to `search_telemetry`. It is the one table with user data that has no read policy: app users cannot read it, and only the secret key can.
+- The telemetry row has the caller `app`, or `mcp` when the token has a `client_id`, as an AI client's token does.
 - Catalog search also accepts the secret key, for the search release check. Its telemetry row has the caller `release_check` and no user. It counts no owned copies. No other search or catalog read accepts the secret key.
 
 ### Scan batch commit
@@ -222,7 +223,7 @@ Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_
 
 ### Converted prices
 
-mtgscan stores every price in USD, and every read returns USD. The app converts prices into the price currency with the shared module `supabase/converted-prices.ts` (`@mtgscan/supabase/converted-prices`). The MCP service will use the same module. `docs/adr/0005-convert-all-prices-from-usd.md` says why.
+mtgscan stores every price in USD, and every read returns USD. The app converts prices into the price currency with the shared module `supabase/converted-prices.ts` (`@mtgscan/supabase/converted-prices`). The MCP connection returns USD only. `docs/adr/0005-convert-all-prices-from-usd.md` says why.
 
 - A converted price is the USD amount times the latest exchange rate, rounded half up to the currency's minor unit. JPY, KRW, ISK, and other currencies with no minor unit round to whole units. The module computes with exact decimals, not floating point.
 - A converted price has `approximate: true`, `exchange_rate`, the rate from USD as a decimal string, and `rate_date`, the ECB date of the rate. A USD price has none of these three fields.
@@ -304,7 +305,7 @@ A user tag is a private label that a user puts on copies. `user_tags` holds each
 - `supabase.rpc('set_copy_user_tag', { request: { copy_id, user_tag_id, tagged } })` puts the user tag on the copy when `tagged` is true and takes it off when it is false. It returns nothing. Doing what is already done changes nothing. Putting a user tag on a copy or taking it off changes no collection entry.
 - `supabase.rpc('rename_user_tag', { request: { user_tag_id, name } })` trims the name and renames the user tag. It keeps the ID, so every copy shows the new name. It returns `user_tag_id` and `name`. A name that matches another of the user's user tags ignoring case is refused with `user_tag_exists` on `name`.
 - `supabase.rpc('delete_user_tag', { request: { user_tag_id } })` deletes the user tag and takes it off every copy. It returns nothing.
-- `supabase.rpc('list_user_tags')` returns `items`: the caller's user tags with `user_tag_id`, `name`, and `copy_count`, sorted by name ignoring case. It runs with the caller's rights.
+- `supabase.rpc('list_user_tags')` returns `items`: the caller's user tags with `user_tag_id`, `name`, and `copy_count`, sorted by name ignoring case. It runs with the caller's rights. It takes an optional `query`, an empty object, as the MCP server sends. A query with a field is refused with `invalid_argument` on that field.
 - The write functions check the caller's identity and run in one transaction each. Another user's copy or user tag is refused with `not_found` on `copy_id` or `user_tag_id`, like one that does not exist. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
 ### Decks
@@ -316,8 +317,8 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
 - The deck revision starts at 0.
 - `supabase.rpc('create_deck', { request: { name } })` trims the name and creates an empty deck with no commander. It returns `deck_id`. Creating a deck counts as using it.
 - `supabase.rpc('mark_deck_used', { request: { deck_id } })` sets the deck's last used time. The deck screen calls it when it opens. It returns nothing.
-- `supabase.rpc('list_decks')` returns `items`: the caller's decks with `deck_id`, `name`, `priority`, `card_count`, `commanders`, `last_used_at`, and `evaluation`. The deck used most recently comes first. Decks used at the same time sort by name ignoring case. `card_count` counts the deck's commanders, main deck, and basic lands. `commanders` lists each commander's `copy_id`, `name`, and `art_crop_uri`, the oldest commander first. `evaluation` is null for an empty deck. Otherwise it has the `validity`, `validity_stale`, `estimated_bracket`, and `bracket_stale` of the deck evaluation. Deck evaluations (Freshness) says when each is stale.
-- `supabase.rpc('get_deck', { query: { deck_id } })` returns the fields of a `list_decks` item, plus `revision`, `created_at`, `cards`, and `basic_lands`. Reading a deck does not count as using it.
+- `supabase.rpc('list_decks')` returns `items`: the caller's decks with `deck_id`, `name`, `priority`, `card_count`, `commanders`, `last_used_at`, `revision`, and `evaluation`. The deck used most recently comes first. Decks used at the same time sort by name ignoring case. `card_count` counts the deck's commanders, main deck, and basic lands. `commanders` lists each commander's `copy_id`, `name`, and `art_crop_uri`, the oldest commander first. `evaluation` is null for an empty deck. Otherwise it has the `validity`, `validity_stale`, `estimated_bracket`, and `bracket_stale` of the deck evaluation. Deck evaluations (Freshness) says when each is stale. It takes an optional `query`, an empty object, as the MCP server sends. A query with a field is refused with `invalid_argument` on that field.
+- `supabase.rpc('get_deck', { query: { deck_id } })` returns the fields of a `list_decks` item, plus `created_at`, `cards`, and `basic_lands`. Reading a deck does not count as using it.
   - `evaluation` is null for an empty deck. Otherwise it has every stored field of the deck evaluation, as Deck evaluations says, and `validity_rules_data_at`, the snapshot time of the card catalog that the validity used. `bracket_rules_data_at` is the oldest of `catalog_at`, `oracle_tags_at`, and `commander_spellbook_at` that is not null. `no_oracle_tag_data` and `no_combo_data` are true when the deck evaluation read no Oracle tag or combo snapshot. It also has `validity_stale` and `bracket_stale`.
   - `cards` lists every copy in the deck. Each has its card printing as in a copy row of collection search, its `finish`, `condition`, `language`, `protected`, and `price` with `stale`. It adds `role` (`commander` or `main`), `commander_at`, the time the card was made a commander or null, `added_at`, the time the copy went into the deck, and its card's `type_line`, `mana_value`, and `colors`. The app groups and sorts the cards.
   - `basic_lands` lists the twelve basic land cards in order: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Each has its card's `oracle_id`, its `name`, the `image_uris` of its basic land image, and its `count`, 0 when the deck has none. A basic land card that the card catalog does not have has a null `oracle_id` and no image.
@@ -609,23 +610,38 @@ Each request goes through these steps:
 
 #### Tools
 
+The tools come in this order. Every tool has `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: false`. The read tools have `readOnlyHint: true`, and `create_deck_suggestions` has `readOnlyHint: false`.
+
 | Tool | Postgres function |
 | --- | --- |
+| `search_catalog` | `search_catalog` |
+| `search_collection` | `search_collection`, with collection entries or copies |
+| `search_oracle_tags` | `search_oracle_tags` |
+| `get_cards` | `get_cards`, up to 20 IDs |
+| `list_card_printings` | `list_card_printings` |
+| `list_user_tags` | `list_user_tags` |
+| `get_collection_summary` | `get_collection_total` |
+| `list_decks` | `list_decks` |
 | `get_deck` | `get_deck` |
+| `list_deck_changes` | `list_deck_changes` |
 | `create_deck_suggestions` | `create_deck_suggestions` |
 
 - `supabase/functions/mcp/tools.ts` lists the tools. Each one has all four annotations, an input schema with `additionalProperties: false`, and an output schema that also allows a problem details object.
-- `tools.ts` writes the schemas with zod. They follow the types in `supabase/decks.ts`, less the fields that the tool leaves out. The function imports nothing from outside `supabase/functions`, so the schemas copy those types by hand. Every object in an output schema has `additionalProperties: false`. The official MCP client checks each result against it in the HTTP tests, so a change to the result's shape fails them.
+- `tools.ts` writes the schemas with zod. They follow the types in `supabase/search.ts`, `supabase/collection.ts`, and `supabase/decks.ts`, less the fields that the tool leaves out. The function imports nothing from outside `supabase/functions`, so the schemas copy those types by hand. Every object in an output schema has `additionalProperties: false`. The official MCP client checks each result against it in the HTTP tests, so a change to the result's shape fails them.
 - A call to a tool that does not exist gets `invalid-argument` with the pointer `/params/name`. It is not counted against the limits.
 - A read tool sends its arguments to its Postgres function as `query`, and a write tool as `request`. The tool's `readOnlyHint` says which. Postgres checks the arguments, as it does for the app.
+- `list_user_tags`, `get_collection_summary`, and `list_decks` take an empty query.
+- No tool takes a currency. Prices are USD. The description of each tool that returns prices says so: `search_catalog`, `search_collection`, `get_cards`, `get_collection_summary`, and `get_deck`.
+- The description of `search_catalog` says that it returns only Commander-legal cards and has no fuzzy match. The descriptions of `list_decks` and `get_deck` say that the estimated bracket is an estimate and that heuristic signals are not official.
 - A result leaves out image URIs and art crop URIs. Each tool can also leave out fields at a named path. `get_deck` leaves out `added_at`, `commander_at`, `condition`, `language`, `rarity`, `collector_number`, and `set` of each deck card.
-- A result carries `structuredContent` and one text block: a one-line summary, then the minified JSON.
+- A result carries `structuredContent` and one text block: a one-line summary, then the minified JSON. A search with an AI client's token writes its telemetry row with the caller `mcp`.
 
 #### Limits
 
 - Each user can make 120 tool calls a minute and 2,000 a day. `begin_mcp_call` counts tool calls in `mcp_call_counts`, by UTC minute and UTC day. A request that is not a tool call, such as `tools/list`, is not counted.
 - A tool call over a limit gets `rate-limited` with `retry_after_seconds`.
-- A result over 48 KB gets `result-too-large`.
+- Pages hold 20 rows by default and 50 at most. This holds for `search_catalog`, `search_collection`, `list_card_printings`, and `list_deck_changes`. The function sends `limit: 20` when the call has none, so copies also come 20 at a time, not 60 as in the app. A `limit` over 50 gets `invalid-argument` on `/limit`. Postgres checks the rest of the query.
+- A result over 48 KB gets `result-too-large`. Its detail says how to narrow the request, such as a lower `limit` or no `include_oracle_text`.
 
 #### Problems
 

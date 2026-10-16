@@ -240,6 +240,13 @@ describe('the user tag list', () => {
     expect(await userTagsOf(await signUpNewUser())).toEqual([]);
   });
 
+  test('an unknown field in the query is refused with invalid_argument', async () => {
+    const { data, error } = await alice.client.rpc('list_user_tags', { query: { name: 'Signed' } });
+
+    expect(data).toBeNull();
+    expect(error && readUserTagError(error)).toMatchObject({ code: 'invalid_argument', field: 'name' });
+  });
+
   test('deleting a copy removes its user tag links, and the count drops', async () => {
     const user = await signUpNewUser();
     const [keptCopy, deletedCopy] = (await scannedCopies(user, angelicCurator, 2)) as [string, string];
