@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { Client } from '@modelcontextprotocol/client';
 
-import { claimsOf, mcpReadToolNames, mcpToolNames, mcpWriteToolNames } from '../mcp-connection';
+import { claimsOf, mcpClient, mcpReadToolNames, mcpToolAnnotations, mcpToolNames, mcpWriteToolNames } from '../mcp-connection';
 import {
   catalogFixtureManifest,
   oracleIdOf,
@@ -15,7 +15,6 @@ import {
 } from './catalog-import-command';
 import {
   connectAiClient,
-  mcpClient,
   mcpLogLines,
   mcpServerUrl,
   postMcp,
@@ -61,7 +60,7 @@ async function deckWithCopies(user: TestUser, name: string, copies: number): Pro
 
 async function connected(user: TestUser): Promise<AiClient & { mcp: Client }> {
   const aiClient = await connectAiClient(user);
-  const mcp = await mcpClient(aiClient.token);
+  const mcp = await mcpClient(mcpServerUrl, aiClient.token);
   await mcp.listTools();
   return { ...aiClient, mcp };
 }
@@ -171,7 +170,7 @@ describe('the MCP server over HTTP', () => {
     expect(tools.map(({ name }) => name)).toEqual(mcpToolNames);
     for (const tool of tools.filter(({ name }) => mcpReadToolNames.includes(name))) {
       const [result, toolProblem] = tool.outputSchema!.anyOf as { type: string; additionalProperties: boolean; required: string[] }[];
-      expect(tool.annotations).toEqual({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+      expect(tool.annotations).toEqual(mcpToolAnnotations(tool.name));
       expect([tool.inputSchema.type, tool.inputSchema.additionalProperties]).toEqual(['object', false]);
       expect([tool.outputSchema!.type, result!.type, result!.additionalProperties]).toEqual(['object', 'object', false]);
       expect(toolProblem!.required).toEqual(['type', 'title', 'detail', 'retryable']);
@@ -189,12 +188,7 @@ describe('the MCP server over HTTP', () => {
     const [createDeckSuggestions, withdrawDeckSuggestion, updateDeckSuggestionReason] = mcpWriteToolNames.map(
       (writeTool) => tools.find(({ name }) => name === writeTool)!,
     );
-    expect(createDeckSuggestions!.annotations).toEqual({
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    });
+    expect(createDeckSuggestions!.annotations).toEqual(mcpToolAnnotations('create_deck_suggestions'));
     for (const sentence of [
       'This tool does not change any deck. The user reviews each suggestion in the app and decides.',
       'Never offer a protected copy as the reason a card is available.',
@@ -246,7 +240,7 @@ describe('the MCP server over HTTP', () => {
 
   test('also serves a client on the 2025 protocol', async () => {
     const { token } = await connectAiClient(await signUpNewUser());
-    const legacy = await mcpClient(token, 'legacy');
+    const legacy = await mcpClient(mcpServerUrl, token, 'legacy');
 
     expect((await legacy.listTools()).tools.map(({ name }) => name)).toEqual(mcpToolNames);
   });
@@ -395,7 +389,7 @@ describe('the MCP server over HTTP', () => {
     const deckId = await deckWithCopies(user, 'Yuriko', 1);
     const aiClient = await connectAiClient(user);
     let requests = 0;
-    const mcp = await mcpClient(aiClient.token, 'modern', () => {
+    const mcp = await mcpClient(mcpServerUrl, aiClient.token, 'modern', () => {
       requests += 1;
     });
 

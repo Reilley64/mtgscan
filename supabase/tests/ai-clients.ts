@@ -1,4 +1,4 @@
-import { connectAiClient as connect, mcpClient as connectMcpClient, mcpServerUrlOf } from '../mcp-connection';
+import { allowAiClient, mcpServerUrlOf } from '../mcp-connection';
 import { asDatabaseOwner, localStackUrl, type TestUser } from './local-stack';
 
 export const mcpServerUrl = mcpServerUrlOf(localStackUrl);
@@ -9,12 +9,8 @@ export type AiClient = {
 };
 
 export async function connectAiClient(user: TestUser): Promise<AiClient> {
-  const { clientId, tokens } = await connect(localStackUrl, user.client, 'Test AI chat');
+  const { clientId, tokens } = await allowAiClient(localStackUrl, user.client, 'Test AI chat');
   return { clientId, token: tokens.access_token };
-}
-
-export function mcpClient(token: string, protocol: 'modern' | 'legacy' = 'modern', onRequest = () => {}) {
-  return connectMcpClient(mcpServerUrl, token, protocol, onRequest);
 }
 
 export type McpLogLine = {

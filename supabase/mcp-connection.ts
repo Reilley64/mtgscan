@@ -17,8 +17,15 @@ export const mcpReadToolNames = [
 export const mcpWriteToolNames = ['create_deck_suggestions', 'withdraw_deck_suggestion', 'update_deck_suggestion_reason'];
 export const mcpToolNames = [...mcpReadToolNames, ...mcpWriteToolNames];
 
+export function mcpToolAnnotations(name: string) {
+  return { readOnlyHint: mcpReadToolNames.includes(name), destructiveHint: false, idempotentHint: true, openWorldHint: false };
+}
+
+export const appWriteRefusal = 'AI clients cannot change decks or the collection.';
+export const mcpClientInfo = { name: 'mtgscan', version: '1.0.0' };
+
 export const modernProtocolVersion = '2026-07-28';
-export const aiClientRedirectUri = 'https://chat.example.test/connector/callback';
+const aiClientRedirectUri = 'https://chat.example.test/connector/callback';
 const aiChatScope = 'openid email profile phone offline_access';
 
 export function mcpServerUrlOf(supabaseUrl: string): string {
@@ -33,6 +40,8 @@ export function oauthEndpointsOf(supabaseUrl: string) {
   const oauth = `${issuerOf(supabaseUrl)}/oauth`;
   return { registration: `${oauth}/clients/register`, authorization: `${oauth}/authorize`, token: `${oauth}/token` };
 }
+
+export type ClientKind = 'public' | 'confidential';
 
 export type RegisteredAiClient = {
   clientId: string;
@@ -60,18 +69,14 @@ async function failure(action: string, response: Response): Promise<Error> {
   return new Error(`${action} failed with ${response.status}: ${await response.text()}`);
 }
 
-export async function registerAiClient(
-  supabaseUrl: string,
-  clientName: string,
-  confidential = false,
-): Promise<RegisteredAiClient> {
+export async function registerAiClient(supabaseUrl: string, clientName: string, kind: ClientKind): Promise<RegisteredAiClient> {
   const response = await fetch(oauthEndpointsOf(supabaseUrl).registration, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       client_name: clientName,
       redirect_uris: [aiClientRedirectUri],
-      token_endpoint_auth_method: confidential ? 'client_secret_basic' : 'none',
+      token_endpoint_auth_method: kind === 'confidential' ? 'client_secret_basic' : 'none',
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
     }),
@@ -159,12 +164,12 @@ export function refreshTokens(supabaseUrl: string, client: RegisteredAiClient, r
   return requestTokens(supabaseUrl, client, 'Refresh', { grant_type: 'refresh_token', refresh_token: refreshToken });
 }
 
-export async function connectAiClient(
+export async function allowAiClient(
   supabaseUrl: string,
   user: SignedInUser,
   clientName: string,
 ): Promise<RegisteredAiClient & { tokens: AiClientTokens }> {
-  const client = await registerAiClient(supabaseUrl, clientName);
+  const client = await registerAiClient(supabaseUrl, clientName, 'public');
   const { authorizationId, codeVerifier } = await authorize(supabaseUrl, client);
   const details = await user.auth.oauth.getAuthorizationDetails(authorizationId);
   if (details.error) {
@@ -185,7 +190,7 @@ export async function mcpClient(
   onRequest = () => {},
 ): Promise<Client> {
   const client = new Client(
-    { name: 'mtgscan', version: '1.0.0' },
+    mcpClientInfo,
     protocol === 'modern' ? { versionNegotiation: { mode: { pin: modernProtocolVersion } } } : {},
   );
   const transport = new StreamableHTTPClientTransport(new URL(mcpServerUrl), {

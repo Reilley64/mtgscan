@@ -35,7 +35,7 @@ describe('the MCP pre-flight command', () => {
     const { exitCode, output } = await runMcpPreflightCommand([], { SUPABASE_URL: 'https://example.supabase.co' });
 
     expect(exitCode).toBe(2);
-    expect(output).toContain('Without --hosted, the pre-flight runs only on local Supabase');
+    expect(output).toContain('Without --hosted, the MCP pre-flight runs only on local Supabase');
     expect(checkLines(output)).toEqual([]);
   });
 

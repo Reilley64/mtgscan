@@ -6,14 +6,16 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../database.types';
 import type { CreatedDeck, CreatedDeckSuggestions, Deck, DeckSuggestionPage } from '../decks';
 import {
+  appWriteRefusal,
   approve,
   authorize,
   claimsOf,
   exchangeCode,
   issuerOf,
   mcpClient,
-  mcpReadToolNames,
+  mcpClientInfo,
   mcpServerUrlOf,
+  mcpToolAnnotations,
   mcpToolNames,
   modernProtocolVersion,
   oauthEndpointsOf,
@@ -21,6 +23,7 @@ import {
   registerAiClient,
   type AiClientTokens,
   type Authorization,
+  type ClientKind,
   type RegisteredAiClient,
 } from '../mcp-connection';
 import type { CatalogRow, SearchPage } from '../search';
@@ -31,7 +34,6 @@ const hostedConsentPage = 'https://mtgscan.reilley.dev/oauth/consent';
 const deckName = 'MCP pre-flight';
 const incomingCard = 'Counterspell';
 const reason = 'The pre-flight checks that an AI client can save a deck suggestion.';
-const appWriteRefusal = 'AI clients cannot change decks or the collection.';
 
 const { values } = parseArgs({ args: Bun.argv.slice(2), options: { hosted: { type: 'boolean', default: false } } });
 
@@ -48,7 +50,7 @@ function refuse(message: string): never {
 function testUserPassword(): string {
   if (!values.hosted) {
     if (!isLocalStack(url)) {
-      refuse(`Without --hosted, the pre-flight runs only on local Supabase, such as ${localSupabaseUrl}. Use --hosted for the hosted project.`);
+      refuse(`Without --hosted, the MCP pre-flight runs only on local Supabase, such as ${localSupabaseUrl}. Use --hosted for the hosted project.`);
     }
     return testUser.password;
   }
@@ -72,6 +74,7 @@ if (!publishableKey || !secretKey) {
 
 const mcpServerUrl = mcpServerUrlOf(url);
 const issuer = issuerOf(url);
+const rfc8414MetadataUrl = `${new URL(issuer).origin}/.well-known/oauth-authorization-server${new URL(issuer).pathname}`;
 const clientOptions = { auth: { persistSession: false, autoRefreshToken: false } };
 const testUserClient = createClient<Database>(url, publishableKey, clientOptions);
 const admin = createClient<Database>(url, secretKey, clientOptions);
@@ -79,8 +82,6 @@ const admin = createClient<Database>(url, secretKey, clientOptions);
 function aiClientDataApi(token: string) {
   return createClient<Database>(url, publishableKey!, { ...clientOptions, global: { headers: { Authorization: `Bearer ${token}` } } });
 }
-
-type ClientKind = 'public' | 'confidential';
 
 type ConnectedClient = RegisteredAiClient & {
   name: string;
@@ -103,7 +104,7 @@ const state: {
   created?: CreatedDeckSuggestions;
 } = { clients: {}, createdClientIds: [], deckIds: [] };
 
-function needs<T>(value: T | undefined): T {
+function fromEarlierCheck<T>(value: T | undefined): T {
   if (value === undefined) {
     throw new Error('Not run, because an earlier check did not pass.');
   }
@@ -118,6 +119,12 @@ function passIf(passed: boolean, detail: string): string {
 }
 
 type Check = { name: string; run: () => Promise<string> };
+
+const toolsListRequest = { jsonrpc: '2.0', id: 1, method: 'tools/list' };
+
+function newIdempotencyKey(): string {
+  return `mcp-preflight-${crypto.randomUUID()}`;
+}
 
 function postMcp(body: unknown, headers: Record<string, string> = {}): Promise<Response> {
   return fetch(mcpServerUrl, {
@@ -140,7 +147,7 @@ async function readJson(response: Response): Promise<Record<string, any>> {
 }
 
 async function callTool<Result>(name: string, toolArguments: Record<string, unknown>): Promise<{ result: Result; isError: boolean }> {
-  const mcp = needs(state.mcp);
+  const mcp = fromEarlierCheck(state.mcp);
   const response = await mcp.callTool({ name, arguments: toolArguments });
   return { result: response.structuredContent as Result, isError: response.isError === true };
 }
@@ -161,7 +168,7 @@ const discoveryChecks: Check[] = [
   {
     name: 'A call with no token gets 401 and the protected resource metadata',
     run: async () => {
-      const response = await postMcp({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
+      const response = await postMcp(toolsListRequest);
       const challenge = response.headers.get('www-authenticate') ?? '';
       const metadataUrl = /resource_metadata="([^"]+)"/.exec(challenge)?.[1];
       passIf(response.status === 401 && metadataUrl !== undefined, `status ${response.status}, WWW-Authenticate ${challenge || 'missing'}`);
@@ -175,8 +182,9 @@ const discoveryChecks: Check[] = [
   {
     name: 'The authorization server metadata has the issuer, its endpoints, PKCE with S256, and dynamic client registration',
     run: async () => {
+      const discoveryUrls = values.hosted ? [{ url: new URL(rfc8414MetadataUrl) }] : buildDiscoveryUrls(issuer);
       let found: { url: URL; metadata: Record<string, any> } | undefined;
-      for (const { url: discoveryUrl } of buildDiscoveryUrls(issuer)) {
+      for (const { url: discoveryUrl } of discoveryUrls) {
         const response = await fetch(discoveryUrl);
         if (response.ok) {
           found = { url: discoveryUrl, metadata: await response.json() };
@@ -184,7 +192,7 @@ const discoveryChecks: Check[] = [
         }
       }
       if (!found) {
-        throw new Error(`No metadata at ${buildDiscoveryUrls(issuer).map(({ url }) => url).join(', ')}`);
+        throw new Error(`No metadata at ${discoveryUrls.map(({ url }) => url).join(', ')}`);
       }
       const { url: discoveryUrl, metadata } = found;
       const endpoints = oauthEndpointsOf(url);
@@ -217,13 +225,13 @@ const discoveryChecks: Check[] = [
 
 function clientChecks(kind: ClientKind): Check[] {
   const label = `${kind[0]!.toUpperCase()}${kind.slice(1)} client`;
-  const client = () => needs(state.clients[kind]);
+  const client = () => fromEarlierCheck(state.clients[kind]);
   return [
     {
       name: `${label}: dynamic client registration`,
       run: async () => {
         const name = `mtgscan pre-flight ${kind} client`;
-        const registered = await registerAiClient(url, name, kind === 'confidential');
+        const registered = await registerAiClient(url, name, kind);
         state.createdClientIds.push(registered.clientId);
         state.clients[kind] = { ...registered, name };
         return passIf((kind === 'confidential') === (registered.clientSecret !== null), `client_id ${registered.clientId}`);
@@ -243,8 +251,8 @@ function clientChecks(kind: ClientKind): Check[] {
       name: `${label}: the consent page reads the authorization details`,
       run: async () => {
         const connected = client();
-        needs(state.signedIn);
-        const { authorizationId } = needs(connected.authorization);
+        fromEarlierCheck(state.signedIn);
+        const { authorizationId } = fromEarlierCheck(connected.authorization);
         const { data, error } = await testUserClient.auth.oauth.getAuthorizationDetails(authorizationId);
         if (error) {
           throw new Error(`status ${error.status}: ${error.message}`);
@@ -257,7 +265,7 @@ function clientChecks(kind: ClientKind): Check[] {
       name: `${label}: approval returns a code`,
       run: async () => {
         const connected = client();
-        const { authorizationId } = needs(connected.authorization);
+        const { authorizationId } = fromEarlierCheck(connected.authorization);
         connected.code = await approve(testUserClient, authorizationId);
         return 'approved';
       },
@@ -266,7 +274,7 @@ function clientChecks(kind: ClientKind): Check[] {
       name: `${label}: the token exchange with PKCE and resource issues an access token and a refresh token`,
       run: async () => {
         const connected = client();
-        const code = needs(connected.code);
+        const code = fromEarlierCheck(connected.code);
         const tokens = await exchangeCode(url, connected, code, connected.authorization!.codeVerifier);
         connected.tokens = tokens;
         return passIf(tokens.refresh_token !== undefined, `refresh token ${tokens.refresh_token ? 'issued' : 'missing'}`);
@@ -276,8 +284,8 @@ function clientChecks(kind: ClientKind): Check[] {
       name: `${label}: refresh issues a new access token`,
       run: async () => {
         const connected = client();
-        const { refresh_token } = needs(connected.tokens);
-        const refreshed = await refreshTokens(url, connected, needs(refresh_token));
+        const { refresh_token } = fromEarlierCheck(connected.tokens);
+        const refreshed = await refreshTokens(url, connected, fromEarlierCheck(refresh_token));
         connected.refreshed = refreshed;
         return passIf(refreshed.access_token !== connected.tokens!.access_token, 'new access token issued');
       },
@@ -286,7 +294,7 @@ function clientChecks(kind: ClientKind): Check[] {
       name: `${label}: the audience is authenticated and the MCP server URL`,
       run: async () => {
         const connected = client();
-        const tokens = [needs(connected.tokens), needs(connected.refreshed)];
+        const tokens = [fromEarlierCheck(connected.tokens), fromEarlierCheck(connected.refreshed)];
         const claims = tokens.map(({ access_token }) => claimsOf(access_token));
         return passIf(
           claims.every(({ aud, iss, client_id }) =>
@@ -300,7 +308,7 @@ function clientChecks(kind: ClientKind): Check[] {
 }
 
 function aiClientToken(): string {
-  return needs(state.clients.public?.refreshed).access_token;
+  return fromEarlierCheck(state.clients.public?.refreshed).access_token;
 }
 
 const dataApiChecks: Check[] = [
@@ -344,7 +352,7 @@ const protocolChecks: Check[] = [
           jsonrpc: '2.0',
           id: 1,
           method: 'initialize',
-          params: { protocolVersion: version, capabilities: {}, clientInfo: { name: 'mtgscan', version: '1.0.0' } },
+          params: { protocolVersion: version, capabilities: {}, clientInfo: mcpClientInfo },
         },
         { Authorization: `Bearer ${aiClientToken()}` },
       );
@@ -359,17 +367,12 @@ const toolChecks: Check[] = [
   {
     name: `tools/list returns the ${mcpToolNames.length} tools in order with their annotations`,
     run: async () => {
-      const { tools } = await needs(state.mcp).listTools();
+      const { tools } = await fromEarlierCheck(state.mcp).listTools();
       const names = tools.map(({ name }) => name);
       passIf(isDeepStrictEqual(names, mcpToolNames), `tools ${names.join(', ')}`);
       const wrongAnnotations = tools.filter(
         ({ name, annotations }) =>
-          !isDeepStrictEqual(annotations, {
-            readOnlyHint: mcpReadToolNames.includes(name),
-            destructiveHint: false,
-            idempotentHint: true,
-            openWorldHint: false,
-          }),
+          !isDeepStrictEqual(annotations, mcpToolAnnotations(name)),
       );
       return passIf(
         wrongAnnotations.length === 0,
@@ -389,7 +392,7 @@ const toolChecks: Check[] = [
   {
     name: 'The test user creates the pre-flight deck in the app',
     run: async () => {
-      needs(state.signedIn);
+      fromEarlierCheck(state.signedIn);
       const { data, error } = await testUserClient.rpc('create_deck', { request: { name: deckName } });
       if (error) {
         throw new Error(`create_deck: ${error.code} ${error.message}`);
@@ -403,7 +406,7 @@ const toolChecks: Check[] = [
   {
     name: 'A read tool returns its result: get_deck reads the pre-flight deck',
     run: async () => {
-      const deckId = needs(state.deckId);
+      const deckId = fromEarlierCheck(state.deckId);
       const deck = await toolResult<Deck>('get_deck', { deck_id: deckId });
       state.revision = deck.revision;
       return passIf(deck.name === deckName, `${deck.name} at deck revision ${deck.revision}`);
@@ -413,13 +416,13 @@ const toolChecks: Check[] = [
     name: 'create_deck_suggestions saves a deck suggestion',
     run: async () => {
       const suggestionArguments = {
-        idempotency_key: `mcp-preflight-${crypto.randomUUID()}`,
+        idempotency_key: newIdempotencyKey(),
         suggestions: [
           {
             ref: 'preflight',
-            deck_id: needs(state.deckId),
-            expected_deck_revision: needs(state.revision),
-            incoming: { oracle_id: needs(state.incomingOracleId) },
+            deck_id: fromEarlierCheck(state.deckId),
+            expected_deck_revision: fromEarlierCheck(state.revision),
+            incoming: { oracle_id: fromEarlierCheck(state.incomingOracleId) },
             reason,
           },
         ],
@@ -437,7 +440,7 @@ const toolChecks: Check[] = [
   {
     name: "list_deck_suggestions shows the client name from Supabase Auth's client record",
     run: async () => {
-      const created = needs(state.created);
+      const created = fromEarlierCheck(state.created);
       const [item] = await listedSuggestions(state.deckId!);
       return passIf(
         item?.suggestion_id === created.suggestions[0]!.suggestion_id && item.client_name === state.clients.public!.name,
@@ -448,11 +451,11 @@ const toolChecks: Check[] = [
   {
     name: 'A stale deck revision gets stale-revision and saves nothing',
     run: async () => {
-      const suggestionArguments = needs(state.suggestionArguments);
+      const suggestionArguments = fromEarlierCheck(state.suggestionArguments);
       const [suggestion] = suggestionArguments.suggestions as { expected_deck_revision: number }[];
       const { result, isError } = await callTool<{ type: string; detail: string }>('create_deck_suggestions', {
         ...suggestionArguments,
-        idempotency_key: `mcp-preflight-${crypto.randomUUID()}`,
+        idempotency_key: newIdempotencyKey(),
         suggestions: [{ ...suggestion, expected_deck_revision: suggestion!.expected_deck_revision + 1 }],
       });
       const saved = await listedSuggestions(state.deckId!);
@@ -465,7 +468,7 @@ const toolChecks: Check[] = [
   {
     name: 'A replay with the same idempotency key returns the first result and saves nothing',
     run: async () => {
-      const suggestionArguments = needs(state.suggestionArguments);
+      const suggestionArguments = fromEarlierCheck(state.suggestionArguments);
       const replay = await toolResult<CreatedDeckSuggestions>('create_deck_suggestions', suggestionArguments);
       const saved = await listedSuggestions(state.deckId!);
       return passIf(
@@ -477,10 +480,10 @@ const toolChecks: Check[] = [
   {
     name: "The MCP server refuses the app's token",
     run: async () => {
-      needs(state.signedIn);
+      fromEarlierCheck(state.signedIn);
       const { data } = await testUserClient.auth.getSession();
       const response = await postMcp(
-        { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+        toolsListRequest,
         { Authorization: `Bearer ${data.session!.access_token}` },
       );
       return passIf(response.status === 401, `status ${response.status}`);
@@ -497,7 +500,7 @@ const revokeChecks: Check[] = [
       if (error) {
         throw new Error(`revokeGrant: ${error.message}`);
       }
-      const response = await postMcp({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, { Authorization: `Bearer ${token}` });
+      const response = await postMcp(toolsListRequest, { Authorization: `Bearer ${token}` });
       return passIf(
         response.status === 401,
         response.ok
@@ -509,7 +512,7 @@ const revokeChecks: Check[] = [
   {
     name: "Revoke refuses the AI client's refresh token",
     run: async () => {
-      const connected = needs(state.clients.public?.refreshed);
+      const connected = fromEarlierCheck(state.clients.public?.refreshed);
       const refreshed = await refreshTokens(url, state.clients.public!, connected.refresh_token!).then(
         () => true,
         () => false,
@@ -558,7 +561,7 @@ const cleanupChecks: Check[] = [
 
 type Outcome = { name: string; passed: boolean; detail: string };
 
-async function run({ name, run }: Check): Promise<Outcome> {
+async function outcomeOf({ name, run }: Check): Promise<Outcome> {
   try {
     return { name, passed: true, detail: await run() };
   } catch (error) {
@@ -578,7 +581,7 @@ for (const check of [
   ...clientChecks('confidential'),
   ...cleanupChecks,
 ]) {
-  const outcome = await run(check);
+  const outcome = await outcomeOf(check);
   outcomes.push(outcome);
   console.log(`${outcome.passed ? 'PASS' : 'FAIL'}  ${outcome.name}\n      ${outcome.detail}`);
 }

@@ -256,3 +256,7 @@ _Avoid_: integration
 **Consent page**:
 The page on the public site where the user signs in and allows or denies an AI client.
 _Avoid_: authorization page
+
+**MCP pre-flight**:
+A release gate on the hosted project. The owner runs a script that checks the whole OAuth and MCP chain, the way an AI client meets it, before launch and after each Supabase Auth upgrade. It passes when every check passes.
+_Avoid_: Smoke test
