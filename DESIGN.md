@@ -899,7 +899,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Do** list "Needs you" items oldest first, so the longest wait is on top.
 - **Do** keep every deck change a user action, and show the AI's reason with every deck suggestion.
 - **Do** keep the phone's back gesture working on every pushed screen.
-- **Do** flag validity problems ("would make this deck invalid") without blocking the action.
+- **Do** flag validity problems ("Would make it invalid") without blocking the action.
 - **Don't** show recognizer confidence, similarity scores, or "unsure" states.
 - **Don't** add "Find in decks" style shortcuts that duplicate visible deck tags.
 - **Don't** mark suggested-out or buylist-out cards on the deck's Cards tab. Only planned swaps are commitments.

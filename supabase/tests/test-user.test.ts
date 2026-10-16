@@ -1,10 +1,18 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { CollectionCopyRow, UserTagList } from '../collection';
-import type { Deck, DeckChangePage, DeckList } from '../decks';
+import type { AddDeckCardPreview, Deck, DeckChangeEffect, DeckChangePage, DeckList, RevertPreview } from '../decks';
 import type { SearchPage } from '../search';
 import { testUser } from '../test-user/account';
-import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runTestUserCommand } from './catalog-import-command';
+import {
+  catalogFixtureManifest,
+  resetCardCatalog,
+  runCatalogImport,
+  runComboImport,
+  runOracleTagImport,
+  runTestUserCommand,
+  spellbookFixtureVariants,
+} from './catalog-import-command';
 import { anonymousClient, secretKeyClient, type AppClient } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -112,21 +120,19 @@ describe('the test user command', () => {
     ]);
   });
 
-  test('--sample-collection adds a sample deck with a commander, a partner, ten main deck cards, basic lands, and a reverted deck change', async () => {
+  test('--sample-collection adds a sample deck with two commanders that pair, twelve main deck cards, basic lands, and a reverted deck change', async () => {
     const { exitCode, output } = await runTestUserCommand(['--sample-collection']);
 
     expect(exitCode).toBe(0);
-    expect(output).toContain('Added a sample deck with 2 commanders, 10 main deck cards, 16 basic lands, and 17 deck changes.');
+    expect(output).toContain('Added a sample deck with 2 commanders, 12 main deck cards, 16 basic lands, and 19 deck changes.');
     const client = await signedInTestUser();
     const [row, ...otherDecks] = await decks(client);
     expect(otherDecks).toEqual([]);
-    expect(row!.card_count).toBe(28);
+    expect(row!.card_count).toBe(30);
     const deck = await deckOf(client, row!.deck_id);
-    const commanders = deck.cards.filter((card) => card.role === 'commander');
-    expect(commanders).toHaveLength(2);
-    expect(commanders.every((card) => card.type_line.includes('Legendary'))).toBe(true);
-    expect(deck.name).toBe(row!.commanders[0]!.name);
-    expect(deck.cards.filter((card) => card.role === 'main')).toHaveLength(10);
+    expect(deck.name).toBe('Tymna the Weaver');
+    expect(row!.commanders.map((commander) => commander.name)).toEqual(['Tymna the Weaver', 'Thrasios, Triton Hero']);
+    expect(deck.cards.filter((card) => card.role === 'main')).toHaveLength(12);
     expect(deck.cards.some((card) => card.protected)).toBe(false);
     expect(deck.basic_lands.filter((land) => land.count > 0).map(({ name, count }) => ({ name, count }))).toEqual([
       { name: 'Island', count: 6 },
@@ -139,8 +145,69 @@ describe('the test user command', () => {
       { kind: 'basic_lands', reverted: false },
       { kind: 'made_partner', reverted: false },
       { kind: 'made_commander', reverted: false },
-      ...Array.from({ length: 12 }, () => ({ kind: 'added' as const, reverted: false })),
+      ...Array.from({ length: 14 }, () => ({ kind: 'added' as const, reverted: false })),
     ]);
+  });
+
+  test('the sample deck is invalid by every rule except the commander rules, and has bracket signals up to bracket 4', async () => {
+    expect((await runOracleTagImport(catalogFixtureManifest)).exitCode).toBe(0);
+    expect((await runComboImport(spellbookFixtureVariants)).exitCode).toBe(0);
+
+    expect((await runTestUserCommand(['--sample-collection'])).output).toContain(
+      'The sample deck is invalid, with estimated bracket 4.',
+    );
+
+    const client = await signedInTestUser();
+    const [row] = await decks(client);
+    expect(row!.evaluation).toMatchObject({ validity: 'invalid', estimated_bracket: 4 });
+    const { evaluation } = await deckOf(client, row!.deck_id);
+    expect(evaluation!.undetermined).toEqual([]);
+    expect(evaluation!.violations.map(({ rule, message, hint }) => ({ rule, message, hint }))).toEqual([
+      { rule: 'deck_size', message: '30 of 100 cards.', hint: 'Add 70 cards.' },
+      { rule: 'singleton', message: '2 copies of Counterspell.', hint: 'Remove 1 Counterspell.' },
+      { rule: 'color_identity', message: '1 card is outside Green, White, Blue, and Black.', hint: null },
+      { rule: 'banned', message: 'Black Lotus is banned in Commander.', hint: null },
+      { rule: 'not_legal', message: 'Once More with Feeling is not legal in Commander.', hint: null },
+    ]);
+    expect(
+      evaluation!.bracket_signals.map(({ kind, count, lowest_bracket, cards }) => ({
+        kind,
+        count,
+        lowest_bracket,
+        cards: cards.map((card) => card.name).sort(),
+      })),
+    ).toEqual([
+      { kind: 'game_changers', count: 3, lowest_bracket: 3, cards: ['Rhystic Study', 'Smothering Tithe', "Thassa's Oracle"] },
+      { kind: 'mass_land_denial', count: 1, lowest_bracket: 4, cards: ['Once More with Feeling'] },
+      { kind: 'two_card_combo', count: 1, lowest_bracket: 4, cards: ['Demonic Consultation', "Thassa's Oracle"] },
+      { kind: 'extra_turns', count: 2, lowest_bracket: 2, cards: ['Temporal Manipulation', 'Time Warp'] },
+    ]);
+    expect(evaluation!.missing_signal_count).toBe(1);
+  });
+
+  test('adding the free copy of Lightning Bolt to the sample deck, or reverting its revert, adds a singleton and a color identity violation', async () => {
+    expect((await runTestUserCommand(['--sample-collection'])).exitCode).toBe(0);
+
+    const client = await signedInTestUser();
+    const [row] = await decks(client);
+    const freeBolt = (await ownedCopies(client)).find((copy) => copy.name === 'Lightning Bolt' && !copy.deck)!;
+    const addsViolation: DeckChangeEffect = {
+      kind: 'adds_violation',
+      rules: [{ rule: 'singleton' }, { rule: 'color_identity', colors: ['R'] }],
+    };
+
+    const { data: addPreview, error: addError } = await client.rpc('preview_add_deck_card', {
+      query: { copy_id: freeBolt.copy_id },
+    });
+    const [revert] = await deckChangesOf(client, row!.deck_id);
+    const { data: revertPreview, error: revertError } = await client.rpc('preview_revert', {
+      query: { deck_id: row!.deck_id, deck_change_id: revert!.deck_change_id },
+    });
+
+    expect(addError).toBeNull();
+    expect((addPreview as unknown as AddDeckCardPreview).items).toEqual([{ deck_id: row!.deck_id, effect: addsViolation }]);
+    expect(revertError).toBeNull();
+    expect((revertPreview as unknown as RevertPreview).effect).toEqual(addsViolation);
   });
 
   test('running the command again resets the test user to an empty collection', async () => {

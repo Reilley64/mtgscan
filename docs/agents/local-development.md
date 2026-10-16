@@ -29,7 +29,7 @@ A development build against local Supabase can sign in a local test user with on
 - Production builds leave the test sign-in out. `bun run test:production-bundle` in `apps/mobile` builds a production bundle with the test sign-in on, the local stack, and a sentinel test user password. It fails if the bundle holds the test email, the local password, the sentinel, or the test sign-in button. It then builds the test app bundle and fails if that bundle has no test sign-in button. CI runs it.
 
 1. Start local Supabase as in Local Supabase.
-2. Seed or reset the test user from `supabase`. The command deletes the test user and its collection, and creates it again. `--sample-collection` also adds 30 sample collection entries through `add_scan_batch`, with 1 to 4 copies each. Some are foil, one is etched, and some are LP or MP. One copy is protected. It also adds two user tags: "Signed" on one copy and "Trade binder" on three copies. It also adds a sample deck with the name of its commander. The deck has a commander, a partner, and ten main deck cards from the sample copies. It has 8 Forest, 6 Island, and 2 Snow-Covered Forest, for each of them that the card catalog has. The last deck change adds a card, and a revert undoes it. The sample needs the card catalog, and the binder tiles show current prices from the price import, so import both fixtures first:
+2. Seed or reset the test user from `supabase`. The command deletes the test user and its collection, and creates it again. `--sample-collection` also adds 30 sample collection entries through `add_scan_batch`, with 1 to 4 copies each. Some are foil, one is etched, and some are LP or MP. One copy is protected. It also adds two user tags: "Signed" on one copy and "Trade binder" on three copies. It also adds a sample deck named Tymna the Weaver. Its cards come by name, and their copies are part of the 30 sample collection entries. The command fails when the card catalog has no such card. The commanders are Tymna the Weaver and Thrasios, Triton Hero, a pair with Partner. The deck is invalid by every rule except the commander rules. It has 2 Counterspell, which breaks singleton. Lightning Bolt breaks color identity. Black Lotus is banned. Once More with Feeling is not legal. The deck also has every bracket signal: 3 Game Changers, mass land denial, a ruthless two-card combo, and 2 extra-turn cards. Its estimated bracket is 4. The deck has 8 Forest, 6 Island, and 2 Snow-Covered Forest, for each of them that the card catalog has. The last deck change adds a second copy of Lightning Bolt, and a revert undoes it. The Add to deck drawer of that free copy shows "Adds a violation". So does the revert page sheet of the revert. The sample needs the card catalog. The binder tiles show current prices from the price import. The bracket signals need the Oracle tags and Commander Spellbook. So import all four fixtures first:
 
    ```bash
    cd supabase
@@ -37,6 +37,8 @@ A development build against local Supabase can sign in a local test user with on
    export SUPABASE_SECRET_KEY=$(bunx supabase@2.120.0 status -o json | jq -r .SECRET_KEY)
    bun run import catalog --manifest tests/fixtures/scryfall/bulk-data.json --sets tests/fixtures/scryfall/sets.json
    bun run import prices --manifest tests/fixtures/scryfall/bulk-data.json
+   bun run import oracle_tags --manifest tests/fixtures/scryfall/bulk-data.json
+   bun run import commander_spellbook --variants tests/fixtures/commander-spellbook/variants.json
    bun run test-user --sample-collection
    ```
 
