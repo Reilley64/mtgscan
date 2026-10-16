@@ -164,6 +164,7 @@ function Chips() {
         <Chip tone="danger" label="Not valid" />
         <Chip tone="info" label="Bracket 3" />
         <Chip tone="warning" symbol="shield.fill" label="Protected" />
+        <Chip tone="info" label="Bracket 3" stale accessibilityHint="The rules data may be out of date." />
       </View>
       <View className="flex-row flex-wrap gap-sm">
         <StatusChipButton symbol="checkmark" label="Valid" accessibilityLabel="Deck validity, Valid" onPress={() => {}} />
@@ -173,6 +174,15 @@ function Chips() {
           symbol="questionmark"
           label="Cannot be determined"
           accessibilityLabel="Deck validity, Cannot be determined"
+          onPress={() => {}}
+        />
+        <StatusChipButton
+          tone="danger"
+          symbol="nosign"
+          label="Invalid"
+          stale
+          accessibilityLabel="Deck validity, Invalid"
+          accessibilityHint="The rules data may be out of date."
           onPress={() => {}}
         />
       </View>

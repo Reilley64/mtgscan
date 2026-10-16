@@ -36,7 +36,9 @@ export type StatusChipProps = {
   label: string;
   tone?: ChipTone;
   symbol?: SFSymbol;
+  stale?: boolean;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
 };
 
 type StatusChipOnlyProps = StatusChipProps & {
@@ -49,7 +51,9 @@ type SelectableChipProps = {
   label: string;
   tone?: never;
   symbol?: never;
+  stale?: never;
   accessibilityLabel?: never;
+  accessibilityHint?: never;
   selected: boolean;
   onPress: () => void;
   onRemove?: never;
@@ -59,17 +63,20 @@ type RemovableChipProps = {
   label: string;
   tone?: 'neutral' | 'danger';
   symbol?: never;
+  stale?: never;
   accessibilityLabel?: never;
+  accessibilityHint?: never;
   selected?: never;
   onPress?: never;
   onRemove: () => void;
 };
 
-function StatusChipLabel({ label, tone = 'neutral', symbol }: Omit<StatusChipProps, 'accessibilityLabel'>) {
+function StatusChipLabel({ label, tone = 'neutral', symbol, stale }: Omit<StatusChipProps, 'accessibilityLabel' | 'accessibilityHint'>) {
   return (
     <>
       {symbol && <SymbolView name={symbol} size={sizes.chipSymbol} className={toneVariants({ tone })} />}
       <Text className={cn('text-chip', toneVariants({ tone }))}>{label}</Text>
+      {stale && <SymbolView name="clock" size={sizes.chipSymbol} className={toneVariants({ tone })} />}
     </>
   );
 }
@@ -79,11 +86,12 @@ export type StatusChipButtonProps = StatusChipProps & {
   onPress: () => void;
 };
 
-export function StatusChipButton({ accessibilityLabel, onPress, ...chip }: StatusChipButtonProps) {
+export function StatusChipButton({ accessibilityLabel, accessibilityHint, onPress, ...chip }: StatusChipButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       hitSlop={verticalTouchSlop(sizes.chip)}
       onPress={onPress}
       className={cn(chipClass, 'min-w-touch-target flex-row items-center gap-xs bg-surface-control')}>
@@ -97,7 +105,9 @@ export function Chip({
   label,
   tone = 'neutral',
   symbol,
+  stale,
   accessibilityLabel,
+  accessibilityHint,
   selected,
   onPress,
   onRemove,
@@ -122,8 +132,9 @@ export function Chip({
       <View
         accessible
         accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityHint={accessibilityHint}
         className={cn(chipClass, 'flex-row items-center gap-xs self-start bg-surface-control')}>
-        <StatusChipLabel label={label} tone={tone} symbol={symbol} />
+        <StatusChipLabel label={label} tone={tone} symbol={symbol} stale={stale} />
       </View>
     );
   }

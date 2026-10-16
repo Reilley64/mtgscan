@@ -76,7 +76,11 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Save 1 change' })).toBeBusy();
   expect(screen.getByLabelText('tap: Add colorless mana colorless mana. Spend X generic mana two generic mana white mana blue mana black mana red mana green mana or snow mana.')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Deck validity, Valid' })).toBeOnTheScreen();
-  expect(screen.getAllByRole('button', { name: 'Deck validity, Invalid' })).toHaveLength(2);
+  expect(screen.getAllByRole('button', { name: 'Deck validity, Invalid' })).toHaveLength(3);
+  expect(
+    screen.getAllByRole('button', { name: 'Deck validity, Invalid' }).filter((chip) => chip.props.accessibilityHint === 'The rules data may be out of date.'),
+  ).toHaveLength(1);
+  expect(screen.getAllByLabelText('Bracket 3').filter((chip) => chip.props.accessibilityHint === 'The rules data may be out of date.')).toHaveLength(1);
   expect(screen.getByRole('button', { name: 'Deck validity, Cannot be determined' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Yuriko, Medium priority, 87 cards, Invalid, Estimated bracket 4' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Estimated bracket 4' })).toBeOnTheScreen();

@@ -138,7 +138,12 @@ describe('deck validity', () => {
 
     const evaluation = await evaluationOf(user, deckId);
     expect(evaluation).toMatchObject({ validity: violations.length > 0 ? 'invalid' : 'valid', violations, undetermined: [] });
-    expect(await listedEvaluationOf(user, deckId)).toEqual({ validity: evaluation!.validity, estimated_bracket: 2 });
+    expect(await listedEvaluationOf(user, deckId)).toEqual({
+      validity: evaluation!.validity,
+      validity_stale: false,
+      estimated_bracket: 2,
+      bracket_stale: false,
+    });
   });
 
   test('basic lands of every basic land card count toward deck size', async () => {
@@ -194,6 +199,8 @@ describe('deck validity', () => {
       bracket_rules_data_at: catalogFixtureSnapshotAt,
       no_oracle_tag_data: true,
       no_combo_data: true,
+      validity_stale: false,
+      bracket_stale: false,
     });
   });
 });

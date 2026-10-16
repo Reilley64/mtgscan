@@ -13,6 +13,8 @@ import type {
 import type { Color } from '@mtgscan/supabase/search';
 import type { SFSymbol } from 'expo-symbols';
 
+import { shownDay } from '@/lib/shown-day';
+
 export const deckPriorities = Constants.public.Enums.deck_priority;
 
 export const priorityNames: Record<DeckPriority, string> = {
@@ -21,7 +23,7 @@ export const priorityNames: Record<DeckPriority, string> = {
   low: 'Low',
 };
 
-export const validityChips: Record<DeckValidity, { label: string; tone: 'neutral' | 'danger' | 'warning'; symbol: SFSymbol }> = {
+const validityChips: Record<DeckValidity, { label: string; tone: 'neutral' | 'danger' | 'warning'; symbol: SFSymbol }> = {
   valid: { label: 'Valid', tone: 'neutral', symbol: 'checkmark' },
   invalid: { label: 'Invalid', tone: 'danger', symbol: 'nosign' },
   cannot_be_determined: { label: 'Cannot be determined', tone: 'warning', symbol: 'questionmark' },
@@ -56,8 +58,21 @@ export function estimatedBracketName(bracket: EstimatedBracket) {
   return `Estimated bracket ${bracket}`;
 }
 
-export function estimatedBracketChip(bracket: EstimatedBracket) {
-  return { label: bracketLabel(bracket), tone: 'info' as const, accessibilityLabel: estimatedBracketName(bracket) };
+function staleChipProps(stale: boolean) {
+  return stale ? { stale, accessibilityHint: 'The rules data may be out of date.' } : {};
+}
+
+export function validityChip(evaluation: DeckEvaluationSummary) {
+  return { ...validityChips[evaluation.validity], ...staleChipProps(evaluation.validity_stale) };
+}
+
+export function estimatedBracketChip(evaluation: DeckEvaluationSummary) {
+  return {
+    label: bracketLabel(evaluation.estimated_bracket),
+    tone: 'info' as const,
+    accessibilityLabel: estimatedBracketName(evaluation.estimated_bracket),
+    ...staleChipProps(evaluation.bracket_stale),
+  };
 }
 
 const effectNames: Record<DeckChangeEffect['kind'], { chip: string; spoken: (deckName: string) => string }> = {
@@ -86,6 +101,12 @@ export function revertEffectChip(effect: DeckChangeEffect, deckName: string) {
   return { ...chip, label: `${chip.label}: ${effect.rules.map(effectRuleName).join(', ')}`, accessibilityLabel: spoken };
 }
 
+export function rulesDataLine(rulesDataAt: string | null, stale: boolean, notes: (string | null)[] = []) {
+  return [rulesDataAt ? `Rules data as of ${shownDay(rulesDataAt)}` : null, stale ? 'Stale' : null, ...notes]
+    .filter((part) => part !== null)
+    .join(' · ');
+}
+
 export function cardCountLabel(count: number) {
   return count === 1 ? '1 card' : `${count} cards`;
 }
@@ -97,7 +118,7 @@ export function deckChips(deck: Pick<DeckRow, 'priority' | 'card_count'>) {
 export function galleryCardChips(deck: Pick<DeckRow, 'priority' | 'card_count'> & { evaluation: DeckEvaluationSummary | null }) {
   return [
     ...deckChips(deck).map((label) => ({ label })),
-    ...(deck.evaluation ? [validityChips[deck.evaluation.validity], estimatedBracketChip(deck.evaluation.estimated_bracket)] : []),
+    ...(deck.evaluation ? [validityChip(deck.evaluation), estimatedBracketChip(deck.evaluation)] : []),
   ];
 }
 

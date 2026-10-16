@@ -487,6 +487,8 @@ function judgeDeck(deck: Omit<Deck, 'evaluation'>): DeckEvaluation | null {
   ];
   return {
     validity: violations.length > 0 ? 'invalid' : 'valid',
+    validity_stale: false,
+    bracket_stale: false,
     violations,
     undetermined: [],
     chosen_color: null,
@@ -517,7 +519,12 @@ function deckList() {
     .toSorted((a, b) => b.last_used_at.localeCompare(a.last_used_at) || a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
     .map(({ revision, created_at, cards, basic_lands, evaluation, ...row }) => ({
       ...row,
-      evaluation: evaluation && { validity: evaluation.validity, estimated_bracket: evaluation.estimated_bracket },
+      evaluation: evaluation && {
+        validity: evaluation.validity,
+        validity_stale: evaluation.validity_stale,
+        estimated_bracket: evaluation.estimated_bracket,
+        bracket_stale: evaluation.bracket_stale,
+      },
     }));
   return { data: { items }, error: null };
 }

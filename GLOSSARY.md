@@ -199,11 +199,11 @@ The Commander bracket, 2, 3, or 4, that a deck's bracket signals suggest. Each b
 _Avoid_: Bracket, deck bracket, power level
 
 **Rules data**:
-The data that deck validity and the estimated bracket read: the card catalog's Commander legality, color identity, Game Changer flag, and deck-construction facts read from Oracle text, such as partner abilities and copy limits; the Oracle tags and the disabled tags; and the combos. Prices and exchange rates are not rules data. Each source of rules data is stale after 7 days without a successful import.
+The data that deck validity and the estimated bracket read: the card catalog's Commander legality, color identity, Game Changer flag, and deck-construction facts read from Oracle text, such as partner abilities and copy limits; the Oracle tags and the disabled tags; and the combos. Prices and exchange rates are not rules data. Each source of rules data is stale after 7 days without a successful import. A source that was never imported is not stale.
 _Avoid_: Rules snapshot, catalog data
 
 **Deck evaluation**:
-The stored deck validity, violations, chosen color, estimated bracket, and bracket signals of one deck, with the deck revision it judged and the time of the rules data it read. Each deck change saves a new deck evaluation. Each rules data import, and each Oracle tag that is disabled or enabled, recomputes the deck evaluation of every deck. A deck evaluation is behind when it read older rules data than the latest import, or an Oracle tag changed after it was judged. A failed recompute leaves it behind. mtgscan keeps only the current one. An empty deck has none. A deck evaluation is stale when its rules data is stale or older than the latest rules data.
+The stored deck validity, violations, chosen color, estimated bracket, and bracket signals of one deck, with the deck revision it judged and the time of the rules data it read. Each deck change saves a new deck evaluation. Each rules data import, and each Oracle tag that is disabled or enabled, recomputes the deck evaluation of every deck. A deck evaluation is behind when it read older rules data than the latest import, or an Oracle tag changed after it was judged. A failed recompute leaves it behind. mtgscan keeps only the current one. An empty deck has none. Its deck validity is stale when the card catalog is stale or the deck evaluation is behind it. Its estimated bracket is stale when any source of its rules data is stale or the deck evaluation is behind it. A source that was never imported is not stale.
 _Avoid_: Validity result, deck check
 
 **Deck suggestion**:

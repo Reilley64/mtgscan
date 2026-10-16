@@ -34,6 +34,7 @@ import { cardSymbolParts } from '@/lib/card-symbols';
 
 import { liquidGlassIsAvailable } from './fake-glass-effect';
 import {
+  appearsBefore,
   appleSignInButton,
   backdropOf,
   blocksColored,
@@ -58,6 +59,7 @@ import {
   showsSpinner,
   switchTrackColor,
   symbolIn,
+  symbolNamed,
   symbolNames,
   symbolSizes,
   symbolTintColor,
@@ -368,6 +370,17 @@ describe('Chip', () => {
     expect(screen.getByText('Protected')).toHaveStyle({ color: warning });
   });
 
+  test('a stale status chip shows the 11 px clock after its label in the tone color, with its hint', async () => {
+    await render(<Chip tone="info" label="Bracket 3" stale accessibilityHint="The rules data may be out of date." />);
+
+    const chip = screen.getByLabelText('Bracket 3');
+    expect(symbolNames(chip)).toEqual(['clock']);
+    expect(symbolSizes(chip)).toEqual([11]);
+    expect(symbolTintColor(chip)).toBe(info);
+    expect(appearsBefore(screen.getByText('Bracket 3'), symbolNamed(chip, 'clock'))).toBe(true);
+    expect(chip).toHaveProp('accessibilityHint', 'The rules data may be out of date.');
+  });
+
   test('a status chip is not a button', async () => {
     await render(<Chip label="Valid" />);
 
@@ -446,6 +459,27 @@ describe('Chip', () => {
       expect(symbolTintColors(chip).every((tint) => tint === color)).toBe(true);
     },
   );
+
+  test('a stale status chip button shows the clock between its label and the chevron in the tone color, with its hint', async () => {
+    await render(
+      <StatusChipButton
+        tone="danger"
+        symbol="nosign"
+        label="Invalid"
+        stale
+        accessibilityLabel="Deck validity, Invalid"
+        accessibilityHint="The rules data may be out of date."
+        onPress={() => {}}
+      />,
+    );
+
+    const chip = screen.getByRole('button', { name: 'Deck validity, Invalid' });
+    expect(symbolNames(chip)).toEqual(['nosign', 'clock', 'chevron.right']);
+    expect(symbolSizes(chip)).toEqual([11, 11, 11]);
+    expect(symbolTintColors(chip)).toEqual([danger, danger, danger]);
+    expect(appearsBefore(within(chip).getByText('Invalid'), symbolNamed(chip, 'clock'))).toBe(true);
+    expect(chip).toHaveProp('accessibilityHint', 'The rules data may be out of date.');
+  });
 
   test('a status chip button has a 44 pt touch target and runs its action when pressed', async () => {
     const onPress = jest.fn();

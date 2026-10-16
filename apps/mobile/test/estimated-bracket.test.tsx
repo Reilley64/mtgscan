@@ -10,13 +10,15 @@ import {
   presentedDrawerContent,
   pressTab,
   selectedTab,
+  symbolNamed,
   symbolNames,
+  symbolSizes,
   symbolTintColors,
 } from './native-ui';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
 
-const { text: white, textMuted, info } = tokenColors;
+const { text: white, textMuted, info, danger } = tokenColors;
 
 function copyCard(name: string): DeckEvaluationCard {
   const key = name.toLowerCase().replaceAll(' ', '-');
@@ -47,6 +49,8 @@ const signals: BracketSignal[] = [
 function evaluationOf(fields: Partial<DeckEvaluation>): DeckEvaluation {
   return {
     validity: 'invalid',
+    validity_stale: false,
+    bracket_stale: false,
     violations: [],
     undetermined: [],
     chosen_color: null,
@@ -231,5 +235,48 @@ describe('the Estimated bracket drawer', () => {
     const drawer = await openDrawer();
 
     expect(drawer.getByText('Rules data as of 12 October 2026 · Signals missing for 1 card')).toBeOnTheScreen();
+  });
+});
+
+describe('a stale estimated bracket', () => {
+  const staleHint = 'The rules data may be out of date.';
+
+  test('the bracket chip in the header adds the 11 px clock after its label in info, and VoiceOver adds the hint', async () => {
+    ownKinnan(evaluationOf({ bracket_stale: true }));
+
+    const deck = await openDeck();
+
+    const chip = deck.getByRole('button', { name: 'Estimated bracket 4' });
+    expect(symbolNames(chip)).toEqual(['clock', 'chevron.right']);
+    expect(symbolSizes(chip)).toEqual([11, 11]);
+    expect(symbolTintColors(chip)).toEqual([info, info]);
+    expect(appearsBefore(within(chip).getByText('Bracket 4'), symbolNamed(chip, 'clock'))).toBe(true);
+    expect(chip).toHaveProp('accessibilityHint', staleHint);
+    const validityChip = deck.getByRole('button', { name: 'Deck validity, Invalid' });
+    expect(symbolNames(validityChip)).toEqual(['nosign', 'chevron.right']);
+    expect(validityChip.props.accessibilityHint).toBeUndefined();
+  });
+
+  test('the bracket chip on the gallery card adds the clock after its label, and VoiceOver adds the hint to the card', async () => {
+    ownKinnan(evaluationOf({ bracket_stale: true }));
+
+    const decks = await openDecks();
+
+    const card = decks.getByRole('button', { name: 'Kinnan, Medium priority, 87 cards, Invalid, Estimated bracket 4' });
+    expect(symbolNames(card)).toEqual(['nosign', 'clock']);
+    expect(symbolTintColors(card)).toEqual([danger, info]);
+    expect(appearsBefore(within(card).getByText('Bracket 4'), symbolNamed(card, 'clock'))).toBe(true);
+    expect(card).toHaveProp('accessibilityHint', staleHint);
+  });
+
+  test('the Estimated bracket drawer adds Stale to its rules data line, before the missing signals and the data not imported yet', async () => {
+    ownKinnan(evaluationOf({ bracket_stale: true, missing_signal_count: 2, commander_spellbook_at: null, no_combo_data: true }));
+
+    const drawer = await openDrawer();
+
+    expect(drawer.getByText('Rules data as of 12 October 2026 · Stale · Signals missing for 2 cards · No combo data yet')).toHaveStyle({
+      color: textMuted,
+      fontSize: 12,
+    });
   });
 });

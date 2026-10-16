@@ -637,6 +637,14 @@ export function symbolSizes(element: HostElement) {
   return element.queryAll(isSymbol).map((symbol) => symbol.props.size);
 }
 
+export function symbolNamed(element: HostElement, name: string) {
+  const symbol = element.queryAll(isSymbol).find((candidate) => candidate.props.name === name);
+  if (!symbol) {
+    throw new Error(`No ${name} symbol is in this element`);
+  }
+  return symbol;
+}
+
 export function symbolNames(element: HostElement) {
   return element.queryAll(isSymbol).map((symbol) => symbol.props.name);
 }
