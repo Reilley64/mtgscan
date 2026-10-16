@@ -245,7 +245,9 @@ describe('estimated bracket', () => {
     const { data } = await user.client.rpc('list_decks');
     expect((data as unknown as DeckList).items.find((item) => item.deck_id === deckId)!.evaluation).toEqual({
       validity: 'invalid',
+      validity_stale: false,
       estimated_bracket: 2,
+      bracket_stale: false,
     });
   });
 

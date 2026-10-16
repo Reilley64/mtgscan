@@ -112,7 +112,10 @@ type CommanderGalleryCardProps = CommanderCardProps & {
 
 export function CommanderGalleryCard({ name, chips, commanders, onPress }: CommanderGalleryCardProps) {
   return (
-    <TileButton accessibilityLabel={[name, ...chips.map((chip) => chip.accessibilityLabel ?? chip.label)].join(', ')} onPress={onPress}>
+    <TileButton
+      accessibilityLabel={[name, ...chips.map((chip) => chip.accessibilityLabel ?? chip.label)].join(', ')}
+      accessibilityHint={chips.find((chip) => chip.accessibilityHint)?.accessibilityHint}
+      onPress={onPress}>
       <CommanderCard name={name} chips={chips} commanders={commanders} />
     </TileButton>
   );

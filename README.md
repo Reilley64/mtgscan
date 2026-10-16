@@ -312,9 +312,9 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
 - The deck revision starts at 0.
 - `supabase.rpc('create_deck', { request: { name } })` trims the name and creates an empty deck with no commander. It returns `deck_id`. Creating a deck counts as using it.
 - `supabase.rpc('mark_deck_used', { request: { deck_id } })` sets the deck's last used time. The deck screen calls it when it opens. It returns nothing.
-- `supabase.rpc('list_decks')` returns `items`: the caller's decks with `deck_id`, `name`, `priority`, `card_count`, `commanders`, `last_used_at`, and `evaluation`. The deck used most recently comes first. Decks used at the same time sort by name ignoring case. `card_count` counts the deck's commanders, main deck, and basic lands. `commanders` lists each commander's `copy_id`, `name`, and `art_crop_uri`, the oldest commander first. `evaluation` is null for an empty deck. Otherwise it has the `validity` and the `estimated_bracket` of the deck evaluation.
+- `supabase.rpc('list_decks')` returns `items`: the caller's decks with `deck_id`, `name`, `priority`, `card_count`, `commanders`, `last_used_at`, and `evaluation`. The deck used most recently comes first. Decks used at the same time sort by name ignoring case. `card_count` counts the deck's commanders, main deck, and basic lands. `commanders` lists each commander's `copy_id`, `name`, and `art_crop_uri`, the oldest commander first. `evaluation` is null for an empty deck. Otherwise it has the `validity`, `validity_stale`, `estimated_bracket`, and `bracket_stale` of the deck evaluation. Deck evaluations (Freshness) says when each is stale.
 - `supabase.rpc('get_deck', { query: { deck_id } })` returns the fields of a `list_decks` item, plus `revision`, `created_at`, `cards`, and `basic_lands`. Reading a deck does not count as using it.
-  - `evaluation` is null for an empty deck. Otherwise it has every stored field of the deck evaluation, as Deck evaluations says, and `validity_rules_data_at`, the snapshot time of the card catalog that the validity used. `bracket_rules_data_at` is the oldest of `catalog_at`, `oracle_tags_at`, and `commander_spellbook_at` that is not null. `no_oracle_tag_data` and `no_combo_data` are true when the deck evaluation read no Oracle tag or combo snapshot.
+  - `evaluation` is null for an empty deck. Otherwise it has every stored field of the deck evaluation, as Deck evaluations says, and `validity_rules_data_at`, the snapshot time of the card catalog that the validity used. `bracket_rules_data_at` is the oldest of `catalog_at`, `oracle_tags_at`, and `commander_spellbook_at` that is not null. `no_oracle_tag_data` and `no_combo_data` are true when the deck evaluation read no Oracle tag or combo snapshot. It also has `validity_stale` and `bracket_stale`.
   - `cards` lists every copy in the deck. Each has its card printing as in a copy row of collection search, its `finish`, `condition`, `language`, `protected`, and `price` with `stale`. It adds `role` (`commander` or `main`), `commander_at`, the time the card was made a commander or null, `added_at`, the time the copy went into the deck, and its card's `type_line`, `mana_value`, and `colors`. The app groups and sorts the cards.
   - `basic_lands` lists the twelve basic land cards in order: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Each has its card's `oracle_id`, its `name`, the `image_uris` of its basic land image, and its `count`, 0 when the deck has none. A basic land card that the card catalog does not have has a null `oracle_id` and no image.
   - The basic land image is the image of one card printing of that basic land, chosen the same way each time: a printing with an image first, then English, then one with a nonfoil finish, then the newest, then by set code and collector number. The lookup finds each basic land card through the `name_key` index, so it reads only those cards from the card catalog.
@@ -412,6 +412,16 @@ mtgscan judges each deck against the Commander rules and stores the result as on
   - It locks each deck as a deck change does. A deck change waits for it, and it waits for a deck change, so a deck evaluation is never overwritten by an older one.
   - The rules data imports and the Oracle tag command run it. Card catalog imports says when.
 - A deck evaluation is behind when the `catalog`, `oracle_tags`, or `commander_spellbook` import snapshot is newer than the one it read, or an Oracle tag was disabled or enabled after it was judged. `deck_evaluations_are_behind()` says whether any deck evaluation is behind. Only the secret key can call it. `disabled_tag_changes` keeps the time of each disable and enable.
+
+#### Freshness
+
+`list_decks` and `get_deck` work out `validity_stale` and `bracket_stale` when they run, from the stored snapshot times and `catalog_freshness()`.
+
+- A source is stale when `catalog_freshness()` says so, 7 days after its last successful import, or when the deck evaluation is behind it. A source that was never imported is not stale.
+- The validity is stale when the card catalog is stale.
+- The estimated bracket is stale when the card catalog, the Oracle tags, or Commander Spellbook is stale. An Oracle tag disabled or enabled after the deck evaluation was judged makes the Oracle tags behind.
+- A stale deck evaluation keeps the snapshot times it read. A failed import or recompute never changes or deletes it.
+- `private.rules_data_behind` says which sources a deck evaluation is behind. `deck_evaluations_are_behind()` and the reads both use it. It runs with its owner's rights, because the import snapshots and `disabled_tag_changes` stay closed to signed-in users. It reads no user data.
 
 #### Previews
 

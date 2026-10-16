@@ -2,9 +2,8 @@ import type { DeckEvaluation } from '@mtgscan/supabase/decks';
 
 import { Text } from '@/components/atoms/text';
 import { RuleRow } from '@/components/molecules/rule-row';
-import { colorNames, ruleNames } from '@/decks/deck-labels';
+import { colorNames, ruleNames, rulesDataLine } from '@/decks/deck-labels';
 import { evaluationCardChip } from '@/decks/violation-cards';
-import { shownDay } from '@/lib/shown-day';
 
 type DeckValidityContentProps = {
   evaluation: DeckEvaluation;
@@ -12,6 +11,7 @@ type DeckValidityContentProps = {
 };
 
 export function DeckValidityContent({ evaluation, onOpenRules }: DeckValidityContentProps) {
+  const rulesData = rulesDataLine(evaluation.validity_rules_data_at, evaluation.validity_stale);
   return (
     <>
       <Text variant="meta">Checked against the current Commander rules.</Text>
@@ -31,9 +31,7 @@ export function DeckValidityContent({ evaluation, onOpenRules }: DeckValidityCon
         <RuleRow key={`${check.rule} ${check.reason}`} tone="warning" rule={ruleNames[check.rule]} message={check.reason} cards={check.cards.map(evaluationCardChip)} />
       ))}
       {evaluation.validity === 'valid' ? <Text>This deck follows the Commander rules.</Text> : null}
-      {evaluation.validity_rules_data_at ? (
-        <Text variant="meta">Rules data as of {shownDay(evaluation.validity_rules_data_at)}</Text>
-      ) : null}
+      {rulesData ? <Text variant="meta">{rulesData}</Text> : null}
     </>
   );
 }

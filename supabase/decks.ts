@@ -74,7 +74,9 @@ export type BracketSignalKind = BracketSignal['kind'];
 
 export type DeckEvaluationSummary = {
   validity: DeckValidity;
+  validity_stale: boolean;
   estimated_bracket: EstimatedBracket;
+  bracket_stale: boolean;
 };
 
 export type DeckEvaluation = DeckEvaluationSummary & {

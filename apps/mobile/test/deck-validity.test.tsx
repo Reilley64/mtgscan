@@ -16,7 +16,9 @@ import {
   presentedDrawerContent,
   pushedScreen,
   selectedTab,
+  symbolNamed,
   symbolNames,
+  symbolSizes,
   symbolTintColors,
 } from './native-ui';
 import { renderApp } from './render-app';
@@ -37,6 +39,8 @@ const solRing: DeckEvaluationCard = {
 
 function evaluationOf(fields: Pick<DeckEvaluation, 'validity'> & Partial<DeckEvaluation>): DeckEvaluation {
   return {
+    validity_stale: false,
+    bracket_stale: false,
     violations: [],
     undetermined: [],
     chosen_color: null,
@@ -142,6 +146,60 @@ describe('the validity chip on the gallery card', () => {
 
     const card = decks.getByRole('button', { name: 'Kinnan, Medium priority, 0 cards' });
     expect(symbolNames(card)).toEqual([]);
+  });
+});
+
+describe('a stale validity', () => {
+  const staleHint = 'The rules data may be out of date.';
+  const staleInvalid = evaluationOf({
+    validity: 'invalid',
+    validity_stale: true,
+    violations: [{ rule: 'deck_size', citation: 'CR 903.5a', message: '87 of 100 cards.', hint: 'Add 13 cards.', cards: [] }],
+  });
+
+  test('the validity chip in the header adds the 11 px clock after its label in the same color, and VoiceOver adds the hint', async () => {
+    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 87, evaluation: staleInvalid }]);
+
+    const deck = await openDeck();
+
+    const chip = deck.getByRole('button', { name: 'Deck validity, Invalid' });
+    expect(symbolNames(chip)).toEqual(['nosign', 'clock', 'chevron.right']);
+    expect(symbolSizes(chip)).toEqual([11, 11, 11]);
+    expect(symbolTintColors(chip)).toEqual([danger, danger, danger]);
+    expect(appearsBefore(within(chip).getByText('Invalid'), symbolNamed(chip, 'clock'))).toBe(true);
+    expect(chip).toHaveProp('accessibilityHint', staleHint);
+    const bracketChip = deck.getByRole('button', { name: 'Estimated bracket 2' });
+    expect(symbolNames(bracketChip)).toEqual(['chevron.right']);
+    expect(bracketChip.props.accessibilityHint).toBeUndefined();
+  });
+
+  test('the validity chip on the gallery card adds the clock after its label, and VoiceOver adds the hint to the card', async () => {
+    ownDecks([
+      { name: 'Kinnan', priority: 'medium', card_count: 87, evaluation: staleInvalid },
+      { name: 'Atraxa', priority: 'medium', card_count: 87 },
+    ]);
+
+    const decks = await openDecks();
+
+    const card = decks.getByRole('button', { name: 'Kinnan, Medium priority, 87 cards, Invalid, Estimated bracket 2' });
+    expect(symbolNames(card)).toEqual(['nosign', 'clock']);
+    expect(symbolSizes(card)).toEqual([11, 11]);
+    expect(symbolTintColors(card)).toEqual([danger, danger]);
+    expect(appearsBefore(within(card).getByText('Invalid'), symbolNamed(card, 'clock'))).toBe(true);
+    expect(card).toHaveProp('accessibilityHint', staleHint);
+    const fresh = decks.getByRole('button', { name: 'Atraxa, Medium priority, 87 cards, Invalid, Estimated bracket 2' });
+    expect(symbolNames(fresh)).toEqual(['nosign']);
+    expect(fresh.props.accessibilityHint).toBeUndefined();
+  });
+
+  test('the Deck validity drawer adds Stale to its rules data line', async () => {
+    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 87, evaluation: staleInvalid }]);
+    const deck = await openDeck();
+
+    await fireEvent.press(deck.getByRole('button', { name: 'Deck validity, Invalid' }));
+    const drawer = within(presentedDrawerContent());
+
+    expect(await drawer.findByText('Rules data as of 12 October 2026 · Stale')).toHaveStyle({ color: textMuted, fontSize: 12 });
   });
 });
 

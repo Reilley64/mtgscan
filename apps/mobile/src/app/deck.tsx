@@ -15,7 +15,7 @@ import { DeckHistory } from '@/components/organisms/deck-history';
 import { PushedScreen } from '@/components/templates/pushed-screen';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
-import { cardCountLabel, deckChips, estimatedBracketChip, validityChips } from '@/decks/deck-labels';
+import { cardCountLabel, deckChips, estimatedBracketChip, validityChip } from '@/decks/deck-labels';
 import { backToGallery, showDeckWriteResult } from '@/decks/deck-write-result';
 import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
 import { removeFromDeck } from '@/decks/remove-from-deck';
@@ -42,7 +42,7 @@ function evaluationChipButtons(deck: Deck) {
   if (!deck.evaluation) {
     return [];
   }
-  const chip = validityChips[deck.evaluation.validity];
+  const chip = validityChip(deck.evaluation);
   return [
     {
       ...chip,
@@ -50,7 +50,7 @@ function evaluationChipButtons(deck: Deck) {
       onPress: () => router.push({ pathname: '/deck-validity', params: { deckId: deck.deck_id } }),
     },
     {
-      ...estimatedBracketChip(deck.evaluation.estimated_bracket),
+      ...estimatedBracketChip(deck.evaluation),
       onPress: () => router.push({ pathname: '/estimated-bracket', params: { deckId: deck.deck_id } }),
     },
   ];
