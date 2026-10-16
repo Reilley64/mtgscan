@@ -951,6 +951,12 @@ isOneToOne: false
                            },
 "stage_import_batch":
 { Args: { "batch_number": number,"batch_rows": Json,"run_id": string,"target": string }; Returns: number
+                           },
+"update_deck_suggestion_reason":
+{ Args: { "request": Json }; Returns: Json
+                           },
+"withdraw_deck_suggestion":
+{ Args: { "request": Json }; Returns: Json
                            }
           }
           Enums: {

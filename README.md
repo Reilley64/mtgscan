@@ -515,6 +515,20 @@ Idempotency keys are per user. Each call saves its key with its input and result
 - `incoming` has the card's `oracle_id`, its `name`, `as_commander`, and `from_deck_id`. `from_deck_id` is null unless the suggestion is the paired suggestion that moves the card in from another deck.
 - `outgoing` is null, `{ copy_id, name }`, or `{ basic_land_oracle_id, name }`, the shapes that `create_deck_suggestions` takes plus the card's name.
 - `events` lists the suggestion's deck suggestion events, oldest first. Each has `kind` (`withdrawn` or `reason_replaced`), `client_name`, and `created_at`.
+#### Withdraw a deck suggestion and replace its reason
+
+`withdraw_deck_suggestion({ suggestion_id })` withdraws an open deck suggestion. `update_deck_suggestion_reason({ suggestion_id, reason })` replaces its reason, with a reason of 20 to 600 characters. Only an AI client can call them, as for `create_deck_suggestions`. They work on any open deck suggestion of the user, whichever AI client made it.
+
+- Each one writes one deck suggestion event to `deck_suggestion_events`, with the kind (`withdrawn` or `reason_replaced`), the AI client's `client_id` and `client_name`, and the time. A reason replacement keeps no old reason text.
+- Withdrawing sets `status` to `withdrawn` and `status_changed_at` to now. A withdrawn suggestion stays withdrawn.
+- Withdrawing a withdrawn suggestion, or setting the reason it already has, succeeds, changes nothing, and writes no deck suggestion event. So both calls are idempotent with no key.
+- Both return `{ suggestion_id, changed }`. `changed` is false when the call changed nothing.
+
+| Code | When |
+| --- | --- |
+| `invalid_argument` | The request does not have this shape, or the reason is not 20 to 600 characters. |
+| `not_found` | `suggestion_id` is missing or not one of the caller's deck suggestions. |
+| `not_open` | The deck suggestion is stale, or it is withdrawn and the call replaces its reason. |
 
 #### Stale deck suggestions
 
@@ -591,7 +605,7 @@ The `anon` role cannot use the `private` schema. `authenticated` and `service_ro
 
 Every app write function refuses an AI client's token. Each one calls `private.refuse_mcp_token()` right after `private.caller_user_id()`. The helper raises `insufficient_privilege` with "AI clients cannot change decks or the collection." when the token has a `client_id` claim. Supabase Auth's OAuth server puts that claim on every AI client's token. The app's sign-in never does, so the refusal does not affect the app. Read functions and previews do not call the helper. So an AI client's token can read through the Data API the same data that the MCP connection returns. `docs/adr/0007-refuse-mcp-tokens-by-client-id.md` says why.
 
-`public.begin_mcp_call` and `public.create_deck_suggestions` do the reverse. They require an AI client's token. `supabase/tests/ai-client-tokens.test.ts` leaves these functions out of its release gate by name, in the group `requiresAnAiClientsToken`.
+`public.begin_mcp_call`, `public.create_deck_suggestions`, `public.withdraw_deck_suggestion`, and `public.update_deck_suggestion_reason` do the reverse. They require an AI client's token. `supabase/tests/ai-client-tokens.test.ts` leaves these functions out of its release gate by name, in the group `requiresAnAiClientsToken`.
 
 `mcp_call_counts` departs from the pattern too. It has no read policy, because nothing reads it. Only `begin_mcp_call` writes it.
 
@@ -621,7 +635,7 @@ Each request goes through these steps:
 
 #### Tools
 
-The tools come in this order. Every tool has `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: false`. The read tools have `readOnlyHint: true`, and `create_deck_suggestions` has `readOnlyHint: false`.
+The tools come in this order. Every tool has `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: false`. The read tools have `readOnlyHint: true`. `create_deck_suggestions`, `withdraw_deck_suggestion`, and `update_deck_suggestion_reason` have `readOnlyHint: false`.
 
 | Tool | Postgres function |
 | --- | --- |
@@ -637,6 +651,8 @@ The tools come in this order. Every tool has `destructiveHint: false`, `idempote
 | `list_deck_changes` | `list_deck_changes` |
 | `list_deck_suggestions` | `list_deck_suggestions` |
 | `create_deck_suggestions` | `create_deck_suggestions` |
+| `withdraw_deck_suggestion` | `withdraw_deck_suggestion` |
+| `update_deck_suggestion_reason` | `update_deck_suggestion_reason` |
 
 - `supabase/functions/mcp/tools.ts` lists the tools. Each one has all four annotations, an input schema with `additionalProperties: false`, and an output schema that also allows a problem details object.
 - `tools.ts` writes the schemas with zod. They follow the types in `supabase/search.ts`, `supabase/collection.ts`, and `supabase/decks.ts`, less the fields that the tool leaves out. The function imports nothing from outside `supabase/functions`, so the schemas copy those types by hand. Every object in an output schema has `additionalProperties: false`. The official MCP client checks each result against it in the HTTP tests, so a change to the result's shape fails them.

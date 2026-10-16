@@ -408,6 +408,8 @@ const deckSuggestionRow = z.strictObject({
 
 const keyPattern = (minLength: number) => z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${minLength},64}$`));
 
+const deckSuggestionReason = z.string().min(20).max(600);
+
 const deckSuggestionInput = z.strictObject({
   ref: keyPattern(1).describe('A name for this suggestion, unique in the call, such as to_b. pair_with names it.'),
   deck_id: id.describe("The deck's ID."),
@@ -423,7 +425,7 @@ const deckSuggestionInput = z.strictObject({
       z.strictObject({ basic_land_oracle_id: id.describe('A basic land card in the deck, meaning one fewer of it.') }),
     ])
     .optional(),
-  reason: z.string().min(20).max(600),
+  reason: deckSuggestionReason,
   pair_with: keyPattern(1).optional().describe('The ref of the suggestion that takes the copy out of from_deck_id.'),
 });
 
@@ -449,6 +451,8 @@ const createdDeckSuggestions = z.strictObject({
   ),
   replayed: z.boolean(),
 });
+
+const changedDeckSuggestion = z.strictObject({ suggestion_id: id, changed: z.boolean() });
 
 export const tools: Tool[] = [
   defineTool({
@@ -698,5 +702,48 @@ export const tools: Tool[] = [
       return `${result.replayed ? 'Replayed' : 'Saved'} ${result.suggestions.length} deck suggestions with ${warningCount} warnings.`;
     },
     tooLargeHint: 'Send fewer suggestions in one call.',
+  }),
+  defineTool({
+    name: 'withdraw_deck_suggestion',
+    title: 'Withdraw a deck suggestion',
+    description: [
+      'Withdraw an open deck suggestion of the user.',
+      'Any AI client can withdraw it, not only the one that made it.',
+      'A withdrawn suggestion stays withdrawn.',
+      'Withdrawing a withdrawn suggestion changes nothing and returns changed: false. A stale suggestion returns not-open.',
+      'mtgscan records the withdrawal as a deck suggestion event with this AI client and the time.',
+      'This tool does not change any deck. Find suggestion IDs with list_deck_suggestions.',
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'withdraw_deck_suggestion',
+    input: z.strictObject({ suggestion_id: id.describe("The deck suggestion's ID.") }),
+    output: changedDeckSuggestion,
+    leftOut: {},
+    summary: (result) =>
+      result.changed ? `Withdrew deck suggestion ${result.suggestion_id}.` : `Deck suggestion ${result.suggestion_id} was already withdrawn.`,
+    tooLargeHint: 'Withdraw one deck suggestion in each call.',
+  }),
+  defineTool({
+    name: 'update_deck_suggestion_reason',
+    title: 'Replace the reason of a deck suggestion',
+    description: [
+      'Replace the reason of an open deck suggestion of the user.',
+      'Any AI client can replace it, not only the one that made it.',
+      'The new reason is 20 to 600 characters.',
+      'The old reason is not kept. Setting the reason it already has changes nothing and returns changed: false.',
+      'mtgscan records the reason replacement as a deck suggestion event with this AI client and the time.',
+      'A withdrawn or stale suggestion returns not-open.',
+      'This tool does not change any deck. Find suggestion IDs with list_deck_suggestions.',
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'update_deck_suggestion_reason',
+    input: z.strictObject({ suggestion_id: id.describe("The deck suggestion's ID."), reason: deckSuggestionReason }),
+    output: changedDeckSuggestion,
+    leftOut: {},
+    summary: (result) =>
+      result.changed
+        ? `Replaced the reason of deck suggestion ${result.suggestion_id}.`
+        : `Deck suggestion ${result.suggestion_id} already has this reason.`,
+    tooLargeHint: 'Replace the reason of one deck suggestion in each call.',
   }),
 ];
