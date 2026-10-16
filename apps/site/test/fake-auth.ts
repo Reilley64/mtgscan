@@ -1,4 +1,10 @@
-import { AuthApiError, type OAuthAuthorizationDetails, type Session } from '@supabase/supabase-js';
+import {
+  AuthApiError,
+  type AuthError,
+  AuthRetryableFetchError,
+  type OAuthAuthorizationDetails,
+  type Session,
+} from '@supabase/supabase-js';
 
 import type { ConsentAuth } from '../oauth/consent/consent-page';
 
@@ -13,7 +19,24 @@ export const chatGptDetails: OAuthAuthorizationDetails = {
   scope: 'email',
 };
 
-export function googleSession(email = 'player@example.com'): Session {
+export const approvedRedirect = 'https://chatgpt.com/connector_platform_oauth_redirect?code=code-1&state=state-1';
+export const deniedRedirect = 'https://chatgpt.com/connector_platform_oauth_redirect?error=access_denied&state=state-1';
+
+export const authorizationNotFound = new AuthApiError('authorization not found', 404, 'oauth_authorization_not_found');
+export const authorizationNotPending = new AuthApiError(
+  'authorization request is no longer pending',
+  400,
+  'validation_failed',
+);
+export const sessionRejected = new AuthApiError('invalid JWT', 401, 'bad_jwt');
+export const sessionNotFound = new AuthApiError(
+  'Session from session_id claim in JWT does not exist',
+  403,
+  'session_not_found',
+);
+export const unreachable = new AuthRetryableFetchError('Failed to fetch', 0);
+
+export function googleSession(): Session {
   return {
     access_token: 'access-token',
     refresh_token: 'refresh-token',
@@ -22,7 +45,7 @@ export function googleSession(email = 'player@example.com'): Session {
     user: {
       id: 'user-1',
       aud: 'authenticated',
-      email,
+      email: 'player@example.com',
       app_metadata: { provider: 'apple' },
       user_metadata: { iss: 'https://accounts.google.com' },
       created_at: '2026-10-16T00:00:00Z',
@@ -32,18 +55,19 @@ export function googleSession(email = 'player@example.com'): Session {
 
 type FakeAuthOptions = {
   session?: Session;
-  details?: OAuthAuthorizationDetails | { redirect_url: string } | 'expired';
+  details?: OAuthAuthorizationDetails | { redirect_url: string };
+  failures?: Partial<Record<'signIn' | 'details' | 'approve' | 'deny', AuthError[]>>;
 };
 
-export function fakeAuth({ session, details = chatGptDetails }: FakeAuthOptions = {}) {
+export function fakeAuth({ session, details = chatGptDetails, failures = {} }: FakeAuthOptions = {}) {
   const calls = {
     signIns: [] as Parameters<ConsentAuth['signInWithOAuth']>[0][],
     signOuts: [] as Parameters<ConsentAuth['signOut']>[0][],
+    details: [] as string[],
     approvals: [] as string[],
     denials: [] as string[],
   };
   let currentSession = session ?? null;
-  const expired = new AuthApiError('Authorization not found', 404, 'oauth_authorization_not_found');
 
   const auth: ConsentAuth = {
     async getSession() {
@@ -53,6 +77,8 @@ export function fakeAuth({ session, details = chatGptDetails }: FakeAuthOptions 
     },
     async signInWithOAuth(credentials) {
       calls.signIns.push(credentials);
+      const error = failures.signIn?.shift();
+      if (error) return { data: { provider: credentials.provider, url: null }, error };
       return {
         data: { provider: credentials.provider, url: 'https://supabase.test/auth/v1/authorize?provider=google' },
         error: null,
@@ -65,24 +91,22 @@ export function fakeAuth({ session, details = chatGptDetails }: FakeAuthOptions 
     },
     oauth: {
       async getAuthorizationDetails(id) {
-        if (details === 'expired' || id !== authorizationId) return { data: null, error: expired };
+        calls.details.push(id);
+        const error = failures.details?.shift();
+        if (error) return { data: null, error };
         return { data: details, error: null };
       },
       async approveAuthorization(id) {
         calls.approvals.push(id);
-        return {
-          data: { redirect_url: 'https://chatgpt.com/connector_platform_oauth_redirect?code=code-1&state=state-1' },
-          error: null,
-        };
+        const error = failures.approve?.shift();
+        if (error) return { data: null, error };
+        return { data: { redirect_url: approvedRedirect }, error: null };
       },
       async denyAuthorization(id) {
         calls.denials.push(id);
-        return {
-          data: {
-            redirect_url: 'https://chatgpt.com/connector_platform_oauth_redirect?error=access_denied&state=state-1',
-          },
-          error: null,
-        };
+        const error = failures.deny?.shift();
+        if (error) return { data: null, error };
+        return { data: { redirect_url: deniedRedirect }, error: null };
       },
     },
   };

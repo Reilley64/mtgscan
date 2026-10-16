@@ -519,13 +519,20 @@ Supabase Auth's OAuth server sends the user to the consent page at `https://mtgs
 
 - `apps/site/oauth/consent/` holds the page: `index.html`, `consent.css`, and TypeScript with `supabase-js`. `consent-page.ts` holds the page logic, and `main.ts` starts it with the PKCE flow.
 - `supabase-project.ts` holds the hosted Supabase URL and the publishable key. Both are public, and the app ships them too. The `/oauth/*` rule in `apps/site/_headers` names the same URL, and a test checks that they match.
-- With no session, **Continue with Google** calls `signInWithOAuth` with a redirect back to the consent page and its `authorization_id`. With a session, the page calls `getAuthorizationDetails`. **Allow** calls `approveAuthorization`, and **Deny** calls `denyAuthorization`. Each follows the redirect that Supabase returns. A client that the user already allowed goes straight back to that redirect. **Switch account** signs out of this browser only.
+- With no session, **Continue with Google** calls `signInWithOAuth` with a redirect back to the consent page and its `authorization_id`. With a session, the page calls `getAuthorizationDetails`. **Allow** calls `approveAuthorization`, and **Deny** calls `denyAuthorization`. Each follows the redirect that Supabase returns. An AI client that the user already allowed goes straight back to that redirect. **Switch account** signs out of this browser only.
+- When one of those calls fails:
+  - an authorization that Supabase cannot find, or that is no longer pending, shows the expired link;
+  - a session that Supabase rejects signs out of this browser and shows the sign-in button;
+  - any other failure shows "Could not reach mtgscan." with **Try again**, which repeats the call.
+- A sign-in that cannot start shows "Could not start the sign-in. Try again." under the button.
 - `bun run --filter @mtgscan/site build` bundles the page into `apps/site/oauth/consent/consent.js`. Git ignores the built file.
 - `bun run --filter @mtgscan/site test` runs the page tests in Bun with happy-dom and a fake Supabase client.
 
 The site is a Cloudflare Worker with static assets, set up in `wrangler.jsonc`:
 
+- Cloudflare Workers Builds deploys the site on each push to `main`. It installs the workspace and runs `wrangler deploy`.
 - The `build` command runs the page build, so `wrangler deploy` and `wrangler dev` build the page first.
+- The Workers Builds build variable `BUN_VERSION` is `1.4.2`, the Bun version in `package.json`. The build image has an older Bun by default.
 - `apps/site/.assetsignore` keeps the TypeScript, the tests, and the package files out of the upload.
 - `html_handling` is `drop-trailing-slash`, so `/oauth/consent` serves the page with no redirect.
 - `apps/site/_headers` gives `/oauth/*` its own CSP. It removes the site CSP and allows the page script, plus `connect-src` and `form-action` for the Supabase project, and nothing more. The rest of the site keeps the strict CSP.

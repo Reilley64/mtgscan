@@ -1,5 +1,12 @@
 import { currentSignInProviderName } from '@mtgscan/supabase/sign-in-providers';
-import type { AuthOAuthServerApi, OAuthAuthorizationDetails, SupabaseClient, User } from '@supabase/supabase-js';
+import {
+  type AuthError,
+  type AuthOAuthServerApi,
+  isAuthSessionMissingError,
+  type OAuthAuthorizationDetails,
+  type SupabaseClient,
+  type User,
+} from '@supabase/supabase-js';
 
 export type ConsentAuth = Pick<SupabaseClient['auth'], 'getSession' | 'signInWithOAuth' | 'signOut'> & {
   oauth: Pick<AuthOAuthServerApi, 'getAuthorizationDetails' | 'approveAuthorization' | 'denyAuthorization'>;
@@ -11,6 +18,20 @@ type ConsentPage = {
   url: URL;
   navigate: (url: string) => void;
 };
+
+type Answer = 'approveAuthorization' | 'denyAuthorization';
+
+const expiredAuthorizationCodes = ['oauth_authorization_not_found', 'validation_failed'];
+
+const rejectedSessionCodes = ['bad_jwt', 'session_not_found', 'session_expired', 'refresh_token_not_found'];
+
+function authorizationExpired(error: AuthError) {
+  return expiredAuthorizationCodes.includes(error.code ?? '');
+}
+
+function sessionRejected(error: AuthError) {
+  return error.status === 401 || isAuthSessionMissingError(error) || rejectedSessionCodes.includes(error.code ?? '');
+}
 
 function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, ...children: (Node | string)[]) {
   const node = document.createElement(tag);
@@ -33,6 +54,10 @@ function googleLogo() {
   return logo;
 }
 
+function sameSignInHint() {
+  return element('p', 'consent-muted', 'Use the same sign-in as in the app');
+}
+
 export async function showConsentPage({ auth, root, url, navigate }: ConsentPage) {
   const authorizationId = url.searchParams.get('authorization_id');
   const consentUrl = new URL(url.pathname, url.origin);
@@ -42,19 +67,24 @@ export async function showConsentPage({ auth, root, url, navigate }: ConsentPage
     root.replaceChildren(...children);
   }
 
+  function disableButtons() {
+    for (const control of root.querySelectorAll('button')) control.disabled = true;
+  }
+
   function showExpired() {
     show(element('p', 'lead', 'This link has expired. Start again from your AI chat.'));
   }
 
-  function showSignIn() {
+  function showSignIn(failed = false) {
     show(
       element('h1', '', 'Sign in to mtgscan'),
-      element('p', 'lead', 'Use the same sign-in as in the app'),
+      sameSignInHint(),
       button(
         'Continue with Google',
         'button-google',
         async () => {
-          const { data } = await auth.signInWithOAuth({
+          disableButtons();
+          const { data, error } = await auth.signInWithOAuth({
             provider: 'google',
             options: {
               redirectTo: consentUrl.href,
@@ -62,33 +92,59 @@ export async function showConsentPage({ auth, root, url, navigate }: ConsentPage
               queryParams: { prompt: 'select_account' },
             },
           });
-          if (data.url) navigate(data.url);
+          if (error || !data.url) showSignIn(true);
+          else navigate(data.url);
         },
         googleLogo(),
+      ),
+      ...(failed ? [element('p', 'consent-error', 'Could not start the sign-in. Try again.')] : []),
+    );
+  }
+
+  function accountCard(user: User) {
+    return element(
+      'section',
+      'consent-card',
+      element('p', 'consent-strong', `Signed in with ${currentSignInProviderName(user)}`),
+      element('p', 'meta', user.email ?? ''),
+      sameSignInHint(),
+      button('Switch account', 'button button-secondary', async () => {
+        await auth.signOut({ scope: 'local' });
+        showSignIn();
+      }),
+    );
+  }
+
+  async function handleFailure(user: User, error: AuthError, retry: () => Promise<void>): Promise<void> {
+    if (authorizationExpired(error)) return showExpired();
+    if (sessionRejected(error)) {
+      await auth.signOut({ scope: 'local' });
+      return showSignIn();
+    }
+    show(
+      accountCard(user),
+      element(
+        'section',
+        'consent-card',
+        element('p', '', 'Could not reach mtgscan.'),
+        button('Try again', 'button', async () => {
+          disableButtons();
+          await retry();
+        }),
       ),
     );
   }
 
-  async function decide(decision: () => ReturnType<ConsentAuth['oauth']['approveAuthorization']>) {
-    for (const control of root.querySelectorAll('button')) control.disabled = true;
-    const { data, error } = await decision();
-    if (error) showExpired();
+  async function answerAuthorization(user: User, details: OAuthAuthorizationDetails, answer: Answer) {
+    disableButtons();
+    const { data, error } = await auth.oauth[answer](details.authorization_id, { skipBrowserRedirect: true });
+    if (error) await handleFailure(user, error, () => answerAuthorization(user, details, answer));
     else navigate(data.redirect_url);
   }
 
   function showDetails(user: User, details: OAuthAuthorizationDetails) {
     show(
-      element(
-        'section',
-        'consent-card',
-        element('p', 'consent-strong', `Signed in with ${currentSignInProviderName(user)}`),
-        element('p', 'consent-meta', user.email ?? ''),
-        element('p', 'consent-muted', 'Use the same sign-in as in the app'),
-        button('Switch account', 'button button-secondary', async () => {
-          await auth.signOut({ scope: 'local' });
-          showSignIn();
-        }),
-      ),
+      accountCard(user),
       element('h1', '', details.client.name),
       element('p', 'consent-muted', `Returns you to ${new URL(details.redirect_uri).host}`),
       element(
@@ -99,14 +155,17 @@ export async function showConsentPage({ auth, root, url, navigate }: ConsentPage
       element(
         'div',
         'actions',
-        button('Allow', 'button', () =>
-          decide(() => auth.oauth.approveAuthorization(details.authorization_id, { skipBrowserRedirect: true })),
-        ),
-        button('Deny', 'button button-secondary', () =>
-          decide(() => auth.oauth.denyAuthorization(details.authorization_id, { skipBrowserRedirect: true })),
-        ),
+        button('Allow', 'button', () => answerAuthorization(user, details, 'approveAuthorization')),
+        button('Deny', 'button button-secondary', () => answerAuthorization(user, details, 'denyAuthorization')),
       ),
     );
+  }
+
+  async function loadDetails(user: User, id: string): Promise<void> {
+    const { data, error } = await auth.oauth.getAuthorizationDetails(id);
+    if (error) return handleFailure(user, error, () => loadDetails(user, id));
+    if ('redirect_url' in data) return navigate(data.redirect_url);
+    showDetails(user, data);
   }
 
   if (!authorizationId) return showExpired();
@@ -114,8 +173,5 @@ export async function showConsentPage({ auth, root, url, navigate }: ConsentPage
     data: { session },
   } = await auth.getSession();
   if (!session) return showSignIn();
-  const { data, error } = await auth.oauth.getAuthorizationDetails(authorizationId);
-  if (error) return showExpired();
-  if ('redirect_url' in data) return navigate(data.redirect_url);
-  showDetails(session.user, data);
+  await loadDetails(session.user, authorizationId);
 }

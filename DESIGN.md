@@ -541,13 +541,15 @@ The app shows the sign-in screen whenever there is no session. It is the binder 
 
 The consent page is on the website at `mtgscan.reilley.dev/oauth/consent`, not in the app. An AI client sends the user there to sign in and allow or deny it. It is plain HTML and CSS in `apps/site`, with the site's colors and the system font. It has the site header with the brand, and one column of content up to 28 rem wide.
 
-- **Expired link.** A missing or expired `authorization_id` shows "This link has expired. Start again from your AI chat." in text muted, with no buttons.
-- **Signed out.** The title "Sign in to mtgscan" in sign-in title type, the line "Use the same sign-in as in the app" in text muted, and **Continue with Google**. The button is the app's Google button: 50 px tall, full width, with the Google colors and logo.
+- **Expired link.** A missing `authorization_id`, or one that Supabase cannot find or that is no longer pending, shows "This link has expired. Start again from your AI chat." in text muted, with no buttons.
+- **Signed out.** The title "Sign in to mtgscan" in sign-in title type, the line "Use the same sign-in as in the app" in text muted, and **Continue with Google**. The button is the app's Google button: 50 px tall, full width, with the Google colors and logo. A sign-in that cannot start shows "Could not start the sign-in. Try again." in danger under the button.
 - **Signed in.** From top to bottom:
-  - an account card on surface: "Signed in with Google" in body strong, the account email in text muted, "Use the same sign-in as in the app", and **Switch account** as a secondary button. **Switch account** signs out of this browser only and shows **Continue with Google**;
-  - the client name as the title, in sign-in title type, and "Returns you to chatgpt.com" in text muted. The host comes from the client's redirect URI, never from its name;
+  - an account card on surface: "Signed in with Google" in body strong, the account email in text muted at meta size, "Use the same sign-in as in the app", and **Switch account** as a secondary button. **Switch account** signs out of this browser only and shows **Continue with Google**;
+  - the AI client's name as the title, in sign-in title type, and "Returns you to chatgpt.com" in text muted. The host comes from the AI client's redirect URI, never from its name;
   - a card on surface with "Read your cards, collection, decks, and deck history. Suggest deck changes. It cannot change your decks or collection.";
   - **Allow** as the primary button and **Deny** as a secondary button, side by side. After a tap, both dim to 38% while the page waits for Supabase.
+- **Could not reach mtgscan.** When Supabase cannot be reached, the account card stays with **Switch account**. Below it, a card on surface says "Could not reach mtgscan." and has a primary **Try again** button that repeats the step.
+- **Rejected session.** When Supabase rejects the session, the page signs out of this browser and shows the signed-out view.
 - **Allow** and **Deny** go back to the AI client. Deny sends it `access_denied`.
 
 ### Pushed screens
