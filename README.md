@@ -418,7 +418,8 @@ A preview judges a deck as a change would leave it and compares the result with 
   - `kind` is `would_make_invalid` when the stored validity is `valid` or `cannot_be_determined`, and `adds_violation` when it is `invalid`.
   - `rules` lists each rule with a new violation, in the violation order, such as `{ rule: 'singleton' }`. A `color_identity` rule also has `colors`, the colors outside the color identity.
   - A new violation is a rule that the stored deck evaluation does not break, or a card in a rule that it breaks but not with that card. So `deck_size` counts only when the deck has exactly 100 cards before the change and not after.
-  - A deck with no deck evaluation has no effect, and neither has a change that leaves a deck empty.
+  - A deck with no deck evaluation has no effect.
+  - A change that leaves a deck empty has no effect.
 
 ### Collection search
 

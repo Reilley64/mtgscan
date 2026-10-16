@@ -82,11 +82,8 @@ export function effectStatus(effect: DeckChangeEffect, deckName: string) {
 }
 
 export function revertEffectChip(effect: DeckChangeEffect, deckName: string) {
-  return {
-    label: `${effectNames[effect.kind].chip}: ${effect.rules.map(effectRuleName).join(', ')}`,
-    tone: 'danger' as const,
-    accessibilityLabel: effectStatus(effect, deckName).spoken,
-  };
+  const { chip, spoken } = effectStatus(effect, deckName);
+  return { ...chip, label: `${chip.label}: ${effect.rules.map(effectRuleName).join(', ')}`, accessibilityLabel: spoken };
 }
 
 export function cardCountLabel(count: number) {

@@ -1,4 +1,4 @@
-create function private.reverted_deck_contents(contents jsonb, revert jsonb)
+create function private.reverted_deck_contents(contents jsonb, changes jsonb)
 returns jsonb
 language sql
 immutable
@@ -11,11 +11,11 @@ as $$
         select copy
         from jsonb_array_elements(contents -> 'copies') copy
         where not exists (
-          select from jsonb_array_elements(revert -> 'copy_lines') line where line ->> 'copy_id' = copy ->> 'copy_id'
+          select from jsonb_array_elements(changes -> 'copy_lines') line where line ->> 'copy_id' = copy ->> 'copy_id'
         )
         union all
         select jsonb_build_object('copy_id', line -> 'copy_id', 'card_printing_id', line -> 'card_printing_id', 'role', line -> 'place_after')
-        from jsonb_array_elements(revert -> 'copy_lines') line
+        from jsonb_array_elements(changes -> 'copy_lines') line
         where line ->> 'place_after' is not null
       ) reverted_copies
     ), '[]'::jsonb),
@@ -25,11 +25,11 @@ as $$
         select land
         from jsonb_array_elements(contents -> 'basic_lands') land
         where not exists (
-          select from jsonb_array_elements(revert -> 'basic_land_lines') line where line ->> 'oracle_id' = land ->> 'oracle_id'
+          select from jsonb_array_elements(changes -> 'basic_land_lines') line where line ->> 'oracle_id' = land ->> 'oracle_id'
         )
         union all
         select jsonb_build_object('oracle_id', line -> 'oracle_id', 'count', line -> 'count_after')
-        from jsonb_array_elements(revert -> 'basic_land_lines') line
+        from jsonb_array_elements(changes -> 'basic_land_lines') line
         where (line ->> 'count_after')::integer > 0
       ) reverted_lands
     ), '[]'::jsonb)
@@ -49,8 +49,8 @@ declare
   checked jsonb;
   deck public.decks;
   evaluation public.deck_evaluations;
-  revert jsonb;
-  reverted jsonb;
+  changes jsonb;
+  reverted_contents jsonb;
 begin
   caller := private.caller_user_id();
   checked := private.check_request(query, array['deck_id', 'deck_change_id']);
@@ -60,18 +60,18 @@ begin
     perform private.raise_deck_not_found();
   end if;
   perform private.reverted_revision(caller, deck.id, (checked ->> 'deck_change_id')::uuid);
-  revert := private.revert_effect(caller, (checked ->> 'deck_change_id')::uuid);
+  changes := private.revert_effect(caller, (checked ->> 'deck_change_id')::uuid);
   select * into evaluation from public.deck_evaluations stored where stored.user_id = caller and stored.deck_id = deck.id;
-  reverted := private.reverted_deck_contents(private.deck_contents(caller, deck.id), revert);
+  reverted_contents := private.reverted_deck_contents(private.deck_contents(caller, deck.id), changes);
 
   return jsonb_build_object(
     'revision', deck.revision,
-    'lines', private.format_deck_change_lines(revert -> 'copy_lines', revert -> 'basic_land_lines'),
-    'blocks', revert -> 'blocks',
-    'protected_copies', revert -> 'protected_copies',
+    'lines', private.format_deck_change_lines(changes -> 'copy_lines', changes -> 'basic_land_lines'),
+    'blocks', changes -> 'blocks',
+    'protected_copies', changes -> 'protected_copies',
     'effect', case
-      when reverted -> 'copies' <> '[]'::jsonb or reverted -> 'basic_lands' <> '[]'::jsonb
-        then private.deck_change_effect(evaluation, private.judge_deck(reverted))
+      when reverted_contents -> 'copies' <> '[]'::jsonb or reverted_contents -> 'basic_lands' <> '[]'::jsonb
+        then private.deck_change_effect(evaluation, private.judge_deck(reverted_contents))
     end
   );
 end;
