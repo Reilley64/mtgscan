@@ -11,8 +11,6 @@ begin
 end;
 $$;
 
-grant execute on function private.refuse_mcp_token() to authenticated;
-
 create or replace function public.add_scan_batch(batch jsonb)
 returns jsonb
 language plpgsql
