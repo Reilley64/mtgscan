@@ -37,6 +37,8 @@ const reason = 'Moves the only Lightning Bolt to the deck that needs removal.';
 const bracketSentence =
   'The estimated bracket is an estimate for a pregame conversation, not a certified bracket. Signals labelled heuristic are not official.';
 const usdSentence = 'Prices are current Scryfall prices in USD (TCGplayer Market). There is no other currency.';
+const declinedWriteSentence =
+  'If the user declines this call, do not call it again. Tell the user that nothing was saved, and ask what they want to change.';
 const catalogSentence =
   'Returns only Commander-legal cards. Misspelled names return no results; there is no fuzzy match. Use search_oracle_tags to find tag slugs.';
 beforeAll(async () => {
@@ -227,7 +229,7 @@ describe('the MCP server over HTTP', () => {
     expect(updateDeckSuggestionReason!.inputSchema).toMatchObject({ properties: { reason: { minLength: 20, maxLength: 600 } } });
   });
 
-  test('the descriptions carry the catalog sentence, the USD sentence on each tool that returns prices, and the bracket sentence on the deck reads', async () => {
+  test('the descriptions carry the catalog sentence, the USD sentence on each tool that returns prices, the bracket sentence on the deck reads, and the declined write sentence on the write tools', async () => {
     const { mcp } = await connected(await signUpNewUser());
 
     const { tools } = await mcp.listTools();
@@ -236,6 +238,7 @@ describe('the MCP server over HTTP', () => {
     expect(withSentence(catalogSentence)).toEqual(['search_catalog']);
     expect(withSentence(usdSentence)).toEqual(['search_catalog', 'search_collection', 'get_cards', 'get_collection_summary', 'get_deck']);
     expect(withSentence(bracketSentence)).toEqual(['list_decks', 'get_deck']);
+    expect(withSentence(declinedWriteSentence)).toEqual(mcpWriteToolNames);
   });
 
   test('also serves a client on the 2025 protocol', async () => {

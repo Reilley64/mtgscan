@@ -26,6 +26,8 @@ const readOnly: ToolAnnotations = { readOnlyHint: true, destructiveHint: false, 
 const write: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 
 const usdPrices = 'Prices are current Scryfall prices in USD (TCGplayer Market). There is no other currency.';
+const declinedWrite =
+  'If the user declines this call, do not call it again. Tell the user that nothing was saved, and ask what they want to change.';
 const estimatedBracket =
   'The estimated bracket is an estimate for a pregame conversation, not a certified bracket. Signals labelled heuristic are not official.';
 
@@ -688,6 +690,7 @@ export const tools: Tool[] = [
       'Never offer a protected copy as the reason a card is available.',
       'When two decks want a card and there is one copy for them, the deck with the higher deck priority should get it. Between decks of equal priority, decide which deck needs it more. To move a card, send a pair of suggestions in one call, and make each reason name the other.',
       'Read past suggestions with list_deck_suggestions first.',
+      declinedWrite,
     ].join(' '),
     annotations: write,
     postgresFunction: 'create_deck_suggestions',
@@ -713,6 +716,7 @@ export const tools: Tool[] = [
       'Withdrawing a withdrawn suggestion changes nothing and returns changed: false. A stale suggestion returns not-open.',
       'mtgscan records the withdrawal as a deck suggestion event with this AI client and the time.',
       'This tool does not change any deck. Find suggestion IDs with list_deck_suggestions.',
+      declinedWrite,
     ].join(' '),
     annotations: write,
     postgresFunction: 'withdraw_deck_suggestion',
@@ -734,6 +738,7 @@ export const tools: Tool[] = [
       'mtgscan records the reason replacement as a deck suggestion event with this AI client and the time.',
       'A withdrawn or stale suggestion returns not-open.',
       'This tool does not change any deck. Find suggestion IDs with list_deck_suggestions.',
+      declinedWrite,
     ].join(' '),
     annotations: write,
     postgresFunction: 'update_deck_suggestion_reason',
