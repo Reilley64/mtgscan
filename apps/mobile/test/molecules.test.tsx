@@ -468,6 +468,12 @@ describe('WarningLine', () => {
     expect(symbolSizes(line)).toEqual([11]);
     expect(symbolTintColor(line)).toBe(tokenColors.warning);
   });
+
+  test('a warning line can show another symbol, such as the bookmark of a held copy', async () => {
+    await render(<WarningLine symbol="bookmark.fill" message="Sol Ring is held by the planned swap for Krenko." />);
+
+    expect(symbolNames(screen.getByLabelText('Sol Ring is held by the planned swap for Krenko.'))).toEqual(['bookmark.fill']);
+  });
 });
 
 describe('CardChip', () => {
@@ -1083,6 +1089,16 @@ describe('CopyMeta', () => {
     expect(deckBox).toHaveStyle({ width: 11, height: 11 });
     expect(imageTintColor(deckBox!)).toBe(processColor(info));
     expect(appearsBefore(deckBox!, symbolIn(line))).toBe(true);
+  });
+
+  test('a copy meta line of a held copy starts with an 11 px bookmark in the info color', async () => {
+    await render(<CopyMeta setCode="mh3" rarity="common" setIconUri={mh3Symbol} collectorNumber="136" isHeld />);
+
+    const line = screen.getByText('136').parent!;
+    expect(symbolNames(line)).toEqual(['bookmark.fill']);
+    expect(symbolSizes(line)).toEqual([11]);
+    expect(symbolTintColor(line)).toBe(info);
+    expect(appearsBefore(symbolIn(line), screen.getByLabelText('MH3'))).toBe(true);
   });
 
   test('a copy meta line of a copy in no deck has no deck box symbol', async () => {

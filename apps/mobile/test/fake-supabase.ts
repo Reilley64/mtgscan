@@ -31,6 +31,7 @@ import type { ExchangeRate } from '@mtgscan/supabase/converted-prices';
 import type {
   AddDeckCardPreviewQuery,
   AddDeckCardRequest,
+  CopyHeldFor,
   CreateDeckRequest,
   Deck,
   DeckBasicLand,
@@ -1029,13 +1030,18 @@ function setBasicLands(request: SetBasicLandsRequest) {
   return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
 }
 
-function deleteCopy({ copy_id }: DeleteCopyRequest) {
+function deleteCopy({ copy_id, held_copy_id }: DeleteCopyRequest) {
   if (failingCopyDeletes > 0) {
     failingCopyDeletes -= 1;
     return { data: null, error: networkFailure };
   }
   if (!collectionCopies.some((copy) => copy.copy_id === copy_id)) {
     return copyNotFound;
+  }
+  const heldFor = copyDetails.get(copy_id)?.held_for;
+  if (heldFor && held_copy_id !== copy_id) {
+    const message = `This copy is held by the planned swap for ${heldFor.name}. Send held_copy_id to move that planned swap to the buylist and delete the copy.`;
+    return { data: null, error: { code: 'copy_held', message, details: 'held_copy_id' } };
   }
   copyDeletes = [...copyDeletes, copy_id];
   removeCopyFromTheCollection(copy_id);
@@ -1061,6 +1067,7 @@ function addToCollection(copies: { copyId: string; stack: ScanBatchStack }[]) {
       protected: false,
       price: null,
       deck: null,
+      held_for: null,
     };
     collectionCopies = [...ofPrinting, copy, ...collectionCopies.filter((row) => row.printing_id !== card_printing_id)];
   }
@@ -1519,6 +1526,11 @@ export function changeDeckElsewhere(deckId: string, change: DeckChange) {
   const deck = decks.find((candidate) => candidate.deck_id === deckId)!;
   saveDeck({ ...deck, revision: change.revision });
   ownDeckChanges(deckId, [change, ...(deckChanges.get(deckId) ?? [])]);
+}
+
+export function holdCopyElsewhere(copyId: string, heldFor: CopyHeldFor) {
+  copyDetails.set(copyId, { ...copyDetails.get(copyId)!, free: false, held_for: heldFor });
+  collectionCopies = collectionCopies.map((copy) => (copy.copy_id === copyId ? { ...copy, held_for: heldFor } : copy));
 }
 
 export function allocateCopyElsewhere(copyId: string) {

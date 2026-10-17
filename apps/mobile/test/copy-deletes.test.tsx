@@ -4,6 +4,7 @@ import { copyOf, delver, openCopyPage } from './copies';
 import {
   copiesDeletedOnTheServer,
   failCopyDeletes,
+  holdCopyElsewhere,
   ownCollectionTotal,
   ownCopies,
   ownDeckOfCopies,
@@ -23,6 +24,11 @@ import {
 
 beforeEach(() => {
   startSignedIn();
+});
+
+const heldForGoblins = copyOf('copy-1', {
+  free: false,
+  held_for: { deck_id: 'deck-1', name: 'Goblins', commander_art_crop_uri: null },
 });
 
 describe('deleting a copy', () => {
@@ -66,6 +72,35 @@ describe('deleting a copy', () => {
     });
     await pressAlertButton('Delete copy');
     expect(copiesDeletedOnTheServer()).toEqual(['copy-1']);
+  });
+
+  test('Delete copy on a held copy warns that its planned swap moves to the buylist, and confirming deletes the copy', async () => {
+    ownCopies([heldForGoblins]);
+    await openCopyPage(/^Angelic Curator/);
+
+    await chooseDeleteCopy();
+
+    expect(presentedAlert()).toEqual({
+      ...deleteAlert,
+      message: 'This copy is held by the planned swap for Goblins. Continue and move that swap to the buylist?',
+    });
+    await pressAlertButton('Delete copy');
+    expect(copiesDeletedOnTheServer()).toEqual(['copy-1']);
+    expect(screen.queryByRole('header', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
+  });
+
+  test('deleting a copy that a planned swap holds since the page loaded deletes nothing and shows the held copy', async () => {
+    ownCopies([copyOf('copy-1')]);
+    await openCopyPage(/^Angelic Curator/);
+    holdCopyElsewhere('copy-1', heldForGoblins.held_for!);
+
+    await chooseDeleteCopy();
+    await pressAlertButton('Delete copy');
+
+    expect(copiesDeletedOnTheServer()).toEqual([]);
+    expect(await within(pushedScreen()).findByText('Held')).toBeOnTheScreen();
+    await chooseDeleteCopy();
+    expect(presentedAlert()?.message).toBe('This copy is held by the planned swap for Goblins. Continue and move that swap to the buylist?');
   });
 
   test('confirming deletes the copy and goes back to the binder, which no longer shows it', async () => {

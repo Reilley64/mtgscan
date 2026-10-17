@@ -81,7 +81,7 @@ export type FreeCopiesQuery = {
   oracle_id: string;
 };
 
-export type FreeCopy = Omit<CollectionCopyRow, 'deck' | 'oracle_text'>;
+export type FreeCopy = Omit<CollectionCopyRow, 'deck' | 'held_for' | 'oracle_text'>;
 
 export type FreeCopies = {
   items: FreeCopy[];

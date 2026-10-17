@@ -117,7 +117,7 @@ export type NeedsYouCounts = {
   decks: { deck_id: string; count: number }[];
 };
 
-export type DeckCard = Omit<CollectionCopyRow, 'deck'> & {
+export type DeckCard = Omit<CollectionCopyRow, 'deck' | 'held_for'> & {
   role: DeckRole;
   commander_at: string | null;
   added_at: string;
@@ -151,6 +151,8 @@ export type CopyDeck = CopyRowDeck & {
   commander_art_crop_uri: string | null;
   commander_count: number;
 };
+
+export type CopyHeldFor = CopyRowDeck & Pick<CopyDeck, 'commander_art_crop_uri'>;
 
 export type DeckChangeKind = Database['public']['Enums']['deck_change_kind'];
 
@@ -279,6 +281,12 @@ export type RevertProtectedCopy = {
   name: string;
 };
 
+export type RevertHeldCopy = {
+  copy_id: string;
+  name: string;
+  deck: CopyRowDeck;
+};
+
 export type DeckChangeEffectRule = Pick<Violation, 'rule' | 'colors'>;
 
 export type DeckChangeEffect = {
@@ -291,6 +299,7 @@ export type RevertPreview = {
   lines: DeckChangeLine[];
   blocks: RevertBlock[];
   protected_copies: RevertProtectedCopy[];
+  held_copies: RevertHeldCopy[];
   effect: DeckChangeEffect | null;
 };
 

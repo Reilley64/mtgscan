@@ -9,9 +9,12 @@ export async function setCopyProtected(copyId: string, isProtected: boolean): Pr
   return writeResultOf(error);
 }
 
-export async function deleteCopy(copyId: string): Promise<WriteResult> {
-  const request: DeleteCopyRequest = { copy_id: copyId };
+export async function deleteCopy(copyId: string, held: boolean): Promise<WriteResult> {
+  const request: DeleteCopyRequest = held ? { copy_id: copyId, held_copy_id: copyId } : { copy_id: copyId };
   const { error } = await supabase.rpc('delete_copy', { request });
+  if (error?.code === 'copy_held') {
+    return 'missing';
+  }
   return writeResultOf(error);
 }
 
