@@ -662,6 +662,7 @@ The tools come in this order. Every tool has `destructiveHint: false`, `idempote
 - `list_user_tags`, `get_collection_summary`, and `list_decks` take an empty query.
 - No tool takes a currency. Prices are USD. The description of each tool that returns prices says so: `search_catalog`, `search_collection`, `get_cards`, `get_collection_summary`, and `get_deck`.
 - The description of `search_catalog` says that it returns only Commander-legal cards and has no fuzzy match. The descriptions of `list_decks` and `get_deck` say that the estimated bracket is an estimate and that heuristic signals are not official.
+- The descriptions of the write tools tell the AI not to call the tool again when the user declines a call.
 - A result leaves out image URIs and art crop URIs. Each tool can also leave out fields at a named path. `get_deck` leaves out `added_at`, `commander_at`, `condition`, `language`, `rarity`, `collector_number`, and `set` of each deck card.
 - A result carries `structuredContent` and one text block: a one-line summary, then the minified JSON. A search with an AI client's token writes its telemetry row with the caller `mcp`.
 
