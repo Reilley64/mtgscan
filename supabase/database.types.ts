@@ -866,6 +866,9 @@ isOneToOne: false
 "get_deck":
 { Args: { "query": Json }; Returns: Json
                            },
+"get_needs_you_counts":
+{ Args: { "query"?: Json }; Returns: Json
+                           },
 "import_card_sets":
 { Args: { "sets": Json }; Returns: number
                            },

@@ -362,6 +362,7 @@ const deck = z.strictObject({
       type_line: z.string(),
       mana_value: z.number(),
       colors: z.array(color),
+      planned_out: z.boolean(),
     }),
   ),
   basic_lands: z.array(z.strictObject({ oracle_id: id.nullable(), name: z.string(), count: integer })),
@@ -661,7 +662,7 @@ export const tools: Tool[] = [
     name: 'list_decks',
     title: 'List decks',
     description: [
-      "List the user's decks, the most recently used first, with deck priority, deck revision, commanders, card count, deck validity, and estimated bracket.",
+      "List the user's decks, the most recently used first, with deck priority, deck revision, commanders, card count, deck validity, estimated bracket, and needs_you_count, the number of the deck's open planned swaps and buylist cards.",
       'Read one deck with get_deck.',
       estimatedBracket,
     ].join(' '),
@@ -669,7 +670,9 @@ export const tools: Tool[] = [
     postgresFunction: 'list_decks',
     input: z.strictObject({}),
     output: z.strictObject({
-      items: z.array(z.strictObject({ ...deckRowFields, evaluation: z.strictObject(deckEvaluationSummary).nullable() })),
+      items: z.array(
+        z.strictObject({ ...deckRowFields, evaluation: z.strictObject(deckEvaluationSummary).nullable(), needs_you_count: integer }),
+      ),
     }),
     summary: (result) => `${plural(result.items.length, 'deck', 'decks')}.`,
     tooLargeHint: 'Read one deck at a time with get_deck instead.',
@@ -680,6 +683,7 @@ export const tools: Tool[] = [
     description: [
       "Read one of the user's decks with its commanders, cards, basic lands, deck priority, deck revision, deck validity, violations, estimated bracket, and bracket signals.",
       'Read the rules text and other card details of deck cards with get_cards and their printing_ids.',
+      'A deck card is planned_out when an open planned swap takes it out.',
       estimatedBracket,
       usdPrices,
     ].join(' '),

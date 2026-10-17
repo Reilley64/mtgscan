@@ -105,10 +105,16 @@ export type DeckRow = {
   last_used_at: string;
   revision: number;
   evaluation: DeckEvaluationSummary | null;
+  needs_you_count: number;
 };
 
 export type DeckList = {
   items: DeckRow[];
+};
+
+export type NeedsYouCounts = {
+  total: number;
+  decks: { deck_id: string; count: number }[];
 };
 
 export type DeckCard = Omit<CollectionCopyRow, 'deck'> & {
@@ -118,6 +124,7 @@ export type DeckCard = Omit<CollectionCopyRow, 'deck'> & {
   type_line: string;
   mana_value: number;
   colors: Color[];
+  planned_out: boolean;
 };
 
 export type DeckBasicLand = {
@@ -127,7 +134,7 @@ export type DeckBasicLand = {
   count: number;
 };
 
-export type Deck = Omit<DeckRow, 'evaluation'> & {
+export type Deck = Omit<DeckRow, 'evaluation' | 'needs_you_count'> & {
   evaluation: DeckEvaluation | null;
   created_at: string;
   cards: DeckCard[];
