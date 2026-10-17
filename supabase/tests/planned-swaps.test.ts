@@ -1,109 +1,43 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CopyDetails } from '../collection';
 import type { Json } from '../database.types';
-import type { AddDeckCardPreview, AddedDeckCard, CreatedDeck, Deck, DeckChangePage } from '../decks';
-import type { CreatedPlannedSwaps, PlannedSwapInput, PlannedSwapPage, PlannedSwapsQuery, PlannedSwapWarning } from '../planned-swaps';
+import type { AddDeckCardPreview, Deck, DeckChangePage } from '../decks';
+import type { CreatedPlannedSwaps, PlannedSwapInput, PlannedSwapWarning } from '../planned-swaps';
 import { aiClientCall, aiClientRefusal, connectedAiClient, type ClaimedAiClient } from './ai-clients';
-import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
+import {
+  appRead,
+  appRequest,
+  blackLotus,
+  copyOf,
+  counterspell,
+  deckNamed,
+  krenko,
+  krenkoDeck,
+  lightningBolt,
+  listed,
+  onePlannedSwap,
+  planned,
+  plannedSwapIds,
+  plannedSwapItem,
+  reason,
+  revisionOf,
+  scannedCopies,
+  scannedCopy,
+  type KrenkoDeck,
+} from './planned-swap-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
 const aiClientOnly = 'Only an AI client can call this function.';
-const krenko = 'aa078518-0ce2-4c6f-9061-aa7e22ed7493';
-const lightningBolt = '132dc07f-74e2-4bd7-bdb1-4f5d5253c7f2';
-const counterspell = '0df55e3f-14de-46ef-b6b1-616618724d9e';
-const blackLotus = 'b0faa7f2-b547-42c4-a810-839da50dadfe';
-const mountain = basicLand('Mountain').oracle_id;
-const reason = 'Cheap removal that also answers an early threat.';
-
-type KrenkoDeck = { deckId: string; commander: string; bolt: string };
 
 beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
-
-async function appRequest<T>(user: TestUser, name: string, request: object): Promise<T> {
-  const { data, error } = await user.client.rpc(name as 'create_deck', { request: request as Json });
-  expect(error).toBeNull();
-  return data as T;
-}
-
-async function appRead<T>(user: TestUser, name: string, query: object): Promise<T> {
-  const { data, error } = await user.client.rpc(name as 'get_deck', { query: query as Json });
-  expect(error).toBeNull();
-  return data as T;
-}
-
-async function scannedCopies(user: TestUser, cardPrintingId: string, copies = 1): Promise<string[]> {
-  const scanned = stack(cardPrintingId, { copies });
-  await committed(user, scanBatch([scanned]));
-  return scanned.copy_ids;
-}
-
-async function scannedCopy(user: TestUser, cardPrintingId: string): Promise<string> {
-  const [copyId] = await scannedCopies(user, cardPrintingId);
-  return copyId!;
-}
-
-async function deckNamed(user: TestUser, name: string): Promise<string> {
-  return (await appRequest<CreatedDeck>(user, 'create_deck', { name })).deck_id;
-}
-
-function addedToDeck(user: TestUser, deckId: string, copyId: string) {
-  return appRequest<AddedDeckCard>(user, 'add_deck_card', { deck_id: deckId, copy_id: copyId, unprotect: false });
-}
-
-async function krenkoDeck(user: TestUser, name = 'Krenko'): Promise<KrenkoDeck> {
-  const deckId = await deckNamed(user, name);
-  const commander = await scannedCopy(user, krenko);
-  const bolt = await scannedCopy(user, lightningBolt);
-  await addedToDeck(user, deckId, commander);
-  await appRequest(user, 'set_deck_commander', { copy_id: commander, commander: true });
-  await addedToDeck(user, deckId, bolt);
-  await appRequest(user, 'set_basic_lands', { deck_id: deckId, counts: [{ oracle_id: mountain, count: 98 }] });
-  return { deckId, commander, bolt };
-}
-
-async function revisionOf(user: TestUser, deckId: string): Promise<number> {
-  return (await appRead<Deck>(user, 'get_deck', { deck_id: deckId })).revision;
-}
-
-async function plannedSwapItem(
-  user: TestUser,
-  deckId: string,
-  incomingCopyId: string,
-  changes: Partial<PlannedSwapInput> = {},
-): Promise<PlannedSwapInput> {
-  return {
-    ref: crypto.randomUUID().slice(0, 8),
-    deck_id: deckId,
-    expected_deck_revision: await revisionOf(user, deckId),
-    incoming: { copy_id: incomingCopyId },
-    reason,
-    ...changes,
-  };
-}
-
-function planned(client: ClaimedAiClient, plannedSwaps: PlannedSwapInput[], idempotencyKey: string = crypto.randomUUID()) {
-  return aiClientCall<CreatedPlannedSwaps>(client, 'create_planned_swaps', { idempotency_key: idempotencyKey, planned_swaps: plannedSwaps });
-}
-
-function listed(user: TestUser, query: PlannedSwapsQuery = {}) {
-  return appRead<PlannedSwapPage>(user, 'list_planned_swaps', query);
-}
-
-async function plannedSwapIds(user: TestUser) {
-  return (await listed(user, { limit: 50 })).items.map((item) => item.planned_swap_id);
-}
-
-function copyOf(user: TestUser, copyId: string) {
-  return appRead<CopyDetails>(user, 'get_copy', { copy_id: copyId });
-}
 
 function codesOf(warnings: PlannedSwapWarning[]) {
   return warnings.map((warning) => warning.code);
@@ -860,11 +794,6 @@ describe('swap_in_planned_swap', () => {
 
   async function changesOf(user: TestUser, deckId: string) {
     return (await appRead<DeckChangePage>(user, 'list_deck_changes', { deck_id: deckId })).items;
-  }
-
-  async function onePlannedSwap(client: ClaimedAiClient, deckId: string, held: string, changes: Partial<PlannedSwapInput> = {}) {
-    const { planned_swaps } = await planned(client, [await plannedSwapItem(client.user, deckId, held, changes)]);
-    return planned_swaps[0]!.planned_swap_id;
   }
 
   test('puts the held copy into the deck and takes the outgoing copy out in one swapped_in deck change that keeps the reason and client name', async () => {
