@@ -2,7 +2,7 @@
 
 ## Product scope
 
-mtgscan is an iPhone app for scanning Magic: The Gathering cards, keeping a collection, and building Commander decks. The first release is iOS only. Android comes later. An authenticated remote MCP service lets compatible AI chats search card and collection data, inspect decks, and make deck suggestions. `README.md` describes the stack, the setup, and the checks.
+mtgscan is an iPhone app for scanning Magic: The Gathering cards, keeping a collection, and building Commander decks. The first release is iOS only. Android comes later. An authenticated remote MCP service lets compatible AI chats search card and collection data, inspect decks, and make planned swaps and buylist cards. `README.md` describes the stack, the setup, and the checks.
 
 ## Workflow
 

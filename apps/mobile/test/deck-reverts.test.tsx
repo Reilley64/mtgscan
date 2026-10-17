@@ -23,6 +23,7 @@ import {
   presentedPageSheet,
   pushedScreen,
   selectedTab,
+  symbolNames,
   symbolTintColor,
   tabHeader,
 } from './native-ui';
@@ -55,6 +56,8 @@ function deckChange(revision: number, kind: DeckChangeKind, lines: DeckChange['l
     kind,
     changed_at: new Date(2026, 9, 15, 9, revision).toISOString(),
     reverted: false,
+    reason: null,
+    client_name: null,
     lines,
   };
 }
@@ -65,7 +68,7 @@ const history = [
   deckChange(2, 'removed', [solRingIn]),
   deckChange(1, 'added', [copyLine('Sol Ring', { place_before: null, place_after: 'main' })]),
 ];
-const noChanges: Omit<RevertPreview, 'revision'> = { lines: [], blocks: [], protected_copies: [], effect: null };
+const noChanges: Omit<RevertPreview, 'revision'> = { lines: [], blocks: [], protected_copies: [], held_copies: [], effect: null };
 
 async function openRevert(revision: number, preview: Partial<Omit<RevertPreview, 'revision'>> = {}, changes = history) {
   ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 0 }, { name: 'Kinnan', priority: 'low', card_count: 1 }]);
@@ -148,6 +151,25 @@ describe('the Revert page sheet', () => {
 
     expect(revertWrites()).toEqual([
       { name: 'revert_deck_changes', request: { deck_id: 'deck-1', deck_change_id: 'deck-change-2', expected_revision: 3, unprotect: true } },
+    ]);
+  });
+
+  test('a held copy that comes back shows as a warning line with the deck of its planned swap, and Revert stays on', async () => {
+    const sheet = await openRevert(2, {
+      lines: [copyLine('Sol Ring', { place_before: null, place_after: 'main' })],
+      held_copies: [{ copy_id: 'copy-Sol Ring', name: 'Sol Ring', deck: { deck_id: 'deck-2', name: 'Kinnan' } }],
+    });
+
+    const message = 'Sol Ring is held by the planned swap for Kinnan. Reverting moves that swap to the buylist.';
+    const warning = await sheet.findByLabelText(message);
+    expect(within(warning).getByText(message)).toHaveStyle({ color: tokenColors.warning });
+    expect(symbolNames(warning)).toEqual(['bookmark.fill']);
+    expect(headerButtonIsDisabled(presentedPageSheet(), 'Revert')).toBe(false);
+
+    await pressHeaderButton(presentedPageSheet(), 'Revert');
+
+    expect(revertWrites()).toEqual([
+      { name: 'revert_deck_changes', request: { deck_id: 'deck-1', deck_change_id: 'deck-change-2', expected_revision: 3, unprotect: false } },
     ]);
   });
 

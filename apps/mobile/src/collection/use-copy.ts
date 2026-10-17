@@ -7,7 +7,7 @@ import { useFocusedRead } from '@/lib/use-focused-read';
 
 type CopyRead = { status: 'failed' } | { status: 'missing' } | { status: 'loaded'; copy: CopyDetails };
 
-async function readCopy(copyId: string): Promise<CopyRead> {
+export async function readCopy(copyId: string): Promise<CopyRead> {
   const query: CopyQuery = { copy_id: copyId };
   const { data, error } = await supabase.rpc('get_copy', { query });
   if (error) {

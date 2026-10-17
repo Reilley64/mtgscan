@@ -2,8 +2,10 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { Client } from '@modelcontextprotocol/client';
 
+import { plural } from '../functions/mcp/plural';
 import { claimsOf, mcpClient, mcpReadToolNames, mcpToolAnnotations, mcpToolNames, mcpWriteToolNames } from '../mcp-connection';
 import {
+  basicLand,
   catalogFixtureManifest,
   oracleIdOf,
   resetCardCatalog,
@@ -30,10 +32,8 @@ const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
 const gristModernHorizons = '1925dc45-4dee-4772-aa16-3b4ca54be6c7';
 const thassasOracle = '69e615d8-1b79-4a82-ba9f-ee211d67dc95';
+const counterspellAlpha = '0df55e3f-14de-46ef-b6b1-616618724d9e';
 const problems = 'https://mtgscan.reilley.dev/problems/';
-const lightningBolt = '132dc07f-74e2-4bd7-bdb1-4f5d5253c7f2';
-const counterspell = '0df55e3f-14de-46ef-b6b1-616618724d9e';
-const reason = 'Moves the only Lightning Bolt to the deck that needs removal.';
 const bracketSentence =
   'The estimated bracket is an estimate for a pregame conversation, not a certified bracket. Signals labelled heuristic are not official.';
 const usdSentence = 'Prices are current Scryfall prices in USD (TCGplayer Market). There is no other currency.';
@@ -164,7 +164,7 @@ describe('the MCP server over HTTP', () => {
     });
   });
 
-  test('lists the read tools in order, then the write tools, with their annotations and schemas', async () => {
+  test('lists the tools in order with their annotations and schemas', async () => {
     const { mcp } = await connected(await signUpNewUser());
 
     const { tools } = await mcp.listTools();
@@ -184,49 +184,72 @@ describe('the MCP server over HTTP', () => {
     expect((getDeck.outputSchema!.anyOf as { required: string[] }[])[0]!.required).toEqual(
       expect.arrayContaining(['deck_id', 'cards', 'evaluation']),
     );
-    const listDeckSuggestions = tools.find(({ name }) => name === 'list_deck_suggestions')!;
-    expect(listDeckSuggestions.inputSchema.required).toBeUndefined();
-    expect(listDeckSuggestions.inputSchema.properties).toMatchObject({ status: { enum: ['open', 'withdrawn', 'stale'] } });
-    const [createDeckSuggestions, withdrawDeckSuggestion, updateDeckSuggestionReason] = mcpWriteToolNames.map(
-      (writeTool) => tools.find(({ name }) => name === writeTool)!,
-    );
-    expect(createDeckSuggestions!.annotations).toEqual(mcpToolAnnotations('create_deck_suggestions'));
-    for (const sentence of [
-      'This tool does not change any deck. The user reviews each suggestion in the app and decides.',
-      'Never offer a protected copy as the reason a card is available.',
-      'When two decks want a card and there is one copy for them, the deck with the higher deck priority should get it. Between decks of equal priority, decide which deck needs it more. To move a card, send a pair of suggestions in one call, and make each reason name the other.',
-      'Read past suggestions with list_deck_suggestions first.',
-    ]) {
-      expect(createDeckSuggestions!.description).toContain(sentence);
-    }
-    expect(createDeckSuggestions!.inputSchema).toMatchObject({
-      type: 'object',
-      required: ['idempotency_key', 'suggestions'],
-      additionalProperties: false,
-      properties: { suggestions: { minItems: 1, maxItems: 10, items: { additionalProperties: false } } },
+    const listPlannedSwaps = tools.find(({ name }) => name === 'list_planned_swaps')!;
+    expect(listPlannedSwaps.inputSchema.required).toBeUndefined();
+    expect(listPlannedSwaps.inputSchema.properties).toMatchObject({
+      status: { enum: ['open', 'swapped_in', 'closed', 'moved_to_buylist'] },
     });
-    expect(createDeckSuggestions!.outputSchema).toMatchObject({
+    const createPlannedSwaps = tools.find(({ name }) => name === 'create_planned_swaps')!;
+    expect(mcpWriteToolNames).toEqual(['create_planned_swaps', 'create_buylist_cards', 'close_planned_swap', 'close_buylist_card']);
+    expect(createPlannedSwaps.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+    expect(createPlannedSwaps.inputSchema).toMatchObject({
+      type: 'object',
+      required: ['idempotency_key', 'planned_swaps'],
+      additionalProperties: false,
+      properties: { planned_swaps: { minItems: 1, maxItems: 10, items: { additionalProperties: false } } },
+    });
+    expect(createPlannedSwaps.outputSchema).toMatchObject({
       type: 'object',
       anyOf: [
-        expect.objectContaining({ required: ['suggestions', 'replayed'], additionalProperties: false }),
+        expect.objectContaining({ required: ['planned_swaps', 'replayed'], additionalProperties: false }),
         expect.objectContaining({ required: ['type', 'title', 'detail', 'retryable'] }),
       ],
     });
-    for (const [tool, required] of [
-      [withdrawDeckSuggestion, ['suggestion_id']],
-      [updateDeckSuggestionReason, ['suggestion_id', 'reason']],
-    ] as const) {
-      expect(tool!.annotations).toEqual(createDeckSuggestions!.annotations);
-      expect(tool!.inputSchema).toMatchObject({ type: 'object', required, additionalProperties: false });
-      expect(tool!.outputSchema).toMatchObject({
-        type: 'object',
-        anyOf: [
-          expect.objectContaining({ required: ['suggestion_id', 'changed'], additionalProperties: false }),
-          expect.objectContaining({ required: ['type', 'title', 'detail', 'retryable'] }),
-        ],
-      });
+    for (const sentence of [
+      'This tool does not change any deck. The planned swap holds the copy until the user swaps it in or closes it in the app.',
+      'Never choose a protected copy.',
+      'Read past planned swaps with list_planned_swaps first.',
+    ]) {
+      expect(createPlannedSwaps.description).toContain(sentence);
     }
-    expect(updateDeckSuggestionReason!.inputSchema).toMatchObject({ properties: { reason: { minLength: 20, maxLength: 600 } } });
+    const closePlannedSwap = tools.find(({ name }) => name === 'close_planned_swap')!;
+    expect(closePlannedSwap.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+    expect(closePlannedSwap.inputSchema).toMatchObject({ required: ['planned_swap_id'], additionalProperties: false });
+    expect(closePlannedSwap.outputSchema).toMatchObject({
+      anyOf: [expect.objectContaining({ required: ['id', 'changed'], additionalProperties: false }), expect.anything()],
+    });
+    expect(closePlannedSwap.description).toContain('This tool does not change any deck. Its held copy becomes free.');
+    const listBuylist = tools.find(({ name }) => name === 'list_buylist')!;
+    expect(listBuylist.inputSchema.properties).toMatchObject({ status: { enum: ['open', 'bought', 'closed'] } });
+    const createBuylistCards = tools.find(({ name }) => name === 'create_buylist_cards')!;
+    expect(createBuylistCards.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+    expect(createBuylistCards.inputSchema).toMatchObject({
+      required: ['idempotency_key', 'buylist_cards'],
+      additionalProperties: false,
+      properties: {
+        buylist_cards: {
+          minItems: 1,
+          maxItems: 10,
+          items: { additionalProperties: false, properties: { incoming: { required: ['oracle_id'], additionalProperties: false } } },
+        },
+      },
+    });
+    expect(createBuylistCards.outputSchema).toMatchObject({
+      anyOf: [expect.objectContaining({ required: ['buylist_cards', 'replayed'], additionalProperties: false }), expect.anything()],
+    });
+    for (const sentence of [
+      'This tool does not change any deck. The user marks the buylist card bought in the app after scanning a new copy.',
+      'When the user has a free copy of the card that is not protected, make a planned swap with it instead.',
+      'Read past buylist cards with list_buylist first.',
+    ]) {
+      expect(createBuylistCards.description).toContain(sentence);
+    }
+    const closeBuylistCard = tools.find(({ name }) => name === 'close_buylist_card')!;
+    expect(closeBuylistCard.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+    expect(closeBuylistCard.inputSchema).toMatchObject({ required: ['buylist_card_id'], additionalProperties: false });
+    expect(closeBuylistCard.outputSchema).toMatchObject({
+      anyOf: [expect.objectContaining({ required: ['id', 'changed'], additionalProperties: false }), expect.anything()],
+    });
   });
 
   test('the descriptions carry the catalog sentence, the USD sentence on each tool that returns prices, the bracket sentence on the deck reads, and the declined write sentence on the write tools', async () => {
@@ -239,6 +262,23 @@ describe('the MCP server over HTTP', () => {
     expect(withSentence(usdSentence)).toEqual(['search_catalog', 'search_collection', 'get_cards', 'get_collection_summary', 'get_deck']);
     expect(withSentence(bracketSentence)).toEqual(['list_decks', 'get_deck']);
     expect(withSentence(declinedWriteSentence)).toEqual(mcpWriteToolNames);
+  });
+
+  test('the server instructions say that the AI cannot change a deck, plans swaps with free copies, adds cards the user lacks to the buylist, never holds a protected copy, follows deck priority, and recommends a move between decks in the chat', async () => {
+    const { mcp } = await connected(await signUpNewUser());
+
+    const instructions = mcp.getInstructions();
+
+    for (const sentence of [
+      'You cannot change a deck or the collection.',
+      'To suggest a card that the user owns, make a planned swap with a free copy of it.',
+      'To suggest a card that the user lacks, add a buylist card for it.',
+      'Never hold a protected copy.',
+      'When two decks want a card and there is one copy for them, the deck with the higher deck priority should get it.',
+      'Do not plan a move between decks. Recommend it in the chat, and the user makes it.',
+    ]) {
+      expect(instructions).toContain(sentence);
+    }
   });
 
   test('also serves a client on the 2025 protocol', async () => {
@@ -266,6 +306,7 @@ describe('the MCP server over HTTP', () => {
       'finish',
       'mana_value',
       'name',
+      'planned_out',
       'price',
       'printing_id',
       'protected',
@@ -455,14 +496,16 @@ describe('the read tools over HTTP', () => {
     ['list_decks', () => ({}), '1 deck.'],
     ['get_deck', () => ({ deck_id: deckId }), 'Tymna: 2 cards at deck revision 2.'],
     ['list_deck_changes', () => ({ deck_id: deckId, limit: 1 }), '1 deck change. More with next_cursor.'],
+    ['list_planned_swaps', () => ({ deck_id: deckId }), '0 planned swaps.'],
+    ['list_buylist', () => ({ deck_id: deckId }), '0 buylist cards.'],
   ])('%s returns its result without image URIs, with a one-line summary and the minified JSON', async (name, args, summary) => {
     expect(await summaryOf(mcp, name, args())).toBe(summary);
   });
 
-  test('list_decks returns the deck revision of each deck', async () => {
+  test('list_decks returns the deck revision and the Needs you count of each deck', async () => {
     const result = await mcp.callTool({ name: 'list_decks', arguments: {} });
 
-    expect(result.structuredContent).toMatchObject({ items: [{ deck_id: deckId, name: 'Tymna', revision: 2 }] });
+    expect(result.structuredContent).toMatchObject({ items: [{ deck_id: deckId, name: 'Tymna', revision: 2, needs_you_count: 0 }] });
   });
 
   test('a bad cursor gets invalid-cursor and its pointer', async () => {
@@ -498,6 +541,8 @@ describe('the read tools over HTTP', () => {
     ['search_collection', { rows: 'copies' }],
     ['list_card_printings', {}],
     ['list_deck_changes', {}],
+    ['list_planned_swaps', {}],
+    ['list_buylist', {}],
   ])(
     '%s refuses a page of more than 50 rows with invalid-argument on /limit',
     async (name, args) => {
@@ -515,253 +560,284 @@ describe('the read tools over HTTP', () => {
   );
 });
 
-describe('create_deck_suggestions over HTTP', () => {
-  type Pair = { mcp: Client; userId: string; fromDeck: string; toDeck: string; bolt: string; revisions: number[] };
-
-  async function oracleIdOf(cardPrintingId: string): Promise<string> {
-    const [row] = await asDatabaseOwner((database) => database`select oracle_id from public.card_printings where id = ${cardPrintingId}`);
-    return row.oracle_id;
-  }
-
-  async function appRequest(user: TestUser, name: string, request: object) {
-    const { data, error } = await user.client.rpc(name as 'create_deck', { request: request as never });
-    expect(error).toBeNull();
-    return data as { deck_id: string; revision: number };
-  }
-
-  async function decksForAPair(): Promise<Pair> {
+describe('planned swaps over HTTP', () => {
+  async function deckWithAFreeCopy() {
     const user = await signUpNewUser();
-    const scanned = stack(lightningBolt);
+    const deckId = await deckWithCopies(user, 'Tymna', 1);
+    const scanned = stack(angelicCurator);
     expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
-    const { deck_id: fromDeck } = await appRequest(user, 'create_deck', { name: 'Krenko' });
-    await appRequest(user, 'set_deck_priority', { deck_id: fromDeck, priority: 'high' });
-    const { revision: fromRevision } = await appRequest(user, 'add_deck_card', { deck_id: fromDeck, copy_id: scanned.copy_ids[0], unprotect: false });
-    const { deck_id: toDeck } = await appRequest(user, 'create_deck', { name: 'Goblins' });
-    await appRequest(user, 'set_deck_priority', { deck_id: toDeck, priority: 'low' });
     const { mcp } = await connected(user);
-    return { mcp, userId: user.userId, fromDeck, toDeck, bolt: scanned.copy_ids[0]!, revisions: [fromRevision, 0] };
+    return { user, mcp, deckId, freeCopy: scanned.copy_ids[0]! };
   }
 
-  async function pairArguments({ fromDeck, toDeck, bolt, revisions: [fromRevision, toRevision] }: Pair) {
+  function plannedSwapArguments(deckId: string, copyId: string) {
     return {
       idempotency_key: crypto.randomUUID(),
-      suggestions: [
+      planned_swaps: [
         {
-          ref: 'to_b',
-          deck_id: toDeck,
-          expected_deck_revision: toRevision,
-          incoming: { oracle_id: await oracleIdOf(lightningBolt), from_deck_id: fromDeck },
-          reason,
-          pair_with: 'from_a',
-        },
-        {
-          ref: 'from_a',
-          deck_id: fromDeck,
-          expected_deck_revision: fromRevision,
-          incoming: { oracle_id: await oracleIdOf(counterspell) },
-          outgoing: { copy_id: bolt },
-          reason: 'Counterspell takes the place of the Lightning Bolt that moves to Goblins.',
+          ref: 'curator',
+          deck_id: deckId,
+          expected_deck_revision: 1,
+          incoming: { copy_id: copyId },
+          reason: 'A second Angelic Curator keeps the artifacts safe.',
         },
       ],
     };
   }
 
-  test('one call saves a pair and returns its warnings, with a one-line summary and the minified JSON', async () => {
-    const pair = await decksForAPair();
+  async function plannedSwapIdOf(mcp: Client, deckId: string, copyId: string) {
+    const created = await mcp.callTool({ name: 'create_planned_swaps', arguments: plannedSwapArguments(deckId, copyId) });
+    return (created.structuredContent as { planned_swaps: { planned_swap_id: string }[] }).planned_swaps[0]!.planned_swap_id;
+  }
 
-    const result = await pair.mcp.callTool({ name: 'create_deck_suggestions', arguments: await pairArguments(pair) });
+  test('create_planned_swaps saves a planned swap with its warnings, and list_planned_swaps reads it back, each with a one-line summary and the minified JSON', async () => {
+    const { mcp, deckId, freeCopy } = await deckWithAFreeCopy();
+
+    const result = await mcp.callTool({ name: 'create_planned_swaps', arguments: plannedSwapArguments(deckId, freeCopy) });
 
     expect(result.isError).toBeFalsy();
-    const created = result.structuredContent as {
-      suggestions: { ref: string; suggestion_id: string; paired_suggestion_id: string; warnings: { code: string }[] }[];
-      replayed: boolean;
-    };
-    const [toB, fromA] = created.suggestions;
+    const created = result.structuredContent as { planned_swaps: { ref: string; planned_swap_id: string; warnings: unknown[] }[]; replayed: boolean };
+    const warningCount = created.planned_swaps[0]!.warnings.length;
+    expect(textOf(result)).toBe(`Saved 1 planned swap with ${plural(warningCount, 'warning')}.\n${JSON.stringify(created)}`);
     expect(created.replayed).toBe(false);
-    expect(toB).toMatchObject({
-      ref: 'to_b',
-      paired_suggestion_id: fromA!.suggestion_id,
-      warnings: [{ code: 'against_deck_priority', from_deck_priority: 'high', deck_priority: 'low' }],
-    });
-    expect(fromA).toMatchObject({ ref: 'from_a', paired_suggestion_id: toB!.suggestion_id });
-    expect(fromA!.warnings.map(({ code }) => code)).toContain('not_owned');
-    const warningCount = toB!.warnings.length + fromA!.warnings.length;
-    expect(textOf(result)).toBe(`Saved 2 deck suggestions with ${warningCount} warnings.\n${JSON.stringify(created)}`);
-    const saved = await asDatabaseOwner(
-      (database) => database`
-        select id, deck_id, paired_suggestion_id, client_name from public.deck_suggestions
-        where user_id = ${pair.userId} order by deck_id = ${pair.toDeck} desc
-      `,
-    );
-    expect(saved).toEqual([
-      { id: toB!.suggestion_id, deck_id: pair.toDeck, paired_suggestion_id: fromA!.suggestion_id, client_name: 'Test AI chat' },
-      { id: fromA!.suggestion_id, deck_id: pair.fromDeck, paired_suggestion_id: toB!.suggestion_id, client_name: 'Test AI chat' },
-    ]);
-  });
+    expect(created.planned_swaps.map(({ ref }) => ref)).toEqual(['curator']);
 
-  test('a stale revision comes back as stale-revision with its pointer, expected, and current', async () => {
-    const pair = await decksForAPair();
-    const fromRevision = pair.revisions[0]!;
-
-    const result = await pair.mcp.callTool({
-      name: 'create_deck_suggestions',
-      arguments: await pairArguments({ ...pair, revisions: [fromRevision - 1, 0] }),
-    });
-
-    expect(result.isError).toBe(true);
-    expect(result.structuredContent).toEqual({
-      type: `${problems}stale-revision`,
-      title: 'Stale revision',
-      detail: 'suggestions[1].expected_deck_revision is not the deck revision. Read the deck again.',
-      pointer: '/suggestions/1/expected_deck_revision',
-      expected: fromRevision - 1,
-      current: fromRevision,
-      retryable: false,
+    expect(await summaryOf(mcp, 'list_planned_swaps', { status: 'open' })).toBe('1 planned swap.');
+    const listed = await mcp.callTool({ name: 'list_planned_swaps', arguments: {} });
+    expect(listed.structuredContent).toMatchObject({
+      items: [
+        {
+          planned_swap_id: created.planned_swaps[0]!.planned_swap_id,
+          deck_id: deckId,
+          deck_name: 'Tymna',
+          incoming: { kind: 'copy', copy_id: freeCopy, name: 'Angelic Curator' },
+          outgoing: null,
+          status: 'open',
+          close_note: null,
+          client_name: 'Test AI chat',
+        },
+      ],
+      next_cursor: null,
     });
   });
 
-  test('a nested field at fault comes back with its JSON Pointer', async () => {
-    const pair = await decksForAPair();
-    const request = await pairArguments(pair);
-    request.suggestions[1]!.reason = 'Too short.';
+  test('a planned swap brings in a basic land and takes one out, and list_planned_swaps shows both basic land lines', async () => {
+    const { user, mcp, deckId } = await deckWithAFreeCopy();
+    const [plains, forest] = [basicLand('Plains').oracle_id, basicLand('Forest').oracle_id];
+    expect(
+      (await user.client.rpc('set_basic_lands', { request: { deck_id: deckId, counts: [{ oracle_id: forest, count: 2 }] } })).error,
+    ).toBeNull();
 
-    const result = await pair.mcp.callTool({ name: 'create_deck_suggestions', arguments: request });
-
-    expect(result.isError).toBe(true);
-    expect(result.structuredContent).toEqual({
-      type: `${problems}invalid-argument`,
-      title: 'Invalid argument',
-      detail: 'suggestions[1].reason must be a string of 20 to 600 characters.',
-      pointer: '/suggestions/1/reason',
-      retryable: false,
-    });
-  });
-});
-
-describe('list_deck_suggestions over HTTP', () => {
-  test('one page lists a withdrawn and a stale suggestion with their deck suggestion events, a one-line summary, and the minified JSON', async () => {
-    const user = await signUpNewUser();
-    const scanned = stack(lightningBolt);
-    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
-    const { data } = await user.client.rpc('create_deck', { request: { name: 'Krenko' } });
-    const deckId = (data as { deck_id: string }).deck_id;
-    const added = await user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: scanned.copy_ids[0]!, unprotect: false } });
-    const [counterspellCard] = await asDatabaseOwner(
-      (database) => database`select oracle_id from public.card_printings where id = ${counterspell}`,
-    );
-    const { mcp } = await connected(user);
     const created = await mcp.callTool({
-      name: 'create_deck_suggestions',
+      name: 'create_planned_swaps',
       arguments: {
         idempotency_key: crypto.randomUUID(),
-        suggestions: [
+        planned_swaps: [
           {
-            ref: 'swap',
+            ref: 'plains',
             deck_id: deckId,
-            expected_deck_revision: (added.data as { revision: number }).revision,
-            incoming: { oracle_id: counterspellCard.oracle_id },
-            outgoing: { copy_id: scanned.copy_ids[0]! },
-            reason: 'Counterspell answers more threats than Lightning Bolt here.',
-          },
-          {
-            ref: 'add',
-            deck_id: deckId,
-            expected_deck_revision: (added.data as { revision: number }).revision,
-            incoming: { oracle_id: counterspellCard.oracle_id },
-            reason: 'Counterspell protects the commander from removal.',
+            expected_deck_revision: 2,
+            incoming: { basic_land_oracle_id: plains },
+            outgoing: { basic_land_oracle_id: forest },
+            reason: 'A Plains casts Angelic Curator better than a Forest.',
           },
         ],
       },
     });
-    const [swap, addition] = (created.structuredContent as { suggestions: { suggestion_id: string }[] }).suggestions;
-    await mcp.callTool({ name: 'withdraw_deck_suggestion', arguments: { suggestion_id: addition!.suggestion_id } });
-    expect((await user.client.rpc('remove_deck_card', { request: { copy_id: scanned.copy_ids[0]! } })).error).toBeNull();
 
-    const result = await mcp.callTool({ name: 'list_deck_suggestions', arguments: { deck_id: deckId } });
+    expect(created.isError).toBeFalsy();
+    const listed = await mcp.callTool({ name: 'list_planned_swaps', arguments: {} });
+    expect(listed.isError).toBeFalsy();
+    expect(listed.structuredContent).toMatchObject({
+      items: [
+        {
+          incoming: { kind: 'basic_land', oracle_id: plains, name: 'Plains' },
+          outgoing: { kind: 'basic_land', oracle_id: forest, name: 'Forest' },
+          as_commander: false,
+        },
+      ],
+    });
+  });
+
+  test('a copy that is not free comes back as copy-not-free with its pointer', async () => {
+    const { mcp, deckId, freeCopy } = await deckWithAFreeCopy();
+    await mcp.callTool({ name: 'create_planned_swaps', arguments: plannedSwapArguments(deckId, freeCopy) });
+
+    const result = await mcp.callTool({ name: 'create_planned_swaps', arguments: plannedSwapArguments(deckId, freeCopy) });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      type: `${problems}copy-not-free`,
+      title: 'Copy not free',
+      detail: 'planned_swaps[0].incoming.copy_id is in a deck or held by another planned swap. Choose a free copy.',
+      pointer: '/planned_swaps/0/incoming/copy_id',
+      retryable: false,
+    });
+  });
+
+  test('a swapped in deck change lists its kind, reason, and client name', async () => {
+    const { user, mcp, deckId, freeCopy } = await deckWithAFreeCopy();
+    const plannedSwapId = await plannedSwapIdOf(mcp, deckId, freeCopy);
+    expect((await user.client.rpc('swap_in_planned_swap', { request: { planned_swap_id: plannedSwapId } })).error).toBeNull();
+
+    const result = await mcp.callTool({ name: 'list_deck_changes', arguments: { deck_id: deckId, limit: 1 } });
 
     expect(result.isError).toBeFalsy();
-    expect(textOf(result)).toBe(`2 deck suggestions.\n${JSON.stringify(result.structuredContent)}`);
-    const { items, next_cursor } = result.structuredContent as {
-      items: { suggestion_id: string; status: string; events: { kind: string; client_name: string }[] }[];
-      next_cursor: string | null;
-    };
-    expect(next_cursor).toBeNull();
-    expect(items.map(({ suggestion_id }) => suggestion_id).toSorted()).toEqual([swap!.suggestion_id, addition!.suggestion_id].toSorted());
-    expect(items.find(({ suggestion_id }) => suggestion_id === swap!.suggestion_id)).toMatchObject({
-      deck_name: 'Krenko',
-      incoming: { name: 'Counterspell' },
-      outgoing: { copy_id: scanned.copy_ids[0], name: 'Lightning Bolt' },
-      status: 'stale',
-      client_name: 'Test AI chat',
-      events: [],
-    });
-    expect(items.find(({ suggestion_id }) => suggestion_id === addition!.suggestion_id)).toMatchObject({
-      outgoing: null,
-      status: 'withdrawn',
-      events: [{ kind: 'withdrawn', client_name: 'Test AI chat', created_at: expect.any(String) }],
+    expect(result.structuredContent).toMatchObject({
+      items: [{ kind: 'swapped_in', reason: 'A second Angelic Curator keeps the artifacts safe.', client_name: 'Test AI chat' }],
     });
   });
-});
 
-describe('withdraw_deck_suggestion and update_deck_suggestion_reason over HTTP', () => {
-  const newReason = 'Counterspell protects the combo better than Lightning Bolt.';
+  test('close_planned_swap closes a planned swap, and closing it again returns changed: false, each with a one-line summary', async () => {
+    const { mcp, deckId, freeCopy } = await deckWithAFreeCopy();
+    const plannedSwapId = await plannedSwapIdOf(mcp, deckId, freeCopy);
 
-  async function openSuggestion() {
-    const user = await signUpNewUser();
-    const { data } = await user.client.rpc('create_deck', { request: { name: 'Kinnan' } });
-    const deckId = (data as { deck_id: string }).deck_id;
-    const { mcp } = await connected(user);
-    const [row] = await asDatabaseOwner((database) => database`select oracle_id from public.card_printings where id = ${counterspell}`);
-    const created = await mcp.callTool({
-      name: 'create_deck_suggestions',
-      arguments: {
-        idempotency_key: crypto.randomUUID(),
-        suggestions: [{ ref: 'counter', deck_id: deckId, expected_deck_revision: 0, incoming: { oracle_id: row.oracle_id }, reason }],
-      },
+    const closed = await mcp.callTool({ name: 'close_planned_swap', arguments: { planned_swap_id: plannedSwapId } });
+    const again = await mcp.callTool({ name: 'close_planned_swap', arguments: { planned_swap_id: plannedSwapId } });
+
+    expect(closed.isError).toBeFalsy();
+    expect(textOf(closed)).toBe(`Closed planned swap ${plannedSwapId}.\n${JSON.stringify({ id: plannedSwapId, changed: true })}`);
+    expect(textOf(again)).toBe(`Planned swap ${plannedSwapId} was already closed.\n${JSON.stringify({ id: plannedSwapId, changed: false })}`);
+    expect((await mcp.callTool({ name: 'list_planned_swaps', arguments: {} })).structuredContent).toMatchObject({
+      items: [{ planned_swap_id: plannedSwapId, status: 'closed', close_note: 'closed_by_ai_client' }],
     });
-    const [suggestion] = (created.structuredContent as { suggestions: { suggestion_id: string }[] }).suggestions;
-    return { mcp, userId: user.userId, suggestionId: suggestion!.suggestion_id };
-  }
-
-  test('replaces the reason and then withdraws the suggestion, each with a one-line summary, the minified JSON, and one deck suggestion event', async () => {
-    const { mcp, userId, suggestionId } = await openSuggestion();
-
-    const replaced = await mcp.callTool({ name: 'update_deck_suggestion_reason', arguments: { suggestion_id: suggestionId, reason: newReason } });
-    const withdrawn = await mcp.callTool({ name: 'withdraw_deck_suggestion', arguments: { suggestion_id: suggestionId } });
-
-    expect(replaced.isError).toBeFalsy();
-    expect(replaced.structuredContent).toEqual({ suggestion_id: suggestionId, changed: true });
-    expect(textOf(replaced)).toBe(`Replaced the reason of deck suggestion ${suggestionId}.\n${JSON.stringify(replaced.structuredContent)}`);
-    expect(withdrawn.isError).toBeFalsy();
-    expect(withdrawn.structuredContent).toEqual({ suggestion_id: suggestionId, changed: true });
-    expect(textOf(withdrawn)).toBe(`Withdrew deck suggestion ${suggestionId}.\n${JSON.stringify(withdrawn.structuredContent)}`);
-    const saved = await asDatabaseOwner(
-      (database) => database`
-        select suggestion.status, suggestion.reason, event.kind, event.client_name
-        from public.deck_suggestions suggestion
-        join public.deck_suggestion_events event on event.user_id = suggestion.user_id and event.suggestion_id = suggestion.id
-        where suggestion.user_id = ${userId}
-        order by event.created_at
-      `,
-    );
-    expect(saved).toEqual([
-      { status: 'withdrawn', reason: newReason, kind: 'reason_replaced', client_name: 'Test AI chat' },
-      { status: 'withdrawn', reason: newReason, kind: 'withdrawn', client_name: 'Test AI chat' },
-    ]);
   });
 
-  test('replacing the reason of a withdrawn suggestion comes back as not-open', async () => {
-    const { mcp, suggestionId } = await openSuggestion();
-    await mcp.callTool({ name: 'withdraw_deck_suggestion', arguments: { suggestion_id: suggestionId } });
+  test('a swapped in planned swap comes back as not-open from close_planned_swap', async () => {
+    const { user, mcp, deckId, freeCopy } = await deckWithAFreeCopy();
+    const plannedSwapId = await plannedSwapIdOf(mcp, deckId, freeCopy);
+    expect((await user.client.rpc('swap_in_planned_swap', { request: { planned_swap_id: plannedSwapId } })).error).toBeNull();
 
-    const result = await mcp.callTool({ name: 'update_deck_suggestion_reason', arguments: { suggestion_id: suggestionId, reason: newReason } });
+    const result = await mcp.callTool({ name: 'close_planned_swap', arguments: { planned_swap_id: plannedSwapId } });
 
     expect(result.isError).toBe(true);
     expect(result.structuredContent).toEqual({
       type: `${problems}not-open`,
       title: 'Not open',
-      detail: 'The deck suggestion is withdrawn. Only an open deck suggestion can change.',
-      pointer: '/suggestion_id',
+      detail: 'The planned swap is swapped_in. Only an open planned swap can change.',
+      pointer: '/planned_swap_id',
+      retryable: false,
+    });
+  });
+});
+
+describe('the buylist over HTTP', () => {
+  const buylistReason = 'Counterspell answers the spells this deck cannot.';
+
+  async function deckWithAnMcpClient() {
+    const user = await signUpNewUser();
+    const deckId = await deckWithCopies(user, 'Tymna', 1);
+    const { mcp } = await connected(user);
+    return { user, mcp, deckId, counterspell: await oracleIdOf('Counterspell') };
+  }
+
+  function buylistArguments(deckId: string, oracleId: string) {
+    return {
+      idempotency_key: crypto.randomUUID(),
+      buylist_cards: [{ ref: 'counter', deck_id: deckId, expected_deck_revision: 1, incoming: { oracle_id: oracleId }, reason: buylistReason }],
+    };
+  }
+
+  async function boughtWithANewCopy(user: TestUser, buylistCardId: string) {
+    const scanned = stack(counterspellAlpha);
+    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
+    const bought = { buylist_card_id: buylistCardId, copy_id: scanned.copy_ids[0], unprotect: false };
+    expect((await user.client.rpc('mark_buylist_card_bought', { request: bought })).error).toBeNull();
+  }
+
+  async function buylistCardIdOf(mcp: Client, deckId: string, oracleId: string) {
+    const created = await mcp.callTool({ name: 'create_buylist_cards', arguments: buylistArguments(deckId, oracleId) });
+    return (created.structuredContent as { buylist_cards: { buylist_card_id: string }[] }).buylist_cards[0]!.buylist_card_id;
+  }
+
+  test('create_buylist_cards adds a buylist card with its warnings, and list_buylist reads it back, each with a one-line summary and the minified JSON', async () => {
+    const { mcp, deckId, counterspell } = await deckWithAnMcpClient();
+
+    const result = await mcp.callTool({ name: 'create_buylist_cards', arguments: buylistArguments(deckId, counterspell) });
+
+    expect(result.isError).toBeFalsy();
+    const created = result.structuredContent as { buylist_cards: { ref: string; buylist_card_id: string; warnings: unknown[] }[]; replayed: boolean };
+    const warningCount = created.buylist_cards[0]!.warnings.length;
+    expect(textOf(result)).toBe(`Saved 1 buylist card with ${plural(warningCount, 'warning')}.\n${JSON.stringify(created)}`);
+    expect(created.replayed).toBe(false);
+
+    expect(await summaryOf(mcp, 'list_buylist', { status: 'open' })).toBe('1 buylist card.');
+    const listed = await mcp.callTool({ name: 'list_buylist', arguments: {} });
+    expect(listed.structuredContent).toMatchObject({
+      items: [
+        {
+          buylist_card_id: created.buylist_cards[0]!.buylist_card_id,
+          deck_id: deckId,
+          deck_name: 'Tymna',
+          incoming: { kind: 'card', oracle_id: counterspell, name: 'Counterspell' },
+          outgoing: null,
+          status: 'open',
+          close_note: null,
+          client_name: 'Test AI chat',
+        },
+      ],
+      next_cursor: null,
+    });
+  });
+
+  test('a card with a free copy comes back as free-copy-exists with its pointer and the free copies', async () => {
+    const { user, mcp, deckId } = await deckWithAnMcpClient();
+    const scanned = stack(angelicCurator);
+    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
+
+    const result = await mcp.callTool({ name: 'create_buylist_cards', arguments: buylistArguments(deckId, await oracleIdOf('Angelic Curator')) });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      type: `${problems}free-copy-exists`,
+      title: 'Free copy exists',
+      detail: 'buylist_cards[0].incoming.oracle_id has a free copy that is not protected. Make a planned swap with it instead.',
+      pointer: '/buylist_cards/0/incoming/oracle_id',
+      copy_ids: scanned.copy_ids,
+      retryable: false,
+    });
+  });
+
+  test('a bought deck change lists its kind, reason, and client name', async () => {
+    const { user, mcp, deckId, counterspell } = await deckWithAnMcpClient();
+    const buylistCardId = await buylistCardIdOf(mcp, deckId, counterspell);
+    await boughtWithANewCopy(user, buylistCardId);
+
+    const result = await mcp.callTool({ name: 'list_deck_changes', arguments: { deck_id: deckId, limit: 1 } });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toMatchObject({ items: [{ kind: 'bought', reason: buylistReason, client_name: 'Test AI chat' }] });
+    expect(await summaryOf(mcp, 'list_buylist', { status: 'bought' })).toBe('1 buylist card.');
+  });
+
+  test('close_buylist_card closes a buylist card, and closing it again returns changed: false, each with a one-line summary', async () => {
+    const { mcp, deckId, counterspell } = await deckWithAnMcpClient();
+    const buylistCardId = await buylistCardIdOf(mcp, deckId, counterspell);
+
+    const closed = await mcp.callTool({ name: 'close_buylist_card', arguments: { buylist_card_id: buylistCardId } });
+    const again = await mcp.callTool({ name: 'close_buylist_card', arguments: { buylist_card_id: buylistCardId } });
+
+    expect(closed.isError).toBeFalsy();
+    expect(textOf(closed)).toBe(`Closed buylist card ${buylistCardId}.\n${JSON.stringify({ id: buylistCardId, changed: true })}`);
+    expect(textOf(again)).toBe(`Buylist card ${buylistCardId} was already closed.\n${JSON.stringify({ id: buylistCardId, changed: false })}`);
+    expect((await mcp.callTool({ name: 'list_buylist', arguments: {} })).structuredContent).toMatchObject({
+      items: [{ buylist_card_id: buylistCardId, status: 'closed', close_note: 'closed_by_ai_client' }],
+    });
+  });
+
+  test('a bought buylist card comes back as not-open from close_buylist_card', async () => {
+    const { user, mcp, deckId, counterspell } = await deckWithAnMcpClient();
+    const buylistCardId = await buylistCardIdOf(mcp, deckId, counterspell);
+    await boughtWithANewCopy(user, buylistCardId);
+
+    const result = await mcp.callTool({ name: 'close_buylist_card', arguments: { buylist_card_id: buylistCardId } });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      type: `${problems}not-open`,
+      title: 'Not open',
+      detail: 'The buylist card is bought. Only an open buylist card can change.',
+      pointer: '/buylist_card_id',
       retryable: false,
     });
   });

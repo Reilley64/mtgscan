@@ -38,6 +38,7 @@ import { BracketSignalRow } from '@/components/molecules/bracket-signal-row';
 import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChangeLine } from '@/components/molecules/change-line';
+import { Reason } from '@/components/molecules/reason';
 import { CommanderGalleryCard, DeckBanner } from '@/components/molecules/commander-card';
 import { CardChip } from '@/components/molecules/card-chip';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
@@ -81,6 +82,8 @@ const solRingCommander = { copy_id: 'sol-ring', name: 'Sol Ring', art_crop_uri: 
 const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
 
 const cardPageSections = ['Copies', 'Decks', 'Prices', 'Rules'] as const;
+
+const deckSections = ['Cards', 'Planned', 'History'] as const;
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -165,6 +168,7 @@ function Chips() {
         <Chip tone="danger" label="Not valid" />
         <Chip tone="info" label="Bracket 3" />
         <Chip tone="warning" symbol="shield.fill" label="Protected" />
+        <Chip tone="info" symbol="bookmark.fill" label="Held" />
         <Chip tone="info" label="Bracket 3" stale accessibilityHint="The rules data may be out of date." />
       </View>
       <View className="flex-row flex-wrap gap-sm">
@@ -206,6 +210,7 @@ function Chips() {
 function Toggles() {
   const [protect, setProtect] = useState(false);
   const [section, setSection] = useState<(typeof cardPageSections)[number]>('Copies');
+  const [deckSection, setDeckSection] = useState<(typeof deckSections)[number]>('Cards');
   return (
     <Section title="Toggles">
       <View className="flex-row gap-sm">
@@ -224,6 +229,13 @@ function Toggles() {
         selected={section}
         labelOf={(value) => value}
         onSelect={setSection}
+      />
+      <ToggleGroup
+        values={deckSections}
+        selected={deckSection}
+        labelOf={(value) => value}
+        countOf={(value) => (value === 'Planned' ? 2 : 0)}
+        onSelect={setDeckSection}
       />
     </Section>
   );
@@ -375,6 +387,10 @@ function CardTiles() {
         </CardTile>
         <CardTile uri={solRing} accessibilityLabel="Sol Ring, C21 263, in the deck Atraxa, $1.25">
           <CopyMeta setCode="c21" rarity="rare" setIconUri={undefined} collectorNumber="263" inDeck />
+          <PriceLine price="$1.25" stale={false} />
+        </CardTile>
+        <CardTile uri={solRing} accessibilityLabel="Sol Ring, M10 216, held for the deck Krenko, $1.25">
+          <CopyMeta setCode="m10" rarity="rare" setIconUri={m10Symbol} collectorNumber="216" isHeld />
           <PriceLine price="$1.25" stale={false} />
         </CardTile>
         <CardTile uri={solRing} sheen="foil" accessibilityLabel="Sol Ring, M10 216, foil, deck card" onPress={() => {}} />
@@ -700,6 +716,13 @@ function CommanderCards() {
       <CommanderGalleryCard name="Atraxa" chips={[{ label: 'Medium priority' }, { label: '0 cards' }]} commanders={[]} onPress={() => {}} />
       <CommanderGalleryCard name="Sol Ring" chips={[{ label: 'Medium priority' }, { label: '1 card' }]} commanders={[solRingCommander]} onPress={() => {}} />
       <CommanderGalleryCard
+        name="Krenko"
+        chips={[{ label: 'High priority' }, { label: '1 card' }]}
+        commanders={[solRingCommander]}
+        needsYouCount={2}
+        onPress={() => {}}
+      />
+      <CommanderGalleryCard
         name="Partners"
         chips={[{ label: 'Low priority' }, { label: '2 cards' }]}
         commanders={[solRingCommander, { ...solRingCommander, copy_id: 'second-commander' }]}
@@ -747,6 +770,8 @@ function ChangeLines() {
       <ChangeLine direction="incoming" uri={solRing} name="Sol Ring" detail="Artifact" />
       <ChangeLine direction="outgoing" uri={solRing} name="Sol Ring" detail="Commander" />
       <ChangeLine direction="incoming" uri={solRing} name="Snow-Covered Island" detail="+2" />
+      <Reason reason="Cheap removal that also answers an early threat." meta="ChatGPT · 16 October 2026 at 18:05" />
+      <Reason reason="Cheap removal that also answers an early threat." meta={null} />
     </Section>
   );
 }
@@ -800,6 +825,7 @@ function WarningLines() {
   return (
     <Section title="Warning lines">
       <WarningLine message="Sol Ring is protected. Reverting unprotects it." />
+      <WarningLine symbol="held" message="Sol Ring is held by the planned swap for Krenko. Reverting moves that swap to the buylist." />
     </Section>
   );
 }

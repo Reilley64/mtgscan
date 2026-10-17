@@ -1,5 +1,5 @@
 import type { Database } from './database.types';
-import type { CopyDeck, CopyRowDeck } from './decks';
+import type { CopyDeck, CopyHeldFor, CopyRowDeck } from './decks';
 import {
   readSearchError,
   type CatalogQuery,
@@ -124,6 +124,7 @@ export type CollectionCopyRow = {
   protected: boolean;
   price: CurrentPrice | null;
   deck: CopyRowDeck | null;
+  held_for: CopyRowDeck | null;
   oracle_text?: string;
 };
 
@@ -138,6 +139,7 @@ export type CopyProtectedRequest = {
 
 export type DeleteCopyRequest = {
   copy_id: string;
+  move_planned_swap?: boolean;
 };
 
 export type CopyFace = {
@@ -189,6 +191,7 @@ export type CopyDetails = CollectionCopyRow & {
   commander_legality: CommanderLegality;
   user_tags: UserTag[];
   deck: CopyDeck | null;
+  held_for: CopyHeldFor | null;
 };
 
 export type CollectionTotal = {

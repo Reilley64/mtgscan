@@ -294,7 +294,7 @@ describe('adding a copy to a deck', () => {
 });
 
 describe('reading a deck with cards', () => {
-  test('get_deck returns every copy with its role, its card printing, its state, its price, and its card', async () => {
+  test('get_deck returns every copy with its role, its card printing, its state, its price, its card, and whether it is planned out', async () => {
     const user = await signUpNewUser();
     const deckId = await created(user, 'Atraxa');
     const copyId = await scannedCopy(user, delverInnistrad);
@@ -323,6 +323,7 @@ describe('reading a deck with cards', () => {
         type_line: 'Creature — Human Wizard // Creature — Human Insect',
         mana_value: 1,
         colors: ['U'],
+        planned_out: false,
       },
     ]);
   });

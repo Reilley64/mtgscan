@@ -5,6 +5,7 @@ import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
 import { ActionRow } from '@/components/molecules/action-row';
 import { ChangeLine } from '@/components/molecules/change-line';
+import { Reason } from '@/components/molecules/reason';
 import { changeLineOf, deckChangeKindNames } from '@/decks/deck-change-lines';
 import { shownDay, shownDayAndTime } from '@/lib/shown-day';
 
@@ -20,6 +21,7 @@ function DeckChangeCard({ change, onRevert }: { change: DeckChange; onRevert: ()
       {change.lines.map(changeLineOf).map(({ key, ...line }) => (
         <ChangeLine key={key} {...line} />
       ))}
+      {change.reason ? <Reason reason={change.reason} meta={change.client_name} /> : null}
     </Surface>
   );
 }

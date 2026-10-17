@@ -29,12 +29,13 @@ export function copyOf(copyId: string, changes: Partial<CopyDetails> = {}): Copy
     commander_legality: 'legal',
     user_tags: [],
     deck: null,
+    held_for: null,
     ...changes,
   };
 }
 
 export function deckCardOf(copyId: string, name: string, typeLine: string, changes: Partial<DeckCard> = {}): DeckCard {
-  const { deck, free, added_at, purchase_day_price, faces, commander_legality, user_tags, art_crop_uri, ...row } = copyOf(copyId, {
+  const { deck, held_for, free, added_at, purchase_day_price, faces, commander_legality, user_tags, art_crop_uri, ...row } = copyOf(copyId, {
     name,
     image_uris: [`https://cards.scryfall.io/normal/front/${copyId}.jpg`],
   });
@@ -46,6 +47,7 @@ export function deckCardOf(copyId: string, name: string, typeLine: string, chang
     type_line: typeLine,
     mana_value: 2,
     colors: [],
+    planned_out: false,
     ...changes,
   };
 }

@@ -105,19 +105,26 @@ export type DeckRow = {
   last_used_at: string;
   revision: number;
   evaluation: DeckEvaluationSummary | null;
+  needs_you_count: number;
 };
 
 export type DeckList = {
   items: DeckRow[];
 };
 
-export type DeckCard = Omit<CollectionCopyRow, 'deck'> & {
+export type NeedsYouCounts = {
+  total: number;
+  decks: { deck_id: string; count: number }[];
+};
+
+export type DeckCard = Omit<CollectionCopyRow, 'deck' | 'held_for'> & {
   role: DeckRole;
   commander_at: string | null;
   added_at: string;
   type_line: string;
   mana_value: number;
   colors: Color[];
+  planned_out: boolean;
 };
 
 export type DeckBasicLand = {
@@ -127,7 +134,7 @@ export type DeckBasicLand = {
   count: number;
 };
 
-export type Deck = Omit<DeckRow, 'evaluation'> & {
+export type Deck = Omit<DeckRow, 'evaluation' | 'needs_you_count'> & {
   evaluation: DeckEvaluation | null;
   created_at: string;
   cards: DeckCard[];
@@ -144,6 +151,8 @@ export type CopyDeck = CopyRowDeck & {
   commander_art_crop_uri: string | null;
   commander_count: number;
 };
+
+export type CopyHeldFor = CopyRowDeck & Pick<CopyDeck, 'commander_art_crop_uri'>;
 
 export type DeckChangeKind = Database['public']['Enums']['deck_change_kind'];
 
@@ -180,6 +189,8 @@ export type DeckChange = {
   kind: DeckChangeKind;
   changed_at: string;
   reverted: boolean;
+  reason: string | null;
+  client_name: string | null;
   lines: DeckChangeLine[];
 };
 
@@ -270,6 +281,12 @@ export type RevertProtectedCopy = {
   name: string;
 };
 
+export type RevertHeldCopy = {
+  copy_id: string;
+  name: string;
+  deck: CopyRowDeck;
+};
+
 export type DeckChangeEffectRule = Pick<Violation, 'rule' | 'colors'>;
 
 export type DeckChangeEffect = {
@@ -282,6 +299,7 @@ export type RevertPreview = {
   lines: DeckChangeLine[];
   blocks: RevertBlock[];
   protected_copies: RevertProtectedCopy[];
+  held_copies: RevertHeldCopy[];
   effect: DeckChangeEffect | null;
 };
 
@@ -300,90 +318,6 @@ export type RevertDeckChangesRequest = RevertPreviewQuery & {
 
 export type RevertedDeckChanges = AddedDeckCard;
 
-export type DeckSuggestionOutgoing = { copy_id: string } | { basic_land_oracle_id: string };
-
-export type DeckSuggestionInput = {
-  ref: string;
-  deck_id: string;
-  expected_deck_revision: number;
-  incoming: { oracle_id: string; as_commander?: boolean; from_deck_id?: string };
-  outgoing?: DeckSuggestionOutgoing;
-  reason: string;
-  pair_with?: string;
-};
-
-export type CreateDeckSuggestionsRequest = {
-  idempotency_key: string;
-  suggestions: DeckSuggestionInput[];
-};
-
-export type DeckSuggestionWarning =
-  | { code: 'would_break_validity'; effect: DeckChangeEffect }
-  | { code: 'protected_only' | 'not_owned' | 'replaces_commander' | 'rules_stale' }
-  | { code: 'in_other_decks'; decks: { deck_id: string; name: string; priority: DeckPriority }[] }
-  | { code: 'against_deck_priority'; from_deck_priority: DeckPriority; deck_priority: DeckPriority };
-
-export type CreatedDeckSuggestion = {
-  ref: string;
-  suggestion_id: string;
-  paired_suggestion_id: string | null;
-  warnings: DeckSuggestionWarning[];
-};
-
-export type CreatedDeckSuggestions = {
-  suggestions: CreatedDeckSuggestion[];
-  replayed: boolean;
-};
-
-export type DeckSuggestionStatus = Database['public']['Enums']['deck_suggestion_status'];
-
-export type DeckSuggestionsQuery = {
-  deck_id?: string;
-  status?: DeckSuggestionStatus;
-  cursor?: string | null;
-  limit?: number;
-};
-
-export type DeckSuggestionEvent = {
-  kind: Database['public']['Enums']['deck_suggestion_event_kind'];
-  client_name: string | null;
-  created_at: string;
-};
-
-export type DeckSuggestionRow = {
-  suggestion_id: string;
-  deck_id: string;
-  deck_name: string;
-  incoming: { oracle_id: string; name: string; as_commander: boolean; from_deck_id: string | null };
-  outgoing: (DeckSuggestionOutgoing & { name: string }) | null;
-  reason: string;
-  status: DeckSuggestionStatus;
-  paired_suggestion_id: string | null;
-  client_name: string | null;
-  created_at: string;
-  status_changed_at: string;
-  events: DeckSuggestionEvent[];
-};
-
-export type DeckSuggestionPage = {
-  items: DeckSuggestionRow[];
-  next_cursor: string | null;
-};
-
-export type WithdrawDeckSuggestionRequest = {
-  suggestion_id: string;
-};
-
-export type UpdateDeckSuggestionReasonRequest = {
-  suggestion_id: string;
-  reason: string;
-};
-
-export type ChangedDeckSuggestion = {
-  suggestion_id: string;
-  changed: boolean;
-};
-
 export type DeckErrorCode =
   | 'invalid_argument'
   | 'invalid_cursor'
@@ -393,7 +327,8 @@ export type DeckErrorCode =
   | 'copy_not_in_deck'
   | 'commander_limit'
   | 'stale_revision'
-  | 'revert_blocked';
+  | 'revert_blocked'
+  | 'not_open';
 
 export type DeckError = Omit<SearchError, 'code'> & { code: DeckErrorCode };
 

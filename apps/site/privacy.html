@@ -41,11 +41,8 @@
 <li>collection entries for the card printings you own, with finish, language, condition, quantity, and whether copies are protected;</li>
 <li>the time you added each copy and its purchase-day price;</li>
 <li>decks, with their commanders, cards, and deck priority;</li>
-<li>deck changes and deck change history;</li>
-<li>deck suggestions from connected AI clients, with their reasons;</li>
-<li>the name of the AI client that made each deck suggestion;</li>
-<li>each withdrawal and reason replacement of a deck suggestion, with the name of its AI client;</li>
-<li>planned swaps and buylist cards;</li>
+<li>deck changes and deck change history, with the reason and the AI client name of a change that comes from a planned swap or a buylist card;</li>
+<li>planned swaps and buylist cards from connected AI clients, with their reasons and the name of the AI client that made each one;</li>
 <li>your settings, such as your currency and whether training crop uploads are on.</li>
 </ul>
 <h3>Searches</h3>
@@ -93,11 +90,10 @@
 <li>the card catalog, with card prices and Oracle tags;</li>
 <li>your collection entries and copies, your user tags, and your collection summary, including the value of your collection;</li>
 <li>your decks, with deck validity, violations, and the estimated bracket;</li>
-<li>your deck changes, planned swaps, and buylist;</li>
-<li>your deck suggestions, including dismissed and withdrawn ones.</li>
+<li>your deck changes, planned swaps, and buylist.</li>
 </ul>
 <p>An AI client reads every price in USD, as Scryfall gives it. mtgscan does not convert prices for AI clients.</p>
-<p>The only data a connected AI client can write is deck suggestions. It can create deck suggestions, withdraw open ones, and replace their reasons. It cannot change your collection or your decks. You make every deck change.</p>
+<p>A connected AI client can plan swaps and add to your buylist. It can also close the planned swaps and buylist cards that AI clients made. It cannot change your decks or collection. You make every deck change.</p>
 <p>The data an AI client reads goes to the company that runs that client, such as OpenAI for ChatGPT. That company's privacy policy covers what it does with the data.</p>
 <h2>Where your data is stored</h2>
 <p>mtgscan stores your account data, app data, and training crops with Supabase in the ap-southeast-2 (Sydney, Australia) region.</p>

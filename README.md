@@ -1,6 +1,6 @@
 # mtgscan
 
-An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and building Commander decks. The first release is iOS only. Android comes later. An authenticated remote MCP service lets compatible AI chats search the card catalog and collection, inspect decks, and make deck suggestions.
+An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and building Commander decks. The first release is iOS only. Android comes later. An authenticated remote MCP service lets compatible AI chats search the card catalog and collection, inspect decks, plan swaps, and add to the buylist. It cannot change decks or the collection.
 
 ## Development
 
@@ -35,8 +35,8 @@ The app draws card symbols with the Mana font by Andrew Gioia (https://github.co
 Components follow Atomic Design in `src/components`. `CODING_STANDARDS.md` (Atomic Design) has the levels and the rules.
 
 - `atoms` holds the primitives: `Text`, `TextLink`, `Button`, `Chip`, `StatusChipButton`, `Toggle`, `Switch`, `Surface`, `GlassSurface`, `GlassGroup`, `CardImage`, `CardThumbnail`, `TileButton`, `AppleSignInButton`, `Input`, `ProgressBar`, `Skeleton`, `SetIcon`, `DimSymbol`, `QuickActionButton`, `CountBadge`, `FloatingMenuButton`, `NameAlert`, `CardContextMenu`, and `ManaSymbol`. `Button` has a 50 px sign-in size and the Google variant. `StatusChipButton` is a status chip that the user can tap, such as the validity chip and the bracket chip of the deck screen header. `AppleSignInButton` wraps the system Apple button. `Toggle` wraps `@rn-primitives/toggle`. `Switch` wraps the iOS switch. `NameAlert` is a native SwiftUI alert from `@expo/ui` with a name field, Cancel, and a confirm button that is off while the trimmed name is empty. `FloatingMenuButton` is a round 48 px button on a `GlassSurface` that opens a native SwiftUI menu from `@expo/ui`, with a title and choices that can have a check mark and a symbol. `CardContextMenu` wraps a card in a native SwiftUI context menu from `@expo/ui` that opens on a long press, with the card as its preview. `GlassSurface` and `GlassGroup` wrap `GlassView` and `GlassContainer` from `expo-glass-effect`, and fall back to plain views when `isLiquidGlassAvailable()` is false. Inside a `GlassSurface`, `Text`, `QuickActionButton`, `Skeleton`, `CardThumbnail`, and `DimSymbol` take the glass colors.
-- `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`), `ListRow`, `SwitchRow`, `EmptyState`, `CardTile`, `CardGrid`, `AccountCard`, `GalleryCard`, `FailureNotice`, `Brand`, `QuickActionBar`, `SheetSection`, `BatchButton`, `CopyMeta`, `PriceLine`, `SwipeToConfirm`, `ThumbnailChip`, `CardChip`, `RuleRow`, `BracketSignalRow`, `SymbolText`, `CommanderCard`, `CommanderGalleryCard`, `SortButton`, `GroupButton`, `Stepper`, `StepperRow`, and `SaveBar`. `CardTile` is a card image with its set and collector number, 3 to a row, with an optional long-press menu. The binder grid and the card printing grids on the Scan tab use it. A `CardTile` can show a ×N count badge on the image, as the basic land tiles of a deck do. A `CardTile` can have the danger outline, as the tiles of cards that break a Commander rule do. `CardChip` is a card's thumbnail and name in a chip. `RuleRow` is a rule row of the Deck validity drawer, and `BracketSignalRow` is a bracket signal row of the Estimated bracket drawer. `Stepper` is a minus button, a count, and a plus button. `StepperRow` is a row with a card thumbnail, a name, and a `Stepper`, as in the basic lands drawer. `SaveBar` holds **Cancel** and **Save N changes**. `SymbolText` shows text with its card symbols, such as {G} or {T}, drawn with the Mana font. `CommanderCard` is the 140 px deck card of the Decks gallery, with the first commander's art and the second commander's avatar, and `CommanderGalleryCard` is its gallery button. `DeckBanner` is the deck screen banner with the same art and avatar. It runs edge to edge from the top of the screen and is 200 px tall below the safe area. The ghost commander card of the Decks empty state uses the same frame. `SortButton` is the round sort button that Collection and the deck screen's Cards tab share. It is a `FloatingMenuButton` with a "Sort by" menu and an arrow for the direction of the current sort. `GroupButton` is the round group button of the Cards tab, a `FloatingMenuButton` with a "Group by" menu. `ThumbnailChip` is a chip on a `GlassSurface` with three columns: a thumbnail, a flexible middle, and an optional accessory. The side columns have the same fixed width, so the middle is centered. A chip with an action is a button on glass that reacts to touch. The latest-scan chip uses it. `ChangeLine` is a green + or red − row of a deck change, with a thumbnail, the card name, and a meta line.
-- `organisms` holds `BinderWall`, `SignInSheet`, `SettingsContent`, `collectionTotalMenu` (the collection total menu item for the tab header), `collectionFiltersButton` (the Filters bar button on Collection), `CollectionFilters` (the chips of the Filters drawer), `DeckCards` and `DeckCardOrderButtons` (the Cards tab of the deck screen and its group and sort buttons), `DeckHistory` (the History tab), `DeckValidityContent` and `EstimatedBracketContent` (the content of the Deck validity and Estimated bracket drawers), `batchReviewMenu` (the ••• menu in the batch review bar), and the Scan tab sections: `LatestScanControls`, `LatestScanChip`, `ScanQuickActions`, `ScanDetails`, `ScanDetailsContent`, `NameSearch`, `PrintingPicker`, and `ScanBatchList`. `templates` holds `TabStack`, `TabScreen`, `TabListScreen`, `PushedScreen`, `FloatingButtons`, `DrawerSheet`, and `ChoiceSheet`. `TabStack` is the native stack of Recent, Collection, and Decks, with the large title header. The Collection stack also presents the Filters drawer. `CollectionSearchProvider` wraps that stack and holds the search text and chips, so the tab and the drawer share them. `TabScreen` and `TabListScreen` set the tab header title, put optional header actions and the settings button in the native bar, and scroll the content under it. `TabListScreen` and `PushedScreen` can float buttons in a `FloatingButtons` row at the bottom right, 8 px apart. They sit 16 px above the tab bar on a tab, and 16 px above the bottom safe area on a pushed screen. `DrawerSheet` is the content layout of the bottom drawers, with an optional footer below the content that scrolls, such as the `SaveBar` of the basic lands drawer. Its module also holds the screen options for half-height and full-height drawers, for a drawer screen with a title bar, and for a screen pushed inside a drawer. `ChoiceSheet` is a short drawer with one chip for each value, used by the condition and language pickers. Batch review is a stack inside its drawer: the list, and the scan details pushed over it. `ScanDetails` is the scan details content for both the scan details drawer and batch review.
+- `molecules` holds `ChipGroup`, `ToggleGroup` (a segmented control on `@rn-primitives/toggle-group`, with an optional count badge on each option), `ListRow`, `SwitchRow`, `EmptyState`, `CardTile`, `CardGrid`, `AccountCard`, `GalleryCard`, `FailureNotice`, `Brand`, `QuickActionBar`, `SheetSection`, `BatchButton`, `CopyMeta`, `PriceLine`, `SwipeToConfirm`, `ThumbnailChip`, `CardChip`, `RuleRow`, `BracketSignalRow`, `SymbolText`, `CommanderCard`, `CommanderGalleryCard`, `SortButton`, `GroupButton`, `Stepper`, `StepperRow`, and `SaveBar`. `CardTile` is a card image with its set and collector number, 3 to a row, with an optional long-press menu. The binder grid and the card printing grids on the Scan tab use it. A `CardTile` can show a ×N count badge on the image, as the basic land tiles of a deck do. A `CardTile` can have the danger outline, as the tiles of cards that break a Commander rule do. `CardChip` is a card's thumbnail and name in a chip. `RuleRow` is a rule row of the Deck validity drawer, and `BracketSignalRow` is a bracket signal row of the Estimated bracket drawer. `Stepper` is a minus button, a count, and a plus button. `StepperRow` is a row with a card thumbnail, a name, and a `Stepper`, as in the basic lands drawer. `SaveBar` holds **Cancel** and **Save N changes**. `SymbolText` shows text with its card symbols, such as {G} or {T}, drawn with the Mana font. `CommanderCard` is the 140 px deck card of the Decks gallery, with the first commander's art and the second commander's avatar, and `CommanderGalleryCard` is its gallery button, with the deck's Needs you count badge. `DeckBanner` is the deck screen banner with the same art and avatar. It runs edge to edge from the top of the screen and is 200 px tall below the safe area. The ghost commander card of the Decks empty state uses the same frame. `SortButton` is the round sort button that Collection and the deck screen's Cards tab share. It is a `FloatingMenuButton` with a "Sort by" menu and an arrow for the direction of the current sort. `GroupButton` is the round group button of the Cards tab, a `FloatingMenuButton` with a "Group by" menu. `ThumbnailChip` is a chip on a `GlassSurface` with three columns: a thumbnail, a flexible middle, and an optional accessory. The side columns have the same fixed width, so the middle is centered. A chip with an action is a button on glass that reacts to touch. The latest-scan chip uses it. `ChangeLine` is a green + or red − row of a deck change, a planned swap, or a buylist card, with a thumbnail, the card name, and a meta line. `Reason` is the reason of a planned swap, buylist card, or deck change in body text, with a meta line such as the AI client name.
+- `organisms` holds `BinderWall`, `SignInSheet`, `SettingsContent`, `collectionTotalMenu` (the collection total menu item for the tab header), `collectionFiltersButton` (the Filters bar button on Collection), `CollectionFilters` (the chips of the Filters drawer), `DeckCards` and `DeckCardOrderButtons` (the Cards tab of the deck screen and its group and sort buttons), `DeckHistory` (the History tab), `NeedsYouCard` (a planned swap or buylist card, with its deck tag on Recent, change lines, effect chip, reason, **Swap in** or **Bought**, and **Close**), `NeedsYouList` (the `NeedsYouCard`s of Recent and the Planned tab, with their writes and alerts), `DeckValidityContent` and `EstimatedBracketContent` (the content of the Deck validity and Estimated bracket drawers), `batchReviewMenu` (the ••• menu in the batch review bar), and the Scan tab sections: `LatestScanControls`, `LatestScanChip`, `ScanQuickActions`, `ScanDetails`, `ScanDetailsContent`, `NameSearch`, `PrintingPicker`, and `ScanBatchList`. `templates` holds `TabStack`, `TabScreen`, `TabListScreen`, `PushedScreen`, `FloatingButtons`, `DrawerSheet`, and `ChoiceSheet`. `TabStack` is the native stack of Recent, Collection, and Decks, with the large title header. The Collection stack also presents the Filters drawer. `CollectionSearchProvider` wraps that stack and holds the search text and chips, so the tab and the drawer share them. `TabScreen` and `TabListScreen` set the tab header title, put optional header actions and the settings button in the native bar, and scroll the content under it. `TabListScreen` and `PushedScreen` can float buttons in a `FloatingButtons` row at the bottom right, 8 px apart. They sit 16 px above the tab bar on a tab, and 16 px above the bottom safe area on a pushed screen. `DrawerSheet` is the content layout of the bottom drawers, with an optional footer below the content that scrolls, such as the `SaveBar` of the basic lands drawer. Its module also holds the screen options for half-height and full-height drawers, for a drawer screen with a title bar, and for a screen pushed inside a drawer. `ChoiceSheet` is a short drawer with one chip for each value, used by the condition and language pickers. Batch review is a stack inside its drawer: the list, and the scan details pushed over it. `ScanDetails` is the scan details content for both the scan details drawer and batch review.
 - Expo Router routes in `src/app` are the pages.
 - ESLint checks the import direction between the levels with `eslint-plugin-boundaries`. It also keeps raw controls out of screens and features. See `apps/mobile/eslint.config.js`.
 - `LatestScanControls` puts the latest-scan chip and the quick-action bar in one `GlassGroup`.
@@ -278,6 +278,7 @@ Signed-in users read one copy with `supabase.rpc('get_copy', { query })`. The qu
 - From its card: `type_line`, `faces` with each face's `name` and `oracle_text` in face order, and `commander_legality`.
 - `user_tags` lists the copy's user tags, each with `user_tag_id` and `name`, sorted by name ignoring case.
 - `deck` is the deck the copy is in, with `deck_id`, `name`, the copy's `role` (`commander` or `main`), `commander_art_crop_uri`, the art crop of the deck's first commander or null, and `commander_count`, the number of commanders in the deck. It is null for a copy in no deck. `free` is false for a copy in a deck.
+- `held_for` is the deck of the open planned swap that holds the copy, with `deck_id`, `name`, and `commander_art_crop_uri`. It is null for a copy that no planned swap holds. `free` is false for a held copy.
 - The function runs with the caller's rights, so another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist. A refused query has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
 ### Protect a copy
@@ -290,9 +291,10 @@ Signed-in users protect or unprotect one of their copies with `supabase.rpc('set
 
 ### Copy delete
 
-Signed-in users delete one copy with `supabase.rpc('delete_copy', { request })`. The request has only `copy_id`. `supabase/collection.ts` has the shared type. The copy page deletes its copy through it.
+Signed-in users delete one copy with `supabase.rpc('delete_copy', { request })`. The request has `copy_id` and, for a held copy, `move_planned_swap: true`. `supabase/collection.ts` has the shared type. The copy page deletes its copy through it.
 
 - It deletes the copy in one transaction. The copy leaves collection search, `get_copy`, owned quantities, and the collection total and its coverage.
+- A held copy is refused with `copy_held` on `move_planned_swap`, and nothing changes, unless the request has `move_planned_swap: true`. The message names the card and the deck of the planned swap. With `move_planned_swap: true`, the delete moves that planned swap to the buylist with the note `held_copy_deleted`. See Planned swaps. On a copy that is not held, `move_planned_swap` changes nothing.
 - A copy in a deck leaves its deck first, with one `removed_from_collection` deck change. It raises the deck revision by one and sets the last used time. Its line keeps the card printing and finish. History still shows the card. Deleting a copy in no deck makes no deck change.
 - The copy's addition, its addition line, and its copy ID in `collection_addition_copies` stay. A replayed scan batch never adds the copy again.
 - It returns nothing. Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist or was already deleted. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
@@ -317,16 +319,16 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
 - The deck revision starts at 0.
 - `supabase.rpc('create_deck', { request: { name } })` trims the name and creates an empty deck with no commander. It returns `deck_id`. Creating a deck counts as using it.
 - `supabase.rpc('mark_deck_used', { request: { deck_id } })` sets the deck's last used time. The deck screen calls it when it opens. It returns nothing.
-- `supabase.rpc('list_decks')` returns `items`: the caller's decks with `deck_id`, `name`, `priority`, `card_count`, `commanders`, `last_used_at`, `revision`, and `evaluation`. The deck used most recently comes first. Decks used at the same time sort by name ignoring case. `card_count` counts the deck's commanders, main deck, and basic lands. `commanders` lists each commander's `copy_id`, `name`, and `art_crop_uri`, the oldest commander first. `evaluation` is null for an empty deck. Otherwise it has the `validity`, `validity_stale`, `estimated_bracket`, and `bracket_stale` of the deck evaluation. Deck evaluations (Freshness) says when each is stale. It takes an optional `query`, an empty object, as the MCP server sends. A query with a field is refused with `invalid_argument` on that field.
-- `supabase.rpc('get_deck', { query: { deck_id } })` returns the fields of a `list_decks` item, plus `created_at`, `cards`, and `basic_lands`. Reading a deck does not count as using it.
+- `supabase.rpc('list_decks')` returns `items`: the caller's decks with `deck_id`, `name`, `priority`, `card_count`, `commanders`, `last_used_at`, `revision`, `evaluation`, and `needs_you_count`. The deck used most recently comes first. Decks used at the same time sort by name ignoring case. `card_count` counts the deck's commanders, main deck, and basic lands. `commanders` lists each commander's `copy_id`, `name`, and `art_crop_uri`, the oldest commander first. `evaluation` is null for an empty deck. Otherwise it has the `validity`, `validity_stale`, `estimated_bracket`, and `bracket_stale` of the deck evaluation. Deck evaluations (Freshness) says when each is stale. `needs_you_count` is the number of the deck's open planned swaps and buylist cards, as Needs you says. It takes an optional `query`, an empty object, as the MCP server sends. A query with a field is refused with `invalid_argument` on that field.
+- `supabase.rpc('get_deck', { query: { deck_id } })` returns the fields of a `list_decks` item except `needs_you_count`, plus `created_at`, `cards`, and `basic_lands`. Reading a deck does not count as using it.
   - `evaluation` is null for an empty deck. Otherwise it has every stored field of the deck evaluation, as Deck evaluations says, and `validity_rules_data_at`, the snapshot time of the card catalog that the validity used. `bracket_rules_data_at` is the oldest of `catalog_at`, `oracle_tags_at`, and `commander_spellbook_at` that is not null. `no_oracle_tag_data` and `no_combo_data` are true when the deck evaluation read no Oracle tag or combo snapshot. It also has `validity_stale` and `bracket_stale`.
-  - `cards` lists every copy in the deck. Each has its card printing as in a copy row of collection search, its `finish`, `condition`, `language`, `protected`, and `price` with `stale`. It adds `role` (`commander` or `main`), `commander_at`, the time the card was made a commander or null, `added_at`, the time the copy went into the deck, and its card's `type_line`, `mana_value`, and `colors`. The app groups and sorts the cards.
+  - `cards` lists every copy in the deck. Each has its card printing as in a copy row of collection search, its `finish`, `condition`, `language`, `protected`, and `price` with `stale`. It adds `role` (`commander` or `main`), `commander_at`, the time the card was made a commander or null, `added_at`, the time the copy went into the deck, and its card's `type_line`, `mana_value`, and `colors`. `planned_out` is true when an open planned swap of the deck takes the copy out. A buylist card never marks a copy. The app groups and sorts the cards.
   - `basic_lands` lists the twelve basic land cards in order: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Each has its card's `oracle_id`, its `name`, the `image_uris` of its basic land image, and its `count`, 0 when the deck has none. A basic land card that the card catalog does not have has a null `oracle_id` and no image.
   - The basic land image is the image of one card printing of that basic land, chosen the same way each time: a printing with an image first, then English, then one with a nonfoil finish, then the newest, then by set code and collector number. The lookup finds each basic land card through the `name_key` index, so it reads only those cards from the card catalog.
 - `supabase.rpc('rename_deck', { request: { deck_id, name } })` trims the name and renames the deck. It returns nothing.
 - `supabase.rpc('set_deck_priority', { request: { deck_id, priority } })` sets the deck priority. It returns nothing.
 - Renaming a deck and setting its deck priority count as using it. Neither is a deck change, and neither raises the deck revision.
-- `supabase.rpc('delete_deck', { request: { deck_id } })` deletes the deck, its deck cards, its basic lands, and its deck changes. Its copies become free. It returns nothing.
+- `supabase.rpc('delete_deck', { request: { deck_id } })` deletes the deck, its deck cards, its basic lands, its deck changes, its planned swaps, and its buylist cards. Its copies become free, and so do the copies that its planned swaps held. It returns nothing.
 - `deck_cards` links copies to decks, with the user ID and the time the copy went into the deck. A copy is in at most one deck. `commander_at` is the time the card was made a commander, or null for the main deck. Deleting a deck or a copy removes its rows.
 - `supabase.rpc('add_deck_card', { request: { deck_id, copy_id, unprotect } })` puts a free copy into the deck's main deck. It returns `deck_id` and the new `revision`.
   - A copy in a deck is refused with `copy_not_free` on `copy_id`. It locks the copy first, so two adds of one copy at the same time put it in one deck.
@@ -340,7 +342,7 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
   - A copy in no deck is refused with `copy_not_in_deck` on `copy_id`. Another user's copy is refused with `not_found` on `copy_id`.
 - `supabase.rpc('remove_deck_card', { request: { copy_id } })` takes the copy out of its deck with a `removed` deck change. The copy becomes free. It returns `deck_id` and the new `revision`.
   - A copy in no deck is refused with `copy_not_in_deck` on `copy_id`. Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist.
-- Each change to a deck's cards is one deck change. It locks the deck, raises the deck revision by one, and sets the last used time. `deck_changes` holds each deck change with its deck, its user, the `revision` it made, its `kind`, its `changed_at` time, and `reverted_by`, the revert that undid it, or null. `deck_change_lines` holds one line per copy that the deck change moved: the copy ID, its card printing, its finish, and its place before and after, `commander`, `main`, or null for out of the deck. A line keeps the card printing and finish so that it can still show the card after the copy is deleted. Deleting a deck deletes its deck changes.
+- Each change to a deck's cards is one deck change. It locks the deck, raises the deck revision by one, and sets the last used time. `deck_changes` holds each deck change with its deck, its user, the `revision` it made, its `kind`, its `changed_at` time, and `reverted_by`, the revert that undid it, or null. A `swapped_in` deck change also keeps the `reason` and the `client_name` of its planned swap, and a `bought` deck change those of its buylist card. Other deck changes have null for both. `deck_change_lines` holds one line per copy that the deck change moved: the copy ID, its card printing, its finish, and its place before and after, `commander`, `main`, or null for out of the deck. A line keeps the card printing and finish so that it can still show the card after the copy is deleted. Deleting a deck deletes its deck changes.
 - `supabase.rpc('set_basic_lands', { request: { deck_id, counts } })` sets basic land counts. `counts` lists up to twelve items, each with a basic land card's `oracle_id` and its new `count`, 0 to 99. It returns `deck_id` and the `revision`.
   - Only the twelve basic land cards are accepted. Any other card, a repeated card, or a count outside 0 to 99 is refused with `invalid_argument` on its item, such as `counts[1].oracle_id`.
   - A basic land card that the request leaves out keeps its count.
@@ -348,7 +350,7 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
   - `deck_basic_lands` holds the count of each basic land card above zero, by deck. `deck_change_basic_lands` holds the basic land lines of deck changes: the basic land card and its count before and after.
 - `supabase.rpc('list_deck_changes', { query: { deck_id, cursor, limit } })` returns `items`, the deck's deck changes newest first, and `next_cursor`. The History tab reads it.
   - A page has 20 deck changes, or `limit`, from 1 to 50. To read the next page, send `next_cursor` back as `cursor`. It is null on the last page. A deck change made after the first page does not repeat one on the next page. A cursor that is not valid, that comes from another deck, or that is older than 15 minutes is refused with `invalid_cursor` on `cursor`.
-  - Each deck change has `deck_change_id`, `revision`, `kind`, `changed_at`, `reverted`, and `lines`. `reverted` is true when a revert undid it.
+  - Each deck change has `deck_change_id`, `revision`, `kind`, `changed_at`, `reverted`, `reason`, `client_name`, and `lines`. `reverted` is true when a revert undid it. History shows the reason in body text and the client name in meta text under the lines.
   - A copy line has `kind` `copy`, `copy_id`, the card's `name`, the `image_uris` of the line's card printing, the card's `type_line`, and `place_before` and `place_after`. A deleted copy's lines still show its card. Lines sort by card name.
   - A basic land line has `kind` `basic_land`, the basic land card's `oracle_id`, its `name`, the `image_uris` of its basic land image, and `count_before` and `count_after`. Basic land lines follow the copy lines, in the order of the twelve kinds.
 - Reverting a deck change undoes it and every later deck change in that deck, as one new `revert` deck change. Each copy and basic land card that the range touched goes back to its place or count before the reverted deck change. One private function works out what the revert changes, and the revert preview and the revert both use it.
@@ -357,6 +359,7 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
   - `lines` has the lines the revert would write, in the shape of `list_deck_changes` lines.
   - `blocks` lists each copy that must come back but was deleted or is in another deck, with `copy_id`, the card's `name`, and `deck`, the other deck's `deck_id` and `name`, or null for a deleted copy.
   - `protected_copies` lists each protected copy that comes back, with `copy_id` and `name`.
+  - `held_copies` lists each copy that comes back and that an open planned swap holds, with `copy_id`, `name`, and `deck`, the planned swap's `deck_id` and `name`. A held copy is not a block.
   - `effect` is the revert's effect, or null. See Previews.
 - `supabase.rpc('revert_deck_changes', { request: { deck_id, deck_change_id, expected_revision, unprotect } })` makes those changes. It returns `deck_id` and the new `revision`.
   - It writes one `revert` deck change with the preview's lines, and sets `reverted_by` on every deck change in the range that no revert undid yet. A revert can be reverted too.
@@ -364,8 +367,66 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
   - An `expected_revision` that is not the deck revision is refused with `stale_revision` on `expected_revision`.
   - A block is refused with `revert_blocked` on `deck_change_id`. The message names the card, such as "Cyclonic Rift is no longer in your collection." or "Sol Ring is in Kinnan.".
   - A protected copy that comes back is refused with `copy_protected` on `unprotect` unless `unprotect` is true. Then it unprotects the copy in the same transaction.
+  - It moves the planned swap of each held copy that comes back to the buylist, with the note `held_copy_reverted`. See Planned swaps.
   - A deck change of another deck or another user is refused with `not_found` on `deck_change_id`.
 - The write functions check the caller's identity and run in one transaction each. The reads run with the caller's rights. Another user's deck is refused with `not_found` on `deck_id`, like one that does not exist. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
+
+### Planned swaps
+
+A planned swap is an AI client's plan to put a free copy that the user owns, or one more basic land, into a deck, optionally in place of a deck card or one of its basic lands. It holds the copy until the user swaps it in or the planned swap closes. A planned swap for a basic land holds no copy. Only AI clients make planned swaps, through the MCP connection. `docs/adr/0008-let-ai-clients-make-planned-swaps-and-buylist-cards.md` says why. `supabase/planned-swaps.ts` has the shared types.
+
+- `planned_swaps` holds each planned swap with its user, its deck, the held copy (`incoming_copy_id`) and its card, `as_commander`, the optional outgoing copy and its card or outgoing basic land card, the `reason`, the `status`, the `close_note`, the AI client's `client_id` and `client_name`, `created_at`, and `status_changed_at`. The status is `open`, `swapped_in`, `closed`, or `moved_to_buylist`. Only an open planned swap can change. The copy columns have no foreign key, so a planned swap keeps its card after its copy is deleted. Deleting a deck deletes its planned swaps.
+- A partial unique index lets an open planned swap hold a copy only once. The collection availability view marks that copy held. `get_copy` and the copy rows of collection search name its planned swap's deck in `held_for`.
+- Deleting a held copy, or a revert that brings a held copy back into a deck, moves its planned swap to the buylist. The planned swap becomes `moved_to_buylist` with the note `held_copy_deleted` or `held_copy_reverted`. A new open buylist card gets the same deck, incoming card, `as_commander`, outgoing card, reason, AI client, and `created_at`, so it keeps its place on Recent. When an open buylist card in the deck already has the same deck, incoming card, `as_commander`, and outgoing card, the move makes no second one. Both writes lock the open planned swaps that hold their copies before they lock the copies, as swap in does. See Copy delete and Revert.
+- `create_planned_swaps({ request: { idempotency_key, planned_swaps } })` accepts only an AI client's token. It saves 1 to 10 planned swaps in one transaction, all or none, and returns each item's `ref`, `planned_swap_id`, and `warnings`, with `replayed`. The idempotency key follows Per-user data.
+  - Each item has a `ref`, `deck_id`, `expected_deck_revision`, `incoming` as `{ copy_id, as_commander }` or `{ basic_land_oracle_id }`, an optional `outgoing` as `{ copy_id }` or `{ basic_land_oracle_id }`, and a `reason` of 20 to 600 characters. `as_commander` defaults to true when the outgoing copy is a commander.
+  - A basic land is a basic land card's `oracle_id`. An incoming basic land means one more of it, and the planned swap holds no copy. An outgoing basic land means one fewer of it. `incoming_copy_id` is null for an incoming basic land, and `outgoing_copy_id` is null for an outgoing one.
+  - It locks the decks, then the incoming copies, in ID order.
+  - It copies the AI client's name from Supabase Auth's client record.
+  - Refusals save nothing. `invalid_argument` covers a bad field, two items with one `ref` or one copy, two revisions for one deck, and two items with the same deck, incoming card, `as_commander`, and outgoing card. It also covers a `basic_land_oracle_id` that is not a basic land card, `as_commander` with an incoming basic land, and the same basic land in and out. `not_found` covers a deck or copy that is not the user's. `stale_revision` has `pointer`, `expected`, and `current` in its details. `outgoing_not_in_deck` is an outgoing copy that is not in the deck, or an outgoing basic land that the deck has none of. `copy_not_free` is an incoming copy that is in a deck or held. `protected_copy` is a protected incoming copy. `duplicate_open` is an open planned swap or buylist card in the deck with the same incoming card, `as_commander`, and outgoing card, and its details name its `planned_swap_id` or `buylist_card_id`.
+  - Warnings are saved with the item. `would_break_validity` carries the effect, judged the same way as the Add to deck drawer. The effect counts one more of an incoming basic land and one fewer of an outgoing one. `replaces_commander` comes when the outgoing copy is a commander. `rules_stale` comes when the deck's estimated bracket is stale.
+- `list_planned_swaps({ query: { deck_id, status, order, cursor, limit } })` reads under row-level security. Every field is optional.
+  - `order` is `newest_first`, the default, or `oldest_first`. Recent asks for `status: open` and `oldest_first`, 50 at a time, and follows `next_cursor` until it is null. The MCP tool lists newest first in every state.
+  - A page has 20 planned swaps, or `limit`, from 1 to 50. The cursor works as in `list_deck_changes`, and it belongs to one deck, status, and order.
+  - Each item has `planned_swap_id`, `deck_id`, `deck_name`, `commander_art_crop_uri`, `incoming` and `outgoing` lines, `as_commander`, `reason`, `status`, `close_note`, `client_name`, `created_at`, `status_changed_at`, and `effect`. A copy line has `kind` `copy`, `copy_id`, the card's `name`, the `image_uris` of the copy's printing, `type_line`, `set`, `collector_number`, `finish`, and `condition`. A deleted copy keeps its card's name and type line, with no image and null printing fields. A basic land line has `kind` `basic_land`, `oracle_id`, `name`, and `image_uris`, as on `list_deck_changes`. `outgoing` is null when the planned swap takes nothing out.
+  - `effect` is the current effect of an open planned swap, or null. It is null for every other status.
+- `swap_in_planned_swap({ request: { planned_swap_id } })` refuses an AI client's token. It locks the deck, then the planned swap, then the held copy. In one `swapped_in` deck change, it takes the outgoing copy out and puts the held copy in, as a commander when `as_commander` is true. An incoming basic land adds one more of it, and an outgoing basic land takes one fewer of it, with a basic land line for each. The deck change keeps the reason and the client name. The planned swap becomes `swapped_in`. It returns `deck_id` and the new `revision`.
+  - A planned swap that is not open is refused with `not_open` on `planned_swap_id`. Another user's planned swap is refused with `not_found`.
+  - A commander swap into a deck that keeps two other commanders is refused with `commander_limit`.
+  - A concurrent add of the held copy to another deck waits for the copy lock, then gets `copy_not_free`.
+- `close_planned_swap({ request: { planned_swap_id } })` refuses an AI client's token. It locks the deck, then the planned swap. It closes an open planned swap with the close note `closed_by_user`, and the held copy becomes free. It returns `id` and `changed`.
+  - Closing a closed planned swap changes nothing and returns `changed: false`. A planned swap in any other state is refused with `not_open`. Another user's planned swap is refused with `not_found`.
+- `mcp_close_planned_swap({ request: { planned_swap_id } })` accepts only an AI client's token. It works the same way, with the close note `closed_by_ai_client`. Every planned swap comes from an AI client, so an AI client can close any open planned swap of the user. The `mcp_` prefix keeps it apart from the app's function.
+- Every deck change ends with `private.finish_deck_change`. It closes each open planned swap and buylist card of the deck whose outgoing copy is no longer in the deck, or whose deck has none left of its outgoing basic land card, with the close note `outgoing_left_deck`. Then it saves the deck evaluation. So a removal, a revert, a swap in, a Bought, and a copy delete close the planned swaps and buylist cards that would take that copy out. Setting a basic land to 0 closes those that would take one out. Two open items with the same outgoing card both stay open until the card leaves the deck.
+- Recent lists the open planned swaps and open buylist cards together, oldest first, with their deck tag, change lines, effect chip, reason, AI client name and time, **Swap in** or **Bought**, and **Close**. A basic land change line shows "+1" or "−1", as on History. The deck tag opens the deck on Planned. The All, Planned swaps, and Buylist chips show one kind at a time. They hide while Recent is empty. Recent reloads when the tab gains focus. **Swap in** and **Close** act at once. A swap in that fails shows "Could not swap in this card" with "Check your connection.". A close that fails shows "Could not close this planned swap" or "Could not close this buylist card" with "Check your connection.". An item that changed elsewhere reloads Recent.
+
+### Buylist cards
+
+A buylist card is an AI client's plan for a card that the user has to buy for a deck, optionally in place of a deck card. It names a card, not a copy, and it is never a basic land. Its outgoing card can be a basic land, as for a planned swap. Only AI clients add buylist cards, through the MCP connection. `supabase/buylist.ts` has the shared types.
+
+- `buylist_cards` holds each buylist card with its user, its deck, the card (`incoming_oracle_id`), `as_commander`, the optional outgoing copy and its card or outgoing basic land card, the `reason`, the `status`, the `close_note`, the AI client's `client_id` and `client_name`, `created_at`, and `status_changed_at`. The status is `open`, `bought`, or `closed`. Only an open buylist card can change. It stores no card printing. Deleting a deck deletes its buylist cards.
+- `create_buylist_cards({ request: { idempotency_key, buylist_cards } })` accepts only an AI client's token. It works like `create_planned_swaps`, with `incoming` as `{ oracle_id, as_commander }`. `outgoing` is `{ copy_id }` or `{ basic_land_oracle_id }`, as there. It returns each item's `ref`, `buylist_card_id`, and `warnings`, with `replayed`. It locks the decks in ID order.
+  - Its refusals are those of `create_planned_swaps`, less `copy_not_free` and `protected_copy`, plus two. `invalid_card` on `incoming.oracle_id` is a card that is not in the card catalog, or a basic land card. `free_copy_exists` is a card with a free copy that is not protected. Its details have `pointer` and `copy_ids`, the free copies, so the AI can plan a swap instead.
+  - Its warnings are those of `create_planned_swaps`, plus two. `protected_only` comes when every free copy of the card is protected. `in_other_decks` comes when no copy is free and copies sit in other decks. It lists each of those decks with `deck_id`, `name`, and `priority`, by deck priority, then by name.
+  - The effect puts the card's default printing into the deck. `private.default_printing_id` picks it: a printing that is not absent, with an image, in English, with a nonfoil finish, the newest, then by set and collector number. The basic land images use the same rule.
+- `list_buylist({ query: { deck_id, status, order, cursor, limit } })` reads like `list_planned_swaps`. Its cursor does not work for `list_planned_swaps`. Each item has `buylist_card_id`, `deck_id`, `deck_name`, `commander_art_crop_uri`, `incoming`, `outgoing`, `as_commander`, `reason`, `status`, `close_note`, `client_name`, `created_at`, `status_changed_at`, and `effect`. The `incoming` card line has `kind` `card`, `oracle_id`, `name`, the `image_uris` of the card's default printing, and `type_line`. `outgoing` is a copy line or a basic land line, as in `list_planned_swaps`.
+- `list_free_copies({ query: { oracle_id } })` reads under row-level security. It returns `items`, the free copies of the card across printings, each in the shape of a collection copy row with no `deck` and no `held_for`. Protected copies are in it. The Bought page sheet reads it.
+- `mark_buylist_card_bought({ request: { buylist_card_id, copy_id, unprotect } })` refuses an AI client's token. It locks the deck, then the buylist card, then the copy. In one `bought` deck change, it takes the outgoing copy out, or one fewer of the outgoing basic land, and puts the copy in, as a commander when `as_commander` is true. The deck change keeps the reason and the client name. The buylist card becomes `bought`. It returns `deck_id` and the new `revision`.
+  - The copy must be a free copy of the buylist card's card. A copy of another card is refused with `invalid_argument` on `copy_id`. A copy in a deck or held is refused with `copy_not_free`. A protected copy is refused with `copy_protected` unless `unprotect` is true. Then it unprotects the copy in the same transaction. Another user's copy is refused with `not_found` on `copy_id`.
+  - A buylist card that is not open is refused with `not_open` on `buylist_card_id`. Another user's buylist card is refused with `not_found` on `buylist_card_id`. A commander that would make a third commander is refused with `commander_limit`.
+  - Swap in and Bought share `private.swap_into_deck`, which writes the deck change, its copy lines, and its basic land lines. It checks the commander limit with `private.commander_count_under_limit`, as `set_deck_commander` does. Bought checks the copy with `private.take_free_copy`, as `add_deck_card` does.
+- `close_buylist_card` and `mcp_close_buylist_card` take `{ buylist_card_id }`. They work like the planned swap closes, with the close notes `closed_by_user` and `closed_by_ai_client`.
+- **Bought** on a Recent item opens the Bought page sheet. It lists the free copies of the card, each with its printing, finish, and condition. A protected copy shows the warning line "<card> is protected. Picking it unprotects it.". Picking a copy marks the buylist card bought with it, unprotects a protected copy, and closes the sheet. With no free copy, the sheet shows "No copies found" with "Scan copies into your collection first.". A Bought that fails shows "Could not mark this card bought" with "Check your connection.", and the sheet stays. A copy that is no longer free reloads the sheet. A buylist card that changed elsewhere closes the sheet, and Recent reloads.
+
+### Needs you
+
+The Needs you items are the open planned swaps and open buylist cards. Recent lists them across all decks, and the deck screen's Planned tab lists those of one deck. Both read every page of `list_planned_swaps` and `list_buylist`, so they list every item.
+
+- `private.needs_you_items` is a view with `security_invoker` of the open planned swaps and open buylist cards, with their user and deck. `get_needs_you_counts` and `list_decks` count from it.
+- `supabase.rpc('get_needs_you_counts')` reads under row-level security. It returns `total`, the number of the caller's Needs you items, and `decks`, with `deck_id` and `count` for each deck that has one. It takes an optional `query`, an empty object. A query with a field is refused with `invalid_argument` on that field.
+- The app reads the counts after sign-in, when it comes back to the foreground, and each time Recent or the deck screen reads its items. The Recent tab badge shows `total`. The Planned tab badge shows the deck's count. The commander gallery card shows `needs_you_count` from `list_decks`. A count of 0 shows no badge.
+- The deck screen's segmented control is **Cards**, **Planned**, and **History**. Planned lists the deck's Needs you items oldest first, with the same actions as Recent and no deck tag. With none, it shows "Nothing planned yet". The deck tag of a Recent item opens the deck on Planned. Decks and the copy page open it on Cards.
+- A deck card that an open planned swap takes out shows "Planned out" on Cards.
 
 ### Deck evaluations
 
@@ -441,98 +502,6 @@ A preview judges a deck as a change would leave it and compares the result with 
   - A deck with no deck evaluation has no effect.
   - A change that leaves a deck empty has no effect.
 
-### Deck suggestions
-
-A deck suggestion is an AI client's proposal for one deck, as `GLOSSARY.md` defines it. `deck_suggestions` holds each one. `deck_suggestion_events` holds one row per withdrawal or reason replacement. `deck_suggestion_requests` holds the idempotency keys. `supabase/decks.ts` has the shared types.
-
-- A deck suggestion has its user and deck, the incoming card's `oracle_id`, `as_commander`, and an optional outgoing card. The outgoing card is a copy in the deck, with `outgoing_copy_id` and its card's `outgoing_oracle_id`, or a basic land card, with only `outgoing_oracle_id`. It also has `reason`, `status`, `from_deck_id` and `paired_suggestion_id` for a pair, the AI client's `client_id` and `client_name`, `created_at`, and `status_changed_at`.
-- `outgoing_copy_id` has no foreign key. A suggestion has to survive the delete of its outgoing copy, and the stale rule then marks it stale.
-- `status` is `open`, `withdrawn`, or `stale`. Spec 9 adds promoted and dismissed.
-- Deleting a deck deletes its deck suggestions. `from_deck_id` and `paired_suggestion_id` become null when that deck or suggestion is deleted, and the other suggestion stays open.
-- `client_name` is copied from Supabase Auth's client record, `auth.oauth_clients`, when the suggestion is made. A `security definer` function can read it.
-
-#### Create deck suggestions
-
-`create_deck_suggestions(request)` saves 1 to 10 deck suggestions in one transaction. Only an AI client can call it: a token without a `client_id` claim is refused with `insufficient_privilege` and "Only an AI client can change deck suggestions." The MCP connection calls it. The app does not.
-
-```json
-{
-  "idempotency_key": "8 to 64 of A-Z a-z 0-9 _ -",
-  "suggestions": [
-    {
-      "ref": "to_b",
-      "deck_id": "uuid",
-      "expected_deck_revision": 41,
-      "incoming": { "oracle_id": "uuid", "as_commander": false, "from_deck_id": "uuid" },
-      "outgoing": { "copy_id": "uuid" },
-      "reason": "20 to 600 characters",
-      "pair_with": "from_a"
-    }
-  ]
-}
-```
-
-- `ref` is 1 to 64 of A-Z a-z 0-9 _ -, and unique in the call. Suggestions for the same deck send the same `expected_deck_revision`.
-- `outgoing` is optional. It is `{ copy_id }` or `{ basic_land_oracle_id }`. A basic land card as the outgoing card means one fewer of it.
-- `as_commander` is optional. It defaults to true when the outgoing copy is a commander, and to false otherwise.
-- `incoming.from_deck_id` and `pair_with` go together. They move a copy from one deck to another as paired suggestions. The suggestion that `pair_with` names must be in `from_deck_id` and take a copy of the incoming card out of it. The two saved suggestions name each other in `paired_suggestion_id`.
-- It returns `suggestions`, in the order sent, each with `ref`, `suggestion_id`, `paired_suggestion_id`, and `warnings`, and `replayed`.
-
-These errors refuse the whole call and save nothing. `details` is the field at fault as a JSON path, such as `suggestions[1].reason`, unless the row says it is a JSON object.
-
-| Code | When |
-| --- | --- |
-| `invalid_argument` | The request does not have this shape. Two suggestions share a `ref`, send different revisions for one deck, or repeat each other. `from_deck_id` is the suggestion's own deck. |
-| `not_found` | A deck, an outgoing copy, `from_deck_id`, or the `pair_with` ref is missing or not the caller's. |
-| `invalid_card` | `incoming.oracle_id` is not a card in the card catalog. |
-| `stale_revision` | `expected_deck_revision` is not the deck revision. `details` is a JSON object with `pointer`, `expected`, and `current`. |
-| `outgoing_not_in_deck` | The outgoing copy or basic land card is not in the deck. |
-| `pair_incomplete` | `from_deck_id` names a deck without the incoming card, or the `pair_with` suggestion does not take that card out of that deck. |
-| `duplicate_open_suggestion` | An open suggestion has the same deck, incoming card, `as_commander`, and outgoing card. `details` is a JSON object with `pointer` and the open suggestion's `suggestion_id`. |
-| `idempotency_conflict` | The idempotency key was used with different input. |
-
-These warnings save the suggestion and come back in its `warnings`. Each has a `code`:
-
-- `would_break_validity` has the `effect` of the suggestion, as Previews describes. It judges the deck with the incoming card added, as a commander when `as_commander` is true, and the outgoing card taken out. It uses `private.judge_deck` and `private.deck_change_effect`, as the Add to deck drawer does.
-- `protected_only`: the user owns the card, and every free copy is protected.
-- `in_other_decks`: no copy is free, copies sit in other decks, and no pair was sent. `decks` lists each of those decks with `deck_id`, `name`, and `priority`.
-- `not_owned`: the user owns no copy.
-- `replaces_commander`: the outgoing copy is a commander.
-- `against_deck_priority`: a pair moves a copy from a deck of higher priority to one of lower priority. It has `from_deck_priority` and `deck_priority`.
-- `rules_stale`: the deck's rules data is stale, as Deck evaluations (Freshness) says for the estimated bracket. A deck with no deck evaluation is stale when the card catalog, the Oracle tags, or Commander Spellbook is stale.
-- A basic land card is never `protected_only`, `in_other_decks`, or `not_owned`.
-
-Idempotency keys are per user. Each call saves its key with its input and result for 24 hours. A repeat with the same key and input returns the first result with `replayed: true` and saves nothing. Each call deletes the keys that are older than 24 hours.
-
-#### List deck suggestions
-
-`supabase.rpc('list_deck_suggestions', { query: { deck_id, status, cursor, limit } })` returns `items`, the caller's deck suggestions newest first, and `next_cursor`. It is a `security invoker` read under row-level security. Every field of the query is optional.
-
-- It lists every state by default. `status` (`open`, `withdrawn`, or `stale`) lists one state. `deck_id` lists one deck's suggestions. A deck that is not the caller's is refused with `not_found` on `deck_id`.
-- A page has 20 suggestions, or `limit`, from 1 to 50. To read the next page, send `next_cursor` back as `cursor`, with the same filters. It is null on the last page. Suggestions saved in one call share `created_at`, and sort by `suggestion_id` among themselves. A cursor that is not valid, that comes from other filters, or that is older than 15 minutes is refused with `invalid_cursor` on `cursor`.
-- Each suggestion has `suggestion_id`, `deck_id`, `deck_name`, `incoming`, `outgoing`, `reason`, `status`, `paired_suggestion_id`, `client_name`, `created_at`, `status_changed_at`, and `events`.
-- `incoming` has the card's `oracle_id`, its `name`, `as_commander`, and `from_deck_id`. `from_deck_id` is null unless the suggestion is the paired suggestion that moves the card in from another deck.
-- `outgoing` is null, `{ copy_id, name }`, or `{ basic_land_oracle_id, name }`, the shapes that `create_deck_suggestions` takes plus the card's name.
-- `events` lists the suggestion's deck suggestion events, oldest first. Each has `kind` (`withdrawn` or `reason_replaced`), `client_name`, and `created_at`.
-#### Withdraw a deck suggestion and replace its reason
-
-`withdraw_deck_suggestion({ suggestion_id })` withdraws an open deck suggestion. `update_deck_suggestion_reason({ suggestion_id, reason })` replaces its reason, with a reason of 20 to 600 characters. Only an AI client can call them, as for `create_deck_suggestions`. They work on any open deck suggestion of the user, whichever AI client made it.
-
-- Each one writes one deck suggestion event to `deck_suggestion_events`, with the kind (`withdrawn` or `reason_replaced`), the AI client's `client_id` and `client_name`, and the time. A reason replacement keeps no old reason text.
-- Withdrawing sets `status` to `withdrawn` and `status_changed_at` to now. A withdrawn suggestion stays withdrawn.
-- Withdrawing a withdrawn suggestion, or setting the reason it already has, succeeds, changes nothing, and writes no deck suggestion event. So both calls are idempotent with no key.
-- Both return `{ suggestion_id, changed }`. `changed` is false when the call changed nothing.
-
-| Code | When |
-| --- | --- |
-| `invalid_argument` | The request does not have this shape, or the reason is not 20 to 600 characters. |
-| `not_found` | `suggestion_id` is missing or not one of the caller's deck suggestions. |
-| `not_open` | The deck suggestion is stale, or it is withdrawn and the call replaces its reason. |
-
-#### Stale deck suggestions
-
-`private.mark_stale_deck_suggestions` runs at the end of every deck change: adding a copy, making or moving a commander, setting basic lands, removing a card, deleting a copy in a deck, and reverting. It marks an open suggestion of that deck stale when its outgoing copy is no longer in the deck, or when the deck has none left of its outgoing basic land card. A stale or withdrawn suggestion never changes back.
-
 ### Collection search
 
 Signed-in users search their own collection with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips and `rows`. `supabase/collection.ts` has the shared types for the query and the result rows. The Collection tab reads its binder grid only through collection search, with `rows: 'copies'`. Its search bar and its Filters drawer turn the typed text and chips into the typed query.
@@ -546,13 +515,13 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 - Collection search also returns cards that are not Commander-legal, and copies whose card printing is marked absent.
 - `rows` is `entries` or `copies`, and defaults to `entries`.
   - With `entries`, each row is one collection entry: the matching copies that share a card printing, finish, condition, language, and protected flag. A collection entry has no ID of its own. Each row has the quantity, free quantity, allocated quantity, and held quantity of its matching copies. `limit` is 1 to 50 and defaults to 20.
-  - With `copies`, each row is one copy, with its `copy_id`. `limit` is 1 to 120 and defaults to 60. The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`. The copy gives `finish`, `condition`, `language`, and `protected`. `deck` is the copy's deck with `deck_id` and `name`, or null for a copy in no deck.
+  - With `copies`, each row is one copy, with its `copy_id`. `limit` is 1 to 120 and defaults to 60. The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`. The copy gives `finish`, `condition`, `language`, and `protected`. `deck` is the copy's deck with `deck_id` and `name`, or null for a copy in no deck. `held_for` is the deck of the open planned swap that holds the copy, with `deck_id` and `name`, or null.
   - A copy row's `price` is the current USD price of the card printing and finish: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says. Condition and language do not change it. `price` is null when `card_prices` has no USD price for that card printing and finish. A price is never taken from another finish.
   - A collection entry row's `price` is the current price of its card printing and finish, in the shape of a copy row's `price`. Its `total` is the entry total: `price` times the row's `quantity`, as a USD decimal string. The app converts both with the shared module. Condition and language do not change either. Both are null when `price` is null.
 - `sort` is `relevance` by default, with or without text. Without text, relevance means `added`, so an empty query lists the newest addition first.
 - `sort: 'added'` lists the card printing with the newest addition first. Its copies sit next to each other. `sort_order: 'asc'` puts the oldest addition first.
 - Rows with the same sort value sort by name, then by card printing ID, then by copy ID.
-- Each row counts the copies in the collection availability view. The view has one row for each copy of the caller, with its allocated, held, and free flags. A copy in a deck is allocated. Held stays false until planned swaps exist.
+- Each row counts the copies in the collection availability view. The view has one row for each copy of the caller, with its allocated, held, and free flags. A copy in a deck is allocated. A copy that an open planned swap holds is held. A free copy is neither, so free quantities, the Free filter, the Add to deck drawer, protecting, and the MCP reads leave held copies out.
 - Collection search runs with the caller's rights, like catalog search. The views set `security_invoker`, so the read policy on `copies` keeps only the caller's rows.
 - Catalog search, `get_cards`, and `list_card_printings` read owned quantities from the same view. A printing list keeps an absent card printing when the caller owns it.
 - A first page also has `total_count`, the number of matching rows. Later pages have `total_count: null`. The Collection tab shows it in its count line, such as "6 of 27 copies".
@@ -598,17 +567,23 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, `deck_evaluations`, `deck_suggestions`, and `deck_suggestion_events`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
+The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, `deck_evaluations`, `planned_swaps`, and `buylist_cards`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
 
 The `anon` role cannot use the `private` schema. `authenticated` and `service_role` can use it. Every `private` function is closed by default. Functions that `postgres` creates have no `execute` grant for `PUBLIC`, so a new `private` function starts closed. A migration grants `execute` on a helper only to the roles whose functions call it.
 
 Every app write function refuses an AI client's token. Each one calls `private.refuse_mcp_token()` right after `private.caller_user_id()`. The helper raises `insufficient_privilege` with "AI clients cannot change decks or the collection." when the token has a `client_id` claim. Supabase Auth's OAuth server puts that claim on every AI client's token. The app's sign-in never does, so the refusal does not affect the app. Read functions and previews do not call the helper. So an AI client's token can read through the Data API the same data that the MCP connection returns. `docs/adr/0007-refuse-mcp-tokens-by-client-id.md` says why.
 
-`public.begin_mcp_call`, `public.create_deck_suggestions`, `public.withdraw_deck_suggestion`, and `public.update_deck_suggestion_reason` do the reverse. They require an AI client's token. `supabase/tests/ai-client-tokens.test.ts` leaves these functions out of its release gate by name, in the group `requiresAnAiClientsToken`.
+`public.begin_mcp_call` and the AI writes `public.create_planned_swaps`, `public.create_buylist_cards`, `public.mcp_close_planned_swap`, and `public.mcp_close_buylist_card` do the reverse. They require an AI client's token through `private.caller_ai_client()`, which raises `insufficient_privilege` with "Only an AI client can call this function." for any other token. `supabase/tests/ai-client-tokens.test.ts` leaves them out of its release gate by name, in the group `requiresAnAiClientsToken`, and checks that each AI write refuses the app's token.
 
 `mcp_call_counts` departs from the pattern too. It has no read policy, because nothing reads it. Only `begin_mcp_call` writes it.
 
-`deck_suggestion_requests` departs from the pattern in the same way. It is the store of idempotency keys for `create_deck_suggestions`. Row-level security is on with no policies, and no app role can read or write it, because nothing reads it through the Data API. Only `create_deck_suggestions` reads and writes it.
+`ai_write_requests` departs from the pattern in the same way. It is the store of idempotency keys for every AI write that takes an `idempotency_key`. Row-level security is on with no policies, and no app role can read or write it, because nothing reads it through the Data API. Only `private.replayed_ai_write` and `private.save_ai_write` read and write it. An AI write calls `private.replayed_ai_write` before it saves anything, and `private.save_ai_write` with its result, in the same transaction:
+
+- Idempotency keys are per user.
+- Each call saves its key with its input and result for 24 hours.
+- A repeat with the same key and input returns the first result with `replayed: true` and saves nothing.
+- A repeat with the same key and other input is refused with `idempotency_conflict`.
+- Each call deletes the keys that are older than 24 hours.
 
 Signing up creates the user's profile through a trigger on `auth.users`.
 
@@ -632,11 +607,11 @@ Each request goes through these steps:
 3. `public.begin_mcp_call(tool)` runs with the user's own token. It refuses a token with no `client_id`, and a token whose `session_id` has no live session. Revoking an AI client deletes its sessions, so its next call gets 401.
 4. The tool's Postgres function runs with the user's own token under row-level security. The function never uses the secret key.
 
-An AI client's token also works on the Data API. Every app write function refuses it, as Per-user data says, so an AI client can change only deck suggestions. `docs/adr/0007-refuse-mcp-tokens-by-client-id.md` says why.
+An AI client's token also works on the Data API. Every app write function refuses it, as Per-user data says, so an AI client cannot change a deck, a copy, or a user tag. `docs/adr/0007-refuse-mcp-tokens-by-client-id.md` says why.
 
 #### Tools
 
-The tools come in this order. Every tool has `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: false`. The read tools have `readOnlyHint: true`. `create_deck_suggestions`, `withdraw_deck_suggestion`, and `update_deck_suggestion_reason` have `readOnlyHint: false`.
+The tools come in this order: the read tools, then the write tools. Every read tool has `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: false`. The write tools have `readOnlyHint: false` and the same other three.
 
 | Tool | Postgres function |
 | --- | --- |
@@ -650,10 +625,12 @@ The tools come in this order. Every tool has `destructiveHint: false`, `idempote
 | `list_decks` | `list_decks` |
 | `get_deck` | `get_deck` |
 | `list_deck_changes` | `list_deck_changes` |
-| `list_deck_suggestions` | `list_deck_suggestions` |
-| `create_deck_suggestions` | `create_deck_suggestions` |
-| `withdraw_deck_suggestion` | `withdraw_deck_suggestion` |
-| `update_deck_suggestion_reason` | `update_deck_suggestion_reason` |
+| `list_planned_swaps` | `list_planned_swaps`, newest first in every state |
+| `list_buylist` | `list_buylist`, newest first in every state |
+| `create_planned_swaps` | `create_planned_swaps`, 1 to 10 planned swaps |
+| `create_buylist_cards` | `create_buylist_cards`, 1 to 10 buylist cards |
+| `close_planned_swap` | `mcp_close_planned_swap` |
+| `close_buylist_card` | `mcp_close_buylist_card` |
 
 - `supabase/functions/mcp/tools.ts` lists the tools. Each one has all four annotations, an input schema with `additionalProperties: false`, and an output schema that also allows a problem details object.
 - `tools.ts` writes the schemas with zod. They follow the types in `supabase/search.ts`, `supabase/collection.ts`, and `supabase/decks.ts`, less the fields that the tool leaves out. The function imports nothing from outside `supabase/functions`, so the schemas copy those types by hand. Every object in an output schema has `additionalProperties: false`. The official MCP client checks each result against it in the HTTP tests, so a change to the result's shape fails them.
@@ -661,8 +638,9 @@ The tools come in this order. Every tool has `destructiveHint: false`, `idempote
 - A read tool sends its arguments to its Postgres function as `query`, and a write tool as `request`. The tool's `readOnlyHint` says which. Postgres checks the arguments, as it does for the app.
 - `list_user_tags`, `get_collection_summary`, and `list_decks` take an empty query.
 - No tool takes a currency. Prices are USD. The description of each tool that returns prices says so: `search_catalog`, `search_collection`, `get_cards`, `get_collection_summary`, and `get_deck`.
-- The description of `search_catalog` says that it returns only Commander-legal cards and has no fuzzy match. The descriptions of `list_decks` and `get_deck` say that the estimated bracket is an estimate and that heuristic signals are not official.
-- The descriptions of the write tools tell the AI not to call the tool again when the user declines a call.
+- The description of `search_catalog` says that it returns only Commander-legal cards and has no fuzzy match. The descriptions of `list_decks` and `get_deck` say that the estimated bracket is an estimate and that heuristic signals are not official. The `list_decks` description says that `needs_you_count` counts the deck's open planned swaps and buylist cards, and the `get_deck` description says that an open planned swap takes out a `planned_out` deck card.
+- The description of each write tool ends with the declined-write sentence: if the user declines the call, the AI does not call it again, tells the user that nothing was saved, and asks what they want to change.
+- The server instructions say that a deck is the cards in the user's deck box now, and that the AI cannot change a deck or the collection. They tell the AI to plan swaps with free copies that the user owns, to add cards that the user lacks to the buylist, to never hold a protected copy, to follow deck priority, and to recommend a move between decks in the chat instead of planning it.
 - A result leaves out image URIs and art crop URIs. Each tool can also leave out fields at a named path. `get_deck` leaves out `added_at`, `commander_at`, `condition`, `language`, `rarity`, `collector_number`, and `set` of each deck card.
 - A result carries `structuredContent` and one text block: a one-line summary, then the minified JSON. A search with an AI client's token writes its telemetry row with the caller `mcp`.
 
@@ -670,9 +648,8 @@ The tools come in this order. Every tool has `destructiveHint: false`, `idempote
 
 - Each user can make 120 tool calls a minute. This rate limit is the only limit on the number of calls. `begin_mcp_call` counts tool calls in `mcp_call_counts`, by UTC minute. A request that is not a tool call, such as `tools/list`, is not counted.
 - A tool call over the rate limit gets `rate-limited` with `retry_after_seconds`.
-- Pages hold 20 rows by default and 50 at most. This holds for `search_catalog`, `search_collection`, `list_card_printings`, and `list_deck_changes`. The function sends `limit: 20` when the call has none, so copies also come 20 at a time, not 60 as in the app. A `limit` over 50 gets `invalid-argument` on `/limit`. Postgres checks the rest of the query.
+- Pages hold 20 rows by default and 50 at most. This holds for `search_catalog`, `search_collection`, `list_card_printings`, `list_deck_changes`, `list_planned_swaps`, and `list_buylist`. The function sends `limit: 20` when the call has none, so copies also come 20 at a time, not 60 as in the app. A `limit` over 50 gets `invalid-argument` on `/limit`. Postgres checks the rest of the query.
 - `get_cards` reads up to 20 IDs in one call.
-- `create_deck_suggestions` saves 1 to 10 deck suggestions in one call. It has no limit on deck suggestions an hour or open deck suggestions in a deck.
 - A request body over 64 KB gets 413 with `request-too-large`.
 - Results aim for under 16 KB. A result over 48 KB gets `result-too-large`. Its detail says how to narrow the request, such as a lower `limit` or no `include_oracle_text`.
 
@@ -691,8 +668,10 @@ The problem types, each linked to its page:
 - [`invalid-card`](apps/site/problems/invalid-card.html)
 - [`stale-revision`](apps/site/problems/stale-revision.html)
 - [`outgoing-not-in-deck`](apps/site/problems/outgoing-not-in-deck.html)
-- [`pair-incomplete`](apps/site/problems/pair-incomplete.html)
-- [`duplicate-open-suggestion`](apps/site/problems/duplicate-open-suggestion.html)
+- [`copy-not-free`](apps/site/problems/copy-not-free.html)
+- [`protected-copy`](apps/site/problems/protected-copy.html)
+- [`duplicate-open`](apps/site/problems/duplicate-open.html)
+- [`free-copy-exists`](apps/site/problems/free-copy-exists.html)
 - [`not-open`](apps/site/problems/not-open.html)
 - [`idempotency-conflict`](apps/site/problems/idempotency-conflict.html)
 - [`data-unavailable`](apps/site/problems/data-unavailable.html)
@@ -737,15 +716,12 @@ What the checks prove:
 - The Data API reads with an AI client's token and its array `aud`. If this fails, the hook is dropped, and the MCP server refuses tokens without a `client_id` instead, as ADR 0007 says. The audience check in the MCP pre-flight then changes too.
 - `create_deck` refuses an AI client's token with `42501`.
 - The MCP server serves protocol 2026-07-28 to the official MCP client, and each earlier version that the client SDK supports through `initialize`.
-- `tools/list` returns the 14 tools in order, with their annotations.
+- `tools/list` returns the 16 tools in order, with their annotations.
 - `search_catalog` finds Counterspell. The test user then creates a deck named "MCP pre-flight" in the app, and `get_deck` reads it.
-- `create_deck_suggestions` saves one deck suggestion on that deck.
-- `list_deck_suggestions` shows the client name that the database function read from Supabase Auth's client record.
-- A stale deck revision gets `stale-revision` and saves nothing.
-- A replay with the same idempotency key returns the first result with `replayed: true` and saves nothing.
+- The test user scans a free copy of Counterspell. `create_planned_swaps` makes one planned swap that holds it, and `list_planned_swaps` reads it back with the client name from Supabase Auth's client record. A stale deck revision gets `stale-revision` and saves nothing. A replay with the same idempotency key returns the first result and saves nothing.
 - The MCP server refuses the app's token.
 - `revokeGrant` ends the AI client's access at once: its next call gets 401, because `begin_mcp_call` finds no live session. If this fails, the AI clients alert must say "within an hour" instead of "at once". Its refresh token is refused too.
-- Cleanup deletes the deck, which deletes its deck suggestions. It deletes the AI clients, and checks that no AI client and no deck suggestion is left. The idempotency key stays for 24 hours, as for every call.
+- Cleanup deletes the deck with its planned swaps, the copy, and the AI clients, and checks that no deck, planned swap, copy, or AI client is left.
 
 On the hosted project, the owner runs it from the main checkout. `.env.hosted` gives `SUPABASE_PROJECT_REF` and `SUPABASE_SECRET_KEY`, and `test-app.env` gives the hosted test user password. The script builds the hosted URL, `https://<ref>.supabase.co`, from the project ref. The script uses the secret key only in cleanup, to delete the AI clients and to check that nothing is left. The publishable key is in the Supabase dashboard, under API Keys. The AI client's Data API calls send it, as an AI client would. The hosted test user must exist, as Test app on the iPhone says. The owner posts the output on the release ticket.
 

@@ -31,6 +31,7 @@ import type { ExchangeRate } from '@mtgscan/supabase/converted-prices';
 import type {
   AddDeckCardPreviewQuery,
   AddDeckCardRequest,
+  CopyHeldFor,
   CreateDeckRequest,
   Deck,
   DeckBasicLand,
@@ -42,6 +43,7 @@ import type {
   DeckQuery,
   DeleteDeckRequest,
   MarkDeckUsedRequest,
+  NeedsYouCounts,
   RemoveDeckCardRequest,
   RenameDeckRequest,
   RevertDeckChangesRequest,
@@ -52,6 +54,15 @@ import type {
   SetDeckPriorityRequest,
   Violation,
 } from '@mtgscan/supabase/decks';
+import type { ClosePlannedSwapRequest, PlannedSwap, PlannedSwapsQuery, SwapInPlannedSwapRequest } from '@mtgscan/supabase/planned-swaps';
+import type {
+  BuylistCard,
+  BuylistQuery,
+  CloseBuylistCardRequest,
+  FreeCopiesQuery,
+  FreeCopy,
+  MarkBuylistCardBoughtRequest,
+} from '@mtgscan/supabase/buylist';
 import type { SignInProvider } from '@mtgscan/supabase/sign-in-providers';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
@@ -98,6 +109,13 @@ let revertPreviews = new Map<string, Omit<RevertPreview, 'revision'>>();
 let addPreviewEffects = new Map<string, DeckChangeEffect>();
 let failingAddPreviews = 0;
 let heldAddPreviews: Promise<void> | null = null;
+let plannedSwaps: PlannedSwap[] = [];
+let plannedSwapQueriesSent: PlannedSwapsQuery[] = [];
+let failingNeedsYouReads = 0;
+let buylistCards: BuylistCard[] = [];
+let buylistQueriesSent: BuylistQuery[] = [];
+let freeCopies = new Map<string, FreeCopy[]>();
+let failingFreeCopyReads = 0;
 const emptyCollectionTotal: CollectionTotal = {
   total: '0.00',
   currency: 'USD',
@@ -530,6 +548,7 @@ function deckList() {
         estimated_bracket: evaluation.estimated_bracket,
         bracket_stale: evaluation.bracket_stale,
       },
+      needs_you_count: openNeedsYouItems().filter((item) => item.deck_id === row.deck_id).length,
     }));
   return { data: { items }, error: null };
 }
@@ -539,7 +558,31 @@ function deckRead({ deck_id }: DeckQuery) {
     return { data: null, error: networkFailure };
   }
   const deck = decks.find((candidate) => candidate.deck_id === deck_id);
-  return deck ? { data: deck, error: null } : deckNotFound;
+  if (!deck) {
+    return deckNotFound;
+  }
+  const plannedOut = new Set(
+    plannedSwaps
+      .filter((swap) => swap.status === 'open' && swap.deck_id === deck_id)
+      .flatMap((swap) => (swap.outgoing?.kind === 'copy' ? [swap.outgoing.copy_id] : [])),
+  );
+  return { data: { ...deck, cards: deck.cards.map((card) => ({ ...card, planned_out: plannedOut.has(card.copy_id) })) }, error: null };
+}
+
+function openNeedsYouItems() {
+  return [...plannedSwaps, ...buylistCards].filter((item) => item.status === 'open');
+}
+
+function needsYouCounts(): { data: NeedsYouCounts; error: null } {
+  const items = openNeedsYouItems();
+  const deckIds = [...new Set(items.map((item) => item.deck_id))];
+  return {
+    data: {
+      total: items.length,
+      decks: deckIds.map((deckId) => ({ deck_id: deckId, count: items.filter((item) => item.deck_id === deckId).length })),
+    },
+    error: null,
+  };
 }
 
 const deckChangePageSize = 20;
@@ -609,6 +652,8 @@ function revertDeckChanges(request: RevertDeckChangesRequest) {
     kind: 'revert',
     changed_at: nextDeckTime(),
     reverted: false,
+    reason: null,
+    client_name: null,
     lines: revertPreviews.get(request.deck_change_id)!.lines,
   };
   saveDeck({ ...deck, revision, last_used_at: revert.changed_at });
@@ -698,6 +743,7 @@ function deckCardOf(details: CopyDetails, addedAt: string): DeckCard {
     type_line,
     mana_value: 0,
     colors: [],
+    planned_out: false,
   };
 }
 
@@ -745,6 +791,145 @@ function addDeckCard(request: AddDeckCardRequest) {
     copy.copy_id === request.copy_id ? { ...copy, protected: false, deck: { deck_id: deck.deck_id, name: deck.name } } : copy,
   );
   return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
+}
+
+function planPage<Item>(items: Item[], { cursor, limit = 20 }: { cursor?: string | null; limit?: number }) {
+  const offset = cursor ? Number(cursor) : 0;
+  const end = offset + limit;
+  return { data: { items: items.slice(offset, end), next_cursor: end < items.length ? String(end) : null }, error: null };
+}
+
+function plannedSwapList(query: PlannedSwapsQuery) {
+  plannedSwapQueriesSent = [...plannedSwapQueriesSent, query];
+  if (failingNeedsYouReads > 0) {
+    failingNeedsYouReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  const direction = query.order === 'oldest_first' ? 1 : -1;
+  const items = plannedSwaps
+    .filter((swap) => (!query.status || swap.status === query.status) && (!query.deck_id || swap.deck_id === query.deck_id))
+    .toSorted((a, b) => direction * a.created_at.localeCompare(b.created_at));
+  return planPage(items, query);
+}
+
+function buylistList(query: BuylistQuery) {
+  buylistQueriesSent = [...buylistQueriesSent, query];
+  if (failingNeedsYouReads > 0) {
+    failingNeedsYouReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  const direction = query.order === 'oldest_first' ? 1 : -1;
+  const items = buylistCards
+    .filter((card) => (!query.status || card.status === query.status) && (!query.deck_id || card.deck_id === query.deck_id))
+    .toSorted((a, b) => direction * a.created_at.localeCompare(b.created_at));
+  return planPage(items, query);
+}
+
+function buylistCardToChange(buylistCardId: string, changeable: BuylistCard['status'][]) {
+  const card = buylistCards.find((candidate) => candidate.buylist_card_id === buylistCardId);
+  if (!card) {
+    return { error: { code: 'not_found', message: 'buylist_card_id is not one of your buylist cards.', details: 'buylist_card_id' } };
+  }
+  if (!changeable.includes(card.status)) {
+    return {
+      error: { code: 'not_open', message: `The buylist card is ${card.status}. Only an open buylist card can change.`, details: 'buylist_card_id' },
+    };
+  }
+  return { card };
+}
+
+function freeCopyList(query: FreeCopiesQuery) {
+  if (failingFreeCopyReads > 0) {
+    failingFreeCopyReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  return { data: { items: freeCopies.get(query.oracle_id) ?? [] }, error: null };
+}
+
+function markBuylistCardBought(request: MarkBuylistCardBoughtRequest) {
+  deckWrites = [...deckWrites, { name: 'mark_buylist_card_bought', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  const { card, error } = buylistCardToChange(request.buylist_card_id, ['open']);
+  if (!card) {
+    return { data: null, error };
+  }
+  const copy = freeCopies.get(card.incoming.oracle_id)?.find((candidate) => candidate.copy_id === request.copy_id);
+  if (!copy) {
+    return { data: null, error: { code: 'copy_not_free', message: 'Only a free copy can go into a deck.', details: 'copy_id' } };
+  }
+  if (copy.protected && !request.unprotect) {
+    return { data: null, error: { code: 'copy_protected', message: 'copy_id is a protected copy.', details: 'copy_id' } };
+  }
+  freeCopies.set(
+    card.incoming.oracle_id,
+    freeCopies.get(card.incoming.oracle_id)!.filter((candidate) => candidate.copy_id !== copy.copy_id),
+  );
+  changeBuylistCardElsewhere(card.buylist_card_id, 'bought');
+  const deck = decks.find((candidate) => candidate.deck_id === card.deck_id);
+  if (deck) {
+    saveDeck({ ...deck, revision: deck.revision + 1, last_used_at: nextDeckTime() });
+  }
+  return { data: { deck_id: card.deck_id, revision: (deck?.revision ?? 0) + 1 }, error: null };
+}
+
+function closeBuylistCard(request: CloseBuylistCardRequest) {
+  deckWrites = [...deckWrites, { name: 'close_buylist_card', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  const { card, error } = buylistCardToChange(request.buylist_card_id, ['open', 'closed']);
+  if (!card) {
+    return { data: null, error };
+  }
+  const changed = card.status === 'open';
+  changeBuylistCardElsewhere(card.buylist_card_id, 'closed');
+  return { data: { id: card.buylist_card_id, changed }, error: null };
+}
+
+function plannedSwapToChange(plannedSwapId: string, changeable: PlannedSwap['status'][]) {
+  const swap = plannedSwaps.find((candidate) => candidate.planned_swap_id === plannedSwapId);
+  if (!swap) {
+    return { error: { code: 'not_found', message: 'planned_swap_id is not one of your planned swaps.', details: 'planned_swap_id' } };
+  }
+  if (!changeable.includes(swap.status)) {
+    return {
+      error: { code: 'not_open', message: `The planned swap is ${swap.status}. Only an open planned swap can change.`, details: 'planned_swap_id' },
+    };
+  }
+  return { swap };
+}
+
+function swapInPlannedSwap(request: SwapInPlannedSwapRequest) {
+  deckWrites = [...deckWrites, { name: 'swap_in_planned_swap', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  const { swap, error } = plannedSwapToChange(request.planned_swap_id, ['open']);
+  if (!swap) {
+    return { data: null, error };
+  }
+  changePlannedSwapElsewhere(swap.planned_swap_id, 'swapped_in');
+  const deck = decks.find((candidate) => candidate.deck_id === swap.deck_id);
+  if (deck) {
+    saveDeck({ ...deck, revision: deck.revision + 1, last_used_at: nextDeckTime() });
+  }
+  return { data: { deck_id: swap.deck_id, revision: (deck?.revision ?? 0) + 1 }, error: null };
+}
+
+function closePlannedSwap(request: ClosePlannedSwapRequest) {
+  deckWrites = [...deckWrites, { name: 'close_planned_swap', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  const { swap, error } = plannedSwapToChange(request.planned_swap_id, ['open', 'closed']);
+  if (!swap) {
+    return { data: null, error };
+  }
+  const changed = swap.status === 'open';
+  changePlannedSwapElsewhere(swap.planned_swap_id, 'closed');
+  return { data: { id: swap.planned_swap_id, changed }, error: null };
 }
 
 function setDeckCommander(request: SetDeckCommanderRequest) {
@@ -853,13 +1038,18 @@ function setBasicLands(request: SetBasicLandsRequest) {
   return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
 }
 
-function deleteCopy({ copy_id }: DeleteCopyRequest) {
+function deleteCopy({ copy_id, move_planned_swap }: DeleteCopyRequest) {
   if (failingCopyDeletes > 0) {
     failingCopyDeletes -= 1;
     return { data: null, error: networkFailure };
   }
   if (!collectionCopies.some((copy) => copy.copy_id === copy_id)) {
     return copyNotFound;
+  }
+  const heldFor = copyDetails.get(copy_id)?.held_for;
+  if (heldFor && !move_planned_swap) {
+    const message = `This copy is held by the planned swap for ${heldFor.name}. Send move_planned_swap: true to move that planned swap to the buylist and delete the copy.`;
+    return { data: null, error: { code: 'copy_held', message, details: 'move_planned_swap' } };
   }
   copyDeletes = [...copyDeletes, copy_id];
   removeCopyFromTheCollection(copy_id);
@@ -885,6 +1075,7 @@ function addToCollection(copies: { copyId: string; stack: ScanBatchStack }[]) {
       protected: false,
       price: null,
       deck: null,
+      held_for: null,
     };
     collectionCopies = [...ofPrinting, copy, ...collectionCopies.filter((row) => row.printing_id !== card_printing_id)];
   }
@@ -1026,6 +1217,9 @@ export const fakeSupabase = {
       | { query: DeckChangesQuery }
       | { query: RevertPreviewQuery }
       | { query: AddDeckCardPreviewQuery }
+      | { query: PlannedSwapsQuery }
+      | { query: BuylistQuery }
+      | { query: FreeCopiesQuery }
       | { query: Record<string, never> }
       | { query: CurrentPricesQuery }
       | { query: { text: string; limit: number } }
@@ -1047,7 +1241,11 @@ export const fakeSupabase = {
             | SetDeckCommanderRequest
             | SetBasicLandsRequest
             | RemoveDeckCardRequest
-            | RevertDeckChangesRequest;
+            | RevertDeckChangesRequest
+            | SwapInPlannedSwapRequest
+            | ClosePlannedSwapRequest
+            | MarkBuylistCardBoughtRequest
+            | CloseBuylistCardRequest;
         },
   ) {
     if (name === 'list_decks') {
@@ -1096,6 +1294,30 @@ export const fakeSupabase = {
     }
     if (name === 'remove_deck_card' && args && 'request' in args) {
       return removeDeckCard(args.request as RemoveDeckCardRequest);
+    }
+    if (name === 'get_needs_you_counts') {
+      return needsYouCounts();
+    }
+    if (name === 'list_planned_swaps' && args && 'query' in args) {
+      return plannedSwapList(args.query as PlannedSwapsQuery);
+    }
+    if (name === 'swap_in_planned_swap' && args && 'request' in args) {
+      return swapInPlannedSwap(args.request as SwapInPlannedSwapRequest);
+    }
+    if (name === 'close_planned_swap' && args && 'request' in args) {
+      return closePlannedSwap(args.request as ClosePlannedSwapRequest);
+    }
+    if (name === 'list_buylist' && args && 'query' in args) {
+      return buylistList(args.query as BuylistQuery);
+    }
+    if (name === 'mark_buylist_card_bought' && args && 'request' in args) {
+      return markBuylistCardBought(args.request as MarkBuylistCardBoughtRequest);
+    }
+    if (name === 'close_buylist_card' && args && 'request' in args) {
+      return closeBuylistCard(args.request as CloseBuylistCardRequest);
+    }
+    if (name === 'list_free_copies' && args && 'query' in args) {
+      return freeCopyList(args.query as FreeCopiesQuery);
     }
     if (name === 'list_user_tags') {
       return userTagList();
@@ -1314,6 +1536,11 @@ export function changeDeckElsewhere(deckId: string, change: DeckChange) {
   ownDeckChanges(deckId, [change, ...(deckChanges.get(deckId) ?? [])]);
 }
 
+export function holdCopyElsewhere(copyId: string, heldFor: CopyHeldFor) {
+  copyDetails.set(copyId, { ...copyDetails.get(copyId)!, free: false, held_for: heldFor });
+  collectionCopies = collectionCopies.map((copy) => (copy.copy_id === copyId ? { ...copy, held_for: heldFor } : copy));
+}
+
 export function allocateCopyElsewhere(copyId: string) {
   copyDetails.set(copyId, { ...copyDetails.get(copyId)!, free: false });
 }
@@ -1328,6 +1555,42 @@ export function decksOnTheServer() {
 
 export function deleteDeckOnTheServer(deckId: string) {
   decks = decks.filter((deck) => deck.deck_id !== deckId);
+}
+
+export function ownPlannedSwaps(swaps: PlannedSwap[]) {
+  plannedSwaps = swaps;
+}
+
+export function changePlannedSwapElsewhere(plannedSwapId: string, status: PlannedSwap['status']) {
+  plannedSwaps = plannedSwaps.map((swap) => (swap.planned_swap_id === plannedSwapId ? { ...swap, status, effect: null } : swap));
+}
+
+export function plannedSwapQueries() {
+  return plannedSwapQueriesSent;
+}
+
+export function failNeedsYouReads(count: number) {
+  failingNeedsYouReads = count;
+}
+
+export function ownBuylistCards(cards: BuylistCard[]) {
+  buylistCards = cards;
+}
+
+export function changeBuylistCardElsewhere(buylistCardId: string, status: BuylistCard['status']) {
+  buylistCards = buylistCards.map((card) => (card.buylist_card_id === buylistCardId ? { ...card, status, effect: null } : card));
+}
+
+export function buylistQueries() {
+  return buylistQueriesSent;
+}
+
+export function ownFreeCopies(oracleId: string, copies: FreeCopy[]) {
+  freeCopies.set(oracleId, copies);
+}
+
+export function failFreeCopyReads(count: number) {
+  failingFreeCopyReads = count;
 }
 
 export function deckWritesSent() {
@@ -1523,6 +1786,13 @@ export function resetFakeSupabase() {
   addPreviewEffects = new Map();
   failingAddPreviews = 0;
   heldAddPreviews = null;
+  plannedSwaps = [];
+  plannedSwapQueriesSent = [];
+  failingNeedsYouReads = 0;
+  buylistCards = [];
+  buylistQueriesSent = [];
+  freeCopies = new Map();
+  failingFreeCopyReads = 0;
   collectionTotal = emptyCollectionTotal;
   priceReads = [];
   exchangeRates = exchangeRatesOf(frankfurterCurrencies);

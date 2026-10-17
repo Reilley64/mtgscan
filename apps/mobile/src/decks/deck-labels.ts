@@ -96,7 +96,7 @@ export function effectStatus(effect: DeckChangeEffect, deckName: string) {
   };
 }
 
-export function revertEffectChip(effect: DeckChangeEffect, deckName: string) {
+export function effectChip(effect: DeckChangeEffect, deckName: string) {
   const { chip, spoken } = effectStatus(effect, deckName);
   return { ...chip, label: `${chip.label}: ${effect.rules.map(effectRuleName).join(', ')}`, accessibilityLabel: spoken };
 }
