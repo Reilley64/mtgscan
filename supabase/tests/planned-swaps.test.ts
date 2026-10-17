@@ -148,7 +148,7 @@ const refusals: [string, RefusalCase][] = [
       details: 'planned_swaps[1].incoming.oracle_id',
       call: async ({ user }, { deckId }) => ({
         idempotency_key: 'unknown-field',
-        planned_swaps: await twoItems(user, deckId, (item) => ({ ...item, incoming: { ...item.incoming, oracle_id: krenko } as PlannedSwapInput['incoming'] })),
+        planned_swaps: await twoItems(user, deckId, (item) => ({ ...item, incoming: { ...item.incoming, oracle_id: krenko } as unknown as PlannedSwapInput['incoming'] })),
       }),
     },
   ],
@@ -301,7 +301,7 @@ const refusals: [string, RefusalCase][] = [
       call: async ({ user }, { deckId }) => ({
         idempotency_key: 'protected-copy',
         planned_swaps: await twoItems(user, deckId, async (item) => {
-          await appRequest(user, 'set_copy_protected', { copy_id: item.incoming.copy_id, protected: true });
+          await appRequest(user, 'set_copy_protected', { copy_id: (item.incoming as { copy_id: string }).copy_id, protected: true });
           return item;
         }),
       }),
@@ -351,7 +351,7 @@ describe('refusals', () => {
       expect(JSON.parse(problem.details!)).toEqual(expected);
     }
     expect(await listed(client.user)).toEqual(before);
-    const lotus = (request as { planned_swaps: PlannedSwapInput[] }).planned_swaps[0]!.incoming.copy_id;
+    const lotus = ((request as { planned_swaps: PlannedSwapInput[] }).planned_swaps[0]!.incoming as { copy_id: string }).copy_id;
     expect(await copyOf(client.user, lotus)).toMatchObject({ free: true });
   });
 });

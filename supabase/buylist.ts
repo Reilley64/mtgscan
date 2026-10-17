@@ -1,7 +1,7 @@
 import type { CollectionCopyRow } from './collection';
 import type { Database } from './database.types';
 import type { DeckChangeEffect, DeckPriority } from './decks';
-import type { CloseNote, PlannedCopyLine } from './planned-swaps';
+import type { CloseNote, PlannedOutgoingInput, PlannedOutgoingLine } from './planned-swaps';
 
 export type BuylistCardStatus = Database['public']['Enums']['buylist_card_status'];
 
@@ -19,7 +19,7 @@ export type BuylistCard = {
   deck_name: string;
   commander_art_crop_uri: string | null;
   incoming: PlannedCardLine;
-  outgoing: PlannedCopyLine | null;
+  outgoing: PlannedOutgoingLine | null;
   as_commander: boolean;
   reason: string;
   status: BuylistCardStatus;
@@ -48,7 +48,7 @@ export type BuylistCardInput = {
   deck_id: string;
   expected_deck_revision: number;
   incoming: { oracle_id: string; as_commander?: boolean };
-  outgoing?: { copy_id: string };
+  outgoing?: PlannedOutgoingInput;
   reason: string;
 };
 

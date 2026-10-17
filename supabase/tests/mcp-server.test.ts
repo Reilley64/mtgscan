@@ -4,6 +4,7 @@ import type { Client } from '@modelcontextprotocol/client';
 
 import { claimsOf, mcpClient, mcpReadToolNames, mcpToolAnnotations, mcpToolNames, mcpWriteToolNames } from '../mcp-connection';
 import {
+  basicLand,
   catalogFixtureManifest,
   oracleIdOf,
   resetCardCatalog,
@@ -619,6 +620,44 @@ describe('planned swaps over HTTP', () => {
         },
       ],
       next_cursor: null,
+    });
+  });
+
+  test('a planned swap brings in a basic land and takes one out, and list_planned_swaps shows both basic land lines', async () => {
+    const { user, mcp, deckId } = await deckWithAFreeCopy();
+    const [plains, forest] = [basicLand('Plains').oracle_id, basicLand('Forest').oracle_id];
+    expect(
+      (await user.client.rpc('set_basic_lands', { request: { deck_id: deckId, counts: [{ oracle_id: forest, count: 2 }] } })).error,
+    ).toBeNull();
+
+    const created = await mcp.callTool({
+      name: 'create_planned_swaps',
+      arguments: {
+        idempotency_key: crypto.randomUUID(),
+        planned_swaps: [
+          {
+            ref: 'plains',
+            deck_id: deckId,
+            expected_deck_revision: 2,
+            incoming: { basic_land_oracle_id: plains },
+            outgoing: { basic_land_oracle_id: forest },
+            reason: 'A Plains casts Angelic Curator better than a Forest.',
+          },
+        ],
+      },
+    });
+
+    expect(created.isError).toBeFalsy();
+    const listed = await mcp.callTool({ name: 'list_planned_swaps', arguments: {} });
+    expect(listed.isError).toBeFalsy();
+    expect(listed.structuredContent).toMatchObject({
+      items: [
+        {
+          incoming: { kind: 'basic_land', oracle_id: plains, name: 'Plains' },
+          outgoing: { kind: 'basic_land', oracle_id: forest, name: 'Forest' },
+          as_commander: false,
+        },
+      ],
     });
   });
 

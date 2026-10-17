@@ -471,6 +471,7 @@ const toolChecks: Check[] = [
       return passIf(
         items.length === 1 &&
           item!.planned_swap_id === created.planned_swaps[0]!.planned_swap_id &&
+          item!.incoming.kind === 'copy' &&
           item!.incoming.copy_id === state.copyIds[0] &&
           item!.client_name === state.clients.public!.name,
         `${items.length} planned swap, client name ${item?.client_name}`,

@@ -420,12 +420,14 @@ const plannedCopyLine = z.strictObject({
   condition: condition.nullable(),
 });
 
+const plannedLine = z.union([plannedCopyLine, z.strictObject({ kind: z.literal('basic_land'), oracle_id: id, name: z.string() })]);
+
 const plannedSwapRow = z.strictObject({
   planned_swap_id: id,
   deck_id: id,
   deck_name: z.string(),
-  incoming: plannedCopyLine,
-  outgoing: plannedCopyLine.nullable(),
+  incoming: plannedLine,
+  outgoing: plannedLine.nullable(),
   as_commander: z.boolean(),
   reason: z.string(),
   status: plannedSwapStatus,
@@ -436,17 +438,27 @@ const plannedSwapRow = z.strictObject({
   effect: deckChangeEffect.nullable(),
 });
 
+const basicLandOracleId = id.describe("A basic land card's oracle_id, from basic_lands in get_deck.");
+
 const keyPattern = (minLength: number) => z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${minLength},64}$`));
 
 const plannedSwapInput = z.strictObject({
   ref: keyPattern(1).describe('A name for this planned swap, unique in the call.'),
   deck_id: id.describe("The deck's ID."),
   expected_deck_revision: z.number().int().min(0).describe('The deck revision that get_deck returned.'),
-  incoming: z.strictObject({
-    copy_id: id.describe('A free copy that the user owns. It must not be protected.'),
-    as_commander: z.boolean().optional().describe('Make the incoming copy a commander. Defaults to true when the outgoing copy is a commander.'),
-  }),
-  outgoing: z.strictObject({ copy_id: id.describe('A copy in the deck.') }).optional(),
+  incoming: z.union([
+    z.strictObject({
+      copy_id: id.describe('A free copy that the user owns. It must not be protected.'),
+      as_commander: z.boolean().optional().describe('Make the incoming copy a commander. Defaults to true when the outgoing copy is a commander.'),
+    }),
+    z.strictObject({ basic_land_oracle_id: basicLandOracleId.describe('One more of this basic land.') }),
+  ]),
+  outgoing: z
+    .union([
+      z.strictObject({ copy_id: id.describe('A copy in the deck.') }),
+      z.strictObject({ basic_land_oracle_id: basicLandOracleId.describe('One fewer of this basic land. The deck must have one.') }),
+    ])
+    .optional(),
   reason: z.string().min(20).max(600),
 });
 
@@ -469,7 +481,7 @@ const buylistCardRow = z.strictObject({
   deck_id: id,
   deck_name: z.string(),
   incoming: plannedCardLine,
-  outgoing: plannedCopyLine.nullable(),
+  outgoing: plannedLine.nullable(),
   as_commander: z.boolean(),
   reason: z.string(),
   status: buylistCardStatus,
@@ -713,7 +725,7 @@ export const tools: Tool[] = [
     title: 'List planned swaps',
     description: [
       "Read the user's planned swaps in every state, newest first: open, swapped_in, closed, and moved_to_buylist. Filter them by deck_id or status.",
-      'Each planned swap has its deck, the incoming copy it holds, the outgoing deck card, the reason, the status, how it closed, the name of the AI client that made it, and its times.',
+      'Each planned swap has its deck, the incoming copy it holds or the incoming basic land, the outgoing deck card, the reason, the status, how it closed, the name of the AI client that made it, and its times.',
       'An open planned swap also has its current effect: the Commander rules that swapping it in would break.',
     ].join(' '),
     annotations: readOnly,
@@ -751,7 +763,8 @@ export const tools: Tool[] = [
     title: 'Create planned swaps',
     description: [
       'Make 1 to 10 planned swaps in one call, all saved or none.',
-      'Each planned swap names a free copy that the user owns as the incoming card, an optional outgoing copy in the deck, and a reason of 20 to 600 characters.',
+      'Each planned swap names the incoming card, an optional outgoing card, and a reason of 20 to 600 characters.',
+      'The incoming card is a free copy that the user owns, or a basic land. The outgoing card is a copy in the deck, or a basic land, which means one fewer of it.',
       'Send the deck revision from get_deck, and a new idempotency_key for each new call. A retry with the same key and input returns the first result.',
       'This tool does not change any deck. The planned swap holds the copy until the user swaps it in or closes it in the app.',
       'Find free copies with search_collection, rows copies, and is_free. Never choose a protected copy.',
@@ -776,7 +789,8 @@ export const tools: Tool[] = [
     title: 'Create buylist cards',
     description: [
       'Add 1 to 10 buylist cards in one call, all saved or none.',
-      'Each buylist card names a card that the user has to buy for a deck, an optional outgoing copy in the deck, and a reason of 20 to 600 characters.',
+      'Each buylist card names a card that the user has to buy for a deck, an optional outgoing card, and a reason of 20 to 600 characters.',
+      'The outgoing card is a copy in the deck, or a basic land, which means one fewer of it.',
       'Send the deck revision from get_deck, and a new idempotency_key for each new call. A retry with the same key and input returns the first result.',
       'This tool does not change any deck. The user marks the buylist card bought in the app after scanning a new copy.',
       'When the user has a free copy of the card that is not protected, make a planned swap with it instead. Basic lands are never bought.',
