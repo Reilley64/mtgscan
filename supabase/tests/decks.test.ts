@@ -61,7 +61,7 @@ describe('creating a deck', () => {
 
     const deckId = await created(user, '  Atraxa ');
 
-    const expected: DeckRow = {
+    const expected: Omit<DeckRow, 'needs_you_count'> = {
       deck_id: deckId,
       name: 'Atraxa',
       priority: 'medium',
@@ -71,7 +71,7 @@ describe('creating a deck', () => {
       evaluation: null,
       revision: 0,
     };
-    expect(await decksOf(user)).toEqual([expected]);
+    expect(await decksOf(user)).toEqual([{ ...expected, needs_you_count: 0 }]);
     expect((await getDeck(user.client, { deck_id: deckId })).deck).toEqual({
       ...expected,
       evaluation: null,

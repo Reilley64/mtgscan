@@ -83,6 +83,8 @@ const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
 
 const cardPageSections = ['Copies', 'Decks', 'Prices', 'Rules'] as const;
 
+const deckSections = ['Cards', 'Planned', 'History'] as const;
+
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View className="gap-sm">
@@ -208,6 +210,7 @@ function Chips() {
 function Toggles() {
   const [protect, setProtect] = useState(false);
   const [section, setSection] = useState<(typeof cardPageSections)[number]>('Copies');
+  const [deckSection, setDeckSection] = useState<(typeof deckSections)[number]>('Cards');
   return (
     <Section title="Toggles">
       <View className="flex-row gap-sm">
@@ -226,6 +229,13 @@ function Toggles() {
         selected={section}
         labelOf={(value) => value}
         onSelect={setSection}
+      />
+      <ToggleGroup
+        values={deckSections}
+        selected={deckSection}
+        labelOf={(value) => value}
+        countOf={(value) => (value === 'Planned' ? 2 : 0)}
+        onSelect={setDeckSection}
       />
     </Section>
   );
@@ -705,6 +715,13 @@ function CommanderCards() {
     <Section title="Commander cards">
       <CommanderGalleryCard name="Atraxa" chips={[{ label: 'Medium priority' }, { label: '0 cards' }]} commanders={[]} onPress={() => {}} />
       <CommanderGalleryCard name="Sol Ring" chips={[{ label: 'Medium priority' }, { label: '1 card' }]} commanders={[solRingCommander]} onPress={() => {}} />
+      <CommanderGalleryCard
+        name="Krenko"
+        chips={[{ label: 'High priority' }, { label: '1 card' }]}
+        commanders={[solRingCommander]}
+        needsYouCount={2}
+        onPress={() => {}}
+      />
       <CommanderGalleryCard
         name="Partners"
         chips={[{ label: 'Low priority' }, { label: '2 cards' }]}

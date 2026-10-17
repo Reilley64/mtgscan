@@ -39,11 +39,16 @@ function DeckCardGrid({ cards, violationKeys, onOpenCard, menuActionsOf }: DeckC
           key={card.copy_id}
           uri={card.image_uris[0]}
           sheen={sheenOf(card.finish)}
-          accessibilityLabel={spokenCopy(card).join(', ')}
+          accessibilityLabel={[...spokenCopy(card), ...(card.planned_out ? ['planned out'] : [])].join(', ')}
           inViolation={violationKeys.has(card.copy_id)}
           menuActions={menuActionsOf(card)}
-          onPress={() => onOpenCard(card)}
-        />
+          onPress={() => onOpenCard(card)}>
+          {card.planned_out ? (
+            <Text variant="meta" numberOfLines={1} className="text-center text-outgoing">
+              Planned out
+            </Text>
+          ) : null}
+        </CardTile>
       ))}
     </CardGrid>
   );

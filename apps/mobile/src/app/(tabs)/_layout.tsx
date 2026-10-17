@@ -1,11 +1,14 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
+import { useNeedsYouCounts } from '@/needs-you/needs-you-counts';
 import { colors, typography } from '@/theme';
 
 export default function TabsLayout() {
+  const { total } = useNeedsYouCounts();
   return (
     <NativeTabs
       backgroundColor={colors.background}
+      badgeBackgroundColor={colors.badge}
       shadowColor={colors.line}
       tintColor={colors.primary}
       iconColor={{ default: colors.textDim, selected: colors.primary }}
@@ -16,6 +19,7 @@ export default function TabsLayout() {
       <NativeTabs.Trigger name="(recent)">
         <NativeTabs.Trigger.Label>Recent</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="clock" />
+        {total > 0 ? <NativeTabs.Trigger.Badge>{String(total)}</NativeTabs.Trigger.Badge> : null}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(collection)">
         <NativeTabs.Trigger.Label>Collection</NativeTabs.Trigger.Label>

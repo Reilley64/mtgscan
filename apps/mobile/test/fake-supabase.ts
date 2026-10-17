@@ -43,6 +43,7 @@ import type {
   DeckQuery,
   DeleteDeckRequest,
   MarkDeckUsedRequest,
+  NeedsYouCounts,
   RemoveDeckCardRequest,
   RenameDeckRequest,
   RevertDeckChangesRequest,
@@ -547,6 +548,7 @@ function deckList() {
         estimated_bracket: evaluation.estimated_bracket,
         bracket_stale: evaluation.bracket_stale,
       },
+      needs_you_count: openNeedsYouItems().filter((item) => item.deck_id === row.deck_id).length,
     }));
   return { data: { items }, error: null };
 }
@@ -556,7 +558,31 @@ function deckRead({ deck_id }: DeckQuery) {
     return { data: null, error: networkFailure };
   }
   const deck = decks.find((candidate) => candidate.deck_id === deck_id);
-  return deck ? { data: deck, error: null } : deckNotFound;
+  if (!deck) {
+    return deckNotFound;
+  }
+  const plannedOut = new Set(
+    plannedSwaps
+      .filter((swap) => swap.status === 'open' && swap.deck_id === deck_id)
+      .flatMap((swap) => (swap.outgoing?.kind === 'copy' ? [swap.outgoing.copy_id] : [])),
+  );
+  return { data: { ...deck, cards: deck.cards.map((card) => ({ ...card, planned_out: plannedOut.has(card.copy_id) })) }, error: null };
+}
+
+function openNeedsYouItems() {
+  return [...plannedSwaps, ...buylistCards].filter((item) => item.status === 'open');
+}
+
+function needsYouCounts(): { data: NeedsYouCounts; error: null } {
+  const items = openNeedsYouItems();
+  const deckIds = [...new Set(items.map((item) => item.deck_id))];
+  return {
+    data: {
+      total: items.length,
+      decks: deckIds.map((deckId) => ({ deck_id: deckId, count: items.filter((item) => item.deck_id === deckId).length })),
+    },
+    error: null,
+  };
 }
 
 const deckChangePageSize = 20;
@@ -717,6 +743,7 @@ function deckCardOf(details: CopyDetails, addedAt: string): DeckCard {
     type_line,
     mana_value: 0,
     colors: [],
+    planned_out: false,
   };
 }
 
@@ -1261,6 +1288,9 @@ export const fakeSupabase = {
     }
     if (name === 'remove_deck_card' && args && 'request' in args) {
       return removeDeckCard(args.request as RemoveDeckCardRequest);
+    }
+    if (name === 'get_needs_you_counts') {
+      return needsYouCounts();
     }
     if (name === 'list_planned_swaps' && args && 'query' in args) {
       return plannedSwapList(args.query as PlannedSwapsQuery);

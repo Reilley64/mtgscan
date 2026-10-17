@@ -6,6 +6,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Chip, StatusChipButton, type StatusChipButtonProps, type StatusChipProps } from '@/components/atoms/chip';
 import { CommanderAvatar } from '@/components/atoms/commander-avatar';
+import { CountBadge } from '@/components/atoms/count-badge';
 import { dashedOutlineClass } from '@/components/atoms/dashed-outline';
 import { Text } from '@/components/atoms/text';
 import { TileButton } from '@/components/atoms/tile-button';
@@ -107,16 +108,19 @@ export function DeckBanner({ name, chips, chipButtons, commanders }: DeckBannerP
 }
 
 type CommanderGalleryCardProps = CommanderCardProps & {
+  needsYouCount?: number;
   onPress: () => void;
 };
 
-export function CommanderGalleryCard({ name, chips, commanders, onPress }: CommanderGalleryCardProps) {
+export function CommanderGalleryCard({ name, chips, commanders, needsYouCount = 0, onPress }: CommanderGalleryCardProps) {
+  const needsYou = needsYouCount > 0 ? [`Needs you ${needsYouCount}`] : [];
   return (
     <TileButton
-      accessibilityLabel={[name, ...chips.map((chip) => chip.accessibilityLabel ?? chip.label)].join(', ')}
+      accessibilityLabel={[name, ...needsYou, ...chips.map((chip) => chip.accessibilityLabel ?? chip.label)].join(', ')}
       accessibilityHint={chips.find((chip) => chip.accessibilityHint)?.accessibilityHint}
       onPress={onPress}>
       <CommanderCard name={name} chips={chips} commanders={commanders} />
+      {needsYouCount > 0 ? <CountBadge count={needsYouCount} className="absolute left-md top-md" /> : null}
     </TileButton>
   );
 }

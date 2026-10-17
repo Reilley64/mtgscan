@@ -309,6 +309,7 @@ describe('the MCP server over HTTP', () => {
       'finish',
       'mana_value',
       'name',
+      'planned_out',
       'price',
       'printing_id',
       'protected',
@@ -504,10 +505,10 @@ describe('the read tools over HTTP', () => {
     expect(await summaryOf(mcp, name, args())).toBe(summary);
   });
 
-  test('list_decks returns the deck revision of each deck', async () => {
+  test('list_decks returns the deck revision and the Needs you count of each deck', async () => {
     const result = await mcp.callTool({ name: 'list_decks', arguments: {} });
 
-    expect(result.structuredContent).toMatchObject({ items: [{ deck_id: deckId, name: 'Tymna', revision: 2 }] });
+    expect(result.structuredContent).toMatchObject({ items: [{ deck_id: deckId, name: 'Tymna', revision: 2, needs_you_count: 0 }] });
   });
 
   test('a bad cursor gets invalid-cursor and its pointer', async () => {

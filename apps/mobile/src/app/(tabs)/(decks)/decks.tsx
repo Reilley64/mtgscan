@@ -66,6 +66,7 @@ export default function DecksScreen() {
               name={deck.name}
               chips={galleryCardChips(deck)}
               commanders={deck.commanders}
+              needsYouCount={deck.needs_you_count}
               onPress={() => openDeck(deck.deck_id)}
             />
           ))
