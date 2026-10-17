@@ -57,6 +57,10 @@ async function deckWithCopies(user: TestUser, name: string, copies: number): Pro
   return deckId;
 }
 
+function plural(amount: number, one: string): string {
+  return `${amount} ${amount === 1 ? one : `${one}s`}`;
+}
+
 async function connected(user: TestUser): Promise<AiClient & { mcp: Client }> {
   const aiClient = await connectAiClient(user);
   const mcp = await mcpClient(mcpServerUrl, aiClient.token);
@@ -181,6 +185,34 @@ describe('the MCP server over HTTP', () => {
     expect((getDeck.outputSchema!.anyOf as { required: string[] }[])[0]!.required).toEqual(
       expect.arrayContaining(['deck_id', 'cards', 'evaluation']),
     );
+    const listPlannedSwaps = tools.find(({ name }) => name === 'list_planned_swaps')!;
+    expect(listPlannedSwaps.inputSchema.required).toBeUndefined();
+    expect(listPlannedSwaps.inputSchema.properties).toMatchObject({
+      status: { enum: ['open', 'swapped_in', 'closed', 'moved_to_buylist'] },
+    });
+    const createPlannedSwaps = tools.find(({ name }) => name === 'create_planned_swaps')!;
+    expect(mcpWriteToolNames).toEqual(['create_planned_swaps']);
+    expect(createPlannedSwaps.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+    expect(createPlannedSwaps.inputSchema).toMatchObject({
+      type: 'object',
+      required: ['idempotency_key', 'planned_swaps'],
+      additionalProperties: false,
+      properties: { planned_swaps: { minItems: 1, maxItems: 10, items: { additionalProperties: false } } },
+    });
+    expect(createPlannedSwaps.outputSchema).toMatchObject({
+      type: 'object',
+      anyOf: [
+        expect.objectContaining({ required: ['planned_swaps', 'replayed'], additionalProperties: false }),
+        expect.objectContaining({ required: ['type', 'title', 'detail', 'retryable'] }),
+      ],
+    });
+    for (const sentence of [
+      'This tool does not change any deck. The planned swap holds the copy until the user swaps it in or closes it in the app.',
+      'Never choose a protected copy.',
+      'Read past planned swaps with list_planned_swaps first.',
+    ]) {
+      expect(createPlannedSwaps.description).toContain(sentence);
+    }
   });
 
   test('the descriptions carry the catalog sentence, the USD sentence on each tool that returns prices, the bracket sentence on the deck reads, and the declined write sentence on the write tools', async () => {
@@ -195,10 +227,20 @@ describe('the MCP server over HTTP', () => {
     expect(withSentence(declinedWriteSentence)).toEqual(mcpWriteToolNames);
   });
 
-  test('the server instructions say that the AI cannot change a deck', async () => {
+  test('the server instructions say that the AI cannot change a deck, plans swaps with free copies, never holds a protected copy, follows deck priority, and recommends a move between decks in the chat', async () => {
     const { mcp } = await connected(await signUpNewUser());
 
-    expect(mcp.getInstructions()).toContain('You cannot change a deck or the collection.');
+    const instructions = mcp.getInstructions();
+
+    for (const sentence of [
+      'You cannot change a deck or the collection.',
+      'To suggest a card that the user owns, make a planned swap with a free copy of it.',
+      'Never hold a protected copy.',
+      'When two decks want a card and there is one copy for them, the deck with the higher deck priority should get it.',
+      'Do not plan a move between decks. Recommend it in the chat, and the user makes it.',
+    ]) {
+      expect(instructions).toContain(sentence);
+    }
   });
 
   test('also serves a client on the 2025 protocol', async () => {
@@ -415,6 +457,7 @@ describe('the read tools over HTTP', () => {
     ['list_decks', () => ({}), '1 deck.'],
     ['get_deck', () => ({ deck_id: deckId }), 'Tymna: 2 cards at deck revision 2.'],
     ['list_deck_changes', () => ({ deck_id: deckId, limit: 1 }), '1 deck change. More with next_cursor.'],
+    ['list_planned_swaps', () => ({ deck_id: deckId }), '0 planned swaps.'],
   ])('%s returns its result without image URIs, with a one-line summary and the minified JSON', async (name, args, summary) => {
     expect(await summaryOf(mcp, name, args())).toBe(summary);
   });
@@ -458,6 +501,7 @@ describe('the read tools over HTTP', () => {
     ['search_collection', { rows: 'copies' }],
     ['list_card_printings', {}],
     ['list_deck_changes', {}],
+    ['list_planned_swaps', {}],
   ])(
     '%s refuses a page of more than 50 rows with invalid-argument on /limit',
     async (name, args) => {
@@ -473,4 +517,91 @@ describe('the read tools over HTTP', () => {
       });
     },
   );
+});
+
+describe('planned swaps over HTTP', () => {
+  async function deckWithAFreeCopy() {
+    const user = await signUpNewUser();
+    const deckId = await deckWithCopies(user, 'Tymna', 1);
+    const scanned = stack(angelicCurator);
+    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
+    const { mcp } = await connected(user);
+    return { user, mcp, deckId, freeCopy: scanned.copy_ids[0]! };
+  }
+
+  function plannedSwapArguments(deckId: string, copyId: string) {
+    return {
+      idempotency_key: crypto.randomUUID(),
+      planned_swaps: [
+        {
+          ref: 'curator',
+          deck_id: deckId,
+          expected_deck_revision: 1,
+          incoming: { copy_id: copyId },
+          reason: 'A second Angelic Curator keeps the artifacts safe.',
+        },
+      ],
+    };
+  }
+
+  test('create_planned_swaps saves a planned swap with its warnings, and list_planned_swaps reads it back, each with a one-line summary and the minified JSON', async () => {
+    const { mcp, deckId, freeCopy } = await deckWithAFreeCopy();
+
+    const result = await mcp.callTool({ name: 'create_planned_swaps', arguments: plannedSwapArguments(deckId, freeCopy) });
+
+    expect(result.isError).toBeFalsy();
+    const created = result.structuredContent as { planned_swaps: { ref: string; planned_swap_id: string; warnings: unknown[] }[]; replayed: boolean };
+    const warningCount = created.planned_swaps[0]!.warnings.length;
+    expect(textOf(result)).toBe(`Saved 1 planned swap with ${plural(warningCount, 'warning')}.\n${JSON.stringify(created)}`);
+    expect(created.replayed).toBe(false);
+    expect(created.planned_swaps.map(({ ref }) => ref)).toEqual(['curator']);
+
+    expect(await summaryOf(mcp, 'list_planned_swaps', { status: 'open' })).toBe('1 planned swap.');
+    const listed = await mcp.callTool({ name: 'list_planned_swaps', arguments: {} });
+    expect(listed.structuredContent).toMatchObject({
+      items: [
+        {
+          planned_swap_id: created.planned_swaps[0]!.planned_swap_id,
+          deck_id: deckId,
+          deck_name: 'Tymna',
+          incoming: { kind: 'copy', copy_id: freeCopy, name: 'Angelic Curator' },
+          outgoing: null,
+          status: 'open',
+          close_note: null,
+          client_name: 'Test AI chat',
+        },
+      ],
+      next_cursor: null,
+    });
+  });
+
+  test('a copy that is not free comes back as copy-not-free with its pointer', async () => {
+    const { mcp, deckId, freeCopy } = await deckWithAFreeCopy();
+    await mcp.callTool({ name: 'create_planned_swaps', arguments: plannedSwapArguments(deckId, freeCopy) });
+
+    const result = await mcp.callTool({ name: 'create_planned_swaps', arguments: plannedSwapArguments(deckId, freeCopy) });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      type: `${problems}copy-not-free`,
+      title: 'Copy not free',
+      detail: 'planned_swaps[0].incoming.copy_id is in a deck or held by another planned swap. Choose a free copy.',
+      pointer: '/planned_swaps/0/incoming/copy_id',
+      retryable: false,
+    });
+  });
+
+  test('a swapped in deck change lists its kind, reason, and client name', async () => {
+    const { user, mcp, deckId, freeCopy } = await deckWithAFreeCopy();
+    const created = await mcp.callTool({ name: 'create_planned_swaps', arguments: plannedSwapArguments(deckId, freeCopy) });
+    const plannedSwapId = (created.structuredContent as { planned_swaps: { planned_swap_id: string }[] }).planned_swaps[0]!.planned_swap_id;
+    expect((await user.client.rpc('swap_in_planned_swap', { request: { planned_swap_id: plannedSwapId } })).error).toBeNull();
+
+    const result = await mcp.callTool({ name: 'list_deck_changes', arguments: { deck_id: deckId, limit: 1 } });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toMatchObject({
+      items: [{ kind: 'swapped_in', reason: 'A second Angelic Curator keeps the artifacts safe.', client_name: 'Test AI chat' }],
+    });
+  });
 });

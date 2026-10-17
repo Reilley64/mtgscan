@@ -23,6 +23,10 @@ const instructions = [
   "A deck is the cards in the user's deck box now.",
   'You can read the card catalog, the collection, and the decks.',
   'You cannot change a deck or the collection. The user makes every deck change in the app.',
+  'To suggest a card that the user owns, make a planned swap with a free copy of it. The planned swap holds that copy until the user swaps it in or closes it.',
+  'Never hold a protected copy. The user keeps protected copies out of decks.',
+  'When two decks want a card and there is one copy for them, the deck with the higher deck priority should get it. Between decks of equal priority, decide which deck needs it more.',
+  'Do not plan a move between decks. Recommend it in the chat, and the user makes it.',
 ].join(' ');
 const toolsByName = new Map(tools.map((tool) => [tool.name, tool]));
 

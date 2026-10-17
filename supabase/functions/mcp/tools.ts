@@ -23,8 +23,11 @@ type ToolDefinition<Output extends z.ZodType> = Omit<Tool, 'inputSchema' | 'outp
 const pageSize = { default: 20, max: 50 };
 
 const readOnly: ToolAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
+const write: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 
 const usdPrices = 'Prices are current Scryfall prices in USD (TCGplayer Market). There is no other currency.';
+const declinedWrite =
+  'If the user declines this call, do not call it again. Tell the user that nothing was saved, and ask what they want to change.';
 const estimatedBracket =
   'The estimated bracket is an estimate for a pregame conversation, not a certified bracket. Signals labelled heuristic are not official.';
 
@@ -83,7 +86,7 @@ const deckRule = z.enum(['no_commander', 'commander_eligibility', 'partner', 'de
 const nextCursor = z.string().nullable();
 const integer = z.number().int();
 
-function plural(amount: number, one: string, many: string): string {
+function plural(amount: number, one: string, many = `${one}s`): string {
   return `${amount} ${amount === 1 ? one : many}`;
 }
 
@@ -379,10 +382,81 @@ const deckChangeLine = z.union([
 const deckChange = z.strictObject({
   deck_change_id: id,
   revision: integer,
-  kind: z.enum(['added', 'removed', 'made_commander', 'made_partner', 'moved_to_main_deck', 'basic_lands', 'removed_from_collection', 'revert']),
+  kind: z.enum([
+    'added',
+    'removed',
+    'made_commander',
+    'made_partner',
+    'moved_to_main_deck',
+    'basic_lands',
+    'removed_from_collection',
+    'revert',
+    'swapped_in',
+  ]),
   changed_at: z.string(),
   reverted: z.boolean(),
+  reason: z.string().nullable(),
+  client_name: z.string().nullable(),
   lines: z.array(deckChangeLine),
+});
+
+const plannedSwapStatus = z.enum(['open', 'swapped_in', 'closed', 'moved_to_buylist']);
+const closeNote = z.enum(['closed_by_user', 'closed_by_ai_client', 'outgoing_left_deck', 'held_copy_deleted', 'held_copy_reverted']);
+
+const deckChangeEffect = z.strictObject({
+  kind: z.enum(['would_make_invalid', 'adds_violation']),
+  rules: z.array(z.strictObject({ rule: deckRule, colors: z.array(color).optional() })),
+});
+
+const plannedCopyLine = z.strictObject({
+  kind: z.literal('copy'),
+  copy_id: id,
+  name: z.string(),
+  type_line: z.string(),
+  set: z.string().nullable(),
+  collector_number: z.string().nullable(),
+  finish: finish.nullable(),
+  condition: condition.nullable(),
+});
+
+const plannedSwapRow = z.strictObject({
+  planned_swap_id: id,
+  deck_id: id,
+  deck_name: z.string(),
+  incoming: plannedCopyLine,
+  outgoing: plannedCopyLine.nullable(),
+  as_commander: z.boolean(),
+  reason: z.string(),
+  status: plannedSwapStatus,
+  close_note: closeNote.nullable(),
+  client_name: z.string().nullable(),
+  created_at: z.string(),
+  status_changed_at: z.string(),
+  effect: deckChangeEffect.nullable(),
+});
+
+const keyPattern = (minLength: number) => z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${minLength},64}$`));
+
+const plannedSwapInput = z.strictObject({
+  ref: keyPattern(1).describe('A name for this planned swap, unique in the call.'),
+  deck_id: id.describe("The deck's ID."),
+  expected_deck_revision: z.number().int().min(0).describe('The deck revision that get_deck returned.'),
+  incoming: z.strictObject({
+    copy_id: id.describe('A free copy that the user owns. It must not be protected.'),
+    as_commander: z.boolean().optional().describe('Make the incoming copy a commander. Defaults to true when the outgoing copy is a commander.'),
+  }),
+  outgoing: z.strictObject({ copy_id: id.describe('A copy in the deck.') }).optional(),
+  reason: z.string().min(20).max(600),
+});
+
+const plannedSwapWarning = z.union([
+  z.strictObject({ code: z.literal('would_break_validity'), effect: deckChangeEffect }),
+  z.strictObject({ code: z.enum(['replaces_commander', 'rules_stale']) }),
+]);
+
+const createdPlannedSwaps = z.strictObject({
+  planned_swaps: z.array(z.strictObject({ ref: z.string(), planned_swap_id: id, warnings: z.array(plannedSwapWarning) })),
+  replayed: z.boolean(),
 });
 
 export const tools: Tool[] = [
@@ -413,7 +487,7 @@ export const tools: Tool[] = [
       "Search the user's copies with the filters of search_catalog, plus finish, condition, language, deck, user tag, free, protected, and allocated filters.",
       'rows entries, the default, returns collection entries: the copies that share a card printing, finish, condition, language, and protected flag, with their quantity and free quantity.',
       'rows copies returns each copy with its copy_id and the deck it is in.',
-      'A free copy is not in a deck. A protected copy is one the user keeps out of decks.',
+      'A free copy is not in a deck or held by a planned swap. A protected copy is one the user keeps out of decks.',
       usdPrices,
     ].join(' '),
     annotations: readOnly,
@@ -577,8 +651,10 @@ export const tools: Tool[] = [
   defineTool({
     name: 'list_deck_changes',
     title: 'List deck changes',
-    description:
+    description: [
       "Read a deck's change history, newest first. Each deck change lists the copies and basic lands moved into or out of the deck, and the commanders made or moved to the main deck. A reverted deck change was undone by a later revert.",
+      'A swapped_in deck change came from a planned swap, and keeps its reason and the name of the AI client that made it.',
+    ].join(' '),
     annotations: readOnly,
     postgresFunction: 'list_deck_changes',
     input: z.strictObject({
@@ -588,5 +664,49 @@ export const tools: Tool[] = [
     output: z.strictObject({ next_cursor: nextCursor, items: z.array(deckChange) }),
     summary: (result) => pageSummary(plural(result.items.length, 'deck change', 'deck changes'), result.next_cursor),
     tooLargeHint: 'Ask for fewer deck changes with limit.',
+  }),
+  defineTool({
+    name: 'list_planned_swaps',
+    title: 'List planned swaps',
+    description: [
+      "Read the user's planned swaps in every state, newest first: open, swapped_in, closed, and moved_to_buylist. Filter them by deck_id or status.",
+      'Each planned swap has its deck, the incoming copy it holds, the outgoing deck card, the reason, the status, how it closed, the name of the AI client that made it, and its times.',
+      'An open planned swap also has its current effect: the Commander rules that swapping it in would break.',
+    ].join(' '),
+    annotations: readOnly,
+    postgresFunction: 'list_planned_swaps',
+    input: z.strictObject({
+      deck_id: id.optional().describe("Only this deck's planned swaps."),
+      status: plannedSwapStatus.optional().describe('Only planned swaps in this state. Every state by default.'),
+      ...page,
+    }),
+    output: z.strictObject({ next_cursor: nextCursor, items: z.array(plannedSwapRow) }),
+    summary: (result) => pageSummary(plural(result.items.length, 'planned swap'), result.next_cursor),
+    tooLargeHint: 'Ask for fewer planned swaps with limit, or filter by deck_id or status.',
+  }),
+  defineTool({
+    name: 'create_planned_swaps',
+    title: 'Create planned swaps',
+    description: [
+      'Make 1 to 10 planned swaps in one call, all saved or none.',
+      'Each planned swap names a free copy that the user owns as the incoming card, an optional outgoing copy in the deck, and a reason of 20 to 600 characters.',
+      'Send the deck revision from get_deck, and a new idempotency_key for each new call. A retry with the same key and input returns the first result.',
+      'This tool does not change any deck. The planned swap holds the copy until the user swaps it in or closes it in the app.',
+      'Find free copies with search_collection, rows copies, and is_free. Never choose a protected copy.',
+      'Read past planned swaps with list_planned_swaps first.',
+      declinedWrite,
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'create_planned_swaps',
+    input: z.strictObject({
+      idempotency_key: keyPattern(8).describe('8 to 64 of A-Z a-z 0-9 _ -. Send a new key for each new call.'),
+      planned_swaps: z.array(plannedSwapInput).min(1).max(10),
+    }),
+    output: createdPlannedSwaps,
+    summary: (result) => {
+      const warningCount = result.planned_swaps.reduce((count, swap) => count + swap.warnings.length, 0);
+      return `${result.replayed ? 'Replayed' : 'Saved'} ${plural(result.planned_swaps.length, 'planned swap')} with ${plural(warningCount, 'warning')}.`;
+    },
+    tooLargeHint: 'Send fewer planned swaps in one call.',
   }),
 ];
