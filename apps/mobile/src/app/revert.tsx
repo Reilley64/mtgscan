@@ -12,7 +12,7 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { WarningLine } from '@/components/molecules/warning-line';
 import { DrawerSheet } from '@/components/templates/drawer-sheet';
 import { changeLineOf } from '@/decks/deck-change-lines';
-import { revertEffectChip } from '@/decks/deck-labels';
+import { effectChip } from '@/decks/deck-labels';
 import { revertDeckChanges } from '@/decks/deck-writes';
 import { blockMessage, protectedCopyMessage, undoText } from '@/decks/revert-labels';
 import { useRevertPreview } from '@/decks/use-revert-preview';
@@ -70,7 +70,7 @@ export default function RevertSheet() {
       {preview ? (
         <>
           <Text>{undoText(kind, preview.revision - Number(changeRevision), deckName)}</Text>
-          {preview.effect ? <Chip {...revertEffectChip(preview.effect, deckName)} /> : null}
+          {preview.effect ? <Chip {...effectChip(preview.effect, deckName)} /> : null}
           {preview.lines.map(changeLineOf).map(({ key, ...line }) => (
             <ChangeLine key={key} {...line} />
           ))}
