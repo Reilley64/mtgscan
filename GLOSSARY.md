@@ -68,7 +68,7 @@ The current price of a card printing and finish when copies were added to the co
 _Avoid_: Purchase price, cost, price at add
 
 **Protected copy**:
-A copy that the user keeps out of decks. Only a free copy can be protected. The AI never offers a protected copy as the reason a card is available. A user action that would put a protected copy into a deck warns the user and unprotects it on confirmation. When the only free copies are protected, promoting a deck suggestion holds a protected copy after a warning.
+A copy that the user keeps out of decks. Only a free copy can be protected. An AI client never holds a protected copy in a planned swap. A user action that would put a protected copy into a deck warns the user and unprotects it on confirmation.
 _Avoid_: Don't touch, collection copy
 
 **User tag**:
@@ -139,7 +139,7 @@ A release gate on the iPhone. The owner scans the 30 cards of the test deck in o
 ## Decks and changes
 
 **Deck**:
-A Commander deck made from exact copies in the collection. It has a name, a deck priority, commanders, and a main deck. Each deck card points to one copy. Basic lands are the exception. A deck starts empty. Two decks can have the same name.
+A Commander deck made from exact copies in the collection. It is the cards in the user's deck box now, not a plan. It has a name, a deck priority, commanders, and a main deck. Each deck card points to one copy. Basic lands are the exception. A deck starts empty. Two decks can have the same name.
 _Avoid_: Decklist
 
 **Commander**:
@@ -165,7 +165,7 @@ _Avoid_: Spare, available copy
 A card with the basic supertype, including Wastes and snow-covered basics. mtgscan does not track basic lands as owned. A deck counts them by basic land card: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. They never appear in the collection, allocation, or buylist.
 
 **Deck priority**:
-How strongly the user wants to keep a deck's cards: high, medium, or low. The user sets it. When two decks want a card and there is only one copy for them, the deck with the higher priority should get it. Between decks of equal priority, the AI decides which deck needs the card more. Deck suggestions follow this: an AI may suggest moving a copy from a lower-priority deck to a higher-priority one and should not suggest the reverse, but nothing stops it. Priority does not restrict the user.
+How strongly the user wants to keep a deck's cards: high, medium, or low. The user sets it. When two decks want a card and there is only one copy for them, the deck with the higher priority should get it. Between decks of equal priority, the AI decides which deck needs the card more. An AI client follows this in its advice, but nothing enforces it. Priority does not restrict the user.
 
 **Deck revision**:
 A number on each deck that starts at 0. Every deck change raises it by one. Creating, renaming, and deleting a deck, and changing its deck priority, leave it as it is.
@@ -206,20 +206,16 @@ _Avoid_: Rules snapshot, catalog data
 The stored deck validity, violations, chosen color, estimated bracket, and bracket signals of one deck, with the deck revision it judged and the time of the rules data it read. Each deck change saves a new deck evaluation. Each rules data import, and each Oracle tag that is disabled or enabled, recomputes the deck evaluation of every deck. A deck evaluation is behind when it read older rules data than the latest import, or an Oracle tag changed after it was judged. A failed recompute leaves it behind. mtgscan keeps only the current one. An empty deck has none. Its deck validity is stale when the card catalog is stale or the deck evaluation is behind it. Its estimated bracket is stale when any source of its rules data is stale or the deck evaluation is behind it. A source that was never imported is not stale.
 _Avoid_: Validity result, deck check
 
-**Deck suggestion**:
-An AI proposal to add a card to a deck, optionally replacing a deck card, with the AI's reason. It always names an incoming card. It is open, promoted, dismissed, withdrawn, or stale. An AI cannot suggest replacing a card that has already left the deck. An open suggestion becomes stale when its outgoing card leaves the deck later. Any connected AI client can withdraw an open suggestion or replace its reason, and a withdrawn suggestion stays withdrawn. Two deck suggestions sent in one call to move a card from one deck to another are paired suggestions, and each names the other. Each withdrawal and reason replacement is recorded as a deck suggestion event, with the AI client and the time. Promoting it creates a planned swap when a free copy exists, otherwise a buylist card, and both keep the reason. Promoting a basic-land suggestion makes a deck change at once.
-_Avoid_: AI change, recommendation
-
 **Planned swap**:
-The user's intent to put an owned copy into a deck, optionally replacing a deck card. It holds one free copy until the user swaps it in or the swap closes. Only the user creates planned swaps, directly or by promoting a deck suggestion. A planned swap can replace the commander. It closes when its outgoing card leaves the deck. If its held copy is deleted or used elsewhere after a warning, it becomes a buylist card. Swapping it in makes one deck change. A planned swap is open, swapped in, closed, or moved to the buylist.
+A plan to put an owned copy or a basic land into a deck, optionally replacing a deck card. The user or an AI client makes it. One from an AI client keeps the AI's reason. It holds one free copy until the user swaps it in or the swap closes. A basic land holds no copy. A planned swap can replace the commander. It closes when its outgoing card leaves the deck, or when the user closes it. An AI client can close an open planned swap that an AI client made. If its held copy is deleted or used elsewhere after a warning, it becomes a buylist card. Swapping it in makes one deck change. A planned swap is open, swapped in, closed, or moved to the buylist.
 _Avoid_: Upgrade
 
 **Buylist**:
-The cards the user does not own yet and needs to buy. Each buylist card names a deck and may name a deck card it will replace. It shows the card's default Scryfall printing. It is open, bought, or closed. It closes when that outgoing card leaves the deck. The buylist is separate from planned swaps. Marking a buylist card bought lets the user choose a free copy and puts it into the deck in one deck change.
+The cards the user does not own yet and needs to buy. Each buylist card names a deck and may name a deck card it will replace. The user or an AI client adds it. One from an AI client keeps the AI's reason. It shows the card's default Scryfall printing. It is open, bought, or closed. It closes when that outgoing card leaves the deck, or when the user closes it. An AI client can close an open buylist card that an AI client added. The buylist is separate from planned swaps. Marking a buylist card bought lets the user choose a free copy and puts it into the deck in one deck change.
 _Avoid_: Wishlist
 
 **Deck change**:
-An atomic record of cards moved into or out of one deck, and of commanders made or moved to the main deck. The user makes every deck change. Deleting an allocated copy makes one too. Creating, renaming, or deleting a deck, and changing its deck priority, are not deck changes. A change that comes from a deck suggestion keeps its reason. Copies never move directly between decks.
+An atomic record of cards moved into or out of one deck, and of commanders made or moved to the main deck. The user makes every deck change. Deleting an allocated copy makes one too. Creating, renaming, or deleting a deck, and changing its deck priority, are not deck changes. A change that comes from a planned swap or a buylist card keeps its reason. Copies never move directly between decks.
 _Avoid_: Changelist
 
 **Deck change history**:
@@ -246,7 +242,7 @@ A manual run of the graded search corpus through catalog search on the hosted pr
 ## AI access
 
 **MCP connection**:
-The authenticated remote connection through which a compatible AI chat client can inspect the user's card data, search the collection and card catalog, and make deck suggestions. Its address is the MCP server URL, which the settings drawer shows.
+The authenticated remote connection through which a compatible AI chat client can inspect the user's card data, search the collection and card catalog, and make planned swaps and buylist cards. Its address is the MCP server URL, which the settings drawer shows.
 _Avoid_: MCP/AI connection
 
 **AI client**:
