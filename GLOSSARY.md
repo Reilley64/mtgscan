@@ -214,6 +214,9 @@ _Avoid_: Upgrade
 The cards the user does not own yet and needs to buy. Each buylist card names a deck and may name a deck card it will replace. The user or an AI client adds it. One from an AI client keeps the AI's reason. It shows the card's default Scryfall printing. It is open, bought, or closed. It closes when that outgoing card leaves the deck, or when the user closes it. An AI client can close an open buylist card that an AI client added. The buylist is separate from planned swaps. Marking a buylist card bought lets the user choose a free copy and puts it into the deck in one deck change.
 _Avoid_: Wishlist
 
+**Needs you**:
+The open planned swaps and open buylist cards that wait for the user. Recent lists them across all decks, and a deck's Planned tab lists those of that deck. The Recent tab, the Planned tab, and each commander gallery card show how many there are.
+
 **Deck change**:
 An atomic record of cards moved into or out of one deck, and of commanders made or moved to the main deck. The user makes every deck change. Deleting an allocated copy makes one too. Creating, renaming, or deleting a deck, and changing its deck priority, are not deck changes. A change that comes from a planned swap or a buylist card keeps its reason. Copies never move directly between decks.
 _Avoid_: Changelist
