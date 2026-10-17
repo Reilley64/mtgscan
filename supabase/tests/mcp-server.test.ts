@@ -617,46 +617,6 @@ describe('create_deck_suggestions over HTTP', () => {
     });
   });
 
-  async function seededSuggestions(pair: Pair, count: number, createdAgo: string) {
-    const counterspellOracleId = await oracleIdOf(counterspell);
-    await asDatabaseOwner(
-      (database) => database`
-        insert into public.deck_suggestions (user_id, deck_id, incoming_oracle_id, as_commander, reason, client_id, created_at)
-        select ${pair.userId}, ${pair.toDeck}, ${counterspellOracleId}, false, ${reason}, gen_random_uuid(), now() - ${createdAgo}::interval
-        from generate_series(1, ${count})
-      `,
-    );
-  }
-
-  test('the hourly limit is retryable with retry_after_seconds, and the open limit of a deck is not', async () => {
-    const hourly = await decksForAPair();
-    await seededSuggestions(hourly, 29, '10 minutes');
-    const perDeck = await decksForAPair();
-    await seededSuggestions(perDeck, 50, '2 hours');
-
-    const hourlyResult = await hourly.mcp.callTool({ name: 'create_deck_suggestions', arguments: await pairArguments(hourly) });
-    const perDeckResult = await perDeck.mcp.callTool({
-      name: 'create_deck_suggestions',
-      arguments: await pairArguments({ ...perDeck, revisions: [perDeck.revisions[0]!, 0] }),
-    });
-
-    expect(hourlyResult.structuredContent).toEqual({
-      type: `${problems}limit-exceeded`,
-      title: 'Limit exceeded',
-      detail: 'This call would pass 30 suggestions in an hour. Wait, then try again.',
-      pointer: '/suggestions',
-      retry_after_seconds: expect.any(Number),
-      retryable: true,
-    });
-    expect(perDeckResult.structuredContent).toEqual({
-      type: `${problems}limit-exceeded`,
-      title: 'Limit exceeded',
-      detail: 'This call would pass 50 open suggestions in the deck of suggestions[0]. Withdraw some first.',
-      pointer: '/suggestions/0/deck_id',
-      retryable: false,
-    });
-  });
-
   test('a nested field at fault comes back with its JSON Pointer', async () => {
     const pair = await decksForAPair();
     const request = await pairArguments(pair);

@@ -489,7 +489,6 @@ These errors refuse the whole call and save nothing. `details` is the field at f
 | `outgoing_not_in_deck` | The outgoing copy or basic land card is not in the deck. |
 | `pair_incomplete` | `from_deck_id` names a deck without the incoming card, or the `pair_with` suggestion does not take that card out of that deck. |
 | `duplicate_open_suggestion` | An open suggestion has the same deck, incoming card, `as_commander`, and outgoing card. `details` is a JSON object with `pointer` and the open suggestion's `suggestion_id`. |
-| `limit_exceeded` | The call would pass 30 suggestions an hour for the user. `details` is a JSON object with `pointer` and `retry_after_seconds`, the time until enough suggestions leave the hour. Or the call would pass 50 open suggestions in one deck. |
 | `idempotency_conflict` | The idempotency key was used with different input. |
 
 These warnings save the suggestion and come back in its `warnings`. Each has a `code`:
@@ -658,7 +657,7 @@ The tools come in this order. Every tool has `destructiveHint: false`, `idempote
 
 - `supabase/functions/mcp/tools.ts` lists the tools. Each one has all four annotations, an input schema with `additionalProperties: false`, and an output schema that also allows a problem details object.
 - `tools.ts` writes the schemas with zod. They follow the types in `supabase/search.ts`, `supabase/collection.ts`, and `supabase/decks.ts`, less the fields that the tool leaves out. The function imports nothing from outside `supabase/functions`, so the schemas copy those types by hand. Every object in an output schema has `additionalProperties: false`. The official MCP client checks each result against it in the HTTP tests, so a change to the result's shape fails them.
-- A call to a tool that does not exist gets `invalid-argument` with the pointer `/params/name`. It is not counted against the limits.
+- A call to a tool that does not exist gets `invalid-argument` with the pointer `/params/name`. It is not counted against the rate limit.
 - A read tool sends its arguments to its Postgres function as `query`, and a write tool as `request`. The tool's `readOnlyHint` says which. Postgres checks the arguments, as it does for the app.
 - `list_user_tags`, `get_collection_summary`, and `list_decks` take an empty query.
 - No tool takes a currency. Prices are USD. The description of each tool that returns prices says so: `search_catalog`, `search_collection`, `get_cards`, `get_collection_summary`, and `get_deck`.
@@ -668,18 +667,17 @@ The tools come in this order. Every tool has `destructiveHint: false`, `idempote
 
 #### Limits
 
-- Each user can make 120 tool calls a minute and 2,000 a day. `begin_mcp_call` counts tool calls in `mcp_call_counts`, by UTC minute and UTC day. A request that is not a tool call, such as `tools/list`, is not counted.
-- A tool call over a limit gets `rate-limited` with `retry_after_seconds`.
+- Each user can make 120 tool calls a minute. This rate limit is the only limit on the number of calls. `begin_mcp_call` counts tool calls in `mcp_call_counts`, by UTC minute. A request that is not a tool call, such as `tools/list`, is not counted.
+- A tool call over the rate limit gets `rate-limited` with `retry_after_seconds`.
 - Pages hold 20 rows by default and 50 at most. This holds for `search_catalog`, `search_collection`, `list_card_printings`, and `list_deck_changes`. The function sends `limit: 20` when the call has none, so copies also come 20 at a time, not 60 as in the app. A `limit` over 50 gets `invalid-argument` on `/limit`. Postgres checks the rest of the query.
 - `get_cards` reads up to 20 IDs in one call.
-- `create_deck_suggestions` saves 1 to 10 deck suggestions in one call. Each user can make 30 deck suggestions an hour, and each deck holds 50 open deck suggestions at most. A call over either limit gets `limit-exceeded` and saves nothing, as Create deck suggestions says.
+- `create_deck_suggestions` saves 1 to 10 deck suggestions in one call. It has no limit on deck suggestions an hour or open deck suggestions in a deck.
 - A request body over 64 KB gets 413 with `request-too-large`.
 - Results aim for under 16 KB. A result over 48 KB gets `result-too-large`. Its detail says how to narrow the request, such as a lower `limit` or no `include_oracle_text`.
 
 #### Problems
 
 - A tool problem is a result with `isError: true`. Its `structuredContent` is an RFC 9457 problem details object: `type`, `title`, `detail`, an optional `pointer`, `retryable`, and the members of its type, such as `retry_after_seconds`. The `pointer` is a JSON Pointer to the argument at fault, such as `/deck_id`. The text block is "title: detail", then the minified JSON.
-- A problem with `retry_after_seconds` is retryable.
 - HTTP 401, 413, and 500 use `application/problem+json` with `status`. The 401 keeps its `WWW-Authenticate` header.
 - `type` is `https://mtgscan.reilley.dev/problems/<name>`.
 - `supabase/functions/mcp/problems.ts` maps each Postgres error code to its problem type, such as `not_found` to `not-found`. A code with no entry is `internal-error`. The pointer comes from the error's `details`. A field such as `oracle_ids[1]` becomes `/oracle_ids/1`. A JSON object gives the pointer and the other members.
@@ -695,7 +693,6 @@ The problem types, each linked to its page:
 - [`pair-incomplete`](apps/site/problems/pair-incomplete.html)
 - [`duplicate-open-suggestion`](apps/site/problems/duplicate-open-suggestion.html)
 - [`not-open`](apps/site/problems/not-open.html)
-- [`limit-exceeded`](apps/site/problems/limit-exceeded.html)
 - [`idempotency-conflict`](apps/site/problems/idempotency-conflict.html)
 - [`data-unavailable`](apps/site/problems/data-unavailable.html)
 - [`result-too-large`](apps/site/problems/result-too-large.html)
