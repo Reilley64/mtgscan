@@ -37,6 +37,38 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"buylist_cards": {
+                  Row: {
+                    "as_commander": boolean,"client_id": string,"client_name": string | null,"close_note": Database["public"]['Enums']["close_note"] | null,"created_at": string,"deck_id": string,"id": string,"incoming_oracle_id": string,"outgoing_copy_id": string | null,"outgoing_oracle_id": string | null,"reason": string,"status": Database["public"]['Enums']["buylist_card_status"],"status_changed_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "as_commander": boolean,"client_id": string,"client_name"?: string | null,"close_note"?: Database["public"]['Enums']["close_note"] | null,"created_at"?: string,"deck_id": string,"id"?: string,"incoming_oracle_id": string,"outgoing_copy_id"?: string | null,"outgoing_oracle_id"?: string | null,"reason": string,"status"?: Database["public"]['Enums']["buylist_card_status"],"status_changed_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "as_commander"?: boolean,"client_id"?: string,"client_name"?: string | null,"close_note"?: Database["public"]['Enums']["close_note"] | null,"created_at"?: string,"deck_id"?: string,"id"?: string,"incoming_oracle_id"?: string,"outgoing_copy_id"?: string | null,"outgoing_oracle_id"?: string | null,"reason"?: string,"status"?: Database["public"]['Enums']["buylist_card_status"],"status_changed_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "buylist_cards_incoming_oracle_id_fkey"
+      columns: ["incoming_oracle_id"]
+isOneToOne: false
+      referencedRelation: "cards"
+      referencedColumns: ["oracle_id"]
+    },{
+      foreignKeyName: "buylist_cards_outgoing_oracle_id_fkey"
+      columns: ["outgoing_oracle_id"]
+isOneToOne: false
+      referencedRelation: "cards"
+      referencedColumns: ["oracle_id"]
+    },{
+      foreignKeyName: "buylist_cards_user_id_deck_id_fkey"
+      columns: ["user_id","deck_id"]
+isOneToOne: false
+      referencedRelation: "decks"
+      referencedColumns: ["user_id","id"]
+    }
+                  ]
                 },"card_faces": {
                   Row: {
                     "colors": (string)[],"face_index": number,"loyalty": string | null,"mana_cost": string,"name": string,"oracle_id": string,"oracle_text": string,"power": string | null,"toughness": string | null,"type_line": string
@@ -756,7 +788,13 @@ isOneToOne: false
               "relation": string,"total_bytes": number
             }[]
                            },
+"close_buylist_card":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "close_planned_swap":
+{ Args: { "request": Json }; Returns: Json
+                           },
+"create_buylist_cards":
 { Args: { "request": Json }; Returns: Json
                            },
 "create_deck":
@@ -834,6 +872,9 @@ isOneToOne: false
 "limit_email_sign_ups":
 { Args: { "event": Json }; Returns: Json
                            },
+"list_buylist":
+{ Args: { "query"?: Json }; Returns: Json
+                           },
 "list_card_printings":
 { Args: { "query": Json }; Returns: Json
                            },
@@ -846,6 +887,9 @@ isOneToOne: false
 "list_exchange_rates":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"list_free_copies":
+{ Args: { "query": Json }; Returns: Json
+                           },
 "list_gallery_printings":
 { Args: { "after_id"?: string }; Returns: {
               "basic_land": boolean,"id": string
@@ -857,8 +901,14 @@ isOneToOne: false
 "list_user_tags":
 { Args: { "query"?: Json }; Returns: Json
                            },
+"mark_buylist_card_bought":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "mark_deck_used":
 { Args: { "request": Json }; Returns: undefined
+                           },
+"mcp_close_buylist_card":
+{ Args: { "request": Json }; Returns: Json
                            },
 "mcp_close_planned_swap":
 { Args: { "request": Json }; Returns: Json
@@ -931,7 +981,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","close_note": "closed_by_user"|"closed_by_ai_client"|"outgoing_left_deck"|"held_copy_deleted"|"held_copy_reverted","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","copy_limit": "one"|"any_number"|"number"|"unknown","deck_change_kind": "added"|"removed"|"made_commander"|"made_partner"|"moved_to_main_deck"|"basic_lands"|"removed_from_collection"|"revert"|"swapped_in","deck_priority": "high"|"medium"|"low","deck_role": "commander"|"main","deck_validity": "valid"|"invalid"|"cannot_be_determined","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices"|"exchange_rates","planned_swap_status": "open"|"swapped_in"|"closed"|"moved_to_buylist","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
+            "buylist_card_status": "open"|"bought"|"closed","card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","close_note": "closed_by_user"|"closed_by_ai_client"|"outgoing_left_deck"|"held_copy_deleted"|"held_copy_reverted","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","copy_limit": "one"|"any_number"|"number"|"unknown","deck_change_kind": "added"|"removed"|"made_commander"|"made_partner"|"moved_to_main_deck"|"basic_lands"|"removed_from_collection"|"revert"|"swapped_in"|"bought","deck_priority": "high"|"medium"|"low","deck_role": "commander"|"main","deck_validity": "valid"|"invalid"|"cannot_be_determined","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices"|"exchange_rates","planned_swap_status": "open"|"swapped_in"|"closed"|"moved_to_buylist","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1051,7 +1101,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"close_note": ["closed_by_user", "closed_by_ai_client", "outgoing_left_deck", "held_copy_deleted", "held_copy_reverted"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"copy_limit": ["one", "any_number", "number", "unknown"],"deck_change_kind": ["added", "removed", "made_commander", "made_partner", "moved_to_main_deck", "basic_lands", "removed_from_collection", "revert", "swapped_in"],"deck_priority": ["high", "medium", "low"],"deck_role": ["commander", "main"],"deck_validity": ["valid", "invalid", "cannot_be_determined"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices", "exchange_rates"],"planned_swap_status": ["open", "swapped_in", "closed", "moved_to_buylist"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
+            "buylist_card_status": ["open", "bought", "closed"],"card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"close_note": ["closed_by_user", "closed_by_ai_client", "outgoing_left_deck", "held_copy_deleted", "held_copy_reverted"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"copy_limit": ["one", "any_number", "number", "unknown"],"deck_change_kind": ["added", "removed", "made_commander", "made_partner", "moved_to_main_deck", "basic_lands", "removed_from_collection", "revert", "swapped_in", "bought"],"deck_priority": ["high", "medium", "low"],"deck_role": ["commander", "main"],"deck_validity": ["valid", "invalid", "cannot_be_determined"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices", "exchange_rates"],"planned_swap_status": ["open", "swapped_in", "closed", "moved_to_buylist"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
           }
         }
 } as const

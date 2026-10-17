@@ -13,8 +13,9 @@ export const mcpReadToolNames = [
   'get_deck',
   'list_deck_changes',
   'list_planned_swaps',
+  'list_buylist',
 ];
-export const mcpWriteToolNames = ['create_planned_swaps', 'close_planned_swap'];
+export const mcpWriteToolNames = ['create_planned_swaps', 'create_buylist_cards', 'close_planned_swap', 'close_buylist_card'];
 export const mcpToolNames = [...mcpReadToolNames, ...mcpWriteToolNames];
 
 export function mcpToolAnnotations(name: string) {

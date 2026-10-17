@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
+    "./buylist": "./buylist.ts",
     "./collection": "./collection.ts",
     "./converted-prices": "./converted-prices.ts",
     "./database.types": "./database.types.ts",

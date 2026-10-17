@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import type { SQL } from 'bun';
 
 import { appWriteRefusal, claimsOf } from '../mcp-connection';
-import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { basicLand, catalogFixtureManifest, oracleIdOf, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { connectAiClient, mcpServerUrl } from './ai-clients';
 import { asDatabaseOwner, asDatabaseRole, signUpNewUser, tokenClient, type TestUser } from './local-stack';
 import { stack } from './scan-batches';
@@ -12,9 +12,10 @@ setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
 const securityDefinerReads = ['catalog_freshness', 'search_oracle_tags'];
-const aiWriteFunctions = ['create_planned_swaps', 'mcp_close_planned_swap'];
+const aiWriteFunctions = ['create_planned_swaps', 'create_buylist_cards', 'mcp_close_planned_swap', 'mcp_close_buylist_card'];
 const requiresAnAiClientsToken = ['begin_mcp_call', ...aiWriteFunctions];
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
+const counterspell = '0df55e3f-14de-46ef-b6b1-616618724d9e';
 const forest = basicLand('Forest').oracle_id;
 
 type Claims = Record<string, string | string[]>;
@@ -131,6 +132,26 @@ describe("refusing an AI client's token", () => {
     };
     await refuseAiClientThenWrite('swap_in_planned_swap', await plannedSwapOf(heldCopy, 3));
     await refuseAiClientThenWrite('close_planned_swap', await plannedSwapOf(closedCopy, 4));
+    const buylistCardOf = async (expectedDeckRevision: number) => {
+      const { buylist_cards } = await callFunction(aiClientToken(user), 'create_buylist_cards', {
+        idempotency_key: `release-gate-buylist-${expectedDeckRevision}`,
+        buylist_cards: [
+          {
+            ref: 'card',
+            deck_id,
+            expected_deck_revision: expectedDeckRevision,
+            incoming: { oracle_id: await oracleIdOf('Counterspell') },
+            reason: 'Counterspell answers what the deck cannot.',
+          },
+        ],
+      });
+      return buylist_cards[0].buylist_card_id;
+    };
+    const boughtCard = await buylistCardOf(4);
+    const bought = stack(counterspell);
+    await callFunction(appToken(user), 'add_scan_batch', { items: [bought] });
+    await refuseAiClientThenWrite('mark_buylist_card_bought', { buylist_card_id: boughtCard, copy_id: bought.copy_ids[0], unprotect: false });
+    await refuseAiClientThenWrite('close_buylist_card', { buylist_card_id: await buylistCardOf(5) });
     await refuseAiClientThenWrite('remove_deck_card', { copy_id: deckCopy });
     const [removal] = (await read('list_deck_changes', { deck_id })).items;
     await refuseAiClientThenWrite('revert_deck_changes', {
@@ -152,6 +173,7 @@ describe("refusing an AI client's token", () => {
         [protectedCopy, true],
         [heldCopy, false],
         [closedCopy, false],
+        [bought.copy_ids[0], false],
       ].toSorted(),
     );
   });

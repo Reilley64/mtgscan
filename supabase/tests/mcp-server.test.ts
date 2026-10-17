@@ -30,6 +30,7 @@ const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
 const gristModernHorizons = '1925dc45-4dee-4772-aa16-3b4ca54be6c7';
 const thassasOracle = '69e615d8-1b79-4a82-ba9f-ee211d67dc95';
+const counterspellAlpha = '0df55e3f-14de-46ef-b6b1-616618724d9e';
 const problems = 'https://mtgscan.reilley.dev/problems/';
 const bracketSentence =
   'The estimated bracket is an estimate for a pregame conversation, not a certified bracket. Signals labelled heuristic are not official.';
@@ -191,7 +192,7 @@ describe('the MCP server over HTTP', () => {
       status: { enum: ['open', 'swapped_in', 'closed', 'moved_to_buylist'] },
     });
     const createPlannedSwaps = tools.find(({ name }) => name === 'create_planned_swaps')!;
-    expect(mcpWriteToolNames).toEqual(['create_planned_swaps', 'close_planned_swap']);
+    expect(mcpWriteToolNames).toEqual(['create_planned_swaps', 'create_buylist_cards', 'close_planned_swap', 'close_buylist_card']);
     expect(createPlannedSwaps.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
     expect(createPlannedSwaps.inputSchema).toMatchObject({
       type: 'object',
@@ -220,6 +221,37 @@ describe('the MCP server over HTTP', () => {
       anyOf: [expect.objectContaining({ required: ['id', 'changed'], additionalProperties: false }), expect.anything()],
     });
     expect(closePlannedSwap.description).toContain('This tool does not change any deck. Its held copy becomes free.');
+    const listBuylist = tools.find(({ name }) => name === 'list_buylist')!;
+    expect(listBuylist.inputSchema.properties).toMatchObject({ status: { enum: ['open', 'bought', 'closed'] } });
+    const createBuylistCards = tools.find(({ name }) => name === 'create_buylist_cards')!;
+    expect(createBuylistCards.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+    expect(createBuylistCards.inputSchema).toMatchObject({
+      required: ['idempotency_key', 'buylist_cards'],
+      additionalProperties: false,
+      properties: {
+        buylist_cards: {
+          minItems: 1,
+          maxItems: 10,
+          items: { additionalProperties: false, properties: { incoming: { required: ['oracle_id'], additionalProperties: false } } },
+        },
+      },
+    });
+    expect(createBuylistCards.outputSchema).toMatchObject({
+      anyOf: [expect.objectContaining({ required: ['buylist_cards', 'replayed'], additionalProperties: false }), expect.anything()],
+    });
+    for (const sentence of [
+      'This tool does not change any deck. The user marks the buylist card bought in the app after scanning a new copy.',
+      'When the user has a free copy of the card that is not protected, make a planned swap with it instead.',
+      'Read past buylist cards with list_buylist first.',
+    ]) {
+      expect(createBuylistCards.description).toContain(sentence);
+    }
+    const closeBuylistCard = tools.find(({ name }) => name === 'close_buylist_card')!;
+    expect(closeBuylistCard.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+    expect(closeBuylistCard.inputSchema).toMatchObject({ required: ['buylist_card_id'], additionalProperties: false });
+    expect(closeBuylistCard.outputSchema).toMatchObject({
+      anyOf: [expect.objectContaining({ required: ['id', 'changed'], additionalProperties: false }), expect.anything()],
+    });
   });
 
   test('the descriptions carry the catalog sentence, the USD sentence on each tool that returns prices, the bracket sentence on the deck reads, and the declined write sentence on the write tools', async () => {
@@ -234,7 +266,7 @@ describe('the MCP server over HTTP', () => {
     expect(withSentence(declinedWriteSentence)).toEqual(mcpWriteToolNames);
   });
 
-  test('the server instructions say that the AI cannot change a deck, plans swaps with free copies, never holds a protected copy, follows deck priority, and recommends a move between decks in the chat', async () => {
+  test('the server instructions say that the AI cannot change a deck, plans swaps with free copies, adds cards the user lacks to the buylist, never holds a protected copy, follows deck priority, and recommends a move between decks in the chat', async () => {
     const { mcp } = await connected(await signUpNewUser());
 
     const instructions = mcp.getInstructions();
@@ -242,6 +274,7 @@ describe('the MCP server over HTTP', () => {
     for (const sentence of [
       'You cannot change a deck or the collection.',
       'To suggest a card that the user owns, make a planned swap with a free copy of it.',
+      'To suggest a card that the user lacks, add a buylist card for it.',
       'Never hold a protected copy.',
       'When two decks want a card and there is one copy for them, the deck with the higher deck priority should get it.',
       'Do not plan a move between decks. Recommend it in the chat, and the user makes it.',
@@ -465,6 +498,7 @@ describe('the read tools over HTTP', () => {
     ['get_deck', () => ({ deck_id: deckId }), 'Tymna: 2 cards at deck revision 2.'],
     ['list_deck_changes', () => ({ deck_id: deckId, limit: 1 }), '1 deck change. More with next_cursor.'],
     ['list_planned_swaps', () => ({ deck_id: deckId }), '0 planned swaps.'],
+    ['list_buylist', () => ({ deck_id: deckId }), '0 buylist cards.'],
   ])('%s returns its result without image URIs, with a one-line summary and the minified JSON', async (name, args, summary) => {
     expect(await summaryOf(mcp, name, args())).toBe(summary);
   });
@@ -509,6 +543,7 @@ describe('the read tools over HTTP', () => {
     ['list_card_printings', {}],
     ['list_deck_changes', {}],
     ['list_planned_swaps', {}],
+    ['list_buylist', {}],
   ])(
     '%s refuses a page of more than 50 rows with invalid-argument on /limit',
     async (name, args) => {
@@ -644,6 +679,128 @@ describe('planned swaps over HTTP', () => {
       title: 'Not open',
       detail: 'The planned swap is swapped_in. Only an open planned swap can change.',
       pointer: '/planned_swap_id',
+      retryable: false,
+    });
+  });
+});
+
+describe('the buylist over HTTP', () => {
+  const buylistReason = 'Counterspell answers the spells this deck cannot.';
+
+  async function deckWithAnMcpClient() {
+    const user = await signUpNewUser();
+    const deckId = await deckWithCopies(user, 'Tymna', 1);
+    const { mcp } = await connected(user);
+    return { user, mcp, deckId, counterspell: await oracleIdOf('Counterspell') };
+  }
+
+  function buylistArguments(deckId: string, oracleId: string) {
+    return {
+      idempotency_key: crypto.randomUUID(),
+      buylist_cards: [{ ref: 'counter', deck_id: deckId, expected_deck_revision: 1, incoming: { oracle_id: oracleId }, reason: buylistReason }],
+    };
+  }
+
+  async function boughtWithANewCopy(user: TestUser, buylistCardId: string) {
+    const scanned = stack(counterspellAlpha);
+    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
+    const bought = { buylist_card_id: buylistCardId, copy_id: scanned.copy_ids[0], unprotect: false };
+    expect((await user.client.rpc('mark_buylist_card_bought', { request: bought })).error).toBeNull();
+  }
+
+  async function buylistCardIdOf(mcp: Client, deckId: string, oracleId: string) {
+    const created = await mcp.callTool({ name: 'create_buylist_cards', arguments: buylistArguments(deckId, oracleId) });
+    return (created.structuredContent as { buylist_cards: { buylist_card_id: string }[] }).buylist_cards[0]!.buylist_card_id;
+  }
+
+  test('create_buylist_cards adds a buylist card with its warnings, and list_buylist reads it back, each with a one-line summary and the minified JSON', async () => {
+    const { mcp, deckId, counterspell } = await deckWithAnMcpClient();
+
+    const result = await mcp.callTool({ name: 'create_buylist_cards', arguments: buylistArguments(deckId, counterspell) });
+
+    expect(result.isError).toBeFalsy();
+    const created = result.structuredContent as { buylist_cards: { ref: string; buylist_card_id: string; warnings: unknown[] }[]; replayed: boolean };
+    const warningCount = created.buylist_cards[0]!.warnings.length;
+    expect(textOf(result)).toBe(`Saved 1 buylist card with ${plural(warningCount, 'warning')}.\n${JSON.stringify(created)}`);
+    expect(created.replayed).toBe(false);
+
+    expect(await summaryOf(mcp, 'list_buylist', { status: 'open' })).toBe('1 buylist card.');
+    const listed = await mcp.callTool({ name: 'list_buylist', arguments: {} });
+    expect(listed.structuredContent).toMatchObject({
+      items: [
+        {
+          buylist_card_id: created.buylist_cards[0]!.buylist_card_id,
+          deck_id: deckId,
+          deck_name: 'Tymna',
+          incoming: { kind: 'card', oracle_id: counterspell, name: 'Counterspell' },
+          outgoing: null,
+          status: 'open',
+          close_note: null,
+          client_name: 'Test AI chat',
+        },
+      ],
+      next_cursor: null,
+    });
+  });
+
+  test('a card with a free copy comes back as free-copy-exists with its pointer and the free copies', async () => {
+    const { user, mcp, deckId } = await deckWithAnMcpClient();
+    const scanned = stack(angelicCurator);
+    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
+
+    const result = await mcp.callTool({ name: 'create_buylist_cards', arguments: buylistArguments(deckId, await oracleIdOf('Angelic Curator')) });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      type: `${problems}free-copy-exists`,
+      title: 'Free copy exists',
+      detail: 'buylist_cards[0].incoming.oracle_id has a free copy that is not protected. Make a planned swap with it instead.',
+      pointer: '/buylist_cards/0/incoming/oracle_id',
+      copy_ids: scanned.copy_ids,
+      retryable: false,
+    });
+  });
+
+  test('a bought deck change lists its kind, reason, and client name', async () => {
+    const { user, mcp, deckId, counterspell } = await deckWithAnMcpClient();
+    const buylistCardId = await buylistCardIdOf(mcp, deckId, counterspell);
+    await boughtWithANewCopy(user, buylistCardId);
+
+    const result = await mcp.callTool({ name: 'list_deck_changes', arguments: { deck_id: deckId, limit: 1 } });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toMatchObject({ items: [{ kind: 'bought', reason: buylistReason, client_name: 'Test AI chat' }] });
+    expect(await summaryOf(mcp, 'list_buylist', { status: 'bought' })).toBe('1 buylist card.');
+  });
+
+  test('close_buylist_card closes a buylist card, and closing it again returns changed: false, each with a one-line summary', async () => {
+    const { mcp, deckId, counterspell } = await deckWithAnMcpClient();
+    const buylistCardId = await buylistCardIdOf(mcp, deckId, counterspell);
+
+    const closed = await mcp.callTool({ name: 'close_buylist_card', arguments: { buylist_card_id: buylistCardId } });
+    const again = await mcp.callTool({ name: 'close_buylist_card', arguments: { buylist_card_id: buylistCardId } });
+
+    expect(closed.isError).toBeFalsy();
+    expect(textOf(closed)).toBe(`Closed buylist card ${buylistCardId}.\n${JSON.stringify({ id: buylistCardId, changed: true })}`);
+    expect(textOf(again)).toBe(`Buylist card ${buylistCardId} was already closed.\n${JSON.stringify({ id: buylistCardId, changed: false })}`);
+    expect((await mcp.callTool({ name: 'list_buylist', arguments: {} })).structuredContent).toMatchObject({
+      items: [{ buylist_card_id: buylistCardId, status: 'closed', close_note: 'closed_by_ai_client' }],
+    });
+  });
+
+  test('a bought buylist card comes back as not-open from close_buylist_card', async () => {
+    const { user, mcp, deckId, counterspell } = await deckWithAnMcpClient();
+    const buylistCardId = await buylistCardIdOf(mcp, deckId, counterspell);
+    await boughtWithANewCopy(user, buylistCardId);
+
+    const result = await mcp.callTool({ name: 'close_buylist_card', arguments: { buylist_card_id: buylistCardId } });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      type: `${problems}not-open`,
+      title: 'Not open',
+      detail: 'The buylist card is bought. Only an open buylist card can change.',
+      pointer: '/buylist_card_id',
       retryable: false,
     });
   });

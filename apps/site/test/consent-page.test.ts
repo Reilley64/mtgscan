@@ -20,7 +20,7 @@ import {
 
 const expiredLink = 'This link has expired. Start again from your AI chat.';
 const permissions =
-  'Read your cards, collection, decks, and deck history. Suggest deck changes. It cannot change your decks or collection.';
+  'Read your cards, collection, decks, and deck history. Plan swaps and add to your buylist. It cannot change your decks or collection.';
 
 async function openConsentPage(auth: ConsentAuth, search = `?authorization_id=${authorizationId}`) {
   const root = document.createElement('main');

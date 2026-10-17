@@ -392,6 +392,7 @@ const deckChange = z.strictObject({
     'removed_from_collection',
     'revert',
     'swapped_in',
+    'bought',
   ]),
   changed_at: z.string(),
   reverted: z.boolean(),
@@ -456,6 +457,48 @@ const plannedSwapWarning = z.union([
 
 const createdPlannedSwaps = z.strictObject({
   planned_swaps: z.array(z.strictObject({ ref: z.string(), planned_swap_id: id, warnings: z.array(plannedSwapWarning) })),
+  replayed: z.boolean(),
+});
+
+const buylistCardStatus = z.enum(['open', 'bought', 'closed']);
+
+const plannedCardLine = z.strictObject({ kind: z.literal('card'), oracle_id: id, name: z.string(), type_line: z.string() });
+
+const buylistCardRow = z.strictObject({
+  buylist_card_id: id,
+  deck_id: id,
+  deck_name: z.string(),
+  incoming: plannedCardLine,
+  outgoing: plannedCopyLine.nullable(),
+  as_commander: z.boolean(),
+  reason: z.string(),
+  status: buylistCardStatus,
+  close_note: closeNote.nullable(),
+  client_name: z.string().nullable(),
+  created_at: z.string(),
+  status_changed_at: z.string(),
+  effect: deckChangeEffect.nullable(),
+});
+
+const buylistCardInput = plannedSwapInput.extend({
+  ref: keyPattern(1).describe('A name for this buylist card, unique in the call.'),
+  incoming: z.strictObject({
+    oracle_id: id.describe("The card's oracle_id. It must not be a basic land."),
+    as_commander: z.boolean().optional().describe('Make the card a commander. Defaults to true when the outgoing copy is a commander.'),
+  }),
+});
+
+const buylistCardWarning = z.union([
+  ...plannedSwapWarning.options,
+  z.strictObject({ code: z.literal('protected_only') }),
+  z.strictObject({
+    code: z.literal('in_other_decks'),
+    decks: z.array(z.strictObject({ deck_id: id, name: z.string(), priority: deckPriority })),
+  }),
+]);
+
+const createdBuylistCards = z.strictObject({
+  buylist_cards: z.array(z.strictObject({ ref: z.string(), buylist_card_id: id, warnings: z.array(buylistCardWarning) })),
   replayed: z.boolean(),
 });
 
@@ -653,7 +696,7 @@ export const tools: Tool[] = [
     title: 'List deck changes',
     description: [
       "Read a deck's change history, newest first. Each deck change lists the copies and basic lands moved into or out of the deck, and the commanders made or moved to the main deck. A reverted deck change was undone by a later revert.",
-      'A swapped_in deck change came from a planned swap, and keeps its reason and the name of the AI client that made it.',
+      'A swapped_in deck change came from a planned swap, and a bought deck change from a buylist card. Each keeps its reason and the name of the AI client that made the planned swap or buylist card.',
     ].join(' '),
     annotations: readOnly,
     postgresFunction: 'list_deck_changes',
@@ -685,6 +728,25 @@ export const tools: Tool[] = [
     tooLargeHint: 'Ask for fewer planned swaps with limit, or filter by deck_id or status.',
   }),
   defineTool({
+    name: 'list_buylist',
+    title: 'List the buylist',
+    description: [
+      "Read the user's buylist cards in every state, newest first: open, bought, and closed. Filter them by deck_id or status.",
+      'Each buylist card has its deck, the card to buy, the outgoing deck card, the reason, the status, how it closed, the name of the AI client that added it, and its times.',
+      'An open buylist card also has its current effect: the Commander rules that putting the card into the deck would break.',
+    ].join(' '),
+    annotations: readOnly,
+    postgresFunction: 'list_buylist',
+    input: z.strictObject({
+      deck_id: id.optional().describe("Only this deck's buylist cards."),
+      status: buylistCardStatus.optional().describe('Only buylist cards in this state. Every state by default.'),
+      ...page,
+    }),
+    output: z.strictObject({ next_cursor: nextCursor, items: z.array(buylistCardRow) }),
+    summary: (result) => pageSummary(plural(result.items.length, 'buylist card'), result.next_cursor),
+    tooLargeHint: 'Ask for fewer buylist cards with limit, or filter by deck_id or status.',
+  }),
+  defineTool({
     name: 'create_planned_swaps',
     title: 'Create planned swaps',
     description: [
@@ -710,6 +772,31 @@ export const tools: Tool[] = [
     tooLargeHint: 'Send fewer planned swaps in one call.',
   }),
   defineTool({
+    name: 'create_buylist_cards',
+    title: 'Create buylist cards',
+    description: [
+      'Add 1 to 10 buylist cards in one call, all saved or none.',
+      'Each buylist card names a card that the user has to buy for a deck, an optional outgoing copy in the deck, and a reason of 20 to 600 characters.',
+      'Send the deck revision from get_deck, and a new idempotency_key for each new call. A retry with the same key and input returns the first result.',
+      'This tool does not change any deck. The user marks the buylist card bought in the app after scanning a new copy.',
+      'When the user has a free copy of the card that is not protected, make a planned swap with it instead. Basic lands are never bought.',
+      'Read past buylist cards with list_buylist first.',
+      declinedWrite,
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'create_buylist_cards',
+    input: z.strictObject({
+      idempotency_key: keyPattern(8).describe('8 to 64 of A-Z a-z 0-9 _ -. Send a new key for each new call.'),
+      buylist_cards: z.array(buylistCardInput).min(1).max(10),
+    }),
+    output: createdBuylistCards,
+    summary: (result) => {
+      const warningCount = result.buylist_cards.reduce((count, card) => count + card.warnings.length, 0);
+      return `${result.replayed ? 'Replayed' : 'Saved'} ${plural(result.buylist_cards.length, 'buylist card')} with ${plural(warningCount, 'warning')}.`;
+    },
+    tooLargeHint: 'Send fewer buylist cards in one call.',
+  }),
+  defineTool({
     name: 'close_planned_swap',
     title: 'Close a planned swap',
     description: [
@@ -725,5 +812,22 @@ export const tools: Tool[] = [
     output: z.strictObject({ id, changed: z.boolean() }),
     summary: (result) => (result.changed ? `Closed planned swap ${result.id}.` : `Planned swap ${result.id} was already closed.`),
     tooLargeHint: 'Close one planned swap in each call.',
+  }),
+  defineTool({
+    name: 'close_buylist_card',
+    title: 'Close a buylist card',
+    description: [
+      'Close an open buylist card that an AI client added, when it no longer fits.',
+      'This tool does not change any deck.',
+      'Closing a closed buylist card changes nothing and returns changed: false. A buylist card that was bought returns not-open.',
+      'To change a buylist card, close it and add a new one. Find buylist card IDs with list_buylist.',
+      declinedWrite,
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'mcp_close_buylist_card',
+    input: z.strictObject({ buylist_card_id: id.describe("The buylist card's ID.") }),
+    output: z.strictObject({ id, changed: z.boolean() }),
+    summary: (result) => (result.changed ? `Closed buylist card ${result.id}.` : `Buylist card ${result.id} was already closed.`),
+    tooLargeHint: 'Close one buylist card in each call.',
   }),
 ];
