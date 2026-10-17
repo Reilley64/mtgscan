@@ -27,7 +27,7 @@ import {
   type RegisteredAiClient,
 } from '../mcp-connection';
 import type { CatalogRow, SearchPage } from '../search';
-import { isHostedTestUserPassword, isLocalStack, localSupabaseUrl, testUser } from '../test-user/account';
+import { hostedSupabaseUrl, isHostedTestUserPassword, isLocalStack, localSupabaseUrl, testUser } from '../test-user/account';
 
 const usage = 'Usage: bun mcp-preflight/main.ts [--hosted]';
 const hostedConsentPage = 'https://mtgscan.reilley.dev/oauth/consent';
@@ -37,15 +37,26 @@ const reason = 'The pre-flight checks that an AI client can save a deck suggesti
 
 const { values } = parseArgs({ args: Bun.argv.slice(2), options: { hosted: { type: 'boolean', default: false } } });
 
-const url = process.env.SUPABASE_URL ?? localSupabaseUrl;
-const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
-const secretKey = process.env.SUPABASE_SECRET_KEY;
-
 function refuse(message: string): never {
   console.error(message);
   console.error(usage);
   process.exit(2);
 }
+
+function supabaseUrl(): string {
+  if (!values.hosted) {
+    return process.env.SUPABASE_URL ?? localSupabaseUrl;
+  }
+  const hosted = hostedSupabaseUrl(process.env);
+  if ('refusal' in hosted) {
+    refuse(hosted.refusal);
+  }
+  return hosted.url;
+}
+
+const url = supabaseUrl();
+const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+const secretKey = process.env.SUPABASE_SECRET_KEY;
 
 function testUserPassword(): string {
   if (!values.hosted) {
@@ -67,7 +78,7 @@ const password = testUserPassword();
 if (!publishableKey || !secretKey) {
   refuse(
     values.hosted
-      ? 'Load SUPABASE_URL and SUPABASE_SECRET_KEY with `bun --env-file=.env.hosted`, and set SUPABASE_PUBLISHABLE_KEY to the hosted publishable key.'
+      ? `Set SUPABASE_PUBLISHABLE_KEY to the publishable key of ${url}, and load SUPABASE_SECRET_KEY with \`bun --env-file=.env.hosted\`.`
       : 'Set SUPABASE_PUBLISHABLE_KEY and SUPABASE_SECRET_KEY to the PUBLISHABLE_KEY and SECRET_KEY values from `bunx supabase@2.120.0 status -o env`.',
   );
 }
