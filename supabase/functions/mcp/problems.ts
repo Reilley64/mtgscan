@@ -12,7 +12,6 @@ export const problemKinds = {
   'pair-incomplete': { title: 'Pair incomplete', retryable: false },
   'duplicate-open-suggestion': { title: 'Duplicate open suggestion', retryable: false },
   'not-open': { title: 'Not open', retryable: false },
-  'limit-exceeded': { title: 'Limit exceeded', retryable: false },
   'idempotency-conflict': { title: 'Idempotency conflict', retryable: false },
   'data-unavailable': { title: 'Data unavailable', retryable: true },
   'result-too-large': { title: 'Result too large', retryable: false },
@@ -34,7 +33,6 @@ const problemOfPostgresCode: Record<string, ProblemName> = {
   pair_incomplete: 'pair-incomplete',
   duplicate_open_suggestion: 'duplicate-open-suggestion',
   not_open: 'not-open',
-  limit_exceeded: 'limit-exceeded',
   idempotency_conflict: 'idempotency-conflict',
   data_unavailable: 'data-unavailable',
   rate_limited: 'rate-limited',
@@ -73,8 +71,7 @@ function problemBase(name: ProblemName, detail: string) {
 
 export function problem(name: ProblemName, detail: string, members: Record<string, unknown> = {}): Problem {
   const extraMembers = Object.entries(members).filter(([member]) => !reservedMembers.has(member));
-  const retryable = problemKinds[name].retryable || 'retry_after_seconds' in members;
-  return { ...problemBase(name, detail), ...Object.fromEntries(extraMembers), retryable };
+  return { ...problemBase(name, detail), ...Object.fromEntries(extraMembers), retryable: problemKinds[name].retryable };
 }
 
 export function httpProblem(name: ProblemName, status: number, detail: string): Response {

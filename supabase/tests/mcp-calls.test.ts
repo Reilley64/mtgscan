@@ -108,22 +108,18 @@ describe('beginning an MCP call', () => {
     expect(JSON.parse(error.details).retry_after_seconds).toBeWithin(1, 61);
   });
 
-  test('refuses the 2,001st tool call in a day and says how long to wait', async () => {
+  test('keeps no day count, so tool calls past 2,000 in a day are not refused', async () => {
     const user = await signUpNewUser();
     const claims = await aiClientClaims(user);
-    await seedMcpCallCounts(user, 'day', 1999);
 
-    const { call, error } = await beginMcpCalls(claims, 2);
-
-    expect(call).toBe(2);
-    expect(error).toMatchObject({ code: 'rate_limited', message: 'You can make 2000 tool calls a day. Wait, then try again.' });
-    expect(JSON.parse(error.details).retry_after_seconds).toBeWithin(1, 86_401);
+    await expect(seedMcpCallCounts(user, 'day', 2000)).rejects.toMatchObject({ errno: '23514' });
+    expect((await beginMcpCalls(claims, 120)).error).toBeNull();
   });
 
   test("counts each user's tool calls apart", async () => {
     const limited = await signUpNewUser();
     const other = await signUpNewUser();
-    await seedMcpCallCounts(limited, 'day', 2000);
+    await seedMcpCallCounts(limited, 'minute', 120);
 
     expect((await beginMcpCalls(await aiClientClaims(limited), 1)).error).toMatchObject({ code: 'rate_limited' });
     expect((await beginMcpCalls(await aiClientClaims(other), 120)).error).toBeNull();
@@ -132,7 +128,7 @@ describe('beginning an MCP call', () => {
   test('checks the session of a request that is not a tool call but does not count it', async () => {
     const user = await signUpNewUser();
     const claims = await aiClientClaims(user);
-    await seedMcpCallCounts(user, 'day', 2000);
+    await seedMcpCallCounts(user, 'minute', 120);
 
     const counted = await asDatabaseRole('authenticated', claims, (database) => database`select public.begin_mcp_call(null)`);
 
@@ -141,7 +137,7 @@ describe('beginning an MCP call', () => {
 
   test('nobody reads or writes the MCP call counts directly', async () => {
     const user = await signUpNewUser();
-    await seedMcpCallCounts(user, 'day', 5);
+    await seedMcpCallCounts(user, 'minute', 5);
     const row = { user_id: user.userId, period: 'minute', period_start: new Date().toISOString(), count: 0 };
 
     for (const client of [user.client, anonymousClient()]) {

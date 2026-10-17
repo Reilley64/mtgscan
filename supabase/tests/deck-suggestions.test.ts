@@ -183,16 +183,6 @@ function codesOf(warnings: DeckSuggestionWarning[]) {
   return warnings.map((warning) => warning.code);
 }
 
-async function seededSuggestions(user: TestUser, deckId: string, count: number, createdAgo: string) {
-  await asDatabaseOwner(
-    (database) => database`
-      insert into public.deck_suggestions (user_id, deck_id, incoming_oracle_id, as_commander, reason, client_id, created_at)
-      select ${user.userId}, ${deckId}, ${oracleIds[blackLotus]!}, false, ${reason}, gen_random_uuid(), now() - ${createdAgo}::interval
-      from generate_series(1, ${count})
-    `,
-  );
-}
-
 async function setCatalogSucceededAt(daysAgo: number) {
   await asDatabaseOwner(
     (database) => database`
@@ -495,42 +485,6 @@ const rejects: [string, RejectCase][] = [
     },
   ],
   [
-    'more than 30 suggestions in an hour',
-    {
-      code: 'limit_exceeded',
-      details: { pointer: '/suggestions', retry_after_seconds: expect.any(Number) },
-      call: async ({ user }, { deckId }) => {
-        await seededSuggestions(user, deckId, 29, '59 minutes');
-        return {
-          idempotency_key: 'hourly-limit',
-          suggestions: [
-            await suggestionItem(user, deckId, oracleIds[counterspell]!),
-            await suggestionItem(user, deckId, oracleIds[lightningBolt]!),
-          ],
-        };
-      },
-    },
-  ],
-  [
-    'more than 50 open suggestions in a deck',
-    {
-      code: 'limit_exceeded',
-      details: 'suggestions[1].deck_id',
-      call: async ({ user }, { deckId }) => {
-        const otherDeck = await deckNamed(user, 'Goblins');
-        await seededSuggestions(user, deckId, 49, '2 hours');
-        return {
-          idempotency_key: 'deck-limit',
-          suggestions: [
-            await suggestionItem(user, otherDeck, oracleIds[counterspell]!),
-            await suggestionItem(user, deckId, oracleIds[counterspell]!),
-            await suggestionItem(user, deckId, oracleIds[lightningBolt]!),
-          ],
-        };
-      },
-    },
-  ],
-  [
     'an idempotency key used with different input',
     {
       code: 'idempotency_conflict',
@@ -568,23 +522,53 @@ describe('rejects', () => {
   });
 });
 
-describe('limits', () => {
-  test('the hourly limit says when enough suggestions leave the hour', async () => {
-    const client = await connectedAiClient();
-    const { deckId } = await krenkoDeck(client.user);
-    await seededSuggestions(client.user, deckId, 1, '50 minutes');
-    await seededSuggestions(client.user, deckId, 28, '30 minutes');
-    const items = await Promise.all(
-      [oracleIds[counterspell]!, oracleIds[lightningBolt]!, forest].map((oracleId) => suggestionItem(client.user, deckId, oracleId)),
+describe('no count limits', () => {
+  async function distinctSuggestionItems(user: TestUser, { deckId, commander, bolt }: KrenkoDeck, count: number) {
+    const revision = await revisionOf(user, deckId);
+    const incoming = [blackLotus, counterspell, lightningBolt, krenko].map((id) => oracleIds[id]!).concat([forest, island, mountain]);
+    const outgoing: Pick<DeckSuggestionInput, 'outgoing'>[] = [
+      {},
+      { outgoing: { copy_id: bolt } },
+      { outgoing: { copy_id: commander } },
+      { outgoing: { basic_land_oracle_id: mountain } },
+    ];
+    const items = incoming.flatMap((oracleId) =>
+      [false, true].flatMap((asCommander) =>
+        outgoing.map((out) => ({
+          deck_id: deckId,
+          expected_deck_revision: revision,
+          incoming: { oracle_id: oracleId, as_commander: asCommander },
+          reason,
+          ...out,
+        })),
+      ),
     );
+    return items.slice(0, count).map((item, index): DeckSuggestionInput => ({ ref: `s${index}`, ...item }));
+  }
 
-    const problem = await refusalOf(client, { idempotency_key: 'three-over-the-hour', suggestions: items });
+  async function suggestedInCallsOfTen(client: AiClient, items: DeckSuggestionInput[]) {
+    for (let start = 0; start < items.length; start += 10) {
+      await suggested(client, items.slice(start, start + 10));
+    }
+  }
 
-    expect(problem.code).toBe('limit_exceeded');
-    const { retry_after_seconds } = JSON.parse(problem.details!) as { retry_after_seconds: number };
-    expect(retry_after_seconds).toBeGreaterThan(29 * 60);
-    expect(retry_after_seconds).toBeLessThanOrEqual(30 * 60);
-    expect((await suggested(client, items.slice(0, 1))).suggestions).toHaveLength(1);
+  test('an AI client saves more than 30 deck suggestions in an hour', async () => {
+    const client = await connectedAiClient();
+    const deck = await krenkoDeck(client.user);
+
+    await suggestedInCallsOfTen(client, await distinctSuggestionItems(client.user, deck, 31));
+
+    expect(await storedSuggestions(client.user)).toHaveLength(31);
+  });
+
+  test('a deck holds more than 50 open deck suggestions', async () => {
+    const client = await connectedAiClient();
+    const deck = await krenkoDeck(client.user);
+
+    await suggestedInCallsOfTen(client, await distinctSuggestionItems(client.user, deck, 51));
+
+    const stored = await storedSuggestions(client.user);
+    expect(stored.filter((suggestion) => suggestion.deck_id === deck.deckId && suggestion.status === 'open')).toHaveLength(51);
   });
 });
 
