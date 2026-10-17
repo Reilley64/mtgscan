@@ -409,9 +409,13 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Filter chips: All, Planned swaps, Buylist. They hide while Recent is empty.
   - With no Needs you items, Recent shows its empty state. See Empty states.
   - Every item keeps its actions inline: Swap in, Bought, and Close.
+  - The filter chips sit above the items. All is selected when Recent opens. Planned swaps shows only planned swaps, and Buylist only buylist cards.
   - A planned swap item shows its deck tag, then its change lines. The incoming line's meta is the copy's set code in capitals and collector number, then its finish when it is not nonfoil and its condition when it is not NM, such as "M10 146 · Foil · LP", so the user can find the held copy. A planned swap that makes the copy a commander adds "Commander". The outgoing line's meta is the outgoing copy's printing the same way. When the swap would break a new rule, the effect chip follows, as on the revert page sheet. The reason follows in body text, with the AI client name and the time in meta text, such as "ChatGPT · 16 October 2026 at 18:05". A primary **Swap in** button and a secondary **Close** button end the item, side by side.
   - **Swap in** acts at once, with no confirmation, the same as **Remove from deck**, because the user can revert it. The item then leaves Recent. When the write fails, a native alert says "Could not swap in this card" and "Check your connection.", and the item stays. When the deck already has two other commanders, the alert says "Could not swap in this card" and "A deck has at most two commanders.". An item that changed elsewhere reloads Recent instead of acting.
   - **Close** closes the planned swap at once, with no confirmation, and frees its held copy. No deck changes, so there is nothing to revert. The item then leaves Recent. When the write fails, a native alert says "Could not close this planned swap" and "Check your connection.", and the item stays. An item that changed elsewhere reloads Recent instead of acting.
+  - A buylist card item shows its deck tag, then its change lines. The incoming line shows the card's default Scryfall printing, and its meta is the card's type line, with "Commander" after it when the buylist card makes the card a commander. The outgoing line is the same as on a planned swap. The effect chip, the reason, and the meta follow, as on a planned swap. A primary **Bought** button and a secondary **Close** button end the item, side by side.
+  - **Bought** opens the Bought page sheet. See Sheets.
+  - **Close** on a buylist card closes it at once, with no confirmation. The item then leaves Recent. When the write fails, a native alert says "Could not close this buylist card" and "Check your connection.", and the item stays. An item that changed elsewhere reloads Recent instead of acting.
   - Recent reloads when the tab gains focus. When the read fails, Recent shows its read failure state. See Empty states.
 - **Collection** is a binder grid with the collection total in its header.
   - The header has the collection total button next to the settings button (owner decision, #125). See Collection header.
@@ -636,9 +640,9 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - **Basic lands** is the last group. Its header shows the total count of basic lands, such as "Basic lands 10", or no count with none, and a secondary **Edit** button on the right. The group shows the basic land cards with a count above zero, in the order Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Each is its card image with a count badge, such as ×8, at the top right. VoiceOver reads it as an image, "Island, 8". A basic land tile is not a button and has no long-press menu. A basic land card in a violation's cards, such as a Mountain outside the color identity, has the danger outline, and VoiceOver reads "Mountain, 2, breaks a Commander rule". An empty deck shows the group with **Edit** after the empty state.
   - **Edit** opens the basic lands drawer (see Sheets). The group and sort buttons stay while it shows.
   - **History** lists the deck changes, newest first, one surface card each. More deck changes load as the user scrolls near the end, 20 at a time.
-    - A card shows the kind in body strong: "Added", "Removed", "Made commander", "Made partner", "Moved to main deck", "Basic lands", "Removed from collection", "Revert", or "Swapped in". A reverted deck change has a "Reverted" chip after its kind. The day and time follow in meta text, such as "16 October 2026 at 18:05". A **Revert** button in danger sits on the right of the card. It opens the revert page sheet. See Sheets. VoiceOver reads the kind, the chip, and the time as one element, such as "Added, Reverted, 16 October 2026 at 18:05", and the button on its own.
+    - A card shows the kind in body strong: "Added", "Removed", "Made commander", "Made partner", "Moved to main deck", "Basic lands", "Removed from collection", "Revert", "Swapped in", or "Bought". A reverted deck change has a "Reverted" chip after its kind. The day and time follow in meta text, such as "16 October 2026 at 18:05". A **Revert** button in danger sits on the right of the card. It opens the revert page sheet. See Sheets. VoiceOver reads the kind, the chip, and the time as one element, such as "Added, Reverted, 16 October 2026 at 18:05", and the button on its own.
     - Change lines follow. See Components. A copy that comes into the deck is a green + row, and a copy that leaves is a red − row. The meta is the type line. A commander change shows the new place instead, "Commander" or "Main deck". A basic land line shows the count change, such as "+2" or "−2".
-    - A "Swapped in" card shows the reason of its planned swap in body text under its change lines, with the AI client name in meta text.
+    - A "Swapped in" or "Bought" card shows the reason of its planned swap or buylist card in body text under its change lines, with the AI client name in meta text.
     - The list ends with the day the deck was created, such as "Created 15 October 2026", in meta text.
     - When the read fails, History shows the empty state "Could not load this deck" with a **Try again** button.
   - When the read fails, the deck screen shows the empty state "Could not load this deck" with a **Try again** button. Close still shows.
@@ -648,8 +652,18 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
 Short tasks use iOS page sheets that close with a downward swipe or Done:
 
 - Bought with the acquired copy picker;
-- the swap-in confirmation for a protected copy;
 - revert.
+
+The Bought page sheet, from the **Bought** button of a buylist card on Recent:
+
+- Its native navigation bar has **Cancel** on the left and the title "Bought" in sheet title type.
+- One list row per free copy of the card, across printings: the card thumbnail of the copy's printing, the card name, and a meta line with the set code in capitals and the collector number, then the finish when it is not nonfoil and the condition when it is not NM, such as "SS1 4 · Foil · LP". VoiceOver reads the row as a button with the name and the meta line.
+- A protected copy has a warning line under its row: "<card> is protected. Picking it unprotects it.".
+- A tap on a row puts that copy into the deck as one deck change, unprotects a protected copy, closes the sheet, and the item leaves Recent.
+- With no free copy, the sheet shows the empty state "No copies found" with "Scan copies into your collection first.". See Empty states.
+- A write that fails shows the native alert "Could not mark this card bought" with "Check your connection.", and the sheet stays. When the deck already has two other commanders, the alert says "Could not mark this card bought" and "A deck has at most two commanders.".
+- A copy that is no longer free reloads the sheet. A buylist card that changed elsewhere closes the sheet, and Recent reloads.
+- When the free copies cannot load, the sheet shows the empty state "Could not load your copies" with a **Try again** button.
 
 The revert page sheet, from the **Revert** button of a deck change on History:
 
@@ -902,6 +916,8 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
     | --- | --- | --- | --- | --- |
     | Recent, no Needs you items | two ghost Needs you items | Nothing needs you yet | When a deck needs you, it shows up here. | none |
     | Recent, read failed | two ghost Needs you items | Could not load Recent | Check your connection. | **Try again** reads Recent again |
+    | Bought page sheet, no free copies | one row of empty binder slots | No copies found | Scan copies into your collection first. | none |
+    | Bought page sheet, read failed | one row of empty binder slots | Could not load your copies | Check your connection. | **Try again** reads the free copies again |
     | Collection, no copies | two rows of empty binder slots | Your collection is empty | Scan cards to add them to your collection. | **Scan cards** opens the Scan tab |
     | Collection, read failed | one row of empty binder slots | Could not load your collection | Check your connection. | **Try again** reloads the binder grid |
     | Copy page, read failed | a dashed card frame with `wifi.slash` | Could not load this card | Check your connection. | **Try again** reads the copy again |
