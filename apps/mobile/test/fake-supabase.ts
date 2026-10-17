@@ -53,6 +53,14 @@ import type {
   Violation,
 } from '@mtgscan/supabase/decks';
 import type { ClosePlannedSwapRequest, PlannedSwap, PlannedSwapsQuery, SwapInPlannedSwapRequest } from '@mtgscan/supabase/planned-swaps';
+import type {
+  BuylistCard,
+  BuylistQuery,
+  CloseBuylistCardRequest,
+  FreeCopiesQuery,
+  FreeCopy,
+  MarkBuylistCardBoughtRequest,
+} from '@mtgscan/supabase/buylist';
 import type { SignInProvider } from '@mtgscan/supabase/sign-in-providers';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
@@ -101,7 +109,11 @@ let failingAddPreviews = 0;
 let heldAddPreviews: Promise<void> | null = null;
 let plannedSwaps: PlannedSwap[] = [];
 let plannedSwapQueriesSent: PlannedSwapsQuery[] = [];
-let failingPlannedSwapReads = 0;
+let failingNeedsYouReads = 0;
+let buylistCards: BuylistCard[] = [];
+let buylistQueriesSent: BuylistQuery[] = [];
+let freeCopies = new Map<string, FreeCopy[]>();
+let failingFreeCopyReads = 0;
 const emptyCollectionTotal: CollectionTotal = {
   total: '0.00',
   currency: 'USD',
@@ -755,8 +767,8 @@ function addDeckCard(request: AddDeckCardRequest) {
 
 function plannedSwapList(query: PlannedSwapsQuery) {
   plannedSwapQueriesSent = [...plannedSwapQueriesSent, query];
-  if (failingPlannedSwapReads > 0) {
-    failingPlannedSwapReads -= 1;
+  if (failingNeedsYouReads > 0) {
+    failingNeedsYouReads -= 1;
     return { data: null, error: networkFailure };
   }
   const direction = query.order === 'oldest_first' ? 1 : -1;
@@ -764,6 +776,82 @@ function plannedSwapList(query: PlannedSwapsQuery) {
     .filter((swap) => (!query.status || swap.status === query.status) && (!query.deck_id || swap.deck_id === query.deck_id))
     .toSorted((a, b) => direction * a.created_at.localeCompare(b.created_at));
   return { data: { items, next_cursor: null }, error: null };
+}
+
+function buylistList(query: BuylistQuery) {
+  buylistQueriesSent = [...buylistQueriesSent, query];
+  if (failingNeedsYouReads > 0) {
+    failingNeedsYouReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  const direction = query.order === 'oldest_first' ? 1 : -1;
+  const items = buylistCards
+    .filter((card) => (!query.status || card.status === query.status) && (!query.deck_id || card.deck_id === query.deck_id))
+    .toSorted((a, b) => direction * a.created_at.localeCompare(b.created_at));
+  return { data: { items, next_cursor: null }, error: null };
+}
+
+function buylistCardToChange(buylistCardId: string, changeable: BuylistCard['status'][]) {
+  const card = buylistCards.find((candidate) => candidate.buylist_card_id === buylistCardId);
+  if (!card) {
+    return { error: { code: 'not_found', message: 'buylist_card_id is not one of your buylist cards.', details: 'buylist_card_id' } };
+  }
+  if (!changeable.includes(card.status)) {
+    return {
+      error: { code: 'not_open', message: `The buylist card is ${card.status}. Only an open buylist card can change.`, details: 'buylist_card_id' },
+    };
+  }
+  return { card };
+}
+
+function freeCopyList(query: FreeCopiesQuery) {
+  if (failingFreeCopyReads > 0) {
+    failingFreeCopyReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  return { data: { items: freeCopies.get(query.oracle_id) ?? [] }, error: null };
+}
+
+function markBuylistCardBought(request: MarkBuylistCardBoughtRequest) {
+  deckWrites = [...deckWrites, { name: 'mark_buylist_card_bought', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  const { card, error } = buylistCardToChange(request.buylist_card_id, ['open']);
+  if (!card) {
+    return { data: null, error };
+  }
+  const copy = freeCopies.get(card.incoming.oracle_id)?.find((candidate) => candidate.copy_id === request.copy_id);
+  if (!copy) {
+    return { data: null, error: { code: 'copy_not_free', message: 'Only a free copy can go into a deck.', details: 'copy_id' } };
+  }
+  if (copy.protected && !request.unprotect) {
+    return { data: null, error: { code: 'copy_protected', message: 'copy_id is a protected copy.', details: 'copy_id' } };
+  }
+  freeCopies.set(
+    card.incoming.oracle_id,
+    freeCopies.get(card.incoming.oracle_id)!.filter((candidate) => candidate.copy_id !== copy.copy_id),
+  );
+  changeBuylistCardElsewhere(card.buylist_card_id, 'bought');
+  const deck = decks.find((candidate) => candidate.deck_id === card.deck_id);
+  if (deck) {
+    saveDeck({ ...deck, revision: deck.revision + 1, last_used_at: nextDeckTime() });
+  }
+  return { data: { deck_id: card.deck_id, revision: (deck?.revision ?? 0) + 1 }, error: null };
+}
+
+function closeBuylistCard(request: CloseBuylistCardRequest) {
+  deckWrites = [...deckWrites, { name: 'close_buylist_card', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  const { card, error } = buylistCardToChange(request.buylist_card_id, ['open', 'closed']);
+  if (!card) {
+    return { data: null, error };
+  }
+  const changed = card.status === 'open';
+  changeBuylistCardElsewhere(card.buylist_card_id, 'closed');
+  return { data: { id: card.buylist_card_id, changed }, error: null };
 }
 
 function plannedSwapToChange(plannedSwapId: string, changeable: PlannedSwap['status'][]) {
@@ -1090,6 +1178,8 @@ export const fakeSupabase = {
       | { query: RevertPreviewQuery }
       | { query: AddDeckCardPreviewQuery }
       | { query: PlannedSwapsQuery }
+      | { query: BuylistQuery }
+      | { query: FreeCopiesQuery }
       | { query: Record<string, never> }
       | { query: CurrentPricesQuery }
       | { query: { text: string; limit: number } }
@@ -1113,7 +1203,9 @@ export const fakeSupabase = {
             | RemoveDeckCardRequest
             | RevertDeckChangesRequest
             | SwapInPlannedSwapRequest
-            | ClosePlannedSwapRequest;
+            | ClosePlannedSwapRequest
+            | MarkBuylistCardBoughtRequest
+            | CloseBuylistCardRequest;
         },
   ) {
     if (name === 'list_decks') {
@@ -1171,6 +1263,18 @@ export const fakeSupabase = {
     }
     if (name === 'close_planned_swap' && args && 'request' in args) {
       return closePlannedSwap(args.request as ClosePlannedSwapRequest);
+    }
+    if (name === 'list_buylist' && args && 'query' in args) {
+      return buylistList(args.query as BuylistQuery);
+    }
+    if (name === 'mark_buylist_card_bought' && args && 'request' in args) {
+      return markBuylistCardBought(args.request as MarkBuylistCardBoughtRequest);
+    }
+    if (name === 'close_buylist_card' && args && 'request' in args) {
+      return closeBuylistCard(args.request as CloseBuylistCardRequest);
+    }
+    if (name === 'list_free_copies' && args && 'query' in args) {
+      return freeCopyList(args.query as FreeCopiesQuery);
     }
     if (name === 'list_user_tags') {
       return userTagList();
@@ -1417,8 +1521,28 @@ export function plannedSwapQueries() {
   return plannedSwapQueriesSent;
 }
 
-export function failPlannedSwapReads(count: number) {
-  failingPlannedSwapReads = count;
+export function failNeedsYouReads(count: number) {
+  failingNeedsYouReads = count;
+}
+
+export function ownBuylistCards(cards: BuylistCard[]) {
+  buylistCards = cards;
+}
+
+export function changeBuylistCardElsewhere(buylistCardId: string, status: BuylistCard['status']) {
+  buylistCards = buylistCards.map((card) => (card.buylist_card_id === buylistCardId ? { ...card, status, effect: null } : card));
+}
+
+export function buylistQueries() {
+  return buylistQueriesSent;
+}
+
+export function ownFreeCopies(oracleId: string, copies: FreeCopy[]) {
+  freeCopies.set(oracleId, copies);
+}
+
+export function failFreeCopyReads(count: number) {
+  failingFreeCopyReads = count;
 }
 
 export function deckWritesSent() {
@@ -1616,7 +1740,11 @@ export function resetFakeSupabase() {
   heldAddPreviews = null;
   plannedSwaps = [];
   plannedSwapQueriesSent = [];
-  failingPlannedSwapReads = 0;
+  failingNeedsYouReads = 0;
+  buylistCards = [];
+  buylistQueriesSent = [];
+  freeCopies = new Map();
+  failingFreeCopyReads = 0;
   collectionTotal = emptyCollectionTotal;
   priceReads = [];
   exchangeRates = exchangeRatesOf(frankfurterCurrencies);

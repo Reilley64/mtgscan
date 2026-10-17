@@ -88,6 +88,7 @@ describe('the History tab', () => {
     ['removed_from_collection', 'Removed from collection'],
     ['revert', 'Revert'],
     ['swapped_in', 'Swapped in'],
+    ['bought', 'Bought'],
   ])('the deck change kind %s reads "%s"', async (kind, name) => {
     const deck = await openHistory([deckChange(1, kind)]);
 
@@ -96,10 +97,10 @@ describe('the History tab', () => {
     expect(texts.filter((text) => text !== revertLabel)).toHaveLength(1);
   });
 
-  test('a swapped in deck change shows its reason in body text and the AI client name in meta text after its change lines', async () => {
+  test.each<DeckChangeKind>(['swapped_in', 'bought'])('a %s deck change shows its reason in body text and the AI client name in meta text after its change lines', async (kind) => {
     const reason = 'Cheap removal that also answers an early threat.';
     const deck = await openHistory([
-      deckChange(1, 'swapped_in', [solRing({ place_before: null, place_after: 'main' })], { reason, client_name: 'ChatGPT' }),
+      deckChange(1, kind, [solRing({ place_before: null, place_after: 'main' })], { reason, client_name: 'ChatGPT' }),
     ]);
 
     const shownReason = await deck.findByText(reason);

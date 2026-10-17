@@ -1,31 +1,39 @@
+import type { BuylistCard, PlannedCardLine } from '@mtgscan/supabase/buylist';
+import type { CardCondition } from '@mtgscan/supabase/collection';
 import type { PlannedCopyLine, PlannedSwap } from '@mtgscan/supabase/planned-swaps';
+import type { Finish } from '@mtgscan/supabase/search';
 
 import { conditionLabels, finishLabels } from '@/collection/copy-labels';
 
-function printingOf(line: PlannedCopyLine) {
-  if (line.set === null) {
-    return line.type_line;
-  }
+export type NeedsYouLine = {
+  key: string;
+  direction: 'incoming' | 'outgoing';
+  name: string;
+  uri: string | undefined;
+  detail: string;
+};
+
+type Printing = { set: string; collector_number: string | null; finish: Finish | null; condition: CardCondition | null };
+
+export function printingOf({ set, collector_number, finish, condition }: Printing) {
   return [
-    `${line.set.toUpperCase()} ${line.collector_number}`,
-    ...(line.finish && line.finish !== 'nonfoil' ? [finishLabels[line.finish]] : []),
-    ...(line.condition && line.condition !== 'near_mint' ? [conditionLabels[line.condition]] : []),
+    `${set.toUpperCase()} ${collector_number}`,
+    ...(finish && finish !== 'nonfoil' ? [finishLabels[finish]] : []),
+    ...(condition && condition !== 'near_mint' ? [conditionLabels[condition]] : []),
   ].join(' \u00b7 ');
 }
 
-function changeLineOf(line: PlannedCopyLine, direction: 'incoming' | 'outgoing', place: string | null = null) {
+function lineOf(line: PlannedCopyLine | PlannedCardLine, direction: NeedsYouLine['direction'], asCommander = false): NeedsYouLine {
+  const detail = line.kind === 'copy' && line.set !== null ? printingOf({ ...line, set: line.set }) : line.type_line;
   return {
-    key: `${direction}-${line.copy_id}`,
+    key: `${direction}-${line.kind === 'copy' ? line.copy_id : line.oracle_id}`,
     direction,
     name: line.name,
     uri: line.image_uris[0],
-    detail: [printingOf(line), place].filter((part) => part !== null).join(' \u00b7 '),
+    detail: [detail, ...(asCommander ? ['Commander'] : [])].join(' \u00b7 '),
   };
 }
 
-export function plannedSwapLines(plannedSwap: PlannedSwap) {
-  return [
-    changeLineOf(plannedSwap.incoming, 'incoming', plannedSwap.as_commander ? 'Commander' : null),
-    ...(plannedSwap.outgoing ? [changeLineOf(plannedSwap.outgoing, 'outgoing')] : []),
-  ];
+export function needsYouLines({ incoming, outgoing, as_commander }: Pick<PlannedSwap | BuylistCard, 'incoming' | 'outgoing' | 'as_commander'>) {
+  return [lineOf(incoming, 'incoming', as_commander), ...(outgoing ? [lineOf(outgoing, 'outgoing')] : [])];
 }

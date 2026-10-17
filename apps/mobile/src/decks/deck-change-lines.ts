@@ -10,6 +10,7 @@ export const deckChangeKindNames: Record<DeckChangeKind, string> = {
   removed_from_collection: 'Removed from collection',
   revert: 'Revert',
   swapped_in: 'Swapped in',
+  bought: 'Bought',
 };
 
 const placeNames: Record<DeckRole, string> = {
