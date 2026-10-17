@@ -13,15 +13,17 @@ import {
   runTestUserCommand,
   spellbookFixtureVariants,
 } from './catalog-import-command';
-import { anonymousClient, secretKeyClient, type AppClient } from './local-stack';
+import { anonymousClient, localStackUrl, secretKeyClient, type AppClient } from './local-stack';
 
 setDefaultTimeout(60_000);
 
-const hostedPassword = 'hosted-test-user-password';
+const hostedProjectRef = 'abcdefghijklmnop';
+const hostedUrl = `https://${hostedProjectRef}.supabase.co`;
+const hostedPassword = { EXPO_PUBLIC_TEST_USER_PASSWORD: 'hosted-test-user-password' };
 
-async function signedInTestUser(password = testUser.password): Promise<AppClient> {
+async function signedInTestUser(): Promise<AppClient> {
   const client = anonymousClient();
-  const { error } = await client.auth.signInWithPassword({ email: testUser.email, password });
+  const { error } = await client.auth.signInWithPassword(testUser);
   expect(error).toBeNull();
   return client;
 }
@@ -238,33 +240,32 @@ describe('the test user command', () => {
     ['an empty password', { EXPO_PUBLIC_TEST_USER_PASSWORD: '' }],
     ['the local default password', { EXPO_PUBLIC_TEST_USER_PASSWORD: testUser.password }],
   ])('with --hosted, refuses %s', async (_, env) => {
-    const { exitCode, output } = await runTestUserCommand(['--hosted', '--sample-collection'], env);
+    const { exitCode, output } = await runTestUserCommand(['--hosted', '--sample-collection'], { SUPABASE_URL: hostedUrl, ...env });
 
     expect(exitCode).toBe(2);
     expect(output).toContain('Set EXPO_PUBLIC_TEST_USER_PASSWORD to the hosted test user password');
   });
 
-  test('with --hosted, the test user signs in with the password from the environment and has the sample collection', async () => {
-    const { exitCode, output } = await runTestUserCommand(['--hosted', '--sample-collection'], {
-      EXPO_PUBLIC_TEST_USER_PASSWORD: hostedPassword,
-    });
+  test.each([
+    ['no Supabase URL or project ref', { SUPABASE_URL: '', SUPABASE_PROJECT_REF: '' }, 'With --hosted, load SUPABASE_PROJECT_REF'],
+    ['the local stack', { SUPABASE_PROJECT_REF: hostedProjectRef }, `With --hosted, the local stack at ${localStackUrl} is refused.`],
+  ])('with --hosted, refuses %s', async (_, env, refusal) => {
+    const { exitCode, output } = await runTestUserCommand(['--hosted', '--sample-collection'], { ...hostedPassword, ...env });
 
-    expect(exitCode).toBe(0);
-    expect(output).toContain(`The test user ${testUser.email} is ready.`);
-    expect(output).toContain('Added 30 sample collection entries.');
-    expect(await collectionEntries(await signedInTestUser(hostedPassword))).toHaveLength(30);
-    const { error } = await anonymousClient().auth.signInWithPassword(testUser);
-    expect(error?.code).toBe('invalid_credentials');
+    expect(exitCode).toBe(2);
+    expect(output).toContain(refusal);
+    expect(output).not.toContain('is ready.');
   });
 
-  test('with --hosted, running the command again resets the test user to the sample collection', async () => {
-    const env = { EXPO_PUBLIC_TEST_USER_PASSWORD: hostedPassword };
-    expect((await runTestUserCommand(['--hosted', '--sample-collection'], env)).exitCode).toBe(0);
+  test('with --hosted and only SUPABASE_PROJECT_REF, uses the hosted project of that project ref', async () => {
+    const { exitCode, output } = await runTestUserCommand(['--hosted', '--sample-collection'], {
+      ...hostedPassword,
+      SUPABASE_URL: '',
+      SUPABASE_PROJECT_REF: hostedProjectRef,
+      SUPABASE_SECRET_KEY: '',
+    });
 
-    expect((await runTestUserCommand(['--hosted', '--sample-collection'], env)).exitCode).toBe(0);
-
-    const client = await signedInTestUser(hostedPassword);
-    expect(await collectionEntries(client)).toHaveLength(30);
-    expect(await additions(client)).toHaveLength(1);
+    expect(exitCode).toBe(2);
+    expect(output).toContain(`Load the SUPABASE_SECRET_KEY of https://${hostedProjectRef}.supabase.co with`);
   });
 });

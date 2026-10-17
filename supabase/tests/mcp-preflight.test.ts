@@ -8,9 +8,13 @@ import {
   runMcpPreflightCommand,
   runTestUserCommand,
 } from './catalog-import-command';
-import { asDatabaseOwner } from './local-stack';
+import { asDatabaseOwner, localStackUrl } from './local-stack';
 
 setDefaultTimeout(120_000);
+
+const hostedProjectRef = 'abcdefghijklmnop';
+const hostedUrl = `https://${hostedProjectRef}.supabase.co`;
+const hostedPassword = { EXPO_PUBLIC_TEST_USER_PASSWORD: 'hosted-test-user-password' };
 
 function leftoversOf(output: string) {
   const clientIds = [...output.matchAll(/client_id ([0-9a-f-]{36})/g)].map(([, id]) => id!);
@@ -40,10 +44,37 @@ describe('the MCP pre-flight command', () => {
   });
 
   test.each([
+    ['no Supabase URL or project ref', { SUPABASE_URL: '', SUPABASE_PROJECT_REF: '' }, 'With --hosted, load SUPABASE_PROJECT_REF'],
+    ['the local stack', { SUPABASE_PROJECT_REF: hostedProjectRef }, `With --hosted, the local stack at ${localStackUrl} is refused.`],
+  ])('with --hosted, refuses %s', async (_, env, refusal) => {
+    const { exitCode, output } = await runMcpPreflightCommand(['--hosted'], { ...hostedPassword, ...env });
+
+    expect(exitCode).toBe(2);
+    expect(output).toContain(refusal);
+    expect(output).not.toContain('MCP pre-flight on');
+  });
+
+  test('with --hosted and only SUPABASE_PROJECT_REF, runs on the hosted project of that project ref', async () => {
+    const { exitCode, output } = await runMcpPreflightCommand(['--hosted'], {
+      ...hostedPassword,
+      SUPABASE_URL: '',
+      SUPABASE_PROJECT_REF: hostedProjectRef,
+      SUPABASE_PUBLISHABLE_KEY: '',
+    });
+
+    expect(exitCode).toBe(2);
+    expect(output).toContain(`Set SUPABASE_PUBLISHABLE_KEY to the publishable key of https://${hostedProjectRef}.supabase.co,`);
+  });
+
+  test.each([
     ['no password', {}],
     ['the local default password', { EXPO_PUBLIC_TEST_USER_PASSWORD: testUser.password }],
   ])('with --hosted, refuses %s for the test user', async (_, env) => {
-    const { exitCode, output } = await runMcpPreflightCommand(['--hosted'], { EXPO_PUBLIC_TEST_USER_PASSWORD: '', ...env });
+    const { exitCode, output } = await runMcpPreflightCommand(['--hosted'], {
+      SUPABASE_URL: hostedUrl,
+      EXPO_PUBLIC_TEST_USER_PASSWORD: '',
+      ...env,
+    });
 
     expect(exitCode).toBe(2);
     expect(output).toContain('The local default password is refused.');

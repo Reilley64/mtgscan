@@ -65,7 +65,7 @@ Agent builds on the owner's iPhone are a separate app, **mtgscan Test**. It inst
 - Build and install only the test app on the iPhone. Never build or install `dev.reilley.mtgscan` on the iPhone unless the owner asks. Never sign in to the owner's mtgscan app.
 - Hold the device lock for the whole build and install.
 
-The owner seeds or resets the hosted test user. The command needs the hosted secret key, so only the owner runs it, from the main checkout. It deletes the hosted test user and its collection, creates it again with the password from `test-app.env`, and adds the sample collection and the sample deck. It refuses a missing password and the local default password:
+The owner seeds or resets the hosted test user. The command needs the hosted secret key, so only the owner runs it, from the main checkout. It deletes the hosted test user and its collection, creates it again with the password from `test-app.env`, and adds the sample collection and the sample deck. It builds the hosted URL from `SUPABASE_PROJECT_REF` in `.env.hosted`. It refuses a missing URL, the local stack, a missing password, and the local default password:
 
 ```bash
 cd supabase
@@ -106,7 +106,7 @@ CI does not replay the scanner evidence pack. Before merging a change to the rec
 ## Gallery build
 
 - The gallery build runs only on the owner's Mac, with the owner present. `README.md` (Gallery build and publish) describes the commands.
-- The hosted credentials for owner commands live only in `supabase/.env.hosted`: `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Git ignores the file, and Bun does not load it by itself. Load it for one command with `bun --env-file=.env.hosted`. Never put the hosted credentials in an `.env` file that Bun loads by itself, such as `supabase/.env` or `.env.local`. Never read or print the file:
+- The hosted credentials for owner commands live only in `supabase/.env.hosted`: `SUPABASE_PROJECT_REF` and `SUPABASE_SECRET_KEY`. The commands build the hosted URL, `https://<ref>.supabase.co`, from the project ref. Git ignores the file, and Bun does not load it by itself. Load it for one command with `bun --env-file=.env.hosted`. Never put the hosted credentials in an `.env` file that Bun loads by itself, such as `supabase/.env` or `.env.local`. Never read or print the file:
 
   ```bash
   cd supabase

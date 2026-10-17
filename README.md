@@ -83,7 +83,7 @@ The Swift sources in `ios/Recognizer` build into the app and into a macOS comman
 
 ### Gallery build and publish
 
-The owner builds the gallery on the Mac at each set release with `bun run gallery <command>` in `supabase`. #75 describes the format. The commands read `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. For the hosted project they live only in `supabase/.env.hosted`, which Git ignores and Bun does not load by itself. Run a command with them as `bun --env-file=.env.hosted gallery/main.ts <command>`. `docs/agents/local-development.md` (Gallery build) has the rules.
+The owner builds the gallery on the Mac at each set release with `bun run gallery <command>` in `supabase`. #75 describes the format. The commands read `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. When `SUPABASE_URL` is not set, they use `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF`. For the hosted project, `SUPABASE_PROJECT_REF` and `SUPABASE_SECRET_KEY` live only in `supabase/.env.hosted`, which Git ignores and Bun does not load by itself. Run a command with them as `bun --env-file=.env.hosted gallery/main.ts <command>`. `docs/agents/local-development.md` (Gallery build) has the rules.
 
 1. `build` reads Scryfall Default Cards and keeps the paper card printings that are in the card catalog. It downloads the missing `normal` images into `~/Library/Caches/mtgscan/scryfall-images`, 8 at a time. The macOS recognizer command computes the int8 feature prints, and the build reuses the ones it already has. It then writes the gallery parts, the printing list parts, and the manifest with the SHA-256 of each part, and uploads them as a new gallery version that is not published. It prints the sizes against the Free plan budget.
 2. The owner runs the parity check on the iPhone (#84). In a development build, **Run the parity check** in settings runs it on the installed gallery version. Signed-in users cannot read a gallery version that is not published, so `sign <version> [--hours <n>]` prints signed URLs for its manifest and parts, valid for 24 hours by default, for a development build. Gallery download (above) says how a development build uses them. `parity <version> --lowest-cosine <n> --mean-cosine <n> --references <n>` records the result.
@@ -182,7 +182,7 @@ Agent builds on the owner's iPhone are a separate app, mtgscan Test, so the owne
 
 - The test app uses hosted Supabase. It signs in the hosted test user, `test-user@mtgscan.test`, with one tap, and has no Apple or Google button.
 - The hosted test user's password is random. It lives only in `~/.config/mtgscan/test-app.env`, as `EXPO_PUBLIC_TEST_USER_PASSWORD`.
-- The owner seeds or resets the hosted test user with the sample collection and the sample deck from `supabase` in the main checkout: `bun --env-file=.env.hosted --env-file=$HOME/.config/mtgscan/test-app.env test-user/main.ts --hosted --sample-collection`. The command refuses a missing password and the local default password.
+- The owner seeds or resets the hosted test user with the sample collection and the sample deck from `supabase` in the main checkout: `bun --env-file=.env.hosted --env-file=$HOME/.config/mtgscan/test-app.env test-user/main.ts --hosted --sample-collection`. The command builds the hosted URL from `SUPABASE_PROJECT_REF` in `.env.hosted`, or reads it from `SUPABASE_URL`. It refuses a missing URL, the local stack, a missing password, and the local default password.
 - `bun run ios:test-device --device <identifier>` in `apps/mobile` builds the test app in the Release configuration and installs it on the iPhone. It reads the password from `test-app.env` and never writes it to the worktree.
 - `bun run test:production-bundle` checks that a production bundle has no test sign-in and that the test app bundle has one.
 
@@ -565,7 +565,7 @@ Signed-in users search their own collection with `supabase.rpc('search_collectio
 
 ### Card catalog imports
 
-`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file. Pass `--sets <path>` to read a fixture instead of the Scryfall sets list. Pass `--rates <path>` to read a fixture instead of Frankfurter's latest exchange rates.
+`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. When `SUPABASE_URL` is not set, it uses `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file. Pass `--sets <path>` to read a fixture instead of the Scryfall sets list. Pass `--rates <path>` to read a fixture instead of Frankfurter's latest exchange rates.
 
 - `catalog` imports cards and card printings. Each card printing keeps `image_uris`, the Scryfall `normal` image of each face, and `art_crop_uri`, the Scryfall `art_crop` image of its front face or null. After the run, even a skipped one, it reads Scryfall's sets list in one request and adds or updates `card_sets`: each set's code, name, and `icon_svg_uri`. Some sets use the icon of a parent set, so the app reads the icon from this table, not from a URL pattern. Signed-in users can read `card_sets`. The Weekly import workflow runs it.
   - The run reads the deck-construction fields from each card's Oracle text and stores them on the card. Deck validity reads them as rules data. The reader leaves out reminder text and an ability word before " — ", as in Clara Oswald's "Impossible Girl".
@@ -749,7 +749,7 @@ What the checks prove:
 - `revokeGrant` ends the AI client's access at once: its next call gets 401, because `begin_mcp_call` finds no live session. If this fails, the AI clients alert must say "within an hour" instead of "at once". Its refresh token is refused too.
 - Cleanup deletes the deck, which deletes its deck suggestions. It deletes the AI clients, and checks that no AI client and no deck suggestion is left. The idempotency key stays for 24 hours, as for every call.
 
-On the hosted project, the owner runs it from the main checkout. `.env.hosted` gives `SUPABASE_URL` and `SUPABASE_SECRET_KEY`, and `test-app.env` gives the hosted test user password. The script uses the secret key only in cleanup, to delete the AI clients and to check that nothing is left. The publishable key is in the Supabase dashboard, under API Keys. The AI client's Data API calls send it, as an AI client would. The hosted test user must exist, as Test app on the iPhone says. The owner posts the output on the release ticket.
+On the hosted project, the owner runs it from the main checkout. `.env.hosted` gives `SUPABASE_PROJECT_REF` and `SUPABASE_SECRET_KEY`, and `test-app.env` gives the hosted test user password. The script builds the hosted URL, `https://<ref>.supabase.co`, from the project ref. The script uses the secret key only in cleanup, to delete the AI clients and to check that nothing is left. The publishable key is in the Supabase dashboard, under API Keys. The AI client's Data API calls send it, as an AI client would. The hosted test user must exist, as Test app on the iPhone says. The owner posts the output on the release ticket.
 
 ```bash
 cd supabase
@@ -757,7 +757,7 @@ SUPABASE_PUBLISHABLE_KEY=<hosted publishable key> \
 bun --env-file=.env.hosted --env-file=$HOME/.config/mtgscan/test-app.env run mcp-preflight --hosted
 ```
 
-Without `--hosted`, the script runs only on the local stack, with the local default password of the test user. With `--hosted`, it reads the password from `EXPO_PUBLIC_TEST_USER_PASSWORD` and refuses a missing password and the local default password. To run it on the local stack, import the card catalog fixture and seed the test user first, as `docs/agents/local-development.md` (Test sign-in) says:
+Without `--hosted`, the script runs only on the local stack, with the local default password of the test user. With `--hosted`, it uses `SUPABASE_URL` if it is set, or else `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF`. It refuses when neither is set, and it refuses the local stack. It reads the password from `EXPO_PUBLIC_TEST_USER_PASSWORD` and refuses a missing password and the local default password. To run it on the local stack, import the card catalog fixture and seed the test user first, as `docs/agents/local-development.md` (Test sign-in) says:
 
 ```bash
 cd supabase

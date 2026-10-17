@@ -6,7 +6,7 @@ import type { CardCondition, CopyProtectedRequest, ScanBatch, UserTag } from '..
 import type { Finish } from '../search';
 import type { Database, Json } from '../database.types';
 import type { AddedDeckCard, CreatedDeck, Deck, DeckChangePage } from '../decks';
-import { isHostedTestUserPassword, isLocalStack, localSupabaseUrl, testUser } from './account';
+import { hostedSupabaseUrl, isHostedTestUserPassword, isLocalStack, localSupabaseUrl, testUser } from './account';
 
 const usage = 'Usage: bun test-user/main.ts [--hosted] [--sample-collection]';
 const sampleCollectionEntries = 30;
@@ -47,7 +47,24 @@ const { values } = parseArgs({
   },
 });
 
-const url = process.env.SUPABASE_URL ?? localSupabaseUrl;
+function refuse(message: string): never {
+  console.error(message);
+  console.error(usage);
+  process.exit(2);
+}
+
+function supabaseUrl(): string {
+  if (!values.hosted) {
+    return process.env.SUPABASE_URL ?? localSupabaseUrl;
+  }
+  const hosted = hostedSupabaseUrl(process.env);
+  if ('refusal' in hosted) {
+    refuse(hosted.refusal);
+  }
+  return hosted.url;
+}
+
+const url = supabaseUrl();
 const secretKey = process.env.SUPABASE_SECRET_KEY;
 
 function testUserPassword(): string {
@@ -61,11 +78,9 @@ function testUserPassword(): string {
   }
   const password = process.env.EXPO_PUBLIC_TEST_USER_PASSWORD;
   if (!isHostedTestUserPassword(password)) {
-    console.error(
+    refuse(
       'Set EXPO_PUBLIC_TEST_USER_PASSWORD to the hosted test user password from ~/.config/mtgscan/test-app.env. The local default password is refused.',
     );
-    console.error(usage);
-    process.exit(2);
   }
   return password;
 }
@@ -73,13 +88,11 @@ function testUserPassword(): string {
 const account = { email: testUser.email, password: testUserPassword() };
 
 if (!secretKey) {
-  console.error(
+  refuse(
     values.hosted
-      ? 'Load the hosted SUPABASE_URL and SUPABASE_SECRET_KEY with `bun --env-file=.env.hosted`.'
+      ? `Load the SUPABASE_SECRET_KEY of ${url} with \`bun --env-file=.env.hosted\`.`
       : 'Set SUPABASE_SECRET_KEY to the SECRET_KEY value from `bunx supabase@2.120.0 status -o env`.',
   );
-  console.error(usage);
-  process.exit(2);
 }
 
 type Client = ReturnType<typeof newClient>;
