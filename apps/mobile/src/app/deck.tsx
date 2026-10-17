@@ -14,6 +14,7 @@ import { DeckCardOrderButtons } from '@/components/organisms/deck-card-order-but
 import { DeckCards } from '@/components/organisms/deck-cards';
 import { DeckHistory } from '@/components/organisms/deck-history';
 import { NeedsYouList } from '@/components/organisms/needs-you-list';
+import { SwapInAllButton } from '@/components/organisms/swap-in-all-button';
 import { PushedScreen } from '@/components/templates/pushed-screen';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
@@ -24,7 +25,7 @@ import { removeFromDeck } from '@/decks/remove-from-deck';
 import { useDeck } from '@/decks/use-deck';
 import { useDeckChanges } from '@/decks/use-deck-changes';
 import { useNeedsYouCounts } from '@/needs-you/needs-you-counts';
-import { useNeedsYou } from '@/needs-you/use-needs-you';
+import { useNeedsYou, type NeedsYouItem } from '@/needs-you/use-needs-you';
 import { colors } from '@/theme';
 
 const deckTabs = ['cards', 'planned', 'history'] as const;
@@ -36,6 +37,10 @@ const deckTabLabels: Record<DeckTab, string> = { cards: 'Cards', planned: 'Plann
 function deleteMessage(cardCount: number) {
   const verb = cardCount === 1 ? 'becomes' : 'become';
   return `Its ${cardCountLabel(cardCount)} ${verb} free, and its history is deleted. This cannot be undone.`;
+}
+
+function plannedSwapsOf(items: NeedsYouItem[]) {
+  return items.flatMap((item) => (item.kind === 'planned_swap' ? [item.plan] : []));
 }
 
 function openCard(card: DeckCard) {
@@ -178,7 +183,12 @@ export default function DeckScreen() {
             ) : null}
             {tab === 'planned' && planned.status === 'loaded' ? (
               planned.items.length > 0 ? (
-                <NeedsYouList items={planned.items} onChanged={reloadAfterPlanChange} />
+                <>
+                  {plannedSwapsOf(planned.items).length >= 2 ? (
+                    <SwapInAllButton deckId={deckId} plannedSwaps={plannedSwapsOf(planned.items)} onChanged={reloadAfterPlanChange} />
+                  ) : null}
+                  <NeedsYouList items={planned.items} onChanged={reloadAfterPlanChange} />
+                </>
               ) : (
                 <EmptyState
                   illustration={<GhostNeedsYouItems />}

@@ -642,6 +642,8 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - **Basic lands** is the last group. Its header shows the total count of basic lands, such as "Basic lands 10", or no count with none, and a secondary **Edit** button on the right. The group shows the basic land cards with a count above zero, in the order Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Each is its card image with a count badge, such as ×8, at the top right. VoiceOver reads it as an image, "Island, 8". A basic land tile is not a button and has no long-press menu. A basic land card in a violation's cards, such as a Mountain outside the color identity, has the danger outline, and VoiceOver reads "Mountain, 2, breaks a Commander rule". An empty deck shows the group with **Edit** after the empty state.
   - **Edit** opens the basic lands drawer (see Sheets). The group and sort buttons stay while it shows.
   - **Planned** lists the deck's open planned swaps and buylist cards, oldest first, as the Recent items without the deck tag. **Swap in**, **Bought**, and **Close** work as on Recent, with the same alerts. After a Swap in or a Bought, Cards and History show the new deck change. Planned reloads when the deck screen gains focus.
+    - With two or more open planned swaps, a primary **Swap in all** button sits above the list. A tap shows the native alert "Swap in N cards?" with "Do this after you sleeve them.", **Swap in all**, and **Cancel**. **Swap in all** swaps in the open planned swaps that Planned shows, oldest first, each as its own "Swapped in" deck change. Buylist cards stay, because each one needs **Bought**. Planned and the Needs you counts then reload.
+    - When the write fails, the alert says "Could not swap in all cards" and "Check your connection.", and nothing changes. When a card would make a third commander, the alert says "Could not swap in all cards" and "<card> would make a third commander. Nothing was swapped in.". A planned swap that changed elsewhere reloads Planned instead.
     - With none, Planned shows its empty state. See Empty states.
     - When the read fails, Planned shows the empty state "Could not load this deck" with a **Try again** button.
   - **History** lists the deck changes, newest first, one surface card each. More deck changes load as the user scrolls near the end, 20 at a time.
@@ -807,7 +809,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
 ## Components
 
-- **Buttons.** Primary buttons are lime with dark text: Swap in, Bought, Add to collection. Secondary buttons use the control surface: Close, Skip, Cancel. Destructive actions, such as **Remove scan**, use danger text on the danger tint.
+- **Buttons.** Primary buttons are lime with dark text: Swap in, Swap in all, Bought, Add to collection. Secondary buttons use the control surface: Close, Skip, Cancel. Destructive actions, such as **Remove scan**, use danger text on the danger tint.
   - A disabled button fades to 38% opacity, the same dimming as the other sign-in buttons while one signs in. `theme.ts` names it `opacity.dimmed`.
   - A busy button shows a spinner before its label and takes no taps. It keeps its full color.
   - A round icon button, such as the settings button or the batch button, is 38 px across on the control surface, with an 18 px symbol in the text color.
