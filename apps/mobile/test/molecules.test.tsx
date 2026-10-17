@@ -38,6 +38,7 @@ import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
+import { Reason } from '@/components/molecules/reason';
 import { SaveBar } from '@/components/molecules/save-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { SortButton } from '@/components/molecules/sort-button';
@@ -425,6 +426,25 @@ describe('ChangeLine', () => {
     expect(within(row).getByText('Sol Ring')).toHaveStyle({ color: white, fontWeight: '700' });
     expect(within(row).getByText('Artifact')).toHaveStyle({ color: textMuted, fontSize: 12 });
     expect(cardImageUri(row)).toBe(solRing);
+  });
+});
+
+describe('Reason', () => {
+  test('a reason shows the reason in body text with the meta under it in meta text', async () => {
+    await render(<Reason reason="Cheap removal that also answers an early threat." meta="ChatGPT" />);
+
+    const reason = screen.getByText('Cheap removal that also answers an early threat.');
+    const meta = screen.getByText('ChatGPT');
+    expect(reason).toHaveStyle({ color: white, fontSize: 14 });
+    expect(meta).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(appearsBefore(reason, meta)).toBe(true);
+  });
+
+  test('a reason with no meta shows only the reason', async () => {
+    await render(<Reason reason="Cheap removal that also answers an early threat." meta={null} />);
+
+    expect(screen.getByText('Cheap removal that also answers an early threat.')).toBeOnTheScreen();
+    expect(screen.queryByText('ChatGPT')).not.toBeOnTheScreen();
   });
 });
 

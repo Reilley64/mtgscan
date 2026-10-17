@@ -12,7 +12,8 @@ setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
 const securityDefinerReads = ['catalog_freshness', 'search_oracle_tags'];
-const requiresAnAiClientsToken = ['begin_mcp_call'];
+const aiWriteFunctions = ['create_planned_swaps'];
+const requiresAnAiClientsToken = ['begin_mcp_call', ...aiWriteFunctions];
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const forest = basicLand('Forest').oracle_id;
 
@@ -104,8 +105,8 @@ describe("refusing an AI client's token", () => {
       return callFunction(appToken(user), name, request);
     };
     const read = (name: string, query?: object) => callFunction(appToken(user), name, query);
-    const scanned = stack(angelicCurator, { copies: 2 });
-    const [protectedCopy, deckCopy] = scanned.copy_ids as [string, string];
+    const scanned = stack(angelicCurator, { copies: 3 });
+    const [protectedCopy, deckCopy, heldCopy] = scanned.copy_ids as [string, string, string];
 
     await refuseAiClientThenWrite('add_scan_batch', { items: [scanned] });
     await refuseAiClientThenWrite('set_copy_protected', { copy_id: protectedCopy, protected: true });
@@ -119,6 +120,15 @@ describe("refusing an AI client's token", () => {
     await refuseAiClientThenWrite('add_deck_card', { deck_id, copy_id: deckCopy, unprotect: false });
     await refuseAiClientThenWrite('set_deck_commander', { copy_id: deckCopy, commander: true });
     await refuseAiClientThenWrite('set_basic_lands', { deck_id, counts: [{ oracle_id: forest, count: 10 }] });
+    const [plannedSwap] = (
+      await callFunction(aiClientToken(user), 'create_planned_swaps', {
+        idempotency_key: 'release-gate',
+        planned_swaps: [
+          { ref: 'swap', deck_id, expected_deck_revision: 3, incoming: { copy_id: heldCopy }, reason: 'Another Angelic Curator for the gate.' },
+        ],
+      })
+    ).planned_swaps;
+    await refuseAiClientThenWrite('swap_in_planned_swap', { planned_swap_id: plannedSwap.planned_swap_id });
     await refuseAiClientThenWrite('remove_deck_card', { copy_id: deckCopy });
     const [removal] = (await read('list_deck_changes', { deck_id })).items;
     await refuseAiClientThenWrite('revert_deck_changes', {
@@ -133,9 +143,27 @@ describe("refusing an AI client's token", () => {
 
     expect(writesCalled.toSorted()).toEqual((await appWriteFunctions()).map(({ name }) => name));
     expect((await read('list_decks')).items).toEqual([]);
-    expect((await read('search_collection', { rows: 'copies' })).items).toEqual([
-      expect.objectContaining({ copy_id: protectedCopy, protected: true }),
-    ]);
+    expect(
+      (await read('search_collection', { rows: 'copies' })).items.map((item: { copy_id: string; protected: boolean }) => [item.copy_id, item.protected]).toSorted(),
+    ).toEqual(
+      [
+        [protectedCopy, true],
+        [heldCopy, false],
+      ].toSorted(),
+    );
+  });
+
+  test("every AI write function refuses the app's token", async () => {
+    const user = await signUpNewUser();
+
+    const refusals = [];
+    for (const name of aiWriteFunctions) {
+      refusals.push({ name, refusal: await callFunction(appToken(user), name, {}).catch(({ errno, message }) => ({ errno, message })) });
+    }
+
+    expect(refusals).toEqual(
+      aiWriteFunctions.map((name) => ({ name, refusal: { errno: permissionDenied, message: 'Only an AI client can call this function.' } })),
+    );
   });
 
   test("reads and previews still work with an AI client's token", async () => {

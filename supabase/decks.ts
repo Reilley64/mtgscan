@@ -180,6 +180,8 @@ export type DeckChange = {
   kind: DeckChangeKind;
   changed_at: string;
   reverted: boolean;
+  reason: string | null;
+  client_name: string | null;
   lines: DeckChangeLine[];
 };
 
@@ -309,7 +311,8 @@ export type DeckErrorCode =
   | 'copy_not_in_deck'
   | 'commander_limit'
   | 'stale_revision'
-  | 'revert_blocked';
+  | 'revert_blocked'
+  | 'not_open';
 
 export type DeckError = Omit<SearchError, 'code'> & { code: DeckErrorCode };
 

@@ -38,6 +38,7 @@ import { BracketSignalRow } from '@/components/molecules/bracket-signal-row';
 import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChangeLine } from '@/components/molecules/change-line';
+import { Reason } from '@/components/molecules/reason';
 import { CommanderGalleryCard, DeckBanner } from '@/components/molecules/commander-card';
 import { CardChip } from '@/components/molecules/card-chip';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
@@ -747,6 +748,8 @@ function ChangeLines() {
       <ChangeLine direction="incoming" uri={solRing} name="Sol Ring" detail="Artifact" />
       <ChangeLine direction="outgoing" uri={solRing} name="Sol Ring" detail="Commander" />
       <ChangeLine direction="incoming" uri={solRing} name="Snow-Covered Island" detail="+2" />
+      <Reason reason="Cheap removal that also answers an early threat." meta="ChatGPT · 16 October 2026 at 18:05" />
+      <Reason reason="Cheap removal that also answers an early threat." meta={null} />
     </Section>
   );
 }

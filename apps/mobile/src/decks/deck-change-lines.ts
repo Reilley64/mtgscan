@@ -9,6 +9,7 @@ export const deckChangeKindNames: Record<DeckChangeKind, string> = {
   basic_lands: 'Basic lands',
   removed_from_collection: 'Removed from collection',
   revert: 'Revert',
+  swapped_in: 'Swapped in',
 };
 
 const placeNames: Record<DeckRole, string> = {
