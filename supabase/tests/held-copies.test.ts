@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import type { BuylistPage } from '../buylist';
 import type { CollectionCopyRow } from '../collection';
 import type { DeckChangePage, RevertPreview } from '../decks';
-import type { PlannedSwap } from '../planned-swaps';
+import type { PlannedCopyLine, PlannedSwap } from '../planned-swaps';
 import type { SearchPage } from '../search';
 import { connectedAiClient, type ClaimedAiClient } from './ai-clients';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
@@ -57,7 +57,7 @@ async function expectMovedToBuylist(client: ClaimedAiClient, swap: PlannedSwap, 
   expect(buylist).toHaveLength(1);
   expect(buylist[0]).toMatchObject({
     deck_id: swap.deck_id,
-    incoming: { kind: 'card', name: swap.incoming.name, type_line: swap.incoming.type_line },
+    incoming: { kind: 'card', name: swap.incoming.name, type_line: (swap.incoming as PlannedCopyLine).type_line },
     outgoing: swap.outgoing,
     as_commander: swap.as_commander,
     reason: swap.reason,
