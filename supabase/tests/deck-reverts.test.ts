@@ -316,6 +316,7 @@ describe('reverting deck changes', () => {
       ],
       blocks: [],
       protected_copies: [],
+      held_copies: [],
       effect: null,
     });
     expect(reverted!.revision).toBe(5);

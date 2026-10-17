@@ -117,6 +117,7 @@ describe('copy rows', () => {
       protected: false,
       price: currentPrice('USD', '0.21', 'nonfoil'),
       deck: null,
+      held_for: null,
       ...changes,
     });
     const foil = { finish: 'foil', condition: 'lightly_played', language: 'ja', price: currentPrice('USD', '0.30', 'foil') } as const;
