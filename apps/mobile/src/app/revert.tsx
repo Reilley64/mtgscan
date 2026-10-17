@@ -14,7 +14,7 @@ import { DrawerSheet } from '@/components/templates/drawer-sheet';
 import { changeLineOf } from '@/decks/deck-change-lines';
 import { effectChip } from '@/decks/deck-labels';
 import { revertDeckChanges } from '@/decks/deck-writes';
-import { blockMessage, protectedCopyMessage, undoText } from '@/decks/revert-labels';
+import { blockMessage, heldCopyMessage, protectedCopyMessage, undoText } from '@/decks/revert-labels';
 import { useRevertPreview } from '@/decks/use-revert-preview';
 import { colors } from '@/theme';
 
@@ -79,6 +79,9 @@ export default function RevertSheet() {
           ))}
           {preview.protected_copies.map((copy) => (
             <WarningLine key={copy.copy_id} message={protectedCopyMessage(copy.name)} />
+          ))}
+          {preview.held_copies.map((copy) => (
+            <WarningLine key={copy.copy_id} symbol="bookmark.fill" message={heldCopyMessage(copy)} />
           ))}
         </>
       ) : null}

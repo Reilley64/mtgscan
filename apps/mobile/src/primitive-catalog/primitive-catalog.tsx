@@ -166,6 +166,7 @@ function Chips() {
         <Chip tone="danger" label="Not valid" />
         <Chip tone="info" label="Bracket 3" />
         <Chip tone="warning" symbol="shield.fill" label="Protected" />
+        <Chip tone="info" symbol="bookmark.fill" label="Held" />
         <Chip tone="info" label="Bracket 3" stale accessibilityHint="The rules data may be out of date." />
       </View>
       <View className="flex-row flex-wrap gap-sm">
@@ -376,6 +377,10 @@ function CardTiles() {
         </CardTile>
         <CardTile uri={solRing} accessibilityLabel="Sol Ring, C21 263, in the deck Atraxa, $1.25">
           <CopyMeta setCode="c21" rarity="rare" setIconUri={undefined} collectorNumber="263" inDeck />
+          <PriceLine price="$1.25" stale={false} />
+        </CardTile>
+        <CardTile uri={solRing} accessibilityLabel="Sol Ring, M10 216, held for the deck Krenko, $1.25">
+          <CopyMeta setCode="m10" rarity="rare" setIconUri={m10Symbol} collectorNumber="216" isHeld />
           <PriceLine price="$1.25" stale={false} />
         </CardTile>
         <CardTile uri={solRing} sheen="foil" accessibilityLabel="Sol Ring, M10 216, foil, deck card" onPress={() => {}} />
@@ -803,6 +808,7 @@ function WarningLines() {
   return (
     <Section title="Warning lines">
       <WarningLine message="Sol Ring is protected. Reverting unprotects it." />
+      <WarningLine symbol="bookmark.fill" message="Sol Ring is held by the planned swap for Krenko. Reverting moves that swap to the buylist." />
     </Section>
   );
 }

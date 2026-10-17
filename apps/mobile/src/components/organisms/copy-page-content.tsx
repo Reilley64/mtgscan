@@ -92,6 +92,7 @@ export function CopyPageContent({ copy, priceCurrency, onOpenUserTags, onOpenDec
   const price = copy.price && convertedPrice(copy.price, priceCurrency);
   const purchaseDayPrice = copy.purchase_day_price && convertedPrice(copy.purchase_day_price, priceCurrency);
   const credit = priceCredit(price ?? purchaseDayPrice ?? { currency: priceCurrency.currency });
+  const deckTag = copy.deck ?? copy.held_for;
   return (
     <>
       <CardHero
@@ -107,16 +108,13 @@ export function CopyPageContent({ copy, priceCurrency, onOpenUserTags, onOpenDec
         </View>
         <View className="flex-row flex-wrap gap-sm">
           {copy.protected ? <Chip tone="warning" symbol="shield.fill" label="Protected" /> : null}
+          {copy.held_for ? <Chip tone="info" symbol="bookmark.fill" label="Held" /> : null}
           {copyChipLabels(copy).map((label, index) => (
             <Chip key={index} label={label} />
           ))}
         </View>
-        {copy.deck ? (
-          <DeckTag
-            name={copy.deck.name}
-            commanderArtUri={copy.deck.commander_art_crop_uri}
-            onPress={() => onOpenDeck(copy.deck!.deck_id)}
-          />
+        {deckTag ? (
+          <DeckTag name={deckTag.name} commanderArtUri={deckTag.commander_art_crop_uri} onPress={() => onOpenDeck(deckTag.deck_id)} />
         ) : null}
         <SheetSection title="User tags">
           <UserTagsRow userTags={copy.user_tags} onPress={onOpenUserTags} />
