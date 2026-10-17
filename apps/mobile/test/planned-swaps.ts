@@ -1,4 +1,4 @@
-import type { PlannedCopyLine, PlannedSwap } from '@mtgscan/supabase/planned-swaps';
+import type { PlannedBasicLandLine, PlannedCopyLine, PlannedSwap } from '@mtgscan/supabase/planned-swaps';
 
 export const reason = 'Cheap removal that also answers an early threat.';
 
@@ -15,6 +15,10 @@ export function plannedCopyLine(copyId: string, name: string, changes: Partial<P
     condition: 'near_mint',
     ...changes,
   };
+}
+
+export function plannedBasicLandLine(oracleId: string, name: string): PlannedBasicLandLine {
+  return { kind: 'basic_land', oracle_id: oracleId, name, image_uris: [`https://cards.scryfall.io/normal/front/${oracleId}.jpg`] };
 }
 
 export function plannedSwapOf(plannedSwapId: string, changes: Partial<PlannedSwap> = {}): PlannedSwap {

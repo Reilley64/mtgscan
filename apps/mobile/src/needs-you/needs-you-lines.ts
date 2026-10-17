@@ -1,6 +1,6 @@
 import type { BuylistCard, PlannedCardLine } from '@mtgscan/supabase/buylist';
 import type { CardCondition } from '@mtgscan/supabase/collection';
-import type { PlannedCopyLine, PlannedSwap } from '@mtgscan/supabase/planned-swaps';
+import type { PlannedBasicLandLine, PlannedCopyLine, PlannedSwap } from '@mtgscan/supabase/planned-swaps';
 import type { Finish } from '@mtgscan/supabase/search';
 
 import { conditionLabels, finishLabels } from '@/collection/copy-labels';
@@ -23,8 +23,21 @@ export function printingOf({ set, collector_number, finish, condition }: Printin
   ].join(' \u00b7 ');
 }
 
-function lineOf(line: PlannedCopyLine | PlannedCardLine, direction: NeedsYouLine['direction'], asCommander = false): NeedsYouLine {
-  const detail = line.kind === 'copy' && line.set !== null ? printingOf({ ...line, set: line.set }) : line.type_line;
+const basicLandDetails: Record<NeedsYouLine['direction'], string> = { incoming: '+1', outgoing: '\u22121' };
+
+function detailOf(line: PlannedCopyLine | PlannedCardLine | PlannedBasicLandLine, direction: NeedsYouLine['direction']) {
+  if (line.kind === 'basic_land') {
+    return basicLandDetails[direction];
+  }
+  return line.kind === 'copy' && line.set !== null ? printingOf({ ...line, set: line.set }) : line.type_line;
+}
+
+function lineOf(
+  line: PlannedCopyLine | PlannedCardLine | PlannedBasicLandLine,
+  direction: NeedsYouLine['direction'],
+  asCommander = false,
+): NeedsYouLine {
+  const detail = detailOf(line, direction);
   return {
     key: `${direction}-${line.kind === 'copy' ? line.copy_id : line.oracle_id}`,
     direction,

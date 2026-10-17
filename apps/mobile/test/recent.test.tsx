@@ -29,7 +29,7 @@ import {
   symbolTintColor,
   tabHeader,
 } from './native-ui';
-import { plannedCopyLine, plannedSwapOf, reason } from './planned-swaps';
+import { plannedBasicLandLine, plannedCopyLine, plannedSwapOf, reason } from './planned-swaps';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
 
@@ -82,6 +82,19 @@ describe('Recent', () => {
     const recent = await openRecent();
 
     expect(await recent.findByLabelText('+, Krenko, Mob Boss, M10 146 · Commander')).toBeOnTheScreen();
+  });
+
+  test('basic land change lines show one more or one fewer, as on History', async () => {
+    ownPlannedSwaps([
+      plannedSwapOf('lands', { incoming: plannedBasicLandLine('island', 'Island'), outgoing: plannedBasicLandLine('mountain', 'Mountain') }),
+    ]);
+    ownBuylistCards([buylistCardOf('card', { outgoing: plannedBasicLandLine('mountain', 'Mountain') })]);
+
+    const recent = await openRecent();
+
+    const incoming = await recent.findByLabelText('+, Island, +1');
+    expect(cardImageUri(incoming)).toBe('https://cards.scryfall.io/normal/front/island.jpg');
+    expect(recent.getAllByLabelText('\u2212, Mountain, \u22121')).toHaveLength(2);
   });
 
   test('an item that would break a Commander rule shows the effect chip', async () => {
