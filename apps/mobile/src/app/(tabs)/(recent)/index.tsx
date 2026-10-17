@@ -7,12 +7,13 @@ import { GhostNeedsYouItems } from '@/components/molecules/empty-state-illustrat
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { PlannedSwapCard } from '@/components/organisms/planned-swap-card';
 import { TabScreen } from '@/components/templates/tab-screen';
-import { swapInPlannedSwap } from '@/planned-swaps/planned-swap-writes';
+import { closePlannedSwap, swapInPlannedSwap } from '@/planned-swaps/planned-swap-writes';
 import { useNeedsYou } from '@/planned-swaps/use-needs-you';
 
 export default function RecentScreen() {
   const { read, reload } = useNeedsYou();
   const [swappingIn, setSwappingIn] = useState<string | null>(null);
+  const [closing, setClosing] = useState<string | null>(null);
 
   async function swapIn(plannedSwapId: string) {
     setSwappingIn(plannedSwapId);
@@ -22,6 +23,17 @@ export default function RecentScreen() {
       Alert.alert('Could not swap in this card', 'Check your connection.');
     } else if (result === 'commander_limit') {
       Alert.alert('Could not swap in this card', 'A deck has at most two commanders.');
+    } else {
+      reload();
+    }
+  }
+
+  async function close(plannedSwapId: string) {
+    setClosing(plannedSwapId);
+    const result = await closePlannedSwap(plannedSwapId);
+    setClosing(null);
+    if (result === 'failed') {
+      Alert.alert('Could not close this planned swap', 'Check your connection.');
     } else {
       reload();
     }
@@ -45,8 +57,10 @@ export default function RecentScreen() {
               key={plannedSwap.planned_swap_id}
               plannedSwap={plannedSwap}
               swappingIn={swappingIn === plannedSwap.planned_swap_id}
+              closing={closing === plannedSwap.planned_swap_id}
               onOpenDeck={() => router.push({ pathname: '/deck', params: { deckId: plannedSwap.deck_id } })}
               onSwapIn={() => void swapIn(plannedSwap.planned_swap_id)}
+              onClose={() => void close(plannedSwap.planned_swap_id)}
             />
           ))
         : null}

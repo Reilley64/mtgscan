@@ -1,5 +1,5 @@
 import { readDeckError } from '@mtgscan/supabase/decks';
-import type { SwapInPlannedSwapRequest } from '@mtgscan/supabase/planned-swaps';
+import type { ClosePlannedSwapRequest, SwapInPlannedSwapRequest } from '@mtgscan/supabase/planned-swaps';
 
 import { supabase } from '@/lib/supabase';
 import { writeResultOf, type WriteResult } from '@/lib/write-result';
@@ -13,6 +13,15 @@ export async function swapInPlannedSwap(plannedSwapId: string): Promise<WriteRes
   }
   if (code === 'commander_limit') {
     return 'commander_limit';
+  }
+  return writeResultOf(error);
+}
+
+export async function closePlannedSwap(plannedSwapId: string): Promise<WriteResult> {
+  const request: ClosePlannedSwapRequest = { planned_swap_id: plannedSwapId };
+  const { error } = await supabase.rpc('close_planned_swap', { request });
+  if (error && readDeckError(error).code === 'not_open') {
+    return 'missing';
   }
   return writeResultOf(error);
 }

@@ -113,6 +113,45 @@ describe('Recent', () => {
     expect(presentedAlert()).toBeNull();
   });
 
+  test('Close acts at once, sends the planned swap, and the item leaves Recent', async () => {
+    ownPlannedSwaps([plannedSwapOf('swap')]);
+    const recent = await openRecent();
+    const close = await recent.findByRole('button', { name: 'Close' });
+    expect(close).toHaveStyle({ backgroundColor: tokenColors.surfaceControl });
+
+    await fireEvent.press(close);
+
+    await waitFor(() => expect(recent.getByText('Nothing needs you yet')).toBeOnTheScreen());
+    expect(deckWritesSent()).toEqual([{ name: 'close_planned_swap', request: { planned_swap_id: 'swap' } }]);
+    expect(presentedAlert()).toBeNull();
+  });
+
+  test('a close that fails shows "Check your connection." and the item stays', async () => {
+    ownPlannedSwaps([plannedSwapOf('swap')]);
+    failDeckWrites(1);
+    const recent = await openRecent();
+
+    await fireEvent.press(await recent.findByRole('button', { name: 'Close' }));
+
+    await waitFor(() =>
+      expect(presentedAlert()).toMatchObject({ title: 'Could not close this planned swap', message: 'Check your connection.' }),
+    );
+    expect(recent.getByRole('button', { name: 'Close' })).toBeOnTheScreen();
+  });
+
+  test('closing an item that changed elsewhere reloads instead of acting', async () => {
+    ownPlannedSwaps([plannedSwapOf('swap'), plannedSwapOf('other', { incoming: plannedCopyLine('copy-other', 'Counterspell') })]);
+    const recent = await openRecent();
+    await recent.findByLabelText('+, Lightning Bolt, M10 146');
+    changePlannedSwapElsewhere('swap', 'swapped_in');
+
+    await fireEvent.press(recent.getAllByRole('button', { name: 'Close' })[0]!);
+
+    await waitFor(() => expect(recent.queryByLabelText('+, Lightning Bolt, M10 146')).not.toBeOnTheScreen());
+    expect(recent.getByLabelText('+, Counterspell, M10 146')).toBeOnTheScreen();
+    expect(presentedAlert()).toBeNull();
+  });
+
   test('Recent reloads when the tab gains focus', async () => {
     const recent = await openRecent();
     expect(recent.getByText('Nothing needs you yet')).toBeOnTheScreen();

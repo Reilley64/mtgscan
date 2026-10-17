@@ -1,4 +1,5 @@
 import type { PlannedSwap } from '@mtgscan/supabase/planned-swaps';
+import { View } from 'react-native';
 
 import { Button } from '@/components/atoms/button';
 import { Chip } from '@/components/atoms/chip';
@@ -14,11 +15,13 @@ import { plannedSwapLines } from '@/planned-swaps/planned-swap-lines';
 type PlannedSwapCardProps = {
   plannedSwap: PlannedSwap;
   swappingIn: boolean;
+  closing: boolean;
   onOpenDeck: () => void;
   onSwapIn: () => void;
+  onClose: () => void;
 };
 
-export function PlannedSwapCard({ plannedSwap, swappingIn, onOpenDeck, onSwapIn }: PlannedSwapCardProps) {
+export function PlannedSwapCard({ plannedSwap, swappingIn, closing, onOpenDeck, onSwapIn, onClose }: PlannedSwapCardProps) {
   const meta = [plannedSwap.client_name, shownDayAndTime(plannedSwap.created_at)].filter((part) => part !== null).join(' \u00b7 ');
   return (
     <Surface className="gap-sm">
@@ -28,9 +31,14 @@ export function PlannedSwapCard({ plannedSwap, swappingIn, onOpenDeck, onSwapIn 
       ))}
       {plannedSwap.effect ? <Chip {...effectChip(plannedSwap.effect, plannedSwap.deck_name)} /> : null}
       <Reason reason={plannedSwap.reason} meta={meta} />
-      <Button variant="primary" className="self-start" busy={swappingIn} onPress={onSwapIn}>
-        <Text>Swap in</Text>
-      </Button>
+      <View className="flex-row gap-sm">
+        <Button variant="primary" busy={swappingIn} onPress={onSwapIn}>
+          <Text>Swap in</Text>
+        </Button>
+        <Button variant="secondary" busy={closing} onPress={onClose}>
+          <Text>Close</Text>
+        </Button>
+      </View>
     </Surface>
   );
 }

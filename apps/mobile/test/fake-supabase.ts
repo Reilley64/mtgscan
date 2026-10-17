@@ -52,7 +52,7 @@ import type {
   SetDeckPriorityRequest,
   Violation,
 } from '@mtgscan/supabase/decks';
-import type { PlannedSwap, PlannedSwapsQuery, SwapInPlannedSwapRequest } from '@mtgscan/supabase/planned-swaps';
+import type { ClosePlannedSwapRequest, PlannedSwap, PlannedSwapsQuery, SwapInPlannedSwapRequest } from '@mtgscan/supabase/planned-swaps';
 import type { SignInProvider } from '@mtgscan/supabase/sign-in-providers';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
@@ -766,20 +766,27 @@ function plannedSwapList(query: PlannedSwapsQuery) {
   return { data: { items, next_cursor: null }, error: null };
 }
 
+function plannedSwapToChange(plannedSwapId: string, changeable: PlannedSwap['status'][]) {
+  const swap = plannedSwaps.find((candidate) => candidate.planned_swap_id === plannedSwapId);
+  if (!swap) {
+    return { error: { code: 'not_found', message: 'planned_swap_id is not one of your planned swaps.', details: 'planned_swap_id' } };
+  }
+  if (!changeable.includes(swap.status)) {
+    return {
+      error: { code: 'not_open', message: `The planned swap is ${swap.status}. Only an open planned swap can change.`, details: 'planned_swap_id' },
+    };
+  }
+  return { swap };
+}
+
 function swapInPlannedSwap(request: SwapInPlannedSwapRequest) {
   deckWrites = [...deckWrites, { name: 'swap_in_planned_swap', request }];
   if (failedDeckWrite()) {
     return { data: null, error: networkFailure };
   }
-  const swap = plannedSwaps.find((candidate) => candidate.planned_swap_id === request.planned_swap_id);
+  const { swap, error } = plannedSwapToChange(request.planned_swap_id, ['open']);
   if (!swap) {
-    return { data: null, error: { code: 'not_found', message: 'planned_swap_id is not one of your planned swaps.', details: 'planned_swap_id' } };
-  }
-  if (swap.status !== 'open') {
-    return {
-      data: null,
-      error: { code: 'not_open', message: `The planned swap is ${swap.status}. Only an open planned swap can change.`, details: 'planned_swap_id' },
-    };
+    return { data: null, error };
   }
   changePlannedSwapElsewhere(swap.planned_swap_id, 'swapped_in');
   const deck = decks.find((candidate) => candidate.deck_id === swap.deck_id);
@@ -787,6 +794,20 @@ function swapInPlannedSwap(request: SwapInPlannedSwapRequest) {
     saveDeck({ ...deck, revision: deck.revision + 1, last_used_at: nextDeckTime() });
   }
   return { data: { deck_id: swap.deck_id, revision: (deck?.revision ?? 0) + 1 }, error: null };
+}
+
+function closePlannedSwap(request: ClosePlannedSwapRequest) {
+  deckWrites = [...deckWrites, { name: 'close_planned_swap', request }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  const { swap, error } = plannedSwapToChange(request.planned_swap_id, ['open', 'closed']);
+  if (!swap) {
+    return { data: null, error };
+  }
+  const changed = swap.status === 'open';
+  changePlannedSwapElsewhere(swap.planned_swap_id, 'closed');
+  return { data: { id: swap.planned_swap_id, changed }, error: null };
 }
 
 function setDeckCommander(request: SetDeckCommanderRequest) {
@@ -1091,7 +1112,8 @@ export const fakeSupabase = {
             | SetBasicLandsRequest
             | RemoveDeckCardRequest
             | RevertDeckChangesRequest
-            | SwapInPlannedSwapRequest;
+            | SwapInPlannedSwapRequest
+            | ClosePlannedSwapRequest;
         },
   ) {
     if (name === 'list_decks') {
@@ -1146,6 +1168,9 @@ export const fakeSupabase = {
     }
     if (name === 'swap_in_planned_swap' && args && 'request' in args) {
       return swapInPlannedSwap(args.request as SwapInPlannedSwapRequest);
+    }
+    if (name === 'close_planned_swap' && args && 'request' in args) {
+      return closePlannedSwap(args.request as ClosePlannedSwapRequest);
     }
     if (name === 'list_user_tags') {
       return userTagList();
