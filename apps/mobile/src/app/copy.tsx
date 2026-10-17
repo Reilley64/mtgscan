@@ -1,4 +1,4 @@
-import type { CopyDeck } from '@mtgscan/supabase/decks';
+import type { CopyDetails } from '@mtgscan/supabase/collection';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { Alert, View } from 'react-native';
@@ -29,8 +29,8 @@ export default function CopyScreen() {
     }
   }, [read.status]);
 
-  async function deleteThisCopy() {
-    const result = await deleteCopy(copyId);
+  async function deleteThisCopy(held: boolean) {
+    const result = await deleteCopy(copyId, held);
     if (result === 'done') {
       router.back();
     } else if (result === 'missing') {
@@ -63,12 +63,18 @@ export default function CopyScreen() {
     ]);
   }
 
-  function confirmDelete(deck: CopyDeck | null) {
-    const message = deck
+  function deleteCopyMessage({ deck, held_for }: Pick<CopyDetails, 'deck' | 'held_for'>) {
+    if (held_for) {
+      return `This copy is held by the planned swap for ${held_for.name}. Continue and move that swap to the buylist?`;
+    }
+    return deck
       ? `It leaves ${deck.name} and your collection, with its user tags. This cannot be undone.`
       : 'It leaves your collection with its user tags. This cannot be undone.';
-    Alert.alert('Delete this copy?', message, [
-      { text: 'Delete copy', style: 'destructive', onPress: deleteThisCopy },
+  }
+
+  function confirmDelete({ deck, held_for }: Pick<CopyDetails, 'deck' | 'held_for'>) {
+    Alert.alert('Delete this copy?', deleteCopyMessage({ deck, held_for }), [
+      { text: 'Delete copy', style: 'destructive', onPress: () => deleteThisCopy(held_for !== null) },
       { text: 'Cancel', style: 'cancel' },
     ]);
   }
@@ -89,7 +95,7 @@ export default function CopyScreen() {
               onAddToDeck: () => addToDeck(read.copy.protected),
               onSetCommander: (action) => applyCommanderAction(copyId, action, reload),
               onRemoveFromDeck: () => removeFromDeck(copyId, reload),
-              onDelete: () => confirmDelete(read.copy.deck),
+              onDelete: () => confirmDelete(read.copy),
             })}
           </Stack.Toolbar>
           <CopyPageContent

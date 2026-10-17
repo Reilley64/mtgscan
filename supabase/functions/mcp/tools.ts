@@ -210,6 +210,7 @@ const collectionCopyRow = z.strictObject({
   protected: z.boolean(),
   price: currentPrice.nullable(),
   deck: z.strictObject({ deck_id: id, name: z.string() }).nullable(),
+  held_for: z.strictObject({ deck_id: id, name: z.string() }).nullable(),
   oracle_text: z.string().optional(),
 });
 
@@ -541,7 +542,7 @@ export const tools: Tool[] = [
     description: [
       "Search the user's copies with the filters of search_catalog, plus finish, condition, language, deck, user tag, free, protected, and allocated filters.",
       'rows entries, the default, returns collection entries: the copies that share a card printing, finish, condition, language, and protected flag, with their quantity and free quantity.',
-      'rows copies returns each copy with its copy_id and the deck it is in.',
+      'rows copies returns each copy with its copy_id, the deck it is in, and held_for, the deck of the planned swap that holds it.',
       'A free copy is not in a deck or held by a planned swap. A protected copy is one the user keeps out of decks.',
       usdPrices,
     ].join(' '),

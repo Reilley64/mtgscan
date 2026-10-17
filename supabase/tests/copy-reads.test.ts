@@ -92,6 +92,7 @@ describe('the copy read', () => {
       commander_legality: 'legal',
       user_tags: [],
       deck: null,
+      held_for: null,
     });
     expect(Date.parse(copy.added_at)).toBe(Date.parse(addedAt));
   });

@@ -87,6 +87,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
         ...spokenCopy(copy),
         ...(copy.protected ? ['protected'] : []),
         ...(copy.deck ? [`in the deck ${copy.deck.name}`] : []),
+        ...(copy.held_for ? [`held for the deck ${copy.held_for.name}`] : []),
         price.spoken,
       ].join(', ')}
       accessibilityHint={price.stale ? 'The price may be out of date.' : undefined}
@@ -99,6 +100,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
         condition={shownCondition(copy.condition)}
         isProtected={copy.protected}
         inDeck={copy.deck !== null}
+        isHeld={copy.held_for !== null}
       />
       <PriceLine price={price.shown} stale={price.stale} />
     </CardTile>
