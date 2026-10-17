@@ -709,4 +709,21 @@ export const tools: Tool[] = [
     },
     tooLargeHint: 'Send fewer planned swaps in one call.',
   }),
+  defineTool({
+    name: 'close_planned_swap',
+    title: 'Close a planned swap',
+    description: [
+      'Close an open planned swap that an AI client made, when it no longer fits.',
+      'This tool does not change any deck. Its held copy becomes free.',
+      'Closing a closed planned swap changes nothing and returns changed: false. A planned swap that was swapped in or moved to the buylist returns not-open.',
+      'To change a planned swap, close it and make a new one. Find planned swap IDs with list_planned_swaps.',
+      declinedWrite,
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'mcp_close_planned_swap',
+    input: z.strictObject({ planned_swap_id: id.describe("The planned swap's ID.") }),
+    output: z.strictObject({ id, changed: z.boolean() }),
+    summary: (result) => (result.changed ? `Closed planned swap ${result.id}.` : `Planned swap ${result.id} was already closed.`),
+    tooLargeHint: 'Close one planned swap in each call.',
+  }),
 ];

@@ -76,6 +76,15 @@ export type SwapInPlannedSwapRequest = {
   planned_swap_id: string;
 };
 
+export type ClosePlannedSwapRequest = {
+  planned_swap_id: string;
+};
+
+export type ClosedPlannedSwap = {
+  id: string;
+  changed: boolean;
+};
+
 export type SwappedInPlannedSwap = {
   deck_id: string;
   revision: number;

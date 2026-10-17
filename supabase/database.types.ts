@@ -756,6 +756,9 @@ isOneToOne: false
               "relation": string,"total_bytes": number
             }[]
                            },
+"close_planned_swap":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "create_deck":
 { Args: { "request": Json }; Returns: Json
                            },
@@ -856,6 +859,9 @@ isOneToOne: false
                            },
 "mark_deck_used":
 { Args: { "request": Json }; Returns: undefined
+                           },
+"mcp_close_planned_swap":
+{ Args: { "request": Json }; Returns: Json
                            },
 "preview_add_deck_card":
 { Args: { "query": Json }; Returns: Json

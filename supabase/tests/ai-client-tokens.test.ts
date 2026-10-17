@@ -12,7 +12,7 @@ setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
 const securityDefinerReads = ['catalog_freshness', 'search_oracle_tags'];
-const aiWriteFunctions = ['create_planned_swaps'];
+const aiWriteFunctions = ['create_planned_swaps', 'mcp_close_planned_swap'];
 const requiresAnAiClientsToken = ['begin_mcp_call', ...aiWriteFunctions];
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const forest = basicLand('Forest').oracle_id;
@@ -105,8 +105,8 @@ describe("refusing an AI client's token", () => {
       return callFunction(appToken(user), name, request);
     };
     const read = (name: string, query?: object) => callFunction(appToken(user), name, query);
-    const scanned = stack(angelicCurator, { copies: 3 });
-    const [protectedCopy, deckCopy, heldCopy] = scanned.copy_ids as [string, string, string];
+    const scanned = stack(angelicCurator, { copies: 4 });
+    const [protectedCopy, deckCopy, heldCopy, closedCopy] = scanned.copy_ids as [string, string, string, string];
 
     await refuseAiClientThenWrite('add_scan_batch', { items: [scanned] });
     await refuseAiClientThenWrite('set_copy_protected', { copy_id: protectedCopy, protected: true });
@@ -120,15 +120,17 @@ describe("refusing an AI client's token", () => {
     await refuseAiClientThenWrite('add_deck_card', { deck_id, copy_id: deckCopy, unprotect: false });
     await refuseAiClientThenWrite('set_deck_commander', { copy_id: deckCopy, commander: true });
     await refuseAiClientThenWrite('set_basic_lands', { deck_id, counts: [{ oracle_id: forest, count: 10 }] });
-    const [plannedSwap] = (
-      await callFunction(aiClientToken(user), 'create_planned_swaps', {
-        idempotency_key: 'release-gate',
+    const plannedSwapOf = async (copyId: string, expectedDeckRevision: number) => {
+      const { planned_swaps } = await callFunction(aiClientToken(user), 'create_planned_swaps', {
+        idempotency_key: `release-gate-${expectedDeckRevision}`,
         planned_swaps: [
-          { ref: 'swap', deck_id, expected_deck_revision: 3, incoming: { copy_id: heldCopy }, reason: 'Another Angelic Curator for the gate.' },
+          { ref: 'swap', deck_id, expected_deck_revision: expectedDeckRevision, incoming: { copy_id: copyId }, reason: 'Another Angelic Curator for the gate.' },
         ],
-      })
-    ).planned_swaps;
-    await refuseAiClientThenWrite('swap_in_planned_swap', { planned_swap_id: plannedSwap.planned_swap_id });
+      });
+      return { planned_swap_id: planned_swaps[0].planned_swap_id };
+    };
+    await refuseAiClientThenWrite('swap_in_planned_swap', await plannedSwapOf(heldCopy, 3));
+    await refuseAiClientThenWrite('close_planned_swap', await plannedSwapOf(closedCopy, 4));
     await refuseAiClientThenWrite('remove_deck_card', { copy_id: deckCopy });
     const [removal] = (await read('list_deck_changes', { deck_id })).items;
     await refuseAiClientThenWrite('revert_deck_changes', {
@@ -149,6 +151,7 @@ describe("refusing an AI client's token", () => {
       [
         [protectedCopy, true],
         [heldCopy, false],
+        [closedCopy, false],
       ].toSorted(),
     );
   });

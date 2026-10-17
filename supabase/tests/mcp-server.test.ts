@@ -191,7 +191,7 @@ describe('the MCP server over HTTP', () => {
       status: { enum: ['open', 'swapped_in', 'closed', 'moved_to_buylist'] },
     });
     const createPlannedSwaps = tools.find(({ name }) => name === 'create_planned_swaps')!;
-    expect(mcpWriteToolNames).toEqual(['create_planned_swaps']);
+    expect(mcpWriteToolNames).toEqual(['create_planned_swaps', 'close_planned_swap']);
     expect(createPlannedSwaps.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
     expect(createPlannedSwaps.inputSchema).toMatchObject({
       type: 'object',
@@ -213,6 +213,13 @@ describe('the MCP server over HTTP', () => {
     ]) {
       expect(createPlannedSwaps.description).toContain(sentence);
     }
+    const closePlannedSwap = tools.find(({ name }) => name === 'close_planned_swap')!;
+    expect(closePlannedSwap.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+    expect(closePlannedSwap.inputSchema).toMatchObject({ required: ['planned_swap_id'], additionalProperties: false });
+    expect(closePlannedSwap.outputSchema).toMatchObject({
+      anyOf: [expect.objectContaining({ required: ['id', 'changed'], additionalProperties: false }), expect.anything()],
+    });
+    expect(closePlannedSwap.description).toContain('This tool does not change any deck. Its held copy becomes free.');
   });
 
   test('the descriptions carry the catalog sentence, the USD sentence on each tool that returns prices, the bracket sentence on the deck reads, and the declined write sentence on the write tools', async () => {
@@ -544,6 +551,11 @@ describe('planned swaps over HTTP', () => {
     };
   }
 
+  async function plannedSwapIdOf(mcp: Client, deckId: string, copyId: string) {
+    const created = await mcp.callTool({ name: 'create_planned_swaps', arguments: plannedSwapArguments(deckId, copyId) });
+    return (created.structuredContent as { planned_swaps: { planned_swap_id: string }[] }).planned_swaps[0]!.planned_swap_id;
+  }
+
   test('create_planned_swaps saves a planned swap with its warnings, and list_planned_swaps reads it back, each with a one-line summary and the minified JSON', async () => {
     const { mcp, deckId, freeCopy } = await deckWithAFreeCopy();
 
@@ -593,8 +605,7 @@ describe('planned swaps over HTTP', () => {
 
   test('a swapped in deck change lists its kind, reason, and client name', async () => {
     const { user, mcp, deckId, freeCopy } = await deckWithAFreeCopy();
-    const created = await mcp.callTool({ name: 'create_planned_swaps', arguments: plannedSwapArguments(deckId, freeCopy) });
-    const plannedSwapId = (created.structuredContent as { planned_swaps: { planned_swap_id: string }[] }).planned_swaps[0]!.planned_swap_id;
+    const plannedSwapId = await plannedSwapIdOf(mcp, deckId, freeCopy);
     expect((await user.client.rpc('swap_in_planned_swap', { request: { planned_swap_id: plannedSwapId } })).error).toBeNull();
 
     const result = await mcp.callTool({ name: 'list_deck_changes', arguments: { deck_id: deckId, limit: 1 } });
@@ -602,6 +613,38 @@ describe('planned swaps over HTTP', () => {
     expect(result.isError).toBeFalsy();
     expect(result.structuredContent).toMatchObject({
       items: [{ kind: 'swapped_in', reason: 'A second Angelic Curator keeps the artifacts safe.', client_name: 'Test AI chat' }],
+    });
+  });
+
+  test('close_planned_swap closes a planned swap, and closing it again returns changed: false, each with a one-line summary', async () => {
+    const { mcp, deckId, freeCopy } = await deckWithAFreeCopy();
+    const plannedSwapId = await plannedSwapIdOf(mcp, deckId, freeCopy);
+
+    const closed = await mcp.callTool({ name: 'close_planned_swap', arguments: { planned_swap_id: plannedSwapId } });
+    const again = await mcp.callTool({ name: 'close_planned_swap', arguments: { planned_swap_id: plannedSwapId } });
+
+    expect(closed.isError).toBeFalsy();
+    expect(textOf(closed)).toBe(`Closed planned swap ${plannedSwapId}.\n${JSON.stringify({ id: plannedSwapId, changed: true })}`);
+    expect(textOf(again)).toBe(`Planned swap ${plannedSwapId} was already closed.\n${JSON.stringify({ id: plannedSwapId, changed: false })}`);
+    expect((await mcp.callTool({ name: 'list_planned_swaps', arguments: {} })).structuredContent).toMatchObject({
+      items: [{ planned_swap_id: plannedSwapId, status: 'closed', close_note: 'closed_by_ai_client' }],
+    });
+  });
+
+  test('a swapped in planned swap comes back as not-open from close_planned_swap', async () => {
+    const { user, mcp, deckId, freeCopy } = await deckWithAFreeCopy();
+    const plannedSwapId = await plannedSwapIdOf(mcp, deckId, freeCopy);
+    expect((await user.client.rpc('swap_in_planned_swap', { request: { planned_swap_id: plannedSwapId } })).error).toBeNull();
+
+    const result = await mcp.callTool({ name: 'close_planned_swap', arguments: { planned_swap_id: plannedSwapId } });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      type: `${problems}not-open`,
+      title: 'Not open',
+      detail: 'The planned swap is swapped_in. Only an open planned swap can change.',
+      pointer: '/planned_swap_id',
+      retryable: false,
     });
   });
 });
