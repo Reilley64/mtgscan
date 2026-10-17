@@ -7,7 +7,7 @@ import type { PlannedCopyLine, PlannedSwap } from '../planned-swaps';
 import type { SearchPage } from '../search';
 import { connectedAiClient, type ClaimedAiClient } from './ai-clients';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
-import type { TestUser } from './local-stack';
+import { asDatabaseOwner, type TestUser } from './local-stack';
 import {
   addedToDeck,
   appRead,
@@ -17,8 +17,8 @@ import {
   deckNamed,
   krenkoDeck,
   lightningBolt,
-  listed,
   onePlannedSwap,
+  plannedSwapNamed,
   revisionOf,
   scannedCopy,
 } from './planned-swap-seeds';
@@ -29,10 +29,6 @@ beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
-
-async function plannedSwapNamed(user: TestUser, plannedSwapId: string): Promise<PlannedSwap> {
-  return (await listed(user, { limit: 50 })).items.find((item) => item.planned_swap_id === plannedSwapId)!;
-}
 
 async function buylistOf(user: TestUser) {
   return (await appRead<BuylistPage>(user, 'list_buylist', { limit: 50 })).items;
@@ -64,6 +60,7 @@ async function expectMovedToBuylist(client: ClaimedAiClient, swap: PlannedSwap, 
     status: 'open',
     close_note: null,
     client_name: 'ChatGPT',
+    created_at: swap.created_at,
   });
 }
 
@@ -98,37 +95,26 @@ describe('held copies in copy details', () => {
 });
 
 describe('deleting a held copy', () => {
-  test('a delete that does not name the held copy is refused and changes nothing', async () => {
+  test('a delete without move_planned_swap: true is refused and changes nothing', async () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Goblins');
     const held = await scannedCopy(client.user, counterspell);
     const plannedSwapId = await onePlannedSwap(client, deckId, held);
 
-    expect((await deleteCopy(client.user, { copy_id: held })).error).toMatchObject({
-      code: 'copy_held',
-      message: 'Counterspell is held by the planned swap for Goblins. Send held_copy_id to move that planned swap to the buylist and delete the copy.',
-      details: 'held_copy_id',
-    });
+    for (const request of [{ copy_id: held }, { copy_id: held, move_planned_swap: false }]) {
+      expect((await deleteCopy(client.user, request)).error).toMatchObject({
+        code: 'copy_held',
+        message:
+          'Counterspell is held by the planned swap for Goblins. Send move_planned_swap: true to move that planned swap to the buylist and delete the copy.',
+        details: 'move_planned_swap',
+      });
+    }
     expect(await copyOf(client.user, held)).toMatchObject({ held_for: { deck_id: deckId } });
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject({ status: 'open', close_note: null });
     expect(await buylistOf(client.user)).toEqual([]);
   });
 
-  test('a held_copy_id that is not the deleted copy is refused', async () => {
-    const client = await connectedAiClient();
-    const deckId = await deckNamed(client.user, 'Goblins');
-    const held = await scannedCopy(client.user, counterspell);
-    await onePlannedSwap(client, deckId, held);
-
-    expect((await deleteCopy(client.user, { copy_id: held, held_copy_id: crypto.randomUUID() })).error).toMatchObject({
-      code: 'invalid_argument',
-      message: 'held_copy_id must be the copy_id.',
-      details: 'held_copy_id',
-    });
-    expect(await copyOf(client.user, held)).toMatchObject({ held_for: { deck_id: deckId } });
-  });
-
-  test('a delete that names the held copy deletes it and moves its planned swap to the buylist with the note held_copy_deleted', async () => {
+  test('a delete with move_planned_swap: true deletes the held copy and moves its planned swap to the buylist with the note held_copy_deleted', async () => {
     const client = await connectedAiClient();
     const { deckId, commander } = await krenkoDeck(client.user);
     const held = await scannedCopy(client.user, counterspell);
@@ -136,7 +122,7 @@ describe('deleting a held copy', () => {
     const swap = await plannedSwapNamed(client.user, plannedSwapId);
     const revision = await revisionOf(client.user, deckId);
 
-    const { error } = await deleteCopy(client.user, { copy_id: held, held_copy_id: held });
+    const { error } = await deleteCopy(client.user, { copy_id: held, move_planned_swap: true });
 
     expect(error).toBeNull();
     expect((await client.user.client.rpc('get_copy', { query: { copy_id: held } })).error).toMatchObject({ code: 'not_found' });
@@ -145,13 +131,35 @@ describe('deleting a held copy', () => {
     expect(await revisionOf(client.user, deckId)).toBe(revision);
   });
 
-  test('a held_copy_id on a copy that is no longer held deletes the copy', async () => {
+  test('moving a planned swap to the buylist makes no second buylist card when an open one in the deck is the same', async () => {
+    const client = await connectedAiClient();
+    const { deckId, bolt } = await krenkoDeck(client.user);
+    const held = await scannedCopy(client.user, counterspell);
+    const plannedSwapId = await onePlannedSwap(client, deckId, held, { outgoing: { copy_id: bolt } });
+    await asDatabaseOwner(
+      (database) => database`
+        insert into public.buylist_cards
+          (user_id, deck_id, incoming_oracle_id, as_commander, outgoing_copy_id, outgoing_oracle_id, reason, client_id, client_name)
+        select user_id, deck_id, incoming_oracle_id, as_commander, outgoing_copy_id, outgoing_oracle_id, reason, client_id, client_name
+        from public.planned_swaps
+        where id = ${plannedSwapId}
+      `,
+    );
+    const [openCard] = await buylistOf(client.user);
+
+    expect((await deleteCopy(client.user, { copy_id: held, move_planned_swap: true })).error).toBeNull();
+
+    expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject({ status: 'moved_to_buylist', close_note: 'held_copy_deleted' });
+    expect(await buylistOf(client.user)).toEqual([openCard!]);
+  });
+
+  test('move_planned_swap: true on a copy that is no longer held deletes the copy', async () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Goblins');
     const held = await scannedCopy(client.user, counterspell);
     await appRequest(client.user, 'close_planned_swap', { planned_swap_id: await onePlannedSwap(client, deckId, held) });
 
-    expect((await deleteCopy(client.user, { copy_id: held, held_copy_id: held })).error).toBeNull();
+    expect((await deleteCopy(client.user, { copy_id: held, move_planned_swap: true })).error).toBeNull();
     expect((await client.user.client.rpc('get_copy', { query: { copy_id: held } })).error).toMatchObject({ code: 'not_found' });
     expect(await buylistOf(client.user)).toEqual([]);
   });

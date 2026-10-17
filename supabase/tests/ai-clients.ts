@@ -18,7 +18,7 @@ export type ClaimedAiClient = {
   clientId: string;
 };
 
-export type Refusal = { code: string; message: string; details: string | null };
+type Refusal = { code: string; message: string; details: string | null };
 
 export async function connectedAiClient(user?: TestUser, clientName = 'ChatGPT'): Promise<ClaimedAiClient> {
   const clientId = crypto.randomUUID();

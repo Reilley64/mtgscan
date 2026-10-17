@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { Client } from '@modelcontextprotocol/client';
 
+import { plural } from '../functions/mcp/plural';
 import { claimsOf, mcpClient, mcpReadToolNames, mcpToolAnnotations, mcpToolNames, mcpWriteToolNames } from '../mcp-connection';
 import {
   basicLand,
@@ -57,10 +58,6 @@ async function deckWithCopies(user: TestUser, name: string, copies: number): Pro
     expect((await user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: copyId, unprotect: false } })).error).toBeNull();
   }
   return deckId;
-}
-
-function plural(amount: number, one: string): string {
-  return `${amount} ${amount === 1 ? one : `${one}s`}`;
 }
 
 async function connected(user: TestUser): Promise<AiClient & { mcp: Client }> {

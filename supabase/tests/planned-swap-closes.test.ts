@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { DeckChangePage } from '../decks';
-import type { ClosedPlannedSwap, PlannedSwap } from '../planned-swaps';
+import type { ClosedPlannedSwap } from '../planned-swaps';
 import { aiClientCall, aiClientRefusal, connectedAiClient } from './ai-clients';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
@@ -16,9 +16,9 @@ import {
   krenko,
   krenkoDeck,
   lightningBolt,
-  listed,
   mountain,
   onePlannedSwap,
+  plannedSwapNamed,
   revisionOf,
   scannedCopy,
 } from './planned-swap-seeds';
@@ -32,15 +32,6 @@ beforeAll(async () => {
 
 function closeAsUser(user: TestUser, plannedSwapId: string) {
   return user.client.rpc('close_planned_swap', { request: { planned_swap_id: plannedSwapId } });
-}
-
-async function plannedSwapNamed(user: TestUser, plannedSwapId: string): Promise<PlannedSwap> {
-  return (await listed(user, { limit: 50 })).items.find((item) => item.planned_swap_id === plannedSwapId)!;
-}
-
-async function statusOf(user: TestUser, plannedSwapId: string): Promise<{ status: string; close_note: string | null }> {
-  const { status, close_note } = await plannedSwapNamed(user, plannedSwapId);
-  return { status, close_note };
 }
 
 const open = { status: 'open', close_note: null };
@@ -88,7 +79,7 @@ describe('close_planned_swap', () => {
       message: 'The planned swap is swapped_in. Only an open planned swap can change.',
       details: 'planned_swap_id',
     });
-    expect(await statusOf(client.user, plannedSwapId)).toEqual({ status: 'swapped_in', close_note: null });
+    expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject({ status: 'swapped_in', close_note: null });
   });
 
   test("another user's planned swap is not_found", async () => {
@@ -101,7 +92,7 @@ describe('close_planned_swap', () => {
       message: 'planned_swap_id is not one of your planned swaps.',
       details: 'planned_swap_id',
     });
-    expect(await statusOf(client.user, plannedSwapId)).toEqual(open);
+    expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject(open);
   });
 });
 
@@ -115,7 +106,7 @@ describe('mcp_close_planned_swap', () => {
     const result = await aiClientCall<ClosedPlannedSwap>(client, 'mcp_close_planned_swap', { planned_swap_id: plannedSwapId });
 
     expect(result).toEqual({ id: plannedSwapId, changed: true });
-    expect(await statusOf(client.user, plannedSwapId)).toEqual({ status: 'closed', close_note: 'closed_by_ai_client' });
+    expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject({ status: 'closed', close_note: 'closed_by_ai_client' });
     expect(await copyOf(client.user, held)).toMatchObject({ free: true });
   });
 
@@ -154,7 +145,7 @@ describe('mcp_close_planned_swap', () => {
       code: 'not_found',
       details: 'planned_swap_id',
     });
-    expect(await statusOf(client.user, plannedSwapId)).toEqual(open);
+    expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject(open);
   });
 });
 
@@ -169,9 +160,9 @@ describe('closing when the outgoing card leaves the deck', () => {
 
     await appRequest(client.user, 'remove_deck_card', { copy_id: bolt });
 
-    expect(await statusOf(client.user, leaving)).toEqual(outgoingLeftDeck);
-    expect(await statusOf(client.user, staying)).toEqual(open);
-    expect(await statusOf(client.user, noOutgoing)).toEqual(open);
+    expect(await plannedSwapNamed(client.user, leaving)).toMatchObject(outgoingLeftDeck);
+    expect(await plannedSwapNamed(client.user, staying)).toMatchObject(open);
+    expect(await plannedSwapNamed(client.user, noOutgoing)).toMatchObject(open);
     expect(await copyOf(client.user, held)).toMatchObject({ free: true });
   });
 
@@ -182,7 +173,7 @@ describe('closing when the outgoing card leaves the deck', () => {
 
     await appRequest(client.user, 'delete_copy', { copy_id: bolt });
 
-    expect(await statusOf(client.user, plannedSwapId)).toEqual(outgoingLeftDeck);
+    expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject(outgoingLeftDeck);
   });
 
   test('a revert that takes the outgoing copy out closes its planned swap', async () => {
@@ -200,8 +191,8 @@ describe('closing when the outgoing card leaves the deck', () => {
       unprotect: false,
     });
 
-    expect(await statusOf(client.user, leaving)).toEqual(outgoingLeftDeck);
-    expect(await statusOf(client.user, staying)).toEqual(open);
+    expect(await plannedSwapNamed(client.user, leaving)).toMatchObject(outgoingLeftDeck);
+    expect(await plannedSwapNamed(client.user, staying)).toMatchObject(open);
   });
 
   test('two open planned swaps with the same outgoing copy both stay open until a swap in takes it out, and then the other closes', async () => {
@@ -210,12 +201,12 @@ describe('closing when the outgoing card leaves the deck', () => {
     const first = await onePlannedSwap(client, deckId, await scannedCopy(client.user, lightningBolt), { outgoing: { copy_id: bolt } });
     const second = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell), { outgoing: { copy_id: bolt } });
     await addedToDeck(client.user, deckId, await scannedCopy(client.user, blackLotus));
-    expect([await statusOf(client.user, first), await statusOf(client.user, second)]).toEqual([open, open]);
+    expect([await plannedSwapNamed(client.user, first), await plannedSwapNamed(client.user, second)]).toMatchObject([open, open]);
 
     await appRequest(client.user, 'swap_in_planned_swap', { planned_swap_id: first });
 
-    expect(await statusOf(client.user, first)).toEqual({ status: 'swapped_in', close_note: null });
-    expect(await statusOf(client.user, second)).toEqual(outgoingLeftDeck);
+    expect(await plannedSwapNamed(client.user, first)).toMatchObject({ status: 'swapped_in', close_note: null });
+    expect(await plannedSwapNamed(client.user, second)).toMatchObject(outgoingLeftDeck);
   });
 
   test('moving the outgoing commander to the main deck keeps its planned swap open', async () => {
@@ -225,7 +216,7 @@ describe('closing when the outgoing card leaves the deck', () => {
 
     await appRequest(client.user, 'set_deck_commander', { copy_id: commander, commander: false });
 
-    expect(await statusOf(client.user, plannedSwapId)).toEqual(open);
+    expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject(open);
   });
 
   test.each<[string, (user: TestUser, deck: { deckId: string; commander: string }) => Promise<unknown>]>([
@@ -239,10 +230,10 @@ describe('closing when the outgoing card leaves the deck', () => {
       outgoing: { copy_id: deck.bolt },
     });
     await asDatabaseOwner((database) => database`delete from public.deck_cards where copy_id = ${deck.bolt}`);
-    expect(await statusOf(client.user, plannedSwapId)).toEqual(open);
+    expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject(open);
 
     await change(client.user, deck);
 
-    expect(await statusOf(client.user, plannedSwapId)).toEqual(outgoingLeftDeck);
+    expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject(outgoingLeftDeck);
   });
 });

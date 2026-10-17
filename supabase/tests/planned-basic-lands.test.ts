@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { BuylistCardInput } from '../buylist';
 import type { Deck, DeckChangeEffect, DeckChangePage } from '../decks';
-import type { PlannedSwap, PlannedSwapInput } from '../planned-swaps';
+import type { PlannedSwapInput } from '../planned-swaps';
 import { aiClientRefusal, connectedAiClient, type ClaimedAiClient } from './ai-clients';
 import { addedToBuylist, buylistCardItem, listedBuylist, oneBuylistCard } from './buylist-card-seeds';
 import { basicLand, catalogFixtureManifest, oracleIdOf, resetCardCatalog, runCatalogImport } from './catalog-import-command';
@@ -17,6 +17,7 @@ import {
   mountain,
   planned,
   plannedSwapItem,
+  plannedSwapNamed,
   scannedCopy,
   type KrenkoDeck,
 } from './planned-swap-seeds';
@@ -66,10 +67,6 @@ function linesOf(change: DeckChangePage['items'][number]) {
 
 async function planCounts(user: TestUser) {
   return [(await listed(user, { limit: 50 })).items.length, (await listedBuylist(user, { limit: 50 })).items.length];
-}
-
-async function plannedSwapNamed(user: TestUser, plannedSwapId: string): Promise<PlannedSwap> {
-  return (await listed(user, { limit: 50 })).items.find((item) => item.planned_swap_id === plannedSwapId)!;
 }
 
 async function onePlan(client: ClaimedAiClient, item: PlannedSwapInput) {

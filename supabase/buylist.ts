@@ -3,7 +3,7 @@ import type { Database } from './database.types';
 import type { DeckChangeEffect, DeckPriority } from './decks';
 import type { CloseNote, PlannedOutgoingInput, PlannedOutgoingLine } from './planned-swaps';
 
-export type BuylistCardStatus = Database['public']['Enums']['buylist_card_status'];
+type BuylistCardStatus = Database['public']['Enums']['buylist_card_status'];
 
 export type PlannedCardLine = {
   kind: 'card';

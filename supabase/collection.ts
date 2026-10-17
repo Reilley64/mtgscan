@@ -139,7 +139,7 @@ export type CopyProtectedRequest = {
 
 export type DeleteCopyRequest = {
   copy_id: string;
-  held_copy_id?: string;
+  move_planned_swap?: boolean;
 };
 
 export type CopyFace = {

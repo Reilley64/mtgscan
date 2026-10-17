@@ -1,6 +1,7 @@
 import type { Tool as ListedTool, ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 
+import { plural } from './plural.ts';
 import { problem, problemSchema, type Problem } from './problems.ts';
 
 export type Tool = Pick<ListedTool, 'name' | 'inputSchema' | 'outputSchema'> & {
@@ -85,10 +86,6 @@ const deckPriority = z.enum(['high', 'medium', 'low']);
 const deckRule = z.enum(['no_commander', 'commander_eligibility', 'partner', 'deck_size', 'singleton', 'color_identity', 'banned', 'not_legal']);
 const nextCursor = z.string().nullable();
 const integer = z.number().int();
-
-function plural(amount: number, one: string, many = `${one}s`): string {
-  return `${amount} ${amount === 1 ? one : many}`;
-}
 
 function pageSummary(rows: string, next: string | null): string {
   return `${rows}.${next ? ' More with next_cursor.' : ''}`;

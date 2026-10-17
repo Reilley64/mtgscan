@@ -3,7 +3,7 @@ import { expect } from 'bun:test';
 import type { CopyDetails } from '../collection';
 import type { Json } from '../database.types';
 import type { AddedDeckCard, CreatedDeck, Deck } from '../decks';
-import type { CreatedPlannedSwaps, PlannedSwapInput, PlannedSwapPage, PlannedSwapsQuery } from '../planned-swaps';
+import type { CreatedPlannedSwaps, PlannedSwap, PlannedSwapInput, PlannedSwapPage, PlannedSwapsQuery } from '../planned-swaps';
 import { aiClientCall, type ClaimedAiClient } from './ai-clients';
 import { basicLand } from './catalog-import-command';
 import type { TestUser } from './local-stack';
@@ -88,6 +88,10 @@ export function listed(user: TestUser, query: PlannedSwapsQuery = {}) {
   return appRead<PlannedSwapPage>(user, 'list_planned_swaps', query);
 }
 
+export async function plannedSwapNamed(user: TestUser, plannedSwapId: string): Promise<PlannedSwap> {
+  return (await listed(user, { limit: 50 })).items.find((item) => item.planned_swap_id === plannedSwapId)!;
+}
+
 export async function plannedSwapIds(user: TestUser) {
   return (await listed(user, { limit: 50 })).items.map((item) => item.planned_swap_id);
 }
@@ -99,4 +103,12 @@ export function copyOf(user: TestUser, copyId: string) {
 export async function onePlannedSwap(client: ClaimedAiClient, deckId: string, held: string, changes: Partial<PlannedSwapInput> = {}) {
   const { planned_swaps } = await planned(client, [await plannedSwapItem(client.user, deckId, held, changes)]);
   return planned_swaps[0]!.planned_swap_id;
+}
+
+export function codesOf(warnings: { code: string }[]) {
+  return warnings.map((warning) => warning.code);
+}
+
+export async function twoItems<Item>(itemOf: (index: number) => Promise<Item>, changeSecond: (item: Item) => Item | Promise<Item>) {
+  return [await itemOf(0), await changeSecond(await itemOf(1))];
 }

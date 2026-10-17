@@ -3,7 +3,7 @@ import type { Database } from './database.types';
 import type { DeckChangeEffect } from './decks';
 import type { Finish } from './search';
 
-export type PlannedSwapStatus = Database['public']['Enums']['planned_swap_status'];
+type PlannedSwapStatus = Database['public']['Enums']['planned_swap_status'];
 
 export type CloseNote = Database['public']['Enums']['close_note'];
 
@@ -69,11 +69,6 @@ export type PlannedSwapInput = {
 
 export type PlannedOutgoingInput = { copy_id: string } | { basic_land_oracle_id: string };
 
-export type CreatePlannedSwapsRequest = {
-  idempotency_key: string;
-  planned_swaps: PlannedSwapInput[];
-};
-
 export type PlannedSwapWarning =
   | { code: 'would_break_validity'; effect: DeckChangeEffect }
   | { code: 'replaces_commander' | 'rules_stale' };
@@ -94,9 +89,4 @@ export type ClosePlannedSwapRequest = {
 export type ClosedPlannedSwap = {
   id: string;
   changed: boolean;
-};
-
-export type SwappedInPlannedSwap = {
-  deck_id: string;
-  revision: number;
 };

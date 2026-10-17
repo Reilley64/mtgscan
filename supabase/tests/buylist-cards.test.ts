@@ -1,16 +1,18 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { BuylistCard, BuylistCardInput, BuylistCardWarning, ClosedBuylistCard, FreeCopies } from '../buylist';
+import type { BuylistCard, BuylistCardInput, ClosedBuylistCard, FreeCopies } from '../buylist';
 import type { Json } from '../database.types';
 import type { Deck, DeckChangeEffect, DeckChangePage } from '../decks';
 import { aiClientCall, aiClientRefusal, connectedAiClient, type ClaimedAiClient } from './ai-clients';
 import { addedToBuylist, buylistCardItem, listedBuylist, oneBuylistCard } from './buylist-card-seeds';
 import { catalogFixtureManifest, oracleIdOf, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { setCatalogSucceededAt } from './deck-evaluation-seeds';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import {
   addedToDeck,
   appRead,
   appRequest,
+  codesOf,
   copyOf,
   counterspell,
   deckNamed,
@@ -25,6 +27,7 @@ import {
   revisionOf,
   scannedCopies,
   scannedCopy,
+  twoItems,
   type KrenkoDeck,
 } from './planned-swap-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
@@ -46,30 +49,13 @@ beforeAll(async () => {
   );
 });
 
-function codesOf(warnings: BuylistCardWarning[]) {
-  return warnings.map((warning) => warning.code);
-}
-
 async function buylistCardNamed(user: TestUser, buylistCardId: string): Promise<BuylistCard> {
   return (await listedBuylist(user, { limit: 50 })).items.find((item) => item.buylist_card_id === buylistCardId)!;
-}
-
-async function statusOf(user: TestUser, buylistCardId: string): Promise<{ status: string; close_note: string | null }> {
-  const { status, close_note } = await buylistCardNamed(user, buylistCardId);
-  return { status, close_note };
 }
 
 async function imageOfPrinting(printingId: string): Promise<string[]> {
   const [row] = await asDatabaseOwner((database) => database`select image_uris from public.card_printings where id = ${printingId}`);
   return row.image_uris;
-}
-
-function setCatalogSucceededAt(daysAgo: number) {
-  return asDatabaseOwner(
-    (database) => database`
-      update public.import_snapshots set succeeded_at = now() - ${daysAgo} * interval '1 day' where source = 'catalog'
-    `,
-  );
 }
 
 const open = { status: 'open', close_note: null };
@@ -142,9 +128,8 @@ type RefusalCase = {
   call: (client: ClaimedAiClient, deck: KrenkoDeck) => Promise<object>;
 };
 
-async function twoItems(user: TestUser, deckId: string, second: (item: BuylistCardInput) => BuylistCardInput | Promise<BuylistCardInput>) {
-  const first = await buylistCardItem(user, deckId, lotusCard);
-  return [first, await second(await buylistCardItem(user, deckId, counterspellCard))];
+function cardItemOf(user: TestUser, deckId: string) {
+  return (index: number) => buylistCardItem(user, deckId, [lotusCard, counterspellCard][index]!);
 }
 
 const refusals: [string, RefusalCase][] = [
@@ -155,7 +140,7 @@ const refusals: [string, RefusalCase][] = [
       details: 'buylist_cards[1].reason',
       call: async ({ user }, { deckId }) => ({
         idempotency_key: 'short-reason',
-        buylist_cards: await twoItems(user, deckId, (item) => ({ ...item, reason: 'Too short.' })),
+        buylist_cards: await twoItems(cardItemOf(user, deckId), (item) => ({ ...item, reason: 'Too short.' })),
       }),
     },
   ],
@@ -166,7 +151,7 @@ const refusals: [string, RefusalCase][] = [
       details: 'buylist_cards[1].incoming.copy_id',
       call: async ({ user }, { deckId }) => ({
         idempotency_key: 'unknown-field',
-        buylist_cards: await twoItems(user, deckId, (item) => ({
+        buylist_cards: await twoItems(cardItemOf(user, deckId), (item) => ({
           ...item,
           incoming: { ...item.incoming, copy_id: crypto.randomUUID() } as BuylistCardInput['incoming'],
         })),
@@ -179,7 +164,7 @@ const refusals: [string, RefusalCase][] = [
       code: 'invalid_argument',
       details: 'buylist_cards[1].ref',
       call: async ({ user }, { deckId }) => {
-        const [first, second] = await twoItems(user, deckId, (item) => item);
+        const [first, second] = await twoItems(cardItemOf(user, deckId), (item) => item);
         return { idempotency_key: 'repeated-ref', buylist_cards: [first, { ...second!, ref: first!.ref }] };
       },
     },
@@ -191,7 +176,7 @@ const refusals: [string, RefusalCase][] = [
       details: 'buylist_cards[1].expected_deck_revision',
       call: async ({ user }, { deckId }) => ({
         idempotency_key: 'two-revisions',
-        buylist_cards: await twoItems(user, deckId, (item) => ({ ...item, expected_deck_revision: item.expected_deck_revision - 1 })),
+        buylist_cards: await twoItems(cardItemOf(user, deckId), (item) => ({ ...item, expected_deck_revision: item.expected_deck_revision - 1 })),
       }),
     },
   ],
@@ -201,7 +186,7 @@ const refusals: [string, RefusalCase][] = [
       code: 'invalid_argument',
       details: 'buylist_cards[1]',
       call: async ({ user }, { deckId }) => {
-        const [first] = await twoItems(user, deckId, (item) => item);
+        const [first] = await twoItems(cardItemOf(user, deckId), (item) => item);
         return { idempotency_key: 'repeated-card', buylist_cards: [first, await buylistCardItem(user, deckId, lotusCard)] };
       },
     },
@@ -213,7 +198,7 @@ const refusals: [string, RefusalCase][] = [
       details: 'buylist_cards[1].deck_id',
       call: async ({ user }, { deckId }) => {
         const othersDeck = await deckNamed(await signUpNewUser(), 'Not yours');
-        return { idempotency_key: 'others-deck', buylist_cards: await twoItems(user, deckId, (item) => ({ ...item, deck_id: othersDeck })) };
+        return { idempotency_key: 'others-deck', buylist_cards: await twoItems(cardItemOf(user, deckId), (item) => ({ ...item, deck_id: othersDeck })) };
       },
     },
   ],
@@ -226,7 +211,7 @@ const refusals: [string, RefusalCase][] = [
         const othersCopy = await scannedCopy(await signUpNewUser(), lightningBolt);
         return {
           idempotency_key: 'others-outgoing',
-          buylist_cards: await twoItems(user, deckId, (item) => ({ ...item, outgoing: { copy_id: othersCopy } })),
+          buylist_cards: await twoItems(cardItemOf(user, deckId), (item) => ({ ...item, outgoing: { copy_id: othersCopy } })),
         };
       },
     },
@@ -251,7 +236,7 @@ const refusals: [string, RefusalCase][] = [
       details: 'buylist_cards[1].incoming.oracle_id',
       call: async ({ user }, { deckId }) => ({
         idempotency_key: 'unknown-card',
-        buylist_cards: await twoItems(user, deckId, (item) => ({ ...item, incoming: { oracle_id: crypto.randomUUID() } })),
+        buylist_cards: await twoItems(cardItemOf(user, deckId), (item) => ({ ...item, incoming: { oracle_id: crypto.randomUUID() } })),
       }),
     },
   ],
@@ -262,7 +247,7 @@ const refusals: [string, RefusalCase][] = [
       details: 'buylist_cards[1].incoming.oracle_id',
       call: async ({ user }, { deckId }) => ({
         idempotency_key: 'basic-land',
-        buylist_cards: await twoItems(user, deckId, (item) => ({ ...item, incoming: { oracle_id: mountain } })),
+        buylist_cards: await twoItems(cardItemOf(user, deckId), (item) => ({ ...item, incoming: { oracle_id: mountain } })),
       }),
     },
   ],
@@ -273,7 +258,7 @@ const refusals: [string, RefusalCase][] = [
       details: { pointer: '/buylist_cards/1/incoming/oracle_id', copy_ids: 'the free copies' },
       call: async ({ user }, { deckId }) => {
         await scannedCopies(user, counterspell, 2);
-        return { idempotency_key: 'free-copy', buylist_cards: await twoItems(user, deckId, (item) => item) };
+        return { idempotency_key: 'free-copy', buylist_cards: await twoItems(cardItemOf(user, deckId), (item) => item) };
       },
     },
   ],
@@ -284,7 +269,7 @@ const refusals: [string, RefusalCase][] = [
       details: 'buylist_cards[1].outgoing.copy_id',
       call: async ({ user }, { deckId }) => {
         const freeCopy = await scannedCopy(user, lightningBolt);
-        return { idempotency_key: 'free-outgoing', buylist_cards: await twoItems(user, deckId, (item) => ({ ...item, outgoing: { copy_id: freeCopy } })) };
+        return { idempotency_key: 'free-outgoing', buylist_cards: await twoItems(cardItemOf(user, deckId), (item) => ({ ...item, outgoing: { copy_id: freeCopy } })) };
       },
     },
   ],
@@ -297,7 +282,7 @@ const refusals: [string, RefusalCase][] = [
         await addedToBuylist(client, [await buylistCardItem(client.user, deckId, counterspellCard, { outgoing: { copy_id: bolt } })]);
         return {
           idempotency_key: 'duplicate',
-          buylist_cards: await twoItems(client.user, deckId, (item) => ({ ...item, outgoing: { copy_id: bolt }, reason: `${reason} Again.` })),
+          buylist_cards: await twoItems(cardItemOf(client.user, deckId), (item) => ({ ...item, outgoing: { copy_id: bolt }, reason: `${reason} Again.` })),
         };
       },
     },
@@ -311,7 +296,7 @@ const refusals: [string, RefusalCase][] = [
         await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell), { outgoing: { copy_id: bolt } });
         return {
           idempotency_key: 'duplicate-swap',
-          buylist_cards: await twoItems(client.user, deckId, (item) => ({ ...item, outgoing: { copy_id: bolt } })),
+          buylist_cards: await twoItems(cardItemOf(client.user, deckId), (item) => ({ ...item, outgoing: { copy_id: bolt } })),
         };
       },
     },
@@ -323,7 +308,7 @@ const refusals: [string, RefusalCase][] = [
       details: 'idempotency_key',
       call: async (client, { deckId }) => {
         await addedToBuylist(client, [await buylistCardItem(client.user, deckId, krenkoCard)], 'reused-key');
-        return { idempotency_key: 'reused-key', buylist_cards: await twoItems(client.user, deckId, (item) => item) };
+        return { idempotency_key: 'reused-key', buylist_cards: await twoItems(cardItemOf(client.user, deckId), (item) => item) };
       },
     },
   ],
@@ -386,6 +371,23 @@ describe('warnings', () => {
     const effect: DeckChangeEffect = { kind: 'would_make_invalid', rules: [{ rule: 'deck_size' }, { rule: 'singleton' }] };
     expect(buylist_cards[0]!.warnings).toEqual([{ code: 'would_break_validity', effect }]);
     expect((await listedBuylist(client.user)).items[0]).toMatchObject({ status: 'open', effect });
+  });
+
+  test('would_break_validity judges a card with as_commander as a commander of the deck', async () => {
+    const client = await connectedAiClient();
+    const { deckId, commander } = await krenkoDeck(client.user);
+
+    const { buylist_cards } = await addedToBuylist(client, [
+      await buylistCardItem(client.user, deckId, boltCard, {
+        incoming: { oracle_id: boltCard, as_commander: true },
+        outgoing: { copy_id: commander },
+      }),
+    ]);
+
+    expect(buylist_cards[0]!.warnings).toContainEqual({
+      code: 'would_break_validity',
+      effect: { kind: 'would_make_invalid', rules: [{ rule: 'commander_eligibility' }, { rule: 'singleton' }] },
+    });
   });
 
   test('protected_only when every free copy of the card is protected', async () => {
@@ -766,12 +768,12 @@ describe('mark_buylist_card_bought', () => {
     await appRequest(client.user, 'set_copy_protected', { copy_id: kept, protected: true });
 
     expect((await bought(client.user, buylistCardId, kept)).error).toMatchObject({ code: 'copy_protected', details: 'copy_id' });
-    expect(await statusOf(client.user, buylistCardId)).toEqual(open);
+    expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject(open);
     expect(await revisionOf(client.user, deckId)).toBe(0);
 
     expect((await bought(client.user, buylistCardId, kept, true)).error).toBeNull();
     expect(await copyOf(client.user, kept)).toMatchObject({ protected: false, deck: { deck_id: deckId } });
-    expect(await statusOf(client.user, buylistCardId)).toEqual({ status: 'bought', close_note: null });
+    expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject({ status: 'bought', close_note: null });
   });
 
   test('a buylist card with as_commander makes the copy a commander, replacing the outgoing commander', async () => {
@@ -797,7 +799,7 @@ describe('mark_buylist_card_bought', () => {
       details: 'buylist_card_id',
     });
     expect(await revisionOf(client.user, deckId)).toBe(revision);
-    expect(await statusOf(client.user, buylistCardId)).toEqual(open);
+    expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject(open);
   });
 
   test.each<[string, string, (user: TestUser, client: ClaimedAiClient, deckId: string) => Promise<string>]>([
@@ -828,7 +830,7 @@ describe('mark_buylist_card_bought', () => {
     const copyId = await copyOfCase(client.user, client, deckId);
 
     expect((await bought(client.user, buylistCardId, copyId)).error).toMatchObject({ code, details: 'copy_id' });
-    expect(await statusOf(client.user, buylistCardId)).toEqual(open);
+    expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject(open);
     expect(await revisionOf(client.user, deckId)).toBe(0);
   });
 
@@ -857,7 +859,7 @@ describe('mark_buylist_card_bought', () => {
       message: 'buylist_card_id is not one of your buylist cards.',
       details: 'buylist_card_id',
     });
-    expect(await statusOf(client.user, buylistCardId)).toEqual(open);
+    expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject(open);
   });
 
   test.each(['Bought first', 'add first'] as const)(
@@ -885,7 +887,7 @@ describe('mark_buylist_card_bought', () => {
       expect((await winner).error).toBeNull();
       expect((await loser).error).toMatchObject({ code: 'copy_not_free' });
       expect(await copyOf(client.user, copyId)).toMatchObject({ deck: { deck_id: first === 'Bought first' ? deckId : otherDeck } });
-      expect(await statusOf(client.user, buylistCardId)).toEqual(first === 'Bought first' ? { status: 'bought', close_note: null } : open);
+      expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject(first === 'Bought first' ? { status: 'bought', close_note: null } : open);
     },
   );
 });
@@ -916,7 +918,7 @@ describe('close_buylist_card and mcp_close_buylist_card', () => {
     const result = await aiClientCall<ClosedBuylistCard>(client, 'mcp_close_buylist_card', { buylist_card_id: buylistCardId });
 
     expect(result).toEqual({ id: buylistCardId, changed: true });
-    expect(await statusOf(client.user, buylistCardId)).toEqual({ status: 'closed', close_note: 'closed_by_ai_client' });
+    expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject({ status: 'closed', close_note: 'closed_by_ai_client' });
   });
 
   test('closing a closed buylist card succeeds and changes nothing, for the user and for an AI client', async () => {
@@ -947,7 +949,7 @@ describe('close_buylist_card and mcp_close_buylist_card', () => {
 
     expect((await closeAsUser(client.user, buylistCardId)).error).toMatchObject(notOpen);
     expect(await aiClientRefusal(client, 'mcp_close_buylist_card', { buylist_card_id: buylistCardId })).toMatchObject(notOpen);
-    expect(await statusOf(client.user, buylistCardId)).toEqual({ status: 'bought', close_note: null });
+    expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject({ status: 'bought', close_note: null });
   });
 
   test("another user's buylist card is not_found, for the user and for an AI client", async () => {
@@ -958,7 +960,7 @@ describe('close_buylist_card and mcp_close_buylist_card', () => {
 
     expect((await closeAsUser(await signUpNewUser(), buylistCardId)).error).toMatchObject(notFound);
     expect(await aiClientRefusal(await connectedAiClient(), 'mcp_close_buylist_card', { buylist_card_id: buylistCardId })).toMatchObject(notFound);
-    expect(await statusOf(client.user, buylistCardId)).toEqual(open);
+    expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject(open);
   });
 });
 
@@ -974,9 +976,9 @@ describe('closing when the outgoing card leaves the deck', () => {
 
     await appRequest(client.user, 'remove_deck_card', { copy_id: bolt });
 
-    expect(await statusOf(client.user, leaving)).toEqual(outgoingLeftDeck);
-    expect(await statusOf(client.user, staying)).toEqual(open);
-    expect(await statusOf(client.user, noOutgoing)).toEqual(open);
+    expect(await buylistCardNamed(client.user, leaving)).toMatchObject(outgoingLeftDeck);
+    expect(await buylistCardNamed(client.user, staying)).toMatchObject(open);
+    expect(await buylistCardNamed(client.user, noOutgoing)).toMatchObject(open);
   });
 
   test('a Bought closes the other open planned swaps and buylist cards with the same outgoing copy', async () => {
@@ -992,8 +994,8 @@ describe('closing when the outgoing card leaves the deck', () => {
       unprotect: false,
     });
 
-    expect(await statusOf(client.user, boughtCard)).toEqual({ status: 'bought', close_note: null });
-    expect(await statusOf(client.user, otherCard)).toEqual(outgoingLeftDeck);
+    expect(await buylistCardNamed(client.user, boughtCard)).toMatchObject({ status: 'bought', close_note: null });
+    expect(await buylistCardNamed(client.user, otherCard)).toMatchObject(outgoingLeftDeck);
     expect((await listed(client.user)).items.find((item) => item.planned_swap_id === plannedSwapId)).toMatchObject(outgoingLeftDeck);
   });
 
@@ -1005,6 +1007,6 @@ describe('closing when the outgoing card leaves the deck', () => {
 
     await appRequest(client.user, 'swap_in_planned_swap', { planned_swap_id: plannedSwapId });
 
-    expect(await statusOf(client.user, buylistCardId)).toEqual(outgoingLeftDeck);
+    expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject(outgoingLeftDeck);
   });
 });

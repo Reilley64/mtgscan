@@ -105,3 +105,11 @@ export async function setCatalogSnapshotAt(snapshotAt: string): Promise<void> {
     (database) => database`update public.import_snapshots set snapshot_at = ${snapshotAt} where source = 'catalog'`,
   );
 }
+
+export async function setCatalogSucceededAt(daysAgo: number): Promise<void> {
+  await asDatabaseOwner(
+    (database) => database`
+      update public.import_snapshots set succeeded_at = now() - ${daysAgo} * interval '1 day' where source = 'catalog'
+    `,
+  );
+}
