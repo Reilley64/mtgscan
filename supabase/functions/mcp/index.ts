@@ -18,6 +18,12 @@ const mcpServerUrl = getEnv('MCP_SERVER_URL')!;
 const issuer = mcpServerUrl.replace(/\/functions\/v1\/mcp$/, '/auth/v1');
 const maxRequestBytes = 64 * 1024;
 const maxResultBytes = 48 * 1024;
+const instructions = [
+  "mtgscan holds the user's Magic: The Gathering collection and Commander decks.",
+  "A deck is the cards in the user's deck box now.",
+  'You can read the card catalog, the collection, and the decks.',
+  'You cannot change a deck or the collection. The user makes every deck change in the app.',
+].join(' ');
 const toolsByName = new Map(tools.map((tool) => [tool.name, tool]));
 
 type RequestLog = {
@@ -90,7 +96,7 @@ async function verifyAndServe(request: Request, body: string | null, log: Reques
 }
 
 function mcpServer(supabase: UserClient, refusal: Problem | null, log: RequestLog): Server {
-  const server = new Server({ name: 'mtgscan', version: '1.0.0' }, { capabilities: { tools: {} } });
+  const server = new Server({ name: 'mtgscan', version: '1.0.0' }, { capabilities: { tools: {} }, instructions });
   server.setRequestHandler('tools/list', () => ({
     tools: tools.map(({ name, title, description, annotations, inputSchema, outputSchema }) => ({
       name,

@@ -23,11 +23,8 @@ type ToolDefinition<Output extends z.ZodType> = Omit<Tool, 'inputSchema' | 'outp
 const pageSize = { default: 20, max: 50 };
 
 const readOnly: ToolAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
-const write: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 
 const usdPrices = 'Prices are current Scryfall prices in USD (TCGplayer Market). There is no other currency.';
-const declinedWrite =
-  'If the user declines this call, do not call it again. Tell the user that nothing was saved, and ask what they want to change.';
 const estimatedBracket =
   'The estimated bracket is an estimate for a pregame conversation, not a certified bracket. Signals labelled heuristic are not official.';
 
@@ -388,74 +385,6 @@ const deckChange = z.strictObject({
   lines: z.array(deckChangeLine),
 });
 
-const deckSuggestionStatus = z.enum(['open', 'withdrawn', 'stale']);
-const deckSuggestionEventKind = z.enum(['withdrawn', 'reason_replaced']);
-
-const deckSuggestionRow = z.strictObject({
-  suggestion_id: id,
-  deck_id: id,
-  deck_name: z.string(),
-  incoming: z.strictObject({ oracle_id: id, name: z.string(), as_commander: z.boolean(), from_deck_id: id.nullable() }),
-  outgoing: z
-    .union([z.strictObject({ copy_id: id, name: z.string() }), z.strictObject({ basic_land_oracle_id: id, name: z.string() })])
-    .nullable(),
-  reason: z.string(),
-  status: deckSuggestionStatus,
-  paired_suggestion_id: id.nullable(),
-  client_name: z.string().nullable(),
-  created_at: z.string(),
-  status_changed_at: z.string(),
-  events: z.array(z.strictObject({ kind: deckSuggestionEventKind, client_name: z.string().nullable(), created_at: z.string() })),
-});
-
-const keyPattern = (minLength: number) => z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${minLength},64}$`));
-
-const deckSuggestionReason = z.string().min(20).max(600);
-
-const deckSuggestionInput = z.strictObject({
-  ref: keyPattern(1).describe('A name for this suggestion, unique in the call, such as to_b. pair_with names it.'),
-  deck_id: id.describe("The deck's ID."),
-  expected_deck_revision: z.number().int().min(0).describe('The deck revision that get_deck returned.'),
-  incoming: z.strictObject({
-    oracle_id: id.describe('The incoming card. It may be a basic land card.'),
-    as_commander: z.boolean().optional().describe('Make the incoming card a commander. Defaults to true when the outgoing copy is a commander.'),
-    from_deck_id: id.optional().describe('The deck the copy moves out of. Send it with pair_with.'),
-  }),
-  outgoing: z
-    .union([
-      z.strictObject({ copy_id: id.describe('A copy in the deck.') }),
-      z.strictObject({ basic_land_oracle_id: id.describe('A basic land card in the deck, meaning one fewer of it.') }),
-    ])
-    .optional(),
-  reason: deckSuggestionReason,
-  pair_with: keyPattern(1).optional().describe('The ref of the suggestion that takes the copy out of from_deck_id.'),
-});
-
-const deckSuggestionWarning = z.union([
-  z.strictObject({
-    code: z.literal('would_break_validity'),
-    effect: z.strictObject({
-      kind: z.enum(['would_make_invalid', 'adds_violation']),
-      rules: z.array(z.strictObject({ rule: deckRule, colors: z.array(color).optional() })),
-    }),
-  }),
-  z.strictObject({ code: z.enum(['protected_only', 'not_owned', 'replaces_commander', 'rules_stale']) }),
-  z.strictObject({
-    code: z.literal('in_other_decks'),
-    decks: z.array(z.strictObject({ deck_id: id, name: z.string(), priority: deckPriority })),
-  }),
-  z.strictObject({ code: z.literal('against_deck_priority'), from_deck_priority: deckPriority, deck_priority: deckPriority }),
-]);
-
-const createdDeckSuggestions = z.strictObject({
-  suggestions: z.array(
-    z.strictObject({ ref: z.string(), suggestion_id: id, paired_suggestion_id: id.nullable(), warnings: z.array(deckSuggestionWarning) }),
-  ),
-  replayed: z.boolean(),
-});
-
-const changedDeckSuggestion = z.strictObject({ suggestion_id: id, changed: z.boolean() });
-
 export const tools: Tool[] = [
   defineTool({
     name: 'search_catalog',
@@ -659,96 +588,5 @@ export const tools: Tool[] = [
     output: z.strictObject({ next_cursor: nextCursor, items: z.array(deckChange) }),
     summary: (result) => pageSummary(plural(result.items.length, 'deck change', 'deck changes'), result.next_cursor),
     tooLargeHint: 'Ask for fewer deck changes with limit.',
-  }),
-  defineTool({
-    name: 'list_deck_suggestions',
-    title: 'List deck suggestions',
-    description: [
-      'Read past deck suggestions in every state, newest first: open, withdrawn, and stale. Filter them by deck_id or status.',
-      'Each suggestion has its deck name, the incoming and outgoing card names, the reason, the status, its paired suggestion, the name of the AI client that made it, its times, and its deck suggestion events.',
-      'A deck suggestion event is a withdrawal or a reason replacement, with the name of the AI client that made it.',
-    ].join(' '),
-    annotations: readOnly,
-    postgresFunction: 'list_deck_suggestions',
-    input: z.strictObject({
-      deck_id: id.optional().describe("Only this deck's suggestions."),
-      status: deckSuggestionStatus.optional().describe('Only suggestions in this state. Every state by default.'),
-      ...page,
-    }),
-    output: z.strictObject({ next_cursor: nextCursor, items: z.array(deckSuggestionRow) }),
-    summary: (result) => pageSummary(plural(result.items.length, 'deck suggestion', 'deck suggestions'), result.next_cursor),
-    tooLargeHint: 'Ask for fewer suggestions with limit, or filter by deck_id or status.',
-  }),
-  defineTool({
-    name: 'create_deck_suggestions',
-    title: 'Create deck suggestions',
-    description: [
-      'Make 1 to 10 deck suggestions in one call, all saved or none.',
-      'Each suggestion names an incoming card, an optional outgoing card in the deck, and a reason of 20 to 600 characters.',
-      'Send the deck revision from get_deck, and a new idempotency_key for each new call. A retry with the same key and input returns the first result.',
-      'This tool does not change any deck. The user reviews each suggestion in the app and decides.',
-      'Never offer a protected copy as the reason a card is available.',
-      'When two decks want a card and there is one copy for them, the deck with the higher deck priority should get it. Between decks of equal priority, decide which deck needs it more. To move a card, send a pair of suggestions in one call, and make each reason name the other.',
-      'Read past suggestions with list_deck_suggestions first.',
-      declinedWrite,
-    ].join(' '),
-    annotations: write,
-    postgresFunction: 'create_deck_suggestions',
-    input: z.strictObject({
-      idempotency_key: keyPattern(8).describe('8 to 64 of A-Z a-z 0-9 _ -. Send a new key for each new call.'),
-      suggestions: z.array(deckSuggestionInput).min(1).max(10),
-    }),
-    output: createdDeckSuggestions,
-    leftOut: {},
-    summary: (result) => {
-      const warningCount = result.suggestions.reduce((count, suggestion) => count + suggestion.warnings.length, 0);
-      return `${result.replayed ? 'Replayed' : 'Saved'} ${result.suggestions.length} deck suggestions with ${warningCount} warnings.`;
-    },
-    tooLargeHint: 'Send fewer suggestions in one call.',
-  }),
-  defineTool({
-    name: 'withdraw_deck_suggestion',
-    title: 'Withdraw a deck suggestion',
-    description: [
-      'Withdraw an open deck suggestion of the user.',
-      'Any AI client can withdraw it, not only the one that made it.',
-      'A withdrawn suggestion stays withdrawn.',
-      'Withdrawing a withdrawn suggestion changes nothing and returns changed: false. A stale suggestion returns not-open.',
-      'mtgscan records the withdrawal as a deck suggestion event with this AI client and the time.',
-      'This tool does not change any deck. Find suggestion IDs with list_deck_suggestions.',
-      declinedWrite,
-    ].join(' '),
-    annotations: write,
-    postgresFunction: 'withdraw_deck_suggestion',
-    input: z.strictObject({ suggestion_id: id.describe("The deck suggestion's ID.") }),
-    output: changedDeckSuggestion,
-    leftOut: {},
-    summary: (result) =>
-      result.changed ? `Withdrew deck suggestion ${result.suggestion_id}.` : `Deck suggestion ${result.suggestion_id} was already withdrawn.`,
-    tooLargeHint: 'Withdraw one deck suggestion in each call.',
-  }),
-  defineTool({
-    name: 'update_deck_suggestion_reason',
-    title: 'Replace the reason of a deck suggestion',
-    description: [
-      'Replace the reason of an open deck suggestion of the user.',
-      'Any AI client can replace it, not only the one that made it.',
-      'The new reason is 20 to 600 characters.',
-      'The old reason is not kept. Setting the reason it already has changes nothing and returns changed: false.',
-      'mtgscan records the reason replacement as a deck suggestion event with this AI client and the time.',
-      'A withdrawn or stale suggestion returns not-open.',
-      'This tool does not change any deck. Find suggestion IDs with list_deck_suggestions.',
-      declinedWrite,
-    ].join(' '),
-    annotations: write,
-    postgresFunction: 'update_deck_suggestion_reason',
-    input: z.strictObject({ suggestion_id: id.describe("The deck suggestion's ID."), reason: deckSuggestionReason }),
-    output: changedDeckSuggestion,
-    leftOut: {},
-    summary: (result) =>
-      result.changed
-        ? `Replaced the reason of deck suggestion ${result.suggestion_id}.`
-        : `Deck suggestion ${result.suggestion_id} already has this reason.`,
-    tooLargeHint: 'Replace the reason of one deck suggestion in each call.',
   }),
 ];

@@ -31,9 +31,6 @@ const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
 const gristModernHorizons = '1925dc45-4dee-4772-aa16-3b4ca54be6c7';
 const thassasOracle = '69e615d8-1b79-4a82-ba9f-ee211d67dc95';
 const problems = 'https://mtgscan.reilley.dev/problems/';
-const lightningBolt = '132dc07f-74e2-4bd7-bdb1-4f5d5253c7f2';
-const counterspell = '0df55e3f-14de-46ef-b6b1-616618724d9e';
-const reason = 'Moves the only Lightning Bolt to the deck that needs removal.';
 const bracketSentence =
   'The estimated bracket is an estimate for a pregame conversation, not a certified bracket. Signals labelled heuristic are not official.';
 const usdSentence = 'Prices are current Scryfall prices in USD (TCGplayer Market). There is no other currency.';
@@ -164,7 +161,7 @@ describe('the MCP server over HTTP', () => {
     });
   });
 
-  test('lists the read tools in order, then the write tools, with their annotations and schemas', async () => {
+  test('lists the tools in order with their annotations and schemas', async () => {
     const { mcp } = await connected(await signUpNewUser());
 
     const { tools } = await mcp.listTools();
@@ -184,49 +181,6 @@ describe('the MCP server over HTTP', () => {
     expect((getDeck.outputSchema!.anyOf as { required: string[] }[])[0]!.required).toEqual(
       expect.arrayContaining(['deck_id', 'cards', 'evaluation']),
     );
-    const listDeckSuggestions = tools.find(({ name }) => name === 'list_deck_suggestions')!;
-    expect(listDeckSuggestions.inputSchema.required).toBeUndefined();
-    expect(listDeckSuggestions.inputSchema.properties).toMatchObject({ status: { enum: ['open', 'withdrawn', 'stale'] } });
-    const [createDeckSuggestions, withdrawDeckSuggestion, updateDeckSuggestionReason] = mcpWriteToolNames.map(
-      (writeTool) => tools.find(({ name }) => name === writeTool)!,
-    );
-    expect(createDeckSuggestions!.annotations).toEqual(mcpToolAnnotations('create_deck_suggestions'));
-    for (const sentence of [
-      'This tool does not change any deck. The user reviews each suggestion in the app and decides.',
-      'Never offer a protected copy as the reason a card is available.',
-      'When two decks want a card and there is one copy for them, the deck with the higher deck priority should get it. Between decks of equal priority, decide which deck needs it more. To move a card, send a pair of suggestions in one call, and make each reason name the other.',
-      'Read past suggestions with list_deck_suggestions first.',
-    ]) {
-      expect(createDeckSuggestions!.description).toContain(sentence);
-    }
-    expect(createDeckSuggestions!.inputSchema).toMatchObject({
-      type: 'object',
-      required: ['idempotency_key', 'suggestions'],
-      additionalProperties: false,
-      properties: { suggestions: { minItems: 1, maxItems: 10, items: { additionalProperties: false } } },
-    });
-    expect(createDeckSuggestions!.outputSchema).toMatchObject({
-      type: 'object',
-      anyOf: [
-        expect.objectContaining({ required: ['suggestions', 'replayed'], additionalProperties: false }),
-        expect.objectContaining({ required: ['type', 'title', 'detail', 'retryable'] }),
-      ],
-    });
-    for (const [tool, required] of [
-      [withdrawDeckSuggestion, ['suggestion_id']],
-      [updateDeckSuggestionReason, ['suggestion_id', 'reason']],
-    ] as const) {
-      expect(tool!.annotations).toEqual(createDeckSuggestions!.annotations);
-      expect(tool!.inputSchema).toMatchObject({ type: 'object', required, additionalProperties: false });
-      expect(tool!.outputSchema).toMatchObject({
-        type: 'object',
-        anyOf: [
-          expect.objectContaining({ required: ['suggestion_id', 'changed'], additionalProperties: false }),
-          expect.objectContaining({ required: ['type', 'title', 'detail', 'retryable'] }),
-        ],
-      });
-    }
-    expect(updateDeckSuggestionReason!.inputSchema).toMatchObject({ properties: { reason: { minLength: 20, maxLength: 600 } } });
   });
 
   test('the descriptions carry the catalog sentence, the USD sentence on each tool that returns prices, the bracket sentence on the deck reads, and the declined write sentence on the write tools', async () => {
@@ -239,6 +193,12 @@ describe('the MCP server over HTTP', () => {
     expect(withSentence(usdSentence)).toEqual(['search_catalog', 'search_collection', 'get_cards', 'get_collection_summary', 'get_deck']);
     expect(withSentence(bracketSentence)).toEqual(['list_decks', 'get_deck']);
     expect(withSentence(declinedWriteSentence)).toEqual(mcpWriteToolNames);
+  });
+
+  test('the server instructions say that the AI cannot change a deck', async () => {
+    const { mcp } = await connected(await signUpNewUser());
+
+    expect(mcp.getInstructions()).toContain('You cannot change a deck or the collection.');
   });
 
   test('also serves a client on the 2025 protocol', async () => {
@@ -513,256 +473,4 @@ describe('the read tools over HTTP', () => {
       });
     },
   );
-});
-
-describe('create_deck_suggestions over HTTP', () => {
-  type Pair = { mcp: Client; userId: string; fromDeck: string; toDeck: string; bolt: string; revisions: number[] };
-
-  async function oracleIdOf(cardPrintingId: string): Promise<string> {
-    const [row] = await asDatabaseOwner((database) => database`select oracle_id from public.card_printings where id = ${cardPrintingId}`);
-    return row.oracle_id;
-  }
-
-  async function appRequest(user: TestUser, name: string, request: object) {
-    const { data, error } = await user.client.rpc(name as 'create_deck', { request: request as never });
-    expect(error).toBeNull();
-    return data as { deck_id: string; revision: number };
-  }
-
-  async function decksForAPair(): Promise<Pair> {
-    const user = await signUpNewUser();
-    const scanned = stack(lightningBolt);
-    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
-    const { deck_id: fromDeck } = await appRequest(user, 'create_deck', { name: 'Krenko' });
-    await appRequest(user, 'set_deck_priority', { deck_id: fromDeck, priority: 'high' });
-    const { revision: fromRevision } = await appRequest(user, 'add_deck_card', { deck_id: fromDeck, copy_id: scanned.copy_ids[0], unprotect: false });
-    const { deck_id: toDeck } = await appRequest(user, 'create_deck', { name: 'Goblins' });
-    await appRequest(user, 'set_deck_priority', { deck_id: toDeck, priority: 'low' });
-    const { mcp } = await connected(user);
-    return { mcp, userId: user.userId, fromDeck, toDeck, bolt: scanned.copy_ids[0]!, revisions: [fromRevision, 0] };
-  }
-
-  async function pairArguments({ fromDeck, toDeck, bolt, revisions: [fromRevision, toRevision] }: Pair) {
-    return {
-      idempotency_key: crypto.randomUUID(),
-      suggestions: [
-        {
-          ref: 'to_b',
-          deck_id: toDeck,
-          expected_deck_revision: toRevision,
-          incoming: { oracle_id: await oracleIdOf(lightningBolt), from_deck_id: fromDeck },
-          reason,
-          pair_with: 'from_a',
-        },
-        {
-          ref: 'from_a',
-          deck_id: fromDeck,
-          expected_deck_revision: fromRevision,
-          incoming: { oracle_id: await oracleIdOf(counterspell) },
-          outgoing: { copy_id: bolt },
-          reason: 'Counterspell takes the place of the Lightning Bolt that moves to Goblins.',
-        },
-      ],
-    };
-  }
-
-  test('one call saves a pair and returns its warnings, with a one-line summary and the minified JSON', async () => {
-    const pair = await decksForAPair();
-
-    const result = await pair.mcp.callTool({ name: 'create_deck_suggestions', arguments: await pairArguments(pair) });
-
-    expect(result.isError).toBeFalsy();
-    const created = result.structuredContent as {
-      suggestions: { ref: string; suggestion_id: string; paired_suggestion_id: string; warnings: { code: string }[] }[];
-      replayed: boolean;
-    };
-    const [toB, fromA] = created.suggestions;
-    expect(created.replayed).toBe(false);
-    expect(toB).toMatchObject({
-      ref: 'to_b',
-      paired_suggestion_id: fromA!.suggestion_id,
-      warnings: [{ code: 'against_deck_priority', from_deck_priority: 'high', deck_priority: 'low' }],
-    });
-    expect(fromA).toMatchObject({ ref: 'from_a', paired_suggestion_id: toB!.suggestion_id });
-    expect(fromA!.warnings.map(({ code }) => code)).toContain('not_owned');
-    const warningCount = toB!.warnings.length + fromA!.warnings.length;
-    expect(textOf(result)).toBe(`Saved 2 deck suggestions with ${warningCount} warnings.\n${JSON.stringify(created)}`);
-    const saved = await asDatabaseOwner(
-      (database) => database`
-        select id, deck_id, paired_suggestion_id, client_name from public.deck_suggestions
-        where user_id = ${pair.userId} order by deck_id = ${pair.toDeck} desc
-      `,
-    );
-    expect(saved).toEqual([
-      { id: toB!.suggestion_id, deck_id: pair.toDeck, paired_suggestion_id: fromA!.suggestion_id, client_name: 'Test AI chat' },
-      { id: fromA!.suggestion_id, deck_id: pair.fromDeck, paired_suggestion_id: toB!.suggestion_id, client_name: 'Test AI chat' },
-    ]);
-  });
-
-  test('a stale revision comes back as stale-revision with its pointer, expected, and current', async () => {
-    const pair = await decksForAPair();
-    const fromRevision = pair.revisions[0]!;
-
-    const result = await pair.mcp.callTool({
-      name: 'create_deck_suggestions',
-      arguments: await pairArguments({ ...pair, revisions: [fromRevision - 1, 0] }),
-    });
-
-    expect(result.isError).toBe(true);
-    expect(result.structuredContent).toEqual({
-      type: `${problems}stale-revision`,
-      title: 'Stale revision',
-      detail: 'suggestions[1].expected_deck_revision is not the deck revision. Read the deck again.',
-      pointer: '/suggestions/1/expected_deck_revision',
-      expected: fromRevision - 1,
-      current: fromRevision,
-      retryable: false,
-    });
-  });
-
-  test('a nested field at fault comes back with its JSON Pointer', async () => {
-    const pair = await decksForAPair();
-    const request = await pairArguments(pair);
-    request.suggestions[1]!.reason = 'Too short.';
-
-    const result = await pair.mcp.callTool({ name: 'create_deck_suggestions', arguments: request });
-
-    expect(result.isError).toBe(true);
-    expect(result.structuredContent).toEqual({
-      type: `${problems}invalid-argument`,
-      title: 'Invalid argument',
-      detail: 'suggestions[1].reason must be a string of 20 to 600 characters.',
-      pointer: '/suggestions/1/reason',
-      retryable: false,
-    });
-  });
-});
-
-describe('list_deck_suggestions over HTTP', () => {
-  test('one page lists a withdrawn and a stale suggestion with their deck suggestion events, a one-line summary, and the minified JSON', async () => {
-    const user = await signUpNewUser();
-    const scanned = stack(lightningBolt);
-    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
-    const { data } = await user.client.rpc('create_deck', { request: { name: 'Krenko' } });
-    const deckId = (data as { deck_id: string }).deck_id;
-    const added = await user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: scanned.copy_ids[0]!, unprotect: false } });
-    const [counterspellCard] = await asDatabaseOwner(
-      (database) => database`select oracle_id from public.card_printings where id = ${counterspell}`,
-    );
-    const { mcp } = await connected(user);
-    const created = await mcp.callTool({
-      name: 'create_deck_suggestions',
-      arguments: {
-        idempotency_key: crypto.randomUUID(),
-        suggestions: [
-          {
-            ref: 'swap',
-            deck_id: deckId,
-            expected_deck_revision: (added.data as { revision: number }).revision,
-            incoming: { oracle_id: counterspellCard.oracle_id },
-            outgoing: { copy_id: scanned.copy_ids[0]! },
-            reason: 'Counterspell answers more threats than Lightning Bolt here.',
-          },
-          {
-            ref: 'add',
-            deck_id: deckId,
-            expected_deck_revision: (added.data as { revision: number }).revision,
-            incoming: { oracle_id: counterspellCard.oracle_id },
-            reason: 'Counterspell protects the commander from removal.',
-          },
-        ],
-      },
-    });
-    const [swap, addition] = (created.structuredContent as { suggestions: { suggestion_id: string }[] }).suggestions;
-    await mcp.callTool({ name: 'withdraw_deck_suggestion', arguments: { suggestion_id: addition!.suggestion_id } });
-    expect((await user.client.rpc('remove_deck_card', { request: { copy_id: scanned.copy_ids[0]! } })).error).toBeNull();
-
-    const result = await mcp.callTool({ name: 'list_deck_suggestions', arguments: { deck_id: deckId } });
-
-    expect(result.isError).toBeFalsy();
-    expect(textOf(result)).toBe(`2 deck suggestions.\n${JSON.stringify(result.structuredContent)}`);
-    const { items, next_cursor } = result.structuredContent as {
-      items: { suggestion_id: string; status: string; events: { kind: string; client_name: string }[] }[];
-      next_cursor: string | null;
-    };
-    expect(next_cursor).toBeNull();
-    expect(items.map(({ suggestion_id }) => suggestion_id).toSorted()).toEqual([swap!.suggestion_id, addition!.suggestion_id].toSorted());
-    expect(items.find(({ suggestion_id }) => suggestion_id === swap!.suggestion_id)).toMatchObject({
-      deck_name: 'Krenko',
-      incoming: { name: 'Counterspell' },
-      outgoing: { copy_id: scanned.copy_ids[0], name: 'Lightning Bolt' },
-      status: 'stale',
-      client_name: 'Test AI chat',
-      events: [],
-    });
-    expect(items.find(({ suggestion_id }) => suggestion_id === addition!.suggestion_id)).toMatchObject({
-      outgoing: null,
-      status: 'withdrawn',
-      events: [{ kind: 'withdrawn', client_name: 'Test AI chat', created_at: expect.any(String) }],
-    });
-  });
-});
-
-describe('withdraw_deck_suggestion and update_deck_suggestion_reason over HTTP', () => {
-  const newReason = 'Counterspell protects the combo better than Lightning Bolt.';
-
-  async function openSuggestion() {
-    const user = await signUpNewUser();
-    const { data } = await user.client.rpc('create_deck', { request: { name: 'Kinnan' } });
-    const deckId = (data as { deck_id: string }).deck_id;
-    const { mcp } = await connected(user);
-    const [row] = await asDatabaseOwner((database) => database`select oracle_id from public.card_printings where id = ${counterspell}`);
-    const created = await mcp.callTool({
-      name: 'create_deck_suggestions',
-      arguments: {
-        idempotency_key: crypto.randomUUID(),
-        suggestions: [{ ref: 'counter', deck_id: deckId, expected_deck_revision: 0, incoming: { oracle_id: row.oracle_id }, reason }],
-      },
-    });
-    const [suggestion] = (created.structuredContent as { suggestions: { suggestion_id: string }[] }).suggestions;
-    return { mcp, userId: user.userId, suggestionId: suggestion!.suggestion_id };
-  }
-
-  test('replaces the reason and then withdraws the suggestion, each with a one-line summary, the minified JSON, and one deck suggestion event', async () => {
-    const { mcp, userId, suggestionId } = await openSuggestion();
-
-    const replaced = await mcp.callTool({ name: 'update_deck_suggestion_reason', arguments: { suggestion_id: suggestionId, reason: newReason } });
-    const withdrawn = await mcp.callTool({ name: 'withdraw_deck_suggestion', arguments: { suggestion_id: suggestionId } });
-
-    expect(replaced.isError).toBeFalsy();
-    expect(replaced.structuredContent).toEqual({ suggestion_id: suggestionId, changed: true });
-    expect(textOf(replaced)).toBe(`Replaced the reason of deck suggestion ${suggestionId}.\n${JSON.stringify(replaced.structuredContent)}`);
-    expect(withdrawn.isError).toBeFalsy();
-    expect(withdrawn.structuredContent).toEqual({ suggestion_id: suggestionId, changed: true });
-    expect(textOf(withdrawn)).toBe(`Withdrew deck suggestion ${suggestionId}.\n${JSON.stringify(withdrawn.structuredContent)}`);
-    const saved = await asDatabaseOwner(
-      (database) => database`
-        select suggestion.status, suggestion.reason, event.kind, event.client_name
-        from public.deck_suggestions suggestion
-        join public.deck_suggestion_events event on event.user_id = suggestion.user_id and event.suggestion_id = suggestion.id
-        where suggestion.user_id = ${userId}
-        order by event.created_at
-      `,
-    );
-    expect(saved).toEqual([
-      { status: 'withdrawn', reason: newReason, kind: 'reason_replaced', client_name: 'Test AI chat' },
-      { status: 'withdrawn', reason: newReason, kind: 'withdrawn', client_name: 'Test AI chat' },
-    ]);
-  });
-
-  test('replacing the reason of a withdrawn suggestion comes back as not-open', async () => {
-    const { mcp, suggestionId } = await openSuggestion();
-    await mcp.callTool({ name: 'withdraw_deck_suggestion', arguments: { suggestion_id: suggestionId } });
-
-    const result = await mcp.callTool({ name: 'update_deck_suggestion_reason', arguments: { suggestion_id: suggestionId, reason: newReason } });
-
-    expect(result.isError).toBe(true);
-    expect(result.structuredContent).toEqual({
-      type: `${problems}not-open`,
-      title: 'Not open',
-      detail: 'The deck suggestion is withdrawn. Only an open deck suggestion can change.',
-      pointer: '/suggestion_id',
-      retryable: false,
-    });
-  });
 });

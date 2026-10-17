@@ -268,7 +268,6 @@ export async function resetCardCatalog(): Promise<void> {
     () => client.from('collection_addition_lines').delete().not('addition_id', 'is', null),
     () => client.from('collection_additions').delete().not('id', 'is', null),
     () => client.from('deck_changes').delete().not('id', 'is', null),
-    () => client.from('deck_suggestions').delete().not('id', 'is', null),
     () => client.from('deck_basic_lands').delete().not('deck_id', 'is', null),
     () => client.from('combos').delete().not('id', 'is', null),
     () => client.from('disabled_tags').delete().not('tag_id', 'is', null),

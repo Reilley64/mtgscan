@@ -4,7 +4,7 @@ import { buildDiscoveryUrls, SUPPORTED_PROTOCOL_VERSIONS, type Client } from '@m
 import { createClient } from '@supabase/supabase-js';
 
 import type { Database } from '../database.types';
-import type { CreatedDeck, CreatedDeckSuggestions, Deck, DeckSuggestionPage } from '../decks';
+import type { CreatedDeck, Deck } from '../decks';
 import {
   appWriteRefusal,
   approve,
@@ -32,8 +32,7 @@ import { hostedSupabaseUrl, isHostedTestUserPassword, isLocalStack, localSupabas
 const usage = 'Usage: bun mcp-preflight/main.ts [--hosted]';
 const hostedConsentPage = 'https://mtgscan.reilley.dev/oauth/consent';
 const deckName = 'MCP pre-flight';
-const incomingCard = 'Counterspell';
-const reason = 'The pre-flight checks that an AI client can save a deck suggestion.';
+const searchedCard = 'Counterspell';
 
 const { values } = parseArgs({ args: Bun.argv.slice(2), options: { hosted: { type: 'boolean', default: false } } });
 
@@ -109,10 +108,6 @@ const state: {
   deckIds: string[];
   deckId?: string;
   mcp?: Client;
-  incomingOracleId?: string;
-  revision?: number;
-  suggestionArguments?: Record<string, unknown>;
-  created?: CreatedDeckSuggestions;
 } = { clients: {}, createdClientIds: [], deckIds: [] };
 
 function fromEarlierCheck<T>(value: T | undefined): T {
@@ -132,10 +127,6 @@ function passIf(passed: boolean, detail: string): string {
 type Check = { name: string; run: () => Promise<string> };
 
 const toolsListRequest = { jsonrpc: '2.0', id: 1, method: 'tools/list' };
-
-function newIdempotencyKey(): string {
-  return `mcp-preflight-${crypto.randomUUID()}`;
-}
 
 function postMcp(body: unknown, headers: Record<string, string> = {}): Promise<Response> {
   return fetch(mcpServerUrl, {
@@ -169,10 +160,6 @@ async function toolResult<Result>(name: string, toolArguments: Record<string, un
     throw new Error(`${name} returned a problem: ${JSON.stringify(result)}`);
   }
   return result;
-}
-
-async function listedSuggestions(deckId: string) {
-  return (await toolResult<DeckSuggestionPage>('list_deck_suggestions', { deck_id: deckId })).items;
 }
 
 const discoveryChecks: Check[] = [
@@ -392,12 +379,11 @@ const toolChecks: Check[] = [
     },
   },
   {
-    name: `A read tool returns its result: search_catalog finds ${incomingCard}`,
+    name: `A read tool returns its result: search_catalog finds ${searchedCard}`,
     run: async () => {
-      const { items } = await toolResult<SearchPage<CatalogRow>>('search_catalog', { names: [incomingCard], limit: 20 });
-      const card = items.find(({ name }) => name === incomingCard);
-      state.incomingOracleId = card?.oracle_id;
-      return passIf(card !== undefined, card ? `oracle_id ${card.oracle_id}` : `no ${incomingCard} in the card catalog`);
+      const { items } = await toolResult<SearchPage<CatalogRow>>('search_catalog', { names: [searchedCard], limit: 20 });
+      const card = items.find(({ name }) => name === searchedCard);
+      return passIf(card !== undefined, card ? `oracle_id ${card.oracle_id}` : `no ${searchedCard} in the card catalog`);
     },
   },
   {
@@ -419,73 +405,7 @@ const toolChecks: Check[] = [
     run: async () => {
       const deckId = fromEarlierCheck(state.deckId);
       const deck = await toolResult<Deck>('get_deck', { deck_id: deckId });
-      state.revision = deck.revision;
       return passIf(deck.name === deckName, `${deck.name} at deck revision ${deck.revision}`);
-    },
-  },
-  {
-    name: 'create_deck_suggestions saves a deck suggestion',
-    run: async () => {
-      const suggestionArguments = {
-        idempotency_key: newIdempotencyKey(),
-        suggestions: [
-          {
-            ref: 'preflight',
-            deck_id: fromEarlierCheck(state.deckId),
-            expected_deck_revision: fromEarlierCheck(state.revision),
-            incoming: { oracle_id: fromEarlierCheck(state.incomingOracleId) },
-            reason,
-          },
-        ],
-      };
-      const created = await toolResult<CreatedDeckSuggestions>('create_deck_suggestions', suggestionArguments);
-      state.suggestionArguments = suggestionArguments;
-      state.created = created;
-      const [suggestion] = created.suggestions;
-      return passIf(
-        created.suggestions.length === 1 && !created.replayed,
-        `suggestion_id ${suggestion?.suggestion_id}, warnings ${suggestion?.warnings.map(({ code }) => code).join(', ') || 'none'}`,
-      );
-    },
-  },
-  {
-    name: "list_deck_suggestions shows the client name from Supabase Auth's client record",
-    run: async () => {
-      const created = fromEarlierCheck(state.created);
-      const [item] = await listedSuggestions(state.deckId!);
-      return passIf(
-        item?.suggestion_id === created.suggestions[0]!.suggestion_id && item.client_name === state.clients.public!.name,
-        `client name ${item?.client_name}`,
-      );
-    },
-  },
-  {
-    name: 'A stale deck revision gets stale-revision and saves nothing',
-    run: async () => {
-      const suggestionArguments = fromEarlierCheck(state.suggestionArguments);
-      const [suggestion] = suggestionArguments.suggestions as { expected_deck_revision: number }[];
-      const { result, isError } = await callTool<{ type: string; detail: string }>('create_deck_suggestions', {
-        ...suggestionArguments,
-        idempotency_key: newIdempotencyKey(),
-        suggestions: [{ ...suggestion, expected_deck_revision: suggestion!.expected_deck_revision + 1 }],
-      });
-      const saved = await listedSuggestions(state.deckId!);
-      return passIf(
-        isError && result.type.endsWith('/stale-revision') && saved.length === 1,
-        `${result.type}: ${result.detail}; ${saved.length} deck suggestion in the deck`,
-      );
-    },
-  },
-  {
-    name: 'A replay with the same idempotency key returns the first result and saves nothing',
-    run: async () => {
-      const suggestionArguments = fromEarlierCheck(state.suggestionArguments);
-      const replay = await toolResult<CreatedDeckSuggestions>('create_deck_suggestions', suggestionArguments);
-      const saved = await listedSuggestions(state.deckId!);
-      return passIf(
-        replay.replayed && isDeepStrictEqual(replay.suggestions, state.created!.suggestions) && saved.length === 1,
-        `replayed ${replay.replayed}, suggestion_id ${replay.suggestions[0]?.suggestion_id}; ${saved.length} deck suggestion in the deck`,
-      );
     },
   },
   {
@@ -535,7 +455,7 @@ const revokeChecks: Check[] = [
 
 const cleanupChecks: Check[] = [
   {
-    name: 'Cleanup deletes the pre-flight deck and its deck suggestions',
+    name: 'Cleanup deletes the pre-flight deck',
     run: async () => {
       for (const deckId of state.deckIds) {
         const { error } = await testUserClient.rpc('delete_deck', { request: { deck_id: deckId } });
@@ -543,11 +463,8 @@ const cleanupChecks: Check[] = [
           throw new Error(`delete_deck ${deckId}: ${error.message}`);
         }
       }
-      const { count, error } = await admin
-        .from('deck_suggestions')
-        .select('id', { count: 'exact', head: true })
-        .in('deck_id', state.deckIds);
-      return passIf(!error && count === 0, `decks deleted: ${state.deckIds.length}, deck suggestions left: ${count ?? error?.message}`);
+      const { count, error } = await admin.from('decks').select('id', { count: 'exact', head: true }).in('id', state.deckIds);
+      return passIf(!error && count === 0, `decks deleted: ${state.deckIds.length}, left: ${count ?? error?.message}`);
     },
   },
   {

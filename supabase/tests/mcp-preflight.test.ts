@@ -101,7 +101,7 @@ describe('the MCP pre-flight command', () => {
 
     expect(checkLines(output)).toContain('FAIL  A read tool returns its result: search_catalog finds Counterspell');
     expect(checkLines(output)).toContain('PASS  The test user creates the pre-flight deck in the app');
-    expect(checkLines(output)).toContain('PASS  Cleanup deletes the pre-flight deck and its deck suggestions');
+    expect(checkLines(output)).toContain('PASS  Cleanup deletes the pre-flight deck');
     expect(checkLines(output)).toContain('PASS  Cleanup deletes the pre-flight AI clients');
     expect(exitCode).toBe(1);
     expect(await leftoversOf(output)).toEqual({ created: { aiClients: 2, decks: 1 }, aiClients: [], decks: [] });
