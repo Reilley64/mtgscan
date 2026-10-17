@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: mtgscan
-description: Dark, card-first phone app for scanning Magic cards, keeping a collection, and building Commander decks with AI deck suggestions.
+description: Dark, card-first phone app for scanning Magic cards, keeping a collection, and building Commander decks with an AI that plans swaps.
 colors:
   background: "#080b0d"
   surface: "#11171a"
@@ -350,12 +350,12 @@ components:
 
 ## Overview
 
-mtgscan is an iPhone app for Commander players. Anyone can sign up, and each user's data is private to that user. It scans Magic cards one at a time, keeps the collection, and turns AI deck suggestions into deck changes that the user controls. The interface is dark and card-first. Real card images carry the color, and the chrome stays quiet around them.
+mtgscan is an iPhone app for Commander players. Anyone can sign up, and each user's data is private to that user. It scans Magic cards one at a time, keeps the collection, and turns the AI's planned swaps and buylist cards into deck changes that the user makes. The interface is dark and card-first. Real card images carry the color, and the chrome stays quiet around them.
 
 Three ideas shape every screen:
 
 - **The card is the hero.** Card images are large and recognizable. Text supports the image and never replaces it.
-- **The user decides.** The AI only writes deck suggestions. Every deck change, planned swap, and buylist card is the user's action. Nothing changes a deck without a tap.
+- **The user decides.** A deck is the cards in the deck box now. The AI writes only planned swaps and buylist cards. Every deck change is the user's action. Nothing changes a deck without a tap.
 - **No noise about confidence.** The scanner always shows its best guess, and the user switches it in one tap when needed. Confidence numbers are never shown.
 
 This file records the design settled in Wayfinder tickets #11 (scan batch flow) and #18 (AI deck changes, history, and planned swaps). Domain terms follow `GLOSSARY.md`.
@@ -372,7 +372,7 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 - **Primary (#d8ff62)**, the lime accent, is the single interaction color: the primary button, the selected chip, the selected tab, section headings, and in-app links. Text on it is **on-primary (#101500)**. The brand mark is the one non-action use of lime.
 - **Grabber (#4a555b)** draws the short bar at the top of the sign-in sheet. The settings drawer uses the iOS system grabber, which iOS draws in its own color.
 - **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message and the destructive buttons. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall.
-- **Incoming (#d8ff62)** and **outgoing (#ff8a7a)** mark the plus and minus lines of a deck suggestion, planned swap, or deck change.
+- **Incoming (#d8ff62)** and **outgoing (#ff8a7a)** mark the plus and minus lines of a planned swap, buylist card, or deck change.
 - **Warning (#f4d06f)** marks protected copies and caution states. **Danger (#ff7a70)** marks invalid decks, the cards that break a Commander rule, and destructive actions such as remove scan or revert. **Info (#8fd3ff)** marks the estimated bracket and in-deck counts.
 - **Badge (#e0244a)** is only for count badges on tabs, buttons, and basic land tiles, such as Needs you.
 - **Card outline (#ff4fd8)** is the magenta line the scanner draws around a detected card. Nothing else uses it.
@@ -394,7 +394,7 @@ The app uses the iOS system font, SF Pro, at a few weights.
 - **Chip** (11 px, bold) labels chips and status pills. **Tab label** (10 px, bold) sits under tab bar icons. **Credit** (10 px, semibold, dim) credits image and price sources such as Scryfall, and carries the Fan Content notice.
 - **Mana symbol** (9 px) is the one type style in another font: the Mana font, which the app bundles. It draws the glyph of a card symbol on its 12 px circle, inline with body text. **Mana symbol split** (5 px) draws the two small glyphs of a hybrid symbol. **Mana symbol bare** (12 px) draws a symbol with no circle, such as {E}, at the size of a circle. See Card symbols.
 
-Copy is plain sentence case and uses glossary terms exactly: deck suggestion, planned swap, buylist card, free copy, protected copy, estimated bracket.
+Copy is plain sentence case and uses glossary terms exactly: planned swap, buylist card, free copy, protected copy, estimated bracket.
 
 ## Layout
 
@@ -404,11 +404,11 @@ The app is built for an iPhone in portrait. The page inset is 16 px, cards sit 1
 
 A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Scan**. Recent has a count badge for the items that need the user.
 
-- **Recent** is the home across all decks. It holds only the Needs you items, **oldest first**: open deck suggestions, planned swaps ready to swap in, and open buylist cards (owner decision, spec 4). Deck changes stay in each deck's History tab. Collection changes do not appear in Recent.
+- **Recent** is the home across all decks. It holds only the Needs you items, **oldest first**: planned swaps ready to swap in and open buylist cards (owner decision, spec 4). Deck changes stay in each deck's History tab. Collection changes do not appear in Recent.
   - Each item carries a tag with the commander avatar and deck name. The tag opens that deck.
-  - Filter chips: All, Suggestions, Planned swaps, Buylist. They hide while Recent is empty.
+  - Filter chips: All, Planned swaps, Buylist. They hide while Recent is empty.
   - With no Needs you items, Recent shows its empty state. See Empty states.
-  - Every item keeps its actions inline: Promote, Dismiss, Swap in, and Bought.
+  - Every item keeps its actions inline: Swap in, Bought, and Close.
 - **Collection** is a binder grid with the collection total in its header.
   - The header has the collection total button next to the settings button (owner decision, #125). See Collection header.
   - Card images sit 3 per row, with **one tile per copy** and no quantity badge. Three copies of a card printing make three tiles (owner decision, #116).
@@ -546,7 +546,7 @@ The consent page is on the website at `mtgscan.reilley.dev/oauth/consent`, not i
 - **Signed in.** From top to bottom:
   - an account card on surface: "Signed in with Apple" or "Signed in with Google" in body strong, the account email in text muted at meta size, "Use the same sign-in as in the app", and **Switch account** as a secondary button. **Switch account** signs out of this browser only and shows the sign-in buttons;
   - the AI client's name as the title, in sign-in title type, and "Returns you to chatgpt.com" in text muted. The host comes from the AI client's redirect URI, never from its name;
-  - a card on surface with "Read your cards, collection, decks, and deck history. Suggest deck changes. It cannot change your decks or collection.";
+  - a card on surface with "Read your cards, collection, decks, and deck history. Plan swaps and add to your buylist. It cannot change your decks or collection.";
   - **Allow** as the primary button and **Deny** as a secondary button, side by side. After a tap, both dim to 38% while the page waits for Supabase.
 - **Could not reach mtgscan.** When Supabase cannot be reached, the account card stays with **Switch account**. Below it, a card on surface says "Could not reach mtgscan." and has a primary **Try again** button that repeats the step.
 - **Rejected session.** When Supabase rejects the session, the page signs out of this browser and shows the signed-out view.
@@ -607,7 +607,7 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
     - The alert has **Delete deck** in red and **Cancel**. Delete deck goes back to the gallery.
     - A write that fails shows a native alert with "Check your connection." and changes nothing. The titles are "Could not rename this deck", "Could not change the deck priority", and "Could not delete this deck".
     - A deck that was deleted elsewhere goes back to the gallery.
-  - A segmented control under the banner switches between **Cards** and **History**. The deck screen opens on Cards. Suggestions comes later.
+  - A segmented control under the banner switches between **Cards** and **History**. The deck screen opens on Cards. A tab for the deck's planned swaps and buylist cards comes later.
   - **Cards** starts with a "Commander" group. With no commander, it shows "No commander yet." in text muted under the heading. An empty deck then shows the empty state "No cards yet". See Empty states. **Open Collection** closes the deck screen and opens the Collection tab.
   - **Cards** shows the deck cards as card images 3 per row, with the binder grid's gaps and corners. A tile has the finish sheen of its copy, and no meta line and no price. VoiceOver reads it as a button with the name, the set code in capitals and the collector number, and the finish and condition as on a binder tile, such as "Sol Ring, C21 263, foil". A tap opens the copy page.
   - A tile whose copy is in a violation's cards has the danger outline, with no badge. Commander tiles get it too. VoiceOver adds "breaks a Commander rule" to its label, such as "Sol Ring, C21 263, foil, breaks a Commander rule". A card in an undetermined check gets no outline. See Components.
@@ -642,7 +642,6 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
 
 Short tasks use iOS page sheets that close with a downward swipe or Done:
 
-- promote with a copy picker;
 - Bought with the acquired copy picker;
 - the swap-in confirmation for a protected copy;
 - revert.
@@ -783,7 +782,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
 ## Components
 
-- **Buttons.** Primary buttons are lime with dark text: Promote, Swap in, Bought, Add to collection. Secondary buttons use the control surface: Dismiss, Skip, Cancel. Destructive actions, such as **Remove scan**, use danger text on the danger tint.
+- **Buttons.** Primary buttons are lime with dark text: Swap in, Bought, Add to collection. Secondary buttons use the control surface: Close, Skip, Cancel. Destructive actions, such as **Remove scan**, use danger text on the danger tint.
   - A disabled button fades to 38% opacity, the same dimming as the other sign-in buttons while one signs in. `theme.ts` names it `opacity.dimmed`.
   - A busy button shows a spinner before its label and takes no taps. It keeps its full color.
   - A round icon button, such as the settings button or the batch button, is 38 px across on the control surface, with an 18 px symbol in the text color.
@@ -814,11 +813,11 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - Symbols that are not mana, such as {E}, {A}, {TK}, {PW}, {CHAOS}, {P}, and {D}, are bare glyphs in the text color, in mana symbol bare type.
   - A symbol that the app does not know stays as its plain text in braces, never an empty box.
   - VoiceOver reads the text with each symbol as words, such as "tap: Add green mana." or "two generic mana green mana". The words are: "white mana" for {W} and the same for each color, "colorless mana" for {C}, "two generic mana" for {2} and the same for each number, "zero mana" for {0}, "X generic mana" for {X}, {Y}, and {Z}, "half generic mana" for {½}, "infinite generic mana" for {∞}, "white or blue mana" for {W/U}, "two generic or white mana" for {2/W}, "colorless or white mana" for {C/W}, "Phyrexian green mana" for {G/P}, "Phyrexian black or green mana" for {B/G/P}, "Phyrexian colorless mana" for {C/P}, "Phyrexian mana" for {H}, "half white mana" for {HW}, "snow mana" for {S}, "legendary mana" for {L}, "tap" for {T}, "untap" for {Q}, "energy" for {E}, "acorn" for {A}, "ticket" for {TK}, "planeswalker" for {PW}, "chaos" for {CHAOS}, "pawprint" for {P}, and "land drop" for {D}.
-- **Count badges.** Red numerals on the Recent tab, the deck Suggestions tab, and the batch button. On a basic land tile of a deck, the count badge shows × before the count, such as ×8, 4 px from the top right corner of the card image.
+- **Count badges.** Red numerals on the Recent tab and the batch button. On a basic land tile of a deck, the count badge shows × before the count, such as ×8, 4 px from the top right corner of the card image.
 - **Stepper.** A secondary icon button with the `minus` symbol, the count in body strong, and a secondary icon button with the `plus` symbol, in one row. Minus is off at the lowest count and plus at the highest. The count sits in a 44 px wide column, so the buttons do not move as it changes.
 - **Stepper row.** A surface row with the card thumbnail, the name in body strong, and a stepper at its right end. The basic lands drawer uses it.
 - **Save bar.** A row at the bottom of a screen or a drawer, below the content that scrolls, with a secondary **Cancel** and a primary **Save N changes** that share the width. It shows while the user edits several values to save as one change, such as basic land counts in the basic lands drawer.
-- **Change lines.** A deck suggestion, planned swap, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
+- **Change lines.** A planned swap, buylist card, or deck change shows a green plus row for the incoming card and a red minus row for the outgoing card. Each row has a thumbnail, the card name, and the type line or printing. The reason follows in body text, with the AI client name and time in meta text.
 - **Deck tag.** A pill on the control surface, as tall as a chip, with the 18 px commander avatar and the deck name in chip type. It is used on Recent items and the deck line of the copy page. It opens the deck. VoiceOver reads it as a button with the deck name and the hint "Opens the deck." It gets the extra touch area of a chip.
 - **Commander avatar.** The art crop of a commander in a circle: 40 px in a list row and on the commander gallery card, 48 px on the deck screen banner, and 18 px in a deck tag. A list row and a deck tag show the deck's first commander. The gallery card and the banner show the second. A deck with no commander shows a dashed line-colored circle instead.
 - **Latest-scan chip.** One horizontal chip at the bottom of Scan, 16 px from the edges, on Liquid Glass. It has 8 px padding and three columns (owner request, #113):
@@ -925,12 +924,12 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Don't** add inline style objects to new UI, or a value outside the tokens without a reason in this file.
 - **Do** show the most likely printing after every scan, and keep the other options one tap away.
 - **Do** list "Needs you" items oldest first, so the longest wait is on top.
-- **Do** keep every deck change a user action, and show the AI's reason with every deck suggestion.
+- **Do** keep every deck change a user action, and show the AI's reason with every planned swap and buylist card that an AI client made.
 - **Do** keep the phone's back gesture working on every pushed screen.
 - **Do** flag validity problems ("Would make it invalid") without blocking the action.
 - **Don't** show recognizer confidence, similarity scores, or "unsure" states.
 - **Don't** add "Find in decks" style shortcuts that duplicate visible deck tags.
-- **Don't** mark suggested-out or buylist-out cards on the deck's Cards tab. Only planned swaps are commitments.
+- **Don't** mark buylist-out cards on the deck's Cards tab. Only planned swaps hold a copy.
 - **Don't** use the primary lime for decoration. It always means "you can act here" or "selected". The brand mark is the one exception.
 - **Don't** draw anything over the camera except the card outline, the batch button, the latest-scan chip, and the pull indicator.
 - **Do** keep Liquid Glass to the controls that float over the camera, and keep the dark surface fallback.
