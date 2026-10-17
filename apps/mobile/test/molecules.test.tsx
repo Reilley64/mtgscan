@@ -38,6 +38,7 @@ import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
+import { Reason } from '@/components/molecules/reason';
 import { SaveBar } from '@/components/molecules/save-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { SortButton } from '@/components/molecules/sort-button';
@@ -164,6 +165,16 @@ describe('ToggleGroup', () => {
     expect(screen.getByRole('radio', { name: 'Copies', checked: true })).toHaveStyle({ backgroundColor: lime });
     expect(screen.getByText('Copies')).toHaveStyle({ color: onPrimary });
     expect(screen.getAllByRole('radio', { checked: false })).toHaveLength(3);
+  });
+
+  test('an option with a count shows a count badge after its label and reads the count after its name', async () => {
+    await render(
+      <ToggleGroup values={sections} selected="Copies" labelOf={(value) => value} countOf={(value) => (value === 'Decks' ? 3 : 0)} onSelect={() => {}} />,
+    );
+
+    const decks = screen.getByRole('radio', { name: 'Decks, 3' });
+    expect(within(decks).getByText('3').parent).toHaveStyle({ backgroundColor: tokenColors.badge, borderRadius: 999 });
+    expect(screen.getByRole('radio', { name: 'Prices' })).toBeOnTheScreen();
   });
 
   test('pressing an option checks it and unchecks the one before', async () => {
@@ -428,6 +439,25 @@ describe('ChangeLine', () => {
   });
 });
 
+describe('Reason', () => {
+  test('a reason shows the reason in body text with the meta under it in meta text', async () => {
+    await render(<Reason reason="Cheap removal that also answers an early threat." meta="ChatGPT" />);
+
+    const reason = screen.getByText('Cheap removal that also answers an early threat.');
+    const meta = screen.getByText('ChatGPT');
+    expect(reason).toHaveStyle({ color: white, fontSize: 14 });
+    expect(meta).toHaveStyle({ color: textMuted, fontSize: 12 });
+    expect(appearsBefore(reason, meta)).toBe(true);
+  });
+
+  test('a reason with no meta shows only the reason', async () => {
+    await render(<Reason reason="Cheap removal that also answers an early threat." meta={null} />);
+
+    expect(screen.getByText('Cheap removal that also answers an early threat.')).toBeOnTheScreen();
+    expect(screen.queryByText('ChatGPT')).not.toBeOnTheScreen();
+  });
+});
+
 describe('WarningLine', () => {
   test('a warning line is named by its message, with a shield and the message in warning', async () => {
     await render(<WarningLine message="Sol Ring is protected. Reverting unprotects it." />);
@@ -437,6 +467,14 @@ describe('WarningLine', () => {
     expect(symbolNames(line)).toEqual(['shield.fill']);
     expect(symbolSizes(line)).toEqual([11]);
     expect(symbolTintColor(line)).toBe(tokenColors.warning);
+  });
+
+  test('a warning line for a held copy shows the held symbol', async () => {
+    await render(<WarningLine symbol="held" message="Sol Ring is held by the planned swap for Krenko." />);
+
+    const line = screen.getByLabelText('Sol Ring is held by the planned swap for Krenko.');
+    expect(symbolNames(line)).toEqual(['bookmark.fill']);
+    expect(symbolSizes(line)).toEqual([11]);
   });
 });
 
@@ -1055,6 +1093,16 @@ describe('CopyMeta', () => {
     expect(appearsBefore(deckBox!, symbolIn(line))).toBe(true);
   });
 
+  test('a copy meta line of a held copy starts with an 11 px bookmark in the info color', async () => {
+    await render(<CopyMeta setCode="mh3" rarity="common" setIconUri={mh3Symbol} collectorNumber="136" isHeld />);
+
+    const line = screen.getByText('136').parent!;
+    expect(symbolNames(line)).toEqual(['bookmark.fill']);
+    expect(symbolSizes(line)).toEqual([11]);
+    expect(symbolTintColor(line)).toBe(info);
+    expect(appearsBefore(symbolIn(line), screen.getByLabelText('MH3'))).toBe(true);
+  });
+
   test('a copy meta line of a copy in no deck has no deck box symbol', async () => {
     await render(<CopyMeta setCode="mh3" rarity="common" setIconUri={mh3Symbol} collectorNumber="136" />);
 
@@ -1597,6 +1645,15 @@ describe('CommanderGalleryCard', () => {
     ]);
     expect(fadesDown(frame)).toBe(true);
     expect(frame).not.toHaveStyle({ borderStyle: 'dashed' });
+  });
+
+  test('a commander gallery card with a Needs you count shows a count badge and reads it after the name', async () => {
+    await render(
+      <CommanderGalleryCard name="Atraxa" chips={[{ label: 'High priority' }, { label: '2 cards' }]} commanders={[]} needsYouCount={3} onPress={() => {}} />,
+    );
+
+    const card = screen.getByRole('button', { name: 'Atraxa, Needs you 3, High priority, 2 cards' });
+    expect(within(card).getByText('3').parent).toHaveStyle({ backgroundColor: tokenColors.badge, position: 'absolute' });
   });
 });
 

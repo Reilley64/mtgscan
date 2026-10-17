@@ -9,6 +9,7 @@ import { PriceCurrencyProvider } from '@/collection/price-currency-setting';
 import { DeckCardOrderProvider } from '@/decks/deck-card-order';
 import { fullHeightDrawerOptions, halfHeightDrawerOptions, pageSheetOptions } from '@/components/templates/drawer-sheet';
 import { GalleryProvider } from '@/gallery/gallery-state';
+import { NeedsYouCountsProvider } from '@/needs-you/needs-you-counts';
 import { CurrentPricesProvider } from '@/scan/current-prices';
 import { KeepAwakeWhileScanning } from '@/scan/keep-awake-while-scanning';
 import { ScanBatchProvider } from '@/scan/scan-batch-state';
@@ -46,6 +47,7 @@ function RootStack() {
         <Stack.Screen name="deck-validity" options={halfHeightDrawerOptions} />
         <Stack.Screen name="estimated-bracket" options={halfHeightDrawerOptions} />
         <Stack.Screen name="revert" options={pageSheetOptions} />
+        <Stack.Screen name="bought" options={pageSheetOptions} />
         <Stack.Screen name="scan-batch" options={fullHeightDrawerOptions} />
         <Stack.Screen name="scan-details" options={fullHeightDrawerOptions} />
         <Stack.Screen name="scan-printings" options={fullHeightDrawerOptions} />
@@ -78,7 +80,9 @@ export default function RootLayout() {
                 <CurrentPricesProvider>
                   <ScanBatchProvider>
                     <DeckCardOrderProvider>
-                      <RootStack />
+                      <NeedsYouCountsProvider>
+                        <RootStack />
+                      </NeedsYouCountsProvider>
                     </DeckCardOrderProvider>
                   </ScanBatchProvider>
                 </CurrentPricesProvider>

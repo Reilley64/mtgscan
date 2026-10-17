@@ -24,7 +24,7 @@
 <p class="meta">Problem type <code>https://mtgscan.reilley.dev/problems/invalid-argument</code> of the mtgscan MCP connection</p>
 <h2>What it means</h2>
 <p>A tool call has an argument that the tool does not take, or an argument that breaks the tool's rules. Examples are an unknown argument, a <code>limit</code> over 50, or a reason shorter than 20 characters. A call to a tool that does not exist gets this problem too.</p>
-<p><code>pointer</code> is a JSON Pointer to the argument at fault, such as <code>/suggestions/1/reason</code>. <code>detail</code> says what is wrong with it. Nothing was saved.</p>
+<p><code>pointer</code> is a JSON Pointer to the argument at fault, such as <code>/limit</code>. <code>detail</code> says what is wrong with it. Nothing was saved.</p>
 <h2>What to do next</h2>
 <p>Fix the argument that <code>pointer</code> names, as <code>detail</code> says. Then call the tool again.</p>
 <p>Do not repeat the same call. It fails the same way.</p>

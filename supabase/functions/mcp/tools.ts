@@ -1,6 +1,7 @@
 import type { Tool as ListedTool, ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 
+import { plural } from './plural.ts';
 import { problem, problemSchema, type Problem } from './problems.ts';
 
 export type Tool = Pick<ListedTool, 'name' | 'inputSchema' | 'outputSchema'> & {
@@ -85,10 +86,6 @@ const deckPriority = z.enum(['high', 'medium', 'low']);
 const deckRule = z.enum(['no_commander', 'commander_eligibility', 'partner', 'deck_size', 'singleton', 'color_identity', 'banned', 'not_legal']);
 const nextCursor = z.string().nullable();
 const integer = z.number().int();
-
-function plural(amount: number, one: string, many: string): string {
-  return `${amount} ${amount === 1 ? one : many}`;
-}
 
 function pageSummary(rows: string, next: string | null): string {
   return `${rows}.${next ? ' More with next_cursor.' : ''}`;
@@ -210,6 +207,7 @@ const collectionCopyRow = z.strictObject({
   protected: z.boolean(),
   price: currentPrice.nullable(),
   deck: z.strictObject({ deck_id: id, name: z.string() }).nullable(),
+  held_for: z.strictObject({ deck_id: id, name: z.string() }).nullable(),
   oracle_text: z.string().optional(),
 });
 
@@ -362,6 +360,7 @@ const deck = z.strictObject({
       type_line: z.string(),
       mana_value: z.number(),
       colors: z.array(color),
+      planned_out: z.boolean(),
     }),
   ),
   basic_lands: z.array(z.strictObject({ oracle_id: id.nullable(), name: z.string(), count: integer })),
@@ -382,79 +381,137 @@ const deckChangeLine = z.union([
 const deckChange = z.strictObject({
   deck_change_id: id,
   revision: integer,
-  kind: z.enum(['added', 'removed', 'made_commander', 'made_partner', 'moved_to_main_deck', 'basic_lands', 'removed_from_collection', 'revert']),
+  kind: z.enum([
+    'added',
+    'removed',
+    'made_commander',
+    'made_partner',
+    'moved_to_main_deck',
+    'basic_lands',
+    'removed_from_collection',
+    'revert',
+    'swapped_in',
+    'bought',
+  ]),
   changed_at: z.string(),
   reverted: z.boolean(),
+  reason: z.string().nullable(),
+  client_name: z.string().nullable(),
   lines: z.array(deckChangeLine),
 });
 
-const deckSuggestionStatus = z.enum(['open', 'withdrawn', 'stale']);
-const deckSuggestionEventKind = z.enum(['withdrawn', 'reason_replaced']);
+const plannedSwapStatus = z.enum(['open', 'swapped_in', 'closed', 'moved_to_buylist']);
+const closeNote = z.enum(['closed_by_user', 'closed_by_ai_client', 'outgoing_left_deck', 'held_copy_deleted', 'held_copy_reverted']);
 
-const deckSuggestionRow = z.strictObject({
-  suggestion_id: id,
+const deckChangeEffect = z.strictObject({
+  kind: z.enum(['would_make_invalid', 'adds_violation']),
+  rules: z.array(z.strictObject({ rule: deckRule, colors: z.array(color).optional() })),
+});
+
+const plannedCopyLine = z.strictObject({
+  kind: z.literal('copy'),
+  copy_id: id,
+  name: z.string(),
+  type_line: z.string(),
+  set: z.string().nullable(),
+  collector_number: z.string().nullable(),
+  finish: finish.nullable(),
+  condition: condition.nullable(),
+});
+
+const plannedLine = z.union([plannedCopyLine, z.strictObject({ kind: z.literal('basic_land'), oracle_id: id, name: z.string() })]);
+
+const plannedSwapRow = z.strictObject({
+  planned_swap_id: id,
   deck_id: id,
   deck_name: z.string(),
-  incoming: z.strictObject({ oracle_id: id, name: z.string(), as_commander: z.boolean(), from_deck_id: id.nullable() }),
-  outgoing: z
-    .union([z.strictObject({ copy_id: id, name: z.string() }), z.strictObject({ basic_land_oracle_id: id, name: z.string() })])
-    .nullable(),
+  incoming: plannedLine,
+  outgoing: plannedLine.nullable(),
+  as_commander: z.boolean(),
   reason: z.string(),
-  status: deckSuggestionStatus,
-  paired_suggestion_id: id.nullable(),
+  status: plannedSwapStatus,
+  close_note: closeNote.nullable(),
   client_name: z.string().nullable(),
   created_at: z.string(),
   status_changed_at: z.string(),
-  events: z.array(z.strictObject({ kind: deckSuggestionEventKind, client_name: z.string().nullable(), created_at: z.string() })),
+  effect: deckChangeEffect.nullable(),
 });
+
+const basicLandOracleId = id.describe("A basic land card's oracle_id, from basic_lands in get_deck.");
 
 const keyPattern = (minLength: number) => z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${minLength},64}$`));
 
-const deckSuggestionReason = z.string().min(20).max(600);
-
-const deckSuggestionInput = z.strictObject({
-  ref: keyPattern(1).describe('A name for this suggestion, unique in the call, such as to_b. pair_with names it.'),
+const plannedSwapInput = z.strictObject({
+  ref: keyPattern(1).describe('A name for this planned swap, unique in the call.'),
   deck_id: id.describe("The deck's ID."),
   expected_deck_revision: z.number().int().min(0).describe('The deck revision that get_deck returned.'),
-  incoming: z.strictObject({
-    oracle_id: id.describe('The incoming card. It may be a basic land card.'),
-    as_commander: z.boolean().optional().describe('Make the incoming card a commander. Defaults to true when the outgoing copy is a commander.'),
-    from_deck_id: id.optional().describe('The deck the copy moves out of. Send it with pair_with.'),
-  }),
+  incoming: z.union([
+    z.strictObject({
+      copy_id: id.describe('A free copy that the user owns. It must not be protected.'),
+      as_commander: z.boolean().optional().describe('Make the incoming copy a commander. Defaults to true when the outgoing copy is a commander.'),
+    }),
+    z.strictObject({ basic_land_oracle_id: basicLandOracleId.describe('One more of this basic land.') }),
+  ]),
   outgoing: z
     .union([
       z.strictObject({ copy_id: id.describe('A copy in the deck.') }),
-      z.strictObject({ basic_land_oracle_id: id.describe('A basic land card in the deck, meaning one fewer of it.') }),
+      z.strictObject({ basic_land_oracle_id: basicLandOracleId.describe('One fewer of this basic land. The deck must have one.') }),
     ])
     .optional(),
-  reason: deckSuggestionReason,
-  pair_with: keyPattern(1).optional().describe('The ref of the suggestion that takes the copy out of from_deck_id.'),
+  reason: z.string().min(20).max(600),
 });
 
-const deckSuggestionWarning = z.union([
-  z.strictObject({
-    code: z.literal('would_break_validity'),
-    effect: z.strictObject({
-      kind: z.enum(['would_make_invalid', 'adds_violation']),
-      rules: z.array(z.strictObject({ rule: deckRule, colors: z.array(color).optional() })),
-    }),
+const plannedSwapWarning = z.union([
+  z.strictObject({ code: z.literal('would_break_validity'), effect: deckChangeEffect }),
+  z.strictObject({ code: z.enum(['replaces_commander', 'rules_stale']) }),
+]);
+
+const createdPlannedSwaps = z.strictObject({
+  planned_swaps: z.array(z.strictObject({ ref: z.string(), planned_swap_id: id, warnings: z.array(plannedSwapWarning) })),
+  replayed: z.boolean(),
+});
+
+const buylistCardStatus = z.enum(['open', 'bought', 'closed']);
+
+const plannedCardLine = z.strictObject({ kind: z.literal('card'), oracle_id: id, name: z.string(), type_line: z.string() });
+
+const buylistCardRow = z.strictObject({
+  buylist_card_id: id,
+  deck_id: id,
+  deck_name: z.string(),
+  incoming: plannedCardLine,
+  outgoing: plannedLine.nullable(),
+  as_commander: z.boolean(),
+  reason: z.string(),
+  status: buylistCardStatus,
+  close_note: closeNote.nullable(),
+  client_name: z.string().nullable(),
+  created_at: z.string(),
+  status_changed_at: z.string(),
+  effect: deckChangeEffect.nullable(),
+});
+
+const buylistCardInput = plannedSwapInput.extend({
+  ref: keyPattern(1).describe('A name for this buylist card, unique in the call.'),
+  incoming: z.strictObject({
+    oracle_id: id.describe("The card's oracle_id. It must not be a basic land."),
+    as_commander: z.boolean().optional().describe('Make the card a commander. Defaults to true when the outgoing copy is a commander.'),
   }),
-  z.strictObject({ code: z.enum(['protected_only', 'not_owned', 'replaces_commander', 'rules_stale']) }),
+});
+
+const buylistCardWarning = z.union([
+  ...plannedSwapWarning.options,
+  z.strictObject({ code: z.literal('protected_only') }),
   z.strictObject({
     code: z.literal('in_other_decks'),
     decks: z.array(z.strictObject({ deck_id: id, name: z.string(), priority: deckPriority })),
   }),
-  z.strictObject({ code: z.literal('against_deck_priority'), from_deck_priority: deckPriority, deck_priority: deckPriority }),
 ]);
 
-const createdDeckSuggestions = z.strictObject({
-  suggestions: z.array(
-    z.strictObject({ ref: z.string(), suggestion_id: id, paired_suggestion_id: id.nullable(), warnings: z.array(deckSuggestionWarning) }),
-  ),
+const createdBuylistCards = z.strictObject({
+  buylist_cards: z.array(z.strictObject({ ref: z.string(), buylist_card_id: id, warnings: z.array(buylistCardWarning) })),
   replayed: z.boolean(),
 });
-
-const changedDeckSuggestion = z.strictObject({ suggestion_id: id, changed: z.boolean() });
 
 export const tools: Tool[] = [
   defineTool({
@@ -483,8 +540,8 @@ export const tools: Tool[] = [
     description: [
       "Search the user's copies with the filters of search_catalog, plus finish, condition, language, deck, user tag, free, protected, and allocated filters.",
       'rows entries, the default, returns collection entries: the copies that share a card printing, finish, condition, language, and protected flag, with their quantity and free quantity.',
-      'rows copies returns each copy with its copy_id and the deck it is in.',
-      'A free copy is not in a deck. A protected copy is one the user keeps out of decks.',
+      'rows copies returns each copy with its copy_id, the deck it is in, and held_for, the deck of the planned swap that holds it.',
+      'A free copy is not in a deck or held by a planned swap. A protected copy is one the user keeps out of decks.',
       usdPrices,
     ].join(' '),
     annotations: readOnly,
@@ -615,7 +672,7 @@ export const tools: Tool[] = [
     name: 'list_decks',
     title: 'List decks',
     description: [
-      "List the user's decks, the most recently used first, with deck priority, deck revision, commanders, card count, deck validity, and estimated bracket.",
+      "List the user's decks, the most recently used first, with deck priority, deck revision, commanders, card count, deck validity, estimated bracket, and needs_you_count, the number of the deck's open planned swaps and buylist cards.",
       'Read one deck with get_deck.',
       estimatedBracket,
     ].join(' '),
@@ -623,7 +680,9 @@ export const tools: Tool[] = [
     postgresFunction: 'list_decks',
     input: z.strictObject({}),
     output: z.strictObject({
-      items: z.array(z.strictObject({ ...deckRowFields, evaluation: z.strictObject(deckEvaluationSummary).nullable() })),
+      items: z.array(
+        z.strictObject({ ...deckRowFields, evaluation: z.strictObject(deckEvaluationSummary).nullable(), needs_you_count: integer }),
+      ),
     }),
     summary: (result) => `${plural(result.items.length, 'deck', 'decks')}.`,
     tooLargeHint: 'Read one deck at a time with get_deck instead.',
@@ -634,6 +693,7 @@ export const tools: Tool[] = [
     description: [
       "Read one of the user's decks with its commanders, cards, basic lands, deck priority, deck revision, deck validity, violations, estimated bracket, and bracket signals.",
       'Read the rules text and other card details of deck cards with get_cards and their printing_ids.',
+      'A deck card is planned_out when an open planned swap takes it out.',
       estimatedBracket,
       usdPrices,
     ].join(' '),
@@ -648,8 +708,10 @@ export const tools: Tool[] = [
   defineTool({
     name: 'list_deck_changes',
     title: 'List deck changes',
-    description:
+    description: [
       "Read a deck's change history, newest first. Each deck change lists the copies and basic lands moved into or out of the deck, and the commanders made or moved to the main deck. A reverted deck change was undone by a later revert.",
+      'A swapped_in deck change came from a planned swap, and a bought deck change from a buylist card. Each keeps its reason and the name of the AI client that made the planned swap or buylist card.',
+    ].join(' '),
     annotations: readOnly,
     postgresFunction: 'list_deck_changes',
     input: z.strictObject({
@@ -661,94 +723,127 @@ export const tools: Tool[] = [
     tooLargeHint: 'Ask for fewer deck changes with limit.',
   }),
   defineTool({
-    name: 'list_deck_suggestions',
-    title: 'List deck suggestions',
+    name: 'list_planned_swaps',
+    title: 'List planned swaps',
     description: [
-      'Read past deck suggestions in every state, newest first: open, withdrawn, and stale. Filter them by deck_id or status.',
-      'Each suggestion has its deck name, the incoming and outgoing card names, the reason, the status, its paired suggestion, the name of the AI client that made it, its times, and its deck suggestion events.',
-      'A deck suggestion event is a withdrawal or a reason replacement, with the name of the AI client that made it.',
+      "Read the user's planned swaps in every state, newest first: open, swapped_in, closed, and moved_to_buylist. Filter them by deck_id or status.",
+      'Each planned swap has its deck, the incoming copy it holds or the incoming basic land, the outgoing deck card, the reason, the status, how it closed, the name of the AI client that made it, and its times.',
+      'An open planned swap also has its current effect: the Commander rules that swapping it in would break.',
     ].join(' '),
     annotations: readOnly,
-    postgresFunction: 'list_deck_suggestions',
+    postgresFunction: 'list_planned_swaps',
     input: z.strictObject({
-      deck_id: id.optional().describe("Only this deck's suggestions."),
-      status: deckSuggestionStatus.optional().describe('Only suggestions in this state. Every state by default.'),
+      deck_id: id.optional().describe("Only this deck's planned swaps."),
+      status: plannedSwapStatus.optional().describe('Only planned swaps in this state. Every state by default.'),
       ...page,
     }),
-    output: z.strictObject({ next_cursor: nextCursor, items: z.array(deckSuggestionRow) }),
-    summary: (result) => pageSummary(plural(result.items.length, 'deck suggestion', 'deck suggestions'), result.next_cursor),
-    tooLargeHint: 'Ask for fewer suggestions with limit, or filter by deck_id or status.',
+    output: z.strictObject({ next_cursor: nextCursor, items: z.array(plannedSwapRow) }),
+    summary: (result) => pageSummary(plural(result.items.length, 'planned swap'), result.next_cursor),
+    tooLargeHint: 'Ask for fewer planned swaps with limit, or filter by deck_id or status.',
   }),
   defineTool({
-    name: 'create_deck_suggestions',
-    title: 'Create deck suggestions',
+    name: 'list_buylist',
+    title: 'List the buylist',
     description: [
-      'Make 1 to 10 deck suggestions in one call, all saved or none.',
-      'Each suggestion names an incoming card, an optional outgoing card in the deck, and a reason of 20 to 600 characters.',
+      "Read the user's buylist cards in every state, newest first: open, bought, and closed. Filter them by deck_id or status.",
+      'Each buylist card has its deck, the card to buy, the outgoing deck card, the reason, the status, how it closed, the name of the AI client that added it, and its times.',
+      'An open buylist card also has its current effect: the Commander rules that putting the card into the deck would break.',
+    ].join(' '),
+    annotations: readOnly,
+    postgresFunction: 'list_buylist',
+    input: z.strictObject({
+      deck_id: id.optional().describe("Only this deck's buylist cards."),
+      status: buylistCardStatus.optional().describe('Only buylist cards in this state. Every state by default.'),
+      ...page,
+    }),
+    output: z.strictObject({ next_cursor: nextCursor, items: z.array(buylistCardRow) }),
+    summary: (result) => pageSummary(plural(result.items.length, 'buylist card'), result.next_cursor),
+    tooLargeHint: 'Ask for fewer buylist cards with limit, or filter by deck_id or status.',
+  }),
+  defineTool({
+    name: 'create_planned_swaps',
+    title: 'Create planned swaps',
+    description: [
+      'Make 1 to 10 planned swaps in one call, all saved or none.',
+      'Each planned swap names the incoming card, an optional outgoing card, and a reason of 20 to 600 characters.',
+      'The incoming card is a free copy that the user owns, or a basic land. The outgoing card is a copy in the deck, or a basic land, which means one fewer of it.',
       'Send the deck revision from get_deck, and a new idempotency_key for each new call. A retry with the same key and input returns the first result.',
-      'This tool does not change any deck. The user reviews each suggestion in the app and decides.',
-      'Never offer a protected copy as the reason a card is available.',
-      'When two decks want a card and there is one copy for them, the deck with the higher deck priority should get it. Between decks of equal priority, decide which deck needs it more. To move a card, send a pair of suggestions in one call, and make each reason name the other.',
-      'Read past suggestions with list_deck_suggestions first.',
+      'This tool does not change any deck. The planned swap holds the copy until the user swaps it in or closes it in the app.',
+      'Find free copies with search_collection, rows copies, and is_free. Never choose a protected copy.',
+      'Read past planned swaps with list_planned_swaps first.',
       declinedWrite,
     ].join(' '),
     annotations: write,
-    postgresFunction: 'create_deck_suggestions',
+    postgresFunction: 'create_planned_swaps',
     input: z.strictObject({
       idempotency_key: keyPattern(8).describe('8 to 64 of A-Z a-z 0-9 _ -. Send a new key for each new call.'),
-      suggestions: z.array(deckSuggestionInput).min(1).max(10),
+      planned_swaps: z.array(plannedSwapInput).min(1).max(10),
     }),
-    output: createdDeckSuggestions,
-    leftOut: {},
+    output: createdPlannedSwaps,
     summary: (result) => {
-      const warningCount = result.suggestions.reduce((count, suggestion) => count + suggestion.warnings.length, 0);
-      return `${result.replayed ? 'Replayed' : 'Saved'} ${result.suggestions.length} deck suggestions with ${warningCount} warnings.`;
+      const warningCount = result.planned_swaps.reduce((count, swap) => count + swap.warnings.length, 0);
+      return `${result.replayed ? 'Replayed' : 'Saved'} ${plural(result.planned_swaps.length, 'planned swap')} with ${plural(warningCount, 'warning')}.`;
     },
-    tooLargeHint: 'Send fewer suggestions in one call.',
+    tooLargeHint: 'Send fewer planned swaps in one call.',
   }),
   defineTool({
-    name: 'withdraw_deck_suggestion',
-    title: 'Withdraw a deck suggestion',
+    name: 'create_buylist_cards',
+    title: 'Create buylist cards',
     description: [
-      'Withdraw an open deck suggestion of the user.',
-      'Any AI client can withdraw it, not only the one that made it.',
-      'A withdrawn suggestion stays withdrawn.',
-      'Withdrawing a withdrawn suggestion changes nothing and returns changed: false. A stale suggestion returns not-open.',
-      'mtgscan records the withdrawal as a deck suggestion event with this AI client and the time.',
-      'This tool does not change any deck. Find suggestion IDs with list_deck_suggestions.',
+      'Add 1 to 10 buylist cards in one call, all saved or none.',
+      'Each buylist card names a card that the user has to buy for a deck, an optional outgoing card, and a reason of 20 to 600 characters.',
+      'The outgoing card is a copy in the deck, or a basic land, which means one fewer of it.',
+      'Send the deck revision from get_deck, and a new idempotency_key for each new call. A retry with the same key and input returns the first result.',
+      'This tool does not change any deck. The user marks the buylist card bought in the app after scanning a new copy.',
+      'When the user has a free copy of the card that is not protected, make a planned swap with it instead. Basic lands are never bought.',
+      'Read past buylist cards with list_buylist first.',
       declinedWrite,
     ].join(' '),
     annotations: write,
-    postgresFunction: 'withdraw_deck_suggestion',
-    input: z.strictObject({ suggestion_id: id.describe("The deck suggestion's ID.") }),
-    output: changedDeckSuggestion,
-    leftOut: {},
-    summary: (result) =>
-      result.changed ? `Withdrew deck suggestion ${result.suggestion_id}.` : `Deck suggestion ${result.suggestion_id} was already withdrawn.`,
-    tooLargeHint: 'Withdraw one deck suggestion in each call.',
+    postgresFunction: 'create_buylist_cards',
+    input: z.strictObject({
+      idempotency_key: keyPattern(8).describe('8 to 64 of A-Z a-z 0-9 _ -. Send a new key for each new call.'),
+      buylist_cards: z.array(buylistCardInput).min(1).max(10),
+    }),
+    output: createdBuylistCards,
+    summary: (result) => {
+      const warningCount = result.buylist_cards.reduce((count, card) => count + card.warnings.length, 0);
+      return `${result.replayed ? 'Replayed' : 'Saved'} ${plural(result.buylist_cards.length, 'buylist card')} with ${plural(warningCount, 'warning')}.`;
+    },
+    tooLargeHint: 'Send fewer buylist cards in one call.',
   }),
   defineTool({
-    name: 'update_deck_suggestion_reason',
-    title: 'Replace the reason of a deck suggestion',
+    name: 'close_planned_swap',
+    title: 'Close a planned swap',
     description: [
-      'Replace the reason of an open deck suggestion of the user.',
-      'Any AI client can replace it, not only the one that made it.',
-      'The new reason is 20 to 600 characters.',
-      'The old reason is not kept. Setting the reason it already has changes nothing and returns changed: false.',
-      'mtgscan records the reason replacement as a deck suggestion event with this AI client and the time.',
-      'A withdrawn or stale suggestion returns not-open.',
-      'This tool does not change any deck. Find suggestion IDs with list_deck_suggestions.',
+      'Close an open planned swap that an AI client made, when it no longer fits.',
+      'This tool does not change any deck. Its held copy becomes free.',
+      'Closing a closed planned swap changes nothing and returns changed: false. A planned swap that was swapped in or moved to the buylist returns not-open.',
+      'To change a planned swap, close it and make a new one. Find planned swap IDs with list_planned_swaps.',
       declinedWrite,
     ].join(' '),
     annotations: write,
-    postgresFunction: 'update_deck_suggestion_reason',
-    input: z.strictObject({ suggestion_id: id.describe("The deck suggestion's ID."), reason: deckSuggestionReason }),
-    output: changedDeckSuggestion,
-    leftOut: {},
-    summary: (result) =>
-      result.changed
-        ? `Replaced the reason of deck suggestion ${result.suggestion_id}.`
-        : `Deck suggestion ${result.suggestion_id} already has this reason.`,
-    tooLargeHint: 'Replace the reason of one deck suggestion in each call.',
+    postgresFunction: 'mcp_close_planned_swap',
+    input: z.strictObject({ planned_swap_id: id.describe("The planned swap's ID.") }),
+    output: z.strictObject({ id, changed: z.boolean() }),
+    summary: (result) => (result.changed ? `Closed planned swap ${result.id}.` : `Planned swap ${result.id} was already closed.`),
+    tooLargeHint: 'Close one planned swap in each call.',
+  }),
+  defineTool({
+    name: 'close_buylist_card',
+    title: 'Close a buylist card',
+    description: [
+      'Close an open buylist card that an AI client added, when it no longer fits.',
+      'This tool does not change any deck.',
+      'Closing a closed buylist card changes nothing and returns changed: false. A buylist card that was bought returns not-open.',
+      'To change a buylist card, close it and add a new one. Find buylist card IDs with list_buylist.',
+      declinedWrite,
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'mcp_close_buylist_card',
+    input: z.strictObject({ buylist_card_id: id.describe("The buylist card's ID.") }),
+    output: z.strictObject({ id, changed: z.boolean() }),
+    summary: (result) => (result.changed ? `Closed buylist card ${result.id}.` : `Buylist card ${result.id} was already closed.`),
+    tooLargeHint: 'Close one buylist card in each call.',
   }),
 ];

@@ -4,12 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
+    "./buylist": "./buylist.ts",
     "./collection": "./collection.ts",
     "./converted-prices": "./converted-prices.ts",
     "./database.types": "./database.types.ts",
     "./decks": "./decks.ts",
     "./gallery-manifest": "./gallery/manifest.ts",
     "./mcp-problems": "./functions/mcp/problems.ts",
+    "./planned-swaps": "./planned-swaps.ts",
     "./search": "./search.ts",
     "./sign-in-providers": "./sign-in-providers.ts",
     "./test-user": "./test-user/account.ts"

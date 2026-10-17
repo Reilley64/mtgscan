@@ -1,4 +1,4 @@
-import type { DeckChangeKind, RevertBlock } from '@mtgscan/supabase/decks';
+import type { DeckChangeKind, RevertBlock, RevertHeldCopy } from '@mtgscan/supabase/decks';
 
 import { deckChangeKindNames } from '@/decks/deck-change-lines';
 
@@ -17,4 +17,8 @@ export function blockMessage(block: RevertBlock) {
 
 export function protectedCopyMessage(name: string) {
   return `${name} is protected. Reverting unprotects it.`;
+}
+
+export function heldCopyMessage({ name, deck }: RevertHeldCopy) {
+  return `${name} is held by the planned swap for ${deck.name}. Reverting moves that swap to the buylist.`;
 }

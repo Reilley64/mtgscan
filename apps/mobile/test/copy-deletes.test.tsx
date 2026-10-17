@@ -1,9 +1,10 @@
-import { screen, within } from 'expo-router/testing-library';
+import { screen, waitFor, within } from 'expo-router/testing-library';
 
 import { copyOf, delver, openCopyPage } from './copies';
 import {
   copiesDeletedOnTheServer,
   failCopyDeletes,
+  holdCopyElsewhere,
   ownCollectionTotal,
   ownCopies,
   ownDeckOfCopies,
@@ -23,6 +24,11 @@ import {
 
 beforeEach(() => {
   startSignedIn();
+});
+
+const heldForGoblins = copyOf('copy-1', {
+  free: false,
+  held_for: { deck_id: 'deck-1', name: 'Goblins', commander_art_crop_uri: null },
 });
 
 describe('deleting a copy', () => {
@@ -64,6 +70,41 @@ describe('deleting a copy', () => {
       ...deleteAlert,
       message: 'It leaves Atraxa and your collection, with its user tags. This cannot be undone.',
     });
+    await pressAlertButton('Delete copy');
+    expect(copiesDeletedOnTheServer()).toEqual(['copy-1']);
+  });
+
+  test('Delete copy on a held copy warns that its planned swap moves to the buylist, and confirming deletes the copy', async () => {
+    ownCopies([heldForGoblins]);
+    await openCopyPage(/^Angelic Curator/);
+
+    await chooseDeleteCopy();
+
+    expect(presentedAlert()).toEqual({
+      ...deleteAlert,
+      message: 'This copy is held by the planned swap for Goblins. Continue and move that swap to the buylist?',
+    });
+    await pressAlertButton('Delete copy');
+    expect(copiesDeletedOnTheServer()).toEqual(['copy-1']);
+    expect(screen.queryByRole('header', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
+  });
+
+  test('deleting a copy that a planned swap holds since the page loaded deletes nothing, shows the held copy, and asks again with the held warning', async () => {
+    ownCopies([copyOf('copy-1')]);
+    await openCopyPage(/^Angelic Curator/);
+    holdCopyElsewhere('copy-1', heldForGoblins.held_for!);
+
+    await chooseDeleteCopy();
+    await pressAlertButton('Delete copy');
+
+    expect(copiesDeletedOnTheServer()).toEqual([]);
+    expect(await within(pushedScreen()).findByText('Held')).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(presentedAlert()).toEqual({
+        ...deleteAlert,
+        message: 'This copy is held by the planned swap for Goblins. Continue and move that swap to the buylist?',
+      }),
+    );
     await pressAlertButton('Delete copy');
     expect(copiesDeletedOnTheServer()).toEqual(['copy-1']);
   });

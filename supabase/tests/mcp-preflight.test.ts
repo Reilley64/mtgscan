@@ -19,10 +19,12 @@ const hostedPassword = { EXPO_PUBLIC_TEST_USER_PASSWORD: 'hosted-test-user-passw
 function leftoversOf(output: string) {
   const clientIds = [...output.matchAll(/client_id ([0-9a-f-]{36})/g)].map(([, id]) => id!);
   const deckIds = [...output.matchAll(/deck_id ([0-9a-f-]{36})/g)].map(([, id]) => id!);
+  const copyIds = [...output.matchAll(/copy_id ([0-9a-f-]{36})/g)].map(([, id]) => id!);
   return asDatabaseOwner(async (database) => ({
-    created: { aiClients: new Set(clientIds).size, decks: deckIds.length },
+    created: { aiClients: new Set(clientIds).size, decks: deckIds.length, copies: new Set(copyIds).size },
     aiClients: await database`select id from auth.oauth_clients where id in ${database(clientIds)} and deleted_at is null`,
     decks: await database`select id from public.decks where id in ${database(deckIds)}`,
+    copies: copyIds.length > 0 ? await database`select id from public.copies where id in ${database(copyIds)}` : [],
   }));
 }
 
@@ -81,7 +83,7 @@ describe('the MCP pre-flight command', () => {
     expect(checkLines(output)).toEqual([]);
   });
 
-  test('passes every check on the local stack and leaves no AI client or deck behind', async () => {
+  test('passes every check on the local stack and leaves no AI client, deck, or copy behind', async () => {
     await resetCardCatalog();
     expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 
@@ -91,7 +93,8 @@ describe('the MCP pre-flight command', () => {
     expect(checkLines(output).length).toBeGreaterThan(30);
     expect(output).toContain(`${checkLines(output).length} passed, 0 failed.`);
     expect(exitCode).toBe(0);
-    expect(await leftoversOf(output)).toEqual({ created: { aiClients: 2, decks: 1 }, aiClients: [], decks: [] });
+    expect(checkLines(output)).toContain('PASS  create_planned_swaps saves a planned swap that holds the free copy');
+    expect(await leftoversOf(output)).toEqual({ created: { aiClients: 2, decks: 1, copies: 1 }, aiClients: [], decks: [], copies: [] });
   });
 
   test('fails a check, exits with 1, and still deletes its AI clients and its deck', async () => {
@@ -101,9 +104,9 @@ describe('the MCP pre-flight command', () => {
 
     expect(checkLines(output)).toContain('FAIL  A read tool returns its result: search_catalog finds Counterspell');
     expect(checkLines(output)).toContain('PASS  The test user creates the pre-flight deck in the app');
-    expect(checkLines(output)).toContain('PASS  Cleanup deletes the pre-flight deck and its deck suggestions');
+    expect(checkLines(output)).toContain('PASS  Cleanup deletes the pre-flight deck, its planned swaps, and the pre-flight copy');
     expect(checkLines(output)).toContain('PASS  Cleanup deletes the pre-flight AI clients');
     expect(exitCode).toBe(1);
-    expect(await leftoversOf(output)).toEqual({ created: { aiClients: 2, decks: 1 }, aiClients: [], decks: [] });
+    expect(await leftoversOf(output)).toEqual({ created: { aiClients: 2, decks: 1, copies: 0 }, aiClients: [], decks: [], copies: [] });
   });
 });

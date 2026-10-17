@@ -15,13 +15,24 @@ type CopyMetaProps = {
   condition?: string;
   isProtected?: boolean;
   inDeck?: boolean;
+  isHeld?: boolean;
 };
 
-export function CopyMeta({ setCode, rarity, setIconUri, collectorNumber, condition, isProtected = false, inDeck = false }: CopyMetaProps) {
+export function CopyMeta({
+  setCode,
+  rarity,
+  setIconUri,
+  collectorNumber,
+  condition,
+  isProtected = false,
+  inDeck = false,
+  isHeld = false,
+}: CopyMetaProps) {
   const setLabel = setCode.toUpperCase();
   return (
     <View className="flex-row items-center justify-center gap-xs">
       {inDeck && <DeckBoxSymbol />}
+      {isHeld && <SymbolView name="bookmark.fill" size={sizes.heldSymbol} className="text-info" />}
       {isProtected && <SymbolView name="shield.fill" size={sizes.protectedSymbol} className="text-warning" />}
       {setIconUri ? (
         <View accessible accessibilityLabel={setLabel}>

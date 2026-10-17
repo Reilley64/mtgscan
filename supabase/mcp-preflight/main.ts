@@ -4,7 +4,8 @@ import { buildDiscoveryUrls, SUPPORTED_PROTOCOL_VERSIONS, type Client } from '@m
 import { createClient } from '@supabase/supabase-js';
 
 import type { Database } from '../database.types';
-import type { CreatedDeck, CreatedDeckSuggestions, Deck, DeckSuggestionPage } from '../decks';
+import type { CreatedDeck, Deck } from '../decks';
+import type { CreatedPlannedSwaps, PlannedSwapPage } from '../planned-swaps';
 import {
   appWriteRefusal,
   approve,
@@ -32,8 +33,8 @@ import { hostedSupabaseUrl, isHostedTestUserPassword, isLocalStack, localSupabas
 const usage = 'Usage: bun mcp-preflight/main.ts [--hosted]';
 const hostedConsentPage = 'https://mtgscan.reilley.dev/oauth/consent';
 const deckName = 'MCP pre-flight';
-const incomingCard = 'Counterspell';
-const reason = 'The pre-flight checks that an AI client can save a deck suggestion.';
+const searchedCard = 'Counterspell';
+const reason = 'The MCP pre-flight checks that an AI client can plan a swap.';
 
 const { values } = parseArgs({ args: Bun.argv.slice(2), options: { hosted: { type: 'boolean', default: false } } });
 
@@ -108,12 +109,13 @@ const state: {
   createdClientIds: string[];
   deckIds: string[];
   deckId?: string;
-  mcp?: Client;
-  incomingOracleId?: string;
   revision?: number;
-  suggestionArguments?: Record<string, unknown>;
-  created?: CreatedDeckSuggestions;
-} = { clients: {}, createdClientIds: [], deckIds: [] };
+  searchedOracleId?: string;
+  copyIds: string[];
+  plannedSwapArguments?: { idempotency_key: string; planned_swaps: Record<string, unknown>[] };
+  created?: CreatedPlannedSwaps;
+  mcp?: Client;
+} = { clients: {}, createdClientIds: [], deckIds: [], copyIds: [] };
 
 function fromEarlierCheck<T>(value: T | undefined): T {
   if (value === undefined) {
@@ -132,10 +134,6 @@ function passIf(passed: boolean, detail: string): string {
 type Check = { name: string; run: () => Promise<string> };
 
 const toolsListRequest = { jsonrpc: '2.0', id: 1, method: 'tools/list' };
-
-function newIdempotencyKey(): string {
-  return `mcp-preflight-${crypto.randomUUID()}`;
-}
 
 function postMcp(body: unknown, headers: Record<string, string> = {}): Promise<Response> {
   return fetch(mcpServerUrl, {
@@ -169,10 +167,6 @@ async function toolResult<Result>(name: string, toolArguments: Record<string, un
     throw new Error(`${name} returned a problem: ${JSON.stringify(result)}`);
   }
   return result;
-}
-
-async function listedSuggestions(deckId: string) {
-  return (await toolResult<DeckSuggestionPage>('list_deck_suggestions', { deck_id: deckId })).items;
 }
 
 const discoveryChecks: Check[] = [
@@ -392,12 +386,12 @@ const toolChecks: Check[] = [
     },
   },
   {
-    name: `A read tool returns its result: search_catalog finds ${incomingCard}`,
+    name: `A read tool returns its result: search_catalog finds ${searchedCard}`,
     run: async () => {
-      const { items } = await toolResult<SearchPage<CatalogRow>>('search_catalog', { names: [incomingCard], limit: 20 });
-      const card = items.find(({ name }) => name === incomingCard);
-      state.incomingOracleId = card?.oracle_id;
-      return passIf(card !== undefined, card ? `oracle_id ${card.oracle_id}` : `no ${incomingCard} in the card catalog`);
+      const { items } = await toolResult<SearchPage<CatalogRow>>('search_catalog', { names: [searchedCard], limit: 20 });
+      const card = items.find(({ name }) => name === searchedCard);
+      state.searchedOracleId = card?.oracle_id;
+      return passIf(card !== undefined, card ? `oracle_id ${card.oracle_id}` : `no ${searchedCard} in the card catalog`);
     },
   },
   {
@@ -424,67 +418,90 @@ const toolChecks: Check[] = [
     },
   },
   {
-    name: 'create_deck_suggestions saves a deck suggestion',
+    name: `The test user scans a free copy of ${searchedCard} in the app`,
     run: async () => {
-      const suggestionArguments = {
-        idempotency_key: newIdempotencyKey(),
-        suggestions: [
+      const oracleId = fromEarlierCheck(state.searchedOracleId);
+      const printings = await testUserClient.rpc('list_card_printings', { query: { oracle_id: oracleId, limit: 1 } });
+      const printingId = (printings.data as { items: { printing_id: string }[] } | null)?.items[0]?.printing_id;
+      if (!printingId) {
+        throw new Error(`list_card_printings: ${printings.error?.message ?? 'no card printing'}`);
+      }
+      const copyId = crypto.randomUUID();
+      const { error } = await testUserClient.rpc('add_scan_batch', {
+        batch: { items: [{ card_printing_id: printingId, finish: 'nonfoil', condition: 'near_mint', language: 'en', copy_ids: [copyId] }] },
+      });
+      if (error) {
+        throw new Error(`add_scan_batch: ${error.code} ${error.message}`);
+      }
+      state.copyIds.push(copyId);
+      return `copy_id ${copyId}`;
+    },
+  },
+  {
+    name: 'create_planned_swaps saves a planned swap that holds the free copy',
+    run: async () => {
+      const plannedSwapArguments = {
+        idempotency_key: crypto.randomUUID(),
+        planned_swaps: [
           {
             ref: 'preflight',
             deck_id: fromEarlierCheck(state.deckId),
             expected_deck_revision: fromEarlierCheck(state.revision),
-            incoming: { oracle_id: fromEarlierCheck(state.incomingOracleId) },
+            incoming: { copy_id: fromEarlierCheck(state.copyIds[0]) },
             reason,
           },
         ],
       };
-      const created = await toolResult<CreatedDeckSuggestions>('create_deck_suggestions', suggestionArguments);
-      state.suggestionArguments = suggestionArguments;
+      const created = await toolResult<CreatedPlannedSwaps>('create_planned_swaps', plannedSwapArguments);
+      state.plannedSwapArguments = plannedSwapArguments;
       state.created = created;
-      const [suggestion] = created.suggestions;
+      const [plannedSwap] = created.planned_swaps;
       return passIf(
-        created.suggestions.length === 1 && !created.replayed,
-        `suggestion_id ${suggestion?.suggestion_id}, warnings ${suggestion?.warnings.map(({ code }) => code).join(', ') || 'none'}`,
+        created.planned_swaps.length === 1 && !created.replayed,
+        `planned_swap_id ${plannedSwap?.planned_swap_id}, warnings ${plannedSwap?.warnings.map(({ code }) => code).join(', ') || 'none'}`,
       );
     },
   },
   {
-    name: "list_deck_suggestions shows the client name from Supabase Auth's client record",
+    name: "list_planned_swaps reads it back with the client name from Supabase Auth's client record",
     run: async () => {
       const created = fromEarlierCheck(state.created);
-      const [item] = await listedSuggestions(state.deckId!);
+      const { items } = await toolResult<PlannedSwapPage>('list_planned_swaps', { deck_id: state.deckId });
+      const [item] = items;
       return passIf(
-        item?.suggestion_id === created.suggestions[0]!.suggestion_id && item.client_name === state.clients.public!.name,
-        `client name ${item?.client_name}`,
+        items.length === 1 &&
+          item!.planned_swap_id === created.planned_swaps[0]!.planned_swap_id &&
+          item!.incoming.kind === 'copy' &&
+          item!.incoming.copy_id === state.copyIds[0] &&
+          item!.client_name === state.clients.public!.name,
+        `${items.length} planned swap, client name ${item?.client_name}`,
       );
     },
   },
   {
     name: 'A stale deck revision gets stale-revision and saves nothing',
     run: async () => {
-      const suggestionArguments = fromEarlierCheck(state.suggestionArguments);
-      const [suggestion] = suggestionArguments.suggestions as { expected_deck_revision: number }[];
-      const { result, isError } = await callTool<{ type: string; detail: string }>('create_deck_suggestions', {
-        ...suggestionArguments,
-        idempotency_key: newIdempotencyKey(),
-        suggestions: [{ ...suggestion, expected_deck_revision: suggestion!.expected_deck_revision + 1 }],
+      const plannedSwapArguments = fromEarlierCheck(state.plannedSwapArguments);
+      const [plannedSwap] = plannedSwapArguments.planned_swaps as { expected_deck_revision: number }[];
+      const { result, isError } = await callTool<{ type: string; detail: string }>('create_planned_swaps', {
+        idempotency_key: crypto.randomUUID(),
+        planned_swaps: [{ ...plannedSwap, expected_deck_revision: plannedSwap!.expected_deck_revision + 1 }],
       });
-      const saved = await listedSuggestions(state.deckId!);
+      const { items } = await toolResult<PlannedSwapPage>('list_planned_swaps', { deck_id: state.deckId });
       return passIf(
-        isError && result.type.endsWith('/stale-revision') && saved.length === 1,
-        `${result.type}: ${result.detail}; ${saved.length} deck suggestion in the deck`,
+        isError && result.type.endsWith('/stale-revision') && items.length === 1,
+        `${result.type}: ${result.detail}; ${items.length} planned swap in the deck`,
       );
     },
   },
   {
     name: 'A replay with the same idempotency key returns the first result and saves nothing',
     run: async () => {
-      const suggestionArguments = fromEarlierCheck(state.suggestionArguments);
-      const replay = await toolResult<CreatedDeckSuggestions>('create_deck_suggestions', suggestionArguments);
-      const saved = await listedSuggestions(state.deckId!);
+      const replay = await toolResult<CreatedPlannedSwaps>('create_planned_swaps', fromEarlierCheck(state.plannedSwapArguments));
+      const { items } = await toolResult<PlannedSwapPage>('list_planned_swaps', { deck_id: state.deckId });
       return passIf(
-        replay.replayed && isDeepStrictEqual(replay.suggestions, state.created!.suggestions) && saved.length === 1,
-        `replayed ${replay.replayed}, suggestion_id ${replay.suggestions[0]?.suggestion_id}; ${saved.length} deck suggestion in the deck`,
+        replay.replayed && isDeepStrictEqual(replay.planned_swaps, state.created!.planned_swaps) && items.length === 1,
+        `replayed ${replay.replayed}, planned_swap_id ${replay.planned_swaps[0]?.planned_swap_id}; ${items.length} planned swap in the deck`,
       );
     },
   },
@@ -535,7 +552,7 @@ const revokeChecks: Check[] = [
 
 const cleanupChecks: Check[] = [
   {
-    name: 'Cleanup deletes the pre-flight deck and its deck suggestions',
+    name: 'Cleanup deletes the pre-flight deck, its planned swaps, and the pre-flight copy',
     run: async () => {
       for (const deckId of state.deckIds) {
         const { error } = await testUserClient.rpc('delete_deck', { request: { deck_id: deckId } });
@@ -543,11 +560,22 @@ const cleanupChecks: Check[] = [
           throw new Error(`delete_deck ${deckId}: ${error.message}`);
         }
       }
-      const { count, error } = await admin
-        .from('deck_suggestions')
-        .select('id', { count: 'exact', head: true })
-        .in('deck_id', state.deckIds);
-      return passIf(!error && count === 0, `decks deleted: ${state.deckIds.length}, deck suggestions left: ${count ?? error?.message}`);
+      for (const copyId of state.copyIds) {
+        const { error } = await testUserClient.rpc('delete_copy', { request: { copy_id: copyId } });
+        if (error) {
+          throw new Error(`delete_copy ${copyId}: ${error.message}`);
+        }
+      }
+      const [decks, plannedSwaps, copies] = await Promise.all([
+        admin.from('decks').select('id', { count: 'exact', head: true }).in('id', state.deckIds),
+        admin.from('planned_swaps').select('id', { count: 'exact', head: true }).in('deck_id', state.deckIds),
+        admin.from('copies').select('id', { count: 'exact', head: true }).in('id', state.copyIds),
+      ]);
+      const left = [decks, plannedSwaps, copies].map(({ count, error }) => count ?? error?.message);
+      return passIf(
+        left.every((count) => count === 0),
+        `decks deleted: ${state.deckIds.length}, left: ${left[0]}; planned swaps left: ${left[1]}; copies deleted: ${state.copyIds.length}, left: ${left[2]}`,
+      );
     },
   },
   {

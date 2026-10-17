@@ -5,13 +5,15 @@ import { Alert, View } from 'react-native';
 
 import { NameAlert } from '@/components/atoms/name-alert';
 import { DeckBanner } from '@/components/molecules/commander-card';
-import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
+import { EmptyState } from '@/components/molecules/empty-state';
+import { DashedCardFrame, GhostNeedsYouItems } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { deckActionsMenu } from '@/components/organisms/deck-actions-menu';
 import { DeckCardOrderButtons } from '@/components/organisms/deck-card-order-buttons';
 import { DeckCards } from '@/components/organisms/deck-cards';
 import { DeckHistory } from '@/components/organisms/deck-history';
+import { NeedsYouList } from '@/components/organisms/needs-you-list';
 import { PushedScreen } from '@/components/templates/pushed-screen';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
@@ -21,13 +23,15 @@ import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/d
 import { removeFromDeck } from '@/decks/remove-from-deck';
 import { useDeck } from '@/decks/use-deck';
 import { useDeckChanges } from '@/decks/use-deck-changes';
+import { useNeedsYouCounts } from '@/needs-you/needs-you-counts';
+import { useNeedsYou } from '@/needs-you/use-needs-you';
 import { colors } from '@/theme';
 
-const deckTabs = ['cards', 'history'] as const;
+const deckTabs = ['cards', 'planned', 'history'] as const;
 
 type DeckTab = (typeof deckTabs)[number];
 
-const deckTabLabels: Record<DeckTab, string> = { cards: 'Cards', history: 'History' };
+const deckTabLabels: Record<DeckTab, string> = { cards: 'Cards', planned: 'Planned', history: 'History' };
 
 function deleteMessage(cardCount: number) {
   const verb = cardCount === 1 ? 'becomes' : 'become';
@@ -64,10 +68,13 @@ function openRevert(deck: Deck, change: DeckChange) {
 }
 
 export default function DeckScreen() {
-  const { deckId } = useLocalSearchParams<{ deckId: string }>();
+  const params = useLocalSearchParams<{ deckId: string; tab?: string }>();
+  const { deckId } = params;
   const { read, reload } = useDeck(deckId);
   const { history, tryAgain: tryHistoryAgain, loadMore } = useDeckChanges(deckId, read.status === 'loaded' ? read.deck.revision : null);
-  const [tab, setTab] = useState<DeckTab>('cards');
+  const { read: planned, reload: reloadPlanned } = useNeedsYou(deckId);
+  const { countOf } = useNeedsYouCounts();
+  const [tab, setTab] = useState<DeckTab>(() => deckTabs.find((value) => value === params.tab) ?? 'cards');
   const [renaming, setRenaming] = useState(false);
   const { grouping, order, setGrouping, setOrder } = useDeckCardOrder();
   const showsCardOrderButtons = tab === 'cards' && read.status === 'loaded' && read.deck.card_count > 0;
@@ -75,6 +82,11 @@ export default function DeckScreen() {
   useEffect(() => {
     void markDeckUsed(deckId);
   }, [deckId]);
+
+  function reloadAfterPlanChange() {
+    reload();
+    reloadPlanned();
+  }
 
   function rename(name: string) {
     return showDeckWriteResult(renameDeck(deckId, name), 'Could not rename this deck', reload);
@@ -146,7 +158,13 @@ export default function DeckScreen() {
             commanders={read.deck.commanders}
           />
           <View className="gap-lg px-lg">
-            <ToggleGroup values={deckTabs} selected={tab} labelOf={(value) => deckTabLabels[value]} onSelect={setTab} />
+            <ToggleGroup
+              values={deckTabs}
+              selected={tab}
+              labelOf={(value) => deckTabLabels[value]}
+              countOf={(value) => (value === 'planned' ? countOf(deckId) : 0)}
+              onSelect={setTab}
+            />
             {tab === 'cards' ? (
               <DeckCards
                 deck={read.deck}
@@ -157,6 +175,20 @@ export default function DeckScreen() {
                 menuActionsOf={menuActionsOf(read.deck)}
                 onOpenCollection={() => router.dismissTo('/collection')}
               />
+            ) : null}
+            {tab === 'planned' && planned.status === 'loaded' ? (
+              planned.items.length > 0 ? (
+                <NeedsYouList items={planned.items} onChanged={reloadAfterPlanChange} />
+              ) : (
+                <EmptyState
+                  illustration={<GhostNeedsYouItems />}
+                  title="Nothing planned yet"
+                  message="Planned swaps and buylist cards for this deck show up here."
+                />
+              )
+            ) : null}
+            {tab === 'planned' && planned.status === 'failed' ? (
+              <ReadFailure illustration={<GhostNeedsYouItems />} title="Could not load this deck" onTryAgain={reloadPlanned} />
             ) : null}
             {tab === 'history' && history.status === 'loaded' ? (
               <DeckHistory changes={history.changes} createdAt={read.deck.created_at} onRevert={(change) => openRevert(read.deck, change)} />

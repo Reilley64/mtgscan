@@ -48,6 +48,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Disabled' })).toBeDisabled();
   expect(screen.getByRole('switch', { name: 'Protect' })).not.toBeChecked();
   expect(screen.getByRole('radio', { name: 'Copies', checked: true })).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: 'Planned, 2' })).toBeOnTheScreen();
   expect(screen.getByRole('switch', { name: 'Scan sounds' })).toBeChecked();
   expect(screen.getByRole('image', { name: 'Sol Ring, M10 216, foil, lightly played, $1,635.37' })).toBeOnTheScreen();
   expect(screen.getByRole('image', { name: 'Sol Ring, C21 263, etched, no price' })).toBeOnTheScreen();
@@ -134,6 +135,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByLabelText('Nothing needs you yet, When a deck needs you, it shows up here.')).toBeOnTheScreen();
   expect(screen.getByLabelText('No decks yet, Create a deck, then add cards to it from your collection.')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Atraxa, Medium priority, 0 cards' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Krenko, Needs you 2, High priority, 1 card' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Kinnan' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Open the name alert' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Open the name alert with a name' })).toBeOnTheScreen();

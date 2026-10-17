@@ -160,7 +160,7 @@ export async function showConsentPage({ auth, root, url, navigate }: ConsentPage
       element(
         'p',
         'consent-card',
-        'Read your cards, collection, decks, and deck history. Suggest deck changes. It cannot change your decks or collection.',
+        'Read your cards, collection, decks, and deck history. Plan swaps and add to your buylist. It cannot change your decks or collection.',
       ),
       element(
         'div',

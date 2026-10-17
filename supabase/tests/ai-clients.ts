@@ -1,5 +1,5 @@
 import { allowAiClient, mcpServerUrlOf } from '../mcp-connection';
-import { asDatabaseOwner, localStackUrl, type TestUser } from './local-stack';
+import { asDatabaseOwner, asDatabaseRole, localStackUrl, signUpNewUser, type TestUser } from './local-stack';
 
 export const mcpServerUrl = mcpServerUrlOf(localStackUrl);
 
@@ -11,6 +11,50 @@ export type AiClient = {
 export async function connectAiClient(user: TestUser): Promise<AiClient> {
   const { clientId, tokens } = await allowAiClient(localStackUrl, user.client, 'Test AI chat');
   return { clientId, token: tokens.access_token };
+}
+
+export type ClaimedAiClient = {
+  user: TestUser;
+  clientId: string;
+};
+
+type Refusal = { code: string; message: string; details: string | null };
+
+export async function connectedAiClient(user?: TestUser, clientName = 'ChatGPT'): Promise<ClaimedAiClient> {
+  const clientId = crypto.randomUUID();
+  await asDatabaseOwner(
+    (database) => database`
+      insert into auth.oauth_clients (id, registration_type, redirect_uris, grant_types, client_name, client_type, token_endpoint_auth_method)
+      values (${clientId}, 'dynamic', 'https://chatgpt.com/connector_platform_oauth_redirect', 'authorization_code,refresh_token', ${clientName}, 'public', 'none')
+    `,
+  );
+  return { user: user ?? (await signUpNewUser()), clientId };
+}
+
+export function aiClientClaims({ user, clientId }: ClaimedAiClient) {
+  return {
+    sub: user.userId,
+    role: 'authenticated',
+    aud: ['authenticated', mcpServerUrl],
+    client_id: clientId,
+  };
+}
+
+export async function aiClientCall<T>(client: ClaimedAiClient, name: string, request: object): Promise<T> {
+  const [row] = await asDatabaseRole('authenticated', aiClientClaims(client), (database) =>
+    database`select ${database.unsafe(`public.${name}`)}(${request}::jsonb) as result`,
+  );
+  return row.result;
+}
+
+export async function aiClientRefusal(client: ClaimedAiClient, name: string, request: object): Promise<Refusal> {
+  try {
+    await aiClientCall(client, name, request);
+  } catch (error) {
+    const { errno, message } = error as { errno: string; message: string };
+    return errno === 'PGRST' ? (JSON.parse(message) as Refusal) : { code: errno, message, details: null };
+  }
+  throw new Error(`${name} accepted the call`);
 }
 
 export type McpLogLine = {
