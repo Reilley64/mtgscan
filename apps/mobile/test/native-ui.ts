@@ -32,6 +32,10 @@ export function tabBarLabels(): string[] {
   return tabScreens().map((candidate) => candidate.props.title);
 }
 
+export function tabBadge(label: string): string | undefined {
+  return tabScreen((props) => props.title === label, `is labelled ${label}`).props.badgeValue;
+}
+
 export function selectedTab() {
   const { selectedScreenKey } = tabBar().props.navStateRequest;
   return tabScreen((props) => props.screenKey === selectedScreenKey, 'is selected');

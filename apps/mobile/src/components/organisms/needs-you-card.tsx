@@ -22,7 +22,7 @@ type NeedsYouCardProps = {
   createdAt: string;
   action: { label: string; busy: boolean; onPress: () => void };
   closing: boolean;
-  onOpenDeck: () => void;
+  onOpenDeck?: () => void;
   onClose: () => void;
 };
 
@@ -42,7 +42,7 @@ export function NeedsYouCard({
   const meta = [clientName, shownDayAndTime(createdAt)].filter((part) => part !== null).join(' \u00b7 ');
   return (
     <Surface className="gap-sm">
-      <DeckTag name={deckName} commanderArtUri={commanderArtUri} onPress={onOpenDeck} />
+      {onOpenDeck ? <DeckTag name={deckName} commanderArtUri={commanderArtUri} onPress={onOpenDeck} /> : null}
       {lines.map(({ key, ...line }) => (
         <ChangeLine key={key} {...line} />
       ))}

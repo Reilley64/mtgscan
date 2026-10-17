@@ -46,6 +46,7 @@ export function deckCardOf(copyId: string, name: string, typeLine: string, chang
     type_line: typeLine,
     mana_value: 2,
     colors: [],
+    planned_out: false,
     ...changes,
   };
 }

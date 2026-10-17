@@ -9,6 +9,7 @@ import { PriceCurrencyProvider } from '@/collection/price-currency-setting';
 import { DeckCardOrderProvider } from '@/decks/deck-card-order';
 import { fullHeightDrawerOptions, halfHeightDrawerOptions, pageSheetOptions } from '@/components/templates/drawer-sheet';
 import { GalleryProvider } from '@/gallery/gallery-state';
+import { NeedsYouCountsProvider } from '@/needs-you/needs-you-counts';
 import { CurrentPricesProvider } from '@/scan/current-prices';
 import { KeepAwakeWhileScanning } from '@/scan/keep-awake-while-scanning';
 import { ScanBatchProvider } from '@/scan/scan-batch-state';
@@ -79,7 +80,9 @@ export default function RootLayout() {
                 <CurrentPricesProvider>
                   <ScanBatchProvider>
                     <DeckCardOrderProvider>
-                      <RootStack />
+                      <NeedsYouCountsProvider>
+                        <RootStack />
+                      </NeedsYouCountsProvider>
                     </DeckCardOrderProvider>
                   </ScanBatchProvider>
                 </CurrentPricesProvider>

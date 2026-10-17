@@ -167,6 +167,16 @@ describe('ToggleGroup', () => {
     expect(screen.getAllByRole('radio', { checked: false })).toHaveLength(3);
   });
 
+  test('an option with a count shows a count badge after its label and reads the count after its name', async () => {
+    await render(
+      <ToggleGroup values={sections} selected="Copies" labelOf={(value) => value} countOf={(value) => (value === 'Decks' ? 3 : 0)} onSelect={() => {}} />,
+    );
+
+    const decks = screen.getByRole('radio', { name: 'Decks, 3' });
+    expect(within(decks).getByText('3').parent).toHaveStyle({ backgroundColor: tokenColors.badge, borderRadius: 999 });
+    expect(screen.getByRole('radio', { name: 'Prices' })).toBeOnTheScreen();
+  });
+
   test('pressing an option checks it and unchecks the one before', async () => {
     await render(<CardPageSections />);
 
@@ -1617,6 +1627,15 @@ describe('CommanderGalleryCard', () => {
     ]);
     expect(fadesDown(frame)).toBe(true);
     expect(frame).not.toHaveStyle({ borderStyle: 'dashed' });
+  });
+
+  test('a commander gallery card with a Needs you count shows a count badge and reads it after the name', async () => {
+    await render(
+      <CommanderGalleryCard name="Atraxa" chips={[{ label: 'High priority' }, { label: '2 cards' }]} commanders={[]} needsYouCount={3} onPress={() => {}} />,
+    );
+
+    const card = screen.getByRole('button', { name: 'Atraxa, Needs you 3, High priority, 2 cards' });
+    expect(within(card).getByText('3').parent).toHaveStyle({ backgroundColor: tokenColors.badge, position: 'absolute' });
   });
 });
 
