@@ -70,6 +70,15 @@ describe('the Planned tab', () => {
     expect(buylistQueries()).toContainEqual({ deck_id: 'deck-1', status: 'open', order: 'oldest_first', limit: 50 });
   });
 
+  test("lists every open planned swap of the deck, past the first page", async () => {
+    ownPlannedSwaps(Array.from({ length: 51 }, (_, index) => plannedSwapOf(`swap-${index}`)));
+
+    const deck = await openPlanned();
+
+    await waitFor(() => expect(deck.getAllByRole('button', { name: 'Swap in' })).toHaveLength(51));
+    expect(plannedSwapQueries()).toContainEqual({ deck_id: 'deck-1', status: 'open', order: 'oldest_first', limit: 50, cursor: '50' });
+  });
+
   test('with nothing planned, Planned shows its empty state', async () => {
     const deck = await openPlanned();
 

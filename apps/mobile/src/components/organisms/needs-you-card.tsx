@@ -1,4 +1,3 @@
-import type { DeckChangeEffect } from '@mtgscan/supabase/decks';
 import { View } from 'react-native';
 
 import { Button } from '@/components/atoms/button';
@@ -10,44 +9,27 @@ import { ChangeLine } from '@/components/molecules/change-line';
 import { Reason } from '@/components/molecules/reason';
 import { effectChip } from '@/decks/deck-labels';
 import { shownDayAndTime } from '@/lib/shown-day';
-import type { NeedsYouLine } from '@/needs-you/needs-you-lines';
+import { needsYouLines } from '@/needs-you/needs-you-lines';
+import type { NeedsYouItem } from '@/needs-you/use-needs-you';
 
 type NeedsYouCardProps = {
-  deckName: string;
-  commanderArtUri: string | null;
-  lines: NeedsYouLine[];
-  effect: DeckChangeEffect | null;
-  reason: string;
-  clientName: string | null;
-  createdAt: string;
+  plan: NeedsYouItem['plan'];
   action: { label: string; busy: boolean; onPress: () => void };
   closing: boolean;
   onOpenDeck?: () => void;
   onClose: () => void;
 };
 
-export function NeedsYouCard({
-  deckName,
-  commanderArtUri,
-  lines,
-  effect,
-  reason,
-  clientName,
-  createdAt,
-  action,
-  closing,
-  onOpenDeck,
-  onClose,
-}: NeedsYouCardProps) {
-  const meta = [clientName, shownDayAndTime(createdAt)].filter((part) => part !== null).join(' \u00b7 ');
+export function NeedsYouCard({ plan, action, closing, onOpenDeck, onClose }: NeedsYouCardProps) {
+  const meta = [plan.client_name, shownDayAndTime(plan.created_at)].filter((part) => part !== null).join(' \u00b7 ');
   return (
     <Surface className="gap-sm">
-      {onOpenDeck ? <DeckTag name={deckName} commanderArtUri={commanderArtUri} onPress={onOpenDeck} /> : null}
-      {lines.map(({ key, ...line }) => (
+      {onOpenDeck ? <DeckTag name={plan.deck_name} commanderArtUri={plan.commander_art_crop_uri} onPress={onOpenDeck} /> : null}
+      {needsYouLines(plan).map(({ key, ...line }) => (
         <ChangeLine key={key} {...line} />
       ))}
-      {effect ? <Chip {...effectChip(effect, deckName)} /> : null}
-      <Reason reason={reason} meta={meta} />
+      {plan.effect ? <Chip {...effectChip(plan.effect, plan.deck_name)} /> : null}
+      <Reason reason={plan.reason} meta={meta} />
       <View className="flex-row gap-sm">
         <Button variant="primary" busy={action.busy} onPress={action.onPress}>
           <Text>{action.label}</Text>

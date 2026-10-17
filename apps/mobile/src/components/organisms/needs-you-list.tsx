@@ -4,7 +4,7 @@ import { Alert } from 'react-native';
 
 import { NeedsYouCard } from '@/components/organisms/needs-you-card';
 import { closeBuylistCard } from '@/buylist/buylist-writes';
-import { needsYouLines } from '@/needs-you/needs-you-lines';
+import type { WriteResult } from '@/lib/write-result';
 import type { NeedsYouItem } from '@/needs-you/use-needs-you';
 import { closePlannedSwap, swapInPlannedSwap } from '@/planned-swaps/planned-swap-writes';
 
@@ -14,9 +14,15 @@ type NeedsYouListProps = {
   onOpenDeck?: (deckId: string) => void;
 };
 
-function idOf(item: NeedsYouItem) {
-  return item.kind === 'planned_swap' ? item.plannedSwap.planned_swap_id : item.buylistCard.buylist_card_id;
-}
+const closes: Record<NeedsYouItem['kind'], (id: string) => Promise<WriteResult>> = {
+  planned_swap: closePlannedSwap,
+  buylist_card: closeBuylistCard,
+};
+
+const closeFailures: Record<NeedsYouItem['kind'], string> = {
+  planned_swap: 'Could not close this planned swap',
+  buylist_card: 'Could not close this buylist card',
+};
 
 export function NeedsYouList({ items, onChanged, onOpenDeck }: NeedsYouListProps) {
   const [swappingIn, setSwappingIn] = useState<string | null>(null);
@@ -35,55 +41,37 @@ export function NeedsYouList({ items, onChanged, onOpenDeck }: NeedsYouListProps
     }
   }
 
-  async function close(item: NeedsYouItem) {
-    setClosing(idOf(item));
-    const result =
-      item.kind === 'planned_swap'
-        ? await closePlannedSwap(item.plannedSwap.planned_swap_id)
-        : await closeBuylistCard(item.buylistCard.buylist_card_id);
+  async function close({ kind, id }: NeedsYouItem) {
+    setClosing(id);
+    const result = await closes[kind](id);
     setClosing(null);
     if (result === 'failed') {
-      Alert.alert(item.kind === 'planned_swap' ? 'Could not close this planned swap' : 'Could not close this buylist card', 'Check your connection.');
+      Alert.alert(closeFailures[kind], 'Check your connection.');
     } else {
       onChanged();
     }
   }
 
-  function cardOf(item: NeedsYouItem) {
-    const plan = item.kind === 'planned_swap' ? item.plannedSwap : item.buylistCard;
-    const action =
-      item.kind === 'planned_swap'
-        ? {
-            label: 'Swap in',
-            busy: swappingIn === item.plannedSwap.planned_swap_id,
-            onPress: () => void swapIn(item.plannedSwap.planned_swap_id),
-          }
-        : {
-            label: 'Bought',
-            busy: false,
-            onPress: () =>
-              router.push({
-                pathname: '/bought',
-                params: { buylistCardId: item.buylistCard.buylist_card_id, oracleId: item.buylistCard.incoming.oracle_id },
-              }),
-          };
-    return (
-      <NeedsYouCard
-        key={idOf(item)}
-        deckName={plan.deck_name}
-        commanderArtUri={plan.commander_art_crop_uri}
-        lines={needsYouLines(plan)}
-        effect={plan.effect}
-        reason={plan.reason}
-        clientName={plan.client_name}
-        createdAt={plan.created_at}
-        action={action}
-        closing={closing === idOf(item)}
-        onOpenDeck={onOpenDeck && (() => onOpenDeck(plan.deck_id))}
-        onClose={() => void close(item)}
-      />
-    );
+  function actionOf(item: NeedsYouItem) {
+    if (item.kind === 'planned_swap') {
+      return { label: 'Swap in', busy: swappingIn === item.id, onPress: () => void swapIn(item.id) };
+    }
+    return {
+      label: 'Bought',
+      busy: false,
+      onPress: () =>
+        router.push({ pathname: '/bought', params: { buylistCardId: item.id, oracleId: item.plan.incoming.oracle_id } }),
+    };
   }
 
-  return items.map(cardOf);
+  return items.map((item) => (
+    <NeedsYouCard
+      key={item.id}
+      plan={item.plan}
+      action={actionOf(item)}
+      closing={closing === item.id}
+      onOpenDeck={onOpenDeck && (() => onOpenDeck(item.plan.deck_id))}
+      onClose={() => void close(item)}
+    />
+  ));
 }

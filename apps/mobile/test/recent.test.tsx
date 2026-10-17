@@ -57,6 +57,19 @@ describe('Recent', () => {
     expect(recent.queryByText('Nothing needs you yet')).not.toBeOnTheScreen();
   });
 
+  test('lists every open planned swap and buylist card, past the first page of each', async () => {
+    const many = Array.from({ length: 51 }, (_, index) => `${index}`);
+    ownPlannedSwaps(many.map((id) => plannedSwapOf(`swap-${id}`)));
+    ownBuylistCards(many.map((id) => buylistCardOf(`card-${id}`)));
+
+    const recent = await openRecent();
+
+    await waitFor(() => expect(recent.getAllByRole('button', { name: 'Swap in' })).toHaveLength(51));
+    expect(recent.getAllByRole('button', { name: 'Bought' })).toHaveLength(51);
+    expect(plannedSwapQueries()).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: '50' });
+    expect(buylistQueries()).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: '50' });
+  });
+
   test('an item shows its deck tag, its change lines with the printing, its reason, and the AI client name and time', async () => {
     ownPlannedSwaps([
       plannedSwapOf('swap', {

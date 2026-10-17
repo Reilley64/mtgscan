@@ -10,8 +10,8 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { WarningLine } from '@/components/molecules/warning-line';
 import { DrawerSheet } from '@/components/templates/drawer-sheet';
 import { markBuylistCardBought } from '@/buylist/buylist-writes';
+import { printingLabel } from '@/collection/copy-labels';
 import { useFreeCopies } from '@/buylist/use-free-copies';
-import { printingOf } from '@/needs-you/needs-you-lines';
 import { colors } from '@/theme';
 
 export default function BoughtSheet() {
@@ -45,7 +45,7 @@ export default function BoughtSheet() {
               <ListRow
                 leading={<CardThumbnail uri={copy.image_uris[0]} />}
                 title={copy.name}
-                detail={printingOf(copy)}
+                detail={printingLabel(copy)}
                 onPress={() => void buy(copy)}
               />
               {copy.protected ? <WarningLine message={`${copy.name} is protected. Picking it unprotects it.`} /> : null}

@@ -5,7 +5,7 @@ import { Alert, View } from 'react-native';
 
 import { deleteCopy, setCopyProtected } from '@/collection/copy-writes';
 import { usePriceCurrency } from '@/collection/price-currency-setting';
-import { useCopy } from '@/collection/use-copy';
+import { readCopy, useCopy } from '@/collection/use-copy';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { copyActionsMenu } from '@/components/organisms/copy-actions-menu';
@@ -33,6 +33,12 @@ export default function CopyScreen() {
     const result = await deleteCopy(copyId, held);
     if (result === 'done') {
       router.back();
+    } else if (result === 'held') {
+      reload();
+      const heldCopy = await readCopy(copyId);
+      if (heldCopy.status === 'loaded') {
+        confirmDelete(heldCopy.copy);
+      }
     } else if (result === 'missing') {
       reload();
     } else {

@@ -61,6 +61,15 @@ export function shownCondition(condition: CardCondition) {
   return condition === 'near_mint' ? undefined : conditionLabels[condition];
 }
 
+export function printingLabel(copy: Pick<CollectionCopyRow, 'set' | 'collector_number' | 'finish' | 'condition'>) {
+  const condition = shownCondition(copy.condition);
+  return [
+    `${copy.set.toUpperCase()} ${copy.collector_number}`,
+    ...(copy.finish === 'nonfoil' ? [] : [finishLabels[copy.finish]]),
+    ...(condition ? [condition] : []),
+  ].join(' \u00b7 ');
+}
+
 export function spokenFinishAndCondition({ finish, condition }: { finish: Finish; condition: CardCondition }) {
   return [
     ...(finish === 'nonfoil' ? [] : [finishLabels[finish].toLowerCase()]),

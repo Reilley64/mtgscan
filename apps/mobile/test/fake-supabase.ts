@@ -793,6 +793,12 @@ function addDeckCard(request: AddDeckCardRequest) {
   return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
 }
 
+function planPage<Item>(items: Item[], { cursor, limit = 20 }: { cursor?: string | null; limit?: number }) {
+  const offset = cursor ? Number(cursor) : 0;
+  const end = offset + limit;
+  return { data: { items: items.slice(offset, end), next_cursor: end < items.length ? String(end) : null }, error: null };
+}
+
 function plannedSwapList(query: PlannedSwapsQuery) {
   plannedSwapQueriesSent = [...plannedSwapQueriesSent, query];
   if (failingNeedsYouReads > 0) {
@@ -803,7 +809,7 @@ function plannedSwapList(query: PlannedSwapsQuery) {
   const items = plannedSwaps
     .filter((swap) => (!query.status || swap.status === query.status) && (!query.deck_id || swap.deck_id === query.deck_id))
     .toSorted((a, b) => direction * a.created_at.localeCompare(b.created_at));
-  return { data: { items, next_cursor: null }, error: null };
+  return planPage(items, query);
 }
 
 function buylistList(query: BuylistQuery) {
@@ -816,7 +822,7 @@ function buylistList(query: BuylistQuery) {
   const items = buylistCards
     .filter((card) => (!query.status || card.status === query.status) && (!query.deck_id || card.deck_id === query.deck_id))
     .toSorted((a, b) => direction * a.created_at.localeCompare(b.created_at));
-  return { data: { items, next_cursor: null }, error: null };
+  return planPage(items, query);
 }
 
 function buylistCardToChange(buylistCardId: string, changeable: BuylistCard['status'][]) {
@@ -1032,7 +1038,7 @@ function setBasicLands(request: SetBasicLandsRequest) {
   return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
 }
 
-function deleteCopy({ copy_id, held_copy_id }: DeleteCopyRequest) {
+function deleteCopy({ copy_id, move_planned_swap }: DeleteCopyRequest) {
   if (failingCopyDeletes > 0) {
     failingCopyDeletes -= 1;
     return { data: null, error: networkFailure };
@@ -1041,9 +1047,9 @@ function deleteCopy({ copy_id, held_copy_id }: DeleteCopyRequest) {
     return copyNotFound;
   }
   const heldFor = copyDetails.get(copy_id)?.held_for;
-  if (heldFor && held_copy_id !== copy_id) {
-    const message = `This copy is held by the planned swap for ${heldFor.name}. Send held_copy_id to move that planned swap to the buylist and delete the copy.`;
-    return { data: null, error: { code: 'copy_held', message, details: 'held_copy_id' } };
+  if (heldFor && !move_planned_swap) {
+    const message = `This copy is held by the planned swap for ${heldFor.name}. Send move_planned_swap: true to move that planned swap to the buylist and delete the copy.`;
+    return { data: null, error: { code: 'copy_held', message, details: 'move_planned_swap' } };
   }
   copyDeletes = [...copyDeletes, copy_id];
   removeCopyFromTheCollection(copy_id);

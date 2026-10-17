@@ -1,4 +1,4 @@
-import { screen, within } from 'expo-router/testing-library';
+import { screen, waitFor, within } from 'expo-router/testing-library';
 
 import { copyOf, delver, openCopyPage } from './copies';
 import {
@@ -89,7 +89,7 @@ describe('deleting a copy', () => {
     expect(screen.queryByRole('header', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
   });
 
-  test('deleting a copy that a planned swap holds since the page loaded deletes nothing and shows the held copy', async () => {
+  test('deleting a copy that a planned swap holds since the page loaded deletes nothing, shows the held copy, and asks again with the held warning', async () => {
     ownCopies([copyOf('copy-1')]);
     await openCopyPage(/^Angelic Curator/);
     holdCopyElsewhere('copy-1', heldForGoblins.held_for!);
@@ -99,8 +99,14 @@ describe('deleting a copy', () => {
 
     expect(copiesDeletedOnTheServer()).toEqual([]);
     expect(await within(pushedScreen()).findByText('Held')).toBeOnTheScreen();
-    await chooseDeleteCopy();
-    expect(presentedAlert()?.message).toBe('This copy is held by the planned swap for Goblins. Continue and move that swap to the buylist?');
+    await waitFor(() =>
+      expect(presentedAlert()).toEqual({
+        ...deleteAlert,
+        message: 'This copy is held by the planned swap for Goblins. Continue and move that swap to the buylist?',
+      }),
+    );
+    await pressAlertButton('Delete copy');
+    expect(copiesDeletedOnTheServer()).toEqual(['copy-1']);
   });
 
   test('confirming deletes the copy and goes back to the binder, which no longer shows it', async () => {

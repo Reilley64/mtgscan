@@ -469,10 +469,12 @@ describe('WarningLine', () => {
     expect(symbolTintColor(line)).toBe(tokenColors.warning);
   });
 
-  test('a warning line can show another symbol, such as the bookmark of a held copy', async () => {
-    await render(<WarningLine symbol="bookmark.fill" message="Sol Ring is held by the planned swap for Krenko." />);
+  test('a warning line for a held copy shows the held symbol', async () => {
+    await render(<WarningLine symbol="held" message="Sol Ring is held by the planned swap for Krenko." />);
 
-    expect(symbolNames(screen.getByLabelText('Sol Ring is held by the planned swap for Krenko.'))).toEqual(['bookmark.fill']);
+    const line = screen.getByLabelText('Sol Ring is held by the planned swap for Krenko.');
+    expect(symbolNames(line)).toEqual(['bookmark.fill']);
+    expect(symbolSizes(line)).toEqual([11]);
   });
 });
 

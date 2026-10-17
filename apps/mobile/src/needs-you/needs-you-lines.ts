@@ -1,9 +1,7 @@
 import type { BuylistCard, PlannedCardLine } from '@mtgscan/supabase/buylist';
-import type { CardCondition } from '@mtgscan/supabase/collection';
 import type { PlannedBasicLandLine, PlannedCopyLine, PlannedSwap } from '@mtgscan/supabase/planned-swaps';
-import type { Finish } from '@mtgscan/supabase/search';
 
-import { conditionLabels, finishLabels } from '@/collection/copy-labels';
+import { printingLabel } from '@/collection/copy-labels';
 
 export type NeedsYouLine = {
   key: string;
@@ -13,14 +11,10 @@ export type NeedsYouLine = {
   detail: string;
 };
 
-type Printing = { set: string; collector_number: string | null; finish: Finish | null; condition: CardCondition | null };
-
-export function printingOf({ set, collector_number, finish, condition }: Printing) {
-  return [
-    `${set.toUpperCase()} ${collector_number}`,
-    ...(finish && finish !== 'nonfoil' ? [finishLabels[finish]] : []),
-    ...(condition && condition !== 'near_mint' ? [conditionLabels[condition]] : []),
-  ].join(' \u00b7 ');
+function copyDetailOf({ set, collector_number, finish, condition, type_line }: PlannedCopyLine) {
+  return set !== null && collector_number !== null && finish !== null && condition !== null
+    ? printingLabel({ set, collector_number, finish, condition })
+    : type_line;
 }
 
 const basicLandDetails: Record<NeedsYouLine['direction'], string> = { incoming: '+1', outgoing: '\u22121' };
@@ -29,7 +23,7 @@ function detailOf(line: PlannedCopyLine | PlannedCardLine | PlannedBasicLandLine
   if (line.kind === 'basic_land') {
     return basicLandDetails[direction];
   }
-  return line.kind === 'copy' && line.set !== null ? printingOf({ ...line, set: line.set }) : line.type_line;
+  return line.kind === 'copy' ? copyDetailOf(line) : line.type_line;
 }
 
 function lineOf(

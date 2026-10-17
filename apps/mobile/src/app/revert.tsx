@@ -81,7 +81,7 @@ export default function RevertSheet() {
             <WarningLine key={copy.copy_id} message={protectedCopyMessage(copy.name)} />
           ))}
           {preview.held_copies.map((copy) => (
-            <WarningLine key={copy.copy_id} symbol="bookmark.fill" message={heldCopyMessage(copy)} />
+            <WarningLine key={copy.copy_id} symbol="held" message={heldCopyMessage(copy)} />
           ))}
         </>
       ) : null}

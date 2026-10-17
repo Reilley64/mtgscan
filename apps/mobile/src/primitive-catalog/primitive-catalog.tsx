@@ -825,7 +825,7 @@ function WarningLines() {
   return (
     <Section title="Warning lines">
       <WarningLine message="Sol Ring is protected. Reverting unprotects it." />
-      <WarningLine symbol="bookmark.fill" message="Sol Ring is held by the planned swap for Krenko. Reverting moves that swap to the buylist." />
+      <WarningLine symbol="held" message="Sol Ring is held by the planned swap for Krenko. Reverting moves that swap to the buylist." />
     </Section>
   );
 }
