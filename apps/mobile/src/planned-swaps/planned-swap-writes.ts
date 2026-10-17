@@ -1,5 +1,5 @@
 import { readDeckError } from '@mtgscan/supabase/decks';
-import type { ClosePlannedSwapRequest, SwapInPlannedSwapRequest } from '@mtgscan/supabase/planned-swaps';
+import type { ClosePlannedSwapRequest, SwapInPlannedSwapRequest, SwapInPlannedSwapsRequest } from '@mtgscan/supabase/planned-swaps';
 
 import { supabase } from '@/lib/supabase';
 import { writeResultOf, type WriteResult } from '@/lib/write-result';
@@ -13,6 +13,23 @@ export async function swapInPlannedSwap(plannedSwapId: string): Promise<WriteRes
   }
   if (code === 'commander_limit') {
     return 'commander_limit';
+  }
+  return writeResultOf(error);
+}
+
+export async function swapInPlannedSwaps(
+  deckId: string,
+  plannedSwapIds: string[],
+): Promise<WriteResult | { thirdCommander: string }> {
+  const request: SwapInPlannedSwapsRequest = { deck_id: deckId, planned_swap_ids: plannedSwapIds };
+  const { error } = await supabase.rpc('swap_in_planned_swaps', { request });
+  const deckError = error && readDeckError(error);
+  if (deckError?.code === 'not_open') {
+    return 'missing';
+  }
+  const thirdCommander = deckError?.code === 'commander_limit' && deckError.field?.match(/^planned_swap_ids\[(\d+)\]$/);
+  if (thirdCommander) {
+    return { thirdCommander: plannedSwapIds[Number(thirdCommander[1])]! };
   }
   return writeResultOf(error);
 }

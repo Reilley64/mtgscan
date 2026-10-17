@@ -106,8 +106,8 @@ describe("refusing an AI client's token", () => {
       return callFunction(appToken(user), name, request);
     };
     const read = (name: string, query?: object) => callFunction(appToken(user), name, query);
-    const scanned = stack(angelicCurator, { copies: 4 });
-    const [protectedCopy, deckCopy, heldCopy, closedCopy] = scanned.copy_ids as [string, string, string, string];
+    const scanned = stack(angelicCurator, { copies: 5 });
+    const [protectedCopy, deckCopy, heldCopy, closedCopy, batchCopy] = scanned.copy_ids as [string, string, string, string, string];
 
     await refuseAiClientThenWrite('add_scan_batch', { items: [scanned] });
     await refuseAiClientThenWrite('set_copy_protected', { copy_id: protectedCopy, protected: true });
@@ -123,7 +123,7 @@ describe("refusing an AI client's token", () => {
     await refuseAiClientThenWrite('set_basic_lands', { deck_id, counts: [{ oracle_id: forest, count: 10 }] });
     const plannedSwapOf = async (copyId: string, expectedDeckRevision: number) => {
       const { planned_swaps } = await callFunction(aiClientToken(user), 'create_planned_swaps', {
-        idempotency_key: `release-gate-${expectedDeckRevision}`,
+        idempotency_key: `release-gate-${copyId}`,
         planned_swaps: [
           { ref: 'swap', deck_id, expected_deck_revision: expectedDeckRevision, incoming: { copy_id: copyId }, reason: 'Another Angelic Curator for the gate.' },
         ],
@@ -132,6 +132,7 @@ describe("refusing an AI client's token", () => {
     };
     await refuseAiClientThenWrite('swap_in_planned_swap', await plannedSwapOf(heldCopy, 3));
     await refuseAiClientThenWrite('close_planned_swap', await plannedSwapOf(closedCopy, 4));
+    await refuseAiClientThenWrite('swap_in_planned_swaps', { deck_id, planned_swap_ids: [(await plannedSwapOf(batchCopy, 4)).planned_swap_id] });
     const buylistCardOf = async (expectedDeckRevision: number) => {
       const { buylist_cards } = await callFunction(aiClientToken(user), 'create_buylist_cards', {
         idempotency_key: `release-gate-buylist-${expectedDeckRevision}`,
@@ -147,11 +148,11 @@ describe("refusing an AI client's token", () => {
       });
       return buylist_cards[0].buylist_card_id;
     };
-    const boughtCard = await buylistCardOf(4);
+    const boughtCard = await buylistCardOf(5);
     const bought = stack(counterspell);
     await callFunction(appToken(user), 'add_scan_batch', { items: [bought] });
     await refuseAiClientThenWrite('mark_buylist_card_bought', { buylist_card_id: boughtCard, copy_id: bought.copy_ids[0], unprotect: false });
-    await refuseAiClientThenWrite('close_buylist_card', { buylist_card_id: await buylistCardOf(5) });
+    await refuseAiClientThenWrite('close_buylist_card', { buylist_card_id: await buylistCardOf(6) });
     await refuseAiClientThenWrite('remove_deck_card', { copy_id: deckCopy });
     const [removal] = (await read('list_deck_changes', { deck_id })).items;
     await refuseAiClientThenWrite('revert_deck_changes', {
@@ -173,6 +174,7 @@ describe("refusing an AI client's token", () => {
         [protectedCopy, true],
         [heldCopy, false],
         [closedCopy, false],
+        [batchCopy, false],
         [bought.copy_ids[0], false],
       ].toSorted(),
     );

@@ -981,6 +981,9 @@ isOneToOne: false
                            },
 "swap_in_planned_swap":
 { Args: { "request": Json }; Returns: Json
+                           },
+"swap_in_planned_swaps":
+{ Args: { "request": Json }; Returns: Json
                            }
           }
           Enums: {

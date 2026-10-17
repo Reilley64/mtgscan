@@ -5,16 +5,29 @@ import { buylistCardOf, freeCopyOf } from './buylist';
 import { deckCardOf, openDeckNamed, openDeckWithCards } from './copies';
 import {
   buylistQueries,
+  changePlannedSwapElsewhere,
   deckWritesSent,
+  failDeckWrites,
   failNeedsYouReads,
   ownBuylistCards,
   ownDecks,
   ownFreeCopies,
   ownPlannedSwaps,
   plannedSwapQueries,
+  refuseAsThirdCommander,
   startSignedIn,
 } from './fake-supabase';
-import { appearsBefore, isPageSheetPresented, presentedPageSheet, pressTab, pushedScreen, selectedTab, tabBadge } from './native-ui';
+import {
+  appearsBefore,
+  isPageSheetPresented,
+  presentedAlert,
+  presentedPageSheet,
+  pressAlertButton,
+  pressTab,
+  pushedScreen,
+  selectedTab,
+  tabBadge,
+} from './native-ui';
 import { plannedCopyLine, plannedSwapOf, reason } from './planned-swaps';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
@@ -259,5 +272,105 @@ describe('Planned out', () => {
 
     expect(await deck.findByRole('button', { name: 'Shock, MH2 262' })).toBeOnTheScreen();
     expect(deck.queryByText('Planned out')).not.toBeOnTheScreen();
+  });
+});
+
+describe('Swap in all', () => {
+  const twoSwaps = () => [
+    plannedSwapOf('older', { created_at: '2026-10-15T09:41:00.000Z' }),
+    plannedSwapOf('newer', { incoming: plannedCopyLine('copy-newer', 'Counterspell'), created_at: '2026-10-16T18:05:00.000Z' }),
+  ];
+
+  async function confirmSwapInAll(deck: Awaited<ReturnType<typeof openPlanned>>) {
+    await fireEvent.press(await deck.findByRole('button', { name: 'Swap in all' }));
+    await pressAlertButton('Swap in all');
+  }
+
+  test('shows Swap in all above the list when Planned shows two or more open planned swaps', async () => {
+    ownPlannedSwaps(twoSwaps());
+
+    const deck = await openPlanned();
+
+    const button = await deck.findByRole('button', { name: 'Swap in all' });
+    expect(appearsBefore(button, deck.getByLabelText('+, Lightning Bolt, M10 146'))).toBe(true);
+  });
+
+  test('hides Swap in all with one open planned swap, even with buylist cards', async () => {
+    ownPlannedSwaps([plannedSwapOf('swap'), plannedSwapOf('closed', { status: 'closed' }), plannedSwapOf('elsewhere', { deck_id: 'deck-2' })]);
+    ownBuylistCards([buylistCardOf('card'), buylistCardOf('other')]);
+
+    const deck = await openPlanned();
+
+    expect(await deck.findByRole('button', { name: 'Swap in' })).toBeOnTheScreen();
+    expect(deck.queryByRole('button', { name: 'Swap in all' })).not.toBeOnTheScreen();
+  });
+
+  test('asks first, and Cancel swaps in nothing', async () => {
+    ownPlannedSwaps(twoSwaps());
+    const deck = await openPlanned();
+
+    await fireEvent.press(await deck.findByRole('button', { name: 'Swap in all' }));
+
+    expect(presentedAlert()).toEqual({ title: 'Swap in 2 cards?', message: 'Do this after you sleeve them.', buttons: ['Swap in all', 'Cancel'] });
+    await pressAlertButton('Cancel');
+    expect(deckWritesSent().map(({ name }) => name)).not.toContain('swap_in_planned_swaps');
+    expect(deck.getAllByRole('button', { name: 'Swap in' })).toHaveLength(2);
+  });
+
+  test('swaps in only the planned swaps that Planned shows, and Planned and its count reload', async () => {
+    ownPlannedSwaps([...twoSwaps(), plannedSwapOf('elsewhere', { deck_id: 'deck-2', deck_name: 'Atraxa' })]);
+    ownBuylistCards([buylistCardOf('card')]);
+    const deck = await openPlanned();
+    expect(await deck.findByRole('radio', { name: 'Planned, 3' })).toBeOnTheScreen();
+
+    await confirmSwapInAll(deck);
+
+    expect(deckWritesSent()).toContainEqual({ name: 'swap_in_planned_swaps', request: { deck_id: 'deck-1', planned_swap_ids: ['older', 'newer'] } });
+    expect(await deck.findByRole('radio', { name: 'Planned, 1' })).toBeOnTheScreen();
+    expect(deck.queryByRole('button', { name: 'Swap in' })).not.toBeOnTheScreen();
+    expect(deck.getByRole('button', { name: 'Bought' })).toBeOnTheScreen();
+  });
+
+  test('a failed write says "Check your connection.", and the planned swaps stay', async () => {
+    ownPlannedSwaps(twoSwaps());
+    const deck = await openPlanned();
+    failDeckWrites(1);
+
+    await confirmSwapInAll(deck);
+
+    await waitFor(() =>
+      expect(presentedAlert()).toEqual({ title: 'Could not swap in all cards', message: 'Check your connection.', buttons: ['OK'] }),
+    );
+    expect(deck.getAllByRole('button', { name: 'Swap in' })).toHaveLength(2);
+  });
+
+  test('a swap in that would make a third commander names the card, and nothing is swapped in', async () => {
+    ownPlannedSwaps(twoSwaps());
+    refuseAsThirdCommander('newer');
+    const deck = await openPlanned();
+
+    await confirmSwapInAll(deck);
+
+    await waitFor(() =>
+      expect(presentedAlert()).toEqual({
+        title: 'Could not swap in all cards',
+        message: 'Counterspell would make a third commander. Nothing was swapped in.',
+        buttons: ['OK'],
+      }),
+    );
+    expect(deck.getAllByRole('button', { name: 'Swap in' })).toHaveLength(2);
+  });
+
+  test('a planned swap that changed elsewhere reloads Planned', async () => {
+    ownPlannedSwaps([...twoSwaps(), plannedSwapOf('third', { incoming: plannedCopyLine('copy-third', 'Fog') })]);
+    const deck = await openPlanned();
+    expect(await deck.findAllByRole('button', { name: 'Swap in' })).toHaveLength(3);
+    changePlannedSwapElsewhere('newer', 'closed');
+
+    await confirmSwapInAll(deck);
+
+    await waitFor(() => expect(deck.getAllByRole('button', { name: 'Swap in' })).toHaveLength(2));
+    expect(deck.queryByLabelText('+, Counterspell, M10 146')).not.toBeOnTheScreen();
+    expect(presentedAlert()).toBeNull();
   });
 });

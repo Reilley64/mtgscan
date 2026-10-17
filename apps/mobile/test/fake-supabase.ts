@@ -54,7 +54,13 @@ import type {
   SetDeckPriorityRequest,
   Violation,
 } from '@mtgscan/supabase/decks';
-import type { ClosePlannedSwapRequest, PlannedSwap, PlannedSwapsQuery, SwapInPlannedSwapRequest } from '@mtgscan/supabase/planned-swaps';
+import type {
+  ClosePlannedSwapRequest,
+  PlannedSwap,
+  PlannedSwapsQuery,
+  SwapInPlannedSwapRequest,
+  SwapInPlannedSwapsRequest,
+} from '@mtgscan/supabase/planned-swaps';
 import type {
   BuylistCard,
   BuylistQuery,
@@ -111,6 +117,7 @@ let failingAddPreviews = 0;
 let heldAddPreviews: Promise<void> | null = null;
 let plannedSwaps: PlannedSwap[] = [];
 let plannedSwapQueriesSent: PlannedSwapsQuery[] = [];
+let thirdCommanderSwaps = new Set<string>();
 let failingNeedsYouReads = 0;
 let buylistCards: BuylistCard[] = [];
 let buylistQueriesSent: BuylistQuery[] = [];
@@ -918,6 +925,35 @@ function swapInPlannedSwap(request: SwapInPlannedSwapRequest) {
   return { data: { deck_id: swap.deck_id, revision: (deck?.revision ?? 0) + 1 }, error: null };
 }
 
+function swapInPlannedSwaps({ deck_id, planned_swap_ids }: SwapInPlannedSwapsRequest) {
+  deckWrites = [...deckWrites, { name: 'swap_in_planned_swaps', request: { deck_id, planned_swap_ids } }];
+  if (failedDeckWrite()) {
+    return { data: null, error: networkFailure };
+  }
+  for (const [index, plannedSwapId] of planned_swap_ids.entries()) {
+    const { error } = plannedSwapToChange(plannedSwapId, ['open']);
+    if (error) {
+      return { data: null, error: { ...error, details: `planned_swap_ids[${index}]` } };
+    }
+  }
+  const thirdCommander = planned_swap_ids.findIndex((plannedSwapId) => thirdCommanderSwaps.has(plannedSwapId));
+  if (thirdCommander >= 0) {
+    return {
+      data: null,
+      error: { code: 'commander_limit', message: 'A deck has at most two commanders.', details: `planned_swap_ids[${thirdCommander}]` },
+    };
+  }
+  for (const plannedSwapId of planned_swap_ids) {
+    changePlannedSwapElsewhere(plannedSwapId, 'swapped_in');
+  }
+  const deck = decks.find((candidate) => candidate.deck_id === deck_id);
+  const revision = (deck?.revision ?? 0) + planned_swap_ids.length;
+  if (deck) {
+    saveDeck({ ...deck, revision, last_used_at: nextDeckTime() });
+  }
+  return { data: { deck_id, revision, swapped_in: planned_swap_ids, closed: [] }, error: null };
+}
+
 function closePlannedSwap(request: ClosePlannedSwapRequest) {
   deckWrites = [...deckWrites, { name: 'close_planned_swap', request }];
   if (failedDeckWrite()) {
@@ -1304,6 +1340,9 @@ export const fakeSupabase = {
     if (name === 'swap_in_planned_swap' && args && 'request' in args) {
       return swapInPlannedSwap(args.request as SwapInPlannedSwapRequest);
     }
+    if (name === 'swap_in_planned_swaps' && args && 'request' in args) {
+      return swapInPlannedSwaps(args.request as SwapInPlannedSwapsRequest);
+    }
     if (name === 'close_planned_swap' && args && 'request' in args) {
       return closePlannedSwap(args.request as ClosePlannedSwapRequest);
     }
@@ -1565,6 +1604,10 @@ export function changePlannedSwapElsewhere(plannedSwapId: string, status: Planne
   plannedSwaps = plannedSwaps.map((swap) => (swap.planned_swap_id === plannedSwapId ? { ...swap, status, effect: null } : swap));
 }
 
+export function refuseAsThirdCommander(plannedSwapId: string) {
+  thirdCommanderSwaps.add(plannedSwapId);
+}
+
 export function plannedSwapQueries() {
   return plannedSwapQueriesSent;
 }
@@ -1788,6 +1831,7 @@ export function resetFakeSupabase() {
   heldAddPreviews = null;
   plannedSwaps = [];
   plannedSwapQueriesSent = [];
+  thirdCommanderSwaps = new Set();
   failingNeedsYouReads = 0;
   buylistCards = [];
   buylistQueriesSent = [];
