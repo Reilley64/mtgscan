@@ -6,6 +6,7 @@ import { deckCardOf, openDeckNamed, openDeckWithCards } from './copies';
 import {
   buylistQueries,
   deckWritesSent,
+  failNeedsYouReads,
   ownBuylistCards,
   ownDecks,
   ownFreeCopies,
@@ -75,6 +76,22 @@ describe('the Planned tab', () => {
     expect(
       await deck.findByLabelText('Nothing planned yet, Planned swaps and buylist cards for this deck show up here.'),
     ).toBeOnTheScreen();
+  });
+
+  test('when the read fails, Planned says "Could not load this deck", and Try again reads it again', async () => {
+    ownDecks([krenko]);
+    ownBuylistCards([buylistCardOf('card')]);
+    await renderApp();
+    await pressTab('Decks');
+    failNeedsYouReads(1);
+    const deck = await openDeckNamed('Krenko');
+
+    await fireEvent.press(deck.getByRole('radio', { name: /^Planned/ }));
+    expect(await deck.findByText('Could not load this deck')).toBeOnTheScreen();
+    await fireEvent.press(deck.getByRole('button', { name: 'Try again' }));
+
+    expect(await deck.findByLabelText('+, Counterspell, Instant')).toBeOnTheScreen();
+    expect(deck.queryByText('Could not load this deck')).not.toBeOnTheScreen();
   });
 
   test('Swap in acts at once, and the planned swap leaves Planned', async () => {
