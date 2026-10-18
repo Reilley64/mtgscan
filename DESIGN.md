@@ -654,6 +654,7 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
     - A "Swapped in" or "Bought" card shows the reason of its planned swap or buylist card in body text under its change lines, with the AI client name in meta text.
     - The list ends with the day the deck was created, such as "Created 15 October 2026", in meta text.
     - When the read fails, History shows the empty state "Could not load this deck" with a **Try again** button.
+  - While the deck read loads, a skeleton of the deck screen shows under Close. It has the banner with a bar for the deck name and two chip-shaped blocks, a block in place of the segmented control, and, on Cards, a short bar for the first heading over a grid of card-shaped blocks that fills the visible screen, three per row with the binder grid's gaps. The tiles have no bars, because deck tiles have no meta line. The blocks pulse like the skeleton grid. VoiceOver reads the skeleton as one element, "Loading deck". When the read returns, the deck or the error state replaces it. A reload when the deck screen gains focus keeps the deck shown and brings no skeleton back.
   - When the read fails, the deck screen shows the empty state "Could not load this deck" with a **Try again** button. Close still shows.
 
 ### Sheets

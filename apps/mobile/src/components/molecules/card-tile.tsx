@@ -90,12 +90,16 @@ export function CardTile({
   );
 }
 
-export function CardTileSkeleton() {
+export function CardTileSkeleton({ imageOnly = false }: { imageOnly?: boolean }) {
   return (
     <View className={cn(cardColumnClass, 'gap-xs px-xs')}>
       <Skeleton className="aspect-card-image rounded-sm" />
-      <Skeleton className="h-skeleton-meta-bar w-[60%] self-center" />
-      <Skeleton className="h-skeleton-meta-bar w-[40%] self-center" />
+      {imageOnly ? null : (
+        <>
+          <Skeleton className="h-skeleton-meta-bar w-[60%] self-center" />
+          <Skeleton className="h-skeleton-meta-bar w-[40%] self-center" />
+        </>
+      )}
     </View>
   );
 }

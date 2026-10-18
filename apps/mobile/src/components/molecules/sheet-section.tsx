@@ -9,7 +9,7 @@ type SheetSectionProps = {
   children: ReactNode;
 };
 
-function SectionHeader({ title, count }: Pick<SheetSectionProps, 'title' | 'count'>) {
+export function SheetSectionHeader({ title, count }: Pick<SheetSectionProps, 'title' | 'count'>) {
   return count === undefined ? (
     <Text variant="body-strong" accessibilityRole="header" className="text-primary">
       {title}
@@ -27,7 +27,7 @@ function SectionHeader({ title, count }: Pick<SheetSectionProps, 'title' | 'coun
 export function SheetSection({ title, count, children }: SheetSectionProps) {
   return (
     <View className="gap-sm">
-      <SectionHeader title={title} count={count} />
+      <SheetSectionHeader title={title} count={count} />
       {children}
     </View>
   );

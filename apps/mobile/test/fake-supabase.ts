@@ -154,6 +154,7 @@ let addedCopies = new Map<string, string>();
 let failingScanBatch: 'before the server adds it' | 'after the server adds it' | null = null;
 let heldScanBatch: Promise<void> | null = null;
 let heldCollectionReads: Promise<void> | null = null;
+let heldDeckReads: Promise<void> | null = null;
 let galleryObjects = new Map<string, string>();
 let offlineGalleryReads = 0;
 let currentPrices: Map<string, CurrentPrice | null> | null = null;
@@ -1290,6 +1291,7 @@ export const fakeSupabase = {
       return deckList();
     }
     if (name === 'get_deck' && args && 'query' in args) {
+      await heldDeckReads;
       return deckRead(args.query as DeckQuery);
     }
     if (name === 'list_deck_changes' && args && 'query' in args) {
@@ -1763,6 +1765,19 @@ export function holdCollectionReads() {
   };
 }
 
+export function holdDeckReads() {
+  let finish = () => {};
+  heldDeckReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldDeckReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
 export function publishGallery(version: string, partNames: string[] = galleryPartNames) {
   galleryObjects = new Map(galleryObjects);
   galleryObjects.set('published.json', JSON.stringify({ formatVersion: 1, version, manifest: `${version}/manifest.json` }));
@@ -1861,6 +1876,7 @@ export function resetFakeSupabase() {
   failingScanBatch = null;
   heldScanBatch = null;
   heldCollectionReads = null;
+  heldDeckReads = null;
   galleryObjects = new Map();
   offlineGalleryReads = 0;
   currentPrices = null;

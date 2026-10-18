@@ -9,16 +9,22 @@ export function CardGrid({ children }: { children: ReactNode }) {
   return <View className={cn(cardRowClass, 'flex-row flex-wrap gap-y-sm')}>{children}</View>;
 }
 
-export function CardGridSkeleton({ accessibilityLabel }: { accessibilityLabel: string }) {
+export function CardTileSkeletons({ imageOnly = false }: { imageOnly?: boolean }) {
   const { width, height } = useWindowDimensions();
   const rows = Math.ceil(height / ((width / cardsPerRow) * cardHeightPerWidth));
   return (
+    <CardGrid>
+      {Array.from({ length: rows * cardsPerRow }, (_, tile) => (
+        <CardTileSkeleton key={tile} imageOnly={imageOnly} />
+      ))}
+    </CardGrid>
+  );
+}
+
+export function CardGridSkeleton({ accessibilityLabel }: { accessibilityLabel: string }) {
+  return (
     <View accessible accessibilityRole="progressbar" accessibilityLabel={accessibilityLabel}>
-      <CardGrid>
-        {Array.from({ length: rows * cardsPerRow }, (_, tile) => (
-          <CardTileSkeleton key={tile} />
-        ))}
-      </CardGrid>
+      <CardTileSkeletons />
     </View>
   );
 }

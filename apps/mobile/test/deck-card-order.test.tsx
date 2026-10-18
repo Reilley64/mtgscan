@@ -10,6 +10,7 @@ import {
   pressHeaderButton,
   pressTab,
   pushedScreen,
+  scrollToEnd,
   symbolNames,
   symbolTintColor,
 } from './native-ui';
@@ -79,6 +80,7 @@ describe('the group button', () => {
     ]);
 
     await pressButtonMenuItem(deckMenuButton('Group, Type'), 'Mana value');
+    await scrollToEnd(pushedScreen());
 
     expect(groupHeaders(deck)).toEqual(['Commander, 1', '0, 2', '1, 1', '2, 1', '3, 1', '6, 1', '7+, 4', 'Lands, 1']);
     expect(menuButtonNames(pushedScreen())).toEqual(['Group, Mana value', 'Sort, Name, A to Z']);
@@ -98,6 +100,7 @@ describe('the group button', () => {
     ]);
 
     await pressButtonMenuItem(deckMenuButton('Group, Type'), 'Color');
+    await scrollToEnd(pushedScreen());
 
     expect(groupHeaders(deck)).toEqual([
       'Commander, 1',
@@ -123,6 +126,7 @@ describe('the group button', () => {
     ]);
 
     await pressButtonMenuItem(deckMenuButton('Group, Type'), 'Rarity');
+    await scrollToEnd(pushedScreen());
 
     expect(groupHeaders(deck)).toEqual(['Commander, 1', 'Mythic, 1', 'Rare, 1', 'Uncommon, 1', 'Common, 1', 'Special, 2']);
   });

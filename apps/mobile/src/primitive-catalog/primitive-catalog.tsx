@@ -39,7 +39,7 @@ import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
 import { ChangeLine } from '@/components/molecules/change-line';
 import { Reason } from '@/components/molecules/reason';
-import { CommanderGalleryCard, DeckBanner } from '@/components/molecules/commander-card';
+import { CommanderGalleryCard, DeckBanner, DeckBannerSkeleton } from '@/components/molecules/commander-card';
 import { CardChip } from '@/components/molecules/card-chip';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
@@ -515,6 +515,7 @@ function Skeletons() {
       <Skeleton className="h-card-thumbnail-height w-card-thumbnail-width" />
       <Skeleton className="h-skeleton-title-bar w-[70%]" />
       <CardGridSkeleton accessibilityLabel="Loading collection" />
+      <DeckBannerSkeleton />
     </Section>
   );
 }

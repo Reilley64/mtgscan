@@ -695,19 +695,32 @@ export function heightsAround(element: HostElement) {
   return sizesAround(element, 'height');
 }
 
+function isScrollContent(element: HostElement) {
+  return element.parent?.type === 'RCTScrollView';
+}
+
+function isListCell(element: HostElement) {
+  return element.parent !== null && isScrollContent(element.parent) && typeof element.props.onLayout === 'function';
+}
+
+function firstBlockIn(element: HostElement) {
+  return element.children.find((child) => typeof child !== 'string');
+}
+
 export function placeInScrollView(element: HostElement) {
   let block = element;
-  while (block.parent && block.parent.parent?.type !== 'RCTScrollView') {
+  while (block.parent && !isScrollContent(block.parent) && !isListCell(block.parent)) {
     block = block.parent;
   }
-  const content = block.parent;
-  if (!content) {
+  const container = block.parent;
+  if (!container) {
     throw new Error('This element is not in a scroll view');
   }
+  const content = isListCell(container) ? container.parent! : container;
   const { padding = 0, paddingHorizontal = padding, paddingVertical = padding, paddingTop = paddingVertical, paddingLeft = paddingHorizontal, paddingRight = paddingHorizontal } =
     StyleSheet.flatten(content.props.style) ?? {};
-  const [first] = content.children.filter((child) => typeof child !== 'string');
-  return { block, isFirst: first === block, contentInsets: { top: paddingTop, left: paddingLeft, right: paddingRight } };
+  const isFirst = firstBlockIn(container) === block && (container === content || firstBlockIn(content) === container);
+  return { block, isFirst, contentInsets: { top: paddingTop, left: paddingLeft, right: paddingRight } };
 }
 
 export function blocksColored(element: HostElement, color: string) {
