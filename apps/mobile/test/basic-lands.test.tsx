@@ -115,6 +115,17 @@ describe('basic lands in the collection', () => {
     expect(appearsBefore(lastCopy!, collection.getByRole('button', { name: 'Plains, basic land, unlimited' }))).toBe(true);
   });
 
+  test('the basic land cards sit in their own Basic lands section, under its header and after the copies', async () => {
+    ownCollectionCopies(copyRows('Ponder', 2));
+
+    const collection = await openCollection();
+
+    const header = await collection.findByRole('header', { name: 'Basic lands' });
+    const [lastCopy] = collection.getAllByRole('button', { name: /^Ponder/ }).slice(-1);
+    expect(appearsBefore(lastCopy!, header)).toBe(true);
+    expect(appearsBefore(header, collection.getByRole('button', { name: 'Plains, basic land, unlimited' }))).toBe(true);
+  });
+
   test('the basic land cards show only once the last page of copies has loaded', async () => {
     ownCollectionCopies(Array.from({ length: 70 }, (_, index) => copyRows(`Card ${index + 1}`, 1)).flat());
     const collection = await openCollection();
@@ -132,6 +143,7 @@ describe('basic lands in the collection', () => {
 
     expect(collection.getByLabelText('Your collection is empty, Scan cards to add them to your collection.')).toBeOnTheScreen();
     expect(basicLandTileNames(collection)).toEqual([]);
+    expect(collection.queryByRole('header', { name: 'Basic lands' })).not.toBeOnTheScreen();
   });
 
   test('a search shows the basic land cards whose names match last, after the matching copies, and the count line counts only copies', async () => {
@@ -163,6 +175,7 @@ describe('basic lands in the collection', () => {
 
     expect(await collection.findByRole('button', { name: 'Snow-Covered Forest, basic land, unlimited' })).toBeOnTheScreen();
     expect(basicLandTileNames(collection)).toEqual(['Snow-Covered Forest']);
+    expect(collection.getByRole('header', { name: 'Basic lands' })).toBeOnTheScreen();
     expect(collection.queryByText('No cards found')).not.toBeOnTheScreen();
   });
 

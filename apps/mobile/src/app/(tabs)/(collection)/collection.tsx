@@ -6,13 +6,14 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { useSetIcons } from '@/catalog/use-set-icons';
-import { CardGridSkeleton } from '@/components/molecules/card-grid';
+import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
 import { SortButton } from '@/components/molecules/sort-button';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { PriceLine } from '@/components/molecules/price-line';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { ReadFailure } from '@/components/molecules/read-failure';
+import { SheetSection } from '@/components/molecules/sheet-section';
 import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
 import { CollectionSearchHeader } from '@/components/organisms/collection-search-header';
 import { collectionFiltersButton, filtersDrawerPath } from '@/components/organisms/collection-filters-button';
@@ -121,7 +122,19 @@ function BasicLandCardTile({ land }: { land: BasicLandCard }) {
   );
 }
 
-type BinderItem = { kind: 'copy'; copy: CollectionCopyRow } | { kind: 'basic_land'; land: BasicLandCard };
+function BasicLandSection({ lands }: { lands: BasicLandCard[] }) {
+  return (
+    <View className="pt-lg">
+      <SheetSection title="Basic lands">
+        <CardGrid>
+          {lands.map((land) => (
+            <BasicLandCardTile key={land.oracle_id} land={land} />
+          ))}
+        </CardGrid>
+      </SheetSection>
+    </View>
+  );
+}
 
 export default function CollectionScreen() {
   const search = useCollectionSearchState();
@@ -143,12 +156,8 @@ export default function CollectionScreen() {
     binder.status === 'loaded' && binder.nextCursor === null && !suggesting && !refused && (search.searching || copies.length > 0);
   const basicLands =
     showsBasicLands && basicLandsRead.status === 'loaded' && search.query ? matchingBasicLands(basicLandsRead.lands, search.query) : [];
-  const items: BinderItem[] = [
-    ...copies.map((copy) => ({ kind: 'copy' as const, copy })),
-    ...basicLands.map((land) => ({ kind: 'basic_land' as const, land })),
-  ];
   const matchCount = binder.status === 'loaded' && search.searching && !refused ? binder.matchCount : null;
-  const showsEmptyState = (refused || binder.status !== 'loading') && items.length === 0;
+  const showsEmptyState = (refused || binder.status !== 'loading') && copies.length === 0 && basicLands.length === 0;
 
   return (
     <TabListScreen
@@ -165,16 +174,15 @@ export default function CollectionScreen() {
           countLine={!suggesting && matchCount && total ? shownMatchCount(matchCount, total) : undefined}
         />
       }
-      data={items}
-      keyExtractor={(item) => (item.kind === 'copy' ? item.copy.copy_id : item.land.oracle_id)}
+      data={copies}
+      keyExtractor={(copy) => copy.copy_id}
       numColumns={cardsPerRow}
       columnWrapperClassName={cardRowClass}
       ItemSeparatorComponent={RowGap}
-      renderItem={({ item }) =>
-        item.kind === 'copy' ? <BinderTile copy={item.copy} setIconUri={iconOf(item.copy.set)} /> : <BasicLandCardTile land={item.land} />
-      }
+      renderItem={({ item }) => <BinderTile copy={item} setIconUri={iconOf(item.set)} />}
+      ListFooterComponent={basicLands.length > 0 ? <BasicLandSection lands={basicLands} /> : null}
       ListEmptyComponent={
-        suggesting ? null : (
+        suggesting || basicLands.length > 0 ? null : (
           <BinderPlaceholder
             binder={binder}
             searching={search.searching}
