@@ -33,7 +33,7 @@ test('the app opens on Recent with its empty state', async () => {
 });
 
 test.each([
-  ['Recent', 'Nothing needs you yet', 'When a deck needs you, it shows up here.'],
+  ['Recent', 'Nothing needs you yet', 'Planned swaps and buylist cards from your AI chat show up here.'],
   ['Decks', 'No decks yet', 'Create a deck, then add cards to it from your collection.'],
 ])('the empty state on %s has a white title in sheet title type and a muted message, read as one', async (tab, title, message) => {
   await renderApp();

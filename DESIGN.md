@@ -929,7 +929,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
     | Page | Illustration | Title | Body | Action |
     | --- | --- | --- | --- | --- |
-    | Recent, no Needs you items | two ghost Needs you items | Nothing needs you yet | When a deck needs you, it shows up here. | none |
+    | Recent, no Needs you items | two ghost Needs you items | Nothing needs you yet | Planned swaps and buylist cards from your AI chat show up here. | none |
     | Recent, read failed | two ghost Needs you items | Could not load Recent | Check your connection. | **Try again** reads Recent again |
     | Bought page sheet, no free copies | one row of empty binder slots | No copies found | Scan copies into your collection first. | none |
     | Bought page sheet, read failed | one row of empty binder slots | Could not load your copies | Check your connection. | **Try again** reads the free copies again |

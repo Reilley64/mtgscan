@@ -39,7 +39,7 @@ export default function RecentScreen() {
         <EmptyState
           illustration={<GhostNeedsYouItems />}
           title="Nothing needs you yet"
-          message="When a deck needs you, it shows up here."
+          message="Planned swaps and buylist cards from your AI chat show up here."
         />
       ) : null}
       {items.length > 0 ? (
