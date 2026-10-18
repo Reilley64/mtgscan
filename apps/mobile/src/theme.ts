@@ -106,6 +106,8 @@ const floatingButton = 48;
 
 const touchTarget = 44;
 
+const navigationBar = 44;
+
 export const sizes = {
   button: 38,
   signInButton: 50,
@@ -117,7 +119,7 @@ export const sizes = {
   quickAction: 32,
   quickActionDivider: 16,
   touchTarget,
-  headerClearance: touchTarget + spacing.lg,
+  headerClearance: navigationBar + spacing.lg,
   floatingButton,
   floatingButtonClearance: floatingButton + 2 * spacing.lg,
   commanderGalleryCard: 140,

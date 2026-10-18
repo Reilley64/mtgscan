@@ -18,6 +18,7 @@ import {
   drawerTitle,
   headerButton,
   headerButtonIsDisabled,
+  headerMenu,
   headerMenuRows,
   isDrawerPresented,
   openSettings,
@@ -455,7 +456,7 @@ async function removeAllScans() {
   await pressAlertButton('Remove');
 }
 
-test('the More button in batch review has one destructive item, Remove all scans, with no submenu', async () => {
+test('the More button in batch review has one destructive item, Remove all scans, with a trash symbol and no submenu', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), 'unreadable_photo');
   await openScan();
   await scanACard();
@@ -467,6 +468,7 @@ test('the More button in batch review has one destructive item, Remove all scans
   expect(headerButton(drawerScreen(), 'More')).toEqual({ type: 'menu', label: undefined, symbol: 'ellipsis', hint: undefined });
   expect(headerButtonIsDisabled(drawerScreen(), 'More')).toBe(false);
   expect(headerMenuRows(drawerScreen(), 'More')).toEqual([{ title: 'Remove all scans', destructive: true }]);
+  expect(headerMenu(drawerScreen(), 'More').items).toEqual([{ title: 'Remove all scans', symbol: 'trash' }]);
 });
 
 test('Remove all scans asks for a native confirmation that counts every scan in the scan batch', async () => {

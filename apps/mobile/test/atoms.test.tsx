@@ -1117,8 +1117,8 @@ describe('MenuButton', () => {
     expect(symbolTintColor(button)).toBe(textMuted);
     expect(symbolIn(button).parent).toHaveStyle({ width: 44, height: 44 });
     expect(buttonMenuActions(button)).toEqual([
-      { title: 'Rename', destructive: false },
-      { title: 'Delete user tag', destructive: true },
+      { title: 'Rename', symbol: 'pencil', destructive: false },
+      { title: 'Delete user tag', symbol: 'trash', destructive: true },
     ]);
 
     await pressButtonMenuAction(button, 'Rename');
@@ -1247,8 +1247,8 @@ describe('CardContextMenu', () => {
 
     const menu = contextMenu(screen.getByLabelText('Sol Ring'));
     expect(buttonMenuActions(menu)).toEqual([
-      { title: 'Open card', destructive: false },
-      { title: 'Remove from deck', destructive: true },
+      { title: 'Open card', symbol: 'rectangle.portrait', destructive: false },
+      { title: 'Remove from deck', symbol: 'minus.circle', destructive: true },
     ]);
 
     await pressButtonMenuAction(menu, 'Open card');

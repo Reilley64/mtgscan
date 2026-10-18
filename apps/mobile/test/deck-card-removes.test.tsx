@@ -57,9 +57,9 @@ describe('the long-press menu on the Cards tab', () => {
     const deck = await openDeck();
 
     expect(buttonMenuActions(contextMenu(deck.getByRole('button', { name: 'Angelic Curator, MH2 262' })))).toEqual([
-      { title: 'Open card', destructive: false },
-      { title: 'Make commander', destructive: false },
-      { title: 'Remove from deck', destructive: true },
+      { title: 'Open card', symbol: 'rectangle.portrait', destructive: false },
+      { title: 'Make commander', symbol: 'crown', destructive: false },
+      { title: 'Remove from deck', symbol: 'minus.circle', destructive: true },
     ]);
   });
 

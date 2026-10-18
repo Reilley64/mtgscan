@@ -1,7 +1,7 @@
 import type { DeckCommander } from '@mtgscan/supabase/decks';
 import { cva } from 'class-variance-authority';
 import { Image } from 'expo-image';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps, ComponentType, ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Chip, StatusChipButton, type StatusChipButtonProps, type StatusChipProps } from '@/components/atoms/chip';
@@ -108,15 +108,23 @@ export function DeckBanner({ name, chips, chipButtons, commanders }: DeckBannerP
   );
 }
 
+export function CommanderTitleShape({ block: Block }: { block: ComponentType<{ className: string }> }) {
+  return (
+    <>
+      <Block className="h-skeleton-title-bar w-1/2 rounded-full" />
+      <View className="flex-row gap-sm">
+        <Block className="h-chip w-1/6 rounded-md" />
+        <Block className="h-chip w-1/5 rounded-md" />
+      </View>
+    </>
+  );
+}
+
 export function DeckBannerSkeleton() {
   return (
     <View className={bannerVariants({ ghost: false })}>
       <View className="h-deck-banner justify-end gap-sm p-lg">
-        <Skeleton className="h-skeleton-title-bar w-[60%]" />
-        <View className="flex-row gap-sm">
-          <Skeleton className="h-chip w-[30%] rounded-md" />
-          <Skeleton className="h-chip w-[20%] rounded-md" />
-        </View>
+        <CommanderTitleShape block={Skeleton} />
       </View>
     </View>
   );
@@ -127,11 +135,7 @@ export function CommanderGalleryCardSkeletons() {
     <View accessible accessibilityRole="progressbar" accessibilityLabel="Loading decks" className="gap-lg">
       {[0, 1, 2].map((card) => (
         <View key={card} className={cardFrameVariants({ ghost: false })}>
-          <Skeleton className="h-skeleton-title-bar w-1/2" />
-          <View className="flex-row gap-sm">
-            <Skeleton className="h-chip w-1/4 rounded-md" />
-            <Skeleton className="h-chip w-1/5 rounded-md" />
-          </View>
+          <CommanderTitleShape block={Skeleton} />
         </View>
       ))}
     </View>

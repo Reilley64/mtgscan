@@ -69,6 +69,7 @@ import {
   contextMenu,
   splitColorsBehind,
   dashedOutlinesColored,
+  fadeEndColor,
   fadesDown,
   glassEffect,
   imageFrames,
@@ -94,7 +95,7 @@ import {
 } from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { primary: lime, onPrimary, surface, surfaceControl, surfaceRaised, line, text: white, textMuted, textDim, textPrice, warning, danger, info } = tokenColors;
+const { primary: lime, onPrimary, background, sheet, surface, surfaceControl, surfaceRaised, line, text: white, textMuted, textDim, textPrice, warning, danger, info } = tokenColors;
 const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
 const solRingArtCrop = 'https://cards.scryfall.io/art_crop/front/sol-ring.jpg';
 const mh3Symbol = 'https://svgs.scryfall.io/sets/mh3.svg';
@@ -178,6 +179,15 @@ describe('ToggleGroup', () => {
     const decks = screen.getByRole('radio', { name: 'Decks, 3' });
     expect(within(decks).getByText('3').parent).toHaveStyle({ backgroundColor: tokenColors.badge, borderRadius: 999 });
     expect(screen.getByRole('radio', { name: 'Prices' })).toBeOnTheScreen();
+  });
+
+  test('an option label stays on one line and shrinks to fit when the text is large', async () => {
+    await render(<CardPageSections />);
+
+    sections.forEach((section) => {
+      expect(screen.getByText(section)).toHaveProp('numberOfLines', 1);
+      expect(screen.getByText(section)).toHaveProp('adjustsFontSizeToFit', true);
+    });
   });
 
   test('pressing an option checks it and unchecks the one before', async () => {
@@ -958,7 +968,7 @@ describe('CardTile', () => {
     const tile = screen.getByRole('image', { name: 'Island, breaks a Commander rule' });
     expect(screen.queryByRole('button')).not.toBeOnTheScreen();
     expect(cardImageOutline(tile)).toEqual({ borderColor: danger, borderWidth: 2, borderRadius: 8 });
-    expect(buttonMenuActions(contextMenu(tile))).toEqual([{ title: 'Remove from deck', destructive: true }]);
+    expect(buttonMenuActions(contextMenu(tile))).toEqual([{ title: 'Remove from deck', symbol: 'minus.circle', destructive: true }]);
   });
 
   test('card tiles sit three to a row', async () => {
@@ -1000,6 +1010,21 @@ describe('CardGridSkeleton', () => {
   });
 });
 
+function lineBlocks(element: ReturnType<typeof screen.getByRole>) {
+  return element.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.backgroundColor === line);
+}
+
+function lineBlockShapes(element: ReturnType<typeof screen.getByRole>) {
+  return lineBlocks(element).map((block) => {
+    const { width, height, borderRadius } = StyleSheet.flatten(block.props.style);
+    return { width, height, borderRadius };
+  });
+}
+
+function pulsingLineBlocks(element: ReturnType<typeof screen.getByRole>) {
+  return lineBlocks(element).filter((block) => StyleSheet.flatten(block.props.style).opacity !== undefined).length;
+}
+
 describe('NeedsYouItemSkeletons', () => {
   test('the Needs you skeleton is one element that VoiceOver reads as Loading Recent', async () => {
     await render(<NeedsYouItemSkeletons />);
@@ -1020,15 +1045,26 @@ describe('NeedsYouItemSkeletons', () => {
     });
     const [tag, ...changeLines] = items[0].children as ReturnType<typeof screen.getByRole>[];
     const [avatar, deckName] = tag.children as ReturnType<typeof screen.getByRole>[];
-    expect(avatar).toHaveStyle({ width: 18, height: 18, borderRadius: 999, opacity: 0.45 });
+    expect(tag).toHaveStyle({ columnGap: 8 });
+    expect(avatar).toHaveStyle({ width: 24, height: 24, borderRadius: 999, opacity: 0.45 });
     expect(deckName).toHaveStyle({ height: 12, width: '33.33%' });
     expect(changeLines).toHaveLength(2);
     changeLines.forEach((changeLine) => {
       expect(changeLine).toHaveStyle({ backgroundColor: surfaceRaised });
-      const [thumbnail, name] = changeLine.children as ReturnType<typeof screen.getByRole>[];
+      const [, thumbnail, name] = changeLine.children as ReturnType<typeof screen.getByRole>[];
       expect(thumbnail).toHaveStyle({ width: 40, height: 56 });
-      expect(name).toHaveStyle({ height: 14, width: '50%' });
+      expect(name).toHaveStyle({ height: 12, width: '50%' });
     });
+  });
+
+  test('ghost Needs you items have the shape of the Needs you skeleton, in blocks that do not pulse', async () => {
+    await render(<NeedsYouItemSkeletons />);
+    const skeletonBlocks = lineBlockShapes(screen.root!);
+
+    await render(<GhostNeedsYouItems />);
+
+    expect(lineBlockShapes(screen.root!)).toEqual(skeletonBlocks);
+    expect(pulsingLineBlocks(screen.root!)).toBe(0);
   });
 });
 
@@ -1053,6 +1089,17 @@ describe('CommanderGalleryCardSkeletons', () => {
     const [title, chips] = cards[0].children as ReturnType<typeof screen.getByRole>[];
     expect(title).toHaveStyle({ height: 14, opacity: 0.45 });
     (chips.children as ReturnType<typeof screen.getByRole>[]).forEach((chip) => expect(chip).toHaveStyle({ height: 24 }));
+  });
+
+  test('a ghost commander card has the title shape of a gallery card skeleton, in blocks that do not pulse', async () => {
+    await render(<CommanderGalleryCardSkeletons />);
+    const [card] = screen.getByRole('progressbar').children as ReturnType<typeof screen.getByRole>[];
+    const skeletonBlocks = lineBlockShapes(card);
+
+    await render(<GhostCommanderCard />);
+
+    expect(lineBlockShapes(screen.root!)).toEqual(skeletonBlocks);
+    expect(pulsingLineBlocks(screen.root!)).toBe(0);
   });
 });
 
@@ -1576,6 +1623,14 @@ describe('empty state illustrations', () => {
     expect(dashedOutlinesColored(screen.root!, line)).toBe(6);
     expect(blocksColored(screen.root!, line)).toBe(0);
     expect(fadesDown(screen.root!)).toBe(true);
+  });
+
+  test('empty binder slots on a sheet fade down into the sheet color, and elsewhere into the background', async () => {
+    await render(<EmptyBinderSlots rows={1} onSheet />);
+    expect(fadeEndColor(screen.root!)).toBe(sheet);
+
+    await render(<EmptyBinderSlots rows={1} />);
+    expect(fadeEndColor(screen.root!)).toBe(background);
   });
 
   test('ghost Needs you items and a ghost commander card are line-colored shapes that fade down', async () => {

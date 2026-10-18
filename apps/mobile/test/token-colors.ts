@@ -1,6 +1,7 @@
 export const tokenColors = {
   primary: 'rgba(216, 255, 98, 1)',
   onPrimary: 'rgba(16, 21, 0, 1)',
+  background: 'rgba(8, 11, 13, 1)',
   surface: 'rgba(17, 23, 26, 1)',
   surfaceRaised: 'rgba(26, 33, 37, 1)',
   surfaceControl: 'rgba(35, 44, 49, 1)',

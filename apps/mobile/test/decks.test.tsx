@@ -19,6 +19,7 @@ import {
   headerButton,
   heightsAround,
   minHeightsAround,
+  headerMenu,
   headerMenuRows,
   leftHeaderButtons,
   pressAlertButton,
@@ -402,6 +403,16 @@ describe('the deck menu', () => {
     ]);
   });
 
+  test('More shows pencil for Rename, flag for Priority, and trash for Delete deck', async () => {
+    await openDeck();
+
+    expect(headerMenu(pushedScreen(), 'More').items).toEqual([
+      { title: 'Rename', symbol: 'pencil' },
+      { title: 'Priority', symbol: 'flag' },
+      { title: 'Delete deck', symbol: 'trash' },
+    ]);
+  });
+
   test('Rename opens a native alert with the name filled in, and Cancel and Save', async () => {
     await openDeck();
 
@@ -501,7 +512,7 @@ describe('the deck menu', () => {
     [0, 'Its history is deleted. This cannot be undone.'],
     [1, 'Its 1 card becomes free, and its history is deleted. This cannot be undone.'],
     [96, 'Its 96 cards become free, and its history is deleted. This cannot be undone.'],
-  ])('Delete deck asks first, naming the deck and how many cards become free (%i)', async (cardCount, message) => {
+  ])('Delete deck asks first, naming the deck, the cards that become free, and the deleted history (%i)', async (cardCount, message) => {
     await openDeck({ card_count: cardCount });
 
     await chooseFromMenu('Delete deck');
