@@ -130,7 +130,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByLabelText('Your collection is empty, Scan cards to add them to your collection.')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Scan cards' })).toBeOnTheScreen();
   expect(screen.getByLabelText('Camera not available, This device has no camera.')).toBeOnTheScreen();
-  expect(screen.getByLabelText('Nothing needs you yet, When a deck needs you, it shows up here.')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Nothing needs you yet, Planned swaps and buylist cards from your AI chat show up here.')).toBeOnTheScreen();
   expect(screen.getByLabelText('No decks yet, Create a deck, then add cards to it from your collection.')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Atraxa, Medium priority, 0 cards' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Krenko, Needs you 2, High priority, 1 card' })).toBeOnTheScreen();

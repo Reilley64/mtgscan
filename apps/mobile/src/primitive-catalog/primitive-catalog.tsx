@@ -663,7 +663,7 @@ function EmptyStates() {
         message="Scan cards to add them to your collection."
         action={{ label: 'Scan cards', onPress: () => {} }}
       />
-      <EmptyState illustration={<GhostNeedsYouItems />} title="Nothing needs you yet" message="When a deck needs you, it shows up here." />
+      <EmptyState illustration={<GhostNeedsYouItems />} title="Nothing needs you yet" message="Planned swaps and buylist cards from your AI chat show up here." />
       <EmptyState illustration={<GhostCommanderCard />} title="No decks yet" message="Create a deck, then add cards to it from your collection." />
       <View className="bg-camera-off">
         <EmptyState
