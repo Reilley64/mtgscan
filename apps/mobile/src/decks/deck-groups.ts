@@ -1,4 +1,4 @@
-import type { DeckBasicLand, DeckCard } from '@mtgscan/supabase/decks';
+import type { BasicLandCard, DeckBasicLand, DeckCard } from '@mtgscan/supabase/decks';
 
 import { colorNames } from '@/decks/deck-labels';
 import { sortChoices, type SortOrder } from '@/lib/sort-order';
@@ -9,12 +9,7 @@ type DeckSort = 'name' | 'mana_value' | 'price' | 'added';
 
 export type DeckOrder = SortOrder<DeckSort>;
 
-export type BasicLandTile = {
-  key: string;
-  oracle_id: string;
-  name: string;
-  image_uris: string[];
-};
+export type BasicLandTile = BasicLandCard & { key: string };
 
 export type MainDeckCard = DeckCard | BasicLandTile;
 

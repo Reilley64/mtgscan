@@ -110,7 +110,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
   );
 }
 
-function BasicLandTile({ land }: { land: BasicLandCard }) {
+function BasicLandCardTile({ land }: { land: BasicLandCard }) {
   return (
     <CardTile
       uri={land.image_uris[0]}
@@ -171,7 +171,7 @@ export default function CollectionScreen() {
       columnWrapperClassName={cardRowClass}
       ItemSeparatorComponent={RowGap}
       renderItem={({ item }) =>
-        item.kind === 'copy' ? <BinderTile copy={item.copy} setIconUri={iconOf(item.copy.set)} /> : <BasicLandTile land={item.land} />
+        item.kind === 'copy' ? <BinderTile copy={item.copy} setIconUri={iconOf(item.copy.set)} /> : <BasicLandCardTile land={item.land} />
       }
       ListEmptyComponent={
         suggesting ? null : (

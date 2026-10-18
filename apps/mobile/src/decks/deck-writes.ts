@@ -48,7 +48,7 @@ export async function deleteDeck(deckId: string) {
 
 export async function changeBasicLand(request: ChangeBasicLandRequest): Promise<WriteResult | 'refused'> {
   const { error } = await supabase.rpc('change_basic_land', { request });
-  if (error && readDeckError(error).code === 'invalid_argument') {
+  if (error && readDeckError(error).code === 'invalid_argument' && readDeckError(error).field === 'by') {
     return 'refused';
   }
   return writeResultOf(error);

@@ -1,7 +1,7 @@
 import type { CollectionQuery } from '@mtgscan/supabase/collection';
 import type { BasicLandCard } from '@mtgscan/supabase/decks';
 
-const fieldsThatBasicLandsMatch = ['text', 'names', 'sort', 'sort_order'];
+const fieldsThatBasicLandsMatch: string[] = ['text', 'names', 'sort', 'sort_order'] satisfies (keyof CollectionQuery)[];
 
 export function matchingBasicLands(lands: BasicLandCard[], query: CollectionQuery) {
   if (Object.keys(query).some((field) => !fieldsThatBasicLandsMatch.includes(field))) {
