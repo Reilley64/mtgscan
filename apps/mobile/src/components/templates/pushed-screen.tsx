@@ -1,31 +1,45 @@
 import type { ReactNode } from 'react';
-import { ScrollView, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { FlatList, ScrollView, type FlatListProps } from 'react-native';
 
 import { FloatingButtons } from '@/components/templates/floating-buttons';
+import { cn } from '@/lib/class-names';
 
-type PushedScreenProps = {
-  children: ReactNode;
-  floatingButtons?: ReactNode;
-  onEndReached?: () => void;
-};
+const screenClass = 'flex-1 bg-background';
 
-function nearTheEnd({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) {
-  const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
-  return contentOffset.y + 2 * layoutMeasurement.height >= contentSize.height;
+const contentClass = 'pb-safe-offset-xl';
+
+const endReachedScreens = 2;
+
+export function PushedScreen({ children }: { children: ReactNode }) {
+  return (
+    <ScrollView
+      className={screenClass}
+      contentContainerClassName={cn(contentClass, 'gap-lg')}
+      contentInsetAdjustmentBehavior="never"
+      keyboardShouldPersistTaps="handled">
+      {children}
+    </ScrollView>
+  );
 }
 
-export function PushedScreen({ children, floatingButtons, onEndReached }: PushedScreenProps) {
+type PushedListScreenProps<Item> = Omit<
+  FlatListProps<Item>,
+  'style' | 'contentContainerStyle' | 'contentInsetAdjustmentBehavior' | 'onEndReachedThreshold'
+> & {
+  floatingButtons?: ReactNode;
+};
+
+export function PushedListScreen<Item>({ floatingButtons, ...listProps }: PushedListScreenProps<Item>) {
   return (
     <>
-      <ScrollView
-        className="flex-1 bg-background"
-        contentContainerClassName="gap-lg pb-safe-offset-xl"
+      <FlatList
+        {...listProps}
+        className={screenClass}
+        contentContainerClassName={contentClass}
         contentInsetAdjustmentBehavior="never"
         keyboardShouldPersistTaps="handled"
-        scrollEventThrottle={100}
-        onScroll={onEndReached && ((event) => nearTheEnd(event) && onEndReached())}>
-        {children}
-      </ScrollView>
+        onEndReachedThreshold={endReachedScreens}
+      />
       {floatingButtons ? <FloatingButtons>{floatingButtons}</FloatingButtons> : null}
     </>
   );

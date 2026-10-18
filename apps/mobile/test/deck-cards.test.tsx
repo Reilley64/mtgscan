@@ -25,6 +25,7 @@ import {
   presentedDrawer,
   presentedDrawerContent,
   pushedScreen,
+  scrollToEnd,
 } from './native-ui';
 import { tokenColors } from './token-colors';
 
@@ -302,6 +303,7 @@ describe('the Cards tab', () => {
       deckCardOf('sorcery', 'Cultivate', 'Sorcery'),
       deckCardOf('modal', 'Sink into Stupor // Soporific Springs', 'Instant // Land'),
     ]);
+    await scrollToEnd(pushedScreen());
 
     expect(deck.getAllByRole('header').map((header) => header.props.accessibilityLabel ?? header.props.children)).toEqual([
       'Atraxa',

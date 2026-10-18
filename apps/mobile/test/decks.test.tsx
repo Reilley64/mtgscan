@@ -8,6 +8,7 @@ import {
   deleteDeckOnTheServer,
   failDeckReads,
   failDeckWrites,
+  holdDeckReads,
   ownDecks,
   startSignedIn,
 } from './fake-supabase';
@@ -297,6 +298,36 @@ describe('the deck screen', () => {
 
     expect(() => pushedScreen()).toThrow('No screen is pushed');
     expect(tabHeader(selectedTab()).title).toBe('Collection');
+  });
+
+  test('until the deck read returns, the deck screen shows the deck skeleton, then the deck', async () => {
+    ownDecks([{ name: 'Atraxa', ...medium }]);
+    const decks = await openDecks();
+    const reads = holdDeckReads();
+
+    await fireEvent.press(decks.getByRole('button', { name: /^Atraxa,/ }));
+
+    const deck = within(pushedScreen());
+    expect(deck.getByRole('progressbar', { name: 'Loading deck' })).toBeOnTheScreen();
+    expect(deck.queryByRole('header', { name: 'Atraxa' })).not.toBeOnTheScreen();
+    expect(leftHeaderButtons(pushedScreen())).toEqual(['Close']);
+
+    await reads.finish();
+
+    expect(await deck.findByRole('header', { name: 'Atraxa' })).toBeOnTheScreen();
+    expect(deck.queryByRole('progressbar', { name: 'Loading deck' })).not.toBeOnTheScreen();
+  });
+
+  test('VoiceOver reads the deck skeleton as one element and not each block', async () => {
+    ownDecks([{ name: 'Atraxa', ...medium }]);
+    const decks = await openDecks();
+    holdDeckReads();
+
+    await fireEvent.press(decks.getByRole('button', { name: /^Atraxa,/ }));
+
+    const skeleton = within(pushedScreen()).getByRole('progressbar', { name: 'Loading deck' });
+    expect(skeleton).toHaveProp('accessible', true);
+    expect(within(skeleton).queryAllByLabelText(/./)).toEqual([]);
   });
 
   test('a deck that could not load says so, keeps Close, and Try again reads it again', async () => {

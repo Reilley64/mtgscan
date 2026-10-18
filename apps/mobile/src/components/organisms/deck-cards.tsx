@@ -1,13 +1,15 @@
 import type { Deck, DeckCard } from '@mtgscan/supabase/decks';
+import { cva } from 'class-variance-authority';
+import { View } from 'react-native';
 
 import { sheenOf, spokenCopy } from '@/collection/copy-labels';
 import type { MenuAction } from '@/components/atoms/menu-button';
 import { Text } from '@/components/atoms/text';
 import { CardGrid } from '@/components/molecules/card-grid';
-import { CardTile } from '@/components/molecules/card-tile';
+import { CardTile, cardsPerRow } from '@/components/molecules/card-tile';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
-import { SheetSection } from '@/components/molecules/sheet-section';
+import { SheetSectionHeader } from '@/components/molecules/sheet-section';
 import {
   deckCommanders,
   isBasicLandTile,
@@ -17,7 +19,12 @@ import {
   type DeckOrder,
   type MainDeckCard,
 } from '@/decks/deck-groups';
-import { violationCardKeys } from '@/decks/violation-cards';
+
+export type DeckCardsRow =
+  | { kind: 'heading'; key: string; title: string; count?: number }
+  | { kind: 'cards'; key: string; cards: MainDeckCard[] }
+  | { kind: 'no-commander'; key: string }
+  | { kind: 'no-cards'; key: string };
 
 type CardHandlers = {
   onOpenCard: (card: DeckCard) => void;
@@ -25,19 +32,47 @@ type CardHandlers = {
   basicLandMenuActionsOf: (land: BasicLandTile) => MenuAction[];
 };
 
-type DeckCardsProps = CardHandlers & {
-  deck: Deck;
-  grouping: DeckGrouping;
-  order: DeckOrder;
+type DeckCardsRowViewProps = CardHandlers & {
+  row: DeckCardsRow;
+  violationKeys: Set<string>;
   onOpenCollection: () => void;
 };
 
-type DeckCardGridProps = CardHandlers & {
-  cards: MainDeckCard[];
-  violationKeys: Set<string>;
-};
+const commanderTitle = 'Commander';
 
-function DeckCardGrid({ cards, violationKeys, onOpenCard, menuActionsOf, basicLandMenuActionsOf }: DeckCardGridProps) {
+const rowSpacing = cva('px-lg', {
+  variants: {
+    kind: { heading: 'pt-lg', 'no-cards': 'pt-lg', cards: 'pt-sm', 'no-commander': 'pt-sm' },
+  },
+});
+
+function cardRows(title: string, cards: MainDeckCard[]): DeckCardsRow[] {
+  return Array.from({ length: Math.ceil(cards.length / cardsPerRow) }, (_, row) => ({
+    kind: 'cards',
+    key: `${title}:${row}`,
+    cards: cards.slice(row * cardsPerRow, (row + 1) * cardsPerRow),
+  }));
+}
+
+export function deckCardsRows(deck: Deck, grouping: DeckGrouping, order: DeckOrder): DeckCardsRow[] {
+  const commanders = deckCommanders(deck.cards);
+  const commanderRows: DeckCardsRow[] = [
+    { kind: 'heading', key: commanderTitle, title: commanderTitle, count: commanders.length > 0 ? commanders.length : undefined },
+    ...(commanders.length > 0 ? cardRows(commanderTitle, commanders) : [{ kind: 'no-commander' as const, key: 'no-commander' }]),
+  ];
+  if (deck.card_count === 0) {
+    return [...commanderRows, { kind: 'no-cards', key: 'no-cards' }];
+  }
+  return [
+    ...commanderRows,
+    ...mainDeckGroups(deck.cards, deck.basic_lands, grouping, order).flatMap((group): DeckCardsRow[] => [
+      { kind: 'heading', key: group.title, title: group.title, count: group.cards.length },
+      ...cardRows(group.title, group.cards),
+    ]),
+  ];
+}
+
+function DeckCardTiles({ cards, violationKeys, onOpenCard, menuActionsOf, basicLandMenuActionsOf }: CardHandlers & { cards: MainDeckCard[]; violationKeys: Set<string> }) {
   return (
     <CardGrid>
       {cards.map((card) =>
@@ -70,32 +105,26 @@ function DeckCardGrid({ cards, violationKeys, onOpenCard, menuActionsOf, basicLa
   );
 }
 
-export function DeckCards({ deck, grouping, order, onOpenCollection, ...handlers }: DeckCardsProps) {
-  const commanders = deckCommanders(deck.cards);
-  const violationKeys = violationCardKeys(deck.evaluation);
-  return (
-    <>
-      <SheetSection title="Commander" count={commanders.length > 0 ? commanders.length : undefined}>
-        {commanders.length > 0 ? (
-          <DeckCardGrid cards={commanders} violationKeys={violationKeys} {...handlers} />
-        ) : (
-          <Text className="text-text-muted">No commander yet.</Text>
-        )}
-      </SheetSection>
-      {deck.card_count === 0 ? (
+function rowContent({ row, onOpenCollection, ...tileProps }: DeckCardsRowViewProps) {
+  switch (row.kind) {
+    case 'heading':
+      return <SheetSectionHeader title={row.title} count={row.count} />;
+    case 'cards':
+      return <DeckCardTiles cards={row.cards} {...tileProps} />;
+    case 'no-commander':
+      return <Text className="text-text-muted">No commander yet.</Text>;
+    case 'no-cards':
+      return (
         <EmptyState
           illustration={<EmptyBinderSlots rows={1} />}
           title="No cards yet"
           message="Add cards from a copy's page in your collection."
           action={{ label: 'Open Collection', onPress: onOpenCollection }}
         />
-      ) : (
-        mainDeckGroups(deck.cards, deck.basic_lands, grouping, order).map((group) => (
-          <SheetSection key={group.title} title={group.title} count={group.cards.length}>
-            <DeckCardGrid cards={group.cards} violationKeys={violationKeys} {...handlers} />
-          </SheetSection>
-        ))
-      )}
-    </>
-  );
+      );
+  }
+}
+
+export function DeckCardsRowView(props: DeckCardsRowViewProps) {
+  return <View className={rowSpacing({ kind: props.row.kind })}>{rowContent(props)}</View>;
 }

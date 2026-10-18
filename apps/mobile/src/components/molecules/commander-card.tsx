@@ -8,6 +8,7 @@ import { Chip, StatusChipButton, type StatusChipButtonProps, type StatusChipProp
 import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { CountBadge } from '@/components/atoms/count-badge';
 import { dashedOutlineClass } from '@/components/atoms/dashed-outline';
+import { Skeleton } from '@/components/atoms/skeleton';
 import { Text } from '@/components/atoms/text';
 import { TileButton } from '@/components/atoms/tile-button';
 import { gradients } from '@/theme';
@@ -102,6 +103,20 @@ export function DeckBanner({ name, chips, chipButtons, commanders }: DeckBannerP
           <DeckTitle name={name} chips={chips} chipButtons={chipButtons} />
         </View>
         {secondCommander ? <SecondCommanderAvatar commander={secondCommander} size="banner" /> : null}
+      </View>
+    </View>
+  );
+}
+
+export function DeckBannerSkeleton() {
+  return (
+    <View className={bannerVariants({ ghost: false })}>
+      <View className="h-deck-banner justify-end gap-sm p-lg">
+        <Skeleton className="h-skeleton-title-bar w-[60%]" />
+        <View className="flex-row gap-sm">
+          <Skeleton className="h-chip w-[30%] rounded-md" />
+          <Skeleton className="h-chip w-[20%] rounded-md" />
+        </View>
       </View>
     </View>
   );
