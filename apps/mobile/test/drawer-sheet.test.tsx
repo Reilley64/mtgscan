@@ -1,10 +1,19 @@
 import { render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { Button } from '@/components/atoms/button';
 import { Text } from '@/components/atoms/text';
 import { DrawerSheet } from '@/components/templates/drawer-sheet';
 
 import { appearsBefore, isInScrollView } from './native-ui';
+
+function scrollContentPaddingTop(element: ReturnType<typeof screen.getByText>) {
+  let candidate = element.parent;
+  while (candidate && candidate.type !== 'RCTScrollView') {
+    candidate = candidate.parent;
+  }
+  return StyleSheet.flatten(candidate?.props.contentContainerStyle)?.paddingTop;
+}
 
 test('a drawer sheet keeps its title above the content that scrolls', async () => {
   await render(
@@ -47,4 +56,20 @@ test('a drawer sheet keeps its footer below the content that scrolls', async () 
   expect(isInScrollView(footer)).toBe(false);
   expect(isInScrollView(screen.getByText('Lightning Bolt'))).toBe(true);
   expect(appearsBefore(screen.getByText('Lightning Bolt'), footer)).toBe(true);
+});
+
+test('a drawer sheet starts its content 32 px down to clear the grabber, or 8 px down under a native header', async () => {
+  await render(
+    <DrawerSheet>
+      <Text>Lightning Bolt</Text>
+    </DrawerSheet>,
+  );
+  expect(scrollContentPaddingTop(screen.getByText('Lightning Bolt'))).toBe(32);
+
+  await render(
+    <DrawerSheet belowHeader>
+      <Text>Counterspell</Text>
+    </DrawerSheet>,
+  );
+  expect(scrollContentPaddingTop(screen.getByText('Counterspell'))).toBe(8);
 });
