@@ -15,7 +15,9 @@ setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
 
-type SetsFile = { data: { code: string; name: string; icon_svg_uri?: string }[] };
+type SetsFile = {
+  data: { code: string; name: string; set_type?: string; released_at?: string; icon_svg_uri?: string }[];
+};
 
 let alice: TestUser;
 
@@ -27,7 +29,10 @@ async function setsFile(change: (file: SetsFile) => SetsFile): Promise<string> {
 }
 
 async function cardSet(code: string) {
-  const { data, error } = await alice.client.from('card_sets').select('code, name, icon_svg_uri').eq('code', code);
+  const { data, error } = await alice.client
+    .from('card_sets')
+    .select('code, name, set_type, released_at, icon_svg_uri')
+    .eq('code', code);
   expect(error).toBeNull();
   return data![0];
 }
@@ -39,13 +44,15 @@ beforeAll(async () => {
 });
 
 describe('the catalog import', () => {
-  test('adds every set with its name and its Scryfall icon', async () => {
+  test('adds every set with its name, set type, release date, and Scryfall icon', async () => {
     const { count } = await alice.client.from('card_sets').select('*', { count: 'exact', head: true });
 
     expect(count).toBe(176);
     expect(await cardSet('mul')).toEqual({
       code: 'mul',
       name: 'Multiverse Legends',
+      set_type: 'masterpiece',
+      released_at: '2023-04-21',
       icon_svg_uri: 'https://svgs.scryfall.io/sets/mul.svg?1791777600',
     });
   });
@@ -65,6 +72,29 @@ describe('the catalog import', () => {
 
     expect(result.exitCode).toBe(0);
     expect((await cardSet('mul'))?.icon_svg_uri).toBe('https://svgs.scryfall.io/sets/mul.svg?1800000000');
+  });
+
+  test('updates a set whose set type changed, even when the card files did not change', async () => {
+    const changed = await setsFile((file) => ({
+      data: file.data.map((set) => (set.code === 'blb' ? { ...set, set_type: 'promo' } : set)),
+    }));
+
+    const result = await runCatalogImport(catalogFixtureManifest, '--sets', changed);
+
+    expect(result.exitCode).toBe(0);
+    expect((await cardSet('blb'))?.set_type).toBe('promo');
+  });
+
+  test('a set that has no release date in Scryfall any more keeps none', async () => {
+    const changed = await setsFile((file) => ({
+      data: file.data.map(({ released_at, ...set }) => (set.code === 'mh3' ? set : { ...set, released_at })),
+    }));
+    expect((await cardSet('mh3'))?.released_at).toBe('2024-06-14');
+
+    const result = await runCatalogImport(catalogFixtureManifest, '--sets', changed);
+
+    expect(result.exitCode).toBe(0);
+    expect((await cardSet('mh3'))?.released_at).toBeNull();
   });
 
   test('fails and changes no set when a set has no icon', async () => {

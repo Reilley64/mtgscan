@@ -107,6 +107,9 @@ function printingRow(card: ScryfallCard): StagedRow {
       illustration_id: card.illustration_id ?? faces[0]?.illustration_id ?? null,
       image_uris: images.flatMap((image) => (image?.normal ? [image.normal] : [])),
       art_crop_uri: images[0]?.art_crop ?? null,
+      booster: card.booster ?? null,
+      promo: card.promo ?? null,
+      variation: card.variation ?? null,
     },
   };
 }
