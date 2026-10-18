@@ -907,6 +907,9 @@ isOneToOne: false
 "list_planned_swaps":
 { Args: { "query"?: Json }; Returns: Json
                            },
+"list_sets":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "list_user_tags":
 { Args: { "query"?: Json }; Returns: Json
                            },
