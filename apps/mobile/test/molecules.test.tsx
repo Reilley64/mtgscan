@@ -39,7 +39,6 @@ import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { Reason } from '@/components/molecules/reason';
-import { SaveBar } from '@/components/molecules/save-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { SortButton } from '@/components/molecules/sort-button';
 import { GroupButton } from '@/components/molecules/group-button';
@@ -64,7 +63,9 @@ import {
   cardImageUri,
   appearsBefore,
   buttonMenu,
+  buttonMenuActions,
   cardSheen,
+  contextMenu,
   splitColorsBehind,
   dashedOutlinesColored,
   fadesDown,
@@ -791,25 +792,14 @@ describe('SheetSection', () => {
     expect(screen.getByText('Lightning Bolt')).toBeOnTheScreen();
   });
 
-  test('a sheet section with an action shows it on the right of its heading', async () => {
-    const onEdit = jest.fn();
+  test('a sheet section with a count reads its heading and count as one header', async () => {
     await render(
-      <SheetSection
-        title="Basic lands"
-        count={10}
-        action={
-          <Button onPress={onEdit}>
-            <Text>Edit</Text>
-          </Button>
-        }>
-        <Text>Island</Text>
+      <SheetSection title="Creatures" count={3}>
+        <Text>Birds of Paradise</Text>
       </SheetSection>,
     );
 
-    expect(screen.getByRole('header', { name: 'Basic lands, 10' })).toBeOnTheScreen();
-    expect(screen.getByRole('header', { name: 'Basic lands, 10' }).parent).toHaveStyle({ flexDirection: 'row', justifyContent: 'space-between' });
-    await fireEvent.press(screen.getByRole('button', { name: 'Edit' }));
-    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('header', { name: 'Creatures, 3' })).toBeOnTheScreen();
   });
 });
 
@@ -867,41 +857,6 @@ describe('StepperRow', () => {
     expect(screen.getByLabelText('Island, 8')).toHaveTextContent('8');
     await fireEvent.press(screen.getByRole('button', { name: 'Add one Island' }));
     expect(onChange).toHaveBeenCalledWith(9);
-  });
-});
-
-describe('SaveBar', () => {
-  test('a save bar has Cancel and a primary Save N changes button', async () => {
-    const onCancel = jest.fn();
-    const onSave = jest.fn();
-    await render(<SaveBar changeCount={2} saving={false} onCancel={onCancel} onSave={onSave} />);
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Save 2 changes' }));
-
-    expect(onCancel).toHaveBeenCalledTimes(1);
-    expect(onSave).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('button', { name: 'Save 2 changes' })).toHaveStyle({ backgroundColor: lime });
-    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveStyle({ backgroundColor: surfaceControl });
-  });
-
-  test('a save bar with one change says Save 1 change, and with none turns Save off', async () => {
-    await render(
-      <>
-        <SaveBar changeCount={1} saving={false} onCancel={() => {}} onSave={() => {}} />
-        <SaveBar changeCount={0} saving={false} onCancel={() => {}} onSave={() => {}} />
-      </>,
-    );
-
-    expect(screen.getByRole('button', { name: 'Save 1 change' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Save 0 changes' })).toBeDisabled();
-  });
-
-  test('while saving, Save is busy and Cancel is off', async () => {
-    await render(<SaveBar changeCount={1} saving onCancel={() => {}} onSave={() => {}} />);
-
-    expect(screen.getByRole('button', { name: 'Save 1 change' })).toBeBusy();
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
   });
 });
 
@@ -979,10 +934,10 @@ describe('CardTile', () => {
     expect(cardImageOutline(screen.getByRole('button'))).toMatchObject({ borderColor: '#00000000' });
   });
 
-  test('a card tile with a count shows it as a ×N count badge at the top right of the card image', async () => {
-    await render(<CardTile uri={solRing} count={8} accessibilityLabel="Island, 8" />);
+  test('an unlimited card tile shows an ∞ count badge at the top right of the card image', async () => {
+    await render(<CardTile uri={solRing} unlimited accessibilityLabel="Island, basic land, unlimited" onPress={() => {}} />);
 
-    const badge = within(screen.getByRole('image', { name: 'Island, 8' })).getByText('×8');
+    const badge = within(screen.getByRole('button', { name: 'Island, basic land, unlimited' })).getByText('∞');
     expect(badge.parent).toHaveStyle({ position: 'absolute', top: 4, right: 4 });
   });
 
@@ -993,18 +948,15 @@ describe('CardTile', () => {
     expect(cardImageOutline(tile)).toEqual({ borderColor: danger, borderWidth: 2, borderRadius: 8 });
   });
 
-  test('a card tile with a count in a violation has the danger outline, and VoiceOver adds that it breaks a Commander rule', async () => {
-    await render(<CardTile uri={solRing} count={8} accessibilityLabel="Island, 8" inViolation />);
+  test('a card tile with a menu and no tap action is an image with a long-press menu', async () => {
+    await render(
+      <CardTile uri={solRing} accessibilityLabel="Island" menuActions={[{ title: 'Remove from deck', destructive: true, onSelect: () => {} }]} inViolation />,
+    );
 
-    const tile = screen.getByRole('image', { name: 'Island, 8, breaks a Commander rule' });
+    const tile = screen.getByRole('image', { name: 'Island, breaks a Commander rule' });
+    expect(screen.queryByRole('button')).not.toBeOnTheScreen();
     expect(cardImageOutline(tile)).toEqual({ borderColor: danger, borderWidth: 2, borderRadius: 8 });
-    expect(within(tile).getByText('×8')).toBeOnTheScreen();
-  });
-
-  test('a card tile with a count that is not in a violation has no visible outline', async () => {
-    await render(<CardTile uri={solRing} count={8} accessibilityLabel="Island, 8" />);
-
-    expect(cardImageOutline(screen.getByRole('image', { name: 'Island, 8' }))).toMatchObject({ borderColor: '#00000000' });
+    expect(buttonMenuActions(contextMenu(tile))).toEqual([{ title: 'Remove from deck', destructive: true }]);
   });
 
   test('card tiles sit three to a row', async () => {

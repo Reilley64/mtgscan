@@ -35,7 +35,6 @@ test('the primitive catalog shows every primitive', async () => {
     'Progress bars',
     'Sheet sections',
     'Stepper rows',
-    'Save bars',
     'Deck tags',
     'Rule rows',
     'Swipe to confirm',
@@ -66,15 +65,12 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Kinnan, High priority · 0 cards' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Tymna, Medium priority · 100 cards, Would make Tymna invalid: deck size' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Creatures, 3' })).toBeOnTheScreen();
-  expect(screen.getByRole('header', { name: 'Basic lands, 10' })).toBeOnTheScreen();
-  expect(screen.getByRole('image', { name: 'Island, 8' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Island, basic land, unlimited' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263, breaks a Commander rule' })).toBeOnTheScreen();
-  expect(screen.getByRole('image', { name: 'Mountain, 2, breaks a Commander rule' })).toBeOnTheScreen();
+  expect(screen.getByRole('image', { name: 'Mountain, long press for a menu, breaks a Commander rule' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Remove one Island' })).toBeEnabled();
   expect(screen.getByRole('button', { name: 'Remove one Plains' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Add one Swamp' })).toBeDisabled();
-  expect(screen.getByRole('button', { name: 'Save 0 changes' })).toBeDisabled();
-  expect(screen.getByRole('button', { name: 'Save 1 change' })).toBeBusy();
   expect(screen.getByLabelText('tap: Add colorless mana colorless mana. Spend X generic mana two generic mana white mana blue mana black mana red mana green mana or snow mana.')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Deck validity, Valid' })).toBeOnTheScreen();
   expect(screen.getAllByRole('button', { name: 'Deck validity, Invalid' })).toHaveLength(3);

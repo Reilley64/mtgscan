@@ -1,6 +1,7 @@
 import {
   readDeckError,
   type AddDeckCardRequest,
+  type ChangeBasicLandRequest,
   type CreateDeckRequest,
   type CreatedDeck,
   type DeckPriority,
@@ -9,7 +10,6 @@ import {
   type RemoveDeckCardRequest,
   type RenameDeckRequest,
   type RevertDeckChangesRequest,
-  type SetBasicLandsRequest,
   type SetDeckCommanderRequest,
   type SetDeckPriorityRequest,
 } from '@mtgscan/supabase/decks';
@@ -46,8 +46,11 @@ export async function deleteDeck(deckId: string) {
   return writeResultOf(error);
 }
 
-export async function setBasicLands(request: SetBasicLandsRequest) {
-  const { error } = await supabase.rpc('set_basic_lands', { request });
+export async function changeBasicLand(request: ChangeBasicLandRequest): Promise<WriteResult | 'refused'> {
+  const { error } = await supabase.rpc('change_basic_land', { request });
+  if (error && readDeckError(error).code === 'invalid_argument' && readDeckError(error).field === 'by') {
+    return 'refused';
+  }
   return writeResultOf(error);
 }
 

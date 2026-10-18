@@ -15,7 +15,7 @@ type StoredEvaluation = {
   judged_at: Date;
 };
 
-type DeckRequest = 'create_deck' | 'add_deck_card' | 'set_deck_commander' | 'set_basic_lands';
+type DeckRequest = 'create_deck' | 'add_deck_card' | 'set_deck_commander' | 'change_basic_land';
 
 async function rpc(user: TestUser, name: DeckRequest, request: object) {
   const { data, error } = await user.client.rpc(name, { request: request as never });
@@ -38,7 +38,7 @@ export async function deckWithCards(user: TestUser): Promise<string> {
   const commander = await scannedCopy(user);
   await addedCopy(user, deckId, commander);
   await rpc(user, 'set_deck_commander', { copy_id: commander, commander: true });
-  await rpc(user, 'set_basic_lands', { deck_id: deckId, counts: [{ oracle_id: forest, count: 99 }] });
+  await rpc(user, 'change_basic_land', { deck_id: deckId, oracle_id: forest, by: 99 });
   return deckId;
 }
 

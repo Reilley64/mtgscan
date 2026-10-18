@@ -306,20 +306,19 @@ describe('swap in and Bought with basic lands', () => {
 describe('closing on its own with basic lands', () => {
   const outgoingLeftDeck = { status: 'closed', close_note: 'outgoing_left_deck' };
 
-  test('setting basic lands closes each open item whose deck has none left of its outgoing basic land', async () => {
+  test('changing a basic land card closes each open item whose deck has none left of its outgoing basic land', async () => {
     const client = await connectedAiClient();
     const { deckId } = await krenkoDeck(client.user);
     const held = await scannedCopy(client.user, shock);
     const plannedSwapId = await onePlan(client, await plannedSwapItem(client.user, deckId, held, { outgoing: { basic_land_oracle_id: mountain } }));
     const buylistCardId = await oneBuylistCard(client, deckId, goblinInstigatorCard, { outgoing: { basic_land_oracle_id: mountain } });
-    const setMountains = (count: number) =>
-      appRequest(client.user, 'set_basic_lands', { deck_id: deckId, counts: [{ oracle_id: mountain, count }] });
+    const mountainsChanged = (by: number) => appRequest(client.user, 'change_basic_land', { deck_id: deckId, oracle_id: mountain, by });
 
-    await setMountains(1);
+    await mountainsChanged(-97);
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject({ status: 'open' });
     expect((await listedBuylist(client.user)).items[0]).toMatchObject({ status: 'open' });
 
-    await setMountains(0);
+    await mountainsChanged(-1);
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject(outgoingLeftDeck);
     expect((await listedBuylist(client.user)).items[0]).toMatchObject({ buylist_card_id: buylistCardId, ...outgoingLeftDeck });
     expect(await copyOf(client.user, held)).toMatchObject({ free: true });
@@ -328,7 +327,7 @@ describe('closing on its own with basic lands', () => {
   test('a swap in that takes out the last of a basic land closes the other open items that take it out', async () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Lands');
-    await appRequest(client.user, 'set_basic_lands', { deck_id: deckId, counts: [{ oracle_id: mountain, count: 1 }] });
+    await appRequest(client.user, 'change_basic_land', { deck_id: deckId, oracle_id: mountain, by: 1 });
     const first = await onePlan(client, await bringingIn(client.user, deckId, island, { outgoing: { basic_land_oracle_id: mountain } }));
     const second = await onePlan(client, await bringingIn(client.user, deckId, forest, { outgoing: { basic_land_oracle_id: mountain } }));
 

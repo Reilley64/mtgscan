@@ -272,7 +272,7 @@ async function addSampleUserTags(testUserClient: Client, copyIds: string[]) {
   console.log(`Added ${sampleUserTags.length} sample user tags.`);
 }
 
-type DeckWrite = 'create_deck' | 'add_deck_card' | 'set_deck_commander' | 'set_basic_lands' | 'revert_deck_changes';
+type DeckWrite = 'create_deck' | 'add_deck_card' | 'set_deck_commander' | 'change_basic_land' | 'revert_deck_changes';
 
 async function deckWrite<Result>(testUserClient: Client, write: DeckWrite, request: object): Promise<Result> {
   const { data, error } = await testUserClient.rpc(write, { request: request as Json });
@@ -304,8 +304,8 @@ async function addSampleDeck(testUserClient: Client, { commander, partner, mainD
   const counts = basic_lands.flatMap(({ oracle_id, name }) =>
     oracle_id && sampleBasicLands[name] ? [{ oracle_id, count: sampleBasicLands[name] }] : [],
   );
-  if (counts.length > 0) {
-    await deckWrite(testUserClient, 'set_basic_lands', { deck_id, counts });
+  for (const { oracle_id, count } of counts) {
+    await deckWrite(testUserClient, 'change_basic_land', { deck_id, oracle_id, by: count });
   }
   const { revision } = await deckWrite<AddedDeckCard>(testUserClient, 'add_deck_card', {
     deck_id,

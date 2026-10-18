@@ -31,7 +31,7 @@ type CardTileProps = {
   accessibilityHint?: string;
   sheen?: CardSheen;
   menuActions?: MenuAction[];
-  count?: number;
+  unlimited?: boolean;
   inViolation?: boolean;
 } & ({ caption: string; children?: never } | { caption?: never; children?: ReactNode }) &
   ({ selected?: never; onPress?: never } | { selected?: boolean; onPress: () => void });
@@ -45,7 +45,7 @@ export function CardTile({
   children,
   selected,
   menuActions,
-  count,
+  unlimited,
   inViolation,
   onPress,
 }: CardTileProps) {
@@ -54,7 +54,7 @@ export function CardTile({
   const image = (
     <View className={cn(imageOutlineVariants({ inViolation }))}>
       <CardImage uri={uri} sheen={sheen} />
-      {count === undefined ? null : <CountBadge count={count} prefix="×" className="absolute right-xs top-xs" />}
+      {unlimited ? <CountBadge count="∞" className="absolute right-xs top-xs" /> : null}
     </View>
   );
 
@@ -74,25 +74,18 @@ export function CardTile({
     );
   }
 
+  const tile = onPress ? (
+    tileButton(onPress)
+  ) : (
+    <View accessible accessibilityRole="image" accessibilityLabel={label} accessibilityHint={accessibilityHint} className="gap-xs">
+      {image}
+      {underImage}
+    </View>
+  );
+
   return (
     <View className={cn(cardColumnClass, 'gap-xs px-xs')}>
-      {onPress ? (
-        menuActions ? (
-          <CardContextMenu actions={menuActions}>{tileButton(onPress)}</CardContextMenu>
-        ) : (
-          tileButton(onPress)
-        )
-      ) : (
-        <View
-          accessible
-          accessibilityRole="image"
-          accessibilityLabel={label}
-          accessibilityHint={accessibilityHint}
-          className="gap-xs">
-          {image}
-          {underImage}
-        </View>
-      )}
+      {menuActions ? <CardContextMenu actions={menuActions}>{tile}</CardContextMenu> : tile}
     </View>
   );
 }

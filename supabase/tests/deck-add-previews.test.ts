@@ -14,7 +14,11 @@ const lightningBolt = '132dc07f-74e2-4bd7-bdb1-4f5d5253c7f2';
 const sevenDwarves = '464adbae-70ea-48e1-b8ae-b404766f7a5a';
 const blackLotus = 'b0faa7f2-b547-42c4-a810-839da50dadfe';
 const counterspell = '0df55e3f-14de-46ef-b6b1-616618724d9e';
-const [mountain, snowCoveredMountain] = ['Mountain', 'Snow-Covered Mountain'].map((name) => basicLand(name).oracle_id);
+const [mountain, snowCoveredMountain, island] = ['Mountain', 'Snow-Covered Mountain', 'Island'].map((name) => basicLand(name).oracle_id) as [
+  string,
+  string,
+  string,
+];
 
 beforeAll(async () => {
   await resetCardCatalog();
@@ -52,13 +56,14 @@ async function deckOfKrenko(user: TestUser, cardCount: number, cardPrintingIds: 
     await addedCopy(user, deckId, cardPrintingId);
   }
   const landCount = cardCount - 1 - cardPrintingIds.length;
-  await succeeded(user, 'set_basic_lands', {
-    deck_id: deckId,
-    counts: [
-      { oracle_id: mountain, count: Math.min(landCount, 90) },
-      { oracle_id: snowCoveredMountain, count: Math.max(landCount - 90, 0) },
-    ],
-  });
+  for (const [oracleId, by] of [
+    [mountain, Math.min(landCount, 90)],
+    [snowCoveredMountain, landCount - 90],
+  ] as const) {
+    if (by > 0) {
+      await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: oracleId, by });
+    }
+  }
   return deckId;
 }
 
@@ -70,6 +75,12 @@ async function previewOf(user: TestUser, copyId: string) {
 
 async function effectOf(user: TestUser, deckId: string, copyId: string) {
   return (await previewOf(user, copyId)).items.find((item) => item.deck_id === deckId)!.effect;
+}
+
+async function basicLandPreviewOf(user: TestUser, oracleId: string, count: number) {
+  const { data, error } = await user.client.rpc('preview_add_deck_card', { query: { basic_land_oracle_id: oracleId, count } });
+  expect(error).toBeNull();
+  return data as unknown as AddDeckCardPreview;
 }
 
 async function evaluationOf(user: TestUser, deckId: string) {
@@ -187,6 +198,37 @@ describe('preview_add_deck_card', () => {
   });
 });
 
+describe('preview_add_deck_card for a basic land card', () => {
+  test('the preview judges each deck with that many more of the basic land card', async () => {
+    const user = await signUpNewUser();
+    const valid = await deckOfKrenko(user, 100);
+    const invalid = await deckOfKrenko(user, 87);
+    const effectsOf = async (oracleId: string, count: number) =>
+      new Map((await basicLandPreviewOf(user, oracleId, count)).items.map((item) => [item.deck_id, item.effect]));
+
+    const mountains = await effectsOf(mountain, 2);
+    expect(mountains.get(valid)).toEqual(effect('would_make_invalid', 'deck_size'));
+    expect(mountains.get(invalid)).toBeNull();
+    expect((await effectsOf(mountain, 13)).get(invalid)).toBeNull();
+    expect((await effectsOf(island, 3)).get(invalid)).toEqual({ kind: 'adds_violation', rules: [{ rule: 'color_identity', colors: ['U'] }] });
+  });
+
+  test.each<[string, Record<string, unknown>, string]>([
+    ['a card that is not a basic land card', { basic_land_oracle_id: crypto.randomUUID(), count: 1 }, 'basic_land_oracle_id'],
+    ['a count of 0', { basic_land_oracle_id: mountain, count: 0 }, 'count'],
+    ['a count above 99', { basic_land_oracle_id: mountain, count: 100 }, 'count'],
+    ['a copy and a basic land card together', { copy_id: crypto.randomUUID(), basic_land_oracle_id: mountain }, 'basic_land_oracle_id'],
+    ['a count for a copy', { copy_id: crypto.randomUUID(), count: 2 }, 'count'],
+    ['neither a copy nor a basic land card', {}, 'copy_id'],
+  ])('%s is refused with invalid_argument', async (_, query, field) => {
+    const user = await signUpNewUser();
+
+    const { error } = await user.client.rpc('preview_add_deck_card', { query: query as Json });
+
+    expect(readDeckError(error!)).toMatchObject({ code: 'invalid_argument', field });
+  });
+});
+
 describe('access', () => {
   test("the preview lists only the caller's decks, and another user's copy is not found", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
@@ -197,6 +239,14 @@ describe('access', () => {
     expect(await previewOf(bob, await scannedCopy(bob, blackLotus))).toEqual({ items: [{ deck_id: bobsDeck, effect: null }] });
     const { error } = await bob.client.rpc('preview_add_deck_card', { query: { copy_id: alicesCopy } });
     expect(readDeckError(error!)).toMatchObject({ code: 'not_found', field: 'copy_id' });
+  });
+
+  test("the preview of a basic land card lists only the caller's decks", async () => {
+    const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
+    await deckOfKrenko(alice, 100);
+    const bobsDeck = await created(bob);
+
+    expect(await basicLandPreviewOf(bob, mountain, 1)).toEqual({ items: [{ deck_id: bobsDeck, effect: null }] });
   });
 
   test.each<[string, () => AppClient]>([

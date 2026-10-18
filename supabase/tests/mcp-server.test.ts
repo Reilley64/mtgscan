@@ -625,7 +625,7 @@ describe('planned swaps over HTTP', () => {
     const { user, mcp, deckId } = await deckWithAFreeCopy();
     const [plains, forest] = [basicLand('Plains').oracle_id, basicLand('Forest').oracle_id];
     expect(
-      (await user.client.rpc('set_basic_lands', { request: { deck_id: deckId, counts: [{ oracle_id: forest, count: 2 }] } })).error,
+      (await user.client.rpc('change_basic_land', { request: { deck_id: deckId, oracle_id: forest, by: 2 } })).error,
     ).toBeNull();
 
     const created = await mcp.callTool({

@@ -134,6 +134,16 @@ export type DeckBasicLand = {
   count: number;
 };
 
+export type BasicLandCard = {
+  oracle_id: string;
+  name: string;
+  image_uris: string[];
+};
+
+export type BasicLandCardList = {
+  items: BasicLandCard[];
+};
+
 export type Deck = Omit<DeckRow, 'evaluation' | 'needs_you_count'> & {
   evaluation: DeckEvaluation | null;
   created_at: string;
@@ -247,17 +257,13 @@ export type SetDeckCommanderRequest = {
 
 export type SetDeckCommanderResult = AddedDeckCard;
 
-export type BasicLandCount = {
-  oracle_id: string;
-  count: number;
-};
-
-export type SetBasicLandsRequest = {
+export type ChangeBasicLandRequest = {
   deck_id: string;
-  counts: BasicLandCount[];
+  oracle_id: string;
+  by: number;
 };
 
-export type SetBasicLandsResult = AddedDeckCard;
+export type ChangedBasicLand = AddedDeckCard;
 
 export type RemoveDeckCardRequest = {
   copy_id: string;
@@ -303,9 +309,7 @@ export type RevertPreview = {
   effect: DeckChangeEffect | null;
 };
 
-export type AddDeckCardPreviewQuery = {
-  copy_id: string;
-};
+export type AddDeckCardPreviewQuery = { copy_id: string } | { basic_land_oracle_id: string; count: number };
 
 export type AddDeckCardPreview = {
   items: { deck_id: string; effect: DeckChangeEffect | null }[];

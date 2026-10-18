@@ -18,10 +18,11 @@ import { SwapInAllButton } from '@/components/organisms/swap-in-all-button';
 import { PushedScreen } from '@/components/templates/pushed-screen';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
+import type { BasicLandTile } from '@/decks/deck-groups';
 import { cardCountLabel, deckChips, estimatedBracketChip, validityChip } from '@/decks/deck-labels';
 import { backToGallery, showDeckWriteResult } from '@/decks/deck-write-result';
 import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
-import { removeFromDeck } from '@/decks/remove-from-deck';
+import { removeBasicLandFromDeck, removeFromDeck } from '@/decks/remove-from-deck';
 import { useDeck } from '@/decks/use-deck';
 import { useDeckChanges } from '@/decks/use-deck-changes';
 import { useNeedsYouCounts } from '@/needs-you/needs-you-counts';
@@ -116,6 +117,10 @@ export default function DeckScreen() {
     };
   }
 
+  function basicLandMenuActionsOf(land: BasicLandTile) {
+    return [{ title: 'Remove from deck', destructive: true, onSelect: () => void removeBasicLandFromDeck(deckId, land.oracle_id, reload) }];
+  }
+
   function confirmDelete(deck: Deck) {
     Alert.alert(`Delete ${deck.name}?`, deleteMessage(deck.card_count), [
       { text: 'Delete deck', style: 'destructive', onPress: deleteThisDeck },
@@ -175,9 +180,9 @@ export default function DeckScreen() {
                 deck={read.deck}
                 grouping={grouping}
                 order={order}
-                onEditBasicLands={() => router.push({ pathname: '/basic-lands', params: { deckId } })}
                 onOpenCard={openCard}
                 menuActionsOf={menuActionsOf(read.deck)}
+                basicLandMenuActionsOf={basicLandMenuActionsOf}
                 onOpenCollection={() => router.dismissTo('/collection')}
               />
             ) : null}

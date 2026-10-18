@@ -72,8 +72,8 @@ const added = (user: TestUser, deckId: string, copyId: string) =>
 const removed = (user: TestUser, copyId: string) => succeeded(user, 'remove_deck_card', { copy_id: copyId });
 const madeCommander = (user: TestUser, copyId: string, commander = true) =>
   succeeded(user, 'set_deck_commander', { copy_id: copyId, commander });
-const forestsSet = (user: TestUser, deckId: string, count: number) =>
-  succeeded(user, 'set_basic_lands', { deck_id: deckId, counts: [{ oracle_id: forest, count }] });
+const forestsChanged = (user: TestUser, deckId: string, by: number) =>
+  succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: forest, by });
 const deleted = (user: TestUser, copyId: string) => succeeded(user, 'delete_copy', { copy_id: copyId });
 
 async function deckOf(user: TestUser, deckId: string) {
@@ -134,7 +134,7 @@ describe('deck validity', () => {
     const user = await signUpNewUser();
     const { deckId } = await deckWithCommander(user);
 
-    await forestsSet(user, deckId, cardCount - 2);
+    await forestsChanged(user, deckId, cardCount - 2);
 
     const evaluation = await evaluationOf(user, deckId);
     expect(evaluation).toMatchObject({ validity: violations.length > 0 ? 'invalid' : 'valid', violations, undetermined: [] });
@@ -150,13 +150,8 @@ describe('deck validity', () => {
     const user = await signUpNewUser();
     const { deckId } = await deckWithCommander(user);
 
-    await succeeded(user, 'set_basic_lands', {
-      deck_id: deckId,
-      counts: [
-        { oracle_id: forest, count: 90 },
-        { oracle_id: wastes, count: 8 },
-      ],
-    });
+    await forestsChanged(user, deckId, 90);
+    await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: wastes, by: 8 });
 
     expect(await evaluationOf(user, deckId)).toMatchObject({ validity: 'valid', violations: [] });
   });
@@ -166,13 +161,13 @@ describe('deck validity', () => {
     const deckId = await created(user);
     await added(user, deckId, await scannedCopy(user));
 
-    await forestsSet(user, deckId, 97);
+    await forestsChanged(user, deckId, 97);
     expect(await evaluationOf(user, deckId)).toMatchObject({
       validity: 'invalid',
       violations: [noCommander, deckSize(98, 'Add 2 cards.')],
     });
 
-    await forestsSet(user, deckId, 99);
+    await forestsChanged(user, deckId, 2);
     expect(await evaluationOf(user, deckId)).toMatchObject({ validity: 'invalid', violations: [noCommander] });
   });
 
@@ -217,7 +212,7 @@ describe('saving after a deck change', () => {
     const changes: [string, () => Promise<void>, unknown[]][] = [
       ['add_deck_card', () => added(user, deckId, commander), [noCommander, deckSize(1, 'Add 99 cards.')]],
       ['set_deck_commander', () => madeCommander(user, commander), [deckSize(1, 'Add 99 cards.')]],
-      ['set_basic_lands', () => forestsSet(user, deckId, 98), [deckSize(99, 'Add 1 card.')]],
+      ['change_basic_land', () => forestsChanged(user, deckId, 98), [deckSize(99, 'Add 1 card.')]],
       ['add_deck_card', () => added(user, deckId, main), []],
       ['add_deck_card', () => added(user, deckId, other), [deckSize(101, 'Remove 1 card.')]],
       ['remove_deck_card', () => removed(user, other), []],
@@ -240,9 +235,9 @@ describe('saving after a deck change', () => {
     expect(await evaluationOf(user, deckId)).toBeNull();
     expect(await listedEvaluationOf(user, deckId)).toBeNull();
 
-    await forestsSet(user, deckId, 1);
+    await forestsChanged(user, deckId, 1);
     expect(await evaluationOf(user, deckId)).toMatchObject({ revision: 1 });
-    await forestsSet(user, deckId, 0);
+    await forestsChanged(user, deckId, -1);
     expect(await evaluationOf(user, deckId)).toBeNull();
 
     await added(user, deckId, copyId);
@@ -260,7 +255,7 @@ describe('saving after a deck change', () => {
   test('a revert that empties the deck deletes the deck evaluation, and a revert that refills it creates one', async () => {
     const user = await signUpNewUser();
     const deckId = await created(user);
-    await forestsSet(user, deckId, 3);
+    await forestsChanged(user, deckId, 3);
 
     expect(await revertedFrom(user, deckId, 1)).toBeNull();
     expect(await evaluationOf(user, deckId)).toBeNull();
@@ -280,7 +275,7 @@ describe('saving after a deck change', () => {
     const [afterChanges] = await storedEvaluationRows(deckId);
     expect(await call(user, 'set_deck_commander', { copy_id: main, commander: true })).toMatchObject({ code: 'commander_limit' });
     await madeCommander(user, commander);
-    await succeeded(user, 'set_basic_lands', { deck_id: deckId, counts: [{ oracle_id: forest, count: 0 }] });
+    expect(await call(user, 'change_basic_land', { deck_id: deckId, oracle_id: forest, by: -1 })).toMatchObject({ code: 'invalid_argument' });
     expect(
       await call(user, 'revert_deck_changes', {
         deck_id: deckId,

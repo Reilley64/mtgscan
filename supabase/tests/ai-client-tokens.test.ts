@@ -120,7 +120,7 @@ describe("refusing an AI client's token", () => {
     await refuseAiClientThenWrite('mark_deck_used', { deck_id });
     await refuseAiClientThenWrite('add_deck_card', { deck_id, copy_id: deckCopy, unprotect: false });
     await refuseAiClientThenWrite('set_deck_commander', { copy_id: deckCopy, commander: true });
-    await refuseAiClientThenWrite('set_basic_lands', { deck_id, counts: [{ oracle_id: forest, count: 10 }] });
+    await refuseAiClientThenWrite('change_basic_land', { deck_id, oracle_id: forest, by: 10 });
     const plannedSwapOf = async (copyId: string, expectedDeckRevision: number) => {
       const { planned_swaps } = await callFunction(aiClientToken(user), 'create_planned_swaps', {
         idempotency_key: `release-gate-${copyId}`,

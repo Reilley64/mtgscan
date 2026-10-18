@@ -46,8 +46,8 @@ async function addedCopy(user: TestUser, deckId: string, cardPrintingId: string)
   return copyId;
 }
 
-async function islandsSet(user: TestUser, deckId: string, count: number) {
-  await succeeded(user, 'set_basic_lands', { deck_id: deckId, counts: [{ oracle_id: island, count }] });
+async function islandsAdded(user: TestUser, deckId: string, count: number) {
+  await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: island, by: count });
 }
 
 async function deckOfOrmos(user: TestUser) {
@@ -81,7 +81,7 @@ describe('banned and not legal', () => {
     const titan = await addedCopy(user, deckId, primevalTitan);
     const lotuses = [await addedCopy(user, deckId, blackLotus), await addedCopy(user, deckId, blackLotus)].sort();
     const sword = await addedCopy(user, deckId, swordOfDungeonsAndDragons);
-    await islandsSet(user, deckId, 95);
+    await islandsAdded(user, deckId, 95);
 
     const evaluation = await evaluationOf(user, deckId);
 
@@ -110,7 +110,7 @@ describe('banned and not legal', () => {
     const user = await signUpNewUser();
     const deckId = await deckOfOrmos(user);
     await addedCopy(user, deckId, delverInnistrad);
-    await islandsSet(user, deckId, 98);
+    await islandsAdded(user, deckId, 98);
 
     expect(await evaluationOf(user, deckId)).toMatchObject({ validity: 'valid', violations: [], undetermined: [] });
   });
@@ -137,7 +137,7 @@ describe('the legality check with no rules data', () => {
     });
     expect((await runCatalogImport(changedCatalog)).exitCode).toBe(0);
 
-    await islandsSet(user, deckId, 97);
+    await islandsAdded(user, deckId, 97);
 
     const evaluation = await evaluationOf(user, deckId);
     expect(evaluation).toMatchObject({ validity: 'cannot_be_determined', violations: [] });

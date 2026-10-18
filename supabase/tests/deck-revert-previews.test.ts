@@ -48,10 +48,7 @@ async function deckOfKrenko(user: TestUser, cardCount: number, cardPrintingIds: 
   for (const cardPrintingId of cardPrintingIds) {
     await addedCopy(user, deckId, cardPrintingId);
   }
-  await succeeded(user, 'set_basic_lands', {
-    deck_id: deckId,
-    counts: [{ oracle_id: mountain, count: cardCount - 1 - cardPrintingIds.length }],
-  });
+  await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: mountain, by: cardCount - 1 - cardPrintingIds.length });
   return deckId;
 }
 
@@ -98,7 +95,7 @@ describe('the effect of a revert', () => {
   test('a revert that takes the commander out judges the deck without it', async () => {
     const user = await signUpNewUser();
     const deckId = await created(user);
-    await succeeded(user, 'set_basic_lands', { deck_id: deckId, counts: [{ oracle_id: mountain, count: 99 }] });
+    await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: mountain, by: 99 });
     const commander = await addedCopy(user, deckId, krenko);
     const commanderAdded = await lastChange(user, deckId);
     await succeeded(user, 'set_deck_commander', { copy_id: commander, commander: true });

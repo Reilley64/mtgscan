@@ -14,7 +14,8 @@ async function readAddDeckCardPreview(query: AddDeckCardPreviewQuery): Promise<A
   return { status: 'loaded', preview: data as unknown as AddDeckCardPreview };
 }
 
-export function useAddDeckCardPreview(copyId: string) {
-  const readOnce = useMemo(() => () => readAddDeckCardPreview({ copy_id: copyId }), [copyId]);
+export function useAddDeckCardPreview(query: AddDeckCardPreviewQuery) {
+  const queryKey = JSON.stringify(query);
+  const readOnce = useMemo(() => () => readAddDeckCardPreview(JSON.parse(queryKey)), [queryKey]);
   return useFocusedRead(readOnce);
 }

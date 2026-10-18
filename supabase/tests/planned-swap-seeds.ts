@@ -56,7 +56,7 @@ export async function krenkoDeck(user: TestUser, name = 'Krenko'): Promise<Krenk
   await addedToDeck(user, deckId, commander);
   await appRequest(user, 'set_deck_commander', { copy_id: commander, commander: true });
   await addedToDeck(user, deckId, bolt);
-  await appRequest(user, 'set_basic_lands', { deck_id: deckId, counts: [{ oracle_id: mountain, count: 98 }] });
+  await appRequest(user, 'change_basic_land', { deck_id: deckId, oracle_id: mountain, by: 98 });
   return { deckId, commander, bolt };
 }
 
