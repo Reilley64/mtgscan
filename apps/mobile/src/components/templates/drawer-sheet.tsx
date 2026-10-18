@@ -1,3 +1,4 @@
+import { cva } from 'class-variance-authority';
 import type { NativeStackNavigationOptions } from 'expo-router';
 import type { ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -50,17 +51,27 @@ export const pushedDrawerScreenOptions: NativeStackNavigationOptions = {
   headerTintColor: colors.primary,
 };
 
+const topInsets = cva('', {
+  variants: {
+    belowHeader: {
+      true: 'pt-sm',
+      false: 'pt-xl',
+    },
+  },
+});
+
 type DrawerSheetProps = {
   title?: string;
+  belowHeader?: boolean;
   footer?: ReactNode;
   children: ReactNode;
 };
 
-export function DrawerSheet({ title, footer, children }: DrawerSheetProps) {
+export function DrawerSheet({ title, belowHeader = false, footer, children }: DrawerSheetProps) {
   return (
     <>
       {title ? (
-        <View collapsable={false} className="bg-sheet pb-lg pt-xl">
+        <View collapsable={false} className={cn('bg-sheet pb-lg', topInsets({ belowHeader }))}>
           <Text variant="sheet-title" className="text-center">
             {title}
           </Text>
@@ -68,7 +79,7 @@ export function DrawerSheet({ title, footer, children }: DrawerSheetProps) {
       ) : null}
       <ScrollView
         className="flex-1 bg-sheet"
-        contentContainerClassName={cn('gap-lg px-lg pb-xl', !title && 'pt-xl')}
+        contentContainerClassName={cn('gap-lg px-lg pb-xl', !title && topInsets({ belowHeader }))}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets>

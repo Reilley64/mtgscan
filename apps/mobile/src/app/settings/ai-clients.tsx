@@ -28,7 +28,7 @@ export default function AiClientsScreen() {
   }
 
   return (
-    <DrawerSheet title="AI clients">
+    <DrawerSheet title="AI clients" belowHeader>
       <AiClientsContent
         mcpServerUrl={mcpServerUrl()}
         copied={copied}

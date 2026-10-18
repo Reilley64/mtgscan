@@ -493,6 +493,21 @@ test('choosing a printing from name search fixes the scan', async () => {
   expect(scanTab().getByRole('button', { name: '+1' })).toBeOnTheScreen();
 });
 
+test('name search says when no card name matches the text', async () => {
+  nextPhotosAre(cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+  await openLatestScan('Shock, M19 156');
+  await fireEvent.press(screen.getByRole('button', { name: 'None of these: search' }));
+
+  await fireEvent.changeText(screen.getByLabelText('Card name'), 'zzzz ');
+
+  expect(await screen.findByText('No card names match "zzzz".')).toBeOnTheScreen();
+  await fireEvent.changeText(screen.getByLabelText('Card name'), 'light');
+  expect(await screen.findByRole('button', { name: 'Lightning Bolt' })).toBeOnTheScreen();
+  expect(screen.queryByText(/^No card names match/)).not.toBeOnTheScreen();
+});
+
 test('choosing a basic land in name search says it is not tracked and changes nothing', async () => {
   nextPhotosAre(cardRecognition([shock]));
   await openScan();

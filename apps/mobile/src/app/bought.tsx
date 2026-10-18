@@ -33,7 +33,7 @@ export default function BoughtSheet() {
   }
 
   return (
-    <DrawerSheet>
+    <DrawerSheet belowHeader>
       <Stack.Screen options={{ title: 'Bought' }} />
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button tintColor={colors.text} onPress={() => router.back()}>
