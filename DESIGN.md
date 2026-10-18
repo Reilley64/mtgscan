@@ -449,6 +449,7 @@ A read that runs again when a page gains focus, and fails, keeps what the page a
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
   - Until the gallery is on the phone, the camera stays off and the tab shows the gallery download:
     - "Downloading gallery" with a progress bar and the megabytes done of the total, such as "12.3 MB of 68.5 MB".
+    - Under "Downloading gallery" and "Waiting for Wi-Fi", a line in text muted says "The scanner needs the gallery to recognize cards. It downloads once, and updates come in the background."
     - "Waiting for Wi-Fi" with the progress bar and a **Download now** button. The gallery downloads only on Wi-Fi until the user taps **Download now**, which uses mobile data.
     - "Gallery download paused. It continues when you are online." with a **Try again** button, when the phone is offline.
     - "Gallery download did not work." with a **Try again** button, when a part fails its SHA-256 check three times or the download is refused.
@@ -675,6 +676,7 @@ Short tasks use iOS page sheets that close with a downward swipe or Done:
 The Bought page sheet, from the **Bought** button of a buylist card on Recent or the Planned tab:
 
 - Its native navigation bar has **Cancel** on the left and the title "Bought" in sheet title type.
+- "Pick the copy you bought." in text muted sits above the rows. It hides when there is no free copy.
 - One list row per free copy of the card, across printings: the card thumbnail of the copy's printing, the card name, and a meta line with the set code in capitals and the collector number, then the finish when it is not nonfoil and the condition when it is not NM, such as "SS1 4 · Foil · LP". VoiceOver reads the row as a button with the name and the meta line.
 - A protected copy has a warning line under its row: "<card> is protected. Picking it unprotects it.".
 - A tap on a row puts that copy into the deck as one deck change, unprotects a protected copy, closes the sheet, and the item leaves Recent or Planned.

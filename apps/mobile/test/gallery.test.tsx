@@ -50,12 +50,15 @@ describe('on a phone without the gallery', () => {
     expect(download!.allowsCellularAccess).toBe(false);
   });
 
-  test('the Scan tab shows "Downloading gallery" with progress, and the camera stays off', async () => {
+  test('the Scan tab shows "Downloading gallery" with what the gallery is for and the progress, and the camera stays off', async () => {
     const tab = await openScan();
 
     await galleryDownloadReports('downloading', { bytesDone: 12_300_000, bytesTotal: 68_500_000 });
 
     expect(within(tab).getByText('Downloading gallery')).toBeOnTheScreen();
+    expect(
+      within(tab).getByText('The scanner needs the gallery to recognize cards. It downloads once, and updates come in the background.'),
+    ).toBeOnTheScreen();
     expect(within(tab).getByRole('progressbar', { name: 'Downloading gallery' })).toHaveAccessibilityValue({
       min: 0,
       max: 68_500_000,
