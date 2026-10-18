@@ -1,10 +1,23 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { useEffect, useState } from 'react';
 
 import { useNeedsYouCounts } from '@/needs-you/needs-you-counts';
 import { colors, typography } from '@/theme';
 
+const badgeDelayMs = 1500;
+
+function useTabBarSettled() {
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(true), badgeDelayMs);
+    return () => clearTimeout(timer);
+  }, []);
+  return settled;
+}
+
 export default function TabsLayout() {
   const { total } = useNeedsYouCounts();
+  const settled = useTabBarSettled();
   return (
     <NativeTabs
       backgroundColor={colors.background}
@@ -19,7 +32,7 @@ export default function TabsLayout() {
       <NativeTabs.Trigger name="(recent)">
         <NativeTabs.Trigger.Label>Recent</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="clock" />
-        {total > 0 ? <NativeTabs.Trigger.Badge>{String(total)}</NativeTabs.Trigger.Badge> : null}
+        {settled && total > 0 ? <NativeTabs.Trigger.Badge>{String(total)}</NativeTabs.Trigger.Badge> : null}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(collection)">
         <NativeTabs.Trigger.Label>Collection</NativeTabs.Trigger.Label>

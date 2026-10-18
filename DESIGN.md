@@ -404,7 +404,7 @@ Text follows the text size that the user sets in iOS. Buttons, chips, deck tags,
 
 ### App shell
 
-A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Scan**. Recent has a count badge with the number of open planned swaps and open buylist cards across all decks. With none, it has no badge. The count reads again when the app comes back to the foreground and each time Recent or a deck screen reads its items.
+A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Scan**. Recent has a count badge with the number of open planned swaps and open buylist cards across all decks. With none, it has no badge. The badge shows 1.5 seconds after the tab bar appears, at launch and after sign-in. On iOS 26, a badge set while the tab bar first lays out cuts the other tab labels short, such as "Collect…". The count reads again when the app comes back to the foreground and each time Recent or a deck screen reads its items.
 
 A read that runs again, when a page gains focus or after a change, and fails, keeps what the page already shows. Only a page that has shown nothing yet shows its error state.
 
@@ -552,7 +552,6 @@ The app shows the sign-in screen whenever there is no session. It is the binder 
 - **Sign-in buttons** stack in one column with 8 px gaps: **Sign in with Apple** first, then **Continue with Google**.
 - **Signing in.** The tapped button shows a spinner in place of its logo, and every sign-in button is disabled. Other sign-in buttons fade to 38% opacity. The system Apple button cannot show a spinner. While Apple sign-in runs, a white button of the same size with a black spinner takes its place.
 - **Cancel.** Cancelling the provider prompt returns to the buttons with no message.
-- **Signed in.** The sign-in screen fades into Recent. Signing out fades back to the sign-in screen.
 - **Failure.** A failure replaces the buttons with "Sign-in did not work." in a surface card with a danger mark, and a lime **Try again** button. The danger mark is a 22 px danger-tint circle with a danger "!". Try again brings back the buttons.
 - **Test sign-in.** A development build against local Supabase with `EXPO_PUBLIC_TEST_SIGN_IN` on shows a third button, **Sign in as the test user**, under **Continue with Google**. The test app shows **Sign in as the test user** as its only sign-in button, with no Apple or Google button. The button uses the control surface and the sign-in button height, and it signs in, fails, and dims like the other sign-in buttons. Other production builds leave it out.
 
