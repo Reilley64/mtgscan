@@ -17,6 +17,7 @@ import {
   cardImageUri,
   cardSheen,
   dashedOutlinesColored,
+  headerMenu,
   headerMenuRows,
   isDrawerPresented,
   pressAlertButton,
@@ -72,6 +73,22 @@ describe('the copy page actions menu', () => {
     await openCopyPage(/^Angelic Curator/);
 
     expect(actionsMenuRows()).toEqual(['Unprotect', 'Add to deck', 'Delete copy']);
+  });
+
+  test.each([
+    ['a free copy', false, { title: 'Protect', symbol: 'shield' }],
+    ['a protected copy', true, { title: 'Unprotect', symbol: 'shield.slash' }],
+  ])('the menu of %s shows a symbol before each action', async (_, isProtected, protection) => {
+    ownDecks([{ name: 'Atraxa', ...medium }]);
+    ownCopies([copyOf('copy-1', { protected: isProtected })]);
+
+    await openCopyPage(/^Angelic Curator/);
+
+    expect(headerMenu(pushedScreen(), 'More').items).toEqual([
+      protection,
+      { title: 'Add to deck', symbol: 'plus.rectangle.on.rectangle' },
+      { title: 'Delete copy', symbol: 'trash' },
+    ]);
   });
 
   test('with no decks, the menu offers no Add to deck and no Create deck', async () => {

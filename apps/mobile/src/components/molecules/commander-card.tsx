@@ -1,7 +1,7 @@
 import type { DeckCommander } from '@mtgscan/supabase/decks';
 import { cva } from 'class-variance-authority';
 import { Image } from 'expo-image';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps, ComponentType, ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Chip, StatusChipButton, type StatusChipButtonProps, type StatusChipProps } from '@/components/atoms/chip';
@@ -15,7 +15,7 @@ import { gradients } from '@/theme';
 
 const ghostVariant = { true: dashedOutlineClass, false: '' };
 
-const cardFrameVariants = cva('h-commander-gallery-card w-full justify-end gap-sm overflow-hidden rounded-md bg-surface p-md', {
+const cardFrameVariants = cva('min-h-commander-gallery-card w-full justify-end gap-sm overflow-hidden rounded-md bg-surface p-md pt-xl', {
   variants: { ghost: ghostVariant },
 });
 
@@ -98,7 +98,7 @@ export function DeckBanner({ name, chips, chipButtons, commanders }: DeckBannerP
   return (
     <View className={bannerVariants({ ghost: !commander })}>
       {commander ? <CommanderArt uri={commander.art_crop_uri} /> : null}
-      <View className="h-deck-banner flex-row items-end gap-md p-lg">
+      <View className="min-h-deck-banner flex-row items-end gap-md p-lg pt-header-clearance">
         <View className="flex-1 gap-sm">
           <DeckTitle name={name} chips={chips} chipButtons={chipButtons} />
         </View>
@@ -108,16 +108,36 @@ export function DeckBanner({ name, chips, chipButtons, commanders }: DeckBannerP
   );
 }
 
+export function CommanderTitleShape({ block: Block }: { block: ComponentType<{ className: string }> }) {
+  return (
+    <>
+      <Block className="h-skeleton-title-bar w-1/2 rounded-full" />
+      <View className="flex-row gap-sm">
+        <Block className="h-chip w-1/6 rounded-md" />
+        <Block className="h-chip w-1/5 rounded-md" />
+      </View>
+    </>
+  );
+}
+
 export function DeckBannerSkeleton() {
   return (
     <View className={bannerVariants({ ghost: false })}>
       <View className="h-deck-banner justify-end gap-sm p-lg">
-        <Skeleton className="h-skeleton-title-bar w-[60%]" />
-        <View className="flex-row gap-sm">
-          <Skeleton className="h-chip w-[30%] rounded-md" />
-          <Skeleton className="h-chip w-[20%] rounded-md" />
-        </View>
+        <CommanderTitleShape block={Skeleton} />
       </View>
+    </View>
+  );
+}
+
+export function CommanderGalleryCardSkeletons() {
+  return (
+    <View accessible accessibilityRole="progressbar" accessibilityLabel="Loading decks" className="gap-lg">
+      {[0, 1, 2].map((card) => (
+        <View key={card} className={cardFrameVariants({ ghost: false })}>
+          <CommanderTitleShape block={Skeleton} />
+        </View>
+      ))}
     </View>
   );
 }

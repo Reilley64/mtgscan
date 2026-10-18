@@ -84,9 +84,10 @@ export function UserTagPicker({ copy, userTags, changeFailed, onToggle, onCreate
                   <MenuButton
                     accessibilityLabel={`More, ${userTag.name}`}
                     actions={[
-                      { title: 'Rename', onSelect: () => setRowAction({ userTagId: userTag.user_tag_id, action: 'rename' }) },
+                      { title: 'Rename', symbol: 'pencil', onSelect: () => setRowAction({ userTagId: userTag.user_tag_id, action: 'rename' }) },
                       {
                         title: 'Delete user tag',
+                        symbol: 'trash',
                         destructive: true,
                         onSelect: () => setRowAction({ userTagId: userTag.user_tag_id, action: 'delete' }),
                       },

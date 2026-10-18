@@ -6,9 +6,9 @@ import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { dashedOutlineClass } from '@/components/atoms/dashed-outline';
 import { Surface } from '@/components/atoms/surface';
 import { SymbolView } from '@/components/atoms/symbol-view';
-import { Text } from '@/components/atoms/text';
 import { cardColumnClass, cardsPerRow } from '@/components/molecules/card-tile';
-import { CommanderCardFrame } from '@/components/molecules/commander-card';
+import { CommanderCardFrame, CommanderTitleShape } from '@/components/molecules/commander-card';
+import { NeedsYouItemShape } from '@/components/molecules/needs-you-skeleton';
 import { cn } from '@/lib/class-names';
 import { gradients, sizes } from '@/theme';
 
@@ -39,16 +39,8 @@ export function EmptyBinderSlots({ rows, onSheet }: FadeProps & { rows: number }
   );
 }
 
-function GhostChangeLine({ sign }: { sign: string }) {
-  return (
-    <View className="flex-row items-center gap-sm rounded-sm bg-surface-raised p-sm">
-      <Text variant="body-strong" className="text-text-dim">
-        {sign}
-      </Text>
-      <CardThumbnail uri={undefined} />
-      <View className={cn(barClass, 'w-1/2')} />
-    </View>
-  );
+function LineBlock({ className }: { className: string }) {
+  return <View className={cn('bg-line', className)} />;
 }
 
 export function GhostNeedsYouItems() {
@@ -56,14 +48,7 @@ export function GhostNeedsYouItems() {
     <FadesDown>
       <View className="w-full gap-sm">
         {[0, 1].map((item) => (
-          <Surface key={item} className="gap-sm">
-            <View className="flex-row items-center gap-sm">
-              <View className="h-chip w-chip rounded-full bg-line" />
-              <View className={cn(barClass, 'w-1/3')} />
-            </View>
-            <GhostChangeLine sign="+" />
-            <GhostChangeLine sign="−" />
-          </Surface>
+          <NeedsYouItemShape key={item} block={LineBlock} />
         ))}
       </View>
     </FadesDown>
@@ -74,11 +59,7 @@ export function GhostCommanderCard({ onSheet }: FadeProps) {
   return (
     <FadesDown onSheet={onSheet}>
       <CommanderCardFrame>
-        <View className="h-skeleton-title-bar w-1/2 rounded-full bg-line" />
-        <View className="flex-row gap-sm">
-          <View className="h-chip w-1/6 rounded-md bg-line" />
-          <View className="h-chip w-1/5 rounded-md bg-line" />
-        </View>
+        <CommanderTitleShape block={LineBlock} />
       </CommanderCardFrame>
     </FadesDown>
   );

@@ -41,11 +41,8 @@ async function oracleTagSuggestions(typed: TypedValue): Promise<SearchSuggestion
 }
 
 async function userTagSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
-  const read = await readUserTags();
-  if (read.status === 'failed') {
-    return [];
-  }
-  return userTagsFound(read.userTags, typed.value)
+  const { userTags } = await readUserTags();
+  return userTagsFound(userTags, typed.value)
     .slice(0, suggestionLimit)
     .map((userTag) => chipSuggestion(typed, userTag.name, shownCopyCount(userTag.copy_count)));
 }

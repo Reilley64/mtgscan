@@ -35,8 +35,8 @@ export default function CopyScreen() {
       router.back();
     } else if (result === 'held') {
       reload();
-      const heldCopy = await readCopy(copyId);
-      if (heldCopy.status === 'loaded') {
+      const heldCopy = await readCopy(copyId).catch(() => null);
+      if (heldCopy?.status === 'loaded') {
         confirmDelete(heldCopy.copy);
       }
     } else if (result === 'missing') {

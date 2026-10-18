@@ -99,6 +99,8 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'User tags, signed, trade binder' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Add user tags' })).toBeOnTheScreen();
   expect(screen.getByRole('progressbar', { name: 'Loading collection' })).toBeOnTheScreen();
+  expect(screen.getByRole('progressbar', { name: 'Loading decks' })).toBeOnTheScreen();
+  expect(screen.getByRole('progressbar', { name: 'Loading Recent' })).toBeOnTheScreen();
   expect(menuButtonNames(screen.container)).toEqual(['More, Misprint', 'Group, Type', 'Sort, Relevance', 'Sort, Price, high to low']);
   expect(screen.getByRole('progressbar', { name: 'Downloading gallery' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Other options' })).toBeOnTheScreen();
@@ -111,9 +113,9 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByLabelText('Added, Reverted, 16 October 2026 at 18:05')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();
   expect(buttonMenuActions(contextMenu(screen.getByRole('button', { name: 'Sol Ring, M10 216, long press for a menu' })))).toEqual([
-    { title: 'Open card', destructive: false },
-    { title: 'Make commander', destructive: false },
-    { title: 'Remove from deck', destructive: true },
+    { title: 'Open card', symbol: 'rectangle.portrait', destructive: false },
+    { title: 'Make commander', symbol: 'crown', destructive: false },
+    { title: 'Remove from deck', symbol: 'minus.circle', destructive: true },
   ]);
   expect(screen.getByRole('checkbox', { name: 'Misprint, 0 copies' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263', selected: false })).toBeOnTheScreen();
@@ -128,7 +130,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByLabelText('Your collection is empty, Scan cards to add them to your collection.')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Scan cards' })).toBeOnTheScreen();
   expect(screen.getByLabelText('Camera not available, This device has no camera.')).toBeOnTheScreen();
-  expect(screen.getByLabelText('Nothing needs you yet, When a deck needs you, it shows up here.')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Nothing needs you yet, Planned swaps and buylist cards from your AI chat show up here.')).toBeOnTheScreen();
   expect(screen.getByLabelText('No decks yet, Create a deck, then add cards to it from your collection.')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Atraxa, Medium priority, 0 cards' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Krenko, Needs you 2, High priority, 1 card' })).toBeOnTheScreen();

@@ -323,7 +323,7 @@ describe('basic lands on the Cards tab', () => {
     const [island] = deck.getAllByRole('image', { name: 'Island' });
 
     expect(deck.queryByRole('button', { name: /^Island/ })).not.toBeOnTheScreen();
-    expect(buttonMenuActions(contextMenu(island!))).toEqual([{ title: 'Remove from deck', destructive: true }]);
+    expect(buttonMenuActions(contextMenu(island!))).toEqual([{ title: 'Remove from deck', symbol: 'minus.circle', destructive: true }]);
   });
 
   test('Remove from deck takes one of that basic land out of the deck', async () => {

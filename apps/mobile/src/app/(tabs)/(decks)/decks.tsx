@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 
 import { NameAlert } from '@/components/atoms/name-alert';
-import { CommanderGalleryCard } from '@/components/molecules/commander-card';
+import { CommanderGalleryCard, CommanderGalleryCardSkeletons } from '@/components/molecules/commander-card';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { GhostCommanderCard } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
@@ -48,6 +48,7 @@ export default function DecksScreen() {
           onClose={() => setNaming(false)}
         />
       ) : null}
+      {read.status === 'loading' ? <CommanderGalleryCardSkeletons /> : null}
       {read.status === 'failed' ? (
         <ReadFailure illustration={<GhostCommanderCard />} title="Could not load your decks" onTryAgain={reload} />
       ) : null}

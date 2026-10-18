@@ -20,7 +20,7 @@ import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
 import { CardChip } from '@/components/molecules/card-chip';
 import { ChangeLine } from '@/components/molecules/change-line';
-import { CommanderGalleryCard, DeckBanner } from '@/components/molecules/commander-card';
+import { CommanderGalleryCard, CommanderGalleryCardSkeletons, DeckBanner } from '@/components/molecules/commander-card';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { DisclosureRow } from '@/components/molecules/disclosure-row';
@@ -37,6 +37,7 @@ import { PullIndicator } from '@/components/molecules/pull-indicator';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
+import { NeedsYouItemSkeletons } from '@/components/molecules/needs-you-skeleton';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { Reason } from '@/components/molecules/reason';
 import { SheetSection } from '@/components/molecules/sheet-section';
@@ -68,10 +69,12 @@ import {
   contextMenu,
   splitColorsBehind,
   dashedOutlinesColored,
+  fadeEndColor,
   fadesDown,
   glassEffect,
   imageFrames,
   heightsAround,
+  minHeightsAround,
   imageSources,
   imageTintColor,
   menuButton,
@@ -92,7 +95,7 @@ import {
 } from './native-ui';
 import { tokenColors } from './token-colors';
 
-const { primary: lime, onPrimary, surface, surfaceControl, surfaceRaised, line, text: white, textMuted, textDim, textPrice, warning, danger, info } = tokenColors;
+const { primary: lime, onPrimary, background, sheet, surface, surfaceControl, surfaceRaised, line, text: white, textMuted, textDim, textPrice, warning, danger, info } = tokenColors;
 const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
 const solRingArtCrop = 'https://cards.scryfall.io/art_crop/front/sol-ring.jpg';
 const mh3Symbol = 'https://svgs.scryfall.io/sets/mh3.svg';
@@ -176,6 +179,15 @@ describe('ToggleGroup', () => {
     const decks = screen.getByRole('radio', { name: 'Decks, 3' });
     expect(within(decks).getByText('3').parent).toHaveStyle({ backgroundColor: tokenColors.badge, borderRadius: 999 });
     expect(screen.getByRole('radio', { name: 'Prices' })).toBeOnTheScreen();
+  });
+
+  test('an option label stays on one line and shrinks to fit when the text is large', async () => {
+    await render(<CardPageSections />);
+
+    sections.forEach((section) => {
+      expect(screen.getByText(section)).toHaveProp('numberOfLines', 1);
+      expect(screen.getByText(section)).toHaveProp('adjustsFontSizeToFit', true);
+    });
   });
 
   test('pressing an option checks it and unchecks the one before', async () => {
@@ -296,7 +308,7 @@ describe('ListRow with a check', () => {
         detail="3 copies"
         checked
         onPress={onPress}
-        menu={<MenuButton accessibilityLabel="More, Signed" actions={[{ title: 'Rename', onSelect: () => {} }]} />}
+        menu={<MenuButton accessibilityLabel="More, Signed" actions={[{ title: 'Rename', symbol: 'pencil', onSelect: () => {} }]} />}
       />,
     );
 
@@ -950,13 +962,13 @@ describe('CardTile', () => {
 
   test('a card tile with a menu and no tap action is an image with a long-press menu', async () => {
     await render(
-      <CardTile uri={solRing} accessibilityLabel="Island" menuActions={[{ title: 'Remove from deck', destructive: true, onSelect: () => {} }]} inViolation />,
+      <CardTile uri={solRing} accessibilityLabel="Island" menuActions={[{ title: 'Remove from deck', symbol: 'minus.circle', destructive: true, onSelect: () => {} }]} inViolation />,
     );
 
     const tile = screen.getByRole('image', { name: 'Island, breaks a Commander rule' });
     expect(screen.queryByRole('button')).not.toBeOnTheScreen();
     expect(cardImageOutline(tile)).toEqual({ borderColor: danger, borderWidth: 2, borderRadius: 8 });
-    expect(buttonMenuActions(contextMenu(tile))).toEqual([{ title: 'Remove from deck', destructive: true }]);
+    expect(buttonMenuActions(contextMenu(tile))).toEqual([{ title: 'Remove from deck', symbol: 'minus.circle', destructive: true }]);
   });
 
   test('card tiles sit three to a row', async () => {
@@ -995,6 +1007,101 @@ describe('CardGridSkeleton', () => {
     expect(parseFloat(StyleSheet.flatten(card.props.style).aspectRatio)).toBeCloseTo(488 / 680);
     expect(metaBar).toHaveStyle({ height: 12, width: '60%', alignSelf: 'center' });
     expect(priceBar).toHaveStyle({ height: 12, width: '40%', alignSelf: 'center' });
+  });
+});
+
+function lineBlocks(element: ReturnType<typeof screen.getByRole>) {
+  return element.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.backgroundColor === line);
+}
+
+function lineBlockShapes(element: ReturnType<typeof screen.getByRole>) {
+  return lineBlocks(element).map((block) => {
+    const { width, height, borderRadius } = StyleSheet.flatten(block.props.style);
+    return { width, height, borderRadius };
+  });
+}
+
+function pulsingLineBlocks(element: ReturnType<typeof screen.getByRole>) {
+  return lineBlocks(element).filter((block) => StyleSheet.flatten(block.props.style).opacity !== undefined).length;
+}
+
+describe('NeedsYouItemSkeletons', () => {
+  test('the Needs you skeleton is one element that VoiceOver reads as Loading Recent', async () => {
+    await render(<NeedsYouItemSkeletons />);
+
+    const skeleton = screen.getByRole('progressbar', { name: 'Loading Recent' });
+    expect(skeleton).toHaveProp('accessible', true);
+    expect(within(skeleton).queryAllByLabelText(/./)).toEqual([]);
+  });
+
+  test('the Needs you skeleton shows two items, each a deck tag and two change lines with a card thumbnail block and a bar', async () => {
+    await render(<NeedsYouItemSkeletons />);
+
+    const items = screen.getByRole('progressbar').children as ReturnType<typeof screen.getByRole>[];
+    expect(items).toHaveLength(2);
+    items.forEach((item) => {
+      expect(item).toHaveStyle({ backgroundColor: surface });
+      expect(blocksColored(item, line)).toBe(6);
+    });
+    const [tag, ...changeLines] = items[0].children as ReturnType<typeof screen.getByRole>[];
+    const [avatar, deckName] = tag.children as ReturnType<typeof screen.getByRole>[];
+    expect(tag).toHaveStyle({ columnGap: 8 });
+    expect(avatar).toHaveStyle({ width: 24, height: 24, borderRadius: 999, opacity: 0.45 });
+    expect(deckName).toHaveStyle({ height: 12, width: '33.33%' });
+    expect(changeLines).toHaveLength(2);
+    changeLines.forEach((changeLine) => {
+      expect(changeLine).toHaveStyle({ backgroundColor: surfaceRaised });
+      const [, thumbnail, name] = changeLine.children as ReturnType<typeof screen.getByRole>[];
+      expect(thumbnail).toHaveStyle({ width: 40, height: 56 });
+      expect(name).toHaveStyle({ height: 12, width: '50%' });
+    });
+  });
+
+  test('ghost Needs you items have the shape of the Needs you skeleton, in blocks that do not pulse', async () => {
+    await render(<NeedsYouItemSkeletons />);
+    const skeletonBlocks = lineBlockShapes(screen.root!);
+
+    await render(<GhostNeedsYouItems />);
+
+    expect(lineBlockShapes(screen.root!)).toEqual(skeletonBlocks);
+    expect(pulsingLineBlocks(screen.root!)).toBe(0);
+    expect(screen.getAllByText('+')).toHaveLength(2);
+    expect(screen.getAllByText('\u2212')).toHaveLength(2);
+  });
+});
+
+describe('CommanderGalleryCardSkeletons', () => {
+  test('the gallery card skeletons are one element that VoiceOver reads as Loading decks', async () => {
+    await render(<CommanderGalleryCardSkeletons />);
+
+    const skeleton = screen.getByRole('progressbar', { name: 'Loading decks' });
+    expect(skeleton).toHaveProp('accessible', true);
+    expect(within(skeleton).queryAllByLabelText(/./)).toEqual([]);
+  });
+
+  test('the gallery card skeletons are three 140 px gallery cards, each a title bar over two chip blocks', async () => {
+    await render(<CommanderGalleryCardSkeletons />);
+
+    const cards = screen.getByRole('progressbar').children as ReturnType<typeof screen.getByRole>[];
+    expect(cards).toHaveLength(3);
+    cards.forEach((card) => {
+      expect(card).toHaveStyle({ minHeight: 140, backgroundColor: surface, justifyContent: 'flex-end' });
+      expect(blocksColored(card, line)).toBe(3);
+    });
+    const [title, chips] = cards[0].children as ReturnType<typeof screen.getByRole>[];
+    expect(title).toHaveStyle({ height: 14, opacity: 0.45 });
+    (chips.children as ReturnType<typeof screen.getByRole>[]).forEach((chip) => expect(chip).toHaveStyle({ height: 24 }));
+  });
+
+  test('a ghost commander card has the title shape of a gallery card skeleton, in blocks that do not pulse', async () => {
+    await render(<CommanderGalleryCardSkeletons />);
+    const [card] = screen.getByRole('progressbar').children as ReturnType<typeof screen.getByRole>[];
+    const skeletonBlocks = lineBlockShapes(card);
+
+    await render(<GhostCommanderCard />);
+
+    expect(lineBlockShapes(screen.root!)).toEqual(skeletonBlocks);
+    expect(pulsingLineBlocks(screen.root!)).toBe(0);
   });
 });
 
@@ -1520,6 +1627,14 @@ describe('empty state illustrations', () => {
     expect(fadesDown(screen.root!)).toBe(true);
   });
 
+  test('empty binder slots on a sheet fade down into the sheet color, and elsewhere into the background', async () => {
+    await render(<EmptyBinderSlots rows={1} onSheet />);
+    expect(fadeEndColor(screen.root!)).toBe(sheet);
+
+    await render(<EmptyBinderSlots rows={1} />);
+    expect(fadeEndColor(screen.root!)).toBe(background);
+  });
+
   test('ghost Needs you items and a ghost commander card are line-colored shapes that fade down', async () => {
     await render(<GhostNeedsYouItems />);
     expect(blocksColored(screen.root!, line)).toBeGreaterThan(0);
@@ -1557,7 +1672,7 @@ describe('CommanderGalleryCard', () => {
 
     const title = screen.getByRole('header', { name: 'Atraxa' });
     expect(title).toHaveStyle({ color: white, fontSize: 20, fontWeight: '800' });
-    expect(title.parent).toHaveStyle({ height: 140, backgroundColor: surface, borderRadius: 12, borderStyle: 'dashed', borderColor: line });
+    expect(title.parent).toHaveStyle({ minHeight: 140, backgroundColor: surface, borderRadius: 12, borderStyle: 'dashed', borderColor: line });
     expect(screen.getByLabelText('Medium priority')).toBeOnTheScreen();
     expect(screen.getByLabelText('62 cards')).toBeOnTheScreen();
   });
@@ -1617,7 +1732,7 @@ describe('DeckBanner', () => {
     expect(title).toHaveStyle({ color: white, fontSize: 20, fontWeight: '800' });
     expect(screen.root).toHaveStyle({ width: '100%', backgroundColor: surface, borderStyle: 'dashed', borderColor: line });
     expect(StyleSheet.flatten(screen.root!.props.style).borderRadius).toBeUndefined();
-    expect(heightsAround(title)).toEqual([200]);
+    expect(minHeightsAround(title)).toEqual([200]);
     expect(screen.getByLabelText('Medium priority')).toBeOnTheScreen();
     expect(screen.getByLabelText('62 cards')).toBeOnTheScreen();
   });

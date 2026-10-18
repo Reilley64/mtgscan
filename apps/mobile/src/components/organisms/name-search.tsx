@@ -34,7 +34,7 @@ function CardPrintings({ chosen, onChoose }: { chosen: ChosenCard; onChoose: (pr
 
 export function NameSearch({ onChoose }: NameSearchProps) {
   const [text, setText] = useState('');
-  const [names, setNames] = useState<CardName[]>([]);
+  const [found, setFound] = useState<{ text: string; names: CardName[] } | null>(null);
   const [chosen, setChosen] = useState<ChosenCard | null>(null);
   const latestText = useRef('');
 
@@ -44,10 +44,12 @@ export function NameSearch({ onChoose }: NameSearchProps) {
       return;
     }
     searchCardNames(text).then(
-      (found) => latestText.current === text && setNames(found),
-      () => latestText.current === text && setNames([]),
+      (names) => latestText.current === text && setFound({ text, names }),
+      () => latestText.current === text && setFound(null),
     );
   }, [text]);
+
+  const shownNames = text.trim() && found ? found.names : [];
 
   const chooseName = (card: CardName) => {
     Keyboard.dismiss();
@@ -77,7 +79,10 @@ export function NameSearch({ onChoose }: NameSearchProps) {
         <CardPrintings chosen={chosen} onChoose={onChoose} />
       ) : (
         <View className="gap-xs">
-          {(text.trim() ? names : []).map((card) => (
+          {shownNames.length === 0 && found?.text === text && text.trim() ? (
+            <Text className="text-text-muted">{`No card names match "${text.trim()}".`}</Text>
+          ) : null}
+          {shownNames.map((card) => (
             <Surface key={card.oracleId} onPress={() => chooseName(card)} className="justify-center rounded-sm p-md">
               <Text variant="body-strong">{card.name}</Text>
             </Surface>
