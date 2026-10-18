@@ -383,7 +383,7 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 - **Glass text muted (#dce3e6)** and **glass text dim (#b5c0c5)** replace text muted and text dim on Liquid Glass, so the meta line, the chevron, and disabled labels stay readable when a bright card shows through. **Glass skeleton (white at 12%)** replaces line for the skeleton blocks and the empty thumbnail on glass. The owner picked it on the phone from four shades (#113). See Liquid Glass.
 - **Primary (#d8ff62)**, the lime accent, is the single interaction color: the primary button, the selected chip, the selected tab, section headings, and in-app links. Text on it is **on-primary (#101500)**. The brand mark is the one non-action use of lime.
 - **Grabber (#4a555b)** draws the short bar at the top of the sign-in sheet. The settings drawer uses the iOS system grabber, which iOS draws in its own color.
-- **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message and the destructive buttons. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall.
+- **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message and the destructive buttons. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall and on set page tiles.
 - **Incoming (#d8ff62)** and **outgoing (#ff8a7a)** mark the plus and minus lines of a planned swap, buylist card, or deck change.
 - **Warning (#f4d06f)** marks protected copies and caution states. **Danger (#ff7a70)** marks invalid decks, the cards that break a Commander rule, and destructive actions such as remove scan or revert. **Info (#8fd3ff)** marks the estimated bracket and in-deck counts.
 - **Badge (#e0244a)** is only for count badges on tabs, buttons, and the basic land tiles of Collection, such as Needs you.
@@ -560,10 +560,19 @@ Sets lists every released set that has a card printing in the card catalog, with
   - With no match, the list shows the empty state `No sets match "xyz".` with no body.
   - The sets come newest first, then by name, as the read returns them. A set whose main set is empty, such as a set of only basic lands, is not shown.
   - Each set is a set row. See Components.
-  - A tap on a row does nothing for now. The set page comes later.
+  - A tap on a row pushes the set's set page onto the Collection tab's stack.
   - Sets reads again each time it gains focus, so cards scanned since then count at once. A reload keeps the rows shown.
   - While Sets loads, a skeleton of 8 set rows shows. Each has a block in place of the set symbol and bars for the name, "x of y", and the progress bar. VoiceOver reads the skeleton as one element, "Loading sets".
   - When the read fails, Sets shows the empty state "Could not load Sets" with a **Try again** button. See Empty states.
+- **Set page.** It shows one set's cards as a checklist in Any finish (#367). It follows the set page of the HTML prototype `docs/prototypes/sets.html`, with the set symbol header of option A. The set art banner comes later.
+  - It is a screen in the Collection tab's stack, like Sets. The tab bar stays. It has the native back button and no title. The swipe from the left edge goes back to Sets.
+  - A set header starts the page. It has the layout of a set row, with the set symbol filling up in lime, the set name, "x of y", the progress bar, and the percentage. It is not a button. VoiceOver reads it as one header, such as "Bloomburrow, 234 of 261, 89 percent".
+  - The main set follows as card images, 3 per row, in collector number order. A heading "Variants" in body strong lime then shows the variants' own "x of y" in meta text, such as "12 of 106", and their grid in the same order. VoiceOver reads the heading as "Variants, 12 of 106". A set with no variants has no Variants section.
+  - Each card printing is a set page tile. See Components. The page shows no prices.
+  - Tiles are images, not buttons. A tap on one does nothing.
+  - The set page reads again each time it gains focus, so cards scanned since then count at once. A reload keeps the cards shown.
+  - While the set page loads, a skeleton shows a set row skeleton and a grid of card shapes. VoiceOver reads it as one element, "Loading set".
+  - When the read fails, the set page shows the empty state "Could not load this set" with a **Try again** button. See Empty states.
 
 ### Sign-in screen
 
@@ -931,7 +940,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - While the commit runs, rows do not open.
   - With an empty scan batch, batch review shows its empty state in place of the list, and the **Add to collection** control hides. See Empty states. The control stays while a commit that works closes the drawer. Scans that were not recognized never enter the scan batch, so the control never shows disabled.
   - The phone saves the scan batch for each account, so they survive a restart. Another account on the phone does not see them.
-- **Binder tile.** One copy's card image with a meta line and a price line under it. There is no quantity badge and no chip.
+- **Binder tile.** One copy's card image with a meta line and a price line under it. There is no quantity badge and no chip (#116). Only set page tiles have a quantity badge.
   - Until the image loads, the tile is a line-colored card shape.
   - The meta line sits 4 px below the card image, centered, in meta text in text muted: the set's expansion symbol from Scryfall at 16 px tinted with the rarity color of the card printing (see Colors), then the collector number. A protected copy starts the line with an 11 px `shield.fill` symbol in warning, before the set symbol: "[shield] [symbol] 136". A copy in a deck starts the line with the 11 px deck box symbol in info, before the shield: "[deck box] [shield] [symbol] 136". A copy held by a planned swap starts the line with an 11 px `bookmark.fill` symbol in info, the held symbol: "[held] [symbol] 136". A held copy is never in a deck and never protected. When the card catalog has no symbol for the set, or it has not loaded, the set code in capitals takes its place. A copy that is not NM adds a text dim " · " and its condition: "[symbol] 136 · MP". Every condition uses the same text muted color.
   - The line never names the finish. A foil copy has a faint rainbow sheen over its card image, and an etched copy has a faint silver sheen. Nonfoil copies have none. The sheen does not move. It is a diagonal gradient at 30% opacity, so the card art reads normally.
@@ -961,6 +970,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
     | Collection search, no results | one row of empty binder slots | No cards found | Check the spelling or try fewer words. | none |
     | Sets, read failed | a dashed card frame with `wifi.slash` | Could not load Sets | Check your connection. | **Try again** reads Sets again |
     | Sets search, no match | a dashed card frame with `magnifyingglass` | No sets match "xyz". | none | none |
+    | Set page, read failed | a dashed card frame with `wifi.slash` | Could not load this set | Check your connection. | **Try again** reads the set again |
     | Decks, no decks | a ghost commander card | No decks yet | Create a deck, then add cards to it from your collection. | **Create deck** opens the name alert |
     | Decks, read failed | a ghost commander card | Could not load your decks | Check your connection. | **Try again** reads the decks again |
     | AI clients list, read failed | a dashed card frame with `wifi.slash` | Could not load the AI clients | Check your connection. | **Try again** reads the AI clients again |
@@ -984,6 +994,12 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - the percentage in sheet title type, such as "89%". The percentage is `floor(100 × owned / size)`, so 100% always means the set is complete.
   - A complete set has a 2 px lime outline (`borderWidths.selectedOutline`) and a lime ✓ in place of the percentage. Every row has the outline frame, transparent when the set is not complete, so rows keep one size.
   - VoiceOver reads the row as one button with the name, "x of y", and the percentage in words, such as "Bloomburrow, 234 of 261, 89 percent".
+  - The set header at the top of the set page has the same layout. It is not a button, and VoiceOver reads it as one header.
+- **Set page tile.** One card printing's card image on the set page, with no meta line and no price line.
+  - A card printing that the user owns is lit, at full color.
+  - A card printing that the user does not own is dimmed: its card image is grayscale at 38% opacity (`opacity.dimmed`). A saturation blend overlay in the background color takes out the color, because React Native has no grayscale filter on iOS.
+  - A lit tile with 2 or more copies shows the number of copies in a quantity badge at the top left of the card image, 5 px from the corner (`sizes.quantityBadgeInset`): a 19 px pill in the quantity badge color with the number in tab label type in white. A tile with 1 copy has no badge. Binder tiles still have no quantity badge (#116).
+  - VoiceOver reads the tile as one image with the name, "number" and the collector number, and "owned" or "not owned", then the copies from 2: "Beza, the Bounding Spring, number 2, owned, 2 copies", "Beza, the Bounding Spring, number 2, owned", or "Beza, the Bounding Spring, number 2, not owned".
 - **Name alert.** A native alert with a title, a message, a name field, **Cancel**, and a confirm button, such as **Create**. The field takes at most 64 characters. The confirm button is off while the trimmed name is empty. A new alert starts with an empty field, or with the current name when it renames.
 
 ## Do's and Don'ts

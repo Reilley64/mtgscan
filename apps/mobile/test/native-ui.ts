@@ -638,6 +638,17 @@ export function cardSheen(tile: HostElement) {
   return sheen ? StyleSheet.flatten(sheen.props.style) : null;
 }
 
+export function cardImageLook(tile: HostElement) {
+  const [image] = tile.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.aspectRatio !== undefined);
+  if (!image) {
+    throw new Error('No card image is in this tile');
+  }
+  return {
+    opacity: opacityOf(image),
+    grayscale: image.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.mixBlendMode === 'saturation').length > 0,
+  };
+}
+
 export function blurredImageUris() {
   return hostViews('ViewManagerAdapter_ExpoImage')
     .filter((image) => image.props.blurRadius > 0)
