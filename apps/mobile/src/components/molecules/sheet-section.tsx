@@ -6,7 +6,6 @@ import { Text } from '@/components/atoms/text';
 type SheetSectionProps = {
   title: string;
   count?: number;
-  action?: ReactNode;
   children: ReactNode;
 };
 
@@ -25,17 +24,10 @@ function SectionHeader({ title, count }: Pick<SheetSectionProps, 'title' | 'coun
   );
 }
 
-export function SheetSection({ title, count, action, children }: SheetSectionProps) {
+export function SheetSection({ title, count, children }: SheetSectionProps) {
   return (
     <View className="gap-sm">
-      {action ? (
-        <View className="flex-row items-center justify-between">
-          <SectionHeader title={title} count={count} />
-          {action}
-        </View>
-      ) : (
-        <SectionHeader title={title} count={count} />
-      )}
+      <SectionHeader title={title} count={count} />
       {children}
     </View>
   );

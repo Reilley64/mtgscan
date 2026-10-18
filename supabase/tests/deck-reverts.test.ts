@@ -40,8 +40,8 @@ const added = (user: TestUser, deckId: string, copyId: string) =>
 const removed = (user: TestUser, copyId: string) => call(user, 'remove_deck_card', { copy_id: copyId });
 const madeCommander = (user: TestUser, copyId: string, commander = true) =>
   call(user, 'set_deck_commander', { copy_id: copyId, commander });
-const basicLandsSet = (user: TestUser, deckId: string, counts: { oracle_id: string; count: number }[]) =>
-  call(user, 'set_basic_lands', { deck_id: deckId, counts });
+const basicLandChanged = (user: TestUser, deckId: string, oracleId: string, by: number) =>
+  call(user, 'change_basic_land', { deck_id: deckId, oracle_id: oracleId, by });
 
 async function deckOf(user: TestUser, deckId: string) {
   const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
@@ -181,11 +181,9 @@ describe('reverting deck changes', () => {
   test('a revert puts basic land counts back', async () => {
     const user = await signUpNewUser();
     const deckId = await created(user);
-    await basicLandsSet(user, deckId, [{ oracle_id: forest, count: 8 }]);
-    await basicLandsSet(user, deckId, [
-      { oracle_id: forest, count: 6 },
-      { oracle_id: wastes, count: 1 },
-    ]);
+    await basicLandChanged(user, deckId, forest, 8);
+    await basicLandChanged(user, deckId, forest, -2);
+    await basicLandChanged(user, deckId, wastes, 1);
 
     expect((await revertedFrom(user, deckId, 2)).error).toBeNull();
 
@@ -299,7 +297,7 @@ describe('reverting deck changes', () => {
     const deckId = await created(user);
     const [curator, delver] = [await scannedCopy(user), await scannedCopy(user, delverInnistrad)];
     await added(user, deckId, curator);
-    await basicLandsSet(user, deckId, [{ oracle_id: forest, count: 3 }]);
+    await basicLandChanged(user, deckId, forest, 3);
     await removed(user, curator);
     await added(user, deckId, delver);
     const deckChangeId = await changeAt(user, deckId, 2);

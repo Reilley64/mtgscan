@@ -11,9 +11,7 @@ setDefaultTimeout(60_000);
 const permissionDenied = '42501';
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
-const [forest, wastes, snowCoveredForest] = ['Forest', 'Wastes', 'Snow-Covered Forest'].map(
-  (name) => basicLand(name).oracle_id,
-) as [string, string, string];
+const forest = basicLand('Forest').oracle_id;
 
 beforeAll(async () => {
   await resetCardCatalog();
@@ -273,39 +271,24 @@ describe('listing deck changes', () => {
     ]);
   });
 
-  test('a basic_lands deck change has a basic land line for each changed kind with its counts before and after, in the order of the kinds', async () => {
+  test('a basic_lands deck change has a basic land line with its counts before and after', async () => {
     const user = await signUpNewUser();
     const deckId = await created(user);
-    const counts = async (request: { oracle_id: string; count: number }[]) => {
-      const { error } = await user.client.rpc('set_basic_lands', { request: { deck_id: deckId, counts: request } });
+    const changed = async (oracleId: string, by: number) => {
+      const { error } = await user.client.rpc('change_basic_land', { request: { deck_id: deckId, oracle_id: oracleId, by } });
       expect(error).toBeNull();
     };
-    await counts([
-      { oracle_id: snowCoveredForest, count: 2 },
-      { oracle_id: forest, count: 8 },
-    ]);
-    await counts([
-      { oracle_id: wastes, count: 1 },
-      { oracle_id: forest, count: 6 },
-    ]);
+    await changed(forest, 8);
+    await changed(forest, -2);
 
     const page = await deckChangesOf(user, { deck_id: deckId });
 
     expect(page.items.map((change) => [change.kind, change.lines])).toEqual([
       [
         'basic_lands',
-        [
-          { kind: 'basic_land', oracle_id: forest, name: 'Forest', image_uris: [expect.stringContaining('https://cards.scryfall.io/')], count_before: 8, count_after: 6 },
-          { kind: 'basic_land', oracle_id: wastes, name: 'Wastes', image_uris: [expect.stringContaining('https://cards.scryfall.io/')], count_before: 0, count_after: 1 },
-        ],
+        [{ kind: 'basic_land', oracle_id: forest, name: 'Forest', image_uris: [expect.stringContaining('https://cards.scryfall.io/')], count_before: 8, count_after: 6 }],
       ],
-      [
-        'basic_lands',
-        [
-          expect.objectContaining({ kind: 'basic_land', name: 'Forest', count_before: 0, count_after: 8 }),
-          expect.objectContaining({ kind: 'basic_land', name: 'Snow-Covered Forest', count_before: 0, count_after: 2 }),
-        ],
-      ],
+      ['basic_lands', [expect.objectContaining({ kind: 'basic_land', name: 'Forest', count_before: 0, count_after: 8 })]],
     ]);
   });
 

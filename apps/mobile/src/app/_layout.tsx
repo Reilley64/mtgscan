@@ -43,7 +43,6 @@ function RootStack() {
         <Stack.Screen name="deck" options={pushedScreenOptions} />
         <Stack.Screen name="user-tag-picker" options={pushedScreenWithBarOptions} />
         <Stack.Screen name="add-to-deck" options={halfHeightDrawerOptions} />
-        <Stack.Screen name="basic-lands" options={halfHeightDrawerOptions} />
         <Stack.Screen name="deck-validity" options={halfHeightDrawerOptions} />
         <Stack.Screen name="estimated-bracket" options={halfHeightDrawerOptions} />
         <Stack.Screen name="revert" options={pageSheetOptions} />

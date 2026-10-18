@@ -204,21 +204,12 @@ describe('a stale validity', () => {
 });
 
 describe('the validity chip comes and goes with the cards', () => {
-  test('a first basic land brings the validity chip, and removing the last one hides it again', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 0 }]);
+  test('removing the last basic land hides the validity chip', async () => {
+    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 1, basic_lands: basicLandsOf({ Island: 1 }) }]);
     const deck = await openDeck();
+    expect(deck.getByRole('button', { name: 'Deck validity, Invalid' })).toBeOnTheScreen();
 
-    await fireEvent.press(deck.getByRole('button', { name: 'Edit' }));
-    const drawer = within(presentedDrawerContent());
-    await fireEvent.press(await drawer.findByRole('button', { name: 'Add one Island' }));
-    await fireEvent.press(drawer.getByRole('button', { name: 'Save 1 change' }));
-
-    expect(await deck.findByRole('button', { name: 'Deck validity, Invalid' })).toBeOnTheScreen();
-
-    await fireEvent.press(deck.getByRole('button', { name: 'Edit' }));
-    const again = within(presentedDrawerContent());
-    await fireEvent.press(await again.findByRole('button', { name: 'Remove one Island' }));
-    await fireEvent.press(again.getByRole('button', { name: 'Save 1 change' }));
+    await pressButtonMenuAction(contextMenu(deck.getByRole('image', { name: 'Island' })), 'Remove from deck');
 
     expect(await deck.findByText('0 cards')).toBeOnTheScreen();
     expect(deck.queryByRole('button', { name: /^Deck validity/ })).not.toBeOnTheScreen();
@@ -317,9 +308,9 @@ describe('cards that break a rule on the Cards tab', () => {
     const outlined = [
       deck.getByRole('button', { name: 'Golos, Tireless Pilgrim, MH2 262, breaks a Commander rule' }),
       ...deck.getAllByRole('button', { name: 'Sol Ring, MH2 262, breaks a Commander rule' }),
-      deck.getByRole('image', { name: 'Mountain, 2, breaks a Commander rule' }),
+      ...deck.getAllByRole('image', { name: 'Mountain, breaks a Commander rule' }),
     ];
-    expect(outlined).toHaveLength(4);
+    expect(outlined).toHaveLength(5);
     for (const tile of outlined) {
       expect(cardImageOutline(tile)).toEqual({ borderColor: danger, borderWidth: 2, borderRadius: 8 });
     }
@@ -331,7 +322,7 @@ describe('cards that break a rule on the Cards tab', () => {
     const plain = [
       deck.getByRole('button', { name: 'Arcane Signet, MH2 262' }),
       deck.getByRole('button', { name: 'Tolabow, Loch Rascal, MH2 262' }),
-      deck.getByRole('image', { name: 'Island, 6' }),
+      ...deck.getAllByRole('image', { name: 'Island' }),
     ];
     for (const tile of plain) {
       expect(cardImageOutline(tile)).toMatchObject({ borderColor: transparent });

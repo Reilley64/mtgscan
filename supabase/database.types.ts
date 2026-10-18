@@ -788,6 +788,9 @@ isOneToOne: false
               "relation": string,"total_bytes": number
             }[]
                            },
+"change_basic_land":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "close_buylist_card":
 { Args: { "request": Json }; Returns: Json
                            },
@@ -875,6 +878,9 @@ isOneToOne: false
 "limit_email_sign_ups":
 { Args: { "event": Json }; Returns: Json
                            },
+"list_basic_land_cards":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "list_buylist":
 { Args: { "query"?: Json }; Returns: Json
                            },
@@ -957,9 +963,6 @@ isOneToOne: false
                            },
 "search_oracle_tags":
 { Args: { "query": Json }; Returns: Json
-                           },
-"set_basic_lands":
-{ Args: { "request": Json }; Returns: Json
                            },
 "set_copy_protected":
 { Args: { "request": Json }; Returns: Json

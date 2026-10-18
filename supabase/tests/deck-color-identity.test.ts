@@ -63,15 +63,14 @@ async function deckOf(user: TestUser, { commanders, main = [], basicLands = {} }
   for (const name of commanders) {
     await succeeded(user, 'set_deck_commander', { copy_id: copies[name], commander: true });
   }
-  await setBasicLands(user, deckId, basicLands);
+  await basicLandsAdded(user, deckId, basicLands);
   return { deckId, copies };
 }
 
-async function setBasicLands(user: TestUser, deckId: string, counts: Record<string, number>) {
-  await succeeded(user, 'set_basic_lands', {
-    deck_id: deckId,
-    counts: Object.entries(counts).map(([name, count]) => ({ oracle_id: basicLand(name).oracle_id, count })),
-  });
+async function basicLandsAdded(user: TestUser, deckId: string, counts: Record<string, number>) {
+  for (const [name, by] of Object.entries(counts)) {
+    await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: basicLand(name).oracle_id, by });
+  }
 }
 
 async function colorIdentityOf(user: TestUser, deckId: string) {
@@ -242,7 +241,7 @@ describe('undetermined color identity', () => {
     await committed(user, scanBatch([secondBolt]));
     await succeeded(user, 'add_deck_card', { deck_id: deckId, copy_id: secondBolt.copy_ids[0], unprotect: false });
     await changeRulesData('Lightning Bolt', 'absent');
-    await setBasicLands(user, deckId, { Island: 1 });
+    await basicLandsAdded(user, deckId, { Island: 1 });
 
     expect(await colorIdentityOf(user, deckId)).toEqual({
       violations: [],
@@ -261,7 +260,7 @@ describe('undetermined color identity', () => {
     const user = await signUpNewUser();
     const { deckId, copies } = await deckOf(user, { commanders: ['thrasios'], main: ['lightningBolt'] });
     await changeRulesData('Thrasios, Triton Hero', 'absent');
-    await setBasicLands(user, deckId, { Island: 1 });
+    await basicLandsAdded(user, deckId, { Island: 1 });
 
     expect(await colorIdentityOf(user, deckId)).toEqual({
       violations: [],

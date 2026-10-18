@@ -1,4 +1,5 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
+import type { BasicLandCard } from '@mtgscan/supabase/decks';
 import { convertedPrice } from '@mtgscan/supabase/converted-prices';
 import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
@@ -17,6 +18,7 @@ import { CollectionSearchHeader } from '@/components/organisms/collection-search
 import { collectionFiltersButton, filtersDrawerPath } from '@/components/organisms/collection-filters-button';
 import { collectionTotalMenu } from '@/components/organisms/collection-total';
 import { TabListScreen } from '@/components/templates/tab-screen';
+import { matchingBasicLands } from '@/collection/basic-land-matches';
 import { refusedChipMessage, type SearchChip } from '@/collection/collection-search';
 import { useCollectionSearchState } from '@/collection/collection-search-state';
 import { activeFilterCount } from '@/collection/filter-choices';
@@ -33,6 +35,7 @@ import { priceLabels } from '@/collection/price-currency-labels';
 import { shownMatchCount } from '@/collection/total-labels';
 import { useCollectionCopies, type BinderRead } from '@/collection/use-collection-copies';
 import { useCollectionTotal } from '@/collection/use-collection-total';
+import { useBasicLandCards } from '@/decks/use-basic-land-cards';
 
 type BinderPlaceholderProps = {
   binder: BinderRead;
@@ -107,6 +110,19 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
   );
 }
 
+function BasicLandTile({ land }: { land: BasicLandCard }) {
+  return (
+    <CardTile
+      uri={land.image_uris[0]}
+      unlimited
+      accessibilityLabel={`${land.name}, basic land, unlimited`}
+      onPress={() => router.push({ pathname: '/add-to-deck', params: { basicLandOracleId: land.oracle_id } })}
+    />
+  );
+}
+
+type BinderItem = { kind: 'copy'; copy: CollectionCopyRow } | { kind: 'basic_land'; land: BasicLandCard };
+
 export default function CollectionScreen() {
   const search = useCollectionSearchState();
   const filtersOpen = usePathname() === filtersDrawerPath;
@@ -122,8 +138,17 @@ export default function CollectionScreen() {
   const copies = binder.status === 'loaded' && !suggesting && !refused ? binder.copies : [];
   const iconOf = useSetIcons([...new Set(copies.map((copy) => copy.set))]);
   const total = useCollectionTotal();
+  const { read: basicLandsRead } = useBasicLandCards();
+  const showsBasicLands =
+    binder.status === 'loaded' && binder.nextCursor === null && !suggesting && !refused && (search.searching || copies.length > 0);
+  const basicLands =
+    showsBasicLands && basicLandsRead.status === 'loaded' && search.query ? matchingBasicLands(basicLandsRead.lands, search.query) : [];
+  const items: BinderItem[] = [
+    ...copies.map((copy) => ({ kind: 'copy' as const, copy })),
+    ...basicLands.map((land) => ({ kind: 'basic_land' as const, land })),
+  ];
   const matchCount = binder.status === 'loaded' && search.searching && !refused ? binder.matchCount : null;
-  const showsEmptyState = (refused || binder.status !== 'loading') && copies.length === 0;
+  const showsEmptyState = (refused || binder.status !== 'loading') && items.length === 0;
 
   return (
     <TabListScreen
@@ -140,12 +165,14 @@ export default function CollectionScreen() {
           countLine={!suggesting && matchCount && total ? shownMatchCount(matchCount, total) : undefined}
         />
       }
-      data={copies}
-      keyExtractor={(copy) => copy.copy_id}
+      data={items}
+      keyExtractor={(item) => (item.kind === 'copy' ? item.copy.copy_id : item.land.oracle_id)}
       numColumns={cardsPerRow}
       columnWrapperClassName={cardRowClass}
       ItemSeparatorComponent={RowGap}
-      renderItem={({ item }) => <BinderTile copy={item} setIconUri={iconOf(item.set)} />}
+      renderItem={({ item }) =>
+        item.kind === 'copy' ? <BinderTile copy={item.copy} setIconUri={iconOf(item.copy.set)} /> : <BasicLandTile land={item.land} />
+      }
       ListEmptyComponent={
         suggesting ? null : (
           <BinderPlaceholder

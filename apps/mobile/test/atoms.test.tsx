@@ -1022,10 +1022,10 @@ describe('CountBadge', () => {
     expect(numerals.parent).toHaveStyle({ backgroundColor: badge, borderRadius: 999, height: 17, minWidth: 17 });
   });
 
-  test('a count badge with the × prefix shows it before the count', async () => {
-    await render(<CountBadge count={8} prefix="×" />);
+  test('a count badge can show ∞ for an unlimited count', async () => {
+    await render(<CountBadge count="∞" />);
 
-    expect(screen.getByText('×8')).toHaveStyle({ color: white });
+    expect(screen.getByText('∞')).toHaveStyle({ color: white });
   });
 });
 

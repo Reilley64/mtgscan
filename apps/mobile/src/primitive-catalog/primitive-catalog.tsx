@@ -58,7 +58,6 @@ import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
-import { SaveBar } from '@/components/molecules/save-bar';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { GroupButton } from '@/components/molecules/group-button';
 import { SortButton } from '@/components/molecules/sort-button';
@@ -404,9 +403,14 @@ function CardTiles() {
           ]}
           onPress={() => {}}
         />
-        <CardTile uri={solRing} count={8} accessibilityLabel="Island, 8" />
+        <CardTile uri={solRing} unlimited accessibilityLabel="Island, basic land, unlimited" onPress={() => {}} />
         <CardTile uri={solRing} accessibilityLabel="Sol Ring, C21 263" inViolation onPress={() => {}} />
-        <CardTile uri={solRing} count={2} accessibilityLabel="Mountain, 2" inViolation />
+        <CardTile
+          uri={solRing}
+          accessibilityLabel="Mountain, long press for a menu"
+          menuActions={[{ title: 'Remove from deck', destructive: true, onSelect: () => {} }]}
+          inViolation
+        />
         {['CMM 464', 'C21 263'].map((caption) => (
           <CardTile
             key={caption}
@@ -475,23 +479,13 @@ function StepperRows() {
   );
 }
 
-function SaveBars() {
-  return (
-    <Section title="Save bars">
-      <SaveBar changeCount={2} saving={false} onCancel={() => {}} onSave={() => {}} />
-      <SaveBar changeCount={0} saving={false} onCancel={() => {}} onSave={() => {}} />
-      <SaveBar changeCount={1} saving onCancel={() => {}} onSave={() => {}} />
-    </Section>
-  );
-}
-
 function CountBadges() {
   return (
     <Section title="Count badges">
       <View className="flex-row items-center gap-lg">
         <CountBadge count={3} />
         <CountBadge count={128} />
-        <CountBadge count={8} prefix="×" />
+        <CountBadge count="∞" />
         <BatchButton count={12} onPress={() => {}} />
         <BatchButton count={0} onPress={() => {}} />
       </View>
@@ -859,16 +853,6 @@ function SheetSections() {
       <SheetSection title="Creatures" count={3}>
         <ListRow title="Birds of Paradise" detail="M12 165" leading={<CardThumbnail uri={solRing} />} />
       </SheetSection>
-      <SheetSection
-        title="Basic lands"
-        count={10}
-        action={
-          <Button onPress={() => {}}>
-            <Text>Edit</Text>
-          </Button>
-        }>
-        <Text className="text-text-muted">A section with an action</Text>
-      </SheetSection>
     </Section>
   );
 }
@@ -903,7 +887,6 @@ export function PrimitiveCatalog() {
         <ProgressBars />
         <SheetSections />
         <StepperRows />
-        <SaveBars />
         <NameAlerts />
         <CommanderCards />
         <DeckTags />

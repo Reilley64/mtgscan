@@ -162,7 +162,7 @@ A copy that is not allocated to a deck or held by a planned swap. A collection e
 _Avoid_: Spare, available copy
 
 **Basic land**:
-A card with the basic supertype, including Wastes and snow-covered basics. mtgscan does not track basic lands as owned. A deck counts them by basic land card: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. They never appear in the collection, allocation, or buylist.
+A card with the basic supertype, including Wastes and snow-covered basics. mtgscan does not track basic lands as owned. Every collection has an unlimited supply of each basic land card: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Collection shows them after the copies, and the user adds them to a deck from there. A deck counts them by basic land card, and its Cards tab shows each one as its own tile. They are never copies, so they never appear in allocation or the buylist.
 
 **Deck priority**:
 How strongly the user wants to keep a deck's cards: high, medium, or low. The user sets it. When two decks want a card and there is only one copy for them, the deck with the higher priority should get it. Between decks of equal priority, the AI decides which deck needs the card more. An AI client follows this in its advice, but nothing enforces it. Priority does not restrict the user.

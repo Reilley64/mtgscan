@@ -31,6 +31,8 @@ import type { ExchangeRate } from '@mtgscan/supabase/converted-prices';
 import type {
   AddDeckCardPreviewQuery,
   AddDeckCardRequest,
+  BasicLandCardList,
+  ChangeBasicLandRequest,
   CopyHeldFor,
   CreateDeckRequest,
   Deck,
@@ -50,7 +52,6 @@ import type {
   RevertPreview,
   RevertPreviewQuery,
   SetDeckCommanderRequest,
-  SetBasicLandsRequest,
   SetDeckPriorityRequest,
   Violation,
 } from '@mtgscan/supabase/decks';
@@ -113,6 +114,7 @@ let deckChanges = new Map<string, DeckChange[]>();
 let failingDeckChangeReads = 0;
 let revertPreviews = new Map<string, Omit<RevertPreview, 'revision'>>();
 let addPreviewEffects = new Map<string, DeckChangeEffect>();
+let addPreviewQueries: AddDeckCardPreviewQuery[] = [];
 let failingAddPreviews = 0;
 let heldAddPreviews: Promise<void> | null = null;
 let plannedSwaps: PlannedSwap[] = [];
@@ -487,10 +489,6 @@ export function basicLandsOf(counts: Record<string, number> = {}): DeckBasicLand
   }));
 }
 
-function basicLandTotalOf(lands: DeckBasicLand[]) {
-  return lands.reduce((total, land) => total + land.count, 0);
-}
-
 const rulesDataAt = '2026-10-12T06:00:00.000Z';
 
 function cardCountText(count: number) {
@@ -623,7 +621,8 @@ function revertPreviewRead({ deck_id, deck_change_id }: RevertPreviewQuery) {
   return deck && preview ? { data: { ...preview, revision: deck.revision }, error: null } : deckNotFound;
 }
 
-async function addDeckCardPreviewRead() {
+async function addDeckCardPreviewRead(query: AddDeckCardPreviewQuery) {
+  addPreviewQueries = [...addPreviewQueries, query];
   await heldAddPreviews;
   if (failingAddPreviews > 0) {
     failingAddPreviews -= 1;
@@ -1049,8 +1048,8 @@ function removeDeckCard(request: RemoveDeckCardRequest) {
   return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
 }
 
-function setBasicLands(request: SetBasicLandsRequest) {
-  deckWrites = [...deckWrites, { name: 'set_basic_lands', request }];
+function changeBasicLand(request: ChangeBasicLandRequest) {
+  deckWrites = [...deckWrites, { name: 'change_basic_land', request }];
   if (failedDeckWrite()) {
     return { data: null, error: networkFailure };
   }
@@ -1058,20 +1057,23 @@ function setBasicLands(request: SetBasicLandsRequest) {
   if (!deck) {
     return deckNotFound;
   }
-  const counts = new Map(request.counts.map(({ oracle_id, count }) => [oracle_id, count]));
-  const basicLands = deck.basic_lands.map((land) => ({ ...land, count: counts.get(land.oracle_id ?? '') ?? land.count }));
-  if (basicLands.every((land, index) => land.count === deck.basic_lands[index]!.count)) {
-    return { data: { deck_id: deck.deck_id, revision: deck.revision }, error: null };
+  const basicLands = deck.basic_lands.map((land) => (land.oracle_id === request.oracle_id ? { ...land, count: land.count + request.by } : land));
+  if (basicLands.some((land) => land.count < 0 || land.count > 99)) {
+    return { data: null, error: { code: 'invalid_argument', message: 'by would make too many of this basic land card.', details: 'by' } };
   }
   const changed: Deck = {
     ...deck,
     basic_lands: basicLands,
-    card_count: deck.card_count - basicLandTotalOf(deck.basic_lands) + basicLandTotalOf(basicLands),
+    card_count: deck.card_count + request.by,
     revision: deck.revision + 1,
     last_used_at: nextDeckTime(),
   };
   saveDeck(changed);
   return { data: { deck_id: deck.deck_id, revision: changed.revision }, error: null };
+}
+
+function basicLandCardList(): { data: BasicLandCardList; error: null } {
+  return { data: { items: basicLandsOf().map(({ oracle_id, name, image_uris }) => ({ oracle_id: oracle_id!, name, image_uris })) }, error: null };
 }
 
 function deleteCopy({ copy_id, move_planned_swap }: DeleteCopyRequest) {
@@ -1275,7 +1277,7 @@ export const fakeSupabase = {
             | DeleteDeckRequest
             | AddDeckCardRequest
             | SetDeckCommanderRequest
-            | SetBasicLandsRequest
+            | ChangeBasicLandRequest
             | RemoveDeckCardRequest
             | RevertDeckChangesRequest
             | SwapInPlannedSwapRequest
@@ -1294,7 +1296,7 @@ export const fakeSupabase = {
       return deckChangeList(args.query as DeckChangesQuery);
     }
     if (name === 'preview_add_deck_card' && args && 'query' in args) {
-      return addDeckCardPreviewRead();
+      return addDeckCardPreviewRead(args.query as AddDeckCardPreviewQuery);
     }
     if (name === 'preview_revert' && args && 'query' in args) {
       return revertPreviewRead(args.query as RevertPreviewQuery);
@@ -1325,8 +1327,11 @@ export const fakeSupabase = {
     if (name === 'set_deck_commander' && args && 'request' in args) {
       return setDeckCommander(args.request as SetDeckCommanderRequest);
     }
-    if (name === 'set_basic_lands' && args && 'request' in args) {
-      return setBasicLands(args.request as SetBasicLandsRequest);
+    if (name === 'change_basic_land' && args && 'request' in args) {
+      return changeBasicLand(args.request as ChangeBasicLandRequest);
+    }
+    if (name === 'list_basic_land_cards') {
+      return basicLandCardList();
     }
     if (name === 'remove_deck_card' && args && 'request' in args) {
       return removeDeckCard(args.request as RemoveDeckCardRequest);
@@ -1550,6 +1555,10 @@ export function ownRevertPreview(deckChangeId: string, preview: Omit<RevertPrevi
 
 export function ownAddPreviewEffects(effects: Record<string, DeckChangeEffect>) {
   addPreviewEffects = new Map(Object.entries(effects));
+}
+
+export function addPreviewQueriesSent() {
+  return addPreviewQueries;
 }
 
 export function failAddPreviews(count: number) {
@@ -1827,6 +1836,7 @@ export function resetFakeSupabase() {
   failingDeckChangeReads = 0;
   revertPreviews = new Map();
   addPreviewEffects = new Map();
+  addPreviewQueries = [];
   failingAddPreviews = 0;
   heldAddPreviews = null;
   plannedSwaps = [];

@@ -129,10 +129,9 @@ describe('singleton', () => {
     const user = await signUpNewUser();
     const { deckId } = await deckOf(user, [[angelicCurator, 1]]);
 
-    await succeeded(user, 'set_basic_lands', {
-      deck_id: deckId,
-      counts: ['Forest', 'Snow-Covered Forest', 'Wastes'].map((name) => ({ oracle_id: basicLand(name).oracle_id, count: 30 })),
-    });
+    for (const name of ['Forest', 'Snow-Covered Forest', 'Wastes']) {
+      await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: basicLand(name).oracle_id, by: 30 });
+    }
 
     expect(await singletonOf(user, deckId)).toEqual({ violations: [], undetermined: [] });
   });

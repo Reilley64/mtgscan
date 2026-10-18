@@ -65,7 +65,7 @@ async function deckOf(client: AppClient, deckId: string) {
 }
 
 async function deckChangesOf(client: AppClient, deckId: string) {
-  const { data, error } = await client.rpc('list_deck_changes', { query: { deck_id: deckId } });
+  const { data, error } = await client.rpc('list_deck_changes', { query: { deck_id: deckId, limit: 50 } });
   expect(error).toBeNull();
   return (data as unknown as DeckChangePage).items;
 }
@@ -126,7 +126,7 @@ describe('the test user command', () => {
     const { exitCode, output } = await runTestUserCommand(['--sample-collection']);
 
     expect(exitCode).toBe(0);
-    expect(output).toContain('Added a sample deck with 2 commanders, 12 main deck cards, 16 basic lands, and 19 deck changes.');
+    expect(output).toContain('Added a sample deck with 2 commanders, 12 main deck cards, 16 basic lands, and 21 deck changes.');
     const client = await signedInTestUser();
     const [row, ...otherDecks] = await decks(client);
     expect(otherDecks).toEqual([]);
@@ -144,7 +144,7 @@ describe('the test user command', () => {
     expect((await deckChangesOf(client, deck.deck_id)).map(({ kind, reverted }) => ({ kind, reverted }))).toEqual([
       { kind: 'revert', reverted: false },
       { kind: 'added', reverted: true },
-      { kind: 'basic_lands', reverted: false },
+      ...Array.from({ length: 3 }, () => ({ kind: 'basic_lands' as const, reverted: false })),
       { kind: 'made_partner', reverted: false },
       { kind: 'made_commander', reverted: false },
       ...Array.from({ length: 14 }, () => ({ kind: 'added' as const, reverted: false })),
