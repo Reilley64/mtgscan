@@ -398,7 +398,9 @@ Copy is plain sentence case and uses glossary terms exactly: planned swap, buyli
 
 ## Layout
 
-The app is built for an iPhone in portrait. The page inset is 16 px, cards sit 12 px from the edges, and rows use 8 px gaps.
+The app is built for an iPhone in portrait. The page inset is 16 px, cards sit 12 px from the edges, and rows use 8 px gaps. The content of a tab ends 32 px above the tab bar. A list under floating buttons, such as the Collection grid or a deck's Cards tab, ends 80 px above the bottom instead (`sizes.floatingButtonClearance`), so the last row clears the buttons.
+
+Text follows the text size that the user sets in iOS. Buttons, chips, and deck tags grow taller with their labels, so a label never clips. The labels of a segmented control shrink to fit on one line.
 
 ### App shell
 
@@ -516,7 +518,7 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
 - The app sends deck IDs, and the server never matches deck names. A typed `deck:` chip, made without a pick, matches every deck with exactly that name, ignoring case.
 - Chips sit under the search bar, at the top of the grid. Each chip shows its `key:value` text and ×. Tapping a chip removes it. Backspace in an empty field removes the last chip. Cancel clears the text and the chips.
 - **Results.** Results show as binder tiles, one per copy. While text or a chip is active, a count line in meta text, such as "6 of 27 copies", sits above the grid. While a new search loads, the skeleton grid replaces the tiles. Basic land cards whose names contain every word of the text and every `name:` chip, ignoring case, follow the copies in the Basic lands section, so "island" ends with Island and Snow-Covered Island. With no matching copies, they are the only results. Any other chip or filter, such as `set:` or Allocated, hides every basic land tile. With no results, the grid shows the empty state "No cards found". See Empty states.
-- Opening a copy page from the results puts the keyboard away. Back on the Collection tab, the text and the chips stay. The keyboard comes back only when the user taps the search bar.
+- Opening a copy page from the results puts the keyboard away. So does dragging the results. Back on the Collection tab, the text and the chips stay. The keyboard comes back only when the user taps the search bar.
 - A chip that the server refuses, such as an unknown set, Oracle tag, or user tag, turns danger. The grid shows "No set named "zzz".", "No Oracle tag named "zzz".", "No keyword named "zzz".", or "No user tag named "signd".". A typed `deck:` chip that matches no deck turns danger in the same way, with "No deck named "atraxa".". Any other refused chip shows "mv>25 is not a valid chip."
 - VoiceOver reads a chip as a button with its `key:value` text and the hint "Removes this chip."
 - **Filters button.** A native bar button with the `line.3.horizontal.decrease` symbol sits before the collection total button, in every Collection state. A count badge in the badge color counts the active filters, typed or chosen in the Filters drawer. Each chip is one filter, except that the two chips of Free count as one. With no filter, it shows no badge. VoiceOver reads "Filters", or "Filters, 3" with three filters.
@@ -575,6 +577,8 @@ Each problem type of the MCP connection has a short page on the website at `mtgs
 
 Pushed screens cover the whole screen, including the app tab bar. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge. A screen pushed inside a drawer, such as the scan details in batch review, also has the native back button (see Sheets).
 
+On iOS 26, content that scrolls up under the status bar and the header buttons of the copy page or the deck screen blurs and fades behind them with the soft system scroll edge effect.
+
 - **Copy page**, from a binder tile, shows that copy only (owner decision, spec 4). It is one scrolling page with no segmented control and no list of other copies or printings. Users never see the name "copy page": the page shows the card. From top to bottom:
   - the hero: the card image at 55% of the screen width, with the foil or etched sheen of the copy, over the art crop of the same card printing blurred. A double-faced card printing uses the art crop of its front face. A card printing with no art crop uses its card image blurred. While the art crop loads, the background color shows behind the card image;
   - the card name in card title type and the type line in text muted;
@@ -597,7 +601,7 @@ Pushed screens cover the whole screen, including the app tab bar. The user goes 
   - A back bar button with the `chevron.left` symbol sits on the left of its navigation bar. It is a native bar button in the text color, like the copy page's close button. VoiceOver reads it as "Back". It goes back to the copy page. The swipe from the left edge does the same.
   - The title "User tags" in sheet title type, then a meta line that names the copy with its chip labels, such as "Angelic Curator · MH2 · 262 · Foil · LP · English".
   - A field, "Find or create a user tag", that takes at most 64 characters. A tap on a row acts at once, even while the keyboard is up.
-  - When the trimmed text matches no user tag ignoring case, the first row reads "Create "<name>"" with "and add it to this copy" and a 22 px lime `plus`. A tap creates the user tag, puts it on the copy, and clears the field.
+  - When the trimmed text matches no user tag ignoring case, the first row reads "Create "<name>"" with "and add it to this copy" and a 22 px lime `plus`. A tap creates the user tag, puts it on the copy, and clears the field. Return on the keyboard does the same and puts the keyboard away.
   - Then one check row for each user tag whose name contains the text, ignoring case, sorted by name. The meta line has its copy count, such as "3 copies". A lime filled check mark shows when this copy has the user tag. A tap adds it to this copy or takes it off.
   - Each user tag row has a ••• button with the `ellipsis` symbol in text muted at its right end, inside the row. VoiceOver reads it as "More, <name>", such as "More, Signed". It opens a native menu with **Rename** and **Delete user tag**, in red.
   - **Rename** turns the row into a field with the name, which VoiceOver reads as "User tag name" and which takes at most 64 characters, and a lime **Save** button. Save is off while the trimmed name is empty. Save renames the user tag on every copy and turns the field back into the row. A name that matches another user tag ignoring case shows the failure notice "You already have a user tag named "<name>"." under the field, and the field stays.
@@ -772,7 +776,7 @@ The interface is flat. Depth comes from tone, not shadow.
   - **Foil sheen** (`gradients.foilSheen`, 115 degrees): clear to 22%, then pink `rgba(255, 80, 170, 0.55)`, yellow `rgba(255, 230, 90, 0.5)`, mint `rgba(80, 255, 200, 0.5)`, blue `rgba(80, 150, 255, 0.55)`, and violet `rgba(200, 110, 255, 0.5)` from 34% to 66%, then clear from 78%.
   - **Etched sheen** (`gradients.etchedSheen`, 120 degrees): clear to 25%, then white `rgba(255, 255, 255, 0.55)`, silver `rgba(200, 210, 215, 0.25)`, and white again from 42% to 58%, then clear from 75%.
 - The hero of the copy page blurs the art crop with a 26 px radius (`blurRadii.heroArt`) and shows it at 45% opacity over the background (`opacity.heroArt`), so the card stands out from its own art. The blur radius is an image prop, not a class.
-- The empty state illustrations on the background fade downward into it (`gradients.emptyStateFade`). See Empty states.
+- The empty state illustrations on the background fade downward into it (`gradients.emptyStateFade`). On a page sheet or a drawer, they fade into the sheet color instead (`gradients.emptyStateSheetFade`). See Empty states.
 - Commander art on the commander gallery card and the deck screen banner fades down into the background color, clear to 30% of the height and 90% at the bottom (`gradients.commanderArtScrim`), so the deck name and chips stay readable.
 - NativeWind 4 has no class for a box shadow or a gradient, so the shadows, the scrim, the sheens, and the empty state fade are style values.
 - The tab bar is a near-opaque bar with a hairline top border.
@@ -911,7 +915,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - Tapping the tile opens the copy page.
 - **Empty states.** Every empty state uses one layout, variant C of the HTML prototype (`prototypes/empty-states/index.html` on `prototype/empty-states`, commit 961e3ae). The `EmptyState` molecule draws it, and each page passes its own illustration.
   - From top to bottom: an illustration, a title in sheet title type in text white, one line of body text in text muted, and at most one primary (lime) button, 16 px apart. The text is centered.
-  - The illustration is made of shapes from the app in line color, such as empty binder slots or ghost rows. It uses no images. On the background, it fades downward into the background from 30% of its height (`gradients.emptyStateFade`). Over the camera and in batch review it does not fade.
+  - The illustration is made of shapes from the app in line color, such as empty binder slots or ghost rows. It uses no images. On the background, it fades downward into the background from 30% of its height (`gradients.emptyStateFade`). On a page sheet or a drawer, such as the Bought page sheet, it fades into the sheet color in the same way (`gradients.emptyStateSheetFade`). Over the camera and in batch review it does not fade.
   - A dashed shape has a 2 px dashed line-colored outline (`borderWidths.illustrationOutline`). The symbol in the dashed card frame is 40 px (`sizes.emptyStateSymbol`) in line color.
   - Titles have no final period.
   - VoiceOver reads the title and the body as one element, such as "No decks yet, Create a deck, then add cards to it from your collection." It skips the illustration and reads the action as a button.

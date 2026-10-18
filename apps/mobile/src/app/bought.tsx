@@ -54,13 +54,13 @@ export default function BoughtSheet() {
         : null}
       {read.status === 'loaded' && read.copies.length === 0 ? (
         <EmptyState
-          illustration={<EmptyBinderSlots rows={1} />}
+          illustration={<EmptyBinderSlots rows={1} onSheet />}
           title="No copies found"
           message="Scan copies into your collection first."
         />
       ) : null}
       {read.status === 'failed' ? (
-        <ReadFailure illustration={<EmptyBinderSlots rows={1} />} title="Could not load your copies" onTryAgain={reload} />
+        <ReadFailure illustration={<EmptyBinderSlots rows={1} onSheet />} title="Could not load your copies" onTryAgain={reload} />
       ) : null}
     </DrawerSheet>
   );

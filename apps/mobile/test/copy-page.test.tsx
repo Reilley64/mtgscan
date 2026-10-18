@@ -576,6 +576,21 @@ describe('the user tag picker', () => {
     expect(await screen.findByRole('button', { name: 'User tags, Trade binder' })).toBeOnTheScreen();
   });
 
+  test('Return creates the typed user tag and adds it to this copy, and does nothing when the name already exists', async () => {
+    ownUserTags([{ name: 'Signed', copyIds: [] }]);
+    const field = await openUserTagPicker();
+
+    await fireEvent.changeText(field, 'signed');
+    await fireEvent(field, 'submitEditing');
+    expect(screen.getByRole('checkbox', { name: 'Signed, 0 copies' })).not.toBeChecked();
+
+    await fireEvent.changeText(field, ' Trade binder ');
+    await fireEvent(field, 'submitEditing');
+
+    expect(await screen.findByRole('checkbox', { name: 'Trade binder, 1 copy' })).toBeChecked();
+    expect(field).toHaveProp('value', '');
+  });
+
   test('the Create row comes first, before the user tags that contain the text', async () => {
     ownUserTags([{ name: 'Signed', copyIds: [] }]);
     const field = await openUserTagPicker();

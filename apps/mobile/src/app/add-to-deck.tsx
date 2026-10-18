@@ -50,7 +50,7 @@ function DeckRows({ previewQuery, onAdd }: DeckRowsProps) {
           ))
         : null}
       {decksRead.status === 'failed' ? (
-        <ReadFailure illustration={<GhostCommanderCard />} title="Could not load your decks" onTryAgain={reload} />
+        <ReadFailure illustration={<GhostCommanderCard onSheet />} title="Could not load your decks" onTryAgain={reload} />
       ) : null}
     </>
   );

@@ -33,8 +33,8 @@ export function ToggleGroup<Value extends string>({ values, selected, labelOf, c
             value={value}
             accessibilityLabel={count > 0 ? `${labelOf(value)}, ${count}` : undefined}
             hitSlop={verticalTouchSlop(sizes.button)}
-            className={cn('h-button flex-1 flex-row items-center justify-center gap-xs rounded-sm px-md', choiceStates.checked.fill)}>
-            <Text variant="body-strong" className={choiceStates.checked.label}>
+            className={cn('min-h-button flex-1 flex-row items-center justify-center gap-xs rounded-sm px-md', choiceStates.checked.fill)}>
+            <Text variant="body-strong" numberOfLines={1} adjustsFontSizeToFit className={choiceStates.checked.label}>
               {labelOf(value)}
             </Text>
             {count > 0 ? <CountBadge count={count} /> : null}

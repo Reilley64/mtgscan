@@ -209,7 +209,7 @@ export default function DeckScreen() {
       case 'planned':
         return <View className="gap-lg px-lg pt-lg">{plannedContent()}</View>;
       case 'history':
-        return <View className="px-lg pt-lg">{historyContent(deck)}</View>;
+        return <View className="gap-lg px-lg pt-lg">{historyContent(deck)}</View>;
       default:
         return (
           <DeckCardsRowView
