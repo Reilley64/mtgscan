@@ -1,0 +1,342 @@
+alter table public.card_sets
+  add column set_type text,
+  add column released_at date;
+
+create or replace function public.import_card_sets(sets jsonb)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  imported integer;
+begin
+  if jsonb_typeof(sets) is distinct from 'array' or jsonb_array_length(sets) = 0 then
+    raise exception 'The sets must be a non-empty JSON array.' using errcode = '22023';
+  end if;
+  if exists (
+    select 1
+    from jsonb_array_elements(sets) as entry(value)
+    where jsonb_typeof(entry.value -> 'code') is distinct from 'string'
+      or jsonb_typeof(entry.value -> 'name') is distinct from 'string'
+      or jsonb_typeof(entry.value -> 'icon_svg_uri') is distinct from 'string'
+  ) then
+    raise exception 'Every set needs a code, a name, and an icon_svg_uri.' using errcode = '22023';
+  end if;
+
+  insert into public.card_sets as live (code, name, icon_svg_uri, set_type, released_at)
+  select distinct on (entry.value ->> 'code')
+    entry.value ->> 'code',
+    entry.value ->> 'name',
+    entry.value ->> 'icon_svg_uri',
+    entry.value ->> 'set_type',
+    (entry.value ->> 'released_at')::date
+  from jsonb_array_elements(sets) as entry(value)
+  order by entry.value ->> 'code'
+  on conflict (code) do update
+    set name = excluded.name,
+      icon_svg_uri = excluded.icon_svg_uri,
+      set_type = excluded.set_type,
+      released_at = excluded.released_at
+    where (live.name, live.icon_svg_uri, live.set_type, live.released_at)
+      is distinct from (excluded.name, excluded.icon_svg_uri, excluded.set_type, excluded.released_at);
+
+  get diagnostics imported = row_count;
+  return imported;
+end;
+$$;
+
+alter table public.card_printings
+  add column booster boolean not null default false,
+  add column promo boolean not null default false,
+  add column variation boolean not null default false;
+
+alter table public.card_printings
+  alter column booster drop default,
+  alter column promo drop default,
+  alter column variation drop default;
+
+alter table catalog_import.card_printings
+  add column booster boolean,
+  add column promo boolean,
+  add column variation boolean;
+
+create or replace function catalog_import.merge_catalog(run public.import_runs, staged_rows jsonb)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+declare
+  staged_cards bigint;
+  staged_faces bigint;
+  staged_printings bigint;
+  accepted_cards bigint;
+  accepted_printings bigint;
+  dropped_cards bigint;
+  dropped_printings bigint;
+  cards_inserted bigint;
+  cards_updated bigint;
+  cards_absent bigint;
+  faces_inserted bigint;
+  faces_updated bigint;
+  faces_deleted bigint;
+  printings_inserted bigint;
+  printings_updated bigint;
+  printings_absent bigint;
+  missing bigint;
+begin
+  select count(*), count(*) filter (
+      where num_nulls(oracle_id, name, mana_cost, mana_value, colors, color_identity, keywords,
+        type_line, oracle_text, commander_legality, can_be_commander, copy_limit) > 0
+    )
+    into staged_cards, missing
+    from catalog_import.cards c
+    where c.run_id = run.id;
+  perform catalog_import.check_staged_rows(run.id, 'cards', staged_rows -> 'cards', staged_cards, missing);
+
+  select count(*), count(*) filter (
+      where num_nulls(oracle_id, face_index, name, mana_cost, type_line, oracle_text, colors) > 0
+    )
+    into staged_faces, missing
+    from catalog_import.card_faces f
+    where f.run_id = run.id;
+  perform catalog_import.check_staged_rows(run.id, 'card_faces', staged_rows -> 'card_faces', staged_faces, missing);
+
+  select count(*), count(*) filter (
+      where num_nulls(id, oracle_id, set_code, set_name, collector_number, lang, rarity, released_at,
+        finishes, image_uris, booster, promo, variation) > 0
+    )
+    into staged_printings, missing
+    from catalog_import.card_printings p
+    where p.run_id = run.id;
+  perform catalog_import.check_staged_rows(run.id, 'card_printings', staged_rows -> 'card_printings', staged_printings, missing);
+
+  delete from catalog_import.card_printings p
+    where p.run_id = run.id
+      and not exists (
+        select 1 from catalog_import.cards c where c.run_id = run.id and c.oracle_id = p.oracle_id
+      );
+  get diagnostics dropped_printings = row_count;
+
+  delete from catalog_import.cards c
+    where c.run_id = run.id
+      and not exists (
+        select 1 from catalog_import.card_printings p where p.run_id = run.id and p.oracle_id = c.oracle_id
+      );
+  get diagnostics dropped_cards = row_count;
+
+  delete from catalog_import.card_faces f
+    where f.run_id = run.id
+      and not exists (
+        select 1 from catalog_import.cards c where c.run_id = run.id and c.oracle_id = f.oracle_id
+      );
+
+  update catalog_import.cards c
+    set released_at = first_printing.released_at
+    from (
+      select p.oracle_id, min(p.released_at) as released_at
+      from catalog_import.card_printings p
+      where p.run_id = run.id
+      group by p.oracle_id
+    ) first_printing
+    where c.run_id = run.id and c.oracle_id = first_printing.oracle_id;
+
+  accepted_cards := staged_cards - dropped_cards;
+  accepted_printings := staged_printings - dropped_printings;
+
+  perform catalog_import.check_shrink(
+    'cards',
+    (select count(*) from public.cards where absent_since is null),
+    accepted_cards,
+    run.accept_shrink
+  );
+  perform catalog_import.check_shrink(
+    'card_printings',
+    (select count(*) from public.card_printings where absent_since is null),
+    accepted_printings,
+    run.accept_shrink
+  );
+
+  with merged as (
+    insert into public.cards as live (
+      oracle_id, name, mana_cost, mana_value, colors, color_identity, keywords, type_line,
+      oracle_text, edhrec_rank, commander_legality, is_game_changer, can_be_commander, released_at,
+      has_partner, partner_text, partner_with_name, has_choose_a_background, has_doctors_companion,
+      commander_chooses_a_color, copy_limit, copy_limit_number
+    )
+    select
+      oracle_id, name, mana_cost, mana_value, colors, color_identity, keywords, type_line,
+      oracle_text, edhrec_rank, commander_legality, is_game_changer, can_be_commander, released_at,
+      has_partner, partner_text, partner_with_name, has_choose_a_background, has_doctors_companion,
+      commander_chooses_a_color, copy_limit, copy_limit_number
+    from catalog_import.cards
+    where run_id = run.id
+    on conflict (oracle_id) do update set
+      name = excluded.name,
+      mana_cost = excluded.mana_cost,
+      mana_value = excluded.mana_value,
+      colors = excluded.colors,
+      color_identity = excluded.color_identity,
+      keywords = excluded.keywords,
+      type_line = excluded.type_line,
+      oracle_text = excluded.oracle_text,
+      edhrec_rank = excluded.edhrec_rank,
+      commander_legality = excluded.commander_legality,
+      is_game_changer = excluded.is_game_changer,
+      can_be_commander = excluded.can_be_commander,
+      released_at = excluded.released_at,
+      has_partner = excluded.has_partner,
+      partner_text = excluded.partner_text,
+      partner_with_name = excluded.partner_with_name,
+      has_choose_a_background = excluded.has_choose_a_background,
+      has_doctors_companion = excluded.has_doctors_companion,
+      commander_chooses_a_color = excluded.commander_chooses_a_color,
+      copy_limit = excluded.copy_limit,
+      copy_limit_number = excluded.copy_limit_number,
+      absent_since = null
+    where (
+      live.name, live.mana_cost, live.mana_value, live.colors, live.color_identity, live.keywords,
+      live.type_line, live.oracle_text, live.edhrec_rank, live.commander_legality,
+      live.is_game_changer, live.can_be_commander, live.released_at, live.has_partner,
+      live.partner_text, live.partner_with_name, live.has_choose_a_background,
+      live.has_doctors_companion, live.commander_chooses_a_color, live.copy_limit,
+      live.copy_limit_number, live.absent_since
+    ) is distinct from (
+      excluded.name, excluded.mana_cost, excluded.mana_value, excluded.colors,
+      excluded.color_identity, excluded.keywords, excluded.type_line, excluded.oracle_text,
+      excluded.edhrec_rank, excluded.commander_legality, excluded.is_game_changer,
+      excluded.can_be_commander, excluded.released_at, excluded.has_partner,
+      excluded.partner_text, excluded.partner_with_name, excluded.has_choose_a_background,
+      excluded.has_doctors_companion, excluded.commander_chooses_a_color, excluded.copy_limit,
+      excluded.copy_limit_number, null::timestamptz
+    )
+    returning xmax = 0 as inserted
+  )
+  select count(*) filter (where inserted), count(*) filter (where not inserted)
+    into cards_inserted, cards_updated
+    from merged;
+
+  update public.cards live
+    set absent_since = now()
+    where live.absent_since is null
+      and not exists (
+        select 1 from catalog_import.cards c where c.run_id = run.id and c.oracle_id = live.oracle_id
+      );
+  get diagnostics cards_absent = row_count;
+
+  with merged as (
+    insert into public.card_faces as live (
+      oracle_id, face_index, name, mana_cost, type_line, oracle_text, colors, power, toughness, loyalty
+    )
+    select f.oracle_id, f.face_index, f.name, f.mana_cost, f.type_line, f.oracle_text, f.colors,
+      f.power, f.toughness, f.loyalty
+    from catalog_import.card_faces f
+    where f.run_id = run.id
+    on conflict (oracle_id, face_index) do update set
+      name = excluded.name,
+      mana_cost = excluded.mana_cost,
+      type_line = excluded.type_line,
+      oracle_text = excluded.oracle_text,
+      colors = excluded.colors,
+      power = excluded.power,
+      toughness = excluded.toughness,
+      loyalty = excluded.loyalty
+    where (
+      live.name, live.mana_cost, live.type_line, live.oracle_text, live.colors, live.power,
+      live.toughness, live.loyalty
+    ) is distinct from (
+      excluded.name, excluded.mana_cost, excluded.type_line, excluded.oracle_text, excluded.colors,
+      excluded.power, excluded.toughness, excluded.loyalty
+    )
+    returning xmax = 0 as inserted
+  )
+  select count(*) filter (where inserted), count(*) filter (where not inserted)
+    into faces_inserted, faces_updated
+    from merged;
+
+  delete from public.card_faces live
+    where exists (
+        select 1 from catalog_import.cards c where c.run_id = run.id and c.oracle_id = live.oracle_id
+      )
+      and not exists (
+        select 1
+        from catalog_import.card_faces f
+        where f.run_id = run.id and f.oracle_id = live.oracle_id and f.face_index = live.face_index
+      );
+  get diagnostics faces_deleted = row_count;
+
+  with merged as (
+    insert into public.card_printings as live (
+      id, oracle_id, set_code, set_name, collector_number, lang, rarity, released_at, finishes,
+      illustration_id, image_uris, art_crop_uri, booster, promo, variation
+    )
+    select id, oracle_id, set_code, set_name, collector_number, lang, rarity, released_at, finishes,
+      illustration_id, image_uris, art_crop_uri, booster, promo, variation
+    from catalog_import.card_printings
+    where run_id = run.id
+    on conflict (id) do update set
+      oracle_id = excluded.oracle_id,
+      set_code = excluded.set_code,
+      set_name = excluded.set_name,
+      collector_number = excluded.collector_number,
+      lang = excluded.lang,
+      rarity = excluded.rarity,
+      released_at = excluded.released_at,
+      finishes = excluded.finishes,
+      illustration_id = excluded.illustration_id,
+      image_uris = excluded.image_uris,
+      art_crop_uri = excluded.art_crop_uri,
+      booster = excluded.booster,
+      promo = excluded.promo,
+      variation = excluded.variation,
+      absent_since = null
+    where (
+      live.oracle_id, live.set_code, live.set_name, live.collector_number, live.lang, live.rarity,
+      live.released_at, live.finishes, live.illustration_id, live.image_uris, live.art_crop_uri,
+      live.booster, live.promo, live.variation, live.absent_since
+    ) is distinct from (
+      excluded.oracle_id, excluded.set_code, excluded.set_name, excluded.collector_number,
+      excluded.lang, excluded.rarity, excluded.released_at, excluded.finishes,
+      excluded.illustration_id, excluded.image_uris, excluded.art_crop_uri, excluded.booster,
+      excluded.promo, excluded.variation, null::timestamptz
+    )
+    returning xmax = 0 as inserted
+  )
+  select count(*) filter (where inserted), count(*) filter (where not inserted)
+    into printings_inserted, printings_updated
+    from merged;
+
+  update public.card_printings live
+    set absent_since = now()
+    where live.absent_since is null
+      and not exists (
+        select 1 from catalog_import.card_printings p where p.run_id = run.id and p.id = live.id
+      );
+  get diagnostics printings_absent = row_count;
+
+  return jsonb_build_object(
+    'cards', jsonb_build_object(
+      'staged', staged_cards,
+      'accepted', accepted_cards,
+      'dropped', dropped_cards,
+      'inserted', cards_inserted,
+      'updated', cards_updated,
+      'marked_absent', cards_absent
+    ),
+    'card_faces', jsonb_build_object(
+      'staged', staged_faces,
+      'inserted', faces_inserted,
+      'updated', faces_updated,
+      'deleted', faces_deleted
+    ),
+    'card_printings', jsonb_build_object(
+      'staged', staged_printings,
+      'accepted', accepted_printings,
+      'dropped', dropped_printings,
+      'inserted', printings_inserted,
+      'updated', printings_updated,
+      'marked_absent', printings_absent
+    )
+  );
+end;
+$$;
