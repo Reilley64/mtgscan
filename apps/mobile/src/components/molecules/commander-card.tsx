@@ -15,7 +15,7 @@ import { gradients } from '@/theme';
 
 const ghostVariant = { true: dashedOutlineClass, false: '' };
 
-const cardFrameVariants = cva('h-commander-gallery-card w-full justify-end gap-sm overflow-hidden rounded-md bg-surface p-md', {
+const cardFrameVariants = cva('min-h-commander-gallery-card w-full justify-end gap-sm overflow-hidden rounded-md bg-surface p-md pt-xl', {
   variants: { ghost: ghostVariant },
 });
 
@@ -98,7 +98,7 @@ export function DeckBanner({ name, chips, chipButtons, commanders }: DeckBannerP
   return (
     <View className={bannerVariants({ ghost: !commander })}>
       {commander ? <CommanderArt uri={commander.art_crop_uri} /> : null}
-      <View className="h-deck-banner flex-row items-end gap-md p-lg">
+      <View className="min-h-deck-banner flex-row items-end gap-md p-lg pt-header-clearance">
         <View className="flex-1 gap-sm">
           <DeckTitle name={name} chips={chips} chipButtons={chipButtons} />
         </View>
@@ -118,6 +118,22 @@ export function DeckBannerSkeleton() {
           <Skeleton className="h-chip w-[20%] rounded-md" />
         </View>
       </View>
+    </View>
+  );
+}
+
+export function CommanderGalleryCardSkeletons() {
+  return (
+    <View accessible accessibilityRole="progressbar" accessibilityLabel="Loading decks" className="gap-lg">
+      {[0, 1, 2].map((card) => (
+        <View key={card} className={cardFrameVariants({ ghost: false })}>
+          <Skeleton className="h-skeleton-title-bar w-1/2" />
+          <View className="flex-row gap-sm">
+            <Skeleton className="h-chip w-1/4 rounded-md" />
+            <Skeleton className="h-chip w-1/5 rounded-md" />
+          </View>
+        </View>
+      ))}
     </View>
   );
 }

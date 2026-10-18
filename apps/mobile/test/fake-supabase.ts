@@ -155,6 +155,8 @@ let failingScanBatch: 'before the server adds it' | 'after the server adds it' |
 let heldScanBatch: Promise<void> | null = null;
 let heldCollectionReads: Promise<void> | null = null;
 let heldDeckReads: Promise<void> | null = null;
+let heldDeckListReads: Promise<void> | null = null;
+let heldNeedsYouReads: Promise<void> | null = null;
 let galleryObjects = new Map<string, string>();
 let offlineGalleryReads = 0;
 let currentPrices: Map<string, CurrentPrice | null> | null = null;
@@ -1288,6 +1290,7 @@ export const fakeSupabase = {
         },
   ) {
     if (name === 'list_decks') {
+      await heldDeckListReads;
       return deckList();
     }
     if (name === 'get_deck' && args && 'query' in args) {
@@ -1342,6 +1345,7 @@ export const fakeSupabase = {
       return needsYouCounts();
     }
     if (name === 'list_planned_swaps' && args && 'query' in args) {
+      await heldNeedsYouReads;
       return plannedSwapList(args.query as PlannedSwapsQuery);
     }
     if (name === 'swap_in_planned_swap' && args && 'request' in args) {
@@ -1354,6 +1358,7 @@ export const fakeSupabase = {
       return closePlannedSwap(args.request as ClosePlannedSwapRequest);
     }
     if (name === 'list_buylist' && args && 'query' in args) {
+      await heldNeedsYouReads;
       return buylistList(args.query as BuylistQuery);
     }
     if (name === 'mark_buylist_card_bought' && args && 'request' in args) {
@@ -1778,6 +1783,32 @@ export function holdDeckReads() {
   };
 }
 
+export function holdDeckListReads() {
+  let finish = () => {};
+  heldDeckListReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldDeckListReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
+export function holdNeedsYouReads() {
+  let finish = () => {};
+  heldNeedsYouReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldNeedsYouReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
 export function publishGallery(version: string, partNames: string[] = galleryPartNames) {
   galleryObjects = new Map(galleryObjects);
   galleryObjects.set('published.json', JSON.stringify({ formatVersion: 1, version, manifest: `${version}/manifest.json` }));
@@ -1877,6 +1908,8 @@ export function resetFakeSupabase() {
   heldScanBatch = null;
   heldCollectionReads = null;
   heldDeckReads = null;
+  heldDeckListReads = null;
+  heldNeedsYouReads = null;
   galleryObjects = new Map();
   offlineGalleryReads = 0;
   currentPrices = null;

@@ -3,6 +3,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
 
+import type { MenuAction } from '@/components/atoms/menu-button';
 import { NameAlert } from '@/components/atoms/name-alert';
 import { DeckBanner } from '@/components/molecules/commander-card';
 import { EmptyState } from '@/components/molecules/empty-state';
@@ -40,6 +41,9 @@ const deckTabLabels: Record<DeckTab, string> = { cards: 'Cards', planned: 'Plann
 type DeckScreenItem = DeckCardsRow | { kind: Exclude<DeckTab, 'cards'>; key: string };
 
 function deleteMessage(cardCount: number) {
+  if (cardCount === 0) {
+    return 'Its history is deleted. This cannot be undone.';
+  }
   const verb = cardCount === 1 ? 'becomes' : 'become';
   return `Its ${cardCountLabel(cardCount)} ${verb} free, and its history is deleted. This cannot be undone.`;
 }
@@ -111,18 +115,18 @@ export default function DeckScreen() {
   }
 
   function menuActionsOf(deck: Deck) {
-    return (card: DeckCard) => {
+    return (card: DeckCard): MenuAction[] => {
       const action = commanderAction(card.role, deck.commanders.length);
       return [
-        { title: 'Open card', onSelect: () => openCard(card) },
-        ...(action ? [{ title: action.title, onSelect: () => void applyCommanderAction(card.copy_id, action, reload) }] : []),
-        { title: 'Remove from deck', destructive: true, onSelect: () => void removeFromDeck(card.copy_id, reload) },
+        { title: 'Open card', symbol: 'rectangle.portrait', onSelect: () => openCard(card) },
+        ...(action ? [{ title: action.title, symbol: action.symbol, onSelect: () => void applyCommanderAction(card.copy_id, action, reload) }] : []),
+        { title: 'Remove from deck', symbol: 'minus.circle', destructive: true, onSelect: () => void removeFromDeck(card.copy_id, reload) },
       ];
     };
   }
 
-  function basicLandMenuActionsOf(land: BasicLandTile) {
-    return [{ title: 'Remove from deck', destructive: true, onSelect: () => void removeBasicLandFromDeck(deckId, land.oracle_id, reload) }];
+  function basicLandMenuActionsOf(land: BasicLandTile): MenuAction[] {
+    return [{ title: 'Remove from deck', symbol: 'minus.circle', destructive: true, onSelect: () => void removeBasicLandFromDeck(deckId, land.oracle_id, reload) }];
   }
 
   function confirmDelete(deck: Deck) {

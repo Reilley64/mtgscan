@@ -104,6 +104,8 @@ export const blurRadii = {
 
 const floatingButton = 48;
 
+const touchTarget = 44;
+
 export const sizes = {
   button: 38,
   signInButton: 50,
@@ -114,7 +116,8 @@ export const sizes = {
   chip: 24,
   quickAction: 32,
   quickActionDivider: 16,
-  touchTarget: 44,
+  touchTarget,
+  headerClearance: touchTarget + spacing.lg,
   floatingButton,
   floatingButtonClearance: floatingButton + 2 * spacing.lg,
   commanderGalleryCard: 140,

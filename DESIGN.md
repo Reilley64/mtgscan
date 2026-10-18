@@ -400,7 +400,7 @@ Copy is plain sentence case and uses glossary terms exactly: planned swap, buyli
 
 The app is built for an iPhone in portrait. The page inset is 16 px, cards sit 12 px from the edges, and rows use 8 px gaps. The content of a tab ends 32 px above the tab bar. A list under floating buttons, such as the Collection grid or a deck's Cards tab, ends 80 px above the bottom instead (`sizes.floatingButtonClearance`), so the last row clears the buttons.
 
-Text follows the text size that the user sets in iOS. Buttons, chips, and deck tags grow taller with their labels, so a label never clips. The labels of a segmented control shrink to fit on one line.
+Text follows the text size that the user sets in iOS. Buttons, chips, deck tags, and count badges grow taller with their labels, so a label never clips. The labels of a segmented control shrink to fit on one line. The commander gallery card and the deck banner grow taller when the deck name and chips need more room. The banner keeps them at least 60 px below the safe area (`sizes.headerClearance`), under Close and •••.
 
 ### App shell
 
@@ -419,6 +419,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - **Bought** opens the Bought page sheet. See Sheets.
   - **Close** on a buylist card closes it at once, with no confirmation. The item then leaves Recent. When the write fails, a native alert says "Could not close this buylist card" and "Check your connection.", and the item stays. An item that changed elsewhere reloads Recent instead of acting.
   - Recent reloads when the tab gains focus. When the read fails, Recent shows its read failure state. See Empty states.
+  - While the Recent read loads, a skeleton of two Needs you items shows in their place. Each item is a surface with a round block the size of the commander avatar and a short bar for the deck tag, then two change lines. Each change line is a block the size of the card thumbnail and a bar on surface raised. The blocks are line-colored and pulse like the skeleton grid. VoiceOver reads the skeleton as one element, "Loading Recent". When the read returns, the items, the empty state, or the read failure state replace it. A reload when the tab gains focus keeps the items already shown and brings no skeleton back.
 - **Collection** is a binder grid with the collection total in its header.
   - The header has the collection total button next to the settings button (owner decision, #125). See Collection header.
   - Card images sit 3 per row, with **one tile per copy** and no quantity badge. Three copies of a card printing make three tiles (owner decision, #116).
@@ -442,6 +443,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - When the create fails, a native alert says "Could not create this deck" and "Check your connection.", and nothing opens.
   - With no decks, Decks shows its empty state with a **Create deck** button, which opens the same name alert. See Empty states.
   - When the read fails, the tab shows the empty state "Could not load your decks" with a **Try again** button, which reads the decks again.
+  - While the decks read loads, three commander gallery card skeletons show in place of the commander gallery. Each has the frame of a commander gallery card, with a bar for the deck name and two chip-shaped blocks. The blocks are line-colored and pulse like the skeleton grid. VoiceOver reads the skeletons as one element, "Loading decks". When the read returns, the gallery cards, the empty state, or the error state replace them.
 - **Scan** is a black screen that the camera feed replaces. The batch button sits top right, and the latest-scan chip sits at the bottom.
   - Until the gallery is on the phone, the camera stays off and the tab shows the gallery download:
     - "Downloading gallery" with a progress bar and the megabytes done of the total, such as "12.3 MB of 68.5 MB".
@@ -618,7 +620,7 @@ On iOS 26, content that scrolls up under the status bar and the header buttons o
     - **Rename** opens the name alert "Rename deck" with "Name your deck.", the deck name in the field, and **Cancel** and **Save**.
     - **Priority** opens a submenu with **High**, **Medium**, and **Low**, with a check mark on the deck priority.
     - **Delete deck** is in red. It asks first with the alert "Delete <name>?".
-    - The alert says "Its N cards become free, and its history is deleted. This cannot be undone.", such as "Its 1 card becomes free, …". N is the card count.
+    - The alert says "Its N cards become free, and its history is deleted. This cannot be undone.", such as "Its 1 card becomes free, …". N is the card count. A deck with no cards says only "Its history is deleted. This cannot be undone."
     - The alert has **Delete deck** in red and **Cancel**. Delete deck goes back to the gallery.
     - A write that fails shows a native alert with "Check your connection." and changes nothing. The titles are "Could not rename this deck", "Could not change the deck priority", and "Could not delete this deck".
     - A deck that was deleted elsewhere goes back to the gallery.
@@ -952,6 +954,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
 ## Do's and Don'ts
 
+- **Do** give each item in an action menu its SF Symbol before the label: `pencil` for Rename, `flag` for Priority, `trash` for each delete and for Remove all scans, `minus.circle` for Remove from deck, `shield` for Protect, `shield.slash` for Unprotect, `plus.rectangle.on.rectangle` for Add to deck, `crown` for Make commander and Make partner, `rectangle.stack` for Move to main deck, and `rectangle.portrait` for Open card. Choice menus, such as Sort by and Group by, keep their check marks and direction arrows.
 - **Do** style new UI with NativeWind classes named after the tokens.
 - **Don't** add inline style objects to new UI, or a value outside the tokens without a reason in this file.
 - **Do** show the most likely printing after every scan, and keep the other options one tap away.

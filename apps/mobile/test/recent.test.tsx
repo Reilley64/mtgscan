@@ -9,6 +9,7 @@ import {
   failDeckWrites,
   failFreeCopyReads,
   failNeedsYouReads,
+  holdNeedsYouReads,
   ownBuylistCards,
   ownDecks,
   ownFreeCopies,
@@ -194,6 +195,33 @@ describe('Recent', () => {
     await waitFor(() => expect(recent.queryByLabelText('+, Lightning Bolt, M10 146')).not.toBeOnTheScreen());
     expect(recent.getByLabelText('+, Counterspell, M10 146')).toBeOnTheScreen();
     expect(presentedAlert()).toBeNull();
+  });
+
+  test('until the Recent read returns, Recent shows the Needs you skeleton, then the items', async () => {
+    ownPlannedSwaps([plannedSwapOf('swap')]);
+    const reads = holdNeedsYouReads();
+
+    const recent = await openRecent();
+    expect(recent.getByRole('progressbar', { name: 'Loading Recent' })).toBeOnTheScreen();
+    expect(recent.queryByText('Nothing needs you yet')).not.toBeOnTheScreen();
+
+    await reads.finish();
+
+    expect(await recent.findByLabelText('+, Lightning Bolt, M10 146')).toBeOnTheScreen();
+    expect(recent.queryByRole('progressbar', { name: 'Loading Recent' })).not.toBeOnTheScreen();
+  });
+
+  test('a reload when Recent gains focus keeps the items and brings no skeleton back', async () => {
+    ownPlannedSwaps([plannedSwapOf('swap')]);
+    const recent = await openRecent();
+    await recent.findByLabelText('+, Lightning Bolt, M10 146');
+    holdNeedsYouReads();
+
+    await pressTab('Collection');
+    await pressTab('Recent');
+
+    expect(within(selectedTab()).getByLabelText('+, Lightning Bolt, M10 146')).toBeOnTheScreen();
+    expect(within(selectedTab()).queryByRole('progressbar', { name: 'Loading Recent' })).not.toBeOnTheScreen();
   });
 
   test('Recent reloads when the tab gains focus', async () => {
