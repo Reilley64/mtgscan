@@ -14,18 +14,20 @@ import { gradients, sizes } from '@/theme';
 
 const barClass = 'h-skeleton-meta-bar rounded-full bg-line';
 
-function FadesDown({ children }: { children: ReactNode }) {
+type FadeProps = { onSheet?: boolean };
+
+function FadesDown({ onSheet = false, children }: FadeProps & { children: ReactNode }) {
   return (
     <View className="w-full items-center">
       {children}
-      <View pointerEvents="none" className="absolute inset-0" style={styles.fade} />
+      <View pointerEvents="none" className="absolute inset-0" style={onSheet ? styles.sheetFade : styles.fade} />
     </View>
   );
 }
 
-export function EmptyBinderSlots({ rows }: { rows: number }) {
+export function EmptyBinderSlots({ rows, onSheet }: FadeProps & { rows: number }) {
   return (
-    <FadesDown>
+    <FadesDown onSheet={onSheet}>
       <View className="w-3/4 flex-row flex-wrap gap-y-md">
         {Array.from({ length: rows * cardsPerRow }, (_, slot) => (
           <View key={slot} className={cn(cardColumnClass, 'px-xs')}>
@@ -68,9 +70,9 @@ export function GhostNeedsYouItems() {
   );
 }
 
-export function GhostCommanderCard() {
+export function GhostCommanderCard({ onSheet }: FadeProps) {
   return (
-    <FadesDown>
+    <FadesDown onSheet={onSheet}>
       <CommanderCardFrame>
         <View className="h-skeleton-title-bar w-1/2 rounded-full bg-line" />
         <View className="flex-row gap-sm">
@@ -108,4 +110,5 @@ export function GhostBatchRows() {
 
 const styles = StyleSheet.create({
   fade: { experimental_backgroundImage: gradients.emptyStateFade },
+  sheetFade: { experimental_backgroundImage: gradients.emptyStateSheetFade },
 });

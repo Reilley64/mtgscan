@@ -9,7 +9,7 @@ import { colors } from '@/theme';
 
 const screenClass = 'flex-1 bg-background';
 
-const contentClass = 'px-lg pt-sm';
+const contentClass = 'px-lg pb-xl pt-sm';
 
 type TabHeaderProps = {
   title: string;
@@ -75,8 +75,9 @@ export function TabListScreen<Item>({ title, actions, search, floatingButtons, .
       <FlatList
         {...listProps}
         className={screenClass}
-        contentContainerClassName={contentClass}
+        contentContainerClassName={cn(contentClass, floatingButtons && 'pb-floating-button-clearance')}
         contentInsetAdjustmentBehavior="automatic"
+        keyboardDismissMode="on-drag"
       />
       {floatingButtons ? <FloatingButtons>{floatingButtons}</FloatingButtons> : null}
     </>

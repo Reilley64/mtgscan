@@ -8,6 +8,8 @@ const screenClass = 'flex-1 bg-background';
 
 const contentClass = 'pb-safe-offset-xl';
 
+const floatingButtonsContentClass = 'pb-safe-offset-floating-button-clearance';
+
 const endReachedScreens = 2;
 
 export function PushedScreen({ children }: { children: ReactNode }) {
@@ -35,7 +37,7 @@ export function PushedListScreen<Item>({ floatingButtons, ...listProps }: Pushed
       <FlatList
         {...listProps}
         className={screenClass}
-        contentContainerClassName={contentClass}
+        contentContainerClassName={floatingButtons ? floatingButtonsContentClass : contentClass}
         contentInsetAdjustmentBehavior="never"
         keyboardShouldPersistTaps="handled"
         onEndReachedThreshold={endReachedScreens}

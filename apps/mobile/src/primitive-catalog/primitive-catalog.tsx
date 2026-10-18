@@ -672,6 +672,9 @@ function EmptyStates() {
       <View className="bg-sheet">
         <EmptyState illustration={<GhostBatchRows />} title="No scans yet" message="Cards you scan wait here until you add them." />
       </View>
+      <View className="bg-sheet">
+        <EmptyState illustration={<EmptyBinderSlots rows={1} onSheet />} title="No copies found" message="Scan copies into your collection first." />
+      </View>
     </Section>
   );
 }

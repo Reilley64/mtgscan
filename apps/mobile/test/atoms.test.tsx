@@ -173,7 +173,7 @@ describe('Button', () => {
 
     expect(screen.getByRole('button', { name: 'Add to collection' })).toHaveStyle({
       backgroundColor: fill,
-      height: 38,
+      minHeight: 38,
       borderRadius: 8,
     });
     expect(screen.getByText('Add to collection')).toHaveStyle({ color: label, fontSize: 14, fontWeight: '700' });
@@ -356,7 +356,7 @@ describe('Chip', () => {
     expect(screen.getByText('Protected only')).toHaveStyle({ color, fontSize: 11, fontWeight: '700' });
     expect(screen.getByLabelText('Protected only')).toHaveStyle({
       backgroundColor: surfaceControl,
-      height: 24,
+      minHeight: 24,
       borderRadius: 12,
     });
   });
@@ -421,7 +421,7 @@ describe('Chip', () => {
     await fireEvent.press(chip);
 
     expect(chip).toHaveProp('accessibilityHint', 'Removes this chip.');
-    expect(chip).toHaveStyle({ backgroundColor: surfaceControl, height: 24, borderRadius: 12 });
+    expect(chip).toHaveStyle({ backgroundColor: surfaceControl, minHeight: 24, borderRadius: 12 });
     expect(within(chip).getByText('set:mh2')).toHaveStyle({ color: white, fontSize: 11, fontWeight: '700' });
     expect(within(chip).getByText('×')).toBeOnTheScreen();
     expect(onRemove).toHaveBeenCalledTimes(1);
@@ -452,7 +452,7 @@ describe('Chip', () => {
       await render(<StatusChipButton tone={tone} symbol={symbol} label="Invalid" accessibilityLabel="Deck validity, Invalid" onPress={() => {}} />);
 
       const chip = screen.getByRole('button', { name: 'Deck validity, Invalid' });
-      expect(chip).toHaveStyle({ backgroundColor: surfaceControl, height: 24, borderRadius: 12 });
+      expect(chip).toHaveStyle({ backgroundColor: surfaceControl, minHeight: 24, borderRadius: 12 });
       expect(within(chip).getByText('Invalid')).toHaveStyle({ color, fontSize: 11, fontWeight: '700' });
       expect(symbolNames(chip)).toEqual([...(symbol ? [symbol] : []), 'chevron.right']);
       expect(symbolSizes(chip)).toEqual(symbol ? [11, 11] : [11]);
@@ -1276,7 +1276,7 @@ describe('DeckTag', () => {
 
     const tag = screen.getByRole('button', { name: 'Atraxa' });
     expect(tag).toHaveProp('accessibilityHint', 'Opens the deck.');
-    expect(tag).toHaveStyle({ height: 24, backgroundColor: surfaceControl, borderRadius: 999 });
+    expect(tag).toHaveStyle({ minHeight: 24, backgroundColor: surfaceControl, borderRadius: 999 });
     expect(within(tag).getByText('Atraxa')).toHaveStyle({ fontSize: 11, fontWeight: '700', color: white });
     expect(cardImageUri(tag)).toBe('https://cards.scryfall.io/art_crop/front/atraxa.jpg');
     expect(touchTarget(tag).height).toBeGreaterThanOrEqual(44);

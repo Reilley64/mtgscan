@@ -102,6 +102,8 @@ export const blurRadii = {
   heroArt: 26,
 } as const;
 
+const floatingButton = 48;
+
 export const sizes = {
   button: 38,
   signInButton: 50,
@@ -113,7 +115,8 @@ export const sizes = {
   quickAction: 32,
   quickActionDivider: 16,
   touchTarget: 44,
-  floatingButton: 48,
+  floatingButton,
+  floatingButtonClearance: floatingButton + 2 * spacing.lg,
   commanderGalleryCard: 140,
   deckBanner: 200,
   swipeTrack: 52,
@@ -192,6 +195,7 @@ export const gradients = {
   etchedSheen: linearGradient('120deg', etchedSheenStops),
   binderWallScrim: `linear-gradient(180deg, ${scrimStops.map(([alpha, stop]) => `${colors.background}${alpha} ${stop}`).join(', ')})`,
   emptyStateFade: `linear-gradient(180deg, ${colors.background}00 30%, ${colors.background} 100%)`,
+  emptyStateSheetFade: `linear-gradient(180deg, ${colors.sheet}00 30%, ${colors.sheet} 100%)`,
   commanderArtScrim: `linear-gradient(180deg, ${colors.background}00 30%, ${colors.background}e6 100%)`,
 } as const;
 
