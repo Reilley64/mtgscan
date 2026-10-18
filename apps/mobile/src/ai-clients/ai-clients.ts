@@ -7,12 +7,14 @@ import { useFocusedRead, type FocusedRead } from '@/lib/use-focused-read';
 
 export type AiClient = { id: string; name: string; allowedAt: string };
 
-export type AiClientsRead = FocusedRead<{ status: 'loaded'; aiClients: AiClient[] }>;
+type AiClientsLoaded = { status: 'loaded'; aiClients: AiClient[] };
 
-async function readAiClients(): Promise<AiClientsRead> {
+export type AiClientsRead = FocusedRead<AiClientsLoaded>;
+
+async function readAiClients(): Promise<AiClientsLoaded> {
   const { data, error } = await supabase.auth.oauth.listGrants();
   if (error) {
-    return { status: 'failed' };
+    throw error;
   }
   return {
     status: 'loaded',

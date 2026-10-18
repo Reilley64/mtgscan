@@ -7,7 +7,7 @@ import type { GalleryDelivery, GalleryProgress } from '@/gallery/gallery-state';
 
 import { CameraMessage } from './camera-message';
 
-const galleryPurpose = 'The scanner needs the gallery to recognize cards. It downloads once, and updates come in the background.';
+const galleryPurpose = 'The scanner needs the gallery to recognize cards. It downloads once. Updates come in the background.';
 
 type GalleryDownloadProps = {
   delivery: GalleryDelivery;

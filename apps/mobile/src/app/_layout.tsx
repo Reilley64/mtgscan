@@ -44,7 +44,7 @@ function RootStack() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={signedIn}>
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="copy" options={pushedScreenOptions} />
         <Stack.Screen name="deck" options={pushedScreenOptions} />
         <Stack.Screen name="user-tag-picker" options={pushedScreenWithBarOptions} />
@@ -61,7 +61,7 @@ function RootStack() {
         <Stack.Screen name="settings" options={halfHeightDrawerOptions} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
-        <Stack.Screen name="sign-in" />
+        <Stack.Screen name="sign-in" options={{ animation: 'fade' }} />
       </Stack.Protected>
       <Stack.Protected guard={__DEV__}>
         <Stack.Screen name="primitives" />

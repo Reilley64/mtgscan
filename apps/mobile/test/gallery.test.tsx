@@ -57,7 +57,7 @@ describe('on a phone without the gallery', () => {
 
     expect(within(tab).getByText('Downloading gallery')).toBeOnTheScreen();
     expect(
-      within(tab).getByText('The scanner needs the gallery to recognize cards. It downloads once, and updates come in the background.'),
+      within(tab).getByText('The scanner needs the gallery to recognize cards. It downloads once. Updates come in the background.'),
     ).toBeOnTheScreen();
     expect(within(tab).getByRole('progressbar', { name: 'Downloading gallery' })).toHaveAccessibilityValue({
       min: 0,
@@ -68,10 +68,11 @@ describe('on a phone without the gallery', () => {
     expect(cameraIsOn()).toBe(false);
   });
 
-  test('the Scan tab shows "Waiting for Wi-Fi", and Download now downloads on mobile data', async () => {
+  test('the Scan tab shows "Waiting for Wi-Fi" with what the gallery is for, and Download now downloads on mobile data', async () => {
     const tab = await openScan();
     await galleryDownloadReports('waiting_for_wifi', { bytesDone: 0 });
     expect(within(tab).getByText('Waiting for Wi-Fi')).toBeOnTheScreen();
+    expect(within(tab).getByText('The scanner needs the gallery to recognize cards. It downloads once. Updates come in the background.')).toBeOnTheScreen();
 
     await press(within(tab).getByRole('button', { name: 'Download now' }));
 

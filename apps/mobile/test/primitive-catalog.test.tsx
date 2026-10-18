@@ -113,9 +113,9 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByLabelText('Added, Reverted, 16 October 2026 at 18:05')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, CMM 464', selected: true })).toBeOnTheScreen();
   expect(buttonMenuActions(contextMenu(screen.getByRole('button', { name: 'Sol Ring, M10 216, long press for a menu' })))).toEqual([
-    { title: 'Open card', destructive: false },
-    { title: 'Make commander', destructive: false },
-    { title: 'Remove from deck', destructive: true },
+    { title: 'Open card', symbol: 'rectangle.portrait', destructive: false },
+    { title: 'Make commander', symbol: 'crown', destructive: false },
+    { title: 'Remove from deck', symbol: 'minus.circle', destructive: true },
   ]);
   expect(screen.getByRole('checkbox', { name: 'Misprint, 0 copies' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263', selected: false })).toBeOnTheScreen();

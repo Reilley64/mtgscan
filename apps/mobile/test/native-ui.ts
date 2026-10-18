@@ -744,6 +744,18 @@ export function fadesDown(element: HostElement) {
   ).length > 0;
 }
 
+export function fadeEndColor(element: HostElement) {
+  const [fade] = element.queryAll((instance) =>
+    String(StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage).startsWith('linear-gradient(180deg'),
+  );
+  const hex = /#(\w{2})(\w{2})(\w{2}) 100%\)$/.exec(StyleSheet.flatten(fade?.props.style)?.experimental_backgroundImage ?? '');
+  if (!hex) {
+    throw new Error('This element does not fade down into a color');
+  }
+  const [red, green, blue] = hex.slice(1).map((channel) => parseInt(channel, 16));
+  return `rgba(${red}, ${green}, ${blue}, 1)`;
+}
+
 export function lineColoredBlocks(element: HostElement) {
   return blocksColored(element, tokenColors.line);
 }
@@ -966,6 +978,7 @@ function menuActions(button: HostElement) {
 export function buttonMenuActions(button: HostElement) {
   return menuActions(button).map((action) => ({
     title: action.props.label as string,
+    symbol: action.props.systemImage as string | undefined,
     destructive: action.props.role === 'destructive',
   }));
 }
