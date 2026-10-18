@@ -1019,7 +1019,7 @@ describe('CountBadge', () => {
 
     const numerals = screen.getByText('12');
     expect(numerals).toHaveStyle({ color: white, fontSize: 11, fontWeight: '700' });
-    expect(numerals.parent).toHaveStyle({ backgroundColor: badge, borderRadius: 999, height: 17, minWidth: 17 });
+    expect(numerals.parent).toHaveStyle({ backgroundColor: badge, borderRadius: 999, minHeight: 17, minWidth: 17 });
   });
 
   test('a count badge can show ∞ for an unlimited count', async () => {
@@ -1105,8 +1105,8 @@ describe('MenuButton', () => {
       <MenuButton
         accessibilityLabel="More, Signed"
         actions={[
-          { title: 'Rename', onSelect: onRename },
-          { title: 'Delete user tag', destructive: true, onSelect: () => {} },
+          { title: 'Rename', symbol: 'pencil', onSelect: onRename },
+          { title: 'Delete user tag', symbol: 'trash', destructive: true, onSelect: () => {} },
         ]}
       />,
     );
@@ -1236,8 +1236,8 @@ describe('CardContextMenu', () => {
     await render(
       <CardContextMenu
         actions={[
-          { title: 'Open card', onSelect: onOpen },
-          { title: 'Remove from deck', destructive: true, onSelect: () => {} },
+          { title: 'Open card', symbol: 'rectangle.portrait', onSelect: onOpen },
+          { title: 'Remove from deck', symbol: 'minus.circle', destructive: true, onSelect: () => {} },
         ]}>
         <View accessibilityLabel="Sol Ring">
           <CardImage uri="https://cards.scryfall.io/normal/front/sol-ring.jpg" />
@@ -1258,7 +1258,7 @@ describe('CardContextMenu', () => {
 
   test('the card ignores the safe area of the screen, so it draws where the grid places it', async () => {
     await render(
-      <CardContextMenu actions={[{ title: 'Open card', onSelect: () => {} }]}>
+      <CardContextMenu actions={[{ title: 'Open card', symbol: 'rectangle.portrait', onSelect: () => {} }]}>
         <View accessibilityLabel="Sol Ring">
           <CardImage uri="https://cards.scryfall.io/normal/front/sol-ring.jpg" />
         </View>

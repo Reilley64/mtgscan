@@ -11,7 +11,7 @@ type CountBadgeProps = {
 export function CountBadge({ count, className }: CountBadgeProps) {
   return (
     <View
-      className={cn('h-count-badge min-w-count-badge items-center justify-center rounded-full bg-badge px-xs', className)}>
+      className={cn('min-h-count-badge min-w-count-badge items-center justify-center rounded-full bg-badge px-xs', className)}>
       <Text variant="chip">{count}</Text>
     </View>
   );

@@ -676,7 +676,7 @@ export function splitColorsBehind(glyph: HostElement) {
   return [];
 }
 
-function sizesAround(element: HostElement, dimension: 'width' | 'height') {
+function sizesAround(element: HostElement, dimension: 'width' | 'height' | 'minHeight') {
   const sizes: number[] = [];
   for (let candidate = element.parent; candidate; candidate = candidate.parent) {
     const size = StyleSheet.flatten(candidate.props.style)?.[dimension];
@@ -693,6 +693,10 @@ export function widthsAround(element: HostElement) {
 
 export function heightsAround(element: HostElement) {
   return sizesAround(element, 'height');
+}
+
+export function minHeightsAround(element: HostElement) {
+  return sizesAround(element, 'minHeight');
 }
 
 function isScrollContent(element: HostElement) {

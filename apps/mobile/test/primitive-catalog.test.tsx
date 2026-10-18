@@ -99,6 +99,8 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'User tags, signed, trade binder' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Add user tags' })).toBeOnTheScreen();
   expect(screen.getByRole('progressbar', { name: 'Loading collection' })).toBeOnTheScreen();
+  expect(screen.getByRole('progressbar', { name: 'Loading decks' })).toBeOnTheScreen();
+  expect(screen.getByRole('progressbar', { name: 'Loading Recent' })).toBeOnTheScreen();
   expect(menuButtonNames(screen.container)).toEqual(['More, Misprint', 'Group, Type', 'Sort, Relevance', 'Sort, Price, high to low']);
   expect(screen.getByRole('progressbar', { name: 'Downloading gallery' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Other options' })).toBeOnTheScreen();
