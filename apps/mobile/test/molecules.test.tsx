@@ -1065,6 +1065,8 @@ describe('NeedsYouItemSkeletons', () => {
 
     expect(lineBlockShapes(screen.root!)).toEqual(skeletonBlocks);
     expect(pulsingLineBlocks(screen.root!)).toBe(0);
+    expect(screen.getAllByText('+')).toHaveLength(2);
+    expect(screen.getAllByText('\u2212')).toHaveLength(2);
   });
 });
 

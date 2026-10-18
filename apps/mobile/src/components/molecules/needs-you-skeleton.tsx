@@ -27,7 +27,7 @@ export function NeedsYouItemShape({ block: Block }: { block: Block }) {
         <Block className="h-skeleton-meta-bar w-1/3 rounded-full" />
       </View>
       <ChangeLineShape block={Block} sign="+" />
-      <ChangeLineShape block={Block} sign="\u2212" />
+      <ChangeLineShape block={Block} sign={'\u2212'} />
     </Surface>
   );
 }
