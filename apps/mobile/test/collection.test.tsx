@@ -931,11 +931,10 @@ describe('collection search', () => {
     test('when the decks cannot be read for a typed deck: name, Try again reads them again', async () => {
       ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
       const collection = await openCollection();
-      await typeInSearchBar('deck:kinnan ');
+      await typeInSearchBar('deck:kinnan');
       failDeckReads(1);
+      await typeInSearchBar(' ');
 
-      await pressTab('Recent');
-      await pressTab('Collection');
       await fireEvent.press(await collection.findByRole('button', { name: 'Try again' }));
 
       expect(await collection.findByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();

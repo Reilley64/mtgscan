@@ -224,6 +224,19 @@ describe('Recent', () => {
     expect(within(selectedTab()).queryByRole('progressbar', { name: 'Loading Recent' })).not.toBeOnTheScreen();
   });
 
+  test('a reload that fails when Recent gains focus keeps the items shown', async () => {
+    ownPlannedSwaps([plannedSwapOf('swap')]);
+    const recent = await openRecent();
+    await recent.findByLabelText('+, Lightning Bolt, M10 146');
+    failNeedsYouReads(1);
+
+    await pressTab('Collection');
+    await pressTab('Recent');
+
+    expect(await within(selectedTab()).findByLabelText('+, Lightning Bolt, M10 146')).toBeOnTheScreen();
+    expect(within(selectedTab()).queryByText('Could not load Recent')).not.toBeOnTheScreen();
+  });
+
   test('Recent reloads when the tab gains focus', async () => {
     const recent = await openRecent();
     expect(recent.getByText('Nothing needs you yet')).toBeOnTheScreen();

@@ -406,6 +406,8 @@ Text follows the text size that the user sets in iOS. Buttons, chips, deck tags,
 
 A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Scan**. Recent has a count badge with the number of open planned swaps and open buylist cards across all decks. With none, it has no badge. The count reads again when the app comes back to the foreground and each time Recent or a deck screen reads its items.
 
+A read that runs again when a page gains focus, and fails, keeps what the page already shows. Only a page that has shown nothing yet shows its error state.
+
 - **Recent** is the home across all decks. It holds only the Needs you items, **oldest first**: planned swaps ready to swap in and open buylist cards (owner decision, spec 4). Deck changes stay in each deck's History tab. Collection changes do not appear in Recent.
   - Each item carries a tag with the commander avatar and deck name. The tag opens that deck on Planned.
   - Filter chips: All, Planned swaps, Buylist. They hide while Recent is empty.

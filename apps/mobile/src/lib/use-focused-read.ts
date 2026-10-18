@@ -15,7 +15,7 @@ export function useFocusedRead<Loaded extends { status: string }>(readOnce: (() 
     setRead((current) => (current.status === 'failed' ? { status: 'loading' } : current));
     readOnce().then(
       (next) => thisRead === latestRead.current && setRead(next),
-      () => thisRead === latestRead.current && setRead({ status: 'failed' }),
+      () => thisRead === latestRead.current && setRead((current) => (current.status === 'loading' ? { status: 'failed' } : current)),
     );
   }, [readOnce]);
 
