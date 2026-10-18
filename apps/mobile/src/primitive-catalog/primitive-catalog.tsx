@@ -37,6 +37,8 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { BracketSignalRow } from '@/components/molecules/bracket-signal-row';
 import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
+import { FloatingButton } from '@/components/molecules/floating-button';
+import { SetListSkeleton, SetRow } from '@/components/molecules/set-row';
 import { ChangeLine } from '@/components/molecules/change-line';
 import { Reason } from '@/components/molecules/reason';
 import { CommanderGalleryCard, DeckBanner, DeckBannerSkeleton } from '@/components/molecules/commander-card';
@@ -620,6 +622,40 @@ function FloatingMenuButtons() {
   );
 }
 
+function FloatingButtons() {
+  return (
+    <Section title="Floating buttons">
+      <FloatingButton symbol="rectangle.portrait.on.rectangle.portrait" accessibilityLabel="Sets" onPress={() => {}} />
+    </Section>
+  );
+}
+
+function SetRows() {
+  return (
+    <Section title="Set rows">
+      <SetRow
+        name="Magic 2010"
+        symbolUri={m10Symbol}
+        owned={234}
+        size={261}
+        percent={89}
+        accessibilityLabel="Magic 2010, 234 of 261, 89 percent"
+        onPress={() => {}}
+      />
+      <SetRow
+        name="Magic 2010"
+        symbolUri={m10Symbol}
+        owned={261}
+        size={261}
+        percent={100}
+        accessibilityLabel="Magic 2010, 261 of 261, 100 percent"
+        onPress={() => {}}
+      />
+      <SetListSkeleton accessibilityLabel="Loading sets" />
+    </Section>
+  );
+}
+
 function PullIndicators() {
   return (
     <Section title="Pull indicators">
@@ -647,6 +683,7 @@ function ProgressBars() {
   return (
     <Section title="Progress bars">
       <ProgressBar label="Downloading gallery" value={12.3} max={68.5} />
+      <ProgressBar label="234 of 261" value={234} max={261} tone="primary" />
     </Section>
   );
 }
@@ -874,6 +911,7 @@ export function PrimitiveCatalog() {
         <Toggles />
         <Surfaces />
         <ListRows />
+        <SetRows />
         <CardTiles />
         <CardHeroes />
         <ValueRows />
@@ -883,6 +921,7 @@ export function PrimitiveCatalog() {
         <Skeletons />
         <Glass />
         <FloatingMenuButtons />
+        <FloatingButtons />
         <PullIndicators />
         <Inputs />
         <ProgressBars />

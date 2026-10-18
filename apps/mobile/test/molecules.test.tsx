@@ -23,6 +23,7 @@ import { ChangeLine } from '@/components/molecules/change-line';
 import { CommanderGalleryCard, DeckBanner } from '@/components/molecules/commander-card';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
+import { FloatingButton } from '@/components/molecules/floating-button';
 import { DisclosureRow } from '@/components/molecules/disclosure-row';
 import { EmptyState } from '@/components/molecules/empty-state';
 import {
@@ -39,6 +40,7 @@ import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { Reason } from '@/components/molecules/reason';
+import { SetListSkeleton, SetRow } from '@/components/molecules/set-row';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { SortButton } from '@/components/molecules/sort-button';
 import { GroupButton } from '@/components/molecules/group-button';
@@ -1193,6 +1195,50 @@ describe('BatchButton', () => {
     expect(glassEffect(backdropOf(button))).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
     expect(backdropOf(button)).toHaveStyle({ borderRadius: 999 });
     expect(screen.getByText('3')).toBeOnTheScreen();
+  });
+});
+
+describe('FloatingButton', () => {
+  test('a floating button is a 48 px round button on the control surface with an 18 px symbol in the text color', async () => {
+    const onPress = jest.fn();
+    await render(<FloatingButton symbol="rectangle.portrait.on.rectangle.portrait" accessibilityLabel="Sets" onPress={onPress} />);
+
+    const button = screen.getByRole('button', { name: 'Sets' });
+    expect(button).toHaveStyle({ width: 48, height: 48, borderRadius: 999 });
+    expect(backdropOf(button)).toHaveStyle({ backgroundColor: surfaceControl, width: 48, height: 48, borderRadius: 999 });
+    expect(touchTarget(button)).toEqual({ width: 48, height: 48 });
+    expect(symbolSizes(button)).toEqual([18]);
+    expect(symbolTintColor(button)).toBe(white);
+    await fireEvent.press(button);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('SetRow', () => {
+  test('a set row is a surface button with a 44 pt touch target that VoiceOver reads with its label', async () => {
+    const onPress = jest.fn();
+    await render(
+      <SetRow
+        name="Magic 2010"
+        symbolUri="https://svgs.scryfall.io/sets/m10.svg"
+        owned={234}
+        size={261}
+        percent={89}
+        accessibilityLabel="Magic 2010, 234 of 261, 89 percent"
+        onPress={onPress}
+      />,
+    );
+
+    const row = screen.getByRole('button', { name: 'Magic 2010, 234 of 261, 89 percent' });
+    expect(row).toHaveStyle({ backgroundColor: surface, borderRadius: 12, minHeight: 44 });
+    await fireEvent.press(row);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  test('the set list skeleton reads as one loading element', async () => {
+    await render(<SetListSkeleton accessibilityLabel="Loading sets" />);
+
+    expect(screen.getByRole('progressbar', { name: 'Loading sets' })).toBeOnTheScreen();
   });
 });
 
