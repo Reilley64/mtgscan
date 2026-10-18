@@ -3,6 +3,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Alert, View } from 'react-native';
 
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
+import { Text } from '@/components/atoms/text';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
 import { ListRow } from '@/components/molecules/list-row';
@@ -39,6 +40,7 @@ export default function BoughtSheet() {
           Cancel
         </Stack.Toolbar.Button>
       </Stack.Toolbar>
+      {read.status === 'loaded' && read.copies.length > 0 ? <Text className="text-text-muted">Pick the copy you bought.</Text> : null}
       {read.status === 'loaded'
         ? read.copies.map((copy) => (
             <View key={copy.copy_id} className="gap-sm">

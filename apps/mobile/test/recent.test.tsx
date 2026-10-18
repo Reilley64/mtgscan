@@ -404,6 +404,7 @@ describe('the Bought page sheet', () => {
     const alpha = await sheet.findByRole('button', { name: 'Counterspell, LEA 54' });
     expect(cardImageUri(alpha)).toBe('https://cards.scryfall.io/normal/front/copy-alpha.jpg');
     expect(sheet.getByRole('button', { name: 'Counterspell, SS1 4 · Foil · LP' })).toBeOnTheScreen();
+    expect(appearsBefore(sheet.getByText('Pick the copy you bought.'), alpha)).toBe(true);
     expect(tabHeader(presentedPageSheet()).title).toBe('Bought');
     expect(leftHeaderButtons(presentedPageSheet())).toEqual(['Cancel']);
   });
@@ -437,6 +438,7 @@ describe('the Bought page sheet', () => {
     const sheet = await openBought([]);
 
     expect(await sheet.findByLabelText('No copies found, Scan copies into your collection first.')).toBeOnTheScreen();
+    expect(sheet.queryByText('Pick the copy you bought.')).not.toBeOnTheScreen();
   });
 
   test('a Bought that fails shows "Check your connection." and the sheet stays', async () => {
