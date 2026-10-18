@@ -70,7 +70,7 @@ import type {
   FreeCopy,
   MarkBuylistCardBoughtRequest,
 } from '@mtgscan/supabase/buylist';
-import type { SetRow } from '@mtgscan/supabase/sets';
+import type { SetDetails, SetQuery, SetRow } from '@mtgscan/supabase/sets';
 import type { SignInProvider } from '@mtgscan/supabase/sign-in-providers';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
@@ -160,6 +160,10 @@ let sets: SetRow[] = [];
 let setReads = 0;
 let failingSetReads = 0;
 let heldSetReads: Promise<void> | null = null;
+let setPages = new Map<string, SetDetails>();
+let setPageReads: string[] = [];
+let failingSetPageReads = 0;
+let heldSetPageReads: Promise<void> | null = null;
 let galleryObjects = new Map<string, string>();
 let offlineGalleryReads = 0;
 let currentPrices: Map<string, CurrentPrice | null> | null = null;
@@ -275,6 +279,20 @@ async function setList() {
     return { data: null, error: networkFailure };
   }
   return { data: { items: sets }, error: null };
+}
+
+async function setPageRead({ code }: SetQuery) {
+  setPageReads = [...setPageReads, code];
+  await heldSetPageReads;
+  if (failingSetPageReads > 0) {
+    failingSetPageReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  const set = setPages.get(code);
+  if (!set) {
+    return { data: null, error: { code: 'not_found', message: 'code is not a released set in the card catalog.', details: 'code' } };
+  }
+  return { data: set, error: null };
 }
 
 function collectionTotalRead(query: object) {
@@ -1276,6 +1294,7 @@ export const fakeSupabase = {
       | { query: FreeCopiesQuery }
       | { query: Record<string, never> }
       | { query: CurrentPricesQuery }
+      | { query: SetQuery }
       | { query: { text: string; limit: number } }
       | { batch: ScanBatch }
       | {
@@ -1349,6 +1368,9 @@ export const fakeSupabase = {
     }
     if (name === 'list_sets') {
       return setList();
+    }
+    if (name === 'get_set' && args && 'query' in args) {
+      return setPageRead(args.query as SetQuery);
     }
     if (name === 'list_basic_land_cards') {
       return basicLandCardList();
@@ -1714,6 +1736,31 @@ export function holdSetReads() {
   };
 }
 
+export function offerSetPage(set: SetDetails) {
+  setPages = new Map(setPages).set(set.code, set);
+}
+
+export function setPageReadsSent() {
+  return setPageReads;
+}
+
+export function failSetPageReads(count: number) {
+  failingSetPageReads = count;
+}
+
+export function holdSetPageReads() {
+  let finish = () => {};
+  heldSetPageReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldSetPageReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
 export function ownCollectionTotal(total: CollectionTotal) {
   collectionTotal = total;
 }
@@ -1910,6 +1957,10 @@ export function resetFakeSupabase() {
   setReads = 0;
   failingSetReads = 0;
   heldSetReads = null;
+  setPages = new Map();
+  setPageReads = [];
+  failingSetPageReads = 0;
+  heldSetPageReads = null;
   priceReads = [];
   exchangeRates = exchangeRatesOf(frankfurterCurrencies);
   exchangeRateReads = 0;

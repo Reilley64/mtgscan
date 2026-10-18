@@ -5,6 +5,12 @@ import { cardHeightPerWidth } from '@/components/atoms/card-image';
 import { CardTileSkeleton, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
 import { cn } from '@/lib/class-names';
 
+export function inCardRows<Card>(cards: Card[]): Card[][] {
+  return Array.from({ length: Math.ceil(cards.length / cardsPerRow) }, (_, row) =>
+    cards.slice(row * cardsPerRow, (row + 1) * cardsPerRow),
+  );
+}
+
 export function CardGrid({ children }: { children: ReactNode }) {
   return <View className={cn(cardRowClass, 'flex-row flex-wrap gap-y-sm')}>{children}</View>;
 }

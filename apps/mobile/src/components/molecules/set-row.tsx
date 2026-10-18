@@ -27,21 +27,19 @@ const shares = cva('text-sheet-title', {
   },
 });
 
-type SetRowProps = {
+type SetCompletionProps = {
   name: string;
   symbolUri: string;
   owned: number;
   size: number;
   percent: number;
   accessibilityLabel: string;
-  onPress: () => void;
 };
 
-export function SetRow({ name, symbolUri, owned, size, percent, accessibilityLabel, onPress }: SetRowProps) {
-  const complete = owned === size;
+function SetCompletionContent({ name, symbolUri, owned, size, percent }: Omit<SetCompletionProps, 'accessibilityLabel'>) {
   const count = `${owned} of ${size}`;
   return (
-    <Surface accessibilityLabel={accessibilityLabel} onPress={onPress} className={outlines({ complete })}>
+    <>
       <SetSymbolFill uri={symbolUri} share={owned / size} />
       <View className="flex-1 gap-xs">
         <Text variant="body-strong" numberOfLines={1}>
@@ -50,12 +48,35 @@ export function SetRow({ name, symbolUri, owned, size, percent, accessibilityLab
         <Text variant="meta">{count}</Text>
         <ProgressBar label={count} value={owned} max={size} tone="primary" />
       </View>
-      <Text className={shares({ complete })}>{complete ? '✓' : `${percent}%`}</Text>
+      <Text className={shares({ complete: owned === size })}>{owned === size ? '✓' : `${percent}%`}</Text>
+    </>
+  );
+}
+
+export function SetRow({ accessibilityLabel, onPress, ...completion }: SetCompletionProps & { onPress: () => void }) {
+  return (
+    <Surface
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      className={outlines({ complete: completion.owned === completion.size })}>
+      <SetCompletionContent {...completion} />
     </Surface>
   );
 }
 
-function SetRowSkeleton() {
+export function SetHeader({ accessibilityLabel, ...completion }: SetCompletionProps) {
+  return (
+    <Surface
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel={accessibilityLabel}
+      className={outlines({ complete: completion.owned === completion.size })}>
+      <SetCompletionContent {...completion} />
+    </Surface>
+  );
+}
+
+export function SetRowSkeleton() {
   return (
     <Surface className={outlines({ complete: false })}>
       <Skeleton className="size-set-symbol-fill rounded-sm" />

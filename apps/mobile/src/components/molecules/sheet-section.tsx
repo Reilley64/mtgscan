@@ -5,7 +5,7 @@ import { Text } from '@/components/atoms/text';
 
 type SheetSectionProps = {
   title: string;
-  count?: number;
+  count?: number | string;
   children: ReactNode;
 };
 

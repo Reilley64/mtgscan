@@ -40,8 +40,8 @@ import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { Reason } from '@/components/molecules/reason';
-import { SetListSkeleton, SetRow } from '@/components/molecules/set-row';
-import { SheetSection } from '@/components/molecules/sheet-section';
+import { SetHeader, SetListSkeleton, SetRow } from '@/components/molecules/set-row';
+import { SheetSection, SheetSectionHeader } from '@/components/molecules/sheet-section';
 import { SortButton } from '@/components/molecules/sort-button';
 import { GroupButton } from '@/components/molecules/group-button';
 import { Stepper } from '@/components/molecules/stepper';
@@ -61,6 +61,7 @@ import {
   beginSwipe,
   blocksColored,
   blurredImageUris,
+  cardImageLook,
   cardImageOutline,
   cardImageUri,
   appearsBefore,
@@ -803,6 +804,13 @@ describe('SheetSection', () => {
 
     expect(screen.getByRole('header', { name: 'Creatures, 3' })).toBeOnTheScreen();
   });
+
+  test('a sheet section heading can count with words, such as "1 of 2"', async () => {
+    await render(<SheetSectionHeader title="Variants" count="1 of 2" />);
+
+    expect(screen.getByRole('header', { name: 'Variants, 1 of 2' })).toBeOnTheScreen();
+    expect(screen.getByText('1 of 2')).toHaveStyle({ color: textMuted });
+  });
 });
 
 describe('Stepper', () => {
@@ -889,6 +897,23 @@ describe('CardTile', () => {
     await render(<CardTile uri={solRing} caption="CMM 464" sheen="etched" accessibilityLabel="Sol Ring, CMM 464, etched" />);
 
     expect(cardSheen(screen.getByRole('image', { name: 'Sol Ring, CMM 464, etched' }))).toMatchObject({ opacity: expect.closeTo(0.3) });
+  });
+
+  test('a card tile with a quantity shows it in a quantity badge at the top left of the card image', async () => {
+    await render(<CardTile uri={solRing} quantity={2} accessibilityLabel="Sol Ring, number 216, owned, 2 copies" />);
+
+    const badgeText = within(screen.getByRole('image', { name: 'Sol Ring, number 216, owned, 2 copies' })).getByText('2');
+    expect(badgeText).toHaveStyle({ color: white });
+    expect(badgeText.parent).toHaveStyle({ position: 'absolute', left: 5, top: 5, backgroundColor: '#000000d1' });
+  });
+
+  test('a dimmed card tile shows its card image in grayscale at the dimmed opacity', async () => {
+    await render(<CardTile uri={solRing} dimmed accessibilityLabel="Sol Ring, number 216, not owned" />);
+
+    expect(cardImageLook(screen.getByRole('image', { name: 'Sol Ring, number 216, not owned' }))).toEqual({
+      opacity: expect.closeTo(0.38),
+      grayscale: true,
+    });
   });
 
   test('a card tile with an action is a button with its selected state', async () => {
@@ -1233,6 +1258,22 @@ describe('SetRow', () => {
     expect(row).toHaveStyle({ backgroundColor: surface, borderRadius: 12, minHeight: 44 });
     await fireEvent.press(row);
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  test('a set header looks like a set row but is read as one header, not a button', async () => {
+    await render(
+      <SetHeader
+        name="Magic 2010"
+        symbolUri="https://svgs.scryfall.io/sets/m10.svg"
+        owned={234}
+        size={261}
+        percent={89}
+        accessibilityLabel="Magic 2010, 234 of 261, 89 percent"
+      />,
+    );
+
+    expect(screen.getByRole('header', { name: 'Magic 2010, 234 of 261, 89 percent' })).toHaveStyle({ backgroundColor: surface, borderRadius: 12 });
+    expect(screen.queryByRole('button')).toBeNull();
   });
 
   test('the set list skeleton reads as one loading element', async () => {

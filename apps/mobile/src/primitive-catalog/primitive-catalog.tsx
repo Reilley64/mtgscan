@@ -38,7 +38,7 @@ import { BracketSignalRow } from '@/components/molecules/bracket-signal-row';
 import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
 import { FloatingButton } from '@/components/molecules/floating-button';
-import { SetListSkeleton, SetRow } from '@/components/molecules/set-row';
+import { SetHeader, SetListSkeleton, SetRow } from '@/components/molecules/set-row';
 import { ChangeLine } from '@/components/molecules/change-line';
 import { Reason } from '@/components/molecules/reason';
 import { CommanderGalleryCard, DeckBanner, DeckBannerSkeleton } from '@/components/molecules/commander-card';
@@ -60,7 +60,7 @@ import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
-import { SheetSection } from '@/components/molecules/sheet-section';
+import { SheetSection, SheetSectionHeader } from '@/components/molecules/sheet-section';
 import { GroupButton } from '@/components/molecules/group-button';
 import { SortButton } from '@/components/molecules/sort-button';
 import { StepperRow } from '@/components/molecules/stepper-row';
@@ -407,6 +407,8 @@ function CardTiles() {
         />
         <CardTile uri={solRing} unlimited accessibilityLabel="Island, basic land, unlimited" onPress={() => {}} />
         <CardTile uri={solRing} accessibilityLabel="Sol Ring, C21 263" inViolation onPress={() => {}} />
+        <CardTile uri={solRing} quantity={2} accessibilityLabel="Sol Ring, number 216, owned, 2 copies" />
+        <CardTile uri={solRing} dimmed accessibilityLabel="Sol Ring, number 216, not owned" />
         <CardTile
           uri={solRing}
           accessibilityLabel="Mountain, long press for a menu"
@@ -651,6 +653,14 @@ function SetRows() {
         accessibilityLabel="Magic 2010, 261 of 261, 100 percent"
         onPress={() => {}}
       />
+      <SetHeader
+        name="Magic 2010"
+        symbolUri={m10Symbol}
+        owned={234}
+        size={261}
+        percent={89}
+        accessibilityLabel="Magic 2010, 234 of 261, 89 percent"
+      />
       <SetListSkeleton accessibilityLabel="Loading sets" />
     </Section>
   );
@@ -891,6 +901,7 @@ function SheetSections() {
       <SheetSection title="Creatures" count={3}>
         <ListRow title="Birds of Paradise" detail="M12 165" leading={<CardThumbnail uri={solRing} />} />
       </SheetSection>
+      <SheetSectionHeader title="Variants" count="1 of 2" />
     </Section>
   );
 }

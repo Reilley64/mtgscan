@@ -186,14 +186,6 @@ describe('the set rows', () => {
 
     expect(sets.queryByText('Kaldheim')).toBeNull();
   });
-
-  test('tapping a set does nothing for now', async () => {
-    const sets = await openSets();
-
-    await fireEvent.press(sets.getByRole('button', { name: /^Bloomburrow/ }));
-
-    expect(tabHeader(tabStackTopScreen()).title).toBe('Sets');
-  });
 });
 
 describe('searching Sets', () => {

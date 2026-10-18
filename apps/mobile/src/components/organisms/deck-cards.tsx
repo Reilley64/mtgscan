@@ -5,8 +5,8 @@ import { View } from 'react-native';
 import { sheenOf, spokenCopy } from '@/collection/copy-labels';
 import type { MenuAction } from '@/components/atoms/menu-button';
 import { Text } from '@/components/atoms/text';
-import { CardGrid } from '@/components/molecules/card-grid';
-import { CardTile, cardsPerRow } from '@/components/molecules/card-tile';
+import { CardGrid, inCardRows } from '@/components/molecules/card-grid';
+import { CardTile } from '@/components/molecules/card-tile';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
 import { SheetSectionHeader } from '@/components/molecules/sheet-section';
@@ -47,11 +47,7 @@ const rowSpacing = cva('px-lg', {
 });
 
 function cardRows(title: string, cards: MainDeckCard[]): DeckCardsRow[] {
-  return Array.from({ length: Math.ceil(cards.length / cardsPerRow) }, (_, row) => ({
-    kind: 'cards',
-    key: `${title}:${row}`,
-    cards: cards.slice(row * cardsPerRow, (row + 1) * cardsPerRow),
-  }));
+  return inCardRows(cards).map((rowCards, row) => ({ kind: 'cards', key: `${title}:${row}`, cards: rowCards }));
 }
 
 export function deckCardsRows(deck: Deck, grouping: DeckGrouping, order: DeckOrder): DeckCardsRow[] {

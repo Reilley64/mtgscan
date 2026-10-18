@@ -1,4 +1,5 @@
 import type { SetRow as ListedSet } from '@mtgscan/supabase/sets';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -40,7 +41,7 @@ function ListedSetRow({ set }: { set: ListedSet }) {
       size={size}
       percent={completionPercent(set.completion.any)}
       accessibilityLabel={spokenSet(set)}
-      onPress={() => {}}
+      onPress={() => router.push({ pathname: '/set', params: { code: set.code } })}
     />
   );
 }
