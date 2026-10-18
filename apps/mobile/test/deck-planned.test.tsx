@@ -171,6 +171,8 @@ describe('landing on a deck tab', () => {
   });
 });
 
+const tabBarSettleMs = 3000;
+
 describe('Needs you counts', () => {
   test('the Recent tab shows the number of open planned swaps and buylist cards across decks', async () => {
     ownPlannedSwaps([plannedSwapOf('swap'), plannedSwapOf('closed', { status: 'closed' })]);
@@ -178,8 +180,18 @@ describe('Needs you counts', () => {
 
     await renderApp();
 
-    await waitFor(() => expect(tabBadge('Recent')).toBe('2'));
+    await waitFor(() => expect(tabBadge('Recent')).toBe('2'), { timeout: tabBarSettleMs });
     expect(tabBadge('Decks')).toBeUndefined();
+  });
+
+  test('the Recent badge shows only once the tab bar has settled after it appears', async () => {
+    ownPlannedSwaps([plannedSwapOf('swap')]);
+
+    await renderApp();
+    await within(selectedTab()).findByRole('button', { name: 'Swap in' });
+
+    expect(tabBadge('Recent')).toBeUndefined();
+    await waitFor(() => expect(tabBadge('Recent')).toBe('1'), { timeout: tabBarSettleMs });
   });
 
   test('the Recent tab has no badge when nothing needs the user', async () => {
@@ -197,13 +209,13 @@ describe('Needs you counts', () => {
     await leaveTheApp();
     await returnToTheApp();
 
-    await waitFor(() => expect(tabBadge('Recent')).toBe('1'));
+    await waitFor(() => expect(tabBadge('Recent')).toBe('1'), { timeout: tabBarSettleMs });
   });
 
   test('the Recent badge counts down after a Swap in', async () => {
     ownPlannedSwaps([plannedSwapOf('swap'), plannedSwapOf('other', { incoming: plannedCopyLine('copy-other', 'Counterspell') })]);
     await renderApp();
-    await waitFor(() => expect(tabBadge('Recent')).toBe('2'));
+    await waitFor(() => expect(tabBadge('Recent')).toBe('2'), { timeout: tabBarSettleMs });
 
     await fireEvent.press((await within(selectedTab()).findAllByRole('button', { name: 'Swap in' }))[0]!);
 
