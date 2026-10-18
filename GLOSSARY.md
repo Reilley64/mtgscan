@@ -136,6 +136,32 @@ The committed real crops, simulated scans, expected results, and phone runs that
 **Bin-deck run**:
 A release gate on the iPhone. The owner scans the 30 cards of the test deck in order with a development build of the app, and a script scores each recognition against the deck. It passes with no false accept, the right card first for 29 of 30, the exact card printing first for 27 of 30, and an end-to-end p95 below 1.5 s.
 
+## Sets
+
+**Set**:
+A group of card printings that Scryfall publishes under one set code, such as BLB for Bloomburrow. Sets lists every released set that has a card printing in the card catalog, whatever its set type.
+_Avoid_: Expansion, edition
+
+**Main set**:
+The card printings of a set that come in its regular boosters and are not promos, variations, or basic lands. In a set with no booster cards, such as a Commander deck or a Secret Lair drop, the main set is every card printing that is not a promo or a basic land. In a set made only of promos, it is every card printing that is not a basic land.
+_Avoid_: Base set, normals
+
+**Variant**:
+A card printing of a set that is outside its main set and is not a basic land, such as a borderless, showcase, or extended art printing. Owning a variant does not count toward the main set.
+_Avoid_: Booster Fun, alt art
+
+**Finish view**:
+The choice of Any finish, Nonfoil, or Foil that decides which copies light up a card printing in Sets. In Foil, only foil and etched copies count, and a card printing with no foil or etched finish is left out. In Nonfoil, only nonfoil copies count, except that any copy counts for a card printing with no nonfoil finish. The phone keeps the user's choice.
+_Avoid_: Finish filter, foil mode
+
+**Set completion**:
+The share of a set's main set that the user owns in a finish view, as "x of y" and a percentage. A card printing counts once, whatever the condition, language, protected flag, or deck of its copies.
+_Avoid_: Set progress, completion rate
+
+**Set art**:
+The art crop of the card printing with the highest current price in any finish in a set. With no priced card printing that has an art crop, it is the art crop of the first card printing that has one, by collector number. Sets colors it in from left to right as set completion grows.
+_Avoid_: Key art, cover art
+
 ## Decks and changes
 
 **Deck**:
@@ -162,7 +188,7 @@ A copy that is not allocated to a deck or held by a planned swap. A collection e
 _Avoid_: Spare, available copy
 
 **Basic land**:
-A card with the basic supertype, including Wastes and snow-covered basics. mtgscan does not track basic lands as owned. Every collection has an unlimited supply of each basic land card: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Collection shows them after the copies, and the user adds them to a deck from there. A deck counts them by basic land card, and its Cards tab shows each one as its own tile. They are never copies, so they never appear in allocation or the buylist.
+A card with the basic supertype, including Wastes and snow-covered basics. mtgscan does not track basic lands as owned. Every collection has an unlimited supply of each basic land card: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Collection shows them after the copies, and the user adds them to a deck from there. A deck counts them by basic land card, and its Cards tab shows each one as its own tile. They are never copies, so they never appear in allocation, the buylist, or a set's main set or variants.
 
 **Deck priority**:
 How strongly the user wants to keep a deck's cards: high, medium, or low. The user sets it. When two decks want a card and there is only one copy for them, the deck with the higher priority should get it. Between decks of equal priority, the AI decides which deck needs the card more. An AI client follows this in its advice, but nothing enforces it. Priority does not restrict the user.
