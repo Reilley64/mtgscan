@@ -122,6 +122,7 @@ export const sizes = {
   rowSymbol: 22,
   iconButtonSymbol: 18,
   setIcon: 16,
+  setSymbolFill: 44,
   staleSymbol: 11,
   chipSymbol: 11,
   protectedSymbol: 11,

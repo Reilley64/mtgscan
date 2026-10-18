@@ -40,7 +40,7 @@ export function PushedListScreen<Item>({ floatingButtons, ...listProps }: Pushed
         keyboardShouldPersistTaps="handled"
         onEndReachedThreshold={endReachedScreens}
       />
-      {floatingButtons ? <FloatingButtons>{floatingButtons}</FloatingButtons> : null}
+      {floatingButtons ? <FloatingButtons side="right">{floatingButtons}</FloatingButtons> : null}
     </>
   );
 }

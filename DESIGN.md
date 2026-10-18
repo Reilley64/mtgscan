@@ -301,6 +301,18 @@ components:
     height: 48px
   floating-button-active:
     textColor: "{colors.primary}"
+  set-row:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.md}"
+    padding: 10px
+  set-row-complete:
+    backgroundColor: "{colors.primary}"
+    width: 2px
+  set-symbol-fill:
+    backgroundColor: "{colors.line}"
+    textColor: "{colors.primary}"
+    width: 44px
+    height: 44px
   commander-gallery-card:
     backgroundColor: "{colors.surface}"
     rounded: "{rounded.md}"
@@ -433,6 +445,7 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
   - Basic land tiles are not in the count line, the collection total, or its coverage.
   - A native search bar sits under the large title. See Collection search. Filters: All, Free, Allocated, Protected.
   - A round sort button floats over the grid at the bottom right and changes the order. See Collection search.
+  - A round Sets button floats over the grid at the bottom left and opens Sets. See Sets.
 - **Decks** is a commander gallery: one commander gallery card per deck, the deck used most recently first. Decks used at the same time sort by name, ignoring case. See Components.
   - Opening a deck counts as using it. Later, changing its cards, renaming it, and changing its deck priority count too.
   - A tap on a gallery card opens the deck screen on Cards.
@@ -533,6 +546,24 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
   - The symbol is in the text color while the sort is Relevance. Any other sort turns it primary lime. There is no badge or dot, because count badges are only for counts.
   - VoiceOver reads "Sort, Relevance", or the sort and its direction, such as "Sort, Price, high to low".
   - The sort lasts until the app restarts and is not saved. The button hides while the user types in the search bar and while the Filters drawer is open. It also hides while the tab shows an empty state, because there is nothing to sort.
+
+### Sets
+
+Sets lists every released set that has a card printing in the card catalog, with the user's set completion in Any finish (#366). The rows follow option A of the HTML prototype `docs/prototypes/sets-art-fill.html`, the set symbol filling up.
+
+- **Sets button.** A round Liquid Glass button, 48 px across, floats over the Collection grid at the bottom left, 16 px from the left edge and level with the sort button. It shows the `rectangle.portrait.on.rectangle.portrait` stacked cards symbol at 18 px in the text color. Without Liquid Glass, it uses the control surface. It reacts to touch. VoiceOver reads "Sets, button".
+  - It shows and hides with the sort button. It hides while the user types in the search bar, while the Filters drawer is open, and while the tab shows an empty state.
+  - Tapping it pushes Sets onto the Collection tab's stack.
+- **Sets screen.** It is a screen in the Collection tab's stack, not a pushed screen over the tab bar. The tab bar stays. It has the large title "Sets" and the native back button. The swipe from the left edge goes back to Collection. It has no settings button.
+  - A native search bar sits under the large title, with the placeholder "Search sets". It stays visible when the list scrolls. Its caret and Cancel are primary lime.
+  - Typed text matches the set name or the set code, ignoring case, so "bloom" and "BLB" both find Bloomburrow. The list filters as the user types. Cancel clears the text.
+  - With no match, the list shows the empty state `No sets match "xyz".` with no body.
+  - The sets come newest first, then by name, as the read returns them. A set whose main set is empty, such as a set of only basic lands, is not shown.
+  - Each set is a set row. See Components.
+  - A tap on a row does nothing for now. The set page comes later.
+  - Sets reads again each time it gains focus, so cards scanned since then count at once. A reload keeps the rows shown.
+  - While Sets loads, a skeleton of 8 set rows shows. Each has a block in place of the set symbol and bars for the name, "x of y", and the progress bar. VoiceOver reads the skeleton as one element, "Loading sets".
+  - When the read fails, Sets shows the empty state "Could not load Sets" with a **Try again** button. See Empty states.
 
 ### Sign-in screen
 
@@ -783,17 +814,17 @@ The interface is flat. Depth comes from tone, not shadow.
 
 Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
-- Only the controls that float over the camera or over scrolling content use glass: the latest-scan chip, the quick-action bar, the batch button, the pull indicator (owner decisions, #113 and #130), the tab header buttons (owner decision, #128), the sort button on Collection (#143), and the group and sort buttons on the deck screen's Cards tab (#229). Every other surface stays flat.
+- Only the controls that float over the camera or over scrolling content use glass: the latest-scan chip, the quick-action bar, the batch button, the pull indicator (owner decisions, #113 and #130), the tab header buttons (owner decision, #128), the sort and Sets buttons on Collection (#143 and #366), and the group and sort buttons on the deck screen's Cards tab (#229). Every other surface stays flat.
 - The tab header buttons are native bar buttons. iOS 26 draws their glass, so `GlassSurface` does not wrap them.
 - The pull indicator does not react to touch. It moves by sliding, never by fading.
-- The glass is the regular style with no tint. Glass that the user can tap, such as the chip, the quick-action bar, the batch button, and the group and sort buttons, reacts to touch. The skeleton chip and the basic land chip do not.
+- The glass is the regular style with no tint. Glass that the user can tap, such as the chip, the quick-action bar, the batch button, the Sets button, and the group and sort buttons, reacts to touch. The skeleton chip and the basic land chip do not.
 - The chip and the quick-action bar sit in one glass group with 8 px spacing, so they blend like iOS controls but do not merge at rest.
 - Text on glass:
   - The card name and enabled labels stay text white.
   - The meta line uses glass text muted.
   - The chevron and disabled quick-action labels and symbols use glass text dim.
   - The skeleton blocks and the empty thumbnail use glass skeleton.
-- Without Liquid Glass, as on iOS 17 and 18, the chip falls back to surface, and the quick-action bar, the batch button, the pull indicator, and the group and sort buttons to surface control, with the normal text colors.
+- Without Liquid Glass, as on iOS 17 and 18, the chip falls back to surface, and the quick-action bar, the batch button, the pull indicator, the Sets button, and the group and sort buttons to surface control, with the normal text colors.
 - The glass never fades with opacity, because glass under opacity 0 stops rendering. The skeleton pulse animates the blocks inside the chip, not the glass.
 - `expo-glass-effect` draws the glass. `GlassSurface` and `GlassGroup` in `src/components/atoms/glass-surface.tsx` wrap it.
 
@@ -928,6 +959,8 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
     | Copy page, read failed | a dashed card frame with `wifi.slash` | Could not load this card | Check your connection. | **Try again** reads the copy again |
     | User tag picker, read failed | a dashed card frame with `wifi.slash` | Could not load your user tags | Check your connection. | **Try again** reads the copy and the user tags again |
     | Collection search, no results | one row of empty binder slots | No cards found | Check the spelling or try fewer words. | none |
+    | Sets, read failed | a dashed card frame with `wifi.slash` | Could not load Sets | Check your connection. | **Try again** reads Sets again |
+    | Sets search, no match | a dashed card frame with `magnifyingglass` | No sets match "xyz". | none | none |
     | Decks, no decks | a ghost commander card | No decks yet | Create a deck, then add cards to it from your collection. | **Create deck** opens the name alert |
     | Decks, read failed | a ghost commander card | Could not load your decks | Check your connection. | **Try again** reads the decks again |
     | AI clients list, read failed | a dashed card frame with `wifi.slash` | Could not load the AI clients | Check your connection. | **Try again** reads the AI clients again |
@@ -944,6 +977,13 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Floating menu buttons.** A round Liquid Glass button, 48 px across, with an 18 px symbol, that opens a native menu with a title and a check mark on the current choice. Without Liquid Glass, it uses the control surface. The symbol is in the text color while the choice is the default, and primary lime otherwise. There is no badge or dot.
   - The sort button shows `arrow.up.arrow.down` and a menu titled "Sort by". An arrow beside the current sort shows its direction. VoiceOver reads "Sort" and the sort with its direction, such as "Sort, Name, A to Z". Collection and the deck screen's Cards tab share it.
   - The group button on the deck screen's Cards tab shows `rectangle.3.group` and a menu titled "Group by". VoiceOver reads "Group" and the grouping, such as "Group, Type".
+- **Floating button.** A round Liquid Glass button, 48 px across, with an 18 px symbol in the text color, that acts at once when tapped. Without Liquid Glass, it uses the control surface. The Sets button on Collection is one.
+- **Set row.** A surface button with 12 px corners for one set on Sets. From left to right:
+  - the set symbol from Scryfall at 44 px (`sizes.setSymbolFill`) in the line color, filling up from the bottom in primary lime to the share of the set completion;
+  - the set name in body strong, "x of y" in meta text, such as "234 of 261", and a 4 px progress bar in primary lime on a line-colored track;
+  - the percentage in sheet title type, such as "89%". The percentage is `floor(100 × owned / size)`, so 100% always means the set is complete.
+  - A complete set has a 2 px lime outline (`borderWidths.selectedOutline`) and a lime ✓ in place of the percentage. Every row has the outline frame, transparent when the set is not complete, so rows keep one size.
+  - VoiceOver reads the row as one button with the name, "x of y", and the percentage in words, such as "Bloomburrow, 234 of 261, 89 percent".
 - **Name alert.** A native alert with a title, a message, a name field, **Cancel**, and a confirm button, such as **Create**. The field takes at most 64 characters. The confirm button is off while the trimmed name is empty. A new alert starts with an empty field, or with the current name when it renames.
 
 ## Do's and Don'ts

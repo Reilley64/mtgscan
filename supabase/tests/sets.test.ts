@@ -1,0 +1,208 @@
+import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
+
+import type { SetList, SetRow } from '../sets';
+import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { seedCopies } from './copy-seeds';
+import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
+import { addedToDeck, appRequest, deckNamed, scannedCopies, scannedCopy } from './planned-swap-seeds';
+import { committed, scanBatch, stack } from './scan-batches';
+
+setDefaultTimeout(60_000);
+
+const permissionDenied = '42501';
+
+const lifecreedDuo = 'ca543405-5e12-48a0-9a77-082ac9bcb2f2';
+const brambleguardCaptain = 'e200b8bf-f2f3-4157-8e04-02baf07a963e';
+const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
+const urbanDaggertooth = '4ab83a39-d90d-403e-b74d-fe99c8b2aacd';
+const roilCartographer = '84317f9d-5a24-4f74-9c3e-0a8b5c15bb5f';
+const roilCartographerVariant = '7b9b743b-340d-4a15-a71d-d3108adbdc45';
+const snowCoveredWastes = '87870792-e429-4eba-8193-cdce5c7b6c55';
+const kenrithPromo = '56c1227e-bea7-47cb-bbec-389a3d585af5';
+const lavinia = 'd5435866-d48b-496a-ba07-438163b71ae8';
+const laviniaPromo = '1f1b47ed-e935-44a4-b654-a32c0bf5dd19';
+const lichsRelicPromo = 'f6c83e21-892d-478b-9ee1-4e724cb6ca0b';
+const wastes = 'baf8f4f2-9f25-4cd2-8d78-1041e134aeac';
+
+beforeAll(async () => {
+  await resetCardCatalog();
+  expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
+});
+
+async function listSets(user: TestUser) {
+  const { data, error } = await user.client.rpc('list_sets');
+  expect(error).toBeNull();
+  return (data as unknown as SetList).items;
+}
+
+async function setCodes(user: TestUser) {
+  return (await listSets(user)).map((row) => row.code);
+}
+
+async function setRow(user: TestUser, code: string): Promise<SetRow | undefined> {
+  return (await listSets(user)).find((row) => row.code === code);
+}
+
+describe('the sets list', () => {
+  const blbReleasedAt = '2024-08-02';
+
+  afterEach(async () => {
+    await asDatabaseOwner((database) => database`update public.card_sets set released_at = ${blbReleasedAt} where code = 'blb'`);
+  });
+
+  test('a set is listed with its code, name, set symbol, release date, and set completion in Any finish', async () => {
+    const user = await signUpNewUser();
+
+    expect(await setRow(user, 'blb')).toEqual({
+      code: 'blb',
+      name: 'Bloomburrow',
+      icon_svg_uri: 'https://svgs.scryfall.io/sets/blb.svg?1791777600',
+      released_at: '2024-08-02',
+      completion: { any: { owned: 0, size: 3 } },
+    });
+  });
+
+  test('a set with no card printing in the card catalog is not listed', async () => {
+    const user = await signUpNewUser();
+
+    const codes = await setCodes(user);
+
+    expect(codes).toContain('blb');
+    expect(codes).not.toContain('yeoe');
+    expect(codes).not.toContain('t40k');
+    expect(codes).not.toContain('adft');
+  });
+
+  test('a set released today is listed, and a set released tomorrow or with no release date is not', async () => {
+    const user = await signUpNewUser();
+
+    await asDatabaseOwner((database) => database`update public.card_sets set released_at = current_date where code = 'blb'`);
+    const releasedToday = await setCodes(user);
+    await asDatabaseOwner((database) => database`update public.card_sets set released_at = current_date + 1 where code = 'blb'`);
+    const releasedTomorrow = await setCodes(user);
+    await asDatabaseOwner((database) => database`update public.card_sets set released_at = null where code = 'blb'`);
+    const noReleaseDate = await setCodes(user);
+
+    expect(releasedToday).toContain('blb');
+    expect(releasedTomorrow).not.toContain('blb');
+    expect(noReleaseDate).not.toContain('blb');
+  });
+
+  test('sets are listed newest first, then by name', async () => {
+    const user = await signUpNewUser();
+    const shown = ['blb', 'fdc', 'fdn', 'fj25', 'frc', 'fra', 'j25', 'pfra'];
+
+    const codes = (await setCodes(user)).filter((code) => shown.includes(code));
+
+    expect(codes).toEqual(['fra', 'frc', 'pfra', 'fdn', 'fdc', 'j25', 'fj25', 'blb']);
+  });
+
+  test('every set comes in one response', async () => {
+    const user = await signUpNewUser();
+
+    expect((await listSets(user)).length).toBeGreaterThan(150);
+  });
+
+  test.each([
+    ['an anonymous caller', anonymousClient],
+    ['the secret key', secretKeyClient],
+  ])('%s cannot list the sets', async (_, client) => {
+    const { data, error } = await client().rpc('list_sets');
+
+    expect(data).toBeNull();
+    expect(error?.code).toBe(permissionDenied);
+  });
+});
+
+describe('the main set in set completion', () => {
+  test('in a set with booster cards, the main set is its booster card printings that are not promos or variations', async () => {
+    const user = await signUpNewUser();
+    await committed(
+      user,
+      scanBatch([stack(roilCartographer), stack(roilCartographerVariant, { finish: 'foil' }), stack(kenrithPromo)]),
+    );
+
+    expect((await setRow(user, 'mh3'))?.completion.any).toEqual({ owned: 1, size: 2 });
+    expect((await setRow(user, 'eld'))?.completion.any).toEqual({ owned: 0, size: 3 });
+  });
+
+  test.each([
+    ['a promo', 'promo'],
+    ['a variation', 'variation'],
+  ])('a booster card printing that is %s is a variant, not in the main set', async (_, flag) => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(lifecreedDuo)]));
+
+    await asDatabaseOwner((database) => database`update public.card_printings set ${database({ [flag]: true })} where id = ${lifecreedDuo}`);
+    try {
+      expect((await setRow(user, 'blb'))?.completion.any).toEqual({ owned: 0, size: 2 });
+    } finally {
+      await asDatabaseOwner((database) => database`update public.card_printings set ${database({ [flag]: false })} where id = ${lifecreedDuo}`);
+    }
+  });
+
+  test('in a set with no booster cards, the main set is every card printing that is not a promo', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(lavinia), stack(laviniaPromo, { finish: 'foil' })]));
+
+    expect((await setRow(user, 'clu'))?.completion.any).toEqual({ owned: 1, size: 2 });
+    expect((await setRow(user, 'tdc'))?.completion.any).toEqual({ owned: 0, size: 3 });
+  });
+
+  test('in a set made only of promos, the main set is every card printing', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(lichsRelicPromo)]));
+
+    expect((await setRow(user, 'pfra'))?.completion.any).toEqual({ owned: 1, size: 2 });
+  });
+
+  test('basic lands are never in the main set, even when they come in boosters', async () => {
+    const user = await signUpNewUser();
+    await seedCopies(user, [{ card_printing_id: snowCoveredWastes }, { card_printing_id: wastes }]);
+
+    expect((await setRow(user, 'mh3'))?.completion.any).toEqual({ owned: 0, size: 2 });
+    expect((await setRow(user, 'eoc'))?.completion.any).toEqual({ owned: 0, size: 1 });
+    expect((await setRow(user, 'khm'))?.completion.any).toEqual({ owned: 0, size: 0 });
+  });
+});
+
+describe('the copies in set completion', () => {
+  test('every copy counts, whatever its finish, condition, language, or protected flag', async () => {
+    const user = await signUpNewUser();
+    await committed(
+      user,
+      scanBatch([stack(angelicCurator, { finish: 'etched', condition: 'damaged', language: 'ja' })]),
+    );
+    const [protectedCopy] = await scannedCopies(user, urbanDaggertooth);
+    await appRequest(user, 'set_copy_protected', { copy_id: protectedCopy, protected: true });
+
+    expect((await setRow(user, 'mh2'))?.completion.any).toEqual({ owned: 2, size: 2 });
+  });
+
+  test('a copy in a deck counts', async () => {
+    const user = await signUpNewUser();
+    const deckId = await deckNamed(user, 'Ygra');
+    await addedToDeck(user, deckId, await scannedCopy(user, lifecreedDuo));
+
+    expect((await setRow(user, 'blb'))?.completion.any).toEqual({ owned: 1, size: 3 });
+  });
+
+  test('several copies of one card printing count once', async () => {
+    const user = await signUpNewUser();
+    await committed(
+      user,
+      scanBatch([stack(lifecreedDuo, { copies: 3 }), stack(lifecreedDuo, { finish: 'foil', condition: 'lightly_played' })]),
+    );
+
+    expect((await setRow(user, 'blb'))?.completion.any).toEqual({ owned: 1, size: 3 });
+  });
+
+  test("one user never sees another user's copies", async () => {
+    const owner = await signUpNewUser();
+    const other = await signUpNewUser();
+    await committed(owner, scanBatch([stack(lifecreedDuo), stack(brambleguardCaptain)]));
+
+    expect((await setRow(owner, 'blb'))?.completion.any).toEqual({ owned: 2, size: 3 });
+    expect((await setRow(other, 'blb'))?.completion.any).toEqual({ owned: 0, size: 3 });
+  });
+});

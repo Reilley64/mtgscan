@@ -70,6 +70,7 @@ import type {
   FreeCopy,
   MarkBuylistCardBoughtRequest,
 } from '@mtgscan/supabase/buylist';
+import type { SetRow } from '@mtgscan/supabase/sets';
 import type { SignInProvider } from '@mtgscan/supabase/sign-in-providers';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
@@ -155,6 +156,10 @@ let failingScanBatch: 'before the server adds it' | 'after the server adds it' |
 let heldScanBatch: Promise<void> | null = null;
 let heldCollectionReads: Promise<void> | null = null;
 let heldDeckReads: Promise<void> | null = null;
+let sets: SetRow[] = [];
+let setReads = 0;
+let failingSetReads = 0;
+let heldSetReads: Promise<void> | null = null;
 let galleryObjects = new Map<string, string>();
 let offlineGalleryReads = 0;
 let currentPrices: Map<string, CurrentPrice | null> | null = null;
@@ -261,6 +266,16 @@ function collectionCopiesPage(query: CollectionQuery) {
 }
 
 const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
+
+async function setList() {
+  setReads += 1;
+  await heldSetReads;
+  if (failingSetReads > 0) {
+    failingSetReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  return { data: { items: sets }, error: null };
+}
 
 function collectionTotalRead(query: object) {
   priceReads = [...priceReads, { read: 'get_collection_total', query }];
@@ -1332,6 +1347,9 @@ export const fakeSupabase = {
     if (name === 'change_basic_land' && args && 'request' in args) {
       return changeBasicLand(args.request as ChangeBasicLandRequest);
     }
+    if (name === 'list_sets') {
+      return setList();
+    }
     if (name === 'list_basic_land_cards') {
       return basicLandCardList();
     }
@@ -1671,6 +1689,31 @@ export function copyProtectedWritesSent() {
   return copyProtectedWrites;
 }
 
+export function offerSets(rows: SetRow[]) {
+  sets = rows;
+}
+
+export function setReadCount() {
+  return setReads;
+}
+
+export function failSetReads(count: number) {
+  failingSetReads = count;
+}
+
+export function holdSetReads() {
+  let finish = () => {};
+  heldSetReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldSetReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
 export function ownCollectionTotal(total: CollectionTotal) {
   collectionTotal = total;
 }
@@ -1863,6 +1906,10 @@ export function resetFakeSupabase() {
   freeCopies = new Map();
   failingFreeCopyReads = 0;
   collectionTotal = emptyCollectionTotal;
+  sets = [];
+  setReads = 0;
+  failingSetReads = 0;
+  heldSetReads = null;
   priceReads = [];
   exchangeRates = exchangeRatesOf(frankfurterCurrencies);
   exchangeRateReads = 0;

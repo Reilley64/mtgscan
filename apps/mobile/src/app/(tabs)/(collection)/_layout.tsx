@@ -9,6 +9,7 @@ export default function CollectionLayout() {
     <CollectionSearchProvider>
       <TabStack>
         <Stack.Screen name="collection" />
+        <Stack.Screen name="sets" />
         <Stack.Screen name="filters" options={{ ...halfHeightDrawerOptions, headerShown: false }} />
       </TabStack>
     </CollectionSearchProvider>

@@ -1005,6 +1005,13 @@ describe('ProgressBar', () => {
     expect(fill).toHaveStyle({ width: '25%', backgroundColor: textMuted });
   });
 
+  test('a primary progress bar fills in lime', async () => {
+    await render(<ProgressBar label="234 of 261" value={234} max={261} tone="primary" />);
+
+    const [fill] = screen.getByRole('progressbar').children as ReturnType<typeof screen.getByLabelText>[];
+    expect(fill).toHaveStyle({ backgroundColor: lime });
+  });
+
   test('a progress bar with no total is empty', async () => {
     await render(<ProgressBar label="Downloading gallery" value={0} max={0} />);
 

@@ -293,6 +293,31 @@ export function pushedScreen() {
   return screens.at(-1)!;
 }
 
+function tabStackScreens() {
+  const [tabStack] = selectedTab().queryAll((instance) => instance.type === 'RNSScreenStack');
+  if (!tabStack) {
+    throw new Error('The selected tab has no stack');
+  }
+  return tabStack.queryAll((instance) => instance.type === 'RNSScreen' && nearestStack(instance) === tabStack);
+}
+
+export function tabStackTopScreen() {
+  return tabStackScreens().at(-1)!;
+}
+
+export function tabStackShowsBackButton() {
+  const [header] = tabStackTopScreen().queryAll((instance) => instance.type === 'RNSScreenStackHeaderConfig');
+  return tabStackScreens().length > 1 && Boolean(header) && !header!.props.hidden && !header!.props.hideBackButton;
+}
+
+export async function swipeBackInTheTab() {
+  const current = tabStackTopScreen();
+  if (tabStackScreens().length < 2 || current.props.gestureEnabled === false) {
+    throw new Error('This screen does not go back with a swipe from the left edge');
+  }
+  await fireEvent(current, 'dismissed', { nativeEvent: { dismissCount: 1 } });
+}
+
 export function pushedScreenBackButton() {
   const [header] = pushedScreen().queryAll((instance) => instance.type === 'RNSScreenStackHeaderConfig');
   if (!header || header.props.hidden || header.props.hideBackButton) {
@@ -590,6 +615,10 @@ export function cardImageUri(tile: HostElement) {
     throw new Error('No card image is in this tile');
   }
   return image.props.source?.[0]?.uri;
+}
+
+export function imageTintColors(element: HostElement) {
+  return element.queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage').map((image) => image.props.tintColor);
 }
 
 export function imageFrames(element: HostElement) {
@@ -1026,7 +1055,7 @@ beforeEach(() => {
 });
 
 function searchBarView(tab: HostElement) {
-  const [searchBar] = tab.queryAll((instance) => instance.type === 'RNSSearchBar');
+  const searchBar = tab.queryAll((instance) => instance.type === 'RNSSearchBar').at(-1);
   if (!searchBar) {
     throw new Error('This tab has no search bar');
   }

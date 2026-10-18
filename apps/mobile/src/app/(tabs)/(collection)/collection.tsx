@@ -8,6 +8,7 @@ import { View } from 'react-native';
 import { useSetIcons } from '@/catalog/use-set-icons';
 import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
+import { FloatingButton } from '@/components/molecules/floating-button';
 import { SortButton } from '@/components/molecules/sort-button';
 import { CopyMeta } from '@/components/molecules/copy-meta';
 import { PriceLine } from '@/components/molecules/price-line';
@@ -158,6 +159,7 @@ export default function CollectionScreen() {
     showsBasicLands && basicLandsRead.status === 'loaded' && search.query ? matchingBasicLands(basicLandsRead.lands, search.query) : [];
   const matchCount = binder.status === 'loaded' && search.searching && !refused ? binder.matchCount : null;
   const showsEmptyState = (refused || binder.status !== 'loading') && copies.length === 0 && basicLands.length === 0;
+  const showsFloatingButtons = !search.typing && !filtersOpen && !showsEmptyState;
 
   return (
     <TabListScreen
@@ -193,8 +195,13 @@ export default function CollectionScreen() {
       }
       onEndReached={loadMore}
       onEndReachedThreshold={1}
+      leftFloatingButtons={
+        showsFloatingButtons ? (
+          <FloatingButton symbol="rectangle.portrait.on.rectangle.portrait" accessibilityLabel="Sets" onPress={() => router.push('/sets')} />
+        ) : null
+      }
       floatingButtons={
-        search.typing || filtersOpen || showsEmptyState ? null : (
+        showsFloatingButtons ? (
           <SortButton
             sorts={collectionSorts}
             order={order}
@@ -202,7 +209,7 @@ export default function CollectionScreen() {
             active={order.sort !== 'relevance'}
             onSelect={(sort) => setOrder(nextCollectionOrder(order, sort))}
           />
-        )
+        ) : null
       }
     />
   );
