@@ -636,7 +636,7 @@ export const tools: Tool[] = [
     name: 'list_user_tags',
     title: 'List user tags',
     description: [
-      "List the user's user tags with how many copies have each. A user tag is the user's own label on copies, not an Oracle tag. Search the copies of a user tag with the user_tags filter of search_collection.",
+      "List the user's user tags with how many copies have each. A user tag goes on individual copies, and it is not an Oracle tag. Search the copies of a user tag with the user_tags filter of search_collection.",
       'With deleted: true, it lists only deleted user tags, with the copies that each would come back on if restored.',
     ].join(' '),
     annotations: readOnly,
@@ -712,7 +712,7 @@ export const tools: Tool[] = [
     title: 'List deck changes',
     description: [
       "Read a deck's change history, newest first. Each deck change lists the copies and basic lands moved into or out of the deck, and the commanders made or moved to the main deck. A reverted deck change was undone by a later revert.",
-      'A swapped_in deck change came from a planned swap, and a bought deck change from a buylist card. Each keeps its reason and the name of the AI client that made the planned swap or buylist card.',
+      'A swapped_in deck change came from a planned swap, and a bought deck change from a buylist card. Each keeps the reason of its planned swap or buylist card.',
     ].join(' '),
     annotations: readOnly,
     postgresFunction: 'list_deck_changes',
@@ -729,7 +729,7 @@ export const tools: Tool[] = [
     title: 'List planned swaps',
     description: [
       "Read the user's planned swaps in every state, newest first: open, swapped_in, closed, and moved_to_buylist. Filter them by deck_id or status.",
-      'Each planned swap has its deck, the incoming copy it holds or the incoming basic land, the outgoing deck card, the reason, the status, how it closed, the name of the AI client that made it, and its times.',
+      'Each planned swap has its deck, the incoming copy it holds or the incoming basic land, the outgoing deck card, the reason, the status, how it closed, and its times.',
       'An open planned swap also has its current effect: the Commander rules that swapping it in would break.',
     ].join(' '),
     annotations: readOnly,
@@ -748,7 +748,7 @@ export const tools: Tool[] = [
     title: 'List the buylist',
     description: [
       "Read the user's buylist cards in every state, newest first: open, bought, and closed. Filter them by deck_id or status.",
-      'Each buylist card has its deck, the card to buy, the outgoing deck card, the reason, the status, how it closed, the name of the AI client that added it, and its times.',
+      'Each buylist card has its deck, the card to buy, the outgoing deck card, the reason, the status, how it closed, and its times.',
       'An open buylist card also has its current effect: the Commander rules that putting the card into the deck would break.',
     ].join(' '),
     annotations: readOnly,
@@ -852,7 +852,7 @@ export const tools: Tool[] = [
     name: 'create_user_tag',
     title: 'Create a user tag',
     description: [
-      "Create a user tag, the user's own label on copies.",
+      'Create a user tag, which the user puts on individual copies.',
       'The name is trimmed and has 1 to 64 characters.',
       'When the user already has a user tag with the name, ignoring case, it returns that user tag with created: false and changes nothing.',
       'Read the user tags with list_user_tags first. Put a user tag on copies with set_copies_user_tag.',
@@ -933,11 +933,12 @@ export const tools: Tool[] = [
     name: 'set_copies_user_tag',
     title: 'Put a user tag on copies',
     description: [
-      'Put a user tag on 1 to 100 copies, or take it off them, in one call, all changed or none.',
+      'Put a user tag on 1 to 100 copies, or take it off them, in one call.',
+      'A refused call changes no copy.',
       'A user tag goes on exact copies, never on a card, so copies that the user scans later do not get it.',
-      'Find copy IDs with search_collection and rows: copies. To tag every copy of a card, search its copies first.',
+      'Find copy IDs with search_collection and rows: copies. To put the user tag on every copy of a card, search its copies first.',
       'Find user tag IDs with list_user_tags, or create one with create_user_tag. A deleted user tag is not-found.',
-      "A copy ID that is not one of the user's copies, such as a copy that the user deleted, is skipped as missing, and the other copies still change.",
+      "A copy ID that is not one of the user's copies, such as a copy that the user deleted, is skipped as missing. It does not refuse the call, so the other copies still change.",
       'A copy that already has the asked state counts as changed. A retry gives the same answer.',
       'This tool does not change any deck or copy.',
       declinedWrite,
@@ -945,7 +946,7 @@ export const tools: Tool[] = [
     annotations: write,
     postgresFunction: 'mcp_set_copies_user_tag',
     input: z.strictObject({
-      copy_ids: z.array(id).min(1).max(100).describe('1 to 100 unique copy IDs from search_collection with rows: copies.'),
+      copy_ids: z.array(id).min(1).max(100).meta({ uniqueItems: true }).describe('1 to 100 unique copy IDs from search_collection with rows: copies.'),
       user_tag_id: id.describe("The user tag's ID."),
       tagged: z.boolean().describe('true puts the user tag on the copies. false takes it off.'),
     }),
