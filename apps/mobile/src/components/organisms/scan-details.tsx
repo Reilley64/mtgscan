@@ -23,7 +23,7 @@ export function ScanDetails({ scanId, onRemove }: { scanId: string; onRemove: ()
       <View className="gap-lg">
         <NameSearch
           onChoose={(printing) => {
-            dispatch({ type: 'choose', scanId, printing });
+            dispatch({ type: 'choose', scanId, printing, printingChange: 'name_search' });
             setSearching(false);
           }}
         />

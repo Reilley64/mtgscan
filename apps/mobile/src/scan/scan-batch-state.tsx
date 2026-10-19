@@ -37,7 +37,13 @@ import {
 import { readScanBatch, writeScanBatch } from './scan-batch-file';
 import { playScanFeedback } from './scan-feedback';
 import { useScanSounds } from './scan-sounds-setting';
-import { dropTrainingCrop, keepTrainingCrop, queueTrainingCrops, useTrainingCropUploads } from './training-crops';
+import {
+  dropTrainingCrop,
+  dropTrainingCropsOf,
+  keepTrainingCrop,
+  queueTrainingCrops,
+  useTrainingCropUploads,
+} from './training-crops';
 
 export type RecognitionResult = Recognition | 'failed' | 'no_photo';
 
@@ -117,6 +123,7 @@ function recognitionEnded(
       options: card.candidates,
       sameTextTwinCount: card.sameTextTwinCount,
       premiumMark: card.reading.premiumMark,
+      recognizedPrintingId: card.candidates[0]!.printingId,
       trainingCrop,
     });
   }
@@ -145,7 +152,6 @@ function keptTrainingCrop(
   }
   return {
     uri,
-    recognizedPrintingId: card.candidates[0]!.printingId,
     accepted: card.decision.accepted,
     decisionBasis: card.decision.basis,
     decisionReasons: card.decision.reasons,
@@ -183,11 +189,13 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
     case 'choose':
       return notRecognizedScanIdOf(state) === action.scanId
         ? addScan(state, {
-            ...action,
             type: 'recognized',
+            scanId: action.scanId,
+            printing: action.printing,
             options: [],
             sameTextTwinCount: 0,
             premiumMark: false,
+            recognizedPrintingId: null,
             trainingCrop: null,
           })
         : { ...state, batch: scanBatchReducer(state.batch, action) };
@@ -335,7 +343,20 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const removeAll = useCallback(() => dispatchScanning({ type: 'removedAll' }), []);
+  const dispatch = useCallback(
+    (edit: ScanEdit) => {
+      if (edit.type === 'remove') {
+        dropTrainingCropsOf(state.batch.scans.filter((scan) => scan.scanId === edit.scanId));
+      }
+      dispatchScanning(edit);
+    },
+    [state.batch.scans],
+  );
+
+  const removeAll = useCallback(() => {
+    dropTrainingCropsOf(state.batch.scans);
+    dispatchScanning({ type: 'removedAll' });
+  }, [state.batch.scans]);
 
   const commit = useCallback(() => commitBatch(state.batch), [commitBatch, state.batch]);
 
@@ -345,14 +366,14 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
       latest: latestScan(state),
       notRecognizedScanId: notRecognizedScanIdOf(state),
       commitStatus: state.commitStatus,
-      dispatch: dispatchScanning,
+      dispatch,
       addCopy,
       removeAll,
       commit,
       recognitionStarted,
       recognitionEnded,
     }),
-    [addCopy, commit, recognitionEnded, recognitionStarted, removeAll, state],
+    [addCopy, commit, dispatch, recognitionEnded, recognitionStarted, removeAll, state],
   );
 
   return <ScanBatchContext value={value}>{children}</ScanBatchContext>;
