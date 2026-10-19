@@ -26,14 +26,6 @@ export function spokenSet(name: string, { count, percent }: ShownCompletion) {
   return [name, count, ...(percent === null ? [] : [`${percent} percent`])].join(', ');
 }
 
-export function setsMatching(sets: CardSet[], text: string, finishView: FinishView) {
-  const wanted = text.toLowerCase();
-  return sets.filter(
-    (set) =>
-      set.completion[finishView].size > 0 && (set.name.toLowerCase().includes(wanted) || set.code.toLowerCase().includes(wanted)),
-  );
-}
-
 export function inFinishView(printings: SetCardPrinting[], finishView: FinishView) {
   return printings.filter((printing) => printing.counts[finishView] !== null);
 }

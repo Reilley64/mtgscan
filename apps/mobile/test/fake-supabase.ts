@@ -70,7 +70,7 @@ import type {
   FreeCopy,
   MarkBuylistCardBoughtRequest,
 } from '@mtgscan/supabase/buylist';
-import type { CardSet, SetDetails, SetQuery } from '@mtgscan/supabase/sets';
+import type { CardSet, SetDetails, SetList, SetListQuery, SetQuery } from '@mtgscan/supabase/sets';
 import type { SignInProvider } from '@mtgscan/supabase/sign-in-providers';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
@@ -158,6 +158,7 @@ let heldCollectionReads: Promise<void> | null = null;
 let heldDeckReads: Promise<void> | null = null;
 let sets: CardSet[] = [];
 let setReads = 0;
+let setListQueries: SetListQuery[] = [];
 let failingSetReads = 0;
 let heldSetReads: Promise<void> | null = null;
 let setPages = new Map<string, SetDetails>();
@@ -273,14 +274,23 @@ function collectionCopiesPage(query: CollectionQuery) {
 
 const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
 
-async function setList() {
+async function setList({ text, finish_view, cursor, limit = 20 }: SetListQuery) {
   setReads += 1;
+  setListQueries = [...setListQueries, { text, finish_view, cursor }];
   await heldSetReads;
   if (failingSetReads > 0) {
     failingSetReads -= 1;
     return { data: null, error: networkFailure };
   }
-  return { data: { items: sets }, error: null };
+  const wanted = text?.toLowerCase() ?? '';
+  const listed = sets.filter(
+    (set) =>
+      set.completion[finish_view].size > 0 && (set.name.toLowerCase().includes(wanted) || set.code.toLowerCase().includes(wanted)),
+  );
+  const offset = cursor ? Number(cursor) : 0;
+  const end = offset + limit;
+  const page: SetList = { items: listed.slice(offset, end), next_cursor: end < listed.length ? String(end) : null };
+  return { data: page, error: null };
 }
 
 async function setPageRead({ code }: SetQuery) {
@@ -1369,8 +1379,8 @@ export const fakeSupabase = {
     if (name === 'change_basic_land' && args && 'request' in args) {
       return changeBasicLand(args.request as ChangeBasicLandRequest);
     }
-    if (name === 'list_sets') {
-      return setList();
+    if (name === 'list_sets' && args && 'query' in args) {
+      return setList(args.query as SetListQuery);
     }
     if (name === 'get_set' && args && 'query' in args) {
       return setPageRead(args.query as SetQuery);
@@ -1724,6 +1734,10 @@ export function setReadCount() {
   return setReads;
 }
 
+export function setListQueriesSent() {
+  return setListQueries;
+}
+
 export function failSetReads(count: number) {
   failingSetReads = count;
 }
@@ -1986,6 +2000,7 @@ export function resetFakeSupabase() {
   collectionTotal = emptyCollectionTotal;
   sets = [];
   setReads = 0;
+  setListQueries = [];
   failingSetReads = 0;
   heldSetReads = null;
   setPages = new Map();

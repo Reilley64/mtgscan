@@ -433,6 +433,22 @@ describe('the skeleton grid', () => {
     await reads.finish();
     expect(await collection.findByRole('button', { name: /^Card 70,/ })).toBeOnTheScreen();
   });
+
+  test('while the next page loads, a row of skeleton tiles shows after the last tiles', async () => {
+    ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
+    const collection = await openCollection();
+    const reads = holdCollectionReads();
+
+    await scrollToEnd(selectedTab());
+
+    const tiles = collection.getByRole('progressbar', { name: 'Loading more copies' });
+    expect(within(tiles).queryAllByLabelText(/./)).toEqual([]);
+    const [grid] = tiles.children as ReturnType<typeof collection.getByRole>[];
+    expect(grid.children).toHaveLength(3);
+    expect(appearsBefore(collection.getAllByRole('button', { name: /^Card \d+,/ }).at(-1)!, tiles)).toBe(true);
+    await reads.finish();
+    expect(collection.queryByRole('progressbar', { name: 'Loading more copies' })).not.toBeOnTheScreen();
+  });
 });
 
 describe('the collection total button', () => {

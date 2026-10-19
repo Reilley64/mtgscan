@@ -39,7 +39,7 @@ import { BracketSignalRow } from '@/components/molecules/bracket-signal-row';
 import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
 import { FloatingButton } from '@/components/molecules/floating-button';
-import { SetListSkeleton } from '@/components/molecules/set-row-skeleton';
+import { SetBannerSkeleton, SetListSkeleton } from '@/components/molecules/set-banner-skeleton';
 import { SetHeader, SetRow } from '@/components/organisms/set-row';
 import { SetBanner, SetPageBanner } from '@/components/organisms/set-banner';
 import { ChangeLine } from '@/components/molecules/change-line';
@@ -661,7 +661,6 @@ function SetRows() {
         <SetRow key={owned} set={magic2010(owned, size)} finishView="any" onPress={() => {}} />
       ))}
       <SetHeader set={magic2010(234, 261)} finishView="any" />
-      <SetListSkeleton accessibilityLabel="Loading sets" />
     </Section>
   );
 }
@@ -674,6 +673,8 @@ function SetBanners() {
       ))}
       <SetPageBanner set={magic2010(120, 261, solRingArtCrop)} finishView="any" />
       <SetPageBanner set={magic2010(0, 0, solRingArtCrop)} finishView="any" />
+      <SetListSkeleton accessibilityLabel="Loading sets" banners={2} />
+      <SetBannerSkeleton size="header" />
     </Section>
   );
 }

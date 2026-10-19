@@ -215,11 +215,13 @@ describe('the set page', () => {
 });
 
 describe('reading a set', () => {
-  test('the set page shows a skeleton while it loads', async () => {
+  test('the set page shows a skeleton with a set page banner skeleton while it loads', async () => {
     const read = holdSetPageReads();
 
     const page = await openBloomburrow();
-    expect(page.getByRole('progressbar', { name: 'Loading set' })).toBeOnTheScreen();
+    const skeleton = page.getByRole('progressbar', { name: 'Loading set' });
+    const [banner] = skeleton.children as ReturnType<typeof page.getByRole>[];
+    expect(banner).toHaveStyle({ minHeight: 150, borderRadius: 12 });
     expect(tiles()).toEqual([]);
 
     await read.finish();

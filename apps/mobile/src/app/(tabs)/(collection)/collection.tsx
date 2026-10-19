@@ -144,6 +144,19 @@ function BasicLandSection({ lands }: { lands: BasicLandCard[] }) {
   );
 }
 
+const nextPageRows = 1;
+
+function BinderFooter({ basicLands, loadingMore }: { basicLands: BasicLandCard[]; loadingMore: boolean }) {
+  if (loadingMore) {
+    return (
+      <View className="pt-sm">
+        <CardGridSkeleton accessibilityLabel="Loading more copies" rows={nextPageRows} />
+      </View>
+    );
+  }
+  return basicLands.length > 0 ? <BasicLandSection lands={basicLands} /> : null;
+}
+
 export default function CollectionScreen() {
   const search = useCollectionSearchState();
   const filtersOpen = usePathname() === filtersDrawerPath;
@@ -156,7 +169,7 @@ export default function CollectionScreen() {
   const refusedChipIndex =
     search.refusedChipIndex ?? (binder.status === 'refused' ? search.chipIndexOfField.get(binder.field) : undefined);
   const refused = refusedChipIndex !== undefined;
-  const copies = binder.status === 'loaded' && !suggesting && !refused ? binder.copies : [];
+  const copies = binder.status === 'loaded' && !suggesting && !refused ? binder.items : [];
   const iconOf = useSetIcons([...new Set(copies.map((copy) => copy.set))]);
   const total = useCollectionTotal();
   const { read: decksRead } = useDecks();
@@ -167,7 +180,7 @@ export default function CollectionScreen() {
     binder.status === 'loaded' && binder.nextCursor === null && !suggesting && !refused && (search.searching || copies.length > 0);
   const basicLands =
     showsBasicLands && basicLandsRead.status === 'loaded' && search.query ? matchingBasicLands(basicLandsRead.lands, search.query) : [];
-  const matchCount = binder.status === 'loaded' && search.searching && !refused ? binder.matchCount : null;
+  const matchCount = binder.status === 'loaded' && search.searching && !refused ? binder.firstPage.total_count : null;
   const showsEmptyState = (refused || binder.status !== 'loading') && copies.length === 0 && basicLands.length === 0;
   const showsFloatingButtons = !search.typing && !filtersOpen && !showsEmptyState;
 
@@ -192,7 +205,9 @@ export default function CollectionScreen() {
       columnWrapperClassName={cardRowClass}
       ItemSeparatorComponent={RowGap}
       renderItem={({ item }) => <BinderTile copy={item} setIconUri={iconOf(item.set)} commanderArtOf={commanderArtOf} />}
-      ListFooterComponent={basicLands.length > 0 ? <BasicLandSection lands={basicLands} /> : null}
+      ListFooterComponent={
+        <BinderFooter basicLands={basicLands} loadingMore={binder.status === 'loaded' && binder.loadingMore && copies.length > 0} />
+      }
       ListEmptyComponent={
         suggesting || basicLands.length > 0 ? null : (
           <BinderPlaceholder

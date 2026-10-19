@@ -1,9 +1,10 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CardSet, SetList } from '../sets';
+import { readSearchError } from '../search';
+import type { CardSet, FinishView, SetList, SetListQuery } from '../sets';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { seedCopies } from './copy-seeds';
-import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
+import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { addedToDeck, appRequest, deckNamed, scannedCopies, scannedCopy } from './planned-swap-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
 import { artCrop } from './scryfall-images';
@@ -39,18 +40,38 @@ beforeAll(async () => {
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-async function listSets(user: TestUser) {
-  const { data, error } = await user.client.rpc('list_sets');
-  expect(error).toBeNull();
-  return (data as unknown as SetList).items;
+function readSets(client: AppClient, query: unknown) {
+  return client.rpc('list_sets', { query: query as SetListQuery });
 }
 
-async function setCodes(user: TestUser) {
-  return (await listSets(user)).map((row) => row.code);
+async function setsPage(user: TestUser, query: SetListQuery) {
+  const { data, error } = await readSets(user.client, query);
+  expect(error).toBeNull();
+  return data as unknown as SetList;
+}
+
+async function everySet(user: TestUser, finishView: FinishView = 'any') {
+  let page = await setsPage(user, { finish_view: finishView, limit: 50 });
+  let items = page.items;
+  while (page.next_cursor !== null) {
+    page = await setsPage(user, { finish_view: finishView, limit: 50, cursor: page.next_cursor });
+    items = [...items, ...page.items];
+  }
+  return items;
+}
+
+async function setCodes(user: TestUser, finishView: FinishView = 'any') {
+  return (await everySet(user, finishView)).map((row) => row.code);
 }
 
 async function setRow(user: TestUser, code: string): Promise<CardSet | undefined> {
-  return (await listSets(user)).find((row) => row.code === code);
+  return (await setsPage(user, { text: code, finish_view: 'any', limit: 50 })).items.find((row) => row.code === code);
+}
+
+async function refusal(user: TestUser, query: unknown) {
+  const { data, error } = await readSets(user.client, query);
+  expect(data).toBeNull();
+  return readSearchError(error!);
 }
 
 describe('the sets list', () => {
@@ -108,20 +129,142 @@ describe('the sets list', () => {
     expect(codes).toEqual(['fra', 'frc', 'pfra', 'fdn', 'fdc', 'j25', 'fj25', 'blb']);
   });
 
-  test('every set comes in one response', async () => {
-    const user = await signUpNewUser();
-
-    expect((await listSets(user)).length).toBeGreaterThan(150);
-  });
-
   test.each([
     ['an anonymous caller', anonymousClient],
     ['the secret key', secretKeyClient],
   ])('%s cannot list the sets', async (_, client) => {
-    const { data, error } = await client().rpc('list_sets');
+    const { data, error } = await readSets(client(), { finish_view: 'any' });
 
     expect(data).toBeNull();
     expect(error?.code).toBe(permissionDenied);
+  });
+});
+
+describe('the pages of the sets list', () => {
+  test('a page holds 20 sets by default, and its cursor reads the next sets in order', async () => {
+    const user = await signUpNewUser();
+
+    const first = await setsPage(user, { finish_view: 'any' });
+    const second = await setsPage(user, { finish_view: 'any', cursor: first.next_cursor });
+    const firstForty = (await everySet(user)).slice(0, 40).map((row) => row.code);
+
+    expect(first.items).toHaveLength(20);
+    expect([...first.items, ...second.items].map((row) => row.code)).toEqual(firstForty);
+  });
+
+  test('the pages together hold every set once, and the last page has no cursor', async () => {
+    const user = await signUpNewUser();
+    const pages: SetList[] = [await setsPage(user, { finish_view: 'any', limit: 50 })];
+    while (pages.at(-1)!.next_cursor !== null) {
+      pages.push(await setsPage(user, { finish_view: 'any', limit: 50, cursor: pages.at(-1)!.next_cursor }));
+    }
+
+    const codes = pages.flatMap((page) => page.items.map((row) => row.code));
+
+    expect(pages.length).toBeGreaterThan(3);
+    expect(pages.slice(0, -1).every((page) => page.items.length === 50)).toBe(true);
+    expect(new Set(codes).size).toBe(codes.length);
+    expect(codes.length).toBeGreaterThan(150);
+  });
+
+  test('a page holds at most the limit, from 1 to 50 sets', async () => {
+    const user = await signUpNewUser();
+
+    expect((await setsPage(user, { finish_view: 'any', limit: 1 })).items).toHaveLength(1);
+    expect((await setsPage(user, { finish_view: 'any', limit: 50 })).items).toHaveLength(50);
+    expect(await refusal(user, { finish_view: 'any', limit: 0 })).toMatchObject({ code: 'invalid_argument', field: 'limit' });
+    expect(await refusal(user, { finish_view: 'any', limit: 51 })).toMatchObject({ code: 'invalid_argument', field: 'limit' });
+  });
+
+  test('a cursor from another search or finish view is refused', async () => {
+    const user = await signUpNewUser();
+    const { next_cursor } = await setsPage(user, { finish_view: 'any', limit: 1 });
+
+    expect(await refusal(user, { finish_view: 'foil', cursor: next_cursor })).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+    expect(await refusal(user, { text: 'b', finish_view: 'any', cursor: next_cursor })).toMatchObject({
+      code: 'invalid_cursor',
+      field: 'cursor',
+    });
+    expect(await refusal(user, { finish_view: 'any', cursor: 'not a cursor' })).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+  });
+
+  test.each([
+    ['a query that is not an object', ['any'], null],
+    ['a query with no finish view', {}, 'finish_view'],
+    ['an unknown finish view', { finish_view: 'etched' }, 'finish_view'],
+    ['a text that is not a string', { finish_view: 'any', text: 3 }, 'text'],
+    ['an empty text', { finish_view: 'any', text: '' }, 'text'],
+    ['a limit that is not a whole number', { finish_view: 'any', limit: 2.5 }, 'limit'],
+    ['a cursor that is not a string', { finish_view: 'any', cursor: 3 }, 'cursor'],
+    ['an unknown field', { finish_view: 'any', code: 'blb' }, 'code'],
+  ])('%s is refused as an invalid argument', async (_, query, field) => {
+    const user = await signUpNewUser();
+
+    expect(await refusal(user, query)).toMatchObject({ code: 'invalid_argument', field });
+  });
+});
+
+describe('searching the sets list', () => {
+  test('the search text matches the set name, ignoring case', async () => {
+    const user = await signUpNewUser();
+
+    const { items } = await setsPage(user, { text: 'BLOOM', finish_view: 'any' });
+
+    expect(items.map((row) => row.code)).toEqual(['blb', 'blc']);
+  });
+
+  test('the search text matches the set code, ignoring case', async () => {
+    const user = await signUpNewUser();
+
+    const codes = (await setsPage(user, { text: 'Mh3', finish_view: 'any' })).items.map((row) => row.code);
+
+    expect(codes).toEqual(['mh3']);
+  });
+
+  test('the search text matches anywhere in the name, and its results come newest first in pages', async () => {
+    const user = await signUpNewUser();
+
+    const first = await setsPage(user, { text: 'foundations', finish_view: 'any', limit: 1 });
+    const second = await setsPage(user, { text: 'foundations', finish_view: 'any', limit: 1, cursor: first.next_cursor });
+    const all = await setsPage(user, { text: 'foundations', finish_view: 'any', limit: 50 });
+
+    expect([...first.items, ...second.items].map((row) => row.code)).toEqual(all.items.slice(0, 2).map((row) => row.code));
+    expect(all.items.length).toBeGreaterThan(1);
+    expect(all.items.every((row) => row.name.toLowerCase().includes('foundations'))).toBe(true);
+  });
+
+  test('a search that matches no set gives an empty page', async () => {
+    const user = await signUpNewUser();
+
+    expect(await setsPage(user, { text: 'xyz%_', finish_view: 'any' })).toEqual({ items: [], next_cursor: null });
+  });
+});
+
+describe('the finish view in the sets list', () => {
+  test('a set whose main set is empty in the finish view is left out, such as Alpha in Foil', async () => {
+    const user = await signUpNewUser();
+
+    expect(await setCodes(user, 'any')).toContain('lea');
+    expect(await setCodes(user, 'nonfoil')).toContain('lea');
+    expect(await setCodes(user, 'foil')).not.toContain('lea');
+    expect(await setCodes(user, 'foil')).toContain('blb');
+  });
+
+  test('a set of only basic lands is left out in every finish view', async () => {
+    const user = await signUpNewUser();
+
+    expect(await setCodes(user, 'any')).not.toContain('khm');
+    expect(await setCodes(user, 'nonfoil')).not.toContain('khm');
+    expect(await setCodes(user, 'foil')).not.toContain('khm');
+  });
+
+  test('a page in Foil is full even when sets are left out', async () => {
+    const user = await signUpNewUser();
+    const foilSets = await setCodes(user, 'foil');
+
+    const page = await setsPage(user, { finish_view: 'foil', limit: 50 });
+
+    expect(page.items.map((row) => row.code)).toEqual(foilSets.slice(0, 50));
   });
 });
 
@@ -185,7 +328,6 @@ describe('the set art', () => {
     );
     try {
       expect((await setRow(user, 'mh3'))?.set_art_uri).toBe(artCrop(roilCartographerVariant, 1783911138));
-      expect((await setRow(user, 'khm'))?.set_art_uri).toBeNull();
     } finally {
       await asDatabaseOwner(
         (database) => database`update public.card_prices set usd_nonfoil_cents = ${usd_nonfoil_cents} where printing_id = ${snowCoveredWastes}`,
@@ -260,7 +402,7 @@ describe('the main set in set completion', () => {
 
     expect((await setRow(user, 'mh3'))?.completion.any).toEqual({ owned: 0, size: 2 });
     expect((await setRow(user, 'eoc'))?.completion.any).toEqual({ owned: 0, size: 1 });
-    expect((await setRow(user, 'khm'))?.completion.any).toEqual({ owned: 0, size: 0 });
+    expect(await setRow(user, 'khm')).toBeUndefined();
   });
 });
 
