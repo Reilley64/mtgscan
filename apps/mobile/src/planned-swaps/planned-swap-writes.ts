@@ -1,44 +1,44 @@
-import { readDeckError } from '@mtgscan/supabase/decks';
-import type { ClosePlannedSwapRequest, SwapInPlannedSwapRequest, SwapInPlannedSwapsRequest } from '@mtgscan/supabase/planned-swaps';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 
 import { supabase } from '@/lib/supabase';
 import { writeResultOf, type WriteResult } from '@/lib/write-result';
 
 export async function swapInPlannedSwap(plannedSwapId: string): Promise<WriteResult | 'commander_limit'> {
-  const request: SwapInPlannedSwapRequest = { planned_swap_id: plannedSwapId };
-  const { error } = await supabase.rpc('swap_in_planned_swap', { request });
-  const code = error && readDeckError(error).code;
+  const result = await callDatabaseFunction(supabase, databaseFunctions.swap_in_planned_swap, { planned_swap_id: plannedSwapId });
+  const code = result.status === 'refused' && result.refusal.code;
   if (code === 'not_open') {
     return 'missing';
   }
   if (code === 'commander_limit') {
     return 'commander_limit';
   }
-  return writeResultOf(error);
+  return writeResultOf(result);
 }
 
 export async function swapInPlannedSwaps(
   deckId: string,
   plannedSwapIds: string[],
 ): Promise<WriteResult | { thirdCommander: string }> {
-  const request: SwapInPlannedSwapsRequest = { deck_id: deckId, planned_swap_ids: plannedSwapIds };
-  const { error } = await supabase.rpc('swap_in_planned_swaps', { request });
-  const deckError = error && readDeckError(error);
-  if (deckError?.code === 'not_open') {
+  const result = await callDatabaseFunction(supabase, databaseFunctions.swap_in_planned_swaps, {
+    deck_id: deckId,
+    planned_swap_ids: plannedSwapIds,
+  });
+  const refusal = result.status === 'refused' ? result.refusal : null;
+  if (refusal?.code === 'not_open') {
     return 'missing';
   }
-  const thirdCommander = deckError?.code === 'commander_limit' && deckError.field?.match(/^planned_swap_ids\[(\d+)\]$/);
+  const thirdCommander = refusal?.code === 'commander_limit' && refusal.field?.match(/^planned_swap_ids\[(\d+)\]$/);
   if (thirdCommander) {
     return { thirdCommander: plannedSwapIds[Number(thirdCommander[1])]! };
   }
-  return writeResultOf(error);
+  return writeResultOf(result);
 }
 
 export async function closePlannedSwap(plannedSwapId: string): Promise<WriteResult> {
-  const request: ClosePlannedSwapRequest = { planned_swap_id: plannedSwapId };
-  const { error } = await supabase.rpc('close_planned_swap', { request });
-  if (error && readDeckError(error).code === 'not_open') {
+  const result = await callDatabaseFunction(supabase, databaseFunctions.close_planned_swap, { planned_swap_id: plannedSwapId });
+  if (result.status === 'refused' && result.refusal.code === 'not_open') {
     return 'missing';
   }
-  return writeResultOf(error);
+  return writeResultOf(result);
 }

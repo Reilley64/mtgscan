@@ -1,4 +1,5 @@
-import type { TagLookupPage } from '@mtgscan/supabase/search';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -15,6 +16,7 @@ import { userTagsFound } from '@/collection/user-tag-names';
 import { readUserTags } from '@/collection/user-tags';
 import { cardCountLabel } from '@/decks/deck-labels';
 import { readDecks } from '@/decks/use-decks';
+import { replyOf } from '@/lib/database-reply';
 import { supabase } from '@/lib/supabase';
 import { useTypingPause } from '@/lib/use-typing-pause';
 
@@ -34,11 +36,8 @@ async function setSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
 }
 
 async function oracleTagSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
-  const { data, error } = await supabase.rpc('search_oracle_tags', { query: { text: typed.value, limit: suggestionLimit } });
-  if (error) {
-    throw error;
-  }
-  return (data as unknown as TagLookupPage).items.map((tag) => chipSuggestion(typed, tag.slug, tag.label));
+  const result = await callDatabaseFunction(supabase, databaseFunctions.search_oracle_tags, { text: typed.value, limit: suggestionLimit });
+  return replyOf(result).items.map((tag) => chipSuggestion(typed, tag.slug, tag.label));
 }
 
 async function userTagSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {

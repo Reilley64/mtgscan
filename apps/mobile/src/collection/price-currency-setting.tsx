@@ -1,4 +1,6 @@
-import { usdExchangeRate, type ExchangeRate, type ExchangeRateList } from '@mtgscan/supabase/converted-prices';
+import { usdExchangeRate, type ExchangeRate } from '@mtgscan/supabase/converted-prices';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import { getLocales } from 'expo-localization';
 import * as SecureStore from 'expo-secure-store';
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -51,16 +53,16 @@ export function PriceCurrencyProvider({ children }: { children: ReactNode }) {
       return;
     }
     let current = true;
-    supabase.rpc('list_exchange_rates').then(({ data, error }) => {
+    callDatabaseFunction(supabase, databaseFunctions.list_exchange_rates).then((result) => {
       if (!current) {
         return;
       }
       setPriceCurrencies((shown) =>
-        error
-          ? shown.status === 'loaded'
+        result.status === 'replied'
+          ? { status: 'loaded', items: result.reply.items, readAt: Date.now() }
+          : shown.status === 'loaded'
             ? shown
-            : { status: 'failed' }
-          : { status: 'loaded', items: (data as unknown as ExchangeRateList).items, readAt: Date.now() },
+            : { status: 'failed' },
       );
     });
     return () => {

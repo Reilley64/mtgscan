@@ -4,7 +4,6 @@ import { collectionCopyRow, copyRowDeck } from './collection.ts';
 import { databaseFunction } from './database-function.ts';
 import type { Database } from './database.types.ts';
 import { color, comboBracketTag, deckChangeKind, deckPriority, deckRole, deckValidity, id, integer, nextCursor } from './fields.ts';
-import { readSearchError, type SearchError } from './search.ts';
 
 export type DeckPriority = Database['public']['Enums']['deck_priority'];
 
@@ -117,8 +116,6 @@ const deckRow = z.strictObject({ ...deckFields, evaluation: deckEvaluationSummar
 export type DeckRow = z.infer<typeof deckRow>;
 
 const deckList = z.strictObject({ items: z.array(deckRow) });
-
-export type DeckList = z.infer<typeof deckList>;
 
 const needsYouCounts = z.strictObject({ total: integer, decks: z.array(z.strictObject({ deck_id: id, count: integer })) });
 
@@ -433,21 +430,3 @@ export const revertDeckChanges = databaseFunction({
   reply: deckRevision,
   errorCodes: ['invalid_argument', 'not_found', 'copy_protected', 'stale_revision', 'revert_blocked'],
 });
-
-export type DeckErrorCode =
-  | 'invalid_argument'
-  | 'invalid_cursor'
-  | 'not_found'
-  | 'copy_not_free'
-  | 'copy_protected'
-  | 'copy_not_in_deck'
-  | 'commander_limit'
-  | 'stale_revision'
-  | 'revert_blocked'
-  | 'not_open';
-
-export type DeckError = Omit<SearchError, 'code'> & { code: DeckErrorCode };
-
-export function readDeckError(error: Parameters<typeof readSearchError>[0]): DeckError {
-  return { ...readSearchError(error), code: error.code as DeckErrorCode };
-}

@@ -9,8 +9,6 @@ export type ExchangeRate = z.infer<typeof exchangeRate>;
 
 const exchangeRateList = z.strictObject({ items: z.array(exchangeRate) });
 
-export type ExchangeRateList = z.infer<typeof exchangeRateList>;
-
 export const listExchangeRates = databaseFunction({
   name: 'list_exchange_rates',
   argument: null,

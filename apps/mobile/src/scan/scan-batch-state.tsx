@@ -1,4 +1,5 @@
-import type { Json } from '@mtgscan/supabase/database.types';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import { randomUUID } from 'expo-crypto';
 import {
   createContext,
@@ -304,10 +305,8 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
   const commitBatch = useCallback(async (batch: ScanBatch) => {
     const { scans } = batch;
     dispatchScanning({ type: 'commitStarted' });
-    const { error } = await supabase.rpc('add_scan_batch', {
-      batch: { items: stacksOf(scans) } as unknown as Json,
-    });
-    if (error) {
+    const result = await callDatabaseFunction(supabase, databaseFunctions.add_scan_batch, { items: stacksOf(scans) });
+    if (result.status !== 'replied') {
       dispatchScanning({ type: 'commitFailed' });
       return false;
     }

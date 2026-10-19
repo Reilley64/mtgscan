@@ -1,6 +1,6 @@
-import type { Json } from '../database.types';
+import { callDatabaseFunction } from '../database-function';
 import type { ImportClient } from '../import/import-run';
-import { readSearchError, type CatalogQuery, type CatalogRow, type SearchPage } from '../search';
+import { searchCatalog, type CatalogQuery, type CatalogRow, type SearchPage } from '../search';
 import { readCardFacts, readTagClosures, violatedChips, type ChipField } from './chip-check';
 import { searchClasses, type CorpusSearch, type SearchClass } from './search-corpus';
 
@@ -64,12 +64,12 @@ export function catalogSearch(client: ImportClient): SearchMode {
   return {
     name: 'baseline',
     search: async (query) => {
-      const { data, error } = await client.rpc('search_catalog', { query: query as Json });
-      if (error) {
-        const { code, message, field } = readSearchError(error);
-        throw new Error(`Catalog search refused ${JSON.stringify(query)}: ${code} ${message} ${field ?? ''}`.trim());
+      const result = await callDatabaseFunction(client, searchCatalog, query);
+      if (result.status === 'replied') {
+        return result.reply;
       }
-      return data as unknown as SearchPage<CatalogRow>;
+      const { code, message, field } = result.status === 'refused' ? result.refusal : { ...result.error, field: result.error.details };
+      throw new Error(`Catalog search refused ${JSON.stringify(query)}: ${code} ${message} ${field ?? ''}`.trim());
     },
   };
 }

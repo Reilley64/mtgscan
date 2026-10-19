@@ -1,16 +1,16 @@
-import type { DeckList, DeckRow } from '@mtgscan/supabase/decks';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
+import type { DeckRow } from '@mtgscan/supabase/decks';
 
+import { replyOf } from '@/lib/database-reply';
 import { supabase } from '@/lib/supabase';
 import { useFocusedRead } from '@/lib/use-focused-read';
 
 type DecksRead = { status: 'loaded'; decks: DeckRow[] };
 
 export async function readDecks(): Promise<DecksRead> {
-  const { data, error } = await supabase.rpc('list_decks');
-  if (error) {
-    throw error;
-  }
-  return { status: 'loaded', decks: (data as unknown as DeckList).items };
+  const result = await callDatabaseFunction(supabase, databaseFunctions.list_decks);
+  return { status: 'loaded', decks: replyOf(result).items };
 }
 
 export function useDecks(needed = true) {

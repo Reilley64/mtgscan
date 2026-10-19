@@ -1,5 +1,7 @@
-import type { CurrentPrice, CurrentPriceKey, CurrentPrices, CurrentPricesQuery } from '@mtgscan/supabase/collection';
+import type { CurrentPrice, CurrentPriceKey } from '@mtgscan/supabase/collection';
 import { convertedPrice } from '@mtgscan/supabase/converted-prices';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import { createContext, use, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { usePriceCurrency } from '@/collection/price-currency-setting';
@@ -45,13 +47,12 @@ export function CurrentPricesProvider({ children }: { children: ReactNode }) {
     const unknown = new Map(keys.filter((key) => !asked.current.has(keyId(key))).map((key) => [keyId(key), key]));
     for (const items of chunks([...unknown.values()], itemsPerRead)) {
       items.forEach((key) => asked.current.add(keyId(key)));
-      const query: CurrentPricesQuery = { items };
-      void supabase.rpc('get_current_prices', { query }).then(({ data, error }) => {
-        if (error) {
+      void callDatabaseFunction(supabase, databaseFunctions.get_current_prices, { items }).then((result) => {
+        if (result.status !== 'replied') {
           items.forEach((key) => asked.current.delete(keyId(key)));
           return;
         }
-        const rows = (data as unknown as CurrentPrices).items;
+        const rows = result.reply.items;
         setKnown((current) => new Map([...current, ...rows.map((row) => [keyId(row), row.price] as const)]));
       });
     }
