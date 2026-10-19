@@ -251,6 +251,31 @@ Signed-in users read their collection total with `supabase.rpc('get_collection_t
 
 mtgscan stores no daily collection totals and no change since yesterday. `docs/adr/0004-keep-only-current-prices.md` says why.
 
+### Sets list
+
+Signed-in users read Sets with `supabase.rpc('list_sets')`. It takes no query. `supabase/sets.ts` has the shared types.
+
+- The result has `items`, one row for every set with a `released_at` on or before the current date and at least one card printing in the card catalog. A set with no `released_at` counts as not released.
+- The rows come newest first, then by name. Every row comes in one response, with no paging. The app filters them by the search text.
+- Each row has `code`, `name`, `icon_svg_uri`, `released_at`, and `completion`, the set completion in each finish view as `{ owned, size }` under `any`, `nonfoil`, and `foil`.
+- `size` counts the card printings in the set's main set that the finish view does not leave out. `owned` counts those with at least one of the caller's copies in the finish view. A card printing counts once, whatever the condition, language, protected flag, or deck of its copies.
+- Any finish counts every copy. Nonfoil counts the nonfoil copies, or every copy when the card printing has no nonfoil finish. Foil counts the foil and etched copies, and leaves out a card printing with neither finish. `private.set_card_printing_counts` holds this rule. The app only picks the finish view.
+- Each row also has `set_art_uri`, the set art from `GLOSSARY.md`. It is the art crop of the set's card printing with the highest current USD price in any finish, among the card printings with an art crop. A tie goes to the lower collector number. With no priced card printing, it is the art crop of the first card printing that has one, by collector number. With no art crop in the set, it is null. Variants can give the set art. Basic land card printings never do, as they are in no set's main set or variants.
+- One private function, `private.set_card_printings`, applies the main set rule from `GLOSSARY.md`. Basic land cards are never in the main set or the variants.
+- The function runs with the caller's rights. An anonymous caller and the secret key are refused.
+
+### Set read
+
+Signed-in users read one set with `supabase.rpc('get_set', { query })`. The set page reads through it. `supabase/sets.ts` has the shared types.
+
+- The query has `code`, the set code, such as `blb`.
+- The result has the fields of the set's `list_sets` row, then `main_set` and `variants`.
+- `main_set` lists the card printings of the main set. `variants.card_printings` lists the variants, and `variants.completion` is their own set completion in each finish view. Basic land cards are in neither list.
+- Both lists come in collector number order. Numbers sort by their leading digits, then as text, so "9" comes before "10" and "10a".
+- Each card printing has `printing_id`, `name`, `collector_number`, `image_uri` (the front face image, or null), `finishes`, and `counts`, the number of the caller's copies under `any`, `nonfoil`, and `foil`. `counts.foil` is null when the card printing has no foil or etched finish.
+- `list_sets` and `get_set` share the main set rule and the set completion count, so a set's completion is the same in both reads.
+- The function runs with the caller's rights. An anonymous caller and the secret key are refused. A set code that is unknown, not released, or has no card printing in the card catalog has the code `not_found` and the field `code`. A refused query has the code `invalid_argument` and the field at fault.
+
 ### Current prices read
 
 Signed-in users read the current prices of card printings and finishes with `supabase.rpc('get_current_prices', { query })`. The phone reads the prices of its scans through it. `supabase/collection.ts` has the shared types.
@@ -543,7 +568,7 @@ Collection search returns copies only. Basic lands are not copies, so the app ad
 
 `bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. When `SUPABASE_URL` is not set, it uses `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file. Pass `--sets <path>` to read a fixture instead of the Scryfall sets list. Pass `--rates <path>` to read a fixture instead of Frankfurter's latest exchange rates.
 
-- `catalog` imports cards and card printings. Each card printing keeps `image_uris`, the Scryfall `normal` image of each face, and `art_crop_uri`, the Scryfall `art_crop` image of its front face or null. After the run, even a skipped one, it reads Scryfall's sets list in one request and adds or updates `card_sets`: each set's code, name, and `icon_svg_uri`. Some sets use the icon of a parent set, so the app reads the icon from this table, not from a URL pattern. Signed-in users can read `card_sets`. The Weekly import workflow runs it.
+- `catalog` imports cards and card printings. Each card printing keeps `image_uris`, the Scryfall `normal` image of each face, and `art_crop_uri`, the Scryfall `art_crop` image of its front face or null. It also keeps Scryfall's `booster`, `promo`, and `variation` flags. After the run, even a skipped one, it reads Scryfall's sets list in one request and adds or updates `card_sets`: each set's code, name, `set_type`, `released_at`, and `icon_svg_uri`. A set with no `released_at` in Scryfall keeps null. Some sets use the icon of a parent set, so the app reads the icon from this table, not from a URL pattern. Signed-in users can read `card_sets`. The Weekly import workflow runs it.
   - The run reads the deck-construction fields from each card's Oracle text and stores them on the card. Deck validity reads them as rules data. The reader leaves out reminder text and an ability word before " — ", as in Clara Oswald's "Impossible Girl".
     - `has_partner` is true for Partner and for Partner—[text]. `partner_text` holds the text, such as "Friends forever", or null for plain Partner.
     - `partner_with_name` holds the name after Partner with, or null.

@@ -284,14 +284,17 @@ test('removing a chip under the search bar clears its choice in the drawer', asy
   expect(chosenFilters('Finish')).toEqual(['Any']);
 });
 
-test('the sort button hides while the Filters drawer is open and comes back when it closes', async () => {
+test('the sort and Sets buttons hide while the Filters drawer is open and come back when it closes', async () => {
   await openCollection();
   expect(menuButtonNames(selectedTab())).toEqual(['Sort, Relevance']);
+  expect(within(selectedTab()).getByRole('button', { name: 'Sets' })).toBeOnTheScreen();
 
   await openFilters();
   expect(menuButtonNames(selectedTab())).toEqual([]);
+  expect(within(selectedTab()).queryByRole('button', { name: 'Sets' })).toBeNull();
 
   await swipeDownDrawer();
   expect(isDrawerPresented()).toBe(false);
   expect(menuButtonNames(selectedTab())).toEqual(['Sort, Relevance']);
+  expect(within(selectedTab()).getByRole('button', { name: 'Sets' })).toBeOnTheScreen();
 });

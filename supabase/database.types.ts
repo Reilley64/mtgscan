@@ -131,14 +131,14 @@ isOneToOne: true
                   ]
                 },"card_printings": {
                   Row: {
-                    "absent_since": string | null,"art_crop_uri": string | null,"collector_number": string,"finishes": (Database["public"]['Enums']["card_finish"])[],"id": string,"illustration_id": string | null,"image_uris": (string)[],"lang": string,"oracle_id": string,"rarity": Database["public"]['Enums']["card_rarity"],"released_at": string,"set_code": string,"set_name": string
+                    "absent_since": string | null,"art_crop_uri": string | null,"booster": boolean,"collector_number": string,"finishes": (Database["public"]['Enums']["card_finish"])[],"id": string,"illustration_id": string | null,"image_uris": (string)[],"lang": string,"oracle_id": string,"promo": boolean,"rarity": Database["public"]['Enums']["card_rarity"],"released_at": string,"set_code": string,"set_name": string,"variation": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "absent_since"?: string | null,"art_crop_uri"?: string | null,"collector_number": string,"finishes": (Database["public"]['Enums']["card_finish"])[],"id": string,"illustration_id"?: string | null,"image_uris": (string)[],"lang": string,"oracle_id": string,"rarity": Database["public"]['Enums']["card_rarity"],"released_at": string,"set_code": string,"set_name": string
+                    "absent_since"?: string | null,"art_crop_uri"?: string | null,"booster": boolean,"collector_number": string,"finishes": (Database["public"]['Enums']["card_finish"])[],"id": string,"illustration_id"?: string | null,"image_uris": (string)[],"lang": string,"oracle_id": string,"promo": boolean,"rarity": Database["public"]['Enums']["card_rarity"],"released_at": string,"set_code": string,"set_name": string,"variation": boolean
                   }
                   Update: {
-                    "absent_since"?: string | null,"art_crop_uri"?: string | null,"collector_number"?: string,"finishes"?: (Database["public"]['Enums']["card_finish"])[],"id"?: string,"illustration_id"?: string | null,"image_uris"?: (string)[],"lang"?: string,"oracle_id"?: string,"rarity"?: Database["public"]['Enums']["card_rarity"],"released_at"?: string,"set_code"?: string,"set_name"?: string
+                    "absent_since"?: string | null,"art_crop_uri"?: string | null,"booster"?: boolean,"collector_number"?: string,"finishes"?: (Database["public"]['Enums']["card_finish"])[],"id"?: string,"illustration_id"?: string | null,"image_uris"?: (string)[],"lang"?: string,"oracle_id"?: string,"promo"?: boolean,"rarity"?: Database["public"]['Enums']["card_rarity"],"released_at"?: string,"set_code"?: string,"set_name"?: string,"variation"?: boolean
                   }
                   Relationships: [
                     {
@@ -151,14 +151,14 @@ isOneToOne: false
                   ]
                 },"card_sets": {
                   Row: {
-                    "code": string,"icon_svg_uri": string,"name": string
+                    "code": string,"icon_svg_uri": string,"name": string,"released_at": string | null,"set_type": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "code": string,"icon_svg_uri": string,"name": string
+                    "code": string,"icon_svg_uri": string,"name": string,"released_at"?: string | null,"set_type"?: string | null
                   }
                   Update: {
-                    "code"?: string,"icon_svg_uri"?: string,"name"?: string
+                    "code"?: string,"icon_svg_uri"?: string,"name"?: string,"released_at"?: string | null,"set_type"?: string | null
                   }
                   Relationships: [
                     
@@ -872,6 +872,9 @@ isOneToOne: false
 "get_needs_you_counts":
 { Args: { "query"?: Json }; Returns: Json
                            },
+"get_set":
+{ Args: { "query": Json }; Returns: Json
+                           },
 "import_card_sets":
 { Args: { "sets": Json }; Returns: number
                            },
@@ -906,6 +909,9 @@ isOneToOne: false
                            },
 "list_planned_swaps":
 { Args: { "query"?: Json }; Returns: Json
+                           },
+"list_sets":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "list_user_tags":
 { Args: { "query"?: Json }; Returns: Json

@@ -70,6 +70,7 @@ import type {
   FreeCopy,
   MarkBuylistCardBoughtRequest,
 } from '@mtgscan/supabase/buylist';
+import type { CardSet, SetDetails, SetQuery } from '@mtgscan/supabase/sets';
 import type { SignInProvider } from '@mtgscan/supabase/sign-in-providers';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
@@ -155,6 +156,14 @@ let failingScanBatch: 'before the server adds it' | 'after the server adds it' |
 let heldScanBatch: Promise<void> | null = null;
 let heldCollectionReads: Promise<void> | null = null;
 let heldDeckReads: Promise<void> | null = null;
+let sets: CardSet[] = [];
+let setReads = 0;
+let failingSetReads = 0;
+let heldSetReads: Promise<void> | null = null;
+let setPages = new Map<string, SetDetails>();
+let setPageReads: string[] = [];
+let failingSetPageReads = 0;
+let heldSetPageReads: Promise<void> | null = null;
 let heldDeckListReads: Promise<void> | null = null;
 let heldNeedsYouReads: Promise<void> | null = null;
 let galleryObjects = new Map<string, string>();
@@ -263,6 +272,30 @@ function collectionCopiesPage(query: CollectionQuery) {
 }
 
 const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
+
+async function setList() {
+  setReads += 1;
+  await heldSetReads;
+  if (failingSetReads > 0) {
+    failingSetReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  return { data: { items: sets }, error: null };
+}
+
+async function setPageRead({ code }: SetQuery) {
+  setPageReads = [...setPageReads, code];
+  await heldSetPageReads;
+  if (failingSetPageReads > 0) {
+    failingSetPageReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  const set = setPages.get(code);
+  if (!set) {
+    return { data: null, error: { code: 'not_found', message: 'code is not a released set in the card catalog.', details: 'code' } };
+  }
+  return { data: set, error: null };
+}
 
 function collectionTotalRead(query: object) {
   priceReads = [...priceReads, { read: 'get_collection_total', query }];
@@ -1263,6 +1296,7 @@ export const fakeSupabase = {
       | { query: FreeCopiesQuery }
       | { query: Record<string, never> }
       | { query: CurrentPricesQuery }
+      | { query: SetQuery }
       | { query: { text: string; limit: number } }
       | { batch: ScanBatch }
       | {
@@ -1334,6 +1368,12 @@ export const fakeSupabase = {
     }
     if (name === 'change_basic_land' && args && 'request' in args) {
       return changeBasicLand(args.request as ChangeBasicLandRequest);
+    }
+    if (name === 'list_sets') {
+      return setList();
+    }
+    if (name === 'get_set' && args && 'query' in args) {
+      return setPageRead(args.query as SetQuery);
     }
     if (name === 'list_basic_land_cards') {
       return basicLandCardList();
@@ -1676,6 +1716,56 @@ export function copyProtectedWritesSent() {
   return copyProtectedWrites;
 }
 
+export function offerSets(rows: CardSet[]) {
+  sets = rows;
+}
+
+export function setReadCount() {
+  return setReads;
+}
+
+export function failSetReads(count: number) {
+  failingSetReads = count;
+}
+
+export function holdSetReads() {
+  let finish = () => {};
+  heldSetReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldSetReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
+export function offerSetPage(set: SetDetails) {
+  setPages = new Map(setPages).set(set.code, set);
+}
+
+export function setPageReadsSent() {
+  return setPageReads;
+}
+
+export function failSetPageReads(count: number) {
+  failingSetPageReads = count;
+}
+
+export function holdSetPageReads() {
+  let finish = () => {};
+  heldSetPageReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldSetPageReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
 export function ownCollectionTotal(total: CollectionTotal) {
   collectionTotal = total;
 }
@@ -1894,6 +1984,14 @@ export function resetFakeSupabase() {
   freeCopies = new Map();
   failingFreeCopyReads = 0;
   collectionTotal = emptyCollectionTotal;
+  sets = [];
+  setReads = 0;
+  failingSetReads = 0;
+  heldSetReads = null;
+  setPages = new Map();
+  setPageReads = [];
+  failingSetPageReads = 0;
+  heldSetPageReads = null;
   priceReads = [];
   exchangeRates = exchangeRatesOf(frankfurterCurrencies);
   exchangeRateReads = 0;

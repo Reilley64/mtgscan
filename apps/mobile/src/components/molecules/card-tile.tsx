@@ -33,6 +33,8 @@ type CardTileProps = {
   menuActions?: MenuAction[];
   unlimited?: boolean;
   inViolation?: boolean;
+  quantity?: number;
+  dimmed?: boolean;
 } & ({ caption: string; children?: never } | { caption?: never; children?: ReactNode }) &
   ({ selected?: never; onPress?: never } | { selected?: boolean; onPress: () => void });
 
@@ -47,13 +49,15 @@ export function CardTile({
   menuActions,
   unlimited,
   inViolation,
+  quantity,
+  dimmed,
   onPress,
 }: CardTileProps) {
   const label = inViolation ? `${accessibilityLabel}, breaks a Commander rule` : accessibilityLabel;
 
   const image = (
     <View className={cn(imageOutlineVariants({ inViolation }))}>
-      <CardImage uri={uri} sheen={sheen} />
+      <CardImage uri={uri} sheen={sheen} quantity={quantity} dimmed={dimmed} />
       {unlimited ? <CountBadge count="∞" className="absolute right-xs top-xs" /> : null}
     </View>
   );

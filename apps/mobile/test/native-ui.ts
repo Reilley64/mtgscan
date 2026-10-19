@@ -361,6 +361,31 @@ export function pushedScreen() {
   return screens.at(-1)!;
 }
 
+function tabStackScreens() {
+  const [tabStack] = selectedTab().queryAll((instance) => instance.type === 'RNSScreenStack');
+  if (!tabStack) {
+    throw new Error('The selected tab has no stack');
+  }
+  return tabStack.queryAll((instance) => instance.type === 'RNSScreen' && nearestStack(instance) === tabStack);
+}
+
+export function tabStackTopScreen() {
+  return tabStackScreens().at(-1)!;
+}
+
+export function tabStackShowsBackButton() {
+  const [header] = tabStackTopScreen().queryAll((instance) => instance.type === 'RNSScreenStackHeaderConfig');
+  return tabStackScreens().length > 1 && Boolean(header) && !header!.props.hidden && !header!.props.hideBackButton;
+}
+
+export async function swipeBackInTheTab() {
+  const current = tabStackTopScreen();
+  if (tabStackScreens().length < 2 || current.props.gestureEnabled === false) {
+    throw new Error('This screen does not go back with a swipe from the left edge');
+  }
+  await fireEvent(current, 'dismissed', { nativeEvent: { dismissCount: 1 } });
+}
+
 export function pushedScreenTitle() {
   const [header] = pushedScreen().queryAll(
     (instance) => instance.type === "RNSScreenStackHeaderConfig",
@@ -751,6 +776,10 @@ export function cardImageUri(tile: HostElement) {
   return image.props.source?.[0]?.uri;
 }
 
+export function imageTintColors(element: HostElement) {
+  return element.queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage').map((image) => image.props.tintColor);
+}
+
 export function imageFrames(element: HostElement) {
   return element
     .queryAll((instance) => instance.type === "ViewManagerAdapter_ExpoImage")
@@ -776,6 +805,36 @@ export function cardSheen(tile: HostElement) {
       undefined,
   );
   return sheen ? StyleSheet.flatten(sheen.props.style) : null;
+}
+
+export function setArtLook(banner: HostElement) {
+  const widthOf = (instance: HostElement) => StyleSheet.flatten(instance.props.style)?.width;
+  const [coloredPart] = banner.queryAll((instance) => /%$/.test(String(widthOf(instance) ?? '')));
+  return {
+    uris: banner
+      .queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage' && instance.props.tintColor === undefined)
+      .map((image) => image.props.source?.[0]?.uri),
+    grayscale: banner.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.mixBlendMode === 'saturation').length > 0,
+    coloredShare: coloredPart ? parseFloat(String(widthOf(coloredPart))) / 100 : 0,
+    edgeLine: banner.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.backgroundColor === tokenColors.primary).length > 0,
+  };
+}
+
+export function setSymbolFillShare(element: HostElement) {
+  const heightOf = (instance: HostElement) => StyleSheet.flatten(instance.props.style)?.height;
+  const [filledPart] = element.queryAll((instance) => /%$/.test(String(heightOf(instance) ?? '')));
+  return filledPart ? parseFloat(String(heightOf(filledPart))) / 100 : 0;
+}
+
+export function cardImageLook(tile: HostElement) {
+  const [image] = tile.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.aspectRatio !== undefined);
+  if (!image) {
+    throw new Error('No card image is in this tile');
+  }
+  return {
+    opacity: opacityOf(image),
+    grayscale: image.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.mixBlendMode === 'saturation').length > 0,
+  };
 }
 
 export function blurredImageUris() {
@@ -1360,9 +1419,7 @@ beforeEach(() => {
 });
 
 function searchBarView(tab: HostElement) {
-  const [searchBar] = tab.queryAll(
-    (instance) => instance.type === "RNSSearchBar",
-  );
+  const searchBar = tab.queryAll((instance) => instance.type === 'RNSSearchBar').at(-1);
   if (!searchBar) {
     throw new Error("This tab has no search bar");
   }

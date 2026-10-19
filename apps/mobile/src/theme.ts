@@ -130,6 +130,11 @@ export const sizes = {
   rowSymbol: 22,
   iconButtonSymbol: 18,
   setIcon: 16,
+  setSymbolFill: 44,
+  setBanner: 92,
+  setPageBanner: 150,
+  setBannerSymbol: 26,
+  setPageBannerSymbol: 30,
   staleSymbol: 11,
   chipSymbol: 11,
   protectedSymbol: 11,
@@ -201,6 +206,7 @@ export const gradients = {
   emptyStateFade: `linear-gradient(180deg, ${colors.background}00 30%, ${colors.background} 100%)`,
   emptyStateSheetFade: `linear-gradient(180deg, ${colors.sheet}00 30%, ${colors.sheet} 100%)`,
   commanderArtScrim: `linear-gradient(180deg, ${colors.background}00 30%, ${colors.background}e6 100%)`,
+  setArtScrim: `linear-gradient(90deg, ${colors.background}d9 0%, ${colors.background}1a 70%)`,
 } as const;
 
 export function manaSplitGradient(top: string, bottom: string) {
