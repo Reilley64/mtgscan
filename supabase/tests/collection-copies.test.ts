@@ -506,11 +506,13 @@ describe('collection entries and copy rows', () => {
     expect((await collectionCopies(user, { is_free: false })).items).toEqual([]);
   });
 
-  test('collection entries take a limit up to 50, and copy rows up to 120', async () => {
-    const entries = await searchCopies(user.client, { rows: 'entries', limit: 51 });
+  test('collection entries take a limit up to 100, and copy rows up to 120', async () => {
+    const entries = await searchCopies(user.client, { rows: 'entries', limit: 100 });
+    const tooManyEntries = await searchCopies(user.client, { rows: 'entries', limit: 101 });
     const copies = await searchCopies(user.client, { limit: 120 });
 
-    expect(entries.error).toMatchObject({ code: 'invalid_argument', field: 'limit' });
+    expect(entries.error).toBeNull();
+    expect(tooManyEntries.error).toMatchObject({ code: 'invalid_argument', field: 'limit' });
     expect(copies.error).toBeNull();
   });
 });
