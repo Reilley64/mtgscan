@@ -1,6 +1,6 @@
 import '../global.css';
 
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider, type NativeStackNavigationOptions } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -28,7 +28,13 @@ const navigationTheme = {
   },
 };
 
-const pushedScreenOptions = { headerShown: true, headerTransparent: true, title: '', headerBackVisible: false };
+const pushedScreenOptions: NativeStackNavigationOptions = {
+  headerShown: true,
+  headerTransparent: true,
+  title: '',
+  headerBackVisible: false,
+  scrollEdgeEffects: { top: 'soft', bottom: 'automatic', left: 'automatic', right: 'automatic' },
+};
 
 const pushedScreenWithBarOptions = { ...pushedScreenOptions, headerTransparent: false, headerShadowVisible: false };
 

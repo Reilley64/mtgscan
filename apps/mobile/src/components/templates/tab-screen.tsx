@@ -9,7 +9,7 @@ import { colors } from '@/theme';
 
 const screenClass = 'flex-1 bg-background';
 
-const contentClass = 'px-lg pt-sm';
+const contentClass = 'px-lg pb-xl pt-sm';
 
 type ScreenTitleProps = {
   title: string;
@@ -74,13 +74,14 @@ export function TabScreen({ title, actions, children }: TabScreenProps) {
 
 type ListProps<Item> = Omit<FlatListProps<Item>, 'style' | 'contentContainerStyle' | 'contentInsetAdjustmentBehavior'>;
 
-function ScreenList<Item>(listProps: ListProps<Item>) {
+function ScreenList<Item>({ underFloatingButtons = false, ...listProps }: ListProps<Item> & { underFloatingButtons?: boolean }) {
   return (
     <FlatList
       {...listProps}
       className={screenClass}
-      contentContainerClassName={contentClass}
+      contentContainerClassName={cn(contentClass, underFloatingButtons && 'pb-floating-button-clearance')}
       contentInsetAdjustmentBehavior="automatic"
+      keyboardDismissMode="on-drag"
     />
   );
 }
@@ -102,7 +103,7 @@ export function TabListScreen<Item>({
   return (
     <>
       <TabHeader title={title} actions={actions} search={search} />
-      <ScreenList {...listProps} />
+      <ScreenList {...listProps} underFloatingButtons={Boolean(floatingButtons || leftFloatingButtons)} />
       {leftFloatingButtons ? <FloatingButtons side="left">{leftFloatingButtons}</FloatingButtons> : null}
       {floatingButtons ? <FloatingButtons side="right">{floatingButtons}</FloatingButtons> : null}
     </>

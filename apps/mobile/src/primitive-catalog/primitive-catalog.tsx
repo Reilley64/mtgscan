@@ -42,7 +42,7 @@ import { SetHeader, SetListSkeleton, SetRow } from '@/components/molecules/set-r
 import { SetBanner, SetPageBanner } from '@/components/organisms/set-banner';
 import { ChangeLine } from '@/components/molecules/change-line';
 import { Reason } from '@/components/molecules/reason';
-import { CommanderGalleryCard, DeckBanner, DeckBannerSkeleton } from '@/components/molecules/commander-card';
+import { CommanderGalleryCard, CommanderGalleryCardSkeletons, DeckBanner, DeckBannerSkeleton } from '@/components/molecules/commander-card';
 import { CardChip } from '@/components/molecules/card-chip';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
@@ -60,6 +60,7 @@ import { PullIndicator } from '@/components/molecules/pull-indicator';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
+import { NeedsYouItemSkeletons } from '@/components/molecules/needs-you-skeleton';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection, SheetSectionHeader } from '@/components/molecules/sheet-section';
 import { GroupButton } from '@/components/molecules/group-button';
@@ -322,8 +323,8 @@ function ListRows() {
           <MenuButton
             accessibilityLabel="More, Misprint"
             actions={[
-              { title: 'Rename', onSelect: () => {} },
-              { title: 'Delete user tag', destructive: true, onSelect: () => {} },
+              { title: 'Rename', symbol: 'pencil', onSelect: () => {} },
+              { title: 'Delete user tag', symbol: 'trash', destructive: true, onSelect: () => {} },
             ]}
           />
         }
@@ -400,9 +401,9 @@ function CardTiles() {
           uri={solRing}
           accessibilityLabel="Sol Ring, M10 216, long press for a menu"
           menuActions={[
-            { title: 'Open card', onSelect: () => {} },
-            { title: 'Make commander', onSelect: () => {} },
-            { title: 'Remove from deck', destructive: true, onSelect: () => {} },
+            { title: 'Open card', symbol: 'rectangle.portrait', onSelect: () => {} },
+            { title: 'Make commander', symbol: 'crown', onSelect: () => {} },
+            { title: 'Remove from deck', symbol: 'minus.circle', destructive: true, onSelect: () => {} },
           ]}
           onPress={() => {}}
         />
@@ -413,7 +414,7 @@ function CardTiles() {
         <CardTile
           uri={solRing}
           accessibilityLabel="Mountain, long press for a menu"
-          menuActions={[{ title: 'Remove from deck', destructive: true, onSelect: () => {} }]}
+          menuActions={[{ title: 'Remove from deck', symbol: 'minus.circle', destructive: true, onSelect: () => {} }]}
           inViolation
         />
         {['CMM 464', 'C21 263'].map((caption) => (
@@ -521,6 +522,8 @@ function Skeletons() {
       <Skeleton className="h-skeleton-title-bar w-[70%]" />
       <CardGridSkeleton accessibilityLabel="Loading collection" />
       <DeckBannerSkeleton />
+      <CommanderGalleryCardSkeletons />
+      <NeedsYouItemSkeletons />
     </Section>
   );
 }
@@ -743,7 +746,7 @@ function EmptyStates() {
         message="Scan cards to add them to your collection."
         action={{ label: 'Scan cards', onPress: () => {} }}
       />
-      <EmptyState illustration={<GhostNeedsYouItems />} title="Nothing needs you yet" message="When a deck needs you, it shows up here." />
+      <EmptyState illustration={<GhostNeedsYouItems />} title="Nothing needs you yet" message="Planned swaps and buylist cards from your AI chat show up here." />
       <EmptyState illustration={<GhostCommanderCard />} title="No decks yet" message="Create a deck, then add cards to it from your collection." />
       <View className="bg-camera-off">
         <EmptyState
@@ -754,6 +757,9 @@ function EmptyStates() {
       </View>
       <View className="bg-sheet">
         <EmptyState illustration={<GhostBatchRows />} title="No scans yet" message="Cards you scan wait here until you add them." />
+      </View>
+      <View className="bg-sheet">
+        <EmptyState illustration={<EmptyBinderSlots rows={1} onSheet />} title="No copies found" message="Scan copies into your collection first." />
       </View>
     </Section>
   );

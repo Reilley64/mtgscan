@@ -137,7 +137,7 @@ describe('the set page', () => {
     const page = await openBloomburrow();
 
     const header = page.getByRole('header', { name: 'Bloomburrow, 2 of 3, 66 percent' });
-    expect(header).toHaveStyle({ height: 150 });
+    expect(header).toHaveStyle({ minHeight: 150 });
     expect(setArtLook(header)).toEqual({ uris: [art, art], grayscale: true, coloredShare: expect.closeTo(0.6667, 4), edgeLine: true });
     expect(within(header).getByText('Bloomburrow')).toBeOnTheScreen();
     expect(within(header).getByText('2 of 3')).toBeOnTheScreen();

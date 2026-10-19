@@ -3,6 +3,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Alert, View } from 'react-native';
 
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
+import { Text } from '@/components/atoms/text';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
 import { ListRow } from '@/components/molecules/list-row';
@@ -32,13 +33,14 @@ export default function BoughtSheet() {
   }
 
   return (
-    <DrawerSheet>
+    <DrawerSheet belowHeader>
       <Stack.Screen options={{ title: 'Bought' }} />
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button tintColor={colors.text} onPress={() => router.back()}>
           Cancel
         </Stack.Toolbar.Button>
       </Stack.Toolbar>
+      {read.status === 'loaded' && read.copies.length > 0 ? <Text className="text-text-muted">Pick the copy you bought.</Text> : null}
       {read.status === 'loaded'
         ? read.copies.map((copy) => (
             <View key={copy.copy_id} className="gap-sm">
@@ -54,13 +56,13 @@ export default function BoughtSheet() {
         : null}
       {read.status === 'loaded' && read.copies.length === 0 ? (
         <EmptyState
-          illustration={<EmptyBinderSlots rows={1} />}
+          illustration={<EmptyBinderSlots rows={1} onSheet />}
           title="No copies found"
           message="Scan copies into your collection first."
         />
       ) : null}
       {read.status === 'failed' ? (
-        <ReadFailure illustration={<EmptyBinderSlots rows={1} />} title="Could not load your copies" onTryAgain={reload} />
+        <ReadFailure illustration={<EmptyBinderSlots rows={1} onSheet />} title="Could not load your copies" onTryAgain={reload} />
       ) : null}
     </DrawerSheet>
   );

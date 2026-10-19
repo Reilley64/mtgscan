@@ -51,7 +51,7 @@ export default function RevertSheet() {
   }
 
   return (
-    <DrawerSheet>
+    <DrawerSheet belowHeader>
       <Stack.Screen options={{ title: 'Revert' }} />
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button tintColor={colors.text} onPress={() => router.back()}>

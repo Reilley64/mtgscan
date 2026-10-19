@@ -236,7 +236,7 @@ describe('the set art banners', () => {
     expect(within(row).getByText('89%')).toHaveStyle({ color: text });
     expect(imageSources(row)).toContain('https://svgs.scryfall.io/sets/blb.svg');
     expect(imageTintColors(row).filter(Boolean)).toEqual([processColor(text)]);
-    expect(row).toHaveStyle({ height: 92, borderColor: '#00000000' });
+    expect(row).toHaveStyle({ minHeight: 92, borderColor: '#00000000' });
   });
 
   test('a complete set banner is all in color, with a lime outline, a check mark in place of the percentage, and no edge line', async () => {

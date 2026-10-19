@@ -12,7 +12,7 @@ type BannerSize = 'row' | 'header';
 
 const banners = cva('overflow-hidden border-selected-outline bg-background p-0', {
   variants: {
-    size: { row: 'h-set-banner', header: 'h-set-page-banner' },
+    size: { row: 'min-h-set-banner', header: 'min-h-set-page-banner' },
     complete: { true: 'border-primary', false: 'border-transparent' },
   },
 });
@@ -35,7 +35,7 @@ function SetBannerContent({ name, symbolUri, artUri, owned, size, percent, banne
   return (
     <>
       <SetArt uri={artUri} share={owned / size} />
-      <View className="flex-1 flex-row items-end gap-sm p-md">
+      <View className="grow flex-row items-end gap-sm p-md">
         <View className="flex-1 flex-row items-center gap-sm">
           <TintedImage source={symbolUri} className={symbols({ size: bannerSize })} contentFit="contain" cachePolicy="disk" />
           <View className="flex-1">

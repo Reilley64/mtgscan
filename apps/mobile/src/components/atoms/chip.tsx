@@ -8,7 +8,7 @@ import { SymbolView } from '@/components/atoms/symbol-view';
 import { cn } from '@/lib/class-names';
 import { sizes } from '@/theme';
 
-const chipClass = 'h-chip justify-center rounded-md px-chip-padding';
+const chipClass = 'min-h-chip justify-center rounded-md px-chip-padding';
 
 const toneVariants = cva('', {
   variants: {
