@@ -5,17 +5,15 @@ import { View } from 'react-native';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { ReadFailure } from '@/components/molecules/read-failure';
-import { SetListSkeleton } from '@/components/molecules/set-row-skeleton';
+import { SetListSkeleton } from '@/components/molecules/set-banner-skeleton';
 import { FinishViewControl } from '@/components/organisms/finish-view-control';
 import { SetBanner } from '@/components/organisms/set-banner';
 import { TabStackListScreen } from '@/components/templates/tab-screen';
-import type { FocusedRead } from '@/lib/use-focused-read';
 import { useFinishView } from '@/sets/finish-view-setting';
-import { setsMatching } from '@/sets/set-completion';
 import { useSets } from '@/sets/use-sets';
 
 type SetsPlaceholderProps = {
-  read: FocusedRead<{ status: 'loaded' }>;
+  read: ReturnType<typeof useSets>['read'];
   searchText: string;
   onTryAgain: () => void;
 };
@@ -33,12 +31,24 @@ function SetsPlaceholder({ read, searchText, onTryAgain }: SetsPlaceholderProps)
   return null;
 }
 
+const nextPageBanners = 2;
+
+function NextPageSkeleton({ loading }: { loading: boolean }) {
+  if (!loading) {
+    return null;
+  }
+  return (
+    <View className="pt-sm">
+      <SetListSkeleton accessibilityLabel="Loading more sets" banners={nextPageBanners} />
+    </View>
+  );
+}
+
 export default function SetsScreen() {
-  const { read, reload } = useSets();
   const { finishView } = useFinishView();
   const [searchText, setSearchText] = useState('');
   const trimmedSearch = searchText.trim();
-  const sets = read.status === 'loaded' ? setsMatching(read.sets, trimmedSearch, finishView) : [];
+  const { read, reload, loadMore } = useSets({ finish_view: finishView, ...(trimmedSearch ? { text: trimmedSearch } : {}) });
 
   return (
     <TabStackListScreen
@@ -49,7 +59,7 @@ export default function SetsScreen() {
         onChangeText: (event) => setSearchText(event.nativeEvent.text),
         onCancelButtonPress: () => setSearchText(''),
       }}
-      data={sets}
+      data={read.status === 'loaded' ? read.items : []}
       keyExtractor={(set) => set.code}
       ItemSeparatorComponent={RowGap}
       renderItem={({ item }) => (
@@ -57,6 +67,9 @@ export default function SetsScreen() {
       )}
       ListHeaderComponent={<FinishViewControlBar />}
       ListEmptyComponent={<SetsPlaceholder read={read} searchText={trimmedSearch} onTryAgain={reload} />}
+      ListFooterComponent={<NextPageSkeleton loading={read.status === 'loaded' && read.loadingMore} />}
+      onEndReached={loadMore}
+      onEndReachedThreshold={1}
     />
   );
 }

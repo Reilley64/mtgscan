@@ -6,8 +6,9 @@ import { ProgressBar } from '@/components/atoms/progress-bar';
 import { SetSymbolFill } from '@/components/atoms/set-symbol-fill';
 import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
-import { setRowClass } from '@/components/molecules/set-row-skeleton';
 import { setCompletionIn, spokenSet, type ShownCompletion } from '@/sets/set-completion';
+
+const setRowClass = 'flex-row items-center gap-md border-selected-outline';
 
 export const setOutlines = {
   complete: {

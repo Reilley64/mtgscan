@@ -443,6 +443,8 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
 
 A read that runs again, when a page gains focus or after a change, and fails, keeps what the page already shows. Only a page that has shown nothing yet shows its error state.
 
+A list that loads in pages reads the next page as the user nears its end. While that page loads, skeleton rows of the list's own shape show at its end, after the rows already shown. VoiceOver reads them as one element. When the page returns, its rows replace them. Collection and Sets load in pages (owner request, #382).
+
 - **Recent** is the home across all decks. It holds only the Needs you items, **oldest first**: planned swaps ready to swap in and open buylist cards (owner decision, spec 4). Deck changes stay in each deck's History tab. Collection changes do not appear in Recent.
   - Each item carries a tag with the commander avatar and deck name. The tag opens that deck on Planned.
   - Filter chips: All, Planned swaps, Buylist. They hide while Recent is empty.
@@ -461,6 +463,7 @@ A read that runs again, when a page gains focus or after a change, and fails, ke
   - The header has the collection total button next to the settings button (owner decision, #125). See Collection header.
   - Card images sit 3 per row, with **one tile per copy** and no quantity badge. Three copies of a card printing make three tiles (owner decision, #116).
   - Copies of the same card printing sit next to each other. By default, the card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
+  - While the next page of copies loads, one row of three skeleton tiles shows after the last tiles. The tiles have the shape of the skeleton grid. VoiceOver reads them as one element, "Loading more copies".
   - While the binder grid loads and shows no tiles yet, a skeleton grid fills the visible screen in its place. It has the shape of the grid: three tiles per row, with the same gaps. Each tile is a card-shaped block over two short bars for the meta line and the price line, 12 px tall and 60% and 40% wide. The blocks are line-colored on the background and pulse like the skeleton chip. VoiceOver reads the skeleton grid as one element, "Loading collection". When the read returns, the tiles, the empty state, or the error state replace it.
   - A reload when the tab gains focus and a new page keep the tiles already shown and bring no skeleton grid back. The reload reads as many tiles as the tab showed, so the scroll position stays.
   - With no copies, the tab shows its empty state with a **Scan cards** button, which opens the Scan tab. See Empty states.
@@ -586,14 +589,16 @@ Sets lists every released set that has a card printing in the card catalog, with
   - Tapping it pushes Sets onto the Collection tab's stack.
 - **Sets screen.** It is a screen in the Collection tab's stack, not a pushed screen over the tab bar. The tab bar stays. It has the large title "Sets" and the native back button. The swipe from the left edge goes back to Collection. It has no settings button.
   - A native search bar sits under the large title, with the placeholder "Search sets". It stays visible when the list scrolls. Its caret and Cancel are primary lime.
-  - Typed text matches the set name or the set code, ignoring case, so "bloom" and "BLB" both find Bloomburrow. The list filters as the user types. Dragging the list puts the keyboard away. Cancel clears the text.
-  - With no match, the list shows the empty state `No sets match "xyz".` with no body.
+  - Typed text matches the set name or the set code, ignoring case, so "bloom" and "BLB" both find Bloomburrow. The server does the match. Each change of the text reads Sets again from the first page. Dragging the list puts the keyboard away. Cancel clears the text.
+  - When the first page of a search is empty, the list shows the empty state `No sets match "xyz".` with no body.
   - The finish view control sits under the search bar, 12 px above the first row. See Finish view below.
   - The sets come newest first, then by name, as the read returns them. A set whose main set is empty in the finish view is not shown, such as a set of only basic lands, or Alpha in Foil.
+  - Sets loads in pages of 20 sets. It reads the next page as the user nears the end of the list.
   - Each set is a set banner. A set with no set art is a set row. See Components.
   - A tap on a row pushes the set's set page onto the Collection tab's stack.
-  - Sets reads again each time it gains focus, so cards scanned since then count at once. A reload keeps the rows shown.
-  - While Sets loads, a skeleton of 8 set rows shows. Each has a block in place of the set symbol and bars for the name, "x of y", and the progress bar. VoiceOver reads the skeleton as one element, "Loading sets".
+  - Sets reads again each time it gains focus, so cards scanned since then count at once. A reload reads as many sets as Sets showed and keeps the rows shown.
+  - While the first page loads, set banner skeletons fill the screen. See Components. VoiceOver reads them as one element, "Loading sets".
+  - While the next page loads, two set banner skeletons show after the last set. VoiceOver reads them as one element, "Loading more sets".
   - When the first read fails, Sets shows the empty state "Could not load Sets" with a **Try again** button. See Empty states.
 - **Set page.** It shows one set's cards as a checklist in the finish view (#367, #368). It follows the set page of the HTML prototype `docs/prototypes/sets.html`, with the set art banner of option B (#369).
   - It is a screen in the Collection tab's stack, like Sets. The tab bar stays. It has the native back button and no title. The swipe from the left edge goes back to Sets.
@@ -605,12 +610,12 @@ Sets lists every released set that has a card printing in the card catalog, with
   - Each card printing is a set page tile. See Components. The page shows no prices.
   - Tiles are images, not buttons. A tap on one does nothing.
   - The set page reads again each time it gains focus, so cards scanned since then count at once. A reload keeps the cards shown.
-  - While the set page loads, a skeleton shows a set row skeleton and a grid of card shapes. VoiceOver reads it as one element, "Loading set".
+  - While the set page loads, a skeleton shows a set page banner skeleton and a grid of card shapes. VoiceOver reads it as one element, "Loading set".
   - When the first read fails, the set page shows the empty state "Could not load this set" with a **Try again** button. See Empty states.
 
 - **Finish view.** Sets and the set page show the same finish view control, a toggle group with the segments "Any finish", "Nonfoil", and "Foil" (#368). VoiceOver reads each segment as a radio button.
   - Any finish is the default. The phone keeps the choice in the keychain, as it keeps the price currency, so it survives a restart.
-  - One choice drives both screens. Changing it on Sets changes it on the set page, and the other way round. Changing it does not read again.
+  - One choice drives both screens. Changing it on Sets changes it on the set page, and the other way round. Changing it reads Sets again from the first page, because the server leaves out the sets whose main set is empty in the finish view. The set page does not read again.
   - In the chosen finish view, the set banners on Sets, the set page banner, the set rows and the set header of a set with no set art, and the Variants "x of y" show set completion in that view. A set page tile is lit when the user owns the card printing in that view, and its quantity badge counts the copies in that view.
   - Nonfoil counts the nonfoil copies, or every copy of a card printing with no nonfoil finish. Foil counts the foil and etched copies. A card printing with no foil or etched finish is left out of Foil, so the set page does not show it. When every variant is left out, the set page has no Variants section.
   - In the Foil view, a lit tile carries the foil sheen.
@@ -1053,6 +1058,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - A complete set is all in color, with no edge line, a 2 px lime outline, and a lime ✓ in place of the percentage. Every banner has the outline frame, transparent when the set is not complete.
   - VoiceOver reads it like a set row, as one button.
   - The set page banner at the top of the set page is the larger size: at least 150 px tall (`sizes.setPageBanner`), with the set symbol at 30 px (`sizes.setPageBannerSymbol`) and the set name in sheet title type. It is not a button, and VoiceOver reads it as one header.
+  - A set banner skeleton has the shape of a set banner: a block at least 92 px tall with 12 px corners on the surface color, with the transparent outline frame. At its bottom sit a 26 px white block for the set symbol and two bars, 14 px and 12 px tall and 60% and 30% wide, for the name and "x of y". The set page banner skeleton is the larger size, at least 150 px tall with a 30 px symbol block. The blocks and bars pulse like the skeleton grid.
 - **Set page tile.** One card printing's card image on the set page, with no meta line and no price line.
   - A card printing that the user owns in the finish view is lit, at full color. In the Foil view, a lit tile carries the foil sheen of a foil copy.
   - A card printing that the user does not own in the finish view is dimmed: its card image is grayscale at 38% opacity (`opacity.dimmed`). A saturation blend overlay in the background color takes out the color, because React Native has no grayscale filter on iOS.

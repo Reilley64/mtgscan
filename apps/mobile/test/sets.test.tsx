@@ -4,8 +4,9 @@ import { fireEvent, within } from 'expo-router/testing-library';
 import { processColor } from 'react-native';
 
 import { liquidGlassIsAvailable } from './fake-glass-effect';
-import { failSetReads, holdSetReads, offerSets, ownCollectionCopies, setReadCount, startSignedIn } from './fake-supabase';
+import { failSetReads, holdSetReads, offerSets, ownCollectionCopies, setListQueriesSent, setReadCount, startSignedIn } from './fake-supabase';
 import {
+  appearsBefore,
   backdropOf,
   glassEffect,
   imageSources,
@@ -13,6 +14,7 @@ import {
   pressSearchCancel,
   pressSearchKey,
   pressTab,
+  scrollToEnd,
   selectedTab,
   setArtLook,
   swipeBackInTheTab,
@@ -289,6 +291,14 @@ describe('searching Sets', () => {
     expect(shownSets()).toEqual(['Modern Horizons 3, 1 of 303, 0 percent']);
   });
 
+  test('a new search text reads Sets again from the first page', async () => {
+    await openSets();
+
+    await typeInSearchBar('bloom');
+
+    expect(setListQueriesSent().at(-1)).toEqual({ text: 'bloom', finish_view: 'any', cursor: null });
+  });
+
   test('a search that matches no set says so, and Cancel shows every set again', async () => {
     const sets = await openSets();
 
@@ -301,13 +311,67 @@ describe('searching Sets', () => {
   });
 });
 
+describe('the pages of Sets', () => {
+  const manySets = Array.from({ length: 25 }, (_, index) => setRow(`s${index + 1}`, `Set ${index + 1}`, 1, 10));
+
+  function shownSetNames() {
+    return within(tabStackTopScreen())
+      .queryAllByRole('button')
+      .map((row) => row.props.accessibilityLabel as string)
+      .filter((label) => /percent$/.test(label))
+      .map((label) => label.split(',')[0]);
+  }
+
+  test('Sets reads the first page, then the next page as the user nears the end of the list', async () => {
+    offerSets(manySets);
+    await openSets();
+    expect(setListQueriesSent()).toEqual([{ finish_view: 'any', cursor: null }]);
+
+    await scrollToEnd(tabStackTopScreen());
+
+    expect(await within(tabStackTopScreen()).findByRole('button', { name: /^Set 25,/ })).toBeOnTheScreen();
+    expect(setListQueriesSent()).toEqual([
+      { finish_view: 'any', cursor: null },
+      { finish_view: 'any', cursor: '20' },
+    ]);
+  });
+
+  test('while the next page loads, set banner skeletons show after the last set', async () => {
+    offerSets(manySets);
+    const sets = await openSets();
+    const read = holdSetReads();
+
+    await scrollToEnd(tabStackTopScreen());
+
+    const skeleton = sets.getByRole('progressbar', { name: 'Loading more sets' });
+    expect(skeleton.children).toHaveLength(2);
+    expect(appearsBefore(sets.getAllByRole('button', { name: /^Set \d+,/ }).at(-1)!, skeleton)).toBe(true);
+    await read.finish();
+    expect(sets.queryByRole('progressbar', { name: 'Loading more sets' })).toBeNull();
+    await scrollToEnd(tabStackTopScreen());
+    expect(sets.getByRole('button', { name: /^Set 25,/ })).toBeOnTheScreen();
+  });
+
+  test('a new search after the next page reads again from the first page', async () => {
+    offerSets(manySets);
+    await openSets();
+    await scrollToEnd(tabStackTopScreen());
+    await within(tabStackTopScreen()).findByRole('button', { name: /^Set 25,/ });
+
+    await typeInSearchBar('set 2');
+
+    expect(setListQueriesSent().at(-1)).toEqual({ text: 'set 2', finish_view: 'any', cursor: null });
+    expect(shownSetNames()).toEqual(['Set 2', ...manySets.slice(19, 25).map((set) => set.name)]);
+  });
+});
+
 describe('reading Sets', () => {
   test('Sets shows a skeleton while it loads', async () => {
     offerSets([setRow('blb', 'Bloomburrow', 234, 261)]);
     const read = holdSetReads();
 
     const sets = await openSets();
-    expect(sets.getByRole('progressbar', { name: 'Loading sets' })).toBeOnTheScreen();
+    expect(sets.getByRole('progressbar', { name: 'Loading sets' }).children.length).toBeGreaterThan(8);
 
     await read.finish();
     expect(sets.queryByRole('progressbar', { name: 'Loading sets' })).toBeNull();

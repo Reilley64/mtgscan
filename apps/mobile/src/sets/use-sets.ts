@@ -1,18 +1,17 @@
-import type { CardSet, SetList } from '@mtgscan/supabase/sets';
+import type { SetList, SetListQuery } from '@mtgscan/supabase/sets';
 
 import { supabase } from '@/lib/supabase';
-import { useFocusedRead } from '@/lib/use-focused-read';
+import { usePagedRead } from '@/lib/use-paged-read';
 
-type SetsRead = { status: 'loaded'; sets: CardSet[] };
-
-async function readSets(): Promise<SetsRead> {
-  const { data, error } = await supabase.rpc('list_sets');
+async function readSets(search: SetListQuery, cursor: string | null) {
+  const query: SetListQuery = { ...search, cursor };
+  const { data, error } = await supabase.rpc('list_sets', { query });
   if (error) {
     throw error;
   }
-  return { status: 'loaded', sets: (data as unknown as SetList).items };
+  return data as unknown as SetList;
 }
 
-export function useSets() {
-  return useFocusedRead(readSets);
+export function useSets(search: SetListQuery) {
+  return usePagedRead(search, readSets);
 }

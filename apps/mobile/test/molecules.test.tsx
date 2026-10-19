@@ -1,7 +1,7 @@
 import type { CardSet } from '@mtgscan/supabase/sets';
 import { act, fireEvent, isHiddenFromAccessibility, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
-import { processColor, StyleSheet, View } from 'react-native';
+import { Dimensions, processColor, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/atoms/button';
 import { MenuButton } from '@/components/atoms/menu-button';
@@ -42,7 +42,7 @@ import { ListRow } from '@/components/molecules/list-row';
 import { NeedsYouItemSkeletons } from '@/components/molecules/needs-you-skeleton';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { Reason } from '@/components/molecules/reason';
-import { SetListSkeleton } from '@/components/molecules/set-row-skeleton';
+import { SetBannerSkeleton, SetListSkeleton } from '@/components/molecules/set-banner-skeleton';
 import { SetHeader, SetRow } from '@/components/organisms/set-row';
 import { SheetSection, SheetSectionHeader } from '@/components/molecules/sheet-section';
 import { SortButton } from '@/components/molecules/sort-button';
@@ -1402,10 +1402,52 @@ describe('SetRow', () => {
     expect(within(header).queryByText(/%|✓/)).toBeNull();
   });
 
+});
+
+describe('SetBannerSkeleton', () => {
   test('the set list skeleton reads as one loading element', async () => {
     await render(<SetListSkeleton accessibilityLabel="Loading sets" />);
 
-    expect(screen.getByRole('progressbar', { name: 'Loading sets' })).toBeOnTheScreen();
+    const skeleton = screen.getByRole('progressbar', { name: 'Loading sets' });
+    expect(skeleton).toHaveProp('accessible', true);
+    expect(within(skeleton).queryAllByLabelText(/./)).toEqual([]);
+  });
+
+  test('the set list skeleton fills the screen with set banner skeletons, 8 px apart', async () => {
+    await render(<SetListSkeleton accessibilityLabel="Loading sets" />);
+
+    const list = screen.getByRole('progressbar');
+    expect(list).toHaveStyle({ rowGap: 8 });
+    expect(list.children).toHaveLength(Math.ceil(Dimensions.get('window').height / (92 + 8)));
+  });
+
+  test('the set list skeleton can show a given number of set banner skeletons', async () => {
+    await render(<SetListSkeleton accessibilityLabel="Loading more sets" banners={2} />);
+
+    expect(screen.getByRole('progressbar', { name: 'Loading more sets' }).children).toHaveLength(2);
+  });
+
+  test('a set banner skeleton is a 92 px rounded block with a white set symbol block and pulsing bars for the name and "x of y"', async () => {
+    await render(<SetListSkeleton accessibilityLabel="Loading sets" banners={1} />);
+
+    const [banner] = screen.getByRole('progressbar').children as ReturnType<typeof screen.getByRole>[];
+    expect(banner).toHaveStyle({ minHeight: 92, borderRadius: 12, backgroundColor: surface, justifyContent: 'flex-end' });
+    const [content] = banner.children as ReturnType<typeof screen.getByRole>[];
+    const [symbol, bars] = content.children as ReturnType<typeof screen.getByRole>[];
+    expect(symbol).toHaveStyle({ width: 26, height: 26, backgroundColor: white, opacity: 0.45 });
+    const [name, count] = bars.children as ReturnType<typeof screen.getByRole>[];
+    expect(name).toHaveStyle({ height: 14, width: '60%', backgroundColor: line, opacity: 0.45 });
+    expect(count).toHaveStyle({ height: 12, width: '30%', backgroundColor: line, opacity: 0.45 });
+  });
+
+  test('the set page banner skeleton is a 150 px rounded block with a 30 px white set symbol block', async () => {
+    await render(<SetBannerSkeleton size="header" />);
+
+    const banner = screen.root!;
+    expect(banner).toHaveStyle({ minHeight: 150, borderRadius: 12, backgroundColor: surface });
+    const [content] = banner.children as ReturnType<typeof screen.getByRole>[];
+    const [symbol] = content.children as ReturnType<typeof screen.getByRole>[];
+    expect(symbol).toHaveStyle({ width: 30, height: 30, backgroundColor: white });
   });
 });
 

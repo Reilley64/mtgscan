@@ -2,7 +2,7 @@ import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
 import type { CardSet, FinishView, SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
 import { fireEvent, within } from 'expo-router/testing-library';
 
-import { offerSetPage, offerSets, ownCollectionCopies, setPageReadsSent, setReadCount, startSignedIn } from './fake-supabase';
+import { offerSetPage, offerSets, ownCollectionCopies, setListQueriesSent, setPageReadsSent, startSignedIn } from './fake-supabase';
 import {
   appearsBefore,
   cardImageLook,
@@ -161,14 +161,17 @@ describe('the finish view control', () => {
 });
 
 describe('Sets in a finish view', () => {
-  test('the rows show set completion in the chosen finish view, without reading Sets again', async () => {
+  test('choosing a finish view reads Sets again from the first page, and the rows show set completion in that view', async () => {
     await openSets();
 
     await chooseFinishView('Nonfoil');
 
     expect(setRowLabels()).toEqual(['Bloomburrow, 1 of 3, 33 percent', 'Limited Edition Alpha, 1 of 5, 20 percent']);
     expect(topScreen().getByText('1 of 3')).toBeOnTheScreen();
-    expect(setReadCount()).toBe(1);
+    expect(setListQueriesSent()).toEqual([
+      { finish_view: 'any', cursor: null },
+      { finish_view: 'nonfoil', cursor: null },
+    ]);
   });
 
   test('a set whose main set is empty in Foil, such as Alpha, is hidden in Foil', async () => {
