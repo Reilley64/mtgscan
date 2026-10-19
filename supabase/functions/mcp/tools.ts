@@ -25,6 +25,7 @@ const pageSize = { default: 20, max: 50 };
 
 const readOnly: ToolAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 const write: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
+const destructiveWrite: ToolAnnotations = { ...write, destructiveHint: true };
 
 const usdPrices = 'Prices are current Scryfall prices in USD (TCGplayer Market). There is no other currency.';
 const declinedWrite =
@@ -396,7 +397,6 @@ const deckChange = z.strictObject({
   changed_at: z.string(),
   reverted: z.boolean(),
   reason: z.string().nullable(),
-  client_name: z.string().nullable(),
   lines: z.array(deckChangeLine),
 });
 
@@ -431,7 +431,6 @@ const plannedSwapRow = z.strictObject({
   reason: z.string(),
   status: plannedSwapStatus,
   close_note: closeNote.nullable(),
-  client_name: z.string().nullable(),
   created_at: z.string(),
   status_changed_at: z.string(),
   effect: deckChangeEffect.nullable(),
@@ -485,7 +484,6 @@ const buylistCardRow = z.strictObject({
   reason: z.string(),
   status: buylistCardStatus,
   close_note: closeNote.nullable(),
-  client_name: z.string().nullable(),
   created_at: z.string(),
   status_changed_at: z.string(),
   effect: deckChangeEffect.nullable(),
@@ -637,11 +635,15 @@ export const tools: Tool[] = [
   defineTool({
     name: 'list_user_tags',
     title: 'List user tags',
-    description:
-      "List the user's user tags with how many copies have each. A user tag is the user's own label on copies, not an Oracle tag. Search the copies of a user tag with the user_tags filter of search_collection.",
+    description: [
+      "List the user's user tags with how many copies have each. A user tag goes on individual copies, and it is not an Oracle tag. Search the copies of a user tag with the user_tags filter of search_collection.",
+      'With deleted: true, it lists only deleted user tags, with the copies that each would come back on if restored.',
+    ].join(' '),
     annotations: readOnly,
     postgresFunction: 'list_user_tags',
-    input: z.strictObject({}),
+    input: z.strictObject({
+      deleted: z.boolean().optional().describe('true lists only deleted user tags. Without it, only user tags that are not deleted.'),
+    }),
     output: z.strictObject({ items: z.array(z.strictObject({ user_tag_id: id, name: z.string(), copy_count: integer })) }),
     summary: (result) => `${plural(result.items.length, 'user tag', 'user tags')}.`,
     tooLargeHint: 'Search the copies of one user tag with search_collection instead.',
@@ -710,7 +712,7 @@ export const tools: Tool[] = [
     title: 'List deck changes',
     description: [
       "Read a deck's change history, newest first. Each deck change lists the copies and basic lands moved into or out of the deck, and the commanders made or moved to the main deck. A reverted deck change was undone by a later revert.",
-      'A swapped_in deck change came from a planned swap, and a bought deck change from a buylist card. Each keeps its reason and the name of the AI client that made the planned swap or buylist card.',
+      'A swapped_in deck change came from a planned swap, and a bought deck change from a buylist card. Each keeps the reason of its planned swap or buylist card.',
     ].join(' '),
     annotations: readOnly,
     postgresFunction: 'list_deck_changes',
@@ -727,7 +729,7 @@ export const tools: Tool[] = [
     title: 'List planned swaps',
     description: [
       "Read the user's planned swaps in every state, newest first: open, swapped_in, closed, and moved_to_buylist. Filter them by deck_id or status.",
-      'Each planned swap has its deck, the incoming copy it holds or the incoming basic land, the outgoing deck card, the reason, the status, how it closed, the name of the AI client that made it, and its times.',
+      'Each planned swap has its deck, the incoming copy it holds or the incoming basic land, the outgoing deck card, the reason, the status, how it closed, and its times.',
       'An open planned swap also has its current effect: the Commander rules that swapping it in would break.',
     ].join(' '),
     annotations: readOnly,
@@ -746,7 +748,7 @@ export const tools: Tool[] = [
     title: 'List the buylist',
     description: [
       "Read the user's buylist cards in every state, newest first: open, bought, and closed. Filter them by deck_id or status.",
-      'Each buylist card has its deck, the card to buy, the outgoing deck card, the reason, the status, how it closed, the name of the AI client that added it, and its times.',
+      'Each buylist card has its deck, the card to buy, the outgoing deck card, the reason, the status, how it closed, and its times.',
       'An open buylist card also has its current effect: the Commander rules that putting the card into the deck would break.',
     ].join(' '),
     annotations: readOnly,
@@ -816,7 +818,7 @@ export const tools: Tool[] = [
     name: 'close_planned_swap',
     title: 'Close a planned swap',
     description: [
-      'Close an open planned swap that an AI client made, when it no longer fits.',
+      'Close any open planned swap when it no longer fits, even one that another AI client made.',
       'This tool does not change any deck. Its held copy becomes free.',
       'Closing a closed planned swap changes nothing and returns changed: false. A planned swap that was swapped in or moved to the buylist returns not-open.',
       'To change a planned swap, close it and make a new one. Find planned swap IDs with list_planned_swaps.',
@@ -833,7 +835,7 @@ export const tools: Tool[] = [
     name: 'close_buylist_card',
     title: 'Close a buylist card',
     description: [
-      'Close an open buylist card that an AI client added, when it no longer fits.',
+      'Close any open buylist card when it no longer fits, even one that another AI client added.',
       'This tool does not change any deck.',
       'Closing a closed buylist card changes nothing and returns changed: false. A buylist card that was bought returns not-open.',
       'To change a buylist card, close it and add a new one. Find buylist card IDs with list_buylist.',
@@ -845,5 +847,115 @@ export const tools: Tool[] = [
     output: z.strictObject({ id, changed: z.boolean() }),
     summary: (result) => (result.changed ? `Closed buylist card ${result.id}.` : `Buylist card ${result.id} was already closed.`),
     tooLargeHint: 'Close one buylist card in each call.',
+  }),
+  defineTool({
+    name: 'create_user_tag',
+    title: 'Create a user tag',
+    description: [
+      'Create a user tag, which the user puts on individual copies.',
+      'The name is trimmed and has 1 to 64 characters.',
+      'When the user already has a user tag with the name, ignoring case, it returns that user tag with created: false and changes nothing.',
+      'Read the user tags with list_user_tags first. Put a user tag on copies with set_copies_user_tag.',
+      declinedWrite,
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'mcp_create_user_tag',
+    input: z.strictObject({ name: z.string().describe("The user tag's name, 1 to 64 characters after trimming.") }),
+    output: z.strictObject({ user_tag_id: id, name: z.string(), created: z.boolean() }),
+    summary: (result) => (result.created ? `Created user tag ${result.name}.` : `The user already has user tag ${result.name}.`),
+    tooLargeHint: 'Create one user tag in each call.',
+  }),
+  defineTool({
+    name: 'rename_user_tag',
+    title: 'Rename a user tag',
+    description: [
+      "Rename one of the user's user tags. It stays on its copies.",
+      'The name is trimmed and has 1 to 64 characters.',
+      'A name that another user tag has, ignoring case, is refused with user-tag-exists. Renaming a user tag to its own name in another case works.',
+      'A deleted user tag is not-found. Restore it with restore_user_tag first.',
+      'Find user tag IDs with list_user_tags.',
+      declinedWrite,
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'mcp_rename_user_tag',
+    input: z.strictObject({
+      user_tag_id: id.describe("The user tag's ID."),
+      name: z.string().describe("The user tag's new name, 1 to 64 characters after trimming."),
+    }),
+    output: z.strictObject({ user_tag_id: id, name: z.string() }),
+    summary: (result) => `Renamed the user tag to ${result.name}.`,
+    tooLargeHint: 'Rename one user tag in each call.',
+  }),
+  defineTool({
+    name: 'delete_user_tag',
+    title: 'Delete a user tag',
+    description: [
+      "Delete one of the user's user tags. It comes off every copy, and its name is free for a new user tag.",
+      'Before you delete a user tag, tell the user how many copies have it, from the copy_count of list_user_tags.',
+      'The result has copy_count, the number of copies that lost the user tag.',
+      'Deleting a deleted user tag changes nothing and returns changed: false.',
+      'Restore a deleted user tag with restore_user_tag.',
+      'This tool does not change any deck or copy.',
+      declinedWrite,
+    ].join(' '),
+    annotations: destructiveWrite,
+    postgresFunction: 'mcp_delete_user_tag',
+    input: z.strictObject({ user_tag_id: id.describe("The user tag's ID.") }),
+    output: z.strictObject({ user_tag_id: id, changed: z.boolean(), copy_count: integer }),
+    summary: (result) =>
+      result.changed
+        ? `Deleted the user tag. ${plural(result.copy_count, 'copy', 'copies')} lost it.`
+        : 'The user tag was already deleted.',
+    tooLargeHint: 'Delete one user tag in each call.',
+  }),
+  defineTool({
+    name: 'restore_user_tag',
+    title: 'Restore a user tag',
+    description: [
+      'Restore a deleted user tag. It comes back on exactly the copies it was on when it was deleted.',
+      'Find deleted user tags with list_user_tags and deleted: true. Their copy_count is the copies that each would come back on.',
+      'Restoring a user tag that is not deleted changes nothing and returns changed: false.',
+      'When another user tag now has its name, ignoring case, the restore is refused with user-tag-exists. Ask the user whether to rename that user tag first.',
+      'This tool does not change any deck or copy.',
+      declinedWrite,
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'mcp_restore_user_tag',
+    input: z.strictObject({ user_tag_id: id.describe("The deleted user tag's ID.") }),
+    output: z.strictObject({ user_tag_id: id, name: z.string(), changed: z.boolean(), copy_count: integer }),
+    summary: (result) =>
+      result.changed
+        ? `Restored user tag ${result.name} on ${plural(result.copy_count, 'copy', 'copies')}.`
+        : `User tag ${result.name} was not deleted.`,
+    tooLargeHint: 'Restore one user tag in each call.',
+  }),
+  defineTool({
+    name: 'set_copies_user_tag',
+    title: 'Put a user tag on copies',
+    description: [
+      'Put a user tag on 1 to 100 copies, or take it off them, in one call.',
+      'A refused call changes no copy.',
+      'A user tag goes on exact copies, never on a card, so copies that the user scans later do not get it.',
+      'Find copy IDs with search_collection and rows: copies. To put the user tag on every copy of a card, search its copies first.',
+      'Find user tag IDs with list_user_tags, or create one with create_user_tag. A deleted user tag is not-found.',
+      "A copy ID that is not one of the user's copies, such as a copy that the user deleted, is skipped as missing. It does not refuse the call, so the other copies still change.",
+      'A copy that already has the asked state counts as changed. A retry gives the same answer.',
+      'This tool does not change any deck or copy.',
+      declinedWrite,
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'mcp_set_copies_user_tag',
+    input: z.strictObject({
+      copy_ids: z.array(id).min(1).max(100).meta({ uniqueItems: true }).describe('1 to 100 unique copy IDs from search_collection with rows: copies.'),
+      user_tag_id: id.describe("The user tag's ID."),
+      tagged: z.boolean().describe('true puts the user tag on the copies. false takes it off.'),
+    }),
+    output: z.strictObject({
+      changed: z.array(id),
+      skipped: z.array(z.strictObject({ copy_id: id, reason: z.literal('missing') })),
+    }),
+    summary: (result) =>
+      `${plural(result.changed.length, 'copy', 'copies')} changed, ${plural(result.skipped.length, 'copy', 'copies')} skipped.`,
+    tooLargeHint: 'Send fewer copy IDs in one call.',
   }),
 ];

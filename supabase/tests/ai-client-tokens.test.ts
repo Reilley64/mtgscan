@@ -12,7 +12,17 @@ setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
 const securityDefinerReads = ['catalog_freshness', 'search_oracle_tags'];
-const aiWriteFunctions = ['create_planned_swaps', 'create_buylist_cards', 'mcp_close_planned_swap', 'mcp_close_buylist_card'];
+const aiWriteFunctions = [
+  'create_planned_swaps',
+  'create_buylist_cards',
+  'mcp_close_planned_swap',
+  'mcp_close_buylist_card',
+  'mcp_create_user_tag',
+  'mcp_rename_user_tag',
+  'mcp_delete_user_tag',
+  'mcp_restore_user_tag',
+  'mcp_set_copies_user_tag',
+];
 const requiresAnAiClientsToken = ['begin_mcp_call', ...aiWriteFunctions];
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const counterspell = '0df55e3f-14de-46ef-b6b1-616618724d9e';

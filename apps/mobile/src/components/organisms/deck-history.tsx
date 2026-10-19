@@ -21,7 +21,7 @@ function DeckChangeCard({ change, onRevert }: { change: DeckChange; onRevert: ()
       {change.lines.map(changeLineOf).map(({ key, ...line }) => (
         <ChangeLine key={key} {...line} />
       ))}
-      {change.reason ? <Reason reason={change.reason} meta={change.client_name} /> : null}
+      {change.reason ? <Reason reason={change.reason} /> : null}
     </Surface>
   );
 }

@@ -706,7 +706,6 @@ function revertDeckChanges(request: RevertDeckChangesRequest) {
     changed_at: nextDeckTime(),
     reverted: false,
     reason: null,
-    client_name: null,
     lines: revertPreviews.get(request.deck_change_id)!.lines,
   };
   saveDeck({ ...deck, revision, last_used_at: revert.changed_at });

@@ -24,7 +24,6 @@ export type BuylistCard = {
   reason: string;
   status: BuylistCardStatus;
   close_note: CloseNote | null;
-  client_name: string | null;
   created_at: string;
   status_changed_at: string;
   effect: DeckChangeEffect | null;

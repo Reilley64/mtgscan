@@ -57,7 +57,6 @@ function deckChange(revision: number, kind: DeckChangeKind, lines: DeckChange['l
     changed_at: new Date(2026, 9, 15, 9, revision).toISOString(),
     reverted: false,
     reason: null,
-    client_name: null,
     lines,
   };
 }

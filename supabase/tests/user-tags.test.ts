@@ -2,17 +2,18 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import {
   readUserTagError,
+  type CollectionCopyRow,
+  type CollectionQuery,
   type CollectionRow,
-  type CopyDetails,
   type CopyUserTagRequest,
   type UserTag,
-  type UserTagList,
 } from '../collection';
 import type { Json } from '../database.types';
-import type { SearchPage } from '../search';
+import { readSearchError, type SearchPage } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
-import { committed, scanBatch, stack } from './scan-batches';
+import { scannedCopies } from './planned-swap-seeds';
+import { userTagsOf, userTagsOnCopy } from './user-tag-reads';
 
 setDefaultTimeout(60_000);
 
@@ -59,28 +60,28 @@ async function deleteUserTag(client: AppClient, request: unknown) {
   return error && readUserTagError(error);
 }
 
-async function userTagsOf(user: TestUser) {
-  const { data, error } = await user.client.rpc('list_user_tags');
-  expect(error).toBeNull();
-  return (data as unknown as UserTagList).items;
-}
-
-async function userTagsOnCopy(user: TestUser, copyId: string) {
-  const { data, error } = await user.client.rpc('get_copy', { query: { copy_id: copyId } });
-  expect(error).toBeNull();
-  return (data as unknown as CopyDetails).user_tags;
-}
-
-async function scannedCopies(user: TestUser, cardPrintingId: string, copies = 1) {
-  const scanned = stack(cardPrintingId, { copies });
-  await committed(user, scanBatch([scanned]));
-  return scanned.copy_ids;
-}
-
 async function collectionEntriesOf(user: TestUser) {
   const { data, error } = await user.client.rpc('search_collection', { query: { limit: 50 } });
   expect(error).toBeNull();
   return (data as unknown as SearchPage<CollectionRow>).items;
+}
+
+async function copiesFound(user: TestUser, query: CollectionQuery) {
+  const { data, error } = await user.client.rpc('search_collection', { query: { rows: 'copies', limit: 50, ...query } });
+  expect(error).toBeNull();
+  return (data as unknown as SearchPage<CollectionCopyRow>).items.map((row) => row.copy_id).toSorted();
+}
+
+async function linksOf(user: TestUser) {
+  const { data, error } = await user.client.from('copy_user_tags').select('copy_id, user_tag_id, deleted_at');
+  expect(error).toBeNull();
+  return data!;
+}
+
+async function userTagRecordsOf(user: TestUser) {
+  const { data, error } = await user.client.from('user_tags').select('id, name, deleted_at').order('created_at');
+  expect(error).toBeNull();
+  return data!;
 }
 
 describe('creating a user tag', () => {
@@ -158,6 +159,38 @@ describe('putting a user tag on a copy', () => {
     await putOnCopy(alice, copyId, signed, false);
 
     expect(await userTagsOnCopy(alice, copyId)).toEqual([]);
+  });
+
+  test('taking a user tag off a copy keeps the link marked deleted, and putting it back reuses the same link', async () => {
+    const user = await signUpNewUser();
+    const [copyId] = (await scannedCopies(user, angelicCurator)) as [string];
+    const signed = await created(user, 'Signed');
+    await putOnCopy(user, copyId, signed);
+
+    await putOnCopy(user, copyId, signed, false);
+
+    expect(await linksOf(user)).toEqual([{ copy_id: copyId, user_tag_id: signed.user_tag_id, deleted_at: expect.any(String) }]);
+    expect(await userTagsOnCopy(user, copyId)).toEqual([]);
+    expect(await userTagsOf(user)).toEqual([{ ...signed, copy_count: 0 }]);
+
+    await putOnCopy(user, copyId, signed);
+
+    expect(await linksOf(user)).toEqual([{ copy_id: copyId, user_tag_id: signed.user_tag_id, deleted_at: null }]);
+    expect(await userTagsOnCopy(user, copyId)).toEqual([signed]);
+    expect(await userTagsOf(user)).toEqual([{ ...signed, copy_count: 1 }]);
+  });
+
+  test('a user tag chip in collection search leaves out copies that the user tag was taken off', async () => {
+    const user = await signUpNewUser();
+    const [keptCopy, takenOffCopy] = (await scannedCopies(user, angelicCurator, 2)) as [string, string];
+    const signed = await created(user, 'Signed');
+    await putOnCopy(user, keptCopy, signed);
+    await putOnCopy(user, takenOffCopy, signed);
+
+    await putOnCopy(user, takenOffCopy, signed, false);
+
+    expect(await copiesFound(user, { user_tags: ['signed'] })).toEqual([keptCopy]);
+    expect(await copiesFound(user, { user_tags_exclude: ['signed'] })).toEqual([takenOffCopy]);
   });
 
   test('the copy read has its user tags sorted by name ignoring case', async () => {
@@ -261,6 +294,22 @@ describe('the user tag list', () => {
     const { data } = await user.client.from('copy_user_tags').select('copy_id');
     expect(data).toEqual([{ copy_id: keptCopy }]);
   });
+
+  test('deleting a copy removes its deleted links and the links of its deleted user tags too', async () => {
+    const user = await signUpNewUser();
+    const [copyId] = (await scannedCopies(user, angelicCurator)) as [string];
+    const signed = await created(user, 'Signed');
+    const trade = await created(user, 'Trade binder');
+    await putOnCopy(user, copyId, signed);
+    await putOnCopy(user, copyId, signed, false);
+    await putOnCopy(user, copyId, trade);
+    expect(await deleteUserTag(user.client, { user_tag_id: trade.user_tag_id })).toBeNull();
+
+    const { error } = await user.client.rpc('delete_copy', { request: { copy_id: copyId } });
+    expect(error).toBeNull();
+
+    expect(await linksOf(user)).toEqual([]);
+  });
 });
 
 describe('renaming a user tag', () => {
@@ -347,9 +396,51 @@ describe('deleting a user tag', () => {
     expect(await userTagsOnCopy(user, curators[0])).toEqual([]);
     expect(await userTagsOnCopy(user, curators[1])).toEqual([]);
     expect(await userTagsOnCopy(user, delver)).toEqual([trade]);
-    const { data } = await user.client.from('copy_user_tags').select('user_tag_id');
-    expect(data).toEqual([{ user_tag_id: trade.user_tag_id }]);
     expect(await collectionEntriesOf(user)).toEqual(before);
+  });
+
+  test('deleting a user tag keeps it marked deleted and leaves its links as they are', async () => {
+    const user = await signUpNewUser();
+    const [taggedCopy, takenOffCopy] = (await scannedCopies(user, angelicCurator, 2)) as [string, string];
+    const signed = await created(user, 'Signed');
+    await putOnCopy(user, taggedCopy, signed);
+    await putOnCopy(user, takenOffCopy, signed);
+    await putOnCopy(user, takenOffCopy, signed, false);
+    const links = await linksOf(user);
+
+    expect(await deleteUserTag(user.client, { user_tag_id: signed.user_tag_id })).toBeNull();
+
+    expect(await userTagRecordsOf(user)).toEqual([{ id: signed.user_tag_id, name: 'Signed', deleted_at: expect.any(String) }]);
+    expect(await linksOf(user)).toEqual(links);
+  });
+
+  test('collection search refuses the name of a deleted user tag as one the user does not have', async () => {
+    const user = await signUpNewUser();
+    const [copyId] = (await scannedCopies(user, angelicCurator)) as [string];
+    const signed = await created(user, 'Signed');
+    await putOnCopy(user, copyId, signed);
+    expect(await deleteUserTag(user.client, { user_tag_id: signed.user_tag_id })).toBeNull();
+
+    for (const field of ['user_tags', 'user_tags_exclude']) {
+      const { data, error } = await user.client.rpc('search_collection', { query: { [field]: ['signed'] } });
+      expect(data).toBeNull();
+      expect(error && readSearchError(error)).toMatchObject({ code: 'invalid_argument', field: `${field}[0]` });
+    }
+  });
+
+  test('a user tag chip finds only the copies of the user tag that is not deleted when a deleted one had the same name', async () => {
+    const user = await signUpNewUser();
+    const [oldCopy, newCopy, otherCopy] = (await scannedCopies(user, angelicCurator, 3)) as [string, string, string];
+    const oldSigned = await created(user, 'Signed');
+    await putOnCopy(user, oldCopy, oldSigned);
+    expect(await deleteUserTag(user.client, { user_tag_id: oldSigned.user_tag_id })).toBeNull();
+    const newSigned = await created(user, 'signed');
+    await putOnCopy(user, newCopy, newSigned);
+
+    expect(await copiesFound(user, { user_tags: ['Signed'] })).toEqual([newCopy]);
+    expect(await copiesFound(user, { user_tags_exclude: ['Signed'] })).toEqual([oldCopy, otherCopy].toSorted());
+    expect(await userTagsOnCopy(user, oldCopy)).toEqual([]);
+    expect(await userTagsOf(user)).toEqual([{ ...newSigned, copy_count: 1 }]);
   });
 
   test('a deleted user tag is not_found when deleted again, renamed, or put on a copy', async () => {
@@ -362,14 +453,23 @@ describe('deleting a user tag', () => {
     expect(await deleteUserTag(user.client, { user_tag_id: signed.user_tag_id })).toMatchObject(notFound);
     expect((await renameUserTag(user.client, { user_tag_id: signed.user_tag_id, name: 'Signed' })).error).toMatchObject(notFound);
     expect(await setCopyUserTag(user.client, { copy_id: copyId, user_tag_id: signed.user_tag_id, tagged: true })).toMatchObject(notFound);
+    expect(await setCopyUserTag(user.client, { copy_id: copyId, user_tag_id: signed.user_tag_id, tagged: false })).toMatchObject(notFound);
   });
 
-  test('the name of a deleted user tag can be used again', async () => {
+  test('the name of a deleted user tag can be used again by a new user tag or a rename', async () => {
     const user = await signUpNewUser();
     const signed = await created(user, 'Signed');
+    const trade = await created(user, 'Trade binder');
     expect(await deleteUserTag(user.client, { user_tag_id: signed.user_tag_id })).toBeNull();
 
-    expect((await created(user, 'signed')).name).toBe('signed');
+    const newSigned = await created(user, 'signed');
+    expect(await deleteUserTag(user.client, { user_tag_id: newSigned.user_tag_id })).toBeNull();
+    const { userTag, error } = await renameUserTag(user.client, { user_tag_id: trade.user_tag_id, name: 'SIGNED' });
+
+    expect(newSigned.user_tag_id).not.toBe(signed.user_tag_id);
+    expect(newSigned.name).toBe('signed');
+    expect(error).toBeNull();
+    expect(userTag).toEqual({ user_tag_id: trade.user_tag_id, name: 'SIGNED' });
   });
 
   test.each<[string, Record<string, unknown> | unknown[], string | null]>([

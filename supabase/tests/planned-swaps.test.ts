@@ -10,6 +10,7 @@ import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type 
 import {
   appRead,
   appRequest,
+  backdated,
   blackLotus,
   codesOf,
   copyOf,
@@ -43,7 +44,7 @@ beforeAll(async () => {
 });
 
 describe('create_planned_swaps', () => {
-  test('an AI client saves a planned swap that holds a free copy, with its reason and client name, and no deck changes', async () => {
+  test('an AI client saves a planned swap that holds a free copy, with its reason, and no deck changes', async () => {
     const client = await connectedAiClient();
     const { deckId, bolt } = await krenkoDeck(client.user);
     const newBolt = await scannedCopy(client.user, lightningBolt);
@@ -68,7 +69,6 @@ describe('create_planned_swaps', () => {
         reason,
         status: 'open',
         close_note: null,
-        client_name: 'ChatGPT',
       }),
     ]);
     expect(await revisionOf(client.user, deckId)).toBe(revision);
@@ -535,12 +535,7 @@ describe('list_planned_swaps', () => {
   async function plannedAgo(client: ClaimedAiClient, deckId: string, printingId: string, ago: string) {
     const { planned_swaps } = await planned(client, [await plannedSwapItem(client.user, deckId, await scannedCopy(client.user, printingId))]);
     const plannedSwapId = planned_swaps[0]!.planned_swap_id;
-    await asDatabaseOwner(
-      (database) => database`
-        update public.planned_swaps set created_at = now() - ${ago}::interval, status_changed_at = now() - ${ago}::interval
-        where id = ${plannedSwapId}
-      `,
-    );
+    await backdated('planned_swaps', plannedSwapId, ago);
     return plannedSwapId;
   }
 
@@ -568,8 +563,8 @@ describe('list_planned_swaps', () => {
     expect(newestFirst.next_cursor).toBeNull();
   });
 
-  test('each item has its deck, change lines with printing, finish, and condition, its reason, client name, and times', async () => {
-    const client = await connectedAiClient(undefined, 'Claude');
+  test('each item has its deck, change lines with printing, finish, and condition, its reason, and times', async () => {
+    const client = await connectedAiClient();
     const { deckId, commander, bolt } = await krenkoDeck(client.user);
     const played = stack(lightningBolt, { condition: 'lightly_played' });
     await committed(client.user, scanBatch([played]));
@@ -617,7 +612,6 @@ describe('list_planned_swaps', () => {
         reason,
         status: 'open',
         close_note: null,
-        client_name: 'Claude',
         ...times,
         effect: null,
       },
@@ -700,11 +694,7 @@ describe('list_planned_swaps', () => {
         await plannedSwapItem(client.user, deckId, await scannedCopy(client.user, printingId)),
       ]);
       ids.push(planned_swaps[0]!.planned_swap_id);
-      await asDatabaseOwner(
-        (database) => database`
-          update public.planned_swaps set created_at = now() - ${`${3 - index} hours`}::interval where id = ${ids[index]!}
-        `,
-      );
+      await backdated('planned_swaps', ids[index]!, `${3 - index} hours`);
     }
     const expected = positions.map((position) => ids[position]);
 
@@ -725,8 +715,8 @@ describe('list_planned_swaps', () => {
     const { planned_swaps } = await planned(client, [await plannedSwapItem(client.user, deckId, await scannedCopy(client.user, counterspell))]);
     await asDatabaseOwner(
       (database) => database`
-        insert into public.planned_swaps (user_id, deck_id, incoming_copy_id, incoming_oracle_id, as_commander, reason, status, client_id)
-        select user_id, deck_id, gen_random_uuid(), incoming_oracle_id, as_commander, reason, 'closed', client_id
+        insert into public.planned_swaps (user_id, deck_id, incoming_copy_id, incoming_oracle_id, as_commander, reason, status)
+        select user_id, deck_id, gen_random_uuid(), incoming_oracle_id, as_commander, reason, 'closed'
         from public.planned_swaps, generate_series(1, 20)
         where id = ${planned_swaps[0]!.planned_swap_id}
       `,
@@ -784,7 +774,6 @@ describe('access', () => {
         incoming_oracle_id: crypto.randomUUID(),
         as_commander: false,
         reason,
-        client_id: client.clientId,
       }),
       await tables.from('planned_swaps').update({ status: 'closed' }).eq('id', plannedSwapId),
       await tables.from('planned_swaps').delete().eq('id', plannedSwapId),
@@ -804,8 +793,8 @@ describe('swap_in_planned_swap', () => {
     return (await appRead<DeckChangePage>(user, 'list_deck_changes', { deck_id: deckId })).items;
   }
 
-  test('puts the held copy into the deck and takes the outgoing copy out in one swapped_in deck change that keeps the reason and client name', async () => {
-    const client = await connectedAiClient(undefined, 'Claude');
+  test('puts the held copy into the deck and takes the outgoing copy out in one swapped_in deck change that keeps the reason', async () => {
+    const client = await connectedAiClient();
     const { deckId, bolt } = await krenkoDeck(client.user);
     const newBolt = await scannedCopy(client.user, lightningBolt);
     const plannedSwapId = await onePlannedSwap(client, deckId, newBolt, { outgoing: { copy_id: bolt } });
@@ -820,7 +809,6 @@ describe('swap_in_planned_swap', () => {
       revision: revision + 1,
       kind: 'swapped_in',
       reason,
-      client_name: 'Claude',
       reverted: false,
     });
     expect(change!.lines.map((line) => line.kind === 'copy' && [line.copy_id, line.place_before, line.place_after]).toSorted()).toEqual(

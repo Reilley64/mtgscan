@@ -110,7 +110,6 @@ describe('listing deck changes', () => {
           changed_at: expect.any(String),
           reverted: false,
           reason: null,
-          client_name: null,
           lines: [
             {
               kind: 'copy',
@@ -130,7 +129,6 @@ describe('listing deck changes', () => {
           changed_at: expect.any(String),
           reverted: false,
           reason: null,
-          client_name: null,
           lines: [
             {
               kind: 'copy',

@@ -6,7 +6,7 @@ import type { AddedDeckCard, CreatedDeck, Deck } from '../decks';
 import type { CreatedPlannedSwaps, PlannedSwap, PlannedSwapInput, PlannedSwapPage, PlannedSwapsQuery } from '../planned-swaps';
 import { aiClientCall, type ClaimedAiClient } from './ai-clients';
 import { basicLand } from './catalog-import-command';
-import type { TestUser } from './local-stack';
+import { asDatabaseOwner, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
 export const krenko = 'aa078518-0ce2-4c6f-9061-aa7e22ed7493';
@@ -111,4 +111,16 @@ export function codesOf(warnings: { code: string }[]) {
 
 export async function twoItems<Item>(itemOf: (index: number) => Promise<Item>, changeSecond: (item: Item) => Item | Promise<Item>) {
   return [await itemOf(0), await changeSecond(await itemOf(1))];
+}
+
+export function backdated(table: 'planned_swaps' | 'buylist_cards', id: string, ago: string) {
+  return asDatabaseOwner((database) =>
+    database.begin(async (transaction) => {
+      await transaction`set local session_replication_role = replica`;
+      await transaction`
+        update ${transaction(`public.${table}`)} set created_at = now() - ${ago}::interval, status_changed_at = now() - ${ago}::interval
+        where id = ${id}
+      `;
+    }),
+  );
 }
