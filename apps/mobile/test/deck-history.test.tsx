@@ -50,7 +50,7 @@ function deckChange(revision: number, kind: DeckChangeKind, lines: DeckChange['l
 }
 
 async function openHistory(changes: DeckChange[]) {
-  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 0 }]);
+  ownDecks([{ name: 'Atraxa', priority: 'medium' }]);
   ownDeckChanges('deck-1', changes);
   await renderApp();
   await pressTab('Decks');

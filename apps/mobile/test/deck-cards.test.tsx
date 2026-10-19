@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { copyOf, deckCardOf, openCopyPage, openDeckWithCards } from './copies';
-import { changeElsewhere, failDeckWrites, ownAddPreviewEffects, ownCopies, ownDecks, startSignedIn } from './fake-supabase';
+import { basicLandsOf, changeElsewhere, failDeckWrites, ownAddPreviewEffects, ownCopies, ownDecks, startSignedIn } from './fake-supabase';
 import { fail, hold, refuse, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
@@ -23,7 +23,7 @@ import { tokenColors } from './token-colors';
 
 const { line, danger } = tokenColors;
 
-const medium = { priority: 'medium', card_count: 0 } as const;
+const medium = { priority: 'medium' } as const;
 
 const commanderArt = 'https://cards.scryfall.io/art_crop/front/atraxa.jpg';
 
@@ -102,11 +102,11 @@ describe('the copy page actions menu', () => {
 
 describe('the Add to deck drawer', () => {
   test('opens at half height, names the copy, and lists one row per deck with its priority and card count', async () => {
-    ownDecks([
-      { name: 'Atraxa', priority: 'medium', card_count: 62 },
-      { name: 'Kinnan', priority: 'high', card_count: 1, commanders: [{ copy_id: 'copy-9', name: 'Kinnan', art_crop_uri: commanderArt }] },
-    ]);
     ownCopies([copyOf('copy-1', { finish: 'foil', condition: 'lightly_played' })]);
+    ownDecks([
+      { name: 'Atraxa', priority: 'medium', basic_lands: basicLandsOf({ Plains: 62 }) },
+      { name: 'Kinnan', priority: 'high', commanders: [{ copy_id: 'copy-9', name: 'Kinnan', art_crop_uri: commanderArt }] },
+    ]);
     await openCopyPage(/^Angelic Curator/);
 
     await chooseAction('Add to deck');
@@ -121,11 +121,11 @@ describe('the Add to deck drawer', () => {
   });
 
   test("a deck row shows its commander's avatar, or a dashed circle with no commander", async () => {
+    ownCopies([copyOf('copy-1')]);
     ownDecks([
       { name: 'Atraxa', ...medium },
       { name: 'Kinnan', ...medium, commanders: [{ copy_id: 'copy-9', name: 'Kinnan', art_crop_uri: commanderArt }] },
     ]);
-    ownCopies([copyOf('copy-1')]);
     await openCopyPage(/^Angelic Curator/);
 
     await chooseAction('Add to deck');
@@ -274,7 +274,7 @@ describe('the Add to deck drawer', () => {
 
 describe('the deck tag', () => {
   test('a copy in a deck shows the deck tag with a dashed circle, and a tap opens the deck on Cards', async () => {
-    ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 1, cards: [deckCardOf('copy-1', 'Angelic Curator', 'Creature — Angel Spirit')] }]);
+    ownDecks([{ name: 'Atraxa', priority: 'medium', cards: [deckCardOf('copy-1', 'Angelic Curator', 'Creature — Angel Spirit')] }]);
     ownCopies([copyOf('copy-1', { deck: { deck_id: 'deck-1', name: 'Atraxa', role: 'main', commander_art_crop_uri: null, commander_count: 0 } })]);
     await openCopyPage(/^Angelic Curator/);
 
@@ -290,8 +290,8 @@ describe('the deck tag', () => {
   });
 
   test("the deck tag shows the first commander's avatar", async () => {
-    ownDecks([{ name: 'Atraxa', ...medium, commanders: [{ copy_id: 'copy-9', name: 'Atraxa', art_crop_uri: commanderArt }] }]);
     ownCopies([copyOf('copy-1', { deck: { deck_id: 'deck-1', name: 'Atraxa', role: 'main', commander_art_crop_uri: commanderArt, commander_count: 1 } })]);
+    ownDecks([{ name: 'Atraxa', ...medium, commanders: [{ copy_id: 'copy-9', name: 'Atraxa', art_crop_uri: commanderArt }] }]);
 
     await openCopyPage(/^Angelic Curator/);
 

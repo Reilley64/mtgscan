@@ -59,7 +59,7 @@ function evaluationOf(fields: Partial<DeckEvaluation>): DeckEvaluation {
 }
 
 function ownKinnan(evaluation: DeckEvaluation | null = evaluationOf({})) {
-  ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: evaluation ? 87 : 0, evaluation }]);
+  ownDecks([{ name: 'Kinnan', priority: 'medium', evaluation }]);
 }
 
 beforeEach(() => {

@@ -7,6 +7,7 @@ import {
 } from "expo-router/testing-library";
 import { StyleSheet } from "react-native";
 
+import { deckCardOf } from "./copies";
 import { invalidEvaluation } from "./deck-evaluations";
 import {
   changeElsewhere,
@@ -75,7 +76,7 @@ function galleryCardNames() {
     .map((title) => title.props.children as string);
 }
 
-const medium = { priority: "medium", card_count: 0 } as const;
+const medium = { priority: "medium" } as const;
 
 describe("creating a deck", () => {
   test("Decks has a Create deck bar button with a plus before the settings button", async () => {
@@ -241,8 +242,8 @@ describe("the commander gallery", () => {
   test("shows one card per deck, the deck used most recently first", async () => {
     ownDecks([
       { name: "Atraxa", ...medium },
-      { name: "Kinnan", priority: "high", card_count: 1, evaluation: invalidEvaluation },
-      { name: "Yuriko", priority: "low", card_count: 0 },
+      { name: "Kinnan", priority: "high", evaluation: invalidEvaluation },
+      { name: "Yuriko", priority: "low" },
     ]);
     const decks = await openDecks();
 
@@ -306,7 +307,7 @@ describe("the deck screen", () => {
   }
 
   test("is pushed over the tab bar with a full-width ghost commander banner from the top edge, and the name with no priority or card count chips", async () => {
-    ownDecks([{ name: "Atraxa", priority: "high", card_count: 0 }]);
+    ownDecks([{ name: "Atraxa", priority: "high" }]);
 
     const deck = await openDeck();
 
@@ -330,7 +331,7 @@ describe("the deck screen", () => {
     ).not.toBeOnTheScreen();
   });
   test("the deck name becomes the header title once the banner scrolls under the header, and goes again when it scrolls back", async () => {
-    ownDecks([{ name: "Atraxa", priority: "high", card_count: 0 }]);
+    ownDecks([{ name: "Atraxa", priority: "high" }]);
     const deck = await openDeck();
     const { block: banner } = placeInScrollView(
       deck.getByRole("header", { name: "Atraxa" }),
@@ -474,7 +475,7 @@ describe("the deck screen", () => {
 
 describe("the deck menu", () => {
   async function openDeck(
-    seed: Partial<Pick<Deck, "priority" | "card_count">> = {},
+    seed: Partial<Pick<Deck, "priority" | "cards">> = {},
   ) {
     ownDecks([
       { name: "Kinnan", ...medium },
@@ -654,7 +655,11 @@ describe("the deck menu", () => {
   ])(
     "Delete deck asks first, naming the deck, the cards that become free, and the deleted history (%i)",
     async (cardCount, message) => {
-      await openDeck({ card_count: cardCount });
+      await openDeck({
+        cards: Array.from({ length: cardCount }, (_, index) =>
+          deckCardOf(`copy-${index}`, "Sol Ring", "Artifact"),
+        ),
+      });
 
       await chooseFromMenu("Delete deck");
 

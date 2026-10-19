@@ -109,7 +109,7 @@ describe('Recent', () => {
   });
 
   test('Swap in acts at once, sends the planned swap, and the item leaves Recent', async () => {
-    ownDecks([{ name: 'Krenko', priority: 'medium', card_count: 1 }]);
+    ownDecks([{ name: 'Krenko', priority: 'medium' }]);
     ownPlannedSwaps([plannedSwapOf('swap')]);
     const recent = await openRecent();
 
@@ -132,7 +132,7 @@ describe('Recent', () => {
   });
 
   test('an item that changed elsewhere reloads instead of acting', async () => {
-    ownDecks([{ name: 'Krenko', priority: 'medium', card_count: 0 }]);
+    ownDecks([{ name: 'Krenko', priority: 'medium' }]);
     ownPlannedSwaps([plannedSwapOf('swap'), plannedSwapOf('other', { incoming: plannedCopyLine('copy-other', 'Counterspell') })]);
     const recent = await openRecent();
     await recent.findByLabelText('+, Lightning Bolt, M10 146');
@@ -172,7 +172,7 @@ describe('Recent', () => {
   });
 
   test('closing an item that changed elsewhere reloads instead of acting', async () => {
-    ownDecks([{ name: 'Krenko', priority: 'medium', card_count: 0 }]);
+    ownDecks([{ name: 'Krenko', priority: 'medium' }]);
     ownPlannedSwaps([plannedSwapOf('swap'), plannedSwapOf('other', { incoming: plannedCopyLine('copy-other', 'Counterspell') })]);
     const recent = await openRecent();
     await recent.findByLabelText('+, Lightning Bolt, M10 146');
@@ -237,7 +237,7 @@ describe('Recent', () => {
   });
 
   test('the deck tag opens the deck', async () => {
-    ownDecks([{ name: 'Krenko', priority: 'medium', card_count: 0 }]);
+    ownDecks([{ name: 'Krenko', priority: 'medium' }]);
     ownPlannedSwaps([plannedSwapOf('swap')]);
     const recent = await openRecent();
 
@@ -375,7 +375,7 @@ describe('Recent buylist cards', () => {
 
 describe('the Bought page sheet', () => {
   async function openBought(copies = [freeCopyOf('copy-alpha')]) {
-    ownDecks([{ name: 'Krenko', priority: 'medium', card_count: 1 }]);
+    ownDecks([{ name: 'Krenko', priority: 'medium' }]);
     ownBuylistCards([buylistCardOf('card')]);
     ownFreeCopies('oracle-counterspell', copies);
     const recent = await openRecent();

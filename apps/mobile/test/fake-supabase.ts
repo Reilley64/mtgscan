@@ -52,7 +52,7 @@ type CopyRecord = Omit<CopyDetails, 'deck' | 'free' | 'user_tags' | 'held_for'> 
 
 type NeedsYouItem = PlannedSwap | BuylistCard;
 
-type DeckRecord = Omit<Deck, 'card_count' | 'commanders' | 'cards'> & { unlisted_card_count: number; unlisted_commanders: DeckCommander[] };
+type DeckRecord = Omit<Deck, 'card_count' | 'commanders' | 'cards'>;
 
 type UserTagRecord = UserTag & { copy_ids: string[] };
 
@@ -253,7 +253,7 @@ function commandersOf(deck: DeckRecord): DeckCommander[] {
     .filter((copy) => copy.membership!.role === 'commander')
     .toSorted((a, b) => (a.membership!.commander_at ?? '').localeCompare(b.membership!.commander_at ?? ''))
     .map(({ copy_id, name, art_crop_uri }) => ({ copy_id, name, art_crop_uri }));
-  return [...deck.unlisted_commanders, ...commanders];
+  return commanders;
 }
 
 function openNeedsYouItems() {
@@ -295,13 +295,12 @@ function deckCardOfRecord(copy: CopyRecord, plannedOut: boolean): DeckCard {
 }
 
 function deckOf(deck: DeckRecord): Deck {
-  const { unlisted_card_count, unlisted_commanders, ...fields } = deck;
   const members = membersOf(deck);
   const plannedOut = plannedOutCopyIds(deck.deck_id);
   const basicLandCount = deck.basic_lands.reduce((sum, land) => sum + land.count, 0);
   return {
-    ...fields,
-    card_count: unlisted_card_count + members.length + basicLandCount,
+    ...deck,
+    card_count: members.length + basicLandCount,
     commanders: commandersOf(deck),
     cards: members.map((copy) => deckCardOfRecord(copy, plannedOut.has(copy.copy_id))),
   };
@@ -608,8 +607,6 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
       created_at: time,
       basic_lands: basicLandsOf(),
       evaluation: null,
-      unlisted_card_count: 0,
-      unlisted_commanders: [],
     };
     store.decks = [...store.decks, deck];
     return { deck_id: deck.deck_id };
@@ -1103,34 +1100,38 @@ export function ownUserTags(seeds: { name: string; copyIds: string[] }[]) {
   store.userTagsCreated = seeds.length;
 }
 
-type DeckSeed = Pick<Deck, 'name' | 'priority' | 'card_count'> & Partial<Pick<Deck, 'commanders' | 'cards' | 'basic_lands' | 'evaluation'>>;
+type DeckSeed = Pick<Deck, 'name' | 'priority'> & Partial<Pick<Deck, 'commanders' | 'cards' | 'basic_lands' | 'evaluation'>>;
 
 export function ownDecks(seeds: DeckSeed[]) {
-  store.decks = seeds.map(({ name, priority, card_count, commanders = [], cards = [], basic_lands = basicLandsOf(), evaluation = null }, index) => {
+  store.decks = seeds.map(({ name, priority, commanders = [], cards = [], basic_lands = basicLandsOf(), evaluation = null }, index) => {
     const time = nextTime();
     const deckId = `deck-${index + 1}`;
+    for (const commander of commanders.filter(({ copy_id }) => !cards.some((card) => card.copy_id === copy_id))) {
+      seedCopy({
+        ...commander,
+        printing_id: `printing-${commander.copy_id}`,
+        set: 'cmm',
+        collector_number: '1',
+        image_uris: [`https://cards.scryfall.io/normal/front/${commander.copy_id}.jpg`],
+        finish: 'nonfoil',
+        condition: 'near_mint',
+        language: 'en',
+        added_at: time,
+        type_line: 'Legendary Creature',
+        membership: { deck_id: deckId, role: 'commander', commander_at: time, added_at: time },
+      });
+    }
     for (const { role, commander_at, added_at, planned_out, ...card } of cards) {
       const art = commanders.find((commander) => commander.copy_id === card.copy_id)?.art_crop_uri;
       seedCopy({ ...card, ...(art !== undefined && { art_crop_uri: art }), membership: { deck_id: deckId, role, commander_at, added_at } });
     }
-    return {
-      deck_id: deckId,
-      name,
-      priority,
-      last_used_at: time,
-      revision: 0,
-      created_at: time,
-      basic_lands,
-      evaluation,
-      unlisted_card_count: card_count - cards.length - basic_lands.reduce((sum, land) => sum + land.count, 0),
-      unlisted_commanders: commanders.filter((commander) => !cards.some((card) => card.copy_id === commander.copy_id)),
-    };
+    return { deck_id: deckId, name, priority, last_used_at: time, revision: 0, created_at: time, basic_lands, evaluation };
   });
   store.decksCreated = seeds.length;
 }
 
 export function ownDeckOfCopies(name: string, copies: CopyDetails[], evaluation: DeckEvaluation | null = null) {
-  ownDecks([{ name, priority: 'medium', card_count: 0, evaluation }]);
+  ownDecks([{ name, priority: 'medium', evaluation }]);
   ownCopies(copies.map((copy) => ({ ...copy, deck: { deck_id: 'deck-1', name, role: 'main', commander_art_crop_uri: null, commander_count: 0 } })));
 }
 

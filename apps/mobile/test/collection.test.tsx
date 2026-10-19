@@ -2,7 +2,7 @@ import type { CollectionCopyRow, CollectionTotal, CurrentPrice } from '@mtgscan/
 import { act, fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 import { processColor } from 'react-native';
 
-import { answerCollectionSearches, collectionSearchesSent, expirePageCursors, failDeckReads, ownCollectionCopies, ownCollectionTotal, ownDecks, ownUserTags, startSignedIn } from './fake-supabase';
+import { answerCollectionSearches, basicLandsOf, collectionSearchesSent, expirePageCursors, failDeckReads, ownCollectionCopies, ownCollectionTotal, ownDecks, ownUserTags, startSignedIn } from './fake-supabase';
 import { callsSent, fail, hold, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
@@ -140,7 +140,7 @@ test('a copy in a deck starts its line with its deck commander in a circle, and 
     ...collectionEntryCopies('Ponder', 1, { set: 'c21', collector_number: '79' }),
   ]);
 
-  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 1, commanders: [{ copy_id: 'atraxa', name: 'Atraxa', art_crop_uri: commanderArt }] }]);
+  ownDecks([{ name: 'Atraxa', priority: 'medium', commanders: [{ copy_id: 'atraxa', name: 'Atraxa', art_crop_uri: commanderArt }] }]);
   const collection = await openCollection();
 
   const inDeck = collection.getByRole('button', { name: 'Sol Ring, C21 263, protected, in the deck Atraxa, no price' });
@@ -956,9 +956,9 @@ describe('collection search', () => {
 
     beforeEach(() => {
       ownDecks([
-        { name: 'Atraxa', priority: 'medium', card_count: 62, commanders: [{ copy_id: 'copy-9', name: 'Atraxa, Praetors\' Voice', art_crop_uri: atraxaArt }] },
-        { name: 'atraxa', priority: 'low', card_count: 3 },
-        { name: 'Kinnan', priority: 'high', card_count: 0 },
+        { name: 'Atraxa', priority: 'medium', commanders: [{ copy_id: 'copy-9', name: 'Atraxa, Praetors\' Voice', art_crop_uri: atraxaArt }], basic_lands: basicLandsOf({ Plains: 61 }) },
+        { name: 'atraxa', priority: 'low', basic_lands: basicLandsOf({ Plains: 3 }) },
+        { name: 'Kinnan', priority: 'high' },
       ]);
     });
 

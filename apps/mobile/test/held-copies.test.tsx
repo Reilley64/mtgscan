@@ -31,7 +31,7 @@ test('a held binder tile starts its line with the held symbol in the info color,
 });
 
 test('the copy page of a held copy shows the Held chip and the deck tag of its planned swap, which opens the deck', async () => {
-  ownDecks([{ name: 'Goblins', priority: 'medium', card_count: 0 }]);
+  ownDecks([{ name: 'Goblins', priority: 'medium' }]);
   ownCopies([heldForGoblins]);
   await openCopyPage(/^Angelic Curator/);
   const page = within(pushedScreen());

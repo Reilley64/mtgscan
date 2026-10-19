@@ -60,7 +60,7 @@ export async function openDeckNamed(name: string) {
 }
 
 export async function openDeckWithCards(cards: DeckCard[]) {
-  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: cards.length, cards }]);
+  ownDecks([{ name: 'Atraxa', priority: 'medium', cards }]);
   await renderApp();
   await pressTab('Decks');
   return openDeckNamed('Atraxa');
