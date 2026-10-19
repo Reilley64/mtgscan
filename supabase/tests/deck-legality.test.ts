@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { addDeckCard, changeBasicLand, createDeck, getDeck, setDeckCommander, type Violation } from '../decks';
+import { addDeckCard, changeBasicLand, getDeck, setDeckCommander, type Violation } from '../decks';
 import {
   basicLand,
   catalogFixture,
@@ -10,6 +10,7 @@ import {
   withoutCards,
 } from './catalog-import-command';
 import { replyOf } from './database-calls';
+import { createdDeck } from './deck-calls';
 import { signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -27,10 +28,6 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-async function created(user: TestUser) {
-  return (await replyOf(user.client, createDeck, { name: 'Ormos' })).deck_id;
-}
-
 async function addedCopy(user: TestUser, deckId: string, cardPrintingId: string) {
   const scanned = stack(cardPrintingId);
   await committed(user, scanBatch([scanned]));
@@ -44,7 +41,7 @@ async function islandsAdded(user: TestUser, deckId: string, count: number) {
 }
 
 async function deckOfOrmos(user: TestUser) {
-  const deckId = await created(user);
+  const deckId = await createdDeck(user, 'Ormos');
   const commander = await addedCopy(user, deckId, ormos);
   await replyOf(user.client, setDeckCommander, { copy_id: commander, commander: true });
   return deckId;

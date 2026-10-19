@@ -14,7 +14,7 @@ function convertedTotal(total: CollectionTotal, rate: ExchangeRate): ConvertedCo
 }
 
 function loadedTotal(total: CollectionTotal) {
-  return { status: 'loaded' as const, total };
+  return { total };
 }
 
 export function useCollectionTotal() {

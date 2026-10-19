@@ -4,7 +4,7 @@ import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import { databaseRead, useScreenRead } from '@/lib/read';
 
 function loadedCopies({ items }: { items: FreeCopy[] }) {
-  return { status: 'loaded' as const, copies: items };
+  return { copies: items };
 }
 
 export function useFreeCopies(oracleId: string) {

@@ -10,8 +10,6 @@ export type Rarity = Database['public']['Enums']['card_rarity'];
 
 export const catalogSort = z.enum(['relevance', 'name', 'mana_value', 'edhrec_rank', 'price', 'release_date']);
 
-export type CatalogSort = z.infer<typeof catalogSort>;
-
 export type Finish = Database['public']['Enums']['card_finish'];
 
 const colorOrColorless = z.enum([...color.options, 'C']);
@@ -53,9 +51,9 @@ const catalogQuery = z.strictObject({ ...catalogFilters, sort: catalogSort.optio
 
 export type CatalogQuery = z.input<typeof catalogQuery>;
 
-export const pricesAsOf = { prices_observed_at: z.string().nullable(), prices_stale: z.boolean() };
+const pricesAsOf = { prices_observed_at: z.string().nullable(), prices_stale: z.boolean() };
 
-export const dataAsOf = { rules_data_as_of: z.string(), rules_stale: z.boolean() };
+const dataAsOf = { rules_data_as_of: z.string(), rules_stale: z.boolean() };
 
 export const searchPage = { ...pricesAsOf, ...dataAsOf, next_cursor: nextCursor, search_id: id };
 
@@ -65,8 +63,6 @@ export const priceFrom = z.strictObject({
   finish,
   basis: z.literal('lowest current price over printings and finishes'),
 });
-
-export type PriceFrom = z.infer<typeof priceFrom>;
 
 const ownedCopies = z.strictObject({ quantity: integer, free_quantity: integer, protected_free_quantity: integer });
 
@@ -89,11 +85,7 @@ export type CatalogRow = z.infer<typeof catalogRow>;
 
 const catalogPage = z.strictObject({ ...searchPage, items: z.array(catalogRow) });
 
-export type SearchPage<Row> = Omit<z.infer<typeof catalogPage>, 'items'> & { items: Row[] };
-
 export type CommanderLegality = Database['public']['Enums']['commander_legality'];
-
-export type ComboBracketTag = Database['public']['Enums']['combo_bracket_tag'];
 
 const cardDetailsQuery = z.union([z.strictObject({ oracle_ids: z.array(id) }), z.strictObject({ printing_ids: z.array(id) })]);
 
@@ -110,7 +102,7 @@ const cardFace = z.strictObject({
   loyalty: z.string().optional(),
 });
 
-export const cardDetailsPrinting = z.strictObject({
+const cardDetailsPrinting = z.strictObject({
   printing_id: id,
   set: z.string(),
   set_name: z.string(),
@@ -165,8 +157,6 @@ const cardDetailsRow = z.strictObject({
 
 const cardDetails = z.strictObject({ ...dataAsOf, ...pricesAsOf, items: z.array(cardDetailsRow), not_found: z.array(z.string()) });
 
-export type CardDetails = z.infer<typeof cardDetails>;
-
 const cardPrintingsQuery = z.strictObject({
   oracle_id: id,
   owned_only: z.boolean().optional(),
@@ -181,8 +171,6 @@ const cardPrintingRow = cardDetailsPrinting.extend({ image_uris: z.array(z.strin
 export type CardPrintingRow = z.infer<typeof cardPrintingRow>;
 
 const cardPrintingsPage = z.strictObject({ ...dataAsOf, next_cursor: nextCursor, items: z.array(cardPrintingRow) });
-
-export type CardPrintingsPage = z.infer<typeof cardPrintingsPage>;
 
 const tagLookupQuery = z.strictObject({ text: z.string(), limit: integer.optional() });
 

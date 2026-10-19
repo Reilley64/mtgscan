@@ -1,9 +1,10 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import { getCopy, setCopyProtected } from '../collection';
-import { addDeckCard, createDeck, deleteDeck, getDeck, listDecks, setDeckCommander } from '../decks';
+import { addDeckCard, deleteDeck, listDecks, setDeckCommander } from '../decks';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { call, failed, refused, replyOf } from './database-calls';
+import { createdDeck, deckChangesOf, deckOf } from './deck-calls';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -34,10 +35,6 @@ beforeAll(async () => {
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-async function created(user: TestUser, name: string) {
-  return (await replyOf(user.client, createDeck, { name })).deck_id;
-}
-
 async function scannedCopy(user: TestUser, cardPrintingId = angelicCurator, finish: 'nonfoil' | 'foil' = 'nonfoil') {
   const scanned = stack(cardPrintingId, { finish });
   await committed(user, scanBatch([scanned]));
@@ -46,10 +43,6 @@ async function scannedCopy(user: TestUser, cardPrintingId = angelicCurator, fini
 
 async function added(user: TestUser, deckId: string, copyId: string, unprotect = false) {
   return replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect });
-}
-
-async function deckOf(user: TestUser, deckId: string) {
-  return replyOf(user.client, getDeck, { deck_id: deckId });
 }
 
 async function decksOf(user: TestUser) {
@@ -62,16 +55,6 @@ async function copyOf(user: TestUser, copyId: string) {
 
 async function setProtected(user: TestUser, copyId: string, isProtected: boolean) {
   return call(user.client, setCopyProtected, { copy_id: copyId, protected: isProtected });
-}
-
-async function deckChangesOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client
-    .from('deck_changes')
-    .select('revision, kind, deck_change_lines(copy_id, card_printing_id, finish, place_before, place_after)')
-    .eq('deck_id', deckId)
-    .order('revision');
-  expect(error).toBeNull();
-  return data;
 }
 
 async function deckIdsHolding(copyId: string) {
@@ -100,7 +83,7 @@ async function makeCommander(user: TestUser, copyId: string) {
 describe('adding a copy to a deck', () => {
   test('puts the copy in the main deck, writes one added deck change with its line, and raises the revision by one', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await scannedCopy(user, angelicCurator, 'foil');
 
     expect(await added(user, deckId, copyId)).toEqual({ deck_id: deckId, revision: 1 });
@@ -121,7 +104,7 @@ describe('adding a copy to a deck', () => {
 
   test('each add is its own deck change', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const first = await scannedCopy(user);
     const second = await scannedCopy(user, delverInnistrad);
 
@@ -136,8 +119,8 @@ describe('adding a copy to a deck', () => {
 
   test('adding a copy counts as using the deck', async () => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
-    await created(user, 'Kinnan');
+    const atraxa = await createdDeck(user, 'Atraxa');
+    await createdDeck(user, 'Kinnan');
 
     await added(user, atraxa, await scannedCopy(user));
 
@@ -148,15 +131,15 @@ describe('adding a copy to a deck', () => {
     const user = await signUpNewUser();
     const copyId = await scannedCopy(user);
 
-    await added(user, await created(user, 'Atraxa'), copyId);
+    await added(user, await createdDeck(user, 'Atraxa'), copyId);
 
     expect((await copyOf(user, copyId)).free).toBe(false);
   });
 
   test('a copy in a deck is refused with copy_not_free, and nothing changes', async () => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
-    const kinnan = await created(user, 'Kinnan');
+    const atraxa = await createdDeck(user, 'Atraxa');
+    const kinnan = await createdDeck(user, 'Kinnan');
     const copyId = await scannedCopy(user);
     await added(user, atraxa, copyId);
 
@@ -174,7 +157,7 @@ describe('adding a copy to a deck', () => {
 
   test('a protected copy is refused with protected_copy, and stays protected and free', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await scannedCopy(user);
     expect(await setProtected(user, copyId, true)).toMatchObject({ status: 'replied' });
 
@@ -188,7 +171,7 @@ describe('adding a copy to a deck', () => {
 
   test('unprotect unprotects a protected copy and adds it in one step', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await scannedCopy(user);
     await setProtected(user, copyId, true);
 
@@ -199,7 +182,7 @@ describe('adding a copy to a deck', () => {
 
   test('unprotect on a copy that is not protected adds it', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await scannedCopy(user);
 
     await added(user, deckId, copyId, true);
@@ -210,7 +193,7 @@ describe('adding a copy to a deck', () => {
   test('Protect refuses a copy in a deck with copy_not_free', async () => {
     const user = await signUpNewUser();
     const copyId = await scannedCopy(user);
-    await added(user, await created(user, 'Atraxa'), copyId);
+    await added(user, await createdDeck(user, 'Atraxa'), copyId);
 
     expect(await setProtected(user, copyId, true)).toMatchObject(refused('copy_not_free', 'copy_id'));
     expect((await copyOf(user, copyId)).protected).toBe(false);
@@ -218,7 +201,7 @@ describe('adding a copy to a deck', () => {
 
   test('two adds of one copy into two decks at the same time put it in exactly one deck', async () => {
     const user = await signUpNewUser();
-    const decks = [await created(user, 'Atraxa'), await created(user, 'Kinnan')];
+    const decks = [await createdDeck(user, 'Atraxa'), await createdDeck(user, 'Kinnan')];
     const copyId = await scannedCopy(user);
 
     const results = await whileCopyIsLocked(copyId, () =>
@@ -245,7 +228,7 @@ describe('adding a copy to a deck', () => {
 
   test('a copy that does not exist is not_found on copy_id', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
 
     const result = await call(user.client, addDeckCard, { deck_id: deckId, copy_id: crypto.randomUUID(), unprotect: false });
 
@@ -264,7 +247,7 @@ describe('adding a copy to a deck', () => {
     ['an unknown field', (ids) => ({ ...ids, unprotect: false, role: 'commander' }), 'role'],
   ])('%s is refused with invalid_argument, and nothing changes', async (_, request, field) => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await scannedCopy(user);
 
     const result = await call(user.client, addDeckCard, request({ deck_id: deckId, copy_id: copyId }) as never);
@@ -278,7 +261,7 @@ describe('adding a copy to a deck', () => {
 describe('reading a deck with cards', () => {
   test('get_deck returns every copy with its role, its card printing, its state, its price, its card, and whether it is planned out', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await scannedCopy(user, delverInnistrad);
     await added(user, deckId, copyId);
 
@@ -313,14 +296,14 @@ describe('reading a deck with cards', () => {
   test('get_deck lists all twelve basic land kinds with count 0', async () => {
     const user = await signUpNewUser();
 
-    const deck = await deckOf(user, await created(user, 'Atraxa'));
+    const deck = await deckOf(user, await createdDeck(user, 'Atraxa'));
 
     expect(deck.basic_lands.map((land) => [land.name, land.count])).toEqual(basicLandNames.map((name) => [name, 0]));
   });
 
   test('a commander has the commander role, and its art crop is the first commander of the deck', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const commander = await scannedCopy(user);
     const mainDeckCard = await scannedCopy(user, delverInnistrad);
     await added(user, deckId, commander);
@@ -348,8 +331,8 @@ describe('reading a deck with cards', () => {
 
   test('list_decks shows the deck revision of each deck', async () => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
-    await created(user, 'Kinnan');
+    const atraxa = await createdDeck(user, 'Atraxa');
+    await createdDeck(user, 'Kinnan');
     await added(user, atraxa, await scannedCopy(user));
     await added(user, atraxa, await scannedCopy(user, delverInnistrad));
 
@@ -361,8 +344,8 @@ describe('reading a deck with cards', () => {
 
   test('list_decks counts the cards of each deck', async () => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
-    await created(user, 'Kinnan');
+    const atraxa = await createdDeck(user, 'Atraxa');
+    await createdDeck(user, 'Kinnan');
     await added(user, atraxa, await scannedCopy(user));
     await added(user, atraxa, await scannedCopy(user, delverInnistrad));
 
@@ -374,7 +357,7 @@ describe('reading a deck with cards', () => {
 
   test('get_copy returns the deck of a copy in a deck, and null for a free copy', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const inDeck = await scannedCopy(user);
     const free = await scannedCopy(user);
     await added(user, deckId, inDeck);
@@ -387,7 +370,7 @@ describe('reading a deck with cards', () => {
 describe('deleting a deck', () => {
   test('deletes its deck cards and deck changes and frees its copies', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await scannedCopy(user);
     await added(user, deckId, copyId);
 
@@ -403,10 +386,10 @@ describe('deleting a deck', () => {
 describe('access', () => {
   test("a user cannot add another user's copy, add to another user's deck, or read another user's deck cards", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
-    const aliceDeck = await created(alice, 'Atraxa');
+    const aliceDeck = await createdDeck(alice, 'Atraxa');
     const aliceCopy = await scannedCopy(alice);
     await added(alice, aliceDeck, aliceCopy);
-    const bobDeck = await created(bob, 'Kinnan');
+    const bobDeck = await createdDeck(bob, 'Kinnan');
     const bobCopy = await scannedCopy(bob);
     const freeAliceCopy = await scannedCopy(alice);
 
@@ -438,7 +421,7 @@ describe('access', () => {
 
   test('a user cannot write deck cards, deck changes, or deck change lines directly', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await scannedCopy(user);
     await added(user, deckId, copyId);
     const [change] = (await asDatabaseOwner((database) => database`select id from public.deck_changes where deck_id = ${deckId}`)) as {

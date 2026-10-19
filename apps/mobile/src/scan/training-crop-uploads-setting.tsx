@@ -17,7 +17,7 @@ type TrainingCropUploadsSetting = {
 const settingsRead = databaseRead(databaseFunctions.get_training_crop_settings);
 
 function loadedSetting({ uploads_on }: TrainingCropSettings) {
-  return { status: 'loaded' as const, uploadsOn: uploads_on };
+  return { uploadsOn: uploads_on };
 }
 
 const TrainingCropUploadsContext = createContext<TrainingCropUploadsSetting | null>(null);

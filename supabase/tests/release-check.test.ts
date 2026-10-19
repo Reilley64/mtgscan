@@ -4,9 +4,10 @@ import { join } from 'node:path';
 
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
+import type { ReplyOf } from '../database-function';
 import { catalogSearch, runReleaseCheck, type SearchMode } from '../release-check/release-check';
 import { readSearchCorpus } from '../release-check/search-corpus';
-import { getCards, listCardPrintings, searchCatalog, searchOracleTags, type CatalogQuery, type CatalogRow, type SearchPage } from '../search';
+import { getCards, listCardPrintings, searchCatalog, searchOracleTags, type CatalogQuery, type CatalogRow } from '../search';
 import {
   catalogFixtureManifest,
   oracleIdOf,
@@ -33,7 +34,7 @@ async function allCreaturesByName(): Promise<CatalogRow[]> {
   const rows: CatalogRow[] = [];
   let cursor: string | null = null;
   do {
-    const page: SearchPage<CatalogRow> = await replyOf(alice.client, searchCatalog, { types: ['creature'], limit: 50, cursor });
+    const page: ReplyOf<typeof searchCatalog> = await replyOf(alice.client, searchCatalog, { types: ['creature'], limit: 50, cursor });
     rows.push(...page.items);
     cursor = page.next_cursor;
   } while (cursor);

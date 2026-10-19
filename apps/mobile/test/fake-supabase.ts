@@ -1,5 +1,5 @@
 import type { Database } from '@mtgscan/supabase/database.types';
-import type { ErrorCodeOf, ReplyOf, RequestOf } from '@mtgscan/supabase/database-function';
+import type { ErrorCodeOf, ReplyOf, RequestArguments, RequestOf } from '@mtgscan/supabase/database-function';
 import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import {
   AuthApiError,
@@ -33,12 +33,12 @@ import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 
 import { cardImageUri, cardSets, galleryPrintings, oracleTags, setIconUri } from './card-printings';
 import { appleIdTokenNonce } from './fake-apple';
-import { callsSent, controlled, fail, Refused, resetControls, takeRefusal, type Contract, type FunctionName } from './fake-supabase-controls';
+import { callsSent, controlled, fail, Refused, requestsSent, resetControls, takeRefusal, type ArgumentKey, type Contract, type FunctionName } from './fake-supabase-controls';
 
 const unreachable = Symbol('unreachable');
 
 type Handler<Name extends FunctionName> = (
-  request: RequestOf<Contract<Name>>,
+  ...[request]: RequestArguments<Contract<Name>>
 ) => ReplyOf<Contract<Name>> | Refused<ErrorCodeOf<Contract<Name>>> | typeof unreachable;
 
 type AuthListener = (event: AuthChangeEvent, session: Session | null) => void;
@@ -47,9 +47,12 @@ type Account = { provider: SignInProvider | 'email'; email: string };
 
 type Membership = Pick<DeckCard, 'role' | 'commander_at' | 'added_at'> & { deck_id: string };
 
-type CopyRecord = Omit<CopyDetails, 'deck' | 'free' | 'user_tags'> & Pick<DeckCard, 'mana_value' | 'colors'> & { membership: Membership | null };
+type CopyRecord = Omit<CopyDetails, 'deck' | 'free' | 'user_tags' | 'held_for'> &
+  Pick<DeckCard, 'mana_value' | 'colors'> & { oracle_id: string | null; membership: Membership | null };
 
-type DeckRecord = Omit<Deck, 'card_count' | 'commanders' | 'cards'> & { unlisted_card_count: number; unlisted_commanders: DeckCommander[] };
+type NeedsYouItem = PlannedSwap | BuylistCard;
+
+type DeckRecord = Omit<Deck, 'card_count' | 'commanders' | 'cards'>;
 
 type UserTagRecord = UserTag & { copy_ids: string[] };
 
@@ -90,7 +93,6 @@ function emptyStore() {
     addPreviewEffects: new Map<string, DeckChangeEffect>(),
     plannedSwaps: [] as PlannedSwap[],
     buylistCards: [] as BuylistCard[],
-    freeCopies: new Map<string, FreeCopy[]>(),
     collectionTotal: {
       total: '0.00',
       currency: 'USD',
@@ -251,7 +253,7 @@ function commandersOf(deck: DeckRecord): DeckCommander[] {
     .filter((copy) => copy.membership!.role === 'commander')
     .toSorted((a, b) => (a.membership!.commander_at ?? '').localeCompare(b.membership!.commander_at ?? ''))
     .map(({ copy_id, name, art_crop_uri }) => ({ copy_id, name, art_crop_uri }));
-  return [...deck.unlisted_commanders, ...commanders];
+  return commanders;
 }
 
 function openNeedsYouItems() {
@@ -266,7 +268,7 @@ function plannedOutCopyIds(deckId: string) {
   );
 }
 
-function deckCardOf(copy: CopyRecord, plannedOut: boolean): DeckCard {
+function deckCardOfRecord(copy: CopyRecord, plannedOut: boolean): DeckCard {
   const { copy_id, printing_id, name, set, collector_number, rarity, image_uris, finish, condition, language, price, type_line, mana_value, colors } = copy;
   const { role, commander_at, added_at } = copy.membership!;
   return {
@@ -293,15 +295,14 @@ function deckCardOf(copy: CopyRecord, plannedOut: boolean): DeckCard {
 }
 
 function deckOf(deck: DeckRecord): Deck {
-  const { unlisted_card_count, unlisted_commanders, ...fields } = deck;
   const members = membersOf(deck);
   const plannedOut = plannedOutCopyIds(deck.deck_id);
   const basicLandCount = deck.basic_lands.reduce((sum, land) => sum + land.count, 0);
   return {
-    ...fields,
-    card_count: unlisted_card_count + members.length + basicLandCount,
+    ...deck,
+    card_count: members.length + basicLandCount,
     commanders: commandersOf(deck),
-    cards: members.map((copy) => deckCardOf(copy, plannedOut.has(copy.copy_id))),
+    cards: members.map((copy) => deckCardOfRecord(copy, plannedOut.has(copy.copy_id))),
   };
 }
 
@@ -312,12 +313,21 @@ function userTagsOn(copyId: string): UserTag[] {
     .map(({ user_tag_id, name }) => ({ user_tag_id, name }));
 }
 
-function copyDetailsOf({ membership, mana_value, colors, ...copy }: CopyRecord): CopyDetails {
+function heldFor(copyId: string): CopyHeldFor | null {
+  const swap = store.plannedSwaps.find(
+    (candidate) => candidate.status === 'open' && candidate.incoming.kind === 'copy' && candidate.incoming.copy_id === copyId,
+  );
+  return swap ? { deck_id: swap.deck_id, name: swap.deck_name, commander_art_crop_uri: swap.commander_art_crop_uri } : null;
+}
+
+function copyDetailsOf({ membership, mana_value, colors, oracle_id, ...copy }: CopyRecord): CopyDetails {
   const deck = membership && deckRecord(membership.deck_id);
   const commanders = deck ? commandersOf(deck) : [];
+  const held_for = heldFor(copy.copy_id);
   return {
     ...copy,
-    free: !deck && !copy.held_for,
+    held_for,
+    free: !deck && !held_for,
     user_tags: userTagsOn(copy.copy_id),
     deck: deck
       ? {
@@ -331,9 +341,8 @@ function copyDetailsOf({ membership, mana_value, colors, ...copy }: CopyRecord):
   };
 }
 
-function binderRowOf(copy: CopyRecord): CollectionCopyRow {
-  const { copy_id, printing_id, name, set, collector_number, rarity, image_uris, finish, condition, language, price, held_for, added_at } = copy;
-  const deck = deckOfCopy(copy);
+export function copyRowOf(copy: CopyDetails): CollectionCopyRow {
+  const { copy_id, printing_id, name, set, collector_number, rarity, image_uris, finish, condition, language, price, deck, held_for, added_at } = copy;
   return {
     copy_id,
     printing_id,
@@ -347,10 +356,14 @@ function binderRowOf(copy: CopyRecord): CollectionCopyRow {
     language,
     protected: copy.protected,
     price,
-    deck: deck ? { deck_id: deck.deck_id, name: deck.name } : null,
+    deck: deck && { deck_id: deck.deck_id, name: deck.name },
     held_for: held_for && { deck_id: held_for.deck_id, name: held_for.name },
     created_at: added_at,
   };
+}
+
+function binderRowOf(copy: CopyRecord) {
+  return copyRowOf(copyDetailsOf(copy));
 }
 
 function byName(a: UserTag, b: UserTag) {
@@ -392,30 +405,45 @@ const notFound = {
   copy: new Refused('not_found', 'copy_id is not a copy in your collection.', 'copy_id'),
   deck: new Refused('not_found', 'deck_id is not one of your decks.', 'deck_id'),
   userTag: new Refused('not_found', 'user_tag_id is not one of your user tags.', 'user_tag_id'),
-  plannedSwap: new Refused('not_found', 'planned_swap_id is not one of your planned swaps.', 'planned_swap_id'),
-  buylistCard: new Refused('not_found', 'buylist_card_id is not one of your buylist cards.', 'buylist_card_id'),
 };
 
-function plannedSwapToChange(plannedSwapId: string, changeable: PlannedSwap['status'][]) {
-  const swap = store.plannedSwaps.find((candidate) => candidate.planned_swap_id === plannedSwapId);
-  if (!swap) {
-    return notFound.plannedSwap;
-  }
-  if (!changeable.includes(swap.status)) {
-    return new Refused('not_open', `The planned swap is ${swap.status}. Only an open planned swap can change.`, 'planned_swap_id');
-  }
-  return swap;
+const needsYouNouns = { planned_swap_id: 'planned swap', buylist_card_id: 'buylist card' };
+
+function needsYouIdOf(item: NeedsYouItem) {
+  return 'planned_swap_id' in item ? item.planned_swap_id : item.buylist_card_id;
 }
 
-function buylistCardToChange(buylistCardId: string, changeable: BuylistCard['status'][]) {
-  const card = store.buylistCards.find((candidate) => candidate.buylist_card_id === buylistCardId);
-  if (!card) {
-    return notFound.buylistCard;
+function needsYouPage<Item extends NeedsYouItem>(items: Item[], query: RequestOf<Contract<'list_planned_swaps' | 'list_buylist'>> = {}) {
+  const direction = query.order === 'oldest_first' ? 1 : -1;
+  const listed = items
+    .filter((item) => (!query.status || item.status === query.status) && (!query.deck_id || item.deck_id === query.deck_id))
+    .toSorted((a, b) => direction * a.created_at.localeCompare(b.created_at));
+  return numberedPage(listed, query);
+}
+
+function needsYouItemToChange<Item extends NeedsYouItem>(items: Item[], field: keyof typeof needsYouNouns, id: string, changeable: Item['status'][]) {
+  const noun = needsYouNouns[field];
+  const item = items.find((candidate) => needsYouIdOf(candidate) === id);
+  if (!item) {
+    return new Refused('not_found', `${field} is not one of your ${noun}s.`, field);
   }
-  if (!changeable.includes(card.status)) {
-    return new Refused('not_open', `The buylist card is ${card.status}. Only an open buylist card can change.`, 'buylist_card_id');
+  if (!changeable.includes(item.status)) {
+    return new Refused('not_open', `The ${noun} is ${item.status}. Only an open ${noun} can change.`, field);
   }
-  return card;
+  return item;
+}
+
+function withNeedsYouStatus<Item extends NeedsYouItem>(items: Item[], id: string, status: Item['status']) {
+  return items.map((item) => (needsYouIdOf(item) === id ? { ...item, status, effect: null } : item));
+}
+
+function takeCopy(copy: CopyRecord, deckId: string, role: Membership['role'], unprotect: boolean) {
+  if (copy.protected && !unprotect) {
+    return new Refused('protected_copy', 'copy_id is a protected copy. Send unprotect: true to unprotect it and put it in the deck.', 'copy_id');
+  }
+  copy.protected = false;
+  copy.membership = { deck_id: deckId, role, commander_at: role === 'commander' ? nextTime() : null, added_at: nextTime() };
+  return null;
 }
 
 function changeDeckRecord(deckId: string, change: Partial<DeckRecord>) {
@@ -497,21 +525,16 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
       decks: deckIds.map((deckId) => ({ deck_id: deckId, count: items.filter((item) => item.deck_id === deckId).length })),
     };
   },
-  list_planned_swaps: (query = {}) => {
-    const direction = query.order === 'oldest_first' ? 1 : -1;
-    const items = store.plannedSwaps
-      .filter((swap) => (!query.status || swap.status === query.status) && (!query.deck_id || swap.deck_id === query.deck_id))
-      .toSorted((a, b) => direction * a.created_at.localeCompare(b.created_at));
-    return numberedPage(items, query);
-  },
-  list_buylist: (query = {}) => {
-    const direction = query.order === 'oldest_first' ? 1 : -1;
-    const items = store.buylistCards
-      .filter((card) => (!query.status || card.status === query.status) && (!query.deck_id || card.deck_id === query.deck_id))
-      .toSorted((a, b) => direction * a.created_at.localeCompare(b.created_at));
-    return numberedPage(items, query);
-  },
-  list_free_copies: ({ oracle_id }) => ({ items: store.freeCopies.get(oracle_id) ?? [] }),
+  list_planned_swaps: (query) => needsYouPage(store.plannedSwaps, query),
+  list_buylist: (query) => needsYouPage(store.buylistCards, query),
+  list_free_copies: ({ oracle_id }) => ({
+    items: store.copies
+      .filter((copy) => copy.oracle_id === oracle_id)
+      .map(copyDetailsOf)
+      .filter((copy) => copy.free)
+      .map(copyRowOf)
+      .map(({ deck, held_for, created_at, ...freeCopy }) => freeCopy),
+  }),
   list_user_tags: () => ({
     items: store.userTags.toSorted(byName).map(({ user_tag_id, name, copy_ids }) => ({
       user_tag_id,
@@ -584,8 +607,6 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
       created_at: time,
       basic_lands: basicLandsOf(),
       evaluation: null,
-      unlisted_card_count: 0,
-      unlisted_commanders: [],
     };
     store.decks = [...store.decks, deck];
     return { deck_id: deck.deck_id };
@@ -600,7 +621,7 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     store.decks = store.decks.filter((deck) => deck.deck_id !== deck_id);
     return null;
   },
-  add_deck_card: ({ deck_id, copy_id }) => {
+  add_deck_card: ({ deck_id, copy_id, unprotect }) => {
     const deck = deckRecord(deck_id);
     if (!deck) {
       return notFound.deck;
@@ -609,9 +630,7 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     if (!copy) {
       return notFound.copy;
     }
-    copy.protected = false;
-    copy.membership = { deck_id, role: 'main', commander_at: null, added_at: nextTime() };
-    return changedDeck(deck);
+    return takeCopy(copy, deck_id, 'main', unprotect) ?? changedDeck(deck);
   },
   set_deck_commander: ({ copy_id, commander }) => {
     const copy = copyRecord(copy_id);
@@ -667,53 +686,56 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     return answer;
   },
   swap_in_planned_swap: ({ planned_swap_id }) => {
-    const swap = plannedSwapToChange(planned_swap_id, ['open']);
+    const swap = needsYouItemToChange(store.plannedSwaps, 'planned_swap_id', planned_swap_id, ['open']);
     if (swap instanceof Refused) {
       return swap;
     }
-    swap.status = 'swapped_in';
-    swap.effect = null;
+    store.plannedSwaps = withNeedsYouStatus(store.plannedSwaps, planned_swap_id, 'swapped_in');
     return changedDeck(deckRecord(swap.deck_id)!);
   },
   swap_in_planned_swaps: ({ deck_id, planned_swap_ids }) => {
     for (const [index, plannedSwapId] of planned_swap_ids.entries()) {
-      const swap = plannedSwapToChange(plannedSwapId, ['open']);
+      const swap = needsYouItemToChange(store.plannedSwaps, 'planned_swap_id', plannedSwapId, ['open']);
       if (swap instanceof Refused) {
         return new Refused(swap.code, swap.message, `planned_swap_ids[${index}]`);
       }
     }
     for (const plannedSwapId of planned_swap_ids) {
-      setPlannedSwapStatus(plannedSwapId, 'swapped_in');
+      store.plannedSwaps = withNeedsYouStatus(store.plannedSwaps, plannedSwapId, 'swapped_in');
     }
     return { ...changedDeck(deckRecord(deck_id)!, planned_swap_ids.length), swapped_in: planned_swap_ids, closed: [] };
   },
   close_planned_swap: ({ planned_swap_id }) => {
-    const swap = plannedSwapToChange(planned_swap_id, ['open', 'closed']);
+    const swap = needsYouItemToChange(store.plannedSwaps, 'planned_swap_id', planned_swap_id, ['open', 'closed']);
     if (swap instanceof Refused) {
       return swap;
     }
-    const changed = swap.status === 'open';
-    setPlannedSwapStatus(swap.planned_swap_id, 'closed');
-    return { id: swap.planned_swap_id, changed };
+    store.plannedSwaps = withNeedsYouStatus(store.plannedSwaps, planned_swap_id, 'closed');
+    return { id: planned_swap_id, changed: swap.status === 'open' };
   },
-  mark_buylist_card_bought: ({ buylist_card_id, copy_id }) => {
-    const card = buylistCardToChange(buylist_card_id, ['open']);
+  mark_buylist_card_bought: ({ buylist_card_id, copy_id, unprotect }) => {
+    const card = needsYouItemToChange(store.buylistCards, 'buylist_card_id', buylist_card_id, ['open']);
     if (card instanceof Refused) {
       return card;
     }
-    const freeCopies = store.freeCopies.get(card.incoming.oracle_id) ?? [];
-    store.freeCopies.set(card.incoming.oracle_id, freeCopies.filter((candidate) => candidate.copy_id !== copy_id));
-    setBuylistCardStatus(card.buylist_card_id, 'bought');
+    const copy = copyRecord(copy_id);
+    if (!copy) {
+      return notFound.copy;
+    }
+    const refused = takeCopy(copy, card.deck_id, card.as_commander ? 'commander' : 'main', unprotect);
+    if (refused) {
+      return refused;
+    }
+    store.buylistCards = withNeedsYouStatus(store.buylistCards, buylist_card_id, 'bought');
     return changedDeck(deckRecord(card.deck_id)!);
   },
   close_buylist_card: ({ buylist_card_id }) => {
-    const card = buylistCardToChange(buylist_card_id, ['open', 'closed']);
+    const card = needsYouItemToChange(store.buylistCards, 'buylist_card_id', buylist_card_id, ['open', 'closed']);
     if (card instanceof Refused) {
       return card;
     }
-    const changed = card.status === 'open';
-    setBuylistCardStatus(card.buylist_card_id, 'closed');
-    return { id: card.buylist_card_id, changed };
+    store.buylistCards = withNeedsYouStatus(store.buylistCards, buylist_card_id, 'closed');
+    return { id: buylist_card_id, changed: card.status === 'open' };
   },
   create_user_tag: ({ name }) => {
     store.userTagsCreated += 1;
@@ -799,16 +821,16 @@ function responseOf(answer: unknown) {
   return { data: answer, error: null };
 }
 
-function answerOf<Name extends FunctionName>(name: Name, request: RequestOf<Contract<Name>>) {
-  const handler = handlers[name] as Handler<Name> | undefined;
+function answerOf<Name extends FunctionName>(name: Name, ...request: RequestArguments<Contract<Name>>) {
+  const handler = handlers[name];
   if (!handler) {
     throw new Error(`The fake Supabase client has no ${name} function`);
   }
-  return handler(request);
+  return handler(...request);
 }
 
-export function changeElsewhere<Name extends FunctionName>(name: Name, ...[request]: undefined extends RequestOf<Contract<Name>> ? [RequestOf<Contract<Name>>?] : [RequestOf<Contract<Name>>]) {
-  const answer = answerOf(name, request as RequestOf<Contract<Name>>);
+export function changeElsewhere<Name extends FunctionName>(name: Name, ...request: RequestArguments<Contract<Name>>) {
+  const answer = answerOf(name, ...request);
   if (answer instanceof Refused || answer === unreachable) {
     throw new Error(`The fake Supabase client could not change ${name} elsewhere`);
   }
@@ -925,19 +947,10 @@ const oauthServer = {
 
 export const fakeSupabase = {
   from: cardCatalogTable,
-  rpc(name: string, args: Partial<Record<'query' | 'request' | 'batch', unknown>>) {
-    if (!(name in handlers)) {
-      throw new Error(`The fake Supabase client has no ${name} function`);
-    }
-    const functionName = name as FunctionName;
-    const { argument } = databaseFunctions[functionName];
-    const request = argument === null ? undefined : args[argument];
-    return controlled(
-      functionName,
-      request,
-      () => responseOf(takeRefusal(functionName) ?? answerOf(functionName, request as never)),
-      { data: null, error: networkFailure },
-    );
+  rpc<Name extends FunctionName>(name: Name, args: { [Key in ArgumentKey]?: unknown }) {
+    const { argument } = databaseFunctions[name];
+    const request = (argument === null ? [] : [args[argument]]) as RequestArguments<Contract<Name>>;
+    return controlled(name, request[0], () => responseOf(takeRefusal(name) ?? answerOf(name, ...request)), { data: null, error: networkFailure });
   },
   storage: { from: galleryBucket },
   functions: edgeFunctions,
@@ -1005,7 +1018,7 @@ const copyDefaults = {
   rarity: 'common',
   protected: false,
   price: null,
-  held_for: null,
+  oracle_id: null,
   art_crop_uri: null,
   purchase_day_price: null,
   type_line: '',
@@ -1025,19 +1038,43 @@ function seedCopy(copy: Pick<CopyRecord, 'copy_id'> & Partial<CopyRecord>) {
   store.copies = [...store.copies.filter((candidate) => candidate.copy_id !== copy.copy_id), seeded];
 }
 
+export function holdCopyElsewhere(copyId: string, heldFor: CopyHeldFor) {
+  const { name, image_uris, type_line, set, collector_number, finish, condition, added_at } = copyRecord(copyId)!;
+  const holdingSwap: PlannedSwap = {
+    planned_swap_id: `planned-swap-holding-${copyId}`,
+    deck_id: heldFor.deck_id,
+    deck_name: heldFor.name,
+    commander_art_crop_uri: heldFor.commander_art_crop_uri,
+    incoming: { kind: 'copy', copy_id: copyId, name, image_uris, type_line, set, collector_number, finish, condition },
+    outgoing: null,
+    as_commander: false,
+    reason: '',
+    status: 'open',
+    close_note: null,
+    created_at: added_at,
+    status_changed_at: added_at,
+    effect: null,
+  };
+  store.plannedSwaps = [...store.plannedSwaps, holdingSwap];
+}
+
 export function ownCollectionCopies(rows: CollectionCopyRow[]) {
   store.copies = rows.map(({ deck, held_for, created_at, ...row }) =>
     seededCopy({
       ...row,
       added_at: created_at,
-      held_for: held_for && { ...held_for, commander_art_crop_uri: null },
       ...(deck && { membership: { deck_id: deck.deck_id, role: 'main', commander_at: null, added_at: created_at } }),
     }),
   );
+  for (const { copy_id, held_for } of rows) {
+    if (held_for) {
+      holdCopyElsewhere(copy_id, { ...held_for, commander_art_crop_uri: null });
+    }
+  }
 }
 
 export function ownCopies(copies: CopyDetails[]) {
-  store.copies = copies.map(({ deck, free, user_tags, ...copy }) => {
+  store.copies = copies.map(({ deck, free, user_tags, held_for, ...copy }) => {
     const membership = copyRecord(copy.copy_id)?.membership;
     return seededCopy({
       ...copy,
@@ -1051,6 +1088,11 @@ export function ownCopies(copies: CopyDetails[]) {
       }),
     });
   });
+  for (const { copy_id, held_for } of copies) {
+    if (held_for) {
+      holdCopyElsewhere(copy_id, held_for);
+    }
+  }
 }
 
 export function ownUserTags(seeds: { name: string; copyIds: string[] }[]) {
@@ -1058,34 +1100,38 @@ export function ownUserTags(seeds: { name: string; copyIds: string[] }[]) {
   store.userTagsCreated = seeds.length;
 }
 
-type DeckSeed = Pick<Deck, 'name' | 'priority' | 'card_count'> & Partial<Pick<Deck, 'commanders' | 'cards' | 'basic_lands' | 'evaluation'>>;
+type DeckSeed = Pick<Deck, 'name' | 'priority'> & Partial<Pick<Deck, 'commanders' | 'cards' | 'basic_lands' | 'evaluation'>>;
 
 export function ownDecks(seeds: DeckSeed[]) {
-  store.decks = seeds.map(({ name, priority, card_count, commanders = [], cards = [], basic_lands = basicLandsOf(), evaluation = null }, index) => {
+  store.decks = seeds.map(({ name, priority, commanders = [], cards = [], basic_lands = basicLandsOf(), evaluation = null }, index) => {
     const time = nextTime();
     const deckId = `deck-${index + 1}`;
+    for (const commander of commanders.filter(({ copy_id }) => !cards.some((card) => card.copy_id === copy_id))) {
+      seedCopy({
+        ...commander,
+        printing_id: `printing-${commander.copy_id}`,
+        set: 'cmm',
+        collector_number: '1',
+        image_uris: [`https://cards.scryfall.io/normal/front/${commander.copy_id}.jpg`],
+        finish: 'nonfoil',
+        condition: 'near_mint',
+        language: 'en',
+        added_at: time,
+        type_line: 'Legendary Creature',
+        membership: { deck_id: deckId, role: 'commander', commander_at: time, added_at: time },
+      });
+    }
     for (const { role, commander_at, added_at, planned_out, ...card } of cards) {
       const art = commanders.find((commander) => commander.copy_id === card.copy_id)?.art_crop_uri;
       seedCopy({ ...card, ...(art !== undefined && { art_crop_uri: art }), membership: { deck_id: deckId, role, commander_at, added_at } });
     }
-    return {
-      deck_id: deckId,
-      name,
-      priority,
-      last_used_at: time,
-      revision: 0,
-      created_at: time,
-      basic_lands,
-      evaluation,
-      unlisted_card_count: card_count - cards.length - basic_lands.reduce((sum, land) => sum + land.count, 0),
-      unlisted_commanders: commanders.filter((commander) => !cards.some((card) => card.copy_id === commander.copy_id)),
-    };
+    return { deck_id: deckId, name, priority, last_used_at: time, revision: 0, created_at: time, basic_lands, evaluation };
   });
   store.decksCreated = seeds.length;
 }
 
 export function ownDeckOfCopies(name: string, copies: CopyDetails[], evaluation: DeckEvaluation | null = null) {
-  ownDecks([{ name, priority: 'medium', card_count: 0, evaluation }]);
+  ownDecks([{ name, priority: 'medium', evaluation }]);
   ownCopies(copies.map((copy) => ({ ...copy, deck: { deck_id: 'deck-1', name, role: 'main', commander_art_crop_uri: null, commander_count: 0 } })));
 }
 
@@ -1111,32 +1157,26 @@ export function changeDeckElsewhere(deckId: string, change: DeckChange) {
   store.deckChanges.set(deckId, [change, ...(store.deckChanges.get(deckId) ?? [])]);
 }
 
-export function holdCopyElsewhere(copyId: string, heldFor: CopyHeldFor) {
-  copyRecord(copyId)!.held_for = heldFor;
-}
-
 export function decksOnTheServer() {
   return store.decks.map(deckOf);
+}
+
+export function copiesOnTheServer() {
+  return store.copies.map(copyDetailsOf);
 }
 
 export function ownPlannedSwaps(swaps: PlannedSwap[]) {
   store.plannedSwaps = swaps.map((swap) => ({ ...swap }));
 }
 
-function setPlannedSwapStatus(plannedSwapId: string, status: PlannedSwap['status']) {
-  store.plannedSwaps = store.plannedSwaps.map((swap) => (swap.planned_swap_id === plannedSwapId ? { ...swap, status, effect: null } : swap));
-}
-
 export function ownBuylistCards(cards: BuylistCard[]) {
   store.buylistCards = cards.map((card) => ({ ...card }));
 }
 
-function setBuylistCardStatus(buylistCardId: string, status: BuylistCard['status']) {
-  store.buylistCards = store.buylistCards.map((card) => (card.buylist_card_id === buylistCardId ? { ...card, status, effect: null } : card));
-}
-
 export function ownFreeCopies(oracleId: string, copies: FreeCopy[]) {
-  store.freeCopies.set(oracleId, copies);
+  for (const copy of copies) {
+    seedCopy({ ...copy, oracle_id: oracleId, added_at: new Date(Date.UTC(2026, 9, 12)).toISOString() });
+  }
 }
 
 const deckWrites = [
@@ -1202,10 +1242,7 @@ export function answerCollectionSearches(answer: (query: CollectionQuery) => Col
 }
 
 export function collectionSearchesSent() {
-  return callsSent('search_collection').flatMap(({ request }) => {
-    const { rows, cursor, limit, ...search } = request as CollectionQuery;
-    return cursor ? [] : [search];
-  });
+  return requestsSent('search_collection').flatMap(({ rows, cursor, limit, ...search }) => (cursor ? [] : [search]));
 }
 
 export function expirePageCursors() {

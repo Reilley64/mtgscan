@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
+import type { Refusal } from '../database-function';
 import { getDeck, listDeckChanges, revertDeckChanges, setDeckCommander } from '../decks';
 import { closePlannedSwap, swapInPlannedSwap, swapInPlannedSwaps } from '../planned-swaps';
 import { connectedAiClient, type ClaimedAiClient } from './ai-clients';
@@ -127,9 +128,7 @@ describe('swap_in_planned_swaps', () => {
 });
 
 describe('refusing swap_in_planned_swaps', () => {
-  type Refusal = { code: string; message?: string; field: string };
-
-  async function refusedSwapInAll(name: string, otherId: (client: ClaimedAiClient, deckId: string) => Promise<string>, refusal: Refusal) {
+  async function refusedSwapInAll(name: string, otherId: (client: ClaimedAiClient, deckId: string) => Promise<string>, refusal: Partial<Refusal>) {
     const client = await connectedAiClient();
     const { deckId, bolt } = await krenkoDeck(client.user);
     const newBolt = await scannedCopy(client.user, lightningBolt);
@@ -145,7 +144,7 @@ describe('refusing swap_in_planned_swaps', () => {
 
   const notFound = { code: 'not_found', message: 'planned_swap_ids[1] is not one of your planned swaps in this deck.', field: 'planned_swap_ids[1]' };
 
-  test.each<[string, (client: ClaimedAiClient, deckId: string) => Promise<string>, Refusal]>([
+  test.each<[string, (client: ClaimedAiClient, deckId: string) => Promise<string>, Partial<Refusal>]>([
     ['an unknown ID', async () => crypto.randomUUID(), notFound],
     [
       "another user's planned swap",

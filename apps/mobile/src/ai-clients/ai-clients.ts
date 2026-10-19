@@ -7,9 +7,7 @@ import { useScreenRead, type Read } from '@/lib/read';
 
 export type AiClient = { id: string; name: string; allowedAt: string };
 
-type AiClientsLoaded = { status: 'loaded'; aiClients: AiClient[] };
-
-export type AiClientsRead = Read<AiClientsLoaded>;
+export type AiClientsRead = Read<{ aiClients: AiClient[] }>;
 
 const allowedAiClients = {
   key: ['ai_clients'],
@@ -22,24 +20,20 @@ const allowedAiClients = {
   },
 };
 
-function loadedAiClients(aiClients: AiClient[]): AiClientsLoaded {
-  return { status: 'loaded', aiClients };
+function loadedAiClients(aiClients: AiClient[]) {
+  return { aiClients };
 }
 
 export function useAiClients() {
-  const { read, reload } = useScreenRead(allowedAiClients, loadedAiClients);
-  const [revokedIds, setRevokedIds] = useState<string[]>([]);
+  const { read: aiClientsRead, reload, replaceReply } = useScreenRead(allowedAiClients, loadedAiClients);
   const [revokingIds, setRevokingIds] = useState<string[]>([]);
-
-  const aiClientsRead: AiClientsRead =
-    read.status === 'loaded' ? { ...read, aiClients: read.aiClients.filter(({ id }) => !revokedIds.includes(id)) } : read;
 
   async function revoke(aiClient: AiClient): Promise<boolean> {
     setRevokingIds((ids) => [...ids, aiClient.id]);
     const { error } = await supabase.auth.oauth.revokeGrant({ clientId: aiClient.id });
     setRevokingIds((ids) => ids.filter((id) => id !== aiClient.id));
     if (!error) {
-      setRevokedIds((ids) => [...ids, aiClient.id]);
+      replaceReply((aiClients) => aiClients?.filter(({ id }) => id !== aiClient.id));
     }
     return !error;
   }

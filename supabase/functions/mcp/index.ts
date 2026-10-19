@@ -3,7 +3,7 @@ import { getEnv } from '@supabase/middleware';
 import { createContextClient, verifyAuth } from '@supabase/server/core';
 import { withOAuthProtectedResource } from '@supabase/server/oauth-protected-resource';
 
-import { callDatabaseFunction } from '../../database-function.ts';
+import { refusalOf } from '../../database-function.ts';
 import {
   beginMcpCallCodes,
   httpProblem,
@@ -84,14 +84,14 @@ async function verifyAndServe(request: Request, body: string | null, log: Reques
 
   const supabase = userClient(auth.token!);
   const { error: callStartError } = await supabase.rpc('begin_mcp_call', { tool: log.tool });
-  if (callStartError && !beginMcpCallCodes.some((code) => code === callStartError.code)) {
+  const callStartRefusal = callStartError && refusalOf(callStartError, beginMcpCallCodes);
+  if (callStartError && !callStartRefusal) {
     return failWith(log, 'internal-error', 500, internalErrorDetail);
   }
-  if (callStartError?.code === 'unauthorized') {
-    return failWith(log, 'unauthorized', 401, callStartError.message);
+  if (callStartRefusal?.code === 'unauthorized') {
+    return failWith(log, 'unauthorized', 401, callStartRefusal.message);
   }
-  const refusal =
-    callStartError && refusalProblem({ code: callStartError.code, message: callStartError.message, field: callStartError.details || null });
+  const refusal = callStartRefusal && refusalProblem(callStartRefusal);
 
   const handler = createMcpHandler(() => mcpServer(supabase, refusal, log), { responseMode: 'json' });
   const response = await handler.fetch(
@@ -135,19 +135,18 @@ async function callTool(supabase: UserClient, tool: Tool, toolArguments: Record<
   if ('problem' in paged) {
     return problemResult(paged.problem);
   }
-  const result = await callDatabaseFunction(supabase, tool.contract, paged.toolArguments);
+  const result = await tool.call(supabase, paged.toolArguments);
   if (result.status === 'refused') {
     return problemResult(refusalProblem(result.refusal));
   }
   if (result.status === 'failed') {
     return problemResult(problem('internal-error', internalErrorDetail));
   }
-  const structuredContent = tool.output.parse(result.reply);
-  const json = JSON.stringify(structuredContent);
+  const json = JSON.stringify(result.structuredContent);
   if (new TextEncoder().encode(json).length > maxResultBytes) {
     return problemResult(problem('result-too-large', `The result is over ${maxResultBytes / 1024} KB. ${tool.tooLargeHint}`));
   }
-  return { structuredContent, content: [{ type: 'text', text: `${tool.summary(result.reply)}\n${json}` }] };
+  return { structuredContent: result.structuredContent, content: [{ type: 'text', text: `${result.summary}\n${json}` }] };
 }
 
 function problemResult(toolProblem: Problem): CallToolResult {

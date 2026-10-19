@@ -29,12 +29,13 @@ function needsYouRead(deckId: string | undefined) {
 }
 
 function loadedItems(items: NeedsYouItem[]) {
-  return { status: 'loaded' as const, items };
+  return { items };
 }
 
 export function useNeedsYou(deckId?: string) {
   const { read } = useScreenRead(needsYouRead(deckId), loadedItems);
-  useScreenRead(needsYouCountsRead(useSession()?.user.id), loadedCounts);
+  const userId = useSession()?.user.id;
+  useScreenRead(userId ? needsYouCountsRead : null, loadedCounts, { key: [userId] });
   const readAgain = useReadAgain();
   return { read, reload: () => readAgain(needsYouKey) };
 }

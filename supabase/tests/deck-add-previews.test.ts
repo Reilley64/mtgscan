@@ -3,7 +3,6 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import {
   addDeckCard,
   changeBasicLand,
-  createDeck,
   getDeck,
   previewAddDeckCard,
   setDeckCommander,
@@ -11,6 +10,7 @@ import {
 } from '../decks';
 import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { call, failed, refused, replyOf } from './database-calls';
+import { createdDeck } from './deck-calls';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -39,10 +39,6 @@ async function scannedCopy(user: TestUser, cardPrintingId: string) {
   return scanned.copy_ids[0]!;
 }
 
-async function created(user: TestUser) {
-  return (await replyOf(user.client, createDeck, { name: 'Krenko' })).deck_id;
-}
-
 async function added(user: TestUser, deckId: string, copyId: string) {
   await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
 }
@@ -54,7 +50,7 @@ async function addedCopy(user: TestUser, deckId: string, cardPrintingId: string)
 }
 
 async function deckOfKrenko(user: TestUser, cardCount: number, cardPrintingIds: string[] = []) {
-  const deckId = await created(user);
+  const deckId = await createdDeck(user, 'Krenko');
   const commander = await addedCopy(user, deckId, krenko);
   await replyOf(user.client, setDeckCommander, { copy_id: commander, commander: true });
   for (const cardPrintingId of cardPrintingIds) {
@@ -170,7 +166,7 @@ describe('preview_add_deck_card', () => {
 
   test('an empty deck has no effect', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user, 'Krenko');
 
     expect(await previewOf(user, await scannedCopy(user, blackLotus))).toEqual({ items: [{ deck_id: deckId, effect: null }] });
   });
@@ -231,7 +227,7 @@ describe('access', () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
     await deckOfKrenko(alice, 100);
     const alicesCopy = await scannedCopy(alice, blackLotus);
-    const bobsDeck = await created(bob);
+    const bobsDeck = await createdDeck(bob, 'Krenko');
 
     expect(await previewOf(bob, await scannedCopy(bob, blackLotus))).toEqual({ items: [{ deck_id: bobsDeck, effect: null }] });
     expect(await call(bob.client, previewAddDeckCard, { copy_id: alicesCopy })).toMatchObject(refused('not_found', 'copy_id'));
@@ -240,7 +236,7 @@ describe('access', () => {
   test("the preview of a basic land card lists only the caller's decks", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
     await deckOfKrenko(alice, 100);
-    const bobsDeck = await created(bob);
+    const bobsDeck = await createdDeck(bob, 'Krenko');
 
     expect(await basicLandPreviewOf(bob, mountain, 1)).toEqual({ items: [{ deck_id: bobsDeck, effect: null }] });
   });

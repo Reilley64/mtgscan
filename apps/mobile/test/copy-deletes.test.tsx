@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from 'expo-router/testing-library';
 
 import { copyOf, delver, openCopyPage } from './copies';
-import { changeElsewhere, holdCopyElsewhere, ownCollectionTotal, ownCopies, ownDeckOfCopies, startSignedIn } from './fake-supabase';
+import { changeElsewhere, copiesOnTheServer, holdCopyElsewhere, ownCollectionTotal, ownCopies, ownDeckOfCopies, startSignedIn } from './fake-supabase';
 import { fail, refuse, requestsSent } from './fake-supabase-controls';
 import {
   headerMenuRows,
@@ -90,6 +90,7 @@ describe('deleting a copy', () => {
     await pressAlertButton('Delete copy');
 
     expect(requestsSent('delete_copy')).toEqual([{ copy_id: 'copy-1', move_planned_swap: false }]);
+    expect(copiesOnTheServer().map(({ copy_id }) => copy_id)).toEqual(['copy-1']);
     expect(await within(pushedScreen()).findByText('Held')).toBeOnTheScreen();
     await waitFor(() =>
       expect(presentedAlert()).toEqual({
@@ -153,6 +154,7 @@ describe('deleting a copy', () => {
     await pressAlertButton('Delete copy');
 
     expect(presentedAlert()).toEqual({ title: 'Could not delete this copy', message: 'Check your connection.', buttons: ['OK'] });
+    expect(copiesOnTheServer().map(({ copy_id }) => copy_id)).toEqual(['copy-1']);
     expect(screen.getByRole('header', { name: 'Angelic Curator' })).toBeOnTheScreen();
   });
 });

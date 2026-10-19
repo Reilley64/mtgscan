@@ -1,12 +1,12 @@
-import { callDatabaseFunction } from '../database-function';
+import { callDatabaseFunction, type ReplyOf } from '../database-function';
 import type { ImportClient } from '../import/import-run';
-import { searchCatalog, type CatalogQuery, type CatalogRow, type SearchPage } from '../search';
+import { searchCatalog, type CatalogQuery } from '../search';
 import { readCardFacts, readTagClosures, violatedChips, type ChipField } from './chip-check';
 import { searchClasses, type CorpusSearch, type SearchClass } from './search-corpus';
 
 export type SearchMode = {
   name: string;
-  search: (query: CatalogQuery) => Promise<SearchPage<CatalogRow>>;
+  search: (query: CatalogQuery) => Promise<ReplyOf<typeof searchCatalog>>;
 };
 
 type SearchScore = {
@@ -58,7 +58,7 @@ export const recallGate = 0.7;
 export const vectorTriggerRecall = 0.5;
 export const gatedClasses: SearchClass[] = [2, 3, 4];
 
-type SearchRun = { search: CorpusSearch; page: SearchPage<CatalogRow> };
+type SearchRun = { search: CorpusSearch; page: ReplyOf<typeof searchCatalog> };
 
 export function catalogSearch(client: ImportClient): SearchMode {
   return {

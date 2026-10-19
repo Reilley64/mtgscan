@@ -63,7 +63,7 @@ const history = [
 const noChanges: Omit<RevertPreview, 'revision'> = { lines: [], blocks: [], protected_copies: [], held_copies: [], effect: null };
 
 async function openRevert(revision: number, preview: Partial<Omit<RevertPreview, 'revision'>> = {}, changes = history) {
-  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 0 }, { name: 'Kinnan', priority: 'low', card_count: 1 }]);
+  ownDecks([{ name: 'Atraxa', priority: 'medium' }, { name: 'Kinnan', priority: 'low' }]);
   ownDeckChanges('deck-1', changes.slice(1));
   changeDeckElsewhere('deck-1', changes[0]!);
   ownRevertPreview(`deck-change-${revision}`, { ...noChanges, ...preview });

@@ -1,4 +1,4 @@
-import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { callDatabaseFunction, type ErrorCodeOf } from '@mtgscan/supabase/database-function';
 import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import type {
   AddDeckCardRequest,
@@ -57,9 +57,11 @@ export async function addDeckCard(request: AddDeckCardRequest): Promise<AddDeckC
   return code === 'not_found' && field === 'copy_id' ? 'missing' : 'failed';
 }
 
+const missingCopyCodes: ErrorCodeOf<typeof databaseFunctions.set_deck_commander>[] = ['copy_not_in_deck', 'commander_limit'];
+
 export async function setDeckCommander(copyId: string, commander: boolean): Promise<WriteResult> {
   const result = await callDatabaseFunction(supabase, databaseFunctions.set_deck_commander, { copy_id: copyId, commander });
-  if (result.status === 'refused' && ['copy_not_in_deck', 'commander_limit'].includes(result.refusal.code)) {
+  if (result.status === 'refused' && missingCopyCodes.includes(result.refusal.code)) {
     return 'missing';
   }
   return writeResultOf(result);
@@ -73,7 +75,7 @@ export async function removeDeckCard(copyId: string): Promise<WriteResult> {
   return writeResultOf(result);
 }
 
-const outdatedPreviewCodes = ['stale_revision', 'revert_blocked', 'protected_copy'];
+const outdatedPreviewCodes: ErrorCodeOf<typeof databaseFunctions.revert_deck_changes>[] = ['stale_revision', 'revert_blocked', 'protected_copy'];
 
 export async function revertDeckChanges(request: RevertDeckChangesRequest): Promise<WriteResult | 'outdated'> {
   const result = await callDatabaseFunction(supabase, databaseFunctions.revert_deck_changes, request);

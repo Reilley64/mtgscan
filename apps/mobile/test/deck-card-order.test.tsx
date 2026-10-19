@@ -266,8 +266,8 @@ describe('the group and sort choices', () => {
   test('apply to every deck and stay when the deck screen opens again', async () => {
     const cards = [deckCardOf('ring', 'Sol Ring', 'Artifact', { mana_value: 1 }), deckCardOf('signet', 'Arcane Signet', 'Artifact')];
     ownDecks([
-      { name: 'Atraxa', priority: 'medium', card_count: 2, cards },
-      { name: 'Kinnan', priority: 'medium', card_count: 2, cards: cards.map((card) => ({ ...card, copy_id: `kinnan-${card.copy_id}` })) },
+      { name: 'Atraxa', priority: 'medium', cards },
+      { name: 'Kinnan', priority: 'medium', cards: cards.map((card) => ({ ...card, copy_id: `kinnan-${card.copy_id}` })) },
     ]);
     await renderApp();
     await pressTab('Decks');

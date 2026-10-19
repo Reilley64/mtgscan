@@ -20,7 +20,8 @@ import {
   spellbookFixtureVariants,
 } from './catalog-import-command';
 import { replyOf } from './database-calls';
-import { deckOf, deckWithCards, withFailingRecompute } from './deck-evaluation-seeds';
+import { deckOf } from './deck-calls';
+import { deckWithCards, withFailingRecompute } from './deck-evaluation-seeds';
 import { asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);

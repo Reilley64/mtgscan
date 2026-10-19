@@ -188,8 +188,8 @@ describe('adding basic lands to a deck', () => {
   beforeEach(() => {
     ownCollectionCopies(copyRows('Ponder', 1));
     ownDecks([
-      { name: 'Atraxa', priority: 'medium', card_count: 0 },
-      { name: 'Kinnan', priority: 'high', card_count: 99, basic_lands: basicLandsOf({ Island: 99 }) },
+      { name: 'Atraxa', priority: 'medium' },
+      { name: 'Kinnan', priority: 'high', basic_lands: basicLandsOf({ Island: 99 }) },
     ]);
   });
 
@@ -270,7 +270,7 @@ describe('adding basic lands to a deck', () => {
 describe('basic lands on the Cards tab', () => {
   async function openDeck(counts: Record<string, number>, cards = [deckCardOf('tower', 'Command Tower', 'Land', { mana_value: 0 })]) {
     const basicLandCount = Object.values(counts).reduce((total, count) => total + count, 0);
-    ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: cards.length + basicLandCount, cards, basic_lands: basicLandsOf(counts) }]);
+    ownDecks([{ name: 'Atraxa', priority: 'medium', cards, basic_lands: basicLandsOf(counts) }]);
     await renderApp();
     await pressTab('Decks');
     return openDeckNamed('Atraxa');

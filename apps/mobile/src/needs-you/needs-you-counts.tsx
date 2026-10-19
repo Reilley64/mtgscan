@@ -16,17 +16,17 @@ const noCounts: NeedsYouCounts = { total: 0, decks: [] };
 
 const NeedsYouCountsContext = createContext<NeedsYouCountsState | null>(null);
 
-export function needsYouCountsRead(userId: string | undefined) {
-  const read = databaseRead(databaseFunctions.get_needs_you_counts);
-  return userId ? { ...read, key: [...needsYouKey, ...read.key, userId] } : null;
-}
+const countsRead = databaseRead(databaseFunctions.get_needs_you_counts);
+
+export const needsYouCountsRead = { ...countsRead, key: [...needsYouKey, ...countsRead.key] };
 
 export function loadedCounts(counts: NeedsYouCounts) {
-  return { status: 'loaded' as const, counts };
+  return { counts };
 }
 
 export function NeedsYouCountsProvider({ children }: { children: ReactNode }) {
-  const { read } = useAppRead(needsYouCountsRead(useSession()?.user.id), loadedCounts, { whenAppActive: true });
+  const userId = useSession()?.user.id;
+  const { read } = useAppRead(userId ? needsYouCountsRead : null, loadedCounts, { key: [userId], whenAppActive: true });
   const counts = read.status === 'loaded' ? read.counts : noCounts;
 
   const state = useMemo<NeedsYouCountsState>(

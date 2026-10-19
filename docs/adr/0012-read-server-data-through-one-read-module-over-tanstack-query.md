@@ -12,12 +12,12 @@ The app now reads server data through one read module, `apps/mobile/src/lib/read
   - The default `gcTime` of 5 minutes, so a screen that opens again within 5 minutes after it closed shows its last data at once.
 - A read on a screen sets `subscribed` from Expo Router's `useIsFocused`. A hidden screen stops listening, so it does not re-render, and an invalidation skips it. When the screen gains focus again, TanStack Query reads again because the data is stale. Reads outside a screen, such as the settings providers and the Needs you counts, do not use `useIsFocused`.
 - With `subscribed: false`, the hidden screen is no longer an observer of its query. After `gcTime`, TanStack Query would drop the data of a screen that is still open under another screen or tab, and the screen would show its skeleton and only its first page when it gains focus. So each screen read also holds a second observer with `enabled: false` and `notifyOnChangeProps: []`. It never reads and never re-renders. It keeps the query in the cache while the screen is open.
-- What reads again is part of the key or a TanStack Query option: the user ID and the deck revision go in the key, and the 24-hour wait before the exchange rates read again is `staleTime`.
+- What reads again is part of the key or a TanStack Query option: the deck revision goes in the key, and the 24-hour wait before the exchange rates read again is `staleTime`.
 - Paged reads use `useInfiniteQuery`. A read again reads as many pages as are shown, from the first page with fresh cursors. An expired cursor reads again from the first page.
 - The module does not use `keepPreviousData` for searches, so a new search shows its skeleton. Only two reads keep what they show until the reply for their new key arrives: History, whose key gains the new deck revision, and the Add to deck preview, whose key gains the basic land count. Both kept it before #412.
 - The module keeps these parts as app code: the pause in typing, the map from TanStack Query's result to the app's status unions, the refused field, and the read again after an expired cursor.
 - Needs you and its counts share the key prefix `needs_you`, so one invalidation reads both again. Recent and the deck screen also observe the counts, so the counts read again each time those screens read their items.
-- Signing out clears the cache.
+- Signing out clears the cache. This keeps one account's reads from showing to the next account, so most keys hold no user ID. Only the Needs you counts and the training crop uploads setting also put the user ID in their key.
 
 ## Consequences
 
