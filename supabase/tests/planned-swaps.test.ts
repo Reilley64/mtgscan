@@ -534,12 +534,7 @@ describe('list_planned_swaps', () => {
   async function plannedAgo(client: ClaimedAiClient, deckId: string, printingId: string, ago: string) {
     const { planned_swaps } = await planned(client, [await plannedSwapItem(client.user, deckId, await scannedCopy(client.user, printingId))]);
     const plannedSwapId = planned_swaps[0]!.planned_swap_id;
-    await asDatabaseOwner(
-      (database) => database`
-        update public.planned_swaps set created_at = now() - ${ago}::interval, status_changed_at = now() - ${ago}::interval
-        where id = ${plannedSwapId}
-      `,
-    );
+    await backdated('planned_swaps', plannedSwapId, ago);
     return plannedSwapId;
   }
 
@@ -698,11 +693,7 @@ describe('list_planned_swaps', () => {
         await plannedSwapItem(client.user, deckId, await scannedCopy(client.user, printingId)),
       ]);
       ids.push(planned_swaps[0]!.planned_swap_id);
-      await asDatabaseOwner(
-        (database) => database`
-          update public.planned_swaps set created_at = now() - ${`${3 - index} hours`}::interval where id = ${ids[index]!}
-        `,
-      );
+      await backdated('planned_swaps', ids[index]!, `${3 - index} hours`);
     }
     const expected = positions.map((position) => ids[position]);
 

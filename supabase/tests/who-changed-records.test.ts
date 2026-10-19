@@ -129,21 +129,29 @@ describe('who created and last changed a record', () => {
   test("a caller's values for who created and last changed a record are ignored", async () => {
     const user = await signUpNewUser();
     const someoneElse = crypto.randomUUID();
+    const longAgo = '2000-01-01T00:00:00Z';
     const [{ id }] = await asDatabaseOwner(
       (database) => database`
-        insert into public.user_tags (user_id, name, created_by, updated_by)
-        values (${user.userId}, 'Signed', ${someoneElse}, ${someoneElse})
+        insert into public.user_tags (user_id, name, created_by, updated_by, updated_at)
+        values (${user.userId}, 'Signed', ${someoneElse}, ${someoneElse}, ${longAgo})
         returning id
       `,
     );
     expect(await changersOf('user_tags', { id })).toEqual(changers(user.userId));
+    const inserted = await userTagTimes(id);
+    expect(inserted.updated_at).toEqual(inserted.created_at);
 
     await asDatabaseOwner(
       (database) => database`
-        update public.user_tags set created_by = ${someoneElse}, updated_by = ${someoneElse} where id = ${id}
+        update public.user_tags
+        set created_by = ${someoneElse}, updated_by = ${someoneElse}, created_at = ${longAgo}, updated_at = ${longAgo}
+        where id = ${id}
       `,
     );
     expect(await changersOf('user_tags', { id })).toEqual(changers(user.userId));
+    const updated = await userTagTimes(id);
+    expect(updated.created_at).toEqual(inserted.created_at);
+    expect(updated.updated_at.getTime()).toBeGreaterThan(inserted.created_at.getTime());
   });
 
   test('no read returns who created or last changed a record', async () => {

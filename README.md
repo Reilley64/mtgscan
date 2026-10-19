@@ -582,7 +582,7 @@ Every record that the user writes also says who created it and who last changed 
 
 - One trigger function, `private.record_who_changed`, runs before each insert and update on these tables. The changer is the token's `client_id` claim when it has one, otherwise `auth.uid()`, otherwise the row's `user_id`, as for a write with no caller such as the test-user seed.
 - An insert sets `created_by`, `updated_by`, and `updated_at`. `created_at` defaults to the time of the insert. A buylist card that a planned swap moved to keeps the planned swap's `created_at`.
-- An update keeps `created_by` and sets `updated_by` and `updated_at`. A caller's values for `created_by`, `updated_by`, and `updated_at` are ignored.
+- An update keeps `created_by` and `created_at`, and sets `updated_by` and `updated_at`. A caller's values for `created_by` and `updated_by` are always ignored, and so are its values for `updated_at` and, on an update, `created_at`.
 - A change made as a side effect of a call runs in the caller's transaction, so it takes the caller's ID. A planned swap moved to the buylist when its held copy is deleted gets the ID of the user who deleted the copy.
 - Records from before the columns took the user's ID, except planned swaps and buylist cards, which took their old `client_id`. Their times started from the row's existing time column, such as `added_at` or `changed_at`, otherwise from the time of the migration.
 - No read function, view, or MCP tool returns `created_by` or `updated_by`. The owner reads them in the database.

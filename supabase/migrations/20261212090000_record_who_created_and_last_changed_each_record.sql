@@ -10,6 +10,7 @@ begin
     new.created_by := changer;
   else
     new.created_by := old.created_by;
+    new.created_at := old.created_at;
   end if;
   new.updated_by := changer;
   new.updated_at := now();

@@ -11,6 +11,7 @@ import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type 
 import {
   addedToDeck,
   appRead,
+  backdated,
   appRequest,
   codesOf,
   copyOf,
@@ -470,12 +471,7 @@ describe('idempotency', () => {
 describe('list_buylist', () => {
   async function addedAgo(client: ClaimedAiClient, deckId: string, oracleId: string, ago: string) {
     const buylistCardId = await oneBuylistCard(client, deckId, oracleId);
-    await asDatabaseOwner(
-      (database) => database`
-        update public.buylist_cards set created_at = now() - ${ago}::interval, status_changed_at = now() - ${ago}::interval
-        where id = ${buylistCardId}
-      `,
-    );
+    await backdated('buylist_cards', buylistCardId, ago);
     return buylistCardId;
   }
 
