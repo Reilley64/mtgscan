@@ -41,7 +41,6 @@ import {
   presentedAlert,
   pressAlertButton,
   pressHeaderMenuAction,
-  presentedAlert,
   pressTab,
   swipeDownDrawer,
   swipeRight,
