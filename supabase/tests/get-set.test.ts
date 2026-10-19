@@ -6,6 +6,7 @@ import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './ca
 import { seedCopies } from './copy-seeds';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
+import { artCrop } from './scryfall-images';
 
 setDefaultTimeout(60_000);
 
@@ -23,10 +24,6 @@ const prismaticPiper = 'c78c2713-39e7-4a6e-a132-027099a89665';
 const smotheringTitheVariant = '2309fb66-3aa0-4ec5-9a8e-5a0caa19c270';
 const boonOfTheSpiritRealm = 'a588fc39-ed88-4262-96cd-908fadc7f049';
 const counterspell = '0df55e3f-14de-46ef-b6b1-616618724d9e';
-
-function artCrop(printingId: string, version: number) {
-  return `https://cards.scryfall.io/art_crop/front/${printingId[0]}/${printingId[1]}/${printingId}.jpg?${version}`;
-}
 
 function normalImage(printingId: string, version: number) {
   return `https://cards.scryfall.io/normal/front/${printingId[0]}/${printingId[1]}/${printingId}.jpg?${version}`;

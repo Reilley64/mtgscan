@@ -6,6 +6,7 @@ import { seedCopies } from './copy-seeds';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 import { addedToDeck, appRequest, deckNamed, scannedCopies, scannedCopy } from './planned-swap-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
+import { artCrop } from './scryfall-images';
 
 setDefaultTimeout(60_000);
 
@@ -31,10 +32,6 @@ const giselaSecretLair = 'd1cfc318-9c3e-471f-90eb-dc76454da957';
 const smotheringTitheEtched = '2309fb66-3aa0-4ec5-9a8e-5a0caa19c270';
 const lightningBolt = 'd573ef03-4730-45aa-93dd-e45ac1dbaf4a';
 const schemaThief = '312591ec-436d-40e5-805e-e78e6a63096d';
-
-function artCrop(printingId: string, version: number) {
-  return `https://cards.scryfall.io/art_crop/front/${printingId[0]}/${printingId[1]}/${printingId}.jpg?${version}`;
-}
 
 beforeAll(async () => {
   await resetCardCatalog();
