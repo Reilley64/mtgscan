@@ -8,9 +8,11 @@ import { failSetReads, holdSetReads, offerSets, ownCollectionCopies, setListQuer
 import {
   appearsBefore,
   backdropOf,
+  clearSearchBar,
   glassEffect,
   imageSources,
   imageTintColors,
+  pauseTyping,
   pressSearchCancel,
   pressSearchKey,
   pressTab,
@@ -27,6 +29,7 @@ import {
   tabStackShowsBackButton,
   tabStackTopScreen,
   typeInSearchBar,
+  typeInSearchBarWithoutPausing,
 } from './native-ui';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
@@ -291,12 +294,27 @@ describe('searching Sets', () => {
     expect(shownSets()).toEqual(['Modern Horizons 3, 1 of 303, 0 percent']);
   });
 
-  test('a new search text reads Sets again from the first page', async () => {
+  test('the search waits for a pause in typing, then reads Sets again from the first page once, for the final text', async () => {
     await openSets();
 
-    await typeInSearchBar('bloom');
+    await typeInSearchBarWithoutPausing('bloom');
+    expect(setListQueriesSent()).toEqual([{ finish_view: 'any', cursor: null }]);
 
-    expect(setListQueriesSent().at(-1)).toEqual({ text: 'bloom', finish_view: 'any', cursor: null });
+    await pauseTyping();
+    expect(setListQueriesSent()).toEqual([
+      { finish_view: 'any', cursor: null },
+      { text: 'bloom', finish_view: 'any', cursor: null },
+    ]);
+  });
+
+  test('clearing the search reads every set at once', async () => {
+    await openSets();
+    await typeInSearchBar('xyz');
+
+    await clearSearchBar();
+
+    expect(setListQueriesSent().at(-1)).toEqual({ finish_view: 'any', cursor: null });
+    expect(shownSets()).toHaveLength(2);
   });
 
   test('a search that matches no set says so, and Cancel shows every set again', async () => {

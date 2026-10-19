@@ -13,6 +13,7 @@ import {
   ownDecks,
   failDeckReads,
   ownUserTags,
+  setCodeLookupsSent,
   startSignedIn,
 } from './fake-supabase';
 import {
@@ -27,6 +28,7 @@ import {
   imageTintColor,
   menuButton,
   menuButtonNames,
+  pauseTyping,
   pressableMenuRows,
   pressButtonMenuItem,
   pressBackspaceInSearchBar,
@@ -41,6 +43,7 @@ import {
   tabHeader,
   tabSearchBar,
   typeInSearchBar,
+  typeInSearchBarWithoutPausing,
 } from './native-ui';
 import { setIconUri } from './card-printings';
 import { renderApp } from './render-app';
@@ -602,6 +605,33 @@ describe('collection search', () => {
     expect(lastSearch()).toEqual({ text: 'angel' });
   });
 
+  test('typed text waits for a pause in typing, then searches the collection once, for the final text', async () => {
+    await openCollection();
+
+    await typeInSearchBarWithoutPausing('angel');
+    expect(collectionSearchesSent()).toEqual([{}]);
+
+    await pauseTyping();
+    expect(collectionSearchesSent()).toEqual([{}, { text: 'angel' }]);
+  });
+
+  test('a space that makes a chip searches the collection at once, with the text before it', async () => {
+    await openCollection();
+
+    await typeInSearchBarWithoutPausing('angel set:mh2 ');
+
+    expect(lastSearch()).toEqual({ text: 'angel', sets: ['mh2'] });
+  });
+
+  test('Enter searches the collection at once', async () => {
+    await openCollection();
+
+    await typeInSearchBarWithoutPausing('angel');
+    await pressSearchKey();
+
+    expect(lastSearch()).toEqual({ text: 'angel' });
+  });
+
   test('a space turns typed key:value text into a chip, and the app sends it in the typed query', async () => {
     await openCollection();
 
@@ -742,6 +772,17 @@ describe('collection search', () => {
     expect(await collection.findByRole('button', { name: 'set:mh2, Modern Horizons 2' })).toBeOnTheScreen();
     expect(collection.getByRole('button', { name: 'set:mh3, Modern Horizons 3' })).toBeOnTheScreen();
     expect(collection.queryByRole('button', { name: /^set:m10/ })).not.toBeOnTheScreen();
+  });
+
+  test('suggestions wait for a pause in typing, then read set codes once, for the final text', async () => {
+    const collection = await openCollection();
+
+    await typeInSearchBarWithoutPausing('set:mh2');
+    expect(setCodeLookupsSent()).toEqual([]);
+
+    await pauseTyping();
+    expect(setCodeLookupsSent()).toEqual(['mh2']);
+    expect(collection.getByRole('button', { name: 'set:mh2, Modern Horizons 2' })).toBeOnTheScreen();
   });
 
   test('after tag:, suggestions offer Oracle tags from the tag lookup', async () => {

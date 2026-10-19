@@ -19,6 +19,7 @@ export const galleryBuiltAt = '2026-10-12T09:30:00.000Z';
 let installed: InstalledGallery | null = null;
 let nextRecognitions: (Recognition | RecognitionErrorCode)[] = [];
 let recognizedPhotos: string[] = [];
+let cardNameSearches: string[] = [];
 let heldRecognition: { finish: () => void } | null = null;
 let holdingNextRecognition = false;
 let downloads: GalleryDownload[] = [];
@@ -41,6 +42,7 @@ export const fakeCardRecognizer = {
     return next;
   },
   searchCardNames: async (text: string) => {
+    cardNameSearches = [...cardNameSearches, text];
     const query = text.trim().toLowerCase();
     const names = new Map(
       galleryPrintings
@@ -142,6 +144,10 @@ export function photosRecognized() {
   return recognizedPhotos;
 }
 
+export function cardNameSearchesSent() {
+  return cardNameSearches;
+}
+
 export function galleryDownloads() {
   return downloads;
 }
@@ -153,6 +159,7 @@ export function resetFakeCardRecognizer() {
   listeners.clear();
   nextRecognitions = [];
   recognizedPhotos = [];
+  cardNameSearches = [];
   heldRecognition = null;
   holdingNextRecognition = false;
 }
