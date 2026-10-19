@@ -3,7 +3,7 @@ import { fireEvent, within } from 'expo-router/testing-library';
 
 import { deckCardOf, openDeckNamed } from './copies';
 import { answerCollectionSearches, basicLandOracleId, basicLandsOf, failDeckWrites, ownAddPreviewEffects, ownCollectionCopies, ownCollectionTotal, ownDecks, startSignedIn } from './fake-supabase';
-import { hold, requestsSent } from './fake-supabase-controls';
+import { hold, refuse, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
   buttonMenuActions,
@@ -242,6 +242,7 @@ describe('adding basic lands to a deck', () => {
 
   test('an add that takes a deck over 99 of the basic land card says so and keeps the drawer', async () => {
     const drawer = await openAddToDeck(await openCollection(), 'Island');
+    refuse('change_basic_land', 'invalid_argument', 'by');
 
     await fireEvent.press(drawer.getByRole('button', { name: /^Kinnan,/ }));
 

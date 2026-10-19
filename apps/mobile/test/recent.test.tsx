@@ -2,7 +2,7 @@ import { fireEvent, waitFor, within } from 'expo-router/testing-library';
 
 import { buylistCardOf, freeCopyOf, plannedCardLine } from './buylist';
 import { changeElsewhere, deckWritesSent, failDeckWrites, failNeedsYouReads, ownBuylistCards, ownDecks, ownFreeCopies, ownPlannedSwaps, startSignedIn } from './fake-supabase';
-import { fail, hold, requestsSent } from './fake-supabase-controls';
+import { fail, hold, refuse, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
   cardImageUri,
@@ -456,6 +456,7 @@ describe('the Bought page sheet', () => {
     const sheet = await openBought([freeCopyOf('copy-alpha'), freeCopyOf('copy-beta', { set: 'fdc', collector_number: '61' })]);
     await sheet.findByRole('button', { name: 'Counterspell, LEA 54' });
     ownFreeCopies('oracle-counterspell', [freeCopyOf('copy-beta', { set: 'fdc', collector_number: '61' })]);
+    refuse('mark_buylist_card_bought', 'copy_not_free', 'copy_id');
 
     await fireEvent.press(sheet.getByRole('button', { name: 'Counterspell, LEA 54' }));
 

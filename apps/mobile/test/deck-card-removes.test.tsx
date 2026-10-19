@@ -1,7 +1,15 @@
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { copyOf, delver, openDeckNamed } from './copies';
-import { changeElsewhere, decksOnTheServer, failDeckWrites, ownDeckOfCopies, startSignedIn } from './fake-supabase';
+import { invalidEvaluation } from './deck-evaluations';
+import {
+  changeElsewhere,
+  decksOnTheServer,
+  evaluateNextDeckChange,
+  failDeckWrites,
+  ownDeckOfCopies,
+  startSignedIn,
+} from './fake-supabase';
 import { requestsSent } from './fake-supabase-controls';
 import {
   buttonMenuActions,
@@ -82,6 +90,7 @@ describe('the long-press menu on the Cards tab', () => {
   test('after a remove, the gallery card counts one card less', async () => {
     ownDeckOfCopies('Atraxa', [curator, delver]);
     const deck = await openDeck();
+    evaluateNextDeckChange('deck-1', invalidEvaluation);
 
     await pressButtonMenuAction(contextMenu(deck.getByRole('button', { name: 'Angelic Curator, MH2 262' })), 'Remove from deck');
     await deck.findByRole('header', { name: 'Creatures, 1' });
