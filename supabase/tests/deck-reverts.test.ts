@@ -246,7 +246,7 @@ describe('reverting deck changes', () => {
     expect((await deckOf(user, deckId)).cards).toEqual([]);
   });
 
-  test('a protected copy that comes back needs unprotect, otherwise copy_protected', async () => {
+  test('a protected copy that comes back needs unprotect, otherwise protected_copy', async () => {
     const user = await signUpNewUser();
     const deckId = await created(user);
     const curator = await scannedCopy(user);
@@ -261,7 +261,7 @@ describe('reverting deck changes', () => {
 
     expect(preview.protected_copies).toEqual([{ copy_id: curator, name: 'Angelic Curator' }]);
     expect(preview.blocks).toEqual([]);
-    expect(refusal).toMatchObject(refused('copy_protected', 'unprotect'));
+    expect(refusal).toMatchObject(refused('protected_copy', 'unprotect'));
     expect((await deckOf(user, deckId)).revision).toBe(2);
 
     await replyOf(user.client, revertDeckChanges, { ...request, unprotect: true });

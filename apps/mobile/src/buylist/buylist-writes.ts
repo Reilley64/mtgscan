@@ -7,7 +7,7 @@ import { writeResultOf, type WriteResult } from '@/lib/write-result';
 
 const outdatedCopyCodes: ErrorCodeOf<typeof databaseFunctions.mark_buylist_card_bought>[] = [
   'copy_not_free',
-  'copy_protected',
+  'protected_copy',
   'invalid_argument',
 ];
 

@@ -1,24 +1,29 @@
 import type { Tool as ListedTool, ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 
+import type { DatabaseFunction, ReplyOf } from '../../database-function.ts';
+import { databaseFunctions } from '../../database-functions.ts';
+import { buylistCardStatus, color, condition, finish, id, language, plannedSwapStatus, rarity } from '../../fields.ts';
+import { catalogSort } from '../../search.ts';
 import { plural } from './plural.ts';
-import { problem, problemSchema, type Problem } from './problems.ts';
+import { problem, problemSchema, type Problem, type ProblemCode } from './problems.ts';
 
-export type Tool = Pick<ListedTool, 'name' | 'inputSchema' | 'outputSchema'> & {
+type AiClientFunction = DatabaseFunction & { errorCodes: readonly ProblemCode[] };
+
+export type Tool<Contract extends AiClientFunction = AiClientFunction> = Pick<ListedTool, 'name' | 'inputSchema' | 'outputSchema'> & {
   title: string;
   description: string;
   annotations: ToolAnnotations;
-  postgresFunction: string;
+  contract: Contract;
   input: z.ZodObject;
-  leftOut: Record<string, string[]>;
-  summary: (result: unknown) => string;
+  output: z.ZodObject;
+  summary: (reply: unknown) => string;
   tooLargeHint: string;
 };
 
-type ToolDefinition<Output extends z.ZodType> = Omit<Tool, 'inputSchema' | 'outputSchema' | 'summary' | 'leftOut'> & {
-  output: Output;
-  leftOut?: Tool['leftOut'];
-  summary: (result: z.infer<Output>) => string;
+type ToolDefinition<Contract extends AiClientFunction> = Omit<Tool<Contract>, 'inputSchema' | 'outputSchema' | 'output' | 'summary'> & {
+  leftOut?: Record<string, string[]>;
+  summary: (reply: ReplyOf<Contract>) => string;
 };
 
 const pageSize = { default: 20, max: 50, collectionMax: 100 };
@@ -42,51 +47,48 @@ function jsonSchemaOf(schema: z.ZodType): ListedTool['inputSchema'] {
   return jsonSchema as ListedTool['inputSchema'];
 }
 
-function defineTool<Output extends z.ZodType>({ output, summary, ...tool }: ToolDefinition<Output>): Tool {
-  return {
-    leftOut: {},
-    ...tool,
-    inputSchema: jsonSchemaOf(tool.input),
-    outputSchema: { type: 'object', anyOf: [jsonSchemaOf(output), problemSchema] },
-    summary: (result) => summary(result as z.infer<Output>),
-  };
-}
-
-function withoutKeys(isLeftOut: (key: string) => boolean, value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => withoutKeys(isLeftOut, item));
-  }
-  if (value !== null && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value)
-        .filter(([key]) => !isLeftOut(key))
-        .map(([key, member]) => [key, withoutKeys(isLeftOut, member)]),
+function shown(schema: z.core.$ZodType, isLeftOut: (key: string) => boolean): z.core.$ZodType {
+  if (schema instanceof z.ZodObject) {
+    return z.object(
+      Object.fromEntries(
+        Object.entries(schema.shape)
+          .filter(([key]) => !isLeftOut(key))
+          .map(([key, field]) => [key, shown(field, isLeftOut)]),
+      ),
     );
   }
-  return value;
-}
-
-export function toolResult(tool: Tool, result: unknown): Record<string, unknown> {
-  const shown = withoutKeys(isImageField, result) as Record<string, unknown>;
-  for (const [field, keys] of Object.entries(tool.leftOut)) {
-    shown[field] = withoutKeys((key) => keys.includes(key), shown[field]);
+  if (schema instanceof z.ZodArray) {
+    return z.array(shown(schema.element, isLeftOut));
   }
-  return shown;
+  if (schema instanceof z.ZodNullable) {
+    return z.nullable(shown(schema.unwrap(), isLeftOut));
+  }
+  if (schema instanceof z.ZodOptional) {
+    return z.optional(shown(schema.unwrap(), isLeftOut));
+  }
+  if (schema instanceof z.ZodUnion) {
+    return z.union(schema.options.map((option) => shown(option, isLeftOut)));
+  }
+  return schema;
 }
 
-const id = z.guid();
-const color = z.enum(['W', 'U', 'B', 'R', 'G']);
-const finish = z.enum(['nonfoil', 'foil', 'etched']);
-const rarity = z.enum(['common', 'uncommon', 'rare', 'mythic', 'special', 'bonus']);
-const condition = z.enum(['near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged']);
-const language = z.enum(['en', 'ja', 'de', 'fr', 'it', 'es', 'pt', 'ko', 'ru', 'zhs', 'zht']);
-const deckRole = z.enum(['commander', 'main']);
-const comboBracketTag = z.enum(['ruthless', 'spicy', 'powerful', 'oddball', 'core', 'exhibition', 'banned']);
-const estimatedBracketValue = z.union([z.literal(2), z.literal(3), z.literal(4)]);
-const deckPriority = z.enum(['high', 'medium', 'low']);
-const deckRule = z.enum(['no_commander', 'commander_eligibility', 'partner', 'deck_size', 'singleton', 'color_identity', 'banned', 'not_legal']);
-const nextCursor = z.string().nullable();
-const integer = z.number().int();
+function outputOf(reply: z.core.$ZodType, leftOut: Record<string, string[]>): z.ZodObject {
+  const output = shown(reply, isImageField) as z.ZodObject;
+  return output.extend(
+    Object.fromEntries(Object.entries(leftOut).map(([field, keys]) => [field, shown(output.shape[field]!, (key) => keys.includes(key))])),
+  );
+}
+
+function defineTool<Contract extends AiClientFunction>({ leftOut = {}, summary, ...tool }: ToolDefinition<Contract>): Tool<Contract> {
+  const output = outputOf(tool.contract.reply, leftOut);
+  return {
+    ...tool,
+    inputSchema: jsonSchemaOf(tool.input),
+    output,
+    outputSchema: { type: 'object', anyOf: [jsonSchemaOf(output), problemSchema] },
+    summary: (reply) => summary(reply as ReplyOf<Contract>),
+  };
+}
 
 function pageSummary(rows: string, next: string | null): string {
   return `${rows}.${next ? ' More with next_cursor.' : ''}`;
@@ -126,8 +128,8 @@ const catalogFilters = {
   names_exclude: z.array(z.string()).optional(),
   types: z.array(z.string()).optional(),
   types_exclude: z.array(z.string()).optional(),
-  colors: z.array(z.enum(['W', 'U', 'B', 'R', 'G', 'C'])).optional(),
-  colors_exclude: z.array(z.enum(['W', 'U', 'B', 'R', 'G', 'C'])).optional(),
+  colors: z.array(z.enum([...color.options, 'C'])).optional(),
+  colors_exclude: z.array(z.enum([...color.options, 'C'])).optional(),
   identity_subset_of: z.array(color).optional().describe("Only cards whose color identity fits in these colors, such as a deck's color identity."),
   mana_value_min: z.number().int().optional(),
   mana_value_max: z.number().int().optional(),
@@ -150,302 +152,6 @@ const catalogFilters = {
   include_oracle_text: z.boolean().optional(),
   sort_order: z.enum(['asc', 'desc']).optional(),
 };
-
-const catalogSort = ['relevance', 'name', 'mana_value', 'edhrec_rank', 'price', 'release_date'] as const;
-
-const currentPrice = z.strictObject({ currency: z.literal('USD'), amount: z.string(), finish, stale: z.boolean() });
-
-const priceFrom = z.strictObject({
-  currency: z.literal('USD'),
-  amount: z.string(),
-  finish,
-  basis: z.literal('lowest current price over printings and finishes'),
-});
-
-const ownedCopies = z.strictObject({ quantity: integer, free_quantity: integer, protected_free_quantity: integer });
-
-const pricesAsOf = { prices_observed_at: z.string().nullable(), prices_stale: z.boolean() };
-
-const dataAsOf = { rules_data_as_of: z.string(), rules_stale: z.boolean() };
-
-const searchPage = { ...pricesAsOf, ...dataAsOf, next_cursor: nextCursor, search_id: id };
-
-const catalogRow = z.strictObject({
-  oracle_id: id,
-  name: z.string(),
-  mana_cost: z.string(),
-  mana_value: z.number(),
-  type_line: z.string(),
-  color_identity: z.array(color),
-  is_game_changer: z.boolean(),
-  can_be_commander: z.boolean(),
-  edhrec_rank: integer.nullable(),
-  oracle_text: z.string().optional(),
-  price_from: priceFrom.nullable(),
-  owned: ownedCopies,
-});
-
-const collectionRow = z.strictObject({
-  oracle_id: id,
-  printing_id: id,
-  name: z.string(),
-  set: z.string(),
-  collector_number: z.string(),
-  finish,
-  language,
-  condition,
-  protected: z.boolean(),
-  quantity: integer,
-  free_quantity: integer,
-  allocated_quantity: integer,
-  held_quantity: integer,
-  commander_legal: z.boolean(),
-  price: currentPrice.nullable(),
-  total: z.string().nullable(),
-  oracle_text: z.string().optional(),
-});
-
-const collectionCopyRow = z.strictObject({
-  copy_id: id,
-  printing_id: id,
-  name: z.string(),
-  set: z.string(),
-  collector_number: z.string(),
-  rarity,
-  finish,
-  condition,
-  language,
-  protected: z.boolean(),
-  price: currentPrice.nullable(),
-  deck: z.strictObject({ deck_id: id, name: z.string() }).nullable(),
-  held_for: z.strictObject({ deck_id: id, name: z.string() }).nullable(),
-  created_at: z.string(),
-  oracle_text: z.string().optional(),
-});
-
-const oracleTagRow = z.strictObject({
-  id,
-  slug: z.string(),
-  label: z.string(),
-  aliases: z.array(z.string()),
-  description: z.string().nullable(),
-  parent_slugs: z.array(z.string()),
-  card_count: integer,
-});
-
-const cardDetailsPrinting = z.strictObject({
-  printing_id: id,
-  set: z.string(),
-  set_name: z.string(),
-  collector_number: z.string(),
-  rarity,
-  finishes: z.array(finish),
-  released_at: z.string(),
-});
-
-const cardDetailsRow = z.strictObject({
-  oracle_id: id,
-  name: z.string(),
-  mana_cost: z.string(),
-  mana_value: z.number(),
-  type_line: z.string(),
-  oracle_text: z.string(),
-  colors: z.array(color),
-  color_identity: z.array(color),
-  keywords: z.array(z.string()),
-  faces: z.array(
-    z.strictObject({
-      name: z.string(),
-      mana_cost: z.string(),
-      type_line: z.string(),
-      oracle_text: z.string(),
-      colors: z.array(color),
-      power: z.string().optional(),
-      toughness: z.string().optional(),
-      loyalty: z.string().optional(),
-    }),
-  ),
-  commander_legality: z.enum(['legal', 'banned', 'not_legal', 'unknown']),
-  can_be_commander: z.boolean(),
-  is_game_changer: z.boolean().nullable(),
-  edhrec_rank: integer.nullable(),
-  released_at: z.string(),
-  printing_count: integer,
-  price_from: priceFrom.nullable(),
-  owned: ownedCopies,
-  tags: z.array(z.strictObject({ slug: z.string(), label: z.string() })),
-  combos: z.array(
-    z.strictObject({
-      spellbook_id: z.string(),
-      other_card: z.strictObject({ oracle_id: id, name: z.string() }),
-      produced_features: z.array(z.string()),
-      bracket_tag: comboBracketTag,
-    }),
-  ),
-  printing: cardDetailsPrinting.optional(),
-});
-
-const deckCommander = z.strictObject({ copy_id: id, name: z.string() });
-
-const deckEvaluationSummary = {
-  validity: z.enum(['valid', 'invalid', 'cannot_be_determined']),
-  validity_stale: z.boolean(),
-  estimated_bracket: estimatedBracketValue,
-  bracket_stale: z.boolean(),
-};
-
-const deckRowFields = {
-  deck_id: id,
-  name: z.string(),
-  priority: deckPriority,
-  card_count: integer,
-  commanders: z.array(deckCommander),
-  last_used_at: z.string(),
-  revision: integer,
-};
-
-const deckEvaluationCard = z.union([
-  z.strictObject({ kind: z.literal('copy'), copy_id: id, name: z.string() }),
-  z.strictObject({ kind: z.literal('basic_land'), oracle_id: id, name: z.string() }),
-]);
-
-const bracketSignalFields = {
-  source: z.enum(['official', 'heuristic']),
-  count: integer,
-  lowest_bracket: estimatedBracketValue,
-  cards: z.array(deckEvaluationCard),
-};
-
-const deckEvaluation = z.strictObject({
-  ...deckEvaluationSummary,
-  violations: z.array(
-    z.strictObject({
-      rule: deckRule,
-      citation: z.string().nullable(),
-      message: z.string(),
-      hint: z.string().nullable(),
-      cards: z.array(deckEvaluationCard),
-      colors: z.array(color).optional(),
-    }),
-  ),
-  undetermined: z.array(
-    z.strictObject({ rule: z.union([deckRule, z.literal('legality')]), reason: z.string(), cards: z.array(deckEvaluationCard) }),
-  ),
-  chosen_color: color.nullable(),
-  bracket_signals: z.array(
-    z.union([
-      z.strictObject({ kind: z.enum(['game_changers', 'mass_land_denial', 'extra_turns']), ...bracketSignalFields }),
-      z.strictObject({
-        kind: z.literal('two_card_combo'),
-        ...bracketSignalFields,
-        combos: z.array(
-          z.strictObject({ cards: z.array(deckEvaluationCard), produced_features: z.array(z.string()), bracket_tag: comboBracketTag }),
-        ),
-      }),
-    ]),
-  ),
-  missing_signal_count: integer,
-  revision: integer,
-  catalog_at: z.string().nullable(),
-  oracle_tags_at: z.string().nullable(),
-  commander_spellbook_at: z.string().nullable(),
-  judged_at: z.string(),
-  validity_rules_data_at: z.string().nullable(),
-  bracket_rules_data_at: z.string().nullable(),
-  no_oracle_tag_data: z.boolean(),
-  no_combo_data: z.boolean(),
-});
-
-const deck = z.strictObject({
-  ...deckRowFields,
-  evaluation: deckEvaluation.nullable(),
-  created_at: z.string(),
-  cards: z.array(
-    z.strictObject({
-      copy_id: id,
-      printing_id: id,
-      name: z.string(),
-      finish,
-      protected: z.boolean(),
-      price: currentPrice.nullable(),
-      role: deckRole,
-      type_line: z.string(),
-      mana_value: z.number(),
-      colors: z.array(color),
-      planned_out: z.boolean(),
-    }),
-  ),
-  basic_lands: z.array(z.strictObject({ oracle_id: id.nullable(), name: z.string(), count: integer })),
-});
-
-const deckChangeLine = z.union([
-  z.strictObject({
-    kind: z.literal('copy'),
-    copy_id: id,
-    name: z.string(),
-    type_line: z.string(),
-    place_before: deckRole.nullable(),
-    place_after: deckRole.nullable(),
-  }),
-  z.strictObject({ kind: z.literal('basic_land'), oracle_id: id, name: z.string(), count_before: integer, count_after: integer }),
-]);
-
-const deckChange = z.strictObject({
-  deck_change_id: id,
-  revision: integer,
-  kind: z.enum([
-    'added',
-    'removed',
-    'made_commander',
-    'made_partner',
-    'moved_to_main_deck',
-    'basic_lands',
-    'removed_from_collection',
-    'revert',
-    'swapped_in',
-    'bought',
-  ]),
-  changed_at: z.string(),
-  reverted: z.boolean(),
-  reason: z.string().nullable(),
-  lines: z.array(deckChangeLine),
-});
-
-const plannedSwapStatus = z.enum(['open', 'swapped_in', 'closed', 'moved_to_buylist']);
-const closeNote = z.enum(['closed_by_user', 'closed_by_ai_client', 'outgoing_left_deck', 'held_copy_deleted', 'held_copy_reverted']);
-
-const deckChangeEffect = z.strictObject({
-  kind: z.enum(['would_make_invalid', 'adds_violation']),
-  rules: z.array(z.strictObject({ rule: deckRule, colors: z.array(color).optional() })),
-});
-
-const plannedCopyLine = z.strictObject({
-  kind: z.literal('copy'),
-  copy_id: id,
-  name: z.string(),
-  type_line: z.string(),
-  set: z.string().nullable(),
-  collector_number: z.string().nullable(),
-  finish: finish.nullable(),
-  condition: condition.nullable(),
-});
-
-const plannedLine = z.union([plannedCopyLine, z.strictObject({ kind: z.literal('basic_land'), oracle_id: id, name: z.string() })]);
-
-const plannedSwapRow = z.strictObject({
-  planned_swap_id: id,
-  deck_id: id,
-  deck_name: z.string(),
-  incoming: plannedLine,
-  outgoing: plannedLine.nullable(),
-  as_commander: z.boolean(),
-  reason: z.string(),
-  status: plannedSwapStatus,
-  close_note: closeNote.nullable(),
-  created_at: z.string(),
-  status_changed_at: z.string(),
-  effect: deckChangeEffect.nullable(),
-});
 
 const basicLandOracleId = id.describe("A basic land card's oracle_id, from basic_lands in get_deck.");
 
@@ -471,35 +177,6 @@ const plannedSwapInput = z.strictObject({
   reason: z.string().min(20).max(600),
 });
 
-const plannedSwapWarning = z.union([
-  z.strictObject({ code: z.literal('would_break_validity'), effect: deckChangeEffect }),
-  z.strictObject({ code: z.enum(['replaces_commander', 'rules_stale']) }),
-]);
-
-const createdPlannedSwaps = z.strictObject({
-  planned_swaps: z.array(z.strictObject({ ref: z.string(), planned_swap_id: id, warnings: z.array(plannedSwapWarning) })),
-  replayed: z.boolean(),
-});
-
-const buylistCardStatus = z.enum(['open', 'bought', 'closed']);
-
-const plannedCardLine = z.strictObject({ kind: z.literal('card'), oracle_id: id, name: z.string(), type_line: z.string() });
-
-const buylistCardRow = z.strictObject({
-  buylist_card_id: id,
-  deck_id: id,
-  deck_name: z.string(),
-  incoming: plannedCardLine,
-  outgoing: plannedLine.nullable(),
-  as_commander: z.boolean(),
-  reason: z.string(),
-  status: buylistCardStatus,
-  close_note: closeNote.nullable(),
-  created_at: z.string(),
-  status_changed_at: z.string(),
-  effect: deckChangeEffect.nullable(),
-});
-
 const buylistCardInput = plannedSwapInput.extend({
   ref: keyPattern(1).describe('A name for this buylist card, unique in the call.'),
   incoming: z.strictObject({
@@ -508,21 +185,7 @@ const buylistCardInput = plannedSwapInput.extend({
   }),
 });
 
-const buylistCardWarning = z.union([
-  ...plannedSwapWarning.options,
-  z.strictObject({ code: z.literal('protected_only') }),
-  z.strictObject({
-    code: z.literal('in_other_decks'),
-    decks: z.array(z.strictObject({ deck_id: id, name: z.string(), priority: deckPriority })),
-  }),
-]);
-
-const createdBuylistCards = z.strictObject({
-  buylist_cards: z.array(z.strictObject({ ref: z.string(), buylist_card_id: id, warnings: z.array(buylistCardWarning) })),
-  replayed: z.boolean(),
-});
-
-export const tools: Tool[] = [
+export const tools = [
   defineTool({
     name: 'search_catalog',
     title: 'Search the card catalog',
@@ -533,13 +196,12 @@ export const tools: Tool[] = [
       usdPrices,
     ].join(' '),
     annotations: readOnly,
-    postgresFunction: 'search_catalog',
+    contract: databaseFunctions.search_catalog,
     input: z.strictObject({
       ...catalogFilters,
-      sort: z.enum(catalogSort).optional().describe('relevance needs text. The default is relevance with text and name without it.'),
+      sort: catalogSort.optional().describe('relevance needs text. The default is relevance with text and name without it.'),
       ...page,
     }),
-    output: z.strictObject({ ...searchPage, items: z.array(catalogRow) }),
     summary: (result) => pageSummary(plural(result.items.length, 'card', 'cards'), result.next_cursor),
     tooLargeHint: 'Ask for fewer cards with limit, or leave out include_oracle_text.',
   }),
@@ -554,11 +216,11 @@ export const tools: Tool[] = [
       usdPrices,
     ].join(' '),
     annotations: readOnly,
-    postgresFunction: 'search_collection',
+    contract: databaseFunctions.search_collection,
     input: z.strictObject({
       ...catalogFilters,
       rows: z.enum(['entries', 'copies']).optional(),
-      sort: z.enum([...catalogSort, 'added']).optional().describe('The default is relevance with text and added without it.'),
+      sort: z.enum([...catalogSort.options, 'added']).optional().describe('The default is relevance with text and added without it.'),
       ...collectionPage,
       finishes: z.array(finish).optional(),
       finishes_exclude: z.array(finish).optional(),
@@ -573,11 +235,6 @@ export const tools: Tool[] = [
       is_allocated: z.boolean().optional(),
       user_tags: z.array(z.string()).optional().describe('User tag names from list_user_tags.'),
       user_tags_exclude: z.array(z.string()).optional(),
-    }),
-    output: z.strictObject({
-      ...searchPage,
-      total_count: integer.nullable(),
-      items: z.array(z.union([collectionRow, collectionCopyRow])),
     }),
     summary: (result) => {
       if (result.items.length === 0) {
@@ -596,12 +253,11 @@ export const tools: Tool[] = [
     description:
       'Find Oracle tag slugs for a word, such as ramp or removal, with how many Commander-legal cards have each tag. Use the slugs in the tags filter of search_catalog and search_collection.',
     annotations: readOnly,
-    postgresFunction: 'search_oracle_tags',
+    contract: databaseFunctions.search_oracle_tags,
     input: z.strictObject({
       text: z.string().describe('A word or phrase that says what cards do.'),
       limit: z.number().int().min(1).max(20).optional().describe('Oracle tags to return, 10 by default.'),
     }),
-    output: z.strictObject({ ...dataAsOf, items: z.array(oracleTagRow) }),
     summary: (result) => `${plural(result.items.length, 'Oracle tag', 'Oracle tags')}.`,
     tooLargeHint: 'Ask for fewer Oracle tags with limit.',
   }),
@@ -614,12 +270,11 @@ export const tools: Tool[] = [
       usdPrices,
     ].join(' '),
     annotations: readOnly,
-    postgresFunction: 'get_cards',
+    contract: databaseFunctions.get_cards,
     input: z.strictObject({
       oracle_ids: z.array(id).min(1).max(20).optional(),
       printing_ids: z.array(id).min(1).max(20).optional(),
     }).meta({ oneOf: [{ required: ['oracle_ids'] }, { required: ['printing_ids'] }] }),
-    output: z.strictObject({ ...dataAsOf, ...pricesAsOf, items: z.array(cardDetailsRow), not_found: z.array(z.string()) }),
     summary: (result) =>
       `${plural(result.items.length, 'card', 'cards')}.${result.not_found.length ? ` ${result.not_found.length} not found.` : ''}`,
     tooLargeHint: 'Ask for fewer cards in one call.',
@@ -629,16 +284,11 @@ export const tools: Tool[] = [
     title: 'List card printings',
     description: 'List the card printings of one card, newest first, with how many copies of each the user owns.',
     annotations: readOnly,
-    postgresFunction: 'list_card_printings',
+    contract: databaseFunctions.list_card_printings,
     input: z.strictObject({
       oracle_id: id.describe("The card's oracle_id."),
       owned_only: z.boolean().optional().describe('Only card printings that the user owns.'),
       ...page,
-    }),
-    output: z.strictObject({
-      ...dataAsOf,
-      next_cursor: nextCursor,
-      items: z.array(cardDetailsPrinting.extend({ owned_quantity: integer })),
     }),
     summary: (result) => pageSummary(plural(result.items.length, 'card printing', 'card printings'), result.next_cursor),
     tooLargeHint: 'Ask for fewer card printings with limit.',
@@ -651,11 +301,10 @@ export const tools: Tool[] = [
       'With deleted: true, it lists only deleted user tags, with the copies that each would come back on if restored.',
     ].join(' '),
     annotations: readOnly,
-    postgresFunction: 'list_user_tags',
+    contract: databaseFunctions.list_user_tags,
     input: z.strictObject({
       deleted: z.boolean().optional().describe('true lists only deleted user tags. Without it, only user tags that are not deleted.'),
     }),
-    output: z.strictObject({ items: z.array(z.strictObject({ user_tag_id: id, name: z.string(), copy_count: integer })) }),
     summary: (result) => `${plural(result.items.length, 'user tag', 'user tags')}.`,
     tooLargeHint: 'Search the copies of one user tag with search_collection instead.',
   }),
@@ -668,16 +317,8 @@ export const tools: Tool[] = [
       usdPrices,
     ].join(' '),
     annotations: readOnly,
-    postgresFunction: 'get_collection_total',
+    contract: databaseFunctions.get_collection_total,
     input: z.strictObject({}),
-    output: z.strictObject({
-      total: z.string(),
-      currency: z.literal('USD'),
-      priced_copies: integer,
-      copies: integer,
-      stale: z.boolean(),
-      prices_observed_at: z.string().nullable(),
-    }),
     summary: (result) => `Collection total ${result.total} USD, ${result.priced_copies} of ${result.copies} copies priced.`,
     tooLargeHint: 'Search the collection with search_collection instead.',
   }),
@@ -690,13 +331,8 @@ export const tools: Tool[] = [
       estimatedBracket,
     ].join(' '),
     annotations: readOnly,
-    postgresFunction: 'list_decks',
+    contract: databaseFunctions.list_decks,
     input: z.strictObject({}),
-    output: z.strictObject({
-      items: z.array(
-        z.strictObject({ ...deckRowFields, evaluation: z.strictObject(deckEvaluationSummary).nullable(), needs_you_count: integer }),
-      ),
-    }),
     summary: (result) => `${plural(result.items.length, 'deck', 'decks')}.`,
     tooLargeHint: 'Read one deck at a time with get_deck instead.',
   }),
@@ -711,9 +347,8 @@ export const tools: Tool[] = [
       usdPrices,
     ].join(' '),
     annotations: readOnly,
-    postgresFunction: 'get_deck',
+    contract: databaseFunctions.get_deck,
     input: z.strictObject({ deck_id: id.describe("The deck's ID.") }),
-    output: deck,
     leftOut: { cards: ['added_at', 'commander_at', 'condition', 'language', 'rarity', 'collector_number', 'set'] },
     summary: (result) => `${result.name}: ${result.card_count} cards at deck revision ${result.revision}.`,
     tooLargeHint: "Search the deck's cards with search_collection and its deck filter instead.",
@@ -726,12 +361,11 @@ export const tools: Tool[] = [
       'A swapped_in deck change came from a planned swap, and a bought deck change from a buylist card. Each keeps the reason of its planned swap or buylist card.',
     ].join(' '),
     annotations: readOnly,
-    postgresFunction: 'list_deck_changes',
+    contract: databaseFunctions.list_deck_changes,
     input: z.strictObject({
       deck_id: id.describe("The deck's ID."),
       ...page,
     }),
-    output: z.strictObject({ next_cursor: nextCursor, items: z.array(deckChange) }),
     summary: (result) => pageSummary(plural(result.items.length, 'deck change', 'deck changes'), result.next_cursor),
     tooLargeHint: 'Ask for fewer deck changes with limit.',
   }),
@@ -744,13 +378,12 @@ export const tools: Tool[] = [
       'An open planned swap also has its current effect: the Commander rules that swapping it in would break.',
     ].join(' '),
     annotations: readOnly,
-    postgresFunction: 'list_planned_swaps',
+    contract: databaseFunctions.list_planned_swaps,
     input: z.strictObject({
       deck_id: id.optional().describe("Only this deck's planned swaps."),
       status: plannedSwapStatus.optional().describe('Only planned swaps in this state. Every state by default.'),
       ...page,
     }),
-    output: z.strictObject({ next_cursor: nextCursor, items: z.array(plannedSwapRow) }),
     summary: (result) => pageSummary(plural(result.items.length, 'planned swap'), result.next_cursor),
     tooLargeHint: 'Ask for fewer planned swaps with limit, or filter by deck_id or status.',
   }),
@@ -763,13 +396,12 @@ export const tools: Tool[] = [
       'An open buylist card also has its current effect: the Commander rules that putting the card into the deck would break.',
     ].join(' '),
     annotations: readOnly,
-    postgresFunction: 'list_buylist',
+    contract: databaseFunctions.list_buylist,
     input: z.strictObject({
       deck_id: id.optional().describe("Only this deck's buylist cards."),
       status: buylistCardStatus.optional().describe('Only buylist cards in this state. Every state by default.'),
       ...page,
     }),
-    output: z.strictObject({ next_cursor: nextCursor, items: z.array(buylistCardRow) }),
     summary: (result) => pageSummary(plural(result.items.length, 'buylist card'), result.next_cursor),
     tooLargeHint: 'Ask for fewer buylist cards with limit, or filter by deck_id or status.',
   }),
@@ -787,12 +419,11 @@ export const tools: Tool[] = [
       declinedWrite,
     ].join(' '),
     annotations: write,
-    postgresFunction: 'create_planned_swaps',
+    contract: databaseFunctions.create_planned_swaps,
     input: z.strictObject({
       idempotency_key: keyPattern(8).describe('8 to 64 of A-Z a-z 0-9 _ -. Send a new key for each new call.'),
       planned_swaps: z.array(plannedSwapInput).min(1).max(10),
     }),
-    output: createdPlannedSwaps,
     summary: (result) => {
       const warningCount = result.planned_swaps.reduce((count, swap) => count + swap.warnings.length, 0);
       return `${result.replayed ? 'Replayed' : 'Saved'} ${plural(result.planned_swaps.length, 'planned swap')} with ${plural(warningCount, 'warning')}.`;
@@ -813,12 +444,11 @@ export const tools: Tool[] = [
       declinedWrite,
     ].join(' '),
     annotations: write,
-    postgresFunction: 'create_buylist_cards',
+    contract: databaseFunctions.create_buylist_cards,
     input: z.strictObject({
       idempotency_key: keyPattern(8).describe('8 to 64 of A-Z a-z 0-9 _ -. Send a new key for each new call.'),
       buylist_cards: z.array(buylistCardInput).min(1).max(10),
     }),
-    output: createdBuylistCards,
     summary: (result) => {
       const warningCount = result.buylist_cards.reduce((count, card) => count + card.warnings.length, 0);
       return `${result.replayed ? 'Replayed' : 'Saved'} ${plural(result.buylist_cards.length, 'buylist card')} with ${plural(warningCount, 'warning')}.`;
@@ -836,9 +466,8 @@ export const tools: Tool[] = [
       declinedWrite,
     ].join(' '),
     annotations: write,
-    postgresFunction: 'mcp_close_planned_swap',
+    contract: databaseFunctions.mcp_close_planned_swap,
     input: z.strictObject({ planned_swap_id: id.describe("The planned swap's ID.") }),
-    output: z.strictObject({ id, changed: z.boolean() }),
     summary: (result) => (result.changed ? `Closed planned swap ${result.id}.` : `Planned swap ${result.id} was already closed.`),
     tooLargeHint: 'Close one planned swap in each call.',
   }),
@@ -853,9 +482,8 @@ export const tools: Tool[] = [
       declinedWrite,
     ].join(' '),
     annotations: write,
-    postgresFunction: 'mcp_close_buylist_card',
+    contract: databaseFunctions.mcp_close_buylist_card,
     input: z.strictObject({ buylist_card_id: id.describe("The buylist card's ID.") }),
-    output: z.strictObject({ id, changed: z.boolean() }),
     summary: (result) => (result.changed ? `Closed buylist card ${result.id}.` : `Buylist card ${result.id} was already closed.`),
     tooLargeHint: 'Close one buylist card in each call.',
   }),
@@ -870,9 +498,8 @@ export const tools: Tool[] = [
       declinedWrite,
     ].join(' '),
     annotations: write,
-    postgresFunction: 'mcp_create_user_tag',
+    contract: databaseFunctions.mcp_create_user_tag,
     input: z.strictObject({ name: z.string().describe("The user tag's name, 1 to 64 characters after trimming.") }),
-    output: z.strictObject({ user_tag_id: id, name: z.string(), created: z.boolean() }),
     summary: (result) => (result.created ? `Created user tag ${result.name}.` : `The user already has user tag ${result.name}.`),
     tooLargeHint: 'Create one user tag in each call.',
   }),
@@ -888,12 +515,11 @@ export const tools: Tool[] = [
       declinedWrite,
     ].join(' '),
     annotations: write,
-    postgresFunction: 'mcp_rename_user_tag',
+    contract: databaseFunctions.mcp_rename_user_tag,
     input: z.strictObject({
       user_tag_id: id.describe("The user tag's ID."),
       name: z.string().describe("The user tag's new name, 1 to 64 characters after trimming."),
     }),
-    output: z.strictObject({ user_tag_id: id, name: z.string() }),
     summary: (result) => `Renamed the user tag to ${result.name}.`,
     tooLargeHint: 'Rename one user tag in each call.',
   }),
@@ -910,9 +536,8 @@ export const tools: Tool[] = [
       declinedWrite,
     ].join(' '),
     annotations: destructiveWrite,
-    postgresFunction: 'mcp_delete_user_tag',
+    contract: databaseFunctions.mcp_delete_user_tag,
     input: z.strictObject({ user_tag_id: id.describe("The user tag's ID.") }),
-    output: z.strictObject({ user_tag_id: id, changed: z.boolean(), copy_count: integer }),
     summary: (result) =>
       result.changed
         ? `Deleted the user tag. ${plural(result.copy_count, 'copy', 'copies')} lost it.`
@@ -931,9 +556,8 @@ export const tools: Tool[] = [
       declinedWrite,
     ].join(' '),
     annotations: write,
-    postgresFunction: 'mcp_restore_user_tag',
+    contract: databaseFunctions.mcp_restore_user_tag,
     input: z.strictObject({ user_tag_id: id.describe("The deleted user tag's ID.") }),
-    output: z.strictObject({ user_tag_id: id, name: z.string(), changed: z.boolean(), copy_count: integer }),
     summary: (result) =>
       result.changed
         ? `Restored user tag ${result.name} on ${plural(result.copy_count, 'copy', 'copies')}.`
@@ -955,15 +579,11 @@ export const tools: Tool[] = [
       declinedWrite,
     ].join(' '),
     annotations: write,
-    postgresFunction: 'mcp_set_copies_user_tag',
+    contract: databaseFunctions.mcp_set_copies_user_tag,
     input: z.strictObject({
       copy_ids: z.array(id).min(1).max(100).meta({ uniqueItems: true }).describe('1 to 100 unique copy IDs from search_collection with rows: copies.'),
       user_tag_id: id.describe("The user tag's ID."),
       tagged: z.boolean().describe('true puts the user tag on the copies. false takes it off.'),
-    }),
-    output: z.strictObject({
-      changed: z.array(id),
-      skipped: z.array(z.strictObject({ copy_id: id, reason: z.literal('missing') })),
     }),
     summary: (result) =>
       `${plural(result.changed.length, 'copy', 'copies')} changed, ${plural(result.skipped.length, 'copy', 'copies')} skipped.`,

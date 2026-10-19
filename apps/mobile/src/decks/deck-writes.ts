@@ -73,7 +73,7 @@ export async function removeDeckCard(copyId: string): Promise<WriteResult> {
   return writeResultOf(result);
 }
 
-const outdatedPreviewCodes = ['stale_revision', 'revert_blocked', 'copy_protected'];
+const outdatedPreviewCodes = ['stale_revision', 'revert_blocked', 'protected_copy'];
 
 export async function revertDeckChanges(request: RevertDeckChangesRequest): Promise<WriteResult | 'outdated'> {
   const result = await callDatabaseFunction(supabase, databaseFunctions.revert_deck_changes, request);

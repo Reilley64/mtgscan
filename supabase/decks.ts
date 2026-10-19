@@ -372,7 +372,7 @@ export const addDeckCard = databaseFunction({
   argument: 'request',
   request: addDeckCardRequest,
   reply: deckRevision,
-  errorCodes: ['invalid_argument', 'not_found', 'copy_not_free', 'copy_protected'],
+  errorCodes: ['invalid_argument', 'not_found', 'copy_not_free', 'protected_copy'],
 });
 
 export const setDeckCommander = databaseFunction({
@@ -428,5 +428,5 @@ export const revertDeckChanges = databaseFunction({
   argument: 'request',
   request: revertDeckChangesRequest,
   reply: deckRevision,
-  errorCodes: ['invalid_argument', 'not_found', 'copy_protected', 'stale_revision', 'revert_blocked'],
+  errorCodes: ['invalid_argument', 'not_found', 'protected_copy', 'stale_revision', 'revert_blocked'],
 });

@@ -106,7 +106,7 @@ export const markBuylistCardBought = databaseFunction({
   argument: 'request',
   request: markBuylistCardBoughtRequest,
   reply: deckRevision,
-  errorCodes: ['invalid_argument', 'not_found', 'not_open', 'copy_not_free', 'copy_protected', 'commander_limit'],
+  errorCodes: ['invalid_argument', 'not_found', 'not_open', 'copy_not_free', 'protected_copy', 'commander_limit'],
 });
 
 export const closeBuylistCard = databaseFunction({

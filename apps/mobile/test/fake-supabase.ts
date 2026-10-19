@@ -789,7 +789,7 @@ const copyNotFree = {
 
 const copyProtected = {
   data: null,
-  error: { code: 'copy_protected', message: 'copy_id is a protected copy.', details: 'copy_id' },
+  error: { code: 'protected_copy', message: 'copy_id is a protected copy.', details: 'copy_id' },
 };
 
 function deckCardOf(details: CopyDetails, addedAt: string): DeckCard {
@@ -930,7 +930,7 @@ function markBuylistCardBought(request: MarkBuylistCardBoughtRequest) {
     return { data: null, error: { code: 'copy_not_free', message: 'Only a free copy can go into a deck.', details: 'copy_id' } };
   }
   if (copy.protected && !request.unprotect) {
-    return { data: null, error: { code: 'copy_protected', message: 'copy_id is a protected copy.', details: 'copy_id' } };
+    return { data: null, error: { code: 'protected_copy', message: 'copy_id is a protected copy.', details: 'copy_id' } };
   }
   freeCopies.set(
     card.incoming.oracle_id,
