@@ -10,14 +10,13 @@ import { StyleSheet } from "react-native";
 import { invalidEvaluation } from "./deck-evaluations";
 import {
   changeElsewhere,
-  deckWritesSent,
   decksOnTheServer,
   failDeckReads,
   failDeckWrites,
   ownDecks,
   startSignedIn,
 } from "./fake-supabase";
-import { hold } from "./fake-supabase-controls";
+import { hold, requestsSent } from "./fake-supabase-controls";
 import {
   appearsBefore,
   dashedOutlinesColored,
@@ -63,15 +62,11 @@ async function openNameAlert() {
 }
 
 function createdDeckNames() {
-  return deckWritesSent().flatMap(({ name, request }) =>
-    name === "create_deck" ? [(request as { name: string }).name] : [],
-  );
+  return requestsSent("create_deck").map(({ name }) => name);
 }
 
 function decksMarkedUsed() {
-  return deckWritesSent().flatMap(({ name, request }) =>
-    name === "mark_deck_used" ? [(request as { deck_id: string }).deck_id] : [],
-  );
+  return requestsSent("mark_deck_used").map(({ deck_id }) => deck_id);
 }
 
 function galleryCardNames() {
@@ -492,12 +487,6 @@ describe("the deck menu", () => {
     return deck;
   }
 
-  function deckWrites(name: string) {
-    return deckWritesSent().flatMap((write) =>
-      write.name === name ? [write.request] : [],
-    );
-  }
-
   async function chooseFromMenu(...path: string[]) {
     await pressHeaderMenuAction(pushedScreen(), "More", path);
   }
@@ -553,7 +542,7 @@ describe("the deck menu", () => {
 
     await pressAlertWithFieldButton("Save");
 
-    expect(deckWrites("rename_deck")).toEqual([
+    expect(requestsSent("rename_deck")).toEqual([
       { deck_id: "deck-2", name: "Atraxa Superfriends" },
     ]);
     expect(
@@ -569,7 +558,7 @@ describe("the deck menu", () => {
 
     await pressAlertWithFieldButton("Cancel");
 
-    expect(deckWrites("rename_deck")).toEqual([]);
+    expect(requestsSent("rename_deck")).toEqual([]);
     expect(deck.getByRole("header", { name: "Atraxa" })).toBeOnTheScreen();
   });
 
@@ -618,7 +607,7 @@ describe("the deck menu", () => {
 
     await chooseFromMenu("Priority", "Low");
 
-    expect(deckWrites("set_deck_priority")).toEqual([
+    expect(requestsSent("set_deck_priority")).toEqual([
       { deck_id: "deck-2", priority: "low" },
     ]);
     await waitFor(() =>
@@ -674,7 +663,7 @@ describe("the deck menu", () => {
         message,
         buttons: ["Delete deck", "Cancel"],
       });
-      expect(deckWrites("delete_deck")).toEqual([]);
+      expect(requestsSent("delete_deck")).toEqual([]);
     },
   );
 
@@ -684,7 +673,7 @@ describe("the deck menu", () => {
 
     await pressAlertButton("Delete deck");
 
-    expect(deckWrites("delete_deck")).toEqual([{ deck_id: "deck-2" }]);
+    expect(requestsSent("delete_deck")).toEqual([{ deck_id: "deck-2" }]);
     expect(() => pushedScreen()).toThrow("No screen is pushed");
     expect(tabHeader(selectedTab()).title).toBe("Decks");
     expect(
@@ -703,7 +692,7 @@ describe("the deck menu", () => {
 
     await pressAlertButton("Cancel");
 
-    expect(deckWrites("delete_deck")).toEqual([]);
+    expect(requestsSent("delete_deck")).toEqual([]);
     expect(deck.getByRole("header", { name: "Atraxa" })).toBeOnTheScreen();
   });
 

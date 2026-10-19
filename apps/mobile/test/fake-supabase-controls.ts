@@ -1,10 +1,12 @@
-import type { ErrorCodeOf, RequestOf } from '@mtgscan/supabase/database-function';
+import type { ErrorCodeOf, Refusal, RequestOf } from '@mtgscan/supabase/database-function';
 import type { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import { act } from 'expo-router/testing-library';
 
 export type FunctionName = keyof typeof databaseFunctions;
 
 export type Contract<Name extends FunctionName> = (typeof databaseFunctions)[Name];
+
+export type ArgumentKey = NonNullable<Contract<FunctionName>['argument']>;
 
 type CallName = FunctionName | 'training-crops' | 'oauth.listGrants' | 'oauth.revokeGrant' | 'gallery.download' | 'card_sets.lookup';
 
@@ -14,11 +16,11 @@ type Failure = { names: CallName[]; left: number; when: 'before the server answe
 
 type Hold = { names: CallName[]; once: boolean; released: Promise<void> };
 
-export class Refused<Code extends string> {
+export class Refused<Code extends string> implements Refusal<Code> {
   constructor(
     readonly code: Code,
     readonly message: string,
-    readonly field: string,
+    readonly field: string | null,
   ) {}
 }
 

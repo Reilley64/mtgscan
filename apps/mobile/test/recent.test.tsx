@@ -455,7 +455,7 @@ describe('the Bought page sheet', () => {
   test('a copy that is no longer free reloads the sheet', async () => {
     const sheet = await openBought([freeCopyOf('copy-alpha'), freeCopyOf('copy-beta', { set: 'fdc', collector_number: '61' })]);
     await sheet.findByRole('button', { name: 'Counterspell, LEA 54' });
-    ownFreeCopies('oracle-counterspell', [freeCopyOf('copy-beta', { set: 'fdc', collector_number: '61' })]);
+    changeElsewhere('add_deck_card', { deck_id: 'deck-1', copy_id: 'copy-alpha', unprotect: false });
     refuse('mark_buylist_card_bought', 'copy_not_free', 'copy_id');
 
     await fireEvent.press(sheet.getByRole('button', { name: 'Counterspell, LEA 54' }));
