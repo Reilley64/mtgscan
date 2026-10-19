@@ -378,6 +378,21 @@ The evidence record has these fields, each a column of `training_crops`:
 
 `training_crops` has no user ID, copy ID, or time column. No app role can read or write it. Only the secret key reads it, and it changes only through `add_training_crop`. The private `training-crops` bucket accepts only `image/jpeg` up to 1 MB. Signed-in users and anonymous callers cannot read, list, upload, or delete in it.
 
+The owner downloads the training crops to the Mac with `bun run crops pull` in `supabase`. The script loads `.env.hosted`, like the gallery commands, so it reads the hosted project with the secret key. It downloads into `~/Library/Caches/mtgscan/training-crops/`, outside the repository. `--into <dir>` names another folder. The folder has the layout of the scanner evidence pack:
+
+- `crops/<crop_id>.jpg` holds each image. The command downloads only the images that are not in the folder yet.
+- `labels.json` has `cards`, with each crop path and its `saved_printing_id` as `scryfallId`.
+- `evidence.json` has the evidence record of each crop, in the same order.
+
+A row whose image is not in the bucket yet waits for a later pull. The command prints the number of new crops, the number of crops in the folder and their total size, and the Storage left before uploads stop at 90%. It adds up the objects in every bucket and takes the limit from `freePlan.storageBytes` in `supabase/gallery/budget.ts`.
+
+The evaluate script runs on the folder, from `apps/mobile`, with the macOS recognizer command that `bun run recognizer:replay` builds:
+
+```bash
+bun modules/card-recognizer/scripts/evaluate.mjs ~/Library/Caches/mtgscan/training-crops/labels.json \
+  --gallery <gallery dir> --recognizer modules/card-recognizer/.data/build/release/card-recognizer
+```
+
 ### User tags
 
 A user tag is a private label that a user puts on copies. `user_tags` holds each user tag with its user, its name, and its created time. The name is trimmed of white space at both ends and has 1 to 64 characters. A user's user tag names are unique ignoring case. `copy_user_tags` links copies to user tags, with the user ID. `supabase/collection.ts` has the shared types.
