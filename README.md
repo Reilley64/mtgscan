@@ -48,6 +48,12 @@ A development build has a primitive catalog that shows every primitive in each s
 
 The card recognizer is a local Expo module in `apps/mobile/modules/card-recognizer`. `recognize(photoUri, outline)` returns a card result with its candidates and decision, or a not-a-card result, as #75 describes. The outline is the four card corners, top left first and clockwise, as fractions of the photo's width and height from its top-left corner. It loads the gallery from `Application Support/gallery` on the phone and throws `gallery_not_ready` until one is there.
 
+A card result also has:
+
+- `decision.basis`, the rule that proved an accept: `collector_line` when the collector line names a card printing in the image shortlist, `set_code` when the set code leaves one card printing of the top card, and `unique_art` when the top card printing is the only one with its art and the next art is far enough behind. It is null for an abstain.
+- `artMargin`, the similarity of the top candidate minus the similarity of the best candidate with other art. It is null when no other art was compared.
+- `trainingCrop`, the file URI of the straightened card as a 488 x 680 JPEG in `Caches/training-crops`, the size and format of the crops in the scanner evidence pack. The crop is upright, in the rotation that the recognizer chose. A not-a-card result and a failed recognition write no crop.
+
 Each candidate carries its card printing ID, Oracle ID, name, set code, collector number, finishes, and basic land flag from the printing list. Name search also runs on the phone, over the printing list of the installed gallery:
 
 - `searchCardNames(text)` matches card names and face names. It ignores case, accents, and punctuation. It returns up to 10 cards: exact names first, then names that start with the text, then names with a word that starts with it. There is no fuzzy match.

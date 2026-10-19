@@ -115,7 +115,7 @@ A card printing that prints the same collector line and art as another and diffe
 The small print at the bottom of a card printing with its set code and collector number. A star in place of the dot marks a foil copy.
 
 **Recognition**:
-The recognizer's answer for one photo of a card: candidate card printings in display order and a decision. The recognizer accepts the first candidate when its rules prove it, and abstains otherwise. The app shows the first candidate either way.
+The recognizer's answer for one photo of a card: candidate card printings in display order and a decision. The recognizer accepts the first candidate when its rules prove it, and abstains otherwise. The app shows the first candidate either way. An accept names its decision basis, the rule that proved it: the collector line, the set code, or unique art. The art margin is how far the best candidate with other art is behind the top candidate.
 _Avoid_: Match, confidence
 
 **Card detector**:
