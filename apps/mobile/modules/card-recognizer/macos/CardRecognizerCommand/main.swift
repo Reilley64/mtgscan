@@ -1,6 +1,9 @@
 import CardRecognizer
 import CoreGraphics
+import CryptoKit
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 import os
 
 struct ServeRequest: Decodable {
@@ -57,7 +60,69 @@ func recognize(_ request: ServeRequest, gallery: Gallery) throws(RecognitionFail
   return try CardRecognizer.recognize(card: card, gallery: gallery, excluded: excluded)
 }
 
+// Prototype (embedding replay). RECOGNIZER_DUMP_DIR writes every embedding input as <pixel sha256>.png and
+// still uses Vision. RECOGNIZER_QUERY_VECTORS names a folder with keys.txt (one pixel sha256 per line),
+// vectors.f32 (one row per key), and dimension.txt; the recognizer then uses those vectors instead of Vision.
+func pixelKey(_ image: CGImage) -> String {
+  let width = image.width
+  let height = image.height
+  var pixels = [UInt8](repeating: 0, count: width * height * 4)
+  pixels.withUnsafeMutableBytes { buffer in
+    let context = CGContext(
+      data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+      space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    )
+    context?.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+  }
+  return SHA256.hash(data: Data(pixels)).map { String(format: "%02x", $0) }.joined()
+}
+
+func configureEmbedding() {
+  let environment = ProcessInfo.processInfo.environment
+  if let dump = environment["RECOGNIZER_DUMP_DIR"] {
+    let directory = URL(fileURLWithPath: dump)
+    let log = directory.appendingPathComponent("keys-\(ProcessInfo.processInfo.processIdentifier).txt")
+    FileManager.default.createFile(atPath: log.path, contents: nil)
+    let logHandle = try! FileHandle(forWritingTo: log)
+    FeaturePrint.override = FeaturePrint.Override(dimension: FeaturePrint.dimension) { image in
+      let key = pixelKey(image)
+      logHandle.write(Data("\(key)\n".utf8))
+      let file = directory.appendingPathComponent("\(key).png")
+      if !FileManager.default.fileExists(atPath: file.path),
+         let destination = CGImageDestinationCreateWithURL(file as CFURL, UTType.png.identifier as CFString, 1, nil) {
+        CGImageDestinationAddImage(destination, image, nil)
+        CGImageDestinationFinalize(destination)
+      }
+      return try FeaturePrint.visionVector(of: image)
+    }
+    return
+  }
+  guard let folder = environment["RECOGNIZER_QUERY_VECTORS"] else { return }
+  let directory = URL(fileURLWithPath: folder)
+  guard let keys = try? String(contentsOf: directory.appendingPathComponent("keys.txt"), encoding: .utf8).split(separator: "\n"),
+        let dimensionText = try? String(contentsOf: directory.appendingPathComponent("dimension.txt"), encoding: .utf8),
+        let dimension = Int(dimensionText.trimmingCharacters(in: .whitespacesAndNewlines)),
+        let data = try? Data(contentsOf: directory.appendingPathComponent("vectors.f32"))
+  else { fail("cannot read the query vectors in \(folder)") }
+  let values = data.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
+  guard values.count == keys.count * dimension else { fail("vectors.f32 does not match keys.txt") }
+  var vectors: [String: [Float]] = [:]
+  for (row, key) in keys.enumerated() {
+    vectors[String(key)] = Array(values[row * dimension ..< (row + 1) * dimension])
+  }
+  let table = vectors
+  FeaturePrint.override = FeaturePrint.Override(dimension: dimension) { image in
+    let key = pixelKey(image)
+    guard let vector = table[key] else {
+      FileHandle.standardError.write(Data("no query vector for \(key)\n".utf8))
+      throw FeaturePrint.Failure.noObservation
+    }
+    return vector
+  }
+}
+
 func serve(galleryDirectory: URL) {
+  configureEmbedding()
   let gallery: Gallery
   do {
     gallery = try Gallery(directory: galleryDirectory)

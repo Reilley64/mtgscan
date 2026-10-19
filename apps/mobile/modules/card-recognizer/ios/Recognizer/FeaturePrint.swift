@@ -23,7 +23,24 @@ public enum FeaturePrint {
     return try? vector(of: small)
   }
 
+  // Prototype (embedding replay): lets the macOS command swap in precomputed vectors from another model.
+  public struct Override: Sendable {
+    public let dimension: Int
+    public let vector: @Sendable (CGImage) throws -> [Float]
+    public init(dimension: Int, vector: @escaping @Sendable (CGImage) throws -> [Float]) {
+      self.dimension = dimension
+      self.vector = vector
+    }
+  }
+
+  nonisolated(unsafe) public static var override: Override?
+
   public static func vector(of image: CGImage) throws -> [Float] {
+    if let override { return try override.vector(image) }
+    return try visionVector(of: image)
+  }
+
+  public static func visionVector(of image: CGImage) throws -> [Float] {
     guard #available(iOS 17.0, macOS 14.0, *) else { throw Failure.unsupportedRevision }
     let request = VNGenerateImageFeaturePrintRequest()
     request.revision = VNGenerateImageFeaturePrintRequestRevision2

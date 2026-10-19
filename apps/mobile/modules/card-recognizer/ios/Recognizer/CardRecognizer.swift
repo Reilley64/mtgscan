@@ -7,9 +7,14 @@ public enum CardRecognizer {
   public static let readHeight = 1664
   static let shortlistSize = 50
   static let illustrationExpansion = 10
-  static let notACardSimilarity: Float = 0.5
-  static let unreadArtMargin: Float = 0.03
-  static let orientationMargin: Float = 0.03
+  static let notACardSimilarity: Float = threshold("RECOGNIZER_NOT_A_CARD", 0.5)
+  static let unreadArtMargin: Float = threshold("RECOGNIZER_ART_MARGIN", 0.03)
+  static let orientationMargin: Float = threshold("RECOGNIZER_ORIENTATION_MARGIN", 0.03)
+
+  // Prototype (embedding replay): cosine thresholds can be re-tuned per embedding from the environment.
+  private static func threshold(_ name: String, _ standard: Float) -> Float {
+    ProcessInfo.processInfo.environment[name].flatMap(Float.init) ?? standard
+  }
   static let fullReadingStrength = 3
   static let titleCandidates = 10
   static let machineReadableFrame = "2015"

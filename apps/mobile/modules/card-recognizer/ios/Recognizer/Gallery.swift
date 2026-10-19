@@ -87,7 +87,7 @@ public final class Gallery: Sendable {
       GalleryHeader.self,
       from: Data(contentsOf: directory.appendingPathComponent(GalleryFile.header))
     )
-    guard header.count == printings.count, header.dimension == FeaturePrint.dimension else {
+    guard header.count == printings.count, header.dimension == (FeaturePrint.override?.dimension ?? FeaturePrint.dimension) else {
       throw Failure.mismatch("gallery has \(header.count)x\(header.dimension), printing list has \(printings.count)")
     }
     dimension = header.dimension
