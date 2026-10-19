@@ -1,11 +1,12 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { deleteCopy, getCollectionTotal, getCopy, type CollectionTotal } from '../collection';
-import { addDeckCard, createDeck, getDeck, listDeckChanges, listDecks, setDeckCommander } from '../decks';
+import { deleteCopy, getCopy, type CollectionTotal } from '../collection';
+import { addDeckCard, listDeckChanges, listDecks, setDeckCommander } from '../decks';
 import { getCards, listCardPrintings, searchCatalog } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
-import { collectionCopies, collectionEntries } from './collection-pages';
+import { collectionCopies, collectionEntries, collectionTotal } from './collection-pages';
 import { call, failed, refused, replyOf } from './database-calls';
+import { createdDeck, deckOf } from './deck-calls';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -36,20 +37,8 @@ async function copyIdsInTheCollection(user: TestUser) {
   return (await collectionCopies(user.client)).items.map((row) => row.copy_id).toSorted();
 }
 
-function collectionTotal(user: TestUser) {
-  return replyOf(user.client, getCollectionTotal, {});
-}
-
-async function created(user: TestUser, name: string) {
-  return (await replyOf(user.client, createDeck, { name })).deck_id;
-}
-
 async function added(user: TestUser, deckId: string, copyId: string) {
   await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
-}
-
-function deckOf(user: TestUser, deckId: string) {
-  return replyOf(user.client, getDeck, { deck_id: deckId });
 }
 
 async function deckChangesOf(user: TestUser, deckId: string) {
@@ -136,7 +125,7 @@ describe('deleting a copy', () => {
 describe('deleting a copy in a deck', () => {
   test('removes the copy from its deck with one removed_from_collection deck change, raises the revision, then deletes the copy', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const [deletedCopyId, keptCopyId] = await scannedCuratorCopyIds(user);
     await added(user, deckId, deletedCopyId);
     await added(user, deckId, keptCopyId);
@@ -163,7 +152,7 @@ describe('deleting a copy in a deck', () => {
 
   test('History still shows the deleted card in the removed_from_collection deck change', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const [copyId] = await scannedCuratorCopyIds(user);
     await added(user, deckId, copyId);
     await replyOf(user.client, setDeckCommander, { copy_id: copyId, commander: true });
@@ -188,10 +177,10 @@ describe('deleting a copy in a deck', () => {
 
   test('deleting a copy in a deck counts as using the deck', async () => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
+    const atraxa = await createdDeck(user, 'Atraxa');
     const [copyId] = await scannedCuratorCopyIds(user);
     await added(user, atraxa, copyId);
-    await created(user, 'Kinnan');
+    await createdDeck(user, 'Kinnan');
     expect(await deckNamesOf(user)).toEqual(['Kinnan', 'Atraxa']);
 
     await deleted(user, copyId);
@@ -201,7 +190,7 @@ describe('deleting a copy in a deck', () => {
 
   test('deleting a copy in no deck makes no deck change', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const [inDeck, free] = await scannedCuratorCopyIds(user);
     await added(user, deckId, inDeck);
 
@@ -213,7 +202,7 @@ describe('deleting a copy in a deck', () => {
 
   test('an add that waits on the copy while it is deleted still ends with a removed_from_collection deck change', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const [copyId] = await scannedCuratorCopyIds(user);
 
     const { add, remove } = await asDatabaseOwner((database) =>
@@ -238,7 +227,7 @@ describe('deleting a copy in a deck', () => {
 
   test('a copy whose deck is deleted while the copy is deleted is still deleted, with no error', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const [copyId] = await scannedCuratorCopyIds(user);
     await added(user, deckId, copyId);
 
@@ -258,7 +247,7 @@ describe('deleting a copy in a deck', () => {
   test("deleting another user's copy in a deck is not_found and leaves their deck as it was", async () => {
     const alice = await signUpNewUser();
     const bob = await signUpNewUser();
-    const bobDeckId = await created(bob, 'Kinnan');
+    const bobDeckId = await createdDeck(bob, 'Kinnan');
     const [bobCopyId] = await scannedCuratorCopyIds(bob);
     await added(bob, bobDeckId, bobCopyId);
 

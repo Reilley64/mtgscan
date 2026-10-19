@@ -3,7 +3,6 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import {
   addDeckCard,
   changeBasicLand,
-  createDeck,
   getDeck,
   listDeckChanges,
   previewRevert,
@@ -14,6 +13,7 @@ import {
 } from '../decks';
 import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { replyOf } from './database-calls';
+import { createdDeck } from './deck-calls';
 import { asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -30,10 +30,6 @@ beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
-
-async function created(user: TestUser) {
-  return (await replyOf(user.client, createDeck, { name: 'Krenko' })).deck_id;
-}
 
 async function addedCopy(user: TestUser, deckId: string, cardPrintingId: string) {
   const scanned = stack(cardPrintingId);
@@ -56,7 +52,7 @@ async function mountainsChanged(user: TestUser, deckId: string, by: number) {
 }
 
 async function deckOfKrenko(user: TestUser, cardCount: number, cardPrintingIds: string[] = []) {
-  const deckId = await created(user);
+  const deckId = await createdDeck(user, 'Krenko');
   const commander = await addedCopy(user, deckId, krenko);
   await madeCommander(user, commander);
   for (const cardPrintingId of cardPrintingIds) {
@@ -102,7 +98,7 @@ describe('the effect of a revert', () => {
 
   test('a revert that takes the commander out judges the deck without it', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user, 'Krenko');
     await mountainsChanged(user, deckId, 99);
     const commander = await addedCopy(user, deckId, krenko);
     const commanderAdded = await lastChange(user, deckId);
@@ -137,7 +133,7 @@ describe('the effect of a revert', () => {
 
   test('a revert that leaves the deck empty has no effect', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user, 'Krenko');
     const commander = await addedCopy(user, deckId, krenko);
     const commanderAdded = await lastChange(user, deckId);
     await madeCommander(user, commander);
@@ -148,7 +144,7 @@ describe('the effect of a revert', () => {
 
   test('an empty deck has no effect', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user, 'Krenko');
     await removed(user, await addedCopy(user, deckId, blackLotus));
     expect(await evaluationOf(user, deckId)).toBeNull();
 

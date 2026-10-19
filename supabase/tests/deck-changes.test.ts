@@ -4,7 +4,6 @@ import { deleteCopy } from '../collection';
 import {
   addDeckCard,
   changeBasicLand,
-  createDeck,
   deleteDeck,
   listDeckChanges,
   removeDeckCard,
@@ -14,6 +13,7 @@ import {
 } from '../decks';
 import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { call, failed, refused, replyOf } from './database-calls';
+import { createdDeck } from './deck-calls';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -28,10 +28,6 @@ beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
-
-async function created(user: TestUser, name = 'Atraxa') {
-  return (await replyOf(user.client, createDeck, { name })).deck_id;
-}
 
 async function scannedCopy(user: TestUser, cardPrintingId = angelicCurator) {
   const scanned = stack(cardPrintingId);
@@ -94,7 +90,7 @@ function revisionsOf(page: DeckChangePage) {
 describe('listing deck changes', () => {
   test('returns deck changes newest first with their kind, time, revision, reverted flag, and lines', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const curator = await scannedCopy(user);
     const delver = await scannedCopy(user, delverInnistrad);
     await added(user, deckId, curator);
@@ -151,12 +147,12 @@ describe('listing deck changes', () => {
   test('a new deck has no deck changes', async () => {
     const user = await signUpNewUser();
 
-    expect(await deckChangesOf(user, { deck_id: await created(user) })).toEqual({ items: [], next_cursor: null });
+    expect(await deckChangesOf(user, { deck_id: await createdDeck(user) })).toEqual({ items: [], next_cursor: null });
   });
 
   test('returns 20 deck changes a page, and the cursor reads the next page', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     await seedDeckChanges(
       user,
       deckId,
@@ -174,7 +170,7 @@ describe('listing deck changes', () => {
 
   test('limit sets the page size, and a null cursor reads the first page', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     await seedDeckChanges(user, deckId, [1, 2, 3].map((revision) => ({ revision, kind: 'added' })));
 
     const first = await deckChangesOf(user, { deck_id: deckId, cursor: null, limit: 2 });
@@ -187,7 +183,7 @@ describe('listing deck changes', () => {
 
   test("a cursor from another deck's deck changes is refused", async () => {
     const user = await signUpNewUser();
-    const [atraxa, kinnan] = [await created(user, 'Atraxa'), await created(user, 'Kinnan')];
+    const [atraxa, kinnan] = [await createdDeck(user, 'Atraxa'), await createdDeck(user, 'Kinnan')];
     await seedDeckChanges(user, atraxa, [1, 2].map((revision) => ({ revision, kind: 'added' })));
     const first = await deckChangesOf(user, { deck_id: atraxa, limit: 1 });
 
@@ -198,7 +194,7 @@ describe('listing deck changes', () => {
 
   test('a deck change made after the first page does not repeat a deck change on the next page', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     await seedDeckChanges(user, deckId, [1, 2, 3].map((revision) => ({ revision, kind: 'added' })));
     const first = await deckChangesOf(user, { deck_id: deckId, limit: 2 });
 
@@ -209,7 +205,7 @@ describe('listing deck changes', () => {
 
   test('a removed deck change has a copy line from the main deck to out of the deck', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const copyId = await scannedCopy(user);
     await added(user, deckId, copyId);
 
@@ -225,7 +221,7 @@ describe('listing deck changes', () => {
 
   test('each kind of deck change returns its kind and the places of its copy lines before and after', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const curator = { copy_id: await scannedCopy(user), card_printing_id: angelicCurator };
     const delver = { copy_id: await scannedCopy(user, delverInnistrad), card_printing_id: delverInnistrad };
     await seedDeckChanges(user, deckId, [
@@ -271,7 +267,7 @@ describe('listing deck changes', () => {
 
   test('a basic_lands deck change has a basic land line with its counts before and after', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const changed = async (oracleId: string, by: number) => {
       await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: oracleId, by });
     };
@@ -291,7 +287,7 @@ describe('listing deck changes', () => {
 
   test('copy lines come before basic land lines', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const copyId = await scannedCopy(user);
     await seedDeckChanges(user, deckId, [
       {
@@ -312,7 +308,7 @@ describe('listing deck changes', () => {
 
   test("a deleted copy's lines still show its card", async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const copyId = await scannedCopy(user);
     await added(user, deckId, copyId);
 
@@ -326,7 +322,7 @@ describe('listing deck changes', () => {
 
   test('a reverted deck change has the reverted flag', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     await seedDeckChanges(user, deckId, [
       { revision: 1, kind: 'added', reverted_by_revision: 3 },
       { revision: 2, kind: 'added', reverted_by_revision: 3 },
@@ -344,7 +340,7 @@ describe('listing deck changes', () => {
 
   test('deleting a deck deletes its reverted deck changes', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     await seedDeckChanges(user, deckId, [
       { revision: 1, kind: 'added', reverted_by_revision: 2 },
       { revision: 2, kind: 'revert' },
@@ -374,7 +370,7 @@ describe('listing deck changes', () => {
     ['a revision as the cursor', (deckId) => ({ deck_id: deckId, cursor: '5' }), 'invalid_cursor', 'cursor'],
   ])('%s is refused', async (_, query, code, field) => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
 
     expect(await call(user.client, listDeckChanges, query(deckId) as never)).toMatchObject(refused(code, field));
   });
@@ -383,7 +379,7 @@ describe('listing deck changes', () => {
 describe('access', () => {
   test("a user cannot list another user's deck changes", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
-    const deckId = await created(alice);
+    const deckId = await createdDeck(alice);
     await added(alice, deckId, await scannedCopy(alice));
 
     expect(await call(bob.client, listDeckChanges, { deck_id: deckId })).toMatchObject(refused('not_found', 'deck_id'));
@@ -399,7 +395,7 @@ describe('access', () => {
 
   test('a user cannot mark a deck change reverted directly', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     await added(user, deckId, await scannedCopy(user));
     const [change] = (await deckChangesOf(user, { deck_id: deckId })).items;
 

@@ -4,8 +4,6 @@ import { deleteCopy, setCopyProtected } from '../collection';
 import {
   addDeckCard,
   changeBasicLand,
-  createDeck,
-  getDeck,
   listDeckChanges,
   previewRevert,
   removeDeckCard,
@@ -15,6 +13,7 @@ import {
 } from '../decks';
 import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { call, failed, refused, replyOf } from './database-calls';
+import { createdDeck, deckOf } from './deck-calls';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -29,10 +28,6 @@ beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
-
-async function created(user: TestUser, name = 'Atraxa') {
-  return (await replyOf(user.client, createDeck, { name })).deck_id;
-}
 
 async function scannedCopy(user: TestUser, cardPrintingId = angelicCurator) {
   const scanned = stack(cardPrintingId);
@@ -54,10 +49,6 @@ async function madeCommander(user: TestUser, copyId: string, commander = true) {
 
 async function basicLandChanged(user: TestUser, deckId: string, oracleId: string, by: number) {
   await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: oracleId, by });
-}
-
-async function deckOf(user: TestUser, deckId: string) {
-  return replyOf(user.client, getDeck, { deck_id: deckId });
 }
 
 async function changesOf(user: TestUser, deckId: string) {
@@ -85,7 +76,7 @@ function placesOf(deck: Deck) {
 describe('reverting deck changes', () => {
   test('a revert undoes the deck change and every later one as one revert deck change, and marks them reverted', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const [curator, delver, rift] = [await scannedCopy(user), await scannedCopy(user, delverInnistrad), await scannedCopy(user)];
     await added(user, deckId, curator);
     await added(user, deckId, delver);
@@ -114,7 +105,7 @@ describe('reverting deck changes', () => {
 
   test('a revert marks only the deck changes in its range that no revert undid yet', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     for (const copyId of [await scannedCopy(user), await scannedCopy(user), await scannedCopy(user)]) {
       await added(user, deckId, copyId);
     }
@@ -135,7 +126,7 @@ describe('reverting deck changes', () => {
 
   test('a revert of a revert puts the deck back', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const curator = await scannedCopy(user);
     await added(user, deckId, curator);
     await madeCommander(user, curator);
@@ -156,7 +147,7 @@ describe('reverting deck changes', () => {
 
   test('a revert of moving a commander to the main deck makes it a commander again', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const curator = await scannedCopy(user);
     await added(user, deckId, curator);
     await madeCommander(user, curator);
@@ -171,7 +162,7 @@ describe('reverting deck changes', () => {
 
   test('a revert puts basic land counts back', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     await basicLandChanged(user, deckId, forest, 8);
     await basicLandChanged(user, deckId, forest, -2);
     await basicLandChanged(user, deckId, wastes, 1);
@@ -193,7 +184,7 @@ describe('reverting deck changes', () => {
 
   test('a copy that must come back and was deleted blocks the revert with revert_blocked naming the card', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const curator = await scannedCopy(user);
     await added(user, deckId, curator);
     await removed(user, curator);
@@ -214,7 +205,7 @@ describe('reverting deck changes', () => {
 
   test('a copy that must come back and is in another deck blocks the revert with revert_blocked naming the card and the deck', async () => {
     const user = await signUpNewUser();
-    const [atraxa, kinnan] = [await created(user, 'Atraxa'), await created(user, 'Kinnan')];
+    const [atraxa, kinnan] = [await createdDeck(user, 'Atraxa'), await createdDeck(user, 'Kinnan')];
     const curator = await scannedCopy(user);
     await added(user, atraxa, curator);
     await removed(user, curator);
@@ -235,7 +226,7 @@ describe('reverting deck changes', () => {
 
   test('a copy that goes out of the deck never blocks the revert, even when it is deleted', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const [curator, delver] = [await scannedCopy(user), await scannedCopy(user, delverInnistrad)];
     await added(user, deckId, curator);
     await added(user, deckId, delver);
@@ -248,7 +239,7 @@ describe('reverting deck changes', () => {
 
   test('a protected copy that comes back needs unprotect, otherwise protected_copy', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const curator = await scannedCopy(user);
     await added(user, deckId, curator);
     await removed(user, curator);
@@ -273,7 +264,7 @@ describe('reverting deck changes', () => {
 
   test('a stale expected_revision is refused with stale_revision and changes nothing', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const [curator, delver] = [await scannedCopy(user), await scannedCopy(user, delverInnistrad)];
     await added(user, deckId, curator);
     const deckChangeId = await changeAt(user, deckId, 1);
@@ -290,7 +281,7 @@ describe('reverting deck changes', () => {
 
   test('the preview shows the lines that the revert writes', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const [curator, delver] = [await scannedCopy(user), await scannedCopy(user, delverInnistrad)];
     await added(user, deckId, curator);
     await basicLandChanged(user, deckId, forest, 3);
@@ -319,7 +310,7 @@ describe('reverting deck changes', () => {
 
   test('the preview changes nothing', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const curator = await scannedCopy(user);
     await added(user, deckId, curator);
 
@@ -332,7 +323,7 @@ describe('reverting deck changes', () => {
 
   test("a deck change of another deck is not_found on deck_change_id", async () => {
     const user = await signUpNewUser();
-    const [atraxa, kinnan] = [await created(user, 'Atraxa'), await created(user, 'Kinnan')];
+    const [atraxa, kinnan] = [await createdDeck(user, 'Atraxa'), await createdDeck(user, 'Kinnan')];
     await added(user, kinnan, await scannedCopy(user));
     const deckChangeId = await changeAt(user, kinnan, 1);
 
@@ -353,7 +344,7 @@ describe('reverting deck changes', () => {
     ['an unknown field', (ids) => ({ ...ids, expected_revision: 1, unprotect: false, copy_id: ids.deck_id }), 'copy_id'],
   ])('%s is refused with invalid_argument', async (_, request, field) => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     await added(user, deckId, await scannedCopy(user));
     const ids = { deck_id: deckId, deck_change_id: await changeAt(user, deckId, 1) };
 
@@ -365,7 +356,7 @@ describe('reverting deck changes', () => {
 describe('access', () => {
   test("a user cannot preview or revert another user's deck changes", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
-    const deckId = await created(alice);
+    const deckId = await createdDeck(alice);
     await added(alice, deckId, await scannedCopy(alice));
     const deckChangeId = await changeAt(alice, deckId, 1);
 
@@ -379,9 +370,9 @@ describe('access', () => {
 
   test("a user's own deck with another user's deck change is not_found on deck_change_id", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
-    const aliceDeck = await created(alice);
+    const aliceDeck = await createdDeck(alice);
     await added(alice, aliceDeck, await scannedCopy(alice));
-    const bobDeck = await created(bob);
+    const bobDeck = await createdDeck(bob);
 
     const result = await call(bob.client, previewRevert, { deck_id: bobDeck, deck_change_id: await changeAt(alice, aliceDeck, 1) });
 

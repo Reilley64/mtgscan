@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from '
 
 import { getCollectionTotal } from '../collection';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
-import { collectionCopies } from './collection-pages';
-import { call, failed, refused, replyOf } from './database-calls';
+import { collectionCopies, collectionTotal } from './collection-pages';
+import { call, failed, refused } from './database-calls';
 import { daysAgo, storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
@@ -37,10 +37,6 @@ async function setPriceSnapshotAt(at: string) {
 
 function hoursAgo(hours: number) {
   return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-}
-
-function collectionTotal(user: TestUser) {
-  return replyOf(user.client, getCollectionTotal, {});
 }
 
 describe('the collection total read', () => {

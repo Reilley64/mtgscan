@@ -73,7 +73,7 @@ export async function aiClientReply<Contract extends DatabaseFunction>(
   return expectReplied(await aiClientCall(client, contract, request));
 }
 
-export type McpLogLine = {
+type McpLogLine = {
   text: string;
   parsed: Record<string, unknown>;
 };
