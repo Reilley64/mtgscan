@@ -190,7 +190,14 @@ describe('the MCP server over HTTP', () => {
       status: { enum: ['open', 'swapped_in', 'closed', 'moved_to_buylist'] },
     });
     const createPlannedSwaps = tools.find(({ name }) => name === 'create_planned_swaps')!;
-    expect(mcpWriteToolNames).toEqual(['create_planned_swaps', 'create_buylist_cards', 'close_planned_swap', 'close_buylist_card']);
+    expect(mcpWriteToolNames).toEqual([
+      'create_planned_swaps',
+      'create_buylist_cards',
+      'close_planned_swap',
+      'close_buylist_card',
+      'create_user_tag',
+      'set_copies_user_tag',
+    ]);
     expect(createPlannedSwaps.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
     expect(createPlannedSwaps.inputSchema).toMatchObject({
       type: 'object',
@@ -252,6 +259,33 @@ describe('the MCP server over HTTP', () => {
       anyOf: [expect.objectContaining({ required: ['id', 'changed'], additionalProperties: false }), expect.anything()],
     });
     expect(closeBuylistCard.description).toContain('Close any open buylist card when it no longer fits, even one that another AI client added.');
+    const createUserTag = tools.find(({ name }) => name === 'create_user_tag')!;
+    expect(createUserTag.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+    expect(createUserTag.inputSchema).toMatchObject({ required: ['name'], additionalProperties: false });
+    expect(createUserTag.outputSchema).toMatchObject({
+      anyOf: [expect.objectContaining({ required: ['user_tag_id', 'name', 'created'], additionalProperties: false }), expect.anything()],
+    });
+    expect(createUserTag.description).toContain(
+      'When the user already has a user tag with the name, ignoring case, it returns that user tag with created: false and changes nothing.',
+    );
+    const setCopiesUserTag = tools.find(({ name }) => name === 'set_copies_user_tag')!;
+    expect(setCopiesUserTag.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+    expect(setCopiesUserTag.inputSchema).toMatchObject({
+      required: ['copy_ids', 'user_tag_id', 'tagged'],
+      additionalProperties: false,
+      properties: { copy_ids: { minItems: 1, maxItems: 100 } },
+    });
+    expect(setCopiesUserTag.outputSchema).toMatchObject({
+      anyOf: [expect.objectContaining({ required: ['changed', 'skipped'], additionalProperties: false }), expect.anything()],
+    });
+    for (const sentence of [
+      'Put a user tag on 1 to 100 copies, or take it off them, in one call, all changed or none.',
+      'Find copy IDs with search_collection and rows: copies.',
+      "A copy ID that is not one of the user's copies, such as a copy that the user deleted, is skipped as missing, and the other copies still change.",
+      'A copy that already has the asked state counts as changed.',
+    ]) {
+      expect(setCopiesUserTag.description).toContain(sentence);
+    }
   });
 
   test('the descriptions carry the catalog sentence, the USD sentence on each tool that returns prices, the bracket sentence on the deck reads, and the declined write sentence on the write tools', async () => {
@@ -266,13 +300,14 @@ describe('the MCP server over HTTP', () => {
     expect(withSentence(declinedWriteSentence)).toEqual(mcpWriteToolNames);
   });
 
-  test('the server instructions say that the AI cannot change a deck, plans swaps with free copies, adds cards the user lacks to the buylist, never holds a protected copy, follows deck priority, and recommends a move between decks in the chat', async () => {
+  test('the server instructions say that the AI can change user tags but cannot change a deck or a copy, plans swaps with free copies, adds cards the user lacks to the buylist, never holds a protected copy, follows deck priority, and recommends a move between decks in the chat', async () => {
     const { mcp } = await connected(await signUpNewUser());
 
     const instructions = mcp.getInstructions();
 
+    expect(instructions).not.toContain('You cannot change a deck or the collection.');
     for (const sentence of [
-      'You cannot change a deck or the collection.',
+      'You can change user tags and put them on copies or take them off, but you cannot change a deck or a copy.',
       'To suggest a card that the user owns, make a planned swap with a free copy of it.',
       'To suggest a card that the user lacks, add a buylist card for it.',
       'Never hold a protected copy.',
@@ -844,5 +879,87 @@ describe('the buylist over HTTP', () => {
       pointer: '/buylist_card_id',
       retryable: false,
     });
+  });
+});
+
+describe('user tags over HTTP', () => {
+  async function userWithCopies(copies: number) {
+    const user = await signUpNewUser();
+    const scanned = stack(angelicCurator, { copies });
+    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
+    const { mcp } = await connected(user);
+    return { user, mcp, copyIds: scanned.copy_ids };
+  }
+
+  async function userTagIdOf(mcp: Client, name: string) {
+    const created = await mcp.callTool({ name: 'create_user_tag', arguments: { name } });
+    return (created.structuredContent as { user_tag_id: string }).user_tag_id;
+  }
+
+  test('create_user_tag creates a user tag, and a second call with the name in another case returns it, each with a one-line summary and the minified JSON', async () => {
+    const { mcp } = await userWithCopies(1);
+
+    const created = await mcp.callTool({ name: 'create_user_tag', arguments: { name: ' Trade binder ' } });
+    const again = await mcp.callTool({ name: 'create_user_tag', arguments: { name: 'TRADE BINDER' } });
+
+    expect(created.isError).toBeFalsy();
+    const userTagId = (created.structuredContent as { user_tag_id: string }).user_tag_id;
+    const userTag = { user_tag_id: userTagId, name: 'Trade binder' };
+    expect(created.structuredContent).toEqual({ ...userTag, created: true });
+    expect(again.structuredContent).toEqual({ ...userTag, created: false });
+    expect(textOf(created)).toBe(`Created user tag Trade binder.\n${JSON.stringify(created.structuredContent)}`);
+    expect(textOf(again)).toBe(`The user already has user tag Trade binder.\n${JSON.stringify(again.structuredContent)}`);
+    expect(await summaryOf(mcp, 'list_user_tags', {})).toBe('1 user tag.');
+  });
+
+  test('set_copies_user_tag puts a user tag on copies and skips a missing copy, with a one-line summary and the minified JSON', async () => {
+    const { mcp, copyIds } = await userWithCopies(2);
+    const userTagId = await userTagIdOf(mcp, 'Sell');
+    const unknown = crypto.randomUUID();
+
+    const result = await mcp.callTool({
+      name: 'set_copies_user_tag',
+      arguments: { copy_ids: [...copyIds, unknown], user_tag_id: userTagId, tagged: true },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toEqual({ changed: copyIds, skipped: [{ copy_id: unknown, reason: 'missing' }] });
+    expect(textOf(result)).toBe(`2 copies changed, 1 copy skipped.\n${JSON.stringify(result.structuredContent)}`);
+    expect((await mcp.callTool({ name: 'list_user_tags', arguments: {} })).structuredContent).toEqual({
+      items: [{ user_tag_id: userTagId, name: 'Sell', copy_count: 2 }],
+    });
+    expect(await summaryOf(mcp, 'set_copies_user_tag', { copy_ids: copyIds, user_tag_id: userTagId, tagged: false })).toBe(
+      '2 copies changed, 0 copies skipped.',
+    );
+  });
+
+  test("another user's user tag comes back as not-found from set_copies_user_tag with its pointer", async () => {
+    const { mcp, copyIds } = await userWithCopies(1);
+    const { mcp: otherMcp } = await connected(await signUpNewUser());
+    const othersUserTagId = await userTagIdOf(otherMcp, 'Signed');
+
+    const result = await mcp.callTool({ name: 'set_copies_user_tag', arguments: { copy_ids: copyIds, user_tag_id: othersUserTagId, tagged: true } });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      type: `${problems}not-found`,
+      title: 'Not found',
+      detail: 'user_tag_id is not one of your user tags.',
+      pointer: '/user_tag_id',
+      retryable: false,
+    });
+  });
+
+  test('a repeated copy ID comes back as invalid-argument from set_copies_user_tag with the pointer of the item', async () => {
+    const { mcp, copyIds } = await userWithCopies(1);
+    const userTagId = await userTagIdOf(mcp, 'Sell');
+
+    const result = await mcp.callTool({
+      name: 'set_copies_user_tag',
+      arguments: { copy_ids: [copyIds[0], copyIds[0]], user_tag_id: userTagId, tagged: true },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toMatchObject({ type: `${problems}invalid-argument`, pointer: '/copy_ids/1', retryable: false });
   });
 });

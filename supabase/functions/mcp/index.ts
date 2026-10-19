@@ -22,7 +22,7 @@ const instructions = [
   "mtgscan holds the user's Magic: The Gathering collection and Commander decks.",
   "A deck is the cards in the user's deck box now.",
   'You can read the card catalog, the collection, and the decks.',
-  'You cannot change a deck or the collection. The user makes every deck change in the app.',
+  'You can change user tags and put them on copies or take them off, but you cannot change a deck or a copy. The user makes every deck change in the app.',
   'To suggest a card that the user owns, make a planned swap with a free copy of it. The planned swap holds that copy until the user swaps it in or closes it.',
   'To suggest a card that the user lacks, add a buylist card for it. The user buys it, scans it, and marks the buylist card bought.',
   'Never hold a protected copy. The user keeps protected copies out of decks.',

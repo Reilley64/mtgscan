@@ -922,6 +922,12 @@ isOneToOne: false
 "mcp_close_planned_swap":
 { Args: { "request": Json }; Returns: Json
                            },
+"mcp_create_user_tag":
+{ Args: { "request": Json }; Returns: Json
+                           },
+"mcp_set_copies_user_tag":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "preview_add_deck_card":
 { Args: { "query": Json }; Returns: Json
                            },
