@@ -27,8 +27,8 @@ export function TrainingCropUploadsSettingProvider({ children }: { children: Rea
       return;
     }
     let current = true;
-    supabase.rpc('get_training_crop_settings').then(({ data, error }) => {
-      if (current && !error) {
+    supabase.rpc('get_training_crop_settings').then(({ data }) => {
+      if (current && data) {
         setKnown({ userId, uploadsOn: (data as unknown as TrainingCropSettings).uploads_on });
       }
     });
