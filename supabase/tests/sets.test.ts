@@ -176,6 +176,26 @@ describe('the set art', () => {
     expect((await setRow(user, 'pfra'))?.set_art_uri).toBe(artCrop(lichsRelicPromo, 1791170088));
   });
 
+  test('a basic land card printing never gives the set art, even at the highest price', async () => {
+    const user = await signUpNewUser();
+
+    const [{ usd_nonfoil_cents }] = await asDatabaseOwner(
+      (database) => database`select usd_nonfoil_cents from public.card_prices where printing_id = ${snowCoveredWastes}`,
+    );
+
+    await asDatabaseOwner(
+      (database) => database`update public.card_prices set usd_nonfoil_cents = 100000 where printing_id = ${snowCoveredWastes}`,
+    );
+    try {
+      expect((await setRow(user, 'mh3'))?.set_art_uri).toBe(artCrop(roilCartographerVariant, 1783911138));
+      expect((await setRow(user, 'khm'))?.set_art_uri).toBeNull();
+    } finally {
+      await asDatabaseOwner(
+        (database) => database`update public.card_prices set usd_nonfoil_cents = ${usd_nonfoil_cents} where printing_id = ${snowCoveredWastes}`,
+      );
+    }
+  });
+
   test('with no art crop in the set, the set art is null', async () => {
     const user = await signUpNewUser();
     const artCrops = await asDatabaseOwner(
