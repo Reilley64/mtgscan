@@ -925,6 +925,15 @@ isOneToOne: false
 "mcp_create_user_tag":
 { Args: { "request": Json }; Returns: Json
                            },
+"mcp_delete_user_tag":
+{ Args: { "request": Json }; Returns: Json
+                           },
+"mcp_rename_user_tag":
+{ Args: { "request": Json }; Returns: Json
+                           },
+"mcp_restore_user_tag":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "mcp_set_copies_user_tag":
 { Args: { "request": Json }; Returns: Json
                            },

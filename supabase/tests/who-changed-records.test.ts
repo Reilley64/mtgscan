@@ -103,6 +103,19 @@ describe('who created and last changed a record', () => {
     );
   });
 
+  test("an AI client's delete and restore of the user's user tags record the AI client as who last changed them", async () => {
+    const client = await connectedAiClient();
+    const deletedByAi = await appRequest<UserTag>(client.user, 'create_user_tag', { name: 'Signed' });
+    const restoredByAi = await appRequest<UserTag>(client.user, 'create_user_tag', { name: 'Sell' });
+    await appRequest(client.user, 'delete_user_tag', { user_tag_id: restoredByAi.user_tag_id });
+
+    await aiClientCall(client, 'mcp_delete_user_tag', { user_tag_id: deletedByAi.user_tag_id });
+    await aiClientCall(client, 'mcp_restore_user_tag', { user_tag_id: restoredByAi.user_tag_id });
+
+    expect(await changersOf('user_tags', { id: deletedByAi.user_tag_id })).toEqual(changers(client.user.userId, client.clientId));
+    expect(await changersOf('user_tags', { id: restoredByAi.user_tag_id })).toEqual(changers(client.user.userId, client.clientId));
+  });
+
   test('a change keeps who created the record and records who last changed it', async () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Goblins');

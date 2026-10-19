@@ -170,9 +170,12 @@ describe('the MCP server over HTTP', () => {
     const { tools } = await mcp.listTools();
 
     expect(tools.map(({ name }) => name)).toEqual(mcpToolNames);
+    for (const tool of tools) {
+      expect(tool.annotations).toEqual(mcpToolAnnotations(tool.name));
+    }
+    expect(tools.filter(({ annotations }) => annotations!.destructiveHint).map(({ name }) => name)).toEqual(['delete_user_tag']);
     for (const tool of tools.filter(({ name }) => mcpReadToolNames.includes(name))) {
       const [result, toolProblem] = tool.outputSchema!.anyOf as { type: string; additionalProperties: boolean; required: string[] }[];
-      expect(tool.annotations).toEqual(mcpToolAnnotations(tool.name));
       expect([tool.inputSchema.type, tool.inputSchema.additionalProperties]).toEqual(['object', false]);
       expect([tool.outputSchema!.type, result!.type, result!.additionalProperties]).toEqual(['object', 'object', false]);
       expect(toolProblem!.required).toEqual(['type', 'title', 'detail', 'retryable']);
@@ -196,6 +199,9 @@ describe('the MCP server over HTTP', () => {
       'close_planned_swap',
       'close_buylist_card',
       'create_user_tag',
+      'rename_user_tag',
+      'delete_user_tag',
+      'restore_user_tag',
       'set_copies_user_tag',
     ]);
     expect(createPlannedSwaps.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
@@ -268,6 +274,52 @@ describe('the MCP server over HTTP', () => {
     expect(createUserTag.description).toContain(
       'When the user already has a user tag with the name, ignoring case, it returns that user tag with created: false and changes nothing.',
     );
+    const listUserTags = tools.find(({ name }) => name === 'list_user_tags')!;
+    expect(listUserTags.inputSchema.properties).toEqual({ deleted: expect.objectContaining({ type: 'boolean' }) });
+    expect(listUserTags.description).toContain('With deleted: true, it lists only deleted user tags');
+    const renameUserTag = tools.find(({ name }) => name === 'rename_user_tag')!;
+    expect(renameUserTag.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+    expect(renameUserTag.inputSchema).toMatchObject({ required: ['user_tag_id', 'name'], additionalProperties: false });
+    expect(renameUserTag.outputSchema).toMatchObject({
+      anyOf: [expect.objectContaining({ required: ['user_tag_id', 'name'], additionalProperties: false }), expect.anything()],
+    });
+    for (const sentence of [
+      'A name that another user tag has, ignoring case, is refused with user-tag-exists.',
+      'Renaming a user tag to its own name in another case works.',
+      'A deleted user tag is not-found.',
+    ]) {
+      expect(renameUserTag.description).toContain(sentence);
+    }
+    const deleteUserTag = tools.find(({ name }) => name === 'delete_user_tag')!;
+    expect(deleteUserTag.annotations).toEqual({ readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false });
+    expect(deleteUserTag.inputSchema).toMatchObject({ required: ['user_tag_id'], additionalProperties: false });
+    expect(deleteUserTag.outputSchema).toMatchObject({
+      anyOf: [expect.objectContaining({ required: ['user_tag_id', 'changed', 'copy_count'], additionalProperties: false }), expect.anything()],
+    });
+    for (const sentence of [
+      'Before you delete a user tag, tell the user how many copies have it, from the copy_count of list_user_tags.',
+      'Deleting a deleted user tag changes nothing and returns changed: false.',
+      'Restore a deleted user tag with restore_user_tag.',
+    ]) {
+      expect(deleteUserTag.description).toContain(sentence);
+    }
+    const restoreUserTag = tools.find(({ name }) => name === 'restore_user_tag')!;
+    expect(restoreUserTag.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+    expect(restoreUserTag.inputSchema).toMatchObject({ required: ['user_tag_id'], additionalProperties: false });
+    expect(restoreUserTag.outputSchema).toMatchObject({
+      anyOf: [
+        expect.objectContaining({ required: ['user_tag_id', 'name', 'changed', 'copy_count'], additionalProperties: false }),
+        expect.anything(),
+      ],
+    });
+    for (const sentence of [
+      'It comes back on exactly the copies it was on when it was deleted.',
+      'Find deleted user tags with list_user_tags and deleted: true.',
+      'Restoring a user tag that is not deleted changes nothing and returns changed: false.',
+      'When another user tag now has its name, ignoring case, the restore is refused with user-tag-exists.',
+    ]) {
+      expect(restoreUserTag.description).toContain(sentence);
+    }
     const setCopiesUserTag = tools.find(({ name }) => name === 'set_copies_user_tag')!;
     expect(setCopiesUserTag.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
     expect(setCopiesUserTag.inputSchema).toMatchObject({
@@ -283,6 +335,7 @@ describe('the MCP server over HTTP', () => {
       'Find copy IDs with search_collection and rows: copies.',
       "A copy ID that is not one of the user's copies, such as a copy that the user deleted, is skipped as missing, and the other copies still change.",
       'A copy that already has the asked state counts as changed.',
+      'A deleted user tag is not-found.',
     ]) {
       expect(setCopiesUserTag.description).toContain(sentence);
     }
@@ -948,6 +1001,67 @@ describe('user tags over HTTP', () => {
       pointer: '/user_tag_id',
       retryable: false,
     });
+  });
+
+  test('rename_user_tag renames a user tag, and a taken name comes back as user-tag-exists with its pointer', async () => {
+    const { mcp } = await userWithCopies(1);
+    const userTagId = await userTagIdOf(mcp, 'trade binder');
+    await userTagIdOf(mcp, 'Sell');
+
+    const renamed = await mcp.callTool({ name: 'rename_user_tag', arguments: { user_tag_id: userTagId, name: 'Trade binder' } });
+    const taken = await mcp.callTool({ name: 'rename_user_tag', arguments: { user_tag_id: userTagId, name: 'sell' } });
+
+    expect(renamed.isError).toBeFalsy();
+    expect(renamed.structuredContent).toEqual({ user_tag_id: userTagId, name: 'Trade binder' });
+    expect(textOf(renamed)).toBe(`Renamed the user tag to Trade binder.\n${JSON.stringify(renamed.structuredContent)}`);
+    expect(taken.isError).toBe(true);
+    expect(taken.structuredContent).toEqual({
+      type: `${problems}user-tag-exists`,
+      title: 'User tag exists',
+      detail: 'You already have a user tag with this name.',
+      pointer: '/name',
+      retryable: false,
+    });
+  });
+
+  test('delete_user_tag deletes a user tag, list_user_tags with deleted lists it, and restore_user_tag brings it back on its copies, each with a one-line summary and the minified JSON', async () => {
+    const { mcp, copyIds } = await userWithCopies(2);
+    const userTagId = await userTagIdOf(mcp, 'Sell');
+    await mcp.callTool({ name: 'set_copies_user_tag', arguments: { copy_ids: copyIds, user_tag_id: userTagId, tagged: true } });
+
+    const deleted = await mcp.callTool({ name: 'delete_user_tag', arguments: { user_tag_id: userTagId } });
+    const deletedAgain = await mcp.callTool({ name: 'delete_user_tag', arguments: { user_tag_id: userTagId } });
+    const listed = await mcp.callTool({ name: 'list_user_tags', arguments: { deleted: true } });
+    const restored = await mcp.callTool({ name: 'restore_user_tag', arguments: { user_tag_id: userTagId } });
+    const restoredAgain = await mcp.callTool({ name: 'restore_user_tag', arguments: { user_tag_id: userTagId } });
+
+    expect(deleted.structuredContent).toEqual({ user_tag_id: userTagId, changed: true, copy_count: 2 });
+    expect(textOf(deleted)).toBe(`Deleted the user tag. 2 copies lost it.\n${JSON.stringify(deleted.structuredContent)}`);
+    expect(deletedAgain.structuredContent).toEqual({ user_tag_id: userTagId, changed: false, copy_count: 0 });
+    expect(textOf(deletedAgain)).toBe(`The user tag was already deleted.\n${JSON.stringify(deletedAgain.structuredContent)}`);
+    expect(listed.structuredContent).toEqual({ items: [{ user_tag_id: userTagId, name: 'Sell', copy_count: 2 }] });
+    expect(restored.structuredContent).toEqual({ user_tag_id: userTagId, name: 'Sell', changed: true, copy_count: 2 });
+    expect(textOf(restored)).toBe(`Restored user tag Sell on 2 copies.\n${JSON.stringify(restored.structuredContent)}`);
+    expect(restoredAgain.structuredContent).toEqual({ user_tag_id: userTagId, name: 'Sell', changed: false, copy_count: 2 });
+    expect(textOf(restoredAgain)).toBe(`User tag Sell was not deleted.\n${JSON.stringify(restoredAgain.structuredContent)}`);
+    expect((await mcp.callTool({ name: 'list_user_tags', arguments: {} })).structuredContent).toEqual({
+      items: [{ user_tag_id: userTagId, name: 'Sell', copy_count: 2 }],
+    });
+  });
+
+  test("restoring a user tag whose name is taken comes back as user-tag-exists on user_tag_id, and another user's user tag as not-found", async () => {
+    const { mcp } = await userWithCopies(1);
+    const userTagId = await userTagIdOf(mcp, 'Sell');
+    await mcp.callTool({ name: 'delete_user_tag', arguments: { user_tag_id: userTagId } });
+    await userTagIdOf(mcp, 'SELL');
+    const { mcp: otherMcp } = await connected(await signUpNewUser());
+    const othersUserTagId = await userTagIdOf(otherMcp, 'Signed');
+
+    const taken = await mcp.callTool({ name: 'restore_user_tag', arguments: { user_tag_id: userTagId } });
+    const others = await mcp.callTool({ name: 'delete_user_tag', arguments: { user_tag_id: othersUserTagId } });
+
+    expect(taken.structuredContent).toMatchObject({ type: `${problems}user-tag-exists`, pointer: '/user_tag_id', retryable: false });
+    expect(others.structuredContent).toMatchObject({ type: `${problems}not-found`, pointer: '/user_tag_id' });
   });
 
   test('a repeated copy ID comes back as invalid-argument from set_copies_user_tag with the pointer of the item', async () => {
