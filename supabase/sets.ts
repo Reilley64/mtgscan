@@ -13,7 +13,14 @@ export type CardSet = {
   completion: Record<FinishView, SetCompletion>;
 };
 
-export type SetList = { items: CardSet[] };
+export type SetListQuery = {
+  text?: string;
+  finish_view: FinishView;
+  cursor?: string | null;
+  limit?: number;
+};
+
+export type SetList = { items: CardSet[]; next_cursor: string | null };
 
 export type SetQuery = { code: string };
 

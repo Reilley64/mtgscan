@@ -253,23 +253,26 @@ mtgscan stores no daily collection totals and no change since yesterday. `docs/a
 
 ### Sets list
 
-Signed-in users read Sets with `supabase.rpc('list_sets')`. It takes no query. `supabase/sets.ts` has the shared types.
+Signed-in users read Sets in pages with `supabase.rpc('list_sets', { query: { text, finish_view, cursor, limit } })`. `supabase/sets.ts` has the shared types.
 
-- The result has `items`, one row for every set with a `released_at` on or before the current date and at least one card printing in the card catalog. A set with no `released_at` counts as not released.
-- The rows come newest first, then by name. Every row comes in one response, with no paging. The app filters them by the search text.
+- `finish_view` is `any`, `nonfoil`, or `foil`, and is required. `text` is optional, from 1 to 100 characters.
+- The result has `items` and `next_cursor`. The rows are the sets with a `released_at` on or before the current date whose main set is not empty in `finish_view`. A set with no `released_at` counts as not released. So a set with no card printing in the card catalog, a set of only basic lands, and Alpha in Foil are left out.
+- `text` matches the set name or the set code, anywhere in it, ignoring case.
+- The rows come newest first, then by name, then by code. A page has 20 sets, or `limit`, from 1 to 50. To read the next page, send `next_cursor` back as `cursor`, with the same `text` and `finish_view`. It is null on the last page. A cursor that is not valid, that comes from another search or finish view, or that is older than 15 minutes is refused with `invalid_cursor` on `cursor`.
+- The read works out set completion and set art only for the sets of the page. It reads the sets in order and stops once the page is full, so a page costs about the same at the start and at the end of the list.
 - Each row has `code`, `name`, `icon_svg_uri`, `released_at`, and `completion`, the set completion in each finish view as `{ owned, size }` under `any`, `nonfoil`, and `foil`.
 - `size` counts the card printings in the set's main set that the finish view does not leave out. `owned` counts those with at least one of the caller's copies in the finish view. A card printing counts once, whatever the condition, language, protected flag, or deck of its copies.
 - Any finish counts every copy. Nonfoil counts the nonfoil copies, or every copy when the card printing has no nonfoil finish. Foil counts the foil and etched copies, and leaves out a card printing with neither finish. `private.set_card_printing_counts` holds this rule. The app only picks the finish view.
 - Each row also has `set_art_uri`, the set art from `GLOSSARY.md`. It is the art crop of the set's card printing with the highest current USD price in any finish, among the card printings with an art crop. A tie goes to the lower collector number. With no priced card printing, it is the art crop of the first card printing that has one, by collector number. With no art crop in the set, it is null. Variants can give the set art. Basic land card printings never do, as they are in no set's main set or variants.
 - One private function, `private.set_card_printings`, applies the main set rule from `GLOSSARY.md`. Basic land cards are never in the main set or the variants.
-- The function runs with the caller's rights. An anonymous caller and the secret key are refused.
+- The function runs with the caller's rights. An anonymous caller and the secret key are refused. A refused query has the code `invalid_argument` and the field at fault.
 
 ### Set read
 
 Signed-in users read one set with `supabase.rpc('get_set', { query })`. The set page reads through it. `supabase/sets.ts` has the shared types.
 
 - The query has `code`, the set code, such as `blb`.
-- The result has the fields of the set's `list_sets` row, then `main_set` and `variants`.
+- The result has the fields of a `list_sets` row for the set, then `main_set` and `variants`.
 - `main_set` lists the card printings of the main set. `variants.card_printings` lists the variants, and `variants.completion` is their own set completion in each finish view. Basic land cards are in neither list.
 - Both lists come in collector number order. Numbers sort by their leading digits, then as text, so "9" comes before "10" and "10a".
 - Each card printing has `printing_id`, `name`, `collector_number`, `image_uri` (the front face image, or null), `finishes`, and `counts`, the number of the caller's copies under `any`, `nonfoil`, and `foil`. `counts.foil` is null when the card printing has no foil or etched finish.
