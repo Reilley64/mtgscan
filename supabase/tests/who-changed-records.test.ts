@@ -87,6 +87,22 @@ describe('who created and last changed a record', () => {
     expect(await changersOf('buylist_cards', { id: buylistCardId })).toEqual(changers(client.clientId));
   });
 
+  test("an AI client's user tag writes record its ID, and the user's later untag records the user", async () => {
+    const client = await connectedAiClient();
+    const { bolt } = await krenkoDeck(client.user);
+    const userTag = await aiClientCall<UserTag>(client, 'mcp_create_user_tag', { name: 'Trade binder' });
+    await aiClientCall(client, 'mcp_set_copies_user_tag', { copy_ids: [bolt], user_tag_id: userTag.user_tag_id, tagged: true });
+
+    expect(await changersOf('user_tags', { id: userTag.user_tag_id })).toEqual(changers(client.clientId));
+    expect(await changersOf('copy_user_tags', { user_id: client.user.userId })).toEqual(changers(client.clientId));
+
+    await appRequest(client.user, 'set_copy_user_tag', { copy_id: bolt, user_tag_id: userTag.user_tag_id, tagged: false });
+
+    expect(await changersOf('copy_user_tags', { user_id: client.user.userId })).toEqual(
+      changers(client.clientId, client.user.userId),
+    );
+  });
+
   test('a change keeps who created the record and records who last changed it', async () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Goblins');
