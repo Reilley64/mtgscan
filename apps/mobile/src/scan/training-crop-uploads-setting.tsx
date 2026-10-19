@@ -19,7 +19,7 @@ const TrainingCropUploadsContext = createContext<TrainingCropUploadsSetting | nu
 export function TrainingCropUploadsSettingProvider({ children }: { children: ReactNode }) {
   const userId = useSession()?.user.id;
   const [known, setKnown] = useState<KnownSetting | null>(null);
-  const [readCount, setReadCount] = useState(0);
+  const [readAttempt, setReadAttempt] = useState(0);
   const uploadsOn = userId && known?.userId === userId ? known.uploadsOn : null;
 
   useEffect(() => {
@@ -35,7 +35,7 @@ export function TrainingCropUploadsSettingProvider({ children }: { children: Rea
     return () => {
       current = false;
     };
-  }, [userId, readCount]);
+  }, [userId, readAttempt]);
 
   useEffect(() => {
     if (uploadsOn !== null) {
@@ -43,7 +43,7 @@ export function TrainingCropUploadsSettingProvider({ children }: { children: Rea
     }
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        setReadCount((count) => count + 1);
+        setReadAttempt((attempt) => attempt + 1);
       }
     });
     return () => subscription.remove();

@@ -36,11 +36,11 @@ private func emptyDirectory() -> URL {
 }
 
 private func cardRecognition(_ recognition: Recognition) throws -> CardRecognition {
-  guard case let .card(card) = recognition else {
-    Issue.record("expected a card recognition")
-    throw RecognitionFailure.unreadablePhoto
+  var card: CardRecognition?
+  if case let .card(recognized) = recognition {
+    card = recognized
   }
-  return card
+  return try #require(card, "expected a card recognition")
 }
 
 private func jpegSize(at uri: String?) throws -> (type: String, width: Int, height: Int) {
@@ -60,7 +60,7 @@ func anAcceptedCardRecognitionWritesATrainingCrop() throws {
     vectors: try featurePrint(of: photo) + otherArt
   )
   let directory = emptyDirectory()
-  let recognition = try cardRecognition(CardRecognizer.recognize(card: photo, gallery: gallery, trainingCrops: directory))
+  let recognition = try cardRecognition(CardRecognizer.recognize(card: photo, gallery: gallery, trainingCropDirectory: directory))
   #expect(recognition.decision.accepted)
   let crop = try jpegSize(at: recognition.trainingCrop)
   #expect(crop.type == "public.jpeg")
@@ -77,7 +77,7 @@ func anAbstainedCardRecognitionWritesATrainingCrop() throws {
     printings: [printing("first", art: "shared-art"), printing("reprint", art: "shared-art"), printing("other", art: "other-art")],
     vectors: vector + vector + otherArt
   )
-  let recognition = try cardRecognition(CardRecognizer.recognize(card: photo, gallery: gallery, trainingCrops: emptyDirectory()))
+  let recognition = try cardRecognition(CardRecognizer.recognize(card: photo, gallery: gallery, trainingCropDirectory: emptyDirectory()))
   #expect(!recognition.decision.accepted)
   let crop = try jpegSize(at: recognition.trainingCrop)
   #expect(crop.type == "public.jpeg")
@@ -89,7 +89,7 @@ func anAbstainedCardRecognitionWritesATrainingCrop() throws {
 func aPhotoThatIsNotACardWritesNoTrainingCrop() throws {
   let gallery = try fixtureGallery(printings: [printing("only", art: "only-art")], vectors: otherArt)
   let directory = emptyDirectory()
-  let recognition = try CardRecognizer.recognize(card: card(seed: 3), gallery: gallery, trainingCrops: directory)
+  let recognition = try CardRecognizer.recognize(card: card(seed: 3), gallery: gallery, trainingCropDirectory: directory)
   guard case .notACard = recognition else {
     Issue.record("expected a photo that is not a card")
     return

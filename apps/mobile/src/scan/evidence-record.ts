@@ -8,11 +8,11 @@ const policyVersion = 1;
 
 export function evidenceRecordOf(scan: CroppedScan): EvidenceRecord {
   const { trainingCrop } = scan;
-  const { reading } = trainingCrop;
+  const { decision, reading } = trainingCrop;
   return {
-    accepted: trainingCrop.accepted,
-    decision_basis: trainingCrop.decisionBasis,
-    decision_reasons: [...trainingCrop.decisionReasons],
+    accepted: decision.accepted,
+    decision_basis: decision.basis,
+    decision_reasons: [...decision.reasons],
     top_similarity: trainingCrop.topSimilarity,
     art_margin: trainingCrop.artMargin,
     reading_set_code: reading.setCode ?? null,

@@ -15,7 +15,7 @@ import {
 } from './card-printings';
 import { timePasses, todayIs } from './clock';
 import { resetSampleClock } from './detection-samples';
-import { cardRecognition, nextPhotosAre, notACard } from './fake-card-recognizer';
+import { cardRecognition, holdNextRecognition, nextPhotosAre, notACard } from './fake-card-recognizer';
 import { filesIn } from './fake-file-system';
 import {
   failNextTrainingCropUpload,
@@ -500,7 +500,7 @@ test('a switch in Other options labels the training crop with the chosen card pr
   ]);
 });
 
-test('a switch in the printings picker labels the training crop with the chosen card printing and says how it changed', async () => {
+test('a switch in the printing picker labels the training crop with the chosen card printing and says how it changed', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
@@ -514,13 +514,13 @@ test('a switch in the printings picker labels the training crop with the chosen 
     expect.objectContaining({
       recognized_printing_id: lightningBoltM10.printingId,
       saved_printing_id: lightningBolt2xm.printingId,
-      printing_change: 'printings_picker',
+      printing_change: 'printing_picker',
       printing_confirmed: false,
     }),
   ]);
 });
 
-test('a name search fix labels the training crop with the card printing the user chose, and keeps the scanner first card printing', async () => {
+test('a name search fix labels the training crop with the card printing the user chose, and keeps the card printing the scanner found first', async () => {
   nextPhotosAre(cardRecognition([shock], { accepted: false }));
   await openScan();
   await scanACard();
@@ -547,7 +547,7 @@ test('a name search fix labels the training crop with the card printing the user
   ]);
 });
 
-test('choosing the current card printing in the printings picker confirms it in the evidence record', async () => {
+test('choosing the current card printing in the printing picker confirms it in the evidence record', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
@@ -588,7 +588,7 @@ test('a change after a confirmation clears the confirmation and records the last
   ]);
 });
 
-test('a switch back to the scanner first card printing still records the change', async () => {
+test('a switch back to the card printing the scanner found first still records the change', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
@@ -604,7 +604,7 @@ test('a switch back to the scanner first card printing still records the change'
     expect.objectContaining({
       recognized_printing_id: lightningBoltM10.printingId,
       saved_printing_id: lightningBoltM10.printingId,
-      printing_change: 'printings_picker',
+      printing_change: 'printing_picker',
       printing_confirmed: false,
     }),
   ]);
@@ -728,6 +728,35 @@ test('Remove all scans deletes the training crops of every scan in the scan batc
   await pressAlertButton('Remove');
 
   expect(filesIn(keptCrops)).toEqual([]);
+});
+
+test('a recognition that ends after Remove all scans leaves no training crop on the phone', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+  const recognition = holdNextRecognition();
+  await scanACard();
+  await openBatchReview(1);
+
+  await pressHeaderMenuAction(drawerScreen(), 'More', ['Remove all scans']);
+  await pressAlertButton('Remove');
+  await recognition.finish();
+
+  expect(filesIn(cacheCrops)).toEqual([]);
+  expect(filesIn(keptCrops)).toEqual([]);
+});
+
+test('a recognition that ends after a sign out leaves no training crop on the phone', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  const recognition = holdNextRecognition();
+  await scanACard();
+
+  await signOut();
+  await recognition.finish();
+
+  expect(filesIn(cacheCrops)).toEqual([]);
+  expect(filesIn('file:///documents/training-crops/')).toEqual([]);
 });
 
 test('a scan keeps its training crop, its first card printing, and its printing change across a restart', async () => {

@@ -112,14 +112,14 @@ export function cardRecognition(
   {
     premiumMark = false,
     accepted = true,
-    basis = accepted ? 'collector_line' : null,
+    basis = 'collector_line',
     sameTextTwinCount = 0,
     artMargin = 0.12,
     trainingCrop = `file:///caches/training-crops/crop-${(trainingCrops += 1)}.jpg`,
   }: {
     premiumMark?: boolean;
     accepted?: boolean;
-    basis?: DecisionBasis | null;
+    basis?: DecisionBasis;
     sameTextTwinCount?: number;
     artMargin?: number | null;
     trainingCrop?: string | null;
@@ -128,7 +128,7 @@ export function cardRecognition(
   return {
     kind: 'card',
     candidates,
-    decision: { accepted, basis, reasons: [] },
+    decision: accepted ? { accepted, basis, reasons: [] } : { accepted, basis: null, reasons: [] },
     reading: { setCode: candidates[0]?.setCode, collectorNumber: candidates[0]?.collectorNumber, premiumMark },
     sameTextTwinCount,
     topSimilarity: 0.9,

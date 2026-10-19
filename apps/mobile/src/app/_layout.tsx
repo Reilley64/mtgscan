@@ -15,6 +15,7 @@ import { KeepAwakeWhileScanning } from '@/scan/keep-awake-while-scanning';
 import { ScanBatchProvider } from '@/scan/scan-batch-state';
 import { ScanSoundsProvider } from '@/scan/scan-sounds-setting';
 import { TrainingCropUploadsSettingProvider } from '@/scan/training-crop-uploads-setting';
+import { TrainingCropUploads } from '@/scan/training-crops';
 import { colors } from '@/theme';
 
 const navigationTheme = {
@@ -80,6 +81,7 @@ export default function RootLayout() {
         <StatusBar style="light" />
         <KeepAwakeWhileScanning />
         <SessionProvider>
+          <TrainingCropUploads />
           <GalleryProvider>
             <ScanSoundsProvider>
               <PriceCurrencyProvider>

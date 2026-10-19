@@ -44,7 +44,6 @@ import {
   dropTrainingCropsOf,
   keepTrainingCrop,
   queueTrainingCrops,
-  useTrainingCropUploads,
 } from './training-crops';
 
 export type RecognitionResult = Recognition | 'failed' | 'no_photo';
@@ -66,6 +65,7 @@ type Scanning = Readonly<{
   recognizing: readonly string[];
   feedback: { outcome: ScanOutcome } | null;
   commitStatus: CommitStatus;
+  strayTrainingCrops: readonly string[];
 }>;
 
 type ScanningAction =
@@ -82,7 +82,8 @@ type ScanningAction =
     }
   | { type: 'commitFailed' }
   | { type: 'commitSucceeded'; scanIds: string[] }
-  | { type: 'removedAll' };
+  | { type: 'removedAll' }
+  | { type: 'strayTrainingCropsDropped'; uris: readonly string[] };
 
 const initialScanning: Scanning = {
   restored: false,
@@ -91,14 +92,17 @@ const initialScanning: Scanning = {
   recognizing: [],
   feedback: null,
   commitStatus: 'idle',
+  strayTrainingCrops: [],
 };
 
+function cardRecognitionOf(recognition: RecognitionResult): CardRecognition | null {
+  return recognition !== 'failed' && recognition !== 'no_photo' && recognition.kind === 'card' ? recognition : null;
+}
+
 function scannedCard(recognition: RecognitionResult): CardRecognition | null {
-  if (recognition === 'failed' || recognition === 'no_photo' || recognition.kind !== 'card') {
-    return null;
-  }
-  const first = recognition.candidates[0];
-  return first && !first.basicLand ? recognition : null;
+  const card = cardRecognitionOf(recognition);
+  const first = card?.candidates[0];
+  return first && !first.basicLand ? card : null;
 }
 
 function recognitionEnded(
@@ -106,7 +110,7 @@ function recognitionEnded(
   { photoId, scanId, recognition, trainingCrop }: Extract<ScanningAction, { type: 'recognitionEnded' }>,
 ): Scanning {
   if (!state.recognizing.includes(photoId)) {
-    return state;
+    return trainingCrop ? { ...state, strayTrainingCrops: [...state.strayTrainingCrops, trainingCrop.uri] } : state;
   }
   const ended: Scanning = {
     ...state,
@@ -129,7 +133,7 @@ function recognitionEnded(
       trainingCrop,
     });
   }
-  const first = recognition === 'failed' ? undefined : recognition.candidates[0];
+  const first = cardRecognitionOf(recognition)?.candidates[0];
   return first?.basicLand
     ? { ...ended, latest: { kind: 'basic_land', printing: first } }
     : { ...ended, latest: { kind: 'not_recognized', scanId } };
@@ -141,29 +145,28 @@ function keptTrainingCrop(
   userId: string | undefined,
   galleryVersion: string | undefined,
 ): ScanTrainingCrop | null {
-  const cropUri =
-    recognition !== 'failed' && recognition !== 'no_photo' && recognition.kind === 'card' ? recognition.trainingCrop : null;
+  const cropUri = cardRecognitionOf(recognition)?.trainingCrop;
   if (!cropUri) {
     return null;
   }
   const card = scannedCard(recognition);
-  const uri = card && userId && galleryVersion ? keepTrainingCrop(cropUri, userId, scanId) : null;
-  if (!card || !galleryVersion || !uri) {
-    dropTrainingCrop(cropUri);
-    return null;
+  if (card && userId && galleryVersion) {
+    const uri = keepTrainingCrop(cropUri, userId, scanId);
+    if (uri) {
+      return {
+        uri,
+        decision: card.decision,
+        topSimilarity: card.topSimilarity,
+        artMargin: card.artMargin,
+        reading: card.reading,
+        recognizerVersion,
+        featurePrintRevision,
+        galleryVersion,
+      };
+    }
   }
-  return {
-    uri,
-    accepted: card.decision.accepted,
-    decisionBasis: card.decision.basis,
-    decisionReasons: card.decision.reasons,
-    topSimilarity: card.topSimilarity,
-    artMargin: card.artMargin,
-    reading: card.reading,
-    recognizerVersion,
-    featurePrintRevision,
-    galleryVersion,
-  };
+  dropTrainingCrop(cropUri);
+  return null;
 }
 
 function addScan(state: Scanning, action: Extract<ScanBatchAction, { type: 'recognized' }>): Scanning {
@@ -177,7 +180,7 @@ function notRecognizedScanIdOf({ latest }: Scanning) {
 function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
   switch (action.type) {
     case 'accountChanged':
-      return initialScanning;
+      return { ...initialScanning, strayTrainingCrops: state.strayTrainingCrops };
     case 'restored':
       return {
         ...state,
@@ -223,7 +226,9 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
         commitStatus: 'idle',
       };
     case 'removedAll':
-      return { ...initialScanning, restored: state.restored };
+      return { ...initialScanning, restored: state.restored, strayTrainingCrops: state.strayTrainingCrops };
+    case 'strayTrainingCropsDropped':
+      return { ...state, strayTrainingCrops: state.strayTrainingCrops.filter((uri) => !action.uris.includes(uri)) };
     default:
       return { ...state, batch: scanBatchReducer(state.batch, action) };
   }
@@ -283,7 +288,13 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
     }
   }, [state.feedback]);
 
-  useTrainingCropUploads(userId);
+  useEffect(() => {
+    if (state.strayTrainingCrops.length > 0) {
+      state.strayTrainingCrops.forEach(dropTrainingCrop);
+      dispatchScanning({ type: 'strayTrainingCropsDropped', uris: state.strayTrainingCrops });
+    }
+  }, [state.strayTrainingCrops]);
+
   const { uploadsOn } = useTrainingCropUploadsSetting();
   const trainingCropUploadsOn = useRef(uploadsOn);
   useEffect(() => {

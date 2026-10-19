@@ -85,7 +85,7 @@ public final class CardRecognizerModule: Module {
           photo: photo,
           outline: try CardOutline(corners: outline.map { CGPoint(x: $0.x, y: $0.y) }),
           gallery: try await installedGallery.gallery(),
-          trainingCrops: Self.trainingCropsDirectory
+          trainingCropDirectory: Self.trainingCropDirectory
         )
       } catch {
         throw Exception(name: "RecognitionError", description: error.code, code: error.code)
@@ -123,7 +123,7 @@ public final class CardRecognizerModule: Module {
     return "\(version) (\(build))"
   }()
 
-  private static let trainingCropsDirectory = FileManager.default
+  private static let trainingCropDirectory = FileManager.default
     .urls(for: .cachesDirectory, in: .userDomainMask)[0]
     .appendingPathComponent("training-crops", isDirectory: true)
 
