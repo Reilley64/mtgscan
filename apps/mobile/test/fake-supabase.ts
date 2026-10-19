@@ -1159,11 +1159,10 @@ function deleteCopy({ copy_id, move_planned_swap }: DeleteCopyRequest) {
 }
 
 function addToCollection(copies: { copyId: string; stack: ScanBatchStack }[]) {
-  for (const { copyId, stack } of copies) {
+  const added = copies.map(({ copyId, stack }): CollectionCopyRow => {
     const { card_printing_id, finish, condition, language } = stack;
     const printing = galleryPrintings.find((candidate) => candidate.printingId === card_printing_id)!;
-    const ofPrinting = collectionCopies.filter((row) => row.printing_id === card_printing_id);
-    const copy: CollectionCopyRow = {
+    return {
       copy_id: copyId,
       printing_id: printing.printingId,
       name: printing.name,
@@ -1180,8 +1179,8 @@ function addToCollection(copies: { copyId: string; stack: ScanBatchStack }[]) {
       held_for: null,
       created_at: new Date().toISOString(),
     };
-    collectionCopies = [...ofPrinting, copy, ...collectionCopies.filter((row) => row.printing_id !== card_printing_id)];
-  }
+  });
+  collectionCopies = [...added, ...collectionCopies];
 }
 
 async function addScanBatch(batch: ScanBatch) {
