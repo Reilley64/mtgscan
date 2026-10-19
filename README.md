@@ -327,6 +327,47 @@ Signed-in users delete one copy with `supabase.rpc('delete_copy', { request })`.
 - The copy's addition, its addition line, and its copy ID in `collection_addition_copies` stay. A replayed scan batch never adds the copy again.
 - It returns nothing. Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist or was already deleted. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
+### Training crops
+
+The app uploads a training crop for each saved scan to the `training-crops` Edge Function. mtgscan stores training crops with no link to the user's account. `docs/adr/0011-store-training-crops-with-no-link-to-the-user.md` says why.
+
+The function takes a `multipart/form-data` POST with the user's token and three parts:
+
+- `image`, the JPEG of the crop;
+- `copy_id`, the copy ID of the saved scan;
+- `crop`, the evidence record as JSON, with a new random `crop_id` that is not the copy ID.
+
+The function:
+
+1. checks the user's token, and answers 401 when there is none;
+2. refuses an AI client's token with 403 and `insufficient_privilege`, as ADR 0007 asks for app writes;
+3. refuses an image that is not `image/jpeg` or is over 1 MB with `invalid_argument` on `image`. The `training-crops` bucket holds both limits, and the function reads them from it;
+4. calls `add_training_crop` with the secret key;
+5. uploads the image to `training-crops` at `<crop_id>.jpg` with the secret key and no metadata. An object that is already there counts as done, so a retry works.
+
+It answers 204 when the crop is stored. A refusal is a 400 with a JSON body of `code`, `message`, and `details`, the field at fault. Any other failure is a 500 with `internal_error`. The function writes no log line.
+
+`add_training_crop({ user_id, copy_id, crop })` runs only for the secret key. It uses the user ID and the copy ID for its checks and stores neither:
+
+- `unknown_copy` on `copy_id` when the copy ID is not a copy of the user;
+- `invalid_argument` on a bad field, such as `crop.decision_basis`.
+
+Otherwise it writes the row. The same crop ID again writes nothing and succeeds.
+
+The evidence record has these fields, each a column of `training_crops`:
+
+- `crop_id`;
+- `accepted`, `decision_basis` (`collector_line`, `set_code`, or `unique_art` for an accept, null for an abstain), and `decision_reasons`;
+- `top_similarity` and `art_margin`;
+- `reading_set_code`, `reading_collector_number`, `reading_premium_mark`, and `reading_names_saved_printing`, which says whether the collector line named the saved card printing;
+- `same_text_twin_count`;
+- `recognizer_version` (the app version and build number), `feature_print_revision`, and `gallery_version`;
+- `recognized_printing_id`, the scanner's first card printing, and `saved_printing_id`, both in the card catalog;
+- `printing_change` (`other_options`, `printings_picker`, `name_search`, or null) and `printing_confirmed`;
+- `policy_version`.
+
+`training_crops` has no user ID, copy ID, or time column. No app role can read or write it. Only the secret key reads it, and it changes only through `add_training_crop`. The private `training-crops` bucket accepts only `image/jpeg` up to 1 MB. Signed-in users and anonymous callers cannot read, list, upload, or delete in it.
+
 ### User tags
 
 A user tag is a private label that a user puts on copies. `user_tags` holds each user tag with its user, its name, and its created time. The name is trimmed of white space at both ends and has 1 to 64 characters. A user's user tag names are unique ignoring case. `copy_user_tags` links copies to user tags, with the user ID. `supabase/collection.ts` has the shared types.
@@ -612,7 +653,7 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, `deck_evaluations`, `planned_swaps`, and `buylist_cards`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
+The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, `deck_evaluations`, `planned_swaps`, and `buylist_cards`. `search_telemetry` departs from the pattern, as Catalog search says. `training_crops` holds no user ID and departs from it too, as Training crops says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
 
 Every record that the user writes also says who created it and who last changed it. `copies`, `collection_additions`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `user_tags`, `copy_user_tags`, `planned_swaps`, and `buylist_cards` have `created_by`, `updated_by`, `created_at`, and `updated_at`, all not null. Each of `created_by` and `updated_by` holds the user's ID or the AI client's ID. Records that the server works out on its own, such as deck evaluations, are left out. So are line records that never change after their parent is saved, such as addition lines and deck change lines. `docs/adr/0010-record-who-created-and-last-changed-each-record.md` says why.
 
@@ -751,9 +792,9 @@ Each request logs one JSON line with `tool`, `client_id`, `result`, `protocol_ve
 #### Running and deploying
 
 - `bunx supabase@2.120.0 start` serves the function on the local stack. `bunx supabase@2.120.0 functions serve` serves it with a reload on each change.
-- `supabase/functions/mcp/deno.json` pins the function's packages. `bun run typecheck` in `supabase` runs `deno check` on the function.
+- `supabase/functions/mcp/deno.json` pins the function's packages. `bun run typecheck` in `supabase` runs `deno check` on it and on `training-crops`.
 - The HTTP tests in `supabase/tests/mcp-server.test.ts` get tokens from the local OAuth server, as an AI client does. They read the log lines from the edge runtime container with `docker logs`.
-- `.github/workflows/mcp-function.yml` deploys the function on each push to `main` that changes `supabase/functions/**`.
+- `.github/workflows/mcp-function.yml` deploys every Edge Function, this one and `training-crops`, on each push to `main` that changes `supabase/functions/**`.
 
 #### MCP pre-flight
 
