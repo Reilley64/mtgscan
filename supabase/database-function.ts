@@ -1,9 +1,14 @@
-import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 import type { z } from 'zod';
 
 import type { Database } from './database.types.ts';
 
 type Functions = Database['public']['Functions'];
+
+export type DatabaseFunctionError = { code: string; message: string; details: string; hint: string };
+
+type DatabaseFunctionResponse = { data: unknown; error: DatabaseFunctionError | null };
+
+type DatabaseClient = { rpc(name: string, args: object): PromiseLike<DatabaseFunctionResponse> };
 
 type ArgumentKey = 'query' | 'request' | 'batch';
 
@@ -41,7 +46,7 @@ export type Refusal<Code extends string = string> = {
 export type DatabaseFunctionResult<Contract extends DatabaseFunction> =
   | { status: 'replied'; reply: ReplyOf<Contract> }
   | { status: 'refused'; refusal: Refusal<ErrorCodeOf<Contract>> }
-  | { status: 'failed'; error: PostgrestError };
+  | { status: 'failed'; error: DatabaseFunctionError };
 
 export type RequestArguments<Contract extends DatabaseFunction> = undefined extends RequestOf<Contract>
   ? [request?: RequestOf<Contract>]
@@ -57,17 +62,17 @@ export function databaseFunction<
 }
 
 export async function callDatabaseFunction<Contract extends DatabaseFunction>(
-  client: SupabaseClient<Database>,
+  client: DatabaseClient,
   contract: Contract,
   ...[request]: RequestArguments<Contract>
 ): Promise<DatabaseFunctionResult<Contract>> {
   const args = contract.argument === null || request === undefined ? {} : { [contract.argument]: request };
-  return databaseFunctionResult(contract, await client.rpc(contract.name, args as never));
+  return databaseFunctionResult(contract, await client.rpc(contract.name, args));
 }
 
 export function databaseFunctionResult<Contract extends DatabaseFunction>(
   contract: Contract,
-  { data, error }: { data: unknown; error: PostgrestError | null },
+  { data, error }: DatabaseFunctionResponse,
 ): DatabaseFunctionResult<Contract> {
   if (!error) {
     return { status: 'replied', reply: data as ReplyOf<Contract> };

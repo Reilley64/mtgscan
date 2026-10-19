@@ -79,6 +79,7 @@ The app UI follows Brad Frost's Atomic Design (#101). Each level is a folder in 
 - A migration that replaces a function starts from the latest version on `main`, so that parallel changes survive.
 - `supabase/database.types.ts` comes only from `bun run types:database`.
 - Errors from database functions carry a code, a message, and the field at fault as a JSON path, such as `oracle_ids[1]`. Use `private.raise_search_error` and the `private.checked_*` helpers. See `README.md` (Catalog search).
+- Each app database function has one contract in `@mtgscan/supabase`, made with `databaseFunction` from `database-function.ts`. It holds the function's name, its argument key, its request and reply as zod schemas, and its error codes. Enum lists come from the generated `Constants`. The contract is the one source for the function's JSON. Reply types, MCP output schemas, and the fake Supabase client come from it, and code calls the function through `callDatabaseFunction`. A hand-written reply type, a cast of a reply, or a second list of a function's error codes is a finding. A PR that changes a function's JSON changes its contract, and the database tests parse each real reply against it. See #410.
 
 ## Security
 
