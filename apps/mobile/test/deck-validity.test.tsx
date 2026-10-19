@@ -43,12 +43,12 @@ const cannotBeDetermined = deckEvaluationOf({
   undetermined: [{ rule: 'deck_size', reason: 'No rules data for Sol Ring.', cards: [solRing] }],
 });
 
-type ValidityState = [string, Pick<Deck, 'card_count'> & Partial<Pick<Deck, 'commanders' | 'evaluation'>>, string, string, string];
+type ValidityState = [string, Partial<Pick<Deck, 'commanders' | 'evaluation'>>, string, string, string];
 
 const validityStates: ValidityState[] = [
-  ['a valid deck', { card_count: 100, commanders: [kinnan], evaluation: validEvaluation }, 'Valid', 'checkmark', white],
-  ['an invalid deck', { card_count: 87, evaluation: invalidEvaluation }, 'Invalid', 'nosign', danger],
-  ['a deck that cannot be determined', { card_count: 100, commanders: [kinnan], evaluation: cannotBeDetermined }, 'Cannot be determined', 'questionmark', warning],
+  ['a valid deck', { commanders: [kinnan], evaluation: validEvaluation }, 'Valid', 'checkmark', white],
+  ['an invalid deck', { evaluation: invalidEvaluation }, 'Invalid', 'nosign', danger],
+  ['a deck that cannot be determined', { commanders: [kinnan], evaluation: cannotBeDetermined }, 'Cannot be determined', 'questionmark', warning],
 ];
 
 beforeEach(() => {
@@ -81,7 +81,7 @@ describe('the validity chip in the deck screen header', () => {
   });
 
   test('an empty deck shows no chips, and Cards keeps No commander yet. and No cards yet', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 0 }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium' }]);
 
     const deck = await openDeck();
 
@@ -106,7 +106,7 @@ describe('the validity chip on the gallery card', () => {
   });
 
   test('a tap anywhere on the gallery card opens the deck', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 87, evaluation: invalidEvaluation }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium', evaluation: invalidEvaluation }]);
     const decks = await openDecks();
 
     await fireEvent.press(decks.getByRole('button', { name: 'Kinnan, Invalid, Estimated bracket 2' }));
@@ -115,7 +115,7 @@ describe('the validity chip on the gallery card', () => {
   });
 
   test('an empty deck shows no chips on its gallery card', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 0 }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium' }]);
 
     const decks = await openDecks();
 
@@ -133,7 +133,7 @@ describe('a stale validity', () => {
   });
 
   test('the validity chip in the header adds the 11 px clock after its label in the same color, and VoiceOver adds the hint', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 87, evaluation: staleInvalid }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium', evaluation: staleInvalid }]);
 
     const deck = await openDeck();
 
@@ -150,8 +150,8 @@ describe('a stale validity', () => {
 
   test('the validity chip on the gallery card adds the clock after its label, and VoiceOver adds the hint to the card', async () => {
     ownDecks([
-      { name: 'Kinnan', priority: 'medium', card_count: 87, evaluation: staleInvalid },
-      { name: 'Atraxa', priority: 'medium', card_count: 87, evaluation: invalidEvaluation },
+      { name: 'Kinnan', priority: 'medium', evaluation: staleInvalid },
+      { name: 'Atraxa', priority: 'medium', evaluation: invalidEvaluation },
     ]);
 
     const decks = await openDecks();
@@ -168,7 +168,7 @@ describe('a stale validity', () => {
   });
 
   test('the Deck validity drawer adds Stale to its rules data line', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 87, evaluation: staleInvalid }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium', evaluation: staleInvalid }]);
     const deck = await openDeck();
 
     await fireEvent.press(deck.getByRole('button', { name: 'Deck validity, Invalid' }));
@@ -180,7 +180,7 @@ describe('a stale validity', () => {
 
 describe('the validity chip comes and goes with the cards', () => {
   test('removing the last basic land hides the validity chip', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 1, basic_lands: basicLandsOf({ Island: 1 }), evaluation: invalidEvaluation }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium', basic_lands: basicLandsOf({ Island: 1 }), evaluation: invalidEvaluation }]);
     const deck = await openDeck();
     expect(deck.getByRole('button', { name: 'Deck validity, Invalid' })).toBeOnTheScreen();
     evaluateNextDeckChange('deck-1', null);
@@ -208,7 +208,7 @@ describe('the validity chip comes and goes with the cards', () => {
   });
 
   test('a deck with a basic land shows the validity chip on its gallery card', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 1, basic_lands: basicLandsOf({ Island: 1 }), evaluation: invalidEvaluation }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium', basic_lands: basicLandsOf({ Island: 1 }), evaluation: invalidEvaluation }]);
 
     const decks = await openDecks();
 
@@ -241,7 +241,6 @@ describe('cards that break a rule on the Cards tab', () => {
       {
         name: 'Golos',
         priority: 'medium',
-        card_count: 13,
         commanders: [{ copy_id: golos.copy_id, name: golos.name, art_crop_uri: null }],
         cards: [golos, firstSolRing, secondSolRing, arcaneSignet, tolabow],
         basic_lands: basicLands,
@@ -317,7 +316,7 @@ describe('the Deck validity drawer', () => {
   }
 
   test('the validity chip opens the half-height Deck validity drawer, which says what it checked against in meta text', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 87, evaluation: invalidEvaluation }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium', evaluation: invalidEvaluation }]);
 
     const drawer = await openDrawer('Invalid');
 
@@ -326,7 +325,7 @@ describe('the Deck validity drawer', () => {
   });
 
   test('an invalid deck shows one row per violation in order, each with its rule name in danger body strong, its citation link, its message, and its hint when it has one', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 87, evaluation: invalidEvaluation }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium', evaluation: invalidEvaluation }]);
 
     const drawer = await openDrawer('Invalid');
 
@@ -356,7 +355,6 @@ describe('the Deck validity drawer', () => {
       {
         name: 'Kinnan',
         priority: 'medium',
-        card_count: 100,
         commanders: [kinnan],
         evaluation: deckEvaluationOf({
           validity: 'invalid',
@@ -382,7 +380,6 @@ describe('the Deck validity drawer', () => {
       {
         name: 'Kinnan',
         priority: 'medium',
-        card_count: 87,
         commanders: [kinnan],
         evaluation: deckEvaluationOf({
           validity: 'invalid',
@@ -400,7 +397,7 @@ describe('the Deck validity drawer', () => {
   });
 
   test('a deck with no chosen color has no chosen color line', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 100, commanders: [kinnan], evaluation: validEvaluation }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium', commanders: [kinnan], evaluation: validEvaluation }]);
 
     const drawer = await openDrawer('Valid');
 
@@ -413,7 +410,6 @@ describe('the Deck validity drawer', () => {
       {
         name: 'Kinnan',
         priority: 'medium',
-        card_count: 101,
         commanders: [kinnan],
         evaluation: deckEvaluationOf({
           validity: 'invalid',
@@ -437,7 +433,6 @@ describe('the Deck validity drawer', () => {
       {
         name: 'Kinnan',
         priority: 'medium',
-        card_count: 100,
         commanders: [kinnan],
         evaluation: deckEvaluationOf({
           validity: 'invalid',
@@ -478,7 +473,6 @@ describe('the Deck validity drawer', () => {
       {
         name: 'Kinnan',
         priority: 'medium',
-        card_count: 100,
         commanders: [kinnan],
         evaluation: deckEvaluationOf({
           validity: 'cannot_be_determined',
@@ -512,7 +506,6 @@ describe('the Deck validity drawer', () => {
       {
         name: 'Kinnan',
         priority: 'medium',
-        card_count: 100,
         commanders: [kinnan],
         evaluation: deckEvaluationOf({
           validity: 'invalid',
@@ -539,7 +532,6 @@ describe('the Deck validity drawer', () => {
       {
         name: 'Kinnan',
         priority: 'medium',
-        card_count: 100,
         commanders: [kinnan],
         evaluation: deckEvaluationOf({
           validity: 'invalid',
@@ -574,7 +566,6 @@ describe('the Deck validity drawer', () => {
       {
         name: 'Kinnan',
         priority: 'medium',
-        card_count: 100,
         commanders: [kinnan],
         evaluation: deckEvaluationOf({
           validity: 'cannot_be_determined',
@@ -592,7 +583,7 @@ describe('the Deck validity drawer', () => {
   });
 
   test('a deck that cannot be determined shows one warning row per undetermined check, with its rule name, its reason, and its cards', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 100, commanders: [kinnan], evaluation: cannotBeDetermined }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium', commanders: [kinnan], evaluation: cannotBeDetermined }]);
 
     const drawer = await openDrawer('Cannot be determined');
 
@@ -604,7 +595,7 @@ describe('the Deck validity drawer', () => {
   });
 
   test('a valid deck says that it follows the Commander rules, in place of the rows', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 100, commanders: [kinnan], evaluation: validEvaluation }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium', commanders: [kinnan], evaluation: validEvaluation }]);
 
     const drawer = await openDrawer('Valid');
 
@@ -613,7 +604,7 @@ describe('the Deck validity drawer', () => {
   });
 
   test('the last line gives the day of the rules data in meta text', async () => {
-    ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 87, evaluation: invalidEvaluation }]);
+    ownDecks([{ name: 'Kinnan', priority: 'medium', evaluation: invalidEvaluation }]);
 
     const drawer = await openDrawer('Invalid');
 
@@ -627,7 +618,6 @@ describe('the Deck validity drawer', () => {
       {
         name: 'Kinnan',
         priority: 'medium',
-        card_count: 100,
         commanders: [kinnan],
         evaluation: deckEvaluationOf({ validity: 'valid', catalog_at: null, validity_rules_data_at: null }),
       },
@@ -673,7 +663,6 @@ describe('commander eligibility and partner in the Deck validity drawer', () => 
       {
         name: 'Kinnan',
         priority: 'medium',
-        card_count: 100,
         commanders: [kinnan],
         evaluation: deckEvaluationOf({
           validity: 'invalid',
@@ -717,7 +706,6 @@ describe('commander eligibility and partner in the Deck validity drawer', () => 
       {
         name: 'Kinnan',
         priority: 'medium',
-        card_count: 100,
         commanders: [kinnan],
         evaluation: deckEvaluationOf({
           validity: 'cannot_be_determined',

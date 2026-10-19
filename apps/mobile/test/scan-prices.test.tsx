@@ -35,10 +35,6 @@ function reviewRows() {
     .filter((label) => label?.includes(' · '));
 }
 
-function keysRead() {
-  return requestsSent('get_current_prices');
-}
-
 beforeEach(() => {
   resetSampleClock();
   startSignedIn();
@@ -167,7 +163,7 @@ describe('prices on the latest-scan chip', () => {
     await fireEvent.press(scanTab().getByRole('button', { name: 'Foil' }));
 
     expect(latestScanChip('Lightning Bolt, M10 146, $1.87')).toBeOnTheScreen();
-    expect(keysRead()).toEqual([{ items: [boltM10] }, { items: [boltM10Foil] }]);
+    expect(requestsSent('get_current_prices')).toEqual([{ items: [boltM10] }, { items: [boltM10Foil] }]);
   });
 });
 
@@ -263,7 +259,7 @@ describe('reading prices', () => {
     await openBatchReview(3);
 
     expect(reviewRows()).toEqual(Array(3).fill('Lightning Bolt, M10 146 · NM · English, $1.87'));
-    expect(keysRead()).toEqual([{ items: [boltM10] }]);
+    expect(requestsSent('get_current_prices')).toEqual([{ items: [boltM10] }]);
   });
 
   test('a restart clears the prices, and they stay out of the scan batch file', async () => {
@@ -294,7 +290,7 @@ describe('reading prices', () => {
     await chooseCurrency('USD US dollar');
 
     expect(latestScanChip('Lightning Bolt, M10 146, $1.87')).toBeOnTheScreen();
-    expect(keysRead()).toEqual([{ items: [boltM10] }]);
+    expect(requestsSent('get_current_prices')).toEqual([{ items: [boltM10] }]);
   });
 });
 

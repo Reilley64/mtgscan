@@ -24,10 +24,10 @@ beforeEach(() => {
   startSignedIn();
 });
 
-const krenko = { name: 'Krenko', priority: 'medium' as const, card_count: 0 };
+const krenko = { name: 'Krenko', priority: 'medium' as const };
 
 async function openKrenko() {
-  ownDecks([krenko, { name: 'Atraxa', priority: 'medium', card_count: 0 }]);
+  ownDecks([krenko, { name: 'Atraxa', priority: 'medium' }]);
   await renderApp();
   await pressTab('Decks');
   return openDeckNamed('Krenko');
@@ -230,7 +230,7 @@ describe('Needs you counts', () => {
   });
 
   test('the commander gallery card shows the deck count in a count badge', async () => {
-    ownDecks([krenko, { name: 'Atraxa', priority: 'medium', card_count: 0 }]);
+    ownDecks([krenko, { name: 'Atraxa', priority: 'medium' }]);
     ownPlannedSwaps([plannedSwapOf('swap')]);
     ownBuylistCards([buylistCardOf('card')]);
     await renderApp();

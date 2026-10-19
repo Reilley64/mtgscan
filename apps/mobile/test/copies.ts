@@ -1,4 +1,4 @@
-import type { CollectionCopyRow, CopyDetails } from '@mtgscan/supabase/collection';
+import type { CopyDetails } from '@mtgscan/supabase/collection';
 import type { DeckCard } from '@mtgscan/supabase/decks';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
@@ -34,10 +34,6 @@ export function copyOf(copyId: string, changes: Partial<CopyDetails> = {}): Copy
   };
 }
 
-export function copyRowOf(copy: CopyDetails): CollectionCopyRow {
-  return { ...copy, created_at: copy.added_at };
-}
-
 export function deckCardOf(copyId: string, name: string, typeLine: string, changes: Partial<DeckCard> = {}): DeckCard {
   const { deck, held_for, free, added_at, purchase_day_price, faces, commander_legality, user_tags, art_crop_uri, ...row } = copyOf(copyId, {
     name,
@@ -64,7 +60,7 @@ export async function openDeckNamed(name: string) {
 }
 
 export async function openDeckWithCards(cards: DeckCard[]) {
-  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: cards.length, cards }]);
+  ownDecks([{ name: 'Atraxa', priority: 'medium', cards }]);
   await renderApp();
   await pressTab('Decks');
   return openDeckNamed('Atraxa');

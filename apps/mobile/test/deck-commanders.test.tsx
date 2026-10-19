@@ -45,7 +45,7 @@ const kinnan = commanderCardOf('kinnan', 'Kinnan, Bonder Prodigy', '2026-10-15T0
 const solRing = deckCardOf('sol-ring', 'Sol Ring', 'Artifact');
 
 function deckWith(cards: DeckCard[], commanders: DeckCommander[]) {
-  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: cards.length, cards, commanders }]);
+  ownDecks([{ name: 'Atraxa', priority: 'medium', cards, commanders }]);
 }
 
 async function openDeck() {
