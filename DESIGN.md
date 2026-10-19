@@ -549,7 +549,7 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
 
 ### Sets
 
-Sets lists every released set that has a card printing in the card catalog, with the user's set completion in Any finish (#366). The rows follow option A of the HTML prototype `docs/prototypes/sets-art-fill.html`, the set symbol filling up.
+Sets lists every released set that has a card printing in the card catalog, with the user's set completion in the finish view (#366, #368). The rows follow option A of the HTML prototype `docs/prototypes/sets-art-fill.html`, the set symbol filling up.
 
 - **Sets button.** A round Liquid Glass button, 48 px across, floats over the Collection grid at the bottom left, 16 px from the left edge and level with the sort button. It shows the `rectangle.portrait.on.rectangle.portrait` stacked cards symbol at 18 px in the text color. Without Liquid Glass, it uses the control surface. It reacts to touch. VoiceOver reads "Sets, button".
   - It shows and hides with the sort button. It hides while the user types in the search bar, while the Filters drawer is open, and while the tab shows an empty state.
@@ -558,21 +558,30 @@ Sets lists every released set that has a card printing in the card catalog, with
   - A native search bar sits under the large title, with the placeholder "Search sets". It stays visible when the list scrolls. Its caret and Cancel are primary lime.
   - Typed text matches the set name or the set code, ignoring case, so "bloom" and "BLB" both find Bloomburrow. The list filters as the user types. Cancel clears the text.
   - With no match, the list shows the empty state `No sets match "xyz".` with no body.
-  - The sets come newest first, then by name, as the read returns them. A set whose main set is empty, such as a set of only basic lands, is not shown.
+  - The finish view control sits under the search bar, 12 px above the first row. See Finish view below.
+  - The sets come newest first, then by name, as the read returns them. A set whose main set is empty in the finish view is not shown, such as a set of only basic lands, or Alpha in Foil.
   - Each set is a set row. See Components.
   - A tap on a row pushes the set's set page onto the Collection tab's stack.
   - Sets reads again each time it gains focus, so cards scanned since then count at once. A reload keeps the rows shown.
   - While Sets loads, a skeleton of 8 set rows shows. Each has a block in place of the set symbol and bars for the name, "x of y", and the progress bar. VoiceOver reads the skeleton as one element, "Loading sets".
   - When the read fails, Sets shows the empty state "Could not load Sets" with a **Try again** button. See Empty states.
-- **Set page.** It shows one set's cards as a checklist in Any finish (#367). It follows the set page of the HTML prototype `docs/prototypes/sets.html`, with the set symbol header of option A. The set art banner comes later.
+- **Set page.** It shows one set's cards as a checklist in the finish view (#367, #368). It follows the set page of the HTML prototype `docs/prototypes/sets.html`, with the set symbol header of option A. The set art banner comes later.
   - It is a screen in the Collection tab's stack, like Sets. The tab bar stays. It has the native back button and no title. The swipe from the left edge goes back to Sets.
   - A set header starts the page. It has the layout of a set row, with the set symbol filling up in lime, the set name, "x of y", the progress bar, and the percentage. It is not a button. VoiceOver reads it as one header, such as "Bloomburrow, 234 of 261, 89 percent".
+  - The finish view control sits under the set header, 12 px below it. See Finish view below.
   - The main set follows as card images, 3 per row, in collector number order. A heading "Variants" in body strong lime then shows the variants' own "x of y" in meta text, such as "12 of 106", and their grid in the same order. VoiceOver reads the heading as "Variants, 12 of 106". A set with no variants has no Variants section.
   - Each card printing is a set page tile. See Components. The page shows no prices.
   - Tiles are images, not buttons. A tap on one does nothing.
   - The set page reads again each time it gains focus, so cards scanned since then count at once. A reload keeps the cards shown.
   - While the set page loads, a skeleton shows a set row skeleton and a grid of card shapes. VoiceOver reads it as one element, "Loading set".
   - When the read fails, the set page shows the empty state "Could not load this set" with a **Try again** button. See Empty states.
+
+- **Finish view.** Sets and the set page show the same finish view control, a toggle group with the segments "Any finish", "Nonfoil", and "Foil" (#368). VoiceOver reads each segment as a radio button.
+  - Any finish is the default. The phone keeps the choice in the keychain, as it keeps the price currency, so it survives a restart.
+  - One choice drives both screens. Changing it on Sets changes it on the set page, and the other way round. Changing it does not read again.
+  - In the chosen finish view, Sets rows, the set header, and the Variants "x of y" show set completion in that view. A set page tile is lit when the user owns the card printing in that view, and its quantity badge counts the copies in that view.
+  - Nonfoil counts the nonfoil copies, or every copy of a card printing with no nonfoil finish. Foil counts the foil and etched copies. A card printing with no foil or etched finish is left out of Foil, so the set page does not show it. When every variant is left out, the set page has no Variants section.
+  - In the Foil view, a lit tile carries the foil sheen.
 
 ### Sign-in screen
 
@@ -996,9 +1005,9 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - VoiceOver reads the row as one button with the name, "x of y", and the percentage in words, such as "Bloomburrow, 234 of 261, 89 percent".
   - The set header at the top of the set page has the same layout. It is not a button, and VoiceOver reads it as one header.
 - **Set page tile.** One card printing's card image on the set page, with no meta line and no price line.
-  - A card printing that the user owns is lit, at full color.
-  - A card printing that the user does not own is dimmed: its card image is grayscale at 38% opacity (`opacity.dimmed`). A saturation blend overlay in the background color takes out the color, because React Native has no grayscale filter on iOS.
-  - A lit tile with 2 or more copies shows the number of copies in a quantity badge at the top left of the card image, 5 px from the corner (`sizes.quantityBadgeInset`): a 19 px pill in the quantity badge color with the number in tab label type in white. A tile with 1 copy has no badge. Binder tiles still have no quantity badge (#116).
+  - A card printing that the user owns in the finish view is lit, at full color. In the Foil view, a lit tile carries the foil sheen of a foil copy.
+  - A card printing that the user does not own in the finish view is dimmed: its card image is grayscale at 38% opacity (`opacity.dimmed`). A saturation blend overlay in the background color takes out the color, because React Native has no grayscale filter on iOS.
+  - A lit tile with 2 or more copies in the finish view shows the number of copies in a quantity badge at the top left of the card image, 5 px from the corner (`sizes.quantityBadgeInset`): a 19 px pill in the quantity badge color with the number in tab label type in white. A tile with 1 copy has no badge. Binder tiles still have no quantity badge (#116).
   - VoiceOver reads the tile as one image with the name, "number" and the collector number, and "owned" or "not owned", then the copies from 2: "Beza, the Bounding Spring, number 2, owned, 2 copies", "Beza, the Bounding Spring, number 2, owned", or "Beza, the Bounding Spring, number 2, not owned".
 - **Name alert.** A native alert with a title, a message, a name field, **Cancel**, and a confirm button, such as **Create**. The field takes at most 64 characters. The confirm button is off while the trimmed name is empty. A new alert starts with an empty field, or with the current name when it renames.
 

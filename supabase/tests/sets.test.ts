@@ -22,6 +22,9 @@ const kenrithPromo = '56c1227e-bea7-47cb-bbec-389a3d585af5';
 const lavinia = 'd5435866-d48b-496a-ba07-438163b71ae8';
 const laviniaPromo = '1f1b47ed-e935-44a4-b654-a32c0bf5dd19';
 const lichsRelicPromo = 'f6c83e21-892d-478b-9ee1-4e724cb6ca0b';
+const prismaticPiper = 'c78c2713-39e7-4a6e-a132-027099a89665';
+const captureOfJingzhou = 'f87d0298-f76b-4ea8-82c4-5861c4539d8b';
+const counterspell = '0df55e3f-14de-46ef-b6b1-616618724d9e';
 const wastes = 'baf8f4f2-9f25-4cd2-8d78-1041e134aeac';
 
 beforeAll(async () => {
@@ -50,7 +53,7 @@ describe('the sets list', () => {
     await asDatabaseOwner((database) => database`update public.card_sets set released_at = ${blbReleasedAt} where code = 'blb'`);
   });
 
-  test('a set is listed with its code, name, set symbol, release date, and set completion in Any finish', async () => {
+  test('a set is listed with its code, name, set symbol, release date, and set completion in each finish view', async () => {
     const user = await signUpNewUser();
 
     expect(await setRow(user, 'blb')).toEqual({
@@ -58,7 +61,7 @@ describe('the sets list', () => {
       name: 'Bloomburrow',
       icon_svg_uri: 'https://svgs.scryfall.io/sets/blb.svg?1791777600',
       released_at: '2024-08-02',
-      completion: { any: { owned: 0, size: 3 } },
+      completion: { any: { owned: 0, size: 3 }, nonfoil: { owned: 0, size: 3 }, foil: { owned: 0, size: 3 } },
     });
   });
 
@@ -204,5 +207,45 @@ describe('the copies in set completion', () => {
 
     expect((await setRow(owner, 'blb'))?.completion.any).toEqual({ owned: 2, size: 3 });
     expect((await setRow(other, 'blb'))?.completion.any).toEqual({ owned: 0, size: 3 });
+  });
+});
+
+describe('set completion in each finish view', () => {
+  test('Nonfoil counts the nonfoil copies, and Foil counts the foil and etched copies', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(lifecreedDuo, { finish: 'foil' }), stack(brambleguardCaptain), stack(angelicCurator, { finish: 'etched' })]));
+
+    expect((await setRow(user, 'blb'))?.completion).toEqual({
+      any: { owned: 2, size: 3 },
+      nonfoil: { owned: 1, size: 3 },
+      foil: { owned: 1, size: 3 },
+    });
+    expect((await setRow(user, 'mh2'))?.completion).toEqual({
+      any: { owned: 1, size: 2 },
+      nonfoil: { owned: 0, size: 2 },
+      foil: { owned: 1, size: 2 },
+    });
+  });
+
+  test('a card printing with no foil or etched finish leaves the Foil size', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(prismaticPiper), stack(captureOfJingzhou, { finish: 'foil' })]));
+
+    expect((await setRow(user, 'cmm'))?.completion).toEqual({
+      any: { owned: 2, size: 3 },
+      nonfoil: { owned: 1, size: 3 },
+      foil: { owned: 1, size: 2 },
+    });
+  });
+
+  test('a set with no foil card printing has an empty main set in Foil', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(counterspell)]));
+
+    expect((await setRow(user, 'lea'))?.completion).toEqual({
+      any: { owned: 1, size: 5 },
+      nonfoil: { owned: 1, size: 5 },
+      foil: { owned: 0, size: 0 },
+    });
   });
 });

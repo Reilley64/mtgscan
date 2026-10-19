@@ -17,6 +17,12 @@ const roilCartographerVariant = '7b9b743b-340d-4a15-a71d-d3108adbdc45';
 const snowCoveredWastes = '87870792-e429-4eba-8193-cdce5c7b6c55';
 const inspirit = '46900ec7-eb18-45c4-8e90-a48b665cfdee';
 const wastes = 'baf8f4f2-9f25-4cd2-8d78-1041e134aeac';
+const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
+const urbanDaggertooth = '4ab83a39-d90d-403e-b74d-fe99c8b2aacd';
+const prismaticPiper = 'c78c2713-39e7-4a6e-a132-027099a89665';
+const smotheringTitheVariant = '2309fb66-3aa0-4ec5-9a8e-5a0caa19c270';
+const boonOfTheSpiritRealm = 'a588fc39-ed88-4262-96cd-908fadc7f049';
+const counterspell = '0df55e3f-14de-46ef-b6b1-616618724d9e';
 
 function normalImage(printingId: string, version: number) {
   return `https://cards.scryfall.io/normal/front/${printingId[0]}/${printingId[1]}/${printingId}.jpg?${version}`;
@@ -44,7 +50,7 @@ async function refusal(user: TestUser, query: unknown) {
 }
 
 describe('the set read', () => {
-  test('a set with booster cards comes with its main set and its variants, each card printing with its Any finish count', async () => {
+  test('a set with booster cards comes with its main set and its variants, each card printing with its count in each finish view', async () => {
     const user = await signUpNewUser();
     await committed(
       user,
@@ -56,7 +62,7 @@ describe('the set read', () => {
       name: 'Modern Horizons 3',
       icon_svg_uri: 'https://svgs.scryfall.io/sets/mh3.svg?1791777600',
       released_at: '2024-06-14',
-      completion: { any: { owned: 1, size: 2 } },
+      completion: { any: { owned: 1, size: 2 }, nonfoil: { owned: 1, size: 2 }, foil: { owned: 1, size: 2 } },
       main_set: [
         {
           printing_id: roilCartographer,
@@ -64,7 +70,7 @@ describe('the set read', () => {
           collector_number: '67',
           image_uri: normalImage(roilCartographer, 1783911289),
           finishes: ['nonfoil', 'foil'],
-          counts: { any: 3 },
+          counts: { any: 3, nonfoil: 2, foil: 1 },
         },
         {
           printing_id: scurrilousSentry,
@@ -72,11 +78,11 @@ describe('the set read', () => {
           collector_number: '108',
           image_uri: normalImage(scurrilousSentry, 1783911276),
           finishes: ['nonfoil', 'foil'],
-          counts: { any: 0 },
+          counts: { any: 0, nonfoil: 0, foil: 0 },
         },
       ],
       variants: {
-        completion: { any: { owned: 1, size: 1 } },
+        completion: { any: { owned: 1, size: 1 }, nonfoil: { owned: 1, size: 1 }, foil: { owned: 1, size: 1 } },
         card_printings: [
           {
             printing_id: roilCartographerVariant,
@@ -84,7 +90,7 @@ describe('the set read', () => {
             collector_number: '511',
             image_uri: normalImage(roilCartographerVariant, 1783911138),
             finishes: ['foil'],
-            counts: { any: 1 },
+            counts: { any: 1, nonfoil: 1, foil: 1 },
           },
         ],
       },
@@ -101,7 +107,10 @@ describe('the set read', () => {
     expect(mh3.main_set.map((printing) => printing.collector_number)).toEqual(['67', '108']);
     expect(mh3.variants.card_printings.map((printing) => printing.collector_number)).toEqual(['511']);
     expect(eoc.main_set.map((printing) => printing.printing_id)).toEqual([inspirit]);
-    expect(eoc.variants).toEqual({ completion: { any: { owned: 0, size: 0 } }, card_printings: [] });
+    expect(eoc.variants).toEqual({
+      completion: { any: { owned: 0, size: 0 }, nonfoil: { owned: 0, size: 0 }, foil: { owned: 0, size: 0 } },
+      card_printings: [],
+    });
   });
 
   test('card printings come in collector number order, by their leading digits and then as text', async () => {
@@ -128,8 +137,8 @@ describe('the set read', () => {
     const ownersSet = await setNamed(owner, 'mh3');
     const othersSet = await setNamed(other, 'mh3');
 
-    expect(ownersSet.main_set[0]!.counts).toEqual({ any: 2 });
-    expect(othersSet.main_set[0]!.counts).toEqual({ any: 0 });
+    expect(ownersSet.main_set[0]!.counts).toEqual({ any: 2, nonfoil: 2, foil: 0 });
+    expect(othersSet.main_set[0]!.counts).toEqual({ any: 0, nonfoil: 0, foil: 0 });
     expect(othersSet.completion.any).toEqual({ owned: 0, size: 2 });
     expect(othersSet.variants.completion.any).toEqual({ owned: 0, size: 1 });
   });
@@ -142,6 +151,59 @@ describe('the set read', () => {
 
     expect(data).toBeNull();
     expect(error?.code).toBe(permissionDenied);
+  });
+});
+
+describe('the counts in each finish view', () => {
+  function countsOf(set: SetDetails, printingId: string) {
+    return [...set.main_set, ...set.variants.card_printings].find((printing) => printing.printing_id === printingId)!.counts;
+  }
+
+  test('Nonfoil counts the nonfoil copies, and Foil counts the foil and etched copies', async () => {
+    const user = await signUpNewUser();
+    await committed(
+      user,
+      scanBatch([stack(angelicCurator, { copies: 2 }), stack(angelicCurator, { finish: 'foil' }), stack(angelicCurator, { finish: 'etched', copies: 2 })]),
+    );
+
+    const mh2 = await setNamed(user, 'mh2');
+
+    expect(countsOf(mh2, angelicCurator)).toEqual({ any: 5, nonfoil: 2, foil: 3 });
+    expect(countsOf(mh2, urbanDaggertooth)).toEqual({ any: 0, nonfoil: 0, foil: 0 });
+    expect(mh2.completion).toEqual({ any: { owned: 1, size: 2 }, nonfoil: { owned: 1, size: 2 }, foil: { owned: 1, size: 2 } });
+  });
+
+  test('a foil-only or etched-only card printing counts every copy in Nonfoil', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(roilCartographerVariant, { finish: 'foil', copies: 2 }), stack(smotheringTitheVariant, { finish: 'etched' })]));
+
+    const mh3 = await setNamed(user, 'mh3');
+    const cmm = await setNamed(user, 'cmm');
+
+    expect(countsOf(mh3, roilCartographerVariant)).toEqual({ any: 2, nonfoil: 2, foil: 2 });
+    expect(countsOf(cmm, smotheringTitheVariant)).toEqual({ any: 1, nonfoil: 1, foil: 1 });
+  });
+
+  test('a nonfoil-only card printing has no Foil count and leaves the Foil size', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(prismaticPiper, { copies: 2 }), stack(boonOfTheSpiritRealm)]));
+
+    const cmm = await setNamed(user, 'cmm');
+
+    expect(countsOf(cmm, prismaticPiper)).toEqual({ any: 2, nonfoil: 2, foil: null });
+    expect(countsOf(cmm, boonOfTheSpiritRealm)).toEqual({ any: 1, nonfoil: 1, foil: null });
+    expect(cmm.completion).toEqual({ any: { owned: 1, size: 3 }, nonfoil: { owned: 1, size: 3 }, foil: { owned: 0, size: 2 } });
+    expect(cmm.variants.completion).toEqual({ any: { owned: 1, size: 6 }, nonfoil: { owned: 1, size: 6 }, foil: { owned: 0, size: 4 } });
+  });
+
+  test('a set with no foil card printing has an empty main set in Foil', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(counterspell)]));
+
+    const lea = await setNamed(user, 'lea');
+
+    expect(countsOf(lea, counterspell)).toEqual({ any: 1, nonfoil: 1, foil: null });
+    expect(lea.completion).toEqual({ any: { owned: 1, size: 5 }, nonfoil: { owned: 1, size: 5 }, foil: { owned: 0, size: 0 } });
   });
 });
 

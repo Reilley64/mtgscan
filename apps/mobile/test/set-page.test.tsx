@@ -1,5 +1,5 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
-import type { SetCardPrinting, SetDetails, SetRow } from '@mtgscan/supabase/sets';
+import type { FinishView, SetCardPrinting, SetDetails, SetRow } from '@mtgscan/supabase/sets';
 import { fireEvent, within } from 'expo-router/testing-library';
 
 import {
@@ -42,14 +42,14 @@ const curator: CollectionCopyRow = {
   held_for: null,
 };
 
-function printing(collectorNumber: string, name: string, copies: number): SetCardPrinting {
+function printing(collectorNumber: string, name: string, counts: Record<FinishView, number | null>): SetCardPrinting {
   return {
     printing_id: `blb-${collectorNumber}`,
     name,
     collector_number: collectorNumber,
     image_uri: `https://cards.scryfall.io/normal/front/blb-${collectorNumber}.jpg`,
-    finishes: ['nonfoil', 'foil'],
-    counts: { any: copies },
+    finishes: counts.foil === null ? ['nonfoil'] : ['nonfoil', 'foil'],
+    counts,
   };
 }
 
@@ -58,19 +58,31 @@ const bloomburrowRow: SetRow = {
   name: 'Bloomburrow',
   icon_svg_uri: 'https://svgs.scryfall.io/sets/blb.svg',
   released_at: '2024-08-02',
-  completion: { any: { owned: 2, size: 3 } },
+  completion: { any: { owned: 2, size: 3 }, nonfoil: { owned: 1, size: 3 }, foil: { owned: 1, size: 3 } },
 };
 
 const bloomburrow: SetDetails = {
   ...bloomburrowRow,
-  main_set: [printing('1', 'Banishing Light', 1), printing('2', 'Beza, the Bounding Spring', 2), printing('10', 'Dewdrop Cure', 0)],
+  main_set: [
+    printing('1', 'Banishing Light', { any: 1, nonfoil: 1, foil: 0 }),
+    printing('2', 'Beza, the Bounding Spring', { any: 2, nonfoil: 0, foil: 2 }),
+    printing('10', 'Dewdrop Cure', { any: 0, nonfoil: 0, foil: 0 }),
+  ],
   variants: {
-    completion: { any: { owned: 1, size: 2 } },
-    card_printings: [printing('282', 'Season of the Burrow', 0), printing('287', 'Beza, the Bounding Spring', 3)],
+    completion: { any: { owned: 1, size: 2 }, nonfoil: { owned: 1, size: 2 }, foil: { owned: 0, size: 2 } },
+    card_printings: [
+      printing('282', 'Season of the Burrow', { any: 0, nonfoil: 0, foil: 0 }),
+      printing('287', 'Beza, the Bounding Spring', { any: 3, nonfoil: 3, foil: 0 }),
+    ],
   },
 };
 
-const noVariants: SetDetails = { ...bloomburrow, variants: { completion: { any: { owned: 0, size: 0 } }, card_printings: [] } };
+const noSet = { owned: 0, size: 0 };
+
+const noVariants: SetDetails = {
+  ...bloomburrow,
+  variants: { completion: { any: noSet, nonfoil: noSet, foil: noSet }, card_printings: [] },
+};
 
 function tiles() {
   return within(tabStackTopScreen()).queryAllByRole('image');
@@ -213,7 +225,7 @@ describe('reading a set', () => {
   test('the set page reads again when it gains focus', async () => {
     await openBloomburrow();
 
-    offerSetPage({ ...bloomburrow, completion: { any: { owned: 3, size: 3 } } });
+    offerSetPage({ ...bloomburrow, completion: { ...bloomburrow.completion, any: { owned: 3, size: 3 } } });
     await pressTab('Recent');
     await pressTab('Collection');
 

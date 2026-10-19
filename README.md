@@ -257,8 +257,9 @@ Signed-in users read Sets with `supabase.rpc('list_sets')`. It takes no query. `
 
 - The result has `items`, one row for every set with a `released_at` on or before the current date and at least one card printing in the card catalog. A set with no `released_at` counts as not released.
 - The rows come newest first, then by name. Every row comes in one response, with no paging. The app filters them by the search text.
-- Each row has `code`, `name`, `icon_svg_uri`, `released_at`, and `completion.any`, the set completion in Any finish as `{ owned, size }`.
-- `size` counts the card printings in the set's main set. `owned` counts those with at least one of the caller's copies. A card printing counts once, whatever the condition, language, protected flag, or deck of its copies.
+- Each row has `code`, `name`, `icon_svg_uri`, `released_at`, and `completion`, the set completion in each finish view as `{ owned, size }` under `any`, `nonfoil`, and `foil`.
+- `size` counts the card printings in the set's main set that the finish view does not leave out. `owned` counts those with at least one of the caller's copies in the finish view. A card printing counts once, whatever the condition, language, protected flag, or deck of its copies.
+- Any finish counts every copy. Nonfoil counts the nonfoil copies, or every copy when the card printing has no nonfoil finish. Foil counts the foil and etched copies, and leaves out a card printing with neither finish. `private.set_card_printing_counts` holds this rule. The app only picks the finish view.
 - One private function, `private.set_card_printings`, applies the main set rule from `GLOSSARY.md`. Basic land cards are never in the main set or the variants.
 - The function runs with the caller's rights. An anonymous caller and the secret key are refused.
 
@@ -268,9 +269,9 @@ Signed-in users read one set with `supabase.rpc('get_set', { query })`. The set 
 
 - The query has `code`, the set code, such as `blb`.
 - The result has the fields of the set's `list_sets` row, then `main_set` and `variants`.
-- `main_set` lists the card printings of the main set. `variants.card_printings` lists the variants, and `variants.completion.any` is their own `{ owned, size }`. Basic land cards are in neither list.
+- `main_set` lists the card printings of the main set. `variants.card_printings` lists the variants, and `variants.completion` is their own set completion in each finish view. Basic land cards are in neither list.
 - Both lists come in collector number order. Numbers sort by their leading digits, then as text, so "9" comes before "10" and "10a".
-- Each card printing has `printing_id`, `name`, `collector_number`, `image_uri` (the front face image, or null), `finishes`, and `counts.any`, the number of the caller's copies in any finish.
+- Each card printing has `printing_id`, `name`, `collector_number`, `image_uri` (the front face image, or null), `finishes`, and `counts`, the number of the caller's copies under `any`, `nonfoil`, and `foil`. `counts.foil` is null when the card printing has no foil or etched finish.
 - `list_sets` and `get_set` share the main set rule and the set completion count, so a set's completion is the same in both reads.
 - The function runs with the caller's rights. An anonymous caller and the secret key are refused. A set code that is unknown, not released, or has no card printing in the card catalog has the code `not_found` and the field `code`. A refused query has the code `invalid_argument` and the field at fault.
 
