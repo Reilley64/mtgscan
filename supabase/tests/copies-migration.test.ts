@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { addScanBatch, getCollectionTotal, searchCollection, type CollectionPage, type CollectionRow } from '../collection';
+import { z } from 'zod';
+
+import { addScanBatch, collectionEntryPage, getCollectionTotal, searchCollection } from '../collection';
 import { callDatabaseFunction, type DatabaseFunction, type RequestArguments } from '../database-function';
 import { catalogFixtureManifest, latestRun, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { collectionEntryKey } from './copy-seeds';
@@ -77,9 +79,15 @@ async function replyAtAnyMigration<Contract extends DatabaseFunction>(user: Test
   return expectReplied(await callDatabaseFunction(user.client, contract, ...request));
 }
 
+const entryKeyAndQuantity = { printing_id: true, finish: true, condition: true, language: true, protected: true, quantity: true } as const;
+
+const entriesAtAnyMigration = z.object({
+  items: z.array(z.object(collectionEntryPage.shape.items.element.pick(entryKeyAndQuantity).shape)),
+});
+
 async function collectionEntries(user: TestUser) {
   const quantities = new Map<string, number>();
-  const page = (await replyAtAnyMigration(user, searchCollection, { limit: 50 })) as CollectionPage<CollectionRow>;
+  const page = entriesAtAnyMigration.parse(await replyAtAnyMigration(user, searchCollection, { limit: 50 }));
   for (const row of page.items) {
     const key = collectionEntryKey(row);
     quantities.set(key, (quantities.get(key) ?? 0) + row.quantity);

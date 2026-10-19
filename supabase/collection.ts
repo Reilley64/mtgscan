@@ -3,13 +3,11 @@ import { z } from 'zod';
 import { databaseFunction } from './database-function.ts';
 import type { Database } from './database.types.ts';
 import { commanderLegality, condition, deckRole, finish, id, integer, language, rarity } from './fields.ts';
-import { catalogFilters, catalogSort, priceFrom, searchPage, type SearchPage } from './search.ts';
+import { catalogFilters, catalogSort, priceFrom, searchPage } from './search.ts';
 
 export type CardCondition = Database['public']['Enums']['card_condition'];
 
 export type CardLanguage = Database['public']['Enums']['card_language'];
-
-export type CardRarity = Database['public']['Enums']['card_rarity'];
 
 const collectionSort = z.enum([...catalogSort.options, 'added']);
 
@@ -36,7 +34,7 @@ const collectionQuery = z.strictObject({
 
 export type CollectionQuery = z.input<typeof collectionQuery>;
 
-export const currentPrice = priceFrom.omit({ basis: true }).extend({ stale: z.boolean() });
+const currentPrice = priceFrom.omit({ basis: true }).extend({ stale: z.boolean() });
 
 export type CurrentPrice = z.infer<typeof currentPrice>;
 
@@ -91,7 +89,11 @@ const collectionPage = z.strictObject({
   items: z.array(z.union([collectionRow, collectionCopyRow])),
 });
 
-export type CollectionPage<Row> = SearchPage<Row> & Pick<z.infer<typeof collectionPage>, 'total_count'>;
+export const collectionEntryPage = collectionPage.extend({ items: z.array(collectionRow) });
+
+export const collectionCopyPage = collectionPage.extend({ items: z.array(collectionCopyRow) });
+
+export type CollectionCopyPage = z.infer<typeof collectionCopyPage>;
 
 const scanBatchStack = z.strictObject({
   card_printing_id: id,
@@ -115,8 +117,6 @@ const scanBatchResult = z.strictObject({
   copies: z.array(z.strictObject({ copy_id: id, addition_id: id, replayed: z.boolean() })),
 });
 
-export type ScanBatchResult = z.infer<typeof scanBatchResult>;
-
 const currentPriceKey = z.strictObject({ printing_id: id, finish });
 
 export type CurrentPriceKey = z.infer<typeof currentPriceKey>;
@@ -127,9 +127,7 @@ export type CurrentPricesQuery = z.input<typeof currentPricesQuery>;
 
 const currentPrices = z.strictObject({ items: z.array(currentPriceKey.extend({ price: currentPrice.nullable() })) });
 
-export type CurrentPrices = z.infer<typeof currentPrices>;
-
-export type CurrentPriceRow = CurrentPrices['items'][number];
+export type CurrentPriceRow = z.infer<typeof currentPrices>['items'][number];
 
 const copyQuery = z.strictObject({ copy_id: id });
 
@@ -137,11 +135,7 @@ export type CopyQuery = z.input<typeof copyQuery>;
 
 const copyProtectedRequest = z.strictObject({ copy_id: id, protected: z.boolean() });
 
-export type CopyProtectedRequest = z.input<typeof copyProtectedRequest>;
-
 const deleteCopyRequest = z.strictObject({ copy_id: id, move_planned_swap: z.boolean().optional() });
-
-export type DeleteCopyRequest = z.input<typeof deleteCopyRequest>;
 
 export const userTagNameLength = 64;
 
@@ -156,8 +150,6 @@ export type UserTagRow = z.infer<typeof userTagRow>;
 const userTagList = z.strictObject({ items: z.array(userTagRow) });
 
 const createUserTagRequest = z.strictObject({ name: z.string() });
-
-export type CreateUserTagRequest = z.input<typeof createUserTagRequest>;
 
 const renameUserTagRequest = z.strictObject({ user_tag_id: id, name: z.string() });
 
@@ -177,8 +169,6 @@ const copiesUserTagResult = z.strictObject({
   changed: z.array(id),
   skipped: z.array(z.strictObject({ copy_id: id, reason: z.literal('missing') })),
 });
-
-export type CopiesUserTagResult = z.infer<typeof copiesUserTagResult>;
 
 const copyDeck = copyRowDeck.extend({ role: deckRole, commander_art_crop_uri: z.string().nullable(), commander_count: integer });
 

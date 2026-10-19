@@ -39,8 +39,6 @@ export type SetList = z.infer<typeof setList>;
 
 const setQuery = z.strictObject({ code: z.string() });
 
-export type SetQuery = z.input<typeof setQuery>;
-
 const finishCount = integer.nullable();
 
 const setCardPrinting = z.strictObject({

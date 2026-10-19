@@ -1,7 +1,8 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import { usdPriceBounds, type PriceBounds } from '../converted-prices';
-import { searchCatalog, type CatalogQuery, type CatalogRow, type SearchPage } from '../search';
+import type { ReplyOf } from '../database-function';
+import { searchCatalog, type CatalogQuery } from '../search';
 import {
   catalogFixture,
   catalogFixtureManifest,
@@ -10,9 +11,10 @@ import {
   runCatalogImport,
   runPriceImport,
 } from './catalog-import-command';
+import { aiClientReply } from './ai-clients';
 import { call, failed, refused, replyOf } from './database-calls';
 import { exchangeRateOf, storeExchangeRates } from './exchange-rate-seeds';
-import { anonymousClient, asDatabaseRole, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
+import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
 
@@ -38,7 +40,7 @@ async function names(query: CatalogQuery) {
 }
 
 async function allPages(query: CatalogQuery) {
-  const pages: SearchPage<CatalogRow>[] = [];
+  const pages: ReplyOf<typeof searchCatalog>[] = [];
   let cursor: string | null = null;
   do {
     const next = await page({ ...query, cursor });
@@ -632,12 +634,9 @@ describe('after a catalog import', () => {
     });
 
     test("a search with an AI client's token writes the caller mcp", async () => {
-      const claims = { sub: alice.userId, role: 'authenticated', client_id: crypto.randomUUID() };
-      const [{ result }] = await asDatabaseRole('authenticated', claims, (database) =>
-        database`select public.search_catalog(${{ types: ['creature'] }}::jsonb) as result`,
-      );
+      const { search_id } = await aiClientReply({ user: alice, clientId: crypto.randomUUID() }, searchCatalog, { types: ['creature'] });
 
-      expect((await telemetryRows()).find((row) => row.search_id === result.search_id)).toMatchObject({
+      expect((await telemetryRows()).find((row) => row.search_id === search_id)).toMatchObject({
         user_id: alice.userId,
         api: 'catalog',
         caller: 'mcp',
