@@ -1,43 +1,19 @@
 import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import { readDeckError, type CreatedDeck, type Deck, type DeckList, type DeckRow } from '../decks';
+import { createDeck, deleteDeck, getDeck, listDecks, markDeckUsed, renameDeck, setDeckPriority, type DeckRow } from '../decks';
+import { call, failed, refused, replyOf } from './database-calls';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
 
-async function createDeck(client: AppClient, request: unknown) {
-  const { data, error } = await client.rpc('create_deck', { request: request as Json });
-  return { deck: data as unknown as CreatedDeck | null, error: error && readDeckError(error) };
-}
-
 async function created(user: TestUser, name: string) {
-  const { deck, error } = await createDeck(user.client, { name });
-  expect(error).toBeNull();
-  return deck!.deck_id;
-}
-
-async function markDeckUsed(client: AppClient, request: unknown) {
-  const { error } = await client.rpc('mark_deck_used', { request: request as Json });
-  return error && readDeckError(error);
-}
-
-async function writeDeck(client: AppClient, name: 'rename_deck' | 'set_deck_priority' | 'delete_deck', request: unknown) {
-  const { error } = await client.rpc(name, { request: request as Json });
-  return error && readDeckError(error);
-}
-
-async function getDeck(client: AppClient, query: unknown) {
-  const { data, error } = await client.rpc('get_deck', { query: query as Json });
-  return { deck: data as unknown as Deck | null, error: error && readDeckError(error) };
+  return (await replyOf(user.client, createDeck, { name })).deck_id;
 }
 
 async function decksOf(user: TestUser) {
-  const { data, error } = await user.client.rpc('list_decks');
-  expect(error).toBeNull();
-  return (data as unknown as DeckList).items;
+  return (await replyOf(user.client, listDecks)).items;
 }
 
 async function deckNamesOf(user: TestUser) {
@@ -72,7 +48,7 @@ describe('creating a deck', () => {
       revision: 0,
     };
     expect(await decksOf(user)).toEqual([{ ...expected, needs_you_count: 0 }]);
-    expect((await getDeck(user.client, { deck_id: deckId })).deck).toEqual({
+    expect(await replyOf(user.client, getDeck, { deck_id: deckId })).toEqual({
       ...expected,
       evaluation: null,
       created_at: expect.any(String),
@@ -118,10 +94,7 @@ describe('creating a deck', () => {
   ])('%s is refused with invalid_argument, and no deck is created', async (_, request, field) => {
     const user = await signUpNewUser();
 
-    const { deck, error } = await createDeck(user.client, request);
-
-    expect(deck).toBeNull();
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call(user.client, createDeck, request as never)).toMatchObject(refused('invalid_argument', field));
     expect(await decksOf(user)).toEqual([]);
   });
 });
@@ -146,7 +119,7 @@ describe('the deck list', () => {
     await created(user, 'Kinnan');
     const before = await lastUsedAt(atraxa);
 
-    expect(await markDeckUsed(user.client, { deck_id: atraxa })).toBeNull();
+    expect(await call(user.client, markDeckUsed, { deck_id: atraxa })).toEqual({ status: 'replied', reply: null });
 
     expect(await deckNamesOf(user)).toEqual(['Atraxa', 'Kinnan']);
     expect(await lastUsedAt(atraxa) > before).toBe(true);
@@ -156,10 +129,9 @@ describe('the deck list', () => {
     ['a query that is not an object', [], null],
     ['an unknown field', { deck_id: crypto.randomUUID() }, 'deck_id'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
-    const { data, error } = await (await signUpNewUser()).client.rpc('list_decks', { query: query as Json });
+    const result = await call((await signUpNewUser()).client, listDecks, query as never);
 
-    expect(data).toBeNull();
-    expect(error && readDeckError(error)).toMatchObject({ code: 'invalid_argument', field });
+    expect(result).toMatchObject(refused('invalid_argument', field));
   });
 
   test('decks used at the same time sort by name ignoring case', async () => {
@@ -173,10 +145,9 @@ describe('the deck list', () => {
 
 describe('reading a deck', () => {
   test('a deck that does not exist is not_found on deck_id', async () => {
-    const { deck, error } = await getDeck((await signUpNewUser()).client, { deck_id: crypto.randomUUID() });
+    const result = await call((await signUpNewUser()).client, getDeck, { deck_id: crypto.randomUUID() });
 
-    expect(deck).toBeNull();
-    expect(error).toMatchObject({ code: 'not_found', field: 'deck_id' });
+    expect(result).toMatchObject(refused('not_found', 'deck_id'));
   });
 
   test('reading a deck does not count as using it', async () => {
@@ -184,7 +155,7 @@ describe('reading a deck', () => {
     const atraxa = await created(user, 'Atraxa');
     await created(user, 'Kinnan');
 
-    await getDeck(user.client, { deck_id: atraxa });
+    await replyOf(user.client, getDeck, { deck_id: atraxa });
 
     expect(await deckNamesOf(user)).toEqual(['Kinnan', 'Atraxa']);
   });
@@ -195,17 +166,15 @@ describe('reading a deck', () => {
     ['a deck ID that is not a UUID', { deck_id: 'deck-1' }, 'deck_id'],
     ['an unknown field', { deck_id: crypto.randomUUID(), name: 'Atraxa' }, 'name'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
-    const { error } = await getDeck((await signUpNewUser()).client, query);
-
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call((await signUpNewUser()).client, getDeck, query as never)).toMatchObject(refused('invalid_argument', field));
   });
 });
 
 describe('marking a deck used', () => {
   test('a deck that does not exist is not_found on deck_id', async () => {
-    const error = await markDeckUsed((await signUpNewUser()).client, { deck_id: crypto.randomUUID() });
+    const result = await call((await signUpNewUser()).client, markDeckUsed, { deck_id: crypto.randomUUID() });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'deck_id' });
+    expect(result).toMatchObject(refused('not_found', 'deck_id'));
   });
 
   test.each<[string, unknown, string | null]>([
@@ -214,9 +183,7 @@ describe('marking a deck used', () => {
     ['a deck ID that is not a UUID', { deck_id: 7 }, 'deck_id'],
     ['an unknown field', { deck_id: crypto.randomUUID(), name: 'Atraxa' }, 'name'],
   ])('%s is refused with invalid_argument', async (_, request, field) => {
-    const error = await markDeckUsed((await signUpNewUser()).client, request);
-
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call((await signUpNewUser()).client, markDeckUsed, request as never)).toMatchObject(refused('invalid_argument', field));
   });
 });
 
@@ -227,11 +194,11 @@ describe('renaming a deck', () => {
     await created(user, 'Kinnan');
     const before = await lastUsedAt(atraxa);
 
-    expect(await writeDeck(user.client, 'rename_deck', { deck_id: atraxa, name: '  Atraxa Superfriends ' })).toBeNull();
+    expect(await call(user.client, renameDeck, { deck_id: atraxa, name: '  Atraxa Superfriends ' })).toEqual({ status: 'replied', reply: null });
 
     expect(await deckNamesOf(user)).toEqual(['Atraxa Superfriends', 'Kinnan']);
     expect(await lastUsedAt(atraxa) > before).toBe(true);
-    expect((await getDeck(user.client, { deck_id: atraxa })).deck).toMatchObject({ priority: 'medium', revision: 0 });
+    expect(await replyOf(user.client, getDeck, { deck_id: atraxa })).toMatchObject({ priority: 'medium', revision: 0 });
   });
 
   test('a deck can take the name of another deck', async () => {
@@ -239,15 +206,15 @@ describe('renaming a deck', () => {
     const atraxa = await created(user, 'Atraxa');
     await created(user, 'Kinnan');
 
-    expect(await writeDeck(user.client, 'rename_deck', { deck_id: atraxa, name: 'Kinnan' })).toBeNull();
+    expect(await call(user.client, renameDeck, { deck_id: atraxa, name: 'Kinnan' })).toEqual({ status: 'replied', reply: null });
 
     expect(await deckNamesOf(user)).toEqual(['Kinnan', 'Kinnan']);
   });
 
   test('a deck that does not exist is not_found on deck_id', async () => {
-    const error = await writeDeck((await signUpNewUser()).client, 'rename_deck', { deck_id: crypto.randomUUID(), name: 'Atraxa' });
+    const error = await call((await signUpNewUser()).client, renameDeck, { deck_id: crypto.randomUUID(), name: 'Atraxa' });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'deck_id' });
+    expect(error).toMatchObject(refused('not_found', 'deck_id'));
   });
 
   test.each<[string, (deckId: string) => unknown, string | null]>([
@@ -263,9 +230,9 @@ describe('renaming a deck', () => {
     const atraxa = await created(user, 'Atraxa');
     const before = await lastUsedAt(atraxa);
 
-    const error = await writeDeck(user.client, 'rename_deck', request(atraxa));
+    const error = await call(user.client, renameDeck, request(atraxa) as never);
 
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(error).toMatchObject(refused('invalid_argument', field));
     expect(await deckNamesOf(user)).toEqual(['Atraxa']);
     expect(await lastUsedAt(atraxa)).toBe(before);
   });
@@ -278,21 +245,21 @@ describe('setting the deck priority', () => {
     await created(user, 'Kinnan');
     const before = await lastUsedAt(atraxa);
 
-    expect(await writeDeck(user.client, 'set_deck_priority', { deck_id: atraxa, priority })).toBeNull();
+    expect(await call(user.client, setDeckPriority, { deck_id: atraxa, priority })).toEqual({ status: 'replied', reply: null });
 
     const [first] = await decksOf(user);
     expect(first).toMatchObject({ deck_id: atraxa, priority });
     expect(await lastUsedAt(atraxa) > before).toBe(true);
-    expect((await getDeck(user.client, { deck_id: atraxa })).deck?.revision).toBe(0);
+    expect((await replyOf(user.client, getDeck, { deck_id: atraxa })).revision).toBe(0);
   });
 
   test('a deck that does not exist is not_found on deck_id', async () => {
-    const error = await writeDeck((await signUpNewUser()).client, 'set_deck_priority', {
+    const error = await call((await signUpNewUser()).client, setDeckPriority, {
       deck_id: crypto.randomUUID(),
       priority: 'high',
     });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'deck_id' });
+    expect(error).toMatchObject(refused('not_found', 'deck_id'));
   });
 
   test.each<[string, (deckId: string) => unknown, string | null]>([
@@ -308,10 +275,10 @@ describe('setting the deck priority', () => {
     const atraxa = await created(user, 'Atraxa');
     const before = await lastUsedAt(atraxa);
 
-    const error = await writeDeck(user.client, 'set_deck_priority', request(atraxa));
+    const error = await call(user.client, setDeckPriority, request(atraxa) as never);
 
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
-    expect((await getDeck(user.client, { deck_id: atraxa })).deck?.priority).toBe('medium');
+    expect(error).toMatchObject(refused('invalid_argument', field));
+    expect((await replyOf(user.client, getDeck, { deck_id: atraxa })).priority).toBe('medium');
     expect(await lastUsedAt(atraxa)).toBe(before);
   });
 });
@@ -322,16 +289,16 @@ describe('deleting a deck', () => {
     const atraxa = await created(user, 'Atraxa');
     await created(user, 'Kinnan');
 
-    expect(await writeDeck(user.client, 'delete_deck', { deck_id: atraxa })).toBeNull();
+    expect(await call(user.client, deleteDeck, { deck_id: atraxa })).toEqual({ status: 'replied', reply: null });
 
     expect(await deckNamesOf(user)).toEqual(['Kinnan']);
-    expect((await getDeck(user.client, { deck_id: atraxa })).error).toMatchObject({ code: 'not_found', field: 'deck_id' });
+    expect(await call(user.client, getDeck, { deck_id: atraxa })).toMatchObject(refused('not_found', 'deck_id'));
   });
 
   test('a deck that does not exist is not_found on deck_id', async () => {
-    const error = await writeDeck((await signUpNewUser()).client, 'delete_deck', { deck_id: crypto.randomUUID() });
+    const error = await call((await signUpNewUser()).client, deleteDeck, { deck_id: crypto.randomUUID() });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'deck_id' });
+    expect(error).toMatchObject(refused('not_found', 'deck_id'));
   });
 
   test.each<[string, unknown, string | null]>([
@@ -343,9 +310,9 @@ describe('deleting a deck', () => {
     const user = await signUpNewUser();
     await created(user, 'Atraxa');
 
-    const error = await writeDeck(user.client, 'delete_deck', request);
+    const error = await call(user.client, deleteDeck, request as never);
 
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(error).toMatchObject(refused('invalid_argument', field));
     expect(await deckNamesOf(user)).toEqual(['Atraxa']);
   });
 });
@@ -359,8 +326,8 @@ describe('access', () => {
     const before = await lastUsedAt(atraxa);
 
     expect(await deckNamesOf(bob)).toEqual(['Yuriko']);
-    expect((await getDeck(bob.client, { deck_id: atraxa })).error).toMatchObject({ code: 'not_found', field: 'deck_id' });
-    expect(await markDeckUsed(bob.client, { deck_id: atraxa })).toMatchObject({ code: 'not_found', field: 'deck_id' });
+    expect(await call(bob.client, getDeck, { deck_id: atraxa })).toMatchObject(refused('not_found', 'deck_id'));
+    expect(await call(bob.client, markDeckUsed, { deck_id: atraxa })).toMatchObject(refused('not_found', 'deck_id'));
     expect(await lastUsedAt(atraxa)).toBe(before);
     const { data, error } = await bob.client.from('decks').select('id').eq('user_id', alice.userId);
     expect(error).toBeNull();
@@ -373,13 +340,13 @@ describe('access', () => {
     const before = await lastUsedAt(atraxa);
 
     const errors = [
-      await writeDeck(bob.client, 'rename_deck', { deck_id: atraxa, name: 'Kinnan' }),
-      await writeDeck(bob.client, 'set_deck_priority', { deck_id: atraxa, priority: 'high' }),
-      await writeDeck(bob.client, 'delete_deck', { deck_id: atraxa }),
+      await call(bob.client, renameDeck, { deck_id: atraxa, name: 'Kinnan' }),
+      await call(bob.client, setDeckPriority, { deck_id: atraxa, priority: 'high' }),
+      await call(bob.client, deleteDeck, { deck_id: atraxa }),
     ];
 
     for (const error of errors) {
-      expect(error).toMatchObject({ code: 'not_found', field: 'deck_id' });
+      expect(error).toMatchObject(refused('not_found', 'deck_id'));
     }
     expect(await decksOf(alice)).toEqual([expect.objectContaining({ name: 'Atraxa', priority: 'medium' })]);
     expect(await lastUsedAt(atraxa)).toBe(before);
@@ -391,17 +358,17 @@ describe('access', () => {
   ])('%s cannot create, list, read, mark, rename, set the priority of, or delete decks', async (_, client) => {
     const deckId = crypto.randomUUID();
     const calls = [
-      client().rpc('create_deck', { request: { name: 'Atraxa' } }),
-      client().rpc('list_decks'),
-      client().rpc('get_deck', { query: { deck_id: deckId } }),
-      client().rpc('mark_deck_used', { request: { deck_id: deckId } }),
-      client().rpc('rename_deck', { request: { deck_id: deckId, name: 'Atraxa' } }),
-      client().rpc('set_deck_priority', { request: { deck_id: deckId, priority: 'high' } }),
-      client().rpc('delete_deck', { request: { deck_id: deckId } }),
+      call(client(), createDeck, { name: 'Atraxa' }),
+      call(client(), listDecks),
+      call(client(), getDeck, { deck_id: deckId }),
+      call(client(), markDeckUsed, { deck_id: deckId }),
+      call(client(), renameDeck, { deck_id: deckId, name: 'Atraxa' }),
+      call(client(), setDeckPriority, { deck_id: deckId, priority: 'high' }),
+      call(client(), deleteDeck, { deck_id: deckId }),
     ];
 
-    for (const { error } of await Promise.all(calls)) {
-      expect(error?.code).toBe(permissionDenied);
+    for (const result of await Promise.all(calls)) {
+      expect(result).toMatchObject(failed(permissionDenied));
     }
   });
 

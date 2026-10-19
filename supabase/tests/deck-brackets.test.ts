@@ -1,14 +1,6 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import {
-  readDeckError,
-  type BracketSignal,
-  type CreatedDeck,
-  type Deck,
-  type DeckList,
-  type EstimatedBracket,
-} from '../decks';
+import { addDeckCard, createDeck, getDeck, listDecks, type BracketSignal, type EstimatedBracket } from '../decks';
 import {
   catalogFixture,
   catalogFixtureManifest,
@@ -24,6 +16,7 @@ import {
   spellbookFixtureSnapshotAt,
   spellbookFixtureVariants,
 } from './catalog-import-command';
+import { replyOf } from './database-calls';
 import { secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -56,23 +49,17 @@ async function printingIdOf(name: string) {
 }
 
 async function deckWith(names: string[]) {
-  const { data, error } = await user.client.rpc('create_deck', { request: { name: 'Bracket' } });
-  expect(error).toBeNull();
-  const deckId = (data as unknown as CreatedDeck).deck_id;
+  const { deck_id: deckId } = await replyOf(user.client, createDeck, { name: 'Bracket' });
   const stacks = await Promise.all(names.map(async (name) => stack(await printingIdOf(name))));
   await committed(user, scanBatch(stacks));
   for (const scanned of stacks) {
-    const request = { deck_id: deckId, copy_id: scanned.copy_ids[0]!, unprotect: false };
-    const { error: addError } = await user.client.rpc('add_deck_card', { request: request as Json });
-    expect(addError && readDeckError(addError)).toBeNull();
+    await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: scanned.copy_ids[0]!, unprotect: false });
   }
   return deckId;
 }
 
 async function evaluationOf(deckId: string) {
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return (data as unknown as Deck).evaluation!;
+  return (await replyOf(user.client, getDeck, { deck_id: deckId })).evaluation!;
 }
 
 async function evaluationWith(names: string[]) {
@@ -134,8 +121,7 @@ describe('estimated bracket', () => {
 
   test('a bracket signal lists each copy as a deck evaluation card', async () => {
     const deckId = await deckWith(['Rhystic Study']);
-    const { data } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-    const copyId = (data as unknown as Deck).cards[0]!.copy_id;
+    const copyId = (await replyOf(user.client, getDeck, { deck_id: deckId })).cards[0]!.copy_id;
 
     expect(signalOf((await evaluationOf(deckId)).bracket_signals, 'game_changers')!.cards).toEqual([
       { kind: 'copy', copy_id: copyId, name: 'Rhystic Study', image_uris: expect.arrayContaining([expect.any(String)]) },
@@ -242,8 +228,7 @@ describe('estimated bracket', () => {
       no_oracle_tag_data: false,
       no_combo_data: false,
     });
-    const { data } = await user.client.rpc('list_decks');
-    expect((data as unknown as DeckList).items.find((item) => item.deck_id === deckId)!.evaluation).toEqual({
+    expect((await replyOf(user.client, listDecks)).items.find((item) => item.deck_id === deckId)!.evaluation).toEqual({
       validity: 'invalid',
       validity_stale: false,
       estimated_bracket: 2,

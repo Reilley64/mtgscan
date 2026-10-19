@@ -1,18 +1,24 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type {
-  CollectionCopyRow,
-  CreatedUserTag,
-  CopiesUserTagResult,
-  DeletedUserTag,
-  RestoredUserTag,
-  UserTag,
+import {
+  createUserTag as appCreateUserTag,
+  deleteCopy,
+  deleteUserTag as appDeleteUserTag,
+  listUserTags,
+  mcpCreateUserTag,
+  mcpDeleteUserTag,
+  mcpRenameUserTag,
+  mcpRestoreUserTag,
+  mcpSetCopiesUserTag,
+  type RenameUserTagRequest,
 } from '../collection';
-import type { SearchPage } from '../search';
-import { aiClientCall, aiClientRefusal, connectedAiClient, type ClaimedAiClient } from './ai-clients';
+import type { RequestOf } from '../database-function';
+import { aiClientCall, aiClientReply, connectedAiClient, type ClaimedAiClient } from './ai-clients';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { collectionCopies } from './collection-pages';
+import { call, refused, replyOf } from './database-calls';
 import { signUpNewUser, type TestUser } from './local-stack';
-import { appRequest, scannedCopies } from './planned-swap-seeds';
+import { scannedCopies } from './planned-swap-seeds';
 import { userTagsOf, userTagsOnCopy } from './user-tag-reads';
 
 setDefaultTimeout(60_000);
@@ -24,24 +30,24 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-function createUserTag(client: ClaimedAiClient, name: unknown) {
-  return aiClientCall<CreatedUserTag>(client, 'mcp_create_user_tag', { name });
+function createUserTag(client: ClaimedAiClient, name: string) {
+  return aiClientReply(client, mcpCreateUserTag, { name });
 }
 
-function setCopiesUserTag(client: ClaimedAiClient, request: object) {
-  return aiClientCall<CopiesUserTagResult>(client, 'mcp_set_copies_user_tag', request);
+function setCopiesUserTag(client: ClaimedAiClient, request: RequestOf<typeof mcpSetCopiesUserTag>) {
+  return aiClientReply(client, mcpSetCopiesUserTag, request);
 }
 
-function renameUserTag(client: ClaimedAiClient, request: object) {
-  return aiClientCall<UserTag>(client, 'mcp_rename_user_tag', request);
+function renameUserTag(client: ClaimedAiClient, request: RenameUserTagRequest) {
+  return aiClientReply(client, mcpRenameUserTag, request);
 }
 
 function deleteUserTag(client: ClaimedAiClient, userTagId: string) {
-  return aiClientCall<DeletedUserTag>(client, 'mcp_delete_user_tag', { user_tag_id: userTagId });
+  return aiClientReply(client, mcpDeleteUserTag, { user_tag_id: userTagId });
 }
 
 function restoreUserTag(client: ClaimedAiClient, userTagId: string) {
-  return aiClientCall<RestoredUserTag>(client, 'mcp_restore_user_tag', { user_tag_id: userTagId });
+  return aiClientReply(client, mcpRestoreUserTag, { user_tag_id: userTagId });
 }
 
 function deletedUserTagsOf(user: TestUser) {
@@ -49,9 +55,7 @@ function deletedUserTagsOf(user: TestUser) {
 }
 
 async function copiesWithUserTag(user: TestUser, name: string) {
-  const { data, error } = await user.client.rpc('search_collection', { query: { rows: 'copies', limit: 60, user_tags: [name] } });
-  expect(error).toBeNull();
-  return (data as unknown as SearchPage<CollectionCopyRow>).items.map((row) => row.copy_id).toSorted();
+  return (await collectionCopies(user.client, { limit: 60, user_tags: [name] })).items.map((row) => row.copy_id).toSorted();
 }
 
 async function userTagWithCopies(client: ClaimedAiClient, copies: number) {
@@ -72,7 +76,7 @@ describe('mcp_create_user_tag', () => {
 
   test('a name that a user tag already has, ignoring case, returns that user tag with created: false and changes nothing', async () => {
     const client = await connectedAiClient();
-    const signed = await appRequest<UserTag>(client.user, 'create_user_tag', { name: 'Signed' });
+    const signed = await replyOf(client.user.client, appCreateUserTag, { name: 'Signed' });
 
     const again = await createUserTag(client, ' SIGNED ');
 
@@ -83,7 +87,7 @@ describe('mcp_create_user_tag', () => {
   test("a deleted user tag's name makes a new user tag", async () => {
     const client = await connectedAiClient();
     const deleted = await createUserTag(client, 'Sell');
-    await appRequest(client.user, 'delete_user_tag', { user_tag_id: deleted.user_tag_id });
+    await replyOf(client.user.client, appDeleteUserTag, { user_tag_id: deleted.user_tag_id });
 
     const created = await createUserTag(client, 'sell');
 
@@ -93,7 +97,7 @@ describe('mcp_create_user_tag', () => {
 
   test("another user's user tag with the same name does not count", async () => {
     const client = await connectedAiClient();
-    await appRequest<UserTag>(await signUpNewUser(), 'create_user_tag', { name: 'Signed' });
+    await replyOf((await signUpNewUser()).client, appCreateUserTag, { name: 'Signed' });
 
     expect(await createUserTag(client, 'Signed')).toMatchObject({ name: 'Signed', created: true });
   });
@@ -107,7 +111,7 @@ describe('mcp_create_user_tag', () => {
   ])('%s is refused with invalid_argument', async (_, request, field) => {
     const client = await connectedAiClient();
 
-    expect(await aiClientRefusal(client, 'mcp_create_user_tag', request)).toMatchObject({ code: 'invalid_argument', details: field });
+    expect(await aiClientCall(client, mcpCreateUserTag, request as never)).toMatchObject(refused('invalid_argument', field));
     expect(await userTagsOf(client.user)).toEqual([]);
   });
 });
@@ -153,7 +157,7 @@ describe('mcp_set_copies_user_tag', () => {
     const client = await connectedAiClient();
     const { copyIds, userTag } = await userTagWithCopies(client, 2);
     const [kept, deleted] = copyIds as [string, string];
-    await appRequest(client.user, 'delete_copy', { copy_id: deleted });
+    await replyOf(client.user.client, deleteCopy, { copy_id: deleted });
     const other = await signUpNewUser();
     const [othersCopy] = (await scannedCopies(other, angelicCurator)) as [string];
     const unknown = crypto.randomUUID();
@@ -197,13 +201,13 @@ describe('mcp_set_copies_user_tag', () => {
     const client = await connectedAiClient();
     const { copyIds, userTag } = await userTagWithCopies(client, 2);
 
-    const refusal = await aiClientRefusal(client, 'mcp_set_copies_user_tag', {
-      copy_ids: copyIdsOf(copyIds),
+    const refusal = await aiClientCall(client, mcpSetCopiesUserTag, {
+      copy_ids: copyIdsOf(copyIds) as never,
       user_tag_id: userTag.user_tag_id,
       tagged: true,
     });
 
-    expect(refusal).toMatchObject({ code: 'invalid_argument', details: field });
+    expect(refusal).toMatchObject(refused('invalid_argument', field));
     expect(await userTagsOf(client.user)).toEqual([{ ...userTag, copy_count: 0 }]);
   });
 
@@ -213,20 +217,17 @@ describe('mcp_set_copies_user_tag', () => {
     ['a request with no tagged flag', { copy_ids: [crypto.randomUUID()], user_tag_id: crypto.randomUUID() }, 'tagged'],
     ['a copy_id field', { copy_id: crypto.randomUUID(), user_tag_id: crypto.randomUUID(), tagged: true }, 'copy_id'],
   ])('%s is refused with invalid_argument', async (_, request, field) => {
-    expect(await aiClientRefusal(await connectedAiClient(), 'mcp_set_copies_user_tag', request)).toMatchObject({
-      code: 'invalid_argument',
-      details: field,
-    });
+    expect(await aiClientCall(await connectedAiClient(), mcpSetCopiesUserTag, request as never)).toMatchObject(refused('invalid_argument', field));
   });
 
   test.each<[string, (client: ClaimedAiClient) => Promise<string>]>([
     ['an unknown user tag', async () => crypto.randomUUID()],
-    ["another user's user tag", async () => (await appRequest<UserTag>(await signUpNewUser(), 'create_user_tag', { name: 'Signed' })).user_tag_id],
+    ["another user's user tag", async () => (await replyOf((await signUpNewUser()).client, appCreateUserTag, { name: 'Signed' })).user_tag_id],
     [
       'a deleted user tag',
       async (client) => {
         const { user_tag_id } = await createUserTag(client, 'Sell');
-        await appRequest(client.user, 'delete_user_tag', { user_tag_id });
+        await replyOf(client.user.client, appDeleteUserTag, { user_tag_id });
         return user_tag_id;
       },
     ],
@@ -234,13 +235,16 @@ describe('mcp_set_copies_user_tag', () => {
     const client = await connectedAiClient();
     const [copyId] = (await scannedCopies(client.user, angelicCurator)) as [string];
 
-    const refusal = await aiClientRefusal(client, 'mcp_set_copies_user_tag', {
+    const refusal = await aiClientCall(client, mcpSetCopiesUserTag, {
       copy_ids: [copyId],
       user_tag_id: await userTagIdOf(client),
       tagged: true,
     });
 
-    expect(refusal).toMatchObject({ code: 'not_found', message: 'user_tag_id is not one of your user tags.', details: 'user_tag_id' });
+    expect(refusal).toMatchObject({
+      status: 'refused',
+      refusal: { code: 'not_found', message: 'user_tag_id is not one of your user tags.', field: 'user_tag_id' },
+    });
     expect(await userTagsOnCopy(client.user, copyId)).toEqual([]);
   });
 });
@@ -273,10 +277,7 @@ describe('mcp_rename_user_tag', () => {
     await createUserTag(client, 'Signed');
     const sell = await createUserTag(client, 'Sell');
 
-    expect(await aiClientRefusal(client, 'mcp_rename_user_tag', { user_tag_id: sell.user_tag_id, name: 'SIGNED' })).toMatchObject({
-      code: 'user_tag_exists',
-      details: 'name',
-    });
+    expect(await aiClientCall(client, mcpRenameUserTag, { user_tag_id: sell.user_tag_id, name: 'SIGNED' })).toMatchObject(refused('user_tag_exists', 'name'));
     expect((await userTagsOf(client.user)).map((row) => row.name)).toEqual(['Sell', 'Signed']);
   });
 
@@ -294,7 +295,7 @@ describe('mcp_rename_user_tag', () => {
 
   test.each<[string, (client: ClaimedAiClient) => Promise<string>]>([
     ['an unknown user tag', async () => crypto.randomUUID()],
-    ["another user's user tag", async () => (await appRequest<UserTag>(await signUpNewUser(), 'create_user_tag', { name: 'Signed' })).user_tag_id],
+    ["another user's user tag", async () => (await replyOf((await signUpNewUser()).client, appCreateUserTag, { name: 'Signed' })).user_tag_id],
     [
       'a deleted user tag',
       async (client) => {
@@ -306,10 +307,7 @@ describe('mcp_rename_user_tag', () => {
   ])('%s is not_found on user_tag_id', async (_, userTagIdOf) => {
     const client = await connectedAiClient();
 
-    expect(await aiClientRefusal(client, 'mcp_rename_user_tag', { user_tag_id: await userTagIdOf(client), name: 'Sell' })).toMatchObject({
-      code: 'not_found',
-      details: 'user_tag_id',
-    });
+    expect(await aiClientCall(client, mcpRenameUserTag, { user_tag_id: await userTagIdOf(client), name: 'Sell' })).toMatchObject(refused('not_found', 'user_tag_id'));
   });
 
   test.each<[string, (userTagId: string) => object, string]>([
@@ -322,10 +320,7 @@ describe('mcp_rename_user_tag', () => {
     const client = await connectedAiClient();
     const userTag = await createUserTag(client, 'Signed');
 
-    expect(await aiClientRefusal(client, 'mcp_rename_user_tag', requestOf(userTag.user_tag_id))).toMatchObject({
-      code: 'invalid_argument',
-      details: field,
-    });
+    expect(await aiClientCall(client, mcpRenameUserTag, requestOf(userTag.user_tag_id) as never)).toMatchObject(refused('invalid_argument', field));
     expect((await userTagsOf(client.user)).map((row) => row.name)).toEqual(['Signed']);
   });
 });
@@ -363,17 +358,14 @@ describe('mcp_delete_user_tag', () => {
       "another user's user tag",
       async () => {
         const owner = await signUpNewUser();
-        return { ...(await appRequest<UserTag>(owner, 'create_user_tag', { name: 'Signed' })), owner };
+        return { ...(await replyOf(owner.client, appCreateUserTag, { name: 'Signed' })), owner };
       },
     ],
   ])('%s is not_found on user_tag_id and is left as it was', async (_, userTagOf) => {
     const client = await connectedAiClient();
     const { user_tag_id, owner } = await userTagOf();
 
-    expect(await aiClientRefusal(client, 'mcp_delete_user_tag', { user_tag_id })).toMatchObject({
-      code: 'not_found',
-      details: 'user_tag_id',
-    });
+    expect(await aiClientCall(client, mcpDeleteUserTag, { user_tag_id })).toMatchObject(refused('not_found', 'user_tag_id'));
     if (owner) {
       expect((await userTagsOf(owner)).map((row) => row.user_tag_id)).toEqual([user_tag_id]);
     }
@@ -384,10 +376,7 @@ describe('mcp_delete_user_tag', () => {
     ['a user tag ID that is not a UUID', { user_tag_id: 'sell' }, 'user_tag_id'],
     ['an unknown field', { user_tag_id: crypto.randomUUID(), name: 'Sell' }, 'name'],
   ])('%s is refused with invalid_argument', async (_, request, field) => {
-    expect(await aiClientRefusal(await connectedAiClient(), 'mcp_delete_user_tag', request)).toMatchObject({
-      code: 'invalid_argument',
-      details: field,
-    });
+    expect(await aiClientCall(await connectedAiClient(), mcpDeleteUserTag, request as never)).toMatchObject(refused('invalid_argument', field));
   });
 });
 
@@ -413,7 +402,7 @@ describe('mcp_restore_user_tag', () => {
     const client = await connectedAiClient();
     const { copyIds, userTag } = await userTagWithCopies(client, 1);
     await setCopiesUserTag(client, { copy_ids: copyIds, user_tag_id: userTag.user_tag_id, tagged: true });
-    await appRequest(client.user, 'delete_user_tag', { user_tag_id: userTag.user_tag_id });
+    await replyOf(client.user.client, appDeleteUserTag, { user_tag_id: userTag.user_tag_id });
 
     expect(await restoreUserTag(client, userTag.user_tag_id)).toEqual({ ...userTag, changed: true, copy_count: 1 });
     expect(await userTagsOnCopy(client.user, copyIds[0]!)).toEqual([userTag]);
@@ -425,7 +414,7 @@ describe('mcp_restore_user_tag', () => {
     const [kept, deletedCopy] = copyIds as [string, string];
     await setCopiesUserTag(client, { copy_ids: copyIds, user_tag_id: userTag.user_tag_id, tagged: true });
     await deleteUserTag(client, userTag.user_tag_id);
-    await appRequest(client.user, 'delete_copy', { copy_id: deletedCopy });
+    await replyOf(client.user.client, deleteCopy, { copy_id: deletedCopy });
 
     expect(await deletedUserTagsOf(client.user)).toEqual([{ ...userTag, copy_count: 1 }]);
     expect(await restoreUserTag(client, userTag.user_tag_id)).toEqual({ ...userTag, changed: true, copy_count: 1 });
@@ -446,10 +435,7 @@ describe('mcp_restore_user_tag', () => {
     await deleteUserTag(client, deleted.user_tag_id);
     await createUserTag(client, 'SIGNED');
 
-    expect(await aiClientRefusal(client, 'mcp_restore_user_tag', { user_tag_id: deleted.user_tag_id })).toMatchObject({
-      code: 'user_tag_exists',
-      details: 'user_tag_id',
-    });
+    expect(await aiClientCall(client, mcpRestoreUserTag, { user_tag_id: deleted.user_tag_id })).toMatchObject(refused('user_tag_exists', 'user_tag_id'));
     expect(await deletedUserTagsOf(client.user)).toEqual([{ user_tag_id: deleted.user_tag_id, name: 'Signed', copy_count: 0 }]);
   });
 
@@ -459,16 +445,13 @@ describe('mcp_restore_user_tag', () => {
       "another user's deleted user tag",
       async () => {
         const owner = await signUpNewUser();
-        const { user_tag_id } = await appRequest<UserTag>(owner, 'create_user_tag', { name: 'Signed' });
-        await appRequest(owner, 'delete_user_tag', { user_tag_id });
+        const { user_tag_id } = await replyOf(owner.client, appCreateUserTag, { name: 'Signed' });
+        await replyOf(owner.client, appDeleteUserTag, { user_tag_id });
         return user_tag_id;
       },
     ],
   ])('%s is not_found on user_tag_id', async (_, userTagIdOf) => {
-    expect(await aiClientRefusal(await connectedAiClient(), 'mcp_restore_user_tag', { user_tag_id: await userTagIdOf() })).toMatchObject({
-      code: 'not_found',
-      details: 'user_tag_id',
-    });
+    expect(await aiClientCall(await connectedAiClient(), mcpRestoreUserTag, { user_tag_id: await userTagIdOf() })).toMatchObject(refused('not_found', 'user_tag_id'));
   });
 
   test.each<[string, Record<string, unknown>, string]>([
@@ -476,10 +459,7 @@ describe('mcp_restore_user_tag', () => {
     ['a user tag ID that is not a UUID', { user_tag_id: 'sell' }, 'user_tag_id'],
     ['an unknown field', { user_tag_id: crypto.randomUUID(), tagged: true }, 'tagged'],
   ])('%s is refused with invalid_argument', async (_, request, field) => {
-    expect(await aiClientRefusal(await connectedAiClient(), 'mcp_restore_user_tag', request)).toMatchObject({
-      code: 'invalid_argument',
-      details: field,
-    });
+    expect(await aiClientCall(await connectedAiClient(), mcpRestoreUserTag, request as never)).toMatchObject(refused('invalid_argument', field));
   });
 });
 
@@ -491,8 +471,8 @@ describe('list_user_tags with deleted', () => {
     await deleteUserTag(client, deleted.user_tag_id);
     const kept = await createUserTag(client, 'Trade binder');
     const other = await signUpNewUser();
-    const othersUserTag = await appRequest<UserTag>(other, 'create_user_tag', { name: 'Signed' });
-    await appRequest(other, 'delete_user_tag', { user_tag_id: othersUserTag.user_tag_id });
+    const othersUserTag = await replyOf(other.client, appCreateUserTag, { name: 'Signed' });
+    await replyOf(other.client, appDeleteUserTag, { user_tag_id: othersUserTag.user_tag_id });
 
     const keptRow = { user_tag_id: kept.user_tag_id, name: 'Trade binder', copy_count: 0 };
     expect(await deletedUserTagsOf(client.user)).toEqual([{ ...deleted, copy_count: 2 }]);
@@ -503,8 +483,8 @@ describe('list_user_tags with deleted', () => {
   test('a deleted value that is not a boolean is refused with invalid_argument on deleted', async () => {
     const user = await signUpNewUser();
 
-    const { error } = await user.client.rpc('list_user_tags', { query: { deleted: 'yes' } });
+    const result = await call(user.client, listUserTags, { deleted: 'yes' } as never);
 
-    expect(error).toMatchObject({ code: 'invalid_argument', details: 'deleted' });
+    expect(result).toMatchObject(refused('invalid_argument', 'deleted'));
   });
 });

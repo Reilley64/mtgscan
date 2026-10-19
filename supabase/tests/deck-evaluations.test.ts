@@ -1,13 +1,20 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
+import { deleteCopy } from '../collection';
 import {
-  readDeckError,
-  type CreatedDeck,
-  type Deck,
-  type DeckChangePage,
-  type DeckList,
-  type RevertPreview,
+  addDeckCard,
+  changeBasicLand,
+  createDeck,
+  deleteDeck,
+  getDeck,
+  listDeckChanges,
+  listDecks,
+  previewRevert,
+  removeDeckCard,
+  renameDeck,
+  revertDeckChanges,
+  setDeckCommander,
+  setDeckPriority,
   type Violation,
 } from '../decks';
 import {
@@ -17,6 +24,7 @@ import {
   resetCardCatalog,
   runCatalogImport,
 } from './catalog-import-command';
+import { call, refused, replyOf } from './database-calls';
 import { anonymousClient, asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -46,19 +54,8 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-async function call(user: TestUser, name: string, request: Record<string, unknown>) {
-  const { error } = await user.client.rpc(name as 'create_deck', { request: request as Json });
-  return error && readDeckError(error);
-}
-
-async function succeeded(user: TestUser, name: string, request: Record<string, unknown>) {
-  expect(await call(user, name, request)).toBeNull();
-}
-
 async function created(user: TestUser, name = 'Atraxa') {
-  const { data, error } = await user.client.rpc('create_deck', { request: { name } });
-  expect(error).toBeNull();
-  return (data as unknown as CreatedDeck).deck_id;
+  return (await replyOf(user.client, createDeck, { name })).deck_id;
 }
 
 async function scannedCopy(user: TestUser, cardPrintingId = angelicCurator) {
@@ -67,25 +64,32 @@ async function scannedCopy(user: TestUser, cardPrintingId = angelicCurator) {
   return scanned.copy_ids[0]!;
 }
 
-const added = (user: TestUser, deckId: string, copyId: string) =>
-  succeeded(user, 'add_deck_card', { deck_id: deckId, copy_id: copyId, unprotect: false });
-const removed = (user: TestUser, copyId: string) => succeeded(user, 'remove_deck_card', { copy_id: copyId });
-const madeCommander = (user: TestUser, copyId: string, commander = true) =>
-  succeeded(user, 'set_deck_commander', { copy_id: copyId, commander });
-const forestsChanged = (user: TestUser, deckId: string, by: number) =>
-  succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: forest, by });
-const deleted = (user: TestUser, copyId: string) => succeeded(user, 'delete_copy', { copy_id: copyId });
+async function added(user: TestUser, deckId: string, copyId: string) {
+  await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
+}
+
+async function removed(user: TestUser, copyId: string) {
+  await replyOf(user.client, removeDeckCard, { copy_id: copyId });
+}
+
+async function madeCommander(user: TestUser, copyId: string, commander = true) {
+  await replyOf(user.client, setDeckCommander, { copy_id: copyId, commander });
+}
+
+async function forestsChanged(user: TestUser, deckId: string, by: number) {
+  await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: forest, by });
+}
+
+async function deleted(user: TestUser, copyId: string) {
+  await replyOf(user.client, deleteCopy, { copy_id: copyId });
+}
 
 async function deckOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return data as unknown as Deck;
+  return replyOf(user.client, getDeck, { deck_id: deckId });
 }
 
 async function listedEvaluationOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('list_decks');
-  expect(error).toBeNull();
-  return (data as unknown as DeckList).items.find((item) => item.deck_id === deckId)!.evaluation;
+  return (await replyOf(user.client, listDecks)).items.find((item) => item.deck_id === deckId)!.evaluation;
 }
 
 async function evaluationOf(user: TestUser, deckId: string) {
@@ -93,17 +97,17 @@ async function evaluationOf(user: TestUser, deckId: string) {
 }
 
 async function changeAt(user: TestUser, deckId: string, revision: number) {
-  const { data } = await user.client.rpc('list_deck_changes', { query: { deck_id: deckId } });
-  return (data as unknown as DeckChangePage).items.find((change) => change.revision === revision)!.deck_change_id;
+  const { items } = await replyOf(user.client, listDeckChanges, { deck_id: deckId });
+  return items.find((change) => change.revision === revision)!.deck_change_id;
 }
 
 async function revertedFrom(user: TestUser, deckId: string, revision: number) {
   const deckChangeId = await changeAt(user, deckId, revision);
-  const { data: preview } = await user.client.rpc('preview_revert', { query: { deck_id: deckId, deck_change_id: deckChangeId } });
-  return call(user, 'revert_deck_changes', {
+  const preview = await replyOf(user.client, previewRevert, { deck_id: deckId, deck_change_id: deckChangeId });
+  return call(user.client, revertDeckChanges, {
     deck_id: deckId,
     deck_change_id: deckChangeId,
-    expected_revision: (preview as unknown as RevertPreview).revision,
+    expected_revision: preview.revision,
     unprotect: false,
   });
 }
@@ -151,7 +155,7 @@ describe('deck validity', () => {
     const { deckId } = await deckWithCommander(user);
 
     await forestsChanged(user, deckId, 90);
-    await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: wastes, by: 8 });
+    await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: wastes, by: 8 });
 
     expect(await evaluationOf(user, deckId)).toMatchObject({ validity: 'valid', violations: [] });
   });
@@ -217,7 +221,7 @@ describe('saving after a deck change', () => {
       ['add_deck_card', () => added(user, deckId, other), [deckSize(101, 'Remove 1 card.')]],
       ['remove_deck_card', () => removed(user, other), []],
       ['set_deck_commander to the main deck', () => madeCommander(user, commander, false), [noCommander]],
-      ['revert_deck_changes', async () => expect(await revertedFrom(user, deckId, 7)).toBeNull(), []],
+      ['revert_deck_changes', async () => expect(await revertedFrom(user, deckId, 7)).toMatchObject({ status: 'replied' }), []],
       ['delete_copy', () => deleted(user, main), [deckSize(99, 'Add 1 card.')]],
     ];
 
@@ -257,10 +261,10 @@ describe('saving after a deck change', () => {
     const deckId = await created(user);
     await forestsChanged(user, deckId, 3);
 
-    expect(await revertedFrom(user, deckId, 1)).toBeNull();
+    expect(await revertedFrom(user, deckId, 1)).toMatchObject({ status: 'replied' });
     expect(await evaluationOf(user, deckId)).toBeNull();
 
-    expect(await revertedFrom(user, deckId, 2)).toBeNull();
+    expect(await revertedFrom(user, deckId, 2)).toMatchObject({ status: 'replied' });
     expect(await evaluationOf(user, deckId)).toMatchObject({ revision: 3, violations: [noCommander, deckSize(3, 'Add 97 cards.')] });
   });
 
@@ -273,18 +277,22 @@ describe('saving after a deck change', () => {
     await added(user, deckId, second);
     await madeCommander(user, second);
     const [afterChanges] = await storedEvaluationRows(deckId);
-    expect(await call(user, 'set_deck_commander', { copy_id: main, commander: true })).toMatchObject({ code: 'commander_limit' });
+    expect(await call(user.client, setDeckCommander, { copy_id: main, commander: true })).toMatchObject(refused('commander_limit'));
     await madeCommander(user, commander);
-    expect(await call(user, 'change_basic_land', { deck_id: deckId, oracle_id: forest, by: -1 })).toMatchObject({ code: 'invalid_argument' });
+    expect(await call(user.client, changeBasicLand, { deck_id: deckId, oracle_id: forest, by: -1 })).toMatchObject(
+      refused('invalid_argument'),
+    );
     expect(
-      await call(user, 'revert_deck_changes', {
+      await call(user.client, revertDeckChanges, {
         deck_id: deckId,
         deck_change_id: await changeAt(user, deckId, 1),
         expected_revision: 1,
         unprotect: false,
       }),
-    ).toMatchObject({ code: 'stale_revision' });
-    expect(await call(user, 'add_deck_card', { deck_id: deckId, copy_id: main, unprotect: false })).toMatchObject({ code: 'copy_not_free' });
+    ).toMatchObject(refused('stale_revision'));
+    expect(await call(user.client, addDeckCard, { deck_id: deckId, copy_id: main, unprotect: false })).toMatchObject(
+      refused('copy_not_free'),
+    );
 
     expect(before!.revision).toBe(3);
     expect(await storedEvaluationRows(deckId)).toEqual([afterChanges]);
@@ -298,11 +306,11 @@ describe('saving after a deck change', () => {
 
     const { deckId } = await deckWithCommander(user);
     const before = await storedEvaluationRows(deckId);
-    await succeeded(user, 'rename_deck', { deck_id: deckId, name: 'Kinnan' });
-    await succeeded(user, 'set_deck_priority', { deck_id: deckId, priority: 'high' });
+    await replyOf(user.client, renameDeck, { deck_id: deckId, name: 'Kinnan' });
+    await replyOf(user.client, setDeckPriority, { deck_id: deckId, priority: 'high' });
     expect(await storedEvaluationRows(deckId)).toEqual(before);
 
-    await succeeded(user, 'delete_deck', { deck_id: deckId });
+    await replyOf(user.client, deleteDeck, { deck_id: deckId });
     expect(await storedEvaluationRows(deckId)).toEqual([]);
   });
 });
@@ -312,12 +320,10 @@ describe('access', () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
     const { deckId } = await deckWithCommander(alice);
 
-    const { error } = await bob.client.rpc('get_deck', { query: { deck_id: deckId } });
-    expect(readDeckError(error!)).toMatchObject({ code: 'not_found', field: 'deck_id' });
-    const { data: list } = await bob.client.rpc('list_decks');
-    expect((list as unknown as DeckList).items).toEqual([]);
-    const { data, error: readError } = await bob.client.from('deck_evaluations').select('deck_id').eq('deck_id', deckId);
-    expect(readError).toBeNull();
+    expect(await call(bob.client, getDeck, { deck_id: deckId })).toMatchObject(refused('not_found', 'deck_id'));
+    expect((await replyOf(bob.client, listDecks)).items).toEqual([]);
+    const { data, error } = await bob.client.from('deck_evaluations').select('deck_id').eq('deck_id', deckId);
+    expect(error).toBeNull();
     expect(data).toEqual([]);
 
     const anonymous = await anonymousClient().from('deck_evaluations').select('deck_id');

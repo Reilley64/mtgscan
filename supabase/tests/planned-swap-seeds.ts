@@ -1,11 +1,9 @@
-import { expect } from 'bun:test';
-
-import type { CopyDetails } from '../collection';
-import type { Json } from '../database.types';
-import type { AddedDeckCard, CreatedDeck, Deck } from '../decks';
-import type { CreatedPlannedSwaps, PlannedSwap, PlannedSwapInput, PlannedSwapPage, PlannedSwapsQuery } from '../planned-swaps';
-import { aiClientCall, type ClaimedAiClient } from './ai-clients';
+import { getCopy } from '../collection';
+import { addDeckCard, changeBasicLand, createDeck, getDeck, setDeckCommander } from '../decks';
+import { createPlannedSwaps, listPlannedSwaps, type PlannedSwap, type PlannedSwapInput, type PlannedSwapsQuery } from '../planned-swaps';
+import { aiClientReply, type ClaimedAiClient } from './ai-clients';
 import { basicLand } from './catalog-import-command';
+import { replyOf } from './database-calls';
 import { asDatabaseOwner, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -17,18 +15,6 @@ export const mountain = basicLand('Mountain').oracle_id;
 export const reason = 'Cheap removal that also answers an early threat.';
 
 export type KrenkoDeck = { deckId: string; commander: string; bolt: string };
-
-export async function appRequest<T>(user: TestUser, name: string, request: object): Promise<T> {
-  const { data, error } = await user.client.rpc(name as 'create_deck', { request: request as Json });
-  expect(error).toBeNull();
-  return data as T;
-}
-
-export async function appRead<T>(user: TestUser, name: string, query: object): Promise<T> {
-  const { data, error } = await user.client.rpc(name as 'get_deck', { query: query as Json });
-  expect(error).toBeNull();
-  return data as T;
-}
 
 export async function scannedCopies(user: TestUser, cardPrintingId: string, copies = 1): Promise<string[]> {
   const scanned = stack(cardPrintingId, { copies });
@@ -42,11 +28,11 @@ export async function scannedCopy(user: TestUser, cardPrintingId: string): Promi
 }
 
 export async function deckNamed(user: TestUser, name: string): Promise<string> {
-  return (await appRequest<CreatedDeck>(user, 'create_deck', { name })).deck_id;
+  return (await replyOf(user.client, createDeck, { name })).deck_id;
 }
 
 export function addedToDeck(user: TestUser, deckId: string, copyId: string) {
-  return appRequest<AddedDeckCard>(user, 'add_deck_card', { deck_id: deckId, copy_id: copyId, unprotect: false });
+  return replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
 }
 
 export async function krenkoDeck(user: TestUser, name = 'Krenko'): Promise<KrenkoDeck> {
@@ -54,14 +40,14 @@ export async function krenkoDeck(user: TestUser, name = 'Krenko'): Promise<Krenk
   const commander = await scannedCopy(user, krenko);
   const bolt = await scannedCopy(user, lightningBolt);
   await addedToDeck(user, deckId, commander);
-  await appRequest(user, 'set_deck_commander', { copy_id: commander, commander: true });
+  await replyOf(user.client, setDeckCommander, { copy_id: commander, commander: true });
   await addedToDeck(user, deckId, bolt);
-  await appRequest(user, 'change_basic_land', { deck_id: deckId, oracle_id: mountain, by: 98 });
+  await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: mountain, by: 98 });
   return { deckId, commander, bolt };
 }
 
 export async function revisionOf(user: TestUser, deckId: string): Promise<number> {
-  return (await appRead<Deck>(user, 'get_deck', { deck_id: deckId })).revision;
+  return (await replyOf(user.client, getDeck, { deck_id: deckId })).revision;
 }
 
 export async function plannedSwapItem(
@@ -81,11 +67,11 @@ export async function plannedSwapItem(
 }
 
 export function planned(client: ClaimedAiClient, plannedSwaps: PlannedSwapInput[], idempotencyKey: string = crypto.randomUUID()) {
-  return aiClientCall<CreatedPlannedSwaps>(client, 'create_planned_swaps', { idempotency_key: idempotencyKey, planned_swaps: plannedSwaps });
+  return aiClientReply(client, createPlannedSwaps, { idempotency_key: idempotencyKey, planned_swaps: plannedSwaps });
 }
 
 export function listed(user: TestUser, query: PlannedSwapsQuery = {}) {
-  return appRead<PlannedSwapPage>(user, 'list_planned_swaps', query);
+  return replyOf(user.client, listPlannedSwaps, query);
 }
 
 export async function plannedSwapNamed(user: TestUser, plannedSwapId: string): Promise<PlannedSwap> {
@@ -97,7 +83,7 @@ export async function plannedSwapIds(user: TestUser) {
 }
 
 export function copyOf(user: TestUser, copyId: string) {
-  return appRead<CopyDetails>(user, 'get_copy', { copy_id: copyId });
+  return replyOf(user.client, getCopy, { copy_id: copyId });
 }
 
 export async function onePlannedSwap(client: ClaimedAiClient, deckId: string, held: string, changes: Partial<PlannedSwapInput> = {}) {

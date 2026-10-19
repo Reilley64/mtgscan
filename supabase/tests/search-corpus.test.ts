@@ -5,14 +5,14 @@ import { join } from 'node:path';
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import { readSearchCorpus, searchClasses, searchCorpusDirectory } from '../release-check/search-corpus';
-import type { Json } from '../database.types';
-import { readSearchError } from '../search';
+import { searchCatalog } from '../search';
 import {
   catalogFixtureManifest,
   resetCardCatalog,
   runCatalogImport,
   runOracleTagImport,
 } from './catalog-import-command';
+import { call } from './database-calls';
 import { signUpNewUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -86,8 +86,8 @@ describe('search corpus queries', () => {
   test('every corpus query passes the search query validator', async () => {
     const { client } = await signUpNewUser();
     for (const search of corpus) {
-      const { error } = await client.rpc('search_catalog', { query: search.query as Json });
-      expect({ search: search.id, error: error && readSearchError(error) }).toEqual({ search: search.id, error: null });
+      const result = await call(client, searchCatalog, search.query);
+      expect({ search: search.id, result }).toMatchObject({ search: search.id, result: { status: 'replied' } });
     }
   });
 });

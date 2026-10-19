@@ -1,8 +1,7 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CollectionCopyRow, UserTagList } from '../collection';
-import type { AddDeckCardPreview, Deck, DeckChangeEffect, DeckChangePage, DeckList, RevertPreview } from '../decks';
-import type { SearchPage } from '../search';
+import { listUserTags } from '../collection';
+import { getDeck, listDeckChanges, listDecks, previewAddDeckCard, previewRevert, type DeckChangeEffect } from '../decks';
 import { testUser } from '../test-user/account';
 import {
   catalogFixtureManifest,
@@ -13,6 +12,8 @@ import {
   runTestUserCommand,
   spellbookFixtureVariants,
 } from './catalog-import-command';
+import { collectionCopies } from './collection-pages';
+import { replyOf } from './database-calls';
 import { anonymousClient, localStackUrl, secretKeyClient, type AppClient } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -29,9 +30,7 @@ async function signedInTestUser(): Promise<AppClient> {
 }
 
 async function ownedCopies(client: AppClient) {
-  const { data, error } = await client.rpc('search_collection', { query: { rows: 'copies', limit: 120 } });
-  expect(error).toBeNull();
-  return (data as unknown as SearchPage<CollectionCopyRow>).items;
+  return (await collectionCopies(client, { limit: 120 })).items;
 }
 
 async function collectionEntries(client: AppClient) {
@@ -47,27 +46,19 @@ async function additions(client: AppClient) {
 }
 
 async function userTags(client: AppClient) {
-  const { data, error } = await client.rpc('list_user_tags');
-  expect(error).toBeNull();
-  return (data as unknown as UserTagList).items;
+  return (await replyOf(client, listUserTags)).items;
 }
 
 async function decks(client: AppClient) {
-  const { data, error } = await client.rpc('list_decks');
-  expect(error).toBeNull();
-  return (data as unknown as DeckList).items;
+  return (await replyOf(client, listDecks)).items;
 }
 
 async function deckOf(client: AppClient, deckId: string) {
-  const { data, error } = await client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return data as unknown as Deck;
+  return replyOf(client, getDeck, { deck_id: deckId });
 }
 
 async function deckChangesOf(client: AppClient, deckId: string) {
-  const { data, error } = await client.rpc('list_deck_changes', { query: { deck_id: deckId, limit: 50 } });
-  expect(error).toBeNull();
-  return (data as unknown as DeckChangePage).items;
+  return (await replyOf(client, listDeckChanges, { deck_id: deckId, limit: 50 })).items;
 }
 
 describe('the test user command', () => {
@@ -198,18 +189,12 @@ describe('the test user command', () => {
       rules: [{ rule: 'singleton' }, { rule: 'color_identity', colors: ['R'] }],
     };
 
-    const { data: addPreview, error: addError } = await client.rpc('preview_add_deck_card', {
-      query: { copy_id: freeBolt.copy_id },
-    });
+    const addPreview = await replyOf(client, previewAddDeckCard, { copy_id: freeBolt.copy_id });
     const [revert] = await deckChangesOf(client, row!.deck_id);
-    const { data: revertPreview, error: revertError } = await client.rpc('preview_revert', {
-      query: { deck_id: row!.deck_id, deck_change_id: revert!.deck_change_id },
-    });
+    const revertPreview = await replyOf(client, previewRevert, { deck_id: row!.deck_id, deck_change_id: revert!.deck_change_id });
 
-    expect(addError).toBeNull();
-    expect((addPreview as unknown as AddDeckCardPreview).items).toEqual([{ deck_id: row!.deck_id, effect: addsViolation }]);
-    expect(revertError).toBeNull();
-    expect((revertPreview as unknown as RevertPreview).effect).toEqual(addsViolation);
+    expect(addPreview.items).toEqual([{ deck_id: row!.deck_id, effect: addsViolation }]);
+    expect(revertPreview.effect).toEqual(addsViolation);
   });
 
   test('running the command again resets the test user to an empty collection', async () => {

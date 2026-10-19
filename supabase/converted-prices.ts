@@ -1,13 +1,23 @@
-export type ExchangeRate = {
-  currency: string;
-  rate: string;
-  rate_date: string | null;
-  minor_unit_digits: number;
-};
+import { z } from 'zod';
 
-export type ExchangeRateList = {
-  items: ExchangeRate[];
-};
+import { databaseFunction } from './database-function.ts';
+import { integer } from './fields.ts';
+
+const exchangeRate = z.strictObject({ currency: z.string(), rate: z.string(), rate_date: z.string().nullable(), minor_unit_digits: integer });
+
+export type ExchangeRate = z.infer<typeof exchangeRate>;
+
+const exchangeRateList = z.strictObject({ items: z.array(exchangeRate) });
+
+export type ExchangeRateList = z.infer<typeof exchangeRateList>;
+
+export const listExchangeRates = databaseFunction({
+  name: 'list_exchange_rates',
+  argument: null,
+  request: z.undefined(),
+  reply: exchangeRateList,
+  errorCodes: [],
+});
 
 export const usdExchangeRate: ExchangeRate = { currency: 'USD', rate: '1', rate_date: null, minor_unit_digits: 2 };
 

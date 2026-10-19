@@ -1,10 +1,9 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CopyDetails, CopyQuery } from '../collection';
-import type { Json } from '../database.types';
-import { readSearchError } from '../search';
+import { getCopy, type CopyQuery } from '../collection';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { seedCopies } from './copy-seeds';
+import { call, failed, refused, replyOf } from './database-calls';
 import { daysAgo, storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
@@ -46,15 +45,8 @@ async function setPriceSnapshotAt(at: string) {
   expect(error).toBeNull();
 }
 
-async function readCopy(client: AppClient, query: CopyQuery | Record<string, unknown> | unknown[]) {
-  const { data, error } = await client.rpc('get_copy', { query: query as Json });
-  return { copy: data as unknown as CopyDetails | null, error: error && readSearchError(error) };
-}
-
-async function copyOf(user: TestUser, query: CopyQuery) {
-  const { copy, error } = await readCopy(user.client, query);
-  expect(error).toBeNull();
-  return copy!;
+function copyOf(user: TestUser, query: CopyQuery) {
+  return replyOf(user.client, getCopy, query);
 }
 
 async function scannedCopy(user: TestUser, ...args: Parameters<typeof stack>) {
@@ -167,16 +159,13 @@ describe('the copy read', () => {
     ['a price currency, even USD, as the app converts prices itself', { copy_id: crypto.randomUUID(), price_currency: 'USD' }, 'price_currency'],
     ['an unknown field', { copy_id: crypto.randomUUID(), rows: 'copies' }, 'rows'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
-    const { copy, error } = await readCopy(alice.client, query);
-
-    expect(copy).toBeNull();
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call(alice.client, getCopy, query as never)).toMatchObject(refused('invalid_argument', field));
   });
 
   test('a copy ID that is not in the collection is not_found', async () => {
-    const { error } = await readCopy(alice.client, { copy_id: crypto.randomUUID() });
+    const result = await call(alice.client, getCopy, { copy_id: crypto.randomUUID() });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(result).toMatchObject(refused('not_found', 'copy_id'));
   });
 });
 
@@ -205,10 +194,9 @@ describe('access', () => {
     const { copyId } = await scannedCopy(alice, angelicCurator);
     const bob = await signUpNewUser();
 
-    const { copy, error } = await readCopy(bob.client, { copy_id: copyId });
+    const result = await call(bob.client, getCopy, { copy_id: copyId });
 
-    expect(copy).toBeNull();
-    expect(error).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(result).toMatchObject(refused('not_found', 'copy_id'));
   });
 
   test.each<[string, () => AppClient]>([
@@ -217,9 +205,6 @@ describe('access', () => {
   ])('%s cannot read a copy', async (_, client) => {
     const { copyId } = await scannedCopy(alice, angelicCurator);
 
-    const { data, error } = await client().rpc('get_copy', { query: { copy_id: copyId } });
-
-    expect(data).toBeNull();
-    expect(error?.code).toBe(permissionDenied);
+    expect(await call(client(), getCopy, { copy_id: copyId })).toMatchObject(failed(permissionDenied));
   });
 });

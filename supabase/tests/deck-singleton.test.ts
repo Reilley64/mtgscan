@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import { readDeckError, type CreatedDeck, type Deck, type DeckEvaluationCopy } from '../decks';
+import { addDeckCard, changeBasicLand, createDeck, getDeck, setDeckCommander, type DeckEvaluationCopy } from '../decks';
 import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { replyOf } from './database-calls';
 import { signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -41,26 +41,19 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-async function succeeded(user: TestUser, name: string, request: Record<string, unknown>) {
-  const { error } = await user.client.rpc(name as 'create_deck', { request: request as Json });
-  expect(error && readDeckError(error)).toBeNull();
-}
-
 async function added(user: TestUser, deckId: string, printing: Printing, count: number) {
   const scanned = stack(printing.id, { copies: count });
   await committed(user, scanBatch([scanned]));
   const cards: DeckEvaluationCopy[] = [];
   for (const copyId of scanned.copy_ids) {
-    await succeeded(user, 'add_deck_card', { deck_id: deckId, copy_id: copyId, unprotect: false });
+    await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
     cards.push({ kind: 'copy', copy_id: copyId, name: printing.name, image_uris: [printing.image] });
   }
   return cards;
 }
 
 async function deckOf(user: TestUser, copies: [Printing, number][]) {
-  const { data, error } = await user.client.rpc('create_deck', { request: { name: 'Atraxa' } });
-  expect(error).toBeNull();
-  const deckId = (data as unknown as CreatedDeck).deck_id;
+  const { deck_id: deckId } = await replyOf(user.client, createDeck, { name: 'Atraxa' });
   const cards: DeckEvaluationCopy[] = [];
   for (const [printing, count] of copies) {
     cards.push(...(await added(user, deckId, printing, count)));
@@ -69,9 +62,7 @@ async function deckOf(user: TestUser, copies: [Printing, number][]) {
 }
 
 async function singletonOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  const { violations, undetermined } = (data as unknown as Deck).evaluation!;
+  const { violations, undetermined } = (await replyOf(user.client, getDeck, { deck_id: deckId })).evaluation!;
   return {
     violations: violations.filter((violation) => violation.rule === 'singleton'),
     undetermined: undetermined.filter((check) => check.rule === 'singleton'),
@@ -88,7 +79,7 @@ describe('singleton', () => {
       [angelicCuratorPromo, 1],
       [relentlessRats, 1],
     ]);
-    await succeeded(user, 'set_deck_commander', { copy_id: cards[0]!.copy_id, commander: true });
+    await replyOf(user.client, setDeckCommander, { copy_id: cards[0]!.copy_id, commander: true });
 
     expect(await singletonOf(user, deckId)).toEqual({
       violations: [
@@ -130,7 +121,7 @@ describe('singleton', () => {
     const { deckId } = await deckOf(user, [[angelicCurator, 1]]);
 
     for (const name of ['Forest', 'Snow-Covered Forest', 'Wastes']) {
-      await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: basicLand(name).oracle_id, by: 30 });
+      await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: basicLand(name).oracle_id, by: 30 });
     }
 
     expect(await singletonOf(user, deckId)).toEqual({ violations: [], undetermined: [] });

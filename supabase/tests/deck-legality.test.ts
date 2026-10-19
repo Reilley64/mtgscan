@@ -1,7 +1,6 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import type { CreatedDeck, Deck, Violation } from '../decks';
+import { addDeckCard, changeBasicLand, createDeck, getDeck, setDeckCommander, type Violation } from '../decks';
 import {
   basicLand,
   catalogFixture,
@@ -10,6 +9,7 @@ import {
   runCatalogImport,
   withoutCards,
 } from './catalog-import-command';
+import { replyOf } from './database-calls';
 import { signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -28,39 +28,30 @@ beforeAll(async () => {
 });
 
 async function created(user: TestUser) {
-  const { data, error } = await user.client.rpc('create_deck', { request: { name: 'Ormos' } });
-  expect(error).toBeNull();
-  return (data as unknown as CreatedDeck).deck_id;
-}
-
-async function succeeded(user: TestUser, name: string, request: Record<string, unknown>) {
-  const { error } = await user.client.rpc(name as 'create_deck', { request: request as Json });
-  expect(error).toBeNull();
+  return (await replyOf(user.client, createDeck, { name: 'Ormos' })).deck_id;
 }
 
 async function addedCopy(user: TestUser, deckId: string, cardPrintingId: string) {
   const scanned = stack(cardPrintingId);
   await committed(user, scanBatch([scanned]));
   const copyId = scanned.copy_ids[0]!;
-  await succeeded(user, 'add_deck_card', { deck_id: deckId, copy_id: copyId, unprotect: false });
+  await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
   return copyId;
 }
 
 async function islandsAdded(user: TestUser, deckId: string, count: number) {
-  await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: island, by: count });
+  await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: island, by: count });
 }
 
 async function deckOfOrmos(user: TestUser) {
   const deckId = await created(user);
   const commander = await addedCopy(user, deckId, ormos);
-  await succeeded(user, 'set_deck_commander', { copy_id: commander, commander: true });
+  await replyOf(user.client, setDeckCommander, { copy_id: commander, commander: true });
   return deckId;
 }
 
 async function evaluationOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return (data as unknown as Deck).evaluation!;
+  return (await replyOf(user.client, getDeck, { deck_id: deckId })).evaluation!;
 }
 
 function legalityViolations(violations: Violation[]) {

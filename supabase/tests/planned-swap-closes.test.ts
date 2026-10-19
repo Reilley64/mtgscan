@@ -1,14 +1,14 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { DeckChangePage } from '../decks';
-import type { ClosedPlannedSwap } from '../planned-swaps';
-import { aiClientCall, aiClientRefusal, connectedAiClient } from './ai-clients';
+import { deleteCopy } from '../collection';
+import { changeBasicLand, listDeckChanges, removeDeckCard, revertDeckChanges, setDeckCommander } from '../decks';
+import { closePlannedSwap, mcpClosePlannedSwap, swapInPlannedSwap } from '../planned-swaps';
+import { aiClientCall, aiClientReply, connectedAiClient } from './ai-clients';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { call, refused, replyOf } from './database-calls';
 import { asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
 import {
   addedToDeck,
-  appRead,
-  appRequest,
   blackLotus,
   copyOf,
   counterspell,
@@ -31,7 +31,7 @@ beforeAll(async () => {
 });
 
 function closeAsUser(user: TestUser, plannedSwapId: string) {
-  return user.client.rpc('close_planned_swap', { request: { planned_swap_id: plannedSwapId } });
+  return call(user.client, closePlannedSwap, { planned_swap_id: plannedSwapId });
 }
 
 const open = { status: 'open', close_note: null };
@@ -45,10 +45,7 @@ describe('close_planned_swap', () => {
     const plannedSwapId = await onePlannedSwap(client, deckId, held, { outgoing: { copy_id: bolt } });
     const revision = await revisionOf(client.user, deckId);
 
-    const { data, error } = await closeAsUser(client.user, plannedSwapId);
-
-    expect(error).toBeNull();
-    expect(data).toEqual({ id: plannedSwapId, changed: true });
+    expect(await closeAsUser(client.user, plannedSwapId)).toEqual({ status: 'replied', reply: { id: plannedSwapId, changed: true } });
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject({ status: 'closed', close_note: 'closed_by_user', effect: null });
     expect(await copyOf(client.user, held)).toMatchObject({ free: true, deck: null });
     expect(await revisionOf(client.user, deckId)).toBe(revision);
@@ -58,13 +55,10 @@ describe('close_planned_swap', () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Goblins');
     const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
-    await aiClientCall(client, 'mcp_close_planned_swap', { planned_swap_id: plannedSwapId });
+    await aiClientReply(client, mcpClosePlannedSwap, { planned_swap_id: plannedSwapId });
     const closed = await plannedSwapNamed(client.user, plannedSwapId);
 
-    const { data, error } = await closeAsUser(client.user, plannedSwapId);
-
-    expect(error).toBeNull();
-    expect(data).toEqual({ id: plannedSwapId, changed: false });
+    expect(await closeAsUser(client.user, plannedSwapId)).toEqual({ status: 'replied', reply: { id: plannedSwapId, changed: false } });
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toEqual(closed);
   });
 
@@ -72,12 +66,15 @@ describe('close_planned_swap', () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Goblins');
     const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
-    await appRequest(client.user, 'swap_in_planned_swap', { planned_swap_id: plannedSwapId });
+    await replyOf(client.user.client, swapInPlannedSwap, { planned_swap_id: plannedSwapId });
 
-    expect((await closeAsUser(client.user, plannedSwapId)).error).toMatchObject({
-      code: 'not_open',
-      message: 'The planned swap is swapped_in. Only an open planned swap can change.',
-      details: 'planned_swap_id',
+    expect(await closeAsUser(client.user, plannedSwapId)).toMatchObject({
+      status: 'refused',
+      refusal: {
+        code: 'not_open',
+        message: 'The planned swap is swapped_in. Only an open planned swap can change.',
+        field: 'planned_swap_id',
+      },
     });
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject({ status: 'swapped_in', close_note: null });
   });
@@ -87,10 +84,9 @@ describe('close_planned_swap', () => {
     const deckId = await deckNamed(client.user, 'Goblins');
     const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
 
-    expect((await closeAsUser(await signUpNewUser(), plannedSwapId)).error).toMatchObject({
-      code: 'not_found',
-      message: 'planned_swap_id is not one of your planned swaps.',
-      details: 'planned_swap_id',
+    expect(await closeAsUser(await signUpNewUser(), plannedSwapId)).toMatchObject({
+      status: 'refused',
+      refusal: { code: 'not_found', message: 'planned_swap_id is not one of your planned swaps.', field: 'planned_swap_id' },
     });
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject(open);
   });
@@ -103,7 +99,7 @@ describe('mcp_close_planned_swap', () => {
     const held = await scannedCopy(client.user, counterspell);
     const plannedSwapId = await onePlannedSwap(client, deckId, held);
 
-    const result = await aiClientCall<ClosedPlannedSwap>(client, 'mcp_close_planned_swap', { planned_swap_id: plannedSwapId });
+    const result = await aiClientReply(client, mcpClosePlannedSwap, { planned_swap_id: plannedSwapId });
 
     expect(result).toEqual({ id: plannedSwapId, changed: true });
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject({ status: 'closed', close_note: 'closed_by_ai_client' });
@@ -115,9 +111,7 @@ describe('mcp_close_planned_swap', () => {
     const deckId = await deckNamed(client.user, 'Goblins');
     const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
 
-    const result = await aiClientCall<ClosedPlannedSwap>(await connectedAiClient(client.user), 'mcp_close_planned_swap', {
-      planned_swap_id: plannedSwapId,
-    });
+    const result = await aiClientReply(await connectedAiClient(client.user), mcpClosePlannedSwap, { planned_swap_id: plannedSwapId });
 
     expect(result).toEqual({ id: plannedSwapId, changed: true });
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject({ status: 'closed', close_note: 'closed_by_ai_client' });
@@ -127,10 +121,10 @@ describe('mcp_close_planned_swap', () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Goblins');
     const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
-    await closeAsUser(client.user, plannedSwapId);
+    await replyOf(client.user.client, closePlannedSwap, { planned_swap_id: plannedSwapId });
     const closed = await plannedSwapNamed(client.user, plannedSwapId);
 
-    const result = await aiClientCall<ClosedPlannedSwap>(client, 'mcp_close_planned_swap', { planned_swap_id: plannedSwapId });
+    const result = await aiClientReply(client, mcpClosePlannedSwap, { planned_swap_id: plannedSwapId });
 
     expect(result).toEqual({ id: plannedSwapId, changed: false });
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toEqual(closed);
@@ -140,12 +134,15 @@ describe('mcp_close_planned_swap', () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Goblins');
     const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
-    await appRequest(client.user, 'swap_in_planned_swap', { planned_swap_id: plannedSwapId });
+    await replyOf(client.user.client, swapInPlannedSwap, { planned_swap_id: plannedSwapId });
 
-    expect(await aiClientRefusal(client, 'mcp_close_planned_swap', { planned_swap_id: plannedSwapId })).toMatchObject({
-      code: 'not_open',
-      message: 'The planned swap is swapped_in. Only an open planned swap can change.',
-      details: 'planned_swap_id',
+    expect(await aiClientCall(client, mcpClosePlannedSwap, { planned_swap_id: plannedSwapId })).toMatchObject({
+      status: 'refused',
+      refusal: {
+        code: 'not_open',
+        message: 'The planned swap is swapped_in. Only an open planned swap can change.',
+        field: 'planned_swap_id',
+      },
     });
   });
 
@@ -154,10 +151,9 @@ describe('mcp_close_planned_swap', () => {
     const deckId = await deckNamed(client.user, 'Goblins');
     const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
 
-    expect(await aiClientRefusal(await connectedAiClient(), 'mcp_close_planned_swap', { planned_swap_id: plannedSwapId })).toMatchObject({
-      code: 'not_found',
-      details: 'planned_swap_id',
-    });
+    expect(await aiClientCall(await connectedAiClient(), mcpClosePlannedSwap, { planned_swap_id: plannedSwapId })).toMatchObject(
+      refused('not_found', 'planned_swap_id'),
+    );
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject(open);
   });
 });
@@ -171,7 +167,7 @@ describe('closing when the outgoing card leaves the deck', () => {
     const staying = await onePlannedSwap(client, deckId, await scannedCopy(client.user, krenko), { outgoing: { copy_id: commander } });
     const noOutgoing = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
 
-    await appRequest(client.user, 'remove_deck_card', { copy_id: bolt });
+    await replyOf(client.user.client, removeDeckCard, { copy_id: bolt });
 
     expect(await plannedSwapNamed(client.user, leaving)).toMatchObject(outgoingLeftDeck);
     expect(await plannedSwapNamed(client.user, staying)).toMatchObject(open);
@@ -184,7 +180,7 @@ describe('closing when the outgoing card leaves the deck', () => {
     const { deckId, bolt } = await krenkoDeck(client.user);
     const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, lightningBolt), { outgoing: { copy_id: bolt } });
 
-    await appRequest(client.user, 'delete_copy', { copy_id: bolt });
+    await replyOf(client.user.client, deleteCopy, { copy_id: bolt });
 
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject(outgoingLeftDeck);
   });
@@ -194,10 +190,10 @@ describe('closing when the outgoing card leaves the deck', () => {
     const { deckId, commander, bolt } = await krenkoDeck(client.user);
     const leaving = await onePlannedSwap(client, deckId, await scannedCopy(client.user, lightningBolt), { outgoing: { copy_id: bolt } });
     const staying = await onePlannedSwap(client, deckId, await scannedCopy(client.user, krenko), { outgoing: { copy_id: commander } });
-    const changes = (await appRead<DeckChangePage>(client.user, 'list_deck_changes', { deck_id: deckId })).items;
+    const changes = (await replyOf(client.user.client, listDeckChanges, { deck_id: deckId })).items;
     const boltAdded = changes.find((change) => change.kind === 'added' && change.lines.some((line) => line.kind === 'copy' && line.copy_id === bolt))!;
 
-    await appRequest(client.user, 'revert_deck_changes', {
+    await replyOf(client.user.client, revertDeckChanges, {
       deck_id: deckId,
       deck_change_id: boltAdded.deck_change_id,
       expected_revision: changes[0]!.revision,
@@ -216,7 +212,7 @@ describe('closing when the outgoing card leaves the deck', () => {
     await addedToDeck(client.user, deckId, await scannedCopy(client.user, blackLotus));
     expect([await plannedSwapNamed(client.user, first), await plannedSwapNamed(client.user, second)]).toMatchObject([open, open]);
 
-    await appRequest(client.user, 'swap_in_planned_swap', { planned_swap_id: first });
+    await replyOf(client.user.client, swapInPlannedSwap, { planned_swap_id: first });
 
     expect(await plannedSwapNamed(client.user, first)).toMatchObject({ status: 'swapped_in', close_note: null });
     expect(await plannedSwapNamed(client.user, second)).toMatchObject(outgoingLeftDeck);
@@ -227,15 +223,15 @@ describe('closing when the outgoing card leaves the deck', () => {
     const { deckId, commander } = await krenkoDeck(client.user);
     const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, krenko), { outgoing: { copy_id: commander } });
 
-    await appRequest(client.user, 'set_deck_commander', { copy_id: commander, commander: false });
+    await replyOf(client.user.client, setDeckCommander, { copy_id: commander, commander: false });
 
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject(open);
   });
 
   test.each<[string, (user: TestUser, deck: { deckId: string; commander: string }) => Promise<unknown>]>([
     ['an add', async (user, { deckId }) => addedToDeck(user, deckId, await scannedCopy(user, blackLotus))],
-    ['a commander change', (user, { commander }) => appRequest(user, 'set_deck_commander', { copy_id: commander, commander: false })],
-    ['a basic land change', (user, { deckId }) => appRequest(user, 'change_basic_land', { deck_id: deckId, oracle_id: mountain, by: -1 })],
+    ['a commander change', (user, { commander }) => replyOf(user.client, setDeckCommander, { copy_id: commander, commander: false })],
+    ['a basic land change', (user, { deckId }) => replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: mountain, by: -1 })],
   ])('%s closes each open planned swap whose outgoing copy is no longer in the deck', async (_, change) => {
     const client = await connectedAiClient();
     const deck = await krenkoDeck(client.user);

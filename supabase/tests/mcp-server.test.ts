@@ -2,8 +2,12 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { Client } from '@modelcontextprotocol/client';
 
+import { markBuylistCardBought } from '../buylist';
+import { createUserTag, setCopyUserTag } from '../collection';
+import { addDeckCard, changeBasicLand, createDeck, getDeck } from '../decks';
 import { plural } from '../functions/mcp/plural';
 import { claimsOf, mcpClient, mcpReadToolNames, mcpToolAnnotations, mcpToolNames, mcpWriteToolNames } from '../mcp-connection';
+import { swapInPlannedSwap } from '../planned-swaps';
 import {
   basicLand,
   catalogFixtureManifest,
@@ -23,8 +27,9 @@ import {
   seedMcpCallCounts,
   type AiClient,
 } from './ai-clients';
+import { replyOf } from './database-calls';
 import { asDatabaseOwner, localStackUrl, signUpNewUser, type TestUser } from './local-stack';
-import { stack } from './scan-batches';
+import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(120_000);
 
@@ -51,11 +56,10 @@ beforeAll(async () => {
 
 async function deckWithCopies(user: TestUser, name: string, copies: number): Promise<string> {
   const scanned = stack(angelicCurator, { copies });
-  expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
-  const { data } = await user.client.rpc('create_deck', { request: { name } });
-  const deckId = (data as { deck_id: string }).deck_id;
+  await committed(user, scanBatch([scanned]));
+  const { deck_id: deckId } = await replyOf(user.client, createDeck, { name });
   for (const copyId of scanned.copy_ids) {
-    expect((await user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: copyId, unprotect: false } })).error).toBeNull();
+    await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
   }
   return deckId;
 }
@@ -382,7 +386,7 @@ describe('the MCP server over HTTP', () => {
   test("get_deck returns the user's deck without image URIs or the deck card fields it leaves out, with a one-line summary and the minified JSON", async () => {
     const user = await signUpNewUser();
     const deckId = await deckWithCopies(user, 'Tymna', 2);
-    const { data: deck } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
+    const deck = await replyOf(user.client, getDeck, { deck_id: deckId });
     const { mcp } = await connected(user);
 
     const result = await mcp.callTool({ name: 'get_deck', arguments: { deck_id: deckId } });
@@ -407,7 +411,7 @@ describe('the MCP server over HTTP', () => {
     expect(result.structuredContent).toMatchObject({
       deck_id: deckId,
       name: 'Tymna',
-      revision: (deck as { revision: number }).revision,
+      revision: deck.revision,
       card_count: 2,
       cards: [expect.objectContaining({ name: 'Angelic Curator' }), expect.objectContaining({ name: 'Angelic Curator' })],
     });
@@ -564,11 +568,9 @@ describe('the read tools over HTTP', () => {
     const user = await signUpNewUser();
     deckId = await deckWithCopies(user, 'Tymna', 2);
     const delver = stack(delverInnistrad);
-    expect((await user.client.rpc('add_scan_batch', { batch: { items: [delver] } })).error).toBeNull();
-    const { data: userTag } = await user.client.rpc('create_user_tag', { request: { name: 'Signed' } });
-    const userTagId = (userTag as { user_tag_id: string }).user_tag_id;
-    const tagged = { copy_id: delver.copy_ids[0], user_tag_id: userTagId, tagged: true };
-    expect((await user.client.rpc('set_copy_user_tag', { request: tagged })).error).toBeNull();
+    await committed(user, scanBatch([delver]));
+    const { user_tag_id: userTagId } = await replyOf(user.client, createUserTag, { name: 'Signed' });
+    await replyOf(user.client, setCopyUserTag, { copy_id: delver.copy_ids[0]!, user_tag_id: userTagId, tagged: true });
     curatorOracleId = await oracleIdOf('Angelic Curator');
     ({ mcp } = await connected(user));
   });
@@ -621,7 +623,7 @@ describe('the read tools over HTTP', () => {
 
   test('a page holds 20 rows by default, for copies too', async () => {
     const user = await signUpNewUser();
-    expect((await user.client.rpc('add_scan_batch', { batch: { items: [stack(gristModernHorizons, { copies: 25 })] } })).error).toBeNull();
+    await committed(user, scanBatch([stack(gristModernHorizons, { copies: 25 })]));
     const { mcp } = await connected(user);
 
     expect(await summaryOf(mcp, 'search_collection', { rows: 'copies' })).toBe('20 of 25 copies. More with next_cursor.');
@@ -656,7 +658,7 @@ describe('planned swaps over HTTP', () => {
     const user = await signUpNewUser();
     const deckId = await deckWithCopies(user, 'Tymna', 1);
     const scanned = stack(angelicCurator);
-    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
+    await committed(user, scanBatch([scanned]));
     const { mcp } = await connected(user);
     return { user, mcp, deckId, freeCopy: scanned.copy_ids[0]! };
   }
@@ -715,9 +717,7 @@ describe('planned swaps over HTTP', () => {
   test('a planned swap brings in a basic land and takes one out, and list_planned_swaps shows both basic land lines', async () => {
     const { user, mcp, deckId } = await deckWithAFreeCopy();
     const [plains, forest] = [basicLand('Plains').oracle_id, basicLand('Forest').oracle_id];
-    expect(
-      (await user.client.rpc('change_basic_land', { request: { deck_id: deckId, oracle_id: forest, by: 2 } })).error,
-    ).toBeNull();
+    await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: forest, by: 2 });
 
     const created = await mcp.callTool({
       name: 'create_planned_swaps',
@@ -769,7 +769,7 @@ describe('planned swaps over HTTP', () => {
   test('a swapped in deck change lists its kind and reason, with no AI client name', async () => {
     const { user, mcp, deckId, freeCopy } = await deckWithAFreeCopy();
     const plannedSwapId = await plannedSwapIdOf(mcp, deckId, freeCopy);
-    expect((await user.client.rpc('swap_in_planned_swap', { request: { planned_swap_id: plannedSwapId } })).error).toBeNull();
+    await replyOf(user.client, swapInPlannedSwap, { planned_swap_id: plannedSwapId });
 
     const result = await mcp.callTool({ name: 'list_deck_changes', arguments: { deck_id: deckId, limit: 1 } });
 
@@ -798,7 +798,7 @@ describe('planned swaps over HTTP', () => {
   test('a swapped in planned swap comes back as not-open from close_planned_swap', async () => {
     const { user, mcp, deckId, freeCopy } = await deckWithAFreeCopy();
     const plannedSwapId = await plannedSwapIdOf(mcp, deckId, freeCopy);
-    expect((await user.client.rpc('swap_in_planned_swap', { request: { planned_swap_id: plannedSwapId } })).error).toBeNull();
+    await replyOf(user.client, swapInPlannedSwap, { planned_swap_id: plannedSwapId });
 
     const result = await mcp.callTool({ name: 'close_planned_swap', arguments: { planned_swap_id: plannedSwapId } });
 
@@ -832,9 +832,8 @@ describe('the buylist over HTTP', () => {
 
   async function boughtWithANewCopy(user: TestUser, buylistCardId: string) {
     const scanned = stack(counterspellAlpha);
-    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
-    const bought = { buylist_card_id: buylistCardId, copy_id: scanned.copy_ids[0], unprotect: false };
-    expect((await user.client.rpc('mark_buylist_card_bought', { request: bought })).error).toBeNull();
+    await committed(user, scanBatch([scanned]));
+    await replyOf(user.client, markBuylistCardBought, { buylist_card_id: buylistCardId, copy_id: scanned.copy_ids[0]!, unprotect: false });
   }
 
   async function buylistCardIdOf(mcp: Client, deckId: string, oracleId: string) {
@@ -875,7 +874,7 @@ describe('the buylist over HTTP', () => {
   test('a card with a free copy comes back as free-copy-exists with its pointer and the free copies', async () => {
     const { user, mcp, deckId } = await deckWithAnMcpClient();
     const scanned = stack(angelicCurator);
-    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
+    await committed(user, scanBatch([scanned]));
 
     const result = await mcp.callTool({ name: 'create_buylist_cards', arguments: buylistArguments(deckId, await oracleIdOf('Angelic Curator')) });
 
@@ -940,7 +939,7 @@ describe('user tags over HTTP', () => {
   async function userWithCopies(copies: number) {
     const user = await signUpNewUser();
     const scanned = stack(angelicCurator, { copies });
-    expect((await user.client.rpc('add_scan_batch', { batch: { items: [scanned] } })).error).toBeNull();
+    await committed(user, scanBatch([scanned]));
     const { mcp } = await connected(user);
     return { user, mcp, copyIds: scanned.copy_ids };
   }

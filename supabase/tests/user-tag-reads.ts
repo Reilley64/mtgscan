@@ -1,17 +1,11 @@
-import { expect } from 'bun:test';
-
-import type { CopyDetails, UserTagList } from '../collection';
-import type { Json } from '../database.types';
+import { getCopy, listUserTags } from '../collection';
+import { replyOf } from './database-calls';
 import type { TestUser } from './local-stack';
 
-export async function userTagsOf(user: TestUser, query: object = {}) {
-  const { data, error } = await user.client.rpc('list_user_tags', { query: query as Json });
-  expect(error).toBeNull();
-  return (data as unknown as UserTagList).items;
+export async function userTagsOf(user: TestUser, query: { deleted?: boolean } = {}) {
+  return (await replyOf(user.client, listUserTags, query)).items;
 }
 
 export async function userTagsOnCopy(user: TestUser, copyId: string) {
-  const { data, error } = await user.client.rpc('get_copy', { query: { copy_id: copyId } });
-  expect(error).toBeNull();
-  return (data as unknown as CopyDetails).user_tags;
+  return (await replyOf(user.client, getCopy, { copy_id: copyId })).user_tags;
 }

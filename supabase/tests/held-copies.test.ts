@@ -1,17 +1,16 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { BuylistPage } from '../buylist';
-import type { CollectionCopyRow } from '../collection';
-import type { DeckChangePage, RevertPreview } from '../decks';
-import type { PlannedCopyLine, PlannedSwap } from '../planned-swaps';
-import type { SearchPage } from '../search';
+import { listBuylist } from '../buylist';
+import { deleteCopy, getCopy } from '../collection';
+import { listDeckChanges, previewRevert, removeDeckCard, revertDeckChanges } from '../decks';
+import { closePlannedSwap, type PlannedCopyLine, type PlannedSwap } from '../planned-swaps';
 import { connectedAiClient, type ClaimedAiClient } from './ai-clients';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { collectionCopies } from './collection-pages';
+import { call, refused, replyOf } from './database-calls';
 import { asDatabaseOwner, type TestUser } from './local-stack';
 import {
   addedToDeck,
-  appRead,
-  appRequest,
   copyOf,
   counterspell,
   deckNamed,
@@ -31,16 +30,12 @@ beforeAll(async () => {
 });
 
 async function buylistOf(user: TestUser) {
-  return (await appRead<BuylistPage>(user, 'list_buylist', { limit: 50 })).items;
+  return (await replyOf(user.client, listBuylist, { limit: 50 })).items;
 }
 
 async function heldCopyRow(user: TestUser, copyId: string) {
-  const page = await appRead<SearchPage<CollectionCopyRow>>(user, 'search_collection', { rows: 'copies', limit: 50 });
+  const page = await collectionCopies(user.client, { limit: 50 });
   return page.items.find((row) => row.copy_id === copyId)!;
-}
-
-function deleteCopy(user: TestUser, request: object) {
-  return user.client.rpc('delete_copy', { request: request as { copy_id: string } });
 }
 
 async function expectMovedToBuylist(client: ClaimedAiClient, swap: PlannedSwap, closeNote: string) {
@@ -77,7 +72,7 @@ describe('held copies in copy details', () => {
       deck: null,
       held_for: { deck_id: deckId, name: 'Krenko', commander_art_crop_uri: expect.stringContaining('https://cards.scryfall.io/art_crop/') },
     });
-    await appRequest(client.user, 'close_planned_swap', { planned_swap_id: plannedSwapId });
+    await replyOf(client.user.client, closePlannedSwap, { planned_swap_id: plannedSwapId });
     expect(await copyOf(client.user, held)).toMatchObject({ free: true, held_for: null });
   });
 
@@ -101,11 +96,14 @@ describe('deleting a held copy', () => {
     const plannedSwapId = await onePlannedSwap(client, deckId, held);
 
     for (const request of [{ copy_id: held }, { copy_id: held, move_planned_swap: false }]) {
-      expect((await deleteCopy(client.user, request)).error).toMatchObject({
-        code: 'copy_held',
-        message:
-          'Counterspell is held by the planned swap for Goblins. Send move_planned_swap: true to move that planned swap to the buylist and delete the copy.',
-        details: 'move_planned_swap',
+      expect(await call(client.user.client, deleteCopy, request)).toMatchObject({
+        status: 'refused',
+        refusal: {
+          code: 'copy_held',
+          message:
+            'Counterspell is held by the planned swap for Goblins. Send move_planned_swap: true to move that planned swap to the buylist and delete the copy.',
+          field: 'move_planned_swap',
+        },
       });
     }
     expect(await copyOf(client.user, held)).toMatchObject({ held_for: { deck_id: deckId } });
@@ -121,10 +119,10 @@ describe('deleting a held copy', () => {
     const swap = await plannedSwapNamed(client.user, plannedSwapId);
     const revision = await revisionOf(client.user, deckId);
 
-    const { error } = await deleteCopy(client.user, { copy_id: held, move_planned_swap: true });
+    const result = await call(client.user.client, deleteCopy, { copy_id: held, move_planned_swap: true });
 
-    expect(error).toBeNull();
-    expect((await client.user.client.rpc('get_copy', { query: { copy_id: held } })).error).toMatchObject({ code: 'not_found' });
+    expect(result).toEqual({ status: 'replied', reply: null });
+    expect(await call(client.user.client, getCopy, { copy_id: held })).toMatchObject(refused('not_found'));
     expect(swap.as_commander).toBe(true);
     await expectMovedToBuylist(client, swap, 'held_copy_deleted');
     expect(await revisionOf(client.user, deckId)).toBe(revision);
@@ -146,7 +144,7 @@ describe('deleting a held copy', () => {
     );
     const [openCard] = await buylistOf(client.user);
 
-    expect((await deleteCopy(client.user, { copy_id: held, move_planned_swap: true })).error).toBeNull();
+    expect(await call(client.user.client, deleteCopy, { copy_id: held, move_planned_swap: true })).toEqual({ status: 'replied', reply: null });
 
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject({ status: 'moved_to_buylist', close_note: 'held_copy_deleted' });
     expect(await buylistOf(client.user)).toEqual([openCard!]);
@@ -156,10 +154,10 @@ describe('deleting a held copy', () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Goblins');
     const held = await scannedCopy(client.user, counterspell);
-    await appRequest(client.user, 'close_planned_swap', { planned_swap_id: await onePlannedSwap(client, deckId, held) });
+    await replyOf(client.user.client, closePlannedSwap, { planned_swap_id: await onePlannedSwap(client, deckId, held) });
 
-    expect((await deleteCopy(client.user, { copy_id: held, move_planned_swap: true })).error).toBeNull();
-    expect((await client.user.client.rpc('get_copy', { query: { copy_id: held } })).error).toMatchObject({ code: 'not_found' });
+    expect(await call(client.user.client, deleteCopy, { copy_id: held, move_planned_swap: true })).toEqual({ status: 'replied', reply: null });
+    expect(await call(client.user.client, getCopy, { copy_id: held })).toMatchObject(refused('not_found'));
     expect(await buylistOf(client.user)).toEqual([]);
   });
 });
@@ -171,9 +169,9 @@ describe('reverting a change that needs a held copy', () => {
     const otherDeckId = await deckNamed(client.user, 'Goblins');
     const copy = await scannedCopy(client.user, lightningBolt);
     await addedToDeck(client.user, deckId, copy);
-    await appRequest(client.user, 'remove_deck_card', { copy_id: copy });
+    await replyOf(client.user.client, removeDeckCard, { copy_id: copy });
     const plannedSwapId = await onePlannedSwap(client, otherDeckId, copy);
-    const changes = await appRead<DeckChangePage>(client.user, 'list_deck_changes', { deck_id: deckId });
+    const changes = await replyOf(client.user.client, listDeckChanges, { deck_id: deckId });
     const removal = changes.items.find((change) => change.kind === 'removed')!;
     return { client, deckId, otherDeckId, copy, plannedSwapId, removal: removal.deck_change_id };
   }
@@ -181,7 +179,7 @@ describe('reverting a change that needs a held copy', () => {
   test('the revert preview lists each held copy that the revert needs, with the deck of its planned swap, and no block', async () => {
     const { client, deckId, otherDeckId, copy, removal } = await heldAfterRemoval();
 
-    const preview = await appRead<RevertPreview>(client.user, 'preview_revert', { deck_id: deckId, deck_change_id: removal });
+    const preview = await replyOf(client.user.client, previewRevert, { deck_id: deckId, deck_change_id: removal });
 
     expect(preview.held_copies).toEqual([{ copy_id: copy, name: 'Lightning Bolt', deck: { deck_id: otherDeckId, name: 'Goblins' } }]);
     expect(preview.blocks).toEqual([]);
@@ -191,9 +189,9 @@ describe('reverting a change that needs a held copy', () => {
   test('the revert moves the planned swap of each held copy to the buylist with the note held_copy_reverted', async () => {
     const { client, deckId, copy, plannedSwapId, removal } = await heldAfterRemoval();
     const swap = await plannedSwapNamed(client.user, plannedSwapId);
-    const { revision } = await appRead<RevertPreview>(client.user, 'preview_revert', { deck_id: deckId, deck_change_id: removal });
+    const { revision } = await replyOf(client.user.client, previewRevert, { deck_id: deckId, deck_change_id: removal });
 
-    await appRequest(client.user, 'revert_deck_changes', {
+    await replyOf(client.user.client, revertDeckChanges, {
       deck_id: deckId,
       deck_change_id: removal,
       expected_revision: revision,

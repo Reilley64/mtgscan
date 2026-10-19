@@ -2,9 +2,11 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { SQL } from 'bun';
 
+import { createDeck, getDeck } from '../decks';
 import { appWriteRefusal, claimsOf } from '../mcp-connection';
 import { basicLand, catalogFixtureManifest, oracleIdOf, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { connectAiClient, mcpServerUrl } from './ai-clients';
+import { call, replyOf } from './database-calls';
 import { asDatabaseOwner, asDatabaseRole, signUpNewUser, tokenClient, type TestUser } from './local-stack';
 import { stack } from './scan-batches';
 
@@ -229,16 +231,15 @@ describe("refusing an AI client's token", () => {
 
   test("the Data API reads with an AI client's real token and an app write function refuses it", async () => {
     const user = await signUpNewUser();
-    const { data } = await user.client.rpc('create_deck', { request: { name: 'Tymna' } });
-    const { deck_id } = data as { deck_id: string };
+    const { deck_id } = await replyOf(user.client, createDeck, { name: 'Tymna' });
     const aiClient = await connectAiClient(user);
     const dataApi = tokenClient(aiClient.token);
 
     expect(claimsOf(aiClient.token)).toMatchObject({ client_id: aiClient.clientId, aud: ['authenticated', mcpServerUrl] });
-    expect((await dataApi.rpc('get_deck', { query: { deck_id } })).data).toMatchObject({ name: 'Tymna' });
-    expect((await dataApi.rpc('create_deck', { request: { name: 'Kinnan' } })).error).toMatchObject({
-      code: permissionDenied,
-      message: appWriteRefusal,
+    expect(await replyOf(dataApi, getDeck, { deck_id })).toMatchObject({ name: 'Tymna' });
+    expect(await call(dataApi, createDeck, { name: 'Kinnan' })).toMatchObject({
+      status: 'failed',
+      error: { code: permissionDenied, message: appWriteRefusal },
     });
   });
 });

@@ -1,9 +1,9 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { readSearchError } from '../search';
-import type { SetDetails } from '../sets';
+import { getSet, type SetDetails } from '../sets';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { seedCopies } from './copy-seeds';
+import { call, failed, refused, replyOf } from './database-calls';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 import { artCrop } from './scryfall-images';
@@ -34,20 +34,8 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-function readSet(user: TestUser, query: unknown) {
-  return user.client.rpc('get_set', { query: query as { code: string } });
-}
-
-async function setNamed(user: TestUser, code: string) {
-  const { data, error } = await readSet(user, { code });
-  expect(error).toBeNull();
-  return data as unknown as SetDetails;
-}
-
-async function refusal(user: TestUser, query: unknown) {
-  const { data, error } = await readSet(user, query);
-  expect(data).toBeNull();
-  return readSearchError(error!);
+function setNamed(user: TestUser, code: string) {
+  return replyOf(user.client, getSet, { code });
 }
 
 describe('the set read', () => {
@@ -149,10 +137,7 @@ describe('the set read', () => {
     ['an anonymous caller', anonymousClient],
     ['the secret key', secretKeyClient],
   ])('%s cannot read a set', async (_, client) => {
-    const { data, error } = await client().rpc('get_set', { query: { code: 'mh3' } });
-
-    expect(data).toBeNull();
-    expect(error?.code).toBe(permissionDenied);
+    expect(await call(client(), getSet, { code: 'mh3' })).toMatchObject(failed(permissionDenied));
   });
 });
 
@@ -219,27 +204,27 @@ describe('refused set reads', () => {
   test('an unknown set code is not found', async () => {
     const user = await signUpNewUser();
 
-    expect(await refusal(user, { code: 'zzz' })).toMatchObject({ code: 'not_found', field: 'code' });
+    expect(await call(user.client, getSet, { code: 'zzz' })).toMatchObject(refused('not_found', 'code'));
   });
 
   test('a set with no card printing in the card catalog is not found', async () => {
     const user = await signUpNewUser();
 
-    expect(await refusal(user, { code: 't40k' })).toMatchObject({ code: 'not_found', field: 'code' });
+    expect(await call(user.client, getSet, { code: 't40k' })).toMatchObject(refused('not_found', 'code'));
   });
 
   test('a set released tomorrow or with no release date is not found, and a set released today is found', async () => {
     const user = await signUpNewUser();
 
     await asDatabaseOwner((database) => database`update public.card_sets set released_at = current_date + 1 where code = 'mh3'`);
-    const releasedTomorrow = await refusal(user, { code: 'mh3' });
+    const releasedTomorrow = await call(user.client, getSet, { code: 'mh3' });
     await asDatabaseOwner((database) => database`update public.card_sets set released_at = null where code = 'mh3'`);
-    const noReleaseDate = await refusal(user, { code: 'mh3' });
+    const noReleaseDate = await call(user.client, getSet, { code: 'mh3' });
     await asDatabaseOwner((database) => database`update public.card_sets set released_at = current_date where code = 'mh3'`);
     const releasedToday = await setNamed(user, 'mh3');
 
-    expect(releasedTomorrow).toMatchObject({ code: 'not_found', field: 'code' });
-    expect(noReleaseDate).toMatchObject({ code: 'not_found', field: 'code' });
+    expect(releasedTomorrow).toMatchObject(refused('not_found', 'code'));
+    expect(noReleaseDate).toMatchObject(refused('not_found', 'code'));
     expect(releasedToday.code).toBe('mh3');
   });
 
@@ -252,6 +237,6 @@ describe('refused set reads', () => {
   ])('%s is refused as an invalid argument', async (_, query, field) => {
     const user = await signUpNewUser();
 
-    expect(await refusal(user, query)).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call(user.client, getSet, query as never)).toMatchObject(refused('invalid_argument', field));
   });
 });

@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CopyDetails } from '../collection';
-import type { Json } from '../database.types';
-import { readDeckError, type CreatedDeck, type Deck, type DeckList, type SetDeckCommanderResult } from '../decks';
+import { getCopy } from '../collection';
+import { addDeckCard, createDeck, getDeck, listDecks, setDeckCommander, type Deck } from '../decks';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
+import { call, failed, refused, replyOf } from './database-calls';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -20,9 +20,7 @@ beforeAll(async () => {
 });
 
 async function created(user: TestUser, name: string) {
-  const { data, error } = await user.client.rpc('create_deck', { request: { name } });
-  expect(error).toBeNull();
-  return (data as unknown as CreatedDeck).deck_id;
+  return (await replyOf(user.client, createDeck, { name })).deck_id;
 }
 
 async function scannedCopy(user: TestUser, cardPrintingId = angelicCurator) {
@@ -33,38 +31,24 @@ async function scannedCopy(user: TestUser, cardPrintingId = angelicCurator) {
 
 async function deckCard(user: TestUser, deckId: string, cardPrintingId = angelicCurator) {
   const copyId = await scannedCopy(user, cardPrintingId);
-  const { error } = await user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: copyId, unprotect: false } });
-  expect(error).toBeNull();
+  await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
   return copyId;
 }
 
-async function setDeckCommander(client: AppClient, request: unknown) {
-  const { data, error } = await client.rpc('set_deck_commander', { request: request as Json });
-  return { result: data as unknown as SetDeckCommanderResult | null, error: error && readDeckError(error) };
-}
-
 async function setCommander(user: TestUser, copyId: string, commander: boolean) {
-  const { result, error } = await setDeckCommander(user.client, { copy_id: copyId, commander });
-  expect(error).toBeNull();
-  return result!;
+  return replyOf(user.client, setDeckCommander, { copy_id: copyId, commander });
 }
 
 async function deckOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return data as unknown as Deck;
+  return replyOf(user.client, getDeck, { deck_id: deckId });
 }
 
 async function decksOf(user: TestUser) {
-  const { data, error } = await user.client.rpc('list_decks');
-  expect(error).toBeNull();
-  return (data as unknown as DeckList).items;
+  return (await replyOf(user.client, listDecks)).items;
 }
 
 async function copyOf(user: TestUser, copyId: string) {
-  const { data, error } = await user.client.rpc('get_copy', { query: { copy_id: copyId } });
-  expect(error).toBeNull();
-  return data as unknown as CopyDetails;
+  return replyOf(user.client, getCopy, { copy_id: copyId });
 }
 
 async function deckChangesOf(user: TestUser, deckId: string) {
@@ -142,10 +126,9 @@ describe('making a commander', () => {
     await setCommander(user, first, true);
     await setCommander(user, second, true);
 
-    const { result, error } = await setDeckCommander(user.client, { copy_id: third, commander: true });
+    const result = await call(user.client, setDeckCommander, { copy_id: third, commander: true });
 
-    expect(result).toBeNull();
-    expect(error).toMatchObject({ code: 'commander_limit', field: 'commander' });
+    expect(result).toMatchObject(refused('commander_limit', 'commander'));
     const deck = await deckOf(user, deckId);
     expect(deck.revision).toBe(5);
     expect(rolesOf(deck)[third]).toBe('main');
@@ -265,17 +248,17 @@ describe('refused requests', () => {
     const user = await signUpNewUser();
     const copyId = await scannedCopy(user);
 
-    const { error } = await setDeckCommander(user.client, { copy_id: copyId, commander: true });
+    const result = await call(user.client, setDeckCommander, { copy_id: copyId, commander: true });
 
-    expect(error).toMatchObject({ code: 'copy_not_in_deck', field: 'copy_id' });
+    expect(result).toMatchObject(refused('copy_not_in_deck', 'copy_id'));
   });
 
   test('a copy that does not exist is not_found on copy_id', async () => {
     const user = await signUpNewUser();
 
-    const { error } = await setDeckCommander(user.client, { copy_id: crypto.randomUUID(), commander: true });
+    const result = await call(user.client, setDeckCommander, { copy_id: crypto.randomUUID(), commander: true });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(result).toMatchObject(refused('not_found', 'copy_id'));
   });
 
   test.each<[string, (copyId: string) => unknown, string | null]>([
@@ -290,9 +273,9 @@ describe('refused requests', () => {
     const deckId = await created(user, 'Atraxa');
     const copyId = await deckCard(user, deckId);
 
-    const { error } = await setDeckCommander(user.client, request(copyId));
+    const result = await call(user.client, setDeckCommander, request(copyId) as never);
 
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(result).toMatchObject(refused('invalid_argument', field));
     expect((await deckOf(user, deckId)).revision).toBe(1);
   });
 });
@@ -303,9 +286,9 @@ describe('access', () => {
     const deckId = await created(alice, 'Atraxa');
     const copyId = await deckCard(alice, deckId);
 
-    const { error } = await setDeckCommander(bob.client, { copy_id: copyId, commander: true });
+    const result = await call(bob.client, setDeckCommander, { copy_id: copyId, commander: true });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(result).toMatchObject(refused('not_found', 'copy_id'));
     const deck = await deckOf(alice, deckId);
     expect(deck.revision).toBe(1);
     expect(rolesOf(deck)).toEqual({ [copyId]: 'main' });
@@ -317,9 +300,9 @@ describe('access', () => {
     const copyId = await deckCard(alice, deckId);
     await setCommander(alice, copyId, true);
 
-    const { error } = await setDeckCommander(bob.client, { copy_id: copyId, commander: false });
+    const result = await call(bob.client, setDeckCommander, { copy_id: copyId, commander: false });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(result).toMatchObject(refused('not_found', 'copy_id'));
     expect(rolesOf(await deckOf(alice, deckId))).toEqual({ [copyId]: 'commander' });
   });
 
@@ -327,8 +310,8 @@ describe('access', () => {
     ['an anonymous caller', anonymousClient],
     ['the secret key', secretKeyClient],
   ])('%s cannot make a commander', async (_, client) => {
-    const { error } = await client().rpc('set_deck_commander', { request: { copy_id: crypto.randomUUID(), commander: true } });
+    const result = await call(client(), setDeckCommander, { copy_id: crypto.randomUUID(), commander: true });
 
-    expect(error?.code).toBe(permissionDenied);
+    expect(result).toMatchObject(failed(permissionDenied));
   });
 });

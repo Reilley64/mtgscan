@@ -1,7 +1,15 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import type { CreatedDeck, Deck, DeckEvaluationCard, UndeterminedCheck, Violation } from '../decks';
+import {
+  addDeckCard,
+  changeBasicLand,
+  createDeck,
+  getDeck,
+  setDeckCommander,
+  type DeckEvaluationCard,
+  type UndeterminedCheck,
+  type Violation,
+} from '../decks';
 import {
   basicLand,
   catalogFixture,
@@ -10,6 +18,7 @@ import {
   runCatalogImport,
   withoutCards,
 } from './catalog-import-command';
+import { replyOf } from './database-calls';
 import { signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -47,12 +56,6 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-async function rpc(user: TestUser, name: string, request: Record<string, unknown>) {
-  const { data, error } = await user.client.rpc(name as 'create_deck', { request: request as Json });
-  expect(error).toBeNull();
-  return data;
-}
-
 type DeckCopy = { name: CardName; copyId: string };
 
 async function scannedCopy(user: TestUser, name: CardName): Promise<DeckCopy> {
@@ -66,19 +69,18 @@ function expectedCard({ name, copyId }: DeckCopy): DeckEvaluationCard {
 }
 
 async function deckWith(user: TestUser, commanders: DeckCopy[], mainDeck: DeckCopy[] = []) {
-  const { deck_id: deckId } = (await rpc(user, 'create_deck', { name: 'Commanders' })) as unknown as CreatedDeck;
+  const { deck_id: deckId } = await replyOf(user.client, createDeck, { name: 'Commanders' });
   for (const { copyId } of [...commanders, ...mainDeck]) {
-    await rpc(user, 'add_deck_card', { deck_id: deckId, copy_id: copyId, unprotect: false });
+    await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
   }
   for (const { copyId } of commanders) {
-    await rpc(user, 'set_deck_commander', { copy_id: copyId, commander: true });
+    await replyOf(user.client, setDeckCommander, { copy_id: copyId, commander: true });
   }
   const basicLandCount = 100 - commanders.length - mainDeck.length;
-  await rpc(user, 'change_basic_land', { deck_id: deckId, oracle_id: wastes, by: basicLandCount });
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
+  await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: wastes, by: basicLandCount });
+  const { evaluation } = await replyOf(user.client, getDeck, { deck_id: deckId });
   const cards = Object.fromEntries([...commanders, ...mainDeck].map((copy) => [copy.name, expectedCard(copy)]));
-  return { evaluation: (data as unknown as Deck).evaluation!, cards };
+  return { evaluation: evaluation!, cards };
 }
 
 async function deckWithCommanders(user: TestUser, names: CardName[]) {

@@ -1,6 +1,10 @@
-import type { CollectionCopyRow } from './collection';
-import type { Database } from './database.types';
-import { readSearchError, type Color, type ComboBracketTag, type SearchError } from './search';
+import { z } from 'zod';
+
+import { collectionCopyRow, copyRowDeck } from './collection.ts';
+import { databaseFunction } from './database-function.ts';
+import type { Database } from './database.types.ts';
+import { color, comboBracketTag, deckChangeKind, deckPriority, deckRole, deckValidity, id, integer, nextCursor } from './fields.ts';
+import { readSearchError, type SearchError } from './search.ts';
 
 export type DeckPriority = Database['public']['Enums']['deck_priority'];
 
@@ -8,318 +12,427 @@ export type DeckRole = Database['public']['Enums']['deck_role'];
 
 export const deckNameLength = 64;
 
-export type DeckCommander = {
-  copy_id: string;
-  name: string;
-  art_crop_uri: string | null;
-};
+const deckCommander = z.strictObject({ copy_id: id, name: z.string(), art_crop_uri: z.string().nullable() });
+
+export type DeckCommander = z.infer<typeof deckCommander>;
 
 export type DeckValidity = Database['public']['Enums']['deck_validity'];
 
-export type DeckRule = 'no_commander' | 'commander_eligibility' | 'partner' | 'deck_size' | 'singleton' | 'color_identity' | 'banned' | 'not_legal';
+const deckRule = z.enum(['no_commander', 'commander_eligibility', 'partner', 'deck_size', 'singleton', 'color_identity', 'banned', 'not_legal']);
 
-export type UndeterminedRule = DeckRule | 'legality';
+const undeterminedRule = z.enum([...deckRule.options, 'legality']);
 
-export type DeckEvaluationCopy = {
-  kind: 'copy';
-  copy_id: string;
-  name: string;
-  image_uris: string[];
+export type UndeterminedRule = z.infer<typeof undeterminedRule>;
+
+const deckEvaluationCopy = z.strictObject({ kind: z.literal('copy'), copy_id: id, name: z.string(), image_uris: z.array(z.string()) });
+
+export type DeckEvaluationCopy = z.infer<typeof deckEvaluationCopy>;
+
+const deckEvaluationCard = z.discriminatedUnion('kind', [
+  deckEvaluationCopy,
+  z.strictObject({ kind: z.literal('basic_land'), oracle_id: id, name: z.string(), image_uris: z.array(z.string()) }),
+]);
+
+export type DeckEvaluationCard = z.infer<typeof deckEvaluationCard>;
+
+const violation = z.strictObject({
+  rule: deckRule,
+  citation: z.string().nullable(),
+  message: z.string(),
+  hint: z.string().nullable(),
+  cards: z.array(deckEvaluationCard),
+  colors: z.array(color).optional(),
+});
+
+export type Violation = z.infer<typeof violation>;
+
+const undeterminedCheck = z.strictObject({ rule: undeterminedRule, reason: z.string(), cards: z.array(deckEvaluationCard) });
+
+export type UndeterminedCheck = z.infer<typeof undeterminedCheck>;
+
+const estimatedBracket = z.union([z.literal(2), z.literal(3), z.literal(4)]);
+
+export type EstimatedBracket = z.infer<typeof estimatedBracket>;
+
+const deckCombo = z.strictObject({ cards: z.array(deckEvaluationCard), produced_features: z.array(z.string()), bracket_tag: comboBracketTag });
+
+export type DeckCombo = z.infer<typeof deckCombo>;
+
+const bracketSignalFields = {
+  source: z.enum(['official', 'heuristic']),
+  count: integer,
+  lowest_bracket: estimatedBracket,
+  cards: z.array(deckEvaluationCard),
 };
 
-export type DeckEvaluationBasicLand = {
-  kind: 'basic_land';
-  oracle_id: string;
-  name: string;
-  image_uris: string[];
-};
+const bracketSignal = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.enum(['game_changers', 'mass_land_denial', 'extra_turns']), ...bracketSignalFields }),
+  z.strictObject({ kind: z.literal('two_card_combo'), ...bracketSignalFields, combos: z.array(deckCombo) }),
+]);
 
-export type DeckEvaluationCard = DeckEvaluationCopy | DeckEvaluationBasicLand;
-
-export type Violation = {
-  rule: DeckRule;
-  citation: string | null;
-  message: string;
-  hint: string | null;
-  cards: DeckEvaluationCard[];
-  colors?: Color[];
-};
-
-export type UndeterminedCheck = {
-  rule: UndeterminedRule;
-  reason: string;
-  cards: DeckEvaluationCard[];
-};
-
-export type EstimatedBracket = 2 | 3 | 4;
-
-export type DeckCombo = {
-  cards: DeckEvaluationCard[];
-  produced_features: string[];
-  bracket_tag: ComboBracketTag;
-};
-
-type BracketSignalFields = {
-  source: 'official' | 'heuristic';
-  count: number;
-  lowest_bracket: EstimatedBracket;
-  cards: DeckEvaluationCard[];
-};
-
-export type BracketSignal =
-  | (BracketSignalFields & { kind: 'game_changers' | 'mass_land_denial' | 'extra_turns' })
-  | (BracketSignalFields & { kind: 'two_card_combo'; combos: DeckCombo[] });
+export type BracketSignal = z.infer<typeof bracketSignal>;
 
 export type BracketSignalKind = BracketSignal['kind'];
 
-export type DeckEvaluationSummary = {
-  validity: DeckValidity;
-  validity_stale: boolean;
-  estimated_bracket: EstimatedBracket;
-  bracket_stale: boolean;
+const deckEvaluationSummary = z.strictObject({
+  validity: deckValidity,
+  validity_stale: z.boolean(),
+  estimated_bracket: estimatedBracket,
+  bracket_stale: z.boolean(),
+});
+
+export type DeckEvaluationSummary = z.infer<typeof deckEvaluationSummary>;
+
+const deckEvaluation = deckEvaluationSummary.extend({
+  violations: z.array(violation),
+  undetermined: z.array(undeterminedCheck),
+  chosen_color: color.nullable(),
+  bracket_signals: z.array(bracketSignal),
+  missing_signal_count: integer,
+  revision: integer,
+  catalog_at: z.string().nullable(),
+  oracle_tags_at: z.string().nullable(),
+  commander_spellbook_at: z.string().nullable(),
+  judged_at: z.string(),
+  validity_rules_data_at: z.string().nullable(),
+  bracket_rules_data_at: z.string().nullable(),
+  no_oracle_tag_data: z.boolean(),
+  no_combo_data: z.boolean(),
+});
+
+export type DeckEvaluation = z.infer<typeof deckEvaluation>;
+
+const deckFields = {
+  deck_id: id,
+  name: z.string(),
+  priority: deckPriority,
+  card_count: integer,
+  commanders: z.array(deckCommander),
+  last_used_at: z.string(),
+  revision: integer,
 };
 
-export type DeckEvaluation = DeckEvaluationSummary & {
-  violations: Violation[];
-  undetermined: UndeterminedCheck[];
-  chosen_color: Color | null;
-  bracket_signals: BracketSignal[];
-  missing_signal_count: number;
-  revision: number;
-  catalog_at: string | null;
-  oracle_tags_at: string | null;
-  commander_spellbook_at: string | null;
-  judged_at: string;
-  validity_rules_data_at: string | null;
-  bracket_rules_data_at: string | null;
-  no_oracle_tag_data: boolean;
-  no_combo_data: boolean;
-};
+const deckRow = z.strictObject({ ...deckFields, evaluation: deckEvaluationSummary.nullable(), needs_you_count: integer });
 
-export type DeckRow = {
-  deck_id: string;
-  name: string;
-  priority: DeckPriority;
-  card_count: number;
-  commanders: DeckCommander[];
-  last_used_at: string;
-  revision: number;
-  evaluation: DeckEvaluationSummary | null;
-  needs_you_count: number;
-};
+export type DeckRow = z.infer<typeof deckRow>;
 
-export type DeckList = {
-  items: DeckRow[];
-};
+const deckList = z.strictObject({ items: z.array(deckRow) });
 
-export type NeedsYouCounts = {
-  total: number;
-  decks: { deck_id: string; count: number }[];
-};
+export type DeckList = z.infer<typeof deckList>;
 
-export type DeckCard = Omit<CollectionCopyRow, 'deck' | 'held_for' | 'created_at'> & {
-  role: DeckRole;
-  commander_at: string | null;
-  added_at: string;
-  type_line: string;
-  mana_value: number;
-  colors: Color[];
-  planned_out: boolean;
-};
+const needsYouCounts = z.strictObject({ total: integer, decks: z.array(z.strictObject({ deck_id: id, count: integer })) });
 
-export type DeckBasicLand = {
-  oracle_id: string | null;
-  name: string;
-  image_uris: string[];
-  count: number;
-};
+export type NeedsYouCounts = z.infer<typeof needsYouCounts>;
 
-export type BasicLandCard = {
-  oracle_id: string;
-  name: string;
-  image_uris: string[];
-};
+const deckCard = collectionCopyRow.omit({ deck: true, held_for: true, created_at: true }).extend({
+  role: deckRole,
+  commander_at: z.string().nullable(),
+  added_at: z.string(),
+  type_line: z.string(),
+  mana_value: z.number(),
+  colors: z.array(color),
+  planned_out: z.boolean(),
+});
 
-export type BasicLandCardList = {
-  items: BasicLandCard[];
-};
+export type DeckCard = z.infer<typeof deckCard>;
 
-export type Deck = Omit<DeckRow, 'evaluation' | 'needs_you_count'> & {
-  evaluation: DeckEvaluation | null;
-  created_at: string;
-  cards: DeckCard[];
-  basic_lands: DeckBasicLand[];
-};
+const deckBasicLand = z.strictObject({ oracle_id: id.nullable(), name: z.string(), image_uris: z.array(z.string()), count: integer });
 
-export type CopyRowDeck = {
-  deck_id: string;
-  name: string;
-};
+export type DeckBasicLand = z.infer<typeof deckBasicLand>;
 
-export type CopyDeck = CopyRowDeck & {
-  role: DeckRole;
-  commander_art_crop_uri: string | null;
-  commander_count: number;
-};
+const basicLandCard = z.strictObject({ oracle_id: id, name: z.string(), image_uris: z.array(z.string()) });
 
-export type CopyHeldFor = CopyRowDeck & Pick<CopyDeck, 'commander_art_crop_uri'>;
+export type BasicLandCard = z.infer<typeof basicLandCard>;
+
+const basicLandCardList = z.strictObject({ items: z.array(basicLandCard) });
+
+export type BasicLandCardList = z.infer<typeof basicLandCardList>;
+
+const deck = z.strictObject({
+  ...deckFields,
+  evaluation: deckEvaluation.nullable(),
+  created_at: z.string(),
+  cards: z.array(deckCard),
+  basic_lands: z.array(deckBasicLand),
+});
+
+export type Deck = z.infer<typeof deck>;
 
 export type DeckChangeKind = Database['public']['Enums']['deck_change_kind'];
 
-export type DeckChangesQuery = {
-  deck_id: string;
-  cursor?: string | null;
-  limit?: number;
-};
+const deckChangesQuery = z.strictObject({ deck_id: id, cursor: z.string().nullable().optional(), limit: integer.optional() });
 
-export type DeckChangeCopyLine = {
-  kind: 'copy';
-  copy_id: string;
-  name: string;
-  image_uris: string[];
-  type_line: string;
-  place_before: DeckRole | null;
-  place_after: DeckRole | null;
-};
+export type DeckChangesQuery = z.input<typeof deckChangesQuery>;
 
-export type DeckChangeBasicLandLine = {
-  kind: 'basic_land';
-  oracle_id: string;
-  name: string;
-  image_uris: string[];
-  count_before: number;
-  count_after: number;
-};
+const deckChangeCopyLine = z.strictObject({
+  kind: z.literal('copy'),
+  copy_id: id,
+  name: z.string(),
+  image_uris: z.array(z.string()),
+  type_line: z.string(),
+  place_before: deckRole.nullable(),
+  place_after: deckRole.nullable(),
+});
 
-export type DeckChangeLine = DeckChangeCopyLine | DeckChangeBasicLandLine;
+export type DeckChangeCopyLine = z.infer<typeof deckChangeCopyLine>;
 
-export type DeckChange = {
-  deck_change_id: string;
-  revision: number;
-  kind: DeckChangeKind;
-  changed_at: string;
-  reverted: boolean;
-  reason: string | null;
-  lines: DeckChangeLine[];
-};
+const deckChangeBasicLandLine = z.strictObject({
+  kind: z.literal('basic_land'),
+  oracle_id: id,
+  name: z.string(),
+  image_uris: z.array(z.string()),
+  count_before: integer,
+  count_after: integer,
+});
 
-export type DeckChangePage = {
-  items: DeckChange[];
-  next_cursor: string | null;
-};
+export type DeckChangeBasicLandLine = z.infer<typeof deckChangeBasicLandLine>;
 
-export type CreateDeckRequest = {
-  name: string;
-};
+const deckChangeLine = z.discriminatedUnion('kind', [deckChangeCopyLine, deckChangeBasicLandLine]);
 
-export type CreatedDeck = {
-  deck_id: string;
-};
+export type DeckChangeLine = z.infer<typeof deckChangeLine>;
 
-export type DeckQuery = {
-  deck_id: string;
-};
+const deckChange = z.strictObject({
+  deck_change_id: id,
+  revision: integer,
+  kind: deckChangeKind,
+  changed_at: z.string(),
+  reverted: z.boolean(),
+  reason: z.string().nullable(),
+  lines: z.array(deckChangeLine),
+});
 
-export type MarkDeckUsedRequest = {
-  deck_id: string;
-};
+export type DeckChange = z.infer<typeof deckChange>;
 
-export type RenameDeckRequest = {
-  deck_id: string;
-  name: string;
-};
+const deckChangePage = z.strictObject({ items: z.array(deckChange), next_cursor: nextCursor });
 
-export type SetDeckPriorityRequest = {
-  deck_id: string;
-  priority: DeckPriority;
-};
+export type DeckChangePage = z.infer<typeof deckChangePage>;
 
-export type DeleteDeckRequest = {
-  deck_id: string;
-};
+const createDeckRequest = z.strictObject({ name: z.string() });
 
-export type AddDeckCardRequest = {
-  deck_id: string;
-  copy_id: string;
-  unprotect: boolean;
-};
+export type CreateDeckRequest = z.input<typeof createDeckRequest>;
 
-export type AddedDeckCard = {
-  deck_id: string;
-  revision: number;
-};
+const createdDeck = z.strictObject({ deck_id: id });
 
-export type SetDeckCommanderRequest = {
-  copy_id: string;
-  commander: boolean;
-};
+export type CreatedDeck = z.infer<typeof createdDeck>;
 
-export type SetDeckCommanderResult = AddedDeckCard;
+const deckQuery = z.strictObject({ deck_id: id });
 
-export type ChangeBasicLandRequest = {
-  deck_id: string;
-  oracle_id: string;
-  by: number;
-};
+export type DeckQuery = z.input<typeof deckQuery>;
 
-export type ChangedBasicLand = AddedDeckCard;
+export type MarkDeckUsedRequest = DeckQuery;
 
-export type RemoveDeckCardRequest = {
-  copy_id: string;
-};
+const renameDeckRequest = z.strictObject({ deck_id: id, name: z.string() });
 
-export type RemovedDeckCard = AddedDeckCard;
+export type RenameDeckRequest = z.input<typeof renameDeckRequest>;
 
-export type RevertPreviewQuery = {
-  deck_id: string;
-  deck_change_id: string;
-};
+const setDeckPriorityRequest = z.strictObject({ deck_id: id, priority: deckPriority });
 
-export type RevertBlock = {
-  copy_id: string;
-  name: string;
-  deck: CopyRowDeck | null;
-};
+export type SetDeckPriorityRequest = z.input<typeof setDeckPriorityRequest>;
 
-export type RevertProtectedCopy = {
-  copy_id: string;
-  name: string;
-};
+export type DeleteDeckRequest = DeckQuery;
 
-export type RevertHeldCopy = {
-  copy_id: string;
-  name: string;
-  deck: CopyRowDeck;
-};
+const addDeckCardRequest = z.strictObject({ deck_id: id, copy_id: id, unprotect: z.boolean() });
 
-export type DeckChangeEffectRule = Pick<Violation, 'rule' | 'colors'>;
+export type AddDeckCardRequest = z.input<typeof addDeckCardRequest>;
 
-export type DeckChangeEffect = {
-  kind: 'would_make_invalid' | 'adds_violation';
-  rules: DeckChangeEffectRule[];
-};
+export const deckRevision = z.strictObject({ deck_id: id, revision: integer });
 
-export type RevertPreview = {
-  revision: number;
-  lines: DeckChangeLine[];
-  blocks: RevertBlock[];
-  protected_copies: RevertProtectedCopy[];
-  held_copies: RevertHeldCopy[];
-  effect: DeckChangeEffect | null;
-};
+export type AddedDeckCard = z.infer<typeof deckRevision>;
 
-export type AddDeckCardPreviewQuery = { copy_id: string } | { basic_land_oracle_id: string; count: number };
+const setDeckCommanderRequest = z.strictObject({ copy_id: id, commander: z.boolean() });
 
-export type AddDeckCardPreview = {
-  items: { deck_id: string; effect: DeckChangeEffect | null }[];
-};
+export type SetDeckCommanderRequest = z.input<typeof setDeckCommanderRequest>;
 
-export type RevertDeckChangesRequest = RevertPreviewQuery & {
-  expected_revision: number;
-  unprotect: boolean;
-};
+const changeBasicLandRequest = z.strictObject({ deck_id: id, oracle_id: id, by: integer });
 
-export type RevertedDeckChanges = AddedDeckCard;
+export type ChangeBasicLandRequest = z.input<typeof changeBasicLandRequest>;
+
+const removeDeckCardRequest = z.strictObject({ copy_id: id });
+
+export type RemoveDeckCardRequest = z.input<typeof removeDeckCardRequest>;
+
+const revertPreviewQuery = z.strictObject({ deck_id: id, deck_change_id: id });
+
+export type RevertPreviewQuery = z.input<typeof revertPreviewQuery>;
+
+const revertBlock = z.strictObject({ copy_id: id, name: z.string(), deck: copyRowDeck.nullable() });
+
+export type RevertBlock = z.infer<typeof revertBlock>;
+
+const revertHeldCopy = z.strictObject({ copy_id: id, name: z.string(), deck: copyRowDeck });
+
+export type RevertHeldCopy = z.infer<typeof revertHeldCopy>;
+
+export const deckChangeEffect = z.strictObject({
+  kind: z.enum(['would_make_invalid', 'adds_violation']),
+  rules: z.array(violation.pick({ rule: true, colors: true })),
+});
+
+export type DeckChangeEffect = z.infer<typeof deckChangeEffect>;
+
+export type DeckChangeEffectRule = DeckChangeEffect['rules'][number];
+
+const revertPreview = z.strictObject({
+  revision: integer,
+  lines: z.array(deckChangeLine),
+  blocks: z.array(revertBlock),
+  protected_copies: z.array(z.strictObject({ copy_id: id, name: z.string() })),
+  held_copies: z.array(revertHeldCopy),
+  effect: deckChangeEffect.nullable(),
+});
+
+export type RevertPreview = z.infer<typeof revertPreview>;
+
+const addDeckCardPreviewQuery = z.union([
+  z.strictObject({ copy_id: id }),
+  z.strictObject({ basic_land_oracle_id: id, count: integer }),
+]);
+
+export type AddDeckCardPreviewQuery = z.input<typeof addDeckCardPreviewQuery>;
+
+const addDeckCardPreview = z.strictObject({ items: z.array(z.strictObject({ deck_id: id, effect: deckChangeEffect.nullable() })) });
+
+export type AddDeckCardPreview = z.infer<typeof addDeckCardPreview>;
+
+const revertDeckChangesRequest = revertPreviewQuery.extend({ expected_revision: integer, unprotect: z.boolean() });
+
+export type RevertDeckChangesRequest = z.input<typeof revertDeckChangesRequest>;
+
+export const createDeck = databaseFunction({
+  name: 'create_deck',
+  argument: 'request',
+  request: createDeckRequest,
+  reply: createdDeck,
+  errorCodes: ['invalid_argument'],
+});
+
+export const listDecks = databaseFunction({
+  name: 'list_decks',
+  argument: 'query',
+  request: z.strictObject({}).optional(),
+  reply: deckList,
+  errorCodes: ['invalid_argument'],
+});
+
+export const getNeedsYouCounts = databaseFunction({
+  name: 'get_needs_you_counts',
+  argument: 'query',
+  request: z.strictObject({}).optional(),
+  reply: needsYouCounts,
+  errorCodes: ['invalid_argument'],
+});
+
+export const getDeck = databaseFunction({
+  name: 'get_deck',
+  argument: 'query',
+  request: deckQuery,
+  reply: deck,
+  errorCodes: ['invalid_argument', 'not_found'],
+});
+
+export const markDeckUsed = databaseFunction({
+  name: 'mark_deck_used',
+  argument: 'request',
+  request: deckQuery,
+  reply: z.null(),
+  errorCodes: ['invalid_argument', 'not_found'],
+});
+
+export const renameDeck = databaseFunction({
+  name: 'rename_deck',
+  argument: 'request',
+  request: renameDeckRequest,
+  reply: z.null(),
+  errorCodes: ['invalid_argument', 'not_found'],
+});
+
+export const setDeckPriority = databaseFunction({
+  name: 'set_deck_priority',
+  argument: 'request',
+  request: setDeckPriorityRequest,
+  reply: z.null(),
+  errorCodes: ['invalid_argument', 'not_found'],
+});
+
+export const deleteDeck = databaseFunction({
+  name: 'delete_deck',
+  argument: 'request',
+  request: deckQuery,
+  reply: z.null(),
+  errorCodes: ['invalid_argument', 'not_found'],
+});
+
+export const listDeckChanges = databaseFunction({
+  name: 'list_deck_changes',
+  argument: 'query',
+  request: deckChangesQuery,
+  reply: deckChangePage,
+  errorCodes: ['invalid_argument', 'invalid_cursor', 'not_found'],
+});
+
+export const addDeckCard = databaseFunction({
+  name: 'add_deck_card',
+  argument: 'request',
+  request: addDeckCardRequest,
+  reply: deckRevision,
+  errorCodes: ['invalid_argument', 'not_found', 'copy_not_free', 'copy_protected'],
+});
+
+export const setDeckCommander = databaseFunction({
+  name: 'set_deck_commander',
+  argument: 'request',
+  request: setDeckCommanderRequest,
+  reply: deckRevision,
+  errorCodes: ['invalid_argument', 'not_found', 'copy_not_in_deck', 'commander_limit'],
+});
+
+export const changeBasicLand = databaseFunction({
+  name: 'change_basic_land',
+  argument: 'request',
+  request: changeBasicLandRequest,
+  reply: deckRevision,
+  errorCodes: ['invalid_argument', 'not_found'],
+});
+
+export const removeDeckCard = databaseFunction({
+  name: 'remove_deck_card',
+  argument: 'request',
+  request: removeDeckCardRequest,
+  reply: deckRevision,
+  errorCodes: ['invalid_argument', 'not_found', 'copy_not_in_deck'],
+});
+
+export const listBasicLandCards = databaseFunction({
+  name: 'list_basic_land_cards',
+  argument: null,
+  request: z.undefined(),
+  reply: basicLandCardList,
+  errorCodes: [],
+});
+
+export const previewRevert = databaseFunction({
+  name: 'preview_revert',
+  argument: 'query',
+  request: revertPreviewQuery,
+  reply: revertPreview,
+  errorCodes: ['invalid_argument', 'not_found'],
+});
+
+export const previewAddDeckCard = databaseFunction({
+  name: 'preview_add_deck_card',
+  argument: 'query',
+  request: addDeckCardPreviewQuery,
+  reply: addDeckCardPreview,
+  errorCodes: ['invalid_argument', 'not_found'],
+});
+
+export const revertDeckChanges = databaseFunction({
+  name: 'revert_deck_changes',
+  argument: 'request',
+  request: revertDeckChangesRequest,
+  reply: deckRevision,
+  errorCodes: ['invalid_argument', 'not_found', 'copy_protected', 'stale_revision', 'revert_blocked'],
+});
 
 export type DeckErrorCode =
   | 'invalid_argument'
