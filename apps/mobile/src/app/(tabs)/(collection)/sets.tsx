@@ -9,7 +9,7 @@ import { SetListSkeleton } from '@/components/molecules/set-banner-skeleton';
 import { FinishViewControl } from '@/components/organisms/finish-view-control';
 import { SetBanner } from '@/components/organisms/set-banner';
 import { TabStackListScreen } from '@/components/templates/tab-screen';
-import { useTypingPause } from '@/lib/use-typing-pause';
+import { useTypingPause } from '@/lib/read';
 import { useFinishView } from '@/sets/finish-view-setting';
 import { useSets } from '@/sets/use-sets';
 
@@ -48,14 +48,8 @@ function NextPageSkeleton({ loading }: { loading: boolean }) {
 export default function SetsScreen() {
   const { finishView } = useFinishView();
   const [searchText, setSearchText] = useState('');
-  const [pausedSearch, searchNow] = useTypingPause(searchText);
+  const [pausedSearch] = useTypingPause(searchText);
   const trimmedSearch = pausedSearch.trim();
-  const changeSearch = (text: string) => {
-    setSearchText(text);
-    if (!text) {
-      searchNow('');
-    }
-  };
   const { read, reload, loadMore } = useSets({ finish_view: finishView, ...(trimmedSearch ? { text: trimmedSearch } : {}) });
 
   return (
@@ -64,8 +58,8 @@ export default function SetsScreen() {
       search={{
         placeholder: 'Search sets',
         autoCapitalize: 'none',
-        onChangeText: (event) => changeSearch(event.nativeEvent.text),
-        onCancelButtonPress: () => changeSearch(''),
+        onChangeText: (event) => setSearchText(event.nativeEvent.text),
+        onCancelButtonPress: () => setSearchText(''),
       }}
       data={read.status === 'loaded' ? read.items : []}
       keyExtractor={(set) => set.code}

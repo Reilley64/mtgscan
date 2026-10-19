@@ -174,6 +174,7 @@ let failingScanBatch: 'before the server adds it' | 'after the server adds it' |
 let heldScanBatch: Promise<void> | null = null;
 let heldCollectionReads: Promise<void> | null = null;
 let heldDeckReads: Promise<void> | null = null;
+let heldDeckChangeReads: Promise<void> | null = null;
 let sets: CardSet[] = [];
 let setReads = 0;
 let setListQueries: SetListQuery[] = [];
@@ -1416,6 +1417,7 @@ export const fakeSupabase = {
       return deckRead(args.query as DeckQuery);
     }
     if (name === 'list_deck_changes' && args && 'query' in args) {
+      await heldDeckChangeReads;
       return deckChangeList(args.query as DeckChangesQuery);
     }
     if (name === 'preview_add_deck_card' && args && 'query' in args) {
@@ -1976,6 +1978,19 @@ export function holdDeckReads() {
   };
 }
 
+export function holdDeckChangeReads() {
+  let finish = () => {};
+  heldDeckChangeReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldDeckChangeReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
 export function holdDeckListReads() {
   let finish = () => {};
   heldDeckListReads = new Promise((resolve) => {
@@ -2173,6 +2188,7 @@ export function resetFakeSupabase() {
   heldScanBatch = null;
   heldCollectionReads = null;
   heldDeckReads = null;
+  heldDeckChangeReads = null;
   heldDeckListReads = null;
   heldNeedsYouReads = null;
   galleryObjects = new Map();

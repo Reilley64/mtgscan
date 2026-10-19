@@ -1,18 +1,14 @@
-import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
 import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import type { DeckRow } from '@mtgscan/supabase/decks';
 
-import { replyOf } from '@/lib/database-reply';
-import { supabase } from '@/lib/supabase';
-import { useFocusedRead } from '@/lib/use-focused-read';
+import { databaseRead, useScreenRead } from '@/lib/read';
 
-type DecksRead = { status: 'loaded'; decks: DeckRow[] };
+export const decksRead = databaseRead(databaseFunctions.list_decks);
 
-export async function readDecks(): Promise<DecksRead> {
-  const result = await callDatabaseFunction(supabase, databaseFunctions.list_decks);
-  return { status: 'loaded', decks: replyOf(result).items };
+function loadedDecks({ items }: { items: DeckRow[] }) {
+  return { status: 'loaded' as const, decks: items };
 }
 
 export function useDecks(needed = true) {
-  return useFocusedRead(needed ? readDecks : null);
+  return useScreenRead(needed ? decksRead : null, loadedDecks);
 }

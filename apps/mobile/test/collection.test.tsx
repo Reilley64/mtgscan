@@ -1,5 +1,5 @@
 import type { CollectionCopyRow, CollectionTotal, CurrentPrice } from '@mtgscan/supabase/collection';
-import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
+import { act, fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 import { processColor } from 'react-native';
 
 import {
@@ -423,6 +423,25 @@ describe('the skeleton grid', () => {
     expect(skeletonGrid()).not.toBeOnTheScreen();
     await reads.finish();
     expect(collection.getByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
+  });
+
+  test('after a long time on another tab, a reload when the tab gains focus still keeps the tiles shown and reads as many', async () => {
+    ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
+    const collection = await openCollection();
+    await scrollToEnd(selectedTab());
+    await collection.findByRole('button', { name: /^Card 70,/ });
+    await pressTab('Recent');
+    await act(async () => {
+      jest.advanceTimersByTime(6 * 60 * 1000);
+    });
+    const reads = holdCollectionReads();
+
+    await pressTab('Collection');
+
+    expect(within(selectedTab()).getByRole('button', { name: /^Card 70,/ })).toBeOnTheScreen();
+    expect(skeletonGrid()).not.toBeOnTheScreen();
+    await reads.finish();
+    expect(collection.getByRole('button', { name: /^Card 70,/ })).toBeOnTheScreen();
   });
 
   test('a new page keeps the tiles already shown and brings no skeleton grid back', async () => {
@@ -990,10 +1009,9 @@ describe('collection search', () => {
 
     test('when the decks cannot be read for a typed deck: name, Try again reads them again', async () => {
       ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
+      failDeckReads(2);
       const collection = await openCollection();
-      await typeInSearchBar('deck:kinnan');
-      failDeckReads(1);
-      await typeInSearchBar(' ');
+      await typeInSearchBar('deck:kinnan ');
 
       await fireEvent.press(await collection.findByRole('button', { name: 'Try again' }));
 

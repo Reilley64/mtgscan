@@ -1,3 +1,5 @@
+import { focusManager, notifyManager } from '@tanstack/react-query';
+
 import { registerAppStyles } from './class-styles';
 import { resetFakeAlert } from './fake-alert';
 import { resetFakeCardDetector } from './fake-card-detector';
@@ -15,6 +17,8 @@ import { resetFakeSupabase } from './fake-supabase';
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://abcdefghijklmnop.supabase.co';
 
 require('react-native-reanimated').setUpTests();
+
+notifyManager.setScheduler((notify) => void Promise.resolve().then(notify));
 
 jest.mock('expo-crypto', () => {
   const nodeCrypto = jest.requireActual('node:crypto');
@@ -68,4 +72,5 @@ beforeEach(async () => {
   resetFakeSecureStore();
   resetFakeLocalization();
   resetFakeNativeState();
+  focusManager.setFocused(undefined);
 });

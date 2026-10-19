@@ -9,6 +9,7 @@ import {
   basicLandsOf,
   deckWritesSent,
   failDeckWrites,
+  holdAddPreviews,
   ownAddPreviewEffects,
   ownCollectionCopies,
   ownCollectionTotal,
@@ -224,6 +225,19 @@ describe('adding basic lands to a deck', () => {
 
     expect(drawer.getByLabelText('Island, 3')).toHaveTextContent('3');
     expect(addPreviewQueriesSent().at(-1)).toEqual({ basic_land_oracle_id: basicLandOracleId('Island'), count: 3 });
+    expect(within(drawer.getByRole('button', { name: /^Atraxa,/ })).getByText('Adds a violation')).toBeOnTheScreen();
+  });
+
+  test('while the effect of a new count loads, each deck row keeps the effect it showed', async () => {
+    ownAddPreviewEffects({ 'deck-1': { kind: 'adds_violation', rules: [{ rule: 'color_identity', colors: ['U'] }] } });
+    const drawer = await openAddToDeck(await openCollection(), 'Island');
+    const preview = holdAddPreviews();
+
+    await fireEvent.press(drawer.getByRole('button', { name: 'Add one Island' }));
+
+    expect(within(drawer.getByRole('button', { name: /^Atraxa,/ })).getByText('Adds a violation')).toBeOnTheScreen();
+    await preview.finish();
+    expect(addPreviewQueriesSent().at(-1)).toEqual({ basic_land_oracle_id: basicLandOracleId('Island'), count: 2 });
     expect(within(drawer.getByRole('button', { name: /^Atraxa,/ })).getByText('Adds a violation')).toBeOnTheScreen();
   });
 

@@ -3,18 +3,18 @@ import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
 import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 
 import { setCopyUserTag } from '@/collection/copy-writes';
-import { replyOf } from '@/lib/database-reply';
+import { databaseRead, useScreenRead } from '@/lib/read';
 import { supabase } from '@/lib/supabase';
-import { useFocusedRead } from '@/lib/use-focused-read';
 import { writeResultOf, type WriteResult } from '@/lib/write-result';
 
-export async function readUserTags(): Promise<{ status: 'loaded'; userTags: UserTagRow[] }> {
-  const result = await callDatabaseFunction(supabase, databaseFunctions.list_user_tags);
-  return { status: 'loaded', userTags: replyOf(result).items };
+export const userTagsRead = databaseRead(databaseFunctions.list_user_tags);
+
+function loadedUserTags({ items }: { items: UserTagRow[] }) {
+  return { status: 'loaded' as const, userTags: items };
 }
 
 export function useUserTags() {
-  return useFocusedRead(readUserTags);
+  return useScreenRead(userTagsRead, loadedUserTags);
 }
 
 export async function createUserTagOnCopy(copyId: string, name: string): Promise<WriteResult> {
