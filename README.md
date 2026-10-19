@@ -599,7 +599,7 @@ The `anon` role cannot use the `private` schema. `authenticated` and `service_ro
 
 Every app write function refuses an AI client's token. Each one calls `private.refuse_mcp_token()` right after `private.caller_user_id()`. The helper raises `insufficient_privilege` with "AI clients cannot change decks or the collection." when the token has a `client_id` claim. Supabase Auth's OAuth server puts that claim on every AI client's token. The app's sign-in never does, so the refusal does not affect the app. Read functions and previews do not call the helper. So an AI client's token can read through the Data API the same data that the MCP connection returns. `docs/adr/0007-refuse-mcp-tokens-by-client-id.md` says why.
 
-`public.begin_mcp_call` and the AI writes `public.create_planned_swaps`, `public.create_buylist_cards`, `public.mcp_close_planned_swap`, and `public.mcp_close_buylist_card` do the reverse. They require an AI client's token through `private.caller_ai_client()`, which raises `insufficient_privilege` with "Only an AI client can call this function." for any other token. `supabase/tests/ai-client-tokens.test.ts` leaves them out of its release gate by name, in the group `requiresAnAiClientsToken`, and checks that each AI write refuses the app's token.
+`public.begin_mcp_call` and the AI writes `public.create_planned_swaps`, `public.create_buylist_cards`, `public.mcp_close_planned_swap`, `public.mcp_close_buylist_card`, and the AI client's user tag functions, such as `public.mcp_create_user_tag`, do the reverse. They require an AI client's token through `private.caller_ai_client()`, which raises `insufficient_privilege` with "Only an AI client can call this function." for any other token. `supabase/tests/ai-client-tokens.test.ts` leaves them out of its release gate by name, in the group `requiresAnAiClientsToken`, and checks that each AI write refuses the app's token.
 
 `mcp_call_counts` departs from the pattern too. It has no read policy, because nothing reads it. Only `begin_mcp_call` writes it.
 
@@ -633,7 +633,7 @@ Each request goes through these steps:
 3. `public.begin_mcp_call(tool)` runs with the user's own token. It refuses a token with no `client_id`, and a token whose `session_id` has no live session. Revoking an AI client deletes its sessions, so its next call gets 401.
 4. The tool's Postgres function runs with the user's own token under row-level security. The function never uses the secret key.
 
-An AI client's token also works on the Data API. Every app write function refuses it, as Per-user data says, so an AI client cannot change a deck, a copy, or a user tag. `docs/adr/0007-refuse-mcp-tokens-by-client-id.md` says why.
+An AI client's token also works on the Data API. Every app write function refuses it, as Per-user data says, so an AI client cannot change a deck or a copy. An AI client changes user tags only through its own functions, such as `mcp_rename_user_tag`. `docs/adr/0007-refuse-mcp-tokens-by-client-id.md` and `docs/adr/0009-let-ai-clients-change-user-tags.md` say why.
 
 #### Tools
 
@@ -749,7 +749,7 @@ What the checks prove:
 - The Data API reads with an AI client's token and its array `aud`. If this fails, the hook is dropped, and the MCP server refuses tokens without a `client_id` instead, as ADR 0007 says. The audience check in the MCP pre-flight then changes too.
 - `create_deck` refuses an AI client's token with `42501`.
 - The MCP server serves protocol 2026-07-28 to the official MCP client, and each earlier version that the client SDK supports through `initialize`.
-- `tools/list` returns the 16 tools in order, with their annotations.
+- `tools/list` returns the 21 tools in order, with their annotations.
 - `search_catalog` finds Counterspell. The test user then creates a deck named "MCP pre-flight" in the app, and `get_deck` reads it.
 - The test user scans a free copy of Counterspell. `create_planned_swaps` makes one planned swap that holds it, and `list_planned_swaps` reads it back. A stale deck revision gets `stale-revision` and saves nothing. A replay with the same idempotency key returns the first result and saves nothing.
 - The MCP server refuses the app's token.
