@@ -1,4 +1,4 @@
-import { expect } from 'bun:test';
+import { z } from 'zod';
 
 import {
   callDatabaseFunction,
@@ -13,15 +13,17 @@ export function parsed<Contract extends DatabaseFunction>(
   contract: Contract,
   result: DatabaseFunctionResult<Contract>,
 ): DatabaseFunctionResult<Contract> {
-  if (result.status === 'replied') {
-    contract.reply.parse(result.reply);
+  if (result.status !== 'replied') {
+    return result;
   }
-  return result;
+  return { status: 'replied', reply: z.parse<Contract['reply']>(contract.reply, result.reply) };
 }
 
 export function expectReplied<Contract extends DatabaseFunction>(result: DatabaseFunctionResult<Contract>): ReplyOf<Contract> {
-  expect(result).toMatchObject({ status: 'replied' });
-  return (result as { reply: ReplyOf<Contract> }).reply;
+  if (result.status !== 'replied') {
+    throw new Error(`Expected a reply, got ${JSON.stringify(result)}`);
+  }
+  return result.reply;
 }
 
 export async function call<Contract extends DatabaseFunction>(

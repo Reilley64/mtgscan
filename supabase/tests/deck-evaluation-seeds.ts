@@ -1,4 +1,4 @@
-import { addDeckCard, changeBasicLand, createDeck, getDeck, setDeckCommander, type Deck } from '../decks';
+import { addDeckCard, changeBasicLand, createDeck, setDeckCommander } from '../decks';
 import { basicLand } from './catalog-import-command';
 import { replyOf } from './database-calls';
 import { asDatabaseOwner, type TestUser } from './local-stack';
@@ -35,10 +35,6 @@ export async function deckWithCards(user: TestUser): Promise<string> {
 
 export async function emptyDeck(user: TestUser): Promise<string> {
   return (await replyOf(user.client, createDeck, { name: 'Kinnan' })).deck_id;
-}
-
-export async function deckOf(user: TestUser, deckId: string): Promise<Deck> {
-  return replyOf(user.client, getDeck, { deck_id: deckId });
 }
 
 export function storedEvaluations(): Promise<StoredEvaluation[]> {

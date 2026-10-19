@@ -11,8 +11,6 @@ export type TrainingCropSettings = z.infer<typeof trainingCropSettings>;
 
 const setTrainingCropUploadsRequest = z.strictObject({ on: z.boolean() });
 
-export type SetTrainingCropUploadsRequest = z.input<typeof setTrainingCropUploadsRequest>;
-
 export type TrainingCropStorage = { bytes_left: number };
 
 export const getTrainingCropSettings = databaseFunction({

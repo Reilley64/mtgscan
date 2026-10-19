@@ -6,9 +6,7 @@ import {
   setCopyUserTag,
   type CardCondition,
   type CardLanguage,
-  type CollectionPage,
   type CollectionQuery,
-  type CollectionRow,
   type CurrentPrice,
 } from '../collection';
 import { addDeckCard, createDeck } from '../decks';
@@ -100,11 +98,11 @@ function withIssueTime(cursor: string, issuedAt: number) {
   return Buffer.from(JSON.stringify({ ...payload, issued_at: issuedAt })).toString('base64');
 }
 
-async function allPages(query: CollectionQuery, user: TestUser) {
-  const pages: CollectionPage<CollectionRow>[] = [];
+async function allPages<Page extends { next_cursor: string | null }>(pageAt: (cursor: string | null) => Promise<Page>) {
+  const pages: Page[] = [];
   let cursor: string | null = null;
   do {
-    const next = await page({ ...query, cursor }, user);
+    const next = await pageAt(cursor);
     pages.push(next);
     cursor = next.next_cursor;
   } while (cursor);
@@ -718,7 +716,7 @@ describe('after a catalog import', () => {
     });
 
     test.each([undefined, 50])('pages of %p cover every collection entry once, from A to Z', async (limit) => {
-      const pages = await allPages({ limit, sort: 'name' }, collector);
+      const pages = await allPages((cursor) => page({ limit, sort: 'name', cursor }, collector));
       const rows = pages.flatMap((next) => next.items);
 
       expect(pages.map((next) => next.items.length)).toEqual(limit === 50 ? [50, 10] : [20, 20, 20]);
@@ -732,7 +730,7 @@ describe('after a catalog import', () => {
     test.each(['entries', 'copies'] as const)(
       'with %s rows, the first page counts every match, and later pages carry no count',
       async (rows) => {
-        const pages = await allPages({ rows, limit: 15, names: ['curator'] }, collector);
+        const pages = await allPages((cursor) => replyOf(collector.client, searchCollection, { rows, limit: 15, names: ['curator'], cursor }));
 
         expect(pages.map((next) => next.items.length)).toEqual([15, 5]);
         expect(pages.map((next) => next.total_count)).toEqual([20, null]);

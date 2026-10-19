@@ -6,8 +6,8 @@ import {
   resetCardCatalog,
   runCatalogImport,
 } from './catalog-import-command';
+import { deckOf } from './deck-calls';
 import {
-  deckOf,
   deckWithCards,
   emptyDeck,
   scannedCopy,

@@ -2,10 +2,11 @@ import { parseArgs } from 'node:util';
 
 import { createClient } from '@supabase/supabase-js';
 
-import type { CardCondition, CopyProtectedRequest, ScanBatch, UserTag } from '../collection';
+import { addScanBatch, createUserTag, setCopyProtected, setCopyUserTag, type CardCondition, type ScanBatch } from '../collection';
+import { callDatabaseFunction, type DatabaseFunction, type ReplyOf, type RequestArguments } from '../database-function';
+import type { Database } from '../database.types';
+import { addDeckCard, changeBasicLand, createDeck, getDeck, listDeckChanges, revertDeckChanges, setDeckCommander } from '../decks';
 import type { Finish } from '../search';
-import type { Database, Json } from '../database.types';
-import type { AddedDeckCard, CreatedDeck, Deck, DeckChangePage } from '../decks';
 import { hostedSupabaseUrl, isHostedTestUserPassword, isLocalStack, localSupabaseUrl, testUser } from './account';
 
 const usage = 'Usage: bun test-user/main.ts [--hosted] [--sample-collection]';
@@ -238,82 +239,64 @@ async function addSampleCollection(admin: Client) {
   if (signInError) {
     fail('Could not sign in as the test user', signInError.message);
   }
-  const { error } = await testUserClient.rpc('add_scan_batch', { batch: batch as unknown as Json });
-  if (error) {
-    fail('Could not add sample collection entries', error.message);
-  }
+  await replied(testUserClient, 'Could not add sample collection entries', addScanBatch, batch);
   console.log(`Added ${batch.items.length} sample collection entries.`);
-  const request: CopyProtectedRequest = { copy_id: batch.items[0]!.copy_ids[0]!, protected: true };
-  const { error: protectError } = await testUserClient.rpc('set_copy_protected', { request });
-  if (protectError) {
-    fail('Could not protect a sample copy', protectError.message);
-  }
+  await replied(testUserClient, 'Could not protect a sample copy', setCopyProtected, {
+    copy_id: batch.items[0]!.copy_ids[0]!,
+    protected: true,
+  });
   console.log('Protected 1 sample copy.');
   await addSampleUserTags(testUserClient, batch.items.map((item) => item.copy_ids[0]!));
   await addSampleDeck(testUserClient, sampleDeckCopies(deckPrintings, batch.items.slice(otherPrintings.length)));
 }
 
+async function replied<Contract extends DatabaseFunction>(
+  testUserClient: Client,
+  action: string,
+  contract: Contract,
+  ...request: RequestArguments<Contract>
+): Promise<ReplyOf<Contract>> {
+  const result = await callDatabaseFunction(testUserClient, contract, ...request);
+  if (result.status === 'refused') {
+    fail(action, result.refusal.message);
+  }
+  if (result.status === 'failed') {
+    fail(action, result.error.message);
+  }
+  return result.reply;
+}
+
 async function addSampleUserTags(testUserClient: Client, copyIds: string[]) {
+  const action = 'Could not add sample user tags';
   for (const { name, copies } of sampleUserTags) {
-    const { data, error } = await testUserClient.rpc('create_user_tag', { request: { name } });
-    if (error) {
-      fail('Could not add sample user tags', error.message);
-    }
-    const { user_tag_id } = data as unknown as UserTag;
+    const { user_tag_id } = await replied(testUserClient, action, createUserTag, { name });
     for (const copyId of copyIds.slice(0, copies)) {
-      const { error: userTagError } = await testUserClient.rpc('set_copy_user_tag', {
-        request: { copy_id: copyId, user_tag_id, tagged: true },
-      });
-      if (userTagError) {
-        fail('Could not add sample user tags', userTagError.message);
-      }
+      await replied(testUserClient, action, setCopyUserTag, { copy_id: copyId, user_tag_id, tagged: true });
     }
   }
   console.log(`Added ${sampleUserTags.length} sample user tags.`);
 }
 
-type DeckWrite = 'create_deck' | 'add_deck_card' | 'set_deck_commander' | 'change_basic_land' | 'revert_deck_changes';
-
-async function deckWrite<Result>(testUserClient: Client, write: DeckWrite, request: object): Promise<Result> {
-  const { data, error } = await testUserClient.rpc(write, { request: request as Json });
-  if (error) {
-    fail('Could not add the sample deck', error.message);
-  }
-  return data as unknown as Result;
-}
-
-async function deckRead<Result>(testUserClient: Client, read: 'get_deck' | 'list_deck_changes', query: object): Promise<Result> {
-  const { data, error } = await testUserClient.rpc(read, { query: query as Json });
-  if (error) {
-    fail('Could not read the sample deck', error.message);
-  }
-  return data as unknown as Result;
-}
-
 async function addSampleDeck(testUserClient: Client, { commander, partner, mainDeck, revertedCopy }: SampleDeckCopies) {
-  const { deck_id } = await deckWrite<CreatedDeck>(testUserClient, 'create_deck', {
-    name: sampleDeck.commander,
-  });
+  const write = 'Could not add the sample deck';
+  const read = 'Could not read the sample deck';
+  const { deck_id } = await replied(testUserClient, write, createDeck, { name: sampleDeck.commander });
   for (const copyId of [commander, partner, ...mainDeck]) {
-    await deckWrite(testUserClient, 'add_deck_card', { deck_id, copy_id: copyId, unprotect: false });
+    await replied(testUserClient, write, addDeckCard, { deck_id, copy_id: copyId, unprotect: false });
   }
   for (const copyId of [commander, partner]) {
-    await deckWrite(testUserClient, 'set_deck_commander', { copy_id: copyId, commander: true });
+    await replied(testUserClient, write, setDeckCommander, { copy_id: copyId, commander: true });
   }
-  const { basic_lands } = await deckRead<Deck>(testUserClient, 'get_deck', { deck_id });
+  const { basic_lands } = await replied(testUserClient, read, getDeck, { deck_id });
   const counts = basic_lands.flatMap(({ oracle_id, name }) =>
     oracle_id && sampleBasicLands[name] ? [{ oracle_id, count: sampleBasicLands[name] }] : [],
   );
   for (const { oracle_id, count } of counts) {
-    await deckWrite(testUserClient, 'change_basic_land', { deck_id, oracle_id, by: count });
+    await replied(testUserClient, write, changeBasicLand, { deck_id, oracle_id, by: count });
   }
-  const { revision } = await deckWrite<AddedDeckCard>(testUserClient, 'add_deck_card', {
-    deck_id,
-    copy_id: revertedCopy,
-    unprotect: false,
-  });
-  const { items } = await deckRead<DeckChangePage>(testUserClient, 'list_deck_changes', { deck_id, limit: 1 });
-  await deckWrite(testUserClient, 'revert_deck_changes', {
+  const { revision } = await replied(testUserClient, write, addDeckCard, { deck_id, copy_id: revertedCopy, unprotect: false });
+  const { items } = await replied(testUserClient, read, listDeckChanges, { deck_id, limit: 1 });
+  await replied(testUserClient, write, revertDeckChanges, {
     deck_id,
     deck_change_id: items[0]!.deck_change_id,
     expected_revision: revision,
@@ -323,7 +306,7 @@ async function addSampleDeck(testUserClient: Client, { commander, partner, mainD
   console.log(
     `Added a sample deck with 2 commanders, ${mainDeck.length} main deck cards, ${basicLandCount} basic lands, and ${revision + 1} deck changes.`,
   );
-  const { evaluation } = await deckRead<Deck>(testUserClient, 'get_deck', { deck_id });
+  const { evaluation } = await replied(testUserClient, read, getDeck, { deck_id });
   console.log(`The sample deck is ${evaluation!.validity}, with estimated bracket ${evaluation!.estimated_bracket}.`);
 }
 

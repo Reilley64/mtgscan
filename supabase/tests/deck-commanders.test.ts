@@ -1,9 +1,10 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import { getCopy } from '../collection';
-import { addDeckCard, createDeck, getDeck, listDecks, setDeckCommander, type Deck } from '../decks';
+import { addDeckCard, listDecks, setDeckCommander, type Deck } from '../decks';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { call, failed, refused, replyOf } from './database-calls';
+import { createdDeck, deckChangesOf, deckOf } from './deck-calls';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -18,10 +19,6 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
-
-async function created(user: TestUser, name: string) {
-  return (await replyOf(user.client, createDeck, { name })).deck_id;
-}
 
 async function scannedCopy(user: TestUser, cardPrintingId = angelicCurator) {
   const scanned = stack(cardPrintingId);
@@ -39,26 +36,12 @@ async function setCommander(user: TestUser, copyId: string, commander: boolean) 
   return replyOf(user.client, setDeckCommander, { copy_id: copyId, commander });
 }
 
-async function deckOf(user: TestUser, deckId: string) {
-  return replyOf(user.client, getDeck, { deck_id: deckId });
-}
-
 async function decksOf(user: TestUser) {
   return (await replyOf(user.client, listDecks)).items;
 }
 
 async function copyOf(user: TestUser, copyId: string) {
   return replyOf(user.client, getCopy, { copy_id: copyId });
-}
-
-async function deckChangesOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client
-    .from('deck_changes')
-    .select('revision, kind, deck_change_lines(copy_id, card_printing_id, finish, place_before, place_after)')
-    .eq('deck_id', deckId)
-    .order('revision');
-  expect(error).toBeNull();
-  return data!;
 }
 
 function rolesOf(deck: Deck) {
@@ -68,7 +51,7 @@ function rolesOf(deck: Deck) {
 describe('making a commander', () => {
   test('with no commander, writes one made_commander deck change with its line and raises the revision by one', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await deckCard(user, deckId);
 
     expect(await setCommander(user, copyId, true)).toEqual({ deck_id: deckId, revision: 2 });
@@ -88,7 +71,7 @@ describe('making a commander', () => {
 
   test('with one commander, writes one made_partner deck change', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const commander = await deckCard(user, deckId);
     const partner = await deckCard(user, deckId, delverInnistrad);
     await setCommander(user, commander, true);
@@ -107,7 +90,7 @@ describe('making a commander', () => {
 
   test('any card can be made a commander, even one that cannot lead a deck', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const delver = await deckCard(user, deckId, delverInnistrad);
 
     await setCommander(user, delver, true);
@@ -119,7 +102,7 @@ describe('making a commander', () => {
 
   test('a third commander is refused with commander_limit, and nothing changes', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const first = await deckCard(user, deckId);
     const second = await deckCard(user, deckId);
     const third = await deckCard(user, deckId, delverInnistrad);
@@ -137,9 +120,9 @@ describe('making a commander', () => {
 
   test('making a commander counts as using the deck', async () => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
+    const atraxa = await createdDeck(user, 'Atraxa');
     const copyId = await deckCard(user, atraxa);
-    await created(user, 'Kinnan');
+    await createdDeck(user, 'Kinnan');
 
     await setCommander(user, copyId, true);
 
@@ -148,7 +131,7 @@ describe('making a commander', () => {
 
   test('a card that is already a commander stays one, with no deck change', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await deckCard(user, deckId);
     await setCommander(user, copyId, true);
 
@@ -161,7 +144,7 @@ describe('making a commander', () => {
 describe('moving a commander to the main deck', () => {
   test('writes one moved_to_main_deck deck change and keeps the card in the deck', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await deckCard(user, deckId);
     await setCommander(user, copyId, true);
 
@@ -183,7 +166,7 @@ describe('moving a commander to the main deck', () => {
 
   test('a main deck card stays in the main deck, with no deck change', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await deckCard(user, deckId);
 
     expect(await setCommander(user, copyId, false)).toEqual({ deck_id: deckId, revision: 1 });
@@ -193,7 +176,7 @@ describe('moving a commander to the main deck', () => {
 
   test('frees a place for a second commander', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const [first, second, third] = [await deckCard(user, deckId), await deckCard(user, deckId), await deckCard(user, deckId)];
     await setCommander(user, first, true);
     await setCommander(user, second, true);
@@ -209,7 +192,7 @@ describe('moving a commander to the main deck', () => {
 describe('commander order', () => {
   test('reads list commanders oldest first, and the oldest is the art of the deck tag', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const delver = await deckCard(user, deckId, delverInnistrad);
     const curator = await deckCard(user, deckId);
     await setCommander(user, delver, true);
@@ -230,7 +213,7 @@ describe('commander order', () => {
 
   test('when the first commander moves to the main deck, the second commander becomes the first', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const delver = await deckCard(user, deckId, delverInnistrad);
     const curator = await deckCard(user, deckId);
     await setCommander(user, delver, true);
@@ -270,7 +253,7 @@ describe('refused requests', () => {
     ['an unknown field', (copy_id) => ({ copy_id, commander: true, deck_id: copy_id }), 'deck_id'],
   ])('%s is refused with invalid_argument, and nothing changes', async (_, request, field) => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const copyId = await deckCard(user, deckId);
 
     const result = await call(user.client, setDeckCommander, request(copyId) as never);
@@ -283,7 +266,7 @@ describe('refused requests', () => {
 describe('access', () => {
   test("a user cannot make another user's deck card a commander", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
-    const deckId = await created(alice, 'Atraxa');
+    const deckId = await createdDeck(alice, 'Atraxa');
     const copyId = await deckCard(alice, deckId);
 
     const result = await call(bob.client, setDeckCommander, { copy_id: copyId, commander: true });
@@ -296,7 +279,7 @@ describe('access', () => {
 
   test("a user cannot move another user's commander to the main deck", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
-    const deckId = await created(alice, 'Atraxa');
+    const deckId = await createdDeck(alice, 'Atraxa');
     const copyId = await deckCard(alice, deckId);
     await setCommander(alice, copyId, true);
 

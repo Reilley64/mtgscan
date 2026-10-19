@@ -2,15 +2,12 @@ import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import { createDeck, deleteDeck, getDeck, listDecks, markDeckUsed, renameDeck, setDeckPriority, type DeckRow } from '../decks';
 import { call, failed, refused, replyOf } from './database-calls';
+import { createdDeck } from './deck-calls';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
 
 const permissionDenied = '42501';
-
-async function created(user: TestUser, name: string) {
-  return (await replyOf(user.client, createDeck, { name })).deck_id;
-}
 
 async function decksOf(user: TestUser) {
   return (await replyOf(user.client, listDecks)).items;
@@ -35,7 +32,7 @@ describe('creating a deck', () => {
   test('creates an empty deck with the trimmed name, at medium priority, with no commander, at revision 0', async () => {
     const user = await signUpNewUser();
 
-    const deckId = await created(user, '  Atraxa ');
+    const deckId = await createdDeck(user, '  Atraxa ');
 
     const expected: Omit<DeckRow, 'needs_you_count'> = {
       deck_id: deckId,
@@ -60,7 +57,7 @@ describe('creating a deck', () => {
   test('a name is trimmed of tabs and line breaks too', async () => {
     const user = await signUpNewUser();
 
-    await created(user, '\tKinnan\n');
+    await createdDeck(user, '\tKinnan\n');
 
     expect(await deckNamesOf(user)).toEqual(['Kinnan']);
   });
@@ -68,7 +65,7 @@ describe('creating a deck', () => {
   test('a name of 64 characters is kept', async () => {
     const user = await signUpNewUser();
 
-    await created(user, 'x'.repeat(64));
+    await createdDeck(user, 'x'.repeat(64));
 
     expect(await deckNamesOf(user)).toEqual(['x'.repeat(64)]);
   });
@@ -76,8 +73,8 @@ describe('creating a deck', () => {
   test('two decks can have the same name', async () => {
     const user = await signUpNewUser();
 
-    const first = await created(user, 'Atraxa');
-    const second = await created(user, 'atraxa');
+    const first = await createdDeck(user, 'Atraxa');
+    const second = await createdDeck(user, 'atraxa');
 
     expect(first).not.toBe(second);
     expect((await deckNamesOf(user)).toSorted()).toEqual(['Atraxa', 'atraxa']);
@@ -106,17 +103,17 @@ describe('the deck list', () => {
 
   test('lists the deck used most recently first, and a new deck counts as used', async () => {
     const user = await signUpNewUser();
-    await created(user, 'Atraxa');
-    await created(user, 'Kinnan');
-    await created(user, 'Yuriko');
+    await createdDeck(user, 'Atraxa');
+    await createdDeck(user, 'Kinnan');
+    await createdDeck(user, 'Yuriko');
 
     expect(await deckNamesOf(user)).toEqual(['Yuriko', 'Kinnan', 'Atraxa']);
   });
 
   test('marking a deck used moves it to the top', async () => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
-    await created(user, 'Kinnan');
+    const atraxa = await createdDeck(user, 'Atraxa');
+    await createdDeck(user, 'Kinnan');
     const before = await lastUsedAt(atraxa);
 
     expect(await call(user.client, markDeckUsed, { deck_id: atraxa })).toEqual({ status: 'replied', reply: null });
@@ -136,7 +133,7 @@ describe('the deck list', () => {
 
   test('decks used at the same time sort by name ignoring case', async () => {
     const user = await signUpNewUser();
-    const decks = [await created(user, 'kinnan'), await created(user, 'Yuriko'), await created(user, 'Atraxa')];
+    const decks = [await createdDeck(user, 'kinnan'), await createdDeck(user, 'Yuriko'), await createdDeck(user, 'Atraxa')];
     await setLastUsedAt(decks, '2026-10-15T09:00:00Z');
 
     expect(await deckNamesOf(user)).toEqual(['Atraxa', 'kinnan', 'Yuriko']);
@@ -152,8 +149,8 @@ describe('reading a deck', () => {
 
   test('reading a deck does not count as using it', async () => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
-    await created(user, 'Kinnan');
+    const atraxa = await createdDeck(user, 'Atraxa');
+    await createdDeck(user, 'Kinnan');
 
     await replyOf(user.client, getDeck, { deck_id: atraxa });
 
@@ -190,8 +187,8 @@ describe('marking a deck used', () => {
 describe('renaming a deck', () => {
   test('renames the deck with the trimmed name, counts as using it, and makes no deck change', async () => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
-    await created(user, 'Kinnan');
+    const atraxa = await createdDeck(user, 'Atraxa');
+    await createdDeck(user, 'Kinnan');
     const before = await lastUsedAt(atraxa);
 
     expect(await call(user.client, renameDeck, { deck_id: atraxa, name: '  Atraxa Superfriends ' })).toEqual({ status: 'replied', reply: null });
@@ -203,8 +200,8 @@ describe('renaming a deck', () => {
 
   test('a deck can take the name of another deck', async () => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
-    await created(user, 'Kinnan');
+    const atraxa = await createdDeck(user, 'Atraxa');
+    await createdDeck(user, 'Kinnan');
 
     expect(await call(user.client, renameDeck, { deck_id: atraxa, name: 'Kinnan' })).toEqual({ status: 'replied', reply: null });
 
@@ -227,7 +224,7 @@ describe('renaming a deck', () => {
     ['an unknown field', (deckId) => ({ deck_id: deckId, name: 'Kinnan', priority: 'high' }), 'priority'],
   ])('%s is refused with invalid_argument, and the deck keeps its name and last use', async (_, request, field) => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
+    const atraxa = await createdDeck(user, 'Atraxa');
     const before = await lastUsedAt(atraxa);
 
     const error = await call(user.client, renameDeck, request(atraxa) as never);
@@ -241,8 +238,8 @@ describe('renaming a deck', () => {
 describe('setting the deck priority', () => {
   test.each(['high', 'low', 'medium'] as const)('sets the deck priority to %s, counts as using it, and makes no deck change', async (priority) => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
-    await created(user, 'Kinnan');
+    const atraxa = await createdDeck(user, 'Atraxa');
+    await createdDeck(user, 'Kinnan');
     const before = await lastUsedAt(atraxa);
 
     expect(await call(user.client, setDeckPriority, { deck_id: atraxa, priority })).toEqual({ status: 'replied', reply: null });
@@ -272,7 +269,7 @@ describe('setting the deck priority', () => {
     ['an unknown field', (deckId) => ({ deck_id: deckId, priority: 'high', name: 'Kinnan' }), 'name'],
   ])('%s is refused with invalid_argument, and the deck keeps its priority and last use', async (_, request, field) => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
+    const atraxa = await createdDeck(user, 'Atraxa');
     const before = await lastUsedAt(atraxa);
 
     const error = await call(user.client, setDeckPriority, request(atraxa) as never);
@@ -286,8 +283,8 @@ describe('setting the deck priority', () => {
 describe('deleting a deck', () => {
   test('deletes the deck and leaves the other decks', async () => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
-    await created(user, 'Kinnan');
+    const atraxa = await createdDeck(user, 'Atraxa');
+    await createdDeck(user, 'Kinnan');
 
     expect(await call(user.client, deleteDeck, { deck_id: atraxa })).toEqual({ status: 'replied', reply: null });
 
@@ -308,7 +305,7 @@ describe('deleting a deck', () => {
     ['an unknown field', { deck_id: crypto.randomUUID(), name: 'Atraxa' }, 'name'],
   ])('%s is refused with invalid_argument, and no deck is deleted', async (_, request, field) => {
     const user = await signUpNewUser();
-    await created(user, 'Atraxa');
+    await createdDeck(user, 'Atraxa');
 
     const error = await call(user.client, deleteDeck, request as never);
 
@@ -320,9 +317,9 @@ describe('deleting a deck', () => {
 describe('access', () => {
   test("a user cannot list, read, or mark another user's deck", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
-    const atraxa = await created(alice, 'Atraxa');
-    await created(alice, 'Kinnan');
-    await created(bob, 'Yuriko');
+    const atraxa = await createdDeck(alice, 'Atraxa');
+    await createdDeck(alice, 'Kinnan');
+    await createdDeck(bob, 'Yuriko');
     const before = await lastUsedAt(atraxa);
 
     expect(await deckNamesOf(bob)).toEqual(['Yuriko']);
@@ -336,7 +333,7 @@ describe('access', () => {
 
   test("a user cannot rename, set the priority of, or delete another user's deck", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
-    const atraxa = await created(alice, 'Atraxa');
+    const atraxa = await createdDeck(alice, 'Atraxa');
     const before = await lastUsedAt(atraxa);
 
     const errors = [
@@ -378,7 +375,7 @@ describe('access', () => {
   ])('direct writes by %s are refused', (_, signedIn) => {
     test('inserting, updating, and deleting decks is refused', async () => {
       const alice = await signUpNewUser();
-      const atraxa = await created(alice, 'Atraxa');
+      const atraxa = await createdDeck(alice, 'Atraxa');
       const decks = () => (signedIn ? alice.client : anonymousClient()).from('decks');
 
       expect((await decks().insert({ user_id: alice.userId, name: 'Direct' })).error?.code).toBe(permissionDenied);

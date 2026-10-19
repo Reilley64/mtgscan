@@ -31,8 +31,6 @@ export type BuylistQuery = z.input<typeof buylistQuery>;
 
 const buylistPage = z.strictObject({ items: z.array(buylistCard), next_cursor: nextCursor });
 
-export type BuylistPage = z.infer<typeof buylistPage>;
-
 const buylistCardInput = z.strictObject({
   ...planInput,
   incoming: z.strictObject({ oracle_id: id, as_commander: z.boolean().optional() }),
@@ -54,21 +52,13 @@ const createdBuylistCards = z.strictObject({
   replayed: z.boolean(),
 });
 
-export type CreatedBuylistCards = z.infer<typeof createdBuylistCards>;
-
 const markBuylistCardBoughtRequest = z.strictObject({ buylist_card_id: id, copy_id: id, unprotect: z.boolean() });
 
 export type MarkBuylistCardBoughtRequest = z.input<typeof markBuylistCardBoughtRequest>;
 
 const closeBuylistCardRequest = z.strictObject({ buylist_card_id: id });
 
-export type CloseBuylistCardRequest = z.input<typeof closeBuylistCardRequest>;
-
-export type ClosedBuylistCard = z.infer<typeof closedPlan>;
-
 const freeCopiesQuery = z.strictObject({ oracle_id: id });
-
-export type FreeCopiesQuery = z.input<typeof freeCopiesQuery>;
 
 const freeCopy = collectionCopyRow.omit({ deck: true, held_for: true, created_at: true, oracle_text: true });
 

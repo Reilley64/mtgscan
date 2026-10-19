@@ -1,11 +1,8 @@
 import { z } from 'zod';
 
 import { databaseFunction } from './database-function.ts';
-import type { Database } from './database.types.ts';
 import { deckChangeEffect, deckRevision } from './decks.ts';
 import { closeNote, condition, finish, id, integer, nextCursor, plannedSwapStatus } from './fields.ts';
-
-export type CloseNote = Database['public']['Enums']['close_note'];
 
 const plannedCopyLine = z.strictObject({
   kind: z.literal('copy'),
@@ -25,15 +22,13 @@ const plannedBasicLandLine = z.strictObject({ kind: z.literal('basic_land'), ora
 
 export type PlannedBasicLandLine = z.infer<typeof plannedBasicLandLine>;
 
-export const plannedOutgoingLine = z.discriminatedUnion('kind', [plannedCopyLine, plannedBasicLandLine]);
-
-export type PlannedOutgoingLine = z.infer<typeof plannedOutgoingLine>;
+const plannedLine = z.discriminatedUnion('kind', [plannedCopyLine, plannedBasicLandLine]);
 
 export const plannedFields = {
   deck_id: id,
   deck_name: z.string(),
   commander_art_crop_uri: z.string().nullable(),
-  outgoing: plannedOutgoingLine.nullable(),
+  outgoing: plannedLine.nullable(),
   as_commander: z.boolean(),
   reason: z.string(),
   close_note: closeNote.nullable(),
@@ -45,7 +40,7 @@ export const plannedFields = {
 const plannedSwap = z.strictObject({
   planned_swap_id: id,
   ...plannedFields,
-  incoming: plannedOutgoingLine,
+  incoming: plannedLine,
   status: plannedSwapStatus,
 });
 
@@ -66,9 +61,7 @@ const plannedSwapPage = z.strictObject({ items: z.array(plannedSwap), next_curso
 
 export type PlannedSwapPage = z.infer<typeof plannedSwapPage>;
 
-export const plannedOutgoingInput = z.union([z.strictObject({ copy_id: id }), z.strictObject({ basic_land_oracle_id: id })]);
-
-export type PlannedOutgoingInput = z.input<typeof plannedOutgoingInput>;
+const plannedOutgoingInput = z.union([z.strictObject({ copy_id: id }), z.strictObject({ basic_land_oracle_id: id })]);
 
 export const planInput = {
   ref: z.string(),
@@ -97,19 +90,11 @@ const createdPlannedSwaps = z.strictObject({
 
 export type CreatedPlannedSwaps = z.infer<typeof createdPlannedSwaps>;
 
-const swapInPlannedSwapRequest = z.strictObject({ planned_swap_id: id });
-
-export type SwapInPlannedSwapRequest = z.input<typeof swapInPlannedSwapRequest>;
+const plannedSwapRequest = z.strictObject({ planned_swap_id: id });
 
 const swapInPlannedSwapsRequest = z.strictObject({ deck_id: id, planned_swap_ids: z.array(id) });
 
-export type SwapInPlannedSwapsRequest = z.input<typeof swapInPlannedSwapsRequest>;
-
-export type ClosePlannedSwapRequest = SwapInPlannedSwapRequest;
-
 export const closedPlan = z.strictObject({ id, changed: z.boolean() });
-
-export type ClosedPlannedSwap = z.infer<typeof closedPlan>;
 
 export const listPlannedSwaps = databaseFunction({
   name: 'list_planned_swaps',
@@ -139,7 +124,7 @@ export const createPlannedSwaps = databaseFunction({
 export const swapInPlannedSwap = databaseFunction({
   name: 'swap_in_planned_swap',
   argument: 'request',
-  request: swapInPlannedSwapRequest,
+  request: plannedSwapRequest,
   reply: deckRevision,
   errorCodes: ['invalid_argument', 'not_found', 'not_open', 'commander_limit'],
 });
@@ -155,7 +140,7 @@ export const swapInPlannedSwaps = databaseFunction({
 export const closePlannedSwap = databaseFunction({
   name: 'close_planned_swap',
   argument: 'request',
-  request: swapInPlannedSwapRequest,
+  request: plannedSwapRequest,
   reply: closedPlan,
   errorCodes: ['invalid_argument', 'not_found', 'not_open'],
 });
@@ -163,7 +148,7 @@ export const closePlannedSwap = databaseFunction({
 export const mcpClosePlannedSwap = databaseFunction({
   name: 'mcp_close_planned_swap',
   argument: 'request',
-  request: swapInPlannedSwapRequest,
+  request: plannedSwapRequest,
   reply: closedPlan,
   errorCodes: ['invalid_argument', 'not_found', 'not_open'],
 });

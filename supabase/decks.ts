@@ -143,8 +143,6 @@ export type BasicLandCard = z.infer<typeof basicLandCard>;
 
 const basicLandCardList = z.strictObject({ items: z.array(basicLandCard) });
 
-export type BasicLandCardList = z.infer<typeof basicLandCardList>;
-
 const deck = z.strictObject({
   ...deckFields,
   evaluation: deckEvaluation.nullable(),
@@ -206,27 +204,15 @@ export type DeckChangePage = z.infer<typeof deckChangePage>;
 
 const createDeckRequest = z.strictObject({ name: z.string() });
 
-export type CreateDeckRequest = z.input<typeof createDeckRequest>;
-
 const createdDeck = z.strictObject({ deck_id: id });
 
 export type CreatedDeck = z.infer<typeof createdDeck>;
 
 const deckQuery = z.strictObject({ deck_id: id });
 
-export type DeckQuery = z.input<typeof deckQuery>;
-
-export type MarkDeckUsedRequest = DeckQuery;
-
 const renameDeckRequest = z.strictObject({ deck_id: id, name: z.string() });
 
-export type RenameDeckRequest = z.input<typeof renameDeckRequest>;
-
 const setDeckPriorityRequest = z.strictObject({ deck_id: id, priority: deckPriority });
-
-export type SetDeckPriorityRequest = z.input<typeof setDeckPriorityRequest>;
-
-export type DeleteDeckRequest = DeckQuery;
 
 const addDeckCardRequest = z.strictObject({ deck_id: id, copy_id: id, unprotect: z.boolean() });
 
@@ -234,11 +220,7 @@ export type AddDeckCardRequest = z.input<typeof addDeckCardRequest>;
 
 export const deckRevision = z.strictObject({ deck_id: id, revision: integer });
 
-export type AddedDeckCard = z.infer<typeof deckRevision>;
-
 const setDeckCommanderRequest = z.strictObject({ copy_id: id, commander: z.boolean() });
-
-export type SetDeckCommanderRequest = z.input<typeof setDeckCommanderRequest>;
 
 const changeBasicLandRequest = z.strictObject({ deck_id: id, oracle_id: id, by: integer });
 
@@ -246,11 +228,7 @@ export type ChangeBasicLandRequest = z.input<typeof changeBasicLandRequest>;
 
 const removeDeckCardRequest = z.strictObject({ copy_id: id });
 
-export type RemoveDeckCardRequest = z.input<typeof removeDeckCardRequest>;
-
 const revertPreviewQuery = z.strictObject({ deck_id: id, deck_change_id: id });
-
-export type RevertPreviewQuery = z.input<typeof revertPreviewQuery>;
 
 const revertBlock = z.strictObject({ copy_id: id, name: z.string(), deck: copyRowDeck.nullable() });
 

@@ -4,7 +4,6 @@ import { deleteCopy } from '../collection';
 import {
   addDeckCard,
   changeBasicLand,
-  createDeck,
   deleteDeck,
   getDeck,
   listDeckChanges,
@@ -25,6 +24,7 @@ import {
   runCatalogImport,
 } from './catalog-import-command';
 import { call, refused, replyOf } from './database-calls';
+import { createdDeck, deckOf } from './deck-calls';
 import { anonymousClient, asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -54,10 +54,6 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-async function created(user: TestUser, name = 'Atraxa') {
-  return (await replyOf(user.client, createDeck, { name })).deck_id;
-}
-
 async function scannedCopy(user: TestUser, cardPrintingId = angelicCurator) {
   const scanned = stack(cardPrintingId);
   await committed(user, scanBatch([scanned]));
@@ -82,10 +78,6 @@ async function forestsChanged(user: TestUser, deckId: string, by: number) {
 
 async function deleted(user: TestUser, copyId: string) {
   await replyOf(user.client, deleteCopy, { copy_id: copyId });
-}
-
-async function deckOf(user: TestUser, deckId: string) {
-  return replyOf(user.client, getDeck, { deck_id: deckId });
 }
 
 async function listedEvaluationOf(user: TestUser, deckId: string) {
@@ -113,7 +105,7 @@ async function revertedFrom(user: TestUser, deckId: string, revision: number) {
 }
 
 async function deckWithCommander(user: TestUser) {
-  const deckId = await created(user);
+  const deckId = await createdDeck(user);
   const commander = await scannedCopy(user, kenrith);
   const main = await scannedCopy(user, delverInnistrad);
   await added(user, deckId, commander);
@@ -162,7 +154,7 @@ describe('deck validity', () => {
 
   test('a deck with no commander is invalid with no_commander, and deck size is still checked', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     await added(user, deckId, await scannedCopy(user));
 
     await forestsChanged(user, deckId, 97);
@@ -207,7 +199,7 @@ describe('deck validity', () => {
 describe('saving after a deck change', () => {
   test('every deck change saves a deck evaluation with its deck revision', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const [commander, main, other] = [
       await scannedCopy(user, kenrith),
       await scannedCopy(user, delverInnistrad),
@@ -234,7 +226,7 @@ describe('saving after a deck change', () => {
 
   test('the deck change that adds the first card creates the deck evaluation, and the one that removes the last card deletes it', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     const copyId = await scannedCopy(user);
     expect(await evaluationOf(user, deckId)).toBeNull();
     expect(await listedEvaluationOf(user, deckId)).toBeNull();
@@ -258,7 +250,7 @@ describe('saving after a deck change', () => {
 
   test('a revert that empties the deck deletes the deck evaluation, and a revert that refills it creates one', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user);
     await forestsChanged(user, deckId, 3);
 
     expect(await revertedFrom(user, deckId, 1)).toMatchObject({ status: 'replied' });
@@ -301,7 +293,7 @@ describe('saving after a deck change', () => {
 
   test('creating, renaming, and deleting a deck, and changing its deck priority, save nothing', async () => {
     const user = await signUpNewUser();
-    const empty = await created(user);
+    const empty = await createdDeck(user);
     expect(await storedEvaluationRows(empty)).toEqual([]);
 
     const { deckId } = await deckWithCommander(user);
@@ -338,7 +330,7 @@ describe('access', () => {
     const writes = [
       user.client.from('deck_evaluations').insert({
         user_id: user.userId,
-        deck_id: await created(user, 'Kinnan'),
+        deck_id: await createdDeck(user, 'Kinnan'),
         validity: 'valid',
         violations: [],
         undetermined: [],

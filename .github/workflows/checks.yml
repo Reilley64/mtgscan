@@ -46,6 +46,7 @@ jobs:
               - supabase/package.json
               - supabase/sign-in-providers.ts
               - supabase/functions/mcp/problems.ts
+              - supabase/database-function.ts
             database:
               - *workspace
               - supabase/**

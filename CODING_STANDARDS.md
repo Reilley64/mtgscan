@@ -96,7 +96,7 @@ The app UI follows Brad Frost's Atomic Design (#101). Each level is a folder in 
   - Theme tests check the Tailwind theme against `DESIGN.md` and the class merges of `cn()`, with no rendering.
   - Primitive tests in `apps/mobile/test/atoms.test.tsx`, `molecules.test.tsx`, and `drawer-sheet.test.tsx` render one atom, molecule, or template with `render` and check its roles, states, labels, touch target, and token styles.
   - The owner checks on the device what Jest cannot reach, such as real Apple and Google sign-in.
-- Test external behavior, such as screen text, roles, returned rows, error codes, and error fields. Leave out internal state, component structure, SQL text, and query plans.
+- Test external behavior, such as screen text, roles, returned rows, error codes, and error fields. Leave out internal state, component structure, SQL text, and query plans. The one exception is `supabase/tests/mcp-problems.test.ts`. It reads the SQL of the database functions to check each contract's error codes against the codes its SQL can raise, which no reply shows (#410).
 - Name each test as a sentence about the behavior, in glossary terms.
 - Each test fails when its behavior breaks. For key rules, the PR evidence shows a mutation check, where the author breaks the code on purpose and the test goes red.
 - Every acceptance criterion in the ticket has a test or an owner check.
