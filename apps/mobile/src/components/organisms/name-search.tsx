@@ -6,6 +6,7 @@ import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { PrintingPicker } from '@/components/organisms/printing-picker';
+import { useTypingPause } from '@/lib/use-typing-pause';
 import type { Printing } from '@/scan/scan-batch';
 
 import { cardPrintings, searchCardNames, type CardName } from '../../../modules/card-recognizer';
@@ -36,18 +37,19 @@ export function NameSearch({ onChoose }: NameSearchProps) {
   const [text, setText] = useState('');
   const [found, setFound] = useState<{ text: string; names: CardName[] } | null>(null);
   const [chosen, setChosen] = useState<ChosenCard | null>(null);
+  const [pausedText] = useTypingPause(text);
   const latestText = useRef('');
 
   useEffect(() => {
-    latestText.current = text;
-    if (!text.trim()) {
+    latestText.current = pausedText;
+    if (!pausedText.trim()) {
       return;
     }
-    searchCardNames(text).then(
-      (names) => latestText.current === text && setFound({ text, names }),
-      () => latestText.current === text && setFound(null),
+    searchCardNames(pausedText).then(
+      (names) => latestText.current === pausedText && setFound({ text: pausedText, names }),
+      () => latestText.current === pausedText && setFound(null),
     );
-  }, [text]);
+  }, [pausedText]);
 
   const shownNames = text.trim() && found ? found.names : [];
 

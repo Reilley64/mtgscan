@@ -1,6 +1,7 @@
+import type { CardSet } from '@mtgscan/supabase/sets';
 import { act, fireEvent, isHiddenFromAccessibility, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
-import { processColor, StyleSheet, View } from 'react-native';
+import { Dimensions, processColor, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/atoms/button';
 import { MenuButton } from '@/components/atoms/menu-button';
@@ -23,6 +24,7 @@ import { ChangeLine } from '@/components/molecules/change-line';
 import { CommanderGalleryCard, CommanderGalleryCardSkeletons, DeckBanner } from '@/components/molecules/commander-card';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
+import { FloatingButton } from '@/components/molecules/floating-button';
 import { DisclosureRow } from '@/components/molecules/disclosure-row';
 import { EmptyState } from '@/components/molecules/empty-state';
 import {
@@ -40,7 +42,9 @@ import { ListRow } from '@/components/molecules/list-row';
 import { NeedsYouItemSkeletons } from '@/components/molecules/needs-you-skeleton';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { Reason } from '@/components/molecules/reason';
-import { SheetSection } from '@/components/molecules/sheet-section';
+import { SetBannerSkeleton, SetListSkeleton } from '@/components/molecules/set-banner-skeleton';
+import { SetHeader, SetRow } from '@/components/organisms/set-row';
+import { SheetSection, SheetSectionHeader } from '@/components/molecules/sheet-section';
 import { SortButton } from '@/components/molecules/sort-button';
 import { GroupButton } from '@/components/molecules/group-button';
 import { Stepper } from '@/components/molecules/stepper';
@@ -60,6 +64,7 @@ import {
   beginSwipe,
   blocksColored,
   blurredImageUris,
+  cardImageLook,
   cardImageOutline,
   cardImageUri,
   appearsBefore,
@@ -821,6 +826,13 @@ describe('SheetSection', () => {
 
     expect(screen.getByRole('header', { name: 'Creatures, 3' })).toBeOnTheScreen();
   });
+
+  test('a sheet section heading can count with words, such as "1 of 2"', async () => {
+    await render(<SheetSectionHeader title="Variants" count="1 of 2" />);
+
+    expect(screen.getByRole('header', { name: 'Variants, 1 of 2' })).toBeOnTheScreen();
+    expect(screen.getByText('1 of 2')).toHaveStyle({ color: textMuted });
+  });
 });
 
 describe('Stepper', () => {
@@ -907,6 +919,23 @@ describe('CardTile', () => {
     await render(<CardTile uri={solRing} caption="CMM 464" sheen="etched" accessibilityLabel="Sol Ring, CMM 464, etched" />);
 
     expect(cardSheen(screen.getByRole('image', { name: 'Sol Ring, CMM 464, etched' }))).toMatchObject({ opacity: expect.closeTo(0.3) });
+  });
+
+  test('a card tile with a quantity shows it in a quantity badge at the top left of the card image', async () => {
+    await render(<CardTile uri={solRing} quantity={2} accessibilityLabel="Sol Ring, number 216, owned, 2 copies" />);
+
+    const badgeText = within(screen.getByRole('image', { name: 'Sol Ring, number 216, owned, 2 copies' })).getByText('2');
+    expect(badgeText).toHaveStyle({ color: white });
+    expect(badgeText.parent).toHaveStyle({ position: 'absolute', left: 5, top: 5, backgroundColor: '#000000d1' });
+  });
+
+  test('a dimmed card tile shows its card image in grayscale at the dimmed opacity', async () => {
+    await render(<CardTile uri={solRing} dimmed accessibilityLabel="Sol Ring, number 216, not owned" />);
+
+    expect(cardImageLook(screen.getByRole('image', { name: 'Sol Ring, number 216, not owned' }))).toEqual({
+      opacity: expect.closeTo(0.38),
+      grayscale: true,
+    });
   });
 
   test('a card tile with an action is a button with its selected state', async () => {
@@ -1318,6 +1347,106 @@ describe('BatchButton', () => {
     expect(glassEffect(backdropOf(button))).toEqual({ style: 'regular', interactive: true, tintColor: undefined });
     expect(backdropOf(button)).toHaveStyle({ borderRadius: 999 });
     expect(screen.getByText('3')).toBeOnTheScreen();
+  });
+});
+
+describe('FloatingButton', () => {
+  test('a floating button is a 48 px round button on the control surface with an 18 px symbol in the text color', async () => {
+    const onPress = jest.fn();
+    await render(<FloatingButton symbol="rectangle.portrait.on.rectangle.portrait" accessibilityLabel="Sets" onPress={onPress} />);
+
+    const button = screen.getByRole('button', { name: 'Sets' });
+    expect(button).toHaveStyle({ width: 48, height: 48, borderRadius: 999 });
+    expect(backdropOf(button)).toHaveStyle({ backgroundColor: surfaceControl, width: 48, height: 48, borderRadius: 999 });
+    expect(touchTarget(button)).toEqual({ width: 48, height: 48 });
+    expect(symbolSizes(button)).toEqual([18]);
+    expect(symbolTintColor(button)).toBe(white);
+    await fireEvent.press(button);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('SetRow', () => {
+  const magic2010: CardSet = {
+    code: 'm10',
+    name: 'Magic 2010',
+    icon_svg_uri: 'https://svgs.scryfall.io/sets/m10.svg',
+    released_at: '2009-07-17',
+    set_art_uri: null,
+    completion: { any: { owned: 234, size: 261 }, nonfoil: { owned: 200, size: 261 }, foil: { owned: 0, size: 0 } },
+  };
+
+  test('a set row is a surface button with a 44 pt touch target that VoiceOver reads with its set completion in the finish view', async () => {
+    const onPress = jest.fn();
+    await render(<SetRow set={magic2010} finishView="nonfoil" onPress={onPress} />);
+
+    const row = screen.getByRole('button', { name: 'Magic 2010, 200 of 261, 76 percent' });
+    expect(row).toHaveStyle({ backgroundColor: surface, borderRadius: 12, minHeight: 44 });
+    await fireEvent.press(row);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  test('a set header looks like a set row but is read as one header, not a button', async () => {
+    await render(<SetHeader set={magic2010} finishView="any" />);
+
+    expect(screen.getByRole('header', { name: 'Magic 2010, 234 of 261, 89 percent' })).toHaveStyle({ backgroundColor: surface, borderRadius: 12 });
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  test('a set whose main set is empty in the finish view shows "0 of 0" with no percentage', async () => {
+    await render(<SetHeader set={magic2010} finishView="foil" />);
+
+    const header = screen.getByRole('header', { name: 'Magic 2010, 0 of 0' });
+    expect(within(header).getByText('0 of 0')).toBeOnTheScreen();
+    expect(within(header).queryByText(/%|✓/)).toBeNull();
+  });
+
+});
+
+describe('SetBannerSkeleton', () => {
+  test('the set list skeleton reads as one loading element', async () => {
+    await render(<SetListSkeleton accessibilityLabel="Loading sets" />);
+
+    const skeleton = screen.getByRole('progressbar', { name: 'Loading sets' });
+    expect(skeleton).toHaveProp('accessible', true);
+    expect(within(skeleton).queryAllByLabelText(/./)).toEqual([]);
+  });
+
+  test('the set list skeleton fills the screen with set banner skeletons, 8 px apart', async () => {
+    await render(<SetListSkeleton accessibilityLabel="Loading sets" />);
+
+    const list = screen.getByRole('progressbar');
+    expect(list).toHaveStyle({ rowGap: 8 });
+    expect(list.children).toHaveLength(Math.ceil(Dimensions.get('window').height / (92 + 8)));
+  });
+
+  test('the set list skeleton can show a given number of set banner skeletons', async () => {
+    await render(<SetListSkeleton accessibilityLabel="Loading more sets" banners={2} />);
+
+    expect(screen.getByRole('progressbar', { name: 'Loading more sets' }).children).toHaveLength(2);
+  });
+
+  test('a set banner skeleton is a 92 px rounded block with a white set symbol block and pulsing bars for the name and "x of y"', async () => {
+    await render(<SetListSkeleton accessibilityLabel="Loading sets" banners={1} />);
+
+    const [banner] = screen.getByRole('progressbar').children as ReturnType<typeof screen.getByRole>[];
+    expect(banner).toHaveStyle({ minHeight: 92, borderRadius: 12, backgroundColor: surface, justifyContent: 'flex-end' });
+    const [content] = banner.children as ReturnType<typeof screen.getByRole>[];
+    const [symbol, bars] = content.children as ReturnType<typeof screen.getByRole>[];
+    expect(symbol).toHaveStyle({ width: 26, height: 26, backgroundColor: white, opacity: 0.45 });
+    const [name, count] = bars.children as ReturnType<typeof screen.getByRole>[];
+    expect(name).toHaveStyle({ height: 14, width: '60%', backgroundColor: line, opacity: 0.45 });
+    expect(count).toHaveStyle({ height: 12, width: '30%', backgroundColor: line, opacity: 0.45 });
+  });
+
+  test('the set page banner skeleton is a 150 px rounded block with a 30 px white set symbol block', async () => {
+    await render(<SetBannerSkeleton size="header" />);
+
+    const banner = screen.root!;
+    expect(banner).toHaveStyle({ minHeight: 150, borderRadius: 12, backgroundColor: surface });
+    const [content] = banner.children as ReturnType<typeof screen.getByRole>[];
+    const [symbol] = content.children as ReturnType<typeof screen.getByRole>[];
+    expect(symbol).toHaveStyle({ width: 30, height: 30, backgroundColor: white });
   });
 });
 

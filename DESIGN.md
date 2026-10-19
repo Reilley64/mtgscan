@@ -301,6 +301,41 @@ components:
     height: 48px
   floating-button-active:
     textColor: "{colors.primary}"
+  set-row:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.md}"
+    padding: 10px
+  set-row-complete:
+    backgroundColor: "{colors.primary}"
+    width: 2px
+  set-symbol-fill:
+    backgroundColor: "{colors.line}"
+    textColor: "{colors.primary}"
+    width: 44px
+    height: 44px
+  set-banner:
+    backgroundColor: "{colors.background}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.md}"
+    padding: 12px
+    height: 92px
+  set-banner-edge:
+    backgroundColor: "{colors.primary}"
+    width: 2px
+  set-banner-symbol:
+    textColor: "{colors.text}"
+    width: 26px
+    height: 26px
+  set-page-banner:
+    backgroundColor: "{colors.background}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.md}"
+    padding: 12px
+    height: 150px
+  set-page-banner-symbol:
+    textColor: "{colors.text}"
+    width: 30px
+    height: 30px
   commander-gallery-card:
     backgroundColor: "{colors.surface}"
     rounded: "{rounded.md}"
@@ -371,7 +406,7 @@ The palette is near-black neutrals with one lime accent. Card art supplies every
 - **Glass text muted (#dce3e6)** and **glass text dim (#b5c0c5)** replace text muted and text dim on Liquid Glass, so the meta line, the chevron, and disabled labels stay readable when a bright card shows through. **Glass skeleton (white at 12%)** replaces line for the skeleton blocks and the empty thumbnail on glass. The owner picked it on the phone from four shades (#113). See Liquid Glass.
 - **Primary (#d8ff62)**, the lime accent, is the single interaction color: the primary button, the selected chip, the selected tab, section headings, and in-app links. Text on it is **on-primary (#101500)**. The brand mark is the one non-action use of lime.
 - **Grabber (#4a555b)** draws the short bar at the top of the sign-in sheet. The settings drawer uses the iOS system grabber, which iOS draws in its own color.
-- **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message and the destructive buttons. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall.
+- **Danger tint (#ff7a70 at 16%)** fills the round mark beside a failure message and the destructive buttons. **Quantity badge (black at 82%)** fills the quantity badges on the sign-in binder wall and on set page tiles.
 - **Incoming (#d8ff62)** and **outgoing (#ff8a7a)** mark the plus and minus lines of a planned swap, buylist card, or deck change.
 - **Warning (#f4d06f)** marks protected copies and caution states. **Danger (#ff7a70)** marks invalid decks, the cards that break a Commander rule, and destructive actions such as remove scan or revert. **Info (#8fd3ff)** marks the estimated bracket and in-deck counts.
 - **Badge (#e0244a)** is only for count badges on tabs, buttons, and the basic land tiles of Collection, such as Needs you.
@@ -400,13 +435,15 @@ Copy is plain sentence case and uses glossary terms exactly: planned swap, buyli
 
 The app is built for an iPhone in portrait. The page inset is 16 px, cards sit 12 px from the edges, and rows use 8 px gaps. The content of a tab ends 32 px above the tab bar. A list under floating buttons ends 80 px above the tab bar instead, or 80 px above the bottom safe area on a pushed screen (`sizes.floatingButtonClearance`), so the last row clears the buttons. The Collection grid and a deck's Cards tab have floating buttons.
 
-Text follows the text size that the user sets in iOS. Buttons, chips, deck tags, and count badges grow taller with their labels, so a label never clips. Sign-in buttons and round icon buttons keep their height. The labels of a segmented control shrink to fit on one line. The commander gallery card and the deck banner grow taller when the deck name and chips need more room. The banner keeps them at least 60 px below the safe area (`sizes.headerClearance`): the 44 px header with Close and •••, and 16 px under it.
+Text follows the text size that the user sets in iOS. Buttons, chips, deck tags, and count badges grow taller with their labels, so a label never clips. Sign-in buttons and round icon buttons keep their height. The labels of a segmented control shrink to fit on one line. The commander gallery card and the deck banner grow taller when the deck name and chips need more room. So do the set banners. The banner keeps them at least 60 px below the safe area (`sizes.headerClearance`): the 44 px header with Close and •••, and 16 px under it.
 
 ### App shell
 
 A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Scan**. Recent has a count badge with the number of open planned swaps and open buylist cards across all decks. With none, it has no badge. The badge shows 1.5 seconds after the tab bar appears, at launch and after sign-in. On iOS 26, a badge set while the tab bar first lays out cuts the other tab labels short, such as "Collect…". The count reads again when the app comes back to the foreground and each time Recent or a deck screen reads its items.
 
 A read that runs again, when a page gains focus or after a change, and fails, keeps what the page already shows. Only a page that has shown nothing yet shows its error state.
+
+A list that loads in pages reads the next page as the user nears its end. While that page loads, skeleton rows of the list's own shape show at its end, after the rows already shown. VoiceOver reads them as one element. When the page returns, its rows replace them. Collection and Sets load in pages (owner request, #382).
 
 - **Recent** is the home across all decks. It holds only the Needs you items, **oldest first**: planned swaps ready to swap in and open buylist cards (owner decision, spec 4). Deck changes stay in each deck's History tab. Collection changes do not appear in Recent.
   - Each item carries a tag with the commander avatar and deck name. The tag opens that deck on Planned.
@@ -426,6 +463,7 @@ A read that runs again, when a page gains focus or after a change, and fails, ke
   - The header has the collection total button next to the settings button (owner decision, #125). See Collection header.
   - Card images sit 3 per row, with **one tile per copy** and no quantity badge. Three copies of a card printing make three tiles (owner decision, #116).
   - Copies of the same card printing sit next to each other. By default, the card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
+  - While the next page of copies loads, one row of three skeleton tiles shows after the last tiles. The tiles have the shape of the skeleton grid. VoiceOver reads them as one element, "Loading more copies".
   - While the binder grid loads and shows no tiles yet, a skeleton grid fills the visible screen in its place. It has the shape of the grid: three tiles per row, with the same gaps. Each tile is a card-shaped block over two short bars for the meta line and the price line, 12 px tall and 60% and 40% wide. The blocks are line-colored on the background and pulse like the skeleton chip. VoiceOver reads the skeleton grid as one element, "Loading collection". When the read returns, the tiles, the empty state, or the error state replace it.
   - A reload when the tab gains focus and a new page keep the tiles already shown and bring no skeleton grid back. The reload reads as many tiles as the tab showed, so the scroll position stays.
   - With no copies, the tab shows its empty state with a **Scan cards** button, which opens the Scan tab. See Empty states.
@@ -438,6 +476,7 @@ A read that runs again, when a page gains focus or after a change, and fails, ke
   - Basic land tiles are not in the count line, the collection total, or its coverage.
   - A native search bar sits under the large title. See Collection search. Filters: All, Free, Allocated, Protected.
   - A round sort button floats over the grid at the bottom right and changes the order. See Collection search.
+  - A round Sets button floats over the grid at the bottom left and opens Sets. See Sets.
 - **Decks** is a commander gallery: one commander gallery card per deck, the deck used most recently first. Decks used at the same time sort by name, ignoring case. See Components.
   - Opening a deck counts as using it. Later, changing its cards, renaming it, and changing its deck priority count too.
   - A tap on a gallery card opens the deck screen on Cards.
@@ -510,6 +549,7 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
 - **Search bar.** The native iOS search bar sits under the large title, with the placeholder "Search your collection". It stays visible when the grid scrolls. Its caret and Cancel are primary lime.
 - Typed text matches card names, type lines, and Oracle text, in the collection only. A word that starts with a known key, such as `set:m`, is not sent as text.
 - **Suggestions.** While the user types, suggestions replace the grid. Each suggestion is a list row.
+  - The keys and the fixed lists show at once. The app reads set codes, Oracle tags, user tags, and decks after a pause in typing of 300 ms.
   - With no key typed, they offer the keys that start with the typed word, such as "set:" with "Set code".
   - After a key, they offer values: set codes from the card catalog with the set name, Oracle tags from the tag lookup with the tag label, and the fixed lists for finish, condition, language, rarity, and color.
   - After `user_tag:`, they offer the user's user tags whose names contain the typed text, ignoring case. Each shows its copy count, such as "3 copies".
@@ -520,6 +560,7 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
   - A value with spaces is quoted, as in `name:"sol ring"` or `user_tag:"trade binder"`. A `deck:` value is always quoted. A leading `-` negates, as in `-rarity:common`. The number keys and `identity` cannot be negated, because collection search has no exclude field for them.
   - A key that the app does not know stays as text.
 - The app turns the text and the chips into the typed collection search query. The server never parses a string.
+- Typed text searches the collection after a pause in typing of 300 ms. A new chip, a picked suggestion, Enter, and Cancel search at once.
 - The app sends deck IDs, and the server never matches deck names. A typed `deck:` chip, made without a pick, matches every deck with exactly that name, ignoring case.
 - Chips sit under the search bar, at the top of the grid. Each chip shows its `key:value` text and ×. Tapping a chip removes it. Backspace in an empty field removes the last chip. Cancel clears the text and the chips.
 - **Results.** Results show as binder tiles, one per copy. While text or a chip is active, a count line in meta text, such as "6 of 27 copies", sits above the grid. While a new search loads, the skeleton grid replaces the tiles. Basic land cards whose names contain every word of the text and every `name:` chip, ignoring case, follow the copies in the Basic lands section, so "island" ends with Island and Snow-Covered Island. With no matching copies, they are the only results. Any other chip or filter, such as `set:` or Allocated, hides every basic land tile. With no results, the grid shows the empty state "No cards found". See Empty states.
@@ -540,6 +581,46 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
   - The symbol is in the text color while the sort is Relevance. Any other sort turns it primary lime. There is no badge or dot, because count badges are only for counts.
   - VoiceOver reads "Sort, Relevance", or the sort and its direction, such as "Sort, Price, high to low".
   - The sort lasts until the app restarts and is not saved. The button hides while the user types in the search bar and while the Filters drawer is open. It also hides while the tab shows an empty state, because there is nothing to sort.
+
+### Sets
+
+Sets lists every released set that has a card printing in the card catalog, with the user's set completion in the finish view (#366, #368). Each set is a banner of its set art, option B of the HTML prototype `docs/prototypes/sets-art-fill.html` (#369). A set with no set art keeps option A, the set symbol filling up.
+
+- **Sets button.** A round Liquid Glass button, 48 px across, floats over the Collection grid at the bottom left, 16 px from the left edge and level with the sort button. It shows the `rectangle.portrait.on.rectangle.portrait` stacked cards symbol at 18 px in the text color. Without Liquid Glass, it uses the control surface. It reacts to touch. VoiceOver reads "Sets, button".
+  - It shows and hides with the sort button. It hides while the user types in the search bar, while the Filters drawer is open, and while the tab shows an empty state.
+  - Tapping it pushes Sets onto the Collection tab's stack.
+- **Sets screen.** It is a screen in the Collection tab's stack, not a pushed screen over the tab bar. The tab bar stays. It has the large title "Sets" and the native back button. The swipe from the left edge goes back to Collection. It has no settings button.
+  - A native search bar sits under the large title, with the placeholder "Search sets". It stays visible when the list scrolls. Its caret and Cancel are primary lime.
+  - Typed text matches the set name or the set code, ignoring case, so "bloom" and "BLB" both find Bloomburrow. The server does the match. After a pause in typing of 300 ms, the search reads Sets again from the first page. Clearing the text or Cancel reads at once. Dragging the list puts the keyboard away. Cancel clears the text.
+  - When the first page of a search is empty, the list shows the empty state `No sets match "xyz".` with no body.
+  - The finish view control sits under the search bar, 12 px above the first row. See Finish view below.
+  - The sets come newest first, then by name, as the read returns them. A set whose main set is empty in the finish view is not shown, such as a set of only basic lands, or Alpha in Foil.
+  - Sets loads in pages of 20 sets. It reads the next page as the user nears the end of the list.
+  - Each set is a set banner. A set with no set art is a set row. See Components.
+  - A tap on a row pushes the set's set page onto the Collection tab's stack.
+  - Sets reads again each time it gains focus, so cards scanned since then count at once. A reload reads as many sets as Sets showed and keeps the rows shown.
+  - While the first page loads, set banner skeletons fill the screen. See Components. VoiceOver reads them as one element, "Loading sets".
+  - While the next page loads, two set banner skeletons show after the last set. VoiceOver reads them as one element, "Loading more sets".
+  - When the first read fails, Sets shows the empty state "Could not load Sets" with a **Try again** button. See Empty states.
+- **Set page.** It shows one set's cards as a checklist in the finish view (#367, #368). It follows the set page of the HTML prototype `docs/prototypes/sets.html`, with the set art banner of option B (#369).
+  - It is a screen in the Collection tab's stack, like Sets. The tab bar stays. It has the native back button and no title. The swipe from the left edge goes back to Sets.
+  - A set page banner starts the page. It is the larger set banner. It is not a button. VoiceOver reads it as one header, such as "Bloomburrow, 234 of 261, 89 percent".
+  - A set with no set art starts with a set header in place of the banner. It has the layout of a set row, with the set symbol filling up in lime, the set name, "x of y", the progress bar, and the percentage.
+  - The finish view control sits under the set page banner or the set header, 12 px below it. See Finish view below.
+  - A set whose main set is empty in the finish view, such as Alpha in Foil, shows "0 of 0" with no percentage. It is never complete, so it has no ✓ and no lime outline, and its set art or set symbol has no color. VoiceOver reads it as "Limited Edition Alpha, 0 of 0".
+  - The main set follows as card images, 3 per row, in collector number order. A heading "Variants" in body strong lime then shows the variants' own "x of y" in meta text, such as "12 of 106", and their grid in the same order. VoiceOver reads the heading as "Variants, 12 of 106". A set with no variants has no Variants section.
+  - Each card printing is a set page tile. See Components. The page shows no prices.
+  - Tiles are images, not buttons. A tap on one does nothing.
+  - The set page reads again each time it gains focus, so cards scanned since then count at once. A reload keeps the cards shown.
+  - While the set page loads, a skeleton shows a set page banner skeleton and a grid of card shapes. VoiceOver reads it as one element, "Loading set".
+  - When the first read fails, the set page shows the empty state "Could not load this set" with a **Try again** button. See Empty states.
+
+- **Finish view.** Sets and the set page show the same finish view control, a toggle group with the segments "Any finish", "Nonfoil", and "Foil" (#368). VoiceOver reads each segment as a radio button.
+  - Any finish is the default. The phone keeps the choice in the keychain, as it keeps the price currency, so it survives a restart.
+  - One choice drives both screens. Changing it on Sets changes it on the set page, and the other way round. Changing it reads Sets again from the first page, because the server leaves out the sets whose main set is empty in the finish view. The set page does not read again.
+  - In the chosen finish view, the set banners on Sets, the set page banner, the set rows and the set header of a set with no set art, and the Variants "x of y" show set completion in that view. A set page tile is lit when the user owns the card printing in that view, and its quantity badge counts the copies in that view.
+  - Nonfoil counts the nonfoil copies, or every copy of a card printing with no nonfoil finish. Foil counts the foil and etched copies. A card printing with no foil or etched finish is left out of Foil, so the set page does not show it. When every variant is left out, the set page has no Variants section.
+  - In the Foil view, a lit tile carries the foil sheen.
 
 ### Sign-in screen
 
@@ -785,6 +866,7 @@ The interface is flat. Depth comes from tone, not shadow.
 - The hero of the copy page blurs the art crop with a 26 px radius (`blurRadii.heroArt`) and shows it at 45% opacity over the background (`opacity.heroArt`), so the card stands out from its own art. The blur radius is an image prop, not a class.
 - The empty state illustrations on the background fade downward into it (`gradients.emptyStateFade`). On a page sheet or a drawer, they fade into the sheet color instead (`gradients.emptyStateSheetFade`). See Empty states.
 - Commander art on the commander gallery card and the deck screen banner fades down into the background color, clear to 30% of the height and 90% at the bottom (`gradients.commanderArtScrim`), so the deck name and chips stay readable.
+- Set art on a set banner fades in from the left, the background color at 85% at the left edge to 10% at 70% of the width (`gradients.setArtScrim`), so the set name and numbers stay readable.
 - NativeWind 4 has no class for a box shadow or a gradient, so the shadows, the scrim, the sheens, and the empty state fade are style values.
 - The tab bar is a near-opaque bar with a hairline top border.
 - The controls that float over the camera or over scrolling content use Liquid Glass. See Liquid Glass.
@@ -794,17 +876,17 @@ The interface is flat. Depth comes from tone, not shadow.
 
 Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
-- Only the controls that float over the camera or over scrolling content use glass: the latest-scan chip, the quick-action bar, the batch button, the pull indicator (owner decisions, #113 and #130), the tab header buttons (owner decision, #128), the sort button on Collection (#143), and the group and sort buttons on the deck screen's Cards tab (#229). Every other surface stays flat.
+- Only the controls that float over the camera or over scrolling content use glass: the latest-scan chip, the quick-action bar, the batch button, the pull indicator (owner decisions, #113 and #130), the tab header buttons (owner decision, #128), the sort and Sets buttons on Collection (#143 and #366), and the group and sort buttons on the deck screen's Cards tab (#229). Every other surface stays flat.
 - The tab header buttons are native bar buttons. iOS 26 draws their glass, so `GlassSurface` does not wrap them.
 - The pull indicator does not react to touch. It moves by sliding, never by fading.
-- The glass is the regular style with no tint. Glass that the user can tap, such as the chip, the quick-action bar, the batch button, and the group and sort buttons, reacts to touch. The skeleton chip and the basic land chip do not.
+- The glass is the regular style with no tint. Glass that the user can tap, such as the chip, the quick-action bar, the batch button, the Sets button, and the group and sort buttons, reacts to touch. The skeleton chip and the basic land chip do not.
 - The chip and the quick-action bar sit in one glass group with 8 px spacing, so they blend like iOS controls but do not merge at rest.
 - Text on glass:
   - The card name and enabled labels stay text white.
   - The meta line uses glass text muted.
   - The chevron and disabled quick-action labels and symbols use glass text dim.
   - The skeleton blocks and the empty thumbnail use glass skeleton.
-- Without Liquid Glass, as on iOS 17 and 18, the chip falls back to surface, and the quick-action bar, the batch button, the pull indicator, and the group and sort buttons to surface control, with the normal text colors.
+- Without Liquid Glass, as on iOS 17 and 18, the chip falls back to surface, and the quick-action bar, the batch button, the pull indicator, the Sets button, and the group and sort buttons to surface control, with the normal text colors.
 - The glass never fades with opacity, because glass under opacity 0 stops rendering. The skeleton pulse animates the blocks inside the chip, not the glass.
 - `expo-glass-effect` draws the glass. `GlassSurface` and `GlassGroup` in `src/components/atoms/glass-surface.tsx` wrap it.
 
@@ -885,11 +967,11 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - **Remove scan**, a danger button, removes this scan and closes the sheet. The other copies stay in the scan batch. Removing the scan on the chip leaves the chip empty.
   - Section headings are lime body strong text.
 - **Name search.** A "Card name" field at the top of the scan details sheet, with the keyboard up. A scan that was not recognized opens the sheet straight into name search.
-  - As the user types, up to 10 card names show as rows. The phone matches names and face names in the gallery, ignoring case, accents, and punctuation. Exact names come first, then names that start with the text, then names with a word that starts with it.
+  - After a pause in typing of 300 ms, up to 10 card names show as rows. The phone matches names and face names in the gallery, ignoring case, accents, and punctuation. Exact names come first, then names that start with the text, then names with a word that starts with it.
   - Tapping a name lists every card printing of that card in the gallery, newest first, as card images 3 per row with the set code and collector number under each.
   - Tapping a card printing switches the scan to it and returns to the details.
   - Choosing a basic land shows "Basic lands are not tracked." and changes nothing.
-  - When no card name matches the text, a line in text muted says so, such as "No card names match "zzzz".".
+  - When no card name matches the text the phone read, a line in text muted says so, such as "No card names match "zzzz".".
 - **Batch button.** A round icon button on glass at the top right of Scan, 8 px below the safe area, with the `rectangle.portrait.on.rectangle.portrait.angled` card-stack symbol. Without Liquid Glass, it uses the control surface. A count badge on its top right corner counts the scans in the scan batch, the same N as the batch review title. With no scan to add, the button shows no badge. VoiceOver reads "Scan batch, 3". The button shows in every Scan tab state, and it opens batch review.
 - **Pull indicator.** A glass pill centered at the top of Scan, on the batch button's row. It is 38 px tall with full corners and 12 px side padding. It holds an 18 px symbol in the text color and its label in body strong, 8 px apart. The symbol is `arrow.down` while pulling and for "Nothing to add", `plus` for "Release to add", a spinner while adding, and the danger mark of the failure notice for "Failed to add". Without Liquid Glass, it uses the control surface. See Scan in Layout for its states.
 - **Batch review.** A bottom drawer with the iOS grabber, at full height only. It closes with a downward swipe. Its title is "N cards scanned", such as "3 cards scanned", or "1 card scanned" for one. N counts the scans in the scan batch, the same N as the batch button badge and the **Remove all scans** alert. The title sits in a native navigation bar in sheet title type, on the sheet color with no line under it.
@@ -911,7 +993,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - While the commit runs, rows do not open.
   - With an empty scan batch, batch review shows its empty state in place of the list, and the **Add to collection** control hides. See Empty states. The control stays while a commit that works closes the drawer. Scans that were not recognized never enter the scan batch, so the control never shows disabled.
   - The phone saves the scan batch for each account, so they survive a restart. Another account on the phone does not see them.
-- **Binder tile.** One copy's card image with a meta line and a price line under it. There is no quantity badge and no chip.
+- **Binder tile.** One copy's card image with a meta line and a price line under it. There is no quantity badge and no chip (#116). Only set page tiles have a quantity badge.
   - Until the image loads, the tile is a line-colored card shape.
   - The meta line sits 4 px below the card image, centered, in meta text in text muted: the set's expansion symbol from Scryfall at 16 px tinted with the rarity color of the card printing (see Colors), then the collector number. A protected copy starts the line with an 11 px `shield.fill` symbol in warning, before the set symbol: "[shield] [symbol] 136". A copy in a deck starts the line with its deck's first commander art in a 16 px circle, before the shield: "[commander] [shield] [symbol] 136". A deck with no commander shows a dashed circle. A copy held by a planned swap starts the line with an 11 px `bookmark.fill` symbol in info, the held symbol: "[held] [symbol] 136". A held copy is never in a deck and never protected. When the card catalog has no symbol for the set, or it has not loaded, the set code in capitals takes its place. A copy that is not NM adds a text dim " · " and its condition: "[symbol] 136 · MP". Every condition uses the same text muted color.
   - The line never names the finish. A foil copy has a faint rainbow sheen over its card image, and an etched copy has a faint silver sheen. Nonfoil copies have none. The sheen does not move. It is a diagonal gradient at 30% opacity, so the card art reads normally.
@@ -942,6 +1024,9 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
     | Copy page, read failed | a dashed card frame with `wifi.slash` | Could not load this card | Check your connection. | **Try again** reads the copy again |
     | User tag picker, read failed | a dashed card frame with `wifi.slash` | Could not load your user tags | Check your connection. | **Try again** reads the copy and the user tags again |
     | Collection search, no results | one row of empty binder slots | No cards found | Check the spelling or try fewer words. | none |
+    | Sets, read failed | a dashed card frame with `wifi.slash` | Could not load Sets | Check your connection. | **Try again** reads Sets again |
+    | Sets search, no match | a dashed card frame with `magnifyingglass` | No sets match "xyz". | none | none |
+    | Set page, read failed | a dashed card frame with `wifi.slash` | Could not load this set | Check your connection. | **Try again** reads the set again |
     | Decks, no decks | a ghost commander card | No decks yet | Create a deck, then add cards to it from your collection. | **Create deck** opens the name alert |
     | Decks, read failed | a ghost commander card | Could not load your decks | Check your connection. | **Try again** reads the decks again |
     | AI clients list, read failed | a dashed card frame with `wifi.slash` | Could not load the AI clients | Check your connection. | **Try again** reads the AI clients again |
@@ -958,6 +1043,29 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Floating menu buttons.** A round Liquid Glass button, 48 px across, with an 18 px symbol, that opens a native menu with a title and a check mark on the current choice. Without Liquid Glass, it uses the control surface. The symbol is in the text color while the choice is the default, and primary lime otherwise. There is no badge or dot.
   - The sort button shows `arrow.up.arrow.down` and a menu titled "Sort by". An arrow beside the current sort shows its direction. VoiceOver reads "Sort" and the sort with its direction, such as "Sort, Name, A to Z". Collection and the deck screen's Cards tab share it.
   - The group button on the deck screen's Cards tab shows `rectangle.3.group` and a menu titled "Group by". VoiceOver reads "Group" and the grouping, such as "Group, Type".
+- **Floating button.** A round Liquid Glass button, 48 px across, with an 18 px symbol in the text color, that acts at once when tapped. Without Liquid Glass, it uses the control surface. The Sets button on Collection is one.
+- **Set row.** A surface button with 12 px corners for one set on Sets. From left to right:
+  - the set symbol from Scryfall at 44 px (`sizes.setSymbolFill`) in the line color, filling up from the bottom in primary lime to the share of the set completion;
+  - the set name in body strong, "x of y" in meta text, such as "234 of 261", and a 4 px progress bar in primary lime on a line-colored track;
+  - the percentage in sheet title type, such as "89%". The percentage is `floor(100 × owned / size)`, so 100% always means the set is complete.
+  - A complete set has a 2 px lime outline (`borderWidths.selectedOutline`) and a lime ✓ in place of the percentage. Every row has the outline frame, transparent when the set is not complete, so rows keep one size.
+  - VoiceOver reads the row as one button with the name, "x of y", and the percentage in words, such as "Bloomburrow, 234 of 261, 89 percent".
+  - The set header at the top of the set page has the same layout. It is not a button, and VoiceOver reads it as one header.
+  - Sets and the set page use a set row or a set header only for a set with no set art.
+- **Set banner.** A button at least 92 px tall with 12 px corners (`sizes.setBanner`) for one set on Sets, drawn over its set art (`set_art_uri`). It grows taller when its text needs more room. The set art is the art crop of the set's most expensive card printing. See `GLOSSARY.md`.
+  - The set art covers the banner. The owned share in the finish view, from the left edge, is in full color. The rest is grayscale at 38% opacity (`opacity.dimmed`) on the background color, so it is gray and dark. The same saturation blend overlay as the dimmed set page tile takes out the color, because React Native has no grayscale filter on iOS.
+  - A 2 px primary lime line (`borderWidths.selectedOutline`) marks the edge of the owned share. A set at 0% has no color and no line.
+  - A scrim from the left (`gradients.setArtScrim`), the background color at 85% fading to 10% at 70% of the width, keeps the text readable.
+  - At the bottom, from left to right: the set symbol at 26 px (`sizes.setBannerSymbol`) in white, the set name in body strong over "x of y" in meta text, and the percentage in sheet title type.
+  - A complete set is all in color, with no edge line, a 2 px lime outline, and a lime ✓ in place of the percentage. Every banner has the outline frame, transparent when the set is not complete.
+  - VoiceOver reads it like a set row, as one button.
+  - The set page banner at the top of the set page is the larger size: at least 150 px tall (`sizes.setPageBanner`), with the set symbol at 30 px (`sizes.setPageBannerSymbol`) and the set name in sheet title type. It is not a button, and VoiceOver reads it as one header.
+  - A set banner skeleton has the shape of a set banner: a block at least 92 px tall with 12 px corners on the surface color, with the transparent outline frame. At its bottom sit a 26 px white block for the set symbol and two bars, 14 px and 12 px tall and 60% and 30% wide, for the name and "x of y". The set page banner skeleton is the larger size, at least 150 px tall with a 30 px symbol block. The blocks and bars pulse like the skeleton grid.
+- **Set page tile.** One card printing's card image on the set page, with no meta line and no price line.
+  - A card printing that the user owns in the finish view is lit, at full color. In the Foil view, a lit tile carries the foil sheen of a foil copy.
+  - A card printing that the user does not own in the finish view is dimmed: its card image is grayscale at 38% opacity (`opacity.dimmed`). A saturation blend overlay in the background color takes out the color, because React Native has no grayscale filter on iOS.
+  - A lit tile with 2 or more copies in the finish view shows the number of copies in a quantity badge at the top left of the card image, 5 px from the corner (`sizes.quantityBadgeInset`): a 19 px pill in the quantity badge color with the number in tab label type in white. A tile with 1 copy has no badge. Binder tiles still have no quantity badge (#116).
+  - VoiceOver reads the tile as one image with the name, "number" and the collector number, and "owned" or "not owned", then the copies from 2: "Beza, the Bounding Spring, number 2, owned, 2 copies", "Beza, the Bounding Spring, number 2, owned", or "Beza, the Bounding Spring, number 2, not owned".
 - **Name alert.** A native alert with a title, a message, a name field, **Cancel**, and a confirm button, such as **Create**. The field takes at most 64 characters. The confirm button is off while the trimmed name is empty. A new alert starts with an empty field, or with the current name when it renames.
 
 ## Do's and Don'ts
@@ -969,6 +1077,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Do** list "Needs you" items oldest first, so the longest wait is on top.
 - **Do** keep every deck change a user action, and show the AI's reason with every planned swap and buylist card that an AI client made.
 - **Do** keep the phone's back gesture working on every pushed screen.
+- **Do** make a search input that reads from the server or the gallery wait 300 ms after the last keystroke. A search input that filters data the screen already has, such as the user tag picker, filters at once.
 - **Do** flag validity problems ("Would make it invalid") without blocking the action.
 - **Don't** show recognizer confidence, similarity scores, or "unsure" states.
 - **Don't** add "Find in decks" style shortcuts that duplicate visible deck tags.

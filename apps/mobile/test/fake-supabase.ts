@@ -70,6 +70,7 @@ import type {
   FreeCopy,
   MarkBuylistCardBoughtRequest,
 } from '@mtgscan/supabase/buylist';
+import type { CardSet, SetDetails, SetList, SetListQuery, SetQuery } from '@mtgscan/supabase/sets';
 import type { SignInProvider } from '@mtgscan/supabase/sign-in-providers';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
@@ -155,6 +156,16 @@ let failingScanBatch: 'before the server adds it' | 'after the server adds it' |
 let heldScanBatch: Promise<void> | null = null;
 let heldCollectionReads: Promise<void> | null = null;
 let heldDeckReads: Promise<void> | null = null;
+let sets: CardSet[] = [];
+let setReads = 0;
+let setListQueries: SetListQuery[] = [];
+let setCodeLookups: string[] = [];
+let failingSetReads = 0;
+let heldSetReads: Promise<void> | null = null;
+let setPages = new Map<string, SetDetails>();
+let setPageReads: string[] = [];
+let failingSetPageReads = 0;
+let heldSetPageReads: Promise<void> | null = null;
 let heldDeckListReads: Promise<void> | null = null;
 let heldNeedsYouReads: Promise<void> | null = null;
 let galleryObjects = new Map<string, string>();
@@ -263,6 +274,39 @@ function collectionCopiesPage(query: CollectionQuery) {
 }
 
 const networkFailure = { code: '', message: 'TypeError: Network request failed', details: null, hint: '' };
+
+async function setList({ text, finish_view, cursor, limit = 20 }: SetListQuery) {
+  setReads += 1;
+  setListQueries = [...setListQueries, { text, finish_view, cursor }];
+  await heldSetReads;
+  if (failingSetReads > 0) {
+    failingSetReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  const wanted = text?.toLowerCase() ?? '';
+  const listed = sets.filter(
+    (set) =>
+      set.completion[finish_view].size > 0 && (set.name.toLowerCase().includes(wanted) || set.code.toLowerCase().includes(wanted)),
+  );
+  const offset = cursor ? Number(cursor) : 0;
+  const end = offset + limit;
+  const page: SetList = { items: listed.slice(offset, end), next_cursor: end < listed.length ? String(end) : null };
+  return { data: page, error: null };
+}
+
+async function setPageRead({ code }: SetQuery) {
+  setPageReads = [...setPageReads, code];
+  await heldSetPageReads;
+  if (failingSetPageReads > 0) {
+    failingSetPageReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  const set = setPages.get(code);
+  if (!set) {
+    return { data: null, error: { code: 'not_found', message: 'code is not a released set in the card catalog.', details: 'code' } };
+  }
+  return { data: set, error: null };
+}
 
 function collectionTotalRead(query: object) {
   priceReads = [...priceReads, { read: 'get_collection_total', query }];
@@ -1209,10 +1253,11 @@ function cardCatalogTable(table: string) {
       in: async (_column: string, ids: string[]) => ({ data: cardCatalogRows(table, ids), error: null }),
       ilike: (_column: string, pattern: string) => ({
         order: () => ({
-          limit: async (count: number) => ({
-            data: cardSets.filter((set) => set.code.startsWith(pattern.replace(/%$/, '').toLowerCase())).slice(0, count),
-            error: null,
-          }),
+          limit: async (count: number) => {
+            const prefix = pattern.replace(/%$/, '');
+            setCodeLookups = [...setCodeLookups, prefix];
+            return { data: cardSets.filter((set) => set.code.startsWith(prefix.toLowerCase())).slice(0, count), error: null };
+          },
         }),
       }),
     }),
@@ -1262,6 +1307,7 @@ export const fakeSupabase = {
       | { query: FreeCopiesQuery }
       | { query: Record<string, never> }
       | { query: CurrentPricesQuery }
+      | { query: SetQuery }
       | { query: { text: string; limit: number } }
       | { batch: ScanBatch }
       | {
@@ -1333,6 +1379,12 @@ export const fakeSupabase = {
     }
     if (name === 'change_basic_land' && args && 'request' in args) {
       return changeBasicLand(args.request as ChangeBasicLandRequest);
+    }
+    if (name === 'list_sets' && args && 'query' in args) {
+      return setList(args.query as SetListQuery);
+    }
+    if (name === 'get_set' && args && 'query' in args) {
+      return setPageRead(args.query as SetQuery);
     }
     if (name === 'list_basic_land_cards') {
       return basicLandCardList();
@@ -1675,6 +1727,64 @@ export function copyProtectedWritesSent() {
   return copyProtectedWrites;
 }
 
+export function offerSets(rows: CardSet[]) {
+  sets = rows;
+}
+
+export function setReadCount() {
+  return setReads;
+}
+
+export function setListQueriesSent() {
+  return setListQueries;
+}
+
+export function setCodeLookupsSent() {
+  return setCodeLookups;
+}
+
+export function failSetReads(count: number) {
+  failingSetReads = count;
+}
+
+export function holdSetReads() {
+  let finish = () => {};
+  heldSetReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldSetReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
+export function offerSetPage(set: SetDetails) {
+  setPages = new Map(setPages).set(set.code, set);
+}
+
+export function setPageReadsSent() {
+  return setPageReads;
+}
+
+export function failSetPageReads(count: number) {
+  failingSetPageReads = count;
+}
+
+export function holdSetPageReads() {
+  let finish = () => {};
+  heldSetPageReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldSetPageReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
 export function ownCollectionTotal(total: CollectionTotal) {
   collectionTotal = total;
 }
@@ -1893,6 +2003,16 @@ export function resetFakeSupabase() {
   freeCopies = new Map();
   failingFreeCopyReads = 0;
   collectionTotal = emptyCollectionTotal;
+  sets = [];
+  setReads = 0;
+  setListQueries = [];
+  setCodeLookups = [];
+  failingSetReads = 0;
+  heldSetReads = null;
+  setPages = new Map();
+  setPageReads = [];
+  failingSetPageReads = 0;
+  heldSetPageReads = null;
   priceReads = [];
   exchangeRates = exchangeRatesOf(frankfurterCurrencies);
   exchangeRateReads = 0;

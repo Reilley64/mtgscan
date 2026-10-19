@@ -22,6 +22,9 @@ const invalidParameterValue = '22023';
 const laterSnapshotAt = '2026-10-15T21:00:00.000+00:00';
 const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 const curatorArtCrop = 'https://cards.scryfall.io/art_crop/front/3/3/332352c2-98f2-4eb8-b49a-026a39df227b.jpg?1783926792';
+const roilCartographer = '84317f9d-5a24-4f74-9c3e-0a8b5c15bb5f';
+const roilCartographerVariant = '7b9b743b-340d-4a15-a71d-d3108adbdc45';
+const kenrithBuyABoxPromo = '56c1227e-bea7-47cb-bbec-389a3d585af5';
 const importKeyClient = secretKeyClient();
 
 let alice: TestUser;
@@ -58,6 +61,16 @@ function deckConstructionFieldsOf(row: DeckConstructionFields): DeckConstruction
   return Object.fromEntries(
     Object.keys(plainDeckConstructionFields).map((field) => [field, row[field as keyof DeckConstructionFields]]),
   ) as DeckConstructionFields;
+}
+
+async function printingFlags(printingId: string) {
+  const { data, error } = await alice.client
+    .from('card_printings')
+    .select('booster, promo, variation')
+    .eq('id', printingId)
+    .single();
+  expect(error).toBeNull();
+  return data!;
 }
 
 async function catalogFreshness(client: AppClient = alice.client) {
@@ -194,6 +207,14 @@ describe('after one catalog import', () => {
     expect(error).toBeNull();
     expect(data!.art_crop_uri).toBe(artCropUri);
   });
+
+  test.each([
+    ['a booster card', roilCartographer, { booster: true, promo: false, variation: false }],
+    ['a variant', roilCartographerVariant, { booster: false, promo: false, variation: false }],
+    ['a promo', kenrithBuyABoxPromo, { booster: false, promo: true, variation: false }],
+  ])('%s keeps its booster, promo, and variation flags', async (_, printingId, flags) => {
+    expect(await printingFlags(printingId)).toEqual(flags);
+  });
 });
 
 test('a card printing with no art crop has none, and a later run with its art crop adds it', async () => {
@@ -322,6 +343,28 @@ describe('catalog import runs', () => {
       'Relentless Rats': { ...plainDeckConstructionFields, copy_limit: 'number', copy_limit_number: 7 },
       'Seven Dwarves': { ...plainDeckConstructionFields, copy_limit: 'unknown' },
     });
+  });
+
+  test('a later run updates a card printing whose booster, promo, or variation flag changed', async () => {
+    await expectImported(catalogFixtureManifest);
+    const changedFlags: Record<string, Record<string, boolean>> = {
+      [roilCartographer]: { booster: false },
+      [roilCartographerVariant]: { variation: true },
+      [kenrithBuyABoxPromo]: { promo: false },
+    };
+
+    await expectImported(
+      await catalogFixture({
+        updatedAt: laterSnapshotAt,
+        defaultCards: (records) =>
+          records.map((record) => ({ ...record, ...changedFlags[String(record.id)] })),
+      }),
+    );
+
+    expect(await printingFlags(roilCartographer)).toEqual({ booster: false, promo: false, variation: false });
+    expect(await printingFlags(roilCartographerVariant)).toEqual({ booster: false, promo: false, variation: true });
+    expect(await printingFlags(kenrithBuyABoxPromo)).toEqual({ booster: false, promo: false, variation: false });
+    expect((await latestRun('catalog')).counts).toMatchObject({ card_printings: { updated: 3 } });
   });
 
   test('a card that returns is present again', async () => {

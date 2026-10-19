@@ -16,6 +16,7 @@ import { readUserTags } from '@/collection/user-tags';
 import { cardCountLabel } from '@/decks/deck-labels';
 import { readDecks } from '@/decks/use-decks';
 import { supabase } from '@/lib/supabase';
+import { useTypingPause } from '@/lib/use-typing-pause';
 
 const suggestionLimit = 8;
 
@@ -81,10 +82,11 @@ function suggestionLookup(token: string) {
 
 export function useSearchSuggestions(token: string) {
   const fixed = useMemo(() => fixedSuggestions(token), [token]);
+  const [pausedToken] = useTypingPause(token);
   const [found, setFound] = useState<{ token: string; suggestions: SearchSuggestion[] } | null>(null);
 
   useEffect(() => {
-    const lookup = suggestionLookup(token);
+    const lookup = suggestionLookup(pausedToken);
     if (!lookup) {
       return;
     }
@@ -92,7 +94,7 @@ export function useSearchSuggestions(token: string) {
     lookup.then(
       (suggestions) => {
         if (current) {
-          setFound({ token, suggestions });
+          setFound({ token: pausedToken, suggestions });
         }
       },
       () => {},
@@ -100,7 +102,7 @@ export function useSearchSuggestions(token: string) {
     return () => {
       current = false;
     };
-  }, [token]);
+  }, [pausedToken]);
 
   return found?.token === token ? [...fixed, ...found.suggestions] : fixed;
 }

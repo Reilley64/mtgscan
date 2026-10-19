@@ -1,4 +1,5 @@
 import { deckNameLength } from '@mtgscan/supabase/decks';
+import type { CardSet } from '@mtgscan/supabase/sets';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState, type ReactNode } from 'react';
@@ -37,6 +38,10 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { BracketSignalRow } from '@/components/molecules/bracket-signal-row';
 import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
+import { FloatingButton } from '@/components/molecules/floating-button';
+import { SetBannerSkeleton, SetListSkeleton } from '@/components/molecules/set-banner-skeleton';
+import { SetHeader, SetRow } from '@/components/organisms/set-row';
+import { SetBanner, SetPageBanner } from '@/components/organisms/set-banner';
 import { ChangeLine } from '@/components/molecules/change-line';
 import { Reason } from '@/components/molecules/reason';
 import { CommanderGalleryCard, CommanderGalleryCardSkeletons, DeckBanner, DeckBannerSkeleton } from '@/components/molecules/commander-card';
@@ -59,7 +64,7 @@ import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
 import { NeedsYouItemSkeletons } from '@/components/molecules/needs-you-skeleton';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
-import { SheetSection } from '@/components/molecules/sheet-section';
+import { SheetSection, SheetSectionHeader } from '@/components/molecules/sheet-section';
 import { GroupButton } from '@/components/molecules/group-button';
 import { SortButton } from '@/components/molecules/sort-button';
 import { StepperRow } from '@/components/molecules/stepper-row';
@@ -406,6 +411,8 @@ function CardTiles() {
         />
         <CardTile uri={solRing} unlimited accessibilityLabel="Island, basic land, unlimited" onPress={() => {}} />
         <CardTile uri={solRing} accessibilityLabel="Sol Ring, C21 263" inViolation onPress={() => {}} />
+        <CardTile uri={solRing} quantity={2} accessibilityLabel="Sol Ring, number 216, owned, 2 copies" />
+        <CardTile uri={solRing} dimmed accessibilityLabel="Sol Ring, number 216, not owned" />
         <CardTile
           uri={solRing}
           accessibilityLabel="Mountain, long press for a menu"
@@ -623,6 +630,55 @@ function FloatingMenuButtons() {
   );
 }
 
+function FloatingButtonStates() {
+  return (
+    <Section title="Floating buttons">
+      <FloatingButton symbol="rectangle.portrait.on.rectangle.portrait" accessibilityLabel="Sets" onPress={() => {}} />
+    </Section>
+  );
+}
+
+function magic2010(owned: number, size: number, setArtUri: string | null = null): CardSet {
+  const completion = { owned, size };
+  return {
+    code: 'm10',
+    name: 'Magic 2010',
+    icon_svg_uri: m10Symbol,
+    released_at: '2009-07-17',
+    set_art_uri: setArtUri,
+    completion: { any: completion, nonfoil: completion, foil: completion },
+  };
+}
+
+function SetRows() {
+  return (
+    <Section title="Set rows">
+      {[
+        [234, 261],
+        [261, 261],
+        [0, 0],
+      ].map(([owned, size]) => (
+        <SetRow key={owned} set={magic2010(owned, size)} finishView="any" onPress={() => {}} />
+      ))}
+      <SetHeader set={magic2010(234, 261)} finishView="any" />
+    </Section>
+  );
+}
+
+function SetBanners() {
+  return (
+    <Section title="Set banners">
+      {[0, 234, 261].map((owned) => (
+        <SetBanner key={owned} set={magic2010(owned, 261, solRingArtCrop)} finishView="any" onPress={() => {}} />
+      ))}
+      <SetPageBanner set={magic2010(120, 261, solRingArtCrop)} finishView="any" />
+      <SetPageBanner set={magic2010(0, 0, solRingArtCrop)} finishView="any" />
+      <SetListSkeleton accessibilityLabel="Loading sets" banners={2} />
+      <SetBannerSkeleton size="header" />
+    </Section>
+  );
+}
+
 function PullIndicators() {
   return (
     <Section title="Pull indicators">
@@ -650,6 +706,7 @@ function ProgressBars() {
   return (
     <Section title="Progress bars">
       <ProgressBar label="Downloading gallery" value={12.3} max={68.5} />
+      <ProgressBar label="234 of 261" value={234} max={261} tone="primary" />
     </Section>
   );
 }
@@ -856,6 +913,7 @@ function SheetSections() {
       <SheetSection title="Creatures" count={3}>
         <ListRow title="Birds of Paradise" detail="M12 165" leading={<CardThumbnail uri={solRing} />} />
       </SheetSection>
+      <SheetSectionHeader title="Variants" count="1 of 2" />
     </Section>
   );
 }
@@ -876,6 +934,8 @@ export function PrimitiveCatalog() {
         <Toggles />
         <Surfaces />
         <ListRows />
+        <SetRows />
+        <SetBanners />
         <CardTiles />
         <CardHeroes />
         <ValueRows />
@@ -885,6 +945,7 @@ export function PrimitiveCatalog() {
         <Skeletons />
         <Glass />
         <FloatingMenuButtons />
+        <FloatingButtonStates />
         <PullIndicators />
         <Inputs />
         <ProgressBars />

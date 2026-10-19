@@ -30,6 +30,9 @@ test('the primitive catalog shows every primitive', async () => {
     'Skeletons',
     'Glass',
     'Floating menu buttons',
+    'Floating buttons',
+    'Set rows',
+    'Set banners',
     'Pull indicators',
     'Inputs',
     'Progress bars',
@@ -65,6 +68,10 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('button', { name: 'Kinnan, High priority · 0 cards' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Tymna, Medium priority · 100 cards, Would make Tymna invalid: deck size' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Creatures, 3' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: 'Variants, 1 of 2' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: 'Magic 2010, 234 of 261, 89 percent' })).toBeOnTheScreen();
+  expect(screen.getByRole('image', { name: 'Sol Ring, number 216, owned, 2 copies' })).toBeOnTheScreen();
+  expect(screen.getByRole('image', { name: 'Sol Ring, number 216, not owned' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Island, basic land, unlimited' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Sol Ring, C21 263, breaks a Commander rule' })).toBeOnTheScreen();
   expect(screen.getByRole('image', { name: 'Mountain, long press for a menu, breaks a Commander rule' })).toBeOnTheScreen();

@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import type { SearchBarCommands, SearchBarProps } from 'react-native-screens';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import type { DeckRow } from '@mtgscan/supabase/decks';
 
@@ -16,10 +16,9 @@ import {
 import { usePriceCurrency } from '@/collection/price-currency-setting';
 import { useSearchSuggestions } from '@/collection/use-search-suggestions';
 import { useDecks } from '@/decks/use-decks';
+import { useTypingPause } from '@/lib/use-typing-pause';
 
 const emptyFieldMark = '\u200b';
-
-const typingPause = 300;
 
 const noChipFields = new Map<string, number>();
 
@@ -27,13 +26,10 @@ const noDecks: DeckRow[] = [];
 
 export function useCollectionSearch() {
   const field = useRef<SearchBarCommands>(null);
-  const pause = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [text, setText] = useState('');
   const [chips, setChips] = useState<SearchChip[]>([]);
   const [typing, setTyping] = useState(false);
-  const [searchedText, setSearchedText] = useState('');
-
-  useEffect(() => () => clearTimeout(pause.current), []);
+  const [searchedText, searchNow] = useTypingPause(text);
 
   useFocusEffect(useCallback(() => () => field.current?.blur(), []));
 
@@ -42,10 +38,9 @@ export function useCollectionSearch() {
   }
 
   function change(nextText: string, nextChips: SearchChip[]) {
-    clearTimeout(pause.current);
     setText(nextText);
     setChips(nextChips);
-    setSearchedText(nextText);
+    searchNow(nextText);
     showInField(nextText, nextChips);
   }
 
@@ -62,8 +57,6 @@ export function useCollectionSearch() {
       return;
     }
     setText(typed);
-    clearTimeout(pause.current);
-    pause.current = setTimeout(() => setSearchedText(typed), typingPause);
     if (fieldText === '' && chips.length > 0) {
       showInField('', chips);
     }
