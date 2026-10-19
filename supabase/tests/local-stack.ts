@@ -10,7 +10,8 @@ export const publishableKey =
   process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
 export const localStackUrl = url;
 
-const databaseUrl = process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+const databaseUrl =
+  process.env.SUPABASE_DB_URL ?? `postgresql://postgres:postgres@127.0.0.1:${process.env.SUPABASE_DB_PORT ?? 54322}/postgres`;
 
 async function asDatabaseUser<T>(url: string, work: (database: SQL) => Promise<T>): Promise<T> {
   const database = new SQL(url);

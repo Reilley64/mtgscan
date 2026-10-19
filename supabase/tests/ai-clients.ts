@@ -63,7 +63,8 @@ export type McpLogLine = {
 };
 
 async function edgeRuntimeLog(since: Date): Promise<string> {
-  const docker = Bun.spawn(['docker', 'logs', '--since', since.toISOString(), 'supabase_edge_runtime_mtgscan'], {
+  const container = `supabase_edge_runtime_${process.env.SUPABASE_PROJECT_ID ?? 'mtgscan'}`;
+  const docker = Bun.spawn(['docker', 'logs', '--since', since.toISOString(), container], {
     stdout: 'pipe',
     stderr: 'pipe',
   });
