@@ -10,7 +10,7 @@ Spec 8 built deck suggestions: a record that only an AI client wrote and that th
 - The AI names the free copy that its planned swap holds. It never holds a protected copy. When the only free copies are protected, the call is refused and the AI tells the user.
 - A planned swap can bring in a basic land and holds no copy for it. This replaces the basic-land promotion that made a deck change at once.
 - An AI client does not plan a move between decks. It can recommend one in the chat, and the user makes it.
-- An AI client can close an open planned swap or buylist card that an AI client made. It cannot replace a reason. To change one, it closes the old one and makes a new one.
+- An AI client can close an open planned swap or buylist card that an AI client made. ADR 0010 later lets it close any open one. It cannot replace a reason. To change one, it closes the old one and makes a new one.
 - The server cannot make an AI client ask the user before a write (#12). In the #304 run, ChatGPT asked before each write, and Deny sent nothing (#336 stops the retry after a Deny). A planned swap or buylist card changes no deck, and closing one undoes it. That makes it safe to rely on the client's setting.
 - ADR 0007 still holds. App write functions refuse an AI client's token. The AI's planned swap and buylist functions accept only an AI client's token.
 
