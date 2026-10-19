@@ -396,12 +396,6 @@ const notFound = {
   buylistCard: new Refused('not_found', 'buylist_card_id is not one of your buylist cards.', 'buylist_card_id'),
 };
 
-const userTagExists = new Refused('user_tag_exists', 'You already have a user tag with this name.', 'name');
-
-function userTagNamed(name: string, except?: string) {
-  return store.userTags.find((userTag) => userTag.user_tag_id !== except && userTag.name.toLowerCase() === name.toLowerCase());
-}
-
 function plannedSwapToChange(plannedSwapId: string, changeable: PlannedSwap['status'][]) {
   const swap = store.plannedSwaps.find((candidate) => candidate.planned_swap_id === plannedSwapId);
   if (!swap) {
@@ -606,7 +600,7 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     store.decks = store.decks.filter((deck) => deck.deck_id !== deck_id);
     return null;
   },
-  add_deck_card: ({ deck_id, copy_id, unprotect }) => {
+  add_deck_card: ({ deck_id, copy_id }) => {
     const deck = deckRecord(deck_id);
     if (!deck) {
       return notFound.deck;
@@ -614,12 +608,6 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     const copy = copyRecord(copy_id);
     if (!copy) {
       return notFound.copy;
-    }
-    if (!copyDetailsOf(copy).free) {
-      return new Refused('copy_not_free', 'Only a free copy can go into a deck.', 'copy_id');
-    }
-    if (copy.protected && !unprotect) {
-      return new Refused('protected_copy', 'copy_id is a protected copy.', 'copy_id');
     }
     copy.protected = false;
     copy.membership = { deck_id, role: 'main', commander_at: null, added_at: nextTime() };
@@ -640,11 +628,7 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     if (!deck) {
       return notFound.deck;
     }
-    const basicLands = deck.basic_lands.map((land) => (land.oracle_id === oracle_id ? { ...land, count: land.count + by } : land));
-    if (basicLands.some((land) => land.count < 0 || land.count > 99)) {
-      return new Refused('invalid_argument', 'by would make too many of this basic land card.', 'by');
-    }
-    deck.basic_lands = basicLands;
+    deck.basic_lands = deck.basic_lands.map((land) => (land.oracle_id === oracle_id ? { ...land, count: land.count + by } : land));
     return changedDeck(deck);
   },
   remove_deck_card: ({ copy_id }) => {
@@ -659,15 +643,12 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     copy.membership = null;
     return changedDeck(deck);
   },
-  revert_deck_changes: ({ deck_id, deck_change_id, expected_revision }) => {
+  revert_deck_changes: ({ deck_id, deck_change_id }) => {
     const deck = deckRecord(deck_id);
     const changes = store.deckChanges.get(deck_id) ?? [];
     const reverted = changes.find((change) => change.deck_change_id === deck_change_id);
     if (!deck || !reverted) {
       return notFound.deck;
-    }
-    if (expected_revision !== deck.revision) {
-      return new Refused('stale_revision', 'expected_revision is not the deck revision.', 'expected_revision');
     }
     const answer = changedDeck(deck);
     const revert: DeckChange = {
@@ -715,20 +696,13 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     setPlannedSwapStatus(swap.planned_swap_id, 'closed');
     return { id: swap.planned_swap_id, changed };
   },
-  mark_buylist_card_bought: ({ buylist_card_id, copy_id, unprotect }) => {
+  mark_buylist_card_bought: ({ buylist_card_id, copy_id }) => {
     const card = buylistCardToChange(buylist_card_id, ['open']);
     if (card instanceof Refused) {
       return card;
     }
     const freeCopies = store.freeCopies.get(card.incoming.oracle_id) ?? [];
-    const copy = freeCopies.find((candidate) => candidate.copy_id === copy_id);
-    if (!copy) {
-      return new Refused('copy_not_free', 'Only a free copy can go into a deck.', 'copy_id');
-    }
-    if (copy.protected && !unprotect) {
-      return new Refused('protected_copy', 'copy_id is a protected copy.', 'copy_id');
-    }
-    store.freeCopies.set(card.incoming.oracle_id, freeCopies.filter((candidate) => candidate !== copy));
+    store.freeCopies.set(card.incoming.oracle_id, freeCopies.filter((candidate) => candidate.copy_id !== copy_id));
     setBuylistCardStatus(card.buylist_card_id, 'bought');
     return changedDeck(deckRecord(card.deck_id)!);
   },
@@ -742,12 +716,8 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     return { id: card.buylist_card_id, changed };
   },
   create_user_tag: ({ name }) => {
-    const trimmed = name.trim();
-    if (userTagNamed(trimmed)) {
-      return userTagExists;
-    }
     store.userTagsCreated += 1;
-    const userTag = { user_tag_id: `user-tag-${store.userTagsCreated}`, name: trimmed };
+    const userTag = { user_tag_id: `user-tag-${store.userTagsCreated}`, name: name.trim() };
     store.userTags = [...store.userTags, { ...userTag, copy_ids: [] }];
     return userTag;
   },
@@ -756,12 +726,8 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     if (!userTag) {
       return notFound.userTag;
     }
-    const trimmed = name.trim();
-    if (userTagNamed(trimmed, user_tag_id)) {
-      return userTagExists;
-    }
-    userTag.name = trimmed;
-    return { user_tag_id, name: trimmed };
+    userTag.name = name.trim();
+    return { user_tag_id, name: userTag.name };
   },
   delete_user_tag: ({ user_tag_id }) => {
     if (!store.userTags.some((userTag) => userTag.user_tag_id === user_tag_id)) {
@@ -782,14 +748,10 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     userTag.copy_ids = tagged ? [...others, copy_id] : others;
     return null;
   },
-  delete_copy: ({ copy_id, move_planned_swap }) => {
+  delete_copy: ({ copy_id }) => {
     const copy = copyRecord(copy_id);
     if (!copy) {
       return notFound.copy;
-    }
-    if (copy.held_for && !move_planned_swap) {
-      const message = `This copy is held by the planned swap for ${copy.held_for.name}. Send move_planned_swap: true to move that planned swap to the buylist and delete the copy.`;
-      return new Refused('copy_held', message, 'move_planned_swap');
     }
     store.copies = store.copies.filter((candidate) => candidate !== copy);
     return null;

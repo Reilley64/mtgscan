@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library'
 import { processColor } from 'react-native';
 
 import { changeDeckElsewhere, deckWritesSent, failDeckWrites, ownDeckChanges, ownDecks, ownRevertPreview, startSignedIn } from './fake-supabase';
-import { hold } from './fake-supabase-controls';
+import { hold, refuse } from './fake-supabase-controls';
 import {
   headerButton,
   headerButtonColor,
@@ -191,6 +191,7 @@ describe('the Revert page sheet', () => {
         copyLine('Sol Ring', { place_before: null, place_after: 'main' }),
       ],
     });
+    refuse('revert_deck_changes', 'stale_revision', 'expected_revision');
 
     await pressHeaderButton(presentedPageSheet(), 'Revert');
 

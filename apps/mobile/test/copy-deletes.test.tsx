@@ -2,7 +2,7 @@ import { screen, waitFor, within } from 'expo-router/testing-library';
 
 import { copyOf, delver, openCopyPage } from './copies';
 import { changeElsewhere, holdCopyElsewhere, ownCollectionTotal, ownCopies, ownDeckOfCopies, startSignedIn } from './fake-supabase';
-import { fail, requestsSent } from './fake-supabase-controls';
+import { fail, refuse, requestsSent } from './fake-supabase-controls';
 import {
   headerMenuRows,
   pressAlertButton,
@@ -84,6 +84,7 @@ describe('deleting a copy', () => {
     ownCopies([copyOf('copy-1')]);
     await openCopyPage(/^Angelic Curator/);
     holdCopyElsewhere('copy-1', heldForGoblins.held_for!);
+    refuse('delete_copy', 'copy_held', 'move_planned_swap');
 
     await chooseDeleteCopy();
     await pressAlertButton('Delete copy');

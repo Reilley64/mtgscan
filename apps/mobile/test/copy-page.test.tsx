@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library'
 
 import { copyOf, copyRowOf, delver, openCollection, openCopyPage } from './copies';
 import { answerCollectionSearches, changeElsewhere, collectionSearchesSent, failUserTagChanges, ownCopies, ownUserTags, startSignedIn } from './fake-supabase';
-import { fail } from './fake-supabase-controls';
+import { fail, refuse } from './fake-supabase-controls';
 import {
   appearsBefore,
   blurredImageUris,
@@ -709,7 +709,8 @@ describe('renaming and deleting a user tag', () => {
     await openUserTagPicker();
 
     await pressButtonMenuAction(menuButton(screen.container, 'More, Signed'), 'Rename');
-    await fireEvent.changeText(screen.getByLabelText('User tag name'), 'Trade Binder');
+    await fireEvent.changeText(screen.getByLabelText('User tag name'), 'Trade Binder');    refuse('rename_user_tag', 'user_tag_exists', 'name');
+
     await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByRole('alert', { name: 'You already have a user tag named "Trade Binder".' })).toBeOnTheScreen();

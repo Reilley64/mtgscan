@@ -2,7 +2,7 @@ import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { copyOf, deckCardOf, openCopyPage, openDeckWithCards } from './copies';
 import { changeElsewhere, failDeckWrites, ownAddPreviewEffects, ownCopies, ownDecks, startSignedIn } from './fake-supabase';
-import { fail, hold, requestsSent } from './fake-supabase-controls';
+import { fail, hold, refuse, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
   cardImageUri,
@@ -190,6 +190,7 @@ describe('the Add to deck drawer', () => {
     await openCopyPage(/^Angelic Curator/);
     await chooseAction('Add to deck');
     changeElsewhere('add_deck_card', { deck_id: 'deck-1', copy_id: 'copy-1', unprotect: false });
+    refuse('add_deck_card', 'copy_not_free', 'copy_id');
 
     await fireEvent.press(await drawer().findByRole('button', { name: /^Atraxa/ }));
 
