@@ -1,0 +1,270 @@
+import {
+  callDatabaseFunction,
+  type DatabaseFunction,
+  type DatabaseFunctionResult,
+  type ErrorCodeOf,
+  type Refusal,
+  type ReplyOf,
+  type RequestArguments,
+  type RequestOf,
+} from '@mtgscan/supabase/database-function';
+import {
+  focusManager,
+  infiniteQueryOptions,
+  keepPreviousData,
+  QueryClient,
+  QueryClientProvider,
+  queryOptions,
+  skipToken,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+  type QueryKey,
+} from '@tanstack/react-query';
+import { useIsFocused } from 'expo-router';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { AppState } from 'react-native';
+
+import { supabase } from '@/lib/supabase';
+
+function createQueryClient() {
+  return new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
+}
+
+export function ReadProvider({ signedIn, children }: { signedIn: boolean; children: ReactNode }) {
+  const [queryClient] = useState(createQueryClient);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => focusManager.setFocused(state === 'active'));
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!signedIn) {
+      queryClient.clear();
+    }
+  }, [queryClient, signedIn]);
+
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
+
+class RefusedRead<Code extends string = string> extends Error {
+  constructor(readonly refusal: Refusal<Code>) {
+    super(refusal.message);
+  }
+}
+
+function replyOf<Contract extends DatabaseFunction>(result: DatabaseFunctionResult<Contract>): ReplyOf<Contract> {
+  if (result.status === 'replied') {
+    return result.reply;
+  }
+  throw result.status === 'refused' ? new RefusedRead(result.refusal) : result.error;
+}
+
+export type ServerRead<Reply, Code extends string = never> = {
+  key: QueryKey;
+  read: () => Promise<Reply>;
+  errorCodes?: readonly Code[];
+};
+
+export function databaseRead<Contract extends DatabaseFunction>(
+  contract: Contract,
+  ...request: RequestArguments<Contract>
+): ServerRead<ReplyOf<Contract>, ErrorCodeOf<Contract>> {
+  return {
+    key: [contract.name, ...request],
+    read: async () => replyOf(await callDatabaseFunction(supabase, contract, ...request)),
+    errorCodes: contract.errorCodes,
+  };
+}
+
+type Page<Item> = { items: Item[]; next_cursor: string | null };
+
+export type PagedServerRead<FirstPage, Code extends string = never> = {
+  key: QueryKey;
+  readPage: (cursor: string | null) => Promise<FirstPage>;
+  errorCodes?: readonly Code[];
+};
+
+export function pagedDatabaseRead<Contract extends DatabaseFunction>(
+  contract: Contract,
+  request: Omit<RequestOf<Contract>, 'cursor'>,
+): PagedServerRead<ReplyOf<Contract>, ErrorCodeOf<Contract>> {
+  return {
+    key: [contract.name, request],
+    readPage: async (cursor) =>
+      replyOf(await callDatabaseFunction(supabase, contract, ...([{ ...request, cursor }] as RequestArguments<Contract>))),
+    errorCodes: contract.errorCodes,
+  };
+}
+
+export async function everyPage<Item>({ readPage }: PagedServerRead<Page<Item>, string>): Promise<Item[]> {
+  const items: Item[] = [];
+  let cursor: string | null = null;
+  do {
+    const page = await readPage(cursor);
+    items.push(...page.items);
+    cursor = page.next_cursor;
+  } while (cursor);
+  return items;
+}
+
+type Refused<Code extends string> = [Code] extends [never] ? never : { status: 'refused'; code: Code; field: string | null };
+
+export type Read<Loaded, Code extends string = never> = { status: 'loading' } | { status: 'failed' } | Refused<Code> | Loaded;
+
+type ReadRules<Code extends string> = {
+  key?: QueryKey;
+  keepsShown?: boolean;
+  refused?: readonly Code[];
+  whenAppActive?: boolean;
+  staleTime?: number;
+};
+
+const loading = { status: 'loading' } as const;
+
+const failed = { status: 'failed' } as const;
+
+const noRead: QueryKey = ['no read'];
+
+function readOf<Loaded, Code extends string>(
+  { data, error }: { data: Loaded | undefined; error: unknown },
+  refused: readonly Code[] | undefined,
+): Read<Loaded, Code> {
+  if (error instanceof RefusedRead && refused?.some((code) => code === error.refusal.code)) {
+    return { status: 'refused', code: error.refusal.code, field: error.refusal.field } as Refused<Code>;
+  }
+  if (data !== undefined) {
+    return data;
+  }
+  return error ? failed : loading;
+}
+
+function ruleOptions<Code extends string>(sourceKey: QueryKey | undefined, rules: ReadRules<Code>) {
+  return {
+    queryKey: sourceKey ? [...sourceKey, ...(rules.key ?? [])] : noRead,
+    ...(rules.keepsShown ? { placeholderData: keepPreviousData } : {}),
+    ...(rules.whenAppActive ? { refetchOnWindowFocus: true } : {}),
+    ...(rules.staleTime === undefined ? {} : { staleTime: rules.staleTime }),
+  };
+}
+
+const keptWhileHidden = { enabled: false, notifyOnChangeProps: [] };
+
+function useOneRead<Reply, Loaded, Code extends string, Shown extends Code>(
+  source: ServerRead<Reply, Code> | null,
+  loaded: (reply: Reply) => Loaded,
+  rules: ReadRules<Shown>,
+  subscribed: boolean,
+) {
+  const queryClient = useQueryClient();
+  const options = queryOptions({ ...ruleOptions(source?.key, rules), queryFn: source ? source.read : skipToken, select: loaded });
+  const query = useQuery({ ...options, subscribed });
+  useQuery({ ...options, ...keptWhileHidden });
+  const { refetch } = query;
+  const reload = useCallback(async () => {
+    const next = await refetch();
+    return next.isSuccess ? next.data : null;
+  }, [refetch]);
+  const replaceReply = (reply: Reply) => queryClient.setQueryData(options.queryKey, reply);
+  return { read: readOf(query, rules.refused), reload, replaceReply };
+}
+
+export function useScreenRead<Reply, Loaded, Code extends string, const Shown extends Code = never>(
+  source: ServerRead<Reply, Code> | null,
+  loaded: (reply: Reply) => Loaded,
+  rules: ReadRules<Shown> = {},
+) {
+  return useOneRead(source, loaded, rules, useIsFocused());
+}
+
+export function useAppRead<Reply, Loaded, Code extends string, const Shown extends Code = never>(
+  source: ServerRead<Reply, Code> | null,
+  loaded: (reply: Reply) => Loaded,
+  rules: ReadRules<Shown> = {},
+) {
+  return useOneRead(source, loaded, rules, true);
+}
+
+type LoadedPages<FirstPage extends Page<unknown>> = {
+  status: 'loaded';
+  firstPage: FirstPage;
+  items: FirstPage['items'];
+  nextCursor: string | null;
+  loadingMore: boolean;
+};
+
+export type PagedRead<FirstPage extends Page<unknown>, Code extends string = never> = Read<LoadedPages<FirstPage>, Code>;
+
+function loadedPages<FirstPage extends Page<unknown>>({ pages }: InfiniteData<FirstPage>): LoadedPages<FirstPage> {
+  return {
+    status: 'loaded',
+    firstPage: pages[0]!,
+    items: pages.flatMap((page) => page.items),
+    nextCursor: pages.at(-1)!.next_cursor,
+    loadingMore: false,
+  };
+}
+
+function isExpiredCursor(error: unknown) {
+  return error instanceof RefusedRead && error.refusal.code === 'invalid_cursor';
+}
+
+export function usePagedScreenRead<FirstPage extends Page<unknown>, Code extends string, const Shown extends Code = never>(
+  source: PagedServerRead<FirstPage, Code> | null,
+  rules: ReadRules<Shown> = {},
+) {
+  const options = infiniteQueryOptions({
+    ...ruleOptions(source?.key, rules),
+    queryFn: source ? ({ pageParam }) => source.readPage(pageParam) : skipToken,
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.next_cursor,
+    select: loadedPages,
+  });
+  const query = useInfiniteQuery({ ...options, subscribed: useIsFocused() });
+  useInfiniteQuery({ ...options, ...keptWhileHidden });
+  const { data, error, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } = query;
+
+  const read: PagedRead<FirstPage, Shown> = readOf(
+    { data: data && { ...data, loadingMore: isFetchingNextPage }, error },
+    rules.refused,
+  );
+
+  const reload = useCallback(() => void refetch(), [refetch]);
+
+  const loadMore = useCallback(() => {
+    if (!hasNextPage) {
+      return;
+    }
+    void fetchNextPage({ cancelRefetch: false }).then((next) => {
+      if (isExpiredCursor(next.error)) {
+        void refetch();
+      }
+    });
+  }, [fetchNextPage, hasNextPage, refetch]);
+
+  return { read, reload, loadMore };
+}
+
+export function useReadAgain() {
+  const queryClient = useQueryClient();
+  return useCallback((key: QueryKey) => void queryClient.invalidateQueries({ queryKey: key }), [queryClient]);
+}
+
+const typingPause = 300;
+
+export function useTypingPause(text: string) {
+  const [pausedText, setPausedText] = useState(text);
+
+  if (text === '' && pausedText !== '') {
+    setPausedText('');
+  }
+
+  useEffect(() => {
+    const pause = setTimeout(() => setPausedText(text), typingPause);
+    return () => clearTimeout(pause);
+  }, [text]);
+
+  return [pausedText, setPausedText] as const;
+}

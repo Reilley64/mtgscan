@@ -54,7 +54,7 @@ describe('Recent', () => {
 
     const older = await recent.findByLabelText('+, Lightning Bolt, M10 146');
     expect(appearsBefore(older, recent.getByLabelText('+, Counterspell, M10 146'))).toBe(true);
-    expect(plannedSwapQueries()).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50 });
+    expect(plannedSwapQueries()).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: null });
     expect(recent.queryByText('Nothing needs you yet')).not.toBeOnTheScreen();
   });
 
@@ -284,7 +284,7 @@ describe('Recent buylist cards', () => {
     const swap = recent.getByLabelText('+, Lightning Bolt, M10 146');
     expect(appearsBefore(older, swap)).toBe(true);
     expect(appearsBefore(swap, recent.getByLabelText('+, Black Lotus, Instant'))).toBe(true);
-    expect(buylistQueries()).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50 });
+    expect(buylistQueries()).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: null });
   });
 
   test("a buylist card shows its deck tag, the card with its default printing's image, the outgoing copy, its reason, and Bought and Close", async () => {

@@ -6,7 +6,7 @@ import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
 import { SheetSection } from '@/components/molecules/sheet-section';
 import { PrintingPicker } from '@/components/organisms/printing-picker';
-import { useTypingPause } from '@/lib/use-typing-pause';
+import { useTypingPause } from '@/lib/read';
 import type { Printing } from '@/scan/scan-batch';
 
 import { cardPrintings, searchCardNames, type CardName } from '../../../modules/card-recognizer';

@@ -242,6 +242,31 @@ describe('reading a set', () => {
     expect(setPageReadsSent()).toEqual(['blb', 'blb']);
   });
 
+  test('going back to Sets reads the sets again', async () => {
+    await openBloomburrow();
+
+    offerSets([{ ...bloomburrowRow, completion: { ...bloomburrowRow.completion, any: { owned: 3, size: 3 } } }]);
+    await swipeBackInTheTab();
+
+    expect(await within(tabStackTopScreen()).findByRole('button', { name: 'Bloomburrow, 3 of 3, 100 percent' })).toBeOnTheScreen();
+  });
+
+  test('reopening a set page shows the set from the last visit at once, then reads it again', async () => {
+    await openBloomburrow();
+    await swipeBackInTheTab();
+    offerSetPage({ ...bloomburrow, completion: { ...bloomburrow.completion, any: { owned: 3, size: 3 } } });
+    const read = holdSetPageReads();
+
+    await fireEvent.press(within(tabStackTopScreen()).getByRole('button', { name: /^Bloomburrow/ }));
+
+    const page = within(tabStackTopScreen());
+    expect(page.getByRole('header', { name: 'Bloomburrow, 2 of 3, 66 percent' })).toBeOnTheScreen();
+    expect(page.queryByRole('progressbar', { name: 'Loading set' })).toBeNull();
+    await read.finish();
+    expect(page.getByRole('header', { name: 'Bloomburrow, 3 of 3, 100 percent' })).toBeOnTheScreen();
+    expect(setPageReadsSent()).toEqual(['blb', 'blb']);
+  });
+
   test('the set page reads again when it gains focus', async () => {
     await openBloomburrow();
 

@@ -1,6 +1,5 @@
-import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
 import { databaseFunctions } from '@mtgscan/supabase/database-functions';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import {
   chipLabel,
@@ -13,12 +12,11 @@ import {
 } from '@/collection/collection-search';
 import { shownCopyCount } from '@/collection/total-labels';
 import { userTagsFound } from '@/collection/user-tag-names';
-import { readUserTags } from '@/collection/user-tags';
+import { userTagsRead } from '@/collection/user-tags';
 import { cardCountLabel } from '@/decks/deck-labels';
-import { readDecks } from '@/decks/use-decks';
-import { replyOf } from '@/lib/database-reply';
+import { decksRead } from '@/decks/use-decks';
+import { databaseRead, useScreenRead, useTypingPause } from '@/lib/read';
 import { supabase } from '@/lib/supabase';
-import { useTypingPause } from '@/lib/use-typing-pause';
 
 const suggestionLimit = 8;
 
@@ -36,19 +34,19 @@ async function setSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
 }
 
 async function oracleTagSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
-  const result = await callDatabaseFunction(supabase, databaseFunctions.search_oracle_tags, { text: typed.value, limit: suggestionLimit });
-  return replyOf(result).items.map((tag) => chipSuggestion(typed, tag.slug, tag.label));
+  const { items } = await databaseRead(databaseFunctions.search_oracle_tags, { text: typed.value, limit: suggestionLimit }).read();
+  return items.map((tag) => chipSuggestion(typed, tag.slug, tag.label));
 }
 
 async function userTagSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
-  const { userTags } = await readUserTags();
-  return userTagsFound(userTags, typed.value)
+  const { items } = await userTagsRead.read();
+  return userTagsFound(items, typed.value)
     .slice(0, suggestionLimit)
     .map((userTag) => chipSuggestion(typed, userTag.name, shownCopyCount(userTag.copy_count)));
 }
 
 async function deckSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
-  const { decks } = await readDecks();
+  const { items: decks } = await decksRead.read();
   const found = typed.value.trim().toLowerCase();
   return decks
     .filter((deck) => deck.name.toLowerCase().includes(found))
@@ -67,41 +65,26 @@ function suggestionLookup(token: string) {
   const typed = typedValue(token);
   switch (typed?.key) {
     case 'set':
-      return typed.value ? setSuggestions(typed) : null;
+      return typed.value ? () => setSuggestions(typed) : null;
     case 'tag':
-      return typed.value ? oracleTagSuggestions(typed) : null;
+      return typed.value ? () => oracleTagSuggestions(typed) : null;
     case 'user_tag':
-      return userTagSuggestions(typed);
+      return () => userTagSuggestions(typed);
     case 'deck':
-      return deckSuggestions(typed);
+      return () => deckSuggestions(typed);
     default:
       return null;
   }
 }
 
+function loadedSuggestions(suggestions: SearchSuggestion[]) {
+  return { status: 'loaded' as const, suggestions };
+}
+
 export function useSearchSuggestions(token: string) {
   const fixed = useMemo(() => fixedSuggestions(token), [token]);
   const [pausedToken] = useTypingPause(token);
-  const [found, setFound] = useState<{ token: string; suggestions: SearchSuggestion[] } | null>(null);
-
-  useEffect(() => {
-    const lookup = suggestionLookup(pausedToken);
-    if (!lookup) {
-      return;
-    }
-    let current = true;
-    lookup.then(
-      (suggestions) => {
-        if (current) {
-          setFound({ token: pausedToken, suggestions });
-        }
-      },
-      () => {},
-    );
-    return () => {
-      current = false;
-    };
-  }, [pausedToken]);
-
-  return found?.token === token ? [...fixed, ...found.suggestions] : fixed;
+  const lookup = suggestionLookup(pausedToken);
+  const { read } = useScreenRead(lookup && { key: ['search_suggestions', pausedToken], read: lookup }, loadedSuggestions);
+  return read.status === 'loaded' && pausedToken === token ? [...fixed, ...read.suggestions] : fixed;
 }

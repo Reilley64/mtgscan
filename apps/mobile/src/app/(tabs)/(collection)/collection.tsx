@@ -167,7 +167,7 @@ export default function CollectionScreen() {
   const binder: BinderRead = search.decksFailed ? { status: 'failed' } : searchedBinder;
   const suggesting = search.suggestions.length > 0;
   const refusedChipIndex =
-    search.refusedChipIndex ?? (binder.status === 'refused' ? search.chipIndexOfField.get(binder.field) : undefined);
+    search.refusedChipIndex ?? (binder.status === 'refused' && binder.field !== null ? search.chipIndexOfField.get(binder.field) : undefined);
   const refused = refusedChipIndex !== undefined;
   const copies = binder.status === 'loaded' && !suggesting && !refused ? binder.items : [];
   const iconOf = useSetIcons([...new Set(copies.map((copy) => copy.set))]);

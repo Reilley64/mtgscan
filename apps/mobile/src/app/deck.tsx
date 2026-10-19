@@ -177,7 +177,7 @@ export default function DeckScreen() {
     if (history.status === 'loading') {
       return null;
     }
-    return <DeckHistory changes={history.changes} createdAt={deck.created_at} onRevert={(change) => openRevert(deck, change)} />;
+    return <DeckHistory changes={history.items} createdAt={deck.created_at} onRevert={(change) => openRevert(deck, change)} />;
   }
 
   function header() {

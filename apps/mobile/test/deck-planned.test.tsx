@@ -79,8 +79,8 @@ describe('the Planned tab', () => {
     expect(deck.getByRole('button', { name: 'Bought' })).toBeOnTheScreen();
     expect(deck.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
     expect(deck.queryByRole('button', { name: 'Krenko' })).not.toBeOnTheScreen();
-    expect(plannedSwapQueries()).toContainEqual({ deck_id: 'deck-1', status: 'open', order: 'oldest_first', limit: 50 });
-    expect(buylistQueries()).toContainEqual({ deck_id: 'deck-1', status: 'open', order: 'oldest_first', limit: 50 });
+    expect(plannedSwapQueries()).toContainEqual({ deck_id: 'deck-1', status: 'open', order: 'oldest_first', limit: 50, cursor: null });
+    expect(buylistQueries()).toContainEqual({ deck_id: 'deck-1', status: 'open', order: 'oldest_first', limit: 50, cursor: null });
   });
 
   test("lists every open planned swap of the deck, past the first page", async () => {

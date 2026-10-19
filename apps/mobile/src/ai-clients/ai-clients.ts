@@ -3,27 +3,31 @@ import { useState } from 'react';
 
 import { mcpServerUrl } from '@/lib/app-config';
 import { supabase } from '@/lib/supabase';
-import { useFocusedRead, type FocusedRead } from '@/lib/use-focused-read';
+import { useScreenRead, type Read } from '@/lib/read';
 
 export type AiClient = { id: string; name: string; allowedAt: string };
 
 type AiClientsLoaded = { status: 'loaded'; aiClients: AiClient[] };
 
-export type AiClientsRead = FocusedRead<AiClientsLoaded>;
+export type AiClientsRead = Read<AiClientsLoaded>;
 
-async function readAiClients(): Promise<AiClientsLoaded> {
-  const { data, error } = await supabase.auth.oauth.listGrants();
-  if (error) {
-    throw error;
-  }
-  return {
-    status: 'loaded',
-    aiClients: data.map((grant) => ({ id: grant.client.id, name: grant.client.name, allowedAt: grant.granted_at })),
-  };
+const allowedAiClients = {
+  key: ['ai_clients'],
+  read: async (): Promise<AiClient[]> => {
+    const { data, error } = await supabase.auth.oauth.listGrants();
+    if (error) {
+      throw error;
+    }
+    return data.map((grant) => ({ id: grant.client.id, name: grant.client.name, allowedAt: grant.granted_at }));
+  },
+};
+
+function loadedAiClients(aiClients: AiClient[]): AiClientsLoaded {
+  return { status: 'loaded', aiClients };
 }
 
 export function useAiClients() {
-  const { read, reload } = useFocusedRead(readAiClients);
+  const { read, reload } = useScreenRead(allowedAiClients, loadedAiClients);
   const [revokedIds, setRevokedIds] = useState<string[]>([]);
   const [revokingIds, setRevokingIds] = useState<string[]>([]);
 

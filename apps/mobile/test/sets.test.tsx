@@ -318,6 +318,21 @@ describe('searching Sets', () => {
     expect(shownSets()).toHaveLength(2);
   });
 
+  test('a reply to an earlier search never replaces the reply to the latest search', async () => {
+    const sets = await openSets();
+    const earlierSearch = holdSetReads();
+    await typeInSearchBar('bloom');
+    await clearSearchBar();
+    const latestSearch = holdSetReads();
+    await typeInSearchBar('horizons');
+
+    await latestSearch.finish();
+    await earlierSearch.finish();
+
+    expect(shownSets()).toEqual(['Modern Horizons 3, 1 of 303, 0 percent']);
+    expect(sets.queryByRole('button', { name: /^Bloomburrow/ })).toBeNull();
+  });
+
   test('a search that matches no set says so, and Cancel shows every set again', async () => {
     const sets = await openSets();
 

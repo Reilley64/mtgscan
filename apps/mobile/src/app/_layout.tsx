@@ -2,6 +2,7 @@ import '../global.css';
 
 import { DarkTheme, Stack, ThemeProvider, type NativeStackNavigationOptions } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import type { ReactNode } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SessionProvider, useSession } from '@/auth/session';
@@ -9,6 +10,7 @@ import { PriceCurrencyProvider } from '@/collection/price-currency-setting';
 import { DeckCardOrderProvider } from '@/decks/deck-card-order';
 import { fullHeightDrawerOptions, halfHeightDrawerOptions, pageSheetOptions } from '@/components/templates/drawer-sheet';
 import { GalleryProvider } from '@/gallery/gallery-state';
+import { ReadProvider } from '@/lib/read';
 import { NeedsYouCountsProvider } from '@/needs-you/needs-you-counts';
 import { CurrentPricesProvider } from '@/scan/current-prices';
 import { KeepAwakeWhileScanning } from '@/scan/keep-awake-while-scanning';
@@ -74,6 +76,10 @@ function RootStack() {
   );
 }
 
+function SessionReads({ children }: { children: ReactNode }) {
+  return <ReadProvider signedIn={useSession() !== null}>{children}</ReadProvider>;
+}
+
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
@@ -81,24 +87,26 @@ export default function RootLayout() {
         <StatusBar style="light" />
         <KeepAwakeWhileScanning />
         <SessionProvider>
-          <TrainingCropUploads />
-          <GalleryProvider>
-            <ScanSoundsProvider>
-              <PriceCurrencyProvider>
-                <CurrentPricesProvider>
-                  <TrainingCropUploadsSettingProvider>
-                    <ScanBatchProvider>
-                      <DeckCardOrderProvider>
-                        <NeedsYouCountsProvider>
-                          <RootStack />
-                        </NeedsYouCountsProvider>
-                      </DeckCardOrderProvider>
-                    </ScanBatchProvider>
-                  </TrainingCropUploadsSettingProvider>
-                </CurrentPricesProvider>
-              </PriceCurrencyProvider>
-            </ScanSoundsProvider>
-          </GalleryProvider>
+          <SessionReads>
+            <TrainingCropUploads />
+            <GalleryProvider>
+              <ScanSoundsProvider>
+                <PriceCurrencyProvider>
+                  <CurrentPricesProvider>
+                    <TrainingCropUploadsSettingProvider>
+                      <ScanBatchProvider>
+                        <DeckCardOrderProvider>
+                          <NeedsYouCountsProvider>
+                            <RootStack />
+                          </NeedsYouCountsProvider>
+                        </DeckCardOrderProvider>
+                      </ScanBatchProvider>
+                    </TrainingCropUploadsSettingProvider>
+                  </CurrentPricesProvider>
+                </PriceCurrencyProvider>
+              </ScanSoundsProvider>
+            </GalleryProvider>
+          </SessionReads>
         </SessionProvider>
       </ThemeProvider>
     </SafeAreaProvider>
