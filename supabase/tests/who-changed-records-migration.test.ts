@@ -9,7 +9,7 @@ import { appRequest, counterspell, krenkoDeck, onePlannedSwap, scannedCopy } fro
 
 setDefaultTimeout(180_000);
 
-const migrationBeforeWhoChanged = '20261211090000';
+const migrationBeforeWhoChanged = '20261212090000';
 
 const filledTables: { table: string; timeColumn: string | null; filledFrom: 'user' | 'client' }[] = [
   { table: 'copies', timeColumn: null, filledFrom: 'user' },
@@ -77,7 +77,7 @@ describe('the migration that records who created and last changed each record', 
     migrationStartedAfter = now;
 
     const { exitCode, output } = await applyPendingMigrations();
-    expect(output).toContain('20261212090000');
+    expect(output).toContain('20261213090000');
     expect(exitCode).toBe(0);
   });
 
