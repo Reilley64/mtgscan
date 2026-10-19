@@ -190,8 +190,6 @@ export type TagLookupQuery = z.input<typeof tagLookupQuery>;
 
 const tagLookupPage = z.strictObject({ ...dataAsOf, items: z.array(oracleTagRow) });
 
-export type TagLookupPage = z.infer<typeof tagLookupPage>;
-
 export const searchCatalog = databaseFunction({
   name: 'search_catalog',
   argument: 'query',
@@ -223,15 +221,3 @@ export const searchOracleTags = databaseFunction({
   reply: tagLookupPage,
   errorCodes: ['invalid_argument', 'data_unavailable'],
 });
-
-export type SearchErrorCode = 'invalid_argument' | 'invalid_cursor' | 'not_found' | 'data_unavailable';
-
-export type SearchError = {
-  code: SearchErrorCode;
-  message: string;
-  field: string | null;
-};
-
-export function readSearchError(error: { code: string; message: string; details: string | null }): SearchError {
-  return { code: error.code as SearchErrorCode, message: error.message, field: error.details || null };
-}

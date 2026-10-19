@@ -1,4 +1,5 @@
-import type { SetTrainingCropUploadsRequest, TrainingCropSettings } from '@mtgscan/supabase/training-crops';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
@@ -27,9 +28,9 @@ export function TrainingCropUploadsSettingProvider({ children }: { children: Rea
       return;
     }
     let current = true;
-    supabase.rpc('get_training_crop_settings').then(({ data }) => {
-      if (current && data) {
-        setKnown({ userId, uploadsOn: (data as unknown as TrainingCropSettings).uploads_on });
+    callDatabaseFunction(supabase, databaseFunctions.get_training_crop_settings).then((result) => {
+      if (current && result.status === 'replied') {
+        setKnown({ userId, uploadsOn: result.reply.uploads_on });
       }
     });
     return () => {
@@ -55,9 +56,8 @@ export function TrainingCropUploadsSettingProvider({ children }: { children: Rea
         return false;
       }
       setKnown({ userId, uploadsOn: on });
-      const request: SetTrainingCropUploadsRequest = { on };
-      const { error } = await supabase.rpc('set_training_crop_uploads', { request });
-      if (error) {
+      const result = await callDatabaseFunction(supabase, databaseFunctions.set_training_crop_uploads, { on });
+      if (result.status !== 'replied') {
         setKnown({ userId, uploadsOn: !on });
         return false;
       }

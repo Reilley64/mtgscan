@@ -1,17 +1,17 @@
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import type { AddDeckCardPreview, AddDeckCardPreviewQuery } from '@mtgscan/supabase/decks';
 import { useMemo } from 'react';
 
+import { replyOf } from '@/lib/database-reply';
 import { supabase } from '@/lib/supabase';
 import { useFocusedRead } from '@/lib/use-focused-read';
 
 type AddDeckCardPreviewRead = { status: 'loaded'; preview: AddDeckCardPreview };
 
 async function readAddDeckCardPreview(query: AddDeckCardPreviewQuery): Promise<AddDeckCardPreviewRead> {
-  const { data, error } = await supabase.rpc('preview_add_deck_card', { query });
-  if (error) {
-    throw error;
-  }
-  return { status: 'loaded', preview: data as unknown as AddDeckCardPreview };
+  const result = await callDatabaseFunction(supabase, databaseFunctions.preview_add_deck_card, query);
+  return { status: 'loaded', preview: replyOf(result) };
 }
 
 export function useAddDeckCardPreview(query: AddDeckCardPreviewQuery) {

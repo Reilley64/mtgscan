@@ -1,4 +1,4 @@
-import { readSearchError } from '@mtgscan/supabase/search';
+import type { Refusal } from '@mtgscan/supabase/database-function';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -34,8 +34,7 @@ async function readAtLeast<Query, FirstPage extends Page<unknown>>(
   return { first, items, nextCursor };
 }
 
-function refusedField(error: Parameters<typeof readSearchError>[0]) {
-  const { code, field } = readSearchError(error);
+function refusedField({ code, field }: Refusal) {
   return code === 'invalid_argument' ? field : null;
 }
 

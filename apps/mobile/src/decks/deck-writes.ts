@@ -1,67 +1,56 @@
-import {
-  readDeckError,
-  type AddDeckCardRequest,
-  type ChangeBasicLandRequest,
-  type CreateDeckRequest,
-  type CreatedDeck,
-  type DeckPriority,
-  type DeleteDeckRequest,
-  type MarkDeckUsedRequest,
-  type RemoveDeckCardRequest,
-  type RenameDeckRequest,
-  type RevertDeckChangesRequest,
-  type SetDeckCommanderRequest,
-  type SetDeckPriorityRequest,
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
+import type {
+  AddDeckCardRequest,
+  ChangeBasicLandRequest,
+  CreatedDeck,
+  DeckPriority,
+  RevertDeckChangesRequest,
 } from '@mtgscan/supabase/decks';
 
 import { supabase } from '@/lib/supabase';
 import { writeResultOf, type WriteResult } from '@/lib/write-result';
 
 export async function createDeck(name: string): Promise<CreatedDeck | null> {
-  const request: CreateDeckRequest = { name };
-  const { data, error } = await supabase.rpc('create_deck', { request });
-  return error ? null : (data as unknown as CreatedDeck);
+  const result = await callDatabaseFunction(supabase, databaseFunctions.create_deck, { name });
+  return result.status === 'replied' ? result.reply : null;
 }
 
 export async function markDeckUsed(deckId: string) {
-  const request: MarkDeckUsedRequest = { deck_id: deckId };
-  await supabase.rpc('mark_deck_used', { request });
+  await callDatabaseFunction(supabase, databaseFunctions.mark_deck_used, { deck_id: deckId });
 }
 
 export async function renameDeck(deckId: string, name: string) {
-  const request: RenameDeckRequest = { deck_id: deckId, name };
-  const { error } = await supabase.rpc('rename_deck', { request });
-  return writeResultOf(error);
+  return writeResultOf(await callDatabaseFunction(supabase, databaseFunctions.rename_deck, { deck_id: deckId, name }));
 }
 
 export async function setDeckPriority(deckId: string, priority: DeckPriority) {
-  const request: SetDeckPriorityRequest = { deck_id: deckId, priority };
-  const { error } = await supabase.rpc('set_deck_priority', { request });
-  return writeResultOf(error);
+  return writeResultOf(await callDatabaseFunction(supabase, databaseFunctions.set_deck_priority, { deck_id: deckId, priority }));
 }
 
 export async function deleteDeck(deckId: string) {
-  const request: DeleteDeckRequest = { deck_id: deckId };
-  const { error } = await supabase.rpc('delete_deck', { request });
-  return writeResultOf(error);
+  return writeResultOf(await callDatabaseFunction(supabase, databaseFunctions.delete_deck, { deck_id: deckId }));
 }
 
 export async function changeBasicLand(request: ChangeBasicLandRequest): Promise<WriteResult | 'refused'> {
-  const { error } = await supabase.rpc('change_basic_land', { request });
-  if (error && readDeckError(error).code === 'invalid_argument' && readDeckError(error).field === 'by') {
+  const result = await callDatabaseFunction(supabase, databaseFunctions.change_basic_land, request);
+  if (result.status === 'refused' && result.refusal.code === 'invalid_argument' && result.refusal.field === 'by') {
     return 'refused';
   }
-  return writeResultOf(error);
+  return writeResultOf(result);
 }
 
 type AddDeckCardResult = 'done' | 'not_free' | 'missing' | 'failed';
 
 export async function addDeckCard(request: AddDeckCardRequest): Promise<AddDeckCardResult> {
-  const { error } = await supabase.rpc('add_deck_card', { request });
-  if (!error) {
+  const result = await callDatabaseFunction(supabase, databaseFunctions.add_deck_card, request);
+  if (result.status === 'replied') {
     return 'done';
   }
-  const { code, field } = readDeckError(error);
+  if (result.status === 'failed') {
+    return 'failed';
+  }
+  const { code, field } = result.refusal;
   if (code === 'copy_not_free') {
     return 'not_free';
   }
@@ -69,29 +58,27 @@ export async function addDeckCard(request: AddDeckCardRequest): Promise<AddDeckC
 }
 
 export async function setDeckCommander(copyId: string, commander: boolean): Promise<WriteResult> {
-  const request: SetDeckCommanderRequest = { copy_id: copyId, commander };
-  const { error } = await supabase.rpc('set_deck_commander', { request });
-  if (error && ['copy_not_in_deck', 'commander_limit'].includes(readDeckError(error).code)) {
+  const result = await callDatabaseFunction(supabase, databaseFunctions.set_deck_commander, { copy_id: copyId, commander });
+  if (result.status === 'refused' && ['copy_not_in_deck', 'commander_limit'].includes(result.refusal.code)) {
     return 'missing';
   }
-  return writeResultOf(error);
+  return writeResultOf(result);
 }
 
 export async function removeDeckCard(copyId: string): Promise<WriteResult> {
-  const request: RemoveDeckCardRequest = { copy_id: copyId };
-  const { error } = await supabase.rpc('remove_deck_card', { request });
-  if (error && readDeckError(error).code === 'copy_not_in_deck') {
+  const result = await callDatabaseFunction(supabase, databaseFunctions.remove_deck_card, { copy_id: copyId });
+  if (result.status === 'refused' && result.refusal.code === 'copy_not_in_deck') {
     return 'missing';
   }
-  return writeResultOf(error);
+  return writeResultOf(result);
 }
 
 const outdatedPreviewCodes = ['stale_revision', 'revert_blocked', 'copy_protected'];
 
 export async function revertDeckChanges(request: RevertDeckChangesRequest): Promise<WriteResult | 'outdated'> {
-  const { error } = await supabase.rpc('revert_deck_changes', { request });
-  if (error && outdatedPreviewCodes.includes(readDeckError(error).code)) {
+  const result = await callDatabaseFunction(supabase, databaseFunctions.revert_deck_changes, request);
+  if (result.status === 'refused' && outdatedPreviewCodes.includes(result.refusal.code)) {
     return 'outdated';
   }
-  return writeResultOf(error);
+  return writeResultOf(result);
 }

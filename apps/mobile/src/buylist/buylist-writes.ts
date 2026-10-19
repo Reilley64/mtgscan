@@ -1,16 +1,21 @@
-import type { CloseBuylistCardRequest, MarkBuylistCardBoughtRequest } from '@mtgscan/supabase/buylist';
-import { readDeckError, type DeckErrorCode } from '@mtgscan/supabase/decks';
+import type { MarkBuylistCardBoughtRequest } from '@mtgscan/supabase/buylist';
+import { callDatabaseFunction, type ErrorCodeOf } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 
 import { supabase } from '@/lib/supabase';
 import { writeResultOf, type WriteResult } from '@/lib/write-result';
 
-const outdatedCopyCodes: DeckErrorCode[] = ['copy_not_free', 'copy_protected', 'invalid_argument'];
+const outdatedCopyCodes: ErrorCodeOf<typeof databaseFunctions.mark_buylist_card_bought>[] = [
+  'copy_not_free',
+  'copy_protected',
+  'invalid_argument',
+];
 
 export async function markBuylistCardBought(
   request: MarkBuylistCardBoughtRequest,
 ): Promise<WriteResult | 'outdated' | 'commander_limit'> {
-  const { error } = await supabase.rpc('mark_buylist_card_bought', { request });
-  const refusal = error && readDeckError(error);
+  const result = await callDatabaseFunction(supabase, databaseFunctions.mark_buylist_card_bought, request);
+  const refusal = result.status === 'refused' ? result.refusal : null;
   if (refusal?.code === 'not_open' || (refusal?.code === 'not_found' && refusal.field === 'buylist_card_id')) {
     return 'missing';
   }
@@ -20,14 +25,13 @@ export async function markBuylistCardBought(
   if (refusal?.code === 'commander_limit') {
     return 'commander_limit';
   }
-  return writeResultOf(error);
+  return writeResultOf(result);
 }
 
 export async function closeBuylistCard(buylistCardId: string): Promise<WriteResult> {
-  const request: CloseBuylistCardRequest = { buylist_card_id: buylistCardId };
-  const { error } = await supabase.rpc('close_buylist_card', { request });
-  if (error && readDeckError(error).code === 'not_open') {
+  const result = await callDatabaseFunction(supabase, databaseFunctions.close_buylist_card, { buylist_card_id: buylistCardId });
+  if (result.status === 'refused' && result.refusal.code === 'not_open') {
     return 'missing';
   }
-  return writeResultOf(error);
+  return writeResultOf(result);
 }

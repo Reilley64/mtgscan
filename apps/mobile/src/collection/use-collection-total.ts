@@ -1,5 +1,7 @@
 import type { CollectionTotal } from '@mtgscan/supabase/collection';
 import { convertedPrice, type ExchangeRate } from '@mtgscan/supabase/converted-prices';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 
@@ -19,9 +21,9 @@ export function useCollectionTotal() {
 
   const reload = useCallback(() => {
     const read = ++latestRead.current;
-    supabase.rpc('get_collection_total', { query: {} }).then(({ data, error }) => {
-      if (read === latestRead.current && !error) {
-        setTotal(data as unknown as CollectionTotal);
+    callDatabaseFunction(supabase, databaseFunctions.get_collection_total, {}).then((result) => {
+      if (read === latestRead.current && result.status === 'replied') {
+        setTotal(result.reply);
       }
     });
   }, []);

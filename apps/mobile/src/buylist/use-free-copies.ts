@@ -1,17 +1,17 @@
-import type { FreeCopies, FreeCopiesQuery, FreeCopy } from '@mtgscan/supabase/buylist';
+import type { FreeCopiesQuery, FreeCopy } from '@mtgscan/supabase/buylist';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import { useMemo } from 'react';
 
+import { replyOf } from '@/lib/database-reply';
 import { supabase } from '@/lib/supabase';
 import { useFocusedRead } from '@/lib/use-focused-read';
 
 type FreeCopiesRead = { status: 'loaded'; copies: FreeCopy[] };
 
 async function readFreeCopies(query: FreeCopiesQuery): Promise<FreeCopiesRead> {
-  const { data, error } = await supabase.rpc('list_free_copies', { query });
-  if (error) {
-    throw error;
-  }
-  return { status: 'loaded', copies: (data as unknown as FreeCopies).items };
+  const result = await callDatabaseFunction(supabase, databaseFunctions.list_free_copies, query);
+  return { status: 'loaded', copies: replyOf(result).items };
 }
 
 export function useFreeCopies(oracleId: string) {

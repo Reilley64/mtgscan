@@ -1,18 +1,16 @@
-import type { DeckChange, DeckChangePage, DeckChangesQuery } from '@mtgscan/supabase/decks';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
+import type { DeckChange } from '@mtgscan/supabase/decks';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { replyOf } from '@/lib/database-reply';
 import { supabase } from '@/lib/supabase';
 import type { FocusedRead } from '@/lib/use-focused-read';
 
 type DeckChangesRead = FocusedRead<{ status: 'loaded'; changes: DeckChange[]; nextCursor: string | null }>;
 
 async function readDeckChanges(deckId: string, cursor: string | null) {
-  const query: DeckChangesQuery = { deck_id: deckId, cursor };
-  const { data, error } = await supabase.rpc('list_deck_changes', { query });
-  if (error) {
-    throw error;
-  }
-  return data as unknown as DeckChangePage;
+  return replyOf(await callDatabaseFunction(supabase, databaseFunctions.list_deck_changes, { deck_id: deckId, cursor }));
 }
 
 export function useDeckChanges(deckId: string, revision: number | null) {
