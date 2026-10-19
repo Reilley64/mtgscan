@@ -1,29 +1,36 @@
-import { act, fireEvent, screen, within } from 'expo-router/testing-library';
-import { Alert, ScrollView, StyleSheet, type AlertButton } from 'react-native';
+import { act, fireEvent, screen, within } from "expo-router/testing-library";
+import { Alert, ScrollView, StyleSheet, type AlertButton } from "react-native";
 
-import { nativeStateValue, setNativeStateValue } from './fake-native-state';
-import { tokenColors } from './token-colors';
+import { nativeStateValue, setNativeStateValue } from "./fake-native-state";
+import { tokenColors } from "./token-colors";
 
 function hostViews(type: string) {
   return screen.container.queryAll((instance) => instance.type === type);
 }
 
 function tabBar() {
-  const [host] = hostViews('RNSTabsHostIOS');
+  const [host] = hostViews("RNSTabsHostIOS");
   if (!host) {
-    throw new Error('No tab bar is on the screen');
+    throw new Error("No tab bar is on the screen");
   }
   return host;
 }
 
 function tabScreens() {
-  return hostViews('RNSTabsScreenIOS');
+  return hostViews("RNSTabsScreenIOS");
 }
 
-function tabScreen(matches: (props: Record<string, any>) => boolean, description: string) {
-  const screenForTab = tabScreens().find((candidate) => matches(candidate.props));
+function tabScreen(
+  matches: (props: Record<string, any>) => boolean,
+  description: string,
+) {
+  const screenForTab = tabScreens().find((candidate) =>
+    matches(candidate.props),
+  );
   if (!screenForTab) {
-    throw new Error(`No tab ${description}. Tabs: ${tabBarLabels().join(', ')}`);
+    throw new Error(
+      `No tab ${description}. Tabs: ${tabBarLabels().join(", ")}`,
+    );
   }
   return screenForTab;
 }
@@ -33,27 +40,38 @@ export function tabBarLabels(): string[] {
 }
 
 export function tabBadge(label: string): string | undefined {
-  return tabScreen((props) => props.title === label, `is labelled ${label}`).props.badgeValue;
+  return tabScreen((props) => props.title === label, `is labelled ${label}`)
+    .props.badgeValue;
 }
 
 export function selectedTab() {
   const { selectedScreenKey } = tabBar().props.navStateRequest;
-  return tabScreen((props) => props.screenKey === selectedScreenKey, 'is selected');
+  return tabScreen(
+    (props) => props.screenKey === selectedScreenKey,
+    "is selected",
+  );
 }
 
 export async function pressTab(label: string) {
-  const { screenKey } = tabScreen((props) => props.title === label, `is labelled ${label}`).props;
-  await fireEvent(tabBar(), 'tabSelected', {
-    nativeEvent: { selectedScreenKey: screenKey, provenance: 0, actionOrigin: 'user' },
+  const { screenKey } = tabScreen(
+    (props) => props.title === label,
+    `is labelled ${label}`,
+  ).props;
+  await fireEvent(tabBar(), "tabSelected", {
+    nativeEvent: {
+      selectedScreenKey: screenKey,
+      provenance: 0,
+      actionOrigin: "user",
+    },
   });
 }
 
 function presentedDrawerView() {
-  const drawer = hostViews('RNSModalScreen')
-    .filter((candidate) => candidate.props.stackPresentation === 'formSheet')
+  const drawer = hostViews("RNSModalScreen")
+    .filter((candidate) => candidate.props.stackPresentation === "formSheet")
     .at(-1);
   if (!drawer) {
-    throw new Error('No drawer is open');
+    throw new Error("No drawer is open");
   }
   const {
     sheetGrabberVisible = false,
@@ -73,25 +91,31 @@ function presentedDrawerView() {
 }
 
 export function isDrawerPresented() {
-  return hostViews('RNSModalScreen').some((candidate) => candidate.props.stackPresentation === 'formSheet');
+  return hostViews("RNSModalScreen").some(
+    (candidate) => candidate.props.stackPresentation === "formSheet",
+  );
 }
 
 export function presentedPageSheet() {
-  const sheet = hostViews('RNSModalScreen').find((candidate) => candidate.props.stackPresentation === 'pageSheet');
+  const sheet = hostViews("RNSModalScreen").find(
+    (candidate) => candidate.props.stackPresentation === "pageSheet",
+  );
   if (!sheet) {
-    throw new Error('No page sheet is presented');
+    throw new Error("No page sheet is presented");
   }
   return sheet;
 }
 
 export function isPageSheetPresented() {
-  return hostViews('RNSModalScreen').some((candidate) => candidate.props.stackPresentation === 'pageSheet');
+  return hostViews("RNSModalScreen").some(
+    (candidate) => candidate.props.stackPresentation === "pageSheet",
+  );
 }
 
 export function isInScrollView(element: HostElement) {
   let parent = element.parent;
   while (parent) {
-    if (parent.type === 'RCTScrollView') {
+    if (parent.type === "RCTScrollView") {
       return true;
     }
     parent = parent.parent;
@@ -104,11 +128,15 @@ export function presentedDrawer() {
   return { showsGrabber, heights, openingHeight: heights[openingIndex] };
 }
 
-async function closeDrawerByGesture(drawer: ReturnType<typeof presentedDrawerView>) {
+async function closeDrawerByGesture(
+  drawer: ReturnType<typeof presentedDrawerView>,
+) {
   if (!drawer.closesByGesture) {
-    throw new Error('This drawer does not close by gesture');
+    throw new Error("This drawer does not close by gesture");
   }
-  await fireEvent(drawer.view, 'dismissed', { nativeEvent: { dismissCount: 1 } });
+  await fireEvent(drawer.view, "dismissed", {
+    nativeEvent: { dismissCount: 1 },
+  });
 }
 
 export async function swipeDownDrawer() {
@@ -118,10 +146,14 @@ export async function swipeDownDrawer() {
 export async function tapOutsideDrawer() {
   const drawer = presentedDrawerView();
   if (drawer.heights[drawer.openingIndex] === 1) {
-    throw new Error('A drawer at full height leaves no screen outside it to tap');
+    throw new Error(
+      "A drawer at full height leaves no screen outside it to tap",
+    );
   }
   if (drawer.largestUndimmedIndex >= drawer.openingIndex) {
-    throw new Error('The screen behind this drawer is not dimmed, so a tap there does not close it');
+    throw new Error(
+      "The screen behind this drawer is not dimmed, so a tap there does not close it",
+    );
   }
   await closeDrawerByGesture(drawer);
 }
@@ -129,14 +161,19 @@ export async function tapOutsideDrawer() {
 const swipeTrackWidth = 360;
 
 function swipeTrack(control: HostElement) {
-  const [track] = control.queryAll((instance) => instance.type === 'RCTScrollView');
+  const [track] = control.queryAll(
+    (instance) => instance.type === "RCTScrollView",
+  );
   if (!track) {
-    throw new Error('Nothing in this control can be swiped');
+    throw new Error("Nothing in this control can be swiped");
   }
   return track;
 }
 
-const swipeDrags = new Map<HostElement, { offset: number; scrollsBefore: number }>();
+const swipeDrags = new Map<
+  HostElement,
+  { offset: number; scrollsBefore: number }
+>();
 
 function scrollToCalls() {
   return jest.mocked(ScrollView.prototype.scrollTo).mock;
@@ -160,32 +197,43 @@ function scrollEvent(x: number) {
 }
 
 export async function beginSwipe(control: HostElement) {
-  await fireEvent(control, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: swipeTrackWidth, height: 52 } } });
+  await fireEvent(control, "layout", {
+    nativeEvent: { layout: { x: 0, y: 0, width: swipeTrackWidth, height: 52 } },
+  });
   const track = () => swipeTrack(control);
   const enabled = track().props.scrollEnabled !== false;
   const travel = track().props.contentOffset.x;
   let offset = travel;
   if (enabled) {
-    await fireEvent(track(), 'scrollBeginDrag', scrollEvent(offset));
+    await fireEvent(track(), "scrollBeginDrag", scrollEvent(offset));
   }
   return {
     moveTo: async (fractionOfWidth: number) => {
       if (enabled) {
         offset = Math.max(0, travel - swipeTrackWidth * fractionOfWidth);
-        swipeDrags.set(track(), { offset, scrollsBefore: scrollToCalls().calls.length });
-        await fireEvent(track(), 'scroll', scrollEvent(offset));
+        swipeDrags.set(track(), {
+          offset,
+          scrollsBefore: scrollToCalls().calls.length,
+        });
+        await fireEvent(track(), "scroll", scrollEvent(offset));
       }
     },
     release: async () => {
       if (enabled) {
-        swipeDrags.set(track(), { offset, scrollsBefore: scrollToCalls().calls.length });
-        await fireEvent(track(), 'scrollEndDrag', scrollEvent(offset));
+        swipeDrags.set(track(), {
+          offset,
+          scrollsBefore: scrollToCalls().calls.length,
+        });
+        await fireEvent(track(), "scrollEndDrag", scrollEvent(offset));
       }
     },
   };
 }
 
-export async function swipeRight(control: HostElement, fractionOfWidth: number) {
+export async function swipeRight(
+  control: HostElement,
+  fractionOfWidth: number,
+) {
   const swipe = await beginSwipe(control);
   await swipe.moveTo(fractionOfWidth);
   await swipe.release();
@@ -194,12 +242,16 @@ export async function swipeRight(control: HostElement, fractionOfWidth: number) 
 export function swipeHandlePosition(control: HostElement) {
   const track = swipeTrack(control);
   const scrolls = scrollToCalls();
-  const latestScroll = scrolls.contexts.findLastIndex((scrollView: ScrollView) => rendersTrack(scrollView, track));
+  const latestScroll = scrolls.contexts.findLastIndex(
+    (scrollView: ScrollView) => rendersTrack(scrollView, track),
+  );
   const drag = swipeDrags.get(track);
   if (drag && drag.scrollsBefore > latestScroll) {
     return handlePosition(track, drag.offset);
   }
-  return latestScroll === -1 ? 0 : handlePosition(track, scrollTarget(scrolls.calls[latestScroll]));
+  return latestScroll === -1
+    ? 0
+    : handlePosition(track, scrollTarget(scrolls.calls[latestScroll]));
 }
 
 export function swipeHandleMovesAfterRelease(control: HostElement) {
@@ -207,20 +259,28 @@ export function swipeHandleMovesAfterRelease(control: HostElement) {
   const scrolls = scrollToCalls();
   const release = swipeDrags.get(track)?.scrollsBefore ?? 0;
   return scrolls.calls.flatMap((call, index) =>
-    index >= release && rendersTrack(scrolls.contexts[index], track) ? [handlePosition(track, scrollTarget(call))] : [],
+    index >= release && rendersTrack(scrolls.contexts[index], track)
+      ? [handlePosition(track, scrollTarget(call))]
+      : [],
   );
 }
 
 export function presentedDrawerCount() {
-  return hostViews('RNSModalScreen').filter((candidate) => candidate.props.stackPresentation === 'formSheet').length;
+  return hostViews("RNSModalScreen").filter(
+    (candidate) => candidate.props.stackPresentation === "formSheet",
+  ).length;
 }
 
 function drawerStackScreens() {
-  return presentedDrawerView().view.queryAll((instance) => instance.type === 'RNSScreen');
+  return presentedDrawerView().view.queryAll(
+    (instance) => instance.type === "RNSScreen",
+  );
 }
 
 function headerOf(stackScreen: HostElement) {
-  const [header] = stackScreen.queryAll((instance) => instance.type === 'RNSScreenStackHeaderConfig');
+  const [header] = stackScreen.queryAll(
+    (instance) => instance.type === "RNSScreenStackHeaderConfig",
+  );
   return header.props;
 }
 
@@ -238,7 +298,7 @@ export function drawerBackButton() {
 
 async function popDrawerScreen() {
   const [current] = drawerStackScreens().slice(-1);
-  await fireEvent(current, 'dismissed', { nativeEvent: { dismissCount: 1 } });
+  await fireEvent(current, "dismissed", { nativeEvent: { dismissCount: 1 } });
 }
 
 export function drawerScreen() {
@@ -249,46 +309,54 @@ export function drawerScreen() {
 export function drawerTitle() {
   const header = headerOf(drawerScreen());
   if (header.hidden) {
-    throw new Error('This drawer screen shows no title bar');
+    throw new Error("This drawer screen shows no title bar");
   }
   return header.title as string;
 }
 
 export async function pressDrawerBack() {
   if (!drawerBackButton()) {
-    throw new Error('This drawer shows no back button');
+    throw new Error("This drawer shows no back button");
   }
   await popDrawerScreen();
 }
 
 export async function swipeBackFromTheLeftEdge() {
   const [current] = drawerStackScreens().slice(-1);
-  if (drawerStackScreens().length < 2 || current.props.gestureEnabled === false) {
-    throw new Error('This drawer screen does not go back with a swipe from the left edge');
+  if (
+    drawerStackScreens().length < 2 ||
+    current.props.gestureEnabled === false
+  ) {
+    throw new Error(
+      "This drawer screen does not go back with a swipe from the left edge",
+    );
   }
   await popDrawerScreen();
 }
 
 function nearestStack(element: HostElement) {
   let parent = element.parent;
-  while (parent && parent.type !== 'RNSScreenStack') {
+  while (parent && parent.type !== "RNSScreenStack") {
     parent = parent.parent;
   }
   return parent;
 }
 
 function rootStackScreens() {
-  const [rootStack] = hostViews('RNSScreenStack');
+  const [rootStack] = hostViews("RNSScreenStack");
   if (!rootStack) {
-    throw new Error('No stack is on the screen');
+    throw new Error("No stack is on the screen");
   }
-  return rootStack.queryAll((instance) => instance.type === 'RNSScreen' && nearestStack(instance) === rootStack);
+  return rootStack.queryAll(
+    (instance) =>
+      instance.type === "RNSScreen" && nearestStack(instance) === rootStack,
+  );
 }
 
 export function pushedScreen() {
   const screens = rootStackScreens();
   if (screens.length < 2) {
-    throw new Error('No screen is pushed');
+    throw new Error("No screen is pushed");
   }
   return screens.at(-1)!;
 }
@@ -318,8 +386,30 @@ export async function swipeBackInTheTab() {
   await fireEvent(current, 'dismissed', { nativeEvent: { dismissCount: 1 } });
 }
 
+export function pushedScreenTitle() {
+  const [header] = pushedScreen().queryAll(
+    (instance) => instance.type === "RNSScreenStackHeaderConfig",
+  );
+  return header?.props.title as string | undefined;
+}
+
+export async function scrollPushedScreenTo(y: number) {
+  const [scrollView] = pushedScreen().queryAll(
+    (instance) => instance.type === "RCTScrollView",
+  );
+  await fireEvent(scrollView!, "scroll", {
+    nativeEvent: {
+      contentOffset: { x: 0, y },
+      contentSize: { width: 390, height: 2000 },
+      layoutMeasurement: { width: 390, height: 844 },
+    },
+  });
+}
+
 export function pushedScreenBackButton() {
-  const [header] = pushedScreen().queryAll((instance) => instance.type === 'RNSScreenStackHeaderConfig');
+  const [header] = pushedScreen().queryAll(
+    (instance) => instance.type === "RNSScreenStackHeaderConfig",
+  );
   if (!header || header.props.hidden || header.props.hideBackButton) {
     return null;
   }
@@ -329,9 +419,11 @@ export function pushedScreenBackButton() {
 export async function swipeBackFromThePushedScreen() {
   const current = pushedScreen();
   if (current.props.gestureEnabled === false) {
-    throw new Error('This screen does not go back with a swipe from the left edge');
+    throw new Error(
+      "This screen does not go back with a swipe from the left edge",
+    );
   }
-  await fireEvent(current, 'dismissed', { nativeEvent: { dismissCount: 1 } });
+  await fireEvent(current, "dismissed", { nativeEvent: { dismissCount: 1 } });
 }
 
 const answeredAlerts = new WeakSet<unknown[]>();
@@ -342,26 +434,36 @@ function openAlert() {
 }
 
 function alertButtons(call: Parameters<typeof Alert.alert>): AlertButton[] {
-  return call[2] ?? [{ text: 'OK' }];
+  return call[2] ?? [{ text: "OK" }];
 }
 
 function openAlertDetails() {
   const call = openAlert();
-  return call ? { title: call[0], message: call[1], buttons: alertButtons(call) } : null;
+  return call
+    ? { title: call[0], message: call[1], buttons: alertButtons(call) }
+    : null;
 }
 
 export function presentedAlert() {
   const alert = openAlertDetails();
-  return alert ? { ...alert, buttons: alert.buttons.map((button) => button.text) } : null;
+  return alert
+    ? { ...alert, buttons: alert.buttons.map((button) => button.text) }
+    : null;
 }
 
 export function presentedAlertButtonStyles() {
-  return openAlertDetails()?.buttons.map(({ text, style = 'default' }) => ({ text, style })) ?? null;
+  return (
+    openAlertDetails()?.buttons.map(({ text, style = "default" }) => ({
+      text,
+      style,
+    })) ?? null
+  );
 }
 
 export async function pressAlertButton(label: string) {
   const call = openAlert();
-  const button = call && alertButtons(call).find((candidate) => candidate.text === label);
+  const button =
+    call && alertButtons(call).find((candidate) => candidate.text === label);
   if (!call || !button) {
     throw new Error(`No alert button is labelled ${label}`);
   }
@@ -374,7 +476,10 @@ export function opacityOf(element: HostElement) {
 }
 
 export function showsSpinner(element: ReturnType<typeof screen.getByRole>) {
-  return element.queryAll((instance) => instance.type === 'ActivityIndicator').length > 0;
+  return (
+    element.queryAll((instance) => instance.type === "ActivityIndicator")
+      .length > 0
+  );
 }
 
 type HeaderItem = {
@@ -396,13 +501,16 @@ type HeaderMenuItem = {
   sfSymbolName?: string;
   disabled?: boolean;
   destructive?: boolean;
-  state?: 'on' | 'off';
+  state?: "on" | "off";
   menuId?: string;
   items?: HeaderMenuItem[];
 };
 
 function shownHeaderConfigs(tab: HostElement) {
-  return tab.queryAll((instance) => instance.type === 'RNSScreenStackHeaderConfig' && !instance.props.hidden);
+  return tab.queryAll(
+    (instance) =>
+      instance.type === "RNSScreenStackHeaderConfig" && !instance.props.hidden,
+  );
 }
 
 export function hasHeader(tab: HostElement) {
@@ -412,13 +520,15 @@ export function hasHeader(tab: HostElement) {
 function tabHeaderConfig(tab: HostElement) {
   const [config] = shownHeaderConfigs(tab);
   if (!config) {
-    throw new Error('This tab has no header');
+    throw new Error("This tab has no header");
   }
   return config;
 }
 
 function rightHeaderItems(tab: HostElement): HeaderItem[] {
-  return [...(tabHeaderConfig(tab).props.headerRightBarButtonItems ?? [])].reverse();
+  return [
+    ...(tabHeaderConfig(tab).props.headerRightBarButtonItems ?? []),
+  ].reverse();
 }
 
 function leftHeaderItems(tab: HostElement): HeaderItem[] {
@@ -434,7 +544,9 @@ export function leftHeaderButtons(tab: HostElement) {
 }
 
 function headerItem(tab: HostElement, name: string) {
-  const item = [...leftHeaderItems(tab), ...rightHeaderItems(tab)].find((candidate) => headerItemName(candidate) === name);
+  const item = [...leftHeaderItems(tab), ...rightHeaderItems(tab)].find(
+    (candidate) => headerItemName(candidate) === name,
+  );
   if (!item) {
     throw new Error(`No header button is named ${name}`);
   }
@@ -442,24 +554,37 @@ function headerItem(tab: HostElement, name: string) {
 }
 
 export function tabHeader(tab: HostElement) {
-  const { title, largeTitle, largeTitleFontSize, largeTitleFontWeight, titleFontSize, titleFontWeight } =
-    tabHeaderConfig(tab).props;
+  const {
+    title,
+    largeTitle,
+    largeTitleFontSize,
+    largeTitleFontWeight,
+    titleFontSize,
+    titleFontWeight,
+  } = tabHeaderConfig(tab).props;
   return {
     title,
     largeTitle: Boolean(largeTitle),
-    largeTitleType: { fontSize: largeTitleFontSize, fontWeight: largeTitleFontWeight },
+    largeTitleType: {
+      fontSize: largeTitleFontSize,
+      fontWeight: largeTitleFontWeight,
+    },
     titleType: { fontSize: titleFontSize, fontWeight: titleFontWeight },
     buttons: rightHeaderItems(tab).map(headerItemName),
   };
 }
 
 export function headerTitles() {
-  return shownHeaderConfigs(screen.container).map((config) => config.props.title);
+  return shownHeaderConfigs(screen.container).map(
+    (config) => config.props.title,
+  );
 }
 
 export function headerButtonBadge(tab: HostElement, name: string) {
   const { badge } = headerItem(tab, name);
-  return badge ? { count: badge.value, color: badge.style.backgroundColor } : null;
+  return badge
+    ? { count: badge.value, color: badge.style.backgroundColor }
+    : null;
 }
 
 export function headerButtonColor(tab: HostElement, name: string) {
@@ -471,8 +596,16 @@ export function presentedDrawerContent() {
 }
 
 export function headerButton(tab: HostElement, name: string) {
-  const { type, title, accessibilityHint, sfSymbolName } = headerItem(tab, name);
-  return { type, label: title || undefined, symbol: sfSymbolName, hint: accessibilityHint };
+  const { type, title, accessibilityHint, sfSymbolName } = headerItem(
+    tab,
+    name,
+  );
+  return {
+    type,
+    label: title || undefined,
+    symbol: sfSymbolName,
+    hint: accessibilityHint,
+  };
 }
 
 function menuOf(tab: HostElement, name: string) {
@@ -487,7 +620,11 @@ export function headerMenu(tab: HostElement, name: string) {
   const { title, items } = menuOf(tab, name);
   return {
     title,
-    items: items.map(({ title: itemTitle, subtitle, sfSymbolName }) => ({ title: itemTitle, subtitle, symbol: sfSymbolName })),
+    items: items.map(({ title: itemTitle, subtitle, sfSymbolName }) => ({
+      title: itemTitle,
+      subtitle,
+      symbol: sfSymbolName,
+    })),
   };
 }
 
@@ -501,13 +638,18 @@ export function headerButtonIsDisabled(host: HostElement, name: string) {
   return headerItem(host, name).disabled ?? false;
 }
 
-type MenuRow = { title: string; destructive: boolean; checked?: true; rows?: MenuRow[] };
+type MenuRow = {
+  title: string;
+  destructive: boolean;
+  checked?: true;
+  rows?: MenuRow[];
+};
 
 function menuRows(items: HeaderMenuItem[]): MenuRow[] {
   return items.map((item) => ({
     title: item.title,
     destructive: item.destructive ?? false,
-    ...(item.state === 'on' ? { checked: true } : {}),
+    ...(item.state === "on" ? { checked: true } : {}),
     ...(item.items ? { rows: menuRows(item.items) } : {}),
   }));
 }
@@ -516,48 +658,58 @@ export function headerMenuRows(host: HostElement, name: string) {
   return menuRows(menuOf(host, name).items);
 }
 
-export async function pressHeaderMenuAction(host: HostElement, name: string, path: string[]) {
+export async function pressHeaderMenuAction(
+  host: HostElement,
+  name: string,
+  path: string[],
+) {
   let items = menuOf(host, name).items;
   let chosen: HeaderMenuItem | undefined;
   for (const title of path) {
     chosen = items.find((item) => item.title === title);
     if (!chosen) {
-      throw new Error(`No menu row is titled ${title}. Rows: ${items.map((item) => item.title).join(', ')}`);
+      throw new Error(
+        `No menu row is titled ${title}. Rows: ${items.map((item) => item.title).join(", ")}`,
+      );
     }
     items = chosen.items ?? [];
   }
   if (!chosen?.menuId || chosen.disabled) {
-    throw new Error(`${path.join(' > ')} is not a menu action that can be chosen`);
+    throw new Error(
+      `${path.join(" > ")} is not a menu action that can be chosen`,
+    );
   }
-  await fireEvent(tabHeaderConfig(host), 'pressHeaderBarButtonMenuItem', { nativeEvent: { menuId: chosen.menuId } });
+  await fireEvent(tabHeaderConfig(host), "pressHeaderBarButtonMenuItem", {
+    nativeEvent: { menuId: chosen.menuId },
+  });
 }
 
 export async function pressHeaderButton(tab: HostElement, name: string) {
-  await fireEvent(tabHeaderConfig(tab), 'pressHeaderBarButtonItem', {
+  await fireEvent(tabHeaderConfig(tab), "pressHeaderBarButtonItem", {
     nativeEvent: { buttonId: headerItem(tab, name).buttonId },
   });
 }
 
 export async function openSettings() {
-  await pressHeaderButton(selectedTab(), 'Settings');
-  return screen.findByRole('header', { name: 'Settings' });
+  await pressHeaderButton(selectedTab(), "Settings");
+  return screen.findByRole("header", { name: "Settings" });
 }
 
 export function queryAppleSignInButton() {
-  const [button] = hostViews('ViewManagerAdapter_ExpoAppleAuthentication');
+  const [button] = hostViews("ViewManagerAdapter_ExpoAppleAuthentication");
   return button ?? null;
 }
 
 export function appleSignInButton() {
   const button = queryAppleSignInButton();
   if (!button) {
-    throw new Error('No Sign in with Apple button is on the screen');
+    throw new Error("No Sign in with Apple button is on the screen");
   }
   return button;
 }
 
 export async function pressSignInWithApple() {
-  await fireEvent(appleSignInButton(), 'buttonPress');
+  await fireEvent(appleSignInButton(), "buttonPress");
   await act(async () => {});
 }
 
@@ -571,29 +723,32 @@ export function appearsBefore(
 
 type HostElement = ReturnType<typeof screen.getByRole>;
 
-const glassHost = 'ViewManagerAdapter_ExpoGlassEffect';
+const glassHost = "ViewManagerAdapter_ExpoGlassEffect";
 
 function isGlassView(element: HostElement) {
-  return element.type === glassHost && 'glassEffectStyle' in element.props;
+  return element.type === glassHost && "glassEffectStyle" in element.props;
 }
 
 function isGlassGroup(element: HostElement) {
-  return element.type === glassHost && 'spacing' in element.props;
+  return element.type === glassHost && "spacing" in element.props;
 }
 
 function isTransparent(color: unknown) {
-  return color === undefined || color === '#00000000';
+  return color === undefined || color === "#00000000";
 }
 
 export function backdropOf(element: HostElement) {
   let candidate: HostElement | null = element;
   while (candidate) {
-    if (isGlassView(candidate) || !isTransparent(StyleSheet.flatten(candidate.props.style)?.backgroundColor)) {
+    if (
+      isGlassView(candidate) ||
+      !isTransparent(StyleSheet.flatten(candidate.props.style)?.backgroundColor)
+    ) {
       return candidate;
     }
     candidate = candidate.parent;
   }
-  throw new Error('Nothing draws a background behind this element');
+  throw new Error("Nothing draws a background behind this element");
 }
 
 export function glassEffect(element: HostElement) {
@@ -606,13 +761,17 @@ export function glassEffect(element: HostElement) {
 
 export function glassGroupOf(element: HostElement) {
   const glass = backdropOf(element);
-  return isGlassView(glass) && glass.parent && isGlassGroup(glass.parent) ? glass.parent : null;
+  return isGlassView(glass) && glass.parent && isGlassGroup(glass.parent)
+    ? glass.parent
+    : null;
 }
 
 export function cardImageUri(tile: HostElement) {
-  const [image] = tile.queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage');
+  const [image] = tile.queryAll(
+    (instance) => instance.type === "ViewManagerAdapter_ExpoImage",
+  );
   if (!image) {
-    throw new Error('No card image is in this tile');
+    throw new Error("No card image is in this tile");
   }
   return image.props.source?.[0]?.uri;
 }
@@ -623,18 +782,28 @@ export function imageTintColors(element: HostElement) {
 
 export function imageFrames(element: HostElement) {
   return element
-    .queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage')
-    .map((image) => ({ uri: image.props.source?.[0]?.uri, width: StyleSheet.flatten(image.parent?.props.style)?.width }));
+    .queryAll((instance) => instance.type === "ViewManagerAdapter_ExpoImage")
+    .map((image) => ({
+      uri: image.props.source?.[0]?.uri,
+      width: StyleSheet.flatten(image.parent?.props.style)?.width,
+    }));
 }
 
 export function imageSources(element: HostElement) {
   return element
-    .queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage')
-    .map((image) => image.props.source?.[0]?.uri ?? image.props.source?.[0]?.testUri);
+    .queryAll((instance) => instance.type === "ViewManagerAdapter_ExpoImage")
+    .map(
+      (image) =>
+        image.props.source?.[0]?.uri ?? image.props.source?.[0]?.testUri,
+    );
 }
 
 export function cardSheen(tile: HostElement) {
-  const [sheen] = tile.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage !== undefined);
+  const [sheen] = tile.queryAll(
+    (instance) =>
+      StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage !==
+      undefined,
+  );
   return sheen ? StyleSheet.flatten(sheen.props.style) : null;
 }
 
@@ -669,15 +838,17 @@ export function cardImageLook(tile: HostElement) {
 }
 
 export function blurredImageUris() {
-  return hostViews('ViewManagerAdapter_ExpoImage')
+  return hostViews("ViewManagerAdapter_ExpoImage")
     .filter((image) => image.props.blurRadius > 0)
     .map((image) => image.props.source?.[0]?.uri);
 }
 
 export function imageTintColor(element: HostElement) {
-  const [image] = element.queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage');
+  const [image] = element.queryAll(
+    (instance) => instance.type === "ViewManagerAdapter_ExpoImage",
+  );
   if (!image) {
-    throw new Error('No image is in this element');
+    throw new Error("No image is in this element");
   }
   return image.props.tintColor;
 }
@@ -687,13 +858,13 @@ export function symbolTintColor(element: HostElement) {
 }
 
 function isSymbol(instance: HostElement) {
-  return instance.type === 'ViewManagerAdapter_SymbolModule';
+  return instance.type === "ViewManagerAdapter_SymbolModule";
 }
 
 export function symbolIn(element: HostElement) {
   const [symbol] = element.queryAll(isSymbol);
   if (!symbol) {
-    throw new Error('No symbol is in this element');
+    throw new Error("No symbol is in this element");
   }
   return symbol;
 }
@@ -707,7 +878,9 @@ export function symbolSizes(element: HostElement) {
 }
 
 export function symbolNamed(element: HostElement, name: string) {
-  const symbol = element.queryAll(isSymbol).find((candidate) => candidate.props.name === name);
+  const symbol = element
+    .queryAll(isSymbol)
+    .find((candidate) => candidate.props.name === name);
   if (!symbol) {
     throw new Error(`No ${name} symbol is in this element`);
   }
@@ -719,14 +892,18 @@ export function symbolNames(element: HostElement) {
 }
 
 function rgbaOf(hex: string) {
-  const [red, green, blue] = [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16));
+  const [red, green, blue] = [1, 3, 5].map((start) =>
+    parseInt(hex.slice(start, start + 2), 16),
+  );
   return `rgba(${red}, ${green}, ${blue}, 1)`;
 }
 
 export function splitColorsBehind(glyph: HostElement) {
   let candidate = glyph.parent;
   while (candidate) {
-    const gradient = StyleSheet.flatten(candidate.props.style)?.experimental_backgroundImage;
+    const gradient = StyleSheet.flatten(
+      candidate.props.style,
+    )?.experimental_backgroundImage;
     if (gradient !== undefined) {
       return [...new Set(String(gradient).match(/#[0-9a-f]{6}/g))].map(rgbaOf);
     }
@@ -735,11 +912,18 @@ export function splitColorsBehind(glyph: HostElement) {
   return [];
 }
 
-function sizesAround(element: HostElement, dimension: 'width' | 'height' | 'minHeight') {
+function sizesAround(
+  element: HostElement,
+  dimension: "width" | "height" | "minHeight",
+) {
   const sizes: number[] = [];
-  for (let candidate = element.parent; candidate; candidate = candidate.parent) {
+  for (
+    let candidate = element.parent;
+    candidate;
+    candidate = candidate.parent
+  ) {
     const size = StyleSheet.flatten(candidate.props.style)?.[dimension];
-    if (typeof size === 'number') {
+    if (typeof size === "number") {
       sizes.push(size);
     }
   }
@@ -747,71 +931,104 @@ function sizesAround(element: HostElement, dimension: 'width' | 'height' | 'minH
 }
 
 export function widthsAround(element: HostElement) {
-  return sizesAround(element, 'width');
+  return sizesAround(element, "width");
 }
 
 export function heightsAround(element: HostElement) {
-  return sizesAround(element, 'height');
+  return sizesAround(element, "height");
 }
 
 export function minHeightsAround(element: HostElement) {
-  return sizesAround(element, 'minHeight');
+  return sizesAround(element, "minHeight");
 }
 
 function isScrollContent(element: HostElement) {
-  return element.parent?.type === 'RCTScrollView';
+  return element.parent?.type === "RCTScrollView";
 }
 
 function isListCell(element: HostElement) {
-  return element.parent !== null && isScrollContent(element.parent) && typeof element.props.onLayout === 'function';
+  return (
+    element.parent !== null &&
+    isScrollContent(element.parent) &&
+    typeof element.props.onLayout === "function"
+  );
 }
 
 function firstBlockIn(element: HostElement) {
-  return element.children.find((child) => typeof child !== 'string');
+  return element.children.find((child) => typeof child !== "string");
 }
 
 export function placeInScrollView(element: HostElement) {
   let block = element;
-  while (block.parent && !isScrollContent(block.parent) && !isListCell(block.parent)) {
+  while (
+    block.parent &&
+    !isScrollContent(block.parent) &&
+    !isListCell(block.parent)
+  ) {
     block = block.parent;
   }
   const container = block.parent;
   if (!container) {
-    throw new Error('This element is not in a scroll view');
+    throw new Error("This element is not in a scroll view");
   }
   const content = isListCell(container) ? container.parent! : container;
-  const { padding = 0, paddingHorizontal = padding, paddingVertical = padding, paddingTop = paddingVertical, paddingLeft = paddingHorizontal, paddingRight = paddingHorizontal } =
-    StyleSheet.flatten(content.props.style) ?? {};
-  const isFirst = firstBlockIn(container) === block && (container === content || firstBlockIn(content) === container);
-  return { block, isFirst, contentInsets: { top: paddingTop, left: paddingLeft, right: paddingRight } };
+  const {
+    padding = 0,
+    paddingHorizontal = padding,
+    paddingVertical = padding,
+    paddingTop = paddingVertical,
+    paddingLeft = paddingHorizontal,
+    paddingRight = paddingHorizontal,
+  } = StyleSheet.flatten(content.props.style) ?? {};
+  const isFirst =
+    firstBlockIn(container) === block &&
+    (container === content || firstBlockIn(content) === container);
+  return {
+    block,
+    isFirst,
+    contentInsets: { top: paddingTop, left: paddingLeft, right: paddingRight },
+  };
 }
 
 export function blocksColored(element: HostElement, color: string) {
-  return element.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.backgroundColor === color).length;
+  return element.queryAll(
+    (instance) =>
+      StyleSheet.flatten(instance.props.style)?.backgroundColor === color,
+  ).length;
 }
 
 export function dashedOutlinesColored(element: HostElement, color: string) {
   return element.queryAll((instance) => {
     const style = StyleSheet.flatten(instance.props.style);
-    return style?.borderStyle === 'dashed' && style.borderColor === color;
+    return style?.borderStyle === "dashed" && style.borderColor === color;
   }).length;
 }
 
 export function fadesDown(element: HostElement) {
-  return element.queryAll((instance) =>
-    String(StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage).startsWith('linear-gradient(180deg'),
-  ).length > 0;
+  return (
+    element.queryAll((instance) =>
+      String(
+        StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage,
+      ).startsWith("linear-gradient(180deg"),
+    ).length > 0
+  );
 }
 
 export function fadeEndColor(element: HostElement) {
   const [fade] = element.queryAll((instance) =>
-    String(StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage).startsWith('linear-gradient(180deg'),
+    String(
+      StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage,
+    ).startsWith("linear-gradient(180deg"),
   );
-  const hex = /#(\w{2})(\w{2})(\w{2}) 100%\)$/.exec(StyleSheet.flatten(fade?.props.style)?.experimental_backgroundImage ?? '');
+  const hex = /#(\w{2})(\w{2})(\w{2}) 100%\)$/.exec(
+    StyleSheet.flatten(fade?.props.style)?.experimental_backgroundImage ?? "",
+  );
   if (!hex) {
-    throw new Error('This element does not fade down into a color');
+    throw new Error("This element does not fade down into a color");
   }
-  const [red, green, blue] = hex.slice(1).map((channel) => parseInt(channel, 16));
+  const [red, green, blue] = hex
+    .slice(1)
+    .map((channel) => parseInt(channel, 16));
   return `rgba(${red}, ${green}, ${blue}, 1)`;
 }
 
@@ -821,13 +1038,22 @@ export function lineColoredBlocks(element: HostElement) {
 
 export function sideColumnWidths(element: HostElement) {
   let column = element;
-  while (column.parent && StyleSheet.flatten(column.parent.props.style)?.flexDirection !== 'row') {
+  while (
+    column.parent &&
+    StyleSheet.flatten(column.parent.props.style)?.flexDirection !== "row"
+  ) {
     column = column.parent;
   }
-  const columns = (column.parent?.children ?? []).filter((child) => typeof child !== 'string') as HostElement[];
+  const columns = (column.parent?.children ?? []).filter(
+    (child) => typeof child !== "string",
+  ) as HostElement[];
   const index = columns.indexOf(column);
-  const widthOf = (side: HostElement | undefined) => StyleSheet.flatten(side?.props.style)?.width ?? null;
-  return { start: widthOf(columns[index - 1]), end: widthOf(columns[index + 1]) };
+  const widthOf = (side: HostElement | undefined) =>
+    StyleSheet.flatten(side?.props.style)?.width ?? null;
+  return {
+    start: widthOf(columns[index - 1]),
+    end: widthOf(columns[index + 1]),
+  };
 }
 
 export function placeholderColor(element: HostElement) {
@@ -835,10 +1061,13 @@ export function placeholderColor(element: HostElement) {
 }
 
 export function cardImageOutline(tile: HostElement) {
-  const [image] = tile.queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage');
+  const [image] = tile.queryAll(
+    (instance) => instance.type === "ViewManagerAdapter_ExpoImage",
+  );
   let frame = image?.parent ?? null;
   while (frame && frame !== tile.parent) {
-    const { borderWidth, borderColor, borderRadius } = StyleSheet.flatten(frame.props.style) ?? {};
+    const { borderWidth, borderColor, borderRadius } =
+      StyleSheet.flatten(frame.props.style) ?? {};
     if (borderWidth) {
       return { borderWidth, borderColor, borderRadius };
     }
@@ -848,16 +1077,22 @@ export function cardImageOutline(tile: HostElement) {
 }
 
 export async function scrollToEnd(tab: HostElement) {
-  const [list] = tab.queryAll((instance) => instance.type === 'RCTScrollView');
+  const [list] = tab.queryAll((instance) => instance.type === "RCTScrollView");
   if (!list) {
-    throw new Error('No scroll view is in this tab');
+    throw new Error("No scroll view is in this tab");
   }
   const viewport = { width: 400, height: 800 };
   const content = { width: 400, height: 10_000 };
-  await fireEvent(list, 'layout', { nativeEvent: { layout: { x: 0, y: 0, ...viewport } } });
-  await fireEvent(list, 'contentSizeChange', content.width, content.height);
+  await fireEvent(list, "layout", {
+    nativeEvent: { layout: { x: 0, y: 0, ...viewport } },
+  });
+  await fireEvent(list, "contentSizeChange", content.width, content.height);
   const scrolledTo = (y: number) => ({
-    nativeEvent: { contentOffset: { x: 0, y }, contentSize: content, layoutMeasurement: viewport },
+    nativeEvent: {
+      contentOffset: { x: 0, y },
+      contentSize: content,
+      layoutMeasurement: viewport,
+    },
   });
   const scrolledToEnd = scrolledTo(content.height - viewport.height);
   await fireEvent.scroll(list, scrolledTo(0));
@@ -871,10 +1106,17 @@ export async function scrollToEnd(tab: HostElement) {
 type Insets = { top?: number; bottom?: number; left?: number; right?: number };
 
 export function touchTarget(element: HostElement) {
-  const { minWidth, width, minHeight, height } = StyleSheet.flatten(element.props.style) ?? {};
+  const { minWidth, width, minHeight, height } =
+    StyleSheet.flatten(element.props.style) ?? {};
   const slop: number | Insets = element.props.hitSlop ?? 0;
-  const { top = 0, bottom = 0, left = 0, right = 0 } =
-    typeof slop === 'number' ? { top: slop, bottom: slop, left: slop, right: slop } : slop;
+  const {
+    top = 0,
+    bottom = 0,
+    left = 0,
+    right = 0,
+  } = typeof slop === "number"
+    ? { top: slop, bottom: slop, left: slop, right: slop }
+    : slop;
   return {
     width: Number(width ?? minWidth ?? 0) + left + right,
     height: Number(height ?? minHeight ?? 0) + top + bottom,
@@ -908,7 +1150,10 @@ function touchPath(target: HostElement) {
   return path;
 }
 
-export async function touchDown(target: HostElement, { x, y }: { x: number; y: number }) {
+export async function touchDown(
+  target: HostElement,
+  { x, y }: { x: number; y: number },
+) {
   const path = touchPath(target);
   const track: TouchTrack = {
     touchActive: true,
@@ -924,9 +1169,17 @@ export async function touchDown(target: HostElement, { x, y }: { x: number; y: n
   };
   let responder: HostElement | undefined;
   const touchEvent = () => {
-    const touch = { pageX: track.currentPageX, pageY: track.currentPageY, timestamp: track.currentTimeStamp };
+    const touch = {
+      pageX: track.currentPageX,
+      pageY: track.currentPageY,
+      timestamp: track.currentTimeStamp,
+    };
     return {
-      nativeEvent: { ...touch, touches: track.touchActive ? [touch] : [], changedTouches: [touch] },
+      nativeEvent: {
+        ...touch,
+        touches: track.touchActive ? [touch] : [],
+        changedTouches: [touch],
+      },
       touchHistory: {
         numberActiveTouches: track.touchActive ? 1 : 0,
         indexOfSingleActiveTouch: 0,
@@ -935,16 +1188,22 @@ export async function touchDown(target: HostElement, { x, y }: { x: number; y: n
       },
     };
   };
-  const negotiate = async (phase: 'Start' | 'Move') => {
+  const negotiate = async (phase: "Start" | "Move") => {
     await act(async () => {
       const event = touchEvent();
       responder =
-        path.find((element) => element.props[`on${phase}ShouldSetResponderCapture`]?.(event)) ??
-        [...path].reverse().find((element) => element.props[`on${phase}ShouldSetResponder`]?.(event));
+        path.find((element) =>
+          element.props[`on${phase}ShouldSetResponderCapture`]?.(event),
+        ) ??
+        [...path]
+          .reverse()
+          .find((element) =>
+            element.props[`on${phase}ShouldSetResponder`]?.(event),
+          );
       responder?.props.onResponderGrant?.(event);
     });
   };
-  await negotiate('Start');
+  await negotiate("Start");
   return {
     async moveTo(position: { x?: number; y: number }) {
       track.previousPageX = track.currentPageX;
@@ -954,7 +1213,7 @@ export async function touchDown(target: HostElement, { x, y }: { x: number; y: n
       track.currentPageY = position.y;
       track.currentTimeStamp += 16;
       if (!responder) {
-        await negotiate('Move');
+        await negotiate("Move");
         return;
       }
       await act(async () => responder?.props.onResponderMove?.(touchEvent()));
@@ -962,56 +1221,77 @@ export async function touchDown(target: HostElement, { x, y }: { x: number; y: n
     async lift() {
       track.touchActive = false;
       track.currentTimeStamp += 16;
-      await act(async () => responder?.props.onResponderRelease?.(touchEvent()));
+      await act(async () =>
+        responder?.props.onResponderRelease?.(touchEvent()),
+      );
     },
   };
 }
 
-export async function performAccessibilityAction(element: HostElement, label: string) {
-  const actions: { name: string; label?: string }[] = element.props.accessibilityActions ?? [];
+export async function performAccessibilityAction(
+  element: HostElement,
+  label: string,
+) {
+  const actions: { name: string; label?: string }[] =
+    element.props.accessibilityActions ?? [];
   const action = actions.find((candidate) => candidate.label === label);
   if (!action) {
-    throw new Error(`No accessibility action is labelled ${label}. Actions: ${actions.map((candidate) => candidate.label).join(', ')}`);
+    throw new Error(
+      `No accessibility action is labelled ${label}. Actions: ${actions.map((candidate) => candidate.label).join(", ")}`,
+    );
   }
-  await fireEvent(element, 'accessibilityAction', { nativeEvent: { actionName: action.name } });
+  await fireEvent(element, "accessibilityAction", {
+    nativeEvent: { actionName: action.name },
+  });
 }
 
 export function accessibilityActionLabels(element: HostElement) {
-  return (element.props.accessibilityActions ?? []).map((action: { label?: string }) => action.label);
+  return (element.props.accessibilityActions ?? []).map(
+    (action: { label?: string }) => action.label,
+  );
 }
 
-const expoUiHost = 'ViewManagerAdapter_ExpoUI';
+const expoUiHost = "ViewManagerAdapter_ExpoUI";
 
 function isNativeMenu(element: HostElement) {
-  return element.type === expoUiHost && 'hasPrimaryAction' in element.props;
+  return element.type === expoUiHost && "hasPrimaryAction" in element.props;
 }
 
 function spokenLabelOf(element: HostElement): string | undefined {
-  const modifiers: { $type: string; label?: string }[] = element.props.modifiers ?? [];
-  return modifiers.find((modifier) => modifier.$type === 'accessibilityLabel')?.label;
+  const modifiers: { $type: string; label?: string }[] =
+    element.props.modifiers ?? [];
+  return modifiers.find((modifier) => modifier.$type === "accessibilityLabel")
+    ?.label;
 }
 
 export function contextMenu(element: HostElement) {
   for (let parent = element.parent; parent; parent = parent.parent) {
-    const items = parent.children.find((child) => typeof child !== 'string' && child.type === expoUiHost && child.props.name === 'items');
-    if (items && typeof items !== 'string') {
+    const items = parent.children.find(
+      (child) =>
+        typeof child !== "string" &&
+        child.type === expoUiHost &&
+        child.props.name === "items",
+    );
+    if (items && typeof items !== "string") {
       return items;
     }
   }
-  throw new Error('This element has no context menu');
+  throw new Error("This element has no context menu");
 }
 
 function isSwiftUiHost(element: HostElement) {
-  return element.type === expoUiHost && 'matchContentsVertical' in element.props;
+  return (
+    element.type === expoUiHost && "matchContentsVertical" in element.props
+  );
 }
 
 export function movesWithSafeArea(element: HostElement) {
   for (let parent = element.parent; parent; parent = parent.parent) {
     if (isSwiftUiHost(parent)) {
-      return parent.props.ignoreSafeArea !== 'all';
+      return parent.props.ignoreSafeArea !== "all";
     }
   }
-  throw new Error('This element is not drawn by SwiftUI');
+  throw new Error("This element is not drawn by SwiftUI");
 }
 
 export function menuButtonNames(host: HostElement) {
@@ -1019,39 +1299,59 @@ export function menuButtonNames(host: HostElement) {
 }
 
 export function menuButton(host: HostElement, name: string) {
-  const button = host.queryAll(isNativeMenu).find((candidate) => spokenLabelOf(candidate) === name);
+  const button = host
+    .queryAll(isNativeMenu)
+    .find((candidate) => spokenLabelOf(candidate) === name);
   if (!button) {
-    throw new Error(`No menu button is named ${name}. Menu buttons: ${menuButtonNames(host).join(', ')}`);
+    throw new Error(
+      `No menu button is named ${name}. Menu buttons: ${menuButtonNames(host).join(", ")}`,
+    );
   }
   return button;
 }
 
 function menuChoices(button: HostElement) {
-  return button.queryAll((instance) => instance.type === expoUiHost && 'isOn' in instance.props);
+  return button.queryAll(
+    (instance) => instance.type === expoUiHost && "isOn" in instance.props,
+  );
 }
 
 function menuActions(button: HostElement) {
-  return button.queryAll((instance) => instance.type === expoUiHost && 'onButtonPress' in instance.props);
+  return button.queryAll(
+    (instance) =>
+      instance.type === expoUiHost && "onButtonPress" in instance.props,
+  );
 }
 
 export function buttonMenuActions(button: HostElement) {
   return menuActions(button).map((action) => ({
     title: action.props.label as string,
     symbol: action.props.systemImage as string | undefined,
-    destructive: action.props.role === 'destructive',
+    destructive: action.props.role === "destructive",
   }));
 }
 
-export async function pressButtonMenuAction(button: HostElement, title: string) {
-  const action = menuActions(button).find((candidate) => candidate.props.label === title);
+export async function pressButtonMenuAction(
+  button: HostElement,
+  title: string,
+) {
+  const action = menuActions(button).find(
+    (candidate) => candidate.props.label === title,
+  );
   if (!action) {
-    throw new Error(`No menu action is titled ${title}. Actions: ${buttonMenuActions(button).map((item) => item.title).join(', ')}`);
+    throw new Error(
+      `No menu action is titled ${title}. Actions: ${buttonMenuActions(button)
+        .map((item) => item.title)
+        .join(", ")}`,
+    );
   }
-  await fireEvent(action, 'buttonPress');
+  await fireEvent(action, "buttonPress");
 }
 
 export function buttonMenu(button: HostElement) {
-  const [section] = button.queryAll((instance) => instance.type === expoUiHost && 'title' in instance.props);
+  const [section] = button.queryAll(
+    (instance) => instance.type === expoUiHost && "title" in instance.props,
+  );
   return {
     title: section?.props.title as string | undefined,
     items: menuChoices(button).map((choice) => ({
@@ -1063,14 +1363,22 @@ export function buttonMenu(button: HostElement) {
 }
 
 export async function pressButtonMenuItem(button: HostElement, title: string) {
-  const choice = menuChoices(button).find((candidate) => candidate.props.label === title);
+  const choice = menuChoices(button).find(
+    (candidate) => candidate.props.label === title,
+  );
   if (!choice) {
-    throw new Error(`No menu row is titled ${title}. Rows: ${buttonMenu(button).items.map((item) => item.title).join(', ')}`);
+    throw new Error(
+      `No menu row is titled ${title}. Rows: ${buttonMenu(button)
+        .items.map((item) => item.title)
+        .join(", ")}`,
+    );
   }
-  await fireEvent(choice, 'isOnChange', { nativeEvent: { isOn: !choice.props.isOn } });
+  await fireEvent(choice, "isOnChange", {
+    nativeEvent: { isOn: !choice.props.isOn },
+  });
 }
 
-let searchFieldText = '';
+let searchFieldText = "";
 
 let focusedSearchBar: HostElement | null = null;
 
@@ -1078,33 +1386,42 @@ const searchBarCommands: {
   setText: (searchBar: unknown, text: string) => void;
   blur: (searchBar: unknown) => void;
   focus: (searchBar: unknown) => void;
-} = jest.requireActual('react-native-screens/lib/commonjs/fabric/SearchBarNativeComponent').Commands;
+} = jest.requireActual(
+  "react-native-screens/lib/commonjs/fabric/SearchBarNativeComponent",
+).Commands;
 
-jest.spyOn(searchBarCommands, 'setText').mockImplementation((_searchBar, text) => {
-  searchFieldText = text;
-});
+jest
+  .spyOn(searchBarCommands, "setText")
+  .mockImplementation((_searchBar, text) => {
+    searchFieldText = text;
+  });
 
-jest.spyOn(searchBarCommands, 'focus').mockImplementation((searchBar) => {
-  const { onSearchFocus } = (searchBar as { props: { onSearchFocus?: unknown } }).props;
-  focusedSearchBar = hostViews('RNSSearchBar').find((candidate) => candidate.props.onSearchFocus === onSearchFocus) ?? null;
+jest.spyOn(searchBarCommands, "focus").mockImplementation((searchBar) => {
+  const { onSearchFocus } = (
+    searchBar as { props: { onSearchFocus?: unknown } }
+  ).props;
+  focusedSearchBar =
+    hostViews("RNSSearchBar").find(
+      (candidate) => candidate.props.onSearchFocus === onSearchFocus,
+    ) ?? null;
   focusedSearchBar?.props.onSearchFocus?.({ nativeEvent: {} });
 });
 
-jest.spyOn(searchBarCommands, 'blur').mockImplementation(() => {
+jest.spyOn(searchBarCommands, "blur").mockImplementation(() => {
   const searchBar = focusedSearchBar;
   focusedSearchBar = null;
   searchBar?.props.onSearchBlur?.({ nativeEvent: {} });
 });
 
 beforeEach(() => {
-  searchFieldText = '';
+  searchFieldText = "";
   focusedSearchBar = null;
 });
 
 function searchBarView(tab: HostElement) {
   const searchBar = tab.queryAll((instance) => instance.type === 'RNSSearchBar').at(-1);
   if (!searchBar) {
-    throw new Error('This tab has no search bar');
+    throw new Error("This tab has no search bar");
   }
   return searchBar;
 }
@@ -1114,17 +1431,20 @@ export function searchBarHasFocus() {
 }
 
 export function shownSearchText() {
-  return searchFieldText.replaceAll('\u200b', '');
+  return searchFieldText.replaceAll("\u200b", "");
 }
 
 export function tabSearchBar(tab: HostElement) {
-  const { placeholder, placement, hideWhenScrolling } = searchBarView(tab).props;
+  const { placeholder, placement, hideWhenScrolling } =
+    searchBarView(tab).props;
   return { placeholder, placement, hidesWhenScrolling: hideWhenScrolling };
 }
 
 async function changeSearchText(text: string) {
   searchFieldText = text;
-  await fireEvent(searchBarView(selectedTab()), 'changeText', { nativeEvent: { text } });
+  await fireEvent(searchBarView(selectedTab()), "changeText", {
+    nativeEvent: { text },
+  });
 }
 
 async function pauseTyping() {
@@ -1135,7 +1455,7 @@ async function pauseTyping() {
 
 export async function typeInSearchBar(text: string) {
   focusedSearchBar = searchBarView(selectedTab());
-  await fireEvent(focusedSearchBar, 'searchFocus', { nativeEvent: {} });
+  await fireEvent(focusedSearchBar, "searchFocus", { nativeEvent: {} });
   for (const character of text) {
     await changeSearchText(searchFieldText + character);
   }
@@ -1143,46 +1463,65 @@ export async function typeInSearchBar(text: string) {
 }
 
 export async function pressBackspaceInSearchBar() {
-  if (searchFieldText !== '') {
+  if (searchFieldText !== "") {
     await changeSearchText(searchFieldText.slice(0, -1));
     await pauseTyping();
   }
 }
 
 export async function pressSearchKey() {
-  await fireEvent(searchBarView(selectedTab()), 'searchButtonPress', { nativeEvent: { text: searchFieldText } });
+  await fireEvent(searchBarView(selectedTab()), "searchButtonPress", {
+    nativeEvent: { text: searchFieldText },
+  });
 }
 
 export async function pressSearchCancel() {
-  searchFieldText = '';
-  await fireEvent(searchBarView(selectedTab()), 'cancelButtonPress', { nativeEvent: {} });
+  await fireEvent(searchBarView(selectedTab()), "cancelButtonPress", {
+    nativeEvent: {},
+  });
+  await changeSearchText("");
 }
 
 function isAlertWithField(instance: HostElement) {
-  return instance.type === expoUiHost && 'isPresented' in instance.props;
+  return instance.type === expoUiHost && "isPresented" in instance.props;
 }
 
 function presentedFieldAlert() {
-  return hostViews(expoUiHost).find((candidate) => isAlertWithField(candidate) && candidate.props.isPresented) ?? null;
+  return (
+    hostViews(expoUiHost).find(
+      (candidate) => isAlertWithField(candidate) && candidate.props.isPresented,
+    ) ?? null
+  );
 }
 
 function slotOf(alert: HostElement, name: string) {
-  const [slot] = alert.queryAll((instance) => instance.type === expoUiHost && instance.props.name === name);
+  const [slot] = alert.queryAll(
+    (instance) => instance.type === expoUiHost && instance.props.name === name,
+  );
   return slot;
 }
 
 function alertField(alert: HostElement) {
-  const [field] = slotOf(alert, 'actions').queryAll((instance) => instance.type === expoUiHost && 'placeholder' in instance.props);
+  const [field] = slotOf(alert, "actions").queryAll(
+    (instance) =>
+      instance.type === expoUiHost && "placeholder" in instance.props,
+  );
   return field;
 }
 
 function alertActions(alert: HostElement) {
-  return slotOf(alert, 'actions').queryAll((instance) => instance.type === expoUiHost && 'onButtonPress' in instance.props);
+  return slotOf(alert, "actions").queryAll(
+    (instance) =>
+      instance.type === expoUiHost && "onButtonPress" in instance.props,
+  );
 }
 
 function isTurnedOff(button: HostElement) {
-  const modifiers: { $type: string; disabled?: boolean }[] = button.props.modifiers ?? [];
-  return modifiers.some((modifier) => modifier.$type === 'disabled' && modifier.disabled);
+  const modifiers: { $type: string; disabled?: boolean }[] =
+    button.props.modifiers ?? [];
+  return modifiers.some(
+    (modifier) => modifier.$type === "disabled" && modifier.disabled,
+  );
 }
 
 export function presentedAlertWithField() {
@@ -1190,7 +1529,9 @@ export function presentedAlertWithField() {
   if (!alert) {
     return null;
   }
-  const [message] = slotOf(alert, 'message').queryAll((instance) => instance.type === expoUiHost && 'text' in instance.props);
+  const [message] = slotOf(alert, "message").queryAll(
+    (instance) => instance.type === expoUiHost && "text" in instance.props,
+  );
   const field = alertField(alert);
   return {
     title: alert.props.title as string,
@@ -1198,16 +1539,19 @@ export function presentedAlertWithField() {
     field: {
       placeholder: field.props.placeholder as string,
       maxLength: field.props.maxLength as number,
-      text: (nativeStateValue(field.props.text) ?? '') as string,
+      text: (nativeStateValue(field.props.text) ?? "") as string,
     },
-    buttons: alertActions(alert).map((button) => ({ label: button.props.label as string, enabled: !isTurnedOff(button) })),
+    buttons: alertActions(alert).map((button) => ({
+      label: button.props.label as string,
+      enabled: !isTurnedOff(button),
+    })),
   };
 }
 
 function openAlertWithField() {
   const alert = presentedFieldAlert();
   if (!alert) {
-    throw new Error('No alert with a text field is open');
+    throw new Error("No alert with a text field is open");
   }
   return alert;
 }
@@ -1215,18 +1559,22 @@ function openAlertWithField() {
 export async function typeInAlertField(text: string) {
   const field = alertField(openAlertWithField());
   setNativeStateValue(field.props.text, text);
-  await fireEvent(field, 'textChange', { nativeEvent: { value: text } });
+  await fireEvent(field, "textChange", { nativeEvent: { value: text } });
 }
 
 export async function pressAlertWithFieldButton(label: string) {
   const alert = openAlertWithField();
-  const button = alertActions(alert).find((candidate) => candidate.props.label === label);
+  const button = alertActions(alert).find(
+    (candidate) => candidate.props.label === label,
+  );
   if (!button) {
     throw new Error(`No alert button is labelled ${label}`);
   }
   if (isTurnedOff(button)) {
     throw new Error(`The alert button ${label} is off`);
   }
-  await fireEvent(button, 'buttonPress');
-  await fireEvent(alert, 'isPresentedChange', { nativeEvent: { isPresented: false } });
+  await fireEvent(button, "buttonPress");
+  await fireEvent(alert, "isPresentedChange", {
+    nativeEvent: { isPresented: false },
+  });
 }

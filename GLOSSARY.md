@@ -72,7 +72,7 @@ A copy that the user keeps out of decks. Only a free copy can be protected. An A
 _Avoid_: Don't touch, collection copy
 
 **User tag**:
-A private label that a user creates and puts on individual copies. A copy can have many user tags. Its name is unique for the user, ignoring case. Renaming a user tag keeps it on its copies, and deleting it takes it off every copy. A user tag is not an Oracle tag.
+A private label on individual copies. The user or an AI client creates it, renames it, deletes it, and puts it on copies or takes it off. A copy can have many user tags. Its name is unique for the user, ignoring case. Renaming a user tag keeps it on its copies, and deleting it takes it off every copy. A deleted user tag can be restored, and it comes back on the copies it was on when it was deleted. A deleted user tag does not hold its name. A user tag is not an Oracle tag.
 _Avoid_: Tag, label, collection tag
 
 **Collection**:
@@ -237,11 +237,11 @@ The stored deck validity, violations, chosen color, estimated bracket, and brack
 _Avoid_: Validity result, deck check
 
 **Planned swap**:
-A plan to put an owned copy or a basic land into a deck, optionally replacing a deck card. The user or an AI client makes it. One from an AI client keeps the AI's reason. It holds one free copy until the user swaps it in or the swap closes. A basic land holds no copy. A planned swap can replace the commander. It closes when its outgoing card leaves the deck, or when the user closes it. An AI client can close an open planned swap that an AI client made. If its held copy is deleted or used elsewhere after a warning, it becomes a buylist card. Swapping it in makes one deck change. A planned swap is open, swapped in, closed, or moved to the buylist.
+A plan to put an owned copy or a basic land into a deck, optionally replacing a deck card. The user or an AI client makes it. One from an AI client keeps the AI's reason. It holds one free copy until the user swaps it in or the swap closes. A basic land holds no copy. A planned swap can replace the commander. It closes when its outgoing card leaves the deck, or when the user closes it. An AI client can close any open planned swap. If its held copy is deleted or used elsewhere after a warning, it becomes a buylist card. Swapping it in makes one deck change. A planned swap is open, swapped in, closed, or moved to the buylist.
 _Avoid_: Upgrade
 
 **Buylist**:
-The cards the user does not own yet and needs to buy. Each buylist card names a deck and may name a deck card it will replace. The user or an AI client adds it. One from an AI client keeps the AI's reason. It shows the card's default Scryfall printing. It is open, bought, or closed. It closes when that outgoing card leaves the deck, or when the user closes it. An AI client can close an open buylist card that an AI client added. The buylist is separate from planned swaps. Marking a buylist card bought lets the user choose a free copy and puts it into the deck in one deck change.
+The cards the user does not own yet and needs to buy. Each buylist card names a deck and may name a deck card it will replace. The user or an AI client adds it. One from an AI client keeps the AI's reason. It shows the card's default Scryfall printing. It is open, bought, or closed. It closes when that outgoing card leaves the deck, or when the user closes it. An AI client can close any open buylist card. The buylist is separate from planned swaps. Marking a buylist card bought lets the user choose a free copy and puts it into the deck in one deck change.
 _Avoid_: Wishlist
 
 **Needs you**:
@@ -275,7 +275,7 @@ A manual run of the graded search corpus through catalog search on the hosted pr
 ## AI access
 
 **MCP connection**:
-The authenticated remote connection through which a compatible AI chat client can inspect the user's card data, search the collection and card catalog, and make planned swaps and buylist cards. Its address is the MCP server URL, which the settings drawer shows.
+The authenticated remote connection through which a compatible AI chat client can inspect the user's card data, search the collection and card catalog, make planned swaps and buylist cards, and change user tags. Its address is the MCP server URL, which the settings drawer shows.
 _Avoid_: MCP/AI connection
 
 **AI client**:

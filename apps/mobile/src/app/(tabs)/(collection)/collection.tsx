@@ -38,6 +38,7 @@ import { shownMatchCount } from '@/collection/total-labels';
 import { useCollectionCopies, type BinderRead } from '@/collection/use-collection-copies';
 import { useCollectionTotal } from '@/collection/use-collection-total';
 import { useBasicLandCards } from '@/decks/use-basic-land-cards';
+import { useDecks } from '@/decks/use-decks';
 
 type BinderPlaceholderProps = {
   binder: BinderRead;
@@ -81,7 +82,13 @@ function BinderPlaceholder({ binder, searching, refusedChip, onTryAgain }: Binde
   return <CardGridSkeleton accessibilityLabel="Loading collection" />;
 }
 
-function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri: string | undefined }) {
+type BinderTileProps = {
+  copy: CollectionCopyRow;
+  setIconUri: string | undefined;
+  commanderArtOf: (deckId: string) => string | null;
+};
+
+function BinderTile({ copy, setIconUri, commanderArtOf }: BinderTileProps) {
   const { priceCurrency } = usePriceCurrency();
   const price = priceLabels(copy.price && priceCurrency && convertedPrice(copy.price, priceCurrency));
   return (
@@ -104,7 +111,7 @@ function BinderTile({ copy, setIconUri }: { copy: CollectionCopyRow; setIconUri:
         collectorNumber={copy.collector_number}
         condition={shownCondition(copy.condition)}
         isProtected={copy.protected}
-        inDeck={copy.deck !== null}
+        deck={copy.deck ? { commanderArtUri: commanderArtOf(copy.deck.deck_id) } : undefined}
         isHeld={copy.held_for !== null}
       />
       <PriceLine price={price.shown} stale={price.stale} />
@@ -152,6 +159,9 @@ export default function CollectionScreen() {
   const copies = binder.status === 'loaded' && !suggesting && !refused ? binder.copies : [];
   const iconOf = useSetIcons([...new Set(copies.map((copy) => copy.set))]);
   const total = useCollectionTotal();
+  const { read: decksRead } = useDecks();
+  const commanderArtOf = (deckId: string) =>
+    (decksRead.status === 'loaded' && decksRead.decks.find((deck) => deck.deck_id === deckId)?.commanders[0]?.art_crop_uri) || null;
   const { read: basicLandsRead } = useBasicLandCards();
   const showsBasicLands =
     binder.status === 'loaded' && binder.nextCursor === null && !suggesting && !refused && (search.searching || copies.length > 0);
@@ -181,7 +191,7 @@ export default function CollectionScreen() {
       numColumns={cardsPerRow}
       columnWrapperClassName={cardRowClass}
       ItemSeparatorComponent={RowGap}
-      renderItem={({ item }) => <BinderTile copy={item} setIconUri={iconOf(item.set)} />}
+      renderItem={({ item }) => <BinderTile copy={item} setIconUri={iconOf(item.set)} commanderArtOf={commanderArtOf} />}
       ListFooterComponent={basicLands.length > 0 ? <BasicLandSection lands={basicLands} /> : null}
       ListEmptyComponent={
         suggesting || basicLands.length > 0 ? null : (

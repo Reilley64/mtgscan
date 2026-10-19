@@ -2,6 +2,7 @@ import { deckNameLength, type Deck, type DeckCard, type DeckChange, type DeckPri
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { MenuAction } from '@/components/atoms/menu-button';
 import { NameAlert } from '@/components/atoms/name-alert';
@@ -21,7 +22,7 @@ import { PushedListScreen } from '@/components/templates/pushed-screen';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
 import type { BasicLandTile } from '@/decks/deck-groups';
-import { cardCountLabel, deckChips, estimatedBracketChip, validityChip } from '@/decks/deck-labels';
+import { cardCountLabel, estimatedBracketChip, validityChip } from '@/decks/deck-labels';
 import { backToGallery, showDeckWriteResult } from '@/decks/deck-write-result';
 import { deleteDeck, markDeckUsed, renameDeck, setDeckPriority } from '@/decks/deck-writes';
 import { removeBasicLandFromDeck, removeFromDeck } from '@/decks/remove-from-deck';
@@ -30,7 +31,7 @@ import { useDeckChanges } from '@/decks/use-deck-changes';
 import { violationCardKeys } from '@/decks/violation-cards';
 import { useNeedsYouCounts } from '@/needs-you/needs-you-counts';
 import { useNeedsYou, type NeedsYouItem } from '@/needs-you/use-needs-you';
-import { colors } from '@/theme';
+import { colors, navigationBar } from '@/theme';
 
 const deckTabs = ['cards', 'planned', 'history'] as const;
 
@@ -92,6 +93,9 @@ export default function DeckScreen() {
   const [renaming, setRenaming] = useState(false);
   const { grouping, order, setGrouping, setOrder } = useDeckCardOrder();
   const showsCardOrderButtons = tab === 'cards' && read.status === 'loaded' && read.deck.card_count > 0;
+  const headerBottom = useSafeAreaInsets().top + navigationBar;
+  const [bannerHeight, setBannerHeight] = useState<number | null>(null);
+  const [showsTitle, setShowsTitle] = useState(false);
 
   useEffect(() => {
     void markDeckUsed(deckId);
@@ -191,9 +195,9 @@ export default function DeckScreen() {
       <>
         <DeckBanner
           name={read.deck.name}
-          chips={deckChips(read.deck).map((label) => ({ label }))}
           chipButtons={evaluationChipButtons(read.deck)}
           commanders={read.deck.commanders}
+          onLayout={(event) => setBannerHeight(event.nativeEvent.layout.height)}
         />
         <View className="px-lg pt-lg">
           <ToggleGroup
@@ -230,6 +234,7 @@ export default function DeckScreen() {
 
   return (
     <>
+      <Stack.Screen options={{ title: deck && showsTitle ? deck.name : '' }} />
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button icon="xmark" tintColor={colors.text} accessibilityLabel="Close" onPress={() => router.back()} />
       </Stack.Toolbar>
@@ -260,6 +265,8 @@ export default function DeckScreen() {
         keyExtractor={(item) => item.key}
         renderItem={({ item }) => (deck ? itemView(item, deck) : null)}
         ListHeaderComponent={header()}
+        onScroll={(event) => setShowsTitle(bannerHeight !== null && event.nativeEvent.contentOffset.y + headerBottom >= bannerHeight)}
+        scrollEventThrottle={16}
         onEndReached={tab === 'history' ? loadMore : undefined}
         floatingButtons={
           showsCardOrderButtons ? (

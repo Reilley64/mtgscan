@@ -111,17 +111,10 @@ export function cardCountLabel(count: number) {
   return count === 1 ? '1 card' : `${count} cards`;
 }
 
-export function deckChips(deck: Pick<DeckRow, 'priority' | 'card_count'>) {
-  return [`${priorityNames[deck.priority]} priority`, cardCountLabel(deck.card_count)];
-}
-
-export function galleryCardChips(deck: Pick<DeckRow, 'priority' | 'card_count'> & { evaluation: DeckEvaluationSummary | null }) {
-  return [
-    ...deckChips(deck).map((label) => ({ label })),
-    ...(deck.evaluation ? [validityChip(deck.evaluation), estimatedBracketChip(deck.evaluation)] : []),
-  ];
+export function galleryCardChips(deck: Pick<DeckRow, 'evaluation'>) {
+  return deck.evaluation ? [validityChip(deck.evaluation), estimatedBracketChip(deck.evaluation)] : [];
 }
 
 export function deckDetail(deck: Pick<DeckRow, 'priority' | 'card_count'>) {
-  return deckChips(deck).join(' · ');
+  return [`${priorityNames[deck.priority]} priority`, cardCountLabel(deck.card_count)].join(' · ');
 }

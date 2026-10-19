@@ -427,6 +427,15 @@ describe('LargeCardImage', () => {
     expect(cardSheen(image)).toMatchObject({ opacity: expect.closeTo(0.3) });
     expect(image).toHaveStyle({ width: '55%' });
   });
+
+  test('a large card image rounds its corners to 5% of its width, like a printed card', async () => {
+    await render(<LargeCardImage uri={solRing} name="Sol Ring" />);
+
+    const image = screen.getByRole('image', { name: 'Sol Ring' });
+    await fireEvent(image, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 200, height: 279 } } });
+
+    expect(image).toHaveStyle({ borderRadius: 10, overflow: 'hidden' });
+  });
 });
 
 describe('ReadFailure', () => {
@@ -1134,6 +1143,8 @@ describe('CommanderGalleryCardSkeletons', () => {
   });
 });
 
+const atraxaArt = 'https://cards.scryfall.io/art_crop/front/atraxa.jpg';
+
 describe('CopyMeta', () => {
   test('a copy meta line shows the set icon in its rarity color, named by the set code, and the collector number in meta text', async () => {
     await render(<CopyMeta setCode="mh3" rarity="rare" setIconUri={mh3Symbol} collectorNumber="136" />);
@@ -1170,15 +1181,23 @@ describe('CopyMeta', () => {
     expect(appearsBefore(symbolIn(line), screen.getByLabelText('MH3'))).toBe(true);
   });
 
-  test('a copy meta line of a copy in a deck starts with the deck box symbol, before the protected shield', async () => {
-    await render(<CopyMeta setCode="mh3" rarity="common" setIconUri={mh3Symbol} collectorNumber="136" isProtected inDeck />);
+  test('a copy meta line of a copy in a deck starts with its deck commander in a 16 px circle, before the protected shield', async () => {
+    await render(
+      <CopyMeta setCode="mh3" rarity="common" setIconUri={mh3Symbol} collectorNumber="136" isProtected deck={{ commanderArtUri: atraxaArt }} />,
+    );
 
     const line = screen.getByText('136').parent!;
-    expect(imageSources(line)).toEqual([expect.stringMatching(/assets\/deck-box\.svg$/), mh3Symbol]);
-    const [deckBox] = line.children as ReturnType<typeof screen.getByText>[];
-    expect(deckBox).toHaveStyle({ width: 11, height: 11 });
-    expect(imageTintColor(deckBox!)).toBe(processColor(info));
-    expect(appearsBefore(deckBox!, symbolIn(line))).toBe(true);
+    expect(imageSources(line)).toEqual([atraxaArt, mh3Symbol]);
+    const [avatar] = line.children as ReturnType<typeof screen.getByText>[];
+    expect(avatar).toHaveStyle({ width: 16, height: 16, borderRadius: 999 });
+    expect(appearsBefore(avatar!, symbolIn(line))).toBe(true);
+  });
+
+  test('a copy meta line of a copy in a deck with no commander starts with a dashed circle', async () => {
+    await render(<CopyMeta setCode="mh3" rarity="common" setIconUri={mh3Symbol} collectorNumber="136" deck={{ commanderArtUri: null }} />);
+
+    const [avatar] = screen.getByText('136').parent!.children as ReturnType<typeof screen.getByText>[];
+    expect(avatar).toHaveStyle({ width: 16, height: 16, borderStyle: 'dashed' });
   });
 
   test('a copy meta line of a held copy starts with an 11 px bookmark in the info color', async () => {
@@ -1812,24 +1831,21 @@ describe('CommanderGalleryCard', () => {
 });
 
 describe('DeckBanner', () => {
-  test('a deck banner with no commander is a full-width ghost banner with square corners, and its name and chips sit in the 200 px under the safe area', async () => {
-    await render(<DeckBanner name="Atraxa" chips={[{ label: 'Medium priority' }, { label: '62 cards' }]} commanders={[]} />);
+  test('a deck banner with no commander is a full-width ghost banner with square corners, and its name sits in the 200 px under the safe area', async () => {
+    await render(<DeckBanner name="Atraxa" commanders={[]} />);
 
     const title = screen.getByRole('header', { name: 'Atraxa' });
     expect(title).toHaveStyle({ color: white, fontSize: 20, fontWeight: '800' });
     expect(screen.root).toHaveStyle({ width: '100%', backgroundColor: surface, borderStyle: 'dashed', borderColor: line });
     expect(StyleSheet.flatten(screen.root!.props.style).borderRadius).toBeUndefined();
     expect(minHeightsAround(title)).toEqual([200]);
-    expect(screen.getByLabelText('Medium priority')).toBeOnTheScreen();
-    expect(screen.getByLabelText('62 cards')).toBeOnTheScreen();
   });
 
-  test('a deck banner shows its status chip buttons after its chips, in a row that wraps', async () => {
+  test('a deck banner shows its status chip buttons under its name, in a row that wraps', async () => {
     const onPress = jest.fn();
     await render(
       <DeckBanner
         name="Kinnan"
-        chips={[{ label: 'Medium priority' }, { label: '87 cards' }]}
         chipButtons={[{ label: 'Invalid', tone: 'danger', symbol: 'nosign', accessibilityLabel: 'Deck validity, Invalid', onPress }]}
         commanders={[]}
       />,
@@ -1838,13 +1854,13 @@ describe('DeckBanner', () => {
     const chip = screen.getByRole('button', { name: 'Deck validity, Invalid' });
     await fireEvent.press(chip);
 
-    expect(appearsBefore(screen.getByLabelText('87 cards'), chip)).toBe(true);
+    expect(appearsBefore(screen.getByRole('header', { name: 'Kinnan' }), chip)).toBe(true);
     expect(chip.parent).toHaveStyle({ flexWrap: 'wrap' });
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
   test('a deck banner shows the first commander as art under a fade, and the second as a 48 px avatar', async () => {
-    await render(<DeckBanner name="Atraxa" chips={[{ label: 'High priority' }, { label: '2 cards' }]} commanders={partnerCommanders} />);
+    await render(<DeckBanner name="Atraxa" commanders={partnerCommanders} />);
 
     expect(imageFrames(screen.root!)).toEqual([
       { uri: 'https://cards.scryfall.io/art_crop/front/atraxa.jpg', width: undefined },

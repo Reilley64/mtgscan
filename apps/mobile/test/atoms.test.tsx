@@ -12,7 +12,6 @@ import { Chip, StatusChipButton } from '@/components/atoms/chip';
 import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { CountBadge } from '@/components/atoms/count-badge';
-import { DeckBoxSymbol } from '@/components/atoms/deck-box-symbol';
 import { DeckTag } from '@/components/atoms/deck-tag';
 import { DimSymbol } from '@/components/atoms/dim-symbol';
 import { FloatingMenuButton } from '@/components/atoms/floating-menu-button';
@@ -931,21 +930,6 @@ describe('SetIcon', () => {
   });
 });
 
-describe('DeckBoxSymbol', () => {
-  test('the deck box symbol is the custom deck box image at 11 px, tinted with the info color', async () => {
-    await render(
-      <View accessibilityLabel="In a deck">
-        <DeckBoxSymbol />
-      </View>,
-    );
-
-    const label = screen.getByLabelText('In a deck');
-    const [symbol] = label.children as ReturnType<typeof screen.getByLabelText>[];
-    expect(symbol).toHaveStyle({ width: 11, height: 11 });
-    expect(imageSources(label)).toEqual([expect.stringMatching(/assets\/deck-box\.svg$/)]);
-    expect(imageTintColor(label)).toBe(processColor(info));
-  });
-});
 
 describe('CardImage', () => {
   function tile(sheen?: 'foil' | 'etched') {

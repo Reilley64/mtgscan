@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import { View } from 'react-native';
 
-import { DeckBoxSymbol } from '@/components/atoms/deck-box-symbol';
+import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { SetIcon } from '@/components/atoms/set-icon';
 import { SymbolView } from '@/components/atoms/symbol-view';
 import { Text } from '@/components/atoms/text';
@@ -14,7 +14,7 @@ type CopyMetaProps = {
   collectorNumber: string;
   condition?: string;
   isProtected?: boolean;
-  inDeck?: boolean;
+  deck?: { commanderArtUri: string | null };
   isHeld?: boolean;
 };
 
@@ -25,13 +25,13 @@ export function CopyMeta({
   collectorNumber,
   condition,
   isProtected = false,
-  inDeck = false,
+  deck,
   isHeld = false,
 }: CopyMetaProps) {
   const setLabel = setCode.toUpperCase();
   return (
     <View className="flex-row items-center justify-center gap-xs">
-      {inDeck && <DeckBoxSymbol />}
+      {deck && <CommanderAvatar uri={deck.commanderArtUri} size="meta" />}
       {isHeld && <SymbolView name="bookmark.fill" size={sizes.heldSymbol} className="text-info" />}
       {isProtected && <SymbolView name="shield.fill" size={sizes.protectedSymbol} className="text-warning" />}
       {setIconUri ? (

@@ -387,11 +387,11 @@ function CardTiles() {
           <PriceLine price="$1.25" stale={false} />
         </CardTile>
         <CardTile uri={solRing} accessibilityLabel="Sol Ring, M10 216, protected, in the deck Atraxa, $1.25">
-          <CopyMeta setCode="m10" rarity="rare" setIconUri={m10Symbol} collectorNumber="216" isProtected inDeck />
+          <CopyMeta setCode="m10" rarity="rare" setIconUri={m10Symbol} collectorNumber="216" isProtected deck={{ commanderArtUri: solRingArtCrop }} />
           <PriceLine price="$1.25" stale={false} />
         </CardTile>
         <CardTile uri={solRing} accessibilityLabel="Sol Ring, C21 263, in the deck Atraxa, $1.25">
-          <CopyMeta setCode="c21" rarity="rare" setIconUri={undefined} collectorNumber="263" inDeck />
+          <CopyMeta setCode="c21" rarity="rare" setIconUri={undefined} collectorNumber="263" deck={{ commanderArtUri: null }} />
           <PriceLine price="$1.25" stale={false} />
         </CardTile>
         <CardTile uri={solRing} accessibilityLabel="Sol Ring, M10 216, held for the deck Krenko, $1.25">
@@ -770,26 +770,24 @@ function NameAlerts() {
 function CommanderCards() {
   return (
     <Section title="Commander cards">
-      <CommanderGalleryCard name="Atraxa" chips={[{ label: 'Medium priority' }, { label: '0 cards' }]} commanders={[]} onPress={() => {}} />
-      <CommanderGalleryCard name="Sol Ring" chips={[{ label: 'Medium priority' }, { label: '1 card' }]} commanders={[solRingCommander]} onPress={() => {}} />
+      <CommanderGalleryCard name="Edgar Markov" chips={[]} commanders={[]} onPress={() => {}} />
+      <CommanderGalleryCard name="Sol Ring" chips={[]} commanders={[solRingCommander]} onPress={() => {}} />
       <CommanderGalleryCard
         name="Krenko"
-        chips={[{ label: 'High priority' }, { label: '1 card' }]}
+        chips={[]}
         commanders={[solRingCommander]}
         needsYouCount={2}
         onPress={() => {}}
       />
       <CommanderGalleryCard
         name="Partners"
-        chips={[{ label: 'Low priority' }, { label: '2 cards' }]}
+        chips={[]}
         commanders={[solRingCommander, { ...solRingCommander, copy_id: 'second-commander' }]}
         onPress={() => {}}
       />
       <CommanderGalleryCard
         name="Yuriko"
         chips={[
-          { label: 'Medium priority' },
-          { label: '87 cards' },
           { label: 'Invalid', tone: 'danger', symbol: 'nosign' },
           { label: 'Bracket 4', tone: 'info', accessibilityLabel: 'Estimated bracket 4' },
         ]}
@@ -797,12 +795,11 @@ function CommanderCards() {
         onPress={() => {}}
       />
       <View className="-mx-lg">
-        <DeckBanner name="Kinnan" chips={[{ label: 'High priority' }, { label: '1 card' }]} commanders={[]} />
+        <DeckBanner name="Kinnan" commanders={[]} />
       </View>
       <View className="-mx-lg">
         <DeckBanner
           name="Yuriko"
-          chips={[{ label: 'Medium priority' }, { label: '87 cards' }]}
           chipButtons={[
             { label: 'Invalid', tone: 'danger', symbol: 'nosign', accessibilityLabel: 'Deck validity, Invalid', onPress: () => {} },
             { label: 'Bracket 4', tone: 'info', accessibilityLabel: 'Estimated bracket 4', onPress: () => {} },
@@ -813,7 +810,6 @@ function CommanderCards() {
       <View className="-mx-lg">
         <DeckBanner
           name="Partners"
-          chips={[{ label: 'High priority' }, { label: '2 cards' }]}
           commanders={[solRingCommander, { ...solRingCommander, copy_id: 'second-commander' }]}
         />
       </View>

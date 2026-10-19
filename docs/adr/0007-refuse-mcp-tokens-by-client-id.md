@@ -1,6 +1,6 @@
 # Refuse MCP tokens by their client_id claim
 
-The MCP connection uses Supabase Auth's OAuth 2.1 server. An access token issued to an AI client is an ordinary Supabase JWT with the `authenticated` role. So the Data API accepts it, and a client that holds one could skip the MCP server and call the app's write functions directly. The AI must never change a deck, a copy, or a user tag, so those functions have to refuse these tokens.
+The MCP connection uses Supabase Auth's OAuth 2.1 server. An access token issued to an AI client is an ordinary Supabase JWT with the `authenticated` role. So the Data API accepts it, and a client that holds one could skip the MCP server and call the app's write functions directly. The AI must never change a deck, a copy, or a user tag, so those functions have to refuse these tokens. ADR 0009 later lets the AI change user tags through its own functions.
 
 The brief planned one marker for both checks: a custom access token hook that adds the MCP server URL to `aud`. That works only if the Data API accepts an array `aud`, and nobody has tested it. Supabase does document a `client_id` claim on every token that its OAuth server issues. Sessions that the app makes with native Google or Apple sign-in never have one.
 

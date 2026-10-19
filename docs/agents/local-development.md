@@ -25,7 +25,7 @@
 A development build against local Supabase can sign in a local test user with one tap, with no Apple or Google account. Use it for Simulator checks with T3 Code's device tools. Do not add a temporary password sign-in.
 
 - The test user is `test-user@mtgscan.test`. On local Supabase, its password is a local default in `supabase/test-user/account.ts`.
-- The local command and the development build test sign-in work only with the local stack at `http://127.0.0.1:54321` or `http://localhost:54321`. Both refuse every other Supabase URL.
+- The local command and the development build test sign-in work only with a local stack at `http://127.0.0.1` or `http://localhost`, on any port. Both refuse every other Supabase URL.
 - Hosted Supabase has its own test user with a random password, for the test app. See Test app on the iPhone.
 - The sign-up hook refuses every email sign-up except the test email. Apple and Google sign-up stay open.
 - Production builds leave the test sign-in out. `bun run test:production-bundle` in `apps/mobile` builds a production bundle with the test sign-in on, the local stack, and a sentinel test user password. It fails if the bundle holds the test email, the local password, the sentinel, or the test sign-in button. It then builds the test app bundle and fails if that bundle has no test sign-in button. CI runs it.
@@ -35,7 +35,7 @@ A development build against local Supabase can sign in a local test user with on
 
    ```bash
    cd supabase
-   export SUPABASE_URL=http://127.0.0.1:54321
+   export SUPABASE_URL=http://127.0.0.1:<API port>   # 54321 on the default stack
    export SUPABASE_SECRET_KEY=$(bunx supabase@2.120.0 status -o json | jq -r .SECRET_KEY)
    bun run import catalog --manifest tests/fixtures/scryfall/bulk-data.json --sets tests/fixtures/scryfall/sets.json
    bun run import prices --manifest tests/fixtures/scryfall/bulk-data.json
@@ -47,7 +47,7 @@ A development build against local Supabase can sign in a local test user with on
 3. Put the local stack and the test sign-in in `apps/mobile/.env.local`. Take the publishable key from `bunx supabase@2.120.0 status`:
 
    ```bash
-   EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+   EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:<API port>
    EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<PUBLISHABLE_KEY>
    EXPO_PUBLIC_TEST_SIGN_IN=true
    ```
@@ -132,9 +132,28 @@ The app stays on Expo SDK 56. `README.md` (Versions) says why and when to upgrad
 
 - Run the CLI as `bunx supabase@2.120.0`. CI uses the same version.
 - The Docker runtime is OrbStack.
-- Only one stack named `mtgscan` can run on this Mac, and all worktrees share it. Before `start` or `stop`, run `docker ps --filter name=supabase_db_mtgscan`.
-  - If the stack is running, use it.
-  - Stop only a stack that you started. Leave a stack that another worktree started.
+- Each worktree runs its own stack, so a reset or a test run in one worktree never touches another. The stack's name and ports come from the worktree's `supabase/.env`. The CLI and Bun both read that file when they run in `supabase`.
+- Block 0 is the default stack: project `mtgscan`, API port 54321. A worktree may use it only when `docker ps --filter name=supabase_db_mtgscan$` shows nothing. Its `supabase/.env` then needs only the lines from `supabase/.env.example`.
+- Otherwise, add these lines to the worktree's `supabase/.env`, with the worktree's name and a free block N. Block N uses ports 54320 + 1000 × N and up. Take the first N whose API port is free, such as `lsof -i :55321` for N = 1. The example is block 1.
+
+  ```sh
+  SUPABASE_PROJECT_ID=mtgscan-<worktree>
+  SUPABASE_API_PORT=55321
+  SUPABASE_DB_PORT=55322
+  SUPABASE_DB_SHADOW_PORT=55320
+  SUPABASE_DB_POOLER_PORT=55329
+  SUPABASE_STUDIO_PORT=55323
+  SUPABASE_LOCAL_SMTP_PORT=55324
+  SUPABASE_ANALYTICS_PORT=55327
+  SUPABASE_EDGE_RUNTIME_INSPECTOR_PORT=55383
+  MCP_SERVER_URL=http://127.0.0.1:55321/functions/v1/mcp
+  ```
+
+- With these lines, `bunx supabase@2.120.0 start`, `db reset`, `status`, and the database tests all use the worktree's stack. The tests read the ports, so they need no `SUPABASE_URL` or `SUPABASE_DB_URL`.
+- `MCP_SERVER_URL` must name the stack's own API port. Without it, the MCP function has no server URL.
+- Point the app at the stack with `EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:<API port>` in `apps/mobile/.env.local`.
+- Start the services CI starts: `start -x realtime,imgproxy,mailpit,studio,logflare,vector,supavisor`. The database tests need storage for the gallery. A full stack takes about 1.6 GB of memory.
+- Stop your stack with `bunx supabase@2.120.0 stop` from `supabase` when you are done. Remove the worktree only after that.
 
 ## EAS
 
