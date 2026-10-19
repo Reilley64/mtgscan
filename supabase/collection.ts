@@ -125,6 +125,7 @@ export type CollectionCopyRow = {
   price: CurrentPrice | null;
   deck: CopyRowDeck | null;
   held_for: CopyRowDeck | null;
+  created_at: string;
   oracle_text?: string;
 };
 
@@ -201,7 +202,7 @@ export type CopiesUserTagResult = {
   skipped: { copy_id: string; reason: 'missing' }[];
 };
 
-export type CopyDetails = CollectionCopyRow & {
+export type CopyDetails = Omit<CollectionCopyRow, 'created_at'> & {
   art_crop_uri: string | null;
   free: boolean;
   added_at: string;

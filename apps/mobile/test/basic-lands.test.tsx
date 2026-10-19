@@ -73,6 +73,7 @@ function copyRows(name: string, count: number): CollectionCopyRow[] {
     price: null,
     deck: null,
     held_for: null,
+    created_at: '2026-10-12T12:00:00.000Z',
   }));
 }
 

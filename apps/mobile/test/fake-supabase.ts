@@ -1178,6 +1178,7 @@ function addToCollection(copies: { copyId: string; stack: ScanBatchStack }[]) {
       price: null,
       deck: null,
       held_for: null,
+      created_at: new Date().toISOString(),
     };
     collectionCopies = [...ofPrinting, copy, ...collectionCopies.filter((row) => row.printing_id !== card_printing_id)];
   }
@@ -1619,8 +1620,12 @@ export function ownCollectionCopies(copies: CollectionCopyRow[]) {
   collectionCopies = copies;
 }
 
+export function copyRowOf(copy: CopyDetails): CollectionCopyRow {
+  return { ...copy, created_at: copy.added_at };
+}
+
 export function ownCopies(copies: CopyDetails[]) {
-  collectionCopies = copies;
+  collectionCopies = copies.map(copyRowOf);
   copyDetails = new Map(copies.map((copy) => [copy.copy_id, copy]));
 }
 

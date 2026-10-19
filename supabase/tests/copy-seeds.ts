@@ -66,6 +66,7 @@ export async function seedCopies(user: TestUser, seeds: SeededCopies[]): Promise
         ...copy,
         id: copy_id,
         is_protected: seeds[index]!.is_protected ?? false,
+        created_at: additions[index]!.added_at,
       })),
     ),
   );
