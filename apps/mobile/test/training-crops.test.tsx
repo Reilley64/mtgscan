@@ -11,7 +11,7 @@ import {
   startSignedIn,
   trainingCropsUploaded,
 } from './fake-supabase';
-import { swipeRight } from './native-ui';
+import { presentedAlert, swipeRight } from './native-ui';
 import { openScan, scanACard, scanTab } from './scanning';
 
 const cacheCrops = 'file:///caches/training-crops/';
@@ -82,8 +82,8 @@ test('adding a scan batch uploads the training crop of an accepted scan with its
   expect(filesIn(keptCrops)).toEqual([]);
 });
 
-test('a training crop that the server refuses is deleted and not sent again', async () => {
-  refuseNextTrainingCrop('unknown_copy');
+test.each(['unknown_copy', 'storage_full'])('a training crop that the server refuses with %s is deleted with no message and not sent again', async (code) => {
+  refuseNextTrainingCrop(code);
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
@@ -92,6 +92,7 @@ test('a training crop that the server refuses is deleted and not sent again', as
 
   expect(trainingCropsUploaded()).toEqual([]);
   expect(filesIn(keptCrops)).toEqual([]);
+  expect(presentedAlert()).toBeNull();
 });
 
 test('a basic land and a recognition with no candidates keep no training crop', async () => {
