@@ -21,7 +21,7 @@ type ToolDefinition<Output extends z.ZodType> = Omit<Tool, 'inputSchema' | 'outp
   summary: (result: z.infer<Output>) => string;
 };
 
-const pageSize = { default: 20, max: 50 };
+const pageSize = { default: 20, max: 50, collectionMax: 100 };
 
 const readOnly: ToolAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 const write: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
@@ -92,20 +92,30 @@ function pageSummary(rows: string, next: string | null): string {
   return `${rows}.${next ? ' More with next_cursor.' : ''}`;
 }
 
-const page = {
-  limit: z.number().int().min(1).max(pageSize.max).optional().describe(`Rows per page, ${pageSize.default} by default.`),
-  cursor: z.string().nullable().optional().describe('The next_cursor of the previous page. Leave it out for the first page.'),
-};
+function pageOf(max: number) {
+  return {
+    limit: z.number().int().min(1).max(max).optional().describe(`Rows per page, ${pageSize.default} by default.`),
+    cursor: z.string().nullable().optional().describe('The next_cursor of the previous page. Leave it out for the first page.'),
+  };
+}
+
+const page = pageOf(pageSize.max);
+const collectionPage = pageOf(pageSize.collectionMax);
+const pageMax = new Map<unknown, number>([
+  [page.limit, pageSize.max],
+  [collectionPage.limit, pageSize.collectionMax],
+]);
 
 export function pagedArguments(
   tool: Tool,
   toolArguments: Record<string, unknown>,
 ): { toolArguments: Record<string, unknown> } | { problem: Problem } {
-  if (tool.input.shape.limit !== page.limit) {
+  const max = pageMax.get(tool.input.shape.limit);
+  if (max === undefined) {
     return { toolArguments };
   }
-  if (Number(toolArguments.limit) > pageSize.max) {
-    return { problem: problem('invalid-argument', `limit can be at most ${pageSize.max} over MCP.`, { pointer: '/limit' }) };
+  if (Number(toolArguments.limit) > max) {
+    return { problem: problem('invalid-argument', `limit can be at most ${max} over MCP.`, { pointer: '/limit' }) };
   }
   return { toolArguments: { limit: pageSize.default, ...toolArguments } };
 }
@@ -548,7 +558,7 @@ export const tools: Tool[] = [
       ...catalogFilters,
       rows: z.enum(['entries', 'copies']).optional(),
       sort: z.enum([...catalogSort, 'added']).optional().describe('The default is relevance with text and added without it.'),
-      ...page,
+      ...collectionPage,
       finishes: z.array(finish).optional(),
       finishes_exclude: z.array(finish).optional(),
       conditions: z.array(condition).optional(),
