@@ -396,7 +396,6 @@ const deckChange = z.strictObject({
   changed_at: z.string(),
   reverted: z.boolean(),
   reason: z.string().nullable(),
-  client_name: z.string().nullable(),
   lines: z.array(deckChangeLine),
 });
 
@@ -431,7 +430,6 @@ const plannedSwapRow = z.strictObject({
   reason: z.string(),
   status: plannedSwapStatus,
   close_note: closeNote.nullable(),
-  client_name: z.string().nullable(),
   created_at: z.string(),
   status_changed_at: z.string(),
   effect: deckChangeEffect.nullable(),
@@ -485,7 +483,6 @@ const buylistCardRow = z.strictObject({
   reason: z.string(),
   status: buylistCardStatus,
   close_note: closeNote.nullable(),
-  client_name: z.string().nullable(),
   created_at: z.string(),
   status_changed_at: z.string(),
   effect: deckChangeEffect.nullable(),
@@ -816,7 +813,7 @@ export const tools: Tool[] = [
     name: 'close_planned_swap',
     title: 'Close a planned swap',
     description: [
-      'Close an open planned swap that an AI client made, when it no longer fits.',
+      'Close any open planned swap when it no longer fits, even one that another AI client made.',
       'This tool does not change any deck. Its held copy becomes free.',
       'Closing a closed planned swap changes nothing and returns changed: false. A planned swap that was swapped in or moved to the buylist returns not-open.',
       'To change a planned swap, close it and make a new one. Find planned swap IDs with list_planned_swaps.',
@@ -833,7 +830,7 @@ export const tools: Tool[] = [
     name: 'close_buylist_card',
     title: 'Close a buylist card',
     description: [
-      'Close an open buylist card that an AI client added, when it no longer fits.',
+      'Close any open buylist card when it no longer fits, even one that another AI client added.',
       'This tool does not change any deck.',
       'Closing a closed buylist card changes nothing and returns changed: false. A buylist card that was bought returns not-open.',
       'To change a buylist card, close it and add a new one. Find buylist card IDs with list_buylist.',

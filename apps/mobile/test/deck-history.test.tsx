@@ -43,7 +43,6 @@ function deckChange(revision: number, kind: DeckChangeKind, lines: DeckChange['l
     changed_at: new Date(2026, 9, 15, 9, revision).toISOString(),
     reverted: false,
     reason: null,
-    client_name: null,
     lines,
     ...changes,
   };
@@ -97,18 +96,15 @@ describe('the History tab', () => {
     expect(texts.filter((text) => text !== revertLabel)).toHaveLength(1);
   });
 
-  test.each<DeckChangeKind>(['swapped_in', 'bought'])('a %s deck change shows its reason in body text and the AI client name in meta text after its change lines', async (kind) => {
+  test.each<DeckChangeKind>(['swapped_in', 'bought'])('a %s deck change shows its reason in body text after its change lines, with no meta line', async (kind) => {
     const reason = 'Cheap removal that also answers an early threat.';
-    const deck = await openHistory([
-      deckChange(1, kind, [solRing({ place_before: null, place_after: 'main' })], { reason, client_name: 'ChatGPT' }),
-    ]);
+    const deck = await openHistory([deckChange(1, kind, [solRing({ place_before: null, place_after: 'main' })], { reason })]);
 
     const shownReason = await deck.findByText(reason);
-    const clientName = deck.getByText('ChatGPT');
     expect(shownReason).toHaveStyle({ fontSize: 14, color: tokenColors.text });
-    expect(clientName).toHaveStyle({ fontSize: 12, color: tokenColors.textMuted });
     expect(appearsBefore(deck.getByLabelText('+, Sol Ring, Artifact'), shownReason)).toBe(true);
-    expect(appearsBefore(shownReason, clientName)).toBe(true);
+    const texts = deck.getAllByText(/./);
+    expect(texts[texts.indexOf(shownReason) + 1]).toHaveTextContent(/^Created /);
   });
 
   test('a copy that comes into the deck is a green + line, and one that leaves is a red − line, with the thumbnail, the name, and the type line', async () => {

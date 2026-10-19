@@ -21,7 +21,6 @@ type NeedsYouCardProps = {
 };
 
 export function NeedsYouCard({ plan, action, closing, onOpenDeck, onClose }: NeedsYouCardProps) {
-  const meta = [plan.client_name, shownDayAndTime(plan.created_at)].filter((part) => part !== null).join(' \u00b7 ');
   return (
     <Surface className="gap-sm">
       {onOpenDeck ? <DeckTag name={plan.deck_name} commanderArtUri={plan.commander_art_crop_uri} onPress={onOpenDeck} /> : null}
@@ -29,7 +28,7 @@ export function NeedsYouCard({ plan, action, closing, onOpenDeck, onClose }: Nee
         <ChangeLine key={key} {...line} />
       ))}
       {plan.effect ? <Chip {...effectChip(plan.effect, plan.deck_name)} /> : null}
-      <Reason reason={plan.reason} meta={meta} />
+      <Reason reason={plan.reason} meta={shownDayAndTime(plan.created_at)} />
       <View className="flex-row gap-sm">
         <Button variant="primary" busy={action.busy} onPress={action.onPress}>
           <Text>{action.label}</Text>

@@ -218,6 +218,7 @@ describe('the MCP server over HTTP', () => {
     expect(closePlannedSwap.outputSchema).toMatchObject({
       anyOf: [expect.objectContaining({ required: ['id', 'changed'], additionalProperties: false }), expect.anything()],
     });
+    expect(closePlannedSwap.description).toContain('Close any open planned swap when it no longer fits, even one that another AI client made.');
     expect(closePlannedSwap.description).toContain('This tool does not change any deck. Its held copy becomes free.');
     const listBuylist = tools.find(({ name }) => name === 'list_buylist')!;
     expect(listBuylist.inputSchema.properties).toMatchObject({ status: { enum: ['open', 'bought', 'closed'] } });
@@ -250,6 +251,7 @@ describe('the MCP server over HTTP', () => {
     expect(closeBuylistCard.outputSchema).toMatchObject({
       anyOf: [expect.objectContaining({ required: ['id', 'changed'], additionalProperties: false }), expect.anything()],
     });
+    expect(closeBuylistCard.description).toContain('Close any open buylist card when it no longer fits, even one that another AI client added.');
   });
 
   test('the descriptions carry the catalog sentence, the USD sentence on each tool that returns prices, the bracket sentence on the deck reads, and the declined write sentence on the write tools', async () => {
@@ -614,11 +616,11 @@ describe('planned swaps over HTTP', () => {
           outgoing: null,
           status: 'open',
           close_note: null,
-          client_name: 'Test AI chat',
         },
       ],
       next_cursor: null,
     });
+    expect((listed.structuredContent as { items: object[] }).items[0]).not.toHaveProperty('client_name');
   });
 
   test('a planned swap brings in a basic land and takes one out, and list_planned_swaps shows both basic land lines', async () => {
@@ -675,7 +677,7 @@ describe('planned swaps over HTTP', () => {
     });
   });
 
-  test('a swapped in deck change lists its kind, reason, and client name', async () => {
+  test('a swapped in deck change lists its kind and reason, with no AI client name', async () => {
     const { user, mcp, deckId, freeCopy } = await deckWithAFreeCopy();
     const plannedSwapId = await plannedSwapIdOf(mcp, deckId, freeCopy);
     expect((await user.client.rpc('swap_in_planned_swap', { request: { planned_swap_id: plannedSwapId } })).error).toBeNull();
@@ -684,8 +686,9 @@ describe('planned swaps over HTTP', () => {
 
     expect(result.isError).toBeFalsy();
     expect(result.structuredContent).toMatchObject({
-      items: [{ kind: 'swapped_in', reason: 'A second Angelic Curator keeps the artifacts safe.', client_name: 'Test AI chat' }],
+      items: [{ kind: 'swapped_in', reason: 'A second Angelic Curator keeps the artifacts safe.' }],
     });
+    expect((result.structuredContent as { items: object[] }).items[0]).not.toHaveProperty('client_name');
   });
 
   test('close_planned_swap closes a planned swap, and closing it again returns changed: false, each with a one-line summary', async () => {
@@ -773,11 +776,11 @@ describe('the buylist over HTTP', () => {
           outgoing: null,
           status: 'open',
           close_note: null,
-          client_name: 'Test AI chat',
         },
       ],
       next_cursor: null,
     });
+    expect((listed.structuredContent as { items: object[] }).items[0]).not.toHaveProperty('client_name');
   });
 
   test('a card with a free copy comes back as free-copy-exists with its pointer and the free copies', async () => {
@@ -798,7 +801,7 @@ describe('the buylist over HTTP', () => {
     });
   });
 
-  test('a bought deck change lists its kind, reason, and client name', async () => {
+  test('a bought deck change lists its kind and reason, with no AI client name', async () => {
     const { user, mcp, deckId, counterspell } = await deckWithAnMcpClient();
     const buylistCardId = await buylistCardIdOf(mcp, deckId, counterspell);
     await boughtWithANewCopy(user, buylistCardId);
@@ -806,7 +809,8 @@ describe('the buylist over HTTP', () => {
     const result = await mcp.callTool({ name: 'list_deck_changes', arguments: { deck_id: deckId, limit: 1 } });
 
     expect(result.isError).toBeFalsy();
-    expect(result.structuredContent).toMatchObject({ items: [{ kind: 'bought', reason: buylistReason, client_name: 'Test AI chat' }] });
+    expect(result.structuredContent).toMatchObject({ items: [{ kind: 'bought', reason: buylistReason }] });
+    expect((result.structuredContent as { items: object[] }).items[0]).not.toHaveProperty('client_name');
     expect(await summaryOf(mcp, 'list_buylist', { status: 'bought' })).toBe('1 buylist card.');
   });
 

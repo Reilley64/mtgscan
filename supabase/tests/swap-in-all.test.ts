@@ -36,8 +36,8 @@ async function changesOf(user: TestUser, deckId: string) {
 }
 
 describe('swap_in_planned_swaps', () => {
-  test('swaps in the planned swaps oldest first, each in its own swapped_in deck change with its reason and client name', async () => {
-    const client = await connectedAiClient(undefined, 'Claude');
+  test('swaps in the planned swaps oldest first, each in its own swapped_in deck change with its reason', async () => {
+    const client = await connectedAiClient();
     const { deckId, bolt } = await krenkoDeck(client.user);
     const newBolt = await scannedCopy(client.user, lightningBolt);
     const counter = await scannedCopy(client.user, counterspell);
@@ -50,7 +50,7 @@ describe('swap_in_planned_swaps', () => {
     expect(error).toBeNull();
     expect(data).toEqual({ deck_id: deckId, revision: revision + 2, swapped_in: [older, newer], closed: [] });
     const [second, first] = await changesOf(client.user, deckId);
-    expect(first).toMatchObject({ revision: revision + 1, kind: 'swapped_in', reason, client_name: 'Claude' });
+    expect(first).toMatchObject({ revision: revision + 1, kind: 'swapped_in', reason });
     expect(first!.lines.map((line) => line.kind === 'copy' && [line.copy_id, line.place_before, line.place_after]).toSorted()).toEqual(
       [
         [newBolt, null, 'main'],
@@ -61,7 +61,6 @@ describe('swap_in_planned_swaps', () => {
       revision: revision + 2,
       kind: 'swapped_in',
       reason: 'Counterspell stops the board wipe that beats Krenko.',
-      client_name: 'Claude',
     });
     expect(second!.lines.map((line) => line.kind === 'copy' && [line.copy_id, line.place_before, line.place_after])).toEqual([
       [counter, null, 'main'],

@@ -463,7 +463,7 @@ const toolChecks: Check[] = [
     },
   },
   {
-    name: "list_planned_swaps reads it back with the client name from Supabase Auth's client record",
+    name: 'list_planned_swaps reads it back',
     run: async () => {
       const created = fromEarlierCheck(state.created);
       const { items } = await toolResult<PlannedSwapPage>('list_planned_swaps', { deck_id: state.deckId });
@@ -472,9 +472,8 @@ const toolChecks: Check[] = [
         items.length === 1 &&
           item!.planned_swap_id === created.planned_swaps[0]!.planned_swap_id &&
           item!.incoming.kind === 'copy' &&
-          item!.incoming.copy_id === state.copyIds[0] &&
-          item!.client_name === state.clients.public!.name,
-        `${items.length} planned swap, client name ${item?.client_name}`,
+          item!.incoming.copy_id === state.copyIds[0],
+        `${items.length} planned swap`,
       );
     },
   },

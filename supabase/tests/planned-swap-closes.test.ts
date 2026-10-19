@@ -110,6 +110,19 @@ describe('mcp_close_planned_swap', () => {
     expect(await copyOf(client.user, held)).toMatchObject({ free: true });
   });
 
+  test('an AI client closes an open planned swap that another AI client made', async () => {
+    const client = await connectedAiClient();
+    const deckId = await deckNamed(client.user, 'Goblins');
+    const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
+
+    const result = await aiClientCall<ClosedPlannedSwap>(await connectedAiClient(client.user), 'mcp_close_planned_swap', {
+      planned_swap_id: plannedSwapId,
+    });
+
+    expect(result).toEqual({ id: plannedSwapId, changed: true });
+    expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject({ status: 'closed', close_note: 'closed_by_ai_client' });
+  });
+
   test('closing a closed planned swap succeeds and changes nothing', async () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Goblins');

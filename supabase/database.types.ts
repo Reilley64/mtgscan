@@ -39,14 +39,14 @@ export type Database = {
                   ]
                 },"buylist_cards": {
                   Row: {
-                    "as_commander": boolean,"client_id": string,"client_name": string | null,"close_note": Database["public"]['Enums']["close_note"] | null,"created_at": string,"deck_id": string,"id": string,"incoming_oracle_id": string,"outgoing_copy_id": string | null,"outgoing_oracle_id": string | null,"reason": string,"status": Database["public"]['Enums']["buylist_card_status"],"status_changed_at": string,"user_id": string
+                    "as_commander": boolean,"client_id": string,"close_note": Database["public"]['Enums']["close_note"] | null,"created_at": string,"deck_id": string,"id": string,"incoming_oracle_id": string,"outgoing_copy_id": string | null,"outgoing_oracle_id": string | null,"reason": string,"status": Database["public"]['Enums']["buylist_card_status"],"status_changed_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "as_commander": boolean,"client_id": string,"client_name"?: string | null,"close_note"?: Database["public"]['Enums']["close_note"] | null,"created_at"?: string,"deck_id": string,"id"?: string,"incoming_oracle_id": string,"outgoing_copy_id"?: string | null,"outgoing_oracle_id"?: string | null,"reason": string,"status"?: Database["public"]['Enums']["buylist_card_status"],"status_changed_at"?: string,"user_id": string
+                    "as_commander": boolean,"client_id": string,"close_note"?: Database["public"]['Enums']["close_note"] | null,"created_at"?: string,"deck_id": string,"id"?: string,"incoming_oracle_id": string,"outgoing_copy_id"?: string | null,"outgoing_oracle_id"?: string | null,"reason": string,"status"?: Database["public"]['Enums']["buylist_card_status"],"status_changed_at"?: string,"user_id": string
                   }
                   Update: {
-                    "as_commander"?: boolean,"client_id"?: string,"client_name"?: string | null,"close_note"?: Database["public"]['Enums']["close_note"] | null,"created_at"?: string,"deck_id"?: string,"id"?: string,"incoming_oracle_id"?: string,"outgoing_copy_id"?: string | null,"outgoing_oracle_id"?: string | null,"reason"?: string,"status"?: Database["public"]['Enums']["buylist_card_status"],"status_changed_at"?: string,"user_id"?: string
+                    "as_commander"?: boolean,"client_id"?: string,"close_note"?: Database["public"]['Enums']["close_note"] | null,"created_at"?: string,"deck_id"?: string,"id"?: string,"incoming_oracle_id"?: string,"outgoing_copy_id"?: string | null,"outgoing_oracle_id"?: string | null,"reason"?: string,"status"?: Database["public"]['Enums']["buylist_card_status"],"status_changed_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -447,14 +447,14 @@ isOneToOne: false
                   ]
                 },"deck_changes": {
                   Row: {
-                    "changed_at": string,"client_name": string | null,"deck_id": string,"id": string,"kind": Database["public"]['Enums']["deck_change_kind"],"reason": string | null,"reverted_by": string | null,"revision": number,"user_id": string
+                    "changed_at": string,"deck_id": string,"id": string,"kind": Database["public"]['Enums']["deck_change_kind"],"reason": string | null,"reverted_by": string | null,"revision": number,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "changed_at"?: string,"client_name"?: string | null,"deck_id": string,"id"?: string,"kind": Database["public"]['Enums']["deck_change_kind"],"reason"?: string | null,"reverted_by"?: string | null,"revision": number,"user_id": string
+                    "changed_at"?: string,"deck_id": string,"id"?: string,"kind": Database["public"]['Enums']["deck_change_kind"],"reason"?: string | null,"reverted_by"?: string | null,"revision": number,"user_id": string
                   }
                   Update: {
-                    "changed_at"?: string,"client_name"?: string | null,"deck_id"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["deck_change_kind"],"reason"?: string | null,"reverted_by"?: string | null,"revision"?: number,"user_id"?: string
+                    "changed_at"?: string,"deck_id"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["deck_change_kind"],"reason"?: string | null,"reverted_by"?: string | null,"revision"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -625,14 +625,14 @@ isOneToOne: false
                   ]
                 },"planned_swaps": {
                   Row: {
-                    "as_commander": boolean,"client_id": string,"client_name": string | null,"close_note": Database["public"]['Enums']["close_note"] | null,"created_at": string,"deck_id": string,"id": string,"incoming_copy_id": string | null,"incoming_oracle_id": string,"outgoing_copy_id": string | null,"outgoing_oracle_id": string | null,"reason": string,"status": Database["public"]['Enums']["planned_swap_status"],"status_changed_at": string,"user_id": string
+                    "as_commander": boolean,"client_id": string,"close_note": Database["public"]['Enums']["close_note"] | null,"created_at": string,"deck_id": string,"id": string,"incoming_copy_id": string | null,"incoming_oracle_id": string,"outgoing_copy_id": string | null,"outgoing_oracle_id": string | null,"reason": string,"status": Database["public"]['Enums']["planned_swap_status"],"status_changed_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "as_commander": boolean,"client_id": string,"client_name"?: string | null,"close_note"?: Database["public"]['Enums']["close_note"] | null,"created_at"?: string,"deck_id": string,"id"?: string,"incoming_copy_id"?: string | null,"incoming_oracle_id": string,"outgoing_copy_id"?: string | null,"outgoing_oracle_id"?: string | null,"reason": string,"status"?: Database["public"]['Enums']["planned_swap_status"],"status_changed_at"?: string,"user_id": string
+                    "as_commander": boolean,"client_id": string,"close_note"?: Database["public"]['Enums']["close_note"] | null,"created_at"?: string,"deck_id": string,"id"?: string,"incoming_copy_id"?: string | null,"incoming_oracle_id": string,"outgoing_copy_id"?: string | null,"outgoing_oracle_id"?: string | null,"reason": string,"status"?: Database["public"]['Enums']["planned_swap_status"],"status_changed_at"?: string,"user_id": string
                   }
                   Update: {
-                    "as_commander"?: boolean,"client_id"?: string,"client_name"?: string | null,"close_note"?: Database["public"]['Enums']["close_note"] | null,"created_at"?: string,"deck_id"?: string,"id"?: string,"incoming_copy_id"?: string | null,"incoming_oracle_id"?: string,"outgoing_copy_id"?: string | null,"outgoing_oracle_id"?: string | null,"reason"?: string,"status"?: Database["public"]['Enums']["planned_swap_status"],"status_changed_at"?: string,"user_id"?: string
+                    "as_commander"?: boolean,"client_id"?: string,"close_note"?: Database["public"]['Enums']["close_note"] | null,"created_at"?: string,"deck_id"?: string,"id"?: string,"incoming_copy_id"?: string | null,"incoming_oracle_id"?: string,"outgoing_copy_id"?: string | null,"outgoing_oracle_id"?: string | null,"reason"?: string,"status"?: Database["public"]['Enums']["planned_swap_status"],"status_changed_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {

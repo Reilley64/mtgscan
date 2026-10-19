@@ -71,7 +71,7 @@ describe('Recent', () => {
     expect(buylistQueries()).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: '50' });
   });
 
-  test('an item shows its deck tag, its change lines with the printing, its reason, and the AI client name and time', async () => {
+  test('an item shows its deck tag, its change lines with the printing, its reason, and its day and time', async () => {
     ownPlannedSwaps([
       plannedSwapOf('swap', {
         incoming: plannedCopyLine('copy-new-bolt', 'Lightning Bolt', { finish: 'foil', condition: 'lightly_played' }),
@@ -86,7 +86,7 @@ describe('Recent', () => {
     expect(recent.getByLabelText('−, Shock, M19 156')).toBeOnTheScreen();
     expect(recent.getByRole('button', { name: 'Krenko' })).toBeOnTheScreen();
     expect(recent.getByText(reason)).toHaveStyle({ fontSize: 14, color: tokenColors.text });
-    expect(recent.getByText('ChatGPT · 16 October 2026 at 18:05')).toHaveStyle({ fontSize: 12, color: tokenColors.textMuted });
+    expect(recent.getByText('16 October 2026 at 18:05')).toHaveStyle({ fontSize: 12, color: tokenColors.textMuted });
     expect(recent.getByRole('button', { name: 'Swap in' })).toHaveStyle({ backgroundColor: tokenColors.primary });
   });
 
@@ -303,7 +303,7 @@ describe('Recent buylist cards', () => {
     expect(recent.getByLabelText('−, Shock, M19 156')).toBeOnTheScreen();
     expect(recent.getByRole('button', { name: 'Krenko' })).toBeOnTheScreen();
     expect(recent.getByText(reason)).toBeOnTheScreen();
-    expect(recent.getByText('ChatGPT · 16 October 2026 at 18:05')).toBeOnTheScreen();
+    expect(recent.getByText('16 October 2026 at 18:05')).toBeOnTheScreen();
     expect(recent.getByRole('button', { name: 'Bought' })).toHaveStyle({ backgroundColor: tokenColors.primary });
     expect(recent.getByRole('button', { name: 'Close' })).toHaveStyle({ backgroundColor: tokenColors.surfaceControl });
     expect(recent.queryByRole('button', { name: 'Swap in' })).not.toBeOnTheScreen();
