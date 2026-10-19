@@ -1,6 +1,6 @@
 import { withSupabase } from '@supabase/server';
 
-const bucket = 'training-crops';
+import { cropObjectName, trainingCropsBucket } from './crop-object.ts';
 
 type Refusal = { code: string; message: string; details: string | null };
 
@@ -12,7 +12,7 @@ export default {
     const form = await request.formData().catch(() => new FormData());
     const image = form.get('image');
     const crop = parsedCrop(form.get('crop'));
-    const limits = await supabaseAdmin.storage.getBucket(bucket);
+    const limits = await supabaseAdmin.storage.getBucket(trainingCropsBucket);
     if (limits.error) {
       return internalError();
     }
@@ -31,7 +31,7 @@ export default {
       return added.status === 400 ? refused(400, added.error) : internalError();
     }
 
-    const uploaded = await supabaseAdmin.storage.from(bucket).upload(`${crop.crop_id}.jpg`, image, { contentType: image.type });
+    const uploaded = await supabaseAdmin.storage.from(trainingCropsBucket).upload(cropObjectName(String(crop.crop_id)), image, { contentType: image.type });
     if (uploaded.error && !('statusCode' in uploaded.error && uploaded.error.statusCode === '409')) {
       return internalError();
     }

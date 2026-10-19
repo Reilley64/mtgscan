@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: mcp-function
+  group: edge-functions
   cancel-in-progress: false
 
 jobs:

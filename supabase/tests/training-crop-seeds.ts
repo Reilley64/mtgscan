@@ -1,6 +1,4 @@
-import type { Database } from '../database.types';
-
-export type TrainingCrop = Database['public']['Tables']['training_crops']['Row'];
+import type { TrainingCrop } from '../training-crops';
 
 export const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
 export const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
