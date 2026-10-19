@@ -14,6 +14,7 @@ import {
   pressSearchKey,
   pressTab,
   selectedTab,
+  setArtLook,
   swipeBackInTheTab,
   symbolIn,
   symbolNames,
@@ -53,8 +54,13 @@ function setRow(code: string, name: string, owned: number, size: number, release
     name,
     icon_svg_uri: `https://svgs.scryfall.io/sets/${code}.svg`,
     released_at: releasedAt,
+    set_art_uri: null,
     completion: { any: { owned, size } },
   };
+}
+
+function withSetArt(set: SetRow): SetRow {
+  return { ...set, set_art_uri: `https://cards.scryfall.io/art_crop/front/${set.code}.jpg` };
 }
 
 async function openCollection() {
@@ -162,7 +168,7 @@ describe('the set rows', () => {
     expect(row.getByRole('progressbar')).toHaveProp('accessibilityValue', { min: 0, max: 3, now: 2 });
   });
 
-  test('a row shows the set symbol twice, in the line color and in lime over it', async () => {
+  test('a set with no set art shows its set symbol twice, in the line color and in lime over it', async () => {
     const sets = await openSets();
 
     const row = sets.getByRole('button', { name: /^Bloomburrow/ });
@@ -185,6 +191,73 @@ describe('the set rows', () => {
     const sets = await openSets();
 
     expect(sets.queryByText('Kaldheim')).toBeNull();
+  });
+});
+
+describe('the set art banners', () => {
+  beforeEach(() => {
+    offerSets([
+      withSetArt(setRow('blb', 'Bloomburrow', 234, 261, '2024-08-02')),
+      withSetArt(setRow('mh3', 'Modern Horizons 3', 303, 303, '2024-06-14')),
+      withSetArt(setRow('lci', 'The Lost Caverns of Ixalan', 2, 3, '2023-11-17')),
+      withSetArt(setRow('woe', 'Wilds of Eldraine', 0, 276, '2023-09-08')),
+    ]);
+  });
+
+  function banner(name: string) {
+    return within(tabStackTopScreen()).getByRole('button', { name: new RegExp(`^${name}`) });
+  }
+
+  test('a set with set art is a banner of its set art, in grayscale with the owned share in color and a lime line at its edge', async () => {
+    await openSets();
+
+    expect(setArtLook(banner('Bloomburrow'))).toEqual({
+      uris: ['https://cards.scryfall.io/art_crop/front/blb.jpg', 'https://cards.scryfall.io/art_crop/front/blb.jpg'],
+      grayscale: true,
+      coloredShare: expect.closeTo(0.8966, 4),
+      edgeLine: true,
+    });
+  });
+
+  test('the colored share of the set art grows with set completion', async () => {
+    await openSets();
+
+    expect(setArtLook(banner('Wilds of Eldraine'))).toMatchObject({ coloredShare: 0, edgeLine: false });
+    expect(setArtLook(banner('The Lost Caverns of Ixalan')).coloredShare).toBeCloseTo(0.6667, 4);
+    expect(setArtLook(banner('Bloomburrow')).coloredShare).toBeCloseTo(0.8966, 4);
+  });
+
+  test('over the set art, a banner shows the set symbol in white, the set name, "x of y", and the percentage', async () => {
+    await openSets();
+
+    const row = banner('Bloomburrow');
+    expect(within(row).getByText('Bloomburrow')).toBeOnTheScreen();
+    expect(within(row).getByText('234 of 261')).toBeOnTheScreen();
+    expect(within(row).getByText('89%')).toHaveStyle({ color: text });
+    expect(imageSources(row)).toContain('https://svgs.scryfall.io/sets/blb.svg');
+    expect(imageTintColors(row).filter(Boolean)).toEqual([processColor(text)]);
+    expect(row).toHaveStyle({ height: 92, borderColor: '#00000000' });
+  });
+
+  test('a complete set banner is all in color, with a lime outline, a check mark in place of the percentage, and no edge line', async () => {
+    await openSets();
+
+    const complete = banner('Modern Horizons 3');
+    expect(setArtLook(complete)).toMatchObject({ coloredShare: 1, edgeLine: false });
+    expect(complete).toHaveStyle({ borderColor: primary });
+    expect(within(complete).getByText('✓')).toHaveStyle({ color: primary });
+    expect(within(complete).queryByText('100%')).toBeNull();
+  });
+
+  test('a banner is read like a set row', async () => {
+    const sets = await openSets();
+
+    expect(sets.getAllByRole('button').map((row) => row.props.accessibilityLabel)).toEqual([
+      'Bloomburrow, 234 of 261, 89 percent',
+      'Modern Horizons 3, 303 of 303, 100 percent',
+      'The Lost Caverns of Ixalan, 2 of 3, 66 percent',
+      'Wilds of Eldraine, 0 of 276, 0 percent',
+    ]);
   });
 });
 

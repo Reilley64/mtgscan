@@ -2,6 +2,7 @@ import { cva } from 'class-variance-authority';
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
+import { Grayscale } from '@/components/atoms/grayscale';
 import { Text } from '@/components/atoms/text';
 import { aspectRatios, gradients } from '@/theme';
 
@@ -27,7 +28,7 @@ export function CardImage({ uri, quantity, sheen, dimmed }: CardImageProps) {
     <View className={imageVariants({ dimmed })}>
       <Image source={uri} cachePolicy="disk" transition={200} style={StyleSheet.absoluteFill} />
       {sheen && <View pointerEvents="none" className="absolute inset-0 opacity-sheen" style={sheenStyles[sheen]} />}
-      {dimmed && <View pointerEvents="none" className="absolute inset-0 bg-background" style={grayscale.overlay} />}
+      {dimmed && <Grayscale />}
       {quantity !== undefined && (
         <View className="absolute left-quantity-badge-inset top-quantity-badge-inset h-quantity-badge min-w-quantity-badge items-center justify-center rounded-full bg-quantity-badge px-quantity-badge-inset">
           <Text className="text-tab-label text-text">{quantity}</Text>
@@ -40,8 +41,4 @@ export function CardImage({ uri, quantity, sheen, dimmed }: CardImageProps) {
 const sheenStyles = StyleSheet.create({
   foil: { experimental_backgroundImage: gradients.foilSheen },
   etched: { experimental_backgroundImage: gradients.etchedSheen },
-});
-
-const grayscale = StyleSheet.create({
-  overlay: { mixBlendMode: 'saturation' },
 });

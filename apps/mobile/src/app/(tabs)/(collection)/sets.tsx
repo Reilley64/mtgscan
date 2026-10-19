@@ -6,7 +6,8 @@ import { View } from 'react-native';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { ReadFailure } from '@/components/molecules/read-failure';
-import { SetListSkeleton, SetRow } from '@/components/molecules/set-row';
+import { SetListSkeleton } from '@/components/molecules/set-row';
+import { SetBanner } from '@/components/organisms/set-banner';
 import { TabStackListScreen } from '@/components/templates/tab-screen';
 import type { FocusedRead } from '@/lib/use-focused-read';
 import { completionPercent, setsMatching, spokenSet } from '@/sets/set-completion';
@@ -34,9 +35,10 @@ function SetsPlaceholder({ read, searchText, onTryAgain }: SetsPlaceholderProps)
 function ListedSetRow({ set }: { set: ListedSet }) {
   const { owned, size } = set.completion.any;
   return (
-    <SetRow
+    <SetBanner
       name={set.name}
       symbolUri={set.icon_svg_uri}
+      artUri={set.set_art_uri}
       owned={owned}
       size={size}
       percent={completionPercent(set.completion.any)}

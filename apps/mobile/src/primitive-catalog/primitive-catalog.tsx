@@ -39,6 +39,7 @@ import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
 import { FloatingButton } from '@/components/molecules/floating-button';
 import { SetHeader, SetListSkeleton, SetRow } from '@/components/molecules/set-row';
+import { SetBanner, SetPageBanner } from '@/components/organisms/set-banner';
 import { ChangeLine } from '@/components/molecules/change-line';
 import { Reason } from '@/components/molecules/reason';
 import { CommanderGalleryCard, DeckBanner, DeckBannerSkeleton } from '@/components/molecules/commander-card';
@@ -666,6 +667,41 @@ function SetRows() {
   );
 }
 
+const setBannerStates = [
+  { owned: 0, percent: 0 },
+  { owned: 234, percent: 89 },
+  { owned: 261, percent: 100 },
+];
+
+function SetBanners() {
+  return (
+    <Section title="Set banners">
+      {setBannerStates.map(({ owned, percent }) => (
+        <SetBanner
+          key={owned}
+          name="Magic 2010"
+          symbolUri={m10Symbol}
+          artUri={solRingArtCrop}
+          owned={owned}
+          size={261}
+          percent={percent}
+          accessibilityLabel={`Magic 2010, ${owned} of 261, ${percent} percent`}
+          onPress={() => {}}
+        />
+      ))}
+      <SetPageBanner
+        name="Magic 2010"
+        symbolUri={m10Symbol}
+        artUri={solRingArtCrop}
+        owned={120}
+        size={261}
+        percent={45}
+        accessibilityLabel="Magic 2010, 120 of 261, 45 percent"
+      />
+    </Section>
+  );
+}
+
 function PullIndicators() {
   return (
     <Section title="Pull indicators">
@@ -923,6 +959,7 @@ export function PrimitiveCatalog() {
         <Surfaces />
         <ListRows />
         <SetRows />
+        <SetBanners />
         <CardTiles />
         <CardHeroes />
         <ValueRows />

@@ -313,6 +313,29 @@ components:
     textColor: "{colors.primary}"
     width: 44px
     height: 44px
+  set-banner:
+    backgroundColor: "{colors.background}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.md}"
+    padding: 12px
+    height: 92px
+  set-banner-edge:
+    backgroundColor: "{colors.primary}"
+    width: 2px
+  set-banner-symbol:
+    textColor: "{colors.text}"
+    width: 26px
+    height: 26px
+  set-page-banner:
+    backgroundColor: "{colors.background}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.md}"
+    padding: 12px
+    height: 150px
+  set-page-banner-symbol:
+    textColor: "{colors.text}"
+    width: 30px
+    height: 30px
   commander-gallery-card:
     backgroundColor: "{colors.surface}"
     rounded: "{rounded.md}"
@@ -549,7 +572,7 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
 
 ### Sets
 
-Sets lists every released set that has a card printing in the card catalog, with the user's set completion in Any finish (#366). The rows follow option A of the HTML prototype `docs/prototypes/sets-art-fill.html`, the set symbol filling up.
+Sets lists every released set that has a card printing in the card catalog, with the user's set completion in Any finish (#366). Each set is a banner of its set art, option B of the HTML prototype `docs/prototypes/sets-art-fill.html` (#369). A set with no set art keeps option A, the set symbol filling up.
 
 - **Sets button.** A round Liquid Glass button, 48 px across, floats over the Collection grid at the bottom left, 16 px from the left edge and level with the sort button. It shows the `rectangle.portrait.on.rectangle.portrait` stacked cards symbol at 18 px in the text color. Without Liquid Glass, it uses the control surface. It reacts to touch. VoiceOver reads "Sets, button".
   - It shows and hides with the sort button. It hides while the user types in the search bar, while the Filters drawer is open, and while the tab shows an empty state.
@@ -559,14 +582,15 @@ Sets lists every released set that has a card printing in the card catalog, with
   - Typed text matches the set name or the set code, ignoring case, so "bloom" and "BLB" both find Bloomburrow. The list filters as the user types. Cancel clears the text.
   - With no match, the list shows the empty state `No sets match "xyz".` with no body.
   - The sets come newest first, then by name, as the read returns them. A set whose main set is empty, such as a set of only basic lands, is not shown.
-  - Each set is a set row. See Components.
+  - Each set is a set banner. A set with no set art is a set row. See Components.
   - A tap on a row pushes the set's set page onto the Collection tab's stack.
   - Sets reads again each time it gains focus, so cards scanned since then count at once. A reload keeps the rows shown.
   - While Sets loads, a skeleton of 8 set rows shows. Each has a block in place of the set symbol and bars for the name, "x of y", and the progress bar. VoiceOver reads the skeleton as one element, "Loading sets".
   - When the read fails, Sets shows the empty state "Could not load Sets" with a **Try again** button. See Empty states.
-- **Set page.** It shows one set's cards as a checklist in Any finish (#367). It follows the set page of the HTML prototype `docs/prototypes/sets.html`, with the set symbol header of option A. The set art banner comes later.
+- **Set page.** It shows one set's cards as a checklist in Any finish (#367). It follows the set page of the HTML prototype `docs/prototypes/sets.html`, with the set art banner of option B (#369).
   - It is a screen in the Collection tab's stack, like Sets. The tab bar stays. It has the native back button and no title. The swipe from the left edge goes back to Sets.
-  - A set header starts the page. It has the layout of a set row, with the set symbol filling up in lime, the set name, "x of y", the progress bar, and the percentage. It is not a button. VoiceOver reads it as one header, such as "Bloomburrow, 234 of 261, 89 percent".
+  - A set page banner starts the page. It is the larger set banner. It is not a button. VoiceOver reads it as one header, such as "Bloomburrow, 234 of 261, 89 percent".
+  - A set with no set art starts with a set header in place of the banner. It has the layout of a set row, with the set symbol filling up in lime, the set name, "x of y", the progress bar, and the percentage.
   - The main set follows as card images, 3 per row, in collector number order. A heading "Variants" in body strong lime then shows the variants' own "x of y" in meta text, such as "12 of 106", and their grid in the same order. VoiceOver reads the heading as "Variants, 12 of 106". A set with no variants has no Variants section.
   - Each card printing is a set page tile. See Components. The page shows no prices.
   - Tiles are images, not buttons. A tap on one does nothing.
@@ -814,6 +838,7 @@ The interface is flat. Depth comes from tone, not shadow.
 - The hero of the copy page blurs the art crop with a 26 px radius (`blurRadii.heroArt`) and shows it at 45% opacity over the background (`opacity.heroArt`), so the card stands out from its own art. The blur radius is an image prop, not a class.
 - The empty state illustrations on the background fade downward into it (`gradients.emptyStateFade`). See Empty states.
 - Commander art on the commander gallery card and the deck screen banner fades down into the background color, clear to 30% of the height and 90% at the bottom (`gradients.commanderArtScrim`), so the deck name and chips stay readable.
+- Set art on a set banner fades in from the left, the background color at 85% at the left edge to 10% at 70% of the width (`gradients.setArtScrim`), so the set name and numbers stay readable.
 - NativeWind 4 has no class for a box shadow or a gradient, so the shadows, the scrim, the sheens, and the empty state fade are style values.
 - The tab bar is a near-opaque bar with a hairline top border.
 - The controls that float over the camera or over scrolling content use Liquid Glass. See Liquid Glass.
@@ -995,6 +1020,15 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - A complete set has a 2 px lime outline (`borderWidths.selectedOutline`) and a lime ✓ in place of the percentage. Every row has the outline frame, transparent when the set is not complete, so rows keep one size.
   - VoiceOver reads the row as one button with the name, "x of y", and the percentage in words, such as "Bloomburrow, 234 of 261, 89 percent".
   - The set header at the top of the set page has the same layout. It is not a button, and VoiceOver reads it as one header.
+  - Sets and the set page use a set row or a set header only for a set with no set art.
+- **Set banner.** A 92 px button with 12 px corners (`sizes.setBanner`) for one set on Sets, drawn over its set art (`set_art_uri`). The set art is the art crop of the set's most expensive card printing. See `GLOSSARY.md`.
+  - The set art covers the banner. The owned share, from the left edge, is in full color. The rest is grayscale at 38% opacity (`opacity.dimmed`) on the background color, so it is gray and dark. The same saturation blend overlay as the dimmed set page tile takes out the color, because React Native has no grayscale filter on iOS.
+  - A 2 px primary lime line (`borderWidths.selectedOutline`) marks the edge of the owned share. A set at 0% has no color and no line.
+  - A scrim from the left (`gradients.setArtScrim`), the background color at 85% fading to 10% at 70% of the width, keeps the text readable.
+  - At the bottom, from left to right: the set symbol at 26 px (`sizes.setBannerSymbol`) in white, the set name in body strong over "x of y" in meta text, and the percentage in sheet title type.
+  - A complete set is all in color, with no edge line, a 2 px lime outline, and a lime ✓ in place of the percentage. Every banner has the outline frame, transparent when the set is not complete.
+  - VoiceOver reads it like a set row, as one button.
+  - The set page banner at the top of the set page is the larger size: 150 px tall (`sizes.setPageBanner`), with the set symbol at 30 px (`sizes.setPageBannerSymbol`) and the set name in sheet title type. It is not a button, and VoiceOver reads it as one header.
 - **Set page tile.** One card printing's card image on the set page, with no meta line and no price line.
   - A card printing that the user owns is lit, at full color.
   - A card printing that the user does not own is dimmed: its card image is grayscale at 38% opacity (`opacity.dimmed`). A saturation blend overlay in the background color takes out the color, because React Native has no grayscale filter on iOS.

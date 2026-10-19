@@ -15,6 +15,7 @@ import {
   cardImageLook,
   cardImageUri,
   imageSources,
+  setArtLook,
   pressTab,
   selectedTab,
   swipeBackInTheTab,
@@ -58,6 +59,7 @@ const bloomburrowRow: SetRow = {
   name: 'Bloomburrow',
   icon_svg_uri: 'https://svgs.scryfall.io/sets/blb.svg',
   released_at: '2024-08-02',
+  set_art_uri: null,
   completion: { any: { owned: 2, size: 3 } },
 };
 
@@ -116,7 +118,22 @@ describe('opening a set', () => {
 });
 
 describe('the set page', () => {
-  test('the header shows the set symbol filling up, the set name, "x of y", and the percentage, read as one heading', async () => {
+  test('the header is a larger banner of the set art, with the set symbol in white, the set name, "x of y", and the percentage, read as one heading', async () => {
+    const art = 'https://cards.scryfall.io/art_crop/front/blb.jpg';
+    offerSetPage({ ...bloomburrow, set_art_uri: art });
+
+    const page = await openBloomburrow();
+
+    const header = page.getByRole('header', { name: 'Bloomburrow, 2 of 3, 66 percent' });
+    expect(header).toHaveStyle({ height: 150 });
+    expect(setArtLook(header)).toEqual({ uris: [art, art], grayscale: true, coloredShare: expect.closeTo(0.6667, 4), edgeLine: true });
+    expect(within(header).getByText('Bloomburrow')).toBeOnTheScreen();
+    expect(within(header).getByText('2 of 3')).toBeOnTheScreen();
+    expect(within(header).getByText('66%')).toBeOnTheScreen();
+    expect(imageSources(header)).toContain('https://svgs.scryfall.io/sets/blb.svg');
+  });
+
+  test('with no set art, the header shows the set symbol filling up, the set name, "x of y", and the percentage, read as one heading', async () => {
     const page = await openBloomburrow();
 
     const header = page.getByRole('header', { name: 'Bloomburrow, 2 of 3, 66 percent' });

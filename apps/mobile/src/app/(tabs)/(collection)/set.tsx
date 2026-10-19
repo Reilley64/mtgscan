@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
-import { SetHeader } from '@/components/molecules/set-row';
+import { SetPageBanner } from '@/components/organisms/set-banner';
 import { SetCardsRowView, setCardsRows } from '@/components/organisms/set-cards';
 import { SetSkeleton } from '@/components/organisms/set-skeleton';
 import { TabStackListScreen } from '@/components/templates/tab-screen';
@@ -24,9 +24,10 @@ export default function SetScreen() {
     const { set } = read;
     return (
       <View className="pb-sm">
-        <SetHeader
+        <SetPageBanner
           name={set.name}
           symbolUri={set.icon_svg_uri}
+          artUri={set.set_art_uri}
           owned={set.completion.any.owned}
           size={set.completion.any.size}
           percent={completionPercent(set.completion.any)}
