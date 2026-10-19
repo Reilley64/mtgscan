@@ -26,6 +26,7 @@
     "oracle-tag": "bun import/oracle-tag.ts",
     "release-check": "bun release-check/main.ts",
     "gallery": "bun gallery/main.ts",
+    "crops": "bun --env-file=.env.hosted crops/main.ts",
     "test-user": "bun test-user/main.ts",
     "apple-web-secret": "bun apple-web-secret/main.ts",
     "apple-web-secret:reminder": "bun apple-web-secret/reminder.ts",
