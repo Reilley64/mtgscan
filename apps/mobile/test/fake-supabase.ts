@@ -23,7 +23,7 @@ import type {
   UserTag,
 } from '@mtgscan/supabase/collection';
 import type { ExchangeRate } from '@mtgscan/supabase/converted-prices';
-import type { Deck, DeckBasicLand, DeckCard, DeckChange, DeckChangeEffect, DeckCommander, DeckEvaluation, RevertPreview, Violation } from '@mtgscan/supabase/decks';
+import type { Deck, DeckBasicLand, DeckCard, DeckChange, DeckChangeEffect, DeckCommander, DeckEvaluation, RevertPreview } from '@mtgscan/supabase/decks';
 import type { PlannedSwap } from '@mtgscan/supabase/planned-swaps';
 import type { BuylistCard, FreeCopy } from '@mtgscan/supabase/buylist';
 import type { CardSet, SetDetails } from '@mtgscan/supabase/sets';
@@ -84,6 +84,7 @@ function emptyStore() {
     decksCreated: 0,
     userTagsCreated: 0,
     clock: 0,
+    nextEvaluations: new Map<string, DeckEvaluation | null>(),
     deckChanges: new Map<string, DeckChange[]>(),
     revertPreviews: new Map<string, Omit<RevertPreview, 'revision'>>(),
     addPreviewEffects: new Map<string, DeckChangeEffect>(),
@@ -356,58 +357,13 @@ function byName(a: UserTag, b: UserTag) {
   return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
 }
 
-function cardCountText(count: number) {
-  return count === 1 ? '1 card' : `${count} cards`;
-}
-
-function deckSizeViolations(cardCount: number): Violation[] {
-  if (cardCount === 100) {
-    return [];
-  }
-  const hint = cardCount < 100 ? `Add ${cardCountText(100 - cardCount)}.` : `Remove ${cardCountText(cardCount - 100)}.`;
-  return [{ rule: 'deck_size', citation: 'CR 903.5a', message: `${cardCount} of 100 cards.`, hint, cards: [] }];
-}
-
-function judgeDeck(deck: Deck): DeckEvaluation | null {
-  if (deck.card_count === 0) {
-    return null;
-  }
-  const violations: Violation[] = [
-    ...(deck.commanders.length === 0
-      ? [{ rule: 'no_commander' as const, citation: 'CR 903.3', message: 'This deck has no commander.', hint: null, cards: [] }]
-      : []),
-    ...deckSizeViolations(deck.card_count),
-  ];
-  return {
-    validity: violations.length > 0 ? 'invalid' : 'valid',
-    validity_stale: false,
-    bracket_stale: false,
-    violations,
-    undetermined: [],
-    chosen_color: null,
-    estimated_bracket: 2,
-    bracket_signals: [{ kind: 'game_changers', source: 'official', count: 0, lowest_bracket: 2, cards: [] }],
-    missing_signal_count: 0,
-    revision: deck.revision,
-    catalog_at: rulesDataAt,
-    oracle_tags_at: rulesDataAt,
-    commander_spellbook_at: rulesDataAt,
-    judged_at: deck.last_used_at,
-    validity_rules_data_at: rulesDataAt,
-    bracket_rules_data_at: rulesDataAt,
-    no_oracle_tag_data: false,
-    no_combo_data: false,
-  };
-}
-
-function judge(deck: DeckRecord) {
-  deck.evaluation = judgeDeck(deckOf(deck));
-}
-
 function changedDeck(deck: DeckRecord, revisions = 1) {
   deck.revision += revisions;
   deck.last_used_at = nextTime();
-  judge(deck);
+  if (store.nextEvaluations.has(deck.deck_id)) {
+    deck.evaluation = store.nextEvaluations.get(deck.deck_id)!;
+    store.nextEvaluations.delete(deck.deck_id);
+  }
   return { deck_id: deck.deck_id, revision: deck.revision };
 }
 
@@ -1143,14 +1099,14 @@ export function ownUserTags(seeds: { name: string; copyIds: string[] }[]) {
 type DeckSeed = Pick<Deck, 'name' | 'priority' | 'card_count'> & Partial<Pick<Deck, 'commanders' | 'cards' | 'basic_lands' | 'evaluation'>>;
 
 export function ownDecks(seeds: DeckSeed[]) {
-  store.decks = seeds.map(({ name, priority, card_count, commanders = [], cards = [], basic_lands = basicLandsOf(), evaluation }, index) => {
+  store.decks = seeds.map(({ name, priority, card_count, commanders = [], cards = [], basic_lands = basicLandsOf(), evaluation = null }, index) => {
     const time = nextTime();
     const deckId = `deck-${index + 1}`;
     for (const { role, commander_at, added_at, planned_out, ...card } of cards) {
       const art = commanders.find((commander) => commander.copy_id === card.copy_id)?.art_crop_uri;
       seedCopy({ ...card, ...(art !== undefined && { art_crop_uri: art }), membership: { deck_id: deckId, role, commander_at, added_at } });
     }
-    const deck: DeckRecord = {
+    return {
       deck_id: deckId,
       name,
       priority,
@@ -1158,27 +1114,21 @@ export function ownDecks(seeds: DeckSeed[]) {
       revision: 0,
       created_at: time,
       basic_lands,
-      evaluation: null,
+      evaluation,
       unlisted_card_count: card_count - cards.length - basic_lands.reduce((sum, land) => sum + land.count, 0),
       unlisted_commanders: commanders.filter((commander) => !cards.some((card) => card.copy_id === commander.copy_id)),
     };
-    return deck;
   });
   store.decksCreated = seeds.length;
-  store.decks.forEach((deck, index) => {
-    const { evaluation } = seeds[index]!;
-    if (evaluation === undefined) {
-      judge(deck);
-    } else {
-      deck.evaluation = evaluation;
-    }
-  });
 }
 
-export function ownDeckOfCopies(name: string, copies: CopyDetails[]) {
-  ownDecks([{ name, priority: 'medium', card_count: 0 }]);
+export function ownDeckOfCopies(name: string, copies: CopyDetails[], evaluation: DeckEvaluation | null = null) {
+  ownDecks([{ name, priority: 'medium', card_count: 0, evaluation }]);
   ownCopies(copies.map((copy) => ({ ...copy, deck: { deck_id: 'deck-1', name, role: 'main', commander_art_crop_uri: null, commander_count: 0 } })));
-  judge(store.decks[0]!);
+}
+
+export function evaluateNextDeckChange(deckId: string, evaluation: DeckEvaluation | null) {
+  store.nextEvaluations.set(deckId, evaluation);
 }
 
 export function ownDeckChanges(deckId: string, changes: DeckChange[]) {
@@ -1196,7 +1146,6 @@ export function ownAddPreviewEffects(effects: Record<string, DeckChangeEffect>) 
 export function changeDeckElsewhere(deckId: string, change: DeckChange) {
   const deck = deckRecord(deckId)!;
   deck.revision = change.revision;
-  judge(deck);
   store.deckChanges.set(deckId, [change, ...(store.deckChanges.get(deckId) ?? [])]);
 }
 

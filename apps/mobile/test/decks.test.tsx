@@ -7,6 +7,7 @@ import {
 } from "expo-router/testing-library";
 import { StyleSheet } from "react-native";
 
+import { invalidEvaluation } from "./deck-evaluations";
 import {
   changeElsewhere,
   deckWritesSent,
@@ -245,7 +246,7 @@ describe("the commander gallery", () => {
   test("shows one card per deck, the deck used most recently first", async () => {
     ownDecks([
       { name: "Atraxa", ...medium },
-      { name: "Kinnan", priority: "high", card_count: 1 },
+      { name: "Kinnan", priority: "high", card_count: 1, evaluation: invalidEvaluation },
       { name: "Yuriko", priority: "low", card_count: 0 },
     ]);
     const decks = await openDecks();
