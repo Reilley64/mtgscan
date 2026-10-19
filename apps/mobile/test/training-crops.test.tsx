@@ -1,6 +1,8 @@
+import type * as Crypto from 'expo-crypto';
 import { File, Paths } from 'expo-file-system';
-import { fireEvent, screen } from 'expo-router/testing-library';
+import { act, fireEvent, screen } from 'expo-router/testing-library';
 
+import { returnToTheApp } from './app-state';
 import {
   lightningAxe,
   lightningBolt2xm,
@@ -11,18 +13,24 @@ import {
   tamiyosJournal,
   tamiyosJournalPrerelease,
 } from './card-printings';
+import { timePasses, todayIs } from './clock';
 import { resetSampleClock } from './detection-samples';
 import { cardRecognition, nextPhotosAre, notACard } from './fake-card-recognizer';
 import { filesIn } from './fake-file-system';
 import {
+  failNextTrainingCropUpload,
+  holdNextTrainingCropUpload,
   publishedGalleryVersion,
   refuseNextTrainingCrop,
+  removeCopyFromTheCollection,
   scanBatchesSentToTheServer,
+  signInNextWithEmail,
   startSignedIn,
   trainingCropsUploaded,
 } from './fake-supabase';
 import {
   drawerScreen,
+  openSettings,
   pressAlertButton,
   pressHeaderMenuAction,
   pressTab,
@@ -34,6 +42,26 @@ import { openLatestScan, openScan, scanACard, scanTab } from './scanning';
 
 const cacheCrops = 'file:///caches/training-crops/';
 const keptCrops = 'file:///documents/training-crops/user-player@example.com/';
+const minute = 60 * 1000;
+const day = 24 * 60 * minute;
+
+function uploadWaitIsDrawnAt(fraction: number) {
+  jest
+    .spyOn(jest.requireMock<typeof Crypto>('expo-crypto'), 'getRandomValues')
+    .mockImplementation((values) => (values as Uint32Array).fill(Math.floor(fraction * 2 ** 32)));
+}
+
+async function signOut() {
+  await pressTab('Recent');
+  await openSettings();
+  await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
+}
+
+async function signInWithGoogle(email: string) {
+  signInNextWithEmail(email);
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue with Google' }));
+  await act(async () => {});
+}
 
 async function addTheScanBatchToTheCollection(count: number) {
   await fireEvent.press(scanTab().getByRole('button', { name: `Scan batch, ${count}` }));
@@ -45,8 +73,14 @@ function savedCopyIds() {
 }
 
 beforeEach(() => {
+  todayIs('2026-12-18T09:00:00Z');
   resetSampleClock();
   startSignedIn();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+  jest.useRealTimers();
 });
 
 test('a scan keeps its training crop on the phone under the user and its copy ID until the scan batch is added', async () => {
@@ -63,12 +97,20 @@ test('a scan keeps its training crop on the phone under the user and its copy ID
   expect(kept).toBe(`${keptCrops}${savedCopyIds()[0]}.jpg`);
 });
 
-test('adding a scan batch uploads the training crop of an accepted scan with its evidence record and a new crop ID, then deletes the crop', async () => {
+test('a saved training crop waits at least 1 day, then uploads with its evidence record and a new crop ID on return to the app, and is deleted', async () => {
+  uploadWaitIsDrawnAt(0);
   nextPhotosAre(cardRecognition([lightningBoltM10, lightningBolt2xm], { basis: 'collector_line', artMargin: 0.08 }));
   await openScan();
   await scanACard();
-
   await addTheScanBatchToTheCollection(1);
+
+  await timePasses(day - minute);
+  await returnToTheApp();
+  expect(trainingCropsUploaded()).toEqual([]);
+  expect(filesIn(keptCrops)).toHaveLength(1);
+
+  await timePasses(minute);
+  await returnToTheApp();
 
   const [copyId] = savedCopyIds();
   const [upload] = trainingCropsUploaded();
@@ -100,16 +142,152 @@ test('adding a scan batch uploads the training crop of an accepted scan with its
   expect(filesIn(keptCrops)).toEqual([]);
 });
 
-test('a training crop that the server refuses is deleted and not sent again', async () => {
-  refuseNextTrainingCrop('unknown_copy');
+test('a training crop waits less than 7 days and uploads when the app starts after its upload time', async () => {
+  uploadWaitIsDrawnAt((2 ** 32 - 1) / 2 ** 32);
   nextPhotosAre(cardRecognition([lightningBoltM10]));
   await openScan();
   await scanACard();
-
   await addTheScanBatchToTheCollection(1);
+
+  await timePasses(7 * day - minute);
+  await restartTheApp();
+  expect(trainingCropsUploaded()).toEqual([]);
+
+  await timePasses(minute);
+  await restartTheApp();
+
+  expect(trainingCropsUploaded().map(({ copyId }) => copyId)).toEqual(savedCopyIds());
+  expect(filesIn(keptCrops)).toEqual([]);
+});
+
+test.each([
+  ['comes back to the foreground', returnToTheApp],
+  ['starts again', restartTheApp],
+])('a training crop that fails to upload on a lost network stays on the phone and uploads when the app %s', async (_, tryAgain) => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+  await addTheScanBatchToTheCollection(1);
+  await timePasses(7 * day);
+
+  failNextTrainingCropUpload();
+  await returnToTheApp();
+  expect(trainingCropsUploaded()).toEqual([]);
+  expect(filesIn(keptCrops)).toHaveLength(1);
+
+  await tryAgain();
+
+  expect(trainingCropsUploaded().map(({ copyId }) => copyId)).toEqual(savedCopyIds());
+  expect(filesIn(keptCrops)).toEqual([]);
+});
+
+test('a training crop uploads once when the app comes back to the foreground again during its upload', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+  await addTheScanBatchToTheCollection(1);
+  await timePasses(7 * day);
+
+  const upload = holdNextTrainingCropUpload();
+  await returnToTheApp();
+  await returnToTheApp();
+  await upload.finish();
+  await returnToTheApp();
+
+  expect(trainingCropsUploaded()).toHaveLength(1);
+});
+
+test.each(['uploads_off', 'storage_full', 'invalid_argument'])(
+  'a training crop that the server refuses with %s is deleted and not sent again',
+  async (code) => {
+    nextPhotosAre(cardRecognition([lightningBoltM10]));
+    await openScan();
+    await scanACard();
+    await addTheScanBatchToTheCollection(1);
+    await timePasses(7 * day);
+
+    refuseNextTrainingCrop(code);
+    await returnToTheApp();
+    expect(filesIn(keptCrops)).toEqual([]);
+    await returnToTheApp();
+
+    expect(trainingCropsUploaded()).toEqual([]);
+  },
+);
+
+test('a training crop whose copy was deleted before its upload is refused and deleted', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+  await addTheScanBatchToTheCollection(1);
+  removeCopyFromTheCollection(savedCopyIds()[0]!);
+  await timePasses(7 * day);
+
+  await returnToTheApp();
+  await returnToTheApp();
 
   expect(trainingCropsUploaded()).toEqual([]);
   expect(filesIn(keptCrops)).toEqual([]);
+});
+
+test('no training crop uploads while signed out, and it uploads when the user signs in again', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+  await addTheScanBatchToTheCollection(1);
+  await signOut();
+  await timePasses(7 * day);
+
+  await returnToTheApp();
+  expect(trainingCropsUploaded()).toEqual([]);
+
+  await signInWithGoogle('player@example.com');
+
+  expect(trainingCropsUploaded().map(({ copyId }) => copyId)).toEqual(savedCopyIds());
+});
+
+test('a sign out during an upload stops the uploads that wait behind it', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+  await scanACard();
+  await addTheScanBatchToTheCollection(2);
+  await timePasses(7 * day);
+
+  const upload = holdNextTrainingCropUpload();
+  await returnToTheApp();
+  await signOut();
+  await upload.finish();
+  expect(trainingCropsUploaded()).toHaveLength(1);
+
+  await signInWithGoogle('player@example.com');
+
+  expect(trainingCropsUploaded()).toHaveLength(2);
+});
+
+test('each account on the phone uploads only its own training crops', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+  await addTheScanBatchToTheCollection(1);
+  const [playerCopyId] = savedCopyIds();
+  await signOut();
+  await signInWithGoogle('friend@example.com');
+  await pressTab('Scan');
+  await scanACard();
+  await addTheScanBatchToTheCollection(1);
+  const [, friendCopyId] = savedCopyIds();
+  await timePasses(7 * day);
+
+  await returnToTheApp();
+  expect(trainingCropsUploaded().map(({ copyId }) => copyId)).toEqual([friendCopyId]);
+  expect(filesIn(keptCrops)).toEqual([`${keptCrops}${playerCopyId}.jpg`]);
+
+  await signOut();
+  await signInWithGoogle('player@example.com');
+
+  expect(trainingCropsUploaded().map(({ copyId }) => copyId)).toEqual([friendCopyId, playerCopyId]);
+  expect(filesIn('file:///documents/training-crops/')).toEqual([]);
 });
 
 test('a basic land and a recognition with no candidates keep no training crop', async () => {
@@ -122,6 +300,11 @@ test('a basic land and a recognition with no candidates keep no training crop', 
   expect(filesIn(cacheCrops)).toEqual([]);
   expect(filesIn(keptCrops)).toEqual([]);
 });
+
+async function waitForTheUploads() {
+  await timePasses(7 * day);
+  await returnToTheApp();
+}
 
 function uploadedRecords() {
   return trainingCropsUploaded().map(({ crop }) => crop);
@@ -148,6 +331,7 @@ test('a switch in Other options labels the training crop with the chosen card pr
   await choosePrinting('Lightning Bolt, 2XM 117');
   await closeTheScanDetails();
   await addTheScanBatchToTheCollection(1);
+  await waitForTheUploads();
 
   expect(uploadedRecords()).toEqual([
     expect.objectContaining({
@@ -168,6 +352,7 @@ test('a switch in the printings picker labels the training crop with the chosen 
   await openThePrintingsPicker('M10');
   await choosePrinting('Lightning Bolt, 2XM 117');
   await addTheScanBatchToTheCollection(1);
+  await waitForTheUploads();
 
   expect(uploadedRecords()).toEqual([
     expect.objectContaining({
@@ -191,6 +376,7 @@ test('a name search fix labels the training crop with the card printing the user
   await choosePrinting('Lightning Bolt, 2XM 117');
   await closeTheScanDetails();
   await addTheScanBatchToTheCollection(1);
+  await waitForTheUploads();
 
   expect(uploadedRecords()).toEqual([
     expect.objectContaining({
@@ -213,6 +399,7 @@ test('choosing the current card printing in the printings picker confirms it in 
   await openThePrintingsPicker('M10');
   await choosePrinting('Lightning Bolt, M10 146');
   await addTheScanBatchToTheCollection(1);
+  await waitForTheUploads();
 
   expect(uploadedRecords()).toEqual([
     expect.objectContaining({
@@ -234,6 +421,7 @@ test('a change after a confirmation clears the confirmation and records the last
   await choosePrinting('Lightning Bolt, 2XM 117');
   await closeTheScanDetails();
   await addTheScanBatchToTheCollection(1);
+  await waitForTheUploads();
 
   expect(uploadedRecords()).toEqual([
     expect.objectContaining({
@@ -254,6 +442,7 @@ test('a switch back to the scanner first card printing still records the change'
   await openThePrintingsPicker('2XM');
   await choosePrinting('Lightning Bolt, M10 146');
   await addTheScanBatchToTheCollection(1);
+  await waitForTheUploads();
 
   expect(uploadedRecords()).toEqual([
     expect.objectContaining({
@@ -273,6 +462,7 @@ test('a confirmed same-text twin keeps its twin count in the evidence record', a
   await openThePrintingsPicker('SOI');
   await choosePrinting("Tamiyo's Journal, SOI 265");
   await addTheScanBatchToTheCollection(1);
+  await waitForTheUploads();
 
   expect(uploadedRecords()).toEqual([
     expect.objectContaining({
@@ -299,6 +489,8 @@ test('each accept basis and an abstain go into the evidence record of their trai
 
   await addTheScanBatchToTheCollection(4);
 
+  await waitForTheUploads();
+
   expect(
     uploadedRecords().map(({ saved_printing_id, accepted, decision_basis, art_margin }) => ({
       saved_printing_id,
@@ -321,6 +513,7 @@ test('a +1 copy is saved with no training crop of its own', async () => {
 
   await fireEvent.press(scanTab().getByRole('button', { name: '+1' }));
   await addTheScanBatchToTheCollection(2);
+  await waitForTheUploads();
 
   const [scannedCopyId, plusOneCopyId] = savedCopyIds();
   expect(plusOneCopyId).toBeDefined();
@@ -334,6 +527,8 @@ test('a photo that is not a card keeps no training crop', async () => {
   await scanACard();
 
   await addTheScanBatchToTheCollection(1);
+
+  await waitForTheUploads();
 
   expect(uploadedRecords()).toEqual([expect.objectContaining({ saved_printing_id: shock.printingId })]);
   expect(filesIn(cacheCrops)).toEqual([]);
@@ -360,6 +555,7 @@ test('Remove scan deletes the training crop of that scan and keeps the others', 
   const kept = filesIn(keptCrops);
   await swipeDownDrawer();
   await addTheScanBatchToTheCollection(1);
+  await waitForTheUploads();
   expect(kept).toEqual([`${keptCrops}${savedCopyIds()[0]}.jpg`]);
   expect(uploadedRecords()).toEqual([expect.objectContaining({ saved_printing_id: shock.printingId })]);
 });
@@ -389,6 +585,7 @@ test('a scan keeps its training crop, its first card printing, and its printing 
   await restartTheApp();
   await pressTab('Scan');
   await addTheScanBatchToTheCollection(1);
+  await waitForTheUploads();
 
   expect(uploadedRecords()).toEqual([
     expect.objectContaining({
@@ -423,6 +620,8 @@ test('a scan batch saved in the old format loads with no training crops', async 
   await openScan();
 
   await addTheScanBatchToTheCollection(1);
+
+  await waitForTheUploads();
 
   expect(savedCopyIds()).toEqual(['older-scan']);
   expect(trainingCropsUploaded()).toEqual([]);
