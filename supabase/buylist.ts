@@ -76,8 +76,6 @@ export type FreeCopy = z.infer<typeof freeCopy>;
 
 const freeCopies = z.strictObject({ items: z.array(freeCopy) });
 
-export type FreeCopies = z.infer<typeof freeCopies>;
-
 export const listBuylist = databaseFunction({
   name: 'list_buylist',
   argument: 'query',

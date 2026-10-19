@@ -1,17 +1,17 @@
 import type { CollectionCopyRow, CollectionPage, CollectionQuery } from '@mtgscan/supabase/collection';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 
+import { replyOf } from '@/lib/database-reply';
 import { supabase } from '@/lib/supabase';
 import { usePagedRead, type PagedRead } from '@/lib/use-paged-read';
 
 export type BinderRead = PagedRead<CollectionPage<CollectionCopyRow>>;
 
-async function readCollectionCopies(search: CollectionQuery, cursor: string | null) {
-  const query: CollectionQuery = { ...search, rows: 'copies', cursor };
-  const { data, error } = await supabase.rpc('search_collection', { query });
-  if (error) {
-    throw error;
-  }
-  return data as unknown as CollectionPage<CollectionCopyRow>;
+async function readCollectionCopies(search: CollectionQuery, cursor: string | null): Promise<CollectionPage<CollectionCopyRow>> {
+  const result = await callDatabaseFunction(supabase, databaseFunctions.search_collection, { ...search, rows: 'copies', cursor });
+  const page = replyOf(result);
+  return { ...page, items: page.items.filter((row) => 'copy_id' in row) };
 }
 
 export function useCollectionCopies(search: CollectionQuery | null) {

@@ -1,24 +1,23 @@
-import type { CopyProtectedRequest, CopyUserTagRequest, DeleteCopyRequest } from '@mtgscan/supabase/collection';
+import type { CopyUserTagRequest } from '@mtgscan/supabase/collection';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 
 import { supabase } from '@/lib/supabase';
 import { writeResultOf, type WriteResult } from '@/lib/write-result';
 
 export async function setCopyProtected(copyId: string, isProtected: boolean): Promise<WriteResult> {
-  const request: CopyProtectedRequest = { copy_id: copyId, protected: isProtected };
-  const { error } = await supabase.rpc('set_copy_protected', { request });
-  return writeResultOf(error);
+  const result = await callDatabaseFunction(supabase, databaseFunctions.set_copy_protected, { copy_id: copyId, protected: isProtected });
+  return writeResultOf(result);
 }
 
 export async function deleteCopy(copyId: string, movePlannedSwap: boolean): Promise<WriteResult | 'held'> {
-  const request: DeleteCopyRequest = { copy_id: copyId, move_planned_swap: movePlannedSwap };
-  const { error } = await supabase.rpc('delete_copy', { request });
-  if (error?.code === 'copy_held') {
+  const result = await callDatabaseFunction(supabase, databaseFunctions.delete_copy, { copy_id: copyId, move_planned_swap: movePlannedSwap });
+  if (result.status === 'refused' && result.refusal.code === 'copy_held') {
     return 'held';
   }
-  return writeResultOf(error);
+  return writeResultOf(result);
 }
 
 export async function setCopyUserTag(request: CopyUserTagRequest): Promise<WriteResult> {
-  const { error } = await supabase.rpc('set_copy_user_tag', { request });
-  return writeResultOf(error);
+  return writeResultOf(await callDatabaseFunction(supabase, databaseFunctions.set_copy_user_tag, request));
 }

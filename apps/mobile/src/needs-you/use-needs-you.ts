@@ -1,7 +1,10 @@
-import type { BuylistCard } from '@mtgscan/supabase/buylist';
+import type { BuylistCard, BuylistQuery } from '@mtgscan/supabase/buylist';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import type { PlannedSwap, PlannedSwapsQuery } from '@mtgscan/supabase/planned-swaps';
 import { useMemo } from 'react';
 
+import { replyOf } from '@/lib/database-reply';
 import { supabase } from '@/lib/supabase';
 import { useFocusedRead } from '@/lib/use-focused-read';
 import { useNeedsYouCounts } from '@/needs-you/needs-you-counts';
@@ -10,17 +13,15 @@ export type NeedsYouItem = { kind: 'planned_swap'; id: string; plan: PlannedSwap
 
 type NeedsYouRead = { status: 'loaded'; items: NeedsYouItem[] };
 
-type NeedsYouQuery = Pick<PlannedSwapsQuery, 'deck_id' | 'status' | 'order' | 'limit'>;
+type NeedsYouQuery = Pick<PlannedSwapsQuery & BuylistQuery, 'deck_id' | 'status' | 'order' | 'limit'>;
 
-async function everyPage<Item>(name: 'list_planned_swaps' | 'list_buylist', query: NeedsYouQuery): Promise<Item[]> {
+type ReadPage<Item> = (cursor: string | null) => Promise<{ items: Item[]; next_cursor: string | null }>;
+
+async function everyPage<Item>(readPage: ReadPage<Item>): Promise<Item[]> {
   const items: Item[] = [];
   let cursor: string | null = null;
   do {
-    const { data, error } = await supabase.rpc(name, { query: cursor ? { ...query, cursor } : query });
-    if (error) {
-      throw error;
-    }
-    const page = data as unknown as { items: Item[]; next_cursor: string | null };
+    const page = await readPage(cursor);
     items.push(...page.items);
     cursor = page.next_cursor;
   } while (cursor);
@@ -30,8 +31,12 @@ async function everyPage<Item>(name: 'list_planned_swaps' | 'list_buylist', quer
 async function readNeedsYou(deckId: string | undefined): Promise<NeedsYouRead> {
   const query: NeedsYouQuery = { ...(deckId ? { deck_id: deckId } : {}), status: 'open', order: 'oldest_first', limit: 50 };
   const [plannedSwaps, buylistCards] = await Promise.all([
-    everyPage<PlannedSwap>('list_planned_swaps', query),
-    everyPage<BuylistCard>('list_buylist', query),
+    everyPage(async (cursor) =>
+      replyOf(await callDatabaseFunction(supabase, databaseFunctions.list_planned_swaps, cursor ? { ...query, cursor } : query)),
+    ),
+    everyPage(async (cursor) =>
+      replyOf(await callDatabaseFunction(supabase, databaseFunctions.list_buylist, cursor ? { ...query, cursor } : query)),
+    ),
   ]);
   const items: NeedsYouItem[] = [
     ...plannedSwaps.map((plan) => ({ kind: 'planned_swap' as const, id: plan.planned_swap_id, plan })),

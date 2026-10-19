@@ -1,3 +1,5 @@
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import type { NeedsYouCounts } from '@mtgscan/supabase/decks';
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
@@ -31,9 +33,9 @@ export function NeedsYouCountsProvider({ children }: { children: ReactNode }) {
       return;
     }
     let current = true;
-    supabase.rpc('get_needs_you_counts').then(({ data, error }) => {
-      if (current && !error) {
-        setCounts(data as unknown as NeedsYouCounts);
+    callDatabaseFunction(supabase, databaseFunctions.get_needs_you_counts).then((result) => {
+      if (current && result.status === 'replied') {
+        setCounts(result.reply);
       }
     });
     return () => {

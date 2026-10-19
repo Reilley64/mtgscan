@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { databaseFunction } from './database-function.ts';
 import type { Database } from './database.types.ts';
 import { commanderLegality, condition, deckRole, finish, id, integer, language, rarity } from './fields.ts';
-import { catalogFilters, catalogSort, priceFrom, readSearchError, searchPage, type SearchError, type SearchPage } from './search.ts';
+import { catalogFilters, catalogSort, priceFrom, searchPage, type SearchPage } from './search.ts';
 
 export type CardCondition = Database['public']['Enums']['card_condition'];
 
@@ -154,8 +154,6 @@ const userTagRow = userTag.extend({ copy_count: integer });
 export type UserTagRow = z.infer<typeof userTagRow>;
 
 const userTagList = z.strictObject({ items: z.array(userTagRow) });
-
-export type UserTagList = z.infer<typeof userTagList>;
 
 const createUserTagRequest = z.strictObject({ name: z.string() });
 
@@ -349,19 +347,3 @@ export const mcpSetCopiesUserTag = databaseFunction({
   reply: copiesUserTagResult,
   errorCodes: ['invalid_argument', 'not_found'],
 });
-
-export type ScanBatchErrorCode = 'invalid_argument' | 'unknown_printing' | 'basic_land';
-
-export type ScanBatchError = Omit<SearchError, 'code'> & { code: ScanBatchErrorCode };
-
-export function readScanBatchError(error: Parameters<typeof readSearchError>[0]): ScanBatchError {
-  return { ...readSearchError(error), code: error.code as ScanBatchErrorCode };
-}
-
-export type UserTagErrorCode = 'invalid_argument' | 'not_found' | 'user_tag_exists';
-
-export type UserTagError = Omit<SearchError, 'code'> & { code: UserTagErrorCode };
-
-export function readUserTagError(error: Parameters<typeof readSearchError>[0]): UserTagError {
-  return { ...readSearchError(error), code: error.code as UserTagErrorCode };
-}

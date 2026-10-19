@@ -1,16 +1,16 @@
-import type { BasicLandCard, BasicLandCardList } from '@mtgscan/supabase/decks';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
+import type { BasicLandCard } from '@mtgscan/supabase/decks';
 
+import { replyOf } from '@/lib/database-reply';
 import { supabase } from '@/lib/supabase';
 import { useFocusedRead } from '@/lib/use-focused-read';
 
 type BasicLandCardsRead = { status: 'loaded'; lands: BasicLandCard[] };
 
 async function readBasicLandCards(): Promise<BasicLandCardsRead> {
-  const { data, error } = await supabase.rpc('list_basic_land_cards');
-  if (error) {
-    throw error;
-  }
-  return { status: 'loaded', lands: (data as unknown as BasicLandCardList).items };
+  const result = await callDatabaseFunction(supabase, databaseFunctions.list_basic_land_cards);
+  return { status: 'loaded', lands: replyOf(result).items };
 }
 
 export function useBasicLandCards() {

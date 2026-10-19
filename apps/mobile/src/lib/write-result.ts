@@ -1,10 +1,10 @@
-import { readSearchError } from '@mtgscan/supabase/search';
+import type { DatabaseFunction, DatabaseFunctionResult } from '@mtgscan/supabase/database-function';
 
 export type WriteResult = 'done' | 'missing' | 'failed';
 
-export function writeResultOf(error: Parameters<typeof readSearchError>[0] | null): WriteResult {
-  if (!error) {
+export function writeResultOf<Contract extends DatabaseFunction>(result: DatabaseFunctionResult<Contract>): WriteResult {
+  if (result.status === 'replied') {
     return 'done';
   }
-  return readSearchError(error).code === 'not_found' ? 'missing' : 'failed';
+  return result.status === 'refused' && result.refusal.code === 'not_found' ? 'missing' : 'failed';
 }
