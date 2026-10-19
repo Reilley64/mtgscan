@@ -87,7 +87,7 @@ async function copiesOf(user: { client: AppClient }) {
 }
 
 async function additionsOf(user: { client: AppClient }) {
-  const { data, error } = await user.client.from('collection_additions').select('*').order('added_at');
+  const { data, error } = await user.client.from('collection_additions').select('id, user_id, added_at, copy_count, source').order('added_at');
   expect(error).toBeNull();
   return data!;
 }
