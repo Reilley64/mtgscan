@@ -5,7 +5,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 import { supabase } from '@/lib/supabase';
 
 import { evidenceRecordOf } from './evidence-record';
-import type { BatchScan, ScanTrainingCrop } from './scan-batch';
+import { isCroppedScan, type BatchScan, type CroppedScan } from './scan-batch';
 
 export function keepTrainingCrop(cropUri: string, userId: string, copyId: string): string | null {
   try {
@@ -26,21 +26,27 @@ export function dropTrainingCrop(cropUri: string) {
   }
 }
 
-async function uploadTrainingCrop(scan: BatchScan, trainingCrop: ScanTrainingCrop) {
+export function dropTrainingCropsOf(scans: readonly BatchScan[]) {
+  for (const scan of scans) {
+    if (scan.trainingCrop) {
+      dropTrainingCrop(scan.trainingCrop.uri);
+    }
+  }
+}
+
+async function uploadTrainingCrop(scan: CroppedScan) {
   const body = new FormData();
-  body.append('image', { uri: trainingCrop.uri, name: 'crop.jpg', type: 'image/jpeg' } as unknown as Blob);
+  body.append('image', { uri: scan.trainingCrop.uri, name: 'crop.jpg', type: 'image/jpeg' } as unknown as Blob);
   body.append('copy_id', scan.scanId);
-  body.append('crop', JSON.stringify({ crop_id: randomUUID(), ...evidenceRecordOf(scan, trainingCrop) }));
+  body.append('crop', JSON.stringify({ crop_id: randomUUID(), ...evidenceRecordOf(scan) }));
   const { error } = await supabase.functions.invoke('training-crops', { body });
   if (!error || (error instanceof FunctionsHttpError && error.context.status === 400)) {
-    dropTrainingCrop(trainingCrop.uri);
+    dropTrainingCrop(scan.trainingCrop.uri);
   }
 }
 
 export async function uploadTrainingCrops(scans: readonly BatchScan[]) {
-  for (const scan of scans) {
-    if (scan.trainingCrop) {
-      await uploadTrainingCrop(scan, scan.trainingCrop);
-    }
+  for (const scan of scans.filter(isCroppedScan)) {
+    await uploadTrainingCrop(scan);
   }
 }

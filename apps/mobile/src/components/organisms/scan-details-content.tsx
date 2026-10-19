@@ -67,7 +67,7 @@ export function ScanDetailsContent({ scan, dispatch, onSearch, onRemove }: ScanD
               title={option.name}
               detail={printingCaption(option)}
               leading={<CardThumbnail uri={imageOf(option.printingId)} />}
-              onPress={() => dispatch({ type: 'choose', scanId, printing: option })}
+              onPress={() => dispatch({ type: 'choose', scanId, printing: option, printingChange: 'other_options' })}
             />
           ))}
         </SheetSection>
