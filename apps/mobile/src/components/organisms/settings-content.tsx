@@ -17,8 +17,13 @@ type SettingsContentProps = {
   onOpenAiClients: () => void;
   scanSounds: boolean;
   onScanSoundsChange: (on: boolean) => void;
+  trainingCropUploads: boolean | null;
+  onTrainingCropUploadsChange: (on: boolean) => void;
   onSignOut: () => void;
 };
+
+const trainingCropsMeta =
+  'Images of cards you save help improve card recognition. They wait on your phone for up to 7 days. Uploaded crops are not stored with your account and cannot be removed.';
 
 function SettingRow({ title, value, onPress }: { title: string; value: string | undefined; onPress: () => void }) {
   return (
@@ -42,6 +47,8 @@ export function SettingsContent({
   onOpenAiClients,
   scanSounds,
   onScanSoundsChange,
+  trainingCropUploads,
+  onTrainingCropUploadsChange,
   onSignOut,
 }: SettingsContentProps) {
   return (
@@ -51,6 +58,13 @@ export function SettingsContent({
       <SettingRow title="Currency" value={currency} onPress={onOpenCurrency} />
       <SettingRow title="AI clients" value={aiClientCount?.toString()} onPress={onOpenAiClients} />
       <SwitchRow title="Scan sounds" value={scanSounds} onValueChange={onScanSoundsChange} />
+      <SwitchRow
+        title="Upload training crops"
+        meta={trainingCropsMeta}
+        value={trainingCropUploads ?? false}
+        disabled={trainingCropUploads === null}
+        onValueChange={onTrainingCropUploadsChange}
+      />
       <Button onPress={onSignOut}>
         <Text>Sign out</Text>
       </Button>

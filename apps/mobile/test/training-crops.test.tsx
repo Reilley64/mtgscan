@@ -1,6 +1,6 @@
 import type * as Crypto from 'expo-crypto';
 import { File, Paths } from 'expo-file-system';
-import { act, fireEvent, screen } from 'expo-router/testing-library';
+import { act, fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { returnToTheApp } from './app-state';
 import {
@@ -19,16 +19,23 @@ import { cardRecognition, nextPhotosAre, notACard } from './fake-card-recognizer
 import { filesIn } from './fake-file-system';
 import {
   failNextTrainingCropUpload,
+  failNextTrainingCropUploadsChange,
+  failTrainingCropSettingsReads,
   holdNextTrainingCropUpload,
+  holdTrainingCropSettingsReads,
   publishedGalleryVersion,
   refuseNextTrainingCrop,
   removeCopyFromTheCollection,
   scanBatchesSentToTheServer,
   signInNextWithEmail,
   startSignedIn,
+  trainingCropUploadAttempts,
+  trainingCropUploadsAreOnTheServer,
   trainingCropsUploaded,
+  turnTrainingCropUploadsOffElsewhere,
 } from './fake-supabase';
 import {
+  appearsBefore,
   drawerScreen,
   openSettings,
   presentedAlert,
@@ -38,7 +45,7 @@ import {
   swipeDownDrawer,
   swipeRight,
 } from './native-ui';
-import { restartTheApp } from './render-app';
+import { renderApp, restartTheApp } from './render-app';
 import { openLatestScan, openScan, scanACard, scanTab } from './scanning';
 
 const cacheCrops = 'file:///caches/training-crops/';
@@ -301,6 +308,153 @@ test('a basic land and a recognition with no candidates keep no training crop', 
 
   expect(filesIn(cacheCrops)).toEqual([]);
   expect(filesIn(keptCrops)).toEqual([]);
+});
+
+describe('the Upload training crops switch', () => {
+  const metaLine =
+    'Images of cards you save help improve card recognition. They wait on your phone for up to 7 days. Uploaded crops are not stored with your account and cannot be removed.';
+
+  async function openUploadTrainingCrops() {
+    await pressTab('Recent');
+    await openSettings();
+    return screen.getByRole('switch', { name: 'Upload training crops' });
+  }
+
+  async function turnUploadsOff() {
+    await fireEvent.press(await openUploadTrainingCrops());
+    await swipeDownDrawer();
+  }
+
+  test('the Training crops card sits below the Scan sounds card, with the switch on and its meta line', async () => {
+    await renderApp();
+
+    const uploads = await openUploadTrainingCrops();
+
+    expect(uploads).toBeChecked();
+    expect(uploads).toBeEnabled();
+    expect(uploads).toHaveAccessibleName('Upload training crops');
+    expect(within(uploads).getByText(metaLine)).toBeOnTheScreen();
+    expect(appearsBefore(screen.getByRole('switch', { name: 'Scan sounds' }), uploads)).toBe(true);
+    expect(appearsBefore(uploads, screen.getByRole('button', { name: 'Sign out' }))).toBe(true);
+  });
+
+  test('the switch is off and disabled until the training crop settings load', async () => {
+    const read = holdTrainingCropSettingsReads();
+    await renderApp();
+
+    const uploads = await openUploadTrainingCrops();
+    expect(uploads).not.toBeChecked();
+    expect(uploads).toBeDisabled();
+
+    await read.finish();
+    expect(uploads).toBeChecked();
+    expect(uploads).toBeEnabled();
+  });
+
+  test('a failed read of the training crop settings keeps the switch disabled until the user returns to the app', async () => {
+    failTrainingCropSettingsReads(1);
+    await renderApp();
+    const uploads = await openUploadTrainingCrops();
+    expect(uploads).toBeDisabled();
+
+    await returnToTheApp();
+
+    expect(uploads).toBeEnabled();
+    expect(uploads).toBeChecked();
+  });
+
+  test('the switch shows the setting of the account, and turning it off follows the account to the next start', async () => {
+    turnTrainingCropUploadsOffElsewhere();
+    await renderApp();
+    const uploads = await openUploadTrainingCrops();
+    expect(uploads).not.toBeChecked();
+
+    await fireEvent.press(uploads);
+    expect(uploads).toBeChecked();
+    expect(trainingCropUploadsAreOnTheServer()).toBe(true);
+    await fireEvent.press(uploads);
+    expect(trainingCropUploadsAreOnTheServer()).toBe(false);
+
+    await restartTheApp();
+    expect(await openUploadTrainingCrops()).not.toBeChecked();
+  });
+
+  test('a failed change puts the switch back and says so', async () => {
+    failNextTrainingCropUploadsChange();
+    await renderApp();
+    const uploads = await openUploadTrainingCrops();
+
+    await fireEvent.press(uploads);
+
+    expect(uploads).toBeChecked();
+    expect(trainingCropUploadsAreOnTheServer()).toBe(true);
+    expect(presentedAlert()).toEqual({
+      title: 'Could not change training crop uploads',
+      message: 'Check your connection.',
+      buttons: ['OK'],
+    });
+  });
+
+  test('turning training crop uploads off deletes every waiting training crop, and none uploads', async () => {
+    nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+    await openScan();
+    await scanACard();
+    await scanACard();
+    await addTheScanBatchToTheCollection(2);
+    expect(filesIn(keptCrops)).toHaveLength(2);
+
+    await turnUploadsOff();
+    await timePasses(7 * day);
+    await returnToTheApp();
+    await restartTheApp();
+
+    expect(filesIn(keptCrops)).toEqual([]);
+    expect(trainingCropsUploaded()).toEqual([]);
+  });
+
+  test('a failed change to off keeps the waiting training crops', async () => {
+    nextPhotosAre(cardRecognition([lightningBoltM10]));
+    await openScan();
+    await scanACard();
+    await addTheScanBatchToTheCollection(1);
+
+    failNextTrainingCropUploadsChange();
+    await turnUploadsOff();
+    await timePasses(7 * day);
+    await returnToTheApp();
+
+    expect(trainingCropsUploaded().map(({ copyId }) => copyId)).toEqual(savedCopyIds());
+  });
+
+  test('with training crop uploads off, adding the scan batch deletes its training crops at once, with no upload', async () => {
+    turnTrainingCropUploadsOffElsewhere();
+    nextPhotosAre(cardRecognition([lightningBoltM10]));
+    await openScan();
+    await scanACard();
+
+    await addTheScanBatchToTheCollection(1);
+
+    expect(savedCopyIds()).toHaveLength(1);
+    expect(filesIn(keptCrops)).toEqual([]);
+    await timePasses(7 * day);
+    await restartTheApp();
+    expect(trainingCropUploadAttempts()).toBe(0);
+  });
+
+  test('a training crop that waits while uploads are turned off on another phone is refused with uploads_off and deleted', async () => {
+    nextPhotosAre(cardRecognition([lightningBoltM10]));
+    await openScan();
+    await scanACard();
+    await addTheScanBatchToTheCollection(1);
+    turnTrainingCropUploadsOffElsewhere();
+    await timePasses(7 * day);
+
+    await returnToTheApp();
+
+    expect(trainingCropUploadAttempts()).toBe(1);
+    expect(trainingCropsUploaded()).toEqual([]);
+    expect(filesIn(keptCrops)).toEqual([]);
+  });
 });
 
 async function waitForTheUploads() {

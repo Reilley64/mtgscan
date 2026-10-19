@@ -15,7 +15,8 @@
     "./search": "./search.ts",
     "./sets": "./sets.ts",
     "./sign-in-providers": "./sign-in-providers.ts",
-    "./test-user": "./test-user/account.ts"
+    "./test-user": "./test-user/account.ts",
+    "./training-crops": "./training-crops.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit && deno check --no-lock --config functions/mcp/deno.json functions/mcp && deno check --no-lock --config functions/training-crops/deno.json functions/training-crops",

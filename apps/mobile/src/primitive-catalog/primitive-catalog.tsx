@@ -468,6 +468,13 @@ function Switches() {
   return (
     <Section title="Switches">
       <SwitchRow title="Scan sounds" value={scanSounds} onValueChange={setScanSounds} />
+      <SwitchRow
+        title="Upload training crops"
+        meta="Images of cards you save help improve card recognition."
+        value={false}
+        disabled
+        onValueChange={() => {}}
+      />
     </Section>
   );
 }

@@ -689,6 +689,26 @@ describe('SwitchRow', () => {
     expect(row).toBeChecked();
   });
 
+  test('a switch row shows its meta line under the title, and VoiceOver reads it after the label', async () => {
+    await render(<SwitchRow title="Upload training crops" meta="Images of cards you save help improve card recognition." value onValueChange={() => {}} />);
+
+    const row = screen.getByRole('switch', { name: 'Upload training crops' });
+    expect(row).toHaveProp('accessibilityHint', 'Images of cards you save help improve card recognition.');
+    expect(within(row).getByText('Images of cards you save help improve card recognition.')).toHaveStyle({ color: textMuted, fontSize: 12 });
+  });
+
+  test('a disabled switch row is read as disabled and a press does not change it', async () => {
+    const onValueChange = jest.fn();
+    await render(<SwitchRow title="Upload training crops" value={false} disabled onValueChange={onValueChange} />);
+
+    const row = screen.getByRole('switch', { name: 'Upload training crops' });
+    await fireEvent.press(row);
+
+    expect(row).toBeDisabled();
+    expect(row).not.toBeChecked();
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   test('a switch row sits on the surface with a 44 pt touch target', async () => {
     await render(<ScanSoundsRow />);
 

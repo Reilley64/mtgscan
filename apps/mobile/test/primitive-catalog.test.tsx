@@ -52,6 +52,7 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('radio', { name: 'Copies', checked: true })).toBeOnTheScreen();
   expect(screen.getByRole('radio', { name: 'Planned, 2' })).toBeOnTheScreen();
   expect(screen.getByRole('switch', { name: 'Scan sounds' })).toBeChecked();
+  expect(screen.getByRole('switch', { name: 'Upload training crops' })).toBeDisabled();
   expect(screen.getByRole('image', { name: 'Sol Ring, M10 216, foil, lightly played, $1,635.37' })).toBeOnTheScreen();
   expect(screen.getByRole('image', { name: 'Sol Ring, C21 263, etched, no price' })).toBeOnTheScreen();
   expect(screen.getByRole('image', { name: 'Sol Ring, M10 216, $1.25' })).toHaveProp('accessibilityHint', 'The price may be out of date.');

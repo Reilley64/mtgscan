@@ -21,7 +21,7 @@
 </header>
 <main>
 <h1>Privacy policy</h1>
-<p class="meta">Effective date: 16 October 2026</p>
+<p class="meta">Effective date: 19 October 2026</p>
 <p>This policy explains what data mtgscan collects, why it collects it, and what you can do about it.</p>
 <p>mtgscan is in development for iPhone and is not on the App Store yet. This policy describes how the app handles data as the developer builds it. The app does not have every feature described here yet.</p>
 <h2>Who runs mtgscan</h2>
@@ -51,7 +51,7 @@
 <p>When you connect an AI client, mtgscan stores a record of that connection so the client can reach your data. You can see each connected AI client in the settings and revoke it there.</p>
 <p>mtgscan logs each tool call of an AI client: the tool, the AI client, whether the call worked, how long it took, and the MCP protocol version. The log holds no arguments, results, or tokens.</p>
 <h3>Training crops</h3>
-<p>If training crop uploads are on, mtgscan stores training crops of scanned cards with their evidence records. The next section explains them.</p>
+<p>If training crop uploads are on, mtgscan stores training crops of scanned cards with their evidence records. It stores them with no link to your account. The next section explains them.</p>
 <h2>How scanning works</h2>
 <p>Card recognition runs on your phone. The camera images used to recognize cards stay on your phone, and mtgscan does not upload them.</p>
 <p>To recognize cards, the app downloads a card gallery and a card list to your phone. These files hold card data, not your data.</p>
@@ -61,17 +61,12 @@
 <p>A training crop is an image of one card that you scanned. mtgscan uses training crops only to improve card recognition. mtgscan never publishes your training crops. The public test images in the mtgscan repository are the developer's own scans.</p>
 <ul>
 <li>Uploads are on by default.</li>
-<li>Before your first scan, the app shows a notice about training crops.</li>
-<li>You can turn uploads off in the settings at any time.</li>
-<li>You can remove every crop you uploaded with "delete all crops" in the settings.</li>
+<li>You can turn uploads off at any time with the <strong>Upload training crops</strong> switch in the settings. The switch follows your account, so it is the same on every phone.</li>
+<li>When you turn uploads off, the app deletes the crops that wait on your phone, and they never upload.</li>
 </ul>
-<p>The app uploads a crop after you save the scan to your collection. mtgscan keeps a crop only when all of these are true:</p>
-<ul>
-<li>you saved the scan to your collection;</li>
-<li>the scanner recognized the card from its collector line or from its unique art;</li>
-<li>you did not change the printing.</li>
-</ul>
-<p>Some printings have a same-text twin that differs only by a stamp or a symbol. For these, mtgscan keeps a crop only after you confirm the printing.</p>
+<p>When you add your scan batch to your collection, the app keeps a crop of each saved scan that the scanner saw as a card. This includes scans that the scanner was unsure of, and scans where you changed the card or the printing. The app keeps no crop of a photo that is not a card, a scan that the scanner could not recognize, or a basic land.</p>
+<p>Each crop waits on your phone for a random time of 1 to 7 days, and then the app uploads it. So the upload time does not show when you added the card. If you delete the copy before then, its crop does not upload.</p>
+<p>Uploaded crops are not stored with your account. A crop and its evidence record hold no user ID, no copy ID, and no upload time. So mtgscan cannot tell which crops are yours, and an uploaded crop cannot be removed. While mtgscan has few users, a crop of a rare printing can still point to the one user who owns it.</p>
 <p>Each crop has an evidence record. It holds:</p>
 <ul>
 <li>the scanner's decision and its reason;</li>
@@ -79,7 +74,7 @@
 <li>what the scanner read from the collector line, and whether it named the chosen printing;</li>
 <li>the number of same-text twins;</li>
 <li>the recognizer version and the gallery date;</li>
-<li>the printing you saved, and whether you changed it;</li>
+<li>the printing the scanner found first, the printing you saved, and how you changed or confirmed it;</li>
 <li>the version of the rules for keeping crops.</li>
 </ul>
 <p>Uploads stop for everyone when mtgscan's file storage is 90% full.</p>
@@ -96,7 +91,7 @@
 <p>A connected AI client can plan swaps and add to your buylist. It can also close the planned swaps and buylist cards that AI clients made. It cannot change your decks or collection. You make every deck change.</p>
 <p>The data an AI client reads goes to the company that runs that client, such as OpenAI for ChatGPT. That company's privacy policy covers what it does with the data.</p>
 <h2>Where your data is stored</h2>
-<p>mtgscan stores your account data, app data, and training crops with Supabase in the ap-southeast-2 (Sydney, Australia) region.</p>
+<p>mtgscan stores your account data and app data with Supabase in the ap-southeast-2 (Sydney, Australia) region. It stores training crops in the same place, with no link to your account.</p>
 <p>The app stores your scan batch, your sign-in session, and the card gallery on your phone.</p>
 <p>Your data is private to your account. Other users cannot read or change it. The mtgscan developer can access the stored data to run the service.</p>
 <p>mtgscan does not keep backups at the moment.</p>
@@ -122,7 +117,8 @@
 </ul>
 <h2>Keeping and deleting your data</h2>
 <p>mtgscan keeps your data while your account exists. mtgscan deletes search logs after 180 days.</p>
-<p>In the app, you can delete copies from your collection, delete decks, and delete all your training crops. Deleting a deck is permanent.</p>
+<p>In the app, you can delete copies from your collection and delete decks. Deleting a deck is permanent.</p>
+<p>Uploaded training crops are not stored with your account, so mtgscan cannot delete them on request. Deleting your account does not delete them either.</p>
 <p>To delete your account and all its data, email <a href="mailto:reilleygray@gmail.com">reilleygray@gmail.com</a>. Say whether you sign in with Apple or Google, and give the email address that mtgscan shows in the settings. Account deletion in the app will come before mtgscan is on the App Store.</p>
 <h2>Children</h2>
 <p>mtgscan is not directed at children under 13. If you think a child under 13 has an mtgscan account, email <a href="mailto:reilleygray@gmail.com">reilleygray@gmail.com</a>.</p>

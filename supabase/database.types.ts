@@ -657,14 +657,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "created_at": string,"user_id": string
+                    "created_at": string,"created_by": string,"training_crop_uploads": boolean,"updated_at": string,"updated_by": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"user_id": string
+                    "created_at"?: string,"created_by"?: string,"training_crop_uploads"?: boolean,"updated_at"?: string,"updated_by"?: string,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string,"user_id"?: string
+                    "created_at"?: string,"created_by"?: string,"training_crop_uploads"?: boolean,"updated_at"?: string,"updated_by"?: string,"user_id"?: string
                   }
                   Relationships: [
                     
@@ -892,6 +892,9 @@ isOneToOne: false
 "get_set":
 { Args: { "query": Json }; Returns: Json
                            },
+"get_training_crop_settings":
+{ Args: { "query"?: Json }; Returns: Json
+                           },
 "import_card_sets":
 { Args: { "sets": Json }; Returns: number
                            },
@@ -1016,6 +1019,9 @@ isOneToOne: false
                            },
 "set_mcp_audience":
 { Args: { "event": Json }; Returns: Json
+                           },
+"set_training_crop_uploads":
+{ Args: { "request": Json }; Returns: Json
                            },
 "stage_import_batch":
 { Args: { "batch_number": number,"batch_rows": Json,"run_id": string,"target": string }; Returns: number
