@@ -6,7 +6,8 @@ import { SetArt } from '@/components/atoms/set-art';
 import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
 import { TintedImage } from '@/components/atoms/tinted-image';
-import { SetCompletionShare, SetHeader, SetRow } from '@/components/molecules/set-row';
+import { SetCompletionShare, SetHeader, SetRow } from '@/components/organisms/set-row';
+import { completionShare, isComplete } from '@/sets/set-completion';
 
 type BannerSize = 'row' | 'header';
 
@@ -34,7 +35,7 @@ type SetBannerProps = ComponentProps<typeof SetHeader> & { artUri: string | null
 function SetBannerContent({ name, symbolUri, artUri, owned, size, percent, bannerSize }: SetBannerProps & { artUri: string; bannerSize: BannerSize }) {
   return (
     <>
-      <SetArt uri={artUri} share={owned / size} />
+      <SetArt uri={artUri} share={completionShare({ owned, size })} />
       <View className="grow flex-row items-end gap-sm p-md">
         <View className="flex-1 flex-row items-center gap-sm">
           <TintedImage source={symbolUri} className={symbols({ size: bannerSize })} contentFit="contain" cachePolicy="disk" />
@@ -45,7 +46,7 @@ function SetBannerContent({ name, symbolUri, artUri, owned, size, percent, banne
             <Text variant="meta">{`${owned} of ${size}`}</Text>
           </View>
         </View>
-        <SetCompletionShare complete={owned === size} percent={percent} />
+        <SetCompletionShare complete={isComplete({ owned, size })} percent={percent} />
       </View>
     </>
   );
@@ -59,7 +60,7 @@ export function SetBanner({ artUri, onPress, ...completion }: SetBannerProps & {
     <Surface
       accessibilityLabel={completion.accessibilityLabel}
       onPress={onPress}
-      className={banners({ size: 'row', complete: completion.owned === completion.size })}>
+      className={banners({ size: 'row', complete: isComplete(completion) })}>
       <SetBannerContent artUri={artUri} bannerSize="row" {...completion} />
     </Surface>
   );
@@ -74,7 +75,7 @@ export function SetPageBanner({ artUri, ...completion }: SetBannerProps) {
       accessible
       accessibilityRole="header"
       accessibilityLabel={completion.accessibilityLabel}
-      className={banners({ size: 'header', complete: completion.owned === completion.size })}>
+      className={banners({ size: 'header', complete: isComplete(completion) })}>
       <SetBannerContent artUri={artUri} bannerSize="header" {...completion} />
     </Surface>
   );

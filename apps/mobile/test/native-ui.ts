@@ -651,6 +651,12 @@ export function setArtLook(banner: HostElement) {
   };
 }
 
+export function setSymbolFillShare(element: HostElement) {
+  const heightOf = (instance: HostElement) => StyleSheet.flatten(instance.props.style)?.height;
+  const [filledPart] = element.queryAll((instance) => /%$/.test(String(heightOf(instance) ?? '')));
+  return filledPart ? parseFloat(String(heightOf(filledPart))) / 100 : 0;
+}
+
 export function cardImageLook(tile: HostElement) {
   const [image] = tile.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.aspectRatio !== undefined);
   if (!image) {

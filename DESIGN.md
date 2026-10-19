@@ -600,6 +600,7 @@ Sets lists every released set that has a card printing in the card catalog, with
   - A set page banner starts the page. It is the larger set banner. It is not a button. VoiceOver reads it as one header, such as "Bloomburrow, 234 of 261, 89 percent".
   - A set with no set art starts with a set header in place of the banner. It has the layout of a set row, with the set symbol filling up in lime, the set name, "x of y", the progress bar, and the percentage.
   - The finish view control sits under the set page banner or the set header, 12 px below it. See Finish view below.
+  - A set whose main set is empty in the finish view, such as Alpha in Foil, shows "0 of 0" with no percentage. It is never complete, so it has no ✓ and no lime outline, and its set art or set symbol has no color. VoiceOver reads it as "Limited Edition Alpha, 0 of 0".
   - The main set follows as card images, 3 per row, in collector number order. A heading "Variants" in body strong lime then shows the variants' own "x of y" in meta text, such as "12 of 106", and their grid in the same order. VoiceOver reads the heading as "Variants, 12 of 106". A set with no variants has no Variants section.
   - Each card printing is a set page tile. See Components. The page shows no prices.
   - Tiles are images, not buttons. A tap on one does nothing.

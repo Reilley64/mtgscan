@@ -1,12 +1,21 @@
 import type { FinishView, SetCardPrinting, SetCompletion, SetRow } from '@mtgscan/supabase/sets';
 
 export function completionPercent({ owned, size }: SetCompletion) {
-  return Math.floor((100 * owned) / size);
+  return size > 0 ? Math.floor((100 * owned) / size) : null;
+}
+
+export function completionShare({ owned, size }: SetCompletion) {
+  return size > 0 ? owned / size : 0;
+}
+
+export function isComplete({ owned, size }: SetCompletion) {
+  return size > 0 && owned === size;
 }
 
 export function spokenSet({ name, completion }: SetRow, finishView: FinishView) {
   const { owned, size } = completion[finishView];
-  return `${name}, ${owned} of ${size}, ${completionPercent(completion[finishView])} percent`;
+  const percent = completionPercent(completion[finishView]);
+  return [name, `${owned} of ${size}`, ...(percent === null ? [] : [`${percent} percent`])].join(', ');
 }
 
 export function setsMatching(sets: SetRow[], text: string, finishView: FinishView) {

@@ -6,7 +6,7 @@ import { View } from 'react-native';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { ReadFailure } from '@/components/molecules/read-failure';
-import { SetListSkeleton } from '@/components/molecules/set-row';
+import { SetListSkeleton } from '@/components/molecules/set-row-skeleton';
 import { FinishViewControl } from '@/components/organisms/finish-view-control';
 import { SetBanner } from '@/components/organisms/set-banner';
 import { TabStackListScreen } from '@/components/templates/tab-screen';

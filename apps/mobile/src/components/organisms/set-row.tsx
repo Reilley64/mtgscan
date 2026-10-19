@@ -3,13 +3,12 @@ import { View } from 'react-native';
 
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { SetSymbolFill } from '@/components/atoms/set-symbol-fill';
-import { Skeleton } from '@/components/atoms/skeleton';
 import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
+import { setRowClass } from '@/components/molecules/set-row-skeleton';
+import { completionShare, isComplete } from '@/sets/set-completion';
 
-const rowClass = 'flex-row items-center gap-md border-selected-outline';
-
-const outlines = cva(rowClass, {
+const outlines = cva(setRowClass, {
   variants: {
     complete: {
       true: 'border-primary',
@@ -27,7 +26,10 @@ const shares = cva('text-sheet-title', {
   },
 });
 
-export function SetCompletionShare({ complete, percent }: { complete: boolean; percent: number }) {
+export function SetCompletionShare({ complete, percent }: { complete: boolean; percent: number | null }) {
+  if (!complete && percent === null) {
+    return null;
+  }
   return <Text className={shares({ complete })}>{complete ? '✓' : `${percent}%`}</Text>;
 }
 
@@ -36,7 +38,7 @@ type SetCompletionProps = {
   symbolUri: string;
   owned: number;
   size: number;
-  percent: number;
+  percent: number | null;
   accessibilityLabel: string;
 };
 
@@ -44,7 +46,7 @@ function SetCompletionContent({ name, symbolUri, owned, size, percent }: Omit<Se
   const count = `${owned} of ${size}`;
   return (
     <>
-      <SetSymbolFill uri={symbolUri} share={owned / size} />
+      <SetSymbolFill uri={symbolUri} share={completionShare({ owned, size })} />
       <View className="flex-1 gap-xs">
         <Text variant="body-strong" numberOfLines={1}>
           {name}
@@ -52,7 +54,7 @@ function SetCompletionContent({ name, symbolUri, owned, size, percent }: Omit<Se
         <Text variant="meta">{count}</Text>
         <ProgressBar label={count} value={owned} max={size} tone="primary" />
       </View>
-      <SetCompletionShare complete={owned === size} percent={percent} />
+      <SetCompletionShare complete={isComplete({ owned, size })} percent={percent} />
     </>
   );
 }
@@ -62,7 +64,7 @@ export function SetRow({ accessibilityLabel, onPress, ...completion }: SetComple
     <Surface
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
-      className={outlines({ complete: completion.owned === completion.size })}>
+      className={outlines({ complete: isComplete(completion) })}>
       <SetCompletionContent {...completion} />
     </Surface>
   );
@@ -74,33 +76,8 @@ export function SetHeader({ accessibilityLabel, ...completion }: SetCompletionPr
       accessible
       accessibilityRole="header"
       accessibilityLabel={accessibilityLabel}
-      className={outlines({ complete: completion.owned === completion.size })}>
+      className={outlines({ complete: isComplete(completion) })}>
       <SetCompletionContent {...completion} />
     </Surface>
-  );
-}
-
-export function SetRowSkeleton() {
-  return (
-    <Surface className={outlines({ complete: false })}>
-      <Skeleton className="size-set-symbol-fill rounded-sm" />
-      <View className="flex-1 gap-xs">
-        <Skeleton className="h-skeleton-title-bar w-[60%]" />
-        <Skeleton className="h-skeleton-meta-bar w-[30%]" />
-        <Skeleton className="h-progress-bar w-full rounded-full" />
-      </View>
-    </Surface>
-  );
-}
-
-const skeletonRows = 8;
-
-export function SetListSkeleton({ accessibilityLabel }: { accessibilityLabel: string }) {
-  return (
-    <View accessible accessibilityRole="progressbar" accessibilityLabel={accessibilityLabel} className="gap-sm">
-      {Array.from({ length: skeletonRows }, (_, row) => (
-        <SetRowSkeleton key={row} />
-      ))}
-    </View>
   );
 }
