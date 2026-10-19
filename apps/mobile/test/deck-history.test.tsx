@@ -54,7 +54,7 @@ async function openHistory(changes: DeckChange[]) {
   ownDeckChanges('deck-1', changes);
   await renderApp();
   await pressTab('Decks');
-  await fireEvent.press(within(selectedTab()).getByRole('button', { name: /^Atraxa,/ }));
+  await fireEvent.press(within(selectedTab()).getByRole('button', { name: /^Atraxa(,|$)/ }));
   const deck = within(pushedScreen());
   await fireEvent.press(await deck.findByRole('radio', { name: 'History' }));
   return deck;

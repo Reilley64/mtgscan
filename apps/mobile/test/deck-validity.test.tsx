@@ -1,5 +1,5 @@
 import type { Deck, DeckCard, DeckEvaluation, DeckEvaluationCard } from '@mtgscan/supabase/decks';
-import { fireEvent, within } from 'expo-router/testing-library';
+import { fireEvent, waitFor, within } from 'expo-router/testing-library';
 import { Linking } from 'react-native';
 
 import { copyOf, deckCardOf, openDeckNamed } from './copies';
@@ -89,7 +89,7 @@ async function openDeck(name = 'Kinnan') {
 }
 
 describe('the validity chip in the deck screen header', () => {
-  test.each(validityStates)('%s shows its validity chip button after the priority and card count chips', async (_, seed, label, symbol, color) => {
+  test.each(validityStates)('%s shows its validity chip button under the deck name, in a row that wraps', async (_, seed, label, symbol, color) => {
     ownDecks([{ name: 'Kinnan', priority: 'medium', ...seed }]);
 
     const deck = await openDeck();
@@ -98,18 +98,15 @@ describe('the validity chip in the deck screen header', () => {
     expect(within(chip).getByText(label)).toHaveStyle({ color });
     expect(symbolNames(chip)).toEqual([symbol, 'chevron.right']);
     expect(symbolTintColors(chip)).toEqual([color, color]);
-    expect(appearsBefore(deck.getByText('Medium priority'), deck.getByText(`${seed.card_count} cards`))).toBe(true);
-    expect(appearsBefore(deck.getByText(`${seed.card_count} cards`), chip)).toBe(true);
+    expect(appearsBefore(deck.getByRole('header', { name: 'Kinnan' }), chip)).toBe(true);
     expect(chip.parent).toHaveStyle({ flexWrap: 'wrap' });
   });
 
-  test('an empty deck shows only the priority chip and 0 cards, and Cards keeps No commander yet. and No cards yet', async () => {
+  test('an empty deck shows no chips, and Cards keeps No commander yet. and No cards yet', async () => {
     ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 0 }]);
 
     const deck = await openDeck();
 
-    expect(deck.getByText('Medium priority')).toBeOnTheScreen();
-    expect(deck.getByText('0 cards')).toBeOnTheScreen();
     expect(deck.queryByRole('button', { name: /^Deck validity/ })).not.toBeOnTheScreen();
     expect(deck.getByText('No commander yet.')).toBeOnTheScreen();
     expect(deck.getByText('No cards yet')).toBeOnTheScreen();
@@ -122,11 +119,11 @@ describe('the validity chip on the gallery card', () => {
 
     const decks = await openDecks();
 
-    const card = decks.getByRole('button', { name: `Kinnan, Medium priority, ${seed.card_count} cards, ${label}, Estimated bracket 2` });
+    const card = decks.getByRole('button', { name: `Kinnan, ${label}, Estimated bracket 2` });
     expect(within(card).getByText(label)).toHaveStyle({ color });
     expect(symbolNames(card)).toEqual([symbol]);
     expect(symbolTintColors(card)).toEqual([color]);
-    expect(decks.getAllByRole('button', { name: /^Kinnan,/ })).toHaveLength(1);
+    expect(decks.getAllByRole('button', { name: /^Kinnan(,|$)/ })).toHaveLength(1);
     expect(decks.queryByRole('button', { name: new RegExp(`^(Deck validity, )?${label}$`) })).not.toBeOnTheScreen();
   });
 
@@ -134,17 +131,17 @@ describe('the validity chip on the gallery card', () => {
     ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 87 }]);
     const decks = await openDecks();
 
-    await fireEvent.press(decks.getByRole('button', { name: 'Kinnan, Medium priority, 87 cards, Invalid, Estimated bracket 2' }));
+    await fireEvent.press(decks.getByRole('button', { name: 'Kinnan, Invalid, Estimated bracket 2' }));
 
     expect(await within(pushedScreen()).findByRole('header', { name: 'Kinnan' })).toBeOnTheScreen();
   });
 
-  test('an empty deck shows only the priority chip and 0 cards', async () => {
+  test('an empty deck shows no chips on its gallery card', async () => {
     ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: 0 }]);
 
     const decks = await openDecks();
 
-    const card = decks.getByRole('button', { name: 'Kinnan, Medium priority, 0 cards' });
+    const card = decks.getByRole('button', { name: 'Kinnan' });
     expect(symbolNames(card)).toEqual([]);
   });
 });
@@ -181,13 +178,13 @@ describe('a stale validity', () => {
 
     const decks = await openDecks();
 
-    const card = decks.getByRole('button', { name: 'Kinnan, Medium priority, 87 cards, Invalid, Estimated bracket 2' });
+    const card = decks.getByRole('button', { name: 'Kinnan, Invalid, Estimated bracket 2' });
     expect(symbolNames(card)).toEqual(['nosign', 'clock']);
     expect(symbolSizes(card)).toEqual([11, 11]);
     expect(symbolTintColors(card)).toEqual([danger, danger]);
     expect(appearsBefore(within(card).getByText('Invalid'), symbolNamed(card, 'clock'))).toBe(true);
     expect(card).toHaveProp('accessibilityHint', staleHint);
-    const fresh = decks.getByRole('button', { name: 'Atraxa, Medium priority, 87 cards, Invalid, Estimated bracket 2' });
+    const fresh = decks.getByRole('button', { name: 'Atraxa, Invalid, Estimated bracket 2' });
     expect(symbolNames(fresh)).toEqual(['nosign']);
     expect(fresh.props.accessibilityHint).toBeUndefined();
   });
@@ -211,7 +208,7 @@ describe('the validity chip comes and goes with the cards', () => {
 
     await pressButtonMenuAction(contextMenu(deck.getByRole('image', { name: 'Island' })), 'Remove from deck');
 
-    expect(await deck.findByText('0 cards')).toBeOnTheScreen();
+    await waitFor(() => expect(deck.queryByRole('image', { name: 'Island' })).not.toBeOnTheScreen());
     expect(deck.queryByRole('button', { name: /^Deck validity/ })).not.toBeOnTheScreen();
   });
 
@@ -227,7 +224,7 @@ describe('the validity chip comes and goes with the cards', () => {
 
     await pressHeaderButton(pushedScreen(), 'Close');
 
-    expect(await within(selectedTab()).findByRole('button', { name: 'Kinnan, Medium priority, 0 cards' })).toBeOnTheScreen();
+    expect(await within(selectedTab()).findByRole('button', { name: 'Kinnan' })).toBeOnTheScreen();
   });
 
   test('a deck with a basic land shows the validity chip on its gallery card', async () => {
@@ -235,7 +232,7 @@ describe('the validity chip comes and goes with the cards', () => {
 
     const decks = await openDecks();
 
-    expect(decks.getByRole('button', { name: 'Kinnan, Medium priority, 1 card, Invalid, Estimated bracket 2' })).toBeOnTheScreen();
+    expect(decks.getByRole('button', { name: 'Kinnan, Invalid, Estimated bracket 2' })).toBeOnTheScreen();
   });
 });
 

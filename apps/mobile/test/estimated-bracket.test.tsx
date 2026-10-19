@@ -115,7 +115,7 @@ describe('the bracket chip in the deck screen header', () => {
 
     const deck = await openDeck();
 
-    expect(deck.getByText('0 cards')).toBeOnTheScreen();
+    expect(deck.getByRole('header', { name: 'Kinnan' })).toBeOnTheScreen();
     expect(deck.queryByRole('button', { name: /^Estimated bracket/ })).not.toBeOnTheScreen();
     expect(deck.queryByText(/^Bracket/)).not.toBeOnTheScreen();
   });
@@ -127,7 +127,7 @@ describe('the bracket chip on the gallery card', () => {
 
     const decks = await openDecks();
 
-    const card = decks.getByRole('button', { name: 'Kinnan, Medium priority, 87 cards, Invalid, Estimated bracket 4' });
+    const card = decks.getByRole('button', { name: 'Kinnan, Invalid, Estimated bracket 4' });
     expect(within(card).getByText('Bracket 4')).toHaveStyle({ color: info });
     expect(appearsBefore(within(card).getByText('Invalid'), within(card).getByText('Bracket 4'))).toBe(true);
     expect(decks.queryByRole('button', { name: /^(Estimated bracket 4|Bracket 4)$/ })).not.toBeOnTheScreen();
@@ -138,7 +138,7 @@ describe('the bracket chip on the gallery card', () => {
 
     const decks = await openDecks();
 
-    const card = decks.getByRole('button', { name: 'Kinnan, Medium priority, 0 cards' });
+    const card = decks.getByRole('button', { name: 'Kinnan' });
     expect(within(card).queryByText(/^Bracket/)).not.toBeOnTheScreen();
   });
 });
@@ -262,7 +262,7 @@ describe('a stale estimated bracket', () => {
 
     const decks = await openDecks();
 
-    const card = decks.getByRole('button', { name: 'Kinnan, Medium priority, 87 cards, Invalid, Estimated bracket 4' });
+    const card = decks.getByRole('button', { name: 'Kinnan, Invalid, Estimated bracket 4' });
     expect(symbolNames(card)).toEqual(['nosign', 'clock']);
     expect(symbolTintColors(card)).toEqual([danger, info]);
     expect(appearsBefore(within(card).getByText('Bracket 4'), symbolNamed(card, 'clock'))).toBe(true);

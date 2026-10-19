@@ -77,7 +77,7 @@ async function openRevert(revision: number, preview: Partial<Omit<RevertPreview,
   ownRevertPreview(`deck-change-${revision}`, { ...noChanges, ...preview });
   await renderApp();
   await pressTab('Decks');
-  await fireEvent.press(within(selectedTab()).getByRole('button', { name: /^Atraxa,/ }));
+  await fireEvent.press(within(selectedTab()).getByRole('button', { name: /^Atraxa(,|$)/ }));
   const deck = within(pushedScreen());
   await fireEvent.press(await deck.findByRole('radio', { name: 'History' }));
   const card = (await deck.findAllByRole('button', { name: 'Revert' }))[history.length - revision]!;

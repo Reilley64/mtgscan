@@ -34,7 +34,7 @@ The review agent checks each diff against these rules. CI already runs the type 
   - Data attributes through the `dataSet` prop: `[&[data-active]]:` for presence, and `[&[data-active='true']]:` or `data-[active=true]:` for a value. A `data-active` prop does nothing. `dataSet` is not in the React Native types, so prefer an `aria-*` prop when one fits.
   - Parent state: `group` on the control and `group-disabled:`, `group-active:`, `group-aria-selected:`, `group-aria-checked:`, or `group-[[data-active]]:` on the child, as `QuickActionButton` and `Chip` do. `choiceStates` in `control-style.ts` holds the selected and checked colors that `Chip`, `Toggle`, and `ToggleGroup` share. Named groups work too: `group/card` with `group-disabled/card:`. Use a named group when the child comes from another component, as `TileButton` (`group/tile`) and `CardTile` (`group-aria-selected/tile:`) do.
   - When no variant fits, use a `cva` variant.
-  - An `expo-image` tint follows a `text-*` color class. `TintedImage` in `tinted-image.ts` maps the color to `tintColor` with `cssInterop`, so the set icon's rarity tint is a `cva` variant and the deck box symbol takes `text-info`.
+  - An `expo-image` tint follows a `text-*` color class. `TintedImage` in `tinted-image.ts` maps the color to `tintColor` with `cssInterop`, so the set icon's rarity tint is a `cva` variant.
   - Jest checks `disabled:`, `aria-*:`, data attributes, and their `group` forms with `toHaveStyle`. It cannot hold a press, so check `active:` and `group-active:` on the Simulator.
 - Leave out transition and animation classes until they work in Jest. See #102.
 - A value outside the tokens needs a reason in `DESIGN.md`, like the Apple and Google button colors.
