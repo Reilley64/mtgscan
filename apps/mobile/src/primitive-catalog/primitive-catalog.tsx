@@ -630,7 +630,7 @@ function FloatingMenuButtons() {
   );
 }
 
-function FloatingButtons() {
+function FloatingButtonStates() {
   return (
     <Section title="Floating buttons">
       <FloatingButton symbol="rectangle.portrait.on.rectangle.portrait" accessibilityLabel="Sets" onPress={() => {}} />
@@ -948,7 +948,7 @@ export function PrimitiveCatalog() {
         <Skeletons />
         <Glass />
         <FloatingMenuButtons />
-        <FloatingButtons />
+        <FloatingButtonStates />
         <PullIndicators />
         <Inputs />
         <ProgressBars />
