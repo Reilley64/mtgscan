@@ -803,10 +803,7 @@ The Add to deck drawer, from the copy page's actions menu or a basic land tile o
 - A write that fails shows the native alert "Could not add this card" with "Check your connection.", and the drawer stays.
 - A copy that no longer exists closes the drawer, and the copy page says so, as for its other actions.
 - When the deck list cannot load, the drawer shows the empty state "Could not load your decks" with a **Try again** button. See Empty states.
-
 - For a basic land, the effect chip judges each deck with that many more of the basic land. A tap adds that many to the deck in one deck change and closes the drawer. A count that would take the deck over 99 of that basic land shows the alert "Could not add these basic lands" with "A deck has up to 99 of each basic land.", and a write that fails shows the same title with "Check your connection.". The drawer stays after either alert.
-- A deck that was deleted elsewhere closes the drawer and goes back to the gallery.
-- When the deck cannot load, the drawer shows the empty state "Could not load this deck" with a **Try again** button.
 
 The Deck validity drawer, from the validity chip in the deck screen header. The deck screen is a pushed screen, so this drawer is the only one open:
 
