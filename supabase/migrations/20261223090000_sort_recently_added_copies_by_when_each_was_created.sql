@@ -94,7 +94,7 @@ begin
     when 'edhrec_rank' then format('c.edhrec_rank is null, coalesce(%sc.edhrec_rank, 0), 0', sign)
     when 'release_date' then format('false, %s(%s - date ''1970-01-01''), 0', sign, released_at)
     when 'price' then format('%1$s is null, coalesce(%2$s%1$s, 0), 0', price_cents, sign)
-    when 'added' then format('false, %sextract(epoch from a.added_at), 0', sign)
+    when 'added' then format('false, %sextract(epoch from a.created_at), 0', sign)
   end;
   direction := case
     when sort = 'relevance' and not descending then 'desc'
@@ -116,7 +116,6 @@ begin
       'select %s '
       'from private.collection_availability a '
       'join public.copies copy on copy.user_id = a.user_id and copy.id = a.copy_id '
-      'join public.collection_additions addition on addition.id = copy.addition_id '
       'join public.card_printings p on p.id = a.card_printing_id '
       'join public.cards c on c.oracle_id = p.oracle_id '
       'left join public.card_prices price on price.printing_id = p.id '
@@ -124,7 +123,7 @@ begin
       case row_kind
         when 'copies' then
           'a.copy_id as row_id, a.card_printing_id, a.finish, null::jsonb as quantities, '
-          'addition.added_at'
+          'copy.created_at'
         else
           'min(a.copy_id::text)::uuid as row_id, a.card_printing_id, a.finish, '
           'jsonb_build_object('
@@ -133,7 +132,7 @@ begin
           '''allocated_quantity'', count(*) filter (where a.is_allocated), '
           '''held_quantity'', count(*) filter (where a.is_held)'
           ') as quantities, '
-          'max(addition.added_at) as added_at'
+          'max(copy.created_at) as created_at'
       end,
       array_to_string(array['true'] || conditions, ' and ')
     ) || case
