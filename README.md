@@ -309,13 +309,16 @@ Deleting a user tag or taking it off a copy keeps the record and marks it delete
 - `supabase.rpc('set_copy_user_tag', { request: { copy_id, user_tag_id, tagged } })` puts the user tag on the copy when `tagged` is true and takes it off when it is false. It returns nothing. Doing what is already done changes nothing. Putting a user tag on a copy or taking it off changes no collection entry.
 - `supabase.rpc('rename_user_tag', { request: { user_tag_id, name } })` trims the name and renames the user tag. It keeps the ID, so every copy shows the new name. It returns `user_tag_id` and `name`. A name that matches another of the user's user tags ignoring case is refused with `user_tag_exists` on `name`.
 - `supabase.rpc('delete_user_tag', { request: { user_tag_id } })` deletes the user tag, so it shows on no copy. It returns nothing. A deleted user tag is refused with `not_found` on `user_tag_id` when it is renamed, deleted again, or put on a copy or taken off.
-- `supabase.rpc('list_user_tags')` returns `items`: the caller's user tags with `user_tag_id`, `name`, and `copy_count`, sorted by name ignoring case. It runs with the caller's rights. It takes an optional `query`, an empty object, as the MCP server sends. A query with a field is refused with `invalid_argument` on that field.
+- `supabase.rpc('list_user_tags')` returns `items`: the caller's user tags that are not deleted, with `user_tag_id`, `name`, and `copy_count`, sorted by name ignoring case. It runs with the caller's rights. It takes an optional `query`. With `{ deleted: true }`, it returns only deleted user tags, and `copy_count` is the copies that each would come back on if restored. Any other field is refused with `invalid_argument` on that field.
 - The write functions check the caller's identity and run in one transaction each. Another user's copy or user tag is refused with `not_found` on `copy_id` or `user_tag_id`, like one that does not exist. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
 
 An AI client changes user tags through its own functions. Each one calls `private.caller_user_id()` and then `private.caller_ai_client()`, so it accepts only an AI client's token. The app's functions above refuse an AI client's token. The AI client's functions share the private cores with them.
 
 - `supabase.rpc('mcp_create_user_tag', { request: { name } })` trims the name and returns `user_tag_id`, `name`, and `created`. When a user tag that is not deleted has the name, ignoring case, it returns that user tag with `created: false` and changes nothing.
 - `supabase.rpc('mcp_set_copies_user_tag', { request: { copy_ids, user_tag_id, tagged } })` puts the user tag on each copy or takes it off, in one transaction. `copy_ids` holds 1 to 100 unique copy IDs. An empty list or a longer one is refused with `invalid_argument` on `copy_ids`. A value that is not a UUID, or a repeated ID, is refused on its item, such as `copy_ids[3]`. It returns `changed`, the copy IDs it changed in the order asked, and `skipped`, a list of `{ copy_id, reason: 'missing' }`. A copy ID that is not the caller's, or a deleted copy, is skipped as `missing`, so the reply reveals nothing about other users' copies. A copy that already has the asked state counts as changed. An unknown or deleted user tag is refused with `not_found` on `user_tag_id`.
+- `supabase.rpc('mcp_rename_user_tag', { request: { user_tag_id, name } })` trims the name and returns `user_tag_id` and `name`. It follows the rules of `rename_user_tag`: a taken name is refused with `user_tag_exists` on `name`, renaming to its own name in another case works, and an unknown or deleted user tag is `not_found` on `user_tag_id`.
+- `supabase.rpc('mcp_delete_user_tag', { request: { user_tag_id } })` deletes the user tag and returns `user_tag_id`, `changed`, and `copy_count`, the copies that lost it. A deleted user tag returns `changed: false` and `copy_count: 0`. An unknown user tag is `not_found` on `user_tag_id`.
+- `supabase.rpc('mcp_restore_user_tag', { request: { user_tag_id } })` clears the user tag's `deleted_at` and returns `user_tag_id`, `name`, `changed`, and `copy_count`, the copies it is on after the call. It comes back on exactly the links that were not deleted when it was deleted, because a deleted user tag's links cannot change. A user tag that is not deleted returns `changed: false`. When another user tag that is not deleted has its name, ignoring case, the restore is refused with `user_tag_exists` on `user_tag_id`. An unknown user tag is `not_found` on `user_tag_id`. The app has no restore.
 
 ### Decks
 
@@ -634,7 +637,7 @@ An AI client's token also works on the Data API. Every app write function refuse
 
 #### Tools
 
-The tools come in this order: the read tools, then the write tools. Every read tool has `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: false`. The write tools have `readOnlyHint: false` and the same other three.
+The tools come in this order: the read tools, then the write tools. Every read tool has `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: false`. The write tools have `readOnlyHint: false` and the same other three, except `delete_user_tag`, which has `destructiveHint: true`.
 
 | Tool | Postgres function |
 | --- | --- |
@@ -655,16 +658,20 @@ The tools come in this order: the read tools, then the write tools. Every read t
 | `close_planned_swap` | `mcp_close_planned_swap` |
 | `close_buylist_card` | `mcp_close_buylist_card` |
 | `create_user_tag` | `mcp_create_user_tag` |
+| `rename_user_tag` | `mcp_rename_user_tag` |
+| `delete_user_tag` | `mcp_delete_user_tag` |
+| `restore_user_tag` | `mcp_restore_user_tag` |
 | `set_copies_user_tag` | `mcp_set_copies_user_tag`, 1 to 100 copies |
 
 - `supabase/functions/mcp/tools.ts` lists the tools. Each one has all four annotations, an input schema with `additionalProperties: false`, and an output schema that also allows a problem details object.
 - `tools.ts` writes the schemas with zod. They follow the types in `supabase/search.ts`, `supabase/collection.ts`, and `supabase/decks.ts`, less the fields that the tool leaves out. The function imports nothing from outside `supabase/functions`, so the schemas copy those types by hand. Every object in an output schema has `additionalProperties: false`. The official MCP client checks each result against it in the HTTP tests, so a change to the result's shape fails them.
 - A call to a tool that does not exist gets `invalid-argument` with the pointer `/params/name`. It is not counted against the rate limit.
 - A read tool sends its arguments to its Postgres function as `query`, and a write tool as `request`. The tool's `readOnlyHint` says which. Postgres checks the arguments, as it does for the app.
-- `list_user_tags`, `get_collection_summary`, and `list_decks` take an empty query.
+- `get_collection_summary` and `list_decks` take an empty query. `list_user_tags` takes an optional `deleted`.
 - No tool takes a currency. Prices are USD. The description of each tool that returns prices says so: `search_catalog`, `search_collection`, `get_cards`, `get_collection_summary`, and `get_deck`.
 - The description of `search_catalog` says that it returns only Commander-legal cards and has no fuzzy match. The descriptions of `list_decks` and `get_deck` say that the estimated bracket is an estimate and that heuristic signals are not official. The `list_decks` description says that `needs_you_count` counts the deck's open planned swaps and buylist cards, and the `get_deck` description says that an open planned swap takes out a `planned_out` deck card.
 - The description of each write tool ends with the declined-write sentence: if the user declines the call, the AI does not call it again, tells the user that nothing was saved, and asks what they want to change.
+- The `delete_user_tag` description tells the AI to give the user the copy count from `list_user_tags` before it deletes. The `restore_user_tag` description says that a restored user tag comes back on exactly the copies it was on when it was deleted, and that `list_user_tags` with `deleted: true` finds deleted user tags.
 - The server instructions say that a deck is the cards in the user's deck box now, and that the AI can change user tags and put them on copies or take them off, but cannot change a deck or a copy. They tell the AI to plan swaps with free copies that the user owns, to add cards that the user lacks to the buylist, to never hold a protected copy, to follow deck priority, and to recommend a move between decks in the chat instead of planning it.
 - A result leaves out image URIs and art crop URIs. Each tool can also leave out fields at a named path. `get_deck` leaves out `added_at`, `commander_at`, `condition`, `language`, `rarity`, `collector_number`, and `set` of each deck card.
 - A result carries `structuredContent` and one text block: a one-line summary, then the minified JSON. A search with an AI client's token writes its telemetry row with the caller `mcp`.
@@ -698,6 +705,7 @@ The problem types, each linked to its page:
 - [`duplicate-open`](apps/site/problems/duplicate-open.html)
 - [`free-copy-exists`](apps/site/problems/free-copy-exists.html)
 - [`not-open`](apps/site/problems/not-open.html)
+- [`user-tag-exists`](apps/site/problems/user-tag-exists.html)
 - [`idempotency-conflict`](apps/site/problems/idempotency-conflict.html)
 - [`data-unavailable`](apps/site/problems/data-unavailable.html)
 - [`result-too-large`](apps/site/problems/result-too-large.html)

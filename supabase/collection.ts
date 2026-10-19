@@ -185,6 +185,17 @@ export type CreatedUserTag = UserTag & {
   created: boolean;
 };
 
+export type DeletedUserTag = {
+  user_tag_id: string;
+  changed: boolean;
+  copy_count: number;
+};
+
+export type RestoredUserTag = UserTag & {
+  changed: boolean;
+  copy_count: number;
+};
+
 export type CopiesUserTagResult = {
   changed: string[];
   skipped: { copy_id: string; reason: 'missing' }[];

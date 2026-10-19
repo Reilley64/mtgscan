@@ -25,6 +25,7 @@ const pageSize = { default: 20, max: 50 };
 
 const readOnly: ToolAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 const write: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
+const destructiveWrite: ToolAnnotations = { ...write, destructiveHint: true };
 
 const usdPrices = 'Prices are current Scryfall prices in USD (TCGplayer Market). There is no other currency.';
 const declinedWrite =
@@ -634,11 +635,15 @@ export const tools: Tool[] = [
   defineTool({
     name: 'list_user_tags',
     title: 'List user tags',
-    description:
+    description: [
       "List the user's user tags with how many copies have each. A user tag is the user's own label on copies, not an Oracle tag. Search the copies of a user tag with the user_tags filter of search_collection.",
+      'With deleted: true, it lists only deleted user tags, with the copies that each would come back on if restored.',
+    ].join(' '),
     annotations: readOnly,
     postgresFunction: 'list_user_tags',
-    input: z.strictObject({}),
+    input: z.strictObject({
+      deleted: z.boolean().optional().describe('true lists only deleted user tags. Without it, only user tags that are not deleted.'),
+    }),
     output: z.strictObject({ items: z.array(z.strictObject({ user_tag_id: id, name: z.string(), copy_count: integer })) }),
     summary: (result) => `${plural(result.items.length, 'user tag', 'user tags')}.`,
     tooLargeHint: 'Search the copies of one user tag with search_collection instead.',
@@ -861,13 +866,77 @@ export const tools: Tool[] = [
     tooLargeHint: 'Create one user tag in each call.',
   }),
   defineTool({
+    name: 'rename_user_tag',
+    title: 'Rename a user tag',
+    description: [
+      "Rename one of the user's user tags. It stays on its copies.",
+      'The name is trimmed and has 1 to 64 characters.',
+      'A name that another user tag has, ignoring case, is refused with user-tag-exists. Renaming a user tag to its own name in another case works.',
+      'A deleted user tag is not-found. Restore it with restore_user_tag first.',
+      'Find user tag IDs with list_user_tags.',
+      declinedWrite,
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'mcp_rename_user_tag',
+    input: z.strictObject({
+      user_tag_id: id.describe("The user tag's ID."),
+      name: z.string().describe("The user tag's new name, 1 to 64 characters after trimming."),
+    }),
+    output: z.strictObject({ user_tag_id: id, name: z.string() }),
+    summary: (result) => `Renamed the user tag to ${result.name}.`,
+    tooLargeHint: 'Rename one user tag in each call.',
+  }),
+  defineTool({
+    name: 'delete_user_tag',
+    title: 'Delete a user tag',
+    description: [
+      "Delete one of the user's user tags. It comes off every copy, and its name is free for a new user tag.",
+      'Before you delete a user tag, tell the user how many copies have it, from the copy_count of list_user_tags.',
+      'The result has copy_count, the number of copies that lost the user tag.',
+      'Deleting a deleted user tag changes nothing and returns changed: false.',
+      'Restore a deleted user tag with restore_user_tag.',
+      'This tool does not change any deck or copy.',
+      declinedWrite,
+    ].join(' '),
+    annotations: destructiveWrite,
+    postgresFunction: 'mcp_delete_user_tag',
+    input: z.strictObject({ user_tag_id: id.describe("The user tag's ID.") }),
+    output: z.strictObject({ user_tag_id: id, changed: z.boolean(), copy_count: integer }),
+    summary: (result) =>
+      result.changed
+        ? `Deleted the user tag. ${plural(result.copy_count, 'copy', 'copies')} lost it.`
+        : 'The user tag was already deleted.',
+    tooLargeHint: 'Delete one user tag in each call.',
+  }),
+  defineTool({
+    name: 'restore_user_tag',
+    title: 'Restore a user tag',
+    description: [
+      'Restore a deleted user tag. It comes back on exactly the copies it was on when it was deleted.',
+      'Find deleted user tags with list_user_tags and deleted: true. Their copy_count is the copies that each would come back on.',
+      'Restoring a user tag that is not deleted changes nothing and returns changed: false.',
+      'When another user tag now has its name, ignoring case, the restore is refused with user-tag-exists. Ask the user whether to rename that user tag first.',
+      'This tool does not change any deck or copy.',
+      declinedWrite,
+    ].join(' '),
+    annotations: write,
+    postgresFunction: 'mcp_restore_user_tag',
+    input: z.strictObject({ user_tag_id: id.describe("The deleted user tag's ID.") }),
+    output: z.strictObject({ user_tag_id: id, name: z.string(), changed: z.boolean(), copy_count: integer }),
+    summary: (result) =>
+      result.changed
+        ? `Restored user tag ${result.name} on ${plural(result.copy_count, 'copy', 'copies')}.`
+        : `User tag ${result.name} was not deleted.`,
+    tooLargeHint: 'Restore one user tag in each call.',
+  }),
+  defineTool({
     name: 'set_copies_user_tag',
     title: 'Put a user tag on copies',
     description: [
       'Put a user tag on 1 to 100 copies, or take it off them, in one call, all changed or none.',
       'A user tag goes on exact copies, never on a card, so copies that the user scans later do not get it.',
       'Find copy IDs with search_collection and rows: copies. To tag every copy of a card, search its copies first.',
-      'Find user tag IDs with list_user_tags, or create one with create_user_tag.',
+      'Find user tag IDs with list_user_tags, or create one with create_user_tag. A deleted user tag is not-found.',
       "A copy ID that is not one of the user's copies, such as a copy that the user deleted, is skipped as missing, and the other copies still change.",
       'A copy that already has the asked state counts as changed. A retry gives the same answer.',
       'This tool does not change any deck or copy.',

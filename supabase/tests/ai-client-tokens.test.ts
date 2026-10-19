@@ -18,6 +18,9 @@ const aiWriteFunctions = [
   'mcp_close_planned_swap',
   'mcp_close_buylist_card',
   'mcp_create_user_tag',
+  'mcp_rename_user_tag',
+  'mcp_delete_user_tag',
+  'mcp_restore_user_tag',
   'mcp_set_copies_user_tag',
 ];
 const requiresAnAiClientsToken = ['begin_mcp_call', ...aiWriteFunctions];
