@@ -1,5 +1,6 @@
-import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
+import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
+import { freePlan } from '../gallery/budget';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { connectAiClient } from './ai-clients';
 import {
@@ -340,5 +341,59 @@ describe('the training crops bucket and table', () => {
     const { error } = await secretKey.from('training_crops').insert(evidenceRecord());
 
     expect(error?.code).toBe(permissionDenied);
+  });
+});
+
+describe('the Storage limit', () => {
+  const galleryObjects: string[] = [];
+
+  afterEach(async () => {
+    await setStorageLimit(freePlan.storageBytes);
+    await secretKey.storage.from('gallery').remove(galleryObjects.splice(0));
+  });
+
+  async function storedBytes(): Promise<number> {
+    const [{ bytes }] = await asDatabaseOwner(
+      (database) => database`select coalesce(sum((metadata ->> 'size')::bigint), 0)::bigint as bytes from storage.objects`,
+    );
+    return Number(bytes);
+  }
+
+  function setStorageLimit(bytes: number) {
+    return asDatabaseOwner((database) => database`update private.storage_limit set bytes = ${bytes}`);
+  }
+
+  test('the Storage limit is the Free plan Storage of the gallery budget report', async () => {
+    const [{ bytes }] = await asDatabaseOwner((database) => database`select bytes from private.storage_limit`);
+
+    expect(Number(bytes)).toBe(freePlan.storageBytes);
+  });
+
+  test('an upload is refused with storage_full when the objects in every bucket reach 90% of the Storage limit, and nothing is stored', async () => {
+    const galleryObject = `storage-limit-${crypto.randomUUID()}.bin`;
+    galleryObjects.push(galleryObject);
+    const stored = await secretKey.storage.from('gallery').upload(galleryObject, new Blob([new Uint8Array(1_000_000)]), {
+      contentType: 'application/octet-stream',
+    });
+    expect(stored.error).toBeNull();
+    await setStorageLimit(Math.floor((await storedBytes()) / 0.9));
+    const before = await storedCounts();
+    const crop = evidenceRecord();
+
+    const result = await upload(alice.client, { crop });
+
+    expect(result).toMatchObject({ status: 400, refusal: { code: 'storage_full' } });
+    expect(await storedCounts()).toEqual(before);
+  });
+
+  test('an upload is stored while the objects in every bucket stay under 90% of the Storage limit', async () => {
+    expect((await upload(alice.client, {})).status).toBe(204);
+    await setStorageLimit(Math.floor((await storedBytes()) / 0.9) + 2);
+    const crop = evidenceRecord();
+
+    const result = await upload(alice.client, { crop });
+
+    expect(result.status).toBe(204);
+    expect(await storedRow(crop.crop_id)).toEqual([crop]);
   });
 });

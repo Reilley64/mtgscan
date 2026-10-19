@@ -93,7 +93,7 @@ The Swift sources in `ios/Recognizer` build into the app and into a macOS comman
 
 The owner builds the gallery on the Mac at each set release with `bun run gallery <command>` in `supabase`. #75 describes the format. The commands read `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. When `SUPABASE_URL` is not set, they use `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF`. For the hosted project, `SUPABASE_PROJECT_REF` and `SUPABASE_SECRET_KEY` live only in `supabase/.env.hosted`, which Git ignores and Bun does not load by itself. Run a command with them as `bun --env-file=.env.hosted gallery/main.ts <command>`. `docs/agents/local-development.md` (Gallery build) has the rules.
 
-1. `build` reads Scryfall Default Cards and keeps the paper card printings that are in the card catalog. It downloads the missing `normal` images into `~/Library/Caches/mtgscan/scryfall-images`, 8 at a time. The macOS recognizer command computes the int8 feature prints, and the build reuses the ones it already has. It then writes the gallery parts, the printing list parts, and the manifest with the SHA-256 of each part, and uploads them as a new gallery version that is not published. It prints the sizes against the Free plan budget.
+1. `build` reads Scryfall Default Cards and keeps the paper card printings that are in the card catalog. It downloads the missing `normal` images into `~/Library/Caches/mtgscan/scryfall-images`, 8 at a time. The macOS recognizer command computes the int8 feature prints, and the build reuses the ones it already has. It then writes the gallery parts, the printing list parts, and the manifest with the SHA-256 of each part, and uploads them as a new gallery version that is not published. It prints the sizes against the Free plan budget. On a plan upgrade, change `freePlan` in `supabase/gallery/budget.ts` and the Storage limit in Training crops together.
 2. The owner runs the parity check on the iPhone (#84). In a development build, **Run the parity check** in settings runs it on the installed gallery version. Signed-in users cannot read a gallery version that is not published, so `sign <version> [--hours <n>]` prints signed URLs for its manifest and parts, valid for 24 hours by default, for a development build. Gallery download (above) says how a development build uses them. `parity <version> --lowest-cosine <n> --mean-cosine <n> --references <n>` records the result.
 3. `publish <version>` refuses a gallery version without a passing parity check: a lowest cosine of at least 0.98 over 24 or more references. It then moves the pointer, `published.json`, to the version. It deletes every other gallery version except the previous one and the one that the scanner evidence pack names.
 
@@ -367,10 +367,13 @@ It answers 204 when the crop is stored. A refusal is a 400 with a JSON body of `
 `add_training_crop({ user_id, copy_id, crop })` runs only for the secret key. It uses the user ID and the copy ID for its checks and stores neither:
 
 - `uploads_off`, with no field, when the user turned training crop uploads off;
+- `storage_full` when the objects in every Storage bucket add up to 90% or more of the Storage limit;
 - `unknown_copy` on `copy_id` when the copy ID is not a copy of the user;
 - `invalid_argument` on a bad field, such as `crop.decision_basis`.
 
 Otherwise it writes the row. The same crop ID again writes nothing and succeeds.
+
+The Storage limit is `bytes` in the one row of `private.storage_limit`. It is 1,000,000,000 bytes, the Storage of the Free plan. The gallery budget report uses the same number, `freePlan.storageBytes` in `supabase/gallery/budget.ts`. On a plan upgrade, change both in the same PR, with a new migration for the database value. The app drops a crop refused with `storage_full` and shows no message. So uploads stop for every user before training crops can fill the Storage that the gallery needs.
 
 The evidence record has these fields, each a column of `training_crops`:
 

@@ -38,6 +38,7 @@ import {
   appearsBefore,
   drawerScreen,
   openSettings,
+  presentedAlert,
   pressAlertButton,
   pressHeaderMenuAction,
   presentedAlert,
@@ -206,7 +207,7 @@ test('a training crop uploads once when the app comes back to the foreground aga
 });
 
 test.each(['uploads_off', 'storage_full', 'invalid_argument'])(
-  'a training crop that the server refuses with %s is deleted and not sent again',
+  'a training crop that the server refuses with %s is deleted with no message and not sent again',
   async (code) => {
     nextPhotosAre(cardRecognition([lightningBoltM10]));
     await openScan();
@@ -220,6 +221,7 @@ test.each(['uploads_off', 'storage_full', 'invalid_argument'])(
     await returnToTheApp();
 
     expect(trainingCropsUploaded()).toEqual([]);
+    expect(presentedAlert()).toBeNull();
   },
 );
 
