@@ -1,3 +1,5 @@
+import type { Refusal } from '../../database-function.ts';
+
 export const problemTypeBase = 'https://mtgscan.reilley.dev/problems/';
 
 export const internalErrorDetail = 'Something went wrong in mtgscan. Try again.';
@@ -26,24 +28,11 @@ export const problemKinds = {
 
 export type ProblemName = keyof typeof problemKinds;
 
-const problemOfPostgresCode: Record<string, ProblemName> = {
-  invalid_argument: 'invalid-argument',
-  invalid_cursor: 'invalid-cursor',
-  not_found: 'not-found',
-  invalid_card: 'invalid-card',
-  stale_revision: 'stale-revision',
-  outgoing_not_in_deck: 'outgoing-not-in-deck',
-  copy_not_free: 'copy-not-free',
-  protected_copy: 'protected-copy',
-  duplicate_open: 'duplicate-open',
-  free_copy_exists: 'free-copy-exists',
-  not_open: 'not-open',
-  user_tag_exists: 'user-tag-exists',
-  idempotency_conflict: 'idempotency-conflict',
-  data_unavailable: 'data-unavailable',
-  rate_limited: 'rate-limited',
-  unauthorized: 'unauthorized',
-};
+type CodeOf<Name extends string> = Name extends `${infer Head}-${infer Tail}` ? `${Head}_${CodeOf<Tail>}` : Name;
+
+export type ProblemCode = CodeOf<ProblemName>;
+
+export const beginMcpCallCodes = ['rate_limited', 'unauthorized'] as const satisfies readonly ProblemCode[];
 
 const reservedMembers = new Set(['type', 'title', 'detail', 'retryable', 'status']);
 
@@ -55,8 +44,6 @@ export type Problem = {
   retryable: boolean;
   [member: string]: unknown;
 };
-
-export type PostgresError = { code: string; message: string; details: string | null };
 
 export const problemSchema = {
   type: 'object',
@@ -91,19 +78,15 @@ export function nameOf(toolProblem: Problem): ProblemName {
   return toolProblem.type.slice(problemTypeBase.length) as ProblemName;
 }
 
-export function problemFromPostgres(error: PostgresError): Problem {
-  const name = problemOfPostgresCode[error.code];
-  if (!name) {
-    return problem('internal-error', internalErrorDetail);
-  }
-  return problem(name, error.message, membersOfDetails(error.details));
+export function refusalProblem({ code, message, field }: Refusal): Problem {
+  return problem(code.replaceAll('_', '-') as ProblemName, message, membersOfField(field));
 }
 
-function membersOfDetails(details: string | null): Record<string, unknown> {
-  if (!details) {
+function membersOfField(field: string | null): Record<string, unknown> {
+  if (!field) {
     return {};
   }
-  return jsonObject(details) ?? { pointer: pointerOfField(details) };
+  return jsonObject(field) ?? { pointer: pointerOfField(field) };
 }
 
 function jsonObject(text: string): Record<string, unknown> | null {

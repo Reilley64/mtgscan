@@ -752,14 +752,14 @@ describe('mark_buylist_card_bought', () => {
     expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject({ status: 'bought', close_note: null, effect: null });
   });
 
-  test('a protected copy is refused with copy_protected, and goes in unprotected with unprotect: true', async () => {
+  test('a protected copy is refused with protected_copy, and goes in unprotected with unprotect: true', async () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Goblins');
     const buylistCardId = await oneBuylistCard(client, deckId, counterspellCard);
     const kept = await scannedCopy(client.user, counterspell);
     await replyOf(client.user.client, setCopyProtected, { copy_id: kept, protected: true });
 
-    expect(await bought(client.user, buylistCardId, kept)).toMatchObject(refused('copy_protected', 'copy_id'));
+    expect(await bought(client.user, buylistCardId, kept)).toMatchObject(refused('protected_copy', 'copy_id'));
     expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject(open);
     expect(await revisionOf(client.user, deckId)).toBe(0);
 

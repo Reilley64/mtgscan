@@ -4,7 +4,7 @@ import { readDeckError, type DeckErrorCode } from '@mtgscan/supabase/decks';
 import { supabase } from '@/lib/supabase';
 import { writeResultOf, type WriteResult } from '@/lib/write-result';
 
-const outdatedCopyCodes: DeckErrorCode[] = ['copy_not_free', 'copy_protected', 'invalid_argument'];
+const outdatedCopyCodes: DeckErrorCode[] = ['copy_not_free', 'protected_copy', 'invalid_argument'];
 
 export async function markBuylistCardBought(
   request: MarkBuylistCardBoughtRequest,

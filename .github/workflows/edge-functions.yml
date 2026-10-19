@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - supabase/functions/**
+      - supabase/*.ts
   workflow_dispatch:
 
 permissions:

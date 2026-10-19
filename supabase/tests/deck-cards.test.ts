@@ -172,7 +172,7 @@ describe('adding a copy to a deck', () => {
     expect(await deckChangesOf(user, kinnan)).toEqual([]);
   });
 
-  test('a protected copy is refused with copy_protected, and stays protected and free', async () => {
+  test('a protected copy is refused with protected_copy, and stays protected and free', async () => {
     const user = await signUpNewUser();
     const deckId = await created(user, 'Atraxa');
     const copyId = await scannedCopy(user);
@@ -180,7 +180,7 @@ describe('adding a copy to a deck', () => {
 
     const result = await call(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
 
-    expect(result).toMatchObject(refused('copy_protected', 'copy_id'));
+    expect(result).toMatchObject(refused('protected_copy', 'copy_id'));
     expect(await copyOf(user, copyId)).toMatchObject({ protected: true, free: true, deck: null });
     expect((await deckOf(user, deckId)).revision).toBe(0);
     expect(await deckChangesOf(user, deckId)).toEqual([]);

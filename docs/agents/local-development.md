@@ -151,6 +151,7 @@ The app stays on Expo SDK 56. `README.md` (Versions) says why and when to upgrad
 
 - With these lines, `bunx supabase@2.120.0 start`, `db reset`, `status`, and the database tests all use the worktree's stack. The tests read the ports, so they need no `SUPABASE_URL` or `SUPABASE_DB_URL`.
 - `MCP_SERVER_URL` must name the stack's own API port. Without it, the MCP function has no server URL.
+- The edge runtime serves the worktree's `supabase/functions`. It mounts the files that a function imports from outside `supabase/functions`, such as the contracts, only when the stack starts. After you add such an import, stop and start the stack. The edge runtime can also keep serving a function's old code after you change it. Restart it with `docker restart supabase_edge_runtime_<project id>` before you run the MCP tests.
 - Point the app at the stack with `EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:<API port>` in `apps/mobile/.env.local`.
 - Start the services CI starts: `start -x realtime,imgproxy,mailpit,studio,logflare,vector,supavisor`. The database tests need storage for the gallery. A full stack takes about 1.6 GB of memory.
 - Stop your stack with `bunx supabase@2.120.0 stop` from `supabase` when you are done. Remove the worktree only after that.
