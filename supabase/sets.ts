@@ -26,12 +26,10 @@ export type SetCardPrinting = {
   counts: Record<FinishView, number | null>;
 };
 
-export type SetVariants = {
-  completion: Record<FinishView, SetCompletion>;
-  card_printings: SetCardPrinting[];
-};
-
 export type SetDetails = SetRow & {
   main_set: SetCardPrinting[];
-  variants: SetVariants;
+  variants: {
+    completion: Record<FinishView, SetCompletion>;
+    card_printings: SetCardPrinting[];
+  };
 };
