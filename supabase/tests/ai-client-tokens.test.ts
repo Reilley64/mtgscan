@@ -174,6 +174,7 @@ describe("refusing an AI client's token", () => {
     await refuseAiClientThenWrite('delete_copy', { copy_id: deckCopy });
     await refuseAiClientThenWrite('delete_user_tag', { user_tag_id });
     await refuseAiClientThenWrite('delete_deck', { deck_id });
+    await refuseAiClientThenWrite('set_training_crop_uploads', { on: false });
 
     expect(writesCalled.toSorted()).toEqual((await appWriteFunctions()).map(({ name }) => name));
     expect((await read('list_decks')).items).toEqual([]);

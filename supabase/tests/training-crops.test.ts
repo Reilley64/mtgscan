@@ -256,6 +256,76 @@ describe('who can upload training crops', () => {
   });
 });
 
+describe('the training crop uploads setting', () => {
+  async function settingsOf(client: AppClient) {
+    return client.rpc('get_training_crop_settings');
+  }
+
+  test('training crop uploads are on for a new user', async () => {
+    const user = await signUpNewUser();
+
+    expect(await settingsOf(user.client)).toMatchObject({ data: { uploads_on: true }, error: null });
+  });
+
+  test("a user turns training crop uploads off and on, and another user's setting stays on", async () => {
+    const user = await signUpNewUser();
+    const other = await signUpNewUser();
+
+    const off = await user.client.rpc('set_training_crop_uploads', { request: { on: false } });
+    expect(off).toMatchObject({ data: { uploads_on: false }, error: null });
+    expect((await settingsOf(user.client)).data).toEqual({ uploads_on: false });
+    expect((await settingsOf(other.client)).data).toEqual({ uploads_on: true });
+
+    const on = await user.client.rpc('set_training_crop_uploads', { request: { on: true } });
+    expect(on).toMatchObject({ data: { uploads_on: true }, error: null });
+    expect((await settingsOf(user.client)).data).toEqual({ uploads_on: true });
+  });
+
+  test.each([
+    ['a missing on', {}, 'on'],
+    ['an on that is not a boolean', { on: 'off' }, 'on'],
+    ['an unknown field', { on: false, user_id: crypto.randomUUID() }, 'user_id'],
+  ])('%s is refused with invalid_argument and changes nothing', async (_, request, field) => {
+    const user = await signUpNewUser();
+
+    const { error } = await user.client.rpc('set_training_crop_uploads', { request });
+
+    expect(error).toMatchObject({ code: 'invalid_argument', details: field });
+    expect((await settingsOf(user.client)).data).toEqual({ uploads_on: true });
+  });
+
+  test("an AI client's token cannot change training crop uploads", async () => {
+    const user = await signUpNewUser();
+    const { token } = await connectAiClient(user);
+
+    const { error } = await tokenClient(token).rpc('set_training_crop_uploads', { request: { on: false } });
+
+    expect(error?.code).toBe(permissionDenied);
+    expect((await settingsOf(user.client)).data).toEqual({ uploads_on: true });
+  });
+
+  test('an anonymous caller cannot read or change training crop uploads', async () => {
+    const read = await settingsOf(anonymousClient());
+    const written = await anonymousClient().rpc('set_training_crop_uploads', { request: { on: false } });
+
+    expect(read.error?.code).toBe(permissionDenied);
+    expect(written.error?.code).toBe(permissionDenied);
+  });
+
+  test('an upload while the user has training crop uploads off is refused with uploads_off and nothing is stored', async () => {
+    const user = await signUpNewUser();
+    const copyId = await scannedCopy(user);
+    await user.client.rpc('set_training_crop_uploads', { request: { on: false } });
+    const crop = evidenceRecord();
+
+    const result = await upload(user.client, { copyId, crop });
+
+    expect(result).toMatchObject({ status: 400, refusal: { code: 'uploads_off' } });
+    expect(await storedRow(crop.crop_id)).toEqual([]);
+    expect(await storedObjects(crop.crop_id)).toHaveLength(0);
+  });
+});
+
 describe('the training crops bucket and table', () => {
   let storedCropId: string;
 
