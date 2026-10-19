@@ -62,7 +62,7 @@ function replyOf<Contract extends DatabaseFunction>(result: DatabaseFunctionResu
   throw result.status === 'refused' ? new RefusedRead(result.refusal) : result.error;
 }
 
-export type ServerRead<Reply, Code extends string = never> = {
+type ServerRead<Reply, Code extends string = never> = {
   key: QueryKey;
   read: () => Promise<Reply>;
   errorCodes?: readonly Code[];

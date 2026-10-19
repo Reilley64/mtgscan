@@ -6,6 +6,7 @@ import {
   changeDeckElsewhere,
   deckWritesSent,
   failDeckWrites,
+  holdDeckChangeReads,
   ownDeckChanges,
   ownDecks,
   ownRevertPreview,
@@ -209,6 +210,21 @@ describe('the Revert page sheet', () => {
 
     await waitFor(() => expect(isPageSheetPresented()).toBe(false));
     expect(await within(pushedScreen()).findByLabelText('+, Cyclonic Rift, Artifact')).toBeOnTheScreen();
+  });
+
+  test('while History reads again after a deck change, it keeps the deck changes it showed', async () => {
+    await openRevert(2);
+    changeDeckElsewhere('deck-1', deckChange(4, 'added', [copyLine('Cyclonic Rift', { place_before: null, place_after: 'main' })]));
+    const reads = holdDeckChangeReads();
+
+    await pressHeaderButton(presentedPageSheet(), 'Cancel');
+
+    await waitFor(() => expect(isPageSheetPresented()).toBe(false));
+    const deck = within(pushedScreen());
+    expect(deck.getAllByRole('button', { name: 'Revert' })).toHaveLength(3);
+    await reads.finish();
+    expect(deck.getByLabelText('+, Cyclonic Rift, Artifact')).toBeOnTheScreen();
+    expect(deck.getAllByRole('button', { name: 'Revert' })).toHaveLength(4);
   });
 
   test.each<[string, RevertPreview['effect'], string, string]>([
