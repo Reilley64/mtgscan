@@ -1,7 +1,8 @@
 import type { DeckChange, DeckChangeBasicLandLine, DeckChangeCopyLine, DeckChangeKind } from '@mtgscan/supabase/decks';
 import { fireEvent, within } from 'expo-router/testing-library';
 
-import { expirePageCursors, failDeckChangeReads, ownDeckChanges, ownDecks, startSignedIn } from './fake-supabase';
+import { expirePageCursors, ownDeckChanges, ownDecks, startSignedIn } from './fake-supabase';
+import { fail } from './fake-supabase-controls';
 import { appearsBefore, cardImageUri, pressTab, pushedScreen, scrollToEnd, selectedTab } from './native-ui';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
@@ -196,7 +197,7 @@ describe('the History tab', () => {
   });
 
   test('a history read that fails says so, and Try again loads it', async () => {
-    failDeckChangeReads(1);
+    fail('list_deck_changes', 1);
     const deck = await openHistory([deckChange(1, 'added', [solRing({ place_before: null, place_after: 'main' })])]);
 
     expect(await deck.findByText('Could not load this deck')).toBeOnTheScreen();

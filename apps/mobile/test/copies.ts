@@ -1,4 +1,4 @@
-import type { CopyDetails } from '@mtgscan/supabase/collection';
+import type { CollectionCopyRow, CopyDetails } from '@mtgscan/supabase/collection';
 import type { DeckCard } from '@mtgscan/supabase/decks';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
@@ -32,6 +32,10 @@ export function copyOf(copyId: string, changes: Partial<CopyDetails> = {}): Copy
     held_for: null,
     ...changes,
   };
+}
+
+export function copyRowOf(copy: CopyDetails): CollectionCopyRow {
+  return { ...copy, created_at: copy.added_at };
 }
 
 export function deckCardOf(copyId: string, name: string, typeLine: string, changes: Partial<DeckCard> = {}): DeckCard {

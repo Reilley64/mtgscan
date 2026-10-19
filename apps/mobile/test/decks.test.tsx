@@ -8,16 +8,15 @@ import {
 import { StyleSheet } from "react-native";
 
 import {
+  changeElsewhere,
   deckWritesSent,
   decksOnTheServer,
-  deleteDeckOnTheServer,
   failDeckReads,
   failDeckWrites,
-  holdDeckListReads,
-  holdDeckReads,
   ownDecks,
   startSignedIn,
 } from "./fake-supabase";
+import { hold } from "./fake-supabase-controls";
 import {
   appearsBefore,
   dashedOutlinesColored,
@@ -225,7 +224,7 @@ describe("the Decks empty state", () => {
 describe("the commander gallery", () => {
   test("until the deck list read returns, Decks shows the gallery card skeletons, then the gallery cards", async () => {
     ownDecks([{ name: "Atraxa", ...medium }]);
-    const reads = holdDeckListReads();
+    const reads = hold('list_decks');
 
     const decks = await openDecks();
     expect(
@@ -421,7 +420,7 @@ describe("the deck screen", () => {
   test("until the deck read returns, the deck screen shows the deck skeleton, then the deck", async () => {
     ownDecks([{ name: "Atraxa", ...medium }]);
     const decks = await openDecks();
-    const reads = holdDeckReads();
+    const reads = hold('get_deck');
 
     await fireEvent.press(decks.getByRole("button", { name: /^Atraxa(,|$)/ }));
 
@@ -447,7 +446,7 @@ describe("the deck screen", () => {
   test("VoiceOver reads the deck skeleton as one element and not each block", async () => {
     ownDecks([{ name: "Atraxa", ...medium }]);
     const decks = await openDecks();
-    holdDeckReads();
+    hold('get_deck');
 
     await fireEvent.press(decks.getByRole("button", { name: /^Atraxa(,|$)/ }));
 
@@ -595,7 +594,7 @@ describe("the deck menu", () => {
 
   test("renaming a deck that was deleted elsewhere goes back to the gallery", async () => {
     await openDeck();
-    deleteDeckOnTheServer("deck-2");
+    changeElsewhere('delete_deck', { deck_id: "deck-2" });
     await chooseFromMenu("Rename");
     await typeInAlertField("Kinnan");
 

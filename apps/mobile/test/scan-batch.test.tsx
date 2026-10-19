@@ -5,13 +5,8 @@ import { lightningBolt2xm, lightningBoltM10, plains, shock } from './card-printi
 import { resetSampleClock } from './detection-samples';
 import { cardRecognition, holdNextRecognition, nextPhotosAre } from './fake-card-recognizer';
 import { scanFeedback } from './fake-scan-feedback';
-import {
-  failNextScanBatchCommit,
-  holdNextScanBatchCommit,
-  scanBatchesSentToTheServer,
-  signInNextWithEmail,
-  startSignedIn,
-} from './fake-supabase';
+import { signInNextWithEmail, startSignedIn } from './fake-supabase';
+import { fail, hold, requestsSent } from './fake-supabase-controls';
 import {
   drawerBackButton,
   drawerScreen,
@@ -135,7 +130,7 @@ test('choosing a card printing in name search for a scan that was not recognized
   await openBatchReview(1);
   expect(reviewRows()).toEqual(['Lightning Bolt, 2XM 117 · NM · English']);
   await addToCollection();
-  const [sent] = scanBatchesSentToTheServer();
+  const [sent] = requestsSent('add_scan_batch');
   expect(sent.items.map(({ copy_ids, ...stack }) => ({ ...stack, copies: copy_ids.length }))).toEqual([
     { card_printing_id: lightningBolt2xm.printingId, finish: 'nonfoil', condition: 'near_mint', language: 'en', copies: 1 },
   ]);
@@ -155,7 +150,7 @@ test('a new scan replaces a scan that was not recognized on the chip, and the sc
   expect(reviewRows()).toEqual(['Shock, M19 156 · NM · English']);
   expect(screen.queryByText('Not recognized')).not.toBeOnTheScreen();
   await addToCollection();
-  const [sent] = scanBatchesSentToTheServer();
+  const [sent] = requestsSent('add_scan_batch');
   expect(sent.items.flatMap((item) => item.copy_ids)).toHaveLength(1);
 });
 
@@ -294,7 +289,7 @@ test('Add to collection sends every copy with its own copy ID, with identical co
 
   await addToCollection();
 
-  const [sent] = scanBatchesSentToTheServer();
+  const [sent] = requestsSent('add_scan_batch');
   expect(sent.items.map(({ copy_ids, ...stack }) => ({ ...stack, copies: copy_ids.length }))).toEqual([
     { card_printing_id: lightningBoltM10.printingId, finish: 'nonfoil', condition: 'near_mint', language: 'en', copies: 2 },
     { card_printing_id: shock.printingId, finish: 'foil', condition: 'near_mint', language: 'en', copies: 1 },
@@ -334,7 +329,7 @@ test('a commit adds only the recognized scans and keeps a scan that was not reco
 
   await addToCollection();
 
-  const [sent] = scanBatchesSentToTheServer();
+  const [sent] = requestsSent('add_scan_batch');
   expect(sent.items.map((item) => item.card_printing_id)).toEqual([lightningBoltM10.printingId]);
   expect(latestScanChip('Not recognized, Tap to search')).toBeOnTheScreen();
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
@@ -347,12 +342,12 @@ test('swiping Add to collection past the threshold adds the batch, and releasing
   await openBatchReview(1);
 
   await swipeRight(screen.getByRole('button', { name: 'Add to collection' }), 0.5);
-  expect(scanBatchesSentToTheServer()).toEqual([]);
+  expect(requestsSent('add_scan_batch')).toEqual([]);
   expect(scanFeedback()).not.toContain('light impact');
 
   await swipeRight(screen.getByRole('button', { name: 'Add to collection' }), 1);
   expect(scanFeedback()).toContain('light impact');
-  expect(scanBatchesSentToTheServer()).toHaveLength(1);
+  expect(requestsSent('add_scan_batch')).toHaveLength(1);
   expect(isDrawerPresented()).toBe(false);
 });
 
@@ -366,7 +361,7 @@ test('the VoiceOver default action on Add to collection adds the batch without a
     nativeEvent: { actionName: 'activate' },
   });
 
-  expect(scanBatchesSentToTheServer()).toHaveLength(1);
+  expect(requestsSent('add_scan_batch')).toHaveLength(1);
   expect(isDrawerPresented()).toBe(false);
 });
 
@@ -375,7 +370,7 @@ test('Add to collection shows a spinner on its handle while the commit runs, and
   await openScan();
   await scanACard();
   await openBatchReview(1);
-  const commit = holdNextScanBatchCommit();
+  const commit = hold('add_scan_batch', { once: true });
 
   await addToCollection();
 
@@ -384,7 +379,7 @@ test('Add to collection shows a spinner on its handle while the commit runs, and
   expect(showsSpinner(control)).toBe(true);
   expect(swipeHandlePosition(control)).toBeCloseTo(1);
   await swipeRight(control, 1);
-  expect(scanBatchesSentToTheServer()).toHaveLength(1);
+  expect(requestsSent('add_scan_batch')).toHaveLength(1);
   expect(screen.queryByRole('button', { name: 'Lightning Bolt, M10 146 · NM · English' })).not.toBeOnTheScreen();
   expect(screen.getByLabelText('Lightning Bolt, M10 146 · NM · English')).toBeOnTheScreen();
   await commit.finish();
@@ -395,7 +390,7 @@ test('a failed commit keeps the batch and Try again sends the same copy IDs', as
   await openScan();
   await scanACard();
   await openBatchReview(1);
-  failNextScanBatchCommit('before the server adds it');
+  fail('add_scan_batch');
 
   await addToCollection();
 
@@ -403,7 +398,7 @@ test('a failed commit keeps the batch and Try again sends the same copy IDs', as
   expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English']);
   await tryAgain();
 
-  const [failed, retried] = scanBatchesSentToTheServer();
+  const [failed, retried] = requestsSent('add_scan_batch');
   expect(retried.items).toEqual(failed.items);
   expect(isDrawerPresented()).toBe(false);
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
@@ -415,7 +410,7 @@ test('Try again after a commit that the server added but the phone did not hear 
   await scanACard();
   await pressPlusOne();
   await openBatchReview(2);
-  failNextScanBatchCommit('after the server adds it');
+  fail('add_scan_batch', 1, 'after the server answers');
 
   await addToCollection();
   await tryAgain();
@@ -429,7 +424,7 @@ test('Try again after the scan batch changed adds only the copies the server did
   await openScan();
   await scanACard();
   await openBatchReview(1);
-  failNextScanBatchCommit('after the server adds it');
+  fail('add_scan_batch', 1, 'after the server answers');
   await addToCollection();
   await swipeDownDrawer();
 
@@ -437,7 +432,7 @@ test('Try again after the scan batch changed adds only the copies the server did
   await openBatchReview(2);
   await tryAgain();
 
-  const [first, retried] = scanBatchesSentToTheServer();
+  const [first, retried] = requestsSent('add_scan_batch');
   expect(retried.items.flatMap((item) => item.copy_ids)).toEqual(
     expect.arrayContaining(first.items.flatMap((item) => item.copy_ids)),
   );
@@ -519,7 +514,7 @@ test('Remove empties the scan batch, the batch badge, and the latest-scan chip, 
   expect(isDrawerPresented()).toBe(false);
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   expectAnEmptyChip();
-  expect(scanBatchesSentToTheServer()).toEqual([]);
+  expect(requestsSent('add_scan_batch')).toEqual([]);
   await openBatchReview();
   expect(drawerTitle()).toBe('0 cards scanned');
   expectAnEmptyBatchReview();
@@ -545,14 +540,14 @@ test('removing every scan after a failed commit leaves nothing to send again', a
   await openScan();
   await scanACard();
   await openBatchReview(1);
-  failNextScanBatchCommit('before the server adds it');
+  fail('add_scan_batch');
   await addToCollection();
 
   await removeAllScans();
   await restartTheApp();
   await pressTab('Scan');
 
-  expect(scanBatchesSentToTheServer()).toHaveLength(1);
+  expect(requestsSent('add_scan_batch')).toHaveLength(1);
   await openBatchReview();
   expectAnEmptyBatchReview();
   expect(screen.queryByText('Could not add to your collection. Your scans are kept.')).not.toBeOnTheScreen();
@@ -603,7 +598,7 @@ test('the More button is hidden while the commit runs', async () => {
   await openScan();
   await scanACard();
   await openBatchReview(1);
-  const commit = holdNextScanBatchCommit();
+  const commit = hold('add_scan_batch', { once: true });
 
   await addToCollection();
 
@@ -626,7 +621,7 @@ test('Cancel keeps the scan batch, the batch badge, and the latest-scan chip', a
   await swipeDownDrawer();
   expect(scanTab().getByRole('button', { name: 'Scan batch, 1' })).toBeOnTheScreen();
   expect(latestScanChip('Lightning Bolt, M10 146')).toBeOnTheScreen();
-  expect(scanBatchesSentToTheServer()).toEqual([]);
+  expect(requestsSent('add_scan_batch')).toEqual([]);
 });
 
 test('the scan batch survives a restart of the app', async () => {
@@ -657,7 +652,7 @@ test('a scan batch saved by an older build still loads, without its scans that w
   expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English']);
   expect(screen.queryByText('Not recognized')).not.toBeOnTheScreen();
   await addToCollection();
-  const [sent] = scanBatchesSentToTheServer();
+  const [sent] = requestsSent('add_scan_batch');
   expect(sent.items.map(({ card_printing_id, copy_ids }) => ({ card_printing_id, copy_ids }))).toEqual([
     { card_printing_id: lightningBoltM10.printingId, copy_ids: ['older-recognized'] },
   ]);
@@ -668,13 +663,13 @@ test('a restart after a commit that did not finish sends it again with the same 
   await openScan();
   await scanACard();
   await openBatchReview(1);
-  failNextScanBatchCommit('after the server adds it');
+  fail('add_scan_batch', 1, 'after the server answers');
   await addToCollection();
 
   await restartTheApp();
   await pressTab('Scan');
 
-  const [first, retried] = scanBatchesSentToTheServer();
+  const [first, retried] = requestsSent('add_scan_batch');
   expect(retried.items).toEqual(first.items);
   expect(scanTab().getByRole('button', { name: 'Scan batch' })).toBeOnTheScreen();
   await pressTab('Collection');

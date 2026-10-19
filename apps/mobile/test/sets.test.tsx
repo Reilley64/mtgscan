@@ -4,7 +4,8 @@ import { fireEvent, within } from 'expo-router/testing-library';
 import { processColor } from 'react-native';
 
 import { liquidGlassIsAvailable } from './fake-glass-effect';
-import { failSetReads, holdSetReads, offerSets, ownCollectionCopies, setListQueriesSent, setReadCount, startSignedIn } from './fake-supabase';
+import { offerSets, ownCollectionCopies, startSignedIn } from './fake-supabase';
+import { fail, hold, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
   backdropOf,
@@ -299,10 +300,10 @@ describe('searching Sets', () => {
     await openSets();
 
     await typeInSearchBarWithoutPausing('bloom');
-    expect(setListQueriesSent()).toEqual([{ finish_view: 'any', cursor: null }]);
+    expect(requestsSent('list_sets')).toEqual([{ finish_view: 'any', cursor: null }]);
 
     await pauseTyping();
-    expect(setListQueriesSent()).toEqual([
+    expect(requestsSent('list_sets')).toEqual([
       { finish_view: 'any', cursor: null },
       { text: 'bloom', finish_view: 'any', cursor: null },
     ]);
@@ -314,16 +315,16 @@ describe('searching Sets', () => {
 
     await clearSearchBar();
 
-    expect(setListQueriesSent().at(-1)).toEqual({ finish_view: 'any', cursor: null });
+    expect(requestsSent('list_sets').at(-1)).toEqual({ finish_view: 'any', cursor: null });
     expect(shownSets()).toHaveLength(2);
   });
 
   test('a reply to an earlier search never replaces the reply to the latest search', async () => {
     const sets = await openSets();
-    const earlierSearch = holdSetReads();
+    const earlierSearch = hold('list_sets');
     await typeInSearchBar('bloom');
     await clearSearchBar();
-    const latestSearch = holdSetReads();
+    const latestSearch = hold('list_sets');
     await typeInSearchBar('horizons');
 
     await latestSearch.finish();
@@ -359,12 +360,12 @@ describe('the pages of Sets', () => {
   test('Sets reads the first page, then the next page as the user nears the end of the list', async () => {
     offerSets(manySets);
     await openSets();
-    expect(setListQueriesSent()).toEqual([{ finish_view: 'any', cursor: null }]);
+    expect(requestsSent('list_sets')).toEqual([{ finish_view: 'any', cursor: null }]);
 
     await scrollToEnd(tabStackTopScreen());
 
     expect(await within(tabStackTopScreen()).findByRole('button', { name: /^Set 25,/ })).toBeOnTheScreen();
-    expect(setListQueriesSent()).toEqual([
+    expect(requestsSent('list_sets')).toEqual([
       { finish_view: 'any', cursor: null },
       { finish_view: 'any', cursor: '20' },
     ]);
@@ -373,7 +374,7 @@ describe('the pages of Sets', () => {
   test('while the next page loads, set banner skeletons show after the last set', async () => {
     offerSets(manySets);
     const sets = await openSets();
-    const read = holdSetReads();
+    const read = hold('list_sets');
 
     await scrollToEnd(tabStackTopScreen());
 
@@ -394,7 +395,7 @@ describe('the pages of Sets', () => {
 
     await typeInSearchBar('set 2');
 
-    expect(setListQueriesSent().at(-1)).toEqual({ text: 'set 2', finish_view: 'any', cursor: null });
+    expect(requestsSent('list_sets').at(-1)).toEqual({ text: 'set 2', finish_view: 'any', cursor: null });
     expect(shownSetNames()).toEqual(['Set 2', ...manySets.slice(19, 25).map((set) => set.name)]);
   });
 });
@@ -402,7 +403,7 @@ describe('the pages of Sets', () => {
 describe('reading Sets', () => {
   test('Sets shows a skeleton while it loads', async () => {
     offerSets([setRow('blb', 'Bloomburrow', 234, 261)]);
-    const read = holdSetReads();
+    const read = hold('list_sets');
 
     const sets = await openSets();
     expect(sets.getByRole('progressbar', { name: 'Loading sets' }).children.length).toBeGreaterThan(8);
@@ -414,7 +415,7 @@ describe('reading Sets', () => {
 
   test('when the read fails, Sets shows the read failure, and Try again reads the sets again', async () => {
     offerSets([setRow('blb', 'Bloomburrow', 234, 261)]);
-    failSetReads(1);
+    fail('list_sets', 1);
 
     const sets = await openSets();
     expect(sets.getByLabelText('Could not load Sets, Check your connection.')).toBeOnTheScreen();
@@ -427,13 +428,13 @@ describe('reading Sets', () => {
   test('Sets reads again when it gains focus', async () => {
     offerSets([setRow('blb', 'Bloomburrow', 0, 261)]);
     await openSets();
-    expect(setReadCount()).toBe(1);
+    expect(requestsSent('list_sets').length).toBe(1);
 
     offerSets([setRow('blb', 'Bloomburrow', 1, 261)]);
     await pressTab('Recent');
     await pressTab('Collection');
 
-    expect(setReadCount()).toBe(2);
+    expect(requestsSent('list_sets').length).toBe(2);
     expect(within(tabStackTopScreen()).getByRole('button', { name: 'Bloomburrow, 1 of 261, 0 percent' })).toBeOnTheScreen();
   });
 });

@@ -2,16 +2,8 @@ import type { DeckChange, DeckChangeBasicLandLine, DeckChangeCopyLine, DeckChang
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 import { processColor } from 'react-native';
 
-import {
-  changeDeckElsewhere,
-  deckWritesSent,
-  failDeckWrites,
-  holdDeckChangeReads,
-  ownDeckChanges,
-  ownDecks,
-  ownRevertPreview,
-  startSignedIn,
-} from './fake-supabase';
+import { changeDeckElsewhere, deckWritesSent, failDeckWrites, ownDeckChanges, ownDecks, ownRevertPreview, startSignedIn } from './fake-supabase';
+import { hold } from './fake-supabase-controls';
 import {
   headerButton,
   headerButtonColor,
@@ -215,7 +207,7 @@ describe('the Revert page sheet', () => {
   test('while History reads again after a deck change, it keeps the deck changes it showed', async () => {
     await openRevert(2);
     changeDeckElsewhere('deck-1', deckChange(4, 'added', [copyLine('Cyclonic Rift', { place_before: null, place_after: 'main' })]));
-    const reads = holdDeckChangeReads();
+    const reads = hold('list_deck_changes');
 
     await pressHeaderButton(presentedPageSheet(), 'Cancel');
 

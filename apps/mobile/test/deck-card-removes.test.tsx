@@ -1,14 +1,8 @@
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { copyOf, delver, openDeckNamed } from './copies';
-import {
-  decksOnTheServer,
-  deckWritesSent,
-  failDeckWrites,
-  ownDeckOfCopies,
-  removeDeckCardOnTheServer,
-  startSignedIn,
-} from './fake-supabase';
+import { changeElsewhere, decksOnTheServer, failDeckWrites, ownDeckOfCopies, startSignedIn } from './fake-supabase';
+import { requestsSent } from './fake-supabase-controls';
 import {
   buttonMenuActions,
   contextMenu,
@@ -31,7 +25,7 @@ beforeEach(() => {
 });
 
 function removedCards() {
-  return deckWritesSent().flatMap(({ name, request }) => (name === 'remove_deck_card' ? [request] : []));
+  return requestsSent('remove_deck_card');
 }
 
 async function openDeck() {
@@ -120,7 +114,7 @@ describe('the long-press menu on the Cards tab', () => {
   test('a card that was already removed on another phone leaves Cards with no alert', async () => {
     ownDeckOfCopies('Atraxa', [curator]);
     const deck = await openDeck();
-    removeDeckCardOnTheServer('copy-1');
+    changeElsewhere('remove_deck_card', { copy_id: 'copy-1' });
 
     await pressButtonMenuAction(contextMenu(deck.getByRole('button', { name: 'Angelic Curator, MH2 262' })), 'Remove from deck');
 

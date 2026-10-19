@@ -3,14 +3,8 @@ import { act, fireEvent, screen, within } from 'expo-router/testing-library';
 import { returnToTheApp } from './app-state';
 import { cameraIsOn } from './fake-card-detector';
 import { galleryDownloadReports, galleryDownloads, phoneHasGallery } from './fake-card-recognizer';
-import {
-  galleryPartNames,
-  galleryStorageIsOffline,
-  publishGallery,
-  publishedGalleryVersion,
-  startSignedIn,
-  uploadUnpublishedGallery,
-} from './fake-supabase';
+import { galleryPartNames, publishedGalleryVersion, publishGallery, startSignedIn, uploadUnpublishedGallery } from './fake-supabase';
+import { fail } from './fake-supabase-controls';
 import { openSettings, pressTab, selectedTab } from './native-ui';
 import { renderApp } from './render-app';
 
@@ -114,7 +108,7 @@ describe('on a phone without the gallery', () => {
   });
 
   test('with no network the gallery check is paused, and Try again checks again', async () => {
-    galleryStorageIsOffline(1);
+    fail('gallery.download', 1);
     const tab = await openScan();
 
     expect(within(tab).getByText('Gallery download paused. It continues when you are online.')).toBeOnTheScreen();
@@ -126,7 +120,7 @@ describe('on a phone without the gallery', () => {
   });
 
   test('a paused gallery check runs again when the app comes back to the foreground', async () => {
-    galleryStorageIsOffline(1);
+    fail('gallery.download', 1);
     await openScan();
     expect(galleryDownloads()).toHaveLength(0);
 

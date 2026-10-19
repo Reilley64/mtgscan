@@ -2,20 +2,8 @@ import type { CollectionCopyRow, CollectionTotal, CurrentPrice } from '@mtgscan/
 import { act, fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 import { processColor } from 'react-native';
 
-import {
-  answerCollectionSearches,
-  collectionSearchesSent,
-  expirePageCursors,
-  failCollectionReads,
-  holdCollectionReads,
-  ownCollectionCopies,
-  ownCollectionTotal,
-  ownDecks,
-  failDeckReads,
-  ownUserTags,
-  setCodeLookupsSent,
-  startSignedIn,
-} from './fake-supabase';
+import { answerCollectionSearches, collectionSearchesSent, expirePageCursors, failDeckReads, ownCollectionCopies, ownCollectionTotal, ownDecks, ownUserTags, startSignedIn } from './fake-supabase';
+import { callsSent, fail, hold } from './fake-supabase-controls';
 import {
   appearsBefore,
   dashedOutlinesColored,
@@ -350,7 +338,7 @@ test('the Collection tab shows newly added copies when it gains focus again', as
 
 test('a failed binder grid read offers Try again, which shows the tiles', async () => {
   ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
-  failCollectionReads(1);
+  fail('search_collection', 1);
 
   const collection = await openCollection();
   expect(collection.getByLabelText('Could not load your collection, Check your connection.')).toBeOnTheScreen();
@@ -364,7 +352,7 @@ test('a failed binder grid read offers Try again, which shows the tiles', async 
 describe('the skeleton grid', () => {
   test('until the binder grid read returns, the Collection tab shows a skeleton grid, then the tiles', async () => {
     ownCollectionCopies(collectionEntryCopies('Angelic Curator', 2));
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     const collection = await openCollection();
     expect(skeletonGrid()).toBeOnTheScreen();
@@ -377,7 +365,7 @@ describe('the skeleton grid', () => {
   });
 
   test('VoiceOver reads the skeleton grid as one element and not each block', async () => {
-    holdCollectionReads();
+    hold('search_collection');
 
     await openCollection();
 
@@ -386,7 +374,7 @@ describe('the skeleton grid', () => {
   });
 
   test('an empty collection shows the skeleton grid, then the empty state', async () => {
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     const collection = await openCollection();
     expect(skeletonGrid()).toBeOnTheScreen();
@@ -399,8 +387,8 @@ describe('the skeleton grid', () => {
   });
 
   test('a failed binder grid read shows the skeleton grid, then Try again', async () => {
-    failCollectionReads(1);
-    const reads = holdCollectionReads();
+    fail('search_collection', 1);
+    const reads = hold('search_collection');
 
     const collection = await openCollection();
     expect(skeletonGrid()).toBeOnTheScreen();
@@ -414,7 +402,7 @@ describe('the skeleton grid', () => {
   test('a reload when the tab gains focus keeps the tiles already shown and brings no skeleton grid back', async () => {
     ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
     const collection = await openCollection();
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     await pressTab('Recent');
     await pressTab('Collection');
@@ -434,7 +422,7 @@ describe('the skeleton grid', () => {
     await act(async () => {
       jest.advanceTimersByTime(6 * 60 * 1000);
     });
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     await pressTab('Collection');
 
@@ -447,7 +435,7 @@ describe('the skeleton grid', () => {
   test('a new page keeps the tiles already shown and brings no skeleton grid back', async () => {
     ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
     const collection = await openCollection();
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     await scrollToEnd(selectedTab());
 
@@ -460,7 +448,7 @@ describe('the skeleton grid', () => {
   test('while the next page loads, a row of skeleton tiles shows after the last tiles', async () => {
     ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
     const collection = await openCollection();
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     await scrollToEnd(selectedTab());
 
@@ -798,10 +786,10 @@ describe('collection search', () => {
     const collection = await openCollection();
 
     await typeInSearchBarWithoutPausing('set:mh2');
-    expect(setCodeLookupsSent()).toEqual([]);
+    expect(callsSent('card_sets.lookup').map((call) => call.request)).toEqual([]);
 
     await pauseTyping();
-    expect(setCodeLookupsSent()).toEqual(['mh2']);
+    expect(callsSent('card_sets.lookup').map((call) => call.request)).toEqual(['mh2']);
     expect(collection.getByRole('button', { name: 'set:mh2, Modern Horizons 2' })).toBeOnTheScreen();
   });
 
@@ -926,7 +914,7 @@ describe('collection search', () => {
     ownCollectionCopies(collectionEntryCopies('Ponder', 3));
     answerCollectionSearches((query) => (query.text === 'curator' ? collectionEntryCopies('Angelic Curator', 2) : collectionEntryCopies('Ponder', 3)));
     const collection = await openCollection();
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     await typeInSearchBar('curator');
 

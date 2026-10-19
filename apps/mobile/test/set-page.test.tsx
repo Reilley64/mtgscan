@@ -2,15 +2,8 @@ import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
 import type { CardSet, FinishView, SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
 import { fireEvent, within } from 'expo-router/testing-library';
 
-import {
-  failSetPageReads,
-  holdSetPageReads,
-  offerSetPage,
-  offerSets,
-  ownCollectionCopies,
-  setPageReadsSent,
-  startSignedIn,
-} from './fake-supabase';
+import { offerSetPage, offerSets, ownCollectionCopies, startSignedIn } from './fake-supabase';
+import { fail, hold, requestsSent } from './fake-supabase-controls';
 import {
   cardImageLook,
   cardImageUri,
@@ -114,7 +107,7 @@ describe('opening a set', () => {
   test('tapping a set on Sets opens its set page in the Collection tab, with a back button and the tab bar', async () => {
     await openBloomburrow();
 
-    expect(setPageReadsSent()).toEqual(['blb']);
+    expect(requestsSent('get_set')).toEqual([{ code: 'blb' }]);
     expect(selectedTab().props.title).toBe('Collection');
     expect(tabHeader(tabStackTopScreen())).toMatchObject({ title: '', largeTitle: false });
     expect(tabStackShowsBackButton()).toBe(true);
@@ -217,7 +210,7 @@ describe('the set page', () => {
 
 describe('reading a set', () => {
   test('the set page shows a skeleton with a set page banner skeleton while it loads', async () => {
-    const read = holdSetPageReads();
+    const read = hold('get_set');
 
     const page = await openBloomburrow();
     const skeleton = page.getByRole('progressbar', { name: 'Loading set' });
@@ -231,7 +224,7 @@ describe('reading a set', () => {
   });
 
   test('when the read fails, the set page shows the read failure, and Try again reads the set again', async () => {
-    failSetPageReads(1);
+    fail('get_set', 1);
 
     const page = await openBloomburrow();
     expect(page.getByLabelText('Could not load this set, Check your connection.')).toBeOnTheScreen();
@@ -239,7 +232,7 @@ describe('reading a set', () => {
     await fireEvent.press(page.getByRole('button', { name: 'Try again' }));
 
     expect(await page.findByRole('header', { name: 'Bloomburrow, 2 of 3, 66 percent' })).toBeOnTheScreen();
-    expect(setPageReadsSent()).toEqual(['blb', 'blb']);
+    expect(requestsSent('get_set')).toEqual([{ code: 'blb' }, { code: 'blb' }]);
   });
 
   test('going back to Sets reads the sets again', async () => {
@@ -255,7 +248,7 @@ describe('reading a set', () => {
     await openBloomburrow();
     await swipeBackInTheTab();
     offerSetPage({ ...bloomburrow, completion: { ...bloomburrow.completion, any: { owned: 3, size: 3 } } });
-    const read = holdSetPageReads();
+    const read = hold('get_set');
 
     await fireEvent.press(within(tabStackTopScreen()).getByRole('button', { name: /^Bloomburrow/ }));
 
@@ -264,7 +257,7 @@ describe('reading a set', () => {
     expect(page.queryByRole('progressbar', { name: 'Loading set' })).toBeNull();
     await read.finish();
     expect(page.getByRole('header', { name: 'Bloomburrow, 3 of 3, 100 percent' })).toBeOnTheScreen();
-    expect(setPageReadsSent()).toEqual(['blb', 'blb']);
+    expect(requestsSent('get_set')).toEqual([{ code: 'blb' }, { code: 'blb' }]);
   });
 
   test('the set page reads again when it gains focus', async () => {
@@ -274,7 +267,7 @@ describe('reading a set', () => {
     await pressTab('Recent');
     await pressTab('Collection');
 
-    expect(setPageReadsSent()).toEqual(['blb', 'blb']);
+    expect(requestsSent('get_set')).toEqual([{ code: 'blb' }, { code: 'blb' }]);
     expect(within(tabStackTopScreen()).getByRole('header', { name: 'Bloomburrow, 3 of 3, 100 percent' })).toBeOnTheScreen();
   });
 });

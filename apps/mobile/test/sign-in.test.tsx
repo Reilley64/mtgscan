@@ -15,7 +15,8 @@ import {
   spyOnAppleRequest,
 } from './fake-apple';
 import { copyOf } from './copies';
-import { failNextSignIn, holdCollectionReads, ownCopies, signInNextWithEmail, startSignedIn } from './fake-supabase';
+import { failNextSignIn, ownCopies, signInNextWithEmail, startSignedIn } from './fake-supabase';
+import { hold } from './fake-supabase-controls';
 import {
   appearsBefore,
   appleSignInButton,
@@ -266,7 +267,7 @@ test('after Sign out, the next account sees no card of the last account while it
   expect(within(selectedTab()).getByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
   await openSettings();
   await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
-  holdCollectionReads();
+  hold('search_collection');
 
   signInNextWithEmail('friend@example.com');
   await continueWithGoogle();

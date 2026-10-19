@@ -5,17 +5,8 @@ import { returnToTheApp } from './app-state';
 import { timePasses, todayIs } from './clock';
 import { copyOf, openCollection, openCopyPage } from './copies';
 import { phoneRegionCurrencyIs } from './fake-localization';
-import {
-  answerCollectionSearches,
-  exchangeRateReadCount,
-  failExchangeRateReads,
-  holdCollectionReads,
-  offerExchangeRates,
-  ownCollectionTotal,
-  ownCopies,
-  priceReadsSent,
-  startSignedIn,
-} from './fake-supabase';
+import { answerCollectionSearches, offerExchangeRates, ownCollectionTotal, ownCopies, startSignedIn } from './fake-supabase';
+import { callsSent, fail, hold, requestsSent } from './fake-supabase-controls';
 import {
   drawerBackButton,
   headerButton,
@@ -54,6 +45,10 @@ async function chooseCurrency(label: string) {
 
 function collectionTotalButtons() {
   return tabHeader(selectedTab()).buttons.filter((button) => button?.startsWith('Collection total'));
+}
+
+function priceReadsSent() {
+  return callsSent(['search_collection', 'get_collection_total', 'get_copy', 'get_current_prices']);
 }
 
 function curatorTile() {
@@ -125,7 +120,7 @@ describe('the Currency row and list', () => {
 
   test('when the exchange rates cannot load, prices stay in USD and the list offers Try again', async () => {
     phoneRegionCurrencyIs('AUD');
-    failExchangeRateReads(1);
+    fail('list_exchange_rates', 1);
     await openCollection();
     expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, $0.35');
 
@@ -138,7 +133,7 @@ describe('the Currency row and list', () => {
 
   test('when the exchange rates cannot load, the app reads them again when the user returns to the app', async () => {
     phoneRegionCurrencyIs('AUD');
-    failExchangeRateReads(1);
+    fail('list_exchange_rates', 1);
     await openCollection();
 
     await returnToTheApp();
@@ -154,7 +149,7 @@ describe('the exchange rate read', () => {
     await pressTab('Recent');
     await pressTab('Collection');
 
-    expect(exchangeRateReadCount()).toBe(1);
+    expect(requestsSent('list_exchange_rates').length).toBe(1);
   });
 
   test('the app reads the exchange rates again when the user returns to the app more than a day later', async () => {
@@ -164,13 +159,13 @@ describe('the exchange rate read', () => {
 
     await timePasses(23 * 60 * 60 * 1000);
     await returnToTheApp();
-    expect(exchangeRateReadCount()).toBe(1);
+    expect(requestsSent('list_exchange_rates').length).toBe(1);
 
     offerExchangeRates(['AUD', 'USD'], '2026-10-15');
     await timePasses(2 * 60 * 60 * 1000);
     await returnToTheApp();
 
-    expect(exchangeRateReadCount()).toBe(2);
+    expect(requestsSent('list_exchange_rates').length).toBe(2);
     await waitFor(() =>
       expect(headerMenu(selectedTab(), 'Collection total, about $41.13').title).toBe(
         'TCGplayer Market price via Scryfall, converted from USD at the ECB rate for 15 Oct',
@@ -244,8 +239,8 @@ describe('price reads', () => {
 
     await openCopyPage(/^Angelic Curator/);
 
-    expect(priceReadsSent().map(({ read }) => read).sort()).toEqual(['get_collection_total', 'get_copy', 'search_collection']);
-    expect(priceReadsSent().filter(({ query }) => 'price_currency' in query)).toEqual([]);
+    expect(priceReadsSent().map(({ name }) => name).sort()).toEqual(['get_collection_total', 'get_copy', 'search_collection']);
+    expect(priceReadsSent().filter(({ request }) => 'price_currency' in Object(request))).toEqual([]);
   });
 
   test('changing the currency switches every price at once without reading prices again', async () => {
@@ -253,14 +248,14 @@ describe('price reads', () => {
     await openCollection();
     expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, $0.35');
     expect(collectionTotalButtons()).toEqual(['Collection total, $27.00']);
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     await chooseCurrency('AUD Australian dollar');
 
     expect(curatorTile()).toHaveProp('accessibilityLabel', 'Angelic Curator, MH2 262, about $0.53');
     await waitFor(() => expect(collectionTotalButtons()).toEqual(['Collection total, about $41.13']));
     await reads.finish();
-    expect(priceReadsSent().filter(({ query }) => 'price_currency' in query)).toEqual([]);
+    expect(priceReadsSent().filter(({ request }) => 'price_currency' in Object(request))).toEqual([]);
   });
 
   test('a price filter converts its bound to USD, one minor unit below a "less than" bound', async () => {
