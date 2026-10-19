@@ -369,6 +369,21 @@ describe('the Storage limit', () => {
     expect(Number(bytes)).toBe(freePlan.storageBytes);
   });
 
+  test('the secret key reads the Storage left before training crop uploads stop at 90% of the Storage limit', async () => {
+    await setStorageLimit(2_000_000_000);
+
+    const { data, error } = await secretKey.rpc('get_training_crop_storage');
+
+    expect(error).toBeNull();
+    expect(data).toEqual({ bytes_left: 1_800_000_000 - (await storedBytes()) });
+  });
+
+  test('a signed-in user cannot read the Storage left', async () => {
+    const { error } = await alice.client.rpc('get_training_crop_storage');
+
+    expect(error?.code).toBe(permissionDenied);
+  });
+
   test('an upload is refused with storage_full when the objects in every bucket reach 90% of the Storage limit, and nothing is stored', async () => {
     const galleryObject = `storage-limit-${crypto.randomUUID()}.bin`;
     galleryObjects.push(galleryObject);

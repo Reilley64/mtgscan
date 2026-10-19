@@ -3,10 +3,12 @@ import { mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { freePlan } from '../gallery/budget';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runCropsCommand } from './catalog-import-command';
 import { asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
-import { angelicCurator, delverInnistrad, evidenceRecord, jpeg, type TrainingCrop } from './training-crop-seeds';
+import type { TrainingCrop } from '../training-crops';
+import { angelicCurator, delverInnistrad, evidenceRecord, jpeg } from './training-crop-seeds';
 
 setDefaultTimeout(60_000);
 
@@ -14,6 +16,7 @@ const secretKey = secretKeyClient();
 const bucket = secretKey.storage.from('training-crops');
 const imageBytes = 200_000;
 const galleryPart = 'training-crop-pull/part.zlib';
+const storageLimit = 2_000_000_000;
 
 let alice: TestUser;
 let aliceCopyId: string;
@@ -68,11 +71,17 @@ beforeAll(async () => {
     .from('gallery')
     .upload(galleryPart, new Uint8Array(300_000), { contentType: 'application/octet-stream', upsert: true });
   expect(gallery.error).toBeNull();
+  await setStorageLimit(storageLimit);
 });
 
 afterAll(async () => {
   await secretKey.storage.from('gallery').remove([galleryPart]);
+  await setStorageLimit(freePlan.storageBytes);
 });
+
+function setStorageLimit(bytes: number) {
+  return asDatabaseOwner((database) => database`update private.storage_limit set bytes = ${bytes}`);
+}
 
 describe('pulling training crops', () => {
   const crops = [
@@ -118,8 +127,8 @@ describe('pulling training crops', () => {
     expect(await readJson(folder, 'evidence.json')).toEqual(byCropId(crops));
   });
 
-  test('the pull prints the number of crops, their total size, and the Storage left before the 90% stop', async () => {
-    const left = ((900_000_000 - (await storageBytes())) / 1_000_000).toFixed(1);
+  test('the pull prints the number of crops, their total size, and the Storage left before the 90% stop of the database Storage limit', async () => {
+    const left = ((0.9 * storageLimit - (await storageBytes())) / 1_000_000).toFixed(1);
 
     expect(first.output).toContain('Downloaded 2 new training crops.');
     expect(first.output).toContain(`${folder} holds 2 training crops, 0.4 MB.`);

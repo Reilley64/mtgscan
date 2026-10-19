@@ -50,7 +50,10 @@ The card recognizer is a local Expo module in `apps/mobile/modules/card-recogniz
 
 A card result also has:
 
-- `decision.basis`, the rule that proved an accept: `collector_line` when the collector line names a card printing in the image shortlist, `set_code` when the set code leaves one card printing of the top card, and `unique_art` when the top card printing is the only one with its art and the next art is far enough behind. It is null for an abstain.
+- `decision.basis`, the rule that proved an accept. It is null for an abstain, and `decision.accepted` is true exactly when it is set. There are three rules:
+  - `collector_line` when the collector line names a card printing in the image shortlist;
+  - `set_code` when the set code leaves one card printing of the top card;
+  - `unique_art` when the top card printing is the only one with its art, and the next art is far enough behind.
 - `artMargin`, the similarity of the top candidate minus the similarity of the best candidate with other art. It is null when no other art was compared.
 - `trainingCrop`, the file URI of the straightened card as a 488 x 680 JPEG in `Caches/training-crops`, the size and format of the crops in the scanner evidence pack. The crop is upright, in the rotation that the recognizer chose. A not-a-card result and a failed recognition write no crop.
 
@@ -133,21 +136,21 @@ The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes o
 
 The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in account.
 
-- After every change, the phone writes the scan batch to `scan-batch-<user ID>.json` in the app's documents folder with `expo-file-system`. The file holds a format version, the scans, and the pending commit. `src/scan/scan-batch-file.ts` reads and writes it.
-- When an account signs in, the phone reads its file back. Sign-out keeps the file and clears the scan batch from the screen.
+- After every change, the phone writes the scan batch to `scan-batch-<user ID>.json` in the app's documents folder with `expo-file-system`. The file holds a format version, the scans, and the pending commit. `src/scan/scan-batch-file.ts` reads and writes it with `src/scan/versioned-user-file.ts`, which the upload queue file uses too. A file in an unknown format version reads as empty.
+- When an account signs in, the phone reads its file back. Sign-out keeps the file and clears the scan batch from the screen. A recognition that ends after the account changed adds no scan, and the phone deletes its training crop.
 - Each scan gets a UUID when it is made, including a scan from **+1**. It is the copy ID of that copy.
 - **Add to collection** calls `add_scan_batch` with one stack per card printing, finish, condition, and language, and the copy IDs of its scans. The server adds each copy ID once, so a retry never adds a copy twice, even after the scan batch changed.
 - The file marks a commit that has not finished. At sign-in, the phone sends that commit again by itself.
 - A commit that works removes the scans it sent. A commit that fails keeps every scan. Batch review rows do not open while a commit runs.
-- **Remove** in the **Remove all scans** alert of batch review empties the scan batch and its file. It also clears a commit that has not finished. A recognition that is still running adds no scan when it ends. Nothing reaches the server.
+- **Remove** in the **Remove all scans** alert of batch review empties the scan batch and its file. It also clears a commit that has not finished. A recognition that is still running adds no scan when it ends, and the phone deletes its training crop. Nothing reaches the server.
 - A scan keeps its training crop. When the scan enters the scan batch, the phone moves the crop from `Caches/training-crops` to `training-crops/<user ID>/<copy ID>.jpg` in the documents folder. The scan also keeps the recognizer fields of the evidence record: the decision, the top similarity, the art margin, the collector line reading, the recognizer version, the feature print revision, and the installed gallery version. A basic land, a recognition with no candidates, and a scan from **+1** keep no crop, and the phone deletes the crop of the first two.
 - A scan keeps `recognizedPrintingId`, the scanner's first card printing. A scan that the user found with name search after it was not recognized has none.
-- A scan keeps `printingChange`. It is null until the user chooses a card printing other than the current one. Then it is `other_options`, `printings_picker`, or `name_search`, from the last such choice. A switch back to the first card printing is a change too.
-- A scan keeps `printingConfirmed`. Choosing the current card printing in the printings picker sets it. Any later change clears it.
+- A scan keeps `printingChange`. It is null until the user chooses a card printing other than the current one. Then it is `other_options`, `printing_picker`, or `name_search`, from the last such choice. A switch back to the first card printing is a change too.
+- A scan keeps `printingConfirmed`. Choosing the current card printing in the printing picker sets it. Any later change clears it.
 - **Remove scan** and **Remove all scans** delete the training crops of the scans they remove.
-- The scan batch file is format version 2. A file in format version 1 still loads. Its scans get no training crop, no printing change, and the first option as their first card printing.
+- The scan batch file is format version 2. A file in format version 1 still loads. Its scans get no training crop, no first card printing, and no printing change.
 - After a commit that works, the training crop of each saved scan that has one joins the user's upload queue, `training-crop-queue-<user ID>.json` in the documents folder. `src/scan/evidence-record.ts` builds the evidence record from the saved scan, with policy version 1. Each crop in the queue gets a new random crop ID, which is not the copy ID, and an upload time drawn at random between 1 and 7 days after the commit. So the upload time does not show when the user added the card.
-- The phone uploads the crops whose upload time has passed when the app starts, when a user signs in, and when the app comes back to the foreground. It uploads them one at a time to the `training-crops` Edge Function, which Training crops (below) describes. It uploads only the signed-in user's queue, and it stops when the user signs out. The phone deletes the crop after the upload works or after the server refuses it with a 400, such as `unknown_copy` for a copy that the user deleted. A network failure or another error keeps the crop in the queue, and the phone stops until the next try.
+- The phone uploads the crops whose upload time has passed when the app starts, when a user signs in, and when the app comes back to the foreground. `TrainingCropUploads` in `src/scan/training-crops.ts` runs these uploads, apart from the scan batch. It uploads them one at a time to the `training-crops` Edge Function, which Training crops (below) describes. It uploads only the signed-in user's queue, and it stops when the user signs out. The phone deletes the crop after the upload works or after the server refuses it with a 400, such as `unknown_copy` for a copy that the user deleted. A network failure or another error keeps the crop in the queue, and the phone stops until the next try.
 - The phone reads the **Upload training crops** switch when a user signs in or the app starts, and again when the app comes back to the foreground after a failed read. When the phone knows that uploads are off, a commit deletes the training crops of the saved scans and queues none. Turning the switch off deletes every crop in the user's queue.
 - Pulling down on the Scan tab adds the scan batch with the same commit as **Add to collection**. `src/scan/use-pull-to-add.ts` tracks the pull with React Native's `PanResponder`, so the app needs no gesture library.
 
@@ -364,6 +367,8 @@ The function:
 
 It answers 204 when the crop is stored. A refusal is a 400 with a JSON body of `code`, `message`, and `details`, the field at fault. Any other failure is a 500 with `internal_error`. The function writes no log line.
 
+`.github/workflows/edge-functions.yml` deploys it with the MCP function. `supabase/functions/training-crops/crop-object.ts` names the bucket and the object path, `<crop_id>.jpg`, for the function and the owner command.
+
 `add_training_crop({ user_id, copy_id, crop })` runs only for the secret key. It uses the user ID and the copy ID for its checks and stores neither:
 
 - `uploads_off`, with no field, when the user turned training crop uploads off;
@@ -373,7 +378,7 @@ It answers 204 when the crop is stored. A refusal is a 400 with a JSON body of `
 
 Otherwise it writes the row. The same crop ID again writes nothing and succeeds.
 
-The Storage limit is `bytes` in the one row of `private.storage_limit`. It is 1,000,000,000 bytes, the Storage of the Free plan. The gallery budget report uses the same number, `freePlan.storageBytes` in `supabase/gallery/budget.ts`. On a plan upgrade, change both in the same PR, with a new migration for the database value. The app drops a crop refused with `storage_full` and shows no message. So uploads stop for every user before training crops can fill the Storage that the gallery needs.
+The Storage limit is `bytes` in the one row of `private.storage_limit`. It is 1,000,000,000 bytes, the Storage of the Free plan. The gallery budget report uses the same number, `freePlan.storageBytes` in `supabase/gallery/budget.ts`. On a plan upgrade, change both in the same PR, with a new migration for the database value. `private.storage_left_before_upload_stop()` holds the 90% rule. It returns 90% of the Storage limit minus the bytes of the objects in every bucket. `add_training_crop` refuses with `storage_full` when it is 0 or less, and `supabase.rpc('get_training_crop_storage')` returns it as `{ bytes_left }`. Only the secret key can call that function. The app drops a crop refused with `storage_full` and shows no message. So uploads stop for every user before training crops can fill the Storage that the gallery needs.
 
 The evidence record has these fields, each a column of `training_crops`:
 
@@ -384,7 +389,7 @@ The evidence record has these fields, each a column of `training_crops`:
 - `same_text_twin_count`;
 - `recognizer_version` (the app version and build number), `feature_print_revision`, and `gallery_version`;
 - `recognized_printing_id`, the scanner's first card printing, and `saved_printing_id`, both in the card catalog;
-- `printing_change` (`other_options`, `printings_picker`, `name_search`, or null) and `printing_confirmed`;
+- `printing_change` (`other_options`, `printing_picker`, `name_search`, or null) and `printing_confirmed`;
 - `policy_version`.
 
 The **Upload training crops** switch in the settings drawer sets `profiles.training_crop_uploads`, which is true by default. It follows the account, so it is the same on every phone:
@@ -402,7 +407,7 @@ The owner downloads the training crops to the Mac with `bun run crops pull` in `
 - `labels.json` has `cards`, with each crop path and its `saved_printing_id` as `scryfallId`.
 - `evidence.json` has the evidence record of each crop, in the same order.
 
-A row whose image is not in the bucket yet waits for a later pull. The command prints the number of new crops, the number of crops in the folder and their total size, and the Storage left before uploads stop at 90%. It adds up the objects in every bucket and takes the limit from `freePlan.storageBytes` in `supabase/gallery/budget.ts`.
+A row whose image is not in the bucket yet waits for a later pull. The command prints the number of new crops, the number of crops in the folder and their total size, and the Storage left before uploads stop at 90%. It reads the Storage left from `get_training_crop_storage`, so it uses the same limit and rule as `storage_full`.
 
 The evaluate script runs on the folder, from `apps/mobile`, with the macOS recognizer command that `bun run recognizer:replay` builds:
 
@@ -837,7 +842,7 @@ Each request logs one JSON line with `tool`, `client_id`, `result`, `protocol_ve
 - `bunx supabase@2.120.0 start` serves the function on the local stack. `bunx supabase@2.120.0 functions serve` serves it with a reload on each change.
 - `supabase/functions/mcp/deno.json` pins the function's packages. `bun run typecheck` in `supabase` runs `deno check` on it and on `training-crops`.
 - The HTTP tests in `supabase/tests/mcp-server.test.ts` get tokens from the local OAuth server, as an AI client does. They read the log lines from the edge runtime container with `docker logs`.
-- `.github/workflows/mcp-function.yml` deploys every Edge Function, this one and `training-crops`, on each push to `main` that changes `supabase/functions/**`.
+- `.github/workflows/edge-functions.yml` deploys every Edge Function on each push to `main` that changes `supabase/functions/**`.
 
 #### MCP pre-flight
 

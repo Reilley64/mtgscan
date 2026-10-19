@@ -2,7 +2,7 @@ import type { CardCondition, CardLanguage, ScanBatchStack } from '@mtgscan/supab
 import type { Database } from '@mtgscan/supabase/database.types';
 import type { Finish } from '@mtgscan/supabase/search';
 
-import type { CollectorLineReading, DecisionBasis, GalleryCardPrinting } from '../../modules/card-recognizer';
+import type { CollectorLineReading, GalleryCardPrinting, RecognitionDecision } from '../../modules/card-recognizer';
 
 export type Printing = GalleryCardPrinting;
 
@@ -10,9 +10,7 @@ export type PrintingChange = Database['public']['Enums']['printing_change'];
 
 export type ScanTrainingCrop = Readonly<{
   uri: string;
-  accepted: boolean;
-  decisionBasis: DecisionBasis | null;
-  decisionReasons: readonly string[];
+  decision: RecognitionDecision;
   topSimilarity: number;
   artMargin: number | null;
   reading: CollectorLineReading;
@@ -90,7 +88,7 @@ function chosen(scan: BatchScan, { printing, printingChange }: Extract<ScanBatch
   if (printing.printingId !== scan.printing.printingId) {
     return { ...scan, printing, finish: finishAfterSwitch(scan, printing), printingChange, printingConfirmed: false };
   }
-  return printingChange === 'printings_picker' ? { ...scan, printingConfirmed: true } : scan;
+  return printingChange === 'printing_picker' ? { ...scan, printingConfirmed: true } : scan;
 }
 
 function updateScan(batch: ScanBatch, scanId: string, change: (scan: BatchScan) => BatchScan): ScanBatch {

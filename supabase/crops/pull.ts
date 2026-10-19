@@ -2,53 +2,39 @@ import { existsSync } from 'node:fs';
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Database } from '../database.types';
-import { freePlan } from '../gallery/budget';
+import { cropObjectName, trainingCropsBucket } from '../functions/training-crops/crop-object';
+import { plural } from '../functions/mcp/plural';
 import { megabytes } from '../gallery/manifest';
 import type { ImportClient } from '../import/import-run';
+import type { TrainingCrop, TrainingCropStorage } from '../training-crops';
 
-type TrainingCrop = Database['public']['Tables']['training_crops']['Row'];
-
-type StoredObject = { name: string; bytes: number };
-
-const trainingCropsBucket = 'training-crops';
-const uploadStop = 0.9;
 const pageSize = 1000;
 const parallelDownloads = 8;
 
-async function listedObjects(client: ImportClient, bucket: string, prefix = ''): Promise<StoredObject[]> {
-  const objects: StoredObject[] = [];
+async function storedImageBytes(client: ImportClient): Promise<Map<string, number>> {
+  const images = new Map<string, number>();
   for (let offset = 0; ; offset += pageSize) {
-    const { data, error } = await client.storage.from(bucket).list(prefix, { limit: pageSize, offset, sortBy: { column: 'name', order: 'asc' } });
+    const { data, error } = await client.storage
+      .from(trainingCropsBucket)
+      .list('', { limit: pageSize, offset, sortBy: { column: 'name', order: 'asc' } });
     if (error) {
-      throw new Error(`Could not list ${bucket}/${prefix}: ${error.message}`);
+      throw new Error(`Could not list ${trainingCropsBucket}: ${error.message}`);
     }
     for (const entry of data) {
-      const name = prefix ? `${prefix}/${entry.name}` : entry.name;
-      if (entry.id === null) {
-        objects.push(...(await listedObjects(client, bucket, name)));
-      } else {
-        objects.push({ name, bytes: Number(entry.metadata?.size ?? 0) });
-      }
+      images.set(entry.name, Number(entry.metadata?.size ?? 0));
     }
     if (data.length < pageSize) {
-      return objects;
+      return images;
     }
   }
 }
 
-async function storageBytes(client: ImportClient): Promise<number> {
-  const { data, error } = await client.storage.listBuckets();
+async function storageLeft(client: ImportClient): Promise<number> {
+  const { data, error } = await client.rpc('get_training_crop_storage');
   if (error) {
-    throw new Error(`Could not list the Storage buckets: ${error.message}`);
+    throw new Error(`Could not read the Storage left: ${error.message}`);
   }
-  let bytes = 0;
-  for (const bucket of data) {
-    for (const object of await listedObjects(client, bucket.id)) {
-      bytes += object.bytes;
-    }
-  }
-  return bytes;
+  return (data as unknown as TrainingCropStorage).bytes_left;
 }
 
 async function evidenceRecords(client: ImportClient): Promise<TrainingCrop[]> {
@@ -70,11 +56,11 @@ async function evidenceRecords(client: ImportClient): Promise<TrainingCrop[]> {
 }
 
 function cropPath(crop: TrainingCrop): string {
-  return `crops/${crop.crop_id}.jpg`;
+  return `crops/${cropObjectName(crop.crop_id)}`;
 }
 
 async function download(client: ImportClient, crop: TrainingCrop, folder: string) {
-  const { data, error } = await client.storage.from(trainingCropsBucket).download(`${crop.crop_id}.jpg`);
+  const { data, error } = await client.storage.from(trainingCropsBucket).download(cropObjectName(crop.crop_id));
   if (error || !data) {
     throw new Error(`Could not download training crop ${crop.crop_id}: ${error?.message ?? 'no data'}`);
   }
@@ -83,13 +69,9 @@ async function download(client: ImportClient, crop: TrainingCrop, folder: string
   await rename(`${file}.part`, file);
 }
 
-function plural(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`;
-}
-
 export async function pullTrainingCrops(client: ImportClient, folder: string) {
-  const images = new Map((await listedObjects(client, trainingCropsBucket)).map((object) => [object.name, object.bytes]));
-  const crops = (await evidenceRecords(client)).filter((crop) => images.has(`${crop.crop_id}.jpg`));
+  const images = await storedImageBytes(client);
+  const crops = (await evidenceRecords(client)).filter((crop) => images.has(cropObjectName(crop.crop_id)));
   const missing = crops.filter((crop) => !existsSync(join(folder, cropPath(crop))));
   await mkdir(join(folder, 'crops'), { recursive: true });
   for (let next = 0; next < missing.length; next += parallelDownloads) {
@@ -99,9 +81,8 @@ export async function pullTrainingCrops(client: ImportClient, folder: string) {
   await writeFile(join(folder, 'labels.json'), `${JSON.stringify(labels, null, 1)}\n`);
   await writeFile(join(folder, 'evidence.json'), `${JSON.stringify(crops, null, 1)}\n`);
 
-  const cropBytes = crops.reduce((sum, crop) => sum + images.get(`${crop.crop_id}.jpg`)!, 0);
-  const left = freePlan.storageBytes * uploadStop - (await storageBytes(client));
+  const cropBytes = crops.reduce((sum, crop) => sum + images.get(cropObjectName(crop.crop_id))!, 0);
   console.log(`Downloaded ${plural(missing.length, 'new training crop')}.`);
   console.log(`${folder} holds ${plural(crops.length, 'training crop')}, ${megabytes(cropBytes)}.`);
-  console.log(`${megabytes(left)} of Storage is left before training crop uploads stop at 90%.`);
+  console.log(`${megabytes(await storageLeft(client))} of Storage is left before training crop uploads stop at 90%.`);
 }

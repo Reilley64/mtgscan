@@ -4,10 +4,12 @@ import { Directory, File, Paths } from 'expo-file-system';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
+import { useSession } from '@/auth/session';
 import { supabase } from '@/lib/supabase';
 
 import { evidenceRecordOf, type EvidenceRecord } from './evidence-record';
 import { isCroppedScan, type BatchScan } from './scan-batch';
+import { versionedUserFile } from './versioned-user-file';
 
 type WaitingTrainingCrop = {
   cropId: string;
@@ -48,31 +50,25 @@ export function dropTrainingCropsOf(scans: readonly BatchScan[]) {
 }
 
 function queueFile(userId: string) {
-  return new File(Paths.document, `training-crop-queue-${userId}.json`);
+  return versionedUserFile('training-crop-queue', userId, formatVersion);
 }
 
 async function readQueue(userId: string): Promise<WaitingTrainingCrop[]> {
-  const file = queueFile(userId);
-  if (!file.exists) {
-    return [];
-  }
-  try {
-    const { formatVersion: savedVersion, crops } = JSON.parse(await file.text());
-    return savedVersion === formatVersion ? crops : [];
-  } catch {
-    return [];
-  }
+  const crops = await queueFile(userId).read(({ formatVersion: savedVersion, crops }) =>
+    savedVersion === formatVersion ? (crops as WaitingTrainingCrop[]) : null,
+  );
+  return crops ?? [];
 }
 
 function writeQueue(userId: string, crops: readonly WaitingTrainingCrop[]) {
-  queueFile(userId).write(JSON.stringify({ formatVersion, crops }));
+  queueFile(userId).write({ crops });
 }
 
-let queueWork: Promise<unknown> = Promise.resolve();
+let queueLock: Promise<unknown> = Promise.resolve();
 
-function inTurn<T>(job: () => Promise<T>): Promise<T> {
-  const run = queueWork.then(job);
-  queueWork = run.catch(() => {});
+function withQueueLock<T>(job: () => Promise<T>): Promise<T> {
+  const run = queueLock.then(job);
+  queueLock = run.catch(() => {});
   return run;
 }
 
@@ -90,11 +86,11 @@ export function queueTrainingCrops(userId: string, scans: readonly BatchScan[]) 
     uploadAt: committedAt + uploadWait(),
     record: evidenceRecordOf(scan),
   }));
-  return inTurn(async () => writeQueue(userId, [...(await readQueue(userId)), ...kept]));
+  return withQueueLock(async () => writeQueue(userId, [...(await readQueue(userId)), ...kept]));
 }
 
 export function dropWaitingTrainingCrops(userId: string) {
-  return inTurn(async () => {
+  return withQueueLock(async () => {
     (await readQueue(userId)).forEach(({ uri }) => dropTrainingCrop(uri));
     writeQueue(userId, []);
   });
@@ -115,7 +111,7 @@ async function uploadTrainingCrop({ cropId, copyId, uri, record }: WaitingTraini
 }
 
 function uploadDueTrainingCrops(userId: string, stillSignedIn: () => boolean) {
-  return inTurn(async () => {
+  return withQueueLock(async () => {
     let waiting = await readQueue(userId);
     for (const crop of waiting.filter(({ uploadAt }) => uploadAt <= Date.now())) {
       if (!stillSignedIn() || (await uploadTrainingCrop(crop)) === 'failed') {
@@ -128,7 +124,8 @@ function uploadDueTrainingCrops(userId: string, stillSignedIn: () => boolean) {
   });
 }
 
-export function useTrainingCropUploads(userId: string | undefined) {
+export function TrainingCropUploads() {
+  const userId = useSession()?.user.id;
   useEffect(() => {
     if (!userId) {
       return;
@@ -146,4 +143,5 @@ export function useTrainingCropUploads(userId: string | undefined) {
       subscription.remove();
     };
   }, [userId]);
+  return null;
 }

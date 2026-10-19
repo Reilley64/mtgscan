@@ -22,12 +22,12 @@ public enum CardRecognizer {
     outline: CardOutline,
     gallery: Gallery,
     excluded: Set<Int> = [],
-    trainingCrops: URL? = nil
+    trainingCropDirectory: URL? = nil
   ) throws(RecognitionFailure) -> Recognition {
     var startedAt = ProcessInfo.processInfo.systemUptime
     let card = try CardRectifier.rectifiedCard(photo: photo, outline: outline)
     let stageMs = ["rectify": elapsed(since: &startedAt)]
-    return try recognize(card: card, gallery: gallery, stageMs: stageMs, excluded: excluded, trainingCrops: trainingCrops)
+    return try recognize(card: card, gallery: gallery, stageMs: stageMs, excluded: excluded, trainingCropDirectory: trainingCropDirectory)
   }
 
   public static func recognize(
@@ -35,7 +35,7 @@ public enum CardRecognizer {
     gallery: Gallery,
     stageMs initialStageMs: [String: Double] = [:],
     excluded: Set<Int> = [],
-    trainingCrops: URL? = nil
+    trainingCropDirectory: URL? = nil
   ) throws(RecognitionFailure) -> Recognition {
     var stageMs = initialStageMs
     var startedAt = ProcessInfo.processInfo.systemUptime
@@ -109,7 +109,7 @@ public enum CardRecognizer {
     }
     expanded.sort { scores[$0] > scores[$1] }
     let choice = choose(ranked: expanded, scores: scores, reading: reading, gallery: gallery, excluded: excluded)
-    let trainingCrop = trainingCrops.flatMap { TrainingCrop.write(isTurned ? turnedSmall : uprightSmall, in: $0) }
+    let trainingCrop = trainingCropDirectory.flatMap { TrainingCrop.write(isTurned ? turnedSmall : uprightSmall, in: $0) }
     return .card(CardRecognition(
       candidates: choice.candidates.map { RecognitionCandidate(printing: gallery.printings[$0]) },
       decision: choice.decision,
