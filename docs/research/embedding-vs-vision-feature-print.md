@@ -190,7 +190,7 @@ What this shows:
 - **Measured.** The small PE-Core S16 (24M) is close to Vision but behind it (K99 24 vs 15).
 - **Measured, with a caveat.** DINOv3-S and MobileCLIP2-S0 did much worse here than in #20 (94.3% and 98.7% top 20 there). The likely cause is preprocessing. This run squashed each card to a square and used the default pooled output, with no per-model choices. Section 9 confirms this. With the CLS token instead of timm's default mean pooling, DINOv3-S goes from K99 1,970 to 19.
 - **Not shown.** These are 250 crops of 62 printings from one phone, on a gallery 23 times smaller than the catalog. On the full gallery, K values will grow for every model (section 9). The run does not show phone latency, Core ML or LiteRT parity, or int8 behaviour.
-- **Measured.** A quick synthetic-only adapter made things worse for the shortlist. A small MLP head (768 to 1,024 to 512) on frozen SigLIP 2 was trained for 73 seconds with InfoNCE on each gallery printing's clean image plus 2 augmented copies, with same-name hard negatives and no real crops. Exact printing first rose from 78.8% to 84.8% and the median art margin from 0.129 to 0.266. But top 10 fell from 99.2% to 97.2%, K99 grew from 6 to 114, and non-cards no longer separated from cards (best non-card 0.518, worst card 0.472). With only 3 views per printing, the head overfits. A real training run needs many more augmented views per printing and a held-out check (section 12).
+- **Measured.** A quick synthetic-only adapter made things worse for the shortlist. A small MLP head (768 to 1,024 to 512) on frozen SigLIP 2 was trained for 73 seconds with InfoNCE on each gallery printing's clean image plus 2 augmented copies, with same-name hard negatives and no real crops. Exact printing first rose from 78.8% to 84.8% and the median art margin from 0.129 to 0.266. But top 10 fell from 99.2% to 97.2%, K99 grew from 6 to 114, and non-cards no longer separated from cards (best non-card 0.518, worst card 0.472). With only 3 views per printing, the head overfits. A real training run needs many more augmented views per printing and a held-out check (section 13).
 
 The scripts are in `/tmp/embed-exp` (`download.py`, `featureprint.swift`, `models.py`, `embed.py`, `evaluate.py`).
 
@@ -263,18 +263,92 @@ Model size, from the image tower parameter counts (section 8): SigLIP 2 B/16 93M
 
 What this shows:
 
-- **Measured.** On the full catalog, Vision's own K99 on these 250 crops is 51, not the 15 measured in #20. #20 used 157 crops and a 21,418-printing gallery. The bar "K99 at most 15" in section 12 was set from that smaller test.
+- **Measured.** On the full catalog, Vision's own K99 on these 250 crops is 51, not the 15 measured in #20. #20 used 157 crops and a 21,418-printing gallery. The bar "K99 at most 15" in section 13 was set from that smaller test.
 - **Measured.** Zero-shot, SigLIP 2 B/16 (K99 11) and PE-Core B16 (K99 14) beat Vision (K99 51) and meet "at most 15" on the full gallery. Both also beat Vision on card first (99.2% and 98.8% vs 97.2%), art first (98.8% vs 95.2%), the non-card gap (0.133 and 0.240 vs 0.089), and the median art margin.
 - **Measured.** PE-Core S16, the smallest of the strong candidates (24M parameters), gets K99 21. That is better than Vision's 51 but misses "at most 15". DINOv3-S with tuned preprocessing is about level with Vision on K99 (49) and behind it on card first and art first.
 - **Measured.** The open models pick the right orientation more often. The turned view scores higher on 15 of 250 crops for Vision and on 3 to 5 for the open models.
 - **Measured.** All four open models keep every non-card below every card on the full gallery, as Vision does. With 11 non-card crops, that is weak evidence.
-- **Not shown.** These are still 250 crops of 62 printings from one phone. The run measures the embedding only. It does not run the recognizer's decision rules with new thresholds (Gates 1 and 2), phone latency, Core ML or LiteRT parity, or int8 vectors. The best two models are about 4 times larger than PE-Core S16 (section 10.1).
+- **Not shown.** These are still 250 crops of 62 printings from one phone. The run measures the embedding only. It does not run the recognizer's decision rules with new thresholds (Gates 1 and 2), phone latency, Core ML or LiteRT parity, or int8 vectors. The best two models are about 4 times larger than PE-Core S16 (section 11.1).
 
 The scripts are in `/tmp/embed-exp` (`tune.py`, `full.py`, `eval_full.py`, `common.py`, `prep_models.py`). Results are in `/tmp/embed-exp/full/metrics_full.json`.
 
-## 10. Answer to the owner's question
+## 10. Recognizer replay: zero-shot open models behind the recognizer
 
-**Yes on the embedding measures, and an open model already does it without training. More crops alone will not change that.** On all 102,730 printings, SigLIP 2 B/16 and PE-Core B16 (both Apache 2.0) beat Vision feature prints zero-shot on shortlist recall (K99 11 and 14 vs 51), card first, art first, and the non-card gap (section 9). Both are about 93M parameters, about 93 MB at 8 bits. The app can download a model of that size at runtime with the gallery (section 10.1), so size alone does not rule them out. There is no size limit for now; a smaller model is preferred if it meets the same standard. What is left to show is the recognizer's gates, speed on a slow phone, and parity between runtimes. The small PE-Core S16 (24M) also beats Vision (K99 21 vs 51) but misses K99 at most 15. No embedding will tell same-art printings apart reliably. The collector line keeps that job.
+Step 1b of the plan, run on 2026-10-20 on the M3 Mac. Numbers are **Measured** unless marked.
+
+Setup:
+
+- **Recognizer.** The macOS recognizer command on the branch `prototype/embedding-replay` (not merged). A small hook lets the command use precomputed vectors instead of Vision. Each embedding input is the recognizer's own 488 x 680 image after rectification, upright and turned. The command dumps those images, keyed by the SHA-256 of their pixels. The Python model embeds them with the gallery's preprocessing (section 9.1), and the command looks the vectors up by the same key. Every decision rule is the shipped code. Only the three cosine thresholds come from the environment. All runs had 0 recognizer errors, so the rectified images were identical from run to run.
+- **Gallery.** The section 9 vectors, quantised to int8 per vector with the shipped encoder (`GalleryEncoding.int8Codes`, decoded with `unitVector`), in the row order of `20261012-cf1753`. Float16 runs were also made for comparison.
+- **Baseline.** `bun run recognizer:replay` with the installed gallery `20261012-cf1753` exits 0: parity 1.0 over 24 references, and every gate of Gates 1 and 2 matches the expected files. The prototype hook, run with Vision, gives the same results.
+- **Gates.** Gate 1 is 250 real crops and 11 non-cards. Gate 2 is 3,000 simulated scans. Each runs on the full gallery and held out, with the pass criteria of the scanner evidence pack README. Gate 2 photos are rendered from Scryfall `large` images, and the galleries use Scryfall `normal` images, so Gate 2 is easier than real photos.
+
+### 10.1 Which thresholds depend on the cosine scale
+
+- `notACardSimilarity` (0.5) and `unreadArtMargin` (0.03) change decisions.
+- `orientationMargin` (0.03) changes no decision. The second collector-line read can replace the first only with a stronger reading, and a confident first reading is already full strength. So the margin only decides whether the second read runs. Checked: with the margin at 1.0, SigLIP 2 gave identical results on Gate 1. It stays at 0.03 for every model. At 0.03 the open models are confident on 96% to 99% of the real crops.
+- The shortlist, art check depth, and title candidates use ranks, not cosines.
+
+### 10.2 Tuning rule
+
+Leave one art out. Each scan gets thresholds fitted on every scan whose true art is different, from the real and simulated sets and from both the full and held-out runs. Each non-card is its own fold.
+
+- **Not a card.** The midpoint between the best non-card and the worst card (top cosine, full runs).
+- **Art margin.** The smallest step of 0.0025 above every accept without a reading that breaks a gate on the tuning scans. A wrong printing in Gate 1 full, any accept in Gate 1 held out, and a wrong card in Gate 2 break a gate.
+
+Nothing is tuned on the scan it is reported on. The rule fits each threshold exactly to the worst case of the other folds, with no safety margin. So the worst case of each model fails once when it is held out. Vision gets the same rule in the table below, next to its shipped thresholds.
+
+Fitted thresholds (all data, int8): Vision 0.526 and 0.0275, SigLIP 2 0.678 and 0.0775, PE-Core S16 0.689 and 0.025, PE-Core B16 0.616 and 0.05. Leave one art out changes these only for the folds that hold the worst case.
+
+### 10.3 Results, int8 gallery
+
+"Unread" counts correct accepts without a collector line reading (only printing of its art). Gate 2 full allows other printings of the right card (358 recorded for Vision), so they are not counted as failures.
+
+| Model, thresholds | Gate 1 correct accepts | Wrong card | Wrong printing | Non-cards rejected | Unread | Abstains | Held-out accepts | Gate 1 | Gate 2 correct accepts | Wrong card | Unread | Abstains | Held-out wrong cards | Gate 2 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Vision, shipped 0.5 and 0.03 | 214 | 0 | 0 | 11 of 11 | 14 | 36 | 0 | pass | 2,135 | 0 | 91 | 507 | 0 | pass |
+| Vision, leave one art out | 215 | 0 | 0 | 11 of 11 | 15 | 35 | 0 | pass | 2,136 | 0 | 92 | 506 | 1 | fail |
+| SigLIP 2 B/16, leave one art out | 213 | 0 | 0 | 11 of 11 | 11 | 37 | 1 | fail | 2,120 | 0 | 74 | 520 | 3 | fail |
+| PE-Core S16, leave one art out | 216 | 0 | 0 | 11 of 11 | 15 | 34 | 0 | pass | 2,141 | 0 | 95 | 500 | 1 | fail |
+| PE-Core B16, leave one art out | 213 | 0 | 0 | 11 of 11 | 14 | 37 | 1 | fail | 2,137 | 0 | 90 | 505 | 1 | fail |
+
+With the thresholds fitted on all the data (in sample, so optimistic), Vision and PE-Core S16 pass every gate. SigLIP 2 and PE-Core B16 still fail Gate 2 held out with 3 and 1 wrong cards. PE-Core S16 then gives 216 correct accepts on Gate 1 (Vision 214) and 2,141 on Gate 2 (Vision 2,135).
+
+Every failure in the table:
+
+| Model | Gate | Scan | What happened | A cosine threshold controls it |
+| --- | --- | --- | --- | --- |
+| Vision, leave one art out | Gate 2 held out | `sim-02774` | Swamp UGL 86 accepted for Forest UGL 88, unread, art margin 0.027 | yes (Vision's own worst case) |
+| PE-Core S16 | Gate 2 held out | `sim-02734` | Penance EXO 15 accepted for Demonic Consultation ICE 121, unread, margin 0.024 | yes (its own worst case) |
+| SigLIP 2, PE-Core B16 | Gate 1 held out | `muyuq3pm-25` | Athreos plst JOU-146 accepted with JOU 146 held out. It is a same-text twin with the same art. Margin 0.076 (SigLIP 2), 0.048 (PE-Core B16), 0.022 (Vision) | yes |
+| SigLIP 2, PE-Core B16 | Gate 2 held out | `sim-02104` | Starscape Cleric BLB 116 accepted for Moonrise Cleric BLB 226, from the set code alone | no |
+| SigLIP 2 | Gate 2 held out | `sim-02275`, `sim-02695` | Spirit Mascot SOS 230 for Pest Mascot SOS 209, Saheeli Sublime Artificer DRC 119 for Saheeli Radiant Creator DRC 3, set code alone | no |
+
+### 10.4 int8 against float16
+
+| Model | K99, float16 | K99, int8 | Card first, both | Lowest cosine, int8 row vs float16 row | Largest change in accepts | Largest change in exact printing first |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| SigLIP 2 B/16 | 11 | 9 | 99.2% | 0.9993 | 1 scan | 1 scan |
+| PE-Core S16 | 21 | 20 | 98.8% | 0.9996 | 0 | 4 scans |
+| PE-Core B16 | 19 | 18 | 98.8% | 0.9995 | 1 scan | 2 scans |
+
+Every gate passes or fails the same way at both precisions. K99 here uses the recognizer's own inputs for the 250 crops. PE-Core B16 gets 19 at float16 here, against 14 in section 9, which embedded the crop files directly. The other two models match section 9.
+
+What this shows:
+
+- **Measured.** The int8 gallery costs nothing that the gates can see.
+- **Measured.** With a fair tuning rule, no model passes every gate, and Vision does not either. Each model's worst unread case fails once when it is held out. So the art margin needs a margin above the worst case seen, or more data, whichever model is used.
+- **Measured.** PE-Core S16, the smallest model (24M parameters, 512 dimensions), comes closest. Its only failure is its own worst case, as for Vision. It matches or beats Vision on correct accepts, unread accepts, card first, non-card gap (best non-card 0.624, worst card 0.778, against 0.483 and 0.569), and orientation (section 9). It still misses the K99 line (20 to 21, line 15).
+- **Measured.** SigLIP 2 and PE-Core B16 fail Gate 2 held out through the set-code rule. When the true card is missing, the image's top card is another card from the same set, and "set X leaves one printing of the top card" accepts it. Vision did not rank a same-set card first on these scans. That rule has no cosine threshold.
+- **Inference.** Stronger embeddings seem to rank by set style (frame, set symbol) more than Vision does. That makes a set-code-only accept less safe. A guard on that rule, for example a minimum art margin or a cosine floor, would be a decision-rule change. It needs its own test. This run did not try one.
+- **Measured.** SigLIP 2 also accepts a same-text twin in Gate 1 held out unless the art margin is at least 0.0775. At that margin it keeps only 11 unread accepts (Vision 14), and 213 correct accepts, one below the 214 line. PE-Core B16 also gets 213.
+- **Not shown.** Phone speed, memory, Core ML or LiteRT parity, and other phones. These are still 250 crops of 62 printings from one phone.
+
+The code and runs: worktree branch `prototype/embedding-replay` (hook in `FeaturePrint.swift`, `Gallery.swift`, `CardRecognizer.swift`, and the macOS command), and `/tmp/embed-exp/step1b` (`driver.py`, `embed_queries.py`, `build_gallery.py`, `runall.py`, `runs/`, `results.json`).
+
+## 11. Answer to the owner's question
+
+**Yes on the embedding measures, and an open model already does it without training. More crops alone will not change that.** On all 102,730 printings, SigLIP 2 B/16 and PE-Core B16 (both Apache 2.0) beat Vision feature prints zero-shot on shortlist recall (K99 11 and 14 vs 51), card first, art first, and the non-card gap (section 9). Both are about 93M parameters, about 93 MB at 8 bits. The app can download a model of that size at runtime with the gallery (section 11.1), so size alone does not rule them out. There is no size limit for now; a smaller model is preferred if it meets the same standard. The small PE-Core S16 (24M) also beats Vision (K99 21 vs 51) but misses K99 at most 15. Behind the recognizer, most of the embedding gain disappears, because the collector line already fixes most shortlist misses (section 10). PE-Core S16 comes out slightly ahead of Vision (216 vs 214 correct accepts on real crops) and fails only the strict leave-one-art-out rule, as Vision does. SigLIP 2 and PE-Core B16 come out level or behind. What is left to show is speed, memory, and parity on phones. No embedding will tell same-art printings apart reliably. The collector line keeps that job.
 
 Why it holds (**Inference** unless marked):
 
@@ -294,7 +368,7 @@ To answer the question as asked, more crops will make the model better mainly wh
 
 Should one model replace Vision on iOS as well? Only if it passes the same gates. Vision costs nothing to ship, takes 19 ms for two images, and already passes every gate. Section 9 shows that Vision is not the strongest embedding on the full catalog. Its lead is that it ships with iOS, so it needs no download, no extra memory for weights, and no upkeep. If the trained model passes the gates on both platforms, one model means one gallery and one set of thresholds. If it does not pass on iOS, keep Vision on iOS and build a second gallery for Android (**Inference**).
 
-### 10.1 Model size and delivery
+### 11.1 Model size and delivery
 
 An earlier draft of this plan set a model size bar of about 25 MB. It had no source. It was the size of PE-Core S16 at 8 bits. The owner has set no size limit for now: among models that meet the pass bar, prefer the smallest. The practical limits are the stores, the hosting plan, memory, and speed.
 
@@ -305,7 +379,7 @@ An earlier draft of this plan set a model size bar of about 25 MB. It had no sou
 - **Inference.** A new model means a new gallery, so every phone downloads both again. Recognition cannot start until both are installed, which roughly doubles today's first wait. If egress becomes the limit, the options are the Pro plan or a store without egress fees, such as Cloudflare R2 ([pricing](https://developers.cloudflare.com/r2/pricing/)).
 - **Inference.** Memory does not change with how the model arrives. A B/16 model adds about 93 MB of weights at 8 bits or 186 MB at float16 to the ~250 MB the app uses today (#21). Memory is reported, not capped, for now. Cheap Android phones are where it is most likely to matter.
 
-## 11. Main risks
+## 12. Main risks
 
 - **Licence.** MobileCLIP and DFN weights are research-only. timm ImageNet weights carry an ImageNet caveat. DINOv3 is usable commercially but keeps its own licence for derivatives and lets Meta change the terms. SigLIP 2 and PE-Core are Apache 2.0 (section 6).
 - **Training on Scryfall images.** Neither Scryfall nor the Fan Content Policy addresses training. Review before a wider release (section 6, #19).
@@ -313,19 +387,19 @@ An earlier draft of this plan set a model size bar of about 25 MB. It had no sou
 - **Small, biased test set.** 250 crops of 62 printings from one phone and one tester. The #389 crops will be skewed to popular cards and to the users who leave uploads on.
 - **Label noise.** The saved printing is wrong more often for same-text twins. Use art-level labels.
 - **Runtime parity.** Float16 or int8 conversion can change or break the vectors (the DINOv3 NaN). LiteRT's Core ML delegate is beta.
-- **Memory, speed, and egress.** The two best zero-shot models are the large ones. SigLIP 2 B/16 is 93M image parameters (about 93 MB at 8 bits, on top of a 79 MB gallery) and 11.4 ms per image on an iPhone 12 Pro Max. A runtime download fits the store limits but roughly halves the full installs that the Free plan's egress covers (section 10.1). The recognizer needs two images per scan. Older Android phones may be several times slower (**Inference**; the MobileNetV4 table shows a 10x spread across devices for the same model).
+- **Memory, speed, and egress.** The two best zero-shot models are the large ones. SigLIP 2 B/16 is 93M image parameters (about 93 MB at 8 bits, on top of a 79 MB gallery) and 11.4 ms per image on an iPhone 12 Pro Max. A runtime download fits the store limits but roughly halves the full installs that the Free plan's egress covers (section 11.1). The recognizer needs two images per scan. Older Android phones may be several times slower (**Inference**; the MobileNetV4 table shows a 10x spread across devices for the same model).
 - **Android text reading.** The collector line is read with Vision today. An Android reader is a separate accuracy risk (section 7).
 - **Upkeep.** A trained model needs a training pipeline, a model release process, and a retest on each new set. Vision needs none of that.
 
-## 12. Experiment plan
+## 13. Experiment plan
 
 All steps run on the owner's Mac in a separate environment, never in the repo. Crops stay off the repo, as #389 requires.
 
 **Step 1. Zero-shot screen on the full gallery. Done (section 9).** SigLIP 2 B/16 (K99 11) and PE-Core B16 (K99 14) pass the K99 line zero-shot. PE-Core S16 gets K99 21. Vision gets K99 51 on the same run. Memory, speed, and download size are not measured yet.
 
-**Step 1b. Recognizer replay with a zero-shot model (about 2 days).** Before any training, put SigLIP 2 B/16 or PE-Core B16 behind the recognizer on the Mac. Re-tune the not-a-card, orientation, and art-margin thresholds, and run Gates 1 and 2. This shows whether the embedding gain carries to accepts with 0 false accepts. It also measures what the int8 gallery costs in accuracy.
+**Step 1b. Recognizer replay with a zero-shot model (about 2 days).** Before any training, put SigLIP 2 B/16 or PE-Core B16 behind the recognizer on the Mac. Re-tune the not-a-card, orientation, and art-margin thresholds, and run Gates 1 and 2. This shows whether the embedding gain carries to accepts with 0 false accepts. It also measures what the int8 gallery costs in accuracy. **Done (section 10).** Under a leave-one-art-out tuning rule, no model passes every gate, and Vision does not either. PE-Core S16 comes closest: its only failure is its own worst case, as for Vision. With thresholds fitted on all the data, it passes every gate with more correct accepts than Vision (216 vs 214 real, 2,141 vs 2,135 simulated). SigLIP 2 and PE-Core B16 accept wrong cards in Gate 2 held out through the set-code rule, which has no cosine threshold. The int8 gallery costs nothing the gates can see.
 
-**Step 1c. Memory and speed on phones (about 2 days).** Convert SigLIP 2 B/16 and PE-Core B16 to Core ML and LiteRT, at float16 and 8 bits. Measure parity against the Mac vectors, time for two embeddings, and peak app memory while scanning with the gallery loaded, on the iPhone 16e and on a cheap Android phone with about 4 GB of RAM. If a large model passes the latency and parity lines below, it can go on to the held-out crops (step 3) without training.
+**Step 1c. Memory and speed on phones (about 2 days).** Convert PE-Core S16, the best model in step 1b, to Core ML and LiteRT, at float16 and 8 bits. On the iPhone 16e, measure parity against the Mac vectors, time for two embeddings, and peak app memory while scanning with the gallery loaded. The owner has no Android phone: check LiteRT parity in the Android emulator on the Mac, and leave Android speed and memory to a cloud device farm (Firebase Test Lab or AWS Device Farm) when Android work starts. If the model passes the latency and parity lines below, it can go on to the held-out crops (step 3) without training.
 
 **Step 2. Train a smaller model (about 1 week, optional).** There is no size limit for now, but a smaller model is preferred if it meets the same pass bar. Start from PE-Core S16 or another backbone of about 25M parameters. Train on all Scryfall `normal` images with phone-like augmentation (section 4), one class per art, ArcFace-style loss, same-name hard negatives, 256 to 512 output dimensions. Also try distilling from SigLIP 2 B/16 or PE-Core B16. Use many augmented views per printing: the 3-view adapter in section 8 overfit. Do not use the evidence pack or #389 crops for training or tuning.
 
