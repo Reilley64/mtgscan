@@ -9,6 +9,14 @@ mtgscan is an iPhone app for scanning Magic: The Gathering cards, keeping a coll
 - For new or behavior-changing features, use the main flow: `grill-with-docs -> to-spec -> to-tickets -> implement -> code-review -> retro`. Use `implement-spec` instead of `implement` to build a whole spec in one run.
 - For exploratory work, use `/wayfinder`. When the map clears, continue the main flow at `/to-spec`.
 
+## Validation
+
+The PR checks are the gate. They run the full app and database suites on every PR whose files they cover, so the full suites run in CI, once per push.
+
+- Locally, run the type check, lint, and the test files you changed or added. Then push and let the checks run.
+- In an `implement-spec` run, open a draft PR from each ticket branch into the integration branch, and merge it there when its checks pass.
+- When a check fails, read its log with `gh run view <run> --log-failed`, fix the cause, and push again.
+
 ## Local development
 
 Before you set up a worktree, run the app or the Simulator, start local Supabase, run EAS, add a migration, or merge a PR, read `docs/agents/local-development.md`.
