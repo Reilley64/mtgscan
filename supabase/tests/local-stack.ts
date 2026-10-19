@@ -1,4 +1,5 @@
 import { SQL, type TransactionSQL } from 'bun';
+import { join } from 'node:path';
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
@@ -20,6 +21,24 @@ async function asDatabaseUser<T>(url: string, work: (database: SQL) => Promise<T
   } finally {
     await database.close();
   }
+}
+
+export async function supabaseCli(...args: string[]) {
+  const command = Bun.spawn(['bunx', 'supabase@2.120.0', ...args], {
+    cwd: join(import.meta.dir, '..', '..'),
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(command.stdout).text(),
+    new Response(command.stderr).text(),
+    command.exited,
+  ]);
+  return { exitCode, output: stdout + stderr };
+}
+
+export function applyPendingMigrations() {
+  return supabaseCli('migration', 'up', '--local');
 }
 
 export function asDatabaseOwner<T>(work: (database: SQL) => Promise<T>): Promise<T> {

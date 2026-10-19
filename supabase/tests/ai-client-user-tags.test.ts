@@ -2,20 +2,18 @@ import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type {
   CollectionCopyRow,
-  CopyDetails,
   CreatedUserTag,
   CopiesUserTagResult,
   DeletedUserTag,
   RestoredUserTag,
   UserTag,
-  UserTagList,
 } from '../collection';
-import type { Json } from '../database.types';
 import type { SearchPage } from '../search';
 import { aiClientCall, aiClientRefusal, connectedAiClient, type ClaimedAiClient } from './ai-clients';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { signUpNewUser, type TestUser } from './local-stack';
-import { committed, scanBatch, stack } from './scan-batches';
+import { appRequest, scannedCopies } from './planned-swap-seeds';
+import { userTagsOf, userTagsOnCopy } from './user-tag-reads';
 
 setDefaultTimeout(60_000);
 
@@ -34,12 +32,6 @@ function setCopiesUserTag(client: ClaimedAiClient, request: object) {
   return aiClientCall<CopiesUserTagResult>(client, 'mcp_set_copies_user_tag', request);
 }
 
-async function appRequest(user: TestUser, name: string, request: object) {
-  const { data, error } = await user.client.rpc(name as 'create_user_tag', { request: request as Json });
-  expect(error).toBeNull();
-  return data as unknown as UserTag;
-}
-
 function renameUserTag(client: ClaimedAiClient, request: object) {
   return aiClientCall<UserTag>(client, 'mcp_rename_user_tag', request);
 }
@@ -52,20 +44,8 @@ function restoreUserTag(client: ClaimedAiClient, userTagId: string) {
   return aiClientCall<RestoredUserTag>(client, 'mcp_restore_user_tag', { user_tag_id: userTagId });
 }
 
-async function userTagsOf(user: TestUser, query: object = {}) {
-  const { data, error } = await user.client.rpc('list_user_tags', { query: query as Json });
-  expect(error).toBeNull();
-  return (data as unknown as UserTagList).items;
-}
-
 function deletedUserTagsOf(user: TestUser) {
   return userTagsOf(user, { deleted: true });
-}
-
-async function userTagsOnCopy(user: TestUser, copyId: string) {
-  const { data, error } = await user.client.rpc('get_copy', { query: { copy_id: copyId } });
-  expect(error).toBeNull();
-  return (data as unknown as CopyDetails).user_tags;
 }
 
 async function copiesWithUserTag(user: TestUser, name: string) {
@@ -74,14 +54,8 @@ async function copiesWithUserTag(user: TestUser, name: string) {
   return (data as unknown as SearchPage<CollectionCopyRow>).items.map((row) => row.copy_id).toSorted();
 }
 
-async function scannedCopies(user: TestUser, copies = 1) {
-  const scanned = stack(angelicCurator, { copies });
-  await committed(user, scanBatch([scanned]));
-  return scanned.copy_ids;
-}
-
 async function userTagWithCopies(client: ClaimedAiClient, copies: number) {
-  const copyIds = await scannedCopies(client.user, copies);
+  const copyIds = await scannedCopies(client.user, angelicCurator, copies);
   const userTag = await createUserTag(client, 'Trade binder');
   return { copyIds, userTag: { user_tag_id: userTag.user_tag_id, name: userTag.name } };
 }
@@ -98,7 +72,7 @@ describe('mcp_create_user_tag', () => {
 
   test('a name that a user tag already has, ignoring case, returns that user tag with created: false and changes nothing', async () => {
     const client = await connectedAiClient();
-    const signed = await appRequest(client.user, 'create_user_tag', { name: 'Signed' });
+    const signed = await appRequest<UserTag>(client.user, 'create_user_tag', { name: 'Signed' });
 
     const again = await createUserTag(client, ' SIGNED ');
 
@@ -119,7 +93,7 @@ describe('mcp_create_user_tag', () => {
 
   test("another user's user tag with the same name does not count", async () => {
     const client = await connectedAiClient();
-    await appRequest(await signUpNewUser(), 'create_user_tag', { name: 'Signed' });
+    await appRequest<UserTag>(await signUpNewUser(), 'create_user_tag', { name: 'Signed' });
 
     expect(await createUserTag(client, 'Signed')).toMatchObject({ name: 'Signed', created: true });
   });
@@ -152,9 +126,9 @@ describe('mcp_set_copies_user_tag', () => {
     expect(await copiesWithUserTag(client.user, 'trade binder')).toEqual([first, second].toSorted());
     expect(await userTagsOf(client.user)).toEqual([{ ...userTag, copy_count: 2 }]);
 
-    const untagged = await setCopiesUserTag(client, { copy_ids: [first], user_tag_id: userTag.user_tag_id, tagged: false });
+    const takenOff = await setCopiesUserTag(client, { copy_ids: [first], user_tag_id: userTag.user_tag_id, tagged: false });
 
-    expect(untagged).toEqual({ changed: [first], skipped: [] });
+    expect(takenOff).toEqual({ changed: [first], skipped: [] });
     expect(await userTagsOnCopy(client.user, first)).toEqual([]);
     expect(await copiesWithUserTag(client.user, 'trade binder')).toEqual([second]);
   });
@@ -169,9 +143,9 @@ describe('mcp_set_copies_user_tag', () => {
     expect(first).toEqual({ changed: copyIds, skipped: [] });
     expect(await userTagsOf(client.user)).toEqual([{ ...userTag, copy_count: 2 }]);
 
-    const untagRequest = { ...request, tagged: false };
-    expect(await setCopiesUserTag(client, untagRequest)).toEqual(first);
-    expect(await setCopiesUserTag(client, untagRequest)).toEqual(first);
+    const takeOffRequest = { ...request, tagged: false };
+    expect(await setCopiesUserTag(client, takeOffRequest)).toEqual(first);
+    expect(await setCopiesUserTag(client, takeOffRequest)).toEqual(first);
     expect(await userTagsOf(client.user)).toEqual([{ ...userTag, copy_count: 0 }]);
   });
 
@@ -181,7 +155,7 @@ describe('mcp_set_copies_user_tag', () => {
     const [kept, deleted] = copyIds as [string, string];
     await appRequest(client.user, 'delete_copy', { copy_id: deleted });
     const other = await signUpNewUser();
-    const [othersCopy] = (await scannedCopies(other)) as [string];
+    const [othersCopy] = (await scannedCopies(other, angelicCurator)) as [string];
     const unknown = crypto.randomUUID();
 
     const result = await setCopiesUserTag(client, {
@@ -247,7 +221,7 @@ describe('mcp_set_copies_user_tag', () => {
 
   test.each<[string, (client: ClaimedAiClient) => Promise<string>]>([
     ['an unknown user tag', async () => crypto.randomUUID()],
-    ["another user's user tag", async () => (await appRequest(await signUpNewUser(), 'create_user_tag', { name: 'Signed' })).user_tag_id],
+    ["another user's user tag", async () => (await appRequest<UserTag>(await signUpNewUser(), 'create_user_tag', { name: 'Signed' })).user_tag_id],
     [
       'a deleted user tag',
       async (client) => {
@@ -258,7 +232,7 @@ describe('mcp_set_copies_user_tag', () => {
     ],
   ])('%s is not_found on user_tag_id and changes no copy', async (_, userTagIdOf) => {
     const client = await connectedAiClient();
-    const [copyId] = (await scannedCopies(client.user)) as [string];
+    const [copyId] = (await scannedCopies(client.user, angelicCurator)) as [string];
 
     const refusal = await aiClientRefusal(client, 'mcp_set_copies_user_tag', {
       copy_ids: [copyId],
@@ -320,7 +294,7 @@ describe('mcp_rename_user_tag', () => {
 
   test.each<[string, (client: ClaimedAiClient) => Promise<string>]>([
     ['an unknown user tag', async () => crypto.randomUUID()],
-    ["another user's user tag", async () => (await appRequest(await signUpNewUser(), 'create_user_tag', { name: 'Signed' })).user_tag_id],
+    ["another user's user tag", async () => (await appRequest<UserTag>(await signUpNewUser(), 'create_user_tag', { name: 'Signed' })).user_tag_id],
     [
       'a deleted user tag',
       async (client) => {
@@ -360,9 +334,9 @@ describe('mcp_delete_user_tag', () => {
   test('an AI client deletes a user tag, and the result counts the copies that lost it', async () => {
     const client = await connectedAiClient();
     const { copyIds, userTag } = await userTagWithCopies(client, 3);
-    const [first, second, untagged] = copyIds as [string, string, string];
+    const [first, second, takenOff] = copyIds as [string, string, string];
     await setCopiesUserTag(client, { copy_ids: copyIds, user_tag_id: userTag.user_tag_id, tagged: true });
-    await setCopiesUserTag(client, { copy_ids: [untagged], user_tag_id: userTag.user_tag_id, tagged: false });
+    await setCopiesUserTag(client, { copy_ids: [takenOff], user_tag_id: userTag.user_tag_id, tagged: false });
 
     const deleted = await deleteUserTag(client, userTag.user_tag_id);
 
@@ -389,7 +363,7 @@ describe('mcp_delete_user_tag', () => {
       "another user's user tag",
       async () => {
         const owner = await signUpNewUser();
-        return { ...(await appRequest(owner, 'create_user_tag', { name: 'Signed' })), owner };
+        return { ...(await appRequest<UserTag>(owner, 'create_user_tag', { name: 'Signed' })), owner };
       },
     ],
   ])('%s is not_found on user_tag_id and is left as it was', async (_, userTagOf) => {
@@ -421,9 +395,9 @@ describe('mcp_restore_user_tag', () => {
   test('a restored user tag comes back on exactly the copies it was on when it was deleted', async () => {
     const client = await connectedAiClient();
     const { copyIds, userTag } = await userTagWithCopies(client, 3);
-    const [first, second, untaggedBefore] = copyIds as [string, string, string];
+    const [first, second, takenOffBefore] = copyIds as [string, string, string];
     await setCopiesUserTag(client, { copy_ids: copyIds, user_tag_id: userTag.user_tag_id, tagged: true });
-    await setCopiesUserTag(client, { copy_ids: [untaggedBefore], user_tag_id: userTag.user_tag_id, tagged: false });
+    await setCopiesUserTag(client, { copy_ids: [takenOffBefore], user_tag_id: userTag.user_tag_id, tagged: false });
     await deleteUserTag(client, userTag.user_tag_id);
 
     const restored = await restoreUserTag(client, userTag.user_tag_id);
@@ -432,7 +406,7 @@ describe('mcp_restore_user_tag', () => {
     expect(await userTagsOf(client.user)).toEqual([{ ...userTag, copy_count: 2 }]);
     expect(await deletedUserTagsOf(client.user)).toEqual([]);
     expect(await copiesWithUserTag(client.user, 'trade binder')).toEqual([first, second].toSorted());
-    expect(await userTagsOnCopy(client.user, untaggedBefore)).toEqual([]);
+    expect(await userTagsOnCopy(client.user, takenOffBefore)).toEqual([]);
   });
 
   test('a user tag deleted by the user in the app can be restored', async () => {
@@ -485,7 +459,7 @@ describe('mcp_restore_user_tag', () => {
       "another user's deleted user tag",
       async () => {
         const owner = await signUpNewUser();
-        const { user_tag_id } = await appRequest(owner, 'create_user_tag', { name: 'Signed' });
+        const { user_tag_id } = await appRequest<UserTag>(owner, 'create_user_tag', { name: 'Signed' });
         await appRequest(owner, 'delete_user_tag', { user_tag_id });
         return user_tag_id;
       },
@@ -517,7 +491,7 @@ describe('list_user_tags with deleted', () => {
     await deleteUserTag(client, deleted.user_tag_id);
     const kept = await createUserTag(client, 'Trade binder');
     const other = await signUpNewUser();
-    const othersUserTag = await appRequest(other, 'create_user_tag', { name: 'Signed' });
+    const othersUserTag = await appRequest<UserTag>(other, 'create_user_tag', { name: 'Signed' });
     await appRequest(other, 'delete_user_tag', { user_tag_id: othersUserTag.user_tag_id });
 
     const keptRow = { user_tag_id: kept.user_tag_id, name: 'Trade binder', copy_count: 0 };

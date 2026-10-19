@@ -1,11 +1,10 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
-import { join } from 'node:path';
 
 import type { CollectionRow, CollectionTotal } from '../collection';
 import type { SearchPage } from '../search';
 import { catalogFixtureManifest, latestRun, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { collectionEntryKey } from './copy-seeds';
-import { asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
+import { applyPendingMigrations, asDatabaseOwner, signUpNewUser, supabaseCli, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(180_000);
@@ -22,20 +21,6 @@ type OldAdditionLine = {
   is_protected?: boolean;
   user_tag_ids?: string[];
 };
-
-async function supabaseCli(...args: string[]) {
-  const command = Bun.spawn(['bunx', 'supabase@2.120.0', ...args], {
-    cwd: join(import.meta.dir, '..', '..'),
-    stdout: 'pipe',
-    stderr: 'pipe',
-  });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(command.stdout).text(),
-    new Response(command.stderr).text(),
-    command.exited,
-  ]);
-  return { exitCode, output: stdout + stderr };
-}
 
 async function standInForTheAccessTokenHook() {
   await asDatabaseOwner(async (database) => {
@@ -54,10 +39,6 @@ async function resetToBeforeCopies() {
   expect(catalogImport.output).toContain('Recompute deck evaluations:');
   expect((await latestRun('catalog')).status).toBe('succeeded');
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
-}
-
-function applyPendingMigrations() {
-  return supabaseCli('migration', 'up', '--local');
 }
 
 async function addOldAdditionWithoutCopyIds(user: TestUser, lines: OldAdditionLine[]) {
