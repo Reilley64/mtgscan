@@ -4,11 +4,11 @@ import type { Database } from './database.types.ts';
 
 type Functions = Database['public']['Functions'];
 
-export type DatabaseFunctionError = { code: string; message: string; details: string; hint: string };
+type DatabaseFunctionError = { code: string; message: string; details: string; hint: string };
 
 type DatabaseFunctionResponse = { data: unknown; error: DatabaseFunctionError | null };
 
-type DatabaseClient = { rpc(name: string, args: object): PromiseLike<DatabaseFunctionResponse> };
+export type DatabaseClient = { rpc(name: string, args: object): PromiseLike<DatabaseFunctionResponse> };
 
 type ArgumentKey = 'query' | 'request' | 'batch';
 
@@ -77,8 +77,11 @@ export function databaseFunctionResult<Contract extends DatabaseFunction>(
   if (!error) {
     return { status: 'replied', reply: data as ReplyOf<Contract> };
   }
-  if (!contract.errorCodes.includes(error.code)) {
-    return { status: 'failed', error };
-  }
-  return { status: 'refused', refusal: { code: error.code, message: error.message, field: error.details || null } };
+  const refusal = refusalOf<ErrorCodeOf<Contract>>(error, contract.errorCodes);
+  return refusal ? { status: 'refused', refusal } : { status: 'failed', error };
+}
+
+export function refusalOf<Code extends string>(error: DatabaseFunctionError, codes: readonly Code[]): Refusal<Code> | null {
+  const code = codes.find((each) => each === error.code);
+  return code === undefined ? null : { code, message: error.message, field: error.details || null };
 }

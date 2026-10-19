@@ -1,29 +1,32 @@
 import type { Tool as ListedTool, ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 
-import type { DatabaseFunction, ReplyOf } from '../../database-function.ts';
+import { callDatabaseFunction, type DatabaseClient, type DatabaseFunction, type DatabaseFunctionResult } from '../../database-function.ts';
 import { databaseFunctions } from '../../database-functions.ts';
-import { buylistCardStatus, color, condition, finish, id, language, plannedSwapStatus, rarity } from '../../fields.ts';
-import { catalogSort } from '../../search.ts';
+import { buylistCardStatus, id, plannedSwapStatus } from '../../fields.ts';
 import { plural } from './plural.ts';
 import { problem, problemSchema, type Problem, type ProblemCode } from './problems.ts';
 
-type AiClientFunction = DatabaseFunction & { errorCodes: readonly ProblemCode[] };
+type AiClientFunction<Reply extends z.ZodType = z.ZodType> = DatabaseFunction<DatabaseFunction['name'], z.ZodType, Reply, ProblemCode>;
 
-export type Tool<Contract extends AiClientFunction = AiClientFunction> = Pick<ListedTool, 'name' | 'inputSchema' | 'outputSchema'> & {
+type ToolResult =
+  | { status: 'replied'; structuredContent: Record<string, unknown>; summary: string }
+  | Exclude<DatabaseFunctionResult<AiClientFunction>, { status: 'replied' }>;
+
+export type Tool = Pick<ListedTool, 'name' | 'inputSchema' | 'outputSchema'> & {
   title: string;
   description: string;
   annotations: ToolAnnotations;
-  contract: Contract;
+  contract: AiClientFunction;
   input: z.ZodObject;
-  output: z.ZodObject;
-  summary: (reply: unknown) => string;
   tooLargeHint: string;
+  call: (supabase: DatabaseClient, toolArguments: Record<string, unknown>) => Promise<ToolResult>;
 };
 
-type ToolDefinition<Contract extends AiClientFunction> = Omit<Tool<Contract>, 'inputSchema' | 'outputSchema' | 'output' | 'summary'> & {
+type ToolDefinition<Reply extends z.ZodType> = Omit<Tool, 'inputSchema' | 'outputSchema' | 'call' | 'contract'> & {
+  contract: AiClientFunction<Reply>;
   leftOut?: Record<string, string[]>;
-  summary: (reply: ReplyOf<Contract>) => string;
+  summary: (reply: z.output<Reply>) => string;
 };
 
 const pageSize = { default: 20, max: 50, collectionMax: 100 };
@@ -79,14 +82,18 @@ function outputOf(reply: z.core.$ZodType, leftOut: Record<string, string[]>): z.
   );
 }
 
-function defineTool<Contract extends AiClientFunction>({ leftOut = {}, summary, ...tool }: ToolDefinition<Contract>): Tool<Contract> {
+function defineTool<Reply extends z.ZodType>({ leftOut = {}, summary, ...tool }: ToolDefinition<Reply>): Tool {
   const output = outputOf(tool.contract.reply, leftOut);
   return {
     ...tool,
     inputSchema: jsonSchemaOf(tool.input),
-    output,
     outputSchema: { type: 'object', anyOf: [jsonSchemaOf(output), problemSchema] },
-    summary: (reply) => summary(reply as ReplyOf<Contract>),
+    call: async (supabase, toolArguments) => {
+      const result = await callDatabaseFunction(supabase, tool.contract, toolArguments);
+      return result.status === 'replied'
+        ? { status: 'replied', structuredContent: output.parse(result.reply), summary: summary(result.reply) }
+        : result;
+    },
   };
 }
 
@@ -122,35 +129,17 @@ export function pagedArguments(
   return { toolArguments: { limit: pageSize.default, ...toolArguments } };
 }
 
-const catalogFilters = {
-  text: z.string().optional().describe('Words to match in card names, types, and rules text.'),
-  names: z.array(z.string()).optional(),
-  names_exclude: z.array(z.string()).optional(),
-  types: z.array(z.string()).optional(),
-  types_exclude: z.array(z.string()).optional(),
-  colors: z.array(z.enum([...color.options, 'C'])).optional(),
-  colors_exclude: z.array(z.enum([...color.options, 'C'])).optional(),
-  identity_subset_of: z.array(color).optional().describe("Only cards whose color identity fits in these colors, such as a deck's color identity."),
-  mana_value_min: z.number().int().optional(),
-  mana_value_max: z.number().int().optional(),
-  power_min: z.number().optional(),
-  power_max: z.number().optional(),
-  toughness_min: z.number().optional(),
-  toughness_max: z.number().optional(),
-  price_min: z.string().optional().describe('A USD amount, such as "2.50".'),
-  price_max: z.string().optional().describe('A USD amount, such as "2.50".'),
-  keywords: z.array(z.string()).optional(),
-  keywords_exclude: z.array(z.string()).optional(),
-  sets: z.array(z.string()).optional().describe('Set codes, such as "mh3".'),
-  sets_exclude: z.array(z.string()).optional(),
-  rarities: z.array(rarity).optional(),
-  rarities_exclude: z.array(rarity).optional(),
-  tags: z.array(z.string()).optional().describe('Oracle tag slugs from search_oracle_tags.'),
-  tags_exclude: z.array(z.string()).optional(),
-  is_commander: z.boolean().optional(),
-  is_game_changer: z.boolean().optional(),
-  include_oracle_text: z.boolean().optional(),
-  sort_order: z.enum(['asc', 'desc']).optional(),
+const catalogFilters = databaseFunctions.search_catalog.request.shape;
+
+const collectionFilters = databaseFunctions.search_collection.request.shape;
+
+const describedCatalogFilters = {
+  text: catalogFilters.text.describe('Words to match in card names, types, and rules text.'),
+  identity_subset_of: catalogFilters.identity_subset_of.describe("Only cards whose color identity fits in these colors, such as a deck's color identity."),
+  price_min: catalogFilters.price_min.describe('A USD amount, such as "2.50".'),
+  price_max: catalogFilters.price_max.describe('A USD amount, such as "2.50".'),
+  sets: catalogFilters.sets.describe('Set codes, such as "mh3".'),
+  tags: catalogFilters.tags.describe('Oracle tag slugs from search_oracle_tags.'),
 };
 
 const basicLandOracleId = id.describe("A basic land card's oracle_id, from basic_lands in get_deck.");
@@ -197,9 +186,9 @@ export const tools = [
     ].join(' '),
     annotations: readOnly,
     contract: databaseFunctions.search_catalog,
-    input: z.strictObject({
-      ...catalogFilters,
-      sort: catalogSort.optional().describe('relevance needs text. The default is relevance with text and name without it.'),
+    input: databaseFunctions.search_catalog.request.extend({
+      ...describedCatalogFilters,
+      sort: catalogFilters.sort.describe('relevance needs text. The default is relevance with text and name without it.'),
       ...page,
     }),
     summary: (result) => pageSummary(plural(result.items.length, 'card', 'cards'), result.next_cursor),
@@ -217,24 +206,12 @@ export const tools = [
     ].join(' '),
     annotations: readOnly,
     contract: databaseFunctions.search_collection,
-    input: z.strictObject({
-      ...catalogFilters,
-      rows: z.enum(['entries', 'copies']).optional(),
-      sort: z.enum([...catalogSort.options, 'added']).optional().describe('The default is relevance with text and added without it.'),
+    input: databaseFunctions.search_collection.request.extend({
+      ...describedCatalogFilters,
+      sort: collectionFilters.sort.describe('The default is relevance with text and added without it.'),
       ...collectionPage,
-      finishes: z.array(finish).optional(),
-      finishes_exclude: z.array(finish).optional(),
-      conditions: z.array(condition).optional(),
-      conditions_exclude: z.array(condition).optional(),
-      languages: z.array(language).optional(),
-      languages_exclude: z.array(language).optional(),
-      deck_ids: z.array(id).optional().describe('Only copies in these decks.'),
-      deck_ids_exclude: z.array(id).optional(),
-      is_free: z.boolean().optional(),
-      is_protected: z.boolean().optional(),
-      is_allocated: z.boolean().optional(),
-      user_tags: z.array(z.string()).optional().describe('User tag names from list_user_tags.'),
-      user_tags_exclude: z.array(z.string()).optional(),
+      deck_ids: collectionFilters.deck_ids.describe('Only copies in these decks.'),
+      user_tags: collectionFilters.user_tags.describe('User tag names from list_user_tags.'),
     }),
     summary: (result) => {
       if (result.items.length === 0) {
