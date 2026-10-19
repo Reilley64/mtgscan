@@ -143,6 +143,7 @@ The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in accou
 - A scan keeps its training crop. When the scan enters the scan batch, the phone moves the crop from `Caches/training-crops` to `training-crops/<user ID>/<copy ID>.jpg` in the documents folder. The scan also keeps the recognizer fields of the evidence record: the decision, the top similarity, the art margin, the collector line reading, the first card printing, the recognizer version, the feature print revision, and the installed gallery version. A basic land, a recognition with no candidates, and a scan from **+1** keep no crop, and the phone deletes the crop of the first two.
 - After a commit that works, the training crop of each saved scan that has one joins the user's upload queue, `training-crop-queue-<user ID>.json` in the documents folder. `src/scan/evidence-record.ts` builds the evidence record from the saved scan, with policy version 1. Each crop in the queue gets a new random crop ID, which is not the copy ID, and an upload time drawn at random between 1 and 7 days after the commit. So the upload time does not show when the user added the card.
 - The phone uploads the crops whose upload time has passed when the app starts, when a user signs in, and when the app comes back to the foreground. It uploads them one at a time to the `training-crops` Edge Function, which Training crops (below) describes. It uploads only the signed-in user's queue, and it stops when the user signs out. The phone deletes the crop after the upload works or after the server refuses it with a 400, such as `unknown_copy` for a copy that the user deleted. A network failure or another error keeps the crop in the queue, and the phone stops until the next try.
+- The phone reads the **Upload training crops** switch when a user signs in or the app starts, and again when the app comes back to the foreground after a failed read. When the phone knows that uploads are off, a commit deletes the training crops of the saved scans and queues none. Turning the switch off deletes every crop in the user's queue.
 - Pulling down on the Scan tab adds the scan batch with the same commit as **Add to collection**. `src/scan/use-pull-to-add.ts` tracks the pull with React Native's `PanResponder`, so the app needs no gesture library.
 
 ### AI clients
@@ -360,6 +361,7 @@ It answers 204 when the crop is stored. A refusal is a 400 with a JSON body of `
 
 `add_training_crop({ user_id, copy_id, crop })` runs only for the secret key. It uses the user ID and the copy ID for its checks and stores neither:
 
+- `uploads_off`, with no field, when the user turned training crop uploads off;
 - `unknown_copy` on `copy_id` when the copy ID is not a copy of the user;
 - `invalid_argument` on a bad field, such as `crop.decision_basis`.
 
@@ -376,6 +378,13 @@ The evidence record has these fields, each a column of `training_crops`:
 - `recognized_printing_id`, the scanner's first card printing, and `saved_printing_id`, both in the card catalog;
 - `printing_change` (`other_options`, `printings_picker`, `name_search`, or null) and `printing_confirmed`;
 - `policy_version`.
+
+The **Upload training crops** switch in the settings drawer sets `profiles.training_crop_uploads`, which is true by default. It follows the account, so it is the same on every phone:
+
+- `supabase.rpc('get_training_crop_settings')` returns `{ uploads_on }` for the signed-in user.
+- `supabase.rpc('set_training_crop_uploads', { request: { on } })` sets the switch and returns `{ uploads_on }`. It refuses an AI client's token. A missing or non-boolean `on` is refused with `invalid_argument` on `on`.
+
+`supabase/training-crops.ts` has the shared types.
 
 `training_crops` has no user ID, copy ID, or time column. No app role can read or write it. Only the secret key reads it, and it changes only through `add_training_crop`. The private `training-crops` bucket accepts only `image/jpeg` up to 1 MB. Signed-in users and anonymous callers cannot read, list, upload, or delete in it.
 
@@ -666,7 +675,7 @@ Every table that holds a user's data follows one pattern:
 
 The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, `deck_evaluations`, `planned_swaps`, and `buylist_cards`. `search_telemetry` departs from the pattern, as Catalog search says. `training_crops` holds no user ID and departs from it too, as Training crops says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
 
-Every record that the user writes also says who created it and who last changed it. `copies`, `collection_additions`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `user_tags`, `copy_user_tags`, `planned_swaps`, and `buylist_cards` have `created_by`, `updated_by`, `created_at`, and `updated_at`, all not null. Each of `created_by` and `updated_by` holds the user's ID or the AI client's ID. Records that the server works out on its own, such as deck evaluations, are left out. So are line records that never change after their parent is saved, such as addition lines and deck change lines. `docs/adr/0010-record-who-created-and-last-changed-each-record.md` says why.
+Every record that the user writes also says who created it and who last changed it. `profiles`, `copies`, `collection_additions`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `user_tags`, `copy_user_tags`, `planned_swaps`, and `buylist_cards` have `created_by`, `updated_by`, `created_at`, and `updated_at`, all not null. Each of `created_by` and `updated_by` holds the user's ID or the AI client's ID. Records that the server works out on its own, such as deck evaluations, are left out. So are line records that never change after their parent is saved, such as addition lines and deck change lines. `docs/adr/0010-record-who-created-and-last-changed-each-record.md` says why.
 
 - One trigger function, `private.record_who_changed`, runs before each insert and update on these tables. The changer is the token's `client_id` claim when it has one, otherwise `auth.uid()`, otherwise the row's `user_id`, as for a write with no caller such as the test-user seed.
 - An insert sets `created_by`, `updated_by`, and `updated_at`. `created_at` defaults to the time of the insert. A buylist card that a planned swap moved to keeps the planned swap's `created_at`.
