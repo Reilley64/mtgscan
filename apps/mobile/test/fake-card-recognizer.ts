@@ -1,6 +1,7 @@
 import { act } from 'expo-router/testing-library';
 
 import type {
+  DecisionBasis,
   GalleryCardPrinting,
   GalleryDownload,
   GalleryDownloadStatus,
@@ -10,6 +11,7 @@ import type {
   RecognitionErrorCode,
 } from '../modules/card-recognizer';
 import { galleryPrintings } from './card-printings';
+import { putFile } from './fake-file-system';
 import { publishedGalleryVersion } from './fake-supabase';
 
 type Listener = (status: GalleryDownloadStatus) => void;
@@ -20,6 +22,7 @@ let installed: InstalledGallery | null = null;
 let nextRecognitions: (Recognition | RecognitionErrorCode)[] = [];
 let recognizedPhotos: string[] = [];
 let cardNameSearches: string[] = [];
+let trainingCrops = 0;
 let heldRecognition: { finish: () => void } | null = null;
 let holdingNextRecognition = false;
 let downloads: GalleryDownload[] = [];
@@ -27,6 +30,8 @@ let galleryParity: GalleryParity | RecognitionErrorCode = 'gallery_not_ready';
 const listeners = new Set<Listener>();
 
 export const fakeCardRecognizer = {
+  featurePrintRevision: 2,
+  recognizerVersion: '1.0.0 (7)',
   recognize: async (photoUri: string): Promise<Recognition> => {
     recognizedPhotos = [...recognizedPhotos, photoUri];
     if (holdingNextRecognition) {
@@ -38,6 +43,9 @@ export const fakeCardRecognizer = {
     const next = nextRecognitions.shift() ?? notACard();
     if (typeof next === 'string') {
       throw Object.assign(new Error(next), { code: next });
+    }
+    if (next.kind === 'card' && next.trainingCrop) {
+      putFile(next.trainingCrop, 'training crop');
     }
     return next;
   },
@@ -104,17 +112,29 @@ export function cardRecognition(
   {
     premiumMark = false,
     accepted = true,
+    basis = 'collector_line',
     sameTextTwinCount = 0,
-  }: { premiumMark?: boolean; accepted?: boolean; sameTextTwinCount?: number } = {},
+    artMargin = 0.12,
+    trainingCrop = `file:///caches/training-crops/crop-${(trainingCrops += 1)}.jpg`,
+  }: {
+    premiumMark?: boolean;
+    accepted?: boolean;
+    basis?: DecisionBasis;
+    sameTextTwinCount?: number;
+    artMargin?: number | null;
+    trainingCrop?: string | null;
+  } = {},
 ): Recognition {
   return {
     kind: 'card',
     candidates,
-    decision: { accepted, reasons: [] },
+    decision: accepted ? { accepted, basis, reasons: [] } : { accepted, basis: null, reasons: [] },
     reading: { setCode: candidates[0]?.setCode, collectorNumber: candidates[0]?.collectorNumber, premiumMark },
     sameTextTwinCount,
     topSimilarity: 0.9,
+    artMargin,
     rotation: 0,
+    trainingCrop,
     stageMs: {},
   };
 }
@@ -160,6 +180,7 @@ export function resetFakeCardRecognizer() {
   nextRecognitions = [];
   recognizedPhotos = [];
   cardNameSearches = [];
+  trainingCrops = 0;
   heldRecognition = null;
   holdingNextRecognition = false;
 }

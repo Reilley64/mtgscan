@@ -1,5 +1,8 @@
+import type { Database } from '@mtgscan/supabase/database.types';
 import {
   AuthApiError,
+  FunctionsFetchError,
+  FunctionsHttpError,
   type AuthChangeEvent,
   type AuthError,
   type OAuthGrant,
@@ -73,6 +76,7 @@ import type {
 import type { CardSet, SetDetails, SetList, SetListQuery, SetQuery } from '@mtgscan/supabase/sets';
 import type { SignInProvider } from '@mtgscan/supabase/sign-in-providers';
 import { testUser } from '@mtgscan/supabase/test-user';
+import type { SetTrainingCropUploadsRequest, TrainingCropSettings } from '@mtgscan/supabase/training-crops';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 import { act } from 'expo-router/testing-library';
 
@@ -80,6 +84,11 @@ import { cardImageUri, cardSets, galleryPrintings, oracleTags, setIconUri } from
 import { appleIdTokenNonce } from './fake-apple';
 
 type AuthListener = (event: AuthChangeEvent, session: Session | null) => void;
+
+export type TrainingCropUpload = {
+  copyId: string;
+  crop: Database['public']['Tables']['training_crops']['Row'];
+};
 
 export type FakeAccount = {
   provider: SignInProvider | 'email';
@@ -151,6 +160,15 @@ let collectionSearches: CollectionQuery[] = [];
 let collectionSearchAnswer: ((query: CollectionQuery) => CollectionSearchAnswer) | null = null;
 let cursorGeneration = 0;
 let scanBatchesSent: ScanBatch[] = [];
+let trainingCropUploads: TrainingCropUpload[] = [];
+let trainingCropRefusals: string[] = [];
+let failingTrainingCropUploads = 0;
+let heldTrainingCropUpload: Promise<void> | null = null;
+let trainingCropUploadAttemptCount = 0;
+let trainingCropUploadsOff = new Set<string>();
+let failingTrainingCropUploadsChanges = 0;
+let heldTrainingCropSettingsReads: Promise<void> | null = null;
+let failingTrainingCropSettingsReads = 0;
 let addedCopies = new Map<string, string>();
 let failingScanBatch: 'before the server adds it' | 'after the server adds it' | null = null;
 let heldScanBatch: Promise<void> | null = null;
@@ -1269,6 +1287,60 @@ function oracleTagLookup({ text, limit }: { text: string; limit: number }) {
   return { data: { items }, error: null };
 }
 
+const edgeFunctions = {
+  async invoke(name: string, { body }: { body: FormData }) {
+    if (name !== 'training-crops') {
+      throw new Error(`The fake Supabase client has no ${name} function`);
+    }
+    trainingCropUploadAttemptCount += 1;
+    const held = heldTrainingCropUpload;
+    heldTrainingCropUpload = null;
+    await held;
+    if (failingTrainingCropUploads > 0) {
+      failingTrainingCropUploads -= 1;
+      return { data: null, error: new FunctionsFetchError(new TypeError('Network request failed')) };
+    }
+    const copyId = String(body.get('copy_id'));
+    const refusal =
+      trainingCropRefusals.shift() ??
+      (session && trainingCropUploadsOff.has(session.user.email!) ? 'uploads_off' : undefined) ??
+      (collectionCopies.some((copy) => copy.copy_id === copyId) ? undefined : 'unknown_copy');
+    if (refusal) {
+      const response = Response.json({ code: refusal, message: refusal, details: null }, { status: 400 });
+      return { data: null, error: new FunctionsHttpError(response) };
+    }
+    trainingCropUploads = [
+      ...trainingCropUploads,
+      { copyId, crop: JSON.parse(String(body.get('crop'))) },
+    ];
+    return { data: null, error: null };
+  },
+};
+
+async function trainingCropSettingsRead() {
+  await heldTrainingCropSettingsReads;
+  if (failingTrainingCropSettingsReads > 0) {
+    failingTrainingCropSettingsReads -= 1;
+    return { data: null, error: networkFailure };
+  }
+  const settings: TrainingCropSettings = { uploads_on: !trainingCropUploadsOff.has(session!.user.email!) };
+  return { data: settings, error: null };
+}
+
+function setTrainingCropUploads({ on }: SetTrainingCropUploadsRequest) {
+  if (failingTrainingCropUploadsChanges > 0) {
+    failingTrainingCropUploadsChanges -= 1;
+    return { data: null, error: networkFailure };
+  }
+  const email = session!.user.email!;
+  if (on) {
+    trainingCropUploadsOff.delete(email);
+  } else {
+    trainingCropUploadsOff.add(email);
+  }
+  return { data: { uploads_on: on } satisfies TrainingCropSettings, error: null };
+}
+
 const aiClientsUnreachable = new AuthApiError('Network request failed', 0, undefined);
 
 const oauthServer = {
@@ -1331,7 +1403,8 @@ export const fakeSupabase = {
             | SwapInPlannedSwapRequest
             | ClosePlannedSwapRequest
             | MarkBuylistCardBoughtRequest
-            | CloseBuylistCardRequest;
+            | CloseBuylistCardRequest
+            | SetTrainingCropUploadsRequest;
         },
   ) {
     if (name === 'list_decks') {
@@ -1461,12 +1534,19 @@ export const fakeSupabase = {
     if (name === 'list_exchange_rates') {
       return exchangeRateList();
     }
+    if (name === 'get_training_crop_settings') {
+      return trainingCropSettingsRead();
+    }
+    if (name === 'set_training_crop_uploads' && args && 'request' in args) {
+      return setTrainingCropUploads(args.request as SetTrainingCropUploadsRequest);
+    }
     if (name === 'add_scan_batch' && args && 'batch' in args) {
       return addScanBatch(args.batch);
     }
     throw new Error(`The fake Supabase client has no ${name} function`);
   },
   storage: { from: galleryBucket },
+  functions: edgeFunctions,
   auth: {
     onAuthStateChange(listener: AuthListener) {
       listeners.add(listener);
@@ -1968,7 +2048,69 @@ export function holdAiClientRevokes() {
   };
 }
 
+export function trainingCropsUploaded() {
+  return trainingCropUploads;
+}
+
+export function refuseNextTrainingCrop(code: string) {
+  trainingCropRefusals = [...trainingCropRefusals, code];
+}
+
+export function failNextTrainingCropUpload() {
+  failingTrainingCropUploads += 1;
+}
+
+export function holdNextTrainingCropUpload() {
+  let finish = () => {};
+  heldTrainingCropUpload = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return { finish: () => act(async () => finish()) };
+}
+
+export function trainingCropUploadAttempts() {
+  return trainingCropUploadAttemptCount;
+}
+
+export function turnTrainingCropUploadsOffElsewhere(email = defaultEmail) {
+  trainingCropUploadsOff.add(email);
+}
+
+export function trainingCropUploadsAreOnTheServer(email = defaultEmail) {
+  return !trainingCropUploadsOff.has(email);
+}
+
+export function failNextTrainingCropUploadsChange() {
+  failingTrainingCropUploadsChanges += 1;
+}
+
+export function failTrainingCropSettingsReads(count: number) {
+  failingTrainingCropSettingsReads = count;
+}
+
+export function holdTrainingCropSettingsReads() {
+  let finish = () => {};
+  heldTrainingCropSettingsReads = new Promise((resolve) => {
+    finish = resolve;
+  });
+  return {
+    finish: async () => {
+      heldTrainingCropSettingsReads = null;
+      await act(async () => finish());
+    },
+  };
+}
+
 export function resetFakeSupabase() {
+  trainingCropUploads = [];
+  trainingCropUploadAttemptCount = 0;
+  trainingCropUploadsOff = new Set();
+  failingTrainingCropUploadsChanges = 0;
+  heldTrainingCropSettingsReads = null;
+  failingTrainingCropSettingsReads = 0;
+  trainingCropRefusals = [];
+  failingTrainingCropUploads = 0;
+  heldTrainingCropUpload = null;
   session = null;
   collectionCopies = [];
   copyDetails = new Map();

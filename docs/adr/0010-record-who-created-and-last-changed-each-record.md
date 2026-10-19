@@ -4,7 +4,7 @@ The owner wants to see whether the user or an AI client last changed a record (1
 
 ## Consequences
 
-- This covers copies, additions, decks, deck cards, deck basic lands, deck changes, user tags, user tag links, planned swaps, and buylist cards. Records that the server works out on its own, such as deck evaluations, daily collection totals, and MCP call counts, are left out. So are line records that never change after their parent is saved, such as addition lines and deck change lines.
+- This covers profiles, copies, additions, decks, deck cards, deck basic lands, deck changes, user tags, user tag links, planned swaps, and buylist cards. Profiles joined in spec 10 (#389), when the **Upload training crops** switch made the profile a record that the user writes. Records that the server works out on its own, such as deck evaluations, daily collection totals, and MCP call counts, are left out. So are line records that never change after their parent is saved, such as addition lines and deck change lines.
 - Postgres also sets `updated_at` on every insert and update, and keeps `created_at` on every update. On insert, `created_at` keeps its column default, and Postgres does not overwrite it. So a buylist card that a planned swap moved to keeps the planned swap's `created_at`, and so its age.
 - A change made as a side effect of a call, such as a planned swap moved to the buylist when its held copy is deleted, takes the caller's ID.
 - `created_by` replaces `client_id` on planned swaps and buylist cards. `client_name` goes away from planned swaps, buylist cards, and deck changes. mtgscan does not need to know which AI client it was.

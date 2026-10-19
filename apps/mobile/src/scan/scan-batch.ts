@@ -1,9 +1,23 @@
 import type { CardCondition, CardLanguage, ScanBatchStack } from '@mtgscan/supabase/collection';
+import type { Database } from '@mtgscan/supabase/database.types';
 import type { Finish } from '@mtgscan/supabase/search';
 
-import type { GalleryCardPrinting } from '../../modules/card-recognizer';
+import type { CollectorLineReading, GalleryCardPrinting, RecognitionDecision } from '../../modules/card-recognizer';
 
 export type Printing = GalleryCardPrinting;
+
+export type PrintingChange = Database['public']['Enums']['printing_change'];
+
+export type ScanTrainingCrop = Readonly<{
+  uri: string;
+  decision: RecognitionDecision;
+  topSimilarity: number;
+  artMargin: number | null;
+  reading: CollectorLineReading;
+  recognizerVersion: string;
+  featurePrintRevision: number;
+  galleryVersion: string;
+}>;
 
 export type BatchScan = Readonly<{
   scanId: string;
@@ -14,6 +28,10 @@ export type BatchScan = Readonly<{
   finish: Finish;
   condition: CardCondition;
   language: CardLanguage;
+  recognizedPrintingId: string | null;
+  printingChange: PrintingChange | null;
+  printingConfirmed: boolean;
+  trainingCrop: ScanTrainingCrop | null;
 }>;
 
 export type ScanBatch = Readonly<{
@@ -29,8 +47,10 @@ export type ScanBatchAction =
       options: readonly Printing[];
       sameTextTwinCount: number;
       premiumMark: boolean;
+      recognizedPrintingId: string | null;
+      trainingCrop: ScanTrainingCrop | null;
     }
-  | { type: 'choose'; scanId: string; printing: Printing }
+  | { type: 'choose'; scanId: string; printing: Printing; printingChange: PrintingChange }
   | { type: 'setFinish'; scanId: string; finish: Finish }
   | { type: 'setCondition'; scanId: string; condition: CardCondition }
   | { type: 'setLanguage'; scanId: string; language: CardLanguage }
@@ -64,6 +84,13 @@ function finishAfterSwitch(scan: BatchScan, printing: Printing): Finish {
   return printing.finishes.includes(scan.finish) ? scan.finish : defaultFinish(printing, scan.premiumMark);
 }
 
+function chosen(scan: BatchScan, { printing, printingChange }: Extract<ScanBatchAction, { type: 'choose' }>): BatchScan {
+  if (printing.printingId !== scan.printing.printingId) {
+    return { ...scan, printing, finish: finishAfterSwitch(scan, printing), printingChange, printingConfirmed: false };
+  }
+  return printingChange === 'printing_picker' ? { ...scan, printingConfirmed: true } : scan;
+}
+
 function updateScan(batch: ScanBatch, scanId: string, change: (scan: BatchScan) => BatchScan): ScanBatch {
   return { ...batch, scans: batch.scans.map((scan) => (scan.scanId === scanId ? change(scan) : scan)) };
 }
@@ -77,15 +104,20 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
       const { type, ...scan } = action;
       return {
         ...batch,
-        scans: [...batch.scans, { ...scan, finish: defaultFinish(scan.printing, scan.premiumMark), ...newScanDefaults }],
+        scans: [
+          ...batch.scans,
+          {
+            ...scan,
+            finish: defaultFinish(scan.printing, scan.premiumMark),
+            ...newScanDefaults,
+            printingChange: null,
+            printingConfirmed: false,
+          },
+        ],
       };
     }
     case 'choose':
-      return updateScan(batch, action.scanId, (scan) => ({
-        ...scan,
-        printing: action.printing,
-        finish: finishAfterSwitch(scan, action.printing),
-      }));
+      return updateScan(batch, action.scanId, (scan) => chosen(scan, action));
     case 'setFinish':
       return updateScan(batch, action.scanId, (scan) => ({ ...scan, finish: action.finish }));
     case 'setCondition':
@@ -94,7 +126,9 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
       return updateScan(batch, action.scanId, (scan) => ({ ...scan, language: action.language }));
     case 'addCopy': {
       const copied = batch.scans.find((scan) => scan.scanId === action.scanId);
-      return copied ? { ...batch, scans: [...batch.scans, { ...copied, scanId: action.newScanId }] } : batch;
+      return copied
+        ? { ...batch, scans: [...batch.scans, { ...copied, scanId: action.newScanId, trainingCrop: null }] }
+        : batch;
     }
     case 'remove':
       return { ...batch, scans: batch.scans.filter((scan) => scan.scanId !== action.scanId) };
@@ -107,6 +141,12 @@ export function scanBatchReducer(batch: ScanBatch, action: ScanBatchAction): Sca
         commitPending: false,
       };
   }
+}
+
+export type CroppedScan = BatchScan & Readonly<{ recognizedPrintingId: string; trainingCrop: ScanTrainingCrop }>;
+
+export function isCroppedScan(scan: BatchScan): scan is CroppedScan {
+  return scan.trainingCrop !== null && scan.recognizedPrintingId !== null;
 }
 
 export function stacksOf(scans: readonly BatchScan[]): ScanBatchStack[] {

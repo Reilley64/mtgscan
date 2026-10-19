@@ -115,7 +115,7 @@ A card printing that prints the same collector line and art as another and diffe
 The small print at the bottom of a card printing with its set code and collector number. A star in place of the dot marks a foil copy.
 
 **Recognition**:
-The recognizer's answer for one photo of a card: candidate card printings in display order and a decision. The recognizer accepts the first candidate when its rules prove it, and abstains otherwise. The app shows the first candidate either way.
+The recognizer's answer for one photo of a card: candidate card printings in display order and a decision. The recognizer accepts the first candidate when its rules prove it, and abstains otherwise. The app shows the first candidate either way. An accept names its decision basis, the rule that proved it: the collector line, the set code, or unique art. The art margin is how far the best candidate with other art is behind the top candidate.
 _Avoid_: Match, confidence
 
 **Card detector**:
@@ -132,6 +132,9 @@ _Avoid_: Auto-scan, shutter
 
 **Scanner evidence pack**:
 The committed real crops, simulated scans, expected results, and phone runs that the recognition release gates replay. Simulated scans are synthetic phone photos rendered from Scryfall images. A held-out run removes each true card printing from the gallery, to show that the recognizer abstains when the right printing is missing.
+
+**Training crop**:
+The straightened image of the one card in a scan. After the scan batch commit saves the scan, the app uploads the crop with its evidence record. The evidence record is what the scanner read and decided, which card printing the user saved, and how the user changed or confirmed it. mtgscan stores training crops with no link to the user's account, so a training crop cannot be removed after it uploads.
 
 **Bin-deck run**:
 A release gate on the iPhone. The owner scans the 30 cards of the test deck in order with a development build of the app, and a script scores each recognition against the deck. It passes with no false accept, the right card first for 29 of 30, the exact card printing first for 27 of 30, and an end-to-end p95 below 1.5 s.

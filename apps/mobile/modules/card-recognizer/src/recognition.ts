@@ -34,14 +34,22 @@ export type CollectorLineReading = {
 
 export type StageTimes = Partial<Record<'rectify' | 'resize' | 'embed' | 'search' | 'read', number>>;
 
+export type DecisionBasis = 'collector_line' | 'set_code' | 'unique_art';
+
+export type RecognitionDecision =
+  | { accepted: true; basis: DecisionBasis; reasons: string[] }
+  | { accepted: false; basis: null; reasons: string[] };
+
 export type CardRecognition = {
   kind: 'card';
   candidates: GalleryCardPrinting[];
-  decision: { accepted: boolean; reasons: string[] };
+  decision: RecognitionDecision;
   reading: CollectorLineReading;
   sameTextTwinCount: number;
   topSimilarity: number;
+  artMargin: number | null;
   rotation: 0 | 180;
+  trainingCrop: string | null;
   stageMs: StageTimes;
 };
 

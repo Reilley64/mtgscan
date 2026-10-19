@@ -657,14 +657,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "created_at": string,"user_id": string
+                    "created_at": string,"created_by": string,"training_crop_uploads": boolean,"updated_at": string,"updated_by": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"user_id": string
+                    "created_at"?: string,"created_by"?: string,"training_crop_uploads"?: boolean,"updated_at"?: string,"updated_by"?: string,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string,"user_id"?: string
+                    "created_at"?: string,"created_by"?: string,"training_crop_uploads"?: boolean,"updated_at"?: string,"updated_by"?: string,"user_id"?: string
                   }
                   Relationships: [
                     
@@ -708,6 +708,20 @@ isOneToOne: false
       referencedRelation: "oracle_tags"
       referencedColumns: ["id"]
     }
+                  ]
+                },"training_crops": {
+                  Row: {
+                    "accepted": boolean,"art_margin": number | null,"crop_id": string,"decision_basis": Database["public"]['Enums']["decision_basis"] | null,"decision_reasons": (string)[],"feature_print_revision": number,"gallery_version": string,"policy_version": number,"printing_change": Database["public"]['Enums']["printing_change"] | null,"printing_confirmed": boolean,"reading_collector_number": string | null,"reading_names_saved_printing": boolean,"reading_premium_mark": boolean,"reading_set_code": string | null,"recognized_printing_id": string,"recognizer_version": string,"same_text_twin_count": number,"saved_printing_id": string,"top_similarity": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "accepted": boolean,"art_margin"?: number | null,"crop_id": string,"decision_basis"?: Database["public"]['Enums']["decision_basis"] | null,"decision_reasons": (string)[],"feature_print_revision": number,"gallery_version": string,"policy_version": number,"printing_change"?: Database["public"]['Enums']["printing_change"] | null,"printing_confirmed": boolean,"reading_collector_number"?: string | null,"reading_names_saved_printing": boolean,"reading_premium_mark": boolean,"reading_set_code"?: string | null,"recognized_printing_id": string,"recognizer_version": string,"same_text_twin_count": number,"saved_printing_id": string,"top_similarity": number
+                  }
+                  Update: {
+                    "accepted"?: boolean,"art_margin"?: number | null,"crop_id"?: string,"decision_basis"?: Database["public"]['Enums']["decision_basis"] | null,"decision_reasons"?: (string)[],"feature_print_revision"?: number,"gallery_version"?: string,"policy_version"?: number,"printing_change"?: Database["public"]['Enums']["printing_change"] | null,"printing_confirmed"?: boolean,"reading_collector_number"?: string | null,"reading_names_saved_printing"?: boolean,"reading_premium_mark"?: boolean,"reading_set_code"?: string | null,"recognized_printing_id"?: string,"recognizer_version"?: string,"same_text_twin_count"?: number,"saved_printing_id"?: string,"top_similarity"?: number
+                  }
+                  Relationships: [
+                    
                   ]
                 },"user_tags": {
                   Row: {
@@ -754,6 +768,9 @@ isOneToOne: false
                            },
 "add_scan_batch":
 { Args: { "batch": Json }; Returns: Json
+                           },
+"add_training_crop":
+{ Args: { "request": Json }; Returns: undefined
                            },
 "begin_import_run":
 { Args: { "accept_shrink"?: boolean,"source": Database["public"]['Enums']["import_source"],"source_updated_at": string }; Returns: {
@@ -874,6 +891,12 @@ isOneToOne: false
                            },
 "get_set":
 { Args: { "query": Json }; Returns: Json
+                           },
+"get_training_crop_settings":
+{ Args: { "query"?: Json }; Returns: Json
+                           },
+"get_training_crop_storage":
+{ Args: { "query"?: Json }; Returns: Json
                            },
 "import_card_sets":
 { Args: { "sets": Json }; Returns: number
@@ -1000,6 +1023,9 @@ isOneToOne: false
 "set_mcp_audience":
 { Args: { "event": Json }; Returns: Json
                            },
+"set_training_crop_uploads":
+{ Args: { "request": Json }; Returns: Json
+                           },
 "stage_import_batch":
 { Args: { "batch_number": number,"batch_rows": Json,"run_id": string,"target": string }; Returns: number
                            },
@@ -1011,7 +1037,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "buylist_card_status": "open"|"bought"|"closed","card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","close_note": "closed_by_user"|"closed_by_ai_client"|"outgoing_left_deck"|"held_copy_deleted"|"held_copy_reverted","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","copy_limit": "one"|"any_number"|"number"|"unknown","deck_change_kind": "added"|"removed"|"made_commander"|"made_partner"|"moved_to_main_deck"|"basic_lands"|"removed_from_collection"|"revert"|"swapped_in"|"bought","deck_priority": "high"|"medium"|"low","deck_role": "commander"|"main","deck_validity": "valid"|"invalid"|"cannot_be_determined","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices"|"exchange_rates","planned_swap_status": "open"|"swapped_in"|"closed"|"moved_to_buylist","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
+            "buylist_card_status": "open"|"bought"|"closed","card_condition": "near_mint"|"lightly_played"|"moderately_played"|"heavily_played"|"damaged","card_finish": "nonfoil"|"foil"|"etched","card_language": "en"|"ja"|"de"|"fr"|"it"|"es"|"pt"|"ko"|"ru"|"zhs"|"zht","card_rarity": "common"|"uncommon"|"rare"|"mythic"|"special"|"bonus","close_note": "closed_by_user"|"closed_by_ai_client"|"outgoing_left_deck"|"held_copy_deleted"|"held_copy_reverted","collection_addition_source": "scan_batch","combo_bracket_tag": "ruthless"|"spicy"|"powerful"|"oddball"|"core"|"exhibition"|"banned","commander_legality": "legal"|"banned"|"not_legal"|"unknown","copy_limit": "one"|"any_number"|"number"|"unknown","decision_basis": "collector_line"|"set_code"|"unique_art","deck_change_kind": "added"|"removed"|"made_commander"|"made_partner"|"moved_to_main_deck"|"basic_lands"|"removed_from_collection"|"revert"|"swapped_in"|"bought","deck_priority": "high"|"medium"|"low","deck_role": "commander"|"main","deck_validity": "valid"|"invalid"|"cannot_be_determined","import_run_status": "running"|"succeeded"|"failed"|"skipped"|"expired","import_source": "catalog"|"oracle_tags"|"commander_spellbook"|"prices"|"exchange_rates","planned_swap_status": "open"|"swapped_in"|"closed"|"moved_to_buylist","printing_change": "other_options"|"printing_picker"|"name_search","search_api": "catalog"|"collection","search_caller": "app"|"mcp"|"release_check"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1131,7 +1157,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "buylist_card_status": ["open", "bought", "closed"],"card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"close_note": ["closed_by_user", "closed_by_ai_client", "outgoing_left_deck", "held_copy_deleted", "held_copy_reverted"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"copy_limit": ["one", "any_number", "number", "unknown"],"deck_change_kind": ["added", "removed", "made_commander", "made_partner", "moved_to_main_deck", "basic_lands", "removed_from_collection", "revert", "swapped_in", "bought"],"deck_priority": ["high", "medium", "low"],"deck_role": ["commander", "main"],"deck_validity": ["valid", "invalid", "cannot_be_determined"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices", "exchange_rates"],"planned_swap_status": ["open", "swapped_in", "closed", "moved_to_buylist"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
+            "buylist_card_status": ["open", "bought", "closed"],"card_condition": ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"],"card_finish": ["nonfoil", "foil", "etched"],"card_language": ["en", "ja", "de", "fr", "it", "es", "pt", "ko", "ru", "zhs", "zht"],"card_rarity": ["common", "uncommon", "rare", "mythic", "special", "bonus"],"close_note": ["closed_by_user", "closed_by_ai_client", "outgoing_left_deck", "held_copy_deleted", "held_copy_reverted"],"collection_addition_source": ["scan_batch"],"combo_bracket_tag": ["ruthless", "spicy", "powerful", "oddball", "core", "exhibition", "banned"],"commander_legality": ["legal", "banned", "not_legal", "unknown"],"copy_limit": ["one", "any_number", "number", "unknown"],"decision_basis": ["collector_line", "set_code", "unique_art"],"deck_change_kind": ["added", "removed", "made_commander", "made_partner", "moved_to_main_deck", "basic_lands", "removed_from_collection", "revert", "swapped_in", "bought"],"deck_priority": ["high", "medium", "low"],"deck_role": ["commander", "main"],"deck_validity": ["valid", "invalid", "cannot_be_determined"],"import_run_status": ["running", "succeeded", "failed", "skipped", "expired"],"import_source": ["catalog", "oracle_tags", "commander_spellbook", "prices", "exchange_rates"],"planned_swap_status": ["open", "swapped_in", "closed", "moved_to_buylist"],"printing_change": ["other_options", "printing_picker", "name_search"],"search_api": ["catalog", "collection"],"search_caller": ["app", "mcp", "release_check"]
           }
         }
 } as const

@@ -48,6 +48,17 @@ A development build has a primitive catalog that shows every primitive in each s
 
 The card recognizer is a local Expo module in `apps/mobile/modules/card-recognizer`. `recognize(photoUri, outline)` returns a card result with its candidates and decision, or a not-a-card result, as #75 describes. The outline is the four card corners, top left first and clockwise, as fractions of the photo's width and height from its top-left corner. It loads the gallery from `Application Support/gallery` on the phone and throws `gallery_not_ready` until one is there.
 
+A card result also has:
+
+- `decision.basis`, the rule that proved an accept. It is null for an abstain, and `decision.accepted` is true exactly when it is set. There are three rules:
+  - `collector_line` when the collector line names a card printing in the image shortlist;
+  - `set_code` when the set code leaves one card printing of the top card;
+  - `unique_art` when the top card printing is the only one with its art, and the next art is far enough behind.
+- `artMargin`, the similarity of the top candidate minus the similarity of the best candidate with other art. It is null when no other art was compared.
+- `trainingCrop`, the file URI of the straightened card as a 488 x 680 JPEG in `Caches/training-crops`, the size and format of the crops in the scanner evidence pack. The crop is upright, in the rotation that the recognizer chose. A not-a-card result and a failed recognition write no crop.
+
+The module also exports two constants for the evidence record of a training crop: `featurePrintRevision`, the feature print revision, and `recognizerVersion`, the app version and build number, such as `1.0.0 (7)`.
+
 Each candidate carries its card printing ID, Oracle ID, name, set code, collector number, finishes, and basic land flag from the printing list. Name search also runs on the phone, over the printing list of the installed gallery:
 
 - `searchCardNames(text)` matches card names and face names. It ignores case, accents, and punctuation. It returns up to 10 cards: exact names first, then names that start with the text, then names with a word that starts with it. There is no fuzzy match.
@@ -85,7 +96,7 @@ The Swift sources in `ios/Recognizer` build into the app and into a macOS comman
 
 The owner builds the gallery on the Mac at each set release with `bun run gallery <command>` in `supabase`. #75 describes the format. The commands read `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. When `SUPABASE_URL` is not set, they use `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF`. For the hosted project, `SUPABASE_PROJECT_REF` and `SUPABASE_SECRET_KEY` live only in `supabase/.env.hosted`, which Git ignores and Bun does not load by itself. Run a command with them as `bun --env-file=.env.hosted gallery/main.ts <command>`. `docs/agents/local-development.md` (Gallery build) has the rules.
 
-1. `build` reads Scryfall Default Cards and keeps the paper card printings that are in the card catalog. It downloads the missing `normal` images into `~/Library/Caches/mtgscan/scryfall-images`, 8 at a time. The macOS recognizer command computes the int8 feature prints, and the build reuses the ones it already has. It then writes the gallery parts, the printing list parts, and the manifest with the SHA-256 of each part, and uploads them as a new gallery version that is not published. It prints the sizes against the Free plan budget.
+1. `build` reads Scryfall Default Cards and keeps the paper card printings that are in the card catalog. It downloads the missing `normal` images into `~/Library/Caches/mtgscan/scryfall-images`, 8 at a time. The macOS recognizer command computes the int8 feature prints, and the build reuses the ones it already has. It then writes the gallery parts, the printing list parts, and the manifest with the SHA-256 of each part, and uploads them as a new gallery version that is not published. It prints the sizes against the Free plan budget. On a plan upgrade, change `freePlan` in `supabase/gallery/budget.ts` and the Storage limit in Training crops together.
 2. The owner runs the parity check on the iPhone (#84). In a development build, **Run the parity check** in settings runs it on the installed gallery version. Signed-in users cannot read a gallery version that is not published, so `sign <version> [--hours <n>]` prints signed URLs for its manifest and parts, valid for 24 hours by default, for a development build. Gallery download (above) says how a development build uses them. `parity <version> --lowest-cosine <n> --mean-cosine <n> --references <n>` records the result.
 3. `publish <version>` refuses a gallery version without a passing parity check: a lowest cosine of at least 0.98 over 24 or more references. It then moves the pointer, `published.json`, to the version. It deletes every other gallery version except the previous one and the one that the scanner evidence pack names.
 
@@ -125,13 +136,22 @@ The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes o
 
 The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in account.
 
-- After every change, the phone writes the scan batch to `scan-batch-<user ID>.json` in the app's documents folder with `expo-file-system`. The file holds a format version, the scans, and the pending commit. `src/scan/scan-batch-file.ts` reads and writes it.
-- When an account signs in, the phone reads its file back. Sign-out keeps the file and clears the scan batch from the screen.
+- After every change, the phone writes the scan batch to `scan-batch-<user ID>.json` in the app's documents folder with `expo-file-system`. The file holds a format version, the scans, and the pending commit. `src/scan/scan-batch-file.ts` reads and writes it with `src/scan/versioned-user-file.ts`, which the upload queue file uses too. A file in an unknown format version reads as empty.
+- When an account signs in, the phone reads its file back. Sign-out keeps the file and clears the scan batch from the screen. A recognition that ends after the account changed adds no scan, and the phone deletes its training crop.
 - Each scan gets a UUID when it is made, including a scan from **+1**. It is the copy ID of that copy.
 - **Add to collection** calls `add_scan_batch` with one stack per card printing, finish, condition, and language, and the copy IDs of its scans. The server adds each copy ID once, so a retry never adds a copy twice, even after the scan batch changed.
 - The file marks a commit that has not finished. At sign-in, the phone sends that commit again by itself.
 - A commit that works removes the scans it sent. A commit that fails keeps every scan. Batch review rows do not open while a commit runs.
-- **Remove** in the **Remove all scans** alert of batch review empties the scan batch and its file. It also clears a commit that has not finished. A recognition that is still running adds no scan when it ends. Nothing reaches the server.
+- **Remove** in the **Remove all scans** alert of batch review empties the scan batch and its file. It also clears a commit that has not finished. A recognition that is still running adds no scan when it ends, and the phone deletes its training crop. Nothing reaches the server.
+- A scan keeps its training crop. When the scan enters the scan batch, the phone moves the crop from `Caches/training-crops` to `training-crops/<user ID>/<copy ID>.jpg` in the documents folder. The scan also keeps the recognizer fields of the evidence record: the decision, the top similarity, the art margin, the collector line reading, the recognizer version, the feature print revision, and the installed gallery version. A basic land, a recognition with no candidates, and a scan from **+1** keep no crop, and the phone deletes the crop of the first two.
+- A scan keeps `recognizedPrintingId`, the scanner's first card printing. A scan that the user found with name search after it was not recognized has none.
+- A scan keeps `printingChange`. It is null until the user chooses a card printing other than the current one. Then it is `other_options`, `printing_picker`, or `name_search`, from the last such choice. A switch back to the first card printing is a change too.
+- A scan keeps `printingConfirmed`. Choosing the current card printing in the printing picker sets it. Any later change clears it.
+- **Remove scan** and **Remove all scans** delete the training crops of the scans they remove.
+- The scan batch file is format version 2. A file in format version 1 still loads. Its scans get no training crop, no first card printing, and no printing change.
+- After a commit that works, the training crop of each saved scan that has one joins the user's upload queue, `training-crop-queue-<user ID>.json` in the documents folder. `src/scan/evidence-record.ts` builds the evidence record from the saved scan, with policy version 1. Each crop in the queue gets a new random crop ID, which is not the copy ID, and an upload time drawn at random between 1 and 7 days after the commit. So the upload time does not show when the user added the card.
+- The phone uploads the crops whose upload time has passed when the app starts, when a user signs in, and when the app comes back to the foreground. `TrainingCropUploads` in `src/scan/training-crops.ts` runs these uploads, apart from the scan batch. It uploads them one at a time to the `training-crops` Edge Function, which Training crops (below) describes. It uploads only the signed-in user's queue, and it stops when the user signs out. The phone deletes the crop after the upload works or after the server refuses it with a 400, such as `unknown_copy` for a copy that the user deleted. A network failure or another error keeps the crop in the queue, and the phone stops until the next try.
+- The phone reads the **Upload training crops** switch when a user signs in or the app starts, and again when the app comes back to the foreground after a failed read. When the phone knows that uploads are off, a commit deletes the training crops of the saved scans and queues none. Turning the switch off deletes every crop in the user's queue.
 - Pulling down on the Scan tab adds the scan batch with the same commit as **Add to collection**. `src/scan/use-pull-to-add.ts` tracks the pull with React Native's `PanResponder`, so the app needs no gesture library.
 
 ### AI clients
@@ -326,6 +346,75 @@ Signed-in users delete one copy with `supabase.rpc('delete_copy', { request })`.
 - A copy in a deck leaves its deck first, with one `removed_from_collection` deck change. It raises the deck revision by one and sets the last used time. Its line keeps the card printing and finish. History still shows the card. Deleting a copy in no deck makes no deck change.
 - The copy's addition, its addition line, and its copy ID in `collection_addition_copies` stay. A replayed scan batch never adds the copy again.
 - It returns nothing. Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist or was already deleted. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
+
+### Training crops
+
+The app uploads a training crop for each saved scan to the `training-crops` Edge Function. mtgscan stores training crops with no link to the user's account. `docs/adr/0011-store-training-crops-with-no-link-to-the-user.md` says why.
+
+The function takes a `multipart/form-data` POST with the user's token and three parts:
+
+- `image`, the JPEG of the crop;
+- `copy_id`, the copy ID of the saved scan;
+- `crop`, the evidence record as JSON, with a new random `crop_id` that is not the copy ID.
+
+The function:
+
+1. checks the user's token, and answers 401 when there is none;
+2. refuses an AI client's token with 403 and `insufficient_privilege`, as ADR 0007 asks for app writes;
+3. refuses an image that is not `image/jpeg` or is over 1 MB with `invalid_argument` on `image`. The `training-crops` bucket holds both limits, and the function reads them from it;
+4. calls `add_training_crop` with the secret key;
+5. uploads the image to `training-crops` at `<crop_id>.jpg` with the secret key and no metadata. An object that is already there counts as done, so a retry works.
+
+It answers 204 when the crop is stored. A refusal is a 400 with a JSON body of `code`, `message`, and `details`, the field at fault. Any other failure is a 500 with `internal_error`. The function writes no log line.
+
+`.github/workflows/edge-functions.yml` deploys it with the MCP function. `supabase/functions/training-crops/crop-object.ts` names the bucket and the object path, `<crop_id>.jpg`, for the function and the owner command.
+
+`add_training_crop({ user_id, copy_id, crop })` runs only for the secret key. It uses the user ID and the copy ID for its checks and stores neither:
+
+- `uploads_off`, with no field, when the user turned training crop uploads off;
+- `storage_full` when the objects in every Storage bucket add up to 90% or more of the Storage limit;
+- `unknown_copy` on `copy_id` when the copy ID is not a copy of the user;
+- `invalid_argument` on a bad field, such as `crop.decision_basis`.
+
+Otherwise it writes the row. The same crop ID again writes nothing and succeeds.
+
+The Storage limit is `bytes` in the one row of `private.storage_limit`. It is 1,000,000,000 bytes, the Storage of the Free plan. The gallery budget report uses the same number, `freePlan.storageBytes` in `supabase/gallery/budget.ts`. On a plan upgrade, change both in the same PR, with a new migration for the database value. `private.storage_left_before_upload_stop()` holds the 90% rule. It returns 90% of the Storage limit minus the bytes of the objects in every bucket. `add_training_crop` refuses with `storage_full` when it is 0 or less, and `supabase.rpc('get_training_crop_storage')` returns it as `{ bytes_left }`. Only the secret key can call that function. The app drops a crop refused with `storage_full` and shows no message. So uploads stop for every user before training crops can fill the Storage that the gallery needs.
+
+The evidence record has these fields, each a column of `training_crops`:
+
+- `crop_id`;
+- `accepted`, `decision_basis` (`collector_line`, `set_code`, or `unique_art` for an accept, null for an abstain), and `decision_reasons`;
+- `top_similarity` and `art_margin`;
+- `reading_set_code`, `reading_collector_number`, `reading_premium_mark`, and `reading_names_saved_printing`, which says whether the collector line named the saved card printing;
+- `same_text_twin_count`;
+- `recognizer_version` (the app version and build number), `feature_print_revision`, and `gallery_version`;
+- `recognized_printing_id`, the scanner's first card printing, and `saved_printing_id`, both in the card catalog;
+- `printing_change` (`other_options`, `printing_picker`, `name_search`, or null) and `printing_confirmed`;
+- `policy_version`.
+
+The **Upload training crops** switch in the settings drawer sets `profiles.training_crop_uploads`, which is true by default. It follows the account, so it is the same on every phone:
+
+- `supabase.rpc('get_training_crop_settings')` returns `{ uploads_on }` for the signed-in user.
+- `supabase.rpc('set_training_crop_uploads', { request: { on } })` sets the switch and returns `{ uploads_on }`. It refuses an AI client's token. A missing or non-boolean `on` is refused with `invalid_argument` on `on`.
+
+`supabase/training-crops.ts` has the shared types.
+
+`training_crops` has no user ID, copy ID, or time column. No app role can read or write it. Only the secret key reads it, and it changes only through `add_training_crop`. The private `training-crops` bucket accepts only `image/jpeg` up to 1 MB. Signed-in users and anonymous callers cannot read, list, upload, or delete in it.
+
+The owner downloads the training crops to the Mac with `bun run crops pull` in `supabase`. The script loads `.env.hosted`, like the gallery commands, so it reads the hosted project with the secret key. It downloads into `~/Library/Caches/mtgscan/training-crops/`, outside the repository. `--into <dir>` names another folder. The folder has the layout of the scanner evidence pack:
+
+- `crops/<crop_id>.jpg` holds each image. The command downloads only the images that are not in the folder yet.
+- `labels.json` has `cards`, with each crop path and its `saved_printing_id` as `scryfallId`.
+- `evidence.json` has the evidence record of each crop, in the same order.
+
+A row whose image is not in the bucket yet waits for a later pull. The command prints the number of new crops, the number of crops in the folder and their total size, and the Storage left before uploads stop at 90%. It reads the Storage left from `get_training_crop_storage`, so it uses the same limit and rule as `storage_full`.
+
+The evaluate script runs on the folder, from `apps/mobile`, with the macOS recognizer command that `bun run recognizer:replay` builds:
+
+```bash
+bun modules/card-recognizer/scripts/evaluate.mjs ~/Library/Caches/mtgscan/training-crops/labels.json \
+  --gallery <gallery dir> --recognizer modules/card-recognizer/.data/build/release/card-recognizer
+```
 
 ### User tags
 
@@ -612,9 +701,9 @@ Every table that holds a user's data follows one pattern:
 - Changes go only through database functions. Each function runs in one transaction and checks the caller's identity.
 - Reads run with the caller's rights, so the read policy decides which rows the caller sees. Read functions are `security invoker`, and views over a user's data set `security_invoker`. No read function filters on the caller itself.
 
-The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, `deck_evaluations`, `planned_swaps`, and `buylist_cards`. `search_telemetry` departs from the pattern, as Catalog search says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
+The tables with a user's data are `profiles`, `copies`, `collection_additions`, `collection_addition_lines`, `collection_addition_copies`, `user_tags`, `copy_user_tags`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `deck_change_lines`, `deck_change_basic_lands`, `deck_evaluations`, `planned_swaps`, and `buylist_cards`. `search_telemetry` departs from the pattern, as Catalog search says. `training_crops` holds no user ID and departs from it too, as Training crops says. App roles cannot write `search_telemetry`. Searches write their telemetry row through `private.record_search`. It runs with the owner's rights. The `deck_evaluator` role reads every row of `decks`, `deck_cards`, `deck_basic_lands`, and `copies`, and writes every row of `deck_evaluations`, because the recompute judges the decks of every user. Only the secret key can call the recompute. Deck evaluations says more.
 
-Every record that the user writes also says who created it and who last changed it. `copies`, `collection_additions`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `user_tags`, `copy_user_tags`, `planned_swaps`, and `buylist_cards` have `created_by`, `updated_by`, `created_at`, and `updated_at`, all not null. Each of `created_by` and `updated_by` holds the user's ID or the AI client's ID. Records that the server works out on its own, such as deck evaluations, are left out. So are line records that never change after their parent is saved, such as addition lines and deck change lines. `docs/adr/0010-record-who-created-and-last-changed-each-record.md` says why.
+Every record that the user writes also says who created it and who last changed it. `profiles`, `copies`, `collection_additions`, `decks`, `deck_cards`, `deck_basic_lands`, `deck_changes`, `user_tags`, `copy_user_tags`, `planned_swaps`, and `buylist_cards` have `created_by`, `updated_by`, `created_at`, and `updated_at`, all not null. Each of `created_by` and `updated_by` holds the user's ID or the AI client's ID. Records that the server works out on its own, such as deck evaluations, are left out. So are line records that never change after their parent is saved, such as addition lines and deck change lines. `docs/adr/0010-record-who-created-and-last-changed-each-record.md` says why.
 
 - One trigger function, `private.record_who_changed`, runs before each insert and update on these tables. The changer is the token's `client_id` claim when it has one, otherwise `auth.uid()`, otherwise the row's `user_id`, as for a write with no caller such as the test-user seed.
 - An insert sets `created_by`, `updated_by`, and `updated_at`. `created_at` defaults to the time of the insert. A buylist card that a planned swap moved to keeps the planned swap's `created_at`.
@@ -751,9 +840,9 @@ Each request logs one JSON line with `tool`, `client_id`, `result`, `protocol_ve
 #### Running and deploying
 
 - `bunx supabase@2.120.0 start` serves the function on the local stack. `bunx supabase@2.120.0 functions serve` serves it with a reload on each change.
-- `supabase/functions/mcp/deno.json` pins the function's packages. `bun run typecheck` in `supabase` runs `deno check` on the function.
+- `supabase/functions/mcp/deno.json` pins the function's packages. `bun run typecheck` in `supabase` runs `deno check` on it and on `training-crops`.
 - The HTTP tests in `supabase/tests/mcp-server.test.ts` get tokens from the local OAuth server, as an AI client does. They read the log lines from the edge runtime container with `docker logs`.
-- `.github/workflows/mcp-function.yml` deploys the function on each push to `main` that changes `supabase/functions/**`.
+- `.github/workflows/edge-functions.yml` deploys every Edge Function on each push to `main` that changes `supabase/functions/**`.
 
 #### MCP pre-flight
 

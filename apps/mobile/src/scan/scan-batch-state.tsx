@@ -8,15 +8,22 @@ import {
   useEffectEvent,
   useMemo,
   useReducer,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
 } from 'react';
 
 import { useSession } from '@/auth/session';
+import { useGallery } from '@/gallery/gallery-state';
 import { supabase } from '@/lib/supabase';
 
-import type { Recognition } from '../../modules/card-recognizer';
+import {
+  featurePrintRevision,
+  recognizerVersion,
+  type CardRecognition,
+  type Recognition,
+} from '../../modules/card-recognizer';
 import {
   emptyScanBatch,
   scanBatchReducer,
@@ -26,10 +33,18 @@ import {
   type ScanBatch,
   type ScanBatchAction,
   type ScanEdit,
+  type ScanTrainingCrop,
 } from './scan-batch';
 import { readScanBatch, writeScanBatch } from './scan-batch-file';
 import { playScanFeedback } from './scan-feedback';
 import { useScanSounds } from './scan-sounds-setting';
+import { useTrainingCropUploadsSetting } from './training-crop-uploads-setting';
+import {
+  dropTrainingCrop,
+  dropTrainingCropsOf,
+  keepTrainingCrop,
+  queueTrainingCrops,
+} from './training-crops';
 
 export type RecognitionResult = Recognition | 'failed' | 'no_photo';
 
@@ -50,6 +65,7 @@ type Scanning = Readonly<{
   recognizing: readonly string[];
   feedback: { outcome: ScanOutcome } | null;
   commitStatus: CommitStatus;
+  strayTrainingCrops: readonly string[];
 }>;
 
 type ScanningAction =
@@ -57,10 +73,17 @@ type ScanningAction =
   | { type: 'accountChanged' }
   | { type: 'restored'; batch: ScanBatch }
   | { type: 'recognitionStarted'; photoId: string }
-  | { type: 'recognitionEnded'; photoId: string; scanId: string; recognition: RecognitionResult }
+  | {
+      type: 'recognitionEnded';
+      photoId: string;
+      scanId: string;
+      recognition: RecognitionResult;
+      trainingCrop: ScanTrainingCrop | null;
+    }
   | { type: 'commitFailed' }
   | { type: 'commitSucceeded'; scanIds: string[] }
-  | { type: 'removedAll' };
+  | { type: 'removedAll' }
+  | { type: 'strayTrainingCropsDropped'; uris: readonly string[] };
 
 const initialScanning: Scanning = {
   restored: false,
@@ -69,14 +92,25 @@ const initialScanning: Scanning = {
   recognizing: [],
   feedback: null,
   commitStatus: 'idle',
+  strayTrainingCrops: [],
 };
+
+function cardRecognitionOf(recognition: RecognitionResult): CardRecognition | null {
+  return recognition !== 'failed' && recognition !== 'no_photo' && recognition.kind === 'card' ? recognition : null;
+}
+
+function scannedCard(recognition: RecognitionResult): CardRecognition | null {
+  const card = cardRecognitionOf(recognition);
+  const first = card?.candidates[0];
+  return first && !first.basicLand ? card : null;
+}
 
 function recognitionEnded(
   state: Scanning,
-  { photoId, scanId, recognition }: Extract<ScanningAction, { type: 'recognitionEnded' }>,
+  { photoId, scanId, recognition, trainingCrop }: Extract<ScanningAction, { type: 'recognitionEnded' }>,
 ): Scanning {
   if (!state.recognizing.includes(photoId)) {
-    return state;
+    return trainingCrop ? { ...state, strayTrainingCrops: [...state.strayTrainingCrops, trainingCrop.uri] } : state;
   }
   const ended: Scanning = {
     ...state,
@@ -86,21 +120,53 @@ function recognitionEnded(
   if (recognition === 'no_photo' || (recognition !== 'failed' && recognition.kind === 'not_a_card')) {
     return ended;
   }
-  const first = recognition === 'failed' ? undefined : recognition.candidates[0];
-  if (recognition === 'failed' || !first) {
-    return { ...ended, latest: { kind: 'not_recognized', scanId } };
+  const card = scannedCard(recognition);
+  if (card) {
+    return addScan(ended, {
+      type: 'recognized',
+      scanId,
+      printing: card.candidates[0]!,
+      options: card.candidates,
+      sameTextTwinCount: card.sameTextTwinCount,
+      premiumMark: card.reading.premiumMark,
+      recognizedPrintingId: card.candidates[0]!.printingId,
+      trainingCrop,
+    });
   }
-  if (first.basicLand) {
-    return { ...ended, latest: { kind: 'basic_land', printing: first } };
+  const first = cardRecognitionOf(recognition)?.candidates[0];
+  return first?.basicLand
+    ? { ...ended, latest: { kind: 'basic_land', printing: first } }
+    : { ...ended, latest: { kind: 'not_recognized', scanId } };
+}
+
+function keptTrainingCrop(
+  recognition: RecognitionResult,
+  scanId: string,
+  userId: string | undefined,
+  galleryVersion: string | undefined,
+): ScanTrainingCrop | null {
+  const cropUri = cardRecognitionOf(recognition)?.trainingCrop;
+  if (!cropUri) {
+    return null;
   }
-  return addScan(ended, {
-    type: 'recognized',
-    scanId,
-    printing: first,
-    options: recognition.candidates,
-    sameTextTwinCount: recognition.sameTextTwinCount,
-    premiumMark: recognition.reading.premiumMark,
-  });
+  const card = scannedCard(recognition);
+  if (card && userId && galleryVersion) {
+    const uri = keepTrainingCrop(cropUri, userId, scanId);
+    if (uri) {
+      return {
+        uri,
+        decision: card.decision,
+        topSimilarity: card.topSimilarity,
+        artMargin: card.artMargin,
+        reading: card.reading,
+        recognizerVersion,
+        featurePrintRevision,
+        galleryVersion,
+      };
+    }
+  }
+  dropTrainingCrop(cropUri);
+  return null;
 }
 
 function addScan(state: Scanning, action: Extract<ScanBatchAction, { type: 'recognized' }>): Scanning {
@@ -114,7 +180,7 @@ function notRecognizedScanIdOf({ latest }: Scanning) {
 function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
   switch (action.type) {
     case 'accountChanged':
-      return initialScanning;
+      return { ...initialScanning, strayTrainingCrops: state.strayTrainingCrops };
     case 'restored':
       return {
         ...state,
@@ -127,7 +193,16 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
       return recognitionEnded(state, action);
     case 'choose':
       return notRecognizedScanIdOf(state) === action.scanId
-        ? addScan(state, { ...action, type: 'recognized', options: [], sameTextTwinCount: 0, premiumMark: false })
+        ? addScan(state, {
+            type: 'recognized',
+            scanId: action.scanId,
+            printing: action.printing,
+            options: [],
+            sameTextTwinCount: 0,
+            premiumMark: false,
+            recognizedPrintingId: null,
+            trainingCrop: null,
+          })
         : { ...state, batch: scanBatchReducer(state.batch, action) };
     case 'remove':
       return notRecognizedScanIdOf(state) === action.scanId
@@ -151,7 +226,9 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
         commitStatus: 'idle',
       };
     case 'removedAll':
-      return { ...initialScanning, restored: state.restored };
+      return { ...initialScanning, restored: state.restored, strayTrainingCrops: state.strayTrainingCrops };
+    case 'strayTrainingCropsDropped':
+      return { ...state, strayTrainingCrops: state.strayTrainingCrops.filter((uri) => !action.uris.includes(uri)) };
     default:
       return { ...state, batch: scanBatchReducer(state.batch, action) };
   }
@@ -195,6 +272,7 @@ function latestScan({ batch, latest, recognizing }: Scanning): LatestScan | null
 
 export function ScanBatchProvider({ children }: { children: ReactNode }) {
   const userId = useSession()?.user.id;
+  const galleryVersion = useGallery().installed?.version;
   const [batchUserId, setBatchUserId] = useState(userId);
   const [state, dispatchScanning] = useReducer(scanningReducer, initialScanning);
   const { scanSounds } = useScanSounds();
@@ -210,6 +288,19 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
     }
   }, [state.feedback]);
 
+  useEffect(() => {
+    if (state.strayTrainingCrops.length > 0) {
+      state.strayTrainingCrops.forEach(dropTrainingCrop);
+      dispatchScanning({ type: 'strayTrainingCropsDropped', uris: state.strayTrainingCrops });
+    }
+  }, [state.strayTrainingCrops]);
+
+  const { uploadsOn } = useTrainingCropUploadsSetting();
+  const trainingCropUploadsOn = useRef(uploadsOn);
+  useEffect(() => {
+    trainingCropUploadsOn.current = uploadsOn;
+  }, [uploadsOn]);
+
   const commitBatch = useCallback(async (batch: ScanBatch) => {
     const { scans } = batch;
     dispatchScanning({ type: 'commitStarted' });
@@ -221,8 +312,13 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
       return false;
     }
     dispatchScanning({ type: 'commitSucceeded', scanIds: scans.map((scan) => scan.scanId) });
+    if (trainingCropUploadsOn.current === false) {
+      dropTrainingCropsOf(scans);
+    } else if (userId) {
+      void queueTrainingCrops(userId, scans);
+    }
     return true;
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) {
@@ -255,16 +351,32 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
     return photoId;
   }, []);
   const recognitionEnded = useCallback(
-    (photoId: string, recognition: RecognitionResult) =>
-      dispatchScanning({ type: 'recognitionEnded', photoId, scanId: randomUUID(), recognition }),
-    [],
+    (photoId: string, recognition: RecognitionResult) => {
+      const scanId = randomUUID();
+      const trainingCrop = keptTrainingCrop(recognition, scanId, userId, galleryVersion);
+      dispatchScanning({ type: 'recognitionEnded', photoId, scanId, recognition, trainingCrop });
+    },
+    [galleryVersion, userId],
   );
   const addCopy = useCallback(
     (scanId: string) => dispatchScanning({ type: 'addCopy', scanId, newScanId: randomUUID() }),
     [],
   );
 
-  const removeAll = useCallback(() => dispatchScanning({ type: 'removedAll' }), []);
+  const dispatch = useCallback(
+    (edit: ScanEdit) => {
+      if (edit.type === 'remove') {
+        dropTrainingCropsOf(state.batch.scans.filter((scan) => scan.scanId === edit.scanId));
+      }
+      dispatchScanning(edit);
+    },
+    [state.batch.scans],
+  );
+
+  const removeAll = useCallback(() => {
+    dropTrainingCropsOf(state.batch.scans);
+    dispatchScanning({ type: 'removedAll' });
+  }, [state.batch.scans]);
 
   const commit = useCallback(() => commitBatch(state.batch), [commitBatch, state.batch]);
 
@@ -274,14 +386,14 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
       latest: latestScan(state),
       notRecognizedScanId: notRecognizedScanIdOf(state),
       commitStatus: state.commitStatus,
-      dispatch: dispatchScanning,
+      dispatch,
       addCopy,
       removeAll,
       commit,
       recognitionStarted,
       recognitionEnded,
     }),
-    [addCopy, commit, recognitionEnded, recognitionStarted, removeAll, state],
+    [addCopy, commit, dispatch, recognitionEnded, recognitionStarted, removeAll, state],
   );
 
   return <ScanBatchContext value={value}>{children}</ScanBatchContext>;

@@ -15,10 +15,11 @@
     "./search": "./search.ts",
     "./sets": "./sets.ts",
     "./sign-in-providers": "./sign-in-providers.ts",
-    "./test-user": "./test-user/account.ts"
+    "./test-user": "./test-user/account.ts",
+    "./training-crops": "./training-crops.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit && deno check --no-lock --config functions/mcp/deno.json functions/mcp",
+    "typecheck": "tsc --noEmit && deno check --no-lock --config functions/mcp/deno.json functions/mcp && deno check --no-lock --config functions/training-crops/deno.json functions/training-crops",
     "test": "bun test",
     "types": "supabase gen types typescript --local > database.types.ts",
     "types:check": "supabase gen types typescript --local | diff database.types.ts -",
@@ -26,6 +27,7 @@
     "oracle-tag": "bun import/oracle-tag.ts",
     "release-check": "bun release-check/main.ts",
     "gallery": "bun gallery/main.ts",
+    "crops": "bun --env-file=.env.hosted crops/main.ts",
     "test-user": "bun test-user/main.ts",
     "apple-web-secret": "bun apple-web-secret/main.ts",
     "apple-web-secret:reminder": "bun apple-web-secret/reminder.ts",

@@ -21,6 +21,7 @@ jest.mock('expo-crypto', () => {
   return {
     ...jest.requireActual('expo-crypto'),
     randomUUID: () => nodeCrypto.randomUUID(),
+    getRandomValues: (values: Uint32Array) => nodeCrypto.getRandomValues(values),
     digestStringAsync: async (algorithm: string, data: string) =>
       nodeCrypto.createHash(algorithm.replace('-', '').toLowerCase()).update(data).digest('hex'),
   };
