@@ -250,6 +250,10 @@ export function runGalleryCommand(...args: string[]): Promise<CommandResult> {
   return runScript('gallery/main.ts', args, { GALLERY_RECOGNIZER: join(import.meta.dir, 'fake-recognizer.ts') });
 }
 
+export function runCropsCommand(...args: string[]): Promise<CommandResult> {
+  return runScript('crops/main.ts', args);
+}
+
 export function runTestUserCommand(args: string[], env: Record<string, string> = {}): Promise<CommandResult> {
   return runScript('test-user/main.ts', args, env);
 }

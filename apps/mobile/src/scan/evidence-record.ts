@@ -1,12 +1,13 @@
 import type { Database } from '@mtgscan/supabase/database.types';
 
-import type { BatchScan, ScanTrainingCrop } from './scan-batch';
+import type { CroppedScan } from './scan-batch';
 
 export type EvidenceRecord = Omit<Database['public']['Tables']['training_crops']['Row'], 'crop_id'>;
 
 const policyVersion = 1;
 
-export function evidenceRecordOf(scan: BatchScan, trainingCrop: ScanTrainingCrop): EvidenceRecord {
+export function evidenceRecordOf(scan: CroppedScan): EvidenceRecord {
+  const { trainingCrop } = scan;
   const { reading } = trainingCrop;
   return {
     accepted: trainingCrop.accepted,
@@ -24,10 +25,10 @@ export function evidenceRecordOf(scan: BatchScan, trainingCrop: ScanTrainingCrop
     recognizer_version: trainingCrop.recognizerVersion,
     feature_print_revision: trainingCrop.featurePrintRevision,
     gallery_version: trainingCrop.galleryVersion,
-    recognized_printing_id: trainingCrop.recognizedPrintingId,
+    recognized_printing_id: scan.recognizedPrintingId,
     saved_printing_id: scan.printing.printingId,
-    printing_change: null,
-    printing_confirmed: false,
+    printing_change: scan.printingChange,
+    printing_confirmed: scan.printingConfirmed,
     policy_version: policyVersion,
   };
 }

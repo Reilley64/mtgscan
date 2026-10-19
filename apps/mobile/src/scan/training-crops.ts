@@ -7,7 +7,7 @@ import { AppState } from 'react-native';
 import { supabase } from '@/lib/supabase';
 
 import { evidenceRecordOf, type EvidenceRecord } from './evidence-record';
-import type { BatchScan } from './scan-batch';
+import { isCroppedScan, type BatchScan } from './scan-batch';
 
 type WaitingTrainingCrop = {
   cropId: string;
@@ -36,6 +36,14 @@ export function dropTrainingCrop(cropUri: string) {
   const crop = new File(cropUri);
   if (crop.exists) {
     crop.delete();
+  }
+}
+
+export function dropTrainingCropsOf(scans: readonly BatchScan[]) {
+  for (const scan of scans) {
+    if (scan.trainingCrop) {
+      dropTrainingCrop(scan.trainingCrop.uri);
+    }
   }
 }
 
@@ -75,24 +83,14 @@ function uploadWait() {
 
 export function queueTrainingCrops(userId: string, scans: readonly BatchScan[]) {
   const committedAt = Date.now();
-  const kept = scans.flatMap((scan) =>
-    scan.trainingCrop
-      ? [
-          {
-            cropId: randomUUID(),
-            copyId: scan.scanId,
-            uri: scan.trainingCrop.uri,
-            uploadAt: committedAt + uploadWait(),
-            record: evidenceRecordOf(scan, scan.trainingCrop),
-          },
-        ]
-      : [],
-  );
+  const kept = scans.filter(isCroppedScan).map((scan) => ({
+    cropId: randomUUID(),
+    copyId: scan.scanId,
+    uri: scan.trainingCrop.uri,
+    uploadAt: committedAt + uploadWait(),
+    record: evidenceRecordOf(scan),
+  }));
   return inTurn(async () => writeQueue(userId, [...(await readQueue(userId)), ...kept]));
-}
-
-export function dropTrainingCropsOf(scans: readonly BatchScan[]) {
-  scans.forEach(({ trainingCrop }) => trainingCrop && dropTrainingCrop(trainingCrop.uri));
 }
 
 export function dropWaitingTrainingCrops(userId: string) {
