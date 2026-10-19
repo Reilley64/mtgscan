@@ -53,7 +53,7 @@
 <h3>Training crops</h3>
 <p>If training crop uploads are on, mtgscan stores training crops of scanned cards with their evidence records. It stores them with no link to your account. The next section explains them.</p>
 <h2>How scanning works</h2>
-<p>Card recognition runs on your phone. The camera images used to recognize cards stay on your phone, and mtgscan does not upload them.</p>
+<p>Card recognition runs on your phone. The app deletes each camera image after it recognizes the card, and mtgscan does not upload camera images. A training crop is cut from a camera image, and the Training crops section explains when it uploads.</p>
 <p>To recognize cards, the app downloads a card gallery and a card list to your phone. These files hold card data, not your data.</p>
 <p>Your scan batch is saved on your phone until you add it to your collection. When you add it, the app saves the cards to your mtgscan account.</p>
 <p>The only scan images that leave your phone are training crops.</p>
@@ -66,7 +66,7 @@
 </ul>
 <p>When you add your scan batch to your collection, the app keeps a crop of each saved scan that the scanner saw as a card. This includes scans that the scanner was unsure of, and scans where you changed the card or the printing. The app keeps no crop of a photo that is not a card, a scan that the scanner could not recognize, or a basic land.</p>
 <p>Each crop waits on your phone for a random time of 1 to 7 days, and then the app uploads it. So the upload time does not show when you added the card. If you delete the copy before then, its crop does not upload.</p>
-<p>Uploaded crops are not stored with your account. A crop and its evidence record hold no user ID, no copy ID, and no upload time. So mtgscan cannot tell which crops are yours, and an uploaded crop cannot be removed. While mtgscan has few users, a crop of a rare printing can still point to the one user who owns it.</p>
+<p>Uploaded crops are not stored with your account. A crop and its evidence record hold no user ID, no copy ID, and no upload time. mtgscan's file storage records when each crop uploaded. The random wait is why that time does not show when you added the card. Supabase keeps request logs of each upload for a short time, with the time and your account. Apart from those logs, mtgscan cannot tell which crops are yours. An uploaded crop cannot be removed. While mtgscan has few users, a crop of a rare printing can still point to the one user who owns it.</p>
 <p>Each crop has an evidence record. It holds:</p>
 <ul>
 <li>the scanner's decision and its reason;</li>
