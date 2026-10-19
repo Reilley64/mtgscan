@@ -53,7 +53,7 @@ export function deckCardOf(copyId: string, name: string, typeLine: string, chang
 }
 
 export async function openDeckNamed(name: string) {
-  await fireEvent.press(within(selectedTab()).getByRole('button', { name: new RegExp(`^${name},`) }));
+  await fireEvent.press(within(selectedTab()).getByRole('button', { name: new RegExp(`^${name}(,|$)`) }));
   const deck = within(pushedScreen());
   await deck.findByRole('header', { name });
   return deck;

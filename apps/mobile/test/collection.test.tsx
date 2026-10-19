@@ -135,7 +135,9 @@ test('the binder grid shows one tile per copy with its image and no quantity bad
   expect(collection.queryByText('Your collection is empty')).not.toBeOnTheScreen();
 });
 
-test('a copy in a deck starts its line with the deck box symbol in the info color, and VoiceOver hears its deck after protected', async () => {
+const commanderArt = 'https://cards.scryfall.io/art_crop/front/atraxa-commander.jpg';
+
+test('a copy in a deck starts its line with its deck commander in a circle, and VoiceOver hears its deck after protected', async () => {
   ownCollectionCopies([
     ...collectionEntryCopies('Sol Ring', 1, {
       set: 'c21',
@@ -146,12 +148,12 @@ test('a copy in a deck starts its line with the deck box symbol in the info colo
     ...collectionEntryCopies('Ponder', 1, { set: 'c21', collector_number: '79' }),
   ]);
 
+  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 1, commanders: [{ copy_id: 'atraxa', name: 'Atraxa', art_crop_uri: commanderArt }] }]);
   const collection = await openCollection();
 
   const inDeck = collection.getByRole('button', { name: 'Sol Ring, C21 263, protected, in the deck Atraxa, no price' });
   const line = within(inDeck).getByText('263').parent!;
-  expect(imageSources(line)).toEqual([expect.stringMatching(/assets\/deck-box\.svg$/)]);
-  expect(imageTintColor(line)).toBe(processColor(info));
+  await waitFor(() => expect(imageSources(line)).toEqual([commanderArt]));
   expect(appearsBefore(line.children[0] as typeof inDeck, within(line).getByText('C21'))).toBe(true);
   const free = collection.getByRole('button', { name: 'Ponder, C21 79, no price' });
   expect(imageSources(within(free).getByText('79').parent!)).toEqual([]);
