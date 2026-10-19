@@ -3,7 +3,7 @@ import type { FinishView, SetCardPrinting, SetDetails, SetRow } from '@mtgscan/s
 import { fireEvent, within } from 'expo-router/testing-library';
 
 import { offerSetPage, offerSets, ownCollectionCopies, setPageReadsSent, setReadCount, startSignedIn } from './fake-supabase';
-import { appearsBefore, cardImageLook, cardSheen, pressTab, selectedTab, swipeBackInTheTab, tabStackTopScreen } from './native-ui';
+import { appearsBefore, cardImageLook, cardSheen, pressTab, selectedTab, setArtLook, swipeBackInTheTab, tabStackTopScreen } from './native-ui';
 import { renderApp, restartTheApp } from './render-app';
 
 const curator: CollectionCopyRow = {
@@ -39,6 +39,7 @@ const bloomburrowRow: SetRow = {
   name: 'Bloomburrow',
   icon_svg_uri: 'https://svgs.scryfall.io/sets/blb.svg',
   released_at: '2024-08-02',
+  set_art_uri: 'https://cards.scryfall.io/art_crop/front/blb.jpg',
   completion: { any: { owned: 2, size: 3 }, nonfoil: { owned: 1, size: 3 }, foil: { owned: 1, size: 3 } },
 };
 
@@ -47,6 +48,7 @@ const alphaRow: SetRow = {
   name: 'Limited Edition Alpha',
   icon_svg_uri: 'https://svgs.scryfall.io/sets/lea.svg',
   released_at: '1993-08-05',
+  set_art_uri: null,
   completion: { any: { owned: 1, size: 5 }, nonfoil: { owned: 1, size: 5 }, foil: { owned: 0, size: 0 } },
 };
 
@@ -151,6 +153,17 @@ describe('Sets in a finish view', () => {
     await chooseFinishView('Foil');
 
     expect(setRowLabels()).toEqual(['Bloomburrow, 1 of 3, 33 percent']);
+  });
+
+  test('the set art banners on Sets and the set page color the set completion in the chosen finish view', async () => {
+    await openSets();
+    expect(setArtLook(topScreen().getByRole('button', { name: /^Bloomburrow/ })).coloredShare).toBeCloseTo(0.6667, 4);
+
+    await chooseFinishView('Nonfoil');
+
+    expect(setArtLook(topScreen().getByRole('button', { name: /^Bloomburrow/ })).coloredShare).toBeCloseTo(0.3333, 4);
+    await openBloomburrow();
+    expect(setArtLook(topScreen().getByRole('header', { name: 'Bloomburrow, 1 of 3, 33 percent' })).coloredShare).toBeCloseTo(0.3333, 4);
   });
 });
 

@@ -24,6 +24,10 @@ const smotheringTitheVariant = '2309fb66-3aa0-4ec5-9a8e-5a0caa19c270';
 const boonOfTheSpiritRealm = 'a588fc39-ed88-4262-96cd-908fadc7f049';
 const counterspell = '0df55e3f-14de-46ef-b6b1-616618724d9e';
 
+function artCrop(printingId: string, version: number) {
+  return `https://cards.scryfall.io/art_crop/front/${printingId[0]}/${printingId[1]}/${printingId}.jpg?${version}`;
+}
+
 function normalImage(printingId: string, version: number) {
   return `https://cards.scryfall.io/normal/front/${printingId[0]}/${printingId[1]}/${printingId}.jpg?${version}`;
 }
@@ -62,6 +66,7 @@ describe('the set read', () => {
       name: 'Modern Horizons 3',
       icon_svg_uri: 'https://svgs.scryfall.io/sets/mh3.svg?1791777600',
       released_at: '2024-06-14',
+      set_art_uri: artCrop(roilCartographer, 1783911289),
       completion: { any: { owned: 1, size: 2 }, nonfoil: { owned: 1, size: 2 }, foil: { owned: 1, size: 2 } },
       main_set: [
         {

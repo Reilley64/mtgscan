@@ -32,6 +32,7 @@ test('the primitive catalog shows every primitive', async () => {
     'Floating menu buttons',
     'Floating buttons',
     'Set rows',
+    'Set banners',
     'Pull indicators',
     'Inputs',
     'Progress bars',

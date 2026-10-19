@@ -638,6 +638,19 @@ export function cardSheen(tile: HostElement) {
   return sheen ? StyleSheet.flatten(sheen.props.style) : null;
 }
 
+export function setArtLook(banner: HostElement) {
+  const widthOf = (instance: HostElement) => StyleSheet.flatten(instance.props.style)?.width;
+  const [coloredPart] = banner.queryAll((instance) => /%$/.test(String(widthOf(instance) ?? '')));
+  return {
+    uris: banner
+      .queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage' && instance.props.tintColor === undefined)
+      .map((image) => image.props.source?.[0]?.uri),
+    grayscale: banner.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.mixBlendMode === 'saturation').length > 0,
+    coloredShare: coloredPart ? parseFloat(String(widthOf(coloredPart))) / 100 : 0,
+    edgeLine: banner.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.backgroundColor === tokenColors.primary).length > 0,
+  };
+}
+
 export function cardImageLook(tile: HostElement) {
   const [image] = tile.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.aspectRatio !== undefined);
   if (!image) {

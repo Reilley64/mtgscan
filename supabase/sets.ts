@@ -9,6 +9,7 @@ export type SetRow = {
   name: string;
   icon_svg_uri: string;
   released_at: string;
+  set_art_uri: string | null;
   completion: Record<FinishView, SetCompletion>;
 };
 

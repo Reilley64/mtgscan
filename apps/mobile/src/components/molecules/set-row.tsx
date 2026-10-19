@@ -27,6 +27,10 @@ const shares = cva('text-sheet-title', {
   },
 });
 
+export function SetCompletionShare({ complete, percent }: { complete: boolean; percent: number }) {
+  return <Text className={shares({ complete })}>{complete ? '✓' : `${percent}%`}</Text>;
+}
+
 type SetCompletionProps = {
   name: string;
   symbolUri: string;
@@ -48,7 +52,7 @@ function SetCompletionContent({ name, symbolUri, owned, size, percent }: Omit<Se
         <Text variant="meta">{count}</Text>
         <ProgressBar label={count} value={owned} max={size} tone="primary" />
       </View>
-      <Text className={shares({ complete: owned === size })}>{owned === size ? '✓' : `${percent}%`}</Text>
+      <SetCompletionShare complete={owned === size} percent={percent} />
     </>
   );
 }
