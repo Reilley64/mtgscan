@@ -9,7 +9,8 @@
     "allowJs": true,
     "types": [
       "bun"
-    ]
+    ],
+    "allowImportingTsExtensions": true
   },
   "include": [
     "**/*.ts"

@@ -1,87 +1,136 @@
-import type { CollectionCopyRow } from './collection';
-import type { Database } from './database.types';
-import type { DeckChangeEffect, DeckPriority } from './decks';
-import type { CloseNote, PlannedOutgoingInput, PlannedOutgoingLine } from './planned-swaps';
+import { z } from 'zod';
 
-type BuylistCardStatus = Database['public']['Enums']['buylist_card_status'];
+import { collectionCopyRow } from './collection.ts';
+import { databaseFunction } from './database-function.ts';
+import { deckRevision } from './decks.ts';
+import { buylistCardStatus, deckPriority, id, nextCursor } from './fields.ts';
+import { closedPlan, planInput, plannedFields, planQuery, planWarning } from './planned-swaps.ts';
 
-export type PlannedCardLine = {
-  kind: 'card';
-  oracle_id: string;
-  name: string;
-  image_uris: string[];
-  type_line: string;
-};
+const plannedCardLine = z.strictObject({
+  kind: z.literal('card'),
+  oracle_id: id,
+  name: z.string(),
+  image_uris: z.array(z.string()),
+  type_line: z.string(),
+});
 
-export type BuylistCard = {
-  buylist_card_id: string;
-  deck_id: string;
-  deck_name: string;
-  commander_art_crop_uri: string | null;
-  incoming: PlannedCardLine;
-  outgoing: PlannedOutgoingLine | null;
-  as_commander: boolean;
-  reason: string;
-  status: BuylistCardStatus;
-  close_note: CloseNote | null;
-  created_at: string;
-  status_changed_at: string;
-  effect: DeckChangeEffect | null;
-};
+export type PlannedCardLine = z.infer<typeof plannedCardLine>;
 
-export type BuylistQuery = {
-  deck_id?: string;
-  status?: BuylistCardStatus;
-  order?: 'newest_first' | 'oldest_first';
-  cursor?: string | null;
-  limit?: number;
-};
+const buylistCard = z.strictObject({
+  buylist_card_id: id,
+  ...plannedFields,
+  incoming: plannedCardLine,
+  status: buylistCardStatus,
+});
 
-export type BuylistPage = {
-  items: BuylistCard[];
-  next_cursor: string | null;
-};
+export type BuylistCard = z.infer<typeof buylistCard>;
 
-export type BuylistCardInput = {
-  ref: string;
-  deck_id: string;
-  expected_deck_revision: number;
-  incoming: { oracle_id: string; as_commander?: boolean };
-  outgoing?: PlannedOutgoingInput;
-  reason: string;
-};
+const buylistQuery = z.strictObject({ ...planQuery, status: buylistCardStatus.optional() });
 
-export type BuylistCardWarning =
-  | { code: 'would_break_validity'; effect: DeckChangeEffect }
-  | { code: 'in_other_decks'; decks: { deck_id: string; name: string; priority: DeckPriority }[] }
-  | { code: 'replaces_commander' | 'rules_stale' | 'protected_only' };
+export type BuylistQuery = z.input<typeof buylistQuery>;
 
-export type CreatedBuylistCards = {
-  buylist_cards: { ref: string; buylist_card_id: string; warnings: BuylistCardWarning[] }[];
-  replayed: boolean;
-};
+const buylistPage = z.strictObject({ items: z.array(buylistCard), next_cursor: nextCursor });
 
-export type MarkBuylistCardBoughtRequest = {
-  buylist_card_id: string;
-  copy_id: string;
-  unprotect: boolean;
-};
+export type BuylistPage = z.infer<typeof buylistPage>;
 
-export type CloseBuylistCardRequest = {
-  buylist_card_id: string;
-};
+const buylistCardInput = z.strictObject({
+  ...planInput,
+  incoming: z.strictObject({ oracle_id: id, as_commander: z.boolean().optional() }),
+});
 
-export type ClosedBuylistCard = {
-  id: string;
-  changed: boolean;
-};
+export type BuylistCardInput = z.input<typeof buylistCardInput>;
 
-export type FreeCopiesQuery = {
-  oracle_id: string;
-};
+const buylistCardWarning = z.union([
+  ...planWarning,
+  z.strictObject({ code: z.literal('protected_only') }),
+  z.strictObject({
+    code: z.literal('in_other_decks'),
+    decks: z.array(z.strictObject({ deck_id: id, name: z.string(), priority: deckPriority })),
+  }),
+]);
 
-export type FreeCopy = Omit<CollectionCopyRow, 'deck' | 'held_for' | 'created_at' | 'oracle_text'>;
+const createdBuylistCards = z.strictObject({
+  buylist_cards: z.array(z.strictObject({ ref: z.string(), buylist_card_id: id, warnings: z.array(buylistCardWarning) })),
+  replayed: z.boolean(),
+});
 
-export type FreeCopies = {
-  items: FreeCopy[];
-};
+export type CreatedBuylistCards = z.infer<typeof createdBuylistCards>;
+
+const markBuylistCardBoughtRequest = z.strictObject({ buylist_card_id: id, copy_id: id, unprotect: z.boolean() });
+
+export type MarkBuylistCardBoughtRequest = z.input<typeof markBuylistCardBoughtRequest>;
+
+const closeBuylistCardRequest = z.strictObject({ buylist_card_id: id });
+
+export type CloseBuylistCardRequest = z.input<typeof closeBuylistCardRequest>;
+
+export type ClosedBuylistCard = z.infer<typeof closedPlan>;
+
+const freeCopiesQuery = z.strictObject({ oracle_id: id });
+
+export type FreeCopiesQuery = z.input<typeof freeCopiesQuery>;
+
+const freeCopy = collectionCopyRow.omit({ deck: true, held_for: true, created_at: true, oracle_text: true });
+
+export type FreeCopy = z.infer<typeof freeCopy>;
+
+const freeCopies = z.strictObject({ items: z.array(freeCopy) });
+
+export type FreeCopies = z.infer<typeof freeCopies>;
+
+export const listBuylist = databaseFunction({
+  name: 'list_buylist',
+  argument: 'query',
+  request: buylistQuery.optional(),
+  reply: buylistPage,
+  errorCodes: ['invalid_argument', 'invalid_cursor', 'not_found'],
+});
+
+export const createBuylistCards = databaseFunction({
+  name: 'create_buylist_cards',
+  argument: 'request',
+  request: z.strictObject({ idempotency_key: z.string(), buylist_cards: z.array(buylistCardInput) }),
+  reply: createdBuylistCards,
+  errorCodes: [
+    'invalid_argument',
+    'idempotency_conflict',
+    'not_found',
+    'stale_revision',
+    'invalid_card',
+    'free_copy_exists',
+    'outgoing_not_in_deck',
+    'duplicate_open',
+  ],
+});
+
+export const markBuylistCardBought = databaseFunction({
+  name: 'mark_buylist_card_bought',
+  argument: 'request',
+  request: markBuylistCardBoughtRequest,
+  reply: deckRevision,
+  errorCodes: ['invalid_argument', 'not_found', 'not_open', 'copy_not_free', 'copy_protected', 'commander_limit'],
+});
+
+export const closeBuylistCard = databaseFunction({
+  name: 'close_buylist_card',
+  argument: 'request',
+  request: closeBuylistCardRequest,
+  reply: closedPlan,
+  errorCodes: ['invalid_argument', 'not_found', 'not_open'],
+});
+
+export const mcpCloseBuylistCard = databaseFunction({
+  name: 'mcp_close_buylist_card',
+  argument: 'request',
+  request: closeBuylistCardRequest,
+  reply: closedPlan,
+  errorCodes: ['invalid_argument', 'not_found', 'not_open'],
+});
+
+export const listFreeCopies = databaseFunction({
+  name: 'list_free_copies',
+  argument: 'query',
+  request: freeCopiesQuery,
+  reply: freeCopies,
+  errorCodes: ['invalid_argument'],
+});

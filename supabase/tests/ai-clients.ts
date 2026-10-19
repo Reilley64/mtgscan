@@ -1,4 +1,14 @@
+import { PostgrestError } from '@supabase/supabase-js';
+
+import {
+  databaseFunctionResult,
+  type DatabaseFunction,
+  type DatabaseFunctionResult,
+  type ReplyOf,
+  type RequestOf,
+} from '../database-function';
 import { allowAiClient, mcpServerUrlOf } from '../mcp-connection';
+import { expectReplied, parsed } from './database-calls';
 import { asDatabaseOwner, asDatabaseRole, localStackUrl, signUpNewUser, type TestUser } from './local-stack';
 
 export const mcpServerUrl = mcpServerUrlOf(localStackUrl);
@@ -17,8 +27,6 @@ export type ClaimedAiClient = {
   user: TestUser;
   clientId: string;
 };
-
-type Refusal = { code: string; message: string; details: string | null };
 
 export async function connectedAiClient(user?: TestUser): Promise<ClaimedAiClient> {
   const clientId = crypto.randomUUID();
@@ -40,21 +48,29 @@ export function aiClientClaims({ user, clientId }: ClaimedAiClient) {
   };
 }
 
-export async function aiClientCall<T>(client: ClaimedAiClient, name: string, request: object): Promise<T> {
-  const [row] = await asDatabaseRole('authenticated', aiClientClaims(client), (database) =>
-    database`select ${database.unsafe(`public.${name}`)}(${request}::jsonb) as result`,
-  );
-  return row.result;
+export async function aiClientCall<Contract extends DatabaseFunction>(
+  client: ClaimedAiClient,
+  contract: Contract,
+  request: RequestOf<Contract>,
+): Promise<DatabaseFunctionResult<Contract>> {
+  try {
+    const [row] = await asDatabaseRole('authenticated', aiClientClaims(client), (database) =>
+      database`select ${database.unsafe(`public.${contract.name}`)}(${request as object}::jsonb) as result`,
+    );
+    return parsed(contract, databaseFunctionResult(contract, { data: row.result, error: null }));
+  } catch (thrown) {
+    const { errno, message } = thrown as { errno: string; message: string };
+    const error = errno === 'PGRST' ? JSON.parse(message) : { code: errno, message, details: '' };
+    return databaseFunctionResult(contract, { data: null, error: new PostgrestError({ hint: '', ...error }) });
+  }
 }
 
-export async function aiClientRefusal(client: ClaimedAiClient, name: string, request: object): Promise<Refusal> {
-  try {
-    await aiClientCall(client, name, request);
-  } catch (error) {
-    const { errno, message } = error as { errno: string; message: string };
-    return errno === 'PGRST' ? (JSON.parse(message) as Refusal) : { code: errno, message, details: null };
-  }
-  throw new Error(`${name} accepted the call`);
+export async function aiClientReply<Contract extends DatabaseFunction>(
+  client: ClaimedAiClient,
+  contract: Contract,
+  request: RequestOf<Contract>,
+): Promise<ReplyOf<Contract>> {
+  return expectReplied(await aiClientCall(client, contract, request));
 }
 
 export type McpLogLine = {

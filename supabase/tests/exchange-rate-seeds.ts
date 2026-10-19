@@ -1,6 +1,7 @@
 import { expect } from 'bun:test';
 
-import type { ExchangeRate, ExchangeRateList } from '../converted-prices';
+import { listExchangeRates, type ExchangeRate } from '../converted-prices';
+import { replyOf } from './database-calls';
 import { secretKeyClient, type AppClient } from './local-stack';
 
 const testExchangeRates = { AUD: 1.5234, EUR: 0.93, JPY: 151.37 };
@@ -17,9 +18,7 @@ export async function storeExchangeRates(rates: Record<string, number> = testExc
 }
 
 export async function exchangeRates(client: AppClient): Promise<ExchangeRate[]> {
-  const { data, error } = await client.rpc('list_exchange_rates');
-  expect(error).toBeNull();
-  return (data as unknown as ExchangeRateList).items;
+  return (await replyOf(client, listExchangeRates)).items;
 }
 
 export async function exchangeRateOf(client: AppClient, currency: string): Promise<ExchangeRate> {
