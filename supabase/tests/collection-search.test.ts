@@ -698,7 +698,7 @@ describe('after a catalog import', () => {
       expect(items.map((row) => labelOf.get(collectionEntryKey(row)))).toEqual(expected);
     });
 
-    test('an empty query lists the card printing with the newest addition first, as sort added does', async () => {
+    test('an empty query lists the collection entry with the newest copy first, as sort added does', async () => {
       const user = await signUpNewUser();
       await seedCopies(user, [
         entry(printings.fogAlpha, { added_at: '2026-10-01T09:00:00.000Z' }),
@@ -711,9 +711,9 @@ describe('after a catalog import', () => {
       const added = (await page({ sort: 'added' }, user)).items.map((row) => row.name);
       const oldestFirst = (await page({ sort: 'added', sort_order: 'asc' }, user)).items.map((row) => row.name);
 
-      expect(newestFirst).toEqual(['Fog', 'Fog', 'Black Lotus', 'Lightning Bolt']);
+      expect(newestFirst).toEqual(['Fog', 'Black Lotus', 'Lightning Bolt', 'Fog']);
       expect(added).toEqual(newestFirst);
-      expect(oldestFirst).toEqual(['Lightning Bolt', 'Black Lotus', 'Fog', 'Fog']);
+      expect(oldestFirst).toEqual(['Fog', 'Lightning Bolt', 'Black Lotus', 'Fog']);
     });
 
     test("sort by release date uses the release date of the entry's own card printing", async () => {
