@@ -395,6 +395,9 @@ MCP_SERVER_URL = "env(MCP_SERVER_URL)"
 [functions.mcp]
 verify_jwt = false
 
+[functions.training-crops]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
