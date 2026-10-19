@@ -17,7 +17,14 @@ import {
 } from './card-printings';
 import { resetSampleClock } from './detection-samples';
 import { photosDeleted } from './fake-card-detector';
-import { cardRecognition, holdNextRecognition, nextPhotosAre, notACard, photosRecognized } from './fake-card-recognizer';
+import {
+  cardNameSearchesSent,
+  cardRecognition,
+  holdNextRecognition,
+  nextPhotosAre,
+  notACard,
+  photosRecognized,
+} from './fake-card-recognizer';
 import { liquidGlassIsAvailable } from './fake-glass-effect';
 import { scanFeedback } from './fake-scan-feedback';
 import { signInNextWithEmail, startSignedIn } from './fake-supabase';
@@ -31,6 +38,7 @@ import {
   isDrawerPresented,
   lineColoredBlocks,
   openSettings,
+  pauseTyping,
   presentedDrawer,
   pressTab,
   selectedTab,
@@ -505,6 +513,27 @@ test('name search says when no card name matches the text', async () => {
   expect(await screen.findByText('No card names match "zzzz".')).toBeOnTheScreen();
   await fireEvent.changeText(screen.getByLabelText('Card name'), 'light');
   expect(await screen.findByRole('button', { name: 'Lightning Bolt' })).toBeOnTheScreen();
+  expect(screen.queryByText(/^No card names match/)).not.toBeOnTheScreen();
+});
+
+test('name search waits for a pause in typing, then reads card names once, for the final text', async () => {
+  nextPhotosAre(cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+  await openLatestScan('Shock, M19 156');
+  await fireEvent.press(screen.getByRole('button', { name: 'None of these: search' }));
+
+  for (const typed of ['z', 'zz', 'zzz', 'zzzz']) {
+    await fireEvent.changeText(screen.getByLabelText('Card name'), typed);
+  }
+  expect(cardNameSearchesSent()).toEqual([]);
+  expect(screen.queryByText(/^No card names match/)).not.toBeOnTheScreen();
+
+  await pauseTyping();
+  expect(cardNameSearchesSent()).toEqual(['zzzz']);
+  expect(screen.getByText('No card names match "zzzz".')).toBeOnTheScreen();
+
+  await fireEvent.changeText(screen.getByLabelText('Card name'), 'zzzzx');
   expect(screen.queryByText(/^No card names match/)).not.toBeOnTheScreen();
 });
 

@@ -1447,19 +1447,27 @@ async function changeSearchText(text: string) {
   });
 }
 
-async function pauseTyping() {
+export async function pauseTyping() {
   await act(async () => {
     jest.advanceTimersByTime(1000);
   });
 }
 
-export async function typeInSearchBar(text: string) {
+export async function typeInSearchBarWithoutPausing(text: string) {
   focusedSearchBar = searchBarView(selectedTab());
   await fireEvent(focusedSearchBar, "searchFocus", { nativeEvent: {} });
   for (const character of text) {
     await changeSearchText(searchFieldText + character);
   }
+}
+
+export async function typeInSearchBar(text: string) {
+  await typeInSearchBarWithoutPausing(text);
   await pauseTyping();
+}
+
+export async function clearSearchBar() {
+  await changeSearchText("");
 }
 
 export async function pressBackspaceInSearchBar() {

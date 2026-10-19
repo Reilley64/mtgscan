@@ -159,6 +159,7 @@ let heldDeckReads: Promise<void> | null = null;
 let sets: CardSet[] = [];
 let setReads = 0;
 let setListQueries: SetListQuery[] = [];
+let setCodeLookups: string[] = [];
 let failingSetReads = 0;
 let heldSetReads: Promise<void> | null = null;
 let setPages = new Map<string, SetDetails>();
@@ -1253,10 +1254,11 @@ function cardCatalogTable(table: string) {
       in: async (_column: string, ids: string[]) => ({ data: cardCatalogRows(table, ids), error: null }),
       ilike: (_column: string, pattern: string) => ({
         order: () => ({
-          limit: async (count: number) => ({
-            data: cardSets.filter((set) => set.code.startsWith(pattern.replace(/%$/, '').toLowerCase())).slice(0, count),
-            error: null,
-          }),
+          limit: async (count: number) => {
+            const prefix = pattern.replace(/%$/, '');
+            setCodeLookups = [...setCodeLookups, prefix];
+            return { data: cardSets.filter((set) => set.code.startsWith(prefix.toLowerCase())).slice(0, count), error: null };
+          },
         }),
       }),
     }),
@@ -1738,6 +1740,10 @@ export function setListQueriesSent() {
   return setListQueries;
 }
 
+export function setCodeLookupsSent() {
+  return setCodeLookups;
+}
+
 export function failSetReads(count: number) {
   failingSetReads = count;
 }
@@ -2001,6 +2007,7 @@ export function resetFakeSupabase() {
   sets = [];
   setReads = 0;
   setListQueries = [];
+  setCodeLookups = [];
   failingSetReads = 0;
   heldSetReads = null;
   setPages = new Map();

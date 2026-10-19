@@ -549,6 +549,7 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
 - **Search bar.** The native iOS search bar sits under the large title, with the placeholder "Search your collection". It stays visible when the grid scrolls. Its caret and Cancel are primary lime.
 - Typed text matches card names, type lines, and Oracle text, in the collection only. A word that starts with a known key, such as `set:m`, is not sent as text.
 - **Suggestions.** While the user types, suggestions replace the grid. Each suggestion is a list row.
+  - The keys and the fixed lists show at once. The app reads set codes, Oracle tags, user tags, and decks after a pause in typing of 300 ms.
   - With no key typed, they offer the keys that start with the typed word, such as "set:" with "Set code".
   - After a key, they offer values: set codes from the card catalog with the set name, Oracle tags from the tag lookup with the tag label, and the fixed lists for finish, condition, language, rarity, and color.
   - After `user_tag:`, they offer the user's user tags whose names contain the typed text, ignoring case. Each shows its copy count, such as "3 copies".
@@ -559,6 +560,7 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
   - A value with spaces is quoted, as in `name:"sol ring"` or `user_tag:"trade binder"`. A `deck:` value is always quoted. A leading `-` negates, as in `-rarity:common`. The number keys and `identity` cannot be negated, because collection search has no exclude field for them.
   - A key that the app does not know stays as text.
 - The app turns the text and the chips into the typed collection search query. The server never parses a string.
+- Typed text searches the collection after a pause in typing of 300 ms. A new chip, a picked suggestion, Enter, and Cancel search at once.
 - The app sends deck IDs, and the server never matches deck names. A typed `deck:` chip, made without a pick, matches every deck with exactly that name, ignoring case.
 - Chips sit under the search bar, at the top of the grid. Each chip shows its `key:value` text and ×. Tapping a chip removes it. Backspace in an empty field removes the last chip. Cancel clears the text and the chips.
 - **Results.** Results show as binder tiles, one per copy. While text or a chip is active, a count line in meta text, such as "6 of 27 copies", sits above the grid. While a new search loads, the skeleton grid replaces the tiles. Basic land cards whose names contain every word of the text and every `name:` chip, ignoring case, follow the copies in the Basic lands section, so "island" ends with Island and Snow-Covered Island. With no matching copies, they are the only results. Any other chip or filter, such as `set:` or Allocated, hides every basic land tile. With no results, the grid shows the empty state "No cards found". See Empty states.
@@ -589,7 +591,7 @@ Sets lists every released set that has a card printing in the card catalog, with
   - Tapping it pushes Sets onto the Collection tab's stack.
 - **Sets screen.** It is a screen in the Collection tab's stack, not a pushed screen over the tab bar. The tab bar stays. It has the large title "Sets" and the native back button. The swipe from the left edge goes back to Collection. It has no settings button.
   - A native search bar sits under the large title, with the placeholder "Search sets". It stays visible when the list scrolls. Its caret and Cancel are primary lime.
-  - Typed text matches the set name or the set code, ignoring case, so "bloom" and "BLB" both find Bloomburrow. The server does the match. Each change of the text reads Sets again from the first page. Dragging the list puts the keyboard away. Cancel clears the text.
+  - Typed text matches the set name or the set code, ignoring case, so "bloom" and "BLB" both find Bloomburrow. The server does the match. After a pause in typing of 300 ms, the search reads Sets again from the first page. Clearing the text or Cancel reads at once. Dragging the list puts the keyboard away. Cancel clears the text.
   - When the first page of a search is empty, the list shows the empty state `No sets match "xyz".` with no body.
   - The finish view control sits under the search bar, 12 px above the first row. See Finish view below.
   - The sets come newest first, then by name, as the read returns them. A set whose main set is empty in the finish view is not shown, such as a set of only basic lands, or Alpha in Foil.
@@ -965,11 +967,11 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
   - **Remove scan**, a danger button, removes this scan and closes the sheet. The other copies stay in the scan batch. Removing the scan on the chip leaves the chip empty.
   - Section headings are lime body strong text.
 - **Name search.** A "Card name" field at the top of the scan details sheet, with the keyboard up. A scan that was not recognized opens the sheet straight into name search.
-  - As the user types, up to 10 card names show as rows. The phone matches names and face names in the gallery, ignoring case, accents, and punctuation. Exact names come first, then names that start with the text, then names with a word that starts with it.
+  - After a pause in typing of 300 ms, up to 10 card names show as rows. The phone matches names and face names in the gallery, ignoring case, accents, and punctuation. Exact names come first, then names that start with the text, then names with a word that starts with it.
   - Tapping a name lists every card printing of that card in the gallery, newest first, as card images 3 per row with the set code and collector number under each.
   - Tapping a card printing switches the scan to it and returns to the details.
   - Choosing a basic land shows "Basic lands are not tracked." and changes nothing.
-  - When no card name matches the text, a line in text muted says so, such as "No card names match "zzzz".".
+  - When no card name matches the text the phone read, a line in text muted says so, such as "No card names match "zzzz".".
 - **Batch button.** A round icon button on glass at the top right of Scan, 8 px below the safe area, with the `rectangle.portrait.on.rectangle.portrait.angled` card-stack symbol. Without Liquid Glass, it uses the control surface. A count badge on its top right corner counts the scans in the scan batch, the same N as the batch review title. With no scan to add, the button shows no badge. VoiceOver reads "Scan batch, 3". The button shows in every Scan tab state, and it opens batch review.
 - **Pull indicator.** A glass pill centered at the top of Scan, on the batch button's row. It is 38 px tall with full corners and 12 px side padding. It holds an 18 px symbol in the text color and its label in body strong, 8 px apart. The symbol is `arrow.down` while pulling and for "Nothing to add", `plus` for "Release to add", a spinner while adding, and the danger mark of the failure notice for "Failed to add". Without Liquid Glass, it uses the control surface. See Scan in Layout for its states.
 - **Batch review.** A bottom drawer with the iOS grabber, at full height only. It closes with a downward swipe. Its title is "N cards scanned", such as "3 cards scanned", or "1 card scanned" for one. N counts the scans in the scan batch, the same N as the batch button badge and the **Remove all scans** alert. The title sits in a native navigation bar in sheet title type, on the sheet color with no line under it.
@@ -1075,6 +1077,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 - **Do** list "Needs you" items oldest first, so the longest wait is on top.
 - **Do** keep every deck change a user action, and show the AI's reason with every planned swap and buylist card that an AI client made.
 - **Do** keep the phone's back gesture working on every pushed screen.
+- **Do** make a search input that reads from the server or the gallery wait 300 ms after the last keystroke. A search input that filters data the screen already has, such as the user tag picker, filters at once.
 - **Do** flag validity problems ("Would make it invalid") without blocking the action.
 - **Don't** show recognizer confidence, similarity scores, or "unsure" states.
 - **Don't** add "Find in decks" style shortcuts that duplicate visible deck tags.
