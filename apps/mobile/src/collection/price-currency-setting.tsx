@@ -13,7 +13,7 @@ const ratesReadAgainAfterMs = 24 * 60 * 60 * 1000;
 
 const exchangeRatesRead = databaseRead(databaseFunctions.list_exchange_rates);
 
-type PriceCurrencies = Read<{ status: 'loaded'; items: ExchangeRate[] }>;
+type PriceCurrencies = Read<{ items: ExchangeRate[] }>;
 
 type PriceCurrencySetting = {
   priceCurrency: ExchangeRate | null;
@@ -29,7 +29,7 @@ function regionCurrency() {
 }
 
 function loadedRates({ items }: { items: ExchangeRate[] }) {
-  return { status: 'loaded' as const, items };
+  return { items };
 }
 
 function shownCurrency(chosen: string, priceCurrencies: PriceCurrencies) {

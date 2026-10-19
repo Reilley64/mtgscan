@@ -4,7 +4,7 @@ import type { RevertPreview } from '@mtgscan/supabase/decks';
 import { databaseRead, useScreenRead } from '@/lib/read';
 
 function loadedPreview(preview: RevertPreview) {
-  return { status: 'loaded' as const, preview };
+  return { preview };
 }
 
 export function useRevertPreview(deckId: string, deckChangeId: string) {

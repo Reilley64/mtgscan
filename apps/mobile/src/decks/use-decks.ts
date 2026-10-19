@@ -6,7 +6,7 @@ import { databaseRead, useScreenRead } from '@/lib/read';
 export const decksRead = databaseRead(databaseFunctions.list_decks);
 
 function loadedDecks({ items }: { items: DeckRow[] }) {
-  return { status: 'loaded' as const, decks: items };
+  return { decks: items };
 }
 
 export function useDecks(needed = true) {

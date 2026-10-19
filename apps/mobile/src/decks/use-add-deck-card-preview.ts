@@ -4,7 +4,7 @@ import type { AddDeckCardPreview, AddDeckCardPreviewQuery } from '@mtgscan/supab
 import { databaseRead, useScreenRead } from '@/lib/read';
 
 function loadedPreview(preview: AddDeckCardPreview) {
-  return { status: 'loaded' as const, preview };
+  return { preview };
 }
 
 export function useAddDeckCardPreview(query: AddDeckCardPreviewQuery) {

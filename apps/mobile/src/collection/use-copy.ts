@@ -4,7 +4,7 @@ import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import { databaseRead, useScreenRead } from '@/lib/read';
 
 function loadedCopy(copy: CopyDetails) {
-  return { status: 'loaded' as const, copy };
+  return { copy };
 }
 
 export function useCopy(copyId: string) {

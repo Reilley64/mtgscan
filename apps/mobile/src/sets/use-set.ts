@@ -4,7 +4,7 @@ import type { SetDetails } from '@mtgscan/supabase/sets';
 import { databaseRead, useScreenRead } from '@/lib/read';
 
 function loadedSet(set: SetDetails) {
-  return { status: 'loaded' as const, set };
+  return { set };
 }
 
 export function useSet(code: string) {

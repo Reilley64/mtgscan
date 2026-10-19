@@ -4,7 +4,7 @@ import type { Deck } from '@mtgscan/supabase/decks';
 import { databaseRead, useScreenRead } from '@/lib/read';
 
 function loadedDeck(deck: Deck) {
-  return { status: 'loaded' as const, deck };
+  return { deck };
 }
 
 export function useDeck(deckId: string) {

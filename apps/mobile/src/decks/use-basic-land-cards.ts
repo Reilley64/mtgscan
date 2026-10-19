@@ -6,7 +6,7 @@ import { databaseRead, useScreenRead } from '@/lib/read';
 const basicLandCardsRead = databaseRead(databaseFunctions.list_basic_land_cards);
 
 function loadedLands({ items }: { items: BasicLandCard[] }) {
-  return { status: 'loaded' as const, lands: items };
+  return { lands: items };
 }
 
 export function useBasicLandCards() {

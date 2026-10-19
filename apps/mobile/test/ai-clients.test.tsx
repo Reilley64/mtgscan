@@ -179,6 +179,21 @@ describe('Revoke', () => {
     expect(await screen.findByRole('button', { name: 'AI clients, 1' })).toBeOnTheScreen();
   });
 
+  test('a revoked AI client stays gone when the AI clients list opens again, before the AI clients are read again', async () => {
+    await openAiClientsListWithChatGPT();
+    await pressRevoke('ChatGPT');
+    await pressAlertButton('Revoke');
+    await waitFor(() => expect(screen.queryByLabelText(/^ChatGPT, Allowed/)).not.toBeOnTheScreen());
+    const reads = hold('oauth.listGrants');
+    await pressDrawerBack();
+
+    await fireEvent.press(await screen.findByRole('button', { name: /^AI clients/ }));
+
+    expect(await screen.findByLabelText('Claude, Allowed 3 October 2026')).toBeOnTheScreen();
+    expect(screen.queryByLabelText(/^ChatGPT, Allowed/)).not.toBeOnTheScreen();
+    await reads.finish();
+  });
+
   test('a revoke that works removes the row even when the AI clients cannot be read again', async () => {
     await openAiClientsListWithChatGPT();
     fail('oauth.listGrants', 1);

@@ -21,6 +21,7 @@ import {
   useQueryClient,
   type InfiniteData,
   type QueryKey,
+  type Updater,
 } from '@tanstack/react-query';
 import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
@@ -89,12 +90,14 @@ export type PagedServerRead<FirstPage, Code extends string = never> = {
 
 export function pagedDatabaseRead<Contract extends DatabaseFunction>(
   contract: Contract,
-  request: Omit<RequestOf<Contract>, 'cursor'>,
+  request: RequestOf<Contract> & object,
 ): PagedServerRead<ReplyOf<Contract>, ErrorCodeOf<Contract>> {
   return {
     key: [contract.name, request],
-    readPage: async (cursor) =>
-      replyOf(await callDatabaseFunction(supabase, contract, ...([{ ...request, cursor }] as RequestArguments<Contract>))),
+    readPage: async (cursor) => {
+      const pageRequest: [RequestOf<Contract>] = [{ ...request, cursor }];
+      return replyOf(await callDatabaseFunction(supabase, contract, ...pageRequest));
+    },
     errorCodes: contract.errorCodes,
   };
 }
@@ -112,7 +115,9 @@ export async function everyPage<Item>({ readPage }: PagedServerRead<Page<Item>, 
 
 type Refused<Code extends string> = [Code] extends [never] ? never : { status: 'refused'; code: Code; field: string | null };
 
-export type Read<Loaded, Code extends string = never> = { status: 'loading' } | { status: 'failed' } | Refused<Code> | Loaded;
+type Loaded<Shown> = { status: 'loaded' } & Shown;
+
+export type Read<Shown, Code extends string = never> = { status: 'loading' } | { status: 'failed' } | Refused<Code> | Loaded<Shown>;
 
 type ReadRules<Code extends string> = {
   key?: QueryKey;
@@ -126,12 +131,10 @@ const loading = { status: 'loading' } as const;
 
 const failed = { status: 'failed' } as const;
 
-const noRead: QueryKey = ['no read'];
-
-function readOf<Loaded, Code extends string>(
-  { data, error }: { data: Loaded | undefined; error: unknown },
+function readOf<Shown, Code extends string>(
+  { data, error }: { data: Loaded<Shown> | undefined; error: unknown },
   refused: readonly Code[] | undefined,
-): Read<Loaded, Code> {
+): Read<Shown, Code> {
   if (error instanceof RefusedRead && refused?.some((code) => code === error.refusal.code)) {
     return { status: 'refused', code: error.refusal.code, field: error.refusal.field } as Refused<Code>;
   }
@@ -141,9 +144,9 @@ function readOf<Loaded, Code extends string>(
   return error ? failed : loading;
 }
 
-function ruleOptions<Code extends string>(sourceKey: QueryKey | undefined, rules: ReadRules<Code>) {
+function ruleOptions<Code extends string>(sourceKey: QueryKey | undefined, noReadKey: QueryKey, rules: ReadRules<Code>) {
   return {
-    queryKey: sourceKey ? [...sourceKey, ...(rules.key ?? [])] : noRead,
+    queryKey: sourceKey ? [...sourceKey, ...(rules.key ?? [])] : noReadKey,
     ...(rules.keepsShown ? { placeholderData: keepPreviousData } : {}),
     ...(rules.whenAppActive ? { refetchOnWindowFocus: true } : {}),
     ...(rules.staleTime === undefined ? {} : { staleTime: rules.staleTime }),
@@ -152,14 +155,15 @@ function ruleOptions<Code extends string>(sourceKey: QueryKey | undefined, rules
 
 const keptWhileHidden = { enabled: false, notifyOnChangeProps: [] };
 
-function useOneRead<Reply, Loaded, Code extends string, Shown extends Code>(
+function useOneRead<Reply, Shown, Code extends string, Refusable extends Code>(
   source: ServerRead<Reply, Code> | null,
-  loaded: (reply: Reply) => Loaded,
-  rules: ReadRules<Shown>,
+  shown: (reply: Reply) => Shown,
+  rules: ReadRules<Refusable>,
   subscribed: boolean,
 ) {
   const queryClient = useQueryClient();
-  const options = queryOptions({ ...ruleOptions(source?.key, rules), queryFn: source ? source.read : skipToken, select: loaded });
+  const select = useCallback((reply: Reply): Loaded<Shown> => ({ status: 'loaded', ...shown(reply) }), [shown]);
+  const options = queryOptions({ ...ruleOptions(source?.key, ['no read'], rules), queryFn: source ? source.read : skipToken, select });
   const query = useQuery({ ...options, subscribed });
   useQuery({ ...options, ...keptWhileHidden });
   const { refetch } = query;
@@ -167,28 +171,35 @@ function useOneRead<Reply, Loaded, Code extends string, Shown extends Code>(
     const next = await refetch();
     return next.isSuccess ? next.data : null;
   }, [refetch]);
-  const replaceReply = (reply: Reply) => queryClient.setQueryData(options.queryKey, reply);
+  const replaceReply = (update: Updater<Reply | undefined, Reply | undefined>) => queryClient.setQueryData(options.queryKey, update);
   return { read: readOf(query, rules.refused), reload, replaceReply };
 }
 
-export function useScreenRead<Reply, Loaded, Code extends string, const Shown extends Code = never>(
+export function useScreenRead<Reply, Shown, Code extends string, const Refusable extends Code = never>(
   source: ServerRead<Reply, Code> | null,
-  loaded: (reply: Reply) => Loaded,
-  rules: ReadRules<Shown> = {},
+  shown: (reply: Reply) => Shown,
+  rules: ReadRules<Refusable> = {},
 ) {
-  return useOneRead(source, loaded, rules, useIsFocused());
+  return useOneRead(source, shown, rules, useIsFocused());
 }
 
-export function useAppRead<Reply, Loaded, Code extends string, const Shown extends Code = never>(
+export function useAppRead<Reply, Shown, Code extends string, const Refusable extends Code = never>(
   source: ServerRead<Reply, Code> | null,
-  loaded: (reply: Reply) => Loaded,
-  rules: ReadRules<Shown> = {},
+  shown: (reply: Reply) => Shown,
+  rules: ReadRules<Refusable> = {},
 ) {
-  return useOneRead(source, loaded, rules, true);
+  return useOneRead(source, shown, rules, true);
+}
+
+export function useFetchRead() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    <Reply,>(source: ServerRead<Reply, string>) => queryClient.fetchQuery({ queryKey: source.key, queryFn: source.read }),
+    [queryClient],
+  );
 }
 
 type LoadedPages<FirstPage extends Page<unknown>> = {
-  status: 'loaded';
   firstPage: FirstPage;
   items: FirstPage['items'];
   nextCursor: string | null;
@@ -197,7 +208,7 @@ type LoadedPages<FirstPage extends Page<unknown>> = {
 
 export type PagedRead<FirstPage extends Page<unknown>, Code extends string = never> = Read<LoadedPages<FirstPage>, Code>;
 
-function loadedPages<FirstPage extends Page<unknown>>({ pages }: InfiniteData<FirstPage>): LoadedPages<FirstPage> {
+function loadedPages<FirstPage extends Page<unknown>>({ pages }: InfiniteData<FirstPage>): Loaded<LoadedPages<FirstPage>> {
   return {
     status: 'loaded',
     firstPage: pages[0]!,
@@ -211,12 +222,12 @@ function isExpiredCursor(error: unknown) {
   return error instanceof RefusedRead && error.refusal.code === 'invalid_cursor';
 }
 
-export function usePagedScreenRead<FirstPage extends Page<unknown>, Code extends string, const Shown extends Code = never>(
+export function usePagedScreenRead<FirstPage extends Page<unknown>, Code extends string, const Refusable extends Code = never>(
   source: PagedServerRead<FirstPage, Code> | null,
-  rules: ReadRules<Shown> = {},
+  rules: ReadRules<Refusable> = {},
 ) {
   const options = infiniteQueryOptions({
-    ...ruleOptions(source?.key, rules),
+    ...ruleOptions(source?.key, ['no paged read'], rules),
     queryFn: source ? ({ pageParam }) => source.readPage(pageParam) : skipToken,
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.next_cursor,
@@ -226,7 +237,7 @@ export function usePagedScreenRead<FirstPage extends Page<unknown>, Code extends
   useInfiniteQuery({ ...options, ...keptWhileHidden });
   const { data, error, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } = query;
 
-  const read: PagedRead<FirstPage, Shown> = readOf(
+  const read: PagedRead<FirstPage, Refusable> = readOf(
     { data: data && { ...data, loadingMore: isFetchingNextPage }, error },
     rules.refused,
   );

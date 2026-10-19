@@ -10,7 +10,7 @@ import { writeResultOf, type WriteResult } from '@/lib/write-result';
 export const userTagsRead = databaseRead(databaseFunctions.list_user_tags);
 
 function loadedUserTags({ items }: { items: UserTagRow[] }) {
-  return { status: 'loaded' as const, userTags: items };
+  return { userTags: items };
 }
 
 export function useUserTags() {
