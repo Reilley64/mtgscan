@@ -54,6 +54,8 @@ A card result also has:
 - `artMargin`, the similarity of the top candidate minus the similarity of the best candidate with other art. It is null when no other art was compared.
 - `trainingCrop`, the file URI of the straightened card as a 488 x 680 JPEG in `Caches/training-crops`, the size and format of the crops in the scanner evidence pack. The crop is upright, in the rotation that the recognizer chose. A not-a-card result and a failed recognition write no crop.
 
+The module also exports two constants for the evidence record of a training crop: `featurePrintRevision`, the feature print revision, and `recognizerVersion`, the app version and build number, such as `1.0.0 (7)`.
+
 Each candidate carries its card printing ID, Oracle ID, name, set code, collector number, finishes, and basic land flag from the printing list. Name search also runs on the phone, over the printing list of the installed gallery:
 
 - `searchCardNames(text)` matches card names and face names. It ignores case, accents, and punctuation. It returns up to 10 cards: exact names first, then names that start with the text, then names with a word that starts with it. There is no fuzzy match.
@@ -138,6 +140,8 @@ The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in accou
 - The file marks a commit that has not finished. At sign-in, the phone sends that commit again by itself.
 - A commit that works removes the scans it sent. A commit that fails keeps every scan. Batch review rows do not open while a commit runs.
 - **Remove** in the **Remove all scans** alert of batch review empties the scan batch and its file. It also clears a commit that has not finished. A recognition that is still running adds no scan when it ends. Nothing reaches the server.
+- A scan keeps its training crop. When the scan enters the scan batch, the phone moves the crop from `Caches/training-crops` to `training-crops/<user ID>/<copy ID>.jpg` in the documents folder. The scan also keeps the recognizer fields of the evidence record: the decision, the top similarity, the art margin, the collector line reading, the first card printing, the recognizer version, the feature print revision, and the installed gallery version. A basic land, a recognition with no candidates, and a scan from **+1** keep no crop, and the phone deletes the crop of the first two.
+- After a commit that works, the phone uploads the training crop of each saved scan that has one, one at a time, to the `training-crops` Edge Function. Training crops (below) describes it. `src/scan/evidence-record.ts` builds the evidence record from the saved scan, with policy version 1. Each upload gets a new random crop ID, which is not the copy ID. The phone deletes the crop after the upload works or after the server refuses it with a 400. Other failures keep the file.
 - Pulling down on the Scan tab adds the scan batch with the same commit as **Add to collection**. `src/scan/use-pull-to-add.ts` tracks the pull with React Native's `PanResponder`, so the app needs no gesture library.
 
 ### AI clients
