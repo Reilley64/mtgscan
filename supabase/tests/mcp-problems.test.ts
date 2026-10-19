@@ -1,13 +1,15 @@
 import { describe, expect, test } from 'bun:test';
 
-import { beginMcpCallCodes } from '../functions/mcp/problems';
+import { databaseFunctions } from '../database-functions';
+import { beginMcpCallCodes, problemKinds } from '../functions/mcp/problems';
 import { tools } from '../functions/mcp/tools';
 import { asDatabaseOwner } from './local-stack';
 
-const aiClientFunctions = [
-  ...tools.map(({ contract }) => ({ name: contract.name as string, problemCodes: contract.errorCodes as readonly string[] })),
-  { name: 'begin_mcp_call', problemCodes: beginMcpCallCodes },
-];
+const serverProblems = ['result-too-large', 'internal-error', 'request-too-large'];
+
+const beginMcpCall = { name: 'begin_mcp_call', errorCodes: beginMcpCallCodes };
+const contracts: { name: string; errorCodes: readonly string[] }[] = [...Object.values(databaseFunctions), beginMcpCall];
+const aiClientFunctions: { name: string; errorCodes: readonly string[] }[] = [...tools.map(({ contract }) => contract), beginMcpCall];
 
 async function databaseFunctionBodies(): Promise<Map<string, string>> {
   const rows: { name: string; body: string }[] = await asDatabaseOwner(
@@ -37,14 +39,34 @@ function raisedCodes(bodies: Map<string, string>, name: string, seen = new Set<s
   return codes;
 }
 
+function problemOf(code: string): string {
+  return code.replaceAll('_', '-');
+}
+
 describe('MCP problems', () => {
+  test("each database function's error codes are the codes it can raise", async () => {
+    const bodies = await databaseFunctionBodies();
+
+    const raised = contracts.map(({ name }) => ({ name, errorCodes: [...raisedCodes(bodies, `public.${name}`)].toSorted() }));
+
+    expect(raised).toEqual(contracts.map(({ name, errorCodes }) => ({ name, errorCodes: errorCodes.toSorted() })));
+  });
+
   test('every error code that a function AI clients call can raise has an MCP problem', async () => {
     const bodies = await databaseFunctionBodies();
 
-    const withoutProblem = aiClientFunctions.flatMap(({ name, problemCodes }) =>
-      [...raisedCodes(bodies, `public.${name}`)].filter((code) => !problemCodes.includes(code)).map((code) => `${name}: ${code}`),
+    const withoutProblem = aiClientFunctions.flatMap(({ name }) =>
+      [...raisedCodes(bodies, `public.${name}`)]
+        .filter((code) => !(problemOf(code) in problemKinds))
+        .map((code) => `${name}: ${code}`),
     );
 
     expect(withoutProblem).toEqual([]);
+  });
+
+  test('every MCP problem comes from an error code of a function AI clients call, or from the MCP server', () => {
+    const raised = new Set(aiClientFunctions.flatMap(({ errorCodes }) => errorCodes.map(problemOf)));
+
+    expect(Object.keys(problemKinds).filter((name) => !raised.has(name))).toEqual(serverProblems);
   });
 });
