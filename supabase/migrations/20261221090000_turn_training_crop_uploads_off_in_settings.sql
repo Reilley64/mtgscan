@@ -1,4 +1,22 @@
-alter table public.profiles add column training_crop_uploads boolean not null default true;
+alter table public.profiles
+  add column training_crop_uploads boolean not null default true,
+  add column updated_at timestamptz,
+  add column created_by uuid,
+  add column updated_by uuid;
+
+update public.profiles set updated_at = created_at, created_by = user_id, updated_by = user_id;
+
+alter table public.profiles
+  alter column updated_at set not null,
+  alter column updated_at set default now(),
+  alter column created_by set not null,
+  alter column created_by set default auth.uid(),
+  alter column updated_by set not null,
+  alter column updated_by set default auth.uid();
+
+create trigger record_who_changed
+  before insert or update on public.profiles
+  for each row execute function private.record_who_changed();
 
 create function public.get_training_crop_settings(query jsonb default '{}')
 returns jsonb

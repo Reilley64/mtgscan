@@ -657,14 +657,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "created_at": string,"training_crop_uploads": boolean,"user_id": string
+                    "created_at": string,"created_by": string,"training_crop_uploads": boolean,"updated_at": string,"updated_by": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"training_crop_uploads"?: boolean,"user_id": string
+                    "created_at"?: string,"created_by"?: string,"training_crop_uploads"?: boolean,"updated_at"?: string,"updated_by"?: string,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string,"training_crop_uploads"?: boolean,"user_id"?: string
+                    "created_at"?: string,"created_by"?: string,"training_crop_uploads"?: boolean,"updated_at"?: string,"updated_by"?: string,"user_id"?: string
                   }
                   Relationships: [
                     

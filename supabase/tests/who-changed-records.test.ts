@@ -19,6 +19,7 @@ import {
 setDefaultTimeout(60_000);
 
 const appWrittenTables = [
+  'profiles',
   'copies',
   'collection_additions',
   'decks',
@@ -66,6 +67,7 @@ describe('who created and last changed a record', () => {
     const { bolt } = await krenkoDeck(user);
     const userTag = await appRequest<UserTag>(user, 'create_user_tag', { name: 'Signed' });
     await appRequest(user, 'set_copy_user_tag', { copy_id: bolt, user_tag_id: userTag.user_tag_id, tagged: true });
+    await appRequest(user, 'set_training_crop_uploads', { on: false });
 
     for (const table of appWrittenTables) {
       expect({ table, changers: await changersOf(user, table, { user_id: user.userId }) }).toEqual({
