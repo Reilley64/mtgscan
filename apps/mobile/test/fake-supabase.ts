@@ -1,5 +1,7 @@
+import type { Database } from '@mtgscan/supabase/database.types';
 import {
   AuthApiError,
+  FunctionsHttpError,
   type AuthChangeEvent,
   type AuthError,
   type OAuthGrant,
@@ -81,6 +83,11 @@ import { appleIdTokenNonce } from './fake-apple';
 
 type AuthListener = (event: AuthChangeEvent, session: Session | null) => void;
 
+export type TrainingCropUpload = {
+  copyId: string;
+  crop: Database['public']['Tables']['training_crops']['Row'];
+};
+
 export type FakeAccount = {
   provider: SignInProvider | 'email';
   email: string;
@@ -151,6 +158,8 @@ let collectionSearches: CollectionQuery[] = [];
 let collectionSearchAnswer: ((query: CollectionQuery) => CollectionSearchAnswer) | null = null;
 let cursorGeneration = 0;
 let scanBatchesSent: ScanBatch[] = [];
+let trainingCropUploads: TrainingCropUpload[] = [];
+let trainingCropRefusals: string[] = [];
 let addedCopies = new Map<string, string>();
 let failingScanBatch: 'before the server adds it' | 'after the server adds it' | null = null;
 let heldScanBatch: Promise<void> | null = null;
@@ -1269,6 +1278,24 @@ function oracleTagLookup({ text, limit }: { text: string; limit: number }) {
   return { data: { items }, error: null };
 }
 
+const edgeFunctions = {
+  async invoke(name: string, { body }: { body: FormData }) {
+    if (name !== 'training-crops') {
+      throw new Error(`The fake Supabase client has no ${name} function`);
+    }
+    const refusal = trainingCropRefusals.shift();
+    if (refusal) {
+      const response = Response.json({ code: refusal, message: refusal, details: null }, { status: 400 });
+      return { data: null, error: new FunctionsHttpError(response) };
+    }
+    trainingCropUploads = [
+      ...trainingCropUploads,
+      { copyId: String(body.get('copy_id')), crop: JSON.parse(String(body.get('crop'))) },
+    ];
+    return { data: null, error: null };
+  },
+};
+
 const aiClientsUnreachable = new AuthApiError('Network request failed', 0, undefined);
 
 const oauthServer = {
@@ -1467,6 +1494,7 @@ export const fakeSupabase = {
     throw new Error(`The fake Supabase client has no ${name} function`);
   },
   storage: { from: galleryBucket },
+  functions: edgeFunctions,
   auth: {
     onAuthStateChange(listener: AuthListener) {
       listeners.add(listener);
@@ -1968,7 +1996,17 @@ export function holdAiClientRevokes() {
   };
 }
 
+export function trainingCropsUploaded() {
+  return trainingCropUploads;
+}
+
+export function refuseNextTrainingCrop(code: string) {
+  trainingCropRefusals = [...trainingCropRefusals, code];
+}
+
 export function resetFakeSupabase() {
+  trainingCropUploads = [];
+  trainingCropRefusals = [];
   session = null;
   collectionCopies = [];
   copyDetails = new Map();

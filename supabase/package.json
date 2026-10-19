@@ -18,7 +18,7 @@
     "./test-user": "./test-user/account.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit && deno check --no-lock --config functions/mcp/deno.json functions/mcp",
+    "typecheck": "tsc --noEmit && deno check --no-lock --config functions/mcp/deno.json functions/mcp && deno check --no-lock --config functions/training-crops/deno.json functions/training-crops",
     "test": "bun test",
     "types": "supabase gen types typescript --local > database.types.ts",
     "types:check": "supabase gen types typescript --local | diff database.types.ts -",

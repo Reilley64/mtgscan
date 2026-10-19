@@ -47,6 +47,10 @@ public final class CardRecognizerModule: Module {
 
     Events("onGalleryDownload")
 
+    Constant("featurePrintRevision") { FeaturePrint.revision }
+
+    Constant("recognizerVersion") { Self.recognizerVersion }
+
     OnCreate {
       let events = GalleryDownloadEvents(module: self)
       GalleryDownloads.shared.listen { status in
@@ -111,6 +115,13 @@ public final class CardRecognizerModule: Module {
       return try JSONSerialization.jsonObject(with: JSONEncoder().encode(printings)) as? [Any] ?? []
     }
   }
+
+  private static let recognizerVersion: String = {
+    let info = Bundle.main.infoDictionary
+    let version = info?["CFBundleShortVersionString"] as? String ?? "unknown"
+    let build = info?["CFBundleVersion"] as? String ?? "unknown"
+    return "\(version) (\(build))"
+  }()
 
   private static let trainingCropsDirectory = FileManager.default
     .urls(for: .cachesDirectory, in: .userDomainMask)[0]
