@@ -8,6 +8,7 @@ import {
   useEffectEvent,
   useMemo,
   useReducer,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
@@ -37,7 +38,14 @@ import {
 import { readScanBatch, writeScanBatch } from './scan-batch-file';
 import { playScanFeedback } from './scan-feedback';
 import { useScanSounds } from './scan-sounds-setting';
-import { dropTrainingCrop, keepTrainingCrop, queueTrainingCrops, useTrainingCropUploads } from './training-crops';
+import { useTrainingCropUploadsSetting } from './training-crop-uploads-setting';
+import {
+  dropTrainingCrop,
+  dropTrainingCropsOf,
+  keepTrainingCrop,
+  queueTrainingCrops,
+  useTrainingCropUploads,
+} from './training-crops';
 
 export type RecognitionResult = Recognition | 'failed' | 'no_photo';
 
@@ -274,6 +282,11 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
   }, [state.feedback]);
 
   useTrainingCropUploads(userId);
+  const { uploadsOn } = useTrainingCropUploadsSetting();
+  const trainingCropUploadsOn = useRef(uploadsOn);
+  useEffect(() => {
+    trainingCropUploadsOn.current = uploadsOn;
+  }, [uploadsOn]);
 
   const commitBatch = useCallback(async (batch: ScanBatch) => {
     const { scans } = batch;
@@ -286,7 +299,9 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
       return false;
     }
     dispatchScanning({ type: 'commitSucceeded', scanIds: scans.map((scan) => scan.scanId) });
-    if (userId) {
+    if (trainingCropUploadsOn.current === false) {
+      dropTrainingCropsOf(scans);
+    } else if (userId) {
       void queueTrainingCrops(userId, scans);
     }
     return true;

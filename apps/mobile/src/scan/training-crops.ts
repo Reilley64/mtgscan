@@ -91,6 +91,17 @@ export function queueTrainingCrops(userId: string, scans: readonly BatchScan[]) 
   return inTurn(async () => writeQueue(userId, [...(await readQueue(userId)), ...kept]));
 }
 
+export function dropTrainingCropsOf(scans: readonly BatchScan[]) {
+  scans.forEach(({ trainingCrop }) => trainingCrop && dropTrainingCrop(trainingCrop.uri));
+}
+
+export function dropWaitingTrainingCrops(userId: string) {
+  return inTurn(async () => {
+    (await readQueue(userId)).forEach(({ uri }) => dropTrainingCrop(uri));
+    writeQueue(userId, []);
+  });
+}
+
 type UploadResult = 'done' | 'refused' | 'failed';
 
 async function uploadTrainingCrop({ cropId, copyId, uri, record }: WaitingTrainingCrop): Promise<UploadResult> {

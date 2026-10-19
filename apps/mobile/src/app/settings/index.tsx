@@ -1,5 +1,6 @@
 import { currentSignInProviderName } from '@mtgscan/supabase/sign-in-providers';
 import { router } from 'expo-router';
+import { Alert } from 'react-native';
 
 import { useAiClients } from '@/ai-clients/ai-clients';
 import { signOut, useSession } from '@/auth/session';
@@ -10,6 +11,7 @@ import { DrawerSheet } from '@/components/templates/drawer-sheet';
 import { useGallerySummary } from '@/gallery/gallery-summary';
 import { useParityCheck } from '@/gallery/parity-check';
 import { useScanSounds } from '@/scan/scan-sounds-setting';
+import { useTrainingCropUploadsSetting } from '@/scan/training-crop-uploads-setting';
 
 export default function SettingsDrawer() {
   const user = useSession()?.user;
@@ -18,6 +20,13 @@ export default function SettingsDrawer() {
   const { priceCurrency } = usePriceCurrency();
   const parityCheck = useParityCheck();
   const { aiClientsRead } = useAiClients();
+  const trainingCropUploads = useTrainingCropUploadsSetting();
+
+  async function changeTrainingCropUploadsOrSayItFailed(on: boolean) {
+    if (!(await trainingCropUploads.setUploadsOn(on))) {
+      Alert.alert('Could not change training crop uploads', 'Check your connection.');
+    }
+  }
 
   return (
     <DrawerSheet title="Settings">
@@ -30,6 +39,8 @@ export default function SettingsDrawer() {
         onOpenAiClients={() => router.push('/settings/ai-clients')}
         scanSounds={scanSounds}
         onScanSoundsChange={setScanSounds}
+        trainingCropUploads={trainingCropUploads.uploadsOn}
+        onTrainingCropUploadsChange={(on) => void changeTrainingCropUploadsOrSayItFailed(on)}
         onSignOut={signOut}
       />
       {__DEV__ ? <ParityCheckSection check={parityCheck.check} onRun={parityCheck.run} /> : null}
