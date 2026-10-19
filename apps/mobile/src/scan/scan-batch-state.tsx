@@ -37,7 +37,7 @@ import {
 import { readScanBatch, writeScanBatch } from './scan-batch-file';
 import { playScanFeedback } from './scan-feedback';
 import { useScanSounds } from './scan-sounds-setting';
-import { dropTrainingCrop, keepTrainingCrop, uploadTrainingCrops } from './training-crops';
+import { dropTrainingCrop, keepTrainingCrop, queueTrainingCrops, useTrainingCropUploads } from './training-crops';
 
 export type RecognitionResult = Recognition | 'failed' | 'no_photo';
 
@@ -273,6 +273,8 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
     }
   }, [state.feedback]);
 
+  useTrainingCropUploads(userId);
+
   const commitBatch = useCallback(async (batch: ScanBatch) => {
     const { scans } = batch;
     dispatchScanning({ type: 'commitStarted' });
@@ -284,9 +286,11 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
       return false;
     }
     dispatchScanning({ type: 'commitSucceeded', scanIds: scans.map((scan) => scan.scanId) });
-    void uploadTrainingCrops(scans);
+    if (userId) {
+      void queueTrainingCrops(userId, scans);
+    }
     return true;
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) {

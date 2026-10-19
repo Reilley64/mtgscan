@@ -1,6 +1,5 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Database } from '../database.types';
 import { freePlan } from '../gallery/budget';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { connectAiClient } from './ai-clients';
@@ -14,14 +13,11 @@ import {
   type TestUser,
 } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
+import { angelicCurator, delverInnistrad, evidenceRecord, jpeg } from './training-crop-seeds';
 
 setDefaultTimeout(60_000);
 
-type TrainingCrop = Database['public']['Tables']['training_crops']['Row'];
-
 const permissionDenied = '42501';
-const angelicCurator = '332352c2-98f2-4eb8-b49a-026a39df227b';
-const delverInnistrad = '11bf83bb-c95b-4b4f-9a56-ce7a1816307a';
 const secretKey = secretKeyClient();
 
 let alice: TestUser;
@@ -38,35 +34,6 @@ async function scannedCopy(user: TestUser): Promise<string> {
   const scanned = stack(angelicCurator);
   await committed(user, scanBatch([scanned]));
   return scanned.copy_ids[0]!;
-}
-
-function evidenceRecord(changes: Partial<TrainingCrop> = {}): TrainingCrop {
-  return {
-    crop_id: crypto.randomUUID(),
-    accepted: true,
-    decision_basis: 'collector_line',
-    decision_reasons: ['collector line MH2 1 matches a card in the image shortlist'],
-    top_similarity: 0.91,
-    art_margin: 0.12,
-    reading_set_code: 'mh2',
-    reading_collector_number: '1',
-    reading_premium_mark: false,
-    reading_names_saved_printing: true,
-    same_text_twin_count: 0,
-    recognizer_version: '1.0.0 (42)',
-    feature_print_revision: 2,
-    gallery_version: '20261012-cf1753',
-    recognized_printing_id: angelicCurator,
-    saved_printing_id: angelicCurator,
-    printing_change: null,
-    printing_confirmed: false,
-    policy_version: 1,
-    ...changes,
-  };
-}
-
-function jpeg(bytes = 1_024): Blob {
-  return new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), new Uint8Array(bytes)], { type: 'image/jpeg' });
 }
 
 type Upload = { image?: Blob | null; copyId?: string; crop?: unknown };

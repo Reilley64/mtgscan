@@ -141,7 +141,8 @@ The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in accou
 - A commit that works removes the scans it sent. A commit that fails keeps every scan. Batch review rows do not open while a commit runs.
 - **Remove** in the **Remove all scans** alert of batch review empties the scan batch and its file. It also clears a commit that has not finished. A recognition that is still running adds no scan when it ends. Nothing reaches the server.
 - A scan keeps its training crop. When the scan enters the scan batch, the phone moves the crop from `Caches/training-crops` to `training-crops/<user ID>/<copy ID>.jpg` in the documents folder. The scan also keeps the recognizer fields of the evidence record: the decision, the top similarity, the art margin, the collector line reading, the first card printing, the recognizer version, the feature print revision, and the installed gallery version. A basic land, a recognition with no candidates, and a scan from **+1** keep no crop, and the phone deletes the crop of the first two.
-- After a commit that works, the phone uploads the training crop of each saved scan that has one, one at a time, to the `training-crops` Edge Function. Training crops (below) describes it. `src/scan/evidence-record.ts` builds the evidence record from the saved scan, with policy version 1. Each upload gets a new random crop ID, which is not the copy ID. The phone deletes the crop after the upload works or after the server refuses it with a 400. Other failures keep the file.
+- After a commit that works, the training crop of each saved scan that has one joins the user's upload queue, `training-crop-queue-<user ID>.json` in the documents folder. `src/scan/evidence-record.ts` builds the evidence record from the saved scan, with policy version 1. Each crop in the queue gets a new random crop ID, which is not the copy ID, and an upload time drawn at random between 1 and 7 days after the commit. So the upload time does not show when the user added the card.
+- The phone uploads the crops whose upload time has passed when the app starts, when a user signs in, and when the app comes back to the foreground. It uploads them one at a time to the `training-crops` Edge Function, which Training crops (below) describes. It uploads only the signed-in user's queue, and it stops when the user signs out. The phone deletes the crop after the upload works or after the server refuses it with a 400, such as `unknown_copy` for a copy that the user deleted. A network failure or another error keeps the crop in the queue, and the phone stops until the next try.
 - Pulling down on the Scan tab adds the scan batch with the same commit as **Add to collection**. `src/scan/use-pull-to-add.ts` tracks the pull with React Native's `PanResponder`, so the app needs no gesture library.
 
 ### AI clients
@@ -380,6 +381,21 @@ The evidence record has these fields, each a column of `training_crops`:
 - `policy_version`.
 
 `training_crops` has no user ID, copy ID, or time column. No app role can read or write it. Only the secret key reads it, and it changes only through `add_training_crop`. The private `training-crops` bucket accepts only `image/jpeg` up to 1 MB. Signed-in users and anonymous callers cannot read, list, upload, or delete in it.
+
+The owner downloads the training crops to the Mac with `bun run crops pull` in `supabase`. The script loads `.env.hosted`, like the gallery commands, so it reads the hosted project with the secret key. It downloads into `~/Library/Caches/mtgscan/training-crops/`, outside the repository. `--into <dir>` names another folder. The folder has the layout of the scanner evidence pack:
+
+- `crops/<crop_id>.jpg` holds each image. The command downloads only the images that are not in the folder yet.
+- `labels.json` has `cards`, with each crop path and its `saved_printing_id` as `scryfallId`.
+- `evidence.json` has the evidence record of each crop, in the same order.
+
+A row whose image is not in the bucket yet waits for a later pull. The command prints the number of new crops, the number of crops in the folder and their total size, and the Storage left before uploads stop at 90%. It adds up the objects in every bucket and takes the limit from `freePlan.storageBytes` in `supabase/gallery/budget.ts`.
+
+The evaluate script runs on the folder, from `apps/mobile`, with the macOS recognizer command that `bun run recognizer:replay` builds:
+
+```bash
+bun modules/card-recognizer/scripts/evaluate.mjs ~/Library/Caches/mtgscan/training-crops/labels.json \
+  --gallery <gallery dir> --recognizer modules/card-recognizer/.data/build/release/card-recognizer
+```
 
 ### User tags
 
