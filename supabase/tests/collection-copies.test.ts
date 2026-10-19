@@ -118,6 +118,7 @@ describe('copy rows', () => {
       price: currentPrice('USD', '0.21', 'nonfoil'),
       deck: null,
       held_for: null,
+      created_at: expect.any(String),
       ...changes,
     });
     const foil = { finish: 'foil', condition: 'lightly_played', language: 'ja', price: currentPrice('USD', '0.30', 'foil') } as const;
@@ -142,6 +143,18 @@ describe('copy rows', () => {
     await committed(user, scanBatch([second]));
 
     expect(copyIdsOf((await collectionCopies(user)).items).toSorted()).toEqual([...first.copy_ids, ...second.copy_ids].toSorted());
+  });
+
+  test('a copy row has created_at, the time its addition was committed', async () => {
+    const user = await signUpNewUser();
+    const scanned = stack(angelicCurator);
+    await committed(user, scanBatch([scanned]));
+    const { data: additions, error } = await secretKeyClient().from('collection_additions').select('added_at').eq('user_id', user.userId);
+    expect(error).toBeNull();
+
+    const [row] = (await collectionCopies(user)).items;
+
+    expect(new Date(row!.created_at)).toEqual(new Date(additions![0]!.added_at));
   });
 
   test('the newest addition comes first, and copies of the same card printing sit next to each other', async () => {

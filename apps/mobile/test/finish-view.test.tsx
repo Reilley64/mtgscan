@@ -31,6 +31,7 @@ const curator: CollectionCopyRow = {
   price: null,
   deck: null,
   held_for: null,
+  created_at: '2026-10-12T12:00:00.000Z',
 };
 
 function printing(collectorNumber: string, name: string, counts: Record<FinishView, number | null>): SetCardPrinting {
