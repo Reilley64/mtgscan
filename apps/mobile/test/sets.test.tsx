@@ -1,5 +1,5 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
-import type { SetRow } from '@mtgscan/supabase/sets';
+import type { CardSet } from '@mtgscan/supabase/sets';
 import { fireEvent, within } from 'expo-router/testing-library';
 import { processColor } from 'react-native';
 
@@ -48,7 +48,7 @@ const curator: CollectionCopyRow = {
   held_for: null,
 };
 
-function setRow(code: string, name: string, owned: number, size: number, releasedAt = '2024-08-02'): SetRow {
+function setRow(code: string, name: string, owned: number, size: number, releasedAt = '2024-08-02'): CardSet {
   return {
     code,
     name,
@@ -59,7 +59,7 @@ function setRow(code: string, name: string, owned: number, size: number, release
   };
 }
 
-function withSetArt(set: SetRow): SetRow {
+function withSetArt(set: CardSet): CardSet {
   return { ...set, set_art_uri: `https://cards.scryfall.io/art_crop/front/${set.code}.jpg` };
 }
 

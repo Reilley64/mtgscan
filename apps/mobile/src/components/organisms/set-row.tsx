@@ -1,3 +1,4 @@
+import type { CardSet, FinishView } from '@mtgscan/supabase/sets';
 import { cva } from 'class-variance-authority';
 import { View } from 'react-native';
 
@@ -6,16 +7,16 @@ import { SetSymbolFill } from '@/components/atoms/set-symbol-fill';
 import { Surface } from '@/components/atoms/surface';
 import { Text } from '@/components/atoms/text';
 import { setRowClass } from '@/components/molecules/set-row-skeleton';
-import { completionShare, isComplete } from '@/sets/set-completion';
+import { setCompletionIn, spokenSet, type ShownCompletion } from '@/sets/set-completion';
 
-const outlines = cva(setRowClass, {
-  variants: {
-    complete: {
-      true: 'border-primary',
-      false: 'border-transparent',
-    },
+export const setOutlines = {
+  complete: {
+    true: 'border-primary',
+    false: 'border-transparent',
   },
-});
+};
+
+const outlines = cva(setRowClass, { variants: setOutlines });
 
 const shares = cva('text-sheet-title', {
   variants: {
@@ -26,58 +27,52 @@ const shares = cva('text-sheet-title', {
   },
 });
 
-export function SetCompletionShare({ complete, percent }: { complete: boolean; percent: number | null }) {
+export function SetCompletionShare({ completion: { complete, percent } }: { completion: ShownCompletion }) {
   if (!complete && percent === null) {
     return null;
   }
   return <Text className={shares({ complete })}>{complete ? '✓' : `${percent}%`}</Text>;
 }
 
-type SetCompletionProps = {
-  name: string;
-  symbolUri: string;
-  owned: number;
-  size: number;
-  percent: number | null;
-  accessibilityLabel: string;
+export type SetCompletionProps = {
+  set: CardSet;
+  finishView: FinishView;
 };
 
-function SetCompletionContent({ name, symbolUri, owned, size, percent }: Omit<SetCompletionProps, 'accessibilityLabel'>) {
-  const count = `${owned} of ${size}`;
+function SetCompletionContent({ set, completion }: { set: CardSet; completion: ShownCompletion }) {
   return (
     <>
-      <SetSymbolFill uri={symbolUri} share={completionShare({ owned, size })} />
+      <SetSymbolFill uri={set.icon_svg_uri} share={completion.share} />
       <View className="flex-1 gap-xs">
         <Text variant="body-strong" numberOfLines={1}>
-          {name}
+          {set.name}
         </Text>
-        <Text variant="meta">{count}</Text>
-        <ProgressBar label={count} value={owned} max={size} tone="primary" />
+        <Text variant="meta">{completion.count}</Text>
+        <ProgressBar label={completion.count} value={completion.owned} max={completion.size} tone="primary" />
       </View>
-      <SetCompletionShare complete={isComplete({ owned, size })} percent={percent} />
+      <SetCompletionShare completion={completion} />
     </>
   );
 }
 
-export function SetRow({ accessibilityLabel, onPress, ...completion }: SetCompletionProps & { onPress: () => void }) {
+export function SetRow({ set, finishView, onPress }: SetCompletionProps & { onPress: () => void }) {
+  const completion = setCompletionIn(set, finishView);
   return (
-    <Surface
-      accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
-      className={outlines({ complete: isComplete(completion) })}>
-      <SetCompletionContent {...completion} />
+    <Surface accessibilityLabel={spokenSet(set.name, completion)} onPress={onPress} className={outlines({ complete: completion.complete })}>
+      <SetCompletionContent set={set} completion={completion} />
     </Surface>
   );
 }
 
-export function SetHeader({ accessibilityLabel, ...completion }: SetCompletionProps) {
+export function SetHeader({ set, finishView }: SetCompletionProps) {
+  const completion = setCompletionIn(set, finishView);
   return (
     <Surface
       accessible
       accessibilityRole="header"
-      accessibilityLabel={accessibilityLabel}
-      className={outlines({ complete: isComplete(completion) })}>
-      <SetCompletionContent {...completion} />
+      accessibilityLabel={spokenSet(set.name, completion)}
+      className={outlines({ complete: completion.complete })}>
+      <SetCompletionContent set={set} completion={completion} />
     </Surface>
   );
 }

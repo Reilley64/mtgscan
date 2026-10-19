@@ -1,4 +1,3 @@
-import type { FinishView, SetRow as ListedSet } from '@mtgscan/supabase/sets';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -12,7 +11,7 @@ import { SetBanner } from '@/components/organisms/set-banner';
 import { TabStackListScreen } from '@/components/templates/tab-screen';
 import type { FocusedRead } from '@/lib/use-focused-read';
 import { useFinishView } from '@/sets/finish-view-setting';
-import { completionPercent, setsMatching, spokenSet } from '@/sets/set-completion';
+import { setsMatching } from '@/sets/set-completion';
 import { useSets } from '@/sets/use-sets';
 
 type SetsPlaceholderProps = {
@@ -34,22 +33,6 @@ function SetsPlaceholder({ read, searchText, onTryAgain }: SetsPlaceholderProps)
   return null;
 }
 
-function ListedSetRow({ set, finishView }: { set: ListedSet; finishView: FinishView }) {
-  const completion = set.completion[finishView];
-  return (
-    <SetBanner
-      name={set.name}
-      symbolUri={set.icon_svg_uri}
-      artUri={set.set_art_uri}
-      owned={completion.owned}
-      size={completion.size}
-      percent={completionPercent(completion)}
-      accessibilityLabel={spokenSet(set, finishView)}
-      onPress={() => router.push({ pathname: '/set', params: { code: set.code } })}
-    />
-  );
-}
-
 export default function SetsScreen() {
   const { read, reload } = useSets();
   const { finishView } = useFinishView();
@@ -69,7 +52,9 @@ export default function SetsScreen() {
       data={sets}
       keyExtractor={(set) => set.code}
       ItemSeparatorComponent={RowGap}
-      renderItem={({ item }) => <ListedSetRow set={item} finishView={finishView} />}
+      renderItem={({ item }) => (
+        <SetBanner set={item} finishView={finishView} onPress={() => router.push({ pathname: '/set', params: { code: item.code } })} />
+      )}
       ListHeaderComponent={<FinishViewControlBar />}
       ListEmptyComponent={<SetsPlaceholder read={read} searchText={trimmedSearch} onTryAgain={reload} />}
     />

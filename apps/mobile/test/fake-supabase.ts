@@ -70,7 +70,7 @@ import type {
   FreeCopy,
   MarkBuylistCardBoughtRequest,
 } from '@mtgscan/supabase/buylist';
-import type { SetDetails, SetQuery, SetRow } from '@mtgscan/supabase/sets';
+import type { CardSet, SetDetails, SetQuery } from '@mtgscan/supabase/sets';
 import type { SignInProvider } from '@mtgscan/supabase/sign-in-providers';
 import { testUser } from '@mtgscan/supabase/test-user';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
@@ -156,7 +156,7 @@ let failingScanBatch: 'before the server adds it' | 'after the server adds it' |
 let heldScanBatch: Promise<void> | null = null;
 let heldCollectionReads: Promise<void> | null = null;
 let heldDeckReads: Promise<void> | null = null;
-let sets: SetRow[] = [];
+let sets: CardSet[] = [];
 let setReads = 0;
 let failingSetReads = 0;
 let heldSetReads: Promise<void> | null = null;
@@ -1716,7 +1716,7 @@ export function copyProtectedWritesSent() {
   return copyProtectedWrites;
 }
 
-export function offerSets(rows: SetRow[]) {
+export function offerSets(rows: CardSet[]) {
   sets = rows;
 }
 

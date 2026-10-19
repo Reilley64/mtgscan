@@ -1,5 +1,5 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
-import type { FinishView, SetCardPrinting, SetDetails, SetRow } from '@mtgscan/supabase/sets';
+import type { CardSet, FinishView, SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
 import { fireEvent, within } from 'expo-router/testing-library';
 
 import {
@@ -54,7 +54,7 @@ function printing(collectorNumber: string, name: string, counts: Record<FinishVi
   };
 }
 
-const bloomburrowRow: SetRow = {
+const bloomburrowRow: CardSet = {
   code: 'blb',
   name: 'Bloomburrow',
   icon_svg_uri: 'https://svgs.scryfall.io/sets/blb.svg',

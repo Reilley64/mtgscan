@@ -1,5 +1,5 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
-import type { FinishView, SetCardPrinting, SetDetails, SetRow } from '@mtgscan/supabase/sets';
+import type { CardSet, FinishView, SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
 import { fireEvent, within } from 'expo-router/testing-library';
 
 import { offerSetPage, offerSets, ownCollectionCopies, setPageReadsSent, setReadCount, startSignedIn } from './fake-supabase';
@@ -44,7 +44,7 @@ function printing(collectorNumber: string, name: string, counts: Record<FinishVi
   };
 }
 
-const bloomburrowRow: SetRow = {
+const bloomburrowRow: CardSet = {
   code: 'blb',
   name: 'Bloomburrow',
   icon_svg_uri: 'https://svgs.scryfall.io/sets/blb.svg',
@@ -53,7 +53,7 @@ const bloomburrowRow: SetRow = {
   completion: { any: { owned: 2, size: 3 }, nonfoil: { owned: 1, size: 3 }, foil: { owned: 1, size: 3 } },
 };
 
-const alphaRow: SetRow = {
+const alphaRow: CardSet = {
   code: 'lea',
   name: 'Limited Edition Alpha',
   icon_svg_uri: 'https://svgs.scryfall.io/sets/lea.svg',

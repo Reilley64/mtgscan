@@ -4,7 +4,7 @@ export type FinishView = 'any' | 'nonfoil' | 'foil';
 
 export type SetCompletion = { owned: number; size: number };
 
-export type SetRow = {
+export type CardSet = {
   code: string;
   name: string;
   icon_svg_uri: string;
@@ -13,7 +13,7 @@ export type SetRow = {
   completion: Record<FinishView, SetCompletion>;
 };
 
-export type SetList = { items: SetRow[] };
+export type SetList = { items: CardSet[] };
 
 export type SetQuery = { code: string };
 
@@ -26,7 +26,7 @@ export type SetCardPrinting = {
   counts: Record<FinishView, number | null>;
 };
 
-export type SetDetails = SetRow & {
+export type SetDetails = CardSet & {
   main_set: SetCardPrinting[];
   variants: {
     completion: Record<FinishView, SetCompletion>;

@@ -9,7 +9,6 @@ import { SetCardsRowView, setCardsRows } from '@/components/organisms/set-cards'
 import { SetSkeleton } from '@/components/organisms/set-skeleton';
 import { TabStackListScreen } from '@/components/templates/tab-screen';
 import { useFinishView } from '@/sets/finish-view-setting';
-import { completionPercent, spokenSet } from '@/sets/set-completion';
 import { useSet } from '@/sets/use-set';
 
 export default function SetScreen() {
@@ -24,19 +23,9 @@ export default function SetScreen() {
     if (read.status === 'failed') {
       return <ReadFailure illustration={<DashedCardFrame symbol="wifi.slash" />} title="Could not load this set" onTryAgain={reload} />;
     }
-    const { set } = read;
-    const completion = set.completion[finishView];
     return (
       <View className="gap-md pb-sm">
-        <SetPageBanner
-          name={set.name}
-          symbolUri={set.icon_svg_uri}
-          artUri={set.set_art_uri}
-          owned={completion.owned}
-          size={completion.size}
-          percent={completionPercent(completion)}
-          accessibilityLabel={spokenSet(set, finishView)}
-        />
+        <SetPageBanner set={read.set} finishView={finishView} />
         <FinishViewControl />
       </View>
     );

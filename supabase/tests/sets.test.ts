@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { SetList, SetRow } from '../sets';
+import type { CardSet, SetList } from '../sets';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { seedCopies } from './copy-seeds';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
@@ -52,7 +52,7 @@ async function setCodes(user: TestUser) {
   return (await listSets(user)).map((row) => row.code);
 }
 
-async function setRow(user: TestUser, code: string): Promise<SetRow | undefined> {
+async function setRow(user: TestUser, code: string): Promise<CardSet | undefined> {
   return (await listSets(user)).find((row) => row.code === code);
 }
 

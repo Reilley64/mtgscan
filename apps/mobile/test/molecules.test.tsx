@@ -1,3 +1,4 @@
+import type { CardSet } from '@mtgscan/supabase/sets';
 import { act, fireEvent, isHiddenFromAccessibility, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
 import { processColor, StyleSheet, View } from 'react-native';
@@ -1348,40 +1349,38 @@ describe('FloatingButton', () => {
 });
 
 describe('SetRow', () => {
-  test('a set row is a surface button with a 44 pt touch target that VoiceOver reads with its label', async () => {
-    const onPress = jest.fn();
-    await render(
-      <SetRow
-        name="Magic 2010"
-        symbolUri="https://svgs.scryfall.io/sets/m10.svg"
-        owned={234}
-        size={261}
-        percent={89}
-        accessibilityLabel="Magic 2010, 234 of 261, 89 percent"
-        onPress={onPress}
-      />,
-    );
+  const magic2010: CardSet = {
+    code: 'm10',
+    name: 'Magic 2010',
+    icon_svg_uri: 'https://svgs.scryfall.io/sets/m10.svg',
+    released_at: '2009-07-17',
+    set_art_uri: null,
+    completion: { any: { owned: 234, size: 261 }, nonfoil: { owned: 200, size: 261 }, foil: { owned: 0, size: 0 } },
+  };
 
-    const row = screen.getByRole('button', { name: 'Magic 2010, 234 of 261, 89 percent' });
+  test('a set row is a surface button with a 44 pt touch target that VoiceOver reads with its set completion in the finish view', async () => {
+    const onPress = jest.fn();
+    await render(<SetRow set={magic2010} finishView="nonfoil" onPress={onPress} />);
+
+    const row = screen.getByRole('button', { name: 'Magic 2010, 200 of 261, 76 percent' });
     expect(row).toHaveStyle({ backgroundColor: surface, borderRadius: 12, minHeight: 44 });
     await fireEvent.press(row);
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
   test('a set header looks like a set row but is read as one header, not a button', async () => {
-    await render(
-      <SetHeader
-        name="Magic 2010"
-        symbolUri="https://svgs.scryfall.io/sets/m10.svg"
-        owned={234}
-        size={261}
-        percent={89}
-        accessibilityLabel="Magic 2010, 234 of 261, 89 percent"
-      />,
-    );
+    await render(<SetHeader set={magic2010} finishView="any" />);
 
     expect(screen.getByRole('header', { name: 'Magic 2010, 234 of 261, 89 percent' })).toHaveStyle({ backgroundColor: surface, borderRadius: 12 });
     expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  test('a set whose main set is empty in the finish view shows "0 of 0" with no percentage', async () => {
+    await render(<SetHeader set={magic2010} finishView="foil" />);
+
+    const header = screen.getByRole('header', { name: 'Magic 2010, 0 of 0' });
+    expect(within(header).getByText('0 of 0')).toBeOnTheScreen();
+    expect(within(header).queryByText(/%|✓/)).toBeNull();
   });
 
   test('the set list skeleton reads as one loading element', async () => {

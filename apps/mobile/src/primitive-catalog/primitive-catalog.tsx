@@ -1,4 +1,5 @@
 import { deckNameLength } from '@mtgscan/supabase/decks';
+import type { CardSet } from '@mtgscan/supabase/sets';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState, type ReactNode } from 'react';
@@ -637,71 +638,42 @@ function FloatingButtons() {
   );
 }
 
+function magic2010(owned: number, size: number, setArtUri: string | null = null): CardSet {
+  const completion = { owned, size };
+  return {
+    code: 'm10',
+    name: 'Magic 2010',
+    icon_svg_uri: m10Symbol,
+    released_at: '2009-07-17',
+    set_art_uri: setArtUri,
+    completion: { any: completion, nonfoil: completion, foil: completion },
+  };
+}
+
 function SetRows() {
   return (
     <Section title="Set rows">
-      <SetRow
-        name="Magic 2010"
-        symbolUri={m10Symbol}
-        owned={234}
-        size={261}
-        percent={89}
-        accessibilityLabel="Magic 2010, 234 of 261, 89 percent"
-        onPress={() => {}}
-      />
-      <SetRow
-        name="Magic 2010"
-        symbolUri={m10Symbol}
-        owned={261}
-        size={261}
-        percent={100}
-        accessibilityLabel="Magic 2010, 261 of 261, 100 percent"
-        onPress={() => {}}
-      />
-      <SetHeader
-        name="Magic 2010"
-        symbolUri={m10Symbol}
-        owned={234}
-        size={261}
-        percent={89}
-        accessibilityLabel="Magic 2010, 234 of 261, 89 percent"
-      />
+      {[
+        [234, 261],
+        [261, 261],
+        [0, 0],
+      ].map(([owned, size]) => (
+        <SetRow key={owned} set={magic2010(owned, size)} finishView="any" onPress={() => {}} />
+      ))}
+      <SetHeader set={magic2010(234, 261)} finishView="any" />
       <SetListSkeleton accessibilityLabel="Loading sets" />
     </Section>
   );
 }
 
-const setBannerStates = [
-  { owned: 0, percent: 0 },
-  { owned: 234, percent: 89 },
-  { owned: 261, percent: 100 },
-];
-
 function SetBanners() {
   return (
     <Section title="Set banners">
-      {setBannerStates.map(({ owned, percent }) => (
-        <SetBanner
-          key={owned}
-          name="Magic 2010"
-          symbolUri={m10Symbol}
-          artUri={solRingArtCrop}
-          owned={owned}
-          size={261}
-          percent={percent}
-          accessibilityLabel={`Magic 2010, ${owned} of 261, ${percent} percent`}
-          onPress={() => {}}
-        />
+      {[0, 234, 261].map((owned) => (
+        <SetBanner key={owned} set={magic2010(owned, 261, solRingArtCrop)} finishView="any" onPress={() => {}} />
       ))}
-      <SetPageBanner
-        name="Magic 2010"
-        symbolUri={m10Symbol}
-        artUri={solRingArtCrop}
-        owned={120}
-        size={261}
-        percent={45}
-        accessibilityLabel="Magic 2010, 120 of 261, 45 percent"
-      />
+      <SetPageBanner set={magic2010(120, 261, solRingArtCrop)} finishView="any" />
+      <SetPageBanner set={magic2010(0, 0, solRingArtCrop)} finishView="any" />
     </Section>
   );
 }
