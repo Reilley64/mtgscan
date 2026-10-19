@@ -1,14 +1,14 @@
-import type { SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
+import type { FinishView, SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
 import { cva } from 'class-variance-authority';
 import { View } from 'react-native';
 
 import { CardGrid, inCardRows } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { SheetSectionHeader } from '@/components/molecules/sheet-section';
-import { copiesOf, spokenSetCardPrinting } from '@/sets/set-completion';
+import { copiesOf, inFinishView, spokenSetCardPrinting } from '@/sets/set-completion';
 
 export type SetCardsRow =
-  | { kind: 'cards'; key: string; printings: SetCardPrinting[] }
+  | { kind: 'cards'; key: string; printings: SetCardPrinting[]; finishView: FinishView }
   | { kind: 'variants'; key: string; owned: number; size: number };
 
 const rowSpacing = cva('', {
@@ -17,28 +17,34 @@ const rowSpacing = cva('', {
   },
 });
 
-function cardRows(section: string, printings: SetCardPrinting[]): SetCardsRow[] {
-  return inCardRows(printings).map((rowPrintings, row) => ({ kind: 'cards', key: `${section}:${row}`, printings: rowPrintings }));
+function cardRows(section: string, printings: SetCardPrinting[], finishView: FinishView): SetCardsRow[] {
+  return inCardRows(printings).map((rowPrintings, row) => ({
+    kind: 'cards',
+    key: `${section}:${row}`,
+    printings: rowPrintings,
+    finishView,
+  }));
 }
 
-export function setCardsRows(set: SetDetails): SetCardsRow[] {
-  const { completion, card_printings } = set.variants;
+export function setCardsRows(set: SetDetails, finishView: FinishView): SetCardsRow[] {
+  const variants = inFinishView(set.variants.card_printings, finishView);
   return [
-    ...cardRows('main set', set.main_set),
-    ...(card_printings.length > 0
-      ? [{ kind: 'variants' as const, key: 'variants', ...completion.any }, ...cardRows('variants', card_printings)]
+    ...cardRows('main set', inFinishView(set.main_set, finishView), finishView),
+    ...(variants.length > 0
+      ? [{ kind: 'variants' as const, key: 'variants', ...set.variants.completion[finishView] }, ...cardRows('variants', variants, finishView)]
       : []),
   ];
 }
 
-function SetCardTile({ printing }: { printing: SetCardPrinting }) {
-  const copies = copiesOf(printing);
+function SetCardTile({ printing, finishView }: { printing: SetCardPrinting; finishView: FinishView }) {
+  const copies = copiesOf(printing, finishView);
   return (
     <CardTile
       uri={printing.image_uri ?? undefined}
-      accessibilityLabel={spokenSetCardPrinting(printing)}
+      accessibilityLabel={spokenSetCardPrinting(printing, finishView)}
       quantity={copies >= 2 ? copies : undefined}
       dimmed={copies === 0}
+      sheen={finishView === 'foil' && copies > 0 ? 'foil' : undefined}
     />
   );
 }
@@ -49,7 +55,7 @@ function rowContent(row: SetCardsRow) {
       return (
         <CardGrid>
           {row.printings.map((printing) => (
-            <SetCardTile key={printing.printing_id} printing={printing} />
+            <SetCardTile key={printing.printing_id} printing={printing} finishView={row.finishView} />
           ))}
         </CardGrid>
       );

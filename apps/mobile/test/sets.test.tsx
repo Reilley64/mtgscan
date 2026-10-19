@@ -53,7 +53,7 @@ function setRow(code: string, name: string, owned: number, size: number, release
     name,
     icon_svg_uri: `https://svgs.scryfall.io/sets/${code}.svg`,
     released_at: releasedAt,
-    completion: { any: { owned, size } },
+    completion: { any: { owned, size }, nonfoil: { owned, size }, foil: { owned, size } },
   };
 }
 

@@ -1,6 +1,6 @@
 import type { Finish } from './search';
 
-export type FinishView = 'any';
+export type FinishView = 'any' | 'nonfoil' | 'foil';
 
 export type SetCompletion = { owned: number; size: number };
 
