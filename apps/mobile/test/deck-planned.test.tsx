@@ -248,9 +248,9 @@ describe('Needs you counts', () => {
     await pressTab('Decks');
 
     const gallery = within(selectedTab());
-    const card = await gallery.findByRole('button', { name: 'Krenko, Needs you 2, Medium priority, 0 cards' });
+    const card = await gallery.findByRole('button', { name: 'Krenko, Needs you 2' });
     expect(within(card).getByText('2')).toBeOnTheScreen();
-    expect(gallery.getByRole('button', { name: 'Atraxa, Medium priority, 0 cards' })).toBeOnTheScreen();
+    expect(gallery.getByRole('button', { name: 'Atraxa' })).toBeOnTheScreen();
   });
 });
 

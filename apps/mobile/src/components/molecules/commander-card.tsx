@@ -2,7 +2,7 @@ import type { DeckCommander } from '@mtgscan/supabase/decks';
 import { cva } from 'class-variance-authority';
 import { Image } from 'expo-image';
 import type { ComponentProps, ComponentType, ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ViewProps } from 'react-native';
 
 import { Chip, StatusChipButton, type StatusChipButtonProps, type StatusChipProps } from '@/components/atoms/chip';
 import { CommanderAvatar } from '@/components/atoms/commander-avatar';
@@ -46,24 +46,26 @@ function SecondCommanderAvatar({ commander, size }: { commander: DeckCommander; 
 
 type DeckTitleProps = {
   name: string;
-  chips: StatusChipProps[];
+  chips?: StatusChipProps[];
   chipButtons?: StatusChipButtonProps[];
 };
 
-function DeckTitle({ name, chips, chipButtons = [] }: DeckTitleProps) {
+function DeckTitle({ name, chips = [], chipButtons = [] }: DeckTitleProps) {
   return (
     <>
       <Text variant="card-title" numberOfLines={2}>
         {name}
       </Text>
-      <View className="flex-row flex-wrap gap-sm">
-        {chips.map((chip) => (
-          <Chip key={chip.label} {...chip} />
-        ))}
-        {chipButtons.map((chip) => (
-          <StatusChipButton key={chip.label} {...chip} />
-        ))}
-      </View>
+      {chips.length + chipButtons.length > 0 ? (
+        <View className="flex-row flex-wrap gap-sm">
+          {chips.map((chip) => (
+            <Chip key={chip.label} {...chip} />
+          ))}
+          {chipButtons.map((chip) => (
+            <StatusChipButton key={chip.label} {...chip} />
+          ))}
+        </View>
+      ) : null}
     </>
   );
 }
@@ -89,18 +91,21 @@ function CommanderCard({ name, chips, commanders }: CommanderCardProps) {
   );
 }
 
-type DeckBannerProps = CommanderCardProps & {
+type DeckBannerProps = {
+  name: string;
   chipButtons?: StatusChipButtonProps[];
+  commanders: DeckCommander[];
+  onLayout?: ViewProps['onLayout'];
 };
 
-export function DeckBanner({ name, chips, chipButtons, commanders }: DeckBannerProps) {
+export function DeckBanner({ name, chipButtons, commanders, onLayout }: DeckBannerProps) {
   const [commander, secondCommander] = commanders;
   return (
-    <View className={bannerVariants({ ghost: !commander })}>
+    <View className={bannerVariants({ ghost: !commander })} onLayout={onLayout}>
       {commander ? <CommanderArt uri={commander.art_crop_uri} /> : null}
       <View className="min-h-deck-banner flex-row items-end gap-md p-lg pt-header-clearance">
         <View className="flex-1 gap-sm">
-          <DeckTitle name={name} chips={chips} chipButtons={chipButtons} />
+          <DeckTitle name={name} chipButtons={chipButtons} />
         </View>
         {secondCommander ? <SecondCommanderAvatar commander={secondCommander} size="banner" /> : null}
       </View>

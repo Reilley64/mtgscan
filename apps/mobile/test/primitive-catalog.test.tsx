@@ -79,7 +79,7 @@ test('the primitive catalog shows every primitive', async () => {
   ).toHaveLength(1);
   expect(screen.getAllByLabelText('Bracket 3').filter((chip) => chip.props.accessibilityHint === 'The rules data may be out of date.')).toHaveLength(1);
   expect(screen.getByRole('button', { name: 'Deck validity, Cannot be determined' })).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Yuriko, Medium priority, 87 cards, Invalid, Estimated bracket 4' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Yuriko, Invalid, Estimated bracket 4' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Estimated bracket 4' })).toBeOnTheScreen();
   expect(screen.getByText('Infinite colorless mana (Commander Spellbook, ruthless)')).toBeOnTheScreen();
   expect(screen.getByRole('link', { name: 'CR 903.5a' })).toBeOnTheScreen();
@@ -132,8 +132,8 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByLabelText('Camera not available, This device has no camera.')).toBeOnTheScreen();
   expect(screen.getByLabelText('Nothing needs you yet, Planned swaps and buylist cards from your AI chat show up here.')).toBeOnTheScreen();
   expect(screen.getByLabelText('No decks yet, Create a deck, then add cards to it from your collection.')).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Atraxa, Medium priority, 0 cards' })).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Krenko, Needs you 2, High priority, 1 card' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Edgar Markov' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Krenko, Needs you 2' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Kinnan' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Open the name alert' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Open the name alert with a name' })).toBeOnTheScreen();

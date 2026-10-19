@@ -1,4 +1,4 @@
-export const localSupabaseUrl = 'http://127.0.0.1:54321';
+export const localSupabaseUrl = `http://127.0.0.1:${process.env.SUPABASE_API_PORT ?? 54321}`;
 
 export const testUser = {
   email: 'test-user@mtgscan.test',

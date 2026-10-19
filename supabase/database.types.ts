@@ -317,14 +317,14 @@ isOneToOne: false
                   ]
                 },"copy_user_tags": {
                   Row: {
-                    "copy_id": string,"user_id": string,"user_tag_id": string
+                    "copy_id": string,"deleted_at": string | null,"user_id": string,"user_tag_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "copy_id": string,"user_id": string,"user_tag_id": string
+                    "copy_id": string,"deleted_at"?: string | null,"user_id": string,"user_tag_id": string
                   }
                   Update: {
-                    "copy_id"?: string,"user_id"?: string,"user_tag_id"?: string
+                    "copy_id"?: string,"deleted_at"?: string | null,"user_id"?: string,"user_tag_id"?: string
                   }
                   Relationships: [
                     {
@@ -711,14 +711,14 @@ isOneToOne: false
                   ]
                 },"user_tags": {
                   Row: {
-                    "created_at": string,"id": string,"name": string,"user_id": string
+                    "created_at": string,"deleted_at": string | null,"id": string,"name": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"name": string,"user_id": string
+                    "created_at"?: string,"deleted_at"?: string | null,"id"?: string,"name": string,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"name"?: string,"user_id"?: string
+                    "created_at"?: string,"deleted_at"?: string | null,"id"?: string,"name"?: string,"user_id"?: string
                   }
                   Relationships: [
                     
