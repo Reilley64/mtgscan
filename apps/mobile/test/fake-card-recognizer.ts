@@ -1,6 +1,7 @@
 import { act } from 'expo-router/testing-library';
 
 import type {
+  DecisionBasis,
   GalleryCardPrinting,
   GalleryDownload,
   GalleryDownloadStatus,
@@ -20,6 +21,7 @@ let installed: InstalledGallery | null = null;
 let nextRecognitions: (Recognition | RecognitionErrorCode)[] = [];
 let recognizedPhotos: string[] = [];
 let cardNameSearches: string[] = [];
+let trainingCrops = 0;
 let heldRecognition: { finish: () => void } | null = null;
 let holdingNextRecognition = false;
 let downloads: GalleryDownload[] = [];
@@ -104,17 +106,29 @@ export function cardRecognition(
   {
     premiumMark = false,
     accepted = true,
+    basis = accepted ? 'collector_line' : null,
     sameTextTwinCount = 0,
-  }: { premiumMark?: boolean; accepted?: boolean; sameTextTwinCount?: number } = {},
+    artMargin = 0.12,
+    trainingCrop = `file:///caches/training-crops/crop-${(trainingCrops += 1)}.jpg`,
+  }: {
+    premiumMark?: boolean;
+    accepted?: boolean;
+    basis?: DecisionBasis | null;
+    sameTextTwinCount?: number;
+    artMargin?: number | null;
+    trainingCrop?: string | null;
+  } = {},
 ): Recognition {
   return {
     kind: 'card',
     candidates,
-    decision: { accepted, reasons: [] },
+    decision: { accepted, basis, reasons: [] },
     reading: { setCode: candidates[0]?.setCode, collectorNumber: candidates[0]?.collectorNumber, premiumMark },
     sameTextTwinCount,
     topSimilarity: 0.9,
+    artMargin,
     rotation: 0,
+    trainingCrop,
     stageMs: {},
   };
 }
@@ -160,6 +174,7 @@ export function resetFakeCardRecognizer() {
   nextRecognitions = [];
   recognizedPhotos = [];
   cardNameSearches = [];
+  trainingCrops = 0;
   heldRecognition = null;
   holdingNextRecognition = false;
 }
