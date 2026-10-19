@@ -5,11 +5,11 @@ import { View } from 'react-native';
 import { CardGrid, inCardRows } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { SheetSectionHeader } from '@/components/molecules/sheet-section';
-import { copiesOf, inFinishView, spokenSetCardPrinting } from '@/sets/set-completion';
+import { copiesOf, inFinishView, shownCompletion, spokenSetCardPrinting } from '@/sets/set-completion';
 
 export type SetCardsRow =
   | { kind: 'cards'; key: string; printings: SetCardPrinting[]; finishView: FinishView }
-  | { kind: 'variants'; key: string; owned: number; size: number };
+  | { kind: 'variants'; key: string; count: string };
 
 const rowSpacing = cva('', {
   variants: {
@@ -31,7 +31,10 @@ export function setCardsRows(set: SetDetails, finishView: FinishView): SetCardsR
   return [
     ...cardRows('main set', inFinishView(set.main_set, finishView), finishView),
     ...(variants.length > 0
-      ? [{ kind: 'variants' as const, key: 'variants', ...set.variants.completion[finishView] }, ...cardRows('variants', variants, finishView)]
+      ? [
+          { kind: 'variants' as const, key: 'variants', count: shownCompletion(set.variants.completion[finishView]).count },
+          ...cardRows('variants', variants, finishView),
+        ]
       : []),
   ];
 }
@@ -60,7 +63,7 @@ function rowContent(row: SetCardsRow) {
         </CardGrid>
       );
     case 'variants':
-      return <SheetSectionHeader title="Variants" count={`${row.owned} of ${row.size}`} />;
+      return <SheetSectionHeader title="Variants" count={row.count} />;
   }
 }
 

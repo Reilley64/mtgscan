@@ -1,9 +1,19 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
-import type { FinishView, SetCardPrinting, SetDetails, SetRow } from '@mtgscan/supabase/sets';
+import type { CardSet, FinishView, SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
 import { fireEvent, within } from 'expo-router/testing-library';
 
 import { offerSetPage, offerSets, ownCollectionCopies, setPageReadsSent, setReadCount, startSignedIn } from './fake-supabase';
-import { appearsBefore, cardImageLook, cardSheen, pressTab, selectedTab, setArtLook, swipeBackInTheTab, tabStackTopScreen } from './native-ui';
+import {
+  appearsBefore,
+  cardImageLook,
+  cardSheen,
+  pressTab,
+  selectedTab,
+  setArtLook,
+  setSymbolFillShare,
+  swipeBackInTheTab,
+  tabStackTopScreen,
+} from './native-ui';
 import { renderApp, restartTheApp } from './render-app';
 
 const curator: CollectionCopyRow = {
@@ -34,7 +44,7 @@ function printing(collectorNumber: string, name: string, counts: Record<FinishVi
   };
 }
 
-const bloomburrowRow: SetRow = {
+const bloomburrowRow: CardSet = {
   code: 'blb',
   name: 'Bloomburrow',
   icon_svg_uri: 'https://svgs.scryfall.io/sets/blb.svg',
@@ -43,13 +53,21 @@ const bloomburrowRow: SetRow = {
   completion: { any: { owned: 2, size: 3 }, nonfoil: { owned: 1, size: 3 }, foil: { owned: 1, size: 3 } },
 };
 
-const alphaRow: SetRow = {
+const alphaRow: CardSet = {
   code: 'lea',
   name: 'Limited Edition Alpha',
   icon_svg_uri: 'https://svgs.scryfall.io/sets/lea.svg',
   released_at: '1993-08-05',
   set_art_uri: null,
   completion: { any: { owned: 1, size: 5 }, nonfoil: { owned: 1, size: 5 }, foil: { owned: 0, size: 0 } },
+};
+
+const noSet = { owned: 0, size: 0 };
+
+const alpha: SetDetails = {
+  ...alphaRow,
+  main_set: [printing('1', 'Animate Wall', { any: 1, nonfoil: 1, foil: null })],
+  variants: { completion: { any: noSet, nonfoil: noSet, foil: noSet }, card_printings: [] },
 };
 
 const bloomburrow: SetDetails = {
@@ -100,6 +118,13 @@ async function openSets() {
 
 async function openBloomburrow() {
   await fireEvent.press(topScreen().getByRole('button', { name: /^Bloomburrow/ }));
+}
+
+async function openAlphaInFoil() {
+  await openSets();
+  await fireEvent.press(topScreen().getByRole('button', { name: /^Limited Edition Alpha/ }));
+  await chooseFinishView('Foil');
+  return topScreen().getByRole('header', { name: /^Limited Edition Alpha/ });
 }
 
 beforeEach(() => {
@@ -248,6 +273,31 @@ describe('the set page in a finish view', () => {
       'Season of the Burrow, number 282, not owned',
       'Beza, the Bounding Spring, number 287, not owned',
     ]);
+  });
+
+  test('a set page whose main set is empty in the finish view, such as Alpha in Foil, shows "0 of 0" and is not complete', async () => {
+    offerSetPage(alpha);
+
+    const header = await openAlphaInFoil();
+
+    expect(header).toHaveProp('accessibilityLabel', 'Limited Edition Alpha, 0 of 0');
+    expect(within(header).getByText('0 of 0')).toBeOnTheScreen();
+    expect(within(header).queryByText('✓')).toBeNull();
+    expect(within(header).queryByText(/%/)).toBeNull();
+    expect(header).toHaveStyle({ borderColor: '#00000000' });
+    expect(setSymbolFillShare(header)).toBe(0);
+  });
+
+  test('a set page banner whose main set is empty in the finish view has no colored share and is not complete', async () => {
+    offerSetPage({ ...alpha, set_art_uri: 'https://cards.scryfall.io/art_crop/front/lea.jpg' });
+
+    const header = await openAlphaInFoil();
+
+    expect(header).toHaveProp('accessibilityLabel', 'Limited Edition Alpha, 0 of 0');
+    expect(within(header).queryByText('✓')).toBeNull();
+    expect(within(header).queryByText(/%/)).toBeNull();
+    expect(header).toHaveStyle({ borderColor: '#00000000' });
+    expect(setArtLook(header)).toMatchObject({ coloredShare: 0, edgeLine: false });
   });
 
   test('a lit tile in the Foil view carries the foil sheen, and other tiles do not', async () => {

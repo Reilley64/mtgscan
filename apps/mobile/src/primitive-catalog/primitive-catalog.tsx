@@ -1,4 +1,5 @@
 import { deckNameLength } from '@mtgscan/supabase/decks';
+import type { CardSet } from '@mtgscan/supabase/sets';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState, type ReactNode } from 'react';
@@ -38,11 +39,12 @@ import { BracketSignalRow } from '@/components/molecules/bracket-signal-row';
 import { RuleRow } from '@/components/molecules/rule-row';
 import { CardTile } from '@/components/molecules/card-tile';
 import { FloatingButton } from '@/components/molecules/floating-button';
-import { SetHeader, SetListSkeleton, SetRow } from '@/components/molecules/set-row';
+import { SetListSkeleton } from '@/components/molecules/set-row-skeleton';
+import { SetHeader, SetRow } from '@/components/organisms/set-row';
 import { SetBanner, SetPageBanner } from '@/components/organisms/set-banner';
 import { ChangeLine } from '@/components/molecules/change-line';
 import { Reason } from '@/components/molecules/reason';
-import { CommanderGalleryCard, DeckBanner, DeckBannerSkeleton } from '@/components/molecules/commander-card';
+import { CommanderGalleryCard, CommanderGalleryCardSkeletons, DeckBanner, DeckBannerSkeleton } from '@/components/molecules/commander-card';
 import { CardChip } from '@/components/molecules/card-chip';
 import { ChipGroup, SelectableChips } from '@/components/molecules/chip-group';
 import { CopyMeta } from '@/components/molecules/copy-meta';
@@ -60,6 +62,7 @@ import { PullIndicator } from '@/components/molecules/pull-indicator';
 import { FailureNotice } from '@/components/molecules/failure-notice';
 import { GalleryCard } from '@/components/molecules/gallery-card';
 import { ListRow } from '@/components/molecules/list-row';
+import { NeedsYouItemSkeletons } from '@/components/molecules/needs-you-skeleton';
 import { QuickActionBar } from '@/components/molecules/quick-action-bar';
 import { SheetSection, SheetSectionHeader } from '@/components/molecules/sheet-section';
 import { GroupButton } from '@/components/molecules/group-button';
@@ -322,8 +325,8 @@ function ListRows() {
           <MenuButton
             accessibilityLabel="More, Misprint"
             actions={[
-              { title: 'Rename', onSelect: () => {} },
-              { title: 'Delete user tag', destructive: true, onSelect: () => {} },
+              { title: 'Rename', symbol: 'pencil', onSelect: () => {} },
+              { title: 'Delete user tag', symbol: 'trash', destructive: true, onSelect: () => {} },
             ]}
           />
         }
@@ -400,9 +403,9 @@ function CardTiles() {
           uri={solRing}
           accessibilityLabel="Sol Ring, M10 216, long press for a menu"
           menuActions={[
-            { title: 'Open card', onSelect: () => {} },
-            { title: 'Make commander', onSelect: () => {} },
-            { title: 'Remove from deck', destructive: true, onSelect: () => {} },
+            { title: 'Open card', symbol: 'rectangle.portrait', onSelect: () => {} },
+            { title: 'Make commander', symbol: 'crown', onSelect: () => {} },
+            { title: 'Remove from deck', symbol: 'minus.circle', destructive: true, onSelect: () => {} },
           ]}
           onPress={() => {}}
         />
@@ -413,7 +416,7 @@ function CardTiles() {
         <CardTile
           uri={solRing}
           accessibilityLabel="Mountain, long press for a menu"
-          menuActions={[{ title: 'Remove from deck', destructive: true, onSelect: () => {} }]}
+          menuActions={[{ title: 'Remove from deck', symbol: 'minus.circle', destructive: true, onSelect: () => {} }]}
           inViolation
         />
         {['CMM 464', 'C21 263'].map((caption) => (
@@ -521,6 +524,8 @@ function Skeletons() {
       <Skeleton className="h-skeleton-title-bar w-[70%]" />
       <CardGridSkeleton accessibilityLabel="Loading collection" />
       <DeckBannerSkeleton />
+      <CommanderGalleryCardSkeletons />
+      <NeedsYouItemSkeletons />
     </Section>
   );
 }
@@ -625,7 +630,7 @@ function FloatingMenuButtons() {
   );
 }
 
-function FloatingButtons() {
+function FloatingButtonStates() {
   return (
     <Section title="Floating buttons">
       <FloatingButton symbol="rectangle.portrait.on.rectangle.portrait" accessibilityLabel="Sets" onPress={() => {}} />
@@ -633,71 +638,42 @@ function FloatingButtons() {
   );
 }
 
+function magic2010(owned: number, size: number, setArtUri: string | null = null): CardSet {
+  const completion = { owned, size };
+  return {
+    code: 'm10',
+    name: 'Magic 2010',
+    icon_svg_uri: m10Symbol,
+    released_at: '2009-07-17',
+    set_art_uri: setArtUri,
+    completion: { any: completion, nonfoil: completion, foil: completion },
+  };
+}
+
 function SetRows() {
   return (
     <Section title="Set rows">
-      <SetRow
-        name="Magic 2010"
-        symbolUri={m10Symbol}
-        owned={234}
-        size={261}
-        percent={89}
-        accessibilityLabel="Magic 2010, 234 of 261, 89 percent"
-        onPress={() => {}}
-      />
-      <SetRow
-        name="Magic 2010"
-        symbolUri={m10Symbol}
-        owned={261}
-        size={261}
-        percent={100}
-        accessibilityLabel="Magic 2010, 261 of 261, 100 percent"
-        onPress={() => {}}
-      />
-      <SetHeader
-        name="Magic 2010"
-        symbolUri={m10Symbol}
-        owned={234}
-        size={261}
-        percent={89}
-        accessibilityLabel="Magic 2010, 234 of 261, 89 percent"
-      />
+      {[
+        [234, 261],
+        [261, 261],
+        [0, 0],
+      ].map(([owned, size]) => (
+        <SetRow key={owned} set={magic2010(owned, size)} finishView="any" onPress={() => {}} />
+      ))}
+      <SetHeader set={magic2010(234, 261)} finishView="any" />
       <SetListSkeleton accessibilityLabel="Loading sets" />
     </Section>
   );
 }
 
-const setBannerStates = [
-  { owned: 0, percent: 0 },
-  { owned: 234, percent: 89 },
-  { owned: 261, percent: 100 },
-];
-
 function SetBanners() {
   return (
     <Section title="Set banners">
-      {setBannerStates.map(({ owned, percent }) => (
-        <SetBanner
-          key={owned}
-          name="Magic 2010"
-          symbolUri={m10Symbol}
-          artUri={solRingArtCrop}
-          owned={owned}
-          size={261}
-          percent={percent}
-          accessibilityLabel={`Magic 2010, ${owned} of 261, ${percent} percent`}
-          onPress={() => {}}
-        />
+      {[0, 234, 261].map((owned) => (
+        <SetBanner key={owned} set={magic2010(owned, 261, solRingArtCrop)} finishView="any" onPress={() => {}} />
       ))}
-      <SetPageBanner
-        name="Magic 2010"
-        symbolUri={m10Symbol}
-        artUri={solRingArtCrop}
-        owned={120}
-        size={261}
-        percent={45}
-        accessibilityLabel="Magic 2010, 120 of 261, 45 percent"
-      />
+      <SetPageBanner set={magic2010(120, 261, solRingArtCrop)} finishView="any" />
+      <SetPageBanner set={magic2010(0, 0, solRingArtCrop)} finishView="any" />
     </Section>
   );
 }
@@ -743,7 +719,7 @@ function EmptyStates() {
         message="Scan cards to add them to your collection."
         action={{ label: 'Scan cards', onPress: () => {} }}
       />
-      <EmptyState illustration={<GhostNeedsYouItems />} title="Nothing needs you yet" message="When a deck needs you, it shows up here." />
+      <EmptyState illustration={<GhostNeedsYouItems />} title="Nothing needs you yet" message="Planned swaps and buylist cards from your AI chat show up here." />
       <EmptyState illustration={<GhostCommanderCard />} title="No decks yet" message="Create a deck, then add cards to it from your collection." />
       <View className="bg-camera-off">
         <EmptyState
@@ -754,6 +730,9 @@ function EmptyStates() {
       </View>
       <View className="bg-sheet">
         <EmptyState illustration={<GhostBatchRows />} title="No scans yet" message="Cards you scan wait here until you add them." />
+      </View>
+      <View className="bg-sheet">
+        <EmptyState illustration={<EmptyBinderSlots rows={1} onSheet />} title="No copies found" message="Scan copies into your collection first." />
       </View>
     </Section>
   );
@@ -969,7 +948,7 @@ export function PrimitiveCatalog() {
         <Skeletons />
         <Glass />
         <FloatingMenuButtons />
-        <FloatingButtons />
+        <FloatingButtonStates />
         <PullIndicators />
         <Inputs />
         <ProgressBars />

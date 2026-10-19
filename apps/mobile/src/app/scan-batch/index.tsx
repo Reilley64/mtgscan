@@ -61,7 +61,7 @@ export default function BatchReviewSheet() {
   );
 
   return (
-    <DrawerSheet footer={footer}>
+    <DrawerSheet belowHeader footer={footer}>
       <Stack.Screen options={{ title }} />
       <Stack.Toolbar placement="right">
         {batchReviewMenu({

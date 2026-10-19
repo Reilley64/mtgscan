@@ -1,11 +1,12 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { SetList, SetRow } from '../sets';
+import type { CardSet, SetList } from '../sets';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { seedCopies } from './copy-seeds';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 import { addedToDeck, appRequest, deckNamed, scannedCopies, scannedCopy } from './planned-swap-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
+import { artCrop } from './scryfall-images';
 
 setDefaultTimeout(60_000);
 
@@ -32,10 +33,6 @@ const smotheringTitheEtched = '2309fb66-3aa0-4ec5-9a8e-5a0caa19c270';
 const lightningBolt = 'd573ef03-4730-45aa-93dd-e45ac1dbaf4a';
 const schemaThief = '312591ec-436d-40e5-805e-e78e6a63096d';
 
-function artCrop(printingId: string, version: number) {
-  return `https://cards.scryfall.io/art_crop/front/${printingId[0]}/${printingId[1]}/${printingId}.jpg?${version}`;
-}
-
 beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
@@ -52,7 +49,7 @@ async function setCodes(user: TestUser) {
   return (await listSets(user)).map((row) => row.code);
 }
 
-async function setRow(user: TestUser, code: string): Promise<SetRow | undefined> {
+async function setRow(user: TestUser, code: string): Promise<CardSet | undefined> {
   return (await listSets(user)).find((row) => row.code === code);
 }
 
@@ -174,6 +171,26 @@ describe('the set art', () => {
     const user = await signUpNewUser();
 
     expect((await setRow(user, 'pfra'))?.set_art_uri).toBe(artCrop(lichsRelicPromo, 1791170088));
+  });
+
+  test('a basic land card printing never gives the set art, even at the highest price', async () => {
+    const user = await signUpNewUser();
+
+    const [{ usd_nonfoil_cents }] = await asDatabaseOwner(
+      (database) => database`select usd_nonfoil_cents from public.card_prices where printing_id = ${snowCoveredWastes}`,
+    );
+
+    await asDatabaseOwner(
+      (database) => database`update public.card_prices set usd_nonfoil_cents = 100000 where printing_id = ${snowCoveredWastes}`,
+    );
+    try {
+      expect((await setRow(user, 'mh3'))?.set_art_uri).toBe(artCrop(roilCartographerVariant, 1783911138));
+      expect((await setRow(user, 'khm'))?.set_art_uri).toBeNull();
+    } finally {
+      await asDatabaseOwner(
+        (database) => database`update public.card_prices set usd_nonfoil_cents = ${usd_nonfoil_cents} where printing_id = ${snowCoveredWastes}`,
+      );
+    }
   });
 
   test('with no art crop in the set, the set art is null', async () => {

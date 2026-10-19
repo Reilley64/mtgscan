@@ -14,15 +14,15 @@ type DeckActionsMenuProps = {
 export function deckActionsMenu({ priority, onRename, onSetPriority, onDelete }: DeckActionsMenuProps) {
   return (
     <Stack.Toolbar.Menu icon="ellipsis" tintColor={colors.text} accessibilityLabel="More">
-      <Stack.Toolbar.MenuAction onPress={onRename}>Rename</Stack.Toolbar.MenuAction>
-      <Stack.Toolbar.Menu title="Priority">
+      <Stack.Toolbar.MenuAction icon="pencil" onPress={onRename}>Rename</Stack.Toolbar.MenuAction>
+      <Stack.Toolbar.Menu title="Priority" icon="flag">
         {deckPriorities.map((choice) => (
           <Stack.Toolbar.MenuAction key={choice} isOn={choice === priority} onPress={() => onSetPriority(choice)}>
             {priorityNames[choice]}
           </Stack.Toolbar.MenuAction>
         ))}
       </Stack.Toolbar.Menu>
-      <Stack.Toolbar.MenuAction destructive onPress={onDelete}>
+      <Stack.Toolbar.MenuAction icon="trash" destructive onPress={onDelete}>
         Delete deck
       </Stack.Toolbar.MenuAction>
     </Stack.Toolbar.Menu>

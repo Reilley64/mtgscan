@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ChipGroup } from '@/components/molecules/chip-group';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { GhostNeedsYouItems } from '@/components/molecules/empty-state-illustrations';
+import { NeedsYouItemSkeletons } from '@/components/molecules/needs-you-skeleton';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { NeedsYouList } from '@/components/organisms/needs-you-list';
 import { TabScreen } from '@/components/templates/tab-screen';
@@ -30,6 +31,7 @@ export default function RecentScreen() {
 
   return (
     <TabScreen title="Recent">
+      {read.status === 'loading' ? <NeedsYouItemSkeletons /> : null}
       {read.status === 'failed' ? (
         <ReadFailure illustration={<GhostNeedsYouItems />} title="Could not load Recent" onTryAgain={reload} />
       ) : null}
@@ -37,7 +39,7 @@ export default function RecentScreen() {
         <EmptyState
           illustration={<GhostNeedsYouItems />}
           title="Nothing needs you yet"
-          message="When a deck needs you, it shows up here."
+          message="Planned swaps and buylist cards from your AI chat show up here."
         />
       ) : null}
       {items.length > 0 ? (

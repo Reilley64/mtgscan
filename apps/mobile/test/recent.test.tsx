@@ -9,6 +9,7 @@ import {
   failDeckWrites,
   failFreeCopyReads,
   failNeedsYouReads,
+  holdNeedsYouReads,
   ownBuylistCards,
   ownDecks,
   ownFreeCopies,
@@ -196,6 +197,46 @@ describe('Recent', () => {
     expect(presentedAlert()).toBeNull();
   });
 
+  test('until the Recent read returns, Recent shows the Needs you skeleton, then the items', async () => {
+    ownPlannedSwaps([plannedSwapOf('swap')]);
+    const reads = holdNeedsYouReads();
+
+    const recent = await openRecent();
+    expect(recent.getByRole('progressbar', { name: 'Loading Recent' })).toBeOnTheScreen();
+    expect(recent.queryByText('Nothing needs you yet')).not.toBeOnTheScreen();
+
+    await reads.finish();
+
+    expect(await recent.findByLabelText('+, Lightning Bolt, M10 146')).toBeOnTheScreen();
+    expect(recent.queryByRole('progressbar', { name: 'Loading Recent' })).not.toBeOnTheScreen();
+  });
+
+  test('a reload when Recent gains focus keeps the items and brings no skeleton back', async () => {
+    ownPlannedSwaps([plannedSwapOf('swap')]);
+    const recent = await openRecent();
+    await recent.findByLabelText('+, Lightning Bolt, M10 146');
+    holdNeedsYouReads();
+
+    await pressTab('Collection');
+    await pressTab('Recent');
+
+    expect(within(selectedTab()).getByLabelText('+, Lightning Bolt, M10 146')).toBeOnTheScreen();
+    expect(within(selectedTab()).queryByRole('progressbar', { name: 'Loading Recent' })).not.toBeOnTheScreen();
+  });
+
+  test('a reload that fails when Recent gains focus keeps the items shown', async () => {
+    ownPlannedSwaps([plannedSwapOf('swap')]);
+    const recent = await openRecent();
+    await recent.findByLabelText('+, Lightning Bolt, M10 146');
+    failNeedsYouReads(1);
+
+    await pressTab('Collection');
+    await pressTab('Recent');
+
+    expect(await within(selectedTab()).findByLabelText('+, Lightning Bolt, M10 146')).toBeOnTheScreen();
+    expect(within(selectedTab()).queryByText('Could not load Recent')).not.toBeOnTheScreen();
+  });
+
   test('Recent reloads when the tab gains focus', async () => {
     const recent = await openRecent();
     expect(recent.getByText('Nothing needs you yet')).toBeOnTheScreen();
@@ -363,6 +404,7 @@ describe('the Bought page sheet', () => {
     const alpha = await sheet.findByRole('button', { name: 'Counterspell, LEA 54' });
     expect(cardImageUri(alpha)).toBe('https://cards.scryfall.io/normal/front/copy-alpha.jpg');
     expect(sheet.getByRole('button', { name: 'Counterspell, SS1 4 · Foil · LP' })).toBeOnTheScreen();
+    expect(appearsBefore(sheet.getByText('Pick the copy you bought.'), alpha)).toBe(true);
     expect(tabHeader(presentedPageSheet()).title).toBe('Bought');
     expect(leftHeaderButtons(presentedPageSheet())).toEqual(['Cancel']);
   });
@@ -396,6 +438,7 @@ describe('the Bought page sheet', () => {
     const sheet = await openBought([]);
 
     expect(await sheet.findByLabelText('No copies found, Scan copies into your collection first.')).toBeOnTheScreen();
+    expect(sheet.queryByText('Pick the copy you bought.')).not.toBeOnTheScreen();
   });
 
   test('a Bought that fails shows "Check your connection." and the sheet stays', async () => {

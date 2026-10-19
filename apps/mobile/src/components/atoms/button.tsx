@@ -7,7 +7,7 @@ import { TextClassContext } from '@/components/atoms/text';
 import { cn } from '@/lib/class-names';
 import { colors, googleButtonColors, sizes } from '@/theme';
 
-export const buttonVariants = cva('h-button flex-row items-center justify-center gap-sm disabled:opacity-dimmed aria-busy:opacity-100', {
+export const buttonVariants = cva('min-h-button flex-row items-center justify-center gap-sm disabled:opacity-dimmed aria-busy:opacity-100', {
   variants: {
     variant: {
       primary: 'bg-primary',
@@ -17,7 +17,7 @@ export const buttonVariants = cva('h-button flex-row items-center justify-center
     },
     size: {
       default: 'min-w-touch-target rounded-sm px-md',
-      icon: 'w-button rounded-full',
+      icon: 'h-button w-button rounded-full',
       floating: 'size-floating-button rounded-full',
       'sign-in': 'h-sign-in-button rounded-sm px-md',
     },

@@ -7,6 +7,8 @@ import type { GalleryDelivery, GalleryProgress } from '@/gallery/gallery-state';
 
 import { CameraMessage } from './camera-message';
 
+const galleryPurpose = 'The scanner needs the gallery to recognize cards. It downloads once. Updates come in the background.';
+
 type GalleryDownloadProps = {
   delivery: GalleryDelivery;
   downloadNow: () => void;
@@ -23,7 +25,7 @@ function ProgressMessage({
   action?: { label: string; onPress: () => void };
 }) {
   return (
-    <CameraMessage message={message} action={action}>
+    <CameraMessage message={message} detail={galleryPurpose} action={action}>
       <View className="gap-sm">
         <ProgressBar label={message} value={progress.bytesDone} max={progress.bytesTotal} />
         <Text variant="meta" className="text-center">

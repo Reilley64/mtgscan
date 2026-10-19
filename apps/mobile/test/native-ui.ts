@@ -651,6 +651,12 @@ export function setArtLook(banner: HostElement) {
   };
 }
 
+export function setSymbolFillShare(element: HostElement) {
+  const heightOf = (instance: HostElement) => StyleSheet.flatten(instance.props.style)?.height;
+  const [filledPart] = element.queryAll((instance) => /%$/.test(String(heightOf(instance) ?? '')));
+  return filledPart ? parseFloat(String(heightOf(filledPart))) / 100 : 0;
+}
+
 export function cardImageLook(tile: HostElement) {
   const [image] = tile.queryAll((instance) => StyleSheet.flatten(instance.props.style)?.aspectRatio !== undefined);
   if (!image) {
@@ -729,7 +735,7 @@ export function splitColorsBehind(glyph: HostElement) {
   return [];
 }
 
-function sizesAround(element: HostElement, dimension: 'width' | 'height') {
+function sizesAround(element: HostElement, dimension: 'width' | 'height' | 'minHeight') {
   const sizes: number[] = [];
   for (let candidate = element.parent; candidate; candidate = candidate.parent) {
     const size = StyleSheet.flatten(candidate.props.style)?.[dimension];
@@ -746,6 +752,10 @@ export function widthsAround(element: HostElement) {
 
 export function heightsAround(element: HostElement) {
   return sizesAround(element, 'height');
+}
+
+export function minHeightsAround(element: HostElement) {
+  return sizesAround(element, 'minHeight');
 }
 
 function isScrollContent(element: HostElement) {
@@ -791,6 +801,18 @@ export function fadesDown(element: HostElement) {
   return element.queryAll((instance) =>
     String(StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage).startsWith('linear-gradient(180deg'),
   ).length > 0;
+}
+
+export function fadeEndColor(element: HostElement) {
+  const [fade] = element.queryAll((instance) =>
+    String(StyleSheet.flatten(instance.props.style)?.experimental_backgroundImage).startsWith('linear-gradient(180deg'),
+  );
+  const hex = /#(\w{2})(\w{2})(\w{2}) 100%\)$/.exec(StyleSheet.flatten(fade?.props.style)?.experimental_backgroundImage ?? '');
+  if (!hex) {
+    throw new Error('This element does not fade down into a color');
+  }
+  const [red, green, blue] = hex.slice(1).map((channel) => parseInt(channel, 16));
+  return `rgba(${red}, ${green}, ${blue}, 1)`;
 }
 
 export function lineColoredBlocks(element: HostElement) {
@@ -1015,6 +1037,7 @@ function menuActions(button: HostElement) {
 export function buttonMenuActions(button: HostElement) {
   return menuActions(button).map((action) => ({
     title: action.props.label as string,
+    symbol: action.props.systemImage as string | undefined,
     destructive: action.props.role === 'destructive',
   }));
 }

@@ -8,6 +8,7 @@ import {
   contextMenu,
   dashedOutlinesColored,
   fadesDown,
+  headerMenu,
   headerMenuRows,
   imageFrames,
   placeInScrollView,
@@ -181,6 +182,22 @@ describe('the copy page menu', () => {
     await openCopyPage(/^Angelic Curator/);
 
     expect(actionsMenuRows()).toEqual(rows);
+  });
+
+  test.each([
+    ['main', 0, { title: 'Make commander', symbol: 'crown' }],
+    ['main', 1, { title: 'Make partner', symbol: 'crown' }],
+    ['commander', 1, { title: 'Move to main deck', symbol: 'rectangle.stack' }],
+  ] as const)('a %s deck card in a deck with %i commanders shows a symbol before each action', async (role, commanderCount, commanderRow) => {
+    copyInDeck(role, commanderCount);
+
+    await openCopyPage(/^Angelic Curator/);
+
+    expect(headerMenu(pushedScreen(), 'More').items).toEqual([
+      commanderRow,
+      { title: 'Remove from deck', symbol: 'minus.circle' },
+      { title: 'Delete copy', symbol: 'trash' },
+    ]);
   });
 
   test('Make commander makes the copy a commander, and the menu then offers Move to main deck', async () => {

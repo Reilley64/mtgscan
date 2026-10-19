@@ -159,8 +159,12 @@ The share of a set's main set that the user owns in a finish view, as "x of y" a
 _Avoid_: Set progress, completion rate
 
 **Set art**:
-The art crop of the card printing with the highest current price in any finish in a set. With no priced card printing that has an art crop, it is the art crop of the first card printing that has one, by collector number. Sets colors it in from left to right as set completion grows.
+The art crop of the card printing with the highest current price in any finish among a set's main set and variants, so never a basic land. With no priced card printing that has an art crop, it is the art crop of the first card printing that has one, by collector number. Sets colors it in from left to right as set completion grows.
 _Avoid_: Key art, cover art
+
+**Set page**:
+The page about one set, opened from Sets. It shows the set's main set and variants in the finish view.
+_Avoid_: Set detail, set screen
 
 ## Decks and changes
 

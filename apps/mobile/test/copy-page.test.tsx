@@ -348,6 +348,19 @@ describe('the copy page', () => {
   });
 });
 
+test('a reload that fails when the copy page gains focus again keeps the copy shown', async () => {
+  ownCopies([copyOf('copy-1')]);
+  await openCopyPage(/^Angelic Curator/);
+  await fireEvent.press(screen.getByRole('button', { name: /^(User tags,|Add user tags)/ }));
+  await screen.findByLabelText('Find or create a user tag');
+  failCopyReads(1);
+
+  await swipeBackFromThePushedScreen();
+
+  expect(await screen.findByRole('header', { name: 'Angelic Curator' })).toBeOnTheScreen();
+  expect(screen.queryByText('Could not load this card')).not.toBeOnTheScreen();
+});
+
 describe('closing the copy page', () => {
   test('the copy page has a Close bar button with the xmark symbol at the top left, styled like the More button at the top right', async () => {
     ownCopies([copyOf('copy-1')]);
@@ -576,6 +589,21 @@ describe('the user tag picker', () => {
     expect(await screen.findByRole('button', { name: 'User tags, Trade binder' })).toBeOnTheScreen();
   });
 
+  test('Return creates the typed user tag and adds it to this copy, and does nothing when the name already exists', async () => {
+    ownUserTags([{ name: 'Signed', copyIds: [] }]);
+    const field = await openUserTagPicker();
+
+    await fireEvent.changeText(field, 'signed');
+    await fireEvent(field, 'submitEditing');
+    expect(screen.getByRole('checkbox', { name: 'Signed, 0 copies' })).not.toBeChecked();
+
+    await fireEvent.changeText(field, ' Trade binder ');
+    await fireEvent(field, 'submitEditing');
+
+    expect(await screen.findByRole('checkbox', { name: 'Trade binder, 1 copy' })).toBeChecked();
+    expect(field).toHaveProp('value', '');
+  });
+
   test('the Create row comes first, before the user tags that contain the text', async () => {
     ownUserTags([{ name: 'Signed', copyIds: [] }]);
     const field = await openUserTagPicker();
@@ -649,8 +677,8 @@ describe('renaming and deleting a user tag', () => {
 
     expect(menuButtonNames(pushedScreen())).toEqual(['More, Signed', 'More, trade binder']);
     expect(buttonMenuActions(menuButton(screen.container, 'More, Signed'))).toEqual([
-      { title: 'Rename', destructive: false },
-      { title: 'Delete user tag', destructive: true },
+      { title: 'Rename', symbol: 'pencil', destructive: false },
+      { title: 'Delete user tag', symbol: 'trash', destructive: true },
     ]);
   });
 

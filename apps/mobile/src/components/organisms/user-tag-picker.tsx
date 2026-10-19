@@ -34,6 +34,11 @@ export function UserTagPicker({ copy, userTags, changeFailed, onToggle, onCreate
   const name = text.trim();
   const canCreate = name !== '' && !userTags.some((userTag) => matchesUserTagName(userTag, name));
   const userTagIdsOnCopy = new Set(copy.user_tags.map((userTag) => userTag.user_tag_id));
+
+  function create() {
+    setText('');
+    onCreate(name);
+  }
   const actionOn = (userTag: UserTag) => (rowAction?.userTagId === userTag.user_tag_id ? rowAction.action : null);
 
   return (
@@ -46,8 +51,10 @@ export function UserTagPicker({ copy, userTags, changeFailed, onToggle, onCreate
         autoCorrect={false}
         autoCapitalize="none"
         clearButtonMode="while-editing"
+        returnKeyType="done"
         value={text}
         onChangeText={setText}
+        onSubmitEditing={() => canCreate && create()}
       />
       {changeFailed ? <FailureNotice message="Could not change the user tags. Check your connection." /> : null}
       <View className="gap-xs">
@@ -56,10 +63,7 @@ export function UserTagPicker({ copy, userTags, changeFailed, onToggle, onCreate
             leading={<SymbolView name="plus" size={sizes.rowSymbol} className="text-primary" />}
             title={`Create "${name}"`}
             detail="and add it to this copy"
-            onPress={() => {
-              setText('');
-              onCreate(name);
-            }}
+            onPress={create}
           />
         ) : null}
         {userTagsFound(userTags, name).map((userTag) => {
@@ -80,9 +84,10 @@ export function UserTagPicker({ copy, userTags, changeFailed, onToggle, onCreate
                   <MenuButton
                     accessibilityLabel={`More, ${userTag.name}`}
                     actions={[
-                      { title: 'Rename', onSelect: () => setRowAction({ userTagId: userTag.user_tag_id, action: 'rename' }) },
+                      { title: 'Rename', symbol: 'pencil', onSelect: () => setRowAction({ userTagId: userTag.user_tag_id, action: 'rename' }) },
                       {
                         title: 'Delete user tag',
+                        symbol: 'trash',
                         destructive: true,
                         onSelect: () => setRowAction({ userTagId: userTag.user_tag_id, action: 'delete' }),
                       },

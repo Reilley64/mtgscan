@@ -6,26 +6,28 @@ import { CardThumbnail } from '@/components/atoms/card-thumbnail';
 import { dashedOutlineClass } from '@/components/atoms/dashed-outline';
 import { Surface } from '@/components/atoms/surface';
 import { SymbolView } from '@/components/atoms/symbol-view';
-import { Text } from '@/components/atoms/text';
 import { cardColumnClass, cardsPerRow } from '@/components/molecules/card-tile';
-import { CommanderCardFrame } from '@/components/molecules/commander-card';
+import { CommanderCardFrame, CommanderTitleShape } from '@/components/molecules/commander-card';
+import { NeedsYouItemShape } from '@/components/molecules/needs-you-skeleton';
 import { cn } from '@/lib/class-names';
 import { gradients, sizes } from '@/theme';
 
 const barClass = 'h-skeleton-meta-bar rounded-full bg-line';
 
-function FadesDown({ children }: { children: ReactNode }) {
+type FadeProps = { onSheet?: boolean };
+
+function FadesDown({ onSheet = false, children }: FadeProps & { children: ReactNode }) {
   return (
     <View className="w-full items-center">
       {children}
-      <View pointerEvents="none" className="absolute inset-0" style={styles.fade} />
+      <View pointerEvents="none" className="absolute inset-0" style={onSheet ? styles.sheetFade : styles.fade} />
     </View>
   );
 }
 
-export function EmptyBinderSlots({ rows }: { rows: number }) {
+export function EmptyBinderSlots({ rows, onSheet }: FadeProps & { rows: number }) {
   return (
-    <FadesDown>
+    <FadesDown onSheet={onSheet}>
       <View className="w-3/4 flex-row flex-wrap gap-y-md">
         {Array.from({ length: rows * cardsPerRow }, (_, slot) => (
           <View key={slot} className={cn(cardColumnClass, 'px-xs')}>
@@ -37,16 +39,8 @@ export function EmptyBinderSlots({ rows }: { rows: number }) {
   );
 }
 
-function GhostChangeLine({ sign }: { sign: string }) {
-  return (
-    <View className="flex-row items-center gap-sm rounded-sm bg-surface-raised p-sm">
-      <Text variant="body-strong" className="text-text-dim">
-        {sign}
-      </Text>
-      <CardThumbnail uri={undefined} />
-      <View className={cn(barClass, 'w-1/2')} />
-    </View>
-  );
+function LineBlock({ className }: { className: string }) {
+  return <View className={cn('bg-line', className)} />;
 }
 
 export function GhostNeedsYouItems() {
@@ -54,29 +48,18 @@ export function GhostNeedsYouItems() {
     <FadesDown>
       <View className="w-full gap-sm">
         {[0, 1].map((item) => (
-          <Surface key={item} className="gap-sm">
-            <View className="flex-row items-center gap-sm">
-              <View className="h-chip w-chip rounded-full bg-line" />
-              <View className={cn(barClass, 'w-1/3')} />
-            </View>
-            <GhostChangeLine sign="+" />
-            <GhostChangeLine sign="−" />
-          </Surface>
+          <NeedsYouItemShape key={item} block={LineBlock} />
         ))}
       </View>
     </FadesDown>
   );
 }
 
-export function GhostCommanderCard() {
+export function GhostCommanderCard({ onSheet }: FadeProps) {
   return (
-    <FadesDown>
+    <FadesDown onSheet={onSheet}>
       <CommanderCardFrame>
-        <View className="h-skeleton-title-bar w-1/2 rounded-full bg-line" />
-        <View className="flex-row gap-sm">
-          <View className="h-chip w-1/6 rounded-md bg-line" />
-          <View className="h-chip w-1/5 rounded-md bg-line" />
-        </View>
+        <CommanderTitleShape block={LineBlock} />
       </CommanderCardFrame>
     </FadesDown>
   );
@@ -108,4 +91,5 @@ export function GhostBatchRows() {
 
 const styles = StyleSheet.create({
   fade: { experimental_backgroundImage: gradients.emptyStateFade },
+  sheetFade: { experimental_backgroundImage: gradients.emptyStateSheetFade },
 });

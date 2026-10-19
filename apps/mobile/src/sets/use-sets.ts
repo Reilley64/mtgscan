@@ -1,9 +1,9 @@
-import type { SetList, SetRow } from '@mtgscan/supabase/sets';
+import type { CardSet, SetList } from '@mtgscan/supabase/sets';
 
 import { supabase } from '@/lib/supabase';
 import { useFocusedRead } from '@/lib/use-focused-read';
 
-type SetsRead = { status: 'loaded'; sets: SetRow[] };
+type SetsRead = { status: 'loaded'; sets: CardSet[] };
 
 async function readSets(): Promise<SetsRead> {
   const { data, error } = await supabase.rpc('list_sets');

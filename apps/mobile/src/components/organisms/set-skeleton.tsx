@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 
 import { CardTileSkeletons } from '@/components/molecules/card-grid';
-import { SetRowSkeleton } from '@/components/molecules/set-row';
+import { SetRowSkeleton } from '@/components/molecules/set-row-skeleton';
 
 export function SetSkeleton() {
   return (

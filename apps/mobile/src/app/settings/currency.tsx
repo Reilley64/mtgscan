@@ -12,7 +12,7 @@ export default function CurrencyScreen() {
   const { priceCurrency, priceCurrencies, reloadPriceCurrencies, setCurrency } = usePriceCurrency();
 
   return (
-    <DrawerSheet title="Currency">
+    <DrawerSheet title="Currency" belowHeader>
       {priceCurrencies.status === 'loaded' ? (
         <View className="gap-xs">
           {priceCurrencies.items.map((row) => (
