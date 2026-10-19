@@ -244,7 +244,7 @@ describe('swap in and Bought with basic lands', () => {
     await swapIn(client.user, plannedSwapId);
 
     const change = await latestChange(client.user, deckId);
-    expect(change).toMatchObject({ kind: 'swapped_in', reason: expect.any(String), client_name: 'ChatGPT' });
+    expect(change).toMatchObject({ kind: 'swapped_in', reason: expect.any(String) });
     expect(linesOf(change)).toEqual([
       [bolt, 'main', null],
       ['Mountain', 98, 99],

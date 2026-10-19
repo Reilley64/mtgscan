@@ -771,8 +771,8 @@ function ChangeLines() {
       <ChangeLine direction="incoming" uri={solRing} name="Sol Ring" detail="Artifact" />
       <ChangeLine direction="outgoing" uri={solRing} name="Sol Ring" detail="Commander" />
       <ChangeLine direction="incoming" uri={solRing} name="Snow-Covered Island" detail="+2" />
-      <Reason reason="Cheap removal that also answers an early threat." meta="ChatGPT · 16 October 2026 at 18:05" />
-      <Reason reason="Cheap removal that also answers an early threat." meta={null} />
+      <Reason reason="Cheap removal that also answers an early threat." meta="16 October 2026 at 18:05" />
+      <Reason reason="Cheap removal that also answers an early threat." />
     </Section>
   );
 }

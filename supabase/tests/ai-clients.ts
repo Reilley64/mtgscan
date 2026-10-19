@@ -20,12 +20,12 @@ export type ClaimedAiClient = {
 
 type Refusal = { code: string; message: string; details: string | null };
 
-export async function connectedAiClient(user?: TestUser, clientName = 'ChatGPT'): Promise<ClaimedAiClient> {
+export async function connectedAiClient(user?: TestUser): Promise<ClaimedAiClient> {
   const clientId = crypto.randomUUID();
   await asDatabaseOwner(
     (database) => database`
       insert into auth.oauth_clients (id, registration_type, redirect_uris, grant_types, client_name, client_type, token_endpoint_auth_method)
-      values (${clientId}, 'dynamic', 'https://chatgpt.com/connector_platform_oauth_redirect', 'authorization_code,refresh_token', ${clientName}, 'public', 'none')
+      values (${clientId}, 'dynamic', 'https://chatgpt.com/connector_platform_oauth_redirect', 'authorization_code,refresh_token', 'ChatGPT', 'public', 'none')
     `,
   );
   return { user: user ?? (await signUpNewUser()), clientId };

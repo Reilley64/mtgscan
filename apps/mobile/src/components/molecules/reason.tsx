@@ -4,7 +4,7 @@ import { Text } from '@/components/atoms/text';
 
 type ReasonProps = {
   reason: string;
-  meta: string | null;
+  meta?: string;
 };
 
 export function Reason({ reason, meta }: ReasonProps) {

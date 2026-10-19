@@ -61,7 +61,7 @@ async function imageOfPrinting(printingId: string): Promise<string[]> {
 const open = { status: 'open', close_note: null };
 
 describe('create_buylist_cards', () => {
-  test('an AI client adds a buylist card with its reason and client name, and no deck changes', async () => {
+  test('an AI client adds a buylist card with its reason, and no deck changes', async () => {
     const client = await connectedAiClient();
     const { deckId, bolt } = await krenkoDeck(client.user);
     const revision = await revisionOf(client.user, deckId);
@@ -85,7 +85,6 @@ describe('create_buylist_cards', () => {
         reason,
         status: 'open',
         close_note: null,
-        client_name: 'ChatGPT',
       }),
     ]);
     expect(await revisionOf(client.user, deckId)).toBe(revision);
@@ -504,8 +503,8 @@ describe('list_buylist', () => {
     expect(newestFirst.next_cursor).toBeNull();
   });
 
-  test("each item has its deck, the card with its default Scryfall printing's image, the outgoing copy line, its reason, client name, and times", async () => {
-    const client = await connectedAiClient(undefined, 'Claude');
+  test("each item has its deck, the card with its default Scryfall printing's image, the outgoing copy line, its reason, and times", async () => {
+    const client = await connectedAiClient();
     const { deckId, commander, bolt } = await krenkoDeck(client.user);
     const buylistCardId = await oneBuylistCard(client, deckId, krenkoCard, { outgoing: { copy_id: bolt } });
     const deck = await appRead<Deck>(client.user, 'get_deck', { deck_id: deckId });
@@ -545,7 +544,6 @@ describe('list_buylist', () => {
         reason,
         status: 'open',
         close_note: null,
-        client_name: 'Claude',
         ...times,
         effect: { kind: 'would_make_invalid', rules: [{ rule: 'singleton' }] },
       },
@@ -736,8 +734,8 @@ describe('mark_buylist_card_bought', () => {
     return (await appRead<DeckChangePage>(user, 'list_deck_changes', { deck_id: deckId })).items;
   }
 
-  test('puts the copy into the deck and takes the outgoing copy out in one bought deck change that keeps the reason and client name', async () => {
-    const client = await connectedAiClient(undefined, 'Claude');
+  test('puts the copy into the deck and takes the outgoing copy out in one bought deck change that keeps the reason', async () => {
+    const client = await connectedAiClient();
     const { deckId, bolt } = await krenkoDeck(client.user);
     const buylistCardId = await oneBuylistCard(client, deckId, counterspellCard, { outgoing: { copy_id: bolt } });
     const newCopy = await scannedCopy(client.user, counterspell);
@@ -748,7 +746,7 @@ describe('mark_buylist_card_bought', () => {
     expect(error).toBeNull();
     expect(data).toEqual({ deck_id: deckId, revision: revision + 1 });
     const [change] = await changesOf(client.user, deckId);
-    expect(change).toMatchObject({ revision: revision + 1, kind: 'bought', reason, client_name: 'Claude', reverted: false });
+    expect(change).toMatchObject({ revision: revision + 1, kind: 'bought', reason, reverted: false });
     expect(change!.lines.map((line) => line.kind === 'copy' && [line.copy_id, line.place_before, line.place_after]).toSorted()).toEqual(
       [
         [newCopy, null, 'main'],
@@ -916,6 +914,19 @@ describe('close_buylist_card and mcp_close_buylist_card', () => {
     const buylistCardId = await oneBuylistCard(client, deckId, counterspellCard);
 
     const result = await aiClientCall<ClosedBuylistCard>(client, 'mcp_close_buylist_card', { buylist_card_id: buylistCardId });
+
+    expect(result).toEqual({ id: buylistCardId, changed: true });
+    expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject({ status: 'closed', close_note: 'closed_by_ai_client' });
+  });
+
+  test('an AI client closes an open buylist card that another AI client made', async () => {
+    const client = await connectedAiClient();
+    const deckId = await deckNamed(client.user, 'Goblins');
+    const buylistCardId = await oneBuylistCard(client, deckId, counterspellCard);
+
+    const result = await aiClientCall<ClosedBuylistCard>(await connectedAiClient(client.user), 'mcp_close_buylist_card', {
+      buylist_card_id: buylistCardId,
+    });
 
     expect(result).toEqual({ id: buylistCardId, changed: true });
     expect(await buylistCardNamed(client.user, buylistCardId)).toMatchObject({ status: 'closed', close_note: 'closed_by_ai_client' });

@@ -25,7 +25,6 @@ export function buylistCardOf(buylistCardId: string, changes: Partial<BuylistCar
     reason,
     status: 'open',
     close_note: null,
-    client_name: 'ChatGPT',
     created_at: new Date(2026, 9, 16, 18, 5).toISOString(),
     status_changed_at: new Date(2026, 9, 16, 18, 5).toISOString(),
     effect: null,

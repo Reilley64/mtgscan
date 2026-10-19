@@ -200,7 +200,6 @@ export type DeckChange = {
   changed_at: string;
   reverted: boolean;
   reason: string | null;
-  client_name: string | null;
   lines: DeckChangeLine[];
 };
 

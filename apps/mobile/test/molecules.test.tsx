@@ -454,20 +454,19 @@ describe('ChangeLine', () => {
 
 describe('Reason', () => {
   test('a reason shows the reason in body text with the meta under it in meta text', async () => {
-    await render(<Reason reason="Cheap removal that also answers an early threat." meta="ChatGPT" />);
+    await render(<Reason reason="Cheap removal that also answers an early threat." meta="16 October 2026 at 18:05" />);
 
     const reason = screen.getByText('Cheap removal that also answers an early threat.');
-    const meta = screen.getByText('ChatGPT');
+    const meta = screen.getByText('16 October 2026 at 18:05');
     expect(reason).toHaveStyle({ color: white, fontSize: 14 });
     expect(meta).toHaveStyle({ color: textMuted, fontSize: 12 });
     expect(appearsBefore(reason, meta)).toBe(true);
   });
 
   test('a reason with no meta shows only the reason', async () => {
-    await render(<Reason reason="Cheap removal that also answers an early threat." meta={null} />);
+    await render(<Reason reason="Cheap removal that also answers an early threat." />);
 
-    expect(screen.getByText('Cheap removal that also answers an early threat.')).toBeOnTheScreen();
-    expect(screen.queryByText('ChatGPT')).not.toBeOnTheScreen();
+    expect(screen.getAllByText(/./).map((text) => text.props.children)).toEqual(['Cheap removal that also answers an early threat.']);
   });
 });
 

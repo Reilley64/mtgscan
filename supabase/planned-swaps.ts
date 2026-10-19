@@ -39,7 +39,6 @@ export type PlannedSwap = {
   reason: string;
   status: PlannedSwapStatus;
   close_note: CloseNote | null;
-  client_name: string | null;
   created_at: string;
   status_changed_at: string;
   effect: DeckChangeEffect | null;
