@@ -325,15 +325,16 @@ describe('the MCP server over HTTP', () => {
     expect(setCopiesUserTag.inputSchema).toMatchObject({
       required: ['copy_ids', 'user_tag_id', 'tagged'],
       additionalProperties: false,
-      properties: { copy_ids: { minItems: 1, maxItems: 100 } },
+      properties: { copy_ids: { minItems: 1, maxItems: 100, uniqueItems: true } },
     });
     expect(setCopiesUserTag.outputSchema).toMatchObject({
       anyOf: [expect.objectContaining({ required: ['changed', 'skipped'], additionalProperties: false }), expect.anything()],
     });
     for (const sentence of [
-      'Put a user tag on 1 to 100 copies, or take it off them, in one call, all changed or none.',
+      'Put a user tag on 1 to 100 copies, or take it off them, in one call.',
+      'A refused call changes no copy.',
       'Find copy IDs with search_collection and rows: copies.',
-      "A copy ID that is not one of the user's copies, such as a copy that the user deleted, is skipped as missing, and the other copies still change.",
+      "A copy ID that is not one of the user's copies, such as a copy that the user deleted, is skipped as missing. It does not refuse the call, so the other copies still change.",
       'A copy that already has the asked state counts as changed.',
       'A deleted user tag is not-found.',
     ]) {

@@ -1,11 +1,10 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
-import { join } from 'node:path';
 
 import type { UserTag } from '../collection';
 import { connectedAiClient, type ClaimedAiClient } from './ai-clients';
 import { oneBuylistCard } from './buylist-card-seeds';
 import { catalogFixtureManifest, oracleIdOf, runCatalogImport } from './catalog-import-command';
-import { asDatabaseOwner } from './local-stack';
+import { applyPendingMigrations, asDatabaseOwner, supabaseCli } from './local-stack';
 import { appRequest, counterspell, krenkoDeck, onePlannedSwap, scannedCopy } from './planned-swap-seeds';
 
 setDefaultTimeout(180_000);
@@ -26,24 +25,6 @@ const filledTables: { table: string; timeColumn: string | null; filledFrom: 'use
 ];
 
 type FilledRow = { created_by: string; updated_by: string; created_at: string; updated_at: string };
-
-async function supabaseCli(...args: string[]) {
-  const command = Bun.spawn(['bunx', 'supabase@2.120.0', ...args], {
-    cwd: join(import.meta.dir, '..', '..'),
-    stdout: 'pipe',
-    stderr: 'pipe',
-  });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(command.stdout).text(),
-    new Response(command.stderr).text(),
-    command.exited,
-  ]);
-  return { exitCode, output: stdout + stderr };
-}
-
-function applyPendingMigrations() {
-  return supabaseCli('migration', 'up', '--local');
-}
 
 function timesOf(table: string, timeColumn: string, userId: string) {
   return asDatabaseOwner(

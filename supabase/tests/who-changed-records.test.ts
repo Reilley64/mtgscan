@@ -5,7 +5,7 @@ import { aiClientCall, connectedAiClient } from './ai-clients';
 import { oneBuylistCard } from './buylist-card-seeds';
 import { catalogFixtureManifest, oracleIdOf, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { seedCopies } from './copy-seeds';
-import { asDatabaseOwner, signUpNewUser } from './local-stack';
+import { asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
 import {
   appRead,
   appRequest,
@@ -39,27 +39,25 @@ beforeAll(async () => {
 
 type Changers = { created_by: string; updated_by: string };
 
-async function changersOf(table: string, where: { user_id: string } | { id: string }): Promise<Changers[]> {
+async function changersOf(user: TestUser, table: string, where: { user_id: string } | { id: string }): Promise<Changers[]> {
   const [column, value] = Object.entries(where)[0]!;
-  const rows = await asDatabaseOwner(
-    (database) => database`
-      select distinct created_by, updated_by
-      from ${database.unsafe(`public.${table}`)}
-      where ${database.unsafe(column)} = ${value}
-    `,
-  );
-  return [...rows];
+  const { data, error } = await user.client
+    .from(table as 'user_tags')
+    .select('created_by, updated_by')
+    .eq(column as 'id', value);
+  expect(error).toBeNull();
+  const distinct = new Map(data!.map((row) => [`${row.created_by} ${row.updated_by}`, row]));
+  return [...distinct.values()];
 }
 
 function changers(createdBy: string, updatedBy = createdBy): Changers[] {
   return [{ created_by: createdBy, updated_by: updatedBy }];
 }
 
-async function userTagTimes(userTagId: string) {
-  const [row] = await asDatabaseOwner(
-    (database) => database`select created_at, updated_at from public.user_tags where id = ${userTagId}`,
-  );
-  return row as { created_at: Date; updated_at: Date };
+async function userTagTimes(user: TestUser, userTagId: string) {
+  const { data, error } = await user.client.from('user_tags').select('created_at, updated_at').eq('id', userTagId).single();
+  expect(error).toBeNull();
+  return { created_at: new Date(data!.created_at), updated_at: new Date(data!.updated_at) };
 }
 
 describe('who created and last changed a record', () => {
@@ -70,7 +68,7 @@ describe('who created and last changed a record', () => {
     await appRequest(user, 'set_copy_user_tag', { copy_id: bolt, user_tag_id: userTag.user_tag_id, tagged: true });
 
     for (const table of appWrittenTables) {
-      expect({ table, changers: await changersOf(table, { user_id: user.userId }) }).toEqual({
+      expect({ table, changers: await changersOf(user, table, { user_id: user.userId }) }).toEqual({
         table,
         changers: changers(user.userId),
       });
@@ -83,22 +81,22 @@ describe('who created and last changed a record', () => {
     const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
     const buylistCardId = await oneBuylistCard(client, deckId, lotusCard);
 
-    expect(await changersOf('planned_swaps', { id: plannedSwapId })).toEqual(changers(client.clientId));
-    expect(await changersOf('buylist_cards', { id: buylistCardId })).toEqual(changers(client.clientId));
+    expect(await changersOf(client.user, 'planned_swaps', { id: plannedSwapId })).toEqual(changers(client.clientId));
+    expect(await changersOf(client.user, 'buylist_cards', { id: buylistCardId })).toEqual(changers(client.clientId));
   });
 
-  test("an AI client's user tag writes record its ID, and the user's later untag records the user", async () => {
+  test("an AI client's user tag writes record its ID, and the user taking it off a copy later records the user", async () => {
     const client = await connectedAiClient();
     const { bolt } = await krenkoDeck(client.user);
     const userTag = await aiClientCall<UserTag>(client, 'mcp_create_user_tag', { name: 'Trade binder' });
     await aiClientCall(client, 'mcp_set_copies_user_tag', { copy_ids: [bolt], user_tag_id: userTag.user_tag_id, tagged: true });
 
-    expect(await changersOf('user_tags', { id: userTag.user_tag_id })).toEqual(changers(client.clientId));
-    expect(await changersOf('copy_user_tags', { user_id: client.user.userId })).toEqual(changers(client.clientId));
+    expect(await changersOf(client.user, 'user_tags', { id: userTag.user_tag_id })).toEqual(changers(client.clientId));
+    expect(await changersOf(client.user, 'copy_user_tags', { user_id: client.user.userId })).toEqual(changers(client.clientId));
 
     await appRequest(client.user, 'set_copy_user_tag', { copy_id: bolt, user_tag_id: userTag.user_tag_id, tagged: false });
 
-    expect(await changersOf('copy_user_tags', { user_id: client.user.userId })).toEqual(
+    expect(await changersOf(client.user, 'copy_user_tags', { user_id: client.user.userId })).toEqual(
       changers(client.clientId, client.user.userId),
     );
   });
@@ -112,8 +110,8 @@ describe('who created and last changed a record', () => {
     await aiClientCall(client, 'mcp_delete_user_tag', { user_tag_id: deletedByAi.user_tag_id });
     await aiClientCall(client, 'mcp_restore_user_tag', { user_tag_id: restoredByAi.user_tag_id });
 
-    expect(await changersOf('user_tags', { id: deletedByAi.user_tag_id })).toEqual(changers(client.user.userId, client.clientId));
-    expect(await changersOf('user_tags', { id: restoredByAi.user_tag_id })).toEqual(changers(client.user.userId, client.clientId));
+    expect(await changersOf(client.user, 'user_tags', { id: deletedByAi.user_tag_id })).toEqual(changers(client.user.userId, client.clientId));
+    expect(await changersOf(client.user, 'user_tags', { id: restoredByAi.user_tag_id })).toEqual(changers(client.user.userId, client.clientId));
   });
 
   test('a change keeps who created the record and records who last changed it', async () => {
@@ -122,15 +120,15 @@ describe('who created and last changed a record', () => {
     const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
     const buylistCardId = await oneBuylistCard(client, deckId, lotusCard);
     const userTag = await appRequest<UserTag>(client.user, 'create_user_tag', { name: 'Signed' });
-    const createdAt = (await userTagTimes(userTag.user_tag_id)).created_at;
+    const createdAt = (await userTagTimes(client.user, userTag.user_tag_id)).created_at;
 
     await appRequest(client.user, 'close_planned_swap', { planned_swap_id: plannedSwapId });
     await aiClientCall(client, 'mcp_close_buylist_card', { buylist_card_id: buylistCardId });
     await appRequest(client.user, 'rename_user_tag', { user_tag_id: userTag.user_tag_id, name: 'Autographed' });
 
-    expect(await changersOf('planned_swaps', { id: plannedSwapId })).toEqual(changers(client.clientId, client.user.userId));
-    expect(await changersOf('buylist_cards', { id: buylistCardId })).toEqual(changers(client.clientId));
-    const times = await userTagTimes(userTag.user_tag_id);
+    expect(await changersOf(client.user, 'planned_swaps', { id: plannedSwapId })).toEqual(changers(client.clientId, client.user.userId));
+    expect(await changersOf(client.user, 'buylist_cards', { id: buylistCardId })).toEqual(changers(client.clientId));
+    const times = await userTagTimes(client.user, userTag.user_tag_id);
     expect(times.created_at).toEqual(createdAt);
     expect(times.updated_at.getTime()).toBeGreaterThan(createdAt.getTime());
   });
@@ -143,16 +141,16 @@ describe('who created and last changed a record', () => {
 
     await appRequest(client.user, 'delete_copy', { copy_id: held, move_planned_swap: true });
 
-    expect(await changersOf('planned_swaps', { id: plannedSwapId })).toEqual(changers(client.clientId, client.user.userId));
-    expect(await changersOf('buylist_cards', { user_id: client.user.userId })).toEqual(changers(client.user.userId));
+    expect(await changersOf(client.user, 'planned_swaps', { id: plannedSwapId })).toEqual(changers(client.clientId, client.user.userId));
+    expect(await changersOf(client.user, 'buylist_cards', { user_id: client.user.userId })).toEqual(changers(client.user.userId));
   });
 
   test("a write with no caller records the record's owner", async () => {
     const user = await signUpNewUser();
     const [[copyId]] = await seedCopies(user, [{ card_printing_id: counterspell }]);
 
-    expect(await changersOf('copies', { id: copyId! })).toEqual(changers(user.userId));
-    expect(await changersOf('collection_additions', { user_id: user.userId })).toEqual(changers(user.userId));
+    expect(await changersOf(user, 'copies', { id: copyId! })).toEqual(changers(user.userId));
+    expect(await changersOf(user, 'collection_additions', { user_id: user.userId })).toEqual(changers(user.userId));
   });
 
   test("a caller's values for who created and last changed a record are ignored", async () => {
@@ -166,8 +164,8 @@ describe('who created and last changed a record', () => {
         returning id
       `,
     );
-    expect(await changersOf('user_tags', { id })).toEqual(changers(user.userId));
-    const inserted = await userTagTimes(id);
+    expect(await changersOf(user, 'user_tags', { id })).toEqual(changers(user.userId));
+    const inserted = await userTagTimes(user, id);
     expect(inserted.updated_at).toEqual(inserted.created_at);
 
     await asDatabaseOwner(
@@ -177,8 +175,8 @@ describe('who created and last changed a record', () => {
         where id = ${id}
       `,
     );
-    expect(await changersOf('user_tags', { id })).toEqual(changers(user.userId));
-    const updated = await userTagTimes(id);
+    expect(await changersOf(user, 'user_tags', { id })).toEqual(changers(user.userId));
+    const updated = await userTagTimes(user, id);
     expect(updated.created_at).toEqual(inserted.created_at);
     expect(updated.updated_at.getTime()).toBeGreaterThan(inserted.created_at.getTime());
   });

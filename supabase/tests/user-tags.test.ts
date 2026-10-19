@@ -5,16 +5,15 @@ import {
   type CollectionCopyRow,
   type CollectionQuery,
   type CollectionRow,
-  type CopyDetails,
   type CopyUserTagRequest,
   type UserTag,
-  type UserTagList,
 } from '../collection';
 import type { Json } from '../database.types';
 import { readSearchError, type SearchPage } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
-import { committed, scanBatch, stack } from './scan-batches';
+import { scannedCopies } from './planned-swap-seeds';
+import { userTagsOf, userTagsOnCopy } from './user-tag-reads';
 
 setDefaultTimeout(60_000);
 
@@ -59,24 +58,6 @@ async function renameUserTag(client: AppClient, request: unknown) {
 async function deleteUserTag(client: AppClient, request: unknown) {
   const { error } = await client.rpc('delete_user_tag', { request: request as Json });
   return error && readUserTagError(error);
-}
-
-async function userTagsOf(user: TestUser) {
-  const { data, error } = await user.client.rpc('list_user_tags');
-  expect(error).toBeNull();
-  return (data as unknown as UserTagList).items;
-}
-
-async function userTagsOnCopy(user: TestUser, copyId: string) {
-  const { data, error } = await user.client.rpc('get_copy', { query: { copy_id: copyId } });
-  expect(error).toBeNull();
-  return (data as unknown as CopyDetails).user_tags;
-}
-
-async function scannedCopies(user: TestUser, cardPrintingId: string, copies = 1) {
-  const scanned = stack(cardPrintingId, { copies });
-  await committed(user, scanBatch([scanned]));
-  return scanned.copy_ids;
 }
 
 async function collectionEntriesOf(user: TestUser) {
@@ -201,15 +182,15 @@ describe('putting a user tag on a copy', () => {
 
   test('a user tag chip in collection search leaves out copies that the user tag was taken off', async () => {
     const user = await signUpNewUser();
-    const [keptCopy, untaggedCopy] = (await scannedCopies(user, angelicCurator, 2)) as [string, string];
+    const [keptCopy, takenOffCopy] = (await scannedCopies(user, angelicCurator, 2)) as [string, string];
     const signed = await created(user, 'Signed');
     await putOnCopy(user, keptCopy, signed);
-    await putOnCopy(user, untaggedCopy, signed);
+    await putOnCopy(user, takenOffCopy, signed);
 
-    await putOnCopy(user, untaggedCopy, signed, false);
+    await putOnCopy(user, takenOffCopy, signed, false);
 
     expect(await copiesFound(user, { user_tags: ['signed'] })).toEqual([keptCopy]);
-    expect(await copiesFound(user, { user_tags_exclude: ['signed'] })).toEqual([untaggedCopy]);
+    expect(await copiesFound(user, { user_tags_exclude: ['signed'] })).toEqual([takenOffCopy]);
   });
 
   test('the copy read has its user tags sorted by name ignoring case', async () => {
@@ -420,11 +401,11 @@ describe('deleting a user tag', () => {
 
   test('deleting a user tag keeps it marked deleted and leaves its links as they are', async () => {
     const user = await signUpNewUser();
-    const [taggedCopy, untaggedCopy] = (await scannedCopies(user, angelicCurator, 2)) as [string, string];
+    const [taggedCopy, takenOffCopy] = (await scannedCopies(user, angelicCurator, 2)) as [string, string];
     const signed = await created(user, 'Signed');
     await putOnCopy(user, taggedCopy, signed);
-    await putOnCopy(user, untaggedCopy, signed);
-    await putOnCopy(user, untaggedCopy, signed, false);
+    await putOnCopy(user, takenOffCopy, signed);
+    await putOnCopy(user, takenOffCopy, signed, false);
     const links = await linksOf(user);
 
     expect(await deleteUserTag(user.client, { user_tag_id: signed.user_tag_id })).toBeNull();
