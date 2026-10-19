@@ -106,7 +106,7 @@ const floatingButton = 48;
 
 const touchTarget = 44;
 
-const navigationBar = 44;
+export const navigationBar = 44;
 
 export const sizes = {
   button: 38,
@@ -134,7 +134,6 @@ export const sizes = {
   chipSymbol: 11,
   protectedSymbol: 11,
   heldSymbol: 11,
-  deckBoxSymbol: 11,
   chipPadding: 9,
   cardThumbnailWidth: 40,
   cardThumbnailHeight: 56,
@@ -214,3 +213,5 @@ export function manaSplitGradient(top: string, bottom: string) {
 export const aspectRatios = {
   cardImage: 488 / 680,
 } as const;
+
+export const printedCardCornerPerWidth = 0.05;

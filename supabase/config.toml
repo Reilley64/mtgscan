@@ -389,7 +389,8 @@ inspector_port = 8083
 deno_version = 2
 
 [edge_runtime.secrets]
-MCP_SERVER_URL = "http://127.0.0.1:54321/functions/v1/mcp"
+# From supabase/.env. Each local stack sets its own API port in it.
+MCP_SERVER_URL = "env(MCP_SERVER_URL)"
 
 [functions.mcp]
 verify_jwt = false

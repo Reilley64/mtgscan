@@ -55,7 +55,7 @@ export function useCollectionSearch() {
       change('', chips.slice(0, -1));
       return;
     }
-    setTyping(true);
+    setTyping(typed !== '');
     const committed = chipBeforeSpace(typed);
     if (committed) {
       change(committed.before, [...chips, committed.chip]);
