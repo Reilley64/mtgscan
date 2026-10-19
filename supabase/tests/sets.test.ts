@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { SetList, SetRow } from '../sets';
-import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { seedCopies } from './copy-seeds';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 import { addedToDeck, appRequest, deckNamed, scannedCopies, scannedCopy } from './planned-swap-seeds';
@@ -23,10 +23,20 @@ const lavinia = 'd5435866-d48b-496a-ba07-438163b71ae8';
 const laviniaPromo = '1f1b47ed-e935-44a4-b654-a32c0bf5dd19';
 const lichsRelicPromo = 'f6c83e21-892d-478b-9ee1-4e724cb6ca0b';
 const wastes = 'baf8f4f2-9f25-4cd2-8d78-1041e134aeac';
+const smotheringTitheSecretLair = '7839cdc8-0cc9-4a17-9642-fb23f6e0be06';
+const giselaSecretLair = 'd1cfc318-9c3e-471f-90eb-dc76454da957';
+const smotheringTitheEtched = '2309fb66-3aa0-4ec5-9a8e-5a0caa19c270';
+const lightningBolt = 'd573ef03-4730-45aa-93dd-e45ac1dbaf4a';
+const schemaThief = '312591ec-436d-40e5-805e-e78e6a63096d';
+
+function artCrop(printingId: string, version: number) {
+  return `https://cards.scryfall.io/art_crop/front/${printingId[0]}/${printingId[1]}/${printingId}.jpg?${version}`;
+}
 
 beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
+  expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
 async function listSets(user: TestUser) {
@@ -58,6 +68,7 @@ describe('the sets list', () => {
       name: 'Bloomburrow',
       icon_svg_uri: 'https://svgs.scryfall.io/sets/blb.svg?1791777600',
       released_at: '2024-08-02',
+      set_art_uri: artCrop(lifecreedDuo, 1783910861),
       completion: { any: { owned: 0, size: 3 } },
     });
   });
@@ -111,6 +122,73 @@ describe('the sets list', () => {
 
     expect(data).toBeNull();
     expect(error?.code).toBe(permissionDenied);
+  });
+});
+
+describe('the set art', () => {
+  test('the set art is the art crop of the card printing with the highest current price in any finish', async () => {
+    const user = await signUpNewUser();
+
+    expect((await setRow(user, 'sld'))?.set_art_uri).toBe(artCrop(smotheringTitheSecretLair, 1783907442));
+    expect((await setRow(user, 'cmm'))?.set_art_uri).toBe(artCrop(smotheringTitheEtched, 1783915569));
+    expect((await setRow(user, 'lea'))?.set_art_uri).toBe(artCrop(lightningBolt, 1783948684));
+  });
+
+  test('a card printing with no art crop is passed over', async () => {
+    const user = await signUpNewUser();
+    const [{ art_crop_uri }] = await asDatabaseOwner(
+      (database) => database`select art_crop_uri from public.card_printings where id = ${smotheringTitheSecretLair}`,
+    );
+
+    await asDatabaseOwner((database) => database`update public.card_printings set art_crop_uri = null where id = ${smotheringTitheSecretLair}`);
+    try {
+      expect((await setRow(user, 'sld'))?.set_art_uri).toBe(artCrop(giselaSecretLair, 1783915200));
+    } finally {
+      await asDatabaseOwner(
+        (database) => database`update public.card_printings set art_crop_uri = ${art_crop_uri} where id = ${smotheringTitheSecretLair}`,
+      );
+    }
+  });
+
+  test('a tie in price goes to the lower collector number', async () => {
+    const user = await signUpNewUser();
+    const [{ usd_foil_cents }] = await asDatabaseOwner(
+      (database) => database`select usd_foil_cents from public.card_prices where printing_id = ${brambleguardCaptain}`,
+    );
+
+    expect((await setRow(user, 'moc'))?.set_art_uri).toBe(artCrop(schemaThief, 1783917234));
+    await asDatabaseOwner((database) => database`update public.card_prices set usd_foil_cents = 39 where printing_id = ${brambleguardCaptain}`);
+    try {
+      expect((await setRow(user, 'blb'))?.set_art_uri).toBe(artCrop(lifecreedDuo, 1783910861));
+    } finally {
+      await asDatabaseOwner(
+        (database) => database`update public.card_prices set usd_foil_cents = ${usd_foil_cents} where printing_id = ${brambleguardCaptain}`,
+      );
+    }
+  });
+
+  test('with no priced card printing, the set art is the art crop of the first card printing by collector number', async () => {
+    const user = await signUpNewUser();
+
+    expect((await setRow(user, 'pfra'))?.set_art_uri).toBe(artCrop(lichsRelicPromo, 1791170088));
+  });
+
+  test('with no art crop in the set, the set art is null', async () => {
+    const user = await signUpNewUser();
+    const artCrops = await asDatabaseOwner(
+      (database) => database`select id, art_crop_uri from public.card_printings where set_code = 'moc'`,
+    );
+
+    await asDatabaseOwner((database) => database`update public.card_printings set art_crop_uri = null where set_code = 'moc'`);
+    try {
+      expect((await setRow(user, 'moc'))?.set_art_uri).toBeNull();
+    } finally {
+      await asDatabaseOwner(async (database) => {
+        for (const { id, art_crop_uri } of artCrops) {
+          await database`update public.card_printings set art_crop_uri = ${art_crop_uri} where id = ${id}`;
+        }
+      });
+    }
   });
 });
 

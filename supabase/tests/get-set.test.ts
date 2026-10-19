@@ -18,6 +18,10 @@ const snowCoveredWastes = '87870792-e429-4eba-8193-cdce5c7b6c55';
 const inspirit = '46900ec7-eb18-45c4-8e90-a48b665cfdee';
 const wastes = 'baf8f4f2-9f25-4cd2-8d78-1041e134aeac';
 
+function artCrop(printingId: string, version: number) {
+  return `https://cards.scryfall.io/art_crop/front/${printingId[0]}/${printingId[1]}/${printingId}.jpg?${version}`;
+}
+
 function normalImage(printingId: string, version: number) {
   return `https://cards.scryfall.io/normal/front/${printingId[0]}/${printingId[1]}/${printingId}.jpg?${version}`;
 }
@@ -56,6 +60,7 @@ describe('the set read', () => {
       name: 'Modern Horizons 3',
       icon_svg_uri: 'https://svgs.scryfall.io/sets/mh3.svg?1791777600',
       released_at: '2024-06-14',
+      set_art_uri: artCrop(roilCartographer, 1783911289),
       completion: { any: { owned: 1, size: 2 } },
       main_set: [
         {

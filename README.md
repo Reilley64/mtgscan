@@ -259,6 +259,7 @@ Signed-in users read Sets with `supabase.rpc('list_sets')`. It takes no query. `
 - The rows come newest first, then by name. Every row comes in one response, with no paging. The app filters them by the search text.
 - Each row has `code`, `name`, `icon_svg_uri`, `released_at`, and `completion.any`, the set completion in Any finish as `{ owned, size }`.
 - `size` counts the card printings in the set's main set. `owned` counts those with at least one of the caller's copies. A card printing counts once, whatever the condition, language, protected flag, or deck of its copies.
+- Each row also has `set_art_uri`, the set art from `GLOSSARY.md`. It is the art crop of the set's card printing with the highest current USD price in any finish, among the card printings with an art crop. A tie goes to the lower collector number. With no priced card printing, it is the art crop of the first card printing that has one, by collector number. With no art crop in the set, it is null. Variants and basic lands can give the set art.
 - One private function, `private.set_card_printings`, applies the main set rule from `GLOSSARY.md`. Basic land cards are never in the main set or the variants.
 - The function runs with the caller's rights. An anonymous caller and the secret key are refused.
 
