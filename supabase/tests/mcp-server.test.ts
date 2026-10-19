@@ -627,23 +627,23 @@ describe('the read tools over HTTP', () => {
     expect(await summaryOf(mcp, 'search_collection', { rows: 'copies' })).toBe('20 of 25 copies. More with next_cursor.');
   });
 
-  test.each<[string, Record<string, unknown>]>([
-    ['search_catalog', { types: ['angel'] }],
-    ['search_collection', { rows: 'copies' }],
-    ['list_card_printings', {}],
-    ['list_deck_changes', {}],
-    ['list_planned_swaps', {}],
-    ['list_buylist', {}],
+  test.each<[string, Record<string, unknown>, number]>([
+    ['search_catalog', { types: ['angel'] }, 50],
+    ['search_collection', { rows: 'copies' }, 100],
+    ['list_card_printings', {}, 50],
+    ['list_deck_changes', {}, 50],
+    ['list_planned_swaps', {}, 50],
+    ['list_buylist', {}, 50],
   ])(
-    '%s refuses a page of more than 50 rows with invalid-argument on /limit',
-    async (name, args) => {
-      const result = await mcp.callTool({ name, arguments: { ...args, limit: 51 } });
+    '%s refuses a page of more than %i rows with invalid-argument on /limit',
+    async (name, args, max) => {
+      const result = await mcp.callTool({ name, arguments: { ...args, limit: max + 1 } });
 
       expect(result.isError).toBe(true);
       expect(result.structuredContent).toEqual({
         type: `${problems}invalid-argument`,
         title: 'Invalid argument',
-        detail: 'limit can be at most 50 over MCP.',
+        detail: `limit can be at most ${max} over MCP.`,
         pointer: '/limit',
         retryable: false,
       });
