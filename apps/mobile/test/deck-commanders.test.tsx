@@ -269,7 +269,7 @@ describe('the gallery card', () => {
   async function galleryCard() {
     await renderApp();
     await pressTab('Decks');
-    return within(selectedTab()).getByRole('button', { name: /^Atraxa,/ });
+    return within(selectedTab()).getByRole('button', { name: /^Atraxa(,|$)/ });
   }
 
   test('with no commander, it is the ghost commander card with no art', async () => {

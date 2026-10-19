@@ -98,6 +98,7 @@ jobs:
     env:
       SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ci-web-client-id,ci-ios-client-id
       SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ci-local-placeholder
+      MCP_SERVER_URL: http://127.0.0.1:54321/functions/v1/mcp
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
