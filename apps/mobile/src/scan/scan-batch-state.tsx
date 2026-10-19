@@ -14,9 +14,15 @@ import {
 } from 'react';
 
 import { useSession } from '@/auth/session';
+import { useGallery } from '@/gallery/gallery-state';
 import { supabase } from '@/lib/supabase';
 
-import type { Recognition } from '../../modules/card-recognizer';
+import {
+  featurePrintRevision,
+  recognizerVersion,
+  type CardRecognition,
+  type Recognition,
+} from '../../modules/card-recognizer';
 import {
   emptyScanBatch,
   scanBatchReducer,
@@ -26,10 +32,12 @@ import {
   type ScanBatch,
   type ScanBatchAction,
   type ScanEdit,
+  type ScanTrainingCrop,
 } from './scan-batch';
 import { readScanBatch, writeScanBatch } from './scan-batch-file';
 import { playScanFeedback } from './scan-feedback';
 import { useScanSounds } from './scan-sounds-setting';
+import { dropTrainingCrop, keepTrainingCrop, uploadTrainingCrops } from './training-crops';
 
 export type RecognitionResult = Recognition | 'failed' | 'no_photo';
 
@@ -57,7 +65,13 @@ type ScanningAction =
   | { type: 'accountChanged' }
   | { type: 'restored'; batch: ScanBatch }
   | { type: 'recognitionStarted'; photoId: string }
-  | { type: 'recognitionEnded'; photoId: string; scanId: string; recognition: RecognitionResult }
+  | {
+      type: 'recognitionEnded';
+      photoId: string;
+      scanId: string;
+      recognition: RecognitionResult;
+      trainingCrop: ScanTrainingCrop | null;
+    }
   | { type: 'commitFailed' }
   | { type: 'commitSucceeded'; scanIds: string[] }
   | { type: 'removedAll' };
@@ -71,9 +85,17 @@ const initialScanning: Scanning = {
   commitStatus: 'idle',
 };
 
+function scannedCard(recognition: RecognitionResult): CardRecognition | null {
+  if (recognition === 'failed' || recognition === 'no_photo' || recognition.kind !== 'card') {
+    return null;
+  }
+  const first = recognition.candidates[0];
+  return first && !first.basicLand ? recognition : null;
+}
+
 function recognitionEnded(
   state: Scanning,
-  { photoId, scanId, recognition }: Extract<ScanningAction, { type: 'recognitionEnded' }>,
+  { photoId, scanId, recognition, trainingCrop }: Extract<ScanningAction, { type: 'recognitionEnded' }>,
 ): Scanning {
   if (!state.recognizing.includes(photoId)) {
     return state;
@@ -86,21 +108,54 @@ function recognitionEnded(
   if (recognition === 'no_photo' || (recognition !== 'failed' && recognition.kind === 'not_a_card')) {
     return ended;
   }
+  const card = scannedCard(recognition);
+  if (card) {
+    return addScan(ended, {
+      type: 'recognized',
+      scanId,
+      printing: card.candidates[0]!,
+      options: card.candidates,
+      sameTextTwinCount: card.sameTextTwinCount,
+      premiumMark: card.reading.premiumMark,
+      trainingCrop,
+    });
+  }
   const first = recognition === 'failed' ? undefined : recognition.candidates[0];
-  if (recognition === 'failed' || !first) {
-    return { ...ended, latest: { kind: 'not_recognized', scanId } };
+  return first?.basicLand
+    ? { ...ended, latest: { kind: 'basic_land', printing: first } }
+    : { ...ended, latest: { kind: 'not_recognized', scanId } };
+}
+
+function keptTrainingCrop(
+  recognition: RecognitionResult,
+  scanId: string,
+  userId: string | undefined,
+  galleryVersion: string | undefined,
+): ScanTrainingCrop | null {
+  const cropUri =
+    recognition !== 'failed' && recognition !== 'no_photo' && recognition.kind === 'card' ? recognition.trainingCrop : null;
+  if (!cropUri) {
+    return null;
   }
-  if (first.basicLand) {
-    return { ...ended, latest: { kind: 'basic_land', printing: first } };
+  const card = scannedCard(recognition);
+  const uri = card && userId && galleryVersion ? keepTrainingCrop(cropUri, userId, scanId) : null;
+  if (!card || !galleryVersion || !uri) {
+    dropTrainingCrop(cropUri);
+    return null;
   }
-  return addScan(ended, {
-    type: 'recognized',
-    scanId,
-    printing: first,
-    options: recognition.candidates,
-    sameTextTwinCount: recognition.sameTextTwinCount,
-    premiumMark: recognition.reading.premiumMark,
-  });
+  return {
+    uri,
+    recognizedPrintingId: card.candidates[0]!.printingId,
+    accepted: card.decision.accepted,
+    decisionBasis: card.decision.basis,
+    decisionReasons: card.decision.reasons,
+    topSimilarity: card.topSimilarity,
+    artMargin: card.artMargin,
+    reading: card.reading,
+    recognizerVersion,
+    featurePrintRevision,
+    galleryVersion,
+  };
 }
 
 function addScan(state: Scanning, action: Extract<ScanBatchAction, { type: 'recognized' }>): Scanning {
@@ -127,7 +182,14 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
       return recognitionEnded(state, action);
     case 'choose':
       return notRecognizedScanIdOf(state) === action.scanId
-        ? addScan(state, { ...action, type: 'recognized', options: [], sameTextTwinCount: 0, premiumMark: false })
+        ? addScan(state, {
+            ...action,
+            type: 'recognized',
+            options: [],
+            sameTextTwinCount: 0,
+            premiumMark: false,
+            trainingCrop: null,
+          })
         : { ...state, batch: scanBatchReducer(state.batch, action) };
     case 'remove':
       return notRecognizedScanIdOf(state) === action.scanId
@@ -195,6 +257,7 @@ function latestScan({ batch, latest, recognizing }: Scanning): LatestScan | null
 
 export function ScanBatchProvider({ children }: { children: ReactNode }) {
   const userId = useSession()?.user.id;
+  const galleryVersion = useGallery().installed?.version;
   const [batchUserId, setBatchUserId] = useState(userId);
   const [state, dispatchScanning] = useReducer(scanningReducer, initialScanning);
   const { scanSounds } = useScanSounds();
@@ -221,6 +284,7 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
       return false;
     }
     dispatchScanning({ type: 'commitSucceeded', scanIds: scans.map((scan) => scan.scanId) });
+    void uploadTrainingCrops(scans);
     return true;
   }, []);
 
@@ -255,9 +319,12 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
     return photoId;
   }, []);
   const recognitionEnded = useCallback(
-    (photoId: string, recognition: RecognitionResult) =>
-      dispatchScanning({ type: 'recognitionEnded', photoId, scanId: randomUUID(), recognition }),
-    [],
+    (photoId: string, recognition: RecognitionResult) => {
+      const scanId = randomUUID();
+      const trainingCrop = keptTrainingCrop(recognition, scanId, userId, galleryVersion);
+      dispatchScanning({ type: 'recognitionEnded', photoId, scanId, recognition, trainingCrop });
+    },
+    [galleryVersion, userId],
   );
   const addCopy = useCallback(
     (scanId: string) => dispatchScanning({ type: 'addCopy', scanId, newScanId: randomUUID() }),

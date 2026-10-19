@@ -11,6 +11,7 @@ import type {
   RecognitionErrorCode,
 } from '../modules/card-recognizer';
 import { galleryPrintings } from './card-printings';
+import { putFile } from './fake-file-system';
 import { publishedGalleryVersion } from './fake-supabase';
 
 type Listener = (status: GalleryDownloadStatus) => void;
@@ -29,6 +30,8 @@ let galleryParity: GalleryParity | RecognitionErrorCode = 'gallery_not_ready';
 const listeners = new Set<Listener>();
 
 export const fakeCardRecognizer = {
+  featurePrintRevision: 2,
+  recognizerVersion: '1.0.0 (7)',
   recognize: async (photoUri: string): Promise<Recognition> => {
     recognizedPhotos = [...recognizedPhotos, photoUri];
     if (holdingNextRecognition) {
@@ -40,6 +43,9 @@ export const fakeCardRecognizer = {
     const next = nextRecognitions.shift() ?? notACard();
     if (typeof next === 'string') {
       throw Object.assign(new Error(next), { code: next });
+    }
+    if (next.kind === 'card' && next.trainingCrop) {
+      putFile(next.trainingCrop, 'training crop');
     }
     return next;
   },
