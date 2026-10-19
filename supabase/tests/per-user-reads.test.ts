@@ -1,6 +1,8 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
+import { createUserTag, setCopyUserTag } from '../collection';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
+import { replyOf } from './database-calls';
 import {
   anonymousClient,
   asAnonymousCaller,
@@ -53,11 +55,8 @@ async function userIdsInView(user: TestUser, view: 'collection_availability' | '
 }
 
 async function tagCopy(user: TestUser, copyId: string) {
-  const created = await user.client.rpc('create_user_tag', { request: { name: 'Signed' } });
-  expect(created.error).toBeNull();
-  const { user_tag_id } = created.data as { user_tag_id: string };
-  const { error } = await user.client.rpc('set_copy_user_tag', { request: { copy_id: copyId, user_tag_id, tagged: true } });
-  expect(error).toBeNull();
+  const { user_tag_id } = await replyOf(user.client, createUserTag, { name: 'Signed' });
+  await replyOf(user.client, setCopyUserTag, { copy_id: copyId, user_tag_id, tagged: true });
 }
 
 beforeAll(async () => {

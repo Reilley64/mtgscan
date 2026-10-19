@@ -1,20 +1,30 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { UserTag } from '../collection';
-import { aiClientCall, connectedAiClient } from './ai-clients';
+import { listBuylist, mcpCloseBuylistCard } from '../buylist';
+import {
+  createUserTag,
+  deleteCopy,
+  deleteUserTag,
+  getCopy,
+  listUserTags,
+  mcpCreateUserTag,
+  mcpDeleteUserTag,
+  mcpRestoreUserTag,
+  mcpSetCopiesUserTag,
+  renameUserTag,
+  searchCollection,
+  setCopyUserTag,
+} from '../collection';
+import { getDeck, listDeckChanges, listDecks } from '../decks';
+import { closePlannedSwap, listPlannedSwaps } from '../planned-swaps';
+import { setTrainingCropUploads } from '../training-crops';
+import { aiClientReply, connectedAiClient } from './ai-clients';
 import { oneBuylistCard } from './buylist-card-seeds';
 import { catalogFixtureManifest, oracleIdOf, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { seedCopies } from './copy-seeds';
+import { replyOf } from './database-calls';
 import { asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
-import {
-  appRead,
-  appRequest,
-  counterspell,
-  deckNamed,
-  krenkoDeck,
-  onePlannedSwap,
-  scannedCopy,
-} from './planned-swap-seeds';
+import { counterspell, deckNamed, krenkoDeck, onePlannedSwap, scannedCopy } from './planned-swap-seeds';
 
 setDefaultTimeout(60_000);
 
@@ -65,9 +75,9 @@ describe('who created and last changed a record', () => {
   test('an app write records the user as who created and last changed each record', async () => {
     const user = await signUpNewUser();
     const { bolt } = await krenkoDeck(user);
-    const userTag = await appRequest<UserTag>(user, 'create_user_tag', { name: 'Signed' });
-    await appRequest(user, 'set_copy_user_tag', { copy_id: bolt, user_tag_id: userTag.user_tag_id, tagged: true });
-    await appRequest(user, 'set_training_crop_uploads', { on: false });
+    const userTag = await replyOf(user.client, createUserTag, { name: 'Signed' });
+    await replyOf(user.client, setCopyUserTag, { copy_id: bolt, user_tag_id: userTag.user_tag_id, tagged: true });
+    await replyOf(user.client, setTrainingCropUploads, { on: false });
 
     for (const table of appWrittenTables) {
       expect({ table, changers: await changersOf(user, table, { user_id: user.userId }) }).toEqual({
@@ -90,13 +100,13 @@ describe('who created and last changed a record', () => {
   test("an AI client's user tag writes record its ID, and the user taking it off a copy later records the user", async () => {
     const client = await connectedAiClient();
     const { bolt } = await krenkoDeck(client.user);
-    const userTag = await aiClientCall<UserTag>(client, 'mcp_create_user_tag', { name: 'Trade binder' });
-    await aiClientCall(client, 'mcp_set_copies_user_tag', { copy_ids: [bolt], user_tag_id: userTag.user_tag_id, tagged: true });
+    const userTag = await aiClientReply(client, mcpCreateUserTag, { name: 'Trade binder' });
+    await aiClientReply(client, mcpSetCopiesUserTag, { copy_ids: [bolt], user_tag_id: userTag.user_tag_id, tagged: true });
 
     expect(await changersOf(client.user, 'user_tags', { id: userTag.user_tag_id })).toEqual(changers(client.clientId));
     expect(await changersOf(client.user, 'copy_user_tags', { user_id: client.user.userId })).toEqual(changers(client.clientId));
 
-    await appRequest(client.user, 'set_copy_user_tag', { copy_id: bolt, user_tag_id: userTag.user_tag_id, tagged: false });
+    await replyOf(client.user.client, setCopyUserTag, { copy_id: bolt, user_tag_id: userTag.user_tag_id, tagged: false });
 
     expect(await changersOf(client.user, 'copy_user_tags', { user_id: client.user.userId })).toEqual(
       changers(client.clientId, client.user.userId),
@@ -105,12 +115,12 @@ describe('who created and last changed a record', () => {
 
   test("an AI client's delete and restore of the user's user tags record the AI client as who last changed them", async () => {
     const client = await connectedAiClient();
-    const deletedByAi = await appRequest<UserTag>(client.user, 'create_user_tag', { name: 'Signed' });
-    const restoredByAi = await appRequest<UserTag>(client.user, 'create_user_tag', { name: 'Sell' });
-    await appRequest(client.user, 'delete_user_tag', { user_tag_id: restoredByAi.user_tag_id });
+    const deletedByAi = await replyOf(client.user.client, createUserTag, { name: 'Signed' });
+    const restoredByAi = await replyOf(client.user.client, createUserTag, { name: 'Sell' });
+    await replyOf(client.user.client, deleteUserTag, { user_tag_id: restoredByAi.user_tag_id });
 
-    await aiClientCall(client, 'mcp_delete_user_tag', { user_tag_id: deletedByAi.user_tag_id });
-    await aiClientCall(client, 'mcp_restore_user_tag', { user_tag_id: restoredByAi.user_tag_id });
+    await aiClientReply(client, mcpDeleteUserTag, { user_tag_id: deletedByAi.user_tag_id });
+    await aiClientReply(client, mcpRestoreUserTag, { user_tag_id: restoredByAi.user_tag_id });
 
     expect(await changersOf(client.user, 'user_tags', { id: deletedByAi.user_tag_id })).toEqual(changers(client.user.userId, client.clientId));
     expect(await changersOf(client.user, 'user_tags', { id: restoredByAi.user_tag_id })).toEqual(changers(client.user.userId, client.clientId));
@@ -121,12 +131,12 @@ describe('who created and last changed a record', () => {
     const deckId = await deckNamed(client.user, 'Goblins');
     const plannedSwapId = await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
     const buylistCardId = await oneBuylistCard(client, deckId, lotusCard);
-    const userTag = await appRequest<UserTag>(client.user, 'create_user_tag', { name: 'Signed' });
+    const userTag = await replyOf(client.user.client, createUserTag, { name: 'Signed' });
     const createdAt = (await userTagTimes(client.user, userTag.user_tag_id)).created_at;
 
-    await appRequest(client.user, 'close_planned_swap', { planned_swap_id: plannedSwapId });
-    await aiClientCall(client, 'mcp_close_buylist_card', { buylist_card_id: buylistCardId });
-    await appRequest(client.user, 'rename_user_tag', { user_tag_id: userTag.user_tag_id, name: 'Autographed' });
+    await replyOf(client.user.client, closePlannedSwap, { planned_swap_id: plannedSwapId });
+    await aiClientReply(client, mcpCloseBuylistCard, { buylist_card_id: buylistCardId });
+    await replyOf(client.user.client, renameUserTag, { user_tag_id: userTag.user_tag_id, name: 'Autographed' });
 
     expect(await changersOf(client.user, 'planned_swaps', { id: plannedSwapId })).toEqual(changers(client.clientId, client.user.userId));
     expect(await changersOf(client.user, 'buylist_cards', { id: buylistCardId })).toEqual(changers(client.clientId));
@@ -141,7 +151,7 @@ describe('who created and last changed a record', () => {
     const held = await scannedCopy(client.user, counterspell);
     const plannedSwapId = await onePlannedSwap(client, deckId, held);
 
-    await appRequest(client.user, 'delete_copy', { copy_id: held, move_planned_swap: true });
+    await replyOf(client.user.client, deleteCopy, { copy_id: held, move_planned_swap: true });
 
     expect(await changersOf(client.user, 'planned_swaps', { id: plannedSwapId })).toEqual(changers(client.clientId, client.user.userId));
     expect(await changersOf(client.user, 'buylist_cards', { user_id: client.user.userId })).toEqual(changers(client.user.userId));
@@ -188,19 +198,19 @@ describe('who created and last changed a record', () => {
     const { deckId, bolt } = await krenkoDeck(client.user);
     await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
     await oneBuylistCard(client, deckId, lotusCard);
-    const userTag = await appRequest<UserTag>(client.user, 'create_user_tag', { name: 'Signed' });
-    await appRequest(client.user, 'set_copy_user_tag', { copy_id: bolt, user_tag_id: userTag.user_tag_id, tagged: true });
+    const userTag = await replyOf(client.user.client, createUserTag, { name: 'Signed' });
+    await replyOf(client.user.client, setCopyUserTag, { copy_id: bolt, user_tag_id: userTag.user_tag_id, tagged: true });
 
     const reads = [
-      await appRead(client.user, 'get_copy', { copy_id: bolt }),
-      await appRead(client.user, 'get_deck', { deck_id: deckId }),
-      await appRead(client.user, 'list_decks', {}),
-      await appRead(client.user, 'list_deck_changes', { deck_id: deckId }),
-      await appRead(client.user, 'list_planned_swaps', {}),
-      await appRead(client.user, 'list_buylist', {}),
-      await appRead(client.user, 'search_collection', { rows: 'copies' }),
-      await appRead(client.user, 'search_collection', {}),
-      (await client.user.client.rpc('list_user_tags')).data,
+      await replyOf(client.user.client, getCopy, { copy_id: bolt }),
+      await replyOf(client.user.client, getDeck, { deck_id: deckId }),
+      await replyOf(client.user.client, listDecks, {}),
+      await replyOf(client.user.client, listDeckChanges, { deck_id: deckId }),
+      await replyOf(client.user.client, listPlannedSwaps, {}),
+      await replyOf(client.user.client, listBuylist, {}),
+      await replyOf(client.user.client, searchCollection, { rows: 'copies' }),
+      await replyOf(client.user.client, searchCollection, {}),
+      await replyOf(client.user.client, listUserTags),
     ];
 
     for (const read of reads) {

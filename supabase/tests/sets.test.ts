@@ -1,11 +1,12 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { readSearchError } from '../search';
-import type { CardSet, FinishView, SetList, SetListQuery } from '../sets';
+import { setCopyProtected } from '../collection';
+import { listSets, type CardSet, type FinishView, type SetList, type SetListQuery } from '../sets';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { seedCopies } from './copy-seeds';
-import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
-import { addedToDeck, appRequest, deckNamed, scannedCopies, scannedCopy } from './planned-swap-seeds';
+import { call, failed, refused, replyOf } from './database-calls';
+import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
+import { addedToDeck, deckNamed, scannedCopies, scannedCopy } from './planned-swap-seeds';
 import { committed, scanBatch, stack } from './scan-batches';
 import { artCrop } from './scryfall-images';
 
@@ -40,14 +41,8 @@ beforeAll(async () => {
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-function readSets(client: AppClient, query: unknown) {
-  return client.rpc('list_sets', { query: query as SetListQuery });
-}
-
-async function setsPage(user: TestUser, query: SetListQuery) {
-  const { data, error } = await readSets(user.client, query);
-  expect(error).toBeNull();
-  return data as unknown as SetList;
+function setsPage(user: TestUser, query: SetListQuery) {
+  return replyOf(user.client, listSets, query);
 }
 
 async function everySet(user: TestUser, finishView: FinishView = 'any') {
@@ -66,12 +61,6 @@ async function setCodes(user: TestUser, finishView: FinishView = 'any') {
 
 async function setRow(user: TestUser, code: string): Promise<CardSet | undefined> {
   return (await setsPage(user, { text: code, finish_view: 'any', limit: 50 })).items.find((row) => row.code === code);
-}
-
-async function refusal(user: TestUser, query: unknown) {
-  const { data, error } = await readSets(user.client, query);
-  expect(data).toBeNull();
-  return readSearchError(error!);
 }
 
 describe('the sets list', () => {
@@ -133,10 +122,7 @@ describe('the sets list', () => {
     ['an anonymous caller', anonymousClient],
     ['the secret key', secretKeyClient],
   ])('%s cannot list the sets', async (_, client) => {
-    const { data, error } = await readSets(client(), { finish_view: 'any' });
-
-    expect(data).toBeNull();
-    expect(error?.code).toBe(permissionDenied);
+    expect(await call(client(), listSets, { finish_view: 'any' })).toMatchObject(failed(permissionDenied));
   });
 });
 
@@ -172,20 +158,19 @@ describe('the pages of the sets list', () => {
 
     expect((await setsPage(user, { finish_view: 'any', limit: 1 })).items).toHaveLength(1);
     expect((await setsPage(user, { finish_view: 'any', limit: 50 })).items).toHaveLength(50);
-    expect(await refusal(user, { finish_view: 'any', limit: 0 })).toMatchObject({ code: 'invalid_argument', field: 'limit' });
-    expect(await refusal(user, { finish_view: 'any', limit: 51 })).toMatchObject({ code: 'invalid_argument', field: 'limit' });
+    expect(await call(user.client, listSets, { finish_view: 'any', limit: 0 })).toMatchObject(refused('invalid_argument', 'limit'));
+    expect(await call(user.client, listSets, { finish_view: 'any', limit: 51 })).toMatchObject(refused('invalid_argument', 'limit'));
   });
 
   test('a cursor from another search or finish view is refused', async () => {
     const user = await signUpNewUser();
     const { next_cursor } = await setsPage(user, { finish_view: 'any', limit: 1 });
 
-    expect(await refusal(user, { finish_view: 'foil', cursor: next_cursor })).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
-    expect(await refusal(user, { text: 'b', finish_view: 'any', cursor: next_cursor })).toMatchObject({
-      code: 'invalid_cursor',
-      field: 'cursor',
-    });
-    expect(await refusal(user, { finish_view: 'any', cursor: 'not a cursor' })).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+    expect(await call(user.client, listSets, { finish_view: 'foil', cursor: next_cursor })).toMatchObject(refused('invalid_cursor', 'cursor'));
+    expect(await call(user.client, listSets, { text: 'b', finish_view: 'any', cursor: next_cursor })).toMatchObject(
+      refused('invalid_cursor', 'cursor'),
+    );
+    expect(await call(user.client, listSets, { finish_view: 'any', cursor: 'not a cursor' })).toMatchObject(refused('invalid_cursor', 'cursor'));
   });
 
   test.each([
@@ -200,7 +185,7 @@ describe('the pages of the sets list', () => {
   ])('%s is refused as an invalid argument', async (_, query, field) => {
     const user = await signUpNewUser();
 
-    expect(await refusal(user, query)).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call(user.client, listSets, query as never)).toMatchObject(refused('invalid_argument', field));
   });
 });
 
@@ -414,7 +399,7 @@ describe('the copies in set completion', () => {
       scanBatch([stack(angelicCurator, { finish: 'etched', condition: 'damaged', language: 'ja' })]),
     );
     const [protectedCopy] = await scannedCopies(user, urbanDaggertooth);
-    await appRequest(user, 'set_copy_protected', { copy_id: protectedCopy, protected: true });
+    await replyOf(user.client, setCopyProtected, { copy_id: protectedCopy!, protected: true });
 
     expect((await setRow(user, 'mh2'))?.completion.any).toEqual({ owned: 2, size: 2 });
   });

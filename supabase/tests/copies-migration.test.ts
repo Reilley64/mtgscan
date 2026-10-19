@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CollectionRow, CollectionTotal } from '../collection';
-import type { SearchPage } from '../search';
+import { addScanBatch, getCollectionTotal, searchCollection, type CollectionPage, type CollectionRow } from '../collection';
+import { callDatabaseFunction, type DatabaseFunction, type RequestArguments } from '../database-function';
 import { catalogFixtureManifest, latestRun, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { collectionEntryKey } from './copy-seeds';
+import { expectReplied } from './database-calls';
 import { applyPendingMigrations, asDatabaseOwner, signUpNewUser, supabaseCli, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -72,11 +73,14 @@ async function addOldAdditionWithoutCopyIds(user: TestUser, lines: OldAdditionLi
   );
 }
 
+async function replyAtAnyMigration<Contract extends DatabaseFunction>(user: TestUser, contract: Contract, ...request: RequestArguments<Contract>) {
+  return expectReplied(await callDatabaseFunction(user.client, contract, ...request));
+}
+
 async function collectionEntries(user: TestUser) {
-  const { data, error } = await user.client.rpc('search_collection', { query: { limit: 50 } });
-  expect(error).toBeNull();
   const quantities = new Map<string, number>();
-  for (const row of (data as unknown as SearchPage<CollectionRow>).items) {
+  const page = (await replyAtAnyMigration(user, searchCollection, { limit: 50 })) as CollectionPage<CollectionRow>;
+  for (const row of page.items) {
     const key = collectionEntryKey(row);
     quantities.set(key, (quantities.get(key) ?? 0) + row.quantity);
   }
@@ -84,9 +88,7 @@ async function collectionEntries(user: TestUser) {
 }
 
 async function collectionTotal(user: TestUser) {
-  const { data, error } = await user.client.rpc('get_collection_total', { query: {} });
-  expect(error).toBeNull();
-  const { total, currency, priced_copies, copies } = data as unknown as CollectionTotal;
+  const { total, currency, priced_copies, copies } = await replyAtAnyMigration(user, getCollectionTotal, {});
   return { total, currency, priced_copies, copies };
 }
 
@@ -151,9 +153,9 @@ describe('the migration to copies', () => {
         stack(ribbonsOfNight),
         stack(delverInnistrad, { finish: 'foil', copies: 2 }),
       ]);
-      await committed(alice, scanned);
+      await replyAtAnyMigration(alice, addScanBatch, scanned);
       const bobsBatch = scanBatch([stack(delverInnistrad, { copies: 2 })]);
-      await committed(bob, bobsBatch);
+      await replyAtAnyMigration(bob, addScanBatch, bobsBatch);
       scannedCopyIds = [...scanned.items, ...bobsBatch.items].flatMap((item) => item.copy_ids);
       before = { alice: await snapshot(alice), bob: await snapshot(bob) };
 

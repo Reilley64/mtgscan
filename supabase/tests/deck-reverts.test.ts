@@ -1,8 +1,20 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import { readDeckError, type CreatedDeck, type Deck, type DeckChangePage, type RevertPreview, type RevertedDeckChanges } from '../decks';
+import { deleteCopy, setCopyProtected } from '../collection';
+import {
+  addDeckCard,
+  changeBasicLand,
+  createDeck,
+  getDeck,
+  listDeckChanges,
+  previewRevert,
+  removeDeckCard,
+  revertDeckChanges,
+  setDeckCommander,
+  type Deck,
+} from '../decks';
 import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { call, failed, refused, replyOf } from './database-calls';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -18,15 +30,8 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-async function call(user: TestUser, name: string, request: Record<string, unknown>) {
-  const { error } = await user.client.rpc(name as 'create_deck', { request: request as Json });
-  expect(error).toBeNull();
-}
-
 async function created(user: TestUser, name = 'Atraxa') {
-  const { data, error } = await user.client.rpc('create_deck', { request: { name } });
-  expect(error).toBeNull();
-  return (data as unknown as CreatedDeck).deck_id;
+  return (await replyOf(user.client, createDeck, { name })).deck_id;
 }
 
 async function scannedCopy(user: TestUser, cardPrintingId = angelicCurator) {
@@ -35,50 +40,42 @@ async function scannedCopy(user: TestUser, cardPrintingId = angelicCurator) {
   return scanned.copy_ids[0]!;
 }
 
-const added = (user: TestUser, deckId: string, copyId: string) =>
-  call(user, 'add_deck_card', { deck_id: deckId, copy_id: copyId, unprotect: false });
-const removed = (user: TestUser, copyId: string) => call(user, 'remove_deck_card', { copy_id: copyId });
-const madeCommander = (user: TestUser, copyId: string, commander = true) =>
-  call(user, 'set_deck_commander', { copy_id: copyId, commander });
-const basicLandChanged = (user: TestUser, deckId: string, oracleId: string, by: number) =>
-  call(user, 'change_basic_land', { deck_id: deckId, oracle_id: oracleId, by });
+async function added(user: TestUser, deckId: string, copyId: string) {
+  await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
+}
+
+async function removed(user: TestUser, copyId: string) {
+  await replyOf(user.client, removeDeckCard, { copy_id: copyId });
+}
+
+async function madeCommander(user: TestUser, copyId: string, commander = true) {
+  await replyOf(user.client, setDeckCommander, { copy_id: copyId, commander });
+}
+
+async function basicLandChanged(user: TestUser, deckId: string, oracleId: string, by: number) {
+  await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: oracleId, by });
+}
 
 async function deckOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return data as unknown as Deck;
+  return replyOf(user.client, getDeck, { deck_id: deckId });
 }
 
 async function changesOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('list_deck_changes', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return (data as unknown as DeckChangePage).items;
+  return (await replyOf(user.client, listDeckChanges, { deck_id: deckId })).items;
 }
 
 async function changeAt(user: TestUser, deckId: string, revision: number) {
   return (await changesOf(user, deckId)).find((change) => change.revision === revision)!.deck_change_id;
 }
 
-async function previewRevert(client: AppClient, query: unknown) {
-  const { data, error } = await client.rpc('preview_revert', { query: query as Json });
-  return { preview: data as unknown as RevertPreview | null, error: error && readDeckError(error) };
-}
-
-async function revertDeckChanges(client: AppClient, request: unknown) {
-  const { data, error } = await client.rpc('revert_deck_changes', { request: request as Json });
-  return { reverted: data as unknown as RevertedDeckChanges | null, error: error && readDeckError(error) };
-}
-
 async function previewOf(user: TestUser, deckId: string, deckChangeId: string) {
-  const { preview, error } = await previewRevert(user.client, { deck_id: deckId, deck_change_id: deckChangeId });
-  expect(error).toBeNull();
-  return preview!;
+  return replyOf(user.client, previewRevert, { deck_id: deckId, deck_change_id: deckChangeId });
 }
 
-async function revertedFrom(user: TestUser, deckId: string, revision: number, unprotect = false) {
+async function revertedFrom(user: TestUser, deckId: string, revision: number) {
   const deckChangeId = await changeAt(user, deckId, revision);
   const { revision: expected } = await previewOf(user, deckId, deckChangeId);
-  return revertDeckChanges(user.client, { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: expected, unprotect });
+  return replyOf(user.client, revertDeckChanges, { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: expected, unprotect: false });
 }
 
 function placesOf(deck: Deck) {
@@ -95,10 +92,7 @@ describe('reverting deck changes', () => {
     await madeCommander(user, curator);
     await added(user, deckId, rift);
 
-    const { reverted, error } = await revertedFrom(user, deckId, 2);
-
-    expect(error).toBeNull();
-    expect(reverted).toEqual({ deck_id: deckId, revision: 5 });
+    expect(await revertedFrom(user, deckId, 2)).toEqual({ deck_id: deckId, revision: 5 });
     expect(placesOf(await deckOf(user, deckId))).toEqual([[curator, 'main']]);
     const changes = await changesOf(user, deckId);
     expect(changes.map((change) => [change.revision, change.kind, change.reverted])).toEqual([
@@ -124,9 +118,9 @@ describe('reverting deck changes', () => {
     for (const copyId of [await scannedCopy(user), await scannedCopy(user), await scannedCopy(user)]) {
       await added(user, deckId, copyId);
     }
-    expect((await revertedFrom(user, deckId, 3)).error).toBeNull();
+    await revertedFrom(user, deckId, 3);
 
-    expect((await revertedFrom(user, deckId, 2)).error).toBeNull();
+    await revertedFrom(user, deckId, 2);
 
     const { data } = await user.client.from('deck_changes').select('revision, id, reverted_by').eq('deck_id', deckId).order('revision');
     const idAt = (revision: number) => data!.find((change) => change.revision === revision)!.id;
@@ -146,13 +140,10 @@ describe('reverting deck changes', () => {
     await added(user, deckId, curator);
     await madeCommander(user, curator);
     await removed(user, curator);
-    expect((await revertedFrom(user, deckId, 3)).error).toBeNull();
+    await revertedFrom(user, deckId, 3);
     expect(placesOf(await deckOf(user, deckId))).toEqual([[curator, 'commander']]);
 
-    const { reverted, error } = await revertedFrom(user, deckId, 4);
-
-    expect(error).toBeNull();
-    expect(reverted!.revision).toBe(5);
+    expect((await revertedFrom(user, deckId, 4)).revision).toBe(5);
     expect((await deckOf(user, deckId)).cards).toEqual([]);
     expect((await changesOf(user, deckId)).map((change) => [change.kind, change.reverted])).toEqual([
       ['revert', false],
@@ -171,7 +162,7 @@ describe('reverting deck changes', () => {
     await madeCommander(user, curator);
     await madeCommander(user, curator, false);
 
-    expect((await revertedFrom(user, deckId, 3)).error).toBeNull();
+    await revertedFrom(user, deckId, 3);
 
     const deck = await deckOf(user, deckId);
     expect(placesOf(deck)).toEqual([[curator, 'commander']]);
@@ -185,7 +176,7 @@ describe('reverting deck changes', () => {
     await basicLandChanged(user, deckId, forest, -2);
     await basicLandChanged(user, deckId, wastes, 1);
 
-    expect((await revertedFrom(user, deckId, 2)).error).toBeNull();
+    await revertedFrom(user, deckId, 2);
 
     const counts = (deck: Deck) => Object.fromEntries(deck.basic_lands.filter((land) => land.count > 0).map((land) => [land.name, land.count]));
     expect(counts(await deckOf(user, deckId))).toEqual({ Forest: 8 });
@@ -195,7 +186,7 @@ describe('reverting deck changes', () => {
       expect.objectContaining({ kind: 'basic_land', name: 'Wastes', count_before: 1, count_after: 0 }),
     ]);
 
-    expect((await revertedFrom(user, deckId, 1)).error).toBeNull();
+    await revertedFrom(user, deckId, 1);
     expect(counts(await deckOf(user, deckId))).toEqual({});
     expect((await deckOf(user, deckId)).card_count).toBe(0);
   });
@@ -206,14 +197,17 @@ describe('reverting deck changes', () => {
     const curator = await scannedCopy(user);
     await added(user, deckId, curator);
     await removed(user, curator);
-    await call(user, 'delete_copy', { copy_id: curator });
+    await replyOf(user.client, deleteCopy, { copy_id: curator });
     const deckChangeId = await changeAt(user, deckId, 2);
 
     const preview = await previewOf(user, deckId, deckChangeId);
-    const { error } = await revertDeckChanges(user.client, { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: 2, unprotect: true });
+    const result = await call(user.client, revertDeckChanges, { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: 2, unprotect: true });
 
     expect(preview.blocks).toEqual([{ copy_id: curator, name: 'Angelic Curator', deck: null }]);
-    expect(error).toMatchObject({ code: 'revert_blocked', message: 'Angelic Curator is no longer in your collection.', field: 'deck_change_id' });
+    expect(result).toMatchObject({
+      status: 'refused',
+      refusal: { code: 'revert_blocked', message: 'Angelic Curator is no longer in your collection.', field: 'deck_change_id' },
+    });
     expect((await deckOf(user, deckId)).revision).toBe(2);
     expect((await changesOf(user, deckId)).some((change) => change.reverted)).toBe(false);
   });
@@ -228,10 +222,13 @@ describe('reverting deck changes', () => {
     const deckChangeId = await changeAt(user, atraxa, 2);
 
     const preview = await previewOf(user, atraxa, deckChangeId);
-    const { error } = await revertDeckChanges(user.client, { deck_id: atraxa, deck_change_id: deckChangeId, expected_revision: 2, unprotect: false });
+    const result = await call(user.client, revertDeckChanges, { deck_id: atraxa, deck_change_id: deckChangeId, expected_revision: 2, unprotect: false });
 
     expect(preview.blocks).toEqual([{ copy_id: curator, name: 'Angelic Curator', deck: { deck_id: kinnan, name: 'Kinnan' } }]);
-    expect(error).toMatchObject({ code: 'revert_blocked', message: 'Angelic Curator is in Kinnan.', field: 'deck_change_id' });
+    expect(result).toMatchObject({
+      status: 'refused',
+      refusal: { code: 'revert_blocked', message: 'Angelic Curator is in Kinnan.', field: 'deck_change_id' },
+    });
     expect(placesOf(await deckOf(user, kinnan))).toEqual([[curator, 'main']]);
     expect((await deckOf(user, atraxa)).cards).toEqual([]);
   });
@@ -242,11 +239,10 @@ describe('reverting deck changes', () => {
     const [curator, delver] = [await scannedCopy(user), await scannedCopy(user, delverInnistrad)];
     await added(user, deckId, curator);
     await added(user, deckId, delver);
-    await call(user, 'delete_copy', { copy_id: curator });
+    await replyOf(user.client, deleteCopy, { copy_id: curator });
 
-    const { error } = await revertedFrom(user, deckId, 1);
+    await revertedFrom(user, deckId, 1);
 
-    expect(error).toBeNull();
     expect((await deckOf(user, deckId)).cards).toEqual([]);
   });
 
@@ -256,19 +252,19 @@ describe('reverting deck changes', () => {
     const curator = await scannedCopy(user);
     await added(user, deckId, curator);
     await removed(user, curator);
-    await call(user, 'set_copy_protected', { copy_id: curator, protected: true });
+    await replyOf(user.client, setCopyProtected, { copy_id: curator, protected: true });
     const deckChangeId = await changeAt(user, deckId, 2);
     const request = { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: 2 };
 
     const preview = await previewOf(user, deckId, deckChangeId);
-    const refused = await revertDeckChanges(user.client, { ...request, unprotect: false });
+    const refusal = await call(user.client, revertDeckChanges, { ...request, unprotect: false });
 
     expect(preview.protected_copies).toEqual([{ copy_id: curator, name: 'Angelic Curator' }]);
     expect(preview.blocks).toEqual([]);
-    expect(refused.error).toMatchObject({ code: 'copy_protected', field: 'unprotect' });
+    expect(refusal).toMatchObject(refused('copy_protected', 'unprotect'));
     expect((await deckOf(user, deckId)).revision).toBe(2);
 
-    expect((await revertDeckChanges(user.client, { ...request, unprotect: true })).error).toBeNull();
+    await replyOf(user.client, revertDeckChanges, { ...request, unprotect: true });
 
     const deck = await deckOf(user, deckId);
     expect(placesOf(deck)).toEqual([[curator, 'main']]);
@@ -284,10 +280,10 @@ describe('reverting deck changes', () => {
     const { revision } = await previewOf(user, deckId, deckChangeId);
     await added(user, deckId, delver);
 
-    const { error } = await revertDeckChanges(user.client, { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: revision, unprotect: false });
+    const result = await call(user.client, revertDeckChanges, { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: revision, unprotect: false });
 
     expect(revision).toBe(1);
-    expect(error).toMatchObject({ code: 'stale_revision', field: 'expected_revision' });
+    expect(result).toMatchObject(refused('stale_revision', 'expected_revision'));
     expect((await deckOf(user, deckId)).cards).toHaveLength(2);
     expect((await previewOf(user, deckId, deckChangeId)).revision).toBe(2);
   });
@@ -303,7 +299,7 @@ describe('reverting deck changes', () => {
     const deckChangeId = await changeAt(user, deckId, 2);
 
     const preview = await previewOf(user, deckId, deckChangeId);
-    const { reverted } = await revertDeckChanges(user.client, { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: preview.revision, unprotect: false });
+    const reverted = await replyOf(user.client, revertDeckChanges, { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: preview.revision, unprotect: false });
 
     expect(preview).toEqual({
       revision: 4,
@@ -317,7 +313,7 @@ describe('reverting deck changes', () => {
       held_copies: [],
       effect: null,
     });
-    expect(reverted!.revision).toBe(5);
+    expect(reverted.revision).toBe(5);
     expect((await changesOf(user, deckId))[0]!.lines).toEqual(preview.lines);
   });
 
@@ -340,11 +336,11 @@ describe('reverting deck changes', () => {
     await added(user, kinnan, await scannedCopy(user));
     const deckChangeId = await changeAt(user, kinnan, 1);
 
-    const preview = await previewRevert(user.client, { deck_id: atraxa, deck_change_id: deckChangeId });
-    const revert = await revertDeckChanges(user.client, { deck_id: atraxa, deck_change_id: deckChangeId, expected_revision: 0, unprotect: false });
+    const preview = await call(user.client, previewRevert, { deck_id: atraxa, deck_change_id: deckChangeId });
+    const revert = await call(user.client, revertDeckChanges, { deck_id: atraxa, deck_change_id: deckChangeId, expected_revision: 0, unprotect: false });
 
-    expect(preview.error).toMatchObject({ code: 'not_found', field: 'deck_change_id' });
-    expect(revert.error).toMatchObject({ code: 'not_found', field: 'deck_change_id' });
+    expect(preview).toMatchObject(refused('not_found', 'deck_change_id'));
+    expect(revert).toMatchObject(refused('not_found', 'deck_change_id'));
     expect((await deckOf(user, kinnan)).cards).toHaveLength(1);
   });
 
@@ -361,9 +357,7 @@ describe('reverting deck changes', () => {
     await added(user, deckId, await scannedCopy(user));
     const ids = { deck_id: deckId, deck_change_id: await changeAt(user, deckId, 1) };
 
-    const { error } = await revertDeckChanges(user.client, request(ids));
-
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call(user.client, revertDeckChanges, request(ids) as never)).toMatchObject(refused('invalid_argument', field));
     expect((await deckOf(user, deckId)).revision).toBe(1);
   });
 });
@@ -375,11 +369,11 @@ describe('access', () => {
     await added(alice, deckId, await scannedCopy(alice));
     const deckChangeId = await changeAt(alice, deckId, 1);
 
-    const preview = await previewRevert(bob.client, { deck_id: deckId, deck_change_id: deckChangeId });
-    const revert = await revertDeckChanges(bob.client, { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: 1, unprotect: false });
+    const preview = await call(bob.client, previewRevert, { deck_id: deckId, deck_change_id: deckChangeId });
+    const revert = await call(bob.client, revertDeckChanges, { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: 1, unprotect: false });
 
-    expect(preview).toMatchObject({ preview: null, error: { code: 'not_found', field: 'deck_id' } });
-    expect(revert).toMatchObject({ reverted: null, error: { code: 'not_found', field: 'deck_id' } });
+    expect(preview).toMatchObject(refused('not_found', 'deck_id'));
+    expect(revert).toMatchObject(refused('not_found', 'deck_id'));
     expect((await deckOf(alice, deckId)).cards).toHaveLength(1);
   });
 
@@ -389,9 +383,9 @@ describe('access', () => {
     await added(alice, aliceDeck, await scannedCopy(alice));
     const bobDeck = await created(bob);
 
-    const { error } = await previewRevert(bob.client, { deck_id: bobDeck, deck_change_id: await changeAt(alice, aliceDeck, 1) });
+    const result = await call(bob.client, previewRevert, { deck_id: bobDeck, deck_change_id: await changeAt(alice, aliceDeck, 1) });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'deck_change_id' });
+    expect(result).toMatchObject(refused('not_found', 'deck_change_id'));
   });
 
   test.each<[string, () => AppClient]>([
@@ -400,10 +394,10 @@ describe('access', () => {
   ])('%s cannot preview or revert deck changes', async (_, client) => {
     const ids = { deck_id: crypto.randomUUID(), deck_change_id: crypto.randomUUID() };
 
-    const preview = await client().rpc('preview_revert', { query: ids });
-    const revert = await client().rpc('revert_deck_changes', { request: { ...ids, expected_revision: 0, unprotect: false } });
+    const preview = await call(client(), previewRevert, ids);
+    const revert = await call(client(), revertDeckChanges, { ...ids, expected_revision: 0, unprotect: false });
 
-    expect(preview.error?.code).toBe(permissionDenied);
-    expect(revert.error?.code).toBe(permissionDenied);
+    expect(preview).toMatchObject(failed(permissionDenied));
+    expect(revert).toMatchObject(failed(permissionDenied));
   });
 });

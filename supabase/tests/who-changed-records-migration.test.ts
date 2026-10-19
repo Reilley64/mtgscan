@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { UserTag } from '../collection';
+import { createUserTag, setCopyUserTag } from '../collection';
 import { connectedAiClient, type ClaimedAiClient } from './ai-clients';
 import { oneBuylistCard } from './buylist-card-seeds';
 import { catalogFixtureManifest, oracleIdOf, runCatalogImport } from './catalog-import-command';
+import { replyOf } from './database-calls';
 import { applyPendingMigrations, asDatabaseOwner, supabaseCli } from './local-stack';
-import { appRequest, counterspell, krenkoDeck, onePlannedSwap, scannedCopy } from './planned-swap-seeds';
+import { counterspell, krenkoDeck, onePlannedSwap, scannedCopy } from './planned-swap-seeds';
 
 setDefaultTimeout(180_000);
 
@@ -66,8 +67,8 @@ describe('the migration that records who created and last changed each record', 
 
     client = await connectedAiClient();
     const { deckId, bolt } = await krenkoDeck(client.user);
-    const userTag = await appRequest<UserTag>(client.user, 'create_user_tag', { name: 'Signed' });
-    await appRequest(client.user, 'set_copy_user_tag', { copy_id: bolt, user_tag_id: userTag.user_tag_id, tagged: true });
+    const userTag = await replyOf(client.user.client, createUserTag, { name: 'Signed' });
+    await replyOf(client.user.client, setCopyUserTag, { copy_id: bolt, user_tag_id: userTag.user_tag_id, tagged: true });
     await onePlannedSwap(client, deckId, await scannedCopy(client.user, counterspell));
     await oneBuylistCard(client, deckId, await oracleIdOf('Black Lotus'));
 

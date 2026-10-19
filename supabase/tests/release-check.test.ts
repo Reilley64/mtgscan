@@ -4,10 +4,9 @@ import { join } from 'node:path';
 
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
 import { catalogSearch, runReleaseCheck, type SearchMode } from '../release-check/release-check';
 import { readSearchCorpus } from '../release-check/search-corpus';
-import { type CatalogQuery, type CatalogRow, type SearchPage } from '../search';
+import { getCards, listCardPrintings, searchCatalog, searchOracleTags, type CatalogQuery, type CatalogRow, type SearchPage } from '../search';
 import {
   catalogFixtureManifest,
   oracleIdOf,
@@ -17,6 +16,7 @@ import {
   runPriceImport,
   runReleaseCheckCommand,
 } from './catalog-import-command';
+import { call, failed, replyOf } from './database-calls';
 import { secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(120_000);
@@ -29,17 +29,11 @@ type TestSearch = { id: string; class: number; query: CatalogQuery; grades: Reco
 let alice: TestUser;
 let creaturesByName: CatalogRow[];
 
-async function catalogPage(client: TestUser['client'], query: CatalogQuery) {
-  const { data, error } = await client.rpc('search_catalog', { query: query as Json });
-  expect(error).toBeNull();
-  return data as unknown as SearchPage<CatalogRow>;
-}
-
 async function allCreaturesByName(): Promise<CatalogRow[]> {
   const rows: CatalogRow[] = [];
   let cursor: string | null = null;
   do {
-    const page = await catalogPage(alice.client, { types: ['creature'], limit: 50, cursor });
+    const page: SearchPage<CatalogRow> = await replyOf(alice.client, searchCatalog, { types: ['creature'], limit: 50, cursor });
     rows.push(...page.items);
     cursor = page.next_cursor;
   } while (cursor);
@@ -130,7 +124,7 @@ describe('release check access', () => {
   });
 
   test('a signed-in user\'s catalog search is still recorded as an app search', async () => {
-    const page = await catalogPage(alice.client, { text: 'fog' });
+    const page = await replyOf(alice.client, searchCatalog, { text: 'fog' });
 
     const { data } = await releaseCheckClient
       .from('search_telemetry')
@@ -142,14 +136,11 @@ describe('release check access', () => {
   });
 
   test.each([
-    ['get_cards', { oracle_ids: ['6ad8011d-3471-4369-9d68-b264cc027487'] }],
-    ['list_card_printings', { oracle_id: '6ad8011d-3471-4369-9d68-b264cc027487' }],
-    ['search_oracle_tags', { text: 'removal' }],
-  ] as const)('the secret key is refused by %s', async (fn, query) => {
-    const { data, error } = await releaseCheckClient.rpc(fn, { query: query as Json });
-
-    expect(data).toBeNull();
-    expect(error?.code).toBe('42501');
+    [getCards.name, getCards, { oracle_ids: ['6ad8011d-3471-4369-9d68-b264cc027487'] }],
+    [listCardPrintings.name, listCardPrintings, { oracle_id: '6ad8011d-3471-4369-9d68-b264cc027487' }],
+    [searchOracleTags.name, searchOracleTags, { text: 'removal' }],
+  ] as const)('the secret key is refused by %s', async (_, contract, query) => {
+    expect(await call(releaseCheckClient, contract, query as never)).toMatchObject(failed('42501'));
   });
 });
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { Database } from '../database.types';
-import type { DeckList } from '../decks';
+import { listDecks } from '../decks';
 import {
   catalogFixture,
   catalogFixtureManifest,
@@ -19,6 +19,7 @@ import {
   spellbookFixtureSnapshotAt,
   spellbookFixtureVariants,
 } from './catalog-import-command';
+import { replyOf } from './database-calls';
 import { deckOf, deckWithCards, withFailingRecompute } from './deck-evaluation-seeds';
 import { asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
 
@@ -38,9 +39,7 @@ let user: TestUser;
 let deckId: string;
 
 async function readEvaluation() {
-  const { data, error } = await user.client.rpc('list_decks');
-  expect(error).toBeNull();
-  const listed = (data as unknown as DeckList).items.find((item) => item.deck_id === deckId)!.evaluation!;
+  const listed = (await replyOf(user.client, listDecks)).items.find((item) => item.deck_id === deckId)!.evaluation!;
   const evaluation = (await deckOf(user, deckId)).evaluation!;
   expect({ validity_stale: listed.validity_stale, bracket_stale: listed.bracket_stale }).toEqual({
     validity_stale: evaluation.validity_stale,

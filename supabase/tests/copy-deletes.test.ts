@@ -1,10 +1,11 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CollectionCopyRow, CollectionPage, CollectionRow, CollectionTotal, DeleteCopyRequest } from '../collection';
-import type { Json } from '../database.types';
-import type { CreatedDeck, Deck, DeckChangePage, DeckList } from '../decks';
-import { readSearchError, type CardDetails, type CardPrintingsPage, type CatalogRow, type SearchPage } from '../search';
+import { deleteCopy, getCollectionTotal, getCopy, type CollectionTotal } from '../collection';
+import { addDeckCard, createDeck, getDeck, listDeckChanges, listDecks, setDeckCommander } from '../decks';
+import { getCards, listCardPrintings, searchCatalog } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
+import { collectionCopies, collectionEntries } from './collection-pages';
+import { call, failed, refused, replyOf } from './database-calls';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -21,14 +22,8 @@ beforeAll(async () => {
   expect((await runPriceImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-async function deleteCopy(client: AppClient, request: DeleteCopyRequest | Record<string, unknown> | unknown[]) {
-  const { data, error } = await client.rpc('delete_copy', { request: request as Json });
-  return { data, error: error && readSearchError(error) };
-}
-
 async function deleted(user: TestUser, copyId: string) {
-  const { error } = await deleteCopy(user.client, { copy_id: copyId });
-  expect(error).toBeNull();
+  await replyOf(user.client, deleteCopy, { copy_id: copyId });
 }
 
 async function scannedCuratorCopyIds(user: TestUser) {
@@ -37,49 +32,32 @@ async function scannedCuratorCopyIds(user: TestUser) {
   return curators.copy_ids as [string, string];
 }
 
-async function searchedRows<Row>(user: TestUser, rows: 'copies' | 'entries') {
-  const { data, error } = await user.client.rpc('search_collection', { query: { rows } });
-  expect(error).toBeNull();
-  return (data as unknown as CollectionPage<Row>).items;
-}
-
 async function copyIdsInTheCollection(user: TestUser) {
-  return (await searchedRows<CollectionCopyRow>(user, 'copies')).map((row) => row.copy_id).toSorted();
+  return (await collectionCopies(user.client)).items.map((row) => row.copy_id).toSorted();
 }
 
-async function collectionTotal(user: TestUser) {
-  const { data, error } = await user.client.rpc('get_collection_total', { query: {} });
-  expect(error).toBeNull();
-  return data as unknown as CollectionTotal;
+function collectionTotal(user: TestUser) {
+  return replyOf(user.client, getCollectionTotal, {});
 }
 
 async function created(user: TestUser, name: string) {
-  const { data, error } = await user.client.rpc('create_deck', { request: { name } });
-  expect(error).toBeNull();
-  return (data as unknown as CreatedDeck).deck_id;
+  return (await replyOf(user.client, createDeck, { name })).deck_id;
 }
 
 async function added(user: TestUser, deckId: string, copyId: string) {
-  const { error } = await user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: copyId, unprotect: false } });
-  expect(error).toBeNull();
+  await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
 }
 
-async function deckOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return data as unknown as Deck;
+function deckOf(user: TestUser, deckId: string) {
+  return replyOf(user.client, getDeck, { deck_id: deckId });
 }
 
 async function deckChangesOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('list_deck_changes', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return (data as unknown as DeckChangePage).items;
+  return (await replyOf(user.client, listDeckChanges, { deck_id: deckId })).items;
 }
 
 async function deckNamesOf(user: TestUser) {
-  const { data, error } = await user.client.rpc('list_decks');
-  expect(error).toBeNull();
-  return (data as unknown as DeckList).items.map((deck) => deck.name);
+  return (await replyOf(user.client, listDecks)).items.map((deck) => deck.name);
 }
 
 describe('deleting a copy', () => {
@@ -99,7 +77,7 @@ describe('deleting a copy', () => {
 
   test('the copy is gone from collection search, and the other copies stay', async () => {
     expect(await copyIdsInTheCollection(alice)).toEqual([keptCopyId, delverCopyId].toSorted());
-    const entries = await searchedRows<CollectionRow>(alice, 'entries');
+    const { items: entries } = await collectionEntries(alice.client);
     expect(entries.map((row) => [row.name, row.quantity]).toSorted()).toEqual([
       ['Angelic Curator', 1],
       ['Delver of Secrets // Insectile Aberration', 1],
@@ -107,22 +85,20 @@ describe('deleting a copy', () => {
   });
 
   test('the copy read says the copy is not_found', async () => {
-    const { error } = await alice.client.rpc('get_copy', { query: { copy_id: deletedCopyId } });
+    const result = await call(alice.client, getCopy, { copy_id: deletedCopyId });
 
-    expect(error && readSearchError(error)).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(result).toMatchObject(refused('not_found', 'copy_id'));
   });
 
   test('owned quantities count one copy fewer', async () => {
-    const cards = await alice.client.rpc('get_cards', { query: { oracle_ids: [angelicCuratorCard] } });
-    const printings = await alice.client.rpc('list_card_printings', {
-      query: { oracle_id: angelicCuratorCard, owned_only: true },
-    });
-    const catalog = await alice.client.rpc('search_catalog', { query: { names: ['angelic curator'] } });
+    const cards = await replyOf(alice.client, getCards, { oracle_ids: [angelicCuratorCard] });
+    const printings = await replyOf(alice.client, listCardPrintings, { oracle_id: angelicCuratorCard, owned_only: true });
+    const catalog = await replyOf(alice.client, searchCatalog, { names: ['angelic curator'] });
     const oneFreeCopy = { quantity: 1, free_quantity: 1, protected_free_quantity: 0 };
 
-    expect((cards.data as unknown as CardDetails).items[0]!.owned).toEqual(oneFreeCopy);
-    expect((catalog.data as unknown as SearchPage<CatalogRow>).items[0]!.owned).toEqual(oneFreeCopy);
-    expect((printings.data as unknown as CardPrintingsPage).items.map((row) => [row.set, row.owned_quantity])).toEqual([
+    expect(cards.items[0]!.owned).toEqual(oneFreeCopy);
+    expect(catalog.items[0]!.owned).toEqual(oneFreeCopy);
+    expect(printings.items.map((row) => [row.set, row.owned_quantity])).toEqual([
       ['mh2', 1],
     ]);
   });
@@ -151,9 +127,9 @@ describe('deleting a copy', () => {
   });
 
   test('deleting the copy again is not_found', async () => {
-    const { error } = await deleteCopy(alice.client, { copy_id: deletedCopyId });
+    const result = await call(alice.client, deleteCopy, { copy_id: deletedCopyId });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(result).toMatchObject(refused('not_found', 'copy_id'));
   });
 });
 
@@ -190,8 +166,7 @@ describe('deleting a copy in a deck', () => {
     const deckId = await created(user, 'Atraxa');
     const [copyId] = await scannedCuratorCopyIds(user);
     await added(user, deckId, copyId);
-    const { error } = await user.client.rpc('set_deck_commander', { request: { copy_id: copyId, commander: true } });
-    expect(error).toBeNull();
+    await replyOf(user.client, setDeckCommander, { copy_id: copyId, commander: true });
 
     await deleted(user, copyId);
 
@@ -244,17 +219,16 @@ describe('deleting a copy in a deck', () => {
     const { add, remove } = await asDatabaseOwner((database) =>
       database.begin(async (transaction) => {
         await transaction`select id from public.copies where id = ${copyId} for update`;
-        const add = (async () =>
-          user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: copyId, unprotect: false } }))();
+        const add = call(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
         await Bun.sleep(250);
-        const remove = deleteCopy(user.client, { copy_id: copyId });
+        const remove = call(user.client, deleteCopy, { copy_id: copyId });
         await Bun.sleep(250);
         return { add, remove };
       }),
     );
 
-    expect((await add).error).toBeNull();
-    expect((await remove).error).toBeNull();
+    expect(await add).toMatchObject({ status: 'replied' });
+    expect(await remove).toEqual({ status: 'replied', reply: null });
     expect((await deckChangesOf(user, deckId)).map((change) => [change.revision, change.kind])).toEqual([
       [2, 'removed_from_collection'],
       [1, 'added'],
@@ -271,13 +245,13 @@ describe('deleting a copy in a deck', () => {
     const { remove } = await asDatabaseOwner((database) =>
       database.begin(async (transaction) => {
         await transaction`delete from public.decks where id = ${deckId}`;
-        const remove = deleteCopy(user.client, { copy_id: copyId });
+        const remove = call(user.client, deleteCopy, { copy_id: copyId });
         await Bun.sleep(250);
         return { remove };
       }),
     );
 
-    expect((await remove).error).toBeNull();
+    expect(await remove).toEqual({ status: 'replied', reply: null });
     expect(await copyIdsInTheCollection(user)).not.toContain(copyId);
   });
 
@@ -288,9 +262,9 @@ describe('deleting a copy in a deck', () => {
     const [bobCopyId] = await scannedCuratorCopyIds(bob);
     await added(bob, bobDeckId, bobCopyId);
 
-    const { error } = await deleteCopy(alice.client, { copy_id: bobCopyId });
+    const result = await call(alice.client, deleteCopy, { copy_id: bobCopyId });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(result).toMatchObject(refused('not_found', 'copy_id'));
     const deck = await deckOf(bob, bobDeckId);
     expect(deck.revision).toBe(1);
     expect(deck.cards.map((card) => card.copy_id)).toEqual([bobCopyId]);
@@ -310,24 +284,22 @@ describe('refused deletes', () => {
     ['a copy ID that is not a UUID', { copy_id: 'copy-1' }, 'copy_id'],
     ['an unknown field', { copy_id: crypto.randomUUID(), price_currency: 'USD' }, 'price_currency'],
   ])('%s is refused with invalid_argument', async (_, request, field) => {
-    const { error } = await deleteCopy(alice.client, request);
-
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call(alice.client, deleteCopy, request as never)).toMatchObject(refused('invalid_argument', field));
   });
 
   test('a copy ID that is not in the collection is not_found', async () => {
-    const { error } = await deleteCopy(alice.client, { copy_id: crypto.randomUUID() });
+    const result = await call(alice.client, deleteCopy, { copy_id: crypto.randomUUID() });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(result).toMatchObject(refused('not_found', 'copy_id'));
   });
 
   test("another user's copy is not_found and stays in their collection", async () => {
     const bob = await signUpNewUser();
     const [bobCopyId] = await scannedCuratorCopyIds(bob);
 
-    const { error } = await deleteCopy(alice.client, { copy_id: bobCopyId });
+    const result = await call(alice.client, deleteCopy, { copy_id: bobCopyId });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(result).toMatchObject(refused('not_found', 'copy_id'));
     expect(await copyIdsInTheCollection(bob)).toContain(bobCopyId);
   });
 
@@ -337,9 +309,7 @@ describe('refused deletes', () => {
   ])('%s cannot delete a copy', async (_, client) => {
     const [copyId] = await scannedCuratorCopyIds(alice);
 
-    const { error } = await client().rpc('delete_copy', { request: { copy_id: copyId } });
-
-    expect(error?.code).toBe(permissionDenied);
+    expect(await call(client(), deleteCopy, { copy_id: copyId })).toMatchObject(failed(permissionDenied));
     expect(await copyIdsInTheCollection(alice)).toContain(copyId);
   });
 });

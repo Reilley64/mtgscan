@@ -1,15 +1,14 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { BuylistCardInput } from '../buylist';
-import type { Deck, DeckChangeEffect, DeckChangePage } from '../decks';
-import type { PlannedSwapInput } from '../planned-swaps';
-import { aiClientRefusal, connectedAiClient, type ClaimedAiClient } from './ai-clients';
+import { createBuylistCards, markBuylistCardBought, type BuylistCardInput } from '../buylist';
+import { changeBasicLand, getDeck, listDeckChanges, type DeckChangeEffect, type DeckChangePage } from '../decks';
+import { createPlannedSwaps, swapInPlannedSwap, type PlannedSwapInput } from '../planned-swaps';
+import { aiClientCall, connectedAiClient, type ClaimedAiClient } from './ai-clients';
 import { addedToBuylist, buylistCardItem, listedBuylist, oneBuylistCard } from './buylist-card-seeds';
 import { basicLand, catalogFixtureManifest, oracleIdOf, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { refused, replyOf } from './database-calls';
 import type { TestUser } from './local-stack';
 import {
-  appRead,
-  appRequest,
   copyOf,
   deckNamed,
   krenkoDeck,
@@ -51,12 +50,12 @@ function bringingIn(user: TestUser, deckId: string, landOracleId: string, change
 }
 
 async function basicLandCount(user: TestUser, deckId: string, landOracleId: string) {
-  const deck = await appRead<Deck>(user, 'get_deck', { deck_id: deckId });
+  const deck = await replyOf(user.client, getDeck, { deck_id: deckId });
   return deck.basic_lands.find((land) => land.oracle_id === landOracleId)?.count ?? 0;
 }
 
 async function latestChange(user: TestUser, deckId: string) {
-  return (await appRead<DeckChangePage>(user, 'list_deck_changes', { deck_id: deckId })).items[0]!;
+  return (await replyOf(user.client, listDeckChanges, { deck_id: deckId })).items[0]!;
 }
 
 function linesOf(change: DeckChangePage['items'][number]) {
@@ -74,7 +73,7 @@ async function onePlan(client: ClaimedAiClient, item: PlannedSwapInput) {
 }
 
 function swapIn(user: TestUser, plannedSwapId: string) {
-  return appRequest(user, 'swap_in_planned_swap', { planned_swap_id: plannedSwapId });
+  return replyOf(user.client, swapInPlannedSwap, { planned_swap_id: plannedSwapId });
 }
 
 describe('basic lands in create_planned_swaps and create_buylist_cards', () => {
@@ -137,13 +136,13 @@ describe('basic lands in create_planned_swaps and create_buylist_cards', () => {
     const { deckId } = await krenkoDeck(client.user);
     const plannedSwapId = await onePlan(client, await bringingIn(client.user, deckId, island, { outgoing: { basic_land_oracle_id: mountain } }));
 
-    const refusal = await aiClientRefusal(client, 'create_planned_swaps', {
+    const result = await aiClientCall(client, createPlannedSwaps, {
       idempotency_key: 'repeated-lands',
       planned_swaps: [await bringingIn(client.user, deckId, island, { outgoing: { basic_land_oracle_id: mountain } })],
     });
 
-    expect(refusal).toMatchObject({ code: 'duplicate_open' });
-    expect(JSON.parse(refusal.details!)).toEqual({ pointer: '/planned_swaps/0', planned_swap_id: plannedSwapId });
+    expect(result).toMatchObject(refused('duplicate_open'));
+    expect(result.status === 'refused' && JSON.parse(result.refusal.field!)).toEqual({ pointer: '/planned_swaps/0', planned_swap_id: plannedSwapId });
     expect(await planCounts(client.user)).toEqual([1, 0]);
   });
 
@@ -224,13 +223,13 @@ describe('basic lands in create_planned_swaps and create_buylist_cards', () => {
     ],
   ];
 
-  test.each(refusals)('%s is refused with %s, and the call saves nothing', async (_, code, details, request) => {
+  test.each(refusals)('%s is refused with %s, and the call saves nothing', async (_, code, field, request) => {
     const client = await connectedAiClient();
     const deck = await krenkoDeck(client.user);
     const body = await request(client.user, deck);
-    const name = 'planned_swaps' in body ? 'create_planned_swaps' : 'create_buylist_cards';
+    const contract = 'planned_swaps' in body ? createPlannedSwaps : createBuylistCards;
 
-    expect(await aiClientRefusal(client, name, { idempotency_key: crypto.randomUUID(), ...body })).toMatchObject({ code, details });
+    expect(await aiClientCall(client, contract, { idempotency_key: crypto.randomUUID(), ...body } as never)).toMatchObject(refused(code, field));
     expect(await planCounts(client.user)).toEqual([0, 0]);
   });
 });
@@ -291,7 +290,7 @@ describe('swap in and Bought with basic lands', () => {
     const buylistCardId = await oneBuylistCard(client, deckId, goblinInstigatorCard, { outgoing: { basic_land_oracle_id: mountain } });
     const newCopy = await scannedCopy(client.user, goblinInstigator);
 
-    await appRequest(client.user, 'mark_buylist_card_bought', { buylist_card_id: buylistCardId, copy_id: newCopy, unprotect: false });
+    await replyOf(client.user.client, markBuylistCardBought, { buylist_card_id: buylistCardId, copy_id: newCopy, unprotect: false });
 
     const change = await latestChange(client.user, deckId);
     expect(change).toMatchObject({ kind: 'bought' });
@@ -312,7 +311,7 @@ describe('closing on its own with basic lands', () => {
     const held = await scannedCopy(client.user, shock);
     const plannedSwapId = await onePlan(client, await plannedSwapItem(client.user, deckId, held, { outgoing: { basic_land_oracle_id: mountain } }));
     const buylistCardId = await oneBuylistCard(client, deckId, goblinInstigatorCard, { outgoing: { basic_land_oracle_id: mountain } });
-    const mountainsChanged = (by: number) => appRequest(client.user, 'change_basic_land', { deck_id: deckId, oracle_id: mountain, by });
+    const mountainsChanged = (by: number) => replyOf(client.user.client, changeBasicLand, { deck_id: deckId, oracle_id: mountain, by });
 
     await mountainsChanged(-97);
     expect(await plannedSwapNamed(client.user, plannedSwapId)).toMatchObject({ status: 'open' });
@@ -327,7 +326,7 @@ describe('closing on its own with basic lands', () => {
   test('a swap in that takes out the last of a basic land closes the other open items that take it out', async () => {
     const client = await connectedAiClient();
     const deckId = await deckNamed(client.user, 'Lands');
-    await appRequest(client.user, 'change_basic_land', { deck_id: deckId, oracle_id: mountain, by: 1 });
+    await replyOf(client.user.client, changeBasicLand, { deck_id: deckId, oracle_id: mountain, by: 1 });
     const first = await onePlan(client, await bringingIn(client.user, deckId, island, { outgoing: { basic_land_oracle_id: mountain } }));
     const second = await onePlan(client, await bringingIn(client.user, deckId, forest, { outgoing: { basic_land_oracle_id: mountain } }));
 

@@ -1,8 +1,7 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { type CardCondition, type CardLanguage, type CollectionRow } from '../collection';
-import type { Json } from '../database.types';
-import type { Finish, SearchPage } from '../search';
+import { addScanBatch, type CardCondition, type CardLanguage } from '../collection';
+import type { Finish } from '../search';
 import {
   basicLand,
   catalogFixture,
@@ -11,9 +10,11 @@ import {
   runCatalogImport,
   runPriceImport,
 } from './catalog-import-command';
+import { collectionEntries } from './collection-pages';
 import { seedCopies, seededCollectionEntryKey } from './copy-seeds';
+import { call, failed, refused } from './database-calls';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
-import { addScanBatch, committed, copyIds, scanBatch, stack } from './scan-batches';
+import { committed, copyIds, scanBatch, scanned, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
 
@@ -59,9 +60,7 @@ function byEntry(a: EntryRow, b: EntryRow) {
 }
 
 async function entriesOf(user: { client: AppClient }): Promise<EntryRow[]> {
-  const { data, error } = await user.client.rpc('search_collection', { query: { limit: 50 } });
-  expect(error).toBeNull();
-  return (data as unknown as SearchPage<CollectionRow>).items
+  return (await collectionEntries(user.client, { limit: 50 })).items
     .map((row) => ({
       card_printing_id: row.printing_id,
       finish: row.finish,
@@ -338,10 +337,9 @@ describe('refused scan batches', () => {
   ])('%s is refused with basic_land and the field of its stack', async (_, basicLand) => {
     const user = await signUpNewUser();
 
-    const { result, error } = await addScanBatch(user, scanBatch([stack(angelicCurator), stack(basicLand)]));
+    const result = await scanned(user, scanBatch([stack(angelicCurator), stack(basicLand)]));
 
-    expect(result).toBeNull();
-    expect(error).toMatchObject({ code: 'basic_land', field: 'items[1].card_printing_id' });
+    expect(result).toMatchObject(refused('basic_land', 'items[1].card_printing_id'));
     expect(await entriesOf(user)).toEqual([]);
     expect(await additionsOf(user)).toEqual([]);
   });
@@ -349,9 +347,9 @@ describe('refused scan batches', () => {
   test('an unknown card printing is refused with unknown_printing', async () => {
     const user = await signUpNewUser();
 
-    const { error } = await addScanBatch(user, scanBatch([stack(unknownPrinting)]));
+    const result = await scanned(user, scanBatch([stack(unknownPrinting)]));
 
-    expect(error).toMatchObject({ code: 'unknown_printing', field: 'items[0].card_printing_id' });
+    expect(result).toMatchObject(refused('unknown_printing', 'items[0].card_printing_id'));
   });
 
   const tooManyItems = Array.from({ length: 2001 }, () => stack(angelicCurator));
@@ -420,10 +418,7 @@ describe('refused scan batches', () => {
   test.each(invalidBatches)('%s is refused with invalid_argument', async (_, batch, field) => {
     const user = await signUpNewUser();
 
-    const { result, error } = await addScanBatch(user, batch as Record<string, unknown>);
-
-    expect(result).toBeNull();
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await scanned(user, batch as Record<string, unknown>)).toMatchObject(refused('invalid_argument', field));
     expect(await entriesOf(user)).toEqual([]);
   });
 
@@ -445,12 +440,12 @@ describe('refused scan batches', () => {
     await committed(user, scanBatch([stack(angelicCurator)]));
     const before = await collectionOf(user);
 
-    const { error } = await addScanBatch(
+    const result = await scanned(
       user,
       scanBatch([stack(angelicCurator, { copies: 3 }), stack(delverInnistrad), stack(unknownPrinting)]),
     );
 
-    expect(error?.code).toBe('unknown_printing');
+    expect(result).toMatchObject(refused('unknown_printing'));
     expect(await collectionOf(user)).toEqual(before);
   });
 });
@@ -560,11 +555,11 @@ test('concurrent commits with different copies end with the summed quantity in o
 
   const results = await Promise.all(
     Array.from({ length: 4 }, (_, index) =>
-      addScanBatch(user, scanBatch([stack(angelicCurator, { copies: index + 1 })])),
+      scanned(user, scanBatch([stack(angelicCurator, { copies: index + 1 })])),
     ),
   );
 
-  expect(results.map(({ error }) => error)).toEqual([null, null, null, null]);
+  expect(results.map(({ status }) => status)).toEqual(['replied', 'replied', 'replied', 'replied']);
   expect(await entriesOf(user)).toEqual([entryRow(angelicCurator, 10)]);
   expect((await additionsOf(user)).length).toBe(4);
 });
@@ -612,17 +607,13 @@ describe('access', () => {
       expect(data ?? []).toEqual([]);
     }
 
-    const { error } = await anonymous.rpc('add_scan_batch', { batch: scanBatch([stack(angelicCurator)]) as Json });
-
-    expect(error?.code).toBe(permissionDenied);
+    expect(await call(anonymous, addScanBatch, scanBatch([stack(angelicCurator)]))).toMatchObject(failed(permissionDenied));
   });
 
   test('the secret key cannot commit a scan batch', async () => {
-    const { error } = await secretKeyClient().rpc('add_scan_batch', {
-      batch: scanBatch([stack(angelicCurator)]) as Json,
-    });
+    const result = await call(secretKeyClient(), addScanBatch, scanBatch([stack(angelicCurator)]));
 
-    expect(error?.code).toBe(permissionDenied);
+    expect(result).toMatchObject(failed(permissionDenied));
   });
 
   describe.each([
