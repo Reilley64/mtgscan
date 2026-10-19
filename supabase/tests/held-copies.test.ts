@@ -138,8 +138,8 @@ describe('deleting a held copy', () => {
     await asDatabaseOwner(
       (database) => database`
         insert into public.buylist_cards
-          (user_id, deck_id, incoming_oracle_id, as_commander, outgoing_copy_id, outgoing_oracle_id, reason, client_id)
-        select user_id, deck_id, incoming_oracle_id, as_commander, outgoing_copy_id, outgoing_oracle_id, reason, client_id
+          (user_id, deck_id, incoming_oracle_id, as_commander, outgoing_copy_id, outgoing_oracle_id, reason)
+        select user_id, deck_id, incoming_oracle_id, as_commander, outgoing_copy_id, outgoing_oracle_id, reason
         from public.planned_swaps
         where id = ${plannedSwapId}
       `,

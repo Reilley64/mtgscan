@@ -723,8 +723,8 @@ describe('list_planned_swaps', () => {
     const { planned_swaps } = await planned(client, [await plannedSwapItem(client.user, deckId, await scannedCopy(client.user, counterspell))]);
     await asDatabaseOwner(
       (database) => database`
-        insert into public.planned_swaps (user_id, deck_id, incoming_copy_id, incoming_oracle_id, as_commander, reason, status, client_id)
-        select user_id, deck_id, gen_random_uuid(), incoming_oracle_id, as_commander, reason, 'closed', client_id
+        insert into public.planned_swaps (user_id, deck_id, incoming_copy_id, incoming_oracle_id, as_commander, reason, status)
+        select user_id, deck_id, gen_random_uuid(), incoming_oracle_id, as_commander, reason, 'closed'
         from public.planned_swaps, generate_series(1, 20)
         where id = ${planned_swaps[0]!.planned_swap_id}
       `,
@@ -782,7 +782,6 @@ describe('access', () => {
         incoming_oracle_id: crypto.randomUUID(),
         as_commander: false,
         reason,
-        client_id: client.clientId,
       }),
       await tables.from('planned_swaps').update({ status: 'closed' }).eq('id', plannedSwapId),
       await tables.from('planned_swaps').delete().eq('id', plannedSwapId),

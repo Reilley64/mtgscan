@@ -621,8 +621,8 @@ describe('list_buylist', () => {
     const buylistCardId = await oneBuylistCard(client, deckId, lotusCard);
     await asDatabaseOwner(
       (database) => database`
-        insert into public.buylist_cards (user_id, deck_id, incoming_oracle_id, as_commander, reason, status, client_id)
-        select user_id, deck_id, incoming_oracle_id, as_commander, reason, 'closed', client_id
+        insert into public.buylist_cards (user_id, deck_id, incoming_oracle_id, as_commander, reason, status)
+        select user_id, deck_id, incoming_oracle_id, as_commander, reason, 'closed'
         from public.buylist_cards, generate_series(1, 20)
         where id = ${buylistCardId}
       `,
@@ -676,7 +676,6 @@ describe('access', () => {
         incoming_oracle_id: lotusCard,
         as_commander: false,
         reason,
-        client_id: client.clientId,
       }),
       await tables.from('buylist_cards').update({ status: 'closed' }).eq('id', buylistCardId),
       await tables.from('buylist_cards').delete().eq('id', buylistCardId),
