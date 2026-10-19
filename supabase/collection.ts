@@ -181,6 +181,15 @@ export type CopyUserTagRequest = {
   tagged: boolean;
 };
 
+export type CreatedUserTag = UserTag & {
+  created: boolean;
+};
+
+export type CopiesUserTagResult = {
+  changed: string[];
+  skipped: { copy_id: string; reason: 'missing' }[];
+};
+
 export type CopyDetails = CollectionCopyRow & {
   art_crop_uri: string | null;
   free: boolean;
