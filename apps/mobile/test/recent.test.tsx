@@ -1,22 +1,8 @@
 import { fireEvent, waitFor, within } from 'expo-router/testing-library';
 
 import { buylistCardOf, freeCopyOf, plannedCardLine } from './buylist';
-import {
-  buylistQueries,
-  changeBuylistCardElsewhere,
-  changePlannedSwapElsewhere,
-  deckWritesSent,
-  failDeckWrites,
-  failFreeCopyReads,
-  failNeedsYouReads,
-  holdNeedsYouReads,
-  ownBuylistCards,
-  ownDecks,
-  ownFreeCopies,
-  ownPlannedSwaps,
-  plannedSwapQueries,
-  startSignedIn,
-} from './fake-supabase';
+import { changeElsewhere, deckWritesSent, failDeckWrites, failNeedsYouReads, ownBuylistCards, ownDecks, ownFreeCopies, ownPlannedSwaps, startSignedIn } from './fake-supabase';
+import { fail, hold, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
   cardImageUri,
@@ -54,7 +40,7 @@ describe('Recent', () => {
 
     const older = await recent.findByLabelText('+, Lightning Bolt, M10 146');
     expect(appearsBefore(older, recent.getByLabelText('+, Counterspell, M10 146'))).toBe(true);
-    expect(plannedSwapQueries()).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: null });
+    expect(requestsSent('list_planned_swaps')).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: null });
     expect(recent.queryByText('Nothing needs you yet')).not.toBeOnTheScreen();
   });
 
@@ -67,8 +53,8 @@ describe('Recent', () => {
 
     await waitFor(() => expect(recent.getAllByRole('button', { name: 'Swap in' })).toHaveLength(51));
     expect(recent.getAllByRole('button', { name: 'Bought' })).toHaveLength(51);
-    expect(plannedSwapQueries()).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: '50' });
-    expect(buylistQueries()).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: '50' });
+    expect(requestsSent('list_planned_swaps')).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: '50' });
+    expect(requestsSent('list_buylist')).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: '50' });
   });
 
   test('an item shows its deck tag, its change lines with the printing, its reason, and its day and time', async () => {
@@ -146,10 +132,11 @@ describe('Recent', () => {
   });
 
   test('an item that changed elsewhere reloads instead of acting', async () => {
+    ownDecks([{ name: 'Krenko', priority: 'medium', card_count: 0 }]);
     ownPlannedSwaps([plannedSwapOf('swap'), plannedSwapOf('other', { incoming: plannedCopyLine('copy-other', 'Counterspell') })]);
     const recent = await openRecent();
     await recent.findByLabelText('+, Lightning Bolt, M10 146');
-    changePlannedSwapElsewhere('swap', 'swapped_in');
+    changeElsewhere('swap_in_planned_swap', { planned_swap_id: 'swap' });
 
     await fireEvent.press(recent.getAllByRole('button', { name: 'Swap in' })[0]!);
 
@@ -185,10 +172,11 @@ describe('Recent', () => {
   });
 
   test('closing an item that changed elsewhere reloads instead of acting', async () => {
+    ownDecks([{ name: 'Krenko', priority: 'medium', card_count: 0 }]);
     ownPlannedSwaps([plannedSwapOf('swap'), plannedSwapOf('other', { incoming: plannedCopyLine('copy-other', 'Counterspell') })]);
     const recent = await openRecent();
     await recent.findByLabelText('+, Lightning Bolt, M10 146');
-    changePlannedSwapElsewhere('swap', 'swapped_in');
+    changeElsewhere('swap_in_planned_swap', { planned_swap_id: 'swap' });
 
     await fireEvent.press(recent.getAllByRole('button', { name: 'Close' })[0]!);
 
@@ -199,7 +187,7 @@ describe('Recent', () => {
 
   test('until the Recent read returns, Recent shows the Needs you skeleton, then the items', async () => {
     ownPlannedSwaps([plannedSwapOf('swap')]);
-    const reads = holdNeedsYouReads();
+    const reads = hold(['list_planned_swaps', 'list_buylist']);
 
     const recent = await openRecent();
     expect(recent.getByRole('progressbar', { name: 'Loading Recent' })).toBeOnTheScreen();
@@ -215,7 +203,7 @@ describe('Recent', () => {
     ownPlannedSwaps([plannedSwapOf('swap')]);
     const recent = await openRecent();
     await recent.findByLabelText('+, Lightning Bolt, M10 146');
-    holdNeedsYouReads();
+    hold(['list_planned_swaps', 'list_buylist']);
 
     await pressTab('Collection');
     await pressTab('Recent');
@@ -284,7 +272,7 @@ describe('Recent buylist cards', () => {
     const swap = recent.getByLabelText('+, Lightning Bolt, M10 146');
     expect(appearsBefore(older, swap)).toBe(true);
     expect(appearsBefore(swap, recent.getByLabelText('+, Black Lotus, Instant'))).toBe(true);
-    expect(buylistQueries()).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: null });
+    expect(requestsSent('list_buylist')).toContainEqual({ status: 'open', order: 'oldest_first', limit: 50, cursor: null });
   });
 
   test("a buylist card shows its deck tag, the card with its default printing's image, the outgoing copy, its reason, and Bought and Close", async () => {
@@ -376,7 +364,7 @@ describe('Recent buylist cards', () => {
     ownBuylistCards([buylistCardOf('card'), buylistCardOf('other', { incoming: plannedCardLine('oracle-lotus', 'Black Lotus') })]);
     const recent = await openRecent();
     await recent.findByLabelText('+, Counterspell, Instant');
-    changeBuylistCardElsewhere('card', 'closed');
+    changeElsewhere('close_buylist_card', { buylist_card_id: 'card' });
 
     await fireEvent.press(recent.getAllByRole('button', { name: 'Close' })[0]!);
 
@@ -455,7 +443,7 @@ describe('the Bought page sheet', () => {
 
   test('a buylist card that changed elsewhere closes the sheet and Recent reloads', async () => {
     const sheet = await openBought();
-    changeBuylistCardElsewhere('card', 'closed');
+    changeElsewhere('close_buylist_card', { buylist_card_id: 'card' });
 
     await fireEvent.press(await sheet.findByRole('button', { name: 'Counterspell, LEA 54' }));
 
@@ -477,7 +465,7 @@ describe('the Bought page sheet', () => {
   });
 
   test('when the free copies cannot load, the sheet says "Could not load your copies", and Try again reads them again', async () => {
-    failFreeCopyReads(1);
+    fail('list_free_copies', 1);
     const sheet = await openBought();
 
     expect(await sheet.findByText('Could not load your copies')).toBeOnTheScreen();

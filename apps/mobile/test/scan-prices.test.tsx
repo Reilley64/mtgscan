@@ -6,14 +6,8 @@ import { lightningBoltM10, shock } from './card-printings';
 import { resetSampleClock } from './detection-samples';
 import { cardRecognition, nextPhotosAre } from './fake-card-recognizer';
 import { liquidGlassIsAvailable } from './fake-glass-effect';
-import {
-  currentPriceReadsSent,
-  failCurrentPriceReads,
-  holdCurrentPriceReads,
-  offerCurrentPrices,
-  scanBatchesSentToTheServer,
-  startSignedIn,
-} from './fake-supabase';
+import { offerCurrentPrices, startSignedIn } from './fake-supabase';
+import { fail, hold, requestsSent } from './fake-supabase-controls';
 import { appearsBefore, drawerTitle, openSettings, pressTab, swipeDownDrawer, swipeRight, symbolNames } from './native-ui';
 import { restartTheApp } from './render-app';
 import { latestScanChip, openScan, scanACard, scanTab } from './scanning';
@@ -42,7 +36,7 @@ function reviewRows() {
 }
 
 function keysRead() {
-  return currentPriceReadsSent();
+  return requestsSent('get_current_prices');
 }
 
 beforeEach(() => {
@@ -116,8 +110,8 @@ describe('prices in batch review', () => {
 
     await openBatchReview(101);
 
-    expect(currentPriceReadsSent().map(({ items }) => items.length)).toEqual([100, 1]);
-    expect(new Set(currentPriceReadsSent().flatMap(({ items }) => items.map((item) => item.printing_id))).size).toBe(101);
+    expect(requestsSent('get_current_prices').map(({ items }) => items.length)).toEqual([100, 1]);
+    expect(new Set(requestsSent('get_current_prices').flatMap(({ items }) => items.map((item) => item.printing_id))).size).toBe(101);
   });
 });
 
@@ -180,7 +174,7 @@ describe('prices on the latest-scan chip', () => {
 describe('reading prices', () => {
   test('nothing shows while a price read runs', async () => {
     offerCurrentPrices([{ ...boltM10, price: usdPrice('1.87') }]);
-    const read = holdCurrentPriceReads();
+    const read = hold('get_current_prices');
     nextPhotosAre(cardRecognition([lightningBoltM10]));
     await openScan();
 
@@ -204,29 +198,29 @@ describe('reading prices', () => {
     expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English']);
     expect(screen.queryByText('–')).not.toBeOnTheScreen();
     await swipeRight(screen.getByRole('button', { name: 'Add to collection' }), 1);
-    expect(scanBatchesSentToTheServer()).toHaveLength(1);
+    expect(requestsSent('add_scan_batch')).toHaveLength(1);
   });
 
   test('a failed read shows nothing and is tried again only when batch review opens', async () => {
     offerCurrentPrices([{ ...boltM10, price: usdPrice('1.87') }]);
-    failCurrentPriceReads(1);
+    fail('get_current_prices', 1);
     nextPhotosAre(cardRecognition([lightningBoltM10]));
     await openScan();
     await scanACard();
     expect(latestScanChip('Lightning Bolt, M10 146')).toBeOnTheScreen();
     await fireEvent.press(scanTab().getByRole('button', { name: 'NM' }));
     await swipeDownDrawer();
-    expect(currentPriceReadsSent()).toHaveLength(1);
+    expect(requestsSent('get_current_prices')).toHaveLength(1);
 
     await openBatchReview(1);
 
     expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English, $1.87']);
-    expect(currentPriceReadsSent()).toHaveLength(2);
+    expect(requestsSent('get_current_prices')).toHaveLength(2);
   });
 
   test('a failed read is tried again when the chip shows a new scan of the same card printing and finish', async () => {
     offerCurrentPrices([{ ...boltM10, price: usdPrice('1.87') }]);
-    failCurrentPriceReads(1);
+    fail('get_current_prices', 1);
     nextPhotosAre(cardRecognition([lightningBoltM10]));
     await openScan();
     await scanACard();
@@ -235,25 +229,25 @@ describe('reading prices', () => {
     await fireEvent.press(scanTab().getByRole('button', { name: '+1' }));
 
     expect(latestScanChip('Lightning Bolt, M10 146, $1.87')).toBeOnTheScreen();
-    expect(currentPriceReadsSent()).toHaveLength(2);
+    expect(requestsSent('get_current_prices')).toHaveLength(2);
   });
 
   test('a failed read is not tried again while batch review stays open', async () => {
     offerCurrentPrices([{ ...shockM19, price: usdPrice('0.25') }]);
-    failCurrentPriceReads(3);
+    fail('get_current_prices', 3);
     nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
     await openScan();
     await scanACard();
     await scanACard();
     await openBatchReview(2);
     expect(reviewRows()).toEqual(['Shock, M19 156 · NM · English', 'Lightning Bolt, M10 146 · NM · English']);
-    expect(currentPriceReadsSent()).toHaveLength(3);
+    expect(requestsSent('get_current_prices')).toHaveLength(3);
 
     await fireEvent.press(screen.getByRole('button', { name: 'Shock, M19 156 · NM · English' }));
     await fireEvent.press(await screen.findByRole('button', { name: 'Remove scan' }));
 
     expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English']);
-    expect(currentPriceReadsSent()).toHaveLength(3);
+    expect(requestsSent('get_current_prices')).toHaveLength(3);
   });
 
   test('each card printing and finish is read once per app session, however many scans and batch reviews show it', async () => {
@@ -285,7 +279,7 @@ describe('reading prices', () => {
     await openBatchReview(1);
 
     expect(reviewRows()).toEqual(['Lightning Bolt, M10 146 · NM · English, $1.87']);
-    expect(currentPriceReadsSent()).toHaveLength(2);
+    expect(requestsSent('get_current_prices')).toHaveLength(2);
   });
 
   test('a currency change converts the known prices again without reading them again', async () => {

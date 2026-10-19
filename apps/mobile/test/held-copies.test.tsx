@@ -10,7 +10,6 @@ const { info } = tokenColors;
 const commanderArt = 'https://cards.scryfall.io/art_crop/front/krenko.jpg';
 
 const heldForGoblins = copyOf('copy-1', {
-  free: false,
   held_for: { deck_id: 'deck-1', name: 'Goblins', commander_art_crop_uri: commanderArt },
 });
 

@@ -2,7 +2,8 @@ import type { DeckCard, DeckCommander } from '@mtgscan/supabase/decks';
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { copyOf, deckCardOf, openCopyPage, openDeckNamed } from './copies';
-import { deckWritesSent, failDeckWrites, ownCopies, ownDecks, startSignedIn } from './fake-supabase';
+import { failDeckWrites, ownCopies, ownDecks, startSignedIn } from './fake-supabase';
+import { requestsSent } from './fake-supabase-controls';
 import {
   buttonMenuActions,
   contextMenu,
@@ -62,7 +63,7 @@ function tileMenuTitles(name: string | RegExp) {
 }
 
 function commanderWrites() {
-  return deckWritesSent().flatMap(({ name, request }) => (name === 'set_deck_commander' ? [request] : []));
+  return requestsSent('set_deck_commander');
 }
 
 function banner() {
@@ -158,12 +159,13 @@ describe('the Cards tab', () => {
 
 describe('the copy page menu', () => {
   function copyInDeck(role: 'commander' | 'main', commanderCount: number) {
-    ownCopies([
-      copyOf('copy-1', {
-        free: false,
-        deck: { deck_id: 'deck-1', name: 'Atraxa', role, commander_art_crop_uri: commanderCount > 0 ? atraxaArt : null, commander_count: commanderCount },
-      }),
-    ]);
+    const curator = deckCardOf('copy-1', 'Angelic Curator', 'Creature — Angel Spirit', {
+      role,
+      commander_at: role === 'commander' ? '2026-10-15T08:00:00.000Z' : null,
+    });
+    const otherCommanders = [atraxa, kinnan].slice(0, role === 'commander' ? commanderCount - 1 : commanderCount);
+    ownCopies([copyOf('copy-1')]);
+    deckWith([curator, ...otherCommanders], otherCommanders.map((card) => commanderOf(card, atraxaArt)));
   }
 
   function actionsMenuRows() {
@@ -201,8 +203,6 @@ describe('the copy page menu', () => {
   });
 
   test('Make commander makes the copy a commander, and the menu then offers Move to main deck', async () => {
-    const curator = deckCardOf('copy-1', 'Angelic Curator', 'Creature — Angel Spirit');
-    ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 1, cards: [curator] }]);
     copyInDeck('main', 0);
     await openCopyPage(/^Angelic Curator/);
 
@@ -214,7 +214,6 @@ describe('the copy page menu', () => {
   });
 
   test('a commander write that fails shows an alert', async () => {
-    ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 1, cards: [deckCardOf('copy-1', 'Angelic Curator', 'Creature')] }]);
     copyInDeck('commander', 1);
     await openCopyPage(/^Angelic Curator/);
     failDeckWrites(1);
@@ -254,7 +253,7 @@ describe('the banner', () => {
   });
 
   test('making a commander puts its art on the banner', async () => {
-    ownCopies([copyOf('sol-ring', { art_crop_uri: atraxaArt, free: false })]);
+    ownCopies([copyOf('sol-ring', { art_crop_uri: atraxaArt })]);
     deckWith([solRing], []);
     await openDeck();
 

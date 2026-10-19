@@ -1,13 +1,8 @@
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { copyOf, openCollection, openCopyPage } from './copies';
-import {
-  copyProtectedWritesSent,
-  failCopyWrites,
-  ownCopies,
-  removeCopyFromTheCollection,
-  startSignedIn,
-} from './fake-supabase';
+import { changeElsewhere, ownCopies, startSignedIn } from './fake-supabase';
+import { fail, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
   headerMenuRows,
@@ -55,7 +50,7 @@ describe('the actions menu', () => {
   });
 
   test('the actions menu of a copy that is not free offers no Protect', async () => {
-    ownCopies([copyOf('copy-1', { free: false })]);
+    ownCopies([copyOf('copy-1', { held_for: { deck_id: 'deck-1', name: 'Goblins', commander_art_crop_uri: null } })]);
 
     await openCopyPage(/^Angelic Curator/);
 
@@ -71,7 +66,7 @@ describe('the actions menu', () => {
     await chooseAction('Protect');
 
     expect(await screen.findByLabelText('Protected')).toBeOnTheScreen();
-    expect(copyProtectedWritesSent()).toEqual([{ copy_id: 'copy-2', protected: true }]);
+    expect(requestsSent('set_copy_protected')).toEqual([{ copy_id: 'copy-2', protected: true }]);
     expect(actionsMenuRows()).toEqual(['Unprotect', 'Delete copy']);
   });
 
@@ -81,7 +76,7 @@ describe('the actions menu', () => {
 
     await chooseAction('Unprotect');
 
-    expect(copyProtectedWritesSent()).toEqual([{ copy_id: 'copy-1', protected: false }]);
+    expect(requestsSent('set_copy_protected')).toEqual([{ copy_id: 'copy-1', protected: false }]);
     await screen.findByLabelText('MH2');
     expect(screen.queryByLabelText('Protected')).not.toBeOnTheScreen();
     expect(actionsMenuRows()).toEqual(['Protect', 'Delete copy']);
@@ -104,7 +99,7 @@ describe('the actions menu', () => {
   test('a copy that no longer exists when the user protects it says so and goes back to the binder', async () => {
     ownCopies([copyOf('copy-1'), copyOf('copy-2', { condition: 'damaged' })]);
     await openCopyPage('Angelic Curator, MH2 262, damaged, $0.35');
-    removeCopyFromTheCollection('copy-2');
+    changeElsewhere('delete_copy', { copy_id: 'copy-2', move_planned_swap: true });
 
     await chooseAction('Protect');
 
@@ -116,7 +111,7 @@ describe('the actions menu', () => {
 
   test('a write that fails says so and leaves the copy as it was', async () => {
     ownCopies([copyOf('copy-1')]);
-    failCopyWrites(1);
+    fail('set_copy_protected', 1);
     await openCopyPage(/^Angelic Curator/);
 
     await chooseAction('Protect');

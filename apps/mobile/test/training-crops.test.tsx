@@ -17,23 +17,8 @@ import { timePasses, todayIs } from './clock';
 import { resetSampleClock } from './detection-samples';
 import { cardRecognition, holdNextRecognition, nextPhotosAre, notACard } from './fake-card-recognizer';
 import { filesIn } from './fake-file-system';
-import {
-  failNextTrainingCropUpload,
-  failNextTrainingCropUploadsChange,
-  failTrainingCropSettingsReads,
-  holdNextTrainingCropUpload,
-  holdTrainingCropSettingsReads,
-  publishedGalleryVersion,
-  refuseNextTrainingCrop,
-  removeCopyFromTheCollection,
-  scanBatchesSentToTheServer,
-  signInNextWithEmail,
-  startSignedIn,
-  trainingCropUploadAttempts,
-  trainingCropUploadsAreOnTheServer,
-  trainingCropsUploaded,
-  turnTrainingCropUploadsOffElsewhere,
-} from './fake-supabase';
+import { changeElsewhere, publishedGalleryVersion, refuseNextTrainingCrop, signInNextWithEmail, startSignedIn, trainingCropsUploaded, trainingCropUploadsAreOnTheServer, turnTrainingCropUploadsOffElsewhere } from './fake-supabase';
+import { callsSent, fail, hold, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
   drawerScreen,
@@ -77,7 +62,7 @@ async function addTheScanBatchToTheCollection(count: number) {
 }
 
 function savedCopyIds() {
-  return scanBatchesSentToTheServer().flatMap((batch) => batch.items.flatMap((item) => item.copy_ids));
+  return requestsSent('add_scan_batch').flatMap((batch) => batch.items.flatMap((item) => item.copy_ids));
 }
 
 beforeEach(() => {
@@ -178,7 +163,7 @@ test.each([
   await addTheScanBatchToTheCollection(1);
   await timePasses(7 * day);
 
-  failNextTrainingCropUpload();
+  fail('training-crops');
   await returnToTheApp();
   expect(trainingCropsUploaded()).toEqual([]);
   expect(filesIn(keptCrops)).toHaveLength(1);
@@ -196,7 +181,7 @@ test('a training crop uploads once when the app comes back to the foreground aga
   await addTheScanBatchToTheCollection(1);
   await timePasses(7 * day);
 
-  const upload = holdNextTrainingCropUpload();
+  const upload = hold('training-crops', { once: true });
   await returnToTheApp();
   await returnToTheApp();
   await upload.finish();
@@ -229,7 +214,7 @@ test('a training crop whose copy was deleted before its upload is refused and de
   await openScan();
   await scanACard();
   await addTheScanBatchToTheCollection(1);
-  removeCopyFromTheCollection(savedCopyIds()[0]!);
+  changeElsewhere('delete_copy', { copy_id: savedCopyIds()[0]!, move_planned_swap: true });
   await timePasses(7 * day);
 
   await returnToTheApp();
@@ -263,7 +248,7 @@ test('a sign out during an upload stops the uploads that wait behind it', async 
   await addTheScanBatchToTheCollection(2);
   await timePasses(7 * day);
 
-  const upload = holdNextTrainingCropUpload();
+  const upload = hold('training-crops', { once: true });
   await returnToTheApp();
   await signOut();
   await upload.finish();
@@ -339,7 +324,7 @@ describe('the Upload training crops switch', () => {
   });
 
   test('the switch is off and disabled until the training crop settings load', async () => {
-    const read = holdTrainingCropSettingsReads();
+    const read = hold('get_training_crop_settings');
     await renderApp();
 
     const uploads = await openUploadTrainingCrops();
@@ -352,7 +337,7 @@ describe('the Upload training crops switch', () => {
   });
 
   test('a failed read of the training crop settings keeps the switch disabled until the user returns to the app', async () => {
-    failTrainingCropSettingsReads(1);
+    fail('get_training_crop_settings', 1);
     await renderApp();
     const uploads = await openUploadTrainingCrops();
     expect(uploads).toBeDisabled();
@@ -380,7 +365,7 @@ describe('the Upload training crops switch', () => {
   });
 
   test('a failed change puts the switch back and says so', async () => {
-    failNextTrainingCropUploadsChange();
+    fail('set_training_crop_uploads');
     await renderApp();
     const uploads = await openUploadTrainingCrops();
 
@@ -418,7 +403,7 @@ describe('the Upload training crops switch', () => {
     await scanACard();
     await addTheScanBatchToTheCollection(1);
 
-    failNextTrainingCropUploadsChange();
+    fail('set_training_crop_uploads');
     await turnUploadsOff();
     await timePasses(7 * day);
     await returnToTheApp();
@@ -438,7 +423,7 @@ describe('the Upload training crops switch', () => {
     expect(filesIn(keptCrops)).toEqual([]);
     await timePasses(7 * day);
     await restartTheApp();
-    expect(trainingCropUploadAttempts()).toBe(0);
+    expect(callsSent('training-crops').length).toBe(0);
   });
 
   test('a training crop that waits while uploads are turned off on another phone is refused with uploads_off and deleted', async () => {
@@ -451,7 +436,7 @@ describe('the Upload training crops switch', () => {
 
     await returnToTheApp();
 
-    expect(trainingCropUploadAttempts()).toBe(1);
+    expect(callsSent('training-crops').length).toBe(1);
     expect(trainingCropsUploaded()).toEqual([]);
     expect(filesIn(keptCrops)).toEqual([]);
   });
