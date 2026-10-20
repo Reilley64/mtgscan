@@ -83,12 +83,13 @@ test('without an installed gallery, the parity check says it could not run', asy
   expect(await screen.findByText('Could not run the parity check: gallery_not_ready')).toBeOnTheScreen();
 });
 
-test('a development build shows the parity check section under the Fan Content notice', async () => {
+test('a development build shows the parity check section under the Fan Content and licence notices', async () => {
   await renderApp();
 
   await openSettings();
 
   expect(appearsBefore(screen.getByText(/^mtgscan is unofficial Fan Content/), screen.getByText('Parity check'))).toBe(true);
+  expect(appearsBefore(screen.getByText(/^Card recognition uses PE-Core S16/), screen.getByText('Parity check'))).toBe(true);
 });
 
 test('a production build has no parity check in settings', async () => {

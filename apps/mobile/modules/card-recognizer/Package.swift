@@ -10,6 +10,9 @@ let package = Package(
   targets: [
     .target(name: "CardRecognizer", path: "ios/Recognizer"),
     .executableTarget(name: "CardRecognizerCommand", dependencies: ["CardRecognizer"], path: "macos/CardRecognizerCommand"),
-    .testTarget(name: "CardRecognizerTests", dependencies: ["CardRecognizer"], path: "macos/CardRecognizerTests"),
+    .testTarget(
+      name: "CardRecognizerTests", dependencies: ["CardRecognizer"], path: "macos/CardRecognizerTests",
+      resources: [.copy("Fixtures/fixture-model.mlpackage")]
+    ),
   ]
 )
