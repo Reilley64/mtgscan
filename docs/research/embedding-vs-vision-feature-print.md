@@ -478,6 +478,8 @@ To answer the question as asked, more crops will make the model better mainly wh
 
 Should one model replace Vision on iOS as well? Only if it passes the same gates. Vision costs nothing to ship, takes 19 ms for two images, and already passes every gate. Section 9 shows that Vision is not the strongest embedding on the full catalog. Its lead is that it ships with iOS, so it needs no download, no extra memory for weights, and no upkeep. If the trained model passes the gates on both platforms, one model means one gallery and one set of thresholds. If it does not pass on iOS, keep Vision on iOS and build a second gallery for Android (**Inference**).
 
+The owner's end goal is a scanner that improves as people use the app (2026-10-20). Vision feature prints cannot be trained, so with Vision the training crops can only re-tune thresholds. An open model can be fine-tuned on them. That is a reason to replace Vision on iOS too, not only to add Android, once a model passes the gates. The training and release cycle is a separate ticket.
+
 ### 12.1 Model size and delivery
 
 An earlier draft of this plan set a model size bar of about 25 MB. It had no source. It was the size of PE-Core S16 at 8 bits. The owner has set no size limit for now: among models that meet the pass bar, prefer the smallest. The practical limits are the stores, the hosting plan, memory, and speed.
