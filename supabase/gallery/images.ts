@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { readGzipJsonLines } from '../import/gzip-json-lines';
 import { importUserAgent } from '../import/source-file';
 import type { ScryfallCard } from '../import/scryfall-bulk-data';
+import { inPool } from './pool';
 import { type GalleryPrinting, normalImage } from './printings';
 
 const downloadConcurrency = 8;
@@ -76,25 +77,19 @@ export async function cachedImages(
       jobs.push({ printing, replaced: present });
     }
   }
-  let next = 0;
-  async function worker() {
-    while (next < jobs.length) {
-      const job = jobs[next]!;
-      next += 1;
-      const { id } = job.printing.printing;
-      if (await download(job.printing.image, imageFile(id))) {
-        index[id] = job.printing.image;
-        report[job.replaced ? 'replaced' : 'downloaded'] += 1;
-        if ((report.downloaded + report.replaced) % 1000 === 0) {
-          console.error(`Downloaded ${report.downloaded + report.replaced} of ${jobs.length} images.`);
-          await writeFile(indexPath, JSON.stringify(index));
-        }
-      } else {
-        report.failed.push(job.printing.image);
+  await inPool(jobs, downloadConcurrency, async (job) => {
+    const { id } = job.printing.printing;
+    if (await download(job.printing.image, imageFile(id))) {
+      index[id] = job.printing.image;
+      report[job.replaced ? 'replaced' : 'downloaded'] += 1;
+      if ((report.downloaded + report.replaced) % 1000 === 0) {
+        console.error(`Downloaded ${report.downloaded + report.replaced} of ${jobs.length} images.`);
+        await writeFile(indexPath, JSON.stringify(index));
       }
+    } else {
+      report.failed.push(job.printing.image);
     }
-  }
-  await Promise.all(Array.from({ length: downloadConcurrency }, worker));
+  });
   await writeFile(indexPath, JSON.stringify(index));
   return { cache: { directory, imageFile }, report };
 }
