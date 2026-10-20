@@ -167,6 +167,22 @@ The app stays on Expo SDK 56. `README.md` (Versions) says why and when to upgrad
 - When PRs with migrations run in parallel, rebase on `main` before you merge, and rename your migration so that it sorts last.
 - After a rebase, run `bunx supabase@2.120.0 db reset` and `bun run types:database`, and commit the new `supabase/database.types.ts`.
 
+## Database lint
+
+The database checks run `supabase db lint` after they start local Supabase. It runs `plpgsql_check_function` from the `plpgsql_check` extension on each PL/pgSQL function in `public`, `private`, and `catalog_import`. It finds a table or column name that does not exist. Postgres reports such a name only when the statement runs.
+
+To run it against your stack, reset the database and run the command from `supabase`. `--local` reads the ports in `supabase/.env`, so it checks the worktree's own stack:
+
+```bash
+cd supabase
+bunx supabase@2.120.0 db lint --local -s public,private,catalog_import --level error --fail-on error
+```
+
+- Fix an error in a new migration. Start the `create or replace` from the latest version of the function.
+- Add `--level warning` without `--fail-on` to see the warnings too. CI does not fail on them.
+- The lint skips trigger functions.
+- The lint cannot check SQL that a function builds as text and runs with `execute`. `private.catalog_filter_conditions` and `private.text_search` build most of the search SQL this way, and `private.run_search` runs it. Only the database tests cover that SQL.
+
 ## Merging a PR
 
 - Never run `gh pr merge --delete-branch` while a local worktree holds the branch. It deletes the worktree and its gitignored `.env` files.

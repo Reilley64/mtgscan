@@ -168,6 +168,7 @@ The Supabase project lives in `supabase`: configuration, SQL migrations, generat
 2. Start the stack from the repo root with `bunx supabase@2.120.0 start`. Stop it with `bunx supabase@2.120.0 stop`.
 3. Run the database tests with `bun run test:database`.
 4. After you change a migration, run `bunx supabase@2.120.0 db reset` and then `bun run types:database`. CI fails when `supabase/database.types.ts` does not match the migrations.
+5. CI also checks the PL/pgSQL functions with `supabase db lint`. `docs/agents/local-development.md` (Database lint) says how to run it locally.
 
 To run the app against the local stack, put the local API URL and publishable key from `bunx supabase@2.120.0 status` in `apps/mobile/.env.local`. It overrides `apps/mobile/.env`.
 
