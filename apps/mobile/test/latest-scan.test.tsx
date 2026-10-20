@@ -312,6 +312,16 @@ test('a recognized card plays a heavy impact haptic and the recognized sound', a
   expect(scanFeedback()).toEqual(['heavy impact', 'recognized sound']);
 });
 
+test('+1 plays the heavy impact haptic and the recognized sound again', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: '+1' }));
+
+  expect(scanFeedback()).toEqual(['heavy impact', 'recognized sound', 'heavy impact', 'recognized sound']);
+});
+
 test('a scan that is not recognized plays a warning haptic and the failed sound', async () => {
   nextPhotosAre('rectification_failed');
   await openScan();
