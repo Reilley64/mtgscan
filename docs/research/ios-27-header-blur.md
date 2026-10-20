@@ -43,7 +43,7 @@ This matches both builds on the owner's phone:
 | Keep Apple's new default (hard edge with a line) on every header | Set the top edge to `hard` on the deck screen, the copy page, and the user tag picker, or leave it `automatic` there. Works with the current Xcode 26.3 build. Collection may still look different. |
 | The iOS 26 soft blur under every header | Set the top edge to `soft` everywhere **and** build with the iOS 27 SDK: macOS Tahoe 26.6+ and Xcode 27. The app's Expo SDK 58 already has the scene life cycle. |
 
-Not verified here: how a `soft` build with the iOS 27 SDK looks on the owner's phone, and why Collection shows no shelf. Both need an iOS 27 device or Simulator with Xcode 27.
+Checked on 2026-10-20 with Xcode 27.1 on the iOS 27.0 Simulator: with `soft` on every header, the soft edge covers the whole header on Collection, the deck screen, and the copy page. Why Collection showed no shelf before is still not known.
 
 ## Why the app was on Expo SDK 56
 
