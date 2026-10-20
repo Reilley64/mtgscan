@@ -1,0 +1,11 @@
+{
+  "name": "pe-core-s16-384",
+  "sha256": "a7b41405eb0a9b34cebc3acf64c42d4c009689df3686d7f22fc12ea53e521aab",
+  "inputSize": 384,
+  "vectorSize": 512,
+  "thresholds": {
+    "notACard": 0.689,
+    "orientationMargin": 0.03,
+    "artMargin": 0.025
+  }
+}
