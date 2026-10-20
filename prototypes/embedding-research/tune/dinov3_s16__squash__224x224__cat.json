@@ -1,0 +1,1 @@
+{"top1": 0.552, "top10": 0.924, "top20": 0.956, "top50": 0.988, "K99": 75, "K100": 298, "name1": 0.936, "art1": 0.924, "nonmax": 0.4652574360370636, "cardmin": 0.704156219959259, "sep": true, "orient": 0.98, "orient03": 0.812, "artmargin": 0.08433747291564941, "model": "dinov3_s16", "mode": "squash", "size": "224x224", "pool": "cat", "ms_per_img_mps": 50.23860867190404, "nan": 0}

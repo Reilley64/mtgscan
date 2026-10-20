@@ -1,0 +1,1774 @@
+{
+ "compile:pes16-f16": {
+  "compileMs": 175.60158333182335,
+  "firstLoadAllMs": 3722.4865833334625,
+  "firstPredictMs": 24.504208331927657,
+  "task": "compile:pes16-f16"
+ },
+ "compile:pes16-w8lin": {
+  "compileMs": 91.18716666847467,
+  "firstLoadAllMs": 3402.490749999881,
+  "firstPredictMs": 20.246041666716337,
+  "task": "compile:pes16-w8lin"
+ },
+ "load:pes16-f16:all": {
+  "firstPredictMs": 19.327291667461395,
+  "loadMs": 3280.257833333686,
+  "secondLoadMs": 23.153291668742895,
+  "task": "load:pes16-f16:all"
+ },
+ "load:pes16-f16:gpu": {
+  "firstPredictMs": 2562.6013333331794,
+  "loadMs": 176.53645833395422,
+  "secondLoadMs": 1.1783749982714653,
+  "task": "load:pes16-f16:gpu"
+ },
+ "load:pes16-f16:ane": {
+  "firstPredictMs": 12.787499999627471,
+  "loadMs": 3556.2694583330303,
+  "secondLoadMs": 22.639333333820105,
+  "task": "load:pes16-f16:ane"
+ },
+ "load:pes16-f16:cpu": {
+  "firstPredictMs": 26.708875000476837,
+  "loadMs": 137.0252916663885,
+  "secondLoadMs": 0.9528749994933605,
+  "task": "load:pes16-f16:cpu"
+ },
+ "load:pes16-w8lin:all": {
+  "firstPredictMs": 13.047749999910593,
+  "loadMs": 3674.844041666016,
+  "secondLoadMs": 26.060166666284204,
+  "task": "load:pes16-w8lin:all"
+ },
+ "load:pes16-w8lin:gpu": {
+  "firstPredictMs": 797.7411249987781,
+  "loadMs": 204.43091666698456,
+  "secondLoadMs": 1.1276250015944242,
+  "task": "load:pes16-w8lin:gpu"
+ },
+ "load:pes16-w8lin:ane": {
+  "firstPredictMs": 20.515916667878628,
+  "loadMs": 3621.9590416662395,
+  "secondLoadMs": 26.19450000114739,
+  "task": "load:pes16-w8lin:ane"
+ },
+ "load:pes16-w8lin:cpu": {
+  "firstPredictMs": 23.525875000283122,
+  "loadMs": 160.7335000000894,
+  "secondLoadMs": 0.9443333335220814,
+  "task": "load:pes16-w8lin:cpu"
+ },
+ "load:pes16-w8pal:all": {
+  "firstPredictMs": 14.283125000074506,
+  "loadMs": 9834.613416666165,
+  "secondLoadMs": 37.124999998137355,
+  "task": "load:pes16-w8pal:all"
+ },
+ "load:pes16-w8pal:gpu": {
+  "firstPredictMs": 286.00950000062585,
+  "loadMs": 163.20279166847467,
+  "secondLoadMs": 1.1167916674166918,
+  "task": "load:pes16-w8pal:gpu"
+ },
+ "load:pes16-w8pal:ane": {
+  "firstPredictMs": 20.470458334311843,
+  "loadMs": 2693.0996249988675,
+  "secondLoadMs": 26.711083333939314,
+  "task": "load:pes16-w8pal:ane"
+ },
+ "load:pes16-w8pal:cpu": {
+  "firstPredictMs": 24.622458333149552,
+  "loadMs": 201.60475000180304,
+  "secondLoadMs": 0.969458332285285,
+  "task": "load:pes16-w8pal:cpu"
+ },
+ "load:pes16-f32:all": {
+  "firstPredictMs": 2329.329999998212,
+  "loadMs": 534.9382083341479,
+  "secondLoadMs": 27.597708333283663,
+  "task": "load:pes16-f32:all"
+ },
+ "load:pes16-f32:gpu": {
+  "firstPredictMs": 129.9778333324939,
+  "loadMs": 234.3551666662097,
+  "secondLoadMs": 1.104166666045785,
+  "task": "load:pes16-f32:gpu"
+ },
+ "load:pes16-f32:ane": {
+  "firstPredictMs": 49.29600000008941,
+  "loadMs": 397.8762916661799,
+  "secondLoadMs": 29.108000000938773,
+  "task": "load:pes16-f32:ane"
+ },
+ "load:pes16-f32:cpu": {
+  "firstPredictMs": 45.79891666583717,
+  "loadMs": 213.4244583323598,
+  "secondLoadMs": 1.0113750007003546,
+  "task": "load:pes16-f32:cpu"
+ },
+ "compile:pes16mx-f16": {
+  "compileMs": 136.47504166699946,
+  "firstLoadAllMs": 2954.9349166657776,
+  "firstPredictMs": 23.73791666701436,
+  "task": "compile:pes16mx-f16"
+ },
+ "compile:pes16mx-w8lin": {
+  "compileMs": 91.39158333279192,
+  "firstLoadAllMs": 3047.7774166669697,
+  "firstPredictMs": 19.602458333596587,
+  "task": "compile:pes16mx-w8lin"
+ },
+ "load:pes16mx-f16:all": {
+  "firstPredictMs": 20.86816666647792,
+  "loadMs": 2941.7247083336115,
+  "secondLoadMs": 22.557708332315087,
+  "task": "load:pes16mx-f16:all"
+ },
+ "load:pes16mx-f16:gpu": {
+  "firstPredictMs": 543.7317083347589,
+  "loadMs": 168.40445833094418,
+  "secondLoadMs": 1.057791667059064,
+  "task": "load:pes16mx-f16:gpu"
+ },
+ "load:pes16mx-f16:ane": {
+  "firstPredictMs": 18.070624999701977,
+  "loadMs": 2962.5441666655242,
+  "secondLoadMs": 22.381583333015442,
+  "task": "load:pes16mx-f16:ane"
+ },
+ "load:pes16mx-f16:cpu": {
+  "firstPredictMs": 30.70062500052154,
+  "loadMs": 132.86408333294094,
+  "secondLoadMs": 0.9033749997615814,
+  "task": "load:pes16mx-f16:cpu"
+ },
+ "load:pes16mx-w8lin:all": {
+  "firstPredictMs": 18.367291666567326,
+  "loadMs": 2839.8823333326727,
+  "secondLoadMs": 27.00879166647792,
+  "task": "load:pes16mx-w8lin:all"
+ },
+ "load:pes16mx-w8lin:gpu": {
+  "firstPredictMs": 315.4099166672677,
+  "loadMs": 164.5642499998212,
+  "secondLoadMs": 6.20004166662693,
+  "task": "load:pes16mx-w8lin:gpu"
+ },
+ "load:pes16mx-w8lin:ane": {
+  "firstPredictMs": 18.31933333352208,
+  "loadMs": 3047.4920000005513,
+  "secondLoadMs": 26.3756250012666,
+  "task": "load:pes16mx-w8lin:ane"
+ },
+ "load:pes16mx-w8lin:cpu": {
+  "firstPredictMs": 24.500833332538605,
+  "loadMs": 197.4290000014007,
+  "secondLoadMs": 0.8930833321064711,
+  "task": "load:pes16mx-w8lin:cpu"
+ },
+ "load:pes16mx-w8pal:all": {
+  "firstPredictMs": 15.628791665658355,
+  "loadMs": 2765.694874998182,
+  "secondLoadMs": 29.358166666701436,
+  "task": "load:pes16mx-w8pal:all"
+ },
+ "load:pes16mx-w8pal:gpu": {
+  "firstPredictMs": 135.9726249985397,
+  "loadMs": 164.71083333343267,
+  "secondLoadMs": 1.058666666969657,
+  "task": "load:pes16mx-w8pal:gpu"
+ },
+ "load:pes16mx-w8pal:ane": {
+  "firstPredictMs": 19.79004166647792,
+  "loadMs": 2717.478041667491,
+  "secondLoadMs": 28.259249998256564,
+  "task": "load:pes16mx-w8pal:ane"
+ },
+ "load:pes16mx-w8pal:cpu": {
+  "firstPredictMs": 24.51262499950826,
+  "loadMs": 198.59975000098348,
+  "secondLoadMs": 0.8811249975115061,
+  "task": "load:pes16mx-w8pal:cpu"
+ },
+ "parity:pes16-f32:all": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 118.923583984375,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 221.859375,
+   "residentPeakMB": 231.40625
+  },
+  "nan": 0,
+  "task": "parity:pes16-f32:all",
+  "tensors": 24
+ },
+ "parity:pes16-f32:gpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 108.314208984375,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 218.40625,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16-f32:gpu",
+  "tensors": 24
+ },
+ "parity:pes16-f32:ane": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 84.2360610961914,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 231.21875,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16-f32:ane",
+  "tensors": 24
+ },
+ "parity:pes16-f32:cpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 82.1735610961914,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 231.15625,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16-f32:cpu",
+  "tensors": 24
+ },
+ "parity:pes16-f16:all": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 93.1735610961914,
+   "footprintPeakMB": 561.3614044189453,
+   "residentMB": 128.21875,
+   "residentPeakMB": 768.421875
+  },
+  "nan": 0,
+  "task": "parity:pes16-f16:all",
+  "tensors": 24
+ },
+ "parity:pes16-f16:gpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 100.9860610961914,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 185.171875,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16-f16:gpu",
+  "tensors": 24
+ },
+ "parity:pes16-f16:ane": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 84.90786743164062,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 138.140625,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16-f16:ane",
+  "tensors": 24
+ },
+ "parity:pes16-f16:cpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 86.12664031982422,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 188.703125,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 279552,
+  "task": "parity:pes16-f16:cpu",
+  "tensors": 24
+ },
+ "parity:pes16-w8lin:all": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 84.32976531982422,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 140.640625,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16-w8lin:all",
+  "tensors": 24
+ },
+ "parity:pes16-w8lin:gpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 99.53291320800781,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 148,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16-w8lin:gpu",
+  "tensors": 24
+ },
+ "parity:pes16-w8lin:ane": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 84.39226531982422,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 144.953125,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16-w8lin:ane",
+  "tensors": 24
+ },
+ "parity:pes16-w8lin:cpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 81.7673110961914,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 192.875,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 279552,
+  "task": "parity:pes16-w8lin:cpu",
+  "tensors": 24
+ },
+ "parity:pes16-w8pal:all": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 85.40789031982422,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 148.4375,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16-w8pal:all",
+  "tensors": 24
+ },
+ "parity:pes16-w8pal:gpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 97.06416320800781,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 168.296875,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16-w8pal:gpu",
+  "tensors": 24
+ },
+ "parity:pes16-w8pal:ane": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 85.61101531982422,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 150.296875,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16-w8pal:ane",
+  "tensors": 24
+ },
+ "parity:pes16-w8pal:cpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 85.3766860961914,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 197.109375,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 279552,
+  "task": "parity:pes16-w8pal:cpu",
+  "tensors": 24
+ },
+ "parity:pes16mx-f16:all": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 93.36101531982422,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 165.140625,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16mx-f16:all",
+  "tensors": 24
+ },
+ "parity:pes16mx-f16:gpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 121.2985610961914,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 177.109375,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16mx-f16:gpu",
+  "tensors": 24
+ },
+ "parity:pes16mx-f16:ane": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 93.98601531982422,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 156.71875,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16mx-f16:ane",
+  "tensors": 24
+ },
+ "parity:pes16mx-f16:cpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 87.6579360961914,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 199.625,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16mx-f16:cpu",
+  "tensors": 24
+ },
+ "parity:pes16mx-w8lin:all": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 95.6423110961914,
+   "footprintPeakMB": 133.689208984375,
+   "residentMB": 159.359375,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16mx-w8lin:all",
+  "tensors": 24
+ },
+ "parity:pes16mx-w8lin:gpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 116.220458984375,
+   "footprintPeakMB": 135.361083984375,
+   "residentMB": 140.125,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16mx-w8lin:gpu",
+  "tensors": 24
+ },
+ "parity:pes16mx-w8lin:ane": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 95.9704360961914,
+   "footprintPeakMB": 135.361083984375,
+   "residentMB": 157.546875,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16mx-w8lin:ane",
+  "tensors": 24
+ },
+ "parity:pes16mx-w8lin:cpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 87.2516860961914,
+   "footprintPeakMB": 135.361083984375,
+   "residentMB": 199.203125,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16mx-w8lin:cpu",
+  "tensors": 24
+ },
+ "parity:pes16mx-w8pal:all": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 95.9235610961914,
+   "footprintPeakMB": 135.361083984375,
+   "residentMB": 160.65625,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16mx-w8pal:all",
+  "tensors": 24
+ },
+ "parity:pes16mx-w8pal:gpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 113.7516860961914,
+   "footprintPeakMB": 135.361083984375,
+   "residentMB": 163.234375,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16mx-w8pal:gpu",
+  "tensors": 24
+ },
+ "parity:pes16mx-w8pal:ane": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 95.8141860961914,
+   "footprintPeakMB": 135.361083984375,
+   "residentMB": 161.484375,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16mx-w8pal:ane",
+  "tensors": 24
+ },
+ "parity:pes16mx-w8pal:cpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 87.0798110961914,
+   "footprintPeakMB": 135.361083984375,
+   "residentMB": 200.671875,
+   "residentPeakMB": 309.828125
+  },
+  "nan": 0,
+  "task": "parity:pes16mx-w8pal:cpu",
+  "tensors": 24
+ },
+ "speed:vision:all:150": {
+  "embedTwoMs": {
+   "mean": 24.01959416655203,
+   "min": 22.3965416662395,
+   "p50": 23.8965416662395,
+   "p95": 25.522166665643454
+  },
+  "loadMs": 0,
+  "memory": {
+   "footprintMB": 177.6267318725586,
+   "footprintPeakMB": 561.8300857543945,
+   "residentMB": 91.265625,
+   "residentPeakMB": 768.421875
+  },
+  "resizeMs": {
+   "mean": 9.279389444390933,
+   "min": 8.062625002115965,
+   "p50": 9.254125002771616,
+   "p95": 10.046083334833384
+  },
+  "scans": 150,
+  "task": "speed:vision:all:150"
+ },
+ "speed:pes16-f16:all:150": {
+  "embedTwoMs": {
+   "mean": 26.982982222288847,
+   "min": 24.322791665792465,
+   "p50": 27.459208335727453,
+   "p95": 29.375999998301268
+  },
+  "loadMs": 58.048166666179895,
+  "memory": {
+   "footprintMB": 180.532958984375,
+   "footprintPeakMB": 561.8300857543945,
+   "residentMB": 87.921875,
+   "residentPeakMB": 768.421875
+  },
+  "modelTwoMs": {
+   "mean": 25.085658611009517,
+   "min": 22.810249999165535,
+   "p50": 25.499916661530733,
+   "p95": 27.171041660010815
+  },
+  "resizeMs": {
+   "mean": 4.022097500115633,
+   "min": 3.2294583320617676,
+   "p50": 4.130708336830139,
+   "p95": 4.451874997466803
+  },
+  "scans": 150,
+  "task": "speed:pes16-f16:all:150"
+ },
+ "speed:pes16-f16:gpu:150": {
+  "embedTwoMs": {
+   "mean": 92.0780016665409,
+   "min": 87.32662500068545,
+   "p50": 91.9395833350718,
+   "p95": 94.31895833462477
+  },
+  "loadMs": 88.18858333304524,
+  "memory": {
+   "footprintMB": 203.98615264892578,
+   "footprintPeakMB": 545.4707565307617,
+   "residentMB": 134.140625,
+   "residentPeakMB": 489.75
+  },
+  "modelTwoMs": {
+   "mean": 83.25953166668614,
+   "min": 78.94895833358169,
+   "p50": 83.1701666675508,
+   "p95": 84.71037499979138
+  },
+  "resizeMs": {
+   "mean": 8.368224444165826,
+   "min": 4.673708330839872,
+   "p50": 8.38945833593607,
+   "p95": 9.46141666918993
+  },
+  "scans": 150,
+  "task": "speed:pes16-f16:gpu:150"
+ },
+ "speed:pes16-f16:ane:150": {
+  "embedTwoMs": {
+   "mean": 24.659720277885597,
+   "min": 24.246500004082918,
+   "p50": 24.470750000327826,
+   "p95": 25.571333330124617
+  },
+  "loadMs": 83.19966666772962,
+  "memory": {
+   "footprintMB": 183.6579818725586,
+   "footprintPeakMB": 545.4707565307617,
+   "residentMB": 87.703125,
+   "residentPeakMB": 489.75
+  },
+  "modelTwoMs": {
+   "mean": 23.084072500218948,
+   "min": 22.749916661530733,
+   "p50": 22.95008333399892,
+   "p95": 23.775750003755093
+  },
+  "resizeMs": {
+   "mean": 3.550106111218532,
+   "min": 3.159208334982395,
+   "p50": 3.5369166657328606,
+   "p95": 3.860583331435919
+  },
+  "scans": 150,
+  "task": "speed:pes16-f16:ane:150"
+ },
+ "speed:pes16-f16:cpu:150": {
+  "embedTwoMs": {
+   "mean": 70.84012472239634,
+   "min": 64.12258332967758,
+   "p50": 70.79525000229478,
+   "p95": 72.84575000032783
+  },
+  "loadMs": 6.7823750004172325,
+  "memory": {
+   "footprintMB": 180.7673797607422,
+   "footprintPeakMB": 545.4707565307617,
+   "residentMB": 135.203125,
+   "residentPeakMB": 489.75
+  },
+  "modelTwoMs": {
+   "mean": 68.1281925003479,
+   "min": 61.748666666448116,
+   "p50": 68.08433333784342,
+   "p95": 70.02174999937415
+  },
+  "resizeMs": {
+   "mean": 4.266762499610583,
+   "min": 3.1064999997615814,
+   "p50": 4.357500001788139,
+   "p95": 4.933166664093733
+  },
+  "scans": 150,
+  "task": "speed:pes16-f16:cpu:150"
+ },
+ "speed:pes16-w8lin:all:150": {
+  "embedTwoMs": {
+   "mean": 24.380239722331364,
+   "min": 23.437625002115965,
+   "p50": 24.61600000411272,
+   "p95": 25.098791666328907
+  },
+  "loadMs": 62.815208334475756,
+  "memory": {
+   "footprintMB": 184.1111068725586,
+   "footprintPeakMB": 545.4707565307617,
+   "residentMB": 87.96875,
+   "residentPeakMB": 489.75
+  },
+  "modelTwoMs": {
+   "mean": 22.736792222186924,
+   "min": 21.934083335101604,
+   "p50": 22.905249994248152,
+   "p95": 23.38450000435114
+  },
+  "resizeMs": {
+   "mean": 3.789360000540813,
+   "min": 3.340499997138977,
+   "p50": 3.8032083362340927,
+   "p95": 4.015625
+  },
+  "scans": 150,
+  "task": "speed:pes16-w8lin:all:150"
+ },
+ "speed:pes16-w8lin:gpu:150": {
+  "embedTwoMs": {
+   "mean": 515.540414166972,
+   "min": 483.15345833078027,
+   "p50": 519.0270416662097,
+   "p95": 525.843583330512
+  },
+  "loadMs": 44.33970833197236,
+  "memory": {
+   "footprintMB": 195.2830047607422,
+   "footprintPeakMB": 551.4707336425781,
+   "residentMB": 97.375,
+   "residentPeakMB": 489.75
+  },
+  "modelTwoMs": {
+   "mean": 504.7796258332332,
+   "min": 470.07874999940395,
+   "p50": 508.20462500303984,
+   "p95": 515.2068333365023
+  },
+  "resizeMs": {
+   "mean": 10.18695861098667,
+   "min": 5.236416667699814,
+   "p50": 10.291750002652407,
+   "p95": 11.206624999642372
+  },
+  "scans": 150,
+  "task": "speed:pes16-w8lin:gpu:150"
+ },
+ "speed:pes16-w8lin:ane:150": {
+  "embedTwoMs": {
+   "mean": 25.409806666448713,
+   "min": 23.514999996870756,
+   "p50": 25.76445833221078,
+   "p95": 26.41266666725278
+  },
+  "loadMs": 80.55725000053644,
+  "memory": {
+   "footprintMB": 181.4861068725586,
+   "footprintPeakMB": 551.4707336425781,
+   "residentMB": 95.09375,
+   "residentPeakMB": 489.75
+  },
+  "modelTwoMs": {
+   "mean": 23.618653888677557,
+   "min": 21.983541667461395,
+   "p50": 23.915666665881872,
+   "p95": 24.496375005692244
+  },
+  "resizeMs": {
+   "mean": 4.090299444471796,
+   "min": 3.477249998599291,
+   "p50": 4.171416662633419,
+   "p95": 4.469666663557291
+  },
+  "scans": 150,
+  "task": "speed:pes16-w8lin:ane:150"
+ },
+ "speed:pes16-w8lin:cpu:150": {
+  "embedTwoMs": {
+   "mean": 80.90775833358367,
+   "min": 78.71887499839067,
+   "p50": 80.83429166302085,
+   "p95": 83.02720833197236
+  },
+  "loadMs": 5.990041665732861,
+  "memory": {
+   "footprintMB": 181.03302764892578,
+   "footprintPeakMB": 551.4707336425781,
+   "residentMB": 143.921875,
+   "residentPeakMB": 489.75
+  },
+  "modelTwoMs": {
+   "mean": 77.62538916664819,
+   "min": 75.41270832717419,
+   "p50": 77.66991667076945,
+   "p95": 79.93383333832026
+  },
+  "resizeMs": {
+   "mean": 4.309788888767361,
+   "min": 3.6576666682958603,
+   "p50": 4.188791666179895,
+   "p95": 5.1803333312273026
+  },
+  "scans": 150,
+  "task": "speed:pes16-w8lin:cpu:150"
+ },
+ "speed:pes16-w8pal:all:150": {
+  "embedTwoMs": {
+   "mean": 26.959146944259604,
+   "min": 24.576333332806826,
+   "p50": 27.23695833235979,
+   "p95": 27.76866666600108
+  },
+  "loadMs": 60.773333329707384,
+  "memory": {
+   "footprintMB": 182.4861068725586,
+   "footprintPeakMB": 551.4707336425781,
+   "residentMB": 98.375,
+   "residentPeakMB": 489.75
+  },
+  "modelTwoMs": {
+   "mean": 25.0967005554835,
+   "min": 23.052875000983477,
+   "p50": 25.340583331882954,
+   "p95": 25.812333330512047
+  },
+  "resizeMs": {
+   "mean": 4.089065277998646,
+   "min": 3.4395000003278255,
+   "p50": 4.097916670143604,
+   "p95": 4.437583334743977
+  },
+  "scans": 150,
+  "task": "speed:pes16-w8pal:all:150"
+ },
+ "speed:pes16-w8pal:gpu:150": {
+  "embedTwoMs": {
+   "mean": 106.82018416670462,
+   "min": 101.38804166391492,
+   "p50": 104.72662499919534,
+   "p95": 126.01862500235438
+  },
+  "loadMs": 25.326791670173407,
+  "memory": {
+   "footprintMB": 191.45490264892578,
+   "footprintPeakMB": 551.4707336425781,
+   "residentMB": 117.890625,
+   "residentPeakMB": 489.75
+  },
+  "modelTwoMs": {
+   "mean": 96.97441222213209,
+   "min": 92.95362500473857,
+   "p50": 94.81570833921432,
+   "p95": 115.16024999693036
+  },
+  "resizeMs": {
+   "mean": 9.260876111338536,
+   "min": 7.820624999701977,
+   "p50": 9.147583331912756,
+   "p95": 10.472041666507721
+  },
+  "scans": 150,
+  "task": "speed:pes16-w8pal:gpu:150"
+ },
+ "speed:pes16-w8pal:ane:150": {
+  "embedTwoMs": {
+   "mean": 25.85281361103058,
+   "min": 24.321333330124617,
+   "p50": 24.873666666448116,
+   "p95": 28.14437499642372
+  },
+  "loadMs": 85.84420833364129,
+  "memory": {
+   "footprintMB": 182.1423568725586,
+   "footprintPeakMB": 551.4707336425781,
+   "residentMB": 100.328125,
+   "residentPeakMB": 489.75
+  },
+  "modelTwoMs": {
+   "mean": 24.145043610855936,
+   "min": 22.823291666805744,
+   "p50": 23.330833338201046,
+   "p95": 26.083458330482244
+  },
+  "resizeMs": {
+   "mean": 3.899756388713916,
+   "min": 3.208499997854233,
+   "p50": 3.8675833344459534,
+   "p95": 4.453416667878628
+  },
+  "scans": 150,
+  "task": "speed:pes16-w8pal:ane:150"
+ },
+ "speed:pes16-w8pal:cpu:150": {
+  "embedTwoMs": {
+   "mean": 80.91967944420874,
+   "min": 78.36450000107288,
+   "p50": 80.75845833495259,
+   "p95": 82.91362500190735
+  },
+  "loadMs": 4.356625001877546,
+  "memory": {
+   "footprintMB": 180.70490264892578,
+   "footprintPeakMB": 551.4707336425781,
+   "residentMB": 145.890625,
+   "residentPeakMB": 489.75
+  },
+  "modelTwoMs": {
+   "mean": 77.67105805526177,
+   "min": 75.28399999812245,
+   "p50": 77.51120833307505,
+   "p95": 79.46654166653752
+  },
+  "resizeMs": {
+   "mean": 4.317971111014486,
+   "min": 3.80587499961257,
+   "p50": 4.213374998420477,
+   "p95": 5.188291668891907
+  },
+  "scans": 150,
+  "task": "speed:pes16-w8pal:cpu:150"
+ },
+ "speed:pes16mx-f16:all:150": {
+  "embedTwoMs": {
+   "mean": 31.538353611479202,
+   "min": 26.69695833697915,
+   "p50": 31.97183333337307,
+   "p95": 33.3184166662395
+  },
+  "loadMs": 61.36999999731779,
+  "memory": {
+   "footprintMB": 189.7361068725586,
+   "footprintPeakMB": 551.4707336425781,
+   "residentMB": 114.328125,
+   "residentPeakMB": 489.75
+  },
+  "modelTwoMs": {
+   "mean": 29.506298055524628,
+   "min": 25.139541670680046,
+   "p50": 29.912791665643454,
+   "p95": 31.099541664123535
+  },
+  "resizeMs": {
+   "mean": 4.330650277609626,
+   "min": 3.3851666674017906,
+   "p50": 4.392333336174488,
+   "p95": 4.621583331376314
+  },
+  "scans": 150,
+  "task": "speed:pes16mx-f16:all:150"
+ },
+ "speed:pes16mx-f16:gpu:150": {
+  "embedTwoMs": {
+   "mean": 106.54696388892829,
+   "min": 101.48162500187755,
+   "p50": 104.04366666451097,
+   "p95": 135.48879166319966
+  },
+  "loadMs": 38.20129166543484,
+  "memory": {
+   "footprintMB": 204.17365264892578,
+   "footprintPeakMB": 551.4707336425781,
+   "residentMB": 141.25,
+   "residentPeakMB": 519.671875
+  },
+  "modelTwoMs": {
+   "mean": 96.4970927778383,
+   "min": 92.04220832884312,
+   "p50": 93.82600000500679,
+   "p95": 125.6077083311975
+  },
+  "resizeMs": {
+   "mean": 9.06654222264886,
+   "min": 5.454375002533197,
+   "p50": 9.091666664928198,
+   "p95": 9.892124995589256
+  },
+  "scans": 150,
+  "task": "speed:pes16mx-f16:gpu:150"
+ },
+ "speed:pes16mx-f16:ane:150": {
+  "embedTwoMs": {
+   "mean": 30.01206583333512,
+   "min": 26.498666666448116,
+   "p50": 31.015041664242744,
+   "p95": 33.25566666945815
+  },
+  "loadMs": 84.38033333420753,
+  "memory": {
+   "footprintMB": 187.4548568725586,
+   "footprintPeakMB": 551.4707336425781,
+   "residentMB": 113.765625,
+   "residentPeakMB": 519.671875
+  },
+  "modelTwoMs": {
+   "mean": 28.116712499782444,
+   "min": 24.942333329468966,
+   "p50": 29.008416671305895,
+   "p95": 31.0727083273232
+  },
+  "resizeMs": {
+   "mean": 4.100080555255214,
+   "min": 3.2559166699647903,
+   "p50": 4.296333335340023,
+   "p95": 4.678291670978069
+  },
+  "scans": 150,
+  "task": "speed:pes16mx-f16:ane:150"
+ },
+ "speed:pes16mx-f16:cpu:150": {
+  "embedTwoMs": {
+   "mean": 84.01012694448232,
+   "min": 81.53829166665673,
+   "p50": 83.96554166078568,
+   "p95": 86.02316666394472
+  },
+  "loadMs": 4.509916666895151,
+  "memory": {
+   "footprintMB": 180.89240264892578,
+   "footprintPeakMB": 551.4707336425781,
+   "residentMB": 156.109375,
+   "residentPeakMB": 519.671875
+  },
+  "modelTwoMs": {
+   "mean": 80.64214611120522,
+   "min": 78.2119999974966,
+   "p50": 80.57562500238419,
+   "p95": 82.69291666895151
+  },
+  "resizeMs": {
+   "mean": 4.538204444497824,
+   "min": 3.8652083352208138,
+   "p50": 4.414166666567326,
+   "p95": 5.412124998867512
+  },
+  "scans": 150,
+  "task": "speed:pes16mx-f16:cpu:150"
+ },
+ "speed:pes16mx-w8lin:all:150": {
+  "embedTwoMs": {
+   "mean": 34.648898333609104,
+   "min": 26.428333330899477,
+   "p50": 32.42004166543484,
+   "p95": 46.06112500280142
+  },
+  "loadMs": 61.424833331257105,
+  "memory": {
+   "footprintMB": 190.0329818725586,
+   "footprintPeakMB": 551.4707336425781,
+   "residentMB": 114.28125,
+   "residentPeakMB": 519.671875
+  },
+  "modelTwoMs": {
+   "mean": 32.293186944549284,
+   "min": 24.722166664898396,
+   "p50": 30.262833330780268,
+   "p95": 43.08258333429694
+  },
+  "resizeMs": {
+   "mean": 5.082555000086625,
+   "min": 3.533291667699814,
+   "p50": 4.870000001043081,
+   "p95": 6.7226250022649765
+  },
+  "scans": 150,
+  "task": "speed:pes16mx-w8lin:all:150"
+ },
+ "speed:pes16mx-w8lin:gpu:150": {
+  "embedTwoMs": {
+   "mean": 531.5358872223645,
+   "min": 512.2509166635573,
+   "p50": 521.8003333359957,
+   "p95": 568.9389166645706
+  },
+  "loadMs": 44.955625001341105,
+  "memory": {
+   "footprintMB": 206.61122131347656,
+   "footprintPeakMB": 558.8457565307617,
+   "residentMB": 126.53125,
+   "residentPeakMB": 519.671875
+  },
+  "modelTwoMs": {
+   "mean": 521.1294569445898,
+   "min": 501.38879166543484,
+   "p50": 511.3790833353996,
+   "p95": 558.4485833346844
+  },
+  "resizeMs": {
+   "mean": 10.041667500138283,
+   "min": 3.7245416678488255,
+   "p50": 10.219791669398546,
+   "p95": 11.245000004768372
+  },
+  "scans": 150,
+  "task": "speed:pes16mx-w8lin:gpu:150"
+ },
+ "speed:pes16mx-w8lin:ane:150": {
+  "embedTwoMs": {
+   "mean": 30.766489722281694,
+   "min": 26.205916665494442,
+   "p50": 31.27008333429694,
+   "p95": 32.370833329856396
+  },
+  "loadMs": 81.06633333489299,
+  "memory": {
+   "footprintMB": 187.51742553710938,
+   "footprintPeakMB": 558.8457565307617,
+   "residentMB": 140.90625,
+   "residentPeakMB": 519.671875
+  },
+  "modelTwoMs": {
+   "mean": 28.72412055556973,
+   "min": 24.621083326637745,
+   "p50": 29.19337499886751,
+   "p95": 30.19816667214036
+  },
+  "resizeMs": {
+   "mean": 4.535467221811413,
+   "min": 3.4564999975264072,
+   "p50": 4.628499995917082,
+   "p95": 4.865875001996756
+  },
+  "scans": 150,
+  "task": "speed:pes16mx-w8lin:ane:150"
+ },
+ "speed:pes16mx-w8lin:cpu:150": {
+  "embedTwoMs": {
+   "mean": 85.13864499996106,
+   "min": 81.74154166132212,
+   "p50": 84.87212499976158,
+   "p95": 88.50008333474398
+  },
+  "loadMs": 7.119291670620441,
+  "memory": {
+   "footprintMB": 181.11122131347656,
+   "footprintPeakMB": 558.8457565307617,
+   "residentMB": 183.265625,
+   "residentPeakMB": 522.078125
+  },
+  "modelTwoMs": {
+   "mean": 81.76159500015278,
+   "min": 78.44249999523163,
+   "p50": 81.50220833346248,
+   "p95": 84.89174999669194
+  },
+  "resizeMs": {
+   "mean": 4.524828055550655,
+   "min": 3.774541664868593,
+   "p50": 4.424041669815779,
+   "p95": 5.360874999314547
+  },
+  "scans": 150,
+  "task": "speed:pes16mx-w8lin:cpu:150"
+ },
+ "speed:pes16mx-w8pal:all:150": {
+  "embedTwoMs": {
+   "mean": 32.569184722130494,
+   "min": 27.64204166829586,
+   "p50": 32.917458329349756,
+   "p95": 34.16983333602548
+  },
+  "loadMs": 61.64112499728799,
+  "memory": {
+   "footprintMB": 190.28305053710938,
+   "footprintPeakMB": 558.8457565307617,
+   "residentMB": 144.578125,
+   "residentPeakMB": 522.078125
+  },
+  "modelTwoMs": {
+   "mean": 30.515378889143467,
+   "min": 25.981416668742895,
+   "p50": 30.85820832848549,
+   "p95": 31.965291664004326
+  },
+  "resizeMs": {
+   "mean": 4.652342500165105,
+   "min": 3.4452500008046627,
+   "p50": 4.707916669547558,
+   "p95": 5.079291667789221
+  },
+  "scans": 150,
+  "task": "speed:pes16mx-w8pal:all:150"
+ },
+ "speed:pes16mx-w8pal:gpu:150": {
+  "embedTwoMs": {
+   "mean": 109.55758722220858,
+   "min": 102.85179166868329,
+   "p50": 107.01670833304524,
+   "p95": 134.70075000077486
+  },
+  "loadMs": 28.737624995410442,
+  "memory": {
+   "footprintMB": 205.81434631347656,
+   "footprintPeakMB": 558.8457565307617,
+   "residentMB": 146.234375,
+   "residentPeakMB": 522.078125
+  },
+  "modelTwoMs": {
+   "mean": 99.51534472214679,
+   "min": 94.73162499815226,
+   "p50": 96.96083333715796,
+   "p95": 123.05116666853428
+  },
+  "resizeMs": {
+   "mean": 9.231778888652721,
+   "min": 5.918291665613651,
+   "p50": 9.08095833286643,
+   "p95": 10.302333328872919
+  },
+  "scans": 150,
+  "task": "speed:pes16mx-w8pal:gpu:150"
+ },
+ "speed:pes16mx-w8pal:ane:150": {
+  "embedTwoMs": {
+   "mean": 31.660247499967614,
+   "min": 26.778999999165535,
+   "p50": 33.26783333718777,
+   "p95": 35.549583334475756
+  },
+  "loadMs": 84.4611250013113,
+  "memory": {
+   "footprintMB": 190.15805053710938,
+   "footprintPeakMB": 558.8457565307617,
+   "residentMB": 144.921875,
+   "residentPeakMB": 522.078125
+  },
+  "modelTwoMs": {
+   "mean": 29.69798777771493,
+   "min": 25.233125004917383,
+   "p50": 31.173208337277174,
+   "p95": 33.180041659623384
+  },
+  "resizeMs": {
+   "mean": 4.291021111135682,
+   "min": 3.2497499994933605,
+   "p50": 4.559875000268221,
+   "p95": 4.986083332449198
+  },
+  "scans": 150,
+  "task": "speed:pes16mx-w8pal:ane:150"
+ },
+ "speed:pes16mx-w8pal:cpu:150": {
+  "embedTwoMs": {
+   "mean": 86.47443083326021,
+   "min": 83.43420833349228,
+   "p50": 86.38404167070985,
+   "p95": 89.38137499988079
+  },
+  "loadMs": 4.5508333295583725,
+  "memory": {
+   "footprintMB": 178.43934631347656,
+   "footprintPeakMB": 558.8457565307617,
+   "residentMB": 182.140625,
+   "residentPeakMB": 522.421875
+  },
+  "modelTwoMs": {
+   "mean": 83.01606194451452,
+   "min": 79.93699999526143,
+   "p50": 82.88416666537523,
+   "p95": 85.9708749987185
+  },
+  "resizeMs": {
+   "mean": 4.541211111197869,
+   "min": 3.8002916648983955,
+   "p50": 4.363791670650244,
+   "p95": 5.4419166669249535
+  },
+  "scans": 150,
+  "task": "speed:pes16mx-w8pal:cpu:150"
+ },
+ "speed:pes16-f32:cpu:150": {
+  "embedTwoMs": {
+   "mean": 164.3599441666653,
+   "min": 156.0224166661501,
+   "p50": 160.18004167079926,
+   "p95": 192.5886666662991
+  },
+  "loadMs": 5.3264583311975,
+  "memory": {
+   "footprintMB": 180.29874420166016,
+   "footprintPeakMB": 558.8457565307617,
+   "residentMB": 226.21875,
+   "residentPeakMB": 567.25
+  },
+  "modelTwoMs": {
+   "mean": 160.8253222223868,
+   "min": 152.97183333337307,
+   "p50": 156.6714583300054,
+   "p95": 188.152000002563
+  },
+  "resizeMs": {
+   "mean": 4.663339999889334,
+   "min": 4.103666666895151,
+   "p50": 4.482833329588175,
+   "p95": 5.897083334624767
+  },
+  "scans": 150,
+  "task": "speed:pes16-f32:cpu:150"
+ },
+ "memory:vision:all": {
+  "galleryBytes": 157793280,
+  "galleryRows": 102730,
+  "memory": {
+   "footprintMB": 72.0642318725586,
+   "footprintPeakMB": 131.6111297607422,
+   "residentMB": 217.9375,
+   "residentPeakMB": 274.5
+  },
+  "stages": {
+   "after100Scans": {
+    "footprintMB": 72.0642318725586,
+    "footprintPeakMB": 131.6111297607422,
+    "residentMB": 217.9375,
+    "residentPeakMB": 274.5
+   },
+   "cardsLoaded": {
+    "footprintMB": 104.09534454345703,
+    "footprintPeakMB": 104.09534454345703,
+    "residentMB": 94.59375,
+    "residentPeakMB": 94.59375
+   },
+   "firstScan": {
+    "footprintMB": 127.48612976074219,
+    "footprintPeakMB": 128.7673568725586,
+    "residentMB": 271.65625,
+    "residentPeakMB": 271.65625
+   }
+  },
+  "task": "memory:vision:all",
+  "tops": 10000
+ },
+ "memory:pes16-f16:all": {
+  "galleryBytes": 105195520,
+  "galleryRows": 102730,
+  "memory": {
+   "footprintMB": 63.079811096191406,
+   "footprintPeakMB": 128.048583984375,
+   "residentMB": 163.21875,
+   "residentPeakMB": 223.875
+  },
+  "stages": {
+   "after100Scans": {
+    "footprintMB": 63.079811096191406,
+    "footprintPeakMB": 128.048583984375,
+    "residentMB": 163.21875,
+    "residentPeakMB": 223.875
+   },
+   "cardsLoaded": {
+    "footprintMB": 104.01721954345703,
+    "footprintPeakMB": 104.01721954345703,
+    "residentMB": 94.5625,
+    "residentPeakMB": 94.5625
+   },
+   "firstScan": {
+    "footprintMB": 125.220458984375,
+    "footprintPeakMB": 127.86103820800781,
+    "residentMB": 218.296875,
+    "residentPeakMB": 218.296875
+   },
+   "modelLoaded": {
+    "footprintMB": 113.45474243164062,
+    "footprintPeakMB": 113.45474243164062,
+    "residentMB": 104.90625,
+    "residentPeakMB": 104.90625
+   }
+  },
+  "task": "memory:pes16-f16:all",
+  "tops": 10000
+ },
+ "memory:pes16-w8lin:all": {
+  "galleryBytes": 105195520,
+  "galleryRows": 102730,
+  "memory": {
+   "footprintMB": 63.392356872558594,
+   "footprintPeakMB": 129.8142547607422,
+   "residentMB": 163.625,
+   "residentPeakMB": 222.9375
+  },
+  "stages": {
+   "after100Scans": {
+    "footprintMB": 63.392356872558594,
+    "footprintPeakMB": 129.8142547607422,
+    "residentMB": 163.625,
+    "residentPeakMB": 222.9375
+   },
+   "cardsLoaded": {
+    "footprintMB": 104.14226531982422,
+    "footprintPeakMB": 104.14226531982422,
+    "residentMB": 94.5625,
+    "residentPeakMB": 94.5625
+   },
+   "firstScan": {
+    "footprintMB": 125.72050476074219,
+    "footprintPeakMB": 128.361083984375,
+    "residentMB": 218.734375,
+    "residentPeakMB": 218.734375
+   },
+   "modelLoaded": {
+    "footprintMB": 114.00166320800781,
+    "footprintPeakMB": 114.00166320800781,
+    "residentMB": 105.390625,
+    "residentPeakMB": 105.390625
+   }
+  },
+  "task": "memory:pes16-w8lin:all",
+  "tops": 10000
+ },
+ "memory:pes16-w8pal:all": {
+  "galleryBytes": 105195520,
+  "galleryRows": 102730,
+  "memory": {
+   "footprintMB": 66.907958984375,
+   "footprintPeakMB": 135.0329818725586,
+   "residentMB": 168.171875,
+   "residentPeakMB": 227.484375
+  },
+  "stages": {
+   "after100Scans": {
+    "footprintMB": 66.907958984375,
+    "footprintPeakMB": 135.0329818725586,
+    "residentMB": 168.171875,
+    "residentPeakMB": 227.484375
+   },
+   "cardsLoaded": {
+    "footprintMB": 104.07971954345703,
+    "footprintPeakMB": 104.07971954345703,
+    "residentMB": 94.59375,
+    "residentPeakMB": 94.59375
+   },
+   "firstScan": {
+    "footprintMB": 129.1579818725586,
+    "footprintPeakMB": 129.1579818725586,
+    "residentMB": 223.296875,
+    "residentPeakMB": 223.296875
+   },
+   "modelLoaded": {
+    "footprintMB": 114.78289031982422,
+    "footprintPeakMB": 116.25164031982422,
+    "residentMB": 108.578125,
+    "residentPeakMB": 108.578125
+   }
+  },
+  "task": "memory:pes16-w8pal:all",
+  "tops": 10000
+ },
+ "memory:pes16mx-f16:all": {
+  "galleryBytes": 105195520,
+  "galleryRows": 102730,
+  "memory": {
+   "footprintMB": 75.7048568725586,
+   "footprintPeakMB": 146.1736297607422,
+   "residentMB": 182.203125,
+   "residentPeakMB": 240.21875
+  },
+  "stages": {
+   "after100Scans": {
+    "footprintMB": 75.7048568725586,
+    "footprintPeakMB": 146.1736297607422,
+    "residentMB": 182.203125,
+    "residentPeakMB": 240.21875
+   },
+   "cardsLoaded": {
+    "footprintMB": 103.93909454345703,
+    "footprintPeakMB": 103.93909454345703,
+    "residentMB": 94.546875,
+    "residentPeakMB": 94.546875
+   },
+   "firstScan": {
+    "footprintMB": 136.7361297607422,
+    "footprintPeakMB": 137.5329360961914,
+    "residentMB": 237.265625,
+    "residentPeakMB": 237.265625
+   },
+   "modelLoaded": {
+    "footprintMB": 122.12666320800781,
+    "footprintPeakMB": 131.4704132080078,
+    "residentMB": 122.25,
+    "residentPeakMB": 122.25
+   }
+  },
+  "task": "memory:pes16mx-f16:all",
+  "tops": 10000
+ },
+ "memory:pes16-f16:gpu": {
+  "galleryBytes": 105195520,
+  "galleryRows": 102730,
+  "memory": {
+   "footprintMB": 91.95492553710938,
+   "footprintPeakMB": 153.18930053710938,
+   "residentMB": 229.375,
+   "residentPeakMB": 286.390625
+  },
+  "stages": {
+   "after100Scans": {
+    "footprintMB": 91.95492553710938,
+    "footprintPeakMB": 153.18930053710938,
+    "residentMB": 229.375,
+    "residentPeakMB": 286.390625
+   },
+   "cardsLoaded": {
+    "footprintMB": 104.00164031982422,
+    "footprintPeakMB": 104.00164031982422,
+    "residentMB": 94.5625,
+    "residentPeakMB": 94.5625
+   },
+   "firstScan": {
+    "footprintMB": 150.79867553710938,
+    "footprintPeakMB": 150.79867553710938,
+    "residentMB": 284.84375,
+    "residentPeakMB": 284.84375
+   },
+   "modelLoaded": {
+    "footprintMB": 137.8142318725586,
+    "footprintPeakMB": 137.8142318725586,
+    "residentMB": 171.484375,
+    "residentPeakMB": 187.421875
+   }
+  },
+  "task": "memory:pes16-f16:gpu",
+  "tops": 10000
+ },
+ "memory:pes16mx-f16:cpu": {
+  "galleryBytes": 105195520,
+  "galleryRows": 102730,
+  "memory": {
+   "footprintMB": 66.939208984375,
+   "footprintPeakMB": 135.2986068725586,
+   "residentMB": 217.25,
+   "residentPeakMB": 272.46875
+  },
+  "stages": {
+   "after100Scans": {
+    "footprintMB": 66.923583984375,
+    "footprintPeakMB": 135.2986068725586,
+    "residentMB": 217.234375,
+    "residentPeakMB": 272.46875
+   },
+   "cardsLoaded": {
+    "footprintMB": 103.95471954345703,
+    "footprintPeakMB": 103.95471954345703,
+    "residentMB": 94.5625,
+    "residentPeakMB": 94.5625
+   },
+   "firstScan": {
+    "footprintMB": 122.0798568725586,
+    "footprintPeakMB": 126.67353820800781,
+    "residentMB": 272.3125,
+    "residentPeakMB": 272.3125
+   },
+   "modelLoaded": {
+    "footprintMB": 107.36101531982422,
+    "footprintPeakMB": 120.51726531982422,
+    "residentMB": 157.1875,
+    "residentPeakMB": 157.1875
+   }
+  },
+  "task": "memory:pes16mx-f16:cpu",
+  "tops": 10000
+ },
+ "load:siglip-f16:all": {
+  "firstPredictMs": 10.532541666179895,
+  "loadMs": 3689.7739583328366,
+  "memory": {
+   "footprintMB": 17.329696655273438,
+   "footprintPeakMB": 26.829811096191406,
+   "residentMB": 44.578125,
+   "residentPeakMB": 399.140625
+  },
+  "secondLoadMs": 18.975208334624767,
+  "task": "load:siglip-f16:all"
+ },
+ "load:siglip-f16:gpu": {
+  "firstPredictMs": 1261.5548750013113,
+  "loadMs": 452.9836249984801,
+  "memory": {
+   "footprintMB": 62.06425476074219,
+   "footprintPeakMB": 70.92362976074219,
+   "residentMB": 287.21875,
+   "residentPeakMB": 404.484375
+  },
+  "secondLoadMs": 1.1133333332836628,
+  "task": "load:siglip-f16:gpu"
+ },
+ "load:siglip-w8lin:all": {
+  "firstPredictMs": 13.96141666546464,
+  "loadMs": 3961.8958333320916,
+  "memory": {
+   "footprintMB": 33.876617431640625,
+   "footprintPeakMB": 70.92362976074219,
+   "residentMB": 68.0625,
+   "residentPeakMB": 404.484375
+  },
+  "secondLoadMs": 21.905874997377396,
+  "task": "load:siglip-w8lin:all"
+ },
+ "load:siglip-w8lin:gpu": {
+  "firstPredictMs": 500.6975000016391,
+  "loadMs": 459.0757083334029,
+  "memory": {
+   "footprintMB": 84.5016860961914,
+   "footprintPeakMB": 90.4235610961914,
+   "residentMB": 188.53125,
+   "residentPeakMB": 404.484375
+  },
+  "secondLoadMs": 1.2294583357870579,
+  "task": "load:siglip-w8lin:gpu"
+ },
+ "parity:siglip-f16:all": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 62.25166320800781,
+   "footprintPeakMB": 103.07978820800781,
+   "residentMB": 101.5,
+   "residentPeakMB": 404.484375
+  },
+  "nan": 0,
+  "task": "parity:siglip-f16:all",
+  "tensors": 24
+ },
+ "parity:siglip-f16:gpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 68.98617553710938,
+   "footprintPeakMB": 103.07978820800781,
+   "residentMB": 223.421875,
+   "residentPeakMB": 452.015625
+  },
+  "nan": 0,
+  "task": "parity:siglip-f16:gpu",
+  "tensors": 24
+ },
+ "parity:siglip-f16:cpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 60.923675537109375,
+   "footprintPeakMB": 103.07978820800781,
+   "residentMB": 283.859375,
+   "residentPeakMB": 455.1875
+  },
+  "nan": 0,
+  "task": "parity:siglip-f16:cpu",
+  "tensors": 24
+ },
+ "parity:siglip-w8lin:all": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 60.86103820800781,
+   "footprintPeakMB": 103.07978820800781,
+   "residentMB": 104.59375,
+   "residentPeakMB": 455.1875
+  },
+  "nan": 0,
+  "task": "parity:siglip-w8lin:all",
+  "tensors": 24
+ },
+ "parity:siglip-w8lin:gpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 71.2829818725586,
+   "footprintPeakMB": 103.07978820800781,
+   "residentMB": 197.90625,
+   "residentPeakMB": 455.1875
+  },
+  "nan": 0,
+  "task": "parity:siglip-w8lin:gpu",
+  "tensors": 24
+ },
+ "parity:siglip-w8lin:cpu": {
+  "crops": 261,
+  "memory": {
+   "footprintMB": 60.314300537109375,
+   "footprintPeakMB": 103.07978820800781,
+   "residentMB": 287.265625,
+   "residentPeakMB": 455.1875
+  },
+  "nan": 0,
+  "task": "parity:siglip-w8lin:cpu",
+  "tensors": 24
+ },
+ "speed:siglip-f16:all:150": {
+  "embedTwoMs": {
+   "mean": 22.0054727777342,
+   "min": 17.197041667997837,
+   "p50": 22.03054166585207,
+   "p95": 24.276000000536442
+  },
+  "loadMs": 58.35316666960716,
+  "memory": {
+   "footprintMB": 173.6735610961914,
+   "footprintPeakMB": 536.4394378662109,
+   "residentMB": 92.375,
+   "residentPeakMB": 455.1875
+  },
+  "modelTwoMs": {
+   "mean": 19.803159999772905,
+   "min": 15.040916666388512,
+   "p50": 19.859750002622604,
+   "p95": 21.984541669487953
+  },
+  "resizeMs": {
+   "mean": 4.421396111026406,
+   "min": 3.902291662991047,
+   "p50": 4.480166666209698,
+   "p95": 4.854208335280418
+  },
+  "scans": 150,
+  "task": "speed:siglip-f16:all:150"
+ },
+ "speed:siglip-f16:gpu:150": {
+  "embedTwoMs": {
+   "mean": 143.02956555570165,
+   "min": 131.19691666960716,
+   "p50": 136.32758333534002,
+   "p95": 172.9763333313167
+  },
+  "loadMs": 347.30983333289623,
+  "memory": {
+   "footprintMB": 187.31439208984375,
+   "footprintPeakMB": 536.4394378662109,
+   "residentMB": 203.515625,
+   "residentPeakMB": 768.421875
+  },
+  "modelTwoMs": {
+   "mean": 133.51235361086825,
+   "min": 121.70866666734219,
+   "p50": 126.5316250026226,
+   "p95": 164.8627500012517
+  },
+  "resizeMs": {
+   "mean": 10.276418611084422,
+   "min": 7.359541665762663,
+   "p50": 10.40812499821186,
+   "p95": 11.031333334743977
+  },
+  "scans": 150,
+  "task": "speed:siglip-f16:gpu:150"
+ },
+ "speed:siglip-w8lin:all:150": {
+  "embedTwoMs": {
+   "mean": 16.827632777666054,
+   "min": 15.322708331048489,
+   "p50": 16.52625000104308,
+   "p95": 19.535833332687616
+  },
+  "loadMs": 79.57316666468978,
+  "memory": {
+   "footprintMB": 177.986083984375,
+   "footprintPeakMB": 536.4394378662109,
+   "residentMB": 85.53125,
+   "residentPeakMB": 768.421875
+  },
+  "modelTwoMs": {
+   "mean": 14.796825278103352,
+   "min": 13.833166670054197,
+   "p50": 14.500666666775942,
+   "p95": 17.22654166817665
+  },
+  "resizeMs": {
+   "mean": 4.043801388492187,
+   "min": 3.139583334326744,
+   "p50": 4.045291669666767,
+   "p95": 4.516791667789221
+  },
+  "scans": 150,
+  "task": "speed:siglip-w8lin:all:150"
+ },
+ "speed:siglip-w8lin:gpu:150": {
+  "embedTwoMs": {
+   "mean": 705.1911094446481,
+   "min": 687.460583332926,
+   "p50": 696.858791667968,
+   "p95": 726.996333334595
+  },
+  "loadMs": 73.90437500178814,
+  "memory": {
+   "footprintMB": 194.62677764892578,
+   "footprintPeakMB": 561.3614044189453,
+   "residentMB": 167.203125,
+   "residentPeakMB": 768.421875
+  },
+  "modelTwoMs": {
+   "mean": 695.7237258329491,
+   "min": 677.6503749974072,
+   "p50": 687.4387916661799,
+   "p95": 719.5591250024736
+  },
+  "resizeMs": {
+   "mean": 10.211397777994474,
+   "min": 5.697083335369825,
+   "p50": 10.349541667848825,
+   "p95": 11.40412499755621
+  },
+  "scans": 150,
+  "task": "speed:siglip-w8lin:gpu:150"
+ }
+}

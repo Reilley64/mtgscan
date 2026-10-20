@@ -1,0 +1,171 @@
+{
+ "note": "cosine vs ref/up.npy (Mac PyTorch float32, PIL bicubic pad-384 preprocessing). Times on the arm64 emulator (4 vCPU, XNNPACK, 4 threads) are NOT meaningful for device performance.",
+ "emulator": "AVD embedbench, system-images;android-35;google_apis_playstore_tablet;arm64-v8a, -cores 4 -memory 4096, headless",
+ "runtime": "com.google.ai.edge.litert:litert:2.3.0, org.tensorflow.lite.Interpreter, CPU (default XNNPACK), 4 threads",
+ "converter": "litert-torch 0.9.4 (torch 2.13.0); quantization ai-edge-quantizer 0.9.0; Mac check ai-edge-litert 2.2.0",
+ "models": {
+  "f32": {
+   "file": "models/pes16-f32.tflite",
+   "bytes": 95062156,
+   "mac_litert_ref24": {
+    "min_cos": 0.9999998807907104,
+    "median_cos": 1.0,
+    "nan": false,
+    "mac_ms_median": 269.58464551717043
+   },
+   "emulator_ref24_f32_inputs": {
+    "n": 24,
+    "min_cos": 0.9999998211860657,
+    "median_cos": 1.0,
+    "nan": false,
+    "ms_median_emulator_not_meaningful": 398.637021,
+    "ms_first_emulator_not_meaningful": 1404.546875
+   },
+   "emulator_all261_f16_inputs": {
+    "n": 261,
+    "min_cos": 0.9999851584434509,
+    "median_cos": 0.9999993443489075,
+    "nan": false,
+    "ms_median_emulator_not_meaningful": 426.203417,
+    "ms_first_emulator_not_meaningful": 994.862
+   },
+   "emulator_jpeg_end_to_end_261": {
+    "n": 261,
+    "min_cos": 0.9790915250778198,
+    "median_cos": 0.9931285381317139,
+    "nan": false,
+    "ms_median_emulator_not_meaningful": 384.680334,
+    "ms_first_emulator_not_meaningful": 965.682376
+   },
+   "emulator_jpeg_vs_emulator_f32_jpeg": {
+    "min_cos": 0.9999997615814209,
+    "median_cos": 1.0
+   }
+  },
+  "w16": {
+   "file": "models/pes16-w16.tflite",
+   "bytes": 48377840,
+   "mac_litert_ref24": {
+    "min_cos": 0.9999991655349731,
+    "median_cos": 0.9999995231628418,
+    "nan": false,
+    "mac_ms_median": 398.86524993926287
+   },
+   "emulator_ref24_f32_inputs": {
+    "n": 24,
+    "min_cos": 0.9999990463256836,
+    "median_cos": 0.9999995231628418,
+    "nan": false,
+    "ms_median_emulator_not_meaningful": 376.4528335,
+    "ms_first_emulator_not_meaningful": 1042.028667
+   },
+   "emulator_all261_f16_inputs": {
+    "n": 261,
+    "min_cos": 0.9999827146530151,
+    "median_cos": 0.9999988675117493,
+    "nan": false,
+    "ms_median_emulator_not_meaningful": 395.4705,
+    "ms_first_emulator_not_meaningful": 837.39475
+   },
+   "emulator_jpeg_end_to_end_261": {
+    "n": 261,
+    "min_cos": 0.9791101217269897,
+    "median_cos": 0.9931319355964661,
+    "nan": false,
+    "ms_median_emulator_not_meaningful": 577.759625,
+    "ms_first_emulator_not_meaningful": 994.91
+   },
+   "emulator_jpeg_vs_emulator_f32_jpeg": {
+    "min_cos": 0.9999988079071045,
+    "median_cos": 0.9999995231628418
+   }
+  },
+  "w8": {
+   "file": "models/pes16-w8.tflite",
+   "bytes": 25576560,
+   "mac_litert_ref24": {
+    "min_cos": 0.9977366924285889,
+    "median_cos": 0.9984699487686157,
+    "nan": false,
+    "mac_ms_median": 112.74375021457672
+   },
+   "emulator_ref24_f32_inputs": {
+    "n": 24,
+    "min_cos": 0.9977368116378784,
+    "median_cos": 0.9984698295593262,
+    "nan": false,
+    "ms_median_emulator_not_meaningful": 464.2714375,
+    "ms_first_emulator_not_meaningful": 874.18075
+   },
+   "emulator_all261_f16_inputs": {
+    "n": 261,
+    "min_cos": 0.9972279667854309,
+    "median_cos": 0.9985123872756958,
+    "nan": false,
+    "ms_median_emulator_not_meaningful": 492.98,
+    "ms_first_emulator_not_meaningful": 1103.197917
+   },
+   "emulator_jpeg_end_to_end_261": {
+    "n": 261,
+    "min_cos": 0.9782848954200745,
+    "median_cos": 0.9918651580810547,
+    "nan": false,
+    "ms_median_emulator_not_meaningful": 394.777167,
+    "ms_first_emulator_not_meaningful": 1367.388751
+   },
+   "emulator_jpeg_vs_emulator_f32_jpeg": {
+    "min_cos": 0.9959211349487305,
+    "median_cos": 0.9984112977981567
+   }
+  },
+  "dyn8": {
+   "file": "models/pes16-dyn8.tflite",
+   "bytes": 25560448,
+   "mac_litert_ref24": {
+    "min_cos": 0.9891720414161682,
+    "median_cos": 0.9926097989082336,
+    "nan": false,
+    "mac_ms_median": 185.4548961855471
+   },
+   "emulator_ref24_f32_inputs": {
+    "n": 24,
+    "min_cos": 0.9884470701217651,
+    "median_cos": 0.9928826689720154,
+    "nan": false,
+    "ms_median_emulator_not_meaningful": 773.3859379999999,
+    "ms_first_emulator_not_meaningful": 1468.597459
+   },
+   "emulator_all261_f16_inputs": {
+    "n": 261,
+    "min_cos": 0.9862891435623169,
+    "median_cos": 0.9929372072219849,
+    "nan": false,
+    "ms_median_emulator_not_meaningful": 212.006541,
+    "ms_first_emulator_not_meaningful": 2101.645001
+   },
+   "emulator_jpeg_end_to_end_261": {
+    "n": 261,
+    "min_cos": 0.9699370861053467,
+    "median_cos": 0.9866999387741089,
+    "nan": false,
+    "ms_median_emulator_not_meaningful": 195.098167,
+    "ms_first_emulator_not_meaningful": 549.273375
+   },
+   "emulator_jpeg_vs_emulator_f32_jpeg": {
+    "min_cos": 0.9765000343322754,
+    "median_cos": 0.9926162958145142
+   }
+  }
+ },
+ "jpeg_preprocessing_check": {
+  "what": "emulator f32 JPEG-path vectors vs Mac LiteRT f32 run on Mac-side re-preprocessed inputs",
+  "pil_bilinear": {
+   "min": 0.9653546214103699,
+   "median": 0.9905251264572144
+  },
+  "torch_bilinear_noaa": {
+   "min": 0.9978493452072144,
+   "median": 0.9995291233062744
+  }
+ }
+}

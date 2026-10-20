@@ -1,0 +1,30 @@
+{
+ "siglip2_b16_256": {
+  "mode": "squash",
+  "W": 256,
+  "H": 256,
+  "pool": "pooled",
+  "half": true
+ },
+ "pe_core_b16_224": {
+  "mode": "squash",
+  "W": 224,
+  "H": 224,
+  "pool": "pooled",
+  "half": false
+ },
+ "pe_core_s16_384": {
+  "mode": "pad",
+  "W": 384,
+  "H": 384,
+  "pool": "pooled",
+  "half": true
+ },
+ "dinov3_s16": {
+  "mode": "squash",
+  "W": 336,
+  "H": 464,
+  "pool": "cat",
+  "half": true
+ }
+}
