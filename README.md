@@ -55,7 +55,7 @@ A card result also has:
   - `set_code` when the set code leaves one card printing of the top card;
   - `unique_art` when the top card printing is the only one with its art, and the next art is far enough behind.
 - `artMargin`, the similarity of the top candidate minus the similarity of the best candidate with other art. It is null when no other art was compared.
-- `trainingCrop`, the file URI of the straightened card as a 488 x 680 JPEG in `Caches/training-crops`, the size and format of the crops in the scanner evidence pack. The crop is upright, in the rotation that the recognizer chose. A not-a-card result and a failed recognition write no crop.
+- `trainingCrop`, the file URI of the straightened card as a 488 x 680 WebP at quality 90 in `Caches/training-crops`. That is the size of the crops in the scanner evidence pack. The recognizer writes it with libwebp, the encoder that Android will also use (ADR 0015). On iOS it uses the libwebp that `expo-image` brings into the app, so the app holds one copy. The crop is upright, in the rotation that the recognizer chose. A not-a-card result and a failed recognition write no crop.
 
 The module also exports two constants for the evidence record of a training crop: `featurePrintRevision`, the feature print revision, and `recognizerVersion`, the app version and build number, such as `1.0.0 (7)`.
 
@@ -145,14 +145,14 @@ The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in accou
 - The file marks a commit that has not finished. At sign-in, the phone sends that commit again by itself.
 - A commit that works removes the scans it sent. A commit that fails keeps every scan. Batch review rows do not open while a commit runs. Scan details from the latest-scan chip do not offer **Remove scan** while a commit runs.
 - **Remove** in the **Remove all scans** alert of batch review empties the scan batch and its file. It also clears a commit that has not finished. A recognition that is still running adds no scan when it ends, and the phone deletes its training crop. Nothing reaches the server.
-- A scan keeps its training crop. When the scan enters the scan batch, the phone moves the crop from `Caches/training-crops` to `training-crops/<user ID>/<copy ID>.jpg` in the documents folder. The scan batch file and the upload queue file save no file URI. The phone builds the path of each crop from the user ID and the copy ID, so a crop is still found if iOS moves the app's data folder. `src/scan/training-crop-keeper.ts` holds the rules for these files. The scan also keeps the recognizer fields of the evidence record: the decision, the top similarity, the art margin, the collector line reading, the recognizer version, the feature print revision, and the installed gallery version. A basic land, a recognition with no candidates, and a scan from **+1** keep no crop, and the phone deletes the crop of the first two.
+- A scan keeps its training crop. When the scan enters the scan batch, the phone moves the crop from `Caches/training-crops` to `training-crops/<user ID>/<copy ID>.webp` in the documents folder. The scan batch file and the upload queue file save no file URI. The phone builds the path of each crop from the user ID and the copy ID, so a crop is still found if iOS moves the app's data folder. `src/scan/training-crop-keeper.ts` holds the rules for these files. The scan also keeps the recognizer fields of the evidence record: the decision, the top similarity, the art margin, the collector line reading, the recognizer version, the feature print revision, and the installed gallery version. A basic land, a recognition with no candidates, and a scan from **+1** keep no crop, and the phone deletes the crop of the first two.
 - A scan keeps `recognizedPrintingId`, the scanner's first card printing. A scan that the user found with name search after it was not recognized has none.
 - A scan keeps `printingChange`. It is null until the user chooses a card printing other than the current one. Then it is `other_options`, `printing_picker`, or `name_search`, from the last such choice. A switch back to the first card printing is a change too.
 - A scan keeps `printingConfirmed`. Choosing the current card printing in the printing picker sets it. Any later change clears it.
 - **Remove scan** and **Remove all scans** delete the training crops of the scans they remove, after the scan batch file no longer lists them.
 - The scan batch file is format version 3. Its training crops hold only the recognizer fields. A file in format version 2 still loads with its training crops, and the phone ignores their file URIs. A file in format version 1 still loads. Its scans get no training crop, no first card printing, and no printing change.
 - After a commit that works, the training crop of each saved scan that has one joins the user's upload queue, `training-crop-queue-<user ID>.json` in the documents folder. `src/scan/evidence-record.ts` builds the evidence record from the saved scan, with policy version 1. Each crop in the queue gets a new random crop ID, which is not the copy ID, and an upload time drawn at random between 1 and 7 days after the commit. So the upload time does not show when the user added the card.
-- The upload queue file is format version 2. Each crop in it holds its crop ID, its copy ID, its upload time, and its evidence record. A file in format version 1 still loads, and the phone ignores its file URIs.
+- The upload queue file is format version 3. Each crop in it holds its crop ID, its copy ID, its upload time, and its evidence record. Files in format versions 1 and 2 are from before training crops were WebP. The phone drops their crops and deletes the crop files, so no JPEG crop uploads.
 - The phone uploads the crops whose upload time has passed when the app starts, when a user signs in, and when the app comes back to the foreground. `TrainingCropUploads` in `src/scan/training-crops.ts` runs these uploads, apart from the scan batch. It uploads them one at a time to the `training-crops` Edge Function, which Training crops (below) describes. It uploads only the signed-in user's queue, and it stops when the user signs out. The phone deletes the crop after the upload works or after the server refuses it with a 400, such as `unknown_copy` for a copy that the user deleted. A network failure or another error keeps the crop in the queue, and the phone stops until the next try. Before it uploads a crop, the phone checks that the file exists. A crop whose file is missing leaves the queue with no upload, and the next crop uploads.
 - Once at sign-in or start, after the scan batch and the upload queue load, the phone deletes each file in `training-crops/<user ID>/` that neither of them lists. It keeps the crops of scans made since then. So a scan batch file or upload queue file that cannot be read leaves no crops behind.
 - The phone reads the **Upload training crops** switch when a user signs in or the app starts, and again when the app comes back to the foreground after a failed read. When the phone knows that uploads are off, a commit deletes the training crops of the saved scans and queues none. Turning the switch off deletes every crop in the user's queue.
@@ -383,7 +383,7 @@ The app uploads a training crop for each saved scan to the `training-crops` Edge
 
 The function takes a `multipart/form-data` POST with the user's token and three parts:
 
-- `image`, the JPEG of the crop;
+- `image`, the WebP of the crop;
 - `copy_id`, the copy ID of the saved scan;
 - `crop`, the evidence record as JSON, with a new random `crop_id` that is not the copy ID.
 
@@ -391,13 +391,13 @@ The function:
 
 1. checks the user's token, and answers 401 when there is none;
 2. refuses an AI client's token with 403 and `insufficient_privilege`, as ADR 0007 asks for app writes;
-3. refuses an image that is not `image/jpeg` or is over 1 MB with `invalid_argument` on `image`. The `training-crops` bucket holds both limits, and the function reads them from it;
+3. refuses an image that is not `image/webp` or is over 1 MB with `invalid_argument` on `image`. The `training-crops` bucket holds both limits, and the function reads them from it. It also refuses an image whose bytes do not start as a WebP file, such as a JPEG sent as `image/webp`;
 4. calls `add_training_crop` with the secret key;
-5. uploads the image to `training-crops` at `<crop_id>.jpg` with the secret key and no metadata. An object that is already there counts as done, so a retry works.
+5. uploads the image to `training-crops` at `<crop_id>.webp` with the secret key and no metadata. An object that is already there counts as done, so a retry works.
 
 It answers 204 when the crop is stored. A refusal is a 400 with a JSON body of `code`, `message`, and `details`, the field at fault. Any other failure is a 500 with `internal_error`. The function writes no log line.
 
-`.github/workflows/edge-functions.yml` deploys it with the MCP function. `supabase/functions/training-crops/crop-object.ts` names the bucket and the object path, `<crop_id>.jpg`, for the function and the owner command.
+`.github/workflows/edge-functions.yml` deploys it with the MCP function. `supabase/functions/training-crops/crop-object.ts` names the bucket and the object path, `<crop_id>.webp`, for the function.
 
 `add_training_crop({ user_id, copy_id, crop })` runs only for the secret key. It uses the user ID and the copy ID for its checks and stores neither:
 
@@ -429,11 +429,11 @@ The **Upload training crops** switch in the settings drawer sets `profiles.train
 
 `supabase/training-crops.ts` has the shared types.
 
-`training_crops` has no user ID, copy ID, or time column. No app role can read or write it. Only the secret key reads it, and it changes only through `add_training_crop`. The private `training-crops` bucket accepts only `image/jpeg` up to 1 MB. Signed-in users and anonymous callers cannot read, list, upload, or delete in it.
+`training_crops` has no user ID, copy ID, or time column. No app role can read or write it. Only the secret key reads it, and it changes only through `add_training_crop`. The private `training-crops` bucket accepts only `image/webp` up to 1 MB. Crops that uploaded before training crops were WebP stay in it as `<crop_id>.jpg`. ADR 0011 means they cannot be deleted. Signed-in users and anonymous callers cannot read, list, upload, or delete in it.
 
 The owner downloads the training crops to the Mac with `bun run crops pull` in `supabase`. The script loads `.env.hosted`, like the gallery commands, so it reads the hosted project with the secret key. It downloads into `~/Library/Caches/mtgscan/training-crops/`, outside the repository. `--into <dir>` names another folder. The folder has the layout of the scanner evidence pack:
 
-- `crops/<crop_id>.jpg` holds each image. The command downloads only the images that are not in the folder yet.
+- `crops/<crop_id>.webp` holds each image, with the name it has in the bucket. A crop that uploaded before training crops were WebP is `crops/<crop_id>.jpg`. The command downloads only the images that are not in the folder yet.
 - `labels.json` has `cards`, with each crop path and its `saved_printing_id` as `scryfallId`.
 - `evidence.json` has the evidence record of each crop, in the same order.
 
