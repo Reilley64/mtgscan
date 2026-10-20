@@ -28,7 +28,7 @@ import { removeBasicLandFromDeck, removeFromDeck } from '@/decks/remove-from-dec
 import { useDeck } from '@/decks/use-deck';
 import { useDeckChanges } from '@/decks/use-deck-changes';
 import { violationCardKeys } from '@/decks/violation-cards';
-import { useBannerTitle } from '@/lib/use-banner-title';
+import { useBannerScroll } from '@/lib/use-banner-scroll';
 import { useNeedsYouCounts } from '@/needs-you/needs-you-counts';
 import { useNeedsYou, type NeedsYouItem } from '@/needs-you/use-needs-you';
 import { colors } from '@/theme';
@@ -93,7 +93,7 @@ export default function DeckScreen() {
   const [renaming, setRenaming] = useState(false);
   const { grouping, order, setGrouping, setOrder } = useDeckCardOrder();
   const showsCardOrderButtons = tab === 'cards' && read.status === 'loaded' && read.deck.card_count > 0;
-  const { showsTitle, onBannerLayout, onScroll } = useBannerTitle();
+  const { bannerScrolledAway, scrollEdgeEffects, onBannerLayout, onScroll } = useBannerScroll();
 
   useEffect(() => {
     void markDeckUsed(deckId);
@@ -235,7 +235,12 @@ export default function DeckScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: deck && showsTitle ? deck.name : '' }} />
+      <Stack.Screen
+        options={{
+          title: deck && bannerScrolledAway ? deck.name : '',
+          scrollEdgeEffects,
+        }}
+      />
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button icon="xmark" tintColor={colors.text} accessibilityLabel="Close" onPress={() => router.back()} />
       </Stack.Toolbar>

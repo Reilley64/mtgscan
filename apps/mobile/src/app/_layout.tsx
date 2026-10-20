@@ -9,7 +9,7 @@ import { SessionProvider, useSession } from '@/auth/session';
 import { PriceCurrencyProvider } from '@/collection/price-currency-setting';
 import { DeckCardOrderProvider } from '@/decks/deck-card-order';
 import { fullHeightDrawerOptions, halfHeightDrawerOptions, pageSheetOptions } from '@/components/templates/drawer-sheet';
-import { softTopScrollEdgeEffects } from '@/components/templates/tab-stack';
+import { softTopScrollEdgeEffects } from '@/lib/scroll-edge-effects';
 import { GalleryProvider } from '@/gallery/gallery-state';
 import { ReadProvider } from '@/lib/read';
 import { NeedsYouCountsProvider } from '@/needs-you/needs-you-counts';

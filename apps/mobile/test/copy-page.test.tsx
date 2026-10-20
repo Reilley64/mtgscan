@@ -20,9 +20,12 @@ import {
   pressButtonMenuItem,
   pressHeaderButton,
   presentedAlert,
+  placeInScrollView,
   pressTab,
   pushedScreen,
   pushedScreenBackButton,
+  pushedScreenBlursUnderHeader,
+  scrollPushedScreenTo,
   scrollToEnd,
   searchBarHasFocus,
   selectedTab,
@@ -117,6 +120,23 @@ describe('the copy page', () => {
     const title = screen.getByRole('header', { name: 'Angelic Curator' });
     expect(appearsBefore(hero, title)).toBe(true);
     expect(appearsBefore(title, screen.getByText('Creature — Angel Spirit'))).toBe(true);
+  });
+
+  test('the header blurs nothing while the hero is under it, and blurs the page once the hero scrolls out', async () => {
+    ownCopies([copyOf('copy-1')]);
+    await openCopyPage(/^Angelic Curator/);
+    const hero = placeInScrollView(screen.getByRole('image', { name: 'Angelic Curator' })).block.parent!;
+    await fireEvent(hero, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 400 } } });
+    expect(pushedScreenBlursUnderHeader()).toBe(false);
+
+    await scrollPushedScreenTo(100);
+    expect(pushedScreenBlursUnderHeader()).toBe(false);
+
+    await scrollPushedScreenTo(400);
+    expect(pushedScreenBlursUnderHeader()).toBe(true);
+
+    await scrollPushedScreenTo(0);
+    expect(pushedScreenBlursUnderHeader()).toBe(false);
   });
 
   test('a card printing with no art crop shows the card image blurred', async () => {

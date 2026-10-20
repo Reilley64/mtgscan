@@ -1,11 +1,10 @@
 import { Stack } from 'expo-router';
 import type { ReactNode } from 'react';
 
+import { softTopScrollEdgeEffects } from '@/lib/scroll-edge-effects';
 import { colors, typography } from '@/theme';
 
 export const inlineTitleStyle = { ...typography.sheetTitle, color: colors.text };
-
-export const softTopScrollEdgeEffects = { top: 'soft', bottom: 'automatic', left: 'automatic', right: 'automatic' } as const;
 
 export function TabStack({ children }: { children?: ReactNode }) {
   return (

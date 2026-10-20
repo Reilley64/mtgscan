@@ -1,6 +1,6 @@
 import type { CopyDetails } from '@mtgscan/supabase/collection';
 import { convertedPrice, type ExchangeRate } from '@mtgscan/supabase/converted-prices';
-import { View } from 'react-native';
+import { View, type LayoutChangeEvent } from 'react-native';
 
 import { commanderLegalityLabels, copyChipLabels, sheenOf } from '@/collection/copy-labels';
 import { changeSinceAdded, shownPriceChange, spokenPriceChange } from '@/collection/price-change';
@@ -85,9 +85,10 @@ type CopyPageContentProps = {
   priceCurrency: ExchangeRate;
   onOpenUserTags: () => void;
   onOpenDeck: (deckId: string) => void;
+  onHeroLayout: (event: LayoutChangeEvent) => void;
 };
 
-export function CopyPageContent({ copy, priceCurrency, onOpenUserTags, onOpenDeck }: CopyPageContentProps) {
+export function CopyPageContent({ copy, priceCurrency, onOpenUserTags, onOpenDeck, onHeroLayout }: CopyPageContentProps) {
   const legality = commanderLegalityLabels[copy.commander_legality];
   const price = copy.price && convertedPrice(copy.price, priceCurrency);
   const purchaseDayPrice = copy.purchase_day_price && convertedPrice(copy.purchase_day_price, priceCurrency);
@@ -100,6 +101,7 @@ export function CopyPageContent({ copy, priceCurrency, onOpenUserTags, onOpenDec
         artUri={copy.art_crop_uri ?? copy.image_uris[0]}
         name={copy.name}
         sheen={sheenOf(copy.finish)}
+        onLayout={onHeroLayout}
       />
       <View className="gap-lg px-lg">
         <View className="gap-xs">
