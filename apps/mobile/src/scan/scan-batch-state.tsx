@@ -20,9 +20,9 @@ import { useGallery } from '@/gallery/gallery-state';
 import { supabase } from '@/lib/supabase';
 
 import {
-  featurePrintRevision,
   recognizerVersion,
   type CardRecognition,
+  type InstalledGallery,
   type Recognition,
 } from '../../modules/card-recognizer';
 import {
@@ -145,14 +145,14 @@ function keptTrainingCrop(
   recognition: RecognitionResult,
   scanId: string,
   keeper: TrainingCropKeeper | null,
-  galleryVersion: string | undefined,
+  gallery: InstalledGallery | null | undefined,
 ): KeptTrainingCrop | null {
   const cropUri = cardRecognitionOf(recognition)?.trainingCrop;
   if (!cropUri || !keeper) {
     return null;
   }
   const card = scannedCard(recognition);
-  if (card && galleryVersion && keeper.keep(cropUri, scanId)) {
+  if (card && gallery && keeper.keep(cropUri, scanId)) {
     return {
       userId: keeper.userId,
       trainingCrop: {
@@ -161,8 +161,8 @@ function keptTrainingCrop(
         artMargin: card.artMargin,
         reading: card.reading,
         recognizerVersion,
-        featurePrintRevision,
-        galleryVersion,
+        featurePrintModel: gallery.model,
+        galleryVersion: gallery.version,
       },
     };
   }
@@ -274,7 +274,7 @@ function latestScan({ batch, latest, recognizing }: Scanning): LatestScan | null
 
 export function ScanBatchProvider({ children }: { children: ReactNode }) {
   const userId = useSession()?.user.id;
-  const galleryVersion = useGallery().installed?.version;
+  const gallery = useGallery().installed;
   const [batchUserId, setBatchUserId] = useState(userId);
   const [state, dispatchScanning] = useReducer(scanningReducer, initialScanning);
   const keeper = useMemo(() => (userId ? trainingCropKeeper(userId) : null), [userId]);
@@ -352,10 +352,10 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
   const recognitionEnded = useCallback(
     (photoId: string, recognition: RecognitionResult) => {
       const scanId = randomUUID();
-      const keptCrop = keptTrainingCrop(recognition, scanId, keeper, galleryVersion);
+      const keptCrop = keptTrainingCrop(recognition, scanId, keeper, gallery);
       dispatchScanning({ type: 'recognitionEnded', photoId, scanId, recognition, keptCrop });
     },
-    [galleryVersion, keeper],
+    [gallery, keeper],
   );
   const addCopy = useCallback(
     (scanId: string) => dispatchScanning({ type: 'addCopy', scanId, newScanId: randomUUID() }),

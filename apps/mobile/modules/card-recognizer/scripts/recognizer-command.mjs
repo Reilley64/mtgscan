@@ -7,6 +7,8 @@ export const dataDirectory = path.resolve(process.env.RECOGNIZER_DATA_DIR ?? pat
 
 export const printingListFile = 'catalog.json';
 export const vectorsFile = 'gallery.f16';
+export const galleryHeaderFile = 'gallery.json';
+export const compiledModelFile = 'model.mlmodelc';
 
 export function run(command, args, { output } = {}) {
   return new Promise((resolve, reject) => {

@@ -96,6 +96,14 @@ describe('uploading a training crop', () => {
     expect(new Uint8Array(await image.data!.arrayBuffer())).toEqual(new Uint8Array(await webp().arrayBuffer()));
   });
 
+  test('a stored training crop names the feature print model that made its feature prints', async () => {
+    const crop = evidenceRecord({ feature_print_model: 'pe-core-s16-384' });
+
+    await upload(alice.client, { crop });
+
+    expect((await storedRow(crop.crop_id)).map((row) => row.feature_print_model)).toEqual(['pe-core-s16-384']);
+  });
+
   test('a stored training crop holds no user ID, copy ID, or time, and its image has no owner and no metadata', async () => {
     const crop = evidenceRecord({ crop_id: crypto.randomUUID() });
 
@@ -167,6 +175,17 @@ describe('uploading a training crop', () => {
     ['a crop that is not JSON', () => ({ crop: 'crop' }), 'crop'],
     ['a crop with an unknown field', () => ({ crop: { ...evidenceRecord(), user_id: alice.userId } }), 'crop.user_id'],
     ['a crop without a field', () => ({ crop: { ...evidenceRecord(), policy_version: undefined } }), 'crop.policy_version'],
+    [
+      'a crop with the feature print revision of older builds',
+      () => ({ crop: { ...evidenceRecord(), feature_print_revision: 2 } }),
+      'crop.feature_print_revision',
+    ],
+    ['a feature print model that is not text', () => ({ crop: { ...evidenceRecord(), feature_print_model: 2 } }), 'crop.feature_print_model'],
+    [
+      'a feature print model over 50 characters',
+      () => ({ crop: evidenceRecord({ feature_print_model: 'm'.repeat(51) }) }),
+      'crop.feature_print_model',
+    ],
     ['a crop ID that is not a UUID', () => ({ crop: evidenceRecord({ crop_id: 'crop' }) }), 'crop.crop_id'],
     ['a crop ID that is the copy ID', () => ({ crop: evidenceRecord({ crop_id: aliceCopyId }) }), 'crop.crop_id'],
     ['an unknown decision basis', () => ({ crop: { ...evidenceRecord(), decision_basis: 'guess' } }), 'crop.decision_basis'],

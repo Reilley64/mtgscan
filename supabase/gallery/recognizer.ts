@@ -3,13 +3,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { buildRecognizer } from '../../apps/mobile/modules/card-recognizer/scripts/recognizer-command.mjs';
-import { featurePrintDimension } from './format';
+import type { FeaturePrintModel } from './manifest';
 
 export type RecognizerAbout = {
   macOS: string;
   machine: string;
-  featurePrintRevision: number;
-  dimension: number;
+  model: FeaturePrintModel;
 };
 
 export function macOSMajor(macOS: string): string {
@@ -19,7 +18,6 @@ export function macOSMajor(macOS: string): string {
 export type Recognizer = {
   about: RecognizerAbout;
   encode: (images: string[]) => Promise<Uint8Array>;
-  install: (versionDirectory: string, galleryDirectory: string) => Promise<void>;
 };
 
 async function run(command: string, args: string[]): Promise<string> {
@@ -31,12 +29,13 @@ async function run(command: string, args: string[]): Promise<string> {
   return stdout;
 }
 
-export async function macRecognizer(): Promise<Recognizer> {
-  const command = process.env.GALLERY_RECOGNIZER ?? (await buildRecognizer());
-  const about = JSON.parse(await run(command, ['about'])) as RecognizerAbout;
-  if (about.dimension !== featurePrintDimension) {
-    throw new Error(`The recognizer makes ${about.dimension} values, the gallery needs ${featurePrintDimension}`);
-  }
+async function recognizerCommand(): Promise<string> {
+  return process.env.GALLERY_RECOGNIZER ?? (await buildRecognizer());
+}
+
+export async function macRecognizer(modelPackage: string): Promise<Recognizer> {
+  const command = await recognizerCommand();
+  const about = JSON.parse(await run(command, ['about', '--model', modelPackage])) as RecognizerAbout;
   return {
     about,
     async encode(images) {
@@ -46,9 +45,9 @@ export async function macRecognizer(): Promise<Recognizer> {
       const directory = await mkdtemp(join(tmpdir(), 'mtgscan-gallery-encode-'));
       try {
         await writeFile(join(directory, 'images.txt'), images.join('\n'));
-        await run(command, ['encode', join(directory, 'images.txt'), join(directory, 'codes.i8')]);
+        await run(command, ['encode', '--model', modelPackage, join(directory, 'images.txt'), join(directory, 'codes.i8')]);
         const codes = new Uint8Array(await Bun.file(join(directory, 'codes.i8')).arrayBuffer());
-        if (codes.length !== images.length * featurePrintDimension) {
+        if (codes.length !== images.length * about.model.vectorSize) {
           throw new Error(`The recognizer wrote ${codes.length} bytes for ${images.length} images`);
         }
         return codes;
@@ -56,8 +55,9 @@ export async function macRecognizer(): Promise<Recognizer> {
         await rm(directory, { recursive: true, force: true });
       }
     },
-    async install(versionDirectory, galleryDirectory) {
-      await run(command, ['install', versionDirectory, galleryDirectory]);
-    },
   };
+}
+
+export async function installWithMacRecognizer(versionDirectory: string, galleryDirectory: string): Promise<void> {
+  await run(await recognizerCommand(), ['install', versionDirectory, galleryDirectory]);
 }

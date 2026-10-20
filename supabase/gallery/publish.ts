@@ -4,9 +4,17 @@ import { join } from 'node:path';
 
 import type { ImportClient } from '../import/import-run';
 import { budgetReport, freePlan, gigabytes } from './budget';
-import { galleryFormatVersion, partBytes, updateBytes, verifiedPartBytes } from './format';
-import { type Manifest, type Pointer, type SignedVersion, manifestFile, megabytes, pointerFile } from './manifest';
-import type { Recognizer } from './recognizer';
+import { partBytes, updateBytes, verifiedPartBytes } from './format';
+import {
+  type Manifest,
+  type Pointer,
+  type SignedVersion,
+  galleryFormatVersion,
+  manifestFile,
+  megabytes,
+  pointerFile,
+} from './manifest';
+import { installWithMacRecognizer } from './recognizer';
 import { evidenceVersion } from './repository';
 import { localPartBytes, versionDirectory } from './work-folder';
 import {
@@ -114,7 +122,6 @@ export async function galleryStatus(client: ImportClient) {
 
 export async function installGallery(
   client: () => ImportClient,
-  recognizer: Recognizer,
   workDirectory: string,
   version: string,
   galleryDirectory: string,
@@ -132,6 +139,6 @@ export async function installGallery(
   for (const part of manifest.parts) {
     verifiedPartBytes(part, await localPartBytes(client, workDirectory, version, part));
   }
-  await recognizer.install(directory, galleryDirectory);
+  await installWithMacRecognizer(directory, galleryDirectory);
   console.log(`Installed gallery version ${version} in ${galleryDirectory}.`);
 }

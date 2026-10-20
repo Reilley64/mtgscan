@@ -1,4 +1,5 @@
 import Accelerate
+import CoreGraphics
 import Foundation
 
 public struct GalleryPrinting: Codable, Sendable {
@@ -32,20 +33,57 @@ public struct GalleryPrinting: Codable, Sendable {
   }
 }
 
+public struct FeaturePrintModel: Codable, Sendable, Equatable {
+  public struct InputSize: Codable, Sendable, Equatable {
+    public let width: Int
+    public let height: Int
+
+    public init(width: Int, height: Int) {
+      self.width = width
+      self.height = height
+    }
+  }
+
+  public let name: String
+  public let sha256: String
+  public let inputSize: InputSize
+  public let vectorSize: Int
+
+  public init(name: String, sha256: String, inputSize: InputSize, vectorSize: Int) {
+    self.name = name
+    self.sha256 = sha256
+    self.inputSize = inputSize
+    self.vectorSize = vectorSize
+  }
+}
+
+public struct RecognizerThresholds: Codable, Sendable, Equatable {
+  public let notACard: Float
+  public let orientationMargin: Float
+  public let artMargin: Float
+}
+
 public struct GalleryHeader: Codable, Sendable {
   public static let float16 = "float16"
 
   public let count: Int
-  public let dimension: Int
-  public let revision: Int
+  public let model: FeaturePrintModel
+  public let thresholds: RecognizerThresholds
   public let createdAt: String
   public let encoding: String?
   public let version: String?
 
-  public init(count: Int, dimension: Int, revision: Int, createdAt: String, encoding: String?, version: String? = nil) {
+  public init(
+    count: Int,
+    model: FeaturePrintModel,
+    thresholds: RecognizerThresholds,
+    createdAt: String,
+    encoding: String?,
+    version: String? = nil
+  ) {
     self.count = count
-    self.dimension = dimension
-    self.revision = revision
+    self.model = model
+    self.thresholds = thresholds
     self.createdAt = createdAt
     self.encoding = encoding
     self.version = version
@@ -56,6 +94,8 @@ public enum GalleryFile {
   public static let printingList = "catalog.json"
   public static let header = "gallery.json"
   public static let float16Vectors = "gallery.f16"
+  public static let modelPackage = "model.mlpackage"
+  public static let compiledModel = "model.mlmodelc"
 }
 
 public final class Gallery: Sendable {
@@ -63,9 +103,12 @@ public final class Gallery: Sendable {
 
   public let printings: [GalleryPrinting]
   public let version: String?
+  public let model: FeaturePrintModel
+  public let thresholds: RecognizerThresholds
   public let dimension: Int
   public let printingsByIllustration: [String: [Int]]
   public let setCodes: Set<String>
+  private let compiledModel: CompiledModel
   private let vectors: Data
   private let indexBySetAndNumber: [String: Int]
   private let indexById: [String: Int]
@@ -87,19 +130,22 @@ public final class Gallery: Sendable {
       GalleryHeader.self,
       from: Data(contentsOf: directory.appendingPathComponent(GalleryFile.header))
     )
-    guard header.count == printings.count, header.dimension == FeaturePrint.dimension else {
-      throw Failure.mismatch("gallery has \(header.count)x\(header.dimension), printing list has \(printings.count)")
+    guard header.count == printings.count else {
+      throw Failure.mismatch("gallery has \(header.count) rows, printing list has \(printings.count)")
     }
-    dimension = header.dimension
+    model = header.model
+    thresholds = header.thresholds
+    dimension = header.model.vectorSize
     version = header.version
     guard (header.encoding ?? GalleryHeader.float16) == GalleryHeader.float16 else {
       throw Failure.mismatch("unknown gallery encoding \(header.encoding ?? "")")
     }
     let raw = try Data(contentsOf: directory.appendingPathComponent(GalleryFile.float16Vectors), options: .alwaysMapped)
-    guard raw.count == header.count * header.dimension * MemoryLayout<Float16>.size else {
+    guard raw.count == header.count * dimension * MemoryLayout<Float16>.size else {
       throw Failure.mismatch("\(GalleryFile.float16Vectors) has \(raw.count) bytes")
     }
     vectors = raw
+    compiledModel = try CompiledModel(compiledAt: directory.appendingPathComponent(GalleryFile.compiledModel))
     var bySetAndNumber: [String: Int] = [:]
     var byIllustration: [String: [Int]] = [:]
     for (index, printing) in printings.enumerated() {
@@ -129,6 +175,14 @@ public final class Gallery: Sendable {
 
   public func index(id: String) -> Int? {
     indexById[id]
+  }
+
+  public func featurePrint(of card: CGImage) throws -> [Float] {
+    try compiledModel.featurePrint(of: card, inputSize: model.inputSize)
+  }
+
+  public func featurePrint(ofCardAt url: URL) throws -> [Float] {
+    try compiledModel.featurePrint(ofCardAt: url, inputSize: model.inputSize)
   }
 
   public func vector(at row: Int) -> [Float] {

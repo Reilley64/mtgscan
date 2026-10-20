@@ -5,29 +5,6 @@ import ImageIO
 import Testing
 import UniformTypeIdentifiers
 
-private func card(seed: Int) throws -> CGImage {
-  let width = CardRecognizer.readWidth
-  let height = CardRecognizer.readHeight
-  let context = try #require(CGContext(
-    data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-  ))
-  var value = UInt64(seed)
-  func next() -> CGFloat {
-    value = value &* 6364136223846793005 &+ 1442695040888963407
-    return CGFloat(value >> 40) / CGFloat(1 << 24)
-  }
-  for _ in 0 ..< 40 {
-    context.setFillColor(red: next(), green: next(), blue: next(), alpha: 1)
-    context.fill(CGRect(x: next() * CGFloat(width), y: next() * CGFloat(height), width: next() * 600, height: next() * 600))
-  }
-  return try #require(context.makeImage())
-}
-
-private func featurePrint(of image: CGImage) throws -> [Float16] {
-  try FeaturePrint.vector(of: #require(FeaturePrint.input(of: image))).map { Float16($0) }
-}
-
 private func printing(_ id: String, art: String, frame: String = "1997") -> [String: Any] {
   ["id": id, "oracleId": id, "illustrationId": art, "name": id, "set": "tst", "collectorNumber": id, "frame": frame]
 }
@@ -51,7 +28,7 @@ private func imageSize(at uri: String?) throws -> (type: String, width: Int, hei
   return (try #require(CGImageSourceGetType(source)) as String, image.width, image.height)
 }
 
-private let otherArt = [Float16](repeating: 0, count: FeaturePrint.dimension)
+private let otherArt = [Float16](repeating: 0, count: fixtureModel.vectorSize)
 
 @Test("an accepted card recognition writes the straightened card as a 488 x 680 WebP training crop")
 func anAcceptedCardRecognitionWritesATrainingCrop() throws {

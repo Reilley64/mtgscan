@@ -5,7 +5,9 @@ import path from 'node:path';
 
 import {
   buildRecognizer,
+  compiledModelFile,
   dataDirectory,
+  galleryHeaderFile,
   moduleRoot,
   printingListFile,
   run,
@@ -25,7 +27,7 @@ const baselineArgument = process.argv.indexOf('--baseline');
 const baselineDirectory = baselineArgument === -1 ? null : path.resolve(process.argv[baselineArgument + 1]);
 const realLabelsFile = path.join(evidence, 'real', 'labels.json');
 const featurePrintsFile = path.join(evidence, 'real', 'feature-prints.json');
-const webpCropsDirectory = path.join(dataDirectory, 'webp-real');
+const roundTripDirectory = path.join(dataDirectory, 'round-trip');
 const parityReferenceCount = 24;
 const parityMinimumCosine = 0.98;
 
@@ -49,7 +51,11 @@ async function galleryMatchesRecording() {
 }
 
 async function featurePrints(crops) {
-  const result = await run(recognizer, ['feature-prints', ...crops.map((crop) => path.join(evidence, 'real', crop))], { output: true });
+  const result = await run(
+    recognizer,
+    ['feature-prints', '--model', path.join(galleryDirectory, compiledModelFile), ...crops.map((crop) => path.join(evidence, 'real', crop))],
+    { output: true },
+  );
   if (result.code !== 0) throw new Error('the feature prints did not compute');
   return result.stdout
     .trim()
@@ -81,9 +87,10 @@ async function recordReferenceFeaturePrints() {
   const vectors = await featurePrints(crops);
   const { stdout: macOS } = await run('sw_vers', ['-productVersion'], { output: true });
   const { stdout: machine } = await run('sysctl', ['-n', 'machdep.cpu.brand_string'], { output: true });
+  const { model } = JSON.parse(await fs.readFile(path.join(galleryDirectory, galleryHeaderFile), 'utf8'));
   const recording = {
     recordedWith: {
-      featurePrint: 'VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values',
+      model: { name: model.name, sha256: model.sha256 },
       machine: `${machine.trim()}, macOS ${macOS.trim()}`,
       recordedOn: new Date().toISOString().slice(0, 10),
     },
@@ -161,36 +168,41 @@ async function runGate({ name, labels, expected, flags }) {
   return { name, against, exitCode: check.code, report: JSON.parse(check.stdout) };
 }
 
-async function writeWebpLabels() {
+async function writeRoundTripLabels(format) {
   const labels = JSON.parse(await fs.readFile(realLabelsFile, 'utf8'));
   const crops = [...labels.cards.map((card) => card.crop), ...labels.nonCards].map((crop) => path.join(evidence, 'real', crop));
-  await fs.rm(webpCropsDirectory, { recursive: true, force: true });
-  const written = await run(recognizer, ['training-crops', path.join(webpCropsDirectory, 'crops'), ...crops], { output: true });
-  if (written.code !== 0) throw new Error('the WebP crops were not written');
+  const directory = path.join(roundTripDirectory, format);
+  await fs.rm(directory, { recursive: true, force: true });
+  const written = await run(recognizer, ['reencode', format, path.join(directory, 'crops'), ...crops], { output: true });
+  if (written.code !== 0) throw new Error(`the ${format} crops were not written`);
   const lines = written.stdout.trim().split('\n').map((line) => JSON.parse(line));
   const failed = lines.filter((line) => line.error);
-  if (failed.length > 0) throw new Error(`${failed.length} WebP crops were not written, first: ${failed[0].input}`);
-  const webpOf = new Map(lines.map((line) => [line.input, line.trainingCrop]));
-  const webpCrop = (crop) => webpOf.get(path.join(evidence, 'real', crop));
-  const webpLabels = path.join(webpCropsDirectory, 'labels.json');
+  if (failed.length > 0) throw new Error(`${failed.length} ${format} crops were not written, first: ${failed[0].input}`);
+  const reencoded = new Map(lines.map((line) => [line.input, line.output]));
+  const crop = (file) => reencoded.get(path.join(evidence, 'real', file));
+  const roundTripLabels = path.join(directory, 'labels.json');
   await fs.writeFile(
-    webpLabels,
-    `${JSON.stringify({ ...labels, cards: labels.cards.map((card) => ({ ...card, crop: webpCrop(card.crop) })), nonCards: labels.nonCards.map(webpCrop) }, null, 1)}\n`,
+    roundTripLabels,
+    `${JSON.stringify({ ...labels, cards: labels.cards.map((card) => ({ ...card, crop: crop(card.crop) })), nonCards: labels.nonCards.map(crop) }, null, 1)}\n`,
   );
-  return webpLabels;
+  return roundTripLabels;
 }
 
-async function runWebpRoundTrip(gate, webpLabels) {
-  const name = `${gate.name}-webp`;
-  const evaluation = await evaluate(webpLabels, gate.flags);
-  if (evaluation === null) return { name, scans: null, changedScans: null, pass: false, error: 'the evaluation did not finish' };
-  await fs.writeFile(path.join(reportsDirectory, `${name}.json`), evaluation);
-  const jpegScans = JSON.parse(await fs.readFile(path.join(reportsDirectory, `${gate.name}.json`), 'utf8')).scans;
-  const changedScans = JSON.parse(evaluation)
-    .scans.map((scan, index) => ({ jpeg: jpegScans[index], webp: scan }))
-    .filter(({ jpeg, webp }) => jpeg.top !== webp.top || jpeg.accepted !== webp.accepted)
-    .map(({ jpeg, webp }) => ({ input: jpeg.input, jpeg: { top: jpeg.top, accepted: jpeg.accepted }, webp: { top: webp.top, accepted: webp.accepted } }));
-  return { name, scans: jpegScans.length, changedScans, pass: changedScans.length === 0 };
+async function roundTripRun(gate, format, labels, originalScans) {
+  const evaluation = await evaluate(labels, gate.flags);
+  if (evaluation === null) throw new Error(`${gate.name} did not finish on the ${format} crops`);
+  await fs.writeFile(path.join(reportsDirectory, `${gate.name}-${format}.json`), evaluation);
+  const { correctAccepts, falseAccepts, nonCards, nonCardsRejected, scans } = JSON.parse(evaluation);
+  const changedScans = scans.filter((scan, index) => scan.top !== originalScans[index].top || scan.accepted !== originalScans[index].accepted);
+  return { correctAccepts, falseAccepts, nonCardsAccepted: nonCards - nonCardsRejected, changedScans: changedScans.length };
+}
+
+async function runRoundTrip(gate, roundTripLabels) {
+  const originalScans = JSON.parse(await fs.readFile(path.join(reportsDirectory, `${gate.name}.json`), 'utf8')).scans;
+  const webp = await roundTripRun(gate, 'webp', roundTripLabels.webp, originalScans);
+  const jpeg = await roundTripRun(gate, 'jpeg', roundTripLabels.jpeg, originalScans);
+  const pass = webp.falseAccepts === 0 && webp.nonCardsAccepted === 0 && webp.correctAccepts >= jpeg.correctAccepts;
+  return { name: gate.name, webp, jpeg, pass };
 }
 
 if (recordFeaturePrints) {
@@ -198,14 +210,6 @@ if (recordFeaturePrints) {
   recognizer = await buildRecognizer();
   await recordReferenceFeaturePrints();
   process.exit(0);
-}
-if (!galleryDirectory) {
-  console.error('Set RECOGNIZER_GALLERY_DIR to the folder that `bun run gallery install` wrote, such as ~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753. See test/scanner-evidence/README.md.');
-  process.exit(1);
-}
-if (!existsSync(path.join(galleryDirectory, printingListFile))) {
-  console.error(`No gallery in ${galleryDirectory}. See test/scanner-evidence/README.md.`);
-  process.exit(1);
 }
 await fs.mkdir(reportsDirectory, { recursive: true });
 recognizer = await buildRecognizer();
@@ -250,10 +254,10 @@ for (const gate of gates) {
 }
 const webpRoundTrips = [];
 if (webpRoundTrip) {
-  const webpLabels = await writeWebpLabels();
+  const roundTripLabels = { webp: await writeRoundTripLabels('webp'), jpeg: await writeRoundTripLabels('jpeg') };
   for (const gate of gates.filter((gate) => gate.labels === realLabelsFile)) {
-    console.error(`Running ${gate.name} on WebP crops`);
-    webpRoundTrips.push(await runWebpRoundTrip(gate, webpLabels));
+    console.error(`Running ${gate.name} on WebP and JPEG round trips`);
+    webpRoundTrips.push(await runRoundTrip(gate, roundTripLabels));
   }
 }
 const failed =

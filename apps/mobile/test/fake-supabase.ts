@@ -202,10 +202,10 @@ function exchangeRatesOf(currencies: string[], rateDate = testRateDate): Exchang
   }));
 }
 
-function galleryObjectsOf(version: string, partNames: string[]) {
+function galleryObjectsOf(version: string, partNames: string[], formatVersion = 2) {
   return new Map([
-    ['published.json', JSON.stringify({ formatVersion: 1, version, manifest: `${version}/manifest.json` })],
-    [`${version}/manifest.json`, JSON.stringify({ formatVersion: 1, version, parts: partNames.map((name) => ({ name })) })],
+    ['published.json', JSON.stringify({ formatVersion, version, manifest: `${version}/manifest.json` })],
+    [`${version}/manifest.json`, JSON.stringify({ formatVersion, version, parts: partNames.map((name) => ({ name })) })],
   ]);
 }
 
@@ -1269,12 +1269,12 @@ export function expirePageCursors() {
   store.cursorGeneration += 1;
 }
 
-export function publishGallery(version: string, partNames: string[] = galleryPartNames) {
-  store.galleryObjects = new Map([...store.galleryObjects, ...galleryObjectsOf(version, partNames)]);
+export function publishGallery(version: string, { partNames = galleryPartNames, formatVersion = 2 } = {}) {
+  store.galleryObjects = new Map([...store.galleryObjects, ...galleryObjectsOf(version, partNames, formatVersion)]);
 }
 
 export function uploadUnpublishedGallery(version: string) {
-  store.galleryObjects.set(`${version}/manifest.json`, JSON.stringify({ formatVersion: 1, version, parts: [] }));
+  store.galleryObjects.set(`${version}/manifest.json`, JSON.stringify({ formatVersion: 2, version, parts: [] }));
 }
 
 export function allowAiClients(seeds: { name: string; allowedAt: string }[]) {

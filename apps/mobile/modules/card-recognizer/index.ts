@@ -11,7 +11,6 @@ type CardRecognizerEvents = {
 };
 
 declare class CardRecognizerModule extends NativeModule<CardRecognizerEvents> {
-  readonly featurePrintRevision: number;
   readonly recognizerVersion: string;
   recognize(photoUri: string, outline: CardOutline): Promise<Recognition>;
   installedGallery(): Promise<InstalledGallery | null>;
@@ -23,8 +22,6 @@ declare class CardRecognizerModule extends NativeModule<CardRecognizerEvents> {
 }
 
 const cardRecognizer = requireNativeModule<CardRecognizerModule>('CardRecognizer');
-
-export const featurePrintRevision = cardRecognizer.featurePrintRevision;
 
 export const recognizerVersion = cardRecognizer.recognizerVersion;
 

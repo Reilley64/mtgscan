@@ -17,6 +17,7 @@ import { publishedGalleryVersion } from './fake-supabase';
 type Listener = (status: GalleryDownloadStatus) => void;
 
 export const galleryBuiltAt = '2026-10-12T09:30:00.000Z';
+export const galleryModel = 'pe-core-s16-384';
 
 let installed: InstalledGallery | null = null;
 let nextRecognitions: (Recognition | RecognitionErrorCode)[] = [];
@@ -30,7 +31,6 @@ let galleryParity: GalleryParity | RecognitionErrorCode = 'gallery_not_ready';
 const listeners = new Set<Listener>();
 
 export const fakeCardRecognizer = {
-  featurePrintRevision: 2,
   recognizerVersion: '1.0.0 (7)',
   recognize: async (photoUri: string): Promise<Recognition> => {
     recognizedPhotos = [...recognizedPhotos, photoUri];
@@ -78,8 +78,8 @@ export const fakeCardRecognizer = {
   },
 };
 
-export function phoneHasGallery(version: string | null, builtAt = galleryBuiltAt) {
-  installed = version ? { version, builtAt } : null;
+export function phoneHasGallery(version: string | null, builtAt = galleryBuiltAt, model = galleryModel) {
+  installed = version ? { version, builtAt, model } : null;
 }
 
 export async function galleryDownloadReports(
@@ -90,7 +90,8 @@ export async function galleryDownloadReports(
     bytesNeeded,
     version,
     builtAt = galleryBuiltAt,
-  }: Partial<GalleryDownloadStatus> & { builtAt?: string } = {},
+    model = galleryModel,
+  }: Partial<GalleryDownloadStatus> & { builtAt?: string; model?: string } = {},
 ) {
   const status: GalleryDownloadStatus = {
     version: version ?? downloads.at(-1)?.version ?? publishedGalleryVersion,
@@ -100,7 +101,7 @@ export async function galleryDownloadReports(
     ...(bytesNeeded === undefined ? {} : { bytesNeeded }),
   };
   if (state === 'installed') {
-    installed = { version: status.version, builtAt };
+    installed = { version: status.version, builtAt, model };
   }
   await act(async () => {
     listeners.forEach((listener) => listener(status));
@@ -173,7 +174,7 @@ export function galleryDownloads() {
 }
 
 export function resetFakeCardRecognizer() {
-  installed = { version: publishedGalleryVersion, builtAt: galleryBuiltAt };
+  installed = { version: publishedGalleryVersion, builtAt: galleryBuiltAt, model: galleryModel };
   downloads = [];
   galleryParity = 'gallery_not_ready';
   listeners.clear();

@@ -1,6 +1,7 @@
 export type InstalledGallery = {
   version: string;
   builtAt: string;
+  model: string;
 };
 
 export type GalleryDownloadState =

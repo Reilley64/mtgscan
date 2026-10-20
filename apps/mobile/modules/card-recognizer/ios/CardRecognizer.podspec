@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
 
   s.source_files = '**/*.swift'
   s.preserve_paths = 'WebP/*'
-  s.frameworks = 'Accelerate', 'CoreImage', 'Vision'
+  s.frameworks = 'Accelerate', 'CoreImage', 'CoreML', 'Vision'
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     'SWIFT_INCLUDE_PATHS' => '$(PODS_TARGET_SRCROOT)/WebP',

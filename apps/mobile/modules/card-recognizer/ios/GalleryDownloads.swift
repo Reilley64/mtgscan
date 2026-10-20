@@ -34,6 +34,7 @@ struct GalleryDownloadStatus: Sendable, Equatable {
 struct InstalledGalleryVersion: Sendable {
   let version: String
   let builtAt: String
+  let model: String
 }
 
 final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
@@ -120,7 +121,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
           let header = try? JSONDecoder().decode(GalleryHeader.self, from: data),
           let version = header.version
     else { return nil }
-    return InstalledGalleryVersion(version: version, builtAt: header.createdAt)
+    return InstalledGalleryVersion(version: version, builtAt: header.createdAt, model: header.model.name)
   }
 
   func download(version: String, manifest manifestData: Data, urls: [String: URL], allowsCellularAccess: Bool) async throws {
@@ -225,11 +226,14 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
   }
 
   private func spaceNeeded(for manifest: GalleryManifest, pending: [GalleryManifest.Part]) -> Int64 {
-    let vectors = Int64(manifest.rows * FeaturePrint.dimension * MemoryLayout<Float16>.size)
+    let vectors = Int64(manifest.rows * manifest.model.vectorSize * MemoryLayout<Float16>.size)
     let printingList = manifest.parts
       .filter { $0.kind == GalleryManifest.Part.printingList }
       .reduce(Int64(0)) { $0 + Int64($1.rawBytes) }
-    return pending.reduce(Int64(0)) { $0 + Int64($1.compressedBytes) } + vectors + printingList
+    let unpackedAndCompiledModel = manifest.parts
+      .filter { $0.kind == GalleryManifest.Part.model }
+      .reduce(Int64(0)) { $0 + 2 * Int64($1.rawBytes) }
+    return pending.reduce(Int64(0)) { $0 + Int64($1.compressedBytes) } + vectors + printingList + unpackedAndCompiledModel
   }
 
   private static func availableBytes() -> Int64? {

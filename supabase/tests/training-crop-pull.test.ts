@@ -113,9 +113,10 @@ describe('pulling training crops', () => {
       recognized_printing_id: angelicCurator,
       saved_printing_id: delverInnistrad,
       printing_change: 'name_search',
+      feature_print_model: 'apple-vision-2',
     }),
   ];
-  const jpegCrop = evidenceRecord();
+  const jpegCrop = evidenceRecord({ feature_print_model: 'apple-vision-2' });
   const storedCrops = [...crops, jpegCrop];
   const later = evidenceRecord({ printing_confirmed: true });
   const images = new Map<string, Uint8Array<ArrayBuffer>>();
@@ -148,9 +149,13 @@ describe('pulling training crops', () => {
     expect(new Uint8Array(await readFile(join(folder, 'crops', `${jpegCrop.crop_id}.jpg`)))).toEqual(images.get(jpegCrop.crop_id)!);
   });
 
-  test('the labels file lists each crop with its saved card printing, in the scanner evidence pack format', async () => {
+  test('the labels file lists each crop with its saved card printing and its feature print model, in the scanner evidence pack format', async () => {
     expect(await readJson(folder, 'labels.json')).toEqual({
-      cards: byCropId(storedCrops).map((crop) => ({ crop: `crops/${fileName(crop)}`, scryfallId: crop.saved_printing_id })),
+      cards: byCropId(storedCrops).map((crop) => ({
+        crop: `crops/${fileName(crop)}`,
+        scryfallId: crop.saved_printing_id,
+        featurePrintModel: crop.feature_print_model,
+      })),
     });
   });
 
