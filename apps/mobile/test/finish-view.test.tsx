@@ -1,5 +1,5 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
-import type { CardSet, FinishView, SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
+import type { CardSet, FinishView, SetCardPrinting, SetCompletion, SetDetails } from '@mtgscan/supabase/sets';
 import { fireEvent, within } from 'expo-router/testing-library';
 
 import { offerSetPage, offerSets, ownCollectionCopies, startSignedIn } from './fake-supabase';
@@ -66,26 +66,45 @@ const alphaRow: CardSet = {
 
 const noSet = { owned: 0, size: 0 };
 
+function completion(any: SetCompletion, nonfoil: SetCompletion, foil: SetCompletion) {
+  return { any, nonfoil, foil };
+}
+
+const noOther = { completion: completion(noSet, noSet, noSet), card_printings: [] };
+
 const alpha: SetDetails = {
   ...alphaRow,
-  main_set: [printing('1', 'Animate Wall', { any: 1, nonfoil: 1, foil: null })],
-  variants: { completion: { any: noSet, nonfoil: noSet, foil: noSet }, card_printings: [] },
+  sections: [],
+  other: {
+    completion: completion({ owned: 1, size: 1 }, { owned: 1, size: 1 }, noSet),
+    card_printings: [printing('1', 'Animate Wall', { any: 1, nonfoil: 1, foil: null })],
+  },
 };
 
-const bloomburrow: SetDetails = {
-  ...bloomburrowRow,
-  main_set: [
+const draftCards = {
+  name: 'Draft Cards',
+  completion: completion({ owned: 2, size: 3 }, { owned: 1, size: 3 }, { owned: 1, size: 3 }),
+  card_printings: [
     printing('1', 'Banishing Light', { any: 1, nonfoil: 1, foil: 0 }),
     printing('2', 'Beza, the Bounding Spring', { any: 2, nonfoil: 0, foil: 2 }),
     printing('10', 'Dewdrop Cure', { any: 0, nonfoil: 0, foil: 0 }),
   ],
-  variants: {
-    completion: { any: { owned: 1, size: 2 }, nonfoil: { owned: 1, size: 2 }, foil: { owned: 0, size: 2 } },
-    card_printings: [
-      printing('282', 'Season of the Burrow', { any: 0, nonfoil: 0, foil: 0 }),
-      printing('287', 'Beza, the Bounding Spring', { any: 3, nonfoil: 3, foil: 0 }),
-    ],
-  },
+};
+
+const bloomburrow: SetDetails = {
+  ...bloomburrowRow,
+  sections: [
+    draftCards,
+    {
+      name: 'Borderless Cards',
+      completion: completion({ owned: 1, size: 2 }, { owned: 1, size: 2 }, { owned: 0, size: 2 }),
+      card_printings: [
+        printing('282', 'Season of the Burrow', { any: 0, nonfoil: 0, foil: 0 }),
+        printing('287', 'Beza, the Bounding Spring', { any: 3, nonfoil: 3, foil: 0 }),
+      ],
+    },
+  ],
+  other: noOther,
 };
 
 function topScreen() {
@@ -233,14 +252,15 @@ describe('one finish view for Sets and the set page', () => {
 });
 
 describe('the set page in a finish view', () => {
-  test('the header, the Variants "x of y", the lit and dimmed tiles, and the quantity badges follow the finish view, without reading the set again', async () => {
+  test('the header, each set section header, the lit and dimmed tiles, and the quantity badges follow the finish view, without reading the set again', async () => {
     await openSets();
     await openBloomburrow();
 
     await chooseFinishView('Nonfoil');
 
     expect(topScreen().getByRole('header', { name: 'Bloomburrow, 1 of 3, 33 percent' })).toBeOnTheScreen();
-    expect(topScreen().getByRole('header', { name: 'Variants, 1 of 2' })).toBeOnTheScreen();
+    expect(topScreen().getByRole('header', { name: 'Draft Cards, 1 of 3, 33 percent' })).toBeOnTheScreen();
+    expect(topScreen().getByRole('header', { name: 'Borderless Cards, 1 of 2, 50 percent' })).toBeOnTheScreen();
     expect(tileLabels()).toEqual([
       'Banishing Light, number 1, owned',
       'Beza, the Bounding Spring, number 2, not owned',
@@ -252,7 +272,8 @@ describe('the set page in a finish view', () => {
 
     await chooseFinishView('Foil');
 
-    expect(topScreen().getByRole('header', { name: 'Variants, 0 of 2' })).toBeOnTheScreen();
+    const borderless = topScreen().getByRole('header', { name: 'Borderless Cards, 0 of 2, 0 percent' });
+    expect(within(borderless).getByRole('progressbar')).toHaveProp('accessibilityValue', { min: 0, max: 2, now: 0 });
     const beza = tile('Beza, the Bounding Spring, number 2, owned, 2 copies');
     expect(cardImageLook(beza)).toEqual({ opacity: 1, grayscale: false });
     expect(within(beza).getByText('2')).toBeOnTheScreen();
@@ -263,7 +284,10 @@ describe('the set page in a finish view', () => {
   test('a card printing that the finish view leaves out is not shown', async () => {
     offerSetPage({
       ...bloomburrow,
-      main_set: [...bloomburrow.main_set, printing('15', 'Starfall Invocation', { any: 1, nonfoil: 1, foil: null })],
+      sections: [
+        { ...draftCards, card_printings: [...draftCards.card_printings, printing('15', 'Starfall Invocation', { any: 1, nonfoil: 1, foil: null })] },
+        bloomburrow.sections[1]!,
+      ],
     });
     await openSets();
     await openBloomburrow();
@@ -278,6 +302,35 @@ describe('the set page in a finish view', () => {
       'Season of the Burrow, number 282, not owned',
       'Beza, the Bounding Spring, number 287, not owned',
     ]);
+  });
+
+  test('a set section with no card printings left in the finish view is hidden, and so is an empty Other cards', async () => {
+    offerSetPage({
+      ...bloomburrow,
+      sections: [
+        ...bloomburrow.sections,
+        {
+          name: 'Retro Frame Cards',
+          completion: completion({ owned: 1, size: 1 }, { owned: 1, size: 1 }, noSet),
+          card_printings: [printing('400', 'Starfall Invocation', { any: 1, nonfoil: 1, foil: null })],
+        },
+      ],
+      other: {
+        completion: completion({ owned: 0, size: 1 }, { owned: 0, size: 1 }, noSet),
+        card_printings: [printing('300', 'Fabled Passage', { any: 0, nonfoil: 0, foil: null })],
+      },
+    });
+    await openSets();
+    await openBloomburrow();
+    expect(topScreen().getByRole('header', { name: 'Retro Frame Cards, 1 of 1, 100 percent, complete' })).toBeOnTheScreen();
+    expect(topScreen().getByRole('header', { name: 'Other cards, 0 of 1, 0 percent' })).toBeOnTheScreen();
+
+    await chooseFinishView('Foil');
+
+    expect(topScreen().queryByText('Retro Frame Cards')).toBeNull();
+    expect(topScreen().queryByText('Other cards')).toBeNull();
+    expect(tileLabels()).not.toContain('Starfall Invocation, number 400, owned');
+    expect(tileLabels()).not.toContain('Fabled Passage, number 300, not owned');
   });
 
   test('a set page whose main set is empty in the finish view, such as Alpha in Foil, shows "0 of 0" and is not complete', async () => {

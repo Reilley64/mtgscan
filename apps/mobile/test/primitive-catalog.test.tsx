@@ -71,6 +71,8 @@ test('the primitive catalog shows every primitive', async () => {
   expect(screen.getByRole('header', { name: 'Creatures, 3' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Variants, 1 of 2' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Magic 2010, 234 of 261, 89 percent' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: 'Borderless Cards, 12 of 40, 30 percent' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: 'Showcase Cards, 20 of 20, 100 percent, complete' })).toBeOnTheScreen();
   expect(screen.getByRole('image', { name: 'Sol Ring, number 216, owned, 2 copies' })).toBeOnTheScreen();
   expect(screen.getByRole('image', { name: 'Sol Ring, number 216, not owned' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Island, basic land, unlimited' })).toBeOnTheScreen();
