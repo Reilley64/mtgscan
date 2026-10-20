@@ -11,6 +11,9 @@ Labels:
 - **Inference**: our reasoning. An experiment must confirm it.
 - **Unverified**: a claim from a blog or a source we could not check.
 
+
+The experiments ran in `/tmp/embed-exp` on the owner's M3 Mac. Their scripts and summary results are in `prototypes/embedding-research` on branch `prototype/embedding-replay`. The full data (embeddings, galleries, converted models, replay runs) is in `~/Library/Caches/mtgscan/embedding-research` on the same Mac.
+
 ## 1. What the recognizer needs from an embedding
 
 The recognizer is `apps/mobile/modules/card-recognizer/ios/Recognizer/CardRecognizer.swift`. The embedding is used in these places (**Documented** in the code):
@@ -192,7 +195,7 @@ What this shows:
 - **Not shown.** These are 250 crops of 62 printings from one phone, on a gallery 23 times smaller than the catalog. On the full gallery, K values will grow for every model (section 9). The run does not show phone latency, Core ML or LiteRT parity, or int8 behaviour.
 - **Measured.** A quick synthetic-only adapter made things worse for the shortlist. A small MLP head (768 to 1,024 to 512) on frozen SigLIP 2 was trained for 73 seconds with InfoNCE on each gallery printing's clean image plus 2 augmented copies, with same-name hard negatives and no real crops. Exact printing first rose from 78.8% to 84.8% and the median art margin from 0.129 to 0.266. But top 10 fell from 99.2% to 97.2%, K99 grew from 6 to 114, and non-cards no longer separated from cards (best non-card 0.518, worst card 0.472). With only 3 views per printing, the head overfits. A real training run needs many more augmented views per printing and a held-out check (section 14).
 
-The scripts are in `/tmp/embed-exp` (`download.py`, `featureprint.swift`, `models.py`, `embed.py`, `evaluate.py`).
+The scripts are in `prototypes/embedding-research` on branch `prototype/embedding-replay` (`download.py`, `featureprint.swift`, `models.py`, `embed.py`, `evaluate.py`).
 
 ## 9. Full-gallery screen: zero-shot open models vs Vision on all 102,730 printings
 
@@ -263,14 +266,14 @@ Model size, from the image tower parameter counts (section 8): SigLIP 2 B/16 93M
 
 What this shows:
 
-- **Measured.** On the full catalog, Vision's own K99 on these 250 crops is 51, not the 15 measured in #20. #20 used 157 crops and a 21,418-printing gallery. The bar "K99 at most 15" in section 14 was set from that smaller test.
+- **Measured.** On the full catalog, Vision's own K99 on these 250 crops is 51, not the 15 measured in #20. #20 used 157 crops and a 21,418-printing gallery. The bar "K99 at most 15" in section 14 was set from that smaller test. It is now "at most Vision's K in the same run".
 - **Measured.** Zero-shot, SigLIP 2 B/16 (K99 11) and PE-Core B16 (K99 14) beat Vision (K99 51) and meet "at most 15" on the full gallery. Both also beat Vision on card first (99.2% and 98.8% vs 97.2%), art first (98.8% vs 95.2%), the non-card gap (0.133 and 0.240 vs 0.089), and the median art margin.
 - **Measured.** PE-Core S16, the smallest of the strong candidates (24M parameters), gets K99 21. That is better than Vision's 51 but misses "at most 15". DINOv3-S with tuned preprocessing is about level with Vision on K99 (49) and behind it on card first and art first.
 - **Measured.** The open models pick the right orientation more often. The turned view scores higher on 15 of 250 crops for Vision and on 3 to 5 for the open models.
 - **Measured.** All four open models keep every non-card below every card on the full gallery, as Vision does. With 11 non-card crops, that is weak evidence.
 - **Not shown.** These are still 250 crops of 62 printings from one phone. The run measures the embedding only. It does not run the recognizer's decision rules with new thresholds (Gates 1 and 2), phone latency, Core ML or LiteRT parity, or int8 vectors. The best two models are about 4 times larger than PE-Core S16 (section 12.1).
 
-The scripts are in `/tmp/embed-exp` (`tune.py`, `full.py`, `eval_full.py`, `common.py`, `prep_models.py`). Results are in `/tmp/embed-exp/full/metrics_full.json`.
+The scripts are in `prototypes/embedding-research` on branch `prototype/embedding-replay` (`tune.py`, `full.py`, `eval_full.py`, `common.py`, `prep_models.py`). Results are in `full/metrics_full.json` there.
 
 ## 10. Recognizer replay: zero-shot open models behind the recognizer
 
@@ -344,7 +347,7 @@ What this shows:
 - **Measured.** SigLIP 2 also accepts a same-text twin in Gate 1 held out unless the art margin is at least 0.0775. At that margin it keeps only 11 unread accepts (Vision 14), and 213 correct accepts, one below the 214 line. PE-Core B16 also gets 213.
 - **Not shown.** Phone speed, memory, Core ML or LiteRT parity, and other phones. These are still 250 crops of 62 printings from one phone.
 
-The code and runs: worktree branch `prototype/embedding-replay` (hook in `FeaturePrint.swift`, `Gallery.swift`, `CardRecognizer.swift`, and the macOS command), and `/tmp/embed-exp/step1b` (`driver.py`, `embed_queries.py`, `build_gallery.py`, `runall.py`, `runs/`, `results.json`).
+The code and runs: worktree branch `prototype/embedding-replay` (hook in `FeaturePrint.swift`, `Gallery.swift`, `CardRecognizer.swift`, and the macOS command), and `prototypes/embedding-research/step1b` (`driver.py`, `embed_queries.py`, `build_gallery.py`, `runall.py`, `runs/`, `results.json`).
 
 ## 11. Phone check: PE-Core S16 on the iPhone 16e and in the Android emulator
 
@@ -451,11 +454,11 @@ What this shows:
 - **Measured.** LiteRT reproduces the Mac vectors on Android at float32, float16 weights, and int8 weights. Android preprocessing must smooth when it scales down.
 - **Not shown.** Android speed and memory on a real phone, the bin deck (Gate 3), other iPhones, and thermal behaviour over long sessions.
 
-The runs: `/tmp/embed-exp/step1c` (`phone_results.json`, `phone_parity.csv`, `coreml/`, `android/`).
+The runs: `prototypes/embedding-research/step1c` (`phone_results.json`, `phone_parity.csv`, `coreml/`, `android/`).
 
 ## 12. Answer to the owner's question
 
-**Yes on the embedding measures, and an open model already does it without training. More crops alone will not change that.** On all 102,730 printings, SigLIP 2 B/16 and PE-Core B16 (both Apache 2.0) beat Vision feature prints zero-shot on shortlist recall (K99 11 and 14 vs 51), card first, art first, and the non-card gap (section 9). Both are about 93M parameters, about 93 MB at 8 bits. The app can download a model of that size at runtime with the gallery (section 12.1), so size alone does not rule them out. There is no size limit for now; a smaller model is preferred if it meets the same standard. The small PE-Core S16 (24M) also beats Vision (K99 21 vs 51) but misses K99 at most 15. Behind the recognizer, most of the embedding gain disappears, because the collector line already fixes most shortlist misses (section 10). PE-Core S16 comes out slightly ahead of Vision (216 vs 214 correct accepts on real crops) and fails only the strict leave-one-art-out rule, as Vision does. SigLIP 2 and PE-Core B16 come out level or behind. On the iPhone 16e, PE-Core S16 passes the speed and parity lines (section 11): two embeddings take 32 ms with the NaN-safe mixed-precision model, against 24 ms for Vision, and app memory is about the same. LiteRT in the Android emulator matches the Mac vectors. What is left to show is speed and memory on a real Android phone, and whether the result holds on real crops from other phones (#389). No embedding will tell same-art printings apart reliably. The collector line keeps that job.
+**Yes on the embedding measures, and an open model already does it without training. More crops alone will not change that.** On all 102,730 printings, SigLIP 2 B/16 and PE-Core B16 (both Apache 2.0) beat Vision feature prints zero-shot on shortlist recall (K99 11 and 14 vs 51), card first, art first, and the non-card gap (section 9). Both are about 93M parameters, about 93 MB at 8 bits. The app can download a model of that size at runtime with the gallery (section 12.1), so size alone does not rule them out. There is no size limit for now; a smaller model is preferred if it meets the same standard. The small PE-Core S16 (24M) also beats Vision (K99 21 vs 51). Behind the recognizer, most of the embedding gain disappears, because the collector line already fixes most shortlist misses (section 10). PE-Core S16 comes out slightly ahead of Vision (216 vs 214 correct accepts on real crops) and fails only the strict leave-one-art-out rule, as Vision does. SigLIP 2 and PE-Core B16 come out level or behind. On the iPhone 16e, PE-Core S16 passes the speed and parity lines (section 11): two embeddings take 32 ms with the NaN-safe mixed-precision model, against 24 ms for Vision, and app memory is about the same. LiteRT in the Android emulator matches the Mac vectors. What is left to show is speed and memory on a real Android phone, and whether the result holds on real crops from other phones (#389). No embedding will tell same-art printings apart reliably. The collector line keeps that job.
 
 Why it holds (**Inference** unless marked):
 
@@ -520,7 +523,7 @@ Pass bar. The model must meet every line, measured in the same run as Vision:
 
 | Measure | Pass |
 | --- | --- |
-| Top K for 99% exact printing, full gallery | at most Vision's K in the same run, and at most 15. Vision's full-gallery K99 on the evidence pack is 51 (section 9). |
+| Top K for 99% exact printing, full gallery | at most Vision's K in the same run. Vision's full-gallery K99 on the evidence pack is 51 (section 9). An earlier bar of at most 15 came from #20's smaller test and was dropped. |
 | Right card first and right art first | at least Vision's rate on the evidence pack and on the held-out crops |
 | Accepts without a reading | at least as many correct as Vision, with 0 false accepts |
 | Evidence pack Gate 1, with new thresholds | 0 wrong-card and 0 wrong-printing accepts, 11 of 11 non-cards rejected, at least 214 correct accepts of 250 |
