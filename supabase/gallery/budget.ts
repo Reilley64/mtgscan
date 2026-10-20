@@ -15,7 +15,7 @@ function versionSize(manifest: Manifest): string {
   const largest = Math.max(...manifest.parts.map((part) => part.compressedBytes));
   return [
     `Gallery version ${manifest.version}: ${manifest.rows} rows, ${megabytes(partBytes(manifest.parts))} in ${manifest.parts.length} parts`,
-    `(gallery ${megabytes(partBytes(manifest.parts, 'gallery'))}, printing list ${megabytes(partBytes(manifest.parts, 'printing_list'))}).`,
+    `(gallery ${megabytes(partBytes(manifest.parts, 'gallery'))}, printing list ${megabytes(partBytes(manifest.parts, 'printing_list'))}, model ${megabytes(partBytes(manifest.parts, 'model'))}).`,
     `The largest part is ${megabytes(largest)} of the ${megabytes(freePlan.uploadBytes)} upload limit.`,
   ].join(' ');
 }

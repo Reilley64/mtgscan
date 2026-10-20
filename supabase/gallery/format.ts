@@ -35,6 +35,10 @@ function encodedPart(name: string, kind: PartKind, addOn: number, firstRow: numb
   return { name, kind, addOn, firstRow, rowCount, compressedBytes: bytes.length, rawBytes: raw.length, sha256: sha256(bytes), bytes };
 }
 
+export function modelPart(archive: Uint8Array): Part {
+  return encodedPart('base-model.zlib', 'model', 0, 0, 0, archive);
+}
+
 function splitRows<Item>(items: Item[], rawBytes: number): Item[][] {
   const count = Math.max(1, Math.ceil(rawBytes / maxRawPartBytes));
   const size = Math.ceil(items.length / count);
