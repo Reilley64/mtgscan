@@ -60,6 +60,10 @@ const topInsets = cva('', {
   },
 });
 
+function StopsSheetScrollViewSearch() {
+  return <View collapsable={false} />;
+}
+
 type DrawerSheetProps = {
   title?: string;
   belowHeader?: boolean;
@@ -68,6 +72,16 @@ type DrawerSheetProps = {
 };
 
 export function DrawerSheet({ title, belowHeader = false, footer, children }: DrawerSheetProps) {
+  const scrollView = (
+    <ScrollView
+      className="flex-1 bg-sheet"
+      contentContainerClassName={cn('gap-lg px-lg pb-xl', !title && topInsets({ belowHeader }))}
+      contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets>
+      {children}
+    </ScrollView>
+  );
   return (
     <>
       {title ? (
@@ -77,15 +91,17 @@ export function DrawerSheet({ title, belowHeader = false, footer, children }: Dr
           </Text>
         </View>
       ) : null}
-      <ScrollView
-        className="flex-1 bg-sheet"
-        contentContainerClassName={cn('gap-lg px-lg pb-xl', !title && topInsets({ belowHeader }))}
-        contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets>
-        {children}
-      </ScrollView>
-      {footer ? <View className="gap-sm bg-sheet px-lg pb-safe-offset-lg pt-sm">{footer}</View> : null}
+      {footer ? (
+        <>
+          <View collapsable={false} className="flex-1">
+            <StopsSheetScrollViewSearch />
+            {scrollView}
+          </View>
+          <View className="gap-sm bg-sheet px-lg pb-safe-offset-lg pt-sm">{footer}</View>
+        </>
+      ) : (
+        scrollView
+      )}
     </>
   );
 }
