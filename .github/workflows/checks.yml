@@ -19,6 +19,7 @@ jobs:
     outputs:
       app: ${{ steps.filter.outputs.app }}
       database: ${{ steps.filter.outputs.database }}
+      migrations: ${{ steps.filter.outputs.migrations }}
       site: ${{ steps.filter.outputs.site }}
     steps:
       - id: filter
@@ -51,6 +52,10 @@ jobs:
               - supabase/**
               # The gallery build imports the recognizer scripts.
               - apps/mobile/modules/card-recognizer/**
+            migrations:
+              - *workspace
+              - supabase/migrations/**
+              - supabase/tests/*-migration.test.ts
 
   app:
     needs: changes
@@ -116,4 +121,8 @@ jobs:
       - name: Read the local secret key
         run: echo "SUPABASE_SECRET_KEY=$(supabase status -o json | jq -r .SECRET_KEY)" >> "$GITHUB_ENV"
       - name: Database tests
-        run: bun run test:database
+        run: bun run test:database --path-ignore-patterns='**/*-migration.test.ts'
+      # Slow: they reset the database to an old migration and apply the later ones again.
+      - name: Migration tests
+        if: needs.changes.outputs.migrations == 'true'
+        run: bun run test:database migration.test

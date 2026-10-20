@@ -11,7 +11,7 @@ mtgscan is an iPhone app for scanning Magic: The Gathering cards, keeping a coll
 
 ## Validation
 
-The PR checks are the gate. They run the full app and database suites on every PR whose files they cover, so the full suites run in CI, once per push.
+The PR checks are the gate. They run the full app and database suites on every PR whose files they cover, so the full suites run in CI, once per push. The slow migration tests run only on PRs that change a migration or a migration test.
 
 - Locally, run the type check, lint, and the test files you changed or added. Then push and let the checks run.
 - In an `implement-spec` run, open a draft PR from each ticket branch into the integration branch, and merge it there when its checks pass.
