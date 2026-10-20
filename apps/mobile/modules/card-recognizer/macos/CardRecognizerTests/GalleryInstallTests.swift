@@ -47,6 +47,8 @@ private func writeVersion(
   _ parts: [PartFile],
   rows: Int,
   version: String = "20261021-a1b2c3",
+  formatVersion: Int = 2,
+  thresholds: [String: Any] = ["notACard": 0.5, "orientationMargin": 0.03, "artMargin": 0.03],
   corrupt: String? = nil,
   malformed: (name: String, kind: MalformedPart)? = nil,
   downloaded: Set<String>? = nil
@@ -75,7 +77,9 @@ private func writeVersion(
     ])
   }
   let manifest: [String: Any] = [
-    "formatVersion": 1, "version": version, "builtAt": "2026-10-21T09:00:00Z", "rows": rows,
+    "formatVersion": formatVersion, "version": version, "builtAt": "2026-10-21T09:00:00Z", "rows": rows,
+    "model": ["name": "apple-vision-2", "inputSize": ["width": 488, "height": 680], "vectorSize": FeaturePrint.dimension],
+    "thresholds": thresholds,
     "parts": manifestParts,
   ]
   try JSONSerialization.data(withJSONObject: manifest).write(to: directory.appendingPathComponent("manifest.json"))
@@ -133,6 +137,35 @@ func installingABaseAndAnAddOnLetsALaterRowReplaceTheEarlierOne() throws {
   let scores = gallery.similarities(to: [vector(seed: 7)])[0]
   #expect(gallery.top(1, of: scores) == [1])
   #expect(scores[1] > 0.999)
+}
+
+@Test("the installed gallery takes the model and the thresholds of its gallery version")
+func theInstalledGalleryTakesTheModelAndTheThresholdsOfItsGalleryVersion() throws {
+  let version = try writeVersion(
+    try baseParts(),
+    rows: 3,
+    thresholds: ["notACard": 0.689, "orientationMargin": 0.03, "artMargin": 0.025]
+  )
+  let destination = version.appendingPathComponent("installed", isDirectory: true)
+
+  try GalleryInstaller.install(from: version, into: destination)
+
+  let gallery = try Gallery(directory: destination)
+  #expect(gallery.model == FeaturePrintModel(
+    name: "apple-vision-2", sha256: nil, inputSize: .init(width: 488, height: 680), vectorSize: FeaturePrint.dimension
+  ))
+  #expect(gallery.thresholds == RecognizerThresholds(notACard: 0.689, orientationMargin: 0.03, artMargin: 0.025))
+}
+
+@Test("installing refuses a manifest with an unknown format", arguments: [1, 3])
+func installingRefusesAManifestWithAnUnknownFormat(_ formatVersion: Int) throws {
+  let version = try writeVersion(try baseParts(), rows: 3, formatVersion: formatVersion)
+  let destination = version.appendingPathComponent("installed", isDirectory: true)
+
+  #expect(throws: GalleryInstaller.Failure.unsupportedManifest("format version \(formatVersion)")) {
+    try GalleryInstaller.install(from: version, into: destination)
+  }
+  #expect(!FileManager.default.fileExists(atPath: destination.path))
 }
 
 @Test("installing refuses a part whose SHA-256 does not match the manifest")

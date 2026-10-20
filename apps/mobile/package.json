@@ -13,7 +13,7 @@
     "test:production-bundle": "bun scripts/check-production-bundle.mjs",
     "detector:test": "swift test --package-path modules/card-detector --scratch-path modules/card-detector/.data/build",
     "scan-sounds": "bun scripts/generate-scan-sounds.mjs",
-    "recognizer:test": "swift test --package-path modules/card-recognizer --scratch-path modules/card-recognizer/.data/build",
+    "recognizer:test": "swift test --no-parallel --package-path modules/card-recognizer --scratch-path modules/card-recognizer/.data/build",
     "recognizer:replay": "bun modules/card-recognizer/scripts/replay.mjs",
     "bin-deck:score": "bun test/scanner-evidence/score-bin-deck.ts"
   },

@@ -3,13 +3,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { buildRecognizer } from '../../apps/mobile/modules/card-recognizer/scripts/recognizer-command.mjs';
-import { featurePrintDimension } from './format';
+import type { FeaturePrintModel, RecognizerThresholds } from './manifest';
 
 export type RecognizerAbout = {
   macOS: string;
   machine: string;
-  featurePrintRevision: number;
-  dimension: number;
+  model: FeaturePrintModel;
+  thresholds: RecognizerThresholds;
 };
 
 export function macOSMajor(macOS: string): string {
@@ -34,9 +34,6 @@ async function run(command: string, args: string[]): Promise<string> {
 export async function macRecognizer(): Promise<Recognizer> {
   const command = process.env.GALLERY_RECOGNIZER ?? (await buildRecognizer());
   const about = JSON.parse(await run(command, ['about'])) as RecognizerAbout;
-  if (about.dimension !== featurePrintDimension) {
-    throw new Error(`The recognizer makes ${about.dimension} values, the gallery needs ${featurePrintDimension}`);
-  }
   return {
     about,
     async encode(images) {
@@ -48,7 +45,7 @@ export async function macRecognizer(): Promise<Recognizer> {
         await writeFile(join(directory, 'images.txt'), images.join('\n'));
         await run(command, ['encode', join(directory, 'images.txt'), join(directory, 'codes.i8')]);
         const codes = new Uint8Array(await Bun.file(join(directory, 'codes.i8')).arrayBuffer());
-        if (codes.length !== images.length * featurePrintDimension) {
+        if (codes.length !== images.length * about.model.vectorSize) {
           throw new Error(`The recognizer wrote ${codes.length} bytes for ${images.length} images`);
         }
         return codes;

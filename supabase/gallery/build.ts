@@ -8,18 +8,17 @@ import {
   type GalleryRow,
   type Part,
   addOnLimit,
-  featurePrintDimension,
-  galleryFormatVersion,
   galleryParts,
   installedRows,
   newVersionId,
   updateBytes,
 } from './format';
 import { cachedImages } from './images';
-import { type Manifest, manifestFile } from './manifest';
+import { type Manifest, galleryFormatVersion, manifestFile } from './manifest';
 import { galleryPrintings } from './printings';
 import { type Recognizer, macOSMajor } from './recognizer';
 import {
+  GalleryRefused,
   type RecordedVersion,
   copyObject,
   publishedVersions,
@@ -44,21 +43,32 @@ type Plan =
   | { kind: 'add-on'; addOn: number; firstRow: number; changed: GalleryRow[] }
   | { kind: 'unchanged' };
 
+function refuseAnAddOnAcrossModels(published: RecordedVersion, recognizer: Recognizer) {
+  const { formatVersion, model } = published.manifest;
+  if (formatVersion !== galleryFormatVersion) {
+    throw new GalleryRefused(
+      `Gallery version ${published.version} has gallery format ${formatVersion}, not ${galleryFormatVersion}. Build a new base with --new-base.`,
+    );
+  }
+  if (model.name !== recognizer.about.model.name) {
+    throw new GalleryRefused(
+      `Gallery version ${published.version} was built with model ${model.name}, not ${recognizer.about.model.name}. An add-on cannot mix the two. Build a new base with --new-base.`,
+    );
+  }
+}
+
 function sameRow(a: GalleryRow, b: GalleryRow): boolean {
   return JSON.stringify(a.printing) === JSON.stringify(b.printing) && Buffer.from(a.codes).equals(Buffer.from(b.codes));
 }
 
 function plan(rows: GalleryRow[], published: RecordedVersion | null, installed: Map<string, GalleryRow> | null, recognizer: Recognizer, newBase: boolean): Plan {
+  if (newBase) {
+    return { kind: 'base', reason: 'the owner asked for a new base' };
+  }
   if (!published || !installed) {
     return { kind: 'base', reason: 'no gallery version is published' };
   }
   const manifest = published.manifest;
-  if (newBase) {
-    return { kind: 'base', reason: 'the owner asked for a new base' };
-  }
-  if (manifest.featurePrint.revision !== recognizer.about.featurePrintRevision) {
-    return { kind: 'base', reason: 'the feature print revision changed' };
-  }
   if (manifest.encoding.type !== 'int8') {
     return { kind: 'base', reason: 'the encoding changed' };
   }
@@ -150,7 +160,11 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
       publishedParts.set(part.name, await localPartBytes(() => client, options.workDirectory, published.version, part));
     }
   }
-  const installed = published ? installedRows(published.manifest, (part) => publishedParts.get(part.name)!) : null;
+  if (published && !options.newBase) {
+    refuseAnAddOnAcrossModels(published, recognizer);
+  }
+  const installed =
+    published && !options.newBase ? installedRows(published.manifest, (part) => publishedParts.get(part.name)!) : null;
   const current = new Set(rows.map((row) => row.printing.id));
   const leftOver = installed ? [...installed.keys()].filter((id) => !current.has(id)).length : 0;
   if (leftOver > 0) {
@@ -165,12 +179,12 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
   let parts: Part[];
   if (decision.kind === 'base') {
     console.log(`Building a new base, because ${decision.reason}.`);
-    parts = galleryParts(0, 0, rows);
+    parts = galleryParts(0, 0, rows, recognizer.about.model.vectorSize);
   } else {
     console.log(`Building add-on ${decision.addOn} with ${decision.changed.length} new or changed rows.`);
     parts = [
       ...published!.manifest.parts.map((part) => ({ ...part, bytes: publishedParts.get(part.name)! })),
-      ...galleryParts(decision.addOn, decision.firstRow, decision.changed),
+      ...galleryParts(decision.addOn, decision.firstRow, decision.changed, recognizer.about.model.vectorSize),
     ];
   }
   const distinctRows = decision.kind === 'base' ? rows.length : new Set([...installed!.keys(), ...decision.changed.map((row) => row.printing.id)]).size;
@@ -178,11 +192,8 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
     formatVersion: galleryFormatVersion,
     version,
     builtAt: new Date().toISOString(),
-    featurePrint: {
-      request: 'VNGenerateImageFeaturePrintRequest',
-      revision: recognizer.about.featurePrintRevision,
-      dimension: featurePrintDimension,
-    },
+    model: recognizer.about.model,
+    thresholds: recognizer.about.thresholds,
     encoding: { type: 'int8', scale: 'per_vector' },
     rows: distinctRows,
     scryfallSnapshot: source.scryfallSnapshot,

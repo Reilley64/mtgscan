@@ -6,7 +6,14 @@ const dimension = 768;
 const [command, ...args] = Bun.argv.slice(2);
 
 if (command === 'about') {
-  console.log(JSON.stringify({ macOS: '15.7.3', machine: 'Test machine', featurePrintRevision: 2, dimension }));
+  console.log(
+    JSON.stringify({
+      macOS: '15.7.3',
+      machine: 'Test machine',
+      model: { name: process.env.FAKE_RECOGNIZER_MODEL ?? 'apple-vision-2', inputSize: { width: 488, height: 680 }, vectorSize: dimension },
+      thresholds: { notACard: 0.5, orientationMargin: 0.03, artMargin: 0.03 },
+    }),
+  );
 } else if (command === 'encode' && args.length === 2) {
   const images = (await Bun.file(args[0]!).text()).split('\n').filter(Boolean);
   const codes = new Uint8Array(images.length * dimension);

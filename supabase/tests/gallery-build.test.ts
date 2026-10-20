@@ -16,7 +16,7 @@ import {
   withoutCards,
 } from './catalog-import-command';
 import { cleanGallery } from './gallery-versions';
-import { secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
+import { asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(120_000);
 
@@ -31,7 +31,7 @@ type ManifestPart = {
   sha256: string;
 };
 
-type Manifest = { version: string; rows: number; parts: ManifestPart[] };
+type Manifest = { formatVersion: number; version: string; rows: number; model: { name: string }; parts: ManifestPart[] };
 
 type PrintingListRow = { id: string; name: string; faceNames: string[]; finishes: string[]; basicLand: boolean };
 
@@ -67,6 +67,13 @@ async function galleryFixture(imageVersion?: (record: ScryfallRecord) => number)
 
 async function build(manifest: string, ...flags: string[]) {
   return runGalleryCommand('build', '--manifest', manifest, '--images', imagesDirectory, '--work', workDirectory, ...flags);
+}
+
+async function buildWithModel(model: string, manifest: string, ...flags: string[]) {
+  return runGalleryCommandWith(
+    { FAKE_RECOGNIZER_MODEL: model },
+    'build', '--manifest', manifest, '--images', imagesDirectory, '--work', workDirectory, ...flags,
+  );
 }
 
 function builtVersion(output: string): string {
@@ -159,6 +166,15 @@ describe('the first gallery build', () => {
     expect(await recordedVersions()).toEqual([{ version, published_at: null }]);
   });
 
+  test('the manifest has gallery format 2 and names the model and the thresholds of the recognizer', () => {
+    expect(manifest).toMatchObject({
+      formatVersion: 2,
+      model: { name: 'apple-vision-2', inputSize: { width: 488, height: 680 }, vectorSize: 768 },
+      thresholds: { notACard: 0.5, orientationMargin: 0.03, artMargin: 0.03 },
+    });
+    expect(manifest).not.toHaveProperty('featurePrint');
+  });
+
   test('installs from the work folder for the scanner evidence replay, without Storage', async () => {
     const galleryDirectory = await mkdtemp(join(tmpdir(), 'mtgscan-replay-gallery-'));
 
@@ -243,7 +259,7 @@ describe('publishing', () => {
     const pointer = await alice.client.storage.from('gallery').download('published.json');
     const manifest = await alice.client.storage.from('gallery').download(`${first}/manifest.json`);
 
-    expect(JSON.parse(await pointer.data!.text())).toMatchObject({ version: first, manifest: `${first}/manifest.json` });
+    expect(JSON.parse(await pointer.data!.text())).toMatchObject({ formatVersion: 2, version: first, manifest: `${first}/manifest.json` });
     expect(manifest.error).toBeNull();
   });
 
@@ -302,6 +318,72 @@ describe('the next gallery builds', () => {
 
     expect((await recordedVersions()).map((row) => row.version).sort()).toEqual([first.version, newBase.version].sort());
     expect(await storedFolders()).toEqual([first.version, newBase.version].sort());
+  });
+});
+
+describe('a new model', () => {
+  const newModel = 'pe-core-s16-384';
+  let published: Manifest;
+
+  beforeAll(async () => {
+    const pointer = JSON.parse(new TextDecoder().decode(await download('published.json'))) as { version: string };
+    published = await manifestOf(pointer.version);
+  });
+
+  test('a build with another model than the published gallery version is refused without --new-base', async () => {
+    const before = await recordedVersions();
+
+    const refused = await buildWithModel(newModel, await galleryFixture((record) => (record.name === blackLotus ? 4 : 1)));
+
+    expect(refused.exitCode).toBe(1);
+    expect(refused.output).toContain(`Gallery version ${published.version} was built with model apple-vision-2, not ${newModel}.`);
+    expect(refused.output).toContain('--new-base');
+    expect(await recordedVersions()).toEqual(before);
+  });
+
+  test('with --new-base, a build with another model uploads a new base that names the new model', async () => {
+    const result = await buildWithModel(newModel, await galleryFixture(), '--new-base');
+    const newBase = await manifestOf(builtVersion(result.output));
+
+    expect(result.exitCode).toBe(0);
+    expect(newBase.model.name).toBe(newModel);
+    expect(newBase.parts.every((part) => part.addOn === 0)).toBe(true);
+  });
+});
+
+describe('a published gallery version of format 1', () => {
+  let published: string;
+
+  beforeAll(async () => {
+    published = JSON.parse(new TextDecoder().decode(await download('published.json'))).version;
+    await asDatabaseOwner(
+      (database) => database`
+        update public.gallery_versions
+        set manifest = manifest - 'model' - 'thresholds' || ${{
+          formatVersion: 1,
+          featurePrint: { request: 'VNGenerateImageFeaturePrintRequest', revision: 2, dimension: 768 },
+        }}::jsonb
+        where version = ${published}`,
+    );
+  });
+
+  test('a build is refused without --new-base', async () => {
+    const before = await recordedVersions();
+
+    const refused = await build(await galleryFixture((record) => (record.name === blackLotus ? 5 : 1)));
+
+    expect(refused.exitCode).toBe(1);
+    expect(refused.output).toContain(`Gallery version ${published} has gallery format 1, not 2. Build a new base with --new-base.`);
+    expect(await recordedVersions()).toEqual(before);
+  });
+
+  test('with --new-base, a build uploads a new base of format 2', async () => {
+    const result = await build(await galleryFixture(), '--new-base');
+
+    expect(result.exitCode).toBe(0);
+    const newBase = await manifestOf(builtVersion(result.output));
+    expect(newBase.formatVersion).toBe(2);
+    expect(newBase.parts.every((part) => part.addOn === 0)).toBe(true);
   });
 });
 

@@ -7,6 +7,13 @@ public enum FeaturePrint {
   public static let revision = 2
   static let inputWidth = 488
   static let inputHeight = 680
+  public static let model = FeaturePrintModel(
+    name: "apple-vision-2",
+    sha256: nil,
+    inputSize: .init(width: inputWidth, height: inputHeight),
+    vectorSize: dimension
+  )
+  public static let thresholds = RecognizerThresholds(notACard: 0.5, orientationMargin: 0.03, artMargin: 0.03)
 
   public enum Failure: Error {
     case noObservation

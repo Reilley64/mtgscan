@@ -225,7 +225,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
   }
 
   private func spaceNeeded(for manifest: GalleryManifest, pending: [GalleryManifest.Part]) -> Int64 {
-    let vectors = Int64(manifest.rows * FeaturePrint.dimension * MemoryLayout<Float16>.size)
+    let vectors = Int64(manifest.rows * manifest.model.vectorSize * MemoryLayout<Float16>.size)
     let printingList = manifest.parts
       .filter { $0.kind == GalleryManifest.Part.printingList }
       .reduce(Int64(0)) { $0 + Int64($1.rawBytes) }

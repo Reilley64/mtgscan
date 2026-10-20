@@ -4,8 +4,16 @@ import { join } from 'node:path';
 
 import type { ImportClient } from '../import/import-run';
 import { budgetReport, freePlan, gigabytes } from './budget';
-import { galleryFormatVersion, partBytes, updateBytes, verifiedPartBytes } from './format';
-import { type Manifest, type Pointer, type SignedVersion, manifestFile, megabytes, pointerFile } from './manifest';
+import { partBytes, updateBytes, verifiedPartBytes } from './format';
+import {
+  type Manifest,
+  type Pointer,
+  type SignedVersion,
+  galleryFormatVersion,
+  manifestFile,
+  megabytes,
+  pointerFile,
+} from './manifest';
 import type { Recognizer } from './recognizer';
 import { evidenceVersion } from './repository';
 import { localPartBytes, versionDirectory } from './work-folder';

@@ -1,6 +1,7 @@
 export const galleryBucket = 'gallery';
 export const pointerFile = 'published.json';
 export const manifestFile = 'manifest.json';
+export const galleryFormatVersion = 2;
 
 export type Pointer = {
   formatVersion: number;
@@ -42,6 +43,19 @@ export type ManifestPart = {
   sha256: string;
 };
 
+export type FeaturePrintModel = {
+  name: string;
+  sha256?: string;
+  inputSize: { width: number; height: number };
+  vectorSize: number;
+};
+
+export type RecognizerThresholds = {
+  notACard: number;
+  orientationMargin: number;
+  artMargin: number;
+};
+
 export type BuiltWith = {
   macOS: string;
   recognizerCommit: string;
@@ -52,7 +66,8 @@ export type Manifest = {
   formatVersion: number;
   version: string;
   builtAt: string;
-  featurePrint: { request: string; revision: number; dimension: number };
+  model: FeaturePrintModel;
+  thresholds: RecognizerThresholds;
   encoding: { type: 'int8'; scale: 'per_vector' };
   rows: number;
   scryfallSnapshot: string;
