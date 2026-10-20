@@ -1,13 +1,13 @@
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import type { Session } from '@supabase/supabase-js';
 import { createContext, use, useEffect, useState, type ReactNode } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
+import { AppState } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 
 const SessionContext = createContext<Session | null>(null);
 
-function refreshWhileActive(state: AppStateStatus) {
+function refreshWhileActive(state: typeof AppState.currentState) {
   if (state === 'active') {
     supabase.auth.startAutoRefresh();
   } else {
