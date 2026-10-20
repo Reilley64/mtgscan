@@ -21,6 +21,10 @@ final class CardDetectorView: ExpoView {
     didSet { outlineLayer.lineWidth = outlineWidth }
   }
 
+  var rectangleTrial = false {
+    didSet { camera?.rectangleTrial = rectangleTrial }
+  }
+
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     let camera = CameraSession { [weak self] sample in

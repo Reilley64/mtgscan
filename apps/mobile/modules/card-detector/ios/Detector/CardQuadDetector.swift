@@ -31,7 +31,8 @@ enum CardQuadDetector {
 
   static func detect(
     pixelBuffer: CVPixelBuffer,
-    displayOrientation: CGImagePropertyOrientation
+    displayOrientation: CGImagePropertyOrientation,
+    rectangleTrial: Bool = false
   ) -> Output {
     var output = Output()
     guard let transform = OrientationTransform(
@@ -49,7 +50,7 @@ enum CardQuadDetector {
       return output
     }
 
-    let request = VNDetectDocumentSegmentationRequest()
+    let request = rectangleTrial ? rectangleTrialRequest() : VNDetectDocumentSegmentationRequest()
     let handler = VNImageRequestHandler(
       cvPixelBuffer: pixelBuffer,
       orientation: displayOrientation,
@@ -62,7 +63,7 @@ enum CardQuadDetector {
       return output
     }
 
-    guard let observation = request.results?.first,
+    guard let observation = request.results?.first as? VNRectangleObservation,
           observation.confidence.isFinite,
           (0.0 ... 1.0).contains(Double(observation.confidence))
     else {
@@ -110,28 +111,50 @@ enum CardQuadDetector {
       bytesPerRow: CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0)
     )
 
+    if rectangleTrial {
+      accept(proposal, supportMin: 1.0, plane: plane, transform: transform, into: &output)
+      return output
+    }
+
     switch CardEdgeRefiner.refine(proposal: proposal, plane: plane, transform: transform) {
     case let .refined(corners, supportMin, _, _, fallbackEdges):
       guard fallbackEdges == 0 || output.confidence >= minimumFallbackConfidence else {
         output.edgeSupportMin = supportMin
         break
       }
-      let metrics = CardQuadGeometry.metrics(
-        corners,
-        width: transform.orientedWidth,
-        height: transform.orientedHeight
-      )
-      output.refined = corners.map { normalized($0, transform) }
-      output.areaRatio = metrics.areaRatio
-      output.aspectRatio = metrics.aspectRatio
-      output.edgeSupportMin = supportMin
-      output.signature = cardSignature(corners: corners, plane: plane, transform: transform)
+      accept(corners, supportMin: supportMin, plane: plane, transform: transform, into: &output)
     case let .weakEdge(supportMin):
       output.edgeSupportMin = supportMin
     case let .invalidQuad(supportMin):
       output.edgeSupportMin = supportMin
     }
     return output
+  }
+
+  private static func rectangleTrialRequest() -> VNDetectRectanglesRequest {
+    let request = VNDetectRectanglesRequest()
+    request.minimumAspectRatio = Float(CardQuadGeometry.cardAspectRatio - CardQuadGeometry.aspectRatioTolerance)
+    request.maximumAspectRatio = Float(CardQuadGeometry.cardAspectRatio + CardQuadGeometry.aspectRatioTolerance)
+    return request
+  }
+
+  private static func accept(
+    _ corners: [SIMD2<Double>],
+    supportMin: Double,
+    plane: LumaPlane,
+    transform: OrientationTransform,
+    into output: inout Output
+  ) {
+    let metrics = CardQuadGeometry.metrics(
+      corners,
+      width: transform.orientedWidth,
+      height: transform.orientedHeight
+    )
+    output.refined = corners.map { normalized($0, transform) }
+    output.areaRatio = metrics.areaRatio
+    output.aspectRatio = metrics.aspectRatio
+    output.edgeSupportMin = supportMin
+    output.signature = cardSignature(corners: corners, plane: plane, transform: transform)
   }
 
   static let minimumFallbackConfidence = 0.9

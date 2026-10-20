@@ -22,6 +22,7 @@ export type CardDetectorViewProps = ViewProps & {
   active: boolean;
   outlineColor: ColorValue;
   outlineWidth: number;
+  rectangleTrial: boolean;
   onDetectionSample: (event: NativeSyntheticEvent<DetectionSample>) => void;
 };
 

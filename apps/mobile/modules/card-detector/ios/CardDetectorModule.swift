@@ -46,6 +46,10 @@ public final class CardDetectorModule: Module {
         view.outlineWidth = width
       }
 
+      Prop("rectangleTrial") { (view: CardDetectorView, rectangleTrial: Bool) in
+        view.rectangleTrial = rectangleTrial
+      }
+
       AsyncFunction("takePhoto") { (view: CardDetectorView, outline: [OutlinePoint], promise: Promise) in
         MainActor.assumeIsolated {
           view.takePhoto(outline: outline.map { SIMD2($0.x, $0.y) }, promise: promise)

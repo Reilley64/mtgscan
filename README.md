@@ -120,7 +120,9 @@ The card detector is a local Expo module in `apps/mobile/modules/card-detector`.
 
 The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes one photo when a detected card holds still for 400 ms, and re-arms after the card leaves or changes. The app needs iOS 17, because the recognizer uses Vision feature print revision 2.
 
-`bun run detector:test` in `apps/mobile` runs the Swift fixture tests for the detector on a Mac. Development builds log each capture event to Metro as a `CAPTURE` line, with the detector timing every 300 samples.
+A development build can run the rectangle trial from #421 instead. It runs Vision's `VNDetectRectanglesRequest` on the same frame and orientation as the document proposal, with aspect bounds of 63:88 ± 0.02, and takes its rectangle as the outline with no edge refiner. Its outline passes the same detector gates. Vision measures no edge support, so trial samples report an edge support of 1. To turn it on, set `EXPO_PUBLIC_RECTANGLE_TRIAL=true` in `apps/mobile/.env.local` and start Metro again. Other builds never run it, and the current detector stays the default.
+
+`bun run detector:test` in `apps/mobile` runs the Swift fixture tests for the detector on a Mac. `RectangleTrialTests.swift` runs the same cases through the rectangle trial and records each case it fails as a known issue. Development builds log each capture event to Metro as a `CAPTURE` line, with the detector timing every 300 samples.
 
 ### Scan feedback
 

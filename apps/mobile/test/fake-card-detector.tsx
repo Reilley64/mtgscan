@@ -39,10 +39,10 @@ async function takePhoto(outline: FrameQuad): Promise<CapturedPhoto> {
 }
 
 function FakeCardDetectorView(
-  { onDetectionSample, active, outlineColor, outlineWidth, ...viewProps }: Omit<CardDetectorViewProps, 'ref'>,
+  { onDetectionSample, active, outlineColor, outlineWidth, rectangleTrial, ...viewProps }: Omit<CardDetectorViewProps, 'ref'>,
   ref: ForwardedRef<CardDetectorCamera>,
 ) {
-  mountedView = { onDetectionSample, active, outlineColor, outlineWidth, ...viewProps };
+  mountedView = { onDetectionSample, active, outlineColor, outlineWidth, rectangleTrial, ...viewProps };
   useImperativeHandle(ref, () => ({ takePhoto }));
   return <View {...viewProps} />;
 }
@@ -80,6 +80,10 @@ export async function showSamples(samples: DetectionSample[]) {
 
 export function cameraIsOn() {
   return mountedView?.active === true;
+}
+
+export function rectangleTrialIsOn() {
+  return cameraView().rectangleTrial;
 }
 
 export function photosTaken() {

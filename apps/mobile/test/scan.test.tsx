@@ -23,6 +23,7 @@ import {
   photoOutlines,
   photosDeleted,
   photosTaken,
+  rectangleTrialIsOn,
   userAnswersCameraPrompt,
 } from './fake-card-detector';
 import { startSignedIn } from './fake-supabase';
@@ -338,4 +339,39 @@ test('the photo comes with the outline of the card that held still', async () =>
   await scan([...repeat(3, card), card({ offset: 0.01 })]);
 
   expect(photoOutlines()).toEqual([card({ offset: 0.01 }).corners]);
+});
+
+describe('rectangle trial', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    delete process.env.EXPO_PUBLIC_RECTANGLE_TRIAL;
+  });
+
+  function runAs(development: boolean) {
+    jest.replaceProperty(globalThis as typeof globalThis & { __DEV__: boolean }, '__DEV__', development);
+  }
+
+  test('the card detector runs without the rectangle trial by default', async () => {
+    await openScan();
+
+    expect(rectangleTrialIsOn()).toBe(false);
+  });
+
+  test('a development build runs the rectangle trial when it is switched on', async () => {
+    runAs(true);
+    process.env.EXPO_PUBLIC_RECTANGLE_TRIAL = 'true';
+
+    await openScan();
+
+    expect(rectangleTrialIsOn()).toBe(true);
+  });
+
+  test('a production build never runs the rectangle trial', async () => {
+    runAs(false);
+    process.env.EXPO_PUBLIC_RECTANGLE_TRIAL = 'true';
+
+    await openScan();
+
+    expect(rectangleTrialIsOn()).toBe(false);
+  });
 });

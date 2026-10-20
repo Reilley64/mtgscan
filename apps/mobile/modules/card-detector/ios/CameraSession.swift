@@ -20,6 +20,7 @@ final class CameraSession: NSObject, @unchecked Sendable {
   static let videoDimensions = (width: Int32(1280), height: Int32(720))
 
   let session = AVCaptureSession()
+  var rectangleTrial = false
   private let onSample: @Sendable (DetectionSample) -> Void
   private let sessionQueue = DispatchQueue(label: "dev.reilley.mtgscan.camera")
   private let analysisQueue = DispatchQueue(label: "dev.reilley.mtgscan.detector")
@@ -193,7 +194,11 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
       return
     }
     let startedAt = ProcessInfo.processInfo.systemUptime
-    let output = CardQuadDetector.detect(pixelBuffer: pixelBuffer, displayOrientation: Self.displayOrientation)
+    let output = CardQuadDetector.detect(
+      pixelBuffer: pixelBuffer,
+      displayOrientation: Self.displayOrientation,
+      rectangleTrial: rectangleTrial
+    )
     let sample = DetectionSample(
       output: output,
       transform: transform,
