@@ -235,7 +235,7 @@ describe('the set page', () => {
     const page = await openBloomburrow();
 
     const header = page.getByRole('header', { name: 'Draft Cards, 2 of 3, 66 percent' });
-    expect(within(header).getByText('Draft Cards')).toBeOnTheScreen();
+    expect(within(header).getByText('Draft Cards')).toHaveStyle({ color: primary });
     expect(within(header).getByText('2 of 3')).toBeOnTheScreen();
     expect(within(header).getByRole('progressbar')).toHaveProp('accessibilityValue', { min: 0, max: 3, now: 2 });
     expect(within(header).queryByText('✓')).toBeNull();

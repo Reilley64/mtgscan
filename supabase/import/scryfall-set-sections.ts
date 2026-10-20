@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { Database } from '../database.types';
 import { ImportFailed, type ImportClient } from './import-run';
 import { scryfallHeaders } from './scryfall-bulk-data';
@@ -8,9 +10,13 @@ export const scryfallApiUrl = 'https://api.scryfall.com';
 
 type ScryfallUrls = { site: string; api: string };
 
-type PageSection = { name: string; search: string };
+const pageSection = z.strictObject({ name: z.string(), search: z.string() });
 
-type SetSection = PageSection & { card_printing_ids: string[] };
+type PageSection = z.infer<typeof pageSection>;
+
+const storedPageSections = z.array(pageSection);
+
+export type ImportedSetSection = PageSection & { card_printing_ids: string[] };
 
 type ListedSet = Database['public']['Functions']['sets_for_set_section_import']['Returns'][number];
 
@@ -18,7 +24,7 @@ type SearchPage = { data?: { id?: string }[]; has_more?: boolean; next_page?: st
 
 type ScryfallError = { code?: string };
 
-type SectionHeader = { name: string; href: string | null; nameRead: boolean };
+type SectionHeader = { name: string; href: string | null; nameEnded: boolean };
 
 type RequestKind = 'set page' | 'card search';
 
@@ -35,18 +41,18 @@ async function sectionHeaders(page: Response): Promise<SectionHeader[]> {
   await new HTMLRewriter()
     .on('h2.card-grid-header', {
       element() {
-        headers.push({ name: '', href: null, nameRead: false });
+        headers.push({ name: '', href: null, nameEnded: false });
       },
       text(chunk) {
         const header = headers.at(-1)!;
-        if (!header.nameRead) {
+        if (!header.nameEnded) {
           header.name += chunk.text;
         }
       },
     })
     .on('h2.card-grid-header .card-grid-header-dot', {
       element() {
-        headers.at(-1)!.nameRead = true;
+        headers.at(-1)!.nameEnded = true;
       },
     })
     .on('h2.card-grid-header a[href]', {
@@ -65,8 +71,8 @@ class ScryfallReader {
 
   constructor(private readonly urls: ScryfallUrls) {}
 
-  async withCardPrintings(pageSections: PageSection[]): Promise<SetSection[]> {
-    const sections: SetSection[] = [];
+  async runSearches(pageSections: PageSection[]): Promise<ImportedSetSection[]> {
+    const sections: ImportedSetSection[] = [];
     for (const { name, search } of pageSections) {
       sections.push({ name, search, card_printing_ids: await this.cardPrintingIds(search) });
     }
@@ -144,9 +150,9 @@ function samePageSections(page: PageSection[], stored: PageSection[]) {
 async function storeSetSections(client: ImportClient, scryfall: ScryfallReader, set: ListedSet) {
   const pageSections = await scryfall.setPageSections(set.code);
   const stored =
-    !set.has_unlisted_card_printing && samePageSections(pageSections, set.sections as PageSection[])
+    !set.has_unlisted_card_printing && samePageSections(pageSections, storedPageSections.parse(set.sections))
       ? await client.rpc('record_set_sections_read', { set_code: set.code })
-      : await client.rpc('import_set_sections', { set_code: set.code, sections: await scryfall.withCardPrintings(pageSections) });
+      : await client.rpc('import_set_sections', { set_code: set.code, sections: await scryfall.runSearches(pageSections) });
   if (stored.error) {
     throw new Error(stored.error.message);
   }
