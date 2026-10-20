@@ -2,17 +2,45 @@ import type { ReactNode } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
 import { cardHeightPerWidth } from '@/components/atoms/card-image';
+import { FlashList, type FlashListProps } from '@/components/atoms/flash-list';
 import { CardTileSkeleton, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
 import { cn } from '@/lib/class-names';
 
-export const cardListContentClass = 'px-md';
+const gridInsets = {
+  content: 'px-md',
+  fullRow: 'px-xs',
+  edgeToEdge: '-mx-md',
+};
 
-export const cardListRowClass = 'px-xs';
+const headerInsets = { 'full-row': gridInsets.fullRow, 'edge-to-edge': gridInsets.edgeToEdge };
 
-export function fullRowUnlessCard(layout: { span?: number }, item: { kind: string }, _index: number, maxColumns: number) {
-  if (item.kind !== 'card') {
-    layout.span = maxColumns;
-  }
+export type CardGridListProps<Item> = Omit<
+  FlashListProps<Item>,
+  'numColumns' | 'overrideItemLayout' | 'ListHeaderComponentClassName' | 'ListFooterComponentClassName' | 'ListEmptyComponentClassName'
+> & {
+  isTile: (item: Item) => boolean;
+  header?: keyof typeof headerInsets;
+};
+
+export function CardGridList<Item>({ isTile, header = 'full-row', renderItem, contentContainerClassName, ...listProps }: CardGridListProps<Item>) {
+  return (
+    <FlashList
+      {...listProps}
+      numColumns={cardsPerRow}
+      overrideItemLayout={(layout, item, _index, maxColumns) => {
+        if (!isTile(item)) {
+          layout.span = maxColumns;
+        }
+      }}
+      renderItem={
+        renderItem && ((info) => (isTile(info.item) ? renderItem(info) : <View className={gridInsets.fullRow}>{renderItem(info)}</View>))
+      }
+      contentContainerClassName={cn(gridInsets.content, contentContainerClassName)}
+      ListHeaderComponentClassName={headerInsets[header]}
+      ListFooterComponentClassName={gridInsets.fullRow}
+      ListEmptyComponentClassName={gridInsets.fullRow}
+    />
+  );
 }
 
 export function CardGrid({ children }: { children: ReactNode }) {

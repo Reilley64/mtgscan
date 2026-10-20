@@ -2,18 +2,11 @@ import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { useHeaderHeight } from 'expo-router/react-navigation';
 
-import { FlashList, type FlashListProps } from '@/components/atoms/flash-list';
-import { cardListContentClass } from '@/components/molecules/card-grid';
-import { cardsPerRow } from '@/components/molecules/card-tile';
+import { CardGridList, type CardGridListProps } from '@/components/molecules/card-grid';
 import { FloatingButtons } from '@/components/templates/floating-buttons';
 import { cn } from '@/lib/class-names';
-import { spacing } from '@/theme';
 
 const screenClass = 'flex-1 bg-background';
-
-const keepsScrollOffset = { disabled: true };
-
-const edgeToEdgeHeader = { marginHorizontal: -spacing.md };
 
 const contentClass = 'pb-xl';
 
@@ -44,14 +37,8 @@ export function PushedScreen({ withBar = false, children }: { withBar?: boolean;
 }
 
 type PushedListScreenProps<Item> = Omit<
-  FlashListProps<Item>,
-  | 'style'
-  | 'contentContainerStyle'
-  | 'contentInset'
-  | 'contentInsetAdjustmentBehavior'
-  | 'onEndReachedThreshold'
-  | 'numColumns'
-  | 'ListHeaderComponentStyle'
+  CardGridListProps<Item>,
+  'style' | 'contentContainerStyle' | 'contentInset' | 'contentInsetAdjustmentBehavior' | 'onEndReachedThreshold' | 'header'
 > & {
   floatingButtons?: ReactNode;
 };
@@ -59,16 +46,14 @@ type PushedListScreenProps<Item> = Omit<
 export function PushedListScreen<Item>({ floatingButtons, ...listProps }: PushedListScreenProps<Item>) {
   return (
     <>
-      <FlashList
+      <CardGridList
         {...listProps}
         {...useContentInsets(false)}
-        numColumns={cardsPerRow}
+        header="edge-to-edge"
         className={screenClass}
-        contentContainerClassName={cn(cardListContentClass, floatingButtons ? floatingButtonsContentClass : contentClass)}
-        ListHeaderComponentStyle={edgeToEdgeHeader}
+        contentContainerClassName={floatingButtons ? floatingButtonsContentClass : contentClass}
         keyboardShouldPersistTaps="handled"
         onEndReachedThreshold={endReachedScreens}
-        maintainVisibleContentPosition={keepsScrollOffset}
       />
       {floatingButtons ? <FloatingButtons side="right">{floatingButtons}</FloatingButtons> : null}
     </>

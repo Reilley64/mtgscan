@@ -2,8 +2,8 @@ import type { DeckChange, DeckChangeBasicLandLine, DeckChangeCopyLine, DeckChang
 import { fireEvent, waitFor, within } from 'expo-router/testing-library';
 
 import { expirePageCursors, ownDeckChanges, ownDecks, startSignedIn } from './fake-supabase';
-import { fail, hold, requestsSent } from './fake-supabase-controls';
-import { appearsBefore, cardImageUri, pressTab, pushedScreen, selectedTab } from './native-ui';
+import { fail, requestsSent } from './fake-supabase-controls';
+import { appearsBefore, cardImageUri, measureListItemsAs, pressTab, pushedScreen, scrollToEnd, selectedTab } from './native-ui';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
 
@@ -11,6 +11,7 @@ const { incoming, outgoing } = tokenColors;
 
 beforeEach(() => {
   startSignedIn();
+  measureListItemsAs(10_000);
 });
 
 function copyLine(name: string, typeLine: string, places: Pick<DeckChangeCopyLine, 'place_before' | 'place_after'>): DeckChangeCopyLine {
@@ -168,30 +169,36 @@ describe('the History tab', () => {
     expect(deck.getAllByLabelText('Reverted')).toHaveLength(1);
   });
 
-  test('loads the next page of deck changes at the end of the list, and the created line stays last', async () => {
+  test('loads more deck changes on scroll, and the created line stays last', async () => {
     const deck = await openHistory(
       Array.from({ length: 25 }, (_, index) => deckChange(25 - index, 'added', [copyLine(`Card ${25 - index}`, 'Artifact', { place_before: null, place_after: 'main' })])),
     );
+    expect(await deck.findByLabelText('+, Card 6, Artifact')).toBeOnTheScreen();
+    expect(deck.queryByLabelText('+, Card 5, Artifact')).not.toBeOnTheScreen();
+
+    await scrollToEnd(pushedScreen());
 
     const last = await deck.findByLabelText('+, Card 1, Artifact');
     expect(deck.getAllByText('Added')).toHaveLength(25);
     expect(appearsBefore(last, deck.getByText('Created 15 October 2026'))).toBe(true);
   });
 
-  test('an expired cursor reads History again from the newest deck change, and goes on loading more', async () => {
-    const firstPage = hold('list_deck_changes', { once: true });
+  test('an expired cursor reads History again from the newest deck change, as many pages as it showed, and scrolling loads more', async () => {
     const deck = await openHistory(
       Array.from({ length: 45 }, (_, index) => deckChange(45 - index, 'added', [copyLine(`Card ${45 - index}`, 'Artifact', { place_before: null, place_after: 'main' })])),
     );
-    const nextPage = hold('list_deck_changes', { once: true });
-    await firstPage.finish();
-    await waitFor(() => expect(requestsSent('list_deck_changes')).toHaveLength(2));
+    await scrollToEnd(pushedScreen());
+    expect(await deck.findByLabelText('+, Card 6, Artifact')).toBeOnTheScreen();
+    const readsBefore = requestsSent('list_deck_changes').length;
     expirePageCursors();
 
-    await nextPage.finish();
+    await scrollToEnd(pushedScreen());
 
+    await waitFor(() =>
+      expect(requestsSent('list_deck_changes').slice(readsBefore).map(({ cursor }) => cursor)).toEqual([expect.any(String), null, expect.any(String)]),
+    );
+    await scrollToEnd(pushedScreen());
     expect(await deck.findByLabelText('+, Card 1, Artifact')).toBeOnTheScreen();
-    expect(requestsSent('list_deck_changes').map(({ cursor }) => cursor).slice(0, 3)).toEqual([null, expect.any(String), null]);
     expect(deck.getAllByText('Added')).toHaveLength(45);
   });
 

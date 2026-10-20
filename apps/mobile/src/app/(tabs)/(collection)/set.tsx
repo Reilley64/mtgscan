@@ -1,7 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
-import { cardListRowClass, fullRowUnlessCard } from '@/components/molecules/card-grid';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { FinishViewControl } from '@/components/organisms/finish-view-control';
@@ -39,12 +38,12 @@ export default function SetScreen() {
   return (
     <TabStackListScreen
       title={read.status === 'loaded' && showsTitle ? read.set.name : ''}
-      cardGrid
       data={read.status === 'loaded' ? setCardsItems(read.set, finishView) : []}
       keyExtractor={(item) => item.key}
-      overrideItemLayout={fullRowUnlessCard}
+      getItemType={(item) => item.kind}
+      isTile={(item) => item.kind === 'card-printing'}
       renderItem={({ item }) => <SetCardsItemView item={item} />}
-      ListHeaderComponent={<View className={cardListRowClass}>{header()}</View>}
+      ListHeaderComponent={header()}
       onScroll={onScroll}
       scrollEventThrottle={16}
     />

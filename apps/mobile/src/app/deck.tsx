@@ -1,11 +1,10 @@
 import { deckNameLength, type Deck, type DeckCard, type DeckChange, type DeckPriority } from '@mtgscan/supabase/decks';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import type { MenuAction } from '@/components/atoms/menu-button';
 import { NameAlert } from '@/components/atoms/name-alert';
-import { cardListRowClass, fullRowUnlessCard } from '@/components/molecules/card-grid';
 import { DeckBanner } from '@/components/molecules/commander-card';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { DashedCardFrame, GhostNeedsYouItems } from '@/components/molecules/empty-state-illustrations';
@@ -29,7 +28,6 @@ import { removeBasicLandFromDeck, removeFromDeck } from '@/decks/remove-from-dec
 import { useDeck } from '@/decks/use-deck';
 import { useDeckChanges } from '@/decks/use-deck-changes';
 import { violationCardKeys } from '@/decks/violation-cards';
-import { cn } from '@/lib/class-names';
 import { useBannerTitle } from '@/lib/use-banner-title';
 import { useNeedsYouCounts } from '@/needs-you/needs-you-counts';
 import { useNeedsYou, type NeedsYouItem } from '@/needs-you/use-needs-you';
@@ -142,7 +140,10 @@ export default function DeckScreen() {
 
   const deck = read.status === 'loaded' ? read.deck : null;
   const violationKeys = violationCardKeys(deck?.evaluation ?? null);
-  const items: DeckScreenItem[] = !deck ? [] : tab === 'cards' ? deckCardsItems(deck, grouping, order) : [{ kind: tab, key: tab }];
+  const items = useMemo<DeckScreenItem[]>(
+    () => (!deck ? [] : tab === 'cards' ? deckCardsItems(deck, grouping, order) : [{ kind: tab, key: tab }]),
+    [deck, tab, grouping, order],
+  );
 
   function plannedContent() {
     if (planned.status === 'failed') {
@@ -215,9 +216,9 @@ export default function DeckScreen() {
   function itemView(item: DeckScreenItem, deck: Deck) {
     switch (item.kind) {
       case 'planned':
-        return <View className={cn(cardListRowClass, 'gap-lg pt-lg')}>{plannedContent()}</View>;
+        return <View className="gap-lg pt-lg">{plannedContent()}</View>;
       case 'history':
-        return <View className={cn(cardListRowClass, 'gap-lg pt-lg')}>{historyContent(deck)}</View>;
+        return <View className="gap-lg pt-lg">{historyContent(deck)}</View>;
       default:
         return (
           <DeckCardsItemView
@@ -263,7 +264,8 @@ export default function DeckScreen() {
       <PushedListScreen
         data={items}
         keyExtractor={(item) => item.key}
-        overrideItemLayout={fullRowUnlessCard}
+        getItemType={(item) => item.kind}
+        isTile={(item) => item.kind === 'card'}
         renderItem={({ item }) => (deck ? itemView(item, deck) : null)}
         ListHeaderComponent={header()}
         onScroll={onScroll}

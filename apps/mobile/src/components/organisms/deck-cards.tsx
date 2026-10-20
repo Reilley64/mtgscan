@@ -5,7 +5,6 @@ import { View } from 'react-native';
 import { sheenOf, spokenCopy } from '@/collection/copy-labels';
 import type { MenuAction } from '@/components/atoms/menu-button';
 import { Text } from '@/components/atoms/text';
-import { cardListRowClass } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { EmptyState } from '@/components/molecules/empty-state';
 import { EmptyBinderSlots } from '@/components/molecules/empty-state-illustrations';
@@ -43,12 +42,7 @@ const commanderTitle = 'Commander';
 
 const itemSpacing = cva('', {
   variants: {
-    kind: {
-      heading: [cardListRowClass, 'pt-lg'],
-      'no-cards': [cardListRowClass, 'pt-lg'],
-      card: 'pt-sm',
-      'no-commander': [cardListRowClass, 'pt-sm'],
-    },
+    kind: { heading: 'pt-lg', 'no-cards': 'pt-lg', card: 'pt-sm', 'no-commander': 'pt-sm' },
   },
 });
 

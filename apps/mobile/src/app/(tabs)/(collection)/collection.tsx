@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { useSetIcons } from '@/catalog/use-set-icons';
-import { CardGrid, CardGridSkeleton, cardListRowClass } from '@/components/molecules/card-grid';
+import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { FloatingButton } from '@/components/molecules/floating-button';
 import { SortButton } from '@/components/molecules/sort-button';
@@ -184,37 +184,31 @@ export default function CollectionScreen() {
       actions={[collectionFiltersButton(activeFilterCount(search.chips)), total && total.copies > 0 ? collectionTotalMenu(total) : null]}
       search={search.searchBar}
       ListHeaderComponent={
-        <View className={cardListRowClass}>
-          <CollectionSearchHeader
-            chips={search.chips}
-            refusedChipIndex={refusedChipIndex}
-            onRemoveChip={search.removeChip}
-            suggestions={search.suggestions}
-            onPickSuggestion={search.pick}
-            countLine={!suggesting && matchCount && total ? shownMatchCount(matchCount, total) : undefined}
-          />
-        </View>
+        <CollectionSearchHeader
+          chips={search.chips}
+          refusedChipIndex={refusedChipIndex}
+          onRemoveChip={search.removeChip}
+          suggestions={search.suggestions}
+          onPickSuggestion={search.pick}
+          countLine={!suggesting && matchCount && total ? shownMatchCount(matchCount, total) : undefined}
+        />
       }
-      cardGrid
       data={copies}
       keyExtractor={(copy) => copy.copy_id}
+      isTile={() => true}
       ItemSeparatorComponent={RowGap}
       renderItem={({ item }) => <BinderTile copy={item} setIconUri={iconOf(item.set)} commanderArtOf={commanderArtOf} />}
       ListFooterComponent={
-        <View className={cardListRowClass}>
-          <BinderFooter basicLands={basicLands} loadingMore={binder.status === 'loaded' && binder.loadingMore && copies.length > 0} />
-        </View>
+        <BinderFooter basicLands={basicLands} loadingMore={binder.status === 'loaded' && binder.loadingMore && copies.length > 0} />
       }
       ListEmptyComponent={
-        suggesting || basicLands.length > 0 ? null : (
-          <View className={cardListRowClass}>
-            <BinderPlaceholder
-              binder={binder}
-              searching={search.searching}
-              refusedChip={refused ? search.chips[refusedChipIndex] : undefined}
-              onTryAgain={search.decksFailed ? search.reloadDecks : reload}
-            />
-          </View>
+        suggesting || basicLands.length > 0 ? undefined : (
+          <BinderPlaceholder
+            binder={binder}
+            searching={search.searching}
+            refusedChip={refused ? search.chips[refusedChipIndex] : undefined}
+            onTryAgain={search.decksFailed ? search.reloadDecks : reload}
+          />
         )
       }
       onEndReached={loadMore}

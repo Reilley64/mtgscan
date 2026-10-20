@@ -209,7 +209,7 @@ describe('the set page', () => {
     expect(within(heading).getByText('1 of 2')).toBeOnTheScreen();
   });
 
-  test('the Variants heading spans the full row, and each card takes a third of it', async () => {
+  test('the Variants heading spans the full row, and each card printing takes a third of it', async () => {
     const page = await openBloomburrow();
 
     const rowWidth = listCellWidth(page.getByRole('header', { name: 'Variants, 1 of 2' }));

@@ -3,16 +3,13 @@ import type { ReactNode } from 'react';
 import { ScrollView } from 'react-native';
 import type { SearchBarProps } from 'react-native-screens';
 
-import { FlashList, type FlashListProps } from '@/components/atoms/flash-list';
-import { cardListContentClass } from '@/components/molecules/card-grid';
-import { cardsPerRow } from '@/components/molecules/card-tile';
+import { FlashList } from '@/components/atoms/flash-list';
+import { CardGridList, type CardGridListProps } from '@/components/molecules/card-grid';
 import { FloatingButtons } from '@/components/templates/floating-buttons';
 import { cn } from '@/lib/class-names';
 import { colors } from '@/theme';
 
 const screenClass = 'flex-1 bg-background';
-
-const keepsScrollOffset = { disabled: true };
 
 const insetClass = 'px-lg';
 
@@ -79,24 +76,18 @@ export function TabScreen({ title, actions, children }: TabScreenProps) {
   );
 }
 
-type ListProps<Item> = Omit<
-  FlashListProps<Item>,
-  'style' | 'contentContainerStyle' | 'contentInsetAdjustmentBehavior' | 'numColumns'
-> & {
-  cardGrid?: boolean;
+const screenListProps = { className: screenClass, contentInsetAdjustmentBehavior: 'automatic', keyboardDismissMode: 'on-drag' } as const;
+
+type ListProps<Item> = Omit<CardGridListProps<Item>, 'style' | 'contentContainerStyle' | 'contentInsetAdjustmentBehavior' | 'isTile' | 'header'> & {
+  isTile?: (item: Item) => boolean;
 };
 
-function ScreenList<Item>({ cardGrid = false, underFloatingButtons = false, ...listProps }: ListProps<Item> & { underFloatingButtons?: boolean }) {
-  return (
-    <FlashList
-      {...listProps}
-      numColumns={cardGrid ? cardsPerRow : undefined}
-      className={screenClass}
-      contentContainerClassName={cn(cardGrid ? cardListContentClass : insetClass, contentClass, underFloatingButtons && 'pb-floating-button-clearance')}
-      contentInsetAdjustmentBehavior="automatic"
-      keyboardDismissMode="on-drag"
-      maintainVisibleContentPosition={keepsScrollOffset}
-    />
+function ScreenList<Item>({ isTile, underFloatingButtons = false, ...listProps }: ListProps<Item> & { underFloatingButtons?: boolean }) {
+  const contentClassName = cn(contentClass, underFloatingButtons && 'pb-floating-button-clearance');
+  return isTile ? (
+    <CardGridList {...listProps} {...screenListProps} isTile={isTile} contentContainerClassName={contentClassName} />
+  ) : (
+    <FlashList {...listProps} {...screenListProps} contentContainerClassName={cn(insetClass, contentClassName)} />
   );
 }
 

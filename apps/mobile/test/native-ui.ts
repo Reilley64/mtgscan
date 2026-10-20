@@ -1,4 +1,7 @@
-import { measureParentSize } from "@shopify/flash-list/dist/recyclerview/utils/measureLayout";
+import {
+  measureItemLayout,
+  measureParentSize,
+} from "@shopify/flash-list/dist/recyclerview/utils/measureLayout";
 import { act, fireEvent, screen, within } from "expo-router/testing-library";
 import {
   Alert,
@@ -737,7 +740,7 @@ export async function pressSignInWithApple() {
   await act(async () => {});
 }
 
-function blocksIn(element: HostElement) {
+function hostChildrenOf(element: HostElement) {
   return element.children.filter(
     (child): child is HostElement => typeof child !== "string",
   );
@@ -751,7 +754,7 @@ function isListCell(element: HostElement) {
 }
 
 function descendantsInScreenOrder(element: HostElement): HostElement[] {
-  const children = blocksIn(element);
+  const children = hostChildrenOf(element);
   const ordered = children.some(isListCell)
     ? [...children].sort((a, b) => a.props.index - b.props.index)
     : children;
@@ -1007,7 +1010,7 @@ function isScrollContent(element: HostElement) {
   return element.parent?.type === "RCTScrollView";
 }
 
-function isListPart(element: HostElement) {
+function isScrollContentOrListCell(element: HostElement) {
   return (
     (element.parent !== null && isScrollContent(element.parent)) ||
     isListCell(element)
@@ -1031,7 +1034,7 @@ function edgesOf(styles: unknown, kind: "padding" | "margin"): Edges {
 
 export function placeInScrollView(element: HostElement) {
   let block = element;
-  while (block.parent && !isListPart(block.parent)) {
+  while (block.parent && !isScrollContentOrListCell(block.parent)) {
     block = block.parent;
   }
   const part = block.parent;
@@ -1043,7 +1046,7 @@ export function placeInScrollView(element: HostElement) {
   const margin = edgesOf(part.props.style, "margin");
   return {
     block,
-    isFirst: blocksIn(part)[0] === block && blocksIn(content)[0] === part,
+    isFirst: hostChildrenOf(part)[0] === block && hostChildrenOf(content)[0] === part,
     contentInsets: {
       top: padding.top + margin.top,
       left: padding.left + margin.left,
@@ -1136,6 +1139,12 @@ export function cardImageOutline(tile: HostElement) {
     frame = frame.parent;
   }
   return null;
+}
+
+export function measureListItemsAs(height: number) {
+  jest
+    .mocked(measureItemLayout)
+    .mockImplementation(() => ({ x: 0, y: 0, width: 100, height }));
 }
 
 function listItemsHeight(list: HostElement) {
