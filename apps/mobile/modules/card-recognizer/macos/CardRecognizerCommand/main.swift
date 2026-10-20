@@ -24,8 +24,8 @@ struct FeaturePrintLine: Encodable {
 }
 
 let usage = """
-usage: card-recognizer serve <gallery-dir> | feature-prints <image>... | encode <image-list> <output>
-  | install <version-dir> <gallery-dir> | about
+usage: card-recognizer serve <gallery-dir> | feature-prints --model <model> <image>...
+  | encode --model <model> <image-list> <output> | install <version-dir> <gallery-dir> | about --model <model.mlpackage>
 """
 
 func fail(_ message: String) -> Never {
@@ -81,11 +81,19 @@ func serve(galleryDirectory: URL) {
   }
 }
 
-func forEachFeaturePrint(of images: [URL], _ body: @Sendable (Int, [Float]) -> Void) {
+func loadModel(at path: String) -> CompiledModel {
+  do {
+    return try CompiledModel(at: URL(fileURLWithPath: path))
+  } catch {
+    fail("cannot load the model: \(error)")
+  }
+}
+
+func forEachFeaturePrint(of images: [URL], model: CompiledModel, _ body: @Sendable (Int, [Float]) -> Void) {
   let progress = OSAllocatedUnfairLock(initialState: (completed: 0, failures: [String]()))
   DispatchQueue.concurrentPerform(iterations: images.count) { row in
     autoreleasepool {
-      let vector = FeaturePrint.vector(ofCardAt: images[row])
+      let vector = try? model.featurePrint(ofCardAt: images[row], inputSize: model.inputSize)
       if let vector { body(row, vector) }
       progress.withLock { state in
         if vector == nil { state.failures.append(images[row].lastPathComponent) }
@@ -102,7 +110,7 @@ func forEachFeaturePrint(of images: [URL], _ body: @Sendable (Int, [Float]) -> V
   }
 }
 
-func encode(imageList: URL, output: URL) {
+func encode(model: CompiledModel, imageList: URL, output: URL) {
   let images: [URL]
   do {
     images = try String(contentsOf: imageList, encoding: .utf8)
@@ -111,12 +119,12 @@ func encode(imageList: URL, output: URL) {
   } catch {
     fail("cannot read the image list: \(error)")
   }
-  let dimension = FeaturePrint.dimension
+  let dimension = model.vectorSize
   let startedAt = Date()
   var codes = [Int8](repeating: 0, count: images.count * dimension)
   codes.withUnsafeMutableBufferPointer { output in
     nonisolated(unsafe) let buffer = output
-    forEachFeaturePrint(of: images) { row, vector in
+    forEachFeaturePrint(of: images, model: model) { row, vector in
       for (component, code) in GalleryEncoding.int8Codes(of: vector).enumerated() {
         buffer[row * dimension + component] = code
       }
@@ -152,23 +160,34 @@ struct About: Encodable {
   let macOS: String
   let machine: String
   let model: FeaturePrintModel
-  let thresholds: RecognizerThresholds
 }
 
-func about() {
+func about(package path: String) {
+  let package = URL(fileURLWithPath: path)
+  let model = loadModel(at: path)
+  let sha256: String
+  do {
+    sha256 = try ModelPackage.sha256(of: package)
+  } catch {
+    fail("cannot read the model: \(error)")
+  }
   let version = ProcessInfo.processInfo.operatingSystemVersion
   emit(About(
     macOS: "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)",
     machine: machineName(),
-    model: FeaturePrint.model,
-    thresholds: FeaturePrint.thresholds
+    model: FeaturePrintModel(
+      name: package.deletingPathExtension().lastPathComponent,
+      sha256: sha256,
+      inputSize: model.inputSize,
+      vectorSize: model.vectorSize
+    )
   ))
 }
 
-func featurePrints(images: [String]) {
+func featurePrints(model: CompiledModel, images: [String]) {
   for input in images {
     autoreleasepool {
-      guard let vector = FeaturePrint.vector(ofCardAt: URL(fileURLWithPath: input)) else {
+      guard let vector = try? model.featurePrint(ofCardAt: URL(fileURLWithPath: input), inputSize: model.inputSize) else {
         emit(FeaturePrintLine(input: input, vector: nil, error: RecognitionFailure.unreadablePhoto.code))
         return
       }
@@ -178,18 +197,18 @@ func featurePrints(images: [String]) {
   }
 }
 
-let arguments = CommandLine.arguments
-switch arguments.dropFirst().first {
-case "serve" where arguments.count == 3:
-  serve(galleryDirectory: URL(fileURLWithPath: arguments[2]))
-case "feature-prints" where arguments.count > 2:
-  featurePrints(images: Array(arguments.dropFirst(2)))
-case "encode" where arguments.count == 4:
-  encode(imageList: URL(fileURLWithPath: arguments[2]), output: URL(fileURLWithPath: arguments[3]))
-case "install" where arguments.count == 4:
-  install(versionDirectory: URL(fileURLWithPath: arguments[2]), galleryDirectory: URL(fileURLWithPath: arguments[3]))
-case "about" where arguments.count == 2:
-  about()
+let arguments = Array(CommandLine.arguments.dropFirst())
+switch (arguments.first, arguments.dropFirst().first) {
+case ("serve", _) where arguments.count == 2:
+  serve(galleryDirectory: URL(fileURLWithPath: arguments[1]))
+case ("feature-prints", "--model") where arguments.count > 3:
+  featurePrints(model: loadModel(at: arguments[2]), images: Array(arguments.dropFirst(3)))
+case ("encode", "--model") where arguments.count == 5:
+  encode(model: loadModel(at: arguments[2]), imageList: URL(fileURLWithPath: arguments[3]), output: URL(fileURLWithPath: arguments[4]))
+case ("install", _) where arguments.count == 3:
+  install(versionDirectory: URL(fileURLWithPath: arguments[1]), galleryDirectory: URL(fileURLWithPath: arguments[2]))
+case ("about", "--model") where arguments.count == 3:
+  about(package: arguments[2])
 default:
   fail(usage)
 }

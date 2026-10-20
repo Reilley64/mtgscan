@@ -27,7 +27,7 @@ private func jpegSize(at uri: String?) throws -> (type: String, width: Int, heig
   return (try #require(CGImageSourceGetType(source)) as String, image.width, image.height)
 }
 
-private let otherArt = [Float16](repeating: 0, count: FeaturePrint.dimension)
+private let otherArt = [Float16](repeating: 0, count: fixtureModel.vectorSize)
 
 @Test("an accepted card recognition writes the straightened card as a 488 x 680 JPEG training crop")
 func anAcceptedCardRecognitionWritesATrainingCrop() throws {

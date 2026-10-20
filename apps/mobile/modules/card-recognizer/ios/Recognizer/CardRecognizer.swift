@@ -5,6 +5,8 @@ import Foundation
 public enum CardRecognizer {
   public static let readWidth = 1191
   public static let readHeight = 1664
+  static let smallWidth = 488
+  static let smallHeight = 680
   static let shortlistSize = 50
   static let illustrationExpansion = 10
   static let fullReadingStrength = 3
@@ -37,15 +39,15 @@ public enum CardRecognizer {
     var stageMs = initialStageMs
     var startedAt = ProcessInfo.processInfo.systemUptime
     guard let turned = CardRectifier.rotatedHalfTurn(uprightCandidate),
-          let uprightSmall = FeaturePrint.input(of: uprightCandidate),
-          let turnedSmall = FeaturePrint.input(of: turned)
+          let uprightSmall = small(uprightCandidate),
+          let turnedSmall = small(turned)
     else { throw .rectificationFailed }
     stageMs["resize"] = elapsed(since: &startedAt)
     let uprightVector: [Float]
     let turnedVector: [Float]
     do {
-      uprightVector = try FeaturePrint.vector(of: uprightSmall)
-      turnedVector = try FeaturePrint.vector(of: turnedSmall)
+      uprightVector = try gallery.featurePrint(of: uprightSmall)
+      turnedVector = try gallery.featurePrint(of: turnedSmall)
     } catch {
       throw .unreadablePhoto
     }
@@ -123,6 +125,10 @@ public enum CardRecognizer {
       trainingCrop: trainingCrop?.absoluteString,
       stageMs: stageMs
     ))
+  }
+
+  static func small(_ card: CGImage) -> CGImage? {
+    CardRectifier.resized(card, width: smallWidth, height: smallHeight)
   }
 
   static func choose(

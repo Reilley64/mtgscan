@@ -230,7 +230,10 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     let printingList = manifest.parts
       .filter { $0.kind == GalleryManifest.Part.printingList }
       .reduce(Int64(0)) { $0 + Int64($1.rawBytes) }
-    return pending.reduce(Int64(0)) { $0 + Int64($1.compressedBytes) } + vectors + printingList
+    let unpackedAndCompiledModel = manifest.parts
+      .filter { $0.kind == GalleryManifest.Part.model }
+      .reduce(Int64(0)) { $0 + 2 * Int64($1.rawBytes) }
+    return pending.reduce(Int64(0)) { $0 + Int64($1.compressedBytes) } + vectors + printingList + unpackedAndCompiledModel
   }
 
   private static func availableBytes() -> Int64? {

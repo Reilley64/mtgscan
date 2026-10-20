@@ -57,7 +57,9 @@ A card result also has:
 - `artMargin`, the similarity of the top candidate minus the similarity of the best candidate with other art. It is null when no other art was compared.
 - `trainingCrop`, the file URI of the straightened card as a 488 x 680 JPEG in `Caches/training-crops`, the size and format of the crops in the scanner evidence pack. The crop is upright, in the rotation that the recognizer chose. A not-a-card result and a failed recognition write no crop.
 
-The recognizer reads its thresholds from the installed gallery version: not a card, orientation margin, and art margin. It also reads the vector size there, and a feature print of another size makes the scan fail as an unreadable photo. A gallery version installed before gallery format 2 names neither, and the recognizer uses Vision's values for it: not a card 0.5, orientation margin 0.03, and art margin 0.03.
+The recognizer makes feature prints with the Core ML model of the installed gallery version, on all compute units. It scales the straightened card to 488 x 680, then pads it to the model's input size with the model's mean colour, 0.5 grey, keeping its aspect ratio. It L2-normalises the vector that the model returns. A model that returns NaN, or a vector of another size than the gallery version's, makes the scan fail as an unreadable photo.
+
+The recognizer reads its thresholds from the installed gallery version: not a card, orientation margin, and art margin. It also reads the model's input size and the vector size there. A gallery installed before gallery format 2 has no model, so it does not load, and the recognizer throws `gallery_not_ready`.
 
 The module also exports `recognizerVersion` for the evidence record of a training crop. It is the app version and build number, such as `1.0.0 (7)`. A production build has a new build number, and release-please raises the app version, so each release sends a higher recognizer version. `installedGallery()` returns the installed gallery version, its built time, and the name of its model, such as `pe-core-s16-384`.
 
@@ -66,7 +68,7 @@ Each candidate carries its card printing ID, Oracle ID, name, set code, collecto
 - `searchCardNames(text)` matches card names and face names. It ignores case, accents, and punctuation. It returns up to 10 cards: exact names first, then names that start with the text, then names with a word that starts with it. There is no fuzzy match.
 - `cardPrintings(oracleId)` returns every card printing of that card in the gallery, newest first.
 
-`checkGalleryParity()` runs the parity check on the installed gallery. It takes 24 evenly spaced gallery rows and downloads the Scryfall `normal` image of each from the Scryfall image host. It computes their feature prints on the phone in the same way as the macOS command, and compares each with its gallery row. It returns the gallery version, the number of reference images it checked, the lowest and mean cosine, and each reference image that failed. Only development builds show **Run the parity check** in settings. The result shows under it, and Metro gets the same numbers as a `PARITY` line.
+`checkGalleryParity()` runs the parity check on the installed gallery. It takes 24 evenly spaced gallery rows and downloads the Scryfall `normal` image of each from the Scryfall image host. It computes their feature prints on the phone with the gallery version's model, in the same way as the macOS command, and compares each with its gallery row. It returns the gallery version, the number of reference images it checked, the lowest and mean cosine, and each reference image that failed. Only development builds show **Run the parity check** in settings. The result shows under it, and Metro gets the same numbers as a `PARITY` line.
 
 ### Feature print model
 
@@ -88,7 +90,17 @@ The SHA-256 covers the whole `.mlpackage` folder. It is the SHA-256 of a list wi
 
 The model takes `pixels`, a float16 array of 1 x 3 x the input size x the input size, with values from 0 to 1. It does its own normalisation. It returns `featurePrint`, a float16 array of 1 x the vector size.
 
-`uv run scripts/convert-model.py --fixture` writes the fixture model to `macos/CardRecognizerTests/Fixtures/fixture-model.mlpackage`. It has the same input and output as the real model, at the sizes in `model.json`. It averages the pixels over an 8 x 8 grid, multiplies them by fixed random weights, and divides by their mean. A black image gives NaN. The fixture model is committed, so the Swift tests never need the real model.
+`uv run scripts/convert-model.py --fixture` writes the fixture model to `macos/CardRecognizerTests/Fixtures/fixture-model.mlpackage`. It has the same input and output as the real model, at the sizes in `model.json`. It averages the pixels over an 8 x 8 grid and multiplies them by fixed random weights. When the middle 4 x 4 cells of the grid are black, it returns NaN, so a black card gives NaN after the padding. The fixture model is committed, so the Swift tests never need the real model.
+
+A gallery version carries the model in its `model` part. Only a base has one, named `base-model.zlib`, with add-on 0, first row 0, and 0 rows. Its raw bytes are an uncompressed POSIX ustar archive of the `.mlpackage` folder, with every path under `model.mlpackage/`. It holds only folders and regular files, sorted by path, with mode 0644 or 0755, mtime 0, and no owner names, so the same model always gives the same bytes. It is compressed with zlib like every other part. The installer, `GalleryInstaller.swift`, unpacks it into the new gallery folder and checks the unpacked package against the SHA-256 of the manifest's model block. It compiles the package once with `MLModel.compileModel(at:)` into `model.mlmodelc` in that folder, and deletes the package. The compiled model belongs to that installed gallery version, so switching gallery versions switches the model. An add-on install copies the compiled model of the installed gallery version.
+
+The macOS command loads the model from the path it is given, a `.mlpackage` or a compiled `.mlmodelc`:
+
+- `about --model <model.mlpackage>` prints the macOS version, the machine, and the model block: the name (the package's file name), the SHA-256, the input size, and the vector size. The sizes come from the model's `pixels` and `featurePrint` shapes.
+- `encode --model <model> <image-list> <output>` writes the int8 feature prints of the images.
+- `feature-prints --model <model> <image>...` prints the feature print of each image.
+- `install <version-dir> <gallery-dir>` installs a gallery version with its model.
+- `serve <gallery-dir>` recognizes cards with the gallery and its compiled model.
 
 ### Gallery download
 
@@ -98,9 +110,9 @@ The app keeps the gallery on the phone up to date. The code is in `apps/mobile/s
 2. Otherwise it reads the manifest, signs a URL for every part for 7 days, and passes them to `downloadGallery` in the recognizer module.
 3. The module downloads the parts with a background URL session, so the download goes on while the app is suspended. It downloads only the parts that the installed gallery does not have, so an add-on costs only its own parts.
 4. It checks the size and SHA-256 of each part against the manifest. A part that fails is deleted and downloaded again, up to 3 times. Verified parts stay in `Application Support/gallery-download` until the install, so an interrupted download goes on from the parts it has. A part that stopped partway resumes from where it stopped when iOS can.
-5. When every part is there, the module decodes the int8 rows to unit-length float16 in a new folder, applies the add-on rows over the installed gallery, and swaps the folder into `Application Support/gallery` in one step. The recognizer loads the new gallery on the next scan. Both folders are excluded from backup.
+5. When every part is there, the module decodes the int8 rows to unit-length float16 in a new folder, applies the add-on rows over the installed gallery, and installs the model. It swaps the folder into `Application Support/gallery` in one step. The recognizer loads the new gallery on the next scan. Both folders are excluded from backup.
 
-The download uses Wi-Fi only. **Download now** on the Scan tab allows mobile data for the download in progress. Before it starts, the module checks the free space for the parts and the installed gallery. The module reports each change as an `onGalleryDownload` event, and the Scan tab and the settings sheet show it.
+The download uses Wi-Fi only. **Download now** on the Scan tab allows mobile data for the download in progress. Before it starts, the module checks the free space for the parts and the installed gallery, with twice the model's size for the unpacked and the compiled model. The module reports each change as an `onGalleryDownload` event, and the Scan tab and the settings sheet show it.
 
 A gallery version that is not published cannot be read with a user's session. To install one on a development build, for the parity check in #84, put signed URLs from the `sign` command in `apps/mobile/.env.development.local`. Only development builds read `EXPO_PUBLIC_DEVELOPMENT_GALLERY`, and Metro must start again after you change it:
 
@@ -111,7 +123,7 @@ echo "EXPO_PUBLIC_DEVELOPMENT_GALLERY='$(bun --env-file=.env.hosted gallery/main
 
 The Swift sources in `ios/Recognizer` build into the app and into a macOS command through `Package.swift`. The macOS command computes gallery feature prints and runs the scanner evidence gates. Run the gates on a Mac from `apps/mobile`:
 
-1. `bun run recognizer:test` runs the Swift fixture tests, one at a time. On macOS 27, Vision feature prints in parallel tests can take every Swift concurrency thread, and the run never ends.
+1. `bun run recognizer:test` runs the Swift fixture tests in parallel. They make feature prints with the fixture model, so they need no gallery and no real model.
 2. `bun run recognizer:replay` replays the scanner evidence pack. It needs the gallery.
 
 `apps/mobile/test/scanner-evidence/README.md` describes the gallery, the gates, and the local replay before merge.
@@ -142,7 +154,7 @@ The card detector is a local Expo module in `apps/mobile/modules/card-detector`.
 - `takePhoto(outline)` takes the outline of the sample that held still and returns it with the photo file, in the same fractions of the photo as `recognize` takes. The photo has the same aspect as the analyzed frame.
 - Taking a photo plays no haptic. On iOS 18 and later, the shutter sound is suppressed where iOS allows it. On iOS 17, and where the law requires the shutter sound, iOS still plays it.
 
-The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes one photo when a detected card holds still for 400 ms, and re-arms after the card leaves or changes. The app needs iOS 17, because the recognizer uses Vision feature print revision 2.
+The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes one photo when a detected card holds still for 400 ms, and re-arms after the card leaves or changes. The app needs iOS 17, because the recognizer's model is a Core ML ML program for iOS 17.
 
 `bun run detector:test` in `apps/mobile` runs the Swift fixture tests for the detector on a Mac. Development builds log each capture event to Metro as a `CAPTURE` line, with the detector timing every 300 samples.
 

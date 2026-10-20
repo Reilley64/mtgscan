@@ -13,7 +13,7 @@ private struct Printing {
 private func choice(
   ranked imageRanking: [(printing: Printing, similarity: Float)],
   reading: CollectorLine = CollectorLine(),
-  thresholds: RecognizerThresholds = FeaturePrint.thresholds
+  thresholds: RecognizerThresholds = fixtureThresholds
 ) throws -> (decision: RecognitionDecision, artMargin: Float?) {
   let gallery = try fixtureGallery(
     printings: imageRanking.map { ranked in
@@ -24,7 +24,7 @@ private func choice(
         "set": printing.set, "collectorNumber": printing.collectorNumber, "frame": printing.frame,
       ]
     },
-    vectors: [Float16](repeating: 0, count: imageRanking.count * FeaturePrint.dimension),
+    vectors: [Float16](repeating: 0, count: imageRanking.count * fixtureModel.vectorSize),
     thresholds: thresholds
   )
   let result = CardRecognizer.choose(
@@ -75,8 +75,8 @@ func anAcceptOnTheOnlyCardPrintingOfItsArtHasTheUniqueArtBasis() throws {
 @Test("the only card printing of its art abstains when the next art is closer than the art margin of the gallery version")
 func theOnlyCardPrintingOfItsArtAbstainsUnderTheArtMarginOfTheGalleryVersion() throws {
   let wider = RecognizerThresholds(
-    notACard: FeaturePrint.thresholds.notACard,
-    orientationMargin: FeaturePrint.thresholds.orientationMargin,
+    notACard: fixtureThresholds.notACard,
+    orientationMargin: fixtureThresholds.orientationMargin,
     artMargin: 0.12
   )
   let result = try choice(ranked: [(counterspell, 0.70), (shock, 0.60)], thresholds: wider)

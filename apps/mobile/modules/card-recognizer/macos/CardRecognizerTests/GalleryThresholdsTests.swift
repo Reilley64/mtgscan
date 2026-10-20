@@ -11,16 +11,16 @@ private var printings: [[String: Any]] {
 @Test("a gallery version whose not-a-card threshold is above the top similarity calls the same photo not a card")
 func aGalleryVersionWhoseNotACardThresholdIsAboveTheTopSimilarityCallsThePhotoNotACard() throws {
   let photo = try card(seed: 4)
-  let vectors = try featurePrint(of: photo) + [Float16](repeating: 0, count: FeaturePrint.dimension)
+  let vectors = try featurePrint(of: photo) + [Float16](repeating: 0, count: fixtureModel.vectorSize)
   guard case let .card(recognized) = try CardRecognizer.recognize(card: photo, gallery: fixtureGallery(printings: printings, vectors: vectors))
   else {
-    Issue.record("expected a card recognition with the thresholds of Vision")
+    Issue.record("expected a card recognition with the fixture thresholds")
     return
   }
   let stricter = RecognizerThresholds(
     notACard: Float(recognized.topSimilarity) + 0.01,
-    orientationMargin: FeaturePrint.thresholds.orientationMargin,
-    artMargin: FeaturePrint.thresholds.artMargin
+    orientationMargin: fixtureThresholds.orientationMargin,
+    artMargin: fixtureThresholds.artMargin
   )
 
   let recognition = try CardRecognizer.recognize(
@@ -36,7 +36,7 @@ func aGalleryVersionWhoseNotACardThresholdIsAboveTheTopSimilarityCallsThePhotoNo
 
 @Test("a gallery version whose vector size differs from the feature print gives an unreadable photo")
 func aGalleryVersionWhoseVectorSizeDiffersFromTheFeaturePrintGivesAnUnreadablePhoto() throws {
-  let vectorSize = 512
+  let vectorSize = 768
   let gallery = try fixtureGallery(
     printings: printings,
     vectors: [Float16](repeating: 0.05, count: printings.count * vectorSize),
@@ -48,8 +48,8 @@ func aGalleryVersionWhoseVectorSizeDiffersFromTheFeaturePrintGivesAnUnreadablePh
   }
 }
 
-@Test("a gallery version installed before gallery format 2 scans with the model and the thresholds of Vision")
-func aGalleryVersionInstalledBeforeGalleryFormat2ScansWithVision() throws {
+@Test("a gallery installed before gallery format 2 does not load")
+func aGalleryInstalledBeforeGalleryFormat2DoesNotLoad() throws {
   let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
   try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
   try JSONSerialization.data(withJSONObject: printings).write(to: directory.appendingPathComponent(GalleryFile.printingList))
@@ -59,9 +59,7 @@ func aGalleryVersionInstalledBeforeGalleryFormat2ScansWithVision() throws {
   try [Float16](repeating: 0, count: 2 * 768).withUnsafeBufferPointer { Data(buffer: $0) }
     .write(to: directory.appendingPathComponent(GalleryFile.float16Vectors))
 
-  let gallery = try Gallery(directory: directory)
-
-  #expect(gallery.model == FeaturePrint.model)
-  #expect(gallery.thresholds == FeaturePrint.thresholds)
-  #expect(gallery.version == "20261012-cf1753")
+  #expect(throws: DecodingError.self) {
+    try Gallery(directory: directory)
+  }
 }

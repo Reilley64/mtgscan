@@ -17,7 +17,7 @@ private func gallery(of printings: [Printing]) throws -> Gallery {
         "collectorNumber": printing.collectorNumber, "frame": "2015",
       ]
     },
-    vectors: [Float16](repeating: 0, count: printings.count * FeaturePrint.dimension)
+    vectors: [Float16](repeating: 0, count: printings.count * fixtureModel.vectorSize)
   )
 }
 

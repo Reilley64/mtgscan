@@ -5,7 +5,9 @@ import path from 'node:path';
 
 import {
   buildRecognizer,
+  compiledModelFile,
   dataDirectory,
+  galleryHeaderFile,
   moduleRoot,
   printingListFile,
   run,
@@ -46,7 +48,11 @@ async function galleryMatchesRecording() {
 }
 
 async function featurePrints(crops) {
-  const result = await run(recognizer, ['feature-prints', ...crops.map((crop) => path.join(evidence, 'real', crop))], { output: true });
+  const result = await run(
+    recognizer,
+    ['feature-prints', '--model', path.join(galleryDirectory, compiledModelFile), ...crops.map((crop) => path.join(evidence, 'real', crop))],
+    { output: true },
+  );
   if (result.code !== 0) throw new Error('the feature prints did not compute');
   return result.stdout
     .trim()
@@ -78,9 +84,10 @@ async function recordReferenceFeaturePrints() {
   const vectors = await featurePrints(crops);
   const { stdout: macOS } = await run('sw_vers', ['-productVersion'], { output: true });
   const { stdout: machine } = await run('sysctl', ['-n', 'machdep.cpu.brand_string'], { output: true });
+  const { model } = JSON.parse(await fs.readFile(path.join(galleryDirectory, galleryHeaderFile), 'utf8'));
   const recording = {
     recordedWith: {
-      featurePrint: 'VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values',
+      model: { name: model.name, sha256: model.sha256 },
       machine: `${machine.trim()}, macOS ${macOS.trim()}`,
       recordedOn: new Date().toISOString().slice(0, 10),
     },
@@ -153,12 +160,6 @@ async function runGate({ name, labels, expected, flags }) {
   return { name, against, exitCode: check.code, report: JSON.parse(check.stdout) };
 }
 
-if (recordFeaturePrints) {
-  await fs.mkdir(dataDirectory, { recursive: true });
-  recognizer = await buildRecognizer();
-  await recordReferenceFeaturePrints();
-  process.exit(0);
-}
 if (!galleryDirectory) {
   console.error('Set RECOGNIZER_GALLERY_DIR to the folder that `bun run gallery install` wrote, such as ~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753. See test/scanner-evidence/README.md.');
   process.exit(1);
@@ -166,6 +167,12 @@ if (!galleryDirectory) {
 if (!existsSync(path.join(galleryDirectory, printingListFile))) {
   console.error(`No gallery in ${galleryDirectory}. See test/scanner-evidence/README.md.`);
   process.exit(1);
+}
+if (recordFeaturePrints) {
+  await fs.mkdir(dataDirectory, { recursive: true });
+  recognizer = await buildRecognizer();
+  await recordReferenceFeaturePrints();
+  process.exit(0);
 }
 await fs.mkdir(reportsDirectory, { recursive: true });
 recognizer = await buildRecognizer();

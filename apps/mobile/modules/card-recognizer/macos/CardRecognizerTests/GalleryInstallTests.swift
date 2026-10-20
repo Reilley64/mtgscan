@@ -26,7 +26,7 @@ private struct PartFile {
 }
 
 private func vector(seed: Int) -> [Float] {
-  (0 ..< FeaturePrint.dimension).map { Float(sin(Double($0 * (seed + 1)) * 0.37)) }
+  (0 ..< fixtureModel.vectorSize).map { Float(sin(Double($0 * (seed + 1)) * 0.37)) }
 }
 
 private func printingRow(_ id: String, name: String) -> [String: Any] {
@@ -48,7 +48,8 @@ private func writeVersion(
   rows: Int,
   version: String = "20261021-a1b2c3",
   formatVersion: Int = 2,
-  thresholds: [String: Any] = ["notACard": 0.5, "orientationMargin": 0.03, "artMargin": 0.03],
+  thresholds: [String: Any] = ["notACard": 0.689, "orientationMargin": 0.03, "artMargin": 0.025],
+  modelSHA256: String = fixtureModel.sha256,
   corrupt: String? = nil,
   malformed: (name: String, kind: MalformedPart)? = nil,
   downloaded: Set<String>? = nil
@@ -78,7 +79,11 @@ private func writeVersion(
   }
   let manifest: [String: Any] = [
     "formatVersion": formatVersion, "version": version, "builtAt": "2026-10-21T09:00:00Z", "rows": rows,
-    "model": ["name": "apple-vision-2", "inputSize": ["width": 488, "height": 680], "vectorSize": FeaturePrint.dimension],
+    "model": [
+      "name": fixtureModel.name, "sha256": modelSHA256,
+      "inputSize": ["width": fixtureModel.inputSize.width, "height": fixtureModel.inputSize.height],
+      "vectorSize": fixtureModel.vectorSize,
+    ],
     "thresholds": thresholds,
     "parts": manifestParts,
   ]
@@ -99,6 +104,27 @@ private func printingListPart(_ name: String, addOn: Int, firstRow: Int, rows: [
     name: name, kind: "printing_list", addOn: addOn, firstRow: firstRow, rowCount: rows.count,
     raw: try JSONSerialization.data(withJSONObject: rows, options: .sortedKeys)
   )
+}
+
+private func modelArchive(packagedAs entry: String) throws -> Data {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+  try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+  try FileManager.default.copyItem(at: fixturePackage, to: directory.appendingPathComponent(entry))
+  let archive = directory.appendingPathComponent("model.tar")
+  let tar = Process()
+  tar.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
+  tar.arguments = ["--format", "ustar", "--no-mac-metadata", "-cf", archive.path, "-C", directory.path, entry]
+  tar.environment = ["COPYFILE_DISABLE": "1"]
+  try tar.run()
+  tar.waitUntilExit()
+  return try Data(contentsOf: archive)
+}
+
+private let fixtureModelArchive = try! modelArchive(packagedAs: GalleryFile.modelPackage)
+
+private func modelPart(packagedAs entry: String = GalleryFile.modelPackage) throws -> PartFile {
+  let archive = entry == GalleryFile.modelPackage ? fixtureModelArchive : try modelArchive(packagedAs: entry)
+  return PartFile(name: "base-model.zlib", kind: "model", addOn: 0, firstRow: 0, rowCount: 0, raw: archive)
 }
 
 private func cosine(_ a: [Float], _ b: [Float]) -> Float {
@@ -123,6 +149,7 @@ func installingABaseAndAnAddOnLetsALaterRowReplaceTheEarlierOne() throws {
     try printingListPart("base-printing-list-1.zlib", addOn: 0, firstRow: 0, rows: [
       printingRow("a", name: "Alpha"), printingRow("b", name: "Beta"), printingRow("c", name: "Gamma"),
     ]),
+    try modelPart(),
     galleryPart("add-on-1-gallery-1.zlib", addOn: 1, firstRow: 3, seeds: [7, 8]),
     try printingListPart("add-on-1-printing-list-1.zlib", addOn: 1, firstRow: 3, rows: [
       printingRow("b", name: "Beta, new image"), printingRow("d", name: "Delta"),
@@ -151,10 +178,57 @@ func theInstalledGalleryTakesTheModelAndTheThresholdsOfItsGalleryVersion() throw
   try GalleryInstaller.install(from: version, into: destination)
 
   let gallery = try Gallery(directory: destination)
-  #expect(gallery.model == FeaturePrintModel(
-    name: "apple-vision-2", sha256: nil, inputSize: .init(width: 488, height: 680), vectorSize: FeaturePrint.dimension
-  ))
+  #expect(gallery.model == fixtureModel)
   #expect(gallery.thresholds == RecognizerThresholds(notACard: 0.689, orientationMargin: 0.03, artMargin: 0.025))
+}
+
+@Test("installing a base unpacks its model part and compiles it into the installed gallery version")
+func installingABaseUnpacksItsModelPartAndCompilesIt() throws {
+  let version = try writeVersion(try baseParts(), rows: 3)
+  let destination = version.appendingPathComponent("installed", isDirectory: true)
+
+  try GalleryInstaller.install(from: version, into: destination)
+
+  let installed = try FileManager.default.contentsOfDirectory(atPath: destination.path)
+  #expect(installed.contains(GalleryFile.compiledModel))
+  #expect(!installed.contains(GalleryFile.modelPackage))
+  let photo = try card(seed: 1)
+  let expected = try fixtureCompiledModel.featurePrint(of: #require(CardRecognizer.small(photo)), inputSize: fixtureModel.inputSize)
+  #expect(cosine(try Gallery(directory: destination).featurePrint(of: #require(CardRecognizer.small(photo))), expected) > 0.9999)
+}
+
+@Test("installing refuses a model part whose model SHA-256 differs from the manifest's model")
+func installingRefusesAModelPartWhoseSHA256DiffersFromTheManifestsModel() throws {
+  let version = try writeVersion(try baseParts(), rows: 3, modelSHA256: String(repeating: "0", count: 64))
+  let destination = version.appendingPathComponent("installed", isDirectory: true)
+
+  #expect(throws: GalleryInstaller.Failure.partMismatch("base-model.zlib")) {
+    try GalleryInstaller.install(from: version, into: destination)
+  }
+  #expect(!FileManager.default.fileExists(atPath: destination.path))
+}
+
+@Test("installing refuses a model part with a file outside model.mlpackage")
+func installingRefusesAModelPartWithAFileOutsideTheModelPackage() throws {
+  let parts = try baseParts().filter { $0.kind != "model" } + [modelPart(packagedAs: "other.mlpackage")]
+  let version = try writeVersion(parts, rows: 3)
+  let destination = version.appendingPathComponent("installed", isDirectory: true)
+
+  #expect(throws: GalleryInstaller.Failure.malformedPart("base-model.zlib")) {
+    try GalleryInstaller.install(from: version, into: destination)
+  }
+  #expect(!FileManager.default.fileExists(atPath: destination.path))
+}
+
+@Test("installing refuses a base with no model part")
+func installingRefusesABaseWithNoModelPart() throws {
+  let version = try writeVersion(try baseParts().filter { $0.kind != "model" }, rows: 3)
+  let destination = version.appendingPathComponent("installed", isDirectory: true)
+
+  #expect(throws: GalleryInstaller.Failure.unsupportedManifest("the gallery version has no model part")) {
+    try GalleryInstaller.install(from: version, into: destination)
+  }
+  #expect(!FileManager.default.fileExists(atPath: destination.path))
 }
 
 @Test("installing refuses a manifest with an unknown format", arguments: [1, 3])
@@ -173,6 +247,7 @@ func installingRefusesAPartWhoseSHA256DoesNotMatchTheManifest() throws {
   let version = try writeVersion([
     galleryPart("base-gallery-1.zlib", addOn: 0, firstRow: 0, seeds: [0]),
     try printingListPart("base-printing-list-1.zlib", addOn: 0, firstRow: 0, rows: [printingRow("a", name: "Alpha")]),
+    try modelPart(),
   ], rows: 1, corrupt: "base-gallery-1.zlib")
   let destination = version.appendingPathComponent("installed", isDirectory: true)
 
@@ -190,6 +265,7 @@ private func installingRefusesAMalformedPart(_ kind: MalformedPart) throws {
   let version = try writeVersion([
     galleryPart("base-gallery-1.zlib", addOn: 0, firstRow: 0, seeds: [0]),
     try printingListPart("base-printing-list-1.zlib", addOn: 0, firstRow: 0, rows: [printingRow("a", name: "Alpha")]),
+    try modelPart(),
   ], rows: 1, malformed: ("base-printing-list-1.zlib", kind))
   let destination = version.appendingPathComponent("installed", isDirectory: true)
 
@@ -206,6 +282,7 @@ private func baseParts() throws -> [PartFile] {
     try printingListPart("base-printing-list-1.zlib", addOn: 0, firstRow: 0, rows: [
       printingRow("a", name: "Alpha"), printingRow("b", name: "Beta"), printingRow("c", name: "Gamma"),
     ]),
+    try modelPart(),
   ]
 }
 
@@ -248,11 +325,12 @@ func aNewBaseDownloadsEveryPart() throws {
   let newBase = try writeVersion([
     galleryPart("base-gallery-1.zlib", addOn: 0, firstRow: 0, seeds: [4]),
     try printingListPart("base-printing-list-1.zlib", addOn: 0, firstRow: 0, rows: [printingRow("a", name: "Alpha")]),
+    try modelPart(),
   ], rows: 1, version: "20261104-cccccc")
 
   let parts = GalleryInstaller.partsToDownload(try GalleryInstaller.manifest(in: newBase), over: destination)
 
-  #expect(parts.map(\.name) == ["base-gallery-1.zlib", "base-printing-list-1.zlib"])
+  #expect(parts.map(\.name) == ["base-gallery-1.zlib", "base-printing-list-1.zlib", "base-model.zlib"])
 }
 
 @Test("an update installs the downloaded add-on over the installed gallery")
@@ -275,6 +353,7 @@ func anUpdateInstallsTheDownloadedAddOnOverTheInstalledGallery() throws {
   #expect(names == expectedNames)
   #expect(vectors == expectedVectors)
   #expect(try GalleryInstaller.manifest(in: destination).version == "20261028-bbbbbb")
+  #expect(try Gallery(directory: destination).featurePrint(of: card(seed: 1)).count == fixtureModel.vectorSize)
 }
 
 @Test("a failed update leaves the installed gallery in use")

@@ -28,9 +28,9 @@ The crops show only cards, the card holder, and fingers. The 250 card crops cove
 
 The gates need the gallery: the feature prints and the printing list of every paper card printing. It is not in the repo, because it is built from Scryfall data. The expected files were recorded with gallery version `20261012-cf1753`, the first int8 gallery that #79 built for phones. It has 102,730 card printings from Scryfall `default_cards` of 11 October 2026. `recordedWith` names the version and the SHA-256 values of the installed `catalog.json` and `gallery.f16`. The scanner evidence pack keeps this version in Storage: `bun run gallery publish` never deletes it.
 
-`bun run gallery install <version>` in `supabase` unpacks a gallery version into `installed/<version>` in its work folder. The folder holds `catalog.json`, `gallery.json`, and `gallery.f16`. Set `RECOGNIZER_GALLERY_DIR` to that folder. The replay stops when the variable is not set.
+`bun run gallery install <version>` in `supabase` unpacks a gallery version into `installed/<version>` in its work folder. The folder holds `catalog.json`, `gallery.json`, `gallery.f16`, and the compiled model `model.mlmodelc`. Set `RECOGNIZER_GALLERY_DIR` to that folder. The replay stops when the variable is not set.
 
-- **Install the recorded gallery.** Run `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753 --hosted` in `supabase`. It unpacks the gallery into `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`, with the same decoder as the phone. It downloads the parts with the hosted secret key only when they are not on the Mac. Only this gallery can show that a result is unchanged against the expected files. The recorded gallery is gallery format 1, and `install` now takes only format 2, so it refuses the recorded gallery. Keep the folder that an earlier `install` wrote. The recognizer reads a gallery version installed before format 2 with Vision's model and thresholds.
+- **Install the recorded gallery.** Run `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753 --hosted` in `supabase`. It unpacks the gallery into `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`, with the same decoder as the phone. It downloads the parts with the hosted secret key only when they are not on the Mac. Only this gallery can show that a result is unchanged against the expected files. The recorded gallery is gallery format 1, and `install` now takes only format 2, so it refuses the recorded gallery. The recorded gallery has no model, so the recognizer no longer loads it, and the replay cannot run until #471 records the evidence pack again against the first PE-Core gallery version. Keep the folder that an earlier `install` wrote until then.
 - **Build a gallery.** You can build a gallery from the current Scryfall data with the same commands as the gallery that phones download. They run against your local Supabase stack. Start the stack, and run these commands in `supabase`. The API port is 54321 on the default stack.
 
   ```bash
@@ -54,9 +54,9 @@ bun run recognizer:test
 bun run recognizer:replay
 ```
 
-`recognizer:test` runs the Swift fixture tests one at a time: the collector-line parser, the gallery key, and the outline order. `recognizer:replay` builds the macOS recognizer command and runs the Mac gates. It first checks the feature prints:
+`recognizer:test` runs the Swift fixture tests with the fixture model: the collector-line parser, the gallery key, the outline order, the gallery install, and recognition. `recognizer:replay` builds the macOS recognizer command and runs the Mac gates. It first checks the feature prints:
 
-- **Feature prints.** It compares the feature prints of the 24 references in `real/feature-prints.json` with the feature prints of this machine. It fails when the lowest cosine is below 0.98.
+- **Feature prints.** It compares the feature prints of the 24 references in `real/feature-prints.json` with the feature prints that the gallery's model makes on this machine. It fails when the lowest cosine is below 0.98.
 - **Gate 1: real crops.** The 250 card crops and 11 non-card crops, on the full gallery and with each true printing held out.
 - **Gate 2: simulated scans.** It renders the 3,000 scans from the recipe into `modules/card-recognizer/.data/simulated` and checks every photo against `simulated/photos.sha256`. A photo with another hash fails the replay. It skips the render when the photos are already there and match. It then runs the scans on the full gallery and held out.
 
@@ -66,7 +66,7 @@ Options:
 
 - `--real-only` skips the simulated scans.
 - `--baseline <reports-dir>` compares each result with the result of an earlier replay instead of the expected files.
-- `--record-feature-prints` records `real/feature-prints.json` again on this machine.
+- `--record-feature-prints` records `real/feature-prints.json` again on this machine, with the model of the gallery in `RECOGNIZER_GALLERY_DIR`. Its `recordedWith` block names the model and its SHA-256.
 
 The render needs `uv`. `simulate.py` pins `opencv-python-headless` 5.0.0.93 and `numpy` 2.5.3, because another version changes the photo bytes. It downloads the 3,000 Scryfall `large` images into `modules/card-recognizer/.data/large` once. Set `RECOGNIZER_LARGE_IMAGES_DIR` to reuse a folder of them. On an Apple M3 the render takes about 45 minutes, the real crops about 30 seconds, and each simulated run about 5 minutes.
 
@@ -175,7 +175,7 @@ Before you merge a change to the recognizer, this evidence pack, or the gallery,
 
 ## When the model changes
 
-Record the expected files again when the recognizer code, the feature print revision, the operating system, or the gallery changes.
+Record the expected files again when the recognizer code, the model, the operating system, or the gallery changes.
 
 1. Run `bun run recognizer:replay` on the owner's Mac with the recorded gallery.
 2. Read each report in `modules/card-recognizer/.data/reports`. Explain every changed scan before you accept it.
