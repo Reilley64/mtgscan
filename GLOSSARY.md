@@ -99,11 +99,15 @@ The ID of one copy. It never changes. The phone gives each scan a copy ID when i
 **Stack**:
 The scans in a scan batch that share a card printing, finish, condition, and language. Committing the scan batch sends its stacks, and each stack adds its copies to the collection. Batch review shows each scan as its own row, not stacks.
 
+**Feature print**:
+The vector the recognizer makes from the straightened image of a card. The model that makes it is part of the gallery version, so the phone and the gallery always use the same model.
+_Avoid_: Embedding
+
 **Gallery**:
 The feature prints and printing list that the phone recognizer searches. The owner builds it, and phones download it from Storage. A phone downloads only the parts of the published gallery version that it does not have, checks each part's SHA-256 against the manifest, and switches to the new gallery version only when every part is there.
 
 **Gallery version**:
-One build of the gallery: a base plus zero or more add-ons. Each base and add-on is stored as compressed parts, and a manifest lists every part with its SHA-256. An add-on holds new card printings and card printings whose image or printing list row changed. A gallery version reaches phones only after the owner publishes it, and publishing needs a passing parity check. The pointer, `published.json`, names the published gallery version.
+One build of the gallery: a base plus zero or more add-ons. Each base and add-on is stored as compressed parts, and a manifest lists every part with its SHA-256. A gallery version also holds the model that made its feature prints and the recognizer's thresholds for that model. A gallery version with a new model is always a new base. An add-on holds new card printings and card printings whose image or printing list row changed. A gallery version reaches phones only after the owner publishes it, and publishing needs a passing parity check. The pointer, `published.json`, names the published gallery version.
 
 **Parity check**:
 A check on the iPhone that the phone's feature prints match the gallery rows built on the Mac. It passes when the lowest cosine over 24 reference images is at least 0.98.
