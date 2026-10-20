@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { cropObjectName, trainingCropsBucket } from '../functions/training-crops/crop-object';
 import { plural } from '../functions/mcp/plural';
 import { megabytes } from '../gallery/manifest';
+import { inPool } from '../gallery/pool';
 import type { ImportClient } from '../import/import-run';
 import type { TrainingCrop, TrainingCropStorage } from '../training-crops';
 
@@ -74,9 +75,7 @@ export async function pullTrainingCrops(client: ImportClient, folder: string) {
   const crops = (await evidenceRecords(client)).filter((crop) => images.has(cropObjectName(crop.crop_id)));
   const missing = crops.filter((crop) => !existsSync(join(folder, cropPath(crop))));
   await mkdir(join(folder, 'crops'), { recursive: true });
-  for (let next = 0; next < missing.length; next += parallelDownloads) {
-    await Promise.all(missing.slice(next, next + parallelDownloads).map((crop) => download(client, crop, folder)));
-  }
+  await inPool(missing, parallelDownloads, (crop) => download(client, crop, folder));
   const labels = { cards: crops.map((crop) => ({ crop: cropPath(crop), scryfallId: crop.saved_printing_id })) };
   await writeFile(join(folder, 'labels.json'), `${JSON.stringify(labels, null, 1)}\n`);
   await writeFile(join(folder, 'evidence.json'), `${JSON.stringify(crops, null, 1)}\n`);
