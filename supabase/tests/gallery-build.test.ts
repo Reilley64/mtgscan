@@ -157,6 +157,16 @@ describe('the first gallery build', () => {
     expect(await recordedVersions()).toEqual([{ version, published_at: null }]);
   });
 
+  test('installs from the work folder for the scanner evidence replay', async () => {
+    const galleryDirectory = await mkdtemp(join(tmpdir(), 'mtgscan-replay-gallery-'));
+
+    const installed = await runGalleryCommand('install', version, '--work', workDirectory, '--gallery', galleryDirectory);
+
+    expect(installed.exitCode).toBe(0);
+    expect(installed.output).toContain(`Installed gallery version ${version} in ${galleryDirectory}.`);
+    expect(await Bun.file(join(galleryDirectory, 'manifest.json')).json()).toMatchObject({ version, rows: firstBuildRows });
+  });
+
   test('a signed-in user cannot read the version before it is published', async () => {
     const { data } = await alice.client.storage.from('gallery').download(`${version}/manifest.json`);
 

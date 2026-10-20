@@ -24,8 +24,8 @@ struct FeaturePrintLine: Encodable {
 }
 
 let usage = """
-usage: card-recognizer index <gallery-dir> <images-dir> | serve <gallery-dir> | feature-prints <image>...
-  | encode <image-list> <output> | install <version-dir> <gallery-dir> | about
+usage: card-recognizer serve <gallery-dir> | feature-prints <image>... | encode <image-list> <output>
+  | install <version-dir> <gallery-dir> | about
 """
 
 func fail(_ message: String) -> Never {
@@ -100,41 +100,6 @@ func forEachFeaturePrint(of images: [URL], _ body: @Sendable (Int, [Float]) -> V
   guard failures.isEmpty else {
     fail("\(failures.count) images failed, first: \(failures.prefix(5).joined(separator: ", "))")
   }
-}
-
-func index(galleryDirectory: URL, imagesDirectory: URL) {
-  let printings: [GalleryPrinting]
-  do {
-    printings = try Gallery.printingList(in: galleryDirectory)
-  } catch {
-    fail("cannot read the printing list: \(error)")
-  }
-  let dimension = FeaturePrint.dimension
-  let startedAt = Date()
-  var vectors = [Float16](repeating: 0, count: printings.count * dimension)
-  vectors.withUnsafeMutableBufferPointer { output in
-    nonisolated(unsafe) let buffer = output
-    forEachFeaturePrint(of: printings.map { imagesDirectory.appendingPathComponent("\($0.id).jpg") }) { row, vector in
-      for component in 0 ..< dimension {
-        buffer[row * dimension + component] = Float16(vector[component])
-      }
-    }
-  }
-  do {
-    try vectors.withUnsafeBufferPointer { Data(buffer: $0) }
-      .write(to: galleryDirectory.appendingPathComponent(GalleryFile.float16Vectors))
-    let header = GalleryHeader(
-      count: printings.count,
-      dimension: dimension,
-      revision: FeaturePrint.revision,
-      createdAt: ISO8601DateFormatter().string(from: Date()),
-      encoding: GalleryHeader.float16
-    )
-    try JSONEncoder().encode(header).write(to: galleryDirectory.appendingPathComponent(GalleryFile.header))
-  } catch {
-    fail("cannot write the gallery: \(error)")
-  }
-  emit(["printings": printings.count, "seconds": Int(Date().timeIntervalSince(startedAt))])
 }
 
 func encode(imageList: URL, output: URL) {
@@ -215,8 +180,6 @@ func featurePrints(images: [String]) {
 
 let arguments = CommandLine.arguments
 switch arguments.dropFirst().first {
-case "index" where arguments.count == 4:
-  index(galleryDirectory: URL(fileURLWithPath: arguments[2]), imagesDirectory: URL(fileURLWithPath: arguments[3]))
 case "serve" where arguments.count == 3:
   serve(galleryDirectory: URL(fileURLWithPath: arguments[2]))
 case "feature-prints" where arguments.count > 2:

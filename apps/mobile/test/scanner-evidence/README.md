@@ -31,7 +31,17 @@ The gates need the gallery: the feature prints and the printing list of every pa
 The replay looks for the gallery in `modules/card-recognizer/.data/gallery`. Set `RECOGNIZER_GALLERY_DIR` to use another folder. The folder holds `catalog.json`, `gallery.json`, and `gallery.f16`.
 
 - **Install the recorded gallery.** `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753` in `supabase` unpacks it into `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`, with the same decoder as the phone. It downloads the parts with the hosted secret key only when they are not on the Mac. Only this gallery can show that a result is unchanged against the expected files.
-- **Build a gallery.** `bun run recognizer:gallery` downloads the current Scryfall `default_cards` file and about 10 GB of `normal` images into `modules/card-recognizer/.data`, then computes the feature prints. Set `SCRYFALL_BULK_FILE` to use a saved bulk file. A gallery from a newer bulk file has more printings, so a few results can change. This gallery is only for the replay. It orders rows by printing ID and is not checked against the card catalog. #79 builds the gallery that phones download.
+- **Build a gallery.** Build a gallery from the current Scryfall data with the same commands as the gallery that phones download, against your local Supabase stack. Start the stack, then run in `supabase`:
+
+  ```bash
+  export SUPABASE_URL=http://127.0.0.1:<API port>   # 54321 on the default stack
+  export SUPABASE_SECRET_KEY=$(bunx supabase@2.120.0 status -o json | jq -r .SECRET_KEY)
+  bun run import catalog
+  bun run gallery build
+  bun run gallery install <version>
+  ```
+
+  `import catalog` imports the current Scryfall card catalog into the local stack in about 5 minutes. `gallery build` keeps the paper card printings in the card catalog. It downloads about 10 GB of `normal` images into `~/Library/Caches/mtgscan/scryfall-images` and computes the int8 feature prints. On an Apple M3, the first build takes about an hour, most of it for the images. Later builds download only new and changed images. The build uploads a gallery version to local Storage and never publishes it. Use your local stack only: with `--env-file=.env.hosted`, the build uploads to hosted Storage. `install` unpacks the gallery version that the build printed, with the same decoder as the phone. A gallery from newer Scryfall data has more card printings, so a few results can change.
 
 The macOS recognizer command computes the feature prints. It compiles the same Swift files as the phone module. On the owner's Mac it gives the same feature prints as the recorded gallery.
 

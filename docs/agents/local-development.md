@@ -93,6 +93,7 @@ If Xcode cannot turn on Sign in with Apple for the new App ID, the owner turns i
 
 - Set `DEVELOPER_DIR` as for the Simulator before `bun run recognizer:test`. The Swift tests need Xcode.
 - The recorded gallery of the scanner evidence pack is gallery version `20261012-cf1753`. Install it once with `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753` in `supabase`. Set `RECOGNIZER_GALLERY_DIR` to `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`.
+- To build a gallery for the replay from the current Scryfall data, run `gallery build` and `gallery install` against the worktree's local stack, as `apps/mobile/test/scanner-evidence/README.md` (Gallery) says. Never load `.env.hosted` for it. Pass `--images` and `--work` with temporary folders when the local card catalog is not the full catalog, such as the fixture catalog, so that the build does not replace the feature print cache in `~/Library/Caches/mtgscan/gallery`.
 - The 3,000 Scryfall `large` images for the simulated scans are in the ignored data of another worktree: `/Users/reilley/.herdr/worktrees/mtgscan/worktree-brave-harbor-93a0/prototypes/catalog-recognizer/.data/large`. Read them only. Set `RECOGNIZER_LARGE_IMAGES_DIR` to that folder. Copy it somewhere else before that worktree is removed.
 
 ## Gallery on a development build
