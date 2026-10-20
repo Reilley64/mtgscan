@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 
 export const moduleRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const dataDirectory = path.resolve(process.env.RECOGNIZER_DATA_DIR ?? path.join(moduleRoot, '.data'));
-export const galleryDirectory = path.resolve(process.env.RECOGNIZER_GALLERY_DIR ?? path.join(dataDirectory, 'gallery'));
 
 export const printingListFile = 'catalog.json';
 export const vectorsFile = 'gallery.f16';

@@ -4,8 +4,7 @@ import type { Database } from '../database.types';
 import { supabaseUrlOf } from '../test-user/account';
 import type { ImportClient } from './import-run';
 
-export function importClientFromEnvironment(): ImportClient {
-  const url = supabaseUrlOf(process.env);
+export function importClientFromEnvironment(url = supabaseUrlOf(process.env)): ImportClient {
   const secretKey = process.env.SUPABASE_SECRET_KEY;
   if (!url || !secretKey) {
     console.error('Set SUPABASE_URL or SUPABASE_PROJECT_REF, and SUPABASE_SECRET_KEY.');

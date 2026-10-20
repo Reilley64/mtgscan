@@ -247,7 +247,11 @@ export function runReleaseCheckCommand(...args: string[]): Promise<CommandResult
 }
 
 export function runGalleryCommand(...args: string[]): Promise<CommandResult> {
-  return runScript('gallery/main.ts', args, { GALLERY_RECOGNIZER: join(import.meta.dir, 'fake-recognizer.ts') });
+  return runGalleryCommandWith({}, ...args);
+}
+
+export function runGalleryCommandWith(env: Record<string, string>, ...args: string[]): Promise<CommandResult> {
+  return runScript('gallery/main.ts', args, { GALLERY_RECOGNIZER: join(import.meta.dir, 'fake-recognizer.ts'), ...env });
 }
 
 export function runCropsCommand(...args: string[]): Promise<CommandResult> {

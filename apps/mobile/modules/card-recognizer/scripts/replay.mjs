@@ -6,7 +6,6 @@ import path from 'node:path';
 import {
   buildRecognizer,
   dataDirectory,
-  galleryDirectory,
   moduleRoot,
   printingListFile,
   run,
@@ -17,6 +16,7 @@ const evidence = path.resolve(moduleRoot, '..', '..', 'test', 'scanner-evidence'
 const largeImagesDirectory = path.resolve(process.env.RECOGNIZER_LARGE_IMAGES_DIR ?? path.join(dataDirectory, 'large'));
 const simulatedDirectory = path.resolve(process.env.RECOGNIZER_SIMULATED_DIR ?? path.join(dataDirectory, 'simulated'));
 const reportsDirectory = path.join(dataDirectory, 'reports');
+const galleryDirectory = process.env.RECOGNIZER_GALLERY_DIR && path.resolve(process.env.RECOGNIZER_GALLERY_DIR);
 let recognizer;
 const realOnly = process.argv.includes('--real-only');
 const recordFeaturePrints = process.argv.includes('--record-feature-prints');
@@ -159,8 +159,12 @@ if (recordFeaturePrints) {
   await recordReferenceFeaturePrints();
   process.exit(0);
 }
+if (!galleryDirectory) {
+  console.error('Set RECOGNIZER_GALLERY_DIR to the folder that `bun run gallery install` wrote, such as ~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753. See test/scanner-evidence/README.md.');
+  process.exit(1);
+}
 if (!existsSync(path.join(galleryDirectory, printingListFile))) {
-  console.error(`No gallery in ${galleryDirectory}. Set RECOGNIZER_GALLERY_DIR. See test/scanner-evidence/README.md.`);
+  console.error(`No gallery in ${galleryDirectory}. See test/scanner-evidence/README.md.`);
   process.exit(1);
 }
 await fs.mkdir(reportsDirectory, { recursive: true });

@@ -28,10 +28,22 @@ The crops show only cards, the card holder, and fingers. The 250 card crops cove
 
 The gates need the gallery: the feature prints and the printing list of every paper card printing. It is not in the repo, because it is built from Scryfall data. The expected files were recorded with gallery version `20261012-cf1753`, the first int8 gallery that #79 built for phones. It has 102,730 card printings from Scryfall `default_cards` of 11 October 2026. `recordedWith` names the version and the SHA-256 values of the installed `catalog.json` and `gallery.f16`. The scanner evidence pack keeps this version in Storage: `bun run gallery publish` never deletes it.
 
-The replay looks for the gallery in `modules/card-recognizer/.data/gallery`. Set `RECOGNIZER_GALLERY_DIR` to use another folder. The folder holds `catalog.json`, `gallery.json`, and `gallery.f16`.
+`bun run gallery install <version>` in `supabase` unpacks a gallery version into `installed/<version>` in its work folder. The folder holds `catalog.json`, `gallery.json`, and `gallery.f16`. Set `RECOGNIZER_GALLERY_DIR` to that folder. The replay stops when the variable is not set.
 
-- **Install the recorded gallery.** `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753` in `supabase` unpacks it into `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`, with the same decoder as the phone. It downloads the parts with the hosted secret key only when they are not on the Mac. Only this gallery can show that a result is unchanged against the expected files.
-- **Build a gallery.** `bun run recognizer:gallery` downloads the current Scryfall `default_cards` file and about 10 GB of `normal` images into `modules/card-recognizer/.data`, then computes the feature prints. Set `SCRYFALL_BULK_FILE` to use a saved bulk file. A gallery from a newer bulk file has more printings, so a few results can change. This gallery is only for the replay. It orders rows by printing ID and is not checked against the card catalog. #79 builds the gallery that phones download.
+- **Install the recorded gallery.** Run `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753 --hosted` in `supabase`. It unpacks the gallery into `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`, with the same decoder as the phone. It downloads the parts with the hosted secret key only when they are not on the Mac. Only this gallery can show that a result is unchanged against the expected files.
+- **Build a gallery.** You can build a gallery from the current Scryfall data with the same commands as the gallery that phones download. They run against your local Supabase stack. Start the stack, and run these commands in `supabase`. The API port is 54321 on the default stack.
+
+  ```bash
+  export SUPABASE_URL=http://127.0.0.1:<API port>
+  export SUPABASE_SECRET_KEY=$(bunx supabase@2.120.0 status -o json | jq -r .SECRET_KEY)
+  bun run import catalog
+  bun run gallery build
+  bun run gallery install <version>
+  ```
+
+  `import catalog` imports the current Scryfall card catalog into the local stack. `gallery build` keeps the paper card printings in the card catalog. It downloads the missing `normal` images into `~/Library/Caches/mtgscan/scryfall-images`. The full card catalog needs about 10 GB of images. The build computes the int8 feature prints. Its work folder is `~/Library/Caches/mtgscan/local-gallery`, apart from the work folder of the owner's hosted builds. It uploads a gallery version to local Storage. It never publishes the version. `install` unpacks the version into `~/Library/Caches/mtgscan/local-gallery/installed/<version>`, with the same decoder as the phone. A gallery from newer Scryfall data has more card printings, so a few results can change.
+
+  Never load `.env.hosted` or pass `--hosted` to build a gallery for the replay. Without `--hosted`, the gallery commands refuse every Supabase URL except the local stack.
 
 The macOS recognizer command computes the feature prints. It compiles the same Swift files as the phone module. On the owner's Mac it gives the same feature prints as the recorded gallery.
 
@@ -113,7 +125,7 @@ This gate measures the whole phone path on physical cards: capture, recognition 
 The run uses a development build of the app on the iPhone, with Metro on the Mac:
 
 1. Start Metro with its output in a log file.
-2. Tap **Run the parity check** in settings. Record the result with `bun run gallery parity` (README, Gallery build and publish).
+2. Tap **Run the parity check** in settings. Record the result with `bun --env-file=.env.hosted gallery/main.ts parity <version> --hosted` in `supabase` (README, Gallery build and publish).
 3. Scan the 30 cards with the torch off, one at a time, in the order of `test-deck.tsv`. Do not fix any scan.
 4. Score the run from `apps/mobile`: `bun run bin-deck:score <metro-log> <run> --device <model> --ios <version>`. It reads the `PARITY` and `RECOGNITION` lines from the log and writes `summary.md`, `results.env`, `bin-batch-summaries.ndjson`, and `batch-1-detail.ndjson` to `bin-deck/<run>/`. It exits 1 when a gate fails.
 
