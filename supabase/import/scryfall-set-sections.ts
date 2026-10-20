@@ -1,3 +1,4 @@
+import type { Database } from '../database.types';
 import { ImportFailed, type ImportClient } from './import-run';
 import { scryfallHeaders } from './scryfall-bulk-data';
 import { importUserAgent } from './source-file';
@@ -7,7 +8,11 @@ export const scryfallApiUrl = 'https://api.scryfall.com';
 
 type ScryfallUrls = { site: string; api: string };
 
-type SetSection = { name: string; search: string; card_printing_ids: string[] };
+type PageSection = { name: string; search: string };
+
+type SetSection = PageSection & { card_printing_ids: string[] };
+
+type ListedSet = Database['public']['Functions']['sets_for_set_section_import']['Returns'][number];
 
 type SearchPage = { data?: { id?: string }[]; has_more?: boolean; next_page?: string };
 
@@ -60,15 +65,15 @@ class ScryfallReader {
 
   constructor(private readonly urls: ScryfallUrls) {}
 
-  async setSections(code: string): Promise<SetSection[]> {
+  async withCardPrintings(pageSections: PageSection[]): Promise<SetSection[]> {
     const sections: SetSection[] = [];
-    for (const { name, search } of await this.setPageSections(code)) {
+    for (const { name, search } of pageSections) {
       sections.push({ name, search, card_printing_ids: await this.cardPrintingIds(search) });
     }
     return sections;
   }
 
-  private async setPageSections(code: string): Promise<{ name: string; search: string }[]> {
+  async setPageSections(code: string): Promise<PageSection[]> {
     const description = 'its set page';
     const response = await this.get('set page', description, new URL(`/sets/${code}`, this.urls.site), htmlHeaders);
     if (!response.ok) {
@@ -129,6 +134,24 @@ class ScryfallReader {
   }
 }
 
+function samePageSections(page: PageSection[], stored: PageSection[]) {
+  return (
+    page.length === stored.length &&
+    page.every((section, index) => section.name === stored[index]!.name && section.search === stored[index]!.search)
+  );
+}
+
+async function storeSetSections(client: ImportClient, scryfall: ScryfallReader, set: ListedSet) {
+  const pageSections = await scryfall.setPageSections(set.code);
+  const stored =
+    !set.has_unlisted_card_printing && samePageSections(pageSections, set.sections as PageSection[])
+      ? await client.rpc('record_set_sections_read', { set_code: set.code })
+      : await client.rpc('import_set_sections', { set_code: set.code, sections: await scryfall.withCardPrintings(pageSections) });
+  if (stored.error) {
+    throw new Error(stored.error.message);
+  }
+}
+
 export async function importSetSections(client: ImportClient, urls: ScryfallUrls): Promise<void> {
   const { data: sets, error } = await client.rpc('sets_for_set_section_import');
   if (error) {
@@ -137,15 +160,12 @@ export async function importSetSections(client: ImportClient, urls: ScryfallUrls
   const scryfall = new ScryfallReader(urls);
   const dueSets = sets.filter((set) => set.due);
   const failedSets: string[] = [];
-  for (const { code } of dueSets) {
+  for (const set of dueSets) {
     try {
-      const stored = await client.rpc('import_set_sections', { set_code: code, sections: await scryfall.setSections(code) });
-      if (stored.error) {
-        throw new Error(stored.error.message);
-      }
+      await storeSetSections(client, scryfall, set);
     } catch (error) {
-      failedSets.push(code);
-      console.error(`Could not read the set sections of ${code}: ${(error as Error).message}`);
+      failedSets.push(set.code);
+      console.error(`Could not read the set sections of ${set.code}: ${(error as Error).message}`);
     }
   }
   console.log(
