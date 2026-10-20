@@ -36,7 +36,7 @@ if (!isHostedTestUserPassword(password)) {
 
 const environment = {
   ...process.env,
-  DEVELOPER_DIR: process.env.DEVELOPER_DIR ?? '/Applications/Xcode.app/Contents/Developer',
+  DEVELOPER_DIR: process.env.DEVELOPER_DIR ?? '/Applications/Xcode-27.1.0.app/Contents/Developer',
   EXPO_NO_GIT_STATUS: '1',
   EXPO_PUBLIC_APP_VARIANT: 'test',
   EXPO_PUBLIC_TEST_USER_PASSWORD: password,
