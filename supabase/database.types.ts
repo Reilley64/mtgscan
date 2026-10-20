@@ -1075,6 +1075,11 @@ isOneToOne: false
 "set_training_crop_uploads":
 { Args: { "request": Json }; Returns: Json
                            },
+"sets_for_set_section_import":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "code": string,"due": boolean
+            }[]
+                           },
 "stage_import_batch":
 { Args: { "batch_number": number,"batch_rows": Json,"run_id": string,"target": string }; Returns: number
                            },

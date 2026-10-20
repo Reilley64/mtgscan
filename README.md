@@ -313,6 +313,15 @@ Signed-in users read one set with `supabase.rpc('get_set', { query })`. The set 
 - It drops the card printing IDs that are not in the card catalog. It refuses a set code that is not in `card_sets`. When it fails, the set keeps its stored set sections.
 - It does not go through import runs, so the import can store the set sections of one set while the read of another set fails. See ADR 0013.
 
+`bun run import set_sections` fills them in:
+
+- `sets_for_set_section_import()`, with the secret key, lists the sets that Sets lists, and whether each one is due. A set is due when its set sections were never read.
+- For each due set, the command reads the set's Scryfall set page, `https://scryfall.com/sets/<code>`. Each `h2.card-grid-header` is a set section, in page order. The name is the header text before the count. The search is the `q` parameter of the header's count link.
+- A page with no set section header, or a header with no search link, is a failed read for that set.
+- The command runs each search through `/cards/search` with `unique=prints`, and follows every page of results. A search that Scryfall answers with "no cards found" is an empty set section. It then stores the set with `import_set_sections`.
+- It sends at most 1 set page read a second and at most 2 card searches a second, with the import user agent. After a 429 reply it waits 30 seconds and tries again. A second 429 for the same request is a failed read for that set.
+- A failed read is logged with its reason, and the set keeps its stored set sections. The command goes on with the next set. At the end, it logs how many sets it read, skipped, and failed, and how many searches it ran. It exits non-zero and names each failed set when any set failed.
+
 ### Current prices read
 
 Signed-in users read the current prices of card printings and finishes with `supabase.rpc('get_current_prices', { query })`. The phone reads the prices of its scans through it. `supabase/collection.ts` has the shared types.
@@ -681,7 +690,7 @@ Basic lands are not copies, so collection search never returns them as rows. A f
 
 ### Card catalog imports
 
-`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. When `SUPABASE_URL` is not set, it uses `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file. Pass `--sets <path>` to read a fixture instead of the Scryfall sets list. Pass `--rates <path>` to read a fixture instead of Frankfurter's latest exchange rates.
+`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. When `SUPABASE_URL` is not set, it uses `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file. Pass `--sets <path>` to read a fixture instead of the Scryfall sets list. Pass `--rates <path>` to read a fixture instead of Frankfurter's latest exchange rates. Pass `--scryfall-site <URL>` and `--scryfall-api <URL>` to read set sections from another Scryfall site and API, such as a fake Scryfall in the tests.
 
 - `catalog` imports cards and card printings. Each card printing keeps `image_uris`, the Scryfall `normal` image of each face, and `art_crop_uri`, the Scryfall `art_crop` image of its front face or null. It also keeps Scryfall's `booster`, `promo`, and `variation` flags. After the run, even a skipped one, it reads Scryfall's sets list in one request and adds or updates `card_sets`: each set's code, name, `set_type`, `released_at`, and `icon_svg_uri`. A set with no `released_at` in Scryfall keeps null. Some sets use the icon of a parent set, so the app reads the icon from this table, not from a URL pattern. Signed-in users can read `card_sets`. The Weekly import workflow runs it.
   - The run reads the deck-construction fields from each card's Oracle text and stores them on the card. Deck validity reads them as rules data. The reader leaves out reminder text and an ability word before " — ", as in Clara Oswald's "Impossible Girl".
@@ -694,6 +703,7 @@ Basic lands are not copies, so collection search never returns them as rows. A f
     - Whether a card is a Background or a Time Lord Doctor, and its basic land types, come from its type line. The catalog stores the type line, so these need no field of their own.
 - `oracle_tags` imports Oracle tags, tag edges, and card taggings from Scryfall. The Weekly import workflow runs it after `catalog`, even when the catalog run fails.
 - `commander_spellbook` imports combos, as `GLOSSARY.md` defines them, from the Commander Spellbook variants file. It drops and counts each combo that names a card outside the card catalog or has no Oracle ID. The Weekly import workflow runs it after `oracle_tags`, even when an earlier run fails.
+- `set_sections` reads set sections from Scryfall, as Set sections says. The Weekly import workflow runs it after `catalog`, even when the catalog run fails. The Import workflow gives it 6 hours, because the first run reads every set.
 - `prices` imports current prices from Scryfall Default Cards and recomputes each card's lowest current price. It reads only the USD prices, `usd`, `usd_foil`, and `usd_etched`. A card printing with no USD price has no current price, even when Scryfall has a EUR price. `docs/adr/0005-convert-all-prices-from-usd.md` says why.
 - `exchange_rates` imports the latest exchange rates from Frankfurter, which publishes the European Central Bank's reference rates. mtgscan keeps one row for each currency in Frankfurter's latest rates, and one for USD at a rate of 1. A currency that leaves the latest rates is removed, and a new one is added. Each row holds the currency, the rate from USD, and the ECB date of the rate. Each run replaces the rows. The ECB publishes rates on working days only. A run whose ECB date is not newer than the stored one is skipped. Signed-in users can read `exchange_rates`.
 - `prune-telemetry` deletes search telemetry older than 180 days.
