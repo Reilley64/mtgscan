@@ -181,7 +181,7 @@ bunx supabase@2.120.0 db lint --local -s public,private,catalog_import --level e
 - Fix an error in a new migration. Start the `create or replace` from the latest version of the function.
 - Add `--level warning` without `--fail-on` to see the warnings too. CI does not fail on them.
 - The lint skips trigger functions.
-- The lint cannot check SQL that a function builds as text and runs with `execute`. Most of the search SQL is built this way, in `private.catalog_filter_conditions` and `private.text_search`, and run by `private.run_search`. Only the database tests cover it.
+- The lint cannot check SQL that a function builds as text and runs with `execute`. `private.catalog_filter_conditions` and `private.text_search` build most of the search SQL this way, and `private.run_search` runs it. Only the database tests cover that SQL.
 
 ## Merging a PR
 
