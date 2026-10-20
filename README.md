@@ -11,7 +11,7 @@ The repo is a Bun workspace. The Expo app lives in `apps/mobile`. The public web
 
 Public build-time settings go in `apps/mobile/.env`. `apps/mobile/.env.example` lists their names. Never put a service role key in the app.
 
-Checks run on pull requests that change what they check. The app checks run when the app, the workspace files, or the `@mtgscan/supabase` modules that the app imports change. The database checks run when anything in `supabase` changes. The site checks run when `apps/site`, `wrangler.jsonc`, the workspace files, or the `@mtgscan/supabase` modules that the site imports change. A pull request that changes none of them, such as a docs change, runs only the title check. `.github/workflows/checks.yml` lists the paths. Run the checks locally with `bun run typecheck`, `bun run lint`, and `bun run test`.
+Checks run on pull requests that change what they check. The app checks run when the app, the workspace files, or the `@mtgscan/supabase` modules that the app imports change. The database checks run when anything in `supabase` changes. The migration tests, `supabase/tests/*-migration.test.ts`, are slow, so they run only when a migration or a migration test changes. The site checks run when `apps/site`, `wrangler.jsonc`, the workspace files, or the `@mtgscan/supabase` modules that the site imports change. A pull request that changes none of them, such as a docs change, runs only the title check. `.github/workflows/checks.yml` lists the paths. Run the checks locally with `bun run typecheck`, `bun run lint`, and `bun run test`.
 
 ### Styling
 
