@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react';
 import { FlatList, ScrollView, type FlatListProps } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useHeaderHeight } from 'expo-router/react-navigation';
 
 import { FloatingButtons } from '@/components/templates/floating-buttons';
 import { cn } from '@/lib/class-names';
-import { navigationBar } from '@/theme';
 
 const screenClass = 'flex-1 bg-background';
 
@@ -15,7 +14,7 @@ const floatingButtonsContentClass = 'pb-floating-button-clearance';
 const endReachedScreens = 2;
 
 function useContentInsets(withBar: boolean) {
-  const headerBottom = useSafeAreaInsets().top + navigationBar;
+  const headerBottom = useHeaderHeight();
   return {
     contentInsetAdjustmentBehavior: 'automatic',
     contentInset: { top: withBar ? 0 : -headerBottom },
