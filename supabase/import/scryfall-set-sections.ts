@@ -34,8 +34,6 @@ const requestSpacingMs = 1000;
 
 const tooManyRequests = 429;
 
-const rateLimitedWaitMs = 60_000;
-
 const rateLimitedRetries = 3;
 
 const htmlHeaders = { 'User-Agent': importUserAgent, Accept: 'text/html' };
@@ -79,7 +77,10 @@ class ScryfallReader {
   searches = 0;
   private readonly nextRequestAt: Record<RequestKind, number> = { 'set page': 0, 'card search': 0 };
 
-  constructor(private readonly urls: ScryfallUrls) {}
+  constructor(
+    private readonly urls: ScryfallUrls,
+    private readonly retryWaitMs: number,
+  ) {}
 
   async runSearches(pageSections: PageSection[]): Promise<ImportedSetSection[]> {
     const sections: ImportedSetSection[] = [];
@@ -129,7 +130,7 @@ class ScryfallReader {
   private async get(kind: RequestKind, description: string, url: URL | string, headers: Record<string, string>) {
     let response = await this.send(kind, url, headers);
     for (let retry = 1; response.status === tooManyRequests && retry <= rateLimitedRetries; retry += 1) {
-      await Bun.sleep(rateLimitedWaitMs);
+      await Bun.sleep(this.retryWaitMs);
       response = await this.send(kind, url, headers);
     }
     if (response.status === tooManyRequests) {
@@ -163,12 +164,12 @@ async function storeSetSections(client: ImportClient, scryfall: ScryfallReader, 
   }
 }
 
-export async function importSetSections(client: ImportClient, urls: ScryfallUrls): Promise<void> {
+export async function importSetSections(client: ImportClient, urls: ScryfallUrls, retryWaitSeconds: number): Promise<void> {
   const { data: sets, error } = await client.rpc('sets_for_set_section_import');
   if (error) {
     throw new ImportFailed(`Set sections: ${error.message}`);
   }
-  const scryfall = new ScryfallReader(urls);
+  const scryfall = new ScryfallReader(urls, retryWaitSeconds * 1000);
   const dueSets = sets.filter((set) => set.due);
   const failedSets: string[] = [];
   for (const set of dueSets) {

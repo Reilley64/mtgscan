@@ -180,7 +180,7 @@ function fakeScryfall() {
 
 function runSetSectionsImport(): Promise<CommandResult> {
   const base = scryfall.url.origin;
-  return runImportCommand('set_sections', '--scryfall-site', base, '--scryfall-api', base);
+  return runImportCommand('set_sections', '--scryfall-site', base, '--scryfall-api', base, '--retry-wait-seconds', '2');
 }
 
 async function storeSetSectionsThatListEveryCardPrinting(codes: string[]) {
@@ -381,9 +381,9 @@ describe('the set sections import', () => {
 describe('a 429 reply', () => {
   let result: CommandResult;
 
-  function expectThreeWaitsOf60Seconds(gaps: number[]) {
+  function expectThreeWaitsOf2Seconds(gaps: number[]) {
     expect(gaps).toHaveLength(3);
-    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(59_990);
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(1990);
   }
 
   beforeAll(async () => {
@@ -396,19 +396,19 @@ describe('a 429 reply', () => {
     replies.get(searchKey('set:stx is:booster'))!.unshift(tooManyRequests, tooManyRequests, tooManyRequests);
 
     result = await runSetSectionsImport();
-  }, 420_000);
+  });
 
-  test('waits 60 seconds after each 429 and tries the request again, up to 3 times', async () => {
+  test('waits the retry wait after each 429 and tries the request again, up to 3 times', async () => {
     const stx = await replyOf(user.client, getSet, { code: 'stx' });
 
-    expectThreeWaitsOf60Seconds(gapsBetween((request) => request.search === 'set:stx is:booster'));
+    expectThreeWaitsOf2Seconds(gapsBetween((request) => request.search === 'set:stx is:booster'));
     expect(stx.sections.map(shown)).toEqual([{ name: 'In Boosters', collector_numbers: ['20', '193', '264'] }]);
   });
 
   test('a fourth 429 for the same request is a failed read that keeps the stored set sections', async () => {
     const j22 = await replyOf(user.client, getSet, { code: 'j22' });
 
-    expectThreeWaitsOf60Seconds(gapsBetween((request) => request.path === '/sets/j22'));
+    expectThreeWaitsOf2Seconds(gapsBetween((request) => request.path === '/sets/j22'));
     expect(result.output).toContain('j22: its set page answered HTTP 429 4 times');
     expect(result.exitCode).toBe(1);
     expect(result.output).toContain('Set sections failed for j22, lea, vis.');
