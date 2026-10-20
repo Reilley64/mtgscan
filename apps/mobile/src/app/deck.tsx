@@ -18,7 +18,6 @@ import { DeckSkeleton } from '@/components/organisms/deck-skeleton';
 import { NeedsYouList } from '@/components/organisms/needs-you-list';
 import { SwapInAllButton } from '@/components/organisms/swap-in-all-button';
 import { PushedListScreen } from '@/components/templates/pushed-screen';
-import { hiddenTopScrollEdgeEffects, softTopScrollEdgeEffects } from '@/components/templates/tab-stack';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
 import type { BasicLandTile } from '@/decks/deck-groups';
@@ -29,7 +28,7 @@ import { removeBasicLandFromDeck, removeFromDeck } from '@/decks/remove-from-dec
 import { useDeck } from '@/decks/use-deck';
 import { useDeckChanges } from '@/decks/use-deck-changes';
 import { violationCardKeys } from '@/decks/violation-cards';
-import { useBannerTitle } from '@/lib/use-banner-title';
+import { useBannerScroll } from '@/lib/use-banner-scroll';
 import { useNeedsYouCounts } from '@/needs-you/needs-you-counts';
 import { useNeedsYou, type NeedsYouItem } from '@/needs-you/use-needs-you';
 import { colors } from '@/theme';
@@ -94,7 +93,7 @@ export default function DeckScreen() {
   const [renaming, setRenaming] = useState(false);
   const { grouping, order, setGrouping, setOrder } = useDeckCardOrder();
   const showsCardOrderButtons = tab === 'cards' && read.status === 'loaded' && read.deck.card_count > 0;
-  const { showsTitle, onBannerLayout, onScroll } = useBannerTitle();
+  const { bannerScrolledAway, scrollEdgeEffects, onBannerLayout, onScroll } = useBannerScroll();
 
   useEffect(() => {
     void markDeckUsed(deckId);
@@ -238,8 +237,8 @@ export default function DeckScreen() {
     <>
       <Stack.Screen
         options={{
-          title: deck && showsTitle ? deck.name : '',
-          scrollEdgeEffects: showsTitle ? softTopScrollEdgeEffects : hiddenTopScrollEdgeEffects,
+          title: deck && bannerScrolledAway ? deck.name : '',
+          scrollEdgeEffects,
         }}
       />
       <Stack.Toolbar placement="left">

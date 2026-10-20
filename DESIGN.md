@@ -669,7 +669,7 @@ Each problem type of the MCP connection has a short page on the website at `mtgs
 
 Pushed screens cover the whole screen, including the app tab bar. The user goes back with the phone's own gesture, which on iOS is the swipe from the left edge. A screen pushed inside a drawer, such as the scan details in batch review, also has the native back button (see Sheets).
 
-On iOS 26 and later, content that scrolls up under the status bar and the header buttons of the copy page, the deck screen, or the user tag picker blurs and fades behind them with the soft system scroll edge effect. On the deck screen, the effect starts when the deck name moves into the header. Until then the deck banner shows sharp under the header buttons.
+On iOS 26 and later, content that scrolls up under the status bar and the header buttons of the copy page, the deck screen, or the user tag picker blurs and fades behind them with the soft system scroll edge effect. On the deck screen and the copy page, the effect starts when the banner or the hero has scrolled out from under the header. Until then they show sharp under the header buttons.
 
 - **Copy page**, from a binder tile, shows that copy only (owner decision, spec 4). It is one scrolling page with no segmented control and no list of other copies or printings. Users never see the name "copy page": the page shows the card. From top to bottom:
   - the hero: the card image at 55% of the screen width, with the foil or etched sheen of the copy, over the art crop of the same card printing blurred. A double-faced card printing uses the art crop of its front face. A card printing with no art crop uses its card image blurred. While the art crop loads, the background color shows behind the card image;
