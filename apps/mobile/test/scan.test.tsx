@@ -345,6 +345,7 @@ describe('rectangle trial', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     delete process.env.EXPO_PUBLIC_RECTANGLE_TRIAL;
+    delete process.env.EXPO_PUBLIC_APP_VARIANT;
   });
 
   function runAs(development: boolean) {
@@ -359,6 +360,16 @@ describe('rectangle trial', () => {
 
   test('a development build runs the rectangle trial when it is switched on', async () => {
     runAs(true);
+    process.env.EXPO_PUBLIC_RECTANGLE_TRIAL = 'true';
+
+    await openScan();
+
+    expect(rectangleTrialIsOn()).toBe(true);
+  });
+
+  test('the test app runs the rectangle trial when it is switched on', async () => {
+    runAs(false);
+    process.env.EXPO_PUBLIC_APP_VARIANT = 'test';
     process.env.EXPO_PUBLIC_RECTANGLE_TRIAL = 'true';
 
     await openScan();

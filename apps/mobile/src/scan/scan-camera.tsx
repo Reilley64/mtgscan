@@ -40,7 +40,7 @@ export function ScanCamera() {
         active={focused && !stopped}
         outlineColor={colors.cardOutline}
         outlineWidth={sizes.cardOutline}
-        rectangleTrial={__DEV__ && process.env.EXPO_PUBLIC_RECTANGLE_TRIAL === 'true'}
+        rectangleTrial={(__DEV__ || process.env.EXPO_PUBLIC_APP_VARIANT === 'test') && process.env.EXPO_PUBLIC_RECTANGLE_TRIAL === 'true'}
         onDetectionSample={onDetectionSample}
         style={StyleSheet.absoluteFill}
       />
