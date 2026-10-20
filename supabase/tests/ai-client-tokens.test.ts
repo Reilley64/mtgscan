@@ -5,9 +5,9 @@ import type { SQL } from 'bun';
 import type { DatabaseFunction, RequestArguments } from '../database-function';
 import { databaseFunctions } from '../database-functions';
 import { createDeck, getDeck } from '../decks';
-import { appWriteRefusal, claimsOf } from '../mcp-connection';
+import { allowAiClient, appWriteRefusal, claimsOf, refreshTokens } from '../mcp-connection';
 import { basicLand, catalogFixtureManifest, oracleIdOf, resetCardCatalog, runCatalogImport } from './catalog-import-command';
-import { aiClientClaims, aiClientReply, connectAiClient, mcpServerUrl } from './ai-clients';
+import { aiClientClaims, aiClientReply, authorizationServerMetadata, connectAiClient, mcpServerUrl } from './ai-clients';
 import { collectionCopies } from './collection-pages';
 import { call, replyOf } from './database-calls';
 import { asDatabaseOwner, asDatabaseRole, signUpNewUser, tokenClient, type TestUser } from './local-stack';
@@ -249,5 +249,25 @@ describe("refusing an AI client's token", () => {
       status: 'failed',
       error: { code: permissionDenied, message: appWriteRefusal },
     });
+  });
+});
+
+describe('connecting an AI client', () => {
+  test.each([
+    ['public', 'none'],
+    ['confidential', 'client_secret_basic'],
+  ] as const)('a %s AI client gets tokens for the MCP server and refreshes them', async (kind, tokenEndpointAuthMethod) => {
+    const user = await signUpNewUser();
+    const metadata = await authorizationServerMetadata();
+
+    const { client, tokens } = await allowAiClient(metadata, mcpServerUrl, user.client, 'Test AI chat', kind);
+    const refreshed = await refreshTokens(metadata, mcpServerUrl, client, tokens.refresh_token!);
+
+    expect(client.token_endpoint_auth_method).toBe(tokenEndpointAuthMethod);
+    expect(client.client_secret === undefined).toBe(kind === 'public');
+    expect(refreshed.access_token).not.toBe(tokens.access_token);
+    for (const { access_token } of [tokens, refreshed]) {
+      expect(claimsOf(access_token)).toMatchObject({ sub: user.userId, client_id: client.client_id, aud: ['authenticated', mcpServerUrl] });
+    }
   });
 });
