@@ -20,9 +20,12 @@ const galleryDirectory = process.env.RECOGNIZER_GALLERY_DIR && path.resolve(proc
 let recognizer;
 const realOnly = process.argv.includes('--real-only');
 const recordFeaturePrints = process.argv.includes('--record-feature-prints');
+const webpRoundTrip = process.argv.includes('--webp-round-trip');
 const baselineArgument = process.argv.indexOf('--baseline');
 const baselineDirectory = baselineArgument === -1 ? null : path.resolve(process.argv[baselineArgument + 1]);
+const realLabelsFile = path.join(evidence, 'real', 'labels.json');
 const featurePrintsFile = path.join(evidence, 'real', 'feature-prints.json');
+const webpCropsDirectory = path.join(dataDirectory, 'webp-real');
 const parityReferenceCount = 24;
 const parityMinimumCosine = 0.98;
 
@@ -135,15 +138,20 @@ async function renderSimulatedScans() {
   return { photos: recorded.length, mismatched: await mismatchedSimulatedScans(recorded) };
 }
 
-async function runGate({ name, labels, expected, flags }) {
+async function evaluate(labels, flags) {
   const evaluation = await run(
     'bun',
     [path.join(moduleRoot, 'scripts', 'evaluate.mjs'), labels, '--gallery', galleryDirectory, '--recognizer', recognizer, ...flags],
     { output: true },
   );
-  if (evaluation.code !== 0) return { name, against: null, exitCode: 1, report: null, error: 'the evaluation did not finish' };
+  return evaluation.code === 0 ? evaluation.stdout : null;
+}
+
+async function runGate({ name, labels, expected, flags }) {
+  const evaluation = await evaluate(labels, flags);
+  if (evaluation === null) return { name, against: null, exitCode: 1, report: null, error: 'the evaluation did not finish' };
   const resultFile = path.join(reportsDirectory, `${name}.json`);
-  await fs.writeFile(resultFile, evaluation.stdout);
+  await fs.writeFile(resultFile, evaluation);
   const baseline = baselineDirectory && path.join(baselineDirectory, `${name}.json`);
   const comparedWith = baseline && existsSync(baseline) ? baseline : expected;
   const check = await run('bun', [path.join(evidence, 'check.mjs'), comparedWith, resultFile, galleryDirectory], { output: true });
@@ -151,6 +159,38 @@ async function runGate({ name, labels, expected, flags }) {
   const against = comparedWith === expected ? 'expected file' : 'baseline';
   if (!check.stdout.trim()) return { name, against, exitCode: 1, report: null, error: 'the check did not finish' };
   return { name, against, exitCode: check.code, report: JSON.parse(check.stdout) };
+}
+
+async function writeWebpLabels() {
+  const labels = JSON.parse(await fs.readFile(realLabelsFile, 'utf8'));
+  const crops = [...labels.cards.map((card) => card.crop), ...labels.nonCards].map((crop) => path.join(evidence, 'real', crop));
+  await fs.rm(webpCropsDirectory, { recursive: true, force: true });
+  const written = await run(recognizer, ['training-crops', path.join(webpCropsDirectory, 'crops'), ...crops], { output: true });
+  if (written.code !== 0) throw new Error('the WebP crops were not written');
+  const lines = written.stdout.trim().split('\n').map((line) => JSON.parse(line));
+  const failed = lines.filter((line) => line.error);
+  if (failed.length > 0) throw new Error(`${failed.length} WebP crops were not written, first: ${failed[0].input}`);
+  const webpOf = new Map(lines.map((line) => [line.input, line.trainingCrop]));
+  const webpCrop = (crop) => webpOf.get(path.join(evidence, 'real', crop));
+  const webpLabels = path.join(webpCropsDirectory, 'labels.json');
+  await fs.writeFile(
+    webpLabels,
+    `${JSON.stringify({ ...labels, cards: labels.cards.map((card) => ({ ...card, crop: webpCrop(card.crop) })), nonCards: labels.nonCards.map(webpCrop) }, null, 1)}\n`,
+  );
+  return webpLabels;
+}
+
+async function runWebpRoundTrip(gate, webpLabels) {
+  const name = `${gate.name}-webp`;
+  const evaluation = await evaluate(webpLabels, gate.flags);
+  if (evaluation === null) return { name, scans: null, changedScans: null, pass: false, error: 'the evaluation did not finish' };
+  await fs.writeFile(path.join(reportsDirectory, `${name}.json`), evaluation);
+  const jpegScans = JSON.parse(await fs.readFile(path.join(reportsDirectory, `${gate.name}.json`), 'utf8')).scans;
+  const changedScans = JSON.parse(evaluation)
+    .scans.map((scan, index) => ({ jpeg: jpegScans[index], webp: scan }))
+    .filter(({ jpeg, webp }) => jpeg.top !== webp.top || jpeg.accepted !== webp.accepted)
+    .map(({ jpeg, webp }) => ({ input: jpeg.input, jpeg: { top: jpeg.top, accepted: jpeg.accepted }, webp: { top: webp.top, accepted: webp.accepted } }));
+  return { name, scans: jpegScans.length, changedScans, pass: changedScans.length === 0 };
 }
 
 if (recordFeaturePrints) {
@@ -174,13 +214,13 @@ const sameGallery = await galleryMatchesRecording();
 const gates = [
   {
     name: 'real-full',
-    labels: path.join(evidence, 'real', 'labels.json'),
+    labels: realLabelsFile,
     expected: path.join(evidence, 'real', 'expected-full.json'),
     flags: ['--details', '--scans'],
   },
   {
     name: 'real-held-out',
-    labels: path.join(evidence, 'real', 'labels.json'),
+    labels: realLabelsFile,
     expected: path.join(evidence, 'real', 'expected-held-out.json'),
     flags: ['--held-out', '--details', '--scans'],
   },
@@ -208,7 +248,19 @@ for (const gate of gates) {
   console.error(`Running ${gate.name}`);
   results.push(await runGate(gate));
 }
-const failed = !parity.pass || simulation?.mismatched.length > 0 || results.some((result) => result.exitCode === 1);
+const webpRoundTrips = [];
+if (webpRoundTrip) {
+  const webpLabels = await writeWebpLabels();
+  for (const gate of gates.filter((gate) => gate.labels === realLabelsFile)) {
+    console.error(`Running ${gate.name} on WebP crops`);
+    webpRoundTrips.push(await runWebpRoundTrip(gate, webpLabels));
+  }
+}
+const failed =
+  !parity.pass ||
+  simulation?.mismatched.length > 0 ||
+  results.some((result) => result.exitCode === 1) ||
+  webpRoundTrips.some((roundTrip) => !roundTrip.pass);
 const exitCode = failed ? 1 : results.some((result) => result.exitCode === 2) ? 2 : 0;
 console.log(
   JSON.stringify(
@@ -225,6 +277,7 @@ console.log(
         changedMeasures: report?.totalChanges.length ?? null,
         changedScans: Array.isArray(report?.scanChanges) ? report.scanChanges.length : null,
       })),
+      webpRoundTrip: webpRoundTrip ? webpRoundTrips : null,
       reports: reportsDirectory,
       exitCode,
     },

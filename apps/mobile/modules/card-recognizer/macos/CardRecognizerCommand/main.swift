@@ -23,9 +23,15 @@ struct FeaturePrintLine: Encodable {
   let error: String?
 }
 
+struct TrainingCropLine: Encodable {
+  let input: String
+  let trainingCrop: String?
+  let error: String?
+}
+
 let usage = """
-usage: card-recognizer serve <gallery-dir> | feature-prints <image>... | encode <image-list> <output>
-  | install <version-dir> <gallery-dir> | about
+usage: card-recognizer serve <gallery-dir> | feature-prints <image>... | training-crops <output-dir> <image>...
+  | encode <image-list> <output> | install <version-dir> <gallery-dir> | about
 """
 
 func fail(_ message: String) -> Never {
@@ -178,12 +184,28 @@ func featurePrints(images: [String]) {
   }
 }
 
+func trainingCrops(directory: URL, images: [String]) {
+  for input in images {
+    autoreleasepool {
+      guard let card = CardRectifier.loadCard(at: URL(fileURLWithPath: input)),
+            let crop = TrainingCrop.write(card, in: directory)
+      else {
+        emit(TrainingCropLine(input: input, trainingCrop: nil, error: RecognitionFailure.unreadablePhoto.code))
+        return
+      }
+      emit(TrainingCropLine(input: input, trainingCrop: crop.path, error: nil))
+    }
+  }
+}
+
 let arguments = CommandLine.arguments
 switch arguments.dropFirst().first {
 case "serve" where arguments.count == 3:
   serve(galleryDirectory: URL(fileURLWithPath: arguments[2]))
 case "feature-prints" where arguments.count > 2:
   featurePrints(images: Array(arguments.dropFirst(2)))
+case "training-crops" where arguments.count > 3:
+  trainingCrops(directory: URL(fileURLWithPath: arguments[2]), images: Array(arguments.dropFirst(3)))
 case "encode" where arguments.count == 4:
   encode(imageList: URL(fileURLWithPath: arguments[2]), output: URL(fileURLWithPath: arguments[3]))
 case "install" where arguments.count == 4:
