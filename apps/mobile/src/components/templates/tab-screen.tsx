@@ -1,15 +1,22 @@
 import { router, Stack } from 'expo-router';
 import type { ReactNode } from 'react';
-import { FlatList, ScrollView, type FlatListProps } from 'react-native';
+import { ScrollView } from 'react-native';
 import type { SearchBarProps } from 'react-native-screens';
 
+import { FlashList, type FlashListProps } from '@/components/atoms/flash-list';
+import { cardListContentClass } from '@/components/molecules/card-grid';
+import { cardsPerRow } from '@/components/molecules/card-tile';
 import { FloatingButtons } from '@/components/templates/floating-buttons';
 import { cn } from '@/lib/class-names';
 import { colors } from '@/theme';
 
 const screenClass = 'flex-1 bg-background';
 
-const contentClass = 'px-lg pb-xl pt-sm';
+const keepsScrollOffset = { disabled: true };
+
+const insetClass = 'px-lg';
+
+const contentClass = 'pb-xl pt-sm';
 
 type ScreenTitleProps = {
   title: string;
@@ -64,7 +71,7 @@ export function TabScreen({ title, actions, children }: TabScreenProps) {
       <TabHeader title={title} actions={actions} />
       <ScrollView
         className={screenClass}
-        contentContainerClassName={cn(contentClass, 'gap-lg')}
+        contentContainerClassName={cn(insetClass, contentClass, 'gap-lg')}
         contentInsetAdjustmentBehavior="automatic">
         {children}
       </ScrollView>
@@ -72,16 +79,23 @@ export function TabScreen({ title, actions, children }: TabScreenProps) {
   );
 }
 
-type ListProps<Item> = Omit<FlatListProps<Item>, 'style' | 'contentContainerStyle' | 'contentInsetAdjustmentBehavior'>;
+type ListProps<Item> = Omit<
+  FlashListProps<Item>,
+  'style' | 'contentContainerStyle' | 'contentInsetAdjustmentBehavior' | 'numColumns'
+> & {
+  cardGrid?: boolean;
+};
 
-function ScreenList<Item>({ underFloatingButtons = false, ...listProps }: ListProps<Item> & { underFloatingButtons?: boolean }) {
+function ScreenList<Item>({ cardGrid = false, underFloatingButtons = false, ...listProps }: ListProps<Item> & { underFloatingButtons?: boolean }) {
   return (
-    <FlatList
+    <FlashList
       {...listProps}
+      numColumns={cardGrid ? cardsPerRow : undefined}
       className={screenClass}
-      contentContainerClassName={cn(contentClass, underFloatingButtons && 'pb-floating-button-clearance')}
+      contentContainerClassName={cn(cardGrid ? cardListContentClass : insetClass, contentClass, underFloatingButtons && 'pb-floating-button-clearance')}
       contentInsetAdjustmentBehavior="automatic"
       keyboardDismissMode="on-drag"
+      maintainVisibleContentPosition={keepsScrollOffset}
     />
   );
 }

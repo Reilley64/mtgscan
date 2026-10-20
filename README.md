@@ -219,6 +219,8 @@ The app version in `apps/mobile/app.json` follows the release version. Release-p
 
 The app stays on Expo SDK 56. SDK 57 does not build on Xcode 26.3, because `expo-modules-jsi` 57.0.5 and later fail to compile with Swift 6.2 ([expo/expo#50067](https://github.com/expo/expo/issues/50067)). Move to SDK 57 when Expo releases the fix for it.
 
+`apps/mobile` pins `@shopify/flash-list` to 2.3.3. For SDK 56, `expo install` picks 2.0.2, which is deprecated ([expo/expo#47523](https://github.com/expo/expo/issues/47523)). `expo.install.exclude` in `apps/mobile/package.json` leaves it out of `expo install --check`.
+
 ### Catalog search
 
 Signed-in users search the card catalog with `supabase.rpc('search_catalog', { query })`. The query is a typed object, never a query string. `supabase/search.ts` has its contract, `searchCatalog`, with the query and the result page.

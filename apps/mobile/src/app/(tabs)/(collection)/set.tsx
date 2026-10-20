@@ -1,11 +1,12 @@
 import { useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
+import { cardListRowClass, fullRowUnlessCard } from '@/components/molecules/card-grid';
 import { DashedCardFrame } from '@/components/molecules/empty-state-illustrations';
 import { ReadFailure } from '@/components/molecules/read-failure';
 import { FinishViewControl } from '@/components/organisms/finish-view-control';
 import { SetPageBanner } from '@/components/organisms/set-banner';
-import { SetCardsRowView, setCardsRows } from '@/components/organisms/set-cards';
+import { SetCardsItemView, setCardsItems } from '@/components/organisms/set-cards';
 import { SetSkeleton } from '@/components/organisms/set-skeleton';
 import { TabStackListScreen } from '@/components/templates/tab-screen';
 import { useBannerTitle } from '@/lib/use-banner-title';
@@ -38,10 +39,12 @@ export default function SetScreen() {
   return (
     <TabStackListScreen
       title={read.status === 'loaded' && showsTitle ? read.set.name : ''}
-      data={read.status === 'loaded' ? setCardsRows(read.set, finishView) : []}
-      keyExtractor={(row) => row.key}
-      renderItem={({ item }) => <SetCardsRowView row={item} />}
-      ListHeaderComponent={header()}
+      cardGrid
+      data={read.status === 'loaded' ? setCardsItems(read.set, finishView) : []}
+      keyExtractor={(item) => item.key}
+      overrideItemLayout={fullRowUnlessCard}
+      renderItem={({ item }) => <SetCardsItemView item={item} />}
+      ListHeaderComponent={<View className={cardListRowClass}>{header()}</View>}
       onScroll={onScroll}
       scrollEventThrottle={16}
     />

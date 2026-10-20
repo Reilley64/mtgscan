@@ -23,6 +23,7 @@
     "@react-native-google-signin/google-signin": "^16.1.5",
     "@rn-primitives/toggle": "1.5.2",
     "@rn-primitives/toggle-group": "1.5.2",
+    "@shopify/flash-list": "2.3.3",
     "@supabase/supabase-js": "^2.117.3",
     "@tanstack/react-query": "^5.104.4",
     "class-variance-authority": "^0.7.1",
@@ -75,17 +76,25 @@
     "typescript": "~6.0.3",
     "yaml": "^2.9.1"
   },
+  "expo": {
+    "install": {
+      "exclude": [
+        "@shopify/flash-list"
+      ]
+    }
+  },
   "jest": {
     "preset": "jest-expo",
     "testTimeout": 20000,
     "setupFiles": [
-      "<rootDir>/../../node_modules/@react-native-google-signin/google-signin/jest/build/jest/setup.js"
+      "<rootDir>/../../node_modules/@react-native-google-signin/google-signin/jest/build/jest/setup.js",
+      "<rootDir>/../../node_modules/@shopify/flash-list/jestSetup.js"
     ],
     "setupFilesAfterEnv": [
       "<rootDir>/test/setup.ts"
     ],
     "transformIgnorePatterns": [
-      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|nativewind|@rn-primitives|yaml))",
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|nativewind|@rn-primitives|@shopify/flash-list|yaml))",
       "/node_modules/react-native-reanimated/plugin/",
       "/node_modules/@react-native/babel-preset/"
     ],

@@ -8,6 +8,7 @@ import {
   cardImageLook,
   cardImageUri,
   imageSources,
+  listCellWidth,
   setArtLook,
   pressTab,
   scrollTabStackScreenTo,
@@ -206,6 +207,13 @@ describe('the set page', () => {
     const heading = page.getByRole('header', { name: 'Variants, 1 of 2' });
     expect(within(heading).getByText('Variants')).toBeOnTheScreen();
     expect(within(heading).getByText('1 of 2')).toBeOnTheScreen();
+  });
+
+  test('the Variants heading spans the full row, and each card takes a third of it', async () => {
+    const page = await openBloomburrow();
+
+    const rowWidth = listCellWidth(page.getByRole('header', { name: 'Variants, 1 of 2' }));
+    expect(listCellWidth(tile('Banishing Light, number 1, owned'))).toBe(rowWidth / 3);
   });
 
   test('a set with no variants has no Variants section', async () => {

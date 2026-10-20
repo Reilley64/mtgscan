@@ -10,7 +10,9 @@ import {
   dashedOutlinesColored,
   headerMenu,
   headerMenuRows,
+  inScreenOrder,
   isDrawerPresented,
+  listCellWidth,
   pressAlertButton,
   pressHeaderMenuAction,
   presentedAlert,
@@ -315,7 +317,7 @@ describe('the Cards tab', () => {
     ]);
     await scrollToEnd(pushedScreen());
 
-    expect(deck.getAllByRole('header').map((header) => header.props.accessibilityLabel ?? header.props.children)).toEqual([
+    expect(inScreenOrder(deck.getAllByRole('header')).map((header) => header.props.accessibilityLabel ?? header.props.children)).toEqual([
       'Atraxa',
       'Commander',
       'Creatures, 2',
@@ -330,6 +332,14 @@ describe('the Cards tab', () => {
     expect(deck.getByText('No commander yet.')).toBeOnTheScreen();
   });
 
+  test('a group header spans the full row, and each tile takes a third of it', async () => {
+    const deck = await openDeckWithCards([deckCardOf('a', 'Arcane Signet', 'Artifact'), deckCardOf('b', 'Mind Stone', 'Artifact')]);
+
+    const rowWidth = listCellWidth(deck.getByRole('header', { name: 'Artifacts, 2' }));
+    expect(listCellWidth(deck.getByRole('button', { name: /^Arcane Signet/ }))).toBe(rowWidth / 3);
+    expect(listCellWidth(deck.getByRole('button', { name: /^Mind Stone/ }))).toBe(rowWidth / 3);
+  });
+
   test('sorts the cards of a group by name', async () => {
     const deck = await openDeckWithCards([
       deckCardOf('c', 'Sol Ring', 'Artifact'),
@@ -337,7 +347,7 @@ describe('the Cards tab', () => {
       deckCardOf('b', 'Mind Stone', 'Artifact'),
     ]);
 
-    expect(deck.getAllByRole('button', { name: /MH2 262/ }).map((tile) => tile.props.accessibilityLabel)).toEqual([
+    expect(inScreenOrder(deck.getAllByRole('button', { name: /MH2 262/ })).map((tile) => tile.props.accessibilityLabel)).toEqual([
       'Arcane Signet, MH2 262',
       'Mind Stone, MH2 262',
       'Sol Ring, MH2 262',

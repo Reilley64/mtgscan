@@ -5,10 +5,14 @@ import { cardHeightPerWidth } from '@/components/atoms/card-image';
 import { CardTileSkeleton, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
 import { cn } from '@/lib/class-names';
 
-export function inCardRows<Card>(cards: Card[]): Card[][] {
-  return Array.from({ length: Math.ceil(cards.length / cardsPerRow) }, (_, row) =>
-    cards.slice(row * cardsPerRow, (row + 1) * cardsPerRow),
-  );
+export const cardListContentClass = 'px-md';
+
+export const cardListRowClass = 'px-xs';
+
+export function fullRowUnlessCard(layout: { span?: number }, item: { kind: string }, _index: number, maxColumns: number) {
+  if (item.kind !== 'card') {
+    layout.span = maxColumns;
+  }
 }
 
 export function CardGrid({ children }: { children: ReactNode }) {

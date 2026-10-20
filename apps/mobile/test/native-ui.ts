@@ -1,5 +1,13 @@
+import { measureParentSize } from "@shopify/flash-list/dist/recyclerview/utils/measureLayout";
 import { act, fireEvent, screen, within } from "expo-router/testing-library";
-import { Alert, ScrollView, StyleSheet, type AlertButton } from "react-native";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  type AlertButton,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 
 import { nativeStateValue, setNativeStateValue } from "./fake-native-state";
 import { tokenColors } from "./token-colors";
@@ -729,12 +737,49 @@ export async function pressSignInWithApple() {
   await act(async () => {});
 }
 
-export function appearsBefore(
-  first: ReturnType<typeof screen.getByRole>,
-  second: ReturnType<typeof screen.getByRole>,
-) {
-  const hosts = screen.container.queryAll(() => true);
-  return hosts.indexOf(first) < hosts.indexOf(second);
+function blocksIn(element: HostElement) {
+  return element.children.filter(
+    (child): child is HostElement => typeof child !== "string",
+  );
+}
+
+function isListCell(element: HostElement) {
+  return (
+    typeof element.props.index === "number" &&
+    typeof element.props.onLayout === "function"
+  );
+}
+
+function descendantsInScreenOrder(element: HostElement): HostElement[] {
+  const children = blocksIn(element);
+  const ordered = children.some(isListCell)
+    ? [...children].sort((a, b) => a.props.index - b.props.index)
+    : children;
+  return ordered.flatMap((child) => [
+    child,
+    ...descendantsInScreenOrder(child),
+  ]);
+}
+
+export function listCellWidth(element: HostElement) {
+  let cell: HostElement | null = element;
+  while (cell && !isListCell(cell)) {
+    cell = cell.parent;
+  }
+  if (!cell) {
+    throw new Error("This element is not in a list cell");
+  }
+  return StyleSheet.flatten(cell.props.style)?.width;
+}
+
+export function inScreenOrder(elements: HostElement[]) {
+  const hosts = descendantsInScreenOrder(screen.container);
+  return [...elements].sort((a, b) => hosts.indexOf(a) - hosts.indexOf(b));
+}
+
+export function appearsBefore(first: HostElement, second: HostElement) {
+  const [earlier] = inScreenOrder([second, first]);
+  return earlier === first;
 }
 
 type HostElement = ReturnType<typeof screen.getByRole>;
@@ -962,47 +1007,48 @@ function isScrollContent(element: HostElement) {
   return element.parent?.type === "RCTScrollView";
 }
 
-function isListCell(element: HostElement) {
+function isListPart(element: HostElement) {
   return (
-    element.parent !== null &&
-    isScrollContent(element.parent) &&
-    typeof element.props.onLayout === "function"
+    (element.parent !== null && isScrollContent(element.parent)) ||
+    isListCell(element)
   );
 }
 
-function firstBlockIn(element: HostElement) {
-  return element.children.find((child) => typeof child !== "string");
+type Edges = { top: number; left: number; right: number };
+
+function edgesOf(styles: unknown, kind: "padding" | "margin"): Edges {
+  const style = (StyleSheet.flatten(styles as StyleProp<ViewStyle>) ??
+    {}) as Record<string, number | undefined>;
+  const all = style[kind] ?? 0;
+  const horizontal = style[`${kind}Horizontal`] ?? all;
+  const vertical = style[`${kind}Vertical`] ?? all;
+  return {
+    top: style[`${kind}Top`] ?? vertical,
+    left: style[`${kind}Left`] ?? horizontal,
+    right: style[`${kind}Right`] ?? horizontal,
+  };
 }
 
 export function placeInScrollView(element: HostElement) {
   let block = element;
-  while (
-    block.parent &&
-    !isScrollContent(block.parent) &&
-    !isListCell(block.parent)
-  ) {
+  while (block.parent && !isListPart(block.parent)) {
     block = block.parent;
   }
-  const container = block.parent;
-  if (!container) {
-    throw new Error("This element is not in a scroll view");
+  const part = block.parent;
+  if (!part) {
+    throw new Error("This element is not in a list");
   }
-  const content = isListCell(container) ? container.parent! : container;
-  const {
-    padding = 0,
-    paddingHorizontal = padding,
-    paddingVertical = padding,
-    paddingTop = paddingVertical,
-    paddingLeft = paddingHorizontal,
-    paddingRight = paddingHorizontal,
-  } = StyleSheet.flatten(content.props.style) ?? {};
-  const isFirst =
-    firstBlockIn(container) === block &&
-    (container === content || firstBlockIn(content) === container);
+  const content = isListCell(part) ? part.parent!.parent! : part.parent!;
+  const padding = edgesOf(content.parent!.props.contentContainerStyle, "padding");
+  const margin = edgesOf(part.props.style, "margin");
   return {
     block,
-    isFirst,
-    contentInsets: { top: paddingTop, left: paddingLeft, right: paddingRight },
+    isFirst: blocksIn(part)[0] === block && blocksIn(content)[0] === part,
+    contentInsets: {
+      top: padding.top + margin.top,
+      left: padding.left + margin.left,
+      right: padding.right + margin.right,
+    },
   };
 }
 
@@ -1092,25 +1138,26 @@ export function cardImageOutline(tile: HostElement) {
   return null;
 }
 
+function listItemsHeight(list: HostElement) {
+  const [cell] = list.queryAll(isListCell);
+  return StyleSheet.flatten(cell?.parent?.props.style)?.height ?? 0;
+}
+
 export async function scrollToEnd(tab: HostElement) {
   const [list] = tab.queryAll((instance) => instance.type === "RCTScrollView");
   if (!list) {
     throw new Error("No scroll view is in this tab");
   }
-  const viewport = { width: 400, height: 800 };
-  const content = { width: 400, height: 10_000 };
-  await fireEvent(list, "layout", {
-    nativeEvent: { layout: { x: 0, y: 0, ...viewport } },
-  });
-  await fireEvent(list, "contentSizeChange", content.width, content.height);
+  const viewport = measureParentSize(list as never);
+  const itemsHeight = listItemsHeight(list);
   const scrolledTo = (y: number) => ({
     nativeEvent: {
       contentOffset: { x: 0, y },
-      contentSize: content,
+      contentSize: { width: viewport.width, height: itemsHeight },
       layoutMeasurement: viewport,
     },
   });
-  const scrolledToEnd = scrolledTo(content.height - viewport.height);
+  const scrolledToEnd = scrolledTo(Math.max(0, itemsHeight - viewport.height));
   await fireEvent.scroll(list, scrolledTo(0));
   await fireEvent.scroll(list, scrolledToEnd);
   await act(async () => {
