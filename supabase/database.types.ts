@@ -1036,6 +1036,9 @@ isOneToOne: false
 "record_gallery_version":
 { Args: { "manifest": Json,"version": string }; Returns: undefined
                            },
+"record_set_sections_read":
+{ Args: { "set_code": string }; Returns: undefined
+                           },
 "remove_deck_card":
 { Args: { "request": Json }; Returns: Json
                            },
@@ -1077,7 +1080,7 @@ isOneToOne: false
                            },
 "sets_for_set_section_import":
 { Args: Record<PropertyKey, never>; Returns: {
-              "code": string,"due": boolean
+              "code": string,"due": boolean,"has_unlisted_card_printing": boolean,"sections": Json
             }[]
                            },
 "stage_import_batch":

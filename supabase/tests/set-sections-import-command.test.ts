@@ -26,6 +26,26 @@ const humiliate = 'dc3ae8cb-fbdb-45a8-83c2-cbf4aff01f90';
 const theBiblioplex = '8eae4481-977f-4bb7-bb1a-ab7100e6ba47';
 const suspiciousShambler = 'ff36347c-1fc1-4493-8e45-ef3372ecce45';
 const alchemyCard = 'e1b7a4d2-6a1c-4c8e-9d3f-0b2a5c7e9f11';
+const hopefulVigil = 'd382fd32-b1f5-4ec7-9d42-fc2915ed3bc9';
+const specterOfMortality = '5e4c00b5-f6d6-4fbd-828f-ad30321f2cd9';
+const specterOfMortalityExtendedArt = '3026523f-65a0-49a4-a46e-bb91a8988ea4';
+const cluCardPrintings = ['d5435866-d48b-496a-ba07-438163b71ae8', '010eba83-30ec-4cca-b07e-f24d8d2f0787', '1f1b47ed-e935-44a4-b654-a32c0bf5dd19'];
+const lciCardPrintings = [
+  '0c7ba382-18c4-4833-b3d2-bd469ae2ad77',
+  '323a05ee-8296-41c0-94ab-00913d9d84f1',
+  'ccc9d22c-dfce-4136-aed8-a5fe9bb852f2',
+  'b4c31b29-06ba-436d-a3d9-18f4796c39be',
+];
+const beamtownBeatstick = '2443cb94-b27e-4a96-93cb-ac7880149bcc';
+const copperHostCrusher = 'af527344-9d88-4641-8f6d-0263a6797df3';
+const hidetsuguAndKairi = '81039daf-0d54-4474-a833-fa287ec10cf9';
+const lifecreedDuo = 'ca543405-5e12-48a0-9a77-082ac9bcb2f2';
+const brambleguardCaptain = 'e200b8bf-f2f3-4157-8e04-02baf07a963e';
+const rockfaceVillage = '62799d24-39a6-4e66-8ac3-7cafa99e6e6d';
+const welcomeTheDead = 'f472ea5c-191e-4b19-8ea7-f8649af91530';
+const welcomeTheDeadVariant = '333b255d-6704-41e4-81ed-a9aec7010f86';
+const eliminateTheCompetition = 'e6e54953-0d6d-4f65-85cb-d26e66a76dce';
+const tdmCardPrintings = ['10e0a9a3-f63a-4f92-a083-9d181580e498', '081f2de5-251a-41c9-a62f-11487f54d355'];
 
 const setsUnderTest = ['cmm', 'mh3', 'pip', 'who'];
 
@@ -149,6 +169,35 @@ function runSetSectionsImport(): Promise<CommandResult> {
   return runImportCommand('set_sections', '--scryfall-site', base, '--scryfall-api', base);
 }
 
+async function storeSetSectionsThatListEveryCardPrinting(codes: string[]) {
+  const printings: { set_code: string; id: string }[] = await asDatabaseOwner(
+    (database) => database`select p.set_code, p.id from public.card_printings p where p.set_code in ${database(codes)}`,
+  );
+  await Promise.all(
+    codes.map((code) => {
+      const ids = printings.filter((printing) => printing.set_code === code).map((printing) => printing.id);
+      return storeSetSections(code, [{ name: 'Stored cards', search: `e:${code}`, card_printing_ids: ids }]);
+    }),
+  );
+}
+
+async function forgetSetSections(code: string) {
+  await asDatabaseOwner(async (database) => {
+    await database`delete from public.set_sections where set_code = ${code}`;
+    await database`update public.card_sets set set_sections_read_at = null where code = ${code}`;
+  });
+}
+
+async function releaseSetDaysAgo(code: string, days: number) {
+  await asDatabaseOwner((database) => database`update public.card_sets set released_at = current_date - ${days}::integer where code = ${code}`);
+}
+
+async function releaseEveryRecentSetAYearAgo() {
+  await asDatabaseOwner(
+    (database) => database`update public.card_sets set released_at = current_date - 365 where released_at between current_date - 180 and current_date`,
+  );
+}
+
 async function listedSetCodes(): Promise<string[]> {
   const rows = await asDatabaseOwner(
     (database) => database`select card_set.code from public.card_sets card_set where private.is_listed_set(card_set)`,
@@ -173,10 +222,9 @@ beforeAll(async () => {
   await resetCardCatalog();
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
   user = await signUpNewUser();
+  await releaseEveryRecentSetAYearAgo();
   storedSets = (await listedSetCodes()).filter((code) => !setsUnderTest.includes(code));
-  await Promise.all(
-    storedSets.map((code) => storeSetSections(code, [{ name: 'Stored cards', search: `e:${code}`, card_printing_ids: [] }])),
-  );
+  await storeSetSectionsThatListEveryCardPrinting(storedSets);
 });
 
 afterAll(() => {
@@ -320,12 +368,162 @@ describe('a 429 reply', () => {
   });
 });
 
+describe('the refresh rules', () => {
+  const setsUnderRefresh = ['blb', 'clu', 'lci', 'mom', 'tdc', 'tdm', 'woe'];
+  let firstRun: CommandResult;
+  let firstRunRequests: FakeRequest[];
+  let secondRun: CommandResult;
+  let secondRunRequests: FakeRequest[];
+
+  function setPageReads(made: FakeRequest[]) {
+    return made.map((request) => request.path).filter((path) => path.startsWith('/sets/'));
+  }
+
+  function searchesRun(made: FakeRequest[]) {
+    return made.filter((request) => request.path === '/cards/search').map((request) => request.search);
+  }
+
+  async function runAndRecord(): Promise<[CommandResult, FakeRequest[]]> {
+    requests.length = 0;
+    const result = await runSetSectionsImport();
+    return [result, [...requests]];
+  }
+
+  beforeAll(async () => {
+    const listed = await listedSetCodes();
+    await storeSetSectionsThatListEveryCardPrinting(listed.filter((code) => !setsUnderRefresh.includes(code)));
+
+    await forgetSetSections('woe');
+    await releaseSetDaysAgo('woe', 400);
+    serveSetPage('woe', [
+      ['Main Set', 'e:woe cn≥1 cn≤276'],
+      ['Extended Art', 'e:woe cn≥342 cn≤370'],
+    ]);
+    serveSearch('e:woe cn≥1 cn≤276', [hopefulVigil, specterOfMortality]);
+    serveSearch('e:woe cn≥342 cn≤370', [specterOfMortalityExtendedArt]);
+
+    await releaseSetDaysAgo('clu', 181);
+    await storeSetSections('clu', [{ name: 'In Boosters', search: 'set:clu is:booster', card_printing_ids: cluCardPrintings }]);
+    serveSetPage('clu', [['In Boosters', 'set:clu is:booster']]);
+    serveSearch('set:clu is:booster', cluCardPrintings);
+
+    await releaseSetDaysAgo('lci', 180);
+    await storeSetSections('lci', [{ name: 'Main Set', search: 'e:lci cn≥1 cn≤286', card_printing_ids: lciCardPrintings }]);
+    serveSetPage('lci', [['Main Set', 'e:lci cn≥1 cn≤286']]);
+    serveSearch('e:lci cn≥1 cn≤286', lciCardPrintings);
+
+    await releaseSetDaysAgo('mom', 30);
+    await storeSetSections('mom', [
+      { name: 'Main Set', search: 'e:mom cn≥1 cn≤271', card_printing_ids: [beamtownBeatstick, copperHostCrusher, hidetsuguAndKairi] },
+    ]);
+    serveSetPage('mom', [
+      ['Main Set', 'e:mom cn≥1 cn≤271'],
+      ['Legendary Cards', 'set:mom is:legendary'],
+    ]);
+    serveSearch('e:mom cn≥1 cn≤271', [beamtownBeatstick, copperHostCrusher, hidetsuguAndKairi]);
+    serveSearch('set:mom is:legendary', [hidetsuguAndKairi]);
+
+    await releaseSetDaysAgo('blb', 400);
+    await storeSetSections('blb', [{ name: 'In Boosters', search: 'set:blb is:booster', card_printing_ids: [lifecreedDuo, brambleguardCaptain] }]);
+    serveSetPage('blb', [['In Boosters', 'set:blb is:booster']]);
+    serveSearch('set:blb is:booster', [lifecreedDuo, brambleguardCaptain, rockfaceVillage]);
+
+    await releaseSetDaysAgo('tdc', 400);
+    await storeSetSections('tdc', [{ name: 'Commander Cards', search: 'set:tdc', card_printing_ids: [welcomeTheDead, welcomeTheDeadVariant] }]);
+    servePage('tdc', { status: 503, body: 'Scryfall is down for maintenance.' });
+    serveSearch('set:tdc', [welcomeTheDead, welcomeTheDeadVariant, eliminateTheCompetition]);
+
+    await releaseSetDaysAgo('tdm', 400);
+    await storeSetSectionsToReadAgain('tdm', tdmCardPrintings);
+    serveSetPage('tdm', [['Stored cards', 'e:tdm']]);
+    serveSearch('e:tdm', tdmCardPrintings);
+
+    [firstRun, firstRunRequests] = await runAndRecord();
+    serveSetPage('tdc', [['Commander Cards', 'set:tdc']]);
+    [secondRun, secondRunRequests] = await runAndRecord();
+  });
+
+  test('reads the set page of a new set, of a recent set, and of an older set with a card printing that no set section lists, and skips every other set', () => {
+    expect(setPageReads(firstRunRequests)).toEqual(['/sets/blb', '/sets/lci', '/sets/mom', '/sets/tdc', '/sets/tdm', '/sets/woe']);
+  });
+
+  test('stores the set sections of a new set', async () => {
+    const woe = await replyOf(user.client, getSet, { code: 'woe' });
+
+    expect(searchesRun(firstRunRequests)).toEqual(expect.arrayContaining(['e:woe cn≥1 cn≤276', 'e:woe cn≥342 cn≤370']));
+    expect(woe.sections.map(shown)).toEqual([
+      { name: 'Main Set', collector_numbers: ['17', '107'] },
+      { name: 'Extended Art', collector_numbers: ['342'] },
+    ]);
+  });
+
+  test('runs the searches of an older set with a card printing that no set section lists, so the set section lists it', async () => {
+    const blb = await replyOf(user.client, getSet, { code: 'blb' });
+
+    expect(searchesRun(firstRunRequests)).toContain('set:blb is:booster');
+    expect(blb.sections.map(shown)).toEqual([{ name: 'In Boosters', collector_numbers: ['20', '127', '259'] }]);
+    expect(shown(blb.other)).toEqual({ collector_numbers: [] });
+  });
+
+  test('a recent set with an unchanged page runs no searches and keeps its set sections', async () => {
+    const lci = await replyOf(user.client, getSet, { code: 'lci' });
+
+    expect(searchesRun(firstRunRequests)).not.toContain('e:lci cn≥1 cn≤286');
+    expect(lci.sections.map(shown)).toEqual([{ name: 'Main Set', collector_numbers: ['9', '12', '100', '256'] }]);
+  });
+
+  test('an unchanged page runs no searches and records the read time, so the next run skips a set that is not recent', async () => {
+    const tdm = await replyOf(user.client, getSet, { code: 'tdm' });
+
+    expect(searchesRun(firstRunRequests)).not.toContain('e:tdm');
+    expect(setPageReads(secondRunRequests)).not.toContain('/sets/tdm');
+    expect(tdm.sections.map(shown)).toEqual([{ name: 'Stored cards', collector_numbers: ['136', '381'] }]);
+  });
+
+  test('a recent set whose page gained a set section runs its searches and stores the new set section', async () => {
+    const mom = await replyOf(user.client, getSet, { code: 'mom' });
+
+    expect(searchesRun(firstRunRequests)).toEqual(expect.arrayContaining(['e:mom cn≥1 cn≤271', 'set:mom is:legendary']));
+    expect(mom.sections.map(shown)).toEqual([
+      { name: 'Main Set', collector_numbers: ['131', '181', '228'] },
+      { name: 'Legendary Cards', collector_numbers: ['228'] },
+    ]);
+  });
+
+  test('logs the number of sets read, skipped, and failed, and the number of searches it ran', async () => {
+    const skipped = (await listedSetCodes()).length - 6;
+
+    expect(searchesRun(firstRunRequests)).toHaveLength(5);
+    expect(firstRun.output).toContain(`Set sections: 5 sets read, ${skipped} skipped, 1 failed, 5 searches run.`);
+    expect(firstRun.exitCode).toBe(1);
+    expect(firstRun.output).toContain('Set sections failed for tdc.');
+  });
+
+  test('a set whose read failed stays due, and the next run reads it again and runs its searches', async () => {
+    const tdc = await replyOf(user.client, getSet, { code: 'tdc' });
+
+    expect(setPageReads(secondRunRequests)).toEqual(['/sets/lci', '/sets/mom', '/sets/tdc']);
+    expect(searchesRun(secondRunRequests)).toEqual(['set:tdc']);
+    expect(secondRun.exitCode).toBe(0);
+    expect(tdc.sections.map(shown)).toEqual([{ name: 'Commander Cards', collector_numbers: ['30', '70', '179'] }]);
+  });
+});
+
 describe('set section import access', () => {
   test.each([
     ['a signed-in user', () => user.client],
     ['an anonymous caller', () => anonymousClient()],
   ])('%s cannot list the sets for the set sections import', async (_caller, client) => {
     const { error } = await client().rpc('sets_for_set_section_import');
+
+    expect(error?.code).toBe('42501');
+  });
+
+  test.each([
+    ['a signed-in user', () => user.client],
+    ['an anonymous caller', () => anonymousClient()],
+  ])('%s cannot record a read of set sections', async (_caller, client) => {
+    const { error } = await client().rpc('record_set_sections_read', { set_code: 'woe' });
 
     expect(error?.code).toBe('42501');
   });
