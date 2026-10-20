@@ -190,7 +190,7 @@ What this shows:
 - **Measured.** The small PE-Core S16 (24M) is close to Vision but behind it (K99 24 vs 15).
 - **Measured, with a caveat.** DINOv3-S and MobileCLIP2-S0 did much worse here than in #20 (94.3% and 98.7% top 20 there). The likely cause is preprocessing. This run squashed each card to a square and used the default pooled output, with no per-model choices. Section 9 confirms this. With the CLS token instead of timm's default mean pooling, DINOv3-S goes from K99 1,970 to 19.
 - **Not shown.** These are 250 crops of 62 printings from one phone, on a gallery 23 times smaller than the catalog. On the full gallery, K values will grow for every model (section 9). The run does not show phone latency, Core ML or LiteRT parity, or int8 behaviour.
-- **Measured.** A quick synthetic-only adapter made things worse for the shortlist. A small MLP head (768 to 1,024 to 512) on frozen SigLIP 2 was trained for 73 seconds with InfoNCE on each gallery printing's clean image plus 2 augmented copies, with same-name hard negatives and no real crops. Exact printing first rose from 78.8% to 84.8% and the median art margin from 0.129 to 0.266. But top 10 fell from 99.2% to 97.2%, K99 grew from 6 to 114, and non-cards no longer separated from cards (best non-card 0.518, worst card 0.472). With only 3 views per printing, the head overfits. A real training run needs many more augmented views per printing and a held-out check (section 13).
+- **Measured.** A quick synthetic-only adapter made things worse for the shortlist. A small MLP head (768 to 1,024 to 512) on frozen SigLIP 2 was trained for 73 seconds with InfoNCE on each gallery printing's clean image plus 2 augmented copies, with same-name hard negatives and no real crops. Exact printing first rose from 78.8% to 84.8% and the median art margin from 0.129 to 0.266. But top 10 fell from 99.2% to 97.2%, K99 grew from 6 to 114, and non-cards no longer separated from cards (best non-card 0.518, worst card 0.472). With only 3 views per printing, the head overfits. A real training run needs many more augmented views per printing and a held-out check (section 14).
 
 The scripts are in `/tmp/embed-exp` (`download.py`, `featureprint.swift`, `models.py`, `embed.py`, `evaluate.py`).
 
@@ -263,12 +263,12 @@ Model size, from the image tower parameter counts (section 8): SigLIP 2 B/16 93M
 
 What this shows:
 
-- **Measured.** On the full catalog, Vision's own K99 on these 250 crops is 51, not the 15 measured in #20. #20 used 157 crops and a 21,418-printing gallery. The bar "K99 at most 15" in section 13 was set from that smaller test.
+- **Measured.** On the full catalog, Vision's own K99 on these 250 crops is 51, not the 15 measured in #20. #20 used 157 crops and a 21,418-printing gallery. The bar "K99 at most 15" in section 14 was set from that smaller test.
 - **Measured.** Zero-shot, SigLIP 2 B/16 (K99 11) and PE-Core B16 (K99 14) beat Vision (K99 51) and meet "at most 15" on the full gallery. Both also beat Vision on card first (99.2% and 98.8% vs 97.2%), art first (98.8% vs 95.2%), the non-card gap (0.133 and 0.240 vs 0.089), and the median art margin.
 - **Measured.** PE-Core S16, the smallest of the strong candidates (24M parameters), gets K99 21. That is better than Vision's 51 but misses "at most 15". DINOv3-S with tuned preprocessing is about level with Vision on K99 (49) and behind it on card first and art first.
 - **Measured.** The open models pick the right orientation more often. The turned view scores higher on 15 of 250 crops for Vision and on 3 to 5 for the open models.
 - **Measured.** All four open models keep every non-card below every card on the full gallery, as Vision does. With 11 non-card crops, that is weak evidence.
-- **Not shown.** These are still 250 crops of 62 printings from one phone. The run measures the embedding only. It does not run the recognizer's decision rules with new thresholds (Gates 1 and 2), phone latency, Core ML or LiteRT parity, or int8 vectors. The best two models are about 4 times larger than PE-Core S16 (section 11.1).
+- **Not shown.** These are still 250 crops of 62 printings from one phone. The run measures the embedding only. It does not run the recognizer's decision rules with new thresholds (Gates 1 and 2), phone latency, Core ML or LiteRT parity, or int8 vectors. The best two models are about 4 times larger than PE-Core S16 (section 12.1).
 
 The scripts are in `/tmp/embed-exp` (`tune.py`, `full.py`, `eval_full.py`, `common.py`, `prep_models.py`). Results are in `/tmp/embed-exp/full/metrics_full.json`.
 
@@ -346,9 +346,116 @@ What this shows:
 
 The code and runs: worktree branch `prototype/embedding-replay` (hook in `FeaturePrint.swift`, `Gallery.swift`, `CardRecognizer.swift`, and the macOS command), and `/tmp/embed-exp/step1b` (`driver.py`, `embed_queries.py`, `build_gallery.py`, `runall.py`, `runs/`, `results.json`).
 
-## 11. Answer to the owner's question
+## 11. Phone check: PE-Core S16 on the iPhone 16e and in the Android emulator
 
-**Yes on the embedding measures, and an open model already does it without training. More crops alone will not change that.** On all 102,730 printings, SigLIP 2 B/16 and PE-Core B16 (both Apache 2.0) beat Vision feature prints zero-shot on shortlist recall (K99 11 and 14 vs 51), card first, art first, and the non-card gap (section 9). Both are about 93M parameters, about 93 MB at 8 bits. The app can download a model of that size at runtime with the gallery (section 11.1), so size alone does not rule them out. There is no size limit for now; a smaller model is preferred if it meets the same standard. The small PE-Core S16 (24M) also beats Vision (K99 21 vs 51) but misses K99 at most 15. Behind the recognizer, most of the embedding gain disappears, because the collector line already fixes most shortlist misses (section 10). PE-Core S16 comes out slightly ahead of Vision (216 vs 214 correct accepts on real crops) and fails only the strict leave-one-art-out rule, as Vision does. SigLIP 2 and PE-Core B16 come out level or behind. What is left to show is speed, memory, and parity on phones. No embedding will tell same-art printings apart reliably. The collector line keeps that job.
+Step 1c of the plan, run on 2026-10-20. Numbers are **Measured** unless marked.
+
+Setup:
+
+- **Model.** PE-Core S16-384 image tower, "pad 384" as in section 9.1. The model takes pixels in [0, 1] and does its own normalisation. Vectors are L2-normalised after the model.
+- **Reference.** Mac PyTorch float32 on the CPU, from the crop files. These vectors agree with the section 9 vectors to a lowest cosine of 0.99993.
+- **iPhone.** A standalone bench app (`dev.reilley.mtgscan.embedbench`, source in `prototypes/embed-bench` on the `prototype/embedding-replay` branch, not pushed). It reuses the recognizer's rectifier calls, `VNGenerateImageFeaturePrintRequest` revision 2 as `FeaturePrint.swift` uses it, and the search code of `Gallery.swift`. Core ML models were converted with coremltools 9.0 (torch 2.7.0), as ML programs for iOS 17. "8-bit linear" is int8 per-channel weights. "8-bit palette" is a 256-entry k-means palette.
+- **Parity.** "Model only" feeds the 24 reference inputs, preprocessed on the Mac. "End to end" starts from the JPEG and does the app's work in Swift: load, turn 180 degrees for the turned view, resize to 488 x 680, pad to 384 with Core Graphics, and run the model. It covers all 261 crops, upright and turned (522 vectors).
+- **Speed.** One scan is two embeddings, upright and turned, from the 488 x 680 images. The time includes padding and pixel conversion for the open model, as `FeaturePrint.vector` includes Vision's own. 20 warm-up scans, then 150 scans.
+- **Memory.** Peak `phys_footprint` of the app, with the model loaded, the gallery mapped as `Gallery.swift` maps it, and 100 scans searched (two queries, top 50 each). Each run is a fresh launch. 40 decoded crops stay in memory, about 104 MB before the model loads.
+
+### 11.1 Float16 overflow in the first attention block
+
+The pure float16 model returns NaN for every input on `.cpuOnly` on the iPhone, and on `.cpuOnly` and `.cpuAndGPU` on the Mac. The 8-bit models made from it do the same. In block 0, the attention logits reach about 145,000 after scaling, and float16 stops at 65,504. The Neural Engine and the iPhone GPU returned no NaN. The residual stream reaches about 390, which float16 holds.
+
+A mixed model keeps three ops in float32: the query scaling, the query-key product, and the softmax of block 0. It returns no NaN on any compute unit, on the Mac or on the phone. On `.all` it costs about 7 ms per scan (table below).
+
+**Inference.** Core ML does not promise which unit runs a layer. If the app uses the pure float16 model and Core ML moves block 0 to the CPU, every vector is NaN. The mixed model is the safe choice.
+
+### 11.2 Results on the iPhone 16e
+
+Parity, lowest / median cosine against the Mac vectors:
+
+| Model | Units | Model only, 24 references | End to end, 24 references | End to end, 522 vectors | NaN |
+| --- | --- | --- | --- | --- | --- |
+| float32 | any | 1.0000 / 1.0000 | 0.9959 / 0.9978 | 0.9914 / 0.9980 | none |
+| float16 | `.all` | 0.9997 / 0.9999 | 0.9957 / 0.9976 | 0.9915 / 0.9979 | none |
+| float16 | `.cpuAndGPU` | 1.0000 / 1.0000 | 0.9958 / 0.9977 | 0.9916 / 0.9980 | none |
+| float16 | `.cpuOnly` | NaN | NaN | NaN | every vector |
+| 8-bit linear | `.all` | 0.9955 / 0.9972 | 0.9917 / 0.9954 | 0.9858 / 0.9955 | none (NaN on `.cpuOnly`) |
+| 8-bit palette | `.all` | 0.9986 / 0.9991 | 0.9948 / 0.9969 | 0.9906 / 0.9972 | none (NaN on `.cpuOnly`) |
+| mixed float16 | `.all` | 0.9998 / 0.9999 | 0.9957 / 0.9977 | 0.9917 / 0.9979 | none |
+| mixed float16 | `.cpuOnly` | 0.9995 / 0.9997 | 0.9952 / 0.9974 | 0.9911 / 0.9978 | none |
+| mixed 8-bit linear | `.all` | 0.9957 / 0.9973 | 0.9922 / 0.9955 | 0.9856 / 0.9956 | none |
+| mixed 8-bit palette | `.all` | 0.9988 / 0.9991 | 0.9951 / 0.9969 | 0.9913 / 0.9972 | none |
+
+`.cpuAndNeuralEngine` gave the same vectors as `.all` for every model.
+
+Two embeddings per scan, ms, p50 / p95 over 150 scans:
+
+| Embedding | `.all` | `.cpuAndGPU` | `.cpuOnly` |
+| --- | --- | --- | --- |
+| Vision feature print rev 2 | 23.7 / 25.3 (second run 23.9 / 25.5) | | |
+| PE-Core S16 float16 | 25.4 / 29.6 (second run 27.5 / 29.4) | 91.9 / 94.3 | NaN |
+| PE-Core S16 8-bit linear | 24.6 / 25.1 | 519 / 526 | NaN |
+| PE-Core S16 8-bit palette | 27.2 / 27.8 | 105 / 126 | NaN |
+| PE-Core S16 mixed float16 | 32.0 / 33.3 | 104 / 136 | 84.0 / 86.0 |
+| PE-Core S16 mixed 8-bit linear | 32.4 / 46.1 | 522 / 569 | 84.9 / 88.5 |
+| PE-Core S16 mixed 8-bit palette | 32.9 / 34.2 | 107 / 135 | 86.4 / 89.4 |
+| PE-Core S16 float32 | | | 160 / 193 |
+
+Model load on `.all`:
+
+- The first load after install takes 2.8 to 3.7 s for every float16 and 8-bit S16 model (9.8 s once for the pure 8-bit palette model). Later loads take 22 to 37 ms. The first load compiles the model for the device, and the system keeps the result.
+- Compiling a downloaded `.mlpackage` with `MLModel.compileModel(at:)` takes 91 to 176 ms. The first load after it takes 3.0 to 3.7 s.
+- The first prediction takes 13 to 25 ms on `.all`. On `.cpuAndGPU` it takes 0.1 to 2.6 s.
+
+Peak app memory, `phys_footprint`, MB (resident peak in brackets):
+
+| Model and gallery | Peak footprint | Resident peak |
+| --- | ---: | ---: |
+| Vision, 768-d gallery | 131.6 | 274.5 |
+| S16 float16, `.all`, 512-d gallery | 128.0 | 223.9 |
+| S16 8-bit linear, `.all` | 129.8 | 222.9 |
+| S16 8-bit palette, `.all` | 135.0 | 227.5 |
+| S16 mixed float16, `.all` | 146.2 | 240.2 |
+| S16 mixed float16, `.cpuOnly` | 135.3 | 272.5 |
+| S16 float16, `.cpuAndGPU` | 153.2 | 286.4 |
+
+- `phys_footprint` is what iOS counts against the app's memory limit. The mapped gallery is clean file memory, so it shows in resident memory and not in the footprint, for both models. **Inference.** On the Neural Engine, the compiled model lives outside the app process, so the footprint does not count it either.
+- Sizes. S16 model on disk: float16 46.5 MB (43.7 MB zipped), 8-bit linear 23.6 MB (21.5 MB zipped), 8-bit palette 23.5 MB (22.4 MB zipped). The mixed models are the same size. S16 gallery, 102,730 x 512: 52.6 MB as int8 codes, 105.2 MB as the float16 file the phone keeps. Vision gallery: 157.8 MB as float16.
+
+SigLIP 2 B/16 on the same phone, for reference (squash 256):
+
+- Float16 on `.all`: model only 0.9997 / 0.9999, end to end 0.9862 on the 24 references and 0.9705 over 522 vectors. That misses the 0.98 line. It is a preprocessing gap: the model-only check passes, and squashing 488 x 680 to 256 x 256 with Core Graphics differs from PIL bicubic. On `.cpuOnly` it gives 0.9703 model only.
+- 8-bit linear fails parity (0.937 model only, on the phone and on the Mac). An 8-bit palette passes on the Mac (0.993). It was not run on the phone.
+- Two embeddings per scan: 22.0 / 24.3 ms (float16, `.all`), 16.5 / 19.5 ms (8-bit linear). `.cpuAndGPU` takes 136 ms. The model is 181 MB at float16 and 91 MB at 8 bits.
+
+### 11.3 Android emulator, LiteRT
+
+Parity only. Converted with litert-torch 0.9.4 (formerly ai-edge-torch, torch 2.13) straight from PyTorch, without ONNX. Quantised with ai-edge-quantizer 0.9.0. Run with LiteRT 2.3.0 on the CPU (XNNPACK, 4 threads) in a temporary arm64 Android 35 emulator.
+
+| File | Size | Model only, 24 references | Model only, 261 crops | End to end from JPEG, 261 crops |
+| --- | ---: | --- | --- | --- |
+| float32 | 90.7 MiB | 1.0000 / 1.0000 | 0.99998 / 1.0000 | 0.979 / 0.993 |
+| float16 weights | 46.1 MiB | 1.0000 / 1.0000 | 0.99998 / 1.0000 | 0.979 / 0.993 |
+| int8 weights, float32 compute | 24.4 MiB | 0.9977 / 0.9985 | 0.9972 / 0.9985 | 0.978 / 0.992 |
+| dynamic int8 (fully connected and convolution only) | 24.4 MiB | 0.9884 / 0.9929 | 0.9863 / 0.9929 | 0.970 / 0.987 |
+
+- No NaN in any file. The Mac LiteRT interpreter gives the same numbers.
+- The stock dynamic int8 recipe made a file that fails to load (a batch matmul with an int8 constant). Restricting it to fully connected and convolution layers fixed that.
+- The end-to-end path is below 0.98 because of preprocessing. Android's `createScaledBitmap` with filtering is bilinear without antialiasing. The reference uses PIL bicubic. Fed the same unsmoothed bilinear inputs on the Mac, the model matches the emulator at 0.9978. An Android build needs an antialiased downscale.
+- Emulator time is 200 to 770 ms per image. It does not predict a phone.
+
+What this shows:
+
+- **Measured.** On the iPhone 16e, PE-Core S16 meets the latency line on `.all`: 25 ms p50 for two embeddings at float16 or 8 bits, and 32 ms for the mixed model that cannot give NaN. Vision takes 24 ms in the same app. `.cpuAndGPU` takes 92 to 520 ms and misses the line.
+- **Measured.** S16 meets the parity line on `.all` at float16 and at both 8-bit forms, model only and end to end from the JPEG. The lowest end-to-end cosine over 522 vectors is 0.9915 at float16 and 0.9858 with 8-bit linear weights.
+- **Measured.** Pure float16 gives NaN on the CPU, from block 0 attention. Three float32 ops fix it for about 7 ms per scan.
+- **Measured.** Peak app footprint with S16 on the Neural Engine and its gallery is about the same as with Vision (128 to 146 MB against 132 MB, including about 104 MB of test images). Resident memory is about 50 MB lower with S16, because its gallery is smaller.
+- **Measured.** LiteRT reproduces the Mac vectors on Android at float32, float16 weights, and int8 weights. Android preprocessing must smooth when it scales down.
+- **Not shown.** Android speed and memory on a real phone, the bin deck (Gate 3), other iPhones, and thermal behaviour over long sessions.
+
+The runs: `/tmp/embed-exp/step1c` (`phone_results.json`, `phone_parity.csv`, `coreml/`, `android/`).
+
+## 12. Answer to the owner's question
+
+**Yes on the embedding measures, and an open model already does it without training. More crops alone will not change that.** On all 102,730 printings, SigLIP 2 B/16 and PE-Core B16 (both Apache 2.0) beat Vision feature prints zero-shot on shortlist recall (K99 11 and 14 vs 51), card first, art first, and the non-card gap (section 9). Both are about 93M parameters, about 93 MB at 8 bits. The app can download a model of that size at runtime with the gallery (section 12.1), so size alone does not rule them out. There is no size limit for now; a smaller model is preferred if it meets the same standard. The small PE-Core S16 (24M) also beats Vision (K99 21 vs 51) but misses K99 at most 15. Behind the recognizer, most of the embedding gain disappears, because the collector line already fixes most shortlist misses (section 10). PE-Core S16 comes out slightly ahead of Vision (216 vs 214 correct accepts on real crops) and fails only the strict leave-one-art-out rule, as Vision does. SigLIP 2 and PE-Core B16 come out level or behind. On the iPhone 16e, PE-Core S16 passes the speed and parity lines (section 11): two embeddings take 32 ms with the NaN-safe mixed-precision model, against 24 ms for Vision, and app memory is about the same. LiteRT in the Android emulator matches the Mac vectors. What is left to show is speed and memory on a real Android phone, and whether the result holds on real crops from other phones (#389). No embedding will tell same-art printings apart reliably. The collector line keeps that job.
 
 Why it holds (**Inference** unless marked):
 
@@ -368,7 +475,7 @@ To answer the question as asked, more crops will make the model better mainly wh
 
 Should one model replace Vision on iOS as well? Only if it passes the same gates. Vision costs nothing to ship, takes 19 ms for two images, and already passes every gate. Section 9 shows that Vision is not the strongest embedding on the full catalog. Its lead is that it ships with iOS, so it needs no download, no extra memory for weights, and no upkeep. If the trained model passes the gates on both platforms, one model means one gallery and one set of thresholds. If it does not pass on iOS, keep Vision on iOS and build a second gallery for Android (**Inference**).
 
-### 11.1 Model size and delivery
+### 12.1 Model size and delivery
 
 An earlier draft of this plan set a model size bar of about 25 MB. It had no source. It was the size of PE-Core S16 at 8 bits. The owner has set no size limit for now: among models that meet the pass bar, prefer the smallest. The practical limits are the stores, the hosting plan, memory, and speed.
 
@@ -379,7 +486,7 @@ An earlier draft of this plan set a model size bar of about 25 MB. It had no sou
 - **Inference.** A new model means a new gallery, so every phone downloads both again. Recognition cannot start until both are installed, which roughly doubles today's first wait. If egress becomes the limit, the options are the Pro plan or a store without egress fees, such as Cloudflare R2 ([pricing](https://developers.cloudflare.com/r2/pricing/)).
 - **Inference.** Memory does not change with how the model arrives. A B/16 model adds about 93 MB of weights at 8 bits or 186 MB at float16 to the ~250 MB the app uses today (#21). Memory is reported, not capped, for now. Cheap Android phones are where it is most likely to matter.
 
-## 12. Main risks
+## 13. Main risks
 
 - **Licence.** MobileCLIP and DFN weights are research-only. timm ImageNet weights carry an ImageNet caveat. DINOv3 is usable commercially but keeps its own licence for derivatives and lets Meta change the terms. SigLIP 2 and PE-Core are Apache 2.0 (section 6).
 - **Training on Scryfall images.** Neither Scryfall nor the Fan Content Policy addresses training. Review before a wider release (section 6, #19).
@@ -387,11 +494,11 @@ An earlier draft of this plan set a model size bar of about 25 MB. It had no sou
 - **Small, biased test set.** 250 crops of 62 printings from one phone and one tester. The #389 crops will be skewed to popular cards and to the users who leave uploads on.
 - **Label noise.** The saved printing is wrong more often for same-text twins. Use art-level labels.
 - **Runtime parity.** Float16 or int8 conversion can change or break the vectors (the DINOv3 NaN). LiteRT's Core ML delegate is beta.
-- **Memory, speed, and egress.** The two best zero-shot models are the large ones. SigLIP 2 B/16 is 93M image parameters (about 93 MB at 8 bits, on top of a 79 MB gallery) and 11.4 ms per image on an iPhone 12 Pro Max. A runtime download fits the store limits but roughly halves the full installs that the Free plan's egress covers (section 11.1). The recognizer needs two images per scan. Older Android phones may be several times slower (**Inference**; the MobileNetV4 table shows a 10x spread across devices for the same model).
+- **Memory, speed, and egress.** The two best zero-shot models are the large ones. SigLIP 2 B/16 is 93M image parameters (about 93 MB at 8 bits, on top of a 79 MB gallery) and 11.4 ms per image on an iPhone 12 Pro Max. A runtime download fits the store limits but roughly halves the full installs that the Free plan's egress covers (section 12.1). The recognizer needs two images per scan. Older Android phones may be several times slower (**Inference**; the MobileNetV4 table shows a 10x spread across devices for the same model).
 - **Android text reading.** The collector line is read with Vision today. An Android reader is a separate accuracy risk (section 7).
 - **Upkeep.** A trained model needs a training pipeline, a model release process, and a retest on each new set. Vision needs none of that.
 
-## 13. Experiment plan
+## 14. Experiment plan
 
 All steps run on the owner's Mac in a separate environment, never in the repo. Crops stay off the repo, as #389 requires.
 
@@ -399,7 +506,7 @@ All steps run on the owner's Mac in a separate environment, never in the repo. C
 
 **Step 1b. Recognizer replay with a zero-shot model (about 2 days).** Before any training, put SigLIP 2 B/16 or PE-Core B16 behind the recognizer on the Mac. Re-tune the not-a-card, orientation, and art-margin thresholds, and run Gates 1 and 2. This shows whether the embedding gain carries to accepts with 0 false accepts. It also measures what the int8 gallery costs in accuracy. **Done (section 10).** Under a leave-one-art-out tuning rule, no model passes every gate, and Vision does not either. PE-Core S16 comes closest: its only failure is its own worst case, as for Vision. With thresholds fitted on all the data, it passes every gate with more correct accepts than Vision (216 vs 214 real, 2,141 vs 2,135 simulated). SigLIP 2 and PE-Core B16 accept wrong cards in Gate 2 held out through the set-code rule, which has no cosine threshold. The int8 gallery costs nothing the gates can see.
 
-**Step 1c. Memory and speed on phones (about 2 days).** Convert PE-Core S16, the best model in step 1b, to Core ML and LiteRT, at float16 and 8 bits. On the iPhone 16e, measure parity against the Mac vectors, time for two embeddings, and peak app memory while scanning with the gallery loaded. The owner has no Android phone: check LiteRT parity in the Android emulator on the Mac, and leave Android speed and memory to a cloud device farm (Firebase Test Lab or AWS Device Farm) when Android work starts. If the model passes the latency and parity lines below, it can go on to the held-out crops (step 3) without training.
+**Step 1c. Memory and speed on phones (about 2 days).** Convert PE-Core S16, the best model in step 1b, to Core ML and LiteRT, at float16 and 8 bits. On the iPhone 16e, measure parity against the Mac vectors, time for two embeddings, and peak app memory while scanning with the gallery loaded. The owner has no Android phone: check LiteRT parity in the Android emulator on the Mac, and leave Android speed and memory to a cloud device farm (Firebase Test Lab or AWS Device Farm) when Android work starts. If the model passes the latency and parity lines below, it can go on to the held-out crops (step 3) without training. **Done (section 11).** On the iPhone 16e, Core ML on `.all` meets both lines at float16 and at 8 bits: 25 ms p50 for two embeddings (Vision 24 ms), and a lowest end-to-end cosine of 0.9915 at float16 and 0.9858 at 8 bits over 522 vectors. Pure float16 gives NaN on the CPU. A model with three float32 ops in block 0 fixes that and takes 32 ms. Peak app memory is about the same as with Vision. LiteRT on the Android emulator matches the Mac at float32, float16 weights, and int8 weights. Android preprocessing must smooth when it scales down, or end-to-end parity drops to 0.979.
 
 **Step 2. Train a smaller model (about 1 week, optional).** There is no size limit for now, but a smaller model is preferred if it meets the same pass bar. Start from PE-Core S16 or another backbone of about 25M parameters. Train on all Scryfall `normal` images with phone-like augmentation (section 4), one class per art, ArcFace-style loss, same-name hard negatives, 256 to 512 output dimensions. Also try distilling from SigLIP 2 B/16 or PE-Core B16. Use many augmented views per printing: the 3-view adapter in section 8 overfit. Do not use the evidence pack or #389 crops for training or tuning.
 
