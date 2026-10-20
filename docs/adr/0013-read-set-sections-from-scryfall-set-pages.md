@@ -4,11 +4,11 @@ The set page shows a set's card printings in set sections, the named groups that
 
 The search links come in two kinds. Newer sets use collector number ranges, such as `e:dsk cn≥302 cn≤327`. Older sets use rules, such as `set:afr frame:showcase` or `set:afr is:bab`. Running every search through the API handles both kinds the same way. For Forgotten Realms, Dominaria United, Core Set 2021, and Ikoria, the sections together listed every card printing that is not a basic land.
 
-Scryfall's terms of service do not forbid reading these pages. They forbid putting undue burden on Scryfall, and `robots.txt` allows `/sets`. The Scryfall API allows 2 searches a second, so reading every set in full takes about 1,000 page reads and up to 10,000 searches, or about 1.5 hours. The first run does that once. After that, the import reads a set's page only when the set has no stored set sections, came out in the last 180 days, or has a card printing that no stored set section lists. It runs a set's searches only when the page's sections or searches changed, or when the set has a card printing that no set section lists.
+Scryfall's terms of service do not forbid reading these pages. They forbid putting undue burden on Scryfall, and `robots.txt` allows `/sets`. The Scryfall API allows 2 searches a second, so reading every set in full takes about 1,000 page reads and up to 10,000 searches, or about 1.5 hours. The first run does that once. After that, the import reads a set's page only when its set sections were never read, when it came out in the last 180 days, or when it has a card printing that no stored set section lists. It runs a set's searches only when the page's sections or searches changed, or when the set has a card printing that no set section lists.
 
 ## Consequences
 
-- The page HTML is not a stable contract. When reading a set's sections fails, the import keeps that set's last stored set sections, goes on with the other sets, and marks the run as failed.
+- The page HTML is not a stable contract. When reading a set's sections fails, the import keeps that set's last stored set sections, goes on with the other sets, and exits non-zero with the code of each failed set.
 - A card printing can be in more than one set section, as on Scryfall. Dominaria United's textured foil showcases are in both "Showcase Cards" and "Textured Foil Cards".
 - Set sections do not change the main set or set completion. Scryfall's sections cut across the main set. Foundations' main set is "New Cards" and "Reprints", and Duskmourn's main set includes its "Lurking Evil Art Variants".
 

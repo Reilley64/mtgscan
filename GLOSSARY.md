@@ -172,6 +172,14 @@ _Avoid_: Key art, cover art
 A named group of a set's card printings, as Scryfall's set page lists it, such as Showcases or Extended Art. Basic lands are in no set section.
 _Avoid_: Treatment, subset, group
 
+**Other cards**:
+The card printings of a set, not basic lands, that no set section lists.
+_Avoid_: Uncategorized, the rest
+
+**Set section completion**:
+The share of a set section's card printings, or of the other cards, that the user owns in a finish view, as "x of y" and a percentage. It counts like set completion, over those card printings instead of the main set.
+_Avoid_: Section progress
+
 **Set page**:
 The page about one set, opened from Sets. It shows the set's set completion and its set sections in the finish view.
 _Avoid_: Set detail, set screen
