@@ -117,6 +117,8 @@ jobs:
         run: bun run --filter @mtgscan/supabase typecheck
       - name: Start local Supabase
         run: supabase start --exclude realtime,imgproxy,mailpit,studio,logflare,vector,supavisor
+      - name: Lint the PL/pgSQL functions
+        run: supabase db lint --local -s public,private,catalog_import --level error --fail-on error
       - name: Generated types match the migrations
         run: bun run types:database:check
       - name: Read the local secret key
