@@ -2,7 +2,6 @@ import { deckNameLength, type Deck, type DeckCard, type DeckChange, type DeckPri
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { MenuAction } from '@/components/atoms/menu-button';
 import { NameAlert } from '@/components/atoms/name-alert';
@@ -29,9 +28,10 @@ import { removeBasicLandFromDeck, removeFromDeck } from '@/decks/remove-from-dec
 import { useDeck } from '@/decks/use-deck';
 import { useDeckChanges } from '@/decks/use-deck-changes';
 import { violationCardKeys } from '@/decks/violation-cards';
+import { useBannerTitle } from '@/lib/use-banner-title';
 import { useNeedsYouCounts } from '@/needs-you/needs-you-counts';
 import { useNeedsYou, type NeedsYouItem } from '@/needs-you/use-needs-you';
-import { colors, navigationBar } from '@/theme';
+import { colors } from '@/theme';
 
 const deckTabs = ['cards', 'planned', 'history'] as const;
 
@@ -93,9 +93,7 @@ export default function DeckScreen() {
   const [renaming, setRenaming] = useState(false);
   const { grouping, order, setGrouping, setOrder } = useDeckCardOrder();
   const showsCardOrderButtons = tab === 'cards' && read.status === 'loaded' && read.deck.card_count > 0;
-  const headerBottom = useSafeAreaInsets().top + navigationBar;
-  const [bannerHeight, setBannerHeight] = useState<number | null>(null);
-  const [showsTitle, setShowsTitle] = useState(false);
+  const { showsTitle, onBannerLayout, onScroll } = useBannerTitle();
 
   useEffect(() => {
     void markDeckUsed(deckId);
@@ -197,7 +195,7 @@ export default function DeckScreen() {
           name={read.deck.name}
           chipButtons={evaluationChipButtons(read.deck)}
           commanders={read.deck.commanders}
-          onLayout={(event) => setBannerHeight(event.nativeEvent.layout.height)}
+          onLayout={onBannerLayout}
         />
         <View className="px-lg pt-lg">
           <ToggleGroup
@@ -265,7 +263,7 @@ export default function DeckScreen() {
         keyExtractor={(item) => item.key}
         renderItem={({ item }) => (deck ? itemView(item, deck) : null)}
         ListHeaderComponent={header()}
-        onScroll={(event) => setShowsTitle(bannerHeight !== null && event.nativeEvent.contentOffset.y + headerBottom >= bannerHeight)}
+        onScroll={onScroll}
         scrollEventThrottle={16}
         onEndReached={tab === 'history' ? loadMore : undefined}
         floatingButtons={

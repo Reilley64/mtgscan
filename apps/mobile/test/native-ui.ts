@@ -574,6 +574,22 @@ export function tabHeader(tab: HostElement) {
   };
 }
 
+export function tabHeaderLook(tab: HostElement) {
+  const { backgroundColor, hideShadow, translucent } = tabHeaderConfig(tab).props;
+  return { backgroundColor, line: !hideShadow, contentUnder: Boolean(translucent) };
+}
+
+export async function scrollTabStackScreenTo(y: number) {
+  const [scrollView] = tabStackTopScreen().queryAll((instance) => instance.type === 'RCTScrollView');
+  await fireEvent(scrollView!, 'scroll', {
+    nativeEvent: {
+      contentOffset: { x: 0, y },
+      contentSize: { width: 390, height: 2000 },
+      layoutMeasurement: { width: 390, height: 844 },
+    },
+  });
+}
+
 export function headerTitles() {
   return shownHeaderConfigs(screen.container).map(
     (config) => config.props.title,

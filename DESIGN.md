@@ -605,7 +605,8 @@ Sets lists every released set that has a card printing in the card catalog, with
   - While the next page loads, two set banner skeletons show after the last set. VoiceOver reads them as one element, "Loading more sets".
   - When the first read fails, Sets shows the empty state "Could not load Sets" with a **Try again** button. See Empty states.
 - **Set page.** It shows one set's cards as a checklist in the finish view (#367, #368). It follows the set page of the HTML prototype `docs/prototypes/sets.html`, with the set art banner of option B (#369).
-  - It is a screen in the Collection tab's stack, like Sets. The tab bar stays. It has the native back button and no title. The swipe from the left edge goes back to Sets.
+  - It is a screen in the Collection tab's stack, like Sets. The tab bar stays. It has the native back button. The swipe from the left edge goes back to Sets.
+  - The header has no title at first and no line under it. The cards scroll under it, as on Sets. Once the set page banner or the set header scrolls under the header, the set name becomes the header title. It goes again when the banner scrolls back.
   - A set page banner starts the page. It is the larger set banner. It is not a button. VoiceOver reads it as one header, such as "Bloomburrow, 234 of 261, 89 percent".
   - A set with no set art starts with a set header in place of the banner. It has the layout of a set row, with the set symbol filling up in lime, the set name, "x of y", the progress bar, and the percentage.
   - The finish view control sits under the set page banner or the set header, 12 px below it. See Finish view below.

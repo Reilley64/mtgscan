@@ -8,6 +8,7 @@ import { SetPageBanner } from '@/components/organisms/set-banner';
 import { SetCardsRowView, setCardsRows } from '@/components/organisms/set-cards';
 import { SetSkeleton } from '@/components/organisms/set-skeleton';
 import { TabStackListScreen } from '@/components/templates/tab-screen';
+import { useBannerTitle } from '@/lib/use-banner-title';
 import { useFinishView } from '@/sets/finish-view-setting';
 import { useSet } from '@/sets/use-set';
 
@@ -15,6 +16,7 @@ export default function SetScreen() {
   const { code } = useLocalSearchParams<{ code: string }>();
   const { read, reload } = useSet(code);
   const { finishView } = useFinishView();
+  const { showsTitle, onBannerLayout, onScroll } = useBannerTitle();
 
   function header() {
     if (read.status === 'loading') {
@@ -25,7 +27,9 @@ export default function SetScreen() {
     }
     return (
       <View className="gap-md pb-sm">
-        <SetPageBanner set={read.set} finishView={finishView} />
+        <View onLayout={onBannerLayout}>
+          <SetPageBanner set={read.set} finishView={finishView} />
+        </View>
         <FinishViewControl />
       </View>
     );
@@ -33,11 +37,13 @@ export default function SetScreen() {
 
   return (
     <TabStackListScreen
-      title=""
+      title={read.status === 'loaded' && showsTitle ? read.set.name : ''}
       data={read.status === 'loaded' ? setCardsRows(read.set, finishView) : []}
       keyExtractor={(row) => row.key}
       renderItem={({ item }) => <SetCardsRowView row={item} />}
       ListHeaderComponent={header()}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
     />
   );
 }

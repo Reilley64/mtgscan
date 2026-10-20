@@ -12,7 +12,7 @@ export default function CollectionLayout() {
         <TabStack>
           <Stack.Screen name="collection" />
           <Stack.Screen name="sets" />
-          <Stack.Screen name="set" options={{ headerLargeTitleEnabled: false }} />
+          <Stack.Screen name="set" options={{ headerLargeTitleEnabled: false, headerTransparent: true }} />
           <Stack.Screen name="filters" options={{ ...halfHeightDrawerOptions, headerShown: false }} />
         </TabStack>
       </FinishViewProvider>
