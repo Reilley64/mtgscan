@@ -7,7 +7,7 @@ import {
   type ReplyOf,
   type RequestOf,
 } from '../database-function';
-import { allowAiClient, mcpServerUrlOf } from '../mcp-connection';
+import { allowAiClient, discoverAuthorizationServer, mcpServerUrlOf, type AuthorizationServer } from '../mcp-connection';
 import { expectReplied, parsed } from './database-calls';
 import { asDatabaseOwner, asDatabaseRole, localStackUrl, signUpNewUser, type TestUser } from './local-stack';
 
@@ -18,9 +18,16 @@ export type AiClient = {
   token: string;
 };
 
+let localAuthorizationServer: Promise<AuthorizationServer> | undefined;
+
+export function authorizationServer(): Promise<AuthorizationServer> {
+  localAuthorizationServer ??= discoverAuthorizationServer(localStackUrl);
+  return localAuthorizationServer;
+}
+
 export async function connectAiClient(user: TestUser): Promise<AiClient> {
-  const { clientId, tokens } = await allowAiClient(localStackUrl, user.client, 'Test AI chat');
-  return { clientId, token: tokens.access_token };
+  const { client, tokens } = await allowAiClient(await authorizationServer(), user.client, 'Test AI chat', 'public');
+  return { clientId: client.client_id, token: tokens.access_token };
 }
 
 export type ClaimedAiClient = {

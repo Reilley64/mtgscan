@@ -1,4 +1,15 @@
-import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import {
+  Client,
+  discoverAuthorizationServerMetadata,
+  exchangeAuthorization,
+  refreshAuthorization,
+  registerClient,
+  startAuthorization,
+  StreamableHTTPClientTransport,
+  type AuthorizationServerMetadata,
+  type OAuthClientInformationFull,
+  type OAuthTokens,
+} from '@modelcontextprotocol/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const mcpReadToolNames = [
@@ -60,14 +71,9 @@ export function oauthEndpointsOf(supabaseUrl: string) {
 
 export type ClientKind = 'public' | 'confidential';
 
-export type RegisteredAiClient = {
-  clientId: string;
-  clientSecret: string | null;
-};
-
-export type AiClientTokens = {
-  access_token: string;
-  refresh_token?: string;
+export type AuthorizationServer = {
+  metadata: AuthorizationServerMetadata;
+  mcpServerUrl: string;
 };
 
 export type Authorization = {
@@ -78,47 +84,49 @@ export type Authorization = {
 
 type SignedInUser = Pick<SupabaseClient, 'auth'>;
 
-function base64Url(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString('base64url');
-}
-
 async function failure(action: string, response: Response): Promise<Error> {
   return new Error(`${action} failed with ${response.status}: ${await response.text()}`);
 }
 
-export async function registerAiClient(supabaseUrl: string, clientName: string, kind: ClientKind): Promise<RegisteredAiClient> {
-  const response = await fetch(oauthEndpointsOf(supabaseUrl).registration, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+export async function discoverAuthorizationServer(supabaseUrl: string): Promise<AuthorizationServer> {
+  const issuer = issuerOf(supabaseUrl);
+  const metadata = await discoverAuthorizationServerMetadata(issuer);
+  if (!metadata) {
+    throw new Error(`No authorization server metadata for ${issuer}`);
+  }
+  return { metadata, mcpServerUrl: mcpServerUrlOf(supabaseUrl) };
+}
+
+export function registerAiClient(
+  { metadata }: AuthorizationServer,
+  clientName: string,
+  kind: ClientKind,
+): Promise<OAuthClientInformationFull> {
+  return registerClient(metadata.issuer, {
+    metadata,
+    clientMetadata: {
       client_name: clientName,
       redirect_uris: [aiClientRedirectUri],
       token_endpoint_auth_method: kind === 'confidential' ? 'client_secret_basic' : 'none',
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
-    }),
+    },
   });
-  if (!response.ok) {
-    throw await failure('Client registration', response);
-  }
-  const body = await response.json();
-  return { clientId: body.client_id, clientSecret: body.client_secret ?? null };
 }
 
-export async function authorize(supabaseUrl: string, client: RegisteredAiClient): Promise<Authorization> {
-  const codeVerifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
-  const codeChallenge = base64Url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(codeVerifier))));
-  const query = new URLSearchParams({
-    response_type: 'code',
-    client_id: client.clientId,
-    redirect_uri: aiClientRedirectUri,
+export async function authorize(
+  { metadata, mcpServerUrl }: AuthorizationServer,
+  client: OAuthClientInformationFull,
+): Promise<Authorization> {
+  const { authorizationUrl, codeVerifier } = await startAuthorization(metadata.issuer, {
+    metadata,
+    clientInformation: client,
+    redirectUrl: aiClientRedirectUri,
     scope: aiChatScope,
     state: crypto.randomUUID(),
-    code_challenge: codeChallenge,
-    code_challenge_method: 'S256',
-    resource: mcpServerUrlOf(supabaseUrl),
+    resource: mcpServerUrl,
   });
-  const response = await fetch(`${oauthEndpointsOf(supabaseUrl).authorization}?${query}`, { redirect: 'manual' });
+  const response = await fetch(authorizationUrl, { redirect: 'manual' });
   const location = response.headers.get('location');
   if (!location) {
     throw await failure('Authorize', response);
@@ -143,57 +151,44 @@ export async function approve(user: SignedInUser, authorizationId: string): Prom
   return code;
 }
 
-async function requestTokens(
-  supabaseUrl: string,
-  client: RegisteredAiClient,
-  action: string,
-  grant: Record<string, string>,
-): Promise<AiClientTokens> {
-  const body = new URLSearchParams({ ...grant, resource: mcpServerUrlOf(supabaseUrl) });
-  const headers: Record<string, string> = { 'Content-Type': 'application/x-www-form-urlencoded' };
-  if (client.clientSecret) {
-    headers.Authorization = `Basic ${Buffer.from(`${client.clientId}:${client.clientSecret}`).toString('base64')}`;
-  } else {
-    body.set('client_id', client.clientId);
-  }
-  const response = await fetch(oauthEndpointsOf(supabaseUrl).token, { method: 'POST', headers, body });
-  if (!response.ok) {
-    throw await failure(action, response);
-  }
-  return response.json();
-}
-
 export function exchangeCode(
-  supabaseUrl: string,
-  client: RegisteredAiClient,
+  { metadata, mcpServerUrl }: AuthorizationServer,
+  client: OAuthClientInformationFull,
   code: string,
   codeVerifier: string,
-): Promise<AiClientTokens> {
-  return requestTokens(supabaseUrl, client, 'Code exchange', {
-    grant_type: 'authorization_code',
-    code,
-    redirect_uri: aiClientRedirectUri,
-    code_verifier: codeVerifier,
+): Promise<OAuthTokens> {
+  return exchangeAuthorization(metadata.issuer, {
+    metadata,
+    clientInformation: client,
+    authorizationCode: code,
+    codeVerifier,
+    redirectUri: aiClientRedirectUri,
+    resource: mcpServerUrl,
   });
 }
 
-export function refreshTokens(supabaseUrl: string, client: RegisteredAiClient, refreshToken: string): Promise<AiClientTokens> {
-  return requestTokens(supabaseUrl, client, 'Refresh', { grant_type: 'refresh_token', refresh_token: refreshToken });
+export function refreshTokens(
+  { metadata, mcpServerUrl }: AuthorizationServer,
+  client: OAuthClientInformationFull,
+  refreshToken: string,
+): Promise<OAuthTokens> {
+  return refreshAuthorization(metadata.issuer, { metadata, clientInformation: client, refreshToken, resource: mcpServerUrl });
 }
 
 export async function allowAiClient(
-  supabaseUrl: string,
+  server: AuthorizationServer,
   user: SignedInUser,
   clientName: string,
-): Promise<RegisteredAiClient & { tokens: AiClientTokens }> {
-  const client = await registerAiClient(supabaseUrl, clientName, 'public');
-  const { authorizationId, codeVerifier } = await authorize(supabaseUrl, client);
+  kind: ClientKind,
+): Promise<{ client: OAuthClientInformationFull; tokens: OAuthTokens }> {
+  const client = await registerAiClient(server, clientName, kind);
+  const { authorizationId, codeVerifier } = await authorize(server, client);
   const details = await user.auth.oauth.getAuthorizationDetails(authorizationId);
   if (details.error) {
     throw details.error;
   }
   const code = await approve(user, authorizationId);
-  return { ...client, tokens: await exchangeCode(supabaseUrl, client, code, codeVerifier) };
+  return { client, tokens: await exchangeCode(server, client, code, codeVerifier) };
 }
 
 export function claimsOf(token: string): Record<string, unknown> {

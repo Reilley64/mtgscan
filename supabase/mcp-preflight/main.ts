@@ -1,6 +1,15 @@
 import { isDeepStrictEqual, parseArgs } from 'node:util';
 
-import { buildDiscoveryUrls, SUPPORTED_PROTOCOL_VERSIONS, type Client } from '@modelcontextprotocol/client';
+import {
+  buildDiscoveryUrls,
+  discoverAuthorizationServerMetadata,
+  discoverOAuthProtectedResourceMetadata,
+  extractWWWAuthenticateParams,
+  SUPPORTED_PROTOCOL_VERSIONS,
+  type Client,
+  type OAuthClientInformationFull,
+  type OAuthTokens,
+} from '@modelcontextprotocol/client';
 import { createClient } from '@supabase/supabase-js';
 
 import type { ReplyOf } from '../database-function';
@@ -23,10 +32,9 @@ import {
   oauthEndpointsOf,
   refreshTokens,
   registerAiClient,
-  type AiClientTokens,
   type Authorization,
+  type AuthorizationServer,
   type ClientKind,
-  type RegisteredAiClient,
 } from '../mcp-connection';
 import type { searchCatalog } from '../search';
 import { hostedSupabaseUrl, isHostedTestUserPassword, isLocalStack, localSupabaseUrl, testUser } from '../test-user/account';
@@ -96,15 +104,17 @@ function aiClientDataApi(token: string) {
   return createClient<Database>(url, publishableKey!, { ...clientOptions, global: { headers: { Authorization: `Bearer ${token}` } } });
 }
 
-type ConnectedClient = RegisteredAiClient & {
+type ConnectedClient = {
   name: string;
+  registered: OAuthClientInformationFull;
   authorization?: Authorization;
   code?: string;
-  tokens?: AiClientTokens;
-  refreshed?: AiClientTokens;
+  tokens?: OAuthTokens;
+  refreshed?: OAuthTokens;
 };
 
 const state: {
+  authorizationServer?: AuthorizationServer;
   signedIn?: true;
   clients: Partial<Record<ClientKind, ConnectedClient>>;
   createdClientIds: string[];
@@ -175,10 +185,12 @@ const discoveryChecks: Check[] = [
     name: 'A call with no token gets 401 and the protected resource metadata',
     run: async () => {
       const response = await postMcp(toolsListRequest);
-      const challenge = response.headers.get('www-authenticate') ?? '';
-      const metadataUrl = /resource_metadata="([^"]+)"/.exec(challenge)?.[1];
-      passIf(response.status === 401 && metadataUrl !== undefined, `status ${response.status}, WWW-Authenticate ${challenge || 'missing'}`);
-      const metadata = await readJson(await fetch(metadataUrl!));
+      const { resourceMetadataUrl } = extractWWWAuthenticateParams(response);
+      passIf(
+        response.status === 401 && resourceMetadataUrl !== undefined,
+        `status ${response.status}, WWW-Authenticate ${response.headers.get('www-authenticate') ?? 'missing'}`,
+      );
+      const metadata = await discoverOAuthProtectedResourceMetadata(mcpServerUrl, { resourceMetadataUrl });
       return passIf(
         metadata.resource === mcpServerUrl && isDeepStrictEqual(metadata.authorization_servers, [issuer]),
         `resource ${metadata.resource}, authorization servers ${JSON.stringify(metadata.authorization_servers)}`,
@@ -188,34 +200,30 @@ const discoveryChecks: Check[] = [
   {
     name: 'The authorization server metadata has the issuer, its endpoints, PKCE with S256, and dynamic client registration',
     run: async () => {
-      const discoveryUrls = values.hosted ? [{ url: new URL(rfc8414MetadataUrl) }] : buildDiscoveryUrls(issuer);
-      let found: { url: URL; metadata: Record<string, any> } | undefined;
-      for (const { url: discoveryUrl } of discoveryUrls) {
-        const response = await fetch(discoveryUrl);
-        if (response.ok) {
-          found = { url: discoveryUrl, metadata: await response.json() };
-          break;
-        }
+      if (values.hosted) {
+        const response = await fetch(rfc8414MetadataUrl);
+        passIf(response.ok, `${rfc8414MetadataUrl}: status ${response.status}`);
       }
-      if (!found) {
-        throw new Error(`No metadata at ${discoveryUrls.map(({ url }) => url).join(', ')}`);
+      const metadata = await discoverAuthorizationServerMetadata(issuer);
+      if (!metadata) {
+        throw new Error(`No metadata at ${buildDiscoveryUrls(issuer).map(({ url }) => url).join(', ')}`);
       }
-      const { url: discoveryUrl, metadata } = found;
       const endpoints = oauthEndpointsOf(url);
-      return passIf(
-        metadata.issuer === issuer &&
-          metadata.registration_endpoint === endpoints.registration &&
+      const detail = passIf(
+        metadata.registration_endpoint === endpoints.registration &&
           metadata.authorization_endpoint === endpoints.authorization &&
           metadata.token_endpoint === endpoints.token &&
-          metadata.code_challenge_methods_supported?.includes('S256') &&
-          metadata.scopes_supported?.includes('offline_access'),
+          metadata.code_challenge_methods_supported?.includes('S256') === true &&
+          metadata.scopes_supported?.includes('offline_access') === true,
         [
-          `${discoveryUrl}: issuer ${metadata.issuer}`,
+          `issuer ${metadata.issuer}`,
           `registration ${metadata.registration_endpoint}`,
           `code challenge methods ${JSON.stringify(metadata.code_challenge_methods_supported)}`,
           `scopes ${JSON.stringify(metadata.scopes_supported)}`,
         ].join(', '),
       );
+      state.authorizationServer = { metadata, mcpServerUrl };
+      return detail;
     },
   },
   {
@@ -237,17 +245,20 @@ function clientChecks(kind: ClientKind): Check[] {
       name: `${label}: dynamic client registration`,
       run: async () => {
         const name = `mtgscan pre-flight ${kind} client`;
-        const registered = await registerAiClient(url, name, kind);
-        state.createdClientIds.push(registered.clientId);
-        state.clients[kind] = { ...registered, name };
-        return passIf((kind === 'confidential') === (registered.clientSecret !== null), `client_id ${registered.clientId}`);
+        const registered = await registerAiClient(fromEarlierCheck(state.authorizationServer), name, kind);
+        state.createdClientIds.push(registered.client_id);
+        state.clients[kind] = { name, registered };
+        return passIf(
+          (kind === 'confidential') === (registered.client_secret !== undefined),
+          `client_id ${registered.client_id}, token endpoint auth method ${registered.token_endpoint_auth_method}`,
+        );
       },
     },
     {
       name: `${label}: authorize sends the user to the consent page (supabase/auth#2820)`,
       run: async () => {
         const connected = client();
-        const authorization = await authorize(url, connected);
+        const authorization = await authorize(state.authorizationServer!, connected.registered);
         const consentPage = `${authorization.consentPage.origin}${authorization.consentPage.pathname}`;
         connected.authorization = authorization;
         return passIf(!values.hosted || consentPage === hostedConsentPage, consentPage);
@@ -281,7 +292,7 @@ function clientChecks(kind: ClientKind): Check[] {
       run: async () => {
         const connected = client();
         const code = fromEarlierCheck(connected.code);
-        const tokens = await exchangeCode(url, connected, code, connected.authorization!.codeVerifier);
+        const tokens = await exchangeCode(state.authorizationServer!, connected.registered, code, connected.authorization!.codeVerifier);
         connected.tokens = tokens;
         return passIf(tokens.refresh_token !== undefined, `refresh token ${tokens.refresh_token ? 'issued' : 'missing'}`);
       },
@@ -291,7 +302,7 @@ function clientChecks(kind: ClientKind): Check[] {
       run: async () => {
         const connected = client();
         const { refresh_token } = fromEarlierCheck(connected.tokens);
-        const refreshed = await refreshTokens(url, connected, fromEarlierCheck(refresh_token));
+        const refreshed = await refreshTokens(state.authorizationServer!, connected.registered, fromEarlierCheck(refresh_token));
         connected.refreshed = refreshed;
         return passIf(refreshed.access_token !== connected.tokens!.access_token, 'new access token issued');
       },
@@ -304,7 +315,7 @@ function clientChecks(kind: ClientKind): Check[] {
         const claims = tokens.map(({ access_token }) => claimsOf(access_token));
         return passIf(
           claims.every(({ aud, iss, client_id }) =>
-            isDeepStrictEqual([aud, iss, client_id], [['authenticated', mcpServerUrl], issuer, connected.clientId]),
+            isDeepStrictEqual([aud, iss, client_id], [['authenticated', mcpServerUrl], issuer, connected.registered.client_id]),
           ),
           claims.map((claim) => `aud ${JSON.stringify(claim.aud)}, iss ${claim.iss}, client_id ${claim.client_id}`).join('; '),
         );
@@ -524,7 +535,7 @@ const revokeChecks: Check[] = [
     name: "Revoke ends the AI client's access at once",
     run: async () => {
       const token = aiClientToken();
-      const { error } = await testUserClient.auth.oauth.revokeGrant({ clientId: state.clients.public!.clientId });
+      const { error } = await testUserClient.auth.oauth.revokeGrant({ clientId: state.clients.public!.registered.client_id });
       if (error) {
         throw new Error(`revokeGrant: ${error.message}`);
       }
@@ -541,7 +552,7 @@ const revokeChecks: Check[] = [
     name: "Revoke refuses the AI client's refresh token",
     run: async () => {
       const connected = fromEarlierCheck(state.clients.public?.refreshed);
-      const refreshed = await refreshTokens(url, state.clients.public!, connected.refresh_token!).then(
+      const refreshed = await refreshTokens(state.authorizationServer!, state.clients.public!.registered, connected.refresh_token!).then(
         () => true,
         () => false,
       );
