@@ -10,10 +10,12 @@ import {
   imageSources,
   setArtLook,
   pressTab,
+  scrollTabStackScreenTo,
   selectedTab,
   swipeBackInTheTab,
   tabBarLabels,
   tabHeader,
+  tabHeaderLook,
   tabStackShowsBackButton,
   tabStackTopScreen,
 } from './native-ui';
@@ -112,6 +114,28 @@ describe('opening a set', () => {
     expect(tabHeader(tabStackTopScreen())).toMatchObject({ title: '', largeTitle: false });
     expect(tabStackShowsBackButton()).toBe(true);
     expect(tabBarLabels()).toEqual(['Recent', 'Collection', 'Decks', 'Scan']);
+  });
+
+  test('the header has no line under it, and the cards scroll under it', async () => {
+    await openBloomburrow();
+
+    expect(tabHeaderLook(tabStackTopScreen())).toEqual({ backgroundColor: 'transparent', line: false, contentUnder: true });
+  });
+
+  test('the set name becomes the header title once the banner scrolls under the header, and goes again when it scrolls back', async () => {
+    const page = await openBloomburrow();
+    const banner = page.getByRole('header', { name: 'Bloomburrow, 2 of 3, 66 percent' }).parent!;
+    await fireEvent(banner, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 358, height: 300 } } });
+    expect(tabHeader(tabStackTopScreen()).title).toBe('');
+
+    await scrollTabStackScreenTo(100);
+    expect(tabHeader(tabStackTopScreen()).title).toBe('');
+
+    await scrollTabStackScreenTo(300);
+    expect(tabHeader(tabStackTopScreen()).title).toBe('Bloomburrow');
+
+    await scrollTabStackScreenTo(0);
+    expect(tabHeader(tabStackTopScreen()).title).toBe('');
   });
 
   test('the swipe from the left edge goes back to Sets', async () => {
