@@ -1,20 +1,22 @@
-import type { CollectionCopyRow, CollectionPage, CollectionQuery } from '@mtgscan/supabase/collection';
+import type { CollectionCopyPage, CollectionQuery } from '@mtgscan/supabase/collection';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 
-import { supabase } from '@/lib/supabase';
-import { usePagedRead, type PagedRead } from '@/lib/use-paged-read';
+import { pagedDatabaseRead, usePagedScreenRead, type PagedRead, type PagedServerRead } from '@/lib/read';
 
-export type BinderRead = PagedRead<CollectionPage<CollectionCopyRow>>;
+export type BinderRead = PagedRead<CollectionCopyPage, 'invalid_argument'>;
 
-async function readCollectionCopies(search: CollectionQuery, cursor: string | null) {
-  const query: CollectionQuery = { ...search, rows: 'copies', cursor };
-  const { data, error } = await supabase.rpc('search_collection', { query });
-  if (error) {
-    throw error;
-  }
-  return data as unknown as CollectionPage<CollectionCopyRow>;
+function collectionCopies(search: CollectionQuery) {
+  const { readPage, ...pages } = pagedDatabaseRead(databaseFunctions.search_collection, { ...search, rows: 'copies' });
+  return {
+    ...pages,
+    readPage: async (cursor) => {
+      const page = await readPage(cursor);
+      return { ...page, items: page.items.filter((row) => 'copy_id' in row) };
+    },
+  } satisfies PagedServerRead<CollectionCopyPage, string>;
 }
 
 export function useCollectionCopies(search: CollectionQuery | null) {
-  const { read, reload, loadMore } = usePagedRead(search, readCollectionCopies);
+  const { read, reload, loadMore } = usePagedScreenRead(search && collectionCopies(search), { refused: ['invalid_argument'] });
   return { binder: read, reload, loadMore };
 }

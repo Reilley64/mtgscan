@@ -216,10 +216,10 @@ The app stays on Expo SDK 56. SDK 57 does not build on Xcode 26.3, because `expo
 
 ### Catalog search
 
-Signed-in users search the card catalog with `supabase.rpc('search_catalog', { query })`. The query is a typed object, never a query string. `supabase/search.ts` has the shared types for the query, the result page, and errors.
+Signed-in users search the card catalog with `supabase.rpc('search_catalog', { query })`. The query is a typed object, never a query string. `supabase/search.ts` has its contract, `searchCatalog`, with the query and the result page.
 
 - A text search ranks an exact full card name first. Next come exact face names, then other name matches, Oracle tag matches, type line matches, and Oracle text matches.
-- A refused call returns an error with a `code` such as `invalid_argument` or `invalid_cursor`. The field at fault is in `details`. `readSearchError` reads it as a `SearchError`.
+- A refused call returns an error with a `code` such as `invalid_argument` or `invalid_cursor`. The field at fault is in `details`. `callDatabaseFunction` returns it as a refusal with the code and the field.
 - Prices are in USD. No price read takes `price_currency`. A query that sends it, even `USD`, is refused with `invalid_argument` on `price_currency`, so an old build fails loudly. The app converts prices itself, as Converted prices says. The MCP connection returns USD. Collection search, `get_cards`, the collection total, the current prices read, and the copy read take the same rule.
 - Each row's `price_from` is the card's lowest current price in USD. A card with no lowest current price has no `price_from`.
 - `price_min` and `price_max` are USD amounts. They compare with the lowest current price, and a bound matches a price equal to it. `sort: 'price'` uses the USD amount.
@@ -239,7 +239,7 @@ Signed-in users add a scan batch to the collection with `supabase.rpc('add_scan_
 - Each commit writes one addition and one addition line per stack. The line records the purchase-day price in USD cents for the card printing and finish, with the price snapshot time. A missing price is null.
 - `collection_addition_copies` records each added copy ID with its addition line, once per user. A deleted copy's ID stays there. The function skips copy IDs that the caller already added, even when the stack around them changed or the copy was deleted. If every copy ID was added before, it changes nothing.
 - The result has the new addition (`addition_id`, `added_at`, `copy_count`, and `items`, or nulls and 0 when nothing was new) and one row in `copies` per copy ID: its `copy_id`, the addition it went into, and `replayed` true when an earlier call added it.
-- A refused call writes nothing. Its error has a `code` of `invalid_argument`, `unknown_printing`, or `basic_land`, and the field at fault in `details`, such as `items[3].finish`. `readScanBatchError` reads it.
+- A refused call writes nothing. Its error has a `code` of `invalid_argument`, `unknown_printing`, or `basic_land`, and the field at fault in `details`, such as `items[3].finish`. `callDatabaseFunction` returns it as a refusal.
 
 ### Converted prices
 
@@ -459,7 +459,7 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
 - `deck_cards` links copies to decks, with the user ID and the time the copy went into the deck. A copy is in at most one deck. `commander_at` is the time the card was made a commander, or null for the main deck. Deleting a deck or a copy removes its rows.
 - `supabase.rpc('add_deck_card', { request: { deck_id, copy_id, unprotect } })` puts a free copy into the deck's main deck. It returns `deck_id` and the new `revision`.
   - A copy in a deck is refused with `copy_not_free` on `copy_id`. It locks the copy first, so two adds of one copy at the same time put it in one deck.
-  - A protected copy is refused with `copy_protected` on `copy_id` unless `unprotect` is true. Then it unprotects the copy in the same transaction.
+  - A protected copy is refused with `protected_copy` on `copy_id` unless `unprotect` is true. Then it unprotects the copy in the same transaction.
   - Another user's copy is refused with `not_found` on `copy_id`, like a copy that does not exist.
 - `supabase.rpc('set_deck_commander', { request: { copy_id, commander } })` changes the place of a copy in a deck. It returns `deck_id` and the `revision`.
   - `commander: true` makes the card a commander. It is a `made_commander` deck change in a deck with no commander, and a `made_partner` deck change in a deck with one. Any card can be made a commander.
@@ -493,7 +493,7 @@ A deck is a Commander deck, as `GLOSSARY.md` defines it. `decks` holds each deck
   - A restored commander is made a commander again at the time of the revert.
   - An `expected_revision` that is not the deck revision is refused with `stale_revision` on `expected_revision`.
   - A block is refused with `revert_blocked` on `deck_change_id`. The message names the card, such as "Cyclonic Rift is no longer in your collection." or "Sol Ring is in Kinnan.".
-  - A protected copy that comes back is refused with `copy_protected` on `unprotect` unless `unprotect` is true. Then it unprotects the copy in the same transaction.
+  - A protected copy that comes back is refused with `protected_copy` on `unprotect` unless `unprotect` is true. Then it unprotects the copy in the same transaction.
   - It moves the planned swap of each held copy that comes back to the buylist, with the note `held_copy_reverted`. See Planned swaps.
   - A deck change of another deck or another user is refused with `not_found` on `deck_change_id`.
 - The write functions check the caller's identity and run in one transaction each. The reads run with the caller's rights. Another user's deck is refused with `not_found` on `deck_id`, like one that does not exist. A refused request has the code `invalid_argument` and the field at fault. An anonymous caller and the secret key are refused.
@@ -543,7 +543,7 @@ A buylist card is an AI client's plan for a card that the user has to buy for a 
 - `list_buylist({ query: { deck_id, status, order, cursor, limit } })` reads like `list_planned_swaps`. Its cursor does not work for `list_planned_swaps`. Each item has `buylist_card_id`, `deck_id`, `deck_name`, `commander_art_crop_uri`, `incoming`, `outgoing`, `as_commander`, `reason`, `status`, `close_note`, `created_at`, `status_changed_at`, and `effect`. The `incoming` card line has `kind` `card`, `oracle_id`, `name`, the `image_uris` of the card's default printing, and `type_line`. `outgoing` is a copy line or a basic land line, as in `list_planned_swaps`.
 - `list_free_copies({ query: { oracle_id } })` reads under row-level security. It returns `items`, the free copies of the card across printings, each in the shape of a collection copy row with no `deck` and no `held_for`. Protected copies are in it. The Bought page sheet reads it.
 - `mark_buylist_card_bought({ request: { buylist_card_id, copy_id, unprotect } })` refuses an AI client's token. It locks the deck, then the buylist card, then the copy. In one `bought` deck change, it takes the outgoing copy out, or one fewer of the outgoing basic land, and puts the copy in, as a commander when `as_commander` is true. The deck change keeps the reason. The buylist card becomes `bought`. It returns `deck_id` and the new `revision`.
-  - The copy must be a free copy of the buylist card's card. A copy of another card is refused with `invalid_argument` on `copy_id`. A copy in a deck or held is refused with `copy_not_free`. A protected copy is refused with `copy_protected` unless `unprotect` is true. Then it unprotects the copy in the same transaction. Another user's copy is refused with `not_found` on `copy_id`.
+  - The copy must be a free copy of the buylist card's card. A copy of another card is refused with `invalid_argument` on `copy_id`. A copy in a deck or held is refused with `copy_not_free`. A protected copy is refused with `protected_copy` unless `unprotect` is true. Then it unprotects the copy in the same transaction. Another user's copy is refused with `not_found` on `copy_id`.
   - A buylist card that is not open is refused with `not_open` on `buylist_card_id`. Another user's buylist card is refused with `not_found` on `buylist_card_id`. A commander that would make a third commander is refused with `commander_limit`.
   - Swap in and Bought share `private.swap_into_deck`, which writes the deck change, its copy lines, and its basic land lines. It checks the commander limit with `private.commander_count_under_limit`, as `set_deck_commander` does. Bought checks the copy with `private.take_free_copy`, as `add_deck_card` does.
 - `close_buylist_card` and `mcp_close_buylist_card` take `{ buylist_card_id }`. They work like the planned swap closes, with the close notes `closed_by_user` and `closed_by_ai_client`. An AI client can close any open buylist card of the user, whoever made it.
@@ -781,7 +781,7 @@ The tools come in this order: the read tools, then the write tools. Every read t
 | `set_copies_user_tag` | `mcp_set_copies_user_tag`, 1 to 100 copies |
 
 - `supabase/functions/mcp/tools.ts` lists the tools. Each one has all four annotations, an input schema with `additionalProperties: false`, and an output schema that also allows a problem details object.
-- `tools.ts` writes the schemas with zod. They follow the types in `supabase/search.ts`, `supabase/collection.ts`, and `supabase/decks.ts`, less the fields that the tool leaves out. The function imports nothing from outside `supabase/functions`, so the schemas copy those types by hand. Every object in an output schema has `additionalProperties: false`. The official MCP client checks each result against it in the HTTP tests, so a change to the result's shape fails them.
+- `tools.ts` builds the schemas with zod from the contracts in `@mtgscan/supabase`, so the function imports them from outside `supabase/functions`. The input schemas of `search_catalog` and `search_collection` extend the contract's request with descriptions and the MCP `limit` bounds. Each output schema is the contract's reply, less image fields and the fields that the tool leaves out. Every object in an output schema has `additionalProperties: false`. The official MCP client checks each result against it in the HTTP tests, so a change to the result's shape fails them.
 - A call to a tool that does not exist gets `invalid-argument` with the pointer `/params/name`. It is not counted against the rate limit.
 - A read tool sends its arguments to its Postgres function as `query`, and a write tool as `request`. The tool's `readOnlyHint` says which. Postgres checks the arguments, as it does for the app.
 - `get_collection_summary` and `list_decks` take an empty query. `list_user_tags` takes an optional `deleted`.
@@ -807,7 +807,7 @@ The tools come in this order: the read tools, then the write tools. Every read t
 - A tool problem is a result with `isError: true`. Its `structuredContent` is an RFC 9457 problem details object: `type`, `title`, `detail`, an optional `pointer`, `retryable`, and the members of its type, such as `retry_after_seconds`. The `pointer` is a JSON Pointer to the argument at fault, such as `/deck_id`. The text block is "title: detail", then the minified JSON.
 - HTTP 401, 413, and 500 use `application/problem+json` with `status`. The 401 keeps its `WWW-Authenticate` header.
 - `type` is `https://mtgscan.reilley.dev/problems/<name>`.
-- `supabase/functions/mcp/problems.ts` maps each Postgres error code to its problem type, such as `not_found` to `not-found`. A code with no entry is `internal-error`. The pointer comes from the error's `details`. A field such as `oracle_ids[1]` becomes `/oracle_ids/1`. A JSON object gives the pointer and the other members.
+- `supabase/functions/mcp/problems.ts` maps each Postgres error code to its problem type, such as `not_found` to `not-found`. A code with no entry is `internal-error`. `supabase/tests/mcp-problems.test.ts` fails when a contract's error codes differ from the codes that its SQL can raise, or when a problem type comes from no error code and not from the MCP server itself. The pointer comes from the error's `details`. A field such as `oracle_ids[1]` becomes `/oracle_ids/1`. A JSON object gives the pointer and the other members.
 
 The problem types, each linked to its page:
 

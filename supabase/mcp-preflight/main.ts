@@ -3,6 +3,7 @@ import { isDeepStrictEqual, parseArgs } from 'node:util';
 import { buildDiscoveryUrls, SUPPORTED_PROTOCOL_VERSIONS, type Client } from '@modelcontextprotocol/client';
 import { createClient } from '@supabase/supabase-js';
 
+import type { ReplyOf } from '../database-function';
 import type { Database } from '../database.types';
 import type { CreatedDeck, Deck } from '../decks';
 import type { CreatedPlannedSwaps, PlannedSwapPage } from '../planned-swaps';
@@ -27,7 +28,7 @@ import {
   type ClientKind,
   type RegisteredAiClient,
 } from '../mcp-connection';
-import type { CatalogRow, SearchPage } from '../search';
+import type { searchCatalog } from '../search';
 import { hostedSupabaseUrl, isHostedTestUserPassword, isLocalStack, localSupabaseUrl, testUser } from '../test-user/account';
 
 const usage = 'Usage: bun mcp-preflight/main.ts [--hosted]';
@@ -388,7 +389,7 @@ const toolChecks: Check[] = [
   {
     name: `A read tool returns its result: search_catalog finds ${searchedCard}`,
     run: async () => {
-      const { items } = await toolResult<SearchPage<CatalogRow>>('search_catalog', { names: [searchedCard], limit: 20 });
+      const { items } = await toolResult<ReplyOf<typeof searchCatalog>>('search_catalog', { names: [searchedCard], limit: 20 });
       const card = items.find(({ name }) => name === searchedCard);
       state.searchedOracleId = card?.oracle_id;
       return passIf(card !== undefined, card ? `oracle_id ${card.oracle_id}` : `no ${searchedCard} in the card catalog`);

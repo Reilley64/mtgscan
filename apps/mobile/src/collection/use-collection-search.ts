@@ -16,7 +16,7 @@ import {
 import { usePriceCurrency } from '@/collection/price-currency-setting';
 import { useSearchSuggestions } from '@/collection/use-search-suggestions';
 import { useDecks } from '@/decks/use-decks';
-import { useTypingPause } from '@/lib/use-typing-pause';
+import { useTypingPause } from '@/lib/read';
 
 const emptyFieldMark = '\u200b';
 

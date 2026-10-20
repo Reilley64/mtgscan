@@ -1,7 +1,6 @@
-import { expect } from 'bun:test';
-
-import type { Deck } from '../decks';
+import { addDeckCard, changeBasicLand, createDeck, setDeckCommander } from '../decks';
 import { basicLand } from './catalog-import-command';
+import { replyOf } from './database-calls';
 import { asDatabaseOwner, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -15,14 +14,6 @@ type StoredEvaluation = {
   judged_at: Date;
 };
 
-type DeckRequest = 'create_deck' | 'add_deck_card' | 'set_deck_commander' | 'change_basic_land';
-
-async function rpc(user: TestUser, name: DeckRequest, request: object) {
-  const { data, error } = await user.client.rpc(name, { request: request as never });
-  expect(error).toBeNull();
-  return data as { deck_id: string; revision: number };
-}
-
 export async function scannedCopy(user: TestUser): Promise<string> {
   const scanned = stack(angelicCurator);
   await committed(user, scanBatch([scanned]));
@@ -30,26 +21,20 @@ export async function scannedCopy(user: TestUser): Promise<string> {
 }
 
 async function addedCopy(user: TestUser, deckId: string, copyId: string) {
-  return rpc(user, 'add_deck_card', { deck_id: deckId, copy_id: copyId, unprotect: false });
+  return replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
 }
 
 export async function deckWithCards(user: TestUser): Promise<string> {
-  const { deck_id: deckId } = await rpc(user, 'create_deck', { name: 'Atraxa' });
+  const { deck_id: deckId } = await replyOf(user.client, createDeck, { name: 'Atraxa' });
   const commander = await scannedCopy(user);
   await addedCopy(user, deckId, commander);
-  await rpc(user, 'set_deck_commander', { copy_id: commander, commander: true });
-  await rpc(user, 'change_basic_land', { deck_id: deckId, oracle_id: forest, by: 99 });
+  await replyOf(user.client, setDeckCommander, { copy_id: commander, commander: true });
+  await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: forest, by: 99 });
   return deckId;
 }
 
 export async function emptyDeck(user: TestUser): Promise<string> {
-  return (await rpc(user, 'create_deck', { name: 'Kinnan' })).deck_id;
-}
-
-export async function deckOf(user: TestUser, deckId: string): Promise<Deck> {
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return data as unknown as Deck;
+  return (await replyOf(user.client, createDeck, { name: 'Kinnan' })).deck_id;
 }
 
 export function storedEvaluations(): Promise<StoredEvaluation[]> {

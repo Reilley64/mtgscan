@@ -1,15 +1,6 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import {
-  readDeckError,
-  type BasicLandCardList,
-  type ChangedBasicLand,
-  type CreatedDeck,
-  type Deck,
-  type DeckChangePage,
-  type DeckList,
-} from '../decks';
+import { changeBasicLand, deleteDeck, listBasicLandCards, listDeckChanges, listDecks, type Deck } from '../decks';
 import {
   basicLand,
   basicLands,
@@ -19,6 +10,8 @@ import {
   runCatalogImport,
   type ScryfallRecord,
 } from './catalog-import-command';
+import { call, failed, refused, replyOf } from './database-calls';
+import { createdDeck, deckOf } from './deck-calls';
 import {
   anonymousClient,
   asDatabaseOwner,
@@ -63,39 +56,16 @@ beforeAll(async () => {
   expect((await runCatalogImport(manifest)).exitCode).toBe(0);
 });
 
-async function created(user: TestUser, name: string) {
-  const { data, error } = await user.client.rpc('create_deck', { request: { name } });
-  expect(error).toBeNull();
-  return (data as unknown as CreatedDeck).deck_id;
-}
-
-async function changeBasicLand(client: AppClient, request: unknown) {
-  const { data, error } = await client.rpc('change_basic_land', { request: request as Json });
-  return { result: data as unknown as ChangedBasicLand | null, error: error && readDeckError(error) };
-}
-
 async function basicLandChanged(user: TestUser, deckId: string, oracleId: string, by: number) {
-  const { result, error } = await changeBasicLand(user.client, { deck_id: deckId, oracle_id: oracleId, by });
-  expect(error).toBeNull();
-  return result!;
-}
-
-async function deckOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return data as unknown as Deck;
+  return replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: oracleId, by });
 }
 
 async function deckChangesPageOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('list_deck_changes', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return data as unknown as DeckChangePage;
+  return replyOf(user.client, listDeckChanges, { deck_id: deckId });
 }
 
 async function decksOf(user: TestUser) {
-  const { data, error } = await user.client.rpc('list_decks');
-  expect(error).toBeNull();
-  return (data as unknown as DeckList).items;
+  return (await replyOf(user.client, listDecks)).items;
 }
 
 function countsOf(deck: Deck) {
@@ -119,7 +89,7 @@ async function deckChangesOf(user: TestUser, deckId: string) {
 describe('changing a basic land card', () => {
   test('adding basic lands writes one basic_lands deck change with one line and raises the revision by one', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
 
     expect(await basicLandChanged(user, deckId, forest, 8)).toEqual({ deck_id: deckId, revision: 1 });
 
@@ -134,7 +104,7 @@ describe('changing a basic land card', () => {
 
   test('adding more of a basic land card in the deck adds to its count', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     await basicLandChanged(user, deckId, forest, 8);
 
     expect(await basicLandChanged(user, deckId, forest, 2)).toEqual({ deck_id: deckId, revision: 2 });
@@ -147,7 +117,7 @@ describe('changing a basic land card', () => {
 
   test('removing one takes one off its count, and removing the last one takes the basic land card out of the deck', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     await basicLandChanged(user, deckId, forest, 2);
     await basicLandChanged(user, deckId, snowCoveredForest, 1);
 
@@ -170,7 +140,7 @@ describe('changing a basic land card', () => {
 
   test('get_deck returns each basic land card with its image and its count', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     await basicLandChanged(user, deckId, wastes, 3);
 
     const deck = await deckOf(user, deckId);
@@ -186,7 +156,7 @@ describe('changing a basic land card', () => {
 
   test('each basic land card shows the image of a printing of that basic land, in get_deck and in its deck change lines', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     for (const land of basicLands) {
       await basicLandChanged(user, deckId, land.oracle_id, 2);
     }
@@ -205,7 +175,7 @@ describe('changing a basic land card', () => {
 
   test('the image of a basic land card is its newest English printing with an image and a nonfoil finish', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
 
     const deck = await deckOf(user, deckId);
 
@@ -214,7 +184,7 @@ describe('changing a basic land card', () => {
 
   test('get_deck and list_deck_changes read only the basic land cards from the card catalog', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     await basicLandChanged(user, deckId, forest, 8);
     const query = JSON.stringify({ deck_id: deckId });
     await asDatabaseOwner((database) => database`analyze public.cards, public.card_printings`);
@@ -235,8 +205,8 @@ describe('changing a basic land card', () => {
 
   test('changing a basic land card counts as using the deck, and list_decks counts the basic lands', async () => {
     const user = await signUpNewUser();
-    const atraxa = await created(user, 'Atraxa');
-    await created(user, 'Kinnan');
+    const atraxa = await createdDeck(user, 'Atraxa');
+    await createdDeck(user, 'Kinnan');
 
     await basicLandChanged(user, atraxa, forest, 30);
 
@@ -248,12 +218,10 @@ describe('changing a basic land card', () => {
 
   test('deleting a deck deletes its basic lands', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     await basicLandChanged(user, deckId, forest, 8);
 
-    const { error } = await user.client.rpc('delete_deck', { request: { deck_id: deckId } });
-
-    expect(error).toBeNull();
+    expect(await call(user.client, deleteDeck, { deck_id: deckId })).toEqual({ status: 'replied', reply: null });
     const rows = await asDatabaseOwner(
       (database) => database`
         select deck_id from public.deck_basic_lands where deck_id = ${deckId}
@@ -270,16 +238,15 @@ describe('changing a basic land card', () => {
 describe('list_basic_land_cards', () => {
   test('lists the twelve basic land cards in order, each with the image that get_deck shows', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
 
-    const { data, error } = await user.client.rpc('list_basic_land_cards');
+    const { items } = await replyOf(user.client, listBasicLandCards);
 
-    expect(error).toBeNull();
     const deck = await deckOf(user, deckId);
-    expect((data as unknown as BasicLandCardList).items).toEqual(
+    expect(items).toEqual(
       deck.basic_lands.map(({ oracle_id, name, image_uris }) => ({ oracle_id: oracle_id!, name, image_uris })),
     );
-    expect((data as unknown as BasicLandCardList).items.map((land) => land.name)).toEqual([
+    expect(items.map((land) => land.name)).toEqual([
       'Plains',
       'Island',
       'Swamp',
@@ -299,12 +266,13 @@ describe('list_basic_land_cards', () => {
 describe('refused basic land changes', () => {
   test('a card that is not one of the twelve basic land cards is refused with invalid_argument on oracle_id', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     const rockfaceVillage = await oracleIdOf('Rockface Village');
 
     for (const oracleId of [rockfaceVillage, crypto.randomUUID()]) {
-      const { error } = await changeBasicLand(user.client, { deck_id: deckId, oracle_id: oracleId, by: 1 });
-      expect(error).toMatchObject({ code: 'invalid_argument', field: 'oracle_id' });
+      expect(await call(user.client, changeBasicLand, { deck_id: deckId, oracle_id: oracleId, by: 1 })).toMatchObject(
+        refused('invalid_argument', 'oracle_id'),
+      );
     }
 
     expect((await deckOf(user, deckId)).revision).toBe(0);
@@ -315,21 +283,21 @@ describe('refused basic land changes', () => {
     ['a count above 99', 98, 2],
   ])('a change to %s is refused with invalid_argument on by, and nothing changes', async (_, start, by) => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     if (start > 0) {
       await basicLandChanged(user, deckId, forest, start);
     }
 
-    const { error } = await changeBasicLand(user.client, { deck_id: deckId, oracle_id: forest, by });
-
-    expect(error).toMatchObject({ code: 'invalid_argument', field: 'by' });
+    expect(await call(user.client, changeBasicLand, { deck_id: deckId, oracle_id: forest, by })).toMatchObject(
+      refused('invalid_argument', 'by'),
+    );
     expect(countsOf(await deckOf(user, deckId))).toEqual(start > 0 ? { Forest: start } : {});
     expect((await deckOf(user, deckId)).revision).toBe(start > 0 ? 1 : 0);
   });
 
   test('counts of 99 and 0 are accepted', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
 
     await basicLandChanged(user, deckId, forest, 99);
     expect(countsOf(await deckOf(user, deckId))).toEqual({ Forest: 99 });
@@ -352,37 +320,35 @@ describe('refused basic land changes', () => {
     ['an unknown field', (deck_id) => ({ deck_id, oracle_id: forest, by: 1, count: 1 }), 'count'],
   ])('%s is refused with invalid_argument, and nothing changes', async (_, request, field) => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
 
-    const { error } = await changeBasicLand(user.client, request(deckId));
-
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call(user.client, changeBasicLand, request(deckId) as never)).toMatchObject(refused('invalid_argument', field));
     expect((await deckOf(user, deckId)).revision).toBe(0);
   });
 
   test('a deck that does not exist is not_found on deck_id', async () => {
     const user = await signUpNewUser();
 
-    const { error } = await changeBasicLand(user.client, { deck_id: crypto.randomUUID(), oracle_id: forest, by: 8 });
+    const result = await call(user.client, changeBasicLand, { deck_id: crypto.randomUUID(), oracle_id: forest, by: 8 });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'deck_id' });
+    expect(result).toMatchObject(refused('not_found', 'deck_id'));
   });
 });
 
 describe('access', () => {
   test("a user cannot change or read another user's basic lands", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
-    const aliceDeck = await created(alice, 'Atraxa');
+    const aliceDeck = await createdDeck(alice, 'Atraxa');
     await basicLandChanged(alice, aliceDeck, forest, 8);
 
-    const { error } = await changeBasicLand(bob.client, { deck_id: aliceDeck, oracle_id: forest, by: 1 });
+    const result = await call(bob.client, changeBasicLand, { deck_id: aliceDeck, oracle_id: forest, by: 1 });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'deck_id' });
+    expect(result).toMatchObject(refused('not_found', 'deck_id'));
     expect(countsOf(await deckOf(alice, aliceDeck))).toEqual({ Forest: 8 });
     expect((await deckOf(alice, aliceDeck)).revision).toBe(1);
     for (const table of ['deck_basic_lands', 'deck_change_basic_lands'] as const) {
-      const { data, error: readError } = await bob.client.from(table).select('user_id').eq('user_id', alice.userId);
-      expect(readError).toBeNull();
+      const { data, error } = await bob.client.from(table).select('user_id').eq('user_id', alice.userId);
+      expect(error).toBeNull();
       expect(data).toEqual([]);
     }
   });
@@ -391,18 +357,16 @@ describe('access', () => {
     ['an anonymous caller', anonymousClient],
     ['the secret key', secretKeyClient],
   ])('%s cannot change basic lands or list the basic land cards', async (_, client) => {
-    expect((await client().rpc('list_basic_land_cards')).error?.code).toBe(permissionDenied);
+    expect(await call(client(), listBasicLandCards)).toMatchObject(failed(permissionDenied));
 
-    const { error } = await client().rpc('change_basic_land', {
-      request: { deck_id: crypto.randomUUID(), oracle_id: forest, by: 1 },
-    });
+    const result = await call(client(), changeBasicLand, { deck_id: crypto.randomUUID(), oracle_id: forest, by: 1 });
 
-    expect(error?.code).toBe(permissionDenied);
+    expect(result).toMatchObject(failed(permissionDenied));
   });
 
   test('a user cannot write basic lands or their deck change lines directly', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user, 'Atraxa');
+    const deckId = await createdDeck(user, 'Atraxa');
     await basicLandChanged(user, deckId, forest, 8);
 
     const writes = [

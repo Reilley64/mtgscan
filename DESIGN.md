@@ -443,6 +443,8 @@ A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Sc
 
 A read that runs again, when a page gains focus or after a change, and fails, keeps what the page already shows. Only a page that has shown nothing yet shows its error state.
 
+A page that opens again within 5 minutes after it closed shows what it showed last at once, with no skeleton, and reads again. Sign out drops what every page read.
+
 A list that loads in pages reads the next page as the user nears its end. While that page loads, skeleton rows of the list's own shape show at its end, after the rows already shown. VoiceOver reads them as one element. When the page returns, its rows replace them. Collection and Sets load in pages (owner request, #382).
 
 - **Recent** is the home across all decks. It holds only the Needs you items, **oldest first**: planned swaps ready to swap in and open buylist cards (owner decision, spec 4). Deck changes stay in each deck's History tab. Collection changes do not appear in Recent.

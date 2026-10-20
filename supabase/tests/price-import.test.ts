@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
+import { searchCatalog } from '../search';
 import {
   type FixtureChanges,
   type ScryfallRecord,
@@ -12,6 +13,7 @@ import {
   runImportCommand,
   runPriceImport,
 } from './catalog-import-command';
+import { replyOf } from './database-calls';
 import { asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -423,9 +425,7 @@ describe('daily maintenance', () => {
   test('pruning deletes search telemetry older than 180 days and keeps newer rows', async () => {
     const searchIds: string[] = [];
     for (let index = 0; index < 2; index += 1) {
-      const { data, error } = await alice.client.rpc('search_catalog', { query: { text: 'fog' } });
-      expect(error).toBeNull();
-      searchIds.push((data as { search_id: string }).search_id);
+      searchIds.push((await replyOf(alice.client, searchCatalog, { text: 'fog' })).search_id);
     }
     const [oldSearch, recentSearch] = searchIds;
     await asDatabaseOwner(async (database) => {

@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CollectionCopyRow, CollectionPage } from '../collection';
-import type { Json } from '../database.types';
-import { readSearchError } from '../search';
+import { setCopyProtected } from '../collection';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { collectionCopies } from './collection-pages';
+import { call, failed, refused, replyOf } from './database-calls';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -21,15 +21,8 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-async function setCopyProtected(client: AppClient, request: Record<string, unknown> | unknown[]) {
-  const { data, error } = await client.rpc('set_copy_protected', { request: request as Json });
-  return { result: data, error: error && readSearchError(error) };
-}
-
 async function protectedFlags(user: TestUser) {
-  const { data, error } = await user.client.rpc('search_collection', { query: { rows: 'copies', limit: 120 } });
-  expect(error).toBeNull();
-  const { items } = data as unknown as CollectionPage<CollectionCopyRow>;
+  const { items } = await collectionCopies(user.client, { limit: 120 });
   return Object.fromEntries(items.map((copy) => [copy.copy_id, copy.protected]));
 }
 
@@ -45,10 +38,9 @@ describe('protecting a copy', () => {
     const user = await signUpNewUser();
     const [protectedCopy, otherCurator, delver] = await scannedCopies(user);
 
-    const { result, error } = await setCopyProtected(user.client, { copy_id: protectedCopy, protected: true });
+    const result = await call(user.client, setCopyProtected, { copy_id: protectedCopy, protected: true });
 
-    expect(error).toBeNull();
-    expect(result).toEqual({ copy_id: protectedCopy, protected: true });
+    expect(result).toEqual({ status: 'replied', reply: { copy_id: protectedCopy, protected: true } });
     expect(await protectedFlags(user)).toEqual({ [protectedCopy]: true, [otherCurator]: false, [delver]: false });
   });
 
@@ -56,22 +48,21 @@ describe('protecting a copy', () => {
     const user = await signUpNewUser();
     const [first, second, delver] = await scannedCopies(user);
     for (const copyId of [first, second, delver]) {
-      expect((await setCopyProtected(user.client, { copy_id: copyId, protected: true })).error).toBeNull();
+      await replyOf(user.client, setCopyProtected, { copy_id: copyId, protected: true });
     }
 
-    const { result, error } = await setCopyProtected(user.client, { copy_id: second, protected: false });
+    const result = await call(user.client, setCopyProtected, { copy_id: second, protected: false });
 
-    expect(error).toBeNull();
-    expect(result).toEqual({ copy_id: second, protected: false });
+    expect(result).toEqual({ status: 'replied', reply: { copy_id: second, protected: false } });
     expect(await protectedFlags(user)).toEqual({ [first]: true, [second]: false, [delver]: true });
   });
 
   test('protecting a protected copy again changes nothing', async () => {
     const user = await signUpNewUser();
     const [first, second, delver] = await scannedCopies(user);
-    await setCopyProtected(user.client, { copy_id: first, protected: true });
+    await replyOf(user.client, setCopyProtected, { copy_id: first, protected: true });
 
-    expect((await setCopyProtected(user.client, { copy_id: first, protected: true })).error).toBeNull();
+    expect(await call(user.client, setCopyProtected, { copy_id: first, protected: true })).toMatchObject({ status: 'replied' });
 
     expect(await protectedFlags(user)).toEqual({ [first]: true, [second]: false, [delver]: false });
   });
@@ -84,16 +75,13 @@ describe('protecting a copy', () => {
     ['a protected flag that is not true or false', { copy_id: crypto.randomUUID(), protected: 'yes' }, 'protected'],
     ['an unknown field', { copy_id: crypto.randomUUID(), protected: true, quantity: 1 }, 'quantity'],
   ])('%s is refused with invalid_argument', async (_, request, field) => {
-    const { result, error } = await setCopyProtected(alice.client, request);
-
-    expect(result).toBeNull();
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call(alice.client, setCopyProtected, request as never)).toMatchObject(refused('invalid_argument', field));
   });
 
   test('a copy ID that is not in the collection is not_found', async () => {
-    const { error } = await setCopyProtected(alice.client, { copy_id: crypto.randomUUID(), protected: true });
+    const result = await call(alice.client, setCopyProtected, { copy_id: crypto.randomUUID(), protected: true });
 
-    expect(error).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(result).toMatchObject(refused('not_found', 'copy_id'));
   });
 });
 
@@ -102,10 +90,9 @@ describe('access', () => {
     const [copyId] = await scannedCopies(alice);
     const bob = await signUpNewUser();
 
-    const { result, error } = await setCopyProtected(bob.client, { copy_id: copyId, protected: true });
+    const result = await call(bob.client, setCopyProtected, { copy_id: copyId, protected: true });
 
-    expect(result).toBeNull();
-    expect(error).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(result).toMatchObject(refused('not_found', 'copy_id'));
     expect((await protectedFlags(alice))[copyId]).toBe(false);
   });
 
@@ -115,10 +102,9 @@ describe('access', () => {
   ])('%s cannot protect a copy', async (_, client) => {
     const [copyId] = await scannedCopies(alice);
 
-    const { data, error } = await client().rpc('set_copy_protected', { request: { copy_id: copyId, protected: true } });
+    const result = await call(client(), setCopyProtected, { copy_id: copyId, protected: true });
 
-    expect(data).toBeNull();
-    expect(error?.code).toBe(permissionDenied);
+    expect(result).toMatchObject(failed(permissionDenied));
   });
 
   test('a user cannot protect a copy by writing to it directly', async () => {

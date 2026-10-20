@@ -1,8 +1,10 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import { freePlan } from '../gallery/budget';
+import { getTrainingCropSettings, setTrainingCropUploads } from '../training-crops';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
 import { connectAiClient } from './ai-clients';
+import { call, failed, refused, replyOf } from './database-calls';
 import {
   anonymousClient,
   asDatabaseOwner,
@@ -225,28 +227,28 @@ describe('who can upload training crops', () => {
 });
 
 describe('the training crop uploads setting', () => {
-  async function settingsOf(client: AppClient) {
-    return client.rpc('get_training_crop_settings');
+  function settingsOf(client: AppClient) {
+    return replyOf(client, getTrainingCropSettings);
   }
 
   test('training crop uploads are on for a new user', async () => {
     const user = await signUpNewUser();
 
-    expect(await settingsOf(user.client)).toMatchObject({ data: { uploads_on: true }, error: null });
+    expect(await call(user.client, getTrainingCropSettings)).toEqual({ status: 'replied', reply: { uploads_on: true } });
   });
 
   test("a user turns training crop uploads off and on, and another user's setting stays on", async () => {
     const user = await signUpNewUser();
     const other = await signUpNewUser();
 
-    const off = await user.client.rpc('set_training_crop_uploads', { request: { on: false } });
-    expect(off).toMatchObject({ data: { uploads_on: false }, error: null });
-    expect((await settingsOf(user.client)).data).toEqual({ uploads_on: false });
-    expect((await settingsOf(other.client)).data).toEqual({ uploads_on: true });
+    const off = await call(user.client, setTrainingCropUploads, { on: false });
+    expect(off).toEqual({ status: 'replied', reply: { uploads_on: false } });
+    expect(await settingsOf(user.client)).toEqual({ uploads_on: false });
+    expect(await settingsOf(other.client)).toEqual({ uploads_on: true });
 
-    const on = await user.client.rpc('set_training_crop_uploads', { request: { on: true } });
-    expect(on).toMatchObject({ data: { uploads_on: true }, error: null });
-    expect((await settingsOf(user.client)).data).toEqual({ uploads_on: true });
+    const on = await call(user.client, setTrainingCropUploads, { on: true });
+    expect(on).toEqual({ status: 'replied', reply: { uploads_on: true } });
+    expect(await settingsOf(user.client)).toEqual({ uploads_on: true });
   });
 
   test.each([
@@ -256,34 +258,34 @@ describe('the training crop uploads setting', () => {
   ])('%s is refused with invalid_argument and changes nothing', async (_, request, field) => {
     const user = await signUpNewUser();
 
-    const { error } = await user.client.rpc('set_training_crop_uploads', { request });
+    const result = await call(user.client, setTrainingCropUploads, request as never);
 
-    expect(error).toMatchObject({ code: 'invalid_argument', details: field });
-    expect((await settingsOf(user.client)).data).toEqual({ uploads_on: true });
+    expect(result).toMatchObject(refused('invalid_argument', field));
+    expect(await settingsOf(user.client)).toEqual({ uploads_on: true });
   });
 
   test("an AI client's token cannot change training crop uploads", async () => {
     const user = await signUpNewUser();
     const { token } = await connectAiClient(user);
 
-    const { error } = await tokenClient(token).rpc('set_training_crop_uploads', { request: { on: false } });
+    const result = await call(tokenClient(token), setTrainingCropUploads, { on: false });
 
-    expect(error?.code).toBe(permissionDenied);
-    expect((await settingsOf(user.client)).data).toEqual({ uploads_on: true });
+    expect(result).toMatchObject(failed(permissionDenied));
+    expect(await settingsOf(user.client)).toEqual({ uploads_on: true });
   });
 
   test('an anonymous caller cannot read or change training crop uploads', async () => {
-    const read = await settingsOf(anonymousClient());
-    const written = await anonymousClient().rpc('set_training_crop_uploads', { request: { on: false } });
+    const read = await call(anonymousClient(), getTrainingCropSettings);
+    const written = await call(anonymousClient(), setTrainingCropUploads, { on: false });
 
-    expect(read.error?.code).toBe(permissionDenied);
-    expect(written.error?.code).toBe(permissionDenied);
+    expect(read).toMatchObject(failed(permissionDenied));
+    expect(written).toMatchObject(failed(permissionDenied));
   });
 
   test('an upload while the user has training crop uploads off is refused with uploads_off and nothing is stored', async () => {
     const user = await signUpNewUser();
     const copyId = await scannedCopy(user);
-    await user.client.rpc('set_training_crop_uploads', { request: { on: false } });
+    await replyOf(user.client, setTrainingCropUploads, { on: false });
     const crop = evidenceRecord();
 
     const result = await upload(user.client, { copyId, crop });

@@ -1,64 +1,40 @@
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import type { NeedsYouCounts } from '@mtgscan/supabase/decks';
-import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AppState } from 'react-native';
+import { createContext, use, useMemo, type ReactNode } from 'react';
 
 import { useSession } from '@/auth/session';
-import { supabase } from '@/lib/supabase';
+import { databaseRead, useAppRead } from '@/lib/read';
 
 type NeedsYouCountsState = {
   total: number;
   countOf: (deckId: string) => number;
-  reload: () => void;
 };
+
+export const needsYouKey = ['needs_you'];
 
 const noCounts: NeedsYouCounts = { total: 0, decks: [] };
 
 const NeedsYouCountsContext = createContext<NeedsYouCountsState | null>(null);
 
+const countsRead = databaseRead(databaseFunctions.get_needs_you_counts);
+
+export const needsYouCountsRead = { ...countsRead, key: [...needsYouKey, ...countsRead.key] };
+
+export function loadedCounts(counts: NeedsYouCounts) {
+  return { counts };
+}
+
 export function NeedsYouCountsProvider({ children }: { children: ReactNode }) {
   const userId = useSession()?.user.id;
-  const [countsUserId, setCountsUserId] = useState(userId);
-  const [counts, setCounts] = useState(noCounts);
-  const [readCount, setReadCount] = useState(0);
-
-  if (countsUserId !== userId) {
-    setCountsUserId(userId);
-    setCounts(noCounts);
-  }
-
-  useEffect(() => {
-    if (!userId) {
-      return;
-    }
-    let current = true;
-    supabase.rpc('get_needs_you_counts').then(({ data, error }) => {
-      if (current && !error) {
-        setCounts(data as unknown as NeedsYouCounts);
-      }
-    });
-    return () => {
-      current = false;
-    };
-  }, [userId, readCount]);
-
-  const reload = useCallback(() => setReadCount((count) => count + 1), []);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        reload();
-      }
-    });
-    return () => subscription.remove();
-  }, [reload]);
+  const { read } = useAppRead(userId ? needsYouCountsRead : null, loadedCounts, { key: [userId], whenAppActive: true });
+  const counts = read.status === 'loaded' ? read.counts : noCounts;
 
   const state = useMemo<NeedsYouCountsState>(
     () => ({
       total: counts.total,
       countOf: (deckId) => counts.decks.find((deck) => deck.deck_id === deckId)?.count ?? 0,
-      reload,
     }),
-    [counts, reload],
+    [counts],
   );
 
   return <NeedsYouCountsContext value={state}>{children}</NeedsYouCountsContext>;

@@ -1,9 +1,9 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import { readDeckError, type CreatedDeck, type Deck, type DeckEvaluationCard, type Violation } from '../decks';
+import { addDeckCard, changeBasicLand, createDeck, getDeck, setDeckCommander, type DeckEvaluationCard, type Violation } from '../decks';
 import type { Color } from '../search';
 import { basicLand, catalogFixtureManifest, oracleIdOf, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { replyOf } from './database-calls';
 import { asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -45,23 +45,17 @@ afterEach(async () => {
   }
 });
 
-async function succeeded(user: TestUser, name: string, request: Record<string, unknown>) {
-  const { error } = await user.client.rpc(name as 'create_deck', { request: request as Json });
-  expect(error && readDeckError(error)).toBeNull();
-}
-
 async function deckOf(user: TestUser, { commanders, main = [], basicLands = {} }: DeckSeed) {
-  const { data } = await user.client.rpc('create_deck', { request: { name: 'Kinnan' } });
-  const deckId = (data as unknown as CreatedDeck).deck_id;
+  const { deck_id: deckId } = await replyOf(user.client, createDeck, { name: 'Kinnan' });
   const copies: Record<string, string> = {};
   for (const name of [...commanders, ...main]) {
     const scanned = stack(printings[name], { finish: foilOnly.includes(name) ? 'foil' : 'nonfoil' });
     await committed(user, scanBatch([scanned]));
     copies[name] = scanned.copy_ids[0]!;
-    await succeeded(user, 'add_deck_card', { deck_id: deckId, copy_id: copies[name], unprotect: false });
+    await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copies[name], unprotect: false });
   }
   for (const name of commanders) {
-    await succeeded(user, 'set_deck_commander', { copy_id: copies[name], commander: true });
+    await replyOf(user.client, setDeckCommander, { copy_id: copies[name]!, commander: true });
   }
   await basicLandsAdded(user, deckId, basicLands);
   return { deckId, copies };
@@ -69,14 +63,12 @@ async function deckOf(user: TestUser, { commanders, main = [], basicLands = {} }
 
 async function basicLandsAdded(user: TestUser, deckId: string, counts: Record<string, number>) {
   for (const [name, by] of Object.entries(counts)) {
-    await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: basicLand(name).oracle_id, by });
+    await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: basicLand(name).oracle_id, by });
   }
 }
 
 async function colorIdentityOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  const evaluation = (data as unknown as Deck).evaluation!;
+  const evaluation = (await replyOf(user.client, getDeck, { deck_id: deckId })).evaluation!;
   return {
     violations: evaluation.violations.filter((violation) => violation.rule === 'color_identity'),
     undetermined: evaluation.undetermined.filter((check) => check.rule === 'color_identity'),
@@ -239,7 +231,7 @@ describe('undetermined color identity', () => {
     const { deckId, copies } = await deckOf(user, { commanders: ['thrasios'], main: ['lightningBolt'] });
     const secondBolt = stack(printings.lightningBolt);
     await committed(user, scanBatch([secondBolt]));
-    await succeeded(user, 'add_deck_card', { deck_id: deckId, copy_id: secondBolt.copy_ids[0], unprotect: false });
+    await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: secondBolt.copy_ids[0]!, unprotect: false });
     await changeRulesData('Lightning Bolt', 'absent');
     await basicLandsAdded(user, deckId, { Island: 1 });
 

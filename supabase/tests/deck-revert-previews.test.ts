@@ -1,8 +1,19 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import { readDeckError, type CreatedDeck, type Deck, type DeckChangeEffect, type DeckChangePage, type RevertPreview } from '../decks';
+import {
+  addDeckCard,
+  changeBasicLand,
+  getDeck,
+  listDeckChanges,
+  previewRevert,
+  removeDeckCard,
+  revertDeckChanges,
+  setDeckCommander,
+  type DeckChangeEffect,
+} from '../decks';
 import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { replyOf } from './database-calls';
+import { createdDeck } from './deck-calls';
 import { asDatabaseOwner, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -20,54 +31,47 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-async function succeeded(user: TestUser, name: string, request: Record<string, unknown>) {
-  const { error } = await user.client.rpc(name as 'create_deck', { request: request as Json });
-  expect(error && readDeckError(error)).toBeNull();
-}
-
-async function created(user: TestUser) {
-  const { data, error } = await user.client.rpc('create_deck', { request: { name: 'Krenko' } });
-  expect(error).toBeNull();
-  return (data as unknown as CreatedDeck).deck_id;
-}
-
 async function addedCopy(user: TestUser, deckId: string, cardPrintingId: string) {
   const scanned = stack(cardPrintingId);
   await committed(user, scanBatch([scanned]));
   const copyId = scanned.copy_ids[0]!;
-  await succeeded(user, 'add_deck_card', { deck_id: deckId, copy_id: copyId, unprotect: false });
+  await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
   return copyId;
 }
 
-const removed = (user: TestUser, copyId: string) => succeeded(user, 'remove_deck_card', { copy_id: copyId });
+async function removed(user: TestUser, copyId: string) {
+  await replyOf(user.client, removeDeckCard, { copy_id: copyId });
+}
+
+async function madeCommander(user: TestUser, copyId: string) {
+  await replyOf(user.client, setDeckCommander, { copy_id: copyId, commander: true });
+}
+
+async function mountainsChanged(user: TestUser, deckId: string, by: number) {
+  await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: mountain, by });
+}
 
 async function deckOfKrenko(user: TestUser, cardCount: number, cardPrintingIds: string[] = []) {
-  const deckId = await created(user);
+  const deckId = await createdDeck(user, 'Krenko');
   const commander = await addedCopy(user, deckId, krenko);
-  await succeeded(user, 'set_deck_commander', { copy_id: commander, commander: true });
+  await madeCommander(user, commander);
   for (const cardPrintingId of cardPrintingIds) {
     await addedCopy(user, deckId, cardPrintingId);
   }
-  await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: mountain, by: cardCount - 1 - cardPrintingIds.length });
+  await mountainsChanged(user, deckId, cardCount - 1 - cardPrintingIds.length);
   return deckId;
 }
 
 async function lastChange(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('list_deck_changes', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return (data as unknown as DeckChangePage).items[0]!.deck_change_id;
+  return (await replyOf(user.client, listDeckChanges, { deck_id: deckId })).items[0]!.deck_change_id;
 }
 
 async function previewOf(user: TestUser, deckId: string, deckChangeId: string) {
-  const { data, error } = await user.client.rpc('preview_revert', { query: { deck_id: deckId, deck_change_id: deckChangeId } });
-  expect(error).toBeNull();
-  return data as unknown as RevertPreview;
+  return replyOf(user.client, previewRevert, { deck_id: deckId, deck_change_id: deckChangeId });
 }
 
 async function evaluationOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return (data as unknown as Deck).evaluation;
+  return (await replyOf(user.client, getDeck, { deck_id: deckId })).evaluation;
 }
 
 function effect(kind: DeckChangeEffect['kind'], ...rules: DeckChangeEffect['rules'][number]['rule'][]): DeckChangeEffect {
@@ -86,7 +90,7 @@ describe('the effect of a revert', () => {
     const preview = await previewOf(user, deckId, deckChangeId);
 
     expect(preview.effect).toEqual(effect('would_make_invalid', 'deck_size', 'singleton'));
-    await succeeded(user, 'revert_deck_changes', { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: preview.revision, unprotect: false });
+    await replyOf(user.client, revertDeckChanges, { deck_id: deckId, deck_change_id: deckChangeId, expected_revision: preview.revision, unprotect: false });
     const evaluation = (await evaluationOf(user, deckId))!;
     expect(evaluation.violations.map((violation) => violation.rule)).toEqual(['deck_size', 'singleton']);
     expect(evaluation.violations[1]!.cards).toContainEqual(expect.objectContaining({ copy_id: secondBolt }));
@@ -94,11 +98,11 @@ describe('the effect of a revert', () => {
 
   test('a revert that takes the commander out judges the deck without it', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
-    await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: mountain, by: 99 });
+    const deckId = await createdDeck(user, 'Krenko');
+    await mountainsChanged(user, deckId, 99);
     const commander = await addedCopy(user, deckId, krenko);
     const commanderAdded = await lastChange(user, deckId);
-    await succeeded(user, 'set_deck_commander', { copy_id: commander, commander: true });
+    await madeCommander(user, commander);
     expect((await evaluationOf(user, deckId))!.validity).toBe('valid');
 
     expect((await previewOf(user, deckId, commanderAdded)).effect).toEqual(effect('would_make_invalid', 'no_commander', 'deck_size'));
@@ -129,10 +133,10 @@ describe('the effect of a revert', () => {
 
   test('a revert that leaves the deck empty has no effect', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user, 'Krenko');
     const commander = await addedCopy(user, deckId, krenko);
     const commanderAdded = await lastChange(user, deckId);
-    await succeeded(user, 'set_deck_commander', { copy_id: commander, commander: true });
+    await madeCommander(user, commander);
     expect((await evaluationOf(user, deckId))!.violations.map((violation) => violation.rule)).toEqual(['deck_size']);
 
     expect((await previewOf(user, deckId, commanderAdded)).effect).toBeNull();
@@ -140,7 +144,7 @@ describe('the effect of a revert', () => {
 
   test('an empty deck has no effect', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user, 'Krenko');
     await removed(user, await addedCopy(user, deckId, blackLotus));
     expect(await evaluationOf(user, deckId)).toBeNull();
 

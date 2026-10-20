@@ -2,15 +2,8 @@ import type { DeckChange, DeckChangeBasicLandLine, DeckChangeCopyLine, DeckChang
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 import { processColor } from 'react-native';
 
-import {
-  changeDeckElsewhere,
-  deckWritesSent,
-  failDeckWrites,
-  ownDeckChanges,
-  ownDecks,
-  ownRevertPreview,
-  startSignedIn,
-} from './fake-supabase';
+import { changeDeckElsewhere, deckWritesSent, failDeckWrites, ownDeckChanges, ownDecks, ownRevertPreview, startSignedIn } from './fake-supabase';
+import { hold, refuse } from './fake-supabase-controls';
 import {
   headerButton,
   headerButtonColor,
@@ -70,7 +63,7 @@ const history = [
 const noChanges: Omit<RevertPreview, 'revision'> = { lines: [], blocks: [], protected_copies: [], held_copies: [], effect: null };
 
 async function openRevert(revision: number, preview: Partial<Omit<RevertPreview, 'revision'>> = {}, changes = history) {
-  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 0 }, { name: 'Kinnan', priority: 'low', card_count: 1 }]);
+  ownDecks([{ name: 'Atraxa', priority: 'medium' }, { name: 'Kinnan', priority: 'low' }]);
   ownDeckChanges('deck-1', changes.slice(1));
   changeDeckElsewhere('deck-1', changes[0]!);
   ownRevertPreview(`deck-change-${revision}`, { ...noChanges, ...preview });
@@ -198,6 +191,7 @@ describe('the Revert page sheet', () => {
         copyLine('Sol Ring', { place_before: null, place_after: 'main' }),
       ],
     });
+    refuse('revert_deck_changes', 'stale_revision', 'expected_revision');
 
     await pressHeaderButton(presentedPageSheet(), 'Revert');
 
@@ -209,6 +203,21 @@ describe('the Revert page sheet', () => {
 
     await waitFor(() => expect(isPageSheetPresented()).toBe(false));
     expect(await within(pushedScreen()).findByLabelText('+, Cyclonic Rift, Artifact')).toBeOnTheScreen();
+  });
+
+  test('while History reads again after a deck change, it keeps the deck changes it showed', async () => {
+    await openRevert(2);
+    changeDeckElsewhere('deck-1', deckChange(4, 'added', [copyLine('Cyclonic Rift', { place_before: null, place_after: 'main' })]));
+    const reads = hold('list_deck_changes');
+
+    await pressHeaderButton(presentedPageSheet(), 'Cancel');
+
+    await waitFor(() => expect(isPageSheetPresented()).toBe(false));
+    const deck = within(pushedScreen());
+    expect(deck.getAllByRole('button', { name: 'Revert' })).toHaveLength(3);
+    await reads.finish();
+    expect(deck.getByLabelText('+, Cyclonic Rift, Artifact')).toBeOnTheScreen();
+    expect(deck.getAllByRole('button', { name: 'Revert' })).toHaveLength(4);
   });
 
   test.each<[string, RevertPreview['effect'], string, string]>([

@@ -12,6 +12,7 @@ async function changeAppState(state: AppStateStatus) {
 }
 
 export async function returnToTheApp() {
+  await changeAppState('background');
   await changeAppState('active');
 }
 

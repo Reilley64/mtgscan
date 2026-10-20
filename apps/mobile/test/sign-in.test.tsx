@@ -14,13 +14,16 @@ import {
   appleSignInWaits,
   spyOnAppleRequest,
 } from './fake-apple';
-import { failNextSignIn, signInNextWithEmail, startSignedIn } from './fake-supabase';
+import { copyOf } from './copies';
+import { failNextSignIn, ownCopies, signInNextWithEmail, startSignedIn } from './fake-supabase';
+import { hold } from './fake-supabase-controls';
 import {
   appearsBefore,
   appleSignInButton,
   headerTitles,
   openSettings,
   pressSignInWithApple,
+  pressTab,
   queryAppleSignInButton,
   selectedTab,
   showsSpinner,
@@ -254,4 +257,22 @@ test('Sign out returns to the sign-in screen with no user data on screen', async
   expect(await screen.findByRole('button', { name: 'Continue with Google' })).toBeOnTheScreen();
   expect(screen.queryByText('player@example.com')).not.toBeOnTheScreen();
   expect(headerTitles()).not.toContain('Recent');
+});
+
+test('after Sign out, the next account sees no card of the last account while its own collection loads', async () => {
+  startSignedIn({ provider: 'google', email: 'player@example.com' });
+  ownCopies([copyOf('copy-1')]);
+  await renderApp();
+  await pressTab('Collection');
+  expect(within(selectedTab()).getByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
+  await openSettings();
+  await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
+  hold('search_collection');
+
+  signInNextWithEmail('friend@example.com');
+  await continueWithGoogle();
+  await pressTab('Collection');
+
+  expect(within(selectedTab()).getByRole('progressbar', { name: 'Loading collection' })).toBeOnTheScreen();
+  expect(within(selectedTab()).queryByRole('button', { name: /^Angelic Curator/ })).toBeNull();
 });

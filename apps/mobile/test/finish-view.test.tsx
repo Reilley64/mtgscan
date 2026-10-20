@@ -2,7 +2,8 @@ import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
 import type { CardSet, FinishView, SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
 import { fireEvent, within } from 'expo-router/testing-library';
 
-import { offerSetPage, offerSets, ownCollectionCopies, setListQueriesSent, setPageReadsSent, startSignedIn } from './fake-supabase';
+import { offerSetPage, offerSets, ownCollectionCopies, startSignedIn } from './fake-supabase';
+import { requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
   cardImageLook,
@@ -169,7 +170,7 @@ describe('Sets in a finish view', () => {
 
     expect(setRowLabels()).toEqual(['Bloomburrow, 1 of 3, 33 percent', 'Limited Edition Alpha, 1 of 5, 20 percent']);
     expect(topScreen().getByText('1 of 3')).toBeOnTheScreen();
-    expect(setListQueriesSent()).toEqual([
+    expect(requestsSent('list_sets')).toEqual([
       { finish_view: 'any', cursor: null },
       { finish_view: 'nonfoil', cursor: null },
     ]);
@@ -256,7 +257,7 @@ describe('the set page in a finish view', () => {
     expect(cardImageLook(beza)).toEqual({ opacity: 1, grayscale: false });
     expect(within(beza).getByText('2')).toBeOnTheScreen();
     expect(within(tile('Beza, the Bounding Spring, number 287, not owned')).queryByText('3')).toBeNull();
-    expect(setPageReadsSent()).toEqual(['blb']);
+    expect(requestsSent('get_set')).toEqual([{ code: 'blb' }]);
   });
 
   test('a card printing that the finish view leaves out is not shown', async () => {

@@ -2,18 +2,8 @@ import type { CopyDetails } from '@mtgscan/supabase/collection';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 
 import { copyOf, delver, openCollection, openCopyPage } from './copies';
-import {
-  answerCollectionSearches,
-  collectionSearchesSent,
-  copyRowOf,
-  failCopyReads,
-  failUserTagChanges,
-  failUserTagReads,
-  ownCopies,
-  ownUserTags,
-  removeCopyFromTheCollection,
-  startSignedIn,
-} from './fake-supabase';
+import { answerCollectionSearches, changeElsewhere, collectionSearchesSent, copyRowOf, failUserTagChanges, ownCopies, ownUserTags, startSignedIn } from './fake-supabase';
+import { fail, refuse } from './fake-supabase-controls';
 import {
   appearsBefore,
   blurredImageUris,
@@ -323,7 +313,7 @@ describe('the copy page', () => {
   test('a copy that no longer exists says so and goes back to the binder, which no longer shows it', async () => {
     ownCopies([copyOf('copy-1'), delver]);
     const collection = await openCollection();
-    removeCopyFromTheCollection('copy-delver');
+    changeElsewhere('delete_copy', { copy_id: 'copy-delver', move_planned_swap: true });
 
     await fireEvent.press(collection.getByRole('button', { name: /^Delver of Secrets/ }));
     expect(presentedAlert()).toEqual({ title: 'This card is no longer in your collection.', message: undefined, buttons: ['OK'] });
@@ -337,7 +327,7 @@ describe('the copy page', () => {
 
   test('a failed copy read offers Try again, which shows the copy', async () => {
     ownCopies([copyOf('copy-1')]);
-    failCopyReads(1);
+    fail('get_copy', 1);
     const collection = await openCollection();
 
     await fireEvent.press(collection.getByRole('button', { name: /^Angelic Curator/ }));
@@ -354,7 +344,7 @@ test('a reload that fails when the copy page gains focus again keeps the copy sh
   await openCopyPage(/^Angelic Curator/);
   await fireEvent.press(screen.getByRole('button', { name: /^(User tags,|Add user tags)/ }));
   await screen.findByLabelText('Find or create a user tag');
-  failCopyReads(1);
+  fail('get_copy', 1);
 
   await swipeBackFromThePushedScreen();
 
@@ -424,7 +414,7 @@ describe('closing the copy page', () => {
 
   test('a copy page that could not load still has Close, which goes back to the binder', async () => {
     ownCopies([copyOf('copy-1')]);
-    failCopyReads(1);
+    fail('get_copy', 1);
     const collection = await openCollection();
     await fireEvent.press(collection.getByRole('button', { name: /^Angelic Curator/ }));
     await screen.findByText('Could not load this card');
@@ -627,7 +617,7 @@ describe('the user tag picker', () => {
   test('a copy that no longer exists goes back to the copy page, which says so', async () => {
     ownUserTags([{ name: 'signed', copyIds: [] }]);
     await openUserTagPicker();
-    removeCopyFromTheCollection('copy-1');
+    changeElsewhere('delete_copy', { copy_id: 'copy-1', move_planned_swap: true });
 
     await fireEvent.press(screen.getByRole('checkbox', { name: 'signed, 0 copies' }));
 
@@ -638,7 +628,7 @@ describe('the user tag picker', () => {
   test('a failed read offers Try again, which shows the user tags', async () => {
     ownUserTags([{ name: 'signed', copyIds: [] }]);
     ownCopies([copyOf('copy-1')]);
-    failUserTagReads(1);
+    fail('list_user_tags', 1);
     await openCopyPage(/^Angelic Curator/);
     await fireEvent.press(screen.getByRole('button', { name: 'Add user tags' }));
 
@@ -720,6 +710,8 @@ describe('renaming and deleting a user tag', () => {
 
     await pressButtonMenuAction(menuButton(screen.container, 'More, Signed'), 'Rename');
     await fireEvent.changeText(screen.getByLabelText('User tag name'), 'Trade Binder');
+    refuse('rename_user_tag', 'user_tag_exists', 'name');
+
     await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByRole('alert', { name: 'You already have a user tag named "Trade Binder".' })).toBeOnTheScreen();

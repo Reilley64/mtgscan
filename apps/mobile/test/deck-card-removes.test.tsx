@@ -1,14 +1,16 @@
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { copyOf, delver, openDeckNamed } from './copies';
+import { invalidEvaluation } from './deck-evaluations';
 import {
+  changeElsewhere,
   decksOnTheServer,
-  deckWritesSent,
+  evaluateNextDeckChange,
   failDeckWrites,
   ownDeckOfCopies,
-  removeDeckCardOnTheServer,
   startSignedIn,
 } from './fake-supabase';
+import { requestsSent } from './fake-supabase-controls';
 import {
   buttonMenuActions,
   contextMenu,
@@ -31,7 +33,7 @@ beforeEach(() => {
 });
 
 function removedCards() {
-  return deckWritesSent().flatMap(({ name, request }) => (name === 'remove_deck_card' ? [request] : []));
+  return requestsSent('remove_deck_card');
 }
 
 async function openDeck() {
@@ -88,6 +90,7 @@ describe('the long-press menu on the Cards tab', () => {
   test('after a remove, the gallery card counts one card less', async () => {
     ownDeckOfCopies('Atraxa', [curator, delver]);
     const deck = await openDeck();
+    evaluateNextDeckChange('deck-1', invalidEvaluation);
 
     await pressButtonMenuAction(contextMenu(deck.getByRole('button', { name: 'Angelic Curator, MH2 262' })), 'Remove from deck');
     await deck.findByRole('header', { name: 'Creatures, 1' });
@@ -120,7 +123,7 @@ describe('the long-press menu on the Cards tab', () => {
   test('a card that was already removed on another phone leaves Cards with no alert', async () => {
     ownDeckOfCopies('Atraxa', [curator]);
     const deck = await openDeck();
-    removeDeckCardOnTheServer('copy-1');
+    changeElsewhere('remove_deck_card', { copy_id: 'copy-1' });
 
     await pressButtonMenuAction(contextMenu(deck.getByRole('button', { name: 'Angelic Curator, MH2 262' })), 'Remove from deck');
 

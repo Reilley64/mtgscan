@@ -3,16 +3,18 @@ import { getEnv } from '@supabase/middleware';
 import { createContextClient, verifyAuth } from '@supabase/server/core';
 import { withOAuthProtectedResource } from '@supabase/server/oauth-protected-resource';
 
+import { refusalOf } from '../../database-function.ts';
 import {
+  beginMcpCallCodes,
   httpProblem,
   internalErrorDetail,
   nameOf,
   problem,
-  problemFromPostgres,
+  refusalProblem,
   type Problem,
   type ProblemName,
 } from './problems.ts';
-import { pagedArguments, toolResult, tools, type Tool } from './tools.ts';
+import { pagedArguments, tools, type Tool } from './tools.ts';
 
 const mcpServerUrl = getEnv('MCP_SERVER_URL')!;
 const issuer = mcpServerUrl.replace(/\/functions\/v1\/mcp$/, '/auth/v1');
@@ -81,14 +83,15 @@ async function verifyAndServe(request: Request, body: string | null, log: Reques
   log.client_id = clientId;
 
   const supabase = userClient(auth.token!);
-  const callStart = await supabase.rpc('begin_mcp_call', { tool: log.tool });
-  const refusal = callStart.error ? problemFromPostgres(callStart.error) : null;
-  if (refusal && nameOf(refusal) === 'unauthorized') {
-    return failWith(log, 'unauthorized', 401, refusal.detail);
-  }
-  if (refusal && nameOf(refusal) !== 'rate-limited') {
+  const { error: callStartError } = await supabase.rpc('begin_mcp_call', { tool: log.tool });
+  const callStartRefusal = callStartError && refusalOf(callStartError, beginMcpCallCodes);
+  if (callStartError && !callStartRefusal) {
     return failWith(log, 'internal-error', 500, internalErrorDetail);
   }
+  if (callStartRefusal?.code === 'unauthorized') {
+    return failWith(log, 'unauthorized', 401, callStartRefusal.message);
+  }
+  const refusal = callStartRefusal && refusalProblem(callStartRefusal);
 
   const handler = createMcpHandler(() => mcpServer(supabase, refusal, log), { responseMode: 'json' });
   const response = await handler.fetch(
@@ -132,17 +135,18 @@ async function callTool(supabase: UserClient, tool: Tool, toolArguments: Record<
   if ('problem' in paged) {
     return problemResult(paged.problem);
   }
-  const argumentName = tool.annotations.readOnlyHint ? 'query' : 'request';
-  const { data, error } = await supabase.rpc(tool.postgresFunction, { [argumentName]: paged.toolArguments });
-  if (error) {
-    return problemResult(problemFromPostgres(error));
+  const result = await tool.call(supabase, paged.toolArguments);
+  if (result.status === 'refused') {
+    return problemResult(refusalProblem(result.refusal));
   }
-  const structuredContent = toolResult(tool, data);
-  const json = JSON.stringify(structuredContent);
+  if (result.status === 'failed') {
+    return problemResult(problem('internal-error', internalErrorDetail));
+  }
+  const json = JSON.stringify(result.structuredContent);
   if (new TextEncoder().encode(json).length > maxResultBytes) {
     return problemResult(problem('result-too-large', `The result is over ${maxResultBytes / 1024} KB. ${tool.tooLargeHint}`));
   }
-  return { structuredContent, content: [{ type: 'text', text: `${tool.summary(structuredContent)}\n${json}` }] };
+  return { structuredContent: result.structuredContent, content: [{ type: 'text', text: `${result.summary}\n${json}` }] };
 }
 
 function problemResult(toolProblem: Problem): CallToolResult {

@@ -1,17 +1,8 @@
 import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import { copyOf, deckCardOf, openCopyPage, openDeckWithCards } from './copies';
-import {
-  allocateCopyElsewhere,
-  deckWritesSent,
-  failAddPreviews,
-  failDeckWrites,
-  holdAddPreviews,
-  ownAddPreviewEffects,
-  ownCopies,
-  ownDecks,
-  startSignedIn,
-} from './fake-supabase';
+import { basicLandsOf, changeElsewhere, failDeckWrites, ownAddPreviewEffects, ownCopies, ownDecks, startSignedIn } from './fake-supabase';
+import { fail, hold, refuse, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
   cardImageUri,
@@ -32,7 +23,7 @@ import { tokenColors } from './token-colors';
 
 const { line, danger } = tokenColors;
 
-const medium = { priority: 'medium', card_count: 0 } as const;
+const medium = { priority: 'medium' } as const;
 
 const commanderArt = 'https://cards.scryfall.io/art_crop/front/atraxa.jpg';
 
@@ -49,7 +40,7 @@ async function chooseAction(title: string) {
 }
 
 function addedCards() {
-  return deckWritesSent().flatMap(({ name, request }) => (name === 'add_deck_card' ? [request] : []));
+  return requestsSent('add_deck_card');
 }
 
 function drawer() {
@@ -101,7 +92,7 @@ describe('the copy page actions menu', () => {
 
   test('a copy in a deck offers no Protect and no Add to deck', async () => {
     ownDecks([{ name: 'Atraxa', ...medium }]);
-    ownCopies([copyOf('copy-1', { free: false, deck: { deck_id: 'deck-1', name: 'Atraxa', role: 'main', commander_art_crop_uri: null, commander_count: 0 } })]);
+    ownCopies([copyOf('copy-1', { deck: { deck_id: 'deck-1', name: 'Atraxa', role: 'main', commander_art_crop_uri: null, commander_count: 0 } })]);
 
     await openCopyPage(/^Angelic Curator/);
 
@@ -111,11 +102,11 @@ describe('the copy page actions menu', () => {
 
 describe('the Add to deck drawer', () => {
   test('opens at half height, names the copy, and lists one row per deck with its priority and card count', async () => {
-    ownDecks([
-      { name: 'Atraxa', priority: 'medium', card_count: 62 },
-      { name: 'Kinnan', priority: 'high', card_count: 1, commanders: [{ copy_id: 'copy-9', name: 'Kinnan', art_crop_uri: commanderArt }] },
-    ]);
     ownCopies([copyOf('copy-1', { finish: 'foil', condition: 'lightly_played' })]);
+    ownDecks([
+      { name: 'Atraxa', priority: 'medium', basic_lands: basicLandsOf({ Plains: 62 }) },
+      { name: 'Kinnan', priority: 'high', commanders: [{ copy_id: 'copy-9', name: 'Kinnan', art_crop_uri: commanderArt }] },
+    ]);
     await openCopyPage(/^Angelic Curator/);
 
     await chooseAction('Add to deck');
@@ -130,11 +121,11 @@ describe('the Add to deck drawer', () => {
   });
 
   test("a deck row shows its commander's avatar, or a dashed circle with no commander", async () => {
+    ownCopies([copyOf('copy-1')]);
     ownDecks([
       { name: 'Atraxa', ...medium },
       { name: 'Kinnan', ...medium, commanders: [{ copy_id: 'copy-9', name: 'Kinnan', art_crop_uri: commanderArt }] },
     ]);
-    ownCopies([copyOf('copy-1')]);
     await openCopyPage(/^Angelic Curator/);
 
     await chooseAction('Add to deck');
@@ -198,14 +189,15 @@ describe('the Add to deck drawer', () => {
     ownCopies([copyOf('copy-1')]);
     await openCopyPage(/^Angelic Curator/);
     await chooseAction('Add to deck');
-    allocateCopyElsewhere('copy-1');
+    changeElsewhere('add_deck_card', { deck_id: 'deck-1', copy_id: 'copy-1', unprotect: false });
+    refuse('add_deck_card', 'copy_not_free', 'copy_id');
 
     await fireEvent.press(await drawer().findByRole('button', { name: /^Atraxa/ }));
 
     expect(presentedAlert()).toEqual({ title: 'This card is already in a deck.', message: undefined, buttons: ['OK'] });
     expect(isDrawerPresented()).toBe(false);
     await pressAlertButton('OK');
-    expect(actionsMenuRows()).toEqual(['Delete copy']);
+    expect(actionsMenuRows()).toEqual(['Make commander', 'Remove from deck', 'Delete copy']);
   });
 
   test('a write that fails says so and keeps the drawer open', async () => {
@@ -253,13 +245,13 @@ describe('the Add to deck drawer', () => {
     ownAddPreviewEffects({ 'deck-1': { kind: 'adds_violation', rules: [{ rule: 'singleton' }] } });
     ownCopies([copyOf('copy-1')]);
     await openCopyPage(/^Angelic Curator/);
-    const held = holdAddPreviews();
+    const held = hold('preview_add_deck_card');
 
     await chooseAction('Add to deck');
 
     expect(await drawer().findByRole('button', { name: 'Atraxa, Medium priority · 0 cards' })).toBeOnTheScreen();
     expect(drawer().queryByText('Adds a violation')).not.toBeOnTheScreen();
-    failAddPreviews(1);
+    fail('preview_add_deck_card', 1);
     await held.finish();
     expect(drawer().getByRole('button', { name: 'Atraxa, Medium priority · 0 cards' })).toBeOnTheScreen();
     expect(drawer().queryByText('Adds a violation')).not.toBeOnTheScreen();
@@ -282,8 +274,8 @@ describe('the Add to deck drawer', () => {
 
 describe('the deck tag', () => {
   test('a copy in a deck shows the deck tag with a dashed circle, and a tap opens the deck on Cards', async () => {
-    ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 1, cards: [deckCardOf('copy-1', 'Angelic Curator', 'Creature — Angel Spirit')] }]);
-    ownCopies([copyOf('copy-1', { free: false, deck: { deck_id: 'deck-1', name: 'Atraxa', role: 'main', commander_art_crop_uri: null, commander_count: 0 } })]);
+    ownDecks([{ name: 'Atraxa', priority: 'medium', cards: [deckCardOf('copy-1', 'Angelic Curator', 'Creature — Angel Spirit')] }]);
+    ownCopies([copyOf('copy-1', { deck: { deck_id: 'deck-1', name: 'Atraxa', role: 'main', commander_art_crop_uri: null, commander_count: 0 } })]);
     await openCopyPage(/^Angelic Curator/);
 
     const tag = within(pushedScreen()).getByRole('button', { name: 'Atraxa' });
@@ -298,7 +290,8 @@ describe('the deck tag', () => {
   });
 
   test("the deck tag shows the first commander's avatar", async () => {
-    ownCopies([copyOf('copy-1', { free: false, deck: { deck_id: 'deck-1', name: 'Atraxa', role: 'main', commander_art_crop_uri: commanderArt, commander_count: 1 } })]);
+    ownCopies([copyOf('copy-1', { deck: { deck_id: 'deck-1', name: 'Atraxa', role: 'main', commander_art_crop_uri: commanderArt, commander_count: 1 } })]);
+    ownDecks([{ name: 'Atraxa', ...medium, commanders: [{ copy_id: 'copy-9', name: 'Atraxa', art_crop_uri: commanderArt }] }]);
 
     await openCopyPage(/^Angelic Curator/);
 
@@ -375,7 +368,7 @@ describe('the Cards tab', () => {
   });
 
   test('a tap on a tile opens its copy page', async () => {
-    ownCopies([copyOf('copy-1', { free: false, deck: { deck_id: 'deck-1', name: 'Atraxa', role: 'main', commander_art_crop_uri: null, commander_count: 0 } })]);
+    ownCopies([copyOf('copy-1', { deck: { deck_id: 'deck-1', name: 'Atraxa', role: 'main', commander_art_crop_uri: null, commander_count: 0 } })]);
     const deck = await openDeckWithCards([deckCardOf('copy-1', 'Angelic Curator', 'Creature — Angel Spirit')]);
 
     await fireEvent.press(deck.getByRole('button', { name: 'Angelic Curator, MH2 262' }));

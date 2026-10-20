@@ -1,5 +1,5 @@
-import type { TagLookupPage } from '@mtgscan/supabase/search';
-import { useEffect, useMemo, useState } from 'react';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
+import { useMemo } from 'react';
 
 import {
   chipLabel,
@@ -12,11 +12,11 @@ import {
 } from '@/collection/collection-search';
 import { shownCopyCount } from '@/collection/total-labels';
 import { userTagsFound } from '@/collection/user-tag-names';
-import { readUserTags } from '@/collection/user-tags';
+import { userTagsRead } from '@/collection/user-tags';
 import { cardCountLabel } from '@/decks/deck-labels';
-import { readDecks } from '@/decks/use-decks';
+import { decksRead } from '@/decks/use-decks';
+import { databaseRead, useFetchRead, useScreenRead, useTypingPause } from '@/lib/read';
 import { supabase } from '@/lib/supabase';
-import { useTypingPause } from '@/lib/use-typing-pause';
 
 const suggestionLimit = 8;
 
@@ -33,23 +33,22 @@ async function setSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
   return data.map((set) => chipSuggestion(typed, set.code, set.name));
 }
 
-async function oracleTagSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
-  const { data, error } = await supabase.rpc('search_oracle_tags', { query: { text: typed.value, limit: suggestionLimit } });
-  if (error) {
-    throw error;
-  }
-  return (data as unknown as TagLookupPage).items.map((tag) => chipSuggestion(typed, tag.slug, tag.label));
+type FetchRead = ReturnType<typeof useFetchRead>;
+
+async function oracleTagSuggestions(typed: TypedValue, fetchRead: FetchRead): Promise<SearchSuggestion[]> {
+  const { items } = await fetchRead(databaseRead(databaseFunctions.search_oracle_tags, { text: typed.value, limit: suggestionLimit }));
+  return items.map((tag) => chipSuggestion(typed, tag.slug, tag.label));
 }
 
-async function userTagSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
-  const { userTags } = await readUserTags();
-  return userTagsFound(userTags, typed.value)
+async function userTagSuggestions(typed: TypedValue, fetchRead: FetchRead): Promise<SearchSuggestion[]> {
+  const { items } = await fetchRead(userTagsRead);
+  return userTagsFound(items, typed.value)
     .slice(0, suggestionLimit)
     .map((userTag) => chipSuggestion(typed, userTag.name, shownCopyCount(userTag.copy_count)));
 }
 
-async function deckSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
-  const { decks } = await readDecks();
+async function deckSuggestions(typed: TypedValue, fetchRead: FetchRead): Promise<SearchSuggestion[]> {
+  const { items: decks } = await fetchRead(decksRead);
   const found = typed.value.trim().toLowerCase();
   return decks
     .filter((deck) => deck.name.toLowerCase().includes(found))
@@ -64,45 +63,30 @@ async function deckSuggestions(typed: TypedValue): Promise<SearchSuggestion[]> {
     });
 }
 
-function suggestionLookup(token: string) {
+function suggestionLookup(token: string, fetchRead: FetchRead) {
   const typed = typedValue(token);
   switch (typed?.key) {
     case 'set':
-      return typed.value ? setSuggestions(typed) : null;
+      return typed.value ? () => setSuggestions(typed) : null;
     case 'tag':
-      return typed.value ? oracleTagSuggestions(typed) : null;
+      return typed.value ? () => oracleTagSuggestions(typed, fetchRead) : null;
     case 'user_tag':
-      return userTagSuggestions(typed);
+      return () => userTagSuggestions(typed, fetchRead);
     case 'deck':
-      return deckSuggestions(typed);
+      return () => deckSuggestions(typed, fetchRead);
     default:
       return null;
   }
 }
 
+function loadedSuggestions(suggestions: SearchSuggestion[]) {
+  return { suggestions };
+}
+
 export function useSearchSuggestions(token: string) {
   const fixed = useMemo(() => fixedSuggestions(token), [token]);
   const [pausedToken] = useTypingPause(token);
-  const [found, setFound] = useState<{ token: string; suggestions: SearchSuggestion[] } | null>(null);
-
-  useEffect(() => {
-    const lookup = suggestionLookup(pausedToken);
-    if (!lookup) {
-      return;
-    }
-    let current = true;
-    lookup.then(
-      (suggestions) => {
-        if (current) {
-          setFound({ token: pausedToken, suggestions });
-        }
-      },
-      () => {},
-    );
-    return () => {
-      current = false;
-    };
-  }, [pausedToken]);
-
-  return found?.token === token ? [...fixed, ...found.suggestions] : fixed;
+  const lookup = suggestionLookup(pausedToken, useFetchRead());
+  const { read } = useScreenRead(lookup && { key: ['search_suggestions', pausedToken], read: lookup }, loadedSuggestions);
+  return read.status === 'loaded' && pausedToken === token ? [...fixed, ...read.suggestions] : fixed;
 }

@@ -1,20 +1,19 @@
-import { usdExchangeRate, type ExchangeRate, type ExchangeRateList } from '@mtgscan/supabase/converted-prices';
+import { usdExchangeRate, type ExchangeRate } from '@mtgscan/supabase/converted-prices';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 import { getLocales } from 'expo-localization';
 import * as SecureStore from 'expo-secure-store';
-import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AppState } from 'react-native';
+import { createContext, use, useMemo, useState, type ReactNode } from 'react';
 
 import { useSession } from '@/auth/session';
-import { supabase } from '@/lib/supabase';
+import { databaseRead, useAppRead, type Read } from '@/lib/read';
 
 const currencyKey = 'currency';
 
 const ratesReadAgainAfterMs = 24 * 60 * 60 * 1000;
 
-type PriceCurrencies =
-  | { status: 'loading' }
-  | { status: 'failed' }
-  | { status: 'loaded'; items: ExchangeRate[]; readAt: number };
+const exchangeRatesRead = databaseRead(databaseFunctions.list_exchange_rates);
+
+type PriceCurrencies = Read<{ items: ExchangeRate[] }>;
 
 type PriceCurrencySetting = {
   priceCurrency: ExchangeRate | null;
@@ -27,6 +26,10 @@ const PriceCurrencyContext = createContext<PriceCurrencySetting | null>(null);
 
 function regionCurrency() {
   return getLocales()[0]?.currencyCode ?? usdExchangeRate.currency;
+}
+
+function loadedRates({ items }: { items: ExchangeRate[] }) {
+  return { items };
 }
 
 function shownCurrency(chosen: string, priceCurrencies: PriceCurrencies) {
@@ -43,61 +46,22 @@ function shownCurrency(chosen: string, priceCurrencies: PriceCurrencies) {
 export function PriceCurrencyProvider({ children }: { children: ReactNode }) {
   const signedIn = useSession() !== null;
   const [chosen, setChosen] = useState(() => SecureStore.getItem(currencyKey) ?? regionCurrency());
-  const [priceCurrencies, setPriceCurrencies] = useState<PriceCurrencies>({ status: 'loading' });
-  const [readCount, setReadCount] = useState(0);
-
-  useEffect(() => {
-    if (!signedIn) {
-      return;
-    }
-    let current = true;
-    supabase.rpc('list_exchange_rates').then(({ data, error }) => {
-      if (!current) {
-        return;
-      }
-      setPriceCurrencies((shown) =>
-        error
-          ? shown.status === 'loaded'
-            ? shown
-            : { status: 'failed' }
-          : { status: 'loaded', items: (data as unknown as ExchangeRateList).items, readAt: Date.now() },
-      );
-    });
-    return () => {
-      current = false;
-    };
-  }, [signedIn, readCount]);
-
-  const reloadPriceCurrencies = useCallback(() => {
-    setPriceCurrencies({ status: 'loading' });
-    setReadCount((count) => count + 1);
-  }, []);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') {
-        return;
-      }
-      if (priceCurrencies.status === 'failed') {
-        reloadPriceCurrencies();
-      } else if (priceCurrencies.status === 'loaded' && Date.now() - priceCurrencies.readAt > ratesReadAgainAfterMs) {
-        setReadCount((count) => count + 1);
-      }
-    });
-    return () => subscription.remove();
-  }, [priceCurrencies, reloadPriceCurrencies]);
+  const { read: priceCurrencies, reload } = useAppRead(signedIn ? exchangeRatesRead : null, loadedRates, {
+    whenAppActive: true,
+    staleTime: ratesReadAgainAfterMs,
+  });
 
   const setting = useMemo<PriceCurrencySetting>(
     () => ({
       priceCurrency: shownCurrency(chosen, priceCurrencies),
       priceCurrencies,
-      reloadPriceCurrencies,
+      reloadPriceCurrencies: () => void reload(),
       setCurrency: (currency) => {
         setChosen(currency);
         void SecureStore.setItemAsync(currencyKey, currency);
       },
     }),
-    [chosen, priceCurrencies, reloadPriceCurrencies],
+    [chosen, priceCurrencies, reload],
   );
 
   return <PriceCurrencyContext value={setting}>{children}</PriceCurrencyContext>;

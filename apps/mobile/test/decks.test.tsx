@@ -7,17 +7,17 @@ import {
 } from "expo-router/testing-library";
 import { StyleSheet } from "react-native";
 
+import { deckCardOf } from "./copies";
+import { invalidEvaluation } from "./deck-evaluations";
 import {
-  deckWritesSent,
+  changeElsewhere,
   decksOnTheServer,
-  deleteDeckOnTheServer,
   failDeckReads,
   failDeckWrites,
-  holdDeckListReads,
-  holdDeckReads,
   ownDecks,
   startSignedIn,
 } from "./fake-supabase";
+import { hold, requestsSent } from "./fake-supabase-controls";
 import {
   appearsBefore,
   dashedOutlinesColored,
@@ -63,15 +63,11 @@ async function openNameAlert() {
 }
 
 function createdDeckNames() {
-  return deckWritesSent().flatMap(({ name, request }) =>
-    name === "create_deck" ? [(request as { name: string }).name] : [],
-  );
+  return requestsSent("create_deck").map(({ name }) => name);
 }
 
 function decksMarkedUsed() {
-  return deckWritesSent().flatMap(({ name, request }) =>
-    name === "mark_deck_used" ? [(request as { deck_id: string }).deck_id] : [],
-  );
+  return requestsSent("mark_deck_used").map(({ deck_id }) => deck_id);
 }
 
 function galleryCardNames() {
@@ -80,7 +76,7 @@ function galleryCardNames() {
     .map((title) => title.props.children as string);
 }
 
-const medium = { priority: "medium", card_count: 0 } as const;
+const medium = { priority: "medium" } as const;
 
 describe("creating a deck", () => {
   test("Decks has a Create deck bar button with a plus before the settings button", async () => {
@@ -225,7 +221,7 @@ describe("the Decks empty state", () => {
 describe("the commander gallery", () => {
   test("until the deck list read returns, Decks shows the gallery card skeletons, then the gallery cards", async () => {
     ownDecks([{ name: "Atraxa", ...medium }]);
-    const reads = holdDeckListReads();
+    const reads = hold('list_decks');
 
     const decks = await openDecks();
     expect(
@@ -246,8 +242,8 @@ describe("the commander gallery", () => {
   test("shows one card per deck, the deck used most recently first", async () => {
     ownDecks([
       { name: "Atraxa", ...medium },
-      { name: "Kinnan", priority: "high", card_count: 1 },
-      { name: "Yuriko", priority: "low", card_count: 0 },
+      { name: "Kinnan", priority: "high", evaluation: invalidEvaluation },
+      { name: "Yuriko", priority: "low" },
     ]);
     const decks = await openDecks();
 
@@ -311,7 +307,7 @@ describe("the deck screen", () => {
   }
 
   test("is pushed over the tab bar with a full-width ghost commander banner from the top edge, and the name with no priority or card count chips", async () => {
-    ownDecks([{ name: "Atraxa", priority: "high", card_count: 0 }]);
+    ownDecks([{ name: "Atraxa", priority: "high" }]);
 
     const deck = await openDeck();
 
@@ -335,7 +331,7 @@ describe("the deck screen", () => {
     ).not.toBeOnTheScreen();
   });
   test("the deck name becomes the header title once the banner scrolls under the header, and goes again when it scrolls back", async () => {
-    ownDecks([{ name: "Atraxa", priority: "high", card_count: 0 }]);
+    ownDecks([{ name: "Atraxa", priority: "high" }]);
     const deck = await openDeck();
     const { block: banner } = placeInScrollView(
       deck.getByRole("header", { name: "Atraxa" }),
@@ -421,7 +417,7 @@ describe("the deck screen", () => {
   test("until the deck read returns, the deck screen shows the deck skeleton, then the deck", async () => {
     ownDecks([{ name: "Atraxa", ...medium }]);
     const decks = await openDecks();
-    const reads = holdDeckReads();
+    const reads = hold('get_deck');
 
     await fireEvent.press(decks.getByRole("button", { name: /^Atraxa(,|$)/ }));
 
@@ -447,7 +443,7 @@ describe("the deck screen", () => {
   test("VoiceOver reads the deck skeleton as one element and not each block", async () => {
     ownDecks([{ name: "Atraxa", ...medium }]);
     const decks = await openDecks();
-    holdDeckReads();
+    hold('get_deck');
 
     await fireEvent.press(decks.getByRole("button", { name: /^Atraxa(,|$)/ }));
 
@@ -479,7 +475,7 @@ describe("the deck screen", () => {
 
 describe("the deck menu", () => {
   async function openDeck(
-    seed: Partial<Pick<Deck, "priority" | "card_count">> = {},
+    seed: Partial<Pick<Deck, "priority" | "cards">> = {},
   ) {
     ownDecks([
       { name: "Kinnan", ...medium },
@@ -490,12 +486,6 @@ describe("the deck menu", () => {
     const deck = within(pushedScreen());
     await deck.findByRole("header", { name: "Atraxa" });
     return deck;
-  }
-
-  function deckWrites(name: string) {
-    return deckWritesSent().flatMap((write) =>
-      write.name === name ? [write.request] : [],
-    );
   }
 
   async function chooseFromMenu(...path: string[]) {
@@ -553,7 +543,7 @@ describe("the deck menu", () => {
 
     await pressAlertWithFieldButton("Save");
 
-    expect(deckWrites("rename_deck")).toEqual([
+    expect(requestsSent("rename_deck")).toEqual([
       { deck_id: "deck-2", name: "Atraxa Superfriends" },
     ]);
     expect(
@@ -569,7 +559,7 @@ describe("the deck menu", () => {
 
     await pressAlertWithFieldButton("Cancel");
 
-    expect(deckWrites("rename_deck")).toEqual([]);
+    expect(requestsSent("rename_deck")).toEqual([]);
     expect(deck.getByRole("header", { name: "Atraxa" })).toBeOnTheScreen();
   });
 
@@ -595,7 +585,7 @@ describe("the deck menu", () => {
 
   test("renaming a deck that was deleted elsewhere goes back to the gallery", async () => {
     await openDeck();
-    deleteDeckOnTheServer("deck-2");
+    changeElsewhere('delete_deck', { deck_id: "deck-2" });
     await chooseFromMenu("Rename");
     await typeInAlertField("Kinnan");
 
@@ -618,7 +608,7 @@ describe("the deck menu", () => {
 
     await chooseFromMenu("Priority", "Low");
 
-    expect(deckWrites("set_deck_priority")).toEqual([
+    expect(requestsSent("set_deck_priority")).toEqual([
       { deck_id: "deck-2", priority: "low" },
     ]);
     await waitFor(() =>
@@ -665,7 +655,11 @@ describe("the deck menu", () => {
   ])(
     "Delete deck asks first, naming the deck, the cards that become free, and the deleted history (%i)",
     async (cardCount, message) => {
-      await openDeck({ card_count: cardCount });
+      await openDeck({
+        cards: Array.from({ length: cardCount }, (_, index) =>
+          deckCardOf(`copy-${index}`, "Sol Ring", "Artifact"),
+        ),
+      });
 
       await chooseFromMenu("Delete deck");
 
@@ -674,7 +668,7 @@ describe("the deck menu", () => {
         message,
         buttons: ["Delete deck", "Cancel"],
       });
-      expect(deckWrites("delete_deck")).toEqual([]);
+      expect(requestsSent("delete_deck")).toEqual([]);
     },
   );
 
@@ -684,7 +678,7 @@ describe("the deck menu", () => {
 
     await pressAlertButton("Delete deck");
 
-    expect(deckWrites("delete_deck")).toEqual([{ deck_id: "deck-2" }]);
+    expect(requestsSent("delete_deck")).toEqual([{ deck_id: "deck-2" }]);
     expect(() => pushedScreen()).toThrow("No screen is pushed");
     expect(tabHeader(selectedTab()).title).toBe("Decks");
     expect(
@@ -703,7 +697,7 @@ describe("the deck menu", () => {
 
     await pressAlertButton("Cancel");
 
-    expect(deckWrites("delete_deck")).toEqual([]);
+    expect(requestsSent("delete_deck")).toEqual([]);
     expect(deck.getByRole("header", { name: "Atraxa" })).toBeOnTheScreen();
   });
 

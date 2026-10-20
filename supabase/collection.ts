@@ -1,241 +1,339 @@
-import type { Database } from './database.types';
-import type { CopyDeck, CopyHeldFor, CopyRowDeck } from './decks';
-import {
-  readSearchError,
-  type CatalogQuery,
-  type CatalogSort,
-  type CommanderLegality,
-  type Finish,
-  type PriceFrom,
-  type SearchError,
-  type SearchPage,
-} from './search';
+import { z } from 'zod';
+
+import { databaseFunction } from './database-function.ts';
+import type { Database } from './database.types.ts';
+import { commanderLegality, condition, deckRole, finish, id, integer, language, rarity } from './fields.ts';
+import { catalogFilters, catalogSort, priceFrom, searchPage } from './search.ts';
 
 export type CardCondition = Database['public']['Enums']['card_condition'];
 
 export type CardLanguage = Database['public']['Enums']['card_language'];
 
-export type CardRarity = Database['public']['Enums']['card_rarity'];
+const collectionSort = z.enum([...catalogSort.options, 'added']);
 
-export type CollectionSort = CatalogSort | 'added';
+export type CollectionSort = z.infer<typeof collectionSort>;
 
-export type CollectionQuery = Omit<CatalogQuery, 'sort'> & {
-  rows?: 'entries' | 'copies';
-  sort?: CollectionSort;
-  finishes?: Finish[];
-  finishes_exclude?: Finish[];
-  conditions?: CardCondition[];
-  conditions_exclude?: CardCondition[];
-  languages?: CardLanguage[];
-  languages_exclude?: CardLanguage[];
-  deck_ids?: string[];
-  deck_ids_exclude?: string[];
-  is_free?: boolean;
-  is_protected?: boolean;
-  is_allocated?: boolean;
-  user_tags?: string[];
-  user_tags_exclude?: string[];
-};
+const collectionQuery = z.strictObject({
+  ...catalogFilters,
+  rows: z.enum(['entries', 'copies']).optional(),
+  sort: collectionSort.optional(),
+  finishes: z.array(finish).optional(),
+  finishes_exclude: z.array(finish).optional(),
+  conditions: z.array(condition).optional(),
+  conditions_exclude: z.array(condition).optional(),
+  languages: z.array(language).optional(),
+  languages_exclude: z.array(language).optional(),
+  deck_ids: z.array(id).optional(),
+  deck_ids_exclude: z.array(id).optional(),
+  is_free: z.boolean().optional(),
+  is_protected: z.boolean().optional(),
+  is_allocated: z.boolean().optional(),
+  user_tags: z.array(z.string()).optional(),
+  user_tags_exclude: z.array(z.string()).optional(),
+});
 
-export type CollectionPage<Row> = SearchPage<Row> & {
-  total_count: number | null;
-};
+export type CollectionQuery = z.input<typeof collectionQuery>;
 
-export type CollectionRow = {
-  oracle_id: string;
-  printing_id: string;
-  name: string;
-  set: string;
-  collector_number: string;
-  finish: Finish;
-  language: CardLanguage;
-  condition: CardCondition;
-  protected: boolean;
-  quantity: number;
-  free_quantity: number;
-  allocated_quantity: number;
-  held_quantity: number;
-  commander_legal: boolean;
-  price: CurrentPrice | null;
-  total: string | null;
-  oracle_text?: string;
-};
+const currentPrice = priceFrom.omit({ basis: true }).extend({ stale: z.boolean() });
 
-export type ScanBatchStack = {
-  card_printing_id: string;
-  finish: Finish;
-  condition: CardCondition;
-  language: CardLanguage;
-  copy_ids: string[];
-};
+export type CurrentPrice = z.infer<typeof currentPrice>;
 
-export type ScanBatch = {
-  items: ScanBatchStack[];
-};
+const collectionRow = z.strictObject({
+  oracle_id: id,
+  printing_id: id,
+  name: z.string(),
+  set: z.string(),
+  collector_number: z.string(),
+  finish,
+  language,
+  condition,
+  protected: z.boolean(),
+  quantity: integer,
+  free_quantity: integer,
+  allocated_quantity: integer,
+  held_quantity: integer,
+  commander_legal: z.boolean(),
+  price: currentPrice.nullable(),
+  total: z.string().nullable(),
+  oracle_text: z.string().optional(),
+});
 
-export type ScanBatchResultItem = Omit<ScanBatchStack, 'copy_ids'> & {
-  quantity_added: number;
-};
+export type CollectionRow = z.infer<typeof collectionRow>;
 
-export type ScanBatchResultCopy = {
-  copy_id: string;
-  addition_id: string;
-  replayed: boolean;
-};
+export const copyRowDeck = z.strictObject({ deck_id: id, name: z.string() });
 
-export type ScanBatchResult = {
-  addition_id: string | null;
-  added_at: string | null;
-  copy_count: number;
-  items: ScanBatchResultItem[];
-  copies: ScanBatchResultCopy[];
-};
+export const collectionCopyRow = z.strictObject({
+  copy_id: id,
+  printing_id: id,
+  name: z.string(),
+  set: z.string(),
+  collector_number: z.string(),
+  rarity,
+  image_uris: z.array(z.string()),
+  finish,
+  condition,
+  language,
+  protected: z.boolean(),
+  price: currentPrice.nullable(),
+  deck: copyRowDeck.nullable(),
+  held_for: copyRowDeck.nullable(),
+  created_at: z.string(),
+  oracle_text: z.string().optional(),
+});
 
-export type CurrentPrice = Omit<PriceFrom, 'basis'> & { stale: boolean };
+export type CollectionCopyRow = z.infer<typeof collectionCopyRow>;
 
-export type CurrentPriceKey = {
-  printing_id: string;
-  finish: Finish;
-};
+const collectionPage = z.strictObject({
+  ...searchPage,
+  total_count: integer.nullable(),
+  items: z.array(z.union([collectionRow, collectionCopyRow])),
+});
 
-export type CurrentPricesQuery = {
-  items: CurrentPriceKey[];
-};
+export const collectionEntryPage = collectionPage.extend({ items: z.array(collectionRow) });
 
-export type CurrentPriceRow = CurrentPriceKey & {
-  price: CurrentPrice | null;
-};
+export const collectionCopyPage = collectionPage.extend({ items: z.array(collectionCopyRow) });
 
-export type CurrentPrices = {
-  items: CurrentPriceRow[];
-};
+export type CollectionCopyPage = z.infer<typeof collectionCopyPage>;
 
-export type CollectionCopyRow = {
-  copy_id: string;
-  printing_id: string;
-  name: string;
-  set: string;
-  collector_number: string;
-  rarity: CardRarity;
-  image_uris: string[];
-  finish: Finish;
-  condition: CardCondition;
-  language: CardLanguage;
-  protected: boolean;
-  price: CurrentPrice | null;
-  deck: CopyRowDeck | null;
-  held_for: CopyRowDeck | null;
-  created_at: string;
-  oracle_text?: string;
-};
+const scanBatchStack = z.strictObject({
+  card_printing_id: id,
+  finish,
+  condition,
+  language,
+  copy_ids: z.array(id),
+});
 
-export type CopyQuery = {
-  copy_id: string;
-};
+export type ScanBatchStack = z.infer<typeof scanBatchStack>;
 
-export type CopyProtectedRequest = {
-  copy_id: string;
-  protected: boolean;
-};
+const scanBatch = z.strictObject({ items: z.array(scanBatchStack) });
 
-export type DeleteCopyRequest = {
-  copy_id: string;
-  move_planned_swap?: boolean;
-};
+export type ScanBatch = z.input<typeof scanBatch>;
 
-export type CopyFace = {
-  name: string;
-  oracle_text: string;
-};
+const scanBatchResult = z.strictObject({
+  addition_id: id.nullable(),
+  added_at: z.string().nullable(),
+  copy_count: integer,
+  items: z.array(scanBatchStack.omit({ copy_ids: true }).extend({ quantity_added: integer })),
+  copies: z.array(z.strictObject({ copy_id: id, addition_id: id, replayed: z.boolean() })),
+});
+
+const currentPriceKey = z.strictObject({ printing_id: id, finish });
+
+export type CurrentPriceKey = z.infer<typeof currentPriceKey>;
+
+const currentPricesQuery = z.strictObject({ items: z.array(currentPriceKey) });
+
+export type CurrentPricesQuery = z.input<typeof currentPricesQuery>;
+
+const currentPrices = z.strictObject({ items: z.array(currentPriceKey.extend({ price: currentPrice.nullable() })) });
+
+export type CurrentPriceRow = z.infer<typeof currentPrices>['items'][number];
+
+const copyQuery = z.strictObject({ copy_id: id });
+
+export type CopyQuery = z.input<typeof copyQuery>;
+
+const copyProtectedRequest = z.strictObject({ copy_id: id, protected: z.boolean() });
+
+const deleteCopyRequest = z.strictObject({ copy_id: id, move_planned_swap: z.boolean().optional() });
 
 export const userTagNameLength = 64;
 
-export type UserTag = {
-  user_tag_id: string;
-  name: string;
-};
+const userTag = z.strictObject({ user_tag_id: id, name: z.string() });
 
-export type UserTagRow = UserTag & {
-  copy_count: number;
-};
+export type UserTag = z.infer<typeof userTag>;
 
-export type UserTagList = {
-  items: UserTagRow[];
-};
+const userTagRow = userTag.extend({ copy_count: integer });
 
-export type CreateUserTagRequest = {
-  name: string;
-};
+export type UserTagRow = z.infer<typeof userTagRow>;
 
-export type RenameUserTagRequest = {
-  user_tag_id: string;
-  name: string;
-};
+const userTagList = z.strictObject({ items: z.array(userTagRow) });
 
-export type DeleteUserTagRequest = {
-  user_tag_id: string;
-};
+const createUserTagRequest = z.strictObject({ name: z.string() });
 
-export type CopyUserTagRequest = {
-  copy_id: string;
-  user_tag_id: string;
-  tagged: boolean;
-};
+const renameUserTagRequest = z.strictObject({ user_tag_id: id, name: z.string() });
 
-export type CreatedUserTag = UserTag & {
-  created: boolean;
-};
+export type RenameUserTagRequest = z.input<typeof renameUserTagRequest>;
 
-export type DeletedUserTag = {
-  user_tag_id: string;
-  changed: boolean;
-  copy_count: number;
-};
+const userTagRequest = z.strictObject({ user_tag_id: id });
 
-export type RestoredUserTag = UserTag & {
-  changed: boolean;
-  copy_count: number;
-};
+export type DeleteUserTagRequest = z.input<typeof userTagRequest>;
 
-export type CopiesUserTagResult = {
-  changed: string[];
-  skipped: { copy_id: string; reason: 'missing' }[];
-};
+const copyUserTagRequest = z.strictObject({ copy_id: id, user_tag_id: id, tagged: z.boolean() });
 
-export type CopyDetails = Omit<CollectionCopyRow, 'created_at'> & {
-  art_crop_uri: string | null;
-  free: boolean;
-  added_at: string;
-  purchase_day_price: Omit<CurrentPrice, 'stale'> | null;
-  type_line: string;
-  faces: CopyFace[];
-  commander_legality: CommanderLegality;
-  user_tags: UserTag[];
-  deck: CopyDeck | null;
-  held_for: CopyHeldFor | null;
-};
+export type CopyUserTagRequest = z.input<typeof copyUserTagRequest>;
 
-export type CollectionTotal = {
-  total: string;
-  currency: string;
-  priced_copies: number;
-  copies: number;
-  stale: boolean;
-  prices_observed_at: string | null;
-};
+const copiesUserTagRequest = z.strictObject({ copy_ids: z.array(id), user_tag_id: id, tagged: z.boolean() });
 
-export type ScanBatchErrorCode = 'invalid_argument' | 'unknown_printing' | 'basic_land';
+const copiesUserTagResult = z.strictObject({
+  changed: z.array(id),
+  skipped: z.array(z.strictObject({ copy_id: id, reason: z.literal('missing') })),
+});
 
-export type ScanBatchError = Omit<SearchError, 'code'> & { code: ScanBatchErrorCode };
+const copyDeck = copyRowDeck.extend({ role: deckRole, commander_art_crop_uri: z.string().nullable(), commander_count: integer });
 
-export function readScanBatchError(error: Parameters<typeof readSearchError>[0]): ScanBatchError {
-  return { ...readSearchError(error), code: error.code as ScanBatchErrorCode };
-}
+const copyHeldFor = copyRowDeck.extend({ commander_art_crop_uri: z.string().nullable() });
 
-export type UserTagErrorCode = 'invalid_argument' | 'not_found' | 'user_tag_exists';
+export type CopyHeldFor = z.infer<typeof copyHeldFor>;
 
-export type UserTagError = Omit<SearchError, 'code'> & { code: UserTagErrorCode };
+const copyDetails = collectionCopyRow.omit({ created_at: true }).extend({
+  art_crop_uri: z.string().nullable(),
+  free: z.boolean(),
+  added_at: z.string(),
+  purchase_day_price: currentPrice.omit({ stale: true }).nullable(),
+  type_line: z.string(),
+  faces: z.array(z.strictObject({ name: z.string(), oracle_text: z.string() })),
+  commander_legality: commanderLegality,
+  user_tags: z.array(userTag),
+  deck: copyDeck.nullable(),
+  held_for: copyHeldFor.nullable(),
+});
 
-export function readUserTagError(error: Parameters<typeof readSearchError>[0]): UserTagError {
-  return { ...readSearchError(error), code: error.code as UserTagErrorCode };
-}
+export type CopyDetails = z.infer<typeof copyDetails>;
+
+const collectionTotal = z.strictObject({
+  total: z.string(),
+  currency: z.literal('USD'),
+  priced_copies: integer,
+  copies: integer,
+  stale: z.boolean(),
+  prices_observed_at: z.string().nullable(),
+});
+
+export type CollectionTotal = z.infer<typeof collectionTotal>;
+
+export const searchCollection = databaseFunction({
+  name: 'search_collection',
+  argument: 'query',
+  request: collectionQuery,
+  reply: collectionPage,
+  errorCodes: ['invalid_argument', 'invalid_cursor', 'data_unavailable'],
+});
+
+export const addScanBatch = databaseFunction({
+  name: 'add_scan_batch',
+  argument: 'batch',
+  request: scanBatch,
+  reply: scanBatchResult,
+  errorCodes: ['invalid_argument', 'unknown_printing', 'basic_land'],
+});
+
+export const getCurrentPrices = databaseFunction({
+  name: 'get_current_prices',
+  argument: 'query',
+  request: currentPricesQuery,
+  reply: currentPrices,
+  errorCodes: ['invalid_argument'],
+});
+
+export const getCopy = databaseFunction({
+  name: 'get_copy',
+  argument: 'query',
+  request: copyQuery,
+  reply: copyDetails,
+  errorCodes: ['invalid_argument', 'not_found'],
+});
+
+export const setCopyProtected = databaseFunction({
+  name: 'set_copy_protected',
+  argument: 'request',
+  request: copyProtectedRequest,
+  reply: copyProtectedRequest,
+  errorCodes: ['invalid_argument', 'not_found', 'copy_not_free'],
+});
+
+export const deleteCopy = databaseFunction({
+  name: 'delete_copy',
+  argument: 'request',
+  request: deleteCopyRequest,
+  reply: z.null(),
+  errorCodes: ['invalid_argument', 'not_found', 'copy_held'],
+});
+
+export const getCollectionTotal = databaseFunction({
+  name: 'get_collection_total',
+  argument: 'query',
+  request: z.strictObject({}),
+  reply: collectionTotal,
+  errorCodes: ['invalid_argument'],
+});
+
+export const listUserTags = databaseFunction({
+  name: 'list_user_tags',
+  argument: 'query',
+  request: z.strictObject({ deleted: z.boolean().optional() }).optional(),
+  reply: userTagList,
+  errorCodes: ['invalid_argument'],
+});
+
+export const createUserTag = databaseFunction({
+  name: 'create_user_tag',
+  argument: 'request',
+  request: createUserTagRequest,
+  reply: userTag,
+  errorCodes: ['invalid_argument', 'user_tag_exists'],
+});
+
+export const renameUserTag = databaseFunction({
+  name: 'rename_user_tag',
+  argument: 'request',
+  request: renameUserTagRequest,
+  reply: userTag,
+  errorCodes: ['invalid_argument', 'not_found', 'user_tag_exists'],
+});
+
+export const deleteUserTag = databaseFunction({
+  name: 'delete_user_tag',
+  argument: 'request',
+  request: userTagRequest,
+  reply: z.null(),
+  errorCodes: ['invalid_argument', 'not_found'],
+});
+
+export const setCopyUserTag = databaseFunction({
+  name: 'set_copy_user_tag',
+  argument: 'request',
+  request: copyUserTagRequest,
+  reply: z.null(),
+  errorCodes: ['invalid_argument', 'not_found'],
+});
+
+export const mcpCreateUserTag = databaseFunction({
+  name: 'mcp_create_user_tag',
+  argument: 'request',
+  request: createUserTagRequest,
+  reply: userTag.extend({ created: z.boolean() }),
+  errorCodes: ['invalid_argument'],
+});
+
+export const mcpRenameUserTag = databaseFunction({
+  name: 'mcp_rename_user_tag',
+  argument: 'request',
+  request: renameUserTagRequest,
+  reply: userTag,
+  errorCodes: ['invalid_argument', 'not_found', 'user_tag_exists'],
+});
+
+export const mcpDeleteUserTag = databaseFunction({
+  name: 'mcp_delete_user_tag',
+  argument: 'request',
+  request: userTagRequest,
+  reply: z.strictObject({ user_tag_id: id, changed: z.boolean(), copy_count: integer }),
+  errorCodes: ['invalid_argument', 'not_found'],
+});
+
+export const mcpRestoreUserTag = databaseFunction({
+  name: 'mcp_restore_user_tag',
+  argument: 'request',
+  request: userTagRequest,
+  reply: userTag.extend({ changed: z.boolean(), copy_count: integer }),
+  errorCodes: ['invalid_argument', 'not_found', 'user_tag_exists'],
+});
+
+export const mcpSetCopiesUserTag = databaseFunction({
+  name: 'mcp_set_copies_user_tag',
+  argument: 'request',
+  request: copiesUserTagRequest,
+  reply: copiesUserTagResult,
+  errorCodes: ['invalid_argument', 'not_found'],
+});

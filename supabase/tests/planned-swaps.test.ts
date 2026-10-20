@@ -1,15 +1,16 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import type { AddDeckCardPreview, Deck, DeckChangePage } from '../decks';
-import type { CreatedPlannedSwaps, PlannedSwapInput } from '../planned-swaps';
-import { aiClientCall, aiClientRefusal, connectedAiClient, type ClaimedAiClient } from './ai-clients';
+import { deleteCopy, setCopyProtected } from '../collection';
+import { addDeckCard, deleteDeck, getDeck, listDeckChanges, previewAddDeckCard, setDeckCommander } from '../decks';
+import { createPlannedSwaps, listPlannedSwaps, swapInPlannedSwap, type PlannedSwapInput } from '../planned-swaps';
+import { getCards } from '../search';
+import { aiClientCall, aiClientReply, connectedAiClient, type ClaimedAiClient } from './ai-clients';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { collectionCopies, collectionEntries } from './collection-pages';
+import { call, failed, refused, replyOf } from './database-calls';
 import { setCatalogSucceededAt } from './deck-evaluation-seeds';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import {
-  appRead,
-  appRequest,
   backdated,
   blackLotus,
   codesOf,
@@ -94,14 +95,12 @@ describe('create_planned_swaps', () => {
       });
     }
 
-    expect(await aiClientRefusal(client, 'create_planned_swaps', { idempotency_key: 'eleven-swaps', planned_swaps: items })).toMatchObject({
-      code: 'invalid_argument',
-      details: 'planned_swaps',
-    });
-    expect(await aiClientRefusal(client, 'create_planned_swaps', { idempotency_key: 'no-swaps', planned_swaps: [] })).toMatchObject({
-      code: 'invalid_argument',
-      details: 'planned_swaps',
-    });
+    expect(await aiClientCall(client, createPlannedSwaps, { idempotency_key: 'eleven-swaps', planned_swaps: items })).toMatchObject(
+      refused('invalid_argument', 'planned_swaps'),
+    );
+    expect(await aiClientCall(client, createPlannedSwaps, { idempotency_key: 'no-swaps', planned_swaps: [] })).toMatchObject(
+      refused('invalid_argument', 'planned_swaps'),
+    );
     const { planned_swaps } = await planned(client, items.slice(0, 10));
 
     expect(planned_swaps.map((swap) => swap.ref)).toEqual(items.slice(0, 10).map((item) => item.ref));
@@ -111,7 +110,7 @@ describe('create_planned_swaps', () => {
 
 type RefusalCase = {
   code: string;
-  details: string | object;
+  field: string | object;
   call: (client: ClaimedAiClient, deck: KrenkoDeck) => Promise<object>;
 };
 
@@ -124,7 +123,7 @@ const refusals: [string, RefusalCase][] = [
     'a reason shorter than 20 characters',
     {
       code: 'invalid_argument',
-      details: 'planned_swaps[1].reason',
+      field: 'planned_swaps[1].reason',
       call: async ({ user }, { deckId }) => ({
         idempotency_key: 'short-reason',
         planned_swaps: await twoItems(swapItemOf(user, deckId), (item) => ({ ...item, reason: 'Too short.' })),
@@ -135,7 +134,7 @@ const refusals: [string, RefusalCase][] = [
     'an unknown field',
     {
       code: 'invalid_argument',
-      details: 'planned_swaps[1].incoming.oracle_id',
+      field: 'planned_swaps[1].incoming.oracle_id',
       call: async ({ user }, { deckId }) => ({
         idempotency_key: 'unknown-field',
         planned_swaps: await twoItems(swapItemOf(user, deckId), (item) => ({ ...item, incoming: { ...item.incoming, oracle_id: krenko } as unknown as PlannedSwapInput['incoming'] })),
@@ -146,7 +145,7 @@ const refusals: [string, RefusalCase][] = [
     'two planned swaps with one ref',
     {
       code: 'invalid_argument',
-      details: 'planned_swaps[1].ref',
+      field: 'planned_swaps[1].ref',
       call: async ({ user }, { deckId }) => {
         const [first, second] = await twoItems(swapItemOf(user, deckId), (item) => item);
         return { idempotency_key: 'repeated-ref', planned_swaps: [first, { ...second!, ref: first!.ref }] };
@@ -157,7 +156,7 @@ const refusals: [string, RefusalCase][] = [
     'two planned swaps with one copy',
     {
       code: 'invalid_argument',
-      details: 'planned_swaps[1].incoming.copy_id',
+      field: 'planned_swaps[1].incoming.copy_id',
       call: async ({ user }, { deckId, bolt }) => {
         const [first, second] = await twoItems(swapItemOf(user, deckId), (item) => item);
         return {
@@ -171,7 +170,7 @@ const refusals: [string, RefusalCase][] = [
     'two revisions for one deck',
     {
       code: 'invalid_argument',
-      details: 'planned_swaps[1].expected_deck_revision',
+      field: 'planned_swaps[1].expected_deck_revision',
       call: async ({ user }, { deckId }) => ({
         idempotency_key: 'two-revisions',
         planned_swaps: await twoItems(swapItemOf(user, deckId), (item) => ({ ...item, expected_deck_revision: item.expected_deck_revision - 1 })),
@@ -182,7 +181,7 @@ const refusals: [string, RefusalCase][] = [
     'two planned swaps with the same incoming card, as_commander, and outgoing card',
     {
       code: 'invalid_argument',
-      details: 'planned_swaps[1]',
+      field: 'planned_swaps[1]',
       call: async ({ user }, { deckId }) => {
         const [first] = await twoItems(swapItemOf(user, deckId), (item) => item);
         const second = await plannedSwapItem(user, deckId, await scannedCopy(user, blackLotus));
@@ -194,7 +193,7 @@ const refusals: [string, RefusalCase][] = [
     "another user's deck",
     {
       code: 'not_found',
-      details: 'planned_swaps[1].deck_id',
+      field: 'planned_swaps[1].deck_id',
       call: async ({ user }, { deckId }) => {
         const othersDeck = await deckNamed(await signUpNewUser(), 'Not yours');
         return { idempotency_key: 'others-deck', planned_swaps: await twoItems(swapItemOf(user, deckId), (item) => ({ ...item, deck_id: othersDeck })) };
@@ -205,7 +204,7 @@ const refusals: [string, RefusalCase][] = [
     "another user's copy as the incoming card",
     {
       code: 'not_found',
-      details: 'planned_swaps[1].incoming.copy_id',
+      field: 'planned_swaps[1].incoming.copy_id',
       call: async ({ user }, { deckId }) => {
         const othersCopy = await scannedCopy(await signUpNewUser(), counterspell);
         return {
@@ -219,7 +218,7 @@ const refusals: [string, RefusalCase][] = [
     "another user's copy as the outgoing card",
     {
       code: 'not_found',
-      details: 'planned_swaps[1].outgoing.copy_id',
+      field: 'planned_swaps[1].outgoing.copy_id',
       call: async ({ user }, { deckId }) => {
         const othersCopy = await scannedCopy(await signUpNewUser(), lightningBolt);
         return {
@@ -233,7 +232,7 @@ const refusals: [string, RefusalCase][] = [
     'an expected deck revision that is not the deck revision',
     {
       code: 'stale_revision',
-      details: { pointer: '/planned_swaps/1/expected_deck_revision', expected: 3, current: 4 },
+      field: { pointer: '/planned_swaps/1/expected_deck_revision', expected: 3, current: 4 },
       call: async ({ user }, { deckId }) => {
         const goblins = await deckNamed(user, 'Goblins');
         const first = await plannedSwapItem(user, goblins, await scannedCopy(user, blackLotus));
@@ -246,7 +245,7 @@ const refusals: [string, RefusalCase][] = [
     'an outgoing copy that is not in the deck',
     {
       code: 'outgoing_not_in_deck',
-      details: 'planned_swaps[1].outgoing.copy_id',
+      field: 'planned_swaps[1].outgoing.copy_id',
       call: async ({ user }, { deckId }) => {
         const freeCopy = await scannedCopy(user, lightningBolt);
         return { idempotency_key: 'free-outgoing', planned_swaps: await twoItems(swapItemOf(user, deckId), (item) => ({ ...item, outgoing: { copy_id: freeCopy } })) };
@@ -257,7 +256,7 @@ const refusals: [string, RefusalCase][] = [
     'an incoming copy that is in a deck',
     {
       code: 'copy_not_free',
-      details: 'planned_swaps[1].incoming.copy_id',
+      field: 'planned_swaps[1].incoming.copy_id',
       call: async ({ user }, { deckId, bolt }) => ({
         idempotency_key: 'allocated-copy',
         planned_swaps: await twoItems(swapItemOf(user, deckId), (item) => ({ ...item, incoming: { copy_id: bolt } })),
@@ -268,7 +267,7 @@ const refusals: [string, RefusalCase][] = [
     'an incoming copy that another planned swap holds',
     {
       code: 'copy_not_free',
-      details: 'planned_swaps[1].incoming.copy_id',
+      field: 'planned_swaps[1].incoming.copy_id',
       call: async (client, { deckId, bolt }) => {
         const held = await scannedCopy(client.user, counterspell);
         await planned(client, [await plannedSwapItem(client.user, deckId, held, { outgoing: { copy_id: bolt } })]);
@@ -287,11 +286,11 @@ const refusals: [string, RefusalCase][] = [
     'a protected copy',
     {
       code: 'protected_copy',
-      details: 'planned_swaps[1].incoming.copy_id',
+      field: 'planned_swaps[1].incoming.copy_id',
       call: async ({ user }, { deckId }) => ({
         idempotency_key: 'protected-copy',
         planned_swaps: await twoItems(swapItemOf(user, deckId), async (item) => {
-          await appRequest(user, 'set_copy_protected', { copy_id: (item.incoming as { copy_id: string }).copy_id, protected: true });
+          await replyOf(user.client, setCopyProtected, { copy_id: (item.incoming as { copy_id: string }).copy_id, protected: true });
           return item;
         }),
       }),
@@ -301,7 +300,7 @@ const refusals: [string, RefusalCase][] = [
     'the same deck, incoming card, as_commander, and outgoing card as an open planned swap',
     {
       code: 'duplicate_open',
-      details: { pointer: '/planned_swaps/1', planned_swap_id: 'the open planned swap' },
+      field: { pointer: '/planned_swaps/1', planned_swap_id: 'the open planned swap' },
       call: async (client, { deckId, bolt }) => {
         await planned(client, [await plannedSwapItem(client.user, deckId, await scannedCopy(client.user, counterspell), { outgoing: { copy_id: bolt } })]);
         return {
@@ -315,7 +314,7 @@ const refusals: [string, RefusalCase][] = [
     'an idempotency key used with different input',
     {
       code: 'idempotency_conflict',
-      details: 'idempotency_key',
+      field: 'idempotency_key',
       call: async (client, { deckId }) => {
         await planned(client, [await plannedSwapItem(client.user, deckId, await scannedCopy(client.user, counterspell))], 'reused-key');
         return { idempotency_key: 'reused-key', planned_swaps: await twoItems(swapItemOf(client.user, deckId), (item) => item) };
@@ -325,20 +324,21 @@ const refusals: [string, RefusalCase][] = [
 ];
 
 describe('refusals', () => {
-  test.each(refusals)('%s is refused, and the call saves nothing', async (_, { code, details, call }) => {
+  test.each(refusals)('%s is refused, and the call saves nothing', async (_, { code, field, call: requestOf }) => {
     const client = await connectedAiClient();
     const deck = await krenkoDeck(client.user);
-    const request = await call(client, deck);
+    const request = await requestOf(client, deck);
     const before = await listed(client.user);
 
-    const problem = await aiClientRefusal(client, 'create_planned_swaps', request);
+    const result = await aiClientCall(client, createPlannedSwaps, request as never);
 
-    expect(problem.code).toBe(code);
-    if (typeof details === 'string') {
-      expect(problem.details).toBe(details);
+    expect(result).toMatchObject(refused(code));
+    const refusedField = result.status === 'refused' ? result.refusal.field : null;
+    if (typeof field === 'string') {
+      expect(refusedField).toBe(field);
     } else {
-      const expected = 'planned_swap_id' in details ? { ...details, planned_swap_id: before.items[0]!.planned_swap_id } : details;
-      expect(JSON.parse(problem.details!)).toEqual(expected);
+      const expected = 'planned_swap_id' in field ? { ...field, planned_swap_id: before.items[0]!.planned_swap_id } : field;
+      expect(JSON.parse(refusedField!)).toEqual(expected);
     }
     expect(await listed(client.user)).toEqual(before);
     const lotus = ((request as { planned_swaps: PlannedSwapInput[] }).planned_swaps[0]!.incoming as { copy_id: string }).copy_id;
@@ -353,7 +353,7 @@ describe('warnings', () => {
     const client = await connectedAiClient();
     const { deckId } = await krenkoDeck(client.user);
     const secondBolt = await scannedCopy(client.user, lightningBolt);
-    const preview = await appRead<AddDeckCardPreview>(client.user, 'preview_add_deck_card', { copy_id: secondBolt });
+    const preview = await replyOf(client.user.client, previewAddDeckCard, { copy_id: secondBolt });
     const drawerEffect = preview.items.find((item) => item.deck_id === deckId)!.effect;
 
     const { planned_swaps } = await planned(client, [await plannedSwapItem(client.user, deckId, secondBolt)]);
@@ -426,10 +426,10 @@ describe('idempotency', () => {
       idempotency_key: 'retried-call',
       planned_swaps: [await plannedSwapItem(client.user, deckId, await scannedCopy(client.user, blackLotus))],
     };
-    const first = await aiClientCall<CreatedPlannedSwaps>(client, 'create_planned_swaps', request);
+    const first = await aiClientReply(client, createPlannedSwaps, request);
     const saved = await listed(client.user);
 
-    const repeat = await aiClientCall<CreatedPlannedSwaps>(client, 'create_planned_swaps', request);
+    const repeat = await aiClientReply(client, createPlannedSwaps, request);
 
     expect(repeat).toEqual({ ...first, replayed: true });
     expect(await listed(client.user)).toEqual(saved);
@@ -465,10 +465,10 @@ describe('idempotency', () => {
       );
 
     await age('23 hours');
-    expect(await aiClientRefusal(client, 'create_planned_swaps', await retry())).toMatchObject({ code: 'idempotency_conflict' });
+    expect(await aiClientCall(client, createPlannedSwaps, await retry())).toMatchObject(refused('idempotency_conflict'));
     await age('25 hours');
 
-    const reused = await aiClientCall<CreatedPlannedSwaps>(client, 'create_planned_swaps', await retry());
+    const reused = await aiClientReply(client, createPlannedSwaps, await retry());
     expect(reused.replayed).toBe(false);
     expect(await plannedSwapIds(client.user)).toHaveLength(2);
   });
@@ -486,8 +486,8 @@ describe('held copies', () => {
   test('a held copy is not free in its collection entry, the Free filter, or the held quantity', async () => {
     const { user, held, free } = await heldCopy();
 
-    const entries = await appRead<{ items: object[] }>(user, 'search_collection', {});
-    const freeCopies = await appRead<{ items: { copy_id: string }[] }>(user, 'search_collection', { rows: 'copies', is_free: true });
+    const entries = await collectionEntries(user.client);
+    const freeCopies = await collectionCopies(user.client, { is_free: true });
 
     expect(entries.items).toEqual([expect.objectContaining({ quantity: 2, free_quantity: 1, allocated_quantity: 0, held_quantity: 1 })]);
     expect(freeCopies.items.map((item) => item.copy_id)).toEqual([free]);
@@ -498,11 +498,11 @@ describe('held copies', () => {
     const { user, held } = await heldCopy();
     const otherDeck = await deckNamed(user, 'Other');
 
-    const added = await user.client.rpc('add_deck_card', { request: { deck_id: otherDeck, copy_id: held, unprotect: false } });
-    const protectedCopy = await user.client.rpc('set_copy_protected', { request: { copy_id: held, protected: true } });
+    const added = await call(user.client, addDeckCard, { deck_id: otherDeck, copy_id: held, unprotect: false });
+    const protectedCopy = await call(user.client, setCopyProtected, { copy_id: held, protected: true });
 
-    expect(added.error).toMatchObject({ code: 'copy_not_free' });
-    expect(protectedCopy.error).toMatchObject({ code: 'copy_not_free' });
+    expect(added).toMatchObject(refused('copy_not_free'));
+    expect(protectedCopy).toMatchObject(refused('copy_not_free'));
     expect(await copyOf(user, held)).toMatchObject({ protected: false, deck: null });
   });
 
@@ -511,10 +511,9 @@ describe('held copies', () => {
     const { card_printing_id } = await asDatabaseOwner(
       async (database) => (await database`select card_printing_id from public.copies where id = ${held}`)[0],
     );
-    const { data, error } = await user.client.rpc('get_cards', { query: { printing_ids: [card_printing_id] } });
+    const { items } = await replyOf(user.client, getCards, { printing_ids: [card_printing_id] });
 
-    expect(error).toBeNull();
-    expect((data as unknown as { items: { owned: object }[] }).items[0]!.owned).toEqual({
+    expect(items[0]!.owned).toEqual({
       quantity: 2,
       free_quantity: 1,
       protected_free_quantity: 0,
@@ -524,7 +523,7 @@ describe('held copies', () => {
   test('deleting a deck deletes its planned swaps and frees their copies', async () => {
     const { user, held, deckId } = await heldCopy();
 
-    await appRequest(user, 'delete_deck', { deck_id: deckId });
+    await replyOf(user.client, deleteDeck, { deck_id: deckId });
 
     expect((await listed(user)).items).toEqual([]);
     expect(await copyOf(user, held)).toMatchObject({ free: true });
@@ -571,7 +570,7 @@ describe('list_planned_swaps', () => {
     const { planned_swaps } = await planned(client, [
       await plannedSwapItem(client.user, deckId, played.copy_ids[0]!, { outgoing: { copy_id: bolt } }),
     ]);
-    const deck = await appRead<Deck>(client.user, 'get_deck', { deck_id: deckId });
+    const deck = await replyOf(client.user.client, getDeck, { deck_id: deckId });
     const [times] = await asDatabaseOwner(
       (database) => database`
         select to_jsonb(created_at) as created_at, to_jsonb(status_changed_at) as status_changed_at
@@ -626,7 +625,7 @@ describe('list_planned_swaps', () => {
       await plannedSwapItem(client.user, deckId, await scannedCopy(client.user, lightningBolt), { ref: 'swap', outgoing: { copy_id: bolt } }),
     ]);
 
-    await appRequest(client.user, 'delete_copy', { copy_id: bolt });
+    await replyOf(client.user.client, deleteCopy, { copy_id: bolt });
 
     const items = (await listed(client.user)).items;
     expect(items.find((item) => item.incoming.name === 'Black Lotus')).toMatchObject({ outgoing: null });
@@ -672,14 +671,8 @@ describe('list_planned_swaps', () => {
     expect((await listed(client.user, { deck_id: krenkoDeckId })).items.map((item) => item.planned_swap_id)).toEqual([inKrenko]);
     expect((await listed(client.user, { deck_id: goblins, status: 'open' })).items.map((item) => item.planned_swap_id)).toEqual([openInGoblins]);
     expect((await listed(client.user, { status: 'closed' })).items.map((item) => item.planned_swap_id)).toEqual([closedInGoblins]);
-    expect((await client.user.client.rpc('list_planned_swaps', { query: { deck_id: othersDeck } })).error).toMatchObject({
-      code: 'not_found',
-      details: 'deck_id',
-    });
-    expect((await client.user.client.rpc('list_planned_swaps', { query: { status: 'withdrawn' } })).error).toMatchObject({
-      code: 'invalid_argument',
-      details: 'status',
-    });
+    expect(await call(client.user.client, listPlannedSwaps, { deck_id: othersDeck })).toMatchObject(refused('not_found', 'deck_id'));
+    expect(await call(client.user.client, listPlannedSwaps, { status: 'withdrawn' } as never)).toMatchObject(refused('invalid_argument', 'status'));
   });
 
   test.each([
@@ -700,13 +693,13 @@ describe('list_planned_swaps', () => {
 
     const first = await listed(client.user, { order, limit: 2 });
     const second = await listed(client.user, { order, limit: 2, cursor: first.next_cursor });
-    const otherQuery = await client.user.client.rpc('list_planned_swaps', { query: { limit: 2, cursor: first.next_cursor, deck_id: deckId } });
-    const tooMany = await client.user.client.rpc('list_planned_swaps', { query: { limit: 51 } });
+    const otherQuery = await call(client.user.client, listPlannedSwaps, { limit: 2, cursor: first.next_cursor, deck_id: deckId });
+    const tooMany = await call(client.user.client, listPlannedSwaps, { limit: 51 } as never);
 
     expect([...first.items, ...second.items].map((item) => item.planned_swap_id)).toEqual(expected);
     expect(second.next_cursor).toBeNull();
-    expect(otherQuery.error).toMatchObject({ code: 'invalid_cursor' });
-    expect(tooMany.error).toMatchObject({ code: 'invalid_argument', details: 'limit' });
+    expect(otherQuery).toMatchObject(refused('invalid_cursor'));
+    expect(tooMany).toMatchObject(refused('invalid_argument', 'limit'));
   });
 
   test('a page has 20 planned swaps by default', async () => {
@@ -736,14 +729,14 @@ describe('access', () => {
     const request = {
       idempotency_key: 'app-token',
       planned_swaps: [await plannedSwapItem(user, deckId, await scannedCopy(user, counterspell))],
-    } as unknown as Json;
+    };
 
-    expect((await user.client.rpc('create_planned_swaps', { request })).error).toMatchObject({
-      code: permissionDenied,
-      message: aiClientOnly,
+    expect(await call(user.client, createPlannedSwaps, request)).toMatchObject({
+      status: 'failed',
+      error: { code: permissionDenied, message: aiClientOnly },
     });
     for (const other of [anonymousClient(), secretKeyClient()]) {
-      expect((await other.rpc('create_planned_swaps', { request })).error?.code).toBe(permissionDenied);
+      expect(await call(other, createPlannedSwaps, request)).toMatchObject(failed(permissionDenied));
     }
     expect((await listed(user)).items).toEqual([]);
   });
@@ -757,7 +750,7 @@ describe('access', () => {
     expect((await listed(alice.user)).items).toHaveLength(1);
     expect((await listed(bob)).items).toEqual([]);
     expect((await bob.client.from('planned_swaps').select('id')).data).toEqual([]);
-    expect((await anonymousClient().rpc('list_planned_swaps', { query: {} })).error?.code).toBe(permissionDenied);
+    expect(await call(anonymousClient(), listPlannedSwaps, {})).toMatchObject(failed(permissionDenied));
   });
 
   test('direct writes are refused', async () => {
@@ -786,11 +779,11 @@ describe('access', () => {
 
 describe('swap_in_planned_swap', () => {
   async function swapIn(user: TestUser, plannedSwapId: string) {
-    return user.client.rpc('swap_in_planned_swap', { request: { planned_swap_id: plannedSwapId } });
+    return call(user.client, swapInPlannedSwap, { planned_swap_id: plannedSwapId });
   }
 
   async function changesOf(user: TestUser, deckId: string) {
-    return (await appRead<DeckChangePage>(user, 'list_deck_changes', { deck_id: deckId })).items;
+    return (await replyOf(user.client, listDeckChanges, { deck_id: deckId })).items;
   }
 
   test('puts the held copy into the deck and takes the outgoing copy out in one swapped_in deck change that keeps the reason', async () => {
@@ -800,10 +793,7 @@ describe('swap_in_planned_swap', () => {
     const plannedSwapId = await onePlannedSwap(client, deckId, newBolt, { outgoing: { copy_id: bolt } });
     const revision = await revisionOf(client.user, deckId);
 
-    const { data, error } = await swapIn(client.user, plannedSwapId);
-
-    expect(error).toBeNull();
-    expect(data).toEqual({ deck_id: deckId, revision: revision + 1 });
+    expect(await swapIn(client.user, plannedSwapId)).toEqual({ status: 'replied', reply: { deck_id: deckId, revision: revision + 1 } });
     const [change] = await changesOf(client.user, deckId);
     expect(change).toMatchObject({
       revision: revision + 1,
@@ -817,7 +807,7 @@ describe('swap_in_planned_swap', () => {
         [bolt, 'main', null],
       ].toSorted(),
     );
-    expect((await appRead<Deck>(client.user, 'get_deck', { deck_id: deckId })).cards.map((card) => card.copy_id)).toContain(newBolt);
+    expect((await replyOf(client.user.client, getDeck, { deck_id: deckId })).cards.map((card) => card.copy_id)).toContain(newBolt);
     expect(await copyOf(client.user, bolt)).toMatchObject({ free: true, deck: null });
     expect(await copyOf(client.user, newBolt)).toMatchObject({ free: false, deck: { deck_id: deckId, role: 'main' } });
     expect((await listed(client.user)).items[0]).toMatchObject({ planned_swap_id: plannedSwapId, status: 'swapped_in', effect: null });
@@ -829,9 +819,9 @@ describe('swap_in_planned_swap', () => {
     const newCommander = await scannedCopy(client.user, krenko);
     const plannedSwapId = await onePlannedSwap(client, deckId, newCommander, { outgoing: { copy_id: commander } });
 
-    expect((await swapIn(client.user, plannedSwapId)).error).toBeNull();
+    expect(await swapIn(client.user, plannedSwapId)).toMatchObject({ status: 'replied' });
 
-    const deck = await appRead<Deck>(client.user, 'get_deck', { deck_id: deckId });
+    const deck = await replyOf(client.user.client, getDeck, { deck_id: deckId });
     expect(deck.commanders.map((item) => item.copy_id)).toEqual([newCommander]);
     expect(deck.cards.map((card) => card.copy_id)).not.toContain(commander);
     const [change] = await changesOf(client.user, deckId);
@@ -846,12 +836,12 @@ describe('swap_in_planned_swap', () => {
   test('a planned swap with as_commander and no outgoing card is refused with commander_limit when the deck has two commanders', async () => {
     const client = await connectedAiClient();
     const { deckId, bolt } = await krenkoDeck(client.user);
-    await appRequest(client.user, 'set_deck_commander', { copy_id: bolt, commander: true });
+    await replyOf(client.user.client, setDeckCommander, { copy_id: bolt, commander: true });
     const held = await scannedCopy(client.user, krenko);
     const plannedSwapId = await onePlannedSwap(client, deckId, held, { incoming: { copy_id: held, as_commander: true } });
     const revision = await revisionOf(client.user, deckId);
 
-    expect((await swapIn(client.user, plannedSwapId)).error).toMatchObject({ code: 'commander_limit' });
+    expect(await swapIn(client.user, plannedSwapId)).toMatchObject(refused('commander_limit'));
     expect(await revisionOf(client.user, deckId)).toBe(revision);
     expect((await listed(client.user)).items[0]).toMatchObject({ status: 'open' });
   });
@@ -863,12 +853,9 @@ describe('swap_in_planned_swap', () => {
     await swapIn(client.user, plannedSwapId);
     const revision = await revisionOf(client.user, deckId);
 
-    const { error } = await swapIn(client.user, plannedSwapId);
-
-    expect(error).toMatchObject({
-      code: 'not_open',
-      message: 'The planned swap is swapped_in. Only an open planned swap can change.',
-      details: 'planned_swap_id',
+    expect(await swapIn(client.user, plannedSwapId)).toMatchObject({
+      status: 'refused',
+      refusal: { code: 'not_open', message: 'The planned swap is swapped_in. Only an open planned swap can change.', field: 'planned_swap_id' },
     });
     expect(await revisionOf(client.user, deckId)).toBe(revision);
   });
@@ -880,10 +867,9 @@ describe('swap_in_planned_swap', () => {
     const stranger = await signUpNewUser();
 
     for (const missing of [plannedSwapId, crypto.randomUUID()]) {
-      expect((await swapIn(stranger, missing)).error).toMatchObject({
-        code: 'not_found',
-        message: 'planned_swap_id is not one of your planned swaps.',
-        details: 'planned_swap_id',
+      expect(await swapIn(stranger, missing)).toMatchObject({
+        status: 'refused',
+        refusal: { code: 'not_found', message: 'planned_swap_id is not one of your planned swaps.', field: 'planned_swap_id' },
       });
     }
     expect((await listed(client.user)).items[0]).toMatchObject({ status: 'open' });
@@ -897,7 +883,7 @@ describe('swap_in_planned_swap', () => {
       const otherDeck = await deckNamed(client.user, 'Other');
       const held = await scannedCopy(client.user, lightningBolt);
       const plannedSwapId = await onePlannedSwap(client, deckId, held, { outgoing: { copy_id: bolt } });
-      const add = async () => client.user.client.rpc('add_deck_card', { request: { deck_id: otherDeck, copy_id: held, unprotect: false } });
+      const add = async () => call(client.user.client, addDeckCard, { deck_id: otherDeck, copy_id: held, unprotect: false });
 
       const { swap, addition } = await asDatabaseOwner((database) =>
         database.begin(async (transaction) => {
@@ -910,8 +896,8 @@ describe('swap_in_planned_swap', () => {
         }),
       );
 
-      expect((await swap).error).toBeNull();
-      expect((await addition).error).toMatchObject({ code: 'copy_not_free' });
+      expect(await swap).toMatchObject({ status: 'replied' });
+      expect(await addition).toMatchObject(refused('copy_not_free'));
       expect(await copyOf(client.user, held)).toMatchObject({ deck: { deck_id: deckId } });
       expect(await revisionOf(client.user, otherDeck)).toBe(0);
     },

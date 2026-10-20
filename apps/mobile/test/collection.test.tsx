@@ -1,21 +1,9 @@
 import type { CollectionCopyRow, CollectionTotal, CurrentPrice } from '@mtgscan/supabase/collection';
-import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
+import { act, fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 import { processColor } from 'react-native';
 
-import {
-  answerCollectionSearches,
-  collectionSearchesSent,
-  expirePageCursors,
-  failCollectionReads,
-  holdCollectionReads,
-  ownCollectionCopies,
-  ownCollectionTotal,
-  ownDecks,
-  failDeckReads,
-  ownUserTags,
-  setCodeLookupsSent,
-  startSignedIn,
-} from './fake-supabase';
+import { answerCollectionSearches, basicLandsOf, collectionSearchesSent, expirePageCursors, failDeckReads, ownCollectionCopies, ownCollectionTotal, ownDecks, ownUserTags, startSignedIn } from './fake-supabase';
+import { callsSent, fail, hold, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
   dashedOutlinesColored,
@@ -152,7 +140,7 @@ test('a copy in a deck starts its line with its deck commander in a circle, and 
     ...collectionEntryCopies('Ponder', 1, { set: 'c21', collector_number: '79' }),
   ]);
 
-  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 1, commanders: [{ copy_id: 'atraxa', name: 'Atraxa', art_crop_uri: commanderArt }] }]);
+  ownDecks([{ name: 'Atraxa', priority: 'medium', commanders: [{ copy_id: 'atraxa', name: 'Atraxa', art_crop_uri: commanderArt }] }]);
   const collection = await openCollection();
 
   const inDeck = collection.getByRole('button', { name: 'Sol Ring, C21 263, protected, in the deck Atraxa, no price' });
@@ -324,15 +312,21 @@ test('the binder grid loads more tiles as the user scrolls', async () => {
   expect(await collection.findByRole('button', { name: /^Card 70,/ })).toBeOnTheScreen();
 });
 
-test('when its cursor has expired, the binder grid starts its read again, so scrolling loads more tiles', async () => {
-  ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
+test('when its cursor has expired, the binder grid reads again from the first page as many pages as it showed, so scrolling loads more tiles', async () => {
+  ownCollectionCopies(Array.from({ length: 130 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
   const collection = await openCollection();
+  await scrollToEnd(selectedTab());
+  await collection.findByRole('button', { name: /^Card 120,/ });
+  const readsBefore = requestsSent('search_collection').length;
   expirePageCursors();
 
   await scrollToEnd(selectedTab());
-  await scrollToEnd(selectedTab());
 
-  expect(await collection.findByRole('button', { name: /^Card 70,/ })).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(requestsSent('search_collection').slice(readsBefore).map(({ cursor }) => cursor)).toEqual([expect.any(String), null, expect.any(String)]),
+  );
+  await scrollToEnd(selectedTab());
+  expect(await collection.findByRole('button', { name: /^Card 130,/ })).toBeOnTheScreen();
 });
 
 test('the Collection tab shows newly added copies when it gains focus again', async () => {
@@ -350,7 +344,7 @@ test('the Collection tab shows newly added copies when it gains focus again', as
 
 test('a failed binder grid read offers Try again, which shows the tiles', async () => {
   ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
-  failCollectionReads(1);
+  fail('search_collection', 1);
 
   const collection = await openCollection();
   expect(collection.getByLabelText('Could not load your collection, Check your connection.')).toBeOnTheScreen();
@@ -364,7 +358,7 @@ test('a failed binder grid read offers Try again, which shows the tiles', async 
 describe('the skeleton grid', () => {
   test('until the binder grid read returns, the Collection tab shows a skeleton grid, then the tiles', async () => {
     ownCollectionCopies(collectionEntryCopies('Angelic Curator', 2));
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     const collection = await openCollection();
     expect(skeletonGrid()).toBeOnTheScreen();
@@ -377,7 +371,7 @@ describe('the skeleton grid', () => {
   });
 
   test('VoiceOver reads the skeleton grid as one element and not each block', async () => {
-    holdCollectionReads();
+    hold('search_collection');
 
     await openCollection();
 
@@ -386,7 +380,7 @@ describe('the skeleton grid', () => {
   });
 
   test('an empty collection shows the skeleton grid, then the empty state', async () => {
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     const collection = await openCollection();
     expect(skeletonGrid()).toBeOnTheScreen();
@@ -399,8 +393,8 @@ describe('the skeleton grid', () => {
   });
 
   test('a failed binder grid read shows the skeleton grid, then Try again', async () => {
-    failCollectionReads(1);
-    const reads = holdCollectionReads();
+    fail('search_collection', 1);
+    const reads = hold('search_collection');
 
     const collection = await openCollection();
     expect(skeletonGrid()).toBeOnTheScreen();
@@ -414,7 +408,7 @@ describe('the skeleton grid', () => {
   test('a reload when the tab gains focus keeps the tiles already shown and brings no skeleton grid back', async () => {
     ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
     const collection = await openCollection();
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     await pressTab('Recent');
     await pressTab('Collection');
@@ -425,10 +419,31 @@ describe('the skeleton grid', () => {
     expect(collection.getByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
   });
 
+  test('after a long time on another tab, Collection keeps the tiles shown when it gains focus and reads as many pages again as it showed', async () => {
+    ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
+    const collection = await openCollection();
+    await scrollToEnd(selectedTab());
+    await collection.findByRole('button', { name: /^Card 70,/ });
+    await pressTab('Recent');
+    await act(async () => {
+      jest.advanceTimersByTime(6 * 60 * 1000);
+    });
+    const readsBefore = requestsSent('search_collection').length;
+    const reads = hold('search_collection');
+
+    await pressTab('Collection');
+
+    expect(within(selectedTab()).getByRole('button', { name: /^Card 70,/ })).toBeOnTheScreen();
+    expect(skeletonGrid()).not.toBeOnTheScreen();
+    await reads.finish();
+    await waitFor(() => expect(requestsSent('search_collection').slice(readsBefore).map(({ cursor }) => cursor)).toEqual([null, expect.any(String)]));
+    expect(collection.getByRole('button', { name: /^Card 70,/ })).toBeOnTheScreen();
+  });
+
   test('a new page keeps the tiles already shown and brings no skeleton grid back', async () => {
     ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
     const collection = await openCollection();
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     await scrollToEnd(selectedTab());
 
@@ -441,7 +456,7 @@ describe('the skeleton grid', () => {
   test('while the next page loads, a row of skeleton tiles shows after the last tiles', async () => {
     ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
     const collection = await openCollection();
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     await scrollToEnd(selectedTab());
 
@@ -775,6 +790,10 @@ describe('collection search', () => {
     expect(collection.queryByRole('button', { name: /^set:m10/ })).not.toBeOnTheScreen();
   });
 
+  function setCodeLookupsSent() {
+    return callsSent('card_sets.lookup').map((call) => call.request);
+  }
+
   test('suggestions wait for a pause in typing, then read set codes once, for the final text', async () => {
     const collection = await openCollection();
 
@@ -907,7 +926,7 @@ describe('collection search', () => {
     ownCollectionCopies(collectionEntryCopies('Ponder', 3));
     answerCollectionSearches((query) => (query.text === 'curator' ? collectionEntryCopies('Angelic Curator', 2) : collectionEntryCopies('Ponder', 3)));
     const collection = await openCollection();
-    const reads = holdCollectionReads();
+    const reads = hold('search_collection');
 
     await typeInSearchBar('curator');
 
@@ -937,9 +956,9 @@ describe('collection search', () => {
 
     beforeEach(() => {
       ownDecks([
-        { name: 'Atraxa', priority: 'medium', card_count: 62, commanders: [{ copy_id: 'copy-9', name: 'Atraxa, Praetors\' Voice', art_crop_uri: atraxaArt }] },
-        { name: 'atraxa', priority: 'low', card_count: 3 },
-        { name: 'Kinnan', priority: 'high', card_count: 0 },
+        { name: 'Atraxa', priority: 'medium', commanders: [{ copy_id: 'copy-9', name: 'Atraxa, Praetors\' Voice', art_crop_uri: atraxaArt }], basic_lands: basicLandsOf({ Plains: 61 }) },
+        { name: 'atraxa', priority: 'low', basic_lands: basicLandsOf({ Plains: 3 }) },
+        { name: 'Kinnan', priority: 'high' },
       ]);
     });
 
@@ -988,12 +1007,24 @@ describe('collection search', () => {
       expect(collectionSearchesSent()).toHaveLength(searchesBefore);
     });
 
-    test('when the decks cannot be read for a typed deck: name, Try again reads them again', async () => {
+    test('after Collection read the decks, a typed deck: name keeps the decks it read when a new decks read fails', async () => {
       ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
       const collection = await openCollection();
       await typeInSearchBar('deck:kinnan');
       failDeckReads(1);
+
       await typeInSearchBar(' ');
+
+      expect(await collection.findByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
+      expect(collection.queryByRole('button', { name: 'Try again' })).not.toBeOnTheScreen();
+      expect(lastSearch()).toEqual({ deck_ids: ['deck-3'] });
+    });
+
+    test('when Collection could not read the decks, a typed deck: name offers Try again, which reads them again', async () => {
+      ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
+      failDeckReads(2);
+      const collection = await openCollection();
+      await typeInSearchBar('deck:kinnan ');
 
       await fireEvent.press(await collection.findByRole('button', { name: 'Try again' }));
 

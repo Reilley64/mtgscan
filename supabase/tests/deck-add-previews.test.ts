@@ -1,8 +1,16 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import { readDeckError, type AddDeckCardPreview, type CreatedDeck, type Deck, type DeckChangeEffect } from '../decks';
+import {
+  addDeckCard,
+  changeBasicLand,
+  getDeck,
+  previewAddDeckCard,
+  setDeckCommander,
+  type DeckChangeEffect,
+} from '../decks';
 import { basicLand, catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { call, failed, refused, replyOf } from './database-calls';
+import { createdDeck } from './deck-calls';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
@@ -25,33 +33,26 @@ beforeAll(async () => {
   expect((await runCatalogImport(catalogFixtureManifest)).exitCode).toBe(0);
 });
 
-async function succeeded(user: TestUser, name: string, request: Record<string, unknown>) {
-  const { error } = await user.client.rpc(name as 'create_deck', { request: request as Json });
-  expect(error && readDeckError(error)).toBeNull();
-}
-
 async function scannedCopy(user: TestUser, cardPrintingId: string) {
   const scanned = stack(cardPrintingId);
   await committed(user, scanBatch([scanned]));
   return scanned.copy_ids[0]!;
 }
 
-async function created(user: TestUser) {
-  const { data, error } = await user.client.rpc('create_deck', { request: { name: 'Krenko' } });
-  expect(error).toBeNull();
-  return (data as unknown as CreatedDeck).deck_id;
+async function added(user: TestUser, deckId: string, copyId: string) {
+  await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
 }
 
 async function addedCopy(user: TestUser, deckId: string, cardPrintingId: string) {
   const copyId = await scannedCopy(user, cardPrintingId);
-  await succeeded(user, 'add_deck_card', { deck_id: deckId, copy_id: copyId, unprotect: false });
+  await added(user, deckId, copyId);
   return copyId;
 }
 
 async function deckOfKrenko(user: TestUser, cardCount: number, cardPrintingIds: string[] = []) {
-  const deckId = await created(user);
+  const deckId = await createdDeck(user, 'Krenko');
   const commander = await addedCopy(user, deckId, krenko);
-  await succeeded(user, 'set_deck_commander', { copy_id: commander, commander: true });
+  await replyOf(user.client, setDeckCommander, { copy_id: commander, commander: true });
   for (const cardPrintingId of cardPrintingIds) {
     await addedCopy(user, deckId, cardPrintingId);
   }
@@ -61,16 +62,14 @@ async function deckOfKrenko(user: TestUser, cardCount: number, cardPrintingIds: 
     [snowCoveredMountain, landCount - 90],
   ] as const) {
     if (by > 0) {
-      await succeeded(user, 'change_basic_land', { deck_id: deckId, oracle_id: oracleId, by });
+      await replyOf(user.client, changeBasicLand, { deck_id: deckId, oracle_id: oracleId, by });
     }
   }
   return deckId;
 }
 
 async function previewOf(user: TestUser, copyId: string) {
-  const { data, error } = await user.client.rpc('preview_add_deck_card', { query: { copy_id: copyId } });
-  expect(error).toBeNull();
-  return data as unknown as AddDeckCardPreview;
+  return replyOf(user.client, previewAddDeckCard, { copy_id: copyId });
 }
 
 async function effectOf(user: TestUser, deckId: string, copyId: string) {
@@ -78,15 +77,11 @@ async function effectOf(user: TestUser, deckId: string, copyId: string) {
 }
 
 async function basicLandPreviewOf(user: TestUser, oracleId: string, count: number) {
-  const { data, error } = await user.client.rpc('preview_add_deck_card', { query: { basic_land_oracle_id: oracleId, count } });
-  expect(error).toBeNull();
-  return data as unknown as AddDeckCardPreview;
+  return replyOf(user.client, previewAddDeckCard, { basic_land_oracle_id: oracleId, count });
 }
 
 async function evaluationOf(user: TestUser, deckId: string) {
-  const { data, error } = await user.client.rpc('get_deck', { query: { deck_id: deckId } });
-  expect(error).toBeNull();
-  return (data as unknown as Deck).evaluation!;
+  return (await replyOf(user.client, getDeck, { deck_id: deckId })).evaluation!;
 }
 
 function effect(kind: DeckChangeEffect['kind'], ...rules: DeckChangeEffect['rules'][number]['rule'][]): DeckChangeEffect {
@@ -102,7 +97,7 @@ describe('preview_add_deck_card', () => {
 
     expect(await effectOf(user, deckId, secondBolt)).toEqual(effect('would_make_invalid', 'deck_size', 'singleton'));
 
-    await succeeded(user, 'add_deck_card', { deck_id: deckId, copy_id: secondBolt, unprotect: false });
+    await added(user, deckId, secondBolt);
     const evaluation = await evaluationOf(user, deckId);
     expect(evaluation.validity).toBe('invalid');
     expect(evaluation.violations.map((violation) => violation.rule)).toEqual(['deck_size', 'singleton']);
@@ -171,7 +166,7 @@ describe('preview_add_deck_card', () => {
 
   test('an empty deck has no effect', async () => {
     const user = await signUpNewUser();
-    const deckId = await created(user);
+    const deckId = await createdDeck(user, 'Krenko');
 
     expect(await previewOf(user, await scannedCopy(user, blackLotus))).toEqual({ items: [{ deck_id: deckId, effect: null }] });
   });
@@ -223,9 +218,7 @@ describe('preview_add_deck_card for a basic land card', () => {
   ])('%s is refused with invalid_argument', async (_, query, field) => {
     const user = await signUpNewUser();
 
-    const { error } = await user.client.rpc('preview_add_deck_card', { query: query as Json });
-
-    expect(readDeckError(error!)).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call(user.client, previewAddDeckCard, query as never)).toMatchObject(refused('invalid_argument', field));
   });
 });
 
@@ -234,17 +227,16 @@ describe('access', () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
     await deckOfKrenko(alice, 100);
     const alicesCopy = await scannedCopy(alice, blackLotus);
-    const bobsDeck = await created(bob);
+    const bobsDeck = await createdDeck(bob, 'Krenko');
 
     expect(await previewOf(bob, await scannedCopy(bob, blackLotus))).toEqual({ items: [{ deck_id: bobsDeck, effect: null }] });
-    const { error } = await bob.client.rpc('preview_add_deck_card', { query: { copy_id: alicesCopy } });
-    expect(readDeckError(error!)).toMatchObject({ code: 'not_found', field: 'copy_id' });
+    expect(await call(bob.client, previewAddDeckCard, { copy_id: alicesCopy })).toMatchObject(refused('not_found', 'copy_id'));
   });
 
   test("the preview of a basic land card lists only the caller's decks", async () => {
     const [alice, bob] = await Promise.all([signUpNewUser(), signUpNewUser()]);
     await deckOfKrenko(alice, 100);
-    const bobsDeck = await created(bob);
+    const bobsDeck = await createdDeck(bob, 'Krenko');
 
     expect(await basicLandPreviewOf(bob, mountain, 1)).toEqual({ items: [{ deck_id: bobsDeck, effect: null }] });
   });
@@ -253,8 +245,6 @@ describe('access', () => {
     ['an anonymous caller', anonymousClient],
     ['the secret key', secretKeyClient],
   ])('%s cannot preview an add', async (_, client) => {
-    const { error } = await client().rpc('preview_add_deck_card', { query: { copy_id: crypto.randomUUID() } });
-
-    expect(error?.code).toBe(permissionDenied);
+    expect(await call(client(), previewAddDeckCard, { copy_id: crypto.randomUUID() })).toMatchObject(failed(permissionDenied));
   });
 });

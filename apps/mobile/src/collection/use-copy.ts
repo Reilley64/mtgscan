@@ -1,25 +1,15 @@
-import type { CopyDetails, CopyQuery } from '@mtgscan/supabase/collection';
-import { readSearchError } from '@mtgscan/supabase/search';
-import { useMemo } from 'react';
+import type { CopyDetails } from '@mtgscan/supabase/collection';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
 
-import { supabase } from '@/lib/supabase';
-import { useFocusedRead } from '@/lib/use-focused-read';
+import { databaseRead, useScreenRead } from '@/lib/read';
 
-type CopyRead = { status: 'missing' } | { status: 'loaded'; copy: CopyDetails };
-
-export async function readCopy(copyId: string): Promise<CopyRead> {
-  const query: CopyQuery = { copy_id: copyId };
-  const { data, error } = await supabase.rpc('get_copy', { query });
-  if (error) {
-    if (readSearchError(error).code === 'not_found') {
-      return { status: 'missing' };
-    }
-    throw error;
-  }
-  return { status: 'loaded', copy: data as unknown as CopyDetails };
+function loadedCopy(copy: CopyDetails) {
+  return { copy };
 }
 
 export function useCopy(copyId: string) {
-  const readOnce = useMemo(() => () => readCopy(copyId), [copyId]);
-  return useFocusedRead(readOnce);
+  const { read, reload } = useScreenRead(databaseRead(databaseFunctions.get_copy, { copy_id: copyId }), loadedCopy, {
+    refused: ['not_found'],
+  });
+  return { read: read.status === 'refused' ? { status: 'missing' as const } : read, reload };
 }

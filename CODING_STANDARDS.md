@@ -79,6 +79,7 @@ The app UI follows Brad Frost's Atomic Design (#101). Each level is a folder in 
 - A migration that replaces a function starts from the latest version on `main`, so that parallel changes survive.
 - `supabase/database.types.ts` comes only from `bun run types:database`.
 - Errors from database functions carry a code, a message, and the field at fault as a JSON path, such as `oracle_ids[1]`. Use `private.raise_search_error` and the `private.checked_*` helpers. See `README.md` (Catalog search).
+- Each app database function has one contract in `@mtgscan/supabase`, made with `databaseFunction` from `database-function.ts`. It holds the function's name, its argument key, its request and reply as zod schemas, and its error codes. Enum lists come from the generated `Constants`. The contract is the one source for the function's JSON. Reply types, MCP output schemas, and the fake Supabase client come from it, and code calls the function through `callDatabaseFunction`. A hand-written reply type, a cast of a reply, or a second list of a function's error codes is a finding. A PR that changes a function's JSON changes its contract, and the database tests parse each real reply against it. See #410.
 
 ## Security
 
@@ -95,7 +96,7 @@ The app UI follows Brad Frost's Atomic Design (#101). Each level is a folder in 
   - Theme tests check the Tailwind theme against `DESIGN.md` and the class merges of `cn()`, with no rendering.
   - Primitive tests in `apps/mobile/test/atoms.test.tsx`, `molecules.test.tsx`, and `drawer-sheet.test.tsx` render one atom, molecule, or template with `render` and check its roles, states, labels, touch target, and token styles.
   - The owner checks on the device what Jest cannot reach, such as real Apple and Google sign-in.
-- Test external behavior, such as screen text, roles, returned rows, error codes, and error fields. Leave out internal state, component structure, SQL text, and query plans.
+- Test external behavior, such as screen text, roles, returned rows, error codes, and error fields. Leave out internal state, component structure, SQL text, and query plans. The one exception is `supabase/tests/mcp-problems.test.ts`. It reads the SQL of the database functions to check each contract's error codes against the codes its SQL can raise, which no reply shows (#410).
 - Name each test as a sentence about the behavior, in glossary terms.
 - Each test fails when its behavior breaks. For key rules, the PR evidence shows a mutation check, where the author breaks the code on purpose and the test goes red.
 - Every acceptance criterion in the ticket has a test or an owner check.

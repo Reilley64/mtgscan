@@ -1,7 +1,8 @@
 import type { DeckChange, DeckChangeBasicLandLine, DeckChangeCopyLine, DeckChangeKind } from '@mtgscan/supabase/decks';
-import { fireEvent, within } from 'expo-router/testing-library';
+import { fireEvent, waitFor, within } from 'expo-router/testing-library';
 
-import { expirePageCursors, failDeckChangeReads, ownDeckChanges, ownDecks, startSignedIn } from './fake-supabase';
+import { expirePageCursors, ownDeckChanges, ownDecks, startSignedIn } from './fake-supabase';
+import { fail, requestsSent } from './fake-supabase-controls';
 import { appearsBefore, cardImageUri, pressTab, pushedScreen, scrollToEnd, selectedTab } from './native-ui';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
@@ -49,7 +50,7 @@ function deckChange(revision: number, kind: DeckChangeKind, lines: DeckChange['l
 }
 
 async function openHistory(changes: DeckChange[]) {
-  ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: 0 }]);
+  ownDecks([{ name: 'Atraxa', priority: 'medium' }]);
   ownDeckChanges('deck-1', changes);
   await renderApp();
   await pressTab('Decks');
@@ -181,22 +182,27 @@ describe('the History tab', () => {
     expect(appearsBefore(last, deck.getByText('Created 15 October 2026'))).toBe(true);
   });
 
-  test('an expired cursor reads History again from the newest deck change, and scrolling loads more', async () => {
+  test('an expired cursor reads History again from the newest deck change, as many pages as it showed, and scrolling loads more', async () => {
     const deck = await openHistory(
-      Array.from({ length: 25 }, (_, index) => deckChange(25 - index, 'added', [copyLine(`Card ${25 - index}`, 'Artifact', { place_before: null, place_after: 'main' })])),
+      Array.from({ length: 45 }, (_, index) => deckChange(45 - index, 'added', [copyLine(`Card ${45 - index}`, 'Artifact', { place_before: null, place_after: 'main' })])),
     );
+    await scrollToEnd(pushedScreen());
     expect(await deck.findByLabelText('+, Card 6, Artifact')).toBeOnTheScreen();
+    const readsBefore = requestsSent('list_deck_changes').length;
     expirePageCursors();
 
     await scrollToEnd(pushedScreen());
-    await scrollToEnd(pushedScreen());
 
+    await waitFor(() =>
+      expect(requestsSent('list_deck_changes').slice(readsBefore).map(({ cursor }) => cursor)).toEqual([expect.any(String), null, expect.any(String)]),
+    );
+    await scrollToEnd(pushedScreen());
     expect(await deck.findByLabelText('+, Card 1, Artifact')).toBeOnTheScreen();
-    expect(deck.getAllByText('Added')).toHaveLength(25);
+    expect(deck.getAllByText('Added')).toHaveLength(45);
   });
 
   test('a history read that fails says so, and Try again loads it', async () => {
-    failDeckChangeReads(1);
+    fail('list_deck_changes', 1);
     const deck = await openHistory([deckChange(1, 'added', [solRing({ place_before: null, place_after: 'main' })])]);
 
     expect(await deck.findByText('Could not load this deck')).toBeOnTheScreen();

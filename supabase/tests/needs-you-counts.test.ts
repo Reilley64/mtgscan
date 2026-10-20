@@ -1,11 +1,14 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import { readDeckError, type Deck, type DeckList, type NeedsYouCounts } from '../decks';
+import { closeBuylistCard, markBuylistCardBought } from '../buylist';
+import { getDeck, getNeedsYouCounts, listDecks } from '../decks';
+import { closePlannedSwap, swapInPlannedSwap } from '../planned-swaps';
 import { connectedAiClient } from './ai-clients';
 import { oneBuylistCard } from './buylist-card-seeds';
 import { catalogFixtureManifest, oracleIdOf, resetCardCatalog, runCatalogImport } from './catalog-import-command';
+import { call, failed, refused, replyOf } from './database-calls';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
-import { appRead, appRequest, blackLotus, counterspell, deckNamed, krenkoDeck, onePlannedSwap, scannedCopy } from './planned-swap-seeds';
+import { blackLotus, counterspell, deckNamed, krenkoDeck, onePlannedSwap, scannedCopy } from './planned-swap-seeds';
 
 setDefaultTimeout(60_000);
 
@@ -18,16 +21,16 @@ beforeAll(async () => {
 });
 
 function countsOf(user: TestUser) {
-  return appRead<NeedsYouCounts>(user, 'get_needs_you_counts', {});
+  return replyOf(user.client, getNeedsYouCounts, {});
 }
 
 async function needsYouCountsInDeckList(user: TestUser) {
-  const { items } = await appRead<DeckList>(user, 'list_decks', {});
+  const { items } = await replyOf(user.client, listDecks, {});
   return Object.fromEntries(items.map((deck) => [deck.name, deck.needs_you_count]));
 }
 
 async function plannedOutCards(user: TestUser, deckId: string) {
-  const { cards } = await appRead<Deck>(user, 'get_deck', { deck_id: deckId });
+  const { cards } = await replyOf(user.client, getDeck, { deck_id: deckId });
   return cards.filter((card) => card.planned_out).map((card) => card.copy_id);
 }
 
@@ -60,14 +63,14 @@ describe('get_needs_you_counts', () => {
     await oneBuylistCard(client, deckId, lotusCard, { incoming: { oracle_id: lotusCard, as_commander: true } });
     expect((await countsOf(client.user)).total).toBe(5);
 
-    await appRequest(client.user, 'swap_in_planned_swap', { planned_swap_id: swappedIn });
-    await appRequest(client.user, 'close_planned_swap', { planned_swap_id: closed });
-    await appRequest(client.user, 'mark_buylist_card_bought', {
+    await replyOf(client.user.client, swapInPlannedSwap, { planned_swap_id: swappedIn });
+    await replyOf(client.user.client, closePlannedSwap, { planned_swap_id: closed });
+    await replyOf(client.user.client, markBuylistCardBought, {
       buylist_card_id: bought,
       copy_id: await scannedCopy(client.user, blackLotus),
       unprotect: false,
     });
-    await appRequest(client.user, 'close_buylist_card', { buylist_card_id: closedCard });
+    await replyOf(client.user.client, closeBuylistCard, { buylist_card_id: closedCard });
 
     expect(await countsOf(client.user)).toEqual({ total: 1, decks: [{ deck_id: deckId, count: 1 }] });
   });
@@ -90,19 +93,16 @@ describe('get_needs_you_counts', () => {
   test('an unknown field is refused with invalid_argument', async () => {
     const user = await signUpNewUser();
 
-    const { data, error } = await user.client.rpc('get_needs_you_counts', { query: { deck_id: crypto.randomUUID() } });
+    const result = await call(user.client, getNeedsYouCounts, { deck_id: crypto.randomUUID() } as never);
 
-    expect(data).toBeNull();
-    expect(error && readDeckError(error)).toMatchObject({ code: 'invalid_argument', field: 'deck_id' });
+    expect(result).toMatchObject(refused('invalid_argument', 'deck_id'));
   });
 
   test.each<[string, () => AppClient]>([
     ['an anonymous caller', anonymousClient],
     ['the secret key', secretKeyClient],
   ])('%s cannot read the counts', async (_, client) => {
-    const { error } = await client().rpc('get_needs_you_counts');
-
-    expect(error?.code).toBe('42501');
+    expect(await call(client(), getNeedsYouCounts)).toMatchObject(failed('42501'));
   });
 });
 
@@ -114,7 +114,7 @@ describe('list_decks', () => {
     await onePlannedSwap(client, krenko.deckId, await scannedCopy(client.user, counterspell));
     await oneBuylistCard(client, krenko.deckId, lotusCard);
     const closed = await oneBuylistCard(client, krenko.deckId, lotusCard, { outgoing: { copy_id: krenko.bolt } });
-    await appRequest(client.user, 'close_buylist_card', { buylist_card_id: closed });
+    await replyOf(client.user.client, closeBuylistCard, { buylist_card_id: closed });
 
     expect(await needsYouCountsInDeckList(client.user)).toEqual({ Krenko: 2, Empty: 0 });
   });
@@ -131,7 +131,7 @@ describe('get_deck', () => {
 
     expect(await plannedOutCards(client.user, deckId)).toEqual([bolt]);
 
-    await appRequest(client.user, 'close_planned_swap', { planned_swap_id: plannedSwapId });
+    await replyOf(client.user.client, closePlannedSwap, { planned_swap_id: plannedSwapId });
 
     expect(await plannedOutCards(client.user, deckId)).toEqual([]);
   });

@@ -1,14 +1,6 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import {
-  readSearchError,
-  type CardDetails,
-  type CardDetailsQuery,
-  type CardPrintingRow,
-  type CardPrintingsPage,
-  type CardPrintingsQuery,
-} from '../search';
+import { getCards, listCardPrintings, type CardDetailsQuery, type CardPrintingRow, type CardPrintingsQuery } from '../search';
 import {
   catalogFixture,
   catalogFixtureManifest,
@@ -24,6 +16,7 @@ import {
   spellbookFixtureVariant,
   type SpellbookVariant,
 } from './catalog-import-command';
+import { call, failed, refused, replyOf } from './database-calls';
 import { daysAgo, storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
@@ -45,26 +38,16 @@ beforeAll(async () => {
   alice = await signUpNewUser();
 });
 
-async function getCards(query: CardDetailsQuery | Record<string, unknown> | unknown[]) {
-  const { data, error } = await alice.client.rpc('get_cards', { query: query as Json });
-  return { result: data as unknown as CardDetails | null, error: error && readSearchError(error) };
+function cards(query: CardDetailsQuery) {
+  return replyOf(alice.client, getCards, query);
 }
 
-async function cards(query: CardDetailsQuery) {
-  const { result, error } = await getCards(query);
-  expect(error).toBeNull();
-  return result!;
+function listPrintings(query: CardPrintingsQuery) {
+  return call(alice.client, listCardPrintings, query);
 }
 
-async function listPrintings(query: CardPrintingsQuery | Record<string, unknown> | unknown[]) {
-  const { data, error } = await alice.client.rpc('list_card_printings', { query: query as Json });
-  return { page: data as unknown as CardPrintingsPage | null, error: error && readSearchError(error) };
-}
-
-async function printings(query: CardPrintingsQuery) {
-  const { page, error } = await listPrintings(query);
-  expect(error).toBeNull();
-  return page!;
+function printings(query: CardPrintingsQuery) {
+  return replyOf(alice.client, listCardPrintings, query);
 }
 
 async function allPrintings(query: CardPrintingsQuery) {
@@ -93,17 +76,11 @@ describe('before the first catalog import', () => {
   beforeAll(resetCardCatalog);
 
   test('get cards returns data_unavailable', async () => {
-    const { result, error } = await getCards({ oracle_ids: [delverOfSecrets] });
-
-    expect(result).toBeNull();
-    expect(error?.code).toBe('data_unavailable');
+    expect(await call(alice.client, getCards, { oracle_ids: [delverOfSecrets] })).toMatchObject(refused('data_unavailable'));
   });
 
   test('list printings returns data_unavailable', async () => {
-    const { page, error } = await listPrintings({ oracle_id: delverOfSecrets });
-
-    expect(page).toBeNull();
-    expect(error?.code).toBe('data_unavailable');
+    expect(await listPrintings({ oracle_id: delverOfSecrets })).toMatchObject(refused('data_unavailable'));
   });
 });
 
@@ -368,44 +345,41 @@ describe('after a catalog import', () => {
     });
 
     test('an unknown Oracle ID fails with not_found on oracle_id', async () => {
-      const { page, error } = await listPrintings({ oracle_id: unknownId });
-
-      expect(page).toBeNull();
-      expect(error).toMatchObject({ code: 'not_found', field: 'oracle_id' });
+      expect(await listPrintings({ oracle_id: unknownId })).toMatchObject(refused('not_found', 'oracle_id'));
     });
 
     test('a malformed cursor fails with invalid_cursor', async () => {
-      const { error } = await listPrintings({ oracle_id: jinnieFay, cursor: 'not a cursor' });
+      const result = await listPrintings({ oracle_id: jinnieFay, cursor: 'not a cursor' });
 
-      expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+      expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
     });
 
     test('a cursor with a broken sort key fails with invalid_cursor', async () => {
       const { next_cursor } = await printings({ oracle_id: jinnieFay, limit: 1 });
       const payload = JSON.parse(Buffer.from(next_cursor!, 'base64').toString('utf8'));
       const broken = Buffer.from(JSON.stringify({ ...payload, after: ['someday', 1, null, 'x'] })).toString('base64');
-      const { error } = await listPrintings({ oracle_id: jinnieFay, limit: 1, cursor: broken });
+      const result = await listPrintings({ oracle_id: jinnieFay, limit: 1, cursor: broken });
 
-      expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+      expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
     });
 
     test('a cursor from another card fails with invalid_cursor', async () => {
       const { next_cursor } = await printings({ oracle_id: jinnieFay, limit: 1 });
-      const { error } = await listPrintings({ oracle_id: delverOfSecrets, limit: 1, cursor: next_cursor });
+      const result = await listPrintings({ oracle_id: delverOfSecrets, limit: 1, cursor: next_cursor });
 
-      expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+      expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
     });
 
     test('a cursor older than 15 minutes fails with invalid_cursor', async () => {
       const { next_cursor } = await printings({ oracle_id: jinnieFay, limit: 1 });
       const sixteenMinutesAgo = Date.now() / 1000 - 16 * 60;
-      const { error } = await listPrintings({
+      const result = await listPrintings({
         oracle_id: jinnieFay,
         limit: 1,
         cursor: withIssueTime(next_cursor!, sixteenMinutesAgo),
       });
 
-      expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+      expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
     });
   });
 
@@ -422,19 +396,16 @@ describe('after a catalog import', () => {
       ['a repeated ID', { oracle_ids: [delverOfSecrets, delverOfSecrets] }, 'oracle_ids[1]'],
       ['a repeated ID in another case', { oracle_ids: [delverOfSecrets, delverOfSecrets.toUpperCase()] }, 'oracle_ids[1]'],
     ])('get cards refuses %s with an error on its field', async (_, query, field) => {
-      const { result, error } = await getCards(query);
+      const result = await call(alice.client, getCards, query as never);
 
-      expect(result).toBeNull();
-      expect(error).toMatchObject({ code: 'invalid_argument', field });
+      expect(result).toMatchObject(refused('invalid_argument', field));
       if (field) {
-        expect(error!.message).toContain(field.replace(/\[\d+\]$/, ''));
+        expect(result).toMatchObject({ refusal: { message: expect.stringContaining(field.replace(/\[\d+\]$/, '')) } });
       }
     });
 
     test('get cards refuses a query that is not an object', async () => {
-      const { error } = await getCards([delverOfSecrets]);
-
-      expect(error).toMatchObject({ code: 'invalid_argument', field: null });
+      expect(await call(alice.client, getCards, [delverOfSecrets] as never)).toMatchObject(refused('invalid_argument', null));
     });
 
     test.each<[string, Record<string, unknown>, string]>([
@@ -448,27 +419,23 @@ describe('after a catalog import', () => {
       ['a fractional limit', { oracle_id: delverOfSecrets, limit: 2.5 }, 'limit'],
       ['a cursor of the wrong type', { oracle_id: delverOfSecrets, cursor: 5 }, 'cursor'],
     ])('list printings refuses %s with an error on its field', async (_, query, field) => {
-      const { page, error } = await listPrintings(query);
-
-      expect(page).toBeNull();
-      expect(error).toMatchObject({ code: 'invalid_argument', field });
-      expect(error!.message).toContain(field);
+      expect(await listPrintings(query as never)).toMatchObject({
+        status: 'refused',
+        refusal: { code: 'invalid_argument', field, message: expect.stringContaining(field) },
+      });
     });
 
     test('list printings refuses a query that is not an object', async () => {
-      const { error } = await listPrintings([delverOfSecrets]);
-
-      expect(error).toMatchObject({ code: 'invalid_argument', field: null });
+      expect(await listPrintings([delverOfSecrets] as never)).toMatchObject(refused('invalid_argument', null));
     });
   });
 
   describe('callers', () => {
-    test.each(['get_cards', 'list_card_printings'] as const)('an anonymous caller is refused by %s', async (fn) => {
-      const query = fn === 'get_cards' ? { oracle_ids: [delverOfSecrets] } : { oracle_id: delverOfSecrets };
-      const { data, error } = await anonymousClient().rpc(fn, { query });
-
-      expect(data).toBeNull();
-      expect(error?.code).toBe(permissionDenied);
+    test.each([
+      [getCards.name, () => call(anonymousClient(), getCards, { oracle_ids: [delverOfSecrets] })],
+      [listCardPrintings.name, () => call(anonymousClient(), listCardPrintings, { oracle_id: delverOfSecrets })],
+    ])('an anonymous caller is refused by %s', async (_, read) => {
+      expect(await read()).toMatchObject(failed(permissionDenied));
     });
   });
 });
@@ -511,10 +478,9 @@ describe('after a price import', () => {
   });
 
   test('card details refuse a price currency, even USD, as the app converts prices itself', async () => {
-    const { result, error } = await getCards({ oracle_ids: [delverOfSecrets], price_currency: 'USD' });
+    const result = await call(alice.client, getCards, { oracle_ids: [delverOfSecrets], price_currency: 'USD' } as never);
 
-    expect(result).toBeNull();
-    expect(error).toMatchObject({ code: 'invalid_argument', field: 'price_currency' });
+    expect(result).toMatchObject(refused('invalid_argument', 'price_currency'));
   });
 });
 

@@ -1,15 +1,6 @@
 import { afterEach, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { Json } from '../database.types';
-import {
-  readSearchError,
-  type CatalogQuery,
-  type CatalogRow,
-  type OracleTagRow,
-  type SearchPage,
-  type TagLookupPage,
-  type TagLookupQuery,
-} from '../search';
+import { searchCatalog, searchOracleTags, type CatalogQuery, type OracleTagRow, type TagLookupQuery } from '../search';
 import {
   catalogFixtureManifest,
   oracleTagOf,
@@ -17,6 +8,7 @@ import {
   runCatalogImport,
   runOracleTagImport,
 } from './catalog-import-command';
+import { call, failed, refused, replyOf } from './database-calls';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -38,26 +30,20 @@ afterEach(async () => {
   expect(error).toBeNull();
 });
 
-async function search(query: CatalogQuery | Record<string, unknown>) {
-  const { data, error } = await alice.client.rpc('search_catalog', { query: query as Json });
-  return { page: data as SearchPage<CatalogRow> | null, error: error && readSearchError(error) };
+function search(query: CatalogQuery) {
+  return call(alice.client, searchCatalog, query);
 }
 
 async function names(query: CatalogQuery) {
-  const { page, error } = await search({ limit: 50, ...query });
-  expect(error).toBeNull();
-  return page!.items.map((row) => row.name);
+  return (await replyOf(alice.client, searchCatalog, { limit: 50, ...query })).items.map((row) => row.name);
 }
 
-async function lookUpTags(query: TagLookupQuery | Record<string, unknown> | unknown[], user: TestUser = alice) {
-  const { data, error } = await user.client.rpc('search_oracle_tags', { query: query as Json });
-  return { page: data as TagLookupPage | null, error: error && readSearchError(error) };
+function lookUpTags(query: TagLookupQuery) {
+  return replyOf(alice.client, searchOracleTags, query);
 }
 
 async function tagSlugs(query: TagLookupQuery) {
-  const { page, error } = await lookUpTags(query);
-  expect(error).toBeNull();
-  return page!.items.map((row) => row.slug);
+  return (await lookUpTags(query)).items.map((row) => row.slug);
 }
 
 async function disable(slug: string) {
@@ -186,10 +172,7 @@ describe('a disabled tag', () => {
   test('is refused as a chip', async () => {
     await disable('sweeper');
 
-    const { page, error } = await search({ tags: ['removal', 'sweeper'] });
-
-    expect(page).toBeNull();
-    expect(error).toMatchObject({ code: 'invalid_argument', field: 'tags[1]' });
+    expect(await search({ tags: ['removal', 'sweeper'] })).toMatchObject(refused('invalid_argument', 'tags[1]'));
   });
 
   test('never matches text', async () => {
@@ -231,25 +214,21 @@ describe('tag chip input checks', () => {
     ['empty tag list', { tags: [] }, 'tags'],
     ['repeated tag', { tags: ['ramp', 'RAMP'] }, 'tags[1]'],
   ])('%s is refused with an error on its field', async (_, query, field) => {
-    const { page, error } = await search(query);
-
-    expect(page).toBeNull();
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await search(query as never)).toMatchObject(refused('invalid_argument', field));
   });
 
   test('an unknown tag tells the caller to use the tag lookup', async () => {
-    const { error } = await search({ tags: ['board-wipes'] });
+    const result = await search({ tags: ['board-wipes'] });
 
-    expect(error!.message).toContain('tag lookup');
+    expect(result).toMatchObject({ status: 'refused', refusal: { message: expect.stringContaining('tag lookup') } });
   });
 });
 
 describe('tag lookup', () => {
   test('a row has the tag ID, slug, label, aliases, description, parent slugs, and Commander-legal card count', async () => {
-    const { page, error } = await lookUpTags({ text: 'sweeper', limit: 1 });
+    const page = await lookUpTags({ text: 'sweeper', limit: 1 });
 
-    expect(error).toBeNull();
-    expect(page!.items).toEqual([
+    expect(page.items).toEqual([
       {
         id: (await oracleTagOf('sweeper')).id,
         slug: 'sweeper',
@@ -260,8 +239,8 @@ describe('tag lookup', () => {
         card_count: 5,
       } satisfies OracleTagRow,
     ]);
-    expect(page!.rules_stale).toBe(false);
-    expect(page!.rules_data_as_of).toEqual(expect.any(String));
+    expect(page.rules_stale).toBe(false);
+    expect(page.rules_data_as_of).toEqual(expect.any(String));
   });
 
   test('an exact slug or label comes first, then related tags by the number of cards they reach, including tags outside its closure', async () => {
@@ -278,17 +257,17 @@ describe('tag lookup', () => {
   });
 
   test('a tag with no direct taggings counts every Commander-legal card in its closure', async () => {
-    const { page } = await lookUpTags({ text: 'removal', limit: 1 });
+    const page = await lookUpTags({ text: 'removal', limit: 1 });
 
-    expect(page!.items).toEqual([expect.objectContaining({ slug: 'removal', card_count: removal.length })]);
+    expect(page.items).toEqual([expect.objectContaining({ slug: 'removal', card_count: removal.length })]);
   });
 
   test('a disabled tag never appears', async () => {
     await disable('sweeper');
 
     expect(await tagSlugs({ text: 'sweeper' })).toEqual(['sweeper-one-sided', 'sweeper-graveyard']);
-    const { page } = await lookUpTags({ text: 'sweeper-one-sided' });
-    expect(page!.items[0]!.parent_slugs).toEqual([]);
+    const page = await lookUpTags({ text: 'sweeper-one-sided' });
+    expect(page.items[0]!.parent_slugs).toEqual([]);
   });
 
   test('the default limit is 10', async () => {
@@ -307,23 +286,15 @@ describe('tag lookup', () => {
     ['limit of 0', { text: 'ramp', limit: 0 }, 'limit'],
     ['unknown field', { text: 'ramp', tags: ['ramp'] }, 'tags'],
   ])('%s is refused with an error on its field', async (_, query, field) => {
-    const { page, error } = await lookUpTags(query);
-
-    expect(page).toBeNull();
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call(alice.client, searchOracleTags, query as never)).toMatchObject(refused('invalid_argument', field));
   });
 
   test('a query that is not an object is refused', async () => {
-    const { error } = await lookUpTags(['ramp']);
-
-    expect(error).toMatchObject({ code: 'invalid_argument', field: null });
+    expect(await call(alice.client, searchOracleTags, ['ramp'] as never)).toMatchObject(refused('invalid_argument', null));
   });
 
   test('an anonymous caller is refused', async () => {
-    const { data, error } = await anonymousClient().rpc('search_oracle_tags', { query: { text: 'ramp' } });
-
-    expect(data).toBeNull();
-    expect(error?.code).toBe(permissionDenied);
+    expect(await call(anonymousClient(), searchOracleTags, { text: 'ramp' })).toMatchObject(failed(permissionDenied));
   });
 });
 
@@ -331,9 +302,6 @@ describe('before the first catalog import', () => {
   beforeAll(resetCardCatalog);
 
   test('tag lookup returns data_unavailable', async () => {
-    const { page, error } = await lookUpTags({ text: 'ramp' });
-
-    expect(page).toBeNull();
-    expect(error?.code).toBe('data_unavailable');
+    expect(await call(alice.client, searchOracleTags, { text: 'ramp' })).toMatchObject(refused('data_unavailable'));
   });
 });

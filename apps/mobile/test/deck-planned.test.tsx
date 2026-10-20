@@ -3,20 +3,8 @@ import { fireEvent, waitFor, within } from 'expo-router/testing-library';
 import { leaveTheApp, returnToTheApp } from './app-state';
 import { buylistCardOf, freeCopyOf } from './buylist';
 import { deckCardOf, openDeckNamed, openDeckWithCards } from './copies';
-import {
-  buylistQueries,
-  changePlannedSwapElsewhere,
-  deckWritesSent,
-  failDeckWrites,
-  failNeedsYouReads,
-  ownBuylistCards,
-  ownDecks,
-  ownFreeCopies,
-  ownPlannedSwaps,
-  plannedSwapQueries,
-  refuseAsThirdCommander,
-  startSignedIn,
-} from './fake-supabase';
+import { changeElsewhere, deckWritesSent, failDeckWrites, failNeedsYouReads, ownBuylistCards, ownDecks, ownFreeCopies, ownPlannedSwaps, startSignedIn } from './fake-supabase';
+import { refuse, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
   isPageSheetPresented,
@@ -36,10 +24,10 @@ beforeEach(() => {
   startSignedIn();
 });
 
-const krenko = { name: 'Krenko', priority: 'medium' as const, card_count: 0 };
+const krenko = { name: 'Krenko', priority: 'medium' as const };
 
 async function openKrenko() {
-  ownDecks([krenko, { name: 'Atraxa', priority: 'medium', card_count: 0 }]);
+  ownDecks([krenko, { name: 'Atraxa', priority: 'medium' }]);
   await renderApp();
   await pressTab('Decks');
   return openDeckNamed('Krenko');
@@ -79,8 +67,8 @@ describe('the Planned tab', () => {
     expect(deck.getByRole('button', { name: 'Bought' })).toBeOnTheScreen();
     expect(deck.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
     expect(deck.queryByRole('button', { name: 'Krenko' })).not.toBeOnTheScreen();
-    expect(plannedSwapQueries()).toContainEqual({ deck_id: 'deck-1', status: 'open', order: 'oldest_first', limit: 50 });
-    expect(buylistQueries()).toContainEqual({ deck_id: 'deck-1', status: 'open', order: 'oldest_first', limit: 50 });
+    expect(requestsSent('list_planned_swaps')).toContainEqual({ deck_id: 'deck-1', status: 'open', order: 'oldest_first', limit: 50, cursor: null });
+    expect(requestsSent('list_buylist')).toContainEqual({ deck_id: 'deck-1', status: 'open', order: 'oldest_first', limit: 50, cursor: null });
   });
 
   test("lists every open planned swap of the deck, past the first page", async () => {
@@ -89,7 +77,7 @@ describe('the Planned tab', () => {
     const deck = await openPlanned();
 
     await waitFor(() => expect(deck.getAllByRole('button', { name: 'Swap in' })).toHaveLength(51));
-    expect(plannedSwapQueries()).toContainEqual({ deck_id: 'deck-1', status: 'open', order: 'oldest_first', limit: 50, cursor: '50' });
+    expect(requestsSent('list_planned_swaps')).toContainEqual({ deck_id: 'deck-1', status: 'open', order: 'oldest_first', limit: 50, cursor: '50' });
   });
 
   test('with nothing planned, Planned shows its empty state', async () => {
@@ -213,6 +201,7 @@ describe('Needs you counts', () => {
   });
 
   test('the Recent badge counts down after a Swap in', async () => {
+    ownDecks([krenko]);
     ownPlannedSwaps([plannedSwapOf('swap'), plannedSwapOf('other', { incoming: plannedCopyLine('copy-other', 'Counterspell') })]);
     await renderApp();
     await waitFor(() => expect(tabBadge('Recent')).toBe('2'), { timeout: tabBarSettleMs });
@@ -241,7 +230,7 @@ describe('Needs you counts', () => {
   });
 
   test('the commander gallery card shows the deck count in a count badge', async () => {
-    ownDecks([krenko, { name: 'Atraxa', priority: 'medium', card_count: 0 }]);
+    ownDecks([krenko, { name: 'Atraxa', priority: 'medium' }]);
     ownPlannedSwaps([plannedSwapOf('swap')]);
     ownBuylistCards([buylistCardOf('card')]);
     await renderApp();
@@ -358,7 +347,7 @@ describe('Swap in all', () => {
 
   test('a swap in that would make a third commander names the card, and nothing is swapped in', async () => {
     ownPlannedSwaps(twoSwaps());
-    refuseAsThirdCommander('newer');
+    refuse('swap_in_planned_swaps', 'commander_limit', 'planned_swap_ids[1]');
     const deck = await openPlanned();
 
     await confirmSwapInAll(deck);
@@ -377,7 +366,7 @@ describe('Swap in all', () => {
     ownPlannedSwaps([...twoSwaps(), plannedSwapOf('third', { incoming: plannedCopyLine('copy-third', 'Fog') })]);
     const deck = await openPlanned();
     expect(await deck.findAllByRole('button', { name: 'Swap in' })).toHaveLength(3);
-    changePlannedSwapElsewhere('newer', 'closed');
+    changeElsewhere('close_planned_swap', { planned_swap_id: 'newer' });
 
     await confirmSwapInAll(deck);
 

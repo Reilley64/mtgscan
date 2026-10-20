@@ -6,12 +6,8 @@ import { resetSampleClock } from './detection-samples';
 import { cameraIsOn, phoneHasNoCamera } from './fake-card-detector';
 import { cardRecognition, holdNextRecognition, nextPhotosAre } from './fake-card-recognizer';
 import { scanFeedback } from './fake-scan-feedback';
-import {
-  failNextScanBatchCommit,
-  holdNextScanBatchCommit,
-  scanBatchesSentToTheServer,
-  startSignedIn,
-} from './fake-supabase';
+import { startSignedIn } from './fake-supabase';
+import { fail, hold, requestsSent } from './fake-supabase-controls';
 import { accessibilityActionLabels, performAccessibilityAction, pressTab, selectedTab } from './native-ui';
 import { openScan, scanACard, scanTab, startPullingDown } from './scanning';
 
@@ -74,7 +70,7 @@ test('releasing past the threshold adds the scan batch through the batch commit 
   await pull.release();
   await waitForTheIndicatorToSlideAway();
 
-  const [sent] = scanBatchesSentToTheServer();
+  const [sent] = requestsSent('add_scan_batch');
   expect(sent.items.map(({ card_printing_id, copy_ids }) => ({ card_printing_id, copies: copy_ids.length }))).toEqual([
     { card_printing_id: lightningBoltM10.printingId, copies: 2 },
     { card_printing_id: shock.printingId, copies: 1 },
@@ -98,7 +94,7 @@ test('releasing past the threshold adds only the recognized scans and keeps a sc
   await pull.release();
   await waitForTheIndicatorToSlideAway();
 
-  const [sent] = scanBatchesSentToTheServer();
+  const [sent] = requestsSent('add_scan_batch');
   expect(sent.items.map(({ card_printing_id, copy_ids }) => ({ card_printing_id, copies: copy_ids.length }))).toEqual([
     { card_printing_id: lightningBoltM10.printingId, copies: 1 },
   ]);
@@ -108,7 +104,7 @@ test('releasing past the threshold adds only the recognized scans and keeps a sc
 
 test('the indicator says it is adding the cards while the commit runs', async () => {
   await scanTwoCopies();
-  const commit = holdNextScanBatchCommit();
+  const commit = hold('add_scan_batch', { once: true });
 
   const pull = await startPullingDown();
   await pull.pullTo(140);
@@ -128,7 +124,7 @@ test('releasing before the threshold adds nothing and the indicator slides away'
   await pull.release();
   await waitForTheIndicatorToSlideAway();
 
-  expect(scanBatchesSentToTheServer()).toEqual([]);
+  expect(requestsSent('add_scan_batch')).toEqual([]);
   expect(scanTab().getByRole('button', { name: 'Scan batch, 2' })).toBeOnTheScreen();
   expectNoIndicator();
 });
@@ -143,7 +139,7 @@ test('swiping back up before releasing cancels the add', async () => {
   expect(scanTab().getByText('Pull to add 2 cards')).toBeOnTheScreen();
   await pull.release();
   await waitForTheIndicatorToSlideAway();
-  expect(scanBatchesSentToTheServer()).toEqual([]);
+  expect(requestsSent('add_scan_batch')).toEqual([]);
   expect(scanTab().getByRole('button', { name: 'Scan batch, 2' })).toBeOnTheScreen();
   expectNoIndicator();
 });
@@ -163,13 +159,13 @@ test('with no recognized copies the indicator says there is nothing to add, and 
   await waitForTheIndicatorToSlideAway();
 
   expect(scanFeedback().slice(feedbackBeforePull)).toEqual([]);
-  expect(scanBatchesSentToTheServer()).toEqual([]);
+  expect(requestsSent('add_scan_batch')).toEqual([]);
 });
 
 test('a failed add shows Failed to add in the pill, tells VoiceOver, keeps the scan batch, and slides away', async () => {
   const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
   await scanTwoCopies();
-  failNextScanBatchCommit('before the server adds it');
+  fail('add_scan_batch');
 
   const pull = await startPullingDown();
   await pull.pullTo(140);
@@ -196,7 +192,7 @@ test('a pull that starts at the top of the screen does nothing, so it leaves roo
   await pull.release();
 
   expectNoIndicator();
-  expect(scanBatchesSentToTheServer()).toEqual([]);
+  expect(requestsSent('add_scan_batch')).toEqual([]);
 });
 
 test('a pull while a card is being recognized does nothing', async () => {
@@ -209,7 +205,7 @@ test('a pull while a card is being recognized does nothing', async () => {
   await pull.release();
 
   expectNoIndicator();
-  expect(scanBatchesSentToTheServer()).toEqual([]);
+  expect(requestsSent('add_scan_batch')).toEqual([]);
 });
 
 test('releasing past the threshold adds nothing when a card started to be recognized during the pull', async () => {
@@ -221,19 +217,19 @@ test('releasing past the threshold adds nothing when a card started to be recogn
   await scanACard();
   await pull.release();
 
-  expect(scanBatchesSentToTheServer()).toEqual([]);
+  expect(requestsSent('add_scan_batch')).toEqual([]);
 });
 
 test('a pull adds nothing and the VoiceOver action is gone while an add is still running', async () => {
   await scanTwoCopies();
-  const commit = holdNextScanBatchCommit();
+  const commit = hold('add_scan_batch', { once: true });
   await performAccessibilityAction(scanTab().getByRole('button', { name: 'Scan batch, 2' }), 'Add 2 cards to collection');
 
   const pull = await startPullingDown();
   await pull.pullTo(140);
   await pull.release();
 
-  expect(scanBatchesSentToTheServer()).toHaveLength(1);
+  expect(requestsSent('add_scan_batch')).toHaveLength(1);
   expect(accessibilityActionLabels(scanTab().getByRole('button', { name: 'Scan batch, 2' }))).toEqual([]);
   await commit.finish();
 });
@@ -255,6 +251,6 @@ test('VoiceOver offers the add as an action on the batch button', async () => {
 
   await performAccessibilityAction(batchButton, 'Add 2 cards to collection');
 
-  expect(scanBatchesSentToTheServer()).toHaveLength(1);
+  expect(requestsSent('add_scan_batch')).toHaveLength(1);
   expect(accessibilityActionLabels(scanTab().getByRole('button', { name: 'Scan batch' }))).toEqual([]);
 });

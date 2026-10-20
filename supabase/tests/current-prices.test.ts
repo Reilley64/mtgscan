@@ -1,11 +1,10 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CurrentPrices, CurrentPricesQuery } from '../collection';
-import type { Json } from '../database.types';
-import { readSearchError } from '../search';
+import { getCurrentPrices, type CurrentPricesQuery } from '../collection';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
 import { daysAgo, storeExchangeRates } from './exchange-rate-seeds';
-import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
+import { call, failed, refused, replyOf } from './database-calls';
+import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
 
@@ -43,15 +42,8 @@ function hoursAgo(hours: number) {
   return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 }
 
-async function readCurrentPrices(client: AppClient, query: CurrentPricesQuery | Record<string, unknown> | unknown[]) {
-  const { data, error } = await client.rpc('get_current_prices', { query: query as Json });
-  return { prices: data as unknown as CurrentPrices | null, error: error && readSearchError(error) };
-}
-
 async function currentPrices(query: CurrentPricesQuery) {
-  const { prices, error } = await readCurrentPrices(user.client, query);
-  expect(error).toBeNull();
-  return prices!.items;
+  return (await replyOf(user.client, getCurrentPrices, query)).items;
 }
 
 describe('the current prices read', () => {
@@ -139,22 +131,16 @@ describe('the current prices read', () => {
     ['a card printing ID that is not a UUID', { items: [{ printing_id: 'mh2-262', finish: 'foil' }] }, 'items[0].printing_id'],
     ['a price currency, even USD, as the app converts prices itself', { items: [{ printing_id: angelicCurator, finish: 'foil' }], price_currency: 'USD' }, 'price_currency'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
-    const { prices, error } = await readCurrentPrices(user.client, query);
-
-    expect(prices).toBeNull();
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call(user.client, getCurrentPrices, query as never)).toMatchObject(refused('invalid_argument', field));
   });
 
   test.each([
     ['an anonymous caller', anonymousClient],
     ['the secret key', secretKeyClient],
   ])('%s cannot read current prices', async (_, client) => {
-    const { data, error } = await client().rpc('get_current_prices', {
-      query: { items: [{ printing_id: angelicCurator, finish: 'foil' }] },
-    });
+    const result = await call(client(), getCurrentPrices, { items: [{ printing_id: angelicCurator, finish: 'foil' }] });
 
-    expect(data).toBeNull();
-    expect(error?.code).toBe(permissionDenied);
+    expect(result).toMatchObject(failed(permissionDenied));
   });
 });
 

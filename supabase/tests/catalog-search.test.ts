@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import { usdPriceBounds, type PriceBounds } from '../converted-prices';
-import type { Json } from '../database.types';
-import { readSearchError, type CatalogQuery, type CatalogRow, type SearchPage } from '../search';
+import type { ReplyOf } from '../database-function';
+import { searchCatalog, type CatalogQuery } from '../search';
 import {
   catalogFixture,
   catalogFixtureManifest,
@@ -11,8 +11,10 @@ import {
   runCatalogImport,
   runPriceImport,
 } from './catalog-import-command';
+import { aiClientReply } from './ai-clients';
+import { call, failed, refused, replyOf } from './database-calls';
 import { exchangeRateOf, storeExchangeRates } from './exchange-rate-seeds';
-import { anonymousClient, asDatabaseRole, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
+import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
 
@@ -25,15 +27,12 @@ beforeAll(async () => {
   alice = await signUpNewUser();
 });
 
-async function search(query: CatalogQuery | Record<string, unknown> | unknown[], user: TestUser = alice) {
-  const { data, error } = await user.client.rpc('search_catalog', { query: query as Json });
-  return { page: data as SearchPage<CatalogRow> | null, error: error && readSearchError(error) };
+function search(query: CatalogQuery) {
+  return call(alice.client, searchCatalog, query);
 }
 
-async function page(query: CatalogQuery) {
-  const { page, error } = await search(query);
-  expect(error).toBeNull();
-  return page!;
+function page(query: CatalogQuery) {
+  return replyOf(alice.client, searchCatalog, query);
 }
 
 async function names(query: CatalogQuery) {
@@ -41,7 +40,7 @@ async function names(query: CatalogQuery) {
 }
 
 async function allPages(query: CatalogQuery) {
-  const pages: SearchPage<CatalogRow>[] = [];
+  const pages: ReplyOf<typeof searchCatalog>[] = [];
   let cursor: string | null = null;
   do {
     const next = await page({ ...query, cursor });
@@ -70,10 +69,7 @@ describe('before the first catalog import', () => {
   beforeAll(resetCardCatalog);
 
   test('catalog search returns data_unavailable', async () => {
-    const { page, error } = await search({ text: 'fog' });
-
-    expect(page).toBeNull();
-    expect(error?.code).toBe('data_unavailable');
+    expect(await search({ text: 'fog' })).toMatchObject(refused('data_unavailable'));
   });
 });
 
@@ -504,24 +500,22 @@ describe('after a catalog import', () => {
     });
 
     test('a malformed cursor fails with invalid_cursor', async () => {
-      const { error } = await search({ types: ['creature'], cursor: 'not a cursor' });
-
-      expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+      expect(await search({ types: ['creature'], cursor: 'not a cursor' })).toMatchObject(refused('invalid_cursor', 'cursor'));
     });
 
     test('a cursor from another query fails with invalid_cursor', async () => {
       const { next_cursor } = await page({ types: ['creature'] });
-      const { error } = await search({ types: ['creature'], colors: ['G'], cursor: next_cursor });
+      const result = await search({ types: ['creature'], colors: ['G'], cursor: next_cursor });
 
-      expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+      expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
     });
 
     test('a cursor older than 15 minutes fails with invalid_cursor', async () => {
       const { next_cursor } = await page({ types: ['creature'] });
       const sixteenMinutesAgo = Date.now() / 1000 - 16 * 60;
-      const { error } = await search({ types: ['creature'], cursor: withIssueTime(next_cursor!, sixteenMinutesAgo) });
+      const result = await search({ types: ['creature'], cursor: withIssueTime(next_cursor!, sixteenMinutesAgo) });
 
-      expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+      expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
     });
   });
 
@@ -570,11 +564,10 @@ describe('after a catalog import', () => {
       ['price minimum above its maximum', { text: 'fog', price_min: '5', price_max: '4.99' }, 'price_max'],
       ['price currency, even USD, as the app converts prices itself', { text: 'fog', price_currency: 'USD' }, 'price_currency'],
     ])('%s is refused with an error on its field', async (_, query, field) => {
-      const { page, error } = await search(query);
-
-      expect(page).toBeNull();
-      expect(error).toMatchObject({ code: 'invalid_argument', field });
-      expect(error!.message).toContain(field.replace(/\[\d+\]$/, ''));
+      expect(await search(query as never)).toMatchObject({
+        status: 'refused',
+        refusal: { code: 'invalid_argument', field, message: expect.stringContaining(field.replace(/\[\d+\]$/, '')) },
+      });
     });
 
     test.each<[string, Record<string, unknown> | unknown[]]>([
@@ -582,19 +575,13 @@ describe('after a catalog import', () => {
       ['a query with only paging and sort fields', { sort: 'name', limit: 5, include_oracle_text: true }],
       ['a query that is not an object', ['fog']],
     ])('%s is refused', async (_, query) => {
-      const { page, error } = await search(query);
-
-      expect(page).toBeNull();
-      expect(error).toMatchObject({ code: 'invalid_argument', field: null });
+      expect(await search(query as never)).toMatchObject(refused('invalid_argument', null));
     });
   });
 
   describe('callers', () => {
     test('an anonymous caller is refused', async () => {
-      const { data, error } = await anonymousClient().rpc('search_catalog', { query: { text: 'fog' } });
-
-      expect(data).toBeNull();
-      expect(error?.code).toBe(permissionDenied);
+      expect(await call(anonymousClient(), searchCatalog, { text: 'fog' })).toMatchObject(failed(permissionDenied));
     });
   });
 
@@ -647,12 +634,9 @@ describe('after a catalog import', () => {
     });
 
     test("a search with an AI client's token writes the caller mcp", async () => {
-      const claims = { sub: alice.userId, role: 'authenticated', client_id: crypto.randomUUID() };
-      const [{ result }] = await asDatabaseRole('authenticated', claims, (database) =>
-        database`select public.search_catalog(${{ types: ['creature'] }}::jsonb) as result`,
-      );
+      const { search_id } = await aiClientReply({ user: alice, clientId: crypto.randomUUID() }, searchCatalog, { types: ['creature'] });
 
-      expect((await telemetryRows()).find((row) => row.search_id === result.search_id)).toMatchObject({
+      expect((await telemetryRows()).find((row) => row.search_id === search_id)).toMatchObject({
         user_id: alice.userId,
         api: 'catalog',
         caller: 'mcp',

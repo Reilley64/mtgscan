@@ -1,7 +1,8 @@
-import type { BuylistCardInput, BuylistPage, BuylistQuery, CreatedBuylistCards } from '../buylist';
-import { aiClientCall, type ClaimedAiClient } from './ai-clients';
+import { createBuylistCards, listBuylist, type BuylistCardInput, type BuylistQuery } from '../buylist';
+import { aiClientReply, type ClaimedAiClient } from './ai-clients';
+import { replyOf } from './database-calls';
 import type { TestUser } from './local-stack';
-import { appRead, reason, revisionOf } from './planned-swap-seeds';
+import { reason, revisionOf } from './planned-swap-seeds';
 
 export async function buylistCardItem(
   user: TestUser,
@@ -20,11 +21,11 @@ export async function buylistCardItem(
 }
 
 export function addedToBuylist(client: ClaimedAiClient, buylistCards: BuylistCardInput[], idempotencyKey: string = crypto.randomUUID()) {
-  return aiClientCall<CreatedBuylistCards>(client, 'create_buylist_cards', { idempotency_key: idempotencyKey, buylist_cards: buylistCards });
+  return aiClientReply(client, createBuylistCards, { idempotency_key: idempotencyKey, buylist_cards: buylistCards });
 }
 
 export function listedBuylist(user: TestUser, query: BuylistQuery = {}) {
-  return appRead<BuylistPage>(user, 'list_buylist', query);
+  return replyOf(user.client, listBuylist, query);
 }
 
 export async function oneBuylistCard(client: ClaimedAiClient, deckId: string, oracleId: string, changes: Partial<BuylistCardInput> = {}) {

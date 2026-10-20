@@ -3,39 +3,37 @@ import { useState } from 'react';
 
 import { mcpServerUrl } from '@/lib/app-config';
 import { supabase } from '@/lib/supabase';
-import { useFocusedRead, type FocusedRead } from '@/lib/use-focused-read';
+import { useScreenRead, type Read } from '@/lib/read';
 
 export type AiClient = { id: string; name: string; allowedAt: string };
 
-type AiClientsLoaded = { status: 'loaded'; aiClients: AiClient[] };
+export type AiClientsRead = Read<{ aiClients: AiClient[] }>;
 
-export type AiClientsRead = FocusedRead<AiClientsLoaded>;
+const allowedAiClients = {
+  key: ['ai_clients'],
+  read: async (): Promise<AiClient[]> => {
+    const { data, error } = await supabase.auth.oauth.listGrants();
+    if (error) {
+      throw error;
+    }
+    return data.map((grant) => ({ id: grant.client.id, name: grant.client.name, allowedAt: grant.granted_at }));
+  },
+};
 
-async function readAiClients(): Promise<AiClientsLoaded> {
-  const { data, error } = await supabase.auth.oauth.listGrants();
-  if (error) {
-    throw error;
-  }
-  return {
-    status: 'loaded',
-    aiClients: data.map((grant) => ({ id: grant.client.id, name: grant.client.name, allowedAt: grant.granted_at })),
-  };
+function loadedAiClients(aiClients: AiClient[]) {
+  return { aiClients };
 }
 
 export function useAiClients() {
-  const { read, reload } = useFocusedRead(readAiClients);
-  const [revokedIds, setRevokedIds] = useState<string[]>([]);
+  const { read: aiClientsRead, reload, replaceReply } = useScreenRead(allowedAiClients, loadedAiClients);
   const [revokingIds, setRevokingIds] = useState<string[]>([]);
-
-  const aiClientsRead: AiClientsRead =
-    read.status === 'loaded' ? { ...read, aiClients: read.aiClients.filter(({ id }) => !revokedIds.includes(id)) } : read;
 
   async function revoke(aiClient: AiClient): Promise<boolean> {
     setRevokingIds((ids) => [...ids, aiClient.id]);
     const { error } = await supabase.auth.oauth.revokeGrant({ clientId: aiClient.id });
     setRevokingIds((ids) => ids.filter((id) => id !== aiClient.id));
     if (!error) {
-      setRevokedIds((ids) => [...ids, aiClient.id]);
+      replaceReply((aiClients) => aiClients?.filter(({ id }) => id !== aiClient.id));
     }
     return !error;
   }

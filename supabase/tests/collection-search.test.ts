@@ -1,20 +1,20 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type {
-  CardCondition,
-  CardLanguage,
-  CollectionCopyRow,
-  CollectionPage,
-  CollectionQuery,
-  CollectionRow,
-  CurrentPrice,
-  UserTag,
+import {
+  createUserTag,
+  searchCollection,
+  setCopyUserTag,
+  type CardCondition,
+  type CardLanguage,
+  type CollectionQuery,
+  type CurrentPrice,
 } from '../collection';
-import type { Json } from '../database.types';
-import type { CreatedDeck } from '../decks';
-import { readSearchError, type CardDetails, type CardPrintingsPage, type CatalogRow, type SearchPage } from '../search';
+import { addDeckCard, createDeck } from '../decks';
+import { getCards, listCardPrintings, searchCatalog } from '../search';
 import { catalogFixture, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
+import { collectionCopies, collectionEntries } from './collection-pages';
 import { collectionEntryKey, seedCopies, seededCollectionEntryKey, type SeededCopies } from './copy-seeds';
+import { call, failed, refused, replyOf } from './database-calls';
 import { storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
@@ -63,15 +63,12 @@ let aliceCopyIds: Record<EntryLabel, string[]>;
 const labelOf = new Map(Object.entries(aliceEntries).map(([label, seed]) => [seededCollectionEntryKey(seed), label as EntryLabel]));
 const bobEntries = [entry(printings.counterspellAlpha), entry(printings.angelicCuratorMh2, { quantity: 5 })];
 
-async function search(query: CollectionQuery | Record<string, unknown> | unknown[], user: TestUser = alice) {
-  const { data, error } = await user.client.rpc('search_collection', { query: query as Json });
-  return { page: data as unknown as CollectionPage<CollectionRow> | null, error: error && readSearchError(error) };
+function search(query: CollectionQuery, user: TestUser = alice) {
+  return call(user.client, searchCollection, query);
 }
 
-async function page(query: CollectionQuery, user: TestUser = alice) {
-  const { page, error } = await search(query, user);
-  expect(error).toBeNull();
-  return page!;
+function page(query: CollectionQuery, user: TestUser = alice) {
+  return collectionEntries(user.client, query);
 }
 
 async function labels(query: CollectionQuery) {
@@ -101,11 +98,11 @@ function withIssueTime(cursor: string, issuedAt: number) {
   return Buffer.from(JSON.stringify({ ...payload, issued_at: issuedAt })).toString('base64');
 }
 
-async function allPages(query: CollectionQuery, user: TestUser) {
-  const pages: CollectionPage<CollectionRow>[] = [];
+async function allPages<Page extends { next_cursor: string | null }>(pageAt: (cursor: string | null) => Promise<Page>) {
+  const pages: Page[] = [];
   let cursor: string | null = null;
   do {
-    const next = await page({ ...query, cursor }, user);
+    const next = await pageAt(cursor);
     pages.push(next);
     cursor = next.next_cursor;
   } while (cursor);
@@ -120,10 +117,7 @@ describe('before the first catalog import', () => {
   beforeAll(resetCardCatalog);
 
   test('collection search returns data_unavailable', async () => {
-    const { page, error } = await search({});
-
-    expect(page).toBeNull();
-    expect(error?.code).toBe('data_unavailable');
+    expect(await search({})).toMatchObject(refused('data_unavailable'));
   });
 });
 
@@ -156,17 +150,11 @@ describe('after a catalog import', () => {
     });
 
     test('an anonymous caller is refused', async () => {
-      const { data, error } = await anonymousClient().rpc('search_collection', { query: {} });
-
-      expect(data).toBeNull();
-      expect(error?.code).toBe(permissionDenied);
+      expect(await call(anonymousClient(), searchCollection, {})).toMatchObject(failed(permissionDenied));
     });
 
     test('the secret key is refused', async () => {
-      const { data, error } = await secretKeyClient().rpc('search_collection', { query: {} });
-
-      expect(data).toBeNull();
-      expect(error?.code).toBe(permissionDenied);
+      expect(await call(secretKeyClient(), searchCollection, {})).toMatchObject(failed(permissionDenied));
     });
   });
 
@@ -428,29 +416,21 @@ describe('after a catalog import', () => {
 
     test('catalog search refuses the collection chips', async () => {
       for (const field of ['finishes', 'conditions', 'languages', 'deck_ids', 'is_free', 'is_protected', 'is_allocated', 'rows']) {
-        const { data, error } = await alice.client.rpc('search_catalog', {
-          query: { text: 'fog', [field]: field.startsWith('is_') ? true : ['x'] },
-        });
+        const result = await call(alice.client, searchCatalog, { text: 'fog', [field]: field.startsWith('is_') ? true : ['x'] });
 
-        expect(data).toBeNull();
-        expect(error && readSearchError(error)).toMatchObject({ code: 'invalid_argument', field });
+        expect(result).toMatchObject(refused('invalid_argument', field));
       }
     });
   });
 
   describe('user tag chips', () => {
     async function createdUserTag(user: TestUser, name: string) {
-      const { data, error } = await user.client.rpc('create_user_tag', { request: { name } });
-      expect(error).toBeNull();
-      return (data as unknown as UserTag).user_tag_id;
+      return (await replyOf(user.client, createUserTag, { name })).user_tag_id;
     }
 
     async function putOnCopies(user: TestUser, userTagId: string, copyIds: string[]) {
       for (const copyId of copyIds) {
-        const { error } = await user.client.rpc('set_copy_user_tag', {
-          request: { copy_id: copyId, user_tag_id: userTagId, tagged: true },
-        });
-        expect(error).toBeNull();
+        await replyOf(user.client, setCopyUserTag, { copy_id: copyId, user_tag_id: userTagId, tagged: true });
       }
     }
 
@@ -495,9 +475,9 @@ describe('after a catalog import', () => {
     });
 
     test('with rows copies, a user tag chip returns each matching copy', async () => {
-      const { items } = await page({ rows: 'copies', user_tags: ['signed'] });
+      const { items } = await collectionCopies(alice.client, { user_tags: ['signed'] });
 
-      expect(items.map((row) => (row as unknown as CollectionCopyRow).copy_id).toSorted()).toEqual(
+      expect(items.map((row) => row.copy_id).toSorted()).toEqual(
         [aliceCopyIds.curator[0]!, aliceCopyIds.bolt[0]!].toSorted(),
       );
     });
@@ -506,17 +486,13 @@ describe('after a catalog import', () => {
       ['a user tag name that the user does not have', { user_tags: ['signed', 'signd'] }, 'user_tags[1]'],
       ["another user's user tag name", { user_tags_exclude: ['proxy'] }, 'user_tags_exclude[0]'],
     ])('%s is refused with invalid_argument on that list item', async (_, query, field) => {
-      const { page, error } = await search(query);
-
-      expect(page).toBeNull();
-      expect(error).toMatchObject({ code: 'invalid_argument', field });
+      expect(await search(query)).toMatchObject(refused('invalid_argument', field));
     });
 
     test('catalog search refuses user tag chips', async () => {
-      const { data, error } = await alice.client.rpc('search_catalog', { query: { text: 'fog', user_tags: ['signed'] } });
+      const result = await call(alice.client, searchCatalog, { text: 'fog', user_tags: ['signed'] } as never);
 
-      expect(data).toBeNull();
-      expect(error && readSearchError(error)).toMatchObject({ code: 'invalid_argument', field: 'user_tags' });
+      expect(result).toMatchObject(refused('invalid_argument', 'user_tags'));
     });
   });
 
@@ -528,18 +504,15 @@ describe('after a catalog import', () => {
     let bobDeck: string;
 
     async function createdDeck(user: TestUser, name: string) {
-      const { data, error } = await user.client.rpc('create_deck', { request: { name } });
-      expect(error).toBeNull();
-      return (data as unknown as CreatedDeck).deck_id;
+      return (await replyOf(user.client, createDeck, { name })).deck_id;
     }
 
     async function addedToDeck(user: TestUser, deckId: string, copyId: string) {
-      const { error } = await user.client.rpc('add_deck_card', { request: { deck_id: deckId, copy_id: copyId, unprotect: false } });
-      expect(error).toBeNull();
+      await replyOf(user.client, addDeckCard, { deck_id: deckId, copy_id: copyId, unprotect: false });
     }
 
     async function copyRows(query: CollectionQuery) {
-      return (await page({ ...query, rows: 'copies' }, carol)).items as unknown as CollectionCopyRow[];
+      return (await collectionCopies(carol.client, query)).items;
     }
 
     async function copyIds(query: CollectionQuery) {
@@ -590,15 +563,14 @@ describe('after a catalog import', () => {
     test.each(['deck_ids', 'deck_ids_exclude'])(
       "%s refuses another user's deck ID and an unknown deck ID on its item",
       async (field) => {
-        for (const [deckIds, refused] of [
+        for (const [deckIds, refusedIndex] of [
           [[atraxa, bobDeck], 1],
           [[crypto.randomUUID(), kinnan], 0],
         ] as const) {
-          const { page, error } = await search({ [field]: deckIds }, carol);
-
-          expect(page).toBeNull();
-          expect(error).toMatchObject({ code: 'invalid_argument', field: `${field}[${refused}]` });
-          expect(error!.message).toContain('not one of your decks');
+          expect(await search({ [field]: deckIds }, carol)).toMatchObject({
+            status: 'refused',
+            refusal: { code: 'invalid_argument', field: `${field}[${refusedIndex}]`, message: expect.stringContaining('not one of your decks') },
+          });
         }
       },
     );
@@ -617,9 +589,7 @@ describe('after a catalog import', () => {
       ],
       ['an empty list of deck IDs', { deck_ids: [] }, 'deck_ids'],
     ])('%s is refused with an error on its field', async (_, query, field) => {
-      const { error } = await search(query);
-
-      expect(error).toMatchObject({ code: 'invalid_argument', field });
+      expect(await search(query as never)).toMatchObject(refused('invalid_argument', field));
     });
   });
 
@@ -638,10 +608,7 @@ describe('after a catalog import', () => {
       ['a user tag name repeated in another case', { user_tags: ['Signed', 'signed'] }, 'user_tags[1]'],
       ['an unknown field', { user_tag: ['trade binder'] }, 'user_tag'],
     ])('%s is refused with an error on its field', async (_, query, field) => {
-      const { page, error } = await search(query);
-
-      expect(page).toBeNull();
-      expect(error).toMatchObject({ code: 'invalid_argument', field });
+      expect(await search(query as never)).toMatchObject(refused('invalid_argument', field));
     });
   });
 
@@ -749,7 +716,7 @@ describe('after a catalog import', () => {
     });
 
     test.each([undefined, 50])('pages of %p cover every collection entry once, from A to Z', async (limit) => {
-      const pages = await allPages({ limit, sort: 'name' }, collector);
+      const pages = await allPages((cursor) => page({ limit, sort: 'name', cursor }, collector));
       const rows = pages.flatMap((next) => next.items);
 
       expect(pages.map((next) => next.items.length)).toEqual(limit === 50 ? [50, 10] : [20, 20, 20]);
@@ -763,7 +730,7 @@ describe('after a catalog import', () => {
     test.each(['entries', 'copies'] as const)(
       'with %s rows, the first page counts every match, and later pages carry no count',
       async (rows) => {
-        const pages = await allPages({ rows, limit: 15, names: ['curator'] }, collector);
+        const pages = await allPages((cursor) => replyOf(collector.client, searchCollection, { rows, limit: 15, names: ['curator'], cursor }));
 
         expect(pages.map((next) => next.items.length)).toEqual([15, 5]);
         expect(pages.map((next) => next.total_count)).toEqual([20, null]);
@@ -771,34 +738,29 @@ describe('after a catalog import', () => {
     );
 
     test('a malformed cursor fails with invalid_cursor', async () => {
-      const { error } = await search({ cursor: 'not a cursor' }, collector);
-
-      expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+      expect(await search({ cursor: 'not a cursor' }, collector)).toMatchObject(refused('invalid_cursor', 'cursor'));
     });
 
     test('a cursor older than 15 minutes fails with invalid_cursor', async () => {
       const { next_cursor } = await page({}, collector);
       const sixteenMinutesAgo = Date.now() / 1000 - 16 * 60;
-      const { error } = await search({ cursor: withIssueTime(next_cursor!, sixteenMinutesAgo) }, collector);
+      const result = await search({ cursor: withIssueTime(next_cursor!, sixteenMinutesAgo) }, collector);
 
-      expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+      expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
     });
 
     test('a cursor from another query fails with invalid_cursor', async () => {
       const { next_cursor } = await page({}, collector);
-      const { error } = await search({ finishes: ['nonfoil'], cursor: next_cursor }, collector);
+      const result = await search({ finishes: ['nonfoil'], cursor: next_cursor }, collector);
 
-      expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+      expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
     });
 
     test('a cursor from catalog search fails with invalid_cursor', async () => {
-      const { data } = await collector.client.rpc('search_catalog', { query: { types: ['creature'] } });
-      const { error } = await search(
-        { types: ['creature'], cursor: (data as unknown as SearchPage<CatalogRow>).next_cursor },
-        collector,
-      );
+      const { next_cursor } = await replyOf(collector.client, searchCatalog, { types: ['creature'] });
+      const result = await search({ types: ['creature'], cursor: next_cursor }, collector);
 
-      expect(error).toMatchObject({ code: 'invalid_cursor', field: 'cursor' });
+      expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
     });
   });
 
@@ -851,7 +813,7 @@ describe('after a catalog import', () => {
       const before = await telemetryCount();
 
       await page({ limit: 2, cursor: first.next_cursor });
-      await search({ conditions: ['mint'] });
+      await search({ conditions: ['mint'] } as never);
 
       expect(await telemetryCount()).toBe(before);
     });
@@ -860,8 +822,7 @@ describe('after a catalog import', () => {
   describe('owned copies in catalog reads', () => {
     test("catalog search counts the caller's own copies of each card", async () => {
       const owned = async (user: TestUser, name: string) => {
-        const { data } = await user.client.rpc('search_catalog', { query: { names: [name] } });
-        return (data as unknown as SearchPage<CatalogRow>).items[0]!.owned;
+        return (await replyOf(user.client, searchCatalog, { names: [name] })).items[0]!.owned;
       };
 
       expect(await owned(alice, 'angelic curator')).toEqual({
@@ -887,10 +848,9 @@ describe('after a catalog import', () => {
     });
 
     test('the search release check counts no owned copies while users own copies of the card', async () => {
-      const { data, error } = await secretKeyClient().rpc('search_catalog', { query: { names: ['angelic curator'] } });
+      const { items } = await replyOf(secretKeyClient(), searchCatalog, { names: ['angelic curator'] });
 
-      expect(error).toBeNull();
-      expect((data as unknown as SearchPage<CatalogRow>).items[0]!.owned).toEqual({
+      expect(items[0]!.owned).toEqual({
         quantity: 0,
         free_quantity: 0,
         protected_free_quantity: 0,
@@ -898,11 +858,9 @@ describe('after a catalog import', () => {
     });
 
     test("card details count the caller's own copies of each card", async () => {
-      const { data } = await alice.client.rpc('get_cards', {
-        query: { oracle_ids: [angelicCuratorCard, delverOfSecretsCard] },
-      });
+      const { items } = await replyOf(alice.client, getCards, { oracle_ids: [angelicCuratorCard, delverOfSecretsCard] });
 
-      expect((data as unknown as CardDetails).items.map((card) => card.owned)).toEqual([
+      expect(items.map((card) => card.owned)).toEqual([
         { quantity: 4, free_quantity: 4, protected_free_quantity: 0 },
         { quantity: 4, free_quantity: 4, protected_free_quantity: 4 },
       ]);
@@ -910,10 +868,8 @@ describe('after a catalog import', () => {
 
     test("a printing list shows the caller's owned quantity of each card printing", async () => {
       const owned = async (user: TestUser, ownedOnly: boolean) => {
-        const { data } = await user.client.rpc('list_card_printings', {
-          query: { oracle_id: angelicCuratorCard, owned_only: ownedOnly },
-        });
-        return (data as unknown as CardPrintingsPage).items.map((row) => [row.set, row.owned_quantity]);
+        const { items } = await replyOf(user.client, listCardPrintings, { oracle_id: angelicCuratorCard, owned_only: ownedOnly });
+        return items.map((row) => [row.set, row.owned_quantity]);
       };
 
       expect(await owned(alice, false)).toEqual([
@@ -943,8 +899,8 @@ describe('after a catalog import', () => {
 
     test('a printing list keeps an absent card printing only for a caller who owns it', async () => {
       const sets = async (user: TestUser) => {
-        const { data } = await user.client.rpc('list_card_printings', { query: { oracle_id: angelicCuratorCard } });
-        return (data as unknown as CardPrintingsPage).items.map((row) => row.set);
+        const { items } = await replyOf(user.client, listCardPrintings, { oracle_id: angelicCuratorCard });
+        return items.map((row) => row.set);
       };
 
       expect(await sets(alice)).toEqual(['mh2', 'ulg']);

@@ -1,8 +1,10 @@
-import type { SetTrainingCropUploadsRequest, TrainingCropSettings } from '@mtgscan/supabase/training-crops';
-import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AppState } from 'react-native';
+import { callDatabaseFunction } from '@mtgscan/supabase/database-function';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
+import type { TrainingCropSettings } from '@mtgscan/supabase/training-crops';
+import { createContext, use, type ReactNode } from 'react';
 
 import { useSession } from '@/auth/session';
+import { databaseRead, useAppRead } from '@/lib/read';
 import { supabase } from '@/lib/supabase';
 
 import { dropWaitingTrainingCrops } from './training-crops';
@@ -12,66 +14,40 @@ type TrainingCropUploadsSetting = {
   setUploadsOn: (on: boolean) => Promise<boolean>;
 };
 
-type KnownSetting = { userId: string; uploadsOn: boolean };
+const settingsRead = databaseRead(databaseFunctions.get_training_crop_settings);
+
+function loadedSetting({ uploads_on }: TrainingCropSettings) {
+  return { uploadsOn: uploads_on };
+}
 
 const TrainingCropUploadsContext = createContext<TrainingCropUploadsSetting | null>(null);
 
 export function TrainingCropUploadsSettingProvider({ children }: { children: ReactNode }) {
   const userId = useSession()?.user.id;
-  const [known, setKnown] = useState<KnownSetting | null>(null);
-  const [readAttempt, setReadAttempt] = useState(0);
-  const uploadsOn = userId && known?.userId === userId ? known.uploadsOn : null;
+  const { read, replaceReply } = useAppRead(userId ? settingsRead : null, loadedSetting, {
+    key: [userId],
+    whenAppActive: true,
+    staleTime: Infinity,
+  });
+  const uploadsOn = read.status === 'loaded' ? read.uploadsOn : null;
 
-  useEffect(() => {
+  async function setUploadsOn(on: boolean) {
     if (!userId) {
-      return;
+      return false;
     }
-    let current = true;
-    supabase.rpc('get_training_crop_settings').then(({ data }) => {
-      if (current && data) {
-        setKnown({ userId, uploadsOn: (data as unknown as TrainingCropSettings).uploads_on });
-      }
-    });
-    return () => {
-      current = false;
-    };
-  }, [userId, readAttempt]);
-
-  useEffect(() => {
-    if (uploadsOn !== null) {
-      return;
+    replaceReply({ uploads_on: on });
+    const result = await callDatabaseFunction(supabase, databaseFunctions.set_training_crop_uploads, { on });
+    if (result.status !== 'replied') {
+      replaceReply({ uploads_on: !on });
+      return false;
     }
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        setReadAttempt((attempt) => attempt + 1);
-      }
-    });
-    return () => subscription.remove();
-  }, [uploadsOn]);
+    if (!on) {
+      await dropWaitingTrainingCrops(userId);
+    }
+    return true;
+  }
 
-  const setUploadsOn = useCallback(
-    async (on: boolean) => {
-      if (!userId) {
-        return false;
-      }
-      setKnown({ userId, uploadsOn: on });
-      const request: SetTrainingCropUploadsRequest = { on };
-      const { error } = await supabase.rpc('set_training_crop_uploads', { request });
-      if (error) {
-        setKnown({ userId, uploadsOn: !on });
-        return false;
-      }
-      if (!on) {
-        await dropWaitingTrainingCrops(userId);
-      }
-      return true;
-    },
-    [userId],
-  );
-
-  const setting = useMemo(() => ({ uploadsOn, setUploadsOn }), [setUploadsOn, uploadsOn]);
-
-  return <TrainingCropUploadsContext value={setting}>{children}</TrainingCropUploadsContext>;
+  return <TrainingCropUploadsContext value={{ uploadsOn, setUploadsOn }}>{children}</TrainingCropUploadsContext>;
 }
 
 export function useTrainingCropUploadsSetting(): TrainingCropUploadsSetting {

@@ -1,21 +1,12 @@
-import type { SetDetails, SetQuery } from '@mtgscan/supabase/sets';
-import { useMemo } from 'react';
+import { databaseFunctions } from '@mtgscan/supabase/database-functions';
+import type { SetDetails } from '@mtgscan/supabase/sets';
 
-import { supabase } from '@/lib/supabase';
-import { useFocusedRead } from '@/lib/use-focused-read';
+import { databaseRead, useScreenRead } from '@/lib/read';
 
-type SetRead = { status: 'loaded'; set: SetDetails };
-
-async function readSet(code: string): Promise<SetRead> {
-  const query: SetQuery = { code };
-  const { data, error } = await supabase.rpc('get_set', { query });
-  if (error) {
-    throw error;
-  }
-  return { status: 'loaded', set: data as unknown as SetDetails };
+function loadedSet(set: SetDetails) {
+  return { set };
 }
 
 export function useSet(code: string) {
-  const readOnce = useMemo(() => () => readSet(code), [code]);
-  return useFocusedRead(readOnce);
+  return useScreenRead(databaseRead(databaseFunctions.get_set, { code }), loadedSet);
 }

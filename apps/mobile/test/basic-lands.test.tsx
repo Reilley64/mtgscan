@@ -2,19 +2,8 @@ import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
 import { fireEvent, within } from 'expo-router/testing-library';
 
 import { deckCardOf, openDeckNamed } from './copies';
-import {
-  addPreviewQueriesSent,
-  answerCollectionSearches,
-  basicLandOracleId,
-  basicLandsOf,
-  deckWritesSent,
-  failDeckWrites,
-  ownAddPreviewEffects,
-  ownCollectionCopies,
-  ownCollectionTotal,
-  ownDecks,
-  startSignedIn,
-} from './fake-supabase';
+import { answerCollectionSearches, basicLandOracleId, basicLandsOf, failDeckWrites, ownAddPreviewEffects, ownCollectionCopies, ownCollectionTotal, ownDecks, startSignedIn } from './fake-supabase';
+import { hold, refuse, requestsSent } from './fake-supabase-controls';
 import {
   appearsBefore,
   buttonMenuActions,
@@ -90,7 +79,7 @@ function basicLandTileNames(collection: Queries) {
 }
 
 function basicLandWrites() {
-  return deckWritesSent().flatMap(({ name, request }) => (name === 'change_basic_land' ? [request] : []));
+  return requestsSent('change_basic_land');
 }
 
 async function openAddToDeck(collection: Queries, name: string) {
@@ -199,8 +188,8 @@ describe('adding basic lands to a deck', () => {
   beforeEach(() => {
     ownCollectionCopies(copyRows('Ponder', 1));
     ownDecks([
-      { name: 'Atraxa', priority: 'medium', card_count: 0 },
-      { name: 'Kinnan', priority: 'high', card_count: 99, basic_lands: basicLandsOf({ Island: 99 }) },
+      { name: 'Atraxa', priority: 'medium' },
+      { name: 'Kinnan', priority: 'high', basic_lands: basicLandsOf({ Island: 99 }) },
     ]);
   });
 
@@ -212,7 +201,7 @@ describe('adding basic lands to a deck', () => {
     expect(drawer.getByRole('button', { name: 'Add one Island' })).toBeEnabled();
     expect(appearsBefore(drawer.getByLabelText('Island, 1'), drawer.getByRole('button', { name: /^Atraxa,/ }))).toBe(true);
     expect(drawer.getByRole('button', { name: /^Kinnan,/ })).toBeOnTheScreen();
-    expect(addPreviewQueriesSent().at(-1)).toEqual({ basic_land_oracle_id: basicLandOracleId('Island'), count: 1 });
+    expect(requestsSent('preview_add_deck_card').at(-1)).toEqual({ basic_land_oracle_id: basicLandOracleId('Island'), count: 1 });
   });
 
   test('each deck row shows the effect of adding that many of the basic land card', async () => {
@@ -223,7 +212,20 @@ describe('adding basic lands to a deck', () => {
     await fireEvent.press(drawer.getByRole('button', { name: 'Add one Island' }));
 
     expect(drawer.getByLabelText('Island, 3')).toHaveTextContent('3');
-    expect(addPreviewQueriesSent().at(-1)).toEqual({ basic_land_oracle_id: basicLandOracleId('Island'), count: 3 });
+    expect(requestsSent('preview_add_deck_card').at(-1)).toEqual({ basic_land_oracle_id: basicLandOracleId('Island'), count: 3 });
+    expect(within(drawer.getByRole('button', { name: /^Atraxa,/ })).getByText('Adds a violation')).toBeOnTheScreen();
+  });
+
+  test('while the effect of a new count loads, each deck row keeps the effect it showed', async () => {
+    ownAddPreviewEffects({ 'deck-1': { kind: 'adds_violation', rules: [{ rule: 'color_identity', colors: ['U'] }] } });
+    const drawer = await openAddToDeck(await openCollection(), 'Island');
+    const preview = hold('preview_add_deck_card');
+
+    await fireEvent.press(drawer.getByRole('button', { name: 'Add one Island' }));
+
+    expect(within(drawer.getByRole('button', { name: /^Atraxa,/ })).getByText('Adds a violation')).toBeOnTheScreen();
+    await preview.finish();
+    expect(requestsSent('preview_add_deck_card').at(-1)).toEqual({ basic_land_oracle_id: basicLandOracleId('Island'), count: 2 });
     expect(within(drawer.getByRole('button', { name: /^Atraxa,/ })).getByText('Adds a violation')).toBeOnTheScreen();
   });
 
@@ -240,6 +242,7 @@ describe('adding basic lands to a deck', () => {
 
   test('an add that takes a deck over 99 of the basic land card says so and keeps the drawer', async () => {
     const drawer = await openAddToDeck(await openCollection(), 'Island');
+    refuse('change_basic_land', 'invalid_argument', 'by');
 
     await fireEvent.press(drawer.getByRole('button', { name: /^Kinnan,/ }));
 
@@ -267,7 +270,7 @@ describe('adding basic lands to a deck', () => {
 describe('basic lands on the Cards tab', () => {
   async function openDeck(counts: Record<string, number>, cards = [deckCardOf('tower', 'Command Tower', 'Land', { mana_value: 0 })]) {
     const basicLandCount = Object.values(counts).reduce((total, count) => total + count, 0);
-    ownDecks([{ name: 'Atraxa', priority: 'medium', card_count: cards.length + basicLandCount, cards, basic_lands: basicLandsOf(counts) }]);
+    ownDecks([{ name: 'Atraxa', priority: 'medium', cards, basic_lands: basicLandsOf(counts) }]);
     await renderApp();
     await pressTab('Decks');
     return openDeckNamed('Atraxa');

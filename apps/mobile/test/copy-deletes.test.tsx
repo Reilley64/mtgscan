@@ -1,16 +1,8 @@
 import { screen, waitFor, within } from 'expo-router/testing-library';
 
 import { copyOf, delver, openCopyPage } from './copies';
-import {
-  copiesDeletedOnTheServer,
-  failCopyDeletes,
-  holdCopyElsewhere,
-  ownCollectionTotal,
-  ownCopies,
-  ownDeckOfCopies,
-  removeCopyFromTheCollection,
-  startSignedIn,
-} from './fake-supabase';
+import { changeElsewhere, copiesOnTheServer, holdCopyElsewhere, ownCollectionTotal, ownCopies, ownDeckOfCopies, startSignedIn } from './fake-supabase';
+import { fail, refuse, requestsSent } from './fake-supabase-controls';
 import {
   headerMenuRows,
   pressAlertButton,
@@ -27,7 +19,6 @@ beforeEach(() => {
 });
 
 const heldForGoblins = copyOf('copy-1', {
-  free: false,
   held_for: { deck_id: 'deck-1', name: 'Goblins', commander_art_crop_uri: null },
 });
 
@@ -57,7 +48,7 @@ describe('deleting a copy', () => {
     await chooseDeleteCopy();
 
     expect(presentedAlert()).toEqual(deleteAlert);
-    expect(copiesDeletedOnTheServer()).toEqual([]);
+    expect(requestsSent('delete_copy')).toEqual([]);
   });
 
   test('Delete copy on a copy in a deck names the deck it leaves', async () => {
@@ -71,7 +62,7 @@ describe('deleting a copy', () => {
       message: 'It leaves Atraxa and your collection, with its user tags. This cannot be undone.',
     });
     await pressAlertButton('Delete copy');
-    expect(copiesDeletedOnTheServer()).toEqual(['copy-1']);
+    expect(requestsSent('delete_copy')).toEqual([{ copy_id: 'copy-1', move_planned_swap: false }]);
   });
 
   test('Delete copy on a held copy warns that its planned swap moves to the buylist, and confirming deletes the copy', async () => {
@@ -85,7 +76,7 @@ describe('deleting a copy', () => {
       message: 'This copy is held by the planned swap for Goblins. Continue and move that swap to the buylist?',
     });
     await pressAlertButton('Delete copy');
-    expect(copiesDeletedOnTheServer()).toEqual(['copy-1']);
+    expect(requestsSent('delete_copy')).toEqual([{ copy_id: 'copy-1', move_planned_swap: true }]);
     expect(screen.queryByRole('header', { name: /^Angelic Curator/ })).not.toBeOnTheScreen();
   });
 
@@ -93,11 +84,13 @@ describe('deleting a copy', () => {
     ownCopies([copyOf('copy-1')]);
     await openCopyPage(/^Angelic Curator/);
     holdCopyElsewhere('copy-1', heldForGoblins.held_for!);
+    refuse('delete_copy', 'copy_held', 'move_planned_swap');
 
     await chooseDeleteCopy();
     await pressAlertButton('Delete copy');
 
-    expect(copiesDeletedOnTheServer()).toEqual([]);
+    expect(requestsSent('delete_copy')).toEqual([{ copy_id: 'copy-1', move_planned_swap: false }]);
+    expect(copiesOnTheServer().map(({ copy_id }) => copy_id)).toEqual(['copy-1']);
     expect(await within(pushedScreen()).findByText('Held')).toBeOnTheScreen();
     await waitFor(() =>
       expect(presentedAlert()).toEqual({
@@ -106,7 +99,7 @@ describe('deleting a copy', () => {
       }),
     );
     await pressAlertButton('Delete copy');
-    expect(copiesDeletedOnTheServer()).toEqual(['copy-1']);
+    expect(requestsSent('delete_copy').at(-1)).toEqual({ copy_id: 'copy-1', move_planned_swap: true });
   });
 
   test('confirming deletes the copy and goes back to the binder, which no longer shows it', async () => {
@@ -117,7 +110,7 @@ describe('deleting a copy', () => {
     await chooseDeleteCopy();
     await pressAlertButton('Delete copy');
 
-    expect(copiesDeletedOnTheServer()).toEqual(['copy-delver']);
+    expect(requestsSent('delete_copy')).toEqual([{ copy_id: 'copy-delver', move_planned_swap: false }]);
     expect(screen.queryByRole('header', { name: /^Delver of Secrets/ })).not.toBeOnTheScreen();
     const collection = selectedTab();
     expect(within(collection).queryByRole('button', { name: /^Delver of Secrets/ })).not.toBeOnTheScreen();
@@ -132,7 +125,7 @@ describe('deleting a copy', () => {
     await chooseDeleteCopy();
     await pressAlertButton('Cancel');
 
-    expect(copiesDeletedOnTheServer()).toEqual([]);
+    expect(requestsSent('delete_copy')).toEqual([]);
     expect(screen.getByRole('header', { name: 'Angelic Curator' })).toBeOnTheScreen();
     await swipeBackFromThePushedScreen();
     expect(within(selectedTab()).getByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
@@ -141,7 +134,7 @@ describe('deleting a copy', () => {
   test('deleting a copy that is no longer in the collection says so and goes back to the binder', async () => {
     ownCopies([copyOf('copy-1'), delver]);
     await openCopyPage(/^Delver of Secrets/);
-    removeCopyFromTheCollection('copy-delver');
+    changeElsewhere('delete_copy', { copy_id: 'copy-delver', move_planned_swap: true });
 
     await chooseDeleteCopy();
     await pressAlertButton('Delete copy');
@@ -155,13 +148,13 @@ describe('deleting a copy', () => {
   test('a failed delete says so and keeps the copy page', async () => {
     ownCopies([copyOf('copy-1')]);
     await openCopyPage(/^Angelic Curator/);
-    failCopyDeletes(1);
+    fail('delete_copy', 1);
 
     await chooseDeleteCopy();
     await pressAlertButton('Delete copy');
 
     expect(presentedAlert()).toEqual({ title: 'Could not delete this copy', message: 'Check your connection.', buttons: ['OK'] });
-    expect(copiesDeletedOnTheServer()).toEqual([]);
+    expect(copiesOnTheServer().map(({ copy_id }) => copy_id)).toEqual(['copy-1']);
     expect(screen.getByRole('header', { name: 'Angelic Curator' })).toBeOnTheScreen();
   });
 });

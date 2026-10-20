@@ -3,6 +3,7 @@ import { fireEvent, within } from 'expo-router/testing-library';
 import { Linking } from 'react-native';
 
 import { openDeckNamed } from './copies';
+import { deckEvaluationOf } from './deck-evaluations';
 import { ownDecks, startSignedIn } from './fake-supabase';
 import {
   appearsBefore,
@@ -47,31 +48,18 @@ const signals: BracketSignal[] = [
 ];
 
 function evaluationOf(fields: Partial<DeckEvaluation>): DeckEvaluation {
-  return {
+  return deckEvaluationOf({
     validity: 'invalid',
-    validity_stale: false,
-    bracket_stale: false,
-    violations: [],
-    undetermined: [],
-    chosen_color: null,
     estimated_bracket: 4,
     bracket_signals: signals,
-    missing_signal_count: 0,
-    revision: 1,
-    catalog_at: '2026-10-12T06:00:00.000Z',
     oracle_tags_at: '2026-10-13T06:00:00.000Z',
     commander_spellbook_at: '2026-10-14T06:00:00.000Z',
-    judged_at: '2026-10-15T09:00:00.000Z',
-    validity_rules_data_at: '2026-10-12T06:00:00.000Z',
-    bracket_rules_data_at: '2026-10-12T06:00:00.000Z',
-    no_oracle_tag_data: false,
-    no_combo_data: false,
     ...fields,
-  };
+  });
 }
 
 function ownKinnan(evaluation: DeckEvaluation | null = evaluationOf({})) {
-  ownDecks([{ name: 'Kinnan', priority: 'medium', card_count: evaluation ? 87 : 0, evaluation }]);
+  ownDecks([{ name: 'Kinnan', priority: 'medium', evaluation }]);
 }
 
 beforeEach(() => {

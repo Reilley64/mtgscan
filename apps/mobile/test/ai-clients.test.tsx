@@ -1,14 +1,8 @@
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 
 import { textOnTheClipboard } from './fake-clipboard';
-import {
-  aiClientsRevokedOnTheServer,
-  allowAiClients,
-  failAiClientReads,
-  failAiClientRevokes,
-  holdAiClientRevokes,
-  startSignedIn,
-} from './fake-supabase';
+import { aiClientsRevokedOnTheServer, allowAiClients, startSignedIn } from './fake-supabase';
+import { fail, hold } from './fake-supabase-controls';
 import {
   appearsBefore,
   drawerBackButton,
@@ -67,7 +61,7 @@ describe('the AI clients row', () => {
   });
 
   test('the AI clients row shows no number while the AI clients cannot load', async () => {
-    failAiClientReads(1);
+    fail('oauth.listGrants', 1);
     await renderApp();
     await openSettings();
 
@@ -124,7 +118,7 @@ describe('the AI clients list', () => {
 
   test('when the AI clients cannot load, the list says so, and Try again reads them again', async () => {
     allowAiClients([{ name: 'ChatGPT', allowedAt: '2026-10-16T02:00:00Z' }]);
-    failAiClientReads(2);
+    fail('oauth.listGrants', 2);
     await openAiClientsList();
 
     expect(await screen.findByText('Could not load the AI clients')).toBeOnTheScreen();
@@ -185,9 +179,24 @@ describe('Revoke', () => {
     expect(await screen.findByRole('button', { name: 'AI clients, 1' })).toBeOnTheScreen();
   });
 
+  test('a revoked AI client stays gone when the AI clients list opens again, before the AI clients are read again', async () => {
+    await openAiClientsListWithChatGPT();
+    await pressRevoke('ChatGPT');
+    await pressAlertButton('Revoke');
+    await waitFor(() => expect(screen.queryByLabelText(/^ChatGPT, Allowed/)).not.toBeOnTheScreen());
+    const reads = hold('oauth.listGrants');
+    await pressDrawerBack();
+
+    await fireEvent.press(await screen.findByRole('button', { name: /^AI clients/ }));
+
+    expect(await screen.findByLabelText('Claude, Allowed 3 October 2026')).toBeOnTheScreen();
+    expect(screen.queryByLabelText(/^ChatGPT, Allowed/)).not.toBeOnTheScreen();
+    await reads.finish();
+  });
+
   test('a revoke that works removes the row even when the AI clients cannot be read again', async () => {
     await openAiClientsListWithChatGPT();
-    failAiClientReads(1);
+    fail('oauth.listGrants', 1);
 
     await pressRevoke('ChatGPT');
     await pressAlertButton('Revoke');
@@ -199,7 +208,7 @@ describe('Revoke', () => {
   });
 
   test('while a revoke runs, its Revoke button is busy and cannot be tapped again', async () => {
-    const revokes = holdAiClientRevokes();
+    const revokes = hold('oauth.revokeGrant');
     await openAiClientsListWithChatGPT();
 
     await pressRevoke('ChatGPT');
@@ -225,7 +234,7 @@ describe('Revoke', () => {
   });
 
   test('when a revoke fails, the row stays and an alert says so', async () => {
-    failAiClientRevokes(1);
+    fail('oauth.revokeGrant', 1);
     await openAiClientsListWithChatGPT();
 
     await pressRevoke('ChatGPT');

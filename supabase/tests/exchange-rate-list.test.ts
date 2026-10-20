@@ -1,5 +1,7 @@
 import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 
+import { listExchangeRates } from '../converted-prices';
+import { call, failed } from './database-calls';
 import { daysAgo, exchangeRates, storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser } from './local-stack';
 
@@ -45,10 +47,7 @@ describe('the exchange rate list', () => {
     ['an anonymous caller', anonymousClient],
     ['the secret key', secretKeyClient],
   ])('%s cannot read the exchange rate list', async (_, client) => {
-    const { data, error } = await client().rpc('list_exchange_rates');
-
-    expect(data).toBeNull();
-    expect(error?.code).toBe(permissionDenied);
+    expect(await call(client(), listExchangeRates)).toMatchObject(failed(permissionDenied));
   });
 
 });

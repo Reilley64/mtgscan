@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
-import type { CollectionCopyRow, CollectionTotal } from '../collection';
-import type { Json } from '../database.types';
-import { readSearchError, type SearchPage } from '../search';
+import { getCollectionTotal } from '../collection';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
+import { collectionCopies, collectionTotal } from './collection-pages';
+import { call, failed, refused } from './database-calls';
 import { daysAgo, storeExchangeRates } from './exchange-rate-seeds';
-import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
+import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 
 setDefaultTimeout(60_000);
@@ -37,17 +37,6 @@ async function setPriceSnapshotAt(at: string) {
 
 function hoursAgo(hours: number) {
   return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-}
-
-async function readCollectionTotal(client: AppClient, query: Record<string, unknown> | unknown[] = {}) {
-  const { data, error } = await client.rpc('get_collection_total', { query: query as Json });
-  return { total: data as unknown as CollectionTotal | null, error: error && readSearchError(error) };
-}
-
-async function collectionTotal(user: TestUser) {
-  const { total, error } = await readCollectionTotal(user.client);
-  expect(error).toBeNull();
-  return total!;
 }
 
 describe('the collection total read', () => {
@@ -99,20 +88,14 @@ describe('the collection total read', () => {
   ])('%s is refused with invalid_argument', async (_, query, field) => {
     const user = await signUpNewUser();
 
-    const { total, error } = await readCollectionTotal(user.client, query);
-
-    expect(total).toBeNull();
-    expect(error).toMatchObject({ code: 'invalid_argument', field });
+    expect(await call(user.client, getCollectionTotal, query as never)).toMatchObject(refused('invalid_argument', field));
   });
 
   test.each([
     ['an anonymous caller', anonymousClient],
     ['the secret key', secretKeyClient],
   ])('%s cannot read a collection total', async (_, client) => {
-    const { data, error } = await client().rpc('get_collection_total', { query: {} });
-
-    expect(data).toBeNull();
-    expect(error?.code).toBe(permissionDenied);
+    expect(await call(client(), getCollectionTotal, {})).toMatchObject(failed(permissionDenied));
   });
 });
 
@@ -134,9 +117,7 @@ describe('the collection total with exchange rates stored', () => {
   test('the USD total is the sum of the copy prices, so the app converts it once', async () => {
     const user = await signUpNewUser();
     await committed(user, scanBatch([stack(angelicCurator, { copies: 5 })]));
-    const { data, error } = await user.client.rpc('search_collection', { query: { rows: 'copies' } });
-    expect(error).toBeNull();
-    const copyPrices = (data as unknown as SearchPage<CollectionCopyRow>).items.map((row) => row.price?.amount);
+    const copyPrices = (await collectionCopies(user.client)).items.map((row) => row.price?.amount);
 
     expect(copyPrices).toEqual(['0.21', '0.21', '0.21', '0.21', '0.21']);
     expect(await collectionTotal(user)).toMatchObject({ total: '1.05', currency: 'USD' });
