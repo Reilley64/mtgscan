@@ -20,3 +20,7 @@ export function versionedUserFile(name: string, userId: string, formatVersion: n
     },
   };
 }
+
+export function withoutFileUri<T extends { uri: string }>({ uri, ...saved }: T): Omit<T, 'uri'> {
+  return saved;
+}

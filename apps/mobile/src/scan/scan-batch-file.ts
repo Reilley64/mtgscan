@@ -1,5 +1,5 @@
 import { emptyScanBatch, type BatchScan, type ScanBatch, type ScanTrainingCrop } from './scan-batch';
-import { versionedUserFile } from './versioned-user-file';
+import { versionedUserFile, withoutFileUri } from './versioned-user-file';
 
 const formatVersion = 3;
 
@@ -12,11 +12,7 @@ function scanOfVersion1(scan: ScanOfVersion1): BatchScan {
 }
 
 function scanOfVersion2({ trainingCrop, ...scan }: ScanOfVersion2): BatchScan {
-  if (!trainingCrop) {
-    return { ...scan, trainingCrop };
-  }
-  const { uri, ...crop } = trainingCrop;
-  return { ...scan, trainingCrop: crop };
+  return { ...scan, trainingCrop: trainingCrop && withoutFileUri(trainingCrop) };
 }
 
 function savedScans(savedVersion: unknown, scans: unknown): BatchScan[] | null {

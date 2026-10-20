@@ -40,7 +40,7 @@ import { readScanBatch, writeScanBatch } from './scan-batch-file';
 import { playScanFeedback } from './scan-feedback';
 import { useScanSounds } from './scan-sounds-setting';
 import { useTrainingCropUploadsSetting } from './training-crop-uploads-setting';
-import { dropTrainingCropAt, trainingCropKeeper, type TrainingCropKeeper } from './training-crop-keeper';
+import { trainingCropKeeper, type TrainingCropKeeper } from './training-crop-keeper';
 
 export type RecognitionResult = Recognition | 'failed' | 'no_photo';
 
@@ -61,7 +61,7 @@ type Scanning = Readonly<{
   recognizing: readonly string[];
   feedback: { outcome: ScanOutcome } | null;
   commitStatus: CommitStatus;
-  strayTrainingCrops: readonly string[];
+  strayTrainingCrops: readonly StrayTrainingCrop[];
 }>;
 
 type ScanningAction =
@@ -79,9 +79,11 @@ type ScanningAction =
   | { type: 'commitFailed' }
   | { type: 'commitSucceeded'; scanIds: string[] }
   | { type: 'removedAll' }
-  | { type: 'strayTrainingCropsDropped'; uris: readonly string[] };
+  | { type: 'strayTrainingCropsDropped'; crops: readonly StrayTrainingCrop[] };
 
-type KeptTrainingCrop = { uri: string; trainingCrop: ScanTrainingCrop };
+type KeptTrainingCrop = { userId: string; trainingCrop: ScanTrainingCrop };
+
+type StrayTrainingCrop = { userId: string; copyId: string };
 
 const initialScanning: Scanning = {
   restored: false,
@@ -108,7 +110,9 @@ function recognitionEnded(
   { photoId, scanId, recognition, keptCrop }: Extract<ScanningAction, { type: 'recognitionEnded' }>,
 ): Scanning {
   if (!state.recognizing.includes(photoId)) {
-    return keptCrop ? { ...state, strayTrainingCrops: [...state.strayTrainingCrops, keptCrop.uri] } : state;
+    return keptCrop
+      ? { ...state, strayTrainingCrops: [...state.strayTrainingCrops, { userId: keptCrop.userId, copyId: scanId }] }
+      : state;
   }
   const ended: Scanning = {
     ...state,
@@ -144,27 +148,26 @@ function keptTrainingCrop(
   galleryVersion: string | undefined,
 ): KeptTrainingCrop | null {
   const cropUri = cardRecognitionOf(recognition)?.trainingCrop;
-  if (!cropUri) {
+  if (!cropUri || !keeper) {
     return null;
   }
   const card = scannedCard(recognition);
-  const uri = card && keeper && galleryVersion ? keeper.keep(cropUri, scanId) : null;
-  if (!card || !galleryVersion || !uri) {
-    dropTrainingCropAt(cropUri);
-    return null;
+  if (card && galleryVersion && keeper.keep(cropUri, scanId)) {
+    return {
+      userId: keeper.userId,
+      trainingCrop: {
+        decision: card.decision,
+        topSimilarity: card.topSimilarity,
+        artMargin: card.artMargin,
+        reading: card.reading,
+        recognizerVersion,
+        featurePrintRevision,
+        galleryVersion,
+      },
+    };
   }
-  return {
-    uri,
-    trainingCrop: {
-      decision: card.decision,
-      topSimilarity: card.topSimilarity,
-      artMargin: card.artMargin,
-      reading: card.reading,
-      recognizerVersion,
-      featurePrintRevision,
-      galleryVersion,
-    },
-  };
+  keeper.discard(cropUri);
+  return null;
 }
 
 function addScan(state: Scanning, action: Extract<ScanBatchAction, { type: 'recognized' }>): Scanning {
@@ -226,7 +229,7 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
     case 'removedAll':
       return { ...initialScanning, restored: state.restored, strayTrainingCrops: state.strayTrainingCrops };
     case 'strayTrainingCropsDropped':
-      return { ...state, strayTrainingCrops: state.strayTrainingCrops.filter((uri) => !action.uris.includes(uri)) };
+      return { ...state, strayTrainingCrops: state.strayTrainingCrops.filter((crop) => !action.crops.includes(crop)) };
     default:
       return { ...state, batch: scanBatchReducer(state.batch, action) };
   }
@@ -289,8 +292,8 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (state.strayTrainingCrops.length > 0) {
-      state.strayTrainingCrops.forEach(dropTrainingCropAt);
-      dispatchScanning({ type: 'strayTrainingCropsDropped', uris: state.strayTrainingCrops });
+      state.strayTrainingCrops.forEach(({ userId, copyId }) => trainingCropKeeper(userId).drop([copyId]));
+      dispatchScanning({ type: 'strayTrainingCropsDropped', crops: state.strayTrainingCrops });
     }
   }, [state.strayTrainingCrops]);
 
@@ -336,7 +339,7 @@ export function ScanBatchProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (userId && keeper && state.restored) {
       writeScanBatch(userId, state.batch);
-      keeper.scanBatchSaved(state.batch);
+      keeper.dropCropsOfScansThatLeft(state.batch);
     }
   }, [keeper, state.batch, state.restored, userId]);
 

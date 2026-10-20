@@ -3,7 +3,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 
 import { evidenceRecordOf, type EvidenceRecord } from './evidence-record';
 import { isCroppedScan, type BatchScan, type ScanBatch } from './scan-batch';
-import { versionedUserFile } from './versioned-user-file';
+import { versionedUserFile, withoutFileUri } from './versioned-user-file';
 
 export type WaitingTrainingCrop = {
   cropId: string;
@@ -17,52 +17,25 @@ export type UploadResult = 'done' | 'refused' | 'failed';
 const queueFormatVersion = 2;
 const day = 24 * 60 * 60 * 1000;
 
-function cropDirectory(userId: string) {
-  return new Directory(Paths.document, 'training-crops', userId);
-}
-
-function cropFileName(copyId: string) {
-  return `${copyId}.jpg`;
-}
-
-function cropFile(userId: string, copyId: string) {
-  return new File(cropDirectory(userId), cropFileName(copyId));
-}
-
 function dropFile(file: File) {
   if (file.exists) {
     file.delete();
   }
 }
 
-export function dropTrainingCropAt(uri: string) {
-  dropFile(new File(uri));
-}
-
 function croppedCopyIds(scans: readonly BatchScan[]) {
   return new Set(scans.filter((scan) => scan.trainingCrop).map((scan) => scan.scanId));
 }
 
-function queueFile(userId: string) {
-  return versionedUserFile('training-crop-queue', userId, queueFormatVersion);
-}
-
-type WaitingTrainingCropOfVersion1 = WaitingTrainingCrop & { uri: string };
-
 function savedCrops(savedVersion: unknown, crops: unknown): WaitingTrainingCrop[] | null {
-  if (savedVersion === queueFormatVersion) {
-    return crops as WaitingTrainingCrop[];
+  switch (savedVersion) {
+    case queueFormatVersion:
+      return crops as WaitingTrainingCrop[];
+    case 1:
+      return (crops as (WaitingTrainingCrop & { uri: string })[]).map(withoutFileUri);
+    default:
+      return null;
   }
-  return savedVersion === 1 ? (crops as WaitingTrainingCropOfVersion1[]).map(({ uri, ...crop }) => crop) : null;
-}
-
-async function readQueue(userId: string): Promise<WaitingTrainingCrop[]> {
-  const crops = await queueFile(userId).read(({ formatVersion, crops }) => savedCrops(formatVersion, crops));
-  return crops ?? [];
-}
-
-function writeQueue(userId: string, crops: readonly WaitingTrainingCrop[]) {
-  queueFile(userId).write({ crops });
 }
 
 let queueLock: Promise<unknown> = Promise.resolve();
@@ -78,80 +51,70 @@ function uploadWait() {
   return day + (drawn! / 2 ** 32) * 6 * day;
 }
 
-function queueTrainingCrops(userId: string, scans: readonly BatchScan[]) {
-  const committedAt = Date.now();
-  const kept = scans.filter(isCroppedScan).map((scan) => ({
-    cropId: randomUUID(),
-    copyId: scan.scanId,
-    uploadAt: committedAt + uploadWait(),
-    record: evidenceRecordOf(scan),
-  }));
-  return withQueueLock(async () => writeQueue(userId, [...(await readQueue(userId)), ...kept]));
-}
-
-export function dropWaitingTrainingCrops(userId: string) {
-  return withQueueLock(async () => {
-    (await readQueue(userId)).forEach(({ copyId }) => dropFile(cropFile(userId, copyId)));
-    writeQueue(userId, []);
-  });
-}
-
-export function uploadDueTrainingCrops(
-  userId: string,
-  upload: (crop: WaitingTrainingCrop, imageUri: string) => Promise<UploadResult>,
-  stillSignedIn: () => boolean,
-) {
-  return withQueueLock(async () => {
-    let waiting = await readQueue(userId);
-    for (const crop of waiting.filter(({ uploadAt }) => uploadAt <= Date.now())) {
-      const image = cropFile(userId, crop.copyId);
-      if (!stillSignedIn() || (image.exists && (await upload(crop, image.uri)) === 'failed')) {
-        return;
-      }
-      dropFile(image);
-      waiting = waiting.filter(({ cropId }) => cropId !== crop.cropId);
-      writeQueue(userId, waiting);
-    }
-  });
-}
-
 export function trainingCropKeeper(userId: string) {
+  const directory = new Directory(Paths.document, 'training-crops', userId);
+  const queueFile = versionedUserFile('training-crop-queue', userId, queueFormatVersion);
   const keptThisSession = new Set<string>();
   let inScanBatch = new Set<string>();
 
-  function drop(copyIds: string[]) {
-    copyIds.forEach((copyId) => dropFile(cropFile(userId, copyId)));
+  const fileName = (copyId: string) => `${copyId}.jpg`;
+  const cropFile = (copyId: string) => new File(directory, fileName(copyId));
+
+  async function readQueue(): Promise<WaitingTrainingCrop[]> {
+    return (await queueFile.read(({ formatVersion, crops }) => savedCrops(formatVersion, crops))) ?? [];
+  }
+
+  function writeQueue(crops: readonly WaitingTrainingCrop[]) {
+    queueFile.write({ crops });
+  }
+
+  function drop(copyIds: readonly string[]) {
+    copyIds.forEach((copyId) => dropFile(cropFile(copyId)));
+  }
+
+  function queue(scans: readonly BatchScan[]) {
+    const committedAt = Date.now();
+    const crops = scans.filter(isCroppedScan).map((scan) => ({
+      cropId: randomUUID(),
+      copyId: scan.scanId,
+      uploadAt: committedAt + uploadWait(),
+      record: evidenceRecordOf(scan),
+    }));
+    return withQueueLock(async () => writeQueue([...(await readQueue()), ...crops]));
   }
 
   return {
-    keep(cropUri: string, copyId: string): string | null {
+    userId,
+    drop,
+    keep(cropUri: string, copyId: string) {
       try {
-        cropDirectory(userId).create({ intermediates: true, idempotent: true });
-        const crop = new File(cropUri);
-        crop.moveSync(cropFile(userId, copyId));
+        directory.create({ intermediates: true, idempotent: true });
+        new File(cropUri).moveSync(cropFile(copyId));
         keptThisSession.add(copyId);
-        return crop.uri;
+        return true;
       } catch {
-        return null;
+        return false;
       }
     },
+    discard(cropUri: string) {
+      dropFile(new File(cropUri));
+    },
     scanBatchRestored(batch: ScanBatch) {
-      inScanBatch = croppedCopyIds(batch.scans);
-      const restored = [...inScanBatch];
+      const restored = croppedCopyIds(batch.scans);
+      inScanBatch = new Set([...restored, ...keptThisSession]);
       return withQueueLock(async () => {
-        const directory = cropDirectory(userId);
         if (!directory.exists) {
           return;
         }
-        const waiting = (await readQueue(userId)).map(({ copyId }) => copyId);
-        const listed = new Set([...restored, ...keptThisSession, ...waiting].map(cropFileName));
+        const waiting = (await readQueue()).map(({ copyId }) => copyId);
+        const keptFileNames = new Set([...restored, ...keptThisSession, ...waiting].map(fileName));
         directory
           .list()
-          .filter((file) => !listed.has(file.name))
+          .filter((file) => !keptFileNames.has(file.name))
           .forEach((file) => file.delete());
       });
     },
-    scanBatchSaved(batch: ScanBatch) {
+    dropCropsOfScansThatLeft(batch: ScanBatch) {
       const cropped = croppedCopyIds(batch.scans);
       drop([...inScanBatch].filter((copyId) => !cropped.has(copyId)));
       inScanBatch = cropped;
@@ -161,8 +124,28 @@ export function trainingCropKeeper(userId: string) {
       if (uploadsOn === false) {
         drop(scans.map(({ scanId }) => scanId));
       } else {
-        void queueTrainingCrops(userId, scans);
+        void queue(scans);
       }
+    },
+    dropWaiting() {
+      return withQueueLock(async () => {
+        drop((await readQueue()).map(({ copyId }) => copyId));
+        writeQueue([]);
+      });
+    },
+    uploadDue(upload: (crop: WaitingTrainingCrop, imageUri: string) => Promise<UploadResult>, stillSignedIn: () => boolean) {
+      return withQueueLock(async () => {
+        let waiting = await readQueue();
+        for (const crop of waiting.filter(({ uploadAt }) => uploadAt <= Date.now())) {
+          const image = cropFile(crop.copyId);
+          if (!stillSignedIn() || (image.exists && (await upload(crop, image.uri)) === 'failed')) {
+            return;
+          }
+          dropFile(image);
+          waiting = waiting.filter(({ cropId }) => cropId !== crop.cropId);
+          writeQueue(waiting);
+        }
+      });
     },
   };
 }
