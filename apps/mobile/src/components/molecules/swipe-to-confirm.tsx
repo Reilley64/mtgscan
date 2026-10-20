@@ -1,7 +1,14 @@
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import {
+  ActivityIndicator,
+  ScrollView,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type ScrollViewInstance,
+} from 'react-native';
 
 import { Text } from '@/components/atoms/text';
 import { colors, sizes, spacing } from '@/theme';
@@ -18,7 +25,7 @@ type SwipeToConfirmProps = {
 };
 
 export function SwipeToConfirm({ label, disabled = false, busy = false, onConfirm }: SwipeToConfirmProps) {
-  const handleScroller = useRef<ScrollView>(null);
+  const handleScroller = useRef<ScrollViewInstance>(null);
   const dragging = useRef(false);
   const pastThreshold = useRef(false);
   const [travel, setTravel] = useState(0);

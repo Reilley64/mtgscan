@@ -76,7 +76,7 @@ test('the sign-in sheet says what mtgscan does and that the collection stays pri
 });
 
 test('Privacy policy opens the privacy policy in the system browser', async () => {
-  const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValueOnce(true);
+  const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValueOnce();
   await renderApp();
 
   await fireEvent.press(screen.getByRole('link', { name: 'Privacy policy' }));

@@ -217,7 +217,7 @@ Agents build and install only the test app on the iPhone, and never sign in to t
 
 The app version in `apps/mobile/app.json` follows the release version. Release-please updates it together with the root `package.json`. EAS keeps the iOS build number (`cli.appVersionSource` is `remote`) and increments it for each production build.
 
-The app stays on Expo SDK 56. SDK 57 does not build on Xcode 26.3, because `expo-modules-jsi` 57.0.5 and later fail to compile with Swift 6.2 ([expo/expo#50067](https://github.com/expo/expo/issues/50067)). Move to SDK 57 when Expo releases the fix for it.
+The app is on Expo SDK 58, with React Native 0.88. It builds on Xcode 26.3 with Swift 6.2. To upgrade the SDK, run `bunx expo install expo@<version>` and then `bunx expo install --fix` in `apps/mobile`, and build the app on Xcode 26.3 before you open the PR.
 
 ### Catalog search
 
