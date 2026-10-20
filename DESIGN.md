@@ -611,7 +611,10 @@ Sets lists every released set that has a card printing in the card catalog, with
   - A set with no set art starts with a set header in place of the banner. It has the layout of a set row, with the set symbol filling up in lime, the set name, "x of y", the progress bar, and the percentage.
   - The finish view control sits under the set page banner or the set header, 12 px below it. See Finish view below.
   - A set whose main set is empty in the finish view, such as Alpha in Foil, shows "0 of 0" with no percentage. It is never complete, so it has no ✓ and no lime outline, and its set art or set symbol has no color. VoiceOver reads it as "Limited Edition Alpha, 0 of 0".
-  - The main set follows as card images, 3 per row, in collector number order. A heading "Variants" in body strong lime then shows the variants' own "x of y" in meta text, such as "12 of 106", and their grid in the same order. VoiceOver reads the heading as "Variants, 12 of 106". A set with no variants has no Variants section.
+  - The set's card printings follow in set sections, in Scryfall's order (#449). Each set section has a header, then its card images, 3 per row, in collector number order. All set sections are open in one scrolling list.
+  - A set section header has the layout of a set row with no set symbol, no surface, and no percentage. Its name is in body strong lime. Its "x of y" is in meta text under the name, such as "12 of 40". Its 4 px progress bar in primary lime on a line-colored track comes under the "x of y". A complete set section has a lime ✓ at the right end of the header, as a complete set row has. VoiceOver reads the header as one header, such as "Borderless Cards, 12 of 40, 30 percent". It adds "complete" when the set section is complete.
+  - A card printing in two set sections shows in both. The card printings that no set section lists come last, under the header "Other cards", which works like a set section header.
+  - A set with one set section still shows its header. A set whose set sections have not been read yet shows all its card printings in one grid with no header.
   - Each card printing is a set page tile. See Components. The page shows no prices.
   - Tiles are images, not buttons. A tap on one does nothing.
   - The set page reads again each time it gains focus, so cards scanned since then count at once. A reload keeps the cards shown.
@@ -621,8 +624,8 @@ Sets lists every released set that has a card printing in the card catalog, with
 - **Finish view.** Sets and the set page show the same finish view control, a toggle group with the segments "Any finish", "Nonfoil", and "Foil" (#368). VoiceOver reads each segment as a radio button.
   - Any finish is the default. The phone keeps the choice in the keychain, as it keeps the price currency, so it survives a restart.
   - One choice drives both screens. Changing it on Sets changes it on the set page, and the other way round. Changing it reads Sets again from the first page, because the server leaves out the sets whose main set is empty in the finish view. The set page does not read again.
-  - In the chosen finish view, the set banners on Sets, the set page banner, the set rows and the set header of a set with no set art, and the Variants "x of y" show set completion in that view. A set page tile is lit when the user owns the card printing in that view, and its quantity badge counts the copies in that view.
-  - Nonfoil counts the nonfoil copies, or every copy of a card printing with no nonfoil finish. Foil counts the foil and etched copies. A card printing with no foil or etched finish is left out of Foil, so the set page does not show it. When every variant is left out, the set page has no Variants section.
+  - In the chosen finish view, the set banners on Sets, the set page banner, and the set rows and the set header of a set with no set art show set completion in that view. Each set section header shows its own "x of y" and progress bar in that view. A set page tile is lit when the user owns the card printing in that view, and its quantity badge counts the copies in that view.
+  - Nonfoil counts the nonfoil copies, or every copy of a card printing with no nonfoil finish. Foil counts the foil and etched copies. A card printing with no foil or etched finish is left out of Foil, so the set page does not show it. A set section with no card printings left in the finish view is hidden, and so is "Other cards".
   - In the Foil view, a lit tile carries the foil sheen.
 
 ### Sign-in screen

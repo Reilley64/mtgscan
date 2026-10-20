@@ -52,9 +52,13 @@ const setCardPrinting = z.strictObject({
 
 export type SetCardPrinting = z.infer<typeof setCardPrinting>;
 
+const setSection = z.strictObject({ name: z.string(), completion, card_printings: z.array(setCardPrinting) });
+
+export type SetSection = z.infer<typeof setSection>;
+
 const setDetails = cardSet.extend({
-  main_set: z.array(setCardPrinting),
-  variants: z.strictObject({ completion, card_printings: z.array(setCardPrinting) }),
+  sections: z.array(setSection),
+  other: z.strictObject({ completion, card_printings: z.array(setCardPrinting) }),
 });
 
 export type SetDetails = z.infer<typeof setDetails>;

@@ -7,6 +7,7 @@ import { call, failed, refused, replyOf } from './database-calls';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 import { artCrop } from './scryfall-images';
+import { storeSetSections } from './set-section-seeds';
 
 setDefaultTimeout(60_000);
 
@@ -24,6 +25,10 @@ const prismaticPiper = 'c78c2713-39e7-4a6e-a132-027099a89665';
 const smotheringTitheVariant = '2309fb66-3aa0-4ec5-9a8e-5a0caa19c270';
 const boonOfTheSpiritRealm = 'a588fc39-ed88-4262-96cd-908fadc7f049';
 const counterspell = '0df55e3f-14de-46ef-b6b1-616618724d9e';
+const captureOfJingzhou = 'f87d0298-f76b-4ea8-82c4-5861c4539d8b';
+const vizierOfTumblingSands = 'a9aef509-50f0-4848-87d5-3c169453186f';
+const teferiTemporalArchmage = 'ba86947e-5d7c-4cf1-9d33-98b289d56108';
+const krenkoMobBoss = 'ae883514-2e5f-4ea3-bccc-3c475f70121a';
 
 function normalImage(printingId: string, version: number) {
   return `https://cards.scryfall.io/normal/front/${printingId[0]}/${printingId[1]}/${printingId}.jpg?${version}`;
@@ -39,7 +44,7 @@ function setNamed(user: TestUser, code: string) {
 }
 
 describe('the set read', () => {
-  test('a set with booster cards comes with its main set and its variants, each card printing with its count in each finish view', async () => {
+  test('a set with no stored set sections has no set sections, and other holds every card printing of the set, each with its count in each finish view', async () => {
     const user = await signUpNewUser();
     await committed(
       user,
@@ -53,27 +58,26 @@ describe('the set read', () => {
       released_at: '2024-06-14',
       set_art_uri: artCrop(roilCartographer, 1783911289),
       completion: { any: { owned: 1, size: 2 }, nonfoil: { owned: 1, size: 2 }, foil: { owned: 1, size: 2 } },
-      main_set: [
-        {
-          printing_id: roilCartographer,
-          name: 'Roil Cartographer',
-          collector_number: '67',
-          image_uri: normalImage(roilCartographer, 1783911289),
-          finishes: ['nonfoil', 'foil'],
-          counts: { any: 3, nonfoil: 2, foil: 1 },
-        },
-        {
-          printing_id: scurrilousSentry,
-          name: 'Scurrilous Sentry',
-          collector_number: '108',
-          image_uri: normalImage(scurrilousSentry, 1783911276),
-          finishes: ['nonfoil', 'foil'],
-          counts: { any: 0, nonfoil: 0, foil: 0 },
-        },
-      ],
-      variants: {
-        completion: { any: { owned: 1, size: 1 }, nonfoil: { owned: 1, size: 1 }, foil: { owned: 1, size: 1 } },
+      sections: [],
+      other: {
+        completion: { any: { owned: 2, size: 3 }, nonfoil: { owned: 2, size: 3 }, foil: { owned: 2, size: 3 } },
         card_printings: [
+          {
+            printing_id: roilCartographer,
+            name: 'Roil Cartographer',
+            collector_number: '67',
+            image_uri: normalImage(roilCartographer, 1783911289),
+            finishes: ['nonfoil', 'foil'],
+            counts: { any: 3, nonfoil: 2, foil: 1 },
+          },
+          {
+            printing_id: scurrilousSentry,
+            name: 'Scurrilous Sentry',
+            collector_number: '108',
+            image_uri: normalImage(scurrilousSentry, 1783911276),
+            finishes: ['nonfoil', 'foil'],
+            counts: { any: 0, nonfoil: 0, foil: 0 },
+          },
           {
             printing_id: roilCartographerVariant,
             name: 'Roil Cartographer',
@@ -87,20 +91,15 @@ describe('the set read', () => {
     });
   });
 
-  test('basic lands are in neither the main set nor the variants', async () => {
+  test('basic lands are not in other', async () => {
     const user = await signUpNewUser();
     await seedCopies(user, [{ card_printing_id: snowCoveredWastes }, { card_printing_id: wastes }]);
 
     const mh3 = await setNamed(user, 'mh3');
     const eoc = await setNamed(user, 'eoc');
 
-    expect(mh3.main_set.map((printing) => printing.collector_number)).toEqual(['67', '108']);
-    expect(mh3.variants.card_printings.map((printing) => printing.collector_number)).toEqual(['511']);
-    expect(eoc.main_set.map((printing) => printing.printing_id)).toEqual([inspirit]);
-    expect(eoc.variants).toEqual({
-      completion: { any: { owned: 0, size: 0 }, nonfoil: { owned: 0, size: 0 }, foil: { owned: 0, size: 0 } },
-      card_printings: [],
-    });
+    expect(mh3.other.card_printings.map((printing) => printing.collector_number)).toEqual(['67', '108', '511']);
+    expect(eoc.other.card_printings.map((printing) => printing.printing_id)).toEqual([inspirit]);
   });
 
   test('card printings come in collector number order, by their leading digits and then as text', async () => {
@@ -110,13 +109,14 @@ describe('the set read', () => {
     const pfra = await setNamed(user, 'pfra');
     const cmm = await setNamed(user, 'cmm');
 
-    expect(sld.main_set.map((printing) => printing.collector_number)).toEqual([
+    expect(sld.other.card_printings.map((printing) => printing.collector_number)).toEqual([
       '453', '478', '620', '722', '1144', '1168', '1335', '1336', '1336b', '1417', '1510',
       '1556', '1659', '1880', '2197', '2281', '2367', '2407', '2667', '7009', '7103',
     ]);
-    expect(pfra.main_set.map((printing) => printing.collector_number)).toEqual(['57p', '116p']);
-    expect(cmm.main_set.map((printing) => printing.collector_number)).toEqual(['1', '79', '131']);
-    expect(cmm.variants.card_printings.map((printing) => printing.collector_number)).toEqual(['473', '500', '543', '720', '753', '878']);
+    expect(pfra.other.card_printings.map((printing) => printing.collector_number)).toEqual(['57p', '116p']);
+    expect(cmm.other.card_printings.map((printing) => printing.collector_number)).toEqual([
+      '1', '79', '131', '473', '500', '543', '720', '753', '878',
+    ]);
   });
 
   test("one user never sees another user's copies", async () => {
@@ -127,10 +127,10 @@ describe('the set read', () => {
     const ownersSet = await setNamed(owner, 'mh3');
     const othersSet = await setNamed(other, 'mh3');
 
-    expect(ownersSet.main_set[0]!.counts).toEqual({ any: 2, nonfoil: 2, foil: 0 });
-    expect(othersSet.main_set[0]!.counts).toEqual({ any: 0, nonfoil: 0, foil: 0 });
+    expect(ownersSet.other.card_printings[0]!.counts).toEqual({ any: 2, nonfoil: 2, foil: 0 });
+    expect(othersSet.other.card_printings[0]!.counts).toEqual({ any: 0, nonfoil: 0, foil: 0 });
     expect(othersSet.completion.any).toEqual({ owned: 0, size: 2 });
-    expect(othersSet.variants.completion.any).toEqual({ owned: 0, size: 1 });
+    expect(othersSet.other.completion.any).toEqual({ owned: 0, size: 3 });
   });
 
   test.each([
@@ -141,9 +141,102 @@ describe('the set read', () => {
   });
 });
 
+describe('set sections', () => {
+  afterEach(async () => {
+    await asDatabaseOwner((database) => database`delete from public.set_sections`);
+    await asDatabaseOwner((database) => database`update public.card_printings set absent_since = null where id = ${roilCartographerVariant}`);
+  });
+
+  function shown(section: SetDetails['sections'][number] | SetDetails['other']) {
+    return {
+      ...('name' in section ? { name: section.name } : {}),
+      completion: section.completion,
+      collector_numbers: section.card_printings.map((printing) => printing.collector_number),
+    };
+  }
+
+  test("set sections come in Scryfall's order, each with its card printings in collector number order and its completion in each finish view, and other holds the card printings that no set section lists", async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(prismaticPiper), stack(smotheringTitheVariant, { finish: 'etched' })]));
+    await storeSetSections('cmm', [
+      { name: 'Etched Foils', search: 'set:cmm is:etched', card_printing_ids: [krenkoMobBoss, smotheringTitheVariant, teferiTemporalArchmage] },
+      { name: 'Draft Cards', search: 'e:cmm cn≥1 cn≤131', card_printing_ids: [vizierOfTumblingSands, prismaticPiper, captureOfJingzhou] },
+    ]);
+
+    const cmm = await setNamed(user, 'cmm');
+
+    expect(cmm.sections.map(shown)).toEqual([
+      {
+        name: 'Etched Foils',
+        completion: { any: { owned: 1, size: 3 }, nonfoil: { owned: 1, size: 3 }, foil: { owned: 1, size: 3 } },
+        collector_numbers: ['473', '500', '543'],
+      },
+      {
+        name: 'Draft Cards',
+        completion: { any: { owned: 1, size: 3 }, nonfoil: { owned: 1, size: 3 }, foil: { owned: 0, size: 2 } },
+        collector_numbers: ['1', '79', '131'],
+      },
+    ]);
+    expect(shown(cmm.other)).toEqual({
+      completion: { any: { owned: 0, size: 3 }, nonfoil: { owned: 0, size: 3 }, foil: { owned: 0, size: 1 } },
+      collector_numbers: ['720', '753', '878'],
+    });
+    expect(cmm.completion).toEqual({ any: { owned: 1, size: 3 }, nonfoil: { owned: 1, size: 3 }, foil: { owned: 0, size: 2 } });
+  });
+
+  test('a card printing in two set sections is in both, and counts toward both', async () => {
+    const user = await signUpNewUser();
+    await committed(user, scanBatch([stack(roilCartographerVariant, { finish: 'foil' })]));
+    await storeSetSections('mh3', [
+      { name: 'Roil Cartographer', search: 'e:mh3 !"Roil Cartographer"', card_printing_ids: [roilCartographer, roilCartographerVariant] },
+      { name: 'Borderless Cards', search: 'e:mh3 cn≥500', card_printing_ids: [roilCartographerVariant] },
+    ]);
+
+    const mh3 = await setNamed(user, 'mh3');
+
+    expect(mh3.sections.map(shown)).toEqual([
+      {
+        name: 'Roil Cartographer',
+        completion: { any: { owned: 1, size: 2 }, nonfoil: { owned: 1, size: 2 }, foil: { owned: 1, size: 2 } },
+        collector_numbers: ['67', '511'],
+      },
+      {
+        name: 'Borderless Cards',
+        completion: { any: { owned: 1, size: 1 }, nonfoil: { owned: 1, size: 1 }, foil: { owned: 1, size: 1 } },
+        collector_numbers: ['511'],
+      },
+    ]);
+    expect(shown(mh3.other)).toMatchObject({ collector_numbers: ['108'] });
+  });
+
+  test('basic lands and absent card printings are in no set section and not in other, and a set section left with no card printings is left out', async () => {
+    const user = await signUpNewUser();
+    await asDatabaseOwner((database) => database`update public.card_printings set absent_since = now() where id = ${roilCartographerVariant}`);
+    await storeSetSections('mh3', [
+      { name: 'Full Art Basics', search: 'e:mh3 t:basic', card_printing_ids: [snowCoveredWastes] },
+      { name: 'Draft Cards', search: 'e:mh3 cn≤261', card_printing_ids: [roilCartographer, scurrilousSentry, snowCoveredWastes] },
+      { name: 'Borderless Cards', search: 'e:mh3 cn≥500', card_printing_ids: [roilCartographerVariant] },
+    ]);
+
+    const mh3 = await setNamed(user, 'mh3');
+
+    expect(mh3.sections.map(shown)).toEqual([
+      {
+        name: 'Draft Cards',
+        completion: { any: { owned: 0, size: 2 }, nonfoil: { owned: 0, size: 2 }, foil: { owned: 0, size: 2 } },
+        collector_numbers: ['67', '108'],
+      },
+    ]);
+    expect(shown(mh3.other)).toEqual({
+      completion: { any: { owned: 0, size: 0 }, nonfoil: { owned: 0, size: 0 }, foil: { owned: 0, size: 0 } },
+      collector_numbers: [],
+    });
+  });
+});
+
 describe('the counts in each finish view', () => {
   function countsOf(set: SetDetails, printingId: string) {
-    return [...set.main_set, ...set.variants.card_printings].find((printing) => printing.printing_id === printingId)!.counts;
+    return set.other.card_printings.find((printing) => printing.printing_id === printingId)!.counts;
   }
 
   test('Nonfoil counts the nonfoil copies, and Foil counts the foil and etched copies', async () => {
@@ -180,7 +273,7 @@ describe('the counts in each finish view', () => {
     expect(countsOf(cmm, prismaticPiper)).toEqual({ any: 2, nonfoil: 2, foil: null });
     expect(countsOf(cmm, boonOfTheSpiritRealm)).toEqual({ any: 1, nonfoil: 1, foil: null });
     expect(cmm.completion).toEqual({ any: { owned: 1, size: 3 }, nonfoil: { owned: 1, size: 3 }, foil: { owned: 0, size: 2 } });
-    expect(cmm.variants.completion).toEqual({ any: { owned: 1, size: 6 }, nonfoil: { owned: 1, size: 6 }, foil: { owned: 0, size: 4 } });
+    expect(cmm.other.completion).toEqual({ any: { owned: 2, size: 9 }, nonfoil: { owned: 2, size: 9 }, foil: { owned: 0, size: 6 } });
   });
 
   test('a set with no foil card printing has an empty main set in Foil', async () => {

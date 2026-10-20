@@ -1,35 +1,43 @@
-import type { FinishView, SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
+import type { FinishView, SetCardPrinting, SetDetails, SetSection } from '@mtgscan/supabase/sets';
 import { cva } from 'class-variance-authority';
 import { View } from 'react-native';
 
 import { CardTile } from '@/components/molecules/card-tile';
-import { SheetSectionHeader } from '@/components/molecules/sheet-section';
-import { copiesOf, inFinishView, shownCompletion, spokenSetCardPrinting } from '@/sets/set-completion';
+import { SetSectionHeader } from '@/components/organisms/set-section-header';
+import { copiesOf, inFinishView, shownCompletion, spokenSetCardPrinting, type ShownCompletion } from '@/sets/set-completion';
 
 export type SetCardsItem =
   | { kind: 'card-printing'; key: string; printing: SetCardPrinting; finishView: FinishView }
-  | { kind: 'variants'; key: string; count: string };
+  | { kind: 'section'; key: string; name: string; completion: ShownCompletion };
 
 const itemSpacing = cva('', {
   variants: {
-    kind: { 'card-printing': 'pt-sm', variants: 'pt-lg' },
+    kind: { 'card-printing': 'pt-sm', section: 'pt-lg' },
   },
 });
 
-function printingItems(printings: SetCardPrinting[], finishView: FinishView): SetCardsItem[] {
-  return printings.map((printing) => ({ kind: 'card-printing', key: printing.printing_id, printing, finishView }));
+function printingItems(sectionKey: string, printings: SetCardPrinting[], finishView: FinishView): SetCardsItem[] {
+  return printings.map((printing) => ({ kind: 'card-printing', key: `${sectionKey}:${printing.printing_id}`, printing, finishView }));
+}
+
+function sectionItems(key: string, section: SetSection, finishView: FinishView): SetCardsItem[] {
+  const printings = inFinishView(section.card_printings, finishView);
+  if (printings.length === 0) {
+    return [];
+  }
+  return [
+    { kind: 'section', key, name: section.name, completion: shownCompletion(section.completion[finishView]) },
+    ...printingItems(key, printings, finishView),
+  ];
 }
 
 export function setCardsItems(set: SetDetails, finishView: FinishView): SetCardsItem[] {
-  const variants = inFinishView(set.variants.card_printings, finishView);
+  if (set.sections.length === 0) {
+    return printingItems('other', inFinishView(set.other.card_printings, finishView), finishView);
+  }
   return [
-    ...printingItems(inFinishView(set.main_set, finishView), finishView),
-    ...(variants.length > 0
-      ? [
-          { kind: 'variants' as const, key: 'variants', count: shownCompletion(set.variants.completion[finishView]).count },
-          ...printingItems(variants, finishView),
-        ]
-      : []),
+    ...set.sections.flatMap((section, index) => sectionItems(`section ${index}`, section, finishView)),
+    ...sectionItems('other', { name: 'Other cards', ...set.other }, finishView),
   ];
 }
 
@@ -50,8 +58,8 @@ function itemContent(item: SetCardsItem) {
   switch (item.kind) {
     case 'card-printing':
       return <SetCardTile printing={item.printing} finishView={item.finishView} />;
-    case 'variants':
-      return <SheetSectionHeader title="Variants" count={item.count} />;
+    case 'section':
+      return <SetSectionHeader name={item.name} completion={item.completion} />;
   }
 }
 

@@ -151,14 +151,14 @@ isOneToOne: false
                   ]
                 },"card_sets": {
                   Row: {
-                    "code": string,"icon_svg_uri": string,"name": string,"released_at": string | null,"set_type": string | null
+                    "code": string,"icon_svg_uri": string,"name": string,"released_at": string | null,"set_sections_read_at": string | null,"set_type": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "code": string,"icon_svg_uri": string,"name": string,"released_at"?: string | null,"set_type"?: string | null
+                    "code": string,"icon_svg_uri": string,"name": string,"released_at"?: string | null,"set_sections_read_at"?: string | null,"set_type"?: string | null
                   }
                   Update: {
-                    "code"?: string,"icon_svg_uri"?: string,"name"?: string,"released_at"?: string | null,"set_type"?: string | null
+                    "code"?: string,"icon_svg_uri"?: string,"name"?: string,"released_at"?: string | null,"set_sections_read_at"?: string | null,"set_type"?: string | null
                   }
                   Relationships: [
                     
@@ -683,6 +683,52 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"set_section_card_printings": {
+                  Row: {
+                    "card_printing_id": string,"position": number,"set_code": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "card_printing_id": string,"position": number,"set_code": string
+                  }
+                  Update: {
+                    "card_printing_id"?: string,"position"?: number,"set_code"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "set_section_card_printings_card_printing_id_fkey"
+      columns: ["card_printing_id"]
+isOneToOne: false
+      referencedRelation: "card_printings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "set_section_card_printings_set_code_position_fkey"
+      columns: ["set_code","position"]
+isOneToOne: false
+      referencedRelation: "set_sections"
+      referencedColumns: ["set_code","position"]
+    }
+                  ]
+                },"set_sections": {
+                  Row: {
+                    "name": string,"position": number,"search": string,"set_code": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "name": string,"position": number,"search": string,"set_code": string
+                  }
+                  Update: {
+                    "name"?: string,"position"?: number,"search"?: string,"set_code"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "set_sections_set_code_fkey"
+      columns: ["set_code"]
+isOneToOne: false
+      referencedRelation: "card_sets"
+      referencedColumns: ["code"]
+    }
+                  ]
                 },"tag_edges": {
                   Row: {
                     "child_id": string,"parent_id": string
@@ -901,6 +947,9 @@ isOneToOne: false
 "import_card_sets":
 { Args: { "sets": Json }; Returns: number
                            },
+"import_set_sections":
+{ Args: { "sections": Json,"set_code": string }; Returns: undefined
+                           },
 "limit_email_sign_ups":
 { Args: { "event": Json }; Returns: Json
                            },
@@ -987,6 +1036,9 @@ isOneToOne: false
 "record_gallery_version":
 { Args: { "manifest": Json,"version": string }; Returns: undefined
                            },
+"record_set_sections_read":
+{ Args: { "set_code": string }; Returns: undefined
+                           },
 "remove_deck_card":
 { Args: { "request": Json }; Returns: Json
                            },
@@ -1025,6 +1077,11 @@ isOneToOne: false
                            },
 "set_training_crop_uploads":
 { Args: { "request": Json }; Returns: Json
+                           },
+"sets_for_set_section_import":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "code": string,"due": boolean,"has_unlisted_card_printing": boolean,"sections": Json
+            }[]
                            },
 "stage_import_batch":
 { Args: { "batch_number": number,"batch_rows": Json,"run_id": string,"target": string }; Returns: number

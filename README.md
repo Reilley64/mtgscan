@@ -299,12 +299,35 @@ Signed-in users read Sets in pages with `supabase.rpc('list_sets', { query: { te
 Signed-in users read one set with `supabase.rpc('get_set', { query })`. The set page reads through it. `supabase/sets.ts` has the shared types.
 
 - The query has `code`, the set code, such as `blb`.
-- The result has the fields of a `list_sets` row for the set, then `main_set` and `variants`.
-- `main_set` lists the card printings of the main set. `variants.card_printings` lists the variants, and `variants.completion` is their own set completion in each finish view. Basic land cards are in neither list.
-- Both lists come in collector number order. Numbers sort by their leading digits, then as text, so "9" comes before "10" and "10a".
+- The result has the fields of a `list_sets` row for the set, then `sections` and `other`. Its `completion` is still the set completion of the main set.
+- `sections` lists the set's set sections in Scryfall's order. Each has its `name`, its `completion` in each finish view, and its `card_printings`. A card printing in more than one set section is in each of them, and counts toward each.
+- `other` has its `completion` and its `card_printings`: the card printings that no set section lists. A set with no stored set sections has an empty `sections`, and `other` holds every card printing of the set.
+- Basic land cards and absent card printings are in no set section and not in `other`. A set section left with no card printings is left out.
+- A set section's `completion` and `other`'s `completion` follow the set completion rule over their own card printings.
+- Each list of card printings comes in collector number order. Numbers sort by their leading digits, then as text, so "9" comes before "10" and "10a".
 - Each card printing has `printing_id`, `name`, `collector_number`, `image_uri` (the front face image, or null), `finishes`, and `counts`, the number of the caller's copies under `any`, `nonfoil`, and `foil`. `counts.foil` is null when the card printing has no foil or etched finish.
 - `list_sets` and `get_set` share the main set rule and the set completion count, so a set's completion is the same in both reads.
 - The function runs with the caller's rights. An anonymous caller and the secret key are refused. A set code that is unknown, not released, or has no card printing in the card catalog has the code `not_found` and the field `code`. A refused query has the code `invalid_argument` and the field at fault.
+
+### Set sections
+
+`set_sections` holds each set's set sections from its Scryfall set page: `set_code`, `position` in Scryfall's order from 1, `name`, and `search`, the Scryfall search under the header. `set_section_card_printings` links each set section to the card printings that its search returned. `card_sets.set_sections_read_at` is when the set's set sections were last read. Signed-in users can read both tables. Only `import_set_sections` writes them.
+
+- `supabase.rpc('import_set_sections', { set_code, sections })` with the secret key replaces one set's set sections and their card printings in one transaction, and records the read time. Each section has `name`, `search`, and `card_printing_ids`.
+- It drops the card printing IDs that are not in the card catalog. It refuses a set code that is not in `card_sets`. When it fails, the set keeps its stored set sections.
+- It does not go through import runs, so the import can store the set sections of one set while the read of another set fails. See ADR 0013.
+- `supabase.rpc('record_set_sections_read', { set_code })` with the secret key records the read time only, for a set whose set sections did not change.
+
+`bun run import set_sections` fills them in and keeps them up to date:
+
+- `sets_for_set_section_import()`, with the secret key, lists the sets that Sets lists. Each set has `due`, its stored `sections` with `name` and `search` in Scryfall's order, and `has_unlisted_card_printing`. That is true when the set has a card printing, not a basic land and not absent, that no stored set section lists.
+- A set is due when its set sections were never read, its release date is within the last 180 days, or it has a card printing that no stored set section lists. The command skips every other set. A failed read changes nothing, so the set stays due for the next run.
+- For each due set, the command reads the set's Scryfall set page, `https://scryfall.com/sets/<code>`. Each `h2.card-grid-header` is a set section, in page order. The name is the header text before the count. The search is the `q` parameter of the header's count link.
+- A page with no set section header, or a header with no search link, is a failed read for that set.
+- When the page's names and searches match the stored ones and the set has no card printing that no stored set section lists, the command runs no searches. It records the read time with `record_set_sections_read`.
+- Otherwise the command runs each search through `/cards/search` with `unique=prints`, and follows every page of results. A search that Scryfall answers with "no cards found" is an empty set section. It then stores the set with `import_set_sections`.
+- It sends at most 1 set page read a second and at most 2 card searches a second, with the import user agent. After a 429 reply it waits 30 seconds and tries again. A second 429 for the same request is a failed read for that set.
+- A failed read is logged with its reason, and the set keeps its stored set sections. The command goes on with the next set. At the end, it logs how many sets it read, skipped, and failed, and how many searches it ran. It exits non-zero and names each failed set when any set failed.
 
 ### Current prices read
 
@@ -674,7 +697,7 @@ Basic lands are not copies, so collection search never returns them as rows. A f
 
 ### Card catalog imports
 
-`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. When `SUPABASE_URL` is not set, it uses `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file. Pass `--sets <path>` to read a fixture instead of the Scryfall sets list. Pass `--rates <path>` to read a fixture instead of Frankfurter's latest exchange rates.
+`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. When `SUPABASE_URL` is not set, it uses `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file. Pass `--sets <path>` to read a fixture instead of the Scryfall sets list. Pass `--rates <path>` to read a fixture instead of Frankfurter's latest exchange rates. Pass `--scryfall-site <URL>` and `--scryfall-api <URL>` to read set sections from another Scryfall site and API, such as a fake Scryfall in the tests.
 
 - `catalog` imports cards and card printings. Each card printing keeps `image_uris`, the Scryfall `normal` image of each face, and `art_crop_uri`, the Scryfall `art_crop` image of its front face or null. It also keeps Scryfall's `booster`, `promo`, and `variation` flags. After the run, even a skipped one, it reads Scryfall's sets list in one request and adds or updates `card_sets`: each set's code, name, `set_type`, `released_at`, and `icon_svg_uri`. A set with no `released_at` in Scryfall keeps null. Some sets use the icon of a parent set, so the app reads the icon from this table, not from a URL pattern. Signed-in users can read `card_sets`. The Weekly import workflow runs it.
   - The run reads the deck-construction fields from each card's Oracle text and stores them on the card. Deck validity reads them as rules data. The reader leaves out reminder text and an ability word before " — ", as in Clara Oswald's "Impossible Girl".
@@ -687,6 +710,7 @@ Basic lands are not copies, so collection search never returns them as rows. A f
     - Whether a card is a Background or a Time Lord Doctor, and its basic land types, come from its type line. The catalog stores the type line, so these need no field of their own.
 - `oracle_tags` imports Oracle tags, tag edges, and card taggings from Scryfall. The Weekly import workflow runs it after `catalog`, even when the catalog run fails.
 - `commander_spellbook` imports combos, as `GLOSSARY.md` defines them, from the Commander Spellbook variants file. It drops and counts each combo that names a card outside the card catalog or has no Oracle ID. The Weekly import workflow runs it after `oracle_tags`, even when an earlier run fails.
+- `set_sections` reads set sections from Scryfall, as Set sections says. The Weekly import workflow runs it after `catalog`, even when the catalog run fails. The Import workflow gives it 6 hours, because the first run reads every set.
 - `prices` imports current prices from Scryfall Default Cards and recomputes each card's lowest current price. It reads only the USD prices, `usd`, `usd_foil`, and `usd_etched`. A card printing with no USD price has no current price, even when Scryfall has a EUR price. `docs/adr/0005-convert-all-prices-from-usd.md` says why.
 - `exchange_rates` imports the latest exchange rates from Frankfurter, which publishes the European Central Bank's reference rates. mtgscan keeps one row for each currency in Frankfurter's latest rates, and one for USD at a rate of 1. A currency that leaves the latest rates is removed, and a new one is added. Each row holds the currency, the rate from USD, and the ECB date of the rate. Each run replaces the rows. The ECB publishes rates on working days only. A run whose ECB date is not newer than the stored one is skipped. Signed-in users can read `exchange_rates`.
 - `prune-telemetry` deletes search telemetry older than 180 days.

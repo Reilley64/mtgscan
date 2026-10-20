@@ -288,6 +288,8 @@ export async function resetCardCatalog(): Promise<void> {
     () => client.from('import_runs').delete().not('id', 'is', null),
     () => client.from('card_lowest_prices').delete().not('oracle_id', 'is', null),
     () => client.from('card_prices').delete().not('printing_id', 'is', null),
+    () => client.from('set_section_card_printings').delete().not('card_printing_id', 'is', null),
+    () => client.from('set_sections').delete().not('set_code', 'is', null),
     () => client.from('card_printings').delete().not('id', 'is', null),
     () => client.from('card_faces').delete().not('oracle_id', 'is', null),
     () => client.from('cards').delete().not('oracle_id', 'is', null),
