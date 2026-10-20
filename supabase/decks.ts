@@ -137,8 +137,6 @@ const deckBasicLand = z.strictObject({ oracle_id: id.nullable(), name: z.string(
 
 export type DeckBasicLand = z.infer<typeof deckBasicLand>;
 
-export type BasicLandCard = z.infer<typeof basicLandCard>;
-
 const basicLandCardList = z.strictObject({ items: z.array(basicLandCard) });
 
 const deck = z.strictObject({

@@ -1,4 +1,5 @@
-import type { BasicLandCard, DeckBasicLand, DeckCard } from '@mtgscan/supabase/decks';
+import type { BasicLandCard } from '@mtgscan/supabase/collection';
+import type { DeckBasicLand, DeckCard } from '@mtgscan/supabase/decks';
 
 import { colorNames } from '@/decks/deck-labels';
 import { sortChoices, type SortOrder } from '@/lib/sort-order';

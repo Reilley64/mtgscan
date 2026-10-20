@@ -141,7 +141,7 @@ describe('basic lands in the collection', () => {
     ownCollectionTotal({ total: '3.00', currency: 'USD', priced_copies: 3, copies: 3, stale: false, prices_observed_at: null });
     const islandSanctuary = copyRows('Island Sanctuary', 1);
     answerCollectionSearches((query) =>
-      query.text === 'islands' ? { copies: islandSanctuary, basicLands: ['Island', 'Snow-Covered Island'] } : copyRows('Ponder', 3),
+      query.text === 'islands' ? { copies: islandSanctuary, basicLands: ['Island', 'Snow-Covered Island'] } : { copies: copyRows('Ponder', 3) },
     );
     const collection = await openCollection();
 
@@ -160,7 +160,7 @@ describe('basic lands in the collection', () => {
 
   test('with no matching copies, the basic land cards of the reply are the only results', async () => {
     ownCollectionCopies(copyRows('Ponder', 1));
-    answerCollectionSearches((query) => (query.types ? { copies: [], basicLands: ['Snow-Covered Forest'] } : copyRows('Ponder', 1)));
+    answerCollectionSearches((query) => (query.types ? { copies: [], basicLands: ['Snow-Covered Forest'] } : { copies: copyRows('Ponder', 1) }));
     const collection = await openCollection();
 
     await typeInSearchBar('type:snow ');
@@ -173,7 +173,7 @@ describe('basic lands in the collection', () => {
 
   test('a search whose reply has no basic land cards shows none', async () => {
     ownCollectionCopies(copyRows('Ponder', 1));
-    answerCollectionSearches((query) => (query.text ? [] : copyRows('Ponder', 1)));
+    answerCollectionSearches((query) => ({ copies: query.text ? [] : copyRows('Ponder', 1) }));
     const collection = await openCollection();
 
     await typeInSearchBar('island');

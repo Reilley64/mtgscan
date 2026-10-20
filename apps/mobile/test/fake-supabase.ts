@@ -59,7 +59,7 @@ type UserTagRecord = UserTag & { copy_ids: string[] };
 
 type TrainingCropUpload = { copyId: string; crop: Database['public']['Tables']['training_crops']['Row'] };
 
-type CollectionSearchAnswer = CollectionCopyRow[] | { copies: CollectionCopyRow[]; basicLands: string[] } | { refusedField: string };
+type CollectionSearchAnswer = { copies: CollectionCopyRow[]; basicLands?: string[] } | { refusedField: string };
 
 const defaultEmail = 'player@example.com';
 const rulesDataAt = '2026-10-12T06:00:00.000Z';
@@ -558,7 +558,7 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     if ('refusedField' in answer) {
       return new Refused('invalid_argument', `${answer.refusedField} is not known.`, answer.refusedField);
     }
-    const { copies, basicLands } = Array.isArray(answer) ? { copies: answer, basicLands: [] } : answer;
+    const { copies, basicLands = [] } = answer;
     const page = generationPage(copies, cursor, limit);
     if (page instanceof Refused) {
       return page;

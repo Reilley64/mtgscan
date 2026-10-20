@@ -896,7 +896,7 @@ describe('collection search', () => {
 
   test('Cancel clears the text and the chips and shows the whole binder again', async () => {
     ownCollectionCopies([...collectionEntryCopies('Angelic Curator', 1), ...collectionEntryCopies('Sol Ring', 1)]);
-    answerCollectionSearches((query) => (query.text ? [] : collectionEntryCopies('Angelic Curator', 1)));
+    answerCollectionSearches((query) => ({ copies: query.text ? [] : collectionEntryCopies('Angelic Curator', 1) }));
     const collection = await openCollection();
     await typeInSearchBar('set:mh2 ring');
 
@@ -911,7 +911,7 @@ describe('collection search', () => {
     ownCollectionCopies(collectionEntryCopies('Ponder', 27));
     ownCollectionTotal({ total: '27.00', currency: 'USD', priced_copies: 27, copies: 27, stale: false, prices_observed_at: null });
     const curators = collectionEntryCopies('Angelic Curator', 6);
-    answerCollectionSearches((query) => (query.text === 'curator' ? curators : collectionEntryCopies('Ponder', 27)));
+    answerCollectionSearches((query) => ({ copies: query.text === 'curator' ? curators : collectionEntryCopies('Ponder', 27) }));
     const collection = await openCollection();
     expect(collection.queryByText(/ of 27 copies$/)).not.toBeOnTheScreen();
 
@@ -924,7 +924,9 @@ describe('collection search', () => {
 
   test('a new search shows the skeleton grid in place of the tiles until its results arrive', async () => {
     ownCollectionCopies(collectionEntryCopies('Ponder', 3));
-    answerCollectionSearches((query) => (query.text === 'curator' ? collectionEntryCopies('Angelic Curator', 2) : collectionEntryCopies('Ponder', 3)));
+    answerCollectionSearches((query) => ({
+      copies: query.text === 'curator' ? collectionEntryCopies('Angelic Curator', 2) : collectionEntryCopies('Ponder', 3),
+    }));
     const collection = await openCollection();
     const reads = hold('search_collection');
 
@@ -941,7 +943,7 @@ describe('collection search', () => {
 
   test('a search with no results shows No cards found, with no action', async () => {
     ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
-    answerCollectionSearches((query) => (query.text ? [] : collectionEntryCopies('Angelic Curator', 1)));
+    answerCollectionSearches((query) => ({ copies: query.text ? [] : collectionEntryCopies('Angelic Curator', 1) }));
     const collection = await openCollection();
 
     await typeInSearchBar('dragon');
@@ -1040,7 +1042,7 @@ describe('collection search', () => {
   ])('a %s chip that the server refuses turns danger, and the grid shows its message', async (typed, field, message) => {
     ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
     answerCollectionSearches((query) =>
-      query.sets || query.tags || query.user_tags ? { refusedField: field } : collectionEntryCopies('Angelic Curator', 1),
+      query.sets || query.tags || query.user_tags ? { refusedField: field } : { copies: collectionEntryCopies('Angelic Curator', 1) },
     );
     const collection = await openCollection();
 
@@ -1177,7 +1179,7 @@ describe('the sort button', () => {
   });
 
   test('the sort button hides when a search finds no copies, and comes back when the search is cleared', async () => {
-    answerCollectionSearches((query) => (query.text ? [] : collectionEntryCopies('Angelic Curator', 1)));
+    answerCollectionSearches((query) => ({ copies: query.text ? [] : collectionEntryCopies('Angelic Curator', 1) }));
     const collection = await openCollection();
 
     await typeInSearchBar('dragon');

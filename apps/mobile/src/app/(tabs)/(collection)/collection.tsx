@@ -1,5 +1,4 @@
-import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
-import type { BasicLandCard } from '@mtgscan/supabase/decks';
+import type { BasicLandCard, CollectionCopyRow } from '@mtgscan/supabase/collection';
 import { convertedPrice } from '@mtgscan/supabase/converted-prices';
 import { router, usePathname } from 'expo-router';
 import { useState } from 'react';

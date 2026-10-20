@@ -268,7 +268,7 @@ A search of the card catalog that returns cards. It is separate from collection 
 _Avoid_: Card lookup
 
 **Collection search**:
-A search of the user's copies. It also returns the basic land cards that match its text and chips, by the same rules as for copies. A chip that only a copy has, such as finish, deck, or price, matches no basic land card. It is separate from catalog search.
+A search of the user's copies. It also returns the basic land cards that match its text and chips, by the same rules as for copies. A chip of a card printing or a copy, such as set, finish, deck, or price, matches no basic land card. It is separate from catalog search.
 _Avoid_: Inventory search
 
 **Chip**:

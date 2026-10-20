@@ -11,7 +11,7 @@ import {
 } from '../collection';
 import { addDeckCard, createDeck, listBasicLandCards } from '../decks';
 import { getCards, listCardPrintings, searchCatalog } from '../search';
-import { catalogFixture, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
+import { catalogFixture, resetCardCatalog, runCatalogImport, runOracleTagImport, runPriceImport } from './catalog-import-command';
 import { collectionCopies, collectionEntries } from './collection-pages';
 import { collectionEntryKey, seedCopies, seededCollectionEntryKey, type SeededCopies } from './copy-seeds';
 import { call, failed, refused, replyOf } from './database-calls';
@@ -609,6 +609,7 @@ describe('after a catalog import', () => {
       await seedCopies(dave, [entry(printings.angelicCuratorMh2, { quantity: 2 })]);
       await replyOf(dave.client, createUserTag, { name: 'Signed' });
       daveDeck = (await replyOf(dave.client, createDeck, { name: 'Atraxa' })).deck_id;
+      expect((await runOracleTagImport(await catalogFixture({}))).exitCode).toBe(0);
     });
 
     test('a query with no text and no chips returns every basic land card of list_basic_land_cards, in order', async () => {
@@ -670,11 +671,16 @@ describe('after a catalog import', () => {
       ['a mana value bound that fits', { mana_value_max: 0 }, everyBasicLand],
       ['a mana value bound that does not fit', { mana_value_min: 1 }, []],
       ['a power bound', { power_min: 0 }, []],
-      ['a set chip', { sets: ['khm'] }, snowCoveredBasicLands.slice(0, 5)],
-      ['a negated set chip', { sets_exclude: ['khm'] }, [...regularBasicLands, 'Snow-Covered Wastes']],
-      ['a rarity chip', { rarities: ['uncommon'] }, ['Snow-Covered Wastes']],
-      ['a negated rarity chip', { rarities_exclude: ['uncommon'] }, everyBasicLand.slice(0, 11)],
+      ['an upper power bound', { power_max: 5 }, []],
+      ['a lower toughness bound', { toughness_min: 0 }, []],
+      ['an upper toughness bound', { toughness_max: 5 }, []],
+      ['a keyword chip', { keywords: ['flying'] }, []],
+      ['a negated keyword chip', { keywords_exclude: ['flying'] }, everyBasicLand],
+      ['an Oracle tag chip', { tags: ['ramp'] }, []],
+      ['a negated Oracle tag chip', { tags_exclude: ['ramp'] }, everyBasicLand],
       ['the commander chip', { is_commander: true }, []],
+      ['the negated commander chip', { is_commander: false }, everyBasicLand],
+      ['the Game Changer chip', { is_game_changer: true }, []],
       ['the negated Game Changer chip', { is_game_changer: false }, everyBasicLand],
       ['search text with a card chip', { text: 'island', types: ['snow'] }, ['Snow-Covered Island']],
     ])('%s matches basic land cards as it matches copies', async (_, query, expected) => {
@@ -702,6 +708,15 @@ describe('after a catalog import', () => {
       ['an upper price bound', () => ({ price_max: '100' })],
     ])('%s, which only a copy has, hides every basic land card', async (_, query) => {
       expect(await basicLandNames({ text: 'island', ...query() })).toEqual([]);
+    });
+
+    test.each<[string, CollectionQuery]>([
+      ['a set chip', { sets: ['khm'] }],
+      ['a negated set chip', { sets_exclude: ['khm'] }],
+      ['a rarity chip', { rarities: ['common'] }],
+      ['a negated rarity chip', { rarities_exclude: ['uncommon'] }],
+    ])('%s, which matches the card printing of a copy, hides every basic land card', async (_, query) => {
+      expect(await basicLandNames({ text: 'island', ...query })).toEqual([]);
     });
   });
 

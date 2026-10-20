@@ -25,7 +25,8 @@ export type Tool = Pick<ListedTool, 'name' | 'inputSchema' | 'outputSchema'> & {
 
 type ToolDefinition<Reply extends z.ZodType> = Omit<Tool, 'inputSchema' | 'outputSchema' | 'call' | 'contract'> & {
   contract: AiClientFunction<Reply>;
-  leftOut?: Record<string, string[] | true>;
+  leftOut?: Record<string, string[]>;
+  leftOutFields?: string[];
   summary: (reply: z.output<Reply>) => string;
 };
 
@@ -75,23 +76,16 @@ function shown(schema: z.core.$ZodType, isLeftOut: (key: string) => boolean): z.
   return schema;
 }
 
-function outputOf(reply: z.core.$ZodType, leftOut: Record<string, string[] | true>): z.ZodObject {
+function outputOf(reply: z.core.$ZodType, leftOut: Record<string, string[]>, leftOutFields: string[]): z.ZodObject {
   const output = shown(reply, isImageField) as z.ZodObject;
-  return z.object(
-    Object.fromEntries(
-      Object.entries(output.shape).flatMap(([field, schema]) => {
-        const keys = leftOut[field];
-        if (keys === true) {
-          return [];
-        }
-        return [[field, keys ? shown(schema, (key) => keys.includes(key)) : schema]];
-      }),
-    ),
+  const kept = Object.entries(output.shape).filter(([field]) => !leftOutFields.includes(field));
+  return z.object(Object.fromEntries(kept)).extend(
+    Object.fromEntries(Object.entries(leftOut).map(([field, keys]) => [field, shown(output.shape[field]!, (key) => keys.includes(key))])),
   );
 }
 
-function defineTool<Reply extends z.ZodType>({ leftOut = {}, summary, ...tool }: ToolDefinition<Reply>): Tool {
-  const output = outputOf(tool.contract.reply, leftOut);
+function defineTool<Reply extends z.ZodType>({ leftOut = {}, leftOutFields = [], summary, ...tool }: ToolDefinition<Reply>): Tool {
+  const output = outputOf(tool.contract.reply, leftOut, leftOutFields);
   return {
     ...tool,
     inputSchema: jsonSchemaOf(tool.input),
@@ -214,7 +208,7 @@ export const tools = [
     ].join(' '),
     annotations: readOnly,
     contract: databaseFunctions.search_collection,
-    leftOut: { basic_lands: true },
+    leftOutFields: ['basic_lands'],
     input: databaseFunctions.search_collection.request.extend({
       ...describedCatalogFilters,
       sort: collectionFilters.sort.describe('The default is relevance with text and added without it.'),

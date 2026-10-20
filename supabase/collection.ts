@@ -64,6 +64,8 @@ export const copyRowDeck = z.strictObject({ deck_id: id, name: z.string() });
 
 export const basicLandCard = z.strictObject({ oracle_id: id, name: z.string(), image_uris: z.array(z.string()) });
 
+export type BasicLandCard = z.infer<typeof basicLandCard>;
+
 export const collectionCopyRow = z.strictObject({
   copy_id: id,
   printing_id: id,
