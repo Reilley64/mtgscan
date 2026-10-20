@@ -23,8 +23,10 @@ export type CardGridListProps<Item> = Omit<
 };
 
 export function CardGridList<Item>({ isTile, header = 'full-row', renderItem, contentContainerClassName, ...listProps }: CardGridListProps<Item>) {
+  const { height } = useWindowDimensions();
   return (
     <FlashList
+      drawDistance={height * 2}
       {...listProps}
       numColumns={cardsPerRow}
       overrideItemLayout={(layout, item, _index, maxColumns) => {
