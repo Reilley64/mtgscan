@@ -1,3 +1,4 @@
+import CoreML
 import CryptoKit
 import Foundation
 
@@ -7,6 +8,7 @@ public struct GalleryManifest: Codable, Sendable {
   public struct Part: Codable, Sendable {
     public static let gallery = "gallery"
     public static let printingList = "printing_list"
+    public static let model = "model"
 
     public let name: String
     public let kind: String
@@ -137,6 +139,16 @@ public enum GalleryInstaller {
       guard streamRow == slots.count else {
         throw Failure.unsupportedManifest("the gallery parts have \(streamRow) rows, the printing lists have \(slots.count)")
       }
+      if let part = ordered.first(where: { $0.kind == GalleryManifest.Part.model }) {
+        try installModel(part, of: manifest, from: directory, into: staging)
+      } else if installed != nil {
+        try FileManager.default.copyItem(
+          at: destination.appendingPathComponent(GalleryFile.compiledModel),
+          to: staging.appendingPathComponent(GalleryFile.compiledModel)
+        )
+      } else {
+        throw Failure.unsupportedManifest("the gallery version has no model part")
+      }
       try JSONSerialization.data(withJSONObject: rows, options: [.sortedKeys, .withoutEscapingSlashes])
         .write(to: staging.appendingPathComponent(GalleryFile.printingList))
       let header = GalleryHeader(
@@ -163,6 +175,19 @@ public enum GalleryInstaller {
     }
   }
 
+  static func installModel(_ part: GalleryManifest.Part, of manifest: GalleryManifest, from directory: URL, into staging: URL) throws {
+    let package = staging.appendingPathComponent(GalleryFile.modelPackage)
+    do {
+      try ModelPackage.unpack(verifiedPart(part, in: directory), into: staging)
+    } catch ModelPackage.Failure.malformedArchive {
+      throw Failure.malformedPart(part.name)
+    }
+    guard (try? ModelPackage.sha256(of: package)) == manifest.model.sha256 else { throw Failure.partMismatch(part.name) }
+    let compiled = try MLModel.compileModel(at: package)
+    try FileManager.default.moveItem(at: compiled, to: staging.appendingPathComponent(GalleryFile.compiledModel))
+    try FileManager.default.removeItem(at: package)
+  }
+
   static func installedParts(for manifest: GalleryManifest, in destination: URL) -> GalleryManifest? {
     guard let installed = try? Self.manifest(in: destination),
           let header = try? JSONDecoder().decode(
@@ -185,7 +210,7 @@ public enum GalleryInstaller {
   }
 
   static func sha256(of data: Data) -> String {
-    SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    ModelPackage.hex(SHA256.hash(data: data))
   }
 
   static func inflated(_ compressed: Data, rawBytes: Int, name: String) throws -> Data {

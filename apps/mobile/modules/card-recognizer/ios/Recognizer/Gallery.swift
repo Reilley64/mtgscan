@@ -1,4 +1,5 @@
 import Accelerate
+import CoreGraphics
 import Foundation
 
 public struct GalleryPrinting: Codable, Sendable {
@@ -36,12 +37,24 @@ public struct FeaturePrintModel: Codable, Sendable, Equatable {
   public struct InputSize: Codable, Sendable, Equatable {
     public let width: Int
     public let height: Int
+
+    public init(width: Int, height: Int) {
+      self.width = width
+      self.height = height
+    }
   }
 
   public let name: String
-  public let sha256: String?
+  public let sha256: String
   public let inputSize: InputSize
   public let vectorSize: Int
+
+  public init(name: String, sha256: String, inputSize: InputSize, vectorSize: Int) {
+    self.name = name
+    self.sha256 = sha256
+    self.inputSize = inputSize
+    self.vectorSize = vectorSize
+  }
 }
 
 public struct RecognizerThresholds: Codable, Sendable, Equatable {
@@ -75,23 +88,14 @@ public struct GalleryHeader: Codable, Sendable {
     self.encoding = encoding
     self.version = version
   }
-
-  /// A gallery version installed before gallery format 2 has no model or thresholds. Vision made its feature prints.
-  public init(from decoder: Decoder) throws {
-    let container = try decoder.container(keyedBy: CodingKeys.self)
-    count = try container.decode(Int.self, forKey: .count)
-    model = try container.decodeIfPresent(FeaturePrintModel.self, forKey: .model) ?? FeaturePrint.model
-    thresholds = try container.decodeIfPresent(RecognizerThresholds.self, forKey: .thresholds) ?? FeaturePrint.thresholds
-    createdAt = try container.decode(String.self, forKey: .createdAt)
-    encoding = try container.decodeIfPresent(String.self, forKey: .encoding)
-    version = try container.decodeIfPresent(String.self, forKey: .version)
-  }
 }
 
 public enum GalleryFile {
   public static let printingList = "catalog.json"
   public static let header = "gallery.json"
   public static let float16Vectors = "gallery.f16"
+  public static let modelPackage = "model.mlpackage"
+  public static let compiledModel = "model.mlmodelc"
 }
 
 public final class Gallery: Sendable {
@@ -104,6 +108,7 @@ public final class Gallery: Sendable {
   public let dimension: Int
   public let printingsByIllustration: [String: [Int]]
   public let setCodes: Set<String>
+  private let compiledModel: CompiledModel
   private let vectors: Data
   private let indexBySetAndNumber: [String: Int]
   private let indexById: [String: Int]
@@ -140,6 +145,7 @@ public final class Gallery: Sendable {
       throw Failure.mismatch("\(GalleryFile.float16Vectors) has \(raw.count) bytes")
     }
     vectors = raw
+    compiledModel = try CompiledModel(compiledAt: directory.appendingPathComponent(GalleryFile.compiledModel))
     var bySetAndNumber: [String: Int] = [:]
     var byIllustration: [String: [Int]] = [:]
     for (index, printing) in printings.enumerated() {
@@ -169,6 +175,14 @@ public final class Gallery: Sendable {
 
   public func index(id: String) -> Int? {
     indexById[id]
+  }
+
+  public func featurePrint(of card: CGImage) throws -> [Float] {
+    try compiledModel.featurePrint(of: card, inputSize: model.inputSize)
+  }
+
+  public func featurePrint(ofCardAt url: URL) throws -> [Float] {
+    try compiledModel.featurePrint(ofCardAt: url, inputSize: model.inputSize)
   }
 
   public func vector(at row: Int) -> [Float] {

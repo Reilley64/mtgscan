@@ -12,7 +12,6 @@ public struct GalleryParity: Codable, Sendable {
   public enum Failure: Error {
     case noImageURL
     case imageDownload(Int)
-    case unreadableImage
   }
 
   static func referenceRows(rowCount: Int) -> [Int] {
@@ -46,7 +45,7 @@ public struct GalleryParity: Codable, Sendable {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("parity-\(UUID().uuidString)")
         try await referenceImage(printing).write(to: file)
         defer { try? FileManager.default.removeItem(at: file) }
-        guard let phone = FeaturePrint.vector(ofCardAt: file) else { throw Failure.unreadableImage }
+        let phone = try gallery.featurePrint(ofCardAt: file)
         cosines.append(Double(zip(phone, gallery.vector(at: row)).reduce(0) { $0 + $1.0 * $1.1 }))
       } catch {
         failures.append("\(printing.id): \(error)")

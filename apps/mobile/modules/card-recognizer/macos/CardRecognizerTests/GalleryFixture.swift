@@ -1,25 +1,37 @@
 @testable import CardRecognizer
 import CoreGraphics
+import CoreML
 import Foundation
 import Testing
+
+let fixturePackage = Bundle.module.url(forResource: "fixture-model", withExtension: "mlpackage")!
+let compiledFixtureModel = try! MLModel.compileModel(at: fixturePackage)
+let fixtureCompiledModel = try! CompiledModel(compiledAt: compiledFixtureModel)
+let fixtureModel = FeaturePrintModel(
+  name: "fixture-model",
+  sha256: try! ModelPackage.sha256(of: fixturePackage),
+  inputSize: fixtureCompiledModel.inputSize,
+  vectorSize: fixtureCompiledModel.vectorSize
+)
+let fixtureThresholds = RecognizerThresholds(notACard: 0.689, orientationMargin: 0.03, artMargin: 0.025)
 
 func fixtureGallery(
   printings: [[String: Any]],
   vectors: [Float16],
   version: String? = nil,
-  thresholds: RecognizerThresholds = FeaturePrint.thresholds,
-  vectorSize: Int = FeaturePrint.dimension
+  thresholds: RecognizerThresholds = fixtureThresholds,
+  inputSize: FeaturePrintModel.InputSize = fixtureModel.inputSize,
+  vectorSize: Int = fixtureModel.vectorSize
 ) throws -> Gallery {
   let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
   try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
   try JSONSerialization.data(withJSONObject: printings).write(to: directory.appendingPathComponent(GalleryFile.printingList))
-  let model = FeaturePrintModel(
-    name: FeaturePrint.model.name, sha256: nil, inputSize: FeaturePrint.model.inputSize, vectorSize: vectorSize
-  )
+  let model = FeaturePrintModel(name: fixtureModel.name, sha256: fixtureModel.sha256, inputSize: inputSize, vectorSize: vectorSize)
   try JSONEncoder().encode(
     GalleryHeader(count: printings.count, model: model, thresholds: thresholds, createdAt: "", encoding: nil, version: version)
   ).write(to: directory.appendingPathComponent(GalleryFile.header))
   try vectors.withUnsafeBufferPointer { Data(buffer: $0) }.write(to: directory.appendingPathComponent(GalleryFile.float16Vectors))
+  try FileManager.default.copyItem(at: compiledFixtureModel, to: directory.appendingPathComponent(GalleryFile.compiledModel))
   return try Gallery(directory: directory)
 }
 
@@ -43,5 +55,6 @@ func card(seed: Int) throws -> CGImage {
 }
 
 func featurePrint(of image: CGImage) throws -> [Float16] {
-  try FeaturePrint.vector(of: #require(FeaturePrint.input(of: image))).map { Float16($0) }
+  try fixtureCompiledModel.featurePrint(of: #require(CardRecognizer.small(image)), inputSize: fixtureModel.inputSize)
+    .map { Float16($0) }
 }

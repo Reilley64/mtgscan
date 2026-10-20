@@ -56,8 +56,9 @@ class Fixture(torch.nn.Module):
         self.register_buffer("projection", torch.randn(3 * FIXTURE_GRID**2, vector_size, generator=generator))
 
     def forward(self, pixels):
-        cells = self.pool(pixels).flatten(1)
-        return cells @ self.projection / cells.mean(1, keepdim=True)
+        grid = self.pool(pixels)
+        middle = grid[:, :, 2:-2, 2:-2].mean()
+        return (grid.flatten(1) * middle) @ self.projection / middle
 
 
 def package_sha256(package):

@@ -47,8 +47,6 @@ public final class CardRecognizerModule: Module {
 
     Events("onGalleryDownload")
 
-    Constant("featurePrintRevision") { FeaturePrint.revision }
-
     Constant("recognizerVersion") { Self.recognizerVersion }
 
     OnCreate {
