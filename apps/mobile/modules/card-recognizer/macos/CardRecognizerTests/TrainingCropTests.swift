@@ -3,6 +3,7 @@ import CoreGraphics
 import Foundation
 import ImageIO
 import Testing
+import UniformTypeIdentifiers
 
 private func card(seed: Int) throws -> CGImage {
   let width = CardRecognizer.readWidth
@@ -43,7 +44,7 @@ private func cardRecognition(_ recognition: Recognition) throws -> CardRecogniti
   return try #require(card, "expected a card recognition")
 }
 
-private func jpegSize(at uri: String?) throws -> (type: String, width: Int, height: Int) {
+private func imageSize(at uri: String?) throws -> (type: String, width: Int, height: Int) {
   let url = try #require(uri.flatMap(URL.init(string:)))
   let source = try #require(CGImageSourceCreateWithURL(url as CFURL, nil))
   let image = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
@@ -52,7 +53,7 @@ private func jpegSize(at uri: String?) throws -> (type: String, width: Int, heig
 
 private let otherArt = [Float16](repeating: 0, count: FeaturePrint.dimension)
 
-@Test("an accepted card recognition writes the straightened card as a 488 x 680 JPEG training crop")
+@Test("an accepted card recognition writes the straightened card as a 488 x 680 WebP training crop")
 func anAcceptedCardRecognitionWritesATrainingCrop() throws {
   let photo = try card(seed: 1)
   let gallery = try fixtureGallery(
@@ -62,14 +63,14 @@ func anAcceptedCardRecognitionWritesATrainingCrop() throws {
   let directory = emptyDirectory()
   let recognition = try cardRecognition(CardRecognizer.recognize(card: photo, gallery: gallery, trainingCropDirectory: directory))
   #expect(recognition.decision.accepted)
-  let crop = try jpegSize(at: recognition.trainingCrop)
-  #expect(crop.type == "public.jpeg")
+  let crop = try imageSize(at: recognition.trainingCrop)
+  #expect(crop.type == UTType.webP.identifier)
   #expect(crop.width == 488)
   #expect(crop.height == 680)
   #expect(URL(string: recognition.trainingCrop!)?.deletingLastPathComponent().standardizedFileURL == directory.standardizedFileURL)
 }
 
-@Test("an abstained card recognition writes a 488 x 680 JPEG training crop")
+@Test("an abstained card recognition writes a 488 x 680 WebP training crop")
 func anAbstainedCardRecognitionWritesATrainingCrop() throws {
   let photo = try card(seed: 2)
   let vector = try featurePrint(of: photo)
@@ -79,8 +80,8 @@ func anAbstainedCardRecognitionWritesATrainingCrop() throws {
   )
   let recognition = try cardRecognition(CardRecognizer.recognize(card: photo, gallery: gallery, trainingCropDirectory: emptyDirectory()))
   #expect(!recognition.decision.accepted)
-  let crop = try jpegSize(at: recognition.trainingCrop)
-  #expect(crop.type == "public.jpeg")
+  let crop = try imageSize(at: recognition.trainingCrop)
+  #expect(crop.type == UTType.webP.identifier)
   #expect(crop.width == 488)
   #expect(crop.height == 680)
 }
