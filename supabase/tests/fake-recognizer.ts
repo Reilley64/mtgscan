@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { createHash } from 'node:crypto';
+import { join } from 'node:path';
 
 const dimension = 768;
 const [command, ...args] = Bun.argv.slice(2);
@@ -17,6 +18,8 @@ if (command === 'about') {
   }
   await Bun.write(args[1]!, codes);
   console.log(JSON.stringify({ featurePrints: images.length }));
+} else if (command === 'install' && args.length === 2) {
+  await Bun.write(join(args[1]!, 'manifest.json'), Bun.file(join(args[0]!, 'manifest.json')));
 } else {
   process.exit(1);
 }

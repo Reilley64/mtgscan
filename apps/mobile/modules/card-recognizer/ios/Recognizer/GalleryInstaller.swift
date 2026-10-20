@@ -1,4 +1,3 @@
-import Compression
 import CryptoKit
 import Foundation
 
@@ -184,22 +183,10 @@ public enum GalleryInstaller {
   }
 
   static func inflated(_ compressed: Data, rawBytes: Int, name: String) throws -> Data {
-    let headerBytes = 2
-    let trailerBytes = 4
-    guard compressed.count > headerBytes + trailerBytes, compressed[compressed.startIndex] & 0x0F == 8 else {
-      throw Failure.malformedPart(name)
-    }
-    var output = Data(count: rawBytes + 1)
-    let written = output.withUnsafeMutableBytes { target in
-      compressed.withUnsafeBytes { source in
-        compression_decode_buffer(
-          target.bindMemory(to: UInt8.self).baseAddress!, rawBytes + 1,
-          source.bindMemory(to: UInt8.self).baseAddress! + headerBytes, compressed.count - headerBytes - trailerBytes,
-          nil, COMPRESSION_ZLIB
-        )
-      }
-    }
-    guard written == rawBytes else { throw Failure.malformedPart(name) }
-    return output.prefix(rawBytes)
+    guard compressed.count > 6, compressed[compressed.startIndex] & 0x0F == 8,
+          let raw = try? (compressed.dropFirst(2).dropLast(4) as NSData).decompressed(using: .zlib) as Data,
+          raw.count == rawBytes
+    else { throw Failure.malformedPart(name) }
+    return raw
   }
 }

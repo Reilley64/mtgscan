@@ -213,6 +213,5 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
     console.log(line);
   }
   console.log(`Timings: ${timings.join(', ')}.`);
-  console.log(`Next: run the parity check on the iPhone, record it with \`bun run gallery parity ${version} --lowest-cosine <n> --mean-cosine <n> --references <n>\`, then \`bun run gallery publish ${version}\`.`);
   return manifest;
 }

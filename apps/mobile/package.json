@@ -15,7 +15,6 @@
     "scan-sounds": "bun scripts/generate-scan-sounds.mjs",
     "recognizer:test": "swift test --package-path modules/card-recognizer --scratch-path modules/card-recognizer/.data/build",
     "recognizer:replay": "bun modules/card-recognizer/scripts/replay.mjs",
-    "recognizer:gallery": "bun modules/card-recognizer/scripts/build-gallery.mjs",
     "bin-deck:score": "bun test/scanner-evidence/score-bin-deck.ts"
   },
   "dependencies": {
