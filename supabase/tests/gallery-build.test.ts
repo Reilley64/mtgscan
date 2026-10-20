@@ -11,6 +11,7 @@ import {
   resetCardCatalog,
   runCatalogImport,
   runGalleryCommand,
+  runGalleryCommandWith,
   type ScryfallRecord,
   withoutCards,
 } from './catalog-import-command';
@@ -39,6 +40,7 @@ const bucket = importKeyClient.storage.from('gallery');
 const lightningBolt = 'Lightning Bolt';
 const blackLotus = 'Black Lotus';
 const firstBuildRows = 388;
+const unreachableLocalStack = 'http://127.0.0.1:9';
 
 let alice: TestUser;
 let images: ReturnType<typeof Bun.serve>;
@@ -157,10 +159,13 @@ describe('the first gallery build', () => {
     expect(await recordedVersions()).toEqual([{ version, published_at: null }]);
   });
 
-  test('installs from the work folder for the scanner evidence replay', async () => {
+  test('installs from the work folder for the scanner evidence replay, without Storage', async () => {
     const galleryDirectory = await mkdtemp(join(tmpdir(), 'mtgscan-replay-gallery-'));
 
-    const installed = await runGalleryCommand('install', version, '--work', workDirectory, '--gallery', galleryDirectory);
+    const installed = await runGalleryCommandWith(
+      { SUPABASE_URL: unreachableLocalStack },
+      'install', version, '--work', workDirectory, '--gallery', galleryDirectory,
+    );
 
     expect(installed.exitCode).toBe(0);
     expect(installed.output).toContain(`Installed gallery version ${version} in ${galleryDirectory}.`);
@@ -297,5 +302,34 @@ describe('the next gallery builds', () => {
 
     expect((await recordedVersions()).map((row) => row.version).sort()).toEqual([first.version, newBase.version].sort());
     expect(await storedFolders()).toEqual([first.version, newBase.version].sort());
+  });
+});
+
+describe('the hosted project', () => {
+  test('without --hosted, a gallery build refuses a Supabase URL that is not the local stack', async () => {
+    const before = await recordedVersions();
+
+    const refused = await runGalleryCommandWith(
+      { SUPABASE_URL: 'https://not-a-project.supabase.co' },
+      'build', '--manifest', await galleryFixture(), '--images', imagesDirectory, '--work', workDirectory,
+    );
+
+    expect(refused.exitCode).toBe(2);
+    expect(refused.output).toContain('Add --hosted for the hosted project.');
+    expect(await recordedVersions()).toEqual(before);
+  });
+
+  test('without --hosted, a project ref does not move a gallery command to the hosted project', async () => {
+    const status = await runGalleryCommandWith({ SUPABASE_URL: '', SUPABASE_PROJECT_REF: 'not-a-project' }, 'status');
+
+    expect(status.exitCode).toBe(0);
+    expect(status.output).toContain('Storage for all recorded versions');
+  });
+
+  test('with --hosted, a gallery build refuses the local stack', async () => {
+    const refused = await runGalleryCommand('build', '--hosted', '--manifest', await galleryFixture(), '--images', imagesDirectory, '--work', workDirectory);
+
+    expect(refused.exitCode).toBe(2);
+    expect(refused.output).toContain('With --hosted, the local stack');
   });
 });

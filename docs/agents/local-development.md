@@ -92,14 +92,14 @@ If Xcode cannot turn on Sign in with Apple for the new App ID, the owner turns i
 ## Scanner evidence replay
 
 - Set `DEVELOPER_DIR` as for the Simulator before `bun run recognizer:test`. The Swift tests need Xcode.
-- The recorded gallery of the scanner evidence pack is gallery version `20261012-cf1753`. Install it once with `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753` in `supabase`. Set `RECOGNIZER_GALLERY_DIR` to `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`.
-- To build a gallery for the replay from the current Scryfall data, run `gallery build` and `gallery install` against the worktree's local stack, as `apps/mobile/test/scanner-evidence/README.md` (Gallery) says. Never load `.env.hosted` for it. Pass `--images` and `--work` with temporary folders when the local card catalog is not the full catalog, such as the fixture catalog, so that the build does not replace the feature print cache in `~/Library/Caches/mtgscan/gallery`.
+- The recorded gallery of the scanner evidence pack is gallery version `20261012-cf1753`. Install it once with `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753 --hosted` in `supabase`. Set `RECOGNIZER_GALLERY_DIR` to `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`.
+- To build a gallery for the replay from the current Scryfall data, run the commands in `apps/mobile/test/scanner-evidence/README.md` (Gallery, Build a gallery) against the worktree's local stack.
 - The 3,000 Scryfall `large` images for the simulated scans are in the ignored data of another worktree: `/Users/reilley/.herdr/worktrees/mtgscan/worktree-brave-harbor-93a0/prototypes/catalog-recognizer/.data/large`. Read them only. Set `RECOGNIZER_LARGE_IMAGES_DIR` to that folder. Copy it somewhere else before that worktree is removed.
 
 ## Gallery on a development build
 
 - `README.md` (Gallery download) says how a development build installs a gallery version that is not published. Put `EXPO_PUBLIC_DEVELOPMENT_GALLERY` only in `apps/mobile/.env.development.local`. Its signed URLs open that gallery version to anyone who has them until they expire. Only development builds read it, but every `EXPO_PUBLIC_` value goes into the bundle, so never set it for an EAS build.
-- On the Simulator, serve the parts from the Mac instead of hosted Storage, so that a test download spends no hosted egress. `bun gallery/main.ts install` keeps the parts of a gallery version in `~/Library/Caches/mtgscan/gallery/versions/<version>`.
+- On the Simulator, serve the parts from the Mac instead of hosted Storage, so that a test download spends no hosted egress. `bun --env-file=.env.hosted gallery/main.ts install <version> --hosted` keeps the parts of a gallery version in `~/Library/Caches/mtgscan/gallery/versions/<version>`.
 
 ## Recognizer replay
 
@@ -107,15 +107,15 @@ CI does not replay the scanner evidence pack. Before merging a change to the rec
 
 ## Gallery build
 
-- The gallery build runs only on the owner's Mac, with the owner present. `README.md` (Gallery build and publish) describes the commands.
-- The hosted credentials for owner commands live only in `supabase/.env.hosted`: `SUPABASE_PROJECT_REF` and `SUPABASE_SECRET_KEY`. The commands build the hosted URL, `https://<ref>.supabase.co`, from the project ref. Git ignores the file, and Bun does not load it by itself. Load it for one command with `bun --env-file=.env.hosted`. Never put the hosted credentials in an `.env` file that Bun loads by itself, such as `supabase/.env` or `.env.local`. Never read or print the file:
+- The hosted gallery build runs only on the owner's Mac, with the owner present. `README.md` (Gallery build and publish) describes the commands.
+- The hosted credentials for owner commands live only in `supabase/.env.hosted`: `SUPABASE_PROJECT_REF` and `SUPABASE_SECRET_KEY`. The commands build the hosted URL, `https://<ref>.supabase.co`, from the project ref. Git ignores the file, and Bun does not load it by itself. Load it for one command with `bun --env-file=.env.hosted`, and pass `--hosted`. Without `--hosted`, the gallery commands refuse every URL except the local stack. Never put the hosted credentials in an `.env` file that Bun loads by itself, such as `supabase/.env` or `.env.local`. Never read or print the file:
 
   ```bash
   cd supabase
-  bun --env-file=.env.hosted gallery/main.ts build
+  bun --env-file=.env.hosted gallery/main.ts build --hosted
   ```
 
-- The image cache is `~/Library/Caches/mtgscan/scryfall-images`, outside every worktree. The work folder with the feature prints and the built gallery versions is `~/Library/Caches/mtgscan/gallery`. macOS can clear `~/Library/Caches` when the disk is full. The build then downloads the missing images and parts again and computes the feature prints again.
+- The image cache is `~/Library/Caches/mtgscan/scryfall-images`, outside every worktree. The work folder of a hosted build, with the feature prints and the built gallery versions, is `~/Library/Caches/mtgscan/gallery`. A local build uses `~/Library/Caches/mtgscan/local-gallery`. macOS can clear `~/Library/Caches` when the disk is full. The build then downloads the missing images and parts again and computes the feature prints again.
 - The first build reuses the images of the prototype. Copy them once. `cp -c` clones the files on APFS, so the copy is fast and uses no more disk space:
 
   ```bash

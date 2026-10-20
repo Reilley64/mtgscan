@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util';
 
 import { importClientFromEnvironment } from '../import/import-client';
 import { scryfallManifestUrl } from '../import/scryfall-bulk-data';
+import { hostedSupabaseUrl, isLocalStack, localSupabaseUrl } from '../test-user/account';
 import { buildGallery } from './build';
 import { galleryStatus, installGallery, publishGallery, recordParityCheck, signVersion } from './publish';
 import { macRecognizer } from './recognizer';
@@ -12,20 +13,21 @@ import { GalleryRefused } from './storage';
 const cacheDirectory = join(homedir(), 'Library', 'Caches', 'mtgscan');
 
 const usage = `Usage:
-  bun gallery/main.ts build [--manifest <path or URL>] [--images <dir>] [--work <dir>] [--new-base] [--cached-images-bulk-file <default-cards.jsonl.gz>]
-  bun gallery/main.ts parity <version> --lowest-cosine <n> --mean-cosine <n> --references <n>
-  bun gallery/main.ts sign <version> [--hours <n>]
-  bun gallery/main.ts publish <version>
-  bun gallery/main.ts install <version> [--gallery <dir>] [--work <dir>]
-  bun gallery/main.ts status`;
+  bun gallery/main.ts build [--hosted] [--manifest <path or URL>] [--images <dir>] [--work <dir>] [--new-base] [--cached-images-bulk-file <default-cards.jsonl.gz>]
+  bun gallery/main.ts parity <version> [--hosted] --lowest-cosine <n> --mean-cosine <n> --references <n>
+  bun gallery/main.ts sign <version> [--hosted] [--hours <n>]
+  bun gallery/main.ts publish <version> [--hosted]
+  bun gallery/main.ts install <version> [--hosted] [--gallery <dir>] [--work <dir>]
+  bun gallery/main.ts status [--hosted]`;
 
 const { positionals, values } = parseArgs({
   args: Bun.argv.slice(2),
   allowPositionals: true,
   options: {
+    hosted: { type: 'boolean', default: false },
     manifest: { type: 'string', default: scryfallManifestUrl },
     images: { type: 'string', default: join(cacheDirectory, 'scryfall-images') },
-    work: { type: 'string', default: join(cacheDirectory, 'gallery') },
+    work: { type: 'string' },
     gallery: { type: 'string' },
     'new-base': { type: 'boolean', default: false },
     'cached-images-bulk-file': { type: 'string' },
@@ -59,20 +61,53 @@ if (!valid || !optionsValid) {
   process.exit(2);
 }
 
+function supabaseUrl(): string {
+  if (values.hosted) {
+    const hosted = hostedSupabaseUrl(process.env);
+    if ('refusal' in hosted) {
+      refuse(hosted.refusal);
+    }
+    return hosted.url;
+  }
+  const url = process.env.SUPABASE_URL || localSupabaseUrl;
+  if (!isLocalStack(url)) {
+    refuse(`Without --hosted, the gallery commands use only the local stack, and ${url} is not local. Add --hosted for the hosted project.`);
+  }
+  return url;
+}
+
+function refuse(message: string): never {
+  console.error(message);
+  console.error(usage);
+  process.exit(2);
+}
+
+function nextSteps(version: string): string {
+  return values.hosted
+    ? `Next: run the parity check on the iPhone, record it with \`bun --env-file=.env.hosted gallery/main.ts parity ${version} --hosted --lowest-cosine <n> --mean-cosine <n> --references <n>\`, then \`bun --env-file=.env.hosted gallery/main.ts publish ${version} --hosted\`.`
+    : `Next: unpack it for the scanner evidence replay with \`bun run gallery install ${version}\`.`;
+}
+
+const url = supabaseUrl();
+const workDirectory = values.work ?? join(cacheDirectory, values.hosted ? 'gallery' : 'local-gallery');
 let connected: ReturnType<typeof importClientFromEnvironment> | undefined;
-const client = () => (connected ??= importClientFromEnvironment());
+const client = () => (connected ??= importClientFromEnvironment(url));
 
 try {
   switch (command) {
-    case 'build':
-      await buildGallery(client(), await macRecognizer(), {
+    case 'build': {
+      const manifest = await buildGallery(client(), await macRecognizer(), {
         manifestLocation: values.manifest,
         imagesDirectory: values.images,
-        workDirectory: values.work,
+        workDirectory,
         newBase: values['new-base'],
         cachedImagesBulkFile: values['cached-images-bulk-file'],
       });
+      if (manifest) {
+        console.log(nextSteps(manifest.version));
+      }
       break;
+    }
     case 'parity':
       await recordParityCheck(client(), version!, parity);
       break;
@@ -83,7 +118,7 @@ try {
       await publishGallery(client(), version!);
       break;
     case 'install':
-      await installGallery(client, await macRecognizer(), values.work, version!, values.gallery ?? join(values.work, 'installed', version!));
+      await installGallery(client, await macRecognizer(), workDirectory, version!, values.gallery ?? join(workDirectory, 'installed', version!));
       break;
     case 'status':
       await galleryStatus(client());
