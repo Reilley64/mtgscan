@@ -66,6 +66,28 @@ Each candidate carries its card printing ID, Oracle ID, name, set code, collecto
 
 `checkGalleryParity()` runs the parity check on the installed gallery. It takes 24 evenly spaced gallery rows and downloads the Scryfall `normal` image of each from the Scryfall image host. It computes their feature prints on the phone in the same way as the macOS command, and compares each with its gallery row. It returns the gallery version, the number of reference images it checked, the lowest and mean cosine, and each reference image that failed. Only development builds show **Run the parity check** in settings. The result shows under it, and Metro gets the same numbers as a `PARITY` line.
 
+### Feature print model
+
+The recognizer's model is PE-Core S16-384 by Meta, converted to a Core ML ML program for iOS 17. `apps/mobile/modules/card-recognizer/model.json` is the model file. It holds the model name, the SHA-256 of the converted model, the input size, the vector size, and the recognizer's thresholds for the model: not a card, orientation margin, and art margin. The converted model is not in the repo.
+
+Convert the model on a Mac from `apps/mobile/modules/card-recognizer`:
+
+```bash
+uv run scripts/convert-model.py
+```
+
+- The script pins coremltools 9.0, torch 2.7.0, and its other packages in `scripts/convert-model.py.lock`. It downloads the PE-Core S16-384 weights from Hugging Face at a fixed revision.
+- It keeps three operations of the first attention block in float32: the query scaling, the query-key product, and the softmax. At float16 they overflow, and the model returns NaN on the CPU. Every other operation runs in float16. The weights are an 8-bit palette with 256 entries, made with k-means.
+- It writes the model to `~/Library/Caches/mtgscan/models/pe-core-s16-384.mlpackage`, outside the repo. The model is about 23.5 MB.
+- It runs the 24 references of `real/feature-prints.json` in the scanner evidence pack on every compute unit. Each card is padded to a square with the model's mean colour. The script fails on NaN, on a vector of the wrong size, or on a cosine below 0.99 against the PyTorch model.
+- Last, it writes the SHA-256 of the model into `model.json`. Each conversion gives a new SHA-256. Commit `model.json` only for a model you mean to ship.
+
+The SHA-256 covers the whole `.mlpackage` folder. It is the SHA-256 of a list with one line per file, in path order. Each line is the SHA-256 of the file, two spaces, the file's path in the package, and a newline.
+
+The model takes `pixels`, a float16 array of 1 x 3 x the input size x the input size, with values from 0 to 1. It does its own normalisation. It returns `featurePrint`, a float16 array of 1 x the vector size.
+
+`uv run scripts/convert-model.py --fixture` writes the fixture model to `macos/CardRecognizerTests/Fixtures/fixture-model.mlpackage`. It has the same input and output as the real model, at the sizes in `model.json`. It averages the pixels over an 8 x 8 grid, multiplies them by fixed random weights, and divides by their mean. A black image gives NaN. The fixture model is committed, so the Swift tests never need the real model.
+
 ### Gallery download
 
 The app keeps the gallery on the phone up to date. The code is in `apps/mobile/src/gallery` and in the recognizer module.
