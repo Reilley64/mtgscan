@@ -151,8 +151,8 @@ func machineName() -> String {
 struct About: Encodable {
   let macOS: String
   let machine: String
-  let featurePrintRevision: Int
-  let dimension: Int
+  let model: FeaturePrintModel
+  let thresholds: RecognizerThresholds
 }
 
 func about() {
@@ -160,8 +160,8 @@ func about() {
   emit(About(
     macOS: "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)",
     machine: machineName(),
-    featurePrintRevision: FeaturePrint.revision,
-    dimension: FeaturePrint.dimension
+    model: FeaturePrint.model,
+    thresholds: FeaturePrint.thresholds
   ))
 }
 

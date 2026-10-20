@@ -130,6 +130,16 @@ describe('on a phone without the gallery', () => {
     expect(galleryDownloads()).toHaveLength(1);
   });
 
+  test('a published gallery version whose format this build does not know downloads nothing, and shows Try again', async () => {
+    publishGallery(newerVersion, { formatVersion: 3 });
+    const tab = await openScan();
+
+    expect(within(tab).getByText('Gallery download did not work.')).toBeOnTheScreen();
+    expect(cameraIsOn()).toBe(false);
+    await press(within(tab).getByRole('button', { name: 'Try again' }));
+    expect(galleryDownloads()).toHaveLength(0);
+  });
+
   test('a phone without enough space says how much the gallery needs', async () => {
     const tab = await openScan();
 
@@ -169,6 +179,18 @@ describe('on a phone with the gallery', () => {
     await galleryDownloadReports('installed', { builtAt: '2026-11-09T08:00:00.000Z' });
 
     expect(screen.getByText('9 November 2026')).toBeOnTheScreen();
+    expect(screen.getByText('Up to date')).toBeOnTheScreen();
+  });
+
+  test('a newer gallery version whose format this build does not know downloads nothing, and scanning goes on', async () => {
+    publishGallery(newerVersion, { formatVersion: 3 });
+    await openScan();
+
+    expect(galleryDownloads()).toHaveLength(0);
+    expect(cameraIsOn()).toBe(true);
+    await pressTab('Recent');
+    await openSettings();
+    expect(screen.getByText('12 October 2026')).toBeOnTheScreen();
     expect(screen.getByText('Up to date')).toBeOnTheScreen();
   });
 

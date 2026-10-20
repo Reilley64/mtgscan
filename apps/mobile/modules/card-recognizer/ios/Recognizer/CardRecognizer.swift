@@ -7,9 +7,6 @@ public enum CardRecognizer {
   public static let readHeight = 1664
   static let shortlistSize = 50
   static let illustrationExpansion = 10
-  static let notACardSimilarity: Float = 0.5
-  static let unreadArtMargin: Float = 0.03
-  static let orientationMargin: Float = 0.03
   static let fullReadingStrength = 3
   static let titleCandidates = 10
   static let machineReadableFrame = "2015"
@@ -52,6 +49,7 @@ public enum CardRecognizer {
     } catch {
       throw .unreadablePhoto
     }
+    guard uprightVector.count == gallery.dimension, turnedVector.count == gallery.dimension else { throw .unreadablePhoto }
     stageMs["embed"] = elapsed(since: &startedAt)
     var bothScores = gallery.similarities(to: [uprightVector, turnedVector])
     for index in excluded {
@@ -75,7 +73,7 @@ public enum CardRecognizer {
       } ? -1 : candidate.strength
     }
     let preferTurned = turnedBest > uprightBest
-    let confident = abs(turnedBest - uprightBest) > orientationMargin
+    let confident = abs(turnedBest - uprightBest) > gallery.thresholds.orientationMargin
     let preferred = CollectorLineReader.read(card: preferTurned ? turned : uprightCandidate, setCodes: gallery.setCodes)
     var isTurned = preferTurned
     var reading = preferred
@@ -95,7 +93,7 @@ public enum CardRecognizer {
     let scores = isTurned ? turnedScores : uprightScores
     let shortlist = gallery.top(shortlistSize, of: scores)
     let topSimilarity = scores[shortlist[0]]
-    guard topSimilarity >= notACardSimilarity else {
+    guard topSimilarity >= gallery.thresholds.notACard else {
       return .notACard(NotACardRecognition(topSimilarity: Double(topSimilarity), stageMs: stageMs))
     }
     var expanded = shortlist
@@ -260,8 +258,9 @@ public enum CardRecognizer {
     if gallery.printings[top].frame == machineReadableFrame && readLabel.isEmpty {
       return abstain("only printing of its art, but its collector line was not read")
     }
-    if margin < unreadArtMargin {
-      return abstain("only printing of its art, but the next art is \(format(margin)) behind; at least \(format(unreadArtMargin)) is required")
+    if margin < gallery.thresholds.artMargin {
+      let required = format(gallery.thresholds.artMargin)
+      return abstain("only printing of its art, but the next art is \(format(margin)) behind; at least \(required) is required")
     }
     return accept(top, .uniqueArt, "only printing of its art, next art \(format(margin)) behind")
   }

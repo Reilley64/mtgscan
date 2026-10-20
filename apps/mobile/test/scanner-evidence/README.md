@@ -30,7 +30,7 @@ The gates need the gallery: the feature prints and the printing list of every pa
 
 `bun run gallery install <version>` in `supabase` unpacks a gallery version into `installed/<version>` in its work folder. The folder holds `catalog.json`, `gallery.json`, and `gallery.f16`. Set `RECOGNIZER_GALLERY_DIR` to that folder. The replay stops when the variable is not set.
 
-- **Install the recorded gallery.** Run `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753 --hosted` in `supabase`. It unpacks the gallery into `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`, with the same decoder as the phone. It downloads the parts with the hosted secret key only when they are not on the Mac. Only this gallery can show that a result is unchanged against the expected files.
+- **Install the recorded gallery.** Run `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753 --hosted` in `supabase`. It unpacks the gallery into `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`, with the same decoder as the phone. It downloads the parts with the hosted secret key only when they are not on the Mac. Only this gallery can show that a result is unchanged against the expected files. The recorded gallery is gallery format 1, and `install` now takes only format 2, so it refuses the recorded gallery. Keep the folder that an earlier `install` wrote. The recognizer reads a gallery version installed before format 2 with Vision's model and thresholds.
 - **Build a gallery.** You can build a gallery from the current Scryfall data with the same commands as the gallery that phones download. They run against your local Supabase stack. Start the stack, and run these commands in `supabase`. The API port is 54321 on the default stack.
 
   ```bash
@@ -54,7 +54,7 @@ bun run recognizer:test
 bun run recognizer:replay
 ```
 
-`recognizer:test` runs the Swift fixture tests: the collector-line parser, the gallery key, and the outline order. `recognizer:replay` builds the macOS recognizer command and runs the Mac gates. It first checks the feature prints:
+`recognizer:test` runs the Swift fixture tests one at a time: the collector-line parser, the gallery key, and the outline order. `recognizer:replay` builds the macOS recognizer command and runs the Mac gates. It first checks the feature prints:
 
 - **Feature prints.** It compares the feature prints of the 24 references in `real/feature-prints.json` with the feature prints of this machine. It fails when the lowest cosine is below 0.98.
 - **Gate 1: real crops.** The 250 card crops and 11 non-card crops, on the full gallery and with each true printing held out.

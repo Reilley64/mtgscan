@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 
 public struct GalleryManifest: Codable, Sendable {
-  public static let formatVersion = 1
+  public static let formatVersion = 2
 
   public struct Part: Codable, Sendable {
     public static let gallery = "gallery"
@@ -23,6 +23,8 @@ public struct GalleryManifest: Codable, Sendable {
   public let formatVersion: Int
   public let version: String
   public let builtAt: String
+  public let model: FeaturePrintModel
+  public let thresholds: RecognizerThresholds
   public let rows: Int
   public let parts: [Part]
 }
@@ -36,12 +38,16 @@ public enum GalleryInstaller {
     case malformedPart(String)
   }
 
+  private struct FormatVersion: Decodable {
+    let formatVersion: Int
+  }
+
   public static func manifest(from data: Data) throws -> GalleryManifest {
-    let manifest = try JSONDecoder().decode(GalleryManifest.self, from: data)
-    guard manifest.formatVersion == GalleryManifest.formatVersion else {
-      throw Failure.unsupportedManifest("format version \(manifest.formatVersion)")
+    let format = try JSONDecoder().decode(FormatVersion.self, from: data).formatVersion
+    guard format == GalleryManifest.formatVersion else {
+      throw Failure.unsupportedManifest("format version \(format)")
     }
-    return manifest
+    return try JSONDecoder().decode(GalleryManifest.self, from: data)
   }
 
   public static func manifest(in directory: URL) throws -> GalleryManifest {
@@ -96,7 +102,7 @@ public enum GalleryInstaller {
     guard rows.count == manifest.rows else {
       throw Failure.unsupportedManifest("the manifest has \(manifest.rows) rows, the printing lists have \(rows.count)")
     }
-    let dimension = FeaturePrint.dimension
+    let dimension = manifest.model.vectorSize
     let staging = destination.deletingLastPathComponent()
       .appendingPathComponent(".\(destination.lastPathComponent)-\(UUID().uuidString)", isDirectory: true)
     try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
@@ -135,8 +141,8 @@ public enum GalleryInstaller {
         .write(to: staging.appendingPathComponent(GalleryFile.printingList))
       let header = GalleryHeader(
         count: rows.count,
-        dimension: dimension,
-        revision: FeaturePrint.revision,
+        model: manifest.model,
+        thresholds: manifest.thresholds,
         createdAt: manifest.builtAt,
         encoding: GalleryHeader.float16,
         version: manifest.version

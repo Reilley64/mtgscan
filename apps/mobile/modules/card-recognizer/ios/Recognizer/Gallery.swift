@@ -32,23 +32,59 @@ public struct GalleryPrinting: Codable, Sendable {
   }
 }
 
+public struct FeaturePrintModel: Codable, Sendable, Equatable {
+  public struct InputSize: Codable, Sendable, Equatable {
+    public let width: Int
+    public let height: Int
+  }
+
+  public let name: String
+  public let sha256: String?
+  public let inputSize: InputSize
+  public let vectorSize: Int
+}
+
+public struct RecognizerThresholds: Codable, Sendable, Equatable {
+  public let notACard: Float
+  public let orientationMargin: Float
+  public let artMargin: Float
+}
+
 public struct GalleryHeader: Codable, Sendable {
   public static let float16 = "float16"
 
   public let count: Int
-  public let dimension: Int
-  public let revision: Int
+  public let model: FeaturePrintModel
+  public let thresholds: RecognizerThresholds
   public let createdAt: String
   public let encoding: String?
   public let version: String?
 
-  public init(count: Int, dimension: Int, revision: Int, createdAt: String, encoding: String?, version: String? = nil) {
+  public init(
+    count: Int,
+    model: FeaturePrintModel,
+    thresholds: RecognizerThresholds,
+    createdAt: String,
+    encoding: String?,
+    version: String? = nil
+  ) {
     self.count = count
-    self.dimension = dimension
-    self.revision = revision
+    self.model = model
+    self.thresholds = thresholds
     self.createdAt = createdAt
     self.encoding = encoding
     self.version = version
+  }
+
+  /// A gallery version installed before gallery format 2 has no model or thresholds. Vision made its feature prints.
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    count = try container.decode(Int.self, forKey: .count)
+    model = try container.decodeIfPresent(FeaturePrintModel.self, forKey: .model) ?? FeaturePrint.model
+    thresholds = try container.decodeIfPresent(RecognizerThresholds.self, forKey: .thresholds) ?? FeaturePrint.thresholds
+    createdAt = try container.decode(String.self, forKey: .createdAt)
+    encoding = try container.decodeIfPresent(String.self, forKey: .encoding)
+    version = try container.decodeIfPresent(String.self, forKey: .version)
   }
 }
 
@@ -63,6 +99,8 @@ public final class Gallery: Sendable {
 
   public let printings: [GalleryPrinting]
   public let version: String?
+  public let model: FeaturePrintModel
+  public let thresholds: RecognizerThresholds
   public let dimension: Int
   public let printingsByIllustration: [String: [Int]]
   public let setCodes: Set<String>
@@ -87,16 +125,18 @@ public final class Gallery: Sendable {
       GalleryHeader.self,
       from: Data(contentsOf: directory.appendingPathComponent(GalleryFile.header))
     )
-    guard header.count == printings.count, header.dimension == FeaturePrint.dimension else {
-      throw Failure.mismatch("gallery has \(header.count)x\(header.dimension), printing list has \(printings.count)")
+    guard header.count == printings.count else {
+      throw Failure.mismatch("gallery has \(header.count) rows, printing list has \(printings.count)")
     }
-    dimension = header.dimension
+    model = header.model
+    thresholds = header.thresholds
+    dimension = header.model.vectorSize
     version = header.version
     guard (header.encoding ?? GalleryHeader.float16) == GalleryHeader.float16 else {
       throw Failure.mismatch("unknown gallery encoding \(header.encoding ?? "")")
     }
     let raw = try Data(contentsOf: directory.appendingPathComponent(GalleryFile.float16Vectors), options: .alwaysMapped)
-    guard raw.count == header.count * header.dimension * MemoryLayout<Float16>.size else {
+    guard raw.count == header.count * dimension * MemoryLayout<Float16>.size else {
       throw Failure.mismatch("\(GalleryFile.float16Vectors) has \(raw.count) bytes")
     }
     vectors = raw
