@@ -12,6 +12,7 @@ on:
           - oracle_tags
           - commander_spellbook
           - exchange_rates
+          - set_sections
         default: catalog
       accept_shrink:
         description: Accept a shrink of more than 5%
@@ -35,7 +36,7 @@ permissions:
 jobs:
   import:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: ${{ inputs.source == 'set_sections' && 360 || 30 }}
     concurrency:
       group: import-${{ inputs.source }}
       cancel-in-progress: false
