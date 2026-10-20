@@ -1,5 +1,5 @@
+import type { BasicLandCard } from '@mtgscan/supabase/collection';
 import { databaseFunctions } from '@mtgscan/supabase/database-functions';
-import type { BasicLandCard } from '@mtgscan/supabase/decks';
 
 import { databaseRead, useScreenRead } from '@/lib/read';
 

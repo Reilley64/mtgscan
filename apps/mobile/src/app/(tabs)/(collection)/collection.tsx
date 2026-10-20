@@ -1,5 +1,4 @@
-import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
-import type { BasicLandCard } from '@mtgscan/supabase/decks';
+import type { BasicLandCard, CollectionCopyRow } from '@mtgscan/supabase/collection';
 import { convertedPrice } from '@mtgscan/supabase/converted-prices';
 import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
@@ -20,7 +19,6 @@ import { CollectionSearchHeader } from '@/components/organisms/collection-search
 import { collectionFiltersButton, filtersDrawerPath } from '@/components/organisms/collection-filters-button';
 import { collectionTotalMenu } from '@/components/organisms/collection-total';
 import { TabListScreen } from '@/components/templates/tab-screen';
-import { matchingBasicLands } from '@/collection/basic-land-matches';
 import { refusedChipMessage, type SearchChip } from '@/collection/collection-search';
 import { useCollectionSearchState } from '@/collection/collection-search-state';
 import { activeFilterCount } from '@/collection/filter-choices';
@@ -37,7 +35,6 @@ import { priceLabels } from '@/collection/price-currency-labels';
 import { shownMatchCount } from '@/collection/total-labels';
 import { useCollectionCopies, type BinderRead } from '@/collection/use-collection-copies';
 import { useCollectionTotal } from '@/collection/use-collection-total';
-import { useBasicLandCards } from '@/decks/use-basic-land-cards';
 import { useDecks } from '@/decks/use-decks';
 
 type BinderPlaceholderProps = {
@@ -175,11 +172,8 @@ export default function CollectionScreen() {
   const { read: decksRead } = useDecks();
   const commanderArtOf = (deckId: string) =>
     (decksRead.status === 'loaded' && decksRead.decks.find((deck) => deck.deck_id === deckId)?.commanders[0]?.art_crop_uri) || null;
-  const { read: basicLandsRead } = useBasicLandCards();
-  const showsBasicLands =
-    binder.status === 'loaded' && binder.nextCursor === null && !suggesting && !refused && (search.searching || copies.length > 0);
   const basicLands =
-    showsBasicLands && basicLandsRead.status === 'loaded' && search.query ? matchingBasicLands(basicLandsRead.lands, search.query) : [];
+    binder.status === 'loaded' && binder.nextCursor === null && !suggesting && !refused ? (binder.firstPage.basic_lands ?? []) : [];
   const matchCount = binder.status === 'loaded' && search.searching && !refused ? binder.firstPage.total_count : null;
   const showsEmptyState = (refused || binder.status !== 'loading') && copies.length === 0 && basicLands.length === 0;
   const showsFloatingButtons = !search.typing && !filtersOpen && !showsEmptyState;

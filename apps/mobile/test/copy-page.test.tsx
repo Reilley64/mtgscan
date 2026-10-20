@@ -64,7 +64,7 @@ describe('the binder tile', () => {
   test('a binder tile in search results opens the copy page for that copy', async () => {
     const curator = copyOf('copy-1');
     ownCopies([curator, delver]);
-    answerCollectionSearches((query) => (query.text === 'delver' ? [delver] : [curator, delver]).map(copyRowOf));
+    answerCollectionSearches((query) => ({ copies: (query.text === 'delver' ? [delver] : [curator, delver]).map(copyRowOf) }));
     const collection = await openCollection();
 
     await typeInSearchBar('delver');
@@ -88,7 +88,7 @@ describe('the binder tile', () => {
   test('going back to the Collection tab keeps the search text and chips, and the search bar stays without focus', async () => {
     const curator = copyOf('copy-1');
     ownCopies([curator, delver]);
-    answerCollectionSearches((query) => (query.text === 'delver' ? [delver] : [curator, delver]).map(copyRowOf));
+    answerCollectionSearches((query) => ({ copies: (query.text === 'delver' ? [delver] : [curator, delver]).map(copyRowOf) }));
     const collection = await openCollection();
     await typeInSearchBar('set:isd delver');
     await fireEvent.press(collection.getByRole('button', { name: /^Delver of Secrets/ }));
@@ -379,7 +379,7 @@ describe('closing the copy page', () => {
   test('Close goes back to the search results with the search text, chips, and sort kept', async () => {
     const curator = copyOf('copy-1');
     ownCopies([curator, delver]);
-    answerCollectionSearches((query) => (query.text === 'delver' ? [delver] : [curator, delver]).map(copyRowOf));
+    answerCollectionSearches((query) => ({ copies: (query.text === 'delver' ? [delver] : [curator, delver]).map(copyRowOf) }));
     const collection = await openCollection();
     await pressButtonMenuItem(menuButton(selectedTab(), 'Sort, Relevance'), 'Name');
     await typeInSearchBar('set:isd delver');

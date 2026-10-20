@@ -9,9 +9,9 @@ import {
   type CollectionQuery,
   type CurrentPrice,
 } from '../collection';
-import { addDeckCard, createDeck } from '../decks';
+import { addDeckCard, createDeck, listBasicLandCards } from '../decks';
 import { getCards, listCardPrintings, searchCatalog } from '../search';
-import { catalogFixture, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
+import { catalogFixture, resetCardCatalog, runCatalogImport, runOracleTagImport, runPriceImport } from './catalog-import-command';
 import { collectionCopies, collectionEntries } from './collection-pages';
 import { collectionEntryKey, seedCopies, seededCollectionEntryKey, type SeededCopies } from './copy-seeds';
 import { call, failed, refused, replyOf } from './database-calls';
@@ -590,6 +590,133 @@ describe('after a catalog import', () => {
       ['an empty list of deck IDs', { deck_ids: [] }, 'deck_ids'],
     ])('%s is refused with an error on its field', async (_, query, field) => {
       expect(await search(query as never)).toMatchObject(refused('invalid_argument', field));
+    });
+  });
+
+  describe('basic lands', () => {
+    const regularBasicLands = ['Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes'];
+    const snowCoveredBasicLands = regularBasicLands.map((name) => `Snow-Covered ${name}`);
+    const everyBasicLand = [...regularBasicLands, ...snowCoveredBasicLands];
+    let dave: TestUser;
+    let daveDeck: string;
+
+    async function basicLandNames(query: CollectionQuery, user: TestUser = dave) {
+      return (await replyOf(user.client, searchCollection, query)).basic_lands?.map((land) => land.name);
+    }
+
+    beforeAll(async () => {
+      dave = await signUpNewUser();
+      await seedCopies(dave, [entry(printings.angelicCuratorMh2, { quantity: 2 })]);
+      await replyOf(dave.client, createUserTag, { name: 'Signed' });
+      daveDeck = (await replyOf(dave.client, createDeck, { name: 'Atraxa' })).deck_id;
+      expect((await runOracleTagImport(await catalogFixture({}))).exitCode).toBe(0);
+    });
+
+    test('a query with no text and no chips returns every basic land card of list_basic_land_cards, in order', async () => {
+      const { basic_lands } = await replyOf(dave.client, searchCollection, {});
+
+      expect(basic_lands).toEqual((await replyOf(dave.client, listBasicLandCards)).items);
+      expect(basic_lands?.map((land) => land.name)).toEqual(everyBasicLand);
+    });
+
+    test('the sort, rows, limit, and Oracle text fields are not chips, so every basic land card still matches', async () => {
+      expect(await basicLandNames({ rows: 'copies', sort: 'name', sort_order: 'desc', limit: 1, include_oracle_text: true })).toEqual(
+        everyBasicLand,
+      );
+    });
+
+    test('a query with no text and no chips returns no basic land card for a collection with no copies', async () => {
+      expect(await basicLandNames({}, await signUpNewUser())).toEqual([]);
+    });
+
+    test('search text matches basic land cards for a collection with no copies', async () => {
+      expect(await basicLandNames({ text: 'island' }, await signUpNewUser())).toEqual(['Island', 'Snow-Covered Island']);
+    });
+
+    test('only the first page returns basic land cards', async () => {
+      const first = await replyOf(dave.client, searchCollection, { rows: 'copies', limit: 1 });
+      const next = await replyOf(dave.client, searchCollection, { rows: 'copies', limit: 1, cursor: first.next_cursor });
+
+      expect(first.basic_lands).toHaveLength(12);
+      expect(next.basic_lands).toBeNull();
+    });
+
+    test.each<[string, CollectionQuery, string[]]>([
+      ['a word of the name', { text: 'island' }, ['Island', 'Snow-Covered Island']],
+      ['words of the name and the type line', { text: 'snow forest' }, ['Snow-Covered Forest']],
+      ['a word of the type line', { text: 'land' }, everyBasicLand],
+      ['the basic supertype', { text: 'basic' }, everyBasicLand],
+      ['a plural of the name', { text: 'islands' }, ['Island', 'Snow-Covered Island']],
+      ['a name without its hyphen', { text: 'snowcovered' }, snowCoveredBasicLands],
+      ['quoted words of the name', { text: '"snow covered"' }, snowCoveredBasicLands],
+      ['text that matches no basic land card', { text: 'curator' }, []],
+    ])('search text matches basic land cards as it matches copies: %s', async (_, query, expected) => {
+      expect(await basicLandNames(query)).toEqual(expected);
+    });
+
+    test.each<[string, CollectionQuery, string[]]>([
+      ['a name chip', { names: ['mountain'] }, ['Mountain', 'Snow-Covered Mountain']],
+      ['a name chip without the hyphen', { names: ['snowcovered'] }, snowCoveredBasicLands],
+      ['a negated name chip', { names_exclude: ['snow'] }, regularBasicLands],
+      ['a type chip', { types: ['snow'] }, snowCoveredBasicLands],
+      ['a negated type chip', { types_exclude: ['snow'] }, regularBasicLands],
+      ['a colorless chip', { colors: ['C'] }, everyBasicLand],
+      ['a color chip', { colors: ['U'] }, []],
+      ['a negated colorless chip', { colors_exclude: ['C'] }, []],
+      [
+        'a color identity chip',
+        { identity_subset_of: ['U'] },
+        ['Island', 'Wastes', 'Snow-Covered Island', 'Snow-Covered Wastes'],
+      ],
+      ['a mana value bound that fits', { mana_value_max: 0 }, everyBasicLand],
+      ['a mana value bound that does not fit', { mana_value_min: 1 }, []],
+      ['a power bound', { power_min: 0 }, []],
+      ['an upper power bound', { power_max: 5 }, []],
+      ['a lower toughness bound', { toughness_min: 0 }, []],
+      ['an upper toughness bound', { toughness_max: 5 }, []],
+      ['a keyword chip', { keywords: ['flying'] }, []],
+      ['a negated keyword chip', { keywords_exclude: ['flying'] }, everyBasicLand],
+      ['an Oracle tag chip', { tags: ['ramp'] }, []],
+      ['a negated Oracle tag chip', { tags_exclude: ['ramp'] }, everyBasicLand],
+      ['the commander chip', { is_commander: true }, []],
+      ['the negated commander chip', { is_commander: false }, everyBasicLand],
+      ['the Game Changer chip', { is_game_changer: true }, []],
+      ['the negated Game Changer chip', { is_game_changer: false }, everyBasicLand],
+      ['search text with a card chip', { text: 'island', types: ['snow'] }, ['Snow-Covered Island']],
+    ])('%s matches basic land cards as it matches copies', async (_, query, expected) => {
+      expect(await basicLandNames(query)).toEqual(expected);
+    });
+
+    test.each<[string, () => CollectionQuery]>([
+      ['a finish chip', () => ({ finishes: ['nonfoil'] })],
+      ['a negated finish chip', () => ({ finishes_exclude: ['foil'] })],
+      ['a condition chip', () => ({ conditions: ['near_mint'] })],
+      ['a negated condition chip', () => ({ conditions_exclude: ['damaged'] })],
+      ['a language chip', () => ({ languages: ['en'] })],
+      ['a negated language chip', () => ({ languages_exclude: ['ja'] })],
+      ['a deck chip', () => ({ deck_ids: [daveDeck] })],
+      ['a negated deck chip', () => ({ deck_ids_exclude: [daveDeck] })],
+      ['a user tag chip', () => ({ user_tags: ['signed'] })],
+      ['a negated user tag chip', () => ({ user_tags_exclude: ['signed'] })],
+      ['the free chip', () => ({ is_free: true })],
+      ['the negated free chip', () => ({ is_free: false })],
+      ['the protected chip', () => ({ is_protected: true })],
+      ['the negated protected chip', () => ({ is_protected: false })],
+      ['the allocated chip', () => ({ is_allocated: true })],
+      ['the negated allocated chip', () => ({ is_allocated: false })],
+      ['a lower price bound', () => ({ price_min: '0' })],
+      ['an upper price bound', () => ({ price_max: '100' })],
+    ])('%s, which only a copy has, hides every basic land card', async (_, query) => {
+      expect(await basicLandNames({ text: 'island', ...query() })).toEqual([]);
+    });
+
+    test.each<[string, CollectionQuery]>([
+      ['a set chip', { sets: ['khm'] }],
+      ['a negated set chip', { sets_exclude: ['khm'] }],
+      ['a rarity chip', { rarities: ['common'] }],
+      ['a negated rarity chip', { rarities_exclude: ['uncommon'] }],
+    ])('%s, which matches the card printing of a copy, hides every basic land card', async (_, query) => {
+      expect(await basicLandNames({ text: 'island', ...query })).toEqual([]);
     });
   });
 

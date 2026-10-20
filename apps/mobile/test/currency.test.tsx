@@ -263,7 +263,7 @@ describe('price reads', () => {
     let lastQuery = {};
     answerCollectionSearches((query) => {
       lastQuery = query;
-      return [];
+      return { copies: [] };
     });
     await openCollection();
 
@@ -277,7 +277,7 @@ describe('price reads', () => {
     let lastQuery = {};
     answerCollectionSearches((query) => {
       lastQuery = query;
-      return [];
+      return { copies: [] };
     });
     await openCollection();
 
@@ -290,7 +290,7 @@ describe('price reads', () => {
     let lastQuery = {};
     answerCollectionSearches((query) => {
       lastQuery = query;
-      return [];
+      return { copies: [] };
     });
     await openCollection();
 

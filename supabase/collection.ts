@@ -62,6 +62,10 @@ export type CollectionRow = z.infer<typeof collectionRow>;
 
 export const copyRowDeck = z.strictObject({ deck_id: id, name: z.string() });
 
+export const basicLandCard = z.strictObject({ oracle_id: id, name: z.string(), image_uris: z.array(z.string()) });
+
+export type BasicLandCard = z.infer<typeof basicLandCard>;
+
 export const collectionCopyRow = z.strictObject({
   copy_id: id,
   printing_id: id,
@@ -86,6 +90,7 @@ export type CollectionCopyRow = z.infer<typeof collectionCopyRow>;
 const collectionPage = z.strictObject({
   ...searchPage,
   total_count: integer.nullable(),
+  basic_lands: z.array(basicLandCard).nullable(),
   items: z.array(z.union([collectionRow, collectionCopyRow])),
 });
 
