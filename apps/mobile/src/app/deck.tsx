@@ -18,6 +18,7 @@ import { DeckSkeleton } from '@/components/organisms/deck-skeleton';
 import { NeedsYouList } from '@/components/organisms/needs-you-list';
 import { SwapInAllButton } from '@/components/organisms/swap-in-all-button';
 import { PushedListScreen } from '@/components/templates/pushed-screen';
+import { hiddenTopScrollEdgeEffects, softTopScrollEdgeEffects } from '@/components/templates/tab-stack';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { useDeckCardOrder } from '@/decks/deck-card-order';
 import type { BasicLandTile } from '@/decks/deck-groups';
@@ -235,7 +236,12 @@ export default function DeckScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: deck && showsTitle ? deck.name : '' }} />
+      <Stack.Screen
+        options={{
+          title: deck && showsTitle ? deck.name : '',
+          scrollEdgeEffects: showsTitle ? softTopScrollEdgeEffects : hiddenTopScrollEdgeEffects,
+        }}
+      />
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button icon="xmark" tintColor={colors.text} accessibilityLabel="Close" onPress={() => router.back()} />
       </Stack.Toolbar>

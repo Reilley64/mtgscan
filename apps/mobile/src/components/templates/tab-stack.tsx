@@ -7,6 +7,8 @@ export const inlineTitleStyle = { ...typography.sheetTitle, color: colors.text }
 
 export const softTopScrollEdgeEffects = { top: 'soft', bottom: 'automatic', left: 'automatic', right: 'automatic' } as const;
 
+export const hiddenTopScrollEdgeEffects = { ...softTopScrollEdgeEffects, top: 'hidden' } as const;
+
 export function TabStack({ children }: { children?: ReactNode }) {
   return (
     <Stack
