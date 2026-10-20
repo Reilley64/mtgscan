@@ -125,7 +125,7 @@ This gate measures the whole phone path on physical cards: capture, recognition 
 The run uses a development build of the app on the iPhone, with Metro on the Mac:
 
 1. Start Metro with its output in a log file.
-2. Tap **Run the parity check** in settings. Record the result with `bun run gallery parity` (README, Gallery build and publish).
+2. Tap **Run the parity check** in settings. Record the result with `bun --env-file=.env.hosted gallery/main.ts parity <version> --hosted` in `supabase` (README, Gallery build and publish).
 3. Scan the 30 cards with the torch off, one at a time, in the order of `test-deck.tsv`. Do not fix any scan.
 4. Score the run from `apps/mobile`: `bun run bin-deck:score <metro-log> <run> --device <model> --ios <version>`. It reads the `PARITY` and `RECOGNITION` lines from the log and writes `summary.md`, `results.env`, `bin-batch-summaries.ndjson`, and `batch-1-detail.ndjson` to `bin-deck/<run>/`. It exits 1 when a gate fails.
 
