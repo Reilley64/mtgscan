@@ -462,7 +462,7 @@ A list that loads in pages reads the next page as the user nears its end. While 
 - **Collection** is a binder grid with the collection total in its header.
   - The header has the collection total button next to the settings button (owner decision, #125). See Collection header.
   - Card images sit 3 per row, with **one tile per copy** and no quantity badge. Three copies of a card printing make three tiles (owner decision, #116).
-  - Copies of the same card printing sit next to each other. By default, the card printing with the newest addition comes first. More tiles load as the user scrolls. The tab reloads when it gains focus.
+  - By default, the newest copies come first. An older copy of the same card printing keeps its own place, so a new copy does not bring it to the top (owner decision, 19 October 2026). More tiles load as the user scrolls. The tab reloads when it gains focus.
   - While the next page of copies loads, one row of three skeleton tiles shows after the last tiles. The tiles have the shape of the skeleton grid. VoiceOver reads them as one element, "Loading more copies".
   - While the binder grid loads and shows no tiles yet, a skeleton grid fills the visible screen in its place. It has the shape of the grid: three tiles per row, with the same gaps. Each tile is a card-shaped block over two short bars for the meta line and the price line, 12 px tall and 60% and 40% wide. The blocks are line-colored on the background and pulse like the skeleton chip. VoiceOver reads the skeleton grid as one element, "Loading collection". When the read returns, the tiles, the empty state, or the error state replace it.
   - A reload when the tab gains focus and a new page keep the tiles already shown and bring no skeleton grid back. The reload reads as many tiles as the tab showed, so the scroll position stays.
@@ -577,7 +577,7 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
 - **Sort button.** A round Liquid Glass button, 48 px across, floats over the grid at the bottom right, 16 px above the tab bar. It shows the `arrow.up.arrow.down` symbol at 18 px. Without Liquid Glass, it uses the control surface. It reacts to touch.
   - It opens a native menu titled "Sort by": Relevance, Recently added, Name, Price, Mana value, and Release date. The current sort has a check mark.
   - Tapping the current sort again reverses it. An arrow beside it shows the direction: `arrow.down` for high to low, Z to A, and newest first, and `arrow.up` for the other way. Price starts high to low, Name A to Z, Mana value low to high, and Recently added and Release date newest first. Relevance has one direction.
-  - The sort applies to the binder and to search results. Relevance without text lists the newest addition first.
+  - The sort applies to the binder and to search results. Relevance without text lists the newest copy first.
   - The symbol is in the text color while the sort is Relevance. Any other sort turns it primary lime. There is no badge or dot, because count badges are only for counts.
   - VoiceOver reads "Sort, Relevance", or the sort and its direction, such as "Sort, Price, high to low".
   - The sort lasts until the app restarts and is not saved. The button hides while the user types in the search bar and while the Filters drawer is open. It also hides while the tab shows an empty state, because there is nothing to sort.

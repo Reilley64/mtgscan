@@ -131,7 +131,7 @@ describe('copy rows', () => {
     const { items, next_cursor } = await collectionCopies(user);
 
     expect(next_cursor).toBeNull();
-    expect(items).toEqual(expected.sort(byCopyId));
+    expect(items.toSorted(byCopyId)).toEqual(expected.sort(byCopyId));
   });
 
   test('each scanned copy keeps its copy ID when more copies of the same card printing are added', async () => {
@@ -157,16 +157,19 @@ describe('copy rows', () => {
     expect(new Date(row!.created_at)).toEqual(new Date(additions![0]!.added_at));
   });
 
-  test('the newest addition comes first, and copies of the same card printing sit next to each other', async () => {
+  test('the newest copy comes first, and an older copy of the same card printing keeps its own place', async () => {
     const user = await signUpNewUser();
-    await committed(user, scanBatch([stack(angelicCurator)]));
+    const older = stack(angelicCurator);
+    await committed(user, scanBatch([older]));
     await committed(user, scanBatch([stack(delverInnistrad)]));
     await committed(user, scanBatch([stack(ribbonsOfNight, { copies: 2 })]));
-    await committed(user, scanBatch([stack(angelicCurator, { finish: 'foil' })]));
+    const newer = stack(angelicCurator, { finish: 'foil' });
+    await committed(user, scanBatch([newer]));
 
     const { items } = await collectionCopies(user);
 
-    expect(printingIds(items)).toEqual([angelicCurator, angelicCurator, ribbonsOfNight, ribbonsOfNight, delverInnistrad]);
+    expect(printingIds(items)).toEqual([angelicCurator, ribbonsOfNight, ribbonsOfNight, delverInnistrad, angelicCurator]);
+    expect([items[0]!.copy_id, items[4]!.copy_id]).toEqual([newer.copy_ids[0]!, older.copy_ids[0]!]);
   });
 
   test('with no text, relevance gives the same order as sort added, and sort added in ascending order puts the oldest addition first', async () => {
