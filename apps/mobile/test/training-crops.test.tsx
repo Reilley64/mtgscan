@@ -813,7 +813,7 @@ function oldContainerUri(copyId: string) {
 
 async function saveInTheFormatOfAnOlderBuild(name: string, change: (saved: Record<string, unknown[]>) => object) {
   const file = new File(Paths.document, `${name}-user-player@example.com.json`);
-  file.write(JSON.stringify(change(JSON.parse(await file.text()))));
+  file.writeSync(JSON.stringify(change(JSON.parse(await file.text()))));
 }
 
 test('at start, the training crops of an unreadable scan batch file are deleted, and waiting training crops stay', async () => {
@@ -823,7 +823,7 @@ test('at start, the training crops of an unreadable scan batch file are deleted,
   await addTheScanBatchToTheCollection(1);
   await scanACard();
   await act(async () => screen.unmount());
-  new File(Paths.document, 'scan-batch-user-player@example.com.json').write('{"formatVersion": 99');
+  new File(Paths.document, 'scan-batch-user-player@example.com.json').writeSync('{"formatVersion": 99');
 
   await renderApp();
 
@@ -863,7 +863,7 @@ test('a scan batch and an upload queue saved with file URIs of an older build st
 });
 
 test('a scan batch saved in the old format loads with no training crops', async () => {
-  new File(Paths.document, 'scan-batch-user-player@example.com.json').write(
+  new File(Paths.document, 'scan-batch-user-player@example.com.json').writeSync(
     JSON.stringify({
       formatVersion: 1,
       scans: [

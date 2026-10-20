@@ -217,9 +217,9 @@ Agents build and install only the test app on the iPhone, and never sign in to t
 
 The app version in `apps/mobile/app.json` follows the release version. Release-please updates it together with the root `package.json`. EAS keeps the iOS build number (`cli.appVersionSource` is `remote`) and increments it for each production build.
 
-The app stays on Expo SDK 56. SDK 57 does not build on Xcode 26.3, because `expo-modules-jsi` 57.0.5 and later fail to compile with Swift 6.2 ([expo/expo#50067](https://github.com/expo/expo/issues/50067)). Move to SDK 57 when Expo releases the fix for it.
+The app is on Expo SDK 58, with React Native 0.88. It builds on Xcode 26.3 with Swift 6.2. To upgrade the SDK, run `bunx expo install expo@<version>` and then `bunx expo install --fix` in `apps/mobile`, and build the app on Xcode 26.3 before you open the PR.
 
-`apps/mobile` pins `@shopify/flash-list` to 2.3.3. For SDK 56, `expo install` picks 2.0.2, which is deprecated ([expo/expo#47523](https://github.com/expo/expo/issues/47523)). `expo.install.exclude` in `apps/mobile/package.json` leaves it out of `expo install --check`.
+`apps/mobile` pins `@shopify/flash-list` to 2.3.3. For SDK 58, `expo install` picks 2.3.2. Version 2.3.3 fixes blank rows during fast scrolling ([Shopify/flash-list#2510](https://github.com/Shopify/flash-list/pull/2510)). `expo.install.exclude` in `apps/mobile/package.json` leaves the package out of `expo install --check`. Check the pin again on each SDK upgrade.
 
 ### Catalog search
 

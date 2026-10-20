@@ -8,6 +8,8 @@ import {
   ScrollView,
   StyleSheet,
   type AlertButton,
+  type ScrollViewImperativeMethods,
+  type ScrollViewProps,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -186,11 +188,17 @@ const swipeDrags = new Map<
   { offset: number; scrollsBefore: number }
 >();
 
+type MountedScrollView = ScrollViewImperativeMethods & { props: ScrollViewProps };
+
+const mountedScrollView = (ScrollView as unknown as { prototype: MountedScrollView }).prototype;
+
 function scrollToCalls() {
-  return jest.mocked(ScrollView.prototype.scrollTo).mock;
+  return jest.mocked<(this: MountedScrollView, ...args: Parameters<MountedScrollView["scrollTo"]>) => void>(
+    mountedScrollView.scrollTo,
+  ).mock;
 }
 
-function rendersTrack(scrollView: ScrollView, track: HostElement) {
+function rendersTrack(scrollView: MountedScrollView, track: HostElement) {
   return scrollView.props.onScrollEndDrag === track.props.onScrollEndDrag;
 }
 
@@ -254,7 +262,7 @@ export function swipeHandlePosition(control: HostElement) {
   const track = swipeTrack(control);
   const scrolls = scrollToCalls();
   const latestScroll = scrolls.contexts.findLastIndex(
-    (scrollView: ScrollView) => rendersTrack(scrollView, track),
+    (scrollView) => rendersTrack(scrollView, track),
   );
   const drag = swipeDrags.get(track);
   if (drag && drag.scrollsBefore > latestScroll) {
@@ -1353,7 +1361,7 @@ export function contextMenu(element: HostElement) {
 
 function isSwiftUiHost(element: HostElement) {
   return (
-    element.type === expoUiHost && "matchContentsVertical" in element.props
+    element.type === expoUiHost && "ignoreSafeArea" in element.props
   );
 }
 

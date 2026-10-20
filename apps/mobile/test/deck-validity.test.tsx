@@ -405,7 +405,7 @@ describe('the Deck validity drawer', () => {
   });
 
   test('a citation link opens the Comprehensive Rules on magic.wizards.com', async () => {
-    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValueOnce(true);
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValueOnce();
     ownDecks([
       {
         name: 'Kinnan',

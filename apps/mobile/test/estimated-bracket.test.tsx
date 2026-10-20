@@ -175,7 +175,7 @@ describe('the Estimated bracket drawer', () => {
   });
 
   test('the drawer says a deck could be bracket 5 and links to Commander Brackets on wizards.com', async () => {
-    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValueOnce(true);
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValueOnce();
     ownKinnan();
     const drawer = await openDrawer();
 

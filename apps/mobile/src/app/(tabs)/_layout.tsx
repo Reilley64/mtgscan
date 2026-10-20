@@ -1,4 +1,4 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/native-tabs';
 import { useEffect, useState } from 'react';
 
 import { useNeedsYouCounts } from '@/needs-you/needs-you-counts';

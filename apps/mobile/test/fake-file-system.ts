@@ -33,7 +33,7 @@ class FakeFile {
     return content;
   }
 
-  write(content: string) {
+  writeSync(content: string) {
     files.set(this.uri, content);
   }
 
