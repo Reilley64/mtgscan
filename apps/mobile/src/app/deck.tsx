@@ -1,6 +1,6 @@
 import { deckNameLength, type Deck, type DeckCard, type DeckChange, type DeckPriority } from '@mtgscan/supabase/decks';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import type { MenuAction } from '@/components/atoms/menu-button';
@@ -12,7 +12,7 @@ import { ReadFailure } from '@/components/molecules/read-failure';
 import { ToggleGroup } from '@/components/molecules/toggle-group';
 import { deckActionsMenu } from '@/components/organisms/deck-actions-menu';
 import { DeckCardOrderButtons } from '@/components/organisms/deck-card-order-buttons';
-import { DeckCardsRowView, deckCardsRows, type DeckCardsRow } from '@/components/organisms/deck-cards';
+import { DeckCardsItemView, deckCardsItems, type DeckCardsItem } from '@/components/organisms/deck-cards';
 import { DeckHistory } from '@/components/organisms/deck-history';
 import { DeckSkeleton } from '@/components/organisms/deck-skeleton';
 import { NeedsYouList } from '@/components/organisms/needs-you-list';
@@ -39,7 +39,7 @@ type DeckTab = (typeof deckTabs)[number];
 
 const deckTabLabels: Record<DeckTab, string> = { cards: 'Cards', planned: 'Planned', history: 'History' };
 
-type DeckScreenItem = DeckCardsRow | { kind: Exclude<DeckTab, 'cards'>; key: string };
+type DeckScreenItem = DeckCardsItem | { kind: Exclude<DeckTab, 'cards'>; key: string };
 
 function deleteMessage(cardCount: number) {
   if (cardCount === 0) {
@@ -140,7 +140,10 @@ export default function DeckScreen() {
 
   const deck = read.status === 'loaded' ? read.deck : null;
   const violationKeys = violationCardKeys(deck?.evaluation ?? null);
-  const items: DeckScreenItem[] = !deck ? [] : tab === 'cards' ? deckCardsRows(deck, grouping, order) : [{ kind: tab, key: tab }];
+  const items = useMemo<DeckScreenItem[]>(
+    () => (!deck ? [] : tab === 'cards' ? deckCardsItems(deck, grouping, order) : [{ kind: tab, key: tab }]),
+    [deck, tab, grouping, order],
+  );
 
   function plannedContent() {
     if (planned.status === 'failed') {
@@ -213,13 +216,13 @@ export default function DeckScreen() {
   function itemView(item: DeckScreenItem, deck: Deck) {
     switch (item.kind) {
       case 'planned':
-        return <View className="gap-lg px-lg pt-lg">{plannedContent()}</View>;
+        return <View className="gap-lg pt-lg">{plannedContent()}</View>;
       case 'history':
-        return <View className="gap-lg px-lg pt-lg">{historyContent(deck)}</View>;
+        return <View className="gap-lg pt-lg">{historyContent(deck)}</View>;
       default:
         return (
-          <DeckCardsRowView
-            row={item}
+          <DeckCardsItemView
+            item={item}
             violationKeys={violationKeys}
             onOpenCard={openCard}
             menuActionsOf={menuActionsOf(deck)}
@@ -261,6 +264,8 @@ export default function DeckScreen() {
       <PushedListScreen
         data={items}
         keyExtractor={(item) => item.key}
+        getItemType={(item) => item.kind}
+        isTile={(item) => item.kind === 'card'}
         renderItem={({ item }) => (deck ? itemView(item, deck) : null)}
         ListHeaderComponent={header()}
         onScroll={onScroll}

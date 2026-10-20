@@ -118,12 +118,12 @@ export function isDefaultDeckOrder(order: DeckOrder) {
   return order.sort === defaultDeckOrder.sort && order.direction === defaultDeckOrder.direction;
 }
 
-function keyOf(card: MainDeckCard) {
+export function mainDeckCardKey(card: MainDeckCard) {
   return isBasicLandTile(card) ? card.key : card.copy_id;
 }
 
 function byName(a: MainDeckCard, b: MainDeckCard) {
-  return a.name.localeCompare(b.name) || keyOf(a).localeCompare(keyOf(b));
+  return a.name.localeCompare(b.name) || mainDeckCardKey(a).localeCompare(mainDeckCardKey(b));
 }
 
 function priceOf(card: MainDeckCard) {

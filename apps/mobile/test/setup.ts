@@ -57,6 +57,11 @@ jest.mock('expo-secure-store', () => jest.requireActual('./fake-secure-store').f
 
 jest.mock('expo-localization', () => jest.requireActual('./fake-localization').fakeLocalization);
 
+jest.mock('@shopify/flash-list/dist/native/config/PlatformHelper', () => {
+  const platformHelper = jest.requireActual('@shopify/flash-list/dist/native/config/PlatformHelper');
+  return { ...platformHelper, PlatformConfig: { ...platformHelper.PlatformConfig, defaultDrawDistance: Number.MAX_SAFE_INTEGER } };
+});
+
 jest.mock('@expo/ui/swift-ui', () => jest.requireActual('./fake-native-state').fakeSwiftUI);
 
 beforeEach(async () => {

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { FlatList, ScrollView, StyleSheet, type FlatListProps } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { useHeaderHeight } from 'expo-router/react-navigation';
 
+import { CardGridList, type CardGridListProps } from '@/components/molecules/card-grid';
 import { FloatingButtons } from '@/components/templates/floating-buttons';
 import { cn } from '@/lib/class-names';
 
@@ -36,8 +37,8 @@ export function PushedScreen({ withBar = false, children }: { withBar?: boolean;
 }
 
 type PushedListScreenProps<Item> = Omit<
-  FlatListProps<Item>,
-  'style' | 'contentContainerStyle' | 'contentInset' | 'contentInsetAdjustmentBehavior' | 'onEndReachedThreshold'
+  CardGridListProps<Item>,
+  'style' | 'contentContainerStyle' | 'contentInset' | 'contentInsetAdjustmentBehavior' | 'onEndReachedThreshold' | 'header'
 > & {
   floatingButtons?: ReactNode;
 };
@@ -45,9 +46,10 @@ type PushedListScreenProps<Item> = Omit<
 export function PushedListScreen<Item>({ floatingButtons, ...listProps }: PushedListScreenProps<Item>) {
   return (
     <>
-      <FlatList
+      <CardGridList
         {...listProps}
         {...useContentInsets(false)}
+        header="edge-to-edge"
         className={screenClass}
         contentContainerClassName={floatingButtons ? floatingButtonsContentClass : contentClass}
         keyboardShouldPersistTaps="handled"

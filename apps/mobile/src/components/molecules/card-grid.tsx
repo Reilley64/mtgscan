@@ -1,18 +1,58 @@
-import type { ReactNode } from 'react';
+import { Children, type ReactNode } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
 import { cardHeightPerWidth } from '@/components/atoms/card-image';
-import { CardTileSkeleton, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
+import { FlashList, type FlashListProps } from '@/components/atoms/flash-list';
+import { CardTileSkeleton, cardColumnClass, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
 import { cn } from '@/lib/class-names';
 
-export function inCardRows<Card>(cards: Card[]): Card[][] {
-  return Array.from({ length: Math.ceil(cards.length / cardsPerRow) }, (_, row) =>
-    cards.slice(row * cardsPerRow, (row + 1) * cardsPerRow),
+const gridInsets = {
+  content: 'px-md',
+  fullRow: 'px-xs',
+  edgeToEdge: '-mx-md',
+};
+
+const headerInsets = { 'full-row': gridInsets.fullRow, 'edge-to-edge': gridInsets.edgeToEdge };
+
+export type CardGridListProps<Item> = Omit<
+  FlashListProps<Item>,
+  'numColumns' | 'overrideItemLayout' | 'ListHeaderComponentClassName' | 'ListFooterComponentClassName' | 'ListEmptyComponentClassName'
+> & {
+  isTile: (item: Item) => boolean;
+  header?: keyof typeof headerInsets;
+};
+
+export function CardGridList<Item>({ isTile, header = 'full-row', renderItem, contentContainerClassName, ...listProps }: CardGridListProps<Item>) {
+  const { height } = useWindowDimensions();
+  return (
+    <FlashList
+      drawDistance={height * 2}
+      {...listProps}
+      numColumns={cardsPerRow}
+      overrideItemLayout={(layout, item, _index, maxColumns) => {
+        if (!isTile(item)) {
+          layout.span = maxColumns;
+        }
+      }}
+      renderItem={
+        renderItem && ((info) => (isTile(info.item) ? renderItem(info) : <View className={gridInsets.fullRow}>{renderItem(info)}</View>))
+      }
+      contentContainerClassName={cn(gridInsets.content, contentContainerClassName)}
+      ListHeaderComponentClassName={headerInsets[header]}
+      ListFooterComponentClassName={gridInsets.fullRow}
+      ListEmptyComponentClassName={gridInsets.fullRow}
+    />
   );
 }
 
 export function CardGrid({ children }: { children: ReactNode }) {
-  return <View className={cn(cardRowClass, 'flex-row flex-wrap gap-y-sm')}>{children}</View>;
+  return (
+    <View className={cn(cardRowClass, 'flex-row flex-wrap gap-y-sm')}>
+      {Children.map(children, (tile) => (
+        <View className={cardColumnClass}>{tile}</View>
+      ))}
+    </View>
+  );
 }
 
 type CardTileSkeletonsProps = {

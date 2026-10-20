@@ -9,6 +9,7 @@ import {
   cardImageLook,
   cardImageUri,
   imageSources,
+  widthInList,
   setArtLook,
   pressTab,
   scrollTabStackScreenTo,
@@ -284,6 +285,13 @@ describe('the set page', () => {
 
     expect(within(tile('Banishing Light, number 1, owned')).queryByText('1')).toBeNull();
     expect(within(tile('Beza, the Bounding Spring, number 2, owned, 2 copies')).getByText('2')).toBeOnTheScreen();
+  });
+
+  test('a set section header spans the full row, and each card printing takes a third of it', async () => {
+    const page = await openBloomburrow();
+
+    const rowWidth = widthInList(page.getByRole('header', { name: 'Draft Cards, 2 of 3, 66 percent' }));
+    expect(widthInList(tile('Banishing Light, number 1, owned'))).toBe(rowWidth / 3);
   });
 
   test('cards are images, not buttons, and tapping one does nothing', async () => {

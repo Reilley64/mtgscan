@@ -4,6 +4,7 @@ import { deckCardOf, openDeckNamed, openDeckWithCards } from './copies';
 import { ownDecks, startSignedIn } from './fake-supabase';
 import {
   buttonMenu,
+  inScreenOrder,
   menuButton,
   menuButtonNames,
   pressButtonMenuItem,
@@ -32,14 +33,13 @@ const commander = deckCardOf('commander', "Atraxa, Praetors' Voice", 'Legendary 
 });
 
 function groupHeaders(deck: Awaited<ReturnType<typeof openDeckNamed>>) {
-  return deck
-    .getAllByRole('header')
+  return inScreenOrder(deck.getAllByRole('header'))
     .map((header) => header.props.accessibilityLabel ?? header.props.children)
     .slice(1);
 }
 
 function tileNames(deck: Awaited<ReturnType<typeof openDeckNamed>>) {
-  return deck.getAllByRole('button', { name: /MH2 262/ }).map((tile) => tile.props.accessibilityLabel.split(', MH2')[0]);
+  return inScreenOrder(deck.getAllByRole('button', { name: /MH2 262/ })).map((tile) => tile.props.accessibilityLabel.split(', MH2')[0]);
 }
 
 function deckMenuButton(name: string) {

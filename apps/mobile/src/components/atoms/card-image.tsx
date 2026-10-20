@@ -26,7 +26,7 @@ type CardImageProps = {
 export function CardImage({ uri, quantity, sheen, dimmed }: CardImageProps) {
   return (
     <View className={imageVariants({ dimmed })}>
-      <Image source={uri} cachePolicy="disk" transition={200} style={StyleSheet.absoluteFill} />
+      <Image source={uri} recyclingKey={uri} cachePolicy="disk" transition={200} style={StyleSheet.absoluteFill} />
       {sheen && <View pointerEvents="none" className="absolute inset-0 opacity-sheen" style={sheenStyles[sheen]} />}
       {dimmed && <Grayscale />}
       {quantity !== undefined && (

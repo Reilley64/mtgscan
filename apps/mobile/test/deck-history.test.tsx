@@ -3,7 +3,7 @@ import { fireEvent, waitFor, within } from 'expo-router/testing-library';
 
 import { expirePageCursors, ownDeckChanges, ownDecks, startSignedIn } from './fake-supabase';
 import { fail, requestsSent } from './fake-supabase-controls';
-import { appearsBefore, cardImageUri, pressTab, pushedScreen, scrollToEnd, selectedTab } from './native-ui';
+import { appearsBefore, cardImageUri, measureListItemsAs, pressTab, pushedScreen, scrollToEnd, selectedTab } from './native-ui';
 import { renderApp } from './render-app';
 import { tokenColors } from './token-colors';
 
@@ -11,6 +11,7 @@ const { incoming, outgoing } = tokenColors;
 
 beforeEach(() => {
   startSignedIn();
+  measureListItemsAs(10_000);
 });
 
 function copyLine(name: string, typeLine: string, places: Pick<DeckChangeCopyLine, 'place_before' | 'place_after'>): DeckChangeCopyLine {

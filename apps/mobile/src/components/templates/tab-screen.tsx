@@ -1,15 +1,19 @@
 import { router, Stack } from 'expo-router';
 import type { ReactNode } from 'react';
-import { FlatList, ScrollView, type FlatListProps } from 'react-native';
+import { ScrollView } from 'react-native';
 import type { SearchBarProps } from 'react-native-screens';
 
+import { FlashList } from '@/components/atoms/flash-list';
+import { CardGridList, type CardGridListProps } from '@/components/molecules/card-grid';
 import { FloatingButtons } from '@/components/templates/floating-buttons';
 import { cn } from '@/lib/class-names';
 import { colors } from '@/theme';
 
 const screenClass = 'flex-1 bg-background';
 
-const contentClass = 'px-lg pb-xl pt-sm';
+const insetClass = 'px-lg';
+
+const contentClass = 'pb-xl pt-sm';
 
 type ScreenTitleProps = {
   title: string;
@@ -64,7 +68,7 @@ export function TabScreen({ title, actions, children }: TabScreenProps) {
       <TabHeader title={title} actions={actions} />
       <ScrollView
         className={screenClass}
-        contentContainerClassName={cn(contentClass, 'gap-lg')}
+        contentContainerClassName={cn(insetClass, contentClass, 'gap-lg')}
         contentInsetAdjustmentBehavior="automatic">
         {children}
       </ScrollView>
@@ -72,17 +76,18 @@ export function TabScreen({ title, actions, children }: TabScreenProps) {
   );
 }
 
-type ListProps<Item> = Omit<FlatListProps<Item>, 'style' | 'contentContainerStyle' | 'contentInsetAdjustmentBehavior'>;
+const screenListProps = { className: screenClass, contentInsetAdjustmentBehavior: 'automatic', keyboardDismissMode: 'on-drag' } as const;
 
-function ScreenList<Item>({ underFloatingButtons = false, ...listProps }: ListProps<Item> & { underFloatingButtons?: boolean }) {
-  return (
-    <FlatList
-      {...listProps}
-      className={screenClass}
-      contentContainerClassName={cn(contentClass, underFloatingButtons && 'pb-floating-button-clearance')}
-      contentInsetAdjustmentBehavior="automatic"
-      keyboardDismissMode="on-drag"
-    />
+type ListProps<Item> = Omit<CardGridListProps<Item>, 'style' | 'contentContainerStyle' | 'contentInsetAdjustmentBehavior' | 'isTile' | 'header'> & {
+  isTile?: (item: Item) => boolean;
+};
+
+function ScreenList<Item>({ isTile, underFloatingButtons = false, ...listProps }: ListProps<Item> & { underFloatingButtons?: boolean }) {
+  const contentClassName = cn(contentClass, underFloatingButtons && 'pb-floating-button-clearance');
+  return isTile ? (
+    <CardGridList {...listProps} {...screenListProps} isTile={isTile} contentContainerClassName={contentClassName} />
+  ) : (
+    <FlashList {...listProps} {...screenListProps} contentContainerClassName={cn(insetClass, contentClassName)} />
   );
 }
 

@@ -6,7 +6,7 @@ import { View } from 'react-native';
 
 import { useSetIcons } from '@/catalog/use-set-icons';
 import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
-import { CardTile, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
+import { CardTile } from '@/components/molecules/card-tile';
 import { FloatingButton } from '@/components/molecules/floating-button';
 import { SortButton } from '@/components/molecules/sort-button';
 import { CopyMeta } from '@/components/molecules/copy-meta';
@@ -195,8 +195,7 @@ export default function CollectionScreen() {
       }
       data={copies}
       keyExtractor={(copy) => copy.copy_id}
-      numColumns={cardsPerRow}
-      columnWrapperClassName={cardRowClass}
+      isTile={() => true}
       ItemSeparatorComponent={RowGap}
       renderItem={({ item }) => <BinderTile copy={item} setIconUri={iconOf(item.set)} commanderArtOf={commanderArtOf} />}
       ListFooterComponent={

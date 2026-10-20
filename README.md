@@ -219,6 +219,8 @@ The app version in `apps/mobile/app.json` follows the release version. Release-p
 
 The app is on Expo SDK 58, with React Native 0.88. It builds on Xcode 26.3 with Swift 6.2. To upgrade the SDK, run `bunx expo install expo@<version>` and then `bunx expo install --fix` in `apps/mobile`, and build the app on Xcode 26.3 before you open the PR.
 
+`apps/mobile` pins `@shopify/flash-list` to 2.3.3. For SDK 58, `expo install` picks 2.3.2. Version 2.3.3 fixes blank rows during fast scrolling ([Shopify/flash-list#2510](https://github.com/Shopify/flash-list/pull/2510)). `expo.install.exclude` in `apps/mobile/package.json` leaves the package out of `expo install --check`. Check the pin again on each SDK upgrade.
+
 ### Catalog search
 
 Signed-in users search the card catalog with `supabase.rpc('search_catalog', { query })`. The query is a typed object, never a query string. `supabase/search.ts` has its contract, `searchCatalog`, with the query and the result page.
