@@ -22,4 +22,7 @@ Pod::Spec.new do |s|
     'SWIFT_COMPILATION_MODE' => 'wholemodule',
     'SWIFT_OPTIMIZATION_LEVEL' => '-O'
   }
+  s.user_target_xcconfig = {
+    'SWIFT_INCLUDE_PATHS' => '$(PODS_ROOT)/../../modules/card-recognizer/ios/WebP'
+  }
 end
