@@ -230,6 +230,11 @@ begin
             from public.planned_swaps swap
             join public.decks deck on deck.user_id = swap.user_id and deck.id = swap.deck_id
             where swap.user_id = a.user_id and swap.incoming_copy_id = a.copy_id and swap.status = 'open'
+          ),
+          'created_at', (
+            select copy.created_at
+            from public.copies copy
+            where copy.user_id = a.user_id and copy.id = a.copy_id
           )
         )
       else jsonb_build_object(

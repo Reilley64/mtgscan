@@ -117,7 +117,7 @@ export type NeedsYouCounts = {
   decks: { deck_id: string; count: number }[];
 };
 
-export type DeckCard = Omit<CollectionCopyRow, 'deck' | 'held_for'> & {
+export type DeckCard = Omit<CollectionCopyRow, 'deck' | 'held_for' | 'created_at'> & {
   role: DeckRole;
   commander_at: string | null;
   added_at: string;

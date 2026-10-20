@@ -12,7 +12,11 @@ setDefaultTimeout(180_000);
 const migrationBeforeWhoChanged = '20261212090000';
 
 const filledTables: { table: string; timeColumn: string | null; filledFrom: 'user' | 'client' }[] = [
-  { table: 'copies', timeColumn: null, filledFrom: 'user' },
+  {
+    table: 'copies',
+    timeColumn: '(select addition.added_at from public.collection_additions addition where addition.id = addition_id)',
+    filledFrom: 'user',
+  },
   { table: 'collection_additions', timeColumn: 'added_at', filledFrom: 'user' },
   { table: 'decks', timeColumn: 'created_at', filledFrom: 'user' },
   { table: 'deck_cards', timeColumn: 'added_at', filledFrom: 'user' },
@@ -94,7 +98,7 @@ describe('the migration that records who created and last changed each record', 
     }
   });
 
-  test("existing records' times start from their existing time column, otherwise from the migration time", async () => {
+  test("existing records' times start from their existing time column, copies' from their addition's added_at, otherwise from the migration time", async () => {
     for (const { table, timeColumn } of filledTables) {
       const rows = await filledRows(table, client.user.userId);
 

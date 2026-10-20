@@ -51,6 +51,7 @@ const curator: CollectionCopyRow = {
   price: null,
   deck: null,
   held_for: null,
+  created_at: '2026-10-12T12:00:00.000Z',
 };
 
 function setRow(code: string, name: string, owned: number, size: number, releasedAt = '2024-08-02'): CardSet {
