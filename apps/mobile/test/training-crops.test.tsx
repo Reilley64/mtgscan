@@ -15,7 +15,7 @@ import {
 } from './card-printings';
 import { timePasses, todayIs } from './clock';
 import { resetSampleClock } from './detection-samples';
-import { cardRecognition, holdNextRecognition, nextPhotosAre, notACard } from './fake-card-recognizer';
+import { cardRecognition, galleryDownloadReports, holdNextRecognition, nextPhotosAre, notACard } from './fake-card-recognizer';
 import { fileContent, filesIn, whenAFileIsDeleted } from './fake-file-system';
 import { changeElsewhere, publishedGalleryVersion, refuseNextTrainingCrop, signInNextWithEmail, startSignedIn, trainingCropsUploaded, trainingCropUploadsAreOnTheServer, turnTrainingCropUploadsOffElsewhere } from './fake-supabase';
 import { callsSent, fail, hold, requestsSent } from './fake-supabase-controls';
@@ -124,7 +124,7 @@ test('a saved training crop waits at least 1 day, then uploads with its evidence
     reading_names_saved_printing: true,
     same_text_twin_count: 0,
     recognizer_version: '1.0.0 (7)',
-    feature_print_revision: 2,
+    feature_print_model: 'pe-core-s16-384',
     gallery_version: publishedGalleryVersion,
     recognized_printing_id: lightningBoltM10.printingId,
     saved_printing_id: lightningBoltM10.printingId,
@@ -133,6 +133,23 @@ test('a saved training crop waits at least 1 day, then uploads with its evidence
     policy_version: 1,
   });
   expect(filesIn(keptCrops)).toEqual([]);
+});
+
+test('each evidence record names the feature print model of the gallery version installed when its card was scanned', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+  await galleryDownloadReports('installed', { version: '20261231-a1b2c3', model: 'later-model' });
+  await scanACard();
+  await addTheScanBatchToTheCollection(2);
+
+  await timePasses(7 * day);
+  await returnToTheApp();
+
+  expect(trainingCropsUploaded().map(({ crop }) => [crop.saved_printing_id, crop.feature_print_model, crop.gallery_version])).toEqual([
+    [lightningBoltM10.printingId, 'pe-core-s16-384', publishedGalleryVersion],
+    [shock.printingId, 'later-model', '20261231-a1b2c3'],
+  ]);
 });
 
 test('a training crop waits less than 7 days and uploads when the app starts after its upload time', async () => {

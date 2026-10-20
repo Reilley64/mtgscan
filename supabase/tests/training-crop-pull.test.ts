@@ -93,6 +93,7 @@ describe('pulling training crops', () => {
       recognized_printing_id: angelicCurator,
       saved_printing_id: delverInnistrad,
       printing_change: 'name_search',
+      feature_print_model: 'apple-vision-2',
     }),
   ];
   const later = evidenceRecord({ printing_confirmed: true });
@@ -117,9 +118,13 @@ describe('pulling training crops', () => {
     }
   });
 
-  test('the labels file lists each crop with its saved card printing, in the scanner evidence pack format', async () => {
+  test('the labels file lists each crop with its saved card printing and its feature print model, in the scanner evidence pack format', async () => {
     expect(await readJson(folder, 'labels.json')).toEqual({
-      cards: byCropId(crops).map((crop) => ({ crop: `crops/${crop.crop_id}.jpg`, scryfallId: crop.saved_printing_id })),
+      cards: byCropId(crops).map((crop) => ({
+        crop: `crops/${crop.crop_id}.jpg`,
+        scryfallId: crop.saved_printing_id,
+        featurePrintModel: crop.feature_print_model,
+      })),
     });
   });
 

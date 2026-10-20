@@ -61,7 +61,7 @@ The recognizer makes feature prints with the Core ML model of the installed gall
 
 The recognizer reads its thresholds from the installed gallery version: not a card, orientation margin, and art margin. It also reads the model's input size and the vector size there. A gallery installed before gallery format 2 has no model, so it does not load, and the recognizer throws `gallery_not_ready`.
 
-The module also exports `recognizerVersion` for the evidence record of a training crop: the app version and build number, such as `1.0.0 (7)`.
+The module also exports `recognizerVersion` for the evidence record of a training crop. It is the app version and build number, such as `1.0.0 (7)`. A production build has a new build number, and release-please raises the app version, so each release sends a higher recognizer version. `installedGallery()` returns the installed gallery version, its built time, and the name of its model, such as `pe-core-s16-384`.
 
 Each candidate carries its card printing ID, Oracle ID, name, set code, collector number, finishes, and basic land flag from the printing list. Name search also runs on the phone, over the printing list of the installed gallery:
 
@@ -181,7 +181,7 @@ The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in accou
 - The file marks a commit that has not finished. At sign-in, the phone sends that commit again by itself.
 - A commit that works removes the scans it sent. A commit that fails keeps every scan. Batch review rows do not open while a commit runs. Scan details from the latest-scan chip do not offer **Remove scan** while a commit runs.
 - **Remove** in the **Remove all scans** alert of batch review empties the scan batch and its file. It also clears a commit that has not finished. A recognition that is still running adds no scan when it ends, and the phone deletes its training crop. Nothing reaches the server.
-- A scan keeps its training crop. When the scan enters the scan batch, the phone moves the crop from `Caches/training-crops` to `training-crops/<user ID>/<copy ID>.jpg` in the documents folder. The scan batch file and the upload queue file save no file URI. The phone builds the path of each crop from the user ID and the copy ID, so a crop is still found if iOS moves the app's data folder. `src/scan/training-crop-keeper.ts` holds the rules for these files. The scan also keeps the recognizer fields of the evidence record: the decision, the top similarity, the art margin, the collector line reading, the recognizer version, the feature print revision, and the installed gallery version. A basic land, a recognition with no candidates, and a scan from **+1** keep no crop, and the phone deletes the crop of the first two.
+- A scan keeps its training crop. When the scan enters the scan batch, the phone moves the crop from `Caches/training-crops` to `training-crops/<user ID>/<copy ID>.jpg` in the documents folder. The scan batch file and the upload queue file save no file URI. The phone builds the path of each crop from the user ID and the copy ID, so a crop is still found if iOS moves the app's data folder. `src/scan/training-crop-keeper.ts` holds the rules for these files. The scan also keeps the recognizer fields of the evidence record: the decision, the top similarity, the art margin, the collector line reading, the recognizer version, and the installed gallery version with the name of its model. A basic land, a recognition with no candidates, and a scan from **+1** keep no crop, and the phone deletes the crop of the first two.
 - A scan keeps `recognizedPrintingId`, the scanner's first card printing. A scan that the user found with name search after it was not recognized has none.
 - A scan keeps `printingChange`. It is null until the user chooses a card printing other than the current one. Then it is `other_options`, `printing_picker`, or `name_search`, from the last such choice. A switch back to the first card printing is a change too.
 - A scan keeps `printingConfirmed`. Choosing the current card printing in the printing picker sets it. Any later change clears it.
@@ -453,7 +453,7 @@ The evidence record has these fields, each a column of `training_crops`:
 - `top_similarity` and `art_margin`;
 - `reading_set_code`, `reading_collector_number`, `reading_premium_mark`, and `reading_names_saved_printing`, which says whether the collector line named the saved card printing;
 - `same_text_twin_count`;
-- `recognizer_version` (the app version and build number), `feature_print_revision`, and `gallery_version`;
+- `recognizer_version` (the app version and build number), `feature_print_model`, and `gallery_version`. `feature_print_model` is the name of the model that made the feature prints, from the model block of the installed gallery version, such as `pe-core-s16-384`. It is text of up to 50 characters. Crops stored before the switch to PE-Core S16 have `apple-vision-2`. `add_training_crop` refuses `feature_print_revision`, the field of older builds, as an unknown field;
 - `recognized_printing_id`, the scanner's first card printing, and `saved_printing_id`, both in the card catalog;
 - `printing_change` (`other_options`, `printing_picker`, `name_search`, or null) and `printing_confirmed`;
 - `policy_version`.
@@ -470,7 +470,7 @@ The **Upload training crops** switch in the settings drawer sets `profiles.train
 The owner downloads the training crops to the Mac with `bun run crops pull` in `supabase`. The script loads `.env.hosted`, like the gallery commands, so it reads the hosted project with the secret key. It downloads into `~/Library/Caches/mtgscan/training-crops/`, outside the repository. `--into <dir>` names another folder. The folder has the layout of the scanner evidence pack:
 
 - `crops/<crop_id>.jpg` holds each image. The command downloads only the images that are not in the folder yet.
-- `labels.json` has `cards`, with each crop path and its `saved_printing_id` as `scryfallId`.
+- `labels.json` has `cards`, with each crop path, its `saved_printing_id` as `scryfallId`, and its `feature_print_model` as `featurePrintModel`.
 - `evidence.json` has the evidence record of each crop, in the same order.
 
 A row whose image is not in the bucket yet waits for a later pull. The command prints the number of new crops, the number of crops in the folder and their total size, and the Storage left before uploads stop at 90%. It reads the Storage left from `get_training_crop_storage`, so it uses the same limit and rule as `storage_full`.
