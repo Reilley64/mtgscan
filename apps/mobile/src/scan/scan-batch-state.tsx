@@ -214,6 +214,7 @@ function scanningReducer(state: Scanning, action: ScanningAction): Scanning {
         ...state,
         batch: scanBatchReducer(state.batch, action),
         latest: { kind: 'scan', scanId: action.newScanId },
+        feedback: { outcome: 'recognized' },
       };
     case 'commitStarted':
       return { ...state, batch: scanBatchReducer(state.batch, action), commitStatus: 'adding' };
