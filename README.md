@@ -856,13 +856,13 @@ The script signs in the test user and connects two AI clients. It approves each 
 What the checks prove:
 
 - A call with no token gets 401 with `WWW-Authenticate`. The protected resource metadata names the MCP server URL and the issuer. The check reads both with the MCP client SDK.
-- The authorization server metadata names the issuer, the registration, authorization, and token endpoints, PKCE with `S256`, and `offline_access`. With `--hosted`, it must answer at the RFC 8414 URL, `<Supabase URL>/.well-known/oauth-authorization-server/auth/v1`, which ChatGPT may use. The check reads the metadata with `discoverAuthorizationServerMetadata` from the MCP client SDK, which also checks the issuer. The local stack answers only at `<Supabase URL>/auth/v1/.well-known/openid-configuration`, the last discovery URL that the SDK tries. The later checks reuse this metadata.
+- The authorization server metadata names the issuer, the registration, authorization, and token endpoints, PKCE with `S256`, and `offline_access`. With `--hosted`, it must answer at the RFC 8414 URL, `<Supabase URL>/.well-known/oauth-authorization-server/auth/v1`, which ChatGPT may use, with the issuer. The check reads the metadata with `discoverAuthorizationServerMetadata` from the MCP client SDK, which also checks the issuer. The local stack answers only at `<Supabase URL>/auth/v1/.well-known/openid-configuration`, the last discovery URL that the SDK tries. The later checks reuse this metadata.
 - The test user signs in with email and password.
 - For a public client and for a confidential client, because ChatGPT may register either kind:
   - dynamic client registration works;
   - authorize, with `resource` and the scopes that ChatGPT asks for, sends the user to the consent page (supabase/auth#2820). With `--hosted`, it must be `https://mtgscan.reilley.dev/oauth/consent`;
   - the consent page reads the authorization details with the client name;
-  - approval returns a code;
+  - approval returns a code and the `state` of the authorize request;
   - the code exchange with PKCE and `resource` issues an access token and a refresh token;
   - refresh issues a new access token;
   - both access tokens have `aud` `["authenticated", "<MCP server URL>"]`, the issuer, and the AI client's `client_id`.
@@ -895,7 +895,7 @@ bun run test-user
 bun run mcp-preflight
 ```
 
-`supabase/tests/mcp-preflight.test.ts` runs the MCP pre-flight on the local stack. `supabase/mcp-connection.ts` holds the OAuth steps, the MCP client, the tool names and their annotations, and the refusal of the app write functions. The HTTP tests and the MCP pre-flight both use it. Its OAuth steps call the OAuth functions of the MCP client SDK, `@modelcontextprotocol/client`, as SDK-based AI clients do: `registerClient`, `startAuthorization`, `exchangeAuthorization`, and `refreshAuthorization`. They send `resource`, and the SDK picks the token endpoint auth method. Only the authorize request is a plain `fetch` that does not follow the redirect, so that it finds the consent page. The database tests read the authorization server metadata once and reuse it for each AI client.
+`supabase/tests/mcp-preflight.test.ts` runs the MCP pre-flight on the local stack. `supabase/mcp-connection.ts` holds the OAuth steps, the MCP client, the tool names and their annotations, and the refusal of the app write functions. The HTTP tests and the MCP pre-flight both use it. Its OAuth steps call the OAuth functions of the MCP client SDK, `@modelcontextprotocol/client`, as SDK-based AI clients do. These functions are `registerClient`, `startAuthorization`, `exchangeAuthorization`, and `refreshAuthorization`. The steps send `resource`. The SDK picks the token endpoint auth method. Approval checks that the redirect has the `state` of the authorize request, and the code exchange passes on its `iss`. Only the authorize request is a plain `fetch` that does not follow the redirect, so that it finds the consent page. The database tests read the authorization server metadata once and reuse it for each AI client.
 
 #### Consent page
 

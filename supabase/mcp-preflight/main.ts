@@ -1,11 +1,10 @@
 import { isDeepStrictEqual, parseArgs } from 'node:util';
 
 import {
-  buildDiscoveryUrls,
-  discoverAuthorizationServerMetadata,
   discoverOAuthProtectedResourceMetadata,
   extractWWWAuthenticateParams,
   SUPPORTED_PROTOCOL_VERSIONS,
+  type AuthorizationServerMetadata,
   type Client,
   type OAuthClientInformationFull,
   type OAuthTokens,
@@ -21,6 +20,7 @@ import {
   approve,
   authorize,
   claimsOf,
+  discoverAuthorizationServer,
   exchangeCode,
   issuerOf,
   mcpClient,
@@ -32,8 +32,8 @@ import {
   oauthEndpointsOf,
   refreshTokens,
   registerAiClient,
+  type Approval,
   type Authorization,
-  type AuthorizationServer,
   type ClientKind,
 } from '../mcp-connection';
 import type { searchCatalog } from '../search';
@@ -108,13 +108,13 @@ type ConnectedClient = {
   name: string;
   registered: OAuthClientInformationFull;
   authorization?: Authorization;
-  code?: string;
+  approval?: Approval;
   tokens?: OAuthTokens;
   refreshed?: OAuthTokens;
 };
 
 const state: {
-  authorizationServer?: AuthorizationServer;
+  metadata?: AuthorizationServerMetadata;
   signedIn?: true;
   clients: Partial<Record<ClientKind, ConnectedClient>>;
   createdClientIds: string[];
@@ -202,12 +202,10 @@ const discoveryChecks: Check[] = [
     run: async () => {
       if (values.hosted) {
         const response = await fetch(rfc8414MetadataUrl);
-        passIf(response.ok, `${rfc8414MetadataUrl}: status ${response.status}`);
+        const rfc8414Issuer = response.ok ? (await response.json()).issuer : undefined;
+        passIf(rfc8414Issuer === issuer, `${rfc8414MetadataUrl}: status ${response.status}, issuer ${rfc8414Issuer}`);
       }
-      const metadata = await discoverAuthorizationServerMetadata(issuer);
-      if (!metadata) {
-        throw new Error(`No metadata at ${buildDiscoveryUrls(issuer).map(({ url }) => url).join(', ')}`);
-      }
+      const metadata = await discoverAuthorizationServer(url);
       const endpoints = oauthEndpointsOf(url);
       const detail = passIf(
         metadata.registration_endpoint === endpoints.registration &&
@@ -222,7 +220,7 @@ const discoveryChecks: Check[] = [
           `scopes ${JSON.stringify(metadata.scopes_supported)}`,
         ].join(', '),
       );
-      state.authorizationServer = { metadata, mcpServerUrl };
+      state.metadata = metadata;
       return detail;
     },
   },
@@ -245,7 +243,7 @@ function clientChecks(kind: ClientKind): Check[] {
       name: `${label}: dynamic client registration`,
       run: async () => {
         const name = `mtgscan pre-flight ${kind} client`;
-        const registered = await registerAiClient(fromEarlierCheck(state.authorizationServer), name, kind);
+        const registered = await registerAiClient(fromEarlierCheck(state.metadata), name, kind);
         state.createdClientIds.push(registered.client_id);
         state.clients[kind] = { name, registered };
         return passIf(
@@ -258,7 +256,7 @@ function clientChecks(kind: ClientKind): Check[] {
       name: `${label}: authorize sends the user to the consent page (supabase/auth#2820)`,
       run: async () => {
         const connected = client();
-        const authorization = await authorize(state.authorizationServer!, connected.registered);
+        const authorization = await authorize(fromEarlierCheck(state.metadata), mcpServerUrl, connected.registered);
         const consentPage = `${authorization.consentPage.origin}${authorization.consentPage.pathname}`;
         connected.authorization = authorization;
         return passIf(!values.hosted || consentPage === hostedConsentPage, consentPage);
@@ -279,20 +277,24 @@ function clientChecks(kind: ClientKind): Check[] {
       },
     },
     {
-      name: `${label}: approval returns a code`,
+      name: `${label}: approval returns a code and the state of the authorize request`,
       run: async () => {
         const connected = client();
-        const { authorizationId } = fromEarlierCheck(connected.authorization);
-        connected.code = await approve(testUserClient, authorizationId);
-        return 'approved';
+        connected.approval = await approve(testUserClient, fromEarlierCheck(connected.authorization));
+        return `approved, iss ${connected.approval.iss ?? 'not sent'}`;
       },
     },
     {
       name: `${label}: the token exchange with PKCE and resource issues an access token and a refresh token`,
       run: async () => {
         const connected = client();
-        const code = fromEarlierCheck(connected.code);
-        const tokens = await exchangeCode(state.authorizationServer!, connected.registered, code, connected.authorization!.codeVerifier);
+        const tokens = await exchangeCode(
+          fromEarlierCheck(state.metadata),
+          mcpServerUrl,
+          connected.registered,
+          fromEarlierCheck(connected.authorization),
+          fromEarlierCheck(connected.approval),
+        );
         connected.tokens = tokens;
         return passIf(tokens.refresh_token !== undefined, `refresh token ${tokens.refresh_token ? 'issued' : 'missing'}`);
       },
@@ -302,7 +304,7 @@ function clientChecks(kind: ClientKind): Check[] {
       run: async () => {
         const connected = client();
         const { refresh_token } = fromEarlierCheck(connected.tokens);
-        const refreshed = await refreshTokens(state.authorizationServer!, connected.registered, fromEarlierCheck(refresh_token));
+        const refreshed = await refreshTokens(fromEarlierCheck(state.metadata), mcpServerUrl, connected.registered, fromEarlierCheck(refresh_token));
         connected.refreshed = refreshed;
         return passIf(refreshed.access_token !== connected.tokens!.access_token, 'new access token issued');
       },
@@ -552,7 +554,7 @@ const revokeChecks: Check[] = [
     name: "Revoke refuses the AI client's refresh token",
     run: async () => {
       const connected = fromEarlierCheck(state.clients.public?.refreshed);
-      const refreshed = await refreshTokens(state.authorizationServer!, state.clients.public!.registered, connected.refresh_token!).then(
+      const refreshed = await refreshTokens(fromEarlierCheck(state.metadata), mcpServerUrl, state.clients.public!.registered, connected.refresh_token!).then(
         () => true,
         () => false,
       );

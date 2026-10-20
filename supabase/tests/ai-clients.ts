@@ -1,3 +1,4 @@
+import type { AuthorizationServerMetadata } from '@modelcontextprotocol/client';
 import { PostgrestError } from '@supabase/supabase-js';
 
 import {
@@ -7,7 +8,7 @@ import {
   type ReplyOf,
   type RequestOf,
 } from '../database-function';
-import { allowAiClient, discoverAuthorizationServer, mcpServerUrlOf, type AuthorizationServer } from '../mcp-connection';
+import { allowAiClient, discoverAuthorizationServer, mcpServerUrlOf } from '../mcp-connection';
 import { expectReplied, parsed } from './database-calls';
 import { asDatabaseOwner, asDatabaseRole, localStackUrl, signUpNewUser, type TestUser } from './local-stack';
 
@@ -18,15 +19,15 @@ export type AiClient = {
   token: string;
 };
 
-let localAuthorizationServer: Promise<AuthorizationServer> | undefined;
+let localAuthorizationServerMetadata: Promise<AuthorizationServerMetadata> | undefined;
 
-export function authorizationServer(): Promise<AuthorizationServer> {
-  localAuthorizationServer ??= discoverAuthorizationServer(localStackUrl);
-  return localAuthorizationServer;
+export function authorizationServerMetadata(): Promise<AuthorizationServerMetadata> {
+  localAuthorizationServerMetadata ??= discoverAuthorizationServer(localStackUrl);
+  return localAuthorizationServerMetadata;
 }
 
 export async function connectAiClient(user: TestUser): Promise<AiClient> {
-  const { client, tokens } = await allowAiClient(await authorizationServer(), user.client, 'Test AI chat', 'public');
+  const { client, tokens } = await allowAiClient(await authorizationServerMetadata(), mcpServerUrl, user.client, 'Test AI chat', 'public');
   return { clientId: client.client_id, token: tokens.access_token };
 }
 

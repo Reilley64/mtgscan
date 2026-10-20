@@ -71,15 +71,16 @@ export function oauthEndpointsOf(supabaseUrl: string) {
 
 export type ClientKind = 'public' | 'confidential';
 
-export type AuthorizationServer = {
-  metadata: AuthorizationServerMetadata;
-  mcpServerUrl: string;
-};
-
 export type Authorization = {
   consentPage: URL;
   authorizationId: string;
+  state: string;
   codeVerifier: string;
+};
+
+export type Approval = {
+  code: string;
+  iss?: string;
 };
 
 type SignedInUser = Pick<SupabaseClient, 'auth'>;
@@ -88,17 +89,17 @@ async function failure(action: string, response: Response): Promise<Error> {
   return new Error(`${action} failed with ${response.status}: ${await response.text()}`);
 }
 
-export async function discoverAuthorizationServer(supabaseUrl: string): Promise<AuthorizationServer> {
+export async function discoverAuthorizationServer(supabaseUrl: string): Promise<AuthorizationServerMetadata> {
   const issuer = issuerOf(supabaseUrl);
   const metadata = await discoverAuthorizationServerMetadata(issuer);
   if (!metadata) {
     throw new Error(`No authorization server metadata for ${issuer}`);
   }
-  return { metadata, mcpServerUrl: mcpServerUrlOf(supabaseUrl) };
+  return metadata;
 }
 
 export function registerAiClient(
-  { metadata }: AuthorizationServer,
+  metadata: AuthorizationServerMetadata,
   clientName: string,
   kind: ClientKind,
 ): Promise<OAuthClientInformationFull> {
@@ -115,16 +116,18 @@ export function registerAiClient(
 }
 
 export async function authorize(
-  { metadata, mcpServerUrl }: AuthorizationServer,
+  metadata: AuthorizationServerMetadata,
+  resource: string,
   client: OAuthClientInformationFull,
 ): Promise<Authorization> {
+  const state = crypto.randomUUID();
   const { authorizationUrl, codeVerifier } = await startAuthorization(metadata.issuer, {
     metadata,
     clientInformation: client,
     redirectUrl: aiClientRedirectUri,
     scope: aiChatScope,
-    state: crypto.randomUUID(),
-    resource: mcpServerUrl,
+    state,
+    resource,
   });
   const response = await fetch(authorizationUrl, { redirect: 'manual' });
   const location = response.headers.get('location');
@@ -136,59 +139,64 @@ export async function authorize(
   if (consentPage.pathname !== '/oauth/consent' || !authorizationId) {
     throw new Error(`Authorize sent the user to ${consentPage} instead of the consent page`);
   }
-  return { consentPage, authorizationId, codeVerifier };
+  return { consentPage, authorizationId, state, codeVerifier };
 }
 
-export async function approve(user: SignedInUser, authorizationId: string): Promise<string> {
+export async function approve(user: SignedInUser, { authorizationId, state }: Authorization): Promise<Approval> {
   const { data, error } = await user.auth.oauth.approveAuthorization(authorizationId, { skipBrowserRedirect: true });
   if (error) {
     throw error;
   }
-  const code = new URL(data.redirect_url).searchParams.get('code');
-  if (!code) {
-    throw new Error(`Approval returned no code: ${data.redirect_url}`);
+  const redirect = new URL(data.redirect_url).searchParams;
+  const code = redirect.get('code');
+  if (!code || redirect.get('state') !== state) {
+    throw new Error(`Approval returned no code or another state: ${data.redirect_url}`);
   }
-  return code;
+  return { code, iss: redirect.get('iss') ?? undefined };
 }
 
 export function exchangeCode(
-  { metadata, mcpServerUrl }: AuthorizationServer,
+  metadata: AuthorizationServerMetadata,
+  resource: string,
   client: OAuthClientInformationFull,
-  code: string,
-  codeVerifier: string,
+  { codeVerifier }: Authorization,
+  { code, iss }: Approval,
 ): Promise<OAuthTokens> {
   return exchangeAuthorization(metadata.issuer, {
     metadata,
     clientInformation: client,
     authorizationCode: code,
+    iss,
     codeVerifier,
     redirectUri: aiClientRedirectUri,
-    resource: mcpServerUrl,
+    resource,
   });
 }
 
 export function refreshTokens(
-  { metadata, mcpServerUrl }: AuthorizationServer,
+  metadata: AuthorizationServerMetadata,
+  resource: string,
   client: OAuthClientInformationFull,
   refreshToken: string,
 ): Promise<OAuthTokens> {
-  return refreshAuthorization(metadata.issuer, { metadata, clientInformation: client, refreshToken, resource: mcpServerUrl });
+  return refreshAuthorization(metadata.issuer, { metadata, clientInformation: client, refreshToken, resource });
 }
 
 export async function allowAiClient(
-  server: AuthorizationServer,
+  metadata: AuthorizationServerMetadata,
+  resource: string,
   user: SignedInUser,
   clientName: string,
   kind: ClientKind,
 ): Promise<{ client: OAuthClientInformationFull; tokens: OAuthTokens }> {
-  const client = await registerAiClient(server, clientName, kind);
-  const { authorizationId, codeVerifier } = await authorize(server, client);
-  const details = await user.auth.oauth.getAuthorizationDetails(authorizationId);
+  const client = await registerAiClient(metadata, clientName, kind);
+  const authorization = await authorize(metadata, resource, client);
+  const details = await user.auth.oauth.getAuthorizationDetails(authorization.authorizationId);
   if (details.error) {
     throw details.error;
   }
-  const code = await approve(user, authorizationId);
-  return { client, tokens: await exchangeCode(server, client, code, codeVerifier) };
+  const approval = await approve(user, authorization);
+  return { client, tokens: await exchangeCode(metadata, resource, client, authorization, approval) };
 }
 
 export function claimsOf(token: string): Record<string, unknown> {

@@ -7,7 +7,7 @@ import { databaseFunctions } from '../database-functions';
 import { createDeck, getDeck } from '../decks';
 import { allowAiClient, appWriteRefusal, claimsOf, refreshTokens } from '../mcp-connection';
 import { basicLand, catalogFixtureManifest, oracleIdOf, resetCardCatalog, runCatalogImport } from './catalog-import-command';
-import { aiClientClaims, aiClientReply, authorizationServer, connectAiClient, mcpServerUrl } from './ai-clients';
+import { aiClientClaims, aiClientReply, authorizationServerMetadata, connectAiClient, mcpServerUrl } from './ai-clients';
 import { collectionCopies } from './collection-pages';
 import { call, replyOf } from './database-calls';
 import { asDatabaseOwner, asDatabaseRole, signUpNewUser, tokenClient, type TestUser } from './local-stack';
@@ -256,12 +256,12 @@ describe('connecting an AI client', () => {
   test.each([
     ['public', 'none'],
     ['confidential', 'client_secret_basic'],
-  ] as const)('a %s client gets tokens for the MCP server and refreshes them', async (kind, tokenEndpointAuthMethod) => {
+  ] as const)('a %s AI client gets tokens for the MCP server and refreshes them', async (kind, tokenEndpointAuthMethod) => {
     const user = await signUpNewUser();
-    const server = await authorizationServer();
+    const metadata = await authorizationServerMetadata();
 
-    const { client, tokens } = await allowAiClient(server, user.client, 'Test AI chat', kind);
-    const refreshed = await refreshTokens(server, client, tokens.refresh_token!);
+    const { client, tokens } = await allowAiClient(metadata, mcpServerUrl, user.client, 'Test AI chat', kind);
+    const refreshed = await refreshTokens(metadata, mcpServerUrl, client, tokens.refresh_token!);
 
     expect(client.token_endpoint_auth_method).toBe(tokenEndpointAuthMethod);
     expect(client.client_secret === undefined).toBe(kind === 'public');
