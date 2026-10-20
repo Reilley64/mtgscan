@@ -295,12 +295,23 @@ Signed-in users read Sets in pages with `supabase.rpc('list_sets', { query: { te
 Signed-in users read one set with `supabase.rpc('get_set', { query })`. The set page reads through it. `supabase/sets.ts` has the shared types.
 
 - The query has `code`, the set code, such as `blb`.
-- The result has the fields of a `list_sets` row for the set, then `main_set` and `variants`.
-- `main_set` lists the card printings of the main set. `variants.card_printings` lists the variants, and `variants.completion` is their own set completion in each finish view. Basic land cards are in neither list.
-- Both lists come in collector number order. Numbers sort by their leading digits, then as text, so "9" comes before "10" and "10a".
+- The result has the fields of a `list_sets` row for the set, then `sections` and `other`. Its `completion` is still the set completion of the main set.
+- `sections` lists the set's set sections in Scryfall's order. Each has its `name`, its `completion` in each finish view, and its `card_printings`. A card printing in more than one set section is in each of them, and counts toward each.
+- `other` has its `completion` and its `card_printings`: the card printings that no set section lists. A set with no stored set sections has an empty `sections`, and `other` holds every card printing of the set.
+- Basic land cards and absent card printings are in no set section and not in `other`. A set section left with no card printings is left out.
+- A set section's `completion` and `other`'s `completion` follow the set completion rule over their own card printings.
+- Each list of card printings comes in collector number order. Numbers sort by their leading digits, then as text, so "9" comes before "10" and "10a".
 - Each card printing has `printing_id`, `name`, `collector_number`, `image_uri` (the front face image, or null), `finishes`, and `counts`, the number of the caller's copies under `any`, `nonfoil`, and `foil`. `counts.foil` is null when the card printing has no foil or etched finish.
 - `list_sets` and `get_set` share the main set rule and the set completion count, so a set's completion is the same in both reads.
 - The function runs with the caller's rights. An anonymous caller and the secret key are refused. A set code that is unknown, not released, or has no card printing in the card catalog has the code `not_found` and the field `code`. A refused query has the code `invalid_argument` and the field at fault.
+
+### Set sections
+
+`set_sections` holds each set's set sections from its Scryfall set page: `set_code`, `position` in Scryfall's order from 1, `name`, and `search`, the Scryfall search under the header. `set_section_card_printings` links each set section to the card printings that its search returned. `card_sets.set_sections_read_at` is when the set's set sections were last read. Signed-in users can read both tables. Only `import_set_sections` writes them.
+
+- `supabase.rpc('import_set_sections', { set_code, sections })` with the secret key replaces one set's set sections and their card printings in one transaction, and records the read time. Each section has `name`, `search`, and `card_printing_ids`.
+- It drops the card printing IDs that are not in the card catalog. It refuses a set code that is not in `card_sets`. When it fails, the set keeps its stored set sections.
+- It does not go through import runs, so the import can store the set sections of one set while the read of another set fails. See ADR 0013.
 
 ### Current prices read
 

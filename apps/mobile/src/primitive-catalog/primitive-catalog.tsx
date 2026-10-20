@@ -42,6 +42,7 @@ import { FloatingButton } from '@/components/molecules/floating-button';
 import { SetBannerSkeleton, SetListSkeleton } from '@/components/molecules/set-banner-skeleton';
 import { SetHeader, SetRow } from '@/components/organisms/set-row';
 import { SetBanner, SetPageBanner } from '@/components/organisms/set-banner';
+import { SetSectionHeader } from '@/components/organisms/set-section-header';
 import { ChangeLine } from '@/components/molecules/change-line';
 import { Reason } from '@/components/molecules/reason';
 import { CommanderGalleryCard, CommanderGalleryCardSkeletons, DeckBanner, DeckBannerSkeleton } from '@/components/molecules/commander-card';
@@ -668,6 +669,8 @@ function SetRows() {
         <SetRow key={owned} set={magic2010(owned, size)} finishView="any" onPress={() => {}} />
       ))}
       <SetHeader set={magic2010(234, 261)} finishView="any" />
+      <SetSectionHeader name="Borderless Cards" completion={{ owned: 12, size: 40, count: '12 of 40', share: 0.3, percent: 30, complete: false }} />
+      <SetSectionHeader name="Showcase Cards" completion={{ owned: 20, size: 20, count: '20 of 20', share: 1, percent: 100, complete: true }} />
     </Section>
   );
 }
