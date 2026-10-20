@@ -168,8 +168,12 @@ _Avoid_: Set progress, completion rate
 The art crop of the card printing with the highest current price in any finish among a set's main set and variants, so never a basic land. With no priced card printing that has an art crop, it is the art crop of the first card printing that has one, by collector number. Sets colors it in from left to right as set completion grows.
 _Avoid_: Key art, cover art
 
+**Set section**:
+A named group of a set's card printings, as Scryfall's set page lists it, such as Showcases or Extended Art. Basic lands are in no set section.
+_Avoid_: Treatment, subset, group
+
 **Set page**:
-The page about one set, opened from Sets. It shows the set's main set and variants in the finish view.
+The page about one set, opened from Sets. It shows the set's set completion and its set sections in the finish view.
 _Avoid_: Set detail, set screen
 
 ## Decks and changes
