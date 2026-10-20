@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { FlatList, ScrollView, type FlatListProps } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, type FlatListProps } from 'react-native';
 import { useHeaderHeight } from 'expo-router/react-navigation';
 
 import { FloatingButtons } from '@/components/templates/floating-buttons';
@@ -13,8 +13,10 @@ const floatingButtonsContentClass = 'pb-floating-button-clearance';
 
 const endReachedScreens = 2;
 
+const overlapThatKeepsTopScrollEdgeEffect = StyleSheet.hairlineWidth;
+
 function useContentInsets(withBar: boolean) {
-  const headerBottom = useHeaderHeight();
+  const headerBottom = useHeaderHeight() + overlapThatKeepsTopScrollEdgeEffect;
   return {
     contentInsetAdjustmentBehavior: 'automatic',
     contentInset: { top: withBar ? 0 : -headerBottom },
