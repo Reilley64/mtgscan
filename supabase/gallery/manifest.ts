@@ -17,7 +17,7 @@ export type SignedVersion = {
   parts: Record<string, string>;
 };
 
-export type PartKind = 'gallery' | 'printing_list';
+export type PartKind = 'gallery' | 'printing_list' | 'model';
 
 export type PrintingListRow = {
   id: string;
@@ -45,7 +45,7 @@ export type ManifestPart = {
 
 export type FeaturePrintModel = {
   name: string;
-  sha256?: string;
+  sha256: string;
   inputSize: { width: number; height: number };
   vectorSize: number;
 };

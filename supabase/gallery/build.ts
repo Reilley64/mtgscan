@@ -10,11 +10,13 @@ import {
   addOnLimit,
   galleryParts,
   installedRows,
+  modelPart,
   newVersionId,
   updateBytes,
 } from './format';
 import { cachedImages } from './images';
-import { type Manifest, galleryFormatVersion, manifestFile } from './manifest';
+import { type FeaturePrintModel, type Manifest, galleryFormatVersion, manifestFile } from './manifest';
+import { type ConvertedModel, modelArchive } from './model';
 import { galleryPrintings } from './printings';
 import { type Recognizer, macOSMajor } from './recognizer';
 import {
@@ -43,16 +45,29 @@ type Plan =
   | { kind: 'add-on'; addOn: number; firstRow: number; changed: GalleryRow[] }
   | { kind: 'unchanged' };
 
-function refuseAnAddOnAcrossModels(published: RecordedVersion, recognizer: Recognizer) {
+function refuseAnotherConvertedModel(recognizer: Recognizer, converted: ConvertedModel) {
+  const { sha256 } = recognizer.about.model;
+  if (sha256 !== converted.model.sha256) {
+    throw new GalleryRefused(
+      `The converted model ${converted.modelPackage} has SHA-256 ${sha256}, but ${converted.modelFile} names ${converted.model.sha256}. Build only with the model that the model file names.`,
+    );
+  }
+}
+
+function describedModel(model: FeaturePrintModel): string {
+  return `${model.name} with SHA-256 ${model.sha256}`;
+}
+
+function refuseAnAddOnAcrossModels(published: RecordedVersion, converted: ConvertedModel) {
   const { formatVersion, model } = published.manifest;
   if (formatVersion !== galleryFormatVersion) {
     throw new GalleryRefused(
       `Gallery version ${published.version} has gallery format ${formatVersion}, not ${galleryFormatVersion}. Build a new base with --new-base.`,
     );
   }
-  if (model.name !== recognizer.about.model.name) {
+  if (model.name !== converted.model.name || model.sha256 !== converted.model.sha256) {
     throw new GalleryRefused(
-      `Gallery version ${published.version} was built with model ${model.name}, not ${recognizer.about.model.name}. An add-on cannot mix the two. Build a new base with --new-base.`,
+      `Gallery version ${published.version} was built with model ${describedModel(model)}, not ${describedModel(converted.model)}. An add-on cannot mix the two. Build a new base with --new-base.`,
     );
   }
 }
@@ -121,7 +136,13 @@ function seconds(startedAt: number): string {
   return `${((performance.now() - startedAt) / 1000).toFixed(1)} s`;
 }
 
-export async function buildGallery(client: ImportClient, recognizer: Recognizer, options: BuildOptions): Promise<Manifest | null> {
+export async function buildGallery(
+  client: ImportClient,
+  recognizer: Recognizer,
+  model: ConvertedModel,
+  options: BuildOptions,
+): Promise<Manifest | null> {
+  refuseAnotherConvertedModel(recognizer, model);
   const timings: string[] = [];
   let startedAt = performance.now();
   const source = await galleryPrintings(client, options.manifestLocation);
@@ -161,7 +182,7 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
     }
   }
   if (published && !options.newBase) {
-    refuseAnAddOnAcrossModels(published, recognizer);
+    refuseAnAddOnAcrossModels(published, model);
   }
   const installed =
     published && !options.newBase ? installedRows(published.manifest, (part) => publishedParts.get(part.name)!) : null;
@@ -179,12 +200,12 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
   let parts: Part[];
   if (decision.kind === 'base') {
     console.log(`Building a new base, because ${decision.reason}.`);
-    parts = galleryParts(0, 0, rows, recognizer.about.model.vectorSize);
+    parts = [...galleryParts(0, 0, rows, model.model.vectorSize), modelPart(await modelArchive(model.modelPackage))];
   } else {
     console.log(`Building add-on ${decision.addOn} with ${decision.changed.length} new or changed rows.`);
     parts = [
       ...published!.manifest.parts.map((part) => ({ ...part, bytes: publishedParts.get(part.name)! })),
-      ...galleryParts(decision.addOn, decision.firstRow, decision.changed, recognizer.about.model.vectorSize),
+      ...galleryParts(decision.addOn, decision.firstRow, decision.changed, model.model.vectorSize),
     ];
   }
   const distinctRows = decision.kind === 'base' ? rows.length : new Set([...installed!.keys(), ...decision.changed.map((row) => row.printing.id)]).size;
@@ -192,8 +213,8 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
     formatVersion: galleryFormatVersion,
     version,
     builtAt: new Date().toISOString(),
-    model: recognizer.about.model,
-    thresholds: recognizer.about.thresholds,
+    model: model.model,
+    thresholds: model.thresholds,
     encoding: { type: 'int8', scale: 'per_vector' },
     rows: distinctRows,
     scryfallSnapshot: source.scryfallSnapshot,
