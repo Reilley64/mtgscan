@@ -16,7 +16,7 @@ export function versionedUserFile(name: string, userId: string, formatVersion: n
       }
     },
     write(content: object) {
-      file.write(JSON.stringify({ formatVersion, ...content }));
+      file.writeSync(JSON.stringify({ formatVersion, ...content }));
     },
   };
 }

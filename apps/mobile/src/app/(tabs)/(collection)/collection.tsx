@@ -203,7 +203,7 @@ export default function CollectionScreen() {
         <BinderFooter basicLands={basicLands} loadingMore={binder.status === 'loaded' && binder.loadingMore && copies.length > 0} />
       }
       ListEmptyComponent={
-        suggesting || basicLands.length > 0 ? null : (
+        suggesting || basicLands.length > 0 ? undefined : (
           <BinderPlaceholder
             binder={binder}
             searching={search.searching}

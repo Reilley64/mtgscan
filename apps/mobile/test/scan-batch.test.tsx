@@ -81,7 +81,7 @@ const savedScan = {
 };
 
 function saveScanBatchFromAnOlderBuild(scans: object[]) {
-  new File(Paths.document, 'scan-batch-user-player@example.com.json').write(
+  new File(Paths.document, 'scan-batch-user-player@example.com.json').writeSync(
     JSON.stringify({ formatVersion: 1, scans, commitPending: false }),
   );
 }

@@ -127,7 +127,7 @@ CI does not replay the scanner evidence pack. Before merging a change to the rec
 
 ## Expo SDK
 
-The app stays on Expo SDK 56. `README.md` (Versions) says why and when to upgrade. Keep `node_modules` unpatched.
+The app is on Expo SDK 58. `README.md` (Versions) says how to upgrade. Keep `node_modules` unpatched.
 
 ## Local Supabase
 

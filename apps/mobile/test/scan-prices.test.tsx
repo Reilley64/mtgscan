@@ -85,7 +85,7 @@ describe('prices in batch review', () => {
 
   test('opening batch review reads every card printing and finish it has no price for yet, in calls of at most 100 items', async () => {
     const printings = Array.from({ length: 101 }, (_, index) => ({ ...lightningBoltM10, printingId: `bolt-${index}` }));
-    new File(Paths.document, 'scan-batch-user-player@example.com.json').write(
+    new File(Paths.document, 'scan-batch-user-player@example.com.json').writeSync(
       JSON.stringify({
         formatVersion: 1,
         commitPending: false,
