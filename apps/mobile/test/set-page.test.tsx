@@ -1,10 +1,11 @@
 import type { CollectionCopyRow } from '@mtgscan/supabase/collection';
-import type { CardSet, FinishView, SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
+import type { CardSet, FinishView, SetCardPrinting, SetCompletion, SetDetails } from '@mtgscan/supabase/sets';
 import { fireEvent, within } from 'expo-router/testing-library';
 
 import { offerSetPage, offerSets, ownCollectionCopies, startSignedIn } from './fake-supabase';
 import { fail, hold, requestsSent } from './fake-supabase-controls';
 import {
+  appearsBefore,
   cardImageLook,
   cardImageUri,
   imageSources,
@@ -20,6 +21,9 @@ import {
   tabStackTopScreen,
 } from './native-ui';
 import { renderApp } from './render-app';
+import { tokenColors } from './token-colors';
+
+const { primary } = tokenColors;
 
 const curator: CollectionCopyRow = {
   copy_id: 'copy-1',
@@ -59,27 +63,51 @@ const bloomburrowRow: CardSet = {
   completion: { any: { owned: 2, size: 3 }, nonfoil: { owned: 1, size: 3 }, foil: { owned: 1, size: 3 } },
 };
 
+function completion(any: SetCompletion, nonfoil: SetCompletion, foil: SetCompletion) {
+  return { any, nonfoil, foil };
+}
+
+const draftCards = [
+  printing('1', 'Banishing Light', { any: 1, nonfoil: 1, foil: 0 }),
+  printing('2', 'Beza, the Bounding Spring', { any: 2, nonfoil: 0, foil: 2 }),
+  printing('10', 'Dewdrop Cure', { any: 0, nonfoil: 0, foil: 0 }),
+];
+
+const borderlessBeza = printing('287', 'Beza, the Bounding Spring', { any: 3, nonfoil: 3, foil: 0 });
+
 const bloomburrow: SetDetails = {
   ...bloomburrowRow,
-  main_set: [
-    printing('1', 'Banishing Light', { any: 1, nonfoil: 1, foil: 0 }),
-    printing('2', 'Beza, the Bounding Spring', { any: 2, nonfoil: 0, foil: 2 }),
-    printing('10', 'Dewdrop Cure', { any: 0, nonfoil: 0, foil: 0 }),
+  sections: [
+    {
+      name: 'Borderless Cards',
+      completion: completion({ owned: 1, size: 2 }, { owned: 1, size: 2 }, { owned: 0, size: 2 }),
+      card_printings: [printing('282', 'Season of the Burrow', { any: 0, nonfoil: 0, foil: 0 }), borderlessBeza],
+    },
+    {
+      name: 'Draft Cards',
+      completion: completion({ owned: 2, size: 3 }, { owned: 1, size: 3 }, { owned: 1, size: 3 }),
+      card_printings: draftCards,
+    },
+    {
+      name: 'Beza Showcase',
+      completion: completion({ owned: 1, size: 1 }, { owned: 1, size: 1 }, { owned: 0, size: 1 }),
+      card_printings: [borderlessBeza],
+    },
   ],
-  variants: {
-    completion: { any: { owned: 1, size: 2 }, nonfoil: { owned: 1, size: 2 }, foil: { owned: 0, size: 2 } },
-    card_printings: [
-      printing('282', 'Season of the Burrow', { any: 0, nonfoil: 0, foil: 0 }),
-      printing('287', 'Beza, the Bounding Spring', { any: 3, nonfoil: 3, foil: 0 }),
-    ],
+  other: {
+    completion: completion({ owned: 0, size: 1 }, { owned: 0, size: 1 }, { owned: 0, size: 1 }),
+    card_printings: [printing('300', 'Fabled Passage', { any: 0, nonfoil: 0, foil: 0 })],
   },
 };
 
 const noSet = { owned: 0, size: 0 };
 
-const noVariants: SetDetails = {
+const noOther = { completion: completion(noSet, noSet, noSet), card_printings: [] };
+
+const noSetSections: SetDetails = {
   ...bloomburrow,
-  variants: { completion: { any: noSet, nonfoil: noSet, foil: noSet }, card_printings: [] },
+  sections: [],
+  other: { completion: completion({ owned: 2, size: 3 }, { owned: 1, size: 3 }, { owned: 1, size: 3 }), card_printings: draftCards },
 };
 
 function tiles() {
@@ -173,17 +201,75 @@ describe('the set page', () => {
     expect(imageSources(header)).toEqual(['https://svgs.scryfall.io/sets/blb.svg', 'https://svgs.scryfall.io/sets/blb.svg']);
   });
 
-  test('the main set and then the variants show as card images in collector number order, read with their number and whether they are owned', async () => {
+  test("each set section shows in Scryfall's order, with its card printings read with their number and whether they are owned, and other cards last", async () => {
     await openBloomburrow();
 
+    expect(tiles().map((card) => card.props.accessibilityLabel)).toEqual([
+      'Season of the Burrow, number 282, not owned',
+      'Beza, the Bounding Spring, number 287, owned, 3 copies',
+      'Banishing Light, number 1, owned',
+      'Beza, the Bounding Spring, number 2, owned, 2 copies',
+      'Dewdrop Cure, number 10, not owned',
+      'Beza, the Bounding Spring, number 287, owned, 3 copies',
+      'Fabled Passage, number 300, not owned',
+    ]);
+    expect(cardImageUri(tile('Dewdrop Cure, number 10, not owned'))).toBe('https://cards.scryfall.io/normal/front/blb-10.jpg');
+  });
+
+  test('each set section header comes before its cards, in order, with "Other cards" last', async () => {
+    const page = await openBloomburrow();
+
+    const headers = page.getAllByRole('header').slice(1);
+    expect(headers.map((header) => header.props.accessibilityLabel)).toEqual([
+      'Borderless Cards, 1 of 2, 50 percent',
+      'Draft Cards, 2 of 3, 66 percent',
+      'Beza Showcase, 1 of 1, 100 percent, complete',
+      'Other cards, 0 of 1, 0 percent',
+    ]);
+    expect(appearsBefore(headers[1]!, tile('Banishing Light, number 1, owned'))).toBe(true);
+    expect(appearsBefore(tile('Season of the Burrow, number 282, not owned'), headers[1]!)).toBe(true);
+    expect(appearsBefore(headers[3]!, tile('Fabled Passage, number 300, not owned'))).toBe(true);
+  });
+
+  test('a set section header shows its name, "x of y", and a progress bar, read as one heading', async () => {
+    const page = await openBloomburrow();
+
+    const header = page.getByRole('header', { name: 'Draft Cards, 2 of 3, 66 percent' });
+    expect(within(header).getByText('Draft Cards')).toHaveStyle({ color: primary });
+    expect(within(header).getByText('2 of 3')).toBeOnTheScreen();
+    expect(within(header).getByRole('progressbar')).toHaveProp('accessibilityValue', { min: 0, max: 3, now: 2 });
+    expect(within(header).queryByText('✓')).toBeNull();
+  });
+
+  test('a complete set section has a lime check mark', async () => {
+    const page = await openBloomburrow();
+
+    const header = page.getByRole('header', { name: 'Beza Showcase, 1 of 1, 100 percent, complete' });
+    expect(within(header).getByText('✓')).toHaveStyle({ color: primary });
+  });
+
+  test('a set with only one set section still shows its header', async () => {
+    offerSetPage({ ...bloomburrow, sections: [bloomburrow.sections[1]!], other: noOther });
+
+    const page = await openBloomburrow();
+
+    expect(page.getByRole('header', { name: 'Draft Cards, 2 of 3, 66 percent' })).toBeOnTheScreen();
+    expect(page.queryByText('Other cards')).toBeNull();
+    expect(tiles()).toHaveLength(3);
+  });
+
+  test('a set with no set sections shows all its card printings in one grid with no header', async () => {
+    offerSetPage(noSetSections);
+
+    const page = await openBloomburrow();
+
+    expect(page.getAllByRole('header').map((header) => header.props.accessibilityLabel)).toEqual(['Bloomburrow, 2 of 3, 66 percent']);
+    expect(page.queryByText('Other cards')).toBeNull();
     expect(tiles().map((card) => card.props.accessibilityLabel)).toEqual([
       'Banishing Light, number 1, owned',
       'Beza, the Bounding Spring, number 2, owned, 2 copies',
       'Dewdrop Cure, number 10, not owned',
-      'Season of the Burrow, number 282, not owned',
-      'Beza, the Bounding Spring, number 287, owned, 3 copies',
     ]);
-    expect(cardImageUri(tile('Dewdrop Cure, number 10, not owned'))).toBe('https://cards.scryfall.io/normal/front/blb-10.jpg');
   });
 
   test('an owned card printing is lit, and one the user does not own is dimmed in grayscale', async () => {
@@ -198,23 +284,6 @@ describe('the set page', () => {
 
     expect(within(tile('Banishing Light, number 1, owned')).queryByText('1')).toBeNull();
     expect(within(tile('Beza, the Bounding Spring, number 2, owned, 2 copies')).getByText('2')).toBeOnTheScreen();
-  });
-
-  test('the Variants section has its own heading with "x of y"', async () => {
-    const page = await openBloomburrow();
-
-    const heading = page.getByRole('header', { name: 'Variants, 1 of 2' });
-    expect(within(heading).getByText('Variants')).toBeOnTheScreen();
-    expect(within(heading).getByText('1 of 2')).toBeOnTheScreen();
-  });
-
-  test('a set with no variants has no Variants section', async () => {
-    offerSetPage(noVariants);
-
-    const page = await openBloomburrow();
-
-    expect(page.queryByText('Variants')).toBeNull();
-    expect(tiles()).toHaveLength(3);
   });
 
   test('cards are images, not buttons, and tapping one does nothing', async () => {
@@ -244,7 +313,7 @@ describe('reading a set', () => {
 
     await read.finish();
     expect(page.queryByRole('progressbar', { name: 'Loading set' })).toBeNull();
-    expect(tiles()).toHaveLength(5);
+    expect(tiles()).toHaveLength(7);
   });
 
   test('when the read fails, the set page shows the read failure, and Try again reads the set again', async () => {

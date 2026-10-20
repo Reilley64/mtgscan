@@ -26,6 +26,10 @@ export function spokenSet(name: string, { count, percent }: ShownCompletion) {
   return [name, count, ...(percent === null ? [] : [`${percent} percent`])].join(', ');
 }
 
+export function spokenSetSection(name: string, completion: ShownCompletion) {
+  return [spokenSet(name, completion), ...(completion.complete ? ['complete'] : [])].join(', ');
+}
+
 export function inFinishView(printings: SetCardPrinting[], finishView: FinishView) {
   return printings.filter((printing) => printing.counts[finishView] !== null);
 }

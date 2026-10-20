@@ -30,3 +30,11 @@ jobs:
     with:
       source: commander_spellbook
     secrets: inherit
+
+  set_sections:
+    needs: catalog
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/import.yml
+    with:
+      source: set_sections
+    secrets: inherit

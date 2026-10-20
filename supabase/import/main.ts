@@ -10,6 +10,7 @@ import { scryfallCatalog } from './scryfall-catalog';
 import { scryfallOracleTags } from './scryfall-oracle-tags';
 import { scryfallPrices } from './scryfall-prices';
 import { importCardSets, scryfallSetsUrl } from './scryfall-sets';
+import { importSetSections, scryfallApiUrl, scryfallSiteUrl } from './scryfall-set-sections';
 import { type ImportAdapters, retryFailedWeeklySources } from './weekly-retry';
 
 const usage = `Usage:
@@ -17,6 +18,7 @@ const usage = `Usage:
   bun import/main.ts oracle_tags|prices [--manifest <path or URL>] [--accept-shrink] [--batch-rows <n>]
   bun import/main.ts commander_spellbook [--variants <path or URL>] [--accept-shrink] [--batch-rows <n>]
   bun import/main.ts exchange_rates [--rates <path or URL>] [--accept-shrink]
+  bun import/main.ts set_sections [--scryfall-site <URL>] [--scryfall-api <URL>]
   bun import/main.ts retry-weekly [--manifest <path or URL>] [--variants <path or URL>] [--batch-rows <n>]
   bun import/main.ts deck-evaluations
   bun import/main.ts prune-telemetry`;
@@ -29,6 +31,8 @@ const { positionals, values } = parseArgs({
     variants: { type: 'string', default: commanderSpellbookVariantsUrl },
     sets: { type: 'string', default: scryfallSetsUrl },
     rates: { type: 'string', default: frankfurterLatestRatesUrl },
+    'scryfall-site': { type: 'string', default: scryfallSiteUrl },
+    'scryfall-api': { type: 'string', default: scryfallApiUrl },
     'accept-shrink': { type: 'boolean', default: false },
     'batch-rows': { type: 'string', default: String(provisionalBatchLimits.rows) },
   },
@@ -74,6 +78,8 @@ const commands: Record<string, (client: ImportClient) => Promise<unknown>> = {
     await importCardSets(client, values.sets);
     await recomputeAfterImport(client, run);
   },
+  set_sections: (client: ImportClient) =>
+    importSetSections(client, { site: values['scryfall-site'], api: values['scryfall-api'] }),
   'retry-weekly': (client) => retryFailedWeeklySources(client, adapters, batchLimits),
   'deck-evaluations': recomputeBehindDeckEvaluations,
   'prune-telemetry': pruneSearchTelemetry,

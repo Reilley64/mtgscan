@@ -1,19 +1,19 @@
-import type { FinishView, SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
+import type { FinishView, SetCardPrinting, SetDetails, SetSection } from '@mtgscan/supabase/sets';
 import { cva } from 'class-variance-authority';
 import { View } from 'react-native';
 
 import { CardGrid, inCardRows } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
-import { SheetSectionHeader } from '@/components/molecules/sheet-section';
-import { copiesOf, inFinishView, shownCompletion, spokenSetCardPrinting } from '@/sets/set-completion';
+import { SetSectionHeader } from '@/components/organisms/set-section-header';
+import { copiesOf, inFinishView, shownCompletion, spokenSetCardPrinting, type ShownCompletion } from '@/sets/set-completion';
 
 export type SetCardsRow =
   | { kind: 'cards'; key: string; printings: SetCardPrinting[]; finishView: FinishView }
-  | { kind: 'variants'; key: string; count: string };
+  | { kind: 'section'; key: string; name: string; completion: ShownCompletion };
 
 const rowSpacing = cva('', {
   variants: {
-    kind: { cards: 'pt-sm', variants: 'pt-lg' },
+    kind: { cards: 'pt-sm', section: 'pt-lg' },
   },
 });
 
@@ -26,16 +26,24 @@ function cardRows(section: string, printings: SetCardPrinting[], finishView: Fin
   }));
 }
 
-export function setCardsRows(set: SetDetails, finishView: FinishView): SetCardsRow[] {
-  const variants = inFinishView(set.variants.card_printings, finishView);
+function sectionRows(key: string, section: SetSection, finishView: FinishView): SetCardsRow[] {
+  const printings = inFinishView(section.card_printings, finishView);
+  if (printings.length === 0) {
+    return [];
+  }
   return [
-    ...cardRows('main set', inFinishView(set.main_set, finishView), finishView),
-    ...(variants.length > 0
-      ? [
-          { kind: 'variants' as const, key: 'variants', count: shownCompletion(set.variants.completion[finishView]).count },
-          ...cardRows('variants', variants, finishView),
-        ]
-      : []),
+    { kind: 'section', key, name: section.name, completion: shownCompletion(section.completion[finishView]) },
+    ...cardRows(key, printings, finishView),
+  ];
+}
+
+export function setCardsRows(set: SetDetails, finishView: FinishView): SetCardsRow[] {
+  if (set.sections.length === 0) {
+    return cardRows('other', inFinishView(set.other.card_printings, finishView), finishView);
+  }
+  return [
+    ...set.sections.flatMap((section, index) => sectionRows(`section ${index}`, section, finishView)),
+    ...sectionRows('other', { name: 'Other cards', ...set.other }, finishView),
   ];
 }
 
@@ -62,8 +70,8 @@ function rowContent(row: SetCardsRow) {
           ))}
         </CardGrid>
       );
-    case 'variants':
-      return <SheetSectionHeader title="Variants" count={row.count} />;
+    case 'section':
+      return <SetSectionHeader name={row.name} completion={row.completion} />;
   }
 }
 
