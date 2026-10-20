@@ -12,7 +12,7 @@ import {
   headerMenuRows,
   inScreenOrder,
   isDrawerPresented,
-  listCellWidth,
+  widthInList,
   pressAlertButton,
   pressHeaderMenuAction,
   presentedAlert,
@@ -335,9 +335,9 @@ describe('the Cards tab', () => {
   test('a group header spans the full row, and each tile takes a third of it', async () => {
     const deck = await openDeckWithCards([deckCardOf('a', 'Arcane Signet', 'Artifact'), deckCardOf('b', 'Mind Stone', 'Artifact')]);
 
-    const rowWidth = listCellWidth(deck.getByRole('header', { name: 'Artifacts, 2' }));
-    expect(listCellWidth(deck.getByRole('button', { name: /^Arcane Signet/ }))).toBe(rowWidth / 3);
-    expect(listCellWidth(deck.getByRole('button', { name: /^Mind Stone/ }))).toBe(rowWidth / 3);
+    const rowWidth = widthInList(deck.getByRole('header', { name: 'Artifacts, 2' }));
+    expect(widthInList(deck.getByRole('button', { name: /^Arcane Signet/ }))).toBe(rowWidth / 3);
+    expect(widthInList(deck.getByRole('button', { name: /^Mind Stone/ }))).toBe(rowWidth / 3);
   });
 
   test('sorts the cards of a group by name', async () => {

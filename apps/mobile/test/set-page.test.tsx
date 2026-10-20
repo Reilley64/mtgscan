@@ -8,7 +8,7 @@ import {
   cardImageLook,
   cardImageUri,
   imageSources,
-  listCellWidth,
+  widthInList,
   setArtLook,
   pressTab,
   scrollTabStackScreenTo,
@@ -212,8 +212,8 @@ describe('the set page', () => {
   test('the Variants heading spans the full row, and each card printing takes a third of it', async () => {
     const page = await openBloomburrow();
 
-    const rowWidth = listCellWidth(page.getByRole('header', { name: 'Variants, 1 of 2' }));
-    expect(listCellWidth(tile('Banishing Light, number 1, owned'))).toBe(rowWidth / 3);
+    const rowWidth = widthInList(page.getByRole('header', { name: 'Variants, 1 of 2' }));
+    expect(widthInList(tile('Banishing Light, number 1, owned'))).toBe(rowWidth / 3);
   });
 
   test('a set with no variants has no Variants section', async () => {

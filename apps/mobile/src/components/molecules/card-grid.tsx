@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
+import { Children, type ReactNode } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
 import { cardHeightPerWidth } from '@/components/atoms/card-image';
 import { FlashList, type FlashListProps } from '@/components/atoms/flash-list';
-import { CardTileSkeleton, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
+import { CardTileSkeleton, cardColumnClass, cardRowClass, cardsPerRow } from '@/components/molecules/card-tile';
 import { cn } from '@/lib/class-names';
 
 const gridInsets = {
@@ -44,7 +44,13 @@ export function CardGridList<Item>({ isTile, header = 'full-row', renderItem, co
 }
 
 export function CardGrid({ children }: { children: ReactNode }) {
-  return <View className={cn(cardRowClass, 'flex-row flex-wrap gap-y-sm')}>{children}</View>;
+  return (
+    <View className={cn(cardRowClass, 'flex-row flex-wrap gap-y-sm')}>
+      {Children.map(children, (tile) => (
+        <View className={cardColumnClass}>{tile}</View>
+      ))}
+    </View>
+  );
 }
 
 type CardTileSkeletonsProps = {

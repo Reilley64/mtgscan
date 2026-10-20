@@ -1035,7 +1035,7 @@ describe('CardTile', () => {
       </CardGrid>,
     );
 
-    expect(screen.getByRole('image', { name: 'Sol Ring, CMM 464' }).parent).toHaveStyle({ width: '33.33%' });
+    expect(screen.getByRole('image', { name: 'Sol Ring, CMM 464' }).parent?.parent).toHaveStyle({ width: '33.33%' });
   });
 });
 
@@ -1052,14 +1052,15 @@ describe('CardGridSkeleton', () => {
     await render(<CardGridSkeleton accessibilityLabel="Loading collection" />);
 
     const [grid] = screen.getByRole('progressbar').children as ReturnType<typeof screen.getByRole>[];
-    const tiles = grid.children as ReturnType<typeof screen.getByRole>[];
+    const columns = grid.children as ReturnType<typeof screen.getByRole>[];
     expect(grid).toHaveStyle({ flexDirection: 'row', flexWrap: 'wrap', rowGap: 8 });
-    expect(tiles).toHaveLength(12);
-    tiles.forEach((tile) => {
-      expect(tile).toHaveStyle({ width: '33.33%' });
-      expect(blocksColored(tile, line)).toBe(3);
+    expect(columns).toHaveLength(12);
+    columns.forEach((column) => {
+      expect(column).toHaveStyle({ width: '33.33%' });
+      expect(blocksColored(column, line)).toBe(3);
     });
-    const [card, metaBar, priceBar] = tiles[0].children as ReturnType<typeof screen.getByRole>[];
+    const [tile] = columns[0].children as ReturnType<typeof screen.getByRole>[];
+    const [card, metaBar, priceBar] = tile.children as ReturnType<typeof screen.getByRole>[];
     expect(card).toHaveStyle({ borderRadius: 8, opacity: 0.45 });
     expect(parseFloat(StyleSheet.flatten(card.props.style).aspectRatio)).toBeCloseTo(488 / 680);
     expect(metaBar).toHaveStyle({ height: 12, width: '60%', alignSelf: 'center' });

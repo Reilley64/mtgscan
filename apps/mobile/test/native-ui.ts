@@ -772,15 +772,20 @@ function descendantsInScreenOrder(element: HostElement): HostElement[] {
   ]);
 }
 
-export function listCellWidth(element: HostElement) {
+export function widthInList(element: HostElement) {
+  let share = 1;
   let cell: HostElement | null = element;
   while (cell && !isListCell(cell)) {
+    const width = StyleSheet.flatten(cell.props.style)?.width;
+    if (typeof width === "string" && width.endsWith("%")) {
+      share *= parseFloat(width) / 100;
+    }
     cell = cell.parent;
   }
   if (!cell) {
     throw new Error("This element is not in a list cell");
   }
-  return StyleSheet.flatten(cell.props.style)?.width;
+  return StyleSheet.flatten(cell.props.style)?.width * share;
 }
 
 export function inScreenOrder(elements: HostElement[]) {

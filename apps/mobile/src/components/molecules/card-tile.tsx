@@ -88,7 +88,7 @@ export function CardTile({
   );
 
   return (
-    <View className={cn(cardColumnClass, 'gap-xs px-xs')}>
+    <View className="gap-xs px-xs">
       {menuActions ? <CardContextMenu actions={menuActions}>{tile}</CardContextMenu> : tile}
     </View>
   );
@@ -96,7 +96,7 @@ export function CardTile({
 
 export function CardTileSkeleton({ imageOnly = false }: { imageOnly?: boolean }) {
   return (
-    <View className={cn(cardColumnClass, 'gap-xs px-xs')}>
+    <View className="gap-xs px-xs">
       <Skeleton className="aspect-card-image rounded-sm" />
       {imageOnly ? null : (
         <>
