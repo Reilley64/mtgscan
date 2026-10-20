@@ -34,6 +34,7 @@ struct GalleryDownloadStatus: Sendable, Equatable {
 struct InstalledGalleryVersion: Sendable {
   let version: String
   let builtAt: String
+  let model: String
 }
 
 final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
@@ -120,7 +121,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
           let header = try? JSONDecoder().decode(GalleryHeader.self, from: data),
           let version = header.version
     else { return nil }
-    return InstalledGalleryVersion(version: version, builtAt: header.createdAt)
+    return InstalledGalleryVersion(version: version, builtAt: header.createdAt, model: header.model.name)
   }
 
   func download(version: String, manifest manifestData: Data, urls: [String: URL], allowsCellularAccess: Bool) async throws {

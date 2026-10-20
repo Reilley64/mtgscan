@@ -47,8 +47,6 @@ public final class CardRecognizerModule: Module {
 
     Events("onGalleryDownload")
 
-    Constant("featurePrintRevision") { FeaturePrint.revision }
-
     Constant("recognizerVersion") { Self.recognizerVersion }
 
     OnCreate {
@@ -62,7 +60,7 @@ public final class CardRecognizerModule: Module {
     }
 
     AsyncFunction("installedGallery") { () -> [String: String]? in
-      GalleryDownloads.installedVersion().map { ["version": $0.version, "builtAt": $0.builtAt] }
+      GalleryDownloads.installedVersion().map { ["version": $0.version, "builtAt": $0.builtAt, "model": $0.model] }
     }
 
     AsyncFunction("galleryDownloadStatus") { () async -> [String: Any]? in

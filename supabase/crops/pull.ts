@@ -76,7 +76,13 @@ export async function pullTrainingCrops(client: ImportClient, folder: string) {
   const missing = crops.filter((crop) => !existsSync(join(folder, cropPath(crop))));
   await mkdir(join(folder, 'crops'), { recursive: true });
   await inPool(missing, parallelDownloads, (crop) => download(client, crop, folder));
-  const labels = { cards: crops.map((crop) => ({ crop: cropPath(crop), scryfallId: crop.saved_printing_id })) };
+  const labels = {
+    cards: crops.map((crop) => ({
+      crop: cropPath(crop),
+      scryfallId: crop.saved_printing_id,
+      featurePrintModel: crop.feature_print_model,
+    })),
+  };
   await writeFile(join(folder, 'labels.json'), `${JSON.stringify(labels, null, 1)}\n`);
   await writeFile(join(folder, 'evidence.json'), `${JSON.stringify(crops, null, 1)}\n`);
 
