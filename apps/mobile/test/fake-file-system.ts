@@ -1,4 +1,5 @@
 let files = new Map<string, string>();
+let deleteListeners: ((uri: string) => void)[] = [];
 
 type Location = string | { uri: string };
 
@@ -18,6 +19,10 @@ class FakeFile {
 
   get exists() {
     return files.has(this.uri);
+  }
+
+  get name() {
+    return this.uri.slice(this.uri.lastIndexOf('/') + 1);
   }
 
   async text() {
@@ -43,6 +48,7 @@ class FakeFile {
   }
 
   delete() {
+    deleteListeners.forEach((listener) => listener(this.uri));
     if (!files.delete(this.uri)) {
       throw new Error(`No file at ${this.uri}`);
     }
@@ -56,7 +62,17 @@ class FakeDirectory {
     this.uri = `${joined(...locations)}/`;
   }
 
+  get exists() {
+    return [...files.keys()].some((uri) => uri.startsWith(this.uri));
+  }
+
   create() {}
+
+  list() {
+    return [...files.keys()]
+      .filter((uri) => uri.startsWith(this.uri) && !uri.slice(this.uri.length).includes('/'))
+      .map((uri) => new FakeFile(uri));
+  }
 }
 
 export const fakeFileSystem = {
@@ -69,10 +85,23 @@ export function filesIn(directoryUri: string) {
   return [...files.keys()].filter((uri) => uri.startsWith(directoryUri)).sort();
 }
 
+export function fileExists(uri: string) {
+  return files.has(uri);
+}
+
 export function putFile(uri: string, content: string) {
   files.set(uri, content);
 }
 
+export function fileContent(uri: string) {
+  return files.get(uri);
+}
+
+export function whenAFileIsDeleted(listener: (uri: string) => void) {
+  deleteListeners = [...deleteListeners, listener];
+}
+
 export function resetFakeFileSystem() {
   files = new Map();
+  deleteListeners = [];
 }

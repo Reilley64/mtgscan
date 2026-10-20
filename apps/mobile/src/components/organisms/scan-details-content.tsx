@@ -16,7 +16,7 @@ type ScanDetailsContentProps = {
   scan: BatchScan;
   dispatch: (action: ScanEdit) => void;
   onSearch: () => void;
-  onRemove: () => void;
+  onRemove?: () => void;
 };
 
 export function ScanDetailsContent({ scan, dispatch, onSearch, onRemove }: ScanDetailsContentProps) {
@@ -75,9 +75,11 @@ export function ScanDetailsContent({ scan, dispatch, onSearch, onRemove }: ScanD
       <Button onPress={onSearch}>
         <Text>None of these: search</Text>
       </Button>
-      <Button variant="danger" onPress={onRemove}>
-        <Text>Remove scan</Text>
-      </Button>
+      {onRemove ? (
+        <Button variant="danger" onPress={onRemove}>
+          <Text>Remove scan</Text>
+        </Button>
+      ) : null}
     </View>
   );
 }

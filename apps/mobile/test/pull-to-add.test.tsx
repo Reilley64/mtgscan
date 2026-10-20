@@ -116,6 +116,20 @@ test('the indicator says it is adding the cards while the commit runs', async ()
   expectNoIndicator();
 });
 
+test('scan details from the latest-scan chip does not offer Remove scan while the commit runs', async () => {
+  await scanTwoCopies();
+  const commit = hold('add_scan_batch', { once: true });
+  const pull = await startPullingDown();
+  await pull.pullTo(140);
+  await pull.release();
+
+  await fireEvent.press(scanTab().getByRole('button', { name: /^Lightning Bolt, M10 146/ }));
+
+  expect(await screen.findByRole('button', { name: 'None of these: search' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Remove scan' })).not.toBeOnTheScreen();
+  await commit.finish();
+});
+
 test('releasing before the threshold adds nothing and the indicator slides away', async () => {
   await scanTwoCopies();
 

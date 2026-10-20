@@ -7,7 +7,7 @@ import { useSession } from '@/auth/session';
 import { databaseRead, useAppRead } from '@/lib/read';
 import { supabase } from '@/lib/supabase';
 
-import { dropWaitingTrainingCrops } from './training-crops';
+import { dropWaitingTrainingCrops } from './training-crop-keeper';
 
 type TrainingCropUploadsSetting = {
   uploadsOn: boolean | null;

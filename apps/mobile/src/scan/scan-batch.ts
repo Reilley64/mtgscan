@@ -9,7 +9,6 @@ export type Printing = GalleryCardPrinting;
 export type PrintingChange = Database['public']['Enums']['printing_change'];
 
 export type ScanTrainingCrop = Readonly<{
-  uri: string;
   decision: RecognitionDecision;
   topSimilarity: number;
   artMargin: number | null;
