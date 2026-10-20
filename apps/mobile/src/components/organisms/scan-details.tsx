@@ -8,7 +8,7 @@ import { ScanDetailsContent } from '@/components/organisms/scan-details-content'
 import { useBatchScan, useScanBatch } from '@/scan/scan-batch-state';
 
 export function ScanDetails({ scanId, onRemove }: { scanId: string; onRemove: () => void }) {
-  const { dispatch, notRecognizedScanId } = useScanBatch();
+  const { dispatch, notRecognizedScanId, commitStatus } = useScanBatch();
   const scan = useBatchScan(scanId);
   const notRecognized = notRecognizedScanId === scanId;
   const [searching, setSearching] = useState(false);
@@ -36,6 +36,11 @@ export function ScanDetails({ scanId, onRemove }: { scanId: string; onRemove: ()
     );
   }
   return scan ? (
-    <ScanDetailsContent scan={scan} dispatch={dispatch} onSearch={() => setSearching(true)} onRemove={remove} />
+    <ScanDetailsContent
+      scan={scan}
+      dispatch={dispatch}
+      onSearch={() => setSearching(true)}
+      onRemove={commitStatus === 'adding' ? undefined : remove}
+    />
   ) : null;
 }

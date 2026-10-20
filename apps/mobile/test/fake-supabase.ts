@@ -33,6 +33,7 @@ import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 
 import { cardImageUri, cardSets, galleryPrintings, oracleTags, setIconUri } from './card-printings';
 import { appleIdTokenNonce } from './fake-apple';
+import { fileExists } from './fake-file-system';
 import { callsSent, controlled, fail, Refused, requestsSent, resetControls, takeRefusal, type ArgumentKey, type Contract, type FunctionName } from './fake-supabase-controls';
 
 const unreachable = Symbol('unreachable');
@@ -906,11 +907,15 @@ const edgeFunctions = {
     if (name !== 'training-crops') {
       throw new Error(`The fake Supabase client has no ${name} function`);
     }
+    const [image] = body.getAll('image') as unknown as [{ uri: string }];
+    if (!fileExists(image.uri)) {
+      return new Promise<never>(() => {});
+    }
     return controlled(
       'training-crops',
       body,
       () => {
-        const copyId = String(body.get('copy_id'));
+        const copyId = String(body.getAll('copy_id')[0]);
         const refusal =
           store.trainingCropRefusals.shift() ??
           (store.session && store.trainingCropUploadsOff.has(signedInEmail()) ? 'uploads_off' : undefined) ??
@@ -919,7 +924,7 @@ const edgeFunctions = {
           const response = Response.json({ code: refusal, message: refusal, details: null }, { status: 400 });
           return { data: null, error: new FunctionsHttpError(response) };
         }
-        store.trainingCropUploads = [...store.trainingCropUploads, { copyId, crop: JSON.parse(String(body.get('crop'))) }];
+        store.trainingCropUploads = [...store.trainingCropUploads, { copyId, crop: JSON.parse(String(body.getAll('crop')[0])) }];
         return { data: null, error: null };
       },
       { data: null, error: new FunctionsFetchError(new TypeError('Network request failed')) },

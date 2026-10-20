@@ -7,7 +7,7 @@ import { useSession } from '@/auth/session';
 import { databaseRead, useAppRead } from '@/lib/read';
 import { supabase } from '@/lib/supabase';
 
-import { dropWaitingTrainingCrops } from './training-crops';
+import { trainingCropKeeper } from './training-crop-keeper';
 
 type TrainingCropUploadsSetting = {
   uploadsOn: boolean | null;
@@ -42,7 +42,7 @@ export function TrainingCropUploadsSettingProvider({ children }: { children: Rea
       return false;
     }
     if (!on) {
-      await dropWaitingTrainingCrops(userId);
+      await trainingCropKeeper(userId).dropWaiting();
     }
     return true;
   }

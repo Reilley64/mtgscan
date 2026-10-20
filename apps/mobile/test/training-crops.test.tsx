@@ -16,7 +16,7 @@ import {
 import { timePasses, todayIs } from './clock';
 import { resetSampleClock } from './detection-samples';
 import { cardRecognition, holdNextRecognition, nextPhotosAre, notACard } from './fake-card-recognizer';
-import { filesIn } from './fake-file-system';
+import { fileContent, filesIn, whenAFileIsDeleted } from './fake-file-system';
 import { changeElsewhere, publishedGalleryVersion, refuseNextTrainingCrop, signInNextWithEmail, startSignedIn, trainingCropsUploaded, trainingCropUploadsAreOnTheServer, turnTrainingCropUploadsOffElsewhere } from './fake-supabase';
 import { callsSent, fail, hold, requestsSent } from './fake-supabase-controls';
 import {
@@ -208,6 +208,24 @@ test.each(['uploads_off', 'storage_full', 'invalid_argument'])(
     expect(presentedAlert()).toBeNull();
   },
 );
+
+test('a waiting training crop whose file is missing is dropped, and the next one uploads', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+  await scanACard();
+  await addTheScanBatchToTheCollection(2);
+  const [boltCopyId, shockCopyId] = savedCopyIds();
+  new File(`${keptCrops}${boltCopyId}.jpg`).delete();
+  await timePasses(7 * day);
+
+  await returnToTheApp();
+  await returnToTheApp();
+
+  expect(trainingCropsUploaded().map(({ copyId }) => copyId)).toEqual([shockCopyId]);
+  expect(callsSent('training-crops')).toHaveLength(1);
+  expect(filesIn(keptCrops)).toEqual([]);
+});
 
 test('a training crop whose copy was deleted before its upload is refused and deleted', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]));
@@ -701,6 +719,27 @@ test('Remove scan deletes the training crop of that scan and keeps the others', 
   expect(uploadedRecords()).toEqual([expect.objectContaining({ saved_printing_id: shock.printingId })]);
 });
 
+test('Remove scan deletes the training crop only after the scan batch file no longer lists the scan', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]));
+  await openScan();
+  await scanACard();
+  const [kept] = filesIn(keptCrops);
+  const copyId = kept!.slice(keptCrops.length, -'.jpg'.length);
+  const scanBatchFileAtDelete: (string | undefined)[] = [];
+  whenAFileIsDeleted((uri) => {
+    if (uri === kept) {
+      scanBatchFileAtDelete.push(fileContent('file:///documents/scan-batch-user-player@example.com.json'));
+    }
+  });
+  await openBatchReview(1);
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Lightning Bolt, M10 146 · NM · English' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Remove scan' }));
+
+  expect(scanBatchFileAtDelete).toHaveLength(1);
+  expect(scanBatchFileAtDelete[0]).not.toContain(copyId);
+});
+
 test('Remove all scans deletes the training crops of every scan in the scan batch', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
   await openScan();
@@ -765,6 +804,61 @@ test('a scan keeps its training crop, its first card printing, and its printing 
       printing_confirmed: false,
     }),
   ]);
+  expect(filesIn(keptCrops)).toEqual([]);
+});
+
+function oldContainerUri(copyId: string) {
+  return `file:///old-container/Documents/training-crops/user-player@example.com/${copyId}.jpg`;
+}
+
+async function saveInTheFormatOfAnOlderBuild(name: string, change: (saved: Record<string, unknown[]>) => object) {
+  const file = new File(Paths.document, `${name}-user-player@example.com.json`);
+  file.write(JSON.stringify(change(JSON.parse(await file.text()))));
+}
+
+test('at start, the training crops of an unreadable scan batch file are deleted, and waiting training crops stay', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+  await addTheScanBatchToTheCollection(1);
+  await scanACard();
+  await act(async () => screen.unmount());
+  new File(Paths.document, 'scan-batch-user-player@example.com.json').write('{"formatVersion": 99');
+
+  await renderApp();
+
+  const [waitingCopyId] = savedCopyIds();
+  expect(filesIn(keptCrops)).toEqual([`${keptCrops}${waitingCopyId}.jpg`]);
+  await waitForTheUploads();
+  expect(trainingCropsUploaded().map(({ copyId }) => copyId)).toEqual([waitingCopyId]);
+});
+
+test('a scan batch and an upload queue saved with file URIs of an older build still upload their training crops', async () => {
+  nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
+  await openScan();
+  await scanACard();
+  await addTheScanBatchToTheCollection(1);
+  await scanACard();
+  await act(async () => screen.unmount());
+  await saveInTheFormatOfAnOlderBuild('training-crop-queue', ({ crops }) => ({
+    formatVersion: 1,
+    crops: (crops as { copyId: string }[]).map((crop) => ({ ...crop, uri: oldContainerUri(crop.copyId) })),
+  }));
+  await saveInTheFormatOfAnOlderBuild('scan-batch', ({ scans }) => ({
+    formatVersion: 2,
+    scans: (scans as { scanId: string; trainingCrop: object }[]).map((scan) => ({
+      ...scan,
+      trainingCrop: { ...scan.trainingCrop, uri: oldContainerUri(scan.scanId) },
+    })),
+    commitPending: false,
+  }));
+
+  await renderApp();
+  await pressTab('Scan');
+  await addTheScanBatchToTheCollection(1);
+  await waitForTheUploads();
+
+  expect(trainingCropsUploaded().map(({ copyId }) => copyId)).toEqual(savedCopyIds());
   expect(filesIn(keptCrops)).toEqual([]);
 });
 

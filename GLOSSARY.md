@@ -136,6 +136,9 @@ The committed real crops, simulated scans, expected results, and phone runs that
 **Training crop**:
 The straightened image of the one card in a scan. After the scan batch commit saves the scan, the app uploads the crop with its evidence record. The evidence record is what the scanner read and decided, which card printing the user saved, and how the user changed or confirmed it. mtgscan stores training crops with no link to the user's account, so a training crop cannot be removed after it uploads.
 
+**Upload queue**:
+The training crops of one account that wait on the phone to upload. A crop joins it when the scan batch commit saves its scan, and waits 1 to 7 days. It leaves when it uploads, when the server refuses it, when its file is missing, or when the user turns off **Upload training crops**.
+
 **Bin-deck run**:
 A release gate on the iPhone. The owner scans the 30 cards of the test deck in order with a development build of the app, and a script scores each recognition against the deck. It passes with no false accept, the right card first for 29 of 30, the exact card printing first for 27 of 30, and an end-to-end p95 below 1.5 s.
 

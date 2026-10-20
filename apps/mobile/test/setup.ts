@@ -18,6 +18,8 @@ process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://abcdefghijklmnop.supabase.co';
 
 require('react-native-reanimated').setUpTests();
 
+global.FormData = jest.requireActual('react-native/Libraries/Network/FormData').default;
+
 notifyManager.setScheduler((notify) => void Promise.resolve().then(notify));
 
 jest.mock('expo-crypto', () => {
