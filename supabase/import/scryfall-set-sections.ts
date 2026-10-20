@@ -26,19 +26,29 @@ type ScryfallError = { code?: string };
 
 type SectionHeader = { name: string; href: string | null; nameEnded: boolean };
 
+type SetPage = { hasCardGrid: boolean; headers: SectionHeader[] };
+
 type RequestKind = 'set page' | 'card search';
 
-const requestSpacingMs: Record<RequestKind, number> = { 'set page': 1000, 'card search': 500 };
+const requestSpacingMs = 1000;
 
 const tooManyRequests = 429;
 
-const rateLimitedWaitMs = 30_000;
+const rateLimitedWaitMs = 60_000;
+
+const rateLimitedRetries = 3;
 
 const htmlHeaders = { 'User-Agent': importUserAgent, Accept: 'text/html' };
 
-async function sectionHeaders(page: Response): Promise<SectionHeader[]> {
-  const headers: SectionHeader[] = [];
+async function readSetPage(page: Response): Promise<SetPage> {
+  const setPage: SetPage = { hasCardGrid: false, headers: [] };
+  const { headers } = setPage;
   await new HTMLRewriter()
+    .on('.card-grid', {
+      element() {
+        setPage.hasCardGrid = true;
+      },
+    })
     .on('h2.card-grid-header', {
       element() {
         headers.push({ name: '', href: null, nameEnded: false });
@@ -62,7 +72,7 @@ async function sectionHeaders(page: Response): Promise<SectionHeader[]> {
     })
     .transform(page)
     .text();
-  return headers;
+  return setPage;
 }
 
 class ScryfallReader {
@@ -85,17 +95,13 @@ class ScryfallReader {
     if (!response.ok) {
       throw new Error(`${description} answered HTTP ${response.status}`);
     }
-    const headers = await sectionHeaders(response);
-    if (headers.length === 0) {
-      throw new Error(`${description} has no set section headers`);
+    const { hasCardGrid, headers } = await readSetPage(response);
+    if (!hasCardGrid) {
+      throw new Error(`${description} has no card grid`);
     }
-    return headers.map((header) => {
-      const name = header.name.replace(/\s+/g, ' ').trim();
+    return headers.flatMap((header) => {
       const search = header.href === null ? null : new URL(header.href, this.urls.site).searchParams.get('q');
-      if (!search) {
-        throw new Error(`the set section header "${name}" has no search link`);
-      }
-      return { name, search };
+      return search ? [{ name: header.name.replace(/\s+/g, ' ').trim(), search }] : [];
     });
   }
 
@@ -121,21 +127,20 @@ class ScryfallReader {
   }
 
   private async get(kind: RequestKind, description: string, url: URL | string, headers: Record<string, string>) {
-    const first = await this.send(kind, url, headers);
-    if (first.status !== tooManyRequests) {
-      return first;
+    let response = await this.send(kind, url, headers);
+    for (let retry = 1; response.status === tooManyRequests && retry <= rateLimitedRetries; retry += 1) {
+      await Bun.sleep(rateLimitedWaitMs);
+      response = await this.send(kind, url, headers);
     }
-    await Bun.sleep(rateLimitedWaitMs);
-    const second = await this.send(kind, url, headers);
-    if (second.status === tooManyRequests) {
-      throw new Error(`${description} answered HTTP 429 twice`);
+    if (response.status === tooManyRequests) {
+      throw new Error(`${description} answered HTTP 429 ${rateLimitedRetries + 1} times`);
     }
-    return second;
+    return response;
   }
 
   private async send(kind: RequestKind, url: URL | string, headers: Record<string, string>): Promise<Response> {
     await Bun.sleep(Math.max(0, this.nextRequestAt[kind] - Date.now()));
-    this.nextRequestAt[kind] = Date.now() + requestSpacingMs[kind];
+    this.nextRequestAt[kind] = Date.now() + requestSpacingMs;
     return fetch(url, { headers });
   }
 }

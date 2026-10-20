@@ -46,8 +46,9 @@ const welcomeTheDead = 'f472ea5c-191e-4b19-8ea7-f8649af91530';
 const welcomeTheDeadVariant = '333b255d-6704-41e4-81ed-a9aec7010f86';
 const eliminateTheCompetition = 'e6e54953-0d6d-4f65-85cb-d26e66a76dce';
 const tdmCardPrintings = ['10e0a9a3-f63a-4f92-a083-9d181580e498', '081f2de5-251a-41c9-a62f-11487f54d355'];
+const pipBoosterCardPrintings = ['19c0791d-f0c5-4673-a0c5-40540c1e6d8c', '9f09166a-78de-4136-8a3c-034e1ef73ede'];
 
-const setsUnderTest = ['cmm', 'mh3', 'pip', 'who'];
+const setsUnderTest = ['cmm', 'mh3', 'pip', 'vis', 'wc01', 'who'];
 
 type FakeReply = { status: number; body: string | object };
 
@@ -65,10 +66,25 @@ function searchKey(search: string, page = 1) {
 
 type PageStyle = 'newer' | 'older';
 
-function setPageHtml(sections: [name: string, search: string][], style: PageStyle) {
+type PageSection = [name: string, search: string | null];
+
+const pageWithACardGridAndNoHeaders = '<!DOCTYPE html><html><body><div class="set-header"><h1>Set</h1></div><div class="card-grid"></div></body></html>';
+
+const pageWithNoCardGrid = '<!DOCTYPE html><html><body><div class="set-header"><h1>Set</h1></div></body></html>';
+
+function cardCount(search: string | null, style: PageStyle) {
+  if (search === null) {
+    return '3 cards';
+  }
+  const searchUrl = `/search?${new URLSearchParams({ order: 'set', q: search, unique: 'prints' })}`;
+  const href = (style === 'older' ? `https://scryfall.com${searchUrl}` : searchUrl).replaceAll('&', '&amp;');
+  return `<a href="${href}">
+    3 cards
+   </a>`;
+}
+
+function setPageHtml(sections: PageSection[], style: PageStyle) {
   const headers = sections.map(([name, search]) => {
-    const searchUrl = `/search?${new URLSearchParams({ order: 'set', q: search, unique: 'prints' })}`;
-    const href = (style === 'older' ? `https://scryfall.com${searchUrl}` : searchUrl).replaceAll('&', '&amp;');
     return `<h2 class="card-grid-header"${style === 'newer' ? ` id="${name.toLowerCase().replaceAll(' ', '-')}"` : ''}>
  <span class="card-grid-header-inner">
   <span class="card-grid-header-content">
@@ -77,9 +93,7 @@ function setPageHtml(sections: [name: string, search: string][], style: PageStyl
    <span class="card-grid-header-dot">
     •
    </span>
-   <a href="${href}">
-    3 cards
-   </a>
+   ${cardCount(search, style)}
   </span>
  </span>
 </h2>
@@ -88,7 +102,7 @@ function setPageHtml(sections: [name: string, search: string][], style: PageStyl
   return `<!DOCTYPE html><html><body><div class="set-header"><h1>Set</h1></div>${headers.join('\n')}</body></html>`;
 }
 
-function serveSetPage(code: string, sections: [name: string, search: string][], style: PageStyle = 'newer') {
+function serveSetPage(code: string, sections: PageSection[], style: PageStyle = 'newer') {
   replies.set(`/sets/${code}`, [{ status: 200, body: setPageHtml(sections, style) }]);
 }
 
@@ -257,11 +271,25 @@ describe('the set sections import', () => {
     serveSearch('set:mh3 !"Roil Cartographer"', [roilCartographer, roilCartographerVariant]);
     await storeSetSectionsToReadAgain('lea', [counterspell, lightningBolt]);
     servePage('lea', { status: 503, body: 'Scryfall is down for maintenance.' });
-    servePage('who', { status: 200, body: '<!DOCTYPE html><html><body><div class="card-grid"></div></body></html>' });
-    servePage('pip', {
-      status: 200,
-      body: setPageHtml([['In Boosters', 'set:pip is:booster']], 'newer').replace(/<a href="[^"]*">\s*3 cards\s*<\/a>/, '3 cards'),
-    });
+    servePage('who', { status: 200, body: pageWithACardGridAndNoHeaders });
+    servePage('vis', { status: 200, body: pageWithNoCardGrid });
+    serveSetPage(
+      'pip',
+      [
+        ['In Boosters', 'set:pip is:booster'],
+        ['Cards', null],
+      ],
+      'older',
+    );
+    serveSearch('set:pip is:booster', pipBoosterCardPrintings);
+    serveSetPage(
+      'wc01',
+      [
+        ['Tom van de Logt', null],
+        ['Other', null],
+      ],
+      'older',
+    );
 
     result = await runSetSectionsImport();
   });
@@ -286,39 +314,59 @@ describe('the set sections import', () => {
     expect(shown(mh3.other)).toEqual({ collector_numbers: [] });
   });
 
-  test('a failed read of a set is logged with its reason, keeps its stored set sections, and the import goes on with the next set', async () => {
-    const lea = await replyOf(user.client, getSet, { code: 'lea' });
-    const pip = await replyOf(user.client, getSet, { code: 'pip' });
+  test('a page with a card grid and no headers stores no set sections, and other holds every card printing of the set', async () => {
     const who = await replyOf(user.client, getSet, { code: 'who' });
 
-    expect(result.output).toContain('lea: its set page answered HTTP 503');
-    expect(result.output).toContain('pip: the set section header "In Boosters" has no search link');
-    expect(result.output).toContain('who: its set page has no set section headers');
-    expect(lea.sections.map(shown)).toEqual([{ name: 'Stored cards', collector_numbers: ['54', '161'] }]);
-    expect(pip.sections).toEqual([]);
+    expect(result.output).not.toContain('who:');
     expect(who.sections).toEqual([]);
+    expect(shown(who.other)).toEqual({ collector_numbers: ['3', '9', '19', '26', '35', '75', '153', '624', '631', '930', '935'] });
+  });
+
+  test('skips a header with no search link, so other holds its card printings', async () => {
+    const pip = await replyOf(user.client, getSet, { code: 'pip' });
+
+    expect(pip.sections.map(shown)).toEqual([{ name: 'In Boosters', collector_numbers: ['38', '136'] }]);
+    expect(shown(pip.other)).toEqual({ collector_numbers: ['382', '566', '573', '664', '910', '961'] });
+  });
+
+  test('a page whose headers all have no search link stores no set sections', async () => {
+    const wc01 = await replyOf(user.client, getSet, { code: 'wc01' });
+
+    expect(result.output).not.toContain('wc01:');
+    expect(wc01.sections).toEqual([]);
+    expect(shown(wc01.other)).toEqual({ collector_numbers: ['tvdl101sb'] });
+  });
+
+  test('a failed read of a set is logged with its reason, keeps its stored set sections, and the import goes on with the next set', async () => {
+    const lea = await replyOf(user.client, getSet, { code: 'lea' });
+
+    expect(result.output).toContain('lea: its set page answered HTTP 503');
+    expect(result.output).toContain('vis: its set page has no card grid');
+    expect(lea.sections.map(shown)).toEqual([{ name: 'Stored cards', collector_numbers: ['54', '161'] }]);
     expect(requests.map((request) => request.path).filter((path) => path.startsWith('/sets/'))).toEqual([
       '/sets/cmm',
       '/sets/lea',
       '/sets/mh3',
       '/sets/pip',
+      '/sets/vis',
+      '/sets/wc01',
       '/sets/who',
     ]);
   });
 
   test('exits non-zero and names each set it could not read', () => {
     expect(result.exitCode).toBe(1);
-    expect(result.output).toContain('Set sections failed for lea, pip, who.');
+    expect(result.output).toContain('Set sections failed for lea, vis.');
   });
 
-  test('sends at most 1 set page read and at most 2 card searches a second, each search with unique prints, and every request with the import user agent', () => {
+  test('sends at most 1 set page read and at most 1 card search a second, each search with unique prints, and every request with the import user agent', () => {
     const pageReadGaps = gapsBetween((request) => request.path.startsWith('/sets/'));
     const searchGaps = gapsBetween((request) => request.path === '/cards/search');
 
-    expect(pageReadGaps).toHaveLength(4);
+    expect(pageReadGaps).toHaveLength(6);
     expect(Math.min(...pageReadGaps)).toBeGreaterThanOrEqual(990);
-    expect(searchGaps).toHaveLength(6);
-    expect(Math.min(...searchGaps)).toBeGreaterThanOrEqual(490);
+    expect(searchGaps).toHaveLength(7);
+    expect(Math.min(...searchGaps)).toBeGreaterThanOrEqual(990);
     expect(requests.filter((request) => request.path === '/cards/search').every((request) => request.unique === 'prints')).toBe(true);
     expect(requests.every((request) => request.userAgent === importUserAgent)).toBe(true);
   });
@@ -326,50 +374,50 @@ describe('the set sections import', () => {
   test('logs the number of sets read, skipped, and failed, and the number of searches it ran', () => {
     const skipped = storedSets.length - 1;
 
-    expect(result.output).toContain(`Set sections: 2 sets read, ${skipped} skipped, 3 failed, 6 searches run.`);
+    expect(result.output).toContain(`Set sections: 5 sets read, ${skipped} skipped, 2 failed, 7 searches run.`);
   });
 });
 
 describe('a 429 reply', () => {
   let result: CommandResult;
 
-  function expectOneWaitOf30Seconds(gaps: number[]) {
-    expect(gaps).toHaveLength(1);
-    expect(gaps[0]).toBeGreaterThanOrEqual(29_990);
+  function expectThreeWaitsOf60Seconds(gaps: number[]) {
+    expect(gaps).toHaveLength(3);
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(59_990);
   }
 
   beforeAll(async () => {
     requests.length = 0;
     await storeSetSectionsToReadAgain('j22', [suspiciousShambler]);
     await storeSetSectionsToReadAgain('stx', []);
-    servePage('j22', tooManyRequests, tooManyRequests);
+    servePage('j22', tooManyRequests, tooManyRequests, tooManyRequests, tooManyRequests);
     serveSetPage('stx', [['In Boosters', 'set:stx is:booster']]);
     serveSearch('set:stx is:booster', [leoninLightscribe, humiliate, theBiblioplex]);
-    replies.get(searchKey('set:stx is:booster'))!.unshift(tooManyRequests);
+    replies.get(searchKey('set:stx is:booster'))!.unshift(tooManyRequests, tooManyRequests, tooManyRequests);
 
     result = await runSetSectionsImport();
-  }, 150_000);
+  }, 420_000);
 
-  test('waits 30 seconds and tries the request again', async () => {
+  test('waits 60 seconds after each 429 and tries the request again, up to 3 times', async () => {
     const stx = await replyOf(user.client, getSet, { code: 'stx' });
 
-    expectOneWaitOf30Seconds(gapsBetween((request) => request.search === 'set:stx is:booster'));
+    expectThreeWaitsOf60Seconds(gapsBetween((request) => request.search === 'set:stx is:booster'));
     expect(stx.sections.map(shown)).toEqual([{ name: 'In Boosters', collector_numbers: ['20', '193', '264'] }]);
   });
 
-  test('a second 429 for the same request is a failed read that keeps the stored set sections', async () => {
+  test('a fourth 429 for the same request is a failed read that keeps the stored set sections', async () => {
     const j22 = await replyOf(user.client, getSet, { code: 'j22' });
 
-    expectOneWaitOf30Seconds(gapsBetween((request) => request.path === '/sets/j22'));
-    expect(result.output).toContain('j22: its set page answered HTTP 429 twice');
+    expectThreeWaitsOf60Seconds(gapsBetween((request) => request.path === '/sets/j22'));
+    expect(result.output).toContain('j22: its set page answered HTTP 429 4 times');
     expect(result.exitCode).toBe(1);
-    expect(result.output).toContain('Set sections failed for j22, lea, pip, who.');
+    expect(result.output).toContain('Set sections failed for j22, lea, vis.');
     expect(j22.sections.map(shown)).toEqual([{ name: 'Stored cards', collector_numbers: ['27'] }]);
   });
 });
 
 describe('the refresh rules', () => {
-  const setsUnderRefresh = ['blb', 'clu', 'lci', 'mom', 'tdc', 'tdm', 'woe'];
+  const setsUnderRefresh = ['blb', 'clu', 'frf', 'lci', 'mom', 'tdc', 'tdm', 'woe'];
   let firstRun: CommandResult;
   let firstRunRequests: FakeRequest[];
   let secondRun: CommandResult;
@@ -433,6 +481,10 @@ describe('the refresh rules', () => {
     servePage('tdc', { status: 503, body: 'Scryfall is down for maintenance.' });
     serveSearch('set:tdc', [welcomeTheDead, welcomeTheDeadVariant, eliminateTheCompetition]);
 
+    await forgetSetSections('frf');
+    await releaseSetDaysAgo('frf', 400);
+    servePage('frf', { status: 200, body: pageWithACardGridAndNoHeaders });
+
     await releaseSetDaysAgo('tdm', 400);
     await storeSetSectionsToReadAgain('tdm', tdmCardPrintings);
     serveSetPage('tdm', [['Stored cards', 'e:tdm']]);
@@ -444,7 +496,7 @@ describe('the refresh rules', () => {
   });
 
   test('reads the set page of a new set, of a recent set, and of an older set with a card printing that no set section lists, and skips every other set', () => {
-    expect(setPageReads(firstRunRequests)).toEqual(['/sets/blb', '/sets/lci', '/sets/mom', '/sets/tdc', '/sets/tdm', '/sets/woe']);
+    expect(setPageReads(firstRunRequests)).toEqual(['/sets/blb', '/sets/frf', '/sets/lci', '/sets/mom', '/sets/tdc', '/sets/tdm', '/sets/woe']);
   });
 
   test('stores the set sections of a new set', async () => {
@@ -480,6 +532,14 @@ describe('the refresh rules', () => {
     expect(tdm.sections.map(shown)).toEqual([{ name: 'Stored cards', collector_numbers: ['136', '381'] }]);
   });
 
+  test('a set read with no set sections is not due again when it is not recent, though no set section lists its card printings', async () => {
+    const frf = await replyOf(user.client, getSet, { code: 'frf' });
+
+    expect(setPageReads(secondRunRequests)).not.toContain('/sets/frf');
+    expect(frf.sections).toEqual([]);
+    expect(shown(frf.other)).toEqual({ collector_numbers: ['54'] });
+  });
+
   test('a recent set whose page gained a set section runs its searches and stores the new set section', async () => {
     const mom = await replyOf(user.client, getSet, { code: 'mom' });
 
@@ -491,10 +551,10 @@ describe('the refresh rules', () => {
   });
 
   test('logs the number of sets read, skipped, and failed, and the number of searches it ran', async () => {
-    const skipped = (await listedSetCodes()).length - 6;
+    const skipped = (await listedSetCodes()).length - 7;
 
     expect(searchesRun(firstRunRequests)).toHaveLength(5);
-    expect(firstRun.output).toContain(`Set sections: 5 sets read, ${skipped} skipped, 1 failed, 5 searches run.`);
+    expect(firstRun.output).toContain(`Set sections: 6 sets read, ${skipped} skipped, 1 failed, 5 searches run.`);
     expect(firstRun.exitCode).toBe(1);
     expect(firstRun.output).toContain('Set sections failed for tdc.');
   });

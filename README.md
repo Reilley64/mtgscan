@@ -320,13 +320,14 @@ Signed-in users read one set with `supabase.rpc('get_set', { query })`. The set 
 
 `bun run import set_sections` fills them in and keeps them up to date:
 
-- `sets_for_set_section_import()`, with the secret key, lists the sets that Sets lists. Each set has `due`, its stored `sections` with `name` and `search` in Scryfall's order, and `has_unlisted_card_printing`. That is true when the set has a card printing, not a basic land and not absent, that no stored set section lists.
-- A set is due when its set sections were never read, its release date is within the last 180 days, or it has a card printing that no stored set section lists. The command skips every other set. A failed read changes nothing, so the set stays due for the next run.
-- For each due set, the command reads the set's Scryfall set page, `https://scryfall.com/sets/<code>`. Each `h2.card-grid-header` is a set section, in page order. The name is the header text before the count. The search is the `q` parameter of the header's count link.
-- A page with no set section header, or a header with no search link, is a failed read for that set.
+- `sets_for_set_section_import()`, with the secret key, lists the sets that Sets lists. Each set has `due`, its stored `sections` with `name` and `search` in Scryfall's order, and `has_unlisted_card_printing`. That is true when the set has at least one stored set section and a card printing, not a basic land and not absent, that no stored set section lists.
+- A set is due when its set sections were never read, its release date is within the last 180 days, or `has_unlisted_card_printing` is true. So a set read with no set sections is due only when it was never read or came out in the last 180 days. The command skips every other set. A failed read changes nothing, so the set stays due for the next run.
+- For each due set, the command reads the set's Scryfall set page, `https://scryfall.com/sets/<code>`. Each `h2.card-grid-header` with a search link is a set section, in page order. The name is the header text before the count. The search is the `q` parameter of the header's count link.
+- The command skips a header with no search link, such as Scryfall's catch-all "Cards" header. Its card printings are in `other`.
+- A page with a card grid and no header with a search link is a set with no set sections. The command stores no set sections and records the read time. A page with no card grid is a failed read for that set.
 - When the page's names and searches match the stored ones and the set has no card printing that no stored set section lists, the command runs no searches. It records the read time with `record_set_sections_read`.
 - Otherwise the command runs each search through `/cards/search` with `unique=prints`, and follows every page of results. A search that Scryfall answers with "no cards found" is an empty set section. It then stores the set with `import_set_sections`.
-- It sends at most 1 set page read a second and at most 2 card searches a second, with the import user agent. After a 429 reply it waits 30 seconds and tries again. A second 429 for the same request is a failed read for that set.
+- It sends at most 1 set page read a second and at most 1 card search a second, with the import user agent. After a 429 reply it waits 60 seconds and tries again, up to 3 times. A fourth 429 for the same request is a failed read for that set.
 - A failed read is logged with its reason, and the set keeps its stored set sections. The command goes on with the next set. At the end, it logs how many sets it read, skipped, and failed, and how many searches it ran. It exits non-zero and names each failed set when any set failed.
 
 ### Current prices read
