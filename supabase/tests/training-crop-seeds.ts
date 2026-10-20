@@ -17,7 +17,7 @@ export function evidenceRecord(changes: Partial<TrainingCrop> = {}): TrainingCro
     reading_names_saved_printing: true,
     same_text_twin_count: 0,
     recognizer_version: '1.0.0 (42)',
-    feature_print_revision: 2,
+    feature_print_model: 'pe-core-s16-384',
     gallery_version: '20261012-cf1753',
     recognized_printing_id: angelicCurator,
     saved_printing_id: angelicCurator,
