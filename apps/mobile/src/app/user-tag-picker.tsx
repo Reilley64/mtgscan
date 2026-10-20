@@ -39,7 +39,7 @@ export default function UserTagPickerScreen() {
   const readFailed = copyRead.status === 'failed' || userTagsRead.status === 'failed';
 
   return (
-    <PushedScreen>
+    <PushedScreen withBar>
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button icon="chevron.left" tintColor={colors.text} accessibilityLabel="Back" onPress={() => router.back()} />
       </Stack.Toolbar>
