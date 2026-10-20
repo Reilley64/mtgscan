@@ -1,19 +1,10 @@
 @testable import CardRecognizer
-import Compression
 import CryptoKit
 import Foundation
 import Testing
 
-private func zlibCompressed(_ raw: Data) -> Data {
-  var deflated = Data(count: raw.count + 1024)
-  let written = deflated.withUnsafeMutableBytes { target in
-    raw.withUnsafeBytes { source in
-      compression_encode_buffer(
-        target.bindMemory(to: UInt8.self).baseAddress!, raw.count + 1024,
-        source.bindMemory(to: UInt8.self).baseAddress!, raw.count, nil, COMPRESSION_ZLIB
-      )
-    }
-  }
+private func zlibCompressed(_ raw: Data) throws -> Data {
+  let deflated = try (raw as NSData).compressed(using: .zlib) as Data
   var byteSum: UInt32 = 1
   var runningSum: UInt32 = 0
   for byte in raw {
@@ -21,7 +12,7 @@ private func zlibCompressed(_ raw: Data) -> Data {
     runningSum = (runningSum + byteSum) % 65521
   }
   let checksum = (runningSum << 16) | byteSum
-  return Data([0x78, 0x9C]) + deflated.prefix(written)
+  return Data([0x78, 0x9C]) + deflated
     + Data([UInt8(checksum >> 24), UInt8((checksum >> 16) & 0xFF), UInt8((checksum >> 8) & 0xFF), UInt8(checksum & 0xFF)])
 }
 
@@ -45,18 +36,34 @@ private func printingRow(_ id: String, name: String) -> [String: Any] {
   ]
 }
 
+private enum MalformedPart: CaseIterable {
+  case notZlib
+  case truncated
+  case longerThanManifest
+  case shorterThanManifest
+}
+
 private func writeVersion(
   _ parts: [PartFile],
   rows: Int,
   version: String = "20261021-a1b2c3",
   corrupt: String? = nil,
+  malformed: (name: String, kind: MalformedPart)? = nil,
   downloaded: Set<String>? = nil
 ) throws -> URL {
   let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
   try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
   var manifestParts: [[String: Any]] = []
   for part in parts {
-    var compressed = zlibCompressed(part.raw)
+    var compressed = try zlibCompressed(part.raw)
+    var rawBytes = part.raw.count
+    switch malformed?.name == part.name ? malformed?.kind : nil {
+    case .notZlib: compressed = part.raw
+    case .truncated: compressed = compressed.prefix(compressed.count / 2)
+    case .longerThanManifest: rawBytes -= 1
+    case .shorterThanManifest: rawBytes += 1
+    case nil: break
+    }
     let sha256 = SHA256.hash(data: compressed).map { String(format: "%02x", $0) }.joined()
     if part.name == corrupt { compressed[compressed.count / 2] ^= 0xFF }
     if downloaded?.contains(part.name) ?? true {
@@ -64,7 +71,7 @@ private func writeVersion(
     }
     manifestParts.append([
       "name": part.name, "kind": part.kind, "addOn": part.addOn, "firstRow": part.firstRow, "rowCount": part.rowCount,
-      "compressedBytes": compressed.count, "rawBytes": part.raw.count, "sha256": sha256,
+      "compressedBytes": compressed.count, "rawBytes": rawBytes, "sha256": sha256,
     ])
   }
   let manifest: [String: Any] = [
@@ -137,6 +144,23 @@ func installingRefusesAPartWhoseSHA256DoesNotMatchTheManifest() throws {
   let destination = version.appendingPathComponent("installed", isDirectory: true)
 
   #expect(throws: GalleryInstaller.Failure.partMismatch("base-gallery-1.zlib")) {
+    try GalleryInstaller.install(from: version, into: destination)
+  }
+  #expect(!FileManager.default.fileExists(atPath: destination.path))
+}
+
+@Test(
+  "installing refuses a part that is not zlib, is truncated, or inflates to another size than the manifest",
+  arguments: MalformedPart.allCases
+)
+private func installingRefusesAMalformedPart(_ kind: MalformedPart) throws {
+  let version = try writeVersion([
+    galleryPart("base-gallery-1.zlib", addOn: 0, firstRow: 0, seeds: [0]),
+    try printingListPart("base-printing-list-1.zlib", addOn: 0, firstRow: 0, rows: [printingRow("a", name: "Alpha")]),
+  ], rows: 1, malformed: ("base-printing-list-1.zlib", kind))
+  let destination = version.appendingPathComponent("installed", isDirectory: true)
+
+  #expect(throws: GalleryInstaller.Failure.malformedPart("base-printing-list-1.zlib")) {
     try GalleryInstaller.install(from: version, into: destination)
   }
   #expect(!FileManager.default.fileExists(atPath: destination.path))

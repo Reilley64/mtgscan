@@ -38,7 +38,6 @@ public enum CollectorLineReader {
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
     request.usesLanguageCorrection = false
-    request.customWords = setCodes.map { $0.uppercased() }
     let startedAt = ProcessInfo.processInfo.systemUptime
     try? VNImageRequestHandler(cgImage: strip, options: [:]).perform([request])
     let durationMs = (ProcessInfo.processInfo.systemUptime - startedAt) * 1000
