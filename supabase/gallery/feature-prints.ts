@@ -8,7 +8,7 @@ import { type Recognizer, macOSMajor } from './recognizer';
 
 type CacheIndex = {
   macOSMajor: string;
-  model: string;
+  modelSha256: string;
   rows: { id: string; image: string }[];
 };
 
@@ -27,7 +27,7 @@ async function cachedCodes(directory: string, recognizer: Recognizer): Promise<M
     return cached;
   }
   const index = (await Bun.file(indexPath).json()) as CacheIndex;
-  if (index.macOSMajor !== macOSMajor(recognizer.about.macOS) || index.model !== recognizer.about.model.name) {
+  if (index.macOSMajor !== macOSMajor(recognizer.about.macOS) || index.modelSha256 !== recognizer.about.model.sha256) {
     return cached;
   }
   const codes = new Uint8Array(await Bun.file(codesPath).arrayBuffer());
@@ -62,7 +62,7 @@ export async function featurePrints(
   );
   const index: CacheIndex = {
     macOSMajor: macOSMajor(recognizer.about.macOS),
-    model: recognizer.about.model.name,
+    modelSha256: recognizer.about.model.sha256,
     rows: printings.map((printing) => ({ id: printing.printing.id, image: printing.image })),
   };
   const all = new Uint8Array(printings.length * vectorSize);
