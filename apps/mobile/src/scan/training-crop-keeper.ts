@@ -3,7 +3,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 
 import { evidenceRecordOf, type EvidenceRecord } from './evidence-record';
 import { isCroppedScan, type BatchScan, type ScanBatch } from './scan-batch';
-import { versionedUserFile, withoutFileUri } from './versioned-user-file';
+import { versionedUserFile } from './versioned-user-file';
 
 export type WaitingTrainingCrop = {
   cropId: string;
@@ -14,7 +14,7 @@ export type WaitingTrainingCrop = {
 
 export type UploadResult = 'done' | 'refused' | 'failed';
 
-const queueFormatVersion = 2;
+const queueFormatVersion = 3;
 const day = 24 * 60 * 60 * 1000;
 
 function dropFile(file: File) {
@@ -28,14 +28,7 @@ function croppedCopyIds(scans: readonly BatchScan[]) {
 }
 
 function savedCrops(savedVersion: unknown, crops: unknown): WaitingTrainingCrop[] | null {
-  switch (savedVersion) {
-    case queueFormatVersion:
-      return crops as WaitingTrainingCrop[];
-    case 1:
-      return (crops as (WaitingTrainingCrop & { uri: string })[]).map(withoutFileUri);
-    default:
-      return null;
-  }
+  return savedVersion === queueFormatVersion ? (crops as WaitingTrainingCrop[]) : null;
 }
 
 let queueLock: Promise<unknown> = Promise.resolve();
@@ -57,7 +50,7 @@ export function trainingCropKeeper(userId: string) {
   const keptThisSession = new Set<string>();
   let inScanBatch = new Set<string>();
 
-  const fileName = (copyId: string) => `${copyId}.jpg`;
+  const fileName = (copyId: string) => `${copyId}.webp`;
   const cropFile = (copyId: string) => new File(directory, fileName(copyId));
 
   async function readQueue(): Promise<WaitingTrainingCrop[]> {
