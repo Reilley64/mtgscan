@@ -1,4 +1,4 @@
-import type { FinishView, SetCardPrinting, SetDetails } from '@mtgscan/supabase/sets';
+import type { FinishView, SetCardPrinting, SetDetails, SetSection } from '@mtgscan/supabase/sets';
 import { cva } from 'class-variance-authority';
 import { View } from 'react-native';
 
@@ -26,13 +26,13 @@ function cardRows(section: string, printings: SetCardPrinting[], finishView: Fin
   }));
 }
 
-function sectionRows(key: string, name: string, section: SetDetails['other'], finishView: FinishView): SetCardsRow[] {
+function sectionRows(key: string, section: SetSection, finishView: FinishView): SetCardsRow[] {
   const printings = inFinishView(section.card_printings, finishView);
   if (printings.length === 0) {
     return [];
   }
   return [
-    { kind: 'section', key, name, completion: shownCompletion(section.completion[finishView]) },
+    { kind: 'section', key, name: section.name, completion: shownCompletion(section.completion[finishView]) },
     ...cardRows(key, printings, finishView),
   ];
 }
@@ -42,10 +42,11 @@ export function setCardsRows(set: SetDetails, finishView: FinishView): SetCardsR
     return cardRows('other', inFinishView(set.other.card_printings, finishView), finishView);
   }
   return [
-    ...set.sections.flatMap((section, index) => sectionRows(`section ${index}`, section.name, section, finishView)),
-    ...sectionRows('other', 'Other cards', set.other, finishView),
+    ...set.sections.flatMap((section, index) => sectionRows(`section ${index}`, section, finishView)),
+    ...sectionRows('other', { name: 'Other cards', ...set.other }, finishView),
   ];
 }
+
 function SetCardTile({ printing, finishView }: { printing: SetCardPrinting; finishView: FinishView }) {
   const copies = copiesOf(printing, finishView);
   return (

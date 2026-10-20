@@ -1,5 +1,5 @@
 import type { CardSet, FinishView } from '@mtgscan/supabase/sets';
-import { cva } from 'class-variance-authority';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { View } from 'react-native';
 
 import { ProgressBar } from '@/components/atoms/progress-bar';
@@ -40,17 +40,34 @@ export type SetCompletionProps = {
   finishView: FinishView;
 };
 
+const completionNames = cva('', {
+  variants: {
+    tone: {
+      text: '',
+      primary: 'text-primary',
+    },
+  },
+});
+
+type CompletionDetailsProps = VariantProps<typeof completionNames> & { name: string; completion: ShownCompletion };
+
+export function CompletionDetails({ name, completion, tone }: CompletionDetailsProps) {
+  return (
+    <View className="flex-1 gap-xs">
+      <Text variant="body-strong" className={completionNames({ tone })} numberOfLines={1}>
+        {name}
+      </Text>
+      <Text variant="meta">{completion.count}</Text>
+      <ProgressBar label={completion.count} value={completion.owned} max={completion.size} tone="primary" />
+    </View>
+  );
+}
+
 function SetCompletionContent({ set, completion }: { set: CardSet; completion: ShownCompletion }) {
   return (
     <>
       <SetSymbolFill uri={set.icon_svg_uri} share={completion.share} />
-      <View className="flex-1 gap-xs">
-        <Text variant="body-strong" numberOfLines={1}>
-          {set.name}
-        </Text>
-        <Text variant="meta">{completion.count}</Text>
-        <ProgressBar label={completion.count} value={completion.owned} max={completion.size} tone="primary" />
-      </View>
+      <CompletionDetails name={set.name} completion={completion} />
       <SetCompletionShare completion={completion} />
     </>
   );
