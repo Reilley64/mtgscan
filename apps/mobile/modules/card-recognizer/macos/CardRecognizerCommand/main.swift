@@ -1,7 +1,9 @@
 import CardRecognizer
 import CoreGraphics
 import Foundation
+import ImageIO
 import os
+import UniformTypeIdentifiers
 
 struct ServeRequest: Decodable {
   let requestId: String
@@ -23,9 +25,16 @@ struct FeaturePrintLine: Encodable {
   let error: String?
 }
 
+struct ReencodeLine: Encodable {
+  let input: String
+  let output: String?
+  let error: String?
+}
+
 let usage = """
 usage: card-recognizer serve <gallery-dir> | feature-prints --model <model> <image>...
-  | encode --model <model> <image-list> <output> | install <version-dir> <gallery-dir> | about --model <model.mlpackage>
+  | reencode webp|jpeg <output-dir> <image>... | encode --model <model> <image-list> <output>
+  | install <version-dir> <gallery-dir> | about --model <model.mlpackage>
 """
 
 func fail(_ message: String) -> Never {
@@ -197,12 +206,37 @@ func featurePrints(model: CompiledModel, images: [String]) {
   }
 }
 
+func writeJpeg(_ card: CGImage, in directory: URL) -> URL? {
+  let file = directory.appendingPathComponent("\(UUID().uuidString).jpg")
+  guard (try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)) != nil,
+        let destination = CGImageDestinationCreateWithURL(file as CFURL, UTType.jpeg.identifier as CFString, 1, nil)
+  else { return nil }
+  CGImageDestinationAddImage(destination, card, [kCGImageDestinationLossyCompressionQuality: 0.9] as CFDictionary)
+  return CGImageDestinationFinalize(destination) ? file : nil
+}
+
+func reencode(images: [String], into directory: URL, with write: (CGImage, URL) -> URL?) {
+  for input in images {
+    autoreleasepool {
+      guard let card = CardRectifier.loadCard(at: URL(fileURLWithPath: input)), let output = write(card, directory) else {
+        emit(ReencodeLine(input: input, output: nil, error: RecognitionFailure.unreadablePhoto.code))
+        return
+      }
+      emit(ReencodeLine(input: input, output: output.path, error: nil))
+    }
+  }
+}
+
 let arguments = Array(CommandLine.arguments.dropFirst())
 switch (arguments.first, arguments.dropFirst().first) {
 case ("serve", _) where arguments.count == 2:
   serve(galleryDirectory: URL(fileURLWithPath: arguments[1]))
 case ("feature-prints", "--model") where arguments.count > 3:
   featurePrints(model: loadModel(at: arguments[2]), images: Array(arguments.dropFirst(3)))
+case ("reencode", "webp") where arguments.count > 3:
+  reencode(images: Array(arguments.dropFirst(3)), into: URL(fileURLWithPath: arguments[2]), with: TrainingCrop.write)
+case ("reencode", "jpeg") where arguments.count > 3:
+  reencode(images: Array(arguments.dropFirst(3)), into: URL(fileURLWithPath: arguments[2]), with: writeJpeg)
 case ("encode", "--model") where arguments.count == 5:
   encode(model: loadModel(at: arguments[2]), imageList: URL(fileURLWithPath: arguments[3]), output: URL(fileURLWithPath: arguments[4]))
 case ("install", _) where arguments.count == 3:

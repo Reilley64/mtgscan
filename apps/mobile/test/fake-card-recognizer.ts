@@ -116,7 +116,7 @@ export function cardRecognition(
     basis = 'collector_line',
     sameTextTwinCount = 0,
     artMargin = 0.12,
-    trainingCrop = `file:///caches/training-crops/crop-${(trainingCrops += 1)}.jpg`,
+    trainingCrop = `file:///caches/training-crops/crop-${(trainingCrops += 1)}.webp`,
   }: {
     premiumMark?: boolean;
     accepted?: boolean;

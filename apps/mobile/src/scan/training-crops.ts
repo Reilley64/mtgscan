@@ -9,7 +9,7 @@ import { trainingCropKeeper, type UploadResult, type WaitingTrainingCrop } from 
 
 async function uploadTrainingCrop({ cropId, copyId, record }: WaitingTrainingCrop, imageUri: string): Promise<UploadResult> {
   const body = new FormData();
-  body.append('image', { uri: imageUri, name: 'crop.jpg', type: 'image/jpeg' } as unknown as Blob);
+  body.append('image', { uri: imageUri, name: 'crop.webp', type: 'image/webp' } as unknown as Blob);
   body.append('copy_id', copyId);
   body.append('crop', JSON.stringify({ crop_id: cropId, ...record }));
   const { error } = await supabase.functions.invoke('training-crops', { body });

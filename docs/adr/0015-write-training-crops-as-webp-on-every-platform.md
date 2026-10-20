@@ -7,7 +7,7 @@ One format on both platforms keeps the bucket, the Edge Function check, `crops p
 ## Consequences
 
 - The `CardRecognizer` pod and the Swift package that runs the Mac tests depend on libwebp. The pod uses the copy `expo-image` already brings into the app.
-- A crop is encoded twice: once as the camera JPEG, then as WebP. The recognizer must give the same answers on the evidence pack crops after a WebP round trip, because the collector line is only a few pixels high at this size.
+- A crop is encoded twice: once as the camera JPEG, then as WebP. The collector line is only a few pixels high at this size, so a WebP round trip changes some answers on the evidence pack crops. Re-encoding them as the old JPEG crop does too. The replay checks that the WebP round trip makes no wrong accepts, on the full gallery and held out, and does no worse than the JPEG round trip.
 - The scanner evidence pack stays JPEG.
 - Uploaded crops cannot be converted back without loss, and ADR 0011 means they cannot be deleted either. A later format change would leave a mixed set.
 

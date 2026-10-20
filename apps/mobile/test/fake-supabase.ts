@@ -57,7 +57,11 @@ type DeckRecord = Omit<Deck, 'card_count' | 'commanders' | 'cards'>;
 
 type UserTagRecord = UserTag & { copy_ids: string[] };
 
-type TrainingCropUpload = { copyId: string; crop: Database['public']['Tables']['training_crops']['Row'] };
+type TrainingCropUpload = {
+  copyId: string;
+  image: { name: string; type: string };
+  crop: Database['public']['Tables']['training_crops']['Row'];
+};
 
 type CollectionSearchAnswer = { copies: CollectionCopyRow[]; basicLands?: string[] } | { refusedField: string };
 
@@ -915,7 +919,7 @@ const edgeFunctions = {
     if (name !== 'training-crops') {
       throw new Error(`The fake Supabase client has no ${name} function`);
     }
-    const [image] = body.getAll('image') as unknown as [{ uri: string }];
+    const [image] = body.getAll('image') as unknown as [{ uri: string; name: string; type: string }];
     if (!fileExists(image.uri)) {
       return new Promise<never>(() => {});
     }
@@ -932,7 +936,10 @@ const edgeFunctions = {
           const response = Response.json({ code: refusal, message: refusal, details: null }, { status: 400 });
           return { data: null, error: new FunctionsHttpError(response) };
         }
-        store.trainingCropUploads = [...store.trainingCropUploads, { copyId, crop: JSON.parse(String(body.getAll('crop')[0])) }];
+        store.trainingCropUploads = [
+          ...store.trainingCropUploads,
+          { copyId, image: { name: image.name, type: image.type }, crop: JSON.parse(String(body.getAll('crop')[0])) },
+        ];
         return { data: null, error: null };
       },
       { data: null, error: new FunctionsFetchError(new TypeError('Network request failed')) },

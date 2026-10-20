@@ -77,7 +77,7 @@ afterEach(() => {
 });
 
 test('a scan keeps its training crop on the phone under the user and its copy ID until the scan batch is added', async () => {
-  nextPhotosAre(cardRecognition([lightningBoltM10], { trainingCrop: `${cacheCrops}bolt.jpg` }));
+  nextPhotosAre(cardRecognition([lightningBoltM10], { trainingCrop: `${cacheCrops}bolt.webp` }));
   await openScan();
 
   await scanACard();
@@ -87,10 +87,10 @@ test('a scan keeps its training crop on the phone under the user and its copy ID
   expect(trainingCropsUploaded()).toEqual([]);
   const [kept] = filesIn(keptCrops);
   await addTheScanBatchToTheCollection(1);
-  expect(kept).toBe(`${keptCrops}${savedCopyIds()[0]}.jpg`);
+  expect(kept).toBe(`${keptCrops}${savedCopyIds()[0]}.webp`);
 });
 
-test('a saved training crop waits at least 1 day, then uploads with its evidence record and a new crop ID on return to the app, and is deleted', async () => {
+test('a saved training crop waits at least 1 day, then uploads as a WebP with its evidence record and a new crop ID on return to the app, and is deleted', async () => {
   uploadWaitIsDrawnAt(0);
   nextPhotosAre(cardRecognition([lightningBoltM10, lightningBolt2xm], { basis: 'collector_line', artMargin: 0.08 }));
   await openScan();
@@ -109,6 +109,7 @@ test('a saved training crop waits at least 1 day, then uploads with its evidence
   const [upload] = trainingCropsUploaded();
   expect(trainingCropsUploaded()).toHaveLength(1);
   expect(upload!.copyId).toBe(copyId);
+  expect(upload!.image).toEqual({ name: 'crop.webp', type: 'image/webp' });
   expect(upload!.crop.crop_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
   expect(upload!.crop.crop_id).not.toBe(copyId);
   expect(upload!.crop).toEqual({
@@ -233,7 +234,7 @@ test('a waiting training crop whose file is missing is dropped, and the next one
   await scanACard();
   await addTheScanBatchToTheCollection(2);
   const [boltCopyId, shockCopyId] = savedCopyIds();
-  new File(`${keptCrops}${boltCopyId}.jpg`).delete();
+  new File(`${keptCrops}${boltCopyId}.webp`).delete();
   await timePasses(7 * day);
 
   await returnToTheApp();
@@ -310,7 +311,7 @@ test('each account on the phone uploads only its own training crops', async () =
 
   await returnToTheApp();
   expect(trainingCropsUploaded().map(({ copyId }) => copyId)).toEqual([friendCopyId]);
-  expect(filesIn(keptCrops)).toEqual([`${keptCrops}${playerCopyId}.jpg`]);
+  expect(filesIn(keptCrops)).toEqual([`${keptCrops}${playerCopyId}.webp`]);
 
   await signOut();
   await signInWithGoogle('player@example.com');
@@ -717,8 +718,8 @@ async function openBatchReview(count: number) {
 
 test('Remove scan deletes the training crop of that scan and keeps the others', async () => {
   nextPhotosAre(
-    cardRecognition([lightningBoltM10], { trainingCrop: `${cacheCrops}bolt.jpg` }),
-    cardRecognition([shock], { trainingCrop: `${cacheCrops}shock.jpg` }),
+    cardRecognition([lightningBoltM10], { trainingCrop: `${cacheCrops}bolt.webp` }),
+    cardRecognition([shock], { trainingCrop: `${cacheCrops}shock.webp` }),
   );
   await openScan();
   await scanACard();
@@ -732,7 +733,7 @@ test('Remove scan deletes the training crop of that scan and keeps the others', 
   await swipeDownDrawer();
   await addTheScanBatchToTheCollection(1);
   await waitForTheUploads();
-  expect(kept).toEqual([`${keptCrops}${savedCopyIds()[0]}.jpg`]);
+  expect(kept).toEqual([`${keptCrops}${savedCopyIds()[0]}.webp`]);
   expect(uploadedRecords()).toEqual([expect.objectContaining({ saved_printing_id: shock.printingId })]);
 });
 
@@ -741,7 +742,7 @@ test('Remove scan deletes the training crop only after the scan batch file no lo
   await openScan();
   await scanACard();
   const [kept] = filesIn(keptCrops);
-  const copyId = kept!.slice(keptCrops.length, -'.jpg'.length);
+  const copyId = kept!.slice(keptCrops.length, -'.webp'.length);
   const scanBatchFileAtDelete: (string | undefined)[] = [];
   whenAFileIsDeleted((uri) => {
     if (uri === kept) {
@@ -825,7 +826,7 @@ test('a scan keeps its training crop, its first card printing, and its printing 
 });
 
 function oldContainerUri(copyId: string) {
-  return `file:///old-container/Documents/training-crops/user-player@example.com/${copyId}.jpg`;
+  return `file:///old-container/Documents/training-crops/user-player@example.com/${copyId}.webp`;
 }
 
 async function saveInTheFormatOfAnOlderBuild(name: string, change: (saved: Record<string, unknown[]>) => object) {
@@ -845,22 +846,18 @@ test('at start, the training crops of an unreadable scan batch file are deleted,
   await renderApp();
 
   const [waitingCopyId] = savedCopyIds();
-  expect(filesIn(keptCrops)).toEqual([`${keptCrops}${waitingCopyId}.jpg`]);
+  expect(filesIn(keptCrops)).toEqual([`${keptCrops}${waitingCopyId}.webp`]);
   await waitForTheUploads();
   expect(trainingCropsUploaded().map(({ copyId }) => copyId)).toEqual([waitingCopyId]);
 });
 
-test('a scan batch and an upload queue saved with file URIs of an older build still upload their training crops', async () => {
+test('a scan batch saved with file URIs of an older build still uploads its training crops', async () => {
   nextPhotosAre(cardRecognition([lightningBoltM10]), cardRecognition([shock]));
   await openScan();
   await scanACard();
   await addTheScanBatchToTheCollection(1);
   await scanACard();
   await act(async () => screen.unmount());
-  await saveInTheFormatOfAnOlderBuild('training-crop-queue', ({ crops }) => ({
-    formatVersion: 1,
-    crops: (crops as { copyId: string }[]).map((crop) => ({ ...crop, uri: oldContainerUri(crop.copyId) })),
-  }));
   await saveInTheFormatOfAnOlderBuild('scan-batch', ({ scans }) => ({
     formatVersion: 2,
     scans: (scans as { scanId: string; trainingCrop: object }[]).map((scan) => ({
@@ -878,6 +875,27 @@ test('a scan batch and an upload queue saved with file URIs of an older build st
   expect(trainingCropsUploaded().map(({ copyId }) => copyId)).toEqual(savedCopyIds());
   expect(filesIn(keptCrops)).toEqual([]);
 });
+
+test.each([1, 2])(
+  'training crops that waited in an upload queue of format %s, from before training crops were WebP, are dropped and never upload',
+  async (formatVersion) => {
+    nextPhotosAre(cardRecognition([lightningBoltM10]));
+    await openScan();
+    await scanACard();
+    await addTheScanBatchToTheCollection(1);
+    await act(async () => screen.unmount());
+    await saveInTheFormatOfAnOlderBuild('training-crop-queue', ({ crops }) => ({
+      formatVersion,
+      crops: formatVersion === 1 ? (crops as { copyId: string }[]).map((crop) => ({ ...crop, uri: oldContainerUri(crop.copyId) })) : crops,
+    }));
+
+    await renderApp();
+    await waitForTheUploads();
+
+    expect(trainingCropsUploaded()).toEqual([]);
+    expect(filesIn(keptCrops)).toEqual([]);
+  },
+);
 
 test('a scan batch saved in the old format loads with no training crops', async () => {
   new File(Paths.document, 'scan-batch-user-player@example.com.json').writeSync(

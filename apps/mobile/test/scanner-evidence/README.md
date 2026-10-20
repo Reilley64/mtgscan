@@ -67,6 +67,11 @@ Options:
 - `--real-only` skips the simulated scans.
 - `--baseline <reports-dir>` compares each result with the result of an earlier replay instead of the expected files.
 - `--record-feature-prints` records `real/feature-prints.json` again on this machine, with the model of the gallery in `RECOGNIZER_GALLERY_DIR`. Its `recordedWith` block names the model and its SHA-256.
+- `--webp-round-trip` also runs Gate 1 on two re-encoded copies of the real crops. The recognizer command (`reencode`) writes them into `modules/card-recognizer/.data/round-trip`:
+  - `webp`: each crop as a training crop, a 488 x 680 WebP at quality 90, with the same encoder as the phone;
+  - `jpeg`: each crop as the old training crop, a JPEG at quality 0.9 written with ImageIO.
+
+  No lossy re-encode gives the same answer on every crop, because the collector line is only a few pixels high. So the WebP run passes when it makes no wrong accept and rejects every non-card crop, on the full gallery and held out, and has at least as many correct accepts as the JPEG run. The summary shows both runs under `webpRoundTrip`, with the scans whose first candidate or accept changed from the original crops. The results are in the reports folder as `real-full-webp.json`, `real-full-jpeg.json`, `real-held-out-webp.json`, and `real-held-out-jpeg.json`. The crops in this pack stay JPEG.
 
 The render needs `uv`. `simulate.py` pins `opencv-python-headless` 5.0.0.93 and `numpy` 2.5.3, because another version changes the photo bytes. It downloads the 3,000 Scryfall `large` images into `modules/card-recognizer/.data/large` once. Set `RECOGNIZER_LARGE_IMAGES_DIR` to reuse a folder of them. On an Apple M3 the render takes about 45 minutes, the real crops about 30 seconds, and each simulated run about 5 minutes.
 
