@@ -198,7 +198,7 @@ A copy that is not allocated to a deck or held by a planned swap. A collection e
 _Avoid_: Spare, available copy
 
 **Basic land**:
-A card with the basic supertype, including Wastes and snow-covered basics. mtgscan does not track basic lands as owned. Every collection has an unlimited supply of each basic land card: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Collection shows them after the copies, and the user adds them to a deck from there. A deck counts them by basic land card, and its Cards tab shows each one as its own tile. They are never copies, so they never appear in allocation, the buylist, or a set's main set or variants.
+A card with the basic supertype, including Wastes and snow-covered basics. mtgscan does not track basic lands as owned. Every collection has an unlimited supply of each basic land card: Plains, Island, Swamp, Mountain, Forest, Wastes, and the snow-covered version of each. Collection shows the basic land cards that a collection search matches after the copies, and the user adds them to a deck from there. A deck counts them by basic land card, and its Cards tab shows each one as its own tile. They are never copies, so they never appear in allocation, the buylist, or a set's main set or variants.
 
 **Deck priority**:
 How strongly the user wants to keep a deck's cards: high, medium, or low. The user sets it. When two decks want a card and there is only one copy for them, the deck with the higher priority should get it. Between decks of equal priority, the AI decides which deck needs the card more. An AI client follows this in its advice, but nothing enforces it. Priority does not restrict the user.
@@ -268,7 +268,7 @@ A search of the card catalog that returns cards. It is separate from collection 
 _Avoid_: Card lookup
 
 **Collection search**:
-A search of the user's copies. It is separate from catalog search.
+A search of the user's copies. It also returns the basic land cards that match its text and chips, by the same rules as for copies. A chip that only a copy has, such as finish, deck, or price, matches no basic land card. It is separate from catalog search.
 _Avoid_: Inventory search
 
 **Chip**:

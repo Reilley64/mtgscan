@@ -136,14 +136,16 @@ describe('basic lands in the collection', () => {
     expect(collection.queryByRole('header', { name: 'Basic lands' })).not.toBeOnTheScreen();
   });
 
-  test('a search shows the basic land cards whose names match last, after the matching copies, and the count line counts only copies', async () => {
+  test('a search shows the basic land cards of the reply last, after the matching copies, and the count line counts only copies', async () => {
     ownCollectionCopies(copyRows('Ponder', 3));
     ownCollectionTotal({ total: '3.00', currency: 'USD', priced_copies: 3, copies: 3, stale: false, prices_observed_at: null });
     const islandSanctuary = copyRows('Island Sanctuary', 1);
-    answerCollectionSearches((query) => (query.text === 'island' ? islandSanctuary : copyRows('Ponder', 3)));
+    answerCollectionSearches((query) =>
+      query.text === 'islands' ? { copies: islandSanctuary, basicLands: ['Island', 'Snow-Covered Island'] } : copyRows('Ponder', 3),
+    );
     const collection = await openCollection();
 
-    await typeInSearchBar('island');
+    await typeInSearchBar('islands');
 
     expect(await collection.findByRole('button', { name: 'Island, basic land, unlimited' })).toBeOnTheScreen();
     expect(basicLandTileNames(collection)).toEqual(['Island', 'Snow-Covered Island']);
@@ -156,12 +158,12 @@ describe('basic lands in the collection', () => {
     expect(collection.getByText('1 of 3 copies')).toBeOnTheScreen();
   });
 
-  test('with no matching copies, the matching basic land cards are the only results', async () => {
+  test('with no matching copies, the basic land cards of the reply are the only results', async () => {
     ownCollectionCopies(copyRows('Ponder', 1));
-    answerCollectionSearches((query) => (query.text ? [] : copyRows('Ponder', 1)));
+    answerCollectionSearches((query) => (query.types ? { copies: [], basicLands: ['Snow-Covered Forest'] } : copyRows('Ponder', 1)));
     const collection = await openCollection();
 
-    await typeInSearchBar('snow forest');
+    await typeInSearchBar('type:snow ');
 
     expect(await collection.findByRole('button', { name: 'Snow-Covered Forest, basic land, unlimited' })).toBeOnTheScreen();
     expect(basicLandTileNames(collection)).toEqual(['Snow-Covered Forest']);
@@ -169,18 +171,16 @@ describe('basic lands in the collection', () => {
     expect(collection.queryByText('No cards found')).not.toBeOnTheScreen();
   });
 
-  test('a name chip matches basic land cards, and any other chip hides every basic land card', async () => {
+  test('a search whose reply has no basic land cards shows none', async () => {
     ownCollectionCopies(copyRows('Ponder', 1));
-    answerCollectionSearches(() => []);
+    answerCollectionSearches((query) => (query.text ? [] : copyRows('Ponder', 1)));
     const collection = await openCollection();
 
-    await typeInSearchBar('name:mountain ');
-    expect(await collection.findByRole('button', { name: 'Mountain, basic land, unlimited' })).toBeOnTheScreen();
-    expect(basicLandTileNames(collection)).toEqual(['Mountain', 'Snow-Covered Mountain']);
+    await typeInSearchBar('island');
 
-    await typeInSearchBar('set:m10 ');
     expect(await collection.findByText('No cards found')).toBeOnTheScreen();
     expect(basicLandTileNames(collection)).toEqual([]);
+    expect(collection.queryByRole('header', { name: 'Basic lands' })).not.toBeOnTheScreen();
   });
 });
 

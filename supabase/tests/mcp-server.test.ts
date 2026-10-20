@@ -595,6 +595,21 @@ describe('the read tools over HTTP', () => {
     expect(await summaryOf(mcp, name, args())).toBe(summary);
   });
 
+  test('search_collection returns the fields it returned before collection search matched basic land cards', async () => {
+    const result = await mcp.callTool({ name: 'search_collection', arguments: {} });
+
+    expect(Object.keys(result.structuredContent!).toSorted()).toEqual([
+      'items',
+      'next_cursor',
+      'prices_observed_at',
+      'prices_stale',
+      'rules_data_as_of',
+      'rules_stale',
+      'search_id',
+      'total_count',
+    ]);
+  });
+
   test('list_decks returns the deck revision and the Needs you count of each deck', async () => {
     const result = await mcp.callTool({ name: 'list_decks', arguments: {} });
 

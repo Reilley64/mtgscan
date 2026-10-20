@@ -25,7 +25,7 @@ export type Tool = Pick<ListedTool, 'name' | 'inputSchema' | 'outputSchema'> & {
 
 type ToolDefinition<Reply extends z.ZodType> = Omit<Tool, 'inputSchema' | 'outputSchema' | 'call' | 'contract'> & {
   contract: AiClientFunction<Reply>;
-  leftOut?: Record<string, string[]>;
+  leftOut?: Record<string, string[] | true>;
   summary: (reply: z.output<Reply>) => string;
 };
 
@@ -75,10 +75,18 @@ function shown(schema: z.core.$ZodType, isLeftOut: (key: string) => boolean): z.
   return schema;
 }
 
-function outputOf(reply: z.core.$ZodType, leftOut: Record<string, string[]>): z.ZodObject {
+function outputOf(reply: z.core.$ZodType, leftOut: Record<string, string[] | true>): z.ZodObject {
   const output = shown(reply, isImageField) as z.ZodObject;
-  return output.extend(
-    Object.fromEntries(Object.entries(leftOut).map(([field, keys]) => [field, shown(output.shape[field]!, (key) => keys.includes(key))])),
+  return z.object(
+    Object.fromEntries(
+      Object.entries(output.shape).flatMap(([field, schema]) => {
+        const keys = leftOut[field];
+        if (keys === true) {
+          return [];
+        }
+        return [[field, keys ? shown(schema, (key) => keys.includes(key)) : schema]];
+      }),
+    ),
   );
 }
 
@@ -206,6 +214,7 @@ export const tools = [
     ].join(' '),
     annotations: readOnly,
     contract: databaseFunctions.search_collection,
+    leftOut: { basic_lands: true },
     input: databaseFunctions.search_collection.request.extend({
       ...describedCatalogFilters,
       sort: collectionFilters.sort.describe('The default is relevance with text and added without it.'),

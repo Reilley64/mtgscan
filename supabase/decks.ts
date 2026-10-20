@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { collectionCopyRow, copyRowDeck } from './collection.ts';
+import { basicLandCard, collectionCopyRow, copyRowDeck } from './collection.ts';
 import { databaseFunction } from './database-function.ts';
 import type { Database } from './database.types.ts';
 import { color, comboBracketTag, deckChangeKind, deckPriority, deckRole, deckValidity, id, integer, nextCursor } from './fields.ts';
@@ -136,8 +136,6 @@ export type DeckCard = z.infer<typeof deckCard>;
 const deckBasicLand = z.strictObject({ oracle_id: id.nullable(), name: z.string(), image_uris: z.array(z.string()), count: integer });
 
 export type DeckBasicLand = z.infer<typeof deckBasicLand>;
-
-const basicLandCard = z.strictObject({ oracle_id: id, name: z.string(), image_uris: z.array(z.string()) });
 
 export type BasicLandCard = z.infer<typeof basicLandCard>;
 

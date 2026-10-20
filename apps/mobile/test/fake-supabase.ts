@@ -59,7 +59,7 @@ type UserTagRecord = UserTag & { copy_ids: string[] };
 
 type TrainingCropUpload = { copyId: string; crop: Database['public']['Tables']['training_crops']['Row'] };
 
-type CollectionSearchAnswer = CollectionCopyRow[] | { refusedField: string };
+type CollectionSearchAnswer = CollectionCopyRow[] | { copies: CollectionCopyRow[]; basicLands: string[] } | { refusedField: string };
 
 const defaultEmail = 'player@example.com';
 const rulesDataAt = '2026-10-12T06:00:00.000Z';
@@ -222,6 +222,12 @@ const basicLandNames = [
 
 export function basicLandOracleId(name: string) {
   return `oracle-${name.toLowerCase().replaceAll(' ', '-')}`;
+}
+
+function basicLandCardsNamed(names: string[]) {
+  return basicLandsOf()
+    .filter((land) => names.includes(land.name))
+    .map(({ oracle_id, name, image_uris }) => ({ oracle_id: oracle_id!, name, image_uris }));
 }
 
 export function basicLandsOf(counts: Record<string, number> = {}): DeckBasicLand[] {
@@ -515,9 +521,7 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     return numberedPage(listed, { cursor, limit });
   },
   get_set: ({ code }) => store.setPages.get(code) ?? new Refused('not_found', 'code is not a released set in the card catalog.', 'code'),
-  list_basic_land_cards: () => ({
-    items: basicLandsOf().map(({ oracle_id, name, image_uris }) => ({ oracle_id: oracle_id!, name, image_uris })),
-  }),
+  list_basic_land_cards: () => ({ items: basicLandCardsNamed(basicLandNames) }),
   get_needs_you_counts: () => {
     const items = openNeedsYouItems();
     const deckIds = [...new Set(items.map((item) => item.deck_id))];
@@ -548,17 +552,21 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     if (rows !== 'copies') {
       throw new Error('The fake Supabase client searches the collection only for copy rows');
     }
-    const answer = store.collectionSearchAnswer ? store.collectionSearchAnswer(search) : store.copies.map(binderRowOf);
+    const answer = store.collectionSearchAnswer
+      ? store.collectionSearchAnswer(search)
+      : { copies: store.copies.map(binderRowOf), basicLands: store.copies.length > 0 ? basicLandNames : [] };
     if ('refusedField' in answer) {
       return new Refused('invalid_argument', `${answer.refusedField} is not known.`, answer.refusedField);
     }
-    const page = generationPage(answer, cursor, limit);
+    const { copies, basicLands } = Array.isArray(answer) ? { copies: answer, basicLands: [] } : answer;
+    const page = generationPage(copies, cursor, limit);
     if (page instanceof Refused) {
       return page;
     }
     return {
       ...page,
-      total_count: cursor ? null : answer.length,
+      total_count: cursor ? null : copies.length,
+      basic_lands: cursor ? null : basicLandCardsNamed(basicLands),
       prices_observed_at: null,
       prices_stale: false,
       rules_data_as_of: rulesDataAt,
