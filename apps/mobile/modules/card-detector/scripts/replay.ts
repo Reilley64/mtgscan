@@ -19,6 +19,7 @@ const hashListFile = path.join(recipeDirectory, 'frames.sha256');
 const dataDirectory = path.join(moduleRoot, '.data');
 const framesDirectory = path.join(dataDirectory, 'frames');
 const imagesDirectory = path.resolve(process.env.DETECTOR_IMAGES_DIR ?? path.join(dataDirectory, 'images'));
+const texturesDirectory = path.join(dataDirectory, 'textures');
 const reportsDirectory = path.join(dataDirectory, 'reports');
 const comparedSources = [path.join('ios', 'Detector'), path.join('macos', 'CardDetectorCommand')];
 
@@ -72,6 +73,10 @@ async function renderFrames() {
     path.join(recipeDirectory, 'cards.json'),
     '--images',
     imagesDirectory,
+    '--textures',
+    path.join(recipeDirectory, 'textures.json'),
+    '--texture-images',
+    texturesDirectory,
     '--output',
     framesDirectory,
   ]);

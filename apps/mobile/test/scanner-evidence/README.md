@@ -190,17 +190,42 @@ What it runs:
 
 The frames:
 
-- `detector/cards.json` lists 30 Scryfall card printings: 10 with a black border, 10 with a white border, and 10 borderless. The recipe downloads their `normal` images into `modules/card-detector/.data/images` once. Set `DETECTOR_IMAGES_DIR` to reuse a folder of them.
-- Each frame is a portrait frame of 720 x 1280, the analysis size. A camera pose places the card. The camera looks straight down at the card, with a focal length of 880 to 1000 px. The card is 300 to 500 px wide, turned up to 20 degrees, and upside down in 3 of 10 frames. Each frame has a slight blur and sensor noise.
-- Conditions: `plain` is a card on a plain surface, and `empty-plain` is a plain surface with no card. Each has 30 frames. The plain frames take the border colours in turn.
-- `labels.json` holds each frame's true corners in frame pixels, its condition, its card printing and border colour, the tilt, and the camera's intrinsic matrix.
-- The recipe needs `uv`. It pins `opencv-python-headless` 5.0.0.93 and `numpy` 2.5.3, as `simulate.py` does. Each frame takes its random numbers from its condition and its index, so a new condition leaves the other frames unchanged.
+- `detector/cards.json` lists 30 Scryfall card printings: 10 with a black border, 10 with a white border, and 10 borderless, from Scryfall's `border_color`. The recipe downloads their `normal` images into `modules/card-detector/.data/images` once. Set `DETECTOR_IMAGES_DIR` to reuse a folder of them.
+- Each frame is a portrait frame of 720 x 1280, the analysis size. A camera pose places the card: a tilt angle about a random axis, and a focal length of 880 to 1000 px. The card is 300 to 500 px wide, turned up to 20 degrees, and upside down in 3 of 10 frames. Each frame has a slight blur and sensor noise.
+- Each condition has 30 frames in each tilt bucket, 1,080 frames in all. Within a bucket, the frames take the border colours in turn, so each condition, border colour, and tilt bucket has 10 frames.
+- `labels.json` holds each frame's true corners in frame pixels, its condition, its card printing and border colour, the tilt and its bucket, and the camera's intrinsic matrix.
+- The recipe needs `uv`. It pins `opencv-python-headless` 5.0.0.93 and `numpy` 2.5.3, as `simulate.py` does. Each frame takes its random numbers from its condition and its index, so a new condition leaves the other frames unchanged. It renders the frames in parallel, in about 30 seconds on an Apple M3.
+
+Tilt buckets, in degrees from straight above the card:
+
+| Bucket | Tilt | Frame indices |
+| --- | --- | --- |
+| `0` | 0 | 0 to 29 |
+| `0-7.5` | 0 to 7.5 | 30 to 59 |
+| `7.5-15` | 7.5 to 15 | 60 to 89 |
+| `15-25` | 15 to 25 | 90 to 119 |
+
+Conditions:
+
+| Condition | What the frame shows |
+| --- | --- |
+| `plain` | A card on a plain surface with a soft light ramp |
+| `patterned` | A card on a patterned surface. Half the surfaces are procedural: high-contrast stripes, checks, a grid like a cutting mat, dots, lines of text, or a clutter of 150 to 300 coloured rectangles. The other half are CC0 photo textures. The pattern lies on the table plane, so it takes the camera pose too. |
+| `shadow` | A card on a plain surface with a hard shadow 1.5 to 5 mm to one side |
+| `sleeve` | A card in a clear sleeve 0.8 to 1.6 mm larger than the card on each side. The band between the card and the sleeve edge is darker or lighter than the surface. |
+| `glare` | A card on a plain surface with a bright glare band across it |
+| `motion-blur` | A card on a plain surface, blurred along a line of 6 to 24 px |
+| `hand` | A card on a plain surface with a thumb over one corner, 16 to 22 mm wide, with its shadow |
+| `empty-plain` | A plain surface with no card |
+| `empty-patterned` | A patterned surface with no card |
+
+The photo textures come from [Poly Haven](https://polyhaven.com), which licenses every asset as CC0 ([licence](https://polyhaven.com/license)). `detector/textures.json` lists each texture, its page, its download, and the licence. The recipe downloads them into `modules/card-detector/.data/textures` once. Use only CC0 textures and procedural patterns here. The Describable Textures Dataset, for example, is for research only.
 
 Metrics and pass bars, from #493:
 
 | Metric | What it counts | Bar against the merge base |
 | --- | --- | --- |
-| Detection rate | Detected frames over frames with a card, per condition | Not lower by more than 1 frame in 30 |
+| Detection rate | Detected frames over frames with a card | Not lower by more than 1 frame in 30 |
 | Corner error | The largest corner distance in mm on the card, median and p90 of the detected frames | Median not worse by more than 0.1 mm. p90 not worse by more than 0.5 mm. |
 | Inside outlines | Card outlines with a side more than 1 mm inside the card edge | No new one on any frame |
 | Size error | The mean of opposite sides in mm, median of the detected frames. Inside is positive, as in #421. | Reported |
@@ -208,20 +233,25 @@ Metrics and pass bars, from #493:
 | Mac timing | p95 of the detector call over every frame, on the same Mac in the same run | At most 1.2 times the merge base. It is a proxy only: the 20 ms bar is on the iPhone. |
 | Same detector code | When the branch and the merge base have the same detector files and command, every number except timing must match | Same numbers |
 
-The replay writes `base.json`, `branch.json`, and `comparison.md` to `modules/card-detector/.data/reports`. Under the table, it lists each new inside outline and each false outline, with the outline's corners in frame pixels and how far each side is inside the card edge. It exits 0 when every bar passes, and 1 when a bar fails or a frame hash differs.
+The bars apply to each condition and tilt bucket, so an average over the tilt buckets cannot hide a regression. The table has one row for each, with the merge base and the branch side by side. Two more tables report each metric by condition and border colour, and by border colour and tilt bucket. They have no bars of their own.
+
+The replay writes `base.json`, `branch.json`, and `comparison.md` to `modules/card-detector/.data/reports`. Under the tables, it lists each new inside outline and each false outline, with its tilt bucket and border colour, the outline's corners in frame pixels, and how far each side is inside the card edge. It exits 0 when every bar passes, and 1 when a bar fails or a frame hash differs.
 
 Options:
 
 - `--base <ref>` compares with the merge base of `HEAD` and another ref, such as a spec's integration branch.
 - `--record-frame-hashes` renders the frames again and writes `detector/frames.sha256`. Use it only when the recipe or the card list changes, and say why in the pull request.
 
-Result on `main` at `a6fcfaf`, on an Apple M3 with macOS 27.0.1:
+Result on `main` at `a6fcfaf`, on an Apple M3 with macOS 27.0.1. It shows the known weak spots of the card detector:
 
-- Plain: 22 of 30 detected. The 8 misses are borderless cards. The bottom edge of a borderless card is dark, so its step has the other polarity from the other three edges, and the edge refiner refuses the outline.
-- Corner error median 0.01 mm, p90 0.07 mm.
-- 1 inside outline: `plain-018.png`, a black-bordered card outlined on its inner frame, 2.6 to 6.7 mm inside.
-- 0 false outlines on the empty plain frames.
-- Mac timing p95 about 3.5 ms. The replay takes about 20 seconds once the images are downloaded.
+- **Inside outlines rise with tilt.** On black-bordered cards, over every condition, there are 3 inside outlines in 70 frames at no tilt, 12 at up to 7.5 degrees, 17 at 7.5 to 15 degrees, and 39 at 15 to 25 degrees. White-bordered cards rise the same way. Over all inside outlines, 9 in 10 sit 2.9 mm or more inside the card edge, so they are not small fit errors.
+- **Sleeves.** The outline sits on the sleeve edge. Up to 15 degrees of tilt, the size error is -0.7 to -1.1 mm, so the outline is larger than the card by about the sleeve margin.
+- **Patterned surfaces.** 61 of 120 frames are detected, against 82 of 120 on plain surfaces. For black and white borders it is 56 of 80, against 73 of 80.
+- **Borderless cards** are missed on every surface: 9 of 40 detected on plain surfaces. The bottom edge of a borderless card is dark, so its step has the other polarity from the other three edges, and the edge refiner refuses the outline.
+- **Hard shadows** put the outline off the card edge at no tilt: a median corner error of 2.6 mm.
+- **No false outlines** on the 240 empty plain and patterned frames.
+- On plain frames at no tilt, the median corner error is 0.01 mm and the p90 0.07 mm.
+- Mac timing p95 is about 5 ms. The whole replay takes about 2.5 minutes from nothing, once the card images are downloaded, and about 70 seconds when the frames are already rendered.
 
 Synthetic frames do not show what Vision does on real frames (#421). So the replay gates mechanisms and regressions, and the phone confirms real gains.
 

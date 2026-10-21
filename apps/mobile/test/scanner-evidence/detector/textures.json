@@ -1,0 +1,80 @@
+{
+ "source": "Poly Haven",
+ "licence": "CC0 1.0",
+ "licenceUrl": "https://polyhaven.com/license",
+ "checkedOn": "2026-10-21",
+ "textures": [
+  {
+   "id": "dark_wood",
+   "name": "Dark Wood",
+   "page": "https://polyhaven.com/a/dark_wood",
+   "image": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dark_wood/dark_wood_diff_1k.jpg"
+  },
+  {
+   "id": "oak_wood_planks",
+   "name": "Oak Wood Planks",
+   "page": "https://polyhaven.com/a/oak_wood_planks",
+   "image": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_wood_planks/oak_wood_planks_diff_1k.jpg"
+  },
+  {
+   "id": "laminate_floor_02",
+   "name": "Laminate Floor 02",
+   "page": "https://polyhaven.com/a/laminate_floor_02",
+   "image": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/laminate_floor_02/laminate_floor_02_diff_1k.jpg"
+  },
+  {
+   "id": "denim_fabric",
+   "name": "Denim Fabric",
+   "page": "https://polyhaven.com/a/denim_fabric",
+   "image": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/denim_fabric/denim_fabric_diff_1k.jpg"
+  },
+  {
+   "id": "gingham_check",
+   "name": "Gingham Check",
+   "page": "https://polyhaven.com/a/gingham_check",
+   "image": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gingham_check/gingham_check_diff_1k.jpg"
+  },
+  {
+   "id": "floral_jacquard",
+   "name": "Floral Jacquard",
+   "page": "https://polyhaven.com/a/floral_jacquard",
+   "image": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/floral_jacquard/floral_jacquard_diff_1k.jpg"
+  },
+  {
+   "id": "granite_tile_03",
+   "name": "Granite Tile 03",
+   "page": "https://polyhaven.com/a/granite_tile_03",
+   "image": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/granite_tile_03/granite_tile_03_diff_1k.jpg"
+  },
+  {
+   "id": "terrazzo_tiles",
+   "name": "Terrazzo Tiles",
+   "page": "https://polyhaven.com/a/terrazzo_tiles",
+   "image": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_diff_1k.jpg"
+  },
+  {
+   "id": "dirty_carpet",
+   "name": "Dirty Carpet",
+   "page": "https://polyhaven.com/a/dirty_carpet",
+   "image": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dirty_carpet/dirty_carpet_diff_1k.jpg"
+  },
+  {
+   "id": "flower_scattered_dirt",
+   "name": "Flower Scattered Dirt",
+   "page": "https://polyhaven.com/a/flower_scattered_dirt",
+   "image": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/flower_scattered_dirt/flower_scattered_dirt_diff_1k.jpg"
+  },
+  {
+   "id": "forest_leaves_03",
+   "name": "Forest Leaves 03",
+   "page": "https://polyhaven.com/a/forest_leaves_03",
+   "image": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_leaves_03/forest_leaves_03_diff_1k.jpg"
+  },
+  {
+   "id": "quatrefoil_jacquard_fabric",
+   "name": "Quatrefoil Jacquard Fabric",
+   "page": "https://polyhaven.com/a/quatrefoil_jacquard_fabric",
+   "image": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/quatrefoil_jacquard_fabric/quatrefoil_jacquard_fabric_diff_1k.jpg"
+  }
+ ]
+}
