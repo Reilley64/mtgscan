@@ -210,7 +210,7 @@ public enum GalleryInstaller {
   }
 
   static func sha256(of data: Data) -> String {
-    ModelPackage.hex(SHA256.hash(data: data))
+    SHA256.hash(data: data).hex
   }
 
   static func inflated(_ compressed: Data, rawBytes: Int, name: String) throws -> Data {

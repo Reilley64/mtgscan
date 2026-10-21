@@ -205,6 +205,14 @@ async function runRoundTrip(gate, roundTripLabels) {
   return { name: gate.name, webp, jpeg, pass };
 }
 
+if (!galleryDirectory) {
+  console.error('Set RECOGNIZER_GALLERY_DIR to the folder that `bun run gallery install` wrote, such as ~/Library/Caches/mtgscan/gallery/installed/20261021-c38f43. See test/scanner-evidence/README.md.');
+  process.exit(1);
+}
+if (!existsSync(path.join(galleryDirectory, printingListFile))) {
+  console.error(`No gallery in ${galleryDirectory}. See test/scanner-evidence/README.md.`);
+  process.exit(1);
+}
 if (recordFeaturePrints) {
   await fs.mkdir(dataDirectory, { recursive: true });
   recognizer = await buildRecognizer();

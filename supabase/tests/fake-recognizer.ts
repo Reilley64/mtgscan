@@ -3,7 +3,9 @@ import { createHash } from 'node:crypto';
 import { readdir } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
-const vectorSize = 512;
+import { repositoryModelFile } from '../gallery/model';
+
+const { inputSize, vectorSize } = (await Bun.file(repositoryModelFile).json()) as { inputSize: number; vectorSize: number };
 const [command, ...args] = Bun.argv.slice(2);
 
 async function packageSha256(modelPackage: string): Promise<string> {
@@ -25,7 +27,7 @@ if (command === 'about' && args[0] === '--model' && args.length === 2) {
       model: {
         name: basename(args[1]!, '.mlpackage'),
         sha256: await packageSha256(args[1]!),
-        inputSize: { width: 384, height: 384 },
+        inputSize: { width: inputSize, height: inputSize },
         vectorSize,
       },
     }),

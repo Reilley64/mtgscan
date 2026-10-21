@@ -48,7 +48,7 @@ func aPhotoIsRecognizedAsTheCardPrintingWhoseGalleryRowTheModelMadeFromTheSameCa
 func aFeaturePrintIsAUnitVectorOfTheGalleryVersionsVectorSize() throws {
   let gallery = try fixtureGallery(printings: [], vectors: [])
 
-  let vector = try gallery.featurePrint(of: card(seed: 6))
+  let vector = try gallery.compiledModel.featurePrint(of: card(seed: 6))
 
   #expect(vector.count == gallery.dimension)
   #expect(abs(sqrt(vector.reduce(0) { $0 + $1 * $1 }) - 1) < 0.0001)
@@ -77,11 +77,11 @@ func aCardIsPaddedToTheInputSizeWithTheModelsMeanColor() throws {
   }
   let squareOnBlack = try image(width: size.width, height: size.height) { drawCard($0, x: left) }
 
-  let padded = try fixtureCompiledModel.featurePrint(of: narrow, inputSize: size)
+  let padded = try fixtureCompiledModel.featurePrint(of: narrow)
 
-  #expect(cosine(padded, try fixtureCompiledModel.featurePrint(of: largerNarrow, inputSize: size)) > 0.999)
-  #expect(cosine(padded, try fixtureCompiledModel.featurePrint(of: squareOnMeanColor, inputSize: size)) > 0.99)
-  #expect(cosine(padded, try fixtureCompiledModel.featurePrint(of: squareOnBlack, inputSize: size)) < 0.95)
+  #expect(cosine(padded, try fixtureCompiledModel.featurePrint(of: largerNarrow)) > 0.999)
+  #expect(cosine(padded, try fixtureCompiledModel.featurePrint(of: squareOnMeanColor)) > 0.99)
+  #expect(cosine(padded, try fixtureCompiledModel.featurePrint(of: squareOnBlack)) < 0.95)
 }
 
 @Test("a model that returns NaN makes the scan fail as an unreadable photo")
@@ -94,18 +94,5 @@ func aModelThatReturnsNaNMakesTheScanFailAsAnUnreadablePhoto() throws {
 
   #expect(throws: RecognitionFailure.unreadablePhoto) {
     try CardRecognizer.recognize(card: black, gallery: gallery)
-  }
-}
-
-@Test("a gallery version whose input size the model does not take makes the scan fail as an unreadable photo")
-func aGalleryVersionWhoseInputSizeTheModelDoesNotTakeMakesTheScanFail() throws {
-  let gallery = try fixtureGallery(
-    printings: [printing("only")],
-    vectors: try featurePrint(of: card(seed: 1)),
-    inputSize: .init(width: 488, height: 680)
-  )
-
-  #expect(throws: RecognitionFailure.unreadablePhoto) {
-    try CardRecognizer.recognize(card: card(seed: 1), gallery: gallery)
   }
 }

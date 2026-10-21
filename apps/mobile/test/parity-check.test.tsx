@@ -83,7 +83,7 @@ test('without an installed gallery, the parity check says it could not run', asy
   expect(await screen.findByText('Could not run the parity check: gallery_not_ready')).toBeOnTheScreen();
 });
 
-test('a development build shows the parity check section under the Fan Content and licence notices', async () => {
+test('a development build shows the parity check section under the Fan Content and license notices', async () => {
   await renderApp();
 
   await openSettings();

@@ -46,13 +46,13 @@ public enum CardRecognizer {
     let uprightVector: [Float]
     let turnedVector: [Float]
     do {
-      uprightVector = try gallery.featurePrint(of: uprightSmall)
-      turnedVector = try gallery.featurePrint(of: turnedSmall)
+      uprightVector = try gallery.compiledModel.featurePrint(of: uprightSmall)
+      turnedVector = try gallery.compiledModel.featurePrint(of: turnedSmall)
     } catch {
       throw .unreadablePhoto
     }
     guard uprightVector.count == gallery.dimension, turnedVector.count == gallery.dimension else { throw .unreadablePhoto }
-    stageMs["embed"] = elapsed(since: &startedAt)
+    stageMs["featurePrint"] = elapsed(since: &startedAt)
     var bothScores = gallery.similarities(to: [uprightVector, turnedVector])
     for index in excluded {
       bothScores[0][index] = -1

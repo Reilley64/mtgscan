@@ -100,6 +100,12 @@ async function convertedModel(sha256?: string): Promise<ConvertedModel> {
   return { modelFile, models, sha256: actual };
 }
 
+async function withThresholds(converted: ConvertedModel, changed: typeof thresholds): Promise<ConvertedModel> {
+  const modelFile = join(await mkdtemp(join(tmpdir(), 'mtgscan-gallery-model-file-')), 'model.json');
+  await writeFile(modelFile, JSON.stringify({ name: modelName, sha256: converted.sha256, inputSize: 384, vectorSize: 512, thresholds: changed }));
+  return { ...converted, modelFile };
+}
+
 async function buildWithModel(converted: ConvertedModel, manifest: string, ...flags: string[]) {
   return runGalleryCommand(
     'build', '--manifest', manifest, '--images', imagesDirectory, '--work', workDirectory,
@@ -352,6 +358,20 @@ describe('publishing', () => {
     expect(result.exitCode).toBe(0);
     expect(result.output).toContain(`Nothing changed since gallery version ${first}`);
     expect(await recordedVersions()).toHaveLength(1);
+  });
+
+  test('a build with new recognizer thresholds in the model file uploads a new base with the same model part, even with no changed rows', async () => {
+    const changed = { ...thresholds, notACard: 0.7 };
+    const published = await manifestOf(first);
+
+    const result = await buildWithModel(await withThresholds(model, changed), await galleryFixture());
+
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('Building a new base, because the recognizer thresholds changed.');
+    const newBase = await manifestOf(builtVersion(result.output));
+    expect(newBase).toMatchObject({ thresholds: changed, rows: firstBuildRows });
+    expect(newBase.parts.every((part) => part.addOn === 0)).toBe(true);
+    expect(newBase.parts.find((part) => part.kind === 'model')).toEqual(published.parts.find((part) => part.kind === 'model'));
   });
 });
 

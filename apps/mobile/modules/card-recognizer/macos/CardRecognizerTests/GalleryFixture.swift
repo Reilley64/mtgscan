@@ -20,13 +20,12 @@ func fixtureGallery(
   vectors: [Float16],
   version: String? = nil,
   thresholds: RecognizerThresholds = fixtureThresholds,
-  inputSize: FeaturePrintModel.InputSize = fixtureModel.inputSize,
   vectorSize: Int = fixtureModel.vectorSize
 ) throws -> Gallery {
   let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
   try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
   try JSONSerialization.data(withJSONObject: printings).write(to: directory.appendingPathComponent(GalleryFile.printingList))
-  let model = FeaturePrintModel(name: fixtureModel.name, sha256: fixtureModel.sha256, inputSize: inputSize, vectorSize: vectorSize)
+  let model = FeaturePrintModel(name: fixtureModel.name, sha256: fixtureModel.sha256, inputSize: fixtureModel.inputSize, vectorSize: vectorSize)
   try JSONEncoder().encode(
     GalleryHeader(count: printings.count, model: model, thresholds: thresholds, createdAt: "", encoding: nil, version: version)
   ).write(to: directory.appendingPathComponent(GalleryFile.header))
@@ -55,6 +54,6 @@ func card(seed: Int) throws -> CGImage {
 }
 
 func featurePrint(of image: CGImage) throws -> [Float16] {
-  try fixtureCompiledModel.featurePrint(of: #require(CardRecognizer.small(image)), inputSize: fixtureModel.inputSize)
+  try fixtureCompiledModel.featurePrint(of: #require(CardRecognizer.small(image)))
     .map { Float16($0) }
 }

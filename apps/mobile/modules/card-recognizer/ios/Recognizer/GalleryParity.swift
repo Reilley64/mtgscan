@@ -45,7 +45,7 @@ public struct GalleryParity: Codable, Sendable {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("parity-\(UUID().uuidString)")
         try await referenceImage(printing).write(to: file)
         defer { try? FileManager.default.removeItem(at: file) }
-        let phone = try gallery.featurePrint(ofCardAt: file)
+        let phone = try gallery.compiledModel.featurePrint(ofCardAt: file)
         cosines.append(Double(zip(phone, gallery.vector(at: row)).reduce(0) { $0 + $1.0 * $1.1 }))
       } catch {
         failures.append("\(printing.id): \(error)")

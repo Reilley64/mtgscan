@@ -102,7 +102,7 @@ func forEachFeaturePrint(of images: [URL], model: CompiledModel, _ body: @Sendab
   let progress = OSAllocatedUnfairLock(initialState: (completed: 0, failures: [String]()))
   DispatchQueue.concurrentPerform(iterations: images.count) { row in
     autoreleasepool {
-      let vector = try? model.featurePrint(ofCardAt: images[row], inputSize: model.inputSize)
+      let vector = try? model.featurePrint(ofCardAt: images[row])
       if let vector { body(row, vector) }
       progress.withLock { state in
         if vector == nil { state.failures.append(images[row].lastPathComponent) }
@@ -196,7 +196,7 @@ func about(package path: String) {
 func featurePrints(model: CompiledModel, images: [String]) {
   for input in images {
     autoreleasepool {
-      guard let vector = try? model.featurePrint(ofCardAt: URL(fileURLWithPath: input), inputSize: model.inputSize) else {
+      guard let vector = try? model.featurePrint(ofCardAt: URL(fileURLWithPath: input)) else {
         emit(FeaturePrintLine(input: input, vector: nil, error: RecognitionFailure.unreadablePhoto.code))
         return
       }

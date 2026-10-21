@@ -103,11 +103,18 @@ The scans in a scan batch that share a card printing, finish, condition, and lan
 The vector the recognizer makes from the straightened image of a card. The model that makes it is part of the gallery version, so the phone and the gallery always use the same model.
 _Avoid_: Embedding
 
+**Feature print model**:
+The model that makes feature prints. Today it is PE-Core S16-384, converted for Core ML. `model.json` names it, with its SHA-256, input size, and vector size. Each base holds the model, and an add-on uses the model of its base.
+_Avoid_: Embedding model
+
+**Recognizer thresholds**:
+The three limits the recognizer decides with. Not a card is the lowest top similarity for a card. Orientation margin is how far the better of the upright and turned top scores must lead before the recognizer reads the collector line on that side only. Art margin is the lowest art margin for an accept by unique art. The thresholds belong to the feature print model, so `model.json` holds them and each gallery version carries them in its manifest. A change to them makes a new base.
+
 **Gallery**:
 The feature prints and printing list that the phone recognizer searches. The owner builds it, and phones download it from Storage. A phone downloads only the parts of the published gallery version that it does not have, checks each part's SHA-256 against the manifest, and switches to the new gallery version only when every part is there.
 
 **Gallery version**:
-One build of the gallery: a base plus zero or more add-ons. Each base and add-on is stored as compressed parts, and a manifest lists every part with its SHA-256. A gallery version also holds the model that made its feature prints and the recognizer's thresholds for that model. A gallery version with a new model is always a new base. An add-on holds new card printings and card printings whose image or printing list row changed. A gallery version reaches phones only after the owner publishes it, and publishing needs a passing parity check. The pointer, `published.json`, names the published gallery version.
+One build of the gallery: a base plus zero or more add-ons. Each base and add-on is stored as compressed parts, and a manifest lists every part with its SHA-256. A gallery version also holds the feature print model that made its feature prints and the recognizer thresholds for that model. A gallery version with a new model or new recognizer thresholds is always a new base. An add-on holds new card printings and card printings whose image or printing list row changed. A gallery version reaches phones only after the owner publishes it, and publishing needs a passing parity check. The pointer, `published.json`, names the published gallery version.
 
 **Parity check**:
 A check on the iPhone that the phone's feature prints match the gallery rows built on the Mac. It passes when the lowest cosine over 24 reference images is at least 0.98.

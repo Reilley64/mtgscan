@@ -105,10 +105,9 @@ public final class Gallery: Sendable {
   public let version: String?
   public let model: FeaturePrintModel
   public let thresholds: RecognizerThresholds
-  public let dimension: Int
   public let printingsByIllustration: [String: [Int]]
   public let setCodes: Set<String>
-  private let compiledModel: CompiledModel
+  public let compiledModel: CompiledModel
   private let vectors: Data
   private let indexBySetAndNumber: [String: Int]
   private let indexById: [String: Int]
@@ -135,13 +134,12 @@ public final class Gallery: Sendable {
     }
     model = header.model
     thresholds = header.thresholds
-    dimension = header.model.vectorSize
     version = header.version
     guard (header.encoding ?? GalleryHeader.float16) == GalleryHeader.float16 else {
       throw Failure.mismatch("unknown gallery encoding \(header.encoding ?? "")")
     }
     let raw = try Data(contentsOf: directory.appendingPathComponent(GalleryFile.float16Vectors), options: .alwaysMapped)
-    guard raw.count == header.count * dimension * MemoryLayout<Float16>.size else {
+    guard raw.count == header.count * header.model.vectorSize * MemoryLayout<Float16>.size else {
       throw Failure.mismatch("\(GalleryFile.float16Vectors) has \(raw.count) bytes")
     }
     vectors = raw
@@ -160,6 +158,8 @@ public final class Gallery: Sendable {
     setCodes = Set(printings.map { $0.set })
   }
 
+  public var dimension: Int { model.vectorSize }
+
   public static func key(set: String, collectorNumber: String) -> String {
     "\(set.lowercased())|\(withoutLeadingZeros(collectorNumber).lowercased())"
   }
@@ -175,14 +175,6 @@ public final class Gallery: Sendable {
 
   public func index(id: String) -> Int? {
     indexById[id]
-  }
-
-  public func featurePrint(of card: CGImage) throws -> [Float] {
-    try compiledModel.featurePrint(of: card, inputSize: model.inputSize)
-  }
-
-  public func featurePrint(ofCardAt url: URL) throws -> [Float] {
-    try compiledModel.featurePrint(ofCardAt: url, inputSize: model.inputSize)
   }
 
   public func vector(at row: Int) -> [Float] {
