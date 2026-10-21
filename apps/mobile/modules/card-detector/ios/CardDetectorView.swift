@@ -61,6 +61,14 @@ final class CardDetectorView: ExpoView {
         promise.resolve([
           "uri": photo.url.absoluteString,
           "outline": photo.outline.map { ["x": $0.x, "y": $0.y] },
+          "width": photo.width,
+          "height": photo.height,
+          "times": [
+            "receivedAt": photo.times.receivedAt,
+            "capturedAt": photo.times.capturedAt,
+            "processedAt": photo.times.processedAt,
+            "savedAt": photo.times.savedAt,
+          ],
         ])
       case let .failure(failure):
         promise.reject(failure.rawValue, "The photo could not be taken")

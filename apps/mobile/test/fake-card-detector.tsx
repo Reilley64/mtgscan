@@ -10,6 +10,11 @@ import type {
   DetectionSample,
   FrameQuad,
 } from '../modules/card-detector';
+import type { ScanPhases } from '../src/scan/recognition-log';
+
+type PhotoPhases = Pick<ScanPhases, 'photoRequest' | 'photoCapture' | 'photoProcessing' | 'photoSave' | 'photoHandOff'>;
+
+const instantPhoto: PhotoPhases = { photoRequest: 0, photoCapture: 0, photoProcessing: 0, photoSave: 0, photoHandOff: 0 };
 
 let cameraAvailable = true;
 let permission: CameraPermission = 'granted';
@@ -21,6 +26,18 @@ let holdingNextPhoto = false;
 let photos: CapturedPhoto[] = [];
 let deletedPhotos: string[] = [];
 let mountedView: CardDetectorViewProps | null = null;
+let photoPhases = instantPhoto;
+
+function photoTimes() {
+  const receivedAt = Date.now() + photoPhases.photoRequest;
+  const capturedAt = receivedAt + photoPhases.photoCapture;
+  const processedAt = capturedAt + photoPhases.photoProcessing;
+  const savedAt = processedAt + photoPhases.photoSave;
+  if (photoPhases !== instantPhoto) {
+    jest.setSystemTime(savedAt + photoPhases.photoHandOff);
+  }
+  return { receivedAt, capturedAt, processedAt, savedAt };
+}
 
 async function takePhoto(outline: FrameQuad): Promise<CapturedPhoto> {
   if (holdingNextPhoto) {
@@ -33,7 +50,13 @@ async function takePhoto(outline: FrameQuad): Promise<CapturedPhoto> {
     failingPhotos -= 1;
     throw new Error('The photo failed');
   }
-  const photo: CapturedPhoto = { uri: `file:///tmp/scan-${photos.length + 1}.jpg`, outline };
+  const photo: CapturedPhoto = {
+    uri: `file:///tmp/scan-${photos.length + 1}.jpg`,
+    outline,
+    width: 4032,
+    height: 2268,
+    times: photoTimes(),
+  };
   photos = [...photos, photo];
   return photo;
 }
@@ -101,6 +124,10 @@ export function photosDeleted() {
   return deletedPhotos;
 }
 
+export function photosTake(phases: PhotoPhases) {
+  photoPhases = phases;
+}
+
 export function failNextPhotos(count: number) {
   failingPhotos = count;
 }
@@ -132,4 +159,5 @@ export function resetFakeCardDetector() {
   holdingNextPhoto = false;
   deletedPhotos = [];
   mountedView = null;
+  photoPhases = instantPhoto;
 }

@@ -1,7 +1,7 @@
 import { NativeModule, requireNativeModule } from 'expo';
 
 import type { GalleryDownload, GalleryDownloadStatus, GalleryParity, InstalledGallery } from './src/gallery';
-import type { CardName, CardOutline, GalleryCardPrinting, Recognition } from './src/recognition';
+import type { CardName, CardOutline, GalleryCardPrinting, TimedRecognition } from './src/recognition';
 
 export type * from './src/gallery';
 export type * from './src/recognition';
@@ -12,7 +12,7 @@ type CardRecognizerEvents = {
 
 declare class CardRecognizerModule extends NativeModule<CardRecognizerEvents> {
   readonly recognizerVersion: string;
-  recognize(photoUri: string, outline: CardOutline): Promise<Recognition>;
+  recognize(photoUri: string, outline: CardOutline): Promise<TimedRecognition>;
   installedGallery(): Promise<InstalledGallery | null>;
   galleryDownloadStatus(): Promise<GalleryDownloadStatus | null>;
   downloadGallery(download: GalleryDownload): Promise<void>;
@@ -25,7 +25,7 @@ const cardRecognizer = requireNativeModule<CardRecognizerModule>('CardRecognizer
 
 export const recognizerVersion = cardRecognizer.recognizerVersion;
 
-export function recognize(photoUri: string, outline: CardOutline): Promise<Recognition> {
+export function recognize(photoUri: string, outline: CardOutline): Promise<TimedRecognition> {
   return cardRecognizer.recognize(photoUri, outline);
 }
 
