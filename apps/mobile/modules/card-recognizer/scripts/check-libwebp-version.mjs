@@ -3,8 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { moduleRoot, run } from './recognizer-command.mjs';
 
-const [app] = process.argv.slice(2);
-if (!app) throw new Error('usage: check-libwebp-version.mjs <built mtgscan.app>');
+const [app, simulator] = process.argv.slice(2);
+if (!app) throw new Error('usage: check-libwebp-version.mjs <built mtgscan.app> [Simulator UDID]');
 
 const pinned = (await readFile(path.join(moduleRoot, 'Package.swift'), 'utf8')).match(
   /libwebp-Xcode\.git", exact: "([^"]+)"/,
@@ -34,15 +34,19 @@ async function buildProbe(directory) {
   return probe;
 }
 
-async function runInSimulator(probe) {
+async function runInSimulator(probe, device) {
+  await succeed('xcrun', ['simctl', 'bootstatus', device, '-b'], 'the Simulator did not boot');
+  return succeed('xcrun', ['simctl', 'spawn', device, probe], 'the libwebp probe failed in the Simulator');
+}
+
+async function runInNewSimulator(probe) {
   const device = await succeed(
     'xcrun',
     ['simctl', 'create', `mtgscan-libwebp-check-${process.pid}`, 'iPhone 16e'],
     'no iPhone 16e Simulator could be created',
   );
   try {
-    await succeed('xcrun', ['simctl', 'bootstatus', device, '-b'], 'the Simulator did not boot');
-    return await succeed('xcrun', ['simctl', 'spawn', device, probe], 'the libwebp probe failed in the Simulator');
+    return await runInSimulator(probe, device);
   } finally {
     await run('xcrun', ['simctl', 'shutdown', device]);
     await run('xcrun', ['simctl', 'delete', device]);
@@ -52,7 +56,8 @@ async function runInSimulator(probe) {
 const scratch = await mkdtemp(path.join(os.tmpdir(), 'libwebp-version-'));
 let linked;
 try {
-  linked = await runInSimulator(await buildProbe(scratch));
+  const probe = await buildProbe(scratch);
+  linked = simulator ? await runInSimulator(probe, simulator) : await runInNewSimulator(probe);
 } finally {
   await rm(scratch, { recursive: true, force: true });
 }
