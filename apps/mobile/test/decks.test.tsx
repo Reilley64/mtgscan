@@ -36,6 +36,7 @@ import {
   pressTab,
   placeInScrollView,
   pushedScreen,
+  pushedScreenBlursUnderHeader,
   pushedScreenTitle,
   selectedTab,
   swipeBackFromThePushedScreen,
@@ -349,6 +350,27 @@ describe("the deck screen", () => {
 
     await scrollPushedScreenTo(0);
     expect(pushedScreenTitle()).toBe("");
+  });
+
+  test("the header blurs nothing while the banner is under it, and blurs the cards once the banner scrolls out", async () => {
+    ownDecks([{ name: "Atraxa", priority: "high" }]);
+    const deck = await openDeck();
+    const { block: banner } = placeInScrollView(
+      deck.getByRole("header", { name: "Atraxa" }),
+    );
+    await fireEvent(banner, "layout", {
+      nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 300 } },
+    });
+    expect(pushedScreenBlursUnderHeader()).toBe(false);
+
+    await scrollPushedScreenTo(100);
+    expect(pushedScreenBlursUnderHeader()).toBe(false);
+
+    await scrollPushedScreenTo(300);
+    expect(pushedScreenBlursUnderHeader()).toBe(true);
+
+    await scrollPushedScreenTo(0);
+    expect(pushedScreenBlursUnderHeader()).toBe(false);
   });
 
   test("has Close on the left and a More button on the right, and Close goes back to the gallery", async () => {

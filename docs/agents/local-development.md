@@ -10,8 +10,8 @@
 
 ## Xcode and the Simulator
 
-- `xcode-select` may point to the Command Line Tools. Set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` for `xcrun simctl` and for builds.
-- Use the one shared iPhone 16e Simulator. It matches the owner's phone. Do not create, boot, or erase another Simulator.
+- Local builds use Xcode 27.1, as EAS builds do. Set `DEVELOPER_DIR=/Applications/Xcode-27.1.0.app/Contents/Developer` for `xcrun simctl` and for builds. `/Applications/Xcode.app` is Xcode 26.3, which the CI workflows use. Leave `xcode-select` as it is.
+- Use the one shared iPhone 16e Simulator, `D2C1596D-8A88-4D39-A587-CAB648D05CA1`. It runs iOS 27.0, like the owner's phone. The iOS 27.1 Simulator runtime runs only the iPhone Duo. Do not create, boot, or erase another Simulator.
 - Only one agent at a time uses the Simulator, Metro, an Xcode or Expo native build, or the owner's iPhone. Take the device lock first with `mkdir /tmp/mtgscan-device.lock`, and write your name into `/tmp/mtgscan-device.lock/owner`. If `mkdir` fails, another agent has the device. Keep working on code and tests, and try again later.
 - When the device work is done, stop Metro, close the Simulator with `device_close` and `shutdown: true`, delete the generated `ios/` and build folders, and remove `/tmp/mtgscan-device.lock`.
 - `expo run:ios` and `expo start` keep Metro running and never exit. Start them in the background with output to a log file, poll the log, and stop Metro when you are done.

@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 
 import type { CardSheen } from '@/components/atoms/card-image';
 import { LargeCardImage } from '@/components/molecules/large-card-image';
@@ -10,11 +10,12 @@ type CardHeroProps = {
   artUri: string | undefined;
   name: string;
   sheen?: CardSheen;
+  onLayout?: (event: LayoutChangeEvent) => void;
 };
 
-export function CardHero({ uri, artUri, name, sheen }: CardHeroProps) {
+export function CardHero({ uri, artUri, name, sheen, onLayout }: CardHeroProps) {
   return (
-    <View className="items-center overflow-hidden bg-background pb-lg pt-safe-offset-xl">
+    <View onLayout={onLayout} className="items-center overflow-hidden bg-background pb-lg pt-safe-offset-xl">
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className="absolute inset-0 opacity-hero-art">
         <Image source={artUri} blurRadius={blurRadii.heroArt} contentFit="cover" cachePolicy="disk" style={StyleSheet.absoluteFill} />
       </View>

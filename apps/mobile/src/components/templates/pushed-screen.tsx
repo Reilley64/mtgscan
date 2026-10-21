@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useHeaderHeight } from 'expo-router/react-navigation';
 
 import { CardGridList, type CardGridListProps } from '@/components/molecules/card-grid';
@@ -24,10 +24,18 @@ function useContentInsets(withBar: boolean) {
   } as const;
 }
 
-export function PushedScreen({ withBar = false, children }: { withBar?: boolean; children: ReactNode }) {
+type PushedScreenProps = {
+  withBar?: boolean;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  children: ReactNode;
+};
+
+export function PushedScreen({ withBar = false, onScroll, children }: PushedScreenProps) {
   return (
     <ScrollView
       {...useContentInsets(withBar)}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
       className={screenClass}
       contentContainerClassName={cn(contentClass, 'gap-lg')}
       keyboardShouldPersistTaps="handled">

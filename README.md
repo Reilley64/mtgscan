@@ -157,6 +157,8 @@ The card detector is a local Expo module in `apps/mobile/modules/card-detector`.
 
 The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes one photo when a detected card holds still for 400 ms, and re-arms after the card leaves or changes. The app needs iOS 17, because the recognizer's model is a Core ML ML program for iOS 17.
 
+Vision's rectangle detector (`VNDetectRectanglesRequest`) was tried in #421 in place of the proposal and the edge refiner, and lost. `.out-of-scope/vision-rectangle-card-detector.md` says why.
+
 `bun run detector:test` in `apps/mobile` runs the Swift fixture tests for the detector on a Mac. Development builds log each capture event to Metro as a `CAPTURE` line, with the detector timing every 300 samples.
 
 ### Scan feedback
@@ -254,7 +256,7 @@ Agents build and install only the test app on the iPhone, and never sign in to t
 
 The app version in `apps/mobile/app.json` follows the release version. Release-please updates it together with the root `package.json`. EAS keeps the iOS build number (`cli.appVersionSource` is `remote`) and increments it for each production build.
 
-The app is on Expo SDK 58, with React Native 0.88. It builds on Xcode 26.3 with Swift 6.2. To upgrade the SDK, run `bunx expo install expo@<version>` and then `bunx expo install --fix` in `apps/mobile`, and build the app on Xcode 26.3 before you open the PR.
+The app is on Expo SDK 58, with React Native 0.88. Local builds and EAS builds use Xcode 27.1, so the app links against the iOS 27 SDK. The CI workflows still build on Xcode 26.3 with Swift 6.2, so the app must build on both. To upgrade the SDK, run `bunx expo install expo@<version>` and then `bunx expo install --fix` in `apps/mobile`, and build the app on Xcode 27.1 and Xcode 26.3 before you open the PR.
 
 `apps/mobile` pins `@shopify/flash-list` to 2.3.3. For SDK 58, `expo install` picks 2.3.2. Version 2.3.3 fixes blank rows during fast scrolling ([Shopify/flash-list#2510](https://github.com/Shopify/flash-list/pull/2510)). `expo.install.exclude` in `apps/mobile/package.json` leaves the package out of `expo install --check`. Check the pin again on each SDK upgrade.
 
@@ -357,13 +359,14 @@ Signed-in users read one set with `supabase.rpc('get_set', { query })`. The set 
 
 `bun run import set_sections` fills them in and keeps them up to date:
 
-- `sets_for_set_section_import()`, with the secret key, lists the sets that Sets lists. Each set has `due`, its stored `sections` with `name` and `search` in Scryfall's order, and `has_unlisted_card_printing`. That is true when the set has a card printing, not a basic land and not absent, that no stored set section lists.
-- A set is due when its set sections were never read, its release date is within the last 180 days, or it has a card printing that no stored set section lists. The command skips every other set. A failed read changes nothing, so the set stays due for the next run.
-- For each due set, the command reads the set's Scryfall set page, `https://scryfall.com/sets/<code>`. Each `h2.card-grid-header` is a set section, in page order. The name is the header text before the count. The search is the `q` parameter of the header's count link.
-- A page with no set section header, or a header with no search link, is a failed read for that set.
+- `sets_for_set_section_import()`, with the secret key, lists the sets that Sets lists. Each set has `due`, its stored `sections` with `name` and `search` in Scryfall's order, and `has_unlisted_card_printing`. That is true when the set has at least one stored set section and a card printing, not a basic land and not absent, that no stored set section lists.
+- A set is due when its set sections were never read, its release date is within the last 180 days, or `has_unlisted_card_printing` is true. So a set read with no set sections is due only when it was never read or came out in the last 180 days. The command skips every other set. A failed read changes nothing, so the set stays due for the next run.
+- For each due set, the command reads the set's Scryfall set page, `https://scryfall.com/sets/<code>`. Each `h2.card-grid-header` with a search link is a set section, in page order. The name is the header text before the count. The search is the `q` parameter of the header's count link.
+- The command skips a header with no search link, such as Scryfall's catch-all "Cards" header. Its card printings are in `other`.
+- A page with a card grid and no header with a search link is a set with no set sections. The command stores no set sections and records the read time. A page with no card grid is a failed read for that set.
 - When the page's names and searches match the stored ones and the set has no card printing that no stored set section lists, the command runs no searches. It records the read time with `record_set_sections_read`.
 - Otherwise the command runs each search through `/cards/search` with `unique=prints`, and follows every page of results. A search that Scryfall answers with "no cards found" is an empty set section. It then stores the set with `import_set_sections`.
-- It sends at most 1 set page read a second and at most 2 card searches a second, with the import user agent. After a 429 reply it waits 30 seconds and tries again. A second 429 for the same request is a failed read for that set.
+- It sends at most 1 set page read a second and at most 1 card search a second, with the import user agent. After a 429 reply it waits 60 seconds, or `--retry-wait-seconds`, and tries again, up to 3 times. A fourth 429 for the same request is a failed read for that set.
 - A failed read is logged with its reason, and the set keeps its stored set sections. The command goes on with the next set. At the end, it logs how many sets it read, skipped, and failed, and how many searches it ran. It exits non-zero and names each failed set when any set failed.
 
 ### Current prices read
@@ -734,7 +737,7 @@ Basic lands are not copies, so collection search never returns them as rows. A f
 
 ### Card catalog imports
 
-`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. When `SUPABASE_URL` is not set, it uses `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file. Pass `--sets <path>` to read a fixture instead of the Scryfall sets list. Pass `--rates <path>` to read a fixture instead of Frankfurter's latest exchange rates. Pass `--scryfall-site <URL>` and `--scryfall-api <URL>` to read set sections from another Scryfall site and API, such as a fake Scryfall in the tests.
+`bun run import <command>` in `supabase` runs an import with `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. When `SUPABASE_URL` is not set, it uses `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF`. Pass `--manifest <path>` to read a fixture instead of the Scryfall bulk data manifest. Pass `--variants <path>` to read a fixture instead of the Commander Spellbook variants file. Pass `--sets <path>` to read a fixture instead of the Scryfall sets list. Pass `--rates <path>` to read a fixture instead of Frankfurter's latest exchange rates. Pass `--scryfall-site <URL>` and `--scryfall-api <URL>` to read set sections from another Scryfall site and API, such as a fake Scryfall in the tests. Pass `--retry-wait-seconds <n>` to change the wait after a 429 reply from Scryfall, 60 seconds by default. The tests pass 2.
 
 - `catalog` imports cards and card printings. Each card printing keeps `image_uris`, the Scryfall `normal` image of each face, and `art_crop_uri`, the Scryfall `art_crop` image of its front face or null. It also keeps Scryfall's `booster`, `promo`, and `variation` flags. After the run, even a skipped one, it reads Scryfall's sets list in one request and adds or updates `card_sets`: each set's code, name, `set_type`, `released_at`, and `icon_svg_uri`. A set with no `released_at` in Scryfall keeps null. Some sets use the icon of a parent set, so the app reads the icon from this table, not from a URL pattern. Signed-in users can read `card_sets`. The Weekly import workflow runs it.
   - The run reads the deck-construction fields from each card's Oracle text and stores them on the card. Deck validity reads them as rules data. The reader leaves out reminder text and an ability word before " — ", as in Clara Oswald's "Impossible Girl".

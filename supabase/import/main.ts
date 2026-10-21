@@ -18,7 +18,7 @@ const usage = `Usage:
   bun import/main.ts oracle_tags|prices [--manifest <path or URL>] [--accept-shrink] [--batch-rows <n>]
   bun import/main.ts commander_spellbook [--variants <path or URL>] [--accept-shrink] [--batch-rows <n>]
   bun import/main.ts exchange_rates [--rates <path or URL>] [--accept-shrink]
-  bun import/main.ts set_sections [--scryfall-site <URL>] [--scryfall-api <URL>]
+  bun import/main.ts set_sections [--scryfall-site <URL>] [--scryfall-api <URL>] [--retry-wait-seconds <n>]
   bun import/main.ts retry-weekly [--manifest <path or URL>] [--variants <path or URL>] [--batch-rows <n>]
   bun import/main.ts deck-evaluations
   bun import/main.ts prune-telemetry`;
@@ -33,6 +33,7 @@ const { positionals, values } = parseArgs({
     rates: { type: 'string', default: frankfurterLatestRatesUrl },
     'scryfall-site': { type: 'string', default: scryfallSiteUrl },
     'scryfall-api': { type: 'string', default: scryfallApiUrl },
+    'retry-wait-seconds': { type: 'string', default: '60' },
     'accept-shrink': { type: 'boolean', default: false },
     'batch-rows': { type: 'string', default: String(provisionalBatchLimits.rows) },
   },
@@ -40,6 +41,7 @@ const { positionals, values } = parseArgs({
 
 const [command] = positionals;
 const batchLimits = { ...provisionalBatchLimits, rows: Number(values['batch-rows']) };
+const retryWaitSeconds = Number(values['retry-wait-seconds']);
 const adapters = {
   catalog: () => scryfallCatalog(values.manifest),
   oracle_tags: () => scryfallOracleTags(values.manifest),
@@ -79,14 +81,14 @@ const commands: Record<string, (client: ImportClient) => Promise<unknown>> = {
     await recomputeAfterImport(client, run);
   },
   set_sections: (client: ImportClient) =>
-    importSetSections(client, { site: values['scryfall-site'], api: values['scryfall-api'] }),
+    importSetSections(client, { site: values['scryfall-site'], api: values['scryfall-api'] }, retryWaitSeconds),
   'retry-weekly': (client) => retryFailedWeeklySources(client, adapters, batchLimits),
   'deck-evaluations': recomputeBehindDeckEvaluations,
   'prune-telemetry': pruneSearchTelemetry,
 };
 const run = command === undefined ? undefined : commands[command];
 
-if (!run || !Number.isInteger(batchLimits.rows) || batchLimits.rows < 1) {
+if (!run || !Number.isInteger(batchLimits.rows) || batchLimits.rows < 1 || !(retryWaitSeconds >= 0)) {
   console.error(usage);
   process.exit(2);
 }

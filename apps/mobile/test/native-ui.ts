@@ -412,6 +412,10 @@ export function pushedScreenTitle() {
   return header?.props.title as string | undefined;
 }
 
+export function pushedScreenBlursUnderHeader() {
+  return pushedScreen().props.topScrollEdgeEffect === "soft";
+}
+
 export async function scrollPushedScreenTo(y: number) {
   const [scrollView] = pushedScreen().queryAll(
     (instance) => instance.type === "RCTScrollView",

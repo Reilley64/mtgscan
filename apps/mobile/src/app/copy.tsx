@@ -14,6 +14,7 @@ import { PushedScreen } from '@/components/templates/pushed-screen';
 import { applyCommanderAction, commanderAction } from '@/decks/commander-actions';
 import { removeFromDeck } from '@/decks/remove-from-deck';
 import { useDecks } from '@/decks/use-decks';
+import { useBannerScroll } from '@/lib/use-banner-scroll';
 import { colors } from '@/theme';
 
 export default function CopyScreen() {
@@ -22,6 +23,7 @@ export default function CopyScreen() {
   const { priceCurrency } = usePriceCurrency();
   const { read: decksRead } = useDecks();
   const hasDecks = decksRead.status === 'loaded' && decksRead.decks.length > 0;
+  const { scrollEdgeEffects, onBannerLayout, onScroll } = useBannerScroll();
 
   useEffect(() => {
     if (read.status === 'missing') {
@@ -85,7 +87,8 @@ export default function CopyScreen() {
   }
 
   return (
-    <PushedScreen>
+    <PushedScreen onScroll={onScroll}>
+      <Stack.Screen options={{ scrollEdgeEffects }} />
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button icon="xmark" tintColor={colors.text} accessibilityLabel="Close" onPress={() => router.back()} />
       </Stack.Toolbar>
@@ -108,6 +111,7 @@ export default function CopyScreen() {
             priceCurrency={priceCurrency}
             onOpenUserTags={() => router.push({ pathname: '/user-tag-picker', params: { copyId } })}
             onOpenDeck={(deckId) => router.push({ pathname: '/deck', params: { deckId } })}
+            onHeroLayout={onBannerLayout}
           />
         </>
       ) : null}

@@ -2,14 +2,17 @@ import { useState } from 'react';
 import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useHeaderHeight } from 'expo-router/react-navigation';
 
-export function useBannerTitle() {
+import { hiddenTopScrollEdgeEffects, softTopScrollEdgeEffects } from '@/lib/scroll-edge-effects';
+
+export function useBannerScroll() {
   const headerBottom = useHeaderHeight();
   const [bannerHeight, setBannerHeight] = useState<number | null>(null);
-  const [showsTitle, setShowsTitle] = useState(false);
+  const [bannerScrolledAway, setBannerScrolledAway] = useState(false);
   return {
-    showsTitle,
+    bannerScrolledAway,
+    scrollEdgeEffects: bannerScrolledAway ? softTopScrollEdgeEffects : hiddenTopScrollEdgeEffects,
     onBannerLayout: (event: LayoutChangeEvent) => setBannerHeight(event.nativeEvent.layout.height),
     onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) =>
-      setShowsTitle(bannerHeight !== null && event.nativeEvent.contentOffset.y + headerBottom >= bannerHeight),
+      setBannerScrolledAway(bannerHeight !== null && event.nativeEvent.contentOffset.y + headerBottom >= bannerHeight),
   };
 }

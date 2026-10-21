@@ -9,6 +9,7 @@ import { SessionProvider, useSession } from '@/auth/session';
 import { PriceCurrencyProvider } from '@/collection/price-currency-setting';
 import { DeckCardOrderProvider } from '@/decks/deck-card-order';
 import { fullHeightDrawerOptions, halfHeightDrawerOptions, pageSheetOptions } from '@/components/templates/drawer-sheet';
+import { softTopScrollEdgeEffects } from '@/lib/scroll-edge-effects';
 import { GalleryProvider } from '@/gallery/gallery-state';
 import { ReadProvider } from '@/lib/read';
 import { NeedsYouCountsProvider } from '@/needs-you/needs-you-counts';
@@ -37,7 +38,7 @@ const pushedScreenOptions: NativeStackNavigationOptions = {
   headerTransparent: true,
   title: '',
   headerBackVisible: false,
-  scrollEdgeEffects: { top: 'soft', bottom: 'automatic', left: 'automatic', right: 'automatic' },
+  scrollEdgeEffects: softTopScrollEdgeEffects,
 };
 
 const pushedScreenWithBarOptions = { ...pushedScreenOptions, headerTransparent: false, headerShadowVisible: false };

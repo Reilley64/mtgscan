@@ -8,7 +8,7 @@ import { SetPageBanner } from '@/components/organisms/set-banner';
 import { SetCardsItemView, setCardsItems } from '@/components/organisms/set-cards';
 import { SetSkeleton } from '@/components/organisms/set-skeleton';
 import { TabStackListScreen } from '@/components/templates/tab-screen';
-import { useBannerTitle } from '@/lib/use-banner-title';
+import { useBannerScroll } from '@/lib/use-banner-scroll';
 import { useFinishView } from '@/sets/finish-view-setting';
 import { useSet } from '@/sets/use-set';
 
@@ -16,7 +16,7 @@ export default function SetScreen() {
   const { code } = useLocalSearchParams<{ code: string }>();
   const { read, reload } = useSet(code);
   const { finishView } = useFinishView();
-  const { showsTitle, onBannerLayout, onScroll } = useBannerTitle();
+  const { bannerScrolledAway, onBannerLayout, onScroll } = useBannerScroll();
 
   function header() {
     if (read.status === 'loading') {
@@ -37,7 +37,7 @@ export default function SetScreen() {
 
   return (
     <TabStackListScreen
-      title={read.status === 'loaded' && showsTitle ? read.set.name : ''}
+      title={read.status === 'loaded' && bannerScrolledAway ? read.set.name : ''}
       data={read.status === 'loaded' ? setCardsItems(read.set, finishView) : []}
       keyExtractor={(item) => item.key}
       getItemType={(item) => item.kind}
