@@ -1,6 +1,6 @@
 # Scanner evidence pack
 
-This folder holds the evidence for the scanner release gates in #10, #21, and #75. The gates measure the card recognizer module in `modules/card-recognizer`. Every command here runs from `apps/mobile`.
+This folder holds the evidence for the scanner release gates in #10, #21, and #75. The gates measure the card recognizer module in `modules/card-recognizer`. The detector replay (#493) measures the card detector module in `modules/card-detector`. Every command here runs from `apps/mobile`.
 
 ## Contents
 
@@ -19,6 +19,10 @@ This folder holds the evidence for the scanner release gates in #10, #21, and #7
 | `bin-deck/test-deck.tsv` | The fixed 30-card test deck, with the three corrected printings from #10. |
 | `bin-deck/<run>/` | The summary, results, and per-card detail of each physical run cited in #21. |
 | `check.mjs` | Compares a new result with an expected file and checks the gates. |
+| `detector/frames.py` | The recipe that renders the detector replay frames. |
+| `detector/cards.json` | The 30 card printings that the detector replay frames show, 10 for each border colour. |
+| `detector/frames.sha256` | The SHA-256 of every rendered detector replay frame and of its `labels.json`. |
+| `detector/score.ts` | Scores the detection samples against the true corners, and compares the branch with the merge base. |
 | `training-crops/score.py` | The training crop scorer (README, Training crops). |
 | `training-crops/fixture-421/` | The 10 training crops of the #421 A/B, in the layout of `crops pull`, with the Scryfall `normal` images of their card printings. |
 | `training-crops/test_score.py` | Checks that the scorer reproduces the #421 table on the fixture. |
@@ -170,6 +174,59 @@ The first run had a bug that turned every card 90 degrees. The #21 resolution us
 `20261014-bin-deck` is the first run in the app (#84), with gallery version `20261012-cf1753`. It ran in low light on a textured surface. It accepted no wrong card. The collector line was not read on 11 cards, so 17 cards abstained, and the exact card printing was first for 26 of 30, one below the gate. Six cards were captured only after the owner moved them to a smoother surface.
 
 `20261015-bin-deck` is the rerun in good light on the same table (#165), with the same gallery version. It passes every gate. 25 cards were accepted correctly and 5 abstained. The phone read the full collector line on 23 cards. It read Big Score `SLD 7096` as `SLD 1096`, so the recognizer abstained and showed Sword of Truth and Justice `SLD 1096` first, with Big Score second. That is the only card whose first candidate was another card. Since #206, a collector line that names a card the image does not support shows the image's top card printing first, and the card printing that the reading names stays among the candidates. The camera captured two foil Secret Lair cards, `SLD 7096` and `SLD 7094`, only after the owner moved them to the bin.
+
+## Detector replay
+
+```bash
+bun run detector:test
+bun run detector:replay
+```
+
+The detector replay measures the card detector on a Mac, with no phone and no hosted access. It runs the shipped detector code on synthetic frames with known corners. It runs the branch and the merge base in the same run, and prints one table that compares them.
+
+What it runs:
+
+1. It renders the frames from `detector/frames.py` into `modules/card-detector/.data/frames`. It checks every frame and `labels.json` against `detector/frames.sha256`. A frame with another hash fails the replay. It skips the render when the frames are already there and match.
+2. It builds the macOS detector command, `card-detector`, on the branch and on the merge base of `HEAD` and `origin/main`. The command is an executable target in `modules/card-detector/Package.swift`. It compiles the Swift files in `ios/Detector` unchanged. When the merge base has no detector command, the replay builds the branch's command with the merge base's detector files.
+3. Each command runs on every frame. It reads the frame, builds the buffer the phone analyzes, and runs the detector. The buffer is a full-range `420f` buffer, landscape, with the `.right` orientation, and its colours are converted with BT.709. The command writes one JSON line per frame: the detection sample fields, with the time of the detector call in `nativeDurationMs`.
+4. The scorer compares each card outline with the true corners. It maps the outline onto the card with the homography of the true corners, so every distance is in mm on the card.
+
+The frames:
+
+- `detector/cards.json` lists 30 Scryfall card printings: 10 with a black border, 10 with a white border, and 10 borderless. The recipe downloads their `normal` images into `modules/card-detector/.data/images` once. Set `DETECTOR_IMAGES_DIR` to reuse a folder of them.
+- Each frame is a portrait frame of 720 x 1280, the analysis size. A camera pose places the card. The camera looks straight down at the card, with a focal length of 880 to 1000 px. The card is 300 to 500 px wide, turned up to 20 degrees, and upside down in 3 of 10 frames. Each frame has a slight blur and sensor noise.
+- Conditions: `plain` is a card on a plain surface, and `empty-plain` is a plain surface with no card. Each has 30 frames. The plain frames take the border colours in turn.
+- `labels.json` holds each frame's true corners in frame pixels, its condition, its card printing and border colour, the tilt, and the camera's intrinsic matrix.
+- The recipe needs `uv`. It pins `opencv-python-headless` 5.0.0.93 and `numpy` 2.5.3, as `simulate.py` does. Each frame takes its random numbers from its condition and its index, so a new condition leaves the other frames unchanged.
+
+Metrics and pass bars, from #493:
+
+| Metric | What it counts | Bar against the merge base |
+| --- | --- | --- |
+| Detection rate | Detected frames over frames with a card, per condition | Not lower by more than 1 frame in 30 |
+| Corner error | The largest corner distance in mm on the card, median and p90 of the detected frames | Median not worse by more than 0.1 mm. p90 not worse by more than 0.5 mm. |
+| Inside outlines | Card outlines with a side more than 1 mm inside the card edge | No new one on any frame |
+| Size error | The mean of opposite sides in mm, median of the detected frames. Inside is positive, as in #421. | Reported |
+| False outlines | Card outlines on empty frames | Zero |
+| Mac timing | p95 of the detector call over every frame, on the same Mac in the same run | At most 1.2 times the merge base. It is a proxy only: the 20 ms bar is on the iPhone. |
+| Same detector code | When the branch and the merge base have the same detector files and command, every number except timing must match | Same numbers |
+
+The replay writes `base.json`, `branch.json`, and `comparison.md` to `modules/card-detector/.data/reports`. Under the table, it lists each new inside outline and each false outline, with the outline's corners in frame pixels and how far each side is inside the card edge. It exits 0 when every bar passes, and 1 when a bar fails or a frame hash differs.
+
+Options:
+
+- `--base <ref>` compares with the merge base of `HEAD` and another ref, such as a spec's integration branch.
+- `--record-frame-hashes` renders the frames again and writes `detector/frames.sha256`. Use it only when the recipe or the card list changes, and say why in the pull request.
+
+Result on `main` at `a6fcfaf`, on an Apple M3 with macOS 27.0.1:
+
+- Plain: 22 of 30 detected. The 8 misses are borderless cards. The bottom edge of a borderless card is dark, so its step has the other polarity from the other three edges, and the edge refiner refuses the outline.
+- Corner error median 0.01 mm, p90 0.07 mm.
+- 1 inside outline: `plain-018.png`, a black-bordered card outlined on its inner frame, 2.6 to 6.7 mm inside.
+- 0 false outlines on the empty plain frames.
+- Mac timing p95 about 3.5 ms. The replay takes about 20 seconds once the images are downloaded.
+
+Synthetic frames do not show what Vision does on real frames (#421). So the replay gates mechanisms and regressions, and the phone confirms real gains.
 
 ## GitHub Actions
 
