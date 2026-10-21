@@ -1,15 +1,11 @@
-import { Image } from 'expo-image';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
-import { placeholderFills, useOnGlass } from '@/components/atoms/glass-surface';
-import { cn } from '@/lib/class-names';
+import { SkeletonImage } from '@/components/atoms/skeleton-image';
 
 export function CardThumbnail({ uri }: { uri: string | undefined }) {
-  const onGlass = useOnGlass();
   return (
-    <View
-      className={cn('h-card-thumbnail-height w-card-thumbnail-width overflow-hidden rounded-xs', placeholderFills({ onGlass }))}>
-      <Image source={uri} cachePolicy="disk" transition={200} style={StyleSheet.absoluteFill} />
+    <View className="h-card-thumbnail-height w-card-thumbnail-width overflow-hidden rounded-xs">
+      <SkeletonImage uri={uri} />
     </View>
   );
 }

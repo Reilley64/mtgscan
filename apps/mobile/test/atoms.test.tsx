@@ -22,6 +22,7 @@ import { MenuButton } from '@/components/atoms/menu-button';
 import { NameAlert } from '@/components/atoms/name-alert';
 import { ProgressBar } from '@/components/atoms/progress-bar';
 import { QuickActionButton } from '@/components/atoms/quick-action-button';
+import { SetArt } from '@/components/atoms/set-art';
 import { SetIcon } from '@/components/atoms/set-icon';
 import { Skeleton } from '@/components/atoms/skeleton';
 import { Surface } from '@/components/atoms/surface';
@@ -54,6 +55,8 @@ import {
   pressButtonMenuItem,
   presentedAlertWithField,
   pressSignInWithApple,
+  pulsingBlocks,
+  settleImageLoads,
   splitColorsBehind,
   showsSpinner,
   switchTrackColor,
@@ -808,6 +811,73 @@ describe('CardThumbnail', () => {
     const thumbnail = screen.getByLabelText('Thumbnail');
     expect(blocksColored(thumbnail, glassSkeleton)).toBe(1);
     expect(blocksColored(thumbnail, line)).toBe(0);
+  });
+});
+
+describe('Image skeleton', () => {
+  const solRing = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
+
+  test('a card thumbnail shows a pulsing skeleton until its image loads', async () => {
+    await render(
+      <View accessibilityLabel="Thumbnail">
+        <CardThumbnail uri={solRing} />
+      </View>,
+    );
+
+    const thumbnail = screen.getByLabelText('Thumbnail');
+    expect(pulsingBlocks(thumbnail, line)).toBe(1);
+
+    await settleImageLoads(thumbnail, 'load');
+
+    expect(pulsingBlocks(thumbnail, line)).toBe(0);
+    expect(blocksColored(thumbnail, line)).toBe(1);
+  });
+
+  test('a card thumbnail whose image fails to load stops pulsing and stays a line-colored card shape', async () => {
+    await render(
+      <View accessibilityLabel="Thumbnail">
+        <CardThumbnail uri={solRing} />
+      </View>,
+    );
+
+    const thumbnail = screen.getByLabelText('Thumbnail');
+    await settleImageLoads(thumbnail, 'error');
+
+    expect(pulsingBlocks(thumbnail, line)).toBe(0);
+    expect(blocksColored(thumbnail, line)).toBe(1);
+  });
+
+  test('a card image shows a pulsing skeleton again when it shows another card', async () => {
+    const lightningBolt = 'https://cards.scryfall.io/normal/front/lightning-bolt.jpg';
+    const { rerender } = await render(
+      <View accessibilityLabel="Card">
+        <CardImage uri={solRing} />
+      </View>,
+    );
+    await settleImageLoads(screen.getByLabelText('Card'), 'load');
+
+    await rerender(
+      <View accessibilityLabel="Card">
+        <CardImage uri={lightningBolt} />
+      </View>,
+    );
+
+    expect(pulsingBlocks(screen.getByLabelText('Card'), line)).toBe(1);
+  });
+
+  test('set art shows a pulsing skeleton until it loads, then nothing behind the art', async () => {
+    await render(
+      <View accessibilityLabel="Banner">
+        <SetArt uri={solRing} share={0.5} />
+      </View>,
+    );
+
+    const banner = screen.getByLabelText('Banner');
+    expect(pulsingBlocks(banner, line)).toBe(1);
+
+    await settleImageLoads(banner, 'load');
+
+    expect(blocksColored(banner, line)).toBe(0);
   });
 });
 
