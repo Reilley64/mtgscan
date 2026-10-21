@@ -115,6 +115,52 @@ test('an outline less than 1 mm inside the card edge is not an inside outline', 
   expect(bar(comparison, 'Inside outlines')).toMatchObject({ branch: '0', pass: true });
 });
 
+test('a wrong outline does not count toward the detection rate, and fails the wrong outlines bar', () => {
+  const onTheEdge = cardAt(200, 300)!;
+  const outsideByTwoMm = cardAt(200 - 2 * pixelsPerMm, 300)!;
+
+  const comparison = compareReplays(run(onTheEdge), run(outsideByTwoMm), { sameDetector: false });
+
+  expect(bar(comparison, 'Detection rate')).toMatchObject({ base: '1 of 1', branch: '0 of 1', pass: false });
+  expect(bar(comparison, 'Wrong outlines')).toMatchObject({ base: '0', branch: '1', pass: false });
+});
+
+test('an outline with every corner within 1 mm of the true corners is a correct outline', () => {
+  const onTheEdge = cardAt(200, 300)!;
+  const offByLessThanOneMm = cardAt(200 + 0.9 * pixelsPerMm, 300)!;
+
+  const comparison = compareReplays(run(onTheEdge), run(offByLessThanOneMm), { sameDetector: false });
+
+  expect(bar(comparison, 'Detection rate')).toMatchObject({ branch: '1 of 1', pass: true });
+  expect(bar(comparison, 'Wrong outlines')).toMatchObject({ branch: '0', pass: true });
+});
+
+test('refusing a wrong outline passes the detection rate and wrong outlines bars', () => {
+  const outsideByTwoMm = cardAt(200 - 2 * pixelsPerMm, 300)!;
+
+  const comparison = compareReplays(run(outsideByTwoMm), run(null), { sameDetector: false });
+
+  expect(bar(comparison, 'Detection rate')).toMatchObject({ base: '0 of 1', branch: '0 of 1', pass: true });
+  expect(bar(comparison, 'Wrong outlines')).toMatchObject({ base: '1', branch: '0', pass: true });
+  expect(comparison.pass).toBe(true);
+});
+
+test('the inside outlines bar compares the count of each group, and still lists each new inside outline', () => {
+  const onTheEdge = cardAt(200, 300)!;
+  const insideAtTheTop = onTheEdge.map(([x, y], index): [number, number] => [x, index < 2 ? y + 1.5 * pixelsPerMm : y]);
+  const twoFrames: FrameLabels = {
+    ...labels,
+    frames: [label('plain-000.png', onTheEdge), label('plain-001.png', onTheEdge)],
+  };
+  const replay = (first: [number, number][], second: [number, number][]) =>
+    scoreReplay(twoFrames, [[sample('plain-000.png', first), sample('plain-001.png', second)]]);
+
+  const comparison = compareReplays(replay(insideAtTheTop, onTheEdge), replay(onTheEdge, insideAtTheTop), { sameDetector: false });
+
+  expect(bar(comparison, 'Inside outlines')).toMatchObject({ base: '1', branch: '1', pass: true });
+  expect(replayTable(comparison)).toContain('- plain-001.png, tilt 0, black border: outline at');
+});
+
 test('an outline on an empty plain surface fails the false outlines bar', () => {
   const onTheEdge = cardAt(200, 300)!;
 
@@ -216,11 +262,11 @@ test('the replay table has one row per condition and tilt bucket, with the merge
 
   const table = replayTable(compareReplays(replay(onTheEdge), replay(null), { sameDetector: false }));
 
-  expect(table).toContain('| plain | 0 | 1 of 1 → 1 of 1 | 0.00 mm → 0.00 mm | 0.00 mm → 0.00 mm | 0 → 0 | 0.00 x 0.00 mm → 0.00 x 0.00 mm | pass |');
-  expect(table).toContain('| plain | 7.5-15 | 1 of 1 → 0 of 1 | 0.00 mm → none | 0.00 mm → none | 0 → 0 | 0.00 x 0.00 mm → none | fail: detection rate |');
+  expect(table).toContain('| plain | 0 | 1 of 1 → 1 of 1 | 0 → 0 | 0.00 mm → 0.00 mm | 0.00 mm → 0.00 mm | 0 → 0 | 0.00 x 0.00 mm → 0.00 x 0.00 mm | pass |');
+  expect(table).toContain('| plain | 7.5-15 | 1 of 1 → 0 of 1 | 0 → 0 | 0.00 mm → none | 0.00 mm → none | 0 → 0 | 0.00 x 0.00 mm → none | fail: detection rate |');
   expect(table).toContain('| empty-plain | 0 | 0 → 0 | pass |');
-  expect(table).toContain('| white | 7.5-15 | 1 of 1 → 0 of 1 | 0.00 mm → none | 0.00 mm → none | 0 → 0 | 0.00 x 0.00 mm → none |');
-  expect(table).toContain('- Detection rate: not lower by more than 0');
+  expect(table).toContain('| white | 7.5-15 | 1 of 1 → 0 of 1 | 0 → 0 | 0.00 mm → none | 0.00 mm → none | 0 → 0 | 0.00 x 0.00 mm → none |');
+  expect(table).toContain('- Detection rate: correct outlines not lower by more than 0');
 });
 
 test('the detector replay reports each condition per border colour', () => {
