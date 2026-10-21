@@ -2,7 +2,7 @@
   "expo": {
     "name": "mtgscan",
     "slug": "mtgscan",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "scheme": "mtgscan",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -24,7 +24,9 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/fonts/mana.ttf"]
+          "fonts": [
+            "./assets/fonts/mana.ttf"
+          ]
         }
       ]
     ],
