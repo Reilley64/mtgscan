@@ -238,6 +238,7 @@ The Detector workflow runs on pull requests that change the detector module, the
 - A missed bar fails the job.
 - The job writes the table to its job summary, under a "Detector replay" heading.
 - It caches the card images by `detector/cards.json`, and the rendered frames by `detector/frames.sha256`. A re-run of a pull request skips the download and the render. The workflow does not run on pushes, so pull requests share no cache, and each new pull request renders the frames once.
+- On a runner, the detector call takes 60 to 100 ms, about 20 times as long as on an M3. With 60 frames the job takes about 1.5 minutes, of which the render takes 11 seconds. With the same detector code on both sides, the timing ratio stayed between 0.93 and 1.03 over 7 runs.
 
 A pull request that changes the card detector shows the replay table under a "Detector replay" heading. Copy the table from the job summary of its last run, and link the run.
 
