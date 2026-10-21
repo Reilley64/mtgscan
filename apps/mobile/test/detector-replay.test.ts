@@ -7,6 +7,7 @@ import {
   type FrameLabels,
   type FrameSample,
 } from './scanner-evidence/detector/score';
+import type { ClipLabel } from './scanner-evidence/detector/clips';
 
 const frameWidth = 1000;
 const frameHeight = 1200;
@@ -40,6 +41,7 @@ const labels: FrameLabels = {
   frameHeight,
   cardMm: [63, 88],
   frames: [label('plain-000.png', cardAt(200, 300)), label('empty-plain-000.png', null)],
+  clips: [],
 };
 
 function sample(frame: string, outline: [number, number][] | null, nativeDurationMs = 4): FrameSample {
@@ -221,4 +223,137 @@ test('the detector replay reports each condition per border colour', () => {
 
   expect(table).toContain('| plain | black | 1 of 1 → 1 of 1 |');
   expect(table).toContain('| plain | borderless | 1 of 2 → 1 of 2 |');
+});
+
+const clipFrames = 10;
+const arrivingFrames = 3;
+const photoScale = 2;
+
+function clipLabel(clip: string, { handShiftMm = 0 }: { handShiftMm?: number } = {}): ClipLabel {
+  const atRest = cardAt(200, 300)!;
+  return {
+    clip,
+    condition: 'plain',
+    scryfallId: 'card',
+    borderColor: 'black',
+    tiltDegrees: 0,
+    tiltBucket: '0',
+    restMs: arrivingFrames * 200,
+    frames: Array.from({ length: clipFrames }, (_, index) => ({
+      frame: `${clip}-${index}.png`,
+      timeMs: index * 200,
+      corners: cardAt(200 + Math.max(0, arrivingFrames - index) * 20 * pixelsPerMm, 300)!,
+      intrinsicMatrix: [[950, 0, 500], [0, 950, 600], [0, 0, 1]],
+    })),
+    photo: {
+      frame: `${clip}-photo.jpg`,
+      timeMs: 1400,
+      width: frameWidth * photoScale,
+      height: frameHeight * photoScale,
+      corners: atRest.map(([x, y]): [number, number] => [(x + handShiftMm * pixelsPerMm) * photoScale, y * photoScale]),
+      intrinsicMatrix: [[1900, 0, 1000], [0, 1900, 1200], [0, 0, 1]],
+    },
+  };
+}
+
+function runClip(clip: ClipLabel, outlineAt: (index: number, trueCorners: [number, number][]) => [number, number][] | null) {
+  return scoreReplay(
+    { ...labels, clips: [clip] },
+    [
+      sample('plain-000.png', cardAt(200, 300)),
+      sample('empty-plain-000.png', null),
+      ...clip.frames.map((frame, index) => sample(frame.frame, outlineAt(index, frame.corners))),
+    ],
+  );
+}
+
+const onTheCard = (_: number, trueCorners: [number, number][]) => trueCorners;
+
+test('a clip asks for a photo through automatic capture once its outline holds still for 400 ms', () => {
+  const [clip] = runClip(clipLabel('plain-clip-000'), onTheCard).clips;
+
+  expect(clip).toMatchObject({ clip: 'plain-clip-000', photoAskedFor: true, settleTimeMs: 1200 });
+});
+
+test('the photo outline is the held-still outline mapped onto the photo, so hand movement before the photo shows in its error', () => {
+  const [clip] = runClip(clipLabel('plain-clip-000', { handShiftMm: 2 }), onTheCard).clips;
+
+  expect(clip.photoOutlineMm).toBeCloseTo(2);
+  expect(clip.handShiftMm).toBeCloseTo(2);
+});
+
+test('the photo outline error also counts how far the held-still outline is from the card edge', () => {
+  const onTheInnerFrame = (_: number, [topLeft, topRight, bottomRight, bottomLeft]: [number, number][]): [number, number][] => [
+    [topLeft[0] + 3 * pixelsPerMm, topLeft[1]],
+    [topRight[0] - 3 * pixelsPerMm, topRight[1]],
+    [bottomRight[0] - 3 * pixelsPerMm, bottomRight[1]],
+    [bottomLeft[0] + 3 * pixelsPerMm, bottomLeft[1]],
+  ];
+
+  const [clip] = runClip(clipLabel('plain-clip-000'), onTheInnerFrame).clips;
+
+  expect(clip.photoOutlineMm).toBeCloseTo(3);
+  expect(clip.handShiftMm).toBeCloseTo(0);
+});
+
+test('jitter is the spread of each corner error over the frames after the hand comes to rest', () => {
+  const shaking = (index: number, trueCorners: [number, number][]) => {
+    const shiftMm = index < arrivingFrames ? 10 : index % 2 === 0 ? 0.5 : -0.5;
+    return trueCorners.map(([x, y]): [number, number] => [x + shiftMm * pixelsPerMm, y]);
+  };
+
+  const [clip] = runClip(clipLabel('plain-clip-000'), shaking).clips;
+
+  expect(clip.jitterMm).toBeCloseTo(0.495, 3);
+});
+
+const everyOtherFrame = (index: number, trueCorners: [number, number][]) => (index % 2 === 0 ? trueCorners : null);
+const missingTheFirstRestFrame = (index: number, trueCorners: [number, number][]) => (index === arrivingFrames ? null : trueCorners);
+
+test('a clip that stops asking for a photo fails the photo asked for bar of its condition', () => {
+  const clip = clipLabel('plain-clip-000');
+
+  const comparison = compareReplays(runClip(clip, onTheCard), runClip(clip, everyOtherFrame), { sameDetector: false });
+
+  expect(comparison.clipBars).toContainEqual(
+    expect.objectContaining({ condition: 'plain', metric: 'Photo asked for', base: '1 of 1', branch: '0 of 1', pass: false }),
+  );
+  expect(comparison.pass).toBe(false);
+});
+
+test('a later settle time fails the settle time bar', () => {
+  const clip = clipLabel('plain-clip-000');
+
+  const comparison = compareReplays(runClip(clip, onTheCard), runClip(clip, missingTheFirstRestFrame), { sameDetector: false });
+
+  expect(comparison.clipBars.filter((candidate) => candidate.pass === false)).toEqual([
+    expect.objectContaining({ metric: 'Settle time median', base: '1200 ms', branch: '1400 ms' }),
+  ]);
+});
+
+test('more jitter fails the jitter bar, and a photo outline more than 0.1 mm worse fails the photo outline bar', () => {
+  const clip = clipLabel('plain-clip-000');
+  const shifted = (shiftMm: (index: number) => number) => (index: number, trueCorners: [number, number][]) =>
+    trueCorners.map(([x, y]): [number, number] => [x + shiftMm(index) * pixelsPerMm, y]);
+  const steady = shifted(() => 0.2);
+  const shaking = shifted((index) => (index % 2 === 0 ? 0.5 : -0.1));
+
+  const comparison = compareReplays(runClip(clip, steady), runClip(clip, shaking), { sameDetector: false });
+
+  expect(comparison.clipBars.filter((candidate) => candidate.pass === false).map((candidate) => candidate.metric)).toEqual([
+    'Jitter median',
+    'Photo outline median',
+  ]);
+});
+
+test('the replay table has one row per clip condition and names each clip that stops asking for a photo', () => {
+  const clip = clipLabel('plain-clip-000', { handShiftMm: 1 });
+
+  const table = replayTable(compareReplays(runClip(clip, onTheCard), runClip(clip, everyOtherFrame), { sameDetector: false }));
+
+  expect(table).toContain(
+    '| plain | 1 of 1 → 0 of 1 | 1200 ms → none | 0.00 mm → 0.00 mm | 1.00 mm → none | 1.00 mm → none | fail: photo asked for, settle time median |',
+  );
+  expect(table).toContain('- Photo asked for: not fewer');
+  expect(table).toContain('Clips that ask for a photo on the merge base and not on the branch: plain-clip-000');
 });
