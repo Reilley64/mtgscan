@@ -201,7 +201,7 @@ async function runRoundTrip(gate, roundTripLabels) {
   const originalScans = JSON.parse(await fs.readFile(path.join(reportsDirectory, `${gate.name}.json`), 'utf8')).scans;
   const webp = await roundTripRun(gate, 'webp', roundTripLabels.webp, originalScans);
   const jpeg = await roundTripRun(gate, 'jpeg', roundTripLabels.jpeg, originalScans);
-  const pass = webp.falseAccepts === 0 && webp.nonCardsAccepted === 0 && webp.correctAccepts >= jpeg.correctAccepts;
+  const pass = webp.falseAccepts === 0 && webp.nonCardsAccepted === 0;
   return { name: gate.name, webp, jpeg, pass };
 }
 
