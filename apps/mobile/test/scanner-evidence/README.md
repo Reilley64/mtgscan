@@ -283,7 +283,7 @@ Result on `main` at `a6fcfaf`, on an Apple M3 with macOS 27.0.1. It shows the kn
 - **Hand movement before the photo.** 16 of 20 clips ask for a photo, all at 1,200 ms except one sleeve clip at 1,800 ms. The hand moves the card 0.3 to 2.1 mm between the sample that held still and the photo, 0.9 mm at the median. On the 7 clips whose held-still outline sits on the card edge, the photo outline error is that shift: 0.2 to 1.7 mm. #421 measured shifts of 0.1 to 4.8 mm on the phone. The photo outline median is 0.83 mm on plain clips, 1.04 mm on patterned, 1.45 mm on shadow, and 2.79 mm on sleeve clips, where the outline is also on the sleeve edge.
 - **Clips that never ask for a photo.** 1 plain, 2 patterned, and 1 shadow clip. 3 of the 4 show a borderless card.
 - Jitter is 0.06 mm or less at the median on each surface.
-- Mac timing p95 is about 5 ms. The whole replay takes about 2.5 minutes from nothing, once the card images are downloaded, and about 70 seconds when the frames are already rendered.
+- Mac timing p95 is about 5 ms. The whole replay takes about 2.5 minutes from nothing, once the card images are downloaded, and about 70 seconds when the frames are already rendered. The clips add the 20 photos at 2268 x 4032. With them, one run from nothing took 3 minutes 38 seconds on the M3 while other work ran on it. The frames, clips, and photos take 1.9 GB on disk.
 
 Synthetic frames do not show what Vision does on real frames (#421). So the replay gates mechanisms and regressions, and the phone confirms real gains.
 
