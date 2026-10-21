@@ -1,7 +1,7 @@
 import CardRecognizer
 import Testing
 
-let setCodes: Set<String> = ["eld", "sos", "jou", "sld", "rna", "m15", "dsc"]
+let setCodes: Set<String> = ["eld", "sos", "jou", "sld", "rna", "m15", "dsc", "mkc", "ktk"]
 
 func parse(_ lines: [String]) -> CollectorLine {
   CollectorLineReader.parse(lines: lines, setCodes: setCodes)
@@ -65,7 +65,7 @@ func needsATwoOrThreeDigitTotalForAFraction() {
 func keepsAnUnknownSetTokenForTheNearbySetRule() {
   let reading = parse(["25/196 C", "ZIX. EN IESPER EISING"])
   #expect(reading.setCode == nil)
-  #expect(reading.setToken == "zix")
+  #expect(reading.setTokens == ["zix"])
   #expect(reading.collectorNumber == "25")
 }
 
@@ -75,4 +75,79 @@ func readsAFourDigitSecretLairNumber() {
   #expect(reading.setCode == "sld")
   #expect(reading.collectorNumber == "7096")
   #expect(reading.premiumMark)
+}
+
+@Test("reads a set code whose first letter was dropped")
+func readsASetCodeWhoseFirstLetterWasDropped() {
+  #expect(parse(["0038/269 C", "OS • EN Craig Elliott"]).setCode(among: ["sos", "soa", "tdm"]) == "sos")
+  #expect(parse(["LD • EN Randy Vargas"]).setCode(among: ["eld", "woe"]) == "eld")
+  #expect(parse(["150/274 C", "21 • EN Svetlin Velinov"]).setCode(among: ["m21", "m20", "fdn"]) == "m21")
+  #expect(parse(["136/269 C", "15 - EN Dan Dos Santos"]).setCode(among: ["m15", "m14"]) == "m15")
+}
+
+@Test("reads a set code with a space inside it")
+func readsASetCodeWithASpaceInsideIt() {
+  #expect(parse(["136/269 C", "M 15 • EN Dan Dos Santos"]).setCode(among: ["m15", "m14"]) == "m15")
+}
+
+@Test("reads a set code before a plus, a hash, or no separator")
+func readsASetCodeBeforeAPlusAHashOrNoSeparator() {
+  #expect(parse(["R 2464", "SLD + EN Artist"]).setCode(among: ["sld", "plst"]) == "sld")
+  #expect(parse(["C 0038", "SOS # EN Craig Elliott"]).setCode(among: ["sos", "soa"]) == "sos")
+  #expect(parse(["DSCEN Artist"]).setCode(among: ["dsc", "dsk"]) == "dsc")
+}
+
+@Test("reads Cyrillic look-alike letters as Latin")
+func readsCyrillicLookAlikeLettersAsLatin() {
+  #expect(parse(["0108/0286 R", "МКС • EN Artist"]).setCode == "mkc")
+  #expect(parse(["028/269 C", "КТК • EN Artist"]).setCode == "ktk")
+}
+
+@Test("reads a set code with a stray digit before the language code")
+func readsASetCodeWithAStrayDigitBeforeTheLanguageCode() {
+  #expect(parse(["150/274 C", "M21 - 2EN Svetlin Velinov"]).setCode(among: ["m21", "fdn"]) == "m21")
+}
+
+@Test("reads a set code with look-alike characters")
+func readsASetCodeWithLookAlikeCharacters() {
+  #expect(parse(["136/269 C", "MT5 EN Dan Dos Santos"]).setCode(among: ["m15", "m14"]) == "m15")
+}
+
+@Test("reads a set code with one wrong character")
+func readsASetCodeWithOneWrongCharacter() {
+  #expect(parse(["162/280 C", "120 • EN Artist"]).setCode(among: ["m20", "fdn"]) == "m20")
+  #expect(parse(["136/269 C", "MP5- EN Dan Dos Santos"]).setCode(among: ["m15", "fdn"]) == "m15")
+  #expect(parse(["R 2464", "SLO • EN Artist"]).setCode(among: ["sld", "plst"]) == "sld")
+  #expect(parse(["008/269 R", "2LD • EN Randy Vargas"]).setCode(among: ["eld", "woe"]) == "eld")
+}
+
+@Test("reads a set code whose separator was read as a character")
+func readsASetCodeWhoseSeparatorWasReadAsACharacter() {
+  #expect(parse(["M210 EN Svetlin Velinov"]).setCode(among: ["m21", "fdn"]) == "m21")
+}
+
+@Test("reads no collector number from the language line")
+func readsNoCollectorNumberFromTheLanguageLine() {
+  let reading = parse(["M210 EN Svetlin Velinov", "™ & © 2020 Wizards of the Coast"])
+  #expect(reading.collectorNumber == nil)
+}
+
+@Test("reads a set code that matches two sets equally as no set code")
+func readsASetCodeThatMatchesTwoSetsEquallyAsNoSetCode() {
+  #expect(parse(["21 • EN Svetlin Velinov"]).setCode(among: ["m21", "j21"]) == nil)
+}
+
+@Test("marks a number read before a rarity letter")
+func marksANumberReadBeforeARarityLetter() {
+  let reading = parse(["269 C", "M15 • EN Dan Dos Santos"])
+  #expect(reading.setCode == "m15")
+  #expect(reading.collectorNumber == "269")
+  #expect(reading.numberBeforeRarity)
+  #expect(!parse(["136/269 C", "M15 • EN Dan Dos Santos"]).numberBeforeRarity)
+}
+
+@Test("reads no set code from text without a language code or in lowercase")
+func readsNoSetCodeFromTextWithoutALanguageCodeOrInLowercase() {
+  #expect(parse(["Ltm-ut, the vecromance", "Illus. Rick Emond"]).setTokens.isEmpty)
+  #expect(parse(["oeaen ja cy wna novoes.", "• Nils Hamm"]).setTokens.isEmpty)
 }
