@@ -1,6 +1,6 @@
 # Recognize cards with an open model that ships in the gallery version
 
-The recognizer made feature prints with Apple Vision (`VNGenerateImageFeaturePrintRequest`, revision 2). Apple's model cannot be trained, and it exists only on Apple platforms. The owner wants a scanner that improves as people use the app (#437), and Android later. So the recognizer makes feature prints with PE-Core S16 instead, an open model under the Apache 2.0 licence (#443). The research is in `docs/research/embedding-vs-vision-feature-print.md` (#430).
+The recognizer made feature prints with Apple Vision (`VNGenerateImageFeaturePrintRequest`, revision 2). Apple's model cannot be trained, and it exists only on Apple platforms. The owner wants a scanner that improves as people use the app (#437), and Android later. So the recognizer makes feature prints with PE-Core S16 instead, an open model under the Apache 2.0 license (#443). The research is in `docs/research/embedding-vs-vision-feature-print.md` (#430).
 
 The model file is part of each gallery version, next to the feature prints it made and the thresholds that go with it. The phone downloads it with the gallery and compiles it once. A new model therefore reaches phones as a new gallery version, without an app release, and a phone never searches a gallery with a different model from the one that built it.
 
