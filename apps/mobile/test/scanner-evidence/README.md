@@ -23,6 +23,9 @@ This folder holds the evidence for the scanner release gates in #10, #21, and #7
 | `detector/cards.json` | The 30 card printings that the detector replay frames show, 10 for each border colour. |
 | `detector/frames.sha256` | The SHA-256 of every rendered detector replay frame and of its `labels.json`. |
 | `detector/score.ts` | Scores the detection samples against the true corners, and compares the branch with the merge base. |
+| `training-crops/score.py` | The training crop scorer (README, Training crops). |
+| `training-crops/fixture-421/` | The 10 training crops of the #421 A/B, in the layout of `crops pull`, with the Scryfall `normal` images of their card printings. |
+| `training-crops/test_score.py` | Checks that the scorer reproduces the #421 table on the fixture. |
 
 Each expected file has a `recordedWith` block. It names the recognizer commit, the model and its SHA-256, the gallery, the machine, and the command.
 
