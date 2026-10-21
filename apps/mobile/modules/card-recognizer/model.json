@@ -6,6 +6,6 @@
   "thresholds": {
     "notACard": 0.689,
     "orientationMargin": 0.03,
-    "artMargin": 0.025
+    "artMargin": 0.03
   }
 }
