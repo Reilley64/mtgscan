@@ -1,6 +1,6 @@
 {
  "recordedWith": {
-  "recognizerCommit": "64a295e",
+  "recognizerCommit": "68ffac7",
   "model": {
    "name": "pe-core-s16-384",
    "sha256": "a7b41405eb0a9b34cebc3acf64c42d4c009689df3686d7f22fc12ea53e521aab"
@@ -18,8 +18,8 @@
   },
   "machine": "Apple M3, macOS 27.0.1",
   "recordedOn": "2026-10-21",
-  "command": "bun run recognizer:replay --webp-round-trip (real-held-out)",
-  "note": "Recorded for #471 with the first PE-Core gallery version and art margin 0.03. No scan is accepted with the true printing missing. At art margin 0.025, Athreos plst JOU-146 (muyuq3pm-25) was accepted with JOU 146 held out, 0.028 ahead of the next art."
+  "command": "bun run recognizer:replay (real-held-out)",
+  "note": "Recorded for #507, which reads more set codes in the collector line. 0 accepts with the true printing missing, as before."
  },
  "result": {
   "catalog": 102857,
@@ -34,8 +34,8 @@
   "nonCards": 11,
   "nonCardsRejected": 11,
   "errors": 0,
-  "p50Ms": 207,
-  "p95Ms": 310,
+  "p50Ms": 220,
+  "p95Ms": 341,
   "acceptReasons": {},
   "groups": {
    "all": {
@@ -278,7 +278,7 @@
     "group": null,
     "top": "b78578d3-0e15-4c34-8b03-07190c802ac2",
     "accepted": null,
-    "reason": "2 printings share this art and collector line read only 174"
+    "reason": "collector line SOS 174 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-17.jpg",
@@ -366,7 +366,7 @@
     "group": null,
     "top": "785d75b7-2054-47d0-8135-96ba6b4e9b78",
     "accepted": null,
-    "reason": "2 printings share this art and collector line read only 7"
+    "reason": "collector line SOS 7 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-27.jpg",
@@ -1158,7 +1158,7 @@
     "group": null,
     "top": "25a6e1bb-c751-447c-be69-e03692568678",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 37 does not match it"
+    "reason": "collector line SOA 37 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-22.jpg",
@@ -1198,7 +1198,7 @@
     "group": null,
     "top": "89a288d2-de94-4c49-a17e-5b0ed0281a5b",
     "accepted": null,
-    "reason": "4 printings share this art and collector line read only 7094"
+    "reason": "collector line SLD 7094 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-27.jpg",
@@ -1462,7 +1462,7 @@
     "group": null,
     "top": "de3daeef-e352-4cd9-8411-94ce25c57060",
     "accepted": null,
-    "reason": "2 printings share this art and collector line read only 176"
+    "reason": "collector line RIX 176 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-21.jpg",
@@ -1574,7 +1574,7 @@
     "group": null,
     "top": "7e9d9a8a-ea85-4d2e-8580-38125aebc736",
     "accepted": null,
-    "reason": "5 printings share this art and collector line read only 8"
+    "reason": "collector line ELD 8 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-5.jpg",
