@@ -20,6 +20,7 @@ const hashListFile = path.join(recipeDirectory, 'frames.sha256');
 const dataDirectory = path.join(moduleRoot, '.data');
 const framesDirectory = path.join(dataDirectory, 'frames');
 const imagesDirectory = path.resolve(process.env.DETECTOR_IMAGES_DIR ?? path.join(dataDirectory, 'images'));
+const texturesDirectory = path.join(dataDirectory, 'textures');
 const reportsDirectory = path.join(dataDirectory, 'reports');
 const comparedSources = [path.join('ios', 'Detector'), path.join('macos', 'CardDetectorCommand')];
 
@@ -74,6 +75,10 @@ async function renderFrames() {
     path.join(recipeDirectory, 'cards.json'),
     '--images',
     imagesDirectory,
+    '--textures',
+    path.join(recipeDirectory, 'textures.json'),
+    '--texture-images',
+    texturesDirectory,
     '--output',
     framesDirectory,
   ]);
@@ -174,7 +179,9 @@ if (values['record-frame-hashes']) {
   process.exit(0);
 }
 if (mismatched.length > 0) {
-  console.error(`${mismatched.length} rendered frames do not match frames.sha256, first: ${mismatched[0]}`);
+  console.error(
+    `${mismatched.length} rendered frames do not match frames.sha256, first: ${mismatched[0]}. This Mac renders other frame bytes than the recorded ones, or the recipe changed without --record-frame-hashes.`,
+  );
   process.exit(1);
 }
 const labels = JSON.parse(await fs.readFile(path.join(framesDirectory, 'labels.json'), 'utf8')) as FrameLabels;

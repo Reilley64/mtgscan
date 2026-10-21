@@ -45,6 +45,12 @@ jobs:
           path: apps/mobile/modules/card-detector/.data/images
           key: detector-images-${{ hashFiles('apps/mobile/test/scanner-evidence/detector/cards.json') }}
           restore-keys: detector-images-
+      - name: Restore the textures
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apps/mobile/modules/card-detector/.data/textures
+          key: detector-textures-${{ hashFiles('apps/mobile/test/scanner-evidence/detector/textures.json') }}
+          restore-keys: detector-textures-
       - name: Restore the rendered frames
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

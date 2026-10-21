@@ -5,13 +5,18 @@ type Point = [x: number, y: number];
 
 type Sides = { top: number; right: number; bottom: number; left: number };
 
+const borderColors = ['black', 'white', 'borderless'] as const;
+
+type BorderColor = (typeof borderColors)[number];
+
 export type FrameLabel = {
   frame: string;
   condition: string;
   scryfallId: string | null;
-  borderColor: 'black' | 'white' | 'borderless' | null;
+  borderColor: BorderColor | null;
   corners: Point[] | null;
   tiltDegrees: number;
+  tiltBucket: string;
   intrinsicMatrix: number[][];
 };
 
@@ -27,6 +32,8 @@ export type FrameSample = DetectionSample & { frame: string };
 export type FrameScore = {
   frame: string;
   condition: string;
+  tiltBucket: string;
+  borderColor: BorderColor | null;
   hasCard: boolean;
   detected: boolean;
   outline: Point[] | null;
@@ -37,8 +44,10 @@ export type FrameScore = {
   nativeDurationMs: number;
 };
 
-export type ConditionScore = {
-  condition: string;
+export type GroupScore = {
+  condition: string | null;
+  borderColor: BorderColor | null;
+  tiltBucket: string | null;
   frames: number;
   cardFrames: number;
   detected: number;
@@ -49,13 +58,15 @@ export type ConditionScore = {
 };
 
 export type ReplayScore = {
-  conditions: ConditionScore[];
+  groups: GroupScore[];
   frames: FrameScore[];
   macP95Ms: number;
 };
 
 export type Bar = {
   condition: string | null;
+  borderColor: BorderColor | null;
+  tiltBucket: string | null;
   metric: string;
   base: string;
   branch: string;
@@ -119,6 +130,8 @@ function scoreFrame(label: FrameLabel, sample: FrameSample, labels: FrameLabels)
   const base = {
     frame: label.frame,
     condition: label.condition,
+    tiltBucket: label.tiltBucket,
+    borderColor: label.borderColor,
     hasCard: label.corners !== null,
     detected: outline !== null,
     outline,
@@ -148,12 +161,14 @@ function scoreFrame(label: FrameLabel, sample: FrameSample, labels: FrameLabels)
   };
 }
 
-function scoreCondition(condition: string, frames: FrameScore[]): ConditionScore {
+type GroupKey = Pick<GroupScore, 'condition' | 'borderColor' | 'tiltBucket'>;
+
+function scoreGroup(key: GroupKey, frames: FrameScore[]): GroupScore {
   const cardFrames = frames.filter((frame) => frame.hasCard);
   const fitted = cardFrames.filter((frame) => frame.cornerErrorMm !== null && frame.sizeErrorMm !== null);
   const errors = fitted.map((frame) => frame.cornerErrorMm!).sort((a, b) => a - b);
   return {
-    condition,
+    ...key,
     frames: frames.length,
     cardFrames: cardFrames.length,
     detected: cardFrames.filter((frame) => frame.detected).length,
@@ -167,6 +182,17 @@ function scoreCondition(condition: string, frames: FrameScore[]): ConditionScore
   };
 }
 
+function scoreGroups(frames: FrameScore[], keyOf: (frame: FrameScore) => GroupKey) {
+  const groups = new Map<string, { key: GroupKey; frames: FrameScore[] }>();
+  for (const frame of frames) {
+    const key = keyOf(frame);
+    const id = JSON.stringify(key);
+    if (!groups.has(id)) groups.set(id, { key, frames: [] });
+    groups.get(id)!.frames.push(frame);
+  }
+  return [...groups.values()].map((group) => scoreGroup(group.key, group.frames));
+}
+
 export function scoreReplay(labels: FrameLabels, rounds: FrameSample[][]): ReplayScore {
   const roundsByFrame = rounds.map((samples) => new Map(samples.map((sample) => [sample.frame, sample])));
   const frames = labels.frames.map((label) => {
@@ -175,25 +201,36 @@ export function scoreReplay(labels: FrameLabels, rounds: FrameSample[][]): Repla
     return { ...scoreFrame(label, samples[0], labels), nativeDurationMs: median(samples.map((sample) => sample.nativeDurationMs)) };
   });
   const conditions = [...new Set(frames.map((frame) => frame.condition))];
+  const byBorderColor = frames
+    .filter((frame) => frame.borderColor !== null)
+    .sort((a, b) => borderColors.indexOf(a.borderColor!) - borderColors.indexOf(b.borderColor!));
+  const byConditionAndBorderColor = [...byBorderColor].sort((a, b) => conditions.indexOf(a.condition) - conditions.indexOf(b.condition));
   return {
-    conditions: conditions.map((condition) => scoreCondition(condition, frames.filter((frame) => frame.condition === condition))),
+    groups: [
+      ...scoreGroups(frames, ({ condition, tiltBucket }) => ({ condition, borderColor: null, tiltBucket })),
+      ...scoreGroups(byConditionAndBorderColor, ({ condition, borderColor }) => ({ condition, borderColor, tiltBucket: null })),
+      ...scoreGroups(byBorderColor, ({ borderColor, tiltBucket }) => ({ condition: null, borderColor, tiltBucket })),
+    ],
     frames,
     macP95Ms: nearestRank(frames.map((frame) => frame.nativeDurationMs).sort((a, b) => a - b), 0.95),
   };
 }
 
-const millimetres = (value: number | undefined) => (value === undefined ? 'none' : `${value.toFixed(2)} mm`);
+const decimals = (value: number, digits = 2) => Number(value.toFixed(digits)).toFixed(digits);
+const millimetres = (value: number | undefined) => (value === undefined ? 'none' : `${decimals(value)} mm`);
+const sizeError = (size: GroupScore['sizeErrorMm']) => (size ? `${decimals(size.width)} x ${decimals(size.height)} mm` : 'none');
 
-function withoutTiming({ conditions, frames }: ReplayScore) {
-  return JSON.stringify({ conditions, frames: frames.map(({ nativeDurationMs: _, ...frame }) => frame) });
+function withoutTiming({ groups, frames }: ReplayScore) {
+  return JSON.stringify({ groups, frames: frames.map(({ nativeDurationMs: _, ...frame }) => frame) });
 }
 
-function conditionBars(base: ConditionScore, branch: ConditionScore): Bar[] {
-  const condition = branch.condition;
+function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
+  const key = { condition: branch.condition, borderColor: branch.borderColor, tiltBucket: branch.tiltBucket };
+  const gated = branch.condition !== null && branch.tiltBucket !== null;
   if (branch.cardFrames === 0) {
     return [
       {
-        condition,
+        ...key,
         metric: 'False outlines',
         base: String(base.falseOutlines.length),
         branch: String(branch.falseOutlines.length),
@@ -206,44 +243,41 @@ function conditionBars(base: ConditionScore, branch: ConditionScore): Bar[] {
   const newInside = branch.insideOutlines.filter((frame) => !base.insideOutlines.includes(frame));
   const worse = (metric: 'median' | 'p90', limit: number) =>
     base.cornerErrorMm === null || branch.cornerErrorMm === null || branch.cornerErrorMm[metric] - base.cornerErrorMm[metric] <= limit;
+  const bar = (text: string, pass: boolean) => (gated ? { bar: text, pass } : { bar: 'reported', pass: null });
   return [
     {
-      condition,
+      ...key,
       metric: 'Detection rate',
       base: `${base.detected} of ${base.cardFrames}`,
       branch: `${branch.detected} of ${branch.cardFrames}`,
-      bar: `not lower by more than ${allowedDrop.toFixed(0)}`,
-      pass: base.detected - branch.detected <= allowedDrop,
+      ...bar(`not lower by more than ${allowedDrop.toFixed(0)}`, base.detected - branch.detected <= allowedDrop),
     },
     {
-      condition,
+      ...key,
       metric: 'Corner error median',
       base: millimetres(base.cornerErrorMm?.median),
       branch: millimetres(branch.cornerErrorMm?.median),
-      bar: `not worse by more than ${replayBars.cornerErrorMedianMm} mm`,
-      pass: worse('median', replayBars.cornerErrorMedianMm),
+      ...bar(`not worse by more than ${replayBars.cornerErrorMedianMm} mm`, worse('median', replayBars.cornerErrorMedianMm)),
     },
     {
-      condition,
+      ...key,
       metric: 'Corner error p90',
       base: millimetres(base.cornerErrorMm?.p90),
       branch: millimetres(branch.cornerErrorMm?.p90),
-      bar: `not worse by more than ${replayBars.cornerErrorP90Mm} mm`,
-      pass: worse('p90', replayBars.cornerErrorP90Mm),
+      ...bar(`not worse by more than ${replayBars.cornerErrorP90Mm} mm`, worse('p90', replayBars.cornerErrorP90Mm)),
     },
     {
-      condition,
+      ...key,
       metric: 'Inside outlines',
       base: String(base.insideOutlines.length),
       branch: String(branch.insideOutlines.length),
-      bar: 'no new one',
-      pass: newInside.length === 0,
+      ...bar('no new one', newInside.length === 0),
     },
     {
-      condition,
+      ...key,
       metric: 'Size error, width x height',
-      base: base.sizeErrorMm ? `${millimetres(base.sizeErrorMm.width)} x ${millimetres(base.sizeErrorMm.height)}` : 'none',
-      branch: branch.sizeErrorMm ? `${millimetres(branch.sizeErrorMm.width)} x ${millimetres(branch.sizeErrorMm.height)}` : 'none',
+      base: sizeError(base.sizeErrorMm),
+      branch: sizeError(branch.sizeErrorMm),
       bar: 'reported',
       pass: null,
     },
@@ -251,13 +285,17 @@ function conditionBars(base: ConditionScore, branch: ConditionScore): Bar[] {
 }
 
 export function compareReplays(base: ReplayScore, branch: ReplayScore, { sameDetector }: { sameDetector: boolean }): Comparison {
-  const bars = branch.conditions.flatMap((condition) => {
-    const before = base.conditions.find((candidate) => candidate.condition === condition.condition);
-    if (!before) throw new Error(`the merge base has no ${condition.condition} frames`);
-    return conditionBars(before, condition);
+  const bars = branch.groups.flatMap((group) => {
+    const before = base.groups.find(
+      (candidate) =>
+        candidate.condition === group.condition && candidate.borderColor === group.borderColor && candidate.tiltBucket === group.tiltBucket,
+    );
+    if (!before) throw new Error(`the merge base has no frames for ${group.condition ?? group.borderColor} at tilt ${group.tiltBucket}`);
+    return groupBars(before, group);
   });
+  const run = { condition: null, borderColor: null, tiltBucket: null };
   bars.push({
-    condition: null,
+    ...run,
     metric: 'Mac timing p95',
     base: `${base.macP95Ms.toFixed(1)} ms`,
     branch: `${branch.macP95Ms.toFixed(1)} ms`,
@@ -267,7 +305,7 @@ export function compareReplays(base: ReplayScore, branch: ReplayScore, { sameDet
   if (sameDetector) {
     const same = withoutTiming(base) === withoutTiming(branch);
     bars.push({
-      condition: null,
+      ...run,
       metric: 'Same detector code',
       base: 'same',
       branch: same ? 'same numbers' : 'other numbers',
@@ -283,28 +321,81 @@ export function compareReplays(base: ReplayScore, branch: ReplayScore, { sameDet
   };
 }
 
-function cell(value: string | null) {
-  return value ?? '';
+const groupMetrics = ['Detection rate', 'Corner error median', 'Corner error p90', 'Inside outlines', 'Size error, width x height'];
+
+function groupRows(bars: Bar[], withResult: boolean) {
+  const groups = new Map<string, Bar[]>();
+  for (const bar of bars) {
+    const id = [bar.condition, bar.borderColor, bar.tiltBucket].filter((value) => value !== null).join(' | ');
+    groups.set(id, [...(groups.get(id) ?? []), bar]);
+  }
+  return [...groups].map(([id, group]) => {
+    const cells = group.map((bar) => `${bar.base} → ${bar.branch}`);
+    const failed = group.filter((bar) => bar.pass === false).map((bar) => bar.metric.toLowerCase());
+    const result = failed.length > 0 ? `fail: ${failed.join(', ')}` : 'pass';
+    return `| ${id} | ${cells.join(' | ')} |${withResult ? ` ${result} |` : ''}`;
+  });
+}
+
+function failingOutline(frame: FrameScore) {
+  const corners = frame.outline!.map(([x, y]) => `(${x.toFixed(0)}, ${y.toFixed(0)})`).join(' ');
+  const sides = frame.sidesInsideMm
+    ? `, sides inside ${Object.entries(frame.sidesInsideMm).map(([side, value]) => `${side} ${decimals(value, 1)} mm`).join(', ')}`
+    : '';
+  const card = frame.borderColor ? `, ${frame.borderColor} border` : '';
+  return `- ${frame.frame}, tilt ${frame.tiltBucket}${card}: outline at ${corners}${sides}`;
 }
 
 export function replayTable({ bars, failingOutlines, pass }: Comparison): string {
-  const rows = bars.map((bar) =>
-    `| ${cell(bar.condition)} | ${bar.metric} | ${bar.base} | ${bar.branch} | ${bar.bar} | ${bar.pass === null ? '' : bar.pass ? 'pass' : 'fail'} |`,
-  );
-  const outlines = failingOutlines.map((frame) => {
-    const corners = frame.outline!.map(([x, y]) => `(${x.toFixed(0)}, ${y.toFixed(0)})`).join(' ');
-    const sides = frame.sidesInsideMm
-      ? `, sides inside ${Object.entries(frame.sidesInsideMm).map(([side, value]) => `${side} ${value.toFixed(1)} mm`).join(', ')}`
-      : '';
-    return `- ${frame.frame}: outline at ${corners}${sides}`;
-  });
+  const grouped = bars.filter((bar) => bar.metric !== 'False outlines' && (bar.condition ?? bar.borderColor) !== null);
+  const byConditionAndTilt = grouped.filter((bar) => bar.condition !== null && bar.tiltBucket !== null);
+  const empty = bars.filter((bar) => bar.metric === 'False outlines');
+  const run = bars.filter((bar) => bar.condition === null && bar.borderColor === null);
+  const gatedBars = [...new Set([...byConditionAndTilt, ...empty].filter((bar) => bar.pass !== null).map((bar) => `- ${bar.metric}: ${bar.bar}`))];
+  const metricColumns = groupMetrics.join(' | ');
+  const reportedTable = (title: string, columns: string, rows: Bar[]) => [
+    title,
+    '',
+    `| ${columns} | ${metricColumns} |`,
+    '| --- | --- | --: | --: | --: | --: | --: |',
+    ...groupRows(rows, false),
+    '',
+  ];
   return [
-    '| Condition | Metric | Merge base | Branch | Bar | Result |',
-    '| --- | --- | --: | --: | --- | --- |',
-    ...rows,
+    'Card frames by condition and tilt in degrees, merge base → branch:',
+    '',
+    `| Condition | Tilt | ${metricColumns} | Result |`,
+    '| --- | --- | --: | --: | --: | --: | --: | --- |',
+    ...groupRows(byConditionAndTilt, true),
+    '',
+    'Empty frames:',
+    '',
+    '| Condition | Tilt | False outlines | Result |',
+    '| --- | --- | --: | --- |',
+    ...groupRows(empty, true),
+    '',
+    ...reportedTable(
+      'Card frames by condition and border colour, reported:',
+      'Condition | Border colour',
+      grouped.filter((bar) => bar.condition !== null && bar.borderColor !== null),
+    ),
+    ...reportedTable(
+      'Card frames by border colour and tilt, reported:',
+      'Border colour | Tilt',
+      grouped.filter((bar) => bar.condition === null),
+    ),
+    'The whole run:',
+    '',
+    '| Metric | Merge base | Branch | Bar | Result |',
+    '| --- | --: | --: | --- | --- |',
+    ...run.map((bar) => `| ${bar.metric} | ${bar.base} | ${bar.branch} | ${bar.bar} | ${bar.pass ? 'pass' : 'fail'} |`),
+    '',
+    'Bars for each condition and tilt:',
+    '',
+    ...gatedBars,
     '',
     pass ? 'Every bar passes.' : 'A bar failed.',
-    ...(outlines.length > 0 ? ['', 'Failing outlines, in frame pixels:', '', ...outlines] : []),
+    ...(failingOutlines.length > 0 ? ['', 'Failing outlines, in frame pixels:', '', ...failingOutlines.map(failingOutline)] : []),
     '',
   ].join('\n');
 }
