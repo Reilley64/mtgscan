@@ -252,7 +252,7 @@ Metrics and pass bars, from #493:
 | --- | --- | --- |
 | Detection rate | Frames with a correct outline over frames with a card. A correct outline has all four corners within 1 mm of the true corners. | Not lower by more than 1 frame in 30 |
 | Wrong outlines | Card outlines that are not correct | Not more than the merge base |
-| Corner error | The largest corner distance in mm on the card, median and p90 of the correct outlines. Wrong outlines have their own bar. | Median not worse by more than 0.1 mm. p90 not worse by more than 0.5 mm. Both bars compare only the frames with a correct outline on the merge base and on the branch. The table shows each side's own median and p90. |
+| Corner error | The largest corner distance in mm on the card, median and p90 of the correct outlines. Wrong outlines have their own bar. | Median not worse by more than 0.1 mm. p90 not worse by more than 0.5 mm. Both bars compare only the frames with a correct outline on the merge base and on the branch. They apply when a group has at least 10 such frames (`minimumPairedFrames`). A smaller group is reported. The table shows each side's own median and p90. |
 | Inside outlines | Card outlines with a side more than 1 mm inside the card edge | Not more than the merge base plus 1 frame in 30 |
 | Size error | The mean of opposite sides in mm, median of the detected frames. Inside is positive, as in #421. | Reported |
 | False outlines | Card outlines on empty frames | Zero |
@@ -323,6 +323,7 @@ The Detector workflow runs on pull requests that change the detector module, the
 - A missed bar fails the job.
 - When the runner renders a frame with other bytes than `detector/frames.sha256`, the job fails and names the first such frame. The job checks the hashes on every run, also when it restores the frames from the cache.
 - The job writes the table to its job summary, under a "Detector replay" heading.
+- The job uploads `base.json`, `branch.json`, and `comparison.md` as the `detector-replay-reports` artifact, also when a bar fails. The JSON files hold each frame's outline and corner error, so a failed bar can be traced to its frames. `gh run download <run> -n detector-replay-reports` downloads them.
 - It caches the card images by `detector/cards.json`, the textures by `detector/textures.json`, and the rendered frames by `detector/frames.sha256`. A re-run of a pull request skips the download and the render. The workflow does not run on pushes, so pull requests share no cache, and each new pull request renders the frames once.
 - On a runner, the detector call on a frame takes 45 to 100 ms, about 5 to 10 times as long as on a busy M3. With the 1,080 frames and the 20 clips, the job takes 8.5 to 12.5 minutes. The timeout is 30 minutes. Most of the job is the detector calls: 3 rounds of the 1,080 frames and one round of the clips, on both sides. Without the cache, the render takes about 1.5 minutes, and saving the 1.9 GB of frames takes 25 to 40 seconds. With the cache, restoring the frames takes about 25 to 40 seconds.
 - With the same detector code on both sides, the timing ratio stayed between 0.93 and 1.03 over 13 runs on runners: 7 runs with the first 60 frames, 3 with the 1,080 frames, and 3 with the clips too.

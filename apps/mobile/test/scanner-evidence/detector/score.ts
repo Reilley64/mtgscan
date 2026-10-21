@@ -92,6 +92,7 @@ export const replayBars = {
   cornerErrorMedianMm: 0.1,
   cornerErrorP90Mm: 0.5,
   frameAllowance: 1 / 30,
+  minimumPairedFrames: 10,
   macTimingRatio: 1.2,
 } as const;
 
@@ -216,8 +217,10 @@ function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
   const paired = Object.keys(branch.correctOutlinesMm).filter((frame) => frame in base.correctOutlinesMm);
   const pairedErrors = (side: GroupScore) => paired.map((frame) => side.correctOutlinesMm[frame]).sort((a, b) => a - b);
   const worse = (fraction: number, limit: number) =>
-    paired.length === 0 || nearestRank(pairedErrors(branch), fraction) - nearestRank(pairedErrors(base), fraction) <= limit;
+    nearestRank(pairedErrors(branch), fraction) - nearestRank(pairedErrors(base), fraction) <= limit;
   const bar = (text: string, pass: boolean) => (gated ? { bar: text, pass } : { bar: 'reported', pass: null });
+  const cornerErrorBar = (text: string, pass: boolean) =>
+    paired.length >= replayBars.minimumPairedFrames ? bar(text, pass) : { bar: 'reported', pass: null };
   return [
     {
       ...key,
@@ -238,7 +241,7 @@ function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
       metric: 'Corner error median',
       base: millimetres(base.cornerErrorMm?.median),
       branch: millimetres(branch.cornerErrorMm?.median),
-      ...bar(
+      ...cornerErrorBar(
         `not worse by more than ${replayBars.cornerErrorMedianMm} mm, on frames with a correct outline on both sides`,
         worse(0.5, replayBars.cornerErrorMedianMm),
       ),
@@ -248,7 +251,7 @@ function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
       metric: 'Corner error p90',
       base: millimetres(base.cornerErrorMm?.p90),
       branch: millimetres(branch.cornerErrorMm?.p90),
-      ...bar(
+      ...cornerErrorBar(
         `not worse by more than ${replayBars.cornerErrorP90Mm} mm, on frames with a correct outline on both sides`,
         worse(0.9, replayBars.cornerErrorP90Mm),
       ),

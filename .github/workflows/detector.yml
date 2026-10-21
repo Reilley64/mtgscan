@@ -67,6 +67,13 @@ jobs:
           if [ -f "$table" ]; then
             { echo '## Detector replay'; echo; cat "$table"; } >> "$GITHUB_STEP_SUMMARY"
           fi
+      - name: Upload the replay reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: detector-replay-reports
+          path: apps/mobile/modules/card-detector/.data/reports
+          if-no-files-found: ignore
 
   module:
     runs-on: macos-15
