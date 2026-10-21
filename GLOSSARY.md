@@ -137,6 +137,9 @@ _Avoid_: Rectangle detector
 The four corners of a detected card. The Scan tab draws it in magenta, and the recognizer straightens the photo along it.
 _Avoid_: Guide
 
+**Inside outline**:
+A card outline with a side more than 1 mm inside the card edge. On a black-bordered card it is often the inner frame. A training crop of an inside outline loses the border and can lose the collector line.
+
 **Automatic capture**:
 The scanner takes one photo when a detected card holds still for 400 ms. It re-arms when the card leaves for 1 second or a different card takes its place.
 _Avoid_: Auto-scan, shutter
@@ -146,9 +149,6 @@ The committed real crops, simulated scans, expected results, and phone runs that
 
 **Detector replay**:
 A release gate on the Mac for the card detector. It runs the shipped detector code on synthetic frames with known corners, on the branch and on the merge base in the same run. It fails when the branch misses a pass bar, such as a new inside outline.
-
-**Inside outline**:
-A card outline with a side more than 1 mm inside the card edge. The photo straightened along it loses the card's border, and often the collector line.
 
 **Training crop**:
 The straightened image of the one card in a scan. After the scan batch commit saves the scan, the app uploads the crop with its evidence record. The evidence record is what the scanner read and decided, which card printing the user saved, and how the user changed or confirmed it. mtgscan stores training crops with no link to the user's account, so a training crop cannot be removed after it uploads.
