@@ -7,7 +7,7 @@ import { angelicCurator, evidenceRecord } from './training-crop-seeds';
 
 setDefaultTimeout(180_000);
 
-const migrationBeforeFeaturePrintModel = '20261229090000';
+const migrationBeforeFeaturePrintModel = '20261230100000';
 
 function visionEvidenceRecord(changes: Record<string, unknown> = {}) {
   const { feature_print_model: _, ...record } = evidenceRecord();
