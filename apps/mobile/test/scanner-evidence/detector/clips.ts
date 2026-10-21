@@ -90,9 +90,7 @@ export type ClipGroupScore = {
   handShiftMm: number | null;
 };
 
-export const clipBars = {
-  photoOutlineMedianMm: 0.1,
-} as const;
+const photoOutlineMedianLimitMm = 0.1;
 
 function medianOf(values: (number | null)[]) {
   const known = values.filter((value) => value !== null);
@@ -147,7 +145,7 @@ function groupBars(base: ClipGroupScore, branch: ClipGroupScore): Bar[] {
       metric: 'Jitter median',
       base: millimetres(base.jitterMm),
       branch: millimetres(branch.jitterMm),
-      bar: 'not worse',
+      bar: 'not worse, to 0.01 mm',
       pass: notWorse(toHundredths(base.jitterMm), toHundredths(branch.jitterMm)),
     },
     {
@@ -155,8 +153,8 @@ function groupBars(base: ClipGroupScore, branch: ClipGroupScore): Bar[] {
       metric: 'Photo outline median',
       base: millimetres(base.photoOutlineMm),
       branch: millimetres(branch.photoOutlineMm),
-      bar: `not worse by more than ${clipBars.photoOutlineMedianMm} mm`,
-      pass: notWorse(base.photoOutlineMm, branch.photoOutlineMm, clipBars.photoOutlineMedianMm),
+      bar: `not worse by more than ${photoOutlineMedianLimitMm} mm`,
+      pass: notWorse(base.photoOutlineMm, branch.photoOutlineMm, photoOutlineMedianLimitMm),
     },
     {
       ...key,
