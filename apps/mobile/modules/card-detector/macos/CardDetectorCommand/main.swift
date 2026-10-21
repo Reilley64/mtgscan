@@ -8,9 +8,10 @@ import simd
 let displayOrientation = CGImagePropertyOrientation.right
 
 let usage = """
-usage: card-detector frames <image>...
-       card-detector step <image>...  (reads lines of <index> [<intrinsic matrix of the portrait frame, 9 numbers by row>])
-       card-detector refine <frame> <photo> <outline JSON>
+usage: card-detector step <image>...
+  Reads lines of <index> [<intrinsic matrix of the portrait frame, 9 numbers by row>] and writes a detection sample for each,
+  or lines of {"refine": <index>, "photo": <path>, "outline": [{"x":..,"y":..}, ...], "intrinsicMatrix": [[..], [..], [..]]}
+  and writes the photo outline.
 """
 
 struct Frame {
@@ -174,25 +175,27 @@ struct RefineRequest: Decodable {
   let refine: Int
   let photo: String
   let outline: [Point]
+  let intrinsicMatrix: [[Double]]
 }
 
 func outlineRecord(_ outline: [SIMD2<Double>]) -> [[String: Double]] {
   outline.map { ["x": $0.x, "y": $0.y] }
 }
 
-func emitPhotoOutline(frame: String, buffer: CVPixelBuffer, photo: String, outline: [RefineRequest.Point]) {
+func emitPhotoOutline(frame: String, buffer: CVPixelBuffer, request: RefineRequest) {
   autoreleasepool {
-    let heldStill = outline.map { SIMD2($0.x, $0.y) }
+    let heldStill = request.outline.map { SIMD2($0.x, $0.y) }
     let startedAt = ProcessInfo.processInfo.systemUptime
     let result = PhotoOutline.refine(
-      photo: URL(fileURLWithPath: photo),
+      photo: URL(fileURLWithPath: request.photo),
       frame: buffer,
       frameOrientation: displayOrientation,
+      frameIntrinsicMatrix: cameraIntrinsicMatrix(ofPortraitFrame: request.intrinsicMatrix.flatMap { $0 }, buffer: buffer),
       heldStill: heldStill
     )
     emit([
       "frame": frame,
-      "photo": photo,
+      "photo": request.photo,
       "heldStill": outlineRecord(heldStill),
       "outline": outlineRecord(result.outline),
       "outcome": result.outcome.rawValue,
@@ -212,19 +215,13 @@ func emitDetection(_ path: String, _ buffer: CVPixelBuffer, intrinsicMatrix: sim
   }
 }
 
-func detectFrames(_ paths: [String]) {
-  for (path, buffer) in zip(paths, warmedUpBuffers(paths)) {
-    emitDetection(path, buffer, intrinsicMatrix: nil)
-  }
-}
-
 func detectFramesOnRequest(_ paths: [String]) {
   let buffers = warmedUpBuffers(paths)
   while let line = readLine() {
     if line.hasPrefix("{") {
       let request = decoded(RefineRequest.self, from: line)
       guard buffers.indices.contains(request.refine) else { fail("no frame at index \(request.refine)") }
-      emitPhotoOutline(frame: paths[request.refine], buffer: buffers[request.refine], photo: request.photo, outline: request.outline)
+      emitPhotoOutline(frame: paths[request.refine], buffer: buffers[request.refine], request: request)
       continue
     }
     let fields = line.split(separator: " ")
@@ -244,14 +241,5 @@ func detectFramesOnRequest(_ paths: [String]) {
 }
 
 let arguments = Array(CommandLine.arguments.dropFirst())
-switch arguments.first {
-case "frames" where arguments.count > 1:
-  detectFrames(Array(arguments.dropFirst()))
-case "step" where arguments.count > 1:
-  detectFramesOnRequest(Array(arguments.dropFirst()))
-case "refine" where arguments.count == 4:
-  let outline = decoded([RefineRequest.Point].self, from: arguments[3])
-  emitPhotoOutline(frame: arguments[1], buffer: portraitBuffer(arguments[1]), photo: arguments[2], outline: outline)
-default:
-  fail(usage)
-}
+guard arguments.first == "step", arguments.count > 1 else { fail(usage) }
+detectFramesOnRequest(Array(arguments.dropFirst()))

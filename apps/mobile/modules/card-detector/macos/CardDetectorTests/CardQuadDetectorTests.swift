@@ -298,7 +298,7 @@ func refinementRecoversOuterEdges() {
     let centroid = truth.reduce(SIMD2<Double>(0, 0), +) / 4.0
     let lowered = truth.map { centroid + ($0 - centroid) * 0.94 + SIMD2(0.0, card.height * 0.06) }
     let outcome = lumaPlane(buffer) {
-      CardEdgeRefiner.refine(proposal: lowered, plane: $0, transform: transform, intrinsicMatrix: nil)
+      CardEdgeRefiner.refine(proposal: lowered, plane: $0, transform: transform)
     }
     guard case let .refined(corners, supportMin, shifts, _, _) = outcome else {
       Issue.record("refinement failed for orientation \(orientation.rawValue): \(outcome)")
@@ -322,7 +322,7 @@ func refinementRejectsBlankSurface() {
   )!
   let proposal = [SIMD2(200.0, 350.0), SIMD2(520.0, 350.0), SIMD2(520.0, 800.0), SIMD2(200.0, 800.0)]
   let outcome = lumaPlane(buffer) {
-    CardEdgeRefiner.refine(proposal: proposal, plane: $0, transform: transform, intrinsicMatrix: nil)
+    CardEdgeRefiner.refine(proposal: proposal, plane: $0, transform: transform)
   }
   guard case .weakEdge = outcome else {
     Issue.record("blank surface should have weak edges, got \(outcome)")
@@ -403,7 +403,7 @@ func oneEdgeFallback() {
   let buffer = makeBuffer(oriented: oriented, orientation: .right)
   let transform = OrientationTransform(displayOrientation: .right, bufferWidth: 1280, bufferHeight: 720)!
   let outcome = lumaPlane(buffer) {
-    CardEdgeRefiner.refine(proposal: truth, plane: $0, transform: transform, intrinsicMatrix: nil)
+    CardEdgeRefiner.refine(proposal: truth, plane: $0, transform: transform)
   }
   guard case let .refined(corners, supportMin, _, supports, fallbackEdges) = outcome else {
     Issue.record("one-edge fallback did not refine: \(outcome)")
@@ -503,7 +503,7 @@ func refusesAnOutlineThatIsNotCardShaped() {
   let transform = OrientationTransform(displayOrientation: .right, bufferWidth: 1280, bufferHeight: 720)!
   let square = [SIMD2(170.0, 450.0), SIMD2(550.0, 450.0), SIMD2(550.0, 830.0), SIMD2(170.0, 830.0)]
   let outcome = lumaPlane(buffer) {
-    CardEdgeRefiner.refine(proposal: square, plane: $0, transform: transform, intrinsicMatrix: nil)
+    CardEdgeRefiner.refine(proposal: square, plane: $0, transform: transform)
   }
   guard case .invalidQuad = outcome else {
     Issue.record("a square should not refine into a card, got \(outcome)")
@@ -512,7 +512,7 @@ func refusesAnOutlineThatIsNotCardShaped() {
 }
 
 
-private struct CameraPose {
+struct CameraPose {
   let tiltDegrees: Double
   let tiltAxisDegrees: Double
   let turnDegrees: Double
@@ -524,6 +524,12 @@ private struct CameraPose {
     SIMD3(0, 940, 660),
     SIMD3(0, 0, 1),
   ])
+  static let portraitFrame = OrientationTransform(
+    displayOrientation: .up,
+    bufferWidth: 720,
+    bufferHeight: 1280,
+    bufferIntrinsicMatrix: portraitMatrix
+  )!
   static let landscapeCameraMatrix = simd_float3x3(rows: [
     SIMD3(940, 0, 660),
     SIMD3(0, 940, 370),
@@ -581,8 +587,8 @@ private func measuresTheAspectOnTheCard(pose: CameraPose) {
 func measuresAFlatCardAsTheFrameCheck() {
   let flat = CameraPose(tiltDegrees: 0, tiltAxisDegrees: 0, turnDegrees: 14, distanceMm: 150, centerMm: SIMD2(-12, 9))
   let rectangle = flat.project([SIMD2(-30, -45), SIMD2(30, -45), SIMD2(30, 45), SIMD2(-30, 45)])
-  let onCard = CardQuadGeometry.metrics(rectangle, width: 720, height: 1280, intrinsicMatrix: CameraPose.portraitMatrix)
-  let inFrame = CardQuadGeometry.metrics(rectangle, width: 720, height: 1280, intrinsicMatrix: nil)
+  let onCard = CardQuadGeometry.metrics(rectangle, in: CameraPose.portraitFrame)
+  let inFrame = CardQuadGeometry.metrics(rectangle, in: portraitFrame!)
   #expect(abs(onCard.aspectRatio - 60.0 / 90.0) < 0.000_001, "aspect on the card \(onCard.aspectRatio)")
   #expect(abs(inFrame.aspectRatio - 60.0 / 90.0) < 0.000_001, "aspect in the frame \(inFrame.aspectRatio)")
 }
@@ -594,12 +600,7 @@ func measuresAFlatCardAsTheFrameCheck() {
 private func refusesTheInnerFrameOfATiltedCard(pose: CameraPose) {
   func isCardShaped(_ corners: [SIMD2<Double>]) -> Bool {
     CardQuadGeometry.isCardShaped(
-      CardQuadGeometry.metrics(
-        CardQuadGeometry.orderedClockwise(corners)!,
-        width: 720,
-        height: 1280,
-        intrinsicMatrix: CameraPose.portraitMatrix
-      )
+      CardQuadGeometry.metrics(CardQuadGeometry.orderedClockwise(corners)!, in: CameraPose.portraitFrame)
     )
   }
   #expect(isCardShaped(pose.card()))
@@ -609,12 +610,17 @@ private func refusesTheInnerFrameOfATiltedCard(pose: CameraPose) {
 
 @Test("maps the landscape camera's intrinsic matrix to the portrait frame", arguments: tiltedPoses)
 private func mapsTheCameraMatrixToThePortraitFrame(pose: CameraPose) {
-  let matrix = portraitFrame!.orientedIntrinsicMatrix(CameraPose.landscapeCameraMatrix)
-  let aspect = CardQuadGeometry.aspectRatioOnCard(pose.card(), intrinsicMatrix: matrix)
+  let transform = OrientationTransform(
+    displayOrientation: .right,
+    bufferWidth: 1280,
+    bufferHeight: 720,
+    bufferIntrinsicMatrix: simd_double3x3(CameraPose.landscapeCameraMatrix)
+  )!
+  let aspect = CardQuadGeometry.aspectRatioOnCard(pose.card(), intrinsicMatrix: transform.intrinsicMatrix!)
   #expect(abs(aspect - 63.0 / 88.0) < 0.000_01, "aspect on the card \(aspect)")
 }
 
-private struct TiltedCard: RenderableCard {
+struct TiltedCard: RenderableCard {
   let width = 400.0
   let height = 400.0 * 88.0 / 63.0
   private let frameToCard: simd_double3x3
@@ -629,7 +635,7 @@ private struct TiltedCard: RenderableCard {
   }
 }
 
-private let tiltedTowardTheTop = CameraPose(
+let tiltedTowardTheTop = CameraPose(
   tiltDegrees: 15, tiltAxisDegrees: 0, turnDegrees: -4, distanceMm: 150, centerMm: SIMD2(0, 0)
 )
 

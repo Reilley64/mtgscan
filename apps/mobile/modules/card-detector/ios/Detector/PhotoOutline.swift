@@ -26,55 +26,52 @@ enum PhotoOutline {
     photo: URL,
     frame: CVPixelBuffer,
     frameOrientation: CGImagePropertyOrientation,
+    frameIntrinsicMatrix: simd_float3x3?,
     heldStill: [SIMD2<Double>]
   ) -> Result {
     guard heldStill.count == 4,
           let frameTransform = OrientationTransform(
             displayOrientation: frameOrientation,
             bufferWidth: Double(CVPixelBufferGetWidth(frame)),
-            bufferHeight: Double(CVPixelBufferGetHeight(frame))
+            bufferHeight: Double(CVPixelBufferGetHeight(frame)),
+            bufferIntrinsicMatrix: frameIntrinsicMatrix.map(simd_double3x3.init)
           ),
-          let image = PhotoLuma(photo: photo, width: Int(frameTransform.orientedWidth), height: Int(frameTransform.orientedHeight)),
+          let image = PhotoLuma(photo: photo, frameTransform: frameTransform),
           let motion = cameraMotion(from: frame, orientation: frameOrientation, to: image)
     else {
       return Result(outline: heldStill, outcome: .failed)
     }
     let size = SIMD2(frameTransform.orientedWidth, frameTransform.orientedHeight)
-    let heldStillPixels = heldStill.map { $0 * size }
-    let moved = heldStillPixels.map(motion)
+    let moved = heldStill.map { motion($0 * size) }
     let refinement = image.withPlane { plane in
-      CardEdgeRefiner.refine(proposal: moved, plane: plane, transform: image.transform, intrinsicMatrix: nil)
+      CardEdgeRefiner.refine(proposal: moved, plane: plane, transform: image.transform)
     }
-    let chosen = chosen(refinement, moved: moved, heldStill: heldStillPixels)
-    return Result(outline: chosen.outline.map { $0 / size }, outcome: chosen.outcome)
+    let checked = checkedOutline(refinement, moved: moved)
+    return Result(outline: checked.outline.map { $0 / size }, outcome: checked.outcome)
   }
 
-  static func chosen(
-    _ refinement: CardEdgeRefiner.Outcome,
-    moved: [SIMD2<Double>],
-    heldStill: [SIMD2<Double>]
-  ) -> Result {
+  static func checkedOutline(_ refinement: CardEdgeRefiner.Outcome, moved: [SIMD2<Double>]) -> Result {
     guard case let .refined(corners, _, _, _, _) = refinement else {
-      return Result(outline: heldStill, outcome: .notRefined)
+      return Result(outline: moved, outcome: .notRefined)
     }
-    let refinedSides = sides(corners)
-    let movedSides = sides(moved)
-    guard refinedSides.x >= (1.0 - sizeShrinkMax) * movedSides.x,
-          refinedSides.y >= (1.0 - sizeShrinkMax) * movedSides.y
+    let refinedSides = meanSideLengths(corners)
+    let movedSides = meanSideLengths(moved)
+    guard refinedSides.width >= (1.0 - sizeShrinkMax) * movedSides.width,
+          refinedSides.height >= (1.0 - sizeShrinkMax) * movedSides.height
     else {
-      return Result(outline: heldStill, outcome: .sizeRefused)
+      return Result(outline: moved, outcome: .sizeRefused)
     }
-    let limit = cornerMotionMax * min(movedSides.x, movedSides.y)
+    let limit = cornerMotionMax * min(movedSides.width, movedSides.height)
     guard zip(corners, moved).allSatisfy({ simd_distance($0, $1) <= limit }) else {
-      return Result(outline: heldStill, outcome: .motionRefused)
+      return Result(outline: moved, outcome: .motionRefused)
     }
     return Result(outline: corners, outcome: .refined)
   }
 
-  private static func sides(_ corners: [SIMD2<Double>]) -> SIMD2<Double> {
-    SIMD2(
-      (simd_distance(corners[0], corners[1]) + simd_distance(corners[3], corners[2])) / 2.0,
-      (simd_distance(corners[0], corners[3]) + simd_distance(corners[1], corners[2])) / 2.0
+  private static func meanSideLengths(_ corners: [SIMD2<Double>]) -> (width: Double, height: Double) {
+    (
+      width: (simd_distance(corners[0], corners[1]) + simd_distance(corners[3], corners[2])) / 2.0,
+      height: (simd_distance(corners[0], corners[3]) + simd_distance(corners[1], corners[2])) / 2.0
     )
   }
 
@@ -92,11 +89,7 @@ enum PhotoOutline {
     guard let warp = (request.results?.first as? VNImageHomographicAlignmentObservation)?.warpTransform else {
       return nil
     }
-    let matrix = simd_double3x3(
-      SIMD3<Double>(warp.columns.0),
-      SIMD3<Double>(warp.columns.1),
-      SIMD3<Double>(warp.columns.2)
-    )
+    let matrix = simd_double3x3(warp)
     let height = Double(photo.height)
     return { point in
       let mapped = matrix * SIMD3(point.x, height - point.y, 1.0)
@@ -112,7 +105,9 @@ private struct PhotoLuma {
   let transform: OrientationTransform
   private let pixels: Data
 
-  init?(photo: URL, width: Int, height: Int) {
+  init?(photo: URL, frameTransform: OrientationTransform) {
+    let width = Int(frameTransform.orientedWidth)
+    let height = Int(frameTransform.orientedHeight)
     guard let source = CGImageSourceCreateWithURL(photo as CFURL, nil),
           let decoded = CGImageSourceCreateThumbnailAtIndex(source, 0, [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -128,7 +123,12 @@ private struct PhotoLuma {
             space: CGColorSpaceCreateDeviceGray(),
             bitmapInfo: CGImageAlphaInfo.none.rawValue
           ),
-          let transform = OrientationTransform(displayOrientation: .up, bufferWidth: Double(width), bufferHeight: Double(height))
+          let transform = OrientationTransform(
+            displayOrientation: .up,
+            bufferWidth: Double(width),
+            bufferHeight: Double(height),
+            bufferIntrinsicMatrix: frameTransform.intrinsicMatrix
+          )
     else {
       return nil
     }

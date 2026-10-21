@@ -27,7 +27,7 @@ struct CapturedPhoto: Sendable {
 
 private struct AnalyzedFrame: @unchecked Sendable {
   let pixelBuffer: CVPixelBuffer
-  let outline: [SIMD2<Double>]
+  let intrinsicMatrix: simd_float3x3?
   let time: CMTime
 }
 
@@ -54,8 +54,8 @@ final class CameraSession: NSObject, @unchecked Sendable {
   private var configured = false
   private var lastAnalyzedAt = CMTime.invalid
   private var photoCaptures: [Int64: PhotoCapture] = [:]
-  private let lastFrameLock = NSLock()
-  private var lastFrame: AnalyzedFrame?
+  private let keptFramesLock = NSLock()
+  private var keptFrames = KeptFrames<AnalyzedFrame>()
 
   init(onSample: @escaping @Sendable (DetectionSample) -> Void) {
     self.onSample = onSample
@@ -108,7 +108,7 @@ final class CameraSession: NSObject, @unchecked Sendable {
         settings.isShutterSoundSuppressionEnabled = true
       }
       let id = settings.uniqueID
-      let frame = lastFrameLock.withLock { lastFrame }.flatMap { $0.outline == outline ? $0 : nil }
+      let frame = keptFramesLock.withLock { keptFrames.frame(withOutline: outline) }
       let capture = PhotoCapture(times: times) { [weak self] result in
         if let self {
           sessionQueue.async { self.photoCaptures[id] = nil }
@@ -138,6 +138,7 @@ final class CameraSession: NSObject, @unchecked Sendable {
       photo: photo.url,
       frame: frame.pixelBuffer,
       frameOrientation: displayOrientation,
+      frameIntrinsicMatrix: frame.intrinsicMatrix,
       heldStill: heldStill
     )
     let durationMs = CardQuadDetector.elapsedMilliseconds(since: startedAt)
@@ -273,8 +274,10 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
       nativeDurationMs: CardQuadDetector.elapsedMilliseconds(since: startedAt),
       sampledAtMs: sampledAtMs
     )
-    let frame = sample.corners.map { AnalyzedFrame(pixelBuffer: pixelBuffer, outline: $0, time: time) }
-    lastFrameLock.withLock { lastFrame = frame }
+    if let outline = sample.corners, let copy = copiedPlanes(of: pixelBuffer) {
+      let frame = AnalyzedFrame(pixelBuffer: copy, intrinsicMatrix: intrinsicMatrix, time: time)
+      keptFramesLock.withLock { keptFrames.keep(frame, outline: outline, seconds: time.seconds) }
+    }
     onSample(sample)
   }
 
