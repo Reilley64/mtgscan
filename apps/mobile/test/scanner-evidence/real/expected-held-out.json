@@ -1,29 +1,32 @@
 {
  "recordedWith": {
-  "recognizerCommit": "5f93f41",
-  "featurePrint": "VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values",
-  "gallery": {
-   "version": "20261012-cf1753",
-   "directory": "~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753",
-   "encoding": "int8 per vector, installed as unit-length float16",
-   "printings": 102730,
-   "createdAt": "2026-10-12T03:44:47.658Z",
-   "catalogJsonSha256": "e637953e0c721abaa04ba021a6ed2c085ddd61d9b001aaa1001959124b0958c5",
-   "galleryF16Sha256": "ac1325c5d41755292a26c80b72caa3799259cabf1113b033eb229af1ac03a53c",
-   "scryfallBulk": "default_cards updated 2026-10-11T21:05:54.791+00:00",
-   "cardCatalogSnapshot": "2026-10-09T09:01:54.966+00:00"
+  "recognizerCommit": "64a295e",
+  "model": {
+   "name": "pe-core-s16-384",
+   "sha256": "a7b41405eb0a9b34cebc3acf64c42d4c009689df3686d7f22fc12ea53e521aab"
   },
-  "machine": "Apple M3, macOS 15.7.3",
-  "recordedOn": "2026-10-15",
-  "command": "bun run recognizer:replay (real-held-out)",
-  "note": "Recorded again for #206. As before, no scan is accepted with the true printing missing. 3 scans that abstain on a collector line that names a card the image does not support now show the image's top card printing first. Academy Manufactor (muyuq3pm-23) and Abrade (muyxcbms-2) now show another printing of the right card, so nameTop1 is 167. Abrade SOA 37 (muw8ssia-9) showed Summoned Dromedary SOS 37 and now shows Sol Ring 30A 266. Latencies are kept from the earlier recording, because this replay ran beside another replay."
+  "gallery": {
+   "version": "20261021-c38f43",
+   "directory": "~/Library/Caches/mtgscan/gallery/installed/20261021-c38f43",
+   "encoding": "int8 per vector, installed as unit-length float16",
+   "printings": 102857,
+   "createdAt": "2026-10-21T01:21:50.983Z",
+   "catalogJsonSha256": "06c39df60123cfb71e2606e72175d88be0c1ed648c95c8a6d0e74d096735ecb1",
+   "galleryF16Sha256": "4fe8f17da978df22fd5391714bba3cba39e12f197a3632789ca5e9440e28691c",
+   "scryfallBulk": "default_cards updated 2026-10-20T21:05:38.269+00:00",
+   "cardCatalogSnapshot": "2026-10-19T09:02:38.299+00:00"
+  },
+  "machine": "Apple M3, macOS 27.0.1",
+  "recordedOn": "2026-10-21",
+  "command": "bun run recognizer:replay --webp-round-trip (real-held-out)",
+  "note": "Recorded for #471 with the first PE-Core gallery version and art margin 0.03. No scan is accepted with the true printing missing. At art margin 0.025, Athreos plst JOU-146 (muyuq3pm-25) was accepted with JOU 146 held out, 0.028 ahead of the next art."
  },
  "result": {
-  "catalog": 102730,
+  "catalog": 102857,
   "heldOut": true,
   "truthInTop5": 0,
   "cards": 250,
-  "nameTop1": 167,
+  "nameTop1": 178,
   "printingTop1": 0,
   "accepted": 0,
   "correctAccepts": 0,
@@ -31,8 +34,8 @@
   "nonCards": 11,
   "nonCardsRejected": 11,
   "errors": 0,
-  "p50Ms": 156,
-  "p95Ms": 215,
+  "p50Ms": 207,
+  "p95Ms": 310,
   "acceptReasons": {},
   "groups": {
    "all": {
@@ -49,15 +52,15 @@
     "input": "crops/rectified/muw8ssia-1.jpg",
     "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
     "group": null,
-    "top": "aa9e7f3c-e752-4cee-9e9d-fae38ba27dc9",
+    "top": "bd4485e0-cf88-4aac-889a-e7d299c11e1c",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 92 does not match it"
+    "reason": "2 printings share this art and collector line read only 92"
    },
    {
     "input": "crops/rectified/muw8ssia-10.jpg",
     "truth": "ea008094-d995-4740-9b39-c61049356c55",
     "group": null,
-    "top": "e1d8efe5-3356-4dbe-a05f-c87c9b4264a8",
+    "top": "c1c080cf-a5e8-4d9d-af49-f78588971e87",
     "accepted": null,
     "reason": "collector line SOS 171 names no printing in the gallery"
    },
@@ -65,15 +68,15 @@
     "input": "crops/rectified/muw8ssia-11.jpg",
     "truth": "ea008094-d995-4740-9b39-c61049356c55",
     "group": null,
-    "top": "ffa7cbf8-64b2-428e-8991-d8454d724f9f",
+    "top": "c244e904-89ab-4486-a467-16e86f179fcc",
     "accepted": null,
-    "reason": "6 printings share this art and no collector line was read"
+    "reason": "only printing of its art, but collector line 171 does not match it"
    },
    {
     "input": "crops/rectified/muw8ssia-12.jpg",
     "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
     "group": null,
-    "top": "a7ac3a39-b6a6-4647-bb6e-e82057704f8b",
+    "top": "7f9b5c75-882e-4fe4-827f-584080e91485",
     "accepted": null,
     "reason": "collector line SOS 38 names no printing in the gallery"
    },
@@ -81,9 +84,9 @@
     "input": "crops/rectified/muw8ssia-13.jpg",
     "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
     "group": null,
-    "top": "816eacac-a8b2-4d77-af3c-75f620ce3148",
+    "top": "b1373ef0-fbd9-4992-997d-b4147f6df5e7",
     "accepted": null,
-    "reason": "5 printings share this art and collector line read only 38"
+    "reason": "4 printings share this art and no collector line was read"
    },
    {
     "input": "crops/rectified/muw8ssia-14.jpg",
@@ -97,41 +100,41 @@
     "input": "crops/rectified/muw8ssia-15.jpg",
     "truth": "1e07a595-5579-4d5a-b07c-84239d690459",
     "group": null,
-    "top": "9e5ec47c-47a2-4eda-b81a-4a07f04e5989",
+    "top": "d0787e1f-0b75-44ab-a8fd-90358906a787",
     "accepted": null,
-    "reason": "2 printings share this art and collector line read only 59"
+    "reason": "only printing of its art, but collector line 59 does not match it"
    },
    {
     "input": "crops/rectified/muw8ssia-16.jpg",
     "truth": "e77e2fd5-5c46-4f6b-ac43-ec23fab57a1a",
     "group": null,
-    "top": "2f717e04-c078-4696-9ed6-e973033d7be0",
+    "top": "9cd1417a-badc-4abd-a8ca-5b31f85c1072",
     "accepted": null,
-    "reason": "9 printings share this art and collector line read only 2"
+    "reason": "only printing of its art, but collector line 2 does not match it"
    },
    {
     "input": "crops/rectified/muw8ssia-17.jpg",
     "truth": "7e21938b-46b1-4b2f-8269-0cd0e998cddc",
     "group": null,
-    "top": "d47d2596-a321-44c0-a9f6-87bf80abc1c4",
+    "top": "c79dedcf-ecba-49a1-81dc-7e3bdb7abefd",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 3 does not match it"
+    "reason": "12 printings share this art and collector line read only 3"
    },
    {
     "input": "crops/rectified/muw8ssia-18.jpg",
     "truth": "4203df15-dd44-496b-889a-d7a8fe320330",
     "group": null,
-    "top": "8a3b1cd5-a46e-4f7f-8ea5-89295b2f1762",
+    "top": "ab4625e1-4ba4-43cd-8147-059e4d50fd37",
     "accepted": null,
-    "reason": "3 printings share this art and collector line read only 4"
+    "reason": "2 printings share this art and no collector line was read"
    },
    {
     "input": "crops/rectified/muw8ssia-2.jpg",
     "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
     "group": null,
-    "top": "49f6e91b-5ea2-4e0e-8dcf-1f99ecaa7bc6",
+    "top": "d7ae86b7-d324-4c89-a5e1-8752a65a7816",
     "accepted": null,
-    "reason": "2 printings share this art and collector line read only 2464"
+    "reason": "collector line SLD 2464 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muw8ssia-3.jpg",
@@ -145,7 +148,7 @@
     "input": "crops/rectified/muw8ssia-37.jpg",
     "truth": "b44ec684-d558-45eb-bcd6-8119428634c2",
     "group": null,
-    "top": "275dc24b-52bc-4b8d-a539-69bebbc58d6e",
+    "top": "723d21cb-f506-4ad4-89d8-ecfdaed5952f",
     "accepted": null,
     "reason": "collector line SOS 139 names no printing in the gallery"
    },
@@ -153,7 +156,7 @@
     "input": "crops/rectified/muw8ssia-38.jpg",
     "truth": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
     "group": null,
-    "top": "720406ef-4460-475f-bbc1-491c8c48794e",
+    "top": "27e508f2-5f4e-4d8c-8e72-b896d5e204ad",
     "accepted": null,
     "reason": "collector line RIX 31 names no printing in the gallery"
    },
@@ -161,15 +164,15 @@
     "input": "crops/rectified/muw8ssia-39.jpg",
     "truth": "d40cc7da-c731-418e-8547-7033d1939450",
     "group": null,
-    "top": "73f8fc4f-2f36-4932-8d04-3c2651c116dc",
+    "top": "f15cd233-e27b-4cfd-aa4e-18040d1de22f",
     "accepted": null,
-    "reason": "2 printings share this art and no collector line was read"
+    "reason": "3 printings share this art and collector line read only 32"
    },
    {
     "input": "crops/rectified/muw8ssia-4.jpg",
     "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
     "group": null,
-    "top": "e8c2b329-4a5b-4435-9a58-f5e1262fd4c4",
+    "top": "fe0f3faf-c011-49b8-b604-d68a87615737",
     "accepted": null,
     "reason": "collector line RIX 125 names no printing in the gallery"
    },
@@ -177,7 +180,7 @@
     "input": "crops/rectified/muw8ssia-5.jpg",
     "truth": "14019383-0327-404b-ab4d-c65c3fa8c50d",
     "group": null,
-    "top": "64e72ac3-2b4f-43d8-9708-afe1b67c5d00",
+    "top": "c328d8ac-97df-4240-ac38-7cab363c5da1",
     "accepted": null,
     "reason": "collector line CMM 420 names no printing in the gallery"
    },
@@ -185,7 +188,7 @@
     "input": "crops/rectified/muw8ssia-6.jpg",
     "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
     "group": null,
-    "top": "4a2dfd72-a8f4-4e43-b5de-caf6a129a51a",
+    "top": "d071fec0-850d-4b6c-83b8-68d2922943fc",
     "accepted": null,
     "reason": "collector line SLD 7097 names no printing in the gallery"
    },
@@ -195,7 +198,7 @@
     "group": null,
     "top": "a8e85cd4-c116-42e2-a94b-2c04b06c4e2b",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 7763 does not match it"
+    "reason": "only printing of its art, but collector line 123 does not match it"
    },
    {
     "input": "crops/rectified/muw8ssia-8.jpg",
@@ -209,9 +212,9 @@
     "input": "crops/rectified/muw8ssia-9.jpg",
     "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
     "group": null,
-    "top": "db0dfaa7-40b2-4065-9cef-22e6af8ad53c",
+    "top": "a0e47d11-cb21-402b-a39e-588a94cc57b4",
     "accepted": null,
-    "reason": "collector line SOS 37 names a card the image does not support"
+    "reason": "3 printings share this art and no collector line was read"
    },
    {
     "input": "crops/rectified/muwdygj1-1.jpg",
@@ -225,7 +228,7 @@
     "input": "crops/rectified/muwdygj1-10.jpg",
     "truth": "ca42da05-330d-4050-a580-dc00f6faff24",
     "group": null,
-    "top": "e4a34101-1be3-44ae-b709-f0398998d4c4",
+    "top": "7847ae5d-c1d5-4641-93e3-4de44d2cde21",
     "accepted": null,
     "reason": "collector line M20 8 names no printing in the gallery"
    },
@@ -243,13 +246,13 @@
     "group": null,
     "top": "7847ae5d-c1d5-4641-93e3-4de44d2cde21",
     "accepted": null,
-    "reason": "4 printings share this art and collector line read only 8"
+    "reason": "collector line M20 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-13.jpg",
     "truth": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
     "group": null,
-    "top": "cb987986-b53b-4441-a2c6-e70c23b2ed7f",
+    "top": "b8aa7126-5df3-42dd-b4a3-0d0ea59eeebd",
     "accepted": null,
     "reason": "collector line RIX 3 names no printing in the gallery"
    },
@@ -265,7 +268,7 @@
     "input": "crops/rectified/muwdygj1-15.jpg",
     "truth": "43224e74-2c51-40bd-bc34-f66e990a3e33",
     "group": null,
-    "top": "724d28a0-730c-489d-a729-55eb8149402d",
+    "top": "3c243559-fec8-4b18-b119-3cb0ec19eb9f",
     "accepted": null,
     "reason": "collector line M21 215 names no printing in the gallery"
    },
@@ -275,13 +278,13 @@
     "group": null,
     "top": "b78578d3-0e15-4c34-8b03-07190c802ac2",
     "accepted": null,
-    "reason": "collector line SOS 174 names no printing in the gallery"
+    "reason": "2 printings share this art and collector line read only 174"
    },
    {
     "input": "crops/rectified/muwdygj1-17.jpg",
     "truth": "9c977c67-b0c0-40b0-b129-28de094aaf40",
     "group": null,
-    "top": "f4becdbb-9089-4c54-a681-6510d90cc99e",
+    "top": "68ef426c-b396-4767-b360-435f67207022",
     "accepted": null,
     "reason": "collector line M21 4 names no printing in the gallery"
    },
@@ -289,9 +292,9 @@
     "input": "crops/rectified/muwdygj1-18.jpg",
     "truth": "de3de40b-a7ac-455e-add2-4e451b602d17",
     "group": null,
-    "top": "cbb75573-3995-4abf-9b0b-8800d0d2bc9f",
+    "top": "7ff4832a-26c0-4da5-abbb-1941e7084e72",
     "accepted": null,
-    "reason": "4 printings share this art and collector line read only SOS"
+    "reason": "collector line SOS 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-19.jpg",
@@ -305,9 +308,9 @@
     "input": "crops/rectified/muwdygj1-2.jpg",
     "truth": "1db6393a-88b0-4973-9832-1482f69917ff",
     "group": null,
-    "top": "77720d2e-2b7b-492b-852c-eea5061eb31b",
+    "top": "baff03f3-a8ca-4c35-ae71-43b5d237b519",
     "accepted": null,
-    "reason": "3 printings share this art and collector line read only 2"
+    "reason": "4 printings share this art and collector line read only 7"
    },
    {
     "input": "crops/rectified/muwdygj1-20.jpg",
@@ -321,7 +324,7 @@
     "input": "crops/rectified/muwdygj1-21.jpg",
     "truth": "9cd1417a-badc-4abd-a8ca-5b31f85c1072",
     "group": null,
-    "top": "0f62b22f-9c6f-4857-afb9-8ac5fe834d52",
+    "top": "e77e2fd5-5c46-4f6b-ac43-ec23fab57a1a",
     "accepted": null,
     "reason": "collector line SOS 6 names no printing in the gallery"
    },
@@ -329,7 +332,7 @@
     "input": "crops/rectified/muwdygj1-22.jpg",
     "truth": "b075a6f2-5196-45e9-b062-f131f7b1a347",
     "group": null,
-    "top": "f501024b-79e8-48f8-8102-38d3e439dc64",
+    "top": "57491415-9ab8-42c1-95cb-46a0f2969a5d",
     "accepted": null,
     "reason": "collector line RNA 4 names no printing in the gallery"
    },
@@ -363,13 +366,13 @@
     "group": null,
     "top": "785d75b7-2054-47d0-8135-96ba6b4e9b78",
     "accepted": null,
-    "reason": "collector line SOS 7 names no printing in the gallery"
+    "reason": "2 printings share this art and collector line read only 7"
    },
    {
     "input": "crops/rectified/muwdygj1-27.jpg",
     "truth": "a3226e14-554d-47c9-b8b6-dfeb53cc41ba",
     "group": null,
-    "top": "13bf0a97-2dcf-4d18-bb3f-92d0406c7b4b",
+    "top": "f0067567-3434-4c12-9d4d-04ffc98d012c",
     "accepted": null,
     "reason": "collector line SOS 178 names no printing in the gallery"
    },
@@ -385,7 +388,7 @@
     "input": "crops/rectified/muwdygj1-29.jpg",
     "truth": "35100197-7914-450e-9205-57cb4fc345d6",
     "group": null,
-    "top": "5a2122c0-5fb4-4767-b969-c61bd959d604",
+    "top": "b7391a75-bc22-47dc-a818-7a5d3ea076c8",
     "accepted": null,
     "reason": "collector line M20 5 names no printing in the gallery"
    },
@@ -393,7 +396,7 @@
     "input": "crops/rectified/muwdygj1-3.jpg",
     "truth": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
     "group": null,
-    "top": "2aff9aa6-bc5e-476d-9dd1-1318ed521b6f",
+    "top": "f719c6e2-271d-410e-8610-4171767ab887",
     "accepted": null,
     "reason": "collector line RIX 3 names no printing in the gallery"
    },
@@ -401,7 +404,7 @@
     "input": "crops/rectified/muwdygj1-30.jpg",
     "truth": "1db6393a-88b0-4973-9832-1482f69917ff",
     "group": null,
-    "top": "8e4ad023-6672-4f6f-838a-7f923ef44a80",
+    "top": "fb44b0f6-0608-40d6-9eaa-48e5a834701f",
     "accepted": null,
     "reason": "collector line M20 7 names no printing in the gallery"
    },
@@ -409,7 +412,7 @@
     "input": "crops/rectified/muwdygj1-31.jpg",
     "truth": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
     "group": null,
-    "top": "a7c62113-48c1-47ae-8ede-c05c1c914c3b",
+    "top": "f719c6e2-271d-410e-8610-4171767ab887",
     "accepted": null,
     "reason": "collector line RIX 3 names no printing in the gallery"
    },
@@ -417,7 +420,7 @@
     "input": "crops/rectified/muwdygj1-32.jpg",
     "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
     "group": null,
-    "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
+    "top": "7e9d9a8a-ea85-4d2e-8580-38125aebc736",
     "accepted": null,
     "reason": "collector line ELD 8 names no printing in the gallery"
    },
@@ -425,7 +428,7 @@
     "input": "crops/rectified/muwdygj1-33.jpg",
     "truth": "ca42da05-330d-4050-a580-dc00f6faff24",
     "group": null,
-    "top": "c369d381-b48e-43cf-a032-8bcb120f443e",
+    "top": "7847ae5d-c1d5-4641-93e3-4de44d2cde21",
     "accepted": null,
     "reason": "collector line M20 8 names no printing in the gallery"
    },
@@ -443,15 +446,15 @@
     "group": null,
     "top": "51825d35-cdb2-40fa-ab89-1625161b04af",
     "accepted": null,
-    "reason": "collector line M15 1 names no printing in the gallery"
+    "reason": "only printing of its art, but its collector line was not read"
    },
    {
     "input": "crops/rectified/muwdygj1-36.jpg",
     "truth": "ca42da05-330d-4050-a580-dc00f6faff24",
     "group": null,
-    "top": "e4a34101-1be3-44ae-b709-f0398998d4c4",
+    "top": "7847ae5d-c1d5-4641-93e3-4de44d2cde21",
     "accepted": null,
-    "reason": "4 printings share this art and collector line read only 3"
+    "reason": "4 printings share this art and no collector line was read"
    },
    {
     "input": "crops/rectified/muwdygj1-37.jpg",
@@ -465,15 +468,15 @@
     "input": "crops/rectified/muwdygj1-38.jpg",
     "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
     "group": null,
-    "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
+    "top": "7c742e2f-a0e9-41b0-812a-ed716e8d0fee",
     "accepted": null,
-    "reason": "collector line ELD 8 names no printing in the gallery"
+    "reason": "5 printings share this art and collector line read only 8"
    },
    {
     "input": "crops/rectified/muwdygj1-39.jpg",
     "truth": "b6beac36-e12f-408d-a37b-a70e0e6c52d8",
     "group": null,
-    "top": "0f62b22f-9c6f-4857-afb9-8ac5fe834d52",
+    "top": "529ff592-88bd-4bab-8f6a-637bb08d9198",
     "accepted": null,
     "reason": "collector line RIX 3 names no printing in the gallery"
    },
@@ -481,7 +484,7 @@
     "input": "crops/rectified/muwdygj1-4.jpg",
     "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
     "group": null,
-    "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
+    "top": "7c742e2f-a0e9-41b0-812a-ed716e8d0fee",
     "accepted": null,
     "reason": "collector line ELD 8 names no printing in the gallery"
    },
@@ -489,7 +492,7 @@
     "input": "crops/rectified/muwdygj1-40.jpg",
     "truth": "1db6393a-88b0-4973-9832-1482f69917ff",
     "group": null,
-    "top": "4b22eafa-c414-4eed-8dc1-d26b987b341c",
+    "top": "baff03f3-a8ca-4c35-ae71-43b5d237b519",
     "accepted": null,
     "reason": "collector line M20 7 names no printing in the gallery"
    },
@@ -497,7 +500,7 @@
     "input": "crops/rectified/muwdygj1-41.jpg",
     "truth": "35100197-7914-450e-9205-57cb4fc345d6",
     "group": null,
-    "top": "4941246b-7d6a-4b2d-8144-f36ac890a389",
+    "top": "b7391a75-bc22-47dc-a818-7a5d3ea076c8",
     "accepted": null,
     "reason": "collector line M20 5 names no printing in the gallery"
    },
@@ -513,7 +516,7 @@
     "input": "crops/rectified/muwdygj1-43.jpg",
     "truth": "a3226e14-554d-47c9-b8b6-dfeb53cc41ba",
     "group": null,
-    "top": "13bf0a97-2dcf-4d18-bb3f-92d0406c7b4b",
+    "top": "f0067567-3434-4c12-9d4d-04ffc98d012c",
     "accepted": null,
     "reason": "collector line SOS 178 names no printing in the gallery"
    },
@@ -553,7 +556,7 @@
     "input": "crops/rectified/muwdygj1-48.jpg",
     "truth": "b075a6f2-5196-45e9-b062-f131f7b1a347",
     "group": null,
-    "top": "f501024b-79e8-48f8-8102-38d3e439dc64",
+    "top": "57491415-9ab8-42c1-95cb-46a0f2969a5d",
     "accepted": null,
     "reason": "collector line RNA 4 names no printing in the gallery"
    },
@@ -561,7 +564,7 @@
     "input": "crops/rectified/muwdygj1-49.jpg",
     "truth": "9cd1417a-badc-4abd-a8ca-5b31f85c1072",
     "group": null,
-    "top": "00108a1c-e620-4124-9b31-3bb3ff2a0407",
+    "top": "e77e2fd5-5c46-4f6b-ac43-ec23fab57a1a",
     "accepted": null,
     "reason": "collector line SOS 6 names no printing in the gallery"
    },
@@ -569,9 +572,9 @@
     "input": "crops/rectified/muwdygj1-5.jpg",
     "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
     "group": null,
-    "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
+    "top": "7e9d9a8a-ea85-4d2e-8580-38125aebc736",
     "accepted": null,
-    "reason": "5 printings share this art and collector line read only 8"
+    "reason": "collector line ELD 8 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwdygj1-50.jpg",
@@ -593,7 +596,7 @@
     "input": "crops/rectified/muwdygj1-52.jpg",
     "truth": "de3de40b-a7ac-455e-add2-4e451b602d17",
     "group": null,
-    "top": "2ed8c0ef-2b53-49b5-bc2f-428628cb3975",
+    "top": "7b540a5f-7f1b-421a-864f-5af469556fc6",
     "accepted": null,
     "reason": "collector line SOS 8 names no printing in the gallery"
    },
@@ -601,7 +604,7 @@
     "input": "crops/rectified/muwdygj1-53.jpg",
     "truth": "9c977c67-b0c0-40b0-b129-28de094aaf40",
     "group": null,
-    "top": "5a8cd89e-d849-4107-a629-98eae4c91489",
+    "top": "6e865bf1-0c46-4505-bbe9-bdeef7ff1100",
     "accepted": null,
     "reason": "collector line M21 4 names no printing in the gallery"
    },
@@ -617,7 +620,7 @@
     "input": "crops/rectified/muwdygj1-55.jpg",
     "truth": "43224e74-2c51-40bd-bc34-f66e990a3e33",
     "group": null,
-    "top": "bcaf4196-6bf3-47fa-b5c7-0e77f45cf820",
+    "top": "0f54f429-80c2-4f55-bb99-236f2c697985",
     "accepted": null,
     "reason": "collector line M21 215 names no printing in the gallery"
    },
@@ -641,7 +644,7 @@
     "input": "crops/rectified/muwdygj1-7.jpg",
     "truth": "22d2a844-17fc-4628-9591-684555e98f7b",
     "group": null,
-    "top": "0f32c514-36b9-4e1f-86e8-1d36e5282062",
+    "top": "6956c523-507c-4256-88b8-58a8a108c79f",
     "accepted": null,
     "reason": "collector line KTK 3 names no printing in the gallery"
    },
@@ -657,7 +660,7 @@
     "input": "crops/rectified/muwdygj1-9.jpg",
     "truth": "b075a6f2-5196-45e9-b062-f131f7b1a347",
     "group": null,
-    "top": "f501024b-79e8-48f8-8102-38d3e439dc64",
+    "top": "57491415-9ab8-42c1-95cb-46a0f2969a5d",
     "accepted": null,
     "reason": "collector line RNA 4 names no printing in the gallery"
    },
@@ -673,7 +676,7 @@
     "input": "crops/rectified/muwewrqz-11.jpg",
     "truth": "32efcfad-818c-4485-9022-cf94403f370b",
     "group": null,
-    "top": "84ede129-83fc-42b7-8941-fa649d3329e5",
+    "top": "c90a12af-b453-4d83-9a14-5411b562d480",
     "accepted": null,
     "reason": "collector line M15 86 names no printing in the gallery"
    },
@@ -681,7 +684,7 @@
     "input": "crops/rectified/muwewrqz-12.jpg",
     "truth": "6168b472-0930-4db5-9920-407340b99050",
     "group": null,
-    "top": "826622da-c7fa-438d-821c-3482ef6bcac5",
+    "top": "927297f6-5480-441f-ae05-a4064f493eed",
     "accepted": null,
     "reason": "collector line SOS 74 names no printing in the gallery"
    },
@@ -697,9 +700,9 @@
     "input": "crops/rectified/muwewrqz-14.jpg",
     "truth": "be8956d0-5502-415d-bead-d8bbddf9871d",
     "group": null,
-    "top": "dc4982f0-0ede-4846-82c8-bcf7ad63d099",
+    "top": "0972b71e-53c4-4dd7-b484-c0bbf7022345",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 60 does not match it"
+    "reason": "3 printings share this art and collector line read only 2"
    },
    {
     "input": "crops/rectified/muwewrqz-15.jpg",
@@ -707,15 +710,15 @@
     "group": null,
     "top": "f9b99bb7-a57a-4c36-88ab-6da7ef0d86bd",
     "accepted": null,
-    "reason": "only printing of its art, but its collector line was not read"
+    "reason": "only printing of its art, but collector line 211 does not match it"
    },
    {
     "input": "crops/rectified/muwewrqz-16.jpg",
     "truth": "f2a6556b-a4f1-4ff5-8e6e-a47618c8c66e",
     "group": null,
-    "top": "3b0ea481-58b4-4d33-82f8-68c74800e0b2",
+    "top": "251015ed-9408-4941-894a-158551ed2613",
     "accepted": null,
-    "reason": "20 printings share this art and no collector line was read"
+    "reason": "2 printings share this art and no collector line was read"
    },
    {
     "input": "crops/rectified/muwewrqz-17.jpg",
@@ -737,7 +740,7 @@
     "input": "crops/rectified/muwewrqz-19.jpg",
     "truth": "28ff52a2-4223-4551-b388-b4dd21cc1437",
     "group": null,
-    "top": "0f71ff90-13ff-4ac6-8bdd-2cf53cc24ec1",
+    "top": "18c07288-1c71-4e71-bdf5-910eb583a1d8",
     "accepted": null,
     "reason": "collector line M21 90 names no printing in the gallery"
    },
@@ -761,7 +764,7 @@
     "input": "crops/rectified/muwewrqz-22.jpg",
     "truth": "db465858-0593-4850-8f1d-400fe230a18d",
     "group": null,
-    "top": "c4a5770e-533d-479f-b469-1fbef08614c1",
+    "top": "c5333556-eea2-41ae-833e-007b9d540700",
     "accepted": null,
     "reason": "collector line SOA 26 names no printing in the gallery"
    },
@@ -777,7 +780,7 @@
     "input": "crops/rectified/muwewrqz-6.jpg",
     "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
     "group": null,
-    "top": "451eb0dd-f3e8-4504-9de0-0bdf124e9ae2",
+    "top": "5de57c84-38b9-4606-b934-0ab270496582",
     "accepted": null,
     "reason": "collector line MSH 85 names no printing in the gallery"
    },
@@ -787,13 +790,13 @@
     "group": null,
     "top": "2c6e5b25-b721-45ee-894a-697de1310b8c",
     "accepted": null,
-    "reason": "3 printings share this art and collector line read only 76"
+    "reason": "collector line ELD 76 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwewrqz-8.jpg",
     "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
     "group": null,
-    "top": "4dedca48-b7a2-45b9-af1e-b3754879d1d6",
+    "top": "19353629-07be-47e2-a7d5-3a5e5e1120c8",
     "accepted": null,
     "reason": "collector line MSH 85 names no printing in the gallery"
    },
@@ -809,7 +812,7 @@
     "input": "crops/rectified/muwh80d1-10.jpg",
     "truth": "ea008094-d995-4740-9b39-c61049356c55",
     "group": null,
-    "top": "d6eee9e7-8767-4091-9e1c-9b0bd5c9e0d7",
+    "top": "03c37c68-cccf-4309-80c5-828108b942a4",
     "accepted": null,
     "reason": "collector line SOS 171 names no printing in the gallery"
    },
@@ -817,9 +820,9 @@
     "input": "crops/rectified/muwh80d1-11.jpg",
     "truth": "32efcfad-818c-4485-9022-cf94403f370b",
     "group": null,
-    "top": "84ede129-83fc-42b7-8941-fa649d3329e5",
+    "top": "c90a12af-b453-4d83-9a14-5411b562d480",
     "accepted": null,
-    "reason": "collector line M15 86 names no printing in the gallery"
+    "reason": "4 printings share this art and collector line read only 86"
    },
    {
     "input": "crops/rectified/muwh80d1-12.jpg",
@@ -833,23 +836,23 @@
     "input": "crops/rectified/muwh80d1-13.jpg",
     "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
     "group": null,
-    "top": "e94ccedb-1d27-4098-8823-d8d99b30387c",
+    "top": "64448241-978c-43e0-b0ea-b4bb3e25b715",
     "accepted": null,
-    "reason": "set MSH leaves 2 printings of the top card"
+    "reason": "collector line MSH 85 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwh80d1-14.jpg",
     "truth": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
     "group": null,
-    "top": "04e5739e-caef-46f4-a083-25da30bf69f4",
+    "top": "3ebe1a08-fb38-4704-aca9-9fa768339253",
     "accepted": null,
-    "reason": "24 printings share this art and no collector line was read"
+    "reason": "24 printings share this art and collector line read only 212"
    },
    {
     "input": "crops/rectified/muwh80d1-15.jpg",
     "truth": "d40cc7da-c731-418e-8547-7033d1939450",
     "group": null,
-    "top": "87154116-e306-4e15-bd5a-dcdb5ddbcd36",
+    "top": "25000a17-b701-4d69-b2ef-2c74029199d3",
     "accepted": null,
     "reason": "collector line SOS 72 names no printing in the gallery"
    },
@@ -857,7 +860,7 @@
     "input": "crops/rectified/muwh80d1-2.jpg",
     "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
     "group": null,
-    "top": "9035dda8-5ad3-4169-b281-83d6ca55b71e",
+    "top": "e45da7c2-d869-4b51-956c-287d0b0d2df4",
     "accepted": null,
     "reason": "collector line SOS 38 names no printing in the gallery"
    },
@@ -873,7 +876,7 @@
     "input": "crops/rectified/muwh80d1-6.jpg",
     "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
     "group": null,
-    "top": "80bfcba4-316a-44e5-8ed0-2cf94cbbfe49",
+    "top": "078a222f-2efb-44ed-95d8-6435bd026611",
     "accepted": null,
     "reason": "collector line SOS 38 names no printing in the gallery"
    },
@@ -881,7 +884,7 @@
     "input": "crops/rectified/muwh80d1-7.jpg",
     "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
     "group": null,
-    "top": "25a6e1bb-c751-447c-be69-e03692568678",
+    "top": "778fad36-28d5-488b-bc7a-e60c8646bdc2",
     "accepted": null,
     "reason": "collector line SOA 37 names no printing in the gallery"
    },
@@ -897,9 +900,9 @@
     "input": "crops/rectified/muwh80d1-9.jpg",
     "truth": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
     "group": null,
-    "top": "27e508f2-5f4e-4d8c-8e72-b896d5e204ad",
+    "top": "720406ef-4460-475f-bbc1-491c8c48794e",
     "accepted": null,
-    "reason": "2 printings share this art and collector line read only 31"
+    "reason": "collector line RIX 31 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-1.jpg",
@@ -913,7 +916,7 @@
     "input": "crops/rectified/muwhfgdl-10.jpg",
     "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
     "group": null,
-    "top": "aed61bbb-83fd-452b-b940-c8eb1e1ebdac",
+    "top": "f3081c9f-39de-4b88-b01a-df8227934e9b",
     "accepted": null,
     "reason": "collector line SLD 2464 names no printing in the gallery"
    },
@@ -921,7 +924,7 @@
     "input": "crops/rectified/muwhfgdl-11.jpg",
     "truth": "c88eb33d-efba-4ad9-878f-f051079c9bce",
     "group": null,
-    "top": "b4d54442-caca-412d-a716-032eaa587944",
+    "top": "89a288d2-de94-4c49-a17e-5b0ed0281a5b",
     "accepted": null,
     "reason": "collector line SLD 7094 names no printing in the gallery"
    },
@@ -929,7 +932,7 @@
     "input": "crops/rectified/muwhfgdl-12.jpg",
     "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
     "group": null,
-    "top": "667b6c3b-75cc-4adf-b205-80925ca76d2a",
+    "top": "214ed19f-65c4-4459-9bb9-65156a62e84d",
     "accepted": null,
     "reason": "collector line SLD 7097 names no printing in the gallery"
    },
@@ -937,7 +940,7 @@
     "input": "crops/rectified/muwhfgdl-13.jpg",
     "truth": "e2b14a8c-2264-4908-8151-da6c8856350e",
     "group": null,
-    "top": "374e1c0d-1dcc-4214-828a-624ef1af826a",
+    "top": "f5db8199-22d8-4721-b62b-245ec5e2907a",
     "accepted": null,
     "reason": "collector line SLD 7096 names no printing in the gallery"
    },
@@ -953,7 +956,7 @@
     "input": "crops/rectified/muwhfgdl-15.jpg",
     "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
     "group": null,
-    "top": "44ff370e-b72d-4a6c-b6dd-8434820559cc",
+    "top": "bd4485e0-cf88-4aac-889a-e7d299c11e1c",
     "accepted": null,
     "reason": "collector line DSC 92 names no printing in the gallery"
    },
@@ -961,7 +964,7 @@
     "input": "crops/rectified/muwhfgdl-16.jpg",
     "truth": "14019383-0327-404b-ab4d-c65c3fa8c50d",
     "group": null,
-    "top": "4a2d381e-4082-4e7d-a109-a7c700ceddfd",
+    "top": "a5efe226-a6fc-4fdb-a3d4-2b1ae0d667a8",
     "accepted": null,
     "reason": "collector line CMM 420 names no printing in the gallery"
    },
@@ -971,7 +974,7 @@
     "group": null,
     "top": "a9c87b4d-6e19-4b28-9041-821289f9cd1a",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 146 does not match it"
+    "reason": "only printing of its art, but collector line 746 does not match it"
    },
    {
     "input": "crops/rectified/muwhfgdl-18.jpg",
@@ -985,7 +988,7 @@
     "input": "crops/rectified/muwhfgdl-19.jpg",
     "truth": "db465858-0593-4850-8f1d-400fe230a18d",
     "group": null,
-    "top": "c4a5770e-533d-479f-b469-1fbef08614c1",
+    "top": "c5333556-eea2-41ae-833e-007b9d540700",
     "accepted": null,
     "reason": "collector line SOA 26 names no printing in the gallery"
    },
@@ -1011,13 +1014,13 @@
     "group": null,
     "top": "80d4ce4f-8255-419b-9e7f-544d9798e5c8",
     "accepted": null,
-    "reason": "9 printings share this art and collector line read only 176"
+    "reason": "collector line M21 176 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-5.jpg",
     "truth": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
     "group": null,
-    "top": "40cdaff8-e2ce-499c-bcdc-aae8921356f8",
+    "top": "e78e39ea-20be-4196-992c-7ed2cb8150c1",
     "accepted": null,
     "reason": "collector line SOA 2 names no printing in the gallery"
    },
@@ -1025,7 +1028,7 @@
     "input": "crops/rectified/muwhfgdl-6.jpg",
     "truth": "77285d12-e658-4eb3-ba13-ff202afab9c8",
     "group": null,
-    "top": "6a562d19-fad6-4392-916b-0a77f2d846ec",
+    "top": "8a230f8e-08c2-4d3e-af01-ea37fe212d8b",
     "accepted": null,
     "reason": "collector line SOS 170 names no printing in the gallery"
    },
@@ -1033,7 +1036,7 @@
     "input": "crops/rectified/muwhfgdl-7.jpg",
     "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
     "group": null,
-    "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
+    "top": "7e9d9a8a-ea85-4d2e-8580-38125aebc736",
     "accepted": null,
     "reason": "collector line ELD 8 names no printing in the gallery"
    },
@@ -1041,9 +1044,9 @@
     "input": "crops/rectified/muwhfgdl-8.jpg",
     "truth": "35100197-7914-450e-9205-57cb4fc345d6",
     "group": null,
-    "top": "5a2122c0-5fb4-4767-b969-c61bd959d604",
+    "top": "b7391a75-bc22-47dc-a818-7a5d3ea076c8",
     "accepted": null,
-    "reason": "6 printings share this art and collector line read only 5"
+    "reason": "collector line M20 5 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhfgdl-9.jpg",
@@ -1073,7 +1076,7 @@
     "input": "crops/rectified/muwhquxp-12.jpg",
     "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
     "group": null,
-    "top": "fe0f3faf-c011-49b8-b604-d68a87615737",
+    "top": "e49de6f8-f837-4cef-96ff-a48448b453a1",
     "accepted": null,
     "reason": "collector line RIX 125 names no printing in the gallery"
    },
@@ -1081,7 +1084,7 @@
     "input": "crops/rectified/muwhquxp-13.jpg",
     "truth": "d40cc7da-c731-418e-8547-7033d1939450",
     "group": null,
-    "top": "e0fd24ce-6b37-4801-b10f-5e2dbada7a41",
+    "top": "9dbfddcb-6f88-4d6a-9f03-248d7b86e567",
     "accepted": null,
     "reason": "collector line SOS 72 names no printing in the gallery"
    },
@@ -1089,15 +1092,15 @@
     "input": "crops/rectified/muwhquxp-14.jpg",
     "truth": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
     "group": null,
-    "top": "9bb8d579-4e99-4808-be4d-6fed55f8c32c",
+    "top": "3ebe1a08-fb38-4704-aca9-9fa768339253",
     "accepted": null,
-    "reason": "24 printings share this art and no collector line was read"
+    "reason": "24 printings share this art and collector line read only 212"
    },
    {
     "input": "crops/rectified/muwhquxp-15.jpg",
     "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
     "group": null,
-    "top": "e94ccedb-1d27-4098-8823-d8d99b30387c",
+    "top": "c831bdda-06a9-465a-bec5-2b380d28d82a",
     "accepted": null,
     "reason": "collector line MSH 85 names no printing in the gallery"
    },
@@ -1121,7 +1124,7 @@
     "input": "crops/rectified/muwhquxp-18.jpg",
     "truth": "ea008094-d995-4740-9b39-c61049356c55",
     "group": null,
-    "top": "c27cf2a6-154e-4c5c-83c0-bc2bbf88165b",
+    "top": "03c37c68-cccf-4309-80c5-828108b942a4",
     "accepted": null,
     "reason": "collector line SOS 171 names no printing in the gallery"
    },
@@ -1129,7 +1132,7 @@
     "input": "crops/rectified/muwhquxp-19.jpg",
     "truth": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
     "group": null,
-    "top": "27e508f2-5f4e-4d8c-8e72-b896d5e204ad",
+    "top": "720406ef-4460-475f-bbc1-491c8c48794e",
     "accepted": null,
     "reason": "collector line RIX 31 names no printing in the gallery"
    },
@@ -1137,7 +1140,7 @@
     "input": "crops/rectified/muwhquxp-2.jpg",
     "truth": "5a052dd2-6b5e-4f50-b481-7eee3d63a221",
     "group": null,
-    "top": "823ccb07-cf08-4ae3-9b9a-f16de8e6d745",
+    "top": "7bbe5a69-1ab3-43de-be1c-b21cccbd3b06",
     "accepted": null,
     "reason": "collector line SPG 156 names no printing in the gallery"
    },
@@ -1155,13 +1158,13 @@
     "group": null,
     "top": "25a6e1bb-c751-447c-be69-e03692568678",
     "accepted": null,
-    "reason": "collector line SOA 37 names no printing in the gallery"
+    "reason": "only printing of its art, but collector line 37 does not match it"
    },
    {
     "input": "crops/rectified/muwhquxp-22.jpg",
     "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
     "group": null,
-    "top": "0072bbbf-a695-47dd-9615-db2659f357db",
+    "top": "7f9b5c75-882e-4fe4-827f-584080e91485",
     "accepted": null,
     "reason": "collector line SOS 38 names no printing in the gallery"
    },
@@ -1169,7 +1172,7 @@
     "input": "crops/rectified/muwhquxp-23.jpg",
     "truth": "e2b14a8c-2264-4908-8151-da6c8856350e",
     "group": null,
-    "top": "374e1c0d-1dcc-4214-828a-624ef1af826a",
+    "top": "67d41ba2-a908-4613-b275-6ffe4165e48a",
     "accepted": null,
     "reason": "collector line SLD 7096 names no printing in the gallery"
    },
@@ -1177,7 +1180,7 @@
     "input": "crops/rectified/muwhquxp-24.jpg",
     "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
     "group": null,
-    "top": "667b6c3b-75cc-4adf-b205-80925ca76d2a",
+    "top": "12711a8f-91e5-4bb7-bbc5-3f8f644988ee",
     "accepted": null,
     "reason": "collector line SLD 7097 names no printing in the gallery"
    },
@@ -1185,7 +1188,7 @@
     "input": "crops/rectified/muwhquxp-25.jpg",
     "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
     "group": null,
-    "top": "667b6c3b-75cc-4adf-b205-80925ca76d2a",
+    "top": "12711a8f-91e5-4bb7-bbc5-3f8f644988ee",
     "accepted": null,
     "reason": "collector line SLD 7097 names no printing in the gallery"
    },
@@ -1193,15 +1196,15 @@
     "input": "crops/rectified/muwhquxp-26.jpg",
     "truth": "c88eb33d-efba-4ad9-878f-f051079c9bce",
     "group": null,
-    "top": "b4d54442-caca-412d-a716-032eaa587944",
+    "top": "89a288d2-de94-4c49-a17e-5b0ed0281a5b",
     "accepted": null,
-    "reason": "collector line SLD 7094 names no printing in the gallery"
+    "reason": "4 printings share this art and collector line read only 7094"
    },
    {
     "input": "crops/rectified/muwhquxp-27.jpg",
     "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
     "group": null,
-    "top": "0cab6984-8d22-4bed-a42e-0f4604798787",
+    "top": "f3081c9f-39de-4b88-b01a-df8227934e9b",
     "accepted": null,
     "reason": "collector line SLD 2464 names no printing in the gallery"
    },
@@ -1209,7 +1212,7 @@
     "input": "crops/rectified/muwhquxp-28.jpg",
     "truth": "db465858-0593-4850-8f1d-400fe230a18d",
     "group": null,
-    "top": "3a65dc65-5911-4502-916f-4008779d0b6e",
+    "top": "c5333556-eea2-41ae-833e-007b9d540700",
     "accepted": null,
     "reason": "collector line SOA 26 names no printing in the gallery"
    },
@@ -1217,7 +1220,7 @@
     "input": "crops/rectified/muwhquxp-29.jpg",
     "truth": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
     "group": null,
-    "top": "2e1fb442-68ff-4249-8e44-87edf6fae211",
+    "top": "465d8c18-c76b-488a-a4ec-ec0d2267a307",
     "accepted": null,
     "reason": "collector line EMA 81 names no printing in the gallery"
    },
@@ -1225,7 +1228,7 @@
     "input": "crops/rectified/muwhquxp-3.jpg",
     "truth": "f2b2f381-86a2-42ac-b694-dcde437d574f",
     "group": null,
-    "top": "ec898bc9-9ab8-4394-8c4c-8d652f313919",
+    "top": "1ba006c8-0ffc-4e68-9a55-c7b842d3add9",
     "accepted": null,
     "reason": "only printing of its art, but collector line 1 does not match it"
    },
@@ -1235,13 +1238,13 @@
     "group": null,
     "top": "51825d35-cdb2-40fa-ab89-1625161b04af",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 1 does not match it"
+    "reason": "collector line M15 1 names no printing in the gallery"
    },
    {
     "input": "crops/rectified/muwhquxp-31.jpg",
     "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
     "group": null,
-    "top": "44ff370e-b72d-4a6c-b6dd-8434820559cc",
+    "top": "bd4485e0-cf88-4aac-889a-e7d299c11e1c",
     "accepted": null,
     "reason": "collector line DSC 92 names no printing in the gallery"
    },
@@ -1249,7 +1252,7 @@
     "input": "crops/rectified/muwhquxp-32.jpg",
     "truth": "14019383-0327-404b-ab4d-c65c3fa8c50d",
     "group": null,
-    "top": "a5f0af51-a054-4e04-aa6e-3972bd336a40",
+    "top": "c328d8ac-97df-4240-ac38-7cab363c5da1",
     "accepted": null,
     "reason": "collector line CMM 420 names no printing in the gallery"
    },
@@ -1265,7 +1268,7 @@
     "input": "crops/rectified/muwhquxp-4.jpg",
     "truth": "35100197-7914-450e-9205-57cb4fc345d6",
     "group": null,
-    "top": "5a2122c0-5fb4-4767-b969-c61bd959d604",
+    "top": "b7391a75-bc22-47dc-a818-7a5d3ea076c8",
     "accepted": null,
     "reason": "collector line M20 5 names no printing in the gallery"
    },
@@ -1273,7 +1276,7 @@
     "input": "crops/rectified/muwhquxp-5.jpg",
     "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
     "group": null,
-    "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
+    "top": "7c742e2f-a0e9-41b0-812a-ed716e8d0fee",
     "accepted": null,
     "reason": "collector line ELD 8 names no printing in the gallery"
    },
@@ -1281,7 +1284,7 @@
     "input": "crops/rectified/muwhquxp-6.jpg",
     "truth": "77285d12-e658-4eb3-ba13-ff202afab9c8",
     "group": null,
-    "top": "84319dfb-eaf7-4b98-8c4f-30f5e779591b",
+    "top": "2624ed75-81ea-49aa-8acb-36d0084a9312",
     "accepted": null,
     "reason": "collector line SOS 170 names no printing in the gallery"
    },
@@ -1289,7 +1292,7 @@
     "input": "crops/rectified/muwhquxp-7.jpg",
     "truth": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
     "group": null,
-    "top": "310deafe-124b-4813-a383-bc9a9d028cfc",
+    "top": "48f06104-ee08-4935-a1d9-08f36542705a",
     "accepted": null,
     "reason": "collector line SOA 2 names no printing in the gallery"
    },
@@ -1313,9 +1316,9 @@
     "input": "crops/catalog/muyuq3pm-2.jpg",
     "truth": "f2b2f381-86a2-42ac-b694-dcde437d574f",
     "group": null,
-    "top": "f92088c2-74c2-4e63-8a54-83d39f9d6ad6",
+    "top": "1ba006c8-0ffc-4e68-9a55-c7b842d3add9",
     "accepted": null,
-    "reason": "2 printings share this art and collector line read only 1"
+    "reason": "only printing of its art, but collector line 1 does not match it"
    },
    {
     "input": "crops/catalog/muyuq3pm-3.jpg",
@@ -1323,23 +1326,23 @@
     "group": null,
     "top": "4941246b-7d6a-4b2d-8144-f36ac890a389",
     "accepted": null,
-    "reason": "6 printings share this art and collector line read only 5"
+    "reason": "collector line M20 5 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-4.jpg",
     "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
     "group": null,
-    "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
+    "top": "7e9d9a8a-ea85-4d2e-8580-38125aebc736",
     "accepted": null,
-    "reason": "collector line ELD 8 names no printing in the gallery"
+    "reason": "5 printings share this art and no collector line was read"
    },
    {
     "input": "crops/catalog/muyuq3pm-5.jpg",
     "truth": "77285d12-e658-4eb3-ba13-ff202afab9c8",
     "group": null,
-    "top": "b47e9cfa-5547-4ef3-9e36-8d0f36dfa59a",
+    "top": "1ba515c5-b512-4e35-9ce2-33fcb76204b1",
     "accepted": null,
-    "reason": "collector line SOS 170 names no printing in the gallery"
+    "reason": "3 printings share this art and collector line read only 170"
    },
    {
     "input": "crops/catalog/muyuq3pm-6.jpg",
@@ -1353,7 +1356,7 @@
     "input": "crops/catalog/muyuq3pm-7.jpg",
     "truth": "8059c52b-5d25-4052-b48a-e9e219a7a546",
     "group": null,
-    "top": "80d4ce4f-8255-419b-9e7f-544d9798e5c8",
+    "top": "b35fd2a8-cccd-4b35-b791-d70e74e203bc",
     "accepted": null,
     "reason": "collector line M21 176 names no printing in the gallery"
    },
@@ -1377,7 +1380,7 @@
     "input": "crops/catalog/muyuq3pm-10.jpg",
     "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
     "group": null,
-    "top": "e49de6f8-f837-4cef-96ff-a48448b453a1",
+    "top": "fe0f3faf-c011-49b8-b604-d68a87615737",
     "accepted": null,
     "reason": "collector line RIX 125 names no printing in the gallery"
    },
@@ -1385,7 +1388,7 @@
     "input": "crops/catalog/muyuq3pm-11.jpg",
     "truth": "d40cc7da-c731-418e-8547-7033d1939450",
     "group": null,
-    "top": "bc27b7a7-e9ad-4305-a6e1-863f028030eb",
+    "top": "055ddc8b-d230-4675-9741-138429e48a8f",
     "accepted": null,
     "reason": "collector line SOS 72 names no printing in the gallery"
    },
@@ -1393,15 +1396,15 @@
     "input": "crops/catalog/muyuq3pm-12.jpg",
     "truth": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
     "group": null,
-    "top": "da57d35a-ca0b-4f93-867c-d0a9fb5108f1",
+    "top": "3ebe1a08-fb38-4704-aca9-9fa768339253",
     "accepted": null,
-    "reason": "24 printings share this art and collector line read only 1097"
+    "reason": "24 printings share this art and collector line read only 212"
    },
    {
     "input": "crops/catalog/muyuq3pm-13.jpg",
     "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
     "group": null,
-    "top": "4dedca48-b7a2-45b9-af1e-b3754879d1d6",
+    "top": "4fc4bf11-dece-4cb7-bef1-69391488f987",
     "accepted": null,
     "reason": "collector line MSH 85 names no printing in the gallery"
    },
@@ -1409,7 +1412,7 @@
     "input": "crops/catalog/muyuq3pm-14.jpg",
     "truth": "42a4d090-1bb7-4334-ab22-e2527391e79b",
     "group": null,
-    "top": "69a4ab1e-c0f8-4185-8cfc-d3ce7be19aac",
+    "top": "2c6e5b25-b721-45ee-894a-697de1310b8c",
     "accepted": null,
     "reason": "collector line ELD 76 names no printing in the gallery"
    },
@@ -1417,15 +1420,15 @@
     "input": "crops/catalog/muyuq3pm-15.jpg",
     "truth": "32efcfad-818c-4485-9022-cf94403f370b",
     "group": null,
-    "top": "84ede129-83fc-42b7-8941-fa649d3329e5",
+    "top": "c90a12af-b453-4d83-9a14-5411b562d480",
     "accepted": null,
-    "reason": "collector line MPS 86 names no printing in the gallery"
+    "reason": "collector line M15 86 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-16.jpg",
     "truth": "ea008094-d995-4740-9b39-c61049356c55",
     "group": null,
-    "top": "89c31d9d-fd77-4275-b89c-f9b64073c54b",
+    "top": "113d96bc-6c19-4dec-9e9d-c6ea50a30cbc",
     "accepted": null,
     "reason": "collector line SOS 171 names no printing in the gallery"
    },
@@ -1441,7 +1444,7 @@
     "input": "crops/catalog/muyuq3pm-18.jpg",
     "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
     "group": null,
-    "top": "80bfcba4-316a-44e5-8ed0-2cf94cbbfe49",
+    "top": "7f9b5c75-882e-4fe4-827f-584080e91485",
     "accepted": null,
     "reason": "collector line SOS 38 names no printing in the gallery"
    },
@@ -1449,7 +1452,7 @@
     "input": "crops/catalog/muyuq3pm-19.jpg",
     "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
     "group": null,
-    "top": "8ea4d40a-7657-4ff8-9fc2-915b99432275",
+    "top": "778fad36-28d5-488b-bc7a-e60c8646bdc2",
     "accepted": null,
     "reason": "collector line SOA 37 names no printing in the gallery"
    },
@@ -1459,13 +1462,13 @@
     "group": null,
     "top": "de3daeef-e352-4cd9-8411-94ce25c57060",
     "accepted": null,
-    "reason": "collector line RIX 176 names no printing in the gallery"
+    "reason": "2 printings share this art and collector line read only 176"
    },
    {
     "input": "crops/catalog/muyuq3pm-21.jpg",
     "truth": "e2b14a8c-2264-4908-8151-da6c8856350e",
     "group": null,
-    "top": "122f2cc2-5f4d-497c-96b5-ed5698f28b51",
+    "top": "67d41ba2-a908-4613-b275-6ffe4165e48a",
     "accepted": null,
     "reason": "collector line SLD 7096 names no printing in the gallery"
    },
@@ -1473,15 +1476,15 @@
     "input": "crops/catalog/muyuq3pm-22.jpg",
     "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
     "group": null,
-    "top": "aed61bbb-83fd-452b-b940-c8eb1e1ebdac",
+    "top": "d071fec0-850d-4b6c-83b8-68d2922943fc",
     "accepted": null,
-    "reason": "collector line SLD 7097 names no printing in the gallery"
+    "reason": "collector line SLD 9097 names no printing in the gallery"
    },
    {
     "input": "crops/catalog/muyuq3pm-23.jpg",
     "truth": "c88eb33d-efba-4ad9-878f-f051079c9bce",
     "group": null,
-    "top": "60709d98-c98d-48c0-ac4a-4ff73e7a0c4b",
+    "top": "60f23a6c-0fdf-4740-af92-1179e2153b2c",
     "accepted": null,
     "reason": "collector line SLD 94 names a card the image does not support"
    },
@@ -1489,7 +1492,7 @@
     "input": "crops/catalog/muyuq3pm-24.jpg",
     "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
     "group": null,
-    "top": "9df4b5a2-95bf-4268-9d75-6065176651d1",
+    "top": "40924da3-c974-4b37-ad35-e7d8e4cd3d4a",
     "accepted": null,
     "reason": "collector line SLD 2464 names no printing in the gallery"
    },
@@ -1499,13 +1502,13 @@
     "group": null,
     "top": "a9c87b4d-6e19-4b28-9041-821289f9cd1a",
     "accepted": null,
-    "reason": "only printing of its art, but the next art is 0.022 behind; at least 0.030 is required"
+    "reason": "only printing of its art, but the next art is 0.028 behind; at least 0.030 is required"
    },
    {
     "input": "crops/catalog/muyuq3pm-26.jpg",
     "truth": "db465858-0593-4850-8f1d-400fe230a18d",
     "group": null,
-    "top": "30bffe2e-588a-465e-ad31-d5715920f41d",
+    "top": "12d77fbd-c172-41f1-9122-ea7858ab37b9",
     "accepted": null,
     "reason": "collector line SOA 26 names no printing in the gallery"
    },
@@ -1513,7 +1516,7 @@
     "input": "crops/catalog/muyuq3pm-27.jpg",
     "truth": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
     "group": null,
-    "top": "2e1fb442-68ff-4249-8e44-87edf6fae211",
+    "top": "465d8c18-c76b-488a-a4ec-ec0d2267a307",
     "accepted": null,
     "reason": "collector line EMA 81 names no printing in the gallery"
    },
@@ -1529,7 +1532,7 @@
     "input": "crops/catalog/muyuq3pm-29.jpg",
     "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
     "group": null,
-    "top": "28180667-cc1e-4f64-9a69-00425ef85ba0",
+    "top": "bd4485e0-cf88-4aac-889a-e7d299c11e1c",
     "accepted": null,
     "reason": "collector line DSC 92 names no printing in the gallery"
    },
@@ -1537,7 +1540,7 @@
     "input": "crops/catalog/muyuq3pm-30.jpg",
     "truth": "14019383-0327-404b-ab4d-c65c3fa8c50d",
     "group": null,
-    "top": "4a2d381e-4082-4e7d-a109-a7c700ceddfd",
+    "top": "c328d8ac-97df-4240-ac38-7cab363c5da1",
     "accepted": null,
     "reason": "collector line CMM 420 names no printing in the gallery"
    },
@@ -1547,7 +1550,7 @@
     "group": null,
     "top": "823ccb07-cf08-4ae3-9b9a-f16de8e6d745",
     "accepted": null,
-    "reason": "4 printings share this art and collector line read only SPG"
+    "reason": "collector line SPG 156 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-2.jpg",
@@ -1563,21 +1566,21 @@
     "group": null,
     "top": "4941246b-7d6a-4b2d-8144-f36ac890a389",
     "accepted": null,
-    "reason": "collector line M20 5 names no printing in the gallery"
+    "reason": "6 printings share this art and collector line read only 5"
    },
    {
     "input": "crops/catalog-device/muywn390-4.jpg",
     "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
     "group": null,
-    "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
+    "top": "7e9d9a8a-ea85-4d2e-8580-38125aebc736",
     "accepted": null,
-    "reason": "collector line ELD 8 names no printing in the gallery"
+    "reason": "5 printings share this art and collector line read only 8"
    },
    {
     "input": "crops/catalog-device/muywn390-5.jpg",
     "truth": "77285d12-e658-4eb3-ba13-ff202afab9c8",
     "group": null,
-    "top": "b47e9cfa-5547-4ef3-9e36-8d0f36dfa59a",
+    "top": "1fd20526-024a-4a08-8f86-f5d7c2d7e8e7",
     "accepted": null,
     "reason": "collector line SOS 170 names no printing in the gallery"
    },
@@ -1593,7 +1596,7 @@
     "input": "crops/catalog-device/muywn390-7.jpg",
     "truth": "8059c52b-5d25-4052-b48a-e9e219a7a546",
     "group": null,
-    "top": "80d4ce4f-8255-419b-9e7f-544d9798e5c8",
+    "top": "b35fd2a8-cccd-4b35-b791-d70e74e203bc",
     "accepted": null,
     "reason": "collector line M21 176 names no printing in the gallery"
    },
@@ -1611,21 +1614,21 @@
     "group": null,
     "top": "a8e85cd4-c116-42e2-a94b-2c04b06c4e2b",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 25 does not match it"
+    "reason": "only printing of its art, but its collector line was not read"
    },
    {
     "input": "crops/catalog-device/muywn390-10.jpg",
     "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
     "group": null,
-    "top": "80d4ce4f-8255-419b-9e7f-544d9798e5c8",
+    "top": "b35fd2a8-cccd-4b35-b791-d70e74e203bc",
     "accepted": null,
-    "reason": "9 printings share this art and no collector line was read"
+    "reason": "9 printings share this art and collector line read only 125"
    },
    {
     "input": "crops/catalog-device/muywn390-11.jpg",
     "truth": "d40cc7da-c731-418e-8547-7033d1939450",
     "group": null,
-    "top": "6d238383-e67f-4a34-b431-f079e55b2708",
+    "top": "3abce24a-e6a9-4d40-90a6-f0206c78ac36",
     "accepted": null,
     "reason": "collector line SOS 72 names no printing in the gallery"
    },
@@ -1633,7 +1636,7 @@
     "input": "crops/catalog-device/muywn390-12.jpg",
     "truth": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
     "group": null,
-    "top": "da57d35a-ca0b-4f93-867c-d0a9fb5108f1",
+    "top": "9bb8d579-4e99-4808-be4d-6fed55f8c32c",
     "accepted": null,
     "reason": "24 printings share this art and no collector line was read"
    },
@@ -1641,7 +1644,7 @@
     "input": "crops/catalog-device/muywn390-13.jpg",
     "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
     "group": null,
-    "top": "d2039548-af2c-4a93-842c-4a1e28e20f1d",
+    "top": "4fc4bf11-dece-4cb7-bef1-69391488f987",
     "accepted": null,
     "reason": "collector line MSH 85 names no printing in the gallery"
    },
@@ -1649,7 +1652,7 @@
     "input": "crops/catalog-device/muywn390-14.jpg",
     "truth": "42a4d090-1bb7-4334-ab22-e2527391e79b",
     "group": null,
-    "top": "2c6e5b25-b721-45ee-894a-697de1310b8c",
+    "top": "69a4ab1e-c0f8-4185-8cfc-d3ce7be19aac",
     "accepted": null,
     "reason": "collector line ELD 76 names no printing in the gallery"
    },
@@ -1657,15 +1660,15 @@
     "input": "crops/catalog-device/muywn390-15.jpg",
     "truth": "32efcfad-818c-4485-9022-cf94403f370b",
     "group": null,
-    "top": "84ede129-83fc-42b7-8941-fa649d3329e5",
+    "top": "c90a12af-b453-4d83-9a14-5411b562d480",
     "accepted": null,
-    "reason": "4 printings share this art and no collector line was read"
+    "reason": "collector line M15 86 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-16.jpg",
     "truth": "ea008094-d995-4740-9b39-c61049356c55",
     "group": null,
-    "top": "eafd2e27-01d0-4894-886e-2b8776904ab9",
+    "top": "73a4657b-98de-4f4c-b921-46d15a8e6f5a",
     "accepted": null,
     "reason": "collector line SOS 171 names no printing in the gallery"
    },
@@ -1673,7 +1676,7 @@
     "input": "crops/catalog-device/muywn390-17.jpg",
     "truth": "80dc0310-afd9-49b4-b58f-a0e91120c38c",
     "group": null,
-    "top": "27e508f2-5f4e-4d8c-8e72-b896d5e204ad",
+    "top": "720406ef-4460-475f-bbc1-491c8c48794e",
     "accepted": null,
     "reason": "collector line RIX 31 names no printing in the gallery"
    },
@@ -1681,7 +1684,7 @@
     "input": "crops/catalog-device/muywn390-18.jpg",
     "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
     "group": null,
-    "top": "371a769a-ddae-47f6-b2c2-957de5c18417",
+    "top": "7f9b5c75-882e-4fe4-827f-584080e91485",
     "accepted": null,
     "reason": "collector line SOS 38 names no printing in the gallery"
    },
@@ -1689,7 +1692,7 @@
     "input": "crops/catalog-device/muywn390-19.jpg",
     "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
     "group": null,
-    "top": "a0e47d11-cb21-402b-a39e-588a94cc57b4",
+    "top": "778fad36-28d5-488b-bc7a-e60c8646bdc2",
     "accepted": null,
     "reason": "collector line SOA 37 names no printing in the gallery"
    },
@@ -1705,7 +1708,7 @@
     "input": "crops/catalog-device/muywn390-21.jpg",
     "truth": "e2b14a8c-2264-4908-8151-da6c8856350e",
     "group": null,
-    "top": "f5db8199-22d8-4721-b62b-245ec5e2907a",
+    "top": "67d41ba2-a908-4613-b275-6ffe4165e48a",
     "accepted": null,
     "reason": "collector line SLD 7096 names no printing in the gallery"
    },
@@ -1713,7 +1716,7 @@
     "input": "crops/catalog-device/muywn390-22.jpg",
     "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
     "group": null,
-    "top": "aed61bbb-83fd-452b-b940-c8eb1e1ebdac",
+    "top": "288135e8-2081-4c69-8e27-5c7e2a6dfbfa",
     "accepted": null,
     "reason": "collector line SLD 7097 names no printing in the gallery"
    },
@@ -1721,7 +1724,7 @@
     "input": "crops/catalog-device/muywn390-23.jpg",
     "truth": "c88eb33d-efba-4ad9-878f-f051079c9bce",
     "group": null,
-    "top": "60709d98-c98d-48c0-ac4a-4ff73e7a0c4b",
+    "top": "60f23a6c-0fdf-4740-af92-1179e2153b2c",
     "accepted": null,
     "reason": "collector line SLD 7094 names no printing in the gallery"
    },
@@ -1729,7 +1732,7 @@
     "input": "crops/catalog-device/muywn390-24.jpg",
     "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
     "group": null,
-    "top": "9df4b5a2-95bf-4268-9d75-6065176651d1",
+    "top": "40924da3-c974-4b37-ad35-e7d8e4cd3d4a",
     "accepted": null,
     "reason": "collector line SLD 2464 names no printing in the gallery"
    },
@@ -1739,21 +1742,21 @@
     "group": null,
     "top": "a9c87b4d-6e19-4b28-9041-821289f9cd1a",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 46 does not match it"
+    "reason": "only printing of its art, but collector line 116 does not match it"
    },
    {
     "input": "crops/catalog-device/muywn390-26.jpg",
     "truth": "db465858-0593-4850-8f1d-400fe230a18d",
     "group": null,
-    "top": "e538b359-d893-422d-9d60-5f3e8ee0fa9e",
+    "top": "c5333556-eea2-41ae-833e-007b9d540700",
     "accepted": null,
-    "reason": "3 printings share this art and collector line read only SOA"
+    "reason": "collector line SOA 26 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muywn390-27.jpg",
     "truth": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
     "group": null,
-    "top": "2e1fb442-68ff-4249-8e44-87edf6fae211",
+    "top": "465d8c18-c76b-488a-a4ec-ec0d2267a307",
     "accepted": null,
     "reason": "collector line EMA 81 names no printing in the gallery"
    },
@@ -1769,7 +1772,7 @@
     "input": "crops/catalog-device/muywn390-29.jpg",
     "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
     "group": null,
-    "top": "5b245a5b-5a99-4d22-99ef-3f5bf49c3262",
+    "top": "bd4485e0-cf88-4aac-889a-e7d299c11e1c",
     "accepted": null,
     "reason": "collector line DSC 92 names no printing in the gallery"
    },
@@ -1777,9 +1780,9 @@
     "input": "crops/catalog-device/muywn390-30.jpg",
     "truth": "14019383-0327-404b-ab4d-c65c3fa8c50d",
     "group": null,
-    "top": "4a2d381e-4082-4e7d-a109-a7c700ceddfd",
+    "top": "6a759aca-50a4-44ba-8a9d-a764da55bfb7",
     "accepted": null,
-    "reason": "collector line CMM 420 names no printing in the gallery"
+    "reason": "26 printings share this art and no collector line was read"
    },
    {
     "input": "crops/catalog-device/muyxcbms-1.jpg",
@@ -1793,15 +1796,15 @@
     "input": "crops/catalog-device/muyxcbms-2.jpg",
     "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
     "group": null,
-    "top": "25a6e1bb-c751-447c-be69-e03692568678",
+    "top": "778fad36-28d5-488b-bc7a-e60c8646bdc2",
     "accepted": null,
-    "reason": "collector line SOA 57 names a card the image does not support"
+    "reason": "collector line SOA 37 names no printing in the gallery"
    },
    {
     "input": "crops/catalog-device/muyxcbms-3.jpg",
     "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
     "group": null,
-    "top": "61ada5ce-3a58-4da9-aff2-93a61411dd64",
+    "top": "25a6e1bb-c751-447c-be69-e03692568678",
     "accepted": null,
     "reason": "collector line SOA 37 names no printing in the gallery"
    },
@@ -1817,7 +1820,7 @@
     "input": "crops/catalog-device/muyxcbms-5.jpg",
     "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
     "group": null,
-    "top": "a98609dc-ea90-4c7e-a191-5e5d0ba16847",
+    "top": "7f9b5c75-882e-4fe4-827f-584080e91485",
     "accepted": null,
     "reason": "collector line SOS 38 names no printing in the gallery"
    },
@@ -1825,7 +1828,7 @@
     "input": "crops/catalog-device/muyxcbms-6.jpg",
     "truth": "1ae9d2f3-7a9f-433a-aa1f-14337ae6f9d4",
     "group": null,
-    "top": "a98609dc-ea90-4c7e-a191-5e5d0ba16847",
+    "top": "7f9b5c75-882e-4fe4-827f-584080e91485",
     "accepted": null,
     "reason": "collector line SOS 38 names no printing in the gallery"
    },
@@ -1833,7 +1836,7 @@
     "input": "crops/catalog-device/muyxcbms-7.jpg",
     "truth": "ea008094-d995-4740-9b39-c61049356c55",
     "group": null,
-    "top": "800cef89-e90c-4f84-a7a0-3cd203532169",
+    "top": "113d96bc-6c19-4dec-9e9d-c6ea50a30cbc",
     "accepted": null,
     "reason": "collector line SOS 171 names no printing in the gallery"
    },
@@ -1841,7 +1844,7 @@
     "input": "crops/catalog-device/muyxcbms-8.jpg",
     "truth": "32efcfad-818c-4485-9022-cf94403f370b",
     "group": null,
-    "top": "84ede129-83fc-42b7-8941-fa649d3329e5",
+    "top": "c90a12af-b453-4d83-9a14-5411b562d480",
     "accepted": null,
     "reason": "collector line M15 86 names no printing in the gallery"
    },
@@ -1857,7 +1860,7 @@
     "input": "crops/catalog-device/muyxcbms-10.jpg",
     "truth": "857fef2e-df1f-4ec6-a262-f6fa52389cf9",
     "group": null,
-    "top": "4dedca48-b7a2-45b9-af1e-b3754879d1d6",
+    "top": "19353629-07be-47e2-a7d5-3a5e5e1120c8",
     "accepted": null,
     "reason": "collector line MSH 85 names no printing in the gallery"
    },
@@ -1865,15 +1868,15 @@
     "input": "crops/catalog-device/muyxcbms-11.jpg",
     "truth": "872f3328-c65d-49eb-a1bb-ca40e9c05627",
     "group": null,
-    "top": "da57d35a-ca0b-4f93-867c-d0a9fb5108f1",
+    "top": "35ae81a3-f76a-406b-bbac-36f8abf456ce",
     "accepted": null,
-    "reason": "24 printings share this art and no collector line was read"
+    "reason": "24 printings share this art and collector line read only 212"
    },
    {
     "input": "crops/catalog-device/muyxcbms-12.jpg",
     "truth": "d40cc7da-c731-418e-8547-7033d1939450",
     "group": null,
-    "top": "eb564473-7416-4cf7-971a-e6dc5eb10445",
+    "top": "cf4b5ad9-3de6-4d53-93a0-3b8d2e484687",
     "accepted": null,
     "reason": "collector line SOS 72 names no printing in the gallery"
    },
@@ -1881,7 +1884,7 @@
     "input": "crops/catalog-device/muyxcbms-13.jpg",
     "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
     "group": null,
-    "top": "76ac5b70-47db-4cdb-91e7-e5c18c42e516",
+    "top": "b35fd2a8-cccd-4b35-b791-d70e74e203bc",
     "accepted": null,
     "reason": "collector line RIX 125 names no printing in the gallery"
    },
@@ -1891,7 +1894,7 @@
     "group": null,
     "top": "a8e85cd4-c116-42e2-a94b-2c04b06c4e2b",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 123 does not match it"
+    "reason": "only printing of its art, but its collector line was not read"
    },
    {
     "input": "crops/catalog-device/muyxcbms-15.jpg",
@@ -1913,7 +1916,7 @@
     "input": "crops/catalog-device/muyxcbms-17.jpg",
     "truth": "de0f22af-fb85-4178-8a35-ec3ff031f4df",
     "group": null,
-    "top": "310deafe-124b-4813-a383-bc9a9d028cfc",
+    "top": "e78e39ea-20be-4196-992c-7ed2cb8150c1",
     "accepted": null,
     "reason": "collector line SOA 2 names no printing in the gallery"
    },
@@ -1921,7 +1924,7 @@
     "input": "crops/catalog-device/muyxcbms-18.jpg",
     "truth": "77285d12-e658-4eb3-ba13-ff202afab9c8",
     "group": null,
-    "top": "b47e9cfa-5547-4ef3-9e36-8d0f36dfa59a",
+    "top": "556a0816-83c5-41dc-8546-213b21e2cceb",
     "accepted": null,
     "reason": "collector line SOS 170 names no printing in the gallery"
    },
@@ -1929,7 +1932,7 @@
     "input": "crops/catalog-device/muyxcbms-19.jpg",
     "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
     "group": null,
-    "top": "67ca015a-849f-4c9c-9e12-c049cfe16aeb",
+    "top": "7e9d9a8a-ea85-4d2e-8580-38125aebc736",
     "accepted": null,
     "reason": "collector line ELD 8 names no printing in the gallery"
    },
@@ -1969,7 +1972,7 @@
     "input": "crops/catalog-device/muyxcbms-24.jpg",
     "truth": "c5318275-48bb-4fa8-b751-916836970dc4",
     "group": null,
-    "top": "aed61bbb-83fd-452b-b940-c8eb1e1ebdac",
+    "top": "d071fec0-850d-4b6c-83b8-68d2922943fc",
     "accepted": null,
     "reason": "collector line SLD 7097 names no printing in the gallery"
    },
@@ -1977,7 +1980,7 @@
     "input": "crops/catalog-device/muyxcbms-25.jpg",
     "truth": "c88eb33d-efba-4ad9-878f-f051079c9bce",
     "group": null,
-    "top": "2f5b4544-70d9-45ee-84a3-fa6253a53a82",
+    "top": "60f23a6c-0fdf-4740-af92-1179e2153b2c",
     "accepted": null,
     "reason": "collector line SLD 7094 names no printing in the gallery"
    },
@@ -1985,7 +1988,7 @@
     "input": "crops/catalog-device/muyxcbms-26.jpg",
     "truth": "e12857ca-54af-453a-a2ad-b5622e7c9b0c",
     "group": null,
-    "top": "9df4b5a2-95bf-4268-9d75-6065176651d1",
+    "top": "40924da3-c974-4b37-ad35-e7d8e4cd3d4a",
     "accepted": null,
     "reason": "collector line SLD 2464 names no printing in the gallery"
    },
@@ -1993,7 +1996,7 @@
     "input": "crops/catalog-device/muyxcbms-27.jpg",
     "truth": "14019383-0327-404b-ab4d-c65c3fa8c50d",
     "group": null,
-    "top": "6d28946e-a478-4e0b-b39b-ec0236ddc9a5",
+    "top": "57ae67fd-065d-41d1-bd36-966b0070f026",
     "accepted": null,
     "reason": "collector line CMM 420 names no printing in the gallery"
    },
@@ -2001,7 +2004,7 @@
     "input": "crops/catalog-device/muyxcbms-28.jpg",
     "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
     "group": null,
-    "top": "bd4485e0-cf88-4aac-889a-e7d299c11e1c",
+    "top": "44ff370e-b72d-4a6c-b6dd-8434820559cc",
     "accepted": null,
     "reason": "collector line DSC 92 names no printing in the gallery"
    },
@@ -2017,7 +2020,7 @@
     "input": "crops/catalog-device/muyxcbms-30.jpg",
     "truth": "9ca6d92a-45d3-4d67-8ae9-f25dd4a86739",
     "group": null,
-    "top": "877558c4-f633-4510-97db-f1205a080ecb",
+    "top": "465d8c18-c76b-488a-a4ec-ec0d2267a307",
     "accepted": null,
     "reason": "collector line EMA 81 names no printing in the gallery"
    },
@@ -2025,7 +2028,7 @@
     "input": "crops/catalog-device/muyxcbms-31.jpg",
     "truth": "db465858-0593-4850-8f1d-400fe230a18d",
     "group": null,
-    "top": "954b04e3-861a-45c9-8897-9cb4a99f04c3",
+    "top": "c5333556-eea2-41ae-833e-007b9d540700",
     "accepted": null,
     "reason": "collector line SOA 26 names no printing in the gallery"
    },
@@ -2035,7 +2038,7 @@
     "group": null,
     "top": "a9c87b4d-6e19-4b28-9041-821289f9cd1a",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 16 does not match it"
+    "reason": "only printing of its art, but collector line 146 does not match it"
    },
    {
     "input": "crops/catalog-device/muyxcbms-33.jpg",
@@ -2043,7 +2046,7 @@
     "group": null,
     "top": "a9c87b4d-6e19-4b28-9041-821289f9cd1a",
     "accepted": null,
-    "reason": "only printing of its art, but collector line 46 does not match it"
+    "reason": "only printing of its art, but collector line 146 does not match it"
    },
    {
     "input": "crops/rectified/muwewrqz-1.jpg",

@@ -1,76 +1,83 @@
 {
  "recordedWith": {
-  "recognizerCommit": "5f93f41",
-  "featurePrint": "VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values",
-  "gallery": {
-   "version": "20261012-cf1753",
-   "directory": "~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753",
-   "encoding": "int8 per vector, installed as unit-length float16",
-   "printings": 102730,
-   "createdAt": "2026-10-12T03:44:47.658Z",
-   "catalogJsonSha256": "e637953e0c721abaa04ba021a6ed2c085ddd61d9b001aaa1001959124b0958c5",
-   "galleryF16Sha256": "ac1325c5d41755292a26c80b72caa3799259cabf1113b033eb229af1ac03a53c",
-   "scryfallBulk": "default_cards updated 2026-10-11T21:05:54.791+00:00",
-   "cardCatalogSnapshot": "2026-10-09T09:01:54.966+00:00"
+  "recognizerCommit": "64a295e",
+  "model": {
+   "name": "pe-core-s16-384",
+   "sha256": "a7b41405eb0a9b34cebc3acf64c42d4c009689df3686d7f22fc12ea53e521aab"
   },
-  "machine": "Apple M3, macOS 15.7.3",
-  "recordedOn": "2026-10-15",
-  "command": "bun run recognizer:replay (simulated-held-out)",
-  "note": "Recorded again for #206. Every accept is the same: 382 accepts, all a printing that shares the art of the missing printing or its promo, and 0 wrong cards. 35 scans that abstain on a collector line that names a card the image does not support now show the image's top card printing first. 29 move to the right card and 5 stay on a different card. Debilitating Injury UGIN 68 (sim-02137) showed Debilitating Injury KTK 68 and now shows Firebreathing 30A 146. So nameTop1 is 2,264, not 2,236. Latencies are kept from the earlier recording, because this replay ran beside another replay. acceptedRows is removed because it does not name the scan."
+  "gallery": {
+   "version": "20261021-c38f43",
+   "directory": "~/Library/Caches/mtgscan/gallery/installed/20261021-c38f43",
+   "encoding": "int8 per vector, installed as unit-length float16",
+   "printings": 102857,
+   "createdAt": "2026-10-21T01:21:50.983Z",
+   "catalogJsonSha256": "06c39df60123cfb71e2606e72175d88be0c1ed648c95c8a6d0e74d096735ecb1",
+   "galleryF16Sha256": "4fe8f17da978df22fd5391714bba3cba39e12f197a3632789ca5e9440e28691c",
+   "scryfallBulk": "default_cards updated 2026-10-20T21:05:38.269+00:00",
+   "cardCatalogSnapshot": "2026-10-19T09:02:38.299+00:00"
+  },
+  "machine": "Apple M3, macOS 27.0.1",
+  "recordedOn": "2026-10-21",
+  "command": "bun run recognizer:replay --webp-round-trip (simulated-held-out)",
+  "note": "Recorded for #471 with the first PE-Core gallery version and art margin 0.03. 401 accepts, all another printing of the right card, and 0 wrong cards. At art margin 0.025, Penance EXO 15 was accepted for Demonic Consultation ICE 121 (sim-02734), 0.027 ahead of the next art. acceptedRows is removed because it does not name the scan."
  },
  "result": {
-  "catalog": 102730,
+  "catalog": 102857,
   "heldOut": true,
   "truthInTop5": 0,
   "cards": 3000,
-  "nameTop1": 2264,
+  "nameTop1": 2338,
   "printingTop1": 0,
-  "accepted": 382,
+  "accepted": 401,
   "correctAccepts": 0,
-  "falseAccepts": 382,
+  "falseAccepts": 401,
   "nonCards": 0,
   "nonCardsRejected": 0,
   "errors": 0,
-  "p50Ms": 270,
-  "p95Ms": 594,
+  "p50Ms": 220,
+  "p95Ms": 339,
   "acceptReasons": {
-   "collector line X matches a card in the image shortlist": 351,
-   "only printing of its art, next art # behind": 19,
-   "set TLE leaves one printing of the top card": 2,
+   "collector line X matches a card in the image shortlist": 359,
+   "only printing of its art, next art # behind": 24,
+   "set MH# leaves one printing of the top card": 1,
+   "set LTR leaves one printing of the top card": 2,
    "set MOM leaves one printing of the top card": 1,
-   "set KTK leaves one printing of the top card": 1,
-   "set GRN leaves one printing of the top card": 1,
+   "set WOE leaves one printing of the top card": 1,
+   "set CLB leaves one printing of the top card": 1,
+   "set DDO leaves one printing of the top card": 2,
+   "set VOC leaves one printing of the top card": 1,
    "set OGW leaves one printing of the top card": 1,
-   "set SOS leaves one printing of the top card": 1,
+   "set JMP leaves one printing of the top card": 1,
    "set J# leaves one printing of the top card": 1,
-   "set UMA leaves one printing of the top card": 2,
-   "set MIC leaves one printing of the top card": 1,
-   "set DMC leaves one printing of the top card": 1
+   "set KTK leaves one printing of the top card": 1,
+   "set SPM leaves one printing of the top card": 1,
+   "set UMA leaves one printing of the top card": 3,
+   "set ZNR leaves one printing of the top card": 1
   },
   "groups": {
    "same-art": {
     "cards": 1500,
-    "accepted": 342,
+    "accepted": 351,
     "correct": 0,
-    "false": 342
+    "false": 351
    },
    "single-art": {
     "cards": 800,
-    "accepted": 12,
+    "accepted": 17,
     "correct": 0,
-    "false": 12
+    "false": 17
    },
    "special": {
     "cards": 400,
-    "accepted": 14,
+    "accepted": 18,
     "correct": 0,
-    "false": 14
+    "false": 18
    },
    "old-frame": {
     "cards": 300,
-    "accepted": 14,
+    "accepted": 15,
     "correct": 0,
-    "false": 14
+    "false": 15
    }
   },
   "falseAcceptList": [
@@ -84,7 +91,7 @@
      "premiumMark": false,
      "setCode": "mkm"
     },
-    "topSimilarity": 0.9359205961227417,
+    "topSimilarity": 0.9617729187011719,
     "truthInCandidates": false
    },
    {
@@ -97,7 +104,7 @@
      "premiumMark": false,
      "setCode": "frf"
     },
-    "topSimilarity": 0.9385302662849426,
+    "topSimilarity": 0.9763829112052917,
     "truthInCandidates": false
    },
    {
@@ -110,7 +117,7 @@
      "premiumMark": false,
      "setCode": "one"
     },
-    "topSimilarity": 0.9311432242393494,
+    "topSimilarity": 0.9750263094902039,
     "truthInCandidates": false
    },
    {
@@ -123,20 +130,7 @@
      "premiumMark": false,
      "setCode": "xln"
     },
-    "topSimilarity": 0.7934139966964722,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-00017.jpg",
-    "accepted": "ae62a43e-36ce-471e-93f1-21fe674858b5",
-    "truth": "59fbc345-fa8c-459b-97af-66baede950da",
-    "reason": "collector line KTK 84 matches a card in the image shortlist",
-    "reading": {
-     "collectorNumber": "84",
-     "premiumMark": false,
-     "setCode": "ktk"
-    },
-    "topSimilarity": 0.7920124530792236,
+    "topSimilarity": 0.9573531746864319,
     "truthInCandidates": false
    },
    {
@@ -149,7 +143,7 @@
      "premiumMark": false,
      "setCode": "fra"
     },
-    "topSimilarity": 0.881745457649231,
+    "topSimilarity": 0.9604290127754211,
     "truthInCandidates": false
    },
    {
@@ -162,7 +156,7 @@
      "premiumMark": true,
      "setCode": "kld"
     },
-    "topSimilarity": 0.7108619213104248,
+    "topSimilarity": 0.9523108601570129,
     "truthInCandidates": false
    },
    {
@@ -175,20 +169,7 @@
      "premiumMark": true,
      "setCode": "rix"
     },
-    "topSimilarity": 0.9129074811935425,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-00038.jpg",
-    "accepted": "5bbf66a4-8fd4-4c87-89e2-c6ad6c4de7ab",
-    "truth": "d2c637e9-5eb4-4d7d-ab76-7f8804090471",
-    "reason": "collector line M15 140 matches a card in the image shortlist",
-    "reading": {
-     "collectorNumber": "140",
-     "premiumMark": false,
-     "setCode": "m15"
-    },
-    "topSimilarity": 0.907785952091217,
+    "topSimilarity": 0.9645735025405884,
     "truthInCandidates": false
    },
    {
@@ -201,7 +182,7 @@
      "premiumMark": false,
      "setCode": "a25"
     },
-    "topSimilarity": 0.7442581653594971,
+    "topSimilarity": 0.96888267993927,
     "truthInCandidates": false
    },
    {
@@ -211,10 +192,10 @@
     "reason": "collector line DMU 87 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "87",
-     "premiumMark": false,
+     "premiumMark": true,
      "setCode": "dmu"
     },
-    "topSimilarity": 0.7234215140342712,
+    "topSimilarity": 0.9342465400695801,
     "truthInCandidates": false
    },
    {
@@ -227,7 +208,7 @@
      "premiumMark": true,
      "setCode": "war"
     },
-    "topSimilarity": 0.8893293142318726,
+    "topSimilarity": 0.9498953223228455,
     "truthInCandidates": false
    },
    {
@@ -240,7 +221,7 @@
      "premiumMark": false,
      "setCode": "khm"
     },
-    "topSimilarity": 0.9089809060096741,
+    "topSimilarity": 0.9537185430526733,
     "truthInCandidates": false
    },
    {
@@ -253,7 +234,7 @@
      "premiumMark": true,
      "setCode": "eld"
     },
-    "topSimilarity": 0.72346431016922,
+    "topSimilarity": 0.9566688537597656,
     "truthInCandidates": false
    },
    {
@@ -266,7 +247,7 @@
      "premiumMark": false,
      "setCode": "mh1"
     },
-    "topSimilarity": 0.9130341410636902,
+    "topSimilarity": 0.9644293189048767,
     "truthInCandidates": false
    },
    {
@@ -279,7 +260,7 @@
      "premiumMark": true,
      "setCode": "dom"
     },
-    "topSimilarity": 0.9287464618682861,
+    "topSimilarity": 0.9590424299240112,
     "truthInCandidates": false
    },
    {
@@ -292,7 +273,7 @@
      "premiumMark": true,
      "setCode": "dsk"
     },
-    "topSimilarity": 0.9465267062187195,
+    "topSimilarity": 0.9643722176551819,
     "truthInCandidates": false
    },
    {
@@ -305,7 +286,7 @@
      "premiumMark": true,
      "setCode": "tla"
     },
-    "topSimilarity": 0.9010027050971985,
+    "topSimilarity": 0.9501574635505676,
     "truthInCandidates": false
    },
    {
@@ -318,7 +299,7 @@
      "premiumMark": true,
      "setCode": "soi"
     },
-    "topSimilarity": 0.7524253726005554,
+    "topSimilarity": 0.9611780643463135,
     "truthInCandidates": false
    },
    {
@@ -331,7 +312,7 @@
      "premiumMark": false,
      "setCode": "rix"
     },
-    "topSimilarity": 0.9317994117736816,
+    "topSimilarity": 0.9787265658378601,
     "truthInCandidates": false
    },
    {
@@ -344,7 +325,7 @@
      "premiumMark": false,
      "setCode": "afr"
     },
-    "topSimilarity": 0.9240357279777527,
+    "topSimilarity": 0.9620164036750793,
     "truthInCandidates": false
    },
    {
@@ -357,7 +338,7 @@
      "premiumMark": true,
      "setCode": "lci"
     },
-    "topSimilarity": 0.9139090180397034,
+    "topSimilarity": 0.9515841603279114,
     "truthInCandidates": false
    },
    {
@@ -370,7 +351,7 @@
      "premiumMark": true,
      "setCode": "iko"
     },
-    "topSimilarity": 0.8340095281600952,
+    "topSimilarity": 0.9679346084594727,
     "truthInCandidates": false
    },
    {
@@ -383,7 +364,7 @@
      "premiumMark": false,
      "setCode": "mid"
     },
-    "topSimilarity": 0.8241575360298157,
+    "topSimilarity": 0.9631295204162598,
     "truthInCandidates": false
    },
    {
@@ -396,7 +377,7 @@
      "premiumMark": true,
      "setCode": "dom"
     },
-    "topSimilarity": 0.9215778708457947,
+    "topSimilarity": 0.9758729338645935,
     "truthInCandidates": false
    },
    {
@@ -409,7 +390,7 @@
      "premiumMark": false,
      "setCode": "neo"
     },
-    "topSimilarity": 0.7586598992347717,
+    "topSimilarity": 0.9647104144096375,
     "truthInCandidates": false
    },
    {
@@ -422,7 +403,7 @@
      "premiumMark": true,
      "setCode": "dmu"
     },
-    "topSimilarity": 0.8903335332870483,
+    "topSimilarity": 0.9538026452064514,
     "truthInCandidates": false
    },
    {
@@ -435,7 +416,7 @@
      "premiumMark": true,
      "setCode": "40k"
     },
-    "topSimilarity": 0.9113872647285461,
+    "topSimilarity": 0.9493531584739685,
     "truthInCandidates": false
    },
    {
@@ -448,7 +429,33 @@
      "premiumMark": false,
      "setCode": "ddt"
     },
-    "topSimilarity": 0.8907690644264221,
+    "topSimilarity": 0.9758902192115784,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00115.jpg",
+    "accepted": "c6f61e2b-e93b-4dda-95cf-9d0ff198c0a6",
+    "truth": "bfca1ca4-8a6d-436d-8be4-88e015ccdac8",
+    "reason": "collector line AKH 223 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "223",
+     "premiumMark": true,
+     "setCode": "akh"
+    },
+    "topSimilarity": 0.9373632073402405,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00116.jpg",
+    "accepted": "a5e2d09e-b9f5-4a0d-96d3-984b5c2c387d",
+    "truth": "5726571c-b40b-417e-8960-e5f92ee7cc96",
+    "reason": "collector line DFT 215 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "215",
+     "premiumMark": false,
+     "setCode": "dft"
+    },
+    "topSimilarity": 0.9621922373771667,
     "truthInCandidates": false
    },
    {
@@ -461,7 +468,7 @@
      "premiumMark": false,
      "setCode": "mid"
     },
-    "topSimilarity": 0.7558317184448242,
+    "topSimilarity": 0.9541297554969788,
     "truthInCandidates": false
    },
    {
@@ -474,7 +481,7 @@
      "premiumMark": true,
      "setCode": "thb"
     },
-    "topSimilarity": 0.8566218018531799,
+    "topSimilarity": 0.9668700098991394,
     "truthInCandidates": false
    },
    {
@@ -487,7 +494,7 @@
      "premiumMark": true,
      "setCode": "emn"
     },
-    "topSimilarity": 0.8932991623878479,
+    "topSimilarity": 0.9692445397377014,
     "truthInCandidates": false
    },
    {
@@ -500,7 +507,7 @@
      "premiumMark": false,
      "setCode": "ima"
     },
-    "topSimilarity": 0.8238367438316345,
+    "topSimilarity": 0.9571987986564636,
     "truthInCandidates": false
    },
    {
@@ -513,7 +520,7 @@
      "premiumMark": true,
      "setCode": "snc"
     },
-    "topSimilarity": 0.9227671027183533,
+    "topSimilarity": 0.9541845917701721,
     "truthInCandidates": false
    },
    {
@@ -526,7 +533,7 @@
      "premiumMark": true,
      "setCode": "dft"
     },
-    "topSimilarity": 0.9124608635902405,
+    "topSimilarity": 0.9509925842285156,
     "truthInCandidates": false
    },
    {
@@ -539,7 +546,7 @@
      "premiumMark": false,
      "setCode": "m15"
     },
-    "topSimilarity": 0.9227979183197021,
+    "topSimilarity": 0.9701109528541565,
     "truthInCandidates": false
    },
    {
@@ -552,7 +559,7 @@
      "premiumMark": false,
      "setCode": "eld"
     },
-    "topSimilarity": 0.6874736547470093,
+    "topSimilarity": 0.9615803956985474,
     "truthInCandidates": false
    },
    {
@@ -565,7 +572,7 @@
      "premiumMark": true,
      "setCode": "one"
     },
-    "topSimilarity": 0.9064306616783142,
+    "topSimilarity": 0.9390782713890076,
     "truthInCandidates": false
    },
    {
@@ -578,7 +585,7 @@
      "premiumMark": false,
      "setCode": "soi"
     },
-    "topSimilarity": 0.9409689903259277,
+    "topSimilarity": 0.9701025485992432,
     "truthInCandidates": false
    },
    {
@@ -591,33 +598,31 @@
      "premiumMark": false,
      "setCode": "c17"
     },
-    "topSimilarity": 0.9250210523605347,
+    "topSimilarity": 0.9684649705886841,
     "truthInCandidates": false
    },
    {
     "input": "sim-00172.jpg",
     "accepted": "3f57e0f9-e232-489c-b991-d0d23f75d8dd",
     "truth": "be9be7f7-95ed-4cc8-9e74-88defd496a7f",
-    "reason": "collector line TLA 79 matches a card in the image shortlist",
+    "reason": "only printing of its art, next art 0.083 behind",
     "reading": {
      "collectorNumber": "79",
-     "premiumMark": false,
-     "setCode": "tla"
+     "premiumMark": false
     },
-    "topSimilarity": 0.7354736328125,
+    "topSimilarity": 0.9497671127319336,
     "truthInCandidates": false
    },
    {
     "input": "sim-00175.jpg",
     "accepted": "e262f55e-9239-4a97-a19e-9b08fb34502e",
     "truth": "c367397d-ed04-4f35-b1b4-9d82c9d5ad29",
-    "reason": "collector line MH2 279 matches a card in the image shortlist",
+    "reason": "set MH2 leaves one printing of the top card",
     "reading": {
-     "collectorNumber": "279",
      "premiumMark": false,
      "setCode": "mh2"
     },
-    "topSimilarity": 0.9352750182151794,
+    "topSimilarity": 0.9720075726509094,
     "truthInCandidates": false
    },
    {
@@ -630,7 +635,7 @@
      "premiumMark": false,
      "setCode": "mid"
     },
-    "topSimilarity": 0.9244681596755981,
+    "topSimilarity": 0.9762349724769592,
     "truthInCandidates": false
    },
    {
@@ -643,7 +648,7 @@
      "premiumMark": false,
      "setCode": "c16"
     },
-    "topSimilarity": 0.9266796708106995,
+    "topSimilarity": 0.967049241065979,
     "truthInCandidates": false
    },
    {
@@ -656,7 +661,19 @@
      "premiumMark": true,
      "setCode": "aer"
     },
-    "topSimilarity": 0.8303118944168091,
+    "topSimilarity": 0.9291898608207703,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00191.jpg",
+    "accepted": "3c73835d-4af8-4754-bcc8-176e43fceaea",
+    "truth": "71ed2e4b-c732-472a-a589-f1f53086d9ee",
+    "reason": "set LTR leaves one printing of the top card",
+    "reading": {
+     "premiumMark": false,
+     "setCode": "ltr"
+    },
+    "topSimilarity": 0.9466234445571899,
     "truthInCandidates": false
    },
    {
@@ -669,7 +686,7 @@
      "premiumMark": true,
      "setCode": "mh2"
     },
-    "topSimilarity": 0.9202240109443665,
+    "topSimilarity": 0.9676320552825928,
     "truthInCandidates": false
    },
    {
@@ -682,7 +699,7 @@
      "premiumMark": false,
      "setCode": "mkm"
     },
-    "topSimilarity": 0.9093171954154968,
+    "topSimilarity": 0.9172515869140625,
     "truthInCandidates": false
    },
    {
@@ -695,7 +712,7 @@
      "premiumMark": false,
      "setCode": "rix"
     },
-    "topSimilarity": 0.9315051436424255,
+    "topSimilarity": 0.9557961821556091,
     "truthInCandidates": false
    },
    {
@@ -708,19 +725,19 @@
      "premiumMark": true,
      "setCode": "afr"
     },
-    "topSimilarity": 0.920380711555481,
+    "topSimilarity": 0.9744659066200256,
     "truthInCandidates": false
    },
    {
     "input": "sim-00205.jpg",
     "accepted": "ab2b349a-1555-4aaa-8302-28667404e630",
     "truth": "564a9faa-71a6-4481-ac7e-1fc0f9b11e1a",
-    "reason": "only printing of its art, next art 0.039 behind",
+    "reason": "only printing of its art, next art 0.118 behind",
     "reading": {
      "collectorNumber": "10",
      "premiumMark": false
     },
-    "topSimilarity": 0.6180504560470581,
+    "topSimilarity": 0.9634369015693665,
     "truthInCandidates": false
    },
    {
@@ -733,7 +750,7 @@
      "premiumMark": false,
      "setCode": "dft"
     },
-    "topSimilarity": 0.9213637113571167,
+    "topSimilarity": 0.9705328941345215,
     "truthInCandidates": false
    },
    {
@@ -746,7 +763,7 @@
      "premiumMark": true,
      "setCode": "soi"
     },
-    "topSimilarity": 0.9075436592102051,
+    "topSimilarity": 0.9612938165664673,
     "truthInCandidates": false
    },
    {
@@ -759,7 +776,7 @@
      "premiumMark": false,
      "setCode": "fra"
     },
-    "topSimilarity": 0.9357954859733582,
+    "topSimilarity": 0.9671087265014648,
     "truthInCandidates": false
    },
    {
@@ -772,7 +789,7 @@
      "premiumMark": false,
      "setCode": "woe"
     },
-    "topSimilarity": 0.934563159942627,
+    "topSimilarity": 0.9682753086090088,
     "truthInCandidates": false
    },
    {
@@ -785,7 +802,7 @@
      "premiumMark": false,
      "setCode": "dom"
     },
-    "topSimilarity": 0.7409171462059021,
+    "topSimilarity": 0.9681240320205688,
     "truthInCandidates": false
    },
    {
@@ -798,7 +815,7 @@
      "premiumMark": true,
      "setCode": "akh"
     },
-    "topSimilarity": 0.8960608839988708,
+    "topSimilarity": 0.9431477785110474,
     "truthInCandidates": false
    },
    {
@@ -811,32 +828,20 @@
      "premiumMark": true,
      "setCode": "ktk"
     },
-    "topSimilarity": 0.9462350010871887,
+    "topSimilarity": 0.9650717973709106,
     "truthInCandidates": false
    },
    {
     "input": "sim-00231.jpg",
     "accepted": "825d3f4d-eba3-4c45-8846-03b246e93f6c",
     "truth": "c7c810a6-0327-4022-979f-96fcdd9863ca",
-    "reason": "only printing of its art, next art 0.136 behind",
+    "reason": "collector line FRF 152 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "152",
-     "premiumMark": false
-    },
-    "topSimilarity": 0.9424999952316284,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-00234.jpg",
-    "accepted": "68c0d087-540a-4249-9265-f13cc8e776ea",
-    "truth": "e2cf4e79-c1cc-4250-bc29-ecab63dc0fd3",
-    "reason": "collector line THB 118 matches a card in the image shortlist",
-    "reading": {
-     "collectorNumber": "118",
      "premiumMark": false,
-     "setCode": "thb"
+     "setCode": "frf"
     },
-    "topSimilarity": 0.9145451784133911,
+    "topSimilarity": 0.9630150198936462,
     "truthInCandidates": false
    },
    {
@@ -849,7 +854,7 @@
      "premiumMark": false,
      "setCode": "ogw"
     },
-    "topSimilarity": 0.9383500218391418,
+    "topSimilarity": 0.9845624566078186,
     "truthInCandidates": false
    },
    {
@@ -862,7 +867,7 @@
      "premiumMark": true,
      "setCode": "emn"
     },
-    "topSimilarity": 0.8124057054519653,
+    "topSimilarity": 0.9653577208518982,
     "truthInCandidates": false
    },
    {
@@ -875,7 +880,7 @@
      "premiumMark": false,
      "setCode": "a25"
     },
-    "topSimilarity": 0.953071653842926,
+    "topSimilarity": 0.9764946103096008,
     "truthInCandidates": false
    },
    {
@@ -888,7 +893,7 @@
      "premiumMark": true,
      "setCode": "bfz"
     },
-    "topSimilarity": 0.8958166837692261,
+    "topSimilarity": 0.973068118095398,
     "truthInCandidates": false
    },
    {
@@ -901,31 +906,20 @@
      "premiumMark": false,
      "setCode": "ddu"
     },
-    "topSimilarity": 0.937893807888031,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-00249.jpg",
-    "accepted": "083f501f-13f4-415b-b46b-4a365007a19a",
-    "truth": "8ba7c131-68c6-4ab1-a192-0cfa77d85645",
-    "reason": "set TLE leaves one printing of the top card",
-    "reading": {
-     "premiumMark": false,
-     "setCode": "tle"
-    },
-    "topSimilarity": 0.9289347529411316,
+    "topSimilarity": 0.96770179271698,
     "truthInCandidates": false
    },
    {
     "input": "sim-00264.jpg",
     "accepted": "f03a480f-de67-4611-9db7-c0c3d020f597",
     "truth": "5282cbeb-2ed6-4dc6-a761-2e79892e3648",
-    "reason": "set MOM leaves one printing of the top card",
+    "reason": "collector line MOM 13 matches a card in the image shortlist",
     "reading": {
+     "collectorNumber": "13",
      "premiumMark": false,
      "setCode": "mom"
     },
-    "topSimilarity": 0.9016209840774536,
+    "topSimilarity": 0.9641218781471252,
     "truthInCandidates": false
    },
    {
@@ -938,7 +932,7 @@
      "premiumMark": true,
      "setCode": "neo"
     },
-    "topSimilarity": 0.9241819381713867,
+    "topSimilarity": 0.9618918299674988,
     "truthInCandidates": false
    },
    {
@@ -951,7 +945,7 @@
      "premiumMark": false,
      "setCode": "ncc"
     },
-    "topSimilarity": 0.9164646863937378,
+    "topSimilarity": 0.9754132032394409,
     "truthInCandidates": false
    },
    {
@@ -964,7 +958,7 @@
      "premiumMark": true,
      "setCode": "tla"
     },
-    "topSimilarity": 0.8911372423171997,
+    "topSimilarity": 0.9628486037254333,
     "truthInCandidates": false
    },
    {
@@ -977,7 +971,7 @@
      "premiumMark": false,
      "setCode": "dmu"
     },
-    "topSimilarity": 0.9236863255500793,
+    "topSimilarity": 0.965246319770813,
     "truthInCandidates": false
    },
    {
@@ -990,7 +984,7 @@
      "premiumMark": true,
      "setCode": "xln"
     },
-    "topSimilarity": 0.9290542006492615,
+    "topSimilarity": 0.9485631585121155,
     "truthInCandidates": false
    },
    {
@@ -1003,7 +997,7 @@
      "premiumMark": false,
      "setCode": "lci"
     },
-    "topSimilarity": 0.8815537095069885,
+    "topSimilarity": 0.9663224220275879,
     "truthInCandidates": false
    },
    {
@@ -1016,7 +1010,7 @@
      "premiumMark": true,
      "setCode": "bro"
     },
-    "topSimilarity": 0.9423773288726807,
+    "topSimilarity": 0.9738088846206665,
     "truthInCandidates": false
    },
    {
@@ -1029,7 +1023,7 @@
      "premiumMark": true,
      "setCode": "bfz"
     },
-    "topSimilarity": 0.93691486120224,
+    "topSimilarity": 0.9709599018096924,
     "truthInCandidates": false
    },
    {
@@ -1042,7 +1036,7 @@
      "premiumMark": false,
      "setCode": "sos"
     },
-    "topSimilarity": 0.9263145327568054,
+    "topSimilarity": 0.966576099395752,
     "truthInCandidates": false
    },
    {
@@ -1055,7 +1049,7 @@
      "premiumMark": false,
      "setCode": "znr"
     },
-    "topSimilarity": 0.6946648955345154,
+    "topSimilarity": 0.9596903324127197,
     "truthInCandidates": false
    },
    {
@@ -1068,7 +1062,7 @@
      "premiumMark": true,
      "setCode": "vow"
     },
-    "topSimilarity": 0.7873279452323914,
+    "topSimilarity": 0.9686440825462341,
     "truthInCandidates": false
    },
    {
@@ -1081,19 +1075,19 @@
      "premiumMark": true,
      "setCode": "thb"
     },
-    "topSimilarity": 0.9260428547859192,
+    "topSimilarity": 0.961776852607727,
     "truthInCandidates": false
    },
    {
     "input": "sim-00337.jpg",
     "accepted": "9f9825ac-c186-4a10-b9e3-e73b10f75ed9",
     "truth": "8cb39624-7027-4a5f-8784-5faa0898b15c",
-    "reason": "only printing of its art, next art 0.121 behind",
+    "reason": "set MOM leaves one printing of the top card",
     "reading": {
-     "collectorNumber": "128",
-     "premiumMark": false
+     "premiumMark": false,
+     "setCode": "mom"
     },
-    "topSimilarity": 0.7503315210342407,
+    "topSimilarity": 0.942557156085968,
     "truthInCandidates": false
    },
    {
@@ -1106,7 +1100,7 @@
      "premiumMark": false,
      "setCode": "clb"
     },
-    "topSimilarity": 0.7313276529312134,
+    "topSimilarity": 0.9521528482437134,
     "truthInCandidates": false
    },
    {
@@ -1119,7 +1113,7 @@
      "premiumMark": false,
      "setCode": "mm2"
     },
-    "topSimilarity": 0.9204868078231812,
+    "topSimilarity": 0.9657858610153198,
     "truthInCandidates": false
    },
    {
@@ -1132,7 +1126,7 @@
      "premiumMark": false,
      "setCode": "eld"
     },
-    "topSimilarity": 0.9334767460823059,
+    "topSimilarity": 0.9740142822265625,
     "truthInCandidates": false
    },
    {
@@ -1145,7 +1139,7 @@
      "premiumMark": false,
      "setCode": "grn"
     },
-    "topSimilarity": 0.7626859545707703,
+    "topSimilarity": 0.9700074195861816,
     "truthInCandidates": false
    },
    {
@@ -1158,7 +1152,7 @@
      "premiumMark": false,
      "setCode": "2xm"
     },
-    "topSimilarity": 0.9095931053161621,
+    "topSimilarity": 0.9691156148910522,
     "truthInCandidates": false
    },
    {
@@ -1171,7 +1165,7 @@
      "premiumMark": true,
      "setCode": "stx"
     },
-    "topSimilarity": 0.9094176292419434,
+    "topSimilarity": 0.9407237768173218,
     "truthInCandidates": false
    },
    {
@@ -1184,7 +1178,7 @@
      "premiumMark": false,
      "setCode": "bfz"
     },
-    "topSimilarity": 0.7706466317176819,
+    "topSimilarity": 0.9716799259185791,
     "truthInCandidates": false
    },
    {
@@ -1197,7 +1191,31 @@
      "premiumMark": false,
      "setCode": "afr"
     },
-    "topSimilarity": 0.7523661255836487,
+    "topSimilarity": 0.9736504554748535,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00352.jpg",
+    "accepted": "4bcbfa94-1de7-4770-b18d-c959738011ab",
+    "truth": "43b2cd83-e7e9-4c02-82ef-74ba23f25d4e",
+    "reason": "only printing of its art, next art 0.032 behind",
+    "reading": {
+     "premiumMark": false
+    },
+    "topSimilarity": 0.9412971138954163,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00357.jpg",
+    "accepted": "c38d1722-96b0-4756-9da9-fe18b1c80649",
+    "truth": "79833a2d-a27b-4319-9fe4-d68293c295c5",
+    "reason": "collector line M21 76 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "76",
+     "premiumMark": true,
+     "setCode": "m21"
+    },
+    "topSimilarity": 0.9519401788711548,
     "truthInCandidates": false
    },
    {
@@ -1210,7 +1228,19 @@
      "premiumMark": true,
      "setCode": "blb"
     },
-    "topSimilarity": 0.9332385063171387,
+    "topSimilarity": 0.9649571776390076,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00364.jpg",
+    "accepted": "0782e090-209c-428f-966a-17f3ceab2903",
+    "truth": "97da1362-1eaf-4e4d-9184-4f35e6ad8926",
+    "reason": "collector line GRN 211 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "211",
+     "premiumMark": true
+    },
+    "topSimilarity": 0.9573887586593628,
     "truthInCandidates": false
    },
    {
@@ -1223,7 +1253,7 @@
      "premiumMark": false,
      "setCode": "kld"
     },
-    "topSimilarity": 0.9302384257316589,
+    "topSimilarity": 0.9616116881370544,
     "truthInCandidates": false
    },
    {
@@ -1236,7 +1266,7 @@
      "premiumMark": false,
      "setCode": "mkm"
     },
-    "topSimilarity": 0.8710787296295166,
+    "topSimilarity": 0.9453744888305664,
     "truthInCandidates": false
    },
    {
@@ -1249,7 +1279,7 @@
      "premiumMark": false,
      "setCode": "stx"
     },
-    "topSimilarity": 0.943270206451416,
+    "topSimilarity": 0.9718058109283447,
     "truthInCandidates": false
    },
    {
@@ -1262,7 +1292,7 @@
      "premiumMark": false,
      "setCode": "akh"
     },
-    "topSimilarity": 0.8970041275024414,
+    "topSimilarity": 0.9640686511993408,
     "truthInCandidates": false
    },
    {
@@ -1275,7 +1305,20 @@
      "premiumMark": true,
      "setCode": "soi"
     },
-    "topSimilarity": 0.7877176403999329,
+    "topSimilarity": 0.9582467675209045,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00376.jpg",
+    "accepted": "17d154d3-7ae5-43ff-9978-d974285e2c89",
+    "truth": "22a63314-263d-4568-9f2a-45f7480c3031",
+    "reason": "collector line M21 21 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "21",
+     "premiumMark": false,
+     "setCode": "m21"
+    },
+    "topSimilarity": 0.9440844655036926,
     "truthInCandidates": false
    },
    {
@@ -1288,20 +1331,7 @@
      "premiumMark": false,
      "setCode": "c15"
     },
-    "topSimilarity": 0.8666799664497375,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-00392.jpg",
-    "accepted": "e1a1d9ad-a434-43de-bcb3-143d07dbd775",
-    "truth": "d482d2b6-ee52-4d8d-899f-1ac1b95903ca",
-    "reason": "collector line MM3 5 matches a card in the image shortlist",
-    "reading": {
-     "collectorNumber": "5",
-     "premiumMark": false,
-     "setCode": "mm3"
-    },
-    "topSimilarity": 0.7334204912185669,
+    "topSimilarity": 0.9685856103897095,
     "truthInCandidates": false
    },
    {
@@ -1314,7 +1344,7 @@
      "premiumMark": false,
      "setCode": "m19"
     },
-    "topSimilarity": 0.886828601360321,
+    "topSimilarity": 0.9725823402404785,
     "truthInCandidates": false
    },
    {
@@ -1327,7 +1357,7 @@
      "premiumMark": true,
      "setCode": "vow"
     },
-    "topSimilarity": 0.9145703911781311,
+    "topSimilarity": 0.9577239751815796,
     "truthInCandidates": false
    },
    {
@@ -1340,7 +1370,7 @@
      "premiumMark": false,
      "setCode": "dmu"
     },
-    "topSimilarity": 0.7653577923774719,
+    "topSimilarity": 0.9677796363830566,
     "truthInCandidates": false
    },
    {
@@ -1353,7 +1383,7 @@
      "premiumMark": true,
      "setCode": "khm"
     },
-    "topSimilarity": 0.8787251710891724,
+    "topSimilarity": 0.9504468441009521,
     "truthInCandidates": false
    },
    {
@@ -1366,7 +1396,7 @@
      "premiumMark": false,
      "setCode": "sos"
     },
-    "topSimilarity": 0.9340732097625732,
+    "topSimilarity": 0.967976450920105,
     "truthInCandidates": false
    },
    {
@@ -1379,7 +1409,7 @@
      "premiumMark": false,
      "setCode": "tdm"
     },
-    "topSimilarity": 0.9546175599098206,
+    "topSimilarity": 0.971320629119873,
     "truthInCandidates": false
    },
    {
@@ -1392,7 +1422,7 @@
      "premiumMark": false,
      "setCode": "khm"
     },
-    "topSimilarity": 0.8621054887771606,
+    "topSimilarity": 0.9694942831993103,
     "truthInCandidates": false
    },
    {
@@ -1405,7 +1435,7 @@
      "premiumMark": false,
      "setCode": "tsr"
     },
-    "topSimilarity": 0.7379519939422607,
+    "topSimilarity": 0.9638257622718811,
     "truthInCandidates": false
    },
    {
@@ -1418,7 +1448,7 @@
      "premiumMark": false,
      "setCode": "fra"
     },
-    "topSimilarity": 0.9354571104049683,
+    "topSimilarity": 0.9714206457138062,
     "truthInCandidates": false
    },
    {
@@ -1431,7 +1461,7 @@
      "premiumMark": false,
      "setCode": "snc"
     },
-    "topSimilarity": 0.9274110198020935,
+    "topSimilarity": 0.9734518527984619,
     "truthInCandidates": false
    },
    {
@@ -1444,7 +1474,7 @@
      "premiumMark": false,
      "setCode": "rna"
     },
-    "topSimilarity": 0.7670904397964478,
+    "topSimilarity": 0.972943127155304,
     "truthInCandidates": false
    },
    {
@@ -1457,7 +1487,7 @@
      "premiumMark": false,
      "setCode": "fra"
     },
-    "topSimilarity": 0.9548448920249939,
+    "topSimilarity": 0.9705991148948669,
     "truthInCandidates": false
    },
    {
@@ -1470,7 +1500,7 @@
      "premiumMark": true,
      "setCode": "ktk"
     },
-    "topSimilarity": 0.9458133578300476,
+    "topSimilarity": 0.9701997637748718,
     "truthInCandidates": false
    },
    {
@@ -1483,7 +1513,7 @@
      "premiumMark": false,
      "setCode": "dft"
     },
-    "topSimilarity": 0.9230457544326782,
+    "topSimilarity": 0.9567020535469055,
     "truthInCandidates": false
    },
    {
@@ -1496,7 +1526,7 @@
      "premiumMark": true,
      "setCode": "dsk"
     },
-    "topSimilarity": 0.9200025200843811,
+    "topSimilarity": 0.951147198677063,
     "truthInCandidates": false
    },
    {
@@ -1509,7 +1539,7 @@
      "premiumMark": false,
      "setCode": "dft"
     },
-    "topSimilarity": 0.935318112373352,
+    "topSimilarity": 0.9620830416679382,
     "truthInCandidates": false
    },
    {
@@ -1522,7 +1552,7 @@
      "premiumMark": true,
      "setCode": "rix"
     },
-    "topSimilarity": 0.9277861714363098,
+    "topSimilarity": 0.9575534462928772,
     "truthInCandidates": false
    },
    {
@@ -1535,7 +1565,7 @@
      "premiumMark": false,
      "setCode": "cmr"
     },
-    "topSimilarity": 0.9260967969894409,
+    "topSimilarity": 0.9656222462654114,
     "truthInCandidates": false
    },
    {
@@ -1548,7 +1578,7 @@
      "premiumMark": false,
      "setCode": "dom"
     },
-    "topSimilarity": 0.9557715058326721,
+    "topSimilarity": 0.9779903292655945,
     "truthInCandidates": false
    },
    {
@@ -1561,7 +1591,7 @@
      "premiumMark": true,
      "setCode": "dsk"
     },
-    "topSimilarity": 0.8607924580574036,
+    "topSimilarity": 0.9631676077842712,
     "truthInCandidates": false
    },
    {
@@ -1574,7 +1604,7 @@
      "premiumMark": true,
      "setCode": "afr"
     },
-    "topSimilarity": 0.8785167932510376,
+    "topSimilarity": 0.9714545607566833,
     "truthInCandidates": false
    },
    {
@@ -1587,7 +1617,7 @@
      "premiumMark": false,
      "setCode": "dmu"
     },
-    "topSimilarity": 0.8973438143730164,
+    "topSimilarity": 0.9763323068618774,
     "truthInCandidates": false
    },
    {
@@ -1600,7 +1630,7 @@
      "premiumMark": true,
      "setCode": "mh2"
     },
-    "topSimilarity": 0.8911426067352295,
+    "topSimilarity": 0.9547361731529236,
     "truthInCandidates": false
    },
    {
@@ -1613,7 +1643,7 @@
      "premiumMark": true,
      "setCode": "spm"
     },
-    "topSimilarity": 0.8268835544586182,
+    "topSimilarity": 0.9637545943260193,
     "truthInCandidates": false
    },
    {
@@ -1626,7 +1656,7 @@
      "premiumMark": false,
      "setCode": "ncc"
     },
-    "topSimilarity": 0.7688524127006531,
+    "topSimilarity": 0.9666789770126343,
     "truthInCandidates": false
    },
    {
@@ -1639,19 +1669,20 @@
      "premiumMark": false,
      "setCode": "rix"
     },
-    "topSimilarity": 0.8859559297561646,
+    "topSimilarity": 0.9714255332946777,
     "truthInCandidates": false
    },
    {
     "input": "sim-00497.jpg",
     "accepted": "5c18c2d8-995c-4736-bdef-464abcd1d31a",
     "truth": "32fb5109-432c-4dc9-88c5-95cdcb7fbf60",
-    "reason": "set KTK leaves one printing of the top card",
+    "reason": "collector line KTK 36 matches a card in the image shortlist",
     "reading": {
+     "collectorNumber": "36",
      "premiumMark": true,
      "setCode": "ktk"
     },
-    "topSimilarity": 0.920470654964447,
+    "topSimilarity": 0.9695948362350464,
     "truthInCandidates": false
    },
    {
@@ -1664,7 +1695,7 @@
      "premiumMark": false,
      "setCode": "ddp"
     },
-    "topSimilarity": 0.9383030533790588,
+    "topSimilarity": 0.9713006019592285,
     "truthInCandidates": false
    },
    {
@@ -1677,7 +1708,7 @@
      "premiumMark": false,
      "setCode": "blb"
     },
-    "topSimilarity": 0.7453844547271729,
+    "topSimilarity": 0.938629686832428,
     "truthInCandidates": false
    },
    {
@@ -1690,7 +1721,7 @@
      "premiumMark": true,
      "setCode": "znr"
     },
-    "topSimilarity": 0.9254684448242188,
+    "topSimilarity": 0.9430269598960876,
     "truthInCandidates": false
    },
    {
@@ -1703,7 +1734,7 @@
      "premiumMark": true,
      "setCode": "mh2"
     },
-    "topSimilarity": 0.7397856712341309,
+    "topSimilarity": 0.9645329713821411,
     "truthInCandidates": false
    },
    {
@@ -1716,7 +1747,7 @@
      "premiumMark": false,
      "setCode": "ori"
     },
-    "topSimilarity": 0.9086269736289978,
+    "topSimilarity": 0.9700597524642944,
     "truthInCandidates": false
    },
    {
@@ -1729,7 +1760,7 @@
      "premiumMark": false,
      "setCode": "mkm"
     },
-    "topSimilarity": 0.7625172734260559,
+    "topSimilarity": 0.9570646286010742,
     "truthInCandidates": false
    },
    {
@@ -1742,7 +1773,7 @@
      "premiumMark": false,
      "setCode": "afr"
     },
-    "topSimilarity": 0.754133403301239,
+    "topSimilarity": 0.9673680067062378,
     "truthInCandidates": false
    },
    {
@@ -1755,7 +1786,7 @@
      "premiumMark": false,
      "setCode": "ktk"
     },
-    "topSimilarity": 0.9395952224731445,
+    "topSimilarity": 0.9815696477890015,
     "truthInCandidates": false
    },
    {
@@ -1768,7 +1799,7 @@
      "premiumMark": true,
      "setCode": "m20"
     },
-    "topSimilarity": 0.7797127366065979,
+    "topSimilarity": 0.9639990329742432,
     "truthInCandidates": false
    },
    {
@@ -1781,7 +1812,7 @@
      "premiumMark": false,
      "setCode": "woc"
     },
-    "topSimilarity": 0.8813662528991699,
+    "topSimilarity": 0.9666271209716797,
     "truthInCandidates": false
    },
    {
@@ -1794,20 +1825,7 @@
      "premiumMark": true,
      "setCode": "snc"
     },
-    "topSimilarity": 0.9084182381629944,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-00537.jpg",
-    "accepted": "090d678c-f0e4-4757-8900-93dfe67aefe9",
-    "truth": "ce579036-4960-4ed6-9e75-b19d27a96032",
-    "reason": "collector line KTK 137 matches a card in the image shortlist",
-    "reading": {
-     "collectorNumber": "137",
-     "premiumMark": false,
-     "setCode": "ktk"
-    },
-    "topSimilarity": 0.9186360239982605,
+    "topSimilarity": 0.9707652926445007,
     "truthInCandidates": false
    },
    {
@@ -1817,9 +1835,10 @@
     "reason": "collector line 40K 22 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "22",
-     "premiumMark": true
+     "premiumMark": true,
+     "setCode": "40k"
     },
-    "topSimilarity": 0.9325416088104248,
+    "topSimilarity": 0.972041666507721,
     "truthInCandidates": false
    },
    {
@@ -1832,7 +1851,7 @@
      "premiumMark": true,
      "setCode": "one"
     },
-    "topSimilarity": 0.9142603278160095,
+    "topSimilarity": 0.9673869609832764,
     "truthInCandidates": false
    },
    {
@@ -1845,7 +1864,7 @@
      "premiumMark": false,
      "setCode": "ncc"
     },
-    "topSimilarity": 0.9251798391342163,
+    "topSimilarity": 0.9573543667793274,
     "truthInCandidates": false
    },
    {
@@ -1858,7 +1877,7 @@
      "premiumMark": true,
      "setCode": "afr"
     },
-    "topSimilarity": 0.9366616606712341,
+    "topSimilarity": 0.9760056138038635,
     "truthInCandidates": false
    },
    {
@@ -1871,20 +1890,19 @@
      "premiumMark": false,
      "setCode": "ncc"
     },
-    "topSimilarity": 0.9294697046279907,
+    "topSimilarity": 0.9798195958137512,
     "truthInCandidates": false
    },
    {
     "input": "sim-00570.jpg",
     "accepted": "8996cd43-5ecd-4a05-a5a9-e49326befaa1",
     "truth": "287c7486-472b-4069-9826-6a3adbdefaa6",
-    "reason": "collector line WOE 273 matches a card in the image shortlist",
+    "reason": "set WOE leaves one printing of the top card",
     "reading": {
-     "collectorNumber": "273",
      "premiumMark": false,
      "setCode": "woe"
     },
-    "topSimilarity": 0.8323913216590881,
+    "topSimilarity": 0.9525192379951477,
     "truthInCandidates": false
    },
    {
@@ -1897,7 +1915,7 @@
      "premiumMark": false,
      "setCode": "pca"
     },
-    "topSimilarity": 0.7888091206550598,
+    "topSimilarity": 0.9673119783401489,
     "truthInCandidates": false
    },
    {
@@ -1910,7 +1928,7 @@
      "premiumMark": false,
      "setCode": "m21"
     },
-    "topSimilarity": 0.8838468790054321,
+    "topSimilarity": 0.9617940187454224,
     "truthInCandidates": false
    },
    {
@@ -1923,7 +1941,7 @@
      "premiumMark": false,
      "setCode": "tdm"
     },
-    "topSimilarity": 0.7644723653793335,
+    "topSimilarity": 0.9675577878952026,
     "truthInCandidates": false
    },
    {
@@ -1936,7 +1954,7 @@
      "premiumMark": true,
      "setCode": "afr"
     },
-    "topSimilarity": 0.932439386844635,
+    "topSimilarity": 0.9760684370994568,
     "truthInCandidates": false
    },
    {
@@ -1949,7 +1967,7 @@
      "premiumMark": false,
      "setCode": "sos"
     },
-    "topSimilarity": 0.7455451488494873,
+    "topSimilarity": 0.9693847894668579,
     "truthInCandidates": false
    },
    {
@@ -1962,7 +1980,7 @@
      "premiumMark": false,
      "setCode": "ogw"
     },
-    "topSimilarity": 0.9054484367370605,
+    "topSimilarity": 0.9725217819213867,
     "truthInCandidates": false
    },
    {
@@ -1975,7 +1993,7 @@
      "premiumMark": false,
      "setCode": "ogw"
     },
-    "topSimilarity": 0.936784565448761,
+    "topSimilarity": 0.9834772944450378,
     "truthInCandidates": false
    },
    {
@@ -1988,7 +2006,7 @@
      "premiumMark": false,
      "setCode": "xln"
     },
-    "topSimilarity": 0.9290969967842102,
+    "topSimilarity": 0.9680188894271851,
     "truthInCandidates": false
    },
    {
@@ -2001,7 +2019,7 @@
      "premiumMark": false,
      "setCode": "lci"
     },
-    "topSimilarity": 0.8482065200805664,
+    "topSimilarity": 0.9640800952911377,
     "truthInCandidates": false
    },
    {
@@ -2014,7 +2032,19 @@
      "premiumMark": false,
      "setCode": "eld"
     },
-    "topSimilarity": 0.9516319036483765,
+    "topSimilarity": 0.976008951663971,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00617.jpg",
+    "accepted": "400c76c6-f677-4e7e-87ad-2e526d4b498a",
+    "truth": "e59903e3-a344-4218-9d41-8b19a9bc8311",
+    "reason": "set CLB leaves one printing of the top card",
+    "reading": {
+     "premiumMark": false,
+     "setCode": "clb"
+    },
+    "topSimilarity": 0.9503467082977295,
     "truthInCandidates": false
    },
    {
@@ -2027,7 +2057,7 @@
      "premiumMark": false,
      "setCode": "xln"
     },
-    "topSimilarity": 0.9194667935371399,
+    "topSimilarity": 0.966404139995575,
     "truthInCandidates": false
    },
    {
@@ -2040,7 +2070,7 @@
      "premiumMark": true,
      "setCode": "fdn"
     },
-    "topSimilarity": 0.8885968923568726,
+    "topSimilarity": 0.9474820494651794,
     "truthInCandidates": false
    },
    {
@@ -2053,20 +2083,19 @@
      "premiumMark": false,
      "setCode": "c18"
     },
-    "topSimilarity": 0.8914080858230591,
+    "topSimilarity": 0.9631448984146118,
     "truthInCandidates": false
    },
    {
     "input": "sim-00629.jpg",
     "accepted": "0cc10941-25b4-43cb-8689-c96659bd471d",
     "truth": "8ccfbcc4-9255-4727-a627-1b8778c0e587",
-    "reason": "collector line DDO 24 matches a card in the image shortlist",
+    "reason": "set DDO leaves one printing of the top card",
     "reading": {
-     "collectorNumber": "24",
      "premiumMark": false,
      "setCode": "ddo"
     },
-    "topSimilarity": 0.7848396897315979,
+    "topSimilarity": 0.9457535147666931,
     "truthInCandidates": false
    },
    {
@@ -2079,20 +2108,7 @@
      "premiumMark": true,
      "setCode": "vow"
     },
-    "topSimilarity": 0.919155478477478,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-00647.jpg",
-    "accepted": "b474378c-5fa8-418f-8d76-23e78003ed18",
-    "truth": "8525d2a8-3ef4-48b6-b41a-3946e721ad5a",
-    "reason": "collector line SOI 265 matches a card in the image shortlist",
-    "reading": {
-     "collectorNumber": "265",
-     "premiumMark": false,
-     "setCode": "soi"
-    },
-    "topSimilarity": 0.7338448762893677,
+    "topSimilarity": 0.976172685623169,
     "truthInCandidates": false
    },
    {
@@ -2105,7 +2121,7 @@
      "premiumMark": false,
      "setCode": "ktk"
     },
-    "topSimilarity": 0.9405423998832703,
+    "topSimilarity": 0.9491568803787231,
     "truthInCandidates": false
    },
    {
@@ -2118,7 +2134,7 @@
      "premiumMark": true,
      "setCode": "snc"
     },
-    "topSimilarity": 0.9184125065803528,
+    "topSimilarity": 0.9760733842849731,
     "truthInCandidates": false
    },
    {
@@ -2131,7 +2147,20 @@
      "premiumMark": true,
      "setCode": "one"
     },
-    "topSimilarity": 0.9261056184768677,
+    "topSimilarity": 0.9657940864562988,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00674.jpg",
+    "accepted": "585a753d-a692-474a-bc28-48dd93b73ace",
+    "truth": "93bb6376-88c8-4f0b-8688-c5eaa2b6aa6a",
+    "reason": "collector line BRO 217 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "217",
+     "premiumMark": false,
+     "setCode": "bro"
+    },
+    "topSimilarity": 0.9709718227386475,
     "truthInCandidates": false
    },
    {
@@ -2144,7 +2173,7 @@
      "premiumMark": true,
      "setCode": "blb"
     },
-    "topSimilarity": 0.9250733852386475,
+    "topSimilarity": 0.949959933757782,
     "truthInCandidates": false
    },
    {
@@ -2157,7 +2186,19 @@
      "premiumMark": false,
      "setCode": "m21"
     },
-    "topSimilarity": 0.9215373396873474,
+    "topSimilarity": 0.9681090116500854,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00684.jpg",
+    "accepted": "efcf7e75-5de2-45cc-9275-caccd73214fa",
+    "truth": "1a5bb429-104a-44e1-ab8a-7f251b6c93d1",
+    "reason": "collector line FDN 546 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "546",
+     "premiumMark": false
+    },
+    "topSimilarity": 0.9493176341056824,
     "truthInCandidates": false
    },
    {
@@ -2170,20 +2211,19 @@
      "premiumMark": true,
      "setCode": "stx"
     },
-    "topSimilarity": 0.7260518670082092,
+    "topSimilarity": 0.9623777270317078,
     "truthInCandidates": false
    },
    {
     "input": "sim-00687.jpg",
     "accepted": "89420882-5833-46f0-9a3f-3c8e694074df",
     "truth": "aa75a686-a93c-4de9-8c57-77d5c0663ea9",
-    "reason": "collector line VOC 128 matches a card in the image shortlist",
+    "reason": "set VOC leaves one printing of the top card",
     "reading": {
-     "collectorNumber": "128",
      "premiumMark": false,
      "setCode": "voc"
     },
-    "topSimilarity": 0.9063040614128113,
+    "topSimilarity": 0.965276837348938,
     "truthInCandidates": false
    },
    {
@@ -2196,7 +2236,7 @@
      "premiumMark": false,
      "setCode": "ima"
     },
-    "topSimilarity": 0.9456145763397217,
+    "topSimilarity": 0.9765800833702087,
     "truthInCandidates": false
    },
    {
@@ -2209,7 +2249,20 @@
      "premiumMark": false,
      "setCode": "iko"
     },
-    "topSimilarity": 0.8606227040290833,
+    "topSimilarity": 0.9530842304229736,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00702.jpg",
+    "accepted": "e8dc67a0-05d9-463e-9794-30a7e951c240",
+    "truth": "4779f967-17b3-4184-a829-31f19db3a75d",
+    "reason": "collector line XLN 223 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "223",
+     "premiumMark": true,
+     "setCode": "xln"
+    },
+    "topSimilarity": 0.9650911688804626,
     "truthInCandidates": false
    },
    {
@@ -2222,7 +2275,7 @@
      "premiumMark": false,
      "setCode": "m15"
     },
-    "topSimilarity": 0.9127532839775085,
+    "topSimilarity": 0.9718419313430786,
     "truthInCandidates": false
    },
    {
@@ -2235,7 +2288,7 @@
      "premiumMark": false,
      "setCode": "blb"
     },
-    "topSimilarity": 0.9402771592140198,
+    "topSimilarity": 0.9644820094108582,
     "truthInCandidates": false
    },
    {
@@ -2248,7 +2301,7 @@
      "premiumMark": true,
      "setCode": "mid"
     },
-    "topSimilarity": 0.9343692660331726,
+    "topSimilarity": 0.9668078422546387,
     "truthInCandidates": false
    },
    {
@@ -2261,7 +2314,7 @@
      "premiumMark": true,
      "setCode": "snc"
     },
-    "topSimilarity": 0.9046940207481384,
+    "topSimilarity": 0.9458341598510742,
     "truthInCandidates": false
    },
    {
@@ -2274,7 +2327,7 @@
      "premiumMark": true,
      "setCode": "40k"
     },
-    "topSimilarity": 0.8945009112358093,
+    "topSimilarity": 0.9561094641685486,
     "truthInCandidates": false
    },
    {
@@ -2287,7 +2340,7 @@
      "premiumMark": true,
      "setCode": "rix"
     },
-    "topSimilarity": 0.9439759254455566,
+    "topSimilarity": 0.9733745455741882,
     "truthInCandidates": false
    },
    {
@@ -2300,7 +2353,7 @@
      "premiumMark": false,
      "setCode": "bfz"
     },
-    "topSimilarity": 0.9539754986763,
+    "topSimilarity": 0.9760811924934387,
     "truthInCandidates": false
    },
    {
@@ -2313,7 +2366,7 @@
      "premiumMark": true,
      "setCode": "dom"
     },
-    "topSimilarity": 0.9549658298492432,
+    "topSimilarity": 0.9739664196968079,
     "truthInCandidates": false
    },
    {
@@ -2326,7 +2379,7 @@
      "premiumMark": false,
      "setCode": "fra"
     },
-    "topSimilarity": 0.9163742065429688,
+    "topSimilarity": 0.9668671488761902,
     "truthInCandidates": false
    },
    {
@@ -2339,7 +2392,7 @@
      "premiumMark": true,
      "setCode": "ltr"
     },
-    "topSimilarity": 0.9089297652244568,
+    "topSimilarity": 0.9350959658622742,
     "truthInCandidates": false
    },
    {
@@ -2352,7 +2405,20 @@
      "premiumMark": true,
      "setCode": "fdn"
     },
-    "topSimilarity": 0.9291588068008423,
+    "topSimilarity": 0.9740164875984192,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00759.jpg",
+    "accepted": "65a2fcc9-2317-48a1-a5eb-234fb3300364",
+    "truth": "93304981-3baf-4b3c-8c40-52df6f6207f0",
+    "reason": "collector line ONE 47 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "47",
+     "premiumMark": false,
+     "setCode": "one"
+    },
+    "topSimilarity": 0.9543812870979309,
     "truthInCandidates": false
    },
    {
@@ -2365,19 +2431,7 @@
      "premiumMark": true,
      "setCode": "afr"
     },
-    "topSimilarity": 0.9145567417144775,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-00764.jpg",
-    "accepted": "efc6eea1-9872-47e5-a3bc-3c8c1b9705be",
-    "truth": "3959cf4e-57a5-4355-9837-56f70b321874",
-    "reason": "set TLE leaves one printing of the top card",
-    "reading": {
-     "premiumMark": false,
-     "setCode": "tle"
-    },
-    "topSimilarity": 0.9075904488563538,
+    "topSimilarity": 0.9566484689712524,
     "truthInCandidates": false
    },
    {
@@ -2390,7 +2444,7 @@
      "premiumMark": true,
      "setCode": "ktk"
     },
-    "topSimilarity": 0.9107131361961365,
+    "topSimilarity": 0.9707119464874268,
     "truthInCandidates": false
    },
    {
@@ -2403,7 +2457,7 @@
      "premiumMark": true,
      "setCode": "fin"
     },
-    "topSimilarity": 0.928823709487915,
+    "topSimilarity": 0.9719553589820862,
     "truthInCandidates": false
    },
    {
@@ -2416,7 +2470,7 @@
      "premiumMark": false,
      "setCode": "one"
     },
-    "topSimilarity": 0.75091153383255,
+    "topSimilarity": 0.9517349004745483,
     "truthInCandidates": false
    },
    {
@@ -2429,7 +2483,7 @@
      "premiumMark": true,
      "setCode": "snc"
     },
-    "topSimilarity": 0.9207284450531006,
+    "topSimilarity": 0.956504225730896,
     "truthInCandidates": false
    },
    {
@@ -2442,7 +2496,7 @@
      "premiumMark": false,
      "setCode": "grn"
     },
-    "topSimilarity": 0.9432879090309143,
+    "topSimilarity": 0.9743528366088867,
     "truthInCandidates": false
    },
    {
@@ -2455,7 +2509,7 @@
      "premiumMark": true,
      "setCode": "m20"
     },
-    "topSimilarity": 0.8954136967658997,
+    "topSimilarity": 0.9548205733299255,
     "truthInCandidates": false
    },
    {
@@ -2468,7 +2522,7 @@
      "premiumMark": false,
      "setCode": "dft"
     },
-    "topSimilarity": 0.9289644360542297,
+    "topSimilarity": 0.9692103862762451,
     "truthInCandidates": false
    },
    {
@@ -2481,7 +2535,7 @@
      "premiumMark": true,
      "setCode": "ktk"
     },
-    "topSimilarity": 0.9123643636703491,
+    "topSimilarity": 0.9770476818084717,
     "truthInCandidates": false
    },
    {
@@ -2494,7 +2548,7 @@
      "premiumMark": false,
      "setCode": "otj"
     },
-    "topSimilarity": 0.9265365600585938,
+    "topSimilarity": 0.9442923069000244,
     "truthInCandidates": false
    },
    {
@@ -2507,7 +2561,7 @@
      "premiumMark": true,
      "setCode": "khm"
     },
-    "topSimilarity": 0.7042506337165833,
+    "topSimilarity": 0.9572851061820984,
     "truthInCandidates": false
    },
    {
@@ -2520,20 +2574,7 @@
      "premiumMark": false,
      "setCode": "bfz"
     },
-    "topSimilarity": 0.940945029258728,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-00818.jpg",
-    "accepted": "1da4d4f3-b3cb-4b61-81b8-06ae441c41bf",
-    "truth": "9e97f8b1-01e9-42c3-af0d-05e861de82e5",
-    "reason": "collector line IKO 67 matches a card in the image shortlist",
-    "reading": {
-     "collectorNumber": "67",
-     "premiumMark": false,
-     "setCode": "iko"
-    },
-    "topSimilarity": 0.6995603442192078,
+    "topSimilarity": 0.9795955419540405,
     "truthInCandidates": false
    },
    {
@@ -2546,7 +2587,7 @@
      "premiumMark": false,
      "setCode": "dsk"
     },
-    "topSimilarity": 0.9497049450874329,
+    "topSimilarity": 0.9664306640625,
     "truthInCandidates": false
    },
    {
@@ -2559,7 +2600,7 @@
      "premiumMark": true,
      "setCode": "war"
     },
-    "topSimilarity": 0.8889342546463013,
+    "topSimilarity": 0.955848753452301,
     "truthInCandidates": false
    },
    {
@@ -2572,7 +2613,7 @@
      "premiumMark": false,
      "setCode": "uma"
     },
-    "topSimilarity": 0.9271018505096436,
+    "topSimilarity": 0.9621793031692505,
     "truthInCandidates": false
    },
    {
@@ -2585,7 +2626,7 @@
      "premiumMark": false,
      "setCode": "grn"
     },
-    "topSimilarity": 0.9215047359466553,
+    "topSimilarity": 0.9686684012413025,
     "truthInCandidates": false
    },
    {
@@ -2598,7 +2639,7 @@
      "premiumMark": false,
      "setCode": "emn"
     },
-    "topSimilarity": 0.9549895524978638,
+    "topSimilarity": 0.9774988889694214,
     "truthInCandidates": false
    },
    {
@@ -2608,10 +2649,10 @@
     "reason": "collector line LTR 193 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "193",
-     "premiumMark": true,
+     "premiumMark": false,
      "setCode": "ltr"
     },
-    "topSimilarity": 0.7528520822525024,
+    "topSimilarity": 0.9591515064239502,
     "truthInCandidates": false
    },
    {
@@ -2621,9 +2662,10 @@
     "reason": "collector line 40K 89 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "89",
-     "premiumMark": true
+     "premiumMark": true,
+     "setCode": "40k"
     },
-    "topSimilarity": 0.7626771926879883,
+    "topSimilarity": 0.9577327370643616,
     "truthInCandidates": false
    },
    {
@@ -2636,7 +2678,7 @@
      "premiumMark": false,
      "setCode": "rna"
     },
-    "topSimilarity": 0.8518919944763184,
+    "topSimilarity": 0.9726783633232117,
     "truthInCandidates": false
    },
    {
@@ -2649,7 +2691,7 @@
      "premiumMark": false,
      "setCode": "thb"
     },
-    "topSimilarity": 0.8992570638656616,
+    "topSimilarity": 0.9685639142990112,
     "truthInCandidates": false
    },
    {
@@ -2662,7 +2704,7 @@
      "premiumMark": false,
      "setCode": "lcc"
     },
-    "topSimilarity": 0.8614086508750916,
+    "topSimilarity": 0.9635405540466309,
     "truthInCandidates": false
    },
    {
@@ -2675,7 +2717,7 @@
      "premiumMark": false,
      "setCode": "bro"
     },
-    "topSimilarity": 0.9298064708709717,
+    "topSimilarity": 0.9720536470413208,
     "truthInCandidates": false
    },
    {
@@ -2688,7 +2730,7 @@
      "premiumMark": true,
      "setCode": "afr"
     },
-    "topSimilarity": 0.7619843482971191,
+    "topSimilarity": 0.9417744874954224,
     "truthInCandidates": false
    },
    {
@@ -2701,7 +2743,7 @@
      "premiumMark": true,
      "setCode": "kld"
     },
-    "topSimilarity": 0.7851068377494812,
+    "topSimilarity": 0.9403043985366821,
     "truthInCandidates": false
    },
    {
@@ -2714,7 +2756,7 @@
      "premiumMark": false,
      "setCode": "neo"
     },
-    "topSimilarity": 0.9185276031494141,
+    "topSimilarity": 0.9688791036605835,
     "truthInCandidates": false
    },
    {
@@ -2727,7 +2769,7 @@
      "premiumMark": true,
      "setCode": "war"
     },
-    "topSimilarity": 0.922581136226654,
+    "topSimilarity": 0.9697070717811584,
     "truthInCandidates": false
    },
    {
@@ -2740,7 +2782,7 @@
      "premiumMark": true,
      "setCode": "dft"
     },
-    "topSimilarity": 0.8929204344749451,
+    "topSimilarity": 0.9373971819877625,
     "truthInCandidates": false
    },
    {
@@ -2753,7 +2795,7 @@
      "premiumMark": true,
      "setCode": "dsk"
     },
-    "topSimilarity": 0.7444804906845093,
+    "topSimilarity": 0.953571081161499,
     "truthInCandidates": false
    },
    {
@@ -2766,7 +2808,7 @@
      "premiumMark": true,
      "setCode": "rix"
     },
-    "topSimilarity": 0.9285874366760254,
+    "topSimilarity": 0.9653767943382263,
     "truthInCandidates": false
    },
    {
@@ -2779,7 +2821,7 @@
      "premiumMark": false,
      "setCode": "tdm"
     },
-    "topSimilarity": 0.9254961013793945,
+    "topSimilarity": 0.961993396282196,
     "truthInCandidates": false
    },
    {
@@ -2792,7 +2834,7 @@
      "premiumMark": false,
      "setCode": "fra"
     },
-    "topSimilarity": 0.9034715890884399,
+    "topSimilarity": 0.9538781046867371,
     "truthInCandidates": false
    },
    {
@@ -2805,7 +2847,7 @@
      "premiumMark": true,
      "setCode": "fin"
     },
-    "topSimilarity": 0.9272943735122681,
+    "topSimilarity": 0.9491235613822937,
     "truthInCandidates": false
    },
    {
@@ -2818,20 +2860,7 @@
      "premiumMark": true,
      "setCode": "mh2"
     },
-    "topSimilarity": 0.8792587518692017,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-00932.jpg",
-    "accepted": "9642c5f4-4229-47c4-ac44-7feb5ee9cf9e",
-    "truth": "7adc95ae-fe9d-4cee-9726-5bb2ea2247dd",
-    "reason": "collector line AKH 150 matches a card in the image shortlist",
-    "reading": {
-     "collectorNumber": "150",
-     "premiumMark": false,
-     "setCode": "akh"
-    },
-    "topSimilarity": 0.9264588356018066,
+    "topSimilarity": 0.9744628667831421,
     "truthInCandidates": false
    },
    {
@@ -2844,7 +2873,7 @@
      "premiumMark": false,
      "setCode": "lci"
     },
-    "topSimilarity": 0.8190840482711792,
+    "topSimilarity": 0.969719409942627,
     "truthInCandidates": false
    },
    {
@@ -2857,7 +2886,7 @@
      "premiumMark": false,
      "setCode": "bbd"
     },
-    "topSimilarity": 0.8000671863555908,
+    "topSimilarity": 0.9620852470397949,
     "truthInCandidates": false
    },
    {
@@ -2870,7 +2899,7 @@
      "premiumMark": false,
      "setCode": "thb"
     },
-    "topSimilarity": 0.9378498792648315,
+    "topSimilarity": 0.9551512002944946,
     "truthInCandidates": false
    },
    {
@@ -2883,7 +2912,7 @@
      "premiumMark": true,
      "setCode": "stx"
     },
-    "topSimilarity": 0.91740483045578,
+    "topSimilarity": 0.9681318402290344,
     "truthInCandidates": false
    },
    {
@@ -2896,7 +2925,20 @@
      "premiumMark": false,
      "setCode": "one"
     },
-    "topSimilarity": 0.9191749691963196,
+    "topSimilarity": 0.9719395637512207,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00952.jpg",
+    "accepted": "f587436e-51ff-4c9c-a6ce-e2768844a71a",
+    "truth": "7fb62613-6a65-4f91-b1b2-24f6bf69e211",
+    "reason": "collector line DTK 185 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "185",
+     "premiumMark": false,
+     "setCode": "dtk"
+    },
+    "topSimilarity": 0.9525435566902161,
     "truthInCandidates": false
    },
    {
@@ -2909,7 +2951,7 @@
      "premiumMark": true,
      "setCode": "bro"
     },
-    "topSimilarity": 0.8976964354515076,
+    "topSimilarity": 0.9750814437866211,
     "truthInCandidates": false
    },
    {
@@ -2922,7 +2964,7 @@
      "premiumMark": true,
      "setCode": "tla"
     },
-    "topSimilarity": 0.8761234283447266,
+    "topSimilarity": 0.9586377143859863,
     "truthInCandidates": false
    },
    {
@@ -2935,7 +2977,7 @@
      "premiumMark": true,
      "setCode": "iko"
     },
-    "topSimilarity": 0.9047023057937622,
+    "topSimilarity": 0.969161868095398,
     "truthInCandidates": false
    },
    {
@@ -2948,19 +2990,19 @@
      "premiumMark": true,
      "setCode": "eld"
     },
-    "topSimilarity": 0.9151095151901245,
+    "topSimilarity": 0.945744514465332,
     "truthInCandidates": false
    },
    {
     "input": "sim-00979.jpg",
     "accepted": "52c44610-6d4b-4c14-839f-2c085badec90",
     "truth": "5e673ac9-d420-4b52-a49f-ac713b598d8b",
-    "reason": "only printing of its art, next art 0.067 behind",
+    "reason": "only printing of its art, next art 0.053 behind",
     "reading": {
      "collectorNumber": "81",
      "premiumMark": false
     },
-    "topSimilarity": 0.9380146265029907,
+    "topSimilarity": 0.9602867960929871,
     "truthInCandidates": false
    },
    {
@@ -2973,7 +3015,7 @@
      "premiumMark": true,
      "setCode": "xln"
     },
-    "topSimilarity": 0.7994651794433594,
+    "topSimilarity": 0.9524201154708862,
     "truthInCandidates": false
    },
    {
@@ -2986,7 +3028,20 @@
      "premiumMark": false,
      "setCode": "kld"
     },
-    "topSimilarity": 0.9349725842475891,
+    "topSimilarity": 0.9664759635925293,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01002.jpg",
+    "accepted": "f11cd406-c6ae-4018-ae45-4e5577aa82ae",
+    "truth": "25a816bb-cc21-46e2-961d-8a520edd578f",
+    "reason": "collector line AKH 149 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "149",
+     "premiumMark": true,
+     "setCode": "akh"
+    },
+    "topSimilarity": 0.9634435772895813,
     "truthInCandidates": false
    },
    {
@@ -2999,7 +3054,7 @@
      "premiumMark": false,
      "setCode": "rix"
     },
-    "topSimilarity": 0.8535891771316528,
+    "topSimilarity": 0.970465898513794,
     "truthInCandidates": false
    },
    {
@@ -3012,7 +3067,7 @@
      "premiumMark": false,
      "setCode": "bfz"
     },
-    "topSimilarity": 0.790835440158844,
+    "topSimilarity": 0.9629641771316528,
     "truthInCandidates": false
    },
    {
@@ -3025,7 +3080,7 @@
      "premiumMark": false,
      "setCode": "mom"
     },
-    "topSimilarity": 0.9334441423416138,
+    "topSimilarity": 0.9207872748374939,
     "truthInCandidates": false
    },
    {
@@ -3038,7 +3093,7 @@
      "premiumMark": false,
      "setCode": "ima"
     },
-    "topSimilarity": 0.9203253388404846,
+    "topSimilarity": 0.9843902587890625,
     "truthInCandidates": false
    },
    {
@@ -3051,7 +3106,7 @@
      "premiumMark": false,
      "setCode": "mom"
     },
-    "topSimilarity": 0.7176119089126587,
+    "topSimilarity": 0.9636916518211365,
     "truthInCandidates": false
    },
    {
@@ -3064,7 +3119,7 @@
      "premiumMark": false,
      "setCode": "dft"
     },
-    "topSimilarity": 0.8988919854164124,
+    "topSimilarity": 0.9468744397163391,
     "truthInCandidates": false
    },
    {
@@ -3077,7 +3132,7 @@
      "premiumMark": true,
      "setCode": "khm"
     },
-    "topSimilarity": 0.9093774557113647,
+    "topSimilarity": 0.956559419631958,
     "truthInCandidates": false
    },
    {
@@ -3090,7 +3145,7 @@
      "premiumMark": false,
      "setCode": "afr"
     },
-    "topSimilarity": 0.7598381638526917,
+    "topSimilarity": 0.9572947025299072,
     "truthInCandidates": false
    },
    {
@@ -3103,7 +3158,20 @@
      "premiumMark": false,
      "setCode": "sos"
     },
-    "topSimilarity": 0.928131639957428,
+    "topSimilarity": 0.9686041474342346,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01035.jpg",
+    "accepted": "98a79557-8ed6-4d9a-b4e1-cece05664984",
+    "truth": "cffd0ce2-2702-4e32-810a-ba970649cd4b",
+    "reason": "collector line DFT 183 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "183",
+     "premiumMark": false,
+     "setCode": "dft"
+    },
+    "topSimilarity": 0.9583920240402222,
     "truthInCandidates": false
    },
    {
@@ -3116,7 +3184,7 @@
      "premiumMark": true,
      "setCode": "grn"
     },
-    "topSimilarity": 0.8772495985031128,
+    "topSimilarity": 0.9597070813179016,
     "truthInCandidates": false
    },
    {
@@ -3129,7 +3197,7 @@
      "premiumMark": true,
      "setCode": "soi"
     },
-    "topSimilarity": 0.9086605906486511,
+    "topSimilarity": 0.9697412848472595,
     "truthInCandidates": false
    },
    {
@@ -3142,7 +3210,7 @@
      "premiumMark": true,
      "setCode": "lci"
     },
-    "topSimilarity": 0.9149864912033081,
+    "topSimilarity": 0.9583253860473633,
     "truthInCandidates": false
    },
    {
@@ -3155,7 +3223,20 @@
      "premiumMark": false,
      "setCode": "m20"
     },
-    "topSimilarity": 0.7327045798301697,
+    "topSimilarity": 0.9566279053688049,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01046.jpg",
+    "accepted": "3b8e6878-06aa-4505-b3a5-172083b7d258",
+    "truth": "19864464-a338-4a93-b375-41c1f5e5729d",
+    "reason": "collector line THB 21 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "21",
+     "premiumMark": false,
+     "setCode": "thb"
+    },
+    "topSimilarity": 0.9484922885894775,
     "truthInCandidates": false
    },
    {
@@ -3168,7 +3249,7 @@
      "premiumMark": false,
      "setCode": "m20"
     },
-    "topSimilarity": 0.7618711590766907,
+    "topSimilarity": 0.9467908143997192,
     "truthInCandidates": false
    },
    {
@@ -3181,20 +3262,7 @@
      "premiumMark": false,
      "setCode": "snc"
     },
-    "topSimilarity": 0.7747955918312073,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-01049.jpg",
-    "accepted": "9fd761f3-6b43-4150-8595-dc3abd85b06c",
-    "truth": "aee146cf-1f86-4016-8b42-333f194def8e",
-    "reason": "collector line M21 232 matches a card in the image shortlist",
-    "reading": {
-     "collectorNumber": "232",
-     "premiumMark": false,
-     "setCode": "m21"
-    },
-    "topSimilarity": 0.8873997330665588,
+    "topSimilarity": 0.955539882183075,
     "truthInCandidates": false
    },
    {
@@ -3207,7 +3275,7 @@
      "premiumMark": false,
      "setCode": "eld"
     },
-    "topSimilarity": 0.9163835048675537,
+    "topSimilarity": 0.964552104473114,
     "truthInCandidates": false
    },
    {
@@ -3217,10 +3285,10 @@
     "reason": "collector line RNA 199 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "199",
-     "premiumMark": true,
+     "premiumMark": false,
      "setCode": "rna"
     },
-    "topSimilarity": 0.7309962511062622,
+    "topSimilarity": 0.9632890224456787,
     "truthInCandidates": false
    },
    {
@@ -3233,7 +3301,7 @@
      "premiumMark": false,
      "setCode": "dmu"
     },
-    "topSimilarity": 0.9368941187858582,
+    "topSimilarity": 0.9807802438735962,
     "truthInCandidates": false
    },
    {
@@ -3246,20 +3314,7 @@
      "premiumMark": false,
      "setCode": "thb"
     },
-    "topSimilarity": 0.684138834476471,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-01077.jpg",
-    "accepted": "bae51d77-e06b-4e5a-9543-a17dd0b2a333",
-    "truth": "fe5c09a2-f8e3-43c0-84fa-a15c658979c3",
-    "reason": "collector line KTK 236 matches a card in the image shortlist",
-    "reading": {
-     "collectorNumber": "236",
-     "premiumMark": false,
-     "setCode": "ktk"
-    },
-    "topSimilarity": 0.7505490183830261,
+    "topSimilarity": 0.943393886089325,
     "truthInCandidates": false
    },
    {
@@ -3272,7 +3327,7 @@
      "premiumMark": true,
      "setCode": "m21"
     },
-    "topSimilarity": 0.9195910692214966,
+    "topSimilarity": 0.9610331654548645,
     "truthInCandidates": false
    },
    {
@@ -3285,7 +3340,7 @@
      "premiumMark": false,
      "setCode": "m21"
     },
-    "topSimilarity": 0.8143728971481323,
+    "topSimilarity": 0.9525460004806519,
     "truthInCandidates": false
    },
    {
@@ -3298,7 +3353,7 @@
      "premiumMark": false,
      "setCode": "stx"
     },
-    "topSimilarity": 0.9198023676872253,
+    "topSimilarity": 0.9680271148681641,
     "truthInCandidates": false
    },
    {
@@ -3311,7 +3366,20 @@
      "premiumMark": false,
      "setCode": "mm2"
     },
-    "topSimilarity": 0.9076554775238037,
+    "topSimilarity": 0.9846667051315308,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01100.jpg",
+    "accepted": "17a278d0-f601-4d57-bc3d-2972f8602a69",
+    "truth": "bab61dd9-aae8-42f5-98ce-fb53ba1a3123",
+    "reason": "collector line OGW 86 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "86",
+     "premiumMark": false,
+     "setCode": "ogw"
+    },
+    "topSimilarity": 0.9611342549324036,
     "truthInCandidates": false
    },
    {
@@ -3324,7 +3392,7 @@
      "premiumMark": false,
      "setCode": "m21"
     },
-    "topSimilarity": 0.9200477600097656,
+    "topSimilarity": 0.9649530649185181,
     "truthInCandidates": false
    },
    {
@@ -3337,7 +3405,7 @@
      "premiumMark": true,
      "setCode": "znr"
     },
-    "topSimilarity": 0.9300925135612488,
+    "topSimilarity": 0.9620810747146606,
     "truthInCandidates": false
    },
    {
@@ -3350,7 +3418,7 @@
      "premiumMark": true,
      "setCode": "one"
     },
-    "topSimilarity": 0.9027093648910522,
+    "topSimilarity": 0.9561519622802734,
     "truthInCandidates": false
    },
    {
@@ -3363,7 +3431,7 @@
      "premiumMark": false,
      "setCode": "mid"
     },
-    "topSimilarity": 0.8277183771133423,
+    "topSimilarity": 0.957436740398407,
     "truthInCandidates": false
    },
    {
@@ -3376,7 +3444,7 @@
      "premiumMark": false,
      "setCode": "stx"
     },
-    "topSimilarity": 0.7603957056999207,
+    "topSimilarity": 0.9688258171081543,
     "truthInCandidates": false
    },
    {
@@ -3389,20 +3457,7 @@
      "premiumMark": false,
      "setCode": "fra"
     },
-    "topSimilarity": 0.7681908011436462,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-01124.jpg",
-    "accepted": "ce860ed4-a5bd-4347-9eab-dd716ea84db1",
-    "truth": "940b3aa3-0f57-4b44-8ccb-60229c8cc72d",
-    "reason": "collector line FDN 58 matches a card in the image shortlist",
-    "reading": {
-     "collectorNumber": "58",
-     "premiumMark": false,
-     "setCode": "fdn"
-    },
-    "topSimilarity": 0.9340348243713379,
+    "topSimilarity": 0.9385709166526794,
     "truthInCandidates": false
    },
    {
@@ -3415,7 +3470,7 @@
      "premiumMark": true,
      "setCode": "eoe"
     },
-    "topSimilarity": 0.9497729539871216,
+    "topSimilarity": 0.9647101759910583,
     "truthInCandidates": false
    },
    {
@@ -3428,7 +3483,7 @@
      "premiumMark": true,
      "setCode": "eld"
     },
-    "topSimilarity": 0.9254502058029175,
+    "topSimilarity": 0.9645811319351196,
     "truthInCandidates": false
    },
    {
@@ -3438,10 +3493,10 @@
     "reason": "collector line TDM 32 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "32",
-     "premiumMark": true,
+     "premiumMark": false,
      "setCode": "tdm"
     },
-    "topSimilarity": 0.760638415813446,
+    "topSimilarity": 0.9550310969352722,
     "truthInCandidates": false
    },
    {
@@ -3454,7 +3509,7 @@
      "premiumMark": false,
      "setCode": "war"
     },
-    "topSimilarity": 0.9417946934700012,
+    "topSimilarity": 0.9603323340415955,
     "truthInCandidates": false
    },
    {
@@ -3467,7 +3522,7 @@
      "premiumMark": false,
      "setCode": "eoe"
     },
-    "topSimilarity": 0.9165811538696289,
+    "topSimilarity": 0.9544918537139893,
     "truthInCandidates": false
    },
    {
@@ -3480,7 +3535,7 @@
      "premiumMark": true,
      "setCode": "blb"
     },
-    "topSimilarity": 0.9119370579719543,
+    "topSimilarity": 0.9648370742797852,
     "truthInCandidates": false
    },
    {
@@ -3493,7 +3548,7 @@
      "premiumMark": false,
      "setCode": "big"
     },
-    "topSimilarity": 0.7116485238075256,
+    "topSimilarity": 0.9667689204216003,
     "truthInCandidates": false
    },
    {
@@ -3506,7 +3561,7 @@
      "premiumMark": false,
      "setCode": "aer"
     },
-    "topSimilarity": 0.8825685381889343,
+    "topSimilarity": 0.943651020526886,
     "truthInCandidates": false
    },
    {
@@ -3519,7 +3574,7 @@
      "premiumMark": false,
      "setCode": "mh1"
     },
-    "topSimilarity": 0.7386770248413086,
+    "topSimilarity": 0.9598289132118225,
     "truthInCandidates": false
    },
    {
@@ -3529,22 +3584,23 @@
     "reason": "collector line WOE 38 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "38",
-     "premiumMark": false,
+     "premiumMark": true,
      "setCode": "woe"
     },
-    "topSimilarity": 0.7784189581871033,
+    "topSimilarity": 0.9243000149726868,
     "truthInCandidates": false
    },
    {
     "input": "sim-01170.jpg",
     "accepted": "6f3d2dc5-7b9d-4af6-9f3b-4de90fbf63c9",
     "truth": "d0de50e7-5b3f-4576-9063-619da3b26da9",
-    "reason": "set GRN leaves one printing of the top card",
+    "reason": "collector line GRN 192 matches a card in the image shortlist",
     "reading": {
+     "collectorNumber": "192",
      "premiumMark": true,
      "setCode": "grn"
     },
-    "topSimilarity": 0.9334580302238464,
+    "topSimilarity": 0.9736171960830688,
     "truthInCandidates": false
    },
    {
@@ -3557,7 +3613,7 @@
      "premiumMark": false,
      "setCode": "emn"
     },
-    "topSimilarity": 0.9195837378501892,
+    "topSimilarity": 0.9681588411331177,
     "truthInCandidates": false
    },
    {
@@ -3570,7 +3626,7 @@
      "premiumMark": true,
      "setCode": "m20"
     },
-    "topSimilarity": 0.9353288412094116,
+    "topSimilarity": 0.9676269888877869,
     "truthInCandidates": false
    },
    {
@@ -3583,7 +3639,7 @@
      "premiumMark": false,
      "setCode": "bfz"
     },
-    "topSimilarity": 0.7710001468658447,
+    "topSimilarity": 0.9808800220489502,
     "truthInCandidates": false
    },
    {
@@ -3596,7 +3652,7 @@
      "premiumMark": true,
      "setCode": "m21"
     },
-    "topSimilarity": 0.872304379940033,
+    "topSimilarity": 0.9417969584465027,
     "truthInCandidates": false
    },
    {
@@ -3609,7 +3665,20 @@
      "premiumMark": true,
      "setCode": "clb"
     },
-    "topSimilarity": 0.8819578289985657,
+    "topSimilarity": 0.9529637694358826,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01189.jpg",
+    "accepted": "98c85699-2daf-4e87-a3be-465d02bd64bb",
+    "truth": "e24b5948-7073-4604-a78b-fc1c527b64d1",
+    "reason": "collector line M21 7 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "7",
+     "premiumMark": true,
+     "setCode": "m21"
+    },
+    "topSimilarity": 0.9567349553108215,
     "truthInCandidates": false
    },
    {
@@ -3622,7 +3691,7 @@
      "premiumMark": false,
      "setCode": "eld"
     },
-    "topSimilarity": 0.9255852103233337,
+    "topSimilarity": 0.9526968002319336,
     "truthInCandidates": false
    },
    {
@@ -3635,7 +3704,7 @@
      "premiumMark": true,
      "setCode": "blb"
     },
-    "topSimilarity": 0.923845648765564,
+    "topSimilarity": 0.9668960571289062,
     "truthInCandidates": false
    },
    {
@@ -3648,7 +3717,20 @@
      "premiumMark": false,
      "setCode": "dom"
     },
-    "topSimilarity": 0.9407780766487122,
+    "topSimilarity": 0.9430419206619263,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01213.jpg",
+    "accepted": "9fd761f3-6b43-4150-8595-dc3abd85b06c",
+    "truth": "9b95b2d9-9421-4d9a-a5ed-00f6221c16af",
+    "reason": "collector line M21 232 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "232",
+     "premiumMark": true,
+     "setCode": "m21"
+    },
+    "topSimilarity": 0.9625141620635986,
     "truthInCandidates": false
    },
    {
@@ -3661,7 +3743,7 @@
      "premiumMark": true,
      "setCode": "iko"
     },
-    "topSimilarity": 0.9113625288009644,
+    "topSimilarity": 0.9619925618171692,
     "truthInCandidates": false
    },
    {
@@ -3674,7 +3756,7 @@
      "premiumMark": true,
      "setCode": "mh2"
     },
-    "topSimilarity": 0.9110048413276672,
+    "topSimilarity": 0.9569449424743652,
     "truthInCandidates": false
    },
    {
@@ -3687,7 +3769,7 @@
      "premiumMark": false,
      "setCode": "thb"
     },
-    "topSimilarity": 0.907021701335907,
+    "topSimilarity": 0.9751058220863342,
     "truthInCandidates": false
    },
    {
@@ -3700,7 +3782,7 @@
      "premiumMark": true,
      "setCode": "blb"
     },
-    "topSimilarity": 0.9216328263282776,
+    "topSimilarity": 0.9664587378501892,
     "truthInCandidates": false
    },
    {
@@ -3713,20 +3795,19 @@
      "premiumMark": false,
      "setCode": "m20"
     },
-    "topSimilarity": 0.9564724564552307,
+    "topSimilarity": 0.9792312383651733,
     "truthInCandidates": false
    },
    {
-    "input": "sim-01242.jpg",
-    "accepted": "3941562d-3e39-4746-9a18-d3aa6d3468b0",
-    "truth": "2aa8d3c1-ae2a-4dd5-82c7-1f93f39f4580",
-    "reason": "collector line AKH 99 matches a card in the image shortlist",
+    "input": "sim-01252.jpg",
+    "accepted": "3dc61690-30c6-4374-8777-e1802e9e164c",
+    "truth": "7272906c-14f2-4e06-bbea-b461369e151a",
+    "reason": "set DDO leaves one printing of the top card",
     "reading": {
-     "collectorNumber": "99",
      "premiumMark": false,
-     "setCode": "akh"
+     "setCode": "ddo"
     },
-    "topSimilarity": 0.9159525036811829,
+    "topSimilarity": 0.9791473150253296,
     "truthInCandidates": false
    },
    {
@@ -3739,7 +3820,7 @@
      "premiumMark": false,
      "setCode": "khm"
     },
-    "topSimilarity": 0.8455405235290527,
+    "topSimilarity": 0.9590102434158325,
     "truthInCandidates": false
    },
    {
@@ -3752,7 +3833,7 @@
      "premiumMark": false,
      "setCode": "blb"
     },
-    "topSimilarity": 0.858345627784729,
+    "topSimilarity": 0.9637743830680847,
     "truthInCandidates": false
    },
    {
@@ -3765,7 +3846,7 @@
      "premiumMark": true,
      "setCode": "emn"
     },
-    "topSimilarity": 0.9181111454963684,
+    "topSimilarity": 0.9676114320755005,
     "truthInCandidates": false
    },
    {
@@ -3778,7 +3859,20 @@
      "premiumMark": false,
      "setCode": "dom"
     },
-    "topSimilarity": 0.872203528881073,
+    "topSimilarity": 0.9683979153633118,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01277.jpg",
+    "accepted": "8b195fba-e0e0-4f89-b667-8d54286dd6fe",
+    "truth": "8303eb24-2099-4e3a-8999-9bfed19c20eb",
+    "reason": "collector line 40K 295 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "295",
+     "premiumMark": true,
+     "setCode": "40k"
+    },
+    "topSimilarity": 0.9564082026481628,
     "truthInCandidates": false
    },
    {
@@ -3791,7 +3885,7 @@
      "premiumMark": false,
      "setCode": "otj"
     },
-    "topSimilarity": 0.6962066888809204,
+    "topSimilarity": 0.9577014446258545,
     "truthInCandidates": false
    },
    {
@@ -3804,7 +3898,7 @@
      "premiumMark": true,
      "setCode": "thb"
     },
-    "topSimilarity": 0.9177860021591187,
+    "topSimilarity": 0.9741765260696411,
     "truthInCandidates": false
    },
    {
@@ -3817,7 +3911,7 @@
      "premiumMark": true,
      "setCode": "kld"
     },
-    "topSimilarity": 0.860534131526947,
+    "topSimilarity": 0.9617089033126831,
     "truthInCandidates": false
    },
    {
@@ -3830,7 +3924,7 @@
      "premiumMark": false,
      "setCode": "blb"
     },
-    "topSimilarity": 0.7564865350723267,
+    "topSimilarity": 0.9581426382064819,
     "truthInCandidates": false
    },
    {
@@ -3843,7 +3937,7 @@
      "premiumMark": false,
      "setCode": "tdm"
     },
-    "topSimilarity": 0.8625614047050476,
+    "topSimilarity": 0.9454748630523682,
     "truthInCandidates": false
    },
    {
@@ -3853,10 +3947,9 @@
     "reason": "collector line NEO 221 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "221",
-     "premiumMark": true,
-     "setCode": "neo"
+     "premiumMark": true
     },
-    "topSimilarity": 0.8697329759597778,
+    "topSimilarity": 0.9492642879486084,
     "truthInCandidates": false
    },
    {
@@ -3869,7 +3962,7 @@
      "premiumMark": true,
      "setCode": "one"
     },
-    "topSimilarity": 0.9447095394134521,
+    "topSimilarity": 0.9449090957641602,
     "truthInCandidates": false
    },
    {
@@ -3882,7 +3975,33 @@
      "premiumMark": true,
      "setCode": "stx"
     },
-    "topSimilarity": 0.7988364100456238,
+    "topSimilarity": 0.9647629261016846,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01305.jpg",
+    "accepted": "9620716d-9be8-4ebd-80d2-679373f4f897",
+    "truth": "2e91e16a-f122-4f93-a350-c40b98d18c98",
+    "reason": "collector line M19 33 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "33",
+     "premiumMark": false,
+     "setCode": "m19"
+    },
+    "topSimilarity": 0.9484987854957581,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01306.jpg",
+    "accepted": "3a9fb2db-228f-4d48-acdf-6330baf356c7",
+    "truth": "25b9a3a3-b1b0-4959-b1b9-53bf3148c02d",
+    "reason": "collector line IKO 184 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "184",
+     "premiumMark": true,
+     "setCode": "iko"
+    },
+    "topSimilarity": 0.9604288339614868,
     "truthInCandidates": false
    },
    {
@@ -3895,7 +4014,7 @@
      "premiumMark": true,
      "setCode": "dtk"
     },
-    "topSimilarity": 0.719733476638794,
+    "topSimilarity": 0.9697664380073547,
     "truthInCandidates": false
    },
    {
@@ -3908,7 +4027,7 @@
      "premiumMark": true,
      "setCode": "blb"
     },
-    "topSimilarity": 0.8287606835365295,
+    "topSimilarity": 0.964986264705658,
     "truthInCandidates": false
    },
    {
@@ -3921,7 +4040,7 @@
      "premiumMark": true,
      "setCode": "znr"
     },
-    "topSimilarity": 0.904592752456665,
+    "topSimilarity": 0.9706647396087646,
     "truthInCandidates": false
    },
    {
@@ -3933,7 +4052,7 @@
      "premiumMark": false,
      "setCode": "ogw"
     },
-    "topSimilarity": 0.9188835024833679,
+    "topSimilarity": 0.9669151902198792,
     "truthInCandidates": false
    },
    {
@@ -3946,20 +4065,19 @@
      "premiumMark": false,
      "setCode": "one"
     },
-    "topSimilarity": 0.7574570775032043,
+    "topSimilarity": 0.9544809460639954,
     "truthInCandidates": false
    },
    {
     "input": "sim-01347.jpg",
     "accepted": "fb4ed14d-369e-4dd0-a6bf-258f031855fb",
     "truth": "a68379b6-e2f8-4755-b231-41e4813175ec",
-    "reason": "collector line E01 10 matches a card in the image shortlist",
+    "reason": "only printing of its art, next art 0.036 behind",
     "reading": {
      "collectorNumber": "10",
-     "premiumMark": false,
-     "setCode": "e01"
+     "premiumMark": false
     },
-    "topSimilarity": 0.9222664833068848,
+    "topSimilarity": 0.9639213681221008,
     "truthInCandidates": false
    },
    {
@@ -3972,7 +4090,7 @@
      "premiumMark": false,
      "setCode": "m15"
     },
-    "topSimilarity": 0.9060695767402649,
+    "topSimilarity": 0.9645347595214844,
     "truthInCandidates": false
    },
    {
@@ -3985,7 +4103,7 @@
      "premiumMark": true,
      "setCode": "frf"
     },
-    "topSimilarity": 0.9147843718528748,
+    "topSimilarity": 0.9544870853424072,
     "truthInCandidates": false
    },
    {
@@ -3998,7 +4116,7 @@
      "premiumMark": false,
      "setCode": "c15"
     },
-    "topSimilarity": 0.9488487243652344,
+    "topSimilarity": 0.9809204339981079,
     "truthInCandidates": false
    },
    {
@@ -4011,7 +4129,7 @@
      "premiumMark": true,
      "setCode": "dom"
     },
-    "topSimilarity": 0.9165491461753845,
+    "topSimilarity": 0.9625656008720398,
     "truthInCandidates": false
    },
    {
@@ -4024,7 +4142,7 @@
      "premiumMark": false,
      "setCode": "ori"
     },
-    "topSimilarity": 0.9276185631752014,
+    "topSimilarity": 0.9673761129379272,
     "truthInCandidates": false
    },
    {
@@ -4037,7 +4155,7 @@
      "premiumMark": false,
      "setCode": "znr"
     },
-    "topSimilarity": 0.9190495610237122,
+    "topSimilarity": 0.9578080773353577,
     "truthInCandidates": false
    },
    {
@@ -4050,7 +4168,7 @@
      "premiumMark": false,
      "setCode": "rvr"
     },
-    "topSimilarity": 0.8923140168190002,
+    "topSimilarity": 0.9548702836036682,
     "truthInCandidates": false
    },
    {
@@ -4063,7 +4181,7 @@
      "premiumMark": true,
      "setCode": "bro"
     },
-    "topSimilarity": 0.9189153909683228,
+    "topSimilarity": 0.9660139679908752,
     "truthInCandidates": false
    },
    {
@@ -4076,20 +4194,19 @@
      "premiumMark": false,
      "setCode": "mh1"
     },
-    "topSimilarity": 0.8194909691810608,
+    "topSimilarity": 0.9653846025466919,
     "truthInCandidates": false
    },
    {
     "input": "sim-01386.jpg",
     "accepted": "437ded6e-4e53-49fa-a5ca-fd76b9165a47",
     "truth": "ca9d37a5-a37f-4d7e-81ed-a33abef0b22a",
-    "reason": "collector line JMP 154 matches a card in the image shortlist",
+    "reason": "set JMP leaves one printing of the top card",
     "reading": {
-     "collectorNumber": "154",
      "premiumMark": false,
      "setCode": "jmp"
     },
-    "topSimilarity": 0.9102970957756042,
+    "topSimilarity": 0.9604550004005432,
     "truthInCandidates": false
    },
    {
@@ -4102,7 +4219,7 @@
      "premiumMark": false,
      "setCode": "neo"
     },
-    "topSimilarity": 0.7857552766799927,
+    "topSimilarity": 0.9753878712654114,
     "truthInCandidates": false
    },
    {
@@ -4115,7 +4232,7 @@
      "premiumMark": false,
      "setCode": "bfz"
     },
-    "topSimilarity": 0.703285276889801,
+    "topSimilarity": 0.9678257703781128,
     "truthInCandidates": false
    },
    {
@@ -4128,7 +4245,7 @@
      "premiumMark": true,
      "setCode": "snc"
     },
-    "topSimilarity": 0.9267303943634033,
+    "topSimilarity": 0.9679409265518188,
     "truthInCandidates": false
    },
    {
@@ -4141,7 +4258,7 @@
      "premiumMark": false,
      "setCode": "dsk"
     },
-    "topSimilarity": 0.7184820175170898,
+    "topSimilarity": 0.8866931200027466,
     "truthInCandidates": false
    },
    {
@@ -4154,7 +4271,7 @@
      "premiumMark": false,
      "setCode": "mkm"
     },
-    "topSimilarity": 0.9152597784996033,
+    "topSimilarity": 0.9454020857810974,
     "truthInCandidates": false
    },
    {
@@ -4167,7 +4284,7 @@
      "premiumMark": false,
      "setCode": "neo"
     },
-    "topSimilarity": 0.7864764332771301,
+    "topSimilarity": 0.9683476090431213,
     "truthInCandidates": false
    },
    {
@@ -4177,10 +4294,10 @@
     "reason": "collector line OTJ 9 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "9",
-     "premiumMark": true,
+     "premiumMark": false,
      "setCode": "otj"
     },
-    "topSimilarity": 0.9411783218383789,
+    "topSimilarity": 0.9628318548202515,
     "truthInCandidates": false
    },
    {
@@ -4193,7 +4310,7 @@
      "premiumMark": true,
      "setCode": "dft"
     },
-    "topSimilarity": 0.916068434715271,
+    "topSimilarity": 0.9506496787071228,
     "truthInCandidates": false
    },
    {
@@ -4206,7 +4323,7 @@
      "premiumMark": true,
      "setCode": "one"
     },
-    "topSimilarity": 0.9155736565589905,
+    "topSimilarity": 0.9627110362052917,
     "truthInCandidates": false
    },
    {
@@ -4219,7 +4336,7 @@
      "premiumMark": false,
      "setCode": "m19"
     },
-    "topSimilarity": 0.9344697594642639,
+    "topSimilarity": 0.9671376943588257,
     "truthInCandidates": false
    },
    {
@@ -4232,7 +4349,7 @@
      "premiumMark": true,
      "setCode": "vow"
     },
-    "topSimilarity": 0.9414933323860168,
+    "topSimilarity": 0.966641902923584,
     "truthInCandidates": false
    },
    {
@@ -4245,7 +4362,7 @@
      "premiumMark": false,
      "setCode": "ncc"
     },
-    "topSimilarity": 0.9245198965072632,
+    "topSimilarity": 0.9788967967033386,
     "truthInCandidates": false
    },
    {
@@ -4258,7 +4375,20 @@
      "premiumMark": true,
      "setCode": "afc"
     },
-    "topSimilarity": 0.9431594014167786,
+    "topSimilarity": 0.9760887622833252,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01433.jpg",
+    "accepted": "251f89c5-d4da-4754-83fa-218c8864ef41",
+    "truth": "d6df465c-11f5-4b42-9ff1-e89b92aa1f31",
+    "reason": "collector line ORI 220 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "220",
+     "premiumMark": false,
+     "setCode": "ori"
+    },
+    "topSimilarity": 0.9820418357849121,
     "truthInCandidates": false
    },
    {
@@ -4271,7 +4401,7 @@
      "premiumMark": false,
      "setCode": "mh3"
     },
-    "topSimilarity": 0.9332906007766724,
+    "topSimilarity": 0.9814825654029846,
     "truthInCandidates": false
    },
    {
@@ -4284,7 +4414,7 @@
      "premiumMark": false,
      "setCode": "war"
     },
-    "topSimilarity": 0.9357110857963562,
+    "topSimilarity": 0.9636927843093872,
     "truthInCandidates": false
    },
    {
@@ -4297,20 +4427,7 @@
      "premiumMark": true,
      "setCode": "eld"
     },
-    "topSimilarity": 0.9359313249588013,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-01450.jpg",
-    "accepted": "9e4fc5ed-e90d-4965-985a-ed126a713506",
-    "truth": "2168b98d-f4d0-437e-b01e-055f08cefabb",
-    "reason": "collector line AER 152 matches a card in the image shortlist",
-    "reading": {
-     "collectorNumber": "152",
-     "premiumMark": true,
-     "setCode": "aer"
-    },
-    "topSimilarity": 0.8784729242324829,
+    "topSimilarity": 0.9671639204025269,
     "truthInCandidates": false
    },
    {
@@ -4323,7 +4440,7 @@
      "premiumMark": true,
      "setCode": "tla"
     },
-    "topSimilarity": 0.8530739545822144,
+    "topSimilarity": 0.9582931399345398,
     "truthInCandidates": false
    },
    {
@@ -4336,7 +4453,7 @@
      "premiumMark": false,
      "setCode": "soi"
     },
-    "topSimilarity": 0.9137915968894958,
+    "topSimilarity": 0.9695360660552979,
     "truthInCandidates": false
    },
    {
@@ -4349,7 +4466,7 @@
      "premiumMark": false,
      "setCode": "c17"
     },
-    "topSimilarity": 0.9382526278495789,
+    "topSimilarity": 0.9674471020698547,
     "truthInCandidates": false
    },
    {
@@ -4362,7 +4479,7 @@
      "premiumMark": false,
      "setCode": "iko"
     },
-    "topSimilarity": 0.9370404481887817,
+    "topSimilarity": 0.9583185911178589,
     "truthInCandidates": false
    },
    {
@@ -4375,7 +4492,7 @@
      "premiumMark": true,
      "setCode": "eoe"
     },
-    "topSimilarity": 0.9504365921020508,
+    "topSimilarity": 0.9686601758003235,
     "truthInCandidates": false
    },
    {
@@ -4388,7 +4505,7 @@
      "premiumMark": false,
      "setCode": "c18"
     },
-    "topSimilarity": 0.9122651219367981,
+    "topSimilarity": 0.9627202153205872,
     "truthInCandidates": false
    },
    {
@@ -4401,7 +4518,7 @@
      "premiumMark": false,
      "setCode": "snc"
     },
-    "topSimilarity": 0.9086929559707642,
+    "topSimilarity": 0.9618840217590332,
     "truthInCandidates": false
    },
    {
@@ -4414,7 +4531,7 @@
      "premiumMark": true,
      "setCode": "m21"
     },
-    "topSimilarity": 0.9147591590881348,
+    "topSimilarity": 0.9659562706947327,
     "truthInCandidates": false
    },
    {
@@ -4427,7 +4544,7 @@
      "premiumMark": true,
      "setCode": "bro"
     },
-    "topSimilarity": 0.912521481513977,
+    "topSimilarity": 0.963982105255127,
     "truthInCandidates": false
    },
    {
@@ -4440,7 +4557,20 @@
      "premiumMark": false,
      "setCode": "c14"
     },
-    "topSimilarity": 0.7776151895523071,
+    "topSimilarity": 0.9727810621261597,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01488.jpg",
+    "accepted": "d94c15b7-6c8f-45a6-8734-975e3e3b790c",
+    "truth": "e8357390-d760-4298-b170-634e53ae714a",
+    "reason": "collector line DMU 201 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "201",
+     "premiumMark": true,
+     "setCode": "dmu"
+    },
+    "topSimilarity": 0.963708758354187,
     "truthInCandidates": false
    },
    {
@@ -4453,7 +4583,7 @@
      "premiumMark": false,
      "setCode": "dmu"
     },
-    "topSimilarity": 0.744881808757782,
+    "topSimilarity": 0.970562756061554,
     "truthInCandidates": false
    },
    {
@@ -4466,7 +4596,7 @@
      "premiumMark": false,
      "setCode": "afr"
     },
-    "topSimilarity": 0.9363688826560974,
+    "topSimilarity": 0.9797595739364624,
     "truthInCandidates": false
    },
    {
@@ -4479,19 +4609,7 @@
      "premiumMark": false,
      "setCode": "neo"
     },
-    "topSimilarity": 0.7614210844039917,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-01494.jpg",
-    "accepted": "36985a8e-dcc0-4349-93d7-071370a75615",
-    "truth": "d01fe6e9-49ee-4708-833e-75cd5a9f167c",
-    "reason": "set SOS leaves one printing of the top card",
-    "reading": {
-     "premiumMark": false,
-     "setCode": "sos"
-    },
-    "topSimilarity": 0.9587143659591675,
+    "topSimilarity": 0.9456964135169983,
     "truthInCandidates": false
    },
    {
@@ -4504,7 +4622,7 @@
      "premiumMark": false,
      "setCode": "dsk"
     },
-    "topSimilarity": 0.9111833572387695,
+    "topSimilarity": 0.950015664100647,
     "truthInCandidates": false
    },
    {
@@ -4517,7 +4635,7 @@
      "premiumMark": false,
      "setCode": "mkm"
     },
-    "topSimilarity": 0.9090607762336731,
+    "topSimilarity": 0.964579164981842,
     "truthInCandidates": false
    },
    {
@@ -4526,9 +4644,10 @@
     "truth": "aecbe209-7f91-4add-98e0-e6ffa1739631",
     "reason": "set J22 leaves one printing of the top card",
     "reading": {
-     "premiumMark": false
+     "premiumMark": false,
+     "setCode": "j22"
     },
-    "topSimilarity": 0.8430676460266113,
+    "topSimilarity": 0.8921633362770081,
     "truthInCandidates": false
    },
    {
@@ -4541,7 +4660,7 @@
      "premiumMark": false,
      "setCode": "mkm"
     },
-    "topSimilarity": 0.908134400844574,
+    "topSimilarity": 0.9713268876075745,
     "truthInCandidates": false
    },
    {
@@ -4554,7 +4673,31 @@
      "premiumMark": true,
      "setCode": "ktk"
     },
-    "topSimilarity": 0.8727819323539734,
+    "topSimilarity": 0.9727355241775513,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01750.jpg",
+    "accepted": "7bb41fa6-0cc6-43e5-9aa8-fcd9c781f4ce",
+    "truth": "648fa3db-5dde-4dc9-889b-c3dd783d6cb9",
+    "reason": "only printing of its art, next art 0.066 behind",
+    "reading": {
+     "premiumMark": false
+    },
+    "topSimilarity": 0.9017082452774048,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-01778.jpg",
+    "accepted": "581b7327-3215-4a4f-b4ae-d9d4002ba882",
+    "truth": "27a21d19-5631-43f8-817d-51ccb5aa0f05",
+    "reason": "collector line DOM 168 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "168",
+     "premiumMark": true,
+     "setCode": "dom"
+    },
+    "topSimilarity": 0.9279838800430298,
     "truthInCandidates": false
    },
    {
@@ -4567,7 +4710,7 @@
      "premiumMark": true,
      "setCode": "akh"
     },
-    "topSimilarity": 0.8472366333007812,
+    "topSimilarity": 0.9373161792755127,
     "truthInCandidates": false
    },
    {
@@ -4580,7 +4723,7 @@
      "premiumMark": true,
      "setCode": "dtk"
     },
-    "topSimilarity": 0.8900188207626343,
+    "topSimilarity": 0.9544214606285095,
     "truthInCandidates": false
    },
    {
@@ -4593,7 +4736,7 @@
      "premiumMark": false,
      "setCode": "mkm"
     },
-    "topSimilarity": 0.7279282808303833,
+    "topSimilarity": 0.9571937322616577,
     "truthInCandidates": false
    },
    {
@@ -4606,7 +4749,18 @@
      "premiumMark": true,
      "setCode": "emn"
     },
-    "topSimilarity": 0.8496942520141602,
+    "topSimilarity": 0.9421024322509766,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-02067.jpg",
+    "accepted": "8d727b9b-6114-414d-9172-16b6e1db41cc",
+    "truth": "8dd7eac8-d6df-48b2-8e64-bdf198c53264",
+    "reason": "only printing of its art, next art 0.051 behind",
+    "reading": {
+     "premiumMark": false
+    },
+    "topSimilarity": 0.8635129332542419,
     "truthInCandidates": false
    },
    {
@@ -4619,7 +4773,19 @@
      "premiumMark": true,
      "setCode": "ktk"
     },
-    "topSimilarity": 0.8862259387969971,
+    "topSimilarity": 0.9472917914390564,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-02137.jpg",
+    "accepted": "09b2b263-34db-4961-bf41-1eaaba3701da",
+    "truth": "79a47c13-fad4-4399-ae49-cc7d190c5ec1",
+    "reason": "set KTK leaves one printing of the top card",
+    "reading": {
+     "premiumMark": false,
+     "setCode": "ktk"
+    },
+    "topSimilarity": 0.9220544099807739,
     "truthInCandidates": false
    },
    {
@@ -4632,7 +4798,7 @@
      "premiumMark": true,
      "setCode": "emn"
     },
-    "topSimilarity": 0.8392912745475769,
+    "topSimilarity": 0.928704023361206,
     "truthInCandidates": false
    },
    {
@@ -4645,7 +4811,7 @@
      "premiumMark": true,
      "setCode": "m20"
     },
-    "topSimilarity": 0.8608893156051636,
+    "topSimilarity": 0.9399635791778564,
     "truthInCandidates": false
    },
    {
@@ -4658,19 +4824,56 @@
      "premiumMark": false,
      "setCode": "ktk"
     },
-    "topSimilarity": 0.7264431715011597,
+    "topSimilarity": 0.9493380188941956,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-02222.jpg",
+    "accepted": "212ca7e7-5ba3-4da7-a2f0-16c721004bac",
+    "truth": "e9e9a569-4a6a-4440-a99c-aa608ee3dacc",
+    "reason": "only printing of its art, next art 0.043 behind",
+    "reading": {
+     "premiumMark": false
+    },
+    "topSimilarity": 0.8613882064819336,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-02352.jpg",
+    "accepted": "b90df81c-d738-46b3-8e96-9db0b3507ee0",
+    "truth": "2c86aae8-08bb-4acc-b39b-10e5b2ac40d9",
+    "reason": "collector line DOM 204 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "204",
+     "premiumMark": true,
+     "setCode": "dom"
+    },
+    "topSimilarity": 0.9246861338615417,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-02383.jpg",
+    "accepted": "d0c18ffe-a2b9-40df-a6b4-a9381e6dc467",
+    "truth": "eae0bf5a-d5b1-4d87-af8e-e7dd512dfb4a",
+    "reason": "set SPM leaves one printing of the top card",
+    "reading": {
+     "premiumMark": false,
+     "setCode": "spm"
+    },
+    "topSimilarity": 0.7827982306480408,
     "truthInCandidates": false
    },
    {
     "input": "sim-02387.jpg",
     "accepted": "badac9b4-bfaf-4b02-a48a-ec141393566c",
     "truth": "d47c49b9-bba2-4c1d-af2c-b0b79e0ae14d",
-    "reason": "only printing of its art, next art 0.048 behind",
+    "reason": "collector line THB 264 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "264",
-     "premiumMark": false
+     "premiumMark": false,
+     "setCode": "thb"
     },
-    "topSimilarity": 0.7416130304336548,
+    "topSimilarity": 0.951021671295166,
     "truthInCandidates": false
    },
    {
@@ -4683,7 +4886,7 @@
      "premiumMark": true,
      "setCode": "mul"
     },
-    "topSimilarity": 0.8735226392745972,
+    "topSimilarity": 0.9254330992698669,
     "truthInCandidates": false
    },
    {
@@ -4696,7 +4899,7 @@
      "premiumMark": true,
      "setCode": "mul"
     },
-    "topSimilarity": 0.8588249683380127,
+    "topSimilarity": 0.9577379822731018,
     "truthInCandidates": false
    },
    {
@@ -4708,7 +4911,7 @@
      "premiumMark": true,
      "setCode": "uma"
     },
-    "topSimilarity": 0.9082970023155212,
+    "topSimilarity": 0.9541913270950317,
     "truthInCandidates": false
    },
    {
@@ -4721,7 +4924,19 @@
      "premiumMark": false,
      "setCode": "iko"
     },
-    "topSimilarity": 0.9089754819869995,
+    "topSimilarity": 0.9572627544403076,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-02477.jpg",
+    "accepted": "a1ad561c-ccb4-480a-88a4-0555d0ef245e",
+    "truth": "7fb5e087-2deb-4c03-8ccc-ba4b061875e4",
+    "reason": "set LTR leaves one printing of the top card",
+    "reading": {
+     "premiumMark": false,
+     "setCode": "ltr"
+    },
+    "topSimilarity": 0.8987356424331665,
     "truthInCandidates": false
    },
    {
@@ -4734,7 +4949,7 @@
      "premiumMark": true,
      "setCode": "mul"
     },
-    "topSimilarity": 0.9372910261154175,
+    "topSimilarity": 0.9651062488555908,
     "truthInCandidates": false
    },
    {
@@ -4747,7 +4962,7 @@
      "premiumMark": false,
      "setCode": "sld"
     },
-    "topSimilarity": 0.6793012619018555,
+    "topSimilarity": 0.9299535751342773,
     "truthInCandidates": false
    },
    {
@@ -4760,19 +4975,7 @@
      "premiumMark": false,
      "setCode": "sld"
     },
-    "topSimilarity": 0.7040168642997742,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-02555.jpg",
-    "accepted": "6e67802e-e0d9-4989-b1c2-77ef2ff69796",
-    "truth": "f256df02-6498-4775-b6f2-eb7c248e9945",
-    "reason": "set MIC leaves one printing of the top card",
-    "reading": {
-     "premiumMark": false,
-     "setCode": "mic"
-    },
-    "topSimilarity": 0.7077028155326843,
+    "topSimilarity": 0.940571129322052,
     "truthInCandidates": false
    },
    {
@@ -4785,7 +4988,7 @@
      "premiumMark": false,
      "setCode": "sld"
     },
-    "topSimilarity": 0.7945520281791687,
+    "topSimilarity": 0.9473944306373596,
     "truthInCandidates": false
    },
    {
@@ -4798,7 +5001,7 @@
      "premiumMark": false,
      "setCode": "sld"
     },
-    "topSimilarity": 0.8993443846702576,
+    "topSimilarity": 0.9543485641479492,
     "truthInCandidates": false
    },
    {
@@ -4810,7 +5013,31 @@
      "premiumMark": true,
      "setCode": "uma"
     },
-    "topSimilarity": 0.7871954441070557,
+    "topSimilarity": 0.9423183798789978,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-02599.jpg",
+    "accepted": "a0700298-30d2-45a6-bd64-4fd7fa4d7d30",
+    "truth": "8dd01d73-2d79-41eb-816b-bea7c7db41b2",
+    "reason": "only printing of its art, next art 0.125 behind",
+    "reading": {
+     "collectorNumber": "39",
+     "premiumMark": false
+    },
+    "topSimilarity": 0.9261988997459412,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-02615.jpg",
+    "accepted": "e653437e-2e56-4443-aec5-5bb7d8860238",
+    "truth": "1e945c79-6c1e-404a-8993-655851566928",
+    "reason": "set UMA leaves one printing of the top card",
+    "reading": {
+     "premiumMark": true,
+     "setCode": "uma"
+    },
+    "topSimilarity": 0.9398934841156006,
     "truthInCandidates": false
    },
    {
@@ -4823,179 +5050,190 @@
      "premiumMark": false,
      "setCode": "ss3"
     },
-    "topSimilarity": 0.9500319957733154,
+    "topSimilarity": 0.9738041758537292,
     "truthInCandidates": false
    },
    {
-    "input": "sim-02657.jpg",
-    "accepted": "82003d72-5138-4341-a53a-62b794f2bce1",
-    "truth": "bf068962-5372-4f8c-ae10-6457168e5731",
-    "reason": "set DMC leaves one printing of the top card",
+    "input": "sim-02659.jpg",
+    "accepted": "228c1650-da3c-4099-91b6-18e3873c9cdb",
+    "truth": "530ed3d8-d176-44c8-ba54-f2536ceeb497",
+    "reason": "set ZNR leaves one printing of the top card",
     "reading": {
-     "premiumMark": true
+     "premiumMark": false,
+     "setCode": "znr"
     },
-    "topSimilarity": 0.8923391103744507,
+    "topSimilarity": 0.9493839144706726,
     "truthInCandidates": false
    },
    {
     "input": "sim-02730.jpg",
     "accepted": "541e06cb-5616-40b4-9d36-89471a795ac8",
     "truth": "171edc1c-47ca-4da1-81b3-736d2083bda3",
-    "reason": "only printing of its art, next art 0.112 behind",
+    "reason": "only printing of its art, next art 0.137 behind",
     "reading": {
      "collectorNumber": "124",
      "premiumMark": false
     },
-    "topSimilarity": 0.9176506400108337,
+    "topSimilarity": 0.9523604512214661,
     "truthInCandidates": false
    },
    {
     "input": "sim-02745.jpg",
     "accepted": "aae08938-e563-4322-b2eb-db81913ea730",
     "truth": "f6df83aa-e414-4968-9425-6107b4ca2adc",
-    "reason": "only printing of its art, next art 0.116 behind",
+    "reason": "only printing of its art, next art 0.167 behind",
     "reading": {
      "premiumMark": false
     },
-    "topSimilarity": 0.7798385620117188,
+    "topSimilarity": 0.9271901249885559,
     "truthInCandidates": false
    },
    {
     "input": "sim-02768.jpg",
     "accepted": "314b5efa-c16f-4bcf-beed-bd0d77511a25",
     "truth": "f3c7c034-f70e-47c1-b4e9-ec34194bf0b6",
-    "reason": "only printing of its art, next art 0.086 behind",
+    "reason": "only printing of its art, next art 0.046 behind",
     "reading": {
-     "collectorNumber": "113",
      "premiumMark": false
     },
-    "topSimilarity": 0.888037919998169,
+    "topSimilarity": 0.9636504650115967,
     "truthInCandidates": false
    },
    {
     "input": "sim-02770.jpg",
     "accepted": "bf0e94c9-61c4-4cc0-b5ce-db62bc2660ee",
     "truth": "5c94e2b8-9fe6-41fd-bf43-ab7534abfd33",
-    "reason": "only printing of its art, next art 0.051 behind",
+    "reason": "only printing of its art, next art 0.106 behind",
     "reading": {
      "premiumMark": false
     },
-    "topSimilarity": 0.8748905062675476,
+    "topSimilarity": 0.9473631978034973,
     "truthInCandidates": false
    },
    {
     "input": "sim-02783.jpg",
     "accepted": "bafbd034-c8a0-4798-a680-555c13bdd251",
     "truth": "d246e498-5033-41dc-b995-b459115c98dd",
-    "reason": "only printing of its art, next art 0.042 behind",
+    "reason": "only printing of its art, next art 0.180 behind",
     "reading": {
      "collectorNumber": "176",
      "premiumMark": false
     },
-    "topSimilarity": 0.8561879396438599,
+    "topSimilarity": 0.9528982043266296,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-02784.jpg",
+    "accepted": "7f711ea8-a73a-42da-8bf7-101ba588f203",
+    "truth": "d66e94b9-23f6-45a8-97bd-602e3aaa6711",
+    "reason": "only printing of its art, next art 0.115 behind",
+    "reading": {
+     "premiumMark": false
+    },
+    "topSimilarity": 0.9055604934692383,
     "truthInCandidates": false
    },
    {
     "input": "sim-02812.jpg",
     "accepted": "f52c2f83-9535-4ee5-9964-5cc01e617981",
     "truth": "73dc2f98-e910-4fea-b775-479a666f64ef",
-    "reason": "only printing of its art, next art 0.116 behind",
+    "reason": "only printing of its art, next art 0.151 behind",
     "reading": {
      "premiumMark": false
     },
-    "topSimilarity": 0.9255092740058899,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-02840.jpg",
-    "accepted": "108a9ef2-c74a-450b-8148-4fdf9f09843f",
-    "truth": "ad65c721-b601-46f9-ba0b-ac4d96567cee",
-    "reason": "only printing of its art, next art 0.096 behind",
-    "reading": {
-     "premiumMark": false
-    },
-    "topSimilarity": 0.7190757393836975,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-02841.jpg",
-    "accepted": "fcee3d9c-8621-4a74-ae1c-6e410d4c2552",
-    "truth": "21c3bb62-63b4-4b53-9e4d-edfc7487494b",
-    "reason": "only printing of its art, next art 0.041 behind",
-    "reading": {
-     "premiumMark": false
-    },
-    "topSimilarity": 0.7086405158042908,
+    "topSimilarity": 0.9630011320114136,
     "truthInCandidates": false
    },
    {
     "input": "sim-02848.jpg",
     "accepted": "7276c584-76ed-4c20-a5ea-627c8f7751e6",
     "truth": "5d8a8278-0791-4ff2-95b8-71b94298e503",
-    "reason": "only printing of its art, next art 0.130 behind",
+    "reason": "only printing of its art, next art 0.106 behind",
     "reading": {
      "collectorNumber": "22",
      "premiumMark": false
     },
-    "topSimilarity": 0.8097900748252869,
+    "topSimilarity": 0.9612324833869934,
     "truthInCandidates": false
    },
    {
     "input": "sim-02861.jpg",
     "accepted": "73dc2f98-e910-4fea-b775-479a666f64ef",
     "truth": "f52c2f83-9535-4ee5-9964-5cc01e617981",
-    "reason": "only printing of its art, next art 0.093 behind",
+    "reason": "only printing of its art, next art 0.151 behind",
     "reading": {
      "premiumMark": false
     },
-    "topSimilarity": 0.8999818563461304,
+    "topSimilarity": 0.9421459436416626,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-02867.jpg",
+    "accepted": "f4ac1586-c3d5-4add-bade-b527dcf4a391",
+    "truth": "7c185b4d-8da5-4b8a-85f0-5f0622c7bade",
+    "reason": "only printing of its art, next art 0.035 behind",
+    "reading": {
+     "premiumMark": false
+    },
+    "topSimilarity": 0.8731532096862793,
     "truthInCandidates": false
    },
    {
     "input": "sim-02928.jpg",
     "accepted": "0344006b-990e-46a0-a6d4-ace88af66b46",
     "truth": "f87b3c06-5479-4060-8d3a-d161fd5830c1",
-    "reason": "only printing of its art, next art 0.045 behind",
+    "reason": "only printing of its art, next art 0.069 behind",
     "reading": {
      "premiumMark": false
     },
-    "topSimilarity": 0.873587965965271,
+    "topSimilarity": 0.9458843469619751,
     "truthInCandidates": false
    },
    {
     "input": "sim-02948.jpg",
     "accepted": "8769b55a-a0a1-4b6f-8c80-669385a34425",
     "truth": "fdf0d1da-7c16-4a9a-a71e-4805bd0c0995",
-    "reason": "only printing of its art, next art 0.090 behind",
+    "reason": "only printing of its art, next art 0.134 behind",
     "reading": {
      "collectorNumber": "288",
      "premiumMark": false
     },
-    "topSimilarity": 0.8790658116340637,
+    "topSimilarity": 0.9635707139968872,
     "truthInCandidates": false
    },
    {
     "input": "sim-02979.jpg",
     "accepted": "10e9dd66-8580-4c96-9ab9-cc392dc6ee74",
     "truth": "3c5d5046-c23b-4414-a752-0f2a27abc745",
-    "reason": "only printing of its art, next art 0.044 behind",
+    "reason": "only printing of its art, next art 0.074 behind",
     "reading": {
      "collectorNumber": "253",
      "premiumMark": false
     },
-    "topSimilarity": 0.8924903273582458,
+    "topSimilarity": 0.9835063815116882,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-02991.jpg",
+    "accepted": "c0f828c7-aedc-462b-8455-46e8a90feb85",
+    "truth": "b3f07615-b945-4a61-a4e9-2872346de38b",
+    "reason": "only printing of its art, next art 0.157 behind",
+    "reading": {
+     "premiumMark": false
+    },
+    "topSimilarity": 0.9677342176437378,
     "truthInCandidates": false
    },
    {
     "input": "sim-02996.jpg",
     "accepted": "91173ce1-62a9-4d0e-8b2a-9bc33858c4fc",
     "truth": "6b15a1d5-a892-4d3b-a373-3a43424894c3",
-    "reason": "only printing of its art, next art 0.032 behind",
+    "reason": "only printing of its art, next art 0.064 behind",
     "reading": {
      "collectorNumber": "281",
      "premiumMark": false
     },
-    "topSimilarity": 0.8881655335426331,
+    "topSimilarity": 0.9675440192222595,
     "truthInCandidates": false
    }
   ]
