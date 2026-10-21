@@ -17,7 +17,7 @@ export function evidenceRecord(changes: Partial<TrainingCrop> = {}): TrainingCro
     reading_names_saved_printing: true,
     same_text_twin_count: 0,
     recognizer_version: '1.0.0 (42)',
-    feature_print_revision: 2,
+    feature_print_model: 'pe-core-s16-384',
     gallery_version: '20261012-cf1753',
     recognized_printing_id: angelicCurator,
     saved_printing_id: angelicCurator,
@@ -26,6 +26,14 @@ export function evidenceRecord(changes: Partial<TrainingCrop> = {}): TrainingCro
     policy_version: 1,
     ...changes,
   };
+}
+
+export function webp(bytes = 1_024): Blob {
+  const header = new Uint8Array(12);
+  header.set(new TextEncoder().encode('RIFF'), 0);
+  new DataView(header.buffer).setUint32(4, 4 + bytes, true);
+  header.set(new TextEncoder().encode('WEBP'), 8);
+  return new Blob([header, new Uint8Array(bytes)], { type: 'image/webp' });
 }
 
 export function jpeg(bytes = 1_024): Blob {

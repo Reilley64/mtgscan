@@ -12,7 +12,8 @@ private struct Printing {
 
 private func choice(
   ranked imageRanking: [(printing: Printing, similarity: Float)],
-  reading: CollectorLine = CollectorLine()
+  reading: CollectorLine = CollectorLine(),
+  thresholds: RecognizerThresholds = fixtureThresholds
 ) throws -> (decision: RecognitionDecision, artMargin: Float?) {
   let gallery = try fixtureGallery(
     printings: imageRanking.map { ranked in
@@ -23,7 +24,8 @@ private func choice(
         "set": printing.set, "collectorNumber": printing.collectorNumber, "frame": printing.frame,
       ]
     },
-    vectors: [Float16](repeating: 0, count: imageRanking.count * FeaturePrint.dimension)
+    vectors: [Float16](repeating: 0, count: imageRanking.count * fixtureModel.vectorSize),
+    thresholds: thresholds
   )
   let result = CardRecognizer.choose(
     ranked: Array(imageRanking.indices),
@@ -68,6 +70,18 @@ func anAcceptOnTheOnlyCardPrintingOfItsArtHasTheUniqueArtBasis() throws {
   #expect(result.decision.accepted)
   #expect(result.decision.basis == .uniqueArt)
   #expect(abs(try #require(result.artMargin) - 0.10) < 0.0001)
+}
+
+@Test("the only card printing of its art abstains when the next art is closer than the art margin of the gallery version")
+func theOnlyCardPrintingOfItsArtAbstainsUnderTheArtMarginOfTheGalleryVersion() throws {
+  let wider = RecognizerThresholds(
+    notACard: fixtureThresholds.notACard,
+    orientationMargin: fixtureThresholds.orientationMargin,
+    artMargin: 0.12
+  )
+  let result = try choice(ranked: [(counterspell, 0.70), (shock, 0.60)], thresholds: wider)
+  #expect(!result.decision.accepted)
+  #expect(result.decision.reasons == ["only printing of its art, but the next art is 0.100 behind; at least 0.120 is required"])
 }
 
 @Test("an abstain has no basis and keeps the art margin to the best other art")

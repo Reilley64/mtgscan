@@ -23,6 +23,7 @@ import type {
   UserTag,
 } from '@mtgscan/supabase/collection';
 import type { ExchangeRate } from '@mtgscan/supabase/converted-prices';
+import { galleryFormatVersion } from '@mtgscan/supabase/gallery-manifest';
 import type { Deck, DeckBasicLand, DeckCard, DeckChange, DeckChangeEffect, DeckCommander, DeckEvaluation, RevertPreview } from '@mtgscan/supabase/decks';
 import type { PlannedSwap } from '@mtgscan/supabase/planned-swaps';
 import type { BuylistCard, FreeCopy } from '@mtgscan/supabase/buylist';
@@ -57,7 +58,11 @@ type DeckRecord = Omit<Deck, 'card_count' | 'commanders' | 'cards'>;
 
 type UserTagRecord = UserTag & { copy_ids: string[] };
 
-type TrainingCropUpload = { copyId: string; crop: Database['public']['Tables']['training_crops']['Row'] };
+type TrainingCropUpload = {
+  copyId: string;
+  image: { name: string; type: string };
+  crop: Database['public']['Tables']['training_crops']['Row'];
+};
 
 type CollectionSearchAnswer = { copies: CollectionCopyRow[]; basicLands?: string[] } | { refusedField: string };
 
@@ -198,10 +203,10 @@ function exchangeRatesOf(currencies: string[], rateDate = testRateDate): Exchang
   }));
 }
 
-function galleryObjectsOf(version: string, partNames: string[]) {
+function galleryObjectsOf(version: string, partNames: string[], formatVersion = galleryFormatVersion) {
   return new Map([
-    ['published.json', JSON.stringify({ formatVersion: 1, version, manifest: `${version}/manifest.json` })],
-    [`${version}/manifest.json`, JSON.stringify({ formatVersion: 1, version, parts: partNames.map((name) => ({ name })) })],
+    ['published.json', JSON.stringify({ formatVersion, version, manifest: `${version}/manifest.json` })],
+    [`${version}/manifest.json`, JSON.stringify({ formatVersion, version, parts: partNames.map((name) => ({ name })) })],
   ]);
 }
 
@@ -915,7 +920,7 @@ const edgeFunctions = {
     if (name !== 'training-crops') {
       throw new Error(`The fake Supabase client has no ${name} function`);
     }
-    const [image] = body.getAll('image') as unknown as [{ uri: string }];
+    const [image] = body.getAll('image') as unknown as [{ uri: string; name: string; type: string }];
     if (!fileExists(image.uri)) {
       return new Promise<never>(() => {});
     }
@@ -932,7 +937,10 @@ const edgeFunctions = {
           const response = Response.json({ code: refusal, message: refusal, details: null }, { status: 400 });
           return { data: null, error: new FunctionsHttpError(response) };
         }
-        store.trainingCropUploads = [...store.trainingCropUploads, { copyId, crop: JSON.parse(String(body.getAll('crop')[0])) }];
+        store.trainingCropUploads = [
+          ...store.trainingCropUploads,
+          { copyId, image: { name: image.name, type: image.type }, crop: JSON.parse(String(body.getAll('crop')[0])) },
+        ];
         return { data: null, error: null };
       },
       { data: null, error: new FunctionsFetchError(new TypeError('Network request failed')) },
@@ -1262,12 +1270,12 @@ export function expirePageCursors() {
   store.cursorGeneration += 1;
 }
 
-export function publishGallery(version: string, partNames: string[] = galleryPartNames) {
-  store.galleryObjects = new Map([...store.galleryObjects, ...galleryObjectsOf(version, partNames)]);
+export function publishGallery(version: string, { partNames = galleryPartNames, formatVersion = galleryFormatVersion } = {}) {
+  store.galleryObjects = new Map([...store.galleryObjects, ...galleryObjectsOf(version, partNames, formatVersion)]);
 }
 
 export function uploadUnpublishedGallery(version: string) {
-  store.galleryObjects.set(`${version}/manifest.json`, JSON.stringify({ formatVersion: 1, version, parts: [] }));
+  store.galleryObjects.set(`${version}/manifest.json`, JSON.stringify({ formatVersion: galleryFormatVersion, version, parts: [] }));
 }
 
 export function allowAiClients(seeds: { name: string; allowedAt: string }[]) {

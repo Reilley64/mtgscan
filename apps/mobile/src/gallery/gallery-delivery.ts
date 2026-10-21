@@ -1,4 +1,11 @@
-import { galleryBucket, type Manifest, pointerFile, type Pointer, type SignedVersion } from '@mtgscan/supabase/gallery-manifest';
+import {
+  galleryBucket,
+  galleryFormatVersion,
+  type Manifest,
+  pointerFile,
+  type Pointer,
+  type SignedVersion,
+} from '@mtgscan/supabase/gallery-manifest';
 
 import { supabase } from '@/lib/supabase';
 
@@ -40,8 +47,11 @@ async function signedPartUrls(version: string, manifest: string): Promise<Record
   );
 }
 
-async function publishedVersion(): Promise<GallerySource> {
+async function publishedVersion(): Promise<GallerySource | null> {
   const pointer = JSON.parse(await storedText(pointerFile)) as Pointer;
+  if (pointer.formatVersion !== galleryFormatVersion) {
+    return null;
+  }
   return {
     version: pointer.version,
     manifest: () => storedText(pointer.manifest),
@@ -72,7 +82,14 @@ function developmentVersion(): GallerySource | null {
 
 export async function checkForGallery(allowsCellularAccess: boolean): Promise<GalleryCheck> {
   const source = developmentVersion() ?? (await publishedVersion());
-  if ((await installedGallery())?.version === source.version) {
+  const installed = await installedGallery();
+  if (!source) {
+    if (installed) {
+      return 'up_to_date';
+    }
+    throw new Error(`No gallery version of format ${galleryFormatVersion} is published`);
+  }
+  if (installed?.version === source.version) {
     return 'up_to_date';
   }
   const manifest = await source.manifest();

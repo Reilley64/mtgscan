@@ -7,13 +7,14 @@ import { scryfallManifestUrl } from '../import/scryfall-bulk-data';
 import { hostedSupabaseUrl, isLocalStack, localSupabaseUrl } from '../test-user/account';
 import { buildGallery } from './build';
 import { galleryStatus, installGallery, publishGallery, recordParityCheck, signVersion } from './publish';
+import { convertedModel, repositoryModelFile } from './model';
 import { macRecognizer } from './recognizer';
 import { GalleryRefused } from './storage';
 
 const cacheDirectory = join(homedir(), 'Library', 'Caches', 'mtgscan');
 
 const usage = `Usage:
-  bun gallery/main.ts build [--hosted] [--manifest <path or URL>] [--images <dir>] [--work <dir>] [--new-base] [--cached-images-bulk-file <default-cards.jsonl.gz>]
+  bun gallery/main.ts build [--hosted] [--manifest <path or URL>] [--images <dir>] [--work <dir>] [--model-file <model.json>] [--models <dir>] [--new-base] [--cached-images-bulk-file <default-cards.jsonl.gz>]
   bun gallery/main.ts parity <version> [--hosted] --lowest-cosine <n> --mean-cosine <n> --references <n>
   bun gallery/main.ts sign <version> [--hosted] [--hours <n>]
   bun gallery/main.ts publish <version> [--hosted]
@@ -28,6 +29,8 @@ const { positionals, values } = parseArgs({
     manifest: { type: 'string', default: scryfallManifestUrl },
     images: { type: 'string', default: join(cacheDirectory, 'scryfall-images') },
     work: { type: 'string' },
+    'model-file': { type: 'string', default: repositoryModelFile },
+    models: { type: 'string', default: join(cacheDirectory, 'models') },
     gallery: { type: 'string' },
     'new-base': { type: 'boolean', default: false },
     'cached-images-bulk-file': { type: 'string' },
@@ -96,7 +99,8 @@ const client = () => (connected ??= importClientFromEnvironment(url));
 try {
   switch (command) {
     case 'build': {
-      const manifest = await buildGallery(client(), await macRecognizer(), {
+      const model = await convertedModel(values['model-file'], values.models);
+      const manifest = await buildGallery(client(), await macRecognizer(model.modelPackage), model, {
         manifestLocation: values.manifest,
         imagesDirectory: values.images,
         workDirectory,
@@ -118,7 +122,7 @@ try {
       await publishGallery(client(), version!);
       break;
     case 'install':
-      await installGallery(client, await macRecognizer(), workDirectory, version!, values.gallery ?? join(workDirectory, 'installed', version!));
+      await installGallery(client, workDirectory, version!, values.gallery ?? join(workDirectory, 'installed', version!));
       break;
     case 'status':
       await galleryStatus(client());

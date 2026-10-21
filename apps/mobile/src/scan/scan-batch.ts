@@ -14,7 +14,7 @@ export type ScanTrainingCrop = Readonly<{
   artMargin: number | null;
   reading: CollectorLineReading;
   recognizerVersion: string;
-  featurePrintRevision: number;
+  featurePrintModel: string;
   galleryVersion: string;
 }>;
 

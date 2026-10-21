@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { Button } from '@/components/atoms/button';
 import { Text } from '@/components/atoms/text';
+import { TextLink } from '@/components/atoms/text-link';
 import { AccountCard } from '@/components/molecules/account-card';
 import { DisclosureRow } from '@/components/molecules/disclosure-row';
 import { GalleryCard } from '@/components/molecules/gallery-card';
@@ -20,6 +21,7 @@ type SettingsContentProps = {
   trainingCropUploads: boolean | null;
   onTrainingCropUploadsChange: (on: boolean) => void;
   onSignOut: () => void;
+  onOpenModelLicense: () => void;
 };
 
 const trainingCropsMeta =
@@ -50,6 +52,7 @@ export function SettingsContent({
   trainingCropUploads,
   onTrainingCropUploadsChange,
   onSignOut,
+  onOpenModelLicense,
 }: SettingsContentProps) {
   return (
     <>
@@ -70,6 +73,9 @@ export function SettingsContent({
       </Button>
       <Text variant="credit">
         mtgscan is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
+      </Text>
+      <Text variant="credit">
+        Card recognition uses PE-Core S16 by Meta, under the <TextLink onPress={onOpenModelLicense}>Apache License 2.0</TextLink>.
       </Text>
     </>
   );

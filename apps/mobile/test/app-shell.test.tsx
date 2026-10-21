@@ -1,4 +1,5 @@
 import { fireEvent, screen, within } from 'expo-router/testing-library';
+import { Linking } from 'react-native';
 
 import { startSignedIn } from './fake-supabase';
 import { renderApp } from './render-app';
@@ -148,6 +149,27 @@ test('the settings drawer shows the Fan Content notice in dim credit type under 
   expect(isInScrollView(notice)).toBe(true);
   expect(appearsBefore(screen.getByRole('button', { name: 'Sign out' }), notice)).toBe(true);
   expect(within(presentedDrawerContent()).queryByText(/Scryfall/)).not.toBeOnTheScreen();
+});
+
+test('under the Fan Content notice, the settings drawer says in dim credit type that card recognition uses PE-Core S16 under the Apache License 2.0', async () => {
+  await renderApp();
+
+  await openSettings();
+
+  const notice = screen.getByText('Card recognition uses PE-Core S16 by Meta, under the Apache License 2.0.');
+  expect(notice).toHaveStyle({ color: textDim, fontSize: 10, fontWeight: '600' });
+  expect(isInScrollView(notice)).toBe(true);
+  expect(appearsBefore(screen.getByText(/^mtgscan is unofficial Fan Content/), notice)).toBe(true);
+});
+
+test('Apache License 2.0 in the settings drawer opens the license text in the system browser', async () => {
+  const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValueOnce();
+  await renderApp();
+  await openSettings();
+
+  await fireEvent.press(screen.getByRole('link', { name: 'Apache License 2.0' }));
+
+  expect(openURL).toHaveBeenCalledWith('https://www.apache.org/licenses/LICENSE-2.0');
 });
 
 test('a downward swipe closes the settings drawer', async () => {

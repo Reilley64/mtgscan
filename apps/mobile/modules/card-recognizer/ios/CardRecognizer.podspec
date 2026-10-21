@@ -11,12 +11,18 @@ Pod::Spec.new do |s|
   s.static_framework = true
 
   s.dependency 'ExpoModulesCore'
+  s.dependency 'ExpoImage'
 
   s.source_files = '**/*.swift'
-  s.frameworks = 'Accelerate', 'CoreImage', 'Vision'
+  s.preserve_paths = 'WebP/*'
+  s.frameworks = 'Accelerate', 'CoreImage', 'CoreML', 'Vision'
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
+    'SWIFT_INCLUDE_PATHS' => '$(PODS_TARGET_SRCROOT)/WebP',
     'SWIFT_COMPILATION_MODE' => 'wholemodule',
     'SWIFT_OPTIMIZATION_LEVEL' => '-O'
+  }
+  s.user_target_xcconfig = {
+    'SWIFT_INCLUDE_PATHS' => '$(PODS_ROOT)/../../modules/card-recognizer/ios/WebP'
   }
 end

@@ -3,8 +3,6 @@ import { deflateSync, inflateSync } from 'node:zlib';
 
 import type { Manifest, ManifestPart, PartKind, PrintingListRow } from './manifest';
 
-export const featurePrintDimension = 768;
-export const galleryFormatVersion = 1;
 export const maxPartBytes = 50_000_000;
 export const addOnLimit = 0.1;
 const maxRawPartBytes = 45_000_000;
@@ -37,6 +35,10 @@ function encodedPart(name: string, kind: PartKind, addOn: number, firstRow: numb
   return { name, kind, addOn, firstRow, rowCount, compressedBytes: bytes.length, rawBytes: raw.length, sha256: sha256(bytes), bytes };
 }
 
+export function modelPart(archive: Uint8Array): Part {
+  return encodedPart('base-model.zlib', 'model', 0, 0, 0, archive);
+}
+
 function splitRows<Item>(items: Item[], rawBytes: number): Item[][] {
   const count = Math.max(1, Math.ceil(rawBytes / maxRawPartBytes));
   const size = Math.ceil(items.length / count);
@@ -45,12 +47,12 @@ function splitRows<Item>(items: Item[], rawBytes: number): Item[][] {
   );
 }
 
-export function galleryParts(addOn: number, firstRow: number, rows: GalleryRow[]): Part[] {
+export function galleryParts(addOn: number, firstRow: number, rows: GalleryRow[], vectorSize: number): Part[] {
   const parts: Part[] = [];
   let row = firstRow;
-  splitRows(rows, rows.length * featurePrintDimension).forEach((chunk, index) => {
-    const raw = new Uint8Array(chunk.length * featurePrintDimension);
-    chunk.forEach((item, position) => raw.set(item.codes, position * featurePrintDimension));
+  splitRows(rows, rows.length * vectorSize).forEach((chunk, index) => {
+    const raw = new Uint8Array(chunk.length * vectorSize);
+    chunk.forEach((item, position) => raw.set(item.codes, position * vectorSize));
     parts.push(encodedPart(`${partPrefix(addOn)}-gallery-${index + 1}.zlib`, 'gallery', addOn, row, chunk.length, raw));
     row += chunk.length;
   });
@@ -76,6 +78,7 @@ export function verifiedPartBytes(part: ManifestPart, bytes: Uint8Array): Uint8A
 }
 
 export function installedRows(manifest: Manifest, partBytes: (part: ManifestPart) => Uint8Array): Map<string, GalleryRow> {
+  const { vectorSize } = manifest.model;
   const ordered = [...manifest.parts].sort((a, b) => a.addOn - b.addOn || a.firstRow - b.firstRow);
   const printings = ordered
     .filter((part) => part.kind === 'printing_list')
@@ -85,7 +88,7 @@ export function installedRows(manifest: Manifest, partBytes: (part: ManifestPart
     .flatMap((part) => {
       const raw = verifiedPartBytes(part, partBytes(part));
       return Array.from({ length: part.rowCount }, (_, row) =>
-        raw.subarray(row * featurePrintDimension, (row + 1) * featurePrintDimension),
+        raw.subarray(row * vectorSize, (row + 1) * vectorSize),
       );
     });
   if (codes.length !== printings.length) {

@@ -17,7 +17,7 @@ export default {
       return internalError();
     }
     const { allowed_mime_types: types = [], file_size_limit: maxBytes = 0 } = limits.data;
-    if (!(image instanceof File) || !types.includes(image.type) || image.size > maxBytes) {
+    if (!(image instanceof File) || !types.includes(image.type) || image.size > maxBytes || !(await isWebp(image))) {
       return refused(400, invalidArgument('image', `image must be a file of type ${types.join(' or ')} and at most ${maxBytes} bytes.`));
     }
     if (crop === undefined) {
@@ -38,6 +38,11 @@ export default {
     return new Response(null, { status: 204 });
   }),
 };
+
+async function isWebp(image: File): Promise<boolean> {
+  const header = new TextDecoder().decode(await image.slice(0, 12).arrayBuffer());
+  return header.startsWith('RIFF') && header.endsWith('WEBP');
+}
 
 function parsedCrop(value: FormDataEntryValue | null): { crop_id: unknown } | undefined {
   try {

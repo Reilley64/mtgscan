@@ -38,7 +38,7 @@ private func galleryOfImages(_ images: [Data]) throws -> Gallery {
   for (row, image) in images.enumerated() {
     let file = directory.appendingPathComponent("\(row).png")
     try image.write(to: file)
-    vectors += try #require(FeaturePrint.vector(ofCardAt: file)).map { Float16($0) }
+    vectors += try fixtureCompiledModel.featurePrint(ofCardAt: file).map { Float16($0) }
     printings.append([
       "id": "printing-\(row)", "oracleId": "oracle-\(row)", "name": "Card \(row)", "set": "tst",
       "collectorNumber": "\(row)", "frame": "2015",

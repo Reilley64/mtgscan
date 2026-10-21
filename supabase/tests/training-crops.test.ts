@@ -15,7 +15,7 @@ import {
   type TestUser,
 } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
-import { angelicCurator, delverInnistrad, evidenceRecord, jpeg } from './training-crop-seeds';
+import { angelicCurator, delverInnistrad, evidenceRecord, jpeg, webp } from './training-crop-seeds';
 
 setDefaultTimeout(60_000);
 
@@ -40,10 +40,10 @@ async function scannedCopy(user: TestUser): Promise<string> {
 
 type Upload = { image?: Blob | null; copyId?: string; crop?: unknown };
 
-async function upload(client: AppClient, { image = jpeg(), copyId = aliceCopyId, crop = evidenceRecord() }: Upload) {
+async function upload(client: AppClient, { image = webp(), copyId = aliceCopyId, crop = evidenceRecord() }: Upload) {
   const body = new FormData();
   if (image) {
-    body.append('image', image, 'crop.jpg');
+    body.append('image', image, 'crop.webp');
   }
   body.append('copy_id', copyId);
   body.append('crop', typeof crop === 'string' ? crop : JSON.stringify(crop));
@@ -77,22 +77,31 @@ function storedObjects(cropId: string) {
     (database) => database`
       select name, owner, owner_id, user_metadata
       from storage.objects
-      where bucket_id = 'training-crops' and name = ${`${cropId}.jpg`}
+      where bucket_id = 'training-crops' and name = ${`${cropId}.webp`}
     `,
   );
 }
 
 describe('uploading a training crop', () => {
-  test('an upload for a copy of the caller stores the evidence record and the image', async () => {
+  test('an upload for a copy of the caller stores the evidence record and the WebP image at the crop ID', async () => {
     const crop = evidenceRecord();
 
     const result = await upload(alice.client, { crop });
 
     expect(result).toEqual({ status: 204, refusal: null });
     expect(await storedRow(crop.crop_id)).toEqual([crop]);
-    const image = await secretKey.storage.from('training-crops').download(`${crop.crop_id}.jpg`);
+    const image = await secretKey.storage.from('training-crops').download(`${crop.crop_id}.webp`);
     expect(image.error).toBeNull();
-    expect(image.data!.size).toBe(jpeg().size);
+    expect(image.data!.type).toBe('image/webp');
+    expect(new Uint8Array(await image.data!.arrayBuffer())).toEqual(new Uint8Array(await webp().arrayBuffer()));
+  });
+
+  test('a stored training crop names the feature print model that made its feature prints', async () => {
+    const crop = evidenceRecord({ feature_print_model: 'pe-core-s16-384' });
+
+    await upload(alice.client, { crop });
+
+    expect((await storedRow(crop.crop_id)).map((row) => row.feature_print_model)).toEqual(['pe-core-s16-384']);
   });
 
   test('a stored training crop holds no user ID, copy ID, or time, and its image has no owner and no metadata', async () => {
@@ -105,7 +114,7 @@ describe('uploading a training crop', () => {
     expect(Object.values(row!)).not.toContain(alice.userId);
     expect(Object.values(row!)).not.toContain(aliceCopyId);
     expect([...(await storedObjects(crop.crop_id))]).toEqual([
-      { name: `${crop.crop_id}.jpg`, owner: null, owner_id: null, user_metadata: {} },
+      { name: `${crop.crop_id}.webp`, owner: null, owner_id: null, user_metadata: {} },
     ]);
   });
 
@@ -158,12 +167,25 @@ describe('uploading a training crop', () => {
 
   test.each([
     ['a missing image', () => ({ image: null }), 'image'],
-    ['an image that is not a JPEG', () => ({ image: new Blob([jpeg()], { type: 'image/png' }) }), 'image'],
-    ['an image over 1 MB', () => ({ image: jpeg(1_000_000) }), 'image'],
+    ['a JPEG image', () => ({ image: jpeg() }), 'image'],
+    ['a JPEG image sent as a WebP', () => ({ image: new Blob([jpeg()], { type: 'image/webp' }) }), 'image'],
+    ['a WebP image sent as a PNG', () => ({ image: new Blob([webp()], { type: 'image/png' }) }), 'image'],
+    ['an image over 1 MB', () => ({ image: webp(1_000_000) }), 'image'],
     ['a copy ID that is not a UUID', () => ({ copyId: 'copy' }), 'copy_id'],
     ['a crop that is not JSON', () => ({ crop: 'crop' }), 'crop'],
     ['a crop with an unknown field', () => ({ crop: { ...evidenceRecord(), user_id: alice.userId } }), 'crop.user_id'],
     ['a crop without a field', () => ({ crop: { ...evidenceRecord(), policy_version: undefined } }), 'crop.policy_version'],
+    [
+      'a crop with the feature print revision of older builds',
+      () => ({ crop: { ...evidenceRecord(), feature_print_revision: 2 } }),
+      'crop.feature_print_revision',
+    ],
+    ['a feature print model that is not text', () => ({ crop: { ...evidenceRecord(), feature_print_model: 2 } }), 'crop.feature_print_model'],
+    [
+      'a feature print model over 50 characters',
+      () => ({ crop: evidenceRecord({ feature_print_model: 'm'.repeat(51) }) }),
+      'crop.feature_print_model',
+    ],
     ['a crop ID that is not a UUID', () => ({ crop: evidenceRecord({ crop_id: 'crop' }) }), 'crop.crop_id'],
     ['a crop ID that is the copy ID', () => ({ crop: evidenceRecord({ crop_id: aliceCopyId }) }), 'crop.crop_id'],
     ['an unknown decision basis', () => ({ crop: { ...evidenceRecord(), decision_basis: 'guess' } }), 'crop.decision_basis'],
@@ -310,13 +332,13 @@ describe('the training crops bucket and table', () => {
     ['an anonymous caller', () => anonymousClient()],
   ])('%s cannot read, list, upload, or delete training crop images', async (_, client) => {
     const bucket = client().storage.from('training-crops');
-    const path = `${storedCropId}.jpg`;
+    const path = `${storedCropId}.webp`;
 
     const read = await bucket.download(path);
     const signed = await bucket.createSignedUrl(path, 60);
     const listed = await bucket.list();
-    const added = await bucket.upload(`${crypto.randomUUID()}.jpg`, jpeg(), { contentType: 'image/jpeg' });
-    const replaced = await bucket.upload(path, jpeg(10), { contentType: 'image/jpeg', upsert: true });
+    const added = await bucket.upload(`${crypto.randomUUID()}.webp`, webp(), { contentType: 'image/webp' });
+    const replaced = await bucket.upload(path, webp(10), { contentType: 'image/webp', upsert: true });
     await bucket.remove([path]);
 
     expect(read.data).toBeNull();
@@ -325,7 +347,14 @@ describe('the training crops bucket and table', () => {
     expect(added.error).not.toBeNull();
     expect(replaced.error).not.toBeNull();
     const kept = await secretKey.storage.from('training-crops').download(path);
-    expect(kept.data!.size).toBe(jpeg().size);
+    expect(kept.data!.size).toBe(webp().size);
+  });
+
+  test('the training crops bucket accepts only WebP images up to 1 MB', async () => {
+    const { data, error } = await secretKey.storage.getBucket('training-crops');
+
+    expect(error).toBeNull();
+    expect(data).toMatchObject({ public: false, allowed_mime_types: ['image/webp'], file_size_limit: 1_000_000 });
   });
 
   test.each([

@@ -55,28 +55,65 @@ A card result also has:
   - `set_code` when the set code leaves one card printing of the top card;
   - `unique_art` when the top card printing is the only one with its art, and the next art is far enough behind.
 - `artMargin`, the similarity of the top candidate minus the similarity of the best candidate with other art. It is null when no other art was compared.
-- `trainingCrop`, the file URI of the straightened card as a 488 x 680 JPEG in `Caches/training-crops`, the size and format of the crops in the scanner evidence pack. The crop is upright, in the rotation that the recognizer chose. A not-a-card result and a failed recognition write no crop.
+- `trainingCrop`, the file URI of the straightened card as a 488 x 680 WebP at quality 90 in `Caches/training-crops`. That is the size of the crops in the scanner evidence pack. The recognizer writes it with libwebp, the encoder that Android will also use (ADR 0015). On iOS it uses the libwebp that `expo-image` brings into the app, so the app holds one copy. The crop is upright, in the rotation that the recognizer chose. A not-a-card result and a failed recognition write no crop.
 
-The module also exports two constants for the evidence record of a training crop: `featurePrintRevision`, the feature print revision, and `recognizerVersion`, the app version and build number, such as `1.0.0 (7)`.
+The recognizer makes feature prints with the Core ML model of the installed gallery version, on all compute units. It scales the straightened card to 488 x 680, It then pads the card to the model's input size with the model's mean color, 0.5 gray, so the card keeps its aspect ratio. It L2-normalizes the vector that the model returns. A model that returns NaN, or a vector of another size than the gallery version's, makes the scan fail as an unreadable photo.
+
+The recognizer reads the recognizer thresholds from the installed gallery version: not a card, orientation margin, and art margin. It takes the vector size from the model block there, and the input size from the shape of the gallery version's model. A gallery installed before gallery format 2 has no model, so it does not load, and the recognizer throws `gallery_not_ready`.
+
+The module also exports `recognizerVersion` for the evidence record of a training crop. It is the app version and build number, such as `1.0.0 (7)`. A production build has a new build number, and release-please raises the app version, so each release sends a higher recognizer version. `installedGallery()` returns the installed gallery version, its built time, and the name of its model, such as `pe-core-s16-384`.
 
 Each candidate carries its card printing ID, Oracle ID, name, set code, collector number, finishes, and basic land flag from the printing list. Name search also runs on the phone, over the printing list of the installed gallery:
 
 - `searchCardNames(text)` matches card names and face names. It ignores case, accents, and punctuation. It returns up to 10 cards: exact names first, then names that start with the text, then names with a word that starts with it. There is no fuzzy match.
 - `cardPrintings(oracleId)` returns every card printing of that card in the gallery, newest first.
 
-`checkGalleryParity()` runs the parity check on the installed gallery. It takes 24 evenly spaced gallery rows and downloads the Scryfall `normal` image of each from the Scryfall image host. It computes their feature prints on the phone in the same way as the macOS command, and compares each with its gallery row. It returns the gallery version, the number of reference images it checked, the lowest and mean cosine, and each reference image that failed. Only development builds show **Run the parity check** in settings. The result shows under it, and Metro gets the same numbers as a `PARITY` line.
+`checkGalleryParity()` runs the parity check on the installed gallery. It takes 24 evenly spaced gallery rows and downloads the Scryfall `normal` image of each from the Scryfall image host. It computes their feature prints on the phone with the gallery version's model, in the same way as the macOS command, and compares each with its gallery row. It returns the gallery version, the number of reference images it checked, the lowest and mean cosine, and each reference image that failed. Only development builds show **Run the parity check** in settings. The result shows under it, and Metro gets the same numbers as a `PARITY` line.
+
+### Feature print model
+
+The recognizer's model is PE-Core S16-384 by Meta, converted to a Core ML ML program for iOS 17. `apps/mobile/modules/card-recognizer/model.json` is the model file. It holds the model name, the SHA-256 of the converted model, the input size, the vector size, and the recognizer thresholds for the model: not a card, orientation margin, and art margin. The converted model is not in the repo.
+
+Convert the model on a Mac from `apps/mobile/modules/card-recognizer`:
+
+```bash
+uv run scripts/convert-model.py
+```
+
+- The script pins coremltools 9.0, torch 2.7.0, and its other packages in `scripts/convert-model.py.lock`. It downloads the PE-Core S16-384 weights from Hugging Face at a fixed revision.
+- It keeps three operations of the first attention block in float32: the query scaling, the query-key product, and the softmax. At float16 they overflow, and the model returns NaN on the CPU. Every other operation runs in float16. The weights are an 8-bit palette with 256 entries, made with k-means.
+- It writes the model to `~/Library/Caches/mtgscan/models/pe-core-s16-384.mlpackage`, outside the repo. The model is about 23.5 MB.
+- It runs the 24 references of `real/feature-prints.json` in the scanner evidence pack on every compute unit. The script pads each card to a square with the model's mean color. It fails on NaN, on a vector of the wrong size, or on a cosine below 0.99 against the PyTorch model.
+- Last, it writes the SHA-256 of the model into `model.json`. Each conversion gives a new SHA-256. Commit `model.json` only for a model you mean to ship.
+
+The SHA-256 covers the whole `.mlpackage` folder. It is the SHA-256 of a list with one line per file, in path order. Each line is the SHA-256 of the file, two spaces, the file's path in the package, and a newline.
+
+The model takes `pixels`, a float16 array of 1 x 3 x the input size x the input size, with values from 0 to 1. It does its own normalization. It returns `featurePrint`, a float16 array of 1 x the vector size.
+
+`uv run scripts/convert-model.py --fixture` writes the fixture model to `macos/CardRecognizerTests/Fixtures/fixture-model.mlpackage`. It has the same input and output as the real model, at the sizes in `model.json`. It averages the pixels over an 8 x 8 grid and multiplies them by fixed random weights. When the middle 4 x 4 cells of the grid are black, it returns NaN, so a black card gives NaN after the padding. The repo holds the fixture model, so the Swift tests never need the real model.
+
+A gallery version carries the model in its `model` part. Only a base has one, named `base-model.zlib`, with add-on 0, first row 0, and 0 rows. Its raw bytes are an uncompressed POSIX ustar archive of the `.mlpackage` folder, with every path under `model.mlpackage/`. It holds only folders and regular files, sorted by path. Each entry has mode 0644 or 0755, mtime 0, and no owner names. So the same model always gives the same bytes. The build compresses the archive with zlib, like every other part. The installer, `GalleryInstaller.swift`, unpacks it into the new gallery folder and checks the unpacked package against the SHA-256 of the manifest's model block. It compiles the package once with `MLModel.compileModel(at:)` into `model.mlmodelc` in that folder, and deletes the package. The compiled model belongs to that installed gallery version, so switching gallery versions switches the model. An add-on install copies the compiled model of the installed gallery version.
+
+The macOS command loads the model from the path it is given, a `.mlpackage` or a compiled `.mlmodelc`:
+
+- `about --model <model.mlpackage>` prints the macOS version, the machine, and the model block: the name (the package's file name), the SHA-256, the input size, and the vector size. The sizes come from the model's `pixels` and `featurePrint` shapes.
+- `encode --model <model> <image-list> <output>` writes the int8 feature prints of the images.
+- `feature-prints --model <model> <image>...` prints the feature print of each image.
+- `install <version-dir> <gallery-dir>` installs a gallery version with its model.
+- `serve <gallery-dir>` recognizes cards with the gallery and its compiled model.
+- `reencode webp|jpeg <output-dir> <image>...` writes each image again into the folder. `webp` writes it as a training crop. `jpeg` writes it as the old JPEG training crop at quality 0.9. The command prints the path of each new file. The replay's `--webp-round-trip` option uses it.
 
 ### Gallery download
 
 The app keeps the gallery on the phone up to date. The code is in `apps/mobile/src/gallery` and in the recognizer module.
 
-1. On each app start with a session, it reads `published.json` from the `gallery` bucket with the user's session. When the published gallery version is the installed one, it does nothing.
+1. On each app start with a session, it reads `published.json` from the `gallery` bucket with the user's session. When the published gallery version is the installed one, it does nothing. A pointer whose gallery format the build does not know counts as no newer gallery version. A phone with an installed gallery keeps scanning with it. A phone with none downloads nothing and shows that the gallery download did not work, with **Try again**.
 2. Otherwise it reads the manifest, signs a URL for every part for 7 days, and passes them to `downloadGallery` in the recognizer module.
 3. The module downloads the parts with a background URL session, so the download goes on while the app is suspended. It downloads only the parts that the installed gallery does not have, so an add-on costs only its own parts.
 4. It checks the size and SHA-256 of each part against the manifest. A part that fails is deleted and downloaded again, up to 3 times. Verified parts stay in `Application Support/gallery-download` until the install, so an interrupted download goes on from the parts it has. A part that stopped partway resumes from where it stopped when iOS can.
-5. When every part is there, the module decodes the int8 rows to unit-length float16 in a new folder, applies the add-on rows over the installed gallery, and swaps the folder into `Application Support/gallery` in one step. The recognizer loads the new gallery on the next scan. Both folders are excluded from backup.
+5. When every part is there, the module decodes the int8 rows to unit-length float16 in a new folder, applies the add-on rows over the installed gallery, and installs the model. It swaps the folder into `Application Support/gallery` in one step. The recognizer loads the new gallery on the next scan. Both folders are excluded from backup.
 
-The download uses Wi-Fi only. **Download now** on the Scan tab allows mobile data for the download in progress. Before it starts, the module checks the free space for the parts and the installed gallery. The module reports each change as an `onGalleryDownload` event, and the Scan tab and the settings sheet show it.
+The download uses Wi-Fi only. **Download now** on the Scan tab allows mobile data for the download in progress. Before it starts, the module checks the free space for the parts and the installed gallery. When the phone does not have the model part yet, the check adds twice the model's size for the unpacked and the compiled model. An add-on keeps the model of the installed gallery version, so its check leaves the model out. The module reports each change as an `onGalleryDownload` event, and the Scan tab and the settings sheet show it.
 
 A gallery version that is not published cannot be read with a user's session. To install one on a development build, for the parity check in #84, put signed URLs from the `sign` command in `apps/mobile/.env.development.local`. Only development builds read `EXPO_PUBLIC_DEVELOPMENT_GALLERY`, and Metro must start again after you change it:
 
@@ -87,7 +124,7 @@ echo "EXPO_PUBLIC_DEVELOPMENT_GALLERY='$(bun --env-file=.env.hosted gallery/main
 
 The Swift sources in `ios/Recognizer` build into the app and into a macOS command through `Package.swift`. The macOS command computes gallery feature prints and runs the scanner evidence gates. Run the gates on a Mac from `apps/mobile`:
 
-1. `bun run recognizer:test` runs the Swift fixture tests.
+1. `bun run recognizer:test` runs the Swift fixture tests in parallel. They make feature prints with the fixture model, so they need no gallery and no real model.
 2. `bun run recognizer:replay` replays the scanner evidence pack. It needs the gallery.
 
 `apps/mobile/test/scanner-evidence/README.md` describes the gallery, the gates, and the local replay before merge.
@@ -96,15 +133,15 @@ The Swift sources in `ios/Recognizer` build into the app and into a macOS comman
 
 The owner builds the gallery on the Mac at each set release with `bun run gallery <command>` in `supabase`. #75 describes the format. The commands read `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Without `--hosted`, they use only the local stack. When `SUPABASE_URL` is not set, they use the local stack's API port from `supabase/.env`. They refuse every other URL. With `--hosted`, they use `https://<ref>.supabase.co` from `SUPABASE_PROJECT_REF` when `SUPABASE_URL` is not set, and they refuse the local stack. For the hosted project, `SUPABASE_PROJECT_REF` and `SUPABASE_SECRET_KEY` live only in `supabase/.env.hosted`, which Git ignores and Bun does not load by itself. Run a hosted command as `bun --env-file=.env.hosted gallery/main.ts <command> --hosted`. `docs/agents/local-development.md` (Gallery build) has the rules.
 
-1. `build` reads Scryfall Default Cards and keeps the paper card printings that are in the card catalog. It downloads the missing `normal` images into `~/Library/Caches/mtgscan/scryfall-images`, 8 at a time. The macOS recognizer command computes the int8 feature prints, and the build reuses the ones it already has. It then writes the gallery parts, the printing list parts, and the manifest with the SHA-256 of each part, and uploads them as a new gallery version that is not published. It prints the sizes against the Free plan budget. On a plan upgrade, change `freePlan` in `supabase/gallery/budget.ts` and the Storage limit in Training crops together.
+1. `build` reads the model file and finds the converted model in `~/Library/Caches/mtgscan/models`, as Feature print model (above) describes. It passes the model to the macOS recognizer command. It refuses to run when the model's SHA-256 is not the one in the model file. `--model-file <path>` and `--models <dir>` name another model file and another folder of converted models. The build then reads Scryfall Default Cards and keeps the paper card printings that are in the card catalog. It downloads the missing `normal` images into `~/Library/Caches/mtgscan/scryfall-images`, 8 at a time. The macOS recognizer command computes the int8 feature prints. The build reuses the ones it already has from the same model. It then writes the gallery parts, the printing list parts, and the manifest with the SHA-256 of each part. The manifest is gallery format 2. Its model block and its thresholds block come from the model file. The model block has the name, SHA-256, input size, and vector size. The build uploads the parts and the manifest as a new gallery version that is not published. A base also has the model part, `base-model.zlib`. It is a tar archive of the `.mlpackage` folder, compressed like every other part. The archive is the same for the same model. The phone and the Mac command unpack it into the installed gallery version. The build prints the sizes against the Free plan budget. The full install download and the Storage of each kept gallery version count the model part. On a plan upgrade, change `freePlan` in `supabase/gallery/budget.ts` and the Storage limit in Training crops together.
 2. The owner runs the parity check on the iPhone (#84). In a development build, **Run the parity check** in settings runs it on the installed gallery version. Signed-in users cannot read a gallery version that is not published, so `sign <version> [--hours <n>]` prints signed URLs for its manifest and parts, valid for 24 hours by default, for a development build. Gallery download (above) says how a development build uses them. `parity <version> --lowest-cosine <n> --mean-cosine <n> --references <n>` records the result.
 3. `publish <version>` refuses a gallery version without a passing parity check: a lowest cosine of at least 0.98 over 24 or more references. It then moves the pointer, `published.json`, to the version. It deletes every other gallery version except the previous one and the one that the scanner evidence pack names.
 
-`status` lists the recorded gallery versions with their sizes, parity checks, and Storage use. `install <version>` unpacks a gallery version on the Mac into the folder that the scanner evidence replay reads. A `build` and an `install` against the local stack make a gallery for the scanner evidence replay from the current Scryfall data, with no hosted credentials. `apps/mobile/test/scanner-evidence/README.md` (Gallery) has the steps.
+`status` lists the recorded gallery versions with their sizes, parity checks, and Storage use. `install <version>` unpacks a gallery version on the Mac into the folder that the scanner evidence replay reads. Like the phone, it refuses a manifest of a gallery format other than 2. A `build` and an `install` against the local stack make a gallery for the scanner evidence replay from the current Scryfall data, with no hosted credentials. `apps/mobile/test/scanner-evidence/README.md` (Gallery) has the steps.
 
 The work folder holds the feature prints and the built gallery versions. With `--hosted` it is `~/Library/Caches/mtgscan/gallery`. Without `--hosted` it is `~/Library/Caches/mtgscan/local-gallery`, so a local build never replaces the feature prints of the owner's hosted builds. `--work <dir>` names another work folder. Hosted and local builds share the image cache. It records the Scryfall URL of each image, and a build downloads an image again when its URL changed.
 
-A build is a new base when no gallery version is published, when the feature print revision, the encoding, or the macOS major version changed, when add-ons would pass 10% of the base rows, or with `--new-base`. Otherwise it is an add-on with the new card printings and the card printings whose image or printing list row changed. A phone then downloads only the add-on. A build with no change uploads nothing. An add-on cannot remove a row, so a card printing that the card catalog marks absent stays in the gallery until the next base. The build reports how many. A scan of it can still be committed, because the card catalog keeps absent card printings.
+A build is a new base when no gallery version is published, when the encoding or the macOS major version changed, when add-ons would pass 10% of the base rows, or with `--new-base`. It is also a new base when the recognizer thresholds in the model file differ from the published gallery version's, even with no changed rows. That base has the same model part as before. When the published gallery version has another gallery format, or names another model name or model SHA-256 than the model file, an add-on would mix feature prints of two models. The build then refuses and asks for `--new-base`. Otherwise it is an add-on with the new card printings and the card printings whose image or printing list row changed. A phone then downloads only the add-on. A build with no change uploads nothing. An add-on cannot remove a row, so a card printing that the card catalog marks absent stays in the gallery until the next base. The build reports how many. A scan of it can still be committed, because the card catalog keeps absent card printings.
 
 The gallery lives in the private `gallery` bucket. Signed-in users can read `published.json` and the published gallery versions. Anonymous callers cannot read the bucket, and no app role can write it. `gallery_versions` records each gallery version with its manifest, parity check, and publish time. Only the secret key can read it, and it changes only through the gallery functions.
 
@@ -118,7 +155,7 @@ The card detector is a local Expo module in `apps/mobile/modules/card-detector`.
 - `takePhoto(outline)` takes the outline of the sample that held still and returns it with the photo file, in the same fractions of the photo as `recognize` takes. The photo has the same aspect as the analyzed frame.
 - Taking a photo plays no haptic. On iOS 18 and later, the shutter sound is suppressed where iOS allows it. On iOS 17, and where the law requires the shutter sound, iOS still plays it.
 
-The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes one photo when a detected card holds still for 400 ms, and re-arms after the card leaves or changes. The app needs iOS 17, because the recognizer uses Vision feature print revision 2.
+The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes one photo when a detected card holds still for 400 ms, and re-arms after the card leaves or changes. The app needs iOS 17, because the recognizer's model is a Core ML ML program for iOS 17.
 
 Vision's rectangle detector (`VNDetectRectanglesRequest`) was tried in #421 in place of the proposal and the edge refiner, and lost. `.out-of-scope/vision-rectangle-card-detector.md` says why.
 
@@ -147,14 +184,14 @@ The scan batch lives in `src/scan/scan-batch-state.tsx`, one per signed-in accou
 - The file marks a commit that has not finished. At sign-in, the phone sends that commit again by itself.
 - A commit that works removes the scans it sent. A commit that fails keeps every scan. Batch review rows do not open while a commit runs. Scan details from the latest-scan chip do not offer **Remove scan** while a commit runs.
 - **Remove** in the **Remove all scans** alert of batch review empties the scan batch and its file. It also clears a commit that has not finished. A recognition that is still running adds no scan when it ends, and the phone deletes its training crop. Nothing reaches the server.
-- A scan keeps its training crop. When the scan enters the scan batch, the phone moves the crop from `Caches/training-crops` to `training-crops/<user ID>/<copy ID>.jpg` in the documents folder. The scan batch file and the upload queue file save no file URI. The phone builds the path of each crop from the user ID and the copy ID, so a crop is still found if iOS moves the app's data folder. `src/scan/training-crop-keeper.ts` holds the rules for these files. The scan also keeps the recognizer fields of the evidence record: the decision, the top similarity, the art margin, the collector line reading, the recognizer version, the feature print revision, and the installed gallery version. A basic land, a recognition with no candidates, and a scan from **+1** keep no crop, and the phone deletes the crop of the first two.
+- A scan keeps its training crop. When the scan enters the scan batch, the phone moves the crop from `Caches/training-crops` to `training-crops/<user ID>/<copy ID>.webp` in the documents folder. The scan batch file and the upload queue file save no file URI. The phone builds the path of each crop from the user ID and the copy ID, so a crop is still found if iOS moves the app's data folder. `src/scan/training-crop-keeper.ts` holds the rules for these files. The scan also keeps the recognizer fields of the evidence record: the decision, the top similarity, the art margin, the collector line reading, the recognizer version, and the installed gallery version with the name of its model. A basic land, a recognition with no candidates, and a scan from **+1** keep no crop, and the phone deletes the crop of the first two.
 - A scan keeps `recognizedPrintingId`, the scanner's first card printing. A scan that the user found with name search after it was not recognized has none.
 - A scan keeps `printingChange`. It is null until the user chooses a card printing other than the current one. Then it is `other_options`, `printing_picker`, or `name_search`, from the last such choice. A switch back to the first card printing is a change too.
 - A scan keeps `printingConfirmed`. Choosing the current card printing in the printing picker sets it. Any later change clears it.
 - **Remove scan** and **Remove all scans** delete the training crops of the scans they remove, after the scan batch file no longer lists them.
 - The scan batch file is format version 3. Its training crops hold only the recognizer fields. A file in format version 2 still loads with its training crops, and the phone ignores their file URIs. A file in format version 1 still loads. Its scans get no training crop, no first card printing, and no printing change.
 - After a commit that works, the training crop of each saved scan that has one joins the user's upload queue, `training-crop-queue-<user ID>.json` in the documents folder. `src/scan/evidence-record.ts` builds the evidence record from the saved scan, with policy version 1. Each crop in the queue gets a new random crop ID, which is not the copy ID, and an upload time drawn at random between 1 and 7 days after the commit. So the upload time does not show when the user added the card.
-- The upload queue file is format version 2. Each crop in it holds its crop ID, its copy ID, its upload time, and its evidence record. A file in format version 1 still loads, and the phone ignores its file URIs.
+- The upload queue file is format version 3. Each crop in it holds its crop ID, its copy ID, its upload time, and its evidence record. Files in format versions 1 and 2 are from before training crops were WebP. The phone drops their crops and deletes the crop files, so no JPEG crop uploads.
 - The phone uploads the crops whose upload time has passed when the app starts, when a user signs in, and when the app comes back to the foreground. `TrainingCropUploads` in `src/scan/training-crops.ts` runs these uploads, apart from the scan batch. It uploads them one at a time to the `training-crops` Edge Function, which Training crops (below) describes. It uploads only the signed-in user's queue, and it stops when the user signs out. The phone deletes the crop after the upload works or after the server refuses it with a 400, such as `unknown_copy` for a copy that the user deleted. A network failure or another error keeps the crop in the queue, and the phone stops until the next try. Before it uploads a crop, the phone checks that the file exists. A crop whose file is missing leaves the queue with no upload, and the next crop uploads.
 - Once at sign-in or start, after the scan batch and the upload queue load, the phone deletes each file in `training-crops/<user ID>/` that neither of them lists. It keeps the crops of scans made since then. So a scan batch file or upload queue file that cannot be read leaves no crops behind.
 - The phone reads the **Upload training crops** switch when a user signs in or the app starts, and again when the app comes back to the foreground after a failed read. When the phone knows that uploads are off, a commit deletes the training crops of the saved scans and queues none. Turning the switch off deletes every crop in the user's queue.
@@ -386,7 +423,7 @@ The app uploads a training crop for each saved scan to the `training-crops` Edge
 
 The function takes a `multipart/form-data` POST with the user's token and three parts:
 
-- `image`, the JPEG of the crop;
+- `image`, the WebP of the crop;
 - `copy_id`, the copy ID of the saved scan;
 - `crop`, the evidence record as JSON, with a new random `crop_id` that is not the copy ID.
 
@@ -394,13 +431,13 @@ The function:
 
 1. checks the user's token, and answers 401 when there is none;
 2. refuses an AI client's token with 403 and `insufficient_privilege`, as ADR 0007 asks for app writes;
-3. refuses an image that is not `image/jpeg` or is over 1 MB with `invalid_argument` on `image`. The `training-crops` bucket holds both limits, and the function reads them from it;
+3. refuses an image that is not `image/webp` or is over 1 MB with `invalid_argument` on `image`. The `training-crops` bucket holds both limits, and the function reads them from it. It also refuses an image whose bytes do not start as a WebP file, such as a JPEG sent as `image/webp`;
 4. calls `add_training_crop` with the secret key;
-5. uploads the image to `training-crops` at `<crop_id>.jpg` with the secret key and no metadata. An object that is already there counts as done, so a retry works.
+5. uploads the image to `training-crops` at `<crop_id>.webp` with the secret key and no metadata. An object that is already there counts as done, so a retry works.
 
 It answers 204 when the crop is stored. A refusal is a 400 with a JSON body of `code`, `message`, and `details`, the field at fault. Any other failure is a 500 with `internal_error`. The function writes no log line.
 
-`.github/workflows/edge-functions.yml` deploys it with the MCP function. `supabase/functions/training-crops/crop-object.ts` names the bucket and the object path, `<crop_id>.jpg`, for the function and the owner command.
+`.github/workflows/edge-functions.yml` deploys it with the MCP function. `supabase/functions/training-crops/crop-object.ts` names the bucket and the object path, `<crop_id>.webp`, for the function.
 
 `add_training_crop({ user_id, copy_id, crop })` runs only for the secret key. It uses the user ID and the copy ID for its checks and stores neither:
 
@@ -420,7 +457,7 @@ The evidence record has these fields, each a column of `training_crops`:
 - `top_similarity` and `art_margin`;
 - `reading_set_code`, `reading_collector_number`, `reading_premium_mark`, and `reading_names_saved_printing`, which says whether the collector line named the saved card printing;
 - `same_text_twin_count`;
-- `recognizer_version` (the app version and build number), `feature_print_revision`, and `gallery_version`;
+- `recognizer_version` (the app version and build number), `feature_print_model`, and `gallery_version`. `feature_print_model` is the name of the model that made the feature prints, from the model block of the installed gallery version, such as `pe-core-s16-384`. It is text of up to 50 characters. Crops stored before the switch to PE-Core S16 have `apple-vision-2`. `add_training_crop` refuses `feature_print_revision`, the field of older builds, as an unknown field;
 - `recognized_printing_id`, the scanner's first card printing, and `saved_printing_id`, both in the card catalog;
 - `printing_change` (`other_options`, `printing_picker`, `name_search`, or null) and `printing_confirmed`;
 - `policy_version`.
@@ -432,12 +469,12 @@ The **Upload training crops** switch in the settings drawer sets `profiles.train
 
 `supabase/training-crops.ts` has the shared types.
 
-`training_crops` has no user ID, copy ID, or time column. No app role can read or write it. Only the secret key reads it, and it changes only through `add_training_crop`. The private `training-crops` bucket accepts only `image/jpeg` up to 1 MB. Signed-in users and anonymous callers cannot read, list, upload, or delete in it.
+`training_crops` has no user ID, copy ID, or time column. No app role can read or write it. Only the secret key reads it, and it changes only through `add_training_crop`. The private `training-crops` bucket accepts only `image/webp` up to 1 MB. Crops that uploaded before training crops were WebP stay in it as `<crop_id>.jpg`. ADR 0011 means they cannot be deleted. Signed-in users and anonymous callers cannot read, list, upload, or delete in it.
 
 The owner downloads the training crops to the Mac with `bun run crops pull` in `supabase`. The script loads `.env.hosted`, like the gallery commands, so it reads the hosted project with the secret key. It downloads into `~/Library/Caches/mtgscan/training-crops/`, outside the repository. `--into <dir>` names another folder. The folder has the layout of the scanner evidence pack:
 
-- `crops/<crop_id>.jpg` holds each image. The command downloads only the images that are not in the folder yet.
-- `labels.json` has `cards`, with each crop path and its `saved_printing_id` as `scryfallId`.
+- `crops/<crop_id>.webp` holds each image, with the name it has in the bucket. A crop that uploaded before training crops were WebP is `crops/<crop_id>.jpg`. The command downloads only the images that are not in the folder yet.
+- `labels.json` has `cards`, with each crop path, its `saved_printing_id` as `scryfallId`, and its `feature_print_model` as `featurePrintModel`.
 - `evidence.json` has the evidence record of each crop, in the same order.
 
 A row whose image is not in the bucket yet waits for a later pull. The command prints the number of new crops, the number of crops in the folder and their total size, and the Storage left before uploads stop at 90%. It reads the Storage left from `get_training_crop_storage`, so it uses the same limit and rule as `storage_full`.

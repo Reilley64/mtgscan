@@ -23,7 +23,7 @@ export function evidenceRecordOf(scan: CroppedScan): EvidenceRecord {
       reading.collectorNumber === scan.printing.collectorNumber,
     same_text_twin_count: scan.sameTextTwinCount,
     recognizer_version: trainingCrop.recognizerVersion,
-    feature_print_revision: trainingCrop.featurePrintRevision,
+    feature_print_model: trainingCrop.featurePrintModel,
     gallery_version: trainingCrop.galleryVersion,
     recognized_printing_id: scan.recognizedPrintingId,
     saved_printing_id: scan.printing.printingId,

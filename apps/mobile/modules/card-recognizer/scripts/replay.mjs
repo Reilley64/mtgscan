@@ -5,7 +5,9 @@ import path from 'node:path';
 
 import {
   buildRecognizer,
+  compiledModelFile,
   dataDirectory,
+  galleryHeaderFile,
   moduleRoot,
   printingListFile,
   run,
@@ -20,9 +22,12 @@ const galleryDirectory = process.env.RECOGNIZER_GALLERY_DIR && path.resolve(proc
 let recognizer;
 const realOnly = process.argv.includes('--real-only');
 const recordFeaturePrints = process.argv.includes('--record-feature-prints');
+const webpRoundTrip = process.argv.includes('--webp-round-trip');
 const baselineArgument = process.argv.indexOf('--baseline');
 const baselineDirectory = baselineArgument === -1 ? null : path.resolve(process.argv[baselineArgument + 1]);
+const realLabelsFile = path.join(evidence, 'real', 'labels.json');
 const featurePrintsFile = path.join(evidence, 'real', 'feature-prints.json');
+const roundTripDirectory = path.join(dataDirectory, 'round-trip');
 const parityReferenceCount = 24;
 const parityMinimumCosine = 0.98;
 
@@ -46,7 +51,11 @@ async function galleryMatchesRecording() {
 }
 
 async function featurePrints(crops) {
-  const result = await run(recognizer, ['feature-prints', ...crops.map((crop) => path.join(evidence, 'real', crop))], { output: true });
+  const result = await run(
+    recognizer,
+    ['feature-prints', '--model', path.join(galleryDirectory, compiledModelFile), ...crops.map((crop) => path.join(evidence, 'real', crop))],
+    { output: true },
+  );
   if (result.code !== 0) throw new Error('the feature prints did not compute');
   return result.stdout
     .trim()
@@ -78,9 +87,10 @@ async function recordReferenceFeaturePrints() {
   const vectors = await featurePrints(crops);
   const { stdout: macOS } = await run('sw_vers', ['-productVersion'], { output: true });
   const { stdout: machine } = await run('sysctl', ['-n', 'machdep.cpu.brand_string'], { output: true });
+  const { model } = JSON.parse(await fs.readFile(path.join(galleryDirectory, galleryHeaderFile), 'utf8'));
   const recording = {
     recordedWith: {
-      featurePrint: 'VNGenerateImageFeaturePrintRequest revision 2, scaleFill, 768 values',
+      model: { name: model.name, sha256: model.sha256 },
       machine: `${machine.trim()}, macOS ${macOS.trim()}`,
       recordedOn: new Date().toISOString().slice(0, 10),
     },
@@ -135,15 +145,20 @@ async function renderSimulatedScans() {
   return { photos: recorded.length, mismatched: await mismatchedSimulatedScans(recorded) };
 }
 
-async function runGate({ name, labels, expected, flags }) {
+async function evaluate(labels, flags) {
   const evaluation = await run(
     'bun',
     [path.join(moduleRoot, 'scripts', 'evaluate.mjs'), labels, '--gallery', galleryDirectory, '--recognizer', recognizer, ...flags],
     { output: true },
   );
-  if (evaluation.code !== 0) return { name, against: null, exitCode: 1, report: null, error: 'the evaluation did not finish' };
+  return evaluation.code === 0 ? evaluation.stdout : null;
+}
+
+async function runGate({ name, labels, expected, flags }) {
+  const evaluation = await evaluate(labels, flags);
+  if (evaluation === null) return { name, against: null, exitCode: 1, report: null, error: 'the evaluation did not finish' };
   const resultFile = path.join(reportsDirectory, `${name}.json`);
-  await fs.writeFile(resultFile, evaluation.stdout);
+  await fs.writeFile(resultFile, evaluation);
   const baseline = baselineDirectory && path.join(baselineDirectory, `${name}.json`);
   const comparedWith = baseline && existsSync(baseline) ? baseline : expected;
   const check = await run('bun', [path.join(evidence, 'check.mjs'), comparedWith, resultFile, galleryDirectory], { output: true });
@@ -153,19 +168,56 @@ async function runGate({ name, labels, expected, flags }) {
   return { name, against, exitCode: check.code, report: JSON.parse(check.stdout) };
 }
 
-if (recordFeaturePrints) {
-  await fs.mkdir(dataDirectory, { recursive: true });
-  recognizer = await buildRecognizer();
-  await recordReferenceFeaturePrints();
-  process.exit(0);
+async function writeRoundTripLabels(format) {
+  const labels = JSON.parse(await fs.readFile(realLabelsFile, 'utf8'));
+  const crops = [...labels.cards.map((card) => card.crop), ...labels.nonCards].map((crop) => path.join(evidence, 'real', crop));
+  const directory = path.join(roundTripDirectory, format);
+  await fs.rm(directory, { recursive: true, force: true });
+  const written = await run(recognizer, ['reencode', format, path.join(directory, 'crops'), ...crops], { output: true });
+  if (written.code !== 0) throw new Error(`the ${format} crops were not written`);
+  const lines = written.stdout.trim().split('\n').map((line) => JSON.parse(line));
+  const failed = lines.filter((line) => line.error);
+  if (failed.length > 0) throw new Error(`${failed.length} ${format} crops were not written, first: ${failed[0].input}`);
+  const reencoded = new Map(lines.map((line) => [line.input, line.output]));
+  const crop = (file) => reencoded.get(path.join(evidence, 'real', file));
+  const roundTripLabels = path.join(directory, 'labels.json');
+  await fs.writeFile(
+    roundTripLabels,
+    `${JSON.stringify({ ...labels, cards: labels.cards.map((card) => ({ ...card, crop: crop(card.crop) })), nonCards: labels.nonCards.map(crop) }, null, 1)}\n`,
+  );
+  return roundTripLabels;
 }
+
+async function roundTripRun(gate, format, labels, originalScans) {
+  const evaluation = await evaluate(labels, gate.flags);
+  if (evaluation === null) throw new Error(`${gate.name} did not finish on the ${format} crops`);
+  await fs.writeFile(path.join(reportsDirectory, `${gate.name}-${format}.json`), evaluation);
+  const { correctAccepts, falseAccepts, nonCards, nonCardsRejected, scans } = JSON.parse(evaluation);
+  const changedScans = scans.filter((scan, index) => scan.top !== originalScans[index].top || scan.accepted !== originalScans[index].accepted);
+  return { correctAccepts, falseAccepts, nonCardsAccepted: nonCards - nonCardsRejected, changedScans: changedScans.length };
+}
+
+async function runRoundTrip(gate, roundTripLabels) {
+  const originalScans = JSON.parse(await fs.readFile(path.join(reportsDirectory, `${gate.name}.json`), 'utf8')).scans;
+  const webp = await roundTripRun(gate, 'webp', roundTripLabels.webp, originalScans);
+  const jpeg = await roundTripRun(gate, 'jpeg', roundTripLabels.jpeg, originalScans);
+  const pass = webp.falseAccepts === 0 && webp.nonCardsAccepted === 0;
+  return { name: gate.name, webp, jpeg, pass };
+}
+
 if (!galleryDirectory) {
-  console.error('Set RECOGNIZER_GALLERY_DIR to the folder that `bun run gallery install` wrote, such as ~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753. See test/scanner-evidence/README.md.');
+  console.error('Set RECOGNIZER_GALLERY_DIR to the folder that `bun run gallery install` wrote, such as ~/Library/Caches/mtgscan/gallery/installed/20261021-c38f43. See test/scanner-evidence/README.md.');
   process.exit(1);
 }
 if (!existsSync(path.join(galleryDirectory, printingListFile))) {
   console.error(`No gallery in ${galleryDirectory}. See test/scanner-evidence/README.md.`);
   process.exit(1);
+}
+if (recordFeaturePrints) {
+  await fs.mkdir(dataDirectory, { recursive: true });
+  recognizer = await buildRecognizer();
+  await recordReferenceFeaturePrints();
+  process.exit(0);
 }
 await fs.mkdir(reportsDirectory, { recursive: true });
 recognizer = await buildRecognizer();
@@ -174,13 +226,13 @@ const sameGallery = await galleryMatchesRecording();
 const gates = [
   {
     name: 'real-full',
-    labels: path.join(evidence, 'real', 'labels.json'),
+    labels: realLabelsFile,
     expected: path.join(evidence, 'real', 'expected-full.json'),
     flags: ['--details', '--scans'],
   },
   {
     name: 'real-held-out',
-    labels: path.join(evidence, 'real', 'labels.json'),
+    labels: realLabelsFile,
     expected: path.join(evidence, 'real', 'expected-held-out.json'),
     flags: ['--held-out', '--details', '--scans'],
   },
@@ -208,7 +260,19 @@ for (const gate of gates) {
   console.error(`Running ${gate.name}`);
   results.push(await runGate(gate));
 }
-const failed = !parity.pass || simulation?.mismatched.length > 0 || results.some((result) => result.exitCode === 1);
+const webpRoundTrips = [];
+if (webpRoundTrip) {
+  const roundTripLabels = { webp: await writeRoundTripLabels('webp'), jpeg: await writeRoundTripLabels('jpeg') };
+  for (const gate of gates.filter((gate) => gate.labels === realLabelsFile)) {
+    console.error(`Running ${gate.name} on WebP and JPEG round trips`);
+    webpRoundTrips.push(await runRoundTrip(gate, roundTripLabels));
+  }
+}
+const failed =
+  !parity.pass ||
+  simulation?.mismatched.length > 0 ||
+  results.some((result) => result.exitCode === 1) ||
+  webpRoundTrips.some((roundTrip) => !roundTrip.pass);
 const exitCode = failed ? 1 : results.some((result) => result.exitCode === 2) ? 2 : 0;
 console.log(
   JSON.stringify(
@@ -225,6 +289,7 @@ console.log(
         changedMeasures: report?.totalChanges.length ?? null,
         changedScans: Array.isArray(report?.scanChanges) ? report.scanChanges.length : null,
       })),
+      webpRoundTrip: webpRoundTrip ? webpRoundTrips : null,
       reports: reportsDirectory,
       exitCode,
     },

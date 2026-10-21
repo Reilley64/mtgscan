@@ -426,7 +426,7 @@ The app uses the iOS system font, SF Pro, at a few weights.
 - **Body** (14 px) carries reasons, rules text, and list content. **Body strong** labels buttons and card names in rows. **Field** (14 px) is the text in a text field, such as the card name in name search. It has no fixed line height, so iOS centers the text in the field.
 - **Meta** (12 px, muted) carries set and collector number, finish, condition, language, and timestamps.
 - **Price** (12 px, semibold, text price) carries the current price under a binder tile and on a batch review row. On the latest-scan chip, it takes the meta line's color.
-- **Chip** (11 px, bold) labels chips and status pills. **Tab label** (10 px, bold) sits under tab bar icons. **Credit** (10 px, semibold, dim) credits image and price sources such as Scryfall, and carries the Fan Content notice.
+- **Chip** (11 px, bold) labels chips and status pills. **Tab label** (10 px, bold) sits under tab bar icons. **Credit** (10 px, semibold, dim) credits image and price sources such as Scryfall, and carries the Fan Content and model license notices.
 - **Mana symbol** (9 px) is the one type style in another font: the Mana font, which the app bundles. It draws the glyph of a card symbol on its 12 px circle, inline with body text. **Mana symbol split** (5 px) draws the two small glyphs of a hybrid symbol. **Mana symbol bare** (12 px) draws a symbol with no circle, such as {E}, at the size of a circle. See Card symbols.
 
 Copy is plain sentence case and uses glossary terms exactly: planned swap, buylist card, free copy, protected copy, estimated bracket.
@@ -855,8 +855,9 @@ The settings drawer:
 - **Revoke** opens the alert "Revoke ChatGPT?" with "It loses access to your mtgscan data at once.", **Revoke** (destructive), and **Cancel**. **Revoke** ends the AI client's access. While it runs, the row's **Revoke** button shows a spinner and cannot be tapped. When it works, the row leaves the list at once, with no new read. When it fails, the alert "Could not revoke ChatGPT" says "Check your connection.", and the row stays.
 - The account card, the gallery card, the Currency row, and the AI clients row fit at half height.
 - Under **Sign out**, the Wizards Fan Content notice sits in credit type in text dim: "mtgscan is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC."
+- Under the Fan Content notice, the model license notice sits in credit type in text dim: "Card recognition uses PE-Core S16 by Meta, under the Apache License 2.0." **Apache License 2.0** is a link. It opens the license text, https://www.apache.org/licenses/LICENSE-2.0, in the system browser. The model's repositories have no NOTICE file, so the notice carries no NOTICE text.
 - The settings drawer shows no Scryfall price note. Scryfall's API guidelines do not require one. The price credit already names Scryfall.
-- Only a development build shows a "Parity check" section under the Fan Content notice, with a **Run the parity check** button. After a check, the section lists "Gallery version 20261012-cf1753", "Lowest cosine 0.99976", "Mean cosine 1.00003", and "24 reference images", with the cosines to 5 decimals, then each reference image that failed. When the check cannot run, it shows "Could not run the parity check:" and the error code. Production builds leave it out.
+- Only a development build shows a "Parity check" section under the Fan Content and model license notices, with a **Run the parity check** button. After a check, the section lists "Gallery version 20261012-cf1753", "Lowest cosine 0.99976", "Mean cosine 1.00003", and "24 reference images", with the cosines to 5 decimals, then each reference image that failed. When the check cannot run, it shows "Could not run the parity check:" and the error code. Production builds leave it out.
 
 ## Elevation & Depth
 

@@ -5,11 +5,10 @@ import Foundation
 public enum CardRecognizer {
   public static let readWidth = 1191
   public static let readHeight = 1664
+  static let smallWidth = 488
+  static let smallHeight = 680
   static let shortlistSize = 50
   static let illustrationExpansion = 10
-  static let notACardSimilarity: Float = 0.5
-  static let unreadArtMargin: Float = 0.03
-  static let orientationMargin: Float = 0.03
   static let fullReadingStrength = 3
   static let titleCandidates = 10
   static let machineReadableFrame = "2015"
@@ -40,19 +39,20 @@ public enum CardRecognizer {
     var stageMs = initialStageMs
     var startedAt = ProcessInfo.processInfo.systemUptime
     guard let turned = CardRectifier.rotatedHalfTurn(uprightCandidate),
-          let uprightSmall = FeaturePrint.input(of: uprightCandidate),
-          let turnedSmall = FeaturePrint.input(of: turned)
+          let uprightSmall = small(uprightCandidate),
+          let turnedSmall = small(turned)
     else { throw .rectificationFailed }
     stageMs["resize"] = elapsed(since: &startedAt)
     let uprightVector: [Float]
     let turnedVector: [Float]
     do {
-      uprightVector = try FeaturePrint.vector(of: uprightSmall)
-      turnedVector = try FeaturePrint.vector(of: turnedSmall)
+      uprightVector = try gallery.compiledModel.featurePrint(of: uprightSmall)
+      turnedVector = try gallery.compiledModel.featurePrint(of: turnedSmall)
     } catch {
       throw .unreadablePhoto
     }
-    stageMs["embed"] = elapsed(since: &startedAt)
+    guard uprightVector.count == gallery.dimension, turnedVector.count == gallery.dimension else { throw .unreadablePhoto }
+    stageMs["featurePrint"] = elapsed(since: &startedAt)
     var bothScores = gallery.similarities(to: [uprightVector, turnedVector])
     for index in excluded {
       bothScores[0][index] = -1
@@ -75,7 +75,7 @@ public enum CardRecognizer {
       } ? -1 : candidate.strength
     }
     let preferTurned = turnedBest > uprightBest
-    let confident = abs(turnedBest - uprightBest) > orientationMargin
+    let confident = abs(turnedBest - uprightBest) > gallery.thresholds.orientationMargin
     let preferred = CollectorLineReader.read(card: preferTurned ? turned : uprightCandidate, setCodes: gallery.setCodes)
     var isTurned = preferTurned
     var reading = preferred
@@ -95,7 +95,7 @@ public enum CardRecognizer {
     let scores = isTurned ? turnedScores : uprightScores
     let shortlist = gallery.top(shortlistSize, of: scores)
     let topSimilarity = scores[shortlist[0]]
-    guard topSimilarity >= notACardSimilarity else {
+    guard topSimilarity >= gallery.thresholds.notACard else {
       return .notACard(NotACardRecognition(topSimilarity: Double(topSimilarity), stageMs: stageMs))
     }
     var expanded = shortlist
@@ -125,6 +125,10 @@ public enum CardRecognizer {
       trainingCrop: trainingCrop?.absoluteString,
       stageMs: stageMs
     ))
+  }
+
+  static func small(_ card: CGImage) -> CGImage? {
+    CardRectifier.resized(card, width: smallWidth, height: smallHeight)
   }
 
   static func choose(
@@ -260,8 +264,9 @@ public enum CardRecognizer {
     if gallery.printings[top].frame == machineReadableFrame && readLabel.isEmpty {
       return abstain("only printing of its art, but its collector line was not read")
     }
-    if margin < unreadArtMargin {
-      return abstain("only printing of its art, but the next art is \(format(margin)) behind; at least \(format(unreadArtMargin)) is required")
+    if margin < gallery.thresholds.artMargin {
+      let required = format(gallery.thresholds.artMargin)
+      return abstain("only printing of its art, but the next art is \(format(margin)) behind; at least \(required) is required")
     }
     return accept(top, .uniqueArt, "only printing of its art, next art \(format(margin)) behind")
   }

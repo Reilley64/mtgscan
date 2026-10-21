@@ -8,18 +8,19 @@ import {
   type GalleryRow,
   type Part,
   addOnLimit,
-  featurePrintDimension,
-  galleryFormatVersion,
   galleryParts,
   installedRows,
+  modelPart,
   newVersionId,
   updateBytes,
 } from './format';
 import { cachedImages } from './images';
-import { type Manifest, manifestFile } from './manifest';
+import { type FeaturePrintModel, type Manifest, type RecognizerThresholds, galleryFormatVersion, manifestFile } from './manifest';
+import { type ConvertedModel, modelArchive } from './model';
 import { galleryPrintings } from './printings';
 import { type Recognizer, macOSMajor } from './recognizer';
 import {
+  GalleryRefused,
   type RecordedVersion,
   copyObject,
   publishedVersions,
@@ -44,26 +45,57 @@ type Plan =
   | { kind: 'add-on'; addOn: number; firstRow: number; changed: GalleryRow[] }
   | { kind: 'unchanged' };
 
+function refuseAnotherConvertedModel(recognizer: Recognizer, converted: ConvertedModel) {
+  const { sha256 } = recognizer.about.model;
+  if (sha256 !== converted.model.sha256) {
+    throw new GalleryRefused(
+      `The converted model ${converted.modelPackage} has SHA-256 ${sha256}, but ${converted.modelFile} names ${converted.model.sha256}. Build only with the model that the model file names.`,
+    );
+  }
+}
+
+function describedModel(model: FeaturePrintModel): string {
+  return `${model.name} with SHA-256 ${model.sha256}`;
+}
+
+function refuseAnAddOnAcrossModels(published: RecordedVersion, converted: ConvertedModel) {
+  const { formatVersion, model } = published.manifest;
+  if (formatVersion !== galleryFormatVersion) {
+    throw new GalleryRefused(
+      `Gallery version ${published.version} has gallery format ${formatVersion}, not ${galleryFormatVersion}. Build a new base with --new-base.`,
+    );
+  }
+  if (model.name !== converted.model.name || model.sha256 !== converted.model.sha256) {
+    throw new GalleryRefused(
+      `Gallery version ${published.version} was built with model ${describedModel(model)}, not ${describedModel(converted.model)}. An add-on cannot mix the two. Build a new base with --new-base.`,
+    );
+  }
+}
+
 function sameRow(a: GalleryRow, b: GalleryRow): boolean {
   return JSON.stringify(a.printing) === JSON.stringify(b.printing) && Buffer.from(a.codes).equals(Buffer.from(b.codes));
 }
 
-function plan(rows: GalleryRow[], published: RecordedVersion | null, installed: Map<string, GalleryRow> | null, recognizer: Recognizer, newBase: boolean): Plan {
-  if (!published || !installed) {
-    return { kind: 'base', reason: 'no gallery version is published' };
+type AddOnBase = { published: RecordedVersion; installed: Map<string, GalleryRow> };
+
+function sameThresholds(a: RecognizerThresholds, b: RecognizerThresholds): boolean {
+  return a.notACard === b.notACard && a.orientationMargin === b.orientationMargin && a.artMargin === b.artMargin;
+}
+
+function plan(rows: GalleryRow[], addOnBase: AddOnBase | null, newBase: boolean, recognizer: Recognizer, thresholds: RecognizerThresholds): Plan {
+  if (!addOnBase) {
+    return { kind: 'base', reason: newBase ? 'the owner asked for a new base' : 'no gallery version is published' };
   }
+  const { published, installed } = addOnBase;
   const manifest = published.manifest;
-  if (newBase) {
-    return { kind: 'base', reason: 'the owner asked for a new base' };
-  }
-  if (manifest.featurePrint.revision !== recognizer.about.featurePrintRevision) {
-    return { kind: 'base', reason: 'the feature print revision changed' };
-  }
   if (manifest.encoding.type !== 'int8') {
     return { kind: 'base', reason: 'the encoding changed' };
   }
   if (macOSMajor(manifest.builtWith.macOS) !== macOSMajor(recognizer.about.macOS)) {
     return { kind: 'base', reason: 'the macOS major version changed' };
+  }
+  if (!sameThresholds(manifest.thresholds, thresholds)) {
+    return { kind: 'base', reason: 'the recognizer thresholds changed' };
   }
   const changed = rows.filter((row) => {
     const earlier = installed.get(row.printing.id);
@@ -111,7 +143,13 @@ function seconds(startedAt: number): string {
   return `${((performance.now() - startedAt) / 1000).toFixed(1)} s`;
 }
 
-export async function buildGallery(client: ImportClient, recognizer: Recognizer, options: BuildOptions): Promise<Manifest | null> {
+export async function buildGallery(
+  client: ImportClient,
+  recognizer: Recognizer,
+  model: ConvertedModel,
+  options: BuildOptions,
+): Promise<Manifest | null> {
+  refuseAnotherConvertedModel(recognizer, model);
   const timings: string[] = [];
   let startedAt = performance.now();
   const source = await galleryPrintings(client, options.manifestLocation);
@@ -150,13 +188,20 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
       publishedParts.set(part.name, await localPartBytes(() => client, options.workDirectory, published.version, part));
     }
   }
-  const installed = published ? installedRows(published.manifest, (part) => publishedParts.get(part.name)!) : null;
+  const addOnPublished = options.newBase ? null : published;
+  if (addOnPublished) {
+    refuseAnAddOnAcrossModels(addOnPublished, model);
+  }
+  const addOnBase = addOnPublished && {
+    published: addOnPublished,
+    installed: installedRows(addOnPublished.manifest, (part) => publishedParts.get(part.name)!),
+  };
   const current = new Set(rows.map((row) => row.printing.id));
-  const leftOver = installed ? [...installed.keys()].filter((id) => !current.has(id)).length : 0;
+  const leftOver = addOnBase ? [...addOnBase.installed.keys()].filter((id) => !current.has(id)).length : 0;
   if (leftOver > 0) {
     console.log(`${leftOver} rows of gallery version ${published!.version} are no longer in the card catalog. They stay until the next base.`);
   }
-  const decision = plan(rows, published, installed, recognizer, options.newBase);
+  const decision = plan(rows, addOnBase, options.newBase, recognizer, model.thresholds);
   if (decision.kind === 'unchanged') {
     console.log(`Nothing changed since gallery version ${published!.version}. No new version was built.`);
     return null;
@@ -165,24 +210,21 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
   let parts: Part[];
   if (decision.kind === 'base') {
     console.log(`Building a new base, because ${decision.reason}.`);
-    parts = galleryParts(0, 0, rows);
+    parts = [...galleryParts(0, 0, rows, model.model.vectorSize), modelPart(await modelArchive(model.modelPackage))];
   } else {
     console.log(`Building add-on ${decision.addOn} with ${decision.changed.length} new or changed rows.`);
     parts = [
       ...published!.manifest.parts.map((part) => ({ ...part, bytes: publishedParts.get(part.name)! })),
-      ...galleryParts(decision.addOn, decision.firstRow, decision.changed),
+      ...galleryParts(decision.addOn, decision.firstRow, decision.changed, model.model.vectorSize),
     ];
   }
-  const distinctRows = decision.kind === 'base' ? rows.length : new Set([...installed!.keys(), ...decision.changed.map((row) => row.printing.id)]).size;
+  const distinctRows = decision.kind === 'base' ? rows.length : new Set([...addOnBase!.installed.keys(), ...decision.changed.map((row) => row.printing.id)]).size;
   const manifest: Manifest = {
     formatVersion: galleryFormatVersion,
     version,
     builtAt: new Date().toISOString(),
-    featurePrint: {
-      request: 'VNGenerateImageFeaturePrintRequest',
-      revision: recognizer.about.featurePrintRevision,
-      dimension: featurePrintDimension,
-    },
+    model: model.model,
+    thresholds: model.thresholds,
     encoding: { type: 'int8', scale: 'per_vector' },
     rows: distinctRows,
     scryfallSnapshot: source.scryfallSnapshot,
@@ -201,7 +243,6 @@ export async function buildGallery(client: ImportClient, recognizer: Recognizer,
   startedAt = performance.now();
   await upload(client, manifest, parts, published);
   timings.push(`upload ${seconds(startedAt)}`);
-
 
   const evidence = await evidenceVersion();
   const kept = [manifest, ...[published, versions.find((recorded) => recorded.version === evidence)]

@@ -8,7 +8,7 @@ import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runCropsCom
 import { asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 import { committed, scanBatch, stack } from './scan-batches';
 import type { TrainingCrop } from '../training-crops';
-import { angelicCurator, delverInnistrad, evidenceRecord, jpeg } from './training-crop-seeds';
+import { angelicCurator, delverInnistrad, evidenceRecord, jpeg, webp } from './training-crop-seeds';
 
 setDefaultTimeout(60_000);
 
@@ -35,13 +35,33 @@ async function stored(crop: TrainingCrop, { withImage = true } = {}): Promise<Ui
     request: { user_id: alice.userId, copy_id: aliceCopyId, crop },
   });
   expect(added.error).toBeNull();
-  const image = new Uint8Array(await jpeg(imageBytes).arrayBuffer());
-  image.set(new TextEncoder().encode(crop.crop_id), 4);
+  const image = new Uint8Array(await webp(imageBytes).arrayBuffer());
+  image.set(new TextEncoder().encode(crop.crop_id), 12);
   if (withImage) {
-    const uploaded = await bucket.upload(`${crop.crop_id}.jpg`, image, { contentType: 'image/jpeg' });
+    const uploaded = await bucket.upload(`${crop.crop_id}.webp`, image, { contentType: 'image/webp' });
     expect(uploaded.error).toBeNull();
   }
   return image;
+}
+
+async function storedAsJpegBeforeTheSwitchToWebp(crop: TrainingCrop): Promise<Uint8Array<ArrayBuffer>> {
+  const added = await secretKey.rpc('add_training_crop', {
+    request: { user_id: alice.userId, copy_id: aliceCopyId, crop },
+  });
+  expect(added.error).toBeNull();
+  const image = new Uint8Array(await jpeg(imageBytes).arrayBuffer());
+  image.set(new TextEncoder().encode(crop.crop_id), 4);
+  await setAllowedImageType('image/jpeg');
+  const uploaded = await bucket.upload(`${crop.crop_id}.jpg`, image, { contentType: 'image/jpeg' });
+  await setAllowedImageType('image/webp');
+  expect(uploaded.error).toBeNull();
+  return image;
+}
+
+function setAllowedImageType(type: string) {
+  return asDatabaseOwner(
+    (database) => database`update storage.buckets set allowed_mime_types = array[${type}] where id = 'training-crops'`,
+  );
 }
 
 async function storageBytes(): Promise<number> {
@@ -93,50 +113,66 @@ describe('pulling training crops', () => {
       recognized_printing_id: angelicCurator,
       saved_printing_id: delverInnistrad,
       printing_change: 'name_search',
+      feature_print_model: 'apple-vision-2',
     }),
   ];
+  const jpegCrop = evidenceRecord({ feature_print_model: 'apple-vision-2' });
+  const storedCrops = [...crops, jpegCrop];
   const later = evidenceRecord({ printing_confirmed: true });
   const images = new Map<string, Uint8Array<ArrayBuffer>>();
   let folder: string;
   let first: Awaited<ReturnType<typeof runCropsCommand>>;
 
+  function fileName(crop: TrainingCrop) {
+    return crop === jpegCrop ? `${crop.crop_id}.jpg` : `${crop.crop_id}.webp`;
+  }
+
   beforeAll(async () => {
     for (const crop of crops) {
       images.set(crop.crop_id, await stored(crop));
     }
+    images.set(jpegCrop.crop_id, await storedAsJpegBeforeTheSwitchToWebp(jpegCrop));
     await stored(evidenceRecord(), { withImage: false });
     folder = await mkdtemp(join(tmpdir(), 'mtgscan-training-crops-'));
     first = await runCropsCommand('pull', '--into', folder);
   });
 
-  test('the first pull downloads every stored training crop image', async () => {
+  test('the first pull downloads every stored training crop image, each WebP as <crop ID>.webp', async () => {
     expect(first.exitCode).toBe(0);
-    expect((await readdir(join(folder, 'crops'))).sort()).toEqual(crops.map((crop) => `${crop.crop_id}.jpg`).sort());
+    expect((await readdir(join(folder, 'crops'))).sort()).toEqual(storedCrops.map(fileName).sort());
     for (const crop of crops) {
-      expect(new Uint8Array(await readFile(join(folder, 'crops', `${crop.crop_id}.jpg`)))).toEqual(images.get(crop.crop_id)!);
+      expect(new Uint8Array(await readFile(join(folder, 'crops', `${crop.crop_id}.webp`)))).toEqual(images.get(crop.crop_id)!);
     }
   });
 
-  test('the labels file lists each crop with its saved card printing, in the scanner evidence pack format', async () => {
+  test('a training crop stored as a JPEG before the switch to WebP is pulled as <crop ID>.jpg', async () => {
+    expect(new Uint8Array(await readFile(join(folder, 'crops', `${jpegCrop.crop_id}.jpg`)))).toEqual(images.get(jpegCrop.crop_id)!);
+  });
+
+  test('the labels file lists each crop with its saved card printing and its feature print model, in the scanner evidence pack format', async () => {
     expect(await readJson(folder, 'labels.json')).toEqual({
-      cards: byCropId(crops).map((crop) => ({ crop: `crops/${crop.crop_id}.jpg`, scryfallId: crop.saved_printing_id })),
+      cards: byCropId(storedCrops).map((crop) => ({
+        crop: `crops/${fileName(crop)}`,
+        scryfallId: crop.saved_printing_id,
+        featurePrintModel: crop.feature_print_model,
+      })),
     });
   });
 
   test('the evidence file holds the evidence record of each crop', async () => {
-    expect(await readJson(folder, 'evidence.json')).toEqual(byCropId(crops));
+    expect(await readJson(folder, 'evidence.json')).toEqual(byCropId(storedCrops));
   });
 
   test('the pull prints the number of crops, their total size, and the Storage left before the 90% stop of the database Storage limit', async () => {
     const left = ((0.9 * storageLimit - (await storageBytes())) / 1_000_000).toFixed(1);
 
-    expect(first.output).toContain('Downloaded 2 new training crops.');
-    expect(first.output).toContain(`${folder} holds 2 training crops, 0.4 MB.`);
+    expect(first.output).toContain('Downloaded 3 new training crops.');
+    expect(first.output).toContain(`${folder} holds 3 training crops, 0.6 MB.`);
     expect(first.output).toContain(`${left} MB of Storage is left before training crop uploads stop at 90%.`);
   });
 
   test('a second pull downloads only the crops that are not on the Mac yet', async () => {
-    const kept = join(folder, 'crops', `${crops[0]!.crop_id}.jpg`);
+    const kept = join(folder, 'crops', `${crops[0]!.crop_id}.webp`);
     await writeFile(kept, 'kept on the Mac');
     images.set(later.crop_id, await stored(later));
 
@@ -145,9 +181,9 @@ describe('pulling training crops', () => {
     expect(second.exitCode).toBe(0);
     expect(second.output).toContain('Downloaded 1 new training crop.');
     expect(await readFile(kept, 'utf8')).toBe('kept on the Mac');
-    expect(new Uint8Array(await readFile(join(folder, 'crops', `${later.crop_id}.jpg`)))).toEqual(images.get(later.crop_id)!);
-    expect((await readJson(folder, 'labels.json')).cards).toHaveLength(3);
-    expect(await readJson(folder, 'evidence.json')).toEqual(byCropId([...crops, later]));
+    expect(new Uint8Array(await readFile(join(folder, 'crops', `${later.crop_id}.webp`)))).toEqual(images.get(later.crop_id)!);
+    expect((await readJson(folder, 'labels.json')).cards).toHaveLength(4);
+    expect(await readJson(folder, 'evidence.json')).toEqual(byCropId([...storedCrops, later]));
   });
 
   test('a pull with nothing new downloads nothing', async () => {

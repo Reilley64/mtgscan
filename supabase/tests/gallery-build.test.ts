@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
-import { createHash } from 'node:crypto';
-import { mkdtemp } from 'node:fs/promises';
+import { createHash, randomBytes } from 'node:crypto';
+import { mkdir, mkdtemp, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { inflateSync } from 'node:zlib';
+
+import { $ } from 'bun';
 
 import {
   basicLands,
@@ -16,13 +18,13 @@ import {
   withoutCards,
 } from './catalog-import-command';
 import { cleanGallery } from './gallery-versions';
-import { secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
+import { asDatabaseOwner, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(120_000);
 
 type ManifestPart = {
   name: string;
-  kind: 'gallery' | 'printing_list';
+  kind: 'gallery' | 'printing_list' | 'model';
   addOn: number;
   firstRow: number;
   rowCount: number;
@@ -31,7 +33,15 @@ type ManifestPart = {
   sha256: string;
 };
 
-type Manifest = { version: string; rows: number; parts: ManifestPart[] };
+type Manifest = {
+  formatVersion: number;
+  version: string;
+  rows: number;
+  model: { name: string; sha256: string };
+  parts: ManifestPart[];
+};
+
+type ConvertedModel = { modelFile: string; models: string; sha256: string };
 
 type PrintingListRow = { id: string; name: string; faceNames: string[]; finishes: string[]; basicLand: boolean };
 
@@ -41,11 +51,14 @@ const lightningBolt = 'Lightning Bolt';
 const blackLotus = 'Black Lotus';
 const firstBuildRows = 388;
 const unreachableLocalStack = 'http://127.0.0.1:9';
+const modelName = 'pe-core-s16-384';
+const thresholds = { notACard: 0.689, orientationMargin: 0.03, artMargin: 0.025 };
 
 let alice: TestUser;
 let images: ReturnType<typeof Bun.serve>;
 let imagesDirectory: string;
 let workDirectory: string;
+let model: ConvertedModel;
 const releaseDates = new Map<string, string>();
 
 function withLocalImages(records: ScryfallRecord[], imageVersion: (record: ScryfallRecord) => number = () => 1): ScryfallRecord[] {
@@ -65,8 +78,50 @@ async function galleryFixture(imageVersion?: (record: ScryfallRecord) => number)
   });
 }
 
+async function packageSha256(directory: string): Promise<string> {
+  return (await $`find . -type f | sed 's|^./||' | LC_ALL=C sort | xargs shasum -a 256 | shasum -a 256`.cwd(directory).text()).split(' ')[0]!;
+}
+
+async function convertedModel(sha256?: string): Promise<ConvertedModel> {
+  const models = await mkdtemp(join(tmpdir(), 'mtgscan-gallery-models-'));
+  const modelPackage = join(models, `${modelName}.mlpackage`);
+  const files: [string, Uint8Array | string][] = [
+    ['Manifest.json', '{"fileFormatVersion": "1.0.0"}'],
+    ['Data/com.apple.CoreML/model.mlmodel', 'program'],
+    ['Data/com.apple.CoreML/weights/weight.bin', randomBytes(2_000_000)],
+  ];
+  for (const [file, bytes] of files) {
+    await mkdir(dirname(join(modelPackage, file)), { recursive: true });
+    await writeFile(join(modelPackage, file), bytes);
+  }
+  const actual = await packageSha256(modelPackage);
+  const modelFile = join(models, 'model.json');
+  await writeFile(modelFile, JSON.stringify({ name: modelName, sha256: sha256 ?? actual, inputSize: 384, vectorSize: 512, thresholds }));
+  return { modelFile, models, sha256: actual };
+}
+
+async function withThresholds(converted: ConvertedModel, changed: typeof thresholds): Promise<ConvertedModel> {
+  const modelFile = join(await mkdtemp(join(tmpdir(), 'mtgscan-gallery-model-file-')), 'model.json');
+  await writeFile(modelFile, JSON.stringify({ name: modelName, sha256: converted.sha256, inputSize: 384, vectorSize: 512, thresholds: changed }));
+  return { ...converted, modelFile };
+}
+
+async function buildWithModel(converted: ConvertedModel, manifest: string, ...flags: string[]) {
+  return runGalleryCommand(
+    'build', '--manifest', manifest, '--images', imagesDirectory, '--work', workDirectory,
+    '--model-file', converted.modelFile, '--models', converted.models, ...flags,
+  );
+}
+
 async function build(manifest: string, ...flags: string[]) {
-  return runGalleryCommand('build', '--manifest', manifest, '--images', imagesDirectory, '--work', workDirectory, ...flags);
+  return buildWithModel(model, manifest, ...flags);
+}
+
+async function modelArchive(manifest: Manifest): Promise<string> {
+  const part = manifest.parts.find((candidate) => candidate.kind === 'model')!;
+  const archive = join(await mkdtemp(join(tmpdir(), 'mtgscan-model-part-')), 'model.tar');
+  await writeFile(archive, inflateSync(await download(`${manifest.version}/${part.name}`)));
+  return archive;
 }
 
 function builtVersion(output: string): string {
@@ -118,6 +173,7 @@ beforeAll(async () => {
   images = Bun.serve({ port: 0, fetch: (request) => new Response(`image ${new URL(request.url).pathname}${new URL(request.url).search}`) });
   imagesDirectory = await mkdtemp(join(tmpdir(), 'mtgscan-gallery-images-'));
   workDirectory = await mkdtemp(join(tmpdir(), 'mtgscan-gallery-work-'));
+  model = await convertedModel();
   await cleanGallery();
   await resetCardCatalog();
   const catalog = await catalogFixture(withoutCards([lightningBolt]));
@@ -127,6 +183,20 @@ beforeAll(async () => {
 afterAll(async () => {
   images.stop();
   await cleanGallery();
+});
+
+describe('a converted model that the model file does not name', () => {
+  test('a build is refused when the SHA-256 of the converted model does not match the model file', async () => {
+    const named = await convertedModel('a'.repeat(64));
+
+    const refused = await buildWithModel(named, await galleryFixture());
+
+    expect(refused.exitCode).toBe(1);
+    expect(refused.output).toContain(
+      `The converted model ${join(named.models, `${modelName}.mlpackage`)} has SHA-256 ${named.sha256}, but ${named.modelFile} names ${'a'.repeat(64)}.`,
+    );
+    expect(await recordedVersions()).toEqual([]);
+  });
 });
 
 describe('the first gallery build', () => {
@@ -147,6 +217,7 @@ describe('the first gallery build', () => {
     expect(manifest.parts.map((part) => [part.kind, part.addOn])).toEqual([
       ['gallery', 0],
       ['printing_list', 0],
+      ['model', 0],
     ]);
     for (const part of manifest.parts) {
       const bytes = await download(`${version}/${part.name}`);
@@ -155,8 +226,35 @@ describe('the first gallery build', () => {
       expect(inflateSync(bytes).length).toBe(part.rawBytes);
       expect(part.compressedBytes).toBeLessThan(50_000_000);
     }
-    expect(inflateSync(await download(`${version}/${manifest.parts[0]!.name}`)).length).toBe(firstBuildRows * 768);
+    expect(inflateSync(await download(`${version}/${manifest.parts[0]!.name}`)).length).toBe(firstBuildRows * 512);
     expect(await recordedVersions()).toEqual([{ version, published_at: null }]);
+  });
+
+  test('the manifest has gallery format 2 and takes the model and the thresholds from the model file', () => {
+    expect(manifest).toMatchObject({
+      formatVersion: 2,
+      model: { name: modelName, sha256: model.sha256, inputSize: { width: 384, height: 384 }, vectorSize: 512 },
+      thresholds,
+    });
+    expect(manifest).not.toHaveProperty('featurePrint');
+  });
+
+  test('the model part of the base is a tar archive of the converted model, sorted by path', async () => {
+    const archive = await modelArchive(manifest);
+    const unpacked = await mkdtemp(join(tmpdir(), 'mtgscan-model-unpacked-'));
+    await $`tar -xf ${archive} -C ${unpacked}`;
+
+    expect(manifest.parts.find((part) => part.kind === 'model')).toMatchObject({ name: 'base-model.zlib', addOn: 0, firstRow: 0, rowCount: 0 });
+    expect((await $`tar -tf ${archive}`.text()).trim().split('\n')).toEqual([
+      'model.mlpackage/',
+      'model.mlpackage/Data/',
+      'model.mlpackage/Data/com.apple.CoreML/',
+      'model.mlpackage/Data/com.apple.CoreML/model.mlmodel',
+      'model.mlpackage/Data/com.apple.CoreML/weights/',
+      'model.mlpackage/Data/com.apple.CoreML/weights/weight.bin',
+      'model.mlpackage/Manifest.json',
+    ]);
+    expect(await packageSha256(join(unpacked, 'model.mlpackage'))).toBe(model.sha256);
   });
 
   test('installs from the work folder for the scanner evidence replay, without Storage', async () => {
@@ -206,8 +304,15 @@ describe('the first gallery build', () => {
     expect(rows.find((row) => row.name === blackLotus)?.finishes.length).toBeGreaterThan(0);
   });
 
-  test('reports the sizes against the Free plan budget', () => {
-    expect(output).toContain(`Gallery version ${version}: ${firstBuildRows} rows`);
+  test('reports the sizes against the Free plan budget, with the model part in the full install and in Storage', () => {
+    const megabytes = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`;
+    const modelBytes = manifest.parts.find((part) => part.kind === 'model')!.compressedBytes;
+    const allBytes = manifest.parts.reduce((sum, part) => sum + part.compressedBytes, 0);
+
+    expect(output).toContain(`Gallery version ${version}: ${firstBuildRows} rows, ${megabytes(allBytes)} in 3 parts`);
+    expect(output).toContain(`model ${megabytes(modelBytes)})`);
+    expect(output).toContain(`A full install downloads ${megabytes(allBytes)}.`);
+    expect(output).toContain(`Storage for the kept versions (${version}) is ${megabytes(allBytes)}`);
     expect(output).toContain('of the 50.0 MB upload limit');
     expect(output).toContain('5 GB of egress a month covers');
     expect(output).toContain('of 1 GB');
@@ -243,7 +348,7 @@ describe('publishing', () => {
     const pointer = await alice.client.storage.from('gallery').download('published.json');
     const manifest = await alice.client.storage.from('gallery').download(`${first}/manifest.json`);
 
-    expect(JSON.parse(await pointer.data!.text())).toMatchObject({ version: first, manifest: `${first}/manifest.json` });
+    expect(JSON.parse(await pointer.data!.text())).toMatchObject({ formatVersion: 2, version: first, manifest: `${first}/manifest.json` });
     expect(manifest.error).toBeNull();
   });
 
@@ -253,6 +358,20 @@ describe('publishing', () => {
     expect(result.exitCode).toBe(0);
     expect(result.output).toContain(`Nothing changed since gallery version ${first}`);
     expect(await recordedVersions()).toHaveLength(1);
+  });
+
+  test('a build with new recognizer thresholds in the model file uploads a new base with the same model part, even with no changed rows', async () => {
+    const changed = { ...thresholds, notACard: 0.7 };
+    const published = await manifestOf(first);
+
+    const result = await buildWithModel(await withThresholds(model, changed), await galleryFixture());
+
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('Building a new base, because the recognizer thresholds changed.');
+    const newBase = await manifestOf(builtVersion(result.output));
+    expect(newBase).toMatchObject({ thresholds: changed, rows: firstBuildRows });
+    expect(newBase.parts.every((part) => part.addOn === 0)).toBe(true);
+    expect(newBase.parts.find((part) => part.kind === 'model')).toEqual(published.parts.find((part) => part.kind === 'model'));
   });
 });
 
@@ -302,6 +421,91 @@ describe('the next gallery builds', () => {
 
     expect((await recordedVersions()).map((row) => row.version).sort()).toEqual([first.version, newBase.version].sort());
     expect(await storedFolders()).toEqual([first.version, newBase.version].sort());
+  });
+});
+
+describe('a new model', () => {
+  let newModel: ConvertedModel;
+  let published: Manifest;
+
+  beforeAll(async () => {
+    newModel = await convertedModel();
+    const pointer = JSON.parse(new TextDecoder().decode(await download('published.json'))) as { version: string };
+    published = await manifestOf(pointer.version);
+  });
+
+  test('a build with another model than the published gallery version is refused without --new-base', async () => {
+    const before = await recordedVersions();
+
+    const refused = await buildWithModel(newModel, await galleryFixture((record) => (record.name === blackLotus ? 4 : 1)));
+
+    expect(refused.exitCode).toBe(1);
+    expect(refused.output).toContain(
+      `Gallery version ${published.version} was built with model ${modelName} with SHA-256 ${model.sha256}, not ${modelName} with SHA-256 ${newModel.sha256}.`,
+    );
+    expect(refused.output).toContain('--new-base');
+    expect(await recordedVersions()).toEqual(before);
+  });
+
+  test('with --new-base, a build with another model uploads a new base with the new model part', async () => {
+    const result = await buildWithModel(newModel, await galleryFixture(), '--new-base');
+    const newBase = await manifestOf(builtVersion(result.output));
+    const unpacked = await mkdtemp(join(tmpdir(), 'mtgscan-model-unpacked-'));
+    await $`tar -xf ${await modelArchive(newBase)} -C ${unpacked}`;
+
+    expect(result.exitCode).toBe(0);
+    expect(newBase.model).toMatchObject({ name: modelName, sha256: newModel.sha256 });
+    expect(newBase.parts.every((part) => part.addOn === 0)).toBe(true);
+    expect(await packageSha256(join(unpacked, 'model.mlpackage'))).toBe(newModel.sha256);
+  });
+
+  test('a new base with the same model has the same model part, whatever the times of its files', async () => {
+    const modelPackage = join(model.models, `${modelName}.mlpackage`);
+    for (const path of (await $`find ${modelPackage}`.text()).trim().split('\n')) {
+      await utimes(path, new Date('2027-01-02T03:04:05Z'), new Date('2027-01-02T03:04:05Z'));
+    }
+
+    const result = await build(await galleryFixture(), '--new-base');
+    const newBase = await manifestOf(builtVersion(result.output));
+
+    expect(result.exitCode).toBe(0);
+    expect(newBase.parts.find((part) => part.kind === 'model')).toEqual(published.parts.find((part) => part.kind === 'model'));
+  });
+});
+
+describe('a published gallery version of format 1', () => {
+  let published: string;
+
+  beforeAll(async () => {
+    published = JSON.parse(new TextDecoder().decode(await download('published.json'))).version;
+    await asDatabaseOwner(
+      (database) => database`
+        update public.gallery_versions
+        set manifest = manifest - 'model' - 'thresholds' || ${{
+          formatVersion: 1,
+          featurePrint: { request: 'VNGenerateImageFeaturePrintRequest', revision: 2, dimension: 768 },
+        }}::jsonb
+        where version = ${published}`,
+    );
+  });
+
+  test('a build is refused without --new-base', async () => {
+    const before = await recordedVersions();
+
+    const refused = await build(await galleryFixture((record) => (record.name === blackLotus ? 5 : 1)));
+
+    expect(refused.exitCode).toBe(1);
+    expect(refused.output).toContain(`Gallery version ${published} has gallery format 1, not 2. Build a new base with --new-base.`);
+    expect(await recordedVersions()).toEqual(before);
+  });
+
+  test('with --new-base, a build uploads a new base of format 2', async () => {
+    const result = await build(await galleryFixture(), '--new-base');
+
+    expect(result.exitCode).toBe(0);
+    const newBase = await manifestOf(builtVersion(result.output));
+    expect(newBase.formatVersion).toBe(2);
+    expect(newBase.parts.every((part) => part.addOn === 0)).toBe(true);
   });
 });
 
