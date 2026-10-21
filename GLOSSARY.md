@@ -137,6 +137,9 @@ _Avoid_: Rectangle detector
 The four corners of a detected card. The Scan tab draws it in magenta, and the recognizer straightens the photo along it.
 _Avoid_: Guide
 
+**Photo refinement**:
+After automatic capture takes the photo, the card detector moves the held-still card outline by the camera motion between the last analyzed frame and the photo, and refines it on the photo with the edge refiner. A size check and a motion check refuse a refined outline that could be on the inner frame. The recognizer straightens the photo along the result, the photo outline.
+
 **Inside outline**:
 A card outline with a side more than 1 mm inside the card edge. On a black-bordered card it is often the inner frame. A training crop of an inside outline loses the border and can lose the collector line.
 

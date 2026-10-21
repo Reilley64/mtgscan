@@ -12,7 +12,7 @@ private let allOrientations: [CGImagePropertyOrientation] = [
   .up, .upMirrored, .down, .downMirrored, .leftMirrored, .right, .rightMirrored, .left,
 ]
 
-private struct GrayImage {
+struct GrayImage {
   let width: Int
   let height: Int
   var pixels: [UInt8]
@@ -24,7 +24,7 @@ private struct GrayImage {
   }
 }
 
-private func makeBuffer(oriented: GrayImage, orientation: CGImagePropertyOrientation) -> CVPixelBuffer {
+func makeBuffer(oriented: GrayImage, orientation: CGImagePropertyOrientation) -> CVPixelBuffer {
   let swaps = [.leftMirrored, .right, .rightMirrored, .left].contains(orientation)
   let bufferWidth = swaps ? oriented.height : oriented.width
   let bufferHeight = swaps ? oriented.width : oriented.height
@@ -176,7 +176,7 @@ func transformMatchesVision() {
   }
 }
 
-private struct SyntheticCard {
+struct SyntheticCard {
   let center: SIMD2<Double>
   let width: Double
   let angle: Double
@@ -221,7 +221,7 @@ private func roundedRectangleDistance(
   return outside + min(max(q.x, q.y), 0.0) - radius
 }
 
-private func renderCard(_ card: SyntheticCard?, width: Int, height: Int, background: Double) -> GrayImage {
+func renderCard(_ card: SyntheticCard?, width: Int, height: Int, background: Double) -> GrayImage {
   var image = GrayImage(width: width, height: height, fill: 0)
   var seed: UInt64 = 0x9E37_79B9_7F4A_7C15
   for y in 0 ..< height {
@@ -272,7 +272,7 @@ private func lumaPlane<T>(_ buffer: CVPixelBuffer, _ body: (LumaPlane) -> T) -> 
   return body(plane)
 }
 
-private func maximumCornerError(_ actual: [SIMD2<Double>], _ expected: [SIMD2<Double>]) -> Double {
+func maximumCornerError(_ actual: [SIMD2<Double>], _ expected: [SIMD2<Double>]) -> Double {
   zip(actual, expected).map { simd_length($0 - $1) }.max() ?? .infinity
 }
 

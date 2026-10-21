@@ -194,8 +194,11 @@ What it runs:
 4. The replay runs each frame on the merge base and on the branch back to back. It swaps which side goes first on each frame and each round. The first round runs every frame and every clip frame. Two more rounds run the frames again, for Mac timing. So a slow moment on the Mac slows both sides. The card outlines and the clips come from the first round.
 5. The scorer compares each card outline with the true corners. It maps the outline onto the card with the homography of the true corners, so every distance is in mm on the card.
 6. The scorer feeds the detection samples of each clip, in order, through `observeSample` in `src/scan/capture.ts`, the automatic capture rule that the app runs. It imports the rule and does not copy it.
+7. For each clip that asks for a photo, the replay asks each command for the photo outline. It sends the index of the frame of the sample that held still, the photo, and that sample's outline, as one JSON line. The command runs `PhotoOutline.refine`, the photo refinement that `takePhoto` runs on the phone, and writes the photo outline and the outcome. When the merge base's command has no refine mode, its photo outline is the held-still outline. Under the tables, the replay prints the outcomes on each side and the median time of photo refinement on the Mac.
 
 `card-detector frames <image>...` runs the detector once on each frame and writes the same JSON lines, for use by hand.
+
+`card-detector refine <frame> <photo> <outline JSON>` runs photo refinement once, for use by hand. The outline is the held-still outline in fractions of the frame, such as `[{"x":0.2,"y":0.3},{"x":0.7,"y":0.3},{"x":0.7,"y":0.7},{"x":0.2,"y":0.7}]`. It writes one JSON line with the photo outline, the outcome, and `durationMs`.
 
 The frames:
 
@@ -262,7 +265,9 @@ Clip metrics and pass bars, from #493. Each bar applies to the 5 clips of a cond
 | Photo asked for | Clips on which automatic capture asks for a photo | Not fewer |
 | Settle time | The time from the card's arrival, the first frame, until automatic capture asks for a photo. Median of the clips that ask. | Not worse |
 | Jitter | On the frames from the time the card rests, the standard deviation of each corner's error in mm on the card. A clip's jitter is its largest corner. Median of the clips with 2 or more detected frames at rest. | Not worse, to 0.01 mm |
-| Photo outline | The corner error of the outline that straightens the photo. Today that is the outline of the sample that held still, the one automatic capture asked the photo for, in the same fractions of the photo. Median of the clips that ask. | Median not worse by more than 0.1 mm. Photo refinement (#499) sets a bar below 0.5 mm. |
+| Photo outline | The corner error of the outline that straightens the photo: the photo outline from the command's refine mode, in fractions of the photo. On a merge base with no refine mode, it is the outline of the sample that held still, the one automatic capture asked the photo for. Median of the clips that ask. | Median not worse by more than 0.1 mm |
+| Photo outline, held still on the card edge | The photo outline on the clips whose held-still outline is within 0.5 mm of the card edge on its own frame. On these clips, the photo outline error before photo refinement comes from hand movement. Median of those clips. | Median below 0.5 mm |
+| Inside photo outlines | Photo outlines with a side more than 1 mm inside the card edge on the photo | No new one |
 | Hand shift | The photo outline error if that sample's outline were on the true corners. It is how far the hand moved the card between that frame and the photo. | Reported |
 
 The bars apply to each condition and tilt bucket, so an average over the tilt buckets cannot hide a regression. The table has one row for each, with the merge base and the branch side by side. The clips table has one row for each clip condition. Two more tables report each metric by condition and border colour, and by border colour and tilt bucket. They have no bars of their own.
@@ -289,6 +294,23 @@ Result on `main` at `a6fcfaf`, on an Apple M3 with macOS 27.0.1. It shows the kn
 - Jitter is 0.06 mm or less at the median on each surface.
 - Mac timing p95 is about 5 ms. The whole replay takes about 2.5 minutes from nothing, once the card images are downloaded, and about 70 seconds when the frames are already rendered. The clips add the 20 photos at 2268 x 4032. With them, one run from nothing took 3 minutes 38 seconds on the M3 while other work ran on it. The frames, clips, and photos take 1.9 GB on disk.
 - Timing noise: with the same detector code on both sides, the timing ratio stayed between 0.96 and 1.04 over 10 runs of 3 rounds on a busy M3, and the same with 5 rounds. One pass with the merge base first and the branch second gave 0.71 to 1.70 on the same Mac. These runs used the first 60 frames.
+
+Photo refinement (#500), on the same Mac, against the integration branch at `1e68ee5`:
+
+- 16 clips ask for a photo. 15 photo outlines pass both checks. The motion check refuses one, on a sleeve clip at 15 to 25 degrees of tilt, where the refined outline moved out to the sleeve edge. That clip keeps its held-still outline.
+- The photo outline median falls from 0.83 to 0.03 mm on plain clips, 1.04 to 0.06 mm on patterned, 1.45 to 0.03 mm on shadow, and 2.79 to 1.96 mm on sleeve clips. On sleeve clips, the outline stays on the sleeve edge.
+- On the 7 clips whose held-still outline is on the card edge, the photo outline error was 0.19 to 1.69 mm before, the shift from hand movement. With photo refinement, the median is 0.03 mm on each surface.
+- Vision's registration moves the outline to within 0.2 mm of the card on all 20 photos, when the held-still outline is the true card edge.
+- One inside photo outline goes away, on a shadow clip. No photo outline is a new inside outline.
+- Photo refinement takes 34 to 50 ms at the median on the Mac, most of it in reading the photo and in the registration. The edge refiner takes about 2 ms. The detector's frame loop is unchanged.
+- On the `macos-15` runner of the Detector workflow, all 16 photo outlines pass both checks, also on the sleeve clip, and photo refinement takes 76 to 117 ms at the median over two runs. Its photo outline medians are within 0.01 mm of the Mac's.
+
+The refusal limits of `PhotoOutline` come from these runs:
+
+| Check | Refuses | Replay result |
+| --- | --- | --- |
+| Size check | A refined outline more than 2% narrower or shorter than the moved outline (`sizeShrinkMax`) | The 15 accepted outlines are within 0.4% of the moved outline's size. In a second run that starts each clip from the true card edge, the 3 refined outlines on the inner frame are 6% to 9% smaller, and the size check refuses them. |
+| Motion check | A refined outline with a corner more than 2% of the moved outline's short side from the moved outline (`cornerMotionMax`), about 1.3 mm on the card | 14 of the 15 accepted outlines move at most 0.4%. The refused sleeve outline moved 2.9%. In the run from the true card edge, outlines that jump out to a sleeve or shadow edge move 2.9% to 3.7%. |
 
 Synthetic frames do not show what Vision does on real frames (#421). So the replay gates mechanisms and regressions, and the phone confirms real gains.
 

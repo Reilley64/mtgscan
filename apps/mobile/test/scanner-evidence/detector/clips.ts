@@ -1,6 +1,6 @@
-import type { DetectionSample } from '../../../modules/card-detector';
+import type { DetectionSample, FrameQuad } from '../../../modules/card-detector';
 import { initialCapture, observeSample } from '../../../src/scan/capture';
-import { cardCorners, median, outlineOnCard, type Point } from './geometry';
+import { cardCorners, isInside, median, outlineOnCard, sidesInsideMm, type Point } from './geometry';
 import type { Bar } from './score';
 
 export type ClipFrameLabel = {
@@ -27,14 +27,19 @@ export type ClipScore = {
   condition: string;
   photoAskedFor: boolean;
   settleTimeMs: number | null;
+  heldStillOnCardEdge: boolean;
   photoOutlineMm: number | null;
+  photoOutlineInside: boolean;
   handShiftMm: number | null;
   jitterMm: number | null;
 };
 
 export type ClipFrameSize = { frameWidth: number; frameHeight: number; cardMm: Point };
 
-function heldStillSample(clip: ClipLabel, samples: DetectionSample[]) {
+export const heldStillOnCardEdgeMm = 0.5;
+export const photoOutlineMedianBelowMm = 0.5;
+
+export function heldStillSample(clip: ClipLabel, samples: DetectionSample[]) {
   let state = initialCapture();
   for (const [index, sample] of samples.entries()) {
     const step = observeSample(state, { ...sample, sampledAtMs: clip.frames[index].timeMs });
@@ -62,19 +67,31 @@ function jitter(clip: ClipLabel, samples: DetectionSample[], size: ClipFrameSize
   return Math.max(...card.map((_, corner) => spread(errors.map((error) => error[corner]))));
 }
 
-export function scoreClip(clip: ClipLabel, samples: DetectionSample[], size: ClipFrameSize): ClipScore {
+export function scoreClip(clip: ClipLabel, samples: DetectionSample[], size: ClipFrameSize, photoOutline?: FrameQuad): ClipScore {
   const heldStill = heldStillSample(clip, samples);
   const { photo } = clip;
   const onPhoto = (fractions: Point[]) => fractions.map(([x, y]): Point => [x * photo.width, y * photo.height]);
-  const photoError = (fractions: Point[]) => outlineOnCard(onPhoto(fractions), photo.corners, size.cardMm).errorMm;
+  const onPhotoCard = (fractions: Point[]) => outlineOnCard(onPhoto(fractions), photo.corners, size.cardMm);
+  const photoError = (fractions: Point[]) => onPhotoCard(fractions).errorMm;
   const heldOutline = heldStill?.sample.corners?.map(({ x, y }): Point => [x, y]);
   const heldTruth = heldStill && clip.frames[heldStill.index].corners.map(([x, y]): Point => [x / size.frameWidth, y / size.frameHeight]);
+  const heldStillErrorMm =
+    heldStill && heldOutline
+      ? outlineOnCard(
+          heldOutline.map(([x, y]): Point => [x * size.frameWidth, y * size.frameHeight]),
+          clip.frames[heldStill.index].corners,
+          size.cardMm,
+        ).errorMm
+      : null;
+  const outline = photoOutline?.map(({ x, y }): Point => [x, y]) ?? heldOutline;
   return {
     clip: clip.clip,
     condition: clip.condition,
     photoAskedFor: heldStill !== null,
     settleTimeMs: heldStill ? clip.frames[heldStill.index].timeMs - clip.frames[0].timeMs : null,
-    photoOutlineMm: heldOutline ? photoError(heldOutline) : null,
+    heldStillOnCardEdge: heldStillErrorMm !== null && heldStillErrorMm <= heldStillOnCardEdgeMm,
+    photoOutlineMm: outline ? photoError(outline) : null,
+    photoOutlineInside: outline ? isInside(sidesInsideMm(onPhotoCard(outline).corners, size.cardMm)) : false,
     handShiftMm: heldTruth ? photoError(heldTruth) : null,
     jitterMm: jitter(clip, samples, size),
   };
@@ -87,6 +104,8 @@ export type ClipGroupScore = {
   settleTimeMs: number | null;
   jitterMm: number | null;
   photoOutlineMm: number | null;
+  photoOutlineOnCardEdgeMm: number | null;
+  insidePhotoOutlines: string[];
   handShiftMm: number | null;
 };
 
@@ -108,6 +127,8 @@ export function scoreClipGroups(clips: ClipScore[]): ClipGroupScore[] {
       settleTimeMs: medianOf(group.map((clip) => clip.settleTimeMs)),
       jitterMm: medianOf(group.map((clip) => clip.jitterMm)),
       photoOutlineMm: medianOf(group.map((clip) => clip.photoOutlineMm)),
+      photoOutlineOnCardEdgeMm: medianOf(group.filter((clip) => clip.heldStillOnCardEdge).map((clip) => clip.photoOutlineMm)),
+      insidePhotoOutlines: group.filter((clip) => clip.photoOutlineInside).map((clip) => clip.clip),
       handShiftMm: medianOf(group.map((clip) => clip.handShiftMm)),
     };
   });
@@ -155,6 +176,22 @@ function groupBars(base: ClipGroupScore, branch: ClipGroupScore): Bar[] {
       branch: millimetres(branch.photoOutlineMm),
       bar: `not worse by more than ${photoOutlineMedianLimitMm} mm`,
       pass: notWorse(base.photoOutlineMm, branch.photoOutlineMm, photoOutlineMedianLimitMm),
+    },
+    {
+      ...key,
+      metric: 'Photo outline median, held still on the card edge',
+      base: millimetres(base.photoOutlineOnCardEdgeMm),
+      branch: millimetres(branch.photoOutlineOnCardEdgeMm),
+      bar: `below ${photoOutlineMedianBelowMm} mm`,
+      pass: branch.photoOutlineOnCardEdgeMm === null || branch.photoOutlineOnCardEdgeMm < photoOutlineMedianBelowMm,
+    },
+    {
+      ...key,
+      metric: 'Inside photo outlines',
+      base: String(base.insidePhotoOutlines.length),
+      branch: String(branch.insidePhotoOutlines.length),
+      bar: 'no new one',
+      pass: branch.insidePhotoOutlines.every((clip) => base.insidePhotoOutlines.includes(clip)),
     },
     {
       ...key,

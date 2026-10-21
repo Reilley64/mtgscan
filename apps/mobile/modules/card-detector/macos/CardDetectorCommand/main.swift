@@ -6,7 +6,11 @@ import ImageIO
 
 let displayOrientation = CGImagePropertyOrientation.right
 
-let usage = "usage: card-detector frames <image>... | card-detector step <image>..."
+let usage = """
+usage: card-detector frames <image>...
+       card-detector step <image>...
+       card-detector refine <frame> <photo> <outline JSON>
+"""
 
 struct Frame {
   let width: Int
@@ -129,15 +133,58 @@ func detect(_ buffer: CVPixelBuffer) -> DetectionSample {
   )
 }
 
+func portraitBuffer(_ path: String) -> CVPixelBuffer {
+  guard let frame = loadFrame(at: URL(fileURLWithPath: path)), frame.width < frame.height,
+        let buffer = analysisBuffer(of: frame)
+  else { fail("cannot read the portrait frame \(path)") }
+  return buffer
+}
+
 func warmedUpBuffers(_ paths: [String]) -> [CVPixelBuffer] {
-  let buffers = paths.map { path in
-    guard let frame = loadFrame(at: URL(fileURLWithPath: path)), frame.width < frame.height,
-          let buffer = analysisBuffer(of: frame)
-    else { fail("cannot read the portrait frame \(path)") }
-    return buffer
-  }
+  let buffers = paths.map(portraitBuffer)
   _ = detect(buffers[0])
   return buffers
+}
+
+struct RefineRequest: Decodable {
+  struct Point: Decodable {
+    let x: Double
+    let y: Double
+  }
+
+  let refine: Int
+  let photo: String
+  let outline: [Point]
+}
+
+func outlineRecord(_ outline: [SIMD2<Double>]) -> [[String: Double]] {
+  outline.map { ["x": $0.x, "y": $0.y] }
+}
+
+func emitPhotoOutline(frame: String, buffer: CVPixelBuffer, photo: String, outline: [RefineRequest.Point]) {
+  autoreleasepool {
+    let heldStill = outline.map { SIMD2($0.x, $0.y) }
+    let startedAt = ProcessInfo.processInfo.systemUptime
+    let result = PhotoOutline.refine(
+      photo: URL(fileURLWithPath: photo),
+      frame: buffer,
+      frameOrientation: displayOrientation,
+      heldStill: heldStill
+    )
+    emit([
+      "frame": frame,
+      "photo": photo,
+      "heldStill": outlineRecord(heldStill),
+      "outline": outlineRecord(result.outline),
+      "outcome": result.outcome.rawValue,
+      "durationMs": CardQuadDetector.elapsedMilliseconds(since: startedAt),
+    ])
+  }
+}
+
+func decoded<Value: Decodable>(_ type: Value.Type, from text: String) -> Value {
+  guard let value = try? JSONDecoder().decode(type, from: Data(text.utf8)) else { fail("cannot read \(text)") }
+  return value
 }
 
 func emitDetection(_ path: String, _ buffer: CVPixelBuffer) {
@@ -155,6 +202,12 @@ func detectFrames(_ paths: [String]) {
 func detectFramesOnRequest(_ paths: [String]) {
   let buffers = warmedUpBuffers(paths)
   while let line = readLine() {
+    if line.hasPrefix("{") {
+      let request = decoded(RefineRequest.self, from: line)
+      guard buffers.indices.contains(request.refine) else { fail("no frame at index \(request.refine)") }
+      emitPhotoOutline(frame: paths[request.refine], buffer: buffers[request.refine], photo: request.photo, outline: request.outline)
+      continue
+    }
     guard let index = Int(line), buffers.indices.contains(index) else { fail("no frame at index \(line)") }
     emitDetection(paths[index], buffers[index])
   }
@@ -166,6 +219,9 @@ case "frames" where arguments.count > 1:
   detectFrames(Array(arguments.dropFirst()))
 case "step" where arguments.count > 1:
   detectFramesOnRequest(Array(arguments.dropFirst()))
+case "refine" where arguments.count == 4:
+  let outline = decoded([RefineRequest.Point].self, from: arguments[3])
+  emitPhotoOutline(frame: arguments[1], buffer: portraitBuffer(arguments[1]), photo: arguments[2], outline: outline)
 default:
   fail(usage)
 }
