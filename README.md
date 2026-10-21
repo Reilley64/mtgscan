@@ -214,7 +214,20 @@ A `RECOGNITION` line with a result also has `photoSize`, the photo dimensions th
 | `recognizer` | The native recognizer starts | The native recognizer ends |
 | `recognitionHandOff` | The native recognizer ends | The line is logged |
 
-`recognizer` holds the recognizer stages in `stageMs` and the rest of the native call, such as writing the training crop.
+`recognizer` is split into the stages in `stageMs` of the recognition. The stages add up to `recognizer` to within a millisecond.
+
+| Stage | Time |
+| --- | --- |
+| `gallery` | Waiting for the installed gallery. The first scan after the app starts loads it. |
+| `rectify` | Reading the photo and straightening the card |
+| `resize` | Turning the card and resizing both rotations for the model |
+| `featurePrint` | The feature prints of both rotations |
+| `search` | Comparing both feature prints with the gallery |
+| `read` | Reading the collector line, once or in both rotations |
+| `decide` | The shortlist, the decision, and the candidates |
+| `trainingCrop` | Writing the training crop. A not-a-card result has no `trainingCrop` stage. |
+
+A development build links the debug build of the libwebp in `expo-image`, which has no compiler optimizations. There, `trainingCrop` takes about 450 ms on the Mac. A release build links the optimized libwebp, and the stage takes about 25 ms on the Mac (#503).
 
 ### Scan batch
 

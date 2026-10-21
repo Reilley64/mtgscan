@@ -78,12 +78,15 @@ public final class CardRecognizerModule: Module {
 
     AsyncFunction("recognize") { (photo: URL, outline: [OutlinePoint]) async throws -> [String: Any] in
       let startedAt = Self.wallClockMs()
+      var galleryStartedAt = ProcessInfo.processInfo.systemUptime
       let recognition: Recognition
       do throws(RecognitionFailure) {
+        let gallery = try await installedGallery.gallery()
         recognition = try CardRecognizer.recognize(
           photo: photo,
           outline: try CardOutline(corners: outline.map { CGPoint(x: $0.x, y: $0.y) }),
-          gallery: try await installedGallery.gallery(),
+          gallery: gallery,
+          stageMs: ["gallery": CardRecognizer.elapsed(since: &galleryStartedAt)],
           trainingCropDirectory: Self.trainingCropDirectory
         )
       } catch {
