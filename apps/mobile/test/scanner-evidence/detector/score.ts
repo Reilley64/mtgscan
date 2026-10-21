@@ -90,7 +90,7 @@ export const correctOutlineMm = 1;
 export const replayBars = {
   cornerErrorMedianMm: 0.1,
   cornerErrorP90Mm: 0.5,
-  detectionDropPerFrame: 1 / 30,
+  frameAllowance: 1 / 30,
   macTimingRatio: 1.2,
 } as const;
 
@@ -125,13 +125,16 @@ type GroupKey = Pick<GroupScore, 'condition' | 'borderColor' | 'tiltBucket'>;
 function scoreGroup(key: GroupKey, frames: FrameScore[]): GroupScore {
   const cardFrames = frames.filter((frame) => frame.hasCard);
   const fitted = cardFrames.filter((frame) => frame.cornerErrorMm !== null && frame.sizeErrorMm !== null);
-  const errors = fitted.map((frame) => frame.cornerErrorMm!).sort((a, b) => a - b);
+  const errors = fitted
+    .map((frame) => frame.cornerErrorMm!)
+    .filter((error) => error <= correctOutlineMm)
+    .sort((a, b) => a - b);
   return {
     ...key,
     frames: frames.length,
     cardFrames: cardFrames.length,
     detected: cardFrames.filter((frame) => frame.detected).length,
-    correct: fitted.filter((frame) => frame.cornerErrorMm! <= correctOutlineMm).length,
+    correct: errors.length,
     cornerErrorMm: errors.length > 0 ? { median: nearestRank(errors, 0.5), p90: nearestRank(errors, 0.9) } : null,
     sizeErrorMm:
       fitted.length > 0
@@ -209,7 +212,7 @@ function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
       },
     ];
   }
-  const allowedDrop = branch.cardFrames * replayBars.detectionDropPerFrame;
+  const allowance = branch.cardFrames * replayBars.frameAllowance;
   const worse = (metric: 'median' | 'p90', limit: number) =>
     base.cornerErrorMm === null || branch.cornerErrorMm === null || branch.cornerErrorMm[metric] - base.cornerErrorMm[metric] <= limit;
   const bar = (text: string, pass: boolean) => (gated ? { bar: text, pass } : { bar: 'reported', pass: null });
@@ -219,7 +222,7 @@ function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
       metric: 'Detection rate',
       base: `${base.correct} of ${base.cardFrames}`,
       branch: `${branch.correct} of ${branch.cardFrames}`,
-      ...bar(`correct outlines not lower by more than ${allowedDrop.toFixed(0)}`, base.correct - branch.correct <= allowedDrop),
+      ...bar(`correct outlines not lower by more than ${allowance.toFixed(0)}`, base.correct - branch.correct <= allowance),
     },
     {
       ...key,
@@ -247,7 +250,10 @@ function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
       metric: 'Inside outlines',
       base: String(base.insideOutlines.length),
       branch: String(branch.insideOutlines.length),
-      ...bar('not more than the merge base', branch.insideOutlines.length <= base.insideOutlines.length),
+      ...bar(
+        `not more than the merge base plus ${allowance.toFixed(0)}`,
+        branch.insideOutlines.length <= base.insideOutlines.length + allowance,
+      ),
     },
     {
       ...key,

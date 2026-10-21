@@ -86,10 +86,11 @@ function bar(comparison: ReturnType<typeof compareReplays>, metric: string) {
 test('the detector replay measures corner error in mm on the card', () => {
   const shiftedRight = cardAt(200 + 2 * pixelsPerMm, 300)!;
 
-  const [plain] = run(shiftedRight).groups;
+  const replay = run(shiftedRight);
+  const [plain] = replay.groups;
 
   expect(plain.detected).toBe(1);
-  expect(plain.cornerErrorMm?.median).toBeCloseTo(2);
+  expect(replay.frames[0].cornerErrorMm).toBeCloseTo(2);
   expect(plain.insideOutlines).toEqual(['plain-000.png']);
 });
 
@@ -159,6 +160,40 @@ test('the inside outlines bar compares the count of each group, and still lists 
 
   expect(bar(comparison, 'Inside outlines')).toMatchObject({ base: '1', branch: '1', pass: true });
   expect(replayTable(comparison)).toContain('- plain-001.png, tilt 0, black border: outline at');
+});
+
+test('corner error counts correct outlines only, so a wrong outline that gets worse does not move it', () => {
+  const twoFrames: FrameLabels = {
+    ...labels,
+    frames: [label('plain-000.png', cardAt(200, 300)), label('plain-001.png', cardAt(200, 300))],
+  };
+  const replay = (wrongByMm: number) =>
+    scoreReplay(twoFrames, [[
+      sample('plain-000.png', cardAt(200 + 0.2 * pixelsPerMm, 300)),
+      sample('plain-001.png', cardAt(200 - wrongByMm * pixelsPerMm, 300)),
+    ]]);
+
+  const comparison = compareReplays(replay(4), replay(8), { sameDetector: false });
+
+  expect(bar(comparison, 'Corner error median')).toMatchObject({ base: '0.20 mm', branch: '0.20 mm', pass: true });
+  expect(bar(comparison, 'Corner error p90')).toMatchObject({ base: '0.20 mm', branch: '0.20 mm', pass: true });
+  expect(bar(comparison, 'Wrong outlines')).toMatchObject({ base: '1', branch: '1', pass: true });
+});
+
+test('the inside outlines bar allows 1 more inside outline in 30 frames than the merge base, and lists it', () => {
+  const onTheEdge = cardAt(200, 300)!;
+  const insideAtTheTop = onTheEdge.map(([x, y], index): [number, number] => [x, index < 2 ? y + 1.5 * pixelsPerMm : y]);
+  const frames = Array.from({ length: 30 }, (_, index) => `plain-${String(index).padStart(3, '0')}.png`);
+  const thirtyFrames: FrameLabels = { ...labels, frames: frames.map((frame) => label(frame, onTheEdge)) };
+  const replay = (insideFrames: number) =>
+    scoreReplay(thirtyFrames, [frames.map((frame, index) => sample(frame, index < insideFrames ? insideAtTheTop : onTheEdge))]);
+
+  const oneMore = compareReplays(replay(0), replay(1), { sameDetector: false });
+  const twoMore = compareReplays(replay(0), replay(2), { sameDetector: false });
+
+  expect(bar(oneMore, 'Inside outlines')).toMatchObject({ base: '0', branch: '1', bar: 'not more than the merge base plus 1', pass: true });
+  expect(replayTable(oneMore)).toContain('- plain-000.png, tilt 0, black border: outline at');
+  expect(bar(twoMore, 'Inside outlines')).toMatchObject({ branch: '2', pass: false });
 });
 
 test('an outline on an empty plain surface fails the false outlines bar', () => {
