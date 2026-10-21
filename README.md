@@ -57,6 +57,32 @@ A card result also has:
 - `artMargin`, the similarity of the top candidate minus the similarity of the best candidate with other art. It is null when no other art was compared.
 - `trainingCrop`, the file URI of the straightened card as a 488 x 680 WebP at quality 90 in `Caches/training-crops`. That is the size of the crops in the scanner evidence pack. The recognizer writes it with libwebp, the encoder that Android will also use (ADR 0015). On iOS it uses the libwebp that `expo-image` brings into the app, so the app holds one copy. The crop is upright, in the rotation that the recognizer chose. A not-a-card result and a failed recognition write no crop.
 
+The recognizer reads the collector line from the bottom 16% of the straightened card with Vision text recognition. It takes the set code from the line with the language code, such as "ELD • EN". A code read before a dot, a star, or a hyphen that is a set code in the gallery names its set. Vision often misreads that line, so the reader also takes a code:
+
+- with Cyrillic letters that look like Latin ones, such as "МКС • EN";
+- with a space inside it, such as "M 15 • EN";
+- before "+", "#", "~", "%", or no separator, such as "SLD + EN" or "DSCEN";
+- with one stray digit before "EN", such as "M21 - 2EN".
+
+It reads no collector number from the line with the language code, so "M210 EN" is not number 210.
+
+The recognizer matches such a code only against the sets of the shortlisted printings of the top 10 cards in the image shortlist. It tries these match levels, best first:
+
+1. The code equals the set code.
+2. They are equal after mapping look-alike characters: O to 0, I, L, and T to 1, S to 5, Z to 2, B to 8, and G to 6. "MT5" matches M15.
+3. The first character was dropped, such as "OS" for SOS. Or the separator was read as a last character, such as "M210" for M21.
+4. They are one character apart, such as "120" for M20.
+
+The best level must name exactly one set. Otherwise the reading has no set code.
+
+The decision also follows these rules:
+
+- A number read before a rarity letter, such as "269 C", is often the set size of "136/269 C". When it names a printing that the image does not support, the recognizer drops it and decides on the set code alone.
+- An accept by set code needs the next other card at least the art margin behind the top candidate.
+- An accept by set code also needs the set to have only one printing of the top card in the gallery. A set code alone cannot tell two printings of one set apart.
+- A number with no set code shows first the one printing of the top card with that number and the art of a top 5 image candidate. The recognizer abstains.
+- Cards in the 1993, 1997, and 2003 frames print no set code. When the top printing has one of these frames and the reader read a set code, the recognizer does not accept by unique art.
+
 The recognizer makes feature prints with the Core ML model of the installed gallery version, on all compute units. It scales the straightened card to 488 x 680, It then pads the card to the model's input size with the model's mean color, 0.5 gray, so the card keeps its aspect ratio. It L2-normalizes the vector that the model returns. A model that returns NaN, or a vector of another size than the gallery version's, makes the scan fail as an unreadable photo.
 
 The recognizer reads the recognizer thresholds from the installed gallery version: not a card, orientation margin, and art margin. It takes the vector size from the model block there, and the input size from the shape of the gallery version's model. A gallery installed before gallery format 2 has no model, so it does not load, and the recognizer throws `gallery_not_ready`.

@@ -106,6 +106,7 @@ public final class Gallery: Sendable {
   public let model: FeaturePrintModel
   public let thresholds: RecognizerThresholds
   public let printingsByIllustration: [String: [Int]]
+  let printingsByOracle: [String: [Int]]
   public let setCodes: Set<String>
   public let compiledModel: CompiledModel
   private let vectors: Data
@@ -146,8 +147,10 @@ public final class Gallery: Sendable {
     compiledModel = try CompiledModel(compiledAt: directory.appendingPathComponent(GalleryFile.compiledModel))
     var bySetAndNumber: [String: Int] = [:]
     var byIllustration: [String: [Int]] = [:]
+    var byOracle: [String: [Int]] = [:]
     for (index, printing) in printings.enumerated() {
       bySetAndNumber[Self.key(set: printing.set, collectorNumber: printing.collectorNumber)] = index
+      byOracle[printing.oracleId, default: []].append(index)
       if let illustration = printing.illustrationId {
         byIllustration[illustration, default: []].append(index)
       }
@@ -155,6 +158,7 @@ public final class Gallery: Sendable {
     indexBySetAndNumber = bySetAndNumber
     indexById = Dictionary(uniqueKeysWithValues: printings.enumerated().map { ($1.id, $0) })
     printingsByIllustration = byIllustration
+    printingsByOracle = byOracle
     setCodes = Set(printings.map { $0.set })
   }
 
