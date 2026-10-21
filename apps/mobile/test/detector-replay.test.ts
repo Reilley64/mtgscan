@@ -322,7 +322,11 @@ function clipLabel(clip: string, { handShiftMm = 0 }: { handShiftMm?: number } =
   };
 }
 
-function runClip(clip: ClipLabel, outlineAt: (index: number, trueCorners: [number, number][]) => [number, number][] | null) {
+function runClip(
+  clip: ClipLabel,
+  outlineAt: (index: number, trueCorners: [number, number][]) => [number, number][] | null,
+  photoOutlines?: Map<string, FrameQuad>,
+) {
   return scoreReplay(
     { ...labels, clips: [clip] },
     [
@@ -332,6 +336,7 @@ function runClip(clip: ClipLabel, outlineAt: (index: number, trueCorners: [numbe
         ...clip.frames.map((frame, index) => sample(frame.frame, outlineAt(index, frame.corners))),
       ],
     ],
+    photoOutlines,
   );
 }
 
@@ -373,6 +378,53 @@ test('jitter is the spread of each corner error over the frames after the hand c
   const [clip] = runClip(clipLabel('plain-clip-000'), shaking).clips;
 
   expect(clip.jitterMm).toBeCloseTo(0.495, 3);
+});
+
+test('the photo outline is the refined photo outline when the detector command refines one', () => {
+  const clip = clipLabel('plain-clip-000', { handShiftMm: 2 });
+  const onThePhotoCard = clip.photo.corners.map(([x, y]) => ({ x: x / clip.photo.width, y: y / clip.photo.height })) as FrameQuad;
+
+  const [refined] = runClip(clip, onTheCard, new Map([[clip.clip, onThePhotoCard]])).clips;
+
+  expect(refined.photoOutlineMm).toBeCloseTo(0);
+  expect(refined.handShiftMm).toBeCloseTo(2);
+});
+
+test('a photo outline median of 0.5 mm or more fails the photo outline bar on clips whose held-still outline sits on the card edge', () => {
+  const clip = clipLabel('plain-clip-000', { handShiftMm: 0.6 });
+
+  const comparison = compareReplays(runClip(clip, onTheCard), runClip(clip, onTheCard), { sameDetector: false });
+
+  expect(comparison.clipBars).toContainEqual(
+    expect.objectContaining({ metric: 'Photo outline median, held still on the card edge', branch: '0.60 mm', bar: 'below 0.5 mm', pass: false }),
+  );
+});
+
+test('a clip whose held-still outline is off the card edge does not count for the photo outline bar', () => {
+  const clip = clipLabel('plain-clip-000');
+  const offTheEdge = (_: number, trueCorners: [number, number][]) => trueCorners.map(([x, y]): [number, number] => [x + 0.6 * pixelsPerMm, y]);
+
+  const comparison = compareReplays(runClip(clip, onTheCard), runClip(clip, offTheEdge), { sameDetector: false });
+
+  expect(comparison.clipBars).toContainEqual(
+    expect.objectContaining({ metric: 'Photo outline median, held still on the card edge', base: '0.00 mm', branch: 'none', pass: true }),
+  );
+});
+
+test('a new photo outline more than 1 mm inside the card edge fails the inside photo outlines bar', () => {
+  const clip = clipLabel('plain-clip-000');
+  const toPhoto = (corners: [number, number][]) => corners.map(([x, y]) => ({ x: x / clip.photo.width, y: y / clip.photo.height })) as FrameQuad;
+  const onTheInnerFrame = clip.photo.corners.map(([x, y]): [number, number] => [x + (x === 400 ? 3 : -3) * pixelsPerMm * photoScale, y]);
+
+  const comparison = compareReplays(
+    runClip(clip, onTheCard, new Map([[clip.clip, toPhoto(clip.photo.corners)]])),
+    runClip(clip, onTheCard, new Map([[clip.clip, toPhoto(onTheInnerFrame)]])),
+    { sameDetector: false },
+  );
+
+  expect(comparison.clipBars).toContainEqual(
+    expect.objectContaining({ metric: 'Inside photo outlines', base: '0', branch: '1', bar: 'no new one', pass: false }),
+  );
 });
 
 const everyOtherFrame = (index: number, trueCorners: [number, number][]) => (index % 2 === 0 ? trueCorners : null);
@@ -420,7 +472,7 @@ test('the replay table has one row per clip condition and names each clip that s
   const table = replayTable(compareReplays(runClip(clip, onTheCard), runClip(clip, everyOtherFrame), { sameDetector: false }));
 
   expect(table).toContain(
-    '| plain | 1 of 1 → 0 of 1 | 1200 ms → none | 0.00 mm → 0.00 mm | 1.00 mm → none | 1.00 mm → none | fail: photo asked for, settle time median |',
+    '| plain | 1 of 1 → 0 of 1 | 1200 ms → none | 0.00 mm → 0.00 mm | 1.00 mm → none | 1.00 mm → none | 0 → 0 | 1.00 mm → none | fail: photo asked for, settle time median |',
   );
   expect(table).toContain('- Photo asked for: not fewer');
   expect(table).toContain('Clips that ask for a photo on the merge base and not on the branch: plain-clip-000');

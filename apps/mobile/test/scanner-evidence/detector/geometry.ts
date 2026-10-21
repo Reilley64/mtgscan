@@ -49,3 +49,20 @@ export function outlineOnCard(outline: Point[], trueCorners: Point[], cardMm: Po
     .map((corners) => ({ corners, errorMm: Math.max(...corners.map((corner, index) => distance(corner, card[index]))) }))
     .reduce((best, candidate) => (candidate.errorMm < best.errorMm ? candidate : best));
 }
+
+export type Sides = { top: number; right: number; bottom: number; left: number };
+
+export function sidesInsideMm([topLeft, topRight, bottomRight, bottomLeft]: Point[], [width, height]: Point): Sides {
+  return {
+    top: (topLeft[1] + topRight[1]) / 2,
+    right: width - (topRight[0] + bottomRight[0]) / 2,
+    bottom: height - (bottomRight[1] + bottomLeft[1]) / 2,
+    left: (topLeft[0] + bottomLeft[0]) / 2,
+  };
+}
+
+export const insideOutlineMm = 1;
+
+export function isInside(sides: Sides) {
+  return Math.max(sides.top, sides.right, sides.bottom, sides.left) > insideOutlineMm;
+}
