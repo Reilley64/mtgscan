@@ -20,17 +20,19 @@ This folder holds the evidence for the scanner release gates in #10, #21, and #7
 | `bin-deck/<run>/` | The summary, results, and per-card detail of each physical run cited in #21. |
 | `check.mjs` | Compares a new result with an expected file and checks the gates. |
 
-Each expected file has a `recordedWith` block. It names the recognizer commit, the feature print, the gallery, the machine, and the command.
+Each expected file has a `recordedWith` block. It names the recognizer commit, the model and its SHA-256, the gallery, the machine, and the command.
 
 The crops show only cards, the card holder, and fingers. The 250 card crops cover 62 printings from one phone. They come from the bin rounds in #20 (`crops/rectified/`), the Mac recognizer rounds in #21 slice 1 (`crops/catalog/`), and the phone rounds in #21 slice 2 (`crops/catalog-device/`).
 
 ## Gallery
 
-The gates need the gallery: the feature prints and the printing list of every paper card printing. It is not in the repo, because it is built from Scryfall data. The expected files were recorded with gallery version `20261012-cf1753`, the first int8 gallery that #79 built for phones. It has 102,730 card printings from Scryfall `default_cards` of 11 October 2026. `recordedWith` names the version and the SHA-256 values of the installed `catalog.json` and `gallery.f16`. The scanner evidence pack keeps this version in Storage: `bun run gallery publish` never deletes it.
+The gates need the gallery: the feature prints and the printing list of every paper card printing. It is not in the repo, because it is built from Scryfall data. The expected files and `real/feature-prints.json` were recorded with gallery version `20261021-c38f43`, the first PE-Core gallery version (#471). Its model is `pe-core-s16-384` with SHA-256 `a7b41405eb0a9b34cebc3acf64c42d4c009689df3686d7f22fc12ea53e521aab`, and its art margin is 0.03. It has 102,857 card printings from Scryfall `default_cards` of 20 October 2026. `recordedWith` names the version, the model, and the SHA-256 values of the installed `catalog.json` and `gallery.f16`. The scanner evidence pack keeps this version in Storage: `bun run gallery publish` never deletes it.
+
+The Vision gallery version `20261012-cf1753` recorded the pack before. The pack no longer names it, but `publish` also keeps the previous published version. So the first publish after the switch keeps it, and the second one deletes it.
 
 `bun run gallery install <version>` in `supabase` unpacks a gallery version into `installed/<version>` in its work folder. The folder holds `catalog.json`, `gallery.json`, `gallery.f16`, and the compiled model `model.mlmodelc`. Set `RECOGNIZER_GALLERY_DIR` to that folder. The replay stops when the variable is not set.
 
-- **Install the recorded gallery.** Run `bun --env-file=.env.hosted gallery/main.ts install 20261012-cf1753 --hosted` in `supabase`. It unpacks the gallery into `~/Library/Caches/mtgscan/gallery/installed/20261012-cf1753`, with the same decoder as the phone. It downloads the parts with the hosted secret key only when they are not on the Mac. Only this gallery can show that a result is unchanged against the expected files. The recorded gallery is gallery format 1, and `install` now takes only format 2, so it refuses the recorded gallery. The recorded gallery has no model, so the recognizer no longer loads it, and the replay cannot run until #471 records the evidence pack again against the first PE-Core gallery version. Keep the folder that an earlier `install` wrote until then.
+- **Install the recorded gallery.** Run `bun --env-file=.env.hosted gallery/main.ts install 20261021-c38f43 --hosted` in `supabase`. It unpacks the gallery and its model into `~/Library/Caches/mtgscan/gallery/installed/20261021-c38f43`, with the same decoder as the phone. It downloads the parts with the hosted secret key only when they are not on the Mac. Only this gallery can show that a result is unchanged against the expected files.
 - **Build a gallery.** You can build a gallery from the current Scryfall data with the same commands as the gallery that phones download. They run against your local Supabase stack. Start the stack, and run these commands in `supabase`. The API port is 54321 on the default stack.
 
   ```bash
@@ -71,7 +73,7 @@ Options:
   - `webp`: each crop as a training crop, a 488 x 680 WebP at quality 90, with the same encoder as the phone;
   - `jpeg`: each crop as the old training crop, a JPEG at quality 0.9 written with ImageIO.
 
-  No lossy re-encode gives the same answer on every crop, because the collector line is only a few pixels high. So the WebP run passes when it makes no wrong accept and rejects every non-card crop, on the full gallery and held out, and has at least as many correct accepts as the JPEG run. The summary shows both runs under `webpRoundTrip`, with the scans whose first candidate or accept changed from the original crops. The results are in the reports folder as `real-full-webp.json`, `real-full-jpeg.json`, `real-held-out-webp.json`, and `real-held-out-jpeg.json`. The crops in this pack stay JPEG.
+  No lossy re-encode gives the same answer on every crop, because the collector line is only a few pixels high. So the WebP run passes when it makes no wrong accept and rejects every non-card crop, on the full gallery and held out. The summary shows its correct accepts next to the JPEG run's, but they do not pass or fail it. The summary shows both runs under `webpRoundTrip`, with the scans whose first candidate or accept changed from the original crops. The results are in the reports folder as `real-full-webp.json`, `real-full-jpeg.json`, `real-held-out-webp.json`, and `real-held-out-jpeg.json`. The crops in this pack stay JPEG.
 
 The render needs `uv`. `simulate.py` pins `opencv-python-headless` 5.0.0.93 and `numpy` 2.5.3, because another version changes the photo bytes. It downloads the 3,000 Scryfall `large` images into `modules/card-recognizer/.data/large` once. Set `RECOGNIZER_LARGE_IMAGES_DIR` to reuse a folder of them. On an Apple M3 the render takes about 45 minutes, the real crops about 30 seconds, and each simulated run about 5 minutes.
 
@@ -101,7 +103,7 @@ Pass criteria:
 - 11 of 11 non-card crops rejected.
 - 0 recognizer errors.
 
-Recorded result: 214 correct accepts of 250, 0 false accepts, 249 right cards first, and 236 right printings first. With the true printing missing, 0 accepts.
+Recorded result: 207 correct accepts of 250, 0 false accepts, 248 right cards first, and 230 right printings first. 15 accepts are unread, accepted as the only printing of their art. With the true printing missing, 0 accepts. The last Vision recording, on macOS 15.7.3, had 214 correct accepts, 249 right cards first, and 236 right printings first. On macOS 27.0.1 the Vision gallery gets 206 correct accepts, so most of the drop comes from the collector line reader on the new OS.
 
 ## Gate 2: simulated scans
 
@@ -119,7 +121,7 @@ Pass criteria:
 - No more accepted wrong printings outside the candidate list than recorded. The recorded count is 0. The #10 study had 1, Tamiyo's Journal `plst SOI-265` with 10 printings that share its art. The candidate list now includes every same-text twin, so that card is inside it.
 - 0 recognizer errors.
 
-Recorded result on the full gallery: 2,493 accepts, 2,135 exactly right, 358 other printings of the right card, and 0 wrong cards. 2,993 of 3,000 had the right card first. With the true printing missing: 382 accepts, all a printing that shares the art of the missing printing or its promo, and 0 wrong cards.
+Recorded result on the full gallery: 2,504 accepts, 2,134 exactly right, 370 other printings of the right card, and 0 wrong cards. 2,996 of 3,000 had the right card first. With the true printing missing: 401 accepts, all another printing of the right card, and 0 wrong cards. The last Vision recording had 2,493 accepts, 2,135 exactly right, and 2,993 right cards first, and 382 accepts with the true printing missing.
 
 In the results, `falseAccepts` counts every accept that is not the exact printing. Most are same-text twins, which are the product decision in #10. `check.mjs` reports wrong cards separately. `truthInTop5` counts the scans whose true printing is anywhere in the candidate list.
 
@@ -186,7 +188,7 @@ Record the expected files again when the recognizer code, the model, the operati
 2. Read each report in `modules/card-recognizer/.data/reports`. Explain every changed scan before you accept it.
 3. Do not accept new results that fail a gate.
 4. Copy the new result into the `result` field of the expected file.
-5. Update the `recordedWith` block: commit, gallery SHA-256 values, machine, and date.
+5. Update the `recordedWith` block: commit, model and its SHA-256, gallery SHA-256 values, machine, and date.
 
 ## Limits
 
