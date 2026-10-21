@@ -34,6 +34,7 @@ private struct AnalyzedFrame: @unchecked Sendable {
 private struct TakenPhoto: Sendable {
   let url: URL
   let time: CMTime
+  let info: Data
   let width: Int
   let height: Int
   let times: PhotoTimes
@@ -109,6 +110,13 @@ final class CameraSession: NSObject, @unchecked Sendable {
       }
       let id = settings.uniqueID
       let frame = keptFramesLock.withLock { keptFrames.frame(withOutline: outline) }
+      let debugRecord = keptFramesLock.withLock {
+        DetectorDebug.PhotoRecord(
+          requestHostSeconds: CMClockGetTime(CMClockGetHostTimeClock()).seconds,
+          keptFrameSeconds: keptFrames.keptSecondsList,
+          chosenFrameSeconds: keptFrames.seconds(withOutline: outline)
+        )
+      }
       let capture = PhotoCapture(times: times) { [weak self] result in
         if let self {
           sessionQueue.async { self.photoCaptures[id] = nil }
@@ -116,7 +124,7 @@ final class CameraSession: NSObject, @unchecked Sendable {
         completion(result.map { photo in
           CapturedPhoto(
             url: photo.url,
-            outline: Self.photoOutline(photo, frame: frame, heldStill: outline),
+            outline: Self.photoOutline(photo, frame: frame, heldStill: outline, debugRecord: debugRecord),
             width: photo.width,
             height: photo.height,
             times: photo.times
@@ -128,9 +136,18 @@ final class CameraSession: NSObject, @unchecked Sendable {
     }
   }
 
-  private static func photoOutline(_ photo: TakenPhoto, frame: AnalyzedFrame?, heldStill: [SIMD2<Double>]) -> [SIMD2<Double>] {
+  private static func photoOutline(
+    _ photo: TakenPhoto,
+    frame: AnalyzedFrame?,
+    heldStill: [SIMD2<Double>],
+    debugRecord: DetectorDebug.PhotoRecord
+  ) -> [SIMD2<Double>] {
     guard let frame else {
       log.info("photo outline: held still, no analyzed frame with this outline")
+      DetectorDebug.shared.photo(
+        record: debugRecord, photoURL: photo.url, photoSeconds: photo.time.seconds, photoInfo: photo.info, times: photo.times,
+        frame: nil, frameIntrinsicMatrix: nil, heldStill: heldStill, result: nil, durationMs: 0
+      )
       return heldStill
     }
     let startedAt = ProcessInfo.processInfo.systemUptime
@@ -145,6 +162,11 @@ final class CameraSession: NSObject, @unchecked Sendable {
     let photoAfterFrameMs = (photo.time - frame.time).seconds * 1_000.0
     log.info(
       "photo outline: \(result.outcome.rawValue, privacy: .public) in \(durationMs, format: .fixed(precision: 1), privacy: .public) ms, photo \(photoAfterFrameMs, format: .fixed(precision: 0), privacy: .public) ms after the frame"
+    )
+    DetectorDebug.shared.photo(
+      record: debugRecord, photoURL: photo.url, photoSeconds: photo.time.seconds, photoInfo: photo.info, times: photo.times,
+      frame: frame.pixelBuffer, frameIntrinsicMatrix: frame.intrinsicMatrix, heldStill: heldStill, result: result,
+      durationMs: durationMs
     )
     return result.outline
   }
@@ -198,6 +220,29 @@ final class CameraSession: NSObject, @unchecked Sendable {
     Self.log.info(
       "camera: zero shutter lag supported \(self.photoOutput.isZeroShutterLagSupported, privacy: .public), enabled \(self.photoOutput.isZeroShutterLagEnabled, privacy: .public); geometric distortion correction supported \(device.isGeometricDistortionCorrectionSupported, privacy: .public), enabled \(device.isGeometricDistortionCorrectionEnabled, privacy: .public); photo \(photoDimensions.width, privacy: .public) x \(photoDimensions.height, privacy: .public)"
     )
+    DetectorDebug.shared.cameraConfigured([
+      "device": [
+        "deviceType": device.deviceType.rawValue,
+        "videoZoomFactor": device.videoZoomFactor,
+        "lensPosition": device.lensPosition,
+        "isGeometricDistortionCorrectionEnabled": device.isGeometricDistortionCorrectionEnabled,
+      ],
+      "sessionPreset": session.sessionPreset.rawValue,
+      "activeFormat": DetectorDebug.formatInfo(device.activeFormat),
+      "videoConnection": DetectorDebug.connectionInfo(videoOutput.connection(with: .video)),
+      "photoConnection": DetectorDebug.connectionInfo(photoOutput.connection(with: .video)),
+      "photoOutput": [
+        "maxPhotoDimensions": [photoOutput.maxPhotoDimensions.width, photoOutput.maxPhotoDimensions.height],
+        "isZeroShutterLagSupported": photoOutput.isZeroShutterLagSupported,
+        "isZeroShutterLagEnabled": photoOutput.isZeroShutterLagEnabled,
+        "isResponsiveCaptureSupported": photoOutput.isResponsiveCaptureSupported,
+        "isResponsiveCaptureEnabled": photoOutput.isResponsiveCaptureEnabled,
+        "isFastCapturePrioritizationEnabled": photoOutput.isFastCapturePrioritizationEnabled,
+        "isAutoDeferredPhotoDeliveryEnabled": photoOutput.isAutoDeferredPhotoDeliveryEnabled,
+        "isCameraCalibrationDataDeliverySupported": photoOutput.isCameraCalibrationDataDeliverySupported,
+        "maxPhotoQualityPrioritization": photoOutput.maxPhotoQualityPrioritization.rawValue,
+      ],
+    ])
     configured = true
     return true
   }
@@ -243,7 +288,7 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
   func captureOutput(
     _: AVCaptureOutput,
     didOutput sampleBuffer: CMSampleBuffer,
-    from _: AVCaptureConnection
+    from connection: AVCaptureConnection
   ) {
     let time = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
     if lastAnalyzedAt.isValid, (time - lastAnalyzedAt).seconds < Self.analysisInterval {
@@ -273,6 +318,15 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
       transform: transform,
       nativeDurationMs: CardQuadDetector.elapsedMilliseconds(since: startedAt),
       sampledAtMs: sampledAtMs
+    )
+    DetectorDebug.shared.observe(
+      sampleBuffer: sampleBuffer,
+      connection: connection,
+      pixelBuffer: pixelBuffer,
+      intrinsicMatrix: intrinsicMatrix,
+      output: output,
+      sample: sample,
+      seconds: time.seconds
     )
     if let outline = sample.corners, let copy = copiedPlanes(of: pixelBuffer) {
       let frame = AnalyzedFrame(pixelBuffer: copy, intrinsicMatrix: intrinsicMatrix, time: time)
@@ -318,6 +372,7 @@ private final class PhotoCapture: NSObject, AVCapturePhotoCaptureDelegate, @unch
     completion(.success(TakenPhoto(
       url: url,
       time: photo.timestamp,
+      info: DetectorDebug.photoInfo(photo),
       width: Int(dimensions.width),
       height: Int(dimensions.height),
       times: times

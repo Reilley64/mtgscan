@@ -22,6 +22,7 @@ enum CardQuadDetector {
     var edgeSupportMin = 0.0
     var signature: [Double] = []
     var failure: DetectorFailure?
+    var diagnosis = ""
   }
 
   private static let supportedPixelFormats: Set<OSType> = [
@@ -61,6 +62,7 @@ enum CardQuadDetector {
       try handler.perform([request])
     } catch {
       output.failure = .visionFailed
+      output.diagnosis = "vision_failed"
       return output
     }
 
@@ -68,6 +70,7 @@ enum CardQuadDetector {
           observation.confidence.isFinite,
           (0.0 ... 1.0).contains(Double(observation.confidence))
     else {
+      output.diagnosis = "no_observation"
       return output
     }
     output.confidence = Double(observation.confidence)
@@ -82,6 +85,7 @@ enum CardQuadDetector {
       $0.x.isFinite && $0.y.isFinite
         && (0.0 ... 1.0).contains($0.x) && (0.0 ... 1.0).contains($0.y)
     }) else {
+      output.diagnosis = "points_outside"
       return output
     }
     let orientedPoints = visionPoints.map {
@@ -90,6 +94,7 @@ enum CardQuadDetector {
     guard let proposal = CardQuadGeometry.orderedClockwise(orientedPoints),
           CardQuadGeometry.isNondegenerateConvex(proposal, minimumEdge: 1.0)
     else {
+      output.diagnosis = "not_convex"
       return output
     }
     output.proposal = proposal.map { normalized($0, transform) }
@@ -116,8 +121,10 @@ enum CardQuadDetector {
     case let .refined(corners, supportMin, _, _, fallbackEdges):
       guard fallbackEdges == 0 || output.confidence >= minimumFallbackConfidence else {
         output.edgeSupportMin = supportMin
+        output.diagnosis = "fallback_low_confidence"
         break
       }
+      output.diagnosis = fallbackEdges == 0 ? "refined" : "refined_fallback"
       let metrics = CardQuadGeometry.metrics(corners, in: transform)
       output.refined = corners.map { normalized($0, transform) }
       output.areaRatio = metrics.areaRatio
@@ -126,8 +133,10 @@ enum CardQuadDetector {
       output.signature = cardSignature(corners: corners, plane: plane, transform: transform)
     case let .weakEdge(supportMin):
       output.edgeSupportMin = supportMin
+      output.diagnosis = "weak_edge"
     case let .invalidQuad(supportMin):
       output.edgeSupportMin = supportMin
+      output.diagnosis = "invalid_quad"
     }
     return output
   }

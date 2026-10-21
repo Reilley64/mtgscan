@@ -17,9 +17,25 @@ enum PhotoOutline {
     case failed
   }
 
+  struct Debug: Sendable {
+    var frameWidth = 0.0
+    var frameHeight = 0.0
+    var orientedIntrinsicMatrix: [Double]?
+    var warp: [Double]?
+    var moved: [SIMD2<Double>]?
+    var refinement = "not_run"
+    var refinedCorners: [SIMD2<Double>]?
+    var refinementAtHeldStill = "not_run"
+    var refinedCornersAtHeldStill: [SIMD2<Double>]?
+    var thumbnailWidth = 0
+    var thumbnailHeight = 0
+    var thumbnailPNG: Data?
+  }
+
   struct Result: Sendable {
     let outline: [SIMD2<Double>]
     let outcome: Outcome
+    var debug: Debug? = nil
   }
 
   static func refine(
@@ -29,25 +45,64 @@ enum PhotoOutline {
     frameIntrinsicMatrix: simd_float3x3?,
     heldStill: [SIMD2<Double>]
   ) -> Result {
+    var debug = Debug()
     guard heldStill.count == 4,
           let frameTransform = OrientationTransform(
             displayOrientation: frameOrientation,
             bufferWidth: Double(CVPixelBufferGetWidth(frame)),
             bufferHeight: Double(CVPixelBufferGetHeight(frame)),
             bufferIntrinsicMatrix: frameIntrinsicMatrix.map(simd_double3x3.init)
-          ),
-          let image = PhotoLuma(photo: photo, frameTransform: frameTransform),
-          let motion = cameraMotion(from: frame, orientation: frameOrientation, to: image)
+          )
     else {
-      return Result(outline: heldStill, outcome: .failed)
+      return Result(outline: heldStill, outcome: .failed, debug: debug)
     }
+    debug.frameWidth = frameTransform.orientedWidth
+    debug.frameHeight = frameTransform.orientedHeight
+    debug.orientedIntrinsicMatrix = frameTransform.intrinsicMatrix.map(rowMajor)
+    guard let image = PhotoLuma(photo: photo, frameTransform: frameTransform) else {
+      debug.refinement = "photo_unreadable"
+      return Result(outline: heldStill, outcome: .failed, debug: debug)
+    }
+    debug.thumbnailWidth = image.decodedWidth
+    debug.thumbnailHeight = image.decodedHeight
+    debug.thumbnailPNG = pngData(image.image)
     let size = SIMD2(frameTransform.orientedWidth, frameTransform.orientedHeight)
+    let atHeldStill = image.withPlane { plane in
+      CardEdgeRefiner.refine(proposal: heldStill.map { $0 * size }, plane: plane, transform: image.transform)
+    }
+    debug.refinementAtHeldStill = String(describing: atHeldStill)
+    if case let .refined(corners, _, _, _, _) = atHeldStill {
+      debug.refinedCornersAtHeldStill = corners.map { $0 / size }
+    }
+    guard let (motion, warp) = cameraMotion(from: frame, orientation: frameOrientation, to: image) else {
+      debug.refinement = "registration_failed"
+      return Result(outline: heldStill, outcome: .failed, debug: debug)
+    }
+    debug.warp = rowMajor(warp)
     let moved = heldStill.map { motion($0 * size) }
+    debug.moved = moved.map { $0 / size }
     let refinement = image.withPlane { plane in
       CardEdgeRefiner.refine(proposal: moved, plane: plane, transform: image.transform)
     }
+    debug.refinement = String(describing: refinement)
+    if case let .refined(corners, _, _, _, _) = refinement {
+      debug.refinedCorners = corners.map { $0 / size }
+    }
     let checked = checkedOutline(refinement, moved: moved)
-    return Result(outline: checked.outline.map { $0 / size }, outcome: checked.outcome)
+    return Result(outline: checked.outline.map { $0 / size }, outcome: checked.outcome, debug: debug)
+  }
+
+  private static func rowMajor(_ matrix: simd_double3x3) -> [Double] {
+    (0 ..< 3).flatMap { row in (0 ..< 3).map { column in matrix[column][row] } }
+  }
+
+  static func pngData(_ image: CGImage) -> Data? {
+    let data = NSMutableData()
+    guard let destination = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil) else {
+      return nil
+    }
+    CGImageDestinationAddImage(destination, image, nil)
+    return CGImageDestinationFinalize(destination) ? data as Data : nil
   }
 
   static func checkedOutline(_ refinement: CardEdgeRefiner.Outcome, moved: [SIMD2<Double>]) -> Result {
@@ -79,7 +134,7 @@ enum PhotoOutline {
     from frame: CVPixelBuffer,
     orientation: CGImagePropertyOrientation,
     to photo: PhotoLuma
-  ) -> ((SIMD2<Double>) -> SIMD2<Double>)? {
+  ) -> ((SIMD2<Double>) -> SIMD2<Double>, simd_double3x3)? {
     let request = VNHomographicImageRegistrationRequest(targetedCVPixelBuffer: frame, orientation: orientation, options: [:])
     do {
       try VNImageRequestHandler(cgImage: photo.image, orientation: .up, options: [:]).perform([request])
@@ -91,16 +146,18 @@ enum PhotoOutline {
     }
     let matrix = simd_double3x3(warp)
     let height = Double(photo.height)
-    return { point in
+    return ({ point in
       let mapped = matrix * SIMD3(point.x, height - point.y, 1.0)
       return SIMD2(mapped.x / mapped.z, height - mapped.y / mapped.z)
-    }
+    }, matrix)
   }
 }
 
 private struct PhotoLuma {
   let width: Int
   let height: Int
+  let decodedWidth: Int
+  let decodedHeight: Int
   let image: CGImage
   let transform: OrientationTransform
   private let pixels: Data
@@ -139,6 +196,8 @@ private struct PhotoLuma {
     }
     self.width = width
     self.height = height
+    decodedWidth = decoded.width
+    decodedHeight = decoded.height
     self.image = image
     self.transform = transform
     pixels = Data(bytes: data, count: width * height)

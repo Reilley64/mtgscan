@@ -12,6 +12,14 @@ struct KeptFrames<Frame> {
     kept.append((frame, outline, seconds))
   }
 
+  var keptSecondsList: [Double] {
+    kept.map(\.seconds)
+  }
+
+  func seconds(withOutline outline: [SIMD2<Double>]) -> Double? {
+    kept.last { $0.outline == outline }?.seconds
+  }
+
   func frame(withOutline outline: [SIMD2<Double>]) -> Frame? {
     kept.last { $0.outline == outline }?.frame
   }
