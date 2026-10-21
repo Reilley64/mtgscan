@@ -6,6 +6,7 @@ on:
       - apps/mobile/modules/card-recognizer/**
       - apps/mobile/test/scanner-evidence/**
       - .github/workflows/recognizer.yml
+      - bun.lock
   workflow_dispatch:
 
 permissions:
@@ -36,4 +37,7 @@ jobs:
         working-directory: apps/mobile/ios
         run: >
           xcodebuild -workspace mtgscan.xcworkspace -scheme mtgscan -configuration Debug
-          -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build -quiet
+          -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build build -quiet
+      - name: Check that the app links the libwebp version of the vendored headers
+        working-directory: apps/mobile
+        run: bun modules/card-recognizer/scripts/check-libwebp-version.mjs ios/build/Build/Products/Debug-iphonesimulator/mtgscan.app
