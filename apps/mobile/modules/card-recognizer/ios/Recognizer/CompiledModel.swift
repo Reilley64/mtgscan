@@ -35,14 +35,14 @@ public final class CompiledModel: @unchecked Sendable {
     try self.init(compiledAt: url.pathExtension == "mlmodelc" ? url : MLModel.compileModel(at: url))
   }
 
-  public func featurePrint(ofCardAt url: URL, inputSize: FeaturePrintModel.InputSize) throws -> [Float] {
+  public func featurePrint(ofCardAt url: URL) throws -> [Float] {
     guard let card = CardRectifier.loadCard(at: url), let small = CardRecognizer.small(card) else {
       throw Failure.unreadableImage
     }
-    return try featurePrint(of: small, inputSize: inputSize)
+    return try featurePrint(of: small)
   }
 
-  public func featurePrint(of card: CGImage, inputSize: FeaturePrintModel.InputSize) throws -> [Float] {
+  public func featurePrint(of card: CGImage) throws -> [Float] {
     let pixels = try Self.pixels(of: card, size: inputSize)
     let output = try lock.withLock {
       try model.prediction(from: MLDictionaryFeatureProvider(dictionary: [Self.input: pixels]))

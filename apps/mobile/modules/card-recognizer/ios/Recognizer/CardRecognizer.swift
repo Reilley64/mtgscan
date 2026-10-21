@@ -46,8 +46,8 @@ public enum CardRecognizer {
     let uprightVector: [Float]
     let turnedVector: [Float]
     do {
-      uprightVector = try gallery.featurePrint(of: uprightSmall)
-      turnedVector = try gallery.featurePrint(of: turnedSmall)
+      uprightVector = try gallery.compiledModel.featurePrint(of: uprightSmall)
+      turnedVector = try gallery.compiledModel.featurePrint(of: turnedSmall)
     } catch {
       throw .unreadablePhoto
     }

@@ -14,9 +14,9 @@ public enum ModelPackage {
       (try fileManager.attributesOfItem(atPath: package.appendingPathComponent(path).path)[.type] as? FileAttributeType) == .typeRegular
     }
     let listing = try files.sorted { Array($0.utf8).lexicographicallyPrecedes(Array($1.utf8)) }.map { path in
-      "\(hex(SHA256.hash(data: try Data(contentsOf: package.appendingPathComponent(path)))))  \(path)\n"
+      "\(SHA256.hash(data: try Data(contentsOf: package.appendingPathComponent(path))).hex)  \(path)\n"
     }.joined()
-    return hex(SHA256.hash(data: Data(listing.utf8)))
+    return SHA256.hash(data: Data(listing.utf8)).hex
   }
 
   public static func unpack(_ archive: Data, into directory: URL) throws {
@@ -49,9 +49,5 @@ public enum ModelPackage {
       offset = start + (size + blockSize - 1) / blockSize * blockSize
     }
     throw Failure.malformedArchive
-  }
-
-  static func hex(_ digest: SHA256.Digest) -> String {
-    digest.map { String(format: "%02x", $0) }.joined()
   }
 }

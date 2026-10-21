@@ -193,8 +193,8 @@ func installingABaseUnpacksItsModelPartAndCompilesIt() throws {
   #expect(installed.contains(GalleryFile.compiledModel))
   #expect(!installed.contains(GalleryFile.modelPackage))
   let photo = try card(seed: 1)
-  let expected = try fixtureCompiledModel.featurePrint(of: #require(CardRecognizer.small(photo)), inputSize: fixtureModel.inputSize)
-  #expect(cosine(try Gallery(directory: destination).featurePrint(of: #require(CardRecognizer.small(photo))), expected) > 0.9999)
+  let expected = try fixtureCompiledModel.featurePrint(of: #require(CardRecognizer.small(photo)))
+  #expect(cosine(try Gallery(directory: destination).compiledModel.featurePrint(of: #require(CardRecognizer.small(photo))), expected) > 0.9999)
 }
 
 @Test("installing refuses a model part whose model SHA-256 differs from the manifest's model")
@@ -353,7 +353,7 @@ func anUpdateInstallsTheDownloadedAddOnOverTheInstalledGallery() throws {
   #expect(names == expectedNames)
   #expect(vectors == expectedVectors)
   #expect(try GalleryInstaller.manifest(in: destination).version == "20261028-bbbbbb")
-  #expect(try Gallery(directory: destination).featurePrint(of: card(seed: 1)).count == fixtureModel.vectorSize)
+  #expect(try Gallery(directory: destination).compiledModel.featurePrint(of: card(seed: 1)).count == fixtureModel.vectorSize)
 }
 
 @Test("a failed update leaves the installed gallery in use")
